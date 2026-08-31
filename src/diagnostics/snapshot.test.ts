@@ -9,6 +9,7 @@ describe('safe diagnostics snapshot', () => {
       capabilities: {
         serviceWorker: true,
         notifications: true,
+        permissionsApi: true,
         mediaDevices: true,
         getUserMedia: true,
         peerConnection: true,
@@ -19,6 +20,8 @@ describe('safe diagnostics snapshot', () => {
         videoPictureInPicture: false,
         documentPictureInPicture: false,
         wakeLock: true,
+        visualViewport: true,
+        virtualKeyboard: false,
       },
       media: {
         microphone: 'granted',
