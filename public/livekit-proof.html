@@ -11,12 +11,13 @@
     h1 { font-size: 22px; margin: 0 0 8px; }
     p { line-height: 1.45; }
     .card { background: #fff; border: 1px solid #ddd; border-radius: 14px; padding: 16px; margin: 14px 0; }
-    .row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
     button { min-height: 46px; padding: 0 16px; border: 1px solid #bbb; border-radius: 10px; background: #fff; font: inherit; }
     button.primary { background: #111; color: #fff; border-color: #111; }
     button:disabled { opacity: .45; }
     code { word-break: break-all; }
     #log { white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; line-height: 1.45; max-height: 320px; overflow: auto; }
+    #sendLogStatus { font-size: 13px; }
     .ok { color: #116b2c; }
     .warn { color: #9a5a00; }
     .bad { color: #a10000; }
@@ -26,12 +27,13 @@
 <body>
 <main>
   <h1>LiveKit Audio Proof</h1>
-  <p>Trang thử độc lập. Không Supabase, không Call UI cũ, không signaling cũ. Hai máy mở cùng trang và bấm <b>Vào phòng</b>.</p>
+  <p>Trang thử media độc lập. Supabase không tham gia media/call; chỉ nhận log khi bấm <b>Gửi log</b>. Hai máy mở cùng trang và bấm <b>Vào phòng</b>.</p>
 
   <div class="card">
     <div><b>Room:</b> <code id="roomName"></code></div>
     <div><b>Thiết bị:</b> <span id="device"></span></div>
     <div><b>Identity:</b> <code id="identity"></code></div>
+    <div><b>Test session:</b> <code id="testSession"></code></div>
     <div><b>Trạng thái:</b> <span id="status">chưa vào</span></div>
     <div><b>Remote audio:</b> <span id="remoteStatus">chưa có</span></div>
   </div>
@@ -40,6 +42,8 @@
     <button id="join" class="primary">Vào phòng</button>
     <button id="enableAudio" disabled>Bật âm thanh</button>
     <button id="leave" disabled>Rời phòng</button>
+    <button id="sendLog">Gửi log</button>
+    <span id="sendLogStatus"></span>
   </div>
 
   <div class="card">
@@ -185,8 +189,6 @@
       },
     });
 
-    // Intentional: this is called directly from the user's tap/click.
-    // It is the only browser-audio unlock path in this proof.
     room.startAudio().then(() => log('AUDIO UNLOCK từ user gesture', 'ok')).catch((e) => log(`AUDIO UNLOCK chờ sau connect: ${e && e.message ? e.message : e}`, 'warn'));
 
     room.on(lk.RoomEvent.TrackSubscribed, (track, publication, participant) => {
@@ -272,6 +274,80 @@
   leaveButton.addEventListener('click', leave);
 
   log(`PROOF READY · ${device}`);
+})();
+</script>
+
+<script>
+(() => {
+  const SUPABASE_URL = 'https://gcnoahqsrquxkwkjbuxy.supabase.co';
+  const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_UY3gfQ9MsntDFCUJ_uV0UA__eTYXz_w';
+  const ROOM_NAME = 'taphoa-livekit-audio-proof-v1';
+  const testSessionId = crypto.randomUUID();
+  const button = document.getElementById('sendLog');
+  const status = document.getElementById('sendLogStatus');
+
+  document.getElementById('testSession').textContent = testSessionId;
+
+  function audioSessionType() {
+    try {
+      return navigator.audioSession && typeof navigator.audioSession.type === 'string'
+        ? navigator.audioSession.type
+        : null;
+    } catch {
+      return null;
+    }
+  }
+
+  async function sendLog() {
+    button.disabled = true;
+    status.textContent = 'Đang gửi…';
+    status.className = 'warn';
+
+    const logLines = Array.from(document.querySelectorAll('#log > div')).map((line, index) => ({
+      index,
+      text: line.textContent || '',
+      className: line.className || '',
+    }));
+
+    const payload = {
+      p_test_session_id: testSessionId,
+      p_device: document.getElementById('device').textContent || 'Web',
+      p_identity: document.getElementById('identity').textContent || 'unknown',
+      p_user_agent: navigator.userAgent,
+      p_audio_session_type: audioSessionType(),
+      p_room_name: ROOM_NAME,
+      p_log_lines: logLines,
+      p_metrics: {
+        status: document.getElementById('status').textContent || '',
+        remote_status: document.getElementById('remoteStatus').textContent || '',
+        visibility_state: document.visibilityState,
+        attached_audio_elements: document.querySelectorAll('#audioHost audio').length,
+        sent_at: new Date().toISOString(),
+      },
+    };
+
+    try {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/chat_submit_livekit_audio_proof`, {
+        method: 'POST',
+        headers: {
+          apikey: SUPABASE_PUBLISHABLE_KEY,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+      const body = await response.text();
+      if (!response.ok) throw new Error(`${response.status} ${body}`);
+      status.textContent = `Đã gửi · ${testSessionId.slice(0, 8)}`;
+      status.className = 'ok';
+    } catch (error) {
+      status.textContent = `Gửi lỗi: ${error && error.message ? error.message : error}`;
+      status.className = 'bad';
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  button.addEventListener('click', sendLog);
 })();
 </script>
 </body>
