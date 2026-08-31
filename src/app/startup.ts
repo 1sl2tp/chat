@@ -4,7 +4,7 @@ export type AppSurface =
   | { type: 'guest-chat' }
   | { type: 'customer-chat' }
   | { type: 'admin-login' }
-  | { type: 'admin-workspace' }
+  | { type: 'admin-workspace'; identity: ResolvedIdentity }
   | { type: 'access-denied' }
   | { type: 'identity-error'; message: string }
 
@@ -26,7 +26,7 @@ export function decideSurface(pathname: string, identity: ResolvedIdentity | nul
   }
 
   if (adminPath) {
-    return identity.kind === 'admin' ? { type: 'admin-workspace' } : { type: 'access-denied' }
+    return identity.kind === 'admin' ? { type: 'admin-workspace', identity } : { type: 'access-denied' }
   }
 
   if (identity.kind === 'admin') return { type: 'access-denied' }
