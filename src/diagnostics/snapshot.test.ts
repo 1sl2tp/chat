@@ -23,6 +23,17 @@ describe('safe diagnostics snapshot', () => {
         visualViewport: true,
         virtualKeyboard: false,
       },
+      permissions: {
+        notifications: 'granted',
+        microphone: 'prompt',
+      },
+      viewport: {
+        layoutHeight: 844,
+        visualHeight: 544,
+        offsetTop: 0,
+        keyboardInset: 300,
+        keyboardOpen: true,
+      },
       media: {
         microphone: 'granted',
         localTrack: 'live',
@@ -44,6 +55,8 @@ describe('safe diagnostics snapshot', () => {
       build: { version: '0.1.0', id: 'abc123' },
       runtime: { os: 'ios', browser: 'safari', formFactor: 'mobile', appMode: 'standalone' },
       capabilities: input.capabilities,
+      permissions: input.permissions,
+      viewport: input.viewport,
       media: input.media,
     })
     expect(snapshot).not.toHaveProperty('token')
