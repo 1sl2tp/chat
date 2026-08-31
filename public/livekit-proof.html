@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>LiveKit Audio Proof</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: #f5f5f5; color: #111; }
+    main { max-width: 640px; margin: 0 auto; padding: 20px; }
+    h1 { font-size: 22px; margin: 0 0 8px; }
+    p { line-height: 1.45; }
+    .card { background: #fff; border: 1px solid #ddd; border-radius: 14px; padding: 16px; margin: 14px 0; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; }
+    button { min-height: 46px; padding: 0 16px; border: 1px solid #bbb; border-radius: 10px; background: #fff; font: inherit; }
+    button.primary { background: #111; color: #fff; border-color: #111; }
+    button:disabled { opacity: .45; }
+    code { word-break: break-all; }
+    #log { white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; line-height: 1.45; max-height: 320px; overflow: auto; }
+    .ok { color: #116b2c; }
+    .warn { color: #9a5a00; }
+    .bad { color: #a10000; }
+    .audio-host audio { position: fixed; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>LiveKit Audio Proof</h1>
+  <p>Trang thử độc lập. Không Supabase, không Call UI cũ, không signaling cũ. Hai máy mở cùng trang và bấm <b>Vào phòng</b>.</p>
+
+  <div class="card">
+    <div><b>Room:</b> <code id="roomName"></code></div>
+    <div><b>Thiết bị:</b> <span id="device"></span></div>
+    <div><b>Identity:</b> <code id="identity"></code></div>
+    <div><b>Trạng thái:</b> <span id="status">chưa vào</span></div>
+    <div><b>Remote audio:</b> <span id="remoteStatus">chưa có</span></div>
+  </div>
+
+  <div class="card row">
+    <button id="join" class="primary">Vào phòng</button>
+    <button id="enableAudio" disabled>Bật âm thanh</button>
+    <button id="leave" disabled>Rời phòng</button>
+  </div>
+
+  <div class="card">
+    <b>Log</b>
+    <div id="log"></div>
+  </div>
+
+  <div id="audioHost" class="audio-host"></div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/livekit-client@2.22.1/dist/livekit-client.umd.min.js"></script>
+<script>
+(() => {
+  const TOKEN_SERVER_ID = 'taphoachat-1x4n2g';
+  const ROOM_NAME = 'taphoa-livekit-audio-proof-v1';
+  const lk = window.LivekitClient;
+
+  const $ = (id) => document.getElementById(id);
+  const joinButton = $('join');
+  const enableAudioButton = $('enableAudio');
+  const leaveButton = $('leave');
+  const status = $('status');
+  const remoteStatus = $('remoteStatus');
+  const logEl = $('log');
+  const audioHost = $('audioHost');
+
+  const device = /Android/i.test(navigator.userAgent)
+    ? 'Android Web'
+    : /iPhone|iPad|iPod/i.test(navigator.userAgent)
+      ? 'iOS Web'
+      : 'Web';
+  const identity = `${device.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${crypto.randomUUID()}`;
+
+  $('roomName').textContent = ROOM_NAME;
+  $('device').textContent = device;
+  $('identity').textContent = identity;
+
+  let room = null;
+  const attached = new Map();
+
+  function log(message, cls = '') {
+    const line = document.createElement('div');
+    line.textContent = `${new Date().toLocaleTimeString()}  ${message}`;
+    if (cls) line.className = cls;
+    logEl.appendChild(line);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function setStatus(text, cls = '') {
+    status.textContent = text;
+    status.className = cls;
+  }
+
+  function setRemote(text, cls = '') {
+    remoteStatus.textContent = text;
+    remoteStatus.className = cls;
+  }
+
+  async function playAttachedAudio() {
+    let anyBlocked = false;
+    for (const [key, element] of attached) {
+      try {
+        element.autoplay = true;
+        element.playsInline = true;
+        element.muted = false;
+        element.volume = 1;
+        await element.play();
+        log(`PLAY OK ${key}`, 'ok');
+      } catch (error) {
+        anyBlocked = true;
+        log(`PLAY BLOCKED ${key}: ${error && error.message ? error.message : error}`, 'warn');
+      }
+    }
+    enableAudioButton.disabled = !anyBlocked;
+    setRemote(anyBlocked ? 'có track · playback bị chặn' : attached.size ? 'đang phát' : 'chưa có', anyBlocked ? 'warn' : attached.size ? 'ok' : '');
+  }
+
+  function attachRemoteAudio(track, publication, participant) {
+    const key = `${participant.identity}:${publication.trackSid || track.sid || 'audio'}`;
+    if (attached.has(key)) {
+      log(`BỎ QUA attach trùng ${key}`, 'warn');
+      return;
+    }
+
+    const element = track.attach();
+    if (!(element instanceof HTMLMediaElement)) {
+      log(`REMOTE AUDIO không tạo HTMLMediaElement: ${key}`, 'bad');
+      return;
+    }
+
+    element.autoplay = true;
+    element.playsInline = true;
+    element.muted = false;
+    element.volume = 1;
+    element.dataset.remoteKey = key;
+    audioHost.appendChild(element);
+    attached.set(key, element);
+    setRemote('đã subscribe · đang thử phát', 'warn');
+    log(`REMOTE AUDIO SUBSCRIBED ${key}`, 'ok');
+
+    element.play()
+      .then(() => {
+        setRemote('đang phát', 'ok');
+        enableAudioButton.disabled = true;
+        log(`REMOTE AUDIO PLAYING ${key}`, 'ok');
+      })
+      .catch((error) => {
+        setRemote('có track · playback bị chặn', 'warn');
+        enableAudioButton.disabled = false;
+        log(`REMOTE AUDIO BLOCKED ${key}: ${error && error.message ? error.message : error}`, 'warn');
+      });
+  }
+
+  function detachRemoteAudio(track, publication, participant) {
+    const key = `${participant.identity}:${publication.trackSid || track.sid || 'audio'}`;
+    const element = attached.get(key);
+    if (element) {
+      element.pause();
+      element.remove();
+      attached.delete(key);
+    }
+    for (const detached of track.detach()) detached.remove();
+    setRemote(attached.size ? 'còn remote audio' : 'chưa có');
+    log(`REMOTE AUDIO UNSUBSCRIBED ${key}`);
+  }
+
+  async function join() {
+    if (!lk) {
+      setStatus('LiveKit SDK không tải được', 'bad');
+      return;
+    }
+    if (room) return;
+
+    joinButton.disabled = true;
+    setStatus('đang chuẩn bị…', 'warn');
+
+    room = new lk.Room({
+      disconnectOnPageLeave: true,
+      audioCaptureDefaults: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: false,
+      },
+    });
+
+    // Intentional: this is called directly from the user's tap/click.
+    // It is the only browser-audio unlock path in this proof.
+    room.startAudio().then(() => log('AUDIO UNLOCK từ user gesture', 'ok')).catch((e) => log(`AUDIO UNLOCK chờ sau connect: ${e && e.message ? e.message : e}`, 'warn'));
+
+    room.on(lk.RoomEvent.TrackSubscribed, (track, publication, participant) => {
+      if (track.kind === lk.Track.Kind.Audio) attachRemoteAudio(track, publication, participant);
+    });
+    room.on(lk.RoomEvent.TrackUnsubscribed, (track, publication, participant) => {
+      if (track.kind === lk.Track.Kind.Audio) detachRemoteAudio(track, publication, participant);
+    });
+    room.on(lk.RoomEvent.ParticipantConnected, (participant) => log(`PEER JOIN ${participant.identity}`, 'ok'));
+    room.on(lk.RoomEvent.ParticipantDisconnected, (participant) => log(`PEER LEAVE ${participant.identity}`, 'warn'));
+    room.on(lk.RoomEvent.AudioPlaybackStatusChanged, () => {
+      log(`canPlaybackAudio=${room.canPlaybackAudio}`, room.canPlaybackAudio ? 'ok' : 'warn');
+      if (!room.canPlaybackAudio) enableAudioButton.disabled = false;
+    });
+    room.on(lk.RoomEvent.Reconnecting, () => setStatus('đang reconnect…', 'warn'));
+    room.on(lk.RoomEvent.Reconnected, () => setStatus('đã reconnect', 'ok'));
+    room.on(lk.RoomEvent.Disconnected, () => {
+      setStatus('đã ngắt');
+      joinButton.disabled = false;
+      leaveButton.disabled = true;
+    });
+
+    try {
+      const source = lk.TokenSource.developmentTokenServer(TOKEN_SERVER_ID);
+      log('Đang lấy development token…');
+      const credentials = await source.fetch({
+        roomName: ROOM_NAME,
+        participantIdentity: identity,
+        participantName: device,
+      });
+      log(`TOKEN OK · server=${credentials.serverUrl}`, 'ok');
+
+      await room.connect(credentials.serverUrl, credentials.participantToken);
+      setStatus('đã vào LiveKit room', 'ok');
+      log('ROOM CONNECTED', 'ok');
+
+      await room.localParticipant.setMicrophoneEnabled(true);
+      log('LOCAL MIC PUBLISHED', 'ok');
+
+      leaveButton.disabled = false;
+      if (!room.canPlaybackAudio) enableAudioButton.disabled = false;
+    } catch (error) {
+      setStatus(`lỗi: ${error && error.message ? error.message : error}`, 'bad');
+      log(`JOIN ERROR ${error && error.stack ? error.stack : error}`, 'bad');
+      if (room) room.disconnect(true);
+      room = null;
+      joinButton.disabled = false;
+      leaveButton.disabled = true;
+    }
+  }
+
+  async function enableAudio() {
+    if (!room) return;
+    try {
+      await room.startAudio();
+      log('room.startAudio() OK', 'ok');
+      await playAttachedAudio();
+    } catch (error) {
+      log(`BẬT ÂM THANH LỖI: ${error && error.message ? error.message : error}`, 'bad');
+    }
+  }
+
+  function leave() {
+    if (!room) return;
+    room.disconnect(true);
+    room = null;
+    for (const element of attached.values()) {
+      element.pause();
+      element.remove();
+    }
+    attached.clear();
+    audioHost.replaceChildren();
+    setStatus('đã rời phòng');
+    setRemote('chưa có');
+    joinButton.disabled = false;
+    enableAudioButton.disabled = true;
+    leaveButton.disabled = true;
+    log('LEFT ROOM');
+  }
+
+  joinButton.addEventListener('click', join);
+  enableAudioButton.addEventListener('click', enableAudio);
+  leaveButton.addEventListener('click', leave);
+
+  log(`PROOF READY · ${device}`);
+})();
+</script>
+</body>
+</html>
