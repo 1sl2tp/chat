@@ -1,5 +1,6 @@
 import { updateCustomerProfile } from '../../profile/runtime'
 import { createSupabaseProfileBackend } from '../../supabase/profile-backend'
+import './profile-form.css'
 
 export interface ProfileFormController {
   open(displayName?: string | null): void
