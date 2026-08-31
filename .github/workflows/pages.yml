@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -26,15 +26,17 @@ jobs:
           node-version: 22
       - name: Install dependencies
         run: npm install
+      - name: Commit dependency lock
+        run: |
+          if [ -n "$(git status --porcelain package-lock.json)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add package-lock.json
+            git commit -m "chore: lock dependencies"
+            git push
+          fi
       - name: Typecheck, test and build
         run: npm run build
-      - name: Upload dependency lock
-        uses: actions/upload-artifact@v4
-        with:
-          name: dependency-lock
-          path: package-lock.json
-          if-no-files-found: error
-          retention-days: 1
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload Pages artifact
