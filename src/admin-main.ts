@@ -8,8 +8,9 @@ import { createSupabaseChatBackend } from './supabase/chat-backend'
 import { adminSupabase } from './supabase/client'
 import './admin.css'
 
-const root = document.querySelector<HTMLDivElement>('#app')
-if (!root) throw new Error('Missing #app root')
+const rootElement = document.querySelector<HTMLDivElement>('#app')
+if (!rootElement) throw new Error('Missing #app root')
+const root: HTMLDivElement = rootElement
 
 async function ensureAdminIdentity(): Promise<void> {
   await bootstrapAdminIdentity(createSupabaseChatBackend(adminSupabase), {
