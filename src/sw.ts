@@ -1,0 +1,135 @@
+/// <reference lib="webworker" />
+
+import { parsePushPayload } from './notifications/payload'
+
+declare const self: ServiceWorkerGlobalScope & typeof globalThis & {
+  __WB_MANIFEST: Array<{ url: string; revision?: string | null }>
+  navigator: WorkerNavigator & {
+    setAppBadge?: (contents?: number) => Promise<void>
+  }
+}
+
+const CACHE_PREFIX = 'chat-precache-'
+const manifestEntries = self.__WB_MANIFEST
+const CACHE_NAME = `${CACHE_PREFIX}${hashManifest(manifestEntries)}`
+const PRECACHE_URLS = manifestEntries.map((entry) => new URL(entry.url, self.registration.scope).href)
+const APP_SHELL_URL = new URL('./index.html', self.registration.scope).href
+
+self.addEventListener('install', (event) => {
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME)
+    await cache.addAll(PRECACHE_URLS)
+    await self.skipWaiting()
+  })())
+})
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil((async () => {
+    const cacheNames = await caches.keys()
+    await Promise.all(
+      cacheNames
+        .filter((name) => name.startsWith(CACHE_PREFIX) && name !== CACHE_NAME)
+        .map((name) => caches.delete(name)),
+    )
+    await self.clients.claim()
+  })())
+})
+
+self.addEventListener('fetch', (event) => {
+  const request = event.request
+  if (request.method !== 'GET') return
+
+  const requestUrl = new URL(request.url)
+  if (requestUrl.origin !== self.location.origin) return
+
+  event.respondWith((async () => {
+    const cached = await caches.match(request)
+    if (cached) return cached
+
+    try {
+      return await fetch(request)
+    } catch (error) {
+      if (request.mode === 'navigate') {
+        const appShell = await caches.match(APP_SHELL_URL)
+        if (appShell) return appShell
+      }
+      throw error
+    }
+  })())
+})
+
+self.addEventListener('push', (event) => {
+  const payload = parsePushPayload(readPushData(event))
+
+  event.waitUntil((async () => {
+    const setBadge = self.navigator.setAppBadge
+    const badgeTask = payload.badge !== undefined && typeof setBadge === 'function'
+      ? setBadge.call(self.navigator, payload.badge)
+      : Promise.resolve()
+
+    await Promise.all([
+      self.registration.showNotification(payload.title, {
+        body: payload.body,
+        tag: payload.tag,
+        data: { navigate: payload.navigate },
+      }),
+      badgeTask,
+    ])
+  })())
+})
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+
+  event.waitUntil((async () => {
+    const data = event.notification.data as { navigate?: unknown } | undefined
+    const target = resolveSafeNavigation(data?.navigate)
+    const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+
+    for (const client of windows) {
+      const windowClient = client as WindowClient
+      const clientUrl = new URL(windowClient.url)
+      const scopeUrl = new URL(self.registration.scope)
+
+      if (clientUrl.origin === scopeUrl.origin && clientUrl.pathname.startsWith(scopeUrl.pathname)) {
+        await windowClient.navigate(target.href)
+        return windowClient.focus()
+      }
+    }
+
+    return self.clients.openWindow(target.href)
+  })())
+})
+
+function readPushData(event: PushEvent): unknown {
+  if (!event.data) return null
+
+  try {
+    return event.data.json()
+  } catch {
+    return { body: event.data.text() }
+  }
+}
+
+function resolveSafeNavigation(value: unknown): URL {
+  const scope = new URL(self.registration.scope)
+  const candidate = new URL(typeof value === 'string' ? value : './', scope)
+
+  if (candidate.origin !== scope.origin || !candidate.pathname.startsWith(scope.pathname)) {
+    return scope
+  }
+
+  return candidate
+}
+
+function hashManifest(entries: Array<{ url: string; revision?: string | null }>): string {
+  const source = entries.map((entry) => `${entry.url}:${entry.revision ?? ''}`).join('|')
+  let hash = 2166136261
+
+  for (let index = 0; index < source.length; index += 1) {
+    hash ^= source.charCodeAt(index)
+    hash = Math.imul(hash, 16777619)
+  }
+
+  return (hash >>> 0).toString(16)
+}
