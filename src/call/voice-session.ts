@@ -1,5 +1,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { LiveKitVoiceMedia } from './livekit-media'
+import {
+  diagnosticPhaseForEvent,
+  type CallMediaDiagnosticEvent,
+  type CallMediaDiagnosticPhase,
+} from './media-diagnostic-phase'
 
 export type VoiceCallPhase = 'idle' | 'outgoing' | 'incoming' | 'connecting' | 'active' | 'error'
 export type VoiceCallDisplay = 'full' | 'compact' | 'hidden'
@@ -74,7 +79,17 @@ export class VoiceCallSession {
     this.media = new LiveKitVoiceMedia({
       onPeerConnected: () => void this.handlePeerConnected(),
       onPeerDisconnected: () => this.handlePeerDisconnected(),
-      onAudioPlaybackBlocked: () => this.publish({ audioBlocked: true }),
+      onRemoteAudioSubscribed: () => {
+        void this.reportMediaEvent('remote_audio_subscribed')
+      },
+      onRemoteAudioPlaying: () => {
+        this.publish({ audioBlocked: false, error: null })
+        void this.reportMediaEvent('remote_audio_playing')
+      },
+      onAudioPlaybackBlocked: () => {
+        this.publish({ audioBlocked: true })
+        void this.reportMediaEvent('remote_audio_blocked')
+      },
       onError: (error) => this.fail(error),
     })
   }
@@ -113,7 +128,6 @@ export class VoiceCallSession {
     const context = this.getContext()
     if (!context?.conversationId || !context.deviceId || this.state.phase !== 'idle') return
 
-    // Must happen inside the user's tap/click before any network await, especially on iOS Safari.
     this.media.beginUserGesture()
     this.publish({
       phase: 'outgoing',
@@ -146,7 +160,6 @@ export class VoiceCallSession {
     const callId = this.state.callId
     if (!context || !callId || this.state.phase !== 'incoming') return
 
-    // Unlock browser audio directly from the user's Accept tap.
     this.media.beginUserGesture()
     try {
       const result = await this.client.rpc('chat_accept_voice_call', {
@@ -189,7 +202,7 @@ export class VoiceCallSession {
     }
 
     try {
-      await this.reportMediaState('livekit', { reason: 'leave' })
+      await this.reportMediaEvent('leave')
       if (this.state.phase === 'incoming' && this.backendState === 'ringing') {
         await this.client.rpc('chat_decline_voice_call', {
           p_call_id: callId,
@@ -208,8 +221,9 @@ export class VoiceCallSession {
   toggleMute(): void {
     const muted = !this.state.muted
     this.publish({ muted })
+    const event: CallMediaDiagnosticEvent = muted ? 'mute_on' : 'mute_off'
     void this.media.setMuted(muted)
-      .then(() => this.reportMediaState('control', { reason: muted ? 'mute_on' : 'mute_off', media: 'livekit' }))
+      .then(() => this.reportMediaEvent(event))
       .catch((error) => {
         this.publish({ muted: !muted, error: error instanceof Error ? error.message : String(error) })
       })
@@ -219,10 +233,7 @@ export class VoiceCallSession {
     try {
       const selected = await this.media.chooseAudioOutput()
       this.publish({ speakerAvailable: this.media.canChooseAudioOutput(), speakerSelected: selected })
-      await this.reportMediaState('control', {
-        reason: selected ? 'audio_output_selected' : 'audio_output_unavailable',
-        media: 'livekit',
-      })
+      await this.reportMediaEvent(selected ? 'audio_output_selected' : 'audio_output_unavailable')
     } catch (error) {
       this.publish({ speakerSelected: false, error: error instanceof Error ? error.message : String(error) })
     }
@@ -302,7 +313,7 @@ export class VoiceCallSession {
       displayName: context.profileId.slice(0, 8),
     })
     this.publish({ speakerAvailable: this.media.canChooseAudioOutput() })
-    await this.reportMediaState('livekit', { reason: 'joined', room: `taphoa-call-${callId.toLowerCase()}` })
+    await this.reportMediaEvent('joined', { room: `taphoa-call-${callId.toLowerCase()}` })
   }
 
   private async handlePeerConnected(): Promise<void> {
@@ -310,8 +321,6 @@ export class VoiceCallSession {
     if (!callId || this.markingConnected) return
     this.markingConnected = true
     try {
-      // LiveKit seeing the remote participant is authoritative media evidence. Do not trust
-      // the caller's cached backendState here: the callee may have accepted milliseconds ago.
       const connectingResult = await this.client.rpc('chat_mark_voice_call_connecting', { p_call_id: callId })
       if (connectingResult.error) throw connectingResult.error
       const connectingPayload = connectingResult.data as CallStateResult | null
@@ -328,7 +337,7 @@ export class VoiceCallSession {
 
       this.backendState = 'connected'
       this.publish({ phase: 'active', connectedAt: this.state.connectedAt ?? Date.now(), error: null })
-      await this.reportMediaState('livekit', { reason: 'peer_connected' })
+      await this.reportMediaEvent('peer_connected')
     } catch (error) {
       this.publish({ error: error instanceof Error ? error.message : String(error) })
     } finally {
@@ -340,7 +349,21 @@ export class VoiceCallSession {
     if (this.state.phase === 'active') this.publish({ phase: 'connecting' })
   }
 
-  private async reportMediaState(phase: string, payload: Record<string, unknown>): Promise<void> {
+  private async reportMediaEvent(
+    event: CallMediaDiagnosticEvent,
+    extra: Record<string, unknown> = {},
+  ): Promise<void> {
+    await this.reportMediaState(diagnosticPhaseForEvent(event), {
+      reason: event,
+      media: 'livekit',
+      ...extra,
+    })
+  }
+
+  private async reportMediaState(
+    phase: CallMediaDiagnosticPhase,
+    payload: Record<string, unknown>,
+  ): Promise<void> {
     const context = this.getContext()
     const callId = this.state.callId
     if (!context?.deviceId || !callId) return
