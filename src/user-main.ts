@@ -40,7 +40,9 @@ function render(): void {
       : chat.phase === 'ready'
         ? 'Đang kết nối…'
         : 'Đang đăng nhập…'
-  input.disabled = !canSend
+
+  // Luôn cho phép User gõ. Chỉ khóa nút Gửi khi backend/conversation chưa sẵn sàng.
+  input.disabled = false
   submit.disabled = !canSend || !input.value.trim()
 
   if (messageState.messages.length === 0) {
