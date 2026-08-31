@@ -3,10 +3,10 @@ import { APP_VERSION, formatVersionLabel } from './version'
 
 describe('version tracking', () => {
   it('keeps a named release version in code', () => {
-    expect(APP_VERSION).toBe('CHAT-FND-0.6.0')
+    expect(APP_VERSION).toBe('CHAT-FND-0.7.0')
   })
 
   it('shows both release version and build id on screen', () => {
-    expect(formatVersionLabel('abc1234')).toBe('CHAT-FND-0.6.0 · abc1234')
+    expect(formatVersionLabel('abc1234')).toBe('CHAT-FND-0.7.0 · abc1234')
   })
 })
