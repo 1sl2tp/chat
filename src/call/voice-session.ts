@@ -66,6 +66,8 @@ const DEFAULT_STATE: VoiceCallState = {
 export class VoiceCallSession {
   private state: VoiceCallState = { ...DEFAULT_STATE }
   private readonly listeners = new Set<(state: VoiceCallState) => void>()
+  private readonly client: SupabaseClient
+  private readonly getContext: () => VoiceCallContext | null
   private activeTimer: number | null = null
   private signalTimer: number | null = null
   private peer: RTCPeerConnection | null = null
@@ -76,10 +78,10 @@ export class VoiceCallSession {
   private backendState: string | null = null
   private started = false
 
-  constructor(
-    private readonly client: SupabaseClient,
-    private readonly getContext: () => VoiceCallContext | null,
-  ) {}
+  constructor(client: SupabaseClient, getContext: () => VoiceCallContext | null) {
+    this.client = client
+    this.getContext = getContext
+  }
 
   getState(): VoiceCallState {
     return this.state
@@ -211,14 +213,16 @@ export class VoiceCallSession {
   async chooseSpeaker(): Promise<void> {
     const audio = this.remoteAudio
     const devices = navigator.mediaDevices as SelectAudioOutputCapable | undefined
-    if (!audio?.setSinkId || !devices?.selectAudioOutput) {
+    const selectOutput = devices?.selectAudioOutput
+    const setSink = audio?.setSinkId
+    if (!audio || typeof setSink !== 'function' || typeof selectOutput !== 'function') {
       this.publish({ speakerAvailable: false, speakerSelected: false })
       return
     }
 
     try {
-      const output = await devices.selectAudioOutput()
-      await audio.setSinkId(output.deviceId)
+      const output = await selectOutput.call(devices)
+      await setSink.call(audio, output.deviceId)
       this.publish({ speakerAvailable: true, speakerSelected: true })
     } catch {
       this.publish({ speakerAvailable: true, speakerSelected: false })
@@ -306,7 +310,8 @@ export class VoiceCallSession {
     document.body.append(this.remoteAudio)
 
     const devices = navigator.mediaDevices as SelectAudioOutputCapable | undefined
-    this.publish({ speakerAvailable: Boolean(this.remoteAudio.setSinkId && devices?.selectAudioOutput) })
+    const speakerAvailable = typeof this.remoteAudio.setSinkId === 'function' && typeof devices?.selectAudioOutput === 'function'
+    this.publish({ speakerAvailable })
 
     this.peer = new RTCPeerConnection({
       iceServers: [
