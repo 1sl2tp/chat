@@ -1,17 +1,16 @@
-export type MatrixProfileId = 'native-livekit' | 'native-p2p' | 'webaudio-bridge' | 'livekit-precapture'
+export type MatrixProfileId = 'webkit-reroute' | 'webkit-reset-reroute' | 'raw-mic-reroute'
 
 export interface MatrixProfile {
   id: MatrixProfileId
   label: string
   seconds: number
-  transport: 'livekit' | 'p2p'
+  transport: 'livekit'
 }
 
 export const MATRIX_PROFILES: readonly MatrixProfile[] = [
-  { id: 'native-livekit', label: 'Native → LiveKit', seconds: 12, transport: 'livekit' },
-  { id: 'native-p2p', label: 'Native P2P', seconds: 12, transport: 'p2p' },
-  { id: 'webaudio-bridge', label: 'WebAudio Bridge', seconds: 12, transport: 'livekit' },
-  { id: 'livekit-precapture', label: 'LiveKit Pre-capture', seconds: 12, transport: 'livekit' },
+  { id: 'webkit-reroute', label: 'WebKit Reroute', seconds: 10, transport: 'livekit' },
+  { id: 'webkit-reset-reroute', label: 'WebKit Reset + Reroute', seconds: 10, transport: 'livekit' },
+  { id: 'raw-mic-reroute', label: 'Raw Mic + Reroute', seconds: 10, transport: 'livekit' },
 ] as const
 
 export function nextMatrixProfile(current: MatrixProfileId): MatrixProfile | undefined {
