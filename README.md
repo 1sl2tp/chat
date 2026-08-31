@@ -23,14 +23,31 @@ Android PWA is a first-class release target, not a fallback browser mode. A rele
 - 192x192, 512x512 and maskable Android-capable icons.
 - Registered custom service worker for offline shell, Push, Notification, Badge and notification navigation.
 - Runtime detection of Android + Chrome + standalone/browser mode.
-- Feature detection for mic, WebRTC, Push, Badge, Media Session, PiP and Wake Lock.
+- Feature detection for mic, WebRTC, Push, Badge, Media Session, PiP, Wake Lock, permissions, Visual Viewport and Virtual Keyboard.
 - GitHub Actions production build before deploy.
 
 ## Version tracking rule
 
-Every user-visible change must carry a named app version in `src/version.ts` and the same version must be visible on the running screen. GitHub Actions also injects the commit SHA as a build ID, so a cached/old PWA can be distinguished from the current deployment.
+`src/version.ts` is the sole runtime source of truth for the named app version. Every user-visible deployed source change updates that value and the running screen displays the named version plus the Git commit build ID. Documentation must not keep a second "current version" value because it can drift from the code.
 
-Current named foundation version: `CHAT-FND-0.2.0`.
+## Foundation ownership
+
+The canonical single-owner architecture is documented in `docs/FOUNDATION_OWNERSHIP.md`. Each concern has one owner; other modules may consume or observe it but must not duplicate its state or decision logic.
+
+- `src/compat/`: runtime and feature detection only
+- `src/permissions/`: browser permission state and one-shot prompt policy
+- `src/viewport/`: Visual Viewport / keyboard occlusion geometry only
+- `src/pwa/` + `src/sw.ts`: service-worker/update/cache/push lifecycle
+- `src/storage/`: storage state/schema lifecycle
+- `src/session/`: authentication/session lifecycle
+- `src/network/`: connectivity/backend reachability
+- `src/lifecycle/`: foreground/background lifecycle
+- `src/media/`: media/WebRTC support contracts
+- `src/notifications/`: Push/Notification payload and delivery contracts
+- `src/floating/`: mini-call/PiP presentation capability
+- `src/diagnostics/`: read-only technical observation; never behavior ownership
+
+Permission prompts are never fired automatically on app boot. A feature UI must invoke the permission owner from a user action; already-granted or denied permissions are not prompted again. Keyboard handling is geometry-driven through Visual Viewport with safe-area support; feature UI decides scrolling and placement using that published geometry.
 
 ## Stack
 
@@ -42,17 +59,6 @@ Current named foundation version: `CHAT-FND-0.2.0`.
 - Vitest
 - GitHub Actions
 - GitHub Pages
-
-## Cross-platform foundation
-
-- `src/compat/`: runtime diagnostics and feature capability detection
-- `src/media/`: media/WebRTC support contracts
-- `src/notifications/`: Push, Notification, Badge and safe push payload contracts
-- `src/floating/`: Picture-in-Picture capability plus guaranteed in-app mini-call fallback
-- `src/diagnostics/`: safe allow-listed technical snapshots for troubleshooting
-- `src/sw.ts`: offline cache, Web Push notification handling, badge updates and safe notification navigation
-
-Behavior is selected by **feature detection**, not by hard-coded browser/OS branches. Runtime names are kept for diagnostics and release testing only.
 
 ## Commands
 
