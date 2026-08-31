@@ -10,6 +10,7 @@ export default defineConfig({
         user: 'index.html',
         admin: 'admin/index.html',
         audioLab: 'audio-lab/index.html',
+        minimalCall: 'call-minimal/index.html',
       },
     },
   },
