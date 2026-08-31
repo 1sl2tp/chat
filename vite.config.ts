@@ -9,6 +9,7 @@ export default defineConfig({
       input: {
         user: 'index.html',
         admin: 'admin/index.html',
+        audioLab: 'audio-lab/index.html',
       },
     },
   },
