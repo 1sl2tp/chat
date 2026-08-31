@@ -2,15 +2,18 @@ import { getChatMessageState, subscribeChatMessages } from './chat/message-runti
 import { sendSupportText, startChatRuntime } from './chat/runtime'
 import { getChatRuntimeState, subscribeChatRuntime } from './chat/store'
 import { setupPwa } from './pwa'
+import { supabase } from './supabase/client'
+import { ensureFixedTestUser, TEST_USER_LOGIN } from './user/fixed-auth'
 import { setupViewportController } from './viewport/controller'
 import './user.css'
 
-const root = document.querySelector<HTMLDivElement>('#app')
-if (!root) throw new Error('Missing #app root')
+const rootElement = document.querySelector<HTMLDivElement>('#app')
+if (!rootElement) throw new Error('Missing #app root')
+const root: HTMLDivElement = rootElement
 
 root.innerHTML = `
   <main class="user-app">
-    <header><strong>Admin hỗ trợ</strong><span id="status">Đang kết nối…</span></header>
+    <header><strong>Admin hỗ trợ · ${TEST_USER_LOGIN}</strong><span id="status">Đang đăng nhập…</span></header>
     <section id="messages" class="messages"><p class="empty">Bạn cần hỗ trợ gì?</p></section>
     <form id="composer" class="composer">
       <input id="text" autocomplete="off" placeholder="Nhập tin nhắn…" aria-label="Tin nhắn" />
@@ -34,7 +37,9 @@ function render(): void {
     ? 'Không thể kết nối'
     : messageState.realtime === 'subscribed'
       ? 'Đang hoạt động'
-      : 'Đang kết nối…'
+      : chat.phase === 'ready'
+        ? 'Đang kết nối…'
+        : 'Đang đăng nhập…'
   input.disabled = !canSend
   submit.disabled = !canSend || !input.value.trim()
 
@@ -73,6 +78,41 @@ form.addEventListener('submit', async (event) => {
 subscribeChatRuntime(render)
 subscribeChatMessages(render)
 setupViewportController()
-void startChatRuntime()
 setupPwa()
 render()
+
+async function startFixedUser(): Promise<void> {
+  try {
+    await ensureFixedTestUser({
+      async getCurrentUser() {
+        const result = await supabase.auth.getSession()
+        if (result.error) throw result.error
+        const user = result.data.session?.user
+        if (!user) return null
+        return {
+          email: user.email ?? null,
+          isAnonymous: Boolean((user as { is_anonymous?: boolean }).is_anonymous),
+        }
+      },
+      async signOut() {
+        const result = await supabase.auth.signOut()
+        if (result.error) throw result.error
+      },
+      async signIn(email, password) {
+        const result = await supabase.auth.signInWithPassword({ email, password })
+        if (result.error) throw result.error
+      },
+      async signUp(email, password) {
+        const result = await supabase.auth.signUp({ email, password })
+        if (result.error) throw result.error
+        return Boolean(result.data.session)
+      },
+    })
+    await startChatRuntime()
+  } catch (error) {
+    status.textContent = 'Không đăng nhập được User test'
+    console.error('Fixed test user bootstrap failed', error)
+  }
+}
+
+void startFixedUser()
