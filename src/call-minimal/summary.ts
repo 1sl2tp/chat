@@ -3,6 +3,7 @@ export type MinimalCallGate = 'pass' | 'fail' | 'inconclusive'
 export interface MinimalCallMetrics {
   connected: boolean
   micTrackLive: boolean
+  micTrackWasLive: boolean
   outboundBytesDelta: number
   outboundPacketsDelta: number
   remoteTrackSubscribed: boolean
@@ -23,7 +24,7 @@ export interface MinimalCallSummary {
 
 export function summarizeMinimalCall(metrics: MinimalCallMetrics): MinimalCallSummary {
   const connection: MinimalCallGate = metrics.connected ? 'pass' : 'fail'
-  const microphone: MinimalCallGate = metrics.micTrackLive && metrics.outboundBytesDelta > 0 && metrics.outboundPacketsDelta > 0
+  const microphone: MinimalCallGate = metrics.micTrackWasLive && metrics.outboundBytesDelta > 0 && metrics.outboundPacketsDelta > 0
     ? 'pass'
     : 'fail'
   const remoteAudio: MinimalCallGate = !metrics.remoteTrackSubscribed
