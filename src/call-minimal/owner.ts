@@ -9,7 +9,7 @@ const TEST_VERSION = 'minimal-call-v1'
 const ROOM_NAME = 'taphoa-minimal-call-v1'
 const CHECKPOINT_MS = 10_000
 
-interface SenderStats {
+type SenderStats = {
   bytesSent: number
   packetsSent: number
   packetsLost: number
@@ -17,16 +17,15 @@ interface SenderStats {
   roundTripTime: number
 }
 
-interface ReceiverStats {
+type ReceiverStats = {
   bytesReceived: number
   packetsReceived: number
   packetsLost: number
   jitter: number
   totalAudioEnergy: number
-  concealedSamples: number
 }
 
-interface StatsSample {
+type StatsSample = {
   atMs: number
   label: string
   sender: SenderStats | null
@@ -55,7 +54,15 @@ function delta(after: number, before: number): number {
   return Math.max(0, after - before)
 }
 
-function detectDeviceName(): string {
+function emptySender(): SenderStats {
+  return { bytesSent: 0, packetsSent: 0, packetsLost: 0, jitter: 0, roundTripTime: 0 }
+}
+
+function emptyReceiver(): ReceiverStats {
+  return { bytesReceived: 0, packetsReceived: 0, packetsLost: 0, jitter: 0, totalAudioEnergy: 0 }
+}
+
+function deviceName(): string {
   const ua = navigator.userAgent
   if (/iPhone|iPad|iPod/i.test(ua)) return 'iOS Web'
   if (/Android/i.test(ua)) return 'Android Web'
@@ -69,25 +76,20 @@ function identityPrefix(): string {
   return 'web'
 }
 
-function emptySender(): SenderStats {
-  return { bytesSent: 0, packetsSent: 0, packetsLost: 0, jitter: 0, roundTripTime: 0 }
-}
-
-function emptyReceiver(): ReceiverStats {
-  return { bytesReceived: 0, packetsReceived: 0, packetsLost: 0, jitter: 0, totalAudioEnergy: 0, concealedSamples: 0 }
-}
-
 export class MinimalCallOwner {
   readonly lifecycle = new MinimalCallLifecycle()
 
+  private readonly outputElement: HTMLAudioElement
+  private readonly onState: MinimalCallStateListener
   private room: any = null
   private lk: any = null
   private localMicTrack: any = null
   private remoteAudioTrack: any = null
-  private baselineSender: SenderStats = emptySender()
-  private baselineReceiver: ReceiverStats = emptyReceiver()
-  private latestSender: SenderStats = emptySender()
-  private latestReceiver: ReceiverStats = emptyReceiver()
+  private senderBaseline = emptySender()
+  private senderLatest = emptySender()
+  private receiverBaseline = emptyReceiver()
+  private receiverLatest = emptyReceiver()
+  private receiverBaselineSet = false
   private micSettings: MediaTrackSettings | null = null
   private logs: string[] = []
   private samples: StatsSample[] = []
@@ -99,18 +101,16 @@ export class MinimalCallOwner {
   private connected = false
   private remoteTrackSubscribedEver = false
   private playbackStarted = false
-  private cleanLeave = false
   private finalizing = false
   private runId: string | undefined
 
-  constructor(
-    private readonly outputElement: HTMLAudioElement,
-    private readonly onState: MinimalCallStateListener,
-  ) {}
+  constructor(outputElement: HTMLAudioElement, onState: MinimalCallStateListener) {
+    this.outputElement = outputElement
+    this.onState = onState
+  }
 
   private log(message: string): void {
-    const line = `${new Date().toISOString()}  ${message}`
-    this.logs.push(line)
+    this.logs.push(`${new Date().toISOString()}  ${message}`)
     if (this.logs.length > 200) this.logs.splice(0, this.logs.length - 200)
   }
 
@@ -127,10 +127,14 @@ export class MinimalCallOwner {
     })
   }
 
-  private async readSenderStats(track: any): Promise<SenderStats | null> {
-    if (!track?.getSenderStats) return null
+  private mediaTrack(): MediaStreamTrack | undefined {
+    return this.localMicTrack?.mediaStreamTrack ?? this.localMicTrack?._mediaStreamTrack
+  }
+
+  private async readSender(): Promise<SenderStats | null> {
+    if (!this.localMicTrack?.getSenderStats) return null
     try {
-      const stats = await track.getSenderStats()
+      const stats = await this.localMicTrack.getSenderStats()
       if (!stats) return null
       return {
         bytesSent: finite(stats.bytesSent),
@@ -145,12 +149,12 @@ export class MinimalCallOwner {
     }
   }
 
-  private async readReceiverStats(track: any): Promise<ReceiverStats | null> {
-    if (!track) return null
+  private async readReceiver(): Promise<ReceiverStats | null> {
+    if (!this.remoteAudioTrack) return null
     try {
       let packetsReceived = 0
       let packetsLost = 0
-      const receiver = track.receiver
+      const receiver = this.remoteAudioTrack.receiver
       if (receiver?.getStats) {
         const report = await receiver.getStats()
         report.forEach((entry: any) => {
@@ -160,8 +164,7 @@ export class MinimalCallOwner {
           }
         })
       }
-
-      const stats = await track.getReceiverStats?.()
+      const stats = await this.remoteAudioTrack.getReceiverStats?.()
       if (!stats && packetsReceived === 0) return null
       return {
         bytesReceived: finite(stats?.bytesReceived),
@@ -169,7 +172,6 @@ export class MinimalCallOwner {
         packetsLost,
         jitter: finite(stats?.jitter),
         totalAudioEnergy: finite(stats?.totalAudioEnergy),
-        concealedSamples: finite(stats?.concealedSamples),
       }
     } catch (error) {
       this.log(`receiver stats error=${error instanceof Error ? error.message : String(error)}`)
@@ -177,55 +179,43 @@ export class MinimalCallOwner {
     }
   }
 
-  private async captureSample(label: string): Promise<StatsSample> {
-    const [sender, receiver] = await Promise.all([
-      this.readSenderStats(this.localMicTrack),
-      this.readReceiverStats(this.remoteAudioTrack),
-    ])
-    if (sender) this.latestSender = sender
-    if (receiver) this.latestReceiver = receiver
-
-    const sample: StatsSample = {
+  private async sample(label: string): Promise<void> {
+    const [sender, receiver] = await Promise.all([this.readSender(), this.readReceiver()])
+    if (sender) this.senderLatest = sender
+    if (receiver) this.receiverLatest = receiver
+    this.samples.push({
       atMs: Math.round(performance.now() - this.startedAt),
       label,
       sender,
       receiver,
       remoteParticipants: this.room?.remoteParticipants?.size ?? 0,
-    }
-    this.samples.push(sample)
+    })
     if (this.samples.length > 30) this.samples.splice(0, this.samples.length - 30)
-    return sample
   }
 
-  private getMediaTrack(): MediaStreamTrack | undefined {
-    return this.localMicTrack?.mediaStreamTrack ?? this.localMicTrack?._mediaStreamTrack
-  }
-
-  private buildMeasuredMetrics(cleanLeave: boolean): MinimalCallMetrics {
-    const mediaTrack = this.getMediaTrack()
+  private measured(cleanLeave: boolean): MinimalCallMetrics {
+    const track = this.mediaTrack()
     return {
       connected: this.connected,
-      micTrackLive: mediaTrack?.readyState === 'live' && mediaTrack.enabled,
-      outboundBytesDelta: delta(this.latestSender.bytesSent, this.baselineSender.bytesSent),
-      outboundPacketsDelta: delta(this.latestSender.packetsSent, this.baselineSender.packetsSent),
+      micTrackLive: track?.readyState === 'live' && track.enabled,
+      outboundBytesDelta: delta(this.senderLatest.bytesSent, this.senderBaseline.bytesSent),
+      outboundPacketsDelta: delta(this.senderLatest.packetsSent, this.senderBaseline.packetsSent),
       remoteTrackSubscribed: this.remoteTrackSubscribedEver,
-      inboundBytesDelta: delta(this.latestReceiver.bytesReceived, this.baselineReceiver.bytesReceived),
-      inboundPacketsDelta: delta(this.latestReceiver.packetsReceived, this.baselineReceiver.packetsReceived),
+      inboundBytesDelta: delta(this.receiverLatest.bytesReceived, this.receiverBaseline.bytesReceived),
+      inboundPacketsDelta: delta(this.receiverLatest.packetsReceived, this.receiverBaseline.packetsReceived),
       playbackStarted: this.playbackStarted,
       cleanLeave,
     }
   }
 
-  private buildMetricsPayload(cleanLeave: boolean): Record<string, unknown> {
-    const measured = this.buildMeasuredMetrics(cleanLeave)
+  private metrics(cleanLeave: boolean): Record<string, unknown> {
     return {
-      ...measured,
-      senderBaseline: this.baselineSender,
-      senderLatest: this.latestSender,
-      receiverBaseline: this.baselineReceiver,
-      receiverLatest: this.latestReceiver,
+      ...this.measured(cleanLeave),
+      senderBaseline: this.senderBaseline,
+      senderLatest: this.senderLatest,
+      receiverBaseline: this.receiverBaseline,
+      receiverLatest: this.receiverLatest,
       micSettings: this.micSettings,
-      remoteParticipants: this.room?.remoteParticipants?.size ?? 0,
       playback: {
         paused: this.outputElement.paused,
         readyState: this.outputElement.readyState,
@@ -235,48 +225,43 @@ export class MinimalCallOwner {
     }
   }
 
-  private async submitRun(
-    overallStatus: 'pass' | 'fail' | 'inconclusive' | 'error',
+  private async submit(
+    status: 'pass' | 'fail' | 'inconclusive' | 'error',
     summary: Record<string, unknown>,
     metrics: Record<string, unknown>,
-  ): Promise<string | undefined> {
-    if (!this.sessionId) return undefined
+  ): Promise<void> {
+    if (!this.sessionId) return
     const { data, error } = await supabase.rpc('chat_submit_minimal_call_run', {
       p_run_session_id: this.sessionId,
       p_test_version: TEST_VERSION,
       p_room_name: ROOM_NAME,
       p_participant_identity: this.participantIdentity,
-      p_device: detectDeviceName(),
+      p_device: deviceName(),
       p_user_agent: navigator.userAgent,
       p_livekit_version: LIVEKIT_VERSION,
-      p_overall_status: overallStatus,
+      p_overall_status: status,
       p_duration_ms: Math.round(performance.now() - this.startedAt),
       p_summary: summary,
       p_metrics: metrics,
       p_logs: this.logs,
     })
     if (error) throw error
-    this.runId = typeof data === 'string' ? data : this.runId
-    return this.runId
+    if (typeof data === 'string') this.runId = data
   }
 
-  private async saveCheckpoint(): Promise<void> {
+  private async checkpoint(): Promise<void> {
     if (!this.connected || this.finalizing) return
-    await this.captureSample('checkpoint')
-    const measured = this.buildMeasuredMetrics(false)
+    await this.sample('checkpoint')
+    const current = this.measured(false)
     try {
-      await this.submitRun(
-        'inconclusive',
-        {
-          phase: this.lifecycle.phase,
-          connection: measured.connected ? 'pass' : 'fail',
-          microphone: measured.micTrackLive && measured.outboundBytesDelta > 0 ? 'pass' : 'pending',
-          remoteAudio: measured.remoteTrackSubscribed && measured.inboundBytesDelta > 0 ? 'pass' : 'pending',
-          playback: measured.playbackStarted ? 'pass' : 'pending',
-          cleanup: 'pending',
-        },
-        this.buildMetricsPayload(false),
-      )
+      await this.submit('inconclusive', {
+        phase: this.lifecycle.phase,
+        connection: current.connected ? 'pass' : 'fail',
+        microphone: current.micTrackLive && current.outboundBytesDelta > 0 ? 'pass' : 'pending',
+        remoteAudio: current.remoteTrackSubscribed && current.inboundBytesDelta > 0 ? 'pass' : 'pending',
+        playback: current.playbackStarted ? 'pass' : 'pending',
+        cleanup: 'pending',
+      }, this.metrics(false))
     } catch (error) {
       this.log(`checkpoint save error=${error instanceof Error ? error.message : String(error)}`)
     }
@@ -284,9 +269,7 @@ export class MinimalCallOwner {
 
   private startCheckpoints(): void {
     window.clearInterval(this.checkpointTimer)
-    this.checkpointTimer = window.setInterval(() => {
-      void this.saveCheckpoint()
-    }, CHECKPOINT_MS)
+    this.checkpointTimer = window.setInterval(() => void this.checkpoint(), CHECKPOINT_MS)
   }
 
   private stopCheckpoints(): void {
@@ -294,153 +277,118 @@ export class MinimalCallOwner {
     this.checkpointTimer = undefined
   }
 
-  private async attachRemoteAudio(track: any, participant: any): Promise<void> {
+  private async attachRemote(track: any, participant: any): Promise<void> {
     if (this.remoteAudioTrack && this.remoteAudioTrack !== track) {
-      try {
-        this.remoteAudioTrack.detach(this.outputElement)
-      } catch {}
+      try { this.remoteAudioTrack.detach(this.outputElement) } catch {}
     }
-
     this.remoteAudioTrack = track
     this.remoteTrackSubscribedEver = true
     track.attach(this.outputElement)
     this.outputElement.autoplay = true
     this.outputElement.muted = false
     this.outputElement.volume = 1
-
     try {
       await this.outputElement.play()
       this.playbackStarted = !this.outputElement.paused
-      this.log(`remote audio subscribed participant=${participant?.identity ?? 'unknown'} play=${this.playbackStarted}`)
+      this.log(`remote audio participant=${participant?.identity ?? 'unknown'} play=${this.playbackStarted}`)
     } catch (error) {
       this.playbackStarted = false
-      this.log(`remote audio play blocked=${error instanceof Error ? error.message : String(error)}`)
+      this.log(`remote play blocked=${error instanceof Error ? error.message : String(error)}`)
     }
-
-    const receiver = await this.readReceiverStats(track)
-    if (receiver && this.baselineReceiver.bytesReceived === 0 && this.baselineReceiver.packetsReceived === 0) {
-      this.baselineReceiver = receiver
-      this.latestReceiver = receiver
+    const receiver = await this.readReceiver()
+    if (receiver && !this.receiverBaselineSet) {
+      this.receiverBaseline = receiver
+      this.receiverLatest = receiver
+      this.receiverBaselineSet = true
     }
     this.emit('Đã nhận remote audio')
-    void this.saveCheckpoint()
+    void this.checkpoint()
   }
 
   private bindRoomEvents(): void {
-    const lk = this.lk
-    this.room.on(lk.RoomEvent.TrackSubscribed, (track: any, _publication: any, participant: any) => {
-      if (track.kind !== 'audio') return
-      void this.attachRemoteAudio(track, participant)
+    const events = this.lk.RoomEvent
+    this.room.on(events.TrackSubscribed, (track: any, _publication: any, participant: any) => {
+      if (track.kind === 'audio') void this.attachRemote(track, participant)
     })
-
-    this.room.on(lk.RoomEvent.TrackUnsubscribed, (track: any, _publication: any, participant: any) => {
+    this.room.on(events.TrackUnsubscribed, (track: any, _publication: any, participant: any) => {
       if (track !== this.remoteAudioTrack) return
-      void this.captureSample('remote-track-unsubscribed').finally(() => {
-        try {
-          track.detach(this.outputElement)
-        } catch {}
+      void this.sample('remote-unsubscribed').finally(() => {
+        try { track.detach(this.outputElement) } catch {}
         this.remoteAudioTrack = null
-        this.log(`remote audio unsubscribed participant=${participant?.identity ?? 'unknown'}`)
+        this.log(`remote audio left=${participant?.identity ?? 'unknown'}`)
         this.emit('Remote audio đã rời')
       })
     })
-
-    this.room.on(lk.RoomEvent.ParticipantConnected, (participant: any) => {
+    this.room.on(events.ParticipantConnected, (participant: any) => {
       this.log(`participant connected=${participant?.identity ?? 'unknown'}`)
       this.emit('Đã có người vào phòng')
     })
-
-    this.room.on(lk.RoomEvent.ParticipantDisconnected, (participant: any) => {
+    this.room.on(events.ParticipantDisconnected, (participant: any) => {
       this.log(`participant disconnected=${participant?.identity ?? 'unknown'}`)
       this.emit('Người bên kia đã rời')
-      void this.saveCheckpoint()
+      void this.checkpoint()
     })
-
-    this.room.on(lk.RoomEvent.Reconnecting, () => {
+    this.room.on(events.Reconnecting, () => {
       this.log('room reconnecting')
       this.emit('Đang kết nối lại…')
     })
-
-    this.room.on(lk.RoomEvent.Reconnected, () => {
+    this.room.on(events.Reconnected, () => {
       this.log('room reconnected')
       this.emit('Đã kết nối lại')
-      void this.saveCheckpoint()
+      void this.checkpoint()
     })
-
-    this.room.on(lk.RoomEvent.Disconnected, (reason: unknown) => {
+    this.room.on(events.Disconnected, (reason: unknown) => {
       this.log(`room disconnected reason=${String(reason ?? 'unknown')}`)
       if (!this.finalizing && (this.lifecycle.phase === 'connected' || this.lifecycle.phase === 'joining')) {
-        void this.finishUnexpectedDisconnect()
+        void this.unexpectedDisconnect()
       }
     })
   }
 
   async join(): Promise<void> {
     this.lifecycle.beginJoin()
-    this.finalizing = false
-    this.connected = false
-    this.cleanLeave = false
-    this.muted = false
-    this.remoteTrackSubscribedEver = false
-    this.playbackStarted = false
-    this.runId = undefined
-    this.logs = []
-    this.samples = []
-    this.baselineSender = emptySender()
-    this.baselineReceiver = emptyReceiver()
-    this.latestSender = emptySender()
-    this.latestReceiver = emptyReceiver()
-    this.startedAt = performance.now()
-    this.sessionId = crypto.randomUUID()
-    this.participantIdentity = `${identityPrefix()}-${this.sessionId}`
+    this.resetRun()
     this.emit('Đang vào phòng…')
     this.log(`session=${this.sessionId}`)
     this.log(`room=${ROOM_NAME}`)
-    this.log(`identity=${this.participantIdentity}`)
-
     try {
       this.lk = await import(/* @vite-ignore */ LIVEKIT_SDK_URL)
-      const source = this.lk.TokenSource.developmentTokenServer(TOKEN_SERVER_ID)
-      const credentials = await source.fetch({
+      const tokenSource = this.lk.TokenSource.developmentTokenServer(TOKEN_SERVER_ID)
+      const credentials = await tokenSource.fetch({
         roomName: ROOM_NAME,
         participantIdentity: this.participantIdentity,
-        participantName: detectDeviceName(),
+        participantName: deviceName(),
       })
-
       this.room = new this.lk.Room({ adaptiveStream: false, dynacast: false, disconnectOnPageLeave: false })
       this.bindRoomEvents()
       await this.room.connect(credentials.serverUrl, credentials.participantToken, { autoSubscribe: true })
       this.connected = true
       this.lifecycle.markConnected()
       this.log('room connected')
-
       try {
         await this.room.startAudio()
         this.log('room startAudio ok')
       } catch (error) {
         this.log(`room startAudio blocked=${error instanceof Error ? error.message : String(error)}`)
       }
-
       const publication = await this.room.localParticipant.setMicrophoneEnabled(true)
       const publications = Array.from(this.room.localParticipant.trackPublications.values()) as any[]
       this.localMicTrack = publication?.track ?? publications.find((item) => item.source === this.lk.Track.Source.Microphone)?.track
       if (!this.localMicTrack) throw new Error('local_microphone_track_missing')
-
-      const mediaTrack = this.getMediaTrack()
+      const mediaTrack = this.mediaTrack()
       this.micSettings = mediaTrack?.getSettings?.() ?? null
-      this.log(`mic state readyState=${mediaTrack?.readyState ?? 'unknown'} enabled=${mediaTrack?.enabled ?? 'unknown'} muted=${mediaTrack?.muted ?? 'unknown'}`)
+      this.log(`mic readyState=${mediaTrack?.readyState ?? 'unknown'} enabled=${mediaTrack?.enabled ?? 'unknown'} muted=${mediaTrack?.muted ?? 'unknown'}`)
       this.log(`mic settings=${JSON.stringify(this.micSettings ?? {})}`)
-
       await new Promise((resolve) => setTimeout(resolve, 400))
-      const sender = await this.readSenderStats(this.localMicTrack)
+      const sender = await this.readSender()
       if (sender) {
-        this.baselineSender = sender
-        this.latestSender = sender
+        this.senderBaseline = sender
+        this.senderLatest = sender
       }
-      await this.captureSample('joined')
+      await this.sample('joined')
       this.startCheckpoints()
       this.emit('Đã kết nối · mic bật')
-      await this.saveCheckpoint()
+      await this.checkpoint()
     } catch (error) {
       await this.finishError(error)
       throw error
@@ -450,67 +398,52 @@ export class MinimalCallOwner {
   async toggleMute(): Promise<void> {
     if (!this.room || this.lifecycle.phase !== 'connected') return
     const nextMuted = !this.muted
-    try {
-      const publication = await this.room.localParticipant.setMicrophoneEnabled(!nextMuted)
-      this.muted = nextMuted
-      if (!nextMuted) {
-        const publications = Array.from(this.room.localParticipant.trackPublications.values()) as any[]
-        this.localMicTrack = publication?.track ?? publications.find((item) => item.source === this.lk.Track.Source.Microphone)?.track ?? this.localMicTrack
-      }
-      this.log(nextMuted ? 'microphone muted' : 'microphone unmuted')
-      await this.captureSample(nextMuted ? 'mute' : 'unmute')
-      this.emit(nextMuted ? 'Mic đã tắt' : 'Mic đã bật')
-      void this.saveCheckpoint()
-    } catch (error) {
-      this.log(`mute toggle error=${error instanceof Error ? error.message : String(error)}`)
-      throw error
+    const publication = await this.room.localParticipant.setMicrophoneEnabled(!nextMuted)
+    this.muted = nextMuted
+    if (!nextMuted) {
+      const publications = Array.from(this.room.localParticipant.trackPublications.values()) as any[]
+      this.localMicTrack = publication?.track ?? publications.find((item) => item.source === this.lk.Track.Source.Microphone)?.track ?? this.localMicTrack
     }
+    this.log(nextMuted ? 'microphone muted' : 'microphone unmuted')
+    await this.sample(nextMuted ? 'mute' : 'unmute')
+    this.emit(nextMuted ? 'Mic đã tắt' : 'Mic đã bật')
+    void this.checkpoint()
   }
 
   async leave(reason = 'user'): Promise<void> {
     if (this.finalizing || this.lifecycle.phase === 'idle' || this.lifecycle.phase === 'ended' || this.lifecycle.phase === 'error') return
     this.finalizing = true
     this.lifecycle.beginLeave()
+    this.stopCheckpoints()
     this.emit('Đang rời phòng…')
     this.log(`leave reason=${reason}`)
-    this.stopCheckpoints()
-
     try {
-      await this.captureSample('leave-before-disconnect')
+      await this.sample('leave')
       await this.room?.disconnect?.()
-      this.cleanLeave = true
       this.lifecycle.markEnded()
-      await this.captureSample('leave-after-disconnect')
-      const measured = this.buildMeasuredMetrics(true)
-      const summary = summarizeMinimalCall(measured)
+      const summary = summarizeMinimalCall(this.measured(true))
       try {
-        await this.submitRun(summary.overallStatus, summary as unknown as Record<string, unknown>, this.buildMetricsPayload(true))
-        this.log(`final log saved id=${this.runId ?? 'unknown'}`)
+        await this.submit(summary.overallStatus, summary as unknown as Record<string, unknown>, this.metrics(true))
+        this.log(`final log saved=${this.runId ?? 'unknown'}`)
       } catch (error) {
         this.log(`final log save error=${error instanceof Error ? error.message : String(error)}`)
       }
       this.emit('Đã rời phòng · log tự lưu', summary)
     } finally {
-      this.cleanupMedia()
+      this.cleanup()
     }
   }
 
-  private async finishUnexpectedDisconnect(): Promise<void> {
+  private async unexpectedDisconnect(): Promise<void> {
     if (this.finalizing) return
     this.finalizing = true
     this.stopCheckpoints()
-    await this.captureSample('unexpected-disconnect')
-    this.cleanLeave = false
+    await this.sample('unexpected-disconnect')
     this.lifecycle.markEnded()
-    const measured = this.buildMeasuredMetrics(false)
-    const summary = summarizeMinimalCall(measured)
-    try {
-      await this.submitRun(summary.overallStatus, summary as unknown as Record<string, unknown>, this.buildMetricsPayload(false))
-    } catch (error) {
-      this.log(`unexpected disconnect save error=${error instanceof Error ? error.message : String(error)}`)
-    }
+    const summary = summarizeMinimalCall(this.measured(false))
+    try { await this.submit(summary.overallStatus, summary as unknown as Record<string, unknown>, this.metrics(false)) } catch {}
     this.emit('Mất kết nối · log tự lưu', summary)
-    this.cleanupMedia()
+    this.cleanup()
   }
 
   private async finishError(error: unknown): Promise<void> {
@@ -519,27 +452,36 @@ export class MinimalCallOwner {
     this.stopCheckpoints()
     const message = error instanceof Error ? error.message : String(error)
     this.log(`ERROR ${message}`)
-    try {
-      await this.captureSample('error')
-    } catch {}
-    try {
-      await this.room?.disconnect?.()
-    } catch {}
+    try { await this.sample('error') } catch {}
+    try { await this.room?.disconnect?.() } catch {}
     this.lifecycle.markError()
-    try {
-      await this.submitRun('error', { error: message }, this.buildMetricsPayload(false))
-    } catch (submitError) {
-      this.log(`error log save failed=${submitError instanceof Error ? submitError.message : String(submitError)}`)
-    }
+    try { await this.submit('error', { error: message }, this.metrics(false)) } catch {}
     this.emit(`Lỗi: ${message}`)
-    this.cleanupMedia()
+    this.cleanup()
   }
 
-  private cleanupMedia(): void {
+  private resetRun(): void {
+    this.finalizing = false
+    this.connected = false
+    this.muted = false
+    this.remoteTrackSubscribedEver = false
+    this.playbackStarted = false
+    this.runId = undefined
+    this.logs = []
+    this.samples = []
+    this.senderBaseline = emptySender()
+    this.senderLatest = emptySender()
+    this.receiverBaseline = emptyReceiver()
+    this.receiverLatest = emptyReceiver()
+    this.receiverBaselineSet = false
+    this.startedAt = performance.now()
+    this.sessionId = crypto.randomUUID()
+    this.participantIdentity = `${identityPrefix()}-${this.sessionId}`
+  }
+
+  private cleanup(): void {
     this.stopCheckpoints()
-    try {
-      this.remoteAudioTrack?.detach?.(this.outputElement)
-    } catch {}
+    try { this.remoteAudioTrack?.detach?.(this.outputElement) } catch {}
     this.remoteAudioTrack = null
     try {
       this.outputElement.pause()
