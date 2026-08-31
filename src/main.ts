@@ -1,5 +1,6 @@
 import './style.css'
 import { getAppLabel } from './app'
+import { startChatRuntime } from './chat/runtime'
 import { setupPwa } from './pwa'
 import { startSupabaseRuntime } from './supabase/runtime'
 import { formatVersionLabel } from './version'
@@ -13,6 +14,7 @@ if (!root) {
 
 setupViewportController()
 startSupabaseRuntime()
+void startChatRuntime()
 
 const screen = document.createElement('main')
 screen.className = 'test-screen'
