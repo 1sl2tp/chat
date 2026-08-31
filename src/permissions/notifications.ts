@@ -1,12 +1,17 @@
 import { derivePermissionState, shouldRequestPermission, type AppPermissionState } from './state'
 
+export interface NotificationPermissionApi {
+  permission: NotificationPermission
+  requestPermission(): Promise<NotificationPermission>
+}
+
 export interface NotificationPermissionResult {
   before: AppPermissionState
   after: AppPermissionState
   requested: boolean
 }
 
-export async function requestNotificationPermissionOnce(notificationApi: typeof Notification | undefined): Promise<NotificationPermissionResult> {
+export async function requestNotificationPermissionOnce(notificationApi: NotificationPermissionApi | undefined): Promise<NotificationPermissionResult> {
   if (!notificationApi) {
     return { before: 'unavailable', after: 'unavailable', requested: false }
   }
