@@ -1,3 +1,5 @@
+import { classifyRuntime } from '../compat/runtime'
+
 const DEVICE_KEY_STORAGE = 'chat.device.key.v1'
 
 export function getOrCreateDeviceKey(storage: Pick<Storage, 'getItem' | 'setItem'> = localStorage): string {
@@ -15,5 +17,11 @@ export function getDeviceLabel(): string {
 }
 
 export function getDevicePlatform(): string {
-  return navigator.userAgentData?.platform || navigator.platform || 'web'
+  const standalone = window.matchMedia?.('(display-mode: standalone)').matches === true
+  return classifyRuntime({
+    userAgent: navigator.userAgent,
+    platform: navigator.platform,
+    maxTouchPoints: navigator.maxTouchPoints,
+    standalone,
+  }).os
 }
