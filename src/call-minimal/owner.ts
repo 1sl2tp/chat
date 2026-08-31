@@ -1,4 +1,5 @@
 import { supabase } from '../supabase/client'
+import { captureOptionsForUserAgent } from './capture-profile'
 import { enableCallAudio } from './media-sequence'
 import { MinimalCallLifecycle, type MinimalCallPhase } from './owner-lifecycle'
 import { summarizeMinimalCall, type MinimalCallMetrics, type MinimalCallSummary } from './summary'
@@ -6,7 +7,7 @@ import { summarizeMinimalCall, type MinimalCallMetrics, type MinimalCallSummary 
 const LIVEKIT_SDK_URL = 'https://esm.sh/livekit-client@2.22.1'
 const LIVEKIT_VERSION = '2.22.1'
 const TOKEN_SERVER_ID = 'taphoachat-1x4n2g'
-const TEST_VERSION = 'minimal-call-v1.1-mic-first'
+const TEST_VERSION = 'minimal-call-v1.2-ios-no-voice-isolation'
 const ROOM_NAME = 'taphoa-minimal-call-v1'
 const CHECKPOINT_MS = 10_000
 
@@ -377,9 +378,11 @@ export class MinimalCallOwner {
       this.lifecycle.markConnected()
       this.log('room connected')
 
+      const captureOptions = captureOptionsForUserAgent(navigator.userAgent)
+      this.log(`capture profile=${captureOptions ? JSON.stringify(captureOptions) : 'livekit-defaults'}`)
       const publication = await enableCallAudio({
         enableMicrophone: async () => {
-          const micPublication = await this.room.localParticipant.setMicrophoneEnabled(true)
+          const micPublication = await this.room.localParticipant.setMicrophoneEnabled(true, captureOptions)
           this.log('microphone enabled before startAudio')
           return micPublication
         },
@@ -420,7 +423,8 @@ export class MinimalCallOwner {
   async toggleMute(): Promise<void> {
     if (!this.room || this.lifecycle.phase !== 'connected') return
     const nextMuted = !this.muted
-    const publication = await this.room.localParticipant.setMicrophoneEnabled(!nextMuted)
+    const captureOptions = captureOptionsForUserAgent(navigator.userAgent)
+    const publication = await this.room.localParticipant.setMicrophoneEnabled(!nextMuted, captureOptions)
     this.muted = nextMuted
     if (!nextMuted) {
       const publications = Array.from(this.room.localParticipant.trackPublications.values()) as any[]
