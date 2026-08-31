@@ -3,3 +3,14 @@ export function beginPureMicCapture(deps: {
 }): Promise<MediaStream> {
   return deps.getUserMedia({ audio: true, video: false })
 }
+
+export function beginPureMicCaptureFirst(deps: {
+  getUserMedia: (constraints: MediaStreamConstraints) => Promise<MediaStream>
+  afterCapture: (stream: MediaStream) => void
+}): Promise<MediaStream> {
+  const pendingStream = deps.getUserMedia({ audio: true, video: false })
+  return pendingStream.then((stream) => {
+    deps.afterCapture(stream)
+    return stream
+  })
+}
