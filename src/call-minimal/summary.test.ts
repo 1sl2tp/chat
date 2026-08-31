@@ -5,6 +5,7 @@ function metrics(overrides: Partial<MinimalCallMetrics> = {}): MinimalCallMetric
   return {
     connected: true,
     micTrackLive: true,
+    micTrackWasLive: true,
     outboundBytesDelta: 1200,
     outboundPacketsDelta: 12,
     remoteTrackSubscribed: true,
@@ -26,6 +27,10 @@ describe('summarizeMinimalCall', () => {
       playback: 'pass',
       cleanup: 'pass',
     })
+  })
+
+  it('keeps microphone transport pass after cleanup stops the media track', () => {
+    expect(summarizeMinimalCall(metrics({ micTrackLive: false, micTrackWasLive: true })).microphone).toBe('pass')
   })
 
   it('fails microphone transport when no outbound RTP was sent', () => {
