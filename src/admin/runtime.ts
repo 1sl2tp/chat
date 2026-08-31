@@ -1,4 +1,4 @@
-import { startChatMessagesForConversation, stopChatMessages } from '../chat/message-runtime'
+import { sendChatText, startChatMessagesForConversation, stopChatMessages } from '../chat/message-runtime'
 import { createSupabaseMessageBackend } from '../supabase/message-backend'
 import { createSupabaseAdminBackend } from '../supabase/admin-backend'
 import type { AdminBackend } from './contracts'
@@ -9,10 +9,11 @@ export interface AdminMessageRuntime {
   stop(): void
 }
 
+const sharedMessageBackend = createSupabaseMessageBackend()
+
 function createDefaultMessageRuntime(): AdminMessageRuntime {
-  const backend = createSupabaseMessageBackend()
   return {
-    start: (conversationId) => startChatMessagesForConversation(backend, conversationId),
+    start: (conversationId) => startChatMessagesForConversation(sharedMessageBackend, conversationId),
     stop: () => stopChatMessages(),
   }
 }
@@ -84,6 +85,11 @@ export async function selectAdminConversation(conversationId: string): Promise<v
       error: error instanceof Error ? error.message : 'Admin conversation failed',
     })
   }
+}
+
+export async function sendAdminText(text: string): Promise<void> {
+  await sendChatText(sharedMessageBackend, text)
+  await refreshAdminInbox()
 }
 
 export function clearAdminSelection(): void {
