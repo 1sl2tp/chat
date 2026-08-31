@@ -4,185 +4,159 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#ffffff" />
-  <title>LiveKit Audio Baseline</title>
+  <title>LiveKit Components Call Test</title>
   <style>
-    *{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f5f5f5;color:#111}main{max-width:680px;margin:0 auto;padding:18px}.card{background:#fff;border:1px solid #ddd;border-radius:14px;padding:15px;margin:12px 0}.row{display:flex;gap:9px;flex-wrap:wrap;align-items:center}.muted{color:#666}.ok{color:#116b2c}.warn{color:#9a5a00}.bad{color:#a10000}button{min-height:46px;padding:0 15px;border:1px solid #bbb;border-radius:10px;background:#fff;color:#111;font:inherit;font-weight:650}button.primary{background:#111;color:#fff;border-color:#111}button:disabled{opacity:.45}code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}#log{white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;line-height:1.45;max-height:300px;overflow:auto}audio{width:100%;margin-top:10px}
+    *{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f5f5f5;color:#111}main{max-width:680px;margin:0 auto;padding:18px}.card{background:#fff;border:1px solid #ddd;border-radius:14px;padding:15px;margin:12px 0}.row{display:flex;gap:9px;flex-wrap:wrap;align-items:center}.muted{color:#666}.ok{color:#116b2c}.bad{color:#a10000}button{min-height:46px;padding:0 15px;border:1px solid #bbb;border-radius:10px;background:#fff;color:#111;font:inherit;font-weight:650}button.primary{background:#111;color:#fff;border-color:#111}button:disabled{opacity:.45}.lk-room{display:block}.lk-control-bar{display:flex;gap:9px;flex-wrap:wrap;align-items:center}.lk-button-group{display:flex;gap:6px}.lk-button-group-menu{display:none}.lk-start-audio-button{margin-top:10px;background:#111;color:#fff;border-color:#111}code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
   </style>
 </head>
 <body>
-<main>
-  <h2>LiveKit Audio Baseline</h2>
-  <p class="muted">Một room · một mic LiveKit · một remote audio element. Không AudioContext, không audioSession, không speaker routing, không Supabase Call.</p>
+  <div id="root"></div>
 
-  <div class="card">
-    <div><b>Room:</b> <code id="roomName"></code></div>
-    <div style="margin-top:8px"><b>Thiết bị:</b> <span id="device"></span></div>
-    <div style="margin-top:8px"><b>Kết nối:</b> <span id="connection">chưa vào</span></div>
-    <div style="margin-top:8px"><b>Mic:</b> <span id="mic">chưa bật</span></div>
-    <div style="margin-top:8px"><b>Remote:</b> <span id="remote">chưa có</span></div>
-  </div>
+  <script type="module">
+    import React, { useMemo, useState } from 'https://esm.sh/react@18.3.1';
+    import { createRoot } from 'https://esm.sh/react-dom@18.3.1/client';
+    import {
+      LiveKitRoom,
+      RoomAudioRenderer,
+      StartAudio,
+      ControlBar,
+    } from 'https://esm.sh/@livekit/components-react@2.9.24?deps=react@18.3.1,react-dom@18.3.1,livekit-client@2.22.1';
+    import { TokenSource } from 'https://esm.sh/livekit-client@2.22.1';
 
-  <div class="card">
-    <div class="row">
-      <button id="join" class="primary">Vào phòng</button>
-      <button id="startAudio" hidden>Bật âm thanh</button>
-      <button id="leave" disabled>Rời phòng</button>
-    </div>
-    <p class="muted">Mở đúng trang này trên iPhone và Android. Cả hai bấm “Vào phòng”, cho phép microphone rồi nói thử hai chiều.</p>
-    <audio id="remoteAudio" controls autoplay playsinline></audio>
-  </div>
+    const TOKEN_SERVER_ID = 'taphoachat-1x4n2g';
+    const ROOM_NAME = 'taphoa-livekit-components-audio-v1';
 
-  <div class="card"><b>Log tại máy</b><div id="log"></div></div>
-</main>
-
-<script src="https://cdn.jsdelivr.net/npm/livekit-client@2.22.1/dist/livekit-client.umd.min.js"></script>
-<script>
-(()=>{
-  const TOKEN_SERVER_ID='taphoachat-1x4n2g';
-  const ROOM_NAME='taphoa-livekit-clean-baseline-v1';
-  const lk=window.LivekitClient;
-  const $=id=>document.getElementById(id);
-  const device=/Android/i.test(navigator.userAgent)?'Android':/iPhone|iPad|iPod/i.test(navigator.userAgent)?'iPhone/iPad':'Web';
-  const persistentId=localStorage.getItem('taphoa-clean-call-device')||crypto.randomUUID();
-  localStorage.setItem('taphoa-clean-call-device',persistentId);
-
-  let room=null;
-  let remoteTrack=null;
-
-  $('roomName').textContent=ROOM_NAME;
-  $('device').textContent=device;
-
-  function log(message,cls=''){
-    const line=document.createElement('div');
-    line.textContent=`${new Date().toLocaleTimeString()}  ${message}`;
-    if(cls)line.className=cls;
-    $('log').appendChild(line);
-    $('log').scrollTop=$('log').scrollHeight;
-  }
-
-  function showAudioUnlock(show){ $('startAudio').hidden=!show; }
-
-  function clearRemote(){
-    if(remoteTrack){
-      try{remoteTrack.detach($('remoteAudio'))}catch{}
-      remoteTrack=null;
+    function getDeviceName() {
+      if (/Android/i.test(navigator.userAgent)) return 'Android';
+      if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) return 'iPhone/iPad';
+      return 'Web';
     }
-    try{$('remoteAudio').pause()}catch{}
-    $('remoteAudio').srcObject=null;
-    $('remote').textContent='chưa có';
-  }
 
-  function resetUi(){
-    $('connection').textContent='chưa vào';
-    $('mic').textContent='chưa bật';
-    $('join').disabled=false;
-    $('leave').disabled=true;
-    showAudioUnlock(false);
-    clearRemote();
-  }
-
-  async function fetchToken(identity){
-    const source=lk.TokenSource.developmentTokenServer(TOKEN_SERVER_ID);
-    return source.fetch({roomName:ROOM_NAME,participantIdentity:identity,participantName:device});
-  }
-
-  async function unlockAudio(){
-    if(!room)return;
-    try{
-      await room.startAudio();
-      showAudioUnlock(false);
-      log('AUDIO PLAYBACK UNLOCKED','ok');
-    }catch(error){
-      log(`AUDIO UNLOCK ERROR · ${error?.message||error}`,'bad');
+    function getIdentity(device) {
+      const key = 'taphoa-livekit-components-device';
+      let id = localStorage.getItem(key);
+      if (!id) {
+        id = crypto.randomUUID();
+        localStorage.setItem(key, id);
+      }
+      return `${device.toLowerCase().replace(/[^a-z]+/g, '-')}-${id}`;
     }
-  }
 
-  async function join(){
-    if(room)return;
-    $('join').disabled=true;
-    $('connection').textContent='đang kết nối…';
+    function App() {
+      const device = useMemo(() => getDeviceName(), []);
+      const identity = useMemo(() => getIdentity(device), [device]);
+      const [credentials, setCredentials] = useState(null);
+      const [joining, setJoining] = useState(false);
+      const [status, setStatus] = useState('chưa vào');
+      const [error, setError] = useState('');
 
-    room=new lk.Room({disconnectOnPageLeave:true});
-
-    room.on(lk.RoomEvent.TrackSubscribed,(track,_publication,participant)=>{
-      if(track.kind!==lk.Track.Kind.Audio)return;
-      clearRemote();
-      remoteTrack=track;
-      track.attach($('remoteAudio'));
-      $('remote').textContent=`audio từ ${participant.identity}`;
-      log(`REMOTE AUDIO ATTACHED · ${participant.identity}`,'ok');
-      $('remoteAudio').play().then(()=>{
-        showAudioUnlock(false);
-        log('REMOTE AUDIO PLAYING','ok');
-      }).catch(()=>{
-        showAudioUnlock(true);
-        log('REMOTE AUDIO BLOCKED · bấm Bật âm thanh','warn');
-      });
-    });
-
-    room.on(lk.RoomEvent.TrackUnsubscribed,(track)=>{
-      if(track===remoteTrack)clearRemote();
-    });
-
-    room.on(lk.RoomEvent.AudioPlaybackStatusChanged,()=>{
-      showAudioUnlock(!room.canPlaybackAudio);
-      log(`AUDIO PLAYBACK STATUS · ${room.canPlaybackAudio?'allowed':'blocked'}`,room.canPlaybackAudio?'ok':'warn');
-    });
-
-    room.on(lk.RoomEvent.MediaDevicesError,(error)=>{
-      log(`MEDIA DEVICE ERROR · ${error?.message||error}`,'bad');
-    });
-
-    room.on(lk.RoomEvent.ParticipantConnected,(participant)=>log(`PEER JOIN · ${participant.identity}`,'ok'));
-    room.on(lk.RoomEvent.ParticipantDisconnected,(participant)=>log(`PEER LEAVE · ${participant.identity}`,'warn'));
-    room.on(lk.RoomEvent.Disconnected,()=>{
-      log('ROOM DISCONNECTED','warn');
-      room=null;
-      resetUi();
-    });
-
-    // Called directly from the tap handler so iOS Safari can authorize playback.
-    void room.startAudio().catch(()=>showAudioUnlock(true));
-
-    try{
-      const identity=`${device.toLowerCase().replace(/[^a-z]+/g,'-')}-${persistentId}`;
-      const credentials=await fetchToken(identity);
-      await room.connect(credentials.serverUrl,credentials.participantToken);
-      $('connection').textContent='đã kết nối';
-      $('leave').disabled=false;
-      log(`ROOM CONNECTED · ${identity}`,'ok');
-
-      const publication=await room.localParticipant.setMicrophoneEnabled(true);
-      const mediaTrack=publication?.track?.mediaStreamTrack;
-      $('mic').textContent=publication?'đã publish':'không publish';
-      if(mediaTrack){
-        log(`MIC PUBLISHED · enabled=${mediaTrack.enabled} muted=${mediaTrack.muted} readyState=${mediaTrack.readyState}`,'ok');
-      }else{
-        log('MIC PUBLISH RESULT · no media track','warn');
+      async function join() {
+        if (joining || credentials) return;
+        setJoining(true);
+        setError('');
+        setStatus('đang lấy token…');
+        try {
+          const source = TokenSource.developmentTokenServer(TOKEN_SERVER_ID);
+          const next = await source.fetch({
+            roomName: ROOM_NAME,
+            participantIdentity: identity,
+            participantName: device,
+          });
+          setCredentials(next);
+          setStatus('đang kết nối…');
+        } catch (e) {
+          setError(e?.message || String(e));
+          setStatus('lỗi');
+        } finally {
+          setJoining(false);
+        }
       }
 
-      showAudioUnlock(!room.canPlaybackAudio);
-    }catch(error){
-      log(`JOIN ERROR · ${error?.stack||error}`,'bad');
-      try{room?.disconnect(true)}catch{}
-      room=null;
-      resetUi();
+      function resetAfterDisconnect() {
+        setCredentials(null);
+        setStatus('đã rời');
+      }
+
+      const children = [];
+      if (credentials) {
+        children.push(
+          React.createElement(
+            LiveKitRoom,
+            {
+              key: 'room',
+              token: credentials.participantToken,
+              serverUrl: credentials.serverUrl,
+              connect: true,
+              audio: true,
+              video: false,
+              onConnected: () => setStatus('đã kết nối'),
+              onDisconnected: resetAfterDisconnect,
+              onError: (e) => {
+                setError(e?.message || String(e));
+                setStatus('lỗi');
+              },
+              onMediaDeviceFailure: (failure) => {
+                setError(`Media device: ${failure}`);
+              },
+              className: 'lk-room',
+            },
+            React.createElement(RoomAudioRenderer, { key: 'renderer' }),
+            React.createElement(StartAudio, {
+              key: 'start-audio',
+              label: 'Bật âm thanh',
+              className: 'lk-start-audio-button',
+            }),
+            React.createElement(ControlBar, {
+              key: 'controls',
+              variation: 'textOnly',
+              saveUserChoices: false,
+              controls: {
+                microphone: true,
+                camera: false,
+                screenShare: false,
+                chat: false,
+                leave: true,
+                settings: false,
+              },
+            }),
+          ),
+        );
+      }
+
+      return React.createElement(
+        'main',
+        null,
+        React.createElement('h2', null, 'LiveKit Components Call Test'),
+        React.createElement(
+          'p',
+          { className: 'muted' },
+          'Call viết lại độc lập bằng component chính thức của LiveKit. Không dùng code Call cũ và không tự quản mic/remote audio.',
+        ),
+        React.createElement(
+          'div',
+          { className: 'card' },
+          React.createElement('div', null, React.createElement('b', null, 'Room: '), React.createElement('code', null, ROOM_NAME)),
+          React.createElement('div', { style: { marginTop: 8 } }, React.createElement('b', null, 'Thiết bị: '), device),
+          React.createElement('div', { style: { marginTop: 8 } }, React.createElement('b', null, 'Trạng thái: '), React.createElement('span', { className: status === 'đã kết nối' ? 'ok' : '' }, status)),
+          error ? React.createElement('div', { className: 'bad', style: { marginTop: 8 } }, error) : null,
+        ),
+        React.createElement(
+          'div',
+          { className: 'card' },
+          !credentials
+            ? React.createElement('button', { className: 'primary', onClick: join, disabled: joining }, joining ? 'Đang vào…' : 'Vào phòng')
+            : null,
+          children,
+          React.createElement(
+            'p',
+            { className: 'muted' },
+            'Mở đúng trang này trên iPhone và Android. Cả hai bấm Vào phòng và cho phép microphone. Nếu Safari hiện nút Bật âm thanh thì bấm một lần.',
+          ),
+        ),
+      );
     }
-  }
 
-  function leave(){
-    const active=room;
-    room=null;
-    try{active?.disconnect(true)}catch{}
-    resetUi();
-    log('LEFT ROOM');
-  }
-
-  $('join').addEventListener('click',join);
-  $('startAudio').addEventListener('click',unlockAudio);
-  $('leave').addEventListener('click',leave);
-  log(`READY · ${device}`);
-})();
-</script>
+    createRoot(document.getElementById('root')).render(React.createElement(App));
+  </script>
 </body>
 </html>
