@@ -1,11 +1,10 @@
 import './style.css'
-import { bootstrapAdminIdentity, startAdminWorkspace } from './admin/bootstrap'
+import { resolveStartupSurface } from './app/startup'
 import { startAdminRuntime } from './admin/runtime'
-import { setAdminState } from './admin/store'
 import { startChatRuntime } from './chat/runtime'
-import { getDeviceLabel, getDevicePlatform, getOrCreateDeviceKey } from './device/identity'
 import { setupPwa } from './pwa'
 import { createSupabaseChatBackend } from './supabase/chat-backend'
+import { createSupabaseIdentityBackend } from './supabase/identity-backend'
 import { startSupabaseRuntime } from './supabase/runtime'
 import { mountAdminScreen } from './ui/admin/screen'
 import { mountCustomerChatScreen } from './ui/chat/customer-screen'
@@ -13,9 +12,7 @@ import { setupViewportController } from './viewport/controller'
 
 const root = document.querySelector<HTMLDivElement>('#app')
 
-if (!root) {
-  throw new Error('Missing #app root')
-}
+if (!root) throw new Error('Missing #app root')
 
 const redirectedPath = sessionStorage.getItem('chat.pages.redirect')
 if (redirectedPath) {
@@ -25,32 +22,44 @@ if (redirectedPath) {
 
 setupViewportController()
 startSupabaseRuntime()
+setupPwa()
 
-const adminMode = window.location.pathname === '/admin' || window.location.pathname === '/admin/'
-
-if (adminMode) {
-  mountAdminScreen(root)
-  const chatBackend = createSupabaseChatBackend()
-  void startAdminWorkspace({
-    bootstrap: () => bootstrapAdminIdentity(chatBackend, {
-      deviceKey: getOrCreateDeviceKey(),
-      label: getDeviceLabel(),
-      platform: getDevicePlatform(),
-    }),
-    startAdmin: startAdminRuntime,
-    onError(error) {
-      setAdminState({
-        phase: 'error',
-        inbox: [],
-        selectedConversationId: null,
-        detail: null,
-        error: error.message,
-      })
-    },
-  })
-} else {
-  void startChatRuntime()
-  mountCustomerChatScreen(root)
+function mountStatus(message: string): void {
+  const main = document.createElement('main')
+  main.className = 'app-status'
+  main.textContent = message
+  root.replaceChildren(main)
 }
 
-setupPwa()
+async function startApplication(): Promise<void> {
+  const chatBackend = createSupabaseChatBackend()
+  const identityBackend = createSupabaseIdentityBackend()
+  const surface = await resolveStartupSurface(window.location.pathname, {
+    hasSession: () => chatBackend.hasSession(),
+    signInAnonymously: () => chatBackend.signInAnonymously(),
+    resolveIdentity: () => identityBackend.resolveCurrentIdentity(),
+  })
+
+  switch (surface.type) {
+    case 'guest-chat':
+    case 'customer-chat':
+      await startChatRuntime()
+      mountCustomerChatScreen(root)
+      return
+    case 'admin-workspace':
+      mountAdminScreen(root)
+      await startAdminRuntime()
+      return
+    case 'admin-login':
+      mountStatus('Đăng nhập Admin')
+      return
+    case 'access-denied':
+      mountStatus('Tài khoản này không có quyền Admin.')
+      return
+    case 'identity-error':
+      mountStatus('Không thể xác định tài khoản hiện tại.')
+      return
+  }
+}
+
+void startApplication()
