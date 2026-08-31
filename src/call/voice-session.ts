@@ -37,6 +37,12 @@ type ActiveCallRow = {
   callee_display_name: string | null
 }
 
+type CallStateResult = {
+  ok?: boolean
+  state?: string
+  reason?: string
+}
+
 const DEFAULT_STATE: VoiceCallState = {
   phase: 'idle',
   display: 'full',
@@ -293,7 +299,7 @@ export class VoiceCallSession {
       callId,
       profileId: context.profileId,
       deviceId: context.deviceId,
-      displayName: context.peerName || 'TAPHOA Chat',
+      displayName: context.profileId.slice(0, 8),
     })
     this.publish({ speakerAvailable: this.media.canChooseAudioOutput() })
     await this.reportMediaState('livekit', { reason: 'joined', room: `taphoa-call-${callId.toLowerCase()}` })
@@ -304,11 +310,22 @@ export class VoiceCallSession {
     if (!callId || this.markingConnected) return
     this.markingConnected = true
     try {
-      if (this.backendState === 'accepted') {
-        await this.client.rpc('chat_mark_voice_call_connecting', { p_call_id: callId })
+      // LiveKit seeing the remote participant is authoritative media evidence. Do not trust
+      // the caller's cached backendState here: the callee may have accepted milliseconds ago.
+      const connectingResult = await this.client.rpc('chat_mark_voice_call_connecting', { p_call_id: callId })
+      if (connectingResult.error) throw connectingResult.error
+      const connectingPayload = connectingResult.data as CallStateResult | null
+      if (connectingPayload?.ok === false && connectingPayload.state !== 'connected') {
+        throw new Error(connectingPayload.reason || 'call_connecting_failed')
       }
-      const result = await this.client.rpc('chat_mark_voice_call_connected', { p_call_id: callId })
-      if (result.error) throw result.error
+
+      const connectedResult = await this.client.rpc('chat_mark_voice_call_connected', { p_call_id: callId })
+      if (connectedResult.error) throw connectedResult.error
+      const connectedPayload = connectedResult.data as CallStateResult | null
+      if (connectedPayload?.ok === false) {
+        throw new Error(connectedPayload.reason || 'call_connected_failed')
+      }
+
       this.backendState = 'connected'
       this.publish({ phase: 'active', connectedAt: this.state.connectedAt ?? Date.now(), error: null })
       await this.reportMediaState('livekit', { reason: 'peer_connected' })
