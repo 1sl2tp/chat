@@ -16,6 +16,22 @@ Compatibility targets:
 
 Mobile is the primary UI. Windows and macOS use the same application with a simple wider layout; there is no separate complex desktop UI architecture.
 
+## Android PWA release contract
+
+Android PWA is a first-class release target, not a fallback browser mode. A release must preserve:
+- Web App Manifest with stable `id`, `start_url`, `scope`, `display: standalone`, theme/background colors and install icons.
+- 192x192, 512x512 and maskable Android-capable icons.
+- Registered custom service worker for offline shell, Push, Notification, Badge and notification navigation.
+- Runtime detection of Android + Chrome + standalone/browser mode.
+- Feature detection for mic, WebRTC, Push, Badge, Media Session, PiP and Wake Lock.
+- GitHub Actions production build before deploy.
+
+## Version tracking rule
+
+Every user-visible change must carry a named app version in `src/version.ts` and the same version must be visible on the running screen. GitHub Actions also injects the commit SHA as a build ID, so a cached/old PWA can be distinguished from the current deployment.
+
+Current named foundation version: `CHAT-FND-0.2.0`.
+
 ## Stack
 
 - TypeScript
