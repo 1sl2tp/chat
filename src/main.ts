@@ -14,11 +14,13 @@ import { mountAdminScreen } from './ui/admin/screen'
 import { mountCustomerChatScreen } from './ui/chat/customer-screen'
 import { setupViewportController } from './viewport/controller'
 
-const root = document.querySelector<HTMLDivElement>('#app')
+const rootElement = document.querySelector<HTMLDivElement>('#app')
 
-if (!root) {
+if (!rootElement) {
   throw new Error('Missing #app root')
 }
+
+const root: HTMLDivElement = rootElement
 
 const redirectedPath = sessionStorage.getItem('chat.pages.redirect')
 if (redirectedPath) {
