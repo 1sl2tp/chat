@@ -1,0 +1,8 @@
+{
+  "status": "ACTIVE",
+  "statusClass": "ok",
+  "label": "LiveKit iOS Capture Order Proof",
+  "target": "/livekit-ios-capture-order-proof.html?v=94eb9eab",
+  "note": "Đây là proof Web cuối cùng dùng để đối chiếu. Native Call Proof sẽ thay target này khi bản native sẵn sàng.",
+  "autoOpen": false
+}
