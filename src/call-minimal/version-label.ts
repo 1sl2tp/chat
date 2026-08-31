@@ -1,4 +1,4 @@
-export const MINIMAL_CALL_TEST_VERSION = 'minimal-call-v1.5.3-sync-diagnostic-meterfix'
+export const MINIMAL_CALL_TEST_VERSION = 'minimal-call-v1.6-ios-capture-recovery'
 
 function shortTestVersion(testVersion: string): string {
   const match = testVersion.match(/minimal-call-v([^\s-]+)/i)
