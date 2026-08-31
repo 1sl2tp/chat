@@ -8,7 +8,7 @@ import { summarizeMinimalCall, type MinimalCallMetrics, type MinimalCallSummary 
 const LIVEKIT_SDK_URL = 'https://esm.sh/livekit-client@2.22.1'
 const LIVEKIT_VERSION = '2.22.1'
 const TOKEN_SERVER_ID = 'taphoachat-1x4n2g'
-const TEST_VERSION = 'minimal-call-v1.3-ios-audio-session'
+const TEST_VERSION = 'minimal-call-v1.4-ios-explicit-track'
 const ROOM_NAME = 'taphoa-minimal-call-v1'
 const CHECKPOINT_MS = 10_000
 
@@ -388,8 +388,17 @@ export class MinimalCallOwner {
       this.log(`capture profile=${captureOptions ? JSON.stringify(captureOptions) : 'livekit-defaults'}`)
       const publication = await enableCallAudio({
         enableMicrophone: async () => {
-          const micPublication = await this.room.localParticipant.setMicrophoneEnabled(true, captureOptions)
-          this.log('microphone enabled before startAudio')
+          if (captureOptions) {
+            const audioTrack = await this.lk.createLocalAudioTrack(captureOptions)
+            const micPublication = await this.room.localParticipant.publishTrack(audioTrack, {
+              source: this.lk.Track.Source.Microphone,
+            })
+            this.log('capture path=createLocalAudioTrack+publishTrack')
+            return micPublication
+          }
+
+          const micPublication = await this.room.localParticipant.setMicrophoneEnabled(true)
+          this.log('capture path=setMicrophoneEnabled livekit-defaults')
           return micPublication
         },
         startAudio: async () => {
