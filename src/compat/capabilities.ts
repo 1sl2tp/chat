@@ -1,6 +1,7 @@
 export interface CapabilitySnapshot {
   serviceWorker: boolean
   notifications: boolean
+  permissionsApi: boolean
   mediaDevices: boolean
   getUserMedia: boolean
   peerConnection: boolean
@@ -11,11 +12,14 @@ export interface CapabilitySnapshot {
   videoPictureInPicture: boolean
   documentPictureInPicture: boolean
   wakeLock: boolean
+  visualViewport: boolean
+  virtualKeyboard: boolean
 }
 
 export interface CapabilityProbeInput {
   serviceWorker?: unknown
   Notification?: unknown
+  permissions?: unknown
   mediaDevices?: { getUserMedia?: unknown }
   RTCPeerConnection?: unknown
   setSinkId?: unknown
@@ -25,12 +29,15 @@ export interface CapabilityProbeInput {
   requestPictureInPicture?: unknown
   documentPictureInPicture?: unknown
   wakeLock?: unknown
+  visualViewport?: unknown
+  virtualKeyboard?: unknown
 }
 
 export function detectCapabilities(input: CapabilityProbeInput): CapabilitySnapshot {
   return {
     serviceWorker: input.serviceWorker !== undefined,
     notifications: typeof input.Notification === 'function',
+    permissionsApi: input.permissions !== undefined,
     mediaDevices: input.mediaDevices !== undefined,
     getUserMedia: typeof input.mediaDevices?.getUserMedia === 'function',
     peerConnection: typeof input.RTCPeerConnection === 'function',
@@ -41,5 +48,7 @@ export function detectCapabilities(input: CapabilityProbeInput): CapabilitySnaps
     videoPictureInPicture: typeof input.requestPictureInPicture === 'function',
     documentPictureInPicture: input.documentPictureInPicture !== undefined,
     wakeLock: input.wakeLock !== undefined,
+    visualViewport: input.visualViewport !== undefined,
+    virtualKeyboard: input.virtualKeyboard !== undefined,
   }
 }
