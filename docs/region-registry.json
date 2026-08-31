@@ -1,0 +1,192 @@
+[
+  {
+    "id": "APP",
+    "parent": null,
+    "surface": "app",
+    "owner": "src/main.ts",
+    "geometryOwner": "src/style.css",
+    "stateOwner": "src/app/startup.ts",
+    "locator": "#app",
+    "contract": "Composition root stays thin; routes final owner results to surfaces."
+  },
+  {
+    "id": "CUSTOMER_CHAT",
+    "parent": "APP",
+    "surface": "customer-chat",
+    "owner": "src/ui/chat/customer-screen.ts",
+    "geometryOwner": "src/style.css",
+    "stateOwner": "src/chat/store.ts",
+    "locator": ".chat-screen",
+    "contract": "Customer support chat surface; does not own Auth/identity/message state machines."
+  },
+  {
+    "id": "CUSTOMER_CHAT/HEADER",
+    "parent": "CUSTOMER_CHAT",
+    "surface": "customer-chat",
+    "owner": "src/ui/chat/customer-screen.ts",
+    "geometryOwner": "src/style.css",
+    "stateOwner": null,
+    "locator": ".chat-header",
+    "contract": "Header placement/safe-area belong to the header parent; children must not compensate for shell geometry."
+  },
+  {
+    "id": "CUSTOMER_CHAT/MESSAGE_LIST",
+    "parent": "CUSTOMER_CHAT",
+    "surface": "customer-chat",
+    "owner": "src/ui/chat/message-list.ts",
+    "geometryOwner": "src/style.css",
+    "stateOwner": "src/chat/message-runtime.ts",
+    "locator": ".chat-messages",
+    "contract": "Primary conversation scroller; message state/subscription remains canonical in message-runtime."
+  },
+  {
+    "id": "CUSTOMER_CHAT/FOOTER",
+    "parent": "CUSTOMER_CHAT",
+    "surface": "customer-chat",
+    "owner": "src/ui/chat/customer-screen.ts",
+    "geometryOwner": "src/style.css",
+    "stateOwner": null,
+    "locator": ".chat-footer",
+    "contract": "Owns footer/safe-area placement and hosts composer/version regions."
+  },
+  {
+    "id": "CUSTOMER_CHAT/COMPOSER",
+    "parent": "CUSTOMER_CHAT/FOOTER",
+    "surface": "customer-chat",
+    "owner": "src/ui/chat/composer.ts",
+    "geometryOwner": "src/style.css",
+    "stateOwner": "src/ui/chat/composer.ts",
+    "locator": ".chat-composer",
+    "contract": "Shared text composer; consumes send capability but does not own viewport or message state."
+  },
+  {
+    "id": "CUSTOMER_CHAT/COMPOSER/INPUT",
+    "parent": "CUSTOMER_CHAT/COMPOSER",
+    "surface": "customer-chat",
+    "owner": "src/ui/chat/composer.ts",
+    "geometryOwner": "src/style.css",
+    "stateOwner": null,
+    "locator": ".chat-composer__input",
+    "contract": "Editable mobile text control; iOS-class mobile computed font must be >=16px and user pinch zoom remains enabled."
+  },
+  {
+    "id": "CUSTOMER_CHAT/COMPOSER/PLUS",
+    "parent": "CUSTOMER_CHAT/COMPOSER",
+    "surface": "customer-chat",
+    "owner": "src/ui/chat/composer.ts",
+    "geometryOwner": "src/style.css",
+    "stateOwner": null,
+    "locator": ".chat-composer__plus",
+    "contract": "Visual control may be compact but practical mobile hit target should remain approximately 44px."
+  },
+  {
+    "id": "CUSTOMER_CHAT/COMPOSER/SEND",
+    "parent": "CUSTOMER_CHAT/COMPOSER",
+    "surface": "customer-chat",
+    "owner": "src/ui/chat/composer.ts",
+    "geometryOwner": "src/style.css",
+    "stateOwner": null,
+    "locator": ".chat-composer__send",
+    "contract": "Send interaction is explicit; geometry must not be used to repair parent/viewport failures."
+  },
+  {
+    "id": "CUSTOMER_CHAT/PROFILE_FORM",
+    "parent": "CUSTOMER_CHAT",
+    "surface": "customer-chat",
+    "owner": "src/ui/chat/profile-form.ts",
+    "geometryOwner": "src/ui/chat/profile-form.css",
+    "stateOwner": "src/profile/runtime.ts",
+    "locator": ".profile-sheet",
+    "contract": "Profile overlay owns its form layout; profile data behavior remains in profile/runtime and backend adapter."
+  },
+  {
+    "id": "CUSTOMER_CHAT/OVERFLOW_MENU",
+    "parent": "CUSTOMER_CHAT/HEADER",
+    "surface": "customer-chat",
+    "owner": "src/ui/chat/overflow-menu.ts",
+    "geometryOwner": "src/style.css",
+    "stateOwner": null,
+    "locator": ".chat-menu",
+    "contract": "Header-owned menu presentation; must stay within viewport without becoming a business state owner."
+  },
+  {
+    "id": "ADMIN",
+    "parent": "APP",
+    "surface": "admin",
+    "owner": "src/app/startup.ts",
+    "geometryOwner": "src/ui/admin/style.css",
+    "stateOwner": "src/identity/runtime.ts",
+    "locator": "/admin",
+    "contract": "Admin surface is entered only after backend-resolved Admin identity; route name never grants role."
+  },
+  {
+    "id": "ADMIN/LOGIN",
+    "parent": "ADMIN",
+    "surface": "admin",
+    "owner": "src/ui/admin/login.ts",
+    "geometryOwner": "src/ui/admin/login.css",
+    "stateOwner": null,
+    "locator": ".admin-login",
+    "contract": "Credential UI only; successful Auth still requires identity resolution before workspace access."
+  },
+  {
+    "id": "ADMIN/WORKSPACE",
+    "parent": "ADMIN",
+    "surface": "admin",
+    "owner": "src/ui/admin/screen.ts",
+    "geometryOwner": "src/ui/admin/style.css",
+    "stateOwner": "src/admin/store.ts",
+    "locator": ".admin-screen",
+    "contract": "Workspace orchestration consumes resolved Admin identity and shared message runtime."
+  },
+  {
+    "id": "ADMIN/INBOX",
+    "parent": "ADMIN/WORKSPACE",
+    "surface": "admin",
+    "owner": "src/ui/admin/screen.ts",
+    "geometryOwner": "src/ui/admin/style.css",
+    "stateOwner": "src/admin/store.ts",
+    "locator": ".admin-inbox",
+    "contract": "Inbox list/selection presentation; inbox state belongs to admin runtime/store/backend."
+  },
+  {
+    "id": "ADMIN/CONVERSATION",
+    "parent": "ADMIN/WORKSPACE",
+    "surface": "admin",
+    "owner": "src/ui/admin/screen.ts",
+    "geometryOwner": "src/ui/admin/style.css",
+    "stateOwner": "src/admin/store.ts",
+    "locator": ".admin-conversation",
+    "contract": "Selected-conversation surface; must stop/replace conversation subscriptions through canonical runtime boundaries."
+  },
+  {
+    "id": "ADMIN/CONVERSATION/DETAIL",
+    "parent": "ADMIN/CONVERSATION",
+    "surface": "admin",
+    "owner": "src/ui/admin/screen.ts",
+    "geometryOwner": "src/ui/admin/style.css",
+    "stateOwner": "src/admin/store.ts",
+    "locator": ".admin-detail",
+    "contract": "Customer/device detail presentation consumes Admin detail state; it does not query independently."
+  },
+  {
+    "id": "ADMIN/CONVERSATION/MESSAGES",
+    "parent": "ADMIN/CONVERSATION",
+    "surface": "admin",
+    "owner": "src/ui/admin/screen.ts",
+    "geometryOwner": "src/ui/admin/style.css",
+    "stateOwner": "src/chat/message-runtime.ts",
+    "locator": ".admin-messages",
+    "contract": "Admin rendering consumes the same canonical message state machine as customer chat."
+  },
+  {
+    "id": "ADMIN/CONVERSATION/COMPOSER",
+    "parent": "ADMIN/CONVERSATION",
+    "surface": "admin",
+    "owner": "src/ui/chat/composer.ts",
+    "geometryOwner": "src/ui/admin/style.css",
+    "stateOwner": "src/chat/message-runtime.ts",
+    "locator": ".admin-composer.chat-composer",
+    "contract": "Shared composer hosted by Admin conversation; Admin does not create a second composer/message state machine."
+  }
+]
