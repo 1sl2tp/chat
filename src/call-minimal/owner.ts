@@ -1,11 +1,12 @@
 import { supabase } from '../supabase/client'
+import { enableCallAudio } from './media-sequence'
 import { MinimalCallLifecycle, type MinimalCallPhase } from './owner-lifecycle'
 import { summarizeMinimalCall, type MinimalCallMetrics, type MinimalCallSummary } from './summary'
 
 const LIVEKIT_SDK_URL = 'https://esm.sh/livekit-client@2.22.1'
 const LIVEKIT_VERSION = '2.22.1'
 const TOKEN_SERVER_ID = 'taphoachat-1x4n2g'
-const TEST_VERSION = 'minimal-call-v1'
+const TEST_VERSION = 'minimal-call-v1.1-mic-first'
 const ROOM_NAME = 'taphoa-minimal-call-v1'
 const CHECKPOINT_MS = 10_000
 
@@ -91,6 +92,7 @@ export class MinimalCallOwner {
   private receiverLatest = emptyReceiver()
   private receiverBaselineSet = false
   private micSettings: MediaTrackSettings | null = null
+  private micTrackWasLive = false
   private logs: string[] = []
   private samples: StatsSample[] = []
   private checkpointTimer: number | undefined
@@ -129,6 +131,11 @@ export class MinimalCallOwner {
 
   private mediaTrack(): MediaStreamTrack | undefined {
     return this.localMicTrack?.mediaStreamTrack ?? this.localMicTrack?._mediaStreamTrack
+  }
+
+  private observeMicState(): void {
+    const track = this.mediaTrack()
+    if (track?.readyState === 'live' && track.enabled) this.micTrackWasLive = true
   }
 
   private async readSender(): Promise<SenderStats | null> {
@@ -180,6 +187,7 @@ export class MinimalCallOwner {
   }
 
   private async sample(label: string): Promise<void> {
+    this.observeMicState()
     const [sender, receiver] = await Promise.all([this.readSender(), this.readReceiver()])
     if (sender) this.senderLatest = sender
     if (receiver) this.receiverLatest = receiver
@@ -195,9 +203,12 @@ export class MinimalCallOwner {
 
   private measured(cleanLeave: boolean): MinimalCallMetrics {
     const track = this.mediaTrack()
+    const micTrackLive = track?.readyState === 'live' && track.enabled
+    if (micTrackLive) this.micTrackWasLive = true
     return {
       connected: this.connected,
-      micTrackLive: track?.readyState === 'live' && track.enabled,
+      micTrackLive,
+      micTrackWasLive: this.micTrackWasLive,
       outboundBytesDelta: delta(this.senderLatest.bytesSent, this.senderBaseline.bytesSent),
       outboundPacketsDelta: delta(this.senderLatest.packetsSent, this.senderBaseline.packetsSent),
       remoteTrackSubscribed: this.remoteTrackSubscribedEver,
@@ -257,7 +268,7 @@ export class MinimalCallOwner {
       await this.submit('inconclusive', {
         phase: this.lifecycle.phase,
         connection: current.connected ? 'pass' : 'fail',
-        microphone: current.micTrackLive && current.outboundBytesDelta > 0 ? 'pass' : 'pending',
+        microphone: current.micTrackWasLive && current.outboundBytesDelta > 0 ? 'pass' : 'pending',
         remoteAudio: current.remoteTrackSubscribed && current.inboundBytesDelta > 0 ? 'pass' : 'pending',
         playback: current.playbackStarted ? 'pass' : 'pending',
         cleanup: 'pending',
@@ -365,17 +376,28 @@ export class MinimalCallOwner {
       this.connected = true
       this.lifecycle.markConnected()
       this.log('room connected')
-      try {
-        await this.room.startAudio()
-        this.log('room startAudio ok')
-      } catch (error) {
-        this.log(`room startAudio blocked=${error instanceof Error ? error.message : String(error)}`)
-      }
-      const publication = await this.room.localParticipant.setMicrophoneEnabled(true)
+
+      const publication = await enableCallAudio({
+        enableMicrophone: async () => {
+          const micPublication = await this.room.localParticipant.setMicrophoneEnabled(true)
+          this.log('microphone enabled before startAudio')
+          return micPublication
+        },
+        startAudio: async () => {
+          try {
+            await this.room.startAudio()
+            this.log('room startAudio ok after microphone')
+          } catch (error) {
+            this.log(`room startAudio blocked=${error instanceof Error ? error.message : String(error)}`)
+          }
+        },
+      })
+
       const publications = Array.from(this.room.localParticipant.trackPublications.values()) as any[]
       this.localMicTrack = publication?.track ?? publications.find((item) => item.source === this.lk.Track.Source.Microphone)?.track
       if (!this.localMicTrack) throw new Error('local_microphone_track_missing')
       const mediaTrack = this.mediaTrack()
+      this.observeMicState()
       this.micSettings = mediaTrack?.getSettings?.() ?? null
       this.log(`mic readyState=${mediaTrack?.readyState ?? 'unknown'} enabled=${mediaTrack?.enabled ?? 'unknown'} muted=${mediaTrack?.muted ?? 'unknown'}`)
       this.log(`mic settings=${JSON.stringify(this.micSettings ?? {})}`)
@@ -403,6 +425,7 @@ export class MinimalCallOwner {
     if (!nextMuted) {
       const publications = Array.from(this.room.localParticipant.trackPublications.values()) as any[]
       this.localMicTrack = publication?.track ?? publications.find((item) => item.source === this.lk.Track.Source.Microphone)?.track ?? this.localMicTrack
+      this.observeMicState()
     }
     this.log(nextMuted ? 'microphone muted' : 'microphone unmuted')
     await this.sample(nextMuted ? 'mute' : 'unmute')
@@ -466,6 +489,7 @@ export class MinimalCallOwner {
     this.muted = false
     this.remoteTrackSubscribedEver = false
     this.playbackStarted = false
+    this.micTrackWasLive = false
     this.runId = undefined
     this.logs = []
     this.samples = []
