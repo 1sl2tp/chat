@@ -1,6 +1,7 @@
 import './style.css'
 import { getAppLabel } from './app'
 import { setupPwa } from './pwa'
+import { startSupabaseRuntime } from './supabase/runtime'
 import { formatVersionLabel } from './version'
 import { setupViewportController } from './viewport/controller'
 
@@ -11,6 +12,7 @@ if (!root) {
 }
 
 setupViewportController()
+startSupabaseRuntime()
 
 const screen = document.createElement('main')
 screen.className = 'test-screen'
