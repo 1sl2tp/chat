@@ -24,6 +24,7 @@ describe('matrix diagnostics', () => {
       localEnergy: 0,
       outboundBytes: 2615,
       inboundBytes: 0,
+      inboundEnergy: 0,
     })).toBe('inconclusive')
   })
 
@@ -33,6 +34,7 @@ describe('matrix diagnostics', () => {
       localEnergy: 0,
       outboundBytes: 2615,
       inboundBytes: 0,
+      inboundEnergy: 0,
     })).toBe('fail')
   })
 })
