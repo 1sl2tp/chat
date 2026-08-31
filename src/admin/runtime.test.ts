@@ -3,6 +3,8 @@ import type { AdminBackend, AdminInboxItem, AdminSupportDetail } from './contrac
 import { clearAdminSelection, configureAdminRuntimeForTests, selectAdminConversation, startAdminRuntime } from './runtime'
 import { getAdminState, setAdminState } from './store'
 
+const adminIdentity = { kind: 'admin', profileId: 'pa', authUserId: 'ua', isAdmin: true } as const
+
 const inbox: AdminInboxItem[] = [{
   conversationId: 'c1',
   profileId: 'p1',
@@ -47,14 +49,14 @@ describe('admin runtime', () => {
   })
 
   it('loads inbox without owning message arrays', async () => {
-    await startAdminRuntime()
+    await startAdminRuntime(adminIdentity)
     const state = getAdminState()
     expect(state.inbox).toEqual(inbox)
     expect('messages' in state).toBe(false)
   })
 
   it('stops old messages before switching conversations', async () => {
-    await startAdminRuntime()
+    await startAdminRuntime(adminIdentity)
     await selectAdminConversation('c1')
     await selectAdminConversation('c2')
 
@@ -64,7 +66,7 @@ describe('admin runtime', () => {
   })
 
   it('clears selection through shared message runtime cleanup', async () => {
-    await startAdminRuntime()
+    await startAdminRuntime(adminIdentity)
     await selectAdminConversation('c1')
     clearAdminSelection()
     expect(getAdminState().selectedConversationId).toBeNull()
