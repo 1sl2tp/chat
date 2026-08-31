@@ -10,7 +10,11 @@
     "dev": "vite",
     "typecheck": "tsc -b",
     "test": "vitest run",
-    "build": "npm run typecheck && npm run test && vite build",
+    "check:architecture": "node scripts/validate-architecture-docs.mjs",
+    "check:fast": "npm run typecheck && npm run check:architecture",
+    "check": "npm run typecheck && npm run test && npm run check:architecture",
+    "release:verify": "npm run check && vite build",
+    "build": "npm run release:verify",
     "preview": "vite preview"
   },
   "devDependencies": {
