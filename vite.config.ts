@@ -1,8 +1,9 @@
 import { defineConfig } from 'vitest/config'
 import { VitePWA } from 'vite-plugin-pwa'
+import { APP_BASE_PATH, PWA_APP_ID } from './src/deployment'
 
 export default defineConfig({
-  base: '/chat/',
+  base: APP_BASE_PATH,
   plugins: [
     VitePWA({
       strategies: 'injectManifest',
@@ -12,7 +13,7 @@ export default defineConfig({
       injectRegister: false,
       includeAssets: ['icons/apple-touch-icon.png'],
       manifest: {
-        id: '/chat/',
+        id: PWA_APP_ID,
         name: 'Chat',
         short_name: 'Chat',
         description: 'Chat Web App',
