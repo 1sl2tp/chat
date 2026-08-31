@@ -28,7 +28,9 @@ describe('basic one User ↔ one Admin text flow', () => {
   afterEach(() => stopChatMessages())
 
   it('User sends one message, Admin reply arrives, and neither message is duplicated', async () => {
-    let onRealtimeMessage: ((message: ChatMessage) => void) | null = null
+    let onRealtimeMessage: (message: ChatMessage) => void = () => {
+      throw new Error('Realtime subscription was not installed')
+    }
     const userMessage = makeMessage('1', 'user-1', 'xin chao admin')
     const adminReply = makeMessage('2', 'admin-1', 'chao ban')
 
@@ -46,10 +48,8 @@ describe('basic one User ↔ one Admin text flow', () => {
     await startChatMessagesForConversation(backend, 'support-1')
     await sendChatText(backend, 'xin chao admin', () => 'client-1')
 
-    // Supabase Realtime may echo the just-sent row; it must not duplicate it.
-    onRealtimeMessage?.(userMessage)
-    // Admin reply arrives through Realtime.
-    onRealtimeMessage?.(adminReply)
+    onRealtimeMessage(userMessage)
+    onRealtimeMessage(adminReply)
 
     expect(getChatMessageState().messages.map((item) => item.text)).toEqual([
       'xin chao admin',
