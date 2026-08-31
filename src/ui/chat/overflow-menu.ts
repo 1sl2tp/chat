@@ -4,32 +4,42 @@ export interface OverflowMenuController {
   destroy(): void
 }
 
-export function mountOverflowMenu(container: HTMLElement): OverflowMenuController {
+export interface OverflowMenuOptions {
+  onEditProfile?: () => void
+}
+
+export function mountOverflowMenu(container: HTMLElement, options: OverflowMenuOptions = {}): OverflowMenuController {
   const panel = document.createElement('div')
   panel.className = 'chat-menu'
   panel.hidden = true
   panel.setAttribute('role', 'menu')
 
   const items = [
-    ['Lưu cuộc trò chuyện', 'Sắp có'],
-    ['Cập nhật tên & địa chỉ', 'Sắp có'],
-    ['Bật thông báo', 'Sắp có'],
-    ['Kết thúc & xóa', 'Sắp có'],
-  ] as const
+    { label: 'Lưu cuộc trò chuyện', note: 'Sắp có', enabled: false },
+    { label: 'Cập nhật tên & địa chỉ', note: '', enabled: true, action: options.onEditProfile },
+    { label: 'Bật thông báo', note: 'Sắp có', enabled: false },
+    { label: 'Kết thúc & xóa', note: 'Sắp có', enabled: false },
+  ]
 
-  for (const [label, note] of items) {
+  for (const item of items) {
     const button = document.createElement('button')
     button.type = 'button'
     button.className = 'chat-menu__item'
-    button.disabled = true
+    button.disabled = !item.enabled
     button.setAttribute('role', 'menuitem')
 
     const text = document.createElement('span')
-    text.textContent = label
+    text.textContent = item.label
     const meta = document.createElement('small')
-    meta.textContent = note
+    meta.textContent = item.note
 
     button.append(text, meta)
+    if (item.enabled) {
+      button.addEventListener('click', () => {
+        panel.hidden = true
+        item.action?.()
+      })
+    }
     panel.append(button)
   }
 
