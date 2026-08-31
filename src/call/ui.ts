@@ -67,10 +67,15 @@ function renderTopBar(state: VoiceCallState, session: VoiceCallSession): HTMLEle
   main.innerHTML = `<strong>☎ ${escapeHtml(state.peerName || 'Cuộc gọi')}</strong><span>${statusText(state)}</span>`
   main.addEventListener('click', () => session.setDisplay('full'))
 
+  if (state.audioBlocked) {
+    bar.append(main, controlButton('Bật âm', '🔊', () => session.startAudio()))
+  } else {
+    bar.append(main)
+  }
+
   const mute = controlButton(state.muted ? 'Mở mic' : 'Tắt mic', state.muted ? '🎙' : '🔇', () => session.toggleMute())
   const end = controlButton('Kết thúc', '✕', () => void session.hangup(), 'danger')
-
-  bar.append(main, mute, end)
+  bar.append(mute, end)
   return bar
 }
 
@@ -104,8 +109,11 @@ function renderFull(state: VoiceCallState, session: VoiceCallSession): HTMLEleme
       controlButton('Nhận', '☎', () => void session.accept(), 'accept'),
     )
   } else {
+    if (state.audioBlocked) {
+      controls.append(controlButton('Bật âm thanh', '🔊', () => session.startAudio(), 'accept'))
+    }
     const speaker = controlButton(
-      state.speakerSelected ? 'Loa đã chọn' : state.speakerAvailable ? 'Loa ngoài' : 'Loa hệ thống',
+      state.speakerSelected ? 'Loa đã chọn' : state.speakerAvailable ? 'Chọn loa' : 'Loa hệ thống',
       '🔊',
       () => void session.chooseSpeaker(),
     )
