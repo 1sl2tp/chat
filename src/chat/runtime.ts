@@ -2,7 +2,7 @@ import { getDeviceLabel, getDevicePlatform, getOrCreateDeviceKey } from '../devi
 import { createSupabaseChatBackend } from '../supabase/chat-backend'
 import { createSupabaseMessageBackend } from '../supabase/message-backend'
 import { bootstrapChat } from './bootstrap'
-import { startChatMessages } from './message-runtime'
+import { sendChatText, startChatMessages } from './message-runtime'
 import { setChatRuntimeState } from './store'
 
 let started = false
@@ -33,4 +33,8 @@ export async function startChatRuntime(): Promise<void> {
     setChatRuntimeState({ phase: 'error', identity: null, supportEntry: null, error: message })
     console.error('Chat bootstrap failed', error)
   }
+}
+
+export async function sendSupportText(text: string): Promise<void> {
+  await sendChatText(createSupabaseMessageBackend(), text)
 }
