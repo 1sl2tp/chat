@@ -87,6 +87,11 @@ export class LiveKitVoiceMedia {
     void room.startAudio().catch(() => undefined)
   }
 
+  async startAudio(): Promise<void> {
+    const room = this.ensureRoom()
+    await room.startAudio()
+  }
+
   async join(context: LiveKitJoinContext): Promise<void> {
     if (this.joined) return
     const livekit = sdk()
