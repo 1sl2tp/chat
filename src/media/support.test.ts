@@ -11,6 +11,11 @@ describe('media support contract', () => {
       peerConnection: true,
       audioOutputSelection: false,
       pushManager: true,
+      appBadge: true,
+      mediaSession: true,
+      videoPictureInPicture: false,
+      documentPictureInPicture: false,
+      wakeLock: true,
     })).toEqual({
       canCaptureAudio: true,
       canCall: true,
@@ -27,6 +32,11 @@ describe('media support contract', () => {
       peerConnection: true,
       audioOutputSelection: true,
       pushManager: true,
+      appBadge: false,
+      mediaSession: false,
+      videoPictureInPicture: false,
+      documentPictureInPicture: false,
+      wakeLock: false,
     })).toEqual({
       canCaptureAudio: false,
       canCall: false,
