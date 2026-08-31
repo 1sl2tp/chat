@@ -1,5 +1,52 @@
 <!doctype html>
 <html lang="vi">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>iPhone Mic Proof - RED</title></head>
-<body><main data-proof="iphone-mic-recorder-red">Chưa triển khai.</main></body>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
+  <title>iPhone Mic Test</title>
+  <style>
+    :root{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;color:#111;background:#f5f5f7}
+    *{box-sizing:border-box} body{margin:0;min-height:100vh} main{width:min(100%,520px);margin:auto;padding:max(24px,env(safe-area-inset-top)) 18px max(28px,env(safe-area-inset-bottom))}
+    .card{background:#fff;border:1px solid #e5e5ea;border-radius:20px;padding:20px;box-shadow:0 8px 28px rgba(0,0,0,.05)}
+    h1{margin:0 0 8px;font-size:24px} p{margin:0;color:#666;line-height:1.45}.status{margin-top:18px;padding:14px;border-radius:14px;background:#f2f2f7;font-weight:600}.timer{margin-top:14px;font-size:42px;font-weight:700;font-variant-numeric:tabular-nums}
+    button{width:100%;min-height:52px;margin-top:18px;border:0;border-radius:14px;background:#111;color:#fff;font:inherit;font-size:17px;font-weight:700} button:disabled{opacity:.45}.result{display:none;margin-top:18px}.result.show{display:block} audio{width:100%;margin-top:12px}.meta{margin-top:10px;font-size:13px;color:#777;overflow-wrap:anywhere}.note{margin-top:18px;font-size:14px}
+  </style>
+</head>
+<body>
+<main><section class="card">
+  <h1>Test mic iPhone</h1>
+  <p>Ghi âm 5 giây trên chính máy này rồi phát lại. Không cần máy thứ hai.</p>
+  <div id="status" class="status">Sẵn sàng</div>
+  <div id="timer" class="timer">5.0</div>
+  <button id="testButton" type="button">Test mic 5 giây</button>
+  <div id="result" class="result"><strong>Nghe lại đoạn vừa ghi</strong><audio id="playback" controls playsinline></audio><div id="meta" class="meta"></div></div>
+  <p class="note">Khi Safari hỏi quyền microphone, chọn Cho phép. Trong 5 giây hãy nói liên tục.</p>
+</section></main>
+<script>
+const testButton=document.getElementById('testButton');
+const statusEl=document.getElementById('status');
+const timerEl=document.getElementById('timer');
+const resultEl=document.getElementById('result');
+const playback=document.getElementById('playback');
+const metaEl=document.getElementById('meta');
+let objectUrl=null,timerHandle=null;
+function setStatus(t){statusEl.textContent=t}
+function clearResult(){resultEl.classList.remove('show');playback.pause();playback.removeAttribute('src');playback.load();metaEl.textContent='';if(objectUrl){URL.revokeObjectURL(objectUrl);objectUrl=null}}
+function stopTracks(stream){for(const track of stream.getTracks())track.stop()}
+async function run(){testButton.disabled=true;clearResult();timerEl.textContent='5.0';setStatus('Đang xin quyền microphone…');let stream=null;
+try{
+  if(!navigator.mediaDevices?.getUserMedia)throw new Error('Safari không hỗ trợ microphone ở trang này');
+  if(typeof MediaRecorder==='undefined')throw new Error('Safari không hỗ trợ MediaRecorder');
+  stream=await navigator.mediaDevices.getUserMedia({ audio: true });
+  const chunks=[];const recorder=new MediaRecorder(stream);const startedAt=performance.now();
+  recorder.addEventListener('dataavailable',e=>{if(e.data&&e.data.size>0)chunks.push(e.data)});
+  recorder.addEventListener('stop',()=>{if(timerHandle){clearInterval(timerHandle);timerHandle=null}stopTracks(stream);const mimeType=recorder.mimeType||chunks[0]?.type||'audio/mp4';const blob=new Blob(chunks,{type:mimeType});objectUrl=URL.createObjectURL(blob);playback.src=objectUrl;resultEl.classList.add('show');metaEl.textContent=`Dung lượng: ${blob.size.toLocaleString()} bytes · Loại: ${blob.type||'không xác định'}`;timerEl.textContent='0.0';setStatus(blob.size>0?'Đã ghi xong — bấm Play để nghe lại':'File ghi âm không có dữ liệu');testButton.disabled=false;testButton.textContent='Test lại'},{once:true});
+  setStatus('Đang ghi âm — hãy nói ngay bây giờ');recorder.start();
+  timerHandle=setInterval(()=>{const left=Math.max(0,5000-(performance.now()-startedAt));timerEl.textContent=(left/1000).toFixed(1)},100);
+  setTimeout(()=>{if(recorder.state==='recording')recorder.stop()},5000);
+}catch(error){if(timerHandle){clearInterval(timerHandle);timerHandle=null}if(stream)stopTracks(stream);setStatus(`Không test được: ${error?.message||String(error)}`);testButton.disabled=false}}
+testButton.addEventListener('click',run);
+</script>
+</body>
 </html>
