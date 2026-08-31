@@ -4,7 +4,7 @@ import { clearAdminSelection, refreshAdminInbox, selectAdminConversation, sendAd
 import { getAdminState, subscribeAdminState } from '../../admin/store'
 import { formatVersionLabel } from '../../version'
 import { mountComposer } from '../chat/composer'
-import { getAdminCustomerLabel, getAdminDeviceLines, getAdminStatusLabel } from './view-model'
+import { getAdminCustomerLabel, getAdminDeviceLines, getAdminEmptyMessage, getAdminStatusLabel } from './view-model'
 import './style.css'
 
 function renderAdminMessages(container: HTMLElement, messages: ChatMessage[], customerProfileId: string | null): void {
@@ -146,7 +146,7 @@ export function mountAdminScreen(root: HTMLElement): () => void {
     } else {
       const empty = document.createElement('div')
       empty.className = 'chat-empty'
-      empty.textContent = state.phase === 'error' ? 'Không thể tải khu vực Admin.' : 'Chọn một khách để bắt đầu.'
+      empty.textContent = getAdminEmptyMessage(state.phase, state.error)
       messages.replaceChildren(empty)
     }
   }
