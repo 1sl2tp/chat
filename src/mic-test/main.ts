@@ -16,8 +16,11 @@ const maxEnergyEl = required<HTMLElement>('#max-energy')
 const meterFill = required<HTMLElement>('#meter-fill')
 const verdictEl = required<HTMLElement>('#verdict')
 const versionEl = required<HTMLElement>('#version')
+const recorderStatusEl = required<HTMLElement>('#recorder-status')
+const recordingInfoEl = required<HTMLElement>('#recording-info')
+const recordingPlayback = required<HTMLAudioElement>('#recording-playback')
 
-versionEl.textContent = `mic-test · build ${(import.meta.env.VITE_BUILD_ID ?? 'local').slice(0, 7)}`
+versionEl.textContent = `mic-test-recorder · build ${(import.meta.env.VITE_BUILD_ID ?? 'local').slice(0, 7)}`
 
 let stream: MediaStream | null = null
 let context: AudioContext | null = null
@@ -25,10 +28,33 @@ let source: MediaStreamAudioSourceNode | null = null
 let analyser: AnalyserNode | null = null
 let animationFrame = 0
 let maxEnergy = 0
+let recorder: MediaRecorder | null = null
+let recorderTimer = 0
+let recordingUrl: string | null = null
 
 function setVerdict(text: string, state: 'idle' | 'ok' | 'bad' = 'idle'): void {
   verdictEl.textContent = text
   verdictEl.dataset.state = state
+}
+
+function resetRecording(): void {
+  if (recorderTimer) window.clearTimeout(recorderTimer)
+  recorderTimer = 0
+
+  if (recorder && recorder.state !== 'inactive') {
+    recorder.ondataavailable = null
+    recorder.onstop = null
+    recorder.onerror = null
+    try { recorder.stop() } catch { /* no-op */ }
+  }
+  recorder = null
+
+  if (recordingUrl) URL.revokeObjectURL(recordingUrl)
+  recordingUrl = null
+  recordingPlayback.removeAttribute('src')
+  recordingPlayback.load()
+  recorderStatusEl.textContent = 'chưa chạy'
+  recordingInfoEl.textContent = '—'
 }
 
 function stopProbe(): void {
@@ -67,6 +93,57 @@ function sample(track: MediaStreamTrack): void {
   animationFrame = requestAnimationFrame(() => sample(track))
 }
 
+function recordSameStream(nextStream: MediaStream): void {
+  if (typeof MediaRecorder === 'undefined') {
+    recorderStatusEl.textContent = 'unsupported'
+    recordingInfoEl.textContent = 'Safari không có MediaRecorder'
+    return
+  }
+
+  const chunks: Blob[] = []
+
+  try {
+    const nextRecorder = new MediaRecorder(nextStream)
+    recorder = nextRecorder
+    recorderStatusEl.textContent = 'đang ghi 3 giây…'
+    recordingInfoEl.textContent = nextRecorder.mimeType || 'browser default'
+
+    nextRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) chunks.push(event.data)
+    }
+
+    nextRecorder.onerror = (event) => {
+      const errorEvent = event as Event & { error?: DOMException }
+      recorderStatusEl.textContent = `error: ${errorEvent.error?.name ?? 'MediaRecorderError'}`
+    }
+
+    nextRecorder.onstop = () => {
+      recorderTimer = 0
+      const mimeType = nextRecorder.mimeType || chunks[0]?.type || 'audio/mp4'
+      const blob = new Blob(chunks, { type: mimeType })
+
+      if (recordingUrl) URL.revokeObjectURL(recordingUrl)
+      recordingUrl = URL.createObjectURL(blob)
+      recordingPlayback.src = recordingUrl
+      recordingPlayback.load()
+
+      recorderStatusEl.textContent = blob.size > 0 ? 'xong — bấm Play để nghe' : 'xong nhưng file rỗng'
+      recordingInfoEl.textContent = `${blob.size} bytes · ${blob.type || 'unknown'}`
+      recorder = null
+    }
+
+    nextRecorder.start()
+    recorderTimer = window.setTimeout(() => {
+      if (nextRecorder.state === 'recording') nextRecorder.stop()
+    }, 3000)
+  } catch (error) {
+    recorder = null
+    const message = error instanceof Error ? error.message : String(error)
+    recorderStatusEl.textContent = 'error'
+    recordingInfoEl.textContent = message
+  }
+}
+
 async function finishStart(
   audioContext: AudioContext,
   resumePromise: Promise<void>,
@@ -94,6 +171,9 @@ async function finishStart(
     stopButton.disabled = false
     contextEl.textContent = context.state
     trackEl.textContent = `${track.readyState} · enabled=${track.enabled} · muted=${track.muted}`
+
+    // MediaRecorder dùng CHÍNH nextStream đang được analyser đo, không mở mic lần hai.
+    recordSameStream(nextStream)
     sample(track)
 
     window.setTimeout(() => {
@@ -118,6 +198,7 @@ async function finishStart(
 
 startButton.addEventListener('click', () => {
   stopProbe()
+  resetRecording()
   permissionEl.textContent = 'requesting…'
   trackEl.textContent = '—'
   energyEl.textContent = '0.000000'
@@ -140,6 +221,7 @@ startButton.addEventListener('click', () => {
 })
 
 stopButton.addEventListener('click', () => {
+  if (recorder && recorder.state === 'recording') recorder.stop()
   stopProbe()
   setVerdict('Đã dừng')
 })
