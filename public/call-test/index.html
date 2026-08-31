@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>Call Test</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f5f5f5;color:#111}main{max-width:680px;margin:0 auto;padding:20px}.card{background:#fff;border:1px solid #ddd;border-radius:14px;padding:16px;margin-top:14px}.muted{color:#666}.status{font-weight:700}.ok{color:#116b2c}.warn{color:#9a5a00}.bad{color:#a10000}button,a.button{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:0 16px;border:1px solid #bbb;border-radius:10px;background:#111;color:#fff;text-decoration:none;font:inherit;font-weight:650}code{word-break:break-all}
+  </style>
+</head>
+<body>
+<main>
+  <h2>Call Test</h2>
+  <p class="muted">Đây là link cố định. Bài test đang ACTIVE có thể thay đổi phía sau mà không đổi URL này.</p>
+
+  <div class="card">
+    <div><b>Trạng thái:</b> <span id="status" class="status warn">đang tải…</span></div>
+    <div style="margin-top:8px"><b>Bài test:</b> <span id="label">—</span></div>
+    <div style="margin-top:8px"><b>Target:</b> <code id="target">—</code></div>
+  </div>
+
+  <div class="card">
+    <p id="note" class="muted">Đang đọc cấu hình ACTIVE…</p>
+    <a id="open" class="button" href="#" hidden>Mở bài test ACTIVE</a>
+  </div>
+</main>
+<script>
+(async()=>{
+  const status=document.getElementById('status');
+  const label=document.getElementById('label');
+  const target=document.getElementById('target');
+  const note=document.getElementById('note');
+  const open=document.getElementById('open');
+  try{
+    const r=await fetch(`./active.json?t=${Date.now()}`,{cache:'no-store'});
+    if(!r.ok) throw new Error(`HTTP ${r.status}`);
+    const cfg=await r.json();
+    if(!cfg || !cfg.target) throw new Error('Thiếu target');
+    status.textContent=cfg.status||'ACTIVE';
+    status.className='status '+(cfg.statusClass||'ok');
+    label.textContent=cfg.label||'Call proof';
+    target.textContent=cfg.target;
+    note.textContent=cfg.note||'';
+    open.href=cfg.target;
+    open.hidden=false;
+    if(cfg.autoOpen===true){
+      setTimeout(()=>location.replace(cfg.target),350);
+    }
+  }catch(e){
+    status.textContent='không đọc được cấu hình';
+    status.className='status bad';
+    note.textContent=`Lỗi: ${e&&e.message?e.message:e}`;
+  }
+})();
+</script>
+</body>
+</html>
