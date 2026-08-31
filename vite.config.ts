@@ -5,13 +5,17 @@ export default defineConfig({
   base: '/chat/',
   plugins: [
     VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       registerType: 'autoUpdate',
       injectRegister: false,
       includeAssets: ['icons/apple-touch-icon.png'],
       manifest: {
+        id: '/chat/',
         name: 'Chat',
         short_name: 'Chat',
-        description: 'Chat PWA foundation',
+        description: 'Chat Web App',
         start_url: './',
         scope: './',
         display: 'standalone',
@@ -22,11 +26,6 @@ export default defineConfig({
           { src: 'icons/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
           { src: 'icons/maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
         ]
-      },
-      workbox: {
-        cleanupOutdatedCaches: true,
-        clientsClaim: true,
-        skipWaiting: true
       }
     })
   ],
