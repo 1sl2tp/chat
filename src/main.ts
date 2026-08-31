@@ -2,12 +2,15 @@ import './style.css'
 import { getAppLabel } from './app'
 import { setupPwa } from './pwa'
 import { formatVersionLabel } from './version'
+import { setupViewportController } from './viewport/controller'
 
 const root = document.querySelector<HTMLDivElement>('#app')
 
 if (!root) {
   throw new Error('Missing #app root')
 }
+
+setupViewportController()
 
 const screen = document.createElement('main')
 screen.className = 'test-screen'
