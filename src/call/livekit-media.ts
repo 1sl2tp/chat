@@ -4,6 +4,7 @@ import {
   liveKitParticipantIdentity,
   liveKitRoomName,
 } from './livekit-config'
+import { playRemoteAudioElement } from './audio-playback'
 
 export interface LiveKitJoinContext {
   callId: string
@@ -15,6 +16,8 @@ export interface LiveKitJoinContext {
 export interface LiveKitMediaCallbacks {
   onPeerConnected(): void
   onPeerDisconnected(): void
+  onRemoteAudioSubscribed(): void
+  onRemoteAudioPlaying(): void
   onAudioPlaybackBlocked(): void
   onError(error: Error): void
 }
@@ -93,6 +96,12 @@ export class LiveKitVoiceMedia {
   async startAudio(): Promise<void> {
     const room = this.ensureRoom()
     await room.startAudio()
+    for (const element of this.attached) {
+      if (!(element instanceof HTMLMediaElement)) continue
+      const result = await playRemoteAudioElement(element)
+      if (result === 'playing') this.callbacks.onRemoteAudioPlaying()
+      else this.callbacks.onAudioPlaybackBlocked()
+    }
   }
 
   async join(context: LiveKitJoinContext): Promise<void> {
@@ -167,15 +176,24 @@ export class LiveKitVoiceMedia {
 
     room.on(livekit.RoomEvent.TrackSubscribed, (track: LiveKitTrackLike) => {
       if (track.kind !== livekit.Track.Kind.Audio) return
+      this.callbacks.onRemoteAudioSubscribed()
       const element = track.attach()
-      if (element instanceof HTMLMediaElement) {
-        element.autoplay = true
-        element.setAttribute('playsinline', '')
-      }
-      element.style.display = 'none'
+      element.style.position = 'fixed'
+      element.style.width = '1px'
+      element.style.height = '1px'
+      element.style.opacity = '0'
+      element.style.pointerEvents = 'none'
       document.body.append(element)
       this.attached.add(element)
-      if (!room.canPlaybackAudio) this.callbacks.onAudioPlaybackBlocked()
+
+      if (element instanceof HTMLMediaElement) {
+        void playRemoteAudioElement(element).then((result) => {
+          if (result === 'playing') this.callbacks.onRemoteAudioPlaying()
+          else this.callbacks.onAudioPlaybackBlocked()
+        })
+      } else if (!room.canPlaybackAudio) {
+        this.callbacks.onAudioPlaybackBlocked()
+      }
     })
 
     room.on(livekit.RoomEvent.TrackUnsubscribed, (track: LiveKitTrackLike) => {
