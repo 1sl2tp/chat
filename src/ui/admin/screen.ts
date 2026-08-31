@@ -13,7 +13,6 @@ function renderAdminMessages(container: HTMLElement, messages: ChatMessage[], cu
     const row = document.createElement('article')
     const direction = message.type === 'system' ? 'system' : message.sender_id === customerProfileId ? 'incoming' : 'outgoing'
     row.className = `chat-message chat-message--${direction}`
-
     const bubble = document.createElement('div')
     bubble.className = 'chat-message__bubble'
     const text = document.createElement('div')
@@ -32,7 +31,11 @@ function formatTime(value: string | null): string {
   return Number.isNaN(date.getTime()) ? '' : new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit' }).format(date)
 }
 
-export function mountAdminScreen(root: HTMLElement): () => void {
+export interface AdminScreenOptions {
+  onLogout?: () => Promise<void> | void
+}
+
+export function mountAdminScreen(root: HTMLElement, options: AdminScreenOptions = {}): () => void {
   const screen = document.createElement('main')
   screen.className = 'admin-screen'
 
@@ -42,12 +45,24 @@ export function mountAdminScreen(root: HTMLElement): () => void {
   inboxHeader.className = 'admin-inbox__header'
   const inboxTitle = document.createElement('h1')
   inboxTitle.textContent = 'Hỗ trợ'
+  const actions = document.createElement('div')
+  actions.className = 'admin-inbox__actions'
   const refresh = document.createElement('button')
   refresh.type = 'button'
   refresh.textContent = '↻'
   refresh.setAttribute('aria-label', 'Làm mới')
   refresh.addEventListener('click', () => void refreshAdminInbox())
-  inboxHeader.append(inboxTitle, refresh)
+  actions.append(refresh)
+  let logout: HTMLButtonElement | null = null
+  if (options.onLogout) {
+    logout = document.createElement('button')
+    logout.type = 'button'
+    logout.textContent = 'Đăng xuất'
+    logout.className = 'admin-logout'
+    logout.addEventListener('click', () => void options.onLogout?.())
+    actions.append(logout)
+  }
+  inboxHeader.append(inboxTitle, actions)
   const inboxList = document.createElement('div')
   inboxList.className = 'admin-inbox__list'
   inboxPane.append(inboxHeader, inboxList)
@@ -97,7 +112,6 @@ export function mountAdminScreen(root: HTMLElement): () => void {
       button.type = 'button'
       button.className = 'admin-inbox__item'
       if (item.conversationId === state.selectedConversationId) button.dataset.active = 'true'
-
       const top = document.createElement('div')
       top.className = 'admin-inbox__item-top'
       const name = document.createElement('strong')
@@ -105,7 +119,6 @@ export function mountAdminScreen(root: HTMLElement): () => void {
       const time = document.createElement('time')
       time.textContent = formatTime(item.lastMessageAt)
       top.append(name, time)
-
       const bottom = document.createElement('div')
       bottom.className = 'admin-inbox__item-bottom'
       const preview = document.createElement('span')
@@ -141,9 +154,8 @@ export function mountAdminScreen(root: HTMLElement): () => void {
       detail.replaceChildren()
     }
 
-    if (state.selectedConversationId) {
-      renderAdminMessages(messages, messageState.messages, state.detail?.profileId ?? null)
-    } else {
+    if (state.selectedConversationId) renderAdminMessages(messages, messageState.messages, state.detail?.profileId ?? null)
+    else {
       const empty = document.createElement('div')
       empty.className = 'chat-empty'
       empty.textContent = getAdminEmptyMessage(state.phase, state.error)
