@@ -1,4 +1,4 @@
-export const MINIMAL_CALL_TEST_VERSION = 'minimal-call-v1.5.1-auto-matrix-logfix'
+export const MINIMAL_CALL_TEST_VERSION = 'minimal-call-v1.5.2-diagnostic-meterfix'
 
 function shortTestVersion(testVersion: string): string {
   const match = testVersion.match(/minimal-call-v([^\s-]+)/i)
