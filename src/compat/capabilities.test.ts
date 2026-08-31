@@ -13,6 +13,11 @@ describe('feature capability detection', () => {
       RTCPeerConnection: function RTCPeerConnection() {},
       setSinkId,
       PushManager: function PushManager() {},
+      setAppBadge: () => Promise.resolve(),
+      mediaSession: {},
+      requestPictureInPicture: () => Promise.resolve(),
+      documentPictureInPicture: {},
+      wakeLock: {},
     })).toEqual({
       serviceWorker: true,
       notifications: true,
@@ -21,6 +26,11 @@ describe('feature capability detection', () => {
       peerConnection: true,
       audioOutputSelection: true,
       pushManager: true,
+      appBadge: true,
+      mediaSession: true,
+      videoPictureInPicture: true,
+      documentPictureInPicture: true,
+      wakeLock: true,
     })
   })
 
@@ -33,6 +43,11 @@ describe('feature capability detection', () => {
       peerConnection: false,
       audioOutputSelection: false,
       pushManager: false,
+      appBadge: false,
+      mediaSession: false,
+      videoPictureInPicture: false,
+      documentPictureInPicture: false,
+      wakeLock: false,
     })
   })
 })
