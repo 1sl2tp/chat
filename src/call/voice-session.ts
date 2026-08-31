@@ -1,4 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { collectCallMediaDiagnostics } from './diagnostics'
+import { fetchCallIceServers } from './ice-config'
 
 export type VoiceCallPhase = 'idle' | 'outgoing' | 'incoming' | 'connecting' | 'active' | 'error'
 export type VoiceCallDisplay = 'full' | 'compact' | 'hidden'
@@ -70,9 +72,11 @@ export class VoiceCallSession {
   private readonly getContext: () => VoiceCallContext | null
   private activeTimer: number | null = null
   private signalTimer: number | null = null
+  private diagnosticsTimer: number | null = null
   private peer: RTCPeerConnection | null = null
   private localStream: MediaStream | null = null
   private remoteAudio: SinkCapableAudio | null = null
+  private iceServers: RTCIceServer[] | null = null
   private lastSignalId = 0
   private pendingIce: RTCIceCandidateInit[] = []
   private backendState: string | null = null
@@ -127,6 +131,7 @@ export class VoiceCallSession {
 
     try {
       await this.ensureLocalAudio()
+      await this.ensureIceServers()
       const result = await this.client.rpc('chat_start_voice_call', {
         p_conversation_id: context.conversationId,
         p_device_id: context.deviceId,
@@ -148,6 +153,8 @@ export class VoiceCallSession {
     if (!context || !callId || this.state.phase !== 'incoming') return
 
     try {
+      await this.ensureLocalAudio()
+      await this.ensureIceServers()
       const result = await this.client.rpc('chat_accept_voice_call', {
         p_call_id: callId,
         p_device_id: context.deviceId,
@@ -157,7 +164,6 @@ export class VoiceCallSession {
       if (payload?.ok === false) throw new Error(payload.reason || 'call_accept_failed')
       this.backendState = 'accepted'
       this.publish({ phase: 'connecting', display: 'full', error: null })
-      await this.ensureLocalAudio()
       await this.createPeer(false)
       await this.pollSignals()
     } catch (error) {
@@ -189,6 +195,7 @@ export class VoiceCallSession {
     }
 
     try {
+      await this.reportDiagnostics('teardown')
       if (this.state.phase === 'incoming' && this.backendState === 'ringing') {
         await this.client.rpc('chat_decline_voice_call', {
           p_call_id: callId,
@@ -208,6 +215,7 @@ export class VoiceCallSession {
     const muted = !this.state.muted
     for (const track of this.localStream?.getAudioTracks() ?? []) track.enabled = !muted
     this.publish({ muted })
+    void this.reportMediaState('control', { reason: muted ? 'mute_on' : 'mute_off' })
   }
 
   async chooseSpeaker(): Promise<void> {
@@ -224,8 +232,10 @@ export class VoiceCallSession {
       const output = await selectOutput.call(devices)
       await setSink.call(audio, output.deviceId)
       this.publish({ speakerAvailable: true, speakerSelected: true })
+      void this.reportMediaState('control', { reason: 'audio_output_selected' })
     } catch {
       this.publish({ speakerAvailable: true, speakerSelected: false })
+      void this.reportMediaState('error', { reason: 'audio_output_select_failed' })
     }
   }
 
@@ -299,13 +309,23 @@ export class VoiceCallSession {
     })
   }
 
+  private async ensureIceServers(): Promise<RTCIceServer[]> {
+    if (this.iceServers) return this.iceServers
+    this.iceServers = await fetchCallIceServers(this.client)
+    return this.iceServers
+  }
+
   private async createPeer(isCaller: boolean): Promise<void> {
     if (!this.state.callId) throw new Error('call_id_missing')
     if (!this.localStream) await this.ensureLocalAudio()
+    const iceServers = await this.ensureIceServers()
     this.cleanupPeerOnly()
 
     this.remoteAudio = document.createElement('audio') as SinkCapableAudio
     this.remoteAudio.autoplay = true
+    this.remoteAudio.muted = false
+    this.remoteAudio.volume = 1
+    this.remoteAudio.setAttribute('playsinline', '')
     this.remoteAudio.style.display = 'none'
     document.body.append(this.remoteAudio)
 
@@ -313,19 +333,19 @@ export class VoiceCallSession {
     const speakerAvailable = typeof this.remoteAudio.setSinkId === 'function' && typeof devices?.selectAudioOutput === 'function'
     this.publish({ speakerAvailable })
 
-    this.peer = new RTCPeerConnection({
-      iceServers: [
-        { urls: 'stun:stun.cloudflare.com:3478' },
-        { urls: 'stun:stun.l.google.com:19302' },
-      ],
-    })
+    this.peer = new RTCPeerConnection({ iceServers })
 
     for (const track of this.localStream?.getTracks() ?? []) this.peer.addTrack(track, this.localStream!)
 
     this.peer.ontrack = (event) => {
       if (!this.remoteAudio) return
       this.remoteAudio.srcObject = event.streams[0] ?? new MediaStream([event.track])
-      void this.remoteAudio.play().catch(() => undefined)
+      void this.remoteAudio.play()
+        .then(() => this.reportMediaState('playback', { reason: 'remote_audio_playing' }))
+        .catch((error) => this.reportMediaState('error', {
+          reason: 'remote_audio_play_failed',
+          message: error instanceof Error ? error.message : String(error),
+        }))
     }
 
     this.peer.onicecandidate = (event) => {
@@ -333,8 +353,16 @@ export class VoiceCallSession {
       void this.sendSignal('ice', event.candidate.toJSON())
     }
 
+    this.peer.onicecandidateerror = () => {
+      void this.reportMediaState('error', {
+        reason: 'ice_candidate_error',
+        ice_state: this.peer?.iceConnectionState ?? 'closed',
+      })
+    }
+
     this.peer.onconnectionstatechange = () => {
       if (!this.peer) return
+      void this.reportDiagnostics('connection_state')
       if (this.peer.connectionState === 'connected') {
         void this.client.rpc('chat_mark_voice_call_connected', { p_call_id: this.state.callId })
         this.publish({ phase: 'active', connectedAt: this.state.connectedAt ?? Date.now(), error: null })
@@ -346,11 +374,19 @@ export class VoiceCallSession {
     this.lastSignalId = 0
     this.pendingIce = []
     this.startSignalPolling()
+    this.startDiagnosticsPolling()
+    void this.reportMediaState('peer', {
+      reason: 'peer_created_turn',
+      turn: 'turn',
+      sender_audio: this.peer.getSenders().filter((sender) => sender.track?.kind === 'audio').length,
+      receiver_audio: this.peer.getReceivers().filter((receiver) => receiver.track?.kind === 'audio').length,
+    })
 
     if (isCaller) {
       const offer = await this.peer.createOffer({ offerToReceiveAudio: true })
       await this.peer.setLocalDescription(offer)
       await this.sendSignal('offer', { type: offer.type, sdp: offer.sdp })
+      void this.reportMediaState('signal', { reason: 'offer_sent' })
     }
   }
 
@@ -358,6 +394,39 @@ export class VoiceCallSession {
     if (this.signalTimer !== null) window.clearInterval(this.signalTimer)
     void this.pollSignals()
     this.signalTimer = window.setInterval(() => void this.pollSignals(), 400)
+  }
+
+  private startDiagnosticsPolling(): void {
+    if (this.diagnosticsTimer !== null) window.clearInterval(this.diagnosticsTimer)
+    void this.reportDiagnostics('initial')
+    this.diagnosticsTimer = window.setInterval(() => void this.reportDiagnostics('periodic'), 2000)
+  }
+
+  private async reportDiagnostics(reason: string): Promise<void> {
+    const peer = this.peer
+    if (!peer) return
+    try {
+      const payload = await collectCallMediaDiagnostics(peer, this.localStream, this.remoteAudio)
+      await this.reportMediaState('stats', { turn: 'turn', reason, ...payload })
+    } catch {
+      // Diagnostics are read-only and must never break the call path.
+    }
+  }
+
+  private async reportMediaState(phase: string, payload: Record<string, unknown>): Promise<void> {
+    const context = this.getContext()
+    const callId = this.state.callId
+    if (!context?.deviceId || !callId) return
+    try {
+      await this.client.rpc('chat_report_voice_media_state', {
+        p_call_id: callId,
+        p_device_id: context.deviceId,
+        p_phase: phase,
+        p_payload: payload,
+      })
+    } catch {
+      // Diagnostics must not mutate or block media state.
+    }
   }
 
   private async pollSignals(): Promise<void> {
@@ -396,6 +465,7 @@ export class VoiceCallSession {
       await this.sendSignal('answer', { type: answer.type, sdp: answer.sdp })
       await this.client.rpc('chat_mark_voice_call_connecting', { p_call_id: this.state.callId })
       this.publish({ phase: 'connecting' })
+      void this.reportMediaState('signal', { reason: 'answer_sent' })
       return
     }
 
@@ -405,6 +475,7 @@ export class VoiceCallSession {
       await this.flushIce()
       await this.client.rpc('chat_mark_voice_call_connecting', { p_call_id: this.state.callId })
       this.publish({ phase: 'connecting' })
+      void this.reportMediaState('signal', { reason: 'answer_applied' })
     }
   }
 
@@ -429,6 +500,7 @@ export class VoiceCallSession {
   }
 
   private async endFailed(): Promise<void> {
+    await this.reportDiagnostics('failed')
     const callId = this.state.callId
     if (callId) await this.client.rpc('chat_end_voice_call', { p_call_id: callId, p_reason: 'failed' })
     this.fail(new Error('media_connection_failed'))
@@ -437,6 +509,8 @@ export class VoiceCallSession {
   private cleanupPeerOnly(): void {
     if (this.signalTimer !== null) window.clearInterval(this.signalTimer)
     this.signalTimer = null
+    if (this.diagnosticsTimer !== null) window.clearInterval(this.diagnosticsTimer)
+    this.diagnosticsTimer = null
     this.peer?.close()
     this.peer = null
     if (this.remoteAudio) {
@@ -453,6 +527,7 @@ export class VoiceCallSession {
     this.cleanupPeerOnly()
     for (const track of this.localStream?.getTracks() ?? []) track.stop()
     this.localStream = null
+    this.iceServers = null
   }
 
   private resetToIdle(): void {
