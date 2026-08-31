@@ -1,6 +1,8 @@
 import { getDeviceLabel, getDevicePlatform, getOrCreateDeviceKey } from '../device/identity'
 import { createSupabaseChatBackend } from '../supabase/chat-backend'
+import { createSupabaseMessageBackend } from '../supabase/message-backend'
 import { bootstrapChat } from './bootstrap'
+import { startChatMessages } from './message-runtime'
 import { setChatRuntimeState } from './store'
 
 let started = false
@@ -23,6 +25,8 @@ export async function startChatRuntime(): Promise<void> {
       supportEntry: result.supportEntry,
       error: null,
     })
+
+    await startChatMessages(createSupabaseMessageBackend(), result.supportEntry)
   } catch (error) {
     started = false
     const message = error instanceof Error ? error.message : 'Chat bootstrap failed'
