@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>TAPHOA Audio Lab</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f5f5f5;color:#111;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{width:min(720px,100%);margin:0 auto;padding:18px}.card{background:#fff;border:1px solid #ddd;border-radius:14px;padding:16px;margin:12px 0}h1{font-size:24px;margin:6px 0 8px}p{line-height:1.45}.muted{color:#666}.notice{background:#fff9e8;border-color:#ead28b}.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}button{min-height:48px;border:0;border-radius:11px;padding:0 18px;background:#111;color:#fff;font:inherit;font-weight:700}button:disabled{opacity:.45}.status{font-weight:650}.result{font-size:22px;font-weight:800;margin:4px 0 12px}.result[data-status="pass"]{color:#136c2f}.result[data-status="fail"],.result[data-status="error"]{color:#a40000}.metric{display:flex;justify-content:space-between;gap:16px;padding:8px 0;border-top:1px solid #eee}.metric:first-child{border-top:0}.metric span{color:#555}.metric b{text-align:right}.error-text{color:#a40000;font-weight:650}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#111;color:#eee;border-radius:10px;padding:12px;font-size:11px;line-height:1.45;max-height:280px;overflow:auto}audio{width:1px;height:1px;position:fixed;left:-9999px;top:-9999px}
+  </style>
+</head>
+<body>
+  <main>
+    <h1>TAPHOA Audio Lab</h1>
+    <p class="muted">Một thiết bị, hai participant LiveKit độc lập. Bot phát mẫu chuẩn qua LiveKit; thiết bị gửi mic ngược lại. Hệ thống tự đo và tự gửi log Supabase.</p>
+
+    <section class="card notice">
+      <b>Cách chạy</b>
+      <p>Đặt máy yên và không nói trong khoảng 10 giây. Bấm <b>Test tự động</b> một lần. Không cần máy thứ hai và không cần bấm Gửi log.</p>
+      <p class="muted">Lưu ý: Web có thể đo media/RTP và phát hiện echo-return ở mức heuristic, nhưng không được phép tự khẳng định âm thanh vật lý đang ra loa trong hay loa ngoài của iPhone.</p>
+    </section>
+
+    <section class="card">
+      <div class="row">
+        <button id="start-test">Test tự động</button>
+        <span id="status" class="status">Sẵn sàng</span>
+      </div>
+      <audio id="lab-output" autoplay playsinline></audio>
+    </section>
+
+    <section class="card">
+      <div id="result" class="result" data-status="idle">CHƯA TEST</div>
+      <div id="detail"></div>
+    </section>
+
+    <section class="card">
+      <b>Log kỹ thuật</b>
+      <pre id="log">Chưa có log.</pre>
+    </section>
+  </main>
+  <script type="module" src="/src/audio-lab/main.ts"></script>
+</body>
+</html>
