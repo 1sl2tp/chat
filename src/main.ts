@@ -1,6 +1,7 @@
 import './style.css'
 import { getAppLabel } from './app'
 import { setupPwa } from './pwa'
+import { formatVersionLabel } from './version'
 
 const root = document.querySelector<HTMLDivElement>('#app')
 
@@ -15,6 +16,10 @@ screen.setAttribute('aria-label', getAppLabel())
 const heading = document.createElement('h1')
 heading.textContent = getAppLabel()
 
-screen.append(heading)
+const version = document.createElement('p')
+version.className = 'app-version'
+version.textContent = formatVersionLabel(import.meta.env.VITE_BUILD_ID ?? 'dev')
+
+screen.append(heading, version)
 root.append(screen)
 setupPwa()
