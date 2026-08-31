@@ -40,7 +40,7 @@ export class TrackEnergyProbe {
   private readonly accumulator = new EnergyAccumulator()
   private readonly analyser: AnalyserNode
   private readonly source: MediaStreamAudioSourceNode
-  private readonly buffer: Float32Array
+  private readonly buffer: Float32Array<ArrayBuffer>
   private timer: number | undefined
 
   constructor(audioContext: AudioContext, track: MediaStreamTrack) {
@@ -48,7 +48,7 @@ export class TrackEnergyProbe {
     this.analyser.fftSize = 2048
     this.source = audioContext.createMediaStreamSource(new MediaStream([track]))
     this.source.connect(this.analyser)
-    this.buffer = new Float32Array(this.analyser.fftSize)
+    this.buffer = new Float32Array(new ArrayBuffer(this.analyser.fftSize * Float32Array.BYTES_PER_ELEMENT))
   }
 
   start(): void {
