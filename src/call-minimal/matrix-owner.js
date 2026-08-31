@@ -1,5 +1,6 @@
 import { supabase } from '../supabase/client'
 import { MATRIX_PROFILES } from './matrix-profiles'
+import { createMatrixRunSessionId } from './matrix-run-id'
 import { MINIMAL_CALL_TEST_VERSION } from './version-label'
 
 const LIVEKIT_SDK_URL = 'https://esm.sh/livekit-client@2.22.1'
@@ -221,7 +222,7 @@ export class MatrixCallOwner {
   async save(profile, result) {
     try {
       await supabase.rpc('chat_submit_minimal_call_run', {
-        p_run_session_id: `${this.identity}-${profile.id}-${Date.now()}`,
+        p_run_session_id: createMatrixRunSessionId(),
         p_test_version: MINIMAL_CALL_TEST_VERSION,
         p_room_name: ROOM_NAME,
         p_participant_identity: this.identity,
