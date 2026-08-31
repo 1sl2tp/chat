@@ -9,6 +9,7 @@ declare const self: ServiceWorkerGlobalScope & typeof globalThis & {
   }
 }
 
+const BUILD_ID = import.meta.env.VITE_BUILD_ID ?? 'dev'
 const CACHE_PREFIX = 'chat-precache-'
 const manifestEntries = self.__WB_MANIFEST
 const CACHE_NAME = `${CACHE_PREFIX}${hashManifest(manifestEntries)}`
@@ -33,6 +34,12 @@ self.addEventListener('activate', (event) => {
     )
     await self.clients.claim()
   })())
+})
+
+self.addEventListener('message', (event) => {
+  const data = event.data as { type?: unknown } | null
+  if (data?.type !== 'CHAT_GET_BUILD_ID') return
+  event.ports[0]?.postMessage({ type: 'CHAT_BUILD_ID', buildId: BUILD_ID })
 })
 
 self.addEventListener('fetch', (event) => {
