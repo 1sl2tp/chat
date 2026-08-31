@@ -16,6 +16,9 @@ Every state and decision has exactly one owner. Other modules may consume or obs
 - `src/pwa/` + `src/sw.ts`: service-worker registration/update lifecycle, app-shell cache and push event handling.
 - `src/storage/`: storage capability/state/schema lifecycle. It is not an authentication/session owner.
 - `src/session/`: authentication/session lifecycle state. Supabase adapters must plug into this owner instead of creating parallel auth state.
+- `src/device/`: stable client device identity/key and device labeling. It does not own authentication or call state.
+- `src/chat/`: chat bootstrap/conversation/message state and orchestration. It consumes `session/`, `device/`, network and backend adapters but does not redefine them.
+- `src/supabase/`: external Supabase adapter only. It translates Auth/RPC/Realtime APIs into app-owner contracts and must not become a second state owner.
 - `src/network/`: connectivity/backend-reachability state. `navigator.onLine` is only an input signal, not the final truth.
 - `src/lifecycle/`: foreground/background/page lifecycle state.
 - `src/media/`: microphone/audio/WebRTC media support and media state contracts.
