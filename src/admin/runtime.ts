@@ -1,6 +1,7 @@
 import { sendChatText, startChatMessagesForConversation, stopChatMessages } from '../chat/message-runtime'
 import { createSupabaseMessageBackend } from '../supabase/message-backend'
 import { createSupabaseAdminBackend } from '../supabase/admin-backend'
+import { adminSupabase } from '../supabase/client'
 import type { AdminBackend } from './contracts'
 import { getAdminState, setAdminState } from './store'
 
@@ -9,7 +10,7 @@ export interface AdminMessageRuntime {
   stop(): void
 }
 
-const sharedMessageBackend = createSupabaseMessageBackend()
+const sharedMessageBackend = createSupabaseMessageBackend(adminSupabase)
 
 function createDefaultMessageRuntime(): AdminMessageRuntime {
   return {
@@ -18,7 +19,7 @@ function createDefaultMessageRuntime(): AdminMessageRuntime {
   }
 }
 
-let activeBackend: AdminBackend = createSupabaseAdminBackend()
+let activeBackend: AdminBackend = createSupabaseAdminBackend(adminSupabase)
 let messageRuntime: AdminMessageRuntime = createDefaultMessageRuntime()
 
 export function configureAdminRuntimeForTests(
@@ -46,6 +47,7 @@ export async function startAdminRuntime(): Promise<void> {
       phase: 'error',
       error: error instanceof Error ? error.message : 'Admin inbox failed',
     })
+    throw error
   }
 }
 
