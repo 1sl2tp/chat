@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bootstrapAdminIdentity } from './bootstrap'
+import { bootstrapAdminIdentity, startAdminWorkspace } from './bootstrap'
 
 describe('admin identity bootstrap', () => {
   it('bootstraps the existing authenticated session before admin data loads', async () => {
@@ -38,5 +38,28 @@ describe('admin identity bootstrap', () => {
     })).rejects.toThrow('admin_session_required')
 
     expect(bootstrapCalls).toBe(0)
+  })
+
+  it('starts admin inbox only after identity bootstrap succeeds', async () => {
+    const calls: string[] = []
+    await startAdminWorkspace({
+      bootstrap: async () => { calls.push('bootstrap') },
+      startAdmin: async () => { calls.push('inbox') },
+      onError: () => { calls.push('error') },
+    })
+    expect(calls).toEqual(['bootstrap', 'inbox'])
+  })
+
+  it('does not load admin inbox when bootstrap fails', async () => {
+    const calls: string[] = []
+    await startAdminWorkspace({
+      bootstrap: async () => {
+        calls.push('bootstrap')
+        throw new Error('admin_session_required')
+      },
+      startAdmin: async () => { calls.push('inbox') },
+      onError: (error) => { calls.push(error.message) },
+    })
+    expect(calls).toEqual(['bootstrap', 'admin_session_required'])
   })
 })
