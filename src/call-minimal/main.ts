@@ -1,4 +1,5 @@
 import { MinimalCallOwner, MINIMAL_CALL_LIVEKIT_VERSION, MINIMAL_CALL_ROOM_NAME, type MinimalCallViewState } from './owner'
+import { MINIMAL_CALL_TEST_VERSION, minimalCallVersionLabel } from './version-label'
 
 function required<T extends Element>(selector: string): T {
   const element = document.querySelector<T>(selector)
@@ -15,10 +16,13 @@ const mediaEl = required<HTMLElement>('#media-state')
 const resultEl = required<HTMLElement>('#result')
 const roomEl = required<HTMLElement>('#room')
 const versionEl = required<HTMLElement>('#livekit-version')
+const appVersionEl = required<HTMLElement>('#app-version')
 const outputEl = required<HTMLAudioElement>('#remote-audio')
 
 roomEl.textContent = MINIMAL_CALL_ROOM_NAME
 versionEl.textContent = MINIMAL_CALL_LIVEKIT_VERSION
+appVersionEl.textContent = minimalCallVersionLabel(MINIMAL_CALL_TEST_VERSION, import.meta.env.VITE_BUILD_ID ?? '')
+appVersionEl.title = MINIMAL_CALL_TEST_VERSION
 
 function render(state: MinimalCallViewState): void {
   statusEl.textContent = state.status
