@@ -4,6 +4,14 @@ import { APP_BASE_PATH, PWA_APP_ID } from './src/deployment.js'
 
 export default defineConfig({
   base: APP_BASE_PATH,
+  build: {
+    rollupOptions: {
+      input: {
+        user: 'index.html',
+        admin: 'admin/index.html',
+      },
+    },
+  },
   plugins: [
     VitePWA({
       strategies: 'injectManifest',
