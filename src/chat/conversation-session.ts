@@ -82,8 +82,6 @@ export function createConversationSession({
       publish({ ...state, phase: 'loading', messages: [], realtime: 'connecting', error: null })
 
       try {
-        // Subscribe before loading. Events arriving during load are merged into state,
-        // then the load result is merged with them so the load/subscribe boundary has no gap.
         stopSubscription = backend.subscribeMessages(
           conversationId,
           (incoming) => {
@@ -123,8 +121,9 @@ export function createConversationSession({
       const normalized = text.trim()
       if (!normalized) throw new Error('Message text is empty')
 
+      const run = generation
       const message = await backend.sendText(conversationId, createId(), normalized)
-      if (state.phase !== 'disposed' && message.conversation_id === conversationId) {
+      if (isCurrent(run) && message.conversation_id === conversationId) {
         publish({ ...state, messages: mergeChatMessages(state.messages, [message]) })
       }
       return message
