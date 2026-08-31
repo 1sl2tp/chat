@@ -78,9 +78,12 @@ function sdk(): LiveKitGlobal {
 export class LiveKitVoiceMedia {
   private room: LiveKitRoomLike | null = null
   private readonly attached = new Set<HTMLElement>()
+  private readonly callbacks: LiveKitMediaCallbacks
   private joined = false
 
-  constructor(private readonly callbacks: LiveKitMediaCallbacks) {}
+  constructor(callbacks: LiveKitMediaCallbacks) {
+    this.callbacks = callbacks
+  }
 
   beginUserGesture(): void {
     const room = this.ensureRoom()
