@@ -51,8 +51,10 @@ export function getSupportConversationId(supportEntry: unknown): string | null {
   return typeof candidate === 'string' && candidate.length > 0 ? candidate : null
 }
 
-export async function startChatMessages(backend: ChatMessageBackend, supportEntry: unknown): Promise<void> {
-  const conversationId = getSupportConversationId(supportEntry)
+export async function startChatMessagesForConversation(
+  backend: ChatMessageBackend,
+  conversationId: string | null,
+): Promise<void> {
   stopSubscription?.()
   stopSubscription = null
 
@@ -77,6 +79,10 @@ export async function startChatMessages(backend: ChatMessageBackend, supportEntr
   } catch (error) {
     publish({ ...state, realtime: 'error', error: error instanceof Error ? error.message : String(error) })
   }
+}
+
+export async function startChatMessages(backend: ChatMessageBackend, supportEntry: unknown): Promise<void> {
+  return startChatMessagesForConversation(backend, getSupportConversationId(supportEntry))
 }
 
 export async function sendChatText(
