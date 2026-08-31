@@ -9,16 +9,18 @@ const BASELINE_MS = 2500
 const TONE_MS = 3000
 const STABILIZE_MS = 1200
 
-const startButton = document.querySelector<HTMLButtonElement>('#start-test')
-const statusEl = document.querySelector<HTMLElement>('#status')
-const resultEl = document.querySelector<HTMLElement>('#result')
-const detailEl = document.querySelector<HTMLElement>('#detail')
-const logEl = document.querySelector<HTMLPreElement>('#log')
-const outputEl = document.querySelector<HTMLAudioElement>('#lab-output')
-
-if (!startButton || !statusEl || !resultEl || !detailEl || !logEl || !outputEl) {
-  throw new Error('Audio Lab DOM is incomplete')
+function requiredElement<T extends Element>(selector: string): T {
+  const element = document.querySelector<T>(selector)
+  if (!element) throw new Error(`Missing Audio Lab element: ${selector}`)
+  return element
 }
+
+const startButton = requiredElement<HTMLButtonElement>('#start-test')
+const statusEl = requiredElement<HTMLElement>('#status')
+const resultEl = requiredElement<HTMLElement>('#result')
+const detailEl = requiredElement<HTMLElement>('#detail')
+const logEl = requiredElement<HTMLPreElement>('#log')
+const outputEl = requiredElement<HTMLAudioElement>('#lab-output')
 
 let running = false
 let logs: string[] = []
@@ -207,7 +209,7 @@ async function runLab(): Promise<void> {
       deviceRemoteToneTrack = track
       track.attach(outputEl)
       outputEl.autoplay = true
-      outputEl.playsInline = true
+      outputEl.setAttribute('playsinline', 'true')
       outputEl.muted = false
       outputEl.volume = 1
       try {
@@ -242,7 +244,8 @@ async function runLab(): Promise<void> {
 
     setStatus('Đang mở microphone thật…')
     const micPublication = await deviceRoom.localParticipant.setMicrophoneEnabled(true)
-    const localMicTrack = micPublication?.track ?? Array.from(deviceRoom.localParticipant.trackPublications.values()).find((pub: any) => pub.source === lk.Track.Source.Microphone)?.track
+    const micPublications = Array.from(deviceRoom.localParticipant.trackPublications.values()) as any[]
+    const localMicTrack = micPublication?.track ?? micPublications.find((pub) => pub.source === lk.Track.Source.Microphone)?.track
     if (!localMicTrack) throw new Error('local microphone track missing')
     const mediaTrack: MediaStreamTrack | undefined = localMicTrack.mediaStreamTrack ?? localMicTrack._mediaStreamTrack
     const micSettings = mediaTrack?.getSettings?.() ?? null
@@ -254,7 +257,8 @@ async function runLab(): Promise<void> {
       source: lk.Track.Source.Microphone,
       name: 'audio-lab-tone',
     })
-    const localToneTrack = tonePublication?.track ?? Array.from(botRoom.localParticipant.trackPublications.values()).find((pub: any) => pub.trackName === 'audio-lab-tone')?.track
+    const tonePublications = Array.from(botRoom.localParticipant.trackPublications.values()) as any[]
+    const localToneTrack = tonePublication?.track ?? tonePublications.find((pub) => pub.trackName === 'audio-lab-tone')?.track
     if (!localToneTrack) throw new Error('local bot tone track missing')
 
     deviceRemoteToneTrack = await waitFor(() => deviceRemoteToneTrack, 10000, 'device-tone-subscription')
