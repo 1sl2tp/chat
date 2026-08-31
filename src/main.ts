@@ -13,8 +13,13 @@ import { mountAdminScreen } from './ui/admin/screen'
 import { mountCustomerChatScreen } from './ui/chat/customer-screen'
 import { setupViewportController } from './viewport/controller'
 
-const root = document.querySelector<HTMLDivElement>('#app')
-if (!root) throw new Error('Missing #app root')
+function requireAppRoot(): HTMLDivElement {
+  const element = document.querySelector<HTMLDivElement>('#app')
+  if (!element) throw new Error('Missing #app root')
+  return element
+}
+
+const root = requireAppRoot()
 
 const redirectedPath = sessionStorage.getItem('chat.pages.redirect')
 if (redirectedPath) {
@@ -78,8 +83,6 @@ async function startApplication(): Promise<void> {
           await authActions.signInWithPassword(credentials)
           resetIdentity()
           await startApplication()
-          const resolved = await identityBackend.resolveCurrentIdentity()
-          if (resolved.kind !== 'admin') throw new Error('admin_required')
         },
       }))
       return
