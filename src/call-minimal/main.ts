@@ -1,4 +1,4 @@
-import { MatrixCallOwner, MATRIX_LIVEKIT_VERSION, MATRIX_ROOM_NAME } from './matrix-owner-v153.js'
+import { MatrixCallOwner, MATRIX_LIVEKIT_VERSION, MATRIX_ROOM_NAME } from './matrix-owner-v16.js'
 import { MINIMAL_CALL_TEST_VERSION, minimalCallVersionLabel } from './version-label'
 
 function required<T extends Element>(selector: string): T {
@@ -43,6 +43,6 @@ function render(state: any): void {
 }
 
 const owner = new MatrixCallOwner(outputEl, render)
-render({ running: false, status: 'Sẵn sàng chạy 4 kiểu', results: [] })
+render({ running: false, status: 'Sẵn sàng chạy 3 recovery', results: [] })
 runButton.addEventListener('click', () => void owner.runAll())
 stopButton.addEventListener('click', () => void owner.stop())
