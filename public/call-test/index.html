@@ -6,52 +6,175 @@
   <meta name="theme-color" content="#ffffff" />
   <title>Call Test</title>
   <style>
-    *{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f5f5f5;color:#111}main{max-width:680px;margin:0 auto;padding:20px}.card{background:#fff;border:1px solid #ddd;border-radius:14px;padding:16px;margin-top:14px}.muted{color:#666}.status{font-weight:700}.ok{color:#116b2c}.warn{color:#9a5a00}.bad{color:#a10000}button,a.button{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:0 16px;border:1px solid #bbb;border-radius:10px;background:#111;color:#fff;text-decoration:none;font:inherit;font-weight:650}code{word-break:break-all}
+    *{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f5f5f5;color:#111}main{max-width:720px;margin:0 auto;padding:18px}.card{background:#fff;border:1px solid #ddd;border-radius:14px;padding:15px;margin:12px 0}.row{display:flex;gap:9px;flex-wrap:wrap;align-items:center}.muted{color:#666}.ok{color:#116b2c}.warn{color:#9a5a00}.bad{color:#a10000}button,a.button{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:0 14px;border:1px solid #bbb;border-radius:10px;background:#fff;color:#111;text-decoration:none;font:inherit;font-weight:650}button.primary,a.primary{background:#111;color:#fff;border-color:#111}button:disabled{opacity:.45}code,.token{display:block;word-break:break-all;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;background:#f7f7f7;border-radius:8px;padding:8px;margin-top:6px}#log{white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;line-height:1.45;max-height:300px;overflow:auto}#audioHost audio{position:fixed;width:1px;height:1px;opacity:0;pointer-events:none}
   </style>
 </head>
 <body>
 <main>
   <h2>Call Test</h2>
-  <p class="muted">Đây là link cố định. Bài test đang ACTIVE có thể thay đổi phía sau mà không đổi URL này.</p>
+  <p class="muted">Link cố định. ACTIVE: <b>iPhone Native LiveKit ↔ Android Web peer</b>.</p>
 
   <div class="card">
-    <div><b>Trạng thái:</b> <span id="status" class="status warn">đang tải…</span></div>
-    <div style="margin-top:8px"><b>Bài test:</b> <span id="label">—</span></div>
-    <div style="margin-top:8px"><b>Target:</b> <code id="target">—</code></div>
+    <div><b>Room:</b> <code id="roomName"></code></div>
+    <div style="margin-top:8px"><b>Thiết bị hiện tại:</b> <span id="device"></span></div>
+    <div style="margin-top:8px"><b>Android peer:</b> <span id="androidStatus">chưa vào</span></div>
+    <div style="margin-top:8px"><b>Remote audio:</b> <span id="remoteStatus">chưa có</span></div>
   </div>
 
   <div class="card">
-    <p id="note" class="muted">Đang đọc cấu hình ACTIVE…</p>
-    <a id="open" class="button" href="#" hidden>Mở bài test ACTIVE</a>
+    <h3>1 · iPhone Native</h3>
+    <p class="muted">Cài app Swift Example chính thức của LiveKit qua TestFlight. App cho nhập Server URL và Access Token.</p>
+    <div class="row">
+      <a class="button primary" href="https://testflight.apple.com/join/21F6ARiQ">Mở LiveKit TestFlight</a>
+      <button id="makeIos">Tạo thông tin iPhone</button>
+    </div>
+    <div id="iosCredentials" hidden style="margin-top:12px">
+      <b>Server URL</b>
+      <code id="iosServer"></code>
+      <button id="copyServer">Copy Server URL</button>
+      <div style="height:10px"></div>
+      <b>Access Token</b>
+      <div id="iosToken" class="token"></div>
+      <button id="copyToken">Copy Access Token</button>
+      <p class="muted">Trong app LiveKit: nhập đúng Server URL + Access Token này rồi Connect. Không bật camera cũng được; chỉ cần microphone.</p>
+    </div>
   </div>
+
+  <div class="card">
+    <h3>2 · Android peer</h3>
+    <p class="muted">Mở chính trang này trên Android rồi bấm Vào phòng. Android sẽ publish mic và phát remote audio từ iPhone native.</p>
+    <div class="row">
+      <button id="joinAndroid" class="primary">Vào phòng Android</button>
+      <button id="leaveAndroid" disabled>Rời phòng</button>
+      <button id="sendLog">Gửi log Android</button>
+      <span id="sendStatus"></span>
+    </div>
+  </div>
+
+  <div class="card"><b>Log</b><div id="log"></div></div>
+  <div id="audioHost"></div>
 </main>
+
+<script src="https://cdn.jsdelivr.net/npm/livekit-client@2.22.1/dist/livekit-client.umd.min.js"></script>
 <script>
-(async()=>{
-  const status=document.getElementById('status');
-  const label=document.getElementById('label');
-  const target=document.getElementById('target');
-  const note=document.getElementById('note');
-  const open=document.getElementById('open');
-  try{
-    const r=await fetch(`./active.json?t=${Date.now()}`,{cache:'no-store'});
-    if(!r.ok) throw new Error(`HTTP ${r.status}`);
-    const cfg=await r.json();
-    if(!cfg || !cfg.target) throw new Error('Thiếu target');
-    status.textContent=cfg.status||'ACTIVE';
-    status.className='status '+(cfg.statusClass||'ok');
-    label.textContent=cfg.label||'Call proof';
-    target.textContent=cfg.target;
-    note.textContent=cfg.note||'';
-    open.href=cfg.target;
-    open.hidden=false;
-    if(cfg.autoOpen===true){
-      setTimeout(()=>location.replace(cfg.target),350);
-    }
-  }catch(e){
-    status.textContent='không đọc được cấu hình';
-    status.className='status bad';
-    note.textContent=`Lỗi: ${e&&e.message?e.message:e}`;
+(()=>{
+  const TOKEN_SERVER_ID='taphoachat-1x4n2g';
+  const ROOM_NAME='taphoa-native-ios-proof-v1';
+  const SUPABASE_URL='https://gcnoahqsrquxkwkjbuxy.supabase.co';
+  const SUPABASE_KEY='sb_publishable_UY3gfQ9MsntDFCUJ_uV0UA__eTYXz_w';
+  const lk=window.LivekitClient;
+  const $=id=>document.getElementById(id);
+  const device=/Android/i.test(navigator.userAgent)?'Android Web':/iPhone|iPad|iPod/i.test(navigator.userAgent)?'iOS Web':'Web';
+  const testSessionId=crypto.randomUUID();
+  const persistentId=localStorage.getItem('taphoa-call-test-device')||crypto.randomUUID();
+  localStorage.setItem('taphoa-call-test-device',persistentId);
+  let room=null;
+  let iosCredentials=null;
+  const attached=new Map();
+  const metrics={remote_tracks:0,local_mic_published:false,room_connected:false};
+
+  $('roomName').textContent=ROOM_NAME;
+  $('device').textContent=device;
+
+  function log(msg,cls=''){
+    const d=document.createElement('div');
+    d.textContent=`${new Date().toLocaleTimeString()}  ${msg}`;
+    if(cls)d.className=cls;
+    $('log').appendChild(d);
+    $('log').scrollTop=$('log').scrollHeight;
   }
+
+  async function sourceFetch(identity,name){
+    const source=lk.TokenSource.developmentTokenServer(TOKEN_SERVER_ID);
+    return source.fetch({roomName:ROOM_NAME,participantIdentity:identity,participantName:name});
+  }
+
+  async function makeIosCredentials(){
+    $('makeIos').disabled=true;
+    try{
+      log('Đang tạo credential cho iPhone native…');
+      const identity=`ios-native-${crypto.randomUUID()}`;
+      iosCredentials=await sourceFetch(identity,'iPhone Native');
+      $('iosServer').textContent=iosCredentials.serverUrl;
+      $('iosToken').textContent=iosCredentials.participantToken;
+      $('iosCredentials').hidden=false;
+      log(`iPhone credential OK · ${identity}`,'ok');
+    }catch(e){
+      log(`iPhone credential ERROR: ${e&&e.message?e.message:e}`,'bad');
+    }finally{$('makeIos').disabled=false;}
+  }
+
+  async function copyText(value,label){
+    try{await navigator.clipboard.writeText(value);log(`${label} copied`,'ok')}
+    catch(e){log(`${label} copy lỗi: ${e&&e.message?e.message:e}`,'warn')}
+  }
+
+  function attachRemote(track,pub,participant){
+    const key=`${participant.identity}:${pub.trackSid||track.sid||'audio'}`;
+    if(attached.has(key))return;
+    const el=track.attach();
+    el.autoplay=true;el.playsInline=true;el.muted=false;el.volume=1;
+    $('audioHost').appendChild(el);attached.set(key,el);
+    metrics.remote_tracks=attached.size;
+    $('remoteStatus').textContent=`đã nhận ${participant.identity}`;
+    el.play().then(()=>log(`REMOTE PLAYING ${key}`,'ok')).catch(e=>log(`REMOTE PLAY ERROR ${e&&e.message?e.message:e}`,'bad'));
+  }
+
+  async function joinAndroid(){
+    if(room)return;
+    $('joinAndroid').disabled=true;
+    try{
+      const identity=`android-web-${persistentId}`;
+      const c=await sourceFetch(identity,'Android Web Peer');
+      room=new lk.Room({disconnectOnPageLeave:true});
+      room.on(lk.RoomEvent.TrackSubscribed,(track,pub,p)=>{if(track.kind===lk.Track.Kind.Audio)attachRemote(track,pub,p)});
+      room.on(lk.RoomEvent.ParticipantConnected,p=>log(`PEER JOIN ${p.identity}`,'ok'));
+      room.on(lk.RoomEvent.ParticipantDisconnected,p=>log(`PEER LEAVE ${p.identity}`,'warn'));
+      await room.startAudio().catch(()=>{});
+      await room.connect(c.serverUrl,c.participantToken);
+      metrics.room_connected=true;
+      $('androidStatus').textContent='đã vào room';
+      log(`ANDROID ROOM CONNECTED · ${identity}`,'ok');
+      await room.localParticipant.setMicrophoneEnabled(true);
+      metrics.local_mic_published=true;
+      log('ANDROID MIC PUBLISHED','ok');
+      $('leaveAndroid').disabled=false;
+    }catch(e){
+      log(`ANDROID JOIN ERROR: ${e&&e.stack?e.stack:e}`,'bad');
+      if(room)room.disconnect(true);room=null;
+      $('androidStatus').textContent='lỗi';
+      $('joinAndroid').disabled=false;
+    }
+  }
+
+  function leaveAndroid(){
+    if(room)room.disconnect(true);room=null;
+    for(const el of attached.values()){try{el.pause();el.remove()}catch{}}
+    attached.clear();$('audioHost').replaceChildren();
+    metrics.remote_tracks=0;metrics.local_mic_published=false;metrics.room_connected=false;
+    $('androidStatus').textContent='đã rời';$('remoteStatus').textContent='chưa có';
+    $('joinAndroid').disabled=false;$('leaveAndroid').disabled=true;
+    log('ANDROID LEFT ROOM');
+  }
+
+  async function sendLog(){
+    const b=$('sendLog'),s=$('sendStatus');b.disabled=true;s.textContent='Đang gửi…';
+    const lines=[...document.querySelectorAll('#log>div')].map((x,index)=>({index,text:x.textContent||'',className:x.className||''}));
+    const payload={p_test_session_id:testSessionId,p_device:device,p_identity:`call-test-${persistentId}`,p_user_agent:navigator.userAgent,p_audio_session_type:null,p_room_name:ROOM_NAME,p_log_lines:lines,p_metrics:{...metrics,attached_audio_elements:document.querySelectorAll('#audioHost audio').length,sent_at:new Date().toISOString()}};
+    try{
+      const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/chat_submit_livekit_audio_proof`,{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      const t=await r.text();if(!r.ok)throw new Error(`${r.status} ${t}`);
+      s.textContent=`Đã gửi · ${testSessionId.slice(0,8)}`;s.className='ok';
+    }catch(e){s.textContent=`Gửi lỗi: ${e&&e.message?e.message:e}`;s.className='bad'}finally{b.disabled=false;}
+  }
+
+  $('makeIos').addEventListener('click',makeIosCredentials);
+  $('copyServer').addEventListener('click',()=>iosCredentials&&copyText(iosCredentials.serverUrl,'Server URL'));
+  $('copyToken').addEventListener('click',()=>iosCredentials&&copyText(iosCredentials.participantToken,'Access Token'));
+  $('joinAndroid').addEventListener('click',joinAndroid);
+  $('leaveAndroid').addEventListener('click',leaveAndroid);
+  $('sendLog').addEventListener('click',sendLog);
+  log(`CALL TEST READY · ${device}`);
 })();
 </script>
 </body>
