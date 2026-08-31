@@ -9,6 +9,7 @@ describe('feature capability detection', () => {
     expect(detectCapabilities({
       serviceWorker: {},
       Notification: function Notification() {},
+      permissions: {},
       mediaDevices: { getUserMedia },
       RTCPeerConnection: function RTCPeerConnection() {},
       setSinkId,
@@ -18,9 +19,12 @@ describe('feature capability detection', () => {
       requestPictureInPicture: () => Promise.resolve(),
       documentPictureInPicture: {},
       wakeLock: {},
+      visualViewport: {},
+      virtualKeyboard: {},
     })).toEqual({
       serviceWorker: true,
       notifications: true,
+      permissionsApi: true,
       mediaDevices: true,
       getUserMedia: true,
       peerConnection: true,
@@ -31,6 +35,8 @@ describe('feature capability detection', () => {
       videoPictureInPicture: true,
       documentPictureInPicture: true,
       wakeLock: true,
+      visualViewport: true,
+      virtualKeyboard: true,
     })
   })
 
@@ -38,6 +44,7 @@ describe('feature capability detection', () => {
     expect(detectCapabilities({})).toEqual({
       serviceWorker: false,
       notifications: false,
+      permissionsApi: false,
       mediaDevices: false,
       getUserMedia: false,
       peerConnection: false,
@@ -48,6 +55,8 @@ describe('feature capability detection', () => {
       videoPictureInPicture: false,
       documentPictureInPicture: false,
       wakeLock: false,
+      visualViewport: false,
+      virtualKeyboard: false,
     })
   })
 })
