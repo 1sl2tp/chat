@@ -1,4 +1,4 @@
-import { MatrixCallOwner, MATRIX_LIVEKIT_VERSION, MATRIX_ROOM_NAME } from './matrix-owner.js'
+import { MatrixCallOwner, MATRIX_LIVEKIT_VERSION, MATRIX_ROOM_NAME } from './matrix-owner-v153.js'
 import { MINIMAL_CALL_TEST_VERSION, minimalCallVersionLabel } from './version-label'
 
 function required<T extends Element>(selector: string): T {
@@ -34,7 +34,10 @@ function render(state: any): void {
     const row = document.createElement('div')
     row.className = 'matrix-result'
     row.dataset.status = result.verdict
-    row.innerHTML = `<b>${result.label}</b><span>${String(result.verdict).toUpperCase()}</span><code>mic ${Number(result.localEnergy).toFixed(4)} · ↑${result.outboundBytes} · ↓${result.inboundBytes} · energy ${Number(result.inboundEnergy).toFixed(6)}</code>`
+    const meterState = result.meterState ?? 'unknown'
+    const trackState = result.track?.readyState ?? 'unknown'
+    const trackOn = result.track?.enabled ? 'on' : 'off'
+    row.innerHTML = `<b>${result.label}</b><span>${String(result.verdict).toUpperCase()}</span><code>mic ${Number(result.localEnergy).toFixed(4)} · meter ${meterState} · track ${trackState}/${trackOn} · ↑${result.outboundBytes} · ↓${result.inboundBytes} · energy ${Number(result.inboundEnergy).toFixed(6)}</code>`
     resultsEl.appendChild(row)
   }
 }
