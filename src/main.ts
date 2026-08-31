@@ -74,7 +74,7 @@ async function startApplication(): Promise<void> {
           await startApplication()
         },
       }))
-      await startAdminRuntime()
+      await startAdminRuntime(surface.identity)
       return
 
     case 'admin-login':
