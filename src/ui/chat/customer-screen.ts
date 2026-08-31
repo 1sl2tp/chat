@@ -5,8 +5,16 @@ import { formatVersionLabel } from '../../version'
 import { mountComposer } from './composer'
 import { renderMessageList } from './message-list'
 import { mountOverflowMenu } from './overflow-menu'
+import { mountProfileForm } from './profile-form'
 import { createConversationScrollController } from './scroll-controller'
 import { buildCustomerChatViewModel } from './view-model'
+
+function currentDisplayName(): string | null {
+  const identity = getChatRuntimeState().identity
+  if (!identity || typeof identity !== 'object') return null
+  const value = (identity as { display_name?: unknown }).display_name
+  return typeof value === 'string' ? value : null
+}
 
 export function mountCustomerChatScreen(root: HTMLElement): () => void {
   const screen = document.createElement('main')
@@ -58,7 +66,10 @@ export function mountCustomerChatScreen(root: HTMLElement): () => void {
   screen.append(header, messages, footer)
   root.replaceChildren(screen)
 
-  const menu = mountOverflowMenu(actions)
+  const profileForm = mountProfileForm(screen)
+  const menu = mountOverflowMenu(actions, {
+    onEditProfile: () => profileForm.open(currentDisplayName()),
+  })
   menuButton.addEventListener('click', () => menu.toggle())
   const composerController = mountComposer(composer, sendSupportText)
   const scrollController = createConversationScrollController(messages)
@@ -93,6 +104,7 @@ export function mountCustomerChatScreen(root: HTMLElement): () => void {
     stopChat()
     stopMessages()
     menu.destroy()
+    profileForm.destroy()
     composerController.destroy()
     window.visualViewport?.removeEventListener('resize', viewportListener)
     window.visualViewport?.removeEventListener('scroll', viewportListener)
