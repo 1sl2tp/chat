@@ -1,9 +1,12 @@
+import { mountVoiceCallUi } from './call/ui'
+import { VoiceCallSession, type VoiceCallContext } from './call/voice-session'
 import { getChatMessageState, subscribeChatMessages } from './chat/message-runtime'
 import { sendSupportText, startChatRuntime } from './chat/runtime'
 import { getChatRuntimeState, subscribeChatRuntime } from './chat/store'
 import { setupPwa } from './pwa'
 import { supabase } from './supabase/client'
 import { setupViewportController } from './viewport/controller'
+import './call/call.css'
 import './user.css'
 
 const rootElement = document.querySelector<HTMLDivElement>('#app')
@@ -12,13 +15,17 @@ const root: HTMLDivElement = rootElement
 
 root.innerHTML = `
   <main class="user-app">
-    <header><strong>Admin hỗ trợ · test</strong><span id="status">Đang kết nối…</span></header>
+    <header>
+      <strong>Admin hỗ trợ · test</strong>
+      <div class="user-header-actions"><span id="status">Đang kết nối…</span><button id="voice-call" class="chat-call-button" type="button" aria-label="Gọi thoại">☎</button></div>
+    </header>
     <section id="messages" class="messages"><p class="empty">Bạn cần hỗ trợ gì?</p></section>
     <form id="composer" class="composer">
       <input id="text" autocomplete="off" placeholder="Nhập tin nhắn…" aria-label="Tin nhắn" />
       <button type="submit">Gửi</button>
     </form>
   </main>
+  <div id="voice-call-host"></div>
 `
 
 const messages = root.querySelector<HTMLElement>('#messages')!
@@ -26,6 +33,8 @@ const status = root.querySelector<HTMLElement>('#status')!
 const form = root.querySelector<HTMLFormElement>('#composer')!
 const input = root.querySelector<HTMLInputElement>('#text')!
 const submit = form.querySelector<HTMLButtonElement>('button')!
+const callButton = root.querySelector<HTMLButtonElement>('#voice-call')!
+const callHost = root.querySelector<HTMLElement>('#voice-call-host')!
 
 function currentProfileId(): string {
   const identity = getChatRuntimeState().identity
@@ -35,10 +44,43 @@ function currentProfileId(): string {
   return String((profile as { id?: unknown }).id ?? '')
 }
 
+function currentCallContext(): VoiceCallContext | null {
+  const chat = getChatRuntimeState()
+  if (chat.phase !== 'ready' || !chat.identity || typeof chat.identity !== 'object') return null
+
+  const identity = chat.identity as { profile?: unknown; device_id?: unknown }
+  const profile = identity.profile && typeof identity.profile === 'object'
+    ? identity.profile as { id?: unknown }
+    : null
+  const support = chat.supportEntry && typeof chat.supportEntry === 'object'
+    ? chat.supportEntry as { conversation_id?: unknown; admin_profile?: unknown }
+    : null
+  const admin = support?.admin_profile && typeof support.admin_profile === 'object'
+    ? support.admin_profile as { display_name?: unknown }
+    : null
+
+  const profileId = String(profile?.id ?? '')
+  const deviceId = String(identity.device_id ?? '')
+  const conversationId = String(support?.conversation_id ?? '')
+  if (!profileId || !deviceId || !conversationId) return null
+
+  return {
+    profileId,
+    deviceId,
+    conversationId,
+    peerName: String(admin?.display_name ?? 'Admin hỗ trợ'),
+  }
+}
+
+const callSession = new VoiceCallSession(supabase, currentCallContext)
+mountVoiceCallUi(callHost, callSession)
+callSession.start()
+
 function render(): void {
   const chat = getChatRuntimeState()
   const messageState = getChatMessageState()
   const canSend = chat.phase === 'ready' && messageState.realtime !== 'error' && Boolean(messageState.conversationId)
+  const callState = callSession.getState()
 
   status.textContent = chat.phase === 'error'
     ? 'Không thể kết nối'
@@ -48,6 +90,7 @@ function render(): void {
 
   input.disabled = false
   submit.disabled = !canSend || !input.value.trim()
+  callButton.disabled = !currentCallContext() || callState.phase !== 'idle'
 
   if (messageState.messages.length === 0) {
     messages.innerHTML = '<p class="empty">Bạn cần hỗ trợ gì?</p>'
@@ -65,6 +108,7 @@ function render(): void {
 }
 
 input.addEventListener('input', render)
+callButton.addEventListener('click', () => void callSession.startOutgoing())
 form.addEventListener('submit', async (event) => {
   event.preventDefault()
   const text = input.value.trim()
@@ -80,6 +124,7 @@ form.addEventListener('submit', async (event) => {
 
 subscribeChatRuntime(render)
 subscribeChatMessages(render)
+callSession.subscribe(render)
 setupViewportController()
 setupPwa()
 render()
@@ -90,6 +135,7 @@ async function startTestUser(): Promise<void> {
 
   const result = await supabase.rpc('chat_set_my_test_profile')
   if (result.error) console.warn('Could not label test profile', result.error)
+  render()
 }
 
 void startTestUser()

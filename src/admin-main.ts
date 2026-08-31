@@ -2,25 +2,56 @@ import { bootstrapAdminIdentity } from './admin/bootstrap'
 import { signInAdmin } from './admin/auth'
 import { getAdminState, subscribeAdminState } from './admin/store'
 import { clearAdminSelection, selectAdminConversation, sendAdminText, startAdminRuntime } from './admin/runtime'
+import { mountVoiceCallUi } from './call/ui'
+import { VoiceCallSession, type VoiceCallContext } from './call/voice-session'
 import { getChatMessageState, subscribeChatMessages } from './chat/message-runtime'
 import { getDeviceLabel, getDevicePlatform, getOrCreateDeviceKey } from './device/identity'
 import { createSupabaseChatBackend } from './supabase/chat-backend'
 import { adminSupabase } from './supabase/client'
+import './call/call.css'
 import './admin.css'
 
 const rootElement = document.querySelector<HTMLDivElement>('#app')
 if (!rootElement) throw new Error('Missing #app root')
 const root: HTMLDivElement = rootElement
 
-async function ensureAdminIdentity(): Promise<void> {
-  await bootstrapAdminIdentity(createSupabaseChatBackend(adminSupabase), {
+let adminIdentity: unknown = null
+let callSession: VoiceCallSession | null = null
+let disposeCallUi: (() => void) | null = null
+
+async function ensureAdminIdentity(): Promise<unknown> {
+  adminIdentity = await bootstrapAdminIdentity(createSupabaseChatBackend(adminSupabase), {
     deviceKey: getOrCreateDeviceKey(),
     label: getDeviceLabel(),
     platform: getDevicePlatform(),
   })
+  return adminIdentity
+}
+
+function currentAdminCallContext(): VoiceCallContext | null {
+  if (!adminIdentity || typeof adminIdentity !== 'object') return null
+  const identity = adminIdentity as { profile?: unknown; device_id?: unknown }
+  const profile = identity.profile && typeof identity.profile === 'object'
+    ? identity.profile as { id?: unknown }
+    : null
+  const profileId = String(profile?.id ?? '')
+  const deviceId = String(identity.device_id ?? '')
+  if (!profileId || !deviceId) return null
+
+  const state = getAdminState()
+  return {
+    profileId,
+    deviceId,
+    conversationId: state.selectedConversationId || null,
+    peerName: state.detail?.displayName?.trim() || 'User',
+  }
 }
 
 function mountLogin(message = ''): void {
+  callSession?.dispose()
+  callSession = null
+  disposeCallUi?.()
+  disposeCallUi = null
   root.innerHTML = `
     <main class="admin-login">
       <form id="admin-login-form">
@@ -68,7 +99,11 @@ function mountWorkspace(): void {
         <div id="inbox"></div>
       </aside>
       <section class="admin-chat">
-        <header><button id="back" type="button">‹</button><strong id="customer">Chọn User</strong></header>
+        <header>
+          <button id="back" type="button">‹</button>
+          <strong id="customer">Chọn User</strong>
+          <button id="admin-voice-call" class="chat-call-button" type="button" aria-label="Gọi thoại">☎</button>
+        </header>
         <div id="admin-messages" class="messages"><p class="empty">Chọn một User để chat.</p></div>
         <form id="admin-composer" class="composer">
           <input id="admin-text" autocomplete="off" placeholder="Nhập tin nhắn…" aria-label="Tin nhắn" />
@@ -76,6 +111,7 @@ function mountWorkspace(): void {
         </form>
       </section>
     </main>
+    <div id="voice-call-host"></div>
   `
 
   const inbox = root.querySelector<HTMLElement>('#inbox')!
@@ -86,10 +122,19 @@ function mountWorkspace(): void {
   const send = form.querySelector<HTMLButtonElement>('button')!
   const back = root.querySelector<HTMLButtonElement>('#back')!
   const logout = root.querySelector<HTMLButtonElement>('#logout')!
+  const callButton = root.querySelector<HTMLButtonElement>('#admin-voice-call')!
+  const callHost = root.querySelector<HTMLElement>('#voice-call-host')!
+
+  callSession?.dispose()
+  disposeCallUi?.()
+  callSession = new VoiceCallSession(adminSupabase, currentAdminCallContext)
+  disposeCallUi = mountVoiceCallUi(callHost, callSession)
+  callSession.start()
 
   function render(): void {
     const state = getAdminState()
     const messageState = getChatMessageState()
+    const callState = callSession?.getState()
 
     inbox.replaceChildren(...state.inbox.map((item) => {
       const button = document.createElement('button')
@@ -114,6 +159,7 @@ function mountWorkspace(): void {
     input.disabled = !state.selectedConversationId
     send.disabled = !state.selectedConversationId || !input.value.trim()
     back.disabled = !state.selectedConversationId
+    callButton.disabled = !state.selectedConversationId || !callState || callState.phase !== 'idle'
 
     if (!state.selectedConversationId) {
       messages.innerHTML = '<p class="empty">Chọn một User để chat.</p>'
@@ -136,6 +182,7 @@ function mountWorkspace(): void {
   }
 
   input.addEventListener('input', render)
+  callButton.addEventListener('click', () => void callSession?.startOutgoing())
   form.addEventListener('submit', async (event) => {
     event.preventDefault()
     const text = input.value.trim()
@@ -151,12 +198,14 @@ function mountWorkspace(): void {
   })
   back.addEventListener('click', clearAdminSelection)
   logout.addEventListener('click', async () => {
+    callSession?.dispose()
     await adminSupabase.auth.signOut()
     mountLogin()
   })
 
   subscribeAdminState(render)
   subscribeChatMessages(render)
+  callSession.subscribe(render)
   render()
 }
 
