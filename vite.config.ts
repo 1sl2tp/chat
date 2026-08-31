@@ -16,6 +16,7 @@ export default defineConfig({
         admin: 'admin/index.html',
         audioLab: 'audio-lab/index.html',
         minimalCall: 'call-minimal/index.html',
+        micTest: 'mic-test/index.html',
       },
     },
   },
