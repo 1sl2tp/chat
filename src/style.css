@@ -29,6 +29,8 @@ body {
   min-height: 100dvh;
   display: grid;
   place-items: center;
+  align-content: center;
+  gap: 12px;
   padding: 24px;
 }
 
@@ -37,4 +39,12 @@ body {
   font-size: clamp(3rem, 12vw, 6rem);
   line-height: 1;
   letter-spacing: -0.04em;
+}
+
+.app-version {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #666666;
+  text-align: center;
 }
