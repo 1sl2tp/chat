@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { decideSurface } from './startup'
+import { decideSurface, resolveStartupSurface } from './startup'
 
 describe('app startup surface policy', () => {
   it('sends admin route without session to admin login', () => {
@@ -28,5 +28,30 @@ describe('app startup surface policy', () => {
   it('opens admin workspace only for admin identity', () => {
     expect(decideSurface('/admin', { kind: 'admin', profileId: 'pa', authUserId: 'ua', isAdmin: true }))
       .toEqual({ type: 'admin-workspace' })
+  })
+
+  it('creates an anonymous session only for customer startup without a session', async () => {
+    const calls: string[] = []
+    const surface = await resolveStartupSurface('/', {
+      async hasSession() { calls.push('session'); return false },
+      async signInAnonymously() { calls.push('anonymous') },
+      async resolveIdentity() {
+        calls.push('identity')
+        return { kind: 'guest_customer', profileId: 'p1', authUserId: 'u1', isAdmin: false }
+      },
+    })
+    expect(calls).toEqual(['session', 'anonymous', 'identity'])
+    expect(surface).toEqual({ type: 'guest-chat' })
+  })
+
+  it('never creates anonymous session for admin route', async () => {
+    const calls: string[] = []
+    const surface = await resolveStartupSurface('/admin', {
+      async hasSession() { calls.push('session'); return false },
+      async signInAnonymously() { calls.push('anonymous') },
+      async resolveIdentity() { throw new Error('should_not_resolve') },
+    })
+    expect(calls).toEqual(['session'])
+    expect(surface).toEqual({ type: 'admin-login' })
   })
 })
