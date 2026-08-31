@@ -1,4 +1,4 @@
-export const MINIMAL_CALL_TEST_VERSION = 'minimal-call-v1.3-ios-audio-session'
+export const MINIMAL_CALL_TEST_VERSION = 'minimal-call-v1.4-ios-explicit-track'
 
 function shortTestVersion(testVersion: string): string {
   const match = testVersion.match(/minimal-call-v([^\s-]+)/i)
