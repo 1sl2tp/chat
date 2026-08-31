@@ -1,5 +1,7 @@
 import { supabase } from '../supabase/client'
 import { MATRIX_PROFILES } from './matrix-profiles'
+import { decodeProfileReady, encodeProfileReady, MATRIX_PROFILE_SYNC_TOPIC, peerReadyForProfile } from './matrix-sync'
+import { evaluateMatrixVerdict } from './matrix-verdict'
 import { MINIMAL_CALL_TEST_VERSION } from './version-label'
 
 const LIVEKIT_SDK_URL = 'https://esm.sh/livekit-client@2.22.1'
@@ -7,6 +9,8 @@ const LIVEKIT_VERSION = '2.22.1'
 const TOKEN_SERVER_ID = 'taphoachat-1x4n2g'
 const ROOM_NAME = 'taphoa-minimal-call-v15-matrix'
 const P2P_RPC = 'taphoa.v15.p2p.offer'
+const PROFILE_SYNC_TIMEOUT_MS = 30_000
+const PROFILE_SYNC_RETRY_MS = 400
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 const num = (value) => typeof value === 'number' && Number.isFinite(value) ? value : 0
 
@@ -30,6 +34,10 @@ function deviceName() {
   return 'Desktop Web'
 }
 
+function profileTrackName(profile) {
+  return `matrix:${profile.id}`
+}
+
 export class MatrixCallOwner {
   constructor(output, onState) {
     this.output = output
@@ -51,6 +59,8 @@ export class MatrixCallOwner {
     this.logs = []
     this.stopped = true
     this.identity = ''
+    this.activeProfileId = null
+    this.peerProfiles = new Map()
   }
 
   emit(status, current, secondsLeft) {
@@ -68,11 +78,19 @@ export class MatrixCallOwner {
     return source.fetch({ roomName: ROOM_NAME, participantIdentity: this.identity, participantName: deviceName() })
   }
 
-  async connectRoom(preCaptured) {
+  async connectRoom(profile) {
     const credentials = await this.getCredentials()
+    this.activeProfileId = profile.id
+    this.peerProfiles = new Map()
+    this.remoteTrack = null
     this.room = new this.lk.Room({ adaptiveStream: false, dynacast: false, disconnectOnPageLeave: false })
-    this.room.on(this.lk.RoomEvent.TrackSubscribed, (track) => {
+    this.room.on(this.lk.RoomEvent.TrackSubscribed, (track, publication) => {
       if (track.kind !== 'audio') return
+      const trackName = String(publication?.trackName ?? publication?.name ?? '')
+      if (trackName !== profileTrackName(profile)) {
+        this.log(`ignore remote audio name=${trackName || 'unnamed'} active=${profile.id}`)
+        return
+      }
       this.remoteTrack = track
       track.attach(this.output)
       this.output.autoplay = true
@@ -80,13 +98,60 @@ export class MatrixCallOwner {
       this.output.volume = 1
       this.output.play().catch((error) => this.log(`play blocked=${String(error)}`))
     })
+    this.room.on(this.lk.RoomEvent.TrackUnsubscribed, (track) => {
+      if (track !== this.remoteTrack) return
+      try { track.detach(this.output) } catch {}
+      this.remoteTrack = null
+    })
+    this.room.on(this.lk.RoomEvent.DataReceived, (payload, participant, _kind, topic) => {
+      if (topic !== MATRIX_PROFILE_SYNC_TOPIC || !participant?.identity) return
+      const message = decodeProfileReady(payload)
+      if (!message) return
+      this.peerProfiles.set(String(participant.identity), message.profile)
+      this.log(`peer profile identity=${participant.identity} profile=${message.profile}`)
+    })
+    this.room.on(this.lk.RoomEvent.ParticipantDisconnected, (participant) => {
+      if (participant?.identity) this.peerProfiles.delete(String(participant.identity))
+    })
     await this.room.connect(credentials.serverUrl, credentials.participantToken, { autoSubscribe: true })
     try { await this.room.startAudio() } catch (error) { this.log(`startAudio=${String(error)}`) }
-    if (preCaptured) await this.publishLiveKit(preCaptured)
   }
 
-  async publishLiveKit(track) {
-    const pub = await this.room.localParticipant.publishTrack(track, { source: this.lk.Track.Source.Microphone })
+  async announceProfile(profile) {
+    await this.room.localParticipant.publishData(encodeProfileReady(profile.id), {
+      reliable: true,
+      topic: MATRIX_PROFILE_SYNC_TOPIC,
+    })
+  }
+
+  matchingPeerReady(profile) {
+    const connectedPeerIds = Array.from(this.room?.remoteParticipants?.keys?.() ?? [])
+    return peerReadyForProfile(connectedPeerIds, this.peerProfiles, profile.id)
+  }
+
+  async waitForMatchingPeer(profile) {
+    const startedAt = Date.now()
+    this.log(`sync wait profile=${profile.id}`)
+    while (!this.stopped) {
+      await this.announceProfile(profile)
+      if (this.matchingPeerReady(profile)) {
+        this.log(`sync matched profile=${profile.id}`)
+        return
+      }
+      if (Date.now() - startedAt >= PROFILE_SYNC_TIMEOUT_MS) {
+        throw new Error(`profile sync timeout: ${profile.id}`)
+      }
+      this.emit(`Chờ máy kia cùng kiểu ${profile.label}…`, profile.id)
+      await sleep(PROFILE_SYNC_RETRY_MS)
+    }
+    throw new Error(`matrix stopped while syncing: ${profile.id}`)
+  }
+
+  async publishLiveKit(track, profile) {
+    const pub = await this.room.localParticipant.publishTrack(track, {
+      source: this.lk.Track.Source.Microphone,
+      name: profileTrackName(profile),
+    })
     this.publicationTrack = pub?.track ?? track
     this.localTrack = this.publicationTrack?.mediaStreamTrack ?? track
     this.startAnalyser(this.localTrack)
@@ -196,17 +261,20 @@ export class MatrixCallOwner {
       this.lk ??= await import(/* @vite-ignore */ LIVEKIT_SDK_URL)
       const track = await this.lk.createLocalAudioTrack()
       this.localTrack = track.mediaStreamTrack
-      await this.connectRoom(track)
+      await this.connectRoom(profile)
+      await this.waitForMatchingPeer(profile)
+      await this.publishLiveKit(track, profile)
       return
     }
 
-    await this.connectRoom()
+    await this.connectRoom(profile)
+    await this.waitForMatchingPeer(profile)
     if (profile.id === 'native-p2p') return this.setupP2P()
 
     this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true })
     const nativeTrack = this.localStream.getAudioTracks()[0]
     if (!nativeTrack) throw new Error('native microphone missing')
-    if (profile.id === 'native-livekit') return this.publishLiveKit(nativeTrack)
+    if (profile.id === 'native-livekit') return this.publishLiveKit(nativeTrack, profile)
 
     this.bridgeContext = new AudioContext()
     await this.bridgeContext.resume().catch(() => {})
@@ -215,7 +283,7 @@ export class MatrixCallOwner {
     source.connect(destination)
     const bridgeTrack = destination.stream.getAudioTracks()[0]
     if (!bridgeTrack) throw new Error('webaudio bridge track missing')
-    await this.publishLiveKit(bridgeTrack)
+    await this.publishLiveKit(bridgeTrack, profile)
   }
 
   async save(profile, result) {
@@ -250,6 +318,8 @@ export class MatrixCallOwner {
     this.output.srcObject = null
     this.room = this.localStream = this.localTrack = this.publicationTrack = this.remoteTrack = this.pc = this.responderPc = null
     this.bridgeContext = this.analyserContext = this.analyser = this.analyserData = null
+    this.peerProfiles = new Map()
+    this.activeProfileId = null
   }
 
   async runProfile(profile) {
@@ -262,7 +332,8 @@ export class MatrixCallOwner {
       stats = profile.transport === 'p2p' ? await this.peerStats(this.pc ?? this.responderPc) : await this.liveKitStats()
       await sleep(1000)
     }
-    const verdict = this.localEnergyPeak > 0.002 && stats.outboundBytes > 0 ? (stats.inboundBytes > 0 ? 'pass' : 'inconclusive') : 'fail'
+    const verdict = evaluateMatrixVerdict({ localEnergy: this.localEnergyPeak, ...stats })
+    this.log(`verdict=${verdict} localEnergy=${this.localEnergyPeak} outboundBytes=${stats.outboundBytes} inboundBytes=${stats.inboundBytes} inboundEnergy=${stats.inboundEnergy}`)
     return { id: profile.id, label: profile.label, localEnergy: this.localEnergyPeak, ...stats, verdict }
   }
 
