@@ -1,0 +1,3 @@
+interface HTMLAudioElement {
+  playsInline: boolean
+}
