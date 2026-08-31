@@ -32,7 +32,7 @@ function render(): void {
 
   status.textContent = chat.phase === 'error'
     ? 'Không thể kết nối'
-    : messageState.realtime === 'connected'
+    : messageState.realtime === 'subscribed'
       ? 'Đang hoạt động'
       : 'Đang kết nối…'
   input.disabled = !canSend
