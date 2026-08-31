@@ -1,4 +1,5 @@
 import { supabase } from '../supabase/client'
+import { prepareCallAudioSession, type CallNavigatorLike } from './audio-session'
 import { captureOptionsForUserAgent } from './capture-profile'
 import { enableCallAudio } from './media-sequence'
 import { MinimalCallLifecycle, type MinimalCallPhase } from './owner-lifecycle'
@@ -7,7 +8,7 @@ import { summarizeMinimalCall, type MinimalCallMetrics, type MinimalCallSummary 
 const LIVEKIT_SDK_URL = 'https://esm.sh/livekit-client@2.22.1'
 const LIVEKIT_VERSION = '2.22.1'
 const TOKEN_SERVER_ID = 'taphoachat-1x4n2g'
-const TEST_VERSION = 'minimal-call-v1.2-ios-no-voice-isolation'
+const TEST_VERSION = 'minimal-call-v1.3-ios-audio-session'
 const ROOM_NAME = 'taphoa-minimal-call-v1'
 const CHECKPOINT_MS = 10_000
 
@@ -363,6 +364,11 @@ export class MinimalCallOwner {
     this.emit('Đang vào phòng…')
     this.log(`session=${this.sessionId}`)
     this.log(`room=${ROOM_NAME}`)
+    const audioSessionPrepared = prepareCallAudioSession(
+      navigator.userAgent,
+      navigator as unknown as CallNavigatorLike,
+    )
+    this.log(`audio session=${audioSessionPrepared ? 'play-and-record' : 'unchanged'}`)
     try {
       this.lk = await import(/* @vite-ignore */ LIVEKIT_SDK_URL)
       const tokenSource = this.lk.TokenSource.developmentTokenServer(TOKEN_SERVER_ID)
