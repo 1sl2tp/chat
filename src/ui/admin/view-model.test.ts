@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getAdminCustomerLabel, getAdminDeviceLines, getAdminStatusLabel } from './view-model'
+import { getAdminCustomerLabel, getAdminDeviceLines, getAdminEmptyMessage, getAdminStatusLabel } from './view-model'
 
 describe('admin workspace view model', () => {
   it('uses stable guest label when display name is missing', () => {
@@ -12,6 +12,14 @@ describe('admin workspace view model', () => {
 
   it('labels anonymous customers as guests', () => {
     expect(getAdminStatusLabel('anonymous')).toBe('Khách vãng lai')
+  })
+
+  it('shows a clear message when admin auth session is missing', () => {
+    expect(getAdminEmptyMessage('error', 'admin_session_required')).toBe('Bạn chưa đăng nhập Admin.')
+  })
+
+  it('keeps a generic message for other admin load failures', () => {
+    expect(getAdminEmptyMessage('error', 'admin_required')).toBe('Không thể tải khu vực Admin.')
   })
 
   it('formats device metadata without inventing missing fields', () => {
