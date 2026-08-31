@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>Minimal Call v1</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f5f5f5;color:#111;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{max-width:680px;margin:0 auto;padding:18px}.card{background:#fff;border:1px solid #ddd;border-radius:14px;padding:15px;margin:12px 0}.row{display:flex;gap:9px;flex-wrap:wrap}.metric{display:flex;justify-content:space-between;gap:18px;padding:7px 0;border-bottom:1px solid #eee}.metric:last-child{border-bottom:0}.muted{color:#666}button{min-height:46px;padding:0 16px;border-radius:10px;border:1px solid #bbb;background:#fff;color:#111;font:inherit;font-weight:650}button.primary{background:#111;color:#fff;border-color:#111}button.danger{background:#b42318;color:#fff;border-color:#b42318}button:disabled{opacity:.45}#result{font-weight:750;padding:10px 12px;border-radius:10px;background:#f0f0f0}#result[data-status="pass"]{background:#e9f8ee;color:#116b2c}#result[data-status="fail"],#result[data-status="error"]{background:#fdecec;color:#a10000}code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;word-break:break-all}audio{display:none}
+  </style>
+</head>
+<body>
+  <main>
+    <h2>Minimal Call v1</h2>
+    <p class="muted">Một LiveKit Room owner duy nhất. Không bot, không tone, không ringtone, không speaker routing, không Call cũ.</p>
+
+    <section class="card">
+      <div class="metric"><span>Room</span><code id="room"></code></div>
+      <div class="metric"><span>LiveKit</span><code id="livekit-version"></code></div>
+      <div class="metric"><span>Trạng thái</span><b id="status">Chưa vào phòng</b></div>
+      <div class="metric"><span>Remote participants</span><b id="remote-count">0</b></div>
+      <div class="metric"><span>Media</span><code id="media-state">mic=off · remote=waiting · playback=waiting</code></div>
+    </section>
+
+    <section class="card">
+      <div class="row">
+        <button id="join" class="primary">Vào phòng</button>
+        <button id="mute" disabled>Tắt mic</button>
+        <button id="leave" class="danger" disabled>Rời phòng</button>
+      </div>
+      <p class="muted">Mở cùng link trên iPhone và Android. Cả hai bấm Vào phòng. Log tự lưu checkpoint khoảng 10 giây/lần và ghi bản cuối khi rời.</p>
+      <div id="result" hidden></div>
+    </section>
+
+    <audio id="remote-audio" autoplay playsinline></audio>
+  </main>
+  <script type="module" src="/src/call-minimal/main.ts"></script>
+</body>
+</html>
