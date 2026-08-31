@@ -1,7 +1,7 @@
 export interface CapabilitySnapshot {
   serviceWorker: boolean
   notifications: boolean
-  permissionsApi: boolean
+  permissionsApi?: boolean
   mediaDevices: boolean
   getUserMedia: boolean
   peerConnection: boolean
@@ -12,8 +12,8 @@ export interface CapabilitySnapshot {
   videoPictureInPicture: boolean
   documentPictureInPicture: boolean
   wakeLock: boolean
-  visualViewport: boolean
-  virtualKeyboard: boolean
+  visualViewport?: boolean
+  virtualKeyboard?: boolean
 }
 
 export interface CapabilityProbeInput {
