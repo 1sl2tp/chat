@@ -7,6 +7,7 @@ import { VoiceCallSession, type VoiceCallContext } from './call/voice-session'
 import { getChatMessageState, subscribeChatMessages } from './chat/message-runtime'
 import { getDeviceLabel, getDevicePlatform, getOrCreateDeviceKey } from './device/identity'
 import { CallPushRegistration } from './notifications/call-push-registration'
+import { notificationButtonPresentation } from './notifications/presentation'
 import { setupPwa } from './pwa'
 import { createSupabaseChatBackend } from './supabase/chat-backend'
 import { adminSupabase } from './supabase/client'
@@ -146,14 +147,17 @@ function mountWorkspace(): void {
   callSession.start()
 
   function renderNotificationButton(): void {
-    const pushState = callPushRegistration?.getState() ?? 'unsupported'
-    notificationButton.hidden = pushState === 'unsupported'
-    notificationButton.disabled = pushState === 'enabled' || pushState === 'denied'
-    notificationButton.textContent = pushState === 'enabled'
-      ? 'Thông báo ✓'
-      : pushState === 'denied'
-        ? 'Thông báo bị chặn'
-        : 'Bật thông báo'
+    const registration = callPushRegistration
+    if (!registration) {
+      notificationButton.hidden = true
+      return
+    }
+
+    const presentation = notificationButtonPresentation(registration.getState(), registration.getIssue())
+    notificationButton.hidden = false
+    notificationButton.disabled = presentation.disabled
+    notificationButton.textContent = presentation.label
+    notificationButton.title = registration.getDetail()
   }
 
   function render(): void {
@@ -216,7 +220,15 @@ function mountWorkspace(): void {
 
   input.addEventListener('input', render)
   callButton.addEventListener('click', () => void callSession?.startOutgoing())
-  notificationButton.addEventListener('click', () => void callPushRegistration?.enableFromUserGesture())
+  notificationButton.addEventListener('click', () => {
+    const registration = callPushRegistration
+    if (!registration) return
+    if (registration.getState() === 'enabled') {
+      void registration.testFromUserGesture()
+    } else {
+      void registration.enableFromUserGesture()
+    }
+  })
   form.addEventListener('submit', async (event) => {
     event.preventDefault()
     const text = input.value.trim()
