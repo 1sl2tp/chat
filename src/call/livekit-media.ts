@@ -1,9 +1,4 @@
-import {
-  LIVEKIT_TOKEN_SERVER_ID,
-  assertLiveKitServerUrl,
-  liveKitParticipantIdentity,
-  liveKitRoomName,
-} from './livekit-config'
+import { assertLiveKitServerUrl } from './livekit-config'
 import { playRemoteAudioElement } from './audio-playback'
 import {
   resetCallAudioRoute,
@@ -31,11 +26,9 @@ import {
   waitForCapturedMicrophone,
 } from './user-gesture-mic'
 
-export interface LiveKitJoinContext {
-  callId: string
-  profileId: string
-  deviceId: string
-  displayName: string
+export interface LiveKitJoinCredentials {
+  serverUrl: string
+  participantToken: string
 }
 
 export interface LiveKitMediaCallbacks {
@@ -82,15 +75,6 @@ type LiveKitGlobal = {
   Track: {
     Kind: { Audio: string }
     Source: { Microphone: string }
-  }
-  TokenSource: {
-    developmentTokenServer(id: string): {
-      fetch(options: {
-        roomName: string
-        participantIdentity: string
-        participantName: string
-      }): Promise<{ serverUrl: string; participantToken: string }>
-    }
   }
   supportsAudioOutputSelection?: () => boolean
 }
@@ -161,7 +145,7 @@ export class LiveKitVoiceMedia {
     await this.replayAttachedAudio()
   }
 
-  async join(context: LiveKitJoinContext): Promise<void> {
+  async join(credentials: LiveKitJoinCredentials): Promise<void> {
     if (this.joined) return
 
     const pendingCapture = this.microphoneCapture
@@ -176,13 +160,6 @@ export class LiveKitVoiceMedia {
 
     const livekit = sdk()
     const room = this.ensureRoom()
-    const source = livekit.TokenSource.developmentTokenServer(LIVEKIT_TOKEN_SERVER_ID)
-    const credentials = await source.fetch({
-      roomName: liveKitRoomName(context.callId),
-      participantIdentity: liveKitParticipantIdentity(context.profileId, context.deviceId),
-      participantName: context.displayName || 'TAPHOA Chat',
-    })
-
     assertLiveKitServerUrl(credentials.serverUrl)
     await room.connect(credentials.serverUrl, credentials.participantToken)
     await publishCapturedMicrophone(
