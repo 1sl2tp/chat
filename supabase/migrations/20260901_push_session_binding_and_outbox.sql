@@ -1,0 +1,1 @@
+-- RED scaffold for server-owned notification schema contracts.
