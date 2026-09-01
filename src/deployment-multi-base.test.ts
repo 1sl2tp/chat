@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { APP_BASE_PATH } from './deployment'
+import { APP_BASE_PATH, serviceWorkerAssetBase } from './deployment'
 import { pwaOwnerForPath, pwaRegistrationDescriptor } from './pwa/registration'
 
 describe('multi-base deployment', () => {
@@ -13,5 +13,10 @@ describe('multi-base deployment', () => {
     expect(pwaRegistrationDescriptor('user', '/chat/')).toEqual({ scriptUrl: '/chat/sw.js', scope: '/chat/' })
     expect(pwaRegistrationDescriptor('admin', '/chat/admin/')).toEqual({ scriptUrl: '/chat/sw.js', scope: '/chat/admin/' })
     expect(pwaOwnerForPath('/chat/admin/')).toBe('admin')
+  })
+
+  it('precache assets from the service worker script directory', () => {
+    expect(serviceWorkerAssetBase('https://chat.taphoa.xyz/sw.js')).toBe('https://chat.taphoa.xyz/')
+    expect(serviceWorkerAssetBase('https://1sl2tp.github.io/chat/sw.js')).toBe('https://1sl2tp.github.io/chat/')
   })
 })
