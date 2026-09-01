@@ -150,6 +150,7 @@ callButton.addEventListener('click', () => void callSession.startOutgoing())
 notificationButton.addEventListener('click', () => {
   const registration = callPushRegistration
   if (!registration) return
+  callSession.prepareAlertAudioFromUserGesture()
   if (registration.getState() === 'enabled') {
     void registration.testFromUserGesture()
   } else {
