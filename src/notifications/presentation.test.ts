@@ -16,6 +16,13 @@ describe('notification button presentation', () => {
     })
   })
 
+  it('shows immediate progress while an enabled self-test is running', () => {
+    expect(notificationButtonPresentation('enabled', null, true)).toEqual({
+      label: 'Đang kiểm tra…',
+      disabled: true,
+    })
+  })
+
   it('explains iOS Home Screen requirement instead of hiding the control', () => {
     expect(notificationButtonPresentation('unsupported', 'ios_home_screen_required')).toEqual({
       label: 'Cài vào Màn hình chính để bật thông báo',
