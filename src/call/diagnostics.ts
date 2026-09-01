@@ -1,11 +1,11 @@
 export type MicrophoneProcessingVerdict = 'verified' | 'degraded' | 'unknown'
 
 export interface MicrophoneProcessingDiagnostics {
-  echo_cancellation: boolean | null
-  noise_suppression: boolean | null
-  auto_gain_control: boolean | null
-  channel_count: number | null
-  sample_rate: number | null
+  local_source_echo_cancellation: boolean | null
+  local_source_noise_suppression: boolean | null
+  local_source_auto_gain_control: boolean | null
+  local_source_channel_count: number | null
+  local_source_sample_rate: number | null
   microphone_processing: MicrophoneProcessingVerdict
 }
 
@@ -59,11 +59,11 @@ export function collectMicrophoneProcessingDiagnostics(
       : 'unknown'
 
   return Object.freeze({
-    echo_cancellation: echoCancellation,
-    noise_suppression: noiseSuppression,
-    auto_gain_control: autoGainControl,
-    channel_count: numberSetting(settings.channelCount),
-    sample_rate: numberSetting(settings.sampleRate),
+    local_source_echo_cancellation: echoCancellation,
+    local_source_noise_suppression: noiseSuppression,
+    local_source_auto_gain_control: autoGainControl,
+    local_source_channel_count: numberSetting(settings.channelCount),
+    local_source_sample_rate: numberSetting(settings.sampleRate),
     microphone_processing: verdict,
   })
 }
