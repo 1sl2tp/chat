@@ -68,9 +68,7 @@ describe('CallPushRegistration', () => {
 
   it('never requests permission during sync', async () => {
     const registration = createRegistration()
-
     await registration.sync()
-
     expect(requestPermission).not.toHaveBeenCalled()
     expect(invoke).not.toHaveBeenCalled()
     expect(registration.getState()).toBe('prompt')
@@ -78,13 +76,10 @@ describe('CallPushRegistration', () => {
 
   it('requests permission only from enableFromUserGesture, stores the subscription, and proves delivery', async () => {
     const registration = createRegistration()
-
     await registration.enableFromUserGesture()
 
     expect(requestPermission).toHaveBeenCalledOnce()
-    expect(invoke).toHaveBeenNthCalledWith(1, 'taphoaxyz-call-push', {
-      body: { action: 'config' },
-    })
+    expect(invoke).toHaveBeenNthCalledWith(1, 'taphoaxyz-call-push', { body: { action: 'config' } })
     expect(pushSubscribe).toHaveBeenCalledWith(expect.objectContaining({
       userVisibleOnly: true,
       applicationServerKey: expect.any(Uint8Array),
@@ -96,7 +91,7 @@ describe('CallPushRegistration', () => {
       p_auth: expect.any(String),
     }))
     expect(invoke).toHaveBeenNthCalledWith(2, 'taphoaxyz-call-push', {
-      body: { action: 'test' },
+      body: { action: 'test', device_id: DEVICE_ID },
     })
     expect(registration.getState()).toBe('enabled')
     expect(registration.getIssue()).toBeNull()
@@ -106,7 +101,6 @@ describe('CallPushRegistration', () => {
     permission = 'granted'
     getSubscription.mockResolvedValue(subscription)
     const registration = createRegistration()
-
     await registration.sync()
 
     expect(pushSubscribe).not.toHaveBeenCalled()
@@ -120,11 +114,10 @@ describe('CallPushRegistration', () => {
     getSubscription.mockResolvedValue(subscription)
     const registration = createRegistration()
     await registration.sync()
-
     await registration.testFromUserGesture()
 
     expect(invoke).toHaveBeenLastCalledWith('taphoaxyz-call-push', {
-      body: { action: 'test' },
+      body: { action: 'test', device_id: DEVICE_ID },
     })
     expect(registration.getState()).toBe('enabled')
   })
@@ -134,7 +127,6 @@ describe('CallPushRegistration', () => {
       supported: () => false,
       iosHomeScreenRequired: () => true,
     } as Partial<CallPushBrowser>)
-
     await registration.sync()
 
     expect(registration.getState()).toBe('unsupported')
@@ -146,7 +138,6 @@ describe('CallPushRegistration', () => {
     getSubscription.mockResolvedValue(subscription)
     rpc.mockResolvedValue({ data: null, error: new Error('invalid_device') })
     const registration = createRegistration()
-
     await registration.sync()
 
     expect(registration.getState()).toBe('error')
@@ -154,13 +145,12 @@ describe('CallPushRegistration', () => {
     expect(registration.getDetail()).toContain('invalid_device')
   })
 
-  it('fails readiness when the end-to-end test notification reaches no device', async () => {
+  it('fails readiness when the end-to-end test notification reaches no current device', async () => {
     invoke.mockImplementation(async (_slug: string, options?: { body?: { action?: string } }) => {
       if (options?.body?.action === 'config') return { data: { public_key: VAPID_PUBLIC_KEY }, error: null }
       return { data: { ok: true, delivered: 0, expired: 0 }, error: null }
     })
     const registration = createRegistration()
-
     await registration.enableFromUserGesture()
 
     expect(registration.getState()).toBe('error')
@@ -170,7 +160,6 @@ describe('CallPushRegistration', () => {
   it('marks denied permission without trying PushManager.subscribe', async () => {
     permission = 'denied'
     const registration = createRegistration()
-
     await registration.sync()
 
     expect(pushSubscribe).not.toHaveBeenCalled()
@@ -180,7 +169,6 @@ describe('CallPushRegistration', () => {
 
   it('marks generic unsupported without requesting permission', async () => {
     const registration = createRegistration({ supported: () => false })
-
     await registration.enableFromUserGesture()
 
     expect(requestPermission).not.toHaveBeenCalled()
