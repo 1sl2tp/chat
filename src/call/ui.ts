@@ -15,7 +15,7 @@ export function mountVoiceCallUi(host: HTMLElement, session: VoiceCallSession): 
       bar.type = 'button'
       bar.className = 'voice-call-error'
       bar.textContent = 'Cuộc gọi lỗi · chạm để đóng'
-      bar.addEventListener('click', () => session.setDisplay('hidden'))
+      bar.addEventListener('click', () => session.dismissError())
       host.append(bar)
       return
     }
