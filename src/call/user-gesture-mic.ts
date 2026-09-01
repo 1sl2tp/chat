@@ -14,7 +14,14 @@ export type PublishCapturedMicrophone = (
 export function beginCallMicrophoneCapture(
   deps: CallMicrophoneCaptureDeps,
 ): Promise<MediaStream> {
-  return deps.getUserMedia({ audio: true, video: false })
+  return deps.getUserMedia({
+    audio: {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+    },
+    video: false,
+  })
 }
 
 export async function waitForCapturedMicrophone(
