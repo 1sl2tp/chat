@@ -68,6 +68,13 @@ const DEFAULT_STATE: VoiceCallState = {
   error: null,
 }
 
+export function callErrorMessage(reason: string): string {
+  if (reason === 'caller_busy') return 'Bạn đang có cuộc gọi khác'
+  if (reason === 'peer_busy') return 'Đối phương đang trong cuộc gọi'
+  if (reason === 'call_already_active') return 'Cuộc gọi đã tồn tại'
+  return reason
+}
+
 export class VoiceCallSession {
   private state: VoiceCallState = { ...DEFAULT_STATE }
   private readonly listeners = new Set<(state: VoiceCallState) => void>()
@@ -139,6 +146,11 @@ export class VoiceCallSession {
     this.publish({ display })
   }
 
+  dismissError(): void {
+    if (this.state.phase !== 'error') return
+    this.resetToIdle()
+  }
+
   async startOutgoing(): Promise<void> {
     const context = this.getContext()
     if (!context?.conversationId || !context.deviceId || this.state.phase !== 'idle') return
@@ -162,6 +174,7 @@ export class VoiceCallSession {
       })
       if (result.error) throw result.error
       const payload = result.data as { ok?: boolean; call_id?: string; state?: string; reason?: string } | null
+      if (payload?.ok === false) throw new Error(payload.reason || 'call_start_failed')
       if (!payload?.call_id) throw new Error(payload?.reason || 'call_start_failed')
 
       this.backendState = payload.state ?? 'ringing'
@@ -430,7 +443,7 @@ export class VoiceCallSession {
   private fail(error: unknown): void {
     this.alerts.stop()
     this.media.disconnect()
-    const message = error instanceof Error ? error.message : String(error)
-    this.publish({ phase: 'error', error: message })
+    const reason = error instanceof Error ? error.message : String(error)
+    this.publish({ phase: 'error', error: callErrorMessage(reason) })
   }
 }
