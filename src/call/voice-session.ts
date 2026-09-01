@@ -5,6 +5,7 @@ import {
   type CallMediaDiagnosticEvent,
   type CallMediaDiagnosticPhase,
 } from './media-diagnostic-phase'
+import { microphonePermissionNotice } from './microphone-permission'
 
 export type VoiceCallPhase = 'idle' | 'outgoing' | 'incoming' | 'connecting' | 'active' | 'error'
 export type VoiceCallDisplay = 'full' | 'compact' | 'hidden'
@@ -27,6 +28,7 @@ export interface VoiceCallState {
   speakerAvailable: boolean
   speakerSelected: boolean
   audioBlocked: boolean
+  permissionNotice: string | null
   connectedAt: number | null
   error: string | null
 }
@@ -58,6 +60,7 @@ const DEFAULT_STATE: VoiceCallState = {
   speakerAvailable: false,
   speakerSelected: false,
   audioBlocked: false,
+  permissionNotice: null,
   connectedAt: null,
   error: null,
 }
@@ -89,6 +92,9 @@ export class VoiceCallSession {
       onAudioPlaybackBlocked: () => {
         this.publish({ audioBlocked: true })
         void this.reportMediaEvent('remote_audio_blocked')
+      },
+      onMicrophonePermissionState: (state) => {
+        this.publish({ permissionNotice: microphonePermissionNotice(state, navigator.userAgent) })
       },
       onError: (error) => this.fail(error),
     })
@@ -139,6 +145,7 @@ export class VoiceCallSession {
       direction: 'outgoing',
       peerName: context.peerName || 'Admin',
       audioBlocked: false,
+      permissionNotice: null,
       error: null,
     })
 
@@ -295,6 +302,7 @@ export class VoiceCallSession {
           peerName: incoming.caller_display_name || 'Người gọi',
           connectedAt: null,
           audioBlocked: false,
+          permissionNotice: null,
           error: null,
         })
       }
