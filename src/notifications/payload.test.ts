@@ -18,6 +18,18 @@ describe('push payload parsing', () => {
       navigate: './?call=123',
       badge: 3,
       tag: 'call-123',
+      conversationId: undefined,
+    })
+  })
+
+  it('keeps the exact conversation id for chat notification context', () => {
+    expect(parsePushPayload({
+      type: 'chat_message',
+      conversation_id: 'conversation-1',
+      title: 'Tin nhắn mới',
+    })).toMatchObject({
+      type: 'chat_message',
+      conversationId: 'conversation-1',
     })
   })
 
@@ -29,6 +41,7 @@ describe('push payload parsing', () => {
       navigate: './',
       badge: undefined,
       tag: undefined,
+      conversationId: undefined,
     })
   })
 })
