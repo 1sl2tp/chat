@@ -98,6 +98,10 @@ export class VoiceCallSession {
     return this.state
   }
 
+  hasPhoneSpeakerToggle(): boolean {
+    return this.media.canTogglePhoneSpeaker()
+  }
+
   subscribe(listener: (state: VoiceCallState) => void): () => void {
     this.listeners.add(listener)
     listener(this.state)
@@ -231,8 +235,24 @@ export class VoiceCallSession {
 
   async chooseSpeaker(): Promise<void> {
     try {
+      if (this.media.canTogglePhoneSpeaker()) {
+        const nextSpeaker = !this.state.speakerSelected
+        const changed = await this.media.setSpeakerEnabled(nextSpeaker)
+        if (!changed) {
+          this.publish({ speakerAvailable: false, error: 'Không đổi được loa trên trình duyệt này' })
+          await this.reportMediaEvent('audio_output_unavailable')
+          return
+        }
+
+        this.publish({ speakerAvailable: true, speakerSelected: nextSpeaker, error: null })
+        await this.reportMediaEvent('audio_output_selected', {
+          route: nextSpeaker ? 'speaker' : 'receiver',
+        })
+        return
+      }
+
       const selected = await this.media.chooseAudioOutput()
-      this.publish({ speakerAvailable: this.media.canChooseAudioOutput(), speakerSelected: selected })
+      this.publish({ speakerAvailable: this.media.canChooseAudioOutput(), speakerSelected: selected, error: null })
       await this.reportMediaEvent(selected ? 'audio_output_selected' : 'audio_output_unavailable')
     } catch (error) {
       this.publish({ speakerSelected: false, error: error instanceof Error ? error.message : String(error) })
@@ -312,7 +332,10 @@ export class VoiceCallSession {
       deviceId: context.deviceId,
       displayName: context.profileId.slice(0, 8),
     })
-    this.publish({ speakerAvailable: this.media.canChooseAudioOutput() })
+    this.publish({
+      speakerAvailable: this.media.canTogglePhoneSpeaker() || this.media.canChooseAudioOutput(),
+      speakerSelected: false,
+    })
     await this.reportMediaEvent('joined', { room: `taphoa-call-${callId.toLowerCase()}` })
   }
 
