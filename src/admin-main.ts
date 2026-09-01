@@ -8,6 +8,7 @@ import { getChatMessageState, subscribeChatMessages } from './chat/message-runti
 import { getDeviceLabel, getDevicePlatform, getOrCreateDeviceKey } from './device/identity'
 import { CallPushRegistration } from './notifications/call-push-registration'
 import { notificationButtonPresentation } from './notifications/presentation'
+import { installNotificationContextResponder } from './notifications/window-context'
 import { setupPwa } from './pwa'
 import { createSupabaseChatBackend } from './supabase/chat-backend'
 import { adminSupabase } from './supabase/client'
@@ -264,6 +265,16 @@ async function bootWorkspace(): Promise<void> {
     await ensureAdminIdentity()
     mountWorkspace()
     await startAdminRuntime()
+
+    const requestedConversationId = new URL(window.location.href).searchParams.get('conversation')
+    if (requestedConversationId) {
+      try {
+        await selectAdminConversation(requestedConversationId)
+        history.replaceState(null, '', './')
+      } catch {
+        // Keep the normal Admin workspace usable for a stale/unavailable notification.
+      }
+    }
   } catch {
     await adminSupabase.auth.signOut()
     mountLogin('Phiên Admin không hợp lệ.')
@@ -280,4 +291,5 @@ async function start(): Promise<void> {
 }
 
 setupPwa()
+installNotificationContextResponder(() => getAdminState().selectedConversationId || null)
 void start()
