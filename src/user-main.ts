@@ -5,6 +5,7 @@ import { sendSupportText, startChatRuntime } from './chat/runtime'
 import { getChatRuntimeState, subscribeChatRuntime } from './chat/store'
 import { CallPushRegistration } from './notifications/call-push-registration'
 import { notificationButtonPresentation } from './notifications/presentation'
+import { installNotificationContextResponder } from './notifications/window-context'
 import { setupPwa } from './pwa'
 import { supabase } from './supabase/client'
 import { prepareFixedTestRuntime } from './user/fixed-runtime'
@@ -178,6 +179,7 @@ subscribeChatMessages(render)
 callSession.subscribe(render)
 setupViewportController()
 setupPwa()
+installNotificationContextResponder(() => getChatMessageState().conversationId || null)
 render()
 
 async function startTestUser(): Promise<void> {
