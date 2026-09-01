@@ -336,7 +336,10 @@ export class VoiceCallSession {
       speakerAvailable: this.media.canTogglePhoneSpeaker() || this.media.canChooseAudioOutput(),
       speakerSelected: this.media.defaultSpeakerSelected(),
     })
-    await this.reportMediaEvent('joined', { room: `taphoa-call-${callId.toLowerCase()}` })
+    await this.reportMediaEvent('joined', {
+      room: `taphoa-call-${callId.toLowerCase()}`,
+      ...this.media.microphoneProcessingDiagnostics(),
+    })
   }
 
   private async handlePeerConnected(): Promise<void> {
