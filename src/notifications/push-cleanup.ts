@@ -2,18 +2,18 @@ export interface PushCleanupBrowser {
   getSubscription(): Promise<{ unsubscribe(): Promise<boolean> } | null>
 }
 
-function defaultPushCleanupBrowser(): PushCleanupBrowser {
+export function pushCleanupBrowserForRegistration(
+  registration: ServiceWorkerRegistration,
+): PushCleanupBrowser {
   return {
     async getSubscription() {
-      if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return null
-      const registration = await navigator.serviceWorker.ready
       return registration.pushManager.getSubscription()
     },
   }
 }
 
 export async function clearCurrentPushSubscription(
-  browser: PushCleanupBrowser = defaultPushCleanupBrowser(),
+  browser: PushCleanupBrowser,
 ): Promise<boolean> {
   try {
     const subscription = await browser.getSubscription()
