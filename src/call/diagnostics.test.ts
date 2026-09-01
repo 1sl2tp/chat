@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { collectCallMediaDiagnostics } from './diagnostics'
 
 describe('call media diagnostics', () => {
-  it('reports two-way audio bytes and selected candidate types without mutating the peer', async () => {
+  it('reports two-way audio bytes, route, and the effective microphone processing settings', async () => {
     const rows = new Map<string, any>([
       ['out', { id: 'out', type: 'outbound-rtp', kind: 'audio', bytesSent: 1200, packetsSent: 12 }],
       ['in', { id: 'in', type: 'inbound-rtp', kind: 'audio', bytesReceived: 900, packetsReceived: 9 }],
@@ -21,7 +21,18 @@ describe('call media diagnostics', () => {
       signalingState: 'stable',
       getStats: async () => stats,
     } as Pick<RTCPeerConnection, 'getStats' | 'connectionState' | 'iceConnectionState' | 'signalingState'>
-    const localTrack = { readyState: 'live', enabled: true, muted: false } as MediaStreamTrack
+    const localTrack = {
+      readyState: 'live',
+      enabled: true,
+      muted: false,
+      getSettings: () => ({
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+        channelCount: 1,
+        sampleRate: 48000,
+      }),
+    } as unknown as MediaStreamTrack
     const stream = { getAudioTracks: () => [localTrack] } as Pick<MediaStream, 'getAudioTracks'>
     const audio = { paused: false } as Pick<HTMLAudioElement, 'paused'>
 
@@ -35,6 +46,12 @@ describe('call media diagnostics', () => {
       local_track: 'live',
       local_track_enabled: true,
       remote_playback: 'playing',
+      echo_cancellation: true,
+      noise_suppression: true,
+      auto_gain_control: true,
+      channel_count: 1,
+      sample_rate: 48000,
+      microphone_processing: 'verified',
     })
   })
 })
