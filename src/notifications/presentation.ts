@@ -5,7 +5,17 @@ export interface NotificationButtonPresentation {
   disabled: boolean
 }
 
-export function notificationButtonPresentation(state: CallPushState, issue: CallPushIssue): NotificationButtonPresentation {
+export function notificationButtonPresentation(
+  state: CallPushState,
+  issue: CallPushIssue,
+  pending = false,
+): NotificationButtonPresentation {
+  if (pending) {
+    return {
+      label: state === 'enabled' ? 'Đang kiểm tra…' : 'Đang bật…',
+      disabled: true,
+    }
+  }
   if (state === 'enabled') return { label: 'Kiểm tra thông báo ✓', disabled: false }
   if (state === 'denied') return { label: 'Thông báo bị chặn', disabled: true }
   if (state === 'unsupported' && issue === 'ios_home_screen_required') {

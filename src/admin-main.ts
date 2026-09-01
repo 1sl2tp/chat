@@ -8,6 +8,7 @@ import { getChatMessageState, subscribeChatMessages } from './chat/message-runti
 import { getDeviceLabel, getDevicePlatform, getOrCreateDeviceKey } from './device/identity'
 import { CallPushRegistration } from './notifications/call-push-registration'
 import { notificationButtonPresentation } from './notifications/presentation'
+import { installNotificationContextResponder } from './notifications/window-context'
 import { setupPwa } from './pwa'
 import { createSupabaseChatBackend } from './supabase/chat-backend'
 import { adminSupabase } from './supabase/client'
@@ -139,6 +140,7 @@ function mountWorkspace(): void {
   const callButton = root.querySelector<HTMLButtonElement>('#admin-voice-call')!
   const notificationButton = root.querySelector<HTMLButtonElement>('#call-notifications')!
   const callHost = root.querySelector<HTMLElement>('#voice-call-host')!
+  let notificationActionPending = false
 
   callSession?.dispose()
   disposeCallUi?.()
@@ -154,7 +156,11 @@ function mountWorkspace(): void {
       return
     }
 
-    const presentation = notificationButtonPresentation(registration.getState(), registration.getIssue())
+    const presentation = notificationButtonPresentation(
+      registration.getState(),
+      registration.getIssue(),
+      notificationActionPending,
+    )
     notificationButton.hidden = false
     notificationButton.disabled = presentation.disabled
     notificationButton.textContent = presentation.label
@@ -222,14 +228,21 @@ function mountWorkspace(): void {
 
   input.addEventListener('input', render)
   callButton.addEventListener('click', () => void callSession?.startOutgoing())
-  notificationButton.addEventListener('click', () => {
+  notificationButton.addEventListener('click', async () => {
     const registration = callPushRegistration
-    if (!registration) return
+    if (!registration || notificationActionPending) return
     callSession?.prepareAlertAudioFromUserGesture()
-    if (registration.getState() === 'enabled') {
-      void registration.testFromUserGesture()
-    } else {
-      void registration.enableFromUserGesture()
+    notificationActionPending = true
+    renderNotificationButton()
+    try {
+      if (registration.getState() === 'enabled') {
+        await registration.testFromUserGesture()
+      } else {
+        await registration.enableFromUserGesture()
+      }
+    } finally {
+      notificationActionPending = false
+      renderNotificationButton()
     }
   })
   form.addEventListener('submit', async (event) => {
@@ -264,6 +277,16 @@ async function bootWorkspace(): Promise<void> {
     await ensureAdminIdentity()
     mountWorkspace()
     await startAdminRuntime()
+
+    const requestedConversationId = new URL(window.location.href).searchParams.get('conversation')
+    if (requestedConversationId) {
+      try {
+        await selectAdminConversation(requestedConversationId)
+        history.replaceState(null, '', './')
+      } catch {
+        // Keep the normal Admin workspace usable for a stale/unavailable notification.
+      }
+    }
   } catch {
     await adminSupabase.auth.signOut()
     mountLogin('Phiên Admin không hợp lệ.')
@@ -280,4 +303,5 @@ async function start(): Promise<void> {
 }
 
 setupPwa()
+installNotificationContextResponder(() => getAdminState().selectedConversationId || null)
 void start()

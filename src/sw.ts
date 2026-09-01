@@ -75,8 +75,16 @@ self.addEventListener('push', (event) => {
       : Promise.resolve()
 
     const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
-    const hasVisibleWindow = windows.some((client) => (client as WindowClient).visibilityState === 'visible')
-    const notificationTask = shouldShowSystemNotification(payload.type, hasVisibleWindow)
+    const windowClients = windows.map((client) => client as WindowClient)
+    const hasVisibleWindow = windowClients.some((client) => client.visibilityState === 'visible')
+
+    let showNotification = shouldShowSystemNotification(payload.type, hasVisibleWindow)
+    if (payload.type === 'chat_message' && payload.conversationId) {
+      const exactConversationVisible = await isConversationVisible(windowClients, payload.conversationId)
+      showNotification = !exactConversationVisible
+    }
+
+    const notificationTask = showNotification
       ? showSystemNotification(payload)
       : Promise.resolve()
 
@@ -106,6 +114,32 @@ self.addEventListener('notificationclick', (event) => {
     return self.clients.openWindow(target.href)
   })())
 })
+
+async function isConversationVisible(
+  windows: readonly WindowClient[],
+  conversationId: string,
+): Promise<boolean> {
+  const visible = windows.filter((client) => client.visibilityState === 'visible')
+  if (visible.length === 0) return false
+
+  const replies = await Promise.all(visible.map((client) => new Promise<boolean>((resolve) => {
+    const channel = new MessageChannel()
+    let settled = false
+    const finish = (value: boolean): void => {
+      if (settled) return
+      settled = true
+      resolve(value)
+    }
+    const timer = setTimeout(() => finish(false), 150)
+    channel.port1.onmessage = (event) => {
+      clearTimeout(timer)
+      finish(Boolean((event.data as { matches?: unknown } | null)?.matches))
+    }
+    client.postMessage({ type: 'CHAT_NOTIFICATION_CONTEXT_QUERY', conversationId }, [channel.port2])
+  })))
+
+  return replies.some(Boolean)
+}
 
 function showSystemNotification(payload: ReturnType<typeof parsePushPayload>): Promise<void> {
   const options: NotificationOptions & { vibrate?: number[] } = {

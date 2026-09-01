@@ -11,6 +11,12 @@ for (const [name, source] of [['User', userSource], ['Admin', adminSource]] as c
       expect(source).toContain('enableFromUserGesture()')
     })
 
+    it('shows visible progress while the notification action is running', () => {
+      expect(source).toContain('notificationActionPending')
+      expect(source).toContain('await registration.testFromUserGesture()')
+      expect(source).toContain('await registration.enableFromUserGesture()')
+    })
+
     it('primes incoming alert audio from the explicit notification user gesture', () => {
       expect(source).toContain('prepareAlertAudioFromUserGesture()')
     })
