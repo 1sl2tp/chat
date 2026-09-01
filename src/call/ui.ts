@@ -99,6 +99,12 @@ function renderFull(state: VoiceCallState, session: VoiceCallSession): HTMLEleme
   const status = document.createElement('span')
   status.textContent = statusText(state)
   center.append(avatar, name, status)
+  if (state.error) {
+    const notice = document.createElement('small')
+    notice.className = 'voice-call-inline-error'
+    notice.textContent = state.error
+    center.append(notice)
+  }
 
   const controls = document.createElement('div')
   controls.className = 'voice-call-controls'
@@ -112,11 +118,18 @@ function renderFull(state: VoiceCallState, session: VoiceCallSession): HTMLEleme
     if (state.audioBlocked) {
       controls.append(controlButton('Bật âm thanh', '🔊', () => session.startAudio(), 'accept'))
     }
-    const speaker = controlButton(
-      state.speakerSelected ? 'Loa đã chọn' : state.speakerAvailable ? 'Chọn loa' : 'Loa hệ thống',
-      '🔊',
-      () => void session.chooseSpeaker(),
-    )
+
+    const phoneToggle = session.hasPhoneSpeakerToggle()
+    const speakerLabel = phoneToggle
+      ? state.speakerSelected ? 'Loa ngoài' : 'Loa trong'
+      : state.speakerSelected ? 'Đầu ra đã chọn' : state.speakerAvailable ? 'Chọn loa' : 'Loa hệ thống'
+    const speakerIcon = phoneToggle && !state.speakerSelected ? '🔈' : '🔊'
+    const speaker = controlButton(speakerLabel, speakerIcon, () => void session.chooseSpeaker())
+    speaker.disabled = !state.speakerAvailable
+    speaker.title = phoneToggle
+      ? state.speakerSelected ? 'Chạm để chuyển sang loa trong' : 'Chạm để chuyển sang loa ngoài'
+      : state.speakerAvailable ? 'Chạm để chọn đầu ra âm thanh' : 'Trình duyệt không hỗ trợ đổi loa trực tiếp'
+
     controls.append(
       speaker,
       controlButton(state.muted ? 'Mở mic' : 'Tắt tiếng', state.muted ? '🎙' : '🔇', () => session.toggleMute()),
