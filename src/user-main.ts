@@ -12,7 +12,7 @@ import { guestSupabase, userSupabase } from './supabase/client'
 import { loginUser2, logoutUser2 } from './user/auth'
 import { capabilitiesForRootMode } from './user/capabilities'
 import { clearGuestLocalState, endGuestSession as teardownGuestSession } from './user/guest-lifecycle'
-import { resolveRootMode, type RootUserMode } from './user/root-session'
+import { enterFreshGuest, resolveRootMode, type RootUserMode } from './user/root-session'
 import { setupViewportController } from './viewport/controller'
 import './call/call.css'
 import './user.css'
@@ -266,8 +266,15 @@ async function bootRootMode(): Promise<void> {
     },
   })
 
-  if (mode === 'user2') await startUser2Mode()
-  else await startGuestMode()
+  if (mode === 'user2') {
+    await startUser2Mode()
+    return
+  }
+
+  await enterFreshGuest({
+    endGuest: endGuestSession,
+    startGuest: startGuestMode,
+  })
 }
 
 input.addEventListener('input', render)
