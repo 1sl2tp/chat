@@ -5,6 +5,7 @@ export interface PushNotificationPayload {
   navigate: string
   badge: number | undefined
   tag: string | undefined
+  conversationId: string | undefined
 }
 
 export function parsePushPayload(input: unknown): PushNotificationPayload {
@@ -16,6 +17,7 @@ export function parsePushPayload(input: unknown): PushNotificationPayload {
       navigate: './',
       badge: undefined,
       tag: undefined,
+      conversationId: undefined,
     }
   }
 
@@ -28,6 +30,7 @@ export function parsePushPayload(input: unknown): PushNotificationPayload {
     navigate: typeof value.navigate === 'string' && value.navigate.length > 0 ? value.navigate : './',
     badge: typeof value.badge === 'number' && Number.isFinite(value.badge) && value.badge >= 0 ? value.badge : undefined,
     tag: typeof value.tag === 'string' && value.tag.length > 0 ? value.tag : undefined,
+    conversationId: typeof value.conversation_id === 'string' && value.conversation_id.length > 0 ? value.conversation_id : undefined,
   }
 }
 
