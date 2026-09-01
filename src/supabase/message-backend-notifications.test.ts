@@ -31,4 +31,16 @@ describe('Supabase message backend notification dispatch', () => {
       body: { action: 'send_message', message_id: MESSAGE.id },
     })
   })
+
+  it('does not turn a push failure into a chat-send failure', async () => {
+    const rpc = vi.fn(async () => ({ data: MESSAGE, error: null }))
+    const invoke = vi.fn(async () => ({ data: null, error: new Error('push_offline') }))
+    const client = { rpc, functions: { invoke } } as unknown as SupabaseClient
+    const backend = createSupabaseMessageBackend(client)
+
+    await expect(backend.sendText(MESSAGE.conversation_id, MESSAGE.client_message_id, MESSAGE.text)).resolves.toEqual(MESSAGE)
+    await Promise.resolve()
+
+    expect(invoke).toHaveBeenCalledOnce()
+  })
 })
