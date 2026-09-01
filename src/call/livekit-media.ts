@@ -13,6 +13,7 @@ import {
   reassertPhoneAudioRouteAfterPlayback,
   setPhoneAudioRoute,
 } from './audio-route-control'
+import { createOwnedRemoteAudio } from './remote-audio-owner'
 import {
   beginCallMicrophoneCapture,
   publishCapturedMicrophone,
@@ -37,8 +38,7 @@ export interface LiveKitMediaCallbacks {
 
 type LiveKitTrackLike = {
   kind?: string
-  attach(): HTMLElement
-  detach(): HTMLElement[]
+  mediaStreamTrack?: MediaStreamTrack
 }
 
 type LiveKitRoomLike = {
@@ -101,7 +101,8 @@ function callNavigator(): CallNavigatorAudioSessionLike {
 
 export class LiveKitVoiceMedia {
   private room: LiveKitRoomLike | null = null
-  private readonly attached = new Set<HTMLElement>()
+  private readonly attached = new Set<HTMLMediaElement>()
+  private readonly remoteElementByTrack = new Map<LiveKitTrackLike, HTMLAudioElement>()
   private readonly callbacks: LiveKitMediaCallbacks
   private joined = false
   private microphoneCapture: Promise<MediaStream> | null = null
@@ -120,8 +121,8 @@ export class LiveKitVoiceMedia {
       return
     }
 
-    // The proven iPhone path starts capture first. Nothing touches playback or
-    // the audio session until this getUserMedia request has resolved.
+    // Capture must remain the first media operation on the user gesture. This
+    // is the proven iPhone path; audio routing is touched only after gUM wins.
     const capture = beginCallMicrophoneCapture({
       getUserMedia: (constraints) => navigator.mediaDevices.getUserMedia(constraints),
     })
@@ -134,15 +135,13 @@ export class LiveKitVoiceMedia {
       }
       this.microphoneStream = stream
       this.speakerEnabled = false
-
-      // Calls always start on the receiver. Crossing playback before
-      // play-and-record forces Safari to recompute a stale loudspeaker route.
       setPhoneAudioRoute(callNavigator(), 'receiver')
     }).catch(() => undefined)
   }
 
   async startAudio(): Promise<void> {
     const room = this.ensureRoom()
+    this.applySelectedPhoneRoute()
     await room.startAudio()
     await this.replayAttachedAudio()
   }
@@ -160,8 +159,6 @@ export class LiveKitVoiceMedia {
     this.speakerEnabled = false
     setPhoneAudioRoute(callNavigator(), 'receiver')
 
-    // Connect/publish only after the microphone exists. Remote playback starts
-    // only when a remote audio track is subscribed.
     const livekit = sdk()
     const room = this.ensureRoom()
     const source = livekit.TokenSource.developmentTokenServer(LIVEKIT_TOKEN_SERVER_ID)
@@ -252,9 +249,13 @@ export class LiveKitVoiceMedia {
     })
 
     room.on(livekit.RoomEvent.TrackSubscribed, (track: LiveKitTrackLike) => {
-      if (track.kind !== livekit.Track.Kind.Audio) return
+      if (track.kind !== livekit.Track.Kind.Audio || !track.mediaStreamTrack) return
       this.callbacks.onRemoteAudioSubscribed()
-      const element = track.attach()
+
+      // LiveKit owns transport only. The app owns the audio element/srcObject
+      // so SDK attachment cannot silently pick a media-playback route for us.
+      this.applySelectedPhoneRoute()
+      const element = createOwnedRemoteAudio(track.mediaStreamTrack)
       element.style.position = 'fixed'
       element.style.width = '1px'
       element.style.height = '1px'
@@ -262,19 +263,18 @@ export class LiveKitVoiceMedia {
       element.style.pointerEvents = 'none'
       document.body.append(element)
       this.attached.add(element)
-
-      if (element instanceof HTMLMediaElement) {
-        void this.playElementOnSelectedRoute(element)
-      } else if (!room.canPlaybackAudio) {
-        this.callbacks.onAudioPlaybackBlocked()
-      }
+      this.remoteElementByTrack.set(track, element)
+      void this.playElementOnSelectedRoute(element)
     })
 
     room.on(livekit.RoomEvent.TrackUnsubscribed, (track: LiveKitTrackLike) => {
-      for (const element of track.detach()) {
-        this.attached.delete(element)
-        element.remove()
-      }
+      const element = this.remoteElementByTrack.get(track)
+      if (!element) return
+      this.remoteElementByTrack.delete(track)
+      this.attached.delete(element)
+      element.pause()
+      element.srcObject = null
+      element.remove()
     })
 
     room.on(livekit.RoomEvent.ParticipantConnected, () => this.callbacks.onPeerConnected())
@@ -292,16 +292,24 @@ export class LiveKitVoiceMedia {
     return room
   }
 
+  private applySelectedPhoneRoute(): void {
+    setPhoneAudioRoute(callNavigator(), this.speakerEnabled ? 'speaker' : 'receiver')
+  }
+
   private async playElementOnSelectedRoute(element: HTMLMediaElement): Promise<void> {
+    // Apply the selected route before the first frame is rendered. For iPhone
+    // this means play-and-record/receiver unless the user explicitly enabled
+    // speaker mode.
+    this.applySelectedPhoneRoute()
+
     const first = await playRemoteAudioElement(element)
     if (first !== 'playing') {
       this.callbacks.onAudioPlaybackBlocked()
       return
     }
 
-    // Starting an HTMLMediaElement may make Safari recompute the audio route
-    // back to loudspeaker. Reassert the selected route only after playback is
-    // actually active. Default is receiver; speaker is only explicit opt-in.
+    // Safari can recompute the physical route when a remote MediaStream starts.
+    // Reassert only the selected route; receiver never passes through playback.
     const route = reassertPhoneAudioRouteAfterPlayback(callNavigator(), this.speakerEnabled)
     if (route.ok) {
       element.pause()
@@ -317,7 +325,6 @@ export class LiveKitVoiceMedia {
 
   private async replayAttachedAudio(): Promise<void> {
     for (const element of this.attached) {
-      if (!(element instanceof HTMLMediaElement)) continue
       element.pause()
       await this.playElementOnSelectedRoute(element)
     }
@@ -330,7 +337,12 @@ export class LiveKitVoiceMedia {
   }
 
   private removeAttached(): void {
-    for (const element of this.attached) element.remove()
+    for (const element of this.attached) {
+      element.pause()
+      element.srcObject = null
+      element.remove()
+    }
     this.attached.clear()
+    this.remoteElementByTrack.clear()
   }
 }
