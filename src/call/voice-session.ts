@@ -1,5 +1,4 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { sendIncomingCallPush } from '../notifications/call-push-send'
 import { CallAlertController } from './call-alert-controller'
 import { fetchLiveKitCredentials, warmLiveKitTokenFunction } from './livekit-credentials'
 import { LiveKitVoiceMedia } from './livekit-media'
@@ -198,7 +197,6 @@ export class VoiceCallSession {
 
       this.backendState = payload.state ?? 'ringing'
       this.publish({ callId: payload.call_id })
-      void sendIncomingCallPush(this.client, payload.call_id).catch(() => undefined)
       await this.joinLiveKit(payload.call_id, context)
     } catch (error) {
       this.fail(error)
