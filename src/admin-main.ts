@@ -140,6 +140,7 @@ function mountWorkspace(): void {
   const callButton = root.querySelector<HTMLButtonElement>('#admin-voice-call')!
   const notificationButton = root.querySelector<HTMLButtonElement>('#call-notifications')!
   const callHost = root.querySelector<HTMLElement>('#voice-call-host')!
+  let notificationActionPending = false
 
   callSession?.dispose()
   disposeCallUi?.()
@@ -155,7 +156,11 @@ function mountWorkspace(): void {
       return
     }
 
-    const presentation = notificationButtonPresentation(registration.getState(), registration.getIssue())
+    const presentation = notificationButtonPresentation(
+      registration.getState(),
+      registration.getIssue(),
+      notificationActionPending,
+    )
     notificationButton.hidden = false
     notificationButton.disabled = presentation.disabled
     notificationButton.textContent = presentation.label
@@ -223,14 +228,21 @@ function mountWorkspace(): void {
 
   input.addEventListener('input', render)
   callButton.addEventListener('click', () => void callSession?.startOutgoing())
-  notificationButton.addEventListener('click', () => {
+  notificationButton.addEventListener('click', async () => {
     const registration = callPushRegistration
-    if (!registration) return
+    if (!registration || notificationActionPending) return
     callSession?.prepareAlertAudioFromUserGesture()
-    if (registration.getState() === 'enabled') {
-      void registration.testFromUserGesture()
-    } else {
-      void registration.enableFromUserGesture()
+    notificationActionPending = true
+    renderNotificationButton()
+    try {
+      if (registration.getState() === 'enabled') {
+        await registration.testFromUserGesture()
+      } else {
+        await registration.enableFromUserGesture()
+      }
+    } finally {
+      notificationActionPending = false
+      renderNotificationButton()
     }
   })
   form.addEventListener('submit', async (event) => {
