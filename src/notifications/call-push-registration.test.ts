@@ -27,7 +27,7 @@ describe('CallPushRegistration', () => {
     requestPermission = vi.fn(async () => 'granted' as NotificationPermission)
     subscription = {
       endpoint: 'https://push.example/subscription',
-      getKey(name) {
+      getKey(name: string) {
         if (name === 'p256dh') return bytes('p256dh-key')
         if (name === 'auth') return bytes('auth-key')
         return null
