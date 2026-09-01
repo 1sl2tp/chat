@@ -1,6 +1,8 @@
 /// <reference lib="webworker" />
 
 import { notificationVibration, parsePushPayload, shouldShowSystemNotification } from './notifications/payload'
+import { hasVisibleWindowForOwner, isWindowOwnedBy } from './pwa/owner-visibility'
+import { pwaOwnerForPath, type PwaOwner } from './pwa/registration'
 
 declare const self: ServiceWorkerGlobalScope & typeof globalThis & {
   __WB_MANIFEST: Array<{ url: string; revision?: string | null }>
@@ -77,11 +79,12 @@ self.addEventListener('push', (event) => {
 
     const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
     const windowClients = windows.map((client) => client as WindowClient)
-    const hasVisibleWindow = windowClients.some((client) => client.visibilityState === 'visible')
+    const owner = pwaOwnerForPath(new URL(self.registration.scope).pathname)
+    const hasVisibleWindow = hasVisibleWindowForOwner(windowClients, owner)
 
     let showNotification = shouldShowSystemNotification(payload.type, hasVisibleWindow)
     if (payload.type === 'chat_message' && payload.conversationId) {
-      const exactConversationVisible = await isConversationVisible(windowClients, payload.conversationId)
+      const exactConversationVisible = await isConversationVisible(windowClients, payload.conversationId, owner)
       showNotification = !exactConversationVisible
     }
 
@@ -119,8 +122,9 @@ self.addEventListener('notificationclick', (event) => {
 async function isConversationVisible(
   windows: readonly WindowClient[],
   conversationId: string,
+  owner: PwaOwner,
 ): Promise<boolean> {
-  const visible = windows.filter((client) => client.visibilityState === 'visible')
+  const visible = windows.filter((client) => client.visibilityState === 'visible' && isWindowOwnedBy(client, owner))
   if (visible.length === 0) return false
 
   const replies = await Promise.all(visible.map((client) => new Promise<boolean>((resolve) => {
