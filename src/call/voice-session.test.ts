@@ -97,7 +97,6 @@ describe('VoiceCallSession incoming alert lifecycle', () => {
     expect(session.getState().phase).toBe('connecting')
     resolveAccept({ data: null, error: new Error('stop_after_timing_assertion') })
     await acceptTask
-    session.dispose()
   })
 
   it('returns to idle immediately when decline is tapped, before decline RPC resolves', async () => {
@@ -116,6 +115,5 @@ describe('VoiceCallSession incoming alert lifecycle', () => {
     expect(session.getState().phase).toBe('idle')
     resolveDecline({ data: null, error: null })
     await declineTask
-    session.dispose()
   })
 })
