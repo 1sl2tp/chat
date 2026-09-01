@@ -19,6 +19,7 @@ export interface CallPushBrowser {
   permission(): NotificationPermission
   requestPermission(): Promise<NotificationPermission>
   ready(): Promise<{ pushManager: CallPushManagerLike }>
+  showLocalNotification(title: string, options: NotificationOptions): Promise<void>
 }
 
 export class CallPushRegistration {
@@ -106,6 +107,10 @@ export class CallPushRegistration {
     }
 
     try {
+      await this.browser.showLocalNotification('TAPHOA local test', {
+        body: 'Thông báo trực tiếp từ PWA',
+        tag: `local-test-${Date.now()}`,
+      })
       await this.sendReadinessProbe()
       this.publish('enabled')
     } catch (error) {
@@ -213,6 +218,10 @@ function defaultCallPushBrowser(): CallPushBrowser {
       return {
         pushManager: registration.pushManager as unknown as CallPushManagerLike,
       }
+    },
+    async showLocalNotification(title, options) {
+      const registration = await navigator.serviceWorker.ready
+      await registration.showNotification(title, options)
     },
   }
 }
