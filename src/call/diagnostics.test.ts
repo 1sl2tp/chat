@@ -46,11 +46,11 @@ describe('call media diagnostics', () => {
       local_track: 'live',
       local_track_enabled: true,
       remote_playback: 'playing',
-      echo_cancellation: true,
-      noise_suppression: true,
-      auto_gain_control: true,
-      channel_count: 1,
-      sample_rate: 48000,
+      local_source_echo_cancellation: true,
+      local_source_noise_suppression: true,
+      local_source_auto_gain_control: true,
+      local_source_channel_count: 1,
+      local_source_sample_rate: 48000,
       microphone_processing: 'verified',
     })
   })
