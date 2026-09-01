@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import adminSource from '../admin-main.ts?raw'
-import adminCss from '../admin.css?raw'
+import adminCss from '../admin.css?inline'
 
 describe('Admin mobile conversation navigation', () => {
   it('drives the mobile chat overlay from selected conversation state', () => {
