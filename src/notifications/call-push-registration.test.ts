@@ -19,6 +19,7 @@ describe('CallPushRegistration', () => {
   let requestPermission: ReturnType<typeof vi.fn>
   let getSubscription: ReturnType<typeof vi.fn>
   let pushSubscribe: ReturnType<typeof vi.fn>
+  let showLocalNotification: ReturnType<typeof vi.fn>
   let invoke: ReturnType<typeof vi.fn>
   let rpc: ReturnType<typeof vi.fn>
   let subscription: CallPushSubscriptionLike
@@ -36,6 +37,7 @@ describe('CallPushRegistration', () => {
     }
     getSubscription = vi.fn(async () => null)
     pushSubscribe = vi.fn(async () => subscription)
+    showLocalNotification = vi.fn(async () => undefined)
     invoke = vi.fn(async (_slug: string, options?: { body?: { action?: string } }) => {
       if (options?.body?.action === 'config') return { data: { public_key: VAPID_PUBLIC_KEY }, error: null }
       if (options?.body?.action === 'test') return { data: { ok: true, delivered: 1, expired: 0 }, error: null }
@@ -55,6 +57,7 @@ describe('CallPushRegistration', () => {
       permission: () => permission,
       requestPermission: requestPermission as unknown as CallPushBrowser['requestPermission'],
       ready: async () => ({ pushManager }),
+      showLocalNotification,
       ...overrides,
     } as unknown as CallPushBrowser
 
@@ -120,6 +123,22 @@ describe('CallPushRegistration', () => {
       body: { action: 'test', device_id: DEVICE_ID },
     })
     expect(registration.getState()).toBe('enabled')
+  })
+
+  it('shows a local notification diagnostic before the remote push probe', async () => {
+    permission = 'granted'
+    getSubscription.mockResolvedValue(subscription)
+    const registration = createRegistration()
+    await registration.sync()
+    await registration.testFromUserGesture()
+
+    expect(showLocalNotification).toHaveBeenCalledWith(
+      'TAPHOA local test',
+      expect.objectContaining({ body: 'Thông báo trực tiếp từ PWA' }),
+    )
+    const localOrder = showLocalNotification.mock.invocationCallOrder[0]
+    const testInvoke = invoke.mock.invocationCallOrder[invoke.mock.calls.findIndex(([, options]) => options?.body?.action === 'test')]
+    expect(localOrder).toBeLessThan(testInvoke)
   })
 
   it('reports iOS Home Screen installation as the reason push is unsupported', async () => {
