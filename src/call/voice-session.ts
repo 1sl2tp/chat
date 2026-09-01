@@ -239,7 +239,7 @@ export class VoiceCallSession {
         const nextSpeaker = !this.state.speakerSelected
         const changed = await this.media.setSpeakerEnabled(nextSpeaker)
         if (!changed) {
-          this.publish({ speakerAvailable: false, error: 'Không đổi được loa trên trình duyệt này' })
+          this.publish({ speakerAvailable: false, error: 'Không đổi được loa trên thiết bị này' })
           await this.reportMediaEvent('audio_output_unavailable')
           return
         }
@@ -255,7 +255,7 @@ export class VoiceCallSession {
       this.publish({ speakerAvailable: this.media.canChooseAudioOutput(), speakerSelected: selected, error: null })
       await this.reportMediaEvent(selected ? 'audio_output_selected' : 'audio_output_unavailable')
     } catch (error) {
-      this.publish({ speakerSelected: false, error: error instanceof Error ? error.message : String(error) })
+      this.publish({ speakerSelected: this.media.defaultSpeakerSelected(), error: error instanceof Error ? error.message : String(error) })
     }
   }
 
@@ -334,7 +334,7 @@ export class VoiceCallSession {
     })
     this.publish({
       speakerAvailable: this.media.canTogglePhoneSpeaker() || this.media.canChooseAudioOutput(),
-      speakerSelected: false,
+      speakerSelected: this.media.defaultSpeakerSelected(),
     })
     await this.reportMediaEvent('joined', { room: `taphoa-call-${callId.toLowerCase()}` })
   }
