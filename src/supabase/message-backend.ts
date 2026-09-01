@@ -1,7 +1,6 @@
 import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js'
 import type { ChatMessageBackend, ChatRealtimeStatus } from '../chat/message-runtime'
 import type { ChatMessage } from '../chat/messages'
-import { sendChatMessagePush } from '../notifications/chat-push-send'
 import { supabase } from './client'
 
 const MESSAGE_COLUMNS = 'id,conversation_id,sender_id,client_message_id,type,text,reply_to_id,created_at,edited_at,revoked_at,call_id'
@@ -56,9 +55,7 @@ export function createSupabaseMessageBackend(client: SupabaseClient = supabase):
         p_reply_to_id: null,
       })
       if (error) throw error
-      const message = asChatMessage(data)
-      void sendChatMessagePush(client, message.id).catch(() => undefined)
-      return message
+      return asChatMessage(data)
     },
 
     async markRead(conversationId) {
