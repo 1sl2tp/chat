@@ -1,13 +1,11 @@
-import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import sessionSource from './voice-session.ts?raw'
+import mediaSource from './livekit-media.ts?raw'
 
 describe('production LiveKit credential wiring', () => {
   it('keeps token fetching in VoiceCallSession and out of the media adapter', () => {
-    const session = readFileSync(new URL('./voice-session.ts', import.meta.url), 'utf8')
-    const media = readFileSync(new URL('./livekit-media.ts', import.meta.url), 'utf8')
-
-    expect(session).toContain("fetchLiveKitCredentials(this.client, callId, context.deviceId)")
-    expect(media).not.toContain('developmentTokenServer')
-    expect(media).not.toContain('LIVEKIT_TOKEN_SERVER_ID')
+    expect(sessionSource).toContain("fetchLiveKitCredentials(this.client, callId, context.deviceId)")
+    expect(mediaSource).not.toContain('developmentTokenServer')
+    expect(mediaSource).not.toContain('LIVEKIT_TOKEN_SERVER_ID')
   })
 })
