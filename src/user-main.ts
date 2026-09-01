@@ -11,7 +11,7 @@ import { setupPwa } from './pwa'
 import { guestSupabase, userSupabase } from './supabase/client'
 import { loginUser2, logoutUser2 } from './user/auth'
 import { capabilitiesForRootMode } from './user/capabilities'
-import { clearGuestLocalState } from './user/guest-lifecycle'
+import { clearGuestLocalState, endGuestSession as teardownGuestSession } from './user/guest-lifecycle'
 import { resolveRootMode, type RootUserMode } from './user/root-session'
 import { setupViewportController } from './viewport/controller'
 import './call/call.css'
@@ -219,11 +219,16 @@ function render(): void {
 
 async function endGuestSession(): Promise<void> {
   stopChatRuntime()
-  try {
-    await guestSupabase.auth.signOut()
-  } finally {
-    clearGuestLocalState()
-  }
+  await teardownGuestSession({
+    async endRemoteGuest() {
+      const result = await guestSupabase.rpc('chat_end_guest_session')
+      if (result.error) throw result.error
+    },
+    async signOutGuest() {
+      const result = await guestSupabase.auth.signOut()
+      if (result.error) throw result.error
+    },
+  })
 }
 
 async function startGuestMode(): Promise<void> {
