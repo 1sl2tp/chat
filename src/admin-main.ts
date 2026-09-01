@@ -7,7 +7,7 @@ import { mountVoiceCallUi } from './call/ui'
 import { VoiceCallSession, type VoiceCallContext } from './call/voice-session'
 import { getChatMessageState, subscribeChatMessages } from './chat/message-runtime'
 import { getDeviceLabel, getDevicePlatform, getOrCreateDeviceKey } from './device/identity'
-import { CallPushRegistration } from './notifications/call-push-registration'
+import { CallPushRegistration, callPushBrowserForRegistration } from './notifications/call-push-registration'
 import { notificationButtonPresentation } from './notifications/presentation'
 import { installNotificationContextResponder } from './notifications/window-context'
 import { setupPwa } from './pwa'
@@ -19,6 +19,7 @@ import './admin.css'
 const rootElement = document.querySelector<HTMLDivElement>('#app')
 if (!rootElement) throw new Error('Missing #app root')
 const root: HTMLDivElement = rootElement
+const adminPwaRegistrationPromise = setupPwa('admin')
 
 let adminIdentity: unknown = null
 let callSession: VoiceCallSession | null = null
@@ -105,7 +106,7 @@ function mountLogin(message = ''): void {
   password.focus()
 }
 
-function mountWorkspace(): void {
+async function mountWorkspace(): Promise<void> {
   root.innerHTML = `
     <main class="admin-app">
       <aside class="admin-inbox">
@@ -246,8 +247,13 @@ function mountWorkspace(): void {
   }
 
   const deviceId = currentAdminCallContext()?.deviceId ?? ''
-  if (deviceId) {
-    callPushRegistration = new CallPushRegistration(adminSupabase, deviceId)
+  const pwaRegistration = deviceId ? await adminPwaRegistrationPromise : null
+  if (deviceId && pwaRegistration) {
+    callPushRegistration = new CallPushRegistration(
+      adminSupabase,
+      deviceId,
+      callPushBrowserForRegistration(pwaRegistration),
+    )
     disposeCallPushState = callPushRegistration.subscribe(render)
     void callPushRegistration.sync()
   }
@@ -344,7 +350,7 @@ function mountWorkspace(): void {
 async function bootWorkspace(): Promise<void> {
   try {
     await ensureAdminIdentity()
-    mountWorkspace()
+    await mountWorkspace()
     await startAdminRuntime()
 
     const requestedConversationId = new URL(window.location.href).searchParams.get('conversation')
@@ -371,6 +377,5 @@ async function start(): Promise<void> {
   await bootWorkspace()
 }
 
-setupPwa()
 installNotificationContextResponder(() => getAdminState().selectedConversationId || null)
 void start()
