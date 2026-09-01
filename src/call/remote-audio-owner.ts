@@ -11,7 +11,6 @@ export function createOwnedRemoteAudio(
   const stream = deps.createStream ? deps.createStream([track]) : new MediaStream([track])
 
   element.autoplay = true
-  element.playsInline = true
   element.srcObject = stream
   return element
 }
