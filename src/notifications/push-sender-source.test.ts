@@ -8,14 +8,26 @@ describe('taphoaxyz-call-push source contract', () => {
     expect(source).toContain('Thông báo TAPHOA đã sẵn sàng')
   })
 
-  it('supports chat message push without creating a second notification backend', () => {
-    expect(source).toContain('action === "send_message"')
-    expect(source).toContain('message_id')
-    expect(source).toContain('chat_conversation_members')
-    expect(source).toContain('Tin nhắn mới')
+  it('dispatches canonical server-owned notification events', () => {
+    expect(source).toContain('dispatch_event')
+    expect(source).toContain('chat_service_push_targets')
+    expect(source).toContain('chat_notification_outbox')
+    expect(source).toContain('dispatch_token')
+    expect(source).toContain('processed_at')
+    expect(source).toContain('message_id: message.id')
+    expect(source).toContain('call_id: call.id')
   })
 
-  it('keeps incoming call push on the same sender', () => {
+  it('keeps exact target validity in the service-only RPC', () => {
+    const start = source.indexOf('async function sendToProfile')
+    const end = source.indexOf('function messagePreview')
+    const sendToProfileSource = source.slice(start, end)
+    expect(sendToProfileSource).toContain('service.rpc("chat_service_push_targets"')
+    expect(sendToProfileSource).not.toContain('.from("chat_devices")')
+  })
+
+  it('preserves rolling legacy Chat and Call actions temporarily', () => {
+    expect(source).toContain('action === "send_message"')
     expect(source).toContain('incoming_call')
     expect(source).toContain('call_id')
   })
