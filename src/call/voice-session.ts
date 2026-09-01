@@ -122,6 +122,13 @@ export class VoiceCallSession {
     return this.media.canTogglePhoneSpeaker()
   }
 
+  prepareAlertAudioFromUserGesture(): void {
+    // Use only on a non-call gesture (for example enabling notifications), or
+    // after beginUserGesture() on a call gesture. This keeps iPhone microphone
+    // capture as the first media operation for Call/Answer.
+    this.alerts.armAfterMicrophoneGesture()
+  }
+
   subscribe(listener: (state: VoiceCallState) => void): () => void {
     this.listeners.add(listener)
     listener(this.state)
