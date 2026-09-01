@@ -5,6 +5,11 @@ export interface RootSessionBackend {
   clearUser2Session(): Promise<void>
 }
 
+export interface FreshGuestBackend {
+  endGuest(): Promise<void>
+  startGuest(): Promise<void>
+}
+
 export async function resolveRootMode(backend: RootSessionBackend): Promise<RootUserMode> {
   const session = await backend.getUser2Session()
   if (!session) return 'guest'
@@ -12,4 +17,9 @@ export async function resolveRootMode(backend: RootSessionBackend): Promise<Root
 
   await backend.clearUser2Session()
   return 'guest'
+}
+
+export async function enterFreshGuest(backend: FreshGuestBackend): Promise<void> {
+  await backend.endGuest()
+  await backend.startGuest()
 }
