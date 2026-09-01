@@ -1,6 +1,9 @@
+/// <reference types="node" />
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import adminCss from './admin.css?inline'
-import userCss from './user.css?inline'
+
+const adminCss = readFileSync(new URL('./admin.css', import.meta.url), 'utf8')
+const userCss = readFileSync(new URL('./user.css', import.meta.url), 'utf8')
 
 describe('compact chat/admin UI density', () => {
   it('keeps the admin shell compact without breaking the 280px floor', () => {
