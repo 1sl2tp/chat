@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   CallPushRegistration,
   type CallPushBrowser,
+  type CallPushManagerLike,
   type CallPushSubscriptionLike,
 } from './call-push-registration'
 
@@ -40,16 +41,15 @@ describe('CallPushRegistration', () => {
   })
 
   function createRegistration(overrides: Partial<CallPushBrowser> = {}) {
+    const pushManager: CallPushManagerLike = {
+      getSubscription: getSubscription as unknown as CallPushManagerLike['getSubscription'],
+      subscribe: pushSubscribe as unknown as CallPushManagerLike['subscribe'],
+    }
     const browser: CallPushBrowser = {
       supported: () => true,
       permission: () => permission,
-      requestPermission,
-      ready: async () => ({
-        pushManager: {
-          getSubscription,
-          subscribe: pushSubscribe,
-        },
-      }),
+      requestPermission: requestPermission as unknown as CallPushBrowser['requestPermission'],
+      ready: async () => ({ pushManager }),
       ...overrides,
     }
 
