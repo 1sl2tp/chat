@@ -5,6 +5,7 @@ import { sendSupportText, startChatRuntime } from './chat/runtime'
 import { getChatRuntimeState, subscribeChatRuntime } from './chat/store'
 import { setupPwa } from './pwa'
 import { supabase } from './supabase/client'
+import { prepareFixedTestRuntime } from './user/fixed-runtime'
 import { setupViewportController } from './viewport/controller'
 import './call/call.css'
 import './user.css'
@@ -130,7 +131,32 @@ setupPwa()
 render()
 
 async function startTestUser(): Promise<void> {
-  await startChatRuntime()
+  await prepareFixedTestRuntime({
+    async getCurrentUser() {
+      const { data, error } = await supabase.auth.getSession()
+      if (error) throw error
+      const user = data.session?.user
+      if (!user) return null
+      return {
+        email: user.email ?? null,
+        isAnonymous: Boolean(user.is_anonymous),
+      }
+    },
+    async signOut() {
+      const { error } = await supabase.auth.signOut()
+      if (error) throw error
+    },
+    async signIn(email, password) {
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) throw error
+    },
+    async signUp(email, password) {
+      const { data, error } = await supabase.auth.signUp({ email, password })
+      if (error) throw error
+      return data.session !== null
+    },
+  }, startChatRuntime)
+
   if (getChatRuntimeState().phase !== 'ready') return
 
   const result = await supabase.rpc('chat_set_my_test_profile')
