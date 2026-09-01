@@ -48,6 +48,7 @@ const callHost = root.querySelector<HTMLElement>('#voice-call-host')!
 let callPushRegistration: CallPushRegistration | null = null
 let callPushDeviceId = ''
 let disposeCallPushState: (() => void) | null = null
+let notificationActionPending = false
 
 function currentProfileId(): string {
   const identity = getChatRuntimeState().identity
@@ -95,6 +96,7 @@ function setupCallPushRegistration(): void {
 
   disposeCallPushState?.()
   callPushDeviceId = deviceId
+  notificationActionPending = false
   callPushRegistration = new CallPushRegistration(supabase, deviceId)
   disposeCallPushState = callPushRegistration.subscribe(render)
   void callPushRegistration.sync()
@@ -107,7 +109,11 @@ function renderNotificationButton(): void {
     return
   }
 
-  const presentation = notificationButtonPresentation(registration.getState(), registration.getIssue())
+  const presentation = notificationButtonPresentation(
+    registration.getState(),
+    registration.getIssue(),
+    notificationActionPending,
+  )
   notificationButton.hidden = false
   notificationButton.disabled = presentation.disabled
   notificationButton.textContent = presentation.label
@@ -148,14 +154,21 @@ function render(): void {
 
 input.addEventListener('input', render)
 callButton.addEventListener('click', () => void callSession.startOutgoing())
-notificationButton.addEventListener('click', () => {
+notificationButton.addEventListener('click', async () => {
   const registration = callPushRegistration
-  if (!registration) return
+  if (!registration || notificationActionPending) return
   callSession.prepareAlertAudioFromUserGesture()
-  if (registration.getState() === 'enabled') {
-    void registration.testFromUserGesture()
-  } else {
-    void registration.enableFromUserGesture()
+  notificationActionPending = true
+  renderNotificationButton()
+  try {
+    if (registration.getState() === 'enabled') {
+      await registration.testFromUserGesture()
+    } else {
+      await registration.enableFromUserGesture()
+    }
+  } finally {
+    notificationActionPending = false
+    renderNotificationButton()
   }
 })
 form.addEventListener('submit', async (event) => {
