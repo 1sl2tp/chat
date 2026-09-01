@@ -3,6 +3,7 @@ import { VoiceCallSession, type VoiceCallContext } from './call/voice-session'
 import { getChatMessageState, subscribeChatMessages } from './chat/message-runtime'
 import { sendSupportText, startChatRuntime } from './chat/runtime'
 import { getChatRuntimeState, subscribeChatRuntime } from './chat/store'
+import { CallPushRegistration } from './notifications/call-push-registration'
 import { setupPwa } from './pwa'
 import { supabase } from './supabase/client'
 import { prepareFixedTestRuntime } from './user/fixed-runtime'
@@ -18,7 +19,11 @@ root.innerHTML = `
   <main class="user-app">
     <header>
       <strong>Admin hỗ trợ · test</strong>
-      <div class="user-header-actions"><span id="status">Đang kết nối…</span><button id="voice-call" class="chat-call-button" type="button" aria-label="Gọi thoại">☎</button></div>
+      <div class="user-header-actions">
+        <span id="status">Đang kết nối…</span>
+        <button id="call-notifications" class="call-notification-button" type="button" hidden>Bật thông báo</button>
+        <button id="voice-call" class="chat-call-button" type="button" aria-label="Gọi thoại">☎</button>
+      </div>
     </header>
     <section id="messages" class="messages"><p class="empty">Bạn cần hỗ trợ gì?</p></section>
     <form id="composer" class="composer">
@@ -35,7 +40,12 @@ const form = root.querySelector<HTMLFormElement>('#composer')!
 const input = root.querySelector<HTMLInputElement>('#text')!
 const submit = form.querySelector<HTMLButtonElement>('button')!
 const callButton = root.querySelector<HTMLButtonElement>('#voice-call')!
+const notificationButton = root.querySelector<HTMLButtonElement>('#call-notifications')!
 const callHost = root.querySelector<HTMLElement>('#voice-call-host')!
+
+let callPushRegistration: CallPushRegistration | null = null
+let callPushDeviceId = ''
+let disposeCallPushState: (() => void) | null = null
 
 function currentProfileId(): string {
   const identity = getChatRuntimeState().identity
@@ -77,6 +87,28 @@ const callSession = new VoiceCallSession(supabase, currentCallContext)
 mountVoiceCallUi(callHost, callSession)
 callSession.start()
 
+function setupCallPushRegistration(): void {
+  const deviceId = currentCallContext()?.deviceId ?? ''
+  if (!deviceId || deviceId === callPushDeviceId) return
+
+  disposeCallPushState?.()
+  callPushDeviceId = deviceId
+  callPushRegistration = new CallPushRegistration(supabase, deviceId)
+  disposeCallPushState = callPushRegistration.subscribe(render)
+  void callPushRegistration.sync()
+}
+
+function renderNotificationButton(): void {
+  const pushState = callPushRegistration?.getState() ?? 'unsupported'
+  notificationButton.hidden = pushState === 'unsupported'
+  notificationButton.disabled = pushState === 'enabled' || pushState === 'denied'
+  notificationButton.textContent = pushState === 'enabled'
+    ? 'Thông báo ✓'
+    : pushState === 'denied'
+      ? 'Thông báo bị chặn'
+      : 'Bật thông báo'
+}
+
 function render(): void {
   const chat = getChatRuntimeState()
   const messageState = getChatMessageState()
@@ -89,6 +121,7 @@ function render(): void {
       ? 'Đang hoạt động'
       : 'Đang kết nối…'
 
+  renderNotificationButton()
   input.disabled = false
   submit.disabled = !canSend || !input.value.trim()
   callButton.disabled = !currentCallContext() || callState.phase !== 'idle'
@@ -110,6 +143,7 @@ function render(): void {
 
 input.addEventListener('input', render)
 callButton.addEventListener('click', () => void callSession.startOutgoing())
+notificationButton.addEventListener('click', () => void callPushRegistration?.enableFromUserGesture())
 form.addEventListener('submit', async (event) => {
   event.preventDefault()
   const text = input.value.trim()
@@ -123,7 +157,10 @@ form.addEventListener('submit', async (event) => {
   }
 })
 
-subscribeChatRuntime(render)
+subscribeChatRuntime(() => {
+  setupCallPushRegistration()
+  render()
+})
 subscribeChatMessages(render)
 callSession.subscribe(render)
 setupViewportController()
@@ -172,6 +209,7 @@ async function startTestUser(): Promise<void> {
 
   const result = await supabase.rpc('chat_set_my_test_profile')
   if (result.error) console.warn('Could not label test profile', result.error)
+  setupCallPushRegistration()
   render()
 }
 

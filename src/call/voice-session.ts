@@ -1,4 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { sendIncomingCallPush } from '../notifications/call-push-send'
+import { CallAlertController } from './call-alert-controller'
 import { fetchLiveKitCredentials } from './livekit-credentials'
 import { LiveKitVoiceMedia } from './livekit-media'
 import {
@@ -8,7 +10,7 @@ import {
 } from './media-diagnostic-phase'
 import { microphonePermissionNotice } from './microphone-permission'
 
-export type VoiceCallPhase = 'idle' | 'outgoing' | 'incoming' | 'connecting' | 'active' | 'error'
+export type VoiceCallPhase = 'idle' | 'outgoing' | 'incoming' | 'connecting' | 'reconnecting' | 'active' | 'error'
 export type VoiceCallDisplay = 'full' | 'compact' | 'hidden'
 export type VoiceCallDirection = 'outgoing' | 'incoming' | null
 
@@ -66,12 +68,20 @@ const DEFAULT_STATE: VoiceCallState = {
   error: null,
 }
 
+export function callErrorMessage(reason: string): string {
+  if (reason === 'caller_busy') return 'Bạn đang có cuộc gọi khác'
+  if (reason === 'peer_busy') return 'Đối phương đang trong cuộc gọi'
+  if (reason === 'call_already_active') return 'Cuộc gọi đã tồn tại'
+  return reason
+}
+
 export class VoiceCallSession {
   private state: VoiceCallState = { ...DEFAULT_STATE }
   private readonly listeners = new Set<(state: VoiceCallState) => void>()
   private readonly client: SupabaseClient
   private readonly getContext: () => VoiceCallContext | null
   private readonly media: LiveKitVoiceMedia
+  private readonly alerts = new CallAlertController()
   private activeTimer: number | null = null
   private backendState: string | null = null
   private started = false
@@ -83,6 +93,8 @@ export class VoiceCallSession {
     this.media = new LiveKitVoiceMedia({
       onPeerConnected: () => void this.handlePeerConnected(),
       onPeerDisconnected: () => this.handlePeerDisconnected(),
+      onReconnecting: () => this.handleMediaReconnecting(),
+      onReconnected: () => this.handleMediaReconnected(),
       onRemoteAudioSubscribed: () => {
         void this.reportMediaEvent('remote_audio_subscribed')
       },
@@ -120,12 +132,17 @@ export class VoiceCallSession {
     this.started = true
     void this.pollActiveCalls()
     this.activeTimer = window.setInterval(() => void this.pollActiveCalls(), 1000)
+    document.addEventListener('visibilitychange', this.handleVisibilityChange)
+    window.addEventListener('pageshow', this.handlePageShow)
   }
 
   dispose(): void {
     this.started = false
     if (this.activeTimer !== null) window.clearInterval(this.activeTimer)
     this.activeTimer = null
+    document.removeEventListener('visibilitychange', this.handleVisibilityChange)
+    window.removeEventListener('pageshow', this.handlePageShow)
+    this.alerts.stop()
     this.media.disconnect()
     this.listeners.clear()
   }
@@ -135,11 +152,17 @@ export class VoiceCallSession {
     this.publish({ display })
   }
 
+  dismissError(): void {
+    if (this.state.phase !== 'error') return
+    this.resetToIdle()
+  }
+
   async startOutgoing(): Promise<void> {
     const context = this.getContext()
     if (!context?.conversationId || !context.deviceId || this.state.phase !== 'idle') return
 
     this.media.beginUserGesture()
+    this.alerts.armAfterMicrophoneGesture()
     this.publish({
       phase: 'outgoing',
       display: 'full',
@@ -157,10 +180,12 @@ export class VoiceCallSession {
       })
       if (result.error) throw result.error
       const payload = result.data as { ok?: boolean; call_id?: string; state?: string; reason?: string } | null
+      if (payload?.ok === false) throw new Error(payload.reason || 'call_start_failed')
       if (!payload?.call_id) throw new Error(payload?.reason || 'call_start_failed')
 
       this.backendState = payload.state ?? 'ringing'
       this.publish({ callId: payload.call_id })
+      void sendIncomingCallPush(this.client, payload.call_id).catch(() => undefined)
       await this.joinLiveKit(payload.call_id, context)
     } catch (error) {
       this.fail(error)
@@ -173,6 +198,7 @@ export class VoiceCallSession {
     if (!context || !callId || this.state.phase !== 'incoming') return
 
     this.media.beginUserGesture()
+    this.alerts.armAfterMicrophoneGesture()
     try {
       const result = await this.client.rpc('chat_accept_voice_call', {
         p_call_id: callId,
@@ -273,9 +299,30 @@ export class VoiceCallSession {
       .catch((error) => this.publish({ error: error instanceof Error ? error.message : String(error) }))
   }
 
+  private readonly handleVisibilityChange = (): void => {
+    if (document.visibilityState === 'visible') void this.handleForeground()
+  }
+
+  private readonly handlePageShow = (): void => {
+    void this.handleForeground()
+  }
+
   private publish(patch: Partial<VoiceCallState>): void {
     this.state = { ...this.state, ...patch }
+    this.alerts.sync(this.state)
     for (const listener of this.listeners) listener(this.state)
+  }
+
+  private async handleForeground(): Promise<void> {
+    await this.pollActiveCalls()
+    if (!['active', 'connecting', 'reconnecting'].includes(this.state.phase)) return
+
+    try {
+      await this.media.resumeAfterForeground()
+    } catch {
+      this.publish({ audioBlocked: true })
+      await this.reportMediaEvent('remote_audio_blocked')
+    }
   }
 
   private async pollActiveCalls(): Promise<void> {
@@ -319,15 +366,16 @@ export class VoiceCallSession {
     const peerName = this.state.direction === 'incoming'
       ? current.caller_display_name || this.state.peerName
       : current.callee_display_name || this.state.peerName
+    const reconnecting = this.state.phase === 'reconnecting'
 
     if (current.state === 'connected') {
       this.publish({
-        phase: 'active',
+        phase: reconnecting ? 'reconnecting' : 'active',
         peerName,
         connectedAt: current.connected_at ? new Date(current.connected_at).getTime() : this.state.connectedAt ?? Date.now(),
       })
     } else if (current.state === 'accepted' || current.state === 'connecting') {
-      this.publish({ phase: 'connecting', peerName })
+      this.publish({ phase: reconnecting ? 'reconnecting' : 'connecting', peerName })
     } else {
       this.publish({ peerName })
     }
@@ -380,6 +428,20 @@ export class VoiceCallSession {
     if (this.state.phase === 'active') this.publish({ phase: 'connecting' })
   }
 
+  private handleMediaReconnecting(): void {
+    if (this.state.phase === 'active' || this.state.phase === 'connecting') {
+      this.publish({ phase: 'reconnecting' })
+    }
+  }
+
+  private handleMediaReconnected(): void {
+    if (this.state.phase !== 'reconnecting') return
+    this.publish({
+      phase: this.backendState === 'connected' ? 'active' : 'connecting',
+      error: null,
+    })
+  }
+
   private async reportMediaEvent(
     event: CallMediaDiagnosticEvent,
     extra: Record<string, unknown> = {},
@@ -411,6 +473,7 @@ export class VoiceCallSession {
   }
 
   private resetToIdle(): void {
+    this.alerts.stop()
     this.media.disconnect()
     this.backendState = null
     this.markingConnected = false
@@ -419,8 +482,9 @@ export class VoiceCallSession {
   }
 
   private fail(error: unknown): void {
+    this.alerts.stop()
     this.media.disconnect()
-    const message = error instanceof Error ? error.message : String(error)
-    this.publish({ phase: 'error', error: message })
+    const reason = error instanceof Error ? error.message : String(error)
+    this.publish({ phase: 'error', error: callErrorMessage(reason) })
   }
 }

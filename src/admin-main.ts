@@ -6,6 +6,8 @@ import { mountVoiceCallUi } from './call/ui'
 import { VoiceCallSession, type VoiceCallContext } from './call/voice-session'
 import { getChatMessageState, subscribeChatMessages } from './chat/message-runtime'
 import { getDeviceLabel, getDevicePlatform, getOrCreateDeviceKey } from './device/identity'
+import { CallPushRegistration } from './notifications/call-push-registration'
+import { setupPwa } from './pwa'
 import { createSupabaseChatBackend } from './supabase/chat-backend'
 import { adminSupabase } from './supabase/client'
 import './call/call.css'
@@ -18,6 +20,8 @@ const root: HTMLDivElement = rootElement
 let adminIdentity: unknown = null
 let callSession: VoiceCallSession | null = null
 let disposeCallUi: (() => void) | null = null
+let callPushRegistration: CallPushRegistration | null = null
+let disposeCallPushState: (() => void) | null = null
 
 async function ensureAdminIdentity(): Promise<unknown> {
   adminIdentity = await bootstrapAdminIdentity(createSupabaseChatBackend(adminSupabase), {
@@ -47,11 +51,18 @@ function currentAdminCallContext(): VoiceCallContext | null {
   }
 }
 
+function clearCallPushRegistration(): void {
+  disposeCallPushState?.()
+  disposeCallPushState = null
+  callPushRegistration = null
+}
+
 function mountLogin(message = ''): void {
   callSession?.dispose()
   callSession = null
   disposeCallUi?.()
   disposeCallUi = null
+  clearCallPushRegistration()
   root.innerHTML = `
     <main class="admin-login">
       <form id="admin-login-form">
@@ -102,6 +113,7 @@ function mountWorkspace(): void {
         <header>
           <button id="back" type="button">‹</button>
           <strong id="customer">Chọn User</strong>
+          <button id="call-notifications" class="call-notification-button" type="button" hidden>Bật thông báo</button>
           <button id="admin-voice-call" class="chat-call-button" type="button" aria-label="Gọi thoại">☎</button>
         </header>
         <div id="admin-messages" class="messages"><p class="empty">Chọn một User để chat.</p></div>
@@ -123,13 +135,26 @@ function mountWorkspace(): void {
   const back = root.querySelector<HTMLButtonElement>('#back')!
   const logout = root.querySelector<HTMLButtonElement>('#logout')!
   const callButton = root.querySelector<HTMLButtonElement>('#admin-voice-call')!
+  const notificationButton = root.querySelector<HTMLButtonElement>('#call-notifications')!
   const callHost = root.querySelector<HTMLElement>('#voice-call-host')!
 
   callSession?.dispose()
   disposeCallUi?.()
+  clearCallPushRegistration()
   callSession = new VoiceCallSession(adminSupabase, currentAdminCallContext)
   disposeCallUi = mountVoiceCallUi(callHost, callSession)
   callSession.start()
+
+  function renderNotificationButton(): void {
+    const pushState = callPushRegistration?.getState() ?? 'unsupported'
+    notificationButton.hidden = pushState === 'unsupported'
+    notificationButton.disabled = pushState === 'enabled' || pushState === 'denied'
+    notificationButton.textContent = pushState === 'enabled'
+      ? 'Thông báo ✓'
+      : pushState === 'denied'
+        ? 'Thông báo bị chặn'
+        : 'Bật thông báo'
+  }
 
   function render(): void {
     const state = getAdminState()
@@ -155,6 +180,7 @@ function mountWorkspace(): void {
       inbox.replaceChildren(empty)
     }
 
+    renderNotificationButton()
     customer.textContent = state.detail?.displayName?.trim() || (state.selectedConversationId ? 'User' : 'Chọn User')
     input.disabled = !state.selectedConversationId
     send.disabled = !state.selectedConversationId || !input.value.trim()
@@ -181,8 +207,16 @@ function mountWorkspace(): void {
     messages.scrollTop = messages.scrollHeight
   }
 
+  const deviceId = currentAdminCallContext()?.deviceId ?? ''
+  if (deviceId) {
+    callPushRegistration = new CallPushRegistration(adminSupabase, deviceId)
+    disposeCallPushState = callPushRegistration.subscribe(render)
+    void callPushRegistration.sync()
+  }
+
   input.addEventListener('input', render)
   callButton.addEventListener('click', () => void callSession?.startOutgoing())
+  notificationButton.addEventListener('click', () => void callPushRegistration?.enableFromUserGesture())
   form.addEventListener('submit', async (event) => {
     event.preventDefault()
     const text = input.value.trim()
@@ -199,6 +233,7 @@ function mountWorkspace(): void {
   back.addEventListener('click', clearAdminSelection)
   logout.addEventListener('click', async () => {
     callSession?.dispose()
+    clearCallPushRegistration()
     await adminSupabase.auth.signOut()
     mountLogin()
   })
@@ -229,4 +264,5 @@ async function start(): Promise<void> {
   await bootWorkspace()
 }
 
+setupPwa()
 void start()

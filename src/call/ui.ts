@@ -15,7 +15,7 @@ export function mountVoiceCallUi(host: HTMLElement, session: VoiceCallSession): 
       bar.type = 'button'
       bar.className = 'voice-call-error'
       bar.textContent = 'Cuộc gọi lỗi · chạm để đóng'
-      bar.addEventListener('click', () => session.setDisplay('hidden'))
+      bar.addEventListener('click', () => session.dismissError())
       host.append(bar)
       return
     }
@@ -51,10 +51,11 @@ export function mountVoiceCallUi(host: HTMLElement, session: VoiceCallSession): 
   }
 }
 
-function statusText(state: VoiceCallState): string {
+export function statusText(state: VoiceCallState): string {
   if (state.phase === 'incoming') return 'Cuộc gọi đến'
   if (state.phase === 'outgoing') return 'Đang gọi…'
   if (state.phase === 'connecting') return 'Đang kết nối…'
+  if (state.phase === 'reconnecting') return 'Đang nối lại…'
   if (state.phase === 'active') return formatCallDuration(Date.now() - (state.connectedAt ?? Date.now()))
   return ''
 }
