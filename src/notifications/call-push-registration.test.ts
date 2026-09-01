@@ -32,7 +32,7 @@ describe('CallPushRegistration', () => {
     unsubscribe = vi.fn(async () => true)
     subscription = {
       endpoint: 'https://push.example/subscription',
-      unsubscribe,
+      unsubscribe: unsubscribe as unknown as CallPushSubscriptionLike['unsubscribe'],
       getKey(name: string) {
         if (name === 'p256dh') return bytes('p256dh-key')
         if (name === 'auth') return bytes('auth-key')
