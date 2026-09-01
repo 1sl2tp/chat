@@ -14,7 +14,12 @@ const DEVICE_STORAGE_KEYS: Record<DeviceOwner, string> = {
 }
 
 export function deviceOwnerForPath(pathname: string): Exclude<DeviceOwner, 'guest'> {
-  return pathname === '/admin' || pathname.startsWith('/admin/') ? 'admin' : 'user2'
+  const normalized = (`/${pathname.trim() || '/'}`).replace(/\/+/g, '/')
+  return normalized === '/admin'
+    || normalized.endsWith('/admin')
+    || normalized.includes('/admin/')
+    ? 'admin'
+    : 'user2'
 }
 
 function runtimeDeviceOwner(): Exclude<DeviceOwner, 'guest'> {
