@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { setPhoneAudioRoute } from './audio-route-control'
+import {
+  reassertPhoneAudioRouteAfterPlayback,
+  setPhoneAudioRoute,
+} from './audio-route-control'
 
 describe('phone audio route control', () => {
   it('forces receiver by crossing playback before play-and-record', () => {
@@ -16,6 +19,25 @@ describe('phone audio route control', () => {
     expect(setPhoneAudioRoute({ audioSession }, 'receiver')).toEqual({ ok: true, route: 'receiver' })
     expect(writes).toEqual(['playback', 'play-and-record'])
     expect(audioSession.type).toBe('play-and-record')
+  })
+
+  it('reasserts receiver after remote playback unless speaker was explicitly selected', () => {
+    const writes: string[] = []
+    let current = 'playback'
+    const audioSession = {
+      get type() { return current },
+      set type(next: string) {
+        writes.push(next)
+        current = next
+      },
+    }
+
+    expect(reassertPhoneAudioRouteAfterPlayback({ audioSession }, false)).toEqual({ ok: true, route: 'receiver' })
+    expect(writes).toEqual(['playback', 'play-and-record'])
+
+    writes.length = 0
+    expect(reassertPhoneAudioRouteAfterPlayback({ audioSession }, true)).toEqual({ ok: true, route: 'speaker' })
+    expect(writes).toEqual(['playback'])
   })
 
   it('switches speaker to playback', () => {
