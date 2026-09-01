@@ -1,10 +1,10 @@
 # TAPHOA Root User Modes Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **Execution status:** implementation is complete on `fix/pwa-core-simplify`; production integration and manual iOS/Android verification remain pending.
 
 **Goal:** Replace the temporary fixed-test root startup with isolated User1/User2/Admin session ownership that works correctly on the same machine.
 
-**Architecture:** Root gets an explicit mode resolver and separate Supabase/Auth/device namespaces for guest and registered User2. Admin keeps its separate Auth namespace and gains a separate device key plus `/admin/` Service Worker registration so Push subscriptions cannot collide with root User2.
+**Architecture:** Root has an explicit mode resolver and separate Supabase/Auth/device namespaces for guest and registered User2. Admin keeps its separate Auth namespace and device key. User2 and Admin use the same generated `sw.js` source but separate Service Worker registrations/scopes, producing independent PushManager subscriptions without duplicating worker code. Deployment paths are runtime-base-aware so the same artifact supports both the custom-domain root and GitHub Pages `/chat/`.
 
 **Tech Stack:** TypeScript 6, Vite 8, Vitest 4, Supabase JS 2.112.4, Vite PWA injectManifest, LiveKit 2.22.1.
 
@@ -22,134 +22,133 @@
 
 ---
 
-### Task 1: Define isolated Auth and device namespaces
+### Task 1: Define isolated Auth and device namespaces — COMPLETE
 
 **Files:**
-- Modify: `src/supabase/client.ts`
-- Modify: `src/device/identity.ts`
-- Create: `src/user/session-ownership.test.ts`
+- `src/supabase/client.ts`
+- `src/device/identity.ts`
+- `src/user/session-ownership.test.ts`
+- `src/device/owner-routing.test.ts`
 
-**Interfaces:**
-- Produces `guestSupabase`, `userSupabase`, `adminSupabase`.
-- Produces named device key helpers for guest/User2/Admin.
+- [x] Guest/User2/Admin use distinct Auth and device storage keys.
+- [x] Guest identity is session-scoped; User2/Admin identities remain persistent.
+- [x] Admin device routing also works under project-base paths such as `/chat/admin/`.
 
-- [ ] Write failing tests proving guest/User2/Admin use distinct storage keys and that guest device identity uses session storage while User2/Admin identities remain persistent.
-- [ ] Push the failing test commit and verify GitHub Actions fails for the expected missing interfaces.
-- [ ] Implement minimal storage/client and device-key helpers.
-- [ ] Push and verify GitHub Actions returns green for Task 1.
-
-### Task 2: Replace fixed-test startup with an explicit root mode resolver
+### Task 2: Replace fixed-test startup with an explicit root mode resolver — COMPLETE
 
 **Files:**
-- Create: `src/user/root-session.ts`
-- Create: `src/user/root-session.test.ts`
-- Modify: `src/chat/runtime.ts`
-- Modify: `src/user-main.ts`
-- Delete from production wiring: imports/calls to `src/user/fixed-runtime.ts` and `src/user/fixed-auth.ts`.
+- `src/user/root-session.ts`
+- `src/user/root-session.test.ts`
+- `src/user/fresh-guest-entry.test.ts`
+- `src/chat/runtime.ts`
+- `src/user-main.ts`
 
-**Interfaces:**
-- `resolveRootMode()` returns `guest` or `user2` based only on the persistent User2 client.
-- `startChatRuntime(options)` receives active Supabase client and device key.
-- `stopChatRuntime()` disposes/reinitializes mode-owned runtime state.
+- [x] No User2 session => fresh guest.
+- [x] Valid non-anonymous User2 => User2.
+- [x] Stale/anonymous state in persistent User2 namespace is cleared.
+- [x] Chat runtime is injectable/resettable.
+- [x] Production root no longer uses the old fixed-test startup.
 
-- [ ] Write failing tests: no User2 session => guest; valid non-anonymous User2 => user2; anonymous/stale User2 storage => guest; Admin storage must not affect root result.
-- [ ] Verify RED in GitHub Actions.
-- [ ] Implement resolver and injectable/resettable chat runtime.
-- [ ] Rewire root startup so it never calls fixed-test setup.
-- [ ] Verify GREEN.
-
-### Task 3: Add explicit User1 -> User2 login and User2 -> User1 logout
+### Task 3: Add explicit User1 -> User2 login and User2 -> User1 logout — COMPLETE
 
 **Files:**
-- Create: `src/user/auth.ts`
-- Create: `src/user/auth.test.ts`
-- Modify: `src/user-main.ts`
-- Modify: `src/user.css`
+- `src/user/auth.ts`
+- `src/user/auth.test.ts`
+- `src/user/guest-lifecycle.ts`
+- `src/user/guest-end.test.ts`
+- `src/user-main.ts`
+- `src/user.css`
 
-**Interfaces:**
-- `loginUser2(username, password)` normalizes username and signs into `<username>@taphoa.chat` using `userSupabase`.
-- `endGuestSession()` signs out guest client and clears guest session/device state.
-- `logoutUser2()` signs out persistent User2 client and returns to a fresh guest.
+- [x] Guest teardown occurs before User2 sign-in.
+- [x] User2 persists until explicit logout/revocation.
+- [x] User2 logout returns to a completely fresh guest.
+- [x] Root rejects Admin login and keeps Admin under `/admin/`.
 
-- [ ] Write failing tests proving guest teardown occurs before User2 sign-in and logout produces a fresh guest transition.
-- [ ] Verify RED.
-- [ ] Implement minimal login/logout helpers and compact root login UI.
-- [ ] Show User1/User2 mode in the root header; remove `· test`.
-- [ ] Verify GREEN.
-
-### Task 4: Gate Call/Push strictly to User2
+### Task 4: Gate Call/Push strictly to User2 — COMPLETE
 
 **Files:**
-- Create: `src/user/capabilities.ts`
-- Create: `src/user/capabilities.test.ts`
-- Modify: `src/user-main.ts`
+- `src/user/capabilities.ts`
+- `src/user/capabilities.test.ts`
+- `src/user-main.ts`
 
-**Interfaces:**
-- `capabilitiesForRootMode('guest'|'user2')` returns explicit booleans for `call` and `push`.
+- [x] User1 => call=false, push=false.
+- [x] User2 => call=true, push=true.
+- [x] User1 DOM/runtime does not mount active Call/Push controls.
 
-- [ ] Write failing tests: User1 => call=false/push=false; User2 => call=true/push=true.
-- [ ] Verify RED.
-- [ ] Create/mount/start `VoiceCallSession` and `CallPushRegistration` only in User2 mode.
-- [ ] Ensure User1 DOM does not expose active Call/notification controls.
-- [ ] Verify GREEN.
+### Task 5: Separate Admin and User2 device/Push ownership on one machine — COMPLETE
 
-### Task 5: Separate Admin and User2 device/Push ownership on one machine
+**Implemented files:**
+- `src/pwa.ts`
+- `src/pwa/registration.ts`
+- `src/pwa/registration.test.ts`
+- `src/pwa/owner-routing.test.ts`
+- `src/pwa/owner-visibility.ts`
+- `src/sw.ts`
+- `src/deployment.ts`
+- `src/pwa/navigation.ts`
+- `src/pwa/navigation.test.ts`
+- `src/pwa/navigation-wiring.test.ts`
+- `src/deployment-multi-base.test.ts`
+- `src/deployment-assets.test.ts`
+- `index.html`
+- `admin/index.html`
+- `public/manifest.webmanifest`
+- `public/admin/manifest.webmanifest`
+- `public/404.html`
 
-**Files:**
-- Modify: `src/admin-main.ts`
-- Modify: `src/pwa.ts`
-- Create: `src/pwa/registration.ts`
-- Create: `src/pwa/registration.test.ts`
-- Create: `public/admin/sw.js`
+**Actual implementation:**
+- One generated Service Worker source is built as `sw.js`.
+- Custom domain: User2 registers `/sw.js` at `/`; Admin registers the same `/sw.js` as a distinct registration at `/admin/`.
+- GitHub Pages: User2 registers `/chat/sw.js` at `/chat/`; Admin registers the same `/chat/sw.js` as a distinct registration at `/chat/admin/`.
+- Service Worker registration identity is scope-keyed, so User2/Admin have independent PushManager subscriptions.
+- Foreground visibility suppression is owner-scoped so one app cannot suppress the other app's notification.
+- Notification-click navigation is constrained to the owning registration scope and normalizes legacy values such as `admin/?conversation=...`.
+- HTML, manifests, precache base and 404 fallback are relative/runtime-base-aware.
 
-**Interfaces:**
-- `setupPwa('user')` registers/uses root worker `/sw.js` scope `/`.
-- `setupPwa('admin')` registers `/admin/sw.js` scope `/admin/`.
-- Admin bootstrap uses Admin-specific persistent device key.
-- Root User2 uses User2-specific persistent device key.
+- [x] Separate User/Admin registration descriptors.
+- [x] Separate User/Admin device keys.
+- [x] Same-machine foreground suppression isolated by owner.
+- [x] Same artifact supports custom-domain root and GitHub Pages `/chat/`.
+- [x] Notification click cannot duplicate `/admin/admin/` and preserves `/chat/` base navigation.
 
-- [ ] Write failing pure tests for registration descriptors and scope separation.
-- [ ] Verify RED.
-- [ ] Implement explicit user/admin PWA registration descriptors.
-- [ ] Implement dedicated Admin push worker with notification display, visibility suppression and safe `/admin/` navigation.
-- [ ] Rewire Admin to use Admin device key and Admin PWA registration.
-- [ ] Rewire root to use User2 device key/root registration only when appropriate.
-- [ ] Verify GREEN.
-
-### Task 6: Guest lifecycle cleanup
-
-**Files:**
-- Create: `src/user/guest-lifecycle.ts`
-- Create: `src/user/guest-lifecycle.test.ts`
-- Modify: `src/user-main.ts`
-
-**Interfaces:**
-- Guest lifecycle owns session-scoped guest Auth/device keys.
-- `clearGuestLocalState()` removes only guest-owned keys.
-- Browser close/pagehide cleanup is best-effort and never touches User2/Admin state.
-
-- [ ] Write failing tests that guest cleanup removes only guest keys and leaves User2/Admin keys intact.
-- [ ] Verify RED.
-- [ ] Implement local guest cleanup and best-effort end-of-session hook.
-- [ ] Verify GREEN.
-
-### Task 7: Remove obsolete fixed-test production path and run regression verification
+### Task 6: Guest lifecycle cleanup — COMPLETE
 
 **Files:**
-- Delete if no longer referenced: `src/user/fixed-runtime.ts`, `src/user/fixed-runtime.test.ts`, `src/user/fixed-auth.ts`, `src/user/fixed-auth.test.ts`.
-- Modify any tests/docs that intentionally referenced fixed test startup.
+- `src/user/guest-lifecycle.ts`
+- `src/user/guest-lifecycle.test.ts`
+- `src/user/guest-end.test.ts`
+- `src/user-main.ts`
+- `supabase/migrations/20260901_guest_ephemeral_cleanup.sql`
 
-**Interfaces:** none new.
+- [x] Local cleanup removes guest-owned keys only.
+- [x] Remote guest cleanup is attempted while app is alive.
+- [x] Fresh-entry logic prevents old guest restoration even if the OS terminates the PWA before a shutdown callback runs.
 
-- [ ] Confirm no production imports reference fixed test modules or `test@taphoa.chat`.
-- [ ] Run/verify `npm run typecheck` through GitHub Actions.
-- [ ] Run/verify all Vitest tests through GitHub Actions.
-- [ ] Run/verify Vite PWA build through GitHub Actions.
-- [ ] Review branch diff for accidental LiveKit/audio/backend changes.
-- [ ] Create final checkpoint with commit, PASS/FAIL, rollback ref and remaining manual iOS/Android verification items.
+### Task 7: Remove obsolete fixed-test path and run regression verification — BRANCH COMPLETE
+
+- [x] Obsolete fixed-test production files/imports removed.
+- [x] No production auto-login path for `test@taphoa.chat` remains.
+- [x] Admin and guest server cleanup functions are deployed in Supabase.
+- [x] Branch typecheck passes.
+- [x] All Vitest tests pass.
+- [x] Vite client + injectManifest Service Worker production build passes.
+- [x] Branch deployment/PWA tests cover custom root plus GitHub `/chat/`.
+- [ ] Merge to `main` — requires explicit approval.
+- [ ] Verify `main` Actions build + GitHub Pages deployment.
+- [ ] Manual iOS/Android PWA verification: locked-screen Push, notification tap, User2 persistence/logout, Admin+User2 same-device coexistence.
+- [ ] Create final production checkpoint in repo + Google Drive after production verification.
+
+## Latest verified branch gate before documentation alignment
+
+- Code commit: `a1ae95862bd845fb473aedd9b7cbb7b72130714d`
+- GitHub Actions run: `33532504532`
+- Build job: `99938825913`
+- Result: 113/113 test files PASS; 283/283 tests PASS; Vite client build PASS; Service Worker injectManifest build PASS.
 
 ## Self-review
 
-- Spec coverage: User1, User2, Admin, same-machine Auth/device/Push, fixed-test removal, Call gating and guest lifecycle are all mapped to tasks.
-- Placeholder scan: no implementation placeholder is relied upon for task completion.
-- Type consistency: mode names are `guest` and `user2`; PWA owner names are `user` and `admin`.
+- User1/User2/Admin ownership is explicit and isolated.
+- Admin + User2 can coexist on one browser with separate Auth/device/Service Worker registration/Push ownership.
+- Deployment base is not hard-coded to `/`.
+- Notification-click navigation stays inside the owning PWA scope.
+- LiveKit audio foundation was not rewritten.
