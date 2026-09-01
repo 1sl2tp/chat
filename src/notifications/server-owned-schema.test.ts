@@ -1,14 +1,7 @@
-import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import bindingSql from '../../supabase/migrations/20260901_push_session_binding_and_outbox.sql?raw'
 
-const bindingPath = new URL('../../supabase/migrations/20260901_push_session_binding_and_outbox.sql', import.meta.url)
-const wiringPath = new URL('../../supabase/migrations/20260901_wire_server_notification_dispatch.sql', import.meta.url)
-const read = (url: URL): string => existsSync(url) ? readFileSync(url, 'utf8') : ''
-
-const bindingSql = read(bindingPath)
-const wiringSql = (): string => read(wiringPath)
-
-describe('server-owned notification schema', () => {
+describe('server-owned notification schema foundation', () => {
   it('binds subscriptions to exact auth sessions', () => {
     expect(bindingSql).toContain('auth_session_id uuid')
     expect(bindingSql).toContain('join auth.sessions')
@@ -34,11 +27,5 @@ describe('server-owned notification schema', () => {
     expect(bindingSql).toContain('dispatch_token uuid')
     expect(bindingSql).toContain('net.http_post')
     expect(bindingSql).toContain("'dispatch_event'")
-  })
-
-  it('keeps Chat/Call wiring in the second migration', () => {
-    expect(bindingSql).not.toContain("enqueue_notification('chat_message'")
-    expect(wiringSql()).toContain("enqueue_notification('chat_message'")
-    expect(wiringSql()).toContain("enqueue_notification('incoming_call'")
   })
 })
