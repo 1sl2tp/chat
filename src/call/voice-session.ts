@@ -75,6 +75,10 @@ export function callErrorMessage(reason: string): string {
   return reason
 }
 
+export function connectedAtForPolling(existingConnectedAt: number | null, now: number): number {
+  return existingConnectedAt ?? now
+}
+
 export class VoiceCallSession {
   private state: VoiceCallState = { ...DEFAULT_STATE }
   private readonly listeners = new Set<(state: VoiceCallState) => void>()
@@ -390,7 +394,7 @@ export class VoiceCallSession {
       this.publish({
         phase: reconnecting ? 'reconnecting' : 'active',
         peerName,
-        connectedAt: current.connected_at ? new Date(current.connected_at).getTime() : this.state.connectedAt ?? Date.now(),
+        connectedAt: connectedAtForPolling(this.state.connectedAt, Date.now()),
       })
     } else if (current.state === 'accepted' || current.state === 'connecting') {
       this.publish({ phase: reconnecting ? 'reconnecting' : 'connecting', peerName })
