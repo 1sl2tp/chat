@@ -1,7 +1,8 @@
 import { bootstrapAdminIdentity } from './admin/bootstrap'
 import { signInAdmin } from './admin/auth'
-import { getAdminState, subscribeAdminState } from './admin/store'
 import { clearAdminSelection, selectAdminConversation, sendAdminText, startAdminRuntime } from './admin/runtime'
+import { logoutAdmin } from './admin/session'
+import { getAdminState, subscribeAdminState } from './admin/store'
 import { createUser2FromAdmin } from './admin/user2-account'
 import { mountVoiceCallUi } from './call/ui'
 import { VoiceCallSession, type VoiceCallContext } from './call/voice-session'
@@ -9,6 +10,7 @@ import { getChatMessageState, subscribeChatMessages } from './chat/message-runti
 import { getDeviceLabel, getDevicePlatform, getOrCreateDeviceKey } from './device/identity'
 import { CallPushRegistration, callPushBrowserForRegistration } from './notifications/call-push-registration'
 import { notificationButtonPresentation } from './notifications/presentation'
+import { clearCurrentPushSubscription, pushCleanupBrowserForRegistration } from './notifications/push-cleanup'
 import { installNotificationContextResponder } from './notifications/window-context'
 import { setupPwa } from './pwa'
 import { createSupabaseChatBackend } from './supabase/chat-backend'
@@ -335,9 +337,26 @@ async function mountWorkspace(): Promise<void> {
   })
   back.addEventListener('click', clearAdminSelection)
   logout.addEventListener('click', async () => {
+    logout.disabled = true
     callSession?.dispose()
     clearCallPushRegistration()
-    await adminSupabase.auth.signOut()
+
+    await logoutAdmin({
+      async unsubscribePush() {
+        const registration = await adminPwaRegistrationPromise
+        if (!registration) return
+        await clearCurrentPushSubscription(pushCleanupBrowserForRegistration(registration))
+      },
+      async endAdminSession() {
+        const result = await adminSupabase.rpc('chat_end_admin_session')
+        if (result.error) throw result.error
+      },
+      async signOutAdmin() {
+        const result = await adminSupabase.auth.signOut()
+        if (result.error) throw result.error
+      },
+    })
+
     mountLogin()
   })
 
