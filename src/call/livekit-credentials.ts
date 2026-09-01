@@ -6,6 +6,16 @@ export interface LiveKitCredentials {
   participantToken: string
 }
 
+export async function warmLiveKitTokenFunction(client: SupabaseClient): Promise<void> {
+  try {
+    await client.functions.invoke('taphoa-livekit-token', {
+      body: { action: 'warm' },
+    })
+  } catch {
+    // Warm-up is opportunistic and must never block or fail a call.
+  }
+}
+
 export async function fetchLiveKitCredentials(
   client: SupabaseClient,
   callId: string,
