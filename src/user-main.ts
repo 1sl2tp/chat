@@ -150,10 +150,21 @@ async function startTestUser(): Promise<void> {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) throw error
     },
-    async signUp(email, password) {
-      const { data, error } = await supabase.auth.signUp({ email, password })
+    async signInAnonymously() {
+      const { error } = await supabase.auth.signInAnonymously()
       if (error) throw error
-      return data.session !== null
+    },
+    async upgradeCurrentUser(displayName, username, password) {
+      const { error } = await supabase.rpc('chat_upgrade_to_user2', {
+        p_display_name: displayName,
+        p_username: username,
+        p_password: password,
+      })
+      if (error) throw error
+    },
+    async refreshSession() {
+      const { error } = await supabase.auth.refreshSession()
+      if (error) throw error
     },
   }, startChatRuntime)
 
@@ -164,4 +175,8 @@ async function startTestUser(): Promise<void> {
   render()
 }
 
-void startTestUser()
+void startTestUser().catch((error) => {
+  console.error('Could not start fixed User 2', error)
+  status.textContent = 'Không thể kết nối'
+  render()
+})
