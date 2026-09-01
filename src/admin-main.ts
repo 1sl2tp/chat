@@ -127,6 +127,7 @@ function mountWorkspace(): void {
     <div id="voice-call-host"></div>
   `
 
+  const adminApp = root.querySelector<HTMLElement>('.admin-app')!
   const inbox = root.querySelector<HTMLElement>('#inbox')!
   const messages = root.querySelector<HTMLElement>('#admin-messages')!
   const customer = root.querySelector<HTMLElement>('#customer')!
@@ -165,6 +166,7 @@ function mountWorkspace(): void {
     const messageState = getChatMessageState()
     const callState = callSession?.getState()
 
+    adminApp.dataset.selected = state.selectedConversationId ? 'true' : 'false'
     inbox.replaceChildren(...state.inbox.map((item) => {
       const button = document.createElement('button')
       button.type = 'button'
