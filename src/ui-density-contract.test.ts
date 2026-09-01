@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import adminCss from './admin.css?raw'
-import userCss from './user.css?raw'
+import adminCss from './admin.css?inline'
+import userCss from './user.css?inline'
 
 describe('compact chat/admin UI density', () => {
   it('keeps the admin shell compact without breaking the 280px floor', () => {
