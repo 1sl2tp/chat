@@ -1,5 +1,6 @@
 import { defaultCallRouteForWeb } from './platform-audio-route'
 import { formatCallDuration } from './presentation'
+import { phoneSpeakerButtonPresentation } from './speaker-control-presentation'
 import type { VoiceCallSession, VoiceCallState } from './voice-session'
 
 export function mountVoiceCallUi(host: HTMLElement, session: VoiceCallSession): () => void {
@@ -100,6 +101,12 @@ function renderFull(state: VoiceCallState, session: VoiceCallSession): HTMLEleme
   const status = document.createElement('span')
   status.textContent = statusText(state)
   center.append(avatar, name, status)
+  if (state.permissionNotice) {
+    const permissionNotice = document.createElement('small')
+    permissionNotice.className = 'voice-call-inline-notice'
+    permissionNotice.textContent = state.permissionNotice
+    center.append(permissionNotice)
+  }
   if (state.error) {
     const notice = document.createElement('small')
     notice.className = 'voice-call-inline-error'
@@ -122,19 +129,21 @@ function renderFull(state: VoiceCallState, session: VoiceCallSession): HTMLEleme
 
     const phoneToggle = session.hasPhoneSpeakerToggle()
     const androidWebSpeaker = defaultCallRouteForWeb(navigator.userAgent) === 'speaker' && !phoneToggle
+    const phonePresentation = phoneSpeakerButtonPresentation(state.speakerSelected)
     const speakerLabel = androidWebSpeaker
       ? 'Loa ngoài'
       : phoneToggle
-        ? state.speakerSelected ? 'Loa ngoài' : 'Loa trong'
+        ? phonePresentation.label
         : state.speakerSelected ? 'Đầu ra đã chọn' : state.speakerAvailable ? 'Chọn loa' : 'Loa hệ thống'
-    const speakerIcon = phoneToggle && !state.speakerSelected ? '🔈' : '🔊'
-    const speaker = controlButton(speakerLabel, speakerIcon, () => void session.chooseSpeaker())
+    const speakerIcon = phoneToggle ? phonePresentation.icon : '🔊'
+    const speaker = controlButton(speakerLabel, speakerIcon, () => void session.chooseSpeaker(), phoneToggle && phonePresentation.pressed ? 'is-active' : '')
     speaker.disabled = androidWebSpeaker || !state.speakerAvailable
     speaker.title = androidWebSpeaker
       ? 'Chrome Android dùng speakerphone mặc định và không cho web đổi trực tiếp sang loa thoại'
       : phoneToggle
-        ? state.speakerSelected ? 'Chạm để chuyển sang loa trong' : 'Chạm để chuyển sang loa ngoài'
+        ? phonePresentation.title
         : state.speakerAvailable ? 'Chạm để chọn đầu ra âm thanh' : 'Trình duyệt không hỗ trợ đổi loa trực tiếp'
+    if (phoneToggle) speaker.setAttribute('aria-pressed', String(phonePresentation.pressed))
 
     controls.append(
       speaker,
