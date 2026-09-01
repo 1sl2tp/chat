@@ -125,22 +125,6 @@ function messagePreview(value: unknown) {
   return text.length > 120 ? `${text.slice(0, 117)}…` : text;
 }
 
-async function matchingOutboxExists(
-  service: ReturnType<typeof createClient>,
-  eventType: "chat_message" | "incoming_call",
-  sourceId: string,
-) {
-  const { data, error } = await service
-    .from("chat_notification_outbox")
-    .select("id")
-    .eq("event_type", eventType)
-    .eq("source_id", sourceId)
-    .limit(1)
-    .maybeSingle();
-  if (error) throw new Error("outbox_lookup_failed");
-  return Boolean(data?.id);
-}
-
 async function markOutboxProcessed(
   service: ReturnType<typeof createClient>,
   eventId: string,
@@ -306,7 +290,7 @@ Deno.serve(async (req: Request) => {
 
   let body: Record<string, unknown> = {};
   try { body = await req.json(); } catch { return json(400, { error: "invalid_json" }); }
-  const action = String(body.action || "send");
+  const action = String(body.action || "");
   const service = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
 
   if (action === "dispatch_event") {
@@ -331,121 +315,29 @@ Deno.serve(async (req: Request) => {
     return json(200, { public_key: vapid.publicKey });
   }
 
+  if (action !== "test") return json(400, { error: "invalid_action" });
+
   const { data: profile, error: profileError } = await service
     .from("chat_profiles")
-    .select("id,display_name,is_admin")
+    .select("id,is_admin")
     .eq("auth_user_id", authData.user.id)
     .maybeSingle();
   if (profileError || !profile?.id) return json(403, { error: "profile_required" });
 
-  if (action === "test") {
-    const deviceId = String(body.device_id || "");
-    if (!isUuid(deviceId)) return json(400, { error: "invalid_device_id" });
-
-    try {
-      const result = await sendToProfile(service, vapid, profile.id, {
-        type: "test_notification",
-        title: "TAPHOA",
-        body: "Thông báo TAPHOA đã sẵn sàng",
-        navigate: profile.is_admin ? "./admin/" : "./",
-        tag: `test-${deviceId}`,
-        badge: 0,
-      }, { deviceId, ttl: 60, urgency: "high" });
-      return json(200, { ok: true, ...result });
-    } catch (error) {
-      return json(500, { error: error instanceof Error ? error.message : "push_test_failed" });
-    }
-  }
-
-  if (action === "send_message") {
-    const messageId = String(body.message_id || "");
-    if (!isUuid(messageId)) return json(400, { error: "invalid_message_id" });
-
-    const { data: message, error: messageError } = await service
-      .from("chat_messages")
-      .select("id,conversation_id,sender_id,type,text,revoked_at")
-      .eq("id", messageId)
-      .maybeSingle();
-    if (messageError || !message) return json(404, { error: "message_not_found" });
-    if (message.sender_id !== profile.id) return json(403, { error: "not_sender" });
-    if (message.revoked_at) return json(409, { error: "message_revoked" });
-
-    if (await matchingOutboxExists(service, "chat_message", message.id)) {
-      return json(200, { ok: true, delegated: true });
-    }
-
-    const { data: members, error: memberError } = await service
-      .from("chat_conversation_members")
-      .select("profile_id,is_muted")
-      .eq("conversation_id", message.conversation_id)
-      .neq("profile_id", profile.id)
-      .is("left_at", null)
-      .limit(2);
-    if (memberError) return json(500, { error: "member_lookup_failed" });
-    const recipientMember = members?.[0];
-    if (!recipientMember?.profile_id) return json(404, { error: "recipient_not_found" });
-    if (recipientMember.is_muted) return json(200, { ok: true, delivered: 0, expired: 0, muted: true });
-
-    const { data: recipient } = await service
-      .from("chat_profiles")
-      .select("is_admin")
-      .eq("id", recipientMember.profile_id)
-      .maybeSingle();
-
-    try {
-      const result = await sendToProfile(service, vapid, recipientMember.profile_id, {
-        type: "chat_message",
-        message_id: message.id,
-        conversation_id: message.conversation_id,
-        title: "Tin nhắn mới",
-        body: `${profile.display_name || "TAPHOA"}: ${messagePreview(message.text)}`,
-        navigate: recipient?.is_admin ? `./admin/?conversation=${message.conversation_id}` : "./",
-        tag: `chat-${message.conversation_id}`,
-        badge: 1,
-      }, { ttl: 300, urgency: "normal" });
-      return json(200, { ok: true, ...result });
-    } catch (error) {
-      return json(500, { error: error instanceof Error ? error.message : "message_push_failed" });
-    }
-  }
-
-  if (action !== "send") return json(400, { error: "invalid_action" });
-
-  const callId = String(body.call_id || "");
-  if (!isUuid(callId)) return json(400, { error: "invalid_call_id" });
-
-  const { data: call, error: callError } = await service
-    .from("chat_calls")
-    .select("id,conversation_id,caller_profile_id,callee_profile_id,state")
-    .eq("id", callId)
-    .maybeSingle();
-  if (callError || !call) return json(404, { error: "call_not_found" });
-  if (call.state !== "ringing") return json(409, { error: "call_not_ringing" });
-  if (call.caller_profile_id !== profile.id) return json(403, { error: "not_caller" });
-
-  if (await matchingOutboxExists(service, "incoming_call", call.id)) {
-    return json(200, { ok: true, delegated: true });
-  }
-
-  const { data: callee } = await service
-    .from("chat_profiles")
-    .select("is_admin")
-    .eq("id", call.callee_profile_id)
-    .maybeSingle();
+  const deviceId = String(body.device_id || "");
+  if (!isUuid(deviceId)) return json(400, { error: "invalid_device_id" });
 
   try {
-    const result = await sendToProfile(service, vapid, call.callee_profile_id, {
-      type: "incoming_call",
-      call_id: call.id,
-      conversation_id: call.conversation_id,
-      title: "Cuộc gọi TAPHOA",
-      body: `${profile.display_name || "Có người"} đang gọi cho bạn`,
-      navigate: callee?.is_admin ? `./admin/?conversation=${call.conversation_id}` : "./",
-      tag: `call-${call.id}`,
-      badge: 1,
-    }, { ttl: 60, urgency: "high" });
+    const result = await sendToProfile(service, vapid, profile.id, {
+      type: "test_notification",
+      title: "TAPHOA",
+      body: "Thông báo TAPHOA đã sẵn sàng",
+      navigate: profile.is_admin ? "./admin/" : "./",
+      tag: `test-${deviceId}`,
+      badge: 0,
+    }, { deviceId, ttl: 60, urgency: "high" });
     return json(200, { ok: true, ...result });
   } catch (error) {
-    return json(500, { error: error instanceof Error ? error.message : "call_push_failed" });
+    return json(500, { error: error instanceof Error ? error.message : "push_test_failed" });
   }
 });
