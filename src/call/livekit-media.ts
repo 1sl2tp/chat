@@ -54,6 +54,16 @@ function callNavigator(): CallNavigatorAudioSessionLike {
   return navigator as unknown as CallNavigatorAudioSessionLike
 }
 
+export async function connectRoomWhileCapturing<T>(
+  waitForMicrophone: () => Promise<T>,
+  connectRoom: () => Promise<void>,
+): Promise<T> {
+  const microphoneTask = waitForMicrophone()
+  const roomTask = connectRoom()
+  const [microphone] = await Promise.all([microphoneTask, roomTask])
+  return microphone
+}
+
 export class LiveKitVoiceMedia {
   private room: Room | null = null
   private readonly attached = new Set<HTMLMediaElement>()
