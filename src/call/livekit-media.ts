@@ -10,6 +10,7 @@ import {
   routeCallToReceiverAfterMicrophone,
   type CallNavigatorAudioSessionLike,
 } from './audio-route'
+import { setPhoneAudioRoute } from './audio-route-control'
 import {
   beginCallMicrophoneCapture,
   publishCapturedMicrophone,
@@ -142,12 +143,7 @@ export class LiveKitVoiceMedia {
   async startAudio(): Promise<void> {
     const room = this.ensureRoom()
     await room.startAudio()
-    for (const element of this.attached) {
-      if (!(element instanceof HTMLMediaElement)) continue
-      const result = await playRemoteAudioElement(element)
-      if (result === 'playing') this.callbacks.onRemoteAudioPlaying()
-      else this.callbacks.onAudioPlaybackBlocked()
-    }
+    await this.replayAttachedAudio()
   }
 
   async join(context: LiveKitJoinContext): Promise<void> {
@@ -192,6 +188,20 @@ export class LiveKitVoiceMedia {
     await this.room.localParticipant.setMicrophoneEnabled(!muted)
   }
 
+  canTogglePhoneSpeaker(): boolean {
+    return Boolean(callNavigator().audioSession)
+  }
+
+  async setSpeakerEnabled(enabled: boolean): Promise<boolean> {
+    const result = setPhoneAudioRoute(callNavigator(), enabled ? 'speaker' : 'receiver')
+    if (!result.ok) return false
+
+    // Re-play the already attached live remote audio after the route switch so
+    // WebKit/Chromium has to apply the new output route to the active element.
+    await this.replayAttachedAudio()
+    return true
+  }
+
   async chooseAudioOutput(): Promise<boolean> {
     const room = this.room
     if (!room || !this.joined) return false
@@ -205,6 +215,7 @@ export class LiveKitVoiceMedia {
 
     const output = await devices.selectAudioOutput()
     await room.switchActiveDevice('audiooutput', output.deviceId, true)
+    await this.replayAttachedAudio()
     return true
   }
 
@@ -284,6 +295,16 @@ export class LiveKitVoiceMedia {
 
     this.room = room
     return room
+  }
+
+  private async replayAttachedAudio(): Promise<void> {
+    for (const element of this.attached) {
+      if (!(element instanceof HTMLMediaElement)) continue
+      element.pause()
+      const result = await playRemoteAudioElement(element)
+      if (result === 'playing') this.callbacks.onRemoteAudioPlaying()
+      else this.callbacks.onAudioPlaybackBlocked()
+    }
   }
 
   private stopMicrophoneCapture(): void {
