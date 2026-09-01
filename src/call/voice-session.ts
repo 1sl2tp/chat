@@ -75,6 +75,17 @@ export function callErrorMessage(reason: string): string {
   return reason
 }
 
+export function connectedAtForPolling(
+  currentConnectedAt: number | null,
+  backendConnectedAt: string | null,
+  now = Date.now(),
+): number {
+  if (currentConnectedAt !== null) return currentConnectedAt
+  if (!backendConnectedAt) return now
+  const parsed = new Date(backendConnectedAt).getTime()
+  return Number.isFinite(parsed) ? parsed : now
+}
+
 export class VoiceCallSession {
   private state: VoiceCallState = { ...DEFAULT_STATE }
   private readonly listeners = new Set<(state: VoiceCallState) => void>()
@@ -390,7 +401,7 @@ export class VoiceCallSession {
       this.publish({
         phase: reconnecting ? 'reconnecting' : 'active',
         peerName,
-        connectedAt: current.connected_at ? new Date(current.connected_at).getTime() : this.state.connectedAt ?? Date.now(),
+        connectedAt: connectedAtForPolling(this.state.connectedAt, current.connected_at),
       })
     } else if (current.state === 'accepted' || current.state === 'connecting') {
       this.publish({ phase: reconnecting ? 'reconnecting' : 'connecting', peerName })
@@ -433,7 +444,7 @@ export class VoiceCallSession {
       }
 
       this.backendState = 'connected'
-      this.publish({ phase: 'active', connectedAt: this.state.connectedAt ?? Date.now(), error: null })
+      this.publish({ phase: 'active', connectedAt: Date.now(), error: null })
       await this.reportMediaEvent('peer_connected')
     } catch (error) {
       this.publish({ error: error instanceof Error ? error.message : String(error) })
