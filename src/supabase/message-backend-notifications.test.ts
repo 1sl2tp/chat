@@ -16,31 +16,31 @@ const MESSAGE = {
   call_id: null,
 }
 
-describe('Supabase message backend notification dispatch', () => {
-  it('dispatches push after the text message is saved', async () => {
+describe('Supabase message backend server-owned notifications', () => {
+  it('persists the text message and leaves push ownership to the server', async () => {
     const rpc = vi.fn(async () => ({ data: MESSAGE, error: null }))
-    const invoke = vi.fn(async () => ({ data: { ok: true, delivered: 1 }, error: null }))
+    const invoke = vi.fn(async () => ({ data: null, error: new Error('must_not_invoke_push') }))
     const client = { rpc, functions: { invoke } } as unknown as SupabaseClient
     const backend = createSupabaseMessageBackend(client)
 
     const result = await backend.sendText(MESSAGE.conversation_id, MESSAGE.client_message_id, MESSAGE.text)
-    await Promise.resolve()
 
-    expect(result.id).toBe(MESSAGE.id)
-    expect(invoke).toHaveBeenCalledWith('taphoaxyz-call-push', {
-      body: { action: 'send_message', message_id: MESSAGE.id },
+    expect(result).toEqual(MESSAGE)
+    expect(rpc).toHaveBeenCalledWith('chat_send_text_message', {
+      p_conversation_id: MESSAGE.conversation_id,
+      p_client_message_id: MESSAGE.client_message_id,
+      p_text: MESSAGE.text,
+      p_reply_to_id: null,
     })
+    expect(invoke).not.toHaveBeenCalled()
   })
 
-  it('does not turn a push failure into a chat-send failure', async () => {
-    const rpc = vi.fn(async () => ({ data: MESSAGE, error: null }))
-    const invoke = vi.fn(async () => ({ data: null, error: new Error('push_offline') }))
-    const client = { rpc, functions: { invoke } } as unknown as SupabaseClient
+  it('still surfaces a persistence failure', async () => {
+    const rpc = vi.fn(async () => ({ data: null, error: new Error('db_offline') }))
+    const client = { rpc, functions: { invoke: vi.fn() } } as unknown as SupabaseClient
     const backend = createSupabaseMessageBackend(client)
 
-    await expect(backend.sendText(MESSAGE.conversation_id, MESSAGE.client_message_id, MESSAGE.text)).resolves.toEqual(MESSAGE)
-    await Promise.resolve()
-
-    expect(invoke).toHaveBeenCalledOnce()
+    await expect(backend.sendText(MESSAGE.conversation_id, MESSAGE.client_message_id, MESSAGE.text))
+      .rejects.toThrow('db_offline')
   })
 })
