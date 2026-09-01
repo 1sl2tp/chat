@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   CallPushRegistration,
+  callPushBrowserForRegistration,
   type CallPushBrowser,
   type CallPushManagerLike,
   type CallPushSubscriptionLike,
@@ -82,6 +83,25 @@ describe('CallPushRegistration', () => {
 
     return new CallPushRegistration(client, DEVICE_ID, browser)
   }
+
+  it('binds PushManager and local notifications to the supplied owner registration', async () => {
+    const pushManager = {
+      getSubscription: vi.fn(async () => null),
+      subscribe: vi.fn(),
+    } as unknown as PushManager
+    const showNotification = vi.fn(async () => undefined)
+    const registration = {
+      pushManager,
+      showNotification,
+    } as unknown as ServiceWorkerRegistration
+
+    const browser = callPushBrowserForRegistration(registration)
+    const ready = await browser.ready()
+
+    expect(ready.pushManager).toBe(pushManager)
+    await browser.showLocalNotification('Scoped push', { body: 'Admin/User owner' })
+    expect(showNotification).toHaveBeenCalledWith('Scoped push', { body: 'Admin/User owner' })
+  })
 
   it('never requests permission during sync', async () => {
     const registration = createRegistration()
