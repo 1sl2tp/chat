@@ -86,6 +86,7 @@ export class VoiceCallSession {
   private backendState: string | null = null
   private started = false
   private markingConnected = false
+  private decliningCallId: string | null = null
 
   constructor(client: SupabaseClient, getContext: () => VoiceCallContext | null) {
     this.client = client
@@ -119,6 +120,13 @@ export class VoiceCallSession {
 
   hasPhoneSpeakerToggle(): boolean {
     return this.media.canTogglePhoneSpeaker()
+  }
+
+  prepareAlertAudioFromUserGesture(): void {
+    // Use only on a non-call gesture (for example enabling notifications), or
+    // after beginUserGesture() on a call gesture. This keeps iPhone microphone
+    // capture as the first media operation for Call/Answer.
+    this.alerts.armAfterMicrophoneGesture()
   }
 
   subscribe(listener: (state: VoiceCallState) => void): () => void {
@@ -197,7 +205,11 @@ export class VoiceCallSession {
     const callId = this.state.callId
     if (!context || !callId || this.state.phase !== 'incoming') return
 
+    // Keep getUserMedia as the first media operation on the answer gesture.
     this.media.beginUserGesture()
+    // The incoming ringtone/vibration must stop at the user's tap, not after the
+    // network round-trip that accepts the call.
+    this.publish({ phase: 'connecting', display: 'full', audioBlocked: false, error: null })
     this.alerts.armAfterMicrophoneGesture()
     try {
       const result = await this.client.rpc('chat_accept_voice_call', {
@@ -209,7 +221,6 @@ export class VoiceCallSession {
       if (payload?.ok === false) throw new Error(payload.reason || 'call_accept_failed')
 
       this.backendState = 'accepted'
-      this.publish({ phase: 'connecting', display: 'full', audioBlocked: false, error: null })
       await this.joinLiveKit(callId, context)
     } catch (error) {
       this.fail(error)
@@ -220,6 +231,11 @@ export class VoiceCallSession {
     const context = this.getContext()
     const callId = this.state.callId
     if (!context || !callId) return
+
+    // Close the incoming UI and stop alerting immediately. Suppress rediscovery
+    // of the same ringing call while the decline RPC is in flight.
+    this.resetToIdle()
+    this.decliningCallId = callId
     try {
       const result = await this.client.rpc('chat_decline_voice_call', {
         p_call_id: callId,
@@ -227,7 +243,7 @@ export class VoiceCallSession {
       })
       if (result.error) throw result.error
     } finally {
-      this.resetToIdle()
+      this.decliningCallId = null
     }
   }
 
@@ -339,7 +355,7 @@ export class VoiceCallSession {
     const current = this.state.callId ? rows.find((row) => row.id === this.state.callId) : undefined
 
     if (!this.state.callId) {
-      const incoming = rows.find((row) => row.callee_profile_id === context.profileId && row.state === 'ringing')
+      const incoming = rows.find((row) => row.id !== this.decliningCallId && row.callee_profile_id === context.profileId && row.state === 'ringing')
       if (incoming) {
         this.backendState = incoming.state
         this.publish({

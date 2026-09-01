@@ -6,8 +6,19 @@ const CALL_ID = '33333333-3333-4333-8333-333333333333'
 const CONVERSATION_ID = '44444444-4444-4444-8444-444444444444'
 const PROFILE_ID = '55555555-5555-4555-8555-555555555555'
 const DEVICE_ID = '66666666-6666-4666-8666-666666666666'
+const CALL_ROW = {
+  id: CALL_ID,
+  conversation_id: CONVERSATION_ID,
+  caller_profile_id: '77777777-7777-4777-8777-777777777777',
+  callee_profile_id: PROFILE_ID,
+  state: 'ringing',
+  connected_at: null,
+  caller_display_name: 'Admin',
+  callee_display_name: 'User',
+}
 
 afterEach(() => {
+  vi.useRealTimers()
   vi.unstubAllGlobals()
 })
 
@@ -47,5 +58,62 @@ describe('VoiceCallSession busy outcomes', () => {
 
     session.dismissError()
     expect(session.getState().phase).toBe('idle')
+  })
+})
+
+describe('VoiceCallSession incoming alert lifecycle', () => {
+  function setupIncomingSession(rpc: ReturnType<typeof vi.fn>) {
+    vi.useFakeTimers()
+    vi.stubGlobal('window', globalThis)
+    vi.stubGlobal('navigator', { userAgent: 'test', vibrate: vi.fn(() => false) })
+    const client = { rpc, functions: { invoke: vi.fn() } } as unknown as SupabaseClient
+    const session = new VoiceCallSession(client, () => ({
+      profileId: PROFILE_ID,
+      deviceId: DEVICE_ID,
+      conversationId: CONVERSATION_ID,
+      peerName: 'Admin',
+    }))
+    return { session, client }
+  }
+
+  async function revealIncoming(session: VoiceCallSession): Promise<void> {
+    await (session as unknown as { pollActiveCalls(): Promise<void> }).pollActiveCalls()
+    expect(session.getState().phase).toBe('incoming')
+  }
+
+  it('leaves incoming phase immediately when answer is tapped, before accept RPC resolves', async () => {
+    let resolveAccept!: (value: { data: null; error: Error }) => void
+    const pendingAccept = new Promise<{ data: null; error: Error }>((resolve) => { resolveAccept = resolve })
+    const rpc = vi.fn((name: string) => {
+      if (name === 'chat_get_active_voice_calls') return Promise.resolve({ data: [CALL_ROW], error: null })
+      if (name === 'chat_accept_voice_call') return pendingAccept
+      return Promise.resolve({ data: null, error: null })
+    })
+    const { session } = setupIncomingSession(rpc)
+    await revealIncoming(session)
+
+    const acceptTask = session.accept()
+
+    expect(session.getState().phase).toBe('connecting')
+    resolveAccept({ data: null, error: new Error('stop_after_timing_assertion') })
+    await acceptTask
+  })
+
+  it('returns to idle immediately when decline is tapped, before decline RPC resolves', async () => {
+    let resolveDecline!: (value: { data: null; error: null }) => void
+    const pendingDecline = new Promise<{ data: null; error: null }>((resolve) => { resolveDecline = resolve })
+    const rpc = vi.fn((name: string) => {
+      if (name === 'chat_get_active_voice_calls') return Promise.resolve({ data: [CALL_ROW], error: null })
+      if (name === 'chat_decline_voice_call') return pendingDecline
+      return Promise.resolve({ data: null, error: null })
+    })
+    const { session } = setupIncomingSession(rpc)
+    await revealIncoming(session)
+
+    const declineTask = session.decline()
+
+    expect(session.getState().phase).toBe('idle')
+    resolveDecline({ data: null, error: null })
+    await declineTask
   })
 })
