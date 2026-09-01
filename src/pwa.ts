@@ -1,9 +1,22 @@
+import { buildLabel } from './app/build-label'
 import { pwaOwnerForPath, pwaRegistrationDescriptor, type PwaOwner } from './pwa/registration'
 import { readServiceWorkerBuildId, shouldReloadForServiceWorker } from './pwa/version-sync'
 
 const UI_BUILD_ID = import.meta.env.VITE_BUILD_ID ?? 'dev'
 
+function mountBuildBadge(): void {
+  if (typeof document === 'undefined' || document.getElementById('chat-build-label')) return
+
+  const badge = document.createElement('small')
+  badge.id = 'chat-build-label'
+  badge.textContent = buildLabel(UI_BUILD_ID)
+  badge.title = `Build ${UI_BUILD_ID}`
+  badge.style.cssText = 'position:fixed;left:max(6px,env(safe-area-inset-left));bottom:max(4px,env(safe-area-inset-bottom));z-index:2147483647;padding:2px 5px;border-radius:5px;background:rgba(255,255,255,.82);color:#777;font:10px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;pointer-events:none;opacity:.72'
+  document.body.appendChild(badge)
+}
+
 export async function setupPwa(owner?: PwaOwner): Promise<ServiceWorkerRegistration | null> {
+  mountBuildBadge()
   if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return null
 
   const resolvedOwner = owner ?? pwaOwnerForPath(window.location.pathname)
