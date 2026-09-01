@@ -5,7 +5,7 @@ import {
 } from './audio-route-control'
 
 describe('phone audio route control', () => {
-  it('forces receiver by crossing playback before play-and-record', () => {
+  it('routes receiver directly to play-and-record without priming playback', () => {
     const writes: string[] = []
     let current = 'playback'
     const audioSession = {
@@ -17,7 +17,7 @@ describe('phone audio route control', () => {
     }
 
     expect(setPhoneAudioRoute({ audioSession }, 'receiver')).toEqual({ ok: true, route: 'receiver' })
-    expect(writes).toEqual(['playback', 'play-and-record'])
+    expect(writes).toEqual(['play-and-record'])
     expect(audioSession.type).toBe('play-and-record')
   })
 
@@ -33,7 +33,7 @@ describe('phone audio route control', () => {
     }
 
     expect(reassertPhoneAudioRouteAfterPlayback({ audioSession }, false)).toEqual({ ok: true, route: 'receiver' })
-    expect(writes).toEqual(['playback', 'play-and-record'])
+    expect(writes).toEqual(['play-and-record'])
 
     writes.length = 0
     expect(reassertPhoneAudioRouteAfterPlayback({ audioSession }, true)).toEqual({ ok: true, route: 'speaker' })
