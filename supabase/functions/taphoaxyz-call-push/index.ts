@@ -315,29 +315,31 @@ Deno.serve(async (req: Request) => {
     return json(200, { public_key: vapid.publicKey });
   }
 
-  if (action !== "test") return json(400, { error: "invalid_action" });
+  if (action === "test") {
+    const { data: profile, error: profileError } = await service
+      .from("chat_profiles")
+      .select("id,is_admin")
+      .eq("auth_user_id", authData.user.id)
+      .maybeSingle();
+    if (profileError || !profile?.id) return json(403, { error: "profile_required" });
 
-  const { data: profile, error: profileError } = await service
-    .from("chat_profiles")
-    .select("id,is_admin")
-    .eq("auth_user_id", authData.user.id)
-    .maybeSingle();
-  if (profileError || !profile?.id) return json(403, { error: "profile_required" });
+    const deviceId = String(body.device_id || "");
+    if (!isUuid(deviceId)) return json(400, { error: "invalid_device_id" });
 
-  const deviceId = String(body.device_id || "");
-  if (!isUuid(deviceId)) return json(400, { error: "invalid_device_id" });
-
-  try {
-    const result = await sendToProfile(service, vapid, profile.id, {
-      type: "test_notification",
-      title: "TAPHOA",
-      body: "Thông báo TAPHOA đã sẵn sàng",
-      navigate: profile.is_admin ? "./admin/" : "./",
-      tag: `test-${deviceId}`,
-      badge: 0,
-    }, { deviceId, ttl: 60, urgency: "high" });
-    return json(200, { ok: true, ...result });
-  } catch (error) {
-    return json(500, { error: error instanceof Error ? error.message : "push_test_failed" });
+    try {
+      const result = await sendToProfile(service, vapid, profile.id, {
+        type: "test_notification",
+        title: "TAPHOA",
+        body: "Thông báo TAPHOA đã sẵn sàng",
+        navigate: profile.is_admin ? "./admin/" : "./",
+        tag: `test-${deviceId}`,
+        badge: 0,
+      }, { deviceId, ttl: 60, urgency: "high" });
+      return json(200, { ok: true, ...result });
+    } catch (error) {
+      return json(500, { error: error instanceof Error ? error.message : "push_test_failed" });
+    }
   }
+
+  return json(400, { error: "invalid_action" });
 });
