@@ -12,8 +12,9 @@ declare const self: ServiceWorkerGlobalScope & typeof globalThis & {
 const BUILD_ID = import.meta.env.VITE_BUILD_ID ?? 'dev'
 const CACHE_PREFIX = 'chat-precache-'
 const manifestEntries = self.__WB_MANIFEST
+const ASSET_BASE_URL = new URL('/', self.location.origin)
 const CACHE_NAME = `${CACHE_PREFIX}${hashManifest(manifestEntries)}`
-const PRECACHE_URLS = manifestEntries.map((entry) => new URL(entry.url, self.registration.scope).href)
+const PRECACHE_URLS = manifestEntries.map((entry) => new URL(entry.url, ASSET_BASE_URL).href)
 const APP_SHELL_URL = new URL('./index.html', self.registration.scope).href
 
 self.addEventListener('install', (event) => {
