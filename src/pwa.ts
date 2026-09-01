@@ -1,9 +1,9 @@
-import { registerSW } from 'virtual:pwa-register'
+import { pwaRegistrationDescriptor, type PwaOwner } from './pwa/registration'
 import { readServiceWorkerBuildId, shouldReloadForServiceWorker } from './pwa/version-sync'
 
 const UI_BUILD_ID = import.meta.env.VITE_BUILD_ID ?? 'dev'
 
-export function setupPwa(): void {
+export function setupPwa(owner: PwaOwner = 'user'): void {
   if (!('serviceWorker' in navigator)) return
 
   let reloadIssued = false
@@ -18,7 +18,7 @@ export function setupPwa(): void {
     const serviceWorkerBuildId = await readServiceWorkerBuildId(controller)
     if (!shouldReloadForServiceWorker(UI_BUILD_ID, serviceWorkerBuildId)) return
 
-    const reloadKey = `chat-pwa-reload:${serviceWorkerBuildId}`
+    const reloadKey = `chat-pwa-reload:${owner}:${serviceWorkerBuildId}`
     if (sessionStorage.getItem(reloadKey) === '1') return
 
     sessionStorage.setItem(reloadKey, '1')
@@ -47,20 +47,13 @@ export function setupPwa(): void {
     void checkForUpdate()
   })
 
-  const updateSW = registerSW({
-    immediate: true,
-    onRegisteredSW(_swUrl, currentRegistration) {
+  const descriptor = pwaRegistrationDescriptor(owner)
+  void navigator.serviceWorker.register(descriptor.scriptUrl, { scope: descriptor.scope })
+    .then((currentRegistration) => {
       registration = currentRegistration
       void checkForUpdate()
-    },
-    onNeedRefresh() {
-      void updateSW(true)
-    },
-    onOfflineReady() {
-      console.info('PWA offline cache is ready')
-    },
-    onRegisterError(error) {
+    })
+    .catch((error) => {
       console.error('PWA service worker registration failed', error)
-    },
-  })
+    })
 }
