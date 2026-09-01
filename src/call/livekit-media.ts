@@ -11,6 +11,10 @@ import {
 } from './audio-route'
 import { setPhoneAudioRoute } from './audio-route-control'
 import {
+  collectMicrophoneProcessingDiagnostics,
+  type MicrophoneProcessingDiagnostics,
+} from './diagnostics'
+import {
   clearNativeAndroidAudioRoute,
   hasNativeAndroidAudioRoute,
   setNativeAndroidAudioRoute,
@@ -186,6 +190,10 @@ export class LiveKitVoiceMedia {
   async setMuted(muted: boolean): Promise<void> {
     if (!this.room || !this.joined) return
     await this.room.localParticipant.setMicrophoneEnabled(!muted)
+  }
+
+  microphoneProcessingDiagnostics(): Readonly<MicrophoneProcessingDiagnostics> {
+    return collectMicrophoneProcessingDiagnostics(this.microphoneStream?.getAudioTracks()[0] ?? null)
   }
 
   canTogglePhoneSpeaker(): boolean {
