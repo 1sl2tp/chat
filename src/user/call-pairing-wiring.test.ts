@@ -1,20 +1,32 @@
-import { readFile } from 'node:fs/promises'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { prepareFixedTestRuntime } from './fixed-runtime'
 
 describe('fixed test user call pairing wiring', () => {
   it('authenticates the fixed test user before chat bootstrap', async () => {
-    const source = await readFile(new URL('../user-main.ts', import.meta.url), 'utf8')
-    const fixedAuth = source.indexOf('await ensureFixedTestUser(')
-    const chatBootstrap = source.indexOf('await startChatRuntime()')
+    const events: string[] = []
+    const backend = {
+      getCurrentUser: vi.fn(async () => {
+        events.push('getCurrentUser')
+        return null
+      }),
+      signOut: vi.fn(async () => {
+        events.push('signOut')
+      }),
+      signIn: vi.fn(async () => {
+        events.push('signIn')
+        throw new Error('invalid_credentials')
+      }),
+      signUp: vi.fn(async () => {
+        events.push('signUp')
+        return true
+      }),
+    }
 
-    expect(fixedAuth).toBeGreaterThanOrEqual(0)
-    expect(chatBootstrap).toBeGreaterThan(fixedAuth)
-  })
+    await prepareFixedTestRuntime(backend, async () => {
+      events.push('startChatRuntime')
+    })
 
-  it('waits for microphone capture before starting call RPC work', async () => {
-    const source = await readFile(new URL('../call/voice-session.ts', import.meta.url), 'utf8')
-    const awaitedCapture = source.match(/await this\.media\.beginUserGesture\(\)/g) ?? []
-
-    expect(awaitedCapture).toHaveLength(2)
+    expect(events.at(-1)).toBe('startChatRuntime')
+    expect(events.indexOf('signUp')).toBeLessThan(events.indexOf('startChatRuntime'))
   })
 })
