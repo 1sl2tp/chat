@@ -1,7 +1,5 @@
-import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-
-const source = readFileSync('supabase/functions/taphoaxyz-call-push/index.ts', 'utf8')
+import source from '../../supabase/functions/taphoaxyz-call-push/index.ts?raw'
 
 describe('taphoaxyz-call-push source contract', () => {
   it('supports an end-to-end readiness probe targeted to the current device', () => {
