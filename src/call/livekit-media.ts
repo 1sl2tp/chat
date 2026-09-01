@@ -9,10 +9,12 @@ import {
   resetCallAudioRoute,
   type CallNavigatorAudioSessionLike,
 } from './audio-route'
+import { setPhoneAudioRoute } from './audio-route-control'
 import {
-  reassertPhoneAudioRouteAfterPlayback,
-  setPhoneAudioRoute,
-} from './audio-route-control'
+  clearNativeAndroidAudioRoute,
+  hasNativeAndroidAudioRoute,
+  setNativeAndroidAudioRoute,
+} from './native-android-audio-route'
 import { defaultCallRouteForWeb } from './platform-audio-route'
 import { createOwnedRemoteAudio } from './remote-audio-owner'
 import {
@@ -122,8 +124,8 @@ export class LiveKitVoiceMedia {
       return
     }
 
-    // Capture must remain the first media operation on the user gesture. This
-    // is the proven iPhone path; audio routing is touched only after gUM wins.
+    // Capture remains the first media operation on the user gesture. Native or
+    // WebKit routing is touched only after getUserMedia has resolved.
     const capture = beginCallMicrophoneCapture({
       getUserMedia: (constraints) => navigator.mediaDevices.getUserMedia(constraints),
     })
@@ -136,13 +138,13 @@ export class LiveKitVoiceMedia {
       }
       this.microphoneStream = stream
       this.speakerEnabled = this.defaultSpeakerSelected()
-      this.applySelectedPhoneRoute()
+      void this.applySelectedPhoneRoute()
     }).catch(() => undefined)
   }
 
   async startAudio(): Promise<void> {
     const room = this.ensureRoom()
-    this.applySelectedPhoneRoute()
+    await this.applySelectedPhoneRoute()
     await room.startAudio()
     await this.replayAttachedAudio()
   }
@@ -158,7 +160,7 @@ export class LiveKitVoiceMedia {
     }
     this.microphoneStream = microphoneStream
     this.speakerEnabled = this.defaultSpeakerSelected()
-    this.applySelectedPhoneRoute()
+    await this.applySelectedPhoneRoute()
 
     const livekit = sdk()
     const room = this.ensureRoom()
@@ -187,10 +189,11 @@ export class LiveKitVoiceMedia {
   }
 
   canTogglePhoneSpeaker(): boolean {
-    return Boolean(callNavigator().audioSession)
+    return hasNativeAndroidAudioRoute() || Boolean(callNavigator().audioSession)
   }
 
   defaultSpeakerSelected(): boolean {
+    if (hasNativeAndroidAudioRoute()) return false
     return defaultCallRouteForWeb(navigator.userAgent) === 'speaker'
   }
 
@@ -199,10 +202,14 @@ export class LiveKitVoiceMedia {
   }
 
   async setSpeakerEnabled(enabled: boolean): Promise<boolean> {
-    const result = setPhoneAudioRoute(callNavigator(), enabled ? 'speaker' : 'receiver')
-    if (!result.ok) return false
-
+    const previous = this.speakerEnabled
     this.speakerEnabled = enabled
+    const changed = await this.applySelectedPhoneRoute()
+    if (!changed) {
+      this.speakerEnabled = previous
+      return false
+    }
+
     await this.replayAttachedAudio()
     return true
   }
@@ -239,6 +246,7 @@ export class LiveKitVoiceMedia {
     this.room?.disconnect(true)
     this.room = null
     this.stopMicrophoneCapture()
+    void clearNativeAndroidAudioRoute()
     resetCallAudioRoute(callNavigator())
     this.removeAttached()
   }
@@ -261,9 +269,6 @@ export class LiveKitVoiceMedia {
       if (track.kind !== livekit.Track.Kind.Audio || !track.mediaStreamTrack) return
       this.callbacks.onRemoteAudioSubscribed()
 
-      // LiveKit owns transport only. The app owns the audio element/srcObject
-      // so SDK attachment cannot silently pick a media-playback route for us.
-      this.applySelectedPhoneRoute()
       const element = createOwnedRemoteAudio(track.mediaStreamTrack)
       element.style.position = 'fixed'
       element.style.width = '1px'
@@ -301,16 +306,19 @@ export class LiveKitVoiceMedia {
     return room
   }
 
-  private applySelectedPhoneRoute(): void {
-    setPhoneAudioRoute(callNavigator(), this.speakerEnabled ? 'speaker' : 'receiver')
+  private async applySelectedPhoneRoute(): Promise<boolean> {
+    const route = this.speakerEnabled ? 'speaker' : 'receiver'
+    if (hasNativeAndroidAudioRoute()) {
+      return setNativeAndroidAudioRoute(route)
+    }
+    return setPhoneAudioRoute(callNavigator(), route).ok
   }
 
   private async playElementOnSelectedRoute(element: HTMLMediaElement): Promise<void> {
-    // Apply the selected route before the first frame is rendered. For iPhone
-    // this means play-and-record/receiver unless the user explicitly enabled
-    // speaker mode. Android Chrome remains on its browser-selected speakerphone
-    // route because mobile Chrome does not expose direct earpiece selection.
-    this.applySelectedPhoneRoute()
+    // Apply/confirm the selected route before the first remote frame. In a
+    // packaged Android build the native plugin verifies AudioManager's current
+    // communication device; on iPhone WebKit verifies AudioSession state.
+    await this.applySelectedPhoneRoute()
 
     const first = await playRemoteAudioElement(element)
     if (first !== 'playing') {
@@ -318,8 +326,10 @@ export class LiveKitVoiceMedia {
       return
     }
 
-    const route = reassertPhoneAudioRouteAfterPlayback(callNavigator(), this.speakerEnabled)
-    if (route.ok) {
+    // Remote playback itself can cause platform route recomputation. Reassert
+    // and replay only when the platform confirms the requested route.
+    const routeConfirmed = await this.applySelectedPhoneRoute()
+    if (routeConfirmed) {
       element.pause()
       const replay = await playRemoteAudioElement(element)
       if (replay !== 'playing') {
