@@ -19,19 +19,32 @@ describe('CallPushRegistration', () => {
   let requestPermission: ReturnType<typeof vi.fn>
   let getSubscription: ReturnType<typeof vi.fn>
   let pushSubscribe: ReturnType<typeof vi.fn>
+  let unsubscribe: ReturnType<typeof vi.fn>
   let showLocalNotification: ReturnType<typeof vi.fn>
   let invoke: ReturnType<typeof vi.fn>
   let rpc: ReturnType<typeof vi.fn>
   let subscription: CallPushSubscriptionLike
+  let replacementSubscription: CallPushSubscriptionLike
 
   beforeEach(() => {
     permission = 'default'
     requestPermission = vi.fn(async () => 'granted' as NotificationPermission)
+    unsubscribe = vi.fn(async () => true)
     subscription = {
       endpoint: 'https://push.example/subscription',
+      unsubscribe,
       getKey(name: string) {
         if (name === 'p256dh') return bytes('p256dh-key')
         if (name === 'auth') return bytes('auth-key')
+        return null
+      },
+    }
+    replacementSubscription = {
+      endpoint: 'https://push.example/replacement',
+      unsubscribe: vi.fn(async () => true),
+      getKey(name: string) {
+        if (name === 'p256dh') return bytes('replacement-p256dh-key')
+        if (name === 'auth') return bytes('replacement-auth-key')
         return null
       },
     }
@@ -54,6 +67,7 @@ describe('CallPushRegistration', () => {
     const browser = {
       supported: () => true,
       iosHomeScreenRequired: () => false,
+      android: () => false,
       permission: () => permission,
       requestPermission: requestPermission as unknown as CallPushBrowser['requestPermission'],
       ready: async () => ({ pushManager }),
@@ -106,6 +120,7 @@ describe('CallPushRegistration', () => {
     const registration = createRegistration()
     await registration.sync()
 
+    expect(unsubscribe).not.toHaveBeenCalled()
     expect(pushSubscribe).not.toHaveBeenCalled()
     expect(rpc).toHaveBeenCalledOnce()
     expect(invoke).toHaveBeenCalledTimes(1)
@@ -119,10 +134,31 @@ describe('CallPushRegistration', () => {
     await registration.sync()
     await registration.testFromUserGesture()
 
+    expect(unsubscribe).not.toHaveBeenCalled()
     expect(invoke).toHaveBeenLastCalledWith('taphoaxyz-call-push', {
       body: { action: 'test', device_id: DEVICE_ID },
     })
     expect(registration.getState()).toBe('enabled')
+  })
+
+  it('rotates an existing Android subscription before the remote push probe', async () => {
+    permission = 'granted'
+    getSubscription.mockResolvedValue(subscription)
+    pushSubscribe.mockResolvedValue(replacementSubscription)
+    const registration = createRegistration({ android: () => true })
+    await registration.sync()
+    await registration.testFromUserGesture()
+
+    expect(unsubscribe).toHaveBeenCalledOnce()
+    expect(pushSubscribe).toHaveBeenCalledTimes(1)
+    expect(rpc).toHaveBeenLastCalledWith('chat_upsert_call_push_subscription', expect.objectContaining({
+      p_device_id: DEVICE_ID,
+      p_endpoint: replacementSubscription.endpoint,
+    }))
+    const upsertOrder = rpc.mock.invocationCallOrder.at(-1) ?? 0
+    const testInvokeIndex = invoke.mock.calls.findLastIndex(([, options]) => options?.body?.action === 'test')
+    const testInvokeOrder = invoke.mock.invocationCallOrder[testInvokeIndex]
+    expect(upsertOrder).toBeLessThan(testInvokeOrder)
   })
 
   it('shows a local notification diagnostic before the remote push probe', async () => {
