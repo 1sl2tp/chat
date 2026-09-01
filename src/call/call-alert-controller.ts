@@ -68,14 +68,33 @@ export class CallAlertController {
   }
 }
 
-class BrowserCallAlertAudio implements CallAlertAudio {
+export class BrowserCallAlertAudio implements CallAlertAudio {
   private context: AudioContext | null = null
   private timers = new Set<number>()
   private generation = 0
 
   arm(): void {
     const context = this.ensureContext()
-    if (context?.state === 'suspended') void context.resume().catch(() => undefined)
+    if (!context) return
+    if (context.state === 'suspended') void context.resume().catch(() => undefined)
+
+    // A real, silent start during an explicit user gesture is more reliable on
+    // mobile browsers than resume() alone for allowing a later incoming ring.
+    try {
+      const oscillator = context.createOscillator()
+      const gain = context.createGain()
+      gain.gain.value = 0
+      oscillator.connect(gain)
+      gain.connect(context.destination)
+      oscillator.start()
+      oscillator.stop(context.currentTime + 0.01)
+      oscillator.addEventListener('ended', () => {
+        oscillator.disconnect()
+        gain.disconnect()
+      }, { once: true })
+    } catch {
+      // Priming is best effort and must never block chat/call setup.
+    }
   }
 
   startIncoming(): void {
