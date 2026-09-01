@@ -17,6 +17,15 @@ export function beginCallMicrophoneCapture(
   return deps.getUserMedia({ audio: true, video: false })
 }
 
+export async function waitForCapturedMicrophone(
+  stream: MediaStream | null,
+  pending: Promise<MediaStream> | null,
+): Promise<MediaStream> {
+  if (stream) return stream
+  if (pending) return pending
+  throw new Error('microphone_not_prepared')
+}
+
 export async function publishCapturedMicrophone(
   stream: MediaStream,
   microphoneSource: string,

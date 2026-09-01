@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { beginCallMicrophoneCapture, publishCapturedMicrophone } from './user-gesture-mic'
+import {
+  beginCallMicrophoneCapture,
+  publishCapturedMicrophone,
+  waitForCapturedMicrophone,
+} from './user-gesture-mic'
 
 describe('call microphone capture', () => {
   it('starts getUserMedia synchronously with audio only', async () => {
@@ -19,6 +23,21 @@ describe('call microphone capture', () => {
     const stream = {} as MediaStream
     resolveStream(stream)
     await expect(pending).resolves.toBe(stream)
+  })
+
+  it('waits for the pending user-gesture capture before LiveKit continues', async () => {
+    let resolveStream!: (stream: MediaStream) => void
+    const pending = new Promise<MediaStream>((resolve) => { resolveStream = resolve })
+    const stream = {} as MediaStream
+
+    const result = waitForCapturedMicrophone(null, pending)
+    resolveStream(stream)
+
+    await expect(result).resolves.toBe(stream)
+  })
+
+  it('rejects when no user-gesture microphone capture exists', async () => {
+    await expect(waitForCapturedMicrophone(null, null)).rejects.toThrow('microphone_not_prepared')
   })
 
   it('publishes the exact captured audio track as microphone source', async () => {

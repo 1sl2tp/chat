@@ -5,7 +5,11 @@ import {
   liveKitRoomName,
 } from './livekit-config'
 import { playRemoteAudioElement } from './audio-playback'
-import { beginCallMicrophoneCapture, publishCapturedMicrophone } from './user-gesture-mic'
+import {
+  beginCallMicrophoneCapture,
+  publishCapturedMicrophone,
+  waitForCapturedMicrophone,
+} from './user-gesture-mic'
 
 export interface LiveKitJoinContext {
   callId: string
@@ -136,8 +140,7 @@ export class LiveKitVoiceMedia {
     if (this.joined) return
 
     const pendingCapture = this.microphoneCapture
-    const microphoneStream = this.microphoneStream ?? (pendingCapture ? await pendingCapture : null)
-    if (!microphoneStream) throw new Error('microphone_not_prepared')
+    const microphoneStream = await waitForCapturedMicrophone(this.microphoneStream, pendingCapture)
     if (this.microphoneCapture !== pendingCapture && !this.microphoneStream) {
       for (const track of microphoneStream.getTracks()) track.stop()
       throw new Error('microphone_capture_cancelled')
