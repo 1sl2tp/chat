@@ -24,6 +24,42 @@ export interface CallPushBrowser {
   showLocalNotification(title: string, options: NotificationOptions): Promise<void>
 }
 
+export function callPushBrowserForRegistration(registration: ServiceWorkerRegistration): CallPushBrowser {
+  return {
+    supported() {
+      return typeof navigator !== 'undefined'
+        && typeof Notification !== 'undefined'
+        && typeof PushManager !== 'undefined'
+    },
+    iosHomeScreenRequired() {
+      if (typeof navigator === 'undefined' || typeof window === 'undefined') return false
+      const ios = /iPad|iPhone|iPod/u.test(navigator.userAgent)
+        || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+      if (!ios) return false
+      const legacyStandalone = (navigator as Navigator & { standalone?: boolean }).standalone === true
+      const displayStandalone = window.matchMedia?.('(display-mode: standalone)').matches === true
+      return !legacyStandalone && !displayStandalone
+    },
+    android() {
+      return typeof navigator !== 'undefined' && /Android/u.test(navigator.userAgent)
+    },
+    permission() {
+      return Notification.permission
+    },
+    requestPermission() {
+      return Notification.requestPermission()
+    },
+    async ready() {
+      return {
+        pushManager: registration.pushManager as unknown as CallPushManagerLike,
+      }
+    },
+    async showLocalNotification(title, options) {
+      await registration.showNotification(title, options)
+    },
+  }
+}
+
 export class CallPushRegistration {
   private state: CallPushState = 'unsupported'
   private issue: CallPushIssue = null
@@ -33,7 +69,7 @@ export class CallPushRegistration {
   private readonly deviceId: string
   private readonly browser: CallPushBrowser
 
-  constructor(client: SupabaseClient, deviceId: string, browser: CallPushBrowser = defaultCallPushBrowser()) {
+  constructor(client: SupabaseClient, deviceId: string, browser: CallPushBrowser) {
     this.client = client
     this.deviceId = deviceId
     this.browser = browser
@@ -197,45 +233,6 @@ export class CallPushRegistration {
     this.issue = issue
     this.detail = detail
     for (const listener of this.listeners) listener(state)
-  }
-}
-
-function defaultCallPushBrowser(): CallPushBrowser {
-  return {
-    supported() {
-      return typeof navigator !== 'undefined'
-        && 'serviceWorker' in navigator
-        && typeof Notification !== 'undefined'
-        && typeof PushManager !== 'undefined'
-    },
-    iosHomeScreenRequired() {
-      if (typeof navigator === 'undefined' || typeof window === 'undefined') return false
-      const ios = /iPad|iPhone|iPod/u.test(navigator.userAgent)
-        || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
-      if (!ios) return false
-      const legacyStandalone = (navigator as Navigator & { standalone?: boolean }).standalone === true
-      const displayStandalone = window.matchMedia?.('(display-mode: standalone)').matches === true
-      return !legacyStandalone && !displayStandalone
-    },
-    android() {
-      return typeof navigator !== 'undefined' && /Android/u.test(navigator.userAgent)
-    },
-    permission() {
-      return Notification.permission
-    },
-    requestPermission() {
-      return Notification.requestPermission()
-    },
-    async ready() {
-      const registration = await navigator.serviceWorker.ready
-      return {
-        pushManager: registration.pushManager as unknown as CallPushManagerLike,
-      }
-    },
-    async showLocalNotification(title, options) {
-      const registration = await navigator.serviceWorker.ready
-      await registration.showNotification(title, options)
-    },
   }
 }
 
