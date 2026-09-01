@@ -41,6 +41,8 @@ export interface LiveKitJoinCredentials {
 export interface LiveKitMediaCallbacks {
   onPeerConnected(): void
   onPeerDisconnected(): void
+  onReconnecting(): void
+  onReconnected(): void
   onRemoteAudioSubscribed(): void
   onRemoteAudioPlaying(): void
   onAudioPlaybackBlocked(): void
@@ -97,6 +99,14 @@ export class LiveKitVoiceMedia {
 
   async startAudio(): Promise<void> {
     const room = this.ensureRoom()
+    await this.applySelectedPhoneRoute()
+    await room.startAudio()
+    await this.replayAttachedAudio()
+  }
+
+  async resumeAfterForeground(): Promise<void> {
+    const room = this.room
+    if (!room || !this.joined) return
     await this.applySelectedPhoneRoute()
     await room.startAudio()
     await this.replayAttachedAudio()
@@ -239,10 +249,8 @@ export class LiveKitVoiceMedia {
       if (!room.canPlaybackAudio) this.callbacks.onAudioPlaybackBlocked()
     })
     room.on(RoomEvent.Disconnected, () => this.callbacks.onPeerDisconnected())
-    room.on(RoomEvent.Reconnecting, () => undefined)
-    room.on(RoomEvent.Reconnected, () => {
-      if (room.remoteParticipants.size > 0) this.callbacks.onPeerConnected()
-    })
+    room.on(RoomEvent.Reconnecting, () => this.callbacks.onReconnecting())
+    room.on(RoomEvent.Reconnected, () => this.callbacks.onReconnected())
 
     this.room = room
     return room
