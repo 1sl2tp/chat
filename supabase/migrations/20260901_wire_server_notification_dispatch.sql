@@ -1,0 +1,1 @@
+-- RED scaffold for canonical Chat/Call notification wiring.
