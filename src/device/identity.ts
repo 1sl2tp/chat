@@ -13,6 +13,14 @@ const DEVICE_STORAGE_KEYS: Record<DeviceOwner, string> = {
   admin: ADMIN_DEVICE_KEY_STORAGE,
 }
 
+export function deviceOwnerForPath(pathname: string): Exclude<DeviceOwner, 'guest'> {
+  return pathname === '/admin' || pathname.startsWith('/admin/') ? 'admin' : 'user2'
+}
+
+function runtimeDeviceOwner(): Exclude<DeviceOwner, 'guest'> {
+  return typeof location === 'undefined' ? 'user2' : deviceOwnerForPath(location.pathname)
+}
+
 function defaultStorage(owner: DeviceOwner): DeviceStorage {
   return owner === 'guest' ? sessionStorage : localStorage
 }
@@ -21,10 +29,10 @@ export function getOrCreateDeviceKey(): string
 export function getOrCreateDeviceKey(storage: DeviceStorage): string
 export function getOrCreateDeviceKey(owner: DeviceOwner, storage?: DeviceStorage): string
 export function getOrCreateDeviceKey(
-  ownerOrStorage: DeviceOwner | DeviceStorage = 'user2',
+  ownerOrStorage: DeviceOwner | DeviceStorage = runtimeDeviceOwner(),
   explicitStorage?: DeviceStorage,
 ): string {
-  const owner: DeviceOwner = typeof ownerOrStorage === 'string' ? ownerOrStorage : 'user2'
+  const owner: DeviceOwner = typeof ownerOrStorage === 'string' ? ownerOrStorage : runtimeDeviceOwner()
   const storage = typeof ownerOrStorage === 'string'
     ? explicitStorage ?? defaultStorage(owner)
     : ownerOrStorage
