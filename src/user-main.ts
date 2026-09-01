@@ -4,8 +4,8 @@ import { getChatMessageState, subscribeChatMessages } from './chat/message-runti
 import { sendSupportText, startChatRuntime, stopChatRuntime } from './chat/runtime'
 import { getChatRuntimeState, subscribeChatRuntime } from './chat/store'
 import { getOrCreateDeviceKey } from './device/identity'
-import { CallPushRegistration } from './notifications/call-push-registration'
-import { clearCurrentPushSubscription } from './notifications/push-cleanup'
+import { CallPushRegistration, callPushBrowserForRegistration } from './notifications/call-push-registration'
+import { clearCurrentPushSubscription, pushCleanupBrowserForRegistration } from './notifications/push-cleanup'
 import { notificationButtonPresentation } from './notifications/presentation'
 import { installNotificationContextResponder } from './notifications/window-context'
 import { setupPwa } from './pwa'
@@ -21,6 +21,7 @@ import './user.css'
 const rootElement = document.querySelector<HTMLDivElement>('#app')
 if (!rootElement) throw new Error('Missing #app root')
 const root: HTMLDivElement = rootElement
+const userPwaRegistrationPromise = setupPwa('user')
 
 root.innerHTML = `
   <main class="user-app">
@@ -146,18 +147,25 @@ function startUser2Capabilities(): void {
   callSession.start()
 }
 
-function setupCallPushRegistration(): void {
+async function setupCallPushRegistration(): Promise<void> {
   if (!capabilitiesForRootMode(rootMode).push) {
     clearCallPushRegistration()
     return
   }
+
+  const pwaRegistration = await userPwaRegistrationPromise
+  if (!pwaRegistration || rootMode !== 'user2') return
 
   const deviceId = currentCallContext()?.deviceId ?? ''
   if (!deviceId || deviceId === callPushDeviceId) return
 
   clearCallPushRegistration()
   callPushDeviceId = deviceId
-  callPushRegistration = new CallPushRegistration(userSupabase, deviceId)
+  callPushRegistration = new CallPushRegistration(
+    userSupabase,
+    deviceId,
+    callPushBrowserForRegistration(pwaRegistration),
+  )
   disposeCallPushState = callPushRegistration.subscribe(render)
   void callPushRegistration.sync()
 }
@@ -235,7 +243,10 @@ async function endGuestSession(): Promise<void> {
 async function startGuestMode(): Promise<void> {
   rootMode = 'guest'
   stopUser2Capabilities()
-  await clearCurrentPushSubscription()
+  const pwaRegistration = await userPwaRegistrationPromise
+  if (pwaRegistration) {
+    await clearCurrentPushSubscription(pushCleanupBrowserForRegistration(pwaRegistration))
+  }
   await startChatRuntime({
     client: guestSupabase,
     deviceKey: getOrCreateDeviceKey('guest'),
@@ -250,7 +261,7 @@ async function startUser2Mode(): Promise<void> {
     deviceKey: getOrCreateDeviceKey('user2'),
   })
   startUser2Capabilities()
-  setupCallPushRegistration()
+  await setupCallPushRegistration()
   render()
 }
 
@@ -381,13 +392,12 @@ loginForm.addEventListener('submit', async (event) => {
 subscribeChatRuntime(() => {
   if (rootMode === 'user2') {
     startUser2Capabilities()
-    setupCallPushRegistration()
+    void setupCallPushRegistration()
   }
   render()
 })
 subscribeChatMessages(render)
 setupViewportController()
-setupPwa('user')
 installNotificationContextResponder(() => getChatMessageState().conversationId || null)
 render()
 
