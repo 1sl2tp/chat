@@ -26,9 +26,11 @@ describe('taphoaxyz-call-push source contract', () => {
     expect(sendToProfileSource).not.toContain('.from("chat_devices")')
   })
 
-  it('preserves rolling legacy Chat and Call actions temporarily', () => {
-    expect(source).toContain('action === "send_message"')
-    expect(source).toContain('incoming_call')
-    expect(source).toContain('call_id')
+  it('exposes only config, exact-device test, and internal dispatch in the final sender', () => {
+    expect(source).not.toContain('action === "send_message"')
+    expect(source).not.toContain('action !== "send"')
+    expect(source).toContain('dispatch_event')
+    expect(source).toContain('action === "config"')
+    expect(source).toContain('action === "test"')
   })
 })
