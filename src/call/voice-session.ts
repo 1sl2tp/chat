@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { sendIncomingCallPush } from '../notifications/call-push-send'
 import { CallAlertController } from './call-alert-controller'
-import { fetchLiveKitCredentials } from './livekit-credentials'
+import { fetchLiveKitCredentials, warmLiveKitTokenFunction } from './livekit-credentials'
 import { LiveKitVoiceMedia } from './livekit-media'
 import {
   diagnosticPhaseForEvent,
@@ -138,6 +138,7 @@ export class VoiceCallSession {
   start(): void {
     if (this.started) return
     this.started = true
+    void warmLiveKitTokenFunction(this.client)
     void this.pollActiveCalls()
     this.activeTimer = window.setInterval(() => void this.pollActiveCalls(), 1000)
     document.addEventListener('visibilitychange', this.handleVisibilityChange)
@@ -357,6 +358,7 @@ export class VoiceCallSession {
     if (!this.state.callId) {
       const incoming = rows.find((row) => row.id !== this.decliningCallId && row.callee_profile_id === context.profileId && row.state === 'ringing')
       if (incoming) {
+        void warmLiveKitTokenFunction(this.client)
         this.backendState = incoming.state
         this.publish({
           phase: 'incoming',

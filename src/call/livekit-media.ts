@@ -54,6 +54,16 @@ function callNavigator(): CallNavigatorAudioSessionLike {
   return navigator as unknown as CallNavigatorAudioSessionLike
 }
 
+export async function connectRoomWhileCapturing<T>(
+  waitForMicrophone: () => Promise<T>,
+  connectRoom: () => Promise<void>,
+): Promise<T> {
+  const microphoneTask = waitForMicrophone()
+  const roomTask = connectRoom()
+  const [microphone] = await Promise.all([microphoneTask, roomTask])
+  return microphone
+}
+
 export class LiveKitVoiceMedia {
   private room: Room | null = null
   private readonly attached = new Set<HTMLMediaElement>()
@@ -116,7 +126,17 @@ export class LiveKitVoiceMedia {
     if (this.joined) return
 
     const pendingCapture = this.microphoneCapture
-    const microphoneStream = await waitForCapturedMicrophone(this.microphoneStream, pendingCapture)
+    const room = this.ensureRoom()
+    assertLiveKitServerUrl(credentials.serverUrl)
+
+    // getUserMedia has already been invoked by beginUserGesture(). Waiting for
+    // that capture and connecting the room can therefore proceed concurrently
+    // without violating the iPhone first-media-operation contract.
+    const microphoneStream = await connectRoomWhileCapturing(
+      () => waitForCapturedMicrophone(this.microphoneStream, pendingCapture),
+      () => room.connect(credentials.serverUrl, credentials.participantToken),
+    )
+
     if (this.microphoneCapture !== pendingCapture && !this.microphoneStream) {
       for (const track of microphoneStream.getTracks()) track.stop()
       throw new Error('microphone_capture_cancelled')
@@ -125,9 +145,6 @@ export class LiveKitVoiceMedia {
     this.speakerEnabled = this.defaultSpeakerSelected()
     await this.applySelectedPhoneRoute()
 
-    const room = this.ensureRoom()
-    assertLiveKitServerUrl(credentials.serverUrl)
-    await room.connect(credentials.serverUrl, credentials.participantToken)
     await publishCapturedMicrophone(
       microphoneStream,
       Track.Source.Microphone,
@@ -243,7 +260,12 @@ export class LiveKitVoiceMedia {
       element.remove()
     })
 
-    room.on(RoomEvent.ParticipantConnected, () => this.callbacks.onPeerConnected())
+    room.on(RoomEvent.ParticipantConnected, () => {
+      // A participant can arrive while local microphone capture is still being
+      // resolved. Do not mark the call active until local publish is complete;
+      // join() will re-check remoteParticipants immediately after that point.
+      if (this.joined) this.callbacks.onPeerConnected()
+    })
     room.on(RoomEvent.ParticipantDisconnected, () => this.callbacks.onPeerDisconnected())
     room.on(RoomEvent.AudioPlaybackStatusChanged, () => {
       if (!room.canPlaybackAudio) this.callbacks.onAudioPlaybackBlocked()

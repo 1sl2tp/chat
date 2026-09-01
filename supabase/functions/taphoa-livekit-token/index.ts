@@ -7,6 +7,7 @@ const LIVEKIT_SERVER_URL = 'wss://taphoa-chat-dvo9mem2.livekit.cloud'
 const corsHeaders = {
   ...supabaseCorsHeaders,
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Max-Age': '600',
 }
 
 function json(status: number, body: Record<string, unknown>): Response {
@@ -39,10 +40,17 @@ Deno.serve(async (req: Request) => {
     const profileResult = await client.rpc('chat_current_profile_id')
     if (profileResult.error || !profileResult.data) return json(401, { error: 'unauthorized' })
 
+    const body = await req.json().catch(() => null) as {
+      action?: unknown
+      callId?: unknown
+      deviceId?: unknown
+    } | null
+
+    if (body?.action === 'warm') return json(200, { ok: true })
+
     const callsResult = await client.rpc('chat_get_active_voice_calls')
     if (callsResult.error || !Array.isArray(callsResult.data)) return json(403, { error: 'forbidden' })
 
-    const body = await req.json().catch(() => null) as { callId?: unknown; deviceId?: unknown } | null
     if (!body || typeof body.callId !== 'string' || typeof body.deviceId !== 'string') {
       return json(400, { error: 'invalid_request' })
     }
