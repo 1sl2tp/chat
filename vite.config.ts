@@ -1,6 +1,6 @@
 import { defineConfig } from 'vitest/config'
 import { VitePWA } from 'vite-plugin-pwa'
-import { APP_BASE_PATH, PWA_APP_ID } from './src/deployment.js'
+import { APP_BASE_PATH } from './src/deployment.js'
 
 const buildId = process.env.VITE_BUILD_ID ?? process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.GITHUB_SHA ?? 'local'
 const includeDiagnostics = process.env.VITE_INCLUDE_DIAGNOSTICS === 'true'
@@ -33,23 +33,12 @@ export default defineConfig({
       filename: 'sw.ts',
       registerType: 'autoUpdate',
       injectRegister: false,
-      includeAssets: ['icons/apple-touch-icon.png'],
-      manifest: {
-        id: PWA_APP_ID,
-        name: 'Chat',
-        short_name: 'Chat',
-        description: 'Chat Web App',
-        start_url: './',
-        scope: './',
-        display: 'standalone',
-        background_color: '#ffffff',
-        theme_color: '#111111',
-        icons: [
-          { src: 'icons/pwa-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-          { src: 'icons/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-          { src: 'icons/maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
-        ]
-      }
+      includeAssets: [
+        'icons/apple-touch-icon.png',
+        'manifest.webmanifest',
+        'admin/manifest.webmanifest',
+      ],
+      manifest: false,
     })
   ],
   test: {
