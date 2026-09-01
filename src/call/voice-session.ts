@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { fetchLiveKitCredentials } from './livekit-credentials'
 import { LiveKitVoiceMedia } from './livekit-media'
 import {
   diagnosticPhaseForEvent,
@@ -334,12 +335,8 @@ export class VoiceCallSession {
 
   private async joinLiveKit(callId: string, context: VoiceCallContext): Promise<void> {
     this.publish({ phase: this.backendState === 'ringing' ? this.state.phase : 'connecting' })
-    await this.media.join({
-      callId,
-      profileId: context.profileId,
-      deviceId: context.deviceId,
-      displayName: context.profileId.slice(0, 8),
-    })
+    const credentials = await fetchLiveKitCredentials(this.client, callId, context.deviceId)
+    await this.media.join(credentials)
     this.publish({
       speakerAvailable: this.media.canTogglePhoneSpeaker() || this.media.canChooseAudioOutput(),
       speakerSelected: this.media.defaultSpeakerSelected(),
