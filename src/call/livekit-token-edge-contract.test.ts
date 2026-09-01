@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import tokenFunctionSource from '../../supabase/functions/taphoa-livekit-token/index.ts?raw'
-import sessionSource from './voice-session.ts?raw'
+import credentialsSource from './livekit-credentials.ts?raw'
 
 describe('LiveKit token browser boundary', () => {
   it('uses the Supabase SDK CORS helper instead of a frozen header allow-list', () => {
@@ -8,7 +8,9 @@ describe('LiveKit token browser boundary', () => {
     expect(tokenFunctionSource).not.toContain("'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'")
   })
 
-  it('records the actual session failure reason before collapsing to the UI error state', () => {
-    expect(sessionSource).toContain("void this.reportMediaState('error', { reason: 'session_error', error: reason })")
+  it('records the actual credential failure reason before surfacing the call error', () => {
+    expect(credentialsSource).toContain("reason: 'livekit_credentials_error'")
+    expect(credentialsSource).toContain("p_phase: 'error'")
+    expect(credentialsSource).toContain("chat_report_voice_media_state")
   })
 })
