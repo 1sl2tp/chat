@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { prepareFixedTestRuntime } from './fixed-runtime'
 
 describe('fixed test user call pairing wiring', () => {
-  it('authenticates the fixed test user before chat bootstrap', async () => {
+  it('creates one temporary anonymous profile only to upgrade it into fixed User 2', async () => {
     const events: string[] = []
     const backend = {
       getCurrentUser: vi.fn(async () => {
@@ -16,9 +16,14 @@ describe('fixed test user call pairing wiring', () => {
         events.push('signIn')
         throw new Error('invalid_credentials')
       }),
-      signUp: vi.fn(async () => {
-        events.push('signUp')
-        return true
+      signInAnonymously: vi.fn(async () => {
+        events.push('signInAnonymously')
+      }),
+      upgradeCurrentUser: vi.fn(async () => {
+        events.push('upgradeCurrentUser')
+      }),
+      refreshSession: vi.fn(async () => {
+        events.push('refreshSession')
       }),
     }
 
@@ -26,7 +31,13 @@ describe('fixed test user call pairing wiring', () => {
       events.push('startChatRuntime')
     })
 
-    expect(events.at(-1)).toBe('startChatRuntime')
-    expect(events.indexOf('signUp')).toBeLessThan(events.indexOf('startChatRuntime'))
+    expect(events).toEqual([
+      'getCurrentUser',
+      'signIn',
+      'signInAnonymously',
+      'startChatRuntime',
+      'upgradeCurrentUser',
+      'refreshSession',
+    ])
   })
 })
