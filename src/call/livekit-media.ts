@@ -95,21 +95,30 @@ export class LiveKitVoiceMedia {
     this.callbacks = callbacks
   }
 
-  async beginUserGesture(): Promise<void> {
-    if (!this.microphoneStream) {
-      if (!navigator.mediaDevices?.getUserMedia) throw new Error('microphone_capture_unsupported')
-      if (!this.microphoneCapture) {
-        this.microphoneCapture = beginCallMicrophoneCapture({
-          getUserMedia: (constraints) => navigator.mediaDevices.getUserMedia(constraints),
-        })
-      }
-      this.microphoneStream = await this.microphoneCapture
+  beginUserGesture(): void {
+    if (this.microphoneStream || this.microphoneCapture) return
+    if (!navigator.mediaDevices?.getUserMedia) {
+      this.microphoneCapture = Promise.reject(new Error('microphone_capture_unsupported'))
+      void this.microphoneCapture.catch(() => undefined)
+      return
     }
 
-    // Only touch LiveKit playback after iOS has returned a real microphone stream.
-    // This preserves the working order proven by /mic-test/: gUM first, everything else second.
-    const room = this.ensureRoom()
-    void room.startAudio().catch(() => undefined)
+    // This must be the first media operation in the user's tap. On iPhone the
+    // proven working path is: getUserMedia resolves first, then LiveKit/audio work.
+    const capture = beginCallMicrophoneCapture({
+      getUserMedia: (constraints) => navigator.mediaDevices.getUserMedia(constraints),
+    })
+    this.microphoneCapture = capture
+
+    void capture.then((stream) => {
+      if (this.microphoneCapture !== capture) {
+        for (const track of stream.getTracks()) track.stop()
+        return
+      }
+      this.microphoneStream = stream
+      const room = this.ensureRoom()
+      void room.startAudio().catch(() => undefined)
+    }).catch(() => undefined)
   }
 
   async startAudio(): Promise<void> {
@@ -125,11 +134,20 @@ export class LiveKitVoiceMedia {
 
   async join(context: LiveKitJoinContext): Promise<void> {
     if (this.joined) return
+
+    const pendingCapture = this.microphoneCapture
+    const microphoneStream = this.microphoneStream ?? (pendingCapture ? await pendingCapture : null)
+    if (!microphoneStream) throw new Error('microphone_not_prepared')
+    if (this.microphoneCapture !== pendingCapture && !this.microphoneStream) {
+      for (const track of microphoneStream.getTracks()) track.stop()
+      throw new Error('microphone_capture_cancelled')
+    }
+    this.microphoneStream = microphoneStream
+
+    // Only after the working iPhone mic stream exists may LiveKit be created,
+    // connected, or allowed to touch playback/capture state.
     const livekit = sdk()
     const room = this.ensureRoom()
-    const microphoneStream = this.microphoneStream
-    if (!microphoneStream) throw new Error('microphone_not_prepared')
-
     const source = livekit.TokenSource.developmentTokenServer(LIVEKIT_TOKEN_SERVER_ID)
     const credentials = await source.fetch({
       roomName: liveKitRoomName(context.callId),
