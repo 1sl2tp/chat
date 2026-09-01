@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 export type CallPushState = 'unsupported' | 'prompt' | 'enabled' | 'denied' | 'error'
+export type CallPushIssue = 'ios_home_screen_required' | 'unsupported' | 'permission_denied' | 'registration_failed' | 'delivery_failed' | null
 
 export interface CallPushSubscriptionLike {
   endpoint: string
@@ -14,6 +15,7 @@ export interface CallPushManagerLike {
 
 export interface CallPushBrowser {
   supported(): boolean
+  iosHomeScreenRequired(): boolean
   permission(): NotificationPermission
   requestPermission(): Promise<NotificationPermission>
   ready(): Promise<{ pushManager: CallPushManagerLike }>
@@ -21,6 +23,8 @@ export interface CallPushBrowser {
 
 export class CallPushRegistration {
   private state: CallPushState = 'unsupported'
+  private issue: CallPushIssue = null
+  private detail = ''
   private readonly listeners = new Set<(state: CallPushState) => void>()
   private readonly client: SupabaseClient
   private readonly deviceId: string
@@ -36,6 +40,14 @@ export class CallPushRegistration {
     return this.state
   }
 
+  getIssue(): CallPushIssue {
+    return this.issue
+  }
+
+  getDetail(): string {
+    return this.detail
+  }
+
   subscribe(listener: (state: CallPushState) => void): () => void {
     this.listeners.add(listener)
     listener(this.state)
@@ -43,14 +55,18 @@ export class CallPushRegistration {
   }
 
   async sync(): Promise<void> {
+    if (this.browser.iosHomeScreenRequired()) {
+      this.publish('unsupported', 'ios_home_screen_required')
+      return
+    }
     if (!this.browser.supported()) {
-      this.publish('unsupported')
+      this.publish('unsupported', 'unsupported')
       return
     }
 
     const permission = this.browser.permission()
     if (permission === 'denied') {
-      this.publish('denied')
+      this.publish('denied', 'permission_denied')
       return
     }
     if (permission !== 'granted') {
@@ -58,12 +74,16 @@ export class CallPushRegistration {
       return
     }
 
-    await this.ensureSubscriptionSafely()
+    await this.ensureSubscriptionSafely(false)
   }
 
   async enableFromUserGesture(): Promise<void> {
+    if (this.browser.iosHomeScreenRequired()) {
+      this.publish('unsupported', 'ios_home_screen_required')
+      return
+    }
     if (!this.browser.supported()) {
-      this.publish('unsupported')
+      this.publish('unsupported', 'unsupported')
       return
     }
 
@@ -72,20 +92,45 @@ export class CallPushRegistration {
       : await this.browser.requestPermission()
 
     if (permission !== 'granted') {
-      this.publish(permission === 'denied' ? 'denied' : 'prompt')
+      this.publish(permission === 'denied' ? 'denied' : 'prompt', permission === 'denied' ? 'permission_denied' : null)
       return
     }
 
-    await this.ensureSubscriptionSafely()
+    await this.ensureSubscriptionSafely(true)
   }
 
-  private async ensureSubscriptionSafely(): Promise<void> {
+  async testFromUserGesture(): Promise<void> {
+    if (this.state !== 'enabled') {
+      await this.enableFromUserGesture()
+      return
+    }
+
+    try {
+      await this.sendReadinessProbe()
+      this.publish('enabled')
+    } catch (error) {
+      this.publish('error', 'delivery_failed', errorMessage(error))
+    }
+  }
+
+  private async ensureSubscriptionSafely(proveDelivery: boolean): Promise<void> {
     try {
       await this.ensureSubscriptionAndUpsert()
-      this.publish('enabled')
-    } catch {
-      this.publish('error')
+    } catch (error) {
+      this.publish('error', 'registration_failed', errorMessage(error))
+      return
     }
+
+    if (proveDelivery) {
+      try {
+        await this.sendReadinessProbe()
+      } catch (error) {
+        this.publish('error', 'delivery_failed', errorMessage(error))
+        return
+      }
+    }
+
+    this.publish('enabled')
   }
 
   private async ensureSubscriptionAndUpsert(): Promise<void> {
@@ -120,9 +165,22 @@ export class CallPushRegistration {
     if (result.error) throw result.error
   }
 
-  private publish(state: CallPushState): void {
-    if (this.state === state) return
+  private async sendReadinessProbe(): Promise<void> {
+    const result = await this.client.functions.invoke('taphoaxyz-call-push', {
+      body: { action: 'test', device_id: this.deviceId },
+    })
+    if (result.error) throw result.error
+
+    const payload = result.data as { delivered?: unknown } | null
+    const delivered = typeof payload?.delivered === 'number' ? payload.delivered : 0
+    if (delivered < 1) throw new Error('push_test_not_delivered')
+  }
+
+  private publish(state: CallPushState, issue: CallPushIssue = null, detail = ''): void {
+    if (this.state === state && this.issue === issue && this.detail === detail) return
     this.state = state
+    this.issue = issue
+    this.detail = detail
     for (const listener of this.listeners) listener(state)
   }
 }
@@ -134,6 +192,15 @@ function defaultCallPushBrowser(): CallPushBrowser {
         && 'serviceWorker' in navigator
         && typeof Notification !== 'undefined'
         && typeof PushManager !== 'undefined'
+    },
+    iosHomeScreenRequired() {
+      if (typeof navigator === 'undefined' || typeof window === 'undefined') return false
+      const ios = /iPad|iPhone|iPod/u.test(navigator.userAgent)
+        || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+      if (!ios) return false
+      const legacyStandalone = (navigator as Navigator & { standalone?: boolean }).standalone === true
+      const displayStandalone = window.matchMedia?.('(display-mode: standalone)').matches === true
+      return !legacyStandalone && !displayStandalone
     },
     permission() {
       return Notification.permission
@@ -148,6 +215,10 @@ function defaultCallPushBrowser(): CallPushBrowser {
       }
     },
   }
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
 }
 
 function decodeBase64Url(value: string): Uint8Array {
