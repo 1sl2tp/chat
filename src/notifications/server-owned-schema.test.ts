@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import bindingSql from '../../supabase/migrations/20260901_push_session_binding_and_outbox.sql?raw'
+import wiringSql from '../../supabase/migrations/20260901_wire_server_notification_dispatch.sql?raw'
 
 describe('server-owned notification schema foundation', () => {
   it('binds subscriptions to exact auth sessions', () => {
@@ -27,5 +28,12 @@ describe('server-owned notification schema foundation', () => {
     expect(bindingSql).toContain('dispatch_token uuid')
     expect(bindingSql).toContain('net.http_post')
     expect(bindingSql).toContain("'dispatch_event'")
+  })
+
+  it('wires canonical Chat and Call RPCs to the outbox', () => {
+    expect(wiringSql).toContain("enqueue_notification('chat_message'")
+    expect(wiringSql).toContain("enqueue_notification('incoming_call'")
+    expect(wiringSql).toContain("if v_type = 'direct' and v_admin_bridge")
+    expect(wiringSql).toContain("return jsonb_build_object('ok', false, 'reason', 'peer_busy'")
   })
 })
