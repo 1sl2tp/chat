@@ -18,6 +18,7 @@ const CALL_ROW = {
 }
 
 afterEach(() => {
+  vi.useRealTimers()
   vi.unstubAllGlobals()
 })
 
@@ -62,6 +63,7 @@ describe('VoiceCallSession busy outcomes', () => {
 
 describe('VoiceCallSession incoming alert lifecycle', () => {
   function setupIncomingSession(rpc: ReturnType<typeof vi.fn>) {
+    vi.useFakeTimers()
     vi.stubGlobal('window', globalThis)
     vi.stubGlobal('navigator', { userAgent: 'test', vibrate: vi.fn(() => false) })
     const client = { rpc, functions: { invoke: vi.fn() } } as unknown as SupabaseClient
