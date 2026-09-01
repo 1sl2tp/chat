@@ -3,6 +3,7 @@ import { createSupabaseMessageBackend } from '../supabase/message-backend'
 import { createSupabaseAdminBackend } from '../supabase/admin-backend'
 import { adminSupabase } from '../supabase/client'
 import type { AdminBackend } from './contracts'
+import { createAdminInboxWatcher, type AdminInboxWatcher } from './inbox-realtime'
 import { getAdminState, setAdminState } from './store'
 
 export interface AdminMessageRuntime {
@@ -21,13 +22,16 @@ function createDefaultMessageRuntime(): AdminMessageRuntime {
 
 let activeBackend: AdminBackend = createSupabaseAdminBackend(adminSupabase)
 let messageRuntime: AdminMessageRuntime = createDefaultMessageRuntime()
+let inboxWatcher: AdminInboxWatcher = createAdminInboxWatcher()
 
 export function configureAdminRuntimeForTests(
   backend: AdminBackend,
   messages: AdminMessageRuntime,
+  watcher?: AdminInboxWatcher,
 ): void {
   activeBackend = backend
   messageRuntime = messages
+  if (watcher) inboxWatcher = watcher
 }
 
 export async function startAdminRuntime(): Promise<void> {
@@ -41,6 +45,9 @@ export async function startAdminRuntime(): Promise<void> {
       detail: null,
       error: null,
     })
+    inboxWatcher.start(() => {
+      void refreshAdminInbox()
+    })
   } catch (error) {
     setAdminState({
       ...getAdminState(),
@@ -49,6 +56,11 @@ export async function startAdminRuntime(): Promise<void> {
     })
     throw error
   }
+}
+
+export function stopAdminRuntime(): void {
+  inboxWatcher.stop()
+  messageRuntime.stop()
 }
 
 export async function refreshAdminInbox(): Promise<void> {
