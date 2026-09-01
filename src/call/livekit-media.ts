@@ -19,6 +19,10 @@ import {
   hasNativeAndroidAudioRoute,
   setNativeAndroidAudioRoute,
 } from './native-android-audio-route'
+import {
+  readMicrophonePermission,
+  type MicrophonePermissionState,
+} from './microphone-permission'
 import { defaultCallRouteForWeb } from './platform-audio-route'
 import { createOwnedRemoteAudio } from './remote-audio-owner'
 import {
@@ -40,6 +44,7 @@ export interface LiveKitMediaCallbacks {
   onRemoteAudioSubscribed(): void
   onRemoteAudioPlaying(): void
   onAudioPlaybackBlocked(): void
+  onMicrophonePermissionState(state: MicrophonePermissionState): void
   onError(error: Error): void
 }
 
@@ -128,12 +133,15 @@ export class LiveKitVoiceMedia {
       return
     }
 
-    // Capture remains the first media operation on the user gesture. Native or
-    // WebKit routing is touched only after getUserMedia has resolved.
+    // Capture remains the first media operation on the user gesture. Permission
+    // inspection starts only after getUserMedia has already been invoked, so it
+    // cannot consume or delay the user gesture that iPhone Safari needs.
     const capture = beginCallMicrophoneCapture({
       getUserMedia: (constraints) => navigator.mediaDevices.getUserMedia(constraints),
     })
     this.microphoneCapture = capture
+    void readMicrophonePermission(navigator.permissions)
+      .then((state) => this.callbacks.onMicrophonePermissionState(state))
 
     void capture.then((stream) => {
       if (this.microphoneCapture !== capture) {
@@ -323,9 +331,6 @@ export class LiveKitVoiceMedia {
   }
 
   private async playElementOnSelectedRoute(element: HTMLMediaElement): Promise<void> {
-    // Apply/confirm the selected route before the first remote frame. In a
-    // packaged Android build the native plugin verifies AudioManager's current
-    // communication device; on iPhone WebKit verifies AudioSession state.
     await this.applySelectedPhoneRoute()
 
     const first = await playRemoteAudioElement(element)
@@ -334,8 +339,6 @@ export class LiveKitVoiceMedia {
       return
     }
 
-    // Remote playback itself can cause platform route recomputation. Reassert
-    // and replay only when the platform confirms the requested route.
     const routeConfirmed = await this.applySelectedPhoneRoute()
     if (routeConfirmed) {
       element.pause()
