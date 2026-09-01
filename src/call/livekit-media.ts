@@ -64,11 +64,40 @@ export async function connectRoomWhileCapturing<T>(
   return microphone
 }
 
+export class CallMediaReadyGate {
+  private localPublished = false
+  private remoteAudioSubscribed = false
+  private emitted = false
+
+  markLocalPublished(): boolean {
+    this.localPublished = true
+    return this.consumeReady()
+  }
+
+  markRemoteAudioSubscribed(): boolean {
+    this.remoteAudioSubscribed = true
+    return this.consumeReady()
+  }
+
+  reset(): void {
+    this.localPublished = false
+    this.remoteAudioSubscribed = false
+    this.emitted = false
+  }
+
+  private consumeReady(): boolean {
+    if (this.emitted || !this.localPublished || !this.remoteAudioSubscribed) return false
+    this.emitted = true
+    return true
+  }
+}
+
 export class LiveKitVoiceMedia {
   private room: Room | null = null
   private readonly attached = new Set<HTMLMediaElement>()
   private readonly remoteElementByTrack = new Map<RemoteTrack, HTMLAudioElement>()
   private readonly callbacks: LiveKitMediaCallbacks
+  private readonly activeGate = new CallMediaReadyGate()
   private joined = false
   private microphoneCapture: Promise<MediaStream> | null = null
   private microphoneStream: MediaStream | null = null
@@ -152,7 +181,7 @@ export class LiveKitVoiceMedia {
     )
     this.joined = true
 
-    if (room.remoteParticipants.size > 0) this.callbacks.onPeerConnected()
+    if (this.activeGate.markLocalPublished()) this.callbacks.onPeerConnected()
   }
 
   async setMuted(muted: boolean): Promise<void> {
@@ -212,6 +241,7 @@ export class LiveKitVoiceMedia {
 
   disconnect(): void {
     this.joined = false
+    this.activeGate.reset()
     this.speakerEnabled = false
     this.room?.disconnect(true)
     this.room = null
@@ -236,7 +266,9 @@ export class LiveKitVoiceMedia {
 
     room.on(RoomEvent.TrackSubscribed, (track) => {
       if (track.kind !== Track.Kind.Audio || !track.mediaStreamTrack) return
+      const becameReady = this.activeGate.markRemoteAudioSubscribed()
       this.callbacks.onRemoteAudioSubscribed()
+      if (becameReady) this.callbacks.onPeerConnected()
 
       const element = createOwnedRemoteAudio(track.mediaStreamTrack)
       element.style.position = 'fixed'
@@ -260,12 +292,6 @@ export class LiveKitVoiceMedia {
       element.remove()
     })
 
-    room.on(RoomEvent.ParticipantConnected, () => {
-      // A participant can arrive while local microphone capture is still being
-      // resolved. Do not mark the call active until local publish is complete;
-      // join() will re-check remoteParticipants immediately after that point.
-      if (this.joined) this.callbacks.onPeerConnected()
-    })
     room.on(RoomEvent.ParticipantDisconnected, () => this.callbacks.onPeerDisconnected())
     room.on(RoomEvent.AudioPlaybackStatusChanged, () => {
       if (!room.canPlaybackAudio) this.callbacks.onAudioPlaybackBlocked()
