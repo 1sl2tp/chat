@@ -6,7 +6,7 @@ import {
 } from './user-gesture-mic'
 
 describe('call microphone capture', () => {
-  it('starts getUserMedia synchronously with audio only', async () => {
+  it('starts getUserMedia synchronously with call processing enabled', async () => {
     const events: string[] = []
     let resolveStream!: (stream: MediaStream) => void
     const pendingStream = new Promise<MediaStream>((resolve) => { resolveStream = resolve })
@@ -18,7 +18,9 @@ describe('call microphone capture', () => {
       },
     })
 
-    expect(events).toEqual(['{"audio":true,"video":false}'])
+    expect(events).toEqual([
+      '{"audio":{"echoCancellation":true,"noiseSuppression":true,"autoGainControl":true},"video":false}',
+    ])
 
     const stream = {} as MediaStream
     resolveStream(stream)
