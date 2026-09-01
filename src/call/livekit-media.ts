@@ -6,6 +6,11 @@ import {
 } from './livekit-config'
 import { playRemoteAudioElement } from './audio-playback'
 import {
+  resetCallAudioRoute,
+  routeCallToReceiverAfterMicrophone,
+  type CallNavigatorAudioSessionLike,
+} from './audio-route'
+import {
   beginCallMicrophoneCapture,
   publishCapturedMicrophone,
   waitForCapturedMicrophone,
@@ -87,6 +92,10 @@ function sdk(): LiveKitGlobal {
   return value
 }
 
+function callNavigator(): CallNavigatorAudioSessionLike {
+  return navigator as unknown as CallNavigatorAudioSessionLike
+}
+
 export class LiveKitVoiceMedia {
   private room: LiveKitRoomLike | null = null
   private readonly attached = new Set<HTMLElement>()
@@ -108,7 +117,8 @@ export class LiveKitVoiceMedia {
     }
 
     // This must be the first media operation in the user's tap. On iPhone the
-    // proven working path is: getUserMedia resolves first, then LiveKit/audio work.
+    // proven working path is: getUserMedia resolves first, then audio routing
+    // and LiveKit are allowed to touch the media session.
     const capture = beginCallMicrophoneCapture({
       getUserMedia: (constraints) => navigator.mediaDevices.getUserMedia(constraints),
     })
@@ -120,6 +130,11 @@ export class LiveKitVoiceMedia {
         return
       }
       this.microphoneStream = stream
+
+      // Do not move this before getUserMedia. Safari/iPhone capture was proven
+      // to work only when gUM is the first media operation from the tap.
+      routeCallToReceiverAfterMicrophone(callNavigator())
+
       const room = this.ensureRoom()
       void room.startAudio().catch(() => undefined)
     }).catch(() => undefined)
@@ -146,6 +161,11 @@ export class LiveKitVoiceMedia {
       throw new Error('microphone_capture_cancelled')
     }
     this.microphoneStream = microphoneStream
+
+    // Reassert the voice-call route after the microphone exists and before any
+    // LiveKit playback/connect work. play-and-record maps to the receiver route
+    // on iPhone unless the user has selected an external route.
+    routeCallToReceiverAfterMicrophone(callNavigator())
 
     // Only after the working iPhone mic stream exists may LiveKit be created,
     // connected, or allowed to touch playback/capture state.
@@ -205,6 +225,7 @@ export class LiveKitVoiceMedia {
     this.room?.disconnect(true)
     this.room = null
     this.stopMicrophoneCapture()
+    resetCallAudioRoute(callNavigator())
     this.removeAttached()
   }
 
