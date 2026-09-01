@@ -13,6 +13,7 @@ import {
   reassertPhoneAudioRouteAfterPlayback,
   setPhoneAudioRoute,
 } from './audio-route-control'
+import { defaultCallRouteForWeb } from './platform-audio-route'
 import { createOwnedRemoteAudio } from './remote-audio-owner'
 import {
   beginCallMicrophoneCapture,
@@ -134,8 +135,8 @@ export class LiveKitVoiceMedia {
         return
       }
       this.microphoneStream = stream
-      this.speakerEnabled = false
-      setPhoneAudioRoute(callNavigator(), 'receiver')
+      this.speakerEnabled = this.defaultSpeakerSelected()
+      this.applySelectedPhoneRoute()
     }).catch(() => undefined)
   }
 
@@ -156,8 +157,8 @@ export class LiveKitVoiceMedia {
       throw new Error('microphone_capture_cancelled')
     }
     this.microphoneStream = microphoneStream
-    this.speakerEnabled = false
-    setPhoneAudioRoute(callNavigator(), 'receiver')
+    this.speakerEnabled = this.defaultSpeakerSelected()
+    this.applySelectedPhoneRoute()
 
     const livekit = sdk()
     const room = this.ensureRoom()
@@ -187,6 +188,14 @@ export class LiveKitVoiceMedia {
 
   canTogglePhoneSpeaker(): boolean {
     return Boolean(callNavigator().audioSession)
+  }
+
+  defaultSpeakerSelected(): boolean {
+    return defaultCallRouteForWeb(navigator.userAgent) === 'speaker'
+  }
+
+  usesAndroidWebSpeakerDefault(): boolean {
+    return defaultCallRouteForWeb(navigator.userAgent) === 'speaker' && !this.canTogglePhoneSpeaker()
   }
 
   async setSpeakerEnabled(enabled: boolean): Promise<boolean> {
@@ -299,7 +308,8 @@ export class LiveKitVoiceMedia {
   private async playElementOnSelectedRoute(element: HTMLMediaElement): Promise<void> {
     // Apply the selected route before the first frame is rendered. For iPhone
     // this means play-and-record/receiver unless the user explicitly enabled
-    // speaker mode.
+    // speaker mode. Android Chrome remains on its browser-selected speakerphone
+    // route because mobile Chrome does not expose direct earpiece selection.
     this.applySelectedPhoneRoute()
 
     const first = await playRemoteAudioElement(element)
@@ -308,8 +318,6 @@ export class LiveKitVoiceMedia {
       return
     }
 
-    // Safari can recompute the physical route when a remote MediaStream starts.
-    // Reassert only the selected route; receiver never passes through playback.
     const route = reassertPhoneAudioRouteAfterPlayback(callNavigator(), this.speakerEnabled)
     if (route.ok) {
       element.pause()
