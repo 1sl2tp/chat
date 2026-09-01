@@ -10,7 +10,7 @@ export function mountVoiceCallUi(host: HTMLElement, session: VoiceCallSession): 
     host.replaceChildren()
     if (state.phase === 'idle') return
 
-    if (state.phase === 'error') {
+    if (state.phase === 'error' && state.display !== 'full') {
       const bar = document.createElement('button')
       bar.type = 'button'
       bar.className = 'voice-call-error'
@@ -57,6 +57,7 @@ export function statusText(state: VoiceCallState): string {
   if (state.phase === 'connecting') return 'Đang kết nối…'
   if (state.phase === 'reconnecting') return 'Đang nối lại…'
   if (state.phase === 'active') return formatCallDuration(Date.now() - (state.connectedAt ?? Date.now()))
+  if (state.phase === 'error') return 'Cuộc gọi lỗi'
   return ''
 }
 
@@ -88,9 +89,11 @@ function renderFull(state: VoiceCallState, session: VoiceCallSession): HTMLEleme
 
   const top = document.createElement('div')
   top.className = 'voice-call-full-top'
-  const compact = controlButton('Thu nhỏ', '⌄', () => session.setDisplay('compact'))
-  const hide = controlButton('Ẩn', '—', () => session.setDisplay('hidden'))
-  top.append(compact, hide)
+  if (state.phase !== 'error') {
+    const compact = controlButton('Thu nhỏ', '⌄', () => session.setDisplay('compact'))
+    const hide = controlButton('Ẩn', '—', () => session.setDisplay('hidden'))
+    top.append(compact, hide)
+  }
 
   const center = document.createElement('div')
   center.className = 'voice-call-full-center'
@@ -118,7 +121,9 @@ function renderFull(state: VoiceCallState, session: VoiceCallSession): HTMLEleme
   const controls = document.createElement('div')
   controls.className = 'voice-call-controls'
 
-  if (state.phase === 'incoming') {
+  if (state.phase === 'error') {
+    controls.append(controlButton('Đóng', '✕', () => session.dismissError(), 'danger'))
+  } else if (state.phase === 'incoming') {
     controls.append(
       controlButton('Từ chối', '✕', () => void session.decline(), 'danger'),
       controlButton('Nhận', '☎', () => void session.accept(), 'accept'),

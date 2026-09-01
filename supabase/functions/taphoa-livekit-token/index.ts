@@ -1,12 +1,11 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.112.4'
+import { corsHeaders as supabaseCorsHeaders } from 'npm:@supabase/supabase-js@2.112.4/cors'
 import { AccessToken } from 'npm:livekit-server-sdk@2.18.0'
 import { authorizeLiveKitJoin } from '../_shared/livekit-join-policy.ts'
 
 const LIVEKIT_SERVER_URL = 'wss://taphoa-chat-dvo9mem2.livekit.cloud'
-
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  ...supabaseCorsHeaders,
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
@@ -21,7 +20,7 @@ function json(status: number, body: Record<string, unknown>): Response {
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders })
+  if (req.method === 'OPTIONS') return new Response('ok', { status: 200, headers: corsHeaders })
   if (req.method !== 'POST') return json(405, { error: 'method_not_allowed' })
 
   const authorization = req.headers.get('Authorization')

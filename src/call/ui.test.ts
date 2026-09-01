@@ -61,6 +61,15 @@ function findByHtml(root: FakeElement, value: string): FakeElement | null {
   return null
 }
 
+function findByClass(root: FakeElement, value: string): FakeElement | null {
+  if (root.className.split(' ').includes(value)) return root
+  for (const child of root.children) {
+    const found = findByClass(child, value)
+    if (found) return found
+  }
+  return null
+}
+
 function mountHarness(initialState: VoiceCallState) {
   let currentState = initialState
   let listener: ((value: VoiceCallState) => void) | null = null
@@ -126,7 +135,7 @@ const ERROR_STATE = state({
   phase: 'error',
   direction: 'outgoing',
   peerName: 'Admin',
-  error: 'Đối phương đang trong cuộc gọi',
+  error: 'Không kết nối được cuộc gọi',
 })
 
 afterEach(() => {
@@ -198,14 +207,34 @@ describe('voice call display modes', () => {
 })
 
 describe('voice call error UI', () => {
-  it('dismisses error back to idle instead of trying to hide the error display', () => {
+  it('keeps an error inside the full call screen instead of showing a second popup', () => {
     const harness = mountHarness(ERROR_STATE)
     const dispose = mountVoiceCallUi(harness.host as unknown as HTMLElement, harness.session)
 
-    harness.host.children[0]?.click()
+    expect(harness.host.children[0]?.className).toBe('voice-call-full')
+    expect(findByClass(harness.host, 'voice-call-error')).toBeNull()
+    expect(findByHtml(harness.host, 'Đóng')).not.toBeNull()
 
+    findByHtml(harness.host, 'Đóng')?.click()
     expect(harness.dismissError).toHaveBeenCalledOnce()
-    expect(harness.setDisplay).not.toHaveBeenCalled()
+    dispose()
+  })
+
+  it('shows the compact error popup only when the call was minimized', () => {
+    const harness = mountHarness({ ...ERROR_STATE, display: 'compact' })
+    const dispose = mountVoiceCallUi(harness.host as unknown as HTMLElement, harness.session)
+
+    expect(harness.host.children[0]?.className).toBe('voice-call-error')
+    harness.host.children[0]?.click()
+    expect(harness.dismissError).toHaveBeenCalledOnce()
+    dispose()
+  })
+
+  it('shows the compact error popup when the call was hidden', () => {
+    const harness = mountHarness({ ...ERROR_STATE, display: 'hidden' })
+    const dispose = mountVoiceCallUi(harness.host as unknown as HTMLElement, harness.session)
+
+    expect(harness.host.children[0]?.className).toBe('voice-call-error')
     dispose()
   })
 })

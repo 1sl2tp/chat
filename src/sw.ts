@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 
-import { parsePushPayload } from './notifications/payload'
+import { notificationVibration, parsePushPayload, shouldShowSystemNotification } from './notifications/payload'
 
 declare const self: ServiceWorkerGlobalScope & typeof globalThis & {
   __WB_MANIFEST: Array<{ url: string; revision?: string | null }>
@@ -74,14 +74,13 @@ self.addEventListener('push', (event) => {
       ? setBadge.call(self.navigator, payload.badge)
       : Promise.resolve()
 
-    await Promise.all([
-      self.registration.showNotification(payload.title, {
-        body: payload.body,
-        tag: payload.tag,
-        data: { navigate: payload.navigate },
-      }),
-      badgeTask,
-    ])
+    const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+    const hasVisibleWindow = windows.some((client) => (client as WindowClient).visibilityState === 'visible')
+    const notificationTask = shouldShowSystemNotification(payload.type, hasVisibleWindow)
+      ? showSystemNotification(payload)
+      : Promise.resolve()
+
+    await Promise.all([notificationTask, badgeTask])
   })())
 })
 
@@ -107,6 +106,17 @@ self.addEventListener('notificationclick', (event) => {
     return self.clients.openWindow(target.href)
   })())
 })
+
+function showSystemNotification(payload: ReturnType<typeof parsePushPayload>): Promise<void> {
+  const options: NotificationOptions & { vibrate?: number[] } = {
+    body: payload.body,
+    tag: payload.tag,
+    data: { navigate: payload.navigate },
+  }
+  const vibrate = notificationVibration(payload.type)
+  if (vibrate) options.vibrate = vibrate
+  return self.registration.showNotification(payload.title, options)
+}
 
 function readPushData(event: PushEvent): unknown {
   if (!event.data) return null
