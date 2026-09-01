@@ -1,3 +1,4 @@
+import { defaultCallRouteForWeb } from './platform-audio-route'
 import { formatCallDuration } from './presentation'
 import type { VoiceCallSession, VoiceCallState } from './voice-session'
 
@@ -120,15 +121,20 @@ function renderFull(state: VoiceCallState, session: VoiceCallSession): HTMLEleme
     }
 
     const phoneToggle = session.hasPhoneSpeakerToggle()
-    const speakerLabel = phoneToggle
-      ? state.speakerSelected ? 'Loa ngoài' : 'Loa trong'
-      : state.speakerSelected ? 'Đầu ra đã chọn' : state.speakerAvailable ? 'Chọn loa' : 'Loa hệ thống'
+    const androidWebSpeaker = defaultCallRouteForWeb(navigator.userAgent) === 'speaker' && !phoneToggle
+    const speakerLabel = androidWebSpeaker
+      ? 'Loa ngoài'
+      : phoneToggle
+        ? state.speakerSelected ? 'Loa ngoài' : 'Loa trong'
+        : state.speakerSelected ? 'Đầu ra đã chọn' : state.speakerAvailable ? 'Chọn loa' : 'Loa hệ thống'
     const speakerIcon = phoneToggle && !state.speakerSelected ? '🔈' : '🔊'
     const speaker = controlButton(speakerLabel, speakerIcon, () => void session.chooseSpeaker())
-    speaker.disabled = !state.speakerAvailable
-    speaker.title = phoneToggle
-      ? state.speakerSelected ? 'Chạm để chuyển sang loa trong' : 'Chạm để chuyển sang loa ngoài'
-      : state.speakerAvailable ? 'Chạm để chọn đầu ra âm thanh' : 'Trình duyệt không hỗ trợ đổi loa trực tiếp'
+    speaker.disabled = androidWebSpeaker || !state.speakerAvailable
+    speaker.title = androidWebSpeaker
+      ? 'Chrome Android dùng speakerphone mặc định và không cho web đổi trực tiếp sang loa thoại'
+      : phoneToggle
+        ? state.speakerSelected ? 'Chạm để chuyển sang loa trong' : 'Chạm để chuyển sang loa ngoài'
+        : state.speakerAvailable ? 'Chạm để chọn đầu ra âm thanh' : 'Trình duyệt không hỗ trợ đổi loa trực tiếp'
 
     controls.append(
       speaker,
