@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { sendIncomingCallPush } from '../notifications/call-push-send'
 import { CallAlertController } from './call-alert-controller'
-import { fetchLiveKitCredentials } from './livekit-credentials'
+import { fetchLiveKitCredentials, warmLiveKitTokenFunction } from './livekit-credentials'
 import { LiveKitVoiceMedia } from './livekit-media'
 import {
   diagnosticPhaseForEvent,
@@ -170,6 +170,7 @@ export class VoiceCallSession {
     if (!context?.conversationId || !context.deviceId || this.state.phase !== 'idle') return
 
     this.media.beginUserGesture()
+    void warmLiveKitTokenFunction(this.client)
     this.alerts.armAfterMicrophoneGesture()
     this.publish({
       phase: 'outgoing',
@@ -357,6 +358,7 @@ export class VoiceCallSession {
     if (!this.state.callId) {
       const incoming = rows.find((row) => row.id !== this.decliningCallId && row.callee_profile_id === context.profileId && row.state === 'ringing')
       if (incoming) {
+        void warmLiveKitTokenFunction(this.client)
         this.backendState = incoming.state
         this.publish({
           phase: 'incoming',
