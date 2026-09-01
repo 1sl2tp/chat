@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { sendIncomingCallPush } from '../notifications/call-push-send'
+import { CallAlertController } from './call-alert-controller'
 import { fetchLiveKitCredentials } from './livekit-credentials'
 import { LiveKitVoiceMedia } from './livekit-media'
 import {
@@ -73,6 +74,7 @@ export class VoiceCallSession {
   private readonly client: SupabaseClient
   private readonly getContext: () => VoiceCallContext | null
   private readonly media: LiveKitVoiceMedia
+  private readonly alerts = new CallAlertController()
   private activeTimer: number | null = null
   private backendState: string | null = null
   private started = false
@@ -127,6 +129,7 @@ export class VoiceCallSession {
     this.started = false
     if (this.activeTimer !== null) window.clearInterval(this.activeTimer)
     this.activeTimer = null
+    this.alerts.stop()
     this.media.disconnect()
     this.listeners.clear()
   }
@@ -141,6 +144,7 @@ export class VoiceCallSession {
     if (!context?.conversationId || !context.deviceId || this.state.phase !== 'idle') return
 
     this.media.beginUserGesture()
+    this.alerts.armAfterMicrophoneGesture()
     this.publish({
       phase: 'outgoing',
       display: 'full',
@@ -175,6 +179,7 @@ export class VoiceCallSession {
     if (!context || !callId || this.state.phase !== 'incoming') return
 
     this.media.beginUserGesture()
+    this.alerts.armAfterMicrophoneGesture()
     try {
       const result = await this.client.rpc('chat_accept_voice_call', {
         p_call_id: callId,
@@ -277,6 +282,7 @@ export class VoiceCallSession {
 
   private publish(patch: Partial<VoiceCallState>): void {
     this.state = { ...this.state, ...patch }
+    this.alerts.sync(this.state)
     for (const listener of this.listeners) listener(this.state)
   }
 
@@ -413,6 +419,7 @@ export class VoiceCallSession {
   }
 
   private resetToIdle(): void {
+    this.alerts.stop()
     this.media.disconnect()
     this.backendState = null
     this.markingConnected = false
@@ -421,6 +428,7 @@ export class VoiceCallSession {
   }
 
   private fail(error: unknown): void {
+    this.alerts.stop()
     this.media.disconnect()
     const message = error instanceof Error ? error.message : String(error)
     this.publish({ phase: 'error', error: message })
