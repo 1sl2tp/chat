@@ -5,6 +5,7 @@ import {
   liveKitRoomName,
 } from './livekit-config'
 import { playRemoteAudioElement } from './audio-playback'
+import { beginCallMicrophoneCapture, publishCapturedMicrophone } from './user-gesture-mic'
 
 export interface LiveKitJoinContext {
   callId: string
@@ -32,6 +33,7 @@ type LiveKitRoomLike = {
   canPlaybackAudio: boolean
   remoteParticipants?: { size: number }
   localParticipant: {
+    publishTrack(track: MediaStreamTrack, options?: { source?: string }): Promise<unknown>
     setMicrophoneEnabled(enabled: boolean): Promise<unknown>
   }
   connect(serverUrl: string, token: string): Promise<unknown>
@@ -53,7 +55,10 @@ type LiveKitGlobal = {
     Reconnecting: string
     Reconnected: string
   }
-  Track: { Kind: { Audio: string } }
+  Track: {
+    Kind: { Audio: string }
+    Source: { Microphone: string }
+  }
   TokenSource: {
     developmentTokenServer(id: string): {
       fetch(options: {
@@ -83,12 +88,26 @@ export class LiveKitVoiceMedia {
   private readonly attached = new Set<HTMLElement>()
   private readonly callbacks: LiveKitMediaCallbacks
   private joined = false
+  private microphoneCapture: Promise<MediaStream> | null = null
+  private microphoneStream: MediaStream | null = null
 
   constructor(callbacks: LiveKitMediaCallbacks) {
     this.callbacks = callbacks
   }
 
-  beginUserGesture(): void {
+  async beginUserGesture(): Promise<void> {
+    if (!this.microphoneStream) {
+      if (!navigator.mediaDevices?.getUserMedia) throw new Error('microphone_capture_unsupported')
+      if (!this.microphoneCapture) {
+        this.microphoneCapture = beginCallMicrophoneCapture({
+          getUserMedia: (constraints) => navigator.mediaDevices.getUserMedia(constraints),
+        })
+      }
+      this.microphoneStream = await this.microphoneCapture
+    }
+
+    // Only touch LiveKit playback after iOS has returned a real microphone stream.
+    // This preserves the working order proven by /mic-test/: gUM first, everything else second.
     const room = this.ensureRoom()
     void room.startAudio().catch(() => undefined)
   }
@@ -108,6 +127,9 @@ export class LiveKitVoiceMedia {
     if (this.joined) return
     const livekit = sdk()
     const room = this.ensureRoom()
+    const microphoneStream = this.microphoneStream
+    if (!microphoneStream) throw new Error('microphone_not_prepared')
+
     const source = livekit.TokenSource.developmentTokenServer(LIVEKIT_TOKEN_SERVER_ID)
     const credentials = await source.fetch({
       roomName: liveKitRoomName(context.callId),
@@ -117,7 +139,11 @@ export class LiveKitVoiceMedia {
 
     assertLiveKitServerUrl(credentials.serverUrl)
     await room.connect(credentials.serverUrl, credentials.participantToken)
-    await room.localParticipant.setMicrophoneEnabled(true)
+    await publishCapturedMicrophone(
+      microphoneStream,
+      livekit.Track.Source.Microphone,
+      (track, options) => room.localParticipant.publishTrack(track, options),
+    )
     this.joined = true
 
     if ((room.remoteParticipants?.size ?? 0) > 0) this.callbacks.onPeerConnected()
@@ -157,6 +183,7 @@ export class LiveKitVoiceMedia {
     this.joined = false
     this.room?.disconnect(true)
     this.room = null
+    this.stopMicrophoneCapture()
     this.removeAttached()
   }
 
@@ -216,6 +243,12 @@ export class LiveKitVoiceMedia {
 
     this.room = room
     return room
+  }
+
+  private stopMicrophoneCapture(): void {
+    for (const track of this.microphoneStream?.getTracks() ?? []) track.stop()
+    this.microphoneStream = null
+    this.microphoneCapture = null
   }
 
   private removeAttached(): void {
