@@ -1,5 +1,6 @@
 /// <reference lib="webworker" />
 
+import { serviceWorkerAssetBase } from './deployment'
 import { notificationVibration, parsePushPayload, shouldShowSystemNotification } from './notifications/payload'
 import { hasVisibleWindowForOwner, isWindowOwnedBy } from './pwa/owner-visibility'
 import { pwaOwnerForPath, type PwaOwner } from './pwa/registration'
@@ -14,7 +15,7 @@ declare const self: ServiceWorkerGlobalScope & typeof globalThis & {
 const BUILD_ID = import.meta.env.VITE_BUILD_ID ?? 'dev'
 const CACHE_PREFIX = 'chat-precache-'
 const manifestEntries = self.__WB_MANIFEST
-const ASSET_BASE_URL = new URL('/', self.location.origin)
+const ASSET_BASE_URL = serviceWorkerAssetBase(self.location.href)
 const CACHE_NAME = `${CACHE_PREFIX}${hashManifest(manifestEntries)}`
 const PRECACHE_URLS = manifestEntries.map((entry) => new URL(entry.url, ASSET_BASE_URL).href)
 const APP_SHELL_URL = new URL('./index.html', self.registration.scope).href
