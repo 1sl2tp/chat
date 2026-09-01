@@ -138,6 +138,7 @@ export class VoiceCallSession {
   start(): void {
     if (this.started) return
     this.started = true
+    void warmLiveKitTokenFunction(this.client)
     void this.pollActiveCalls()
     this.activeTimer = window.setInterval(() => void this.pollActiveCalls(), 1000)
     document.addEventListener('visibilitychange', this.handleVisibilityChange)
@@ -170,7 +171,6 @@ export class VoiceCallSession {
     if (!context?.conversationId || !context.deviceId || this.state.phase !== 'idle') return
 
     this.media.beginUserGesture()
-    void warmLiveKitTokenFunction(this.client)
     this.alerts.armAfterMicrophoneGesture()
     this.publish({
       phase: 'outgoing',
