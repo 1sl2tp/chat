@@ -1,5 +1,6 @@
 export interface User2AuthBackend {
   endGuestSession(): Promise<void>
+  endUser2Session(): Promise<void>
   signInUser2(email: string, password: string): Promise<void>
   signOutUser2(): Promise<void>
 }
@@ -22,5 +23,10 @@ export async function loginUser2(
 }
 
 export async function logoutUser2(backend: User2AuthBackend): Promise<void> {
+  try {
+    await backend.endUser2Session()
+  } catch {
+    // Auth logout must still complete if remote session cleanup cannot reach the server.
+  }
   await backend.signOutUser2()
 }
