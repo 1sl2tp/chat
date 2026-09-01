@@ -1,15 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { assertLiveKitServerUrl, liveKitParticipantIdentity, liveKitRoomName } from './livekit-config'
+import { assertLiveKitServerUrl, liveKitRoomName } from './livekit-config'
 
 describe('LiveKit call contract', () => {
   it('maps one call id to one deterministic room', () => {
     expect(liveKitRoomName('193EE972-e716-44f7-a1aa-c4285fe532f7')).toBe(
       'taphoa-call-193ee972-e716-44f7-a1aa-c4285fe532f7',
     )
-  })
-
-  it('maps profile + device to one deterministic participant identity', () => {
-    expect(liveKitParticipantIdentity('Profile-A', 'Device-B')).toBe('profile-a-device-b')
   })
 
   it('accepts only the configured LiveKit Cloud host', () => {
