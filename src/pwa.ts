@@ -3,12 +3,12 @@ import { readServiceWorkerBuildId, shouldReloadForServiceWorker } from './pwa/ve
 
 const UI_BUILD_ID = import.meta.env.VITE_BUILD_ID ?? 'dev'
 
-export function setupPwa(owner?: PwaOwner): void {
-  if (!('serviceWorker' in navigator)) return
+export async function setupPwa(owner?: PwaOwner): Promise<ServiceWorkerRegistration | null> {
+  if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return null
 
   const resolvedOwner = owner ?? pwaOwnerForPath(window.location.pathname)
   let reloadIssued = false
-  let registration: ServiceWorkerRegistration | undefined
+  let registration: ServiceWorkerRegistration | null = null
 
   async function syncWithController(): Promise<void> {
     if (reloadIssued) return
@@ -49,12 +49,12 @@ export function setupPwa(owner?: PwaOwner): void {
   })
 
   const descriptor = pwaRegistrationDescriptor(resolvedOwner)
-  void navigator.serviceWorker.register(descriptor.scriptUrl, { scope: descriptor.scope })
-    .then((currentRegistration) => {
-      registration = currentRegistration
-      void checkForUpdate()
-    })
-    .catch((error) => {
-      console.error('PWA service worker registration failed', error)
-    })
+  try {
+    registration = await navigator.serviceWorker.register(descriptor.scriptUrl, { scope: descriptor.scope })
+    await checkForUpdate()
+    return registration
+  } catch (error) {
+    console.error('PWA service worker registration failed', error)
+    return null
+  }
 }
