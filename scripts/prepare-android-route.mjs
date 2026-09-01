@@ -34,7 +34,8 @@ const permissions = [
 
 for (const permission of permissions) {
   if (manifest.includes(permission)) continue
-  const manifestOpenEnd = manifest.indexOf('>')
+  const manifestStart = manifest.indexOf('<manifest')
+  const manifestOpenEnd = manifestStart >= 0 ? manifest.indexOf('>', manifestStart) : -1
   if (manifestOpenEnd < 0) throw new Error('android_manifest_open_tag_missing')
   manifest = `${manifest.slice(0, manifestOpenEnd + 1)}\n${permission}${manifest.slice(manifestOpenEnd + 1)}`
 }
