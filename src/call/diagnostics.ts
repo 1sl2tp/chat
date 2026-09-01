@@ -1,4 +1,15 @@
-export interface CallMediaDiagnostics {
+export type MicrophoneProcessingVerdict = 'verified' | 'degraded' | 'unknown'
+
+export interface MicrophoneProcessingDiagnostics {
+  echo_cancellation: boolean | null
+  noise_suppression: boolean | null
+  auto_gain_control: boolean | null
+  channel_count: number | null
+  sample_rate: number | null
+  microphone_processing: MicrophoneProcessingVerdict
+}
+
+export interface CallMediaDiagnostics extends MicrophoneProcessingDiagnostics {
   connection_state: RTCPeerConnectionState
   ice_state: RTCIceConnectionState
   signaling_state: RTCSignalingState
@@ -17,6 +28,45 @@ export interface CallMediaDiagnostics {
 type StatsPeer = Pick<RTCPeerConnection, 'getStats' | 'connectionState' | 'iceConnectionState' | 'signalingState'>
 type AudioStream = Pick<MediaStream, 'getAudioTracks'>
 type AudioPlayback = Pick<HTMLAudioElement, 'paused'>
+type SettingsTrack = Pick<MediaStreamTrack, 'getSettings'>
+
+function booleanSetting(value: unknown): boolean | null {
+  return typeof value === 'boolean' ? value : null
+}
+
+function numberSetting(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+export function collectMicrophoneProcessingDiagnostics(
+  track?: SettingsTrack | null,
+): Readonly<MicrophoneProcessingDiagnostics> {
+  let settings: Record<string, unknown> = {}
+  try {
+    settings = track?.getSettings() as Record<string, unknown> ?? {}
+  } catch {
+    settings = {}
+  }
+
+  const echoCancellation = booleanSetting(settings.echoCancellation)
+  const noiseSuppression = booleanSetting(settings.noiseSuppression)
+  const autoGainControl = booleanSetting(settings.autoGainControl)
+  const processingValues = [echoCancellation, noiseSuppression, autoGainControl]
+  const verdict: MicrophoneProcessingVerdict = processingValues.every((value) => value === true)
+    ? 'verified'
+    : processingValues.some((value) => value === false)
+      ? 'degraded'
+      : 'unknown'
+
+  return Object.freeze({
+    echo_cancellation: echoCancellation,
+    noise_suppression: noiseSuppression,
+    auto_gain_control: autoGainControl,
+    channel_count: numberSetting(settings.channelCount),
+    sample_rate: numberSetting(settings.sampleRate),
+    microphone_processing: verdict,
+  })
+}
 
 export async function collectCallMediaDiagnostics(
   peer: StatsPeer,
@@ -53,6 +103,7 @@ export async function collectCallMediaDiagnostics(
     ? stats.get(pair.remoteCandidateId) as (RTCStats & Record<string, unknown>) | undefined
     : undefined
   const localTrack = localStream?.getAudioTracks()[0]
+  const processing = collectMicrophoneProcessingDiagnostics(localTrack)
 
   return Object.freeze({
     connection_state: peer.connectionState,
@@ -68,5 +119,6 @@ export async function collectCallMediaDiagnostics(
     local_track_enabled: localTrack ? localTrack.enabled : null,
     local_track_muted: localTrack ? localTrack.muted : null,
     remote_playback: remoteAudio && !remoteAudio.paused ? 'playing' : 'idle',
+    ...processing,
   })
 }
