@@ -1,7 +1,7 @@
 # TAPHOA Root User Modes Design
 
 Date: 2026-09-01
-Status: APPROVED
+Status: IMPLEMENTED ON `fix/pwa-core-simplify`, pending `main` integration
 
 ## Goal
 
@@ -47,15 +47,15 @@ The following namespaces must not collide on one origin:
 | Owner | Auth storage | Device key storage | Service Worker / Push registration |
 | --- | --- | --- | --- |
 | User1 guest | session-scoped guest key | session-scoped guest device key | none |
-| User2 | persistent root-user key | persistent User2 device key | root `/` registration |
-| Admin | persistent admin key | persistent Admin device key | dedicated `/admin/` registration |
+| User2 | persistent root-user key | persistent User2 device key | generated `sw.js`, user-root scope (`/` or `/chat/`) |
+| Admin | persistent admin key | persistent Admin device key | same generated `sw.js`, separate Admin scope (`/admin/` or `/chat/admin/`) |
 
-This fixes two current collision classes:
+This fixes two collision classes:
 
-1. Root and Admin currently share `chat.device.key.v1`.
-2. Both pages currently call the same root Service Worker registration, so one PushManager subscription can be rebound between profiles.
+1. Root and Admin previously shared one device key namespace.
+2. Root and Admin previously resolved to one root Service Worker registration, so one PushManager subscription could be rebound between profiles.
 
-The browser should therefore hold separate Push subscriptions for User2 and Admin when both are enabled on the same machine.
+The browser therefore holds separate Service Worker registrations and separate Push subscriptions for User2 and Admin when both are enabled on the same machine, without duplicating Service Worker source code.
 
 ## Root startup resolver
 
@@ -80,16 +80,19 @@ User2 taps Logout
 
 ## PWA / Push ownership
 
-- Root User2 keeps the generated root worker and scope `/`.
-- Admin must register a dedicated worker at scope `/admin/` so its PushManager subscription is separate from root User2.
-- The Admin worker must support the same push payload semantics needed for chat/call notification display and safe navigation inside `/admin/`.
+- Vite PWA generates one `sw.js` implementation.
+- On the custom domain the script URL is `/sw.js`; on GitHub Pages project hosting it is `/chat/sw.js`.
+- Root User2 registers that script at the deployed user-root scope: `/` on the custom domain or `/chat/` on GitHub Pages.
+- Admin registers the same script URL as a distinct Service Worker registration at `/admin/` or `/chat/admin/`. Service Worker registrations are scope-keyed, so User2 and Admin receive independent PushManager subscriptions even though the script source is shared.
+- Service Worker precache, install assets and notification navigation resolve from the runtime deployment base instead of assuming origin root.
+- Notification clicks are normalized and constrained to the active Service Worker scope, preventing duplicated paths such as `/admin/admin/` and preserving project-base navigation such as `/chat/?conversation=...`.
 - User1 does not register Push; guest chat is foreground/realtime only.
 
 ## Runtime ownership
 
-The chat runtime must no longer depend on one global default Supabase client. Root startup passes the active client/device key explicitly so User1 and User2 cannot leak state into each other.
+The chat runtime no longer depends on one global default Supabase client. Root startup passes the active client/device key explicitly so User1 and User2 cannot leak state into each other.
 
-A runtime stop/reset operation must dispose realtime subscriptions and reset stores before switching modes.
+A runtime stop/reset operation disposes realtime subscriptions and resets stores before switching modes.
 
 ## Non-goals
 
@@ -105,5 +108,7 @@ A runtime stop/reset operation must dispose realtime subscriptions and reset sto
 3. User1 -> login User2 -> guest state is ended before User2 bootstrap.
 4. User2 logout -> new User1 identity/session, old User2 is not reused.
 5. Admin and User2 can coexist in same browser with distinct Auth keys, device keys and Service Worker registrations/subscriptions.
-6. Admin remains functional at `/admin/`.
-7. Typecheck, Vitest and Vite build PASS before merge.
+6. Custom-domain root/Admin and GitHub Pages `/chat/` + `/chat/admin/` resolve PWA assets and navigation inside their deployment base.
+7. Notification click remains inside the owning Service Worker scope.
+8. Admin remains functional at `/admin/`.
+9. Typecheck, all Vitest tests and Vite PWA build PASS before merge.
