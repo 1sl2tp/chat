@@ -2,19 +2,6 @@ name: Build Android debug APK
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-      - fix/ios-receiver-route
-    paths:
-      - 'src/**'
-      - 'native/android/**'
-      - 'scripts/prepare-android-route.mjs'
-      - 'capacitor.config.json'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'vite.config.ts'
-      - '.github/workflows/android-apk.yml'
 
 permissions:
   contents: read
