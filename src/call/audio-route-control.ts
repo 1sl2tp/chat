@@ -30,3 +30,10 @@ export function setPhoneAudioRoute(
     return { ok: false, route: 'unsupported' }
   }
 }
+
+export function reassertPhoneAudioRouteAfterPlayback(
+  navigatorLike: CallNavigatorAudioSessionLike,
+  speakerEnabled: boolean,
+): PhoneAudioRouteResult {
+  return setPhoneAudioRoute(navigatorLike, speakerEnabled ? 'speaker' : 'receiver')
+}
