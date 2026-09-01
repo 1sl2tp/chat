@@ -1,14 +1,18 @@
 import { mountVoiceCallUi } from './call/ui'
 import { VoiceCallSession, type VoiceCallContext } from './call/voice-session'
 import { getChatMessageState, subscribeChatMessages } from './chat/message-runtime'
-import { sendSupportText, startChatRuntime } from './chat/runtime'
+import { sendSupportText, startChatRuntime, stopChatRuntime } from './chat/runtime'
 import { getChatRuntimeState, subscribeChatRuntime } from './chat/store'
+import { getOrCreateDeviceKey } from './device/identity'
 import { CallPushRegistration } from './notifications/call-push-registration'
 import { notificationButtonPresentation } from './notifications/presentation'
 import { installNotificationContextResponder } from './notifications/window-context'
 import { setupPwa } from './pwa'
-import { supabase } from './supabase/client'
-import { prepareFixedTestRuntime } from './user/fixed-runtime'
+import { guestSupabase, userSupabase } from './supabase/client'
+import { loginUser2, logoutUser2 } from './user/auth'
+import { capabilitiesForRootMode } from './user/capabilities'
+import { clearGuestLocalState } from './user/guest-lifecycle'
+import { resolveRootMode, type RootUserMode } from './user/root-session'
 import { setupViewportController } from './viewport/controller'
 import './call/call.css'
 import './user.css'
@@ -20,13 +24,26 @@ const root: HTMLDivElement = rootElement
 root.innerHTML = `
   <main class="user-app">
     <header>
-      <strong>Admin hỗ trợ · test</strong>
+      <div class="user-title">
+        <strong>Admin hỗ trợ</strong>
+        <small id="user-mode">Vãng lai</small>
+      </div>
       <div class="user-header-actions">
         <span id="status">Đang kết nối…</span>
         <button id="call-notifications" class="call-notification-button" type="button" hidden>Bật thông báo</button>
-        <button id="voice-call" class="chat-call-button" type="button" aria-label="Gọi thoại">☎</button>
+        <button id="voice-call" class="chat-call-button" type="button" aria-label="Gọi thoại" hidden>☎</button>
+        <button id="auth-action" class="user-auth-action" type="button">Đăng nhập</button>
       </div>
     </header>
+    <section id="login-panel" class="user-login-panel" hidden>
+      <form id="user-login-form">
+        <input id="user-login" autocomplete="username" placeholder="Tài khoản" aria-label="Tài khoản" />
+        <input id="user-password" type="password" autocomplete="current-password" placeholder="Mật khẩu" aria-label="Mật khẩu" />
+        <button type="submit">Đăng nhập</button>
+        <button id="login-cancel" type="button">Hủy</button>
+        <p id="login-error" aria-live="polite"></p>
+      </form>
+    </section>
     <section id="messages" class="messages"><p class="empty">Bạn cần hỗ trợ gì?</p></section>
     <form id="composer" class="composer">
       <input id="text" autocomplete="off" placeholder="Nhập tin nhắn…" aria-label="Tin nhắn" />
@@ -38,17 +55,31 @@ root.innerHTML = `
 
 const messages = root.querySelector<HTMLElement>('#messages')!
 const status = root.querySelector<HTMLElement>('#status')!
+const modeLabel = root.querySelector<HTMLElement>('#user-mode')!
 const form = root.querySelector<HTMLFormElement>('#composer')!
 const input = root.querySelector<HTMLInputElement>('#text')!
 const submit = form.querySelector<HTMLButtonElement>('button')!
 const callButton = root.querySelector<HTMLButtonElement>('#voice-call')!
 const notificationButton = root.querySelector<HTMLButtonElement>('#call-notifications')!
+const authAction = root.querySelector<HTMLButtonElement>('#auth-action')!
+const loginPanel = root.querySelector<HTMLElement>('#login-panel')!
+const loginForm = root.querySelector<HTMLFormElement>('#user-login-form')!
+const loginInput = root.querySelector<HTMLInputElement>('#user-login')!
+const passwordInput = root.querySelector<HTMLInputElement>('#user-password')!
+const loginSubmit = loginForm.querySelector<HTMLButtonElement>('button[type="submit"]')!
+const loginCancel = root.querySelector<HTMLButtonElement>('#login-cancel')!
+const loginError = root.querySelector<HTMLElement>('#login-error')!
 const callHost = root.querySelector<HTMLElement>('#voice-call-host')!
 
+let rootMode: RootUserMode = 'guest'
+let callSession: VoiceCallSession | null = null
+let disposeCallUi: (() => void) | null = null
+let disposeCallState: (() => void) | null = null
 let callPushRegistration: CallPushRegistration | null = null
 let callPushDeviceId = ''
 let disposeCallPushState: (() => void) | null = null
 let notificationActionPending = false
+let authActionPending = false
 
 function currentProfileId(): string {
   const identity = getChatRuntimeState().identity
@@ -59,6 +90,7 @@ function currentProfileId(): string {
 }
 
 function currentCallContext(): VoiceCallContext | null {
+  if (rootMode !== 'user2') return null
   const chat = getChatRuntimeState()
   if (chat.phase !== 'ready' || !chat.identity || typeof chat.identity !== 'object') return null
 
@@ -86,25 +118,52 @@ function currentCallContext(): VoiceCallContext | null {
   }
 }
 
-const callSession = new VoiceCallSession(supabase, currentCallContext)
-mountVoiceCallUi(callHost, callSession)
-callSession.start()
+function clearCallPushRegistration(): void {
+  disposeCallPushState?.()
+  disposeCallPushState = null
+  callPushRegistration = null
+  callPushDeviceId = ''
+  notificationActionPending = false
+}
+
+function stopUser2Capabilities(): void {
+  clearCallPushRegistration()
+  disposeCallState?.()
+  disposeCallState = null
+  callSession?.dispose()
+  callSession = null
+  disposeCallUi?.()
+  disposeCallUi = null
+  callHost.replaceChildren()
+}
+
+function startUser2Capabilities(): void {
+  if (rootMode !== 'user2' || callSession) return
+  callSession = new VoiceCallSession(userSupabase, currentCallContext)
+  disposeCallUi = mountVoiceCallUi(callHost, callSession)
+  disposeCallState = callSession.subscribe(render)
+  callSession.start()
+}
 
 function setupCallPushRegistration(): void {
+  if (!capabilitiesForRootMode(rootMode).push) {
+    clearCallPushRegistration()
+    return
+  }
+
   const deviceId = currentCallContext()?.deviceId ?? ''
   if (!deviceId || deviceId === callPushDeviceId) return
 
-  disposeCallPushState?.()
+  clearCallPushRegistration()
   callPushDeviceId = deviceId
-  notificationActionPending = false
-  callPushRegistration = new CallPushRegistration(supabase, deviceId)
+  callPushRegistration = new CallPushRegistration(userSupabase, deviceId)
   disposeCallPushState = callPushRegistration.subscribe(render)
   void callPushRegistration.sync()
 }
 
 function renderNotificationButton(): void {
   const registration = callPushRegistration
-  if (!registration) {
+  if (!registration || !capabilitiesForRootMode(rootMode).push) {
     notificationButton.hidden = true
     return
   }
@@ -124,7 +183,14 @@ function render(): void {
   const chat = getChatRuntimeState()
   const messageState = getChatMessageState()
   const canSend = chat.phase === 'ready' && messageState.realtime !== 'error' && Boolean(messageState.conversationId)
-  const callState = callSession.getState()
+  const capabilities = capabilitiesForRootMode(rootMode)
+  const callState = callSession?.getState()
+
+  modeLabel.textContent = rootMode === 'user2' ? 'User 2' : 'Vãng lai'
+  authAction.textContent = rootMode === 'user2' ? 'Thoát' : 'Đăng nhập'
+  authAction.disabled = authActionPending
+  callButton.hidden = !capabilities.call
+  callButton.disabled = !capabilities.call || !currentCallContext() || !callState || callState.phase !== 'idle'
 
   status.textContent = chat.phase === 'error'
     ? 'Không thể kết nối'
@@ -135,7 +201,6 @@ function render(): void {
   renderNotificationButton()
   input.disabled = false
   submit.disabled = !canSend || !input.value.trim()
-  callButton.disabled = !currentCallContext() || callState.phase !== 'idle'
 
   if (messageState.messages.length === 0) {
     messages.innerHTML = '<p class="empty">Bạn cần hỗ trợ gì?</p>'
@@ -152,12 +217,60 @@ function render(): void {
   messages.scrollTop = messages.scrollHeight
 }
 
+async function endGuestSession(): Promise<void> {
+  stopChatRuntime()
+  try {
+    await guestSupabase.auth.signOut()
+  } finally {
+    clearGuestLocalState()
+  }
+}
+
+async function startGuestMode(): Promise<void> {
+  rootMode = 'guest'
+  stopUser2Capabilities()
+  await startChatRuntime({
+    client: guestSupabase,
+    deviceKey: getOrCreateDeviceKey('guest'),
+  })
+  render()
+}
+
+async function startUser2Mode(): Promise<void> {
+  rootMode = 'user2'
+  await startChatRuntime({
+    client: userSupabase,
+    deviceKey: getOrCreateDeviceKey('user2'),
+  })
+  startUser2Capabilities()
+  setupCallPushRegistration()
+  render()
+}
+
+async function bootRootMode(): Promise<void> {
+  const mode = await resolveRootMode({
+    async getUser2Session() {
+      const result = await userSupabase.auth.getSession()
+      if (result.error) throw result.error
+      const user = result.data.session?.user
+      return user ? { isAnonymous: Boolean(user.is_anonymous) } : null
+    },
+    async clearUser2Session() {
+      const result = await userSupabase.auth.signOut()
+      if (result.error) throw result.error
+    },
+  })
+
+  if (mode === 'user2') await startUser2Mode()
+  else await startGuestMode()
+}
+
 input.addEventListener('input', render)
-callButton.addEventListener('click', () => void callSession.startOutgoing())
+callButton.addEventListener('click', () => void callSession?.startOutgoing())
 notificationButton.addEventListener('click', async () => {
   const registration = callPushRegistration
-  if (!registration || notificationActionPending) return
-  callSession.prepareAlertAudioFromUserGesture()
+  if (!registration || notificationActionPending || rootMode !== 'user2') return
+  callSession?.prepareAlertAudioFromUserGesture()
   notificationActionPending = true
   renderNotificationButton()
   try {
@@ -184,65 +297,90 @@ form.addEventListener('submit', async (event) => {
   }
 })
 
+authAction.addEventListener('click', async () => {
+  if (authActionPending) return
+  if (rootMode === 'guest') {
+    loginPanel.hidden = !loginPanel.hidden
+    loginError.textContent = ''
+    if (!loginPanel.hidden) loginInput.focus()
+    return
+  }
+
+  authActionPending = true
+  render()
+  try {
+    stopUser2Capabilities()
+    stopChatRuntime()
+    await logoutUser2({
+      endGuestSession,
+      async signInUser2() {},
+      async signOutUser2() {
+        const result = await userSupabase.auth.signOut()
+        if (result.error) throw result.error
+      },
+    })
+    clearGuestLocalState()
+    window.location.reload()
+  } catch {
+    authActionPending = false
+    status.textContent = 'Không thể đăng xuất'
+    render()
+  }
+})
+
+loginCancel.addEventListener('click', () => {
+  loginPanel.hidden = true
+  loginError.textContent = ''
+})
+
+loginForm.addEventListener('submit', async (event) => {
+  event.preventDefault()
+  if (authActionPending) return
+  authActionPending = true
+  loginSubmit.disabled = true
+  loginError.textContent = ''
+  render()
+
+  try {
+    await loginUser2({
+      endGuestSession,
+      async signInUser2(email, password) {
+        const result = await userSupabase.auth.signInWithPassword({ email, password })
+        if (result.error) throw result.error
+      },
+      async signOutUser2() {
+        const result = await userSupabase.auth.signOut()
+        if (result.error) throw result.error
+      },
+    }, loginInput.value, passwordInput.value)
+    window.location.reload()
+  } catch (error) {
+    authActionPending = false
+    loginSubmit.disabled = false
+    passwordInput.value = ''
+    loginError.textContent = error instanceof Error && error.message === 'admin_uses_admin_page'
+      ? 'Admin đăng nhập tại /admin/.'
+      : 'Tài khoản hoặc mật khẩu không đúng.'
+    await startGuestMode()
+    render()
+  }
+})
+
 subscribeChatRuntime(() => {
-  setupCallPushRegistration()
+  if (rootMode === 'user2') {
+    startUser2Capabilities()
+    setupCallPushRegistration()
+  }
   render()
 })
 subscribeChatMessages(render)
-callSession.subscribe(render)
 setupViewportController()
-setupPwa()
+setupPwa('user')
 installNotificationContextResponder(() => getChatMessageState().conversationId || null)
 render()
 
-async function startTestUser(): Promise<void> {
-  await prepareFixedTestRuntime({
-    async getCurrentUser() {
-      const { data, error } = await supabase.auth.getSession()
-      if (error) throw error
-      const user = data.session?.user
-      if (!user) return null
-      return {
-        email: user.email ?? null,
-        isAnonymous: Boolean(user.is_anonymous),
-      }
-    },
-    async signOut() {
-      const { error } = await supabase.auth.signOut()
-      if (error) throw error
-    },
-    async signIn(email, password) {
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) throw error
-    },
-    async signInAnonymously() {
-      const { error } = await supabase.auth.signInAnonymously()
-      if (error) throw error
-    },
-    async upgradeCurrentUser(displayName, username, password) {
-      const { error } = await supabase.rpc('chat_upgrade_to_user2', {
-        p_display_name: displayName,
-        p_username: username,
-        p_password: password,
-      })
-      if (error) throw error
-    },
-    async refreshSession() {
-      const { error } = await supabase.auth.refreshSession()
-      if (error) throw error
-    },
-  }, startChatRuntime)
-
-  if (getChatRuntimeState().phase !== 'ready') return
-
-  const result = await supabase.rpc('chat_set_my_test_profile')
-  if (result.error) console.warn('Could not label test profile', result.error)
-  setupCallPushRegistration()
-  render()
-}
-
-void startTestUser().catch((error) => {
-  console.error('Could not start fixed User 2', error)
+void bootRootMode().catch((error) => {
+  console.error('Could not start root user mode', error)
   status.textContent = 'Không thể kết nối'
   render()
 })
