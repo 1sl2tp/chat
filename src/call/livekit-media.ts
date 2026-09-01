@@ -1,9 +1,11 @@
 import {
-  LIVEKIT_TOKEN_SERVER_ID,
-  assertLiveKitServerUrl,
-  liveKitParticipantIdentity,
-  liveKitRoomName,
-} from './livekit-config'
+  Room,
+  RoomEvent,
+  Track,
+  supportsAudioOutputSelection,
+  type RemoteTrack,
+} from 'livekit-client'
+import { assertLiveKitServerUrl } from './livekit-config'
 import { playRemoteAudioElement } from './audio-playback'
 import {
   resetCallAudioRoute,
@@ -31,11 +33,9 @@ import {
   waitForCapturedMicrophone,
 } from './user-gesture-mic'
 
-export interface LiveKitJoinContext {
-  callId: string
-  profileId: string
-  deviceId: string
-  displayName: string
+export interface LiveKitJoinCredentials {
+  serverUrl: string
+  participantToken: string
 }
 
 export interface LiveKitMediaCallbacks {
@@ -48,73 +48,14 @@ export interface LiveKitMediaCallbacks {
   onError(error: Error): void
 }
 
-type LiveKitTrackLike = {
-  kind?: string
-  mediaStreamTrack?: MediaStreamTrack
-}
-
-type LiveKitRoomLike = {
-  canPlaybackAudio: boolean
-  remoteParticipants?: { size: number }
-  localParticipant: {
-    publishTrack(track: MediaStreamTrack, options?: { source?: string }): Promise<unknown>
-    setMicrophoneEnabled(enabled: boolean): Promise<unknown>
-  }
-  connect(serverUrl: string, token: string): Promise<unknown>
-  disconnect(stopTracks?: boolean): void
-  startAudio(): Promise<void>
-  switchActiveDevice(kind: MediaDeviceKind, deviceId: string, exact?: boolean): Promise<unknown>
-  on(event: string, listener: (...args: any[]) => void): LiveKitRoomLike
-}
-
-type LiveKitGlobal = {
-  Room: new (options?: Record<string, unknown>) => LiveKitRoomLike
-  RoomEvent: {
-    TrackSubscribed: string
-    TrackUnsubscribed: string
-    ParticipantConnected: string
-    ParticipantDisconnected: string
-    AudioPlaybackStatusChanged: string
-    Disconnected: string
-    Reconnecting: string
-    Reconnected: string
-  }
-  Track: {
-    Kind: { Audio: string }
-    Source: { Microphone: string }
-  }
-  TokenSource: {
-    developmentTokenServer(id: string): {
-      fetch(options: {
-        roomName: string
-        participantIdentity: string
-        participantName: string
-      }): Promise<{ serverUrl: string; participantToken: string }>
-    }
-  }
-  supportsAudioOutputSelection?: () => boolean
-}
-
-declare global {
-  interface Window {
-    LivekitClient?: LiveKitGlobal
-  }
-}
-
-function sdk(): LiveKitGlobal {
-  const value = window.LivekitClient
-  if (!value) throw new Error('livekit_sdk_missing')
-  return value
-}
-
 function callNavigator(): CallNavigatorAudioSessionLike {
   return navigator as unknown as CallNavigatorAudioSessionLike
 }
 
 export class LiveKitVoiceMedia {
-  private room: LiveKitRoomLike | null = null
+  private room: Room | null = null
   private readonly attached = new Set<HTMLMediaElement>()
-  private readonly remoteElementByTrack = new Map<LiveKitTrackLike, HTMLAudioElement>()
+  private readonly remoteElementByTrack = new Map<RemoteTrack, HTMLAudioElement>()
   private readonly callbacks: LiveKitMediaCallbacks
   private joined = false
   private microphoneCapture: Promise<MediaStream> | null = null
@@ -161,7 +102,7 @@ export class LiveKitVoiceMedia {
     await this.replayAttachedAudio()
   }
 
-  async join(context: LiveKitJoinContext): Promise<void> {
+  async join(credentials: LiveKitJoinCredentials): Promise<void> {
     if (this.joined) return
 
     const pendingCapture = this.microphoneCapture
@@ -174,25 +115,17 @@ export class LiveKitVoiceMedia {
     this.speakerEnabled = this.defaultSpeakerSelected()
     await this.applySelectedPhoneRoute()
 
-    const livekit = sdk()
     const room = this.ensureRoom()
-    const source = livekit.TokenSource.developmentTokenServer(LIVEKIT_TOKEN_SERVER_ID)
-    const credentials = await source.fetch({
-      roomName: liveKitRoomName(context.callId),
-      participantIdentity: liveKitParticipantIdentity(context.profileId, context.deviceId),
-      participantName: context.displayName || 'TAPHOA Chat',
-    })
-
     assertLiveKitServerUrl(credentials.serverUrl)
     await room.connect(credentials.serverUrl, credentials.participantToken)
     await publishCapturedMicrophone(
       microphoneStream,
-      livekit.Track.Source.Microphone,
-      (track, options) => room.localParticipant.publishTrack(track, options),
+      Track.Source.Microphone,
+      (track) => room.localParticipant.publishTrack(track, { source: Track.Source.Microphone }),
     )
     this.joined = true
 
-    if ((room.remoteParticipants?.size ?? 0) > 0) this.callbacks.onPeerConnected()
+    if (room.remoteParticipants.size > 0) this.callbacks.onPeerConnected()
   }
 
   async setMuted(muted: boolean): Promise<void> {
@@ -232,9 +165,7 @@ export class LiveKitVoiceMedia {
 
   async chooseAudioOutput(): Promise<boolean> {
     const room = this.room
-    if (!room || !this.joined) return false
-    const livekit = sdk()
-    if (livekit.supportsAudioOutputSelection && !livekit.supportsAudioOutputSelection()) return false
+    if (!room || !this.joined || !supportsAudioOutputSelection()) return false
 
     const devices = navigator.mediaDevices as MediaDevices & {
       selectAudioOutput?: () => Promise<MediaDeviceInfo>
@@ -248,11 +179,7 @@ export class LiveKitVoiceMedia {
   }
 
   canChooseAudioOutput(): boolean {
-    const livekit = window.LivekitClient
-    if (!livekit) return false
-    if (typeof livekit.supportsAudioOutputSelection === 'function') {
-      return livekit.supportsAudioOutputSelection()
-    }
+    if (!supportsAudioOutputSelection()) return false
     return typeof (navigator.mediaDevices as MediaDevices & { selectAudioOutput?: unknown }).selectAudioOutput === 'function'
   }
 
@@ -267,10 +194,9 @@ export class LiveKitVoiceMedia {
     this.removeAttached()
   }
 
-  private ensureRoom(): LiveKitRoomLike {
+  private ensureRoom(): Room {
     if (this.room) return this.room
-    const livekit = sdk()
-    const room = new livekit.Room({
+    const room = new Room({
       adaptiveStream: true,
       dynacast: true,
       disconnectOnPageLeave: true,
@@ -281,8 +207,8 @@ export class LiveKitVoiceMedia {
       },
     })
 
-    room.on(livekit.RoomEvent.TrackSubscribed, (track: LiveKitTrackLike) => {
-      if (track.kind !== livekit.Track.Kind.Audio || !track.mediaStreamTrack) return
+    room.on(RoomEvent.TrackSubscribed, (track) => {
+      if (track.kind !== Track.Kind.Audio || !track.mediaStreamTrack) return
       this.callbacks.onRemoteAudioSubscribed()
 
       const element = createOwnedRemoteAudio(track.mediaStreamTrack)
@@ -297,7 +223,7 @@ export class LiveKitVoiceMedia {
       void this.playElementOnSelectedRoute(element)
     })
 
-    room.on(livekit.RoomEvent.TrackUnsubscribed, (track: LiveKitTrackLike) => {
+    room.on(RoomEvent.TrackUnsubscribed, (track) => {
       const element = this.remoteElementByTrack.get(track)
       if (!element) return
       this.remoteElementByTrack.delete(track)
@@ -307,15 +233,15 @@ export class LiveKitVoiceMedia {
       element.remove()
     })
 
-    room.on(livekit.RoomEvent.ParticipantConnected, () => this.callbacks.onPeerConnected())
-    room.on(livekit.RoomEvent.ParticipantDisconnected, () => this.callbacks.onPeerDisconnected())
-    room.on(livekit.RoomEvent.AudioPlaybackStatusChanged, () => {
+    room.on(RoomEvent.ParticipantConnected, () => this.callbacks.onPeerConnected())
+    room.on(RoomEvent.ParticipantDisconnected, () => this.callbacks.onPeerDisconnected())
+    room.on(RoomEvent.AudioPlaybackStatusChanged, () => {
       if (!room.canPlaybackAudio) this.callbacks.onAudioPlaybackBlocked()
     })
-    room.on(livekit.RoomEvent.Disconnected, () => this.callbacks.onPeerDisconnected())
-    room.on(livekit.RoomEvent.Reconnecting, () => undefined)
-    room.on(livekit.RoomEvent.Reconnected, () => {
-      if ((room.remoteParticipants?.size ?? 0) > 0) this.callbacks.onPeerConnected()
+    room.on(RoomEvent.Disconnected, () => this.callbacks.onPeerDisconnected())
+    room.on(RoomEvent.Reconnecting, () => undefined)
+    room.on(RoomEvent.Reconnected, () => {
+      if (room.remoteParticipants.size > 0) this.callbacks.onPeerConnected()
     })
 
     this.room = room
