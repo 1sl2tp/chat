@@ -7,10 +7,12 @@ import {
 import { playRemoteAudioElement } from './audio-playback'
 import {
   resetCallAudioRoute,
-  routeCallToReceiverAfterMicrophone,
   type CallNavigatorAudioSessionLike,
 } from './audio-route'
-import { setPhoneAudioRoute } from './audio-route-control'
+import {
+  reassertPhoneAudioRouteAfterPlayback,
+  setPhoneAudioRoute,
+} from './audio-route-control'
 import {
   beginCallMicrophoneCapture,
   publishCapturedMicrophone,
@@ -104,6 +106,7 @@ export class LiveKitVoiceMedia {
   private joined = false
   private microphoneCapture: Promise<MediaStream> | null = null
   private microphoneStream: MediaStream | null = null
+  private speakerEnabled = false
 
   constructor(callbacks: LiveKitMediaCallbacks) {
     this.callbacks = callbacks
@@ -117,10 +120,8 @@ export class LiveKitVoiceMedia {
       return
     }
 
-    // The working iPhone path starts capture first. Do not activate LiveKit
-    // playback here: the old raw-WebRTC owner left the capture session in
-    // charge until a remote audio track actually arrived, which keeps normal
-    // voice-call routing instead of priming loudspeaker playback early.
+    // The proven iPhone path starts capture first. Nothing touches playback or
+    // the audio session until this getUserMedia request has resolved.
     const capture = beginCallMicrophoneCapture({
       getUserMedia: (constraints) => navigator.mediaDevices.getUserMedia(constraints),
     })
@@ -132,11 +133,11 @@ export class LiveKitVoiceMedia {
         return
       }
       this.microphoneStream = stream
+      this.speakerEnabled = false
 
-      // Reassert receiver-style call routing only after the microphone exists.
-      // On WebKit versions where AudioSession is effective this selects the
-      // call route; on affected iOS builds the capture route remains the owner.
-      routeCallToReceiverAfterMicrophone(callNavigator())
+      // Calls always start on the receiver. Crossing playback before
+      // play-and-record forces Safari to recompute a stale loudspeaker route.
+      setPhoneAudioRoute(callNavigator(), 'receiver')
     }).catch(() => undefined)
   }
 
@@ -156,12 +157,11 @@ export class LiveKitVoiceMedia {
       throw new Error('microphone_capture_cancelled')
     }
     this.microphoneStream = microphoneStream
+    this.speakerEnabled = false
+    setPhoneAudioRoute(callNavigator(), 'receiver')
 
-    routeCallToReceiverAfterMicrophone(callNavigator())
-
-    // Match the old working call sequence: connect/publish after the microphone
-    // is already live, but do not proactively start the playback audio session.
-    // Remote playback starts only when the remote audio track is subscribed.
+    // Connect/publish only after the microphone exists. Remote playback starts
+    // only when a remote audio track is subscribed.
     const livekit = sdk()
     const room = this.ensureRoom()
     const source = livekit.TokenSource.developmentTokenServer(LIVEKIT_TOKEN_SERVER_ID)
@@ -196,8 +196,7 @@ export class LiveKitVoiceMedia {
     const result = setPhoneAudioRoute(callNavigator(), enabled ? 'speaker' : 'receiver')
     if (!result.ok) return false
 
-    // Re-play the already attached live remote audio after the route switch so
-    // WebKit/Chromium has to apply the new output route to the active element.
+    this.speakerEnabled = enabled
     await this.replayAttachedAudio()
     return true
   }
@@ -230,6 +229,7 @@ export class LiveKitVoiceMedia {
 
   disconnect(): void {
     this.joined = false
+    this.speakerEnabled = false
     this.room?.disconnect(true)
     this.room = null
     this.stopMicrophoneCapture()
@@ -264,12 +264,7 @@ export class LiveKitVoiceMedia {
       this.attached.add(element)
 
       if (element instanceof HTMLMediaElement) {
-        // This is the first deliberate remote playback, matching the old
-        // raw-WebRTC path that behaved correctly on iPhone.
-        void playRemoteAudioElement(element).then((result) => {
-          if (result === 'playing') this.callbacks.onRemoteAudioPlaying()
-          else this.callbacks.onAudioPlaybackBlocked()
-        })
+        void this.playElementOnSelectedRoute(element)
       } else if (!room.canPlaybackAudio) {
         this.callbacks.onAudioPlaybackBlocked()
       }
@@ -297,13 +292,34 @@ export class LiveKitVoiceMedia {
     return room
   }
 
+  private async playElementOnSelectedRoute(element: HTMLMediaElement): Promise<void> {
+    const first = await playRemoteAudioElement(element)
+    if (first !== 'playing') {
+      this.callbacks.onAudioPlaybackBlocked()
+      return
+    }
+
+    // Starting an HTMLMediaElement may make Safari recompute the audio route
+    // back to loudspeaker. Reassert the selected route only after playback is
+    // actually active. Default is receiver; speaker is only explicit opt-in.
+    const route = reassertPhoneAudioRouteAfterPlayback(callNavigator(), this.speakerEnabled)
+    if (route.ok) {
+      element.pause()
+      const replay = await playRemoteAudioElement(element)
+      if (replay !== 'playing') {
+        this.callbacks.onAudioPlaybackBlocked()
+        return
+      }
+    }
+
+    this.callbacks.onRemoteAudioPlaying()
+  }
+
   private async replayAttachedAudio(): Promise<void> {
     for (const element of this.attached) {
       if (!(element instanceof HTMLMediaElement)) continue
       element.pause()
-      const result = await playRemoteAudioElement(element)
-      if (result === 'playing') this.callbacks.onRemoteAudioPlaying()
-      else this.callbacks.onAudioPlaybackBlocked()
+      await this.playElementOnSelectedRoute(element)
     }
   }
 
