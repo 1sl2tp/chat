@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { mountVoiceCallUi } from './ui'
+import { mountVoiceCallUi, statusText } from './ui'
 import type { VoiceCallSession, VoiceCallState } from './voice-session'
 
 class FakeElement {
@@ -27,23 +27,39 @@ class FakeElement {
   }
 }
 
-const ERROR_STATE: VoiceCallState = {
-  phase: 'error',
-  display: 'full',
-  direction: 'outgoing',
-  callId: null,
-  peerName: 'Admin',
-  muted: false,
-  speakerAvailable: false,
-  speakerSelected: false,
-  audioBlocked: false,
-  permissionNotice: null,
-  connectedAt: null,
-  error: 'Đối phương đang trong cuộc gọi',
+function state(patch: Partial<VoiceCallState> = {}): VoiceCallState {
+  return {
+    phase: 'idle',
+    display: 'full',
+    direction: null,
+    callId: null,
+    peerName: '',
+    muted: false,
+    speakerAvailable: false,
+    speakerSelected: false,
+    audioBlocked: false,
+    permissionNotice: null,
+    connectedAt: null,
+    error: null,
+    ...patch,
+  }
 }
+
+const ERROR_STATE = state({
+  phase: 'error',
+  direction: 'outgoing',
+  peerName: 'Admin',
+  error: 'Đối phương đang trong cuộc gọi',
+})
 
 afterEach(() => {
   vi.unstubAllGlobals()
+})
+
+describe('voice call reconnect UI', () => {
+  it('shows an explicit reconnecting status', () => {
+    expect(statusText(state({ phase: 'reconnecting' }))).toBe('Đang nối lại…')
+  })
 })
 
 describe('voice call error UI', () => {
@@ -52,7 +68,7 @@ describe('voice call error UI', () => {
     const setDisplay = vi.fn(() => undefined)
     const session = {
       getState: () => ERROR_STATE,
-      subscribe(listener: (state: VoiceCallState) => void) {
+      subscribe(listener: (value: VoiceCallState) => void) {
         listener(ERROR_STATE)
         return () => undefined
       },
