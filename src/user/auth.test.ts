@@ -12,6 +12,7 @@ describe('User2 auth transitions', () => {
     const events: string[] = []
     const backend = {
       endGuestSession: vi.fn(async () => { events.push('end-guest') }),
+      endUser2Session: vi.fn(async () => { events.push('end-user2') }),
       signInUser2: vi.fn(async (email: string) => { events.push(`sign-in:${email}`) }),
       signOutUser2: vi.fn(async () => { events.push('sign-out-user2') }),
     }
@@ -24,16 +25,34 @@ describe('User2 auth transitions', () => {
     ])
   })
 
-  it('signs User2 out before a caller starts a new guest', async () => {
+  it('ends the live User2 server session before signing Auth out', async () => {
     const events: string[] = []
     const backend = {
       endGuestSession: vi.fn(async () => { events.push('end-guest') }),
+      endUser2Session: vi.fn(async () => { events.push('end-user2') }),
       signInUser2: vi.fn(async () => { events.push('sign-in') }),
       signOutUser2: vi.fn(async () => { events.push('sign-out-user2') }),
     }
 
     await logoutUser2(backend)
 
-    expect(events).toEqual(['sign-out-user2'])
+    expect(events).toEqual(['end-user2', 'sign-out-user2'])
+  })
+
+  it('still signs Auth out if server session cleanup fails', async () => {
+    const events: string[] = []
+    const backend = {
+      endGuestSession: vi.fn(async () => {}),
+      endUser2Session: vi.fn(async () => {
+        events.push('end-user2')
+        throw new Error('offline')
+      }),
+      signInUser2: vi.fn(async () => {}),
+      signOutUser2: vi.fn(async () => { events.push('sign-out-user2') }),
+    }
+
+    await logoutUser2(backend)
+
+    expect(events).toEqual(['end-user2', 'sign-out-user2'])
   })
 })

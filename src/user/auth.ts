@@ -1,6 +1,10 @@
-export interface User2AuthBackend {
+export interface User2LoginBackend {
   endGuestSession(): Promise<void>
   signInUser2(email: string, password: string): Promise<void>
+}
+
+export interface User2LogoutBackend {
+  endUser2Session(): Promise<void>
   signOutUser2(): Promise<void>
 }
 
@@ -12,7 +16,7 @@ export function normalizeUser2Username(value: string): string {
 }
 
 export async function loginUser2(
-  backend: User2AuthBackend,
+  backend: User2LoginBackend,
   usernameValue: string,
   password: string,
 ): Promise<void> {
@@ -21,6 +25,11 @@ export async function loginUser2(
   await backend.signInUser2(`${username}@taphoa.chat`, password)
 }
 
-export async function logoutUser2(backend: User2AuthBackend): Promise<void> {
+export async function logoutUser2(backend: User2LogoutBackend): Promise<void> {
+  try {
+    await backend.endUser2Session()
+  } catch {
+    // Auth logout must still complete if remote session cleanup cannot reach the server.
+  }
   await backend.signOutUser2()
 }

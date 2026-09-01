@@ -2,6 +2,7 @@ import { bootstrapAdminIdentity } from './admin/bootstrap'
 import { signInAdmin } from './admin/auth'
 import { getAdminState, subscribeAdminState } from './admin/store'
 import { clearAdminSelection, selectAdminConversation, sendAdminText, startAdminRuntime } from './admin/runtime'
+import { createUser2FromAdmin } from './admin/user2-account'
 import { mountVoiceCallUi } from './call/ui'
 import { VoiceCallSession, type VoiceCallContext } from './call/voice-session'
 import { getChatMessageState, subscribeChatMessages } from './chat/message-runtime'
@@ -108,7 +109,24 @@ function mountWorkspace(): void {
   root.innerHTML = `
     <main class="admin-app">
       <aside class="admin-inbox">
-        <header><strong>Hỗ trợ</strong><button id="logout" type="button">Thoát</button></header>
+        <header>
+          <strong>Hỗ trợ</strong>
+          <div class="admin-header-actions">
+            <button id="create-user2-toggle" type="button">Tạo User</button>
+            <button id="logout" type="button">Thoát</button>
+          </div>
+        </header>
+        <section id="create-user2-panel" class="admin-user2-panel" hidden>
+          <form id="create-user2-form">
+            <input id="create-user2-username" autocomplete="off" placeholder="Tài khoản User" aria-label="Tài khoản User" />
+            <input id="create-user2-password" type="password" autocomplete="new-password" placeholder="Mật khẩu" aria-label="Mật khẩu User" />
+            <div class="admin-user2-actions">
+              <button type="submit">Tạo</button>
+              <button id="create-user2-cancel" type="button">Hủy</button>
+            </div>
+            <p id="create-user2-result" aria-live="polite"></p>
+          </form>
+        </section>
         <div id="inbox"></div>
       </aside>
       <section class="admin-chat">
@@ -137,6 +155,14 @@ function mountWorkspace(): void {
   const send = form.querySelector<HTMLButtonElement>('button')!
   const back = root.querySelector<HTMLButtonElement>('#back')!
   const logout = root.querySelector<HTMLButtonElement>('#logout')!
+  const createUserToggle = root.querySelector<HTMLButtonElement>('#create-user2-toggle')!
+  const createUserPanel = root.querySelector<HTMLElement>('#create-user2-panel')!
+  const createUserForm = root.querySelector<HTMLFormElement>('#create-user2-form')!
+  const createUserInput = root.querySelector<HTMLInputElement>('#create-user2-username')!
+  const createUserPassword = root.querySelector<HTMLInputElement>('#create-user2-password')!
+  const createUserSubmit = createUserForm.querySelector<HTMLButtonElement>('button[type="submit"]')!
+  const createUserCancel = root.querySelector<HTMLButtonElement>('#create-user2-cancel')!
+  const createUserResult = root.querySelector<HTMLElement>('#create-user2-result')!
   const callButton = root.querySelector<HTMLButtonElement>('#admin-voice-call')!
   const notificationButton = root.querySelector<HTMLButtonElement>('#call-notifications')!
   const callHost = root.querySelector<HTMLElement>('#voice-call-host')!
@@ -225,6 +251,49 @@ function mountWorkspace(): void {
     disposeCallPushState = callPushRegistration.subscribe(render)
     void callPushRegistration.sync()
   }
+
+  createUserToggle.addEventListener('click', () => {
+    createUserPanel.hidden = !createUserPanel.hidden
+    createUserResult.textContent = ''
+    if (!createUserPanel.hidden) createUserInput.focus()
+  })
+  createUserCancel.addEventListener('click', () => {
+    createUserPanel.hidden = true
+    createUserResult.textContent = ''
+    createUserPassword.value = ''
+  })
+  createUserForm.addEventListener('submit', async (event) => {
+    event.preventDefault()
+    createUserSubmit.disabled = true
+    createUserResult.textContent = ''
+    try {
+      const result = await createUser2FromAdmin({
+        async create(account) {
+          const invoked = await adminSupabase.functions.invoke('taphoaxyz-admin-user', {
+            body: { action: 'create_user2', ...account },
+          })
+          if (invoked.error) throw invoked.error
+          const data = invoked.data as { username?: unknown } | null
+          if (typeof data?.username !== 'string') throw new Error('invalid_create_user2_response')
+          return { username: data.username }
+        },
+      }, createUserInput.value, createUserPassword.value)
+      createUserResult.textContent = `Đã tạo ${result.username}`
+      createUserInput.value = ''
+      createUserPassword.value = ''
+    } catch (error) {
+      const message = error instanceof Error ? error.message : ''
+      createUserResult.textContent = message === 'reserved_username'
+        ? 'Không dùng tên admin.'
+        : message === 'invalid_username'
+          ? 'Tài khoản 3–24 ký tự: a-z, 0-9, _.'
+          : message === 'password_too_short'
+            ? 'Mật khẩu tối thiểu 6 ký tự.'
+            : 'Không tạo được User.'
+    } finally {
+      createUserSubmit.disabled = false
+    }
+  })
 
   input.addEventListener('input', render)
   callButton.addEventListener('click', () => void callSession?.startOutgoing())

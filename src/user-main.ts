@@ -5,6 +5,7 @@ import { sendSupportText, startChatRuntime, stopChatRuntime } from './chat/runti
 import { getChatRuntimeState, subscribeChatRuntime } from './chat/store'
 import { getOrCreateDeviceKey } from './device/identity'
 import { CallPushRegistration } from './notifications/call-push-registration'
+import { clearCurrentPushSubscription } from './notifications/push-cleanup'
 import { notificationButtonPresentation } from './notifications/presentation'
 import { installNotificationContextResponder } from './notifications/window-context'
 import { setupPwa } from './pwa'
@@ -234,6 +235,7 @@ async function endGuestSession(): Promise<void> {
 async function startGuestMode(): Promise<void> {
   rootMode = 'guest'
   stopUser2Capabilities()
+  await clearCurrentPushSubscription()
   await startChatRuntime({
     client: guestSupabase,
     deviceKey: getOrCreateDeviceKey('guest'),
@@ -324,8 +326,10 @@ authAction.addEventListener('click', async () => {
     stopUser2Capabilities()
     stopChatRuntime()
     await logoutUser2({
-      endGuestSession,
-      async signInUser2() {},
+      async endUser2Session() {
+        const result = await userSupabase.rpc('chat_end_user_session')
+        if (result.error) throw result.error
+      },
       async signOutUser2() {
         const result = await userSupabase.auth.signOut()
         if (result.error) throw result.error
@@ -358,10 +362,6 @@ loginForm.addEventListener('submit', async (event) => {
       endGuestSession,
       async signInUser2(email, password) {
         const result = await userSupabase.auth.signInWithPassword({ email, password })
-        if (result.error) throw result.error
-      },
-      async signOutUser2() {
-        const result = await userSupabase.auth.signOut()
         if (result.error) throw result.error
       },
     }, loginInput.value, passwordInput.value)
