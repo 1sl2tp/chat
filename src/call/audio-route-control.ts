@@ -13,15 +13,11 @@ export function setPhoneAudioRoute(
   if (!session) return { ok: false, route: 'unsupported' }
 
   try {
-    if (route === 'receiver') {
-      // Safari may keep the loudspeaker route even while the reported session
-      // type already says play-and-record. Cross playback first so WebKit has
-      // to recompute the active output route, then return to voice-call mode.
-      session.type = 'playback'
-      session.type = 'play-and-record'
-    } else {
-      session.type = 'playback'
-    }
+    // WebKit uses play-and-record for voice-call/receiver routing. Never pass
+    // through playback while requesting the receiver: on affected iOS 26
+    // builds that can leave the physical route stuck on the loudspeaker even
+    // if a later AudioSession write reports play-and-record.
+    session.type = route === 'speaker' ? 'playback' : 'play-and-record'
 
     const expected = route === 'speaker' ? 'playback' : 'play-and-record'
     if (session.type !== expected) return { ok: false, route: 'unsupported' }
