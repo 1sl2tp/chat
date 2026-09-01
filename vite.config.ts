@@ -3,6 +3,18 @@ import { VitePWA } from 'vite-plugin-pwa'
 import { APP_BASE_PATH, PWA_APP_ID } from './src/deployment.js'
 
 const buildId = process.env.VITE_BUILD_ID ?? process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.GITHUB_SHA ?? 'local'
+const includeDiagnostics = process.env.VITE_INCLUDE_DIAGNOSTICS === 'true'
+
+const productInputs = {
+  user: 'index.html',
+  admin: 'admin/index.html',
+}
+
+const diagnosticInputs = {
+  audioLab: 'audio-lab/index.html',
+  minimalCall: 'call-minimal/index.html',
+  micTest: 'mic-test/index.html',
+}
 
 export default defineConfig({
   base: APP_BASE_PATH,
@@ -11,13 +23,7 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      input: {
-        user: 'index.html',
-        admin: 'admin/index.html',
-        audioLab: 'audio-lab/index.html',
-        minimalCall: 'call-minimal/index.html',
-        micTest: 'mic-test/index.html',
-      },
+      input: includeDiagnostics ? { ...productInputs, ...diagnosticInputs } : productInputs,
     },
   },
   plugins: [
