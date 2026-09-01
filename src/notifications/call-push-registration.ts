@@ -5,6 +5,7 @@ export type CallPushIssue = 'ios_home_screen_required' | 'unsupported' | 'permis
 
 export interface CallPushSubscriptionLike {
   endpoint: string
+  unsubscribe(): Promise<boolean>
   getKey(name: string): ArrayBuffer | null
 }
 
@@ -16,6 +17,7 @@ export interface CallPushManagerLike {
 export interface CallPushBrowser {
   supported(): boolean
   iosHomeScreenRequired(): boolean
+  android(): boolean
   permission(): NotificationPermission
   requestPermission(): Promise<NotificationPermission>
   ready(): Promise<{ pushManager: CallPushManagerLike }>
@@ -111,6 +113,9 @@ export class CallPushRegistration {
         body: 'Thông báo trực tiếp từ PWA',
         tag: `local-test-${Date.now()}`,
       })
+      if (this.browser.android()) {
+        await this.ensureSubscriptionAndUpsert(true)
+      }
       await this.sendReadinessProbe()
       this.publish('enabled')
     } catch (error) {
@@ -138,7 +143,7 @@ export class CallPushRegistration {
     this.publish('enabled')
   }
 
-  private async ensureSubscriptionAndUpsert(): Promise<void> {
+  private async ensureSubscriptionAndUpsert(forceRotate = false): Promise<void> {
     const registration = await this.browser.ready()
     const configResult = await this.client.functions.invoke('taphoaxyz-call-push', {
       body: { action: 'config' },
@@ -150,6 +155,11 @@ export class CallPushRegistration {
     if (!publicKey) throw new Error('call_push_vapid_missing')
 
     let subscription = await registration.pushManager.getSubscription()
+    if (forceRotate && subscription) {
+      const removed = await subscription.unsubscribe()
+      if (!removed) throw new Error('push_subscription_unsubscribe_failed')
+      subscription = null
+    }
     if (!subscription) {
       subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
@@ -206,6 +216,9 @@ function defaultCallPushBrowser(): CallPushBrowser {
       const legacyStandalone = (navigator as Navigator & { standalone?: boolean }).standalone === true
       const displayStandalone = window.matchMedia?.('(display-mode: standalone)').matches === true
       return !legacyStandalone && !displayStandalone
+    },
+    android() {
+      return typeof navigator !== 'undefined' && /Android/u.test(navigator.userAgent)
     },
     permission() {
       return Notification.permission
