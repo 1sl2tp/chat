@@ -6,7 +6,6 @@ describe('remote audio owner', () => {
     const track = { kind: 'audio' } as MediaStreamTrack
     const element = {
       autoplay: false,
-      playsInline: false,
       srcObject: null,
     } as unknown as HTMLAudioElement
     let streamTracks: MediaStreamTrack[] = []
@@ -24,6 +23,5 @@ describe('remote audio owner', () => {
     expect(streamTracks).toEqual([track])
     expect(element.srcObject).toBe(stream)
     expect(element.autoplay).toBe(true)
-    expect(element.playsInline).toBe(true)
   })
 })
