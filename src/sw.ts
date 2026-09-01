@@ -2,6 +2,7 @@
 
 import { serviceWorkerAssetBase } from './deployment'
 import { notificationVibration, parsePushPayload, shouldShowSystemNotification } from './notifications/payload'
+import { resolveScopedNavigation } from './pwa/navigation'
 import { hasVisibleWindowForOwner, isWindowOwnedBy } from './pwa/owner-visibility'
 import { pwaOwnerForPath, type PwaOwner } from './pwa/registration'
 
@@ -102,7 +103,7 @@ self.addEventListener('notificationclick', (event) => {
 
   event.waitUntil((async () => {
     const data = event.notification.data as { navigate?: unknown } | undefined
-    const target = resolveSafeNavigation(data?.navigate)
+    const target = resolveScopedNavigation(self.registration.scope, data?.navigate)
     const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
 
     for (const client of windows) {
@@ -166,17 +167,6 @@ function readPushData(event: PushEvent): unknown {
   } catch {
     return { body: event.data.text() }
   }
-}
-
-function resolveSafeNavigation(value: unknown): URL {
-  const scope = new URL(self.registration.scope)
-  const candidate = new URL(typeof value === 'string' ? value : './', scope)
-
-  if (candidate.origin !== scope.origin || !candidate.pathname.startsWith(scope.pathname)) {
-    return scope
-  }
-
-  return candidate
 }
 
 function hashManifest(entries: Array<{ url: string; revision?: string | null }>): string {
