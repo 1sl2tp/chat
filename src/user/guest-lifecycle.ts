@@ -12,3 +12,11 @@ export function clearGuestLocalState(storage: RemovableStorage = sessionStorage)
 export function shouldClearGuestOnPageHide(mode: RootUserMode, persisted: boolean): boolean {
   return mode === 'guest' && !persisted
 }
+
+// This module is loaded only by the root User app. Removing guest-owned keys is
+// safe even if User2 is active because User2/Admin use different namespaces.
+if (typeof window !== 'undefined') {
+  window.addEventListener('pagehide', (event) => {
+    if (!event.persisted) clearGuestLocalState()
+  })
+}
