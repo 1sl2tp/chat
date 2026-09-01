@@ -116,9 +116,10 @@ export class LiveKitVoiceMedia {
       return
     }
 
-    // This must be the first media operation in the user's tap. On iPhone the
-    // proven working path is: getUserMedia resolves first, then audio routing
-    // and LiveKit are allowed to touch the media session.
+    // The working iPhone path starts capture first. Do not activate LiveKit
+    // playback here: the old raw-WebRTC owner left the capture session in
+    // charge until a remote audio track actually arrived, which keeps normal
+    // voice-call routing instead of priming loudspeaker playback early.
     const capture = beginCallMicrophoneCapture({
       getUserMedia: (constraints) => navigator.mediaDevices.getUserMedia(constraints),
     })
@@ -131,12 +132,10 @@ export class LiveKitVoiceMedia {
       }
       this.microphoneStream = stream
 
-      // Do not move this before getUserMedia. Safari/iPhone capture was proven
-      // to work only when gUM is the first media operation from the tap.
+      // Reassert receiver-style call routing only after the microphone exists.
+      // On WebKit versions where AudioSession is effective this selects the
+      // call route; on affected iOS builds the capture route remains the owner.
       routeCallToReceiverAfterMicrophone(callNavigator())
-
-      const room = this.ensureRoom()
-      void room.startAudio().catch(() => undefined)
     }).catch(() => undefined)
   }
 
@@ -162,13 +161,11 @@ export class LiveKitVoiceMedia {
     }
     this.microphoneStream = microphoneStream
 
-    // Reassert the voice-call route after the microphone exists and before any
-    // LiveKit playback/connect work. play-and-record maps to the receiver route
-    // on iPhone unless the user has selected an external route.
     routeCallToReceiverAfterMicrophone(callNavigator())
 
-    // Only after the working iPhone mic stream exists may LiveKit be created,
-    // connected, or allowed to touch playback/capture state.
+    // Match the old working call sequence: connect/publish after the microphone
+    // is already live, but do not proactively start the playback audio session.
+    // Remote playback starts only when the remote audio track is subscribed.
     const livekit = sdk()
     const room = this.ensureRoom()
     const source = livekit.TokenSource.developmentTokenServer(LIVEKIT_TOKEN_SERVER_ID)
@@ -256,6 +253,8 @@ export class LiveKitVoiceMedia {
       this.attached.add(element)
 
       if (element instanceof HTMLMediaElement) {
+        // This is the first deliberate remote playback, matching the old
+        // raw-WebRTC path that behaved correctly on iPhone.
         void playRemoteAudioElement(element).then((result) => {
           if (result === 'playing') this.callbacks.onRemoteAudioPlaying()
           else this.callbacks.onAudioPlaybackBlocked()
