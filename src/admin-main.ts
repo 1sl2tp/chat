@@ -7,6 +7,7 @@ import { createUser2FromAdmin } from './admin/user2-account'
 import { mountVoiceCallUi } from './call/ui'
 import { VoiceCallSession, type VoiceCallContext } from './call/voice-session'
 import { getChatMessageState, subscribeChatMessages } from './chat/message-runtime'
+import { composerEnterAction, isMobileComposerEnvironment } from './chat/ui/composer-behavior'
 import { getDeviceLabel, getDevicePlatform, getOrCreateDeviceKey } from './device/identity'
 import { CallPushRegistration, callPushBrowserForRegistration } from './notifications/call-push-registration'
 import { notificationButtonPresentation } from './notifications/presentation'
@@ -15,6 +16,7 @@ import { installNotificationContextResponder } from './notifications/window-cont
 import { setupPwa } from './pwa'
 import { createSupabaseChatBackend } from './supabase/chat-backend'
 import { adminSupabase } from './supabase/client'
+import { setupViewportController } from './viewport/controller'
 import './call/call.css'
 import './admin.css'
 
@@ -22,6 +24,7 @@ const rootElement = document.querySelector<HTMLDivElement>('#app')
 if (!rootElement) throw new Error('Missing #app root')
 const root: HTMLDivElement = rootElement
 const adminPwaRegistrationPromise = setupPwa('admin')
+const mobileComposer = isMobileComposerEnvironment()
 
 let adminIdentity: unknown = null
 let callSession: VoiceCallSession | null = null
@@ -141,7 +144,7 @@ async function mountWorkspace(): Promise<void> {
         </header>
         <div id="admin-messages" class="messages"><p class="empty">Chọn một User để chat.</p></div>
         <form id="admin-composer" class="composer">
-          <input id="admin-text" autocomplete="off" placeholder="Nhập tin nhắn…" aria-label="Tin nhắn" />
+          <textarea id="admin-text" rows="1" autocomplete="off" placeholder="Nhập tin nhắn…" aria-label="Tin nhắn"></textarea>
           <button type="submit">Gửi</button>
         </form>
       </section>
@@ -154,7 +157,7 @@ async function mountWorkspace(): Promise<void> {
   const messages = root.querySelector<HTMLElement>('#admin-messages')!
   const customer = root.querySelector<HTMLElement>('#customer')!
   const form = root.querySelector<HTMLFormElement>('#admin-composer')!
-  const input = root.querySelector<HTMLInputElement>('#admin-text')!
+  const input = root.querySelector<HTMLTextAreaElement>('#admin-text')!
   const send = form.querySelector<HTMLButtonElement>('button')!
   const back = root.querySelector<HTMLButtonElement>('#back')!
   const logout = root.querySelector<HTMLButtonElement>('#logout')!
@@ -304,6 +307,12 @@ async function mountWorkspace(): Promise<void> {
   })
 
   input.addEventListener('input', render)
+  input.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' || event.isComposing) return
+    if (composerEnterAction({ isMobile: mobileComposer, shiftKey: event.shiftKey }) === 'newline') return
+    event.preventDefault()
+    if (!send.disabled) form.requestSubmit()
+  })
   callButton.addEventListener('click', () => void callSession?.startOutgoing())
   notificationButton.addEventListener('click', async () => {
     const registration = callPushRegistration
@@ -396,5 +405,6 @@ async function start(): Promise<void> {
   await bootWorkspace()
 }
 
+setupViewportController()
 installNotificationContextResponder(() => getAdminState().selectedConversationId || null)
 void start()
