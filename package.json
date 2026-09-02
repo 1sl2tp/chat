@@ -8,9 +8,10 @@
   },
   "scripts": {
     "dev": "vite",
+    "verify:chatwoot-mirror": "node scripts/verify-chatwoot-mirror.mjs",
     "typecheck": "tsc -b",
     "test": "vitest run",
-    "build": "npm run typecheck && npm run test && vite build",
+    "build": "npm run verify:chatwoot-mirror && npm run typecheck && npm run test && vite build",
     "preview": "vite preview"
   },
   "devDependencies": {
