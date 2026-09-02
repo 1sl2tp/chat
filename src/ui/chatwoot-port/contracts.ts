@@ -24,6 +24,7 @@ export interface MessageViewModel {
   kind: MessageKind
   direction: 'incoming' | 'outgoing' | 'center'
   senderId?: string
+  senderLabel?: string
   text?: string
   createdAt: string
   callId?: string

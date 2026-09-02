@@ -1,5 +1,6 @@
 import type { PresentedMessage } from '../message-model'
 import { createMediaActions } from './media-actions'
+import { applyIncomingSenderAvatar } from './sender-avatar'
 
 function formatSeconds(value: number): string {
   const total = Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0
@@ -12,6 +13,7 @@ export function renderAudioMessage(message: PresentedMessage): HTMLElement {
   const row = document.createElement('article')
   row.className = `cw-message cw-message--audio cw-message--${message.direction}`
   row.dataset.messageId = message.id
+  applyIncomingSenderAvatar(row, message)
 
   const player = document.createElement('div')
   player.className = 'cw-audio-player'
@@ -99,7 +101,6 @@ export function renderAudioMessage(message: PresentedMessage): HTMLElement {
     recoveryReturnTime = Number.isFinite(audio.currentTime) ? Math.max(0, audio.currentTime) : 0
     recoveringDuration = true
     try {
-      // MediaRecorder WebM can expose duration as Infinity until the browser seeks to the end once.
       audio.currentTime = 1e101
     } catch {
       recoveringDuration = false
