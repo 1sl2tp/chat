@@ -1,3 +1,4 @@
+import { sendAttachmentFile, type AttachmentTransport } from './attachments/controller'
 import { mergeChatMessages, type ChatMessage } from './messages'
 
 export type ChatRealtimeStatus = 'idle' | 'connecting' | 'subscribed' | 'error'
@@ -97,6 +98,26 @@ export async function sendChatText(
   if (!normalized) throw new Error('Message text is empty')
 
   const message = await backend.sendText(conversationId, createId(), normalized)
+  publish({ ...state, messages: mergeChatMessages(state.messages, [message]) })
+  return message
+}
+
+export async function sendChatAttachment(
+  transport: AttachmentTransport,
+  profileId: string,
+  file: File,
+  createId: () => string = () => crypto.randomUUID(),
+): Promise<ChatMessage> {
+  const conversationId = state.conversationId
+  if (!conversationId) throw new Error('No active support conversation')
+  if (!profileId) throw new Error('Profile is required')
+
+  const message = await sendAttachmentFile(
+    transport,
+    { conversationId, profileId },
+    file,
+    createId,
+  )
   publish({ ...state, messages: mergeChatMessages(state.messages, [message]) })
   return message
 }
