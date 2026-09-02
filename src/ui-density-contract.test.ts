@@ -8,9 +8,10 @@ const userCss = readFileSync(new URL('./user.css', import.meta.url), 'utf8')
 describe('compact chat/admin UI density', () => {
   it('keeps the admin shell compact without breaking the 280px floor', () => {
     expect(adminCss).toContain('min-width:280px')
-    expect(adminCss).toContain('.admin-app header{min-height:52px')
+    expect(adminCss).toContain('.admin-inbox>header{min-height:52px')
     expect(adminCss).toContain('.inbox-item{width:100%;display:block;padding:9px 10px')
     expect(adminCss).toContain('white-space:normal')
+    expect(adminCss).not.toContain('.admin-app header{')
   })
 
   it('keeps the User header compact without breaking the 280px floor', () => {
