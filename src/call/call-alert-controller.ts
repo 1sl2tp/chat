@@ -14,10 +14,24 @@ export interface CallAlertVibration {
   stop(): void
 }
 
+type ScreenWakeLockSentinelLike = {
+  release(): Promise<void>
+  addEventListener(type: 'release', listener: () => void, options?: { once?: boolean }): void
+}
+
+type ScreenWakeLockNavigator = Navigator & {
+  wakeLock?: {
+    request(type: 'screen'): Promise<ScreenWakeLockSentinelLike>
+  }
+}
+
 export class CallAlertController {
   private mode: CallAlertMode = 'silent'
   private readonly audio: CallAlertAudio
   private readonly vibration: CallAlertVibration
+  private screenWakeLock: ScreenWakeLockSentinelLike | null = null
+  private wakeLockWanted = false
+  private wakeLockRequesting = false
 
   constructor(
     audio: CallAlertAudio = new BrowserCallAlertAudio(),
@@ -36,6 +50,8 @@ export class CallAlertController {
   }
 
   sync(state: VoiceCallState): void {
+    this.syncScreenWakeLock(state.phase !== 'idle' && state.phase !== 'error')
+
     const nextMode: CallAlertMode = state.resumeRequired
       ? 'silent'
       : state.phase === 'incoming'
@@ -60,8 +76,44 @@ export class CallAlertController {
   }
 
   stop(): void {
+    this.syncScreenWakeLock(false)
     this.mode = 'silent'
     this.stopCurrent()
+  }
+
+  private syncScreenWakeLock(active: boolean): void {
+    this.wakeLockWanted = active
+
+    if (!active) {
+      const current = this.screenWakeLock
+      this.screenWakeLock = null
+      if (current) void current.release().catch(() => undefined)
+      return
+    }
+
+    if (this.screenWakeLock || this.wakeLockRequesting) return
+    if (typeof document === 'undefined' || document.visibilityState !== 'visible') return
+
+    const wakeLock = (navigator as ScreenWakeLockNavigator).wakeLock
+    if (!wakeLock) return
+
+    this.wakeLockRequesting = true
+    void wakeLock.request('screen')
+      .then((sentinel) => {
+        this.wakeLockRequesting = false
+        if (!this.wakeLockWanted || document.visibilityState !== 'visible') {
+          void sentinel.release().catch(() => undefined)
+          return
+        }
+
+        this.screenWakeLock = sentinel
+        sentinel.addEventListener('release', () => {
+          if (this.screenWakeLock === sentinel) this.screenWakeLock = null
+        }, { once: true })
+      })
+      .catch(() => {
+        this.wakeLockRequesting = false
+      })
   }
 
   private stopCurrent(): void {
