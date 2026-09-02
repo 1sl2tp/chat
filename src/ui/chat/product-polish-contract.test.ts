@@ -36,11 +36,14 @@ describe('shared Chat product polish', () => {
   })
 
   it('uses product attachment containers instead of unframed browser controls', () => {
-    expect(messageListSource).toContain('chat-attachment__audio-player')
+    expect(messageListSource).toContain('chat-audio-player__play')
+    expect(messageListSource).toContain('chat-audio-player__range')
     expect(messageListSource).toContain('chat-attachment__file')
     expect(messageListSource).toContain('chat-attachment__image-button')
+    expect(messageListSource).not.toContain('audio.controls = true')
     expect(css).toContain('.chat-attachment--image')
     expect(css).toContain('.chat-attachment--audio')
+    expect(css).toContain('.chat-audio-player{')
     expect(css).toContain('.chat-attachment__file')
   })
 
