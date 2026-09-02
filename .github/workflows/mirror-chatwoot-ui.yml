@@ -33,7 +33,8 @@ jobs:
 
       - name: Mirror exact upstream UI source
         env:
-          CHATWOOT_COMMIT: 228a069c28f7ab8fdf0a59e22f7fa02e71d4ca10
+          CHATWOOT_MOBILE_COMMIT: 228a069c28f7ab8fdf0a59e22f7fa02e71d4ca10
+          CHATWOOT_WEB_COMMIT: 9c7177005b3e2466f1de731da75192f8c9592e4b
         run: node scripts/mirror-chatwoot-ui.mjs
 
       - name: Verify mirror hashes and runtime boundary
@@ -44,10 +45,10 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add vendor/chatwoot-mobile-ui
+          git add vendor/chatwoot-mobile-ui vendor/chatwoot-web-ui
           if git diff --cached --quiet; then
             echo "Mirror already current"
             exit 0
           fi
-          git commit -m "chore: mirror Chatwoot UI source with provenance"
+          git commit -m "chore: mirror Chatwoot login and call UI sources"
           git push origin HEAD:${GITHUB_REF_NAME}
