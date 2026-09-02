@@ -34,8 +34,9 @@ export function parsePushPayload(input: unknown): PushNotificationPayload {
   }
 }
 
-export function shouldShowSystemNotification(type: string | undefined, hasVisibleWindow: boolean): boolean {
-  return !(type === 'incoming_call' && hasVisibleWindow)
+export function shouldShowSystemNotification(type: string | undefined, _hasVisibleWindow: boolean): boolean {
+  if (type === 'incoming_call') return true
+  return true
 }
 
 export function notificationVibration(type: string | undefined): number[] | undefined {
