@@ -29,7 +29,7 @@ export function userAccountSummary(
   }
   return {
     displayName: 'Khách',
-    typeLabel: 'Vãng lai',
+    typeLabel: 'User 1',
     accountLabel: 'Chưa có tài khoản',
   }
 }
@@ -84,17 +84,31 @@ function prepareSummaryLayout(doc: Document, modeElement: HTMLElement): {
 
   const meta = doc.createElement('div')
   meta.className = 'user-account-summary__meta'
-  modeElement.className = 'user-account-summary__type'
 
   const account = doc.createElement('span')
   account.id = 'user-summary-account'
   account.className = 'user-account-summary__account'
 
-  meta.append(modeElement, account)
+  modeElement.className = 'user-account-summary__type'
+  meta.append(account, modeElement)
   body.append(name, meta)
   host.replaceChildren(avatar, body)
   host.classList.add('user-account-summary--identity')
   return { name, account, avatar }
+}
+
+function createDrawerDetails(doc: Document, className: string, label: string): {
+  details: HTMLDetailsElement
+  body: HTMLElement
+} {
+  const details = doc.createElement('details')
+  details.className = `user-drawer-details ${className}`
+  const summary = doc.createElement('summary')
+  summary.textContent = label
+  const body = doc.createElement('div')
+  body.className = 'user-drawer-details__body'
+  details.append(summary, body)
+  return { details, body }
 }
 
 export function mountUserAccountUi(doc: Document = document): () => void {
@@ -129,9 +143,9 @@ export function mountUserAccountUi(doc: Document = document): () => void {
   drawerPanel.insertBefore(guestSection, settingsPanel)
 
   const profileDetails = doc.createElement('details')
-  profileDetails.className = 'user-profile-details'
+  profileDetails.className = 'user-profile-details user-drawer-details'
   profileDetails.innerHTML = `
-    <summary>Thông tin cá nhân</summary>
+    <summary>Sửa thông tin</summary>
     <form id="user-profile-form" class="user-account-form">
       <input id="user-profile-display" autocomplete="name" maxlength="50" placeholder="Tên hiển thị" aria-label="Tên hiển thị" />
       <input id="user-profile-username" autocomplete="username" maxlength="24" placeholder="Tài khoản" aria-label="Tài khoản User 2" />
@@ -140,6 +154,20 @@ export function mountUserAccountUi(doc: Document = document): () => void {
     </form>
   `
   settingsPanel.insertBefore(profileDetails, settingsPanel.firstChild)
+
+  const passwordDetails = settingsPanel.querySelector<HTMLDetailsElement>('.user-password-details')
+  const notificationDetails = createDrawerDetails(doc, 'user-notification-details', 'Thông báo')
+  const notificationChildren = [...settingsPanel.children].filter((child) => child !== profileDetails && child !== passwordDetails)
+  for (const child of notificationChildren) {
+    if (child.tagName === 'H2') child.remove()
+    else notificationDetails.body.append(child)
+  }
+  settingsPanel.append(notificationDetails.details)
+
+  const managementDetails = createDrawerDetails(doc, 'user-management-details', 'Quản lý tài khoản')
+  if (passwordDetails) managementDetails.body.append(passwordDetails)
+  managementDetails.body.append(authButton)
+  drawerPanel.append(managementDetails.details)
 
   const upgradeToggle = guestSection.querySelector<HTMLButtonElement>('#user-upgrade-toggle')!
   const loginExisting = guestSection.querySelector<HTMLButtonElement>('#user-login-existing')!
@@ -165,6 +193,7 @@ export function mountUserAccountUi(doc: Document = document): () => void {
 
     guestSection.hidden = mode !== 'guest'
     profileDetails.hidden = mode !== 'user2'
+    managementDetails.details.hidden = mode !== 'user2'
     authButton.hidden = mode === 'guest'
 
     if (mode === 'user2' && profile) {
@@ -263,5 +292,7 @@ export function mountUserAccountUi(doc: Document = document): () => void {
     observer.disconnect()
     guestSection.remove()
     profileDetails.remove()
+    notificationDetails.details.remove()
+    managementDetails.details.remove()
   }
 }
