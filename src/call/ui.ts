@@ -1,3 +1,4 @@
+import { iconSvg } from '../ui/icons'
 import { defaultCallRouteForWeb } from './platform-audio-route'
 import { formatCallDuration } from './presentation'
 import { phoneSpeakerButtonPresentation } from './speaker-control-presentation'
@@ -24,7 +25,8 @@ export function mountVoiceCallUi(host: HTMLElement, session: VoiceCallSession): 
       const restore = document.createElement('button')
       restore.type = 'button'
       restore.className = 'voice-call-hidden'
-      restore.textContent = '☎'
+      restore.innerHTML = iconSvg('call')
+      restore.setAttribute('aria-label', 'Mở cuộc gọi')
       restore.title = 'Mở cuộc gọi'
       restore.addEventListener('click', () => session.setDisplay('full'))
       host.append(restore)
@@ -32,7 +34,7 @@ export function mountVoiceCallUi(host: HTMLElement, session: VoiceCallSession): 
     }
 
     if (state.display === 'compact') {
-      host.append(renderTopBar(state, session))
+      host.append(renderCallPill(state, session))
       return
     }
 
@@ -62,30 +64,36 @@ export function statusText(state: VoiceCallState): string {
   return ''
 }
 
-function renderTopBar(state: VoiceCallState, session: VoiceCallSession): HTMLElement {
+function renderCallPill(state: VoiceCallState, session: VoiceCallSession): HTMLElement {
   const bar = document.createElement('div')
-  bar.className = 'voice-call-topbar'
+  bar.className = 'voice-call-pill'
 
   const main = document.createElement('button')
   main.type = 'button'
-  main.className = 'voice-call-topbar-main'
-  main.innerHTML = `<strong>☎ ${escapeHtml(state.peerName || 'Cuộc gọi')}</strong><span>${statusText(state)}</span>`
+  main.className = 'voice-call-pill-main'
+  main.innerHTML = `${iconSvg('call')}<span class="voice-call-pill-copy"><strong>${escapeHtml(state.peerName || 'Cuộc gọi')}</strong><small>${escapeHtml(statusText(state))}</small></span>`
+  main.setAttribute('aria-label', 'Mở cuộc gọi')
   main.addEventListener('click', () => session.setDisplay('full'))
   bar.append(main)
 
   if (state.resumeRequired) {
-    const resume = controlButton('Tiếp tục', '☎', () => void session.resumeFromUserGesture(), 'accept')
-    const end = controlButton('Kết thúc', '✕', () => void session.hangup(), 'danger')
+    const resume = controlButton('Tiếp tục', iconSvg('acceptCall'), () => void session.resumeFromUserGesture(), 'accept')
+    const end = controlButton('Kết thúc', iconSvg('endCall'), () => void session.hangup(), 'danger')
     bar.append(resume, end)
     return bar
   }
 
   if (state.audioBlocked) {
-    bar.append(controlButton('Bật âm', '🔊', () => session.startAudio()))
+    bar.append(controlButton('Bật âm', iconSvg('speaker'), () => session.startAudio(), 'accept'))
   }
 
-  const mute = controlButton(state.muted ? 'Mở mic' : 'Tắt mic', state.muted ? '🎙' : '🔇', () => session.toggleMute())
-  const end = controlButton('Kết thúc', '✕', () => void session.hangup(), 'danger')
+  const mute = controlButton(
+    state.muted ? 'Mở mic' : 'Tắt mic',
+    state.muted ? iconSvg('unmute') : iconSvg('mute'),
+    () => session.toggleMute(),
+    state.muted ? 'is-active' : '',
+  )
+  const end = controlButton('Kết thúc', iconSvg('endCall'), () => void session.hangup(), 'danger')
   bar.append(mute, end)
   return bar
 }
@@ -97,16 +105,15 @@ function renderFull(state: VoiceCallState, session: VoiceCallSession): HTMLEleme
   const top = document.createElement('div')
   top.className = 'voice-call-full-top'
   if (state.phase !== 'error') {
-    const compact = controlButton('Thu nhỏ', '⌄', () => session.setDisplay('compact'))
-    const hide = controlButton('Ẩn', '—', () => session.setDisplay('hidden'))
-    top.append(compact, hide)
+    const compact = controlButton('Thu nhỏ', iconSvg('minimize'), () => session.setDisplay('compact'))
+    top.append(compact)
   }
 
   const center = document.createElement('div')
   center.className = 'voice-call-full-center'
   const avatar = document.createElement('div')
   avatar.className = 'voice-call-avatar'
-  avatar.textContent = '☎'
+  avatar.innerHTML = iconSvg('call')
   const name = document.createElement('strong')
   name.textContent = state.peerName || 'Cuộc gọi thoại'
   const status = document.createElement('span')
@@ -129,44 +136,55 @@ function renderFull(state: VoiceCallState, session: VoiceCallSession): HTMLEleme
   controls.className = 'voice-call-controls'
 
   if (state.phase === 'error') {
-    controls.append(controlButton('Đóng', '✕', () => session.dismissError(), 'danger'))
+    controls.append(controlButton('Đóng', iconSvg('close'), () => session.dismissError(), 'danger'))
   } else if (state.phase === 'incoming') {
     controls.append(
-      controlButton('Từ chối', '✕', () => void session.decline(), 'danger'),
-      controlButton('Nhận', '☎', () => void session.accept(), 'accept'),
+      controlButton('Từ chối', iconSvg('endCall'), () => void session.decline(), 'danger'),
+      controlButton('Nhận', iconSvg('acceptCall'), () => void session.accept(), 'accept'),
     )
   } else if (state.resumeRequired) {
     controls.append(
-      controlButton('Tiếp tục', '☎', () => void session.resumeFromUserGesture(), 'accept'),
-      controlButton('Kết thúc', '☎', () => void session.hangup(), 'danger'),
+      controlButton('Tiếp tục', iconSvg('acceptCall'), () => void session.resumeFromUserGesture(), 'accept'),
+      controlButton('Kết thúc', iconSvg('endCall'), () => void session.hangup(), 'danger'),
     )
   } else {
     if (state.audioBlocked) {
-      controls.append(controlButton('Bật âm thanh', '🔊', () => session.startAudio(), 'accept'))
+      controls.append(controlButton('Bật âm thanh', iconSvg('speaker'), () => session.startAudio(), 'accept'))
     }
 
-    const phoneToggle = session.hasPhoneSpeakerToggle()
-    const androidWebSpeaker = defaultCallRouteForWeb(navigator.userAgent) === 'speaker' && !phoneToggle
-    const phonePresentation = phoneSpeakerButtonPresentation(state.speakerSelected)
-    const speakerLabel = androidWebSpeaker
-      ? 'Loa ngoài'
-      : phoneToggle
-        ? phonePresentation.label
-        : state.speakerSelected ? 'Đầu ra đã chọn' : state.speakerAvailable ? 'Chọn loa' : 'Loa hệ thống'
-    const speakerIcon = phoneToggle ? phonePresentation.icon : '🔊'
-    const speaker = controlButton(speakerLabel, speakerIcon, () => void session.chooseSpeaker(), phoneToggle && phonePresentation.pressed ? 'is-active' : '')
-    speaker.disabled = androidWebSpeaker || !state.speakerAvailable
-    speaker.title = androidWebSpeaker
-      ? 'Chrome Android dùng speakerphone mặc định và không cho web đổi trực tiếp sang loa thoại'
-      : phoneToggle
-        ? phonePresentation.title
-        : state.speakerAvailable ? 'Chạm để chọn đầu ra âm thanh' : 'Trình duyệt không hỗ trợ đổi loa trực tiếp'
-    if (phoneToggle) speaker.setAttribute('aria-pressed', String(phonePresentation.pressed))
+    if (state.phase === 'active') {
+      const phoneToggle = session.hasPhoneSpeakerToggle()
+      const androidWebSpeaker = defaultCallRouteForWeb(navigator.userAgent) === 'speaker' && !phoneToggle
+      const phonePresentation = phoneSpeakerButtonPresentation(state.speakerSelected)
+      const speakerLabel = androidWebSpeaker
+        ? 'Loa ngoài'
+        : phoneToggle
+          ? phonePresentation.label
+          : state.speakerSelected ? 'Đầu ra đã chọn' : state.speakerAvailable ? 'Chọn loa' : 'Loa hệ thống'
+      const speaker = controlButton(
+        speakerLabel,
+        iconSvg('speaker'),
+        () => void session.chooseSpeaker(),
+        phoneToggle && phonePresentation.pressed ? 'is-active' : '',
+      )
+      speaker.disabled = androidWebSpeaker || !state.speakerAvailable
+      speaker.title = androidWebSpeaker
+        ? 'Chrome Android dùng speakerphone mặc định và không cho web đổi trực tiếp sang loa thoại'
+        : phoneToggle
+          ? phonePresentation.title
+          : state.speakerAvailable ? 'Chạm để chọn đầu ra âm thanh' : 'Trình duyệt không hỗ trợ đổi loa trực tiếp'
+      if (phoneToggle) speaker.setAttribute('aria-pressed', String(phonePresentation.pressed))
+      controls.append(speaker)
+    }
 
     controls.append(
-      speaker,
-      controlButton(state.muted ? 'Mở mic' : 'Tắt tiếng', state.muted ? '🎙' : '🔇', () => session.toggleMute()),
-      controlButton('Kết thúc', '☎', () => void session.hangup(), 'danger'),
+      controlButton(
+        state.muted ? 'Mở mic' : 'Tắt tiếng',
+        state.muted ? iconSvg('unmute') : iconSvg('mute'),
+        () => session.toggleMute(),
+        state.muted ? 'is-active' : '',
+      ),
+      controlButton('Kết thúc', iconSvg('endCall'), () => void session.hangup(), 'danger'),
     )
   }
 
@@ -174,11 +192,12 @@ function renderFull(state: VoiceCallState, session: VoiceCallSession): HTMLEleme
   return overlay
 }
 
-function controlButton(label: string, icon: string, action: () => void, kind = ''): HTMLButtonElement {
+function controlButton(label: string, iconMarkup: string, action: () => void, kind = ''): HTMLButtonElement {
   const button = document.createElement('button')
   button.type = 'button'
   button.className = `voice-call-control ${kind}`.trim()
-  button.innerHTML = `<span>${icon}</span><small>${escapeHtml(label)}</small>`
+  button.innerHTML = `<span>${iconMarkup}</span><small>${escapeHtml(label)}</small>`
+  button.setAttribute('aria-label', label)
   button.addEventListener('click', action)
   return button
 }
