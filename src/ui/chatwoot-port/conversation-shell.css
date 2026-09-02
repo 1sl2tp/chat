@@ -5,7 +5,7 @@
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   width: 100%;
-  height: var(--app-visual-height, 100dvh);
+  height: 100%;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
