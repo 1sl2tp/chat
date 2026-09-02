@@ -1,0 +1,169 @@
+.cw-call-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom));
+  background: rgb(17 24 39 / 64%);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.cw-call-card {
+  box-sizing: border-box;
+  color: #111827;
+  border: 1px solid rgb(255 255 255 / 72%);
+  border-radius: 16px;
+  background: rgb(255 255 255 / 94%);
+  box-shadow: 0 20px 56px rgb(15 23 42 / 30%);
+}
+
+.cw-call-card--full {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: min(100%, 420px);
+  min-height: min(560px, calc(100dvh - 32px));
+  max-height: calc(100dvh - max(32px, env(safe-area-inset-top) + env(safe-area-inset-bottom)));
+  padding: 14px 16px 22px;
+}
+
+.cw-call-card__top {
+  display: flex;
+  min-height: 44px;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.cw-call-card__minimize,
+.cw-call-card__compact-main {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.cw-call-card__minimize {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 8px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.cw-call-card__minimize svg { width: 18px; height: 18px; }
+
+.cw-call-card__identity {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  min-width: 0;
+  gap: 10px;
+  padding: 20px 0;
+  text-align: center;
+}
+
+.cw-call-card__avatar {
+  display: grid;
+  width: 104px;
+  height: 104px;
+  place-items: center;
+  border-radius: 999px;
+  background: #eef2f7;
+  color: #2563eb;
+}
+
+.cw-call-card__avatar svg { width: 42px; height: 42px; }
+.cw-call-card__name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 22px; line-height: 30px; }
+.cw-call-card__status { color: #6b7280; font-size: 13px; line-height: 18px; font-variant-numeric: tabular-nums; }
+.cw-call-card__notice { max-width: 300px; color: #6b7280; font-size: 12px; line-height: 17px; }
+.cw-call-card__error { max-width: 300px; color: #c2415d; font-size: 12px; line-height: 17px; }
+
+.cw-call-card__actions {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.cw-call-card__action {
+  display: grid;
+  min-width: 66px;
+  justify-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #374151;
+  font: inherit;
+}
+
+.cw-call-card__action:disabled { opacity: .42; }
+.cw-call-card__action-icon {
+  display: grid;
+  width: 54px;
+  height: 54px;
+  place-items: center;
+  border-radius: 999px;
+  background: #eef2f7;
+  color: #111827;
+}
+.cw-call-card__action-icon svg { width: 23px; height: 23px; }
+.cw-call-card__action small { font-size: 11px; line-height: 15px; }
+.cw-call-card__action--accept .cw-call-card__action-icon { background: #22a447; color: #fff; }
+.cw-call-card__action--danger .cw-call-card__action-icon { background: #d9304f; color: #fff; }
+.cw-call-card__action.is-active .cw-call-card__action-icon { background: #111827; color: #fff; }
+
+.cw-call-card--compact {
+  position: fixed;
+  z-index: 900;
+  top: max(8px, env(safe-area-inset-top));
+  left: 50%;
+  display: grid;
+  width: min(620px, calc(100vw - 16px));
+  min-height: 58px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  transform: translateX(-50%);
+  background: rgb(255 255 255 / 96%);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.cw-call-card__compact-main {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 3px 6px;
+  text-align: left;
+}
+
+.cw-call-card__compact-icon { display: grid; place-items: center; color: #2563eb; }
+.cw-call-card__compact-icon svg { width: 23px; height: 23px; }
+.cw-call-card__compact-copy { display: grid; min-width: 0; gap: 1px; }
+.cw-call-card__compact-copy strong,
+.cw-call-card__compact-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cw-call-card__compact-copy strong { font-size: 13px; line-height: 18px; }
+.cw-call-card__actions--compact { flex-wrap: nowrap; gap: 4px; }
+.cw-call-card__actions--compact .cw-call-card__action { min-width: 40px; gap: 0; }
+.cw-call-card__actions--compact .cw-call-card__action-icon { width: 38px; height: 38px; }
+.cw-call-card__actions--compact .cw-call-card__action-icon svg { width: 19px; height: 19px; }
+.cw-call-card__actions--compact .cw-call-card__action small { display: none; }
+
+@media (max-width: 340px) {
+  .cw-call-layer { padding-left: 10px; padding-right: 10px; }
+  .cw-call-card--full { padding-left: 10px; padding-right: 10px; }
+  .cw-call-card__actions { gap: 10px; }
+  .cw-call-card__action { min-width: 60px; }
+  .cw-call-card__action-icon { width: 50px; height: 50px; }
+  .cw-call-card--compact { width: calc(100vw - 10px); padding-left: 5px; padding-right: 5px; }
+  .cw-call-card__compact-main { grid-template-columns: 30px minmax(0, 1fr); gap: 5px; padding-left: 4px; padding-right: 4px; }
+}
