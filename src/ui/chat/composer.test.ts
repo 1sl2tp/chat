@@ -15,6 +15,6 @@ describe('composer draft', () => {
     expect(source).toContain('formatVersionLabel')
     expect(source).toContain("import.meta.env.VITE_BUILD_ID ?? 'dev'")
     expect(source).toContain("version.className = 'chat-composer__version'")
-    expect(source).toContain('container.replaceChildren(plus, input, mic, send, version)')
+    expect(source).toContain('container.replaceChildren(plus, input, recordingStatus, mic, send, version)')
   })
 })
