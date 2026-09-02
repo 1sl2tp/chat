@@ -27,6 +27,19 @@ function createHeaderButton(label: string, icon: AppIconName, onPress?: () => vo
   return button
 }
 
+function createLeadingAction(onBack?: () => void): HTMLElement {
+  if (onBack) return createHeaderButton('Quay lại', 'back', onBack)
+
+  const userMenu = typeof document.querySelector === 'function'
+    ? document.querySelector<HTMLButtonElement>('#user-menu')
+    : null
+  if (!userMenu) return createHeaderButton('Mở menu', 'menu')
+
+  userMenu.className = 'cw-chat-header__button'
+  setButtonIcon(userMenu, 'menu', 'Mở menu')
+  return userMenu
+}
+
 export function createChatHeader(options: ChatHeaderOptions): ChatHeaderView {
   const header = document.createElement('header')
   header.className = 'cw-conversation__header'
@@ -34,7 +47,7 @@ export function createChatHeader(options: ChatHeaderOptions): ChatHeaderView {
   const row = document.createElement('div')
   row.className = 'cw-chat-header__row'
 
-  const leading = createHeaderButton('Quay lại', 'back', options.onBack)
+  const leading = createLeadingAction(options.onBack)
 
   const identity = document.createElement('div')
   identity.className = 'cw-chat-header__identity'
