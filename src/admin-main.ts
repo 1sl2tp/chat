@@ -19,7 +19,6 @@ import { adminSupabase } from './supabase/client'
 import { getConversationCapabilities } from './ui/chat/capabilities'
 import { mountConversationScreen, type MountedConversationScreen } from './ui/chatwoot-port/conversation-screen'
 import { installEdgeDrawerGesture } from './ui/edge-drawer'
-import { setButtonIcon } from './ui/icons'
 import { setupViewportController } from './viewport/controller'
 import './call/call.css'
 import './admin.css'
@@ -128,41 +127,27 @@ async function mountWorkspace(): Promise<void> {
         <header>
           <strong>Hỗ trợ</strong>
           <div class="admin-header-actions">
+            <button id="call-notifications" class="call-notification-button" type="button" hidden>Bật thông báo</button>
             <button id="logout" type="button">Thoát</button>
           </div>
         </header>
         <div id="inbox"></div>
       </aside>
       <section class="admin-chat">
-        <header>
-          <button id="back" class="admin-icon-button" type="button"></button>
-          <strong id="customer">Chọn User</strong>
-          <button id="call-notifications" class="call-notification-button" type="button" hidden>Bật thông báo</button>
-          <button id="admin-voice-call" class="admin-icon-button chat-call-button" type="button"></button>
-        </header>
-        <div id="admin-messages" class="chat-messages" aria-label="Nội dung hội thoại"></div>
-        <div id="admin-composer" class="chat-composer"></div>
+        <div id="admin-conversation-host" class="admin-conversation-host"></div>
       </section>
     </main>
     <div id="voice-call-host"></div>
   `
 
   const adminApp = root.querySelector<HTMLElement>('.admin-app')!
-  const messages = root.querySelector<HTMLElement>('#admin-messages')!
-  const composerHost = root.querySelector<HTMLElement>('#admin-composer')!
-  const customer = root.querySelector<HTMLElement>('#customer')!
-  const back = root.querySelector<HTMLButtonElement>('#back')!
+  const conversationHost = root.querySelector<HTMLElement>('#admin-conversation-host')!
   const logout = root.querySelector<HTMLButtonElement>('#logout')!
-  const callButton = root.querySelector<HTMLButtonElement>('#admin-voice-call')!
   const notificationButton = root.querySelector<HTMLButtonElement>('#call-notifications')!
   const callHost = root.querySelector<HTMLElement>('#voice-call-host')!
-  const legacyChatHeader = root.querySelector<HTMLElement>('.admin-chat > header')!
   const chatwootVoiceRecorder = new VoiceRecorderSession()
   let notificationActionPending = false
   let chatwootConversation: MountedConversationScreen | null = null
-
-  setButtonIcon(back, 'back', 'Danh sách User')
-  setButtonIcon(callButton, 'call', 'Gọi thoại')
 
   callSession?.dispose()
   disposeCallUi?.()
@@ -170,11 +155,6 @@ async function mountWorkspace(): Promise<void> {
   callSession = new VoiceCallSession(adminSupabase, currentAdminCallContext)
   disposeCallUi = mountVoiceCallUi(callHost, callSession)
   callSession.start()
-
-  legacyChatHeader.hidden = true
-  composerHost.hidden = true
-  messages.className = 'chatwoot-conversation-host'
-  messages.removeAttribute('aria-label')
 
   const runtimeActions = {
     get canSend() {
@@ -220,7 +200,7 @@ async function mountWorkspace(): Promise<void> {
   }
   const actions = toConversationActionsAdapter(runtimeActions)
   chatwootConversation = mountConversationScreen({
-    root: messages,
+    root: conversationHost,
     model: toConversationViewModel({
       actor: 'admin',
       conversationId: null,
@@ -269,9 +249,6 @@ async function mountWorkspace(): Promise<void> {
 
     adminApp.dataset.selected = state.selectedConversationId ? 'true' : 'false'
     renderNotificationButton()
-    customer.textContent = state.detail?.displayName?.trim() || (state.selectedConversationId ? 'User' : 'Chọn User')
-    back.disabled = !state.selectedConversationId
-    callButton.disabled = !canCall
 
     chatwootConversation?.update(toConversationViewModel({
       actor: 'admin',
@@ -297,7 +274,6 @@ async function mountWorkspace(): Promise<void> {
     void callPushRegistration.sync()
   }
 
-  callButton.addEventListener('click', () => void callSession?.startOutgoing())
   notificationButton.addEventListener('click', async () => {
     const registration = callPushRegistration
     if (!registration || notificationActionPending) return
@@ -315,7 +291,6 @@ async function mountWorkspace(): Promise<void> {
       renderNotificationButton()
     }
   })
-  back.addEventListener('click', clearAdminSelection)
 
   const stopAdminState = subscribeAdminState(render)
   const stopMessages = subscribeChatMessages(render)
