@@ -22,10 +22,19 @@ export interface User1UpgradeBackend {
   clearGuestAuthSession(): Promise<void>
 }
 
+export interface User2ProfileBackend {
+  update(input: { displayName: string; username: string }): Promise<{ displayName: string; username: string }>
+}
+
 export interface User2Registration {
   displayName: string
   username: string
   password: string
+}
+
+export interface User2ProfileInput {
+  displayName: string
+  username: string
 }
 
 export function normalizeUser2Username(value: string): string {
@@ -52,6 +61,21 @@ export function normalizeUser2Registration(
   if (password.length < 6) throw new Error('password_too_short')
   if (password.length > 128) throw new Error('password_too_long')
   return { displayName, username, password }
+}
+
+export function normalizeUser2Profile(displayNameValue: string, usernameValue: string): User2ProfileInput {
+  return {
+    displayName: normalizeUser2DisplayName(displayNameValue),
+    username: normalizeUser2Username(usernameValue),
+  }
+}
+
+export async function updateUser2Profile(
+  backend: User2ProfileBackend,
+  displayNameValue: string,
+  usernameValue: string,
+): Promise<{ displayName: string; username: string }> {
+  return backend.update(normalizeUser2Profile(displayNameValue, usernameValue))
 }
 
 export async function upgradeGuestToUser2(
