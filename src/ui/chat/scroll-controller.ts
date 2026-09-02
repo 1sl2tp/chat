@@ -9,6 +9,8 @@ export interface ConversationScrollController {
   onViewportChange(): void
   onMessagesChanged(): void
   onComposerFocus(): void
+  isFollowingBottom(): boolean
+  scrollToBottom(): void
 }
 
 export function createConversationScrollController(scroller: HTMLElement): ConversationScrollController {
@@ -18,8 +20,13 @@ export function createConversationScrollController(scroller: HTMLElement): Conve
     keepBottom = isNearBottom(scroller.scrollTop, scroller.clientHeight, scroller.scrollHeight)
   }
 
-  const scrollToBottom = () => {
+  const applyScrollToBottom = () => {
     scroller.scrollTop = scroller.scrollHeight
+  }
+
+  const scrollToBottom = () => {
+    keepBottom = true
+    requestAnimationFrame(applyScrollToBottom)
   }
 
   scroller.addEventListener('scroll', capturePosition, { passive: true })
@@ -27,14 +34,17 @@ export function createConversationScrollController(scroller: HTMLElement): Conve
   return {
     capturePosition,
     onViewportChange() {
-      if (keepBottom) requestAnimationFrame(scrollToBottom)
+      if (keepBottom) requestAnimationFrame(applyScrollToBottom)
     },
     onMessagesChanged() {
-      if (keepBottom) requestAnimationFrame(scrollToBottom)
+      if (keepBottom) requestAnimationFrame(applyScrollToBottom)
     },
     onComposerFocus() {
-      keepBottom = true
-      requestAnimationFrame(scrollToBottom)
+      scrollToBottom()
     },
+    isFollowingBottom() {
+      return keepBottom
+    },
+    scrollToBottom,
   }
 }
