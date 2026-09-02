@@ -1,211 +1,94 @@
 <!doctype html>
 <html lang="vi">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
-  <meta name="theme-color" content="#efeae2" />
-  <title>TAPHOA Chat — User Demo</title>
-  <style>
-    :root{
-      --wa:#25d366;--wa-dark:#075e54;--ink:#111b21;--muted:#667781;--line:#e7e9ea;
-      --paper:#fff;--chat:#efeae2;--bubble-me:#d9fdd3;--bubble-them:#fff;
-      --call:#0b141a;--call-panel:#1f2c34;--danger:#ef3340;--cream:#f7e7bd;--brown:#8a5a16;
-      --shadow:0 24px 70px rgba(17,27,33,.15);
-    }
-    *{box-sizing:border-box}
-    html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:#f6f7f7}
-    button,input{font:inherit}
-    button{cursor:pointer}
-    .page{min-height:100vh;padding:18px 12px 34px;display:grid;place-items:start center;gap:14px}
-    .demo-bar{width:min(940px,100%);background:#fff;border:1px solid #e5e7e9;border-radius:18px;padding:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;box-shadow:0 8px 28px rgba(0,0,0,.06)}
-    .demo-title{font-weight:800;margin-right:auto}.demo-note{font-size:12px;color:var(--muted);width:100%}
-    .seg{display:flex;background:#f0f2f5;border-radius:12px;padding:3px;gap:3px}.seg button,.state-btn{border:0;background:transparent;border-radius:10px;padding:8px 11px;color:#44515a}
-    .seg button.active,.state-btn.active{background:#fff;color:#111b21;box-shadow:0 1px 5px rgba(0,0,0,.09);font-weight:700}
-    .state-btn{background:#f0f2f5}.state-btn:disabled{opacity:.38;cursor:not-allowed}
-    .device{width:min(430px,100%);height:min(860px,calc(100vh - 150px));min-height:640px;background:#fff;border-radius:34px;overflow:hidden;border:1px solid #d9dde0;box-shadow:var(--shadow);position:relative}
-    .status{height:35px;padding:12px 18px 0;display:flex;justify-content:space-between;align-items:flex-start;font-size:13px;font-weight:700;background:#fff;position:relative;z-index:8}
-    .status-icons{display:flex;gap:5px;align-items:center}.mini-dot{width:4px;height:4px;background:#111;border-radius:50%}.battery{border:1.7px solid #111;border-radius:4px;padding:0 4px;font-size:10px;line-height:14px}
-    .app{height:calc(100% - 35px);position:relative;overflow:hidden;background:var(--chat)}
-    .chat-view{height:100%;display:flex;flex-direction:column;background:var(--chat)}
-    .chat-bg{position:absolute;inset:0;opacity:.2;pointer-events:none;background-image:radial-gradient(circle at 12px 12px,#c5bbb0 1.2px,transparent 1.2px),radial-gradient(circle at 34px 34px,#c5bbb0 1px,transparent 1px);background-size:44px 44px}
-    .header{height:64px;background:#fff;display:flex;align-items:center;padding:7px 10px;gap:9px;border-bottom:1px solid #edf0f1;z-index:3;position:relative}
-    .icon-btn{width:40px;height:40px;border-radius:999px;border:0;background:#fff;display:grid;place-items:center;color:#111b21}.icon-btn.soft{background:#f5f6f6}.icon-btn svg{width:22px;height:22px;stroke-width:1.9}
-    .avatar{width:42px;height:42px;border-radius:50%;background:var(--cream);display:grid;place-items:center;overflow:hidden;flex:0 0 auto}.avatar svg{width:29px;height:29px;color:var(--brown);fill:var(--brown);stroke:none}.avatar.small{width:32px;height:32px}.avatar.small svg{width:22px;height:22px}
-    .who{min-width:0;flex:1}.who b{display:block;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.who span{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px}.online-dot{width:7px;height:7px;border-radius:50%;background:#18a558}
-    .messages{position:relative;z-index:1;flex:1;overflow:auto;padding:10px 12px 18px;scroll-behavior:smooth}.day{width:max-content;margin:4px auto 12px;background:#fff;padding:5px 10px;border-radius:10px;box-shadow:0 1px 2px rgba(0,0,0,.08);font-size:12px}
-    .guest-banner,.sync-banner{max-width:92%;margin:0 auto 12px;padding:10px 12px;border-radius:10px;font-size:12px;line-height:1.45;text-align:left}.guest-banner{background:#fff4cf;color:#465158}.sync-banner{background:#e7f8ec;color:#2e5d39}.banner-action{color:#008069;font-weight:700;border:0;background:transparent;padding:0;margin-left:4px}
-    .row{display:flex;margin:6px 0}.row.me{justify-content:flex-end}.bubble{max-width:82%;padding:8px 9px 6px;border-radius:9px;box-shadow:0 1px 1px rgba(0,0,0,.08);font-size:14px;line-height:1.38;position:relative}.them .bubble{background:var(--bubble-them);border-top-left-radius:3px}.me .bubble{background:var(--bubble-me);border-top-right-radius:3px}.time{font-size:10px;color:#667781;float:right;margin:6px 0 0 12px;white-space:nowrap}.ticks{color:#53bdeb;margin-left:2px}
-    .call-card{min-width:245px;display:flex;align-items:center;gap:10px}.call-icon{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.7)}.call-icon svg{width:22px;height:22px}.call-copy{flex:1}.call-copy b{display:block}.call-copy span{display:block;color:#667781;margin-top:2px}.call-card .time{float:none;margin:0 0 0 5px}
-    .composer{position:relative;z-index:5;background:#f7f5f2;padding:7px 9px calc(7px + env(safe-area-inset-bottom));display:flex;gap:7px;align-items:center;border-top:1px solid #e6e6e6}.composer .plus{font-size:30px;line-height:1;width:38px;border:0;background:transparent}.input-shell{height:42px;background:#fff;border:1px solid #dfe3e5;border-radius:22px;flex:1;display:flex;align-items:center;padding:0 12px;color:#8696a0;font-size:14px}.mic{width:42px;height:42px;border:0;border-radius:50%;background:var(--wa);color:#fff;display:grid;place-items:center}.mic svg{width:21px}
-    .call-pill{position:relative;z-index:5;margin:7px 9px 0;border-radius:18px;background:#075e54;color:#fff;display:flex;align-items:center;gap:8px;padding:7px 8px 7px 10px;box-shadow:0 2px 7px rgba(0,0,0,.15)}.call-pill .copy{flex:1;min-width:0}.call-pill b{font-size:13px;display:block}.call-pill span{font-size:11px;opacity:.85}.hang-mini{width:36px;height:36px;border:0;border-radius:50%;background:var(--danger);color:#fff;display:grid;place-items:center}.hang-mini svg{width:19px;transform:rotate(135deg)}
-    .call-view{position:absolute;inset:0;z-index:20;background:radial-gradient(circle at 50% 32%,#16242a 0,#0b141a 48%,#05090c 100%);color:#fff;display:none;flex-direction:column;align-items:center}.call-view.show{display:flex}.call-top{width:100%;padding:18px 18px 0;display:flex;justify-content:space-between}.call-top .icon-btn{background:rgba(255,255,255,.08);color:#fff}.call-main{text-align:center;margin-top:26px}.call-main h2{font-size:26px;margin:0 0 5px}.call-main p{margin:0;color:#c7d0d5;font-size:16px}.call-main .timer{color:#6fda8b;font-size:17px}
-    .call-avatar{width:220px;height:220px;border-radius:50%;background:#3a2c1d;display:grid;place-items:center;margin:68px 0 20px;box-shadow:0 0 0 1px rgba(255,255,255,.08)}.call-avatar svg{width:125px;height:125px;fill:#f5c163;stroke:none;color:#f5c163}
-    .calling-actions{margin-top:auto;margin-bottom:34px;display:flex;align-items:end;justify-content:center;gap:44px}.action{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:12px}.action button{width:64px;height:64px;border:0;border-radius:50%;display:grid;place-items:center;color:#fff;background:#27343a}.action button svg{width:28px;height:28px}.action .red{background:var(--danger)}.action .green{background:var(--wa)}.action .red svg,.action.end svg{transform:rotate(135deg)}
-    .active-controls{width:calc(100% - 34px);margin-top:auto;margin-bottom:22px;background:rgba(255,255,255,.1);border-radius:28px;padding:20px 16px 18px}.control-row{display:flex;justify-content:space-around;margin-bottom:18px}.control-row .action button{width:58px;height:58px;background:#11181c;border:1px solid rgba(255,255,255,.12)}.end-center{display:flex;justify-content:center}.end-center .action button{width:68px;height:68px}
-    .sheet-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.35);z-index:40;display:none;align-items:flex-end}.sheet-backdrop.show{display:flex}.sheet{width:100%;background:#fff;border-radius:24px 24px 0 0;padding:10px 16px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -10px 30px rgba(0,0,0,.15)}.grab{width:36px;height:4px;border-radius:9px;background:#c9cdd0;margin:2px auto 14px}.sheet h3{margin:4px 0 8px}.sheet p{color:var(--muted);font-size:13px;margin:0 0 15px;line-height:1.45}.sheet-option{width:100%;border:0;background:#fff;border-top:1px solid #eee;padding:14px 4px;text-align:left;display:flex;gap:12px;align-items:center}.sheet-option strong{display:block}.sheet-option span{display:block;font-size:12px;color:var(--muted);margin-top:2px}.sheet-cta{width:100%;height:46px;border-radius:12px;border:0;background:var(--wa-dark);color:#fff;font-weight:700;margin-top:10px}.sheet-secondary{width:100%;height:44px;border-radius:12px;border:1px solid #d9dde0;background:#fff;font-weight:700;margin-top:8px}
-    .toast{position:absolute;left:50%;bottom:88px;transform:translateX(-50%) translateY(10px);background:#111b21;color:#fff;padding:9px 13px;border-radius:10px;font-size:12px;opacity:0;pointer-events:none;transition:.2s;z-index:60;white-space:nowrap}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-    .legend{width:min(940px,100%);display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.legend-card{background:#fff;border:1px solid #e5e7e9;border-radius:16px;padding:13px}.legend-card b{display:block;margin-bottom:5px}.legend-card span{font-size:13px;color:var(--muted);line-height:1.4}.ok{color:#0c8b43;font-weight:700}
-    @media(max-width:620px){.page{padding:0;background:#fff}.demo-bar{border-radius:0;border-width:0 0 1px;box-shadow:none}.device{width:100%;height:calc(100vh - 132px);min-height:560px;border:0;border-radius:0;box-shadow:none}.legend{display:none}.demo-title{width:100%;margin-bottom:2px}.state-btn{padding:7px 9px;font-size:12px}}
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
+<meta name="theme-color" content="#efeae2" />
+<title>TAPHOA Chat Demo</title>
+<style>
+:root{--ink:#111b21;--muted:#667781;--line:#e6e9eb;--chat:#efeae2;--me:#d9fdd3;--wa:#25d366;--wa-dark:#075e54;--danger:#f15a5a;--cream:#f3dfad;--brown:#85551c;--call:#071015}
+*{box-sizing:border-box} html,body{margin:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--ink);background:#eef1f3}
+button,input{font:inherit} button{cursor:pointer}.app{width:min(440px,100%);height:100dvh;margin:auto;background:#fff;display:flex;flex-direction:column;position:relative;overflow:hidden;box-shadow:0 16px 50px rgba(0,0,0,.12)}
+.header{height:62px;display:flex;align-items:center;gap:9px;padding:8px 10px;background:#fff;border-bottom:1px solid var(--line);z-index:5}.icon{width:40px;height:40px;border:0;background:transparent;border-radius:50%;display:grid;place-items:center;color:#202c33}.icon.soft{background:#f5f6f6}.icon svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.avatar{width:42px;height:42px;border-radius:50%;background:var(--cream);display:grid;place-items:center;flex:0 0 auto;overflow:hidden}.avatar svg{width:28px;height:28px;fill:var(--brown)}.who{flex:1;min-width:0}.who b{display:block;font-size:16px}.who span{font-size:12px;color:var(--muted)}
+.call-pill{display:none;margin:7px 9px 0;padding:8px 12px;border-radius:16px;background:#0b6b5d;color:white;align-items:center;gap:8px;z-index:4}.call-pill.show{display:flex}.call-pill b{font-size:13px;flex:1}.call-pill small{opacity:.8}.call-pill button{border:0;background:transparent;color:white;display:grid;place-items:center}.call-pill svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2}
+.chat{flex:1;min-height:0;position:relative;background:var(--chat);overflow:hidden}.pattern{position:absolute;inset:0;opacity:.16;background-image:radial-gradient(circle at 12px 12px,#91887d 1px,transparent 1px),radial-gradient(circle at 34px 34px,#91887d 1px,transparent 1px);background-size:44px 44px}.messages{position:relative;height:100%;overflow:auto;padding:14px 10px 18px}.day{width:max-content;margin:2px auto 12px;background:#fff;padding:5px 9px;border-radius:9px;font-size:11px;color:#5b6870;box-shadow:0 1px 1px rgba(0,0,0,.08)}.row{display:flex;margin:5px 0}.row.me{justify-content:flex-end}.bubble{max-width:82%;padding:8px 9px 6px;border-radius:9px;background:white;box-shadow:0 1px 1px rgba(0,0,0,.08);font-size:14px;line-height:1.38}.me .bubble{background:var(--me)}.time{font-size:10px;color:#667781;float:right;margin:6px 0 0 10px}.ticks{color:#53bdeb}.call-card{display:flex;align-items:center;gap:10px;min-width:235px}.call-badge{width:40px;height:40px;border-radius:50%;background:#f2f4f5;display:grid;place-items:center}.call-badge svg{width:20px;height:20px;fill:none;stroke:#008069;stroke-width:2}.call-copy{flex:1}.call-copy b{display:block}.call-copy span{font-size:12px;color:var(--muted)}
+.composer{display:flex;align-items:center;gap:7px;padding:7px 8px calc(7px + env(safe-area-inset-bottom));background:#f7f5f2;border-top:1px solid #e5e6e7}.composer .plain{width:38px;height:42px;border:0;background:transparent;display:grid;place-items:center;color:#54656f}.composer .plain svg,.send svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}.input{height:42px;flex:1;border:0;outline:0;background:#fff;border-radius:22px;padding:0 14px;color:#3b4a54}.send{width:42px;height:42px;border:0;border-radius:50%;background:var(--wa);color:white;display:grid;place-items:center}
+.call-screen{position:absolute;inset:0;background:radial-gradient(circle at 50% 35%,#17252c 0,#0a1419 52%,#04080b 100%);color:white;z-index:20;display:none;flex-direction:column;align-items:center}.call-screen.show{display:flex}.call-top{width:100%;padding:18px 16px 0;display:flex;justify-content:space-between}.call-top button{width:40px;height:40px;border-radius:50%;border:0;background:rgba(255,255,255,.08);color:white;display:grid;place-items:center}.call-top svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.9}.call-name{text-align:center;margin-top:18px}.call-name h2{margin:0;font-size:25px}.call-name p{margin:5px 0 0;color:#c4ced2;font-size:15px}.call-avatar{width:190px;height:190px;border-radius:50%;background:#4a331c;margin-top:58px;display:grid;place-items:center}.call-avatar svg{width:108px;height:108px;fill:#f1bf62}
+.actions{margin-top:auto;margin-bottom:32px;display:flex;gap:44px;align-items:end}.action{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:12px;color:#e9edef}.action button{width:64px;height:64px;border:0;border-radius:50%;background:#29363c;color:white;display:grid;place-items:center}.action button svg{width:27px;height:27px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.action .green{background:var(--wa)}.action .red{background:var(--danger)}.active-controls{display:none;margin-top:auto;margin-bottom:24px;width:calc(100% - 32px);border-radius:26px;background:rgba(255,255,255,.08);padding:18px 12px}.active-controls.show{display:block}.controls-row{display:flex;justify-content:space-around}.end-row{display:flex;justify-content:center;margin-top:18px}
+.demo-trigger{position:absolute;right:10px;bottom:78px;z-index:50;border:0;background:rgba(17,27,33,.72);color:white;border-radius:14px;padding:6px 9px;font-size:11px}.demo-panel{position:absolute;right:10px;bottom:112px;z-index:51;width:210px;background:white;border:1px solid #dfe3e5;border-radius:16px;padding:10px;box-shadow:0 10px 28px rgba(0,0,0,.18);display:none}.demo-panel.show{display:block}.demo-panel b{font-size:12px}.demo-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}.demo-grid button{height:34px;border:0;border-radius:9px;background:#f0f2f5;color:#33434c;font-size:11px}.demo-grid button.primary{background:#d9fdd3;color:#075e54;font-weight:700}.note{font-size:10px;color:#7a8a93;margin-top:7px;line-height:1.35}.toast{position:absolute;left:50%;bottom:86px;transform:translateX(-50%);z-index:60;background:#111b21;color:white;border-radius:9px;padding:8px 11px;font-size:12px;opacity:0;pointer-events:none;transition:.2s}.toast.show{opacity:1}
+@media(max-width:500px){body{background:#fff}.app{width:100%;box-shadow:none}.call-avatar{width:175px;height:175px;margin-top:48px}.call-avatar svg{width:98px;height:98px}}
+</style>
 </head>
 <body>
-<div class="page">
-  <div class="demo-bar">
-    <div class="demo-title">TAPHOA · USER DEMO</div>
-    <div class="seg" aria-label="Loại user">
-      <button id="u1" class="active">User 1 · Vãng lai</button>
-      <button id="u2">User 2 · Đã đăng nhập</button>
+<div class="app">
+<header class="header">
+  <button class="icon" aria-label="Quay lại"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+  <div class="avatar"><svg viewBox="0 0 64 64"><circle cx="32" cy="21" r="12"/><path d="M11 57c2-14 10-22 21-22s19 8 21 22z"/></svg></div>
+  <div class="who"><b>Admin hỗ trợ</b><span id="accountLine">Đang hoạt động</span></div>
+  <button class="icon soft" id="callBtn" aria-label="Gọi thoại"><svg viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7A2 2 0 0 1 22 16.9z"/></svg></button>
+</header>
+<div class="call-pill" id="callPill"><b>☎ Admin hỗ trợ · <span id="pillTimer">00:00</span></b><small>Đang gọi</small><button id="restoreCall" aria-label="Mở cuộc gọi"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M8 7h9v9"/></svg></button></div>
+<main class="chat">
+  <div class="pattern"></div>
+  <div class="messages" id="messages">
+    <div class="day">Hôm nay</div>
+    <div class="row"><div class="bubble">Chào bạn, mình có thể hỗ trợ gì?<span class="time">07:08</span></div></div>
+    <div class="row me"><div class="bubble">Mình cần hỏi một chút nhé<span class="time">07:09 <span class="ticks">✓✓</span></span></div></div>
+  </div>
+</main>
+<footer class="composer">
+  <button class="plain" aria-label="Thêm"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+  <input class="input" id="messageInput" placeholder="Nhập tin nhắn" />
+  <button class="plain" aria-label="Đính kèm"><svg viewBox="0 0 24 24"><path d="M21.4 11.6l-8.5 8.5a6 6 0 0 1-8.5-8.5l9-9a4 4 0 0 1 5.7 5.7l-9 9a2 2 0 1 1-2.8-2.8l8.3-8.3"/></svg></button>
+  <button class="send" id="sendBtn" aria-label="Gửi"><svg viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg></button>
+</footer>
+
+<section class="call-screen" id="callScreen">
+  <div class="call-top"><button id="minimizeBtn" aria-label="Thu nhỏ"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button><span></span></div>
+  <div class="call-name"><h2>Admin hỗ trợ</h2><p id="callStatus">Đang gọi…</p></div>
+  <div class="call-avatar"><svg viewBox="0 0 64 64"><circle cx="32" cy="21" r="12"/><path d="M11 57c2-14 10-22 21-22s19 8 21 22z"/></svg></div>
+  <div class="actions" id="incomingActions">
+    <div class="action"><button class="red" id="declineBtn"><svg viewBox="0 0 24 24"><path d="M3 11c4-4 14-4 18 0l-3 4-4-2v-2H10v2l-4 2z"/></svg></button><span>Từ chối</span></div>
+    <div class="action"><button class="green" id="acceptBtn"><svg viewBox="0 0 24 24"><path d="M6 3h4l2 5-3 2a14 14 0 0 0 5 5l2-3 5 2v4c0 2-2 3-4 3A17 17 0 0 1 3 7c0-2 1-4 3-4z"/></svg></button><span>Nghe</span></div>
+  </div>
+  <div class="active-controls" id="activeControls">
+    <div class="controls-row">
+      <div class="action"><button><svg viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4z"/><path d="M15 9a5 5 0 0 1 0 6"/><path d="M18 6a9 9 0 0 1 0 12"/></svg></button><span>Loa</span></div>
+      <div class="action"><button><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5"/></svg></button><span>Mic</span></div>
+      <div class="action"><button id="messageFromCall"><svg viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg></button><span>Tin nhắn</span></div>
     </div>
-    <button class="state-btn active" data-demo="chat">Chat</button>
-    <button class="state-btn" data-demo="outgoing">Gọi đi</button>
-    <button class="state-btn" data-demo="incoming">Gọi đến</button>
-    <button class="state-btn" data-demo="active">Đã nhận</button>
-    <button class="state-btn" data-demo="min">Thu nhỏ</button>
-    <button class="state-btn" data-demo="end">Kết thúc</button>
-    <div class="demo-note" id="demoNote">User 1 vào là chat ngay. Không cần tài khoản; chưa có Call/Push và lịch sử không đồng bộ.</div>
+    <div class="end-row"><div class="action"><button class="red" id="endBtn"><svg viewBox="0 0 24 24"><path d="M3 11c4-4 14-4 18 0l-3 4-4-2v-2H10v2l-4 2z"/></svg></button><span>Kết thúc</span></div></div>
   </div>
+</section>
 
-  <div class="device" id="device">
-    <div class="status"><span>07:11</span><span class="status-icons">▮▮▮ <span>⌁</span><span class="battery">70</span></span></div>
-    <div class="app">
-      <div class="chat-view" id="chatView">
-        <div class="chat-bg"></div>
-        <header class="header">
-          <button class="icon-btn" aria-label="Quay lại"><i data-lucide="chevron-left"></i></button>
-          <div class="avatar" aria-label="Avatar Admin">
-            <svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="21" r="12"></circle><path d="M11 57c2-14 10-22 21-22s19 8 21 22z"></path></svg>
-          </div>
-          <div class="who"><b>Admin hỗ trợ</b><span><i class="online-dot"></i><span id="subline">Đang hoạt động</span></span></div>
-          <button id="callBtn" class="icon-btn soft" aria-label="Gọi thoại"><i data-lucide="phone"></i></button>
-        </header>
-
-        <div class="call-pill" id="callPill" hidden>
-          <div class="avatar small"><svg viewBox="0 0 64 64"><circle cx="32" cy="21" r="12"></circle><path d="M11 57c2-14 10-22 21-22s19 8 21 22z"></path></svg></div>
-          <div class="copy"><b>Admin hỗ trợ · <span id="pillTimer">00:24</span></b><span>Đang gọi</span></div>
-          <button class="hang-mini" id="pillEnd" aria-label="Kết thúc"><i data-lucide="phone"></i></button>
-        </div>
-
-        <main class="messages" id="messages">
-          <div class="day">Hôm nay</div>
-          <div class="guest-banner" id="guestBanner">Bạn đang chat với tư cách <b>khách</b>. Cuộc trò chuyện chưa được đồng bộ.<button class="banner-action" id="saveBtn">Lưu lịch sử</button></div>
-          <div class="sync-banner" id="syncBanner" hidden>Đã đăng nhập · lịch sử chat và cuộc gọi được lưu & đồng bộ.</div>
-          <div class="row me"><div class="bubble">Chào Admin, mình cần hỗ trợ về đơn hàng.<span class="time">07:02 <span class="ticks">✓✓</span></span></div></div>
-          <div class="row them"><div class="bubble">Chào bạn! Mình có thể hỗ trợ bạn vấn đề gì ạ?<span class="time">07:03</span></div></div>
-          <div class="row me"><div class="bubble">Đơn hàng #12345 bị giao thiếu 1 sản phẩm.<span class="time">07:04 <span class="ticks">✓✓</span></span></div></div>
-          <div class="row them"><div class="bubble">Mình đã ghi nhận. Bạn vui lòng chờ trong giây lát nhé!<span class="time">07:05</span></div></div>
-          <div id="callHistory"></div>
-        </main>
-
-        <footer class="composer">
-          <button class="plus" aria-label="Đính kèm">＋</button>
-          <div class="input-shell">Nhập tin nhắn…</div>
-          <button class="mic" aria-label="Ghi âm"><i data-lucide="mic"></i></button>
-        </footer>
-      </div>
-
-      <section class="call-view" id="callView" aria-live="polite">
-        <div class="call-top">
-          <button class="icon-btn" id="minimizeBtn" aria-label="Thu nhỏ"><i data-lucide="minimize-2"></i></button>
-          <button class="icon-btn" id="messageBtn" aria-label="Về tin nhắn"><i data-lucide="message-circle"></i></button>
-        </div>
-        <div class="call-main"><h2>Admin hỗ trợ</h2><p id="callStatus">Đang gọi…</p></div>
-        <div class="call-avatar"><svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="20" r="11"></circle><path d="M10 57c2-15 10-23 22-23s20 8 22 23z"></path></svg></div>
-
-        <div class="calling-actions" id="outgoingActions">
-          <div class="action"><button class="red" id="cancelBtn"><i data-lucide="phone"></i></button><span>Kết thúc</span></div>
-          <div class="action"><button id="chatFromCall"><i data-lucide="message-circle"></i></button><span>Tin nhắn</span></div>
-        </div>
-
-        <div class="calling-actions" id="incomingActions" hidden>
-          <div class="action"><button class="red" id="declineBtn"><i data-lucide="phone"></i></button><span>Từ chối</span></div>
-          <div class="action"><button class="green" id="answerBtn"><i data-lucide="phone"></i></button><span>Nghe</span></div>
-          <div class="action"><button id="incomingMessage"><i data-lucide="message-circle"></i></button><span>Tin nhắn</span></div>
-        </div>
-
-        <div class="active-controls" id="activeControls" hidden>
-          <div class="control-row">
-            <div class="action"><button id="speakerBtn"><i data-lucide="volume-2"></i></button><span>Loa ngoài</span></div>
-            <div class="action"><button id="muteBtn"><i data-lucide="mic-off"></i></button><span>Tắt mic</span></div>
-            <div class="action"><button id="activeMessage"><i data-lucide="message-circle"></i></button><span>Tin nhắn</span></div>
-          </div>
-          <div class="end-center"><div class="action end"><button class="red" id="endBtn"><i data-lucide="phone"></i></button><span>Kết thúc</span></div></div>
-        </div>
-      </section>
-
-      <div class="sheet-backdrop" id="sheetBackdrop">
-        <div class="sheet">
-          <div class="grab"></div>
-          <h3>Lưu cuộc trò chuyện</h3>
-          <p>User 1 vẫn chat ngay không cần tài khoản. Chỉ nâng cấp khi bạn muốn lưu lịch sử, đồng bộ thiết bị và sử dụng Call/Push.</p>
-          <button class="sheet-option"><i data-lucide="user-round"></i><span><strong>Cập nhật tên</strong><span>Để Admin dễ nhận diện bạn.</span></span></button>
-          <button class="sheet-cta" id="upgradeBtn">Tạo tài khoản User 2</button>
-          <button class="sheet-secondary" id="loginBtn">Đăng nhập</button>
-        </div>
-      </div>
-      <div class="toast" id="toast"></div>
-    </div>
+<button class="demo-trigger" id="demoTrigger">Demo</button>
+<div class="demo-panel" id="demoPanel">
+  <b>Mô phỏng nhanh</b>
+  <div class="demo-grid">
+    <button id="u1Btn" class="primary">User 1</button><button id="u2Btn">User 2</button>
+    <button id="incomingBtn">Gọi đến</button><button id="outgoingBtn">Gọi đi</button>
+    <button id="activeBtn">Đã nhận</button><button id="minBtn">Thu nhỏ</button>
+    <button id="endDemoBtn">Kết thúc</button><button id="closeDemoBtn">Đóng</button>
   </div>
-
-  <div class="legend">
-    <div class="legend-card"><b>User 1 mặc định</b><span><span class="ok">Chat ngay với Admin.</span> Không Call, không Push, không đồng bộ. Nút “Lưu lịch sử” mới mở nâng cấp.</span></div>
-    <div class="legend-card"><b>User 2 mặc định</b><span>Giao diện chat gần như y hệt User 1 nhưng có <span class="ok">Call + Push + lịch sử lưu/đồng bộ</span>. Không tạo thêm màn hình chính.</span></div>
-  </div>
+  <div class="note">User 1: chat ngay, chưa Call/Push. User 2: chat + call + lưu lịch sử.</div>
 </div>
-<script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+<div class="toast" id="toast"></div>
+</div>
 <script>
-  const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-  let userLevel=1, callState='chat', seconds=24, ticker=null, speaker=false, muted=false;
-  const guestBanner=$('#guestBanner'), syncBanner=$('#syncBanner'), callBtn=$('#callBtn'), callView=$('#callView'), callPill=$('#callPill');
-  const outgoingActions=$('#outgoingActions'), incomingActions=$('#incomingActions'), activeControls=$('#activeControls'), callStatus=$('#callStatus'), toast=$('#toast');
-  const demoNote=$('#demoNote');
-  function icons(){ if(window.lucide) lucide.createIcons(); }
-  function fmt(s){return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}
-  function showToast(t){toast.textContent=t;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),1500)}
-  function setUser(level){
-    userLevel=level; $('#u1').classList.toggle('active',level===1); $('#u2').classList.toggle('active',level===2);
-    guestBanner.hidden=level!==1; syncBanner.hidden=level!==2; callBtn.style.display=level===1?'none':'grid';
-    demoNote.textContent=level===1?'User 1 vào là chat ngay. Không cần tài khoản; chưa có Call/Push và lịch sử không đồng bộ.':'User 2 vào vẫn là màn Chat này, nhưng có Call + Push + lịch sử lưu và đồng bộ.';
-    $$('[data-demo]').forEach(b=>{ if(b.dataset.demo!=='chat') b.disabled=level===1; });
-    if(level===1 && callState!=='chat') setState('chat');
-  }
-  function setState(state){
-    if(userLevel===1 && state!=='chat'){showToast('User 1 chỉ Chat · nâng cấp để gọi');return}
-    callState=state; $$('[data-demo]').forEach(b=>b.classList.toggle('active',b.dataset.demo===state));
-    callPill.hidden=true; callView.classList.remove('show'); outgoingActions.hidden=true; incomingActions.hidden=true; activeControls.hidden=true;
-    clearInterval(ticker); ticker=null;
-    if(state==='chat') return;
-    if(state==='min'){callPill.hidden=false; $('#pillTimer').textContent=fmt(seconds); startTicker(true); return}
-    if(state==='end'){finishCall();return}
-    callView.classList.add('show');
-    if(state==='outgoing'){ callStatus.textContent='Đang gọi…'; outgoingActions.hidden=false; }
-    if(state==='incoming'){ callStatus.textContent='Cuộc gọi đến'; incomingActions.hidden=false; }
-    if(state==='active'){ callStatus.textContent=fmt(seconds); activeControls.hidden=false; startTicker(false); }
-  }
-  function startTicker(pill){
-    ticker=setInterval(()=>{seconds++; const v=fmt(seconds); if(pill) $('#pillTimer').textContent=v; else callStatus.textContent=v;},1000)
-  }
-  function finishCall(label='Cuộc gọi thoại'){
-    clearInterval(ticker); ticker=null; callView.classList.remove('show'); callPill.hidden=true; callState='chat';
-    $$('[data-demo]').forEach(b=>b.classList.toggle('active',b.dataset.demo==='chat'));
-    const h=$('#callHistory'); h.innerHTML=`<div class="row me"><div class="bubble"><div class="call-card"><div class="call-icon"><i data-lucide="phone-outgoing"></i></div><div class="call-copy"><b>${label}</b><span>${seconds>0?fmt(seconds):'Đã kết thúc'}</span></div><span class="time">07:11</span></div></div></div>`+h.innerHTML;
-    seconds=0; icons(); $('#messages').scrollTop=$('#messages').scrollHeight;
-  }
-  $('#u1').onclick=()=>setUser(1); $('#u2').onclick=()=>setUser(2);
-  $$('[data-demo]').forEach(b=>b.onclick=()=>setState(b.dataset.demo));
-  callBtn.onclick=()=>setState('outgoing');
-  $('#saveBtn').onclick=()=>$('#sheetBackdrop').classList.add('show');
-  $('#sheetBackdrop').onclick=e=>{if(e.target===$('#sheetBackdrop')) $('#sheetBackdrop').classList.remove('show')};
-  $('#upgradeBtn').onclick=()=>{$('#sheetBackdrop').classList.remove('show');setUser(2);showToast('Demo: đã chuyển sang User 2')};
-  $('#loginBtn').onclick=()=>{$('#sheetBackdrop').classList.remove('show');setUser(2);showToast('Demo: đã đăng nhập User 2')};
-  $('#cancelBtn').onclick=()=>finishCall('Cuộc gọi thoại · Đã hủy');
-  $('#declineBtn').onclick=()=>finishCall('Cuộc gọi thoại · Đã từ chối');
-  $('#answerBtn').onclick=()=>{seconds=0;setState('active')};
-  $('#endBtn').onclick=()=>finishCall('Cuộc gọi thoại'); $('#pillEnd').onclick=()=>finishCall('Cuộc gọi thoại');
-  $('#minimizeBtn').onclick=()=>setState('min');
-  ['#messageBtn','#chatFromCall','#incomingMessage','#activeMessage'].forEach(id=>$(id).onclick=()=>setState(callState==='active'?'min':'chat'));
-  $('#speakerBtn').onclick=()=>{speaker=!speaker;$('#speakerBtn').style.background=speaker?'#fff':'#11181c';$('#speakerBtn').style.color=speaker?'#111':'#fff'};
-  $('#muteBtn').onclick=()=>{muted=!muted;$('#muteBtn').style.background=muted?'#fff':'#11181c';$('#muteBtn').style.color=muted?'#111':'#fff'};
-  setUser(1); icons();
+const $=id=>document.getElementById(id);let userLevel=1,seconds=0,timer=null,callState='idle';
+function toast(t){$('toast').textContent=t;$('toast').classList.add('show');setTimeout(()=>$('toast').classList.remove('show'),1500)}
+function fmt(n){return `${String(Math.floor(n/60)).padStart(2,'0')}:${String(n%60).padStart(2,'0')}`}
+function tick(){seconds++;$('callStatus').textContent=fmt(seconds);$('pillTimer').textContent=fmt(seconds)}
+function startTimer(){clearInterval(timer);if(!seconds)seconds=0;timer=setInterval(tick,1000)}
+function stopTimer(){clearInterval(timer);timer=null}
+function setUser(level){userLevel=level;$('u1Btn').classList.toggle('primary',level===1);$('u2Btn').classList.toggle('primary',level===2);$('accountLine').textContent=level===1?'Đang hoạt động':'Đã đăng nhập · User 2'}
+function showCall(kind){callState=kind;$('callPill').classList.remove('show');$('callScreen').classList.add('show');$('incomingActions').style.display=kind==='incoming'?'flex':'none';$('activeControls').classList.toggle('show',kind==='active');if(kind==='incoming')$('callStatus').textContent='Cuộc gọi đến';if(kind==='outgoing')$('callStatus').textContent='Đang gọi…';if(kind==='active'){seconds=0;$('callStatus').textContent='00:00';startTimer()}}
+function minimize(){if(callState!=='active')return;$('callScreen').classList.remove('show');$('callPill').classList.add('show')}
+function endCall(label='Cuộc gọi thoại'){if(callState==='idle')return;const duration=fmt(seconds);stopTimer();$('callScreen').classList.remove('show');$('callPill').classList.remove('show');callState='idle';const row=document.createElement('div');row.className='row';row.innerHTML=`<div class="bubble"><div class="call-card"><div class="call-badge"><svg viewBox="0 0 24 24"><path d="M6 3h4l2 5-3 2a14 14 0 0 0 5 5l2-3 5 2v4c0 2-2 3-4 3A17 17 0 0 1 3 7c0-2 1-4 3-4z"/></svg></div><div class="call-copy"><b>${label}</b><span>${seconds?duration:'Không trả lời'}</span></div></div><span class="time">Bây giờ</span></div>`;$('messages').appendChild(row);$('messages').scrollTop=$('messages').scrollHeight;seconds=0}
+$('callBtn').onclick=()=>userLevel===1?toast('Đăng nhập User 2 để gọi'):showCall('outgoing');$('acceptBtn').onclick=()=>showCall('active');$('declineBtn').onclick=()=>endCall('Cuộc gọi nhỡ');$('endBtn').onclick=()=>endCall();$('minimizeBtn').onclick=minimize;$('restoreCall').onclick=()=>showCall('active');$('messageFromCall').onclick=minimize;
+$('sendBtn').onclick=()=>{const v=$('messageInput').value.trim();if(!v)return;const r=document.createElement('div');r.className='row me';r.innerHTML=`<div class="bubble">${v}<span class="time">Bây giờ <span class="ticks">✓✓</span></span></div>`;$('messages').appendChild(r);$('messageInput').value='';$('messages').scrollTop=$('messages').scrollHeight};
+$('messageInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('sendBtn').click()});$('demoTrigger').onclick=()=>$('demoPanel').classList.toggle('show');$('closeDemoBtn').onclick=()=>$('demoPanel').classList.remove('show');$('u1Btn').onclick=()=>setUser(1);$('u2Btn').onclick=()=>setUser(2);$('incomingBtn').onclick=()=>{setUser(2);showCall('incoming')};$('outgoingBtn').onclick=()=>{setUser(2);showCall('outgoing')};$('activeBtn').onclick=()=>{setUser(2);showCall('active')};$('minBtn').onclick=()=>{if(callState!=='active'){setUser(2);showCall('active')}minimize()};$('endDemoBtn').onclick=()=>endCall();setUser(1);
 </script>
 </body>
 </html>
