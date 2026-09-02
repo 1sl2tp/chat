@@ -13,6 +13,7 @@ export interface ExistingConversationRuntimeState {
   conversationId: string | null
   title: string
   subtitle?: string
+  canCall?: boolean
   messages: ChatMessage[]
   currentProfileId: string | null
   attachmentUrls?: Readonly<Record<string, string>>
@@ -84,6 +85,7 @@ export function toConversationViewModel(state: ExistingConversationRuntimeState)
     id: state.conversationId ?? '',
     title: state.title,
     subtitle: state.subtitle,
+    canCall: state.canCall ?? false,
     messages: state.messages.map(message => toMessageViewModel(message, state.currentProfileId, attachmentUrls)),
   }
 }
