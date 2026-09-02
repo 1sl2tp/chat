@@ -6,7 +6,7 @@ import adminHtml from '../admin/index.html?raw'
 import userMainSource from './user-main.ts?raw'
 import adminMainSource from './admin-main.ts?raw'
 import windowContextSource from './notifications/window-context.ts?raw'
-import navigationSource from './pwa/navigation.ts?raw'
+import swSource from './sw.ts?raw'
 
 const surfaceCss = readFileSync(new URL('./ui/chat/surface.css', import.meta.url), 'utf8')
 
@@ -33,7 +33,7 @@ describe('product polish mobile release contracts', () => {
     expect(windowContextSource).toContain('CHAT_NOTIFICATION_CONTEXT_QUERY')
     expect(windowContextSource).toContain("visibilityState === 'visible'")
     expect(windowContextSource).toContain('selectedConversationId === requestedConversationId')
-    expect(navigationSource).toContain('conversation')
-    expect(navigationSource).toContain('admin')
+    expect(swSource).toContain("import { resolveScopedNavigation } from './pwa/navigation'")
+    expect(swSource).toContain('resolveScopedNavigation(self.registration.scope, data?.navigate)')
   })
 })
