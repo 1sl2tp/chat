@@ -1,0 +1,89 @@
+{
+  "repository": "chatwoot/chatwoot",
+  "branch": "develop",
+  "commit": "9c7177005b3e2466f1de731da75192f8c9592e4b",
+  "sourceCommitDate": "2026-09-02T16:59:36+05:30",
+  "license": "MIT Expat",
+  "mirroredRoots": [
+    "app/javascript/dashboard/components-next/call",
+    "app/javascript/dashboard/components-next/Calls",
+    "app/javascript/dashboard/components-next/button",
+    "app/javascript/dashboard/components/widgets/conversation/ConversationCallButton.vue",
+    "app/javascript/dashboard/components/widgets/conversation/VoiceCallStatus.vue",
+    "app/javascript/dashboard/components/widgets/VideoCallButton.vue"
+  ],
+  "files": [
+    {
+      "path": "app/javascript/dashboard/components-next/button/Button.story.vue",
+      "sha256": "019a2157449901a1a52b4a4943d6c57289c9d2ac43995954113653f0433d770b"
+    },
+    {
+      "path": "app/javascript/dashboard/components-next/button/Button.vue",
+      "sha256": "f701adbe4e43a1fd2d2bf2df0c3bf4b0fed9f3edbea811e291ff61c2157ef6eb"
+    },
+    {
+      "path": "app/javascript/dashboard/components-next/button/ConfirmButton.story.vue",
+      "sha256": "00808e57a3e42f2643b7fa1e1982eabeef0a5ecc8a0c3c31569ad0590b992baf"
+    },
+    {
+      "path": "app/javascript/dashboard/components-next/button/ConfirmButton.vue",
+      "sha256": "9702825735527662886400c790d58a8abb68c873c219c5b3318b7b84766e480b"
+    },
+    {
+      "path": "app/javascript/dashboard/components-next/button/constants.js",
+      "sha256": "b3efa0e561826da5e9491201bda3b6f577dff5007829a249104fdff3802cfc00"
+    },
+    {
+      "path": "app/javascript/dashboard/components-next/call/CallCard.story.vue",
+      "sha256": "bd2864659746a8521fe23d7052b9554b2af3adfe8f1a33d12d7ee94c2dbb8efb"
+    },
+    {
+      "path": "app/javascript/dashboard/components-next/call/CallCard.vue",
+      "sha256": "f0bc55df57e5e76d30e2d4232d9c1eb5ea120a89e254bd769f38df4912da366b"
+    },
+    {
+      "path": "app/javascript/dashboard/components-next/call/FloatingCallWidget.vue",
+      "sha256": "fff95d24a7dd4adfb0847d97c0f45693342a5c968a00d5c6ae9b10a2d36b71d9"
+    },
+    {
+      "path": "app/javascript/dashboard/components-next/Calls/CallListItem.vue",
+      "sha256": "fd7218443d9fc5285acf9af2e7cef7b63c73fd352acf266161a6397d83e686a8"
+    },
+    {
+      "path": "app/javascript/dashboard/components-next/Calls/CallRecordingPlayer.vue",
+      "sha256": "8aa1a27a14907c38097597a6bd3d46f65008b6b20e9f23dcf7a35fa4e31c9062"
+    },
+    {
+      "path": "app/javascript/dashboard/components-next/Calls/CallsEmptyState.vue",
+      "sha256": "eec45b99b07f673797aa187e34cfb5af927cba0741994ae3d5b7f3b303ca14a8"
+    },
+    {
+      "path": "app/javascript/dashboard/components-next/Calls/CallsFilterBar.vue",
+      "sha256": "1c028aa36f1af5e13f7e56aa8ddbea61d235bfb32bc0943fb30a18d3dc6dc954"
+    },
+    {
+      "path": "app/javascript/dashboard/components-next/Calls/CallStatusBadge.vue",
+      "sha256": "acc54148e79b9f3c3757d693654afd46f7349b9c0aad7aae2b82fb50a41a22a8"
+    },
+    {
+      "path": "app/javascript/dashboard/components-next/Calls/constants.js",
+      "sha256": "df44ba0b3d83b970fe2fee370ca3d801388ef37c7eff7e55a45df7edad9b5301"
+    },
+    {
+      "path": "app/javascript/dashboard/components/widgets/conversation/ConversationCallButton.vue",
+      "sha256": "081b9d3539d05ffc71d3eb4704b7df1bd794c0272929ec35348e0383d3d815b5"
+    },
+    {
+      "path": "app/javascript/dashboard/components/widgets/conversation/VoiceCallStatus.vue",
+      "sha256": "69268e98fabb86511404f497911a67c091d79bdf95794eb023d14e57c12b7729"
+    },
+    {
+      "path": "app/javascript/dashboard/components/widgets/VideoCallButton.vue",
+      "sha256": "cbf1d21cf207482cfb4073939e570ff64cf37cc6764a7aea98abcf83f5a19c84"
+    },
+    {
+      "path": "LICENSE",
+      "sha256": "602d38a808315f221a5e72e2e90e40cb9300f09aa4b317a6a8f1a0c7a3d2175d"
+    }
+  ]
+}

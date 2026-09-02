@@ -5,6 +5,7 @@
   "sourceCommitDate": "2026-09-02T13:13:27+05:30",
   "license": "MIT",
   "mirroredRoots": [
+    "src/screens/auth",
     "src/screens/chat-screen",
     "src/screens/conversations",
     "src/components-next",
@@ -304,6 +305,22 @@
     {
       "path": "src/constants/url.js",
       "sha256": "27f7009118b1a520f1a407ed8445f7f0a11fdef275297bad5e570136fcb30863"
+    },
+    {
+      "path": "src/screens/auth/ConfigURLScreen.tsx",
+      "sha256": "a8bb41e97043311a0fdbb635cbd70c595dd5e6765323a4ed2ef5adb4eeb62c26"
+    },
+    {
+      "path": "src/screens/auth/ForgotPassword.tsx",
+      "sha256": "08bbac59c9ab42454f1448f7c26dec05169c8171e93f3057165d77f3ac626fe9"
+    },
+    {
+      "path": "src/screens/auth/LoginScreen.tsx",
+      "sha256": "cd60d13e53827c9b496042602b1f96b1d4501a3430ebe35ed34938d44de89553"
+    },
+    {
+      "path": "src/screens/auth/MFAScreen.tsx",
+      "sha256": "d1e64a20fc38f413774754f99ec8c14067b7a2d99764e229c0e7b1a3d27507bd"
     },
     {
       "path": "src/screens/chat-screen/ChatScreen.tsx",
