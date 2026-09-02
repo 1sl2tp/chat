@@ -8,6 +8,7 @@ import { mountComposer, type ComposerController, type ComposerOptions } from './
 import { resolveActiveLinkPreview, type LinkPreviewResolver } from './link-preview'
 import { renderMessageList } from './message-list'
 import { createConversationScrollController } from './scroll-controller'
+import './conversation-refinement.css'
 
 export interface ConversationSurfaceRenderState {
   messages: ChatMessage[]
@@ -101,6 +102,18 @@ export function mountConversationSurface(options: ConversationSurfaceOptions): C
   })
 
   const scroll = createConversationScrollController(options.messagesHost)
+  const newMessageIndicator = document.createElement('button')
+  newMessageIndicator.type = 'button'
+  newMessageIndicator.className = 'chat-new-message-indicator'
+  newMessageIndicator.textContent = 'Tin nhắn mới ↓'
+  newMessageIndicator.hidden = true
+  newMessageIndicator.setAttribute('aria-label', 'Cuộn xuống tin nhắn mới')
+
+  const followBottom = () => {
+    newMessageIndicator.hidden = true
+    scroll.scrollToBottom()
+  }
+
   const composerOptions: ComposerOptions = {
     ...options.composer,
     onAttach: options.composer?.onAttach ?? (() => fileInput.click()),
@@ -108,17 +121,28 @@ export function mountConversationSurface(options: ConversationSurfaceOptions): C
       ? () => { void toggleRecording() }
       : undefined),
     onFocus: () => {
+      newMessageIndicator.hidden = true
       scroll.onComposerFocus()
       options.composer?.onFocus?.()
     },
   }
-  const composer: ComposerController = mountComposer(options.composerHost, options.onSend, composerOptions)
-  options.composerHost.append(fileInput)
+  const composer: ComposerController = mountComposer(options.composerHost, async (text) => {
+    await options.onSend(text)
+    followBottom()
+  }, composerOptions)
+  options.composerHost.append(fileInput, newMessageIndicator)
+
+  newMessageIndicator.addEventListener('click', followBottom)
+  const onMessagesScroll = () => {
+    if (scroll.isFollowingBottom()) newMessageIndicator.hidden = true
+  }
+  options.messagesHost.addEventListener('scroll', onMessagesScroll, { passive: true })
 
   async function sendAttachment(file: File): Promise<void> {
     const capabilities = getConversationCapabilities()
     if (!capabilities) throw new Error('conversation_capabilities_unavailable')
     await capabilities.sendAttachment(file)
+    followBottom()
   }
 
   async function toggleRecording(): Promise<void> {
@@ -158,9 +182,21 @@ export function mountConversationSurface(options: ConversationSurfaceOptions): C
 
   function renderState(state: ConversationSurfaceRenderState): void {
     if (destroyed) return
+
+    scroll.capturePosition()
+    const wasFollowingBottom = scroll.isFollowingBottom()
+    const previousCount = lastState?.messages.length ?? 0
+    const previousLastId = lastState?.messages.at(-1)?.id ?? ''
+    const nextLastId = state.messages.at(-1)?.id ?? ''
+    const hasNewTail = Boolean(
+      lastState
+      && state.messages.length > previousCount
+      && nextLastId
+      && nextLastId !== previousLastId,
+    )
+
     lastState = state
     composer.setEnabled(state.canSend)
-    scroll.capturePosition()
 
     const capabilities = getConversationCapabilities()
     const reactionSession = capabilities?.reactionSession ?? null
@@ -201,6 +237,8 @@ export function mountConversationSurface(options: ConversationSurfaceOptions): C
       })
     }
 
+    if (hasNewTail && !wasFollowingBottom) newMessageIndicator.hidden = false
+    else if (wasFollowingBottom) newMessageIndicator.hidden = true
     scroll.onMessagesChanged()
   }
 
@@ -213,7 +251,9 @@ export function mountConversationSurface(options: ConversationSurfaceOptions): C
       destroyed = true
       composer.destroy()
       fileInput.remove()
+      newMessageIndicator.remove()
       viewer.remove()
+      options.messagesHost.removeEventListener('scroll', onMessagesScroll)
       window.visualViewport?.removeEventListener('resize', onViewport)
       window.visualViewport?.removeEventListener('scroll', onViewport)
       options.messagesHost.replaceChildren()
