@@ -4,8 +4,34 @@ import { updateUser2Profile, upgradeGuestToUser2 } from './auth'
 
 export type AccountUiMode = 'guest' | 'user2'
 
+export interface UserAccountSummary {
+  displayName: string
+  typeLabel: string
+  accountLabel: string
+}
+
 export function accountUiMode(label: string): AccountUiMode {
   return label.trim().startsWith('User 2') ? 'user2' : 'guest'
+}
+
+export function userAccountSummary(
+  mode: AccountUiMode,
+  profile: { displayName: string; username: string } | null,
+): UserAccountSummary {
+  if (mode === 'user2') {
+    const displayName = profile?.displayName.trim() || 'User 2'
+    const username = profile?.username.trim() || ''
+    return {
+      displayName,
+      typeLabel: 'User 2',
+      accountLabel: username ? `@${username}` : 'Chưa đặt tài khoản',
+    }
+  }
+  return {
+    displayName: 'Khách',
+    typeLabel: 'Vãng lai',
+    accountLabel: 'Chưa có tài khoản',
+  }
 }
 
 export function userAccountErrorMessage(error: unknown): string {
@@ -47,6 +73,9 @@ export function mountUserAccountUi(doc: Document = document): () => void {
 
   const modeElement: HTMLElement = modeLabel
   const authButton: HTMLButtonElement = legacyAuthAction
+  const summaryName = doc.querySelector<HTMLElement>('#user-summary-name')
+  const summaryType = doc.querySelector<HTMLElement>('#user-summary-type')
+  const summaryAccount = doc.querySelector<HTMLElement>('#user-summary-account')
   const supportTitle = doc.querySelector<HTMLElement>('.user-title strong')
   if (supportTitle) supportTitle.textContent = 'Hỗ trợ'
   doc.querySelector<HTMLElement>('#messages')?.setAttribute('aria-label', 'Tin nhắn với Hỗ trợ')
@@ -54,14 +83,14 @@ export function mountUserAccountUi(doc: Document = document): () => void {
   const guestSection = doc.createElement('section')
   guestSection.className = 'user-account-actions'
   guestSection.innerHTML = `
-    <button id="user-upgrade-toggle" class="user-drawer-action primary" type="button">Nâng cấp User 2</button>
-    <button id="user-login-existing" class="user-drawer-action secondary" type="button">Đăng nhập User 2</button>
+    <button id="user-upgrade-toggle" class="user-drawer-action primary" type="button">Nâng cấp tài khoản</button>
+    <button id="user-login-existing" class="user-drawer-action secondary" type="button">Đăng nhập tài khoản</button>
     <form id="user-upgrade-form" class="user-account-form" hidden>
-      <h2>Tạo tài khoản User 2</h2>
+      <h2>Tạo tài khoản</h2>
       <input id="user-upgrade-display" autocomplete="name" maxlength="50" placeholder="Tên hiển thị" aria-label="Tên hiển thị" />
       <input id="user-upgrade-username" autocomplete="username" maxlength="24" placeholder="Tài khoản" aria-label="Tài khoản User 2" />
       <input id="user-upgrade-password" type="password" autocomplete="new-password" minlength="6" maxlength="128" placeholder="Mật khẩu" aria-label="Mật khẩu User 2" />
-      <button type="submit">Tạo User 2</button>
+      <button type="submit">Tạo tài khoản</button>
       <p id="user-upgrade-status" class="user-settings-status" aria-live="polite"></p>
     </form>
   `
@@ -70,7 +99,7 @@ export function mountUserAccountUi(doc: Document = document): () => void {
   const profileDetails = doc.createElement('details')
   profileDetails.className = 'user-profile-details'
   profileDetails.innerHTML = `
-    <summary>Thông tin tài khoản</summary>
+    <summary>Thông tin cá nhân</summary>
     <form id="user-profile-form" class="user-account-form">
       <input id="user-profile-display" autocomplete="name" maxlength="50" placeholder="Tên hiển thị" aria-label="Tên hiển thị" />
       <input id="user-profile-username" autocomplete="username" maxlength="24" placeholder="Tài khoản" aria-label="Tài khoản User 2" />
@@ -95,16 +124,19 @@ export function mountUserAccountUi(doc: Document = document): () => void {
 
   function sync(): void {
     const mode = accountUiMode(modeElement.textContent ?? '')
+    const profile = mode === 'user2' ? currentProfile() : null
+    const summary = userAccountSummary(mode, profile)
+    if (summaryName) summaryName.textContent = summary.displayName
+    if (summaryType) summaryType.textContent = summary.typeLabel
+    if (summaryAccount) summaryAccount.textContent = summary.accountLabel
+
     guestSection.hidden = mode !== 'guest'
     profileDetails.hidden = mode !== 'user2'
     authButton.hidden = mode === 'guest'
 
-    if (mode === 'user2') {
-      const profile = currentProfile()
-      if (profile) {
-        if (doc.activeElement !== profileDisplay) profileDisplay.value = profile.displayName
-        if (doc.activeElement !== profileUsername) profileUsername.value = profile.username
-      }
+    if (mode === 'user2' && profile) {
+      if (doc.activeElement !== profileDisplay) profileDisplay.value = profile.displayName
+      if (doc.activeElement !== profileUsername) profileUsername.value = profile.username
     }
   }
 
@@ -144,7 +176,7 @@ export function mountUserAccountUi(doc: Document = document): () => void {
           clearGuestBrowserAuth()
         },
       }, upgradeDisplay.value, upgradeUsername.value, upgradePassword.value)
-      upgradeStatus.textContent = 'Đã nâng cấp User 2.'
+      upgradeStatus.textContent = 'Đã nâng cấp tài khoản.'
       window.location.reload()
     } catch (error) {
       upgradeStatus.textContent = userAccountErrorMessage(error)
