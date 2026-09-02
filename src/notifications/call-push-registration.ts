@@ -138,7 +138,7 @@ export class CallPushRegistration {
     await this.ensureSubscriptionSafely(true)
   }
 
-  async testFromUserGesture(): Promise<void> {
+  async testFromUserGesture(options: NotificationOptions = {}): Promise<void> {
     if (this.state !== 'enabled') {
       await this.enableFromUserGesture()
       return
@@ -148,6 +148,7 @@ export class CallPushRegistration {
       await this.browser.showLocalNotification('TAPHOA local test', {
         body: 'Thông báo trực tiếp từ PWA',
         tag: `local-test-${Date.now()}`,
+        ...options,
       })
       if (this.browser.android()) {
         await this.ensureSubscriptionAndUpsert(true)
