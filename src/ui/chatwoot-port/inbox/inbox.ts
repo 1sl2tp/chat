@@ -33,6 +33,13 @@ function normalized(value: string): string {
   return value.trim().toLocaleLowerCase('vi-VN')
 }
 
+function initials(value: string): string {
+  const parts = value.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return 'U'
+  if (parts.length === 1) return parts[0]!.slice(0, 2).toLocaleUpperCase('vi-VN')
+  return `${parts[0]![0] ?? ''}${parts.at(-1)?.[0] ?? ''}`.toLocaleUpperCase('vi-VN')
+}
+
 function matches(row: InboxUserRow, query: string): boolean {
   const q = normalized(query)
   if (!q) return true
@@ -45,10 +52,18 @@ function createRow(row: InboxUserRow, onSelect: (id: string) => void): HTMLButto
   button.type = 'button'
   button.className = 'cw-inbox__row'
   button.dataset.conversationId = row.id
+  button.dataset.kind = row.kind
   button.addEventListener('click', () => onSelect(row.id))
 
+  const avatarWrap = document.createElement('span')
+  avatarWrap.className = 'cw-inbox__avatar-wrap'
+  const avatar = document.createElement('span')
+  avatar.className = 'cw-inbox__avatar'
+  avatar.textContent = initials(row.displayName)
+  avatarWrap.append(avatar)
+
   const body = document.createElement('span')
-  body.className = 'cw-inbox__row-body'
+  body.className = 'cw-inbox__row-copy'
 
   const nameLine = document.createElement('span')
   nameLine.className = 'cw-inbox__name-line'
@@ -58,17 +73,22 @@ function createRow(row: InboxUserRow, onSelect: (id: string) => void): HTMLButto
   time.textContent = row.timestamp ?? ''
   nameLine.append(name, time)
 
+  const identityLine = document.createElement('span')
+  identityLine.className = 'cw-inbox__identity-line'
+  const identity = document.createElement('small')
+  identity.className = 'cw-inbox__identity'
+  identity.textContent = row.username ? `@${row.username}` : (row.kind === 'user2' ? 'User 2' : 'User 1')
+  identityLine.append(identity)
+
   const previewLine = document.createElement('span')
   previewLine.className = 'cw-inbox__preview-line'
-  const identity = document.createElement('small')
-  identity.textContent = row.username ? `@${row.username}` : (row.preview ?? '')
   const preview = document.createElement('small')
   preview.className = 'cw-inbox__preview'
-  preview.textContent = row.username ? (row.preview ?? '') : ''
-  previewLine.append(identity, preview)
+  preview.textContent = row.preview ?? ''
+  previewLine.append(preview)
 
-  body.append(nameLine, previewLine)
-  button.append(body)
+  body.append(nameLine, identityLine, previewLine)
+  button.append(avatarWrap, body)
   return button
 }
 
