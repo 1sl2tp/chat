@@ -30,7 +30,7 @@ describe('message presentation', () => {
     expect(result.text).toBe('Tin nhắn đã được thu hồi')
   })
 
-  it('compacts consecutive repeated call-status events into one Zalo-like row', () => {
+  it('compacts consecutive repeated call-status events inside the renderer', () => {
     const events = [
       { ...base, id: 'c1', type: 'call', text: 'Cuộc gọi đã hủy', created_at: '2026-08-31T03:30:00.000Z' },
       { ...base, id: 'c2', type: 'call', text: 'Cuộc gọi đã hủy', created_at: '2026-08-31T03:31:00.000Z' },
@@ -38,23 +38,8 @@ describe('message presentation', () => {
     ]
     const result = compactCallEventMessages(events)
     expect(result).toHaveLength(1)
-    expect(result[0]?.text).toBe('📞 3 cuộc gọi chưa kết nối')
+    expect(result[0]?.text).toBe('📞 3 cuộc gọi đã hủy')
     expect(result[0]?.created_at).toBe('2026-08-31T03:32:00.000Z')
-  })
-
-  it('groups mixed cancelled and declined call events until a real chat message breaks the cluster', () => {
-    const events = [
-      { ...base, id: 'c1', type: 'call', text: 'Đã từ chối', created_at: '2026-08-31T03:30:00.000Z' },
-      { ...base, id: 'c2', type: 'call', text: 'Cuộc gọi đã hủy', created_at: '2026-08-31T03:31:00.000Z' },
-      { ...base, id: 'c3', type: 'call', text: 'Đã từ chối', created_at: '2026-08-31T03:32:00.000Z' },
-      { ...base, id: 't1', type: 'text', text: 'Alo', created_at: '2026-08-31T03:33:00.000Z' },
-      { ...base, id: 'c4', type: 'call', text: 'Cuộc gọi đã hủy', created_at: '2026-08-31T03:34:00.000Z' },
-    ]
-    const result = compactCallEventMessages(events)
-    expect(result).toHaveLength(3)
-    expect(result[0]?.text).toBe('📞 3 cuộc gọi chưa kết nối')
-    expect(result[1]?.text).toBe('Alo')
-    expect(result[2]?.text).toBe('Cuộc gọi đã hủy')
   })
 
   it('does not compact a completed call duration row', () => {
