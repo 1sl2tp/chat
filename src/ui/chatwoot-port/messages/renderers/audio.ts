@@ -1,4 +1,5 @@
 import type { PresentedMessage } from '../message-model'
+import { createMediaActions } from './media-actions'
 
 export function renderAudioMessage(message: PresentedMessage): HTMLElement {
   const row = document.createElement('article')
@@ -18,7 +19,7 @@ export function renderAudioMessage(message: PresentedMessage): HTMLElement {
   label.className = 'cw-audio-player__label'
   label.textContent = message.attachment?.name ?? 'Ghi âm'
 
-  player.append(audio, label)
+  player.append(audio, label, createMediaActions({ url: message.attachment?.url ?? '' }))
   row.append(player)
   return row
 }
