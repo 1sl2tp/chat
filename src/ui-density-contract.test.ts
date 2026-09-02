@@ -13,9 +13,10 @@ describe('compact chat/admin UI density', () => {
     expect(adminCss).toContain('white-space:normal')
   })
 
-  it('keeps the user header compact without breaking the 280px floor', () => {
+  it('keeps the User header compact without breaking the 280px floor', () => {
     expect(userCss).toContain('min-width:280px')
-    expect(userCss).toContain('.user-app>header{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:10px 12px')
-    expect(userCss).toContain('.call-notification-button,.user-auth-action{height:30px')
+    expect(userCss).toContain('.user-header{display:grid;grid-template-columns:44px minmax(0,1fr) 44px')
+    expect(userCss).toContain('.user-header-icon{display:grid;place-items:center;width:42px;height:42px')
+    expect(userCss).toContain('@media(max-width:320px)')
   })
 })
