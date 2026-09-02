@@ -1,0 +1,16 @@
+:root {
+  --cw-space-1: 4px;
+  --cw-space-2: 8px;
+  --cw-space-3: 12px;
+  --cw-space-4: 16px;
+  --cw-space-6: 24px;
+  --cw-radius-sm: 8px;
+  --cw-radius-message: 16px;
+  --cw-border-subtle: rgba(0, 0, 0, 0.08);
+  --cw-surface: #ffffff;
+  --cw-canvas: #f8f9fb;
+  --cw-text: #1f2937;
+  --cw-text-muted: #6b7280;
+  --cw-hit-target: 40px;
+  --cw-header-height-min: 56px;
+}
