@@ -67,6 +67,19 @@ describe('CallAlertController', () => {
     expect(audio.stop).toHaveBeenCalled()
   })
 
+  it('keeps alerts silent while a cold-restored call waits for a fresh user gesture', () => {
+    const { audio, vibration, controller } = harness()
+
+    controller.sync(state({ phase: 'outgoing', direction: 'outgoing', resumeRequired: true }))
+
+    expect(audio.startRingback).not.toHaveBeenCalled()
+    expect(audio.startIncoming).not.toHaveBeenCalled()
+    expect(vibration.start).not.toHaveBeenCalled()
+
+    controller.sync(state({ phase: 'outgoing', direction: 'outgoing', resumeRequired: false }))
+    expect(audio.startRingback).toHaveBeenCalledOnce()
+  })
+
   it('does not restart the same alert mode on repeated polling updates', () => {
     const { audio, vibration, controller } = harness()
 
