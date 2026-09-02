@@ -102,6 +102,16 @@ export function mountConversationSurface(options: ConversationSurfaceOptions): C
   })
 
   const scroll = createConversationScrollController(options.messagesHost)
+  const contentResizeObserver = typeof ResizeObserver === 'undefined'
+    ? null
+    : new ResizeObserver(() => scroll.onMessagesChanged())
+  const observeMessageRows = () => {
+    contentResizeObserver?.disconnect()
+    for (const child of options.messagesHost.children) {
+      if (child instanceof HTMLElement) contentResizeObserver?.observe(child)
+    }
+  }
+
   const newMessageIndicator = document.createElement('button')
   newMessageIndicator.type = 'button'
   newMessageIndicator.className = 'chat-new-message-indicator'
@@ -237,6 +247,7 @@ export function mountConversationSurface(options: ConversationSurfaceOptions): C
       })
     }
 
+    observeMessageRows()
     if (hasNewTail && !wasFollowingBottom) newMessageIndicator.hidden = false
     else if (wasFollowingBottom) newMessageIndicator.hidden = true
     scroll.onMessagesChanged()
@@ -249,6 +260,7 @@ export function mountConversationSurface(options: ConversationSurfaceOptions): C
     },
     destroy() {
       destroyed = true
+      contentResizeObserver?.disconnect()
       composer.destroy()
       fileInput.remove()
       newMessageIndicator.remove()
