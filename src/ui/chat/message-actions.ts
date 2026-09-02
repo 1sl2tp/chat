@@ -8,19 +8,19 @@ export interface MessageActionCapabilities {
 }
 
 export function getMessageActionCapabilities(message: ChatMessage): MessageActionCapabilities {
-  if (message.revoked_at) {
+  if (message.revoked_at || message.type === 'system' || message.type === 'call') {
     return { heart: false, copy: false, share: false, open: false }
   }
 
   const hasText = Boolean(message.text?.trim())
   const hasAttachment = Boolean(message.attachment)
-  const actionable = message.type !== 'system' && message.type !== 'call'
+  const textMessage = message.type === 'text' && !hasAttachment
 
   return {
-    heart: actionable,
-    copy: actionable && hasText,
-    share: actionable && (hasText || hasAttachment),
-    open: actionable && hasAttachment,
+    heart: textMessage,
+    copy: textMessage && hasText,
+    share: (textMessage && hasText) || hasAttachment,
+    open: hasAttachment,
   }
 }
 
