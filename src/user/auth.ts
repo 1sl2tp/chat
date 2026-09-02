@@ -12,11 +12,62 @@ export interface User2PasswordBackend {
   updatePassword(password: string): Promise<void>
 }
 
+export interface User1UpgradeBackend {
+  upgradeCurrentGuest(input: {
+    displayName: string
+    username: string
+    password: string
+  }): Promise<{ loginUsername: string }>
+  signInPersistentUser2(email: string, password: string): Promise<void>
+  clearGuestAuthSession(): Promise<void>
+}
+
+export interface User2Registration {
+  displayName: string
+  username: string
+  password: string
+}
+
 export function normalizeUser2Username(value: string): string {
   const username = value.trim().replace(/^@+/, '').toLowerCase()
   if (username === 'admin') throw new Error('admin_uses_admin_page')
   if (!/^[a-z0-9_]{3,24}$/.test(username)) throw new Error('invalid_username')
   return username
+}
+
+export function normalizeUser2DisplayName(value: string): string {
+  const displayName = value.trim()
+  if (displayName.length < 1 || displayName.length > 50) throw new Error('invalid_display_name')
+  return displayName
+}
+
+export function normalizeUser2Registration(
+  displayNameValue: string,
+  usernameValue: string,
+  passwordValue: string,
+): User2Registration {
+  const displayName = normalizeUser2DisplayName(displayNameValue)
+  const username = normalizeUser2Username(usernameValue)
+  const password = passwordValue
+  if (password.length < 6) throw new Error('password_too_short')
+  if (password.length > 128) throw new Error('password_too_long')
+  return { displayName, username, password }
+}
+
+export async function upgradeGuestToUser2(
+  backend: User1UpgradeBackend,
+  displayNameValue: string,
+  usernameValue: string,
+  passwordValue: string,
+): Promise<void> {
+  const input = normalizeUser2Registration(displayNameValue, usernameValue, passwordValue)
+  const upgraded = await backend.upgradeCurrentGuest(input)
+  const loginUsername = normalizeUser2Username(upgraded.loginUsername || input.username)
+
+  // Important: do not end/discard the guest profile here. The database RPC upgrades
+  // the same anonymous auth user/profile in place so its conversation history remains intact.
+  await backend.signInPersistentUser2(`${loginUsername}@taphoa.chat`, input.password)
+  await backend.clearGuestAuthSession()
 }
 
 export async function loginUser2(
@@ -45,5 +96,6 @@ export async function changeUser2Password(
 ): Promise<void> {
   if (password !== confirmation) throw new Error('password_mismatch')
   if (password.length < 6) throw new Error('password_too_short')
+  if (password.length > 128) throw new Error('password_too_long')
   await backend.updatePassword(password)
 }
