@@ -27,14 +27,11 @@ describe('Chatwoot User account adapter', () => {
     })
   })
 
-  it('mounts Chatwoot account owner behind the same presentation switch and keeps legacy in else branch', () => {
-    expect(userShellSource).toContain("from './ui/chatwoot-port/presentation-switch'")
+  it('mounts only the Chatwoot account owner in the production User shell', () => {
     expect(userShellSource).toContain("from './user/chatwoot-account-ui'")
-    expect(userShellSource).toContain('mountUserChatwootAccountUi')
-    const branchIndex = userShellSource.indexOf("getChatPresentation() === 'chatwoot-port'")
-    const legacyIndex = userShellSource.indexOf('mountUserAccountUi()', branchIndex)
-    expect(branchIndex).toBeGreaterThanOrEqual(0)
-    expect(legacyIndex).toBeGreaterThan(branchIndex)
-    expect(userShellSource.slice(branchIndex, legacyIndex)).toContain('else')
+    expect(userShellSource).toContain('mountUserChatwootAccountUi()')
+    expect(userShellSource).not.toContain('presentation-switch')
+    expect(userShellSource).not.toContain('mountUserAccountUi')
+    expect(userShellSource).not.toContain("from './user/account-ui'")
   })
 })
