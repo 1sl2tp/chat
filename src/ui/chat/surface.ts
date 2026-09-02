@@ -99,16 +99,20 @@ export function mountConversationSurface(options: ConversationSurfaceOptions): C
     if (event.target === viewer) closeViewer()
   })
 
+  const scroll = createConversationScrollController(options.messagesHost)
   const composerOptions: ComposerOptions = {
     ...options.composer,
     onAttach: options.composer?.onAttach ?? (() => fileInput.click()),
     onRecord: options.composer?.onRecord ?? (typeof MediaRecorder !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia)
       ? () => { void toggleRecording() }
       : undefined),
+    onFocus: () => {
+      scroll.onComposerFocus()
+      options.composer?.onFocus?.()
+    },
   }
   const composer: ComposerController = mountComposer(options.composerHost, options.onSend, composerOptions)
   options.composerHost.append(fileInput)
-  const scroll = createConversationScrollController(options.messagesHost)
 
   async function sendAttachment(file: File): Promise<void> {
     const capabilities = getConversationCapabilities()
