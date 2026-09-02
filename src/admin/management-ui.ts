@@ -310,6 +310,7 @@ function attachWorkspace(app: HTMLElement): () => void {
   const chatHeader = app.querySelector<HTMLElement>('.admin-chat > header')
   const headerActions = app.querySelector<HTMLElement>('.admin-header-actions')
   if (!inboxHost || !inboxPane || !chatHeader || !headerActions) return () => undefined
+  const inboxElement: HTMLElement = inboxHost
 
   const legacyCreateToggle = app.querySelector<HTMLButtonElement>('#create-user2-toggle')
   const legacyCreatePanel = app.querySelector<HTMLElement>('#create-user2-panel')
@@ -323,9 +324,9 @@ function attachWorkspace(app: HTMLElement): () => void {
   headerActions.insertBefore(createButton, headerActions.firstChild)
 
   const createPanel = createNewUserPanel()
-  inboxPane.insertBefore(createPanel, inboxHost)
+  inboxPane.insertBefore(createPanel, inboxElement)
   const filterBar = createFilterBar()
-  inboxPane.insertBefore(filterBar, inboxHost)
+  inboxPane.insertBefore(filterBar, inboxElement)
 
   const managementPanel = document.createElement('section')
   managementPanel.className = 'admin-user-management'
@@ -356,9 +357,9 @@ function attachWorkspace(app: HTMLElement): () => void {
       const empty = document.createElement('p')
       empty.className = 'empty admin-filter-empty'
       empty.textContent = activeFilter === 'all' ? 'Chưa có User.' : 'Không có User trong nhóm này.'
-      inboxHost.replaceChildren(empty)
+      inboxElement.replaceChildren(empty)
     } else {
-      inboxHost.replaceChildren(...children)
+      inboxElement.replaceChildren(...children)
     }
     renderManagementPanel(managementPanel, state)
   }
