@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { VoiceCallSession, callErrorMessage, type VoiceCallContext, type VoiceCallState } from './voice-session'
+import { VoiceCallSession, callErrorMessage, type VoiceCallContext } from './voice-session'
 
 const CALL_ID = '33333333-3333-4333-8333-333333333333'
 const CONVERSATION_ID = '44444444-4444-4444-8444-444444444444'
@@ -178,7 +178,11 @@ describe('VoiceCallSession device ownership', () => {
 
     expect(beginUserGesture).toHaveBeenCalledOnce()
     expect(joinLiveKit).toHaveBeenCalledWith(CALL_ID, CONTEXT)
-    expect(beginUserGesture.mock.invocationCallOrder[0]).toBeLessThan(joinLiveKit.mock.invocationCallOrder[0] ?? Infinity)
+    const beginOrder = beginUserGesture.mock.invocationCallOrder[0]
+    const joinOrder = joinLiveKit.mock.invocationCallOrder[0]
+    expect(beginOrder).toBeDefined()
+    expect(joinOrder).toBeDefined()
+    expect(beginOrder!).toBeLessThan(joinOrder!)
   })
 })
 
