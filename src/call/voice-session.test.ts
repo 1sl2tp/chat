@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { VoiceCallSession, callErrorMessage } from './voice-session'
+import { VoiceCallSession, callErrorMessage, type VoiceCallState } from './voice-session'
 
 const CALL_ID = '33333333-3333-4333-8333-333333333333'
 const CONVERSATION_ID = '44444444-4444-4444-8444-444444444444'
@@ -91,6 +91,40 @@ describe('VoiceCallSession device ownership', () => {
 
     expect(session.getState().phase).toBe('idle')
     expect(session.getState().callId).toBeNull()
+    expect(invoke).not.toHaveBeenCalled()
+  })
+
+  it('restores a connected call as waiting for a fresh user gesture instead of auto-joining without a microphone', async () => {
+    vi.stubGlobal('window', globalThis)
+    vi.stubGlobal('navigator', { userAgent: 'test', vibrate: vi.fn(() => false) })
+
+    const connectedOnThisDevice = {
+      ...CALL_ROW,
+      state: 'connected',
+      accepted_device_id: DEVICE_ID,
+      connected_at: '2026-09-02T03:00:00.000Z',
+    }
+    const rpc = vi.fn(async (name: string) => {
+      if (name === 'chat_get_active_voice_calls') return { data: [connectedOnThisDevice], error: null }
+      return { data: null, error: null }
+    })
+    const invoke = vi.fn(async () => ({ data: null, error: new Error('must_wait_for_user_gesture') }))
+    const client = { rpc, functions: { invoke } } as unknown as SupabaseClient
+    const session = new VoiceCallSession(client, () => ({
+      profileId: PROFILE_ID,
+      deviceId: DEVICE_ID,
+      conversationId: CONVERSATION_ID,
+      peerName: 'Admin',
+    }))
+
+    await (session as unknown as { pollActiveCalls(): Promise<void> }).pollActiveCalls()
+    await Promise.resolve()
+
+    const restored = session.getState() as VoiceCallState & { resumeRequired?: boolean }
+    expect(restored.phase).toBe('reconnecting')
+    expect(restored.callId).toBe(CALL_ID)
+    expect(restored.connectedAt).toBe(Date.parse(connectedOnThisDevice.connected_at))
+    expect(restored.resumeRequired).toBe(true)
     expect(invoke).not.toHaveBeenCalled()
   })
 })
