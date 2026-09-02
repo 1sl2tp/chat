@@ -1,0 +1,200 @@
+import { getChatRuntimeState, subscribeChatRuntime } from '../chat/store'
+import { GUEST_AUTH_STORAGE_KEY, guestSupabase, userSupabase } from '../supabase/client'
+import { updateUser2Profile, upgradeGuestToUser2 } from './auth'
+
+export type AccountUiMode = 'guest' | 'user2'
+
+export function accountUiMode(label: string): AccountUiMode {
+  return label.trim().startsWith('User 2') ? 'user2' : 'guest'
+}
+
+export function userAccountErrorMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error ?? '')
+  if (message.includes('invalid_display_name')) return 'Tên hiển thị chưa hợp lệ.'
+  if (message.includes('invalid_username') || message.includes('admin_uses_admin_page')) return 'Tài khoản dùng 3–24 ký tự: a-z, 0-9, _.'
+  if (message.includes('username_taken') || message.includes('username_exists') || message.includes('username_reserved')) return 'Tài khoản này đã được sử dụng.'
+  if (message.includes('password_too_short') || message.includes('invalid_password')) return 'Mật khẩu cần ít nhất 6 ký tự.'
+  return 'Không thể cập nhật tài khoản.'
+}
+
+function currentProfile(): { displayName: string; username: string } | null {
+  const identity = getChatRuntimeState().identity
+  if (!identity || typeof identity !== 'object') return null
+  const profile = (identity as { profile?: unknown }).profile
+  if (!profile || typeof profile !== 'object') return null
+  const row = profile as { display_name?: unknown; username?: unknown }
+  return {
+    displayName: typeof row.display_name === 'string' ? row.display_name : '',
+    username: typeof row.username === 'string' ? row.username : '',
+  }
+}
+
+function clearGuestBrowserAuth(): void {
+  try {
+    window.sessionStorage.removeItem(GUEST_AUTH_STORAGE_KEY)
+  } catch {
+    // Storage can be unavailable in restrictive browser modes; reload still clears the in-memory guest client.
+  }
+}
+
+export function mountUserAccountUi(doc: Document = document): () => void {
+  const drawerPanel = doc.querySelector<HTMLElement>('#user-drawer .user-drawer-panel')
+  const modeLabel = doc.querySelector<HTMLElement>('#user-mode')
+  const legacyAuthAction = doc.querySelector<HTMLButtonElement>('#auth-action')
+  const settingsPanel = doc.querySelector<HTMLElement>('#user2-settings')
+  const settingsStatus = doc.querySelector<HTMLElement>('#settings-status')
+  if (!drawerPanel || !modeLabel || !legacyAuthAction || !settingsPanel || !settingsStatus) return () => undefined
+
+  const supportTitle = doc.querySelector<HTMLElement>('.user-title strong')
+  if (supportTitle) supportTitle.textContent = 'Hỗ trợ'
+  doc.querySelector<HTMLElement>('#messages')?.setAttribute('aria-label', 'Tin nhắn với Hỗ trợ')
+
+  const guestSection = doc.createElement('section')
+  guestSection.className = 'user-account-actions'
+  guestSection.innerHTML = `
+    <button id="user-upgrade-toggle" class="user-drawer-action primary" type="button">Nâng cấp User 2</button>
+    <button id="user-login-existing" class="user-drawer-action secondary" type="button">Đăng nhập User 2</button>
+    <form id="user-upgrade-form" class="user-account-form" hidden>
+      <h2>Tạo tài khoản User 2</h2>
+      <input id="user-upgrade-display" autocomplete="name" maxlength="50" placeholder="Tên hiển thị" aria-label="Tên hiển thị" />
+      <input id="user-upgrade-username" autocomplete="username" maxlength="24" placeholder="Tài khoản" aria-label="Tài khoản User 2" />
+      <input id="user-upgrade-password" type="password" autocomplete="new-password" minlength="6" maxlength="128" placeholder="Mật khẩu" aria-label="Mật khẩu User 2" />
+      <button type="submit">Tạo User 2</button>
+      <p id="user-upgrade-status" class="user-settings-status" aria-live="polite"></p>
+    </form>
+  `
+  drawerPanel.insertBefore(guestSection, settingsPanel)
+
+  const profileDetails = doc.createElement('details')
+  profileDetails.className = 'user-profile-details'
+  profileDetails.innerHTML = `
+    <summary>Thông tin tài khoản</summary>
+    <form id="user-profile-form" class="user-account-form">
+      <input id="user-profile-display" autocomplete="name" maxlength="50" placeholder="Tên hiển thị" aria-label="Tên hiển thị" />
+      <input id="user-profile-username" autocomplete="username" maxlength="24" placeholder="Tài khoản" aria-label="Tài khoản User 2" />
+      <button type="submit">Lưu thay đổi</button>
+      <p id="user-profile-status" class="user-settings-status" aria-live="polite"></p>
+    </form>
+  `
+  settingsPanel.insertBefore(profileDetails, settingsPanel.firstChild)
+
+  const upgradeToggle = guestSection.querySelector<HTMLButtonElement>('#user-upgrade-toggle')!
+  const loginExisting = guestSection.querySelector<HTMLButtonElement>('#user-login-existing')!
+  const upgradeForm = guestSection.querySelector<HTMLFormElement>('#user-upgrade-form')!
+  const upgradeDisplay = guestSection.querySelector<HTMLInputElement>('#user-upgrade-display')!
+  const upgradeUsername = guestSection.querySelector<HTMLInputElement>('#user-upgrade-username')!
+  const upgradePassword = guestSection.querySelector<HTMLInputElement>('#user-upgrade-password')!
+  const upgradeStatus = guestSection.querySelector<HTMLElement>('#user-upgrade-status')!
+  const profileForm = profileDetails.querySelector<HTMLFormElement>('#user-profile-form')!
+  const profileDisplay = profileDetails.querySelector<HTMLInputElement>('#user-profile-display')!
+  const profileUsername = profileDetails.querySelector<HTMLInputElement>('#user-profile-username')!
+  const profileStatus = profileDetails.querySelector<HTMLElement>('#user-profile-status')!
+  let actionPending = false
+
+  function sync(): void {
+    const mode = accountUiMode(modeLabel.textContent ?? '')
+    guestSection.hidden = mode !== 'guest'
+    profileDetails.hidden = mode !== 'user2'
+    legacyAuthAction.hidden = mode === 'guest'
+
+    if (mode === 'user2') {
+      const profile = currentProfile()
+      if (profile) {
+        if (doc.activeElement !== profileDisplay) profileDisplay.value = profile.displayName
+        if (doc.activeElement !== profileUsername) profileUsername.value = profile.username
+      }
+    }
+  }
+
+  upgradeToggle.addEventListener('click', () => {
+    upgradeForm.hidden = !upgradeForm.hidden
+    upgradeStatus.textContent = ''
+    if (!upgradeForm.hidden) upgradeDisplay.focus()
+  })
+
+  loginExisting.addEventListener('click', () => {
+    legacyAuthAction.click()
+  })
+
+  upgradeForm.addEventListener('submit', async (event) => {
+    event.preventDefault()
+    if (actionPending || accountUiMode(modeLabel.textContent ?? '') !== 'guest') return
+    actionPending = true
+    upgradeStatus.textContent = 'Đang tạo tài khoản…'
+    for (const input of [upgradeDisplay, upgradeUsername, upgradePassword]) input.disabled = true
+    try {
+      await upgradeGuestToUser2({
+        async upgradeCurrentGuest(input) {
+          const result = await guestSupabase.rpc('chat_upgrade_to_user2', {
+            p_display_name: input.displayName,
+            p_username: input.username,
+            p_password: input.password,
+          })
+          if (result.error) throw new Error(result.error.message)
+          const data = result.data as { login_username?: unknown } | null
+          return { loginUsername: typeof data?.login_username === 'string' ? data.login_username : input.username }
+        },
+        async signInPersistentUser2(email, password) {
+          const result = await userSupabase.auth.signInWithPassword({ email, password })
+          if (result.error) throw result.error
+        },
+        async clearGuestAuthSession() {
+          clearGuestBrowserAuth()
+        },
+      }, upgradeDisplay.value, upgradeUsername.value, upgradePassword.value)
+      upgradeStatus.textContent = 'Đã nâng cấp User 2.'
+      window.location.reload()
+    } catch (error) {
+      upgradeStatus.textContent = userAccountErrorMessage(error)
+      actionPending = false
+      for (const input of [upgradeDisplay, upgradeUsername, upgradePassword]) input.disabled = false
+    }
+  })
+
+  profileForm.addEventListener('submit', async (event) => {
+    event.preventDefault()
+    if (actionPending || accountUiMode(modeLabel.textContent ?? '') !== 'user2') return
+    actionPending = true
+    profileStatus.textContent = 'Đang lưu…'
+    profileDisplay.disabled = true
+    profileUsername.disabled = true
+    try {
+      await updateUser2Profile({
+        async update(input) {
+          const result = await userSupabase.rpc('chat_update_user2_account', {
+            p_display_name: input.displayName,
+            p_username: input.username,
+          })
+          if (result.error) throw new Error(result.error.message)
+          const data = result.data as { display_name?: unknown; username?: unknown } | null
+          return {
+            displayName: typeof data?.display_name === 'string' ? data.display_name : input.displayName,
+            username: typeof data?.username === 'string' ? data.username : input.username,
+          }
+        },
+      }, profileDisplay.value, profileUsername.value)
+      const refreshed = await userSupabase.auth.refreshSession()
+      if (refreshed.error) throw refreshed.error
+      profileStatus.textContent = 'Đã lưu.'
+      settingsStatus.textContent = 'Thông tin tài khoản đã cập nhật.'
+      window.location.reload()
+    } catch (error) {
+      profileStatus.textContent = userAccountErrorMessage(error)
+      actionPending = false
+      profileDisplay.disabled = false
+      profileUsername.disabled = false
+    }
+  })
+
+  const stopRuntime = subscribeChatRuntime(sync)
+  const observer = new MutationObserver(sync)
+  observer.observe(modeLabel, { childList: true, subtree: true, characterData: true })
+  sync()
+
+  return () => {
+    stopRuntime()
+    observer.disconnect()
+    guestSection.remove()
+    profileDetails.remove()
+  }
+}
