@@ -9,7 +9,7 @@ const sourcePath = new URL('./login-screen.ts', import.meta.url)
 const cssPath = new URL('./login-screen.css', import.meta.url)
 
 describe('Chatwoot LoginScreen production contract', () => {
-  it('ports the canonical Chatwoot auth hierarchy into one browser owner', () => {
+  it('ports the canonical auth hierarchy into one dark reference owner', () => {
     const source = readFileSync(sourcePath, 'utf8')
     const css = readFileSync(cssPath, 'utf8')
     expect(source).toContain('cw-login__logo')
@@ -19,6 +19,11 @@ describe('Chatwoot LoginScreen production contract', () => {
     expect(source).toContain('mountLoginScreen')
     expect(css).toContain('padding: 96px 24px 32px')
     expect(css).toContain('font-size: 16px')
+    expect(css).toContain('background: #020617')
+    expect(css).toContain('background: #0f172a')
+    expect(css).toContain('border: 1px solid #334155')
+    expect(css).toContain('#1f93ff')
+    expect(css).not.toContain('background: #fff')
   })
 
   it('is mounted through one shared LoginScreen owner while auth runtime keeps its existing controls', () => {
