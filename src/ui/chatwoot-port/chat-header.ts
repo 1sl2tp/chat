@@ -1,3 +1,4 @@
+import { setButtonIcon, type AppIconName } from '../icons'
 import type { ConversationViewModel } from './contracts'
 
 export interface ChatHeaderOptions {
@@ -11,7 +12,7 @@ export interface ChatHeaderView {
   update(model: ConversationViewModel): void
 }
 
-function createHeaderButton(label: string, text: string, onPress?: () => void): HTMLElement {
+function createHeaderButton(label: string, icon: AppIconName, onPress?: () => void): HTMLElement {
   if (!onPress) {
     const spacer = document.createElement('span')
     spacer.className = 'cw-chat-header__spacer'
@@ -21,8 +22,7 @@ function createHeaderButton(label: string, text: string, onPress?: () => void): 
   const button = document.createElement('button')
   button.className = 'cw-chat-header__button'
   button.type = 'button'
-  button.ariaLabel = label
-  button.textContent = text
+  setButtonIcon(button, icon, label)
   button.addEventListener('click', onPress)
   return button
 }
@@ -34,7 +34,7 @@ export function createChatHeader(options: ChatHeaderOptions): ChatHeaderView {
   const row = document.createElement('div')
   row.className = 'cw-chat-header__row'
 
-  const leading = createHeaderButton('Quay lại', '‹', options.onBack)
+  const leading = createHeaderButton('Quay lại', 'back', options.onBack)
 
   const identity = document.createElement('div')
   identity.className = 'cw-chat-header__identity'
@@ -46,7 +46,7 @@ export function createChatHeader(options: ChatHeaderOptions): ChatHeaderView {
   subtitle.className = 'cw-chat-header__subtitle'
 
   identity.append(title, subtitle)
-  const trailing = createHeaderButton('Gọi', '☎', options.onCall)
+  const trailing = createHeaderButton('Gọi', 'call', options.onCall)
   row.append(leading, identity, trailing)
   header.append(row)
 
