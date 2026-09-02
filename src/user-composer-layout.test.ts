@@ -2,18 +2,15 @@ import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 
 const userCss = readFileSync(new URL('./user.css', import.meta.url), 'utf8')
-const userMain = readFileSync(new URL('./user-main.ts', import.meta.url), 'utf8')
+const conversationCss = readFileSync(new URL('./ui/chatwoot-port/conversation-shell.css', import.meta.url), 'utf8')
 
-describe('User conversation layout', () => {
-  it('keeps the composer mounted as the final shell row', () => {
-    expect(userMain).toContain('<div id="composer" class="chat-composer"></div>')
-    expect(userCss).toContain('grid-template-rows:auto auto minmax(0,1fr) auto')
-    expect(userCss).toMatch(/#messages\{[^}]*min-height:0/)
-    expect(userCss).toMatch(/#composer\{[^}]*align-self:stretch[^}]*min-height:/)
+describe('User Chatwoot conversation ownership', () => {
+  it('honors the hidden legacy User header so only the Chatwoot header is visible', () => {
+    expect(userCss).toMatch(/\.user-header\[hidden\]\{display:none\}/)
   })
 
-  it('uses the same full-screen shell contract as Admin instead of a desktop card', () => {
-    expect(userCss).toContain('.user-app{width:100%;height:var(--app-visual-height,100dvh)')
-    expect(userCss).not.toContain('.user-app{border:1px solid')
+  it('lets the host own viewport height so the Chatwoot composer stays inside the User shell', () => {
+    expect(conversationCss).toMatch(/\.cw-conversation\s*\{[^}]*height:\s*100%/s)
+    expect(conversationCss).not.toMatch(/\.cw-conversation\s*\{[^}]*height:\s*var\(--app-visual-height,\s*100dvh\)/s)
   })
 })
