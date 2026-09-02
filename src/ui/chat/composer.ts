@@ -1,4 +1,5 @@
 import { composerEnterAction, isMobileComposerEnvironment } from '../../chat/ui/composer-behavior'
+import { formatVersionLabel } from '../../version'
 import { iconSvg } from '../icons'
 
 export function normalizeDraft(text: string): string {
@@ -50,6 +51,10 @@ export function mountComposer(
   send.innerHTML = iconSvg('send')
   send.setAttribute('aria-label', 'Gửi')
 
+  const version = document.createElement('small')
+  version.className = 'chat-composer__version'
+  version.textContent = formatVersionLabel(import.meta.env.VITE_BUILD_ID ?? 'dev')
+
   const isMobile = options.isMobile ?? isMobileComposerEnvironment()
   let enabled = false
   let sending = false
@@ -97,7 +102,7 @@ export function mountComposer(
   mic.addEventListener('click', () => options.onRecord?.())
   send.addEventListener('click', () => void submit())
 
-  container.replaceChildren(plus, input, mic, send)
+  container.replaceChildren(plus, input, mic, send, version)
   sync()
 
   return {
