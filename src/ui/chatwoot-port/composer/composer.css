@@ -1,6 +1,6 @@
 .cw-composer {
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) 40px;
+  grid-template-columns: 36px minmax(0, 1fr) 36px;
   align-items: end;
   gap: 6px;
   width: 100%;
@@ -11,8 +11,8 @@
 
 .cw-composer__button {
   display: grid;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   place-items: center;
   border: 0;
   border-radius: 12px;
@@ -27,13 +27,13 @@
 .cw-composer__input {
   box-sizing: border-box;
   width: 100%;
-  min-height: 40px;
+  min-height: 36px;
   max-height: 132px;
   resize: none;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   outline: 0;
-  padding: 9px 11px;
+  padding: 8px 10px;
   background: #f8fafc;
   color: #111827;
   font: inherit;
