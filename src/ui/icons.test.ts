@@ -4,6 +4,7 @@ import { iconSvg, type AppIconName } from './icons'
 const required: AppIconName[] = [
   'menu', 'call', 'back', 'plus', 'send', 'mic', 'image', 'file',
   'heart', 'copy', 'share', 'account', 'notification', 'more', 'close',
+  'minimize', 'speaker', 'speakerOff', 'mute', 'unmute', 'endCall', 'acceptCall',
 ]
 
 describe('shared icon set', () => {
