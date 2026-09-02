@@ -28,7 +28,7 @@ export interface MountedConversationScreen {
 
 export function mountConversationScreen(options: ConversationScreenMountOptions): MountedConversationScreen {
   const shell = document.createElement('section')
-  shell.className = 'cw-conversation'
+  shell.className = 'cw-conversation flex-1 flex flex-col bg-slate-950 relative overflow-hidden min-w-0 min-h-0'
   shell.dataset.conversationId = options.model.id
 
   const header = createChatHeader({
@@ -38,11 +38,11 @@ export function mountConversationScreen(options: ConversationScreenMountOptions)
   })
 
   const timeline = document.createElement('main')
-  timeline.className = 'cw-conversation__timeline'
+  timeline.className = 'cw-conversation__timeline flex-1 min-w-0 min-h-0 overflow-y-auto overflow-x-hidden custom-scrollbar bg-slate-950 p-3 md:p-4 space-y-3 md:space-y-4'
   timeline.dataset.conversationId = options.model.id
 
   const composerHost = document.createElement('footer')
-  composerHost.className = 'cw-conversation__composer'
+  composerHost.className = 'cw-conversation__composer shrink-0 bg-slate-900 border-t border-slate-800 relative'
 
   shell.append(header.element, timeline, composerHost)
   options.root.replaceChildren(shell)
@@ -61,7 +61,7 @@ export function mountConversationScreen(options: ConversationScreenMountOptions)
 
     newMessageIndicator = document.createElement('button')
     newMessageIndicator.type = 'button'
-    newMessageIndicator.className = 'cw-conversation__new-message'
+    newMessageIndicator.className = 'cw-conversation__new-message bg-slate-800 border border-slate-700 text-slate-200 rounded-full text-[10px] font-bold shadow-lg'
     newMessageIndicator.textContent = 'Tin nhắn mới ↓'
     newMessageIndicator.hidden = true
     newMessageIndicator.setAttribute('aria-label', 'Cuộn xuống tin nhắn mới')

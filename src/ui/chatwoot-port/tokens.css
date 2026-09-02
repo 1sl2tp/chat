@@ -6,11 +6,15 @@
   --cw-space-6: 24px;
   --cw-radius-sm: 8px;
   --cw-radius-message: 16px;
-  --cw-border-subtle: rgba(0, 0, 0, 0.08);
-  --cw-surface: #ffffff;
-  --cw-canvas: #f8f9fb;
-  --cw-text: #1f2937;
-  --cw-text-muted: #6b7280;
+  --cw-border-subtle: #1e293b;
+  --cw-surface: #0f172a;
+  --cw-canvas: #020617;
+  --cw-panel: #1e293b;
+  --cw-border: #334155;
+  --cw-text: #f1f5f9;
+  --cw-text-muted: #94a3b8;
+  --cw-accent: #1f93ff;
+  --cw-success: #10b981;
   --cw-hit-target: 40px;
-  --cw-header-height-min: 56px;
+  --cw-header-height-min: 48px;
 }
