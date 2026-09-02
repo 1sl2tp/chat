@@ -12,6 +12,13 @@ export interface ChatHeaderView {
   update(model: ConversationViewModel): void
 }
 
+function initials(value: string): string {
+  const parts = value.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return 'HT'
+  if (parts.length === 1) return parts[0]!.slice(0, 2).toLocaleUpperCase('vi-VN')
+  return `${parts[0]![0] ?? ''}${parts.at(-1)?.[0] ?? ''}`.toLocaleUpperCase('vi-VN')
+}
+
 function createHeaderButton(label: string, icon: AppIconName, onPress?: () => void): HTMLElement {
   if (!onPress) {
     const spacer = document.createElement('span')
@@ -52,13 +59,23 @@ export function createChatHeader(options: ChatHeaderOptions): ChatHeaderView {
   const identity = document.createElement('div')
   identity.className = 'cw-chat-header__identity'
 
+  const avatarWrap = document.createElement('div')
+  avatarWrap.className = 'cw-chat-header__avatar-wrap'
+  const avatar = document.createElement('div')
+  avatar.className = 'cw-chat-header__avatar'
+  const presence = document.createElement('span')
+  presence.className = 'cw-chat-header__presence'
+  avatarWrap.append(avatar, presence)
+
+  const copy = document.createElement('div')
+  copy.className = 'cw-chat-header__copy'
   const title = document.createElement('div')
   title.className = 'cw-chat-header__title'
-
   const subtitle = document.createElement('div')
   subtitle.className = 'cw-chat-header__subtitle'
+  copy.append(title, subtitle)
 
-  identity.append(title, subtitle)
+  identity.append(avatarWrap, copy)
   const trailing = createHeaderButton('Gọi', 'call', options.onCall)
   row.append(leading, identity, trailing)
   header.append(row)
@@ -66,6 +83,7 @@ export function createChatHeader(options: ChatHeaderOptions): ChatHeaderView {
   const update = (model: ConversationViewModel) => {
     title.textContent = model.title
     subtitle.textContent = model.subtitle ?? ''
+    avatar.textContent = initials(model.title)
     if (options.onCall) trailing.hidden = !model.canCall
   }
 
