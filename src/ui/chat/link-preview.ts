@@ -23,23 +23,28 @@ function cleanString(value: unknown, maxLength: number): string {
   return clean.length > maxLength ? `${clean.slice(0, Math.max(0, maxLength - 1))}…` : clean
 }
 
+function cleanHttpUrl(value: unknown, fallback = ''): string {
+  const raw = cleanString(value, 2048) || fallback
+  if (!raw) return ''
+  try {
+    const parsed = new URL(raw)
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:' ? parsed.href : ''
+  } catch {
+    return ''
+  }
+}
+
 function normalizeMetadata(data: unknown, requestedUrl: string): LinkPreviewMetadata | null {
   if (!data || typeof data !== 'object') return null
   const row = data as Record<string, unknown>
-  const url = cleanString(row.url, 2048) || requestedUrl
-  let parsed: URL
-  try {
-    parsed = new URL(url)
-  } catch {
-    return null
-  }
-  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return null
+  const url = cleanHttpUrl(row.url, requestedUrl)
+  if (!url) return null
 
   return {
-    url: parsed.href,
+    url,
     title: cleanString(row.title, 180),
     description: cleanString(row.description, 320),
-    image: cleanString(row.image, 2048),
+    image: cleanHttpUrl(row.image),
     siteName: cleanString(row.siteName, 100),
   }
 }
@@ -66,4 +71,26 @@ export function createLinkPreviewResolver(invoker: LinkPreviewFunctionInvoker): 
     cache.set(key, request)
     return request
   }
+}
+
+let guestResolver: LinkPreviewResolver | null = null
+let userResolver: LinkPreviewResolver | null = null
+let adminResolver: LinkPreviewResolver | null = null
+
+export const resolveActiveLinkPreview: LinkPreviewResolver = async (url) => {
+  const { adminSupabase, guestSupabase, userSupabase } = await import('../../supabase/client')
+  const pathname = typeof location === 'undefined' ? '' : location.pathname
+  if (/(?:^|\/)admin(?:\/|$)/.test(pathname)) {
+    adminResolver ??= createLinkPreviewResolver(adminSupabase)
+    return adminResolver(url)
+  }
+
+  const persistentSession = await userSupabase.auth.getSession()
+  if (persistentSession.data.session) {
+    userResolver ??= createLinkPreviewResolver(userSupabase)
+    return userResolver(url)
+  }
+
+  guestResolver ??= createLinkPreviewResolver(guestSupabase)
+  return guestResolver(url)
 }
