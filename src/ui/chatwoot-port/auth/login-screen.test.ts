@@ -1,7 +1,9 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import userMainSource from '../../../user-main.ts?raw'
-import adminMainSource from '../../../admin-main.ts?raw'
+import userShellSource from '../../../user-shell.ts?raw'
+import adminShellSource from '../../../admin-shell.ts?raw'
+import userAdapterSource from '../../../user/chatwoot-login-ui.ts?raw'
+import adminAdapterSource from '../../../admin/chatwoot-login-ui.ts?raw'
 
 const sourcePath = new URL('./login-screen.ts', import.meta.url)
 const cssPath = new URL('./login-screen.css', import.meta.url)
@@ -19,12 +21,15 @@ describe('Chatwoot LoginScreen production contract', () => {
     expect(css).toContain('font-size: 16px')
   })
 
-  it('is the only production login presentation for User and Hỗ trợ', () => {
-    for (const source of [userMainSource, adminMainSource]) {
-      expect(source).toContain("from './ui/chatwoot-port/auth/login-screen'")
-      expect(source).toContain('mountLoginScreen')
+  it('is mounted through one shared LoginScreen owner while auth runtime keeps its existing controls', () => {
+    expect(userShellSource).toContain("from './user/chatwoot-login-ui'")
+    expect(userShellSource).toContain('mountUserChatwootLoginUi()')
+    expect(adminShellSource).toContain("from './admin/chatwoot-login-ui'")
+    expect(adminShellSource).toContain('installAdminChatwootLoginUi()')
+
+    for (const source of [userAdapterSource, adminAdapterSource]) {
+      expect(source).toContain("from '../ui/chatwoot-port/auth/login-screen'")
+      expect(source).toContain('mountLoginScreen({')
     }
-    expect(userMainSource).not.toContain('user-login-form')
-    expect(adminMainSource).not.toContain('admin-login-form')
   })
 })
