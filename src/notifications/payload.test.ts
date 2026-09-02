@@ -47,8 +47,8 @@ describe('push payload parsing', () => {
 })
 
 describe('system notification policy', () => {
-  it('does not duplicate an incoming-call popup when the app is already visible', () => {
-    expect(shouldShowSystemNotification('incoming_call', true)).toBe(false)
+  it('always shows an incoming-call notification for a delivered Web Push', () => {
+    expect(shouldShowSystemNotification('incoming_call', true)).toBe(true)
     expect(shouldShowSystemNotification('incoming_call', false)).toBe(true)
   })
 
