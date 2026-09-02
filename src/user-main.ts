@@ -3,7 +3,6 @@ import { VoiceCallSession, type VoiceCallContext } from './call/voice-session'
 import { getChatMessageState, subscribeChatMessages } from './chat/message-runtime'
 import { sendSupportText, startChatRuntime, stopChatRuntime } from './chat/runtime'
 import { getChatRuntimeState, subscribeChatRuntime } from './chat/store'
-import { composerEnterAction, isMobileComposerEnvironment } from './chat/ui/composer-behavior'
 import { getOrCreateDeviceKey } from './device/identity'
 import { CallPushRegistration, callPushBrowserForRegistration } from './notifications/call-push-registration'
 import { clearCurrentPushSubscription, pushCleanupBrowserForRegistration } from './notifications/push-cleanup'
@@ -15,29 +14,28 @@ import { loginUser2, logoutUser2 } from './user/auth'
 import { capabilitiesForRootMode } from './user/capabilities'
 import { clearGuestLocalState, endGuestSession as teardownGuestSession } from './user/guest-lifecycle'
 import { enterFreshGuest, resolveRootMode, type RootUserMode } from './user/root-session'
+import { installEdgeDrawerGesture } from './ui/edge-drawer'
+import { setButtonIcon } from './ui/icons'
+import { mountConversationSurface } from './ui/chat/surface'
 import { setupViewportController } from './viewport/controller'
 import './call/call.css'
+import './ui/chat/surface.css'
 import './user.css'
 
 const rootElement = document.querySelector<HTMLDivElement>('#app')
 if (!rootElement) throw new Error('Missing #app root')
 const root: HTMLDivElement = rootElement
 const userPwaRegistrationPromise = setupPwa('user')
-const mobileComposer = isMobileComposerEnvironment()
 
 root.innerHTML = `
   <main class="user-app">
-    <header>
+    <header class="user-header">
+      <button id="user-menu" class="user-header-icon" type="button"></button>
       <div class="user-title">
         <strong>Admin hỗ trợ</strong>
-        <small id="user-mode">Vãng lai</small>
+        <small id="status">Đang kết nối…</small>
       </div>
-      <div class="user-header-actions">
-        <span id="status">Đang kết nối…</span>
-        <button id="call-notifications" class="call-notification-button" type="button" hidden>Bật thông báo</button>
-        <button id="voice-call" class="chat-call-button" type="button" aria-label="Gọi thoại" hidden>☎</button>
-        <button id="auth-action" class="user-auth-action" type="button">Đăng nhập</button>
-      </div>
+      <button id="voice-call" class="user-header-icon chat-call-button" type="button" hidden></button>
     </header>
     <section id="login-panel" class="user-login-panel" hidden>
       <form id="user-login-form">
@@ -48,22 +46,38 @@ root.innerHTML = `
         <p id="login-error" aria-live="polite"></p>
       </form>
     </section>
-    <section id="messages" class="messages"><p class="empty">Bạn cần hỗ trợ gì?</p></section>
-    <form id="composer" class="composer">
-      <textarea id="text" rows="1" autocomplete="off" placeholder="Nhập tin nhắn…" aria-label="Tin nhắn"></textarea>
-      <button type="submit">Gửi</button>
-    </form>
+    <section id="messages" class="chat-messages" aria-label="Tin nhắn với Admin"></section>
+    <div id="composer" class="chat-composer"></div>
   </main>
+
+  <div id="user-drawer" class="user-drawer" data-open="false" aria-hidden="true">
+    <button id="drawer-backdrop" class="user-drawer-backdrop" type="button" aria-label="Đóng menu"></button>
+    <aside class="user-drawer-panel" aria-label="Tài khoản và cài đặt">
+      <header>
+        <strong>Tài khoản</strong>
+        <button id="drawer-close" class="user-header-icon" type="button"></button>
+      </header>
+      <div class="user-account-summary">
+        <span>Trạng thái</span>
+        <strong id="user-mode">Vãng lai</strong>
+      </div>
+      <button id="call-notifications" class="user-drawer-action" type="button" hidden>Bật thông báo</button>
+      <button id="auth-action" class="user-drawer-action" type="button">Đăng nhập / Nâng cấp</button>
+    </aside>
+  </div>
+
   <div id="voice-call-host"></div>
 `
 
 const messages = root.querySelector<HTMLElement>('#messages')!
+const composerHost = root.querySelector<HTMLElement>('#composer')!
 const status = root.querySelector<HTMLElement>('#status')!
 const modeLabel = root.querySelector<HTMLElement>('#user-mode')!
-const form = root.querySelector<HTMLFormElement>('#composer')!
-const input = root.querySelector<HTMLTextAreaElement>('#text')!
-const submit = form.querySelector<HTMLButtonElement>('button')!
 const callButton = root.querySelector<HTMLButtonElement>('#voice-call')!
+const menuButton = root.querySelector<HTMLButtonElement>('#user-menu')!
+const drawer = root.querySelector<HTMLElement>('#user-drawer')!
+const drawerClose = root.querySelector<HTMLButtonElement>('#drawer-close')!
+const drawerBackdrop = root.querySelector<HTMLButtonElement>('#drawer-backdrop')!
 const notificationButton = root.querySelector<HTMLButtonElement>('#call-notifications')!
 const authAction = root.querySelector<HTMLButtonElement>('#auth-action')!
 const loginPanel = root.querySelector<HTMLElement>('#login-panel')!
@@ -75,6 +89,10 @@ const loginCancel = root.querySelector<HTMLButtonElement>('#login-cancel')!
 const loginError = root.querySelector<HTMLElement>('#login-error')!
 const callHost = root.querySelector<HTMLElement>('#voice-call-host')!
 
+setButtonIcon(menuButton, 'menu', 'Mở menu')
+setButtonIcon(callButton, 'call', 'Gọi thoại')
+setButtonIcon(drawerClose, 'close', 'Đóng menu')
+
 let rootMode: RootUserMode = 'guest'
 let callSession: VoiceCallSession | null = null
 let disposeCallUi: (() => void) | null = null
@@ -84,6 +102,32 @@ let callPushDeviceId = ''
 let disposeCallPushState: (() => void) | null = null
 let notificationActionPending = false
 let authActionPending = false
+let drawerOpen = false
+
+const conversationSurface = mountConversationSurface({
+  messagesHost: messages,
+  composerHost,
+  async onSend(text) {
+    try {
+      await sendSupportText(text)
+    } catch (error) {
+      status.textContent = 'Gửi thất bại'
+      throw error
+    }
+  },
+})
+
+function setDrawerOpen(open: boolean): void {
+  drawerOpen = open
+  drawer.dataset.open = open ? 'true' : 'false'
+  drawer.setAttribute('aria-hidden', open ? 'false' : 'true')
+}
+
+installEdgeDrawerGesture(document, {
+  isOpen: () => drawerOpen,
+  onOpen: () => setDrawerOpen(true),
+  onClose: () => setDrawerOpen(false),
+})
 
 function currentProfileId(): string {
   const identity = getChatRuntimeState().identity
@@ -197,8 +241,8 @@ function render(): void {
   const capabilities = capabilitiesForRootMode(rootMode)
   const callState = callSession?.getState()
 
-  modeLabel.textContent = rootMode === 'user2' ? 'User 2' : 'Vãng lai'
-  authAction.textContent = rootMode === 'user2' ? 'Thoát' : 'Đăng nhập'
+  modeLabel.textContent = rootMode === 'user2' ? 'User 2' : 'User 1 · Vãng lai'
+  authAction.textContent = rootMode === 'user2' ? 'Đăng xuất' : 'Đăng nhập / Nâng cấp User 2'
   authAction.disabled = authActionPending
   callButton.hidden = !capabilities.call
   callButton.disabled = !capabilities.call || !currentCallContext() || !callState || callState.phase !== 'idle'
@@ -210,22 +254,12 @@ function render(): void {
       : 'Đang kết nối…'
 
   renderNotificationButton()
-  input.disabled = false
-  submit.disabled = !canSend || !input.value.trim()
-
-  if (messageState.messages.length === 0) {
-    messages.innerHTML = '<p class="empty">Bạn cần hỗ trợ gì?</p>'
-    return
-  }
-
-  const me = currentProfileId()
-  messages.replaceChildren(...messageState.messages.map((message) => {
-    const row = document.createElement('div')
-    row.className = message.sender_id === me ? 'msg mine' : 'msg'
-    row.textContent = message.revoked_at ? 'Tin nhắn đã được thu hồi' : message.text ?? ''
-    return row
-  }))
-  messages.scrollTop = messages.scrollHeight
+  conversationSurface.render({
+    messages: messageState.messages,
+    currentProfileId: currentProfileId() || null,
+    canSend,
+    emptyText: chat.phase === 'error' ? 'Không thể tải cuộc trò chuyện.' : 'Bạn cần hỗ trợ gì?',
+  })
 }
 
 async function endGuestSession(): Promise<void> {
@@ -292,13 +326,9 @@ async function bootRootMode(): Promise<void> {
   })
 }
 
-input.addEventListener('input', render)
-input.addEventListener('keydown', (event) => {
-  if (event.key !== 'Enter' || event.isComposing) return
-  if (composerEnterAction({ isMobile: mobileComposer, shiftKey: event.shiftKey }) === 'newline') return
-  event.preventDefault()
-  if (!submit.disabled) form.requestSubmit()
-})
+menuButton.addEventListener('click', () => setDrawerOpen(true))
+drawerClose.addEventListener('click', () => setDrawerOpen(false))
+drawerBackdrop.addEventListener('click', () => setDrawerOpen(false))
 callButton.addEventListener('click', () => void callSession?.startOutgoing())
 notificationButton.addEventListener('click', async () => {
   const registration = callPushRegistration
@@ -317,21 +347,10 @@ notificationButton.addEventListener('click', async () => {
     renderNotificationButton()
   }
 })
-form.addEventListener('submit', async (event) => {
-  event.preventDefault()
-  const text = input.value.trim()
-  if (!text) return
-  input.value = ''
-  render()
-  try {
-    await sendSupportText(text)
-  } catch {
-    status.textContent = 'Gửi thất bại'
-  }
-})
 
 authAction.addEventListener('click', async () => {
   if (authActionPending) return
+  setDrawerOpen(false)
   if (rootMode === 'guest') {
     loginPanel.hidden = !loginPanel.hidden
     loginError.textContent = ''
