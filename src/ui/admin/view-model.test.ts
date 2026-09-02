@@ -24,8 +24,8 @@ describe('admin workspace view model', () => {
 
   it('formats device metadata without inventing missing fields', () => {
     expect(getAdminDeviceLines({
-      conversationId: 'c1', profileId: 'p1', displayName: null, identityType: 'anonymous', address: null,
-      customerLastSeenAt: null,
+      conversationId: 'c1', profileId: 'p1', displayName: null, username: null, userLevel: 1,
+      identityType: 'anonymous', address: null, customerLastSeenAt: null,
       devices: [{ id: 'd1', label: 'PWA', platform: 'ios', firstSeenAt: null, lastSeenAt: null, revokedAt: null }],
     })).toEqual(['PWA · ios'])
   })
