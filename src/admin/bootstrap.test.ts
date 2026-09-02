@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { bootstrapAdminIdentity, startAdminWorkspace } from './bootstrap'
+import { bootstrapAdminIdentity, clearBootstrappedAdminIdentity, getBootstrappedAdminProfileId, startAdminWorkspace } from './bootstrap'
 
 describe('admin identity bootstrap', () => {
   it('bootstraps the existing authenticated session before admin data loads', async () => {
+    clearBootstrappedAdminIdentity()
     const calls: string[] = []
     const result = await bootstrapAdminIdentity({
       async hasSession() {
@@ -21,6 +22,16 @@ describe('admin identity bootstrap', () => {
 
     expect(calls).toEqual(['session', 'bootstrap:device-1'])
     expect(result).toEqual({ profile: { id: 'admin-profile' } })
+    expect(getBootstrappedAdminProfileId()).toBe('admin-profile')
+  })
+
+  it('clears retained admin identity explicitly', async () => {
+    await bootstrapAdminIdentity({
+      async hasSession() { return true },
+      async bootstrapIdentity() { return { profile: { id: 'admin-profile' } } },
+    }, { deviceKey: 'device-1', label: 'Web', platform: 'macOS' })
+    clearBootstrappedAdminIdentity()
+    expect(getBootstrappedAdminProfileId()).toBe('')
   })
 
   it('rejects missing admin auth session without creating an anonymous session', async () => {
