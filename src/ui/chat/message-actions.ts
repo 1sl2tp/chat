@@ -14,13 +14,13 @@ export function getMessageActionCapabilities(message: ChatMessage): MessageActio
 
   const hasText = Boolean(message.text?.trim())
   const hasAttachment = Boolean(message.attachment)
-  const actionable = message.type !== 'system'
+  const actionable = message.type !== 'system' && message.type !== 'call'
 
   return {
     heart: actionable,
-    copy: hasText,
+    copy: actionable && hasText,
     share: actionable && (hasText || hasAttachment),
-    open: hasAttachment,
+    open: actionable && hasAttachment,
   }
 }
 
