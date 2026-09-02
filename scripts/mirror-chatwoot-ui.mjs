@@ -1,24 +1,58 @@
 import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, relative, resolve } from 'node:path'
 
-const REPOSITORY = 'chatwoot/chatwoot-mobile-app'
-const BRANCH = 'develop'
-const COMMIT = process.env.CHATWOOT_COMMIT || '228a069c28f7ab8fdf0a59e22f7fa02e71d4ca10'
 const ROOT = resolve(process.cwd())
-const TARGET = join(ROOT, 'vendor/chatwoot-mobile-ui')
-const temp = mkdtempSync(join(tmpdir(), 'chatwoot-ui-'))
-const source = join(temp, 'source')
 
-const roots = [
-  'src/screens/chat-screen',
-  'src/screens/conversations',
-  'src/components-next',
-  'src/theme',
-  'src/svg-icons',
-  'src/constants',
+const sources = [
+  {
+    repository: 'chatwoot/chatwoot-mobile-app',
+    branch: 'develop',
+    commit:
+      process.env.CHATWOOT_MOBILE_COMMIT ||
+      process.env.CHATWOOT_COMMIT ||
+      '228a069c28f7ab8fdf0a59e22f7fa02e71d4ca10',
+    license: 'MIT',
+    target: 'vendor/chatwoot-mobile-ui',
+    roots: [
+      'src/screens/auth',
+      'src/screens/chat-screen',
+      'src/screens/conversations',
+      'src/components-next',
+      'src/theme',
+      'src/svg-icons',
+      'src/constants',
+    ],
+  },
+  {
+    repository: 'chatwoot/chatwoot',
+    branch: 'develop',
+    commit:
+      process.env.CHATWOOT_WEB_COMMIT ||
+      '9c7177005b3e2466f1de731da75192f8c9592e4b',
+    license: 'MIT Expat',
+    target: 'vendor/chatwoot-web-ui',
+    roots: [
+      'app/javascript/dashboard/components-next/call',
+      'app/javascript/dashboard/components-next/Calls',
+      'app/javascript/dashboard/components-next/button',
+      'app/javascript/dashboard/components/widgets/conversation/ConversationCallButton.vue',
+      'app/javascript/dashboard/components/widgets/conversation/VoiceCallStatus.vue',
+      'app/javascript/dashboard/components/widgets/VideoCallButton.vue',
+    ],
+  },
 ]
 
 function run(command, args, cwd = ROOT) {
@@ -40,52 +74,66 @@ function sha256(file) {
   return createHash('sha256').update(readFileSync(file)).digest('hex')
 }
 
-try {
-  mkdirSync(source, { recursive: true })
-  run('git', ['init', '--quiet'], source)
-  run('git', ['remote', 'add', 'origin', `https://github.com/${REPOSITORY}.git`], source)
-  run('git', ['fetch', '--quiet', '--depth', '1', 'origin', COMMIT], source)
-  run('git', ['checkout', '--quiet', 'FETCH_HEAD'], source)
+function mirrorSource(config) {
+  const temp = mkdtempSync(join(tmpdir(), 'chatwoot-ui-'))
+  const source = join(temp, 'source')
+  const target = join(ROOT, config.target)
 
-  const resolved = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: source, encoding: 'utf8' }).trim()
-  if (resolved !== COMMIT) throw new Error(`Resolved ${resolved}, expected ${COMMIT}`)
-  const sourceCommitDate = execFileSync('git', ['show', '-s', '--format=%cI', 'HEAD'], {
-    cwd: source,
-    encoding: 'utf8',
-  }).trim()
+  try {
+    mkdirSync(source, { recursive: true })
+    run('git', ['init', '--quiet'], source)
+    run('git', ['remote', 'add', 'origin', `https://github.com/${config.repository}.git`], source)
+    run('git', ['fetch', '--quiet', '--depth', '1', 'origin', config.commit], source)
+    run('git', ['checkout', '--quiet', 'FETCH_HEAD'], source)
 
-  rmSync(TARGET, { recursive: true, force: true })
-  mkdirSync(TARGET, { recursive: true })
-  cpSync(join(source, 'LICENSE'), join(TARGET, 'LICENSE'))
+    const resolved = execFileSync('git', ['rev-parse', 'HEAD'], {
+      cwd: source,
+      encoding: 'utf8',
+    }).trim()
+    if (resolved !== config.commit) {
+      throw new Error(`Resolved ${resolved}, expected ${config.commit} for ${config.repository}`)
+    }
 
-  for (const root of roots) {
-    const from = join(source, root)
-    if (!existsSync(from)) throw new Error(`Missing upstream root: ${root}`)
-    const to = join(TARGET, root)
-    mkdirSync(dirname(to), { recursive: true })
-    cpSync(from, to, { recursive: true })
+    const sourceCommitDate = execFileSync('git', ['show', '-s', '--format=%cI', 'HEAD'], {
+      cwd: source,
+      encoding: 'utf8',
+    }).trim()
+
+    rmSync(target, { recursive: true, force: true })
+    mkdirSync(target, { recursive: true })
+    cpSync(join(source, 'LICENSE'), join(target, 'LICENSE'))
+
+    for (const root of config.roots) {
+      const from = join(source, root)
+      if (!existsSync(from)) throw new Error(`Missing upstream root: ${config.repository}:${root}`)
+      const to = join(target, root)
+      mkdirSync(dirname(to), { recursive: true })
+      cpSync(from, to, { recursive: true })
+    }
+
+    const files = walk(target)
+      .filter(file => !file.endsWith('UPSTREAM.json'))
+      .map(file => ({
+        path: relative(target, file).replaceAll('\\', '/'),
+        sha256: sha256(file),
+      }))
+      .sort((a, b) => a.path.localeCompare(b.path))
+
+    const manifest = {
+      repository: config.repository,
+      branch: config.branch,
+      commit: config.commit,
+      sourceCommitDate,
+      license: config.license,
+      mirroredRoots: config.roots,
+      files,
+    }
+
+    writeFileSync(join(target, 'UPSTREAM.json'), `${JSON.stringify(manifest, null, 2)}\n`)
+    console.log(`Mirrored ${files.length} UI files from ${config.repository} at ${config.commit}`)
+  } finally {
+    rmSync(temp, { recursive: true, force: true })
   }
-
-  const files = walk(TARGET)
-    .filter(file => !file.endsWith('UPSTREAM.json'))
-    .map(file => ({
-      path: relative(TARGET, file).replaceAll('\\', '/'),
-      sha256: sha256(file),
-    }))
-    .sort((a, b) => a.path.localeCompare(b.path))
-
-  const manifest = {
-    repository: REPOSITORY,
-    branch: BRANCH,
-    commit: COMMIT,
-    sourceCommitDate,
-    license: 'MIT',
-    mirroredRoots: roots,
-    files,
-  }
-
-  writeFileSync(join(TARGET, 'UPSTREAM.json'), `${JSON.stringify(manifest, null, 2)}\n`)
-  console.log(`Mirrored ${files.length} Chatwoot UI files at ${COMMIT}`)
-} finally {
-  rmSync(temp, { recursive: true, force: true })
 }
+
+for (const source of sources) mirrorSource(source)
