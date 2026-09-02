@@ -11,11 +11,13 @@ const CONTEXT: VoiceCallContext = {
 }
 
 afterEach(() => {
+  vi.useRealTimers()
   vi.unstubAllGlobals()
 })
 
 describe('VoiceCallSession screen wake lock', () => {
   it('keeps the screen awake while a call is in progress and releases it when the call ends', async () => {
+    vi.useFakeTimers()
     vi.stubGlobal('window', globalThis)
     vi.stubGlobal('document', { visibilityState: 'visible' })
 
