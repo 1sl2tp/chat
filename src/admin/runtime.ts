@@ -1,7 +1,12 @@
-import { sendChatText, startChatMessagesForConversation, stopChatMessages } from '../chat/message-runtime'
-import { createSupabaseMessageBackend } from '../supabase/message-backend'
+import { sendChatAttachment, sendChatText, startChatMessagesForConversation, stopChatMessages } from '../chat/message-runtime'
+import { ChatReactionSession } from '../chat/reactions/session'
 import { createSupabaseAdminBackend } from '../supabase/admin-backend'
+import { createSupabaseAttachmentTransport, createSignedAttachmentUrl } from '../supabase/attachment-transport'
 import { adminSupabase } from '../supabase/client'
+import { createSupabaseMessageBackend } from '../supabase/message-backend'
+import { createSupabaseReactionBackend } from '../supabase/reaction-backend'
+import { clearConversationCapabilities, setConversationCapabilities } from '../ui/chat/capabilities'
+import { getBootstrappedAdminProfileId } from './bootstrap'
 import type { AdminBackend } from './contracts'
 import { createAdminInboxWatcher, type AdminInboxWatcher } from './inbox-realtime'
 import { getAdminState, setAdminState } from './store'
@@ -25,6 +30,35 @@ let messageRuntime: AdminMessageRuntime = createDefaultMessageRuntime()
 let inboxWatcher: AdminInboxWatcher = createAdminInboxWatcher()
 let refreshInFlight: Promise<void> | null = null
 let refreshRequested = false
+let capabilityToken: symbol | null = null
+let reactionSession: ChatReactionSession | null = null
+
+function clearSurfaceCapabilities(): void {
+  reactionSession?.dispose()
+  reactionSession = null
+  if (capabilityToken) clearConversationCapabilities(capabilityToken)
+  capabilityToken = null
+}
+
+function registerSurfaceCapabilities(): void {
+  clearSurfaceCapabilities()
+  const profileId = getBootstrappedAdminProfileId()
+  if (!profileId) return
+
+  const transport = createSupabaseAttachmentTransport(adminSupabase)
+  reactionSession = new ChatReactionSession(createSupabaseReactionBackend(adminSupabase))
+  capabilityToken = setConversationCapabilities({
+    async sendAttachment(file) {
+      const message = await sendChatAttachment(transport, profileId, file)
+      await refreshAdminInbox()
+      return message
+    },
+    resolveAttachmentUrl(path) {
+      return createSignedAttachmentUrl(adminSupabase, path)
+    },
+    reactionSession,
+  })
+}
 
 export function configureAdminRuntimeForTests(
   backend: AdminBackend,
@@ -52,7 +86,9 @@ export async function startAdminRuntime(): Promise<void> {
     inboxWatcher.start(() => {
       void refreshAdminInbox()
     })
+    registerSurfaceCapabilities()
   } catch (error) {
+    clearSurfaceCapabilities()
     setAdminState({
       ...getAdminState(),
       phase: 'error',
@@ -65,6 +101,7 @@ export async function startAdminRuntime(): Promise<void> {
 export function stopAdminRuntime(): void {
   inboxWatcher.stop()
   messageRuntime.stop()
+  clearSurfaceCapabilities()
   refreshRequested = false
 }
 

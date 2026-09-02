@@ -5,17 +5,30 @@ import { sendSupportText, startChatRuntime, stopChatRuntime } from './chat/runti
 import { getChatRuntimeState, subscribeChatRuntime } from './chat/store'
 import { getOrCreateDeviceKey } from './device/identity'
 import { CallPushRegistration, callPushBrowserForRegistration } from './notifications/call-push-registration'
+import {
+  DEFAULT_NOTIFICATION_PREFERENCES,
+  createCacheNotificationPreferencesStorage,
+  loadNotificationPreferences,
+  notificationDeliveryOptions,
+  saveNotificationPreferences,
+  type NotificationPreferences,
+  type NotificationPreferencesStorage,
+} from './notifications/preferences'
 import { clearCurrentPushSubscription, pushCleanupBrowserForRegistration } from './notifications/push-cleanup'
 import { notificationButtonPresentation } from './notifications/presentation'
 import { installNotificationContextResponder } from './notifications/window-context'
 import { setupPwa } from './pwa'
 import { guestSupabase, userSupabase } from './supabase/client'
-import { loginUser2, logoutUser2 } from './user/auth'
+import { changeUser2Password, loginUser2, logoutUser2 } from './user/auth'
 import { capabilitiesForRootMode } from './user/capabilities'
 import { clearGuestLocalState, endGuestSession as teardownGuestSession } from './user/guest-lifecycle'
 import { enterFreshGuest, resolveRootMode, type RootUserMode } from './user/root-session'
+import { installEdgeDrawerGesture } from './ui/edge-drawer'
+import { setButtonIcon } from './ui/icons'
+import { mountConversationSurface } from './ui/chat/surface'
 import { setupViewportController } from './viewport/controller'
 import './call/call.css'
+import './ui/chat/surface.css'
 import './user.css'
 
 const rootElement = document.querySelector<HTMLDivElement>('#app')
@@ -25,17 +38,13 @@ const userPwaRegistrationPromise = setupPwa('user')
 
 root.innerHTML = `
   <main class="user-app">
-    <header>
+    <header class="user-header">
+      <button id="user-menu" class="user-header-icon" type="button"></button>
       <div class="user-title">
         <strong>Admin hỗ trợ</strong>
-        <small id="user-mode">Vãng lai</small>
+        <small id="status">Đang kết nối…</small>
       </div>
-      <div class="user-header-actions">
-        <span id="status">Đang kết nối…</span>
-        <button id="call-notifications" class="call-notification-button" type="button" hidden>Bật thông báo</button>
-        <button id="voice-call" class="chat-call-button" type="button" aria-label="Gọi thoại" hidden>☎</button>
-        <button id="auth-action" class="user-auth-action" type="button">Đăng nhập</button>
-      </div>
+      <button id="voice-call" class="user-header-icon chat-call-button" type="button" hidden></button>
     </header>
     <section id="login-panel" class="user-login-panel" hidden>
       <form id="user-login-form">
@@ -46,23 +55,79 @@ root.innerHTML = `
         <p id="login-error" aria-live="polite"></p>
       </form>
     </section>
-    <section id="messages" class="messages"><p class="empty">Bạn cần hỗ trợ gì?</p></section>
-    <form id="composer" class="composer">
-      <input id="text" autocomplete="off" placeholder="Nhập tin nhắn…" aria-label="Tin nhắn" />
-      <button type="submit">Gửi</button>
-    </form>
+    <section id="messages" class="chat-messages" aria-label="Tin nhắn với Admin"></section>
+    <div id="composer" class="chat-composer"></div>
   </main>
+
+  <div id="user-drawer" class="user-drawer" data-open="false" aria-hidden="true">
+    <button id="drawer-backdrop" class="user-drawer-backdrop" type="button" aria-label="Đóng menu"></button>
+    <aside class="user-drawer-panel" aria-label="Tài khoản và cài đặt">
+      <header>
+        <strong>Tài khoản</strong>
+        <button id="drawer-close" class="user-header-icon" type="button"></button>
+      </header>
+      <div class="user-account-summary">
+        <span>Trạng thái</span>
+        <strong id="user-mode">Vãng lai</strong>
+      </div>
+      <section id="user2-settings" class="user-settings" hidden>
+        <h2>Thông báo</h2>
+        <label class="user-setting-row">
+          <span>Tin nhắn</span>
+          <input id="notification-chat" type="checkbox" />
+        </label>
+        <label class="user-setting-row">
+          <span>Cuộc gọi</span>
+          <input id="notification-call" type="checkbox" />
+        </label>
+        <label class="user-setting-row">
+          <span>Âm thanh</span>
+          <select id="notification-sound" aria-label="Âm thanh thông báo">
+            <option value="system">Theo hệ thống</option>
+            <option value="silent">Im lặng</option>
+          </select>
+        </label>
+        <label class="user-setting-row">
+          <span>Rung</span>
+          <input id="notification-vibrate" type="checkbox" />
+        </label>
+        <button id="call-notifications" class="user-drawer-action" type="button" hidden>Bật thông báo</button>
+        <p id="settings-status" class="user-settings-status" aria-live="polite"></p>
+        <details class="user-password-details">
+          <summary>Đổi mật khẩu</summary>
+          <form id="password-change-form" class="user-password-form">
+            <input id="new-password" type="password" autocomplete="new-password" minlength="6" placeholder="Mật khẩu mới" aria-label="Mật khẩu mới" />
+            <input id="confirm-password" type="password" autocomplete="new-password" minlength="6" placeholder="Nhập lại mật khẩu" aria-label="Nhập lại mật khẩu" />
+            <button type="submit">Đổi mật khẩu</button>
+          </form>
+        </details>
+      </section>
+      <button id="auth-action" class="user-drawer-action" type="button">Đăng nhập / Nâng cấp</button>
+    </aside>
+  </div>
+
   <div id="voice-call-host"></div>
 `
 
 const messages = root.querySelector<HTMLElement>('#messages')!
+const composerHost = root.querySelector<HTMLElement>('#composer')!
 const status = root.querySelector<HTMLElement>('#status')!
 const modeLabel = root.querySelector<HTMLElement>('#user-mode')!
-const form = root.querySelector<HTMLFormElement>('#composer')!
-const input = root.querySelector<HTMLInputElement>('#text')!
-const submit = form.querySelector<HTMLButtonElement>('button')!
 const callButton = root.querySelector<HTMLButtonElement>('#voice-call')!
+const menuButton = root.querySelector<HTMLButtonElement>('#user-menu')!
+const drawer = root.querySelector<HTMLElement>('#user-drawer')!
+const drawerClose = root.querySelector<HTMLButtonElement>('#drawer-close')!
+const drawerBackdrop = root.querySelector<HTMLButtonElement>('#drawer-backdrop')!
+const settingsPanel = root.querySelector<HTMLElement>('#user2-settings')!
 const notificationButton = root.querySelector<HTMLButtonElement>('#call-notifications')!
+const notificationChat = root.querySelector<HTMLInputElement>('#notification-chat')!
+const notificationCall = root.querySelector<HTMLInputElement>('#notification-call')!
+const notificationSound = root.querySelector<HTMLSelectElement>('#notification-sound')!
+const notificationVibrate = root.querySelector<HTMLInputElement>('#notification-vibrate')!
+const settingsStatus = root.querySelector<HTMLElement>('#settings-status')!
+const passwordChangeForm = root.querySelector<HTMLFormElement>('#password-change-form')!
+const newPasswordInput = root.querySelector<HTMLInputElement>('#new-password')!
+const confirmPasswordInput = root.querySelector<HTMLInputElement>('#confirm-password')!
 const authAction = root.querySelector<HTMLButtonElement>('#auth-action')!
 const loginPanel = root.querySelector<HTMLElement>('#login-panel')!
 const loginForm = root.querySelector<HTMLFormElement>('#user-login-form')!
@@ -73,6 +138,10 @@ const loginCancel = root.querySelector<HTMLButtonElement>('#login-cancel')!
 const loginError = root.querySelector<HTMLElement>('#login-error')!
 const callHost = root.querySelector<HTMLElement>('#voice-call-host')!
 
+setButtonIcon(menuButton, 'menu', 'Mở menu')
+setButtonIcon(callButton, 'call', 'Gọi thoại')
+setButtonIcon(drawerClose, 'close', 'Đóng menu')
+
 let rootMode: RootUserMode = 'guest'
 let callSession: VoiceCallSession | null = null
 let disposeCallUi: (() => void) | null = null
@@ -82,6 +151,35 @@ let callPushDeviceId = ''
 let disposeCallPushState: (() => void) | null = null
 let notificationActionPending = false
 let authActionPending = false
+let settingsActionPending = false
+let drawerOpen = false
+let notificationPreferences: NotificationPreferences = { ...DEFAULT_NOTIFICATION_PREFERENCES }
+let notificationPreferencesStorage: NotificationPreferencesStorage | null = null
+
+const conversationSurface = mountConversationSurface({
+  messagesHost: messages,
+  composerHost,
+  async onSend(text) {
+    try {
+      await sendSupportText(text)
+    } catch (error) {
+      status.textContent = 'Gửi thất bại'
+      throw error
+    }
+  },
+})
+
+function setDrawerOpen(open: boolean): void {
+  drawerOpen = open
+  drawer.dataset.open = open ? 'true' : 'false'
+  drawer.setAttribute('aria-hidden', open ? 'false' : 'true')
+}
+
+installEdgeDrawerGesture(document, {
+  isOpen: () => drawerOpen,
+  onOpen: () => setDrawerOpen(true),
+  onClose: () => setDrawerOpen(false),
+})
 
 function currentProfileId(): string {
   const identity = getChatRuntimeState().identity
@@ -117,6 +215,33 @@ function currentCallContext(): VoiceCallContext | null {
     deviceId,
     conversationId,
     peerName: String(admin?.display_name ?? 'Admin hỗ trợ'),
+  }
+}
+
+async function setupNotificationPreferences(): Promise<void> {
+  if (notificationPreferencesStorage) return
+  const registration = await userPwaRegistrationPromise
+  if (!registration) return
+  notificationPreferencesStorage = createCacheNotificationPreferencesStorage(registration.scope)
+  notificationPreferences = await loadNotificationPreferences(notificationPreferencesStorage)
+}
+
+async function persistNotificationPreferences(next: NotificationPreferences): Promise<void> {
+  if (rootMode !== 'user2' || !notificationPreferencesStorage || settingsActionPending) return
+  const previous = notificationPreferences
+  notificationPreferences = next
+  settingsActionPending = true
+  settingsStatus.textContent = 'Đang lưu…'
+  renderAccountSettings()
+  try {
+    await saveNotificationPreferences(notificationPreferencesStorage, next)
+    settingsStatus.textContent = 'Đã lưu'
+  } catch {
+    notificationPreferences = previous
+    settingsStatus.textContent = 'Không thể lưu cài đặt'
+  } finally {
+    settingsActionPending = false
+    renderAccountSettings()
   }
 }
 
@@ -188,6 +313,26 @@ function renderNotificationButton(): void {
   notificationButton.title = registration.getDetail()
 }
 
+function renderAccountSettings(): void {
+  settingsPanel.hidden = rootMode !== 'user2'
+  if (settingsPanel.hidden) return
+
+  notificationChat.checked = notificationPreferences.chat
+  notificationCall.checked = notificationPreferences.call
+  notificationSound.value = notificationPreferences.sound
+  notificationVibrate.checked = notificationPreferences.vibrate
+
+  const disabled = settingsActionPending || !notificationPreferencesStorage
+  notificationChat.disabled = disabled
+  notificationCall.disabled = disabled
+  notificationSound.disabled = disabled
+  notificationVibrate.disabled = disabled
+  newPasswordInput.disabled = settingsActionPending
+  confirmPasswordInput.disabled = settingsActionPending
+  const submit = passwordChangeForm.querySelector<HTMLButtonElement>('button[type="submit"]')
+  if (submit) submit.disabled = settingsActionPending
+}
+
 function render(): void {
   const chat = getChatRuntimeState()
   const messageState = getChatMessageState()
@@ -195,8 +340,8 @@ function render(): void {
   const capabilities = capabilitiesForRootMode(rootMode)
   const callState = callSession?.getState()
 
-  modeLabel.textContent = rootMode === 'user2' ? 'User 2' : 'Vãng lai'
-  authAction.textContent = rootMode === 'user2' ? 'Thoát' : 'Đăng nhập'
+  modeLabel.textContent = rootMode === 'user2' ? 'User 2' : 'User 1 · Vãng lai'
+  authAction.textContent = rootMode === 'user2' ? 'Đăng xuất' : 'Đăng nhập / Nâng cấp User 2'
   authAction.disabled = authActionPending
   callButton.hidden = !capabilities.call
   callButton.disabled = !capabilities.call || !currentCallContext() || !callState || callState.phase !== 'idle'
@@ -208,22 +353,13 @@ function render(): void {
       : 'Đang kết nối…'
 
   renderNotificationButton()
-  input.disabled = false
-  submit.disabled = !canSend || !input.value.trim()
-
-  if (messageState.messages.length === 0) {
-    messages.innerHTML = '<p class="empty">Bạn cần hỗ trợ gì?</p>'
-    return
-  }
-
-  const me = currentProfileId()
-  messages.replaceChildren(...messageState.messages.map((message) => {
-    const row = document.createElement('div')
-    row.className = message.sender_id === me ? 'msg mine' : 'msg'
-    row.textContent = message.revoked_at ? 'Tin nhắn đã được thu hồi' : message.text ?? ''
-    return row
-  }))
-  messages.scrollTop = messages.scrollHeight
+  renderAccountSettings()
+  conversationSurface.render({
+    messages: messageState.messages,
+    currentProfileId: currentProfileId() || null,
+    canSend,
+    emptyText: chat.phase === 'error' ? 'Không thể tải cuộc trò chuyện.' : 'Bạn cần hỗ trợ gì?',
+  })
 }
 
 async function endGuestSession(): Promise<void> {
@@ -256,6 +392,7 @@ async function startGuestMode(): Promise<void> {
 
 async function startUser2Mode(): Promise<void> {
   rootMode = 'user2'
+  await setupNotificationPreferences()
   await startChatRuntime({
     client: userSupabase,
     deviceKey: getOrCreateDeviceKey('user2'),
@@ -290,8 +427,27 @@ async function bootRootMode(): Promise<void> {
   })
 }
 
-input.addEventListener('input', render)
+menuButton.addEventListener('click', () => setDrawerOpen(true))
+drawerClose.addEventListener('click', () => setDrawerOpen(false))
+drawerBackdrop.addEventListener('click', () => setDrawerOpen(false))
 callButton.addEventListener('click', () => void callSession?.startOutgoing())
+
+notificationChat.addEventListener('change', () => {
+  void persistNotificationPreferences({ ...notificationPreferences, chat: notificationChat.checked })
+})
+notificationCall.addEventListener('change', () => {
+  void persistNotificationPreferences({ ...notificationPreferences, call: notificationCall.checked })
+})
+notificationSound.addEventListener('change', () => {
+  void persistNotificationPreferences({
+    ...notificationPreferences,
+    sound: notificationSound.value === 'silent' ? 'silent' : 'system',
+  })
+})
+notificationVibrate.addEventListener('change', () => {
+  void persistNotificationPreferences({ ...notificationPreferences, vibrate: notificationVibrate.checked })
+})
+
 notificationButton.addEventListener('click', async () => {
   const registration = callPushRegistration
   if (!registration || notificationActionPending || rootMode !== 'user2') return
@@ -300,7 +456,7 @@ notificationButton.addEventListener('click', async () => {
   renderNotificationButton()
   try {
     if (registration.getState() === 'enabled') {
-      await registration.testFromUserGesture()
+      await registration.testFromUserGesture(notificationDeliveryOptions('incoming_call', notificationPreferences))
     } else {
       await registration.enableFromUserGesture()
     }
@@ -309,21 +465,38 @@ notificationButton.addEventListener('click', async () => {
     renderNotificationButton()
   }
 })
-form.addEventListener('submit', async (event) => {
+
+passwordChangeForm.addEventListener('submit', async (event) => {
   event.preventDefault()
-  const text = input.value.trim()
-  if (!text) return
-  input.value = ''
-  render()
+  if (rootMode !== 'user2' || settingsActionPending) return
+  settingsActionPending = true
+  settingsStatus.textContent = 'Đang đổi mật khẩu…'
+  renderAccountSettings()
   try {
-    await sendSupportText(text)
-  } catch {
-    status.textContent = 'Gửi thất bại'
+    await changeUser2Password({
+      async updatePassword(password) {
+        const result = await userSupabase.auth.updateUser({ password })
+        if (result.error) throw result.error
+      },
+    }, newPasswordInput.value, confirmPasswordInput.value)
+    newPasswordInput.value = ''
+    confirmPasswordInput.value = ''
+    settingsStatus.textContent = 'Đã đổi mật khẩu'
+  } catch (error) {
+    settingsStatus.textContent = error instanceof Error && error.message === 'password_mismatch'
+      ? 'Mật khẩu nhập lại không khớp'
+      : error instanceof Error && error.message === 'password_too_short'
+        ? 'Mật khẩu cần ít nhất 6 ký tự'
+        : 'Không thể đổi mật khẩu'
+  } finally {
+    settingsActionPending = false
+    renderAccountSettings()
   }
 })
 
 authAction.addEventListener('click', async () => {
   if (authActionPending) return
+  setDrawerOpen(false)
   if (rootMode === 'guest') {
     loginPanel.hidden = !loginPanel.hidden
     loginError.textContent = ''

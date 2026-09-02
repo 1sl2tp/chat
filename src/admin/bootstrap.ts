@@ -9,13 +9,31 @@ export interface AdminIdentityBootstrapBackend {
   bootstrapIdentity(input: AdminBootstrapInput): Promise<unknown>
 }
 
+let bootstrappedAdminIdentity: unknown = null
+
+export function getBootstrappedAdminProfileId(): string {
+  if (!bootstrappedAdminIdentity || typeof bootstrappedAdminIdentity !== 'object') return ''
+  const profile = (bootstrappedAdminIdentity as { profile?: unknown }).profile
+  if (!profile || typeof profile !== 'object') return ''
+  return String((profile as { id?: unknown }).id ?? '')
+}
+
+export function clearBootstrappedAdminIdentity(): void {
+  bootstrappedAdminIdentity = null
+}
+
 export async function bootstrapAdminIdentity(
   backend: AdminIdentityBootstrapBackend,
   input: AdminBootstrapInput,
 ): Promise<unknown> {
   const hasSession = await backend.hasSession()
-  if (!hasSession) throw new Error('admin_session_required')
-  return backend.bootstrapIdentity(input)
+  if (!hasSession) {
+    clearBootstrappedAdminIdentity()
+    throw new Error('admin_session_required')
+  }
+  const identity = await backend.bootstrapIdentity(input)
+  bootstrappedAdminIdentity = identity
+  return identity
 }
 
 export interface AdminWorkspaceStartup {

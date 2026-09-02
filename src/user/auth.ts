@@ -8,6 +8,10 @@ export interface User2LogoutBackend {
   signOutUser2(): Promise<void>
 }
 
+export interface User2PasswordBackend {
+  updatePassword(password: string): Promise<void>
+}
+
 export function normalizeUser2Username(value: string): string {
   const username = value.trim().replace(/^@+/, '').toLowerCase()
   if (username === 'admin') throw new Error('admin_uses_admin_page')
@@ -32,4 +36,14 @@ export async function logoutUser2(backend: User2LogoutBackend): Promise<void> {
     // Auth logout must still complete if remote session cleanup cannot reach the server.
   }
   await backend.signOutUser2()
+}
+
+export async function changeUser2Password(
+  backend: User2PasswordBackend,
+  password: string,
+  confirmation: string,
+): Promise<void> {
+  if (password !== confirmation) throw new Error('password_mismatch')
+  if (password.length < 6) throw new Error('password_too_short')
+  await backend.updatePassword(password)
 }

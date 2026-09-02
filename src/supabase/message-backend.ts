@@ -3,7 +3,7 @@ import type { ChatMessageBackend, ChatRealtimeStatus } from '../chat/message-run
 import type { ChatMessage } from '../chat/messages'
 import { supabase } from './client'
 
-const MESSAGE_COLUMNS = 'id,conversation_id,sender_id,client_message_id,type,text,reply_to_id,created_at,edited_at,revoked_at,call_id'
+const MESSAGE_COLUMNS = 'id,conversation_id,sender_id,client_message_id,type,text,reply_to_id,created_at,edited_at,revoked_at,call_id,attachment'
 
 function asChatMessage(value: unknown): ChatMessage {
   return value as ChatMessage

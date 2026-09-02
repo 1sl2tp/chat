@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { loginUser2, logoutUser2, normalizeUser2Username } from './auth'
+import { changeUser2Password, loginUser2, logoutUser2, normalizeUser2Username } from './auth'
 
 describe('User2 auth transitions', () => {
   it('normalizes TAPHOA username and rejects Admin on the root user page', () => {
@@ -54,5 +54,15 @@ describe('User2 auth transitions', () => {
     await logoutUser2(backend)
 
     expect(events).toEqual(['end-user2', 'sign-out-user2'])
+  })
+
+  it('changes password only when confirmation matches and length is valid', async () => {
+    const updatePassword = vi.fn(async () => {})
+
+    await changeUser2Password({ updatePassword }, '654321', '654321')
+    expect(updatePassword).toHaveBeenCalledWith('654321')
+
+    await expect(changeUser2Password({ updatePassword }, '123456', '654321')).rejects.toThrow('password_mismatch')
+    await expect(changeUser2Password({ updatePassword }, '12345', '12345')).rejects.toThrow('password_too_short')
   })
 })

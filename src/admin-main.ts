@@ -1,6 +1,6 @@
 import { bootstrapAdminIdentity } from './admin/bootstrap'
 import { signInAdmin } from './admin/auth'
-import { clearAdminSelection, selectAdminConversation, sendAdminText, startAdminRuntime } from './admin/runtime'
+import { clearAdminSelection, selectAdminConversation, startAdminRuntime } from './admin/runtime'
 import { logoutAdmin } from './admin/session'
 import { getAdminState, subscribeAdminState } from './admin/store'
 import { createUser2FromAdmin } from './admin/user2-account'
@@ -15,7 +15,12 @@ import { installNotificationContextResponder } from './notifications/window-cont
 import { setupPwa } from './pwa'
 import { createSupabaseChatBackend } from './supabase/chat-backend'
 import { adminSupabase } from './supabase/client'
+import { installEdgeDrawerGesture } from './ui/edge-drawer'
+import { setButtonIcon } from './ui/icons'
+import { mountConversationSurface } from './ui/chat/surface'
+import { setupViewportController } from './viewport/controller'
 import './call/call.css'
+import './ui/chat/surface.css'
 import './admin.css'
 
 const rootElement = document.querySelector<HTMLDivElement>('#app')
@@ -36,6 +41,13 @@ async function ensureAdminIdentity(): Promise<unknown> {
     platform: getDevicePlatform(),
   })
   return adminIdentity
+}
+
+function currentAdminProfileId(): string {
+  if (!adminIdentity || typeof adminIdentity !== 'object') return ''
+  const profile = (adminIdentity as { profile?: unknown }).profile
+  if (!profile || typeof profile !== 'object') return ''
+  return String((profile as { id?: unknown }).id ?? '')
 }
 
 function currentAdminCallContext(): VoiceCallContext | null {
@@ -134,16 +146,13 @@ async function mountWorkspace(): Promise<void> {
       </aside>
       <section class="admin-chat">
         <header>
-          <button id="back" type="button">‹</button>
+          <button id="back" class="admin-icon-button" type="button"></button>
           <strong id="customer">Chọn User</strong>
           <button id="call-notifications" class="call-notification-button" type="button" hidden>Bật thông báo</button>
-          <button id="admin-voice-call" class="chat-call-button" type="button" aria-label="Gọi thoại">☎</button>
+          <button id="admin-voice-call" class="admin-icon-button chat-call-button" type="button"></button>
         </header>
-        <div id="admin-messages" class="messages"><p class="empty">Chọn một User để chat.</p></div>
-        <form id="admin-composer" class="composer">
-          <input id="admin-text" autocomplete="off" placeholder="Nhập tin nhắn…" aria-label="Tin nhắn" />
-          <button type="submit">Gửi</button>
-        </form>
+        <div id="admin-messages" class="chat-messages" aria-label="Nội dung hội thoại"></div>
+        <div id="admin-composer" class="chat-composer"></div>
       </section>
     </main>
     <div id="voice-call-host"></div>
@@ -152,10 +161,8 @@ async function mountWorkspace(): Promise<void> {
   const adminApp = root.querySelector<HTMLElement>('.admin-app')!
   const inbox = root.querySelector<HTMLElement>('#inbox')!
   const messages = root.querySelector<HTMLElement>('#admin-messages')!
+  const composerHost = root.querySelector<HTMLElement>('#admin-composer')!
   const customer = root.querySelector<HTMLElement>('#customer')!
-  const form = root.querySelector<HTMLFormElement>('#admin-composer')!
-  const input = root.querySelector<HTMLInputElement>('#admin-text')!
-  const send = form.querySelector<HTMLButtonElement>('button')!
   const back = root.querySelector<HTMLButtonElement>('#back')!
   const logout = root.querySelector<HTMLButtonElement>('#logout')!
   const createUserToggle = root.querySelector<HTMLButtonElement>('#create-user2-toggle')!
@@ -171,12 +178,30 @@ async function mountWorkspace(): Promise<void> {
   const callHost = root.querySelector<HTMLElement>('#voice-call-host')!
   let notificationActionPending = false
 
+  setButtonIcon(back, 'back', 'Danh sách User')
+  setButtonIcon(callButton, 'call', 'Gọi thoại')
+
   callSession?.dispose()
   disposeCallUi?.()
   clearCallPushRegistration()
   callSession = new VoiceCallSession(adminSupabase, currentAdminCallContext)
   disposeCallUi = mountVoiceCallUi(callHost, callSession)
   callSession.start()
+
+  const conversationSurface = mountConversationSurface({
+    messagesHost: messages,
+    composerHost,
+    onSend: async (text) => {
+      const { sendAdminText } = await import('./admin/runtime')
+      await sendAdminText(text)
+    },
+  })
+
+  const disposeDrawerGesture = installEdgeDrawerGesture(adminApp, {
+    isOpen: () => !Boolean(getAdminState().selectedConversationId),
+    onOpen: clearAdminSelection,
+    onClose: () => undefined,
+  })
 
   function renderNotificationButton(): void {
     const registration = callPushRegistration
@@ -223,29 +248,15 @@ async function mountWorkspace(): Promise<void> {
 
     renderNotificationButton()
     customer.textContent = state.detail?.displayName?.trim() || (state.selectedConversationId ? 'User' : 'Chọn User')
-    input.disabled = !state.selectedConversationId
-    send.disabled = !state.selectedConversationId || !input.value.trim()
     back.disabled = !state.selectedConversationId
     callButton.disabled = !state.selectedConversationId || !callState || callState.phase !== 'idle'
 
-    if (!state.selectedConversationId) {
-      messages.innerHTML = '<p class="empty">Chọn một User để chat.</p>'
-      return
-    }
-
-    if (messageState.messages.length === 0) {
-      messages.innerHTML = '<p class="empty">Chưa có tin nhắn.</p>'
-      return
-    }
-
-    const customerProfileId = state.detail?.profileId ?? ''
-    messages.replaceChildren(...messageState.messages.map((message) => {
-      const row = document.createElement('div')
-      row.className = message.sender_id === customerProfileId ? 'msg' : 'msg mine'
-      row.textContent = message.revoked_at ? 'Tin nhắn đã được thu hồi' : message.text ?? ''
-      return row
-    }))
-    messages.scrollTop = messages.scrollHeight
+    conversationSurface.render({
+      messages: state.selectedConversationId ? messageState.messages : [],
+      currentProfileId: currentAdminProfileId() || null,
+      canSend: Boolean(state.selectedConversationId) && messageState.realtime !== 'error',
+      emptyText: state.selectedConversationId ? 'Chưa có tin nhắn.' : 'Chọn một User để chat.',
+    })
   }
 
   const deviceId = currentAdminCallContext()?.deviceId ?? ''
@@ -303,7 +314,6 @@ async function mountWorkspace(): Promise<void> {
     }
   })
 
-  input.addEventListener('input', render)
   callButton.addEventListener('click', () => void callSession?.startOutgoing())
   notificationButton.addEventListener('click', async () => {
     const registration = callPushRegistration
@@ -322,22 +332,19 @@ async function mountWorkspace(): Promise<void> {
       renderNotificationButton()
     }
   })
-  form.addEventListener('submit', async (event) => {
-    event.preventDefault()
-    const text = input.value.trim()
-    if (!text) return
-    input.value = ''
-    render()
-    try {
-      await sendAdminText(text)
-    } catch {
-      input.value = text
-      render()
-    }
-  })
   back.addEventListener('click', clearAdminSelection)
+
+  const stopAdminState = subscribeAdminState(render)
+  const stopMessages = subscribeChatMessages(render)
+  const stopCall = callSession.subscribe(render)
+
   logout.addEventListener('click', async () => {
     logout.disabled = true
+    stopAdminState()
+    stopMessages()
+    stopCall()
+    disposeDrawerGesture()
+    conversationSurface.destroy()
     callSession?.dispose()
     clearCallPushRegistration()
 
@@ -360,9 +367,6 @@ async function mountWorkspace(): Promise<void> {
     mountLogin()
   })
 
-  subscribeAdminState(render)
-  subscribeChatMessages(render)
-  callSession.subscribe(render)
   render()
 }
 
@@ -396,5 +400,6 @@ async function start(): Promise<void> {
   await bootWorkspace()
 }
 
+setupViewportController()
 installNotificationContextResponder(() => getAdminState().selectedConversationId || null)
 void start()
