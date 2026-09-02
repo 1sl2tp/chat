@@ -28,6 +28,7 @@ export interface ExistingConversationRuntimeActions {
   sendAttachment(file: File): Promise<void>
   startVoiceRecording(): Promise<void>
   stopVoiceRecording(): Promise<void>
+  cancelVoiceRecording?(): Promise<void>
   startCall(): Promise<void>
 }
 
@@ -112,6 +113,12 @@ export function toConversationActionsAdapter(runtime: ExistingConversationRuntim
       requireCapability(runtime.canRecord, 'record_unavailable')
       await runtime.stopVoiceRecording()
     },
+    cancelVoiceRecording: runtime.cancelVoiceRecording
+      ? async () => {
+          requireCapability(runtime.canRecord, 'record_unavailable')
+          await runtime.cancelVoiceRecording?.()
+        }
+      : undefined,
     async startCall() {
       requireCapability(runtime.canCall, 'call_unavailable')
       await runtime.startCall()
