@@ -8,6 +8,7 @@ export interface ComposerOptions {
   onSend?: (text: string) => void | Promise<void>
   onVoiceStart?: () => void | Promise<void>
   onVoiceStop?: () => void | Promise<void>
+  onVoiceCancel?: () => void | Promise<void>
   onFocus?: () => void
 }
 
@@ -18,6 +19,12 @@ export interface ComposerView {
   setRecording(recording: boolean): void
   setText(text: string): void
   destroy(): void
+}
+
+function formatElapsed(seconds: number): string {
+  const minutes = Math.floor(seconds / 60).toString().padStart(2, '0')
+  const remainder = (seconds % 60).toString().padStart(2, '0')
+  return `${minutes}:${remainder}`
 }
 
 export function createComposer(options: ComposerOptions): ComposerView {
@@ -36,6 +43,12 @@ export function createComposer(options: ComposerOptions): ComposerView {
   let recording = false
   let controls: Array<HTMLButtonElement | HTMLTextAreaElement> = []
   let actionButton: HTMLButtonElement | null = null
+  let recordingClock: number | null = null
+
+  const stopRecordingClock = () => {
+    if (recordingClock !== null) window.clearInterval(recordingClock)
+    recordingClock = null
+  }
 
   const syncEnabled = () => {
     for (const control of controls) control.disabled = !enabled
@@ -66,11 +79,12 @@ export function createComposer(options: ComposerOptions): ComposerView {
   })
 
   const renderNormal = () => {
+    stopRecordingClock()
     recording = false
     const addButton = document.createElement('button')
     addButton.className = 'cw-composer__button cw-composer__button--add'
     addButton.type = 'button'
-    setButtonIcon(addButton, 'plus', 'Thêm')
+    setButtonIcon(addButton, 'plus', 'Đính kèm')
     addButton.addEventListener('click', () => options.onAttach?.())
 
     actionButton = document.createElement('button')
@@ -92,14 +106,35 @@ export function createComposer(options: ComposerOptions): ComposerView {
   }
 
   const renderRecording = () => {
+    stopRecordingClock()
     recording = true
     actionButton = null
+
     const recordingRow = document.createElement('div')
     recordingRow.className = 'cw-composer__recording'
 
-    const status = document.createElement('span')
+    const status = document.createElement('div')
     status.className = 'cw-composer__recording-status'
-    status.textContent = 'Đang ghi âm'
+    const dot = document.createElement('span')
+    dot.className = 'cw-composer__recording-dot'
+    const label = document.createElement('span')
+    label.textContent = 'Đang ghi âm:'
+    const timer = document.createElement('span')
+    timer.className = 'cw-composer__recording-timer'
+    timer.textContent = '00:00'
+    status.append(dot, label, timer)
+
+    const actions = document.createElement('div')
+    actions.className = 'cw-composer__recording-actions'
+
+    const cancel = document.createElement('button')
+    cancel.className = 'cw-composer__recording-cancel'
+    cancel.type = 'button'
+    cancel.textContent = 'Hủy'
+    cancel.addEventListener('click', () => {
+      if (!enabled) return
+      void Promise.resolve(options.onVoiceCancel?.()).then(() => renderNormal()).catch(() => {})
+    })
 
     const stop = document.createElement('button')
     stop.className = 'cw-composer__recording-stop'
@@ -110,10 +145,17 @@ export function createComposer(options: ComposerOptions): ComposerView {
       void options.onVoiceStop?.()
     })
 
-    controls = [stop]
+    controls = [cancel, stop]
     syncEnabled()
-    recordingRow.append(status, stop)
+    actions.append(cancel, stop)
+    recordingRow.append(status, actions)
     root.replaceChildren(recordingRow)
+
+    let elapsed = 0
+    recordingClock = window.setInterval(() => {
+      elapsed += 1
+      timer.textContent = formatElapsed(elapsed)
+    }, 1000)
   }
 
   renderNormal()
@@ -136,6 +178,7 @@ export function createComposer(options: ComposerOptions): ComposerView {
       syncAction()
     },
     destroy() {
+      stopRecordingClock()
       controls = []
       actionButton = null
       options.host.replaceChildren()
