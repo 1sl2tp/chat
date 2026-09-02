@@ -1,0 +1,72 @@
+.cw-account-drawer {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  padding: 8px 0 max(14px, env(safe-area-inset-bottom));
+}
+
+.cw-account__identity {
+  display: grid;
+  gap: 3px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: #f5f6f8;
+}
+
+.cw-account__display-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #111827;
+  font-size: 17px;
+  line-height: 22px;
+}
+
+.cw-account__username,
+.cw-account__kind {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 17px;
+}
+
+.cw-account__group {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.cw-account__group-title {
+  margin: 0;
+  padding: 0 4px;
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
+}
+
+.cw-account__group-body {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.cw-account__group-body[hidden] {
+  display: none;
+}
+
+.cw-account__delete {
+  width: 100%;
+  min-height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: #fff1f2;
+  color: #b42318;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+}
