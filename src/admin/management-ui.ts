@@ -12,11 +12,22 @@ import { adminSupabase } from '../supabase/client'
 
 export type AdminInboxFilter = 'all' | 'user2' | 'guest' | 'unread'
 
-export function filterAdminInbox(items: AdminInboxItem[], filter: AdminInboxFilter): AdminInboxItem[] {
-  if (filter === 'user2') return items.filter((item) => item.userLevel === 2)
-  if (filter === 'guest') return items.filter((item) => item.userLevel === 1)
-  if (filter === 'unread') return items.filter((item) => item.unreadCount > 0)
-  return items
+export function filterAdminInbox(items: AdminInboxItem[], filter: AdminInboxFilter, query = ''): AdminInboxItem[] {
+  const filtered = filter === 'user2'
+    ? items.filter((item) => item.userLevel === 2)
+    : filter === 'guest'
+      ? items.filter((item) => item.userLevel === 1)
+      : filter === 'unread'
+        ? items.filter((item) => item.unreadCount > 0)
+        : items
+
+  const normalizedQuery = query.trim().toLocaleLowerCase('vi-VN')
+  if (!normalizedQuery) return filtered
+  return filtered.filter((item) => {
+    const displayName = item.displayName?.toLocaleLowerCase('vi-VN') ?? ''
+    const username = item.username?.toLocaleLowerCase('vi-VN') ?? ''
+    return displayName.includes(normalizedQuery) || username.includes(normalizedQuery)
+  })
 }
 
 function pad(value: number): string {
@@ -108,7 +119,7 @@ function makeInboxRow(item: AdminInboxItem): HTMLButtonElement {
     <span class="admin-inbox-body">
       <span class="admin-inbox-name-line">
         <strong></strong>
-        <em class="admin-role-badge">${item.userLevel === 2 ? 'User 2' : 'Vãng lai'}</em>
+        <em class="admin-role-badge">${item.userLevel === 2 ? 'U2' : 'Khách'}</em>
       </span>
       <small></small>
     </span>
@@ -121,6 +132,13 @@ function makeInboxRow(item: AdminInboxItem): HTMLButtonElement {
   button.querySelector('.admin-inbox-body small')!.textContent = inboxPreview(item)
   button.addEventListener('click', () => void selectAdminConversation(item.conversationId))
   return button
+}
+
+function createSearchBar(): HTMLElement {
+  const element = document.createElement('label')
+  element.className = 'admin-inbox-search'
+  element.innerHTML = '<span class="sr-only">Tìm User</span><input type="search" autocomplete="off" placeholder="Tìm tên hoặc tài khoản…" aria-label="Tìm User theo tên hoặc tài khoản" />'
+  return element
 }
 
 function createFilterBar(): HTMLElement {
@@ -312,11 +330,6 @@ function attachWorkspace(app: HTMLElement): () => void {
   if (!inboxHost || !inboxPane || !chatHeader || !headerActions) return () => undefined
   const inboxElement: HTMLElement = inboxHost
 
-  const legacyCreateToggle = app.querySelector<HTMLButtonElement>('#create-user2-toggle')
-  const legacyCreatePanel = app.querySelector<HTMLElement>('#create-user2-panel')
-  if (legacyCreateToggle) legacyCreateToggle.hidden = true
-  if (legacyCreatePanel) legacyCreatePanel.hidden = true
-
   const createButton = document.createElement('button')
   createButton.type = 'button'
   createButton.className = 'admin-managed-create-toggle'
@@ -325,6 +338,9 @@ function attachWorkspace(app: HTMLElement): () => void {
 
   const createPanel = createNewUserPanel()
   inboxPane.insertBefore(createPanel, inboxElement)
+  const searchBar = createSearchBar()
+  inboxPane.insertBefore(searchBar, inboxElement)
+  const searchInput = searchBar.querySelector<HTMLInputElement>('input')!
   const filterBar = createFilterBar()
   inboxPane.insertBefore(filterBar, inboxElement)
 
@@ -334,6 +350,7 @@ function attachWorkspace(app: HTMLElement): () => void {
   chatHeader.insertAdjacentElement('afterend', managementPanel)
 
   let activeFilter: AdminInboxFilter = 'all'
+  let searchQuery = ''
 
   function renderFilters(items: AdminInboxItem[]): void {
     for (const button of filterBar.querySelectorAll<HTMLButtonElement>('button[data-filter]')) {
@@ -347,7 +364,7 @@ function attachWorkspace(app: HTMLElement): () => void {
   function renderInbox(): void {
     const state = getAdminState()
     renderFilters(state.inbox)
-    const rows = filterAdminInbox(state.inbox, activeFilter)
+    const rows = filterAdminInbox(state.inbox, activeFilter, searchQuery)
     const children = rows.map((item) => {
       const row = makeInboxRow(item)
       if (item.conversationId === state.selectedConversationId) row.dataset.active = 'true'
@@ -356,13 +373,22 @@ function attachWorkspace(app: HTMLElement): () => void {
     if (children.length === 0) {
       const empty = document.createElement('p')
       empty.className = 'empty admin-filter-empty'
-      empty.textContent = activeFilter === 'all' ? 'Chưa có User.' : 'Không có User trong nhóm này.'
+      empty.textContent = searchQuery.trim()
+        ? 'Không tìm thấy User.'
+        : activeFilter === 'all'
+          ? 'Chưa có User.'
+          : 'Không có User trong nhóm này.'
       inboxElement.replaceChildren(empty)
     } else {
       inboxElement.replaceChildren(...children)
     }
     renderManagementPanel(managementPanel, state)
   }
+
+  searchInput.addEventListener('input', () => {
+    searchQuery = searchInput.value
+    renderInbox()
+  })
 
   for (const button of filterBar.querySelectorAll<HTMLButtonElement>('button[data-filter]')) {
     button.addEventListener('click', () => {
@@ -421,6 +447,7 @@ function attachWorkspace(app: HTMLElement): () => void {
     stopState()
     createButton.remove()
     createPanel.remove()
+    searchBar.remove()
     filterBar.remove()
     managementPanel.remove()
   }
