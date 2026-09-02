@@ -60,11 +60,14 @@ export function createBrowserVoiceRecorder(): VoiceRecorderBrowser {
 }
 
 export class VoiceRecorderSession {
+  private readonly browser: VoiceRecorderBrowser
   private active: AcquiredVoiceRecorder | null = null
   private chunks: Blob[] = []
   private startedAt = 0
 
-  constructor(private readonly browser: VoiceRecorderBrowser = createBrowserVoiceRecorder()) {}
+  constructor(browser: VoiceRecorderBrowser = createBrowserVoiceRecorder()) {
+    this.browser = browser
+  }
 
   isRecording(): boolean {
     return this.active?.recorder.state === 'recording'
