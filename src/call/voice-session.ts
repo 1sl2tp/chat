@@ -40,6 +40,8 @@ type ActiveCallRow = {
   conversation_id: string
   caller_profile_id: string
   callee_profile_id: string
+  caller_device_id: string
+  accepted_device_id: string | null
   state: string
   connected_at: string | null
   caller_display_name: string | null
@@ -76,14 +78,20 @@ export function callErrorMessage(reason: string): string {
   return reason
 }
 
-export function connectedAtForPolling(existingConnectedAt: number | null, now: number): number {
-  return existingConnectedAt ?? now
+export function connectedAtForPolling(existingConnectedAt: number | null, authoritativeConnectedAt: number | null): number {
+  return authoritativeConnectedAt ?? existingConnectedAt ?? Date.now()
 }
 
 function connectedAtFromRow(value: string | null): number | null {
   if (!value) return null
   const parsed = Date.parse(value)
   return Number.isFinite(parsed) ? parsed : null
+}
+
+function deviceOwnsCallMedia(row: ActiveCallRow, context: VoiceCallContext): boolean {
+  if (row.caller_profile_id === context.profileId) return row.caller_device_id === context.deviceId
+  if (row.callee_profile_id === context.profileId) return row.accepted_device_id === context.deviceId
+  return false
 }
 
 export class VoiceCallSession {
@@ -386,13 +394,20 @@ export class VoiceCallSession {
       const resumable = rows.find((row) => (
         row.id !== this.decliningCallId
         && LIVE_CALL_STATES.has(row.state)
-        && (row.caller_profile_id === context.profileId || row.callee_profile_id === context.profileId)
+        && deviceOwnsCallMedia(row, context)
       ))
       if (resumable) void this.restoreExistingCall(resumable, context)
       return
     }
 
     if (!current) {
+      this.resetToIdle()
+      return
+    }
+
+    const ownsCurrentMedia = deviceOwnsCallMedia(current, context)
+    const ringingIncoming = current.state === 'ringing' && this.state.direction === 'incoming'
+    if (!ringingIncoming && !ownsCurrentMedia) {
       this.resetToIdle()
       return
     }
@@ -407,7 +422,7 @@ export class VoiceCallSession {
       this.publish({
         phase: reconnecting ? 'reconnecting' : 'active',
         peerName,
-        connectedAt: connectedAtForPolling(this.state.connectedAt, connectedAtFromRow(current.connected_at) ?? Date.now()),
+        connectedAt: connectedAtForPolling(this.state.connectedAt, connectedAtFromRow(current.connected_at)),
       })
     } else if (current.state === 'accepted' || current.state === 'connecting') {
       this.publish({ phase: reconnecting ? 'reconnecting' : 'connecting', peerName })
@@ -417,6 +432,7 @@ export class VoiceCallSession {
   }
 
   private async restoreExistingCall(row: ActiveCallRow, context: VoiceCallContext): Promise<void> {
+    if (!deviceOwnsCallMedia(row, context)) return
     if (this.restoringCallId === row.id || this.state.callId === row.id) return
     this.restoringCallId = row.id
     this.backendState = row.state
@@ -487,6 +503,7 @@ export class VoiceCallSession {
 
       this.backendState = 'connected'
       this.publish({ phase: 'active', connectedAt: this.state.connectedAt ?? Date.now(), error: null })
+      await this.pollActiveCalls()
       await this.reportMediaEvent('peer_connected')
     } catch (error) {
       this.publish({ error: error instanceof Error ? error.message : String(error) })
