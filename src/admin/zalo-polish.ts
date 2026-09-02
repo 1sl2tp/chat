@@ -5,7 +5,7 @@ import { installEdgeDrawerGesture } from '../ui/edge-drawer'
 
 export interface AdminInboxGroup {
   key: 'user2' | 'guest'
-  label: 'USER 2' | 'VÃNG LAI'
+  label: 'USER 2' | 'USER 1 · VÃNG LAI'
   items: AdminInboxItem[]
 }
 
@@ -14,7 +14,7 @@ export function groupAdminInbox(items: AdminInboxItem[], filter: string): AdminI
     const user2 = items.filter((item) => item.userLevel === 2)
     const guest = items.filter((item) => item.userLevel !== 2)
     if (filter === 'user2') return user2.length ? [{ key: 'user2', label: 'USER 2', items: user2 }] : []
-    if (filter === 'guest') return guest.length ? [{ key: 'guest', label: 'VÃNG LAI', items: guest }] : []
+    if (filter === 'guest') return guest.length ? [{ key: 'guest', label: 'USER 1 · VÃNG LAI', items: guest }] : []
     return []
   }
 
@@ -22,7 +22,7 @@ export function groupAdminInbox(items: AdminInboxItem[], filter: string): AdminI
   const user2 = items.filter((item) => item.userLevel === 2)
   const guest = items.filter((item) => item.userLevel !== 2)
   if (user2.length) groups.push({ key: 'user2', label: 'USER 2', items: user2 })
-  if (guest.length) groups.push({ key: 'guest', label: 'VÃNG LAI', items: guest })
+  if (guest.length) groups.push({ key: 'guest', label: 'USER 1 · VÃNG LAI', items: guest })
   return groups
 }
 
@@ -50,9 +50,14 @@ function mountInboxGrouping(app: HTMLElement): () => void {
     try {
       inbox.querySelectorAll('.admin-inbox-group-label').forEach((node) => node.remove())
       const rows = [...inbox.querySelectorAll<HTMLButtonElement>('.admin-inbox-row')]
+      const byConversation = new Map(getAdminState().inbox.map((item) => [item.conversationId, item]))
+      for (const row of rows) {
+        const item = byConversation.get(row.dataset.conversationId ?? '')
+        const badge = row.querySelector<HTMLElement>('.admin-role-badge')
+        if (item && badge) badge.textContent = item.userLevel === 2 ? 'U2' : 'U1'
+      }
       if (rows.length === 0 || activeInboxFilter(app) !== 'all') return
 
-      const byConversation = new Map(getAdminState().inbox.map((item) => [item.conversationId, item]))
       const visibleItems = rows
         .map((row) => byConversation.get(row.dataset.conversationId ?? ''))
         .filter((item): item is AdminInboxItem => Boolean(item))
@@ -174,14 +179,14 @@ function mountPeerIdentity(app: HTMLElement): () => void {
     }
     meta.textContent = detail.userLevel === 2
       ? `User 2${detail.username ? ` · @${detail.username}` : ''}`
-      : 'Vãng lai'
+      : 'User 1 · Vãng lai'
   }
   const stop = subscribeAdminState(render)
   render()
 
   return () => {
     stop()
-    title.insertAdjacentElement('beforebegin', title)
+    wrapper.insertAdjacentElement('beforebegin', title)
     wrapper.remove()
   }
 }
