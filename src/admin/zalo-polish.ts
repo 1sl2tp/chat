@@ -5,29 +5,17 @@ import { installEdgeDrawerGesture } from '../ui/edge-drawer'
 
 export interface AdminInboxGroup {
   key: 'user2' | 'guest'
-  label: 'USER 2' | 'USER 1 · VÃNG LAI'
+  label: 'USER 2' | 'USER 1'
   items: AdminInboxItem[]
 }
 
-export function groupAdminInbox(items: AdminInboxItem[], filter: string): AdminInboxGroup[] {
-  if (filter !== 'all') {
-    const user2 = items.filter((item) => item.userLevel === 2)
-    const guest = items.filter((item) => item.userLevel !== 2)
-    if (filter === 'user2') return user2.length ? [{ key: 'user2', label: 'USER 2', items: user2 }] : []
-    if (filter === 'guest') return guest.length ? [{ key: 'guest', label: 'USER 1 · VÃNG LAI', items: guest }] : []
-    return []
-  }
-
+export function groupAdminInbox(items: AdminInboxItem[]): AdminInboxGroup[] {
   const groups: AdminInboxGroup[] = []
   const user2 = items.filter((item) => item.userLevel === 2)
   const guest = items.filter((item) => item.userLevel !== 2)
   if (user2.length) groups.push({ key: 'user2', label: 'USER 2', items: user2 })
-  if (guest.length) groups.push({ key: 'guest', label: 'USER 1 · VÃNG LAI', items: guest })
+  if (guest.length) groups.push({ key: 'guest', label: 'USER 1', items: guest })
   return groups
-}
-
-function activeInboxFilter(app: HTMLElement): string {
-  return app.querySelector<HTMLButtonElement>('.admin-inbox-filters button[data-active="true"]')?.dataset.filter ?? 'all'
 }
 
 function makeGroupLabel(label: string): HTMLElement {
@@ -37,8 +25,10 @@ function makeGroupLabel(label: string): HTMLElement {
   return element
 }
 
-function mountInboxGrouping(app: HTMLElement): () => void {
+function mountInboxRoleGroups(app: HTMLElement): () => void {
   const inbox = app.querySelector<HTMLElement>('#inbox')
+  const filters = app.querySelector<HTMLElement>('.admin-inbox-filters')
+  filters?.remove()
   if (!inbox) return () => undefined
 
   let observer: MutationObserver | null = null
@@ -50,20 +40,22 @@ function mountInboxGrouping(app: HTMLElement): () => void {
     try {
       inbox.querySelectorAll('.admin-inbox-group-label').forEach((node) => node.remove())
       const rows = [...inbox.querySelectorAll<HTMLButtonElement>('.admin-inbox-row')]
+      if (rows.length === 0) return
+
       const byConversation = new Map(getAdminState().inbox.map((item) => [item.conversationId, item]))
+      const rowByConversation = new Map(rows.map((row) => [row.dataset.conversationId ?? '', row]))
+      const visibleItems = rows
+        .map((row) => byConversation.get(row.dataset.conversationId ?? ''))
+        .filter((item): item is AdminInboxItem => Boolean(item))
+
       for (const row of rows) {
         const item = byConversation.get(row.dataset.conversationId ?? '')
         const badge = row.querySelector<HTMLElement>('.admin-role-badge')
         if (item && badge) badge.textContent = item.userLevel === 2 ? 'U2' : 'U1'
       }
-      if (rows.length === 0 || activeInboxFilter(app) !== 'all') return
 
-      const visibleItems = rows
-        .map((row) => byConversation.get(row.dataset.conversationId ?? ''))
-        .filter((item): item is AdminInboxItem => Boolean(item))
-      const rowByConversation = new Map(rows.map((row) => [row.dataset.conversationId ?? '', row]))
       const children: Node[] = []
-      for (const group of groupAdminInbox(visibleItems, 'all')) {
+      for (const group of groupAdminInbox(visibleItems)) {
         children.push(makeGroupLabel(group.label))
         for (const item of group.items) {
           const row = rowByConversation.get(item.conversationId)
@@ -178,8 +170,8 @@ function mountPeerIdentity(app: HTMLElement): () => void {
       return
     }
     meta.textContent = detail.userLevel === 2
-      ? `User 2${detail.username ? ` · @${detail.username}` : ''}`
-      : 'User 1 · Vãng lai'
+      ? `${detail.username ? `@${detail.username} · ` : ''}User 2`
+      : 'User 1'
   }
   const stop = subscribeAdminState(render)
   render()
@@ -204,7 +196,7 @@ function mountConversationSwipe(app: HTMLElement): () => void {
 
 function attach(app: HTMLElement): () => void {
   const cleanups = [
-    mountInboxGrouping(app),
+    mountInboxRoleGroups(app),
     mountOverflowMenu(app),
     mountPeerIdentity(app),
     mountConversationSwipe(app),
