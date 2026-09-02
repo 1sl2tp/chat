@@ -24,7 +24,7 @@ describe('PWA install identity', () => {
     expect(userHtml).toContain('rel="manifest" href="./manifest.webmanifest"')
     expect(adminHtml).toContain('rel="manifest" href="./manifest.webmanifest"')
     expect(userHtml).toContain('apple-mobile-web-app-title" content="Chat"')
-    expect(adminHtml).toContain('apple-mobile-web-app-title" content="Admin Chat"')
+    expect(adminHtml).toContain('apple-mobile-web-app-title" content="Hỗ trợ"')
   })
 
   it('disables the single generated manifest from vite-plugin-pwa', () => {
