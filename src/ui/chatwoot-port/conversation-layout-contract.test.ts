@@ -5,9 +5,10 @@ const cssPath = 'src/ui/chatwoot-port/conversation-shell.css'
 const tokensPath = 'src/ui/chatwoot-port/tokens.css'
 
 describe('Chatwoot conversation geometry', () => {
-  it('owns the full visual viewport with three rows', () => {
+  it('fills its host with three rows without taking viewport ownership', () => {
     const css = fs.readFileSync(cssPath, 'utf8')
-    expect(css).toMatch(/height:\s*var\(--app-visual-height,\s*100dvh\)/)
+    expect(css).toMatch(/height:\s*100%/)
+    expect(css).not.toMatch(/height:\s*var\(--app-visual-height,\s*100dvh\)/)
     expect(css).toMatch(/grid-template-rows:\s*auto\s+minmax\(0,\s*1fr\)\s+auto/)
   })
 
