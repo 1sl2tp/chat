@@ -9,6 +9,7 @@ class FakeElement {
   value = ''
   type = ''
   ariaLabel = ''
+  disabled = false
   children: FakeElement[] = []
   dataset: Record<string, string> = {}
   innerHTML = ''
@@ -58,5 +59,19 @@ describe('Chatwoot reply box', () => {
     expect(root.children).toHaveLength(1)
     expect(root.children[0]?.className).toContain('cw-composer__recording')
     expect(find(root, 'TEXTAREA')).toBeUndefined()
+  })
+
+  it('stays mounted while disabled so User never loses the ReplyBox owner', () => {
+    const host = new FakeElement('footer')
+    const composer = createComposer({ host: host as unknown as HTMLElement })
+    composer.setEnabled(false)
+    const root = composer.element as unknown as FakeElement
+
+    expect(root.children).toHaveLength(3)
+    expect(root.children.every(child => child.disabled)).toBe(true)
+    expect(find(root, 'TEXTAREA')?.placeholder).toBe('Nhập tin nhắn…')
+
+    composer.setEnabled(true)
+    expect(root.children.every(child => !child.disabled)).toBe(true)
   })
 })
