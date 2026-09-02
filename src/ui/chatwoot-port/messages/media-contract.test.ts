@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { MessageViewModel } from '../contracts'
 import { presentMessages } from './message-model'
 import { createMessageListView, renderMessage } from './message-list'
+import audioRendererSource from './renderers/audio.ts?raw'
 
 class FakeElement {
   readonly tagName: string
@@ -75,6 +76,12 @@ describe('Chatwoot media presentation', () => {
     expect(findByClass(audio, 'cw-audio-player__range')).toBeTruthy()
     expect(findByClass(audio, 'cw-audio-player__time')).toBeTruthy()
     expect(findByClass(audio, 'cw-audio-player__label')?.textContent).toBe('Ghi âm')
+  })
+
+  it('recovers duration when MediaRecorder webm metadata reports an unknown or infinite duration', () => {
+    expect(audioRendererSource).toContain("audio.addEventListener('durationchange'")
+    expect(audioRendererSource).toContain('audio.currentTime = 1e101')
+    expect(audioRendererSource).toContain("time.textContent = '…'")
   })
 
   it('reuses the same audio root when an unchanged message list is updated', () => {
