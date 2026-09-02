@@ -1,111 +1,53 @@
 .cw-inbox {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  display: flex;
   min-width: 0;
   min-height: 0;
   height: 100%;
-  background: var(--cw-color-surface, #fff);
+  flex-direction: column;
+  background: #020617;
+  color: #f8fafc;
 }
 
 .cw-inbox__search {
   box-sizing: border-box;
   width: calc(100% - 24px);
   min-height: 40px;
-  margin: 10px 12px 8px;
-  padding: 0 12px;
-  border: 1px solid rgb(17 24 39 / 10%);
-  border-radius: 12px;
-  outline: 0;
-  background: #f4f6f8;
-  color: #111827;
-  font: inherit;
+  flex: 0 0 auto;
   font-size: 16px;
 }
-.cw-inbox__search:focus { border-color: #1f93ff; box-shadow: 0 0 0 2px rgb(31 147 255 / 10%); }
 
 .cw-inbox__list {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: env(safe-area-inset-bottom);
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
 }
 
 .cw-inbox__section { display: block; min-width: 0; }
 .cw-inbox__section-title {
   position: static;
   margin: 0;
-  padding: 12px 16px 7px;
-  background: #fff;
-  color: #6b7280;
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 16px;
-  letter-spacing: .06em;
+  color: #64748b;
 }
 
 .cw-inbox__row {
-  display: grid;
-  grid-template-columns: 42px minmax(0, 1fr);
-  width: 100%;
-  min-height: 70px;
-  align-items: start;
-  gap: 10px;
-  padding: 10px 14px;
-  border: 0;
-  border-top: 1px solid rgb(17 24 39 / 6%);
-  background: #fff;
-  color: #111827;
-  text-align: left;
-  cursor: pointer;
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 72px;
 }
-.cw-inbox__row:hover,.cw-inbox__row:focus-visible { background: #f7f9fb; }
-.cw-inbox__row:active { background: #eef3f8; }
+.cw-inbox__row:hover,.cw-inbox__row:focus-visible { background: #0f172a; border-color: #334155; }
+.cw-inbox__row:focus-visible { outline: 2px solid rgb(31 147 255 / 35%); outline-offset: 1px; }
 
 .cw-inbox__avatar-wrap { position: relative; display: block; }
-.cw-inbox__avatar {
-  display: grid;
-  width: 40px;
-  height: 40px;
-  place-items: center;
-  border-radius: 50%;
-  background: #e5e7eb;
-  color: #374151;
-  font-size: 12px;
-  font-weight: 700;
-}
-.cw-inbox__row[data-kind="user2"] .cw-inbox__avatar { background: #dbeafe; color: #1260a3; }
-
-.cw-inbox__row-copy,.cw-inbox__name-line,.cw-inbox__identity-line,.cw-inbox__preview-line {
-  display: flex;
-  min-width: 0;
-}
-.cw-inbox__row-copy { flex-direction: column; gap: 1px; }
-.cw-inbox__name-line { width: 100%; align-items: baseline; justify-content: space-between; gap: 10px; }
-.cw-inbox__identity-line,.cw-inbox__preview-line { width: 100%; }
-.cw-inbox__name-line strong,.cw-inbox__identity,.cw-inbox__preview { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cw-inbox__name-line strong { font-size: 14px; line-height: 19px; }
-.cw-inbox__name-line time { flex: 0 0 auto; color: #6b7280; font-size: 11px; line-height: 16px; }
-.cw-inbox__identity { color: #64748b; font-size: 11px; line-height: 15px; }
-.cw-inbox__preview { color: #6b7280; font-size: 12px; line-height: 17px; }
-.cw-inbox__empty { margin: 0; padding: 14px 16px 18px; color: #9ca3af; font-size: 13px; }
+.cw-inbox__avatar { box-sizing: border-box; }
+.cw-inbox__row-copy,.cw-inbox__name-line,.cw-inbox__identity-line,.cw-inbox__preview-line { min-width: 0; }
+.cw-inbox__empty { color: #475569; }
 
 @media (max-width: 640px) {
-  .cw-inbox { background: #f8fafc; }
-  .cw-inbox__search { margin: 10px 12px; background: #fff; }
-  .cw-inbox__list { padding: 0 10px calc(10px + env(safe-area-inset-bottom)); }
-  .cw-inbox__section-title { padding: 10px 4px 6px; background: transparent; font-size: 10px; }
-  .cw-inbox__row {
-    grid-template-columns: 42px minmax(0, 1fr);
-    min-height: 72px;
-    margin-bottom: 7px;
-    padding: 10px;
-    border: 1px solid rgb(17 24 39 / 8%);
-    border-radius: 16px;
-    background: #fff;
-    box-shadow: 0 1px 2px rgb(15 23 42 / 4%);
-  }
-  .cw-inbox__row[data-kind="user2"] { border-color: rgb(31 147 255 / 22%); }
-  .cw-inbox__name-line strong { font-size: 13px; }
-  .cw-inbox__preview { font-size: 11px; }
+  .cw-inbox { background: #020617; }
+  .cw-inbox__list { padding-inline: 10px; }
+  .cw-inbox__search { margin-inline: 10px; width: calc(100% - 20px); }
+  .cw-inbox__row { min-height: 72px; }
+  .cw-inbox__avatar { width: 40px; height: 40px; }
 }
