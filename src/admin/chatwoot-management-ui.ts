@@ -218,9 +218,9 @@ function renderManagementPanel(panel: HTMLElement, state: AdminState): void {
 function attachWorkspace(app: HTMLElement): () => void {
   const inboxHost = app.querySelector<HTMLElement>('#inbox')
   const inboxPane = app.querySelector<HTMLElement>('.admin-inbox')
-  const chatHeader = app.querySelector<HTMLElement>('.admin-chat > header')
+  const conversationHost = app.querySelector<HTMLElement>('#admin-conversation-host')
   const headerActions = app.querySelector<HTMLElement>('.admin-header-actions')
-  if (!inboxHost || !inboxPane || !chatHeader || !headerActions) return () => undefined
+  if (!inboxHost || !inboxPane || !conversationHost || !headerActions) return () => undefined
 
   const createButton = document.createElement('button')
   createButton.type = 'button'
@@ -234,7 +234,7 @@ function attachWorkspace(app: HTMLElement): () => void {
   const managementPanel = document.createElement('section')
   managementPanel.className = 'admin-user-management'
   managementPanel.hidden = true
-  chatHeader.insertAdjacentElement('afterend', managementPanel)
+  inboxPane.insertBefore(managementPanel, inboxHost)
 
   let inboxView: InboxView | null = mountInbox({
     host: inboxHost,
