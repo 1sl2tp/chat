@@ -46,5 +46,6 @@ export interface ConversationActionsAdapter {
   sendAttachment(file: File): Promise<void>
   startVoiceRecording(): Promise<void>
   stopVoiceRecording(): Promise<void>
+  cancelVoiceRecording?(): Promise<void>
   startCall(): Promise<void>
 }
