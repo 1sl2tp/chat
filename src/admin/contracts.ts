@@ -2,6 +2,8 @@ export interface AdminInboxItem {
   conversationId: string
   profileId: string
   displayName: string | null
+  username: string | null
+  userLevel: number
   identityType: string
   address: string | null
   customerLastSeenAt: string | null
@@ -24,6 +26,8 @@ export interface AdminSupportDetail {
   conversationId: string
   profileId: string
   displayName: string | null
+  username: string | null
+  userLevel: number
   identityType: string
   address: string | null
   customerLastSeenAt: string | null
@@ -50,6 +54,10 @@ function requiredText(value: unknown, field: string): string {
   return value
 }
 
+function userLevel(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : 1
+}
+
 export function decodeAdminInbox(value: unknown): AdminInboxItem[] {
   if (!Array.isArray(value)) return []
   return value.map((item) => {
@@ -58,6 +66,8 @@ export function decodeAdminInbox(value: unknown): AdminInboxItem[] {
       conversationId: requiredText(row.conversation_id, 'conversation_id'),
       profileId: requiredText(row.profile_id, 'profile_id'),
       displayName: text(row.display_name),
+      username: text(row.username),
+      userLevel: userLevel(row.user_level),
       identityType: text(row.identity_type) ?? 'unknown',
       address: text(row.address),
       customerLastSeenAt: text(row.customer_last_seen_at),
@@ -87,6 +97,8 @@ export function decodeAdminDetail(value: unknown): AdminSupportDetail {
     conversationId: requiredText(row.conversation_id, 'conversation_id'),
     profileId: requiredText(row.profile_id, 'profile_id'),
     displayName: text(row.display_name),
+    username: text(row.username),
+    userLevel: userLevel(row.user_level),
     identityType: text(row.identity_type) ?? 'unknown',
     address: text(row.address),
     customerLastSeenAt: text(row.customer_last_seen_at),
