@@ -1,7 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import userMainSource from '../../../user-main.ts?raw'
-import adminMainSource from '../../../admin-main.ts?raw'
+import callFacadeSource from '../../../call/ui.ts?raw'
 
 const sourcePath = new URL('./call-widget.ts', import.meta.url)
 const cssPath = new URL('./call-widget.css', import.meta.url)
@@ -18,12 +17,10 @@ describe('Chatwoot CallWidget production contract', () => {
     expect(css).toContain('backdrop-filter: blur')
   })
 
-  it('replaces the legacy call presentation in User and Hỗ trợ entries', () => {
-    for (const source of [userMainSource, adminMainSource]) {
-      expect(source).toContain("from './ui/chatwoot-port/call/call-widget'")
-      expect(source).toContain('mountChatwootCallUi')
-      expect(source).not.toContain('mountVoiceCallUi')
-      expect(source).not.toContain("from './call/ui'")
-    }
+  it('owns all visible Call DOM behind the existing runtime facade', () => {
+    expect(callFacadeSource).toContain("from '../ui/chatwoot-port/call/call-widget'")
+    expect(callFacadeSource).toContain('export const mountVoiceCallUi = mountChatwootCallUi')
+    expect(callFacadeSource).not.toContain('voice-call-full')
+    expect(callFacadeSource).not.toContain('voice-call-pill')
   })
 })
