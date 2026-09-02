@@ -7,13 +7,13 @@ for (const [name, source] of [['User', userSource], ['Admin', adminSource]] as c
     it('uses the shared readiness presentation and exposes re-test', () => {
       expect(source).toContain('notificationButtonPresentation')
       expect(source).toContain('getIssue()')
-      expect(source).toContain('testFromUserGesture()')
+      expect(source).toContain('testFromUserGesture')
       expect(source).toContain('enableFromUserGesture()')
     })
 
     it('shows visible progress while the notification action is running', () => {
       expect(source).toContain('notificationActionPending')
-      expect(source).toContain('await registration.testFromUserGesture()')
+      expect(source).toContain('await registration.testFromUserGesture')
       expect(source).toContain('await registration.enableFromUserGesture()')
     })
 
