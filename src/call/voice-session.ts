@@ -30,6 +30,7 @@ export interface VoiceCallState {
   speakerAvailable: boolean
   speakerSelected: boolean
   audioBlocked: boolean
+  resumeRequired: boolean
   permissionNotice: string | null
   connectedAt: number | null
   error: string | null
@@ -64,6 +65,7 @@ const DEFAULT_STATE: VoiceCallState = {
   speakerAvailable: false,
   speakerSelected: false,
   audioBlocked: false,
+  resumeRequired: false,
   permissionNotice: null,
   connectedAt: null,
   error: null,
@@ -348,7 +350,7 @@ export class VoiceCallSession {
 
   private async handleForeground(): Promise<void> {
     await this.pollActiveCalls()
-    if (this.restoringCallId) return
+    if (this.restoringCallId || this.state.resumeRequired) return
     if (!['active', 'connecting', 'reconnecting'].includes(this.state.phase)) return
 
     try {
@@ -385,6 +387,7 @@ export class VoiceCallSession {
           peerName: incoming.caller_display_name || 'Người gọi',
           connectedAt: null,
           audioBlocked: false,
+          resumeRequired: false,
           permissionNotice: null,
           error: null,
         })
@@ -449,23 +452,25 @@ export class VoiceCallSession {
 
     this.publish({
       phase,
-      display: row.state === 'connected' ? 'compact' : 'full',
+      display: 'full',
       direction,
       callId: row.id,
       peerName,
       connectedAt: connectedAtFromRow(row.connected_at),
       audioBlocked: false,
+      resumeRequired: row.state !== 'ringing',
       permissionNotice: null,
       error: null,
     })
 
-    try {
-      await this.joinLiveKit(row.id, context)
-    } catch (error) {
-      this.fail(error)
-    } finally {
-      this.restoringCallId = null
+    if (row.state === 'ringing') {
+      try {
+        await this.joinLiveKit(row.id, context)
+      } catch (error) {
+        this.fail(error)
+      }
     }
+    this.restoringCallId = null
   }
 
   private async joinLiveKit(callId: string, context: VoiceCallContext): Promise<void> {
@@ -475,6 +480,7 @@ export class VoiceCallSession {
     this.publish({
       speakerAvailable: this.media.canTogglePhoneSpeaker() || this.media.canChooseAudioOutput(),
       speakerSelected: this.media.defaultSpeakerSelected(),
+      resumeRequired: false,
     })
     await this.reportMediaEvent('joined', {
       room: `taphoa-call-${callId.toLowerCase()}`,
