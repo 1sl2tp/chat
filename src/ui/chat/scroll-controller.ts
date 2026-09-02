@@ -8,6 +8,7 @@ export interface ConversationScrollController {
   capturePosition(): void
   onViewportChange(): void
   onMessagesChanged(): void
+  onComposerFocus(): void
 }
 
 export function createConversationScrollController(scroller: HTMLElement): ConversationScrollController {
@@ -30,6 +31,10 @@ export function createConversationScrollController(scroller: HTMLElement): Conve
     },
     onMessagesChanged() {
       if (keepBottom) requestAnimationFrame(scrollToBottom)
+    },
+    onComposerFocus() {
+      keepBottom = true
+      requestAnimationFrame(scrollToBottom)
     },
   }
 }
