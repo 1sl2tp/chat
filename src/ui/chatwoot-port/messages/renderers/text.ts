@@ -1,11 +1,13 @@
 import type { PresentedMessage } from '../message-model'
+import { formatMessageTime } from '../message-time'
 
 function createFooter(message: PresentedMessage): HTMLElement {
   const footer = document.createElement('div')
   footer.className = 'cw-message__footer'
   const time = document.createElement('time')
   time.className = 'cw-message__time'
-  time.textContent = message.createdAt
+  time.dateTime = message.createdAt
+  time.textContent = formatMessageTime(message.createdAt)
   footer.append(time)
   return footer
 }
