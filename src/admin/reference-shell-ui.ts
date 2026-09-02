@@ -99,7 +99,7 @@ function decorateAdminApp(app: HTMLElement): () => void {
   }
   const onToggle = (event: Event) => {
     event.stopPropagation()
-    toggleMenu(accountMenu.hidden)
+    toggleMenu(Boolean(accountMenu.hidden))
   }
   const onMenuClick = (event: Event) => event.stopPropagation()
   const onDocumentClick = () => toggleMenu(false)
