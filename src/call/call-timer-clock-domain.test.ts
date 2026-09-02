@@ -2,13 +2,14 @@ import { describe, expect, it } from 'vitest'
 import { connectedAtForPolling } from './voice-session'
 
 describe('live call timer clock domain', () => {
-  it('starts from local now instead of a server wall-clock timestamp', () => {
-    const localNow = 1_000_000
-    expect(connectedAtForPolling(null, localNow)).toBe(localNow)
+  it('uses the authoritative connected timestamp when there is no local start yet', () => {
+    const serverConnectedAt = 1_000_000
+    expect(connectedAtForPolling(null, serverConnectedAt)).toBe(serverConnectedAt)
   })
 
-  it('preserves the existing local start when polling connected state', () => {
+  it('replaces a device-local start with the authoritative server connected timestamp', () => {
     const localStartedAt = 1_000_000
-    expect(connectedAtForPolling(localStartedAt, 1_015_000)).toBe(localStartedAt)
+    const serverConnectedAt = 990_000
+    expect(connectedAtForPolling(localStartedAt, serverConnectedAt)).toBe(serverConnectedAt)
   })
 })
