@@ -229,18 +229,54 @@ async function copyText(text: string): Promise<void> {
   await navigator.clipboard.writeText(text)
 }
 
-async function shareMessage(message: ChatMessage, options: MessageListOptions): Promise<void> {
-  const attachment = message.attachment
-  const url = attachment && options.resolveAttachmentUrl
-    ? await options.resolveAttachmentUrl(attachment.path)
-    : ''
-  const text = message.text?.trim() || attachment?.name || 'Tệp đính kèm'
-
+async function shareResolvedUrl(url: string, name: string): Promise<void> {
   if (navigator.share) {
-    await navigator.share({ title: attachment?.name ?? 'Tin nhắn', text, ...(url ? { url } : {}) })
+    await navigator.share({ title: name, url })
     return
   }
-  await copyText([text, url].filter(Boolean).join('\n'))
+  await copyText(url)
+}
+
+async function shareMessage(message: ChatMessage): Promise<void> {
+  const text = message.text?.trim() ?? ''
+  if (!text) return
+  if (navigator.share) {
+    await navigator.share({ text })
+    return
+  }
+  await copyText(text)
+}
+
+function formatMediaTime(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) return '0:00'
+  const total = Math.floor(seconds)
+  const minutes = Math.floor(total / 60)
+  const remainder = total % 60
+  return `${minutes}:${String(remainder).padStart(2, '0')}`
+}
+
+function createMediaTools(name: string): {
+  host: HTMLElement
+  save: HTMLAnchorElement
+  share: HTMLButtonElement
+} {
+  const host = document.createElement('div')
+  host.className = 'chat-attachment__tools'
+
+  const save = document.createElement('a')
+  save.className = 'chat-attachment__tool chat-attachment__tool--save'
+  save.textContent = 'Lưu'
+  save.download = name
+  save.setAttribute('aria-label', `Lưu ${name}`)
+
+  const share = document.createElement('button')
+  share.type = 'button'
+  share.className = 'chat-attachment__tool chat-attachment__tool--share'
+  share.textContent = 'Chia sẻ'
+  share.setAttribute('aria-label', `Chia sẻ ${name}`)
+
+  host.append(save, share)
+  return { host, save, share }
 }
 
 function renderAttachment(bubble: HTMLElement, message: ChatMessage, options: MessageListOptions): void {
@@ -277,34 +313,91 @@ function renderAttachment(bubble: HTMLElement, message: ChatMessage, options: Me
 
   if (attachment.kind === 'audio') {
     const audio = document.createElement('audio')
-    audio.className = 'chat-attachment__audio-player'
-    audio.controls = true
     audio.preload = 'metadata'
-    audio.setAttribute('aria-label', attachment.name || 'Tin nhắn thoại')
-    host.append(audio)
+    audio.hidden = true
+
+    const player = document.createElement('div')
+    player.className = 'chat-audio-player'
+    const play = document.createElement('button')
+    play.type = 'button'
+    play.className = 'chat-audio-player__play'
+    play.textContent = '▶'
+    play.setAttribute('aria-label', 'Phát ghi âm')
+
+    const range = document.createElement('input')
+    range.type = 'range'
+    range.className = 'chat-audio-player__range'
+    range.min = '0'
+    range.max = '1000'
+    range.value = '0'
+    range.step = '1'
+    range.setAttribute('aria-label', 'Vị trí phát ghi âm')
+
+    const time = document.createElement('span')
+    time.className = 'chat-audio-player__time'
+    time.textContent = '0:00'
+
+    const tools = createMediaTools(attachment.name || 'ghi-am.webm')
+    player.append(play, range, time)
+    host.append(player, tools.host, audio)
+
+    const sync = () => {
+      const duration = Number.isFinite(audio.duration) ? audio.duration : 0
+      const current = Number.isFinite(audio.currentTime) ? audio.currentTime : 0
+      range.value = duration > 0 ? String(Math.round((current / duration) * 1000)) : '0'
+      time.textContent = duration > 0
+        ? `${formatMediaTime(current)} / ${formatMediaTime(duration)}`
+        : formatMediaTime(current)
+      play.textContent = audio.paused ? '▶' : '❚❚'
+      play.setAttribute('aria-label', audio.paused ? 'Phát ghi âm' : 'Tạm dừng ghi âm')
+    }
+
+    play.addEventListener('click', () => {
+      if (audio.paused) void audio.play().catch(() => {})
+      else audio.pause()
+    })
+    range.addEventListener('input', () => {
+      if (!Number.isFinite(audio.duration) || audio.duration <= 0) return
+      audio.currentTime = (Number(range.value) / 1000) * audio.duration
+      sync()
+    })
+    audio.addEventListener('loadedmetadata', sync)
+    audio.addEventListener('timeupdate', sync)
+    audio.addEventListener('play', sync)
+    audio.addEventListener('pause', sync)
+    audio.addEventListener('ended', sync)
+
     void options.resolveAttachmentUrl(attachment.path).then((url) => {
       audio.src = url
+      tools.save.href = url
+      tools.share.addEventListener('click', () => void shareResolvedUrl(url, attachment.name || 'Ghi âm').catch(() => {}))
     }).catch(() => {
       host.textContent = 'Không phát được ghi âm.'
     })
     return
   }
 
-  const link = document.createElement('a')
-  link.className = 'chat-attachment__file'
-  link.target = '_blank'
-  link.rel = 'noopener noreferrer'
-  link.innerHTML = `${iconSvg('file')}<span>${attachment.name}</span>`
-  host.append(link)
+  const card = document.createElement('a')
+  card.className = 'chat-attachment__file'
+  card.target = '_blank'
+  card.rel = 'noopener noreferrer'
+  card.innerHTML = `${iconSvg('file')}<span>${attachment.name}</span>`
+  const tools = createMediaTools(attachment.name)
+  host.append(card, tools.host)
+
   void options.resolveAttachmentUrl(attachment.path).then((url) => {
-    link.href = url
+    card.href = url
+    tools.save.href = url
+    tools.share.addEventListener('click', () => void shareResolvedUrl(url, attachment.name).catch(() => {}))
   }).catch(() => {
-    link.removeAttribute('href')
-    link.title = 'Không mở được tệp.'
+    card.removeAttribute('href')
+    tools.save.removeAttribute('href')
+    card.title = 'Không mở được tệp.'
   })
 }
 
 function renderReactionSummary(bubble: HTMLElement, message: ChatMessage, options: MessageListOptions): void {
+  if (!getMessageActionCapabilities(message).heart) return
   const presentation = options.getHeart?.(message.id)
   if (!presentation || presentation.count <= 0) return
 
@@ -346,7 +439,8 @@ function attachHeartGesture(bubble: HTMLElement, message: ChatMessage, options: 
   })
 }
 
-function renderActions(row: HTMLElement, message: ChatMessage, options: MessageListOptions): void {
+function renderActions(row: HTMLElement, bubble: HTMLElement, message: ChatMessage, options: MessageListOptions): void {
+  if (message.attachment) return
   const capabilities = getMessageActionCapabilities(message)
   if (!capabilities.heart && !capabilities.copy && !capabilities.share) return
 
@@ -366,10 +460,11 @@ function renderActions(row: HTMLElement, message: ChatMessage, options: MessageL
   actions.setAttribute('role', 'group')
   actions.setAttribute('aria-label', 'Thao tác tin nhắn')
 
-  const closeMenu = () => {
-    shell.dataset.actionsOpen = 'false'
-    toggle.setAttribute('aria-expanded', 'false')
+  const setOpen = (open: boolean) => {
+    shell.dataset.actionsOpen = open ? 'true' : 'false'
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false')
   }
+  const closeMenu = () => setOpen(false)
 
   if (capabilities.heart && options.onHeart) {
     const heart = addIconButton(actions, 'heart', 'Thả tim')
@@ -389,19 +484,37 @@ function renderActions(row: HTMLElement, message: ChatMessage, options: MessageL
     })
   }
 
-  if (capabilities.share) {
+  if (capabilities.share && message.text) {
     const share = addIconButton(actions, 'share', 'Chia sẻ')
     share.addEventListener('click', () => {
-      void shareMessage(message, options).catch(() => {})
+      void shareMessage(message).catch(() => {})
       closeMenu()
     })
   }
 
-  toggle.addEventListener('click', () => {
-    const open = shell.dataset.actionsOpen !== 'true'
-    shell.dataset.actionsOpen = open ? 'true' : 'false'
-    toggle.setAttribute('aria-expanded', open ? 'true' : 'false')
+  toggle.addEventListener('click', () => setOpen(shell.dataset.actionsOpen !== 'true'))
+  bubble.addEventListener('contextmenu', (event) => {
+    event.preventDefault()
+    setOpen(true)
   })
+
+  let longPressTimer = 0
+  const cancelLongPress = () => {
+    if (!longPressTimer) return
+    window.clearTimeout(longPressTimer)
+    longPressTimer = 0
+  }
+  bubble.addEventListener('pointerdown', (event) => {
+    if (event.pointerType === 'mouse' || isInteractiveTarget(event.target)) return
+    cancelLongPress()
+    longPressTimer = window.setTimeout(() => {
+      longPressTimer = 0
+      setOpen(true)
+    }, 450)
+  })
+  bubble.addEventListener('pointerup', cancelLongPress)
+  bubble.addEventListener('pointercancel', cancelLongPress)
+  bubble.addEventListener('pointermove', cancelLongPress)
 
   shell.append(toggle, actions)
   row.append(shell)
@@ -444,7 +557,7 @@ export function renderMessageList(
     renderReactionSummary(bubble, message, options)
     attachHeartGesture(bubble, message, options)
     row.append(bubble)
-    renderActions(row, message, options)
+    renderActions(row, bubble, message, options)
     fragment.append(row)
   }
 
