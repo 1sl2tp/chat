@@ -1,10 +1,12 @@
 import type { PresentedMessage } from '../message-model'
 import { createMediaActions } from './media-actions'
+import { applyIncomingSenderAvatar } from './sender-avatar'
 
 export function renderImageMessage(message: PresentedMessage): HTMLElement {
   const row = document.createElement('article')
   row.className = `cw-message cw-message--image cw-message--${message.direction}`
   row.dataset.messageId = message.id
+  applyIncomingSenderAvatar(row, message)
 
   const frame = document.createElement('figure')
   frame.className = 'cw-media cw-media--image'

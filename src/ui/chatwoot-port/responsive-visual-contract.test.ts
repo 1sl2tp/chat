@@ -21,9 +21,9 @@ describe('PC + mobile Chatwoot visual contract', () => {
     expect(inboxSource).toContain('cw-inbox__row-copy')
   })
 
-  it('keeps outgoing messages blue and incoming messages neutral like the PC/mobile references', () => {
-    expect(messageCss).toContain('.cw-message--outgoing .cw-message__bubble { background: #1f6feb; color: #fff; }')
-    expect(messageCss).toContain('.cw-message--incoming .cw-message__bubble { background: #f1f3f5; color: #374151; }')
+  it('keeps outgoing messages Chatwoot blue and incoming messages Slate like the approved references', () => {
+    expect(messageCss).toContain('.cw-message--outgoing .cw-message__bubble { background: #1f93ff; color: #fff; border: 1px solid transparent; }')
+    expect(messageCss).toContain('.cw-message--incoming .cw-message__bubble { background: #1e293b; color: #f1f5f9; border: 1px solid #334155; }')
   })
 
   it('has a mobile-specific header/message geometry without creating a second runtime', () => {

@@ -1,5 +1,4 @@
 import { composerEnterAction, isMobileComposerEnvironment } from '../../../chat/ui/composer-behavior'
-import { setButtonIcon } from '../../icons'
 
 export interface ComposerOptions {
   host: HTMLElement
@@ -27,6 +26,15 @@ function formatElapsed(seconds: number): string {
   return `${minutes}:${remainder}`
 }
 
+function setReferenceIcon(button: HTMLButtonElement, iconClass: string, label: string): void {
+  button.setAttribute('aria-label', label)
+  button.title = label
+  const icon = document.createElement('i')
+  icon.className = iconClass
+  icon.setAttribute('aria-hidden', 'true')
+  button.replaceChildren(icon)
+}
+
 export function createComposer(options: ComposerOptions): ComposerView {
   const root = document.createElement('div')
   root.className = 'cw-composer'
@@ -42,7 +50,6 @@ export function createComposer(options: ComposerOptions): ComposerView {
   let enabled = true
   let recording = false
   let controls: Array<HTMLButtonElement | HTMLTextAreaElement> = []
-  let actionButton: HTMLButtonElement | null = null
   let recordingClock: ReturnType<typeof setInterval> | null = null
 
   const stopRecordingClock = () => {
@@ -54,22 +61,14 @@ export function createComposer(options: ComposerOptions): ComposerView {
     for (const control of controls) control.disabled = !enabled
   }
 
-  const syncAction = () => {
-    if (!actionButton) return
-    const hasText = textarea.value.trim().length > 0
-    setButtonIcon(actionButton, hasText ? 'send' : 'mic', hasText ? 'Gửi' : 'Ghi âm')
-  }
-
   const sendText = async () => {
     if (!enabled || recording) return
     const text = textarea.value.trim()
     if (!text) return
     await options.onSend?.(text)
     textarea.value = ''
-    syncAction()
   }
 
-  textarea.addEventListener('input', syncAction)
   textarea.addEventListener('focus', () => options.onFocus?.())
   textarea.addEventListener('keydown', (event) => {
     if (event.key !== 'Enter' || event.isComposing) return
@@ -81,34 +80,43 @@ export function createComposer(options: ComposerOptions): ComposerView {
   const renderNormal = () => {
     stopRecordingClock()
     recording = false
+
     const addButton = document.createElement('button')
     addButton.className = 'cw-composer__button cw-composer__button--add'
     addButton.type = 'button'
-    setButtonIcon(addButton, 'plus', 'Đính kèm')
+    setReferenceIcon(addButton, 'fa-solid fa-paperclip', 'Đính kèm')
     addButton.addEventListener('click', () => options.onAttach?.())
 
-    actionButton = document.createElement('button')
-    actionButton.className = 'cw-composer__button cw-composer__button--action'
-    actionButton.type = 'button'
-    actionButton.addEventListener('click', () => {
+    const inputWrap = document.createElement('div')
+    inputWrap.className = 'cw-composer__input-wrap'
+
+    const voiceButton = document.createElement('button')
+    voiceButton.className = 'cw-composer__button cw-composer__button--voice'
+    voiceButton.type = 'button'
+    setReferenceIcon(voiceButton, 'fa-solid fa-microphone', 'Ghi âm')
+    voiceButton.addEventListener('click', () => {
       if (!enabled) return
-      if (textarea.value.trim()) {
-        void sendText().catch(() => {})
-      } else {
-        void options.onVoiceStart?.()
-      }
+      void options.onVoiceStart?.()
     })
 
-    controls = [addButton, textarea, actionButton]
-    syncAction()
+    const sendButton = document.createElement('button')
+    sendButton.className = 'cw-composer__button cw-composer__button--send'
+    sendButton.type = 'button'
+    setReferenceIcon(sendButton, 'fa-solid fa-paper-plane', 'Gửi')
+    sendButton.addEventListener('click', () => {
+      if (!enabled) return
+      void sendText().catch(() => {})
+    })
+
+    inputWrap.append(textarea, voiceButton)
+    controls = [addButton, textarea, voiceButton, sendButton]
     syncEnabled()
-    root.replaceChildren(addButton, textarea, actionButton)
+    root.replaceChildren(addButton, inputWrap, sendButton)
   }
 
   const renderRecording = () => {
     stopRecordingClock()
     recording = true
-    actionButton = null
 
     const recordingRow = document.createElement('div')
     recordingRow.className = 'cw-composer__recording'
@@ -175,12 +183,10 @@ export function createComposer(options: ComposerOptions): ComposerView {
     },
     setText(text) {
       textarea.value = text
-      syncAction()
     },
     destroy() {
       stopRecordingClock()
       controls = []
-      actionButton = null
       options.host.replaceChildren()
     },
   }

@@ -1,5 +1,6 @@
 import type { PresentedMessage } from '../message-model'
 import { formatMessageTime } from '../message-time'
+import { senderInitials } from './sender-avatar'
 
 function createFooter(message: PresentedMessage): HTMLElement {
   const footer = document.createElement('div')
@@ -18,6 +19,8 @@ export function renderTextMessage(message: PresentedMessage): HTMLElement {
   if (message.groupWithPrevious) row.className += ' cw-message--group-previous'
   if (message.groupWithNext) row.className += ' cw-message--group-next'
   row.dataset.messageId = message.id
+  const dataSenderInitials = senderInitials(message.senderLabel)
+  if (message.direction === 'incoming') row.dataset.senderInitials = dataSenderInitials
 
   const bubble = document.createElement('div')
   bubble.className = 'cw-message__bubble'

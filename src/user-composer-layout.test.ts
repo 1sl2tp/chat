@@ -21,6 +21,7 @@ describe('User Chatwoot conversation ownership', () => {
 
   it('moves the existing User menu action into the Chatwoot header instead of keeping a second header', () => {
     expect(chatHeaderSource).toContain("querySelector<HTMLButtonElement>('#user-menu')")
-    expect(chatHeaderSource).toContain("setButtonIcon(userMenu, 'menu', 'Mở menu')")
+    expect(chatHeaderSource).toContain("applyHeaderIcon(userMenu, 'menu', 'Mở menu')")
+    expect(chatHeaderSource).toContain("fa-solid fa-bars")
   })
 })

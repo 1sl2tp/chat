@@ -25,9 +25,9 @@ describe('Chatwoot responsive release matrix 280→1440', () => {
   })
 
   it('keeps one fluid conversation owner with no minimum-width trap at every release width', () => {
-    expect(conversationCss).toMatch(/\.cw-conversation\s*\{[^}]*width:\s*100%[^}]*min-width:\s*0/s)
-    expect(conversationCss).toMatch(/grid-template-rows:\s*auto\s+minmax\(0,\s*1fr\)\s+auto/)
-    expect(conversationCss).toMatch(/\.cw-conversation__timeline\s*\{[^}]*min-width:\s*0[^}]*min-height:\s*0[^}]*overflow-y:\s*auto/s)
+    expect(conversationCss).toMatch(/\.cw-conversation\s*\{[^}]*display:\s*flex[^}]*flex-direction:\s*column[^}]*width:\s*100%[^}]*min-width:\s*0/s)
+    expect(conversationCss).toMatch(/\.cw-conversation__timeline\s*\{[^}]*flex:\s*1\s+1\s+auto[^}]*min-width:\s*0[^}]*min-height:\s*0[^}]*overflow-y:\s*auto/s)
+    expect(conversationCss).toMatch(/\.cw-conversation__composer\s*\{[^}]*flex:\s*0\s+0\s+auto/s)
 
     for (const width of RELEASE_WIDTHS) {
       expect(width).toBeGreaterThanOrEqual(280)

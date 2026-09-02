@@ -9,6 +9,7 @@ class FakeElement {
   dataset: Record<string, string> = {}
   type = ''
   ariaLabel = ''
+  hidden = false
   private listeners = new Map<string, (() => void)[]>()
 
   constructor(tagName: string) {
@@ -56,14 +57,18 @@ describe('Chatwoot conversation shell', () => {
     expect(mounted.composerHost).toBe(shell.children[2] as unknown as HTMLElement)
   })
 
-  it('uses the same shell regardless of User/Admin route context', () => {
+  it('uses the same dark reference shell regardless of User/Admin route context', () => {
     const root = new FakeElement('div')
     mountConversationScreen({
       root: root as unknown as HTMLElement,
       model: { id: 'c-2', title: 'test1', subtitle: 'User 2 · @test1', messages: [] },
     })
 
-    expect(root.children[0]?.className).toBe('cw-conversation')
-    expect(root.children[0]?.dataset.conversationId).toBe('c-2')
+    const shell = root.children[0]!
+    const classes = shell.className.split(/\s+/)
+    expect(classes).toContain('cw-conversation')
+    expect(classes).toContain('bg-slate-950')
+    expect(classes).toContain('flex-col')
+    expect(shell.dataset.conversationId).toBe('c-2')
   })
 })

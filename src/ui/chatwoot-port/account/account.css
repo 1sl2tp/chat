@@ -3,14 +3,16 @@
   gap: 14px;
   min-width: 0;
   padding: 8px 0 max(14px, env(safe-area-inset-bottom));
+  color: #f8fafc;
 }
 
 .cw-account__identity {
   display: grid;
   gap: 3px;
   padding: 12px 14px;
+  border: 1px solid #1e293b;
   border-radius: 16px;
-  background: #f5f6f8;
+  background: #020617;
 }
 
 .cw-account__display-name {
@@ -18,9 +20,9 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #111827;
-  font-size: 17px;
-  line-height: 22px;
+  color: #f8fafc;
+  font-size: 15px;
+  line-height: 20px;
 }
 
 .cw-account__username,
@@ -29,9 +31,20 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #6b7280;
-  font-size: 12px;
-  line-height: 17px;
+  color: #94a3b8;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.cw-account__kind {
+  width: max-content;
+  padding: 2px 7px;
+  border: 1px solid rgb(31 147 255 / 28%);
+  border-radius: 999px;
+  background: rgb(31 147 255 / 12%);
+  color: #60a5fa;
+  font-size: 9px;
+  font-weight: 700;
 }
 
 .cw-account__group {
@@ -43,16 +56,20 @@
 .cw-account__group-title {
   margin: 0;
   padding: 0 4px;
-  color: #6b7280;
-  font-size: 12px;
+  color: #64748b;
+  font-size: 10px;
   font-weight: 700;
-  line-height: 18px;
+  line-height: 16px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
 }
 
 .cw-account__group-body {
   display: grid;
   gap: 8px;
   min-width: 0;
+  border-radius: 12px;
+  background: #0f172a;
 }
 
 .cw-account__group-body[hidden] {
@@ -62,11 +79,18 @@
 .cw-account__delete {
   width: 100%;
   min-height: 44px;
-  border: 0;
+  border: 1px solid rgb(239 68 68 / 35%);
   border-radius: 12px;
-  background: #fff1f2;
-  color: #b42318;
+  background: rgb(69 10 10 / 35%);
+  color: #f87171;
   font: inherit;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.cw-account__group-body button:focus-visible,
+.cw-account__group-body input:focus-visible,
+.cw-account__group-body select:focus-visible {
+  outline: 2px solid #1f93ff;
+  outline-offset: 2px;
 }

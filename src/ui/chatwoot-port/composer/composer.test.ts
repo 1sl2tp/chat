@@ -39,6 +39,11 @@ function find(root: FakeElement, tag: string): FakeElement | undefined {
   return undefined
 }
 
+function interactive(root: FakeElement): FakeElement[] {
+  const own = root.tagName === 'BUTTON' || root.tagName === 'TEXTAREA' ? [root] : []
+  return own.concat(root.children.flatMap(interactive))
+}
+
 describe('Chatwoot reply box', () => {
   beforeEach(() => {
     Object.defineProperty(globalThis, 'document', {
@@ -48,15 +53,16 @@ describe('Chatwoot reply box', () => {
   })
   afterEach(() => Reflect.deleteProperty(globalThis, 'document'))
 
-  it('renders one compact + | textarea | mic/send row', () => {
+  it('renders reference attach | input+voice | send composition', () => {
     const host = new FakeElement('footer')
     const composer = createComposer({ host: host as unknown as HTMLElement, isMobile: false })
     const root = composer.element as unknown as FakeElement
     expect(root.children).toHaveLength(3)
     expect(root.children[0]?.tagName).toBe('BUTTON')
-    expect(root.children[1]?.tagName).toBe('TEXTAREA')
-    expect(root.children[2]?.tagName).toBe('BUTTON')
+    expect(root.children[1]?.className).toContain('cw-composer__input-wrap')
+    expect(root.children[2]?.className).toContain('cw-composer__button--send')
     expect(find(root, 'TEXTAREA')?.placeholder).toBe('Nhập tin nhắn…')
+    expect(root.children[1]?.children.some(child => child.className.includes('cw-composer__button--voice'))).toBe(true)
   })
 
   it('replaces the normal input row while recording instead of stacking a second card', () => {
@@ -76,11 +82,11 @@ describe('Chatwoot reply box', () => {
     const root = composer.element as unknown as FakeElement
 
     expect(root.children).toHaveLength(3)
-    expect(root.children.every(child => child.disabled)).toBe(true)
+    expect(interactive(root).every(control => control.disabled)).toBe(true)
     expect(find(root, 'TEXTAREA')?.placeholder).toBe('Nhập tin nhắn…')
 
     composer.setEnabled(true)
-    expect(root.children.every(child => !child.disabled)).toBe(true)
+    expect(interactive(root).every(control => !control.disabled)).toBe(true)
   })
 
   it('sends with Enter on desktop but keeps Shift+Enter as a newline', async () => {

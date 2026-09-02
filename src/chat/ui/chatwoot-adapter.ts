@@ -46,6 +46,7 @@ function toMessageViewModel(
   message: ChatMessage,
   currentProfileId: string | null,
   attachmentUrls: Readonly<Record<string, string>>,
+  peerTitle: string,
 ): MessageViewModel {
   const kind = kindForMessage(message)
   const center = kind === 'system' || kind === 'call'
@@ -71,6 +72,7 @@ function toMessageViewModel(
     kind,
     direction,
     senderId: center ? undefined : message.sender_id,
+    senderLabel: direction === 'incoming' ? peerTitle : undefined,
     text: message.revoked_at ? 'Tin nhắn đã được thu hồi' : message.text ?? undefined,
     createdAt: message.created_at,
     callId: message.call_id ?? undefined,
@@ -88,7 +90,12 @@ export function toConversationViewModel(state: ExistingConversationRuntimeState)
     title: state.title,
     subtitle: state.subtitle,
     canCall: state.canCall ?? false,
-    messages: state.messages.map(message => toMessageViewModel(message, state.currentProfileId, attachmentUrls)),
+    messages: state.messages.map(message => toMessageViewModel(
+      message,
+      state.currentProfileId,
+      attachmentUrls,
+      state.title,
+    )),
   }
 }
 

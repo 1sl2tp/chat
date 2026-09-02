@@ -77,6 +77,11 @@ function mountHarness(initialState: VoiceCallState) {
   let listener: ((value: VoiceCallState) => void) | null = null
   const hangup = vi.fn(async () => undefined)
   const toggleMute = vi.fn(() => undefined)
+  const chooseSpeaker = vi.fn(async () => undefined)
+  const setDisplay = vi.fn((display: VoiceCallState['display']) => {
+    currentState = { ...currentState, display }
+    listener?.(currentState)
+  })
   const decline = vi.fn(async () => undefined)
   const accept = vi.fn(async () => undefined)
   const resumeFromUserGesture = vi.fn(async () => undefined)
@@ -92,6 +97,8 @@ function mountHarness(initialState: VoiceCallState) {
     },
     hangup,
     toggleMute,
+    chooseSpeaker,
+    setDisplay,
     decline,
     accept,
     resumeFromUserGesture,
@@ -111,6 +118,8 @@ function mountHarness(initialState: VoiceCallState) {
     session,
     hangup,
     toggleMute,
+    chooseSpeaker,
+    setDisplay,
     decline,
     accept,
     resumeFromUserGesture,
@@ -146,13 +155,15 @@ describe('Chatwoot CallCard actions', () => {
     dispose()
   })
 
-  it('renders Mute and End for an active call', () => {
-    const harness = mountHarness(state({ phase: 'active', direction: 'outgoing', peerName: 'Hỗ trợ', connectedAt: Date.now() - 5_000 }))
+  it('renders Mute, Speaker and End for an active call when speaker routing is available', () => {
+    const harness = mountHarness(state({ phase: 'active', direction: 'outgoing', peerName: 'Hỗ trợ', connectedAt: Date.now() - 5_000, speakerAvailable: true }))
     const dispose = mountVoiceCallUi(harness.host as unknown as HTMLElement, harness.session)
 
     findByLabel(harness.host, 'Tắt mic')?.click()
+    findByLabel(harness.host, 'Bật loa ngoài')?.click()
     findByLabel(harness.host, 'Kết thúc')?.click()
     expect(harness.toggleMute).toHaveBeenCalledOnce()
+    expect(harness.chooseSpeaker).toHaveBeenCalledOnce()
     expect(harness.hangup).toHaveBeenCalledOnce()
     dispose()
   })
@@ -183,6 +194,28 @@ describe('Chatwoot CallCard actions', () => {
 
     findByLabel(harness.host, 'Đóng')?.click()
     expect(harness.dismissError).toHaveBeenCalledOnce()
+    dispose()
+  })
+
+  it('supports full → compact → full and full → hidden → full without changing call runtime', () => {
+    const harness = mountHarness(state({ phase: 'active', peerName: 'Hỗ trợ', connectedAt: Date.now() }))
+    const dispose = mountVoiceCallUi(harness.host as unknown as HTMLElement, harness.session)
+
+    findByLabel(harness.host, 'Thu nhỏ cuộc gọi')?.click()
+    expect(harness.setDisplay).toHaveBeenCalledWith('compact')
+    expect(findByClass(harness.host, 'cw-call-compact')).not.toBeNull()
+
+    findByLabel(harness.host, 'Mở toàn màn hình')?.click()
+    expect(harness.setDisplay).toHaveBeenCalledWith('full')
+    expect(findByClass(harness.host, 'cw-call-card')).not.toBeNull()
+
+    findByLabel(harness.host, 'Ẩn cuộc gọi')?.click()
+    expect(harness.setDisplay).toHaveBeenCalledWith('hidden')
+    expect(findByClass(harness.host, 'cw-call-hidden')).not.toBeNull()
+
+    findByLabel(harness.host, 'Hiện cuộc gọi')?.click()
+    expect(harness.setDisplay).toHaveBeenCalledWith('full')
+    expect(findByClass(harness.host, 'cw-call-card')).not.toBeNull()
     dispose()
   })
 })
