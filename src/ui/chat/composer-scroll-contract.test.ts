@@ -13,6 +13,7 @@ describe('composer focus scroll contract', () => {
   it('forces bottom anchoring when composer receives focus', () => {
     expect(scrollSource).toContain('onComposerFocus(): void')
     expect(scrollSource).toContain('keepBottom = true')
-    expect(surfaceSource).toContain('onFocus: () => scroll.onComposerFocus()')
+    expect(surfaceSource).toContain('onFocus: () => {')
+    expect(surfaceSource).toContain('scroll.onComposerFocus()')
   })
 })
