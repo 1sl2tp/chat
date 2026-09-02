@@ -1,7 +1,9 @@
+import { composerEnterAction, isMobileComposerEnvironment } from '../../../chat/ui/composer-behavior'
 import { setButtonIcon } from '../../icons'
 
 export interface ComposerOptions {
   host: HTMLElement
+  isMobile?: boolean
   onAttach?: () => void
   onSend?: (text: string) => void | Promise<void>
   onVoiceStart?: () => void | Promise<void>
@@ -24,8 +26,11 @@ export function createComposer(options: ComposerOptions): ComposerView {
 
   const textarea = document.createElement('textarea')
   textarea.className = 'cw-composer__input'
+  textarea.rows = 1
   textarea.placeholder = 'Nhập tin nhắn…'
   textarea.setAttribute('aria-label', 'Nhập tin nhắn')
+  const isMobile = options.isMobile ?? (typeof window !== 'undefined' ? isMobileComposerEnvironment(window) : false)
+  textarea.setAttribute('enterkeyhint', isMobile ? 'enter' : 'send')
 
   let enabled = true
   let recording = false
@@ -42,8 +47,23 @@ export function createComposer(options: ComposerOptions): ComposerView {
     setButtonIcon(actionButton, hasText ? 'send' : 'mic', hasText ? 'Gửi' : 'Ghi âm')
   }
 
+  const sendText = async () => {
+    if (!enabled || recording) return
+    const text = textarea.value.trim()
+    if (!text) return
+    await options.onSend?.(text)
+    textarea.value = ''
+    syncAction()
+  }
+
   textarea.addEventListener('input', syncAction)
   textarea.addEventListener('focus', () => options.onFocus?.())
+  textarea.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' || event.isComposing) return
+    if (composerEnterAction({ isMobile, shiftKey: event.shiftKey }) === 'newline') return
+    event.preventDefault()
+    void sendText().catch(() => {})
+  })
 
   const renderNormal = () => {
     recording = false
@@ -58,12 +78,8 @@ export function createComposer(options: ComposerOptions): ComposerView {
     actionButton.type = 'button'
     actionButton.addEventListener('click', () => {
       if (!enabled) return
-      const text = textarea.value.trim()
-      if (text) {
-        void Promise.resolve(options.onSend?.(text)).then(() => {
-          textarea.value = ''
-          syncAction()
-        }).catch(() => {})
+      if (textarea.value.trim()) {
+        void sendText().catch(() => {})
       } else {
         void options.onVoiceStart?.()
       }
