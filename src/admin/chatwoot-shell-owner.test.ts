@@ -1,7 +1,10 @@
+/// <reference types="node" />
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import adminMainSource from '../admin-main.ts?raw'
-import adminCssSource from '../admin.css?raw'
 import managementSource from './chatwoot-management-ui.ts?raw'
+
+const adminCssSource = readFileSync(new URL('../admin.css', import.meta.url), 'utf8')
 
 describe('Admin Chatwoot shell owner', () => {
   it('mounts ConversationScreen directly into the admin chat pane instead of a legacy messages child', () => {
