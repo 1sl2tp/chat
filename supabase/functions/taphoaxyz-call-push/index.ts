@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
+import { classifyPushSendError, shouldFailPushDelivery } from "./delivery-policy.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -86,12 +87,14 @@ async function sendToProfile(
     p_device_id: options.deviceId ?? null,
   });
   if (error) throw new Error("push_target_lookup_failed");
-  if (!subscriptions?.length) return { delivered: 0, expired: 0 };
+  if (!subscriptions?.length) return { delivered: 0, expired: 0, failed: 0 };
 
   webpush.setVapidDetails(vapid.subject, vapid.publicKey, vapid.privateKey);
   const encoded = JSON.stringify(payload);
   let delivered = 0;
   let expired = 0;
+  let failed = 0;
+  let lastFailure: string | null = null;
 
   for (const row of subscriptions) {
     const subscription = {
@@ -105,18 +108,35 @@ async function sendToProfile(
       });
       delivered += 1;
     } catch (error) {
-      const statusCode = Number((error as { statusCode?: number })?.statusCode || 0);
-      if (statusCode === 404 || statusCode === 410) {
+      const failure = classifyPushSendError(error);
+      if (failure.expired) {
         expired += 1;
         await service
           .from("chat_call_push_subscriptions")
           .delete()
           .eq("id", row.subscription_id);
+      } else {
+        failed += 1;
+        lastFailure = failure.reason;
       }
     }
   }
 
-  return { delivered, expired };
+  if (shouldFailPushDelivery(delivered, failed)) {
+    throw new Error(`push_delivery_failed:${lastFailure || "unknown"}`);
+  }
+
+  if (failed > 0) {
+    console.warn(JSON.stringify({
+      event: "web_push_partial_failure",
+      delivered,
+      expired,
+      failed,
+      last_failure: lastFailure,
+    }));
+  }
+
+  return { delivered, expired, failed };
 }
 
 function messagePreview(value: unknown) {
@@ -137,6 +157,21 @@ async function markOutboxProcessed(
       processed_at: new Date().toISOString(),
       last_error: lastError,
     })
+    .eq("id", eventId)
+    .eq("dispatch_token", dispatchToken)
+    .is("processed_at", null);
+  if (error) throw new Error("outbox_update_failed");
+}
+
+async function markOutboxFailed(
+  service: ReturnType<typeof createClient>,
+  eventId: string,
+  dispatchToken: string,
+  lastError: string,
+) {
+  const { error } = await service
+    .from("chat_notification_outbox")
+    .update({ last_error: lastError })
     .eq("id", eventId)
     .eq("dispatch_token", dispatchToken)
     .is("processed_at", null);
@@ -214,7 +249,7 @@ async function dispatchEvent(
       if (senderError || recipientError || !recipient) throw new Error("profile_lookup_failed");
 
       const result = recipientMember.is_muted
-        ? { delivered: 0, expired: 0, muted: true }
+        ? { delivered: 0, expired: 0, failed: 0, muted: true }
         : await sendToProfile(service, vapid, eventRow.recipient_profile_id, {
           type: "chat_message",
           message_id: message.id,
@@ -271,9 +306,13 @@ async function dispatchEvent(
   } catch (error) {
     const reason = error instanceof Error ? error.message : "dispatch_failed";
     try {
-      await markOutboxProcessed(service, eventId, dispatchToken, reason.slice(0, 500));
+      if (reason.startsWith("push_delivery_failed:")) {
+        await markOutboxFailed(service, eventId, dispatchToken, reason.slice(0, 500));
+      } else {
+        await markOutboxProcessed(service, eventId, dispatchToken, reason.slice(0, 500));
+      }
     } catch {
-      // Preserve the original dispatch error. The unprocessed row remains diagnostic evidence.
+      // Preserve the original dispatch error; transport failures remain unprocessed for diagnosis/manual retry.
     }
     return json(500, { error: "dispatch_failed" });
   }
