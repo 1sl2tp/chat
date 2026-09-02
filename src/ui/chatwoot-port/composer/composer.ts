@@ -12,6 +12,7 @@ export interface ComposerOptions {
 export interface ComposerView {
   element: HTMLElement
   textarea: HTMLTextAreaElement
+  setEnabled(enabled: boolean): void
   setRecording(recording: boolean): void
   setText(text: string): void
   destroy(): void
@@ -26,41 +27,59 @@ export function createComposer(options: ComposerOptions): ComposerView {
   textarea.placeholder = 'Nhập tin nhắn…'
   textarea.setAttribute('aria-label', 'Nhập tin nhắn')
 
+  let enabled = true
+  let recording = false
+  let controls: Array<HTMLButtonElement | HTMLTextAreaElement> = []
+  let actionButton: HTMLButtonElement | null = null
+
+  const syncEnabled = () => {
+    for (const control of controls) control.disabled = !enabled
+  }
+
+  const syncAction = () => {
+    if (!actionButton) return
+    const hasText = textarea.value.trim().length > 0
+    setButtonIcon(actionButton, hasText ? 'send' : 'mic', hasText ? 'Gửi' : 'Ghi âm')
+  }
+
+  textarea.addEventListener('input', syncAction)
+  textarea.addEventListener('focus', () => options.onFocus?.())
+
   const renderNormal = () => {
+    recording = false
     const addButton = document.createElement('button')
     addButton.className = 'cw-composer__button cw-composer__button--add'
     addButton.type = 'button'
     setButtonIcon(addButton, 'plus', 'Thêm')
     addButton.addEventListener('click', () => options.onAttach?.())
 
-    const actionButton = document.createElement('button')
+    actionButton = document.createElement('button')
     actionButton.className = 'cw-composer__button cw-composer__button--action'
     actionButton.type = 'button'
-
-    const syncAction = () => {
-      const hasText = textarea.value.trim().length > 0
-      setButtonIcon(actionButton, hasText ? 'send' : 'mic', hasText ? 'Gửi' : 'Ghi âm')
-    }
-
     actionButton.addEventListener('click', () => {
+      if (!enabled) return
       const text = textarea.value.trim()
       if (text) {
-        void options.onSend?.(text)
-        textarea.value = ''
-        syncAction()
+        void Promise.resolve(options.onSend?.(text)).then(() => {
+          textarea.value = ''
+          syncAction()
+        }).catch(() => {})
       } else {
         void options.onVoiceStart?.()
       }
     })
-    textarea.addEventListener('input', syncAction)
-    textarea.addEventListener('focus', () => options.onFocus?.())
+
+    controls = [addButton, textarea, actionButton]
     syncAction()
+    syncEnabled()
     root.replaceChildren(addButton, textarea, actionButton)
   }
 
   const renderRecording = () => {
-    const recording = document.createElement('div')
-    recording.className = 'cw-composer__recording'
+    recording = true
+    actionButton = null
+    const recordingRow = document.createElement('div')
+    recordingRow.className = 'cw-composer__recording'
 
     const status = document.createElement('span')
     status.className = 'cw-composer__recording-status'
@@ -70,10 +89,15 @@ export function createComposer(options: ComposerOptions): ComposerView {
     stop.className = 'cw-composer__recording-stop'
     stop.type = 'button'
     stop.textContent = 'Gửi'
-    stop.addEventListener('click', () => void options.onVoiceStop?.())
+    stop.addEventListener('click', () => {
+      if (!enabled) return
+      void options.onVoiceStop?.()
+    })
 
-    recording.append(status, stop)
-    root.replaceChildren(recording)
+    controls = [stop]
+    syncEnabled()
+    recordingRow.append(status, stop)
+    root.replaceChildren(recordingRow)
   }
 
   renderNormal()
@@ -82,15 +106,22 @@ export function createComposer(options: ComposerOptions): ComposerView {
   return {
     element: root,
     textarea,
-    setRecording(recording) {
-      if (recording) renderRecording()
+    setEnabled(nextEnabled) {
+      enabled = nextEnabled
+      syncEnabled()
+    },
+    setRecording(nextRecording) {
+      if (nextRecording === recording) return
+      if (nextRecording) renderRecording()
       else renderNormal()
     },
     setText(text) {
       textarea.value = text
-      if (!root.children.length || !root.children[1]) renderNormal()
+      syncAction()
     },
     destroy() {
+      controls = []
+      actionButton = null
       options.host.replaceChildren()
     },
   }
