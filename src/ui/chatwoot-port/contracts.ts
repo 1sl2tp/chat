@@ -11,6 +11,14 @@ export interface MessageAttachmentViewModel {
   height?: number
 }
 
+export interface LinkPreviewViewModel {
+  url: string
+  title?: string
+  description?: string
+  image?: string
+  siteName?: string
+}
+
 export interface MessageViewModel {
   id: string
   kind: MessageKind
@@ -21,6 +29,7 @@ export interface MessageViewModel {
   callId?: string
   durationSeconds?: number
   attachment?: MessageAttachmentViewModel
+  linkPreview?: LinkPreviewViewModel
   reaction?: 'heart'
 }
 
