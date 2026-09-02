@@ -63,7 +63,10 @@ export async function setupPwa(owner?: PwaOwner): Promise<ServiceWorkerRegistrat
 
   const descriptor = pwaRegistrationDescriptor(resolvedOwner, window.location.pathname)
   try {
-    registration = await navigator.serviceWorker.register(descriptor.scriptUrl, { scope: descriptor.scope })
+    registration = await navigator.serviceWorker.register(descriptor.scriptUrl, {
+      scope: descriptor.scope,
+      updateViaCache: 'none',
+    })
     await checkForUpdate()
     return registration
   } catch (error) {
