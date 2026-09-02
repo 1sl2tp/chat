@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import fs from 'node:fs'
 
-const source = fs.readFileSync('src/admin-main.ts', 'utf8')
+const adminMain = fs.readFileSync('src/admin-main.ts', 'utf8')
+const referenceShell = fs.readFileSync('src/admin/reference-shell-ui.ts', 'utf8')
+const source = `${adminMain}\n${referenceShell}`
 const css = fs.readFileSync('src/admin.css', 'utf8')
 
 describe('approved reference Admin workspace', () => {
