@@ -1,8 +1,8 @@
 {
   "id": "./",
-  "name": "TAPHOA Admin Chat",
-  "short_name": "Admin Chat",
-  "description": "TAPHOA Admin Chat",
+  "name": "TAPHOA Hỗ trợ",
+  "short_name": "Hỗ trợ",
+  "description": "TAPHOA Hỗ trợ",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
