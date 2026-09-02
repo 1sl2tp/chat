@@ -73,11 +73,12 @@ describe('Chatwoot Hỗ trợ Inbox', () => {
     const host = new FakeElement('div')
     const view = mountInbox({ host: host as unknown as HTMLElement, model: sampleModel(), onSelect: () => undefined })
     const root = view.element as unknown as FakeElement
+    const list = root.children[1]!
     const text = textTree(root)
 
     expect(root.children[0]?.tagName).toBe('INPUT')
-    expect(root.children[1]?.children[0]?.textContent).toBe('USER 2')
-    expect(root.children[1]?.children[1]?.textContent).toBe('USER 1')
+    expect(list.children[0]?.children[0]?.textContent).toBe('USER 2')
+    expect(list.children[1]?.children[0]?.textContent).toBe('USER 1')
     expect(text).not.toContain('Tất cả')
     expect(text).not.toContain('Chưa đọc')
   })
