@@ -17,10 +17,12 @@ describe('demo user shell geometry', () => {
     expect(html).toContain("$('callBtn').hidden=!user")
   })
 
-  test('only applies visualViewport compensation when a mobile keyboard is actually open', () => {
+  test('only applies visualViewport compensation while the message field is actually focused', () => {
     expect(html).toContain("matchMedia('(max-width: 600px)')")
-    expect(html).toContain('const keyboardOpen=mobile.matches&&delta>120')
+    expect(html).toContain("const composerFocused=document.activeElement===$('messageInput')")
+    expect(html).toContain('const keyboardOpen=mobile.matches&&composerFocused&&delta>120')
     expect(html).toContain("style.setProperty('--keyboard-offset',keyboardOpen?delta+'px':'0px')")
+    expect(html).toContain("$('messageInput').addEventListener('blur',syncViewport)")
   })
 
   test('uses one icon contract across the top and composer controls', () => {
