@@ -1,6 +1,7 @@
 import type { HeartPresentation } from '../../chat/reactions/session'
 import type { ChatMessage } from '../../chat/messages'
 import { iconSvg } from '../icons'
+import type { LinkPreviewMetadata, LinkPreviewResolver } from './link-preview'
 import { extractHttpUrls } from './linkify'
 import { getMessageActionCapabilities } from './message-actions'
 
@@ -14,6 +15,7 @@ export interface MessagePresentation {
 
 export interface MessageListOptions {
   resolveAttachmentUrl?: (path: string) => Promise<string>
+  resolveLinkPreview?: LinkPreviewResolver
   getHeart?: (messageId: string) => HeartPresentation
   onHeart?: (messageId: string) => Promise<void> | void
   onOpenImage?: (url: string, name: string) => void
@@ -123,7 +125,53 @@ function previewTitle(url: URL): string {
   }
 }
 
-function renderLinkPreview(bubble: HTMLElement, text: string): void {
+function validHttpUrl(value: string): string {
+  if (!value) return ''
+  try {
+    const url = new URL(value)
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : ''
+  } catch {
+    return ''
+  }
+}
+
+function applyLinkPreviewMetadata(
+  card: HTMLAnchorElement,
+  mark: HTMLElement,
+  domain: HTMLElement,
+  title: HTMLElement,
+  description: HTMLElement,
+  metadata: LinkPreviewMetadata,
+): void {
+  const resolvedUrl = validHttpUrl(metadata.url)
+  if (resolvedUrl) card.href = resolvedUrl
+
+  let hostname = ''
+  try {
+    hostname = new URL(card.href).hostname.replace(/^www\./, '')
+  } catch {
+    hostname = ''
+  }
+  domain.textContent = metadata.siteName || hostname
+  title.textContent = metadata.title || title.textContent || 'Mở liên kết'
+  description.textContent = metadata.description || resolvedUrl || description.textContent || ''
+
+  const imageUrl = validHttpUrl(metadata.image)
+  if (!imageUrl || card.querySelector('.chat-link-preview__image')) return
+  const image = document.createElement('img')
+  image.className = 'chat-link-preview__image'
+  image.loading = 'lazy'
+  image.decoding = 'async'
+  image.referrerPolicy = 'no-referrer'
+  image.alt = ''
+  image.src = imageUrl
+  image.addEventListener('error', () => {
+    if (image.isConnected) image.replaceWith(mark)
+  }, { once: true })
+  mark.replaceWith(image)
+}
+
+function renderLinkPreview(bubble: HTMLElement, text: string, options: MessageListOptions): void {
   const urlText = extractHttpUrls(text)[0]
   if (!urlText) return
   let url: URL
@@ -149,12 +197,21 @@ function renderLinkPreview(bubble: HTMLElement, text: string): void {
   const domain = document.createElement('strong')
   domain.textContent = url.hostname.replace(/^www\./, '')
   const title = document.createElement('span')
+  title.className = 'chat-link-preview__title'
   title.textContent = previewTitle(url)
-  const address = document.createElement('small')
-  address.textContent = url.href.length > 96 ? `${url.href.slice(0, 93)}…` : url.href
-  body.append(domain, title, address)
+  const description = document.createElement('small')
+  description.className = 'chat-link-preview__description'
+  description.textContent = url.href.length > 120 ? `${url.href.slice(0, 117)}…` : url.href
+  body.append(domain, title, description)
   card.append(mark, body)
   bubble.append(card)
+
+  if (options.resolveLinkPreview) {
+    void options.resolveLinkPreview(url.href).then((metadata) => {
+      if (!metadata) return
+      applyLinkPreviewMetadata(card, mark, domain, title, description, metadata)
+    }).catch(() => {})
+  }
 }
 
 function addIconButton(parent: HTMLElement, icon: 'heart' | 'copy' | 'share', label: string): HTMLButtonElement {
@@ -372,7 +429,7 @@ export function renderMessageList(
       text.className = 'chat-message__text'
       appendLinkedText(text, item.text)
       bubble.append(text)
-      if (item.direction !== 'system' && !item.revoked) renderLinkPreview(bubble, item.text)
+      if (item.direction !== 'system' && !item.revoked) renderLinkPreview(bubble, item.text, options)
     }
 
     renderAttachment(bubble, message, options)
