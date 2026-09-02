@@ -1,12 +1,18 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { VoiceCallSession, callErrorMessage, type VoiceCallState } from './voice-session'
+import { VoiceCallSession, callErrorMessage, type VoiceCallContext, type VoiceCallState } from './voice-session'
 
 const CALL_ID = '33333333-3333-4333-8333-333333333333'
 const CONVERSATION_ID = '44444444-4444-4444-8444-444444444444'
 const PROFILE_ID = '55555555-5555-4555-8555-555555555555'
 const DEVICE_ID = '66666666-6666-4666-8666-666666666666'
 const OTHER_DEVICE_ID = '99999999-9999-4999-8999-999999999999'
+const CONTEXT: VoiceCallContext = {
+  profileId: PROFILE_ID,
+  deviceId: DEVICE_ID,
+  conversationId: CONVERSATION_ID,
+  peerName: 'Admin',
+}
 const CALL_ROW = {
   id: CALL_ID,
   conversation_id: CONVERSATION_ID,
@@ -46,12 +52,7 @@ describe('VoiceCallSession busy outcomes', () => {
     })
     const invoke = vi.fn(async () => ({ data: null, error: new Error('must_not_join') }))
     const client = { rpc, functions: { invoke } } as unknown as SupabaseClient
-    const session = new VoiceCallSession(client, () => ({
-      profileId: PROFILE_ID,
-      deviceId: DEVICE_ID,
-      conversationId: CONVERSATION_ID,
-      peerName: 'Admin',
-    }))
+    const session = new VoiceCallSession(client, () => CONTEXT)
 
     await session.startOutgoing()
 
@@ -80,12 +81,7 @@ describe('VoiceCallSession device ownership', () => {
     })
     const invoke = vi.fn(async () => ({ data: null, error: new Error('must_not_join') }))
     const client = { rpc, functions: { invoke } } as unknown as SupabaseClient
-    const session = new VoiceCallSession(client, () => ({
-      profileId: PROFILE_ID,
-      deviceId: DEVICE_ID,
-      conversationId: CONVERSATION_ID,
-      peerName: 'Admin',
-    }))
+    const session = new VoiceCallSession(client, () => CONTEXT)
 
     await (session as unknown as { pollActiveCalls(): Promise<void> }).pollActiveCalls()
 
@@ -110,22 +106,79 @@ describe('VoiceCallSession device ownership', () => {
     })
     const invoke = vi.fn(async () => ({ data: null, error: new Error('must_wait_for_user_gesture') }))
     const client = { rpc, functions: { invoke } } as unknown as SupabaseClient
-    const session = new VoiceCallSession(client, () => ({
-      profileId: PROFILE_ID,
-      deviceId: DEVICE_ID,
-      conversationId: CONVERSATION_ID,
-      peerName: 'Admin',
-    }))
+    const session = new VoiceCallSession(client, () => CONTEXT)
 
     await (session as unknown as { pollActiveCalls(): Promise<void> }).pollActiveCalls()
     await Promise.resolve()
 
-    const restored = session.getState() as VoiceCallState & { resumeRequired?: boolean }
+    const restored = session.getState()
     expect(restored.phase).toBe('reconnecting')
     expect(restored.callId).toBe(CALL_ID)
     expect(restored.connectedAt).toBe(Date.parse(connectedOnThisDevice.connected_at))
     expect(restored.resumeRequired).toBe(true)
     expect(invoke).not.toHaveBeenCalled()
+  })
+
+  it('also waits for a fresh user gesture when the caller reloads while the peer is still ringing', async () => {
+    vi.stubGlobal('window', globalThis)
+    vi.stubGlobal('navigator', { userAgent: 'test', vibrate: vi.fn(() => false) })
+
+    const outgoingRinging = {
+      ...CALL_ROW,
+      caller_profile_id: PROFILE_ID,
+      callee_profile_id: '77777777-7777-4777-8777-777777777777',
+      caller_device_id: DEVICE_ID,
+      caller_display_name: 'User',
+      callee_display_name: 'Admin',
+    }
+    const rpc = vi.fn(async (name: string) => {
+      if (name === 'chat_get_active_voice_calls') return { data: [outgoingRinging], error: null }
+      return { data: null, error: null }
+    })
+    const invoke = vi.fn(async () => ({ data: null, error: new Error('must_wait_for_user_gesture') }))
+    const client = { rpc, functions: { invoke } } as unknown as SupabaseClient
+    const session = new VoiceCallSession(client, () => CONTEXT)
+
+    await (session as unknown as { pollActiveCalls(): Promise<void> }).pollActiveCalls()
+    await Promise.resolve()
+
+    expect(session.getState().phase).toBe('outgoing')
+    expect(session.getState().callId).toBe(CALL_ID)
+    expect(session.getState().resumeRequired).toBe(true)
+    expect(invoke).not.toHaveBeenCalled()
+  })
+
+  it('restarts microphone capture from the resume button gesture before rejoining LiveKit', async () => {
+    vi.stubGlobal('window', globalThis)
+    vi.stubGlobal('navigator', { userAgent: 'test', vibrate: vi.fn(() => false) })
+
+    const connectedOnThisDevice = {
+      ...CALL_ROW,
+      state: 'connected',
+      accepted_device_id: DEVICE_ID,
+      connected_at: '2026-09-02T03:00:00.000Z',
+    }
+    const rpc = vi.fn(async (name: string) => {
+      if (name === 'chat_get_active_voice_calls') return { data: [connectedOnThisDevice], error: null }
+      return { data: null, error: null }
+    })
+    const client = { rpc, functions: { invoke: vi.fn() } } as unknown as SupabaseClient
+    const session = new VoiceCallSession(client, () => CONTEXT)
+    await (session as unknown as { pollActiveCalls(): Promise<void> }).pollActiveCalls()
+
+    const internals = session as unknown as {
+      media: { beginUserGesture(): void }
+      joinLiveKit(callId: string, context: VoiceCallContext): Promise<void>
+      resumeFromUserGesture(): Promise<void>
+    }
+    const beginUserGesture = vi.spyOn(internals.media, 'beginUserGesture').mockImplementation(() => undefined)
+    const joinLiveKit = vi.spyOn(internals, 'joinLiveKit').mockResolvedValue(undefined)
+
+    await internals.resumeFromUserGesture()
+
+    expect(beginUserGesture).toHaveBeenCalledOnce()
+    expect(joinLiveKit).toHaveBeenCalledWith(CALL_ID, CONTEXT)
+    expect(beginUserGesture.mock.invocationCallOrder[0]).toBeLessThan(joinLiveKit.mock.invocationCallOrder[0] ?? Infinity)
   })
 })
 
@@ -135,12 +188,7 @@ describe('VoiceCallSession incoming alert lifecycle', () => {
     vi.stubGlobal('window', globalThis)
     vi.stubGlobal('navigator', { userAgent: 'test', vibrate: vi.fn(() => false) })
     const client = { rpc, functions: { invoke: vi.fn() } } as unknown as SupabaseClient
-    const session = new VoiceCallSession(client, () => ({
-      profileId: PROFILE_ID,
-      deviceId: DEVICE_ID,
-      conversationId: CONVERSATION_ID,
-      peerName: 'Admin',
-    }))
+    const session = new VoiceCallSession(client, () => CONTEXT)
     return { session, client }
   }
 
