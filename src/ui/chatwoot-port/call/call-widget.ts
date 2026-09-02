@@ -76,13 +76,13 @@ function renderCard(state: VoiceCallState, session: VoiceCallSession): HTMLEleme
     actions.append(actionButton('Đóng', 'close', () => session.dismissError(), 'ruby'))
   } else if (state.phase === 'incoming') {
     actions.append(
-      actionButton('Nhận', 'acceptCall', () => { void session.accept() }, 'teal'),
       actionButton('Từ chối', 'endCall', () => { void session.decline() }, 'ruby'),
+      actionButton('Nhận', 'acceptCall', () => { void session.accept() }, 'teal'),
     )
   } else if (state.resumeRequired) {
     actions.append(
-      actionButton('Tiếp tục', 'acceptCall', () => { void session.resumeFromUserGesture() }, 'teal'),
       actionButton('Kết thúc', 'endCall', () => { void session.hangup() }, 'ruby'),
+      actionButton('Tiếp tục', 'acceptCall', () => { void session.resumeFromUserGesture() }, 'teal'),
     )
   } else {
     if (state.audioBlocked) {
