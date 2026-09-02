@@ -17,6 +17,7 @@ export interface ComposerOptions {
   isMobile?: boolean
   onAttach?: () => void
   onRecord?: () => void
+  onFocus?: () => void
 }
 
 export function mountComposer(
@@ -86,6 +87,7 @@ export function mountComposer(
     }
   }
 
+  input.addEventListener('focus', () => options.onFocus?.())
   input.addEventListener('input', () => {
     input.style.height = 'auto'
     input.style.height = `${Math.min(input.scrollHeight, 120)}px`
