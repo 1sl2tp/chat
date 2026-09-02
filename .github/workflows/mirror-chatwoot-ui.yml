@@ -19,7 +19,6 @@ concurrency:
 
 jobs:
   mirror:
-    if: ${{ !startsWith(github.event.head_commit.message || '', 'chore: mirror Chatwoot UI source with provenance') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
