@@ -1,4 +1,5 @@
 import type { ChatMessage } from '../messages'
+import { cancelActiveVoiceRecording } from '../attachments/voice-recorder'
 import type {
   ConversationActionsAdapter,
   ConversationViewModel,
@@ -113,12 +114,11 @@ export function toConversationActionsAdapter(runtime: ExistingConversationRuntim
       requireCapability(runtime.canRecord, 'record_unavailable')
       await runtime.stopVoiceRecording()
     },
-    cancelVoiceRecording: runtime.cancelVoiceRecording
-      ? async () => {
-          requireCapability(runtime.canRecord, 'record_unavailable')
-          await runtime.cancelVoiceRecording?.()
-        }
-      : undefined,
+    async cancelVoiceRecording() {
+      requireCapability(runtime.canRecord, 'record_unavailable')
+      if (runtime.cancelVoiceRecording) await runtime.cancelVoiceRecording()
+      else await cancelActiveVoiceRecording()
+    },
     async startCall() {
       requireCapability(runtime.canCall, 'call_unavailable')
       await runtime.startCall()
