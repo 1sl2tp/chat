@@ -9,6 +9,7 @@ class FakeElement {
   title = ''
   innerHTML = ''
   disabled = false
+  dataset: Record<string, string> = {}
   children: FakeElement[] = []
   attributes = new Map<string, string>()
   private clickHandler: (() => void) | null = null
@@ -53,15 +54,6 @@ function state(patch: Partial<VoiceCallState> = {}): VoiceCallState {
   }
 }
 
-function findByHtml(root: FakeElement, value: string): FakeElement | null {
-  if (root.innerHTML.includes(value)) return root
-  for (const child of root.children) {
-    const found = findByHtml(child, value)
-    if (found) return found
-  }
-  return null
-}
-
 function findByClass(root: FakeElement, value: string): FakeElement | null {
   if (root.className.split(' ').includes(value)) return root
   for (const child of root.children) {
@@ -71,19 +63,25 @@ function findByClass(root: FakeElement, value: string): FakeElement | null {
   return null
 }
 
+function findByLabel(root: FakeElement, value: string): FakeElement | null {
+  if (root.attributes.get('aria-label') === value) return root
+  for (const child of root.children) {
+    const found = findByLabel(child, value)
+    if (found) return found
+  }
+  return null
+}
+
 function mountHarness(initialState: VoiceCallState) {
   let currentState = initialState
   let listener: ((value: VoiceCallState) => void) | null = null
-  const setDisplay = vi.fn((display: VoiceCallState['display']) => {
-    currentState = { ...currentState, display }
-    listener?.(currentState)
-  })
   const hangup = vi.fn(async () => undefined)
   const toggleMute = vi.fn(() => undefined)
   const decline = vi.fn(async () => undefined)
   const accept = vi.fn(async () => undefined)
   const resumeFromUserGesture = vi.fn(async () => undefined)
   const dismissError = vi.fn(() => undefined)
+  const startAudio = vi.fn(() => undefined)
 
   const session = {
     getState: () => currentState,
@@ -92,23 +90,17 @@ function mountHarness(initialState: VoiceCallState) {
       next(currentState)
       return () => { listener = null }
     },
-    setDisplay,
     hangup,
     toggleMute,
     decline,
     accept,
     resumeFromUserGesture,
     dismissError,
-    startAudio: vi.fn(() => undefined),
-    hasPhoneSpeakerToggle: () => false,
-    chooseSpeaker: vi.fn(async () => undefined),
+    startAudio,
   } as unknown as VoiceCallSession
 
   const host = new FakeElement()
-  vi.stubGlobal('document', {
-    createElement: () => new FakeElement(),
-  })
-  vi.stubGlobal('navigator', { userAgent: 'test' })
+  vi.stubGlobal('document', { createElement: () => new FakeElement() })
   vi.stubGlobal('window', {
     setInterval: () => 1,
     clearInterval: () => undefined,
@@ -117,173 +109,80 @@ function mountHarness(initialState: VoiceCallState) {
   return {
     host,
     session,
-    setDisplay,
     hangup,
     toggleMute,
     decline,
     accept,
     resumeFromUserGesture,
     dismissError,
+    startAudio,
+    update(next: VoiceCallState) {
+      currentState = next
+      listener?.(next)
+    },
   }
 }
 
-const ACTIVE_STATE = state({
-  phase: 'active',
-  direction: 'outgoing',
-  callId: '11111111-1111-4111-8111-111111111111',
-  peerName: 'Admin',
-  connectedAt: Date.now() - 5_000,
-})
+afterEach(() => vi.unstubAllGlobals())
 
-const ERROR_STATE = state({
-  phase: 'error',
-  direction: 'outgoing',
-  peerName: 'Admin',
-  error: 'Không kết nối được cuộc gọi',
-})
-
-afterEach(() => {
-  vi.unstubAllGlobals()
-})
-
-describe('voice call reconnect UI', () => {
-  it('shows an explicit reconnecting status', () => {
+describe('Chatwoot CallCard status', () => {
+  it('keeps reconnect and resume status explicit', () => {
     expect(statusText(state({ phase: 'reconnecting' }))).toBe('Đang nối lại…')
-  })
-
-  it('asks for a tap when a cold-restored call needs a fresh media gesture', () => {
     expect(statusText(state({ phase: 'reconnecting', resumeRequired: true }))).toBe('Chạm để tiếp tục cuộc gọi')
   })
-
-  it('offers Tiếp tục and Kết thúc instead of mute/speaker before media is resumed', () => {
-    const harness = mountHarness(state({
-      phase: 'reconnecting',
-      direction: 'outgoing',
-      callId: '33333333-3333-4333-8333-333333333333',
-      peerName: 'Admin',
-      connectedAt: Date.now() - 8_000,
-      resumeRequired: true,
-    }))
-    const dispose = mountVoiceCallUi(harness.host as unknown as HTMLElement, harness.session)
-
-    expect(findByHtml(harness.host, 'Tiếp tục')).not.toBeNull()
-    expect(findByHtml(harness.host, 'Kết thúc')).not.toBeNull()
-    expect(findByHtml(harness.host, 'Tắt tiếng')).toBeNull()
-    expect(findByHtml(harness.host, 'Chọn loa')).toBeNull()
-
-    findByHtml(harness.host, 'Tiếp tục')?.click()
-    expect(harness.resumeFromUserGesture).toHaveBeenCalledOnce()
-    dispose()
-  })
-
-  it('keeps a resume action available if a waiting call is minimized', () => {
-    const harness = mountHarness(state({
-      phase: 'reconnecting',
-      display: 'compact',
-      direction: 'outgoing',
-      callId: '33333333-3333-4333-8333-333333333333',
-      peerName: 'Admin',
-      resumeRequired: true,
-    }))
-    const dispose = mountVoiceCallUi(harness.host as unknown as HTMLElement, harness.session)
-
-    expect(findByHtml(harness.host, 'Tiếp tục')).not.toBeNull()
-    expect(findByHtml(harness.host, 'Tắt mic')).toBeNull()
-    findByHtml(harness.host, 'Tiếp tục')?.click()
-    expect(harness.resumeFromUserGesture).toHaveBeenCalledOnce()
-    dispose()
-  })
 })
 
-describe('voice call display modes', () => {
-  it('full call exposes one Thu nhỏ control and no visible Ẩn action', () => {
-    const harness = mountHarness(ACTIVE_STATE)
+describe('Chatwoot CallCard actions', () => {
+  it('renders incoming Accept and Reject on one call card', () => {
+    const harness = mountHarness(state({ phase: 'incoming', direction: 'incoming', peerName: 'User' }))
     const dispose = mountVoiceCallUi(harness.host as unknown as HTMLElement, harness.session)
 
-    expect(harness.host.children[0]?.className).toBe('voice-call-full')
-    expect(findByHtml(harness.host, 'Thu nhỏ')).not.toBeNull()
-    expect(findByHtml(harness.host, 'Ẩn')).toBeNull()
-    expect(harness.hangup).not.toHaveBeenCalled()
+    expect(findByClass(harness.host, 'cw-call-widget')).not.toBeNull()
+    expect(findByClass(harness.host, 'cw-call-card')).not.toBeNull()
+    findByLabel(harness.host, 'Nhận')?.click()
+    findByLabel(harness.host, 'Từ chối')?.click()
+    expect(harness.accept).toHaveBeenCalledOnce()
+    expect(harness.decline).toHaveBeenCalledOnce()
     dispose()
   })
 
-  it('Thu nhỏ renders one call pill and never hangs up', () => {
-    const harness = mountHarness(ACTIVE_STATE)
+  it('renders Mute and End for an active call', () => {
+    const harness = mountHarness(state({ phase: 'active', direction: 'outgoing', peerName: 'Hỗ trợ', connectedAt: Date.now() - 5_000 }))
     const dispose = mountVoiceCallUi(harness.host as unknown as HTMLElement, harness.session)
 
-    findByHtml(harness.host, 'Thu nhỏ')?.click()
-
-    expect(harness.setDisplay).toHaveBeenCalledWith('compact')
-    expect(harness.host.children[0]?.className).toBe('voice-call-pill')
-    expect(findByHtml(harness.host, 'Tắt mic')).not.toBeNull()
-    expect(findByHtml(harness.host, 'Kết thúc')).not.toBeNull()
-    expect(harness.hangup).not.toHaveBeenCalled()
+    findByLabel(harness.host, 'Tắt mic')?.click()
+    findByLabel(harness.host, 'Kết thúc')?.click()
+    expect(harness.toggleMute).toHaveBeenCalledOnce()
+    expect(harness.hangup).toHaveBeenCalledOnce()
     dispose()
   })
 
-  it('hidden remains recovery-only and restore returns to full', () => {
-    const harness = mountHarness({ ...ACTIVE_STATE, display: 'hidden' })
+  it('keeps Continue and End available for a restored call awaiting a gesture', () => {
+    const harness = mountHarness(state({ phase: 'reconnecting', resumeRequired: true, peerName: 'Hỗ trợ' }))
     const dispose = mountVoiceCallUi(harness.host as unknown as HTMLElement, harness.session)
 
-    expect(harness.host.children).toHaveLength(1)
-    expect(harness.host.children[0]?.className).toBe('voice-call-hidden')
-    expect(harness.hangup).not.toHaveBeenCalled()
-
-    harness.host.children[0]?.click()
-
-    expect(harness.setDisplay).toHaveBeenCalledWith('full')
-    expect(harness.host.children[0]?.className).toBe('voice-call-full')
-    expect(harness.hangup).not.toHaveBeenCalled()
+    findByLabel(harness.host, 'Tiếp tục')?.click()
+    findByLabel(harness.host, 'Kết thúc')?.click()
+    expect(harness.resumeFromUserGesture).toHaveBeenCalledOnce()
+    expect(harness.hangup).toHaveBeenCalledOnce()
     dispose()
   })
 
-  it('incoming full screen keeps only Accept and Decline as primary call controls', () => {
-    const harness = mountHarness(state({
-      phase: 'incoming',
-      direction: 'incoming',
-      callId: '22222222-2222-4222-8222-222222222222',
-      peerName: 'User',
-    }))
+  it('keeps blocked-audio recovery inside the same CallCard', () => {
+    const harness = mountHarness(state({ phase: 'active', audioBlocked: true, connectedAt: Date.now() }))
     const dispose = mountVoiceCallUi(harness.host as unknown as HTMLElement, harness.session)
 
-    expect(findByHtml(harness.host, 'Nhận')).not.toBeNull()
-    expect(findByHtml(harness.host, 'Từ chối')).not.toBeNull()
-    expect(findByHtml(harness.host, 'Tắt tiếng')).toBeNull()
-    expect(findByHtml(harness.host, 'Chọn loa')).toBeNull()
-    expect(findByHtml(harness.host, 'Bật thông báo')).toBeNull()
+    findByLabel(harness.host, 'Bật âm thanh')?.click()
+    expect(harness.startAudio).toHaveBeenCalledOnce()
     dispose()
   })
-})
 
-describe('voice call error UI', () => {
-  it('keeps an error inside the full call screen instead of showing a second popup', () => {
-    const harness = mountHarness(ERROR_STATE)
+  it('keeps error dismissal inside the same CallCard', () => {
+    const harness = mountHarness(state({ phase: 'error', error: 'Không kết nối được cuộc gọi' }))
     const dispose = mountVoiceCallUi(harness.host as unknown as HTMLElement, harness.session)
 
-    expect(harness.host.children[0]?.className).toBe('voice-call-full')
-    expect(findByClass(harness.host, 'voice-call-error')).toBeNull()
-    expect(findByHtml(harness.host, 'Đóng')).not.toBeNull()
-
-    findByHtml(harness.host, 'Đóng')?.click()
+    findByLabel(harness.host, 'Đóng')?.click()
     expect(harness.dismissError).toHaveBeenCalledOnce()
-    dispose()
-  })
-
-  it('shows the compact error popup only when the call was minimized', () => {
-    const harness = mountHarness({ ...ERROR_STATE, display: 'compact' })
-    const dispose = mountVoiceCallUi(harness.host as unknown as HTMLElement, harness.session)
-
-    expect(harness.host.children[0]?.className).toBe('voice-call-error')
-    harness.host.children[0]?.click()
-    expect(harness.dismissError).toHaveBeenCalledOnce()
-    dispose()
-  })
-
-  it('shows the compact error popup when the call was hidden', () => {
-    const harness = mountHarness({ ...ERROR_STATE, display: 'hidden' })
-    const dispose = mountVoiceCallUi(harness.host as unknown as HTMLElement, harness.session)
-
-    expect(harness.host.children[0]?.className).toBe('voice-call-error')
     dispose()
   })
 })
