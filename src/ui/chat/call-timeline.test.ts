@@ -36,16 +36,16 @@ describe('call timeline presentation', () => {
     expect(result[0]?.text).toBe('📞 3 cuộc gọi chưa kết nối')
   })
 
-  it('keeps completed calls separate from missed-call groups', () => {
+  it('keeps completed calls separate from normalized missed calls', () => {
     const result = compactCallTimelineMessages([
       { ...base, id: 'c1', client_message_id: 'cm1', type: 'call', call_id: 'call-1', text: 'Cuộc gọi đã hủy' },
       { ...base, id: 'c2', client_message_id: 'cm2', type: 'call', call_id: 'call-2', text: 'Cuộc gọi thoại · 0:08' },
       { ...base, id: 'c3', client_message_id: 'cm3', type: 'call', call_id: 'call-3', text: 'Đã từ chối' },
     ])
     expect(result.map((message) => message.text)).toEqual([
-      'Cuộc gọi đã hủy',
+      '📞 Cuộc gọi chưa kết nối',
       'Cuộc gọi thoại · 0:08',
-      'Đã từ chối',
+      '📞 Cuộc gọi chưa kết nối',
     ])
   })
 })
