@@ -22,7 +22,7 @@ describe('message action capabilities', () => {
     expect(getMessageActionCapabilities(base)).toEqual({ heart: true, copy: true, share: true, open: false })
   })
 
-  it('allows heart/share/open for an attachment message', () => {
+  it('keeps attachment actions contextual without heart reaction', () => {
     expect(getMessageActionCapabilities({
       ...base,
       type: 'image',
@@ -34,7 +34,14 @@ describe('message action capabilities', () => {
         mime: 'image/png',
         size: 100,
       },
-    })).toEqual({ heart: true, copy: false, share: true, open: true })
+    })).toEqual({ heart: false, copy: false, share: true, open: true })
+  })
+
+  it('disables all actions for call and system events', () => {
+    expect(getMessageActionCapabilities({ ...base, type: 'call' }))
+      .toEqual({ heart: false, copy: false, share: false, open: false })
+    expect(getMessageActionCapabilities({ ...base, type: 'system' }))
+      .toEqual({ heart: false, copy: false, share: false, open: false })
   })
 
   it('disables actions for revoked messages', () => {
