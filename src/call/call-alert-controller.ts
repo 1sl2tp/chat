@@ -36,11 +36,13 @@ export class CallAlertController {
   }
 
   sync(state: VoiceCallState): void {
-    const nextMode: CallAlertMode = state.phase === 'incoming'
-      ? 'incoming'
-      : state.phase === 'outgoing'
-        ? 'ringback'
-        : 'silent'
+    const nextMode: CallAlertMode = state.resumeRequired
+      ? 'silent'
+      : state.phase === 'incoming'
+        ? 'incoming'
+        : state.phase === 'outgoing'
+          ? 'ringback'
+          : 'silent'
 
     if (nextMode === this.mode) return
     this.stopCurrent()

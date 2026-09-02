@@ -45,6 +45,7 @@ function state(patch: Partial<VoiceCallState> = {}): VoiceCallState {
     speakerAvailable: false,
     speakerSelected: false,
     audioBlocked: false,
+    resumeRequired: false,
     permissionNotice: null,
     connectedAt: null,
     error: null,
@@ -81,6 +82,7 @@ function mountHarness(initialState: VoiceCallState) {
   const toggleMute = vi.fn(() => undefined)
   const decline = vi.fn(async () => undefined)
   const accept = vi.fn(async () => undefined)
+  const resumeFromUserGesture = vi.fn(async () => undefined)
   const dismissError = vi.fn(() => undefined)
 
   const session = {
@@ -95,6 +97,7 @@ function mountHarness(initialState: VoiceCallState) {
     toggleMute,
     decline,
     accept,
+    resumeFromUserGesture,
     dismissError,
     startAudio: vi.fn(() => undefined),
     hasPhoneSpeakerToggle: () => false,
@@ -119,6 +122,7 @@ function mountHarness(initialState: VoiceCallState) {
     toggleMute,
     decline,
     accept,
+    resumeFromUserGesture,
     dismissError,
   }
 }
@@ -145,6 +149,49 @@ afterEach(() => {
 describe('voice call reconnect UI', () => {
   it('shows an explicit reconnecting status', () => {
     expect(statusText(state({ phase: 'reconnecting' }))).toBe('Đang nối lại…')
+  })
+
+  it('asks for a tap when a cold-restored call needs a fresh media gesture', () => {
+    expect(statusText(state({ phase: 'reconnecting', resumeRequired: true }))).toBe('Chạm để tiếp tục cuộc gọi')
+  })
+
+  it('offers Tiếp tục and Kết thúc instead of mute/speaker before media is resumed', () => {
+    const harness = mountHarness(state({
+      phase: 'reconnecting',
+      direction: 'outgoing',
+      callId: '33333333-3333-4333-8333-333333333333',
+      peerName: 'Admin',
+      connectedAt: Date.now() - 8_000,
+      resumeRequired: true,
+    }))
+    const dispose = mountVoiceCallUi(harness.host as unknown as HTMLElement, harness.session)
+
+    expect(findByHtml(harness.host, 'Tiếp tục')).not.toBeNull()
+    expect(findByHtml(harness.host, 'Kết thúc')).not.toBeNull()
+    expect(findByHtml(harness.host, 'Tắt tiếng')).toBeNull()
+    expect(findByHtml(harness.host, 'Chọn loa')).toBeNull()
+
+    findByHtml(harness.host, 'Tiếp tục')?.click()
+    expect(harness.resumeFromUserGesture).toHaveBeenCalledOnce()
+    dispose()
+  })
+
+  it('keeps a resume action available if a waiting call is minimized', () => {
+    const harness = mountHarness(state({
+      phase: 'reconnecting',
+      display: 'compact',
+      direction: 'outgoing',
+      callId: '33333333-3333-4333-8333-333333333333',
+      peerName: 'Admin',
+      resumeRequired: true,
+    }))
+    const dispose = mountVoiceCallUi(harness.host as unknown as HTMLElement, harness.session)
+
+    expect(findByHtml(harness.host, 'Tiếp tục')).not.toBeNull()
+    expect(findByHtml(harness.host, 'Tắt mic')).toBeNull()
+    findByHtml(harness.host, 'Tiếp tục')?.click()
+    expect(harness.resumeFromUserGesture).toHaveBeenCalledOnce()
+    dispose()
   })
 })
 

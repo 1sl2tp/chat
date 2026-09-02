@@ -1,4 +1,4 @@
-export const APP_VERSION = 'CHAT-ADMIN-0.13.0' as const
+export const APP_VERSION = 'CHAT-ADMIN-0.13.1' as const
 
 export function formatVersionLabel(buildId: string): string {
   const shortBuildId = buildId === 'dev' ? buildId : buildId.slice(0, 7)

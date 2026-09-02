@@ -52,6 +52,7 @@ export function mountVoiceCallUi(host: HTMLElement, session: VoiceCallSession): 
 }
 
 export function statusText(state: VoiceCallState): string {
+  if (state.resumeRequired) return 'Chạm để tiếp tục cuộc gọi'
   if (state.phase === 'incoming') return 'Cuộc gọi đến'
   if (state.phase === 'outgoing') return 'Đang gọi…'
   if (state.phase === 'connecting') return 'Đang kết nối…'
@@ -70,11 +71,17 @@ function renderTopBar(state: VoiceCallState, session: VoiceCallSession): HTMLEle
   main.className = 'voice-call-topbar-main'
   main.innerHTML = `<strong>☎ ${escapeHtml(state.peerName || 'Cuộc gọi')}</strong><span>${statusText(state)}</span>`
   main.addEventListener('click', () => session.setDisplay('full'))
+  bar.append(main)
+
+  if (state.resumeRequired) {
+    const resume = controlButton('Tiếp tục', '☎', () => void session.resumeFromUserGesture(), 'accept')
+    const end = controlButton('Kết thúc', '✕', () => void session.hangup(), 'danger')
+    bar.append(resume, end)
+    return bar
+  }
 
   if (state.audioBlocked) {
-    bar.append(main, controlButton('Bật âm', '🔊', () => session.startAudio()))
-  } else {
-    bar.append(main)
+    bar.append(controlButton('Bật âm', '🔊', () => session.startAudio()))
   }
 
   const mute = controlButton(state.muted ? 'Mở mic' : 'Tắt mic', state.muted ? '🎙' : '🔇', () => session.toggleMute())
@@ -127,6 +134,11 @@ function renderFull(state: VoiceCallState, session: VoiceCallSession): HTMLEleme
     controls.append(
       controlButton('Từ chối', '✕', () => void session.decline(), 'danger'),
       controlButton('Nhận', '☎', () => void session.accept(), 'accept'),
+    )
+  } else if (state.resumeRequired) {
+    controls.append(
+      controlButton('Tiếp tục', '☎', () => void session.resumeFromUserGesture(), 'accept'),
+      controlButton('Kết thúc', '☎', () => void session.hangup(), 'danger'),
     )
   } else {
     if (state.audioBlocked) {

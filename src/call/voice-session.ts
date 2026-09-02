@@ -30,6 +30,7 @@ export interface VoiceCallState {
   speakerAvailable: boolean
   speakerSelected: boolean
   audioBlocked: boolean
+  resumeRequired: boolean
   permissionNotice: string | null
   connectedAt: number | null
   error: string | null
@@ -64,6 +65,7 @@ const DEFAULT_STATE: VoiceCallState = {
   speakerAvailable: false,
   speakerSelected: false,
   audioBlocked: false,
+  resumeRequired: false,
   permissionNotice: null,
   connectedAt: null,
   error: null,
@@ -200,6 +202,7 @@ export class VoiceCallSession {
       direction: 'outgoing',
       peerName: context.peerName || 'Admin',
       audioBlocked: false,
+      resumeRequired: false,
       permissionNotice: null,
       error: null,
     })
@@ -228,7 +231,7 @@ export class VoiceCallSession {
     if (!context || !callId || this.state.phase !== 'incoming') return
 
     this.media.beginUserGesture()
-    this.publish({ phase: 'connecting', display: 'full', audioBlocked: false, error: null })
+    this.publish({ phase: 'connecting', display: 'full', audioBlocked: false, resumeRequired: false, error: null })
     this.alerts.armAfterMicrophoneGesture()
     try {
       const result = await this.client.rpc('chat_accept_voice_call', {
@@ -243,6 +246,36 @@ export class VoiceCallSession {
       await this.joinLiveKit(callId, context)
     } catch (error) {
       this.fail(error)
+    }
+  }
+
+  async resumeFromUserGesture(): Promise<void> {
+    const context = this.getContext()
+    const callId = this.state.callId
+    if (!context || !callId || !this.state.resumeRequired) return
+
+    const phase: VoiceCallPhase = this.backendState === 'ringing'
+      ? this.state.direction === 'outgoing' ? 'outgoing' : 'connecting'
+      : this.backendState === 'connected'
+        ? 'reconnecting'
+        : 'connecting'
+
+    this.media.beginUserGesture()
+    this.alerts.armAfterMicrophoneGesture()
+    this.publish({
+      phase,
+      display: 'full',
+      resumeRequired: false,
+      audioBlocked: false,
+      error: null,
+    })
+
+    try {
+      await this.joinLiveKit(callId, context)
+    } catch (error) {
+      this.media.disconnect()
+      const reason = error instanceof Error ? error.message : String(error)
+      this.publish({ phase, resumeRequired: true, error: callErrorMessage(reason) })
     }
   }
 
@@ -348,7 +381,7 @@ export class VoiceCallSession {
 
   private async handleForeground(): Promise<void> {
     await this.pollActiveCalls()
-    if (this.restoringCallId) return
+    if (this.restoringCallId || this.state.resumeRequired) return
     if (!['active', 'connecting', 'reconnecting'].includes(this.state.phase)) return
 
     try {
@@ -385,6 +418,7 @@ export class VoiceCallSession {
           peerName: incoming.caller_display_name || 'Người gọi',
           connectedAt: null,
           audioBlocked: false,
+          resumeRequired: false,
           permissionNotice: null,
           error: null,
         })
@@ -449,32 +483,33 @@ export class VoiceCallSession {
 
     this.publish({
       phase,
-      display: row.state === 'connected' ? 'compact' : 'full',
+      display: 'full',
       direction,
       callId: row.id,
       peerName,
       connectedAt: connectedAtFromRow(row.connected_at),
       audioBlocked: false,
+      resumeRequired: true,
       permissionNotice: null,
       error: null,
     })
 
-    try {
-      await this.joinLiveKit(row.id, context)
-    } catch (error) {
-      this.fail(error)
-    } finally {
-      this.restoringCallId = null
-    }
+    this.restoringCallId = null
   }
 
   private async joinLiveKit(callId: string, context: VoiceCallContext): Promise<void> {
-    this.publish({ phase: this.backendState === 'ringing' ? this.state.phase : 'connecting' })
+    const phase: VoiceCallPhase = this.backendState === 'ringing'
+      ? this.state.phase
+      : this.state.connectedAt !== null
+        ? 'reconnecting'
+        : 'connecting'
+    this.publish({ phase })
     const credentials = await fetchLiveKitCredentials(this.client, callId, context.deviceId)
     await this.media.join(credentials)
     this.publish({
       speakerAvailable: this.media.canTogglePhoneSpeaker() || this.media.canChooseAudioOutput(),
       speakerSelected: this.media.defaultSpeakerSelected(),
+      resumeRequired: false,
     })
     await this.reportMediaEvent('joined', {
       room: `taphoa-call-${callId.toLowerCase()}`,
