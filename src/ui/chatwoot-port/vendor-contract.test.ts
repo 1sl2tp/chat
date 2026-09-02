@@ -19,7 +19,12 @@ describe('Chatwoot vendor mirror', () => {
   it('is never imported by production src', () => {
     const files = fs
       .readdirSync('src', { recursive: true })
-      .filter(path => typeof path === 'string' && /\.(ts|css)$/.test(path)) as string[]
+      .filter(
+        path =>
+          typeof path === 'string' &&
+          /\.(ts|css)$/.test(path) &&
+          !/\.test\.ts$/.test(path),
+      ) as string[]
     const offender = files.find(path =>
       fs.readFileSync(`src/${path}`, 'utf8').includes('vendor/chatwoot-mobile-ui'),
     )
