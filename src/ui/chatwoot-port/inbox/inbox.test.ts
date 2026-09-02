@@ -5,6 +5,7 @@ import { toInboxModel } from '../../../admin/chatwoot-inbox-adapter'
 import { mountInbox, type InboxModel } from './inbox'
 
 const inboxCss = readFileSync(new URL('./inbox.css', import.meta.url), 'utf8')
+const inboxSource = readFileSync(new URL('./inbox.ts', import.meta.url), 'utf8')
 
 class FakeElement {
   readonly tagName: string
@@ -110,5 +111,14 @@ describe('Chatwoot Hỗ trợ Inbox', () => {
     expect(model.user2.map(row => row.id)).toEqual(['c-u2'])
     expect(model.user1.map(row => row.id)).toEqual(['c-u1'])
     expect(model.user2[0]?.username).toBe('an')
+  })
+
+  it('uses the approved dark reference row/search presentation without fake channels', () => {
+    expect(inboxSource).toContain('bg-slate-900/70')
+    expect(inboxSource).toContain('border-slate-800')
+    expect(inboxSource).toContain('focus:border-cw-500')
+    expect(inboxSource).not.toContain('WhatsApp')
+    expect(inboxSource).not.toContain('Zalo')
+    expect(inboxSource).not.toContain('Instagram')
   })
 })
