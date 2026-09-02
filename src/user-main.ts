@@ -3,6 +3,7 @@ import { VoiceCallSession, type VoiceCallContext } from './call/voice-session'
 import { getChatMessageState, subscribeChatMessages } from './chat/message-runtime'
 import { sendSupportText, startChatRuntime, stopChatRuntime } from './chat/runtime'
 import { getChatRuntimeState, subscribeChatRuntime } from './chat/store'
+import { composerEnterAction, isMobileComposerEnvironment } from './chat/ui/composer-behavior'
 import { getOrCreateDeviceKey } from './device/identity'
 import { CallPushRegistration, callPushBrowserForRegistration } from './notifications/call-push-registration'
 import { clearCurrentPushSubscription, pushCleanupBrowserForRegistration } from './notifications/push-cleanup'
@@ -22,6 +23,7 @@ const rootElement = document.querySelector<HTMLDivElement>('#app')
 if (!rootElement) throw new Error('Missing #app root')
 const root: HTMLDivElement = rootElement
 const userPwaRegistrationPromise = setupPwa('user')
+const mobileComposer = isMobileComposerEnvironment()
 
 root.innerHTML = `
   <main class="user-app">
@@ -48,7 +50,7 @@ root.innerHTML = `
     </section>
     <section id="messages" class="messages"><p class="empty">Bạn cần hỗ trợ gì?</p></section>
     <form id="composer" class="composer">
-      <input id="text" autocomplete="off" placeholder="Nhập tin nhắn…" aria-label="Tin nhắn" />
+      <textarea id="text" rows="1" autocomplete="off" placeholder="Nhập tin nhắn…" aria-label="Tin nhắn"></textarea>
       <button type="submit">Gửi</button>
     </form>
   </main>
@@ -59,7 +61,7 @@ const messages = root.querySelector<HTMLElement>('#messages')!
 const status = root.querySelector<HTMLElement>('#status')!
 const modeLabel = root.querySelector<HTMLElement>('#user-mode')!
 const form = root.querySelector<HTMLFormElement>('#composer')!
-const input = root.querySelector<HTMLInputElement>('#text')!
+const input = root.querySelector<HTMLTextAreaElement>('#text')!
 const submit = form.querySelector<HTMLButtonElement>('button')!
 const callButton = root.querySelector<HTMLButtonElement>('#voice-call')!
 const notificationButton = root.querySelector<HTMLButtonElement>('#call-notifications')!
@@ -291,6 +293,12 @@ async function bootRootMode(): Promise<void> {
 }
 
 input.addEventListener('input', render)
+input.addEventListener('keydown', (event) => {
+  if (event.key !== 'Enter' || event.isComposing) return
+  if (composerEnterAction({ isMobile: mobileComposer, shiftKey: event.shiftKey }) === 'newline') return
+  event.preventDefault()
+  if (!submit.disabled) form.requestSubmit()
+})
 callButton.addEventListener('click', () => void callSession?.startOutgoing())
 notificationButton.addEventListener('click', async () => {
   const registration = callPushRegistration
