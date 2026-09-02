@@ -65,7 +65,6 @@ export function createChatHeader(options: ChatHeaderOptions): ChatHeaderView {
   avatar.className = 'cw-chat-header__avatar'
   const presence = document.createElement('span')
   presence.className = 'cw-chat-header__presence'
-  presence.setAttribute('aria-label', 'Đang hoạt động')
   avatarWrap.append(avatar, presence)
 
   const copy = document.createElement('div')
