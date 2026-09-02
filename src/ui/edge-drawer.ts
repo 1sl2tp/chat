@@ -6,6 +6,7 @@ export interface DrawerGestureSample {
   startY: number
   endX: number
   endY: number
+  openEdgePx?: number
 }
 
 const EDGE_PX = 28
@@ -18,7 +19,8 @@ export function drawerGestureAction(sample: DrawerGestureSample): DrawerGestureA
   if (Math.abs(dx) < SWIPE_PX || Math.abs(dx) < Math.abs(dy) * HORIZONTAL_BIAS) return 'none'
 
   if (!sample.open) {
-    return sample.startX <= EDGE_PX && dx > 0 ? 'open' : 'none'
+    const edgePx = sample.openEdgePx ?? EDGE_PX
+    return sample.startX <= edgePx && dx > 0 ? 'open' : 'none'
   }
 
   return dx < 0 ? 'close' : 'none'
@@ -28,6 +30,7 @@ export interface EdgeDrawerGestureOptions {
   isOpen(): boolean
   onOpen(): void
   onClose(): void
+  openEdgePx?: number
 }
 
 export function installEdgeDrawerGesture(
@@ -40,7 +43,8 @@ export function installEdgeDrawerGesture(
 
   const onPointerDown = (event: PointerEvent) => {
     if (event.pointerType === 'mouse' && event.button !== 0) return
-    if (!options.isOpen() && event.clientX > EDGE_PX) return
+    const edgePx = options.openEdgePx ?? EDGE_PX
+    if (!options.isOpen() && event.clientX > edgePx) return
     pointerId = event.pointerId
     startX = event.clientX
     startY = event.clientY
@@ -54,6 +58,7 @@ export function installEdgeDrawerGesture(
       startY,
       endX: event.clientX,
       endY: event.clientY,
+      openEdgePx: options.openEdgePx,
     })
     pointerId = null
     if (action === 'open') options.onOpen()
