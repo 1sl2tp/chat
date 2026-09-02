@@ -5,7 +5,9 @@ import { logoutAdmin } from './admin/session'
 import { getAdminState, subscribeAdminState } from './admin/store'
 import { mountVoiceCallUi } from './call/ui'
 import { VoiceCallSession, type VoiceCallContext } from './call/voice-session'
+import { VoiceRecorderSession } from './chat/attachments/voice-recorder'
 import { getChatMessageState, subscribeChatMessages } from './chat/message-runtime'
+import { toConversationActionsAdapter, toConversationViewModel } from './chat/ui/chatwoot-adapter'
 import { getDeviceLabel, getDevicePlatform, getOrCreateDeviceKey } from './device/identity'
 import { CallPushRegistration, callPushBrowserForRegistration } from './notifications/call-push-registration'
 import { notificationButtonPresentation } from './notifications/presentation'
@@ -14,9 +16,12 @@ import { installNotificationContextResponder } from './notifications/window-cont
 import { setupPwa } from './pwa'
 import { createSupabaseChatBackend } from './supabase/chat-backend'
 import { adminSupabase } from './supabase/client'
+import { getConversationCapabilities } from './ui/chat/capabilities'
+import { mountConversationSurface } from './ui/chat/surface'
+import { mountConversationScreen, type MountedConversationScreen } from './ui/chatwoot-port/conversation-screen'
+import { getChatPresentation } from './ui/chatwoot-port/presentation-switch'
 import { installEdgeDrawerGesture } from './ui/edge-drawer'
 import { setButtonIcon } from './ui/icons'
-import { mountConversationSurface } from './ui/chat/surface'
 import { setupViewportController } from './viewport/controller'
 import './call/call.css'
 import './ui/chat/surface.css'
@@ -26,6 +31,7 @@ const rootElement = document.querySelector<HTMLDivElement>('#app')
 if (!rootElement) throw new Error('Missing #app root')
 const root: HTMLDivElement = rootElement
 const adminPwaRegistrationPromise = setupPwa('admin')
+const useChatwootConversation = getChatPresentation() === 'chatwoot-port'
 
 let adminIdentity: unknown = null
 let callSession: VoiceCallSession | null = null
@@ -154,7 +160,10 @@ async function mountWorkspace(): Promise<void> {
   const callButton = root.querySelector<HTMLButtonElement>('#admin-voice-call')!
   const notificationButton = root.querySelector<HTMLButtonElement>('#call-notifications')!
   const callHost = root.querySelector<HTMLElement>('#voice-call-host')!
+  const legacyChatHeader = root.querySelector<HTMLElement>('.admin-chat > header')!
+  const chatwootVoiceRecorder = new VoiceRecorderSession()
   let notificationActionPending = false
+  let chatwootConversation: MountedConversationScreen | null = null
 
   setButtonIcon(back, 'back', 'Danh sách User')
   setButtonIcon(callButton, 'call', 'Gọi thoại')
@@ -166,14 +175,83 @@ async function mountWorkspace(): Promise<void> {
   disposeCallUi = mountVoiceCallUi(callHost, callSession)
   callSession.start()
 
-  const conversationSurface = mountConversationSurface({
-    messagesHost: messages,
-    composerHost,
-    onSend: async (text) => {
-      const { sendAdminText } = await import('./admin/runtime')
-      await sendAdminText(text)
-    },
-  })
+  const conversationSurface = useChatwootConversation
+    ? null
+    : mountConversationSurface({
+        messagesHost: messages,
+        composerHost,
+        onSend: async (text) => {
+          const { sendAdminText } = await import('./admin/runtime')
+          await sendAdminText(text)
+        },
+      })
+
+  if (useChatwootConversation) {
+    legacyChatHeader.hidden = true
+    composerHost.hidden = true
+    messages.className = 'chatwoot-conversation-host'
+    messages.removeAttribute('aria-label')
+
+    const runtimeActions = {
+      get canSend() {
+        const state = getAdminState()
+        return Boolean(state.selectedConversationId) && getChatMessageState().realtime !== 'error'
+      },
+      get canAttach() {
+        return Boolean(getAdminState().selectedConversationId) && Boolean(getConversationCapabilities())
+      },
+      get canRecord() {
+        return Boolean(getAdminState().selectedConversationId)
+          && Boolean(getConversationCapabilities())
+          && typeof MediaRecorder !== 'undefined'
+          && Boolean(navigator.mediaDevices?.getUserMedia)
+      },
+      get canCall() {
+        const state = getAdminState()
+        const callState = callSession?.getState()
+        return Boolean(state.selectedConversationId) && callState?.phase === 'idle'
+      },
+      async sendText(text: string) {
+        const { sendAdminText } = await import('./admin/runtime')
+        await sendAdminText(text)
+      },
+      async sendAttachment(file: File) {
+        const capabilities = getConversationCapabilities()
+        if (!capabilities) throw new Error('attachment_unavailable')
+        await capabilities.sendAttachment(file)
+      },
+      async startVoiceRecording() {
+        await chatwootVoiceRecorder.start()
+      },
+      async stopVoiceRecording() {
+        const recording = await chatwootVoiceRecorder.stop()
+        const capabilities = getConversationCapabilities()
+        if (!capabilities) throw new Error('attachment_unavailable')
+        await capabilities.sendAttachment(recording.file)
+      },
+      async startCall() {
+        if (!callSession) throw new Error('call_unavailable')
+        await callSession.startOutgoing()
+      },
+    }
+    const actions = toConversationActionsAdapter(runtimeActions)
+    chatwootConversation = mountConversationScreen({
+      root: messages,
+      model: toConversationViewModel({
+        actor: 'admin',
+        conversationId: null,
+        title: 'Chọn User',
+        subtitle: 'Hỗ trợ',
+        canCall: false,
+        messages: [],
+        currentProfileId: currentAdminProfileId() || null,
+      }),
+      actions,
+      enabled: false,
+      onBack: clearAdminSelection,
+      onCall: () => { void actions.startCall().catch(() => {}) },
+    })
+  }
 
   const disposeDrawerGesture = installEdgeDrawerGesture(adminApp, {
     isOpen: () => !Boolean(getAdminState().selectedConversationId),
@@ -203,19 +281,36 @@ async function mountWorkspace(): Promise<void> {
     const state = getAdminState()
     const messageState = getChatMessageState()
     const callState = callSession?.getState()
+    const canSend = Boolean(state.selectedConversationId) && messageState.realtime !== 'error'
+    const canCall = Boolean(state.selectedConversationId) && callState?.phase === 'idle'
 
     adminApp.dataset.selected = state.selectedConversationId ? 'true' : 'false'
     renderNotificationButton()
     customer.textContent = state.detail?.displayName?.trim() || (state.selectedConversationId ? 'User' : 'Chọn User')
     back.disabled = !state.selectedConversationId
-    callButton.disabled = !state.selectedConversationId || !callState || callState.phase !== 'idle'
+    callButton.disabled = !canCall
 
-    conversationSurface.render({
-      messages: state.selectedConversationId ? messageState.messages : [],
-      currentProfileId: currentAdminProfileId() || null,
-      canSend: Boolean(state.selectedConversationId) && messageState.realtime !== 'error',
-      emptyText: state.selectedConversationId ? 'Chưa có tin nhắn.' : 'Chọn một User để chat.',
-    })
+    if (conversationSurface) {
+      conversationSurface.render({
+        messages: state.selectedConversationId ? messageState.messages : [],
+        currentProfileId: currentAdminProfileId() || null,
+        canSend,
+        emptyText: state.selectedConversationId ? 'Chưa có tin nhắn.' : 'Chọn một User để chat.',
+      })
+    }
+
+    if (chatwootConversation) {
+      chatwootConversation.update(toConversationViewModel({
+        actor: 'admin',
+        conversationId: state.selectedConversationId || null,
+        title: state.detail?.displayName?.trim() || (state.selectedConversationId ? 'User' : 'Chọn User'),
+        subtitle: 'Hỗ trợ',
+        canCall,
+        messages: state.selectedConversationId ? messageState.messages : [],
+        currentProfileId: currentAdminProfileId() || null,
+      }))
+      chatwootConversation.setEnabled(canSend)
+    }
   }
 
   const deviceId = currentAdminCallContext()?.deviceId ?? ''
@@ -260,7 +355,8 @@ async function mountWorkspace(): Promise<void> {
     stopMessages()
     stopCall()
     disposeDrawerGesture()
-    conversationSurface.destroy()
+    conversationSurface?.destroy()
+    chatwootConversation?.destroy()
     callSession?.dispose()
     clearCallPushRegistration()
 
