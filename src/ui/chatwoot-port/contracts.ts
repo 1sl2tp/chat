@@ -37,6 +37,7 @@ export interface ConversationViewModel {
   id: string
   title: string
   subtitle?: string
+  canCall?: boolean
   messages: MessageViewModel[]
 }
 
