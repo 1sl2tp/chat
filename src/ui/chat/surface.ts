@@ -190,16 +190,23 @@ export function mountConversationSurface(options: ConversationSurfaceOptions): C
   window.visualViewport?.addEventListener('resize', onViewport)
   window.visualViewport?.addEventListener('scroll', onViewport)
 
-  function renderState(state: ConversationSurfaceRenderState): void {
+  function renderState(state: ConversationSurfaceRenderState, forceMessages = false): void {
     if (destroyed) return
 
-    scroll.capturePosition()
+    const previousState = lastState
+    const messagesChanged = forceMessages
+      || !previousState
+      || previousState.messages !== state.messages
+      || previousState.currentProfileId !== state.currentProfileId
+      || previousState.emptyText !== state.emptyText
+
+    if (messagesChanged) scroll.capturePosition()
     const wasFollowingBottom = scroll.isFollowingBottom()
-    const previousCount = lastState?.messages.length ?? 0
-    const previousLastId = lastState?.messages.at(-1)?.id ?? ''
+    const previousCount = previousState?.messages.length ?? 0
+    const previousLastId = previousState?.messages.at(-1)?.id ?? ''
     const nextLastId = state.messages.at(-1)?.id ?? ''
     const hasNewTail = Boolean(
-      lastState
+      previousState
       && state.messages.length > previousCount
       && nextLastId
       && nextLastId !== previousLastId,
@@ -213,44 +220,46 @@ export function mountConversationSurface(options: ConversationSurfaceOptions): C
     if (reactionSession && reactionSession !== activeReactionSession) {
       activeReactionSession = reactionSession
       reactionSession.start(() => {
-        if (lastState) renderState(lastState)
+        if (lastState) renderState(lastState, true)
       })
     }
 
-    if (reactionSession) {
+    if (reactionSession && (!previousState || previousState.messages !== state.messages)) {
       void reactionSession.sync(state.messages.map((message) => message.id), state.currentProfileId).catch((error) => {
         console.error('Reaction sync failed', error)
       })
     }
 
-    if (state.messages.length === 0) {
-      const empty = document.createElement('div')
-      empty.className = 'chat-empty'
-      empty.textContent = state.emptyText ?? 'Chưa có tin nhắn.'
-      options.messagesHost.replaceChildren(empty)
-    } else {
-      const timelineMessages = compactCallTimelineMessages(state.messages)
-      renderMessageList(options.messagesHost, timelineMessages, state.currentProfileId, {
-        resolveAttachmentUrl: capabilities?.resolveAttachmentUrl,
-        resolveLinkPreview: options.resolveLinkPreview ?? resolveActiveLinkPreview,
-        getHeart: reactionSession ? (messageId) => reactionSession.getHeart(messageId) : undefined,
-        onHeart: reactionSession ? (messageId) => reactionSession.toggleHeart(messageId) : undefined,
-        onOpenImage(url, name) {
-          activeImageUrl = url
-          activeImageName = name
-          viewerImage.src = url
-          viewerImage.alt = name
-          viewerSave.href = url
-          viewerSave.download = name || 'image'
-          viewer.hidden = false
-        },
-      })
-    }
+    if (messagesChanged) {
+      if (state.messages.length === 0) {
+        const empty = document.createElement('div')
+        empty.className = 'chat-empty'
+        empty.textContent = state.emptyText ?? 'Chưa có tin nhắn.'
+        options.messagesHost.replaceChildren(empty)
+      } else {
+        const timelineMessages = compactCallTimelineMessages(state.messages)
+        renderMessageList(options.messagesHost, timelineMessages, state.currentProfileId, {
+          resolveAttachmentUrl: capabilities?.resolveAttachmentUrl,
+          resolveLinkPreview: options.resolveLinkPreview ?? resolveActiveLinkPreview,
+          getHeart: reactionSession ? (messageId) => reactionSession.getHeart(messageId) : undefined,
+          onHeart: reactionSession ? (messageId) => reactionSession.toggleHeart(messageId) : undefined,
+          onOpenImage(url, name) {
+            activeImageUrl = url
+            activeImageName = name
+            viewerImage.src = url
+            viewerImage.alt = name
+            viewerSave.href = url
+            viewerSave.download = name || 'image'
+            viewer.hidden = false
+          },
+        })
+      }
 
-    observeMessageRows()
-    if (hasNewTail && !wasFollowingBottom) newMessageIndicator.hidden = false
-    else if (wasFollowingBottom) newMessageIndicator.hidden = true
-    scroll.onMessagesChanged()
+      observeMessageRows()
+      if (hasNewTail && !wasFollowingBottom) newMessageIndicator.hidden = false
+      else if (wasFollowingBottom) newMessageIndicator.hidden = true
+      scroll.onMessagesChanged()
+    }
   }
 
   return {
