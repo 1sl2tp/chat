@@ -44,10 +44,10 @@ describe('Admin management UI', () => {
     expect(filterAdminInbox(rows, 'guest', 'khach_02')).toEqual([])
   })
 
-  it('groups the all inbox into User 2 and Vãng lai so the roles do not mix visually', () => {
+  it('groups the all inbox into User 2 and User 1 vãng lai so the roles do not mix visually', () => {
     expect(groupAdminInbox(rows, 'all').map((group) => [group.label, group.items.map((row) => row.displayName)])).toEqual([
       ['USER 2', ['Bình Minh']],
-      ['VÃNG LAI', ['Nguyễn An']],
+      ['USER 1 · VÃNG LAI', ['Nguyễn An']],
     ])
   })
 
