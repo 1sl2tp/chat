@@ -25,7 +25,9 @@ describe('shared User/Hỗ trợ Chatwoot Conversation wiring', () => {
   it('lets the app hosts own visual viewport height while Conversation fills its host', () => {
     expect(conversationCssSource).toContain('height: 100%')
     expect(conversationCssSource).not.toContain('height: var(--app-visual-height, 100dvh)')
-    expect(conversationCssSource).toContain('grid-template-rows: auto minmax(0, 1fr) auto')
+    expect(conversationCssSource).toMatch(/\.cw-conversation\s*\{[^}]*display:\s*flex[^}]*flex-direction:\s*column/s)
+    expect(conversationCssSource).toMatch(/\.cw-conversation__timeline\s*\{[^}]*flex:\s*1\s+1\s+auto[^}]*overflow-y:\s*auto/s)
+    expect(conversationCssSource).toMatch(/\.cw-conversation__composer\s*\{[^}]*flex:\s*0\s+0\s+auto/s)
     expect(composerCssSource).toContain('.cw-composer__input')
     expect(composerCssSource).toContain('font-size: 16px')
   })
