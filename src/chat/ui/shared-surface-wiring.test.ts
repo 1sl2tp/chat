@@ -22,8 +22,9 @@ describe('shared User/Hỗ trợ Chatwoot Conversation wiring', () => {
     expect(adminMainSource).toContain('setupViewportController()')
   })
 
-  it('keeps the shared Conversation on visual viewport and the ReplyBox textarea at 16px', () => {
-    expect(conversationCssSource).toContain('height: var(--app-visual-height, 100dvh)')
+  it('lets the app hosts own visual viewport height while Conversation fills its host', () => {
+    expect(conversationCssSource).toContain('height: 100%')
+    expect(conversationCssSource).not.toContain('height: var(--app-visual-height, 100dvh)')
     expect(conversationCssSource).toContain('grid-template-rows: auto minmax(0, 1fr) auto')
     expect(composerCssSource).toContain('.cw-composer__input')
     expect(composerCssSource).toContain('font-size: 16px')
