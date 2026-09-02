@@ -1,7 +1,14 @@
 /// <reference lib="webworker" />
 
 import { serviceWorkerAssetBase } from './deployment'
-import { notificationVibration, parsePushPayload, shouldShowSystemNotification } from './notifications/payload'
+import { parsePushPayload, shouldShowSystemNotification } from './notifications/payload'
+import {
+  createCacheNotificationPreferencesStorage,
+  loadNotificationPreferences,
+  notificationDeliveryOptions,
+  shouldDeliverNotification,
+  type NotificationPreferences,
+} from './notifications/preferences'
 import { resolveScopedNavigation } from './pwa/navigation'
 import { hasVisibleWindowForOwner, isWindowOwnedBy } from './pwa/owner-visibility'
 import { pwaOwnerForPath, type PwaOwner } from './pwa/registration'
@@ -74,6 +81,9 @@ self.addEventListener('push', (event) => {
   const payload = parsePushPayload(readPushData(event))
 
   event.waitUntil((async () => {
+    const preferences = await loadNotificationPreferences(
+      createCacheNotificationPreferencesStorage(self.registration.scope),
+    )
     const setBadge = self.navigator.setAppBadge
     const badgeTask = payload.badge !== undefined && typeof setBadge === 'function'
       ? setBadge.call(self.navigator, payload.badge)
@@ -84,14 +94,15 @@ self.addEventListener('push', (event) => {
     const owner = pwaOwnerForPath(new URL(self.registration.scope).pathname)
     const hasVisibleWindow = hasVisibleWindowForOwner(windowClients, owner)
 
-    let showNotification = shouldShowSystemNotification(payload.type, hasVisibleWindow)
-    if (payload.type === 'chat_message' && payload.conversationId) {
+    let showNotification = shouldDeliverNotification(payload.type, preferences)
+      && shouldShowSystemNotification(payload.type, hasVisibleWindow)
+    if (showNotification && payload.type === 'chat_message' && payload.conversationId) {
       const exactConversationVisible = await isConversationVisible(windowClients, payload.conversationId, owner)
       showNotification = !exactConversationVisible
     }
 
     const notificationTask = showNotification
-      ? showSystemNotification(payload)
+      ? showSystemNotification(payload, preferences)
       : Promise.resolve()
 
     await Promise.all([notificationTask, badgeTask])
@@ -148,14 +159,16 @@ async function isConversationVisible(
   return replies.some(Boolean)
 }
 
-function showSystemNotification(payload: ReturnType<typeof parsePushPayload>): Promise<void> {
+function showSystemNotification(
+  payload: ReturnType<typeof parsePushPayload>,
+  preferences: NotificationPreferences,
+): Promise<void> {
   const options: NotificationOptions & { vibrate?: number[] } = {
     body: payload.body,
     tag: payload.tag,
     data: { navigate: payload.navigate },
+    ...notificationDeliveryOptions(payload.type, preferences),
   }
-  const vibrate = notificationVibration(payload.type)
-  if (vibrate) options.vibrate = vibrate
   return self.registration.showNotification(payload.title, options)
 }
 
