@@ -67,6 +67,8 @@ const DEFAULT_STATE: VoiceCallState = {
   error: null,
 }
 
+const LIVE_CALL_STATES = new Set(['ringing', 'accepted', 'connecting', 'connected'])
+
 export function callErrorMessage(reason: string): string {
   if (reason === 'caller_busy') return 'Bạn đang có cuộc gọi khác'
   if (reason === 'peer_busy') return 'Đối phương đang trong cuộc gọi'
@@ -76,6 +78,12 @@ export function callErrorMessage(reason: string): string {
 
 export function connectedAtForPolling(existingConnectedAt: number | null, now: number): number {
   return existingConnectedAt ?? now
+}
+
+function connectedAtFromRow(value: string | null): number | null {
+  if (!value) return null
+  const parsed = Date.parse(value)
+  return Number.isFinite(parsed) ? parsed : null
 }
 
 export class VoiceCallSession {
@@ -90,6 +98,7 @@ export class VoiceCallSession {
   private started = false
   private markingConnected = false
   private decliningCallId: string | null = null
+  private restoringCallId: string | null = null
 
   constructor(client: SupabaseClient, getContext: () => VoiceCallContext | null) {
     this.client = client
@@ -126,9 +135,6 @@ export class VoiceCallSession {
   }
 
   prepareAlertAudioFromUserGesture(): void {
-    // Use only on a non-call gesture (for example enabling notifications), or
-    // after beginUserGesture() on a call gesture. This keeps iPhone microphone
-    // capture as the first media operation for Call/Answer.
     this.alerts.armAfterMicrophoneGesture()
   }
 
@@ -145,7 +151,9 @@ export class VoiceCallSession {
     void this.pollActiveCalls()
     this.activeTimer = window.setInterval(() => void this.pollActiveCalls(), 1000)
     document.addEventListener('visibilitychange', this.handleVisibilityChange)
-    window.addEventListener('pageshow', this.handlePageShow)
+    window.addEventListener('pageshow', this.handleWindowRecovery)
+    window.addEventListener('focus', this.handleWindowRecovery)
+    window.addEventListener('online', this.handleWindowRecovery)
   }
 
   dispose(): void {
@@ -153,7 +161,10 @@ export class VoiceCallSession {
     if (this.activeTimer !== null) window.clearInterval(this.activeTimer)
     this.activeTimer = null
     document.removeEventListener('visibilitychange', this.handleVisibilityChange)
-    window.removeEventListener('pageshow', this.handlePageShow)
+    window.removeEventListener('pageshow', this.handleWindowRecovery)
+    window.removeEventListener('focus', this.handleWindowRecovery)
+    window.removeEventListener('online', this.handleWindowRecovery)
+    this.restoringCallId = null
     this.alerts.stop()
     this.media.disconnect()
     this.listeners.clear()
@@ -208,10 +219,7 @@ export class VoiceCallSession {
     const callId = this.state.callId
     if (!context || !callId || this.state.phase !== 'incoming') return
 
-    // Keep getUserMedia as the first media operation on the answer gesture.
     this.media.beginUserGesture()
-    // The incoming ringtone/vibration must stop at the user's tap, not after the
-    // network round-trip that accepts the call.
     this.publish({ phase: 'connecting', display: 'full', audioBlocked: false, error: null })
     this.alerts.armAfterMicrophoneGesture()
     try {
@@ -235,8 +243,6 @@ export class VoiceCallSession {
     const callId = this.state.callId
     if (!context || !callId) return
 
-    // Close the incoming UI and stop alerting immediately. Suppress rediscovery
-    // of the same ringing call while the decline RPC is in flight.
     this.resetToIdle()
     this.decliningCallId = callId
     try {
@@ -322,7 +328,7 @@ export class VoiceCallSession {
     if (document.visibilityState === 'visible') void this.handleForeground()
   }
 
-  private readonly handlePageShow = (): void => {
+  private readonly handleWindowRecovery = (): void => {
     void this.handleForeground()
   }
 
@@ -334,6 +340,7 @@ export class VoiceCallSession {
 
   private async handleForeground(): Promise<void> {
     await this.pollActiveCalls()
+    if (this.restoringCallId) return
     if (!['active', 'connecting', 'reconnecting'].includes(this.state.phase)) return
 
     try {
@@ -373,7 +380,15 @@ export class VoiceCallSession {
           permissionNotice: null,
           error: null,
         })
+        return
       }
+
+      const resumable = rows.find((row) => (
+        row.id !== this.decliningCallId
+        && LIVE_CALL_STATES.has(row.state)
+        && (row.caller_profile_id === context.profileId || row.callee_profile_id === context.profileId)
+      ))
+      if (resumable) void this.restoreExistingCall(resumable, context)
       return
     }
 
@@ -392,12 +407,48 @@ export class VoiceCallSession {
       this.publish({
         phase: reconnecting ? 'reconnecting' : 'active',
         peerName,
-        connectedAt: connectedAtForPolling(this.state.connectedAt, Date.now()),
+        connectedAt: connectedAtForPolling(this.state.connectedAt, connectedAtFromRow(current.connected_at) ?? Date.now()),
       })
     } else if (current.state === 'accepted' || current.state === 'connecting') {
       this.publish({ phase: reconnecting ? 'reconnecting' : 'connecting', peerName })
     } else {
       this.publish({ peerName })
+    }
+  }
+
+  private async restoreExistingCall(row: ActiveCallRow, context: VoiceCallContext): Promise<void> {
+    if (this.restoringCallId === row.id || this.state.callId === row.id) return
+    this.restoringCallId = row.id
+    this.backendState = row.state
+
+    const direction: VoiceCallDirection = row.caller_profile_id === context.profileId ? 'outgoing' : 'incoming'
+    const peerName = direction === 'incoming'
+      ? row.caller_display_name || 'Người gọi'
+      : row.callee_display_name || context.peerName || 'Người nhận'
+    const phase: VoiceCallPhase = row.state === 'ringing'
+      ? 'outgoing'
+      : row.state === 'connected'
+        ? 'reconnecting'
+        : 'connecting'
+
+    this.publish({
+      phase,
+      display: row.state === 'connected' ? 'compact' : 'full',
+      direction,
+      callId: row.id,
+      peerName,
+      connectedAt: connectedAtFromRow(row.connected_at),
+      audioBlocked: false,
+      permissionNotice: null,
+      error: null,
+    })
+
+    try {
+      await this.joinLiveKit(row.id, context)
+    } catch (error) {
+      this.fail(error)
+    } finally {
+      this.restoringCallId = null
     }
   }
 
@@ -497,6 +548,7 @@ export class VoiceCallSession {
     this.media.disconnect()
     this.backendState = null
     this.markingConnected = false
+    this.restoringCallId = null
     this.state = { ...DEFAULT_STATE }
     for (const listener of this.listeners) listener(this.state)
   }
@@ -504,6 +556,7 @@ export class VoiceCallSession {
   private fail(error: unknown): void {
     this.alerts.stop()
     this.media.disconnect()
+    this.restoringCallId = null
     const reason = error instanceof Error ? error.message : String(error)
     this.publish({ phase: 'error', error: callErrorMessage(reason) })
   }
