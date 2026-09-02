@@ -43,10 +43,10 @@ export function createComposer(options: ComposerOptions): ComposerView {
   let recording = false
   let controls: Array<HTMLButtonElement | HTMLTextAreaElement> = []
   let actionButton: HTMLButtonElement | null = null
-  let recordingClock: number | null = null
+  let recordingClock: ReturnType<typeof setInterval> | null = null
 
   const stopRecordingClock = () => {
-    if (recordingClock !== null) window.clearInterval(recordingClock)
+    if (recordingClock !== null) globalThis.clearInterval(recordingClock)
     recordingClock = null
   }
 
@@ -152,7 +152,7 @@ export function createComposer(options: ComposerOptions): ComposerView {
     root.replaceChildren(recordingRow)
 
     let elapsed = 0
-    recordingClock = window.setInterval(() => {
+    recordingClock = globalThis.setInterval(() => {
       elapsed += 1
       timer.textContent = formatElapsed(elapsed)
     }, 1000)
