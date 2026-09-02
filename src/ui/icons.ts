@@ -21,6 +21,9 @@ export type AppIconName =
   | 'unmute'
   | 'endCall'
   | 'acceptCall'
+  | 'chat'
+  | 'eye'
+  | 'eyeOff'
 
 const paths: Record<AppIconName, string> = {
   menu: '<path d="M4 7h16M4 12h16M4 17h10"/>',
@@ -45,6 +48,9 @@ const paths: Record<AppIconName, string> = {
   unmute: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6M4 4l16 16"/>',
   endCall: '<path d="M5 15.5c4.5-3.2 9.5-3.2 14 0"/><path d="m5 15.5-2 3M19 15.5l2 3"/>',
   acceptCall: '<path d="M6.6 3.8 9 3l2 5-2.1 1.5a15 15 0 0 0 5.6 5.6L16 13l5 2-0.8 2.4a3 3 0 0 1-3.4 2A17.5 17.5 0 0 1 4.6 7.2a3 3 0 0 1 2-3.4Z"/>',
+  chat: '<path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z"/><path d="M8 9h8M8 13h5"/>',
+  eye: '<path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6S2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="2.5"/>',
+  eyeOff: '<path d="m3 3 18 18"/><path d="M10.6 6.2A10.6 10.6 0 0 1 12 6c6 0 9.5 6 9.5 6a17 17 0 0 1-2.1 2.7M6.6 6.7C4 8.4 2.5 12 2.5 12s3.5 6 9.5 6c1.7 0 3.2-.5 4.5-1.2"/>',
 }
 
 export function iconSvg(name: AppIconName): string {
