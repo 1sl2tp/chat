@@ -8,6 +8,7 @@ class FakeElement {
   textContent: string | null = null
   children: FakeElement[] = []
   dataset: Record<string, string> = {}
+  style: Record<string, string> = {}
   type = ''
   ariaLabel = ''
 
