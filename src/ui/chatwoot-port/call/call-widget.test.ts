@@ -6,13 +6,16 @@ const sourcePath = new URL('./call-widget.ts', import.meta.url)
 const cssPath = new URL('./call-widget.css', import.meta.url)
 
 describe('Chatwoot CallWidget production contract', () => {
-  it('ports Chatwoot CallCard hierarchy and controls', () => {
+  it('ports the approved CallCard hierarchy and real controls', () => {
     const source = readFileSync(sourcePath, 'utf8')
     const css = readFileSync(cssPath, 'utf8')
     expect(source).toContain('mountChatwootCallUi')
     expect(source).toContain('cw-call-card__status')
     expect(source).toContain('cw-call-card__identity')
-    expect(source).toContain('cw-call-card__actions')
+    expect(source).toContain('cw-call-card__controls')
+    expect(source).toContain('cw-call-card__primary-actions')
+    expect(source).toContain('cw-call-compact')
+    expect(source).toContain('cw-call-hidden')
     expect(css).toContain('border-radius: 16px')
     expect(css).toContain('backdrop-filter: blur')
   })
