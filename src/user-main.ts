@@ -1,8 +1,10 @@
 import { mountVoiceCallUi } from './call/ui'
 import { VoiceCallSession, type VoiceCallContext } from './call/voice-session'
+import { VoiceRecorderSession } from './chat/attachments/voice-recorder'
 import { getChatMessageState, subscribeChatMessages } from './chat/message-runtime'
 import { sendSupportText, startChatRuntime, stopChatRuntime } from './chat/runtime'
 import { getChatRuntimeState, subscribeChatRuntime } from './chat/store'
+import { toConversationActionsAdapter, toConversationViewModel } from './chat/ui/chatwoot-adapter'
 import { getOrCreateDeviceKey } from './device/identity'
 import { CallPushRegistration, callPushBrowserForRegistration } from './notifications/call-push-registration'
 import {
@@ -23,9 +25,12 @@ import { changeUser2Password, loginUser2, logoutUser2 } from './user/auth'
 import { capabilitiesForRootMode } from './user/capabilities'
 import { clearGuestLocalState, endGuestSession as teardownGuestSession } from './user/guest-lifecycle'
 import { enterFreshGuest, resolveRootMode, type RootUserMode } from './user/root-session'
+import { getConversationCapabilities } from './ui/chat/capabilities'
+import { mountConversationSurface } from './ui/chat/surface'
+import { mountConversationScreen, type MountedConversationScreen } from './ui/chatwoot-port/conversation-screen'
+import { getChatPresentation } from './ui/chatwoot-port/presentation-switch'
 import { installEdgeDrawerGesture } from './ui/edge-drawer'
 import { setButtonIcon } from './ui/icons'
-import { mountConversationSurface } from './ui/chat/surface'
 import { setupViewportController } from './viewport/controller'
 import './call/call.css'
 import './ui/chat/surface.css'
@@ -35,6 +40,7 @@ const rootElement = document.querySelector<HTMLDivElement>('#app')
 if (!rootElement) throw new Error('Missing #app root')
 const root: HTMLDivElement = rootElement
 const userPwaRegistrationPromise = setupPwa('user')
+const useChatwootConversation = getChatPresentation() === 'chatwoot-port'
 
 root.innerHTML = `
   <main class="user-app">
@@ -137,6 +143,7 @@ const loginSubmit = loginForm.querySelector<HTMLButtonElement>('button[type="sub
 const loginCancel = root.querySelector<HTMLButtonElement>('#login-cancel')!
 const loginError = root.querySelector<HTMLElement>('#login-error')!
 const callHost = root.querySelector<HTMLElement>('#voice-call-host')!
+const legacyHeader = root.querySelector<HTMLElement>('.user-header')!
 
 setButtonIcon(menuButton, 'menu', 'Mở menu')
 setButtonIcon(callButton, 'call', 'Gọi thoại')
@@ -155,19 +162,85 @@ let settingsActionPending = false
 let drawerOpen = false
 let notificationPreferences: NotificationPreferences = { ...DEFAULT_NOTIFICATION_PREFERENCES }
 let notificationPreferencesStorage: NotificationPreferencesStorage | null = null
+let chatwootConversation: MountedConversationScreen | null = null
+const chatwootVoiceRecorder = new VoiceRecorderSession()
 
-const conversationSurface = mountConversationSurface({
-  messagesHost: messages,
-  composerHost,
-  async onSend(text) {
-    try {
-      await sendSupportText(text)
-    } catch (error) {
-      status.textContent = 'Gửi thất bại'
-      throw error
-    }
-  },
-})
+const conversationSurface = useChatwootConversation
+  ? null
+  : mountConversationSurface({
+      messagesHost: messages,
+      composerHost,
+      async onSend(text) {
+        try {
+          await sendSupportText(text)
+        } catch (error) {
+          status.textContent = 'Gửi thất bại'
+          throw error
+        }
+      },
+    })
+
+if (useChatwootConversation) {
+  legacyHeader.hidden = true
+  composerHost.hidden = true
+  messages.className = 'chatwoot-conversation-host'
+  messages.removeAttribute('aria-label')
+
+  const runtimeActions = {
+    get canSend() {
+      const chat = getChatRuntimeState()
+      const state = getChatMessageState()
+      return chat.phase === 'ready' && state.realtime !== 'error' && Boolean(state.conversationId)
+    },
+    get canAttach() {
+      return Boolean(getConversationCapabilities())
+    },
+    get canRecord() {
+      return Boolean(getConversationCapabilities())
+        && typeof MediaRecorder !== 'undefined'
+        && Boolean(navigator.mediaDevices?.getUserMedia)
+    },
+    get canCall() {
+      const callState = callSession?.getState()
+      return rootMode === 'user2' && Boolean(currentCallContext()) && callState?.phase === 'idle'
+    },
+    sendText: sendSupportText,
+    async sendAttachment(file: File) {
+      const capabilities = getConversationCapabilities()
+      if (!capabilities) throw new Error('attachment_unavailable')
+      await capabilities.sendAttachment(file)
+    },
+    async startVoiceRecording() {
+      await chatwootVoiceRecorder.start()
+    },
+    async stopVoiceRecording() {
+      const recording = await chatwootVoiceRecorder.stop()
+      const capabilities = getConversationCapabilities()
+      if (!capabilities) throw new Error('attachment_unavailable')
+      await capabilities.sendAttachment(recording.file)
+    },
+    async startCall() {
+      if (!callSession) throw new Error('call_unavailable')
+      await callSession.startOutgoing()
+    },
+  }
+  const actions = toConversationActionsAdapter(runtimeActions)
+  chatwootConversation = mountConversationScreen({
+    root: messages,
+    model: toConversationViewModel({
+      actor: 'user1',
+      conversationId: null,
+      title: 'Hỗ trợ',
+      subtitle: 'Đang kết nối…',
+      canCall: false,
+      messages: [],
+      currentProfileId: null,
+    }),
+    actions,
+    enabled: false,
+    onCall: () => { void actions.startCall().catch(() => {}) },
+  })
+}
 
 function setDrawerOpen(open: boolean): void {
   drawerOpen = open
@@ -336,12 +409,13 @@ function render(): void {
   const canSend = chat.phase === 'ready' && messageState.realtime !== 'error' && Boolean(messageState.conversationId)
   const capabilities = capabilitiesForRootMode(rootMode)
   const callState = callSession?.getState()
+  const canCall = capabilities.call && Boolean(currentCallContext()) && callState?.phase === 'idle'
 
   modeLabel.textContent = rootMode === 'user2' ? 'User 2' : 'User 1 · Vãng lai'
   authAction.textContent = rootMode === 'user2' ? 'Đăng xuất' : 'Đăng nhập / Nâng cấp User 2'
   authAction.disabled = authActionPending
   callButton.hidden = !capabilities.call
-  callButton.disabled = !capabilities.call || !currentCallContext() || !callState || callState.phase !== 'idle'
+  callButton.disabled = !canCall
 
   status.textContent = chat.phase === 'error'
     ? 'Không thể kết nối'
@@ -351,12 +425,28 @@ function render(): void {
 
   renderNotificationButton()
   renderAccountSettings()
-  conversationSurface.render({
-    messages: messageState.messages,
-    currentProfileId: currentProfileId() || null,
-    canSend,
-    emptyText: chat.phase === 'error' ? 'Không thể tải cuộc trò chuyện.' : 'Bạn cần hỗ trợ gì?',
-  })
+
+  if (conversationSurface) {
+    conversationSurface.render({
+      messages: messageState.messages,
+      currentProfileId: currentProfileId() || null,
+      canSend,
+      emptyText: chat.phase === 'error' ? 'Không thể tải cuộc trò chuyện.' : 'Bạn cần hỗ trợ gì?',
+    })
+  }
+
+  if (chatwootConversation) {
+    chatwootConversation.update(toConversationViewModel({
+      actor: rootMode === 'user2' ? 'user2' : 'user1',
+      conversationId: messageState.conversationId || null,
+      title: 'Hỗ trợ',
+      subtitle: status.textContent ?? '',
+      canCall,
+      messages: messageState.messages,
+      currentProfileId: currentProfileId() || null,
+    }))
+    chatwootConversation.setEnabled(canSend)
+  }
 }
 
 async function endGuestSession(): Promise<void> {
