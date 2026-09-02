@@ -97,6 +97,10 @@ export function mountConversationScreen(options: ConversationScreenMountOptions)
         composer?.setRecording(false)
         scroll?.onLocalMessageSent()
       },
+      async onVoiceCancel() {
+        await actions.cancelVoiceRecording?.()
+        composer?.setRecording(false)
+      },
       onFocus: () => scroll?.onComposerFocus(),
     })
     composer.setEnabled(enabled)
