@@ -21,7 +21,8 @@ export interface MessageListOptions {
 
 export function toMessagePresentation(message: ChatMessage, currentProfileId: string | null): MessagePresentation {
   const revoked = message.revoked_at !== null
-  const direction = message.type === 'system'
+  const systemEvent = message.type === 'system' || message.type === 'call'
+  const direction = systemEvent
     ? 'system'
     : currentProfileId !== null && message.sender_id === currentProfileId
       ? 'outgoing'
@@ -128,6 +129,7 @@ function renderAttachment(bubble: HTMLElement, message: ChatMessage, options: Me
 
   if (attachment.kind === 'audio') {
     const audio = document.createElement('audio')
+    audio.className = 'chat-attachment__audio-player'
     audio.controls = true
     audio.preload = 'metadata'
     audio.setAttribute('aria-label', attachment.name || 'Tin nhắn thoại')
@@ -154,36 +156,80 @@ function renderAttachment(bubble: HTMLElement, message: ChatMessage, options: Me
   })
 }
 
+function renderReactionSummary(bubble: HTMLElement, message: ChatMessage, options: MessageListOptions): void {
+  const presentation = options.getHeart?.(message.id)
+  if (!presentation || presentation.count <= 0) return
+
+  const reaction = document.createElement('button')
+  reaction.type = 'button'
+  reaction.className = 'chat-message__reaction-summary'
+  reaction.classList.toggle('is-active', presentation.mine)
+  reaction.setAttribute('aria-label', presentation.mine ? 'Bỏ tim' : 'Thả tim')
+  reaction.innerHTML = `<span aria-hidden="true">❤️</span><b>${presentation.count}</b>`
+  if (options.onHeart) reaction.addEventListener('click', () => void options.onHeart?.(message.id))
+  else reaction.disabled = true
+  bubble.append(reaction)
+}
+
 function renderActions(row: HTMLElement, message: ChatMessage, options: MessageListOptions): void {
   const capabilities = getMessageActionCapabilities(message)
   if (!capabilities.heart && !capabilities.copy && !capabilities.share) return
 
+  const shell = document.createElement('div')
+  shell.className = 'chat-message__action-shell'
+  shell.dataset.actionsOpen = 'false'
+
+  const toggle = document.createElement('button')
+  toggle.type = 'button'
+  toggle.className = 'chat-message__actions-toggle'
+  toggle.innerHTML = iconSvg('more')
+  toggle.setAttribute('aria-label', 'Tùy chọn tin nhắn')
+  toggle.setAttribute('aria-expanded', 'false')
+
   const actions = document.createElement('div')
   actions.className = 'chat-message__actions'
+  actions.setAttribute('role', 'group')
+  actions.setAttribute('aria-label', 'Thao tác tin nhắn')
+
+  const closeMenu = () => {
+    shell.dataset.actionsOpen = 'false'
+    toggle.setAttribute('aria-expanded', 'false')
+  }
 
   if (capabilities.heart && options.onHeart) {
     const heart = addIconButton(actions, 'heart', 'Thả tim')
     const presentation = options.getHeart?.(message.id) ?? { count: 0, mine: false }
     heart.classList.toggle('is-active', presentation.mine)
-    if (presentation.count > 0) {
-      const count = document.createElement('span')
-      count.textContent = String(presentation.count)
-      heart.append(count)
-    }
-    heart.addEventListener('click', () => void options.onHeart?.(message.id))
+    heart.addEventListener('click', () => {
+      void options.onHeart?.(message.id)
+      closeMenu()
+    })
   }
 
   if (capabilities.copy && message.text) {
     const copy = addIconButton(actions, 'copy', 'Sao chép')
-    copy.addEventListener('click', () => void copyText(message.text ?? ''))
+    copy.addEventListener('click', () => {
+      void copyText(message.text ?? '')
+      closeMenu()
+    })
   }
 
   if (capabilities.share) {
     const share = addIconButton(actions, 'share', 'Chia sẻ')
-    share.addEventListener('click', () => void shareMessage(message, options).catch(() => {}))
+    share.addEventListener('click', () => {
+      void shareMessage(message, options).catch(() => {})
+      closeMenu()
+    })
   }
 
-  row.append(actions)
+  toggle.addEventListener('click', () => {
+    const open = shell.dataset.actionsOpen !== 'true'
+    shell.dataset.actionsOpen = open ? 'true' : 'false'
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false')
+  })
+
+  shell.append(toggle, actions)
+  row.append(shell)
 }
 
 export function renderMessageList(
@@ -219,6 +265,7 @@ export function renderMessageList(
       bubble.append(time)
     }
 
+    renderReactionSummary(bubble, message, options)
     row.append(bubble)
     renderActions(row, message, options)
     fragment.append(row)
