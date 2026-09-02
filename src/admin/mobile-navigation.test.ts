@@ -7,7 +7,8 @@ describe('Admin mobile conversation navigation', () => {
     expect(adminSource).toContain("adminApp.dataset.selected = state.selectedConversationId ? 'true' : 'false'")
   })
 
-  it('back clears the selected conversation instead of changing unrelated controls', () => {
-    expect(adminSource).toContain("back.addEventListener('click', clearAdminSelection)")
+  it('Chatwoot back clears the selected conversation instead of keeping a legacy back control', () => {
+    expect(adminSource).toContain('onBack: clearAdminSelection')
+    expect(adminSource).not.toContain("back.addEventListener('click', clearAdminSelection)")
   })
 })
