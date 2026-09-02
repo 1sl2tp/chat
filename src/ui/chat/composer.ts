@@ -32,6 +32,13 @@ export function mountComposer(
   input.setAttribute('aria-label', 'Tin nhắn')
   input.setAttribute('enterkeyhint', options.isMobile ?? isMobileComposerEnvironment() ? 'enter' : 'send')
 
+  const recordingStatus = document.createElement('span')
+  recordingStatus.className = 'chat-composer__recording-status'
+  recordingStatus.textContent = 'Đang ghi âm · chạm mic để gửi'
+  recordingStatus.hidden = true
+  recordingStatus.setAttribute('role', 'status')
+  recordingStatus.setAttribute('aria-live', 'polite')
+
   const plus = document.createElement('button')
   plus.type = 'button'
   plus.className = 'chat-composer__plus chat-icon-button'
@@ -69,7 +76,9 @@ export function mountComposer(
     mic.classList.toggle('is-recording', recording)
     mic.setAttribute('aria-label', recording ? 'Dừng và gửi ghi âm' : 'Ghi âm')
     input.disabled = !enabled || recording
-    input.placeholder = recording ? 'Đang ghi âm… chạm mic để gửi' : 'Nhập tin nhắn…'
+    input.hidden = recording
+    recordingStatus.hidden = !recording
+    input.placeholder = 'Nhập tin nhắn…'
   }
 
   const submit = async () => {
@@ -104,7 +113,7 @@ export function mountComposer(
   mic.addEventListener('click', () => options.onRecord?.())
   send.addEventListener('click', () => void submit())
 
-  container.replaceChildren(plus, input, mic, send, version)
+  container.replaceChildren(plus, input, recordingStatus, mic, send, version)
   sync()
 
   return {
