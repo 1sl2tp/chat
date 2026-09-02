@@ -44,6 +44,7 @@ function actorFixture(actor: ConversationActor, currentProfileId: string) {
     conversationId: 'c-1',
     title: actor === 'admin' ? 'Khách A' : 'Hỗ trợ',
     subtitle: actor === 'user1' ? 'User 1 · Vãng lai' : actor === 'user2' ? 'User 2' : 'User 2 · @khacha',
+    canCall: actor !== 'user1',
     currentProfileId,
     messages: [
       textMessage('mine', currentProfileId, 'Tin của tôi'),
@@ -56,13 +57,14 @@ function actorFixture(actor: ConversationActor, currentProfileId: string) {
 
 describe('Chatwoot runtime adapter', () => {
   it.each([
-    ['user1', 'u1'],
-    ['user2', 'u2'],
-    ['admin', 'admin-1'],
-  ] as const)('maps directions correctly for %s', (actor, currentProfileId) => {
+    ['user1', 'u1', false],
+    ['user2', 'u2', true],
+    ['admin', 'admin-1', true],
+  ] as const)('maps directions and call visibility correctly for %s', (actor, currentProfileId, canCall) => {
     const model = actorFixture(actor, currentProfileId)
 
     expect(model.id).toBe('c-1')
+    expect(model.canCall).toBe(canCall)
     expect(model.messages.map(message => message.direction)).toEqual(['outgoing', 'incoming', 'center', 'center'])
     expect(model.messages.map(message => message.kind)).toEqual(['text', 'text', 'system', 'call'])
   })
