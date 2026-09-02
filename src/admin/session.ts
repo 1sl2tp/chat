@@ -1,3 +1,5 @@
+import { stopAdminRuntime } from './runtime'
+
 export interface AdminLogoutBackend {
   unsubscribePush(): Promise<void>
   endAdminSession(): Promise<void>
@@ -5,6 +7,8 @@ export interface AdminLogoutBackend {
 }
 
 export async function logoutAdmin(backend: AdminLogoutBackend): Promise<void> {
+  stopAdminRuntime()
+
   try {
     await backend.unsubscribePush()
   } catch {
