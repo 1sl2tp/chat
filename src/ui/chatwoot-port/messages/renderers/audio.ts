@@ -46,17 +46,65 @@ export function renderAudioMessage(message: PresentedMessage): HTMLElement {
 
   const time = document.createElement('span')
   time.className = 'cw-audio-player__time'
-  time.textContent = '0:00'
+  time.textContent = '…'
+
+  let recoveredDuration = Number.isFinite(message.durationSeconds)
+    ? Math.max(0, message.durationSeconds ?? 0)
+    : 0
+  let recoveringDuration = false
+  let recoveryReturnTime = 0
+
+  const getDuration = () => {
+    const mediaDuration = Number.isFinite(audio.duration) ? Math.max(0, audio.duration) : 0
+    return mediaDuration > 0 ? mediaDuration : recoveredDuration
+  }
 
   const sync = () => {
-    const duration = Number.isFinite(audio.duration) ? Math.max(0, audio.duration) : 0
-    const current = Number.isFinite(audio.currentTime) ? Math.max(0, audio.currentTime) : 0
-    range.value = duration > 0 ? String(Math.round((current / duration) * 1000)) : '0'
+    const duration = getDuration()
+    const mediaCurrent = Number.isFinite(audio.currentTime) ? Math.max(0, audio.currentTime) : 0
+    const current = recoveringDuration ? recoveryReturnTime : mediaCurrent
+    range.value = duration > 0 ? String(Math.round((Math.min(current, duration) / duration) * 1000)) : '0'
     time.textContent = duration > 0
-      ? `${formatSeconds(current)} / ${formatSeconds(duration)}`
-      : formatSeconds(current)
+      ? `${formatSeconds(Math.min(current, duration))} / ${formatSeconds(duration)}`
+      : '…'
     playButton.textContent = audio.paused ? '▶' : '❚❚'
     playButton.ariaLabel = audio.paused ? 'Phát ghi âm' : 'Tạm dừng ghi âm'
+  }
+
+  const finishDurationRecovery = () => {
+    const mediaDuration = Number.isFinite(audio.duration) ? Math.max(0, audio.duration) : 0
+    if (mediaDuration > 0) recoveredDuration = mediaDuration
+
+    if (recoveringDuration && recoveredDuration <= 0) {
+      const probedDuration = Number.isFinite(audio.currentTime)
+        && audio.currentTime > 0
+        && audio.currentTime < 1e100
+        ? audio.currentTime
+        : 0
+      if (probedDuration > 0) recoveredDuration = probedDuration
+    }
+
+    if (recoveringDuration && recoveredDuration > 0) {
+      recoveringDuration = false
+      audio.currentTime = Math.min(recoveryReturnTime, recoveredDuration)
+    }
+    sync()
+  }
+
+  const recoverUnknownDuration = () => {
+    if (getDuration() > 0 || recoveringDuration || !audio.src) {
+      sync()
+      return
+    }
+    recoveryReturnTime = Number.isFinite(audio.currentTime) ? Math.max(0, audio.currentTime) : 0
+    recoveringDuration = true
+    try {
+      // MediaRecorder WebM can expose duration as Infinity until the browser seeks to the end once.
+      audio.currentTime = 1e101
+    } catch {
+      recoveringDuration = false
+      sync()
+    }
   }
 
   playButton.addEventListener('click', () => {
@@ -64,13 +112,20 @@ export function renderAudioMessage(message: PresentedMessage): HTMLElement {
     else audio.pause()
   })
   range.addEventListener('input', () => {
-    const duration = Number.isFinite(audio.duration) ? Math.max(0, audio.duration) : 0
+    const duration = getDuration()
     if (duration <= 0) return
     audio.currentTime = (Number(range.value) / 1000) * duration
     sync()
   })
-  audio.addEventListener('loadedmetadata', sync)
-  audio.addEventListener('timeupdate', sync)
+  audio.addEventListener('loadedmetadata', () => {
+    if (getDuration() > 0) finishDurationRecovery()
+    else recoverUnknownDuration()
+  })
+  audio.addEventListener('durationchange', finishDurationRecovery)
+  audio.addEventListener('timeupdate', () => {
+    if (recoveringDuration) finishDurationRecovery()
+    else sync()
+  })
   audio.addEventListener('play', sync)
   audio.addEventListener('pause', sync)
   audio.addEventListener('ended', sync)
