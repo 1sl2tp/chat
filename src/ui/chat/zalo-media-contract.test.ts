@@ -73,8 +73,8 @@ describe('Zalo-like media and message interaction contract', () => {
     expect(chatCss).toContain('@media(hover:hover)')
   })
 
-  it('frames the User chat on fine-pointer desktop even when the window is narrow', () => {
-    expect(userCss).toContain('@media(hover:hover) and (pointer:fine)')
-    expect(userCss).toContain('.user-app{border:1px solid')
+  it('keeps User conversation full-screen like Admin on desktop and mobile', () => {
+    expect(userCss).toContain('.user-app{width:100%;height:var(--app-visual-height,100dvh)')
+    expect(userCss).not.toContain('.user-app{border:1px solid')
   })
 })
