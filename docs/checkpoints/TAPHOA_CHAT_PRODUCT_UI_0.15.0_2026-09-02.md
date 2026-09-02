@@ -2,15 +2,17 @@
 
 Ngày: 2026-09-02
 
-## Trạng thái release candidate
+## Trạng thái production
 
 - Version hiển thị: `CHAT-ADMIN-0.15.0`
-- Nhánh: `feat/role-account-polish`
+- Nguồn phát triển: `feat/role-account-polish`
 - Release source commit: `d21cc7061b9bae47828d2cef40cbca96508fa668`
-- Production `main`: chưa merge trong checkpoint này.
-- GitHub Actions run: `33611548755`
-- Gate tự động: PASS — TypeScript typecheck + Vitest + Vite/PWA production build.
-- Test: 144 test files PASS, 377 tests PASS.
+- Checkpoint source commit: `84bc28538c62a188091c7c1cc5cc6440bbe18cf5`
+- Production `main`: đã fast-forward tới checkpoint 0.15.0 theo quyết định của chủ dự án.
+- GitHub Actions production run: `33612534939`
+- Production build: PASS — TypeScript typecheck + Vitest + Vite/PWA production build.
+- GitHub Pages deploy: PASS.
+- Test tại release source: 144 test files PASS, 377 tests PASS.
 
 ## Phần đã hoàn tất
 
@@ -51,26 +53,29 @@ Ngày: 2026-09-02
 - System notification chỉ suppress khi đúng conversation đang visible.
 - Notification click dùng Service Worker scoped navigation resolver.
 
-## Gate còn lại — KHÔNG ĐƯỢC GHI PASS BẰNG CI
+## Hậu kiểm thiết bị thật — PENDING DEVICE
 
-`PENDING DEVICE` cho test vật lý:
+Theo quyết định của chủ dự án, 0.15.0 đã được đưa lên `main` trước; các mục sau là hậu kiểm production chứ không còn là gate chặn merge:
+
 - iPhone Safari: keyboard / scroll / composer / zoom.
 - iPhone Home Screen PWA: keyboard + notification khi foreground/background/lock theo khả năng Web Push.
 - Android Chrome/PWA: keyboard + notification + call pill.
 - Incoming call khi app nền/khóa/chưa mở: best effort theo PWA/OS, không cam kết như native CallKit.
 
-## Cảnh báo build không chặn release candidate
+Không ghi PASS cho các mục vật lý chỉ dựa trên CI. Nếu phát hiện regression, sửa đúng owner và chạy lại full CI trước khi cập nhật `main`.
+
+## Cảnh báo build không chặn production
 
 - Vite có cảnh báo chunk `surface` > 500 kB sau minify.
 - Có cảnh báo `src/admin/runtime.ts` vừa dynamic import vừa static import nên dynamic import không tách chunk.
-- Đây là cảnh báo tối ưu bundle, không phải test/build failure. Không mở refactor riêng trong checkpoint UI này trừ khi có yêu cầu/performance evidence.
+- Đây là cảnh báo tối ưu bundle, không phải test/build failure. Không mở refactor riêng nếu chưa có bằng chứng performance.
 
 ## Rollback
 
-Nếu 0.15.0 có regression UI, rollback về `89eb8706d6b40df4d697c6ce74d43aa6cbee0bf6` trên `main`, hoặc revert các commit sau merge. Không rollback database bằng cách xóa dữ liệu User/conversation.
+Nếu 0.15.0 có regression nghiêm trọng, rollback `main` về `89eb8706d6b40df4d697c6ce74d43aa6cbee0bf6` hoặc revert commit gây lỗi. Không rollback database bằng cách xóa dữ liệu User/conversation.
 
 ## Bước tiếp theo
 
-1. Chạy matrix thiết bị thật iPhone Safari / iPhone PWA / Android.
+1. Hậu kiểm trực tiếp production trên iPhone Safari / iPhone PWA / Android.
 2. Ghi PASS/FAIL theo từng case; sửa đúng owner nếu có regression.
-3. Chỉ sau gate thiết bị mới quyết định merge `feat/role-account-polish` vào `main`.
+3. Tiếp tục audit legacy/lab chỉ khi xác định được production caller và có test bảo vệ; không dọn theo cảm giác.
