@@ -19,6 +19,7 @@ export interface HeartPresentation {
 }
 
 export class ChatReactionSession {
+  private readonly backend: ChatReactionBackend
   private readonly reactions = new Map<string, Map<string, ChatReaction>>()
   private activeMessageIds = new Set<string>()
   private currentProfileId = ''
@@ -27,7 +28,9 @@ export class ChatReactionSession {
   private onChange: (() => void) | null = null
   private syncGeneration = 0
 
-  constructor(private readonly backend: ChatReactionBackend) {}
+  constructor(backend: ChatReactionBackend) {
+    this.backend = backend
+  }
 
   start(onChange: () => void): void {
     this.disposeSubscription?.()
