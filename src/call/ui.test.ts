@@ -196,32 +196,32 @@ describe('voice call reconnect UI', () => {
 })
 
 describe('voice call display modes', () => {
-  it('full call exposes Thu nhỏ and Ẩn without ending the call', () => {
+  it('full call exposes one Thu nhỏ control and no visible Ẩn action', () => {
     const harness = mountHarness(ACTIVE_STATE)
     const dispose = mountVoiceCallUi(harness.host as unknown as HTMLElement, harness.session)
 
     expect(harness.host.children[0]?.className).toBe('voice-call-full')
     expect(findByHtml(harness.host, 'Thu nhỏ')).not.toBeNull()
-    expect(findByHtml(harness.host, 'Ẩn')).not.toBeNull()
+    expect(findByHtml(harness.host, 'Ẩn')).toBeNull()
     expect(harness.hangup).not.toHaveBeenCalled()
     dispose()
   })
 
-  it('Thu nhỏ renders the top bar and never hangs up', () => {
+  it('Thu nhỏ renders one call pill and never hangs up', () => {
     const harness = mountHarness(ACTIVE_STATE)
     const dispose = mountVoiceCallUi(harness.host as unknown as HTMLElement, harness.session)
 
     findByHtml(harness.host, 'Thu nhỏ')?.click()
 
     expect(harness.setDisplay).toHaveBeenCalledWith('compact')
-    expect(harness.host.children[0]?.className).toBe('voice-call-topbar')
+    expect(harness.host.children[0]?.className).toBe('voice-call-pill')
     expect(findByHtml(harness.host, 'Tắt mic')).not.toBeNull()
     expect(findByHtml(harness.host, 'Kết thúc')).not.toBeNull()
     expect(harness.hangup).not.toHaveBeenCalled()
     dispose()
   })
 
-  it('hidden renders only the floating restore control and restore returns to full', () => {
+  it('hidden remains recovery-only and restore returns to full', () => {
     const harness = mountHarness({ ...ACTIVE_STATE, display: 'hidden' })
     const dispose = mountVoiceCallUi(harness.host as unknown as HTMLElement, harness.session)
 
@@ -237,7 +237,7 @@ describe('voice call display modes', () => {
     dispose()
   })
 
-  it('incoming full screen keeps Accept and Decline call controls', () => {
+  it('incoming full screen keeps only Accept and Decline as primary call controls', () => {
     const harness = mountHarness(state({
       phase: 'incoming',
       direction: 'incoming',
@@ -248,6 +248,8 @@ describe('voice call display modes', () => {
 
     expect(findByHtml(harness.host, 'Nhận')).not.toBeNull()
     expect(findByHtml(harness.host, 'Từ chối')).not.toBeNull()
+    expect(findByHtml(harness.host, 'Tắt tiếng')).toBeNull()
+    expect(findByHtml(harness.host, 'Chọn loa')).toBeNull()
     expect(findByHtml(harness.host, 'Bật thông báo')).toBeNull()
     dispose()
   })
