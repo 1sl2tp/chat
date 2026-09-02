@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import adminMainSource from '../admin-main.ts?raw'
 import managementSource from './management-ui.ts?raw'
 import type { AdminInboxItem } from './contracts'
-import { filterAdminInbox, formatAdminInboxTime } from './management-ui'
+import { filterAdminInbox, formatAdminInboxTime, groupAdminInbox } from './management-ui'
 
 function item(partial: Partial<AdminInboxItem>): AdminInboxItem {
   return {
@@ -42,6 +42,13 @@ describe('Admin management UI', () => {
     expect(filterAdminInbox(rows, 'guest', 'khach_02')).toEqual([])
   })
 
+  it('groups the all inbox into User 2 and Vãng lai so the roles do not mix visually', () => {
+    expect(groupAdminInbox(rows, 'all').map((group) => [group.label, group.items.map((row) => row.displayName)])).toEqual([
+      ['USER 2', ['Bình Minh']],
+      ['VÃNG LAI', ['Nguyễn An']],
+    ])
+  })
+
   it('formats inbox time into one stable short metadata value', () => {
     const now = new Date('2026-09-02T08:00:00.000Z')
     expect(formatAdminInboxTime('2026-09-02T07:30:00.000Z', now)).toBe('07:30')
@@ -52,5 +59,11 @@ describe('Admin management UI', () => {
     expect(managementSource).toContain('admin-inbox-row')
     expect(managementSource).toContain('admin-inbox-search')
     expect(adminMainSource).not.toContain("button.className = 'inbox-item'")
+  })
+
+  it('moves create-account and logout actions behind one overflow menu', () => {
+    expect(managementSource).toContain('admin-overflow-menu')
+    expect(managementSource).toContain('Tạo tài khoản')
+    expect(managementSource).toContain('Đăng xuất')
   })
 })
