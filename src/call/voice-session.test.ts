@@ -6,11 +6,14 @@ const CALL_ID = '33333333-3333-4333-8333-333333333333'
 const CONVERSATION_ID = '44444444-4444-4444-8444-444444444444'
 const PROFILE_ID = '55555555-5555-4555-8555-555555555555'
 const DEVICE_ID = '66666666-6666-4666-8666-666666666666'
+const OTHER_DEVICE_ID = '99999999-9999-4999-8999-999999999999'
 const CALL_ROW = {
   id: CALL_ID,
   conversation_id: CONVERSATION_ID,
   caller_profile_id: '77777777-7777-4777-8777-777777777777',
   callee_profile_id: PROFILE_ID,
+  caller_device_id: '88888888-8888-4888-8888-888888888888',
+  accepted_device_id: null,
   state: 'ringing',
   connected_at: null,
   caller_display_name: 'Admin',
@@ -58,6 +61,37 @@ describe('VoiceCallSession busy outcomes', () => {
 
     session.dismissError()
     expect(session.getState().phase).toBe('idle')
+  })
+})
+
+describe('VoiceCallSession device ownership', () => {
+  it('does not restore or join a call answered by another device of the same callee profile', async () => {
+    vi.stubGlobal('window', globalThis)
+    vi.stubGlobal('navigator', { userAgent: 'test', vibrate: vi.fn(() => false) })
+
+    const answeredElsewhere = {
+      ...CALL_ROW,
+      state: 'accepted',
+      accepted_device_id: OTHER_DEVICE_ID,
+    }
+    const rpc = vi.fn(async (name: string) => {
+      if (name === 'chat_get_active_voice_calls') return { data: [answeredElsewhere], error: null }
+      return { data: null, error: null }
+    })
+    const invoke = vi.fn(async () => ({ data: null, error: new Error('must_not_join') }))
+    const client = { rpc, functions: { invoke } } as unknown as SupabaseClient
+    const session = new VoiceCallSession(client, () => ({
+      profileId: PROFILE_ID,
+      deviceId: DEVICE_ID,
+      conversationId: CONVERSATION_ID,
+      peerName: 'Admin',
+    }))
+
+    await (session as unknown as { pollActiveCalls(): Promise<void> }).pollActiveCalls()
+
+    expect(session.getState().phase).toBe('idle')
+    expect(session.getState().callId).toBeNull()
+    expect(invoke).not.toHaveBeenCalled()
   })
 })
 
