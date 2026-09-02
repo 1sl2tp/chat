@@ -12,7 +12,7 @@ export interface ChatMessage {
   edited_at: string | null
   revoked_at: string | null
   call_id: string | null
-  attachment: ChatAttachment | null
+  attachment?: ChatAttachment | null
 }
 
 export function mergeChatMessages(current: ChatMessage[], incoming: ChatMessage[]): ChatMessage[] {
