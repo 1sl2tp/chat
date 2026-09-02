@@ -41,7 +41,7 @@ root.innerHTML = `
     <header class="user-header">
       <button id="user-menu" class="user-header-icon" type="button"></button>
       <div class="user-title">
-        <strong>Admin hỗ trợ</strong>
+        <strong>Hỗ trợ</strong>
         <small id="status">Đang kết nối…</small>
       </div>
       <button id="voice-call" class="user-header-icon chat-call-button" type="button" hidden></button>
@@ -55,7 +55,7 @@ root.innerHTML = `
         <p id="login-error" aria-live="polite"></p>
       </form>
     </section>
-    <section id="messages" class="chat-messages" aria-label="Tin nhắn với Admin"></section>
+    <section id="messages" class="chat-messages" aria-label="Tin nhắn với Hỗ trợ"></section>
     <div id="composer" class="chat-composer"></div>
   </main>
 
@@ -199,10 +199,7 @@ function currentCallContext(): VoiceCallContext | null {
     ? identity.profile as { id?: unknown }
     : null
   const support = chat.supportEntry && typeof chat.supportEntry === 'object'
-    ? chat.supportEntry as { conversation_id?: unknown; admin_profile?: unknown }
-    : null
-  const admin = support?.admin_profile && typeof support.admin_profile === 'object'
-    ? support.admin_profile as { display_name?: unknown }
+    ? chat.supportEntry as { conversation_id?: unknown }
     : null
 
   const profileId = String(profile?.id ?? '')
@@ -214,7 +211,7 @@ function currentCallContext(): VoiceCallContext | null {
     profileId,
     deviceId,
     conversationId,
-    peerName: String(admin?.display_name ?? 'Admin hỗ trợ'),
+    peerName: 'Hỗ trợ',
   }
 }
 
@@ -555,7 +552,7 @@ loginForm.addEventListener('submit', async (event) => {
     loginSubmit.disabled = false
     passwordInput.value = ''
     loginError.textContent = error instanceof Error && error.message === 'admin_uses_admin_page'
-      ? 'Admin đăng nhập tại /admin/.'
+      ? 'Tài khoản Hỗ trợ đăng nhập tại /admin/.'
       : 'Tài khoản hoặc mật khẩu không đúng.'
     await startGuestMode()
     render()
