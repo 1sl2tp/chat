@@ -3,8 +3,10 @@ import {
   changeUser2Password,
   loginUser2,
   logoutUser2,
+  normalizeUser2Profile,
   normalizeUser2Registration,
   normalizeUser2Username,
+  updateUser2Profile,
   upgradeGuestToUser2,
 } from './auth'
 
@@ -24,6 +26,20 @@ describe('User2 auth transitions', () => {
     expect(() => normalizeUser2Registration('', 'khach_01', '123456')).toThrow('invalid_display_name')
     expect(() => normalizeUser2Registration('A', 'admin', '123456')).toThrow('admin_uses_admin_page')
     expect(() => normalizeUser2Registration('A', 'khach_01', '12345')).toThrow('password_too_short')
+  })
+
+  it('normalizes User2 editable profile fields and updates them together', async () => {
+    expect(normalizeUser2Profile('  Nguyễn An  ', ' @Khach_01 ')).toEqual({
+      displayName: 'Nguyễn An',
+      username: 'khach_01',
+    })
+
+    const update = vi.fn(async (input: { displayName: string; username: string }) => ({ ...input }))
+    await expect(updateUser2Profile({ update }, ' Nguyễn An ', '@Khach_01')).resolves.toEqual({
+      displayName: 'Nguyễn An',
+      username: 'khach_01',
+    })
+    expect(update).toHaveBeenCalledWith({ displayName: 'Nguyễn An', username: 'khach_01' })
   })
 
   it('upgrades the current guest in place, persists User2 login, then clears only the guest auth session', async () => {
