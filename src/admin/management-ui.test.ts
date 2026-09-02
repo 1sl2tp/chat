@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import adminMainSource from '../admin-main.ts?raw'
 import managementSource from './management-ui.ts?raw'
+import zaloPolishSource from './zalo-polish.ts?raw'
 import type { AdminInboxItem } from './contracts'
-import { filterAdminInbox, formatAdminInboxTime, groupAdminInbox } from './management-ui'
+import { filterAdminInbox, formatAdminInboxTime } from './management-ui'
+import { groupAdminInbox } from './zalo-polish'
 
 function item(partial: Partial<AdminInboxItem>): AdminInboxItem {
   return {
@@ -62,8 +64,8 @@ describe('Admin management UI', () => {
   })
 
   it('moves create-account and logout actions behind one overflow menu', () => {
-    expect(managementSource).toContain('admin-overflow-menu')
-    expect(managementSource).toContain('Tạo tài khoản')
-    expect(managementSource).toContain('Đăng xuất')
+    expect(zaloPolishSource).toContain('admin-overflow-menu')
+    expect(zaloPolishSource).toContain('Tạo tài khoản')
+    expect(zaloPolishSource).toContain('Đăng xuất')
   })
 })
