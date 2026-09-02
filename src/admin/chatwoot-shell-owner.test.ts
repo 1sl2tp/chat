@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import adminMainSource from '../admin-main.ts?raw'
+import adminCssSource from '../admin.css?raw'
 import managementSource from './chatwoot-management-ui.ts?raw'
 
 describe('Admin Chatwoot shell owner', () => {
@@ -14,5 +15,11 @@ describe('Admin Chatwoot shell owner', () => {
   it('keeps management UI independent from the removed legacy chat header', () => {
     expect(managementSource).not.toContain("app.querySelector<HTMLElement>('.admin-chat > header')")
     expect(managementSource).toContain("app.querySelector<HTMLElement>('#admin-conversation-host')")
+  })
+
+  it('scopes legacy admin header CSS to Inbox so it cannot override Chatwoot Conversation header', () => {
+    expect(adminCssSource).not.toContain('.admin-app header{')
+    expect(adminCssSource).not.toContain('.admin-app header button')
+    expect(adminCssSource).toContain('.admin-inbox>header{')
   })
 })
