@@ -1,8 +1,10 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import userMainSource from '../../user-main.ts?raw'
 import adminMainSource from '../../admin-main.ts?raw'
-import userCssSource from '../../user.css?raw'
-import adminCssSource from '../../admin.css?raw'
+
+const userCssSource = readFileSync(new URL('../../user.css', import.meta.url), 'utf8')
+const adminCssSource = readFileSync(new URL('../../admin.css', import.meta.url), 'utf8')
 
 describe('shared User/Admin chat surface wiring', () => {
   it('routes both shells through the shared composer behavior', () => {
