@@ -9,11 +9,11 @@ describe('User conversation layout', () => {
     expect(userMain).toContain('<div id="composer" class="chat-composer"></div>')
     expect(userCss).toContain('grid-template-rows:auto auto minmax(0,1fr) auto')
     expect(userCss).toMatch(/#messages\{[^}]*min-height:0/)
-    expect(userCss).toMatch(/#composer\{[^}]*align-self:end[^}]*min-height:/)
+    expect(userCss).toMatch(/#composer\{[^}]*align-self:stretch[^}]*min-height:/)
   })
 
-  it('frames the User chat on fine-pointer desktop without hiding the composer', () => {
-    expect(userCss).toContain('@media(hover:hover) and (pointer:fine)')
-    expect(userCss).toContain('.user-app{border:1px solid')
+  it('uses the same full-screen shell contract as Admin instead of a desktop card', () => {
+    expect(userCss).toContain('.user-app{width:100%;height:var(--app-visual-height,100dvh)')
+    expect(userCss).not.toContain('.user-app{border:1px solid')
   })
 })
