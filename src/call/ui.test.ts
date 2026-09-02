@@ -45,6 +45,7 @@ function state(patch: Partial<VoiceCallState> = {}): VoiceCallState {
     speakerAvailable: false,
     speakerSelected: false,
     audioBlocked: false,
+    resumeRequired: false,
     permissionNotice: null,
     connectedAt: null,
     error: null,
