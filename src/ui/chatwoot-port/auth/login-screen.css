@@ -1,0 +1,86 @@
+.cw-login {
+  box-sizing: border-box;
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  overflow-y: auto;
+  background: #fff;
+  color: #111827;
+  -webkit-overflow-scrolling: touch;
+}
+
+.cw-login__content {
+  box-sizing: border-box;
+  width: min(100%, 520px);
+  min-height: 100%;
+  margin: 0 auto;
+  padding: 96px 24px 32px;
+}
+
+.cw-login__logo {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 10px;
+  background: #1f6feb;
+  color: #fff;
+}
+
+.cw-login__intro { padding-top: 24px; }
+.cw-login__title { margin: 0; font-size: 24px; line-height: 32px; font-weight: 650; }
+.cw-login__description { margin: 12px 0 0; font-size: 16px; line-height: 22px; color: #4b5563; }
+.cw-login__form { display: grid; gap: 24px; padding-top: 32px; }
+.cw-login__field { display: grid; gap: 8px; min-width: 0; }
+.cw-login__field-label { font-size: 14px; line-height: 20px; font-weight: 560; }
+.cw-login__password-wrap { position: relative; min-width: 0; }
+
+.cw-login__input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 40px;
+  border: 0;
+  border-radius: 12px;
+  padding: 8px 12px;
+  background: rgb(0 0 0 / 4%);
+  color: #111827;
+  outline: 0;
+  font: inherit;
+  font-size: 16px;
+  line-height: 20px;
+}
+
+.cw-login__field--password .cw-login__input { padding-right: 44px; }
+.cw-login__input:focus { box-shadow: 0 0 0 2px rgb(31 111 235 / 28%); }
+
+.cw-login__password-toggle {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #4b5563;
+}
+
+.cw-login__error { min-height: 18px; margin: -12px 0 0; color: #c2415d; font-size: 13px; }
+.cw-login__actions { display: grid; gap: 10px; }
+.cw-login__submit,
+.cw-login__cancel {
+  min-height: 44px;
+  border-radius: 12px;
+  padding: 0 16px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+}
+.cw-login__submit { border: 1px solid #1f6feb; background: #1f6feb; color: #fff; }
+.cw-login__cancel { border: 1px solid #d1d5db; background: #fff; color: #374151; }
+
+@media (max-height: 620px) {
+  .cw-login__content { padding-top: 40px; }
+}
