@@ -1,32 +1,33 @@
 /// <reference types="node" />
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import uiSource from './ui.ts?raw'
+import facadeSource from './ui.ts?raw'
+import widgetSource from '../ui/chatwoot-port/call/call-widget.ts?raw'
 import iconSource from '../ui/icons.ts?raw'
 
-const css = readFileSync(new URL('./call.css', import.meta.url), 'utf8')
+const css = readFileSync(new URL('../ui/chatwoot-port/call/call-widget.css', import.meta.url), 'utf8')
 
-describe('shared Call product presentation', () => {
-  it('uses shared SVG icons for call controls instead of raw glyph controls', () => {
-    for (const name of ['minimize', 'speaker', 'mute', 'unmute', 'endCall', 'acceptCall'] as const) {
+describe('shared Chatwoot Call product presentation', () => {
+  it('uses shared SVG icons for CallCard controls instead of raw glyph controls', () => {
+    for (const name of ['speaker', 'mute', 'unmute', 'endCall', 'acceptCall'] as const) {
       expect(iconSource).toContain(`'${name}'`)
-      expect(uiSource).toContain(`iconSvg('${name}')`)
+      expect(widgetSource).toContain(`'${name}'`)
     }
-    expect(uiSource).not.toMatch(/[☎🔊🔇🎙✕⌄]/u)
+    expect(widgetSource).not.toMatch(/[☎🔊🔇🎙✕⌄]/u)
   })
 
-  it('keeps hide out of the primary Call UI while preserving compact pill presentation', () => {
-    expect(uiSource).not.toContain("controlButton('Ẩn'")
-    expect(uiSource).not.toContain("setDisplay('hidden')")
-    expect(uiSource).toContain("bar.className = 'voice-call-pill'")
-    expect(css).toContain('.voice-call-pill{')
-    expect(css).toContain('.voice-call-pill-main{')
+  it('uses the Chatwoot floating CallCard rather than legacy full/pill presentation', () => {
+    expect(widgetSource).toContain("widget.className = 'cw-call-widget'")
+    expect(widgetSource).toContain("card.className = 'cw-call-card'")
+    expect(css).toContain('.cw-call-widget')
+    expect(css).toContain('.cw-call-card')
+    expect(css).toContain('border-radius: 16px')
+    expect(facadeSource).not.toContain('voice-call-full')
+    expect(facadeSource).not.toContain('voice-call-pill')
   })
 
-  it('keeps full incoming controls simpler than active controls', () => {
-    const incomingIndex = uiSource.indexOf("state.phase === 'incoming'")
-    const activeControlIndex = uiSource.indexOf('hasPhoneSpeakerToggle')
-    expect(incomingIndex).toBeGreaterThanOrEqual(0)
-    expect(activeControlIndex).toBeGreaterThan(incomingIndex)
+  it('keeps the old runtime export only as a facade to the Chatwoot visible owner', () => {
+    expect(facadeSource).toContain('mountChatwootCallUi')
+    expect(facadeSource).toContain('export const mountVoiceCallUi = mountChatwootCallUi')
   })
 })
