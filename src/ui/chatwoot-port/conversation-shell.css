@@ -126,6 +126,12 @@
   .cw-chat-header__button,.cw-chat-header__spacer { width: 40px; height: 40px; }
 }
 
+@media (max-width: 480px) {
+  .cw-chat-header__row { gap: 4px; }
+  .cw-chat-header__identity { gap: 7px; }
+  .cw-chat-header__avatar { width: 34px; height: 34px; }
+}
+
 @media (min-width: 760px) {
   .cw-chat-header__identity { justify-content: flex-start; }
   .cw-conversation__header,.cw-conversation__composer { padding-inline: var(--cw-space-4); }
