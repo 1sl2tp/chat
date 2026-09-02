@@ -7,12 +7,7 @@
   padding: 12px;
 }
 
-.cw-message {
-  display: flex;
-  width: 100%;
-  margin: 1px 0;
-}
-
+.cw-message { display: flex; width: 100%; margin: 1px 0; }
 .cw-message--incoming { justify-content: flex-start; }
 .cw-message--outgoing { justify-content: flex-end; }
 .cw-message--center { justify-content: center; }
@@ -22,29 +17,20 @@
   display: flex;
   max-width: min(82%, 640px);
   flex-direction: column;
-  gap: 0;
   overflow: hidden;
   border-radius: 16px;
   padding: 8px 10px 8px 12px;
   line-height: 1.35;
   overflow-wrap: anywhere;
 }
-
 .cw-message--incoming .cw-message__bubble { background: #1f6feb; color: #fff; }
 .cw-message--outgoing .cw-message__bubble { background: #f1f3f5; color: #374151; }
 .cw-message--incoming.cw-message--group-previous .cw-message__bubble { border-top-left-radius: 4px; }
 .cw-message--incoming.cw-message--group-next .cw-message__bubble { border-bottom-left-radius: 4px; }
 .cw-message--outgoing.cw-message--group-previous .cw-message__bubble { border-top-right-radius: 4px; }
 .cw-message--outgoing.cw-message--group-next .cw-message__bubble { border-bottom-right-radius: 4px; }
-
 .cw-message__content { white-space: pre-wrap; }
-.cw-message__footer {
-  display: flex;
-  min-height: 21px;
-  align-items: flex-end;
-  justify-content: flex-end;
-  padding-top: 5px;
-}
+.cw-message__footer { display: flex; min-height: 21px; align-items: flex-end; justify-content: flex-end; padding-top: 5px; }
 .cw-message__time { font-size: 11px; line-height: 14px; opacity: .7; }
 .cw-message__reaction-slot {
   align-self: flex-start;
@@ -93,13 +79,20 @@
 .cw-media--image { display: block; overflow: hidden; background: #e5e7eb; }
 .cw-media__image { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
 .cw-audio-player,
-.cw-file-card,
-.cw-link-card { display: flex; align-items: center; gap: 8px; padding: 10px 12px; }
+.cw-file-card { display: flex; align-items: center; gap: 8px; padding: 10px 12px; }
 .cw-file-card { flex-direction: row; align-items: center; }
 .cw-file-card__identity { display: flex; min-width: 0; flex: 1; flex-direction: column; }
 .cw-file-card__name { overflow: hidden; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .cw-file-card__meta { font-size: 12px; opacity: .65; }
-.cw-link-card__url { overflow-wrap: anywhere; }
+
+.cw-link-card { display: flex; flex-direction: column; align-items: stretch; gap: 8px; padding: 10px 12px; overflow: hidden; }
+.cw-link-card__url { color: inherit; overflow-wrap: anywhere; text-decoration: underline; }
+.cw-link-card__preview { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; border-top: 1px solid rgb(0 0 0 / 8%); padding-top: 8px; }
+.cw-link-card__image { width: 64px; height: 64px; border-radius: 8px; object-fit: cover; }
+.cw-link-card__copy { display: flex; min-width: 0; flex-direction: column; gap: 2px; }
+.cw-link-card__site { font-size: 11px; font-weight: 600; opacity: .68; }
+.cw-link-card__title { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-size: 13px; line-height: 17px; }
+.cw-link-card__description { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-size: 11px; line-height: 15px; opacity: .68; }
 
 .cw-media-actions { position: relative; flex: none; }
 .cw-media--image > .cw-media-actions { position: absolute; top: 6px; right: 6px; }
@@ -128,15 +121,7 @@
   background: #fff;
   box-shadow: 0 8px 24px rgb(0 0 0 / 14%);
 }
-.cw-media-actions__item {
-  display: block;
-  width: 100%;
-  border: 0;
-  border-radius: 7px;
-  padding: 7px 9px;
-  background: transparent;
-  text-align: left;
-}
+.cw-media-actions__item { display: block; width: 100%; border: 0; border-radius: 7px; padding: 7px 9px; background: transparent; text-align: left; }
 .cw-media-actions:hover .cw-media-actions__trigger,
 .cw-media-actions:focus-within .cw-media-actions__trigger,
 .cw-media:hover .cw-media-actions__trigger,
@@ -147,5 +132,4 @@
 
 @media (hover: none) {
   .cw-media-actions__trigger { opacity: 1; }
-  .cw-media-actions__menu { bottom: calc(100% + 4px); }
 }
