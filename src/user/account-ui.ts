@@ -45,6 +45,8 @@ export function mountUserAccountUi(doc: Document = document): () => void {
   const settingsStatus = doc.querySelector<HTMLElement>('#settings-status')
   if (!drawerPanel || !modeLabel || !legacyAuthAction || !settingsPanel || !settingsStatus) return () => undefined
 
+  const modeElement: HTMLElement = modeLabel
+  const authButton: HTMLButtonElement = legacyAuthAction
   const supportTitle = doc.querySelector<HTMLElement>('.user-title strong')
   if (supportTitle) supportTitle.textContent = 'Hỗ trợ'
   doc.querySelector<HTMLElement>('#messages')?.setAttribute('aria-label', 'Tin nhắn với Hỗ trợ')
@@ -92,10 +94,10 @@ export function mountUserAccountUi(doc: Document = document): () => void {
   let actionPending = false
 
   function sync(): void {
-    const mode = accountUiMode(modeLabel.textContent ?? '')
+    const mode = accountUiMode(modeElement.textContent ?? '')
     guestSection.hidden = mode !== 'guest'
     profileDetails.hidden = mode !== 'user2'
-    legacyAuthAction.hidden = mode === 'guest'
+    authButton.hidden = mode === 'guest'
 
     if (mode === 'user2') {
       const profile = currentProfile()
@@ -113,12 +115,12 @@ export function mountUserAccountUi(doc: Document = document): () => void {
   })
 
   loginExisting.addEventListener('click', () => {
-    legacyAuthAction.click()
+    authButton.click()
   })
 
   upgradeForm.addEventListener('submit', async (event) => {
     event.preventDefault()
-    if (actionPending || accountUiMode(modeLabel.textContent ?? '') !== 'guest') return
+    if (actionPending || accountUiMode(modeElement.textContent ?? '') !== 'guest') return
     actionPending = true
     upgradeStatus.textContent = 'Đang tạo tài khoản…'
     for (const input of [upgradeDisplay, upgradeUsername, upgradePassword]) input.disabled = true
@@ -153,7 +155,7 @@ export function mountUserAccountUi(doc: Document = document): () => void {
 
   profileForm.addEventListener('submit', async (event) => {
     event.preventDefault()
-    if (actionPending || accountUiMode(modeLabel.textContent ?? '') !== 'user2') return
+    if (actionPending || accountUiMode(modeElement.textContent ?? '') !== 'user2') return
     actionPending = true
     profileStatus.textContent = 'Đang lưu…'
     profileDisplay.disabled = true
@@ -188,7 +190,7 @@ export function mountUserAccountUi(doc: Document = document): () => void {
 
   const stopRuntime = subscribeChatRuntime(sync)
   const observer = new MutationObserver(sync)
-  observer.observe(modeLabel, { childList: true, subtree: true, characterData: true })
+  observer.observe(modeElement, { childList: true, subtree: true, characterData: true })
   sync()
 
   return () => {
