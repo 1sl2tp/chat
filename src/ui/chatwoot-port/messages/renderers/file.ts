@@ -1,4 +1,5 @@
 import type { PresentedMessage } from '../message-model'
+import { createMediaActions } from './media-actions'
 
 export function renderFileMessage(message: PresentedMessage): HTMLElement {
   const row = document.createElement('article')
@@ -8,6 +9,9 @@ export function renderFileMessage(message: PresentedMessage): HTMLElement {
   const card = document.createElement('div')
   card.className = 'cw-file-card'
 
+  const identity = document.createElement('div')
+  identity.className = 'cw-file-card__identity'
+
   const name = document.createElement('span')
   name.className = 'cw-file-card__name'
   name.textContent = message.attachment?.name ?? 'Tệp đính kèm'
@@ -16,7 +20,8 @@ export function renderFileMessage(message: PresentedMessage): HTMLElement {
   meta.className = 'cw-file-card__meta'
   meta.textContent = message.attachment?.mimeType ?? ''
 
-  card.append(name, meta)
+  identity.append(name, meta)
+  card.append(identity, createMediaActions({ url: message.attachment?.url ?? '', allowOpen: true }))
   row.append(card)
   return row
 }
