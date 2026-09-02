@@ -23,6 +23,8 @@ function createDefaultMessageRuntime(): AdminMessageRuntime {
 let activeBackend: AdminBackend = createSupabaseAdminBackend(adminSupabase)
 let messageRuntime: AdminMessageRuntime = createDefaultMessageRuntime()
 let inboxWatcher: AdminInboxWatcher = createAdminInboxWatcher()
+let refreshInFlight: Promise<void> | null = null
+let refreshRequested = false
 
 export function configureAdminRuntimeForTests(
   backend: AdminBackend,
@@ -32,6 +34,8 @@ export function configureAdminRuntimeForTests(
   activeBackend = backend
   messageRuntime = messages
   if (watcher) inboxWatcher = watcher
+  refreshInFlight = null
+  refreshRequested = false
 }
 
 export async function startAdminRuntime(): Promise<void> {
@@ -61,9 +65,10 @@ export async function startAdminRuntime(): Promise<void> {
 export function stopAdminRuntime(): void {
   inboxWatcher.stop()
   messageRuntime.stop()
+  refreshRequested = false
 }
 
-export async function refreshAdminInbox(): Promise<void> {
+async function loadInboxOnce(): Promise<void> {
   try {
     const inbox = await activeBackend.loadInbox()
     setAdminState({ ...getAdminState(), phase: 'ready', inbox, error: null })
@@ -73,6 +78,25 @@ export async function refreshAdminInbox(): Promise<void> {
       phase: 'error',
       error: error instanceof Error ? error.message : 'Admin inbox failed',
     })
+  }
+}
+
+export async function refreshAdminInbox(): Promise<void> {
+  refreshRequested = true
+  if (refreshInFlight) return refreshInFlight
+
+  refreshInFlight = (async () => {
+    while (refreshRequested) {
+      refreshRequested = false
+      await loadInboxOnce()
+    }
+  })()
+
+  try {
+    await refreshInFlight
+  } finally {
+    refreshInFlight = null
+    if (refreshRequested) await refreshAdminInbox()
   }
 }
 
