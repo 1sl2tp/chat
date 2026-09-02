@@ -17,8 +17,22 @@ describe('shared Chat product polish', () => {
     expect(css).toContain('[data-actions-open=true]')
   })
 
-  it('presents call events as system events instead of ordinary chat bubbles', () => {
+  it('supports Zalo-like double tap heart without exposing a permanent action button', () => {
+    expect(messageListSource).toContain("addEventListener('pointerup'")
+    expect(messageListSource).toContain("addEventListener('dblclick'")
+    expect(messageListSource).toContain('chat-message__reaction-summary')
+    expect(css).toContain('touch-action:manipulation')
+  })
+
+  it('presents call events as compact system events instead of ordinary chat bubbles', () => {
     expect(messageListSource).toContain("message.type === 'call'")
+    expect(messageListSource).toContain('compactCallEventMessages')
+  })
+
+  it('renders a link preview card for the first http URL in a message', () => {
+    expect(messageListSource).toContain('chat-link-preview')
+    expect(messageListSource).toContain('renderLinkPreview')
+    expect(css).toContain('.chat-link-preview{')
   })
 
   it('uses product attachment containers instead of unframed browser controls', () => {
