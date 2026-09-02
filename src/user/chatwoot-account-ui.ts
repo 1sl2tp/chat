@@ -150,28 +150,32 @@ export function mountUserChatwootAccountUi(doc: Document = document): () => void
   const authButton = doc.querySelector<HTMLButtonElement>('#auth-action')
   if (!drawerPanel || !modeElement || !settingsPanel || !authButton) return () => undefined
 
-  const passwordDetails = settingsPanel.querySelector<HTMLElement>('.user-password-details')
+  const drawerContainer: HTMLElement = drawerPanel
+  const modeLabel: HTMLElement = modeElement
+  const accountSettings: HTMLElement = settingsPanel
+  const authAction: HTMLButtonElement = authButton
+  const passwordDetails = accountSettings.querySelector<HTMLElement>('.user-password-details')
   const profile = createProfileForm(doc)
   const guest = createGuestActions(doc)
   const accountHost = doc.createElement('div')
   accountHost.className = 'cw-account-host'
 
   if (drawerHeader) drawerHeader.insertAdjacentElement('afterend', accountHost)
-  else drawerPanel.insertBefore(accountHost, drawerPanel.firstChild)
+  else drawerContainer.insertBefore(accountHost, drawerContainer.firstChild)
 
-  const notifications = notificationNodes(settingsPanel, passwordDetails)
-  for (const heading of [...settingsPanel.querySelectorAll(':scope > h2')]) heading.remove()
+  const notifications = notificationNodes(accountSettings, passwordDetails)
+  for (const heading of [...accountSettings.querySelectorAll(':scope > h2')]) heading.remove()
 
   const managementNodes: HTMLElement[] = [guest.element]
   if (passwordDetails) managementNodes.push(passwordDetails)
-  managementNodes.push(authButton)
+  managementNodes.push(authAction)
 
   legacySummary?.setAttribute('hidden', '')
-  settingsPanel.setAttribute('hidden', '')
+  accountSettings.setAttribute('hidden', '')
 
   let drawer: AccountDrawerView | null = mountAccountDrawer({
     host: accountHost,
-    model: toAccountDrawerModel(modeFromLabel(modeElement.textContent ?? ''), currentProfile()),
+    model: toAccountDrawerModel(modeFromLabel(modeLabel.textContent ?? ''), currentProfile()),
     slots: {
       editProfile: [profile.element],
       notifications,
@@ -181,13 +185,13 @@ export function mountUserChatwootAccountUi(doc: Document = document): () => void
   let actionPending = false
 
   function sync(): void {
-    const mode = modeFromLabel(modeElement.textContent ?? '')
+    const mode = modeFromLabel(modeLabel.textContent ?? '')
     const current = mode === 'user2' ? currentProfile() : null
     drawer?.update(toAccountDrawerModel(mode, current))
 
     guest.element.hidden = mode !== 'guest'
     if (passwordDetails) passwordDetails.hidden = mode !== 'user2'
-    authButton.hidden = mode !== 'user2'
+    authAction.hidden = mode !== 'user2'
 
     if (mode === 'user2' && current) {
       if (doc.activeElement !== profile.displayName) profile.displayName.value = current.displayName
@@ -201,11 +205,11 @@ export function mountUserChatwootAccountUi(doc: Document = document): () => void
     if (!guest.form.hidden) guest.displayName.focus()
   })
 
-  guest.loginExisting.addEventListener('click', () => authButton.click())
+  guest.loginExisting.addEventListener('click', () => authAction.click())
 
   guest.form.addEventListener('submit', async (event) => {
     event.preventDefault()
-    if (actionPending || modeFromLabel(modeElement.textContent ?? '') !== 'guest') return
+    if (actionPending || modeFromLabel(modeLabel.textContent ?? '') !== 'guest') return
     actionPending = true
     guest.status.textContent = 'Đang tạo tài khoản…'
     for (const input of [guest.displayName, guest.username, guest.password]) input.disabled = true
@@ -242,7 +246,7 @@ export function mountUserChatwootAccountUi(doc: Document = document): () => void
 
   profile.element.addEventListener('submit', async (event) => {
     event.preventDefault()
-    if (actionPending || modeFromLabel(modeElement.textContent ?? '') !== 'user2') return
+    if (actionPending || modeFromLabel(modeLabel.textContent ?? '') !== 'user2') return
     actionPending = true
     profile.status.textContent = 'Đang lưu…'
     profile.displayName.disabled = true
@@ -276,7 +280,7 @@ export function mountUserChatwootAccountUi(doc: Document = document): () => void
 
   const stopRuntime = subscribeChatRuntime(sync)
   const observer = new MutationObserver(sync)
-  observer.observe(modeElement, { childList: true, subtree: true, characterData: true })
+  observer.observe(modeLabel, { childList: true, subtree: true, characterData: true })
   sync()
 
   return () => {
@@ -286,6 +290,6 @@ export function mountUserChatwootAccountUi(doc: Document = document): () => void
     drawer = null
     accountHost.remove()
     legacySummary?.removeAttribute('hidden')
-    settingsPanel.removeAttribute('hidden')
+    accountSettings.removeAttribute('hidden')
   }
 }
