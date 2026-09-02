@@ -1,6 +1,6 @@
 export type ChatPresentation = 'legacy' | 'chatwoot-port'
 
-let presentation: ChatPresentation = 'legacy'
+let presentation: ChatPresentation = 'chatwoot-port'
 
 export function getChatPresentation(): ChatPresentation {
   return presentation
