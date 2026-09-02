@@ -19,6 +19,52 @@ export interface MessageListOptions {
   onOpenImage?: (url: string, name: string) => void
 }
 
+const COMPACT_CALL_TEXT = /^(?:Cuộc gọi đã hủy|Đã từ chối|Cuộc gọi đã kết thúc)$/i
+
+function compactCallLabel(text: string): string {
+  const normalized = text.trim()
+  if (/^Đã từ chối$/i.test(normalized)) return 'cuộc gọi bị từ chối'
+  return normalized.charAt(0).toLocaleLowerCase('vi-VN') + normalized.slice(1)
+}
+
+export function compactCallEventMessages(messages: ChatMessage[]): ChatMessage[] {
+  const result: ChatMessage[] = []
+  let index = 0
+
+  while (index < messages.length) {
+    const current = messages[index]!
+    const text = current.text?.trim() ?? ''
+    if (current.type !== 'call' || !COMPACT_CALL_TEXT.test(text)) {
+      result.push(current)
+      index += 1
+      continue
+    }
+
+    let end = index + 1
+    while (end < messages.length) {
+      const next = messages[end]!
+      if (next.type !== 'call' || (next.text?.trim() ?? '').toLocaleLowerCase('vi-VN') !== text.toLocaleLowerCase('vi-VN')) break
+      end += 1
+    }
+
+    const count = end - index
+    if (count === 1) {
+      result.push(current)
+    } else {
+      const last = messages[end - 1]!
+      result.push({
+        ...last,
+        id: `call-group:${current.id}:${last.id}`,
+        client_message_id: `call-group:${current.client_message_id}:${last.client_message_id}`,
+        text: `📞 ${count} ${compactCallLabel(text)}`,
+      })
+    }
+    index = end
+  }
+
+  return result
+}
+
 export function toMessagePresentation(message: ChatMessage, currentProfileId: string | null): MessagePresentation {
   const revoked = message.revoked_at !== null
   const systemEvent = message.type === 'system' || message.type === 'call'
@@ -64,6 +110,51 @@ function appendLinkedText(container: HTMLElement, text: string): void {
     cursor = index + anchor.textContent.length
   }
   if (cursor < text.length) container.append(document.createTextNode(text.slice(cursor)))
+}
+
+function previewTitle(url: URL): string {
+  const segment = url.pathname.split('/').filter(Boolean).at(-1) ?? ''
+  if (!segment) return 'Mở liên kết'
+  try {
+    const decoded = decodeURIComponent(segment).replace(/[-_]+/g, ' ').trim()
+    return decoded.length > 64 ? `${decoded.slice(0, 61)}…` : decoded || 'Mở liên kết'
+  } catch {
+    return 'Mở liên kết'
+  }
+}
+
+function renderLinkPreview(bubble: HTMLElement, text: string): void {
+  const urlText = extractHttpUrls(text)[0]
+  if (!urlText) return
+  let url: URL
+  try {
+    url = new URL(urlText)
+  } catch {
+    return
+  }
+
+  const card = document.createElement('a')
+  card.className = 'chat-link-preview'
+  card.href = url.href
+  card.target = '_blank'
+  card.rel = 'noopener noreferrer'
+  card.setAttribute('aria-label', `Mở liên kết ${url.hostname}`)
+
+  const mark = document.createElement('span')
+  mark.className = 'chat-link-preview__mark'
+  mark.textContent = url.hostname.replace(/^www\./, '').slice(0, 1).toLocaleUpperCase('vi-VN') || '↗'
+
+  const body = document.createElement('span')
+  body.className = 'chat-link-preview__body'
+  const domain = document.createElement('strong')
+  domain.textContent = url.hostname.replace(/^www\./, '')
+  const title = document.createElement('span')
+  title.textContent = previewTitle(url)
+  const address = document.createElement('small')
+  address.textContent = url.href.length > 96 ? `${url.href.slice(0, 93)}…` : url.href
+  body.append(domain, title, address)
+  card.append(mark, body)
+  bubble.append(card)
 }
 
 function addIconButton(parent: HTMLElement, icon: 'heart' | 'copy' | 'share', label: string): HTMLButtonElement {
@@ -171,6 +262,33 @@ function renderReactionSummary(bubble: HTMLElement, message: ChatMessage, option
   bubble.append(reaction)
 }
 
+function isInteractiveTarget(target: EventTarget | null): boolean {
+  return target instanceof Element && Boolean(target.closest('a,button,audio,input,textarea,select'))
+}
+
+function attachHeartGesture(bubble: HTMLElement, message: ChatMessage, options: MessageListOptions): void {
+  if (!options.onHeart || !getMessageActionCapabilities(message).heart) return
+  let lastTapAt = 0
+  let pointerHeartAt = 0
+
+  bubble.addEventListener('pointerup', (event) => {
+    if (event.pointerType === 'mouse' || isInteractiveTarget(event.target)) return
+    const now = Date.now()
+    if (now - lastTapAt > 320) {
+      lastTapAt = now
+      return
+    }
+    lastTapAt = 0
+    pointerHeartAt = now
+    void options.onHeart?.(message.id)
+  })
+
+  bubble.addEventListener('dblclick', (event) => {
+    if (isInteractiveTarget(event.target) || Date.now() - pointerHeartAt < 500) return
+    void options.onHeart?.(message.id)
+  })
+}
+
 function renderActions(row: HTMLElement, message: ChatMessage, options: MessageListOptions): void {
   const capabilities = getMessageActionCapabilities(message)
   if (!capabilities.heart && !capabilities.copy && !capabilities.share) return
@@ -240,7 +358,7 @@ export function renderMessageList(
 ): void {
   const fragment = document.createDocumentFragment()
 
-  for (const message of messages) {
+  for (const message of compactCallEventMessages(messages)) {
     const item = toMessagePresentation(message, currentProfileId)
     const row = document.createElement('article')
     row.className = `chat-message chat-message--${item.direction}${item.revoked ? ' chat-message--revoked' : ''}`
@@ -254,6 +372,7 @@ export function renderMessageList(
       text.className = 'chat-message__text'
       appendLinkedText(text, item.text)
       bubble.append(text)
+      if (item.direction !== 'system' && !item.revoked) renderLinkPreview(bubble, item.text)
     }
 
     renderAttachment(bubble, message, options)
@@ -266,6 +385,7 @@ export function renderMessageList(
     }
 
     renderReactionSummary(bubble, message, options)
+    attachHeartGesture(bubble, message, options)
     row.append(bubble)
     renderActions(row, message, options)
     fragment.append(row)
