@@ -4,8 +4,8 @@
   inset: 0;
   z-index: 30;
   overflow-y: auto;
-  background: #fff;
-  color: #111827;
+  background: #020617;
+  color: #f8fafc;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -23,39 +23,41 @@
   height: 40px;
   place-items: center;
   border-radius: 10px;
-  background: #1f6feb;
+  background: #1f93ff;
   color: #fff;
+  box-shadow: 0 10px 28px rgb(31 147 255 / 22%);
 }
 
 .cw-login__intro { padding-top: 24px; }
-.cw-login__title { margin: 0; font-size: 24px; line-height: 32px; font-weight: 650; }
-.cw-login__description { margin: 12px 0 0; font-size: 16px; line-height: 22px; color: #4b5563; }
-.cw-login__form { display: grid; gap: 24px; padding-top: 32px; }
+.cw-login__title { margin: 0; color:#fff; font-size: 24px; line-height: 32px; font-weight: 700; }
+.cw-login__description { margin: 12px 0 0; font-size: 14px; line-height: 21px; color: #94a3b8; }
+.cw-login__form { display: grid; gap: 20px; padding-top: 32px; }
 .cw-login__field { display: grid; gap: 8px; min-width: 0; }
-.cw-login__field-label { font-size: 14px; line-height: 20px; font-weight: 560; }
+.cw-login__field-label { color:#cbd5e1; font-size: 12px; line-height: 18px; font-weight: 650; }
 .cw-login__password-wrap { position: relative; min-width: 0; }
 
 .cw-login__input {
   box-sizing: border-box;
   width: 100%;
-  height: 40px;
-  border: 0;
+  height: 42px;
+  border: 1px solid #334155;
   border-radius: 12px;
   padding: 8px 12px;
-  background: rgb(0 0 0 / 4%);
-  color: #111827;
+  background: #0f172a;
+  color: #fff;
   outline: 0;
   font: inherit;
   font-size: 16px;
   line-height: 20px;
 }
 
+.cw-login__input::placeholder { color:#64748b; }
 .cw-login__field--password .cw-login__input { padding-right: 44px; }
-.cw-login__input:focus { box-shadow: 0 0 0 2px rgb(31 111 235 / 28%); }
+.cw-login__input:focus { border-color:#1f93ff; box-shadow: 0 0 0 2px rgb(31 147 255 / 14%); }
 
 .cw-login__password-toggle {
   position: absolute;
-  top: 2px;
+  top: 3px;
   right: 4px;
   display: grid;
   width: 36px;
@@ -64,10 +66,11 @@
   border: 0;
   border-radius: 10px;
   background: transparent;
-  color: #4b5563;
+  color: #94a3b8;
 }
+.cw-login__password-toggle:hover { background:#1e293b; color:#fff; }
 
-.cw-login__error { min-height: 18px; margin: -12px 0 0; color: #c2415d; font-size: 13px; }
+.cw-login__error { min-height: 18px; margin: -10px 0 0; color: #f87171; font-size: 12px; }
 .cw-login__actions { display: grid; gap: 10px; }
 .cw-login__submit,
 .cw-login__cancel {
@@ -75,11 +78,13 @@
   border-radius: 12px;
   padding: 0 16px;
   font: inherit;
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
 }
-.cw-login__submit { border: 1px solid #1f6feb; background: #1f6feb; color: #fff; }
-.cw-login__cancel { border: 1px solid #d1d5db; background: #fff; color: #374151; }
+.cw-login__submit { border: 1px solid #1f93ff; background: #1f93ff; color: #fff; }
+.cw-login__submit:hover { background:#187bcb; }
+.cw-login__cancel { border: 1px solid #334155; background: #0f172a; color: #cbd5e1; }
+.cw-login__cancel:hover { background:#1e293b; color:#fff; }
 
 @media (max-height: 620px) {
   .cw-login__content { padding-top: 40px; }
