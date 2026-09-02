@@ -11,7 +11,7 @@ describe('shared Chat product polish', () => {
     expect(messageListSource).toContain('chat-message__actions-toggle')
     expect(messageListSource).toContain("iconSvg('more')")
     expect(messageListSource).toContain("setAttribute('aria-expanded'")
-    expect(messageListSource).toContain('data.actionsOpen')
+    expect(messageListSource).toContain('dataset.actionsOpen')
     expect(css).toContain('.chat-message__actions{')
     expect(css).toContain('opacity:0')
     expect(css).toContain('[data-actions-open=true]')
