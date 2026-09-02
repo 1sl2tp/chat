@@ -7,6 +7,7 @@ export function normalizeDraft(text: string): string {
 
 export interface ComposerController {
   setEnabled(enabled: boolean): void
+  setRecording(recording: boolean): void
   focus(): void
   destroy(): void
 }
@@ -52,17 +53,22 @@ export function mountComposer(
   const isMobile = options.isMobile ?? isMobileComposerEnvironment()
   let enabled = false
   let sending = false
+  let recording = false
 
   const sync = () => {
     const hasText = normalizeDraft(input.value).length > 0
-    send.disabled = !enabled || !hasText || sending
-    plus.disabled = !enabled || sending || !options.onAttach
+    send.disabled = !enabled || !hasText || sending || recording
+    plus.disabled = !enabled || sending || recording || !options.onAttach
     mic.disabled = !enabled || sending || !options.onRecord
+    mic.classList.toggle('is-recording', recording)
+    mic.setAttribute('aria-label', recording ? 'Dừng và gửi ghi âm' : 'Ghi âm')
+    input.disabled = !enabled || recording
+    input.placeholder = recording ? 'Đang ghi âm… chạm mic để gửi' : 'Nhập tin nhắn…'
   }
 
   const submit = async () => {
     const text = normalizeDraft(input.value)
-    if (!enabled || !text || sending) return
+    if (!enabled || !text || sending || recording) return
     sending = true
     sync()
     try {
@@ -97,7 +103,10 @@ export function mountComposer(
   return {
     setEnabled(next) {
       enabled = next
-      input.disabled = !next
+      sync()
+    },
+    setRecording(next) {
+      recording = next
       sync()
     },
     focus() {
