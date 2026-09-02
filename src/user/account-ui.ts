@@ -63,6 +63,40 @@ function clearGuestBrowserAuth(): void {
   }
 }
 
+function prepareSummaryLayout(doc: Document, modeElement: HTMLElement): {
+  name: HTMLElement | null
+  account: HTMLElement | null
+  avatar: HTMLElement | null
+} {
+  const host = doc.querySelector<HTMLElement>('.user-account-summary')
+  if (!host) return { name: null, account: null, avatar: null }
+
+  const avatar = doc.createElement('span')
+  avatar.className = 'user-account-summary__avatar'
+  avatar.setAttribute('aria-hidden', 'true')
+
+  const body = doc.createElement('div')
+  body.className = 'user-account-summary__body'
+
+  const name = doc.createElement('strong')
+  name.id = 'user-summary-name'
+  name.className = 'user-account-summary__name'
+
+  const meta = doc.createElement('div')
+  meta.className = 'user-account-summary__meta'
+  modeElement.className = 'user-account-summary__type'
+
+  const account = doc.createElement('span')
+  account.id = 'user-summary-account'
+  account.className = 'user-account-summary__account'
+
+  meta.append(modeElement, account)
+  body.append(name, meta)
+  host.replaceChildren(avatar, body)
+  host.classList.add('user-account-summary--identity')
+  return { name, account, avatar }
+}
+
 export function mountUserAccountUi(doc: Document = document): () => void {
   const drawerPanel = doc.querySelector<HTMLElement>('#user-drawer .user-drawer-panel')
   const modeLabel = doc.querySelector<HTMLElement>('#user-mode')
@@ -73,9 +107,7 @@ export function mountUserAccountUi(doc: Document = document): () => void {
 
   const modeElement: HTMLElement = modeLabel
   const authButton: HTMLButtonElement = legacyAuthAction
-  const summaryName = doc.querySelector<HTMLElement>('#user-summary-name')
-  const summaryType = doc.querySelector<HTMLElement>('#user-summary-type')
-  const summaryAccount = doc.querySelector<HTMLElement>('#user-summary-account')
+  const summaryLayout = prepareSummaryLayout(doc, modeElement)
   const supportTitle = doc.querySelector<HTMLElement>('.user-title strong')
   if (supportTitle) supportTitle.textContent = 'Hỗ trợ'
   doc.querySelector<HTMLElement>('#messages')?.setAttribute('aria-label', 'Tin nhắn với Hỗ trợ')
@@ -126,9 +158,10 @@ export function mountUserAccountUi(doc: Document = document): () => void {
     const mode = accountUiMode(modeElement.textContent ?? '')
     const profile = mode === 'user2' ? currentProfile() : null
     const summary = userAccountSummary(mode, profile)
-    if (summaryName) summaryName.textContent = summary.displayName
-    if (summaryType) summaryType.textContent = summary.typeLabel
-    if (summaryAccount) summaryAccount.textContent = summary.accountLabel
+    if (summaryLayout.name) summaryLayout.name.textContent = summary.displayName
+    if (summaryLayout.account) summaryLayout.account.textContent = summary.accountLabel
+    if (summaryLayout.avatar) summaryLayout.avatar.textContent = summary.displayName.trim().slice(0, 1).toLocaleUpperCase('vi-VN') || 'U'
+    if (modeElement.textContent !== summary.typeLabel) modeElement.textContent = summary.typeLabel
 
     guestSection.hidden = mode !== 'guest'
     profileDetails.hidden = mode !== 'user2'
