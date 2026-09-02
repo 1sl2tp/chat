@@ -30,24 +30,21 @@ describe('Admin management UI', () => {
     item({ profileId: '22222222-2222-4222-8222-222222222222', displayName: 'Bình Minh', userLevel: 2, username: 'khach_02' }),
   ]
 
-  it('filters inbox by User2, guest and unread without creating another store', () => {
+  it('keeps role filtering available as an internal helper', () => {
     expect(filterAdminInbox(rows, 'all')).toHaveLength(2)
     expect(filterAdminInbox(rows, 'user2').map((row) => row.userLevel)).toEqual([2])
     expect(filterAdminInbox(rows, 'guest').map((row) => row.userLevel)).toEqual([1])
-    expect(filterAdminInbox(rows, 'unread').map((row) => row.unreadCount)).toEqual([2])
   })
 
-  it('searches the current filter by display name or username', () => {
+  it('searches by display name or username', () => {
     expect(filterAdminInbox(rows, 'all', 'nguyễn').map((row) => row.displayName)).toEqual(['Nguyễn An'])
     expect(filterAdminInbox(rows, 'all', 'KHACH_02').map((row) => row.username)).toEqual(['khach_02'])
-    expect(filterAdminInbox(rows, 'user2', 'bình').map((row) => row.userLevel)).toEqual([2])
-    expect(filterAdminInbox(rows, 'guest', 'khach_02')).toEqual([])
   })
 
-  it('groups the all inbox into User 2 and User 1 vãng lai so the roles do not mix visually', () => {
-    expect(groupAdminInbox(rows, 'all').map((group) => [group.label, group.items.map((row) => row.displayName)])).toEqual([
+  it('groups the visible inbox into only User 2 and User 1', () => {
+    expect(groupAdminInbox(rows).map((group) => [group.label, group.items.map((row) => row.displayName)])).toEqual([
       ['USER 2', ['Bình Minh']],
-      ['USER 1 · VÃNG LAI', ['Nguyễn An']],
+      ['USER 1', ['Nguyễn An']],
     ])
   })
 
@@ -57,7 +54,7 @@ describe('Admin management UI', () => {
     expect(formatAdminInboxTime(null, now)).toBe('')
   })
 
-  it('keeps the product inbox renderer in one owner', () => {
+  it('keeps the product inbox renderer in one runtime owner', () => {
     expect(managementSource).toContain('admin-inbox-row')
     expect(managementSource).toContain('admin-inbox-search')
     expect(adminMainSource).not.toContain("button.className = 'inbox-item'")
