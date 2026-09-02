@@ -4,7 +4,7 @@ import type { ChatMessage } from '../../chat/messages'
 import { setButtonIcon } from '../icons'
 import { getConversationCapabilities } from './capabilities'
 import { mountComposer, type ComposerController, type ComposerOptions } from './composer'
-import type { LinkPreviewResolver } from './link-preview'
+import { resolveActiveLinkPreview, type LinkPreviewResolver } from './link-preview'
 import { renderMessageList } from './message-list'
 import { createConversationScrollController } from './scroll-controller'
 
@@ -145,7 +145,7 @@ export function mountConversationSurface(options: ConversationSurfaceOptions): C
     } else {
       renderMessageList(options.messagesHost, state.messages, state.currentProfileId, {
         resolveAttachmentUrl: capabilities?.resolveAttachmentUrl,
-        resolveLinkPreview: options.resolveLinkPreview,
+        resolveLinkPreview: options.resolveLinkPreview ?? resolveActiveLinkPreview,
         getHeart: reactionSession ? (messageId) => reactionSession.getHeart(messageId) : undefined,
         onHeart: reactionSession ? (messageId) => reactionSession.toggleHeart(messageId) : undefined,
         onOpenImage(url, name) {
