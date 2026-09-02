@@ -15,6 +15,10 @@ class FakeElement {
   alt = ''
   preload = ''
   ariaLabel = ''
+  min = ''
+  max = ''
+  step = ''
+  value = ''
 
   constructor(tagName: string) { this.tagName = tagName.toUpperCase() }
   append(...nodes: FakeElement[]) { this.children.push(...nodes) }
@@ -27,7 +31,7 @@ const audioMessage: MessageViewModel = {
   kind: 'audio',
   direction: 'outgoing',
   createdAt: '2026-09-02T12:00:00Z',
-  attachment: { url: 'https://example.com/a.webm', name: 'Ghi âm' },
+  attachment: { url: 'https://example.com/a.webm', name: 'voice-1788357882159.webm' },
 }
 
 function findByClass(root: FakeElement, token: string): FakeElement | undefined {
@@ -63,6 +67,14 @@ describe('Chatwoot media presentation', () => {
     expect(findByClass(audio, 'cw-media-actions')).toBeTruthy()
     expect(findByClass(audio, 'cw-media-actions__menu')).toBeTruthy()
     expect(findByClass(audio, 'cw-media-actions--permanent')).toBeUndefined()
+  })
+
+  it('renders voice notes as an actual player instead of exposing the raw webm filename', () => {
+    const audio = renderMessage({ ...audioMessage, groupWithPrevious: false, groupWithNext: false }) as unknown as FakeElement
+    expect(findByClass(audio, 'cw-audio-player__play')).toBeTruthy()
+    expect(findByClass(audio, 'cw-audio-player__range')).toBeTruthy()
+    expect(findByClass(audio, 'cw-audio-player__time')).toBeTruthy()
+    expect(findByClass(audio, 'cw-audio-player__label')?.textContent).toBe('Ghi âm')
   })
 
   it('reuses the same audio root when an unchanged message list is updated', () => {
