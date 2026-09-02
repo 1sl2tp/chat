@@ -10,6 +10,10 @@ describe('User Chatwoot conversation ownership', () => {
     expect(userCss).toMatch(/\.user-header\[hidden\]\{display:none\}/)
   })
 
+  it('keeps the Chatwoot host on the flexible shell row after legacy rows are hidden', () => {
+    expect(userCss).toMatch(/#messages\.chatwoot-conversation-host\{[^}]*grid-row:3[^}]*height:100%/)
+  })
+
   it('lets the host own viewport height so the Chatwoot composer stays inside the User shell', () => {
     expect(conversationCss).toMatch(/\.cw-conversation\s*\{[^}]*height:\s*100%/s)
     expect(conversationCss).not.toMatch(/\.cw-conversation\s*\{[^}]*height:\s*var\(--app-visual-height,\s*100dvh\)/s)
