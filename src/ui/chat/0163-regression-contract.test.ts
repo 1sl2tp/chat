@@ -6,7 +6,7 @@ import adminPolishSource from '../../admin/zalo-polish.ts?raw'
 import accountSource from '../../user/account-ui.ts?raw'
 import callTimelineSource from './call-timeline.ts?raw'
 
-const css = readFileSync(new URL('./surface.css', import.meta.url), 'utf8')
+const refinementCss = readFileSync(new URL('./conversation-refinement.css', import.meta.url), 'utf8')
 const previewSource = readFileSync(new URL('../../../supabase/functions/taphoaxyz-link-preview/index.ts', import.meta.url), 'utf8')
 
 describe('0.16.3 regression contracts', () => {
@@ -16,26 +16,24 @@ describe('0.16.3 regression contracts', () => {
   })
 
   it('keeps reaction away from the timestamp corner', () => {
-    expect(css).toContain('.chat-message__reaction-summary')
-    expect(css).toContain('left:')
+    expect(refinementCss).toContain('.chat-message__reaction-summary')
+    expect(refinementCss).toContain('left:8px')
+    expect(refinementCss).toContain('right:auto')
   })
 
   it('decodes numeric HTML entities from social preview metadata', () => {
-    expect(previewSource).toMatch(/&#x|codePoint|parseInt/)
+    expect(previewSource).toMatch(/fromCodePoint|parseInt/)
   })
 
-  it('shows only User 2 and User 1 as Admin inbox role filters', () => {
-    expect(adminPolishSource).toContain("data-filter=\"all\"")
-    expect(adminPolishSource).toContain("data-filter=\"unread\"")
-    expect(adminPolishSource).toContain('hidden = true')
-    expect(adminPolishSource).toContain('USER 1')
+  it('shows only User 2 and User 1 as the Admin inbox groups', () => {
+    expect(adminPolishSource).toContain("label: 'USER 2' | 'USER 1'")
+    expect(adminPolishSource).not.toContain('Chưa đọc')
+    expect(adminPolishSource).not.toContain('Tất cả')
   })
 
   it('orders account identity as name then account then user type', () => {
-    const accountIndex = accountSource.indexOf('meta.append(account')
-    const typeIndex = accountSource.indexOf('modeElement')
-    expect(accountIndex).toBeGreaterThan(-1)
-    expect(accountIndex).toBeLessThan(typeIndex === -1 ? Number.MAX_SAFE_INTEGER : accountSource.lastIndexOf('modeElement'))
+    expect(accountSource).toContain('meta.append(account, modeElement)')
+    expect(accountSource).toContain("typeLabel: 'User 1'")
   })
 
   it('forces service worker update checks to bypass browser script cache', () => {
