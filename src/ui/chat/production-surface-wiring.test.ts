@@ -2,12 +2,14 @@ import { describe, expect, it } from 'vitest'
 import userMainSource from '../../user-main.ts?raw'
 import adminMainSource from '../../admin-main.ts?raw'
 
-describe('production shared conversation surface', () => {
-  it('mounts the same surface from User and Admin shells', () => {
-    expect(userMainSource).toContain("from './ui/chat/surface'")
-    expect(adminMainSource).toContain("from './ui/chat/surface'")
-    expect(userMainSource).toContain('mountConversationSurface')
-    expect(adminMainSource).toContain('mountConversationSurface')
+describe('production shared Chatwoot Conversation', () => {
+  it('mounts the same Chatwoot Conversation owner from User and Hỗ trợ', () => {
+    for (const source of [userMainSource, adminMainSource]) {
+      expect(source).toContain("from './ui/chatwoot-port/conversation-screen'")
+      expect(source).toContain('mountConversationScreen')
+      expect(source).not.toContain("from './ui/chat/surface'")
+      expect(source).not.toContain('mountConversationSurface')
+    }
   })
 
   it('does not keep shell-local message bubble render loops', () => {
