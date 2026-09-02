@@ -17,13 +17,26 @@ function json(body: unknown, status = 200): Response {
   })
 }
 
-function cleanText(value: string, maxLength: number): string {
-  const clean = value
+function decodeHtmlEntities(value: string): string {
+  return value
+    .replace(/&#x([0-9a-f]+);?/gi, (_match, code: string) => {
+      const point = Number.parseInt(code, 16)
+      return Number.isFinite(point) && point >= 0 && point <= 0x10ffff ? String.fromCodePoint(point) : ''
+    })
+    .replace(/&#([0-9]+);?/g, (_match, code: string) => {
+      const point = Number.parseInt(code, 10)
+      return Number.isFinite(point) && point >= 0 && point <= 0x10ffff ? String.fromCodePoint(point) : ''
+    })
+    .replace(/&nbsp;/gi, ' ')
     .replace(/&amp;/gi, '&')
     .replace(/&quot;/gi, '"')
     .replace(/&#39;|&apos;/gi, "'")
     .replace(/&lt;/gi, '<')
     .replace(/&gt;/gi, '>')
+}
+
+function cleanText(value: string, maxLength: number): string {
+  const clean = decodeHtmlEntities(value)
     .replace(/\s+/g, ' ')
     .trim()
   return clean.length > maxLength ? `${clean.slice(0, Math.max(0, maxLength - 1))}…` : clean
