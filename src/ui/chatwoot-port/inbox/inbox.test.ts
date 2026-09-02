@@ -1,8 +1,10 @@
+import { readFileSync } from 'node:fs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AdminInboxItem } from '../../../admin/contracts'
 import { toInboxModel } from '../../../admin/chatwoot-inbox-adapter'
 import { mountInbox, type InboxModel } from './inbox'
-import inboxCss from './inbox.css?raw'
+
+const inboxCss = readFileSync(new URL('./inbox.css', import.meta.url), 'utf8')
 
 class FakeElement {
   readonly tagName: string
