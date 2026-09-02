@@ -14,6 +14,13 @@ export type AppIconName =
   | 'notification'
   | 'more'
   | 'close'
+  | 'minimize'
+  | 'speaker'
+  | 'speakerOff'
+  | 'mute'
+  | 'unmute'
+  | 'endCall'
+  | 'acceptCall'
 
 const paths: Record<AppIconName, string> = {
   menu: '<path d="M4 7h16M4 12h16M4 17h10"/>',
@@ -31,6 +38,13 @@ const paths: Record<AppIconName, string> = {
   notification: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4"/>',
   more: '<circle cx="5" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1" fill="currentColor" stroke="none"/>',
   close: '<path d="m6 6 12 12M18 6 6 18"/>',
+  minimize: '<path d="M5 12h14"/>',
+  speaker: '<path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15 9a4 4 0 0 1 0 6M17.5 6.5a8 8 0 0 1 0 11"/>',
+  speakerOff: '<path d="M11 5 6 9H3v6h3l5 4v-5"/><path d="m3 3 18 18"/>',
+  mute: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6"/>',
+  unmute: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6M4 4l16 16"/>',
+  endCall: '<path d="M5 15.5c4.5-3.2 9.5-3.2 14 0"/><path d="m5 15.5-2 3M19 15.5l2 3"/>',
+  acceptCall: '<path d="M6.6 3.8 9 3l2 5-2.1 1.5a15 15 0 0 0 5.6 5.6L16 13l5 2-0.8 2.4a3 3 0 0 1-3.4 2A17.5 17.5 0 0 1 4.6 7.2a3 3 0 0 1 2-3.4Z"/>',
 }
 
 export function iconSvg(name: AppIconName): string {
