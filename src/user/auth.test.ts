@@ -1,5 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
-import { changeUser2Password, loginUser2, logoutUser2, normalizeUser2Username } from './auth'
+import {
+  changeUser2Password,
+  loginUser2,
+  logoutUser2,
+  normalizeUser2Registration,
+  normalizeUser2Username,
+  upgradeGuestToUser2,
+} from './auth'
 
 describe('User2 auth transitions', () => {
   it('normalizes TAPHOA username and rejects Admin on the root user page', () => {
@@ -8,7 +15,53 @@ describe('User2 auth transitions', () => {
     expect(() => normalizeUser2Username('a')).toThrow('invalid_username')
   })
 
-  it('ends User1 before signing User2 in', async () => {
+  it('validates User1 upgrade fields without changing their meaning', () => {
+    expect(normalizeUser2Registration('  Nguyễn An  ', ' @Khach_01 ', '123456')).toEqual({
+      displayName: 'Nguyễn An',
+      username: 'khach_01',
+      password: '123456',
+    })
+    expect(() => normalizeUser2Registration('', 'khach_01', '123456')).toThrow('invalid_display_name')
+    expect(() => normalizeUser2Registration('A', 'admin', '123456')).toThrow('admin_uses_admin_page')
+    expect(() => normalizeUser2Registration('A', 'khach_01', '12345')).toThrow('password_too_short')
+  })
+
+  it('upgrades the current guest in place, persists User2 login, then clears only the guest auth session', async () => {
+    const events: string[] = []
+    const backend = {
+      upgradeCurrentGuest: vi.fn(async (input: { displayName: string; username: string; password: string }) => {
+        events.push(`upgrade:${input.displayName}:${input.username}`)
+        return { loginUsername: input.username }
+      }),
+      signInPersistentUser2: vi.fn(async (email: string) => {
+        events.push(`persist:${email}`)
+      }),
+      clearGuestAuthSession: vi.fn(async () => {
+        events.push('clear-guest-auth')
+      }),
+    }
+
+    await upgradeGuestToUser2(backend, ' Nguyễn An ', ' @Khach_01 ', '123456')
+
+    expect(events).toEqual([
+      'upgrade:Nguyễn An:khach_01',
+      'persist:khach_01@taphoa.chat',
+      'clear-guest-auth',
+    ])
+  })
+
+  it('does not clear the guest auth session until persistent User2 sign-in succeeds', async () => {
+    const clearGuestAuthSession = vi.fn(async () => {})
+    await expect(upgradeGuestToUser2({
+      upgradeCurrentGuest: vi.fn(async () => ({ loginUsername: 'khach_01' })),
+      signInPersistentUser2: vi.fn(async () => { throw new Error('offline') }),
+      clearGuestAuthSession,
+    }, 'Nguyễn An', 'khach_01', '123456')).rejects.toThrow('offline')
+
+    expect(clearGuestAuthSession).not.toHaveBeenCalled()
+  })
+
+  it('ends User1 before signing an existing User2 in', async () => {
     const events: string[] = []
     const backend = {
       endGuestSession: vi.fn(async () => { events.push('end-guest') }),
