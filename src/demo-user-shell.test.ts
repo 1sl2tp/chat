@@ -17,11 +17,15 @@ describe('demo user shell geometry', () => {
     expect(html).toContain("$('callBtn').hidden=!user")
   })
 
-  test('only applies visualViewport compensation while the message field is actually focused', () => {
+  test('measures keyboard shrink from the pre-focus visual viewport instead of Safari browser chrome', () => {
     expect(html).toContain("matchMedia('(max-width: 600px)')")
+    expect(html).toContain('let keyboardBaseHeight=window.visualViewport?.height??window.innerHeight')
     expect(html).toContain("const composerFocused=document.activeElement===$('messageInput')")
-    expect(html).toContain('const keyboardOpen=mobile.matches&&composerFocused&&delta>120')
+    expect(html).toContain("if(!composerFocused){keyboardBaseHeight=vv.height;style.setProperty('--keyboard-offset','0px');return}")
+    expect(html).toContain('const delta=Math.max(0,keyboardBaseHeight-vv.height)')
+    expect(html).toContain('const keyboardOpen=delta>120')
     expect(html).toContain("style.setProperty('--keyboard-offset',keyboardOpen?delta+'px':'0px')")
+    expect(html).toContain("$('messageInput').addEventListener('focus',syncViewport)")
     expect(html).toContain("$('messageInput').addEventListener('blur',syncViewport)")
   })
 
