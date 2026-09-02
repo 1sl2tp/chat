@@ -3,6 +3,7 @@ import type { ChatReactionSession } from '../../chat/reactions/session'
 import type { ChatMessage } from '../../chat/messages'
 import { setButtonIcon } from '../icons'
 import { getConversationCapabilities } from './capabilities'
+import { compactCallTimelineMessages } from './call-timeline'
 import { mountComposer, type ComposerController, type ComposerOptions } from './composer'
 import { resolveActiveLinkPreview, type LinkPreviewResolver } from './link-preview'
 import { renderMessageList } from './message-list'
@@ -182,7 +183,8 @@ export function mountConversationSurface(options: ConversationSurfaceOptions): C
       empty.textContent = state.emptyText ?? 'Chưa có tin nhắn.'
       options.messagesHost.replaceChildren(empty)
     } else {
-      renderMessageList(options.messagesHost, state.messages, state.currentProfileId, {
+      const timelineMessages = compactCallTimelineMessages(state.messages)
+      renderMessageList(options.messagesHost, timelineMessages, state.currentProfileId, {
         resolveAttachmentUrl: capabilities?.resolveAttachmentUrl,
         resolveLinkPreview: options.resolveLinkPreview ?? resolveActiveLinkPreview,
         getHeart: reactionSession ? (messageId) => reactionSession.getHeart(messageId) : undefined,
