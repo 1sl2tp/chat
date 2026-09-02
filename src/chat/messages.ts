@@ -1,3 +1,5 @@
+import type { ChatAttachment } from './attachments/types'
+
 export interface ChatMessage {
   id: string
   conversation_id: string
@@ -10,6 +12,7 @@ export interface ChatMessage {
   edited_at: string | null
   revoked_at: string | null
   call_id: string | null
+  attachment: ChatAttachment | null
 }
 
 export function mergeChatMessages(current: ChatMessage[], incoming: ChatMessage[]): ChatMessage[] {
