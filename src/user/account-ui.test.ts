@@ -4,6 +4,7 @@ import { accountUiMode, userAccountErrorMessage, userAccountSummary } from './ac
 describe('User account UI', () => {
   it('distinguishes User1 guest from User2 using the shell mode label', () => {
     expect(accountUiMode('User 1 · Vãng lai')).toBe('guest')
+    expect(accountUiMode('User 1')).toBe('guest')
     expect(accountUiMode('User 2')).toBe('user2')
   })
 
@@ -14,7 +15,7 @@ describe('User account UI', () => {
     expect(userAccountErrorMessage(new Error('password_too_short'))).toBe('Mật khẩu cần ít nhất 6 ký tự.')
   })
 
-  it('builds a clear Zalo-like summary for User 2', () => {
+  it('builds a clear summary for User 2', () => {
     expect(userAccountSummary('user2', { displayName: 'Bùi Hải An', username: 'buihaian' })).toEqual({
       displayName: 'Bùi Hải An',
       typeLabel: 'User 2',
@@ -22,10 +23,10 @@ describe('User account UI', () => {
     })
   })
 
-  it('builds a clear guest summary without pretending there is an account', () => {
+  it('builds a clear User 1 summary without pretending there is an account', () => {
     expect(userAccountSummary('guest', null)).toEqual({
       displayName: 'Khách',
-      typeLabel: 'Vãng lai',
+      typeLabel: 'User 1',
       accountLabel: 'Chưa có tài khoản',
     })
   })
