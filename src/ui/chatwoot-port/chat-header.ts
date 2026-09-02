@@ -53,6 +53,7 @@ export function createChatHeader(options: ChatHeaderOptions): ChatHeaderView {
   const update = (model: ConversationViewModel) => {
     title.textContent = model.title
     subtitle.textContent = model.subtitle ?? ''
+    if (options.onCall) trailing.hidden = !model.canCall
   }
 
   update(options.model)
