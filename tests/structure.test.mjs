@@ -11,11 +11,27 @@ test('viewport meta keeps zoom available and enables resize-content', () => {
   assert.doesNotMatch(html, /user-scalable=no|maximum-scale=1/);
 });
 
-test('visual viewport metrics shrink app and expose keyboard height', () => {
+test('mobile viewport has separate idle and editing geometry contracts', () => {
   assert.deepEqual(
-    computeViewportMetrics({ innerHeight: 800, visualHeight: 500, offsetTop: 0 }),
-    { appHeight: 500, keyboardHeight: 300, offsetTop: 0 }
+    computeViewportMetrics({ innerHeight: 800, visualHeight: 500, offsetTop: 120, editing: false }),
+    { appHeight: 800, keyboardHeight: 0, offsetTop: 0, mode: 'idle' }
   );
+  assert.deepEqual(
+    computeViewportMetrics({ innerHeight: 800, visualHeight: 500, offsetTop: 120, editing: true }),
+    { appHeight: 500, keyboardHeight: 180, offsetTop: 120, mode: 'editing' }
+  );
+});
+
+test('viewport controller refreshes geometry on mobile input focus transitions', () => {
+  const source = readFileSync(new URL('../src/app/viewport.ts', import.meta.url), 'utf8');
+  assert.match(source, /document\.addEventListener\('focusin'/);
+  assert.match(source, /document\.addEventListener\('focusout'/);
+  assert.match(source, /dataset\.viewportMode\s*=\s*metrics\.mode/);
+});
+
+test('app root follows VisualViewport offset so keyboard top and composer stay adjacent on iOS', () => {
+  const css = readFileSync(new URL('../src/styles/layout.css', import.meta.url), 'utf8');
+  assert.match(css, /#app-root\s*\{[^}]*transform:\s*translateY\(var\(--viewport-offset-top\)\)/s);
 });
 
 test('child layout css never owns viewport height', () => {
