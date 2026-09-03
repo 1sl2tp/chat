@@ -9,7 +9,7 @@ body {
 }
 button, input, textarea, select { font: inherit; }
 button { color: inherit; }
-#app-root { width: 100%; height: var(--app-height); min-height: 0; overflow: hidden; }
+#app-root { width: 100%; height: var(--app-height); min-height: 0; overflow: hidden; transform: translateY(var(--viewport-offset-top)); }
 #overlay-root { position: fixed; inset: 0; z-index: 50; pointer-events: none; }
 
 .app-shell {
