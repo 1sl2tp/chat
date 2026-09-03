@@ -25,6 +25,12 @@ describe('clean User app', () => {
     expect(source).not.toContain("import './call/call.css'")
   })
 
+  it('keeps release information out of the visible User UI', () => {
+    const ui = fs.readFileSync(uiPath, 'utf8')
+    expect(ui).toContain('id="clean-diagnostic"')
+    expect(ui).toContain('class="clean-diagnostic" hidden aria-hidden="true"')
+  })
+
   it('preserves browser push cleanup when switching back to guest mode', () => {
     const source = fs.readFileSync(mainPath, 'utf8')
     expect(source).toContain('clearCurrentPushSubscription')

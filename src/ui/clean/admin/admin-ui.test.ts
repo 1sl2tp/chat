@@ -3,6 +3,7 @@ import fs from 'node:fs'
 
 const uiPath = 'src/ui/clean/admin/admin-ui.ts'
 const mainPath = 'src/admin-clean-main.ts'
+const themePath = 'src/ui/clean/theme.css'
 
 describe('clean Admin app', () => {
   it('uses mutually exclusive Inbox and Chat screens instead of a permanent split pane', () => {
@@ -24,6 +25,13 @@ describe('clean Admin app', () => {
     expect(source).not.toContain('mountConversationScreen')
     expect(source).not.toContain('mountAdminChatwootManagementUi')
     expect(source).not.toContain("import './admin.css'")
+  })
+
+  it('keeps release information out of the visible Admin UI', () => {
+    const ui = fs.readFileSync(uiPath, 'utf8')
+    const theme = fs.readFileSync(themePath, 'utf8')
+    expect(ui).toContain('id="clean-admin-diagnostic"')
+    expect(theme).toContain('.clean-diagnostic { display: none !important; }')
   })
 
   it('keeps current User management actions in one clean sheet instead of a CRM panel', () => {

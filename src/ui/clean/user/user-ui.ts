@@ -76,7 +76,7 @@ export function createCleanUserUi(root: HTMLElement): CleanUserUi {
       </form>
     </section>
     <div id="clean-user-call"></div>
-    <span id="clean-diagnostic" class="clean-diagnostic"></span>
+    <span id="clean-diagnostic" class="clean-diagnostic" hidden aria-hidden="true"></span>
   `
 
   const $ = <T extends Element>(selector: string): T => {
