@@ -26,7 +26,6 @@ export interface CleanUserUi {
   loginSubmit: HTMLButtonElement
   loginCancel: HTMLButtonElement
   loginError: HTMLElement
-  diagnostic: HTMLElement
   setSheetOpen(open: boolean): void
   setLoginOpen(open: boolean): void
 }
@@ -76,7 +75,6 @@ export function createCleanUserUi(root: HTMLElement): CleanUserUi {
       </form>
     </section>
     <div id="clean-user-call"></div>
-    <span id="clean-diagnostic" class="clean-diagnostic"></span>
   `
 
   const $ = <T extends Element>(selector: string): T => {
@@ -113,7 +111,6 @@ export function createCleanUserUi(root: HTMLElement): CleanUserUi {
     loginSubmit: $('#clean-user-login-submit') as HTMLButtonElement,
     loginCancel: $('#clean-user-login-cancel') as HTMLButtonElement,
     loginError: $('#clean-user-login-error') as HTMLElement,
-    diagnostic: $('#clean-diagnostic') as HTMLElement,
     setSheetOpen(open) {
       sheet.dataset.open = open ? 'true' : 'false'
       sheet.setAttribute('aria-hidden', open ? 'false' : 'true')
