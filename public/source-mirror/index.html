@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="vi" class="h-full bg-slate-950 text-slate-100 font-sans">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TAPHOA Workspace</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] },
+                    colors: { cw: { 500: '#1f93ff', 600: '#187bcb', 700: '#1260a3' } }
+                }
+            }
+        }
+    </script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.8); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        @keyframes pulse-ring { 0% { transform: scale(0.95); opacity: 0.8; } 50% { transform: scale(1.1); opacity: 0.4; } 100% { transform: scale(0.95); opacity: 0.8; } }
+        .calling-animation { animation: pulse-ring 2s infinite ease-in-out; }
+    </style>
+</head>
+<body class="h-full w-full bg-slate-950 flex flex-col overflow-hidden antialiased select-none">
+
+    <!-- TOP NAVIGATION HEADER -->
+    <header class="h-14 bg-slate-900 border-b border-slate-800 px-4 flex items-center justify-between shrink-0 z-30">
+        <div class="flex items-center space-x-3">
+            <button onclick="toggleElement('leftSidebar')" class="md:hidden p-2 text-slate-400 hover:text-white rounded-xl bg-slate-800 border border-slate-700">
+                <i class="fa-solid fa-bars text-sm"></i>
+            </button>
+            <div class="flex items-center space-x-2.5">
+                <div class="w-9 h-9 rounded-xl bg-cw-500 flex items-center justify-center text-white font-extrabold shadow-lg shadow-cw-500/20">
+                    <i class="fa-solid fa-headset text-base"></i>
+                </div>
+                <div>
+                    <span class="font-extrabold text-sm text-white block leading-tight">TAPHOA</span>
+                    <span class="text-[10px] text-emerald-400 font-mono">v2026.09 • Online</span>
+                </div>
+            </div>
+
+            <!-- Global Search Bar -->
+            <div class="relative w-40 sm:w-64 lg:w-80 ml-2">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-xs text-slate-500"></i>
+                <input type="text" id="globalSearchInput" placeholder="Tìm tin nhắn, khách hàng, số điện thoại..." class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white focus:outline-none focus:border-cw-500 transition">
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-2">
+            <!-- Call Action Buttons -->
+            <button onclick="VoIPModule.startCall('audio')" class="bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600/30 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition">
+                <i class="fa-solid fa-phone"></i>
+                <span class="hidden lg:inline">Gọi Điện</span>
+            </button>
+            <button onclick="VoIPModule.startCall('video')" class="bg-cw-500/20 text-cw-400 border border-cw-500/30 hover:bg-cw-500/30 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition">
+                <i class="fa-solid fa-video"></i>
+                <span class="hidden lg:inline">Gọi Video HD</span>
+            </button>
+
+            <!-- Account Management Button -->
+            <button onclick="UIModule.openModal('accountCrudModal')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition">
+                <i class="fa-solid fa-users-gear text-amber-400"></i>
+                <span class="hidden md:inline">Quản Lý Nhân Viên</span>
+            </button>
+
+            <!-- User Menu Dropdown -->
+            <div class="relative">
+                <button onclick="UIModule.toggleDropdown('userDropdown')" class="flex items-center space-x-2 bg-slate-950 border border-slate-800 hover:border-slate-700 p-1 pr-3 rounded-xl text-xs">
+                    <div class="w-7 h-7 rounded-lg bg-cw-500 text-white font-bold flex items-center justify-center text-xs">BT</div>
+                    <span class="hidden sm:inline font-semibold text-slate-200">Bùi Xuân Tùng</span>
+                    <i class="fa-solid fa-chevron-down text-[10px] text-slate-500"></i>
+                </button>
+                <div id="userDropdown" class="hidden absolute right-0 mt-2 w-60 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl py-1.5 z-50 text-xs divide-y divide-slate-800">
+                    <div class="px-3 py-2">
+                        <p class="font-bold text-white">Bùi Xuân Tùng</p>
+                        <p class="text-[10px] text-slate-400 font-mono">admin@taphoa.xyz</p>
+                    </div>
+                    <div class="py-1">
+                        <button onclick="UIModule.openModal('profileModal')" class="w-full px-3 py-2 text-left hover:bg-slate-800 flex items-center gap-2 text-slate-300">
+                            <i class="fa-solid fa-user-pen text-cw-400"></i> Hồ Sơ & Đổi Mật Khẩu
+                        </button>
+                        <button onclick="UIModule.openModal('accountCrudModal')" class="w-full px-3 py-2 text-left hover:bg-slate-800 flex items-center gap-2 text-slate-300">
+                            <i class="fa-solid fa-user-plus text-emerald-400"></i> Thêm / Xóa Nhân Viên
+                        </button>
+                    </div>
+                    <div class="pt-1">
+                        <button onclick="UIModule.logout()" class="w-full px-3 py-2 text-left hover:bg-slate-800 flex items-center gap-2 text-red-400 font-bold">
+                            <i class="fa-solid fa-right-from-bracket"></i> Đăng Xuất Hệ Thống
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- INCOMING CALL BANNER NOTIFICATION -->
+    <div id="incomingCallBanner" class="hidden bg-emerald-600 text-white px-4 py-2.5 flex items-center justify-between shrink-0 shadow-2xl z-40 animate-bounce">
+        <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-white"><i class="fa-solid fa-phone-volume text-lg"></i></div>
+            <div>
+                <h4 class="text-xs font-bold">Cuộc gọi SIP VoIP đến: Tạp Hóa XYZ (Chị Hoa)</h4>
+                <p class="text-[10px] text-emerald-100 font-mono">Đang gọi từ số: 0988.123.456</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2">
+            <button onclick="VoIPModule.acceptCall()" class="px-4 py-1.5 bg-white text-emerald-800 font-extrabold text-xs rounded-xl shadow hover:bg-emerald-50">Trả Lời</button>
+            <button onclick="VoIPModule.rejectCall()" class="px-4 py-1.5 bg-red-700 text-white font-extrabold text-xs rounded-xl shadow hover:bg-red-800">Từ Chối</button>
+        </div>
+    </div>
+
+    <!-- PINNED SYSTEM ANNOUNCEMENT -->
+    <div class="bg-slate-900/90 border-b border-slate-800 px-4 py-1.5 flex items-center justify-between text-xs shrink-0 z-10">
+        <div class="flex items-center space-x-2 truncate">
+            <i class="fa-solid fa-thumbtack text-amber-400 text-xs shrink-0"></i>
+            <span class="font-bold text-slate-400 shrink-0">Thông báo đã ghim:</span>
+            <span class="text-slate-200 truncate">"Bảng giá niêm yết cố định áp dụng tự động cho bán buôn và bán lẻ từ tháng 09/2026."</span>
+        </div>
+        <button onclick="UIModule.showToast('Mở chi tiết tin nhắn ghim')" class="text-[10px] text-cw-400 font-bold hover:underline shrink-0 ml-2">Chi tiết</button>
+    </div>
+
+    <!-- MAIN APP WORKSPACE -->
+    <div class="flex-1 flex overflow-hidden relative">
+
+        <!-- LEFT SIDEBAR: CONVERSATION LIST & CALL LOGS -->
+        <aside id="leftSidebar" class="absolute md:relative z-20 w-80 h-full bg-slate-900 border-r border-slate-800 flex flex-col transition-all duration-300 -translate-x-full md:translate-x-0 shrink-0">
+            <div class="p-3 border-b border-slate-800 flex justify-between items-center text-xs">
+                <div class="flex space-x-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+                    <button onclick="UIModule.switchTab('conversationsTab')" id="tabBtnChat" class="px-3 py-1 font-bold text-white bg-slate-800 rounded-lg">Hội thoại</button>
+                    <button onclick="UIModule.switchTab('callsTab')" id="tabBtnCall" class="px-3 py-1 font-bold text-slate-400 hover:text-white rounded-lg">Cuộc gọi (3)</button>
+                </div>
+                <button onclick="UIModule.newChat()" class="p-2 text-slate-400 hover:text-white bg-slate-800 rounded-xl border border-slate-700" title="Tạo trò chuyện mới"><i class="fa-solid fa-pen-to-square"></i></button>
+            </div>
+
+            <!-- Conversation Stream List -->
+            <div id="conversationsTab" class="flex-1 overflow-y-auto custom-scrollbar divide-y divide-slate-800/60">
+                <div onclick="UIModule.selectChat('TX')" class="p-3 bg-slate-800/70 border-l-4 border-cw-500 cursor-pointer flex items-start space-x-3 hover:bg-slate-800 transition">
+                    <div class="relative shrink-0">
+                        <div class="w-10 h-10 rounded-full bg-cw-500 font-extrabold text-white flex items-center justify-center text-xs shadow-md">TX</div>
+                        <span class="w-3 h-3 bg-emerald-500 border-2 border-slate-900 rounded-full absolute bottom-0 right-0"></span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex justify-between items-center mb-0.5">
+                            <h4 class="text-xs font-bold text-white truncate">Tạp Hóa XYZ (Chị Hoa)</h4>
+                            <span class="text-[10px] text-slate-400">10:45</span>
+                        </div>
+                        <p class="text-[11px] text-emerald-400 font-semibold truncate"><i class="fa-solid fa-microphone text-[9px]"></i> Tin nhắn thoại (0:18)</p>
+                        <div class="flex items-center gap-1.5 mt-1">
+                            <span class="text-[9px] bg-blue-500/20 text-blue-400 border border-blue-500/30 px-1.5 py-0.5 rounded font-bold">Khách VIP</span>
+                            <span class="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded font-bold"><i class="fa-solid fa-check-double"></i> Đã đọc</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Call History Logs Tab (Hidden by default) -->
+            <div id="callsTab" class="hidden flex-1 overflow-y-auto custom-scrollbar divide-y divide-slate-800/60 p-2 space-y-1">
+                <div class="p-2.5 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between text-xs">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-phone-incoming text-emerald-400"></i>
+                        <div>
+                            <p class="font-bold text-white">Tạp Hóa XYZ</p>
+                            <span class="text-[10px] text-slate-400 font-mono">10:30 AM • 02:45</span>
+                        </div>
+                    </div>
+                    <button onclick="VoIPModule.startCall('audio')" class="p-1.5 bg-slate-800 text-emerald-400 rounded-lg"><i class="fa-solid fa-phone"></i></button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- CENTER WORKSPACE: CHAT & MULTIMEDIA STREAM -->
+        <main class="flex-1 flex flex-col bg-slate-950 relative overflow-hidden min-w-0">
+            
+            <!-- Chat Active Header -->
+            <div class="h-12 bg-slate-900 border-b border-slate-800 px-4 flex items-center justify-between shrink-0">
+                <div class="flex items-center space-x-3 truncate">
+                    <div class="w-8 h-8 rounded-full bg-cw-500 text-white font-extrabold flex items-center justify-center text-xs shrink-0">TX</div>
+                    <div class="truncate">
+                        <h3 class="text-xs font-bold text-white truncate">Tạp Hóa XYZ (Chị Hoa)</h3>
+                        <span class="text-[10px] text-emerald-400 font-semibold block">● Đang trực tuyến • SIP VoIP Ready</span>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-1">
+                    <button onclick="VoIPModule.startCall('audio')" title="Gọi Điện" class="p-2 text-emerald-400 hover:bg-emerald-500/10 rounded-xl border border-slate-800"><i class="fa-solid fa-phone text-xs"></i></button>
+                    <button onclick="VoIPModule.startCall('video')" title="Gọi Video HD" class="p-2 text-cw-400 hover:bg-cw-500/10 rounded-xl border border-slate-800"><i class="fa-solid fa-video text-xs"></i></button>
+                    <button onclick="UIModule.toggleElement('rightCRM')" class="xl:hidden p-2 text-slate-400 hover:text-white rounded-xl border border-slate-800"><i class="fa-solid fa-address-card text-xs"></i></button>
+                </div>
+            </div>
+
+            <!-- Messages Stream Area -->
+            <div id="messageStream" class="flex-1 p-4 space-y-4 overflow-y-auto custom-scrollbar">
+                
+                <div class="text-center my-2"><span class="text-[10px] bg-slate-900 border border-slate-800 text-slate-400 px-3 py-1 rounded-full font-mono">Hôm nay, 03 Tháng 9, 2026</span></div>
+
+                <!-- Text & Link Preview Bubble -->
+                <div class="flex items-start space-x-2 group" id="msg-1">
+                    <div class="w-7 h-7 rounded-full bg-cw-500 text-white font-bold flex items-center justify-center text-[10px] shrink-0 mt-0.5">TX</div>
+                    <div class="space-y-1 max-w-md">
+                        <div class="bg-slate-900 border border-slate-800 p-3 rounded-2xl text-xs text-slate-200 space-y-2 shadow-md relative">
+                            <p>Anh Tùng kiểm tra giúp em đường dẫn tra cứu giá tự động này nhé:</p>
+                            
+                            <a href="https://taphoa.xyz" target="_blank" class="block bg-slate-950 border border-slate-800 rounded-xl p-2.5 hover:border-cw-500 transition space-y-1">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[10px] text-cw-400 font-mono font-bold">https://taphoa.xyz/bao-gia</span>
+                                    <i class="fa-solid fa-arrow-up-right-from-square text-[10px] text-slate-500"></i>
+                                </div>
+                                <h5 class="text-xs font-bold text-white">Hệ Thống Báo Giá Sỉ & Bán Lẻ Automatic</h5>
+                                <p class="text-[10px] text-slate-400 line-clamp-2">Đồng bộ tự động niêm yết cố định không qua điều chỉnh thủ công...</p>
+                            </a>
+
+                            <div class="flex items-center justify-between pt-1 text-[10px] text-slate-400 border-t border-slate-800/60">
+                                <span class="font-mono text-[9px] text-slate-500">10:40 AM</span>
+                                <div class="flex items-center space-x-2">
+                                    <button onclick="UIModule.copyText('https://taphoa.xyz/bao-gia')" class="hover:text-white"><i class="fa-solid fa-copy"></i> Copy Link</button>
+                                    <button onclick="UIModule.shareLink('https://taphoa.xyz/bao-gia')" class="hover:text-white"><i class="fa-solid fa-share-nodes"></i> Chia sẻ</button>
+                                    <button onclick="ChatModule.quoteMessage('https://taphoa.xyz/bao-gia')" class="hover:text-white"><i class="fa-solid fa-quote-left"></i> Trích dẫn</button>
+                                </div>
+                            </div>
+
+                            <!-- Reaction Bar -->
+                            <div class="absolute -top-3 right-2 bg-slate-800 border border-slate-700 rounded-full px-2 py-0.5 opacity-0 group-hover:opacity-100 transition flex space-x-1 shadow-lg text-xs">
+                                <button onclick="ChatModule.addReaction('msg-1', '👍')" class="hover:scale-125 transition">👍</button>
+                                <button onclick="ChatModule.addReaction('msg-1', '❤️')" class="hover:scale-125 transition">❤️</button>
+                                <button onclick="ChatModule.addReaction('msg-1', '😮')" class="hover:scale-125 transition">😮</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Audio Record Voice Note Bubble -->
+                <div class="flex items-start space-x-2">
+                    <div class="w-7 h-7 rounded-full bg-cw-500 text-white font-bold flex items-center justify-center text-[10px] shrink-0 mt-0.5">TX</div>
+                    <div class="bg-slate-900 border border-slate-800 p-3 rounded-2xl w-64 space-y-2 shadow-md">
+                        <div class="flex items-center justify-between text-xs text-slate-400">
+                            <span class="font-bold text-cw-400 flex items-center gap-1"><i class="fa-solid fa-microphone"></i> Ghi âm thoại</span>
+                            <span class="font-mono text-[10px]">0:18</span>
+                        </div>
+                        <div class="flex items-center space-x-3 bg-slate-950 p-2 rounded-xl border border-slate-800">
+                            <button onclick="ChatModule.toggleAudioPlay(this)" class="w-8 h-8 rounded-full bg-cw-500 text-white flex items-center justify-center shrink-0"><i class="fa-solid fa-play text-xs"></i></button>
+                            <div class="flex-1 flex items-center gap-0.5 h-6">
+                                <span class="w-1 bg-cw-400 h-3 rounded"></span><span class="w-1 bg-cw-400 h-5 rounded"></span><span class="w-1 bg-cw-400 h-2 rounded"></span><span class="w-1 bg-cw-400 h-6 rounded"></span><span class="w-1 bg-cw-400 h-4 rounded"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- COMPOSER TOOLBAR WITH MULTIMEDIA ATTACHMENTS & VOICE RECORDING -->
+            <div class="p-3 bg-slate-900 border-t border-slate-800 shrink-0 space-y-2 relative">
+                
+                <!-- Quote Reply Box -->
+                <div id="quoteBox" class="hidden bg-slate-950 border border-slate-800 rounded-xl p-2 flex justify-between items-center text-xs">
+                    <div class="border-l-2 border-cw-500 pl-2">
+                        <span class="text-[10px] text-cw-400 font-bold block">Đang trích dẫn:</span>
+                        <p id="quoteText" class="text-slate-300 text-[11px] truncate">...</p>
+                    </div>
+                    <button onclick="ChatModule.closeQuote()" class="text-slate-500 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+
+                <!-- Voice Recording Bar -->
+                <div id="voiceRecorderBar" class="hidden bg-red-950/60 border border-red-800/80 p-2 rounded-xl flex items-center justify-between text-xs animate-pulse">
+                    <div class="flex items-center space-x-2 text-red-400 font-bold">
+                        <i class="fa-solid fa-circle text-[10px]"></i>
+                        <span>Đang ghi âm... <span id="recordTimer" class="font-mono">00:05</span></span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="ChatModule.cancelVoiceRecord()" class="px-2.5 py-1 bg-slate-800 text-slate-300 rounded-lg text-[10px] font-bold">Hủy</button>
+                        <button onclick="ChatModule.sendVoiceRecord()" class="px-3 py-1 bg-red-600 text-white rounded-lg text-[10px] font-bold">Gửi Voice</button>
+                    </div>
+                </div>
+
+                <!-- Main Input Controls -->
+                <div class="flex items-center space-x-2">
+                    
+                    <!-- Attach Menu Dropdown -->
+                    <div class="relative">
+                        <button onclick="UIModule.toggleDropdown('attachMenu')" class="p-2 text-slate-400 hover:text-white bg-slate-950 border border-slate-800 rounded-xl text-xs"><i class="fa-solid fa-paperclip"></i></button>
+                        <div id="attachMenu" class="hidden absolute bottom-10 left-0 w-52 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-1.5 z-50 text-xs space-y-1">
+                            <button onclick="ChatModule.triggerFileInput('image/*')" class="w-full p-2 text-left hover:bg-slate-800 rounded-xl flex items-center gap-2 text-emerald-400"><i class="fa-solid fa-image"></i> Gửi Ảnh / Video</button>
+                            <button onclick="ChatModule.triggerFileInput('*/*')" class="w-full p-2 text-left hover:bg-slate-800 rounded-xl flex items-center gap-2 text-cw-400"><i class="fa-solid fa-file-lines"></i> Gửi File / Tài Liệu</button>
+                            <button onclick="ChatModule.sendLocationCard()" class="w-full p-2 text-left hover:bg-slate-800 rounded-xl flex items-center gap-2 text-rose-400"><i class="fa-solid fa-location-dot"></i> Gửi Vị Trí Kho Hàng</button>
+                            <button onclick="ChatModule.sendContactCard()" class="w-full p-2 text-left hover:bg-slate-800 rounded-xl flex items-center gap-2 text-amber-400"><i class="fa-solid fa-address-book"></i> Chia Sẻ Danh Bạ Nhân Viên</button>
+                        </div>
+                    </div>
+
+                    <!-- Voice Record Button -->
+                    <button onclick="ChatModule.startVoiceRecord()" class="p-2 text-slate-400 hover:text-red-400 bg-slate-950 border border-slate-800 rounded-xl text-xs"><i class="fa-solid fa-microphone"></i></button>
+
+                    <!-- Text Composer -->
+                    <input id="mainComposer" type="text" placeholder="Soạn tin nhắn, dán link hoặc đính kèm file..." class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cw-500">
+                    
+                    <button onclick="ChatModule.sendMessage()" class="px-4 py-2 bg-cw-500 hover:bg-cw-600 text-white rounded-xl text-xs font-bold shadow-md">Gửi</button>
+                </div>
+            </div>
+
+            <input type="file" id="hiddenFileInput" class="hidden" onchange="ChatModule.handleFileSelected(this)">
+        </main>
+
+        <!-- RIGHT CRM SIDEBAR -->
+        <aside id="rightCRM" class="hidden xl:flex w-80 h-full bg-slate-900 border-l border-slate-800 flex-col shrink-0 overflow-y-auto custom-scrollbar">
+            <div class="p-4 border-b border-slate-800 text-center space-y-2">
+                <div class="w-16 h-16 rounded-full bg-cw-500 text-white font-black text-xl flex items-center justify-center mx-auto shadow-xl">TX</div>
+                <h3 class="text-xs font-bold text-white">Tạp Hóa XYZ (Chị Hoa)</h3>
+                <span class="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-0.5 rounded-full font-bold">Khách VIP Bán Buôn</span>
+            </div>
+
+            <div class="p-4 space-y-4 text-xs">
+                <div>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase block mb-2">Thao tác CRM nhanh</span>
+                    <div class="space-y-1.5">
+                        <button onclick="UIModule.copyText('0988123456')" class="w-full py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl font-semibold flex items-center justify-center gap-2"><i class="fa-solid fa-copy text-cw-400"></i> Sao chép SĐT Khách</button>
+                        <button onclick="UIModule.shareLink('https://taphoa.xyz/crm/tx')" class="w-full py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl font-semibold flex items-center justify-center gap-2"><i class="fa-solid fa-share-nodes text-emerald-400"></i> Chia sẻ Hồ sơ CRM</button>
+                    </div>
+                </div>
+
+                <div>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase block mb-2">Kho Đa Phương Tiện (Media)</span>
+                    <div class="grid grid-cols-3 gap-1.5">
+                        <img onclick="UIModule.openLightbox('https://images.unsplash.com/photo-1578916171728-46686eac8d58?q=80&w=600')" src="https://images.unsplash.com/photo-1578916171728-46686eac8d58?q=80&w=200" class="w-full h-16 object-cover rounded-lg cursor-pointer hover:opacity-80 transition">
+                        <img onclick="UIModule.openLightbox('https://images.unsplash.com/photo-1604719312566-8912e9227c6a?q=80&w=600')" src="https://images.unsplash.com/photo-1604719312566-8912e9227c6a?q=80&w=200" class="w-full h-16 object-cover rounded-lg cursor-pointer hover:opacity-80 transition">
+                        <div class="w-full h-16 bg-slate-950 border border-slate-800 rounded-lg flex flex-col items-center justify-center text-[9px] text-cw-400 cursor-pointer">
+                            <i class="fa-solid fa-file-pdf text-base mb-1"></i> File Báo Giá
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+    </div>
+
+    <!-- FULLSCREEN VOIP CALL MODAL -->
+    <div id="callModal" class="hidden fixed inset-0 bg-slate-950/95 z-50 flex flex-col items-center justify-between p-6 backdrop-blur-md">
+        <div class="text-center space-y-1 mt-4">
+            <span id="callTypeBadge" class="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded-full font-bold uppercase tracking-wider">Cuộc gọi thoại SIP VoIP</span>
+            <h2 class="text-lg font-black text-white mt-2">Tạp Hóa XYZ (Chị Hoa)</h2>
+            <p id="callTimer" class="text-xs font-mono text-slate-400">00:00 • HD Audio Codec OPUS</p>
+        </div>
+
+        <div class="relative w-full max-w-md h-72 bg-slate-900 border border-slate-800 rounded-3xl flex items-center justify-center overflow-hidden shadow-2xl">
+            <img id="remoteVideo" src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=600" class="hidden w-full h-full object-cover">
+            <div id="audioAvatar" class="text-center space-y-3">
+                <div class="w-24 h-24 rounded-full bg-cw-500 text-white font-black text-3xl flex items-center justify-center mx-auto shadow-2xl calling-animation">TX</div>
+                <p class="text-xs text-emerald-400 font-bold"><i class="fa-solid fa-signal"></i> Đã kết nối kênh thoại</p>
+            </div>
+            <div id="selfVideo" class="hidden absolute bottom-3 right-3 w-24 h-32 bg-slate-950 border border-slate-700 rounded-2xl overflow-hidden shadow-xl">
+                <div class="w-full h-full bg-slate-800 flex items-center justify-center text-[10px] text-slate-400">Bạn (Cam)</div>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-4 mb-6">
+            <button onclick="VoIPModule.toggleMute(this)" class="w-12 h-12 rounded-full bg-slate-800 border border-slate-700 text-white flex items-center justify-center hover:bg-slate-700"><i class="fa-solid fa-microphone"></i></button>
+            <button onclick="VoIPModule.toggleCam(this)" class="w-12 h-12 rounded-full bg-slate-800 border border-slate-700 text-white flex items-center justify-center hover:bg-slate-700"><i class="fa-solid fa-video"></i></button>
+            <button onclick="VoIPModule.endCall()" class="w-14 h-14 rounded-full bg-red-600 text-white flex items-center justify-center hover:bg-red-700 shadow-xl text-lg"><i class="fa-solid fa-phone-slash"></i></button>
+        </div>
+    </div>
+
+    <!-- MODAL: ACCOUNT MANAGEMENT CRUD -->
+    <div id="accountCrudModal" class="hidden fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-2xl rounded-3xl p-5 space-y-4 shadow-2xl flex flex-col max-h-[90vh]">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="text-sm font-bold text-white flex items-center gap-2"><i class="fa-solid fa-users-gear text-cw-500"></i> Quản Lý Nhân Viên (CRUD)</h3>
+                <button onclick="UIModule.closeModal('accountCrudModal')" class="text-slate-500 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <form onsubmit="AccountModule.addUser(event)" class="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2 text-xs">
+                <span class="text-[10px] font-bold text-cw-400 uppercase block">Thêm nhân viên mới</span>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <input id="crudName" type="text" placeholder="Họ và tên..." required class="bg-slate-900 border border-slate-800 rounded-xl p-2 text-white focus:outline-none">
+                    <input id="crudEmail" type="email" placeholder="Email..." required class="bg-slate-900 border border-slate-800 rounded-xl p-2 text-white focus:outline-none">
+                    <input id="crudPass" type="password" placeholder="Mật khẩu..." required class="bg-slate-900 border border-slate-800 rounded-xl p-2 text-white focus:outline-none">
+                </div>
+                <div class="flex justify-end">
+                    <button type="submit" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs flex items-center gap-1"><i class="fa-solid fa-plus"></i> Thêm Mới</button>
+                </div>
+            </form>
+
+            <div class="flex-1 overflow-y-auto custom-scrollbar border border-slate-800 rounded-2xl">
+                <table class="w-full text-left text-xs text-slate-300">
+                    <thead class="bg-slate-950 text-slate-400 font-mono text-[10px] uppercase border-b border-slate-800">
+                        <tr>
+                            <th class="p-3">Họ Tên</th>
+                            <th class="p-3">Email</th>
+                            <th class="p-3">Vai Trò</th>
+                            <th class="p-3 text-right">Thao Tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="crudTableBody" class="divide-y divide-slate-800/60">
+                        <tr>
+                            <td class="p-3 font-bold text-white">Bùi Xuân Tùng</td>
+                            <td class="p-3 font-mono">admin@taphoa.xyz</td>
+                            <td class="p-3"><span class="bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded text-[10px] font-bold">Admin</span></td>
+                            <td class="p-3 text-right space-x-1">
+                                <button onclick="AccountModule.editUser('admin@taphoa.xyz')" class="p-1.5 bg-slate-800 hover:bg-slate-700 text-cw-400 rounded-lg"><i class="fa-solid fa-pen"></i> Sửa</button>
+                                <button onclick="AccountModule.deleteUser(this)" class="p-1.5 bg-slate-800 hover:bg-slate-700 text-red-400 rounded-lg"><i class="fa-solid fa-trash"></i> Xóa</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- LIGHTBOX MODAL -->
+    <div id="lightboxModal" class="hidden fixed inset-0 bg-slate-950/90 z-50 flex items-center justify-center p-4">
+        <button onclick="UIModule.closeModal('lightboxModal')" class="absolute top-4 right-4 text-white text-2xl"><i class="fa-solid fa-xmark"></i></button>
+        <img id="lightboxImg" src="" class="max-w-full max-h-[85vh] rounded-2xl shadow-2xl">
+    </div>
+
+    <!-- TOAST CONTAINER -->
+    <div id="toast" class="hidden fixed bottom-6 right-6 bg-slate-900 border border-emerald-500/50 text-emerald-300 text-xs font-bold px-4 py-3 rounded-2xl shadow-2xl z-50 flex items-center gap-2">
+        <i class="fa-solid fa-circle-check text-emerald-400"></i>
+        <span id="toastMsg">Thông báo</span>
+    </div>
+
+    <!-- Script Import Phần 2 JavaScript -->
+    <script src="app.js"></script>
+</body>
+</html>
