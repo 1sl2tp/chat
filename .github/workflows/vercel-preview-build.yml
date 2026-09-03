@@ -35,66 +35,29 @@ jobs:
           VITE_BUILD_ID: ${{ github.sha }}
         run: npm run build
 
-      - name: Prepare stable preview bundle
+      - name: Verify exact Vite preview layout
         shell: bash
         run: |
           set -euo pipefail
-          OUT=.vercel-preview-dist
-          rm -rf "$OUT"
-          mkdir -p "$OUT/icons"
+          test -f dist/index.html
+          test -f dist/admin/index.html
+          test -f dist/manifest.webmanifest
+          test -f dist/admin/manifest.webmanifest
+          test -f dist/sw.js
+          test -d dist/assets
+          grep -q '../assets/admin-' dist/admin/index.html
+          grep -q './assets/user-' dist/index.html
+          grep -q '../assets/login-screen-' dist/admin/index.html
+          grep -q './assets/login-screen-' dist/index.html
+          printf '{"sha":"%s"}\n' "$GITHUB_SHA" > dist/preview-meta.json
 
-          USER_JS=$(find dist/assets -maxdepth 1 -type f -name 'user-*.js' -print -quit)
-          ADMIN_JS=$(find dist/assets -maxdepth 1 -type f -name 'admin-*.js' -print -quit)
-          LOGIN_JS=$(find dist/assets -maxdepth 1 -type f -name 'login-screen-*.js' -print -quit)
-          USER_CSS=$(find dist/assets -maxdepth 1 -type f -name 'user-*.css' -print -quit)
-          ADMIN_CSS=$(find dist/assets -maxdepth 1 -type f -name 'admin-*.css' -print -quit)
-          LOGIN_CSS=$(find dist/assets -maxdepth 1 -type f -name 'login-screen-*.css' -print -quit)
-
-          test -n "$USER_JS"
-          test -n "$ADMIN_JS"
-          test -n "$LOGIN_JS"
-          test -n "$USER_CSS"
-          test -n "$ADMIN_CSS"
-          test -n "$LOGIN_CSS"
-
-          cp "$LOGIN_JS" "$OUT/login-screen.js"
-          cat "$LOGIN_CSS" "$USER_CSS" > "$OUT/user.css"
-          cat "$LOGIN_CSS" "$ADMIN_CSS" > "$OUT/admin.css"
-
-          python - "$USER_JS" "$OUT/user.js" "$ADMIN_JS" "$OUT/admin.js" "$GITHUB_SHA" <<'PY'
-          import pathlib
-          import re
-          import sys
-
-          user_source, user_target, admin_source, admin_target, sha = sys.argv[1:]
-
-          def rewrite(source_path: str, target_path: str) -> None:
-              source = pathlib.Path(source_path).read_text()
-              rewritten, count = re.subn(
-                  r'(["\'])\./login-screen-[^"\']+\.js\1',
-                  lambda match: f'{match.group(1)}./login-screen.js?b={sha}{match.group(1)}',
-                  source,
-                  count=1,
-              )
-              if count != 1:
-                  raise SystemExit(f'{source_path}: expected one login-screen module import, rewrote {count}')
-              pathlib.Path(target_path).write_text(rewritten)
-
-          rewrite(user_source, user_target)
-          rewrite(admin_source, admin_target)
-          PY
-
-          cp dist/manifest.webmanifest "$OUT/manifest.webmanifest"
-          cp dist/icons/*.png "$OUT/icons/"
-          printf '{"sha":"%s"}\n' "$GITHUB_SHA" > "$OUT/preview-meta.json"
-
-      - name: Publish stable preview bundle branch
+      - name: Publish exact Vite dist branch
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          cd .vercel-preview-dist
+          cd dist
           git init -q
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
