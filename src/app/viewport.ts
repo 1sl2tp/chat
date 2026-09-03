@@ -36,6 +36,7 @@ export class ViewportController {
   #onFocusChange = (): void => {
     window.requestAnimationFrame(() => this.update());
   };
+  #debugEl: HTMLElement | null = null;
 
   start(): void {
     window.addEventListener('resize', this.#onChange, { passive: true });
@@ -54,6 +55,8 @@ export class ViewportController {
     window.visualViewport?.removeEventListener('scroll', this.#onChange);
     document.removeEventListener('focusin', this.#onFocusChange);
     document.removeEventListener('focusout', this.#onFocusChange);
+    this.#debugEl?.remove();
+    this.#debugEl = null;
   }
 
   update(): void {
@@ -70,6 +73,47 @@ export class ViewportController {
     style.setProperty('--viewport-offset-top', `${metrics.offsetTop}px`);
     document.documentElement.dataset.viewportMode = metrics.mode;
     document.documentElement.dataset.keyboardOpen = metrics.mode === 'editing' && metrics.keyboardHeight > 80 ? 'true' : 'false';
+    this.#renderDebug(metrics);
+  }
+
+  #renderDebug(metrics: ViewportMetrics): void {
+    if (new URLSearchParams(location.search).get('viewportDebug') !== '1') {
+      this.#debugEl?.remove();
+      this.#debugEl = null;
+      return;
+    }
+    if (!this.#debugEl) {
+      const el = document.createElement('pre');
+      el.dataset.viewportDebug = 'true';
+      Object.assign(el.style, {
+        position: 'fixed',
+        left: '6px',
+        top: '6px',
+        zIndex: '2147483647',
+        margin: '0',
+        padding: '6px 8px',
+        borderRadius: '8px',
+        background: 'rgba(0,0,0,.82)',
+        color: '#fff',
+        font: '11px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace',
+        pointerEvents: 'none',
+        whiteSpace: 'pre-wrap'
+      });
+      document.body.append(el);
+      this.#debugEl = el;
+    }
+    const vv = window.visualViewport;
+    const active = document.activeElement;
+    const activeLabel = active instanceof HTMLElement
+      ? `${active.tagName.toLowerCase()}${active instanceof HTMLInputElement ? `:${active.type}` : ''}`
+      : 'none';
+    this.#debugEl.textContent = [
+      `mode=${metrics.mode} keyboard=${document.documentElement.dataset.keyboardOpen}`,
+      `innerH=${Math.round(window.innerHeight)} clientH=${Math.round(document.documentElement.clientHeight)}`,
+      `vvH=${Math.round(vv?.height ?? 0)} vvTop=${Math.round(vv?.offsetTop ?? 0)} scale=${vv?.scale ?? 1}`,
+      `appH=${metrics.appHeight} kbH=${metrics.keyboardHeight}`,
+      `active=${activeLabel}`
+    ].join('\n');
   }
 }
 
