@@ -80,7 +80,7 @@ export function mountCleanChatSurface(options: CleanChatSurfaceOptions): Mounted
 
   const callHandler = options.onCall ?? (() => { void options.actions?.startCall() })
   let callButton: HTMLButtonElement | null = null
-  if (options.model.canCall && (options.onCall || options.actions)) {
+  if (options.onCall || options.actions) {
     callButton = actionButton('clean-chat__call', 'Gọi', '☎', callHandler)
     actionsHost.append(callButton)
   }
