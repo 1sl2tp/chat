@@ -2,39 +2,30 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import userShellSource from '../../../user-shell.ts?raw'
 import adminShellSource from '../../../admin-shell.ts?raw'
-import userAdapterSource from '../../../user/chatwoot-login-ui.ts?raw'
-import adminAdapterSource from '../../../admin/chatwoot-login-ui.ts?raw'
+import userCleanSource from '../../../user-clean-main.ts?raw'
+import adminCleanSource from '../../../admin-clean-main.ts?raw'
 
 const sourcePath = new URL('./login-screen.ts', import.meta.url)
 const cssPath = new URL('./login-screen.css', import.meta.url)
 
-describe('Chatwoot LoginScreen production contract', () => {
-  it('ports the canonical auth hierarchy into one dark reference owner', () => {
+describe('auth presentation contract', () => {
+  it('keeps the previous dark LoginScreen module internally valid while it is no longer production-owned', () => {
     const source = readFileSync(sourcePath, 'utf8')
     const css = readFileSync(cssPath, 'utf8')
-    expect(source).toContain('cw-login__logo')
-    expect(source).toContain('cw-login__title')
-    expect(source).toContain('cw-login__field')
-    expect(source).toContain('cw-login__password-toggle')
     expect(source).toContain('mountLoginScreen')
-    expect(css).toContain('padding: 96px 24px 32px')
-    expect(css).toContain('font-size: 16px')
     expect(css).toContain('background: #020617')
-    expect(css).toContain('background: #0f172a')
-    expect(css).toContain('border: 1px solid #334155')
     expect(css).toContain('#1f93ff')
     expect(css).not.toContain('background: #fff')
   })
 
-  it('is mounted through one shared LoginScreen owner while auth runtime keeps its existing controls', () => {
-    expect(userShellSource).toContain("from './user/chatwoot-login-ui'")
-    expect(userShellSource).toContain('mountUserChatwootLoginUi()')
-    expect(adminShellSource).toContain("from './admin/chatwoot-login-ui'")
-    expect(adminShellSource).toContain('installAdminChatwootLoginUi()')
-
-    for (const source of [userAdapterSource, adminAdapterSource]) {
-      expect(source).toContain("from '../ui/chatwoot-port/auth/login-screen'")
-      expect(source).toContain('mountLoginScreen({')
-    }
+  it('mounts authentication through clean User/Admin presentation owners', () => {
+    expect(userShellSource).toContain("import './user-clean-main'")
+    expect(adminShellSource).toContain("import './admin-clean-main'")
+    expect(userCleanSource).toContain('createCleanUserUi')
+    expect(userCleanSource).toContain('loginUser2')
+    expect(adminCleanSource).toContain('createCleanAdminLogin')
+    expect(adminCleanSource).toContain('signInAdmin')
+    expect(userShellSource).not.toContain('chatwoot-login-ui')
+    expect(adminShellSource).not.toContain('chatwoot-login-ui')
   })
 })
