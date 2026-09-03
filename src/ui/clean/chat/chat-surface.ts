@@ -2,7 +2,7 @@ import type { ConversationActionsAdapter, ConversationViewModel } from '../../ch
 import { presentMessages } from '../../chatwoot-port/messages/message-model'
 import { createScrollOwner, type ScrollOwner } from '../../chatwoot-port/scroll/scroll-owner'
 import { createCleanComposer, type CleanComposerView } from './composer'
-import { createCleanMessageList, type CleanMessageListView } from './message-list'
+import { createCleanMessageList } from './message-list'
 import './chat.css'
 
 export interface CleanChatSurfaceOptions {
