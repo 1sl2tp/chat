@@ -30,14 +30,22 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
+      - name: Require Supabase browser config
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || 'https://gcnoahqsrquxkwkjbuxy.supabase.co' }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || secrets.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_UY3gfQ9MsntDFCUJ_uV0UA__eTYXz_w' }}
+        run: |
+          test -n "$VITE_SUPABASE_URL"
+          test -n "$VITE_SUPABASE_PUBLISHABLE_KEY"
+
       - name: Verify source
         run: npm run verify
 
       - name: Build Vite production bundle
         env:
           VITE_BUILD_ID: ${{ github.sha }}
-          VITE_SUPABASE_URL: https://gcnoahqsrquxkwkjbuxy.supabase.co
-          VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_UY3gfQ9MsntDFCUJ_uV0UA__eTYXz_w
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || 'https://gcnoahqsrquxkwkjbuxy.supabase.co' }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || secrets.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_UY3gfQ9MsntDFCUJ_uV0UA__eTYXz_w' }}
         run: npm run build
 
       - name: Configure Pages
