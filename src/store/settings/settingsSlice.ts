@@ -20,8 +20,9 @@ interface SettingsState {
   pushToken: string;
 }
 const initialState: SettingsState = {
-  baseUrl: 'app.chatwoot.com',
-  installationUrl: 'https://app.chatwoot.com/',
+  baseUrl: 'gcnoahqsrquxkwkjbuxy.supabase.co',
+  installationUrl:
+    'https://gcnoahqsrquxkwkjbuxy.supabase.co/functions/v1/taphoa-chatwoot-api/',
   uiFlags: {
     isSettingUrl: false,
     isUpdating: false,
@@ -37,7 +38,7 @@ const initialState: SettingsState = {
     selected_push_flags: [],
     user_id: 0,
   },
-  webSocketUrl: 'wss://app.chatwoot.com/cable',
+  webSocketUrl: 'wss://gcnoahqsrquxkwkjbuxy.supabase.co/cable',
   theme: 'system',
   version: '',
   pushToken: '',
@@ -94,7 +95,7 @@ export const settingsSlice = createSlice({
           state.pushToken = action.payload.fcmToken;
         }
       })
-      .addCase(settingsActions.saveDeviceDetails.rejected, (state, action) => {
+      .addCase(settingsActions.saveDeviceDetails.rejected, state => {
         state.pushToken = '';
       });
   },
