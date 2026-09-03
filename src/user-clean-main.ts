@@ -7,6 +7,7 @@ import { toConversationActionsAdapter, toConversationViewModel } from './chat/ui
 import { getOrCreateDeviceKey } from './device/identity'
 import { CallPushRegistration, callPushBrowserForRegistration } from './notifications/call-push-registration'
 import { DEFAULT_NOTIFICATION_PREFERENCES, createCacheNotificationPreferencesStorage, loadNotificationPreferences, notificationDeliveryOptions, saveNotificationPreferences, type NotificationPreferences, type NotificationPreferencesStorage } from './notifications/preferences'
+import { clearCurrentPushSubscription, pushCleanupBrowserForRegistration } from './notifications/push-cleanup'
 import { notificationButtonPresentation } from './notifications/presentation'
 import { installNotificationContextResponder } from './notifications/window-context'
 import { setupPwa } from './pwa'
@@ -161,7 +162,12 @@ async function endGuestSession(): Promise<void> {
 }
 
 async function startGuest(): Promise<void> {
-  mode = 'guest'; stopUser2Extras()
+  mode = 'guest'
+  stopUser2Extras()
+  const registration = await pwaRegistrationPromise
+  if (registration) {
+    await clearCurrentPushSubscription(pushCleanupBrowserForRegistration(registration))
+  }
   await startChatRuntime({ client: guestSupabase, deviceKey: getOrCreateDeviceKey('guest') })
   render()
 }
