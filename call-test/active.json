@@ -1,0 +1,8 @@
+{
+  "status": "ACTIVE",
+  "statusClass": "ok",
+  "label": "iPhone Native TestFlight ↔ Android Web Peer",
+  "target": "/call-test/",
+  "note": "Native iOS feasibility proof using the official LiveKit Swift TestFlight app and the project development token server.",
+  "autoOpen": false
+}

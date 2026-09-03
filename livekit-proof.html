@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>LiveKit Audio Proof</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: #f5f5f5; color: #111; }
+    main { max-width: 640px; margin: 0 auto; padding: 20px; }
+    h1 { font-size: 22px; margin: 0 0 8px; }
+    p { line-height: 1.45; }
+    .card { background: #fff; border: 1px solid #ddd; border-radius: 14px; padding: 16px; margin: 14px 0; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    button { min-height: 46px; padding: 0 16px; border: 1px solid #bbb; border-radius: 10px; background: #fff; font: inherit; }
+    button.primary { background: #111; color: #fff; border-color: #111; }
+    button:disabled { opacity: .45; }
+    code { word-break: break-all; }
+    #log { white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; line-height: 1.45; max-height: 360px; overflow: auto; }
+    #sendLogStatus { font-size: 13px; }
+    .metric { font-variant-numeric: tabular-nums; }
+    .ok { color: #116b2c; }
+    .warn { color: #9a5a00; }
+    .bad { color: #a10000; }
+    .audio-host audio { position: fixed; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>LiveKit Audio Proof</h1>
+  <p>Trang thử media độc lập. Supabase không tham gia media/call; chỉ nhận log khi bấm <b>Gửi log</b>. Hai máy mở cùng trang và bấm <b>Vào phòng</b>.</p>
+
+  <div class="card">
+    <div><b>Room:</b> <code id="roomName"></code></div>
+    <div><b>Thiết bị:</b> <span id="device"></span></div>
+    <div><b>Identity:</b> <code id="identity"></code></div>
+    <div><b>Test session:</b> <code id="testSession"></code></div>
+    <div><b>Trạng thái:</b> <span id="status">chưa vào</span></div>
+    <div><b>Remote audio:</b> <span id="remoteStatus">chưa có</span></div>
+    <div><b>AudioSession:</b> <span id="audioSessionStatus">chưa kiểm tra</span></div>
+  </div>
+
+  <div class="card">
+    <div><b>Local level:</b> <span id="localLevel" class="metric">0.000</span></div>
+    <div><b>Remote level:</b> <span id="remoteLevel" class="metric">0.000</span></div>
+    <div><b>Outbound energy:</b> <span id="outboundEnergy" class="metric">0.000000</span></div>
+    <div><b>Inbound energy:</b> <span id="inboundEnergy" class="metric">0.000000</span></div>
+  </div>
+
+  <div class="card row">
+    <button id="join" class="primary">Vào phòng</button>
+    <button id="enableAudio" disabled>Bật âm thanh</button>
+    <button id="leave" disabled>Rời phòng</button>
+    <button id="sendLog">Gửi log</button>
+    <span id="sendLogStatus"></span>
+  </div>
+
+  <div class="card">
+    <b>Log</b>
+    <div id="log"></div>
+  </div>
+
+  <div id="audioHost" class="audio-host"></div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/livekit-client@2.22.1/dist/livekit-client.umd.min.js"></script>
+<script>
+(() => {
+  const TOKEN_SERVER_ID = 'taphoachat-1x4n2g';
+  const ROOM_NAME = 'taphoa-livekit-audio-proof-v1';
+  const lk = window.LivekitClient;
+
+  const $ = (id) => document.getElementById(id);
+  const joinButton = $('join');
+  const enableAudioButton = $('enableAudio');
+  const leaveButton = $('leave');
+  const status = $('status');
+  const remoteStatus = $('remoteStatus');
+  const audioSessionStatus = $('audioSessionStatus');
+  const logEl = $('log');
+  const audioHost = $('audioHost');
+  const localLevelEl = $('localLevel');
+  const remoteLevelEl = $('remoteLevel');
+  const outboundEnergyEl = $('outboundEnergy');
+  const inboundEnergyEl = $('inboundEnergy');
+
+  const device = /Android/i.test(navigator.userAgent)
+    ? 'Android Web'
+    : /iPhone|iPad|iPod/i.test(navigator.userAgent)
+      ? 'iOS Web'
+      : 'Web';
+  const identity = `${device.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${crypto.randomUUID()}`;
+
+  $('roomName').textContent = ROOM_NAME;
+  $('device').textContent = device;
+  $('identity').textContent = identity;
+
+  let room = null;
+  let levelTimer = null;
+  let lastSampleAt = 0;
+  let lastEnergyLogAt = 0;
+  let outboundEnergy = 0;
+  let inboundEnergy = 0;
+  let maxLocalLevel = 0;
+  let maxRemoteLevel = 0;
+  let originalAudioSessionType = null;
+  const attached = new Map();
+
+  window.__livekitProofMetrics = {
+    local_level: 0,
+    remote_level: 0,
+    max_local_level: 0,
+    max_remote_level: 0,
+    outbound_energy: 0,
+    inbound_energy: 0,
+    audio_session_type: null,
+    audio_session_state: null,
+  };
+
+  function log(message, cls = '') {
+    const line = document.createElement('div');
+    line.textContent = `${new Date().toLocaleTimeString()}  ${message}`;
+    if (cls) line.className = cls;
+    logEl.appendChild(line);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function setStatus(text, cls = '') {
+    status.textContent = text;
+    status.className = cls;
+  }
+
+  function setRemote(text, cls = '') {
+    remoteStatus.textContent = text;
+    remoteStatus.className = cls;
+  }
+
+  function readAudioSession() {
+    try {
+      if (!navigator.audioSession) return { supported: false, type: null, state: null };
+      return {
+        supported: true,
+        type: typeof navigator.audioSession.type === 'string' ? navigator.audioSession.type : null,
+        state: typeof navigator.audioSession.state === 'string' ? navigator.audioSession.state : null,
+      };
+    } catch {
+      return { supported: false, type: null, state: null };
+    }
+  }
+
+  function renderAudioSession() {
+    const info = readAudioSession();
+    audioSessionStatus.textContent = info.supported ? `${info.type || '?'} · ${info.state || '?'}` : 'không hỗ trợ';
+    window.__livekitProofMetrics.audio_session_type = info.type;
+    window.__livekitProofMetrics.audio_session_state = info.state;
+  }
+
+  function configureCallAudioSession() {
+    const before = readAudioSession();
+    if (!before.supported) {
+      renderAudioSession();
+      log('AUDIO SESSION API không hỗ trợ', 'warn');
+      return;
+    }
+    originalAudioSessionType = before.type;
+    try {
+      navigator.audioSession.type = 'play-and-record';
+      const after = readAudioSession();
+      renderAudioSession();
+      log(`AUDIO SESSION ${before.type || '?'} -> ${after.type || '?'} · state=${after.state || '?'}`, after.type === 'play-and-record' ? 'ok' : 'warn');
+    } catch (error) {
+      renderAudioSession();
+      log(`AUDIO SESSION SET LỖI: ${error && error.message ? error.message : error}`, 'bad');
+    }
+  }
+
+  function restoreAudioSession() {
+    if (!navigator.audioSession) return;
+    try {
+      navigator.audioSession.type = originalAudioSessionType || 'auto';
+      renderAudioSession();
+      log(`AUDIO SESSION RESTORE ${navigator.audioSession.type}`);
+    } catch {}
+  }
+
+  if (navigator.audioSession && typeof navigator.audioSession.addEventListener === 'function') {
+    navigator.audioSession.addEventListener('statechange', () => {
+      renderAudioSession();
+      const info = readAudioSession();
+      log(`AUDIO SESSION STATE ${info.state || '?'}`, info.state === 'active' ? 'ok' : 'warn');
+    });
+  }
+  renderAudioSession();
+
+  function stopLevelProbe() {
+    if (levelTimer) clearInterval(levelTimer);
+    levelTimer = null;
+    lastSampleAt = 0;
+  }
+
+  function startLevelProbe() {
+    stopLevelProbe();
+    outboundEnergy = 0;
+    inboundEnergy = 0;
+    maxLocalLevel = 0;
+    maxRemoteLevel = 0;
+    lastSampleAt = performance.now();
+    lastEnergyLogAt = lastSampleAt;
+
+    levelTimer = setInterval(() => {
+      if (!room) return;
+      const now = performance.now();
+      const dt = Math.max(0, (now - lastSampleAt) / 1000);
+      lastSampleAt = now;
+
+      const localLevel = Number(room.localParticipant && room.localParticipant.audioLevel || 0);
+      let remoteLevel = 0;
+      for (const participant of room.remoteParticipants.values()) {
+        remoteLevel = Math.max(remoteLevel, Number(participant.audioLevel || 0));
+      }
+
+      outboundEnergy += localLevel * localLevel * dt;
+      inboundEnergy += remoteLevel * remoteLevel * dt;
+      maxLocalLevel = Math.max(maxLocalLevel, localLevel);
+      maxRemoteLevel = Math.max(maxRemoteLevel, remoteLevel);
+
+      localLevelEl.textContent = localLevel.toFixed(3);
+      remoteLevelEl.textContent = remoteLevel.toFixed(3);
+      outboundEnergyEl.textContent = outboundEnergy.toFixed(6);
+      inboundEnergyEl.textContent = inboundEnergy.toFixed(6);
+
+      Object.assign(window.__livekitProofMetrics, {
+        local_level: localLevel,
+        remote_level: remoteLevel,
+        max_local_level: maxLocalLevel,
+        max_remote_level: maxRemoteLevel,
+        outbound_energy: outboundEnergy,
+        inbound_energy: inboundEnergy,
+      });
+
+      if (now - lastEnergyLogAt >= 2000) {
+        lastEnergyLogAt = now;
+        log(`ENERGY local=${localLevel.toFixed(3)} remote=${remoteLevel.toFixed(3)} out=${outboundEnergy.toFixed(6)} in=${inboundEnergy.toFixed(6)}`);
+      }
+    }, 250);
+  }
+
+  async function playAttachedAudio() {
+    let anyBlocked = false;
+    for (const [key, element] of attached) {
+      try {
+        element.autoplay = true;
+        element.playsInline = true;
+        element.muted = false;
+        element.volume = 1;
+        await element.play();
+        log(`PLAY OK ${key}`, 'ok');
+      } catch (error) {
+        anyBlocked = true;
+        log(`PLAY BLOCKED ${key}: ${error && error.message ? error.message : error}`, 'warn');
+      }
+    }
+    enableAudioButton.disabled = !anyBlocked;
+    setRemote(anyBlocked ? 'có track · playback bị chặn' : attached.size ? 'đang phát' : 'chưa có', anyBlocked ? 'warn' : attached.size ? 'ok' : '');
+  }
+
+  function attachRemoteAudio(track, publication, participant) {
+    const key = `${participant.identity}:${publication.trackSid || track.sid || 'audio'}`;
+    if (attached.has(key)) {
+      log(`BỎ QUA attach trùng ${key}`, 'warn');
+      return;
+    }
+
+    const element = track.attach();
+    if (!(element instanceof HTMLMediaElement)) {
+      log(`REMOTE AUDIO không tạo HTMLMediaElement: ${key}`, 'bad');
+      return;
+    }
+
+    element.autoplay = true;
+    element.playsInline = true;
+    element.muted = false;
+    element.volume = 1;
+    element.dataset.remoteKey = key;
+    audioHost.appendChild(element);
+    attached.set(key, element);
+    setRemote('đã subscribe · đang thử phát', 'warn');
+    log(`REMOTE AUDIO SUBSCRIBED ${key}`, 'ok');
+
+    element.play()
+      .then(() => {
+        setRemote('đang phát', 'ok');
+        enableAudioButton.disabled = true;
+        log(`REMOTE AUDIO PLAYING ${key}`, 'ok');
+      })
+      .catch((error) => {
+        setRemote('có track · playback bị chặn', 'warn');
+        enableAudioButton.disabled = false;
+        log(`REMOTE AUDIO BLOCKED ${key}: ${error && error.message ? error.message : error}`, 'warn');
+      });
+  }
+
+  function detachRemoteAudio(track, publication, participant) {
+    const key = `${participant.identity}:${publication.trackSid || track.sid || 'audio'}`;
+    const element = attached.get(key);
+    if (element) {
+      element.pause();
+      element.remove();
+      attached.delete(key);
+    }
+    for (const detached of track.detach()) detached.remove();
+    setRemote(attached.size ? 'còn remote audio' : 'chưa có');
+    log(`REMOTE AUDIO UNSUBSCRIBED ${key}`);
+  }
+
+  async function join() {
+    if (!lk) {
+      setStatus('LiveKit SDK không tải được', 'bad');
+      return;
+    }
+    if (room) return;
+
+    joinButton.disabled = true;
+    setStatus('đang chuẩn bị…', 'warn');
+    configureCallAudioSession();
+
+    room = new lk.Room({
+      disconnectOnPageLeave: true,
+      audioCaptureDefaults: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: false,
+      },
+    });
+
+    room.startAudio().then(() => log('AUDIO UNLOCK từ user gesture', 'ok')).catch((e) => log(`AUDIO UNLOCK chờ sau connect: ${e && e.message ? e.message : e}`, 'warn'));
+
+    room.on(lk.RoomEvent.TrackSubscribed, (track, publication, participant) => {
+      if (track.kind === lk.Track.Kind.Audio) attachRemoteAudio(track, publication, participant);
+    });
+    room.on(lk.RoomEvent.TrackUnsubscribed, (track, publication, participant) => {
+      if (track.kind === lk.Track.Kind.Audio) detachRemoteAudio(track, publication, participant);
+    });
+    room.on(lk.RoomEvent.ParticipantConnected, (participant) => log(`PEER JOIN ${participant.identity}`, 'ok'));
+    room.on(lk.RoomEvent.ParticipantDisconnected, (participant) => log(`PEER LEAVE ${participant.identity}`, 'warn'));
+    room.on(lk.RoomEvent.AudioPlaybackStatusChanged, () => {
+      log(`canPlaybackAudio=${room.canPlaybackAudio}`, room.canPlaybackAudio ? 'ok' : 'warn');
+      if (!room.canPlaybackAudio) enableAudioButton.disabled = false;
+    });
+    room.on(lk.RoomEvent.Reconnecting, () => setStatus('đang reconnect…', 'warn'));
+    room.on(lk.RoomEvent.Reconnected, () => setStatus('đã reconnect', 'ok'));
+    room.on(lk.RoomEvent.Disconnected, () => {
+      setStatus('đã ngắt');
+      joinButton.disabled = false;
+      leaveButton.disabled = true;
+      stopLevelProbe();
+    });
+
+    try {
+      const source = lk.TokenSource.developmentTokenServer(TOKEN_SERVER_ID);
+      log('Đang lấy development token…');
+      const credentials = await source.fetch({
+        roomName: ROOM_NAME,
+        participantIdentity: identity,
+        participantName: device,
+      });
+      log(`TOKEN OK · server=${credentials.serverUrl}`, 'ok');
+
+      await room.connect(credentials.serverUrl, credentials.participantToken);
+      setStatus('đã vào LiveKit room', 'ok');
+      log('ROOM CONNECTED', 'ok');
+
+      await room.localParticipant.setMicrophoneEnabled(true);
+      log('LOCAL MIC PUBLISHED', 'ok');
+      startLevelProbe();
+
+      leaveButton.disabled = false;
+      if (!room.canPlaybackAudio) enableAudioButton.disabled = false;
+    } catch (error) {
+      setStatus(`lỗi: ${error && error.message ? error.message : error}`, 'bad');
+      log(`JOIN ERROR ${error && error.stack ? error.stack : error}`, 'bad');
+      if (room) room.disconnect(true);
+      room = null;
+      stopLevelProbe();
+      restoreAudioSession();
+      joinButton.disabled = false;
+      leaveButton.disabled = true;
+    }
+  }
+
+  async function enableAudio() {
+    if (!room) return;
+    try {
+      await room.startAudio();
+      log('room.startAudio() OK', 'ok');
+      await playAttachedAudio();
+    } catch (error) {
+      log(`BẬT ÂM THANH LỖI: ${error && error.message ? error.message : error}`, 'bad');
+    }
+  }
+
+  function leave() {
+    if (!room) return;
+    room.disconnect(true);
+    room = null;
+    stopLevelProbe();
+    for (const element of attached.values()) {
+      element.pause();
+      element.remove();
+    }
+    attached.clear();
+    audioHost.replaceChildren();
+    setStatus('đã rời phòng');
+    setRemote('chưa có');
+    joinButton.disabled = false;
+    enableAudioButton.disabled = true;
+    leaveButton.disabled = true;
+    restoreAudioSession();
+    log('LEFT ROOM');
+  }
+
+  joinButton.addEventListener('click', join);
+  enableAudioButton.addEventListener('click', enableAudio);
+  leaveButton.addEventListener('click', leave);
+
+  log(`PROOF READY · ${device}`);
+})();
+</script>
+
+<script>
+(() => {
+  const SUPABASE_URL = 'https://gcnoahqsrquxkwkjbuxy.supabase.co';
+  const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_UY3gfQ9MsntDFCUJ_uV0UA__eTYXz_w';
+  const ROOM_NAME = 'taphoa-livekit-audio-proof-v1';
+  const testSessionId = crypto.randomUUID();
+  const button = document.getElementById('sendLog');
+  const status = document.getElementById('sendLogStatus');
+
+  document.getElementById('testSession').textContent = testSessionId;
+
+  function audioSessionType() {
+    try {
+      return navigator.audioSession && typeof navigator.audioSession.type === 'string'
+        ? navigator.audioSession.type
+        : null;
+    } catch {
+      return null;
+    }
+  }
+
+  async function sendLog() {
+    button.disabled = true;
+    status.textContent = 'Đang gửi…';
+    status.className = 'warn';
+
+    const logLines = Array.from(document.querySelectorAll('#log > div')).map((line, index) => ({
+      index,
+      text: line.textContent || '',
+      className: line.className || '',
+    }));
+
+    const liveMetrics = window.__livekitProofMetrics || {};
+    const payload = {
+      p_test_session_id: testSessionId,
+      p_device: document.getElementById('device').textContent || 'Web',
+      p_identity: document.getElementById('identity').textContent || 'unknown',
+      p_user_agent: navigator.userAgent,
+      p_audio_session_type: audioSessionType(),
+      p_room_name: ROOM_NAME,
+      p_log_lines: logLines,
+      p_metrics: {
+        status: document.getElementById('status').textContent || '',
+        remote_status: document.getElementById('remoteStatus').textContent || '',
+        audio_session_status: document.getElementById('audioSessionStatus').textContent || '',
+        visibility_state: document.visibilityState,
+        attached_audio_elements: document.querySelectorAll('#audioHost audio').length,
+        local_level: liveMetrics.local_level || 0,
+        remote_level: liveMetrics.remote_level || 0,
+        max_local_level: liveMetrics.max_local_level || 0,
+        max_remote_level: liveMetrics.max_remote_level || 0,
+        outbound_energy: liveMetrics.outbound_energy || 0,
+        inbound_energy: liveMetrics.inbound_energy || 0,
+        audio_session_type: liveMetrics.audio_session_type || null,
+        audio_session_state: liveMetrics.audio_session_state || null,
+        sent_at: new Date().toISOString(),
+      },
+    };
+
+    try {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/chat_submit_livekit_audio_proof`, {
+        method: 'POST',
+        headers: {
+          apikey: SUPABASE_PUBLISHABLE_KEY,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+      const body = await response.text();
+      if (!response.ok) throw new Error(`${response.status} ${body}`);
+      status.textContent = `Đã gửi · ${testSessionId.slice(0, 8)}`;
+      status.className = 'ok';
+    } catch (error) {
+      status.textContent = `Gửi lỗi: ${error && error.message ? error.message : error}`;
+      status.className = 'bad';
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  button.addEventListener('click', sendLog);
+})();
+</script>
+</body>
+</html>
