@@ -11,8 +11,8 @@ describe('clean Admin app', () => {
     expect(source).toContain('clean-admin-chat-screen')
     expect(source).toContain('showInbox()')
     expect(source).toContain('showChat()')
-    expect(source).not.toContain('admin-inbox')
-    expect(source).not.toContain('admin-chat')
+    expect(source).not.toContain('class="admin-inbox"')
+    expect(source).not.toContain('class="admin-chat"')
   })
 
   it('connects Admin runtime to clean Inbox and shared clean ChatSurface only', () => {
