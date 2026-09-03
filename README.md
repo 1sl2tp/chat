@@ -1,41 +1,67 @@
-# TAPHOA Chat / Call — STRUCTURE LOCK V3
+<img src="https://user-images.githubusercontent.com/2246121/282256557-1570674b-d142-4198-9740-69404cc6a339.png#gh-light-mode-only" width="100%" alt="Chat dashboard dark mode"/>
+<img src="https://user-images.githubusercontent.com/2246121/282256632-87f6a01b-6467-4e0e-8a93-7bbf66d03a17.png#gh-dark-mode-only" width="100%" alt="Chat dashboard"/>
 
-Small, backend-agnostic UI architecture for 1:1 Chat + Call and Admin Directory.
+---
 
-## Run
-```bash
-npm install
-npm run dev
-```
+# Chatwoot
 
-## Verify / package
-```bash
-npm run verify
-python tests/e2e-smoke.py
-node scripts/build-standalone.mjs
-```
+Mobile app for chatwoot platform. Built with React Native and Expo.
 
-## Responsive model
-- Mobile Admin: Directory -> Chat -> Back.
-- Desktop Admin >=900px: Directory + Chat stay visible together in `AdminWorkspace`.
-- User: direct 1:1 Chat with Support.
-- Media Manager: replaces Chat body on mobile; opens inside Chat pane on desktop.
+<p>
+   <a href="https://github.com/react-native-community/releases/blob/master/CHANGELOG.md"><img src="https://img.shields.io/github/package-json/dependency-version/chatwoot/chatwoot-mobile-app/react-native?color=%2361dafb" alt="Project Dependencies"></a>
+   <img src="https://img.shields.io/github/package-json/dependency-version/chatwoot/chatwoot-mobile-app/expo?color=%2361dafb" alt="Expo">
+  <img src="https://img.shields.io/discord/647412545203994635" alt="Discord">
+  <a href="https://discord.gg/cJXdrwS"><img src="https://img.shields.io/badge/chat-Discord-violet?logo=discord" alt="Chat on Discord"></a>
+   <a href="http://makeapullrequest.com"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="Chat on Discord"></a>
+ <img src="https://img.shields.io/github/license/chatwoot/chatwoot-mobile-app" alt="License">
+</p>
 
-## Conversation-first UI
-- Sender/recipient are stored as participant IDs; left/right is relative to current viewer.
-- Only latest outgoing message displays `Đang gửi / Đã gửi / Đã xem`.
-- Footer actions reuse the same metadata slot: text `Trả lời · Sao chép`; link adds `Mở`; image/file/audio use `Trả lời · Lưu`.
-- Composer `+` exposes separate `Ảnh | Camera | Tệp` actions; Mic remains separate.
-- Call history is rendered in the message timeline (`Gọi đi`, `Gọi đến`, `Cuộc gọi nhỡ`, `Không trả lời`, `Đã hủy`).
-- Per-conversation Media Manager derives from original messages: `Ảnh | Tệp | Link | Ghi âm`, with `Xem gốc` navigation.
-- Admin frequent actions stay near the object: Directory `+` for `Thêm KH | Thêm nhóm`; contact `Nhóm` opens inline; rare destructive management remains in manager sheet.
+- **Supported Chatwoot version:** 3.13.0+
+- **Supported iOS versions**: 13.4+
+- **Supported Android versions**: 6.0+
 
-## UI system
-- Plus Jakarta Sans via Google Fonts + system fallback; no font binaries included.
-- Shared 24x24 SVG icon language; parent controls own 18px/16px icon size.
-- Touch scrollbars hidden; desktop scrollbars slim.
-- PWA manifest, app icons and the Web Push Service Worker live in `public/`.
-- Live sessions silently sync an existing granted Push subscription; first-time permission is requested only from the explicit `Thông báo` menu action.
-- Runtime IDs have a non-secure-context fallback, so standalone previews do not depend on `crypto.randomUUID()`.
+## Features
 
-See `STRUCTURE_LOCK.md` for ownership rules and `VERIFY_REPORT.md` for current gates.
+- Do not miss out on the new customers
+- Follow up on customer conversations on go
+- Reply easily with canned responses
+- Receive realtime notifications about system activities
+- Communicate with other team members via private notes
+- Assign statuses to your conversations
+  ... and more to come!
+
+## Download Android/iOS application
+
+<p >
+  <a href="https://apps.apple.com/app/id1495796682">
+    <img alt="Download on the App Store" title="App Store" src="http://i.imgur.com/0n2zqHD.png" width="140">
+  </a>
+
+  <a href="https://play.google.com/store/apps/details?id=com.chatwoot.app&hl=en">
+    <img alt="Get it on Google Play" title="Google Play" src="http://i.imgur.com/mtGRPuM.png" width="140">
+  </a>
+</p>
+
+## Testing
+
+To help with testing app updates before they're released, you can:
+
+Sign up to be a beta tester
+
+- [Android](https://play.google.com/apps/testing/com.chatwoot.app) - Open this link from your Android device
+- [iOS](https://testflight.apple.com/join/yQ4yoSx4) - Open this link from your iOS device
+
+You can leave the Beta testing program at any time:
+
+- On Android, [click this link](https://play.google.com/apps/testing/com.chatwoot.app) while logged in with your Google Play email address used to opt-in for the Beta program, then click **Leave the program**.
+- On iOS, access the `Chatwoot` app page in TestFlight and click **Stop Testing**.
+
+## Feedback & Contributing
+
+Feel free to send us feedback on [X](https://x.com/chatwootapp) or [file an issue](https://github.com/chatwoot/chatwoot-mobile-app/issues).
+
+If you wish to contribute, please take a quick look at the [CONTRIBUTING.md](https://www.chatwoot.com/docs/contributing-guide/mobile-app/setup-guide).
+
+If there's anything you'd like to chat about, please feel free to join our [Discord](https://discord.gg/cJXdrwS) chat!
+
+_Chatwoot_ &copy; 2017-2026, Chatwoot Inc - Released under the MIT License.
