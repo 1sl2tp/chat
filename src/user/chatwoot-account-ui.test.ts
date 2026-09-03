@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import userShellSource from '../user-shell.ts?raw'
+import userCleanSource from '../user-clean-main.ts?raw'
 import { toAccountDrawerModel } from './chatwoot-account-ui'
 
-describe('Chatwoot User account adapter', () => {
+describe('User account capability and clean production owner', () => {
   it('maps User 1 to guest identity without unavailable account capabilities', () => {
     expect(toAccountDrawerModel('guest', null)).toEqual({
       displayName: 'Khách',
@@ -27,11 +28,14 @@ describe('Chatwoot User account adapter', () => {
     })
   })
 
-  it('mounts only the Chatwoot account owner in the production User shell', () => {
-    expect(userShellSource).toContain("from './user/chatwoot-account-ui'")
-    expect(userShellSource).toContain('mountUserChatwootAccountUi()')
-    expect(userShellSource).not.toContain('presentation-switch')
+  it('mounts only the clean account owner in the production User path', () => {
+    expect(userShellSource).toContain("import './ui/clean/theme.css'")
+    expect(userShellSource).toContain("import './user-clean-main'")
+    expect(userCleanSource).toContain('createCleanUserUi')
+    expect(userCleanSource).toContain('loginUser2')
+    expect(userCleanSource).toContain('logoutUser2')
+    expect(userShellSource).not.toContain('chatwoot-account-ui')
+    expect(userShellSource).not.toContain('mountUserChatwootAccountUi')
     expect(userShellSource).not.toContain('mountUserAccountUi')
-    expect(userShellSource).not.toContain("from './user/account-ui'")
   })
 })
