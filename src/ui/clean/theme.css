@@ -70,6 +70,7 @@ input:-webkit-autofill:focus {
 .clean-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
 .clean-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .clean-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 999px; }
+.clean-diagnostic { display: none !important; }
 
 .clean-sr-only {
   position: absolute;
