@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - work/taphoa-chatwoot-source-v1
-  pull_request:
-    branches:
-      - demo/chatwoot-web-v1-5
   workflow_dispatch:
 
 permissions:
