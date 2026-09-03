@@ -13,7 +13,7 @@ export function mountAdminLogin(
   form.className = 'admin-login__form'
 
   const title = document.createElement('h1')
-  title.textContent = 'Admin'
+  title.textContent = 'TAPHOA'
 
   const login = document.createElement('input')
   login.name = 'login'
