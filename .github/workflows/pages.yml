@@ -32,6 +32,13 @@ jobs:
         env:
           VITE_BUILD_ID: ${{ github.sha }}
         run: npm run build
+      - name: Upload TAPHOA demo build
+        if: github.event_name == 'push' && github.ref == 'refs/heads/demo/taphoa-chat-ui-v1'
+        uses: actions/upload-artifact@v4
+        with:
+          name: taphoa-demo-dist
+          path: ./dist
+          if-no-files-found: error
       - name: Configure Pages
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/configure-pages@v5
