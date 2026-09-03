@@ -1,7 +1,7 @@
 {
   "id": "./",
   "name": "TAPHOA Admin Chat",
-  "short_name": "Admin Chat",
+  "short_name": "TAPHOA Admin",
   "description": "TAPHOA Admin Chat",
   "start_url": "./",
   "scope": "./",
