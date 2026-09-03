@@ -1,12 +1,17 @@
 /* eslint no-console: 0 */
 import Auth from '../api/auth';
+import demoAdapter from './DemoAPIAdapter';
 
 const parseErrorCode = error => Promise.reject(error);
 
 export default axios => {
   const { apiHost = '' } = window.chatwootConfig || {};
   const wootApi = axios.create({ baseURL: `${apiHost}/` });
-  // Add Auth Headers to requests if logged in
+
+  // Demo branch only: preserve the original Chatwoot components, stores,
+  // routes and interaction code while satisfying API contracts in memory.
+  wootApi.defaults.adapter = demoAdapter;
+
   if (Auth.isLoggedIn()) {
     const {
       'access-token': accessToken,
@@ -23,7 +28,7 @@ export default axios => {
       uid,
     });
   }
-  // Response parsing interceptor
+
   wootApi.interceptors.response.use(
     response => response,
     error => parseErrorCode(error)
