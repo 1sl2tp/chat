@@ -38,7 +38,8 @@ const initialState: SettingsState = {
     selected_push_flags: [],
     user_id: 0,
   },
-  webSocketUrl: 'wss://gcnoahqsrquxkwkjbuxy.supabase.co/cable',
+  webSocketUrl:
+    'wss://gcnoahqsrquxkwkjbuxy.supabase.co/functions/v1/taphoa-chatwoot-cable',
   theme: 'system',
   version: '',
   pushToken: '',
