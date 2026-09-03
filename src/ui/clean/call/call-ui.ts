@@ -8,11 +8,11 @@ function initials(name: string): string {
 }
 
 function statusText(state: VoiceCallState): string {
-  if (state.phase === 'incoming') return 'Cuộc gọi đến'
+  if (state.phase === 'incoming') return 'Gọi đến'
   if (state.phase === 'outgoing') return 'Đang gọi…'
-  if (state.phase === 'connecting') return 'Đang kết nối…'
-  if (state.phase === 'reconnecting') return 'Đang kết nối lại…'
-  if (state.phase === 'active') return 'Đang trong cuộc gọi'
+  if (state.phase === 'connecting') return 'Kết nối…'
+  if (state.phase === 'reconnecting') return 'Kết nối lại…'
+  if (state.phase === 'active') return 'Đang gọi'
   if (state.phase === 'error') return state.error || 'Lỗi cuộc gọi'
   return ''
 }
@@ -22,8 +22,11 @@ export function mountCleanCallUi(host: HTMLElement, session: VoiceCallSession): 
     <section class="clean-call" hidden>
       <button class="clean-call__minimize" type="button">Thu nhỏ</button>
       <div class="clean-call__card">
-        <div class="clean-call__avatar"></div>
-        <div><div class="clean-call__name"></div><div class="clean-call__status"></div></div>
+        <div class="clean-call__info">
+          <div class="clean-call__avatar"></div>
+          <div class="clean-call__name"></div>
+          <div class="clean-call__status"></div>
+        </div>
         <div class="clean-call__controls">
           <button class="clean-call__button clean-call__mute" type="button" aria-label="Tắt/bật mic">🎙</button>
           <button class="clean-call__button clean-call__speaker" type="button" aria-label="Loa">🔊</button>
