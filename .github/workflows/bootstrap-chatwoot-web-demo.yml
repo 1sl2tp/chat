@@ -40,7 +40,7 @@ jobs:
           from pathlib import Path
           p = Path('vue.config.js')
           s = p.read_text()
-          s = s.replace("publicPath: '/app/'", "publicPath: 'https://raw.githack.com/1sl2tp/chat/chatwoot-web-demo-dist/'")
+          s = s.replace("publicPath: '/app/'", "publicPath: './'")
           s = s.replace("outputDir: 'dist/app'", "outputDir: 'dist'")
           p.write_text(s)
           r = Path('src/dashboard/routes/index.js')
@@ -78,8 +78,25 @@ jobs:
             echo 'Unexpected CDN dependency in index.html'
             exit 1
           fi
-          grep -q 'raw.githack.com/1sl2tp/chat/chatwoot-web-demo-dist/js/' index.html
-          grep -q 'raw.githack.com/1sl2tp/chat/chatwoot-web-demo-dist/css/' index.html
+          grep -q 'href="./css/' index.html
+          grep -q 'src="./js/' index.html
+
+      - name: Browser smoke test Chatwoot login
+        working-directory: /tmp/chatwoot-ui
+        run: |
+          python3 -m http.server 4173 --directory dist >/tmp/chatwoot-demo-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID || true' EXIT
+          for i in {1..20}; do
+            curl -fsS http://127.0.0.1:4173/index.html >/dev/null && break
+            sleep 1
+          done
+          CHROME="$(command -v google-chrome || command -v chromium-browser || command -v chromium || true)"
+          test -n "$CHROME"
+          "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=10000             --dump-dom 'http://127.0.0.1:4173/index.html#/app/login'             > /tmp/chatwoot-login-dom.html 2>/tmp/chatwoot-chrome.log
+          grep -q 'data-testid="email_input"' /tmp/chatwoot-login-dom.html
+          grep -q 'data-testid="password_input"' /tmp/chatwoot-login-dom.html
+          grep -q 'id="app"' /tmp/chatwoot-login-dom.html
 
       - name: Publish built demo branch
         working-directory: /tmp/chatwoot-ui/dist
