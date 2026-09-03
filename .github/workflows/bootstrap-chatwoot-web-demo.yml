@@ -78,8 +78,8 @@ jobs:
             echo 'Unexpected CDN dependency in index.html'
             exit 1
           fi
-          grep -q 'href="./css/' index.html
-          grep -q 'src="./js/' index.html
+          grep -q 'href="css/' index.html
+          grep -q 'src="js/' index.html
 
       - name: Browser smoke test Chatwoot login
         working-directory: /tmp/chatwoot-ui
