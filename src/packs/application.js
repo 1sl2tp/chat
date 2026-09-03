@@ -27,12 +27,7 @@ import { getAlertAudio } from '../shared/helpers/AudioNotificationHelper';
 import { initFaviconSwitcher } from '../shared/helpers/faviconHelper';
 import router from '../dashboard/routes';
 import store from '../dashboard/store';
-import vueActionCable from '../dashboard/helper/actionCable';
 import constants from '../dashboard/constants';
-import {
-  verifyServiceWorkerExistence,
-  registerSubscription,
-} from '../dashboard/helper/pushHelper';
 import * as Sentry from '@sentry/vue';
 import 'vue-easytable/libs/theme-default/index.css';
 import { Integrations } from '@sentry/tracing';
