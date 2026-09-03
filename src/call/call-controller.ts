@@ -309,7 +309,7 @@ export class CallController {
     document.querySelectorAll<HTMLElement>('[data-call-status]').forEach((node) => node.textContent = view.status);
     document.querySelectorAll<HTMLElement>('[data-call-dot]').forEach((node) => node.classList.toggle('online', call.phase === 'connected'));
     document.querySelectorAll<HTMLElement>('[data-call-avatar]').forEach((node) => node.classList.toggle('call-pulse', call.phase === 'connecting'));
-    document.querySelectorAll<HTMLElement>('[data-call-timer]').forEach((node) => node.hidden = !view.showDuration);
+    document.querySelectorAll<HTMLElement>('[data-call-duration]').forEach((node) => node.hidden = !view.showDuration);
   }
 
   private startTimer(): void {
