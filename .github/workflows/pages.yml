@@ -30,7 +30,10 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
-      - name: Typecheck, test and build
+      - name: Verify source
+        run: npm run verify
+
+      - name: Build Vite production bundle
         env:
           VITE_BUILD_ID: ${{ github.sha }}
           VITE_SUPABASE_URL: https://gcnoahqsrquxkwkjbuxy.supabase.co
