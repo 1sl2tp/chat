@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TAPHOA Demo Login</title>
+</head>
+<body>
+<script>
+(() => {
+  const auth = {
+    "access-token": "00dea6b2c00719a69d2e4fc5cf5bce8d7ec654ee185825ee8ae28df5de487f60",
+    "token-type": "Bearer",
+    "client": "taphoa-chatwoot-demo",
+    "expiry": 1893456000,
+    "uid": "test1@taphoa.chat"
+  };
+  const user = {
+    "id": 4,
+    "name": "test1",
+    "role": "agent",
+    "type": "user",
+    "email": "test1@taphoa.chat",
+    "accounts": [{
+      "id": 1,
+      "name": "TAPHOA",
+      "role": "agent",
+      "status": "active",
+      "permissions": ["agent"],
+      "availability": "online",
+      "availability_status": "online",
+      "auto_offline": true
+    }],
+    "thumbnail": "",
+    "account_id": 1,
+    "avatar_url": "",
+    "availability": "online",
+    "availability_status": "online",
+    "pubsub_token": "af00e128-718c-444c-b52e-820a443121b1",
+    "available_name": "test1",
+    "identifier_hash": ""
+  };
+  const setCookie = (name, value) => {
+    document.cookie = name + "=" + encodeURIComponent(JSON.stringify(value)) + "; path=/; SameSite=Lax";
+  };
+  setCookie("auth_data", auth);
+  setCookie("user", user);
+  location.replace("./index.html#/app/accounts/1/dashboard");
+})();
+</script>
+</body>
+</html>
