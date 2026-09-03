@@ -1,0 +1,45 @@
+name: TAPHOA Chatwoot source preview
+
+on:
+  push:
+    branches:
+      - work/taphoa-chatwoot-source-v1
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: taphoa-chatwoot-source-preview
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Chatwoot source branch
+        uses: actions/checkout@v4
+
+      - name: Set up Node 16
+        uses: actions/setup-node@v4
+        with:
+          node-version: 16
+          cache: yarn
+
+      - name: Install source dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build original Chatwoot web source
+        run: yarn build
+
+      - name: Publish isolated preview branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd dist
+          git init
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "preview: TAPHOA from Chatwoot source ${GITHUB_SHA}"
+          git push --force "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/demo/taphoa-chatwoot-source-dist
