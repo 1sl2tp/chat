@@ -10,6 +10,7 @@ export interface AdminWorkspaceCallbacks {
   conversationSourceFor?: (contact: Contact) => ChatConversationSource | undefined;
   directoryManagement?: DirectoryManagement;
   onDirectoryChanged?: () => Promise<void> | void;
+  onSignOut?: () => Promise<void> | void;
   onPeerChange: (contact: Contact) => void;
   onCallBack: (contact: Contact) => void;
   onError?: (error: Error) => void;
@@ -40,6 +41,7 @@ export class AdminWorkspace {
       onOpenContact: (contact) => this.select(contact),
       management: this.callbacks.directoryManagement,
       onManagedChange: this.callbacks.onDirectoryChanged,
+      onSignOut: this.callbacks.onSignOut,
       onError: this.callbacks.onError
     });
     directoryPane.append(this.#directory.mount());
