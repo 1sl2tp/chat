@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: vercel-preview-${{ github.ref }}
@@ -34,6 +34,65 @@ jobs:
         env:
           VITE_BUILD_ID: ${{ github.sha }}
         run: npm run build
+
+      - name: Prepare stable preview bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT=.vercel-preview-dist
+          rm -rf "$OUT"
+          mkdir -p "$OUT/icons"
+
+          USER_JS=$(find dist/assets -maxdepth 1 -type f -name 'user-*.js' -print -quit)
+          LOGIN_JS=$(find dist/assets -maxdepth 1 -type f -name 'login-screen-*.js' -print -quit)
+          USER_CSS=$(find dist/assets -maxdepth 1 -type f -name 'user-*.css' -print -quit)
+          LOGIN_CSS=$(find dist/assets -maxdepth 1 -type f -name 'login-screen-*.css' -print -quit)
+
+          test -n "$USER_JS"
+          test -n "$LOGIN_JS"
+          test -n "$USER_CSS"
+          test -n "$LOGIN_CSS"
+
+          cp "$LOGIN_JS" "$OUT/login-screen.js"
+          cat "$LOGIN_CSS" "$USER_CSS" > "$OUT/app.css"
+
+          python - "$USER_JS" "$OUT/user.js" "$GITHUB_SHA" <<'PY'
+          import pathlib
+          import re
+          import sys
+
+          source = pathlib.Path(sys.argv[1]).read_text()
+          target = pathlib.Path(sys.argv[2])
+          sha = sys.argv[3]
+          rewritten, count = re.subn(
+              r'(["\'])\./login-screen-[^"\']+\.js\1',
+              lambda match: f'{match.group(1)}./login-screen.js?b={sha}{match.group(1)}',
+              source,
+              count=1,
+          )
+          if count != 1:
+              raise SystemExit(f'expected one login-screen module import, rewrote {count}')
+          target.write_text(rewritten)
+          PY
+
+          cp dist/manifest.webmanifest "$OUT/manifest.webmanifest"
+          cp dist/icons/*.png "$OUT/icons/"
+          printf '{"sha":"%s"}\n' "$GITHUB_SHA" > "$OUT/preview-meta.json"
+
+      - name: Publish stable preview bundle branch
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd .vercel-preview-dist
+          git init -q
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add .
+          git commit -qm "preview: ${GITHUB_SHA}"
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push --force origin HEAD:refs/heads/vercel-preview-dist
 
       - name: Upload Vercel preview artifact
         uses: actions/upload-artifact@v4
