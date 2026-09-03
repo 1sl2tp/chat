@@ -24,4 +24,11 @@ describe('clean User app', () => {
     expect(source).not.toContain("import './user.css'")
     expect(source).not.toContain("import './call/call.css'")
   })
+
+  it('preserves browser push cleanup when switching back to guest mode', () => {
+    const source = fs.readFileSync(mainPath, 'utf8')
+    expect(source).toContain('clearCurrentPushSubscription')
+    expect(source).toContain('pushCleanupBrowserForRegistration')
+    expect(source).toContain('await clearCurrentPushSubscription(pushCleanupBrowserForRegistration(registration))')
+  })
 })
