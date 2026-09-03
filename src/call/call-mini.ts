@@ -9,7 +9,7 @@ export function createMiniCall(state: CallState, onRestore: () => void, onEnd: (
   card.innerHTML = `
     <button class="call-mini-main" type="button" data-restore>
       <span class="avatar s">${escapeHtml(state.peerInitials)}</span>
-      <span class="status-copy"><strong>${escapeHtml(state.peerName)}</strong><small><i class="call-dot ${state.phase === 'connected' ? 'online' : ''}"></i>${escapeHtml(view.status)} ${state.muted ? '· Mic tắt' : ''}${view.showDuration ? ' · <b data-call-timer>00:00</b>' : ''}</small></span>
+      <span class="status-copy"><strong>${escapeHtml(state.peerName)}</strong><small><i class="call-dot ${state.phase === 'connected' ? 'online' : ''}" data-call-dot></i><span data-call-status>${escapeHtml(view.status)}</span>${state.muted ? ' <span>· Mic tắt</span>' : ''}<span data-call-duration ${view.showDuration ? '' : 'hidden'}> · <b data-call-timer>00:00</b></span></small></span>
     </button>
     <button class="button danger compact-end" type="button" data-end>${icon('callEnd')}<span>Kết thúc</span></button>`;
   card.querySelector<HTMLButtonElement>('[data-restore]')?.addEventListener('click', onRestore);
