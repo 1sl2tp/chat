@@ -25,4 +25,34 @@ describe('clean Admin app', () => {
     expect(source).not.toContain('mountAdminChatwootManagementUi')
     expect(source).not.toContain("import './admin.css'")
   })
+
+  it('keeps current User management actions in one clean sheet instead of a CRM panel', () => {
+    const ui = fs.readFileSync(uiPath, 'utf8')
+    const main = fs.readFileSync(mainPath, 'utf8')
+    expect(ui).toContain('clean-admin-manage-sheet')
+    expect(ui).toContain('clean-admin-create-user')
+    expect(ui).toContain('setManageOpen')
+    for (const name of [
+      'createUser2WithDisplayNameFromAdmin',
+      'upgradeGuestFromAdmin',
+      'updateUser2FromAdmin',
+      'resetUser2PasswordFromAdmin',
+      'deleteUserFromAdmin',
+    ]) expect(main).toContain(name)
+    for (const action of ['create_user2', 'upgrade_guest', 'update_user2', 'reset_password', 'delete_user']) {
+      expect(main).toContain(action)
+    }
+    expect(main).not.toContain('mountAdminChatwootManagementUi')
+  })
+
+  it('disposes Admin store/message/call subscriptions before remounting login or workspace', () => {
+    const source = fs.readFileSync(mainPath, 'utf8')
+    expect(source).toContain('let stopAdminState')
+    expect(source).toContain('let stopMessages')
+    expect(source).toContain('let stopCallState')
+    expect(source).toContain('stopAdminState?.()')
+    expect(source).toContain('stopMessages?.()')
+    expect(source).toContain('stopCallState?.()')
+    expect(source).toContain('stopAdminRuntime()')
+  })
 })
