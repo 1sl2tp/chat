@@ -12,24 +12,24 @@ module.exports = {
           window.chatwootConfig = {
             hostURL: '${HOST_URL}',
             fbAppId: '',
-            signupEnabled: 'true',
+            signupEnabled: 'false',
             enabledLanguages: [
               {
-                "name":"English (en)",
-                "iso_639_1_code":"en"
+                "name":"Tiếng Việt (vi)",
+                "iso_639_1_code":"vi"
               }
             ],
-            selectedLocale: 'en',
+            selectedLocale: 'vi',
             apiHost: '${API_HOST}',
             websocketURL: '${WEBSOCKET_URL}'
           }
           window.globalConfig = {
             "LOGO":"https://app.chatwoot.com/brand-assets/logo.svg",
             "LOGO_THUMBNAIL":"https://app.chatwoot.com/brand-assets/logo_thumbnail.svg",
-            "INSTALLATION_NAME":"Chatwoot",
-            "WIDGET_BRAND_URL":"https://www.chatwoot.com",
-            "TERMS_URL":"https://www.chatwoot.com/terms-of-service",
-            "PRIVACY_URL":"https://www.chatwoot.com/privacy-policy",
+            "INSTALLATION_NAME":"TAPHOA",
+            "WIDGET_BRAND_URL":"",
+            "TERMS_URL":"",
+            "PRIVACY_URL":"",
             "APP_VERSION":"1.16.2"
           }
         </script>
