@@ -22,8 +22,9 @@ import { mountCleanChatSurface, type MountedCleanChatSurface } from './ui/clean/
 import { setupViewportController } from './viewport/controller'
 import { APP_VERSION } from './version'
 
-const root = document.querySelector<HTMLDivElement>('#app')
-if (!root) throw new Error('Missing #app root')
+const rootElement = document.querySelector<HTMLDivElement>('#app')
+if (!rootElement) throw new Error('Missing #app root')
+const root: HTMLDivElement = rootElement
 const pwaRegistrationPromise = setupPwa('admin')
 let adminIdentity: unknown = null
 let workspace: CleanAdminWorkspace | null = null
