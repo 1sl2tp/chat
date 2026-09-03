@@ -1,34 +1,37 @@
 import { describe, expect, it } from 'vitest'
-import userMainSource from '../../user-main.ts?raw'
-import adminMainSource from '../../admin-main.ts?raw'
 import userShellSource from '../../user-shell.ts?raw'
 import adminShellSource from '../../admin-shell.ts?raw'
-import presentationSource from './presentation-switch.ts?raw'
+import userCleanSource from '../../user-clean-main.ts?raw'
+import adminCleanSource from '../../admin-clean-main.ts?raw'
 import messageListSource from './messages/message-list.ts?raw'
 
-describe('Chatwoot production cutover contract', () => {
-  it('makes chatwoot-port the default presentation', () => {
-    expect(presentationSource).toContain("let presentation: ChatPresentation = 'chatwoot-port'")
+describe('clean production cutover contract', () => {
+  it('makes clean UI the only production shell presentation owner', () => {
+    expect(userShellSource).toContain("import './ui/clean/theme.css'")
+    expect(userShellSource).toContain("import './user-clean-main'")
+    expect(adminShellSource).toContain("import './ui/clean/theme.css'")
+    expect(adminShellSource).toContain("import './admin-clean-main'")
   })
 
-  it('removes the legacy conversation owner from production User and Hỗ trợ entries', () => {
-    for (const source of [userMainSource, adminMainSource]) {
-      expect(source).not.toContain("from './ui/chat/surface'")
-      expect(source).not.toContain('mountConversationSurface')
-      expect(source).toContain('mountConversationScreen')
+  it('uses one shared clean conversation owner under both runtimes', () => {
+    expect(userCleanSource).toContain('mountCleanChatSurface')
+    expect(adminCleanSource).toContain('mountCleanChatSurface')
+    expect(userCleanSource).not.toContain('mountConversationScreen')
+    expect(adminCleanSource).not.toContain('mountConversationScreen')
+  })
+
+  it('does not mount legacy account, inbox, login or decorator owners from production shells', () => {
+    for (const source of [userShellSource, adminShellSource]) {
+      expect(source).not.toContain('chatwoot-account-ui')
+      expect(source).not.toContain('chatwoot-login-ui')
+      expect(source).not.toContain('chatwoot-management-ui')
+      expect(source).not.toContain('mountUserAccountUi')
+      expect(source).not.toContain('mountAdminManagementUi')
+      expect(source).not.toContain('mountAdminZaloPolish')
     }
   })
 
-  it('does not mount legacy account/inbox decorators from production shells', () => {
-    expect(userShellSource).not.toContain('mountUserAccountUi')
-    expect(userShellSource).toContain('mountUserChatwootAccountUi')
-
-    expect(adminShellSource).not.toContain('mountAdminManagementUi')
-    expect(adminShellSource).not.toContain('mountAdminZaloPolish')
-    expect(adminShellSource).toContain('mountAdminChatwootManagementUi')
-  })
-
-  it('keeps exactly one call-message renderer path and no call compactor', () => {
+  it('keeps exactly one legacy model call-message renderer path and no call compactor', () => {
     expect(messageListSource.match(/renderCallMessage\(message\)/g)?.length).toBe(1)
     expect(messageListSource).not.toMatch(/compactCall|callCompactor|compactCallRows/i)
   })
