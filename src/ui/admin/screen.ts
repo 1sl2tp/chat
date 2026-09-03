@@ -50,9 +50,9 @@ export function mountAdminScreen(root: HTMLElement): () => void {
   brand.className = 'admin-rail__brand'
   const brandMark = document.createElement('div')
   brandMark.className = 'admin-rail__brand-mark'
-  brandMark.textContent = 'C'
+  brandMark.textContent = 'T'
   const brandLabel = document.createElement('span')
-  brandLabel.textContent = 'Chat'
+  brandLabel.textContent = 'TAPHOA'
   brand.append(brandMark, brandLabel)
 
   const railNav = document.createElement('nav')
