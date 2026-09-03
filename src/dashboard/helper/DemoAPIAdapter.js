@@ -384,7 +384,9 @@ export default function demoAdapter(config) {
       try {
         const raw = typeof config.data === 'string' ? JSON.parse(config.data) : config.data;
         if (raw && Array.isArray(raw.labels)) nextLabels = raw.labels;
-      } catch (e) {}
+      } catch (e) {
+        // Keep the default demo labels when payload parsing fails.
+      }
       return ok(config, { payload: nextLabels });
     }
     return ok(config, { payload: ['vip', 'urgent'] });
