@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import fs from 'node:fs'
 
 const callSource = fs.readFileSync('src/ui/clean/call/call-ui.ts', 'utf8')
+const callCss = fs.readFileSync('src/ui/clean/call/call.css', 'utf8')
 const userSource = fs.readFileSync('src/user-clean-main.ts', 'utf8')
 const adminSource = fs.readFileSync('src/admin-clean-main.ts', 'utf8')
 
@@ -17,6 +18,16 @@ describe('clean call presentation', () => {
     expect(callSource).toContain("session.setDisplay('full')")
     expect(callSource).not.toContain('hold')
     expect(callSource).not.toContain('transfer')
+  })
+
+  it('groups call identity into a compact readable block and keeps controls away from the information', () => {
+    expect(callSource).toContain('clean-call__info')
+    expect(callCss).toContain('.clean-call__info{')
+    expect(callCss).toContain('width:72px;height:72px')
+    expect(callCss).toContain('.clean-call__controls{position:absolute')
+    expect(callCss).toContain('bottom:max(24px,env(safe-area-inset-bottom))')
+    expect(callCss).toContain('.clean-call-compact{')
+    expect(callCss).toContain('height:48px')
   })
 
   it('is the only call UI imported by clean User and Admin entries', () => {
