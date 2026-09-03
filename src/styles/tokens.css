@@ -1,0 +1,35 @@
+:root {
+  color-scheme: dark;
+  --bg: #020617;
+  --panel: #0f172a;
+  --panel-2: #111c2f;
+  --panel-3: #1e293b;
+  --line: #1f2b3d;
+  --line-strong: #334155;
+  --text: #f8fafc;
+  --muted: #94a3b8;
+  --muted-2: #64748b;
+  --blue: #1f93ff;
+  --blue-strong: #187bcb;
+  --red: #ef4444;
+  --green: #22c55e;
+  --amber: #f59e0b;
+  --page-x: 12px;
+  --header-h: 56px;
+  --control-h: 44px;
+  --radius: 16px;
+  --radius-sm: 12px;
+  --z-status: 20;
+  --z-menu: 40;
+  --z-sheet: 60;
+  --z-confirm: 70;
+  --z-call: 80;
+  --z-viewer: 90;
+  --app-height: 100%;
+  --keyboard-height: 0px;
+  --viewport-offset-top: 0px;
+}
+
+@media (min-width: 640px) {
+  :root { --page-x: 16px; }
+}
