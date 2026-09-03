@@ -61,3 +61,9 @@ UI ownership remains Chatwoot. TAPHOA runtime target remains:
 - PWA for web/iOS/Android installation
 
 Do not change Chatwoot geometry to accommodate runtime. Runtime adapters must fit the existing UI owners.
+
+## Single-admin reduction
+
+- Chatwoot conversation header geometry is kept.
+- Agent assignment selector is removed because TAPHOA has one Admin owner.
+- Existing Chatwoot conversation actions remain until reviewed one-by-one.
