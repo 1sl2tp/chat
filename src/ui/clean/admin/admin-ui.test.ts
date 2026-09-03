@@ -26,6 +26,15 @@ describe('clean Admin app', () => {
     expect(source).not.toContain("import './admin.css'")
   })
 
+  it('keeps release and build information out of the visible Admin UI', () => {
+    const ui = fs.readFileSync(uiPath, 'utf8')
+    const main = fs.readFileSync(mainPath, 'utf8')
+    expect(ui).not.toContain('clean-diagnostic')
+    expect(ui).not.toContain('diagnostic:')
+    expect(main).not.toContain('APP_VERSION')
+    expect(main).not.toContain("from './version'")
+  })
+
   it('keeps current User management actions in one clean sheet instead of a CRM panel', () => {
     const ui = fs.readFileSync(uiPath, 'utf8')
     const main = fs.readFileSync(mainPath, 'utf8')
