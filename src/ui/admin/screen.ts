@@ -32,22 +32,62 @@ function formatTime(value: string | null): string {
   return Number.isNaN(date.getTime()) ? '' : new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit' }).format(date)
 }
 
+function initials(value: string): string {
+  const parts = value.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return 'U'
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return `${parts[0][0] ?? ''}${parts.at(-1)?.[0] ?? ''}`.toUpperCase()
+}
+
 export function mountAdminScreen(root: HTMLElement): () => void {
   const screen = document.createElement('main')
   screen.className = 'admin-screen'
+
+  const appRail = document.createElement('aside')
+  appRail.className = 'admin-rail'
+
+  const brand = document.createElement('div')
+  brand.className = 'admin-rail__brand'
+  const brandMark = document.createElement('div')
+  brandMark.className = 'admin-rail__brand-mark'
+  brandMark.textContent = 'C'
+  const brandLabel = document.createElement('span')
+  brandLabel.textContent = 'Chat'
+  brand.append(brandMark, brandLabel)
+
+  const railNav = document.createElement('nav')
+  railNav.className = 'admin-rail__nav'
+  railNav.setAttribute('aria-label', 'Điều hướng Admin')
+  const supportNav = document.createElement('button')
+  supportNav.type = 'button'
+  supportNav.className = 'admin-rail__item'
+  supportNav.dataset.active = 'true'
+  supportNav.innerHTML = '<span aria-hidden="true">◫</span><small>Hỗ trợ</small>'
+  railNav.append(supportNav)
+
+  const railAccount = document.createElement('div')
+  railAccount.className = 'admin-rail__account'
+  railAccount.innerHTML = '<span class="admin-rail__status" aria-hidden="true"></span><strong>AD</strong><small>Admin</small>'
+  appRail.append(brand, railNav, railAccount)
 
   const inboxPane = document.createElement('section')
   inboxPane.className = 'admin-inbox'
   const inboxHeader = document.createElement('header')
   inboxHeader.className = 'admin-inbox__header'
+  const inboxHeading = document.createElement('div')
+  inboxHeading.className = 'admin-inbox__heading'
   const inboxTitle = document.createElement('h1')
   inboxTitle.textContent = 'Hỗ trợ'
+  const inboxSubtitle = document.createElement('p')
+  inboxSubtitle.textContent = 'User ↔ Admin'
+  inboxHeading.append(inboxTitle, inboxSubtitle)
   const refresh = document.createElement('button')
   refresh.type = 'button'
+  refresh.className = 'admin-icon-button'
   refresh.textContent = '↻'
   refresh.setAttribute('aria-label', 'Làm mới')
   refresh.addEventListener('click', () => void refreshAdminInbox())
-  inboxHeader.append(inboxTitle, refresh)
+  inboxHeader.append(inboxHeading, refresh)
   const inboxList = document.createElement('div')
   inboxList.className = 'admin-inbox__list'
   inboxPane.append(inboxHeader, inboxList)
@@ -58,16 +98,19 @@ export function mountAdminScreen(root: HTMLElement): () => void {
   conversationHeader.className = 'admin-conversation__header'
   const back = document.createElement('button')
   back.type = 'button'
-  back.className = 'admin-back'
+  back.className = 'admin-back admin-icon-button'
   back.textContent = '‹'
   back.setAttribute('aria-label', 'Quay lại')
   back.addEventListener('click', clearAdminSelection)
+  const conversationAvatar = document.createElement('div')
+  conversationAvatar.className = 'admin-conversation__avatar'
+  conversationAvatar.textContent = 'U'
   const customer = document.createElement('div')
   customer.className = 'admin-customer'
   const customerName = document.createElement('h2')
   const customerMeta = document.createElement('p')
   customer.append(customerName, customerMeta)
-  conversationHeader.append(back, customer)
+  conversationHeader.append(back, conversationAvatar, customer)
 
   const detail = document.createElement('aside')
   detail.className = 'admin-detail'
@@ -80,7 +123,7 @@ export function mountAdminScreen(root: HTMLElement): () => void {
   version.textContent = formatVersionLabel(import.meta.env.VITE_BUILD_ID ?? 'dev')
   conversationPane.append(conversationHeader, detail, messages, composerHost, version)
 
-  screen.append(inboxPane, conversationPane)
+  screen.append(appRail, inboxPane, conversationPane)
   root.replaceChildren(screen)
 
   const composer = mountComposer(composerHost, sendAdminText)
@@ -98,15 +141,22 @@ export function mountAdminScreen(root: HTMLElement): () => void {
       button.className = 'admin-inbox__item'
       if (item.conversationId === state.selectedConversationId) button.dataset.active = 'true'
 
-      const top = document.createElement('div')
+      const avatar = document.createElement('span')
+      avatar.className = 'admin-inbox__avatar'
+      const label = getAdminCustomerLabel(item)
+      avatar.textContent = initials(label)
+
+      const content = document.createElement('span')
+      content.className = 'admin-inbox__content'
+      const top = document.createElement('span')
       top.className = 'admin-inbox__item-top'
       const name = document.createElement('strong')
-      name.textContent = getAdminCustomerLabel(item)
+      name.textContent = label
       const time = document.createElement('time')
       time.textContent = formatTime(item.lastMessageAt)
       top.append(name, time)
 
-      const bottom = document.createElement('div')
+      const bottom = document.createElement('span')
       bottom.className = 'admin-inbox__item-bottom'
       const preview = document.createElement('span')
       preview.textContent = item.lastMessageText ?? 'Chưa có tin nhắn'
@@ -117,15 +167,18 @@ export function mountAdminScreen(root: HTMLElement): () => void {
         unread.textContent = String(item.unreadCount)
         bottom.append(unread)
       }
-      button.append(top, bottom)
+      content.append(top, bottom)
+      button.append(avatar, content)
       button.addEventListener('click', () => void selectAdminConversation(item.conversationId))
       listFragment.append(button)
     }
     inboxList.replaceChildren(listFragment)
 
     const selected = state.inbox.find((item) => item.conversationId === state.selectedConversationId)
-    customerName.textContent = state.detail?.displayName?.trim() || (selected ? getAdminCustomerLabel(selected) : 'Chọn khách')
-    customerMeta.textContent = state.detail ? getAdminStatusLabel(state.detail.identityType) : ''
+    const selectedLabel = state.detail?.displayName?.trim() || (selected ? getAdminCustomerLabel(selected) : 'Chọn khách')
+    customerName.textContent = selectedLabel
+    conversationAvatar.textContent = initials(selectedLabel)
+    customerMeta.textContent = state.detail ? getAdminStatusLabel(state.detail.identityType) : 'Chọn một hội thoại để bắt đầu'
 
     if (state.detail) {
       const fields: string[] = []
