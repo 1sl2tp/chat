@@ -28,4 +28,11 @@ describe('clean ChatSurface', () => {
     expect(source).not.toContain('messages/message.css')
     expect(source).not.toContain('composer/composer.css')
   })
+
+  it('mounts call action independently from initial availability so state updates can reveal it', () => {
+    const source = fs.readFileSync(surfacePath, 'utf8')
+    expect(source).toContain('if (options.onCall || options.actions)')
+    expect(source).not.toContain('if (options.model.canCall && (options.onCall || options.actions))')
+    expect(source).toContain('callButton.hidden = !model.canCall')
+  })
 })
