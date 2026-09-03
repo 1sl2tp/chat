@@ -1,0 +1,50 @@
+name: Build original Chatwoot UI stub
+
+on:
+  push:
+    branches:
+      - demo/chatwoot-source-stub-v1
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: chatwoot-source-stub-preview
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 16
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build original Chatwoot source
+        env:
+          API_HOST: ""
+          WEBSOCKET_URL: ""
+          HOST_URL: ""
+          WEBSITE_INBOX_TOKEN: ""
+        run: npm run build
+
+      - name: Publish isolated preview
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd dist
+          git init
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "preview: original Chatwoot source with in-memory UI data ${GITHUB_SHA}"
+          git push --force "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/demo/chatwoot-source-stub-dist
