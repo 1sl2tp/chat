@@ -1,0 +1,83 @@
+name: Bootstrap Chatwoot Web Demo v1-5
+
+on:
+  push:
+    branches:
+      - bootstrap/chatwoot-web-demo-v1-5
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-demo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout bootstrap branch
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '16'
+
+      - name: Clone official Chatwoot Web UI
+        run: |
+          git clone --depth 1 --branch main https://github.com/chatwoot/ui.git /tmp/chatwoot-ui
+          rm -rf /tmp/chatwoot-ui/.git
+
+      - name: Configure Supabase v1-v5 demo runtime
+        working-directory: /tmp/chatwoot-ui
+        run: |
+          cat > .env.production <<'EOF'
+          API_HOST=https://gcnoahqsrquxkwkjbuxy.supabase.co/functions/v1/taphoa-chatwoot-api
+          HOST_URL=https://cdn.jsdelivr.net/gh/1sl2tp/chat@chatwoot-web-demo-dist
+          WEBSOCKET_URL=wss://gcnoahqsrquxkwkjbuxy.supabase.co/functions/v1/taphoa-chatwoot-cable
+          VUE_APP_WIDGET_URL=https://cdn.jsdelivr.net/gh/1sl2tp/chat@chatwoot-web-demo-dist/widget.html
+          WEBSITE_INBOX_TOKEN=
+          EOF
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('vue.config.js')
+          s = p.read_text()
+          s = s.replace("publicPath: '/app/'", "publicPath: 'https://cdn.jsdelivr.net/gh/1sl2tp/chat@chatwoot-web-demo-dist/'")
+          s = s.replace("outputDir: 'dist/app'", "outputDir: 'dist'")
+          p.write_text(s)
+          r = Path('src/dashboard/routes/index.js')
+          s = r.read_text().replace("mode: 'history'", "mode: 'hash'")
+          r.write_text(s)
+          PY
+
+      - name: Publish exact configured source branch
+        working-directory: /tmp/chatwoot-ui
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git init
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m 'demo: official Chatwoot web UI connected to Supabase v1-v5'
+          git branch -M demo/chatwoot-web-v1-5
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push --force origin demo/chatwoot-web-v1-5
+
+      - name: Install and build Chatwoot Web
+        working-directory: /tmp/chatwoot-ui
+        run: |
+          yarn install --frozen-lockfile
+          yarn build
+
+      - name: Publish built demo branch
+        working-directory: /tmp/chatwoot-ui/dist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git init
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m 'demo: Chatwoot web v1-v5 build'
+          git branch -M chatwoot-web-demo-dist
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push --force origin chatwoot-web-demo-dist
