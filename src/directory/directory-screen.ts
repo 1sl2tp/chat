@@ -21,6 +21,7 @@ export interface DirectoryCallbacks {
   onOpenContact: (contact: Contact) => void;
   management?: DirectoryManagement;
   onManagedChange?: () => Promise<void> | void;
+  onSignOut?: () => Promise<void> | void;
   onError?: (error: Error) => void;
 }
 
@@ -154,7 +155,8 @@ export class DirectoryScreen {
     const guestCount = this.store.state.contacts.filter((contact) => contact.accountType === 'guest').length;
     content.innerHTML = `
       <div class="group-manager-list">${customGroups.length ? customGroups.map((group) => `<div><span>${escapeHtml(group.name)}</span><button class="icon-button compact" data-delete-group="${escapeAttr(group.id)}" aria-label="Xóa nhóm">${icon('trash')}</button></div>`).join('') : '<div><span>Chưa có nhóm riêng</span></div>'}</div>
-      <button class="manager-action danger" data-delete-guests ${guestCount ? '' : 'disabled'}>${icon('trash')}<span>Xóa Vãng lai · ${guestCount}</span></button>`;
+      <button class="manager-action danger" data-delete-guests ${guestCount ? '' : 'disabled'}>${icon('trash')}<span>Xóa Vãng lai · ${guestCount}</span></button>
+      ${this.callbacks.onSignOut ? `<button class="manager-action" data-logout>${icon('logout')}<span>Đăng xuất</span></button>` : ''}`;
     const id = this.overlays.openSheet({ title: 'Quản lý', content });
     content.querySelectorAll<HTMLButtonElement>('[data-delete-group]').forEach((button) => button.addEventListener('click', () => {
       const groupId = button.dataset.deleteGroup ?? '';
@@ -166,6 +168,10 @@ export class DirectoryScreen {
     content.querySelector<HTMLButtonElement>('[data-delete-guests]')?.addEventListener('click', () => {
       const copy = destructiveConfirmCopy('toàn bộ Vãng lai');
       this.overlays.openConfirm({ ...copy, onConfirm: () => { void this.deleteAllGuests(id); }});
+    });
+    content.querySelector<HTMLButtonElement>('[data-logout]')?.addEventListener('click', () => {
+      this.overlays.close(id);
+      void this.callbacks.onSignOut?.();
     });
   }
 
