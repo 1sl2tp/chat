@@ -17,7 +17,7 @@ export function createFullCall(state: CallState, handlers: FullCallHandlers, ani
     <div class="call-person">
       <div class="avatar xl ${state.phase === 'connecting' ? 'call-pulse' : ''}" data-call-avatar>${escapeHtml(state.peerInitials)}</div>
       <strong>${escapeHtml(state.peerName)}</strong>
-      <div class="call-status-line"><span class="call-dot ${state.phase === 'connected' ? 'online' : ''}" data-call-dot></span><span data-call-status>${escapeHtml(view.status)}</span>${view.showDuration ? '<span>·</span><b data-call-timer>00:00</b>' : '<b data-call-timer hidden>00:00</b>'}</div>
+      <div class="call-status-line"><span class="call-dot ${state.phase === 'connected' ? 'online' : ''}" data-call-dot></span><span data-call-status>${escapeHtml(view.status)}</span><span data-call-duration ${view.showDuration ? '' : 'hidden'}>· <b data-call-timer>00:00</b></span></div>
     </div>
     <div class="call-controls">
       <button class="call-control" data-call-mic type="button">${icon(state.muted ? 'micOff' : 'mic')}<span>${state.muted ? 'Bật mic' : 'Mic'}</span></button>
