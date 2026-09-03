@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chatwoot UI — All States</title>
+<style>
+:root{
+  --woot:#1f93ff;--gray:#6e6f73;--light-gray:#999a9b;--border:#e0e6ed;--border-light:#f0f4f5;
+  --bg:#f4f6fb;--bg-light:#f9fafc;--white:#fff;--body:#3c4858;--heading:#1f2d3d;
+  --success:#44ce4b;--warning:#ffc532;--danger:#ff382d;--mask:rgba(0,0,0,.4);
+  --sidebar:230px;--list:360px;--contact:330px;--header:56px;
+}
+*{box-sizing:border-box}html,body{margin:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--body);background:var(--bg)}
+button,input,textarea{font:inherit}.app{display:flex;height:100vh;overflow:hidden;background:var(--white)}
+.sidebar{width:var(--sidebar);flex:0 0 var(--sidebar);display:flex;flex-direction:column;border-right:1px solid var(--border);background:#fff}
+.logo{height:110px;display:flex;align-items:center;padding:28px 20px}.logo-mark{width:40px;height:40px;border-radius:50%;border:11px solid var(--woot);margin-right:8px}.logo-text{font-size:28px;font-weight:700;color:#111}
+.menu{list-style:none;margin:0;padding:0 14px}.menu li{margin:4px 0}.menu a{height:40px;display:flex;align-items:center;gap:12px;padding:0 12px;border-radius:6px;color:var(--gray);text-decoration:none;font-size:15px}.menu a.active{background:#f1f5fb;color:var(--woot);font-weight:600}.menu .section{font-size:12px;color:#9aa4af;padding:18px 12px 6px;text-transform:uppercase}.menu .nested{padding-left:22px}.menu .dot{width:10px;height:10px;border-radius:50%;background:#7c3aed}
+.bottom{margin-top:auto}.presence{height:54px;border-top:1px solid var(--border);display:flex;align-items:center;padding:0 14px;font-size:13px}.presence i{width:10px;height:10px;border-radius:50%;background:var(--success);margin-right:8px}.agent{height:62px;border-top:1px solid var(--border);display:grid;grid-template-columns:38px 1fr 22px 20px;gap:8px;align-items:center;padding:0 12px}.avatar{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#2f9bf4;color:white;font-weight:700}.agent small{display:block;color:#888}.bell{position:relative}.bell b{position:absolute;top:-7px;right:-7px;background:var(--danger);color:#fff;border-radius:9px;font-size:9px;padding:1px 4px}
+.list{width:var(--list);flex:0 0 var(--list);border-right:1px solid var(--border);background:#fff;display:flex;flex-direction:column;min-width:0}
+.search{height:50px;padding:10px 16px;border-bottom:1px solid var(--border)}.search input{width:100%;height:30px;border:0;outline:0;font-size:14px}
+.list-top{height:72px;padding:12px 16px 0}.list-top h1{font-size:23px;margin:0 0 10px;color:var(--heading);font-weight:500;display:flex;justify-content:space-between}.filter{border:1px solid var(--border);background:#fff;border-radius:4px;padding:5px 9px;font-size:12px;color:#667}
+.tabs{height:42px;display:flex;align-items:flex-end;border-bottom:1px solid var(--border);padding:0 16px;gap:25px}.tabs span{padding:0 0 11px;font-size:14px;color:#748194}.tabs .on{color:var(--woot);border-bottom:2px solid var(--woot)}
+.chats{overflow:auto;flex:1}.chat{height:84px;display:grid;grid-template-columns:46px 1fr;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border-light);position:relative}.chat:hover,.chat.on{background:var(--bg-light)}.thumb{width:40px;height:40px;border-radius:50%;background:#dbeafe;color:#2563eb;display:grid;place-items:center;font-weight:700;position:relative}.thumb:after{content:"";position:absolute;width:9px;height:9px;border-radius:50%;background:var(--success);right:-1px;bottom:1px;border:2px solid white}.chat h4{margin:0;font-size:14px;color:var(--heading)}.chat p{margin:6px 0 0;font-size:12px;color:#8b95a1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.chat time{position:absolute;top:12px;right:12px;font-size:10px;color:#98a1ac}.unread{position:absolute;right:12px;bottom:12px;background:var(--woot);color:#fff;border-radius:11px;font-size:10px;min-width:19px;height:19px;display:grid;place-items:center}
+.conversation{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--bg-light)}
+.conv-head{height:64px;flex:0 0 64px;border-bottom:1px solid var(--border);background:#fff;display:flex;align-items:center;padding:0 16px}.conv-user{display:flex;align-items:center;gap:10px}.conv-user h3{margin:0;font-size:15px;color:var(--heading)}.conv-user button{border:0;background:none;color:var(--woot);padding:0;font-size:12px}.head-actions{margin-left:auto;display:flex;gap:8px;align-items:center}.select{border:1px solid var(--border);border-radius:4px;background:#fff;padding:7px 10px;font-size:12px;min-width:140px}.head-actions button{border:1px solid var(--border);background:#fff;border-radius:4px;padding:7px 9px;color:#65717d}
+.messages-wrap{flex:1;min-height:0;display:flex}.view{flex:1;min-width:0;display:flex;flex-direction:column}.policy{background:#ff6660;color:#fff;padding:8px 14px;text-align:center;font-size:12px}.messages{flex:1;overflow:auto;padding:18px 22px 10px}.msg{display:flex;margin:10px 0}.msg.right{justify-content:flex-end}.bubble{max-width:66%;padding:9px 12px;border-radius:6px;background:#fff;border:1px solid var(--border);font-size:14px;line-height:1.4;box-shadow:0 1px 1px rgba(0,0,0,.02)}.right .bubble{background:#e7f4ff;border-color:#c9e6ff}.private .bubble{background:#fff6cb}.meta{font-size:10px;color:#9aa3ad;margin-top:5px;text-align:right}.image{width:240px;height:150px;border-radius:6px;background:linear-gradient(135deg,#bfdcff,#dff1ff);display:grid;place-items:center;color:#4a6b8a;font-size:13px}.file{display:flex;align-items:center;gap:10px}.file-icon{width:36px;height:42px;border-radius:4px;background:#eef2f6;display:grid;place-items:center}.audio{width:260px}.activity{text-align:center;font-size:11px;color:#9099a3;margin:14px 0}.unread-sep{text-align:center;margin:16px 0}.unread-sep span{background:#fff;border:1px solid var(--border);border-radius:10px;padding:3px 8px;font-size:10px;color:#7f8995}
+.typing{padding:5px 16px;font-size:11px;color:#7a8590}.reply{border-top:1px solid var(--border);background:#fff}.reply-tabs{height:38px;display:flex;align-items:end;gap:18px;padding:0 16px}.reply-tabs span{padding-bottom:8px;font-size:12px}.reply-tabs .on{color:var(--woot);border-bottom:2px solid var(--woot)}.attach-preview{padding:8px 16px;display:flex;gap:8px}.att{width:62px;height:48px;border:1px solid var(--border);border-radius:4px;background:#f8fafc;display:grid;place-items:center;font-size:10px;position:relative}.att b{position:absolute;right:-5px;top:-5px;width:16px;height:16px;border-radius:50%;background:#333;color:#fff;display:grid;place-items:center;font-size:9px}
+.textarea{padding:6px 16px}.textarea textarea{width:100%;min-height:68px;border:0;resize:none;outline:0;font-size:14px}.reply-bottom{height:48px;display:flex;align-items:center;padding:0 14px;gap:8px}.tool{border:0;background:none;color:#65717d;font-size:18px}.send{margin-left:auto;border:0;background:var(--woot);color:#fff;border-radius:4px;padding:7px 14px;font-size:12px}
+.contact{width:var(--contact);flex:0 0 var(--contact);background:#fff;border-left:1px solid var(--border);overflow:auto;padding:18px 20px;position:relative}.close{position:absolute;right:15px;top:12px;color:#667}.contact-top{text-align:center;padding-bottom:16px;border-bottom:1px solid var(--border-light)}.big-avatar{width:64px;height:64px;border-radius:50%;background:#dbeafe;color:#2563eb;display:grid;place-items:center;margin:0 auto 8px;font-weight:700;font-size:20px}.contact-top h3{margin:0;color:var(--heading)}.contact-top p{margin:5px 0;font-size:12px;color:#89939e}.section{padding:16px 0;border-bottom:1px solid var(--border-light)}.section h4{margin:0 0 10px;font-size:12px;color:#7a8590;text-transform:uppercase}.field{margin:9px 0}.field label{display:block;font-size:11px;color:#929ba6;margin-bottom:4px}.field div{font-size:13px;color:#3f4b58}.labels{display:flex;gap:6px;flex-wrap:wrap}.label{background:#7c3aed;color:#fff;padding:3px 7px;border-radius:3px;font-size:10px}
+.overlay{position:fixed;inset:0;background:var(--mask);display:none;align-items:center;justify-content:center;z-index:20}.overlay.show{display:flex}.modal{width:430px;background:#fff;border-radius:6px;box-shadow:0 15px 50px rgba(0,0,0,.25);overflow:hidden}.modal h3{margin:0;padding:16px 18px;border-bottom:1px solid var(--border);color:var(--heading);font-size:17px}.modal-body{padding:18px}.modal-actions{padding:12px 18px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}.btn{border:1px solid var(--border);background:#fff;border-radius:4px;padding:7px 12px}.btn.primary{background:var(--woot);color:#fff;border-color:var(--woot)}
+.notification{position:fixed;left:198px;bottom:68px;width:320px;background:#fff;border:1px solid var(--border);box-shadow:0 10px 30px rgba(0,0,0,.16);border-radius:5px;padding:12px;display:none;z-index:12}.notification.show{display:block}.notification h4{margin:0 0 8px}.notice{padding:8px 0;border-top:1px solid var(--border-light);font-size:12px}.snackbar{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#323232;color:#fff;padding:10px 16px;border-radius:3px;font-size:12px;display:none;z-index:30}.snackbar.show{display:block}
+.toolbar{position:fixed;top:8px;right:8px;z-index:50;display:flex;gap:6px}.toolbar button{border:1px solid #cfd6de;background:#fff;border-radius:4px;padding:6px 9px;font-size:11px}
+@media(max-width:1000px){.contact{display:none}.sidebar{position:absolute;left:-230px;z-index:9}.list{width:330px;flex-basis:330px}}
+</style>
+</head>
+<body>
+<div class="toolbar">
+  <button onclick="toggleContact()">Contact panel</button>
+  <button onclick="toggleNotice()">Notifications</button>
+  <button onclick="toggleModal()">Modal</button>
+  <button onclick="showSnack()">Toast</button>
+</div>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="logo"><div class="logo-mark"></div><div class="logo-text">chatwoot</div></div>
+    <ul class="menu">
+      <li><a class="active">💬 Conversations</a></li>
+      <li><a>👤 Contacts</a></li>
+      <li><a>🔔 Notifications</a></li>
+      <li><a>📈 Reports</a></li>
+      <li><a>⚙ Settings</a></li>
+      <li class="section">Teams</li>
+      <li class="nested"><a>👥 Support</a></li>
+      <li class="section">Inboxes</li>
+      <li class="nested"><a>📥 Website</a></li>
+      <li class="nested"><a>✉ Email</a></li>
+      <li class="section">Labels</li>
+      <li class="nested"><a><span class="dot"></span> urgent</a></li>
+      <li class="nested"><a><span class="dot" style="background:#0ea5e9"></span> vip</a></li>
+    </ul>
+    <div class="bottom">
+      <div class="presence"><i></i> Online <span style="margin-left:auto;color:#64748b">Change</span></div>
+      <div class="agent"><div class="avatar">T</div><div><b>test1</b><small>Agent</small></div><div class="bell" onclick="toggleNotice()">🔔<b>3</b></div><div>⋮</div></div>
+    </div>
+  </aside>
+
+  <section class="list">
+    <div class="search"><input value="⌕  Search for messages in conversations"></div>
+    <div class="list-top"><h1>Conversations <button class="filter">Open ▾</button></h1></div>
+    <div class="tabs"><span class="on">Mine 4</span><span>Unassigned 2</span><span>All 8</span></div>
+    <div class="chats">
+      <div class="chat on"><div class="thumb">NH</div><div><h4>Nguyễn Hương</h4><p>Thanks, that works for me.</p></div><time>2m</time><span class="unread">3</span></div>
+      <div class="chat"><div class="thumb">TA</div><div><h4>Trần Anh</h4><p>📎 invoice-september.pdf</p></div><time>7m</time></div>
+      <div class="chat"><div class="thumb">LP</div><div><h4>Linh Phạm</h4><p>🎙 Voice message</p></div><time>12m</time><span class="unread">1</span></div>
+      <div class="chat"><div class="thumb">MK</div><div><h4>Minh Khôi</h4><p>Can you help me with my order?</p></div><time>1h</time></div>
+      <div class="chat"><div class="thumb">AV</div><div><h4>An Vũ</h4><p>Photo</p></div><time>2h</time></div>
+    </div>
+  </section>
+
+  <section class="conversation">
+    <header class="conv-head">
+      <div class="conv-user"><div class="thumb">NH</div><div><h3>Nguyễn Hương</h3><button onclick="toggleContact()">Open details</button></div></div>
+      <div class="head-actions"><select class="select"><option>🎧 test1</option><option>Admin</option></select><button>✓ Resolve</button><button>⋮</button></div>
+    </header>
+    <div class="messages-wrap">
+      <div class="view">
+        <div class="policy">Reply window notice / policy banner — visible state</div>
+        <div class="messages">
+          <div class="activity">Conversation was assigned to test1</div>
+          <div class="msg"><div class="bubble">Hi, I need help with my account.<div class="meta">10:22 AM</div></div></div>
+          <div class="msg right"><div class="bubble">Sure, I can help you with that.<div class="meta">10:23 AM · test1</div></div></div>
+          <div class="msg"><div class="bubble"><div class="image">IMAGE ATTACHMENT</div><div class="meta">10:24 AM</div></div></div>
+          <div class="msg right"><div class="bubble file"><div class="file-icon">PDF</div><div><b>invoice.pdf</b><br><small>248 KB · Download</small></div></div></div>
+          <div class="msg"><div class="bubble"><audio class="audio" controls></audio><div class="meta">Voice message · 00:23</div></div></div>
+          <div class="unread-sep"><span>2 UNREAD MESSAGES</span></div>
+          <div class="msg"><div class="bubble">I also want to update my address.<div class="meta">10:26 AM</div></div></div>
+          <div class="msg right private"><div class="bubble">Private note: customer is VIP.<div class="meta">Private note · 10:27 AM</div></div></div>
+        </div>
+        <div class="typing">Nguyễn Hương is typing… ● ● ●</div>
+        <div class="reply">
+          <div class="reply-tabs"><span class="on">Reply</span><span>Private note</span></div>
+          <div class="attach-preview"><div class="att">IMG<b>×</b></div><div class="att">PDF<b>×</b></div></div>
+          <div class="textarea"><textarea>Type your message...</textarea></div>
+          <div class="reply-bottom"><button class="tool">📎</button><button class="tool">😊</button><button class="tool">B</button><button class="tool">/</button><button class="tool">↵</button><button class="send">Send</button></div>
+        </div>
+      </div>
+
+      <aside class="contact" id="contactPanel">
+        <span class="close" onclick="toggleContact()">›</span>
+        <div class="contact-top"><div class="big-avatar">NH</div><h3>Nguyễn Hương</h3><p>huong@example.com</p><p>+84 912 345 678</p></div>
+        <div class="section"><h4>Assignment</h4><div class="field"><label>Assignee</label><div>🎧 test1</div></div><div class="field"><label>Team</label><div>👥 Support</div></div></div>
+        <div class="section"><h4>Labels</h4><div class="labels"><span class="label">vip</span><span class="label" style="background:#0ea5e9">customer</span></div></div>
+        <div class="section"><h4>Conversation details</h4><div class="field"><label>Location</label><div>Hà Nội, Việt Nam 🇻🇳</div></div><div class="field"><label>IP Address</label><div>113.22.18.9</div></div><div class="field"><label>Browser</label><div>Safari 18</div></div><div class="field"><label>OS</label><div>iOS 18</div></div><div class="field"><label>Initiated from</label><div>https://taphoa.xyz</div></div></div>
+        <div class="section"><h4>Custom attributes</h4><div class="field"><label>Customer ID</label><div>KH-00128</div></div><div class="field"><label>Plan</label><div>VIP</div></div></div>
+        <div class="section"><h4>Previous conversations</h4><div class="field"><div>#1032 · Resolved</div></div><div class="field"><div>#0988 · Resolved</div></div></div>
+      </aside>
+    </div>
+  </section>
+</div>
+
+<div class="notification" id="notice">
+  <h4>Notifications</h4>
+  <div class="notice"><b>New message</b><br>Nguyễn Hương replied to conversation #1055</div>
+  <div class="notice"><b>Assignment changed</b><br>Conversation #1048 assigned to you</div>
+  <div class="notice"><b>Mention</b><br>Admin mentioned you in a private note</div>
+</div>
+
+<div class="overlay" id="modal">
+  <div class="modal"><h3>Add label</h3><div class="modal-body"><label>Label name</label><input style="width:100%;margin-top:7px;padding:9px;border:1px solid var(--border)" value="priority"><p style="font-size:12px;color:#7e8995">Chatwoot modal state rendered without backend.</p></div><div class="modal-actions"><button class="btn" onclick="toggleModal()">Cancel</button><button class="btn primary" onclick="toggleModal()">Create</button></div></div>
+</div>
+
+<div class="snackbar" id="snack">Conversation updated successfully</div>
+
+<script>
+function toggleContact(){const e=document.getElementById('contactPanel');e.style.display=e.style.display==='none'?'block':'none'}
+function toggleNotice(){document.getElementById('notice').classList.toggle('show')}
+function toggleModal(){document.getElementById('modal').classList.toggle('show')}
+function showSnack(){const s=document.getElementById('snack');s.classList.add('show');setTimeout(()=>s.classList.remove('show'),1800)}
+</script>
+</body>
+</html>
