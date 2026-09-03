@@ -24,10 +24,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 16
-          cache: npm
+          cache: yarn
 
       - name: Install dependencies
-        run: npm ci
+        run: yarn install --frozen-lockfile
 
       - name: Build original Chatwoot source
         env:
@@ -35,7 +35,7 @@ jobs:
           WEBSOCKET_URL: ""
           HOST_URL: ""
           WEBSITE_INBOX_TOKEN: ""
-        run: npm run build
+        run: yarn build
 
       - name: Publish isolated preview
         env:
