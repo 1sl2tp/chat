@@ -31,16 +31,16 @@ jobs:
         run: |
           cat > .env.production <<'EOF'
           API_HOST=https://gcnoahqsrquxkwkjbuxy.supabase.co/functions/v1/taphoa-chatwoot-api
-          HOST_URL=https://cdn.jsdelivr.net/gh/1sl2tp/chat@chatwoot-web-demo-dist
+          HOST_URL=https://taphoa-chatwoot-web-demo-1sl2tp.vercel.app
           WEBSOCKET_URL=wss://gcnoahqsrquxkwkjbuxy.supabase.co/functions/v1/taphoa-chatwoot-cable
-          VUE_APP_WIDGET_URL=https://cdn.jsdelivr.net/gh/1sl2tp/chat@chatwoot-web-demo-dist/widget.html
+          VUE_APP_WIDGET_URL=https://taphoa-chatwoot-web-demo-1sl2tp.vercel.app/widget.html
           WEBSITE_INBOX_TOKEN=
           EOF
           python3 - <<'PY'
           from pathlib import Path
           p = Path('vue.config.js')
           s = p.read_text()
-          s = s.replace("publicPath: '/app/'", "publicPath: 'https://cdn.jsdelivr.net/gh/1sl2tp/chat@chatwoot-web-demo-dist/'")
+          s = s.replace("publicPath: '/app/'", "publicPath: '/'")
           s = s.replace("outputDir: 'dist/app'", "outputDir: 'dist'")
           p.write_text(s)
           r = Path('src/dashboard/routes/index.js')
@@ -67,6 +67,19 @@ jobs:
         run: |
           yarn install --frozen-lockfile
           yarn build
+
+      - name: Verify host-independent build
+        working-directory: /tmp/chatwoot-ui/dist
+        run: |
+          test -f index.html
+          grep -q 'taphoa-chatwoot-api' index.html
+          grep -q 'taphoa-chatwoot-cable' index.html
+          if grep -q 'cdn.jsdelivr.net' index.html; then
+            echo 'Unexpected CDN dependency in index.html'
+            exit 1
+          fi
+          grep -q 'src="/js/' index.html
+          grep -q 'href="/css/' index.html
 
       - name: Publish built demo branch
         working-directory: /tmp/chatwoot-ui/dist
