@@ -62,7 +62,7 @@ export function createCleanUserUi(root: HTMLElement): CleanUserUi {
         <button id="clean-auth-action" class="clean-sheet__action clean-sheet__action--primary" type="button">Đăng nhập</button>
       </aside>
     </div>
-    <section id="clean-user-login" class="clean-login" data-open="false" aria-hidden="true">
+    <section id="clean-user-login" class="clean-login clean-auth" data-open="false" aria-hidden="true">
       <form id="clean-user-login-form" class="clean-login__card">
         <div class="clean-login__brand">💬</div>
         <h1>Đăng nhập</h1>
