@@ -1,0 +1,26 @@
+TAPHOA GITHUB MAIN READY — FRESH VERIFICATION
+Date: 2026-09-03
+
+PASS
+- TypeScript: PASS
+- Node tests: 124/124 PASS
+- Local static build: PASS
+- Chromium smoke: PASS
+  - Admin mobile: 280 / 320 / 390
+  - Admin desktop split pane: 1280
+  - User flow: PASS
+  - Directory actions: PASS
+  - Message actions: PASS
+  - Attach menu: PASS
+  - Media Manager + Xem goc: PASS
+  - Call flow: PASS
+- Standalone builder: PASS
+
+Packaging cleanup after verification:
+- no dist/
+- no .local-build/
+- no .smoke-build/
+- no tests/.smoke-bundle.js
+- no legacy admin/audio-lab/call-minimal/src/compat trees
+
+GitHub Actions performs the production Vite build on main.

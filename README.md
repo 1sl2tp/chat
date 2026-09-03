@@ -1,77 +1,41 @@
-# Chat
+# TAPHOA Chat / Call — STRUCTURE LOCK V3
 
-Permanent mobile-first foundation for the Chat project.
+Small, backend-agnostic UI architecture for 1:1 Chat + Call and Admin Directory.
 
-## Product target
-
-Chat is one codebase delivered as both **Web** and **installable Web App (PWA)**.
-
-Primary release targets:
-- iOS: Safari + Home Screen Web App
-- Android: Chrome + installed PWA
-
-Compatibility targets:
-- Windows: Edge/Chrome + installed PWA
-- macOS: Safari/Web App + Chrome
-
-Mobile is the primary UI. Windows and macOS use the same application with a simple wider layout; there is no separate complex desktop UI architecture.
-
-## Android PWA release contract
-
-Android PWA is a first-class release target, not a fallback browser mode. A release must preserve:
-- Web App Manifest with stable `id`, `start_url`, `scope`, `display: standalone`, theme/background colors and install icons.
-- 192x192, 512x512 and maskable Android-capable icons.
-- Registered custom service worker for offline shell, Push, Notification, Badge and notification navigation.
-- Runtime detection of Android + Chrome + standalone/browser mode.
-- Feature detection for mic, WebRTC, Push, Badge, Media Session, PiP, Wake Lock, permissions, Visual Viewport and Virtual Keyboard.
-- GitHub Actions production build before deploy.
-
-## Version tracking rule
-
-`src/version.ts` is the sole runtime source of truth for the named app version. Every user-visible deployed source change updates that value and the running screen displays the named version plus the Git commit build ID. Documentation must not keep a second "current version" value because it can drift from the code.
-
-## Foundation ownership
-
-The canonical single-owner architecture is documented in `docs/FOUNDATION_OWNERSHIP.md`. Each concern has one owner; other modules may consume or observe it but must not duplicate its state or decision logic.
-
-- `src/compat/`: runtime and feature detection only
-- `src/permissions/`: browser permission state and one-shot prompt policy
-- `src/viewport/`: Visual Viewport / keyboard occlusion geometry only
-- `src/pwa/` + `src/sw.ts`: service-worker/update/cache/push lifecycle
-- `src/storage/`: storage state/schema lifecycle
-- `src/session/`: authentication/session lifecycle
-- `src/network/`: connectivity/backend reachability
-- `src/lifecycle/`: foreground/background lifecycle
-- `src/media/`: media/WebRTC support contracts
-- `src/notifications/`: Push/Notification payload and delivery contracts
-- `src/floating/`: mini-call/PiP presentation capability
-- `src/diagnostics/`: read-only technical observation; never behavior ownership
-
-Permission prompts are never fired automatically on app boot. A feature UI must invoke the permission owner from a user action; already-granted or denied permissions are not prompted again. Keyboard handling is geometry-driven through Visual Viewport with safe-area support; feature UI decides scrolling and placement using that published geometry.
-
-## Stack
-
-- TypeScript
-- Vite
-- Vanilla SPA
-- PWA via `vite-plugin-pwa`
-- Custom TypeScript service worker via `injectManifest`
-- Vitest
-- GitHub Actions
-- GitHub Pages
-
-## Commands
-
+## Run
 ```bash
 npm install
 npm run dev
-npm run typecheck
-npm test
-npm run build
-npm run preview
 ```
 
-Every branch and pull request runs TypeScript checks, tests and a production PWA build. Only a successful push to `main` can deploy GitHub Pages.
+## Verify / package
+```bash
+npm run verify
+python tests/e2e-smoke.py
+node scripts/build-standalone.mjs
+```
 
-Production is built into `dist/` and deployed automatically from `main` to GitHub Pages.
-The current UI deliberately shows only `TEST`; Chat, Supabase Realtime, WebRTC, TURN and subscription/backend wiring are added on top of this foundation.
+## Responsive model
+- Mobile Admin: Directory -> Chat -> Back.
+- Desktop Admin >=900px: Directory + Chat stay visible together in `AdminWorkspace`.
+- User: direct 1:1 Chat with Support.
+- Media Manager: replaces Chat body on mobile; opens inside Chat pane on desktop.
+
+## Conversation-first UI
+- Sender/recipient are stored as participant IDs; left/right is relative to current viewer.
+- Only latest outgoing message displays `Đang gửi / Đã gửi / Đã xem`.
+- Footer actions reuse the same metadata slot: text `Trả lời · Sao chép`; link adds `Mở`; image/file/audio use `Trả lời · Lưu`.
+- Composer `+` exposes separate `Ảnh | Camera | Tệp` actions; Mic remains separate.
+- Call history is rendered in the message timeline (`Gọi đi`, `Gọi đến`, `Cuộc gọi nhỡ`, `Không trả lời`, `Đã hủy`).
+- Per-conversation Media Manager derives from original messages: `Ảnh | Tệp | Link | Ghi âm`, with `Xem gốc` navigation.
+- Admin frequent actions stay near the object: Directory `+` for `Thêm KH | Thêm nhóm`; contact `Nhóm` opens inline; rare destructive management remains in manager sheet.
+
+## UI system
+- Plus Jakarta Sans via Google Fonts + system fallback; no font binaries included.
+- Shared 24x24 SVG icon language; parent controls own 18px/16px icon size.
+- Touch scrollbars hidden; desktop scrollbars slim.
+- PWA manifest, app icons and the Web Push Service Worker live in `public/`.
+- Live sessions silently sync an existing granted Push subscription; first-time permission is requested only from the explicit `Thông báo` menu action.
+- Runtime IDs have a non-secure-context fallback, so standalone previews do not depend on `crypto.randomUUID()`.
+
+See `STRUCTURE_LOCK.md` for ownership rules and `VERIFY_REPORT.md` for current gates.

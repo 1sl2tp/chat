@@ -8,10 +8,12 @@
   },
   "scripts": {
     "dev": "vite",
-    "verify:chatwoot-mirror": "node scripts/verify-chatwoot-mirror.mjs",
-    "typecheck": "tsc -b",
-    "test": "vitest run",
-    "build": "npm run verify:chatwoot-mirror && npm run typecheck && npm run test && vite build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "compile:local": "tsc -p tsconfig.local.json",
+    "build:local": "node scripts/build-local.mjs",
+    "test": "npm run compile:local --silent && node --test tests/*.test.mjs",
+    "verify": "npm run typecheck && npm test && npm run build:local",
+    "build": "npm run typecheck && npm test && vite build",
     "preview": "vite preview"
   },
   "devDependencies": {
