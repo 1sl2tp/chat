@@ -7,6 +7,7 @@ module.exports = {
   pages: {
     index: {
       entry: 'src/packs/application.js',
+      title: 'TAPHOA',
       custom: `
         <script>
           window.chatwootConfig = {
