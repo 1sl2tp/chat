@@ -95,7 +95,7 @@ export class ViewportController {
         borderRadius: '8px',
         background: 'rgba(0,0,0,.82)',
         color: '#fff',
-        font: '11px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace',
+        font: '10px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace',
         pointerEvents: 'none',
         whiteSpace: 'pre-wrap'
       });
@@ -109,12 +109,24 @@ export class ViewportController {
       : 'none';
     this.#debugEl.textContent = [
       `mode=${metrics.mode} keyboard=${document.documentElement.dataset.keyboardOpen}`,
-      `innerH=${Math.round(window.innerHeight)} clientH=${Math.round(document.documentElement.clientHeight)}`,
-      `vvH=${Math.round(vv?.height ?? 0)} vvTop=${Math.round(vv?.offsetTop ?? 0)} scale=${vv?.scale ?? 1}`,
-      `appH=${metrics.appHeight} kbH=${metrics.keyboardHeight}`,
-      `active=${activeLabel}`
+      `inner=${Math.round(window.innerHeight)} client=${Math.round(document.documentElement.clientHeight)} vv=${Math.round(vv?.height ?? 0)} top=${Math.round(vv?.offsetTop ?? 0)}`,
+      `appH=${metrics.appHeight} kbH=${metrics.keyboardHeight} active=${activeLabel}`,
+      rectLine('app', '#app-root'),
+      rectLine('header', '.app-header'),
+      rectLine('host', '.screen-host'),
+      rectLine('screen', '.chat-screen'),
+      rectLine('primary', '.chat-primary'),
+      rectLine('list', '.message-list'),
+      rectLine('composer', '.composer-owner')
     ].join('\n');
   }
+}
+
+function rectLine(label: string, selector: string): string {
+  const element = document.querySelector<HTMLElement>(selector);
+  if (!element) return `${label}=none`;
+  const rect = element.getBoundingClientRect();
+  return `${label} t${Math.round(rect.top)} h${Math.round(rect.height)} b${Math.round(rect.bottom)}`;
 }
 
 function isTextEntry(element: Element | null): boolean {
