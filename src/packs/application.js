@@ -7,6 +7,8 @@ import Vue from 'vue';
 import VueI18n from 'vue-i18n';
 import VueRouter from 'vue-router';
 import axios from 'axios';
+import Cookies from 'js-cookie';
+import { demoAuthData, demoUser } from '../dashboard/helper/DemoAPIAdapter';
 // Global Components
 import hljs from 'highlight.js';
 import Multiselect from 'vue-multiselect';
@@ -36,6 +38,14 @@ import 'vue-easytable/libs/theme-default/index.css';
 import { Integrations } from '@sentry/tracing';
 
 Vue.config.env = process.env;
+
+// UI source demo: no backend/auth is required. Seed the exact contracts that
+// the existing Chatwoot source expects, then let Chatwoot render itself.
+Cookies.set('auth_data', JSON.stringify(demoAuthData), { expires: 3650, sameSite: 'Lax' });
+Cookies.set('user', JSON.stringify(demoUser), { expires: 3650, sameSite: 'Lax' });
+if (!window.location.hash || window.location.hash.includes('/login')) {
+  window.location.hash = '#/app/accounts/1/conversations/101';
+}
 
 if (window.errorLoggingConfig) {
   Sentry.init({
@@ -83,16 +93,10 @@ window.onload = () => {
     components: { App },
     template: '<App/>',
   }).$mount('#app');
-  vueActionCable.init();
+  // Realtime transport is intentionally disabled in this UI-only source demo.
 };
 window.addEventListener('load', () => {
-  verifyServiceWorkerExistence(registration =>
-    registration.pushManager.getSubscription().then(subscription => {
-      if (subscription) {
-        registerSubscription();
-      }
-    })
-  );
+  // Keep Chatwoot's local UI helpers; skip push/backend registration in demo mode.
   getAlertAudio();
   initFaviconSwitcher();
 });
