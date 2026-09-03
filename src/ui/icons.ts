@@ -2,7 +2,7 @@ export type IconName =
   | 'back' | 'call' | 'callEnd' | 'contacts' | 'more'
   | 'mic' | 'micOff' | 'trash' | 'edit' | 'group' | 'plus'
   | 'attach' | 'image' | 'camera' | 'file' | 'link' | 'play' | 'pause' | 'send'
-  | 'close' | 'minimize' | 'search' | 'bell' | 'chevronLeft' | 'chevronRight';
+  | 'close' | 'minimize' | 'search' | 'bell' | 'logout' | 'chevronLeft' | 'chevronRight';
 
 const paths: Record<IconName, string> = {
   back: '<path d="M15 18l-6-6 6-6"/><path d="M9 12h10"/>',
@@ -28,6 +28,7 @@ const paths: Record<IconName, string> = {
   minimize: '<path d="M5 12h14"/>',
   search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>',
   bell: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/>',
+  logout: '<path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M13 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6"/>',
   chevronLeft: '<path d="M15 18l-6-6 6-6"/>',
   chevronRight: '<path d="M9 18l6-6-6-6"/>'
 };
