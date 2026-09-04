@@ -27,6 +27,38 @@ function makeMessage(id: string, senderId: string, text: string): ChatMessage {
 describe('basic one User ↔ one Admin text flow', () => {
   afterEach(() => stopChatMessages())
 
+  it('renders an optimistic message before the network confirms it', async () => {
+    let resolveSend: (message: ChatMessage) => void = () => undefined
+    const confirmed = makeMessage('1', 'user-1', 'xin chao admin')
+
+    const backend: ChatMessageBackend = {
+      loadMessages: vi.fn().mockResolvedValue([]),
+      subscribeMessages: vi.fn((_conversationId, _onMessage, onStatus) => {
+        onStatus('subscribed')
+        return () => undefined
+      }),
+      sendText: vi.fn().mockImplementation(
+        () => new Promise<ChatMessage>((resolve) => {
+          resolveSend = resolve
+        }),
+      ),
+      markRead: vi.fn().mockResolvedValue(undefined),
+    }
+
+    await startChatMessagesForConversation(backend, 'support-1')
+    const sending = sendChatText(backend, 'xin chao admin', () => 'client-1', 'user-1')
+
+    expect(getChatMessageState().messages).toHaveLength(1)
+    expect(getChatMessageState().messages[0].local_status).toBe('sending')
+
+    resolveSend(confirmed)
+    await sending
+
+    expect(getChatMessageState().messages).toHaveLength(1)
+    expect(getChatMessageState().messages[0].id).toBe('1')
+    expect(getChatMessageState().messages[0].local_status).toBe('sent')
+  })
+
   it('User sends one message, Admin reply arrives, and neither message is duplicated', async () => {
     let onRealtimeMessage: (message: ChatMessage) => void = () => {
       throw new Error('Realtime subscription was not installed')
