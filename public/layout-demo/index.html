@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>TAPHOA · Layout demo</title>
+<style>
+:root{--b:#1f93ff;--bg:#f8fafc;--line:#e5e7eb;--text:#111827;--muted:#6b7280;--card:#fff;--yellow:#fff7cc}
+*{box-sizing:border-box}html,body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+button,input,textarea{font:inherit}.demo{min-height:100vh}.top{height:54px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 16px;gap:8px;position:sticky;top:0;z-index:10}.brand{font-weight:800}.tabs{display:flex;gap:6px;margin-left:auto}.tabs button{border:1px solid var(--line);background:#fff;padding:7px 11px;border-radius:8px}.tabs button.on{background:var(--b);color:#fff;border-color:var(--b)}
+.view{display:none}.view.on{display:block}.desktop{height:calc(100vh - 54px);display:grid;grid-template-columns:320px 1fr;background:#fff}.list{border-right:1px solid var(--line);overflow:auto}.list-head{padding:14px;border-bottom:1px solid var(--line)}.list-head h2{margin:0 0 10px;font-size:20px}.search{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px}.conv{display:flex;gap:10px;padding:12px 14px;border-bottom:1px solid #f0f0f0}.conv.on{background:#f1f7ff}.ava{width:40px;height:40px;border-radius:50%;background:#dbeafe;display:grid;place-items:center;color:#2563eb;font-weight:700;flex:none}.conv strong{font-size:14px}.conv p{margin:4px 0 0;color:var(--muted);font-size:12px}.phone-shell{height:100%;display:flex;justify-content:center;background:#eef2f7;padding:18px}.phone{width:min(430px,100%);height:100%;background:#fff;border:1px solid var(--line);border-radius:20px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 10px 30px rgba(0,0,0,.06)}
+.chat-head{height:62px;display:flex;align-items:center;gap:10px;padding:0 12px;border-bottom:1px solid var(--line)}.chat-head .name{font-weight:700}.chat-head .meta{font-size:11px;color:var(--muted)}.chat-actions{margin-left:auto;display:flex;gap:4px}.icon{border:0;background:#f3f4f6;width:36px;height:36px;border-radius:12px}.msgs{flex:1;overflow:auto;padding:14px;background:#fff}.row{display:flex;margin:8px 0}.row.out{justify-content:flex-end}.bubble{max-width:78%;padding:9px 11px;border-radius:14px;background:#f3f4f6;font-size:14px}.out .bubble{background:#dff0ff}.media{margin-top:7px;border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff}.audio{display:flex;gap:8px;align-items:center}.reply-quote{border-left:3px solid var(--b);padding-left:8px;font-size:11px;color:var(--muted);margin-bottom:6px}.composer{border-top:1px solid var(--line);padding:8px 10px calc(8px + env(safe-area-inset-bottom));background:#fff}.record{display:none;align-items:center;gap:8px;background:#eff6ff;border-radius:14px;padding:7px 8px;margin-bottom:7px}.record.on{display:flex}.rec-bar{flex:1;height:32px;background:var(--b);border-radius:12px;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-size:12px}.compose-row{display:grid;grid-template-columns:38px 38px 1fr 40px;gap:6px;align-items:end}.compose-row textarea{height:40px;resize:none;border:1px solid var(--line);border-radius:18px;padding:10px 12px}.send{border:0;background:var(--b);color:#fff;border-radius:50%;width:38px;height:38px}
+.mobile-page{max-width:430px;margin:18px auto;background:#fff;min-height:calc(100vh - 90px);border:1px solid var(--line);border-radius:18px;overflow:hidden}.page-head{height:58px;display:flex;align-items:center;padding:0 14px;border-bottom:1px solid var(--line);font-weight:700}.profile{padding:22px 16px;text-align:center}.bigava{width:72px;height:72px;border-radius:50%;background:#dbeafe;color:#2563eb;display:grid;place-items:center;margin:0 auto 10px;font-weight:800;font-size:22px}.profile h2{margin:0}.profile p{margin:6px 0;color:var(--muted);font-size:13px}.quick{display:flex;gap:8px;padding:0 16px 18px}.quick button{flex:1;border:1px solid var(--line);background:#fff;padding:10px;border-radius:10px}.section{padding:14px 16px;border-top:1px solid var(--line)}.section h3{font-size:12px;color:var(--muted);text-transform:uppercase;margin:0 0 10px}.attr{display:flex;justify-content:space-between;gap:16px;padding:9px 0;font-size:14px}.attr span{color:var(--muted)}.labels{display:flex;gap:6px;flex-wrap:wrap}.tag{background:#ede9fe;color:#6d28d9;border-radius:999px;padding:5px 8px;font-size:11px}
+.customer-wrap{padding:16px}.customer-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}.customer-head h2{margin:0}.add{margin-left:auto;background:#22c55e;color:#fff;border:0;border-radius:8px;padding:9px 12px}.customer-search{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px;margin-bottom:12px}.customer-table{background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden}.cust{display:grid;grid-template-columns:48px 1fr 130px 130px;gap:10px;align-items:center;padding:12px;border-bottom:1px solid var(--line)}.cust:last-child{border-bottom:0}.status{font-size:12px}.status.ok{color:#16a34a}.actions button{border:0;background:none;color:var(--b);padding:4px}.actions .del{color:#dc2626}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;padding:20px;z-index:30}.modal.on{display:flex}.box{width:min(420px,100%);background:#fff;border-radius:12px;padding:18px}.box h3{margin:0 0 14px}.field{display:grid;gap:6px;margin:10px 0}.field input{border:1px solid var(--line);border-radius:8px;padding:9px}.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}.modal-actions button{padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:#fff}.modal-actions .primary{background:var(--b);color:#fff;border-color:var(--b)}
+@media(max-width:780px){.desktop{grid-template-columns:1fr}.desktop .list{display:none}.phone-shell{padding:0}.phone{border:0;border-radius:0;width:100%;height:calc(100vh - 54px);box-shadow:none}.customer-wrap{padding:10px}.cust{grid-template-columns:42px 1fr}.cust .status,.cust .actions{grid-column:2}.mobile-page{margin:0;border:0;border-radius:0;min-height:calc(100vh - 54px)}}
+</style>
+</head>
+<body>
+<div class="demo">
+  <div class="top"><div class="brand">TAPHOA · bố cục từ Chatwoot</div><div class="tabs"><button class="on" data-v="chat">Chat</button><button data-v="detail">Chi tiết KH</button><button data-v="customers">Quản lý KH</button></div></div>
+
+  <section class="view on" id="chat">
+    <div class="desktop">
+      <aside class="list">
+        <div class="list-head"><h2>Conversations</h2><input class="search" placeholder="Tìm hội thoại"/></div>
+        <div class="conv on"><div class="ava">NH</div><div><strong>Nguyễn Hương</strong><p>Voice message · 2 phút trước</p></div></div>
+        <div class="conv"><div class="ava">TA</div><div><strong>Trần Anh</strong><p>Đã gửi một ảnh</p></div></div>
+        <div class="conv"><div class="ava">MK</div><div><strong>Minh Khôi</strong><p>Cần hỗ trợ đơn hàng</p></div></div>
+      </aside>
+      <main class="phone-shell">
+        <div class="phone">
+          <header class="chat-head">
+            <button class="icon">‹</button><div class="ava">NH</div><div><div class="name">Nguyễn Hương</div><div class="meta">Đang trực tuyến</div></div>
+            <div class="chat-actions"><button class="icon">☎</button><button class="icon">▣</button><button class="icon">⋮</button></div>
+          </header>
+          <div class="msgs">
+            <div class="row"><div class="bubble">Chào bạn, mình cần hỗ trợ đơn hàng.</div></div>
+            <div class="row out"><div class="bubble">Mình kiểm tra giúp bạn nhé.</div></div>
+            <div class="row"><div class="bubble">Đây là ảnh mình gửi<div class="media">🖼 Image attachment</div></div></div>
+            <div class="row out"><div class="bubble"><div class="reply-quote">Trả lời: Đây là ảnh mình gửi</div>Mình đã xem được ảnh rồi.</div></div>
+            <div class="row"><div class="bubble"><div class="audio"><button class="icon">▶</button><div>Voice note · 00:23</div></div></div></div>
+            <div class="row out"><div class="bubble"><div class="media">📄 invoice.pdf · 248 KB</div></div></div>
+          </div>
+          <div class="composer">
+            <div class="record" id="record"><button class="icon">🗑</button><div class="rec-bar"><span>❚❚</span><span>00:08</span></div><button class="send">➤</button></div>
+            <div class="compose-row"><button class="icon">＋</button><button class="icon" id="mic">🎙</button><textarea placeholder="Nhập tin nhắn..."></textarea><button class="send">➤</button></div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </section>
+
+  <section class="view" id="detail">
+    <div class="mobile-page">
+      <div class="page-head">‹ <span style="margin-left:12px">Chi tiết khách hàng</span></div>
+      <div class="profile"><div class="bigava">NH</div><h2>Nguyễn Hương</h2><p>Khách hàng TAPHOA</p></div>
+      <div class="quick"><button>☎ Gọi</button><button>✉ Email</button><button>💬 Chat</button></div>
+      <div class="section"><h3>Thông tin</h3><div class="attr"><span>Điện thoại</span><b>0912 345 678</b></div><div class="attr"><span>Email</span><b>huong@example.com</b></div><div class="attr"><span>Địa điểm</span><b>Hà Nội</b></div></div>
+      <div class="section"><h3>Thuộc tính</h3><div class="attr"><span>Mã KH</span><b>KH-00128</b></div><div class="attr"><span>Loại</span><b>VIP</b></div></div>
+      <div class="section"><h3>Nhãn</h3><div class="labels"><span class="tag">vip</span><span class="tag">ưu tiên</span></div></div>
+      <div class="section"><h3>Lịch sử hội thoại</h3><div class="attr"><span>#1032</span><b>Đã xử lý</b></div><div class="attr"><span>#0988</span><b>Đã xử lý</b></div></div>
+    </div>
+  </section>
+
+  <section class="view" id="customers">
+    <div class="customer-wrap">
+      <div class="customer-head"><h2>Khách hàng</h2><button class="add" id="addBtn">＋ Thêm khách hàng</button></div>
+      <input class="customer-search" placeholder="Tìm khách hàng..."/>
+      <div class="customer-table">
+        <div class="cust"><div class="ava">NH</div><div><b>Nguyễn Hương</b><div style="font-size:12px;color:var(--muted)">huong@example.com</div></div><div class="status ok">● Đang hoạt động</div><div class="actions"><button>Sửa</button><button>Đặt lại MK</button><button class="del">Xóa</button></div></div>
+        <div class="cust"><div class="ava">TA</div><div><b>Trần Anh</b><div style="font-size:12px;color:var(--muted)">trananh@example.com</div></div><div class="status">○ Chưa xác minh</div><div class="actions"><button>Sửa</button><button>Đặt lại MK</button><button class="del">Xóa</button></div></div>
+        <div class="cust"><div class="ava">MK</div><div><b>Minh Khôi</b><div style="font-size:12px;color:var(--muted)">minhkhoi@example.com</div></div><div class="status ok">● Đang hoạt động</div><div class="actions"><button>Sửa</button><button>Đặt lại MK</button><button class="del">Xóa</button></div></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="modal" id="modal"><div class="box"><h3>Thêm khách hàng</h3><div class="field"><label>Tên</label><input value="Khách hàng mới"/></div><div class="field"><label>Email</label><input value="khachmoi@example.com"/></div><div class="field"><label>Mật khẩu</label><input type="password" value="12345678"/></div><div class="modal-actions"><button id="closeBtn">Hủy</button><button class="primary" id="saveBtn">Thêm</button></div></div></div>
+<script>
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('on'));b.classList.add('on');document.querySelectorAll('.view').forEach(x=>x.classList.remove('on'));document.getElementById(b.dataset.v).classList.add('on')});
+document.getElementById('mic').onclick=()=>document.getElementById('record').classList.toggle('on');
+document.getElementById('addBtn').onclick=()=>document.getElementById('modal').classList.add('on');
+document.getElementById('closeBtn').onclick=document.getElementById('saveBtn').onclick=()=>document.getElementById('modal').classList.remove('on');
+</script>
+</body>
+</html>
