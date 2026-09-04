@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>TAPHOA · Chatwoot Tailwind source demo</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      screens: {
+        medium: '640px',
+        large: '1024px',
+        xlarge: '1200px',
+        xxlarge: '1400px',
+        xxxlarge: '1600px',
+      },
+      colors: {
+        gray: {
+          50:'hsl(0,0%,97.5%)',100:'hsl(0,0%,94.6%)',200:'hsl(0,0%,92%)',
+          300:'hsl(0,0%,89.5%)',400:'hsl(0,0%,86.8%)',500:'hsl(0,0%,83%)',
+          600:'hsl(0,0%,73.2%)',700:'hsl(0,0%,55.2%)',800:'hsl(0,0%,50.3%)',
+          900:'hsl(0,0%,39.3%)',950:'hsl(0,0%,12.5%)'
+        },
+        blue: {
+          50:'hsl(210,100%,98%)',100:'hsl(209,100%,96.5%)',200:'hsl(210,98.8%,94%)',
+          300:'hsl(209,95%,90.1%)',400:'hsl(209,81.2%,84.5%)',500:'hsl(208,77.5%,76.9%)',
+          600:'hsl(206,81.9%,65.3%)',700:'hsl(206,100%,50%)',800:'hsl(208,93.5%,47.4%)',
+          900:'hsl(211,90%,42%)',950:'hsl(216,71%,23%)'
+        },
+        amber: {
+          50:'hsl(40,100%,96.5%)',100:'hsl(45,100%,90.8%)',200:'hsl(44,100%,85.8%)',
+          300:'hsl(40,100%,81.5%)',400:'hsl(39,83.6%,75.4%)',500:'hsl(37,66.9%,68.2%)',
+          600:'hsl(35,59.8%,60%)',700:'hsl(42,100%,62%)',800:'hsl(42,100%,55%)',
+          900:'hsl(25,50%,38%)',950:'hsl(25,40%,22%)'
+        },
+        green: {
+          700:'hsl(151,55%,41.5%)',800:'hsl(152,57.5%,37.6%)'
+        },
+        ruby: {
+          700:'hsl(348,75%,58.5%)'
+        },
+        slate: {
+          100:'hsl(239,13.4%,95.4%)',500:'hsl(234,10.4%,84.4%)'
+        },
+        blackA: {
+          A1:'hsla(0,0%,0%,0.012)',A2:'hsla(0,0%,0%,0.024)',A3:'hsla(0,0%,0%,0.055)',
+          A4:'hsla(0,0%,0%,0.078)',A5:'hsla(0,0%,0%,0.106)',A6:'hsla(0,0%,0%,0.133)',
+          A7:'hsla(0,0%,0%,0.169)',A8:'hsla(0,0%,0%,0.267)',A9:'hsla(0,0%,0%,0.447)',
+          A10:'hsla(0,0%,0%,0.498)',A11:'hsla(0,0%,0%,0.608)',A12:'hsla(0,0%,0%,0.875)'
+        },
+        whiteA: {
+          A1:'hsla(0,0%,0%,0)',A2:'hsla(0,0%,100%,0.013)',A3:'hsla(0,0%,100%,0.069)',
+          A4:'hsla(0,0%,100%,0.104)',A5:'hsla(0,0%,100%,0.134)',A6:'hsla(0,0%,100%,0.169)',
+          A7:'hsla(0,0%,100%,0.216)',A8:'hsla(0,0%,100%,0.312)',A9:'hsla(0,0%,100%,0.372)',
+          A10:'hsla(0,0%,100%,0.455)',A11:'hsla(0,0%,100%,0.662)',A12:'hsla(0,0%,100%,0.926)'
+        }
+      },
+      fontSize: { xs:'12px', cxs:'13px', md:'15px' },
+      fontFamily: {
+        'inter-normal-20':['Inter','sans-serif'],
+        'inter-420-20':['Inter','sans-serif'],
+        'inter-medium-24':['Inter','sans-serif'],
+        'inter-580-24':['Inter','sans-serif'],
+        'inter-semibold-20':['Inter','sans-serif']
+      }
+    }
+  },
+  plugins: []
+};
+</script>
+</head>
+
+<body class="m-0 h-screen overflow-hidden bg-white font-inter-normal-20 text-gray-950">
+
+<!-- DEMO ONLY: not product UI -->
+<div id="demoSwitch" class="fixed right-0 top-1/2 z-50 flex -translate-y-1/2 items-center gap-1 rounded-l-xl border border-r-0 border-blackA-A4 bg-whiteA-A12 p-1 shadow-lg">
+  <button id="demoToggle" class="h-8 rounded-lg bg-gray-950 px-2 text-xs font-inter-medium-24 text-white">TEST</button>
+  <button data-view="chatView" class="demo-item hidden h-8 rounded-lg bg-gray-950 px-3 text-cxs font-inter-medium-24 text-white">Chat</button>
+  <button data-view="detailView" class="demo-item hidden h-8 rounded-lg bg-gray-50 px-3 text-cxs font-inter-medium-24 text-gray-900">Chi tiết KH</button>
+  <button data-view="customersView" class="demo-item hidden h-8 rounded-lg bg-gray-50 px-3 text-cxs font-inter-medium-24 text-gray-900">Quản lý KH</button>
+</div>
+
+<div id="chatView"
+ class="view grid h-screen grid-cols-1 bg-white
+        min-[781px]:grid-cols-[340px_minmax(0,1fr)]
+        large:grid-cols-[360px_minmax(0,1fr)]
+        xlarge:grid-cols-[350px_minmax(0,1fr)_310px]
+        xxlarge:grid-cols-[380px_minmax(0,1fr)_330px]
+        xxxlarge:grid-cols-[460px_minmax(0,1fr)_400px]">
+
+  <!-- COLUMN 1: Chatwoot Web conversation list geometry -->
+  <aside class="hidden h-full min-w-0 flex-col overflow-hidden border-r border-blackA-A3 bg-white min-[781px]:flex">
+    <div class="border-b border-blackA-A3 px-3 py-3">
+      <h1 class="mb-2 text-[21px] font-inter-580-24 leading-6 text-gray-950">Conversations</h1>
+      <input class="h-9 w-full rounded-[13px] border border-gray-200 bg-white px-3 text-cxs font-inter-420-20 text-gray-950 outline-none"
+             placeholder="Search conversations">
+    </div>
+
+    <div class="flex-1 overflow-auto">
+      <div class="flex flex-row justify-between gap-3 bg-gray-50 px-3">
+        <div class="flex flex-row py-3">
+          <div class="relative flex h-8 w-8 items-center justify-center rounded-[6px] bg-gray-100 font-inter-medium-24 text-base text-gray-800">
+            NH
+            <span class="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border-[1.5px] border-white bg-green-700"></span>
+          </div>
+        </div>
+        <div class="flex flex-1 flex-col gap-1 border-b-[1px] border-b-blackA-A3 py-3">
+          <div class="flex h-[24px] flex-row items-center justify-between">
+            <div class="flex min-w-0 flex-row items-center gap-[5px]">
+              <div class="truncate text-base font-inter-medium-24 tracking-[0.24px] text-gray-950">Nguyễn Hương</div>
+            </div>
+            <div class="text-xs font-inter-420-20 tracking-[0.32px] text-gray-700">2m</div>
+          </div>
+          <div class="flex flex-row items-end gap-2">
+            <div class="flex-1 text-cxs font-inter-420-20 leading-[17px] text-gray-900">Voice message · Cần hỗ trợ đơn hàng</div>
+            <div class="flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-700 px-1 text-[11px] font-inter-medium-24 text-white">3</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex flex-row justify-between gap-3 px-3">
+        <div class="flex flex-row py-3">
+          <div class="relative flex h-8 w-8 items-center justify-center rounded-[6px] bg-gray-100 font-inter-medium-24 text-base text-gray-800">TA</div>
+        </div>
+        <div class="flex flex-1 flex-col gap-1 border-b-[1px] border-b-blackA-A3 py-3">
+          <div class="flex h-[24px] flex-row items-center justify-between">
+            <div class="truncate text-base font-inter-medium-24 tracking-[0.24px] text-gray-950">Trần Anh</div>
+            <div class="text-xs font-inter-420-20 tracking-[0.32px] text-gray-700">7m</div>
+          </div>
+          <div class="text-cxs font-inter-420-20 leading-[17px] text-gray-900">Đã gửi một ảnh</div>
+        </div>
+      </div>
+
+      <div class="flex flex-row justify-between gap-3 px-3">
+        <div class="flex flex-row py-3">
+          <div class="relative flex h-8 w-8 items-center justify-center rounded-[6px] bg-gray-100 font-inter-medium-24 text-base text-gray-800">MK</div>
+        </div>
+        <div class="flex flex-1 flex-col gap-1 border-b-[1px] border-b-blackA-A3 py-3">
+          <div class="flex h-[24px] flex-row items-center justify-between">
+            <div class="truncate text-base font-inter-medium-24 tracking-[0.24px] text-gray-950">Minh Khôi</div>
+            <div class="text-xs font-inter-420-20 tracking-[0.32px] text-gray-700">1h</div>
+          </div>
+          <div class="text-cxs font-inter-420-20 leading-[17px] text-gray-900">Cần hỗ trợ đơn hàng</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- COLUMN 2: exact Chatwoot Mobile utility strings -->
+  <main class="flex min-w-0 flex-col bg-white xlarge:border-r xlarge:border-blackA-A3">
+
+    <!-- ChatHeader.tsx -->
+    <header class="border-b-[1px] border-b-blackA-A3">
+      <div class="flex flex-row items-center justify-between px-4 py-2">
+        <div class="flex flex-1 flex-row items-center justify-center gap-2">
+          <button class="flex h-8 w-8 items-center justify-start" aria-label="Back">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M16 20L7 11.5L16 3" stroke="#858585" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+
+          <button class="flex flex-1 flex-row items-center text-left">
+            <div class="flex h-8 w-8 items-center justify-center rounded-[6px] bg-gray-100 font-inter-medium-24 text-base text-gray-800">NH</div>
+            <div class="pl-2">
+              <div class="max-w-[210px] truncate text-[17px] font-inter-medium-24 tracking-[0.32px] text-gray-950">Nguyễn Hương</div>
+            </div>
+          </button>
+        </div>
+
+        <div class="flex flex-1 flex-row justify-end">
+          <div class="flex flex-row items-center gap-4">
+            <!-- CallIcon source -->
+            <button class="h-8 w-8 p-1" aria-label="Audio call">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M16.5703 21.2699C18.2461 21.2699 19.3008 20.8363 20.2266 19.7582C20.3086 19.6761 20.3906 19.5824 20.4727 19.4886C21.0234 18.8676 21.2812 18.2582 21.2812 17.6722C21.2812 16.9808 20.8594 16.2894 19.9805 15.6801L17.6484 14.0863C16.9102 13.5707 16.3008 13.559 15.375 14.0043L13.957 14.6957C13.7109 14.8246 13.4766 14.8246 13.2422 14.6605C12.8438 14.4027 11.7656 13.5238 11.1445 12.9027C10.5234 12.2816 9.83203 11.4496 9.51562 10.8988C9.41016 10.7113 9.42188 10.5472 9.58594 10.3011L10.3945 9.0238C10.7578 8.4613 10.8984 7.62927 10.3945 6.91443L8.56641 4.30115C7.95703 3.42224 7.30078 3.01208 6.59766 3.00037C6.01172 2.98865 5.40234 3.25818 4.78125 3.80896C4.6875 3.87927 4.60547 3.9613 4.51172 4.04333C3.44531 4.98083 3 6.0238 3 7.69958C3 10.3597 4.59375 13.6176 7.62891 16.6527C10.6406 19.6644 13.9102 21.2699 16.5703 21.2699Z" fill="#838383"/>
+              </svg>
+            </button>
+
+            <!-- VideoCall source -->
+            <button class="h-8 w-8 p-1" aria-label="Video call">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M22 8.93091C22 8.32591 22 8.02291 21.88 7.88191C21.8286 7.82196 21.7638 7.77503 21.6908 7.74496C21.6178 7.71489 21.5387 7.70253 21.46 7.70891C21.277 7.72291 21.063 7.93691 20.634 8.36591L17 11.9999L20.634 15.6339C21.063 16.0629 21.277 16.2769 21.461 16.2909" stroke="black" stroke-opacity=".565" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M2 9.8C2 8.12 2 7.28 2.327 6.638C2.61462 6.07354 3.07354 5.61462 3.638 5.327C4.28 5 5.12 5 6.8 5H12.2C13.88 5 14.72 5 15.362 5.327C15.9265 5.61462 16.3854 6.07354 16.673 6.638C17 7.28 17 8.12 17 9.8V14.2C17 15.88 17 16.72 16.673 17.362C16.3854 17.9265 15.9265 18.3854 15.362 18.673C14.72 19 13.88 19 12.2 19H6.8C5.12 19 4.28 19 3.638 18.673C3.07354 18.3854 2.61462 17.9265 2.327 17.362C2 16.72 2 15.88 2 14.2V9.8Z" stroke="black" stroke-opacity=".565" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+
+            <button class="h-8 w-8 p-1" aria-label="More">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M12 13C12.5523 13 13 12.5523 13 12C13 11.4477 12.5523 11 12 11C11.4477 11 11 11.4477 11 12C11 12.5523 11.4477 13 12 13ZM19 13C19.5523 13 20 12.5523 20 12C20 11.4477 19.5523 11 19 11C18.4477 11 18 11.4477 18 12C18 12.5523 18.4477 13 19 13ZM5 13C5.55228 13 6 12.5523 6 12C6 11.4477 5.55228 11 5 11C4.44772 11 4 11.4477 4 12C4 12.5523 4.44772 13 5 13Z" stroke="#858585" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- MessagesList / Message.tsx -->
+    <section class="flex-1 overflow-auto bg-white p-3">
+
+      <!-- incoming/user => bg-blue-700 / text-white -->
+      <div class="my-[1px] flex items-start mb-2">
+        <div class="flex flex-row">
+          <div class="mr-1 flex items-end justify-end">
+            <div class="flex h-6 w-6 items-center justify-center rounded-[5px] bg-gray-100 text-sm font-inter-medium-24 text-gray-800">N</div>
+          </div>
+          <div class="relative max-w-[300px] overflow-hidden rounded-2xl bg-blue-700 pl-3 pr-2.5 py-2 text-white">
+            <div class="text-base font-inter-normal-20 tracking-[0.32px] leading-[22px]">Chào bạn, mình cần hỗ trợ đơn hàng.</div>
+            <div class="h-[21px] pt-[5px] pb-0.5 flex flex-row items-center justify-end">
+              <span class="pr-1 text-xs font-inter-420-20 tracking-[0.32px] text-blue-200">10:22</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- outgoing/agent => bg-gray-100 -->
+      <div class="my-[1px] flex items-end mb-2">
+        <div class="relative max-w-[300px] overflow-hidden rounded-2xl bg-gray-100 pl-3 pr-2.5 py-2 text-gray-950">
+          <div class="text-base font-inter-normal-20 tracking-[0.32px] leading-[22px]">Mình kiểm tra giúp bạn nhé.</div>
+          <div class="h-[21px] pt-[5px] pb-0.5 flex flex-row items-center justify-end">
+            <span class="pr-1 text-xs font-inter-420-20 tracking-[0.32px] text-gray-700">10:23</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- image attachment -->
+      <div class="my-[1px] flex items-start mb-2">
+        <div class="flex flex-row">
+          <div class="mr-1 flex items-end justify-end">
+            <div class="flex h-6 w-6 items-center justify-center rounded-[5px] bg-gray-100 text-sm font-inter-medium-24 text-gray-800">N</div>
+          </div>
+          <div class="relative max-w-[300px] overflow-hidden rounded-2xl bg-blue-700 pl-3 pr-2.5 py-2 text-white">
+            <div class="text-base font-inter-normal-20 tracking-[0.32px] leading-[22px]">Đây là ảnh mình gửi</div>
+            <div class="my-2 flex flex-row justify-start">
+              <div class="flex h-[150px] w-[240px] items-center justify-center rounded-lg bg-blue-200 text-cxs font-inter-420-20 text-gray-900">Image attachment</div>
+            </div>
+            <div class="h-[21px] pt-[5px] pb-0.5 flex flex-row items-center justify-end">
+              <span class="pr-1 text-xs font-inter-420-20 tracking-[0.32px] text-blue-200">10:24</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- quote reply -->
+      <div class="my-[1px] flex items-end mb-2">
+        <div class="relative max-w-[300px] overflow-hidden rounded-2xl bg-gray-100 pl-3 pr-2.5 py-2 text-gray-950">
+          <div class="mb-2 rounded-lg border-l-[3px] border-gray-700 bg-whiteA-A6 px-2 py-1 text-xs font-inter-420-20 tracking-[0.32px]">Đây là ảnh mình gửi</div>
+          <div class="text-base font-inter-normal-20 tracking-[0.32px] leading-[22px]">Mình đã xem được ảnh rồi.</div>
+          <div class="h-[21px] pt-[5px] pb-0.5 flex flex-row items-center justify-end">
+            <span class="pr-1 text-xs font-inter-420-20 tracking-[0.32px] text-gray-700">10:25</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- audio -->
+      <div class="my-[1px] flex items-start mb-2">
+        <div class="flex flex-row">
+          <div class="mr-1 flex items-end justify-end">
+            <div class="flex h-6 w-6 items-center justify-center rounded-[5px] bg-gray-100 text-sm font-inter-medium-24 text-gray-800">N</div>
+          </div>
+          <div class="relative max-w-[300px] overflow-hidden rounded-2xl bg-blue-700 pl-3 pr-2.5 py-2 text-white">
+            <div class="my-2 flex flex-row items-center justify-start">
+              <button class="mr-3" aria-label="Play">
+                <svg width="10" height="13" viewBox="0 0 10 13"><path d="M0 13V0L10 6.80952L0 13Z" fill="white"/></svg>
+              </button>
+              <div class="h-[3px] flex-1 rounded bg-whiteA-A9"><div class="h-[3px] w-1/3 rounded bg-white"></div></div>
+              <span class="ml-3 text-xs font-inter-420-20 tracking-[0.32px]">00:23</span>
+            </div>
+            <div class="h-[21px] pt-[5px] pb-0.5 flex flex-row items-center justify-end">
+              <span class="pr-1 text-xs font-inter-420-20 tracking-[0.32px] text-blue-200">10:26</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- private note -->
+      <div class="my-1 flex items-end mb-2">
+        <div class="relative max-w-[300px] overflow-hidden rounded-2xl bg-amber-100 pl-3 pr-2.5 py-2 text-amber-950 before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:rounded-[4px] before:bg-amber-700">
+          <div class="pl-2.5 text-base font-inter-medium-24 tracking-[0.32px] leading-[22px]">Ghi chú riêng: khách VIP.</div>
+          <div class="h-[21px] pt-[5px] pb-0.5 flex flex-row items-center justify-end">
+            <span class="pr-1 text-xs font-inter-420-20 tracking-[0.32px] text-gray-700">10:27</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- file -->
+      <div class="my-[1px] flex items-end mb-2">
+        <div class="relative max-w-[300px] overflow-hidden rounded-2xl bg-gray-100 pl-3 pr-2.5 py-2 text-gray-950">
+          <div class="my-2 flex max-w-[300px] flex-row items-center justify-end">
+            <div class="rounded-xl border border-gray-200 bg-white px-3 py-2">
+              <div class="text-cxs font-inter-medium-24">invoice.pdf</div>
+              <div class="text-xs font-inter-420-20 text-gray-900">248 KB</div>
+            </div>
+          </div>
+          <div class="h-[21px] pt-[5px] pb-0.5 flex flex-row items-center justify-end">
+            <span class="pr-1 text-xs font-inter-420-20 tracking-[0.32px] text-gray-700">10:28</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ReplyBoxContainer / MessageTextInput / AudioRecorder -->
+    <footer class="border-t-[1px] border-t-blackA-A3 bg-white">
+      <div class="px-3 text-xs font-inter-420-20 tracking-[0.32px] text-gray-700">Nguyễn Hương is typing…</div>
+
+      <div id="recorder" class="hidden max-h-[57px] flex-row items-center overflow-hidden px-1">
+        <button id="trashRec" class="flex h-10 w-10 items-center justify-center">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+            <path d="M16 6V5.2C16 4.08 16 3.52 15.782 3.092C15.5903 2.71569 15.2843 2.40974 14.908 2.218C14.48 2 13.92 2 12.8 2H11.2C10.08 2 9.52 2 9.092 2.218C8.71569 2.40974 8.40974 2.71569 8.218 3.092C8 3.52 8 4.08 8 5.2V6M10 11.5V16.5M14 11.5V16.5M3 6H21M19 6V17.2C19 18.88 19 19.72 18.673 20.362C18.3854 20.9265 17.9265 21.3854 17.362 21.673C16.72 22 15.88 22 14.2 22H9.8C8.12 22 7.28 22 6.638 21.673C6.07354 21.3854 5.61462 20.9265 5.327 20.362C5 19.72 5 18.88 5 17.2V6" stroke="#858585" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="mx-1.5 flex min-h-9 flex-1 flex-row items-center justify-between rounded-2xl bg-blue-800 px-3 py-[7px]">
+          <span class="text-white">Ⅱ</span>
+          <span class="text-xs font-inter-420-20 leading-[14px] tracking-[0.32px] text-whiteA-A12">00:08</span>
+        </div>
+        <button class="flex h-10 w-10 items-center justify-center">
+          <span class="flex h-7 w-7 items-center justify-center rounded-full bg-blue-800">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 13.3334V2.66675M8 2.66675L4 6.66675M8 2.66675L12 6.66675" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+        </button>
+      </div>
+
+      <div id="composeMain" class="flex items-end">
+        <button class="flex h-10 w-10 items-center justify-center rounded-2xl">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 3L12 21M21 12L3 12" stroke="black" stroke-opacity=".565" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+
+        <button id="mic" class="flex h-10 w-10 items-center justify-center rounded-2xl">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M20 10V11C20 13.1217 19.1571 15.1566 17.6569 16.6569C16.1566 18.1571 14.1217 19 12 19M12 19C9.87827 19 7.84344 18.1571 6.34315 16.6569C4.84285 15.1566 4 13.1217 4 11V10M12 19V23M12 15C10.9391 15 9.92172 14.5786 9.17157 13.8284C8.42143 13.0783 8 12.0609 8 11V5C8 3.93913 8.42143 2.92172 9.17157 2.17157C9.92172 1.42143 10.9391 1 12 1C13.0609 1 14.0783 1.42143 14.8284 2.17157C15.5786 2.92172 16 3.93913 16 5V11C16 12.0609 15.5786 13.0783 14.8284 13.8284C14.0783 14.5786 13.0609 15 12 15Z" stroke="black" stroke-opacity=".565" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+
+        <div class="relative my-0.5 flex-1">
+          <textarea rows="1"
+            class="ml-[5px] mr-2 min-h-9 max-h-[76px] w-[calc(100%-13px)] resize-none rounded-2xl bg-blackA-A4 py-2 pl-3 pr-[36px] text-base font-inter-normal-20 leading-[20px] tracking-[0.24px] text-gray-950 outline-none"
+            placeholder="Type a message"></textarea>
+          <button class="absolute bottom-[5.5px] right-[13px] h-[29px] w-[29px] rounded-full border border-blackA-A3 bg-white"></button>
+        </div>
+
+        <button class="flex h-10 w-10 items-center justify-center">
+          <span class="flex h-7 w-7 items-center justify-center rounded-full bg-gray-950">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 13.3334V2.66675M8 2.66675L4 6.66675M8 2.66675L12 6.66675" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+        </button>
+      </div>
+    </footer>
+  </main>
+
+  <!-- COLUMN 3: Chatwoot Web sidebar geometry; TAPHOA media content -->
+  <aside class="hidden h-full overflow-auto bg-white xlarge:block">
+    <div class="flex h-[49px] items-center border-b border-blackA-A3 px-4 text-md font-inter-medium-24 text-gray-950">Đa phương tiện</div>
+    <div class="p-4">
+      <h3 class="mb-2 text-xs font-inter-medium-24 tracking-[0.32px] text-gray-900">ẢNH & VIDEO</h3>
+      <div class="mb-6 grid grid-cols-3 gap-1">
+        <div class="aspect-square rounded-lg bg-gray-50 grid place-items-center text-xs text-gray-800">Ảnh</div>
+        <div class="aspect-square rounded-lg bg-gray-50 grid place-items-center text-xs text-gray-800">Ảnh</div>
+        <div class="aspect-square rounded-lg bg-gray-50 grid place-items-center text-xs text-gray-800">Video</div>
+        <div class="aspect-square rounded-lg bg-gray-50 grid place-items-center text-xs text-gray-800">Ảnh</div>
+        <div class="aspect-square rounded-lg bg-gray-50 grid place-items-center text-xs text-gray-800">Ảnh</div>
+        <div class="aspect-square rounded-lg bg-gray-50 grid place-items-center text-xs text-gray-800">Video</div>
+      </div>
+
+      <h3 class="mb-2 text-xs font-inter-medium-24 tracking-[0.32px] text-gray-900">TỆP</h3>
+      <div class="flex h-10 items-center border-b border-blackA-A3 text-cxs font-inter-420-20">
+        <span>invoice.pdf</span><span class="ml-auto text-xs text-gray-700">248 KB</span>
+      </div>
+      <div class="flex h-10 items-center border-b border-blackA-A3 text-cxs font-inter-420-20">
+        <span>bao-gia.zip</span><span class="ml-auto text-xs text-gray-700">1.2 MB</span>
+      </div>
+
+      <h3 class="mb-2 mt-5 text-xs font-inter-medium-24 tracking-[0.32px] text-gray-900">GHI ÂM</h3>
+      <div class="flex h-10 items-center border-b border-blackA-A3 text-cxs font-inter-420-20">
+        <span>Voice note</span><span class="ml-auto text-xs text-gray-700">00:23</span>
+      </div>
+      <div class="flex h-10 items-center border-b border-blackA-A3 text-cxs font-inter-420-20">
+        <span>Voice note</span><span class="ml-auto text-xs text-gray-700">00:41</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<div id="detailView" class="view hidden h-screen overflow-auto bg-white">
+  <div class="mx-auto min-h-screen max-w-[430px] bg-white">
+    <div class="flex flex-row items-start border-b-[1px] border-b-blackA-A3 px-4 py-[13px]">
+      <button class="flex-1 text-left">×</button>
+      <div class="flex items-center">
+        <div class="flex h-[50px] w-[50px] items-center justify-center rounded-[12px] bg-gray-100 text-xl font-inter-medium-24 text-gray-800">NH</div>
+        <div class="flex flex-col items-center gap-1 pt-3">
+          <div class="text-[21px] font-inter-580-24 text-gray-950">Nguyễn Hương</div>
+          <div class="text-[15px] font-inter-420-20 leading-[17.25px] text-gray-900">Khách hàng TAPHOA</div>
+        </div>
+      </div>
+      <div class="flex-1"></div>
+    </div>
+    <div class="flex flex-row justify-between gap-3 px-4 pt-5">
+      <button class="flex flex-1 flex-col items-center justify-center rounded-xl bg-gray-50 py-3 text-blue-800">Email</button>
+      <button class="flex flex-1 flex-col items-center justify-center rounded-xl bg-gray-50 py-3 text-blue-800">Gọi</button>
+    </div>
+  </div>
+</div>
+
+<div id="customersView" class="view hidden h-screen overflow-auto bg-white">
+  <div class="mx-auto max-w-[1100px] p-6">
+    <div class="mb-4 flex items-center">
+      <h2 class="text-[21px] font-inter-580-24 text-gray-950">Khách hàng</h2>
+      <button class="ml-auto h-9 rounded-[10px] bg-gray-950 px-4 text-cxs font-inter-medium-24 text-white">+ Thêm khách hàng</button>
+    </div>
+    <input class="mb-3 h-9 w-full rounded-[13px] border border-gray-200 px-3 text-cxs outline-none" placeholder="Tìm khách hàng">
+    <div class="overflow-hidden rounded-[13px] border border-blackA-A3">
+      <div class="grid grid-cols-[44px_1fr_150px_220px] items-center gap-3 border-b border-blackA-A3 p-3 max-[700px]:grid-cols-[36px_1fr]">
+        <div class="flex h-8 w-8 items-center justify-center rounded-[6px] bg-gray-100 font-inter-medium-24 text-gray-800">N</div>
+        <div><div class="text-base font-inter-medium-24">Nguyễn Hương</div><div class="text-xs font-inter-420-20 text-gray-900">huong@example.com</div></div>
+        <div class="text-cxs font-inter-420-20 text-green-700 max-[700px]:col-start-2">● Đang hoạt động</div>
+        <div class="text-right max-[700px]:col-start-2"><button class="px-2 text-cxs font-inter-medium-24 text-blue-800">Sửa</button><button class="px-2 text-cxs font-inter-medium-24 text-blue-800">Đặt lại MK</button><button class="px-2 text-cxs font-inter-medium-24 text-ruby-700">Xóa</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const demoToggle = document.getElementById('demoToggle');
+const demoItems = [...document.querySelectorAll('.demo-item')];
+demoToggle.addEventListener('click', () => demoItems.forEach(x => x.classList.toggle('hidden')));
+
+document.querySelectorAll('[data-view]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
+    document.getElementById(btn.dataset.view).classList.remove('hidden');
+    demoItems.forEach(x => x.classList.add('hidden'));
+    document.querySelectorAll('[data-view]').forEach(x => {
+      x.classList.remove('bg-gray-950','text-white');
+      x.classList.add('bg-gray-50','text-gray-900');
+    });
+    btn.classList.add('bg-gray-950','text-white');
+    btn.classList.remove('bg-gray-50','text-gray-900');
+  });
+});
+
+const mic = document.getElementById('mic');
+const recorder = document.getElementById('recorder');
+const composeMain = document.getElementById('composeMain');
+const trashRec = document.getElementById('trashRec');
+mic.addEventListener('click', () => {
+  composeMain.classList.add('hidden');
+  recorder.classList.remove('hidden');
+  recorder.classList.add('flex');
+});
+trashRec.addEventListener('click', () => {
+  recorder.classList.add('hidden');
+  recorder.classList.remove('flex');
+  composeMain.classList.remove('hidden');
+});
+</script>
+</body>
+</html>
