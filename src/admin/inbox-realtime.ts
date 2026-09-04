@@ -8,7 +8,7 @@ export interface AdminInboxEvent {
 }
 
 export interface AdminInboxWatcher {
-  start(onChange: (event: AdminInboxEvent) => void): void
+  start(onChange: (event?: AdminInboxEvent) => void): void
   stop(): void
 }
 
