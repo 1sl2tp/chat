@@ -4,7 +4,10 @@ import { createSupabaseChatBackend } from '../supabase/chat-backend'
 import { createSupabaseMessageBackend } from '../supabase/message-backend'
 import { supabase } from '../supabase/client'
 import { bootstrapChat } from './bootstrap'
+import { readChatBootstrapCache, writeChatBootstrapCache } from './bootstrap-cache'
 import {
+  getSupportConversationId,
+  hydrateChatMessagesFromCache,
   loadOlderChatMessages,
   sendChatText,
   startChatMessages,
@@ -68,7 +71,20 @@ export async function startChatRuntime(options: ChatRuntimeOptions = {}): Promis
   started = true
   activeClient = client
   activeMessageBackend = createSupabaseMessageBackend(client)
-  setChatRuntimeState({ phase: 'loading', identity: null, supportEntry: null, error: null })
+
+  const cachedBootstrap =
+    typeof localStorage === 'undefined' ? null : readChatBootstrapCache(localStorage)
+  setChatRuntimeState({
+    phase: 'loading',
+    identity: cachedBootstrap?.identity ?? null,
+    supportEntry: cachedBootstrap?.supportEntry ?? null,
+    error: null,
+  })
+
+  const cachedConversationId = getSupportConversationId(cachedBootstrap?.supportEntry ?? null)
+  if (cachedConversationId) {
+    void hydrateChatMessagesFromCache(cachedConversationId)
+  }
 
   try {
     const result = await bootstrapChat(createSupabaseChatBackend(client), {
@@ -83,6 +99,13 @@ export async function startChatRuntime(options: ChatRuntimeOptions = {}): Promis
       supportEntry: result.supportEntry,
       error: null,
     })
+
+    if (typeof localStorage !== 'undefined') {
+      writeChatBootstrapCache(
+        { identity: result.identity, supportEntry: result.supportEntry },
+        localStorage,
+      )
+    }
 
     installVisibilitySync()
     await startChatMessages(activeMessageBackend, result.supportEntry)
