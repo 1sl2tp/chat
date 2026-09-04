@@ -28,9 +28,11 @@ html,body{margin:0;width:100%;height:100%;background:#fff;color:var(--gray-950);
 button,input,textarea{font:inherit}
 button{cursor:pointer}
 .app{height:100vh;display:grid;grid-template-columns:var(--cw-list) minmax(0,1fr) var(--cw-side);overflow:hidden;background:#fff}
-.demo-switch{position:fixed;right:12px;top:12px;z-index:50;display:flex;gap:6px;background:rgba(255,255,255,.94);padding:6px;border:1px solid var(--blackA4);border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.08)}
+.demo-switch{position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:50;display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.96);padding:6px 6px 6px 4px;border:1px solid var(--blackA4);border-right:0;border-radius:12px 0 0 12px;box-shadow:0 6px 20px rgba(0,0,0,.10)}
+.demo-switch.collapsed button:not(.demo-toggle){display:none}
 .demo-switch button{border:0;background:var(--gray-50);color:var(--gray-900);height:32px;padding:0 10px;border-radius:9px;font-family:Inter;font-size:13px}
 .demo-switch button.on{background:var(--gray-950);color:white}
+.demo-switch .demo-toggle{display:grid;place-items:center;width:34px;padding:0;background:var(--gray-950);color:#fff;font-weight:600}
 .view{display:none;height:100%}.view.on{display:contents}
 
 /* Chatwoot Web owner geometry: list / flexible conversation / sidebar */
@@ -144,20 +146,21 @@ svg{display:block}
 @media(min-width:1600px){:root{--cw-list:46rem;--cw-side:40rem}}
 @media(max-width:1199px){.app{grid-template-columns:var(--cw-list) minmax(0,1fr)}.media-panel{display:none}}
 @media(max-width:780px){
+  .demo-switch{right:0;top:42%;bottom:auto;transform:translateY(-50%)}
   .app{grid-template-columns:1fr}
   .conversation-list{display:none}
   .chat{border-right:0}
   .chat-header{padding:8px 16px}
   .messages{padding:12px}
   .bubble{max-width:min(var(--cw-bubble),calc(100vw - 52px))}
-  .demo-switch{top:auto;bottom:12px}
   .customer-row{grid-template-columns:36px 1fr}.customer-row .status-ok,.customer-row .row-actions{grid-column:2}
 }
 </style>
 </head>
 <body>
 
-<div class="demo-switch" aria-label="Demo navigation">
+<div class="demo-switch collapsed" id="demoSwitch" aria-label="Demo navigation">
+  <button class="demo-toggle" id="demoToggle" aria-label="Mở menu demo">TEST</button>
   <button class="on" data-view="chatView">Chat</button>
   <button data-view="detailView">Chi tiết KH</button>
   <button data-view="customersView">Quản lý KH</button>
@@ -313,12 +316,16 @@ svg{display:block}
 </div>
 
 <script>
-document.querySelectorAll('.demo-switch button').forEach(btn=>{
+const demoSwitch=document.getElementById('demoSwitch');
+const demoToggle=document.getElementById('demoToggle');
+demoToggle?.addEventListener('click',()=>demoSwitch.classList.toggle('collapsed'));
+document.querySelectorAll('.demo-switch button[data-view]').forEach(btn=>{
   btn.addEventListener('click',()=>{
-    document.querySelectorAll('.demo-switch button').forEach(x=>x.classList.remove('on'));
+    document.querySelectorAll('.demo-switch button[data-view]').forEach(x=>x.classList.remove('on'));
     document.querySelectorAll('.view').forEach(x=>x.classList.remove('on'));
     btn.classList.add('on');
     document.getElementById(btn.dataset.view).classList.add('on');
+    demoSwitch.classList.add('collapsed');
   });
 });
 const mic=document.getElementById('mic');
