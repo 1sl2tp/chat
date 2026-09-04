@@ -4,6 +4,8 @@ import type { ChatMessage } from '../chat/messages'
 import { supabase } from './client'
 
 const MESSAGE_COLUMNS = 'id,conversation_id,sender_id,client_message_id,type,text,reply_to_id,created_at,edited_at,revoked_at,call_id'
+const MESSAGE_PAGE_SIZE = 50
+const DELTA_LIMIT = 100
 
 function asChatMessage(value: unknown): ChatMessage {
   return value as ChatMessage
@@ -16,10 +18,34 @@ export function createSupabaseMessageBackend(client: SupabaseClient = supabase):
         .from('chat_messages')
         .select(MESSAGE_COLUMNS)
         .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: false })
+        .limit(MESSAGE_PAGE_SIZE)
+      if (error) throw error
+      return (data ?? []).map(asChatMessage).reverse()
+    },
+
+    async loadMessagesAfter(conversationId, createdAt) {
+      const { data, error } = await client
+        .from('chat_messages')
+        .select(MESSAGE_COLUMNS)
+        .eq('conversation_id', conversationId)
+        .gte('created_at', createdAt)
         .order('created_at', { ascending: true })
-        .limit(200)
+        .limit(DELTA_LIMIT)
       if (error) throw error
       return (data ?? []).map(asChatMessage)
+    },
+
+    async loadMessagesBefore(conversationId, createdAt) {
+      const { data, error } = await client
+        .from('chat_messages')
+        .select(MESSAGE_COLUMNS)
+        .eq('conversation_id', conversationId)
+        .lt('created_at', createdAt)
+        .order('created_at', { ascending: false })
+        .limit(MESSAGE_PAGE_SIZE)
+      if (error) throw error
+      return (data ?? []).map(asChatMessage).reverse()
     },
 
     subscribeMessages(conversationId, onMessage, onStatus) {
@@ -36,7 +62,12 @@ export function createSupabaseMessageBackend(client: SupabaseClient = supabase):
           (payload) => onMessage(asChatMessage(payload.new)),
         )
         .subscribe((status, error) => {
-          const mapped: ChatRealtimeStatus = status === 'SUBSCRIBED' ? 'subscribed' : status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' ? 'error' : 'connecting'
+          const mapped: ChatRealtimeStatus =
+            status === 'SUBSCRIBED'
+              ? 'subscribed'
+              : status === 'CHANNEL_ERROR' || status === 'TIMED_OUT'
+                ? 'error'
+                : 'connecting'
           onStatus(mapped, error ?? undefined)
         })
 
