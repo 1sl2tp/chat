@@ -141,6 +141,36 @@ export function getSupportConversationId(supportEntry: unknown): string | null {
   return typeof candidate === 'string' && candidate.length > 0 ? candidate : null
 }
 
+export async function hydrateChatMessagesFromCache(
+  conversationId: string | null,
+  cache: MessageCache = getRuntimeMessageCache(),
+): Promise<void> {
+  const run = ++generation
+  stopSubscription?.()
+  stopSubscription = null
+  activeBackend = null
+  activeCache = cache
+  syncInFlight = false
+  olderInFlight = false
+
+  if (!conversationId) return
+
+  const cached = await cache.load(conversationId).catch(() => [])
+  if (run !== generation) return
+
+  publish({
+    conversationId,
+    messages: mergeChatMessages([], cached),
+    realtime: 'idle',
+    syncing: false,
+    isLoadingOlder: false,
+    hasOlder: true,
+    messageRevision: state.messageRevision + 1,
+    lastChange: { kind: 'cache', count: cached.length },
+    error: null,
+  })
+}
+
 export async function startChatMessagesForConversation(
   backend: ChatMessageBackend,
   conversationId: string | null,
@@ -169,9 +199,11 @@ export async function startChatMessagesForConversation(
     return
   }
 
+  const seedMessages = state.conversationId === conversationId ? state.messages : []
+
   publish({
     conversationId,
-    messages: [],
+    messages: seedMessages,
     realtime: 'connecting',
     syncing: true,
     isLoadingOlder: false,
