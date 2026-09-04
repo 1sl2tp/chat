@@ -83,7 +83,7 @@ button,[role="button"],svg,img{-webkit-user-drag:none}
 </style>
 </head>
 
-<body class="m-0 h-[var(--app-vh,100dvh)] overflow-hidden bg-white font-inter-normal-20 text-gray-950 select-none touch-manipulation">
+<body class="m-0 h-[var(--app-vh,100svh)] overflow-hidden bg-white font-inter-normal-20 text-gray-950 select-none touch-manipulation">
 
 <!-- DEMO ONLY: not product UI -->
 <div id="demoSwitch" class="fixed right-0 top-1/2 z-50 flex -translate-y-1/2 items-center gap-1 rounded-l-xl border border-r-0 border-blackA-A4 bg-whiteA-A12 p-1 shadow-lg">
@@ -94,7 +94,7 @@ button,[role="button"],svg,img{-webkit-user-drag:none}
 </div>
 
 <div id="chatView"
- class="view grid h-[var(--app-vh,100dvh)] grid-cols-1 bg-white
+ class="view grid h-[var(--app-vh,100svh)] grid-cols-1 bg-white
         min-[781px]:grid-cols-[340px_minmax(0,1fr)]
         large:grid-cols-[360px_minmax(0,1fr)]
         xlarge:grid-cols-[350px_minmax(0,1fr)_310px]
@@ -443,15 +443,40 @@ button,[role="button"],svg,img{-webkit-user-drag:none}
 </div>
 
 <script>
+const isEditableFocus = () => {
+  const el = document.activeElement;
+  return el instanceof HTMLInputElement
+    || el instanceof HTMLTextAreaElement
+    || (el instanceof HTMLElement && el.isContentEditable);
+};
+
 const syncVisualViewport = () => {
   const vv = window.visualViewport;
-  const height = vv ? vv.height : window.innerHeight;
-  document.documentElement.style.setProperty('--app-vh', height + 'px');
+  const editing = isEditableFocus();
+  const keyboardInset = vv
+    ? Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop))
+    : 0;
+  const keyboardOpen = editing && keyboardInset >= 80;
+
+  // Outside input: do not follow Safari top/bottom chrome. This keeps the
+  // composer from jumping when the browser toolbar expands/collapses.
+  if (!keyboardOpen) {
+    document.documentElement.style.setProperty('--app-vh', '100svh');
+    document.documentElement.dataset.keyboardOpen = 'false';
+    return;
+  }
+
+  // Inside input with a real keyboard: follow only the visible viewport.
+  document.documentElement.style.setProperty('--app-vh', vv.height + 'px');
+  document.documentElement.dataset.keyboardOpen = 'true';
 };
+
 syncVisualViewport();
 window.addEventListener('resize', syncVisualViewport, { passive: true });
 window.visualViewport?.addEventListener('resize', syncVisualViewport, { passive: true });
 window.visualViewport?.addEventListener('scroll', syncVisualViewport, { passive: true });
+document.addEventListener('focusin', () => requestAnimationFrame(syncVisualViewport));
+document.addEventListener('focusout', () => requestAnimationFrame(syncVisualViewport));
 
 const demoToggle = document.getElementById('demoToggle');
 const demoItems = [...document.querySelectorAll('.demo-item')];
