@@ -24,10 +24,12 @@ describe('chat runtime lifecycle', () => {
     stopChatRuntime()
 
     expect(disposed).toBe(1)
-    expect(getChatMessageState()).toEqual({
+    expect(getChatMessageState()).toMatchObject({
       conversationId: null,
       messages: [],
       realtime: 'idle',
+      syncing: false,
+      isLoadingOlder: false,
       error: null,
     })
     expect(getChatRuntimeState()).toEqual({
