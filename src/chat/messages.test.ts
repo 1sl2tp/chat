@@ -1,25 +1,37 @@
 import { describe, expect, it } from 'vitest'
 import { mergeChatMessages, type ChatMessage } from './messages'
 
-const base: ChatMessage = {
-  id: '00000000-0000-0000-0000-000000000001',
-  conversation_id: '10000000-0000-0000-0000-000000000001',
-  sender_id: '20000000-0000-0000-0000-000000000001',
-  client_message_id: '30000000-0000-0000-0000-000000000001',
-  type: 'text',
-  text: 'hello',
-  reply_to_id: null,
-  created_at: '2026-08-31T00:00:00Z',
-  edited_at: null,
-  revoked_at: null,
-  call_id: null,
+function msg(id: string, clientId: string, status?: ChatMessage['local_status']): ChatMessage {
+  return {
+    id,
+    conversation_id: 'c1',
+    sender_id: 'u1',
+    client_message_id: clientId,
+    type: 'text',
+    text: 'hello',
+    reply_to_id: null,
+    created_at: '2026-09-04T00:00:00.000Z',
+    edited_at: null,
+    revoked_at: null,
+    call_id: null,
+    local_status: status,
+  }
 }
 
-describe('chat message state', () => {
-  it('deduplicates by message id and keeps chronological order', () => {
-    const newer = { ...base, id: '00000000-0000-0000-0000-000000000002', created_at: '2026-08-31T00:00:02Z' }
-    const updatedBase = { ...base, text: 'updated' }
+describe('message merge', () => {
+  it('replaces an optimistic local row with the server row by client_message_id', () => {
+    const pending = msg('local:abc', 'abc', 'sending')
+    const confirmed = msg('server-1', 'abc', 'sent')
 
-    expect(mergeChatMessages([newer, base], [updatedBase])).toEqual([updatedBase, newer])
+    const merged = mergeChatMessages([pending], [confirmed])
+
+    expect(merged).toHaveLength(1)
+    expect(merged[0].id).toBe('server-1')
+    expect(merged[0].local_status).toBe('sent')
+  })
+
+  it('deduplicates a realtime echo of the same server message', () => {
+    const confirmed = msg('server-1', 'abc', 'sent')
+    expect(mergeChatMessages([confirmed], [confirmed])).toHaveLength(1)
   })
 })
