@@ -41,12 +41,22 @@ export function mountComposer(
   const submit = async () => {
     const text = normalizeDraft(input.value)
     if (!enabled || !text || sending) return
+    const draft = input.value
     sending = true
+    input.value = ''
+    input.style.height = ''
     sync()
+
     try {
       await onSend(text)
-      input.value = ''
-      input.style.height = ''
+    } catch (error) {
+      // Optimistic send already created a failed bubble. Restore the draft only
+      // when the user has not started composing a different message.
+      if (input.value.length === 0) {
+        input.value = draft
+        input.style.height = `${Math.min(input.scrollHeight, 120)}px`
+      }
+      throw error
     } finally {
       sending = false
       sync()
