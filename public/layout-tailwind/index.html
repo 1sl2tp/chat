@@ -75,9 +75,15 @@ tailwind.config = {
   plugins: []
 };
 </script>
+<style>
+html,body{overscroll-behavior:none}
+body{-webkit-touch-callout:none}
+input,textarea,[contenteditable="true"]{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
+button,[role="button"],svg,img{-webkit-user-drag:none}
+</style>
 </head>
 
-<body class="m-0 h-[100dvh] overflow-hidden bg-white font-inter-normal-20 text-gray-950">
+<body class="m-0 h-[var(--app-vh,100dvh)] overflow-hidden bg-white font-inter-normal-20 text-gray-950 select-none touch-manipulation">
 
 <!-- DEMO ONLY: not product UI -->
 <div id="demoSwitch" class="fixed right-0 top-1/2 z-50 flex -translate-y-1/2 items-center gap-1 rounded-l-xl border border-r-0 border-blackA-A4 bg-whiteA-A12 p-1 shadow-lg">
@@ -88,7 +94,7 @@ tailwind.config = {
 </div>
 
 <div id="chatView"
- class="view grid h-[100dvh] grid-cols-1 bg-white
+ class="view grid h-[var(--app-vh,100dvh)] grid-cols-1 bg-white
         min-[781px]:grid-cols-[340px_minmax(0,1fr)]
         large:grid-cols-[360px_minmax(0,1fr)]
         xlarge:grid-cols-[350px_minmax(0,1fr)_310px]
@@ -99,7 +105,7 @@ tailwind.config = {
   <aside class="hidden h-full min-w-0 flex-col overflow-hidden border-r border-blackA-A3 bg-white min-[781px]:flex">
     <div class="border-b border-blackA-A3 px-3 py-3">
       <h1 class="mb-2 text-[21px] font-inter-580-24 leading-6 text-gray-950">Conversations</h1>
-      <input class="h-9 w-full rounded-[13px] border border-gray-200 bg-white px-3 text-cxs font-inter-420-20 text-gray-950 outline-none"
+      <input class="h-9 w-full rounded-[13px] border border-gray-200 bg-white px-3 text-cxs max-[780px]:text-base font-inter-420-20 text-gray-950 outline-none select-text touch-auto"
              placeholder="Search conversations">
     </div>
 
@@ -340,7 +346,7 @@ tailwind.config = {
           <!-- MessageTextInput owner -->
           <div class="relative my-0.5 flex-1">
             <textarea id="messageInput" rows="1"
-              class="ml-[5px] mr-2 min-h-9 max-h-[76px] w-[calc(100%-13px)] resize-none rounded-2xl bg-blackA-A4 py-2 pl-3 pr-[36px] text-base font-inter-normal-20 leading-[20px] tracking-[0.24px] text-gray-950 outline-none"
+              class="ml-[5px] mr-2 min-h-9 max-h-[76px] w-[calc(100%-13px)] resize-none rounded-2xl bg-blackA-A4 py-2 pl-3 pr-[36px] text-base font-inter-normal-20 leading-[20px] tracking-[0.24px] text-gray-950 outline-none select-text touch-auto"
               placeholder="Type a message"></textarea>
             <button class="absolute bottom-[5.5px] right-[13px] h-[29px] w-[29px]" aria-label="Reply mode">
               <svg width="29" height="30" viewBox="0 0 29 30" fill="none">
@@ -424,7 +430,7 @@ tailwind.config = {
       <h2 class="text-[21px] font-inter-580-24 text-gray-950">Khách hàng</h2>
       <button class="ml-auto h-9 rounded-[10px] bg-gray-950 px-4 text-cxs font-inter-medium-24 text-white">+ Thêm khách hàng</button>
     </div>
-    <input class="mb-3 h-9 w-full rounded-[13px] border border-gray-200 px-3 text-cxs outline-none" placeholder="Tìm khách hàng">
+    <input class="mb-3 h-9 w-full rounded-[13px] border border-gray-200 px-3 text-cxs max-[780px]:text-base outline-none select-text touch-auto" placeholder="Tìm khách hàng">
     <div class="overflow-hidden rounded-[13px] border border-blackA-A3">
       <div class="grid grid-cols-[44px_1fr_150px_220px] items-center gap-3 border-b border-blackA-A3 p-3 max-[700px]:grid-cols-[36px_1fr]">
         <div class="flex h-8 w-8 items-center justify-center rounded-[6px] bg-gray-100 font-inter-medium-24 text-gray-800">N</div>
@@ -437,6 +443,16 @@ tailwind.config = {
 </div>
 
 <script>
+const syncVisualViewport = () => {
+  const vv = window.visualViewport;
+  const height = vv ? vv.height : window.innerHeight;
+  document.documentElement.style.setProperty('--app-vh', height + 'px');
+};
+syncVisualViewport();
+window.addEventListener('resize', syncVisualViewport, { passive: true });
+window.visualViewport?.addEventListener('resize', syncVisualViewport, { passive: true });
+window.visualViewport?.addEventListener('scroll', syncVisualViewport, { passive: true });
+
 const demoToggle = document.getElementById('demoToggle');
 const demoItems = [...document.querySelectorAll('.demo-item')];
 demoToggle.addEventListener('click', () => demoItems.forEach(x => x.classList.toggle('hidden')));
