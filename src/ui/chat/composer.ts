@@ -4,6 +4,7 @@ export function normalizeDraft(text: string): string {
 
 export interface ComposerController {
   setEnabled(enabled: boolean): void
+  setDraftKey(key: string | null): void
   destroy(): void
 }
 
@@ -32,6 +33,28 @@ export function mountComposer(
 
   let enabled = false
   let sending = false
+  let draftKey: string | null = null
+
+  const storageKey = (key: string) => `taphoa.chat.draft.${key}`
+
+  const saveDraft = () => {
+    if (!draftKey || typeof localStorage === 'undefined') return
+    try {
+      if (input.value.length > 0) localStorage.setItem(storageKey(draftKey), input.value)
+      else localStorage.removeItem(storageKey(draftKey))
+    } catch {
+      // Draft persistence is a fast-path convenience only.
+    }
+  }
+
+  const clearDraft = () => {
+    if (!draftKey || typeof localStorage === 'undefined') return
+    try {
+      localStorage.removeItem(storageKey(draftKey))
+    } catch {
+      // Ignore storage failures.
+    }
+  }
 
   const sync = () => {
     const hasText = normalizeDraft(input.value).length > 0
@@ -45,6 +68,7 @@ export function mountComposer(
     sending = true
     input.value = ''
     input.style.height = ''
+    clearDraft()
     sync()
 
     try {
@@ -55,8 +79,9 @@ export function mountComposer(
       if (input.value.length === 0) {
         input.value = draft
         input.style.height = `${Math.min(input.scrollHeight, 120)}px`
+        saveDraft()
       }
-      throw error
+      console.error('Message send failed', error)
     } finally {
       sending = false
       sync()
@@ -66,6 +91,7 @@ export function mountComposer(
   input.addEventListener('input', () => {
     input.style.height = 'auto'
     input.style.height = `${Math.min(input.scrollHeight, 120)}px`
+    saveDraft()
     sync()
   })
 
@@ -85,6 +111,23 @@ export function mountComposer(
       enabled = next
       input.disabled = !next
       sync()
+    },
+    setDraftKey(nextKey) {
+      if (draftKey === nextKey) return
+      saveDraft()
+      draftKey = nextKey
+      if (!draftKey || typeof localStorage === 'undefined') return
+      try {
+        const saved = localStorage.getItem(storageKey(draftKey))
+        if (saved !== null && input.value.length === 0) {
+          input.value = saved
+          input.style.height = 'auto'
+          input.style.height = `${Math.min(input.scrollHeight, 120)}px`
+          sync()
+        }
+      } catch {
+        // Ignore storage failures.
+      }
     },
     destroy() {
       container.replaceChildren()
