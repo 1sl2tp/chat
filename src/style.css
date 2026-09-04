@@ -14,6 +14,23 @@
 
 html,
 body,
+#app,
+.chat-screen {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+input,
+textarea,
+[contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
+html,
+body,
 #app {
   width: 100%;
   min-width: 280px;
@@ -38,6 +55,7 @@ button {
 }
 
 .chat-screen {
+  position: relative;
   width: 100%;
   min-width: 280px;
   height: var(--app-visual-height, 100dvh);
@@ -117,6 +135,7 @@ button {
   overflow-y: auto;
   overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y pinch-zoom;
   padding: 16px max(12px, env(safe-area-inset-right)) 20px max(12px, env(safe-area-inset-left));
   scroll-padding-bottom: 20px;
 }
@@ -182,13 +201,51 @@ button {
   line-height: 1.42;
 }
 
+.chat-message__meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 3px;
+  min-height: 12px;
+}
+
 .chat-message__time {
   display: block;
-  margin-top: 3px;
   color: #777;
   font-size: 10px;
   line-height: 1.2;
   text-align: right;
+}
+
+.chat-message__status {
+  color: #888;
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.chat-message--failed .chat-message__status {
+  color: #b42318;
+}
+
+.chat-new-messages {
+  position: absolute;
+  left: 50%;
+  bottom: calc(70px + max(6px, env(safe-area-inset-bottom)));
+  z-index: 8;
+  transform: translateX(-50%);
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: #151515;
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(0,0,0,.18);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.chat-new-messages[hidden] {
+  display: none;
 }
 
 .chat-footer {
@@ -345,5 +402,14 @@ button {
   .chat-composer__send {
     width: 34px;
     height: 34px;
+  }
+}
+
+
+@media (max-width: 759px) {
+  input,
+  textarea,
+  [contenteditable="true"] {
+    font-size: 16px;
   }
 }
