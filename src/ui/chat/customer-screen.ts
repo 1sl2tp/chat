@@ -94,6 +94,7 @@ export function mountCustomerChatScreen(root: HTMLElement): () => void {
     title.textContent = model.title
     status.textContent = model.error ? 'Không thể kết nối' : model.status
     composerController.setEnabled(model.canSend)
+    composerController.setDraftKey(messageState.conversationId)
 
     if (messageState.messageRevision !== lastRenderedRevision) {
       const change = messageState.lastChange ?? { kind: 'sync' as const, count: 0 }
