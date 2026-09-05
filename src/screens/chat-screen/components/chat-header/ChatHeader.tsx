@@ -59,9 +59,9 @@ export const ChatHeader = ({
           </Pressable>
           <Pressable
             onPress={onContactDetailsPress}
-            style={tailwind.style('flex flex-row items-center flex-1')}>
+            style={tailwind.style('flex flex-row items-center flex-1 gap-3')}>
             <Avatar size="xl" src={imageSrc} name={name} />
-            <Animated.View style={tailwind.style('pl-2')}>
+            <Animated.View>
               <Animated.Text
                 numberOfLines={1}
                 style={tailwind.style(
