@@ -1,7 +1,8 @@
 (()=>{
 'use strict';
 
-const VERSION='V21.72.16';
+const RELEASE_VERSION='V21.72.16';
+const MODULE_CONTRACT_VERSION='audio-capture-v1';
 const DEVICE_KEY='taphoa.v21.audio.inputDeviceId';
 const BASE=Object.freeze({
   echoCancellation:true,
@@ -180,7 +181,8 @@ async function refreshDevices(){
 function preferredDeviceId(){return preferredDeviceIdValue;}
 function snapshot(){
   return{
-    version:VERSION,
+    version:RELEASE_VERSION,
+    moduleContractVersion:MODULE_CONTRACT_VERSION,
     owner:activeOwner||externalOwner||null,
     mode:activeStream?'stream':(externalOwner?'external':'idle'),
     preferredDeviceId:preferredDeviceIdValue||null,
@@ -201,7 +203,8 @@ try{
 void refreshDevices().catch(()=>{});
 
 window.V21AudioCapturePolicy=Object.freeze({
-  version:VERSION,
+  version:RELEASE_VERSION,
+  moduleContractVersion:MODULE_CONTRACT_VERSION,
   constraints,
   liveKitOptions,
   acquire,

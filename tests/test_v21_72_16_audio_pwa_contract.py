@@ -21,6 +21,8 @@ for token in [
 ]:
     assert token in policy, token
 assert 'AudioContext' not in policy
+assert "MODULE_CONTRACT_VERSION='audio-capture-v1'" in policy
+assert "RELEASE_VERSION='V21.72.16'" in policy
 assert 'createMediaStreamDestination' not in policy
 
 app=read('app.js')
@@ -56,6 +58,8 @@ for token in ['skipWaiting','clients.claim','version.json','cache: \'no-store\''
     assert token in sw, token
 
 update=read('app-update-controller.js')
+assert "MODULE_CONTRACT_VERSION='app-update-v1'" in update
+assert "RELEASE_VERSION='V21.72.16'" in update
 for token in [
     'version.json',
     "cache:'no-store'",

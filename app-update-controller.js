@@ -1,13 +1,14 @@
 (()=>{
 'use strict';
 
-const VERSION='V21.72.16';
+const RELEASE_VERSION='V21.72.16';
+const MODULE_CONTRACT_VERSION='app-update-v1';
 const CHECK_INTERVAL_MS=45000;
 const DEFER_RECHECK_MS=2500;
 const RELOAD_GUARD_MS=20000;
 const VERSION_URL='./version.json';
 const currentVersion=String(
-  document.querySelector('meta[name="app-release-version"]')?.content||VERSION
+  document.querySelector('meta[name="app-release-version"]')?.content||RELEASE_VERSION
 );
 let registration=null;
 let pendingVersion='';
@@ -156,7 +157,8 @@ if(document.readyState==='loading'){
 }
 
 window.V21AppUpdateController=Object.freeze({
-  version:VERSION,
+  version:RELEASE_VERSION,
+  moduleContractVersion:MODULE_CONTRACT_VERSION,
   currentVersion,
   check:checkForUpdate,
   safeToReload,
