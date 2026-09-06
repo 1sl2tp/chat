@@ -15162,14 +15162,6 @@ async function quiet({reason='quiet'}={}){
   active=false;
   emit(reason);
   return true;
-}={}){
-  const current=room;
-  if(!current)return false;
-  try{await current.localParticipant?.setMicrophoneEnabled?.(false);}catch{}
-  localMicPublished=false;
-  active=false;
-  emit(reason);
-  return true;
 }
 
 async function leave({reason='leave',intentional=true}={}){
@@ -15188,22 +15180,6 @@ async function leave({reason='leave',intentional=true}={}){
   resetFlags();
   cleanupAudio();
   if(old){
-    try{await old.disconnect?.();}catch{}
-  }
-  emit(reason);
-  intentionalLeave=false;
-  return Boolean(old||oldCallId);
-}={}){
-  const old=room;
-  const oldCallId=roomCallId;
-  generation+=1;
-  intentionalLeave=Boolean(intentional);
-  room=null;
-  roomCallId='';
-  resetFlags();
-  cleanupAudio();
-  if(old){
-    try{await old.localParticipant?.setMicrophoneEnabled?.(false);}catch{}
     try{await old.disconnect?.();}catch{}
   }
   emit(reason);
