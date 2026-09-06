@@ -3,7 +3,7 @@ import hashlib, json, subprocess, sys
 ROOT=Path(__file__).resolve().parents[1]
 version=json.loads((ROOT/'version.json').read_text('utf-8'))
 release=str(version.get('version') or '')
-assert release=='V21.72.16', release
+assert release=='V21.72.17', release
 committed=(ROOT/'index.html').read_bytes()
 subprocess.run([sys.executable,str(ROOT/'tools'/'build_current_preview.py')],check=True,cwd=ROOT)
 generated=(ROOT/'index.html').read_bytes()
@@ -16,7 +16,7 @@ for n in [
     'runtime-id.js','audio-capture-policy.js','app.js','shell.js','auth-session-store.js',
     'conversation-core.js','keyboard-inset-core.js','v21-cache-store.js','v21-media-cache.js',
     'v21-message-store.js','v21-call-engine.js','v21-livekit-session.js',
-    'v21-realtime-session.js','v21-sync-engine.js','app-update-controller.js','sw.js'
+    'v21-realtime-session.js','v21-sync-engine.js','app-update-controller.js','shell-form-viewport-policy.js','sw.js'
 ]:
     subprocess.run(['node','--check',str(ROOT/n)],check=True,cwd=ROOT)
 subprocess.run([sys.executable,'-m','pytest','-q',str(ROOT/'tests'/'test_v21_72_14_viewport_scope_lifecycle.py')],check=True,cwd=ROOT)
@@ -26,4 +26,6 @@ subprocess.run(['node',str(ROOT/'tests'/'test_v21_72_15_open_contact_network_rec
 subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_16_audio_pwa_contract.py')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_v21_72_16_audio_policy_runtime.js')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_v21_72_16_update_runtime.js')],check=True,cwd=ROOT)
-print(f'V21.72.16 canonical source verify PASS sha256={sha}')
+subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_17_mobile_form_keyboard_contract.py')],check=True,cwd=ROOT)
+subprocess.run(['node',str(ROOT/'tests'/'test_v21_72_17_mobile_form_keyboard_runtime.js')],check=True,cwd=ROOT)
+print(f'V21.72.17 canonical source verify PASS sha256={sha}')

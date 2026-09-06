@@ -1011,7 +1011,6 @@ const AuthUI={
     NavigationCommand.openChat();
     this.setMode('login');
     const card=document.getElementById('guestAuthThread');
-    card?.scrollIntoView({block:'center',behavior:'smooth'});
     window.setTimeout(()=>authField('account')?.focus({preventScroll:true}),180);
     return Boolean(card);
   },
@@ -1332,7 +1331,7 @@ AuthUI.renderAccountFooter();
 syncDesktopSidebarMode();
 
 window.ChatAppShell={
-  version:'V21.72.16',
+  version:'V21.72.17',
   NavigationCommand,
   CallCommand,
   AuthUI,
