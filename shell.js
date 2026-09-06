@@ -856,6 +856,32 @@ function buildProfileEditor({mode='self',account:target}={}){
     errorNode.hidden=!message;
   }
 
+  function setProfileInvalid(input,invalid=true){
+    if(!input)return;
+    if(invalid)input.setAttribute('aria-invalid','true');
+    else input.removeAttribute('aria-invalid');
+  }
+
+  function clearProfileValidation(){
+    setError('');
+    for(const input of [nameInput,usernameInput,passwordInput])setProfileInvalid(input,false);
+  }
+
+  function markProfileResultError(message=''){
+    const text=String(message||'');
+    if(text.includes('Tên đăng nhập'))setProfileInvalid(usernameInput,true);
+    else if(text.includes('Mật khẩu'))setProfileInvalid(passwordInput,true);
+    else if(text.startsWith('Tên'))setProfileInvalid(nameInput,true);
+    setError(text||'Không thể lưu thay đổi');
+  }
+
+  for(const input of [nameInput,usernameInput,passwordInput]){
+    input.addEventListener('input',()=>{
+      setProfileInvalid(input,false);
+      if(![nameInput,usernameInput,passwordInput].some(node=>node.getAttribute('aria-invalid')==='true'))setError('');
+    });
+  }
+
   function setBusy(busy){
     wrap.dataset.busy=String(Boolean(busy));
     wrap.setAttribute('aria-busy',String(Boolean(busy)));
@@ -903,7 +929,7 @@ function buildProfileEditor({mode='self',account:target}={}){
 
   wrap.querySelector('[data-profile-form]').addEventListener('submit',async event=>{
     event.preventDefault();
-    setError('');
+    clearProfileValidation();
     const store=profileStore();
     if(!store){setError('Không thể mở hồ sơ');return;}
     const payload={
@@ -912,20 +938,33 @@ function buildProfileEditor({mode='self',account:target}={}){
       password:passwordInput.value,
       avatarFile:fileInput.files?.[0]||null
     };
-    if(!payload.displayName){setError('Tên không được để trống');return;}
-    if(!/^[a-z0-9_]{3,24}$/.test(payload.username)){
-      setError('Tên đăng nhập phải có 3–24 ký tự, chỉ gồm a-z, 0-9 và _');return;
+    if(!payload.displayName){
+      setProfileInvalid(nameInput,true);
+      setError('Tên không được để trống');
+      nameInput.focus({preventScroll:true});
+      return;
     }
-    if(payload.password&&payload.password.length<6){setError('Mật khẩu tối thiểu 6 ký tự');return;}
+    if(!/^[a-z0-9_]{3,24}$/.test(payload.username)){
+      setProfileInvalid(usernameInput,true);
+      setError('Tên đăng nhập phải có 3–24 ký tự, chỉ gồm a-z, 0-9 và _');
+      usernameInput.focus({preventScroll:true});
+      return;
+    }
+    if(payload.password&&payload.password.length<6){
+      setProfileInvalid(passwordInput,true);
+      setError('Mật khẩu tối thiểu 6 ký tự');
+      passwordInput.focus({preventScroll:true});
+      return;
+    }
     setBusy(true);
     try{
       const result=selfMode
         ?await store.updateSelf(payload)
         :await store.adminSaveUser({...payload,targetAccountId:String(model.id)});
-      if(!result?.ok){setError(result?.message||'Không thể lưu thay đổi');return;}
+      if(!result?.ok){markProfileResultError(result?.message||'Không thể lưu thay đổi');return;}
       applyProfileResult(result);
       closeProfileEditor();
-    }catch(error){setError(String(error?.message||'Không thể lưu thay đổi'));}
+    }catch(error){markProfileResultError(String(error?.message||'Không thể lưu thay đổi'));}
     finally{setBusy(false);}
   });
 
@@ -1417,7 +1456,7 @@ AuthUI.renderAccountFooter();
 syncDesktopSidebarMode();
 
 window.ChatAppShell={
-  version:'V21.72.21',
+  version:'V21.72.22',
   NavigationCommand,
   CallCommand,
   AuthUI,
