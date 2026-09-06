@@ -1,8 +1,8 @@
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.21';
-const MODULE_CONTRACT_VERSION='shell-form-viewport-v2';
+const RELEASE_VERSION='V21.72.22';
+const MODULE_CONTRACT_VERSION='shell-form-viewport-v3';
 const KEYBOARD_THRESHOLD_PX=80;
 const EDGE_PX=12;
 
@@ -43,12 +43,23 @@ function sameOwner(a,b){
   return Boolean(a&&b&&a.kind===b.kind&&a.surface===b.surface&&a.host===b.host);
 }
 
-function clearOwner(owner){
-  if(!owner)return;
-  for(const node of new Set([owner.host,owner.surface])){
-    if(!node)continue;
+function nodesFor(owner){
+  return owner?[...new Set([owner.host,owner.surface].filter(Boolean))]:[];
+}
+
+function clearKeyboardState(owner){
+  for(const node of nodesFor(owner)){
     delete node.dataset.mobileKeyboard;
     node.style?.removeProperty?.('--shell-form-keyboard-inset');
+  }
+}
+
+function clearOwner(owner){
+  if(!owner)return;
+  clearKeyboardState(owner);
+  for(const node of nodesFor(owner)){
+    node.style?.removeProperty?.('--shell-form-vv-top');
+    node.style?.removeProperty?.('--shell-form-vv-height');
   }
 }
 
@@ -75,6 +86,14 @@ function readViewport(){
       heightDrop>=KEYBOARD_THRESHOLD_PX
     )
   };
+}
+
+function publishViewport(owner,state){
+  if(!owner||!state)return;
+  for(const node of nodesFor(owner)){
+    node.style.setProperty('--shell-form-vv-top',`${state.visualTop}px`);
+    node.style.setProperty('--shell-form-vv-height',`${state.visualHeight}px`);
+  }
 }
 
 function actionFor(owner){
@@ -128,8 +147,10 @@ function publish(){
   if(!activeOwner)return false;
 
   const state=readViewport();
+  publishViewport(activeOwner,state);
+
   if(!state.keyboardOpen){
-    clearOwner(activeOwner);
+    clearKeyboardState(activeOwner);
     return false;
   }
 
