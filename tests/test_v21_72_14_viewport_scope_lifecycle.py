@@ -15,8 +15,8 @@ def fn(text,name):
             if seen and depth==0:return text[start:i+1]
     raise AssertionError(name)
 def test_release_marker():
-    assert 'V21.72.15' in SRC
-    assert "version:'V21.72.15'" in APP
+    assert 'V21.72.16' in SRC
+    assert "version:'V21.72.16'" in APP
 def test_viewport_policy_geometry_event_is_exclusive():
     body=fn(APP,'publishViewportGeometryChange')
     assert "if(viewport.mode===VIEWPORT_STATES.FOLLOW_TAIL)" in body

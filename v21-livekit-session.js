@@ -24,10 +24,13 @@ let generation=0;
 let lastReason='boot';
 let lastError=null;
 let peerLossTimer=0;
+let callMicOwner='';
 const audioElements=new Set();
+const remoteAudioAttachments=new Map();
 
 function authStore(){return window.V21AuthSessionStore||null;}
 function callEngine(){return window.V21CallEngine||null;}
+function audioCapturePolicy(){return window.V21AudioCapturePolicy||null;}
 function authSnapshot(){return authStore()?.snapshot?.()||{state:'GUEST'};}
 function authenticated(){const s=authSnapshot();return s.state==='AUTHENTICATED'&&Boolean(s.appSessionId&&s.account?.id);}
 function client(){return authStore()?.getClient?.()||null;}
@@ -64,6 +67,7 @@ function cleanupAudio(){
     try{el.remove?.();}catch{}
   }
   audioElements.clear();
+  remoteAudioAttachments.clear();
 }
 
 function loadSdk(){
@@ -115,8 +119,26 @@ async function tokenFor(call){
 
 function remoteParticipantCount(){return Number(room?.remoteParticipants?.size||0);}
 
+function remoteTrackKey(track){
+  return String(
+    track?.sid ||
+    track?.trackSid ||
+    track?.mediaStreamTrack?.id ||
+    ''
+  );
+}
+
 async function attachAudio(track,next){
   let el=null;
+  const key=remoteTrackKey(track);
+  const existing=key?remoteAudioAttachments.get(key):null;
+  if(existing?.element?.isConnected)return true;
+  if(existing?.element){
+    try{existing.element.pause?.();}catch{}
+    try{existing.element.remove?.();}catch{}
+    audioElements.delete(existing.element);
+    remoteAudioAttachments.delete(key);
+  }
   try{
     el=track.attach();
     if(!el)return false;
@@ -130,21 +152,35 @@ async function attachAudio(track,next){
     el.style.inset='auto 0 0 auto';
     document.body.appendChild(el);
     audioElements.add(el);
+    if(key)remoteAudioAttachments.set(key,{track,element:el});
     try{await next?.startAudio?.();}catch{}
     const playResult=el.play?.();
     if(playResult&&typeof playResult.then==='function')await playResult;
     return true;
   }catch(error){
+    if(el){
+      audioElements.delete(el);
+      try{el.remove?.();}catch{}
+    }
+    if(key)remoteAudioAttachments.delete(key);
     lastError=String(error?.message||error||'remote_audio_playback_blocked');
     return false;
   }
 }
 
 function detachAudio(track){
+  const key=remoteTrackKey(track);
+  const existing=key?remoteAudioAttachments.get(key):null;
+  if(existing?.element){
+    audioElements.delete(existing.element);
+    try{existing.element.pause?.();}catch{}
+    try{existing.element.remove?.();}catch{}
+    remoteAudioAttachments.delete(key);
+  }
   try{
     for(const el of track.detach?.()||[]){
       audioElements.delete(el);
-      el.remove?.();
+      try{el.remove?.();}catch{}
     }
   }catch{}
 }
@@ -152,28 +188,23 @@ function detachAudio(track){
 async function preflightMicrophone(call){
   if(localMicPermissionReady)return true;
   if(micPreflightPromise)return micPreflightPromise;
-  if(!navigator.mediaDevices?.getUserMedia){
+  const capture=audioCapturePolicy();
+  if(!capture?.acquire){
     lastError='microphone_unavailable';
     emit('microphone-unavailable');
     return false;
   }
   const localGeneration=generation;
+  const captureOwner=`call-preflight:${String(call?.id||'unknown')}`;
   micPreflightPromise=(async()=>{
     let stream=null;
     try{
-      stream=await navigator.mediaDevices.getUserMedia({audio:{
-        echoCancellation:true,
-        noiseSuppression:true,
-        autoGainControl:true,
-        channelCount:1
-      }});
+      stream=await capture.acquire({owner:captureOwner,purpose:'call-preflight'});
       if(localGeneration!==generation||String(call?.id||'')!==String(roomCallId||''))return false;
       const tracks=stream.getAudioTracks?.()||[];
       const ok=tracks.some(track=>track&&track.readyState==='live'&&track.enabled!==false);
       if(!ok)throw new Error('microphone_not_ready');
-      // Preflight must not hold the hardware open while waiting for Supabase.
-      // Stop the temporary track immediately after device health is proven.
-      try{for(const track of stream.getTracks?.()||[])track.stop?.();}catch{}
+      capture.release(stream,{owner:captureOwner});
       stream=null;
       localMicPermissionReady=true;
       lastError=null;
@@ -199,7 +230,7 @@ async function preflightMicrophone(call){
       emit('microphone-permission-failed');
       return false;
     }finally{
-      try{for(const track of stream?.getTracks?.()||[])track.stop?.();}catch{}
+      if(stream)capture.release(stream,{owner:captureOwner});
       micPreflightPromise=null;
     }
   })();
@@ -210,21 +241,54 @@ async function publishMicrophoneIfGateOpen(call){
   const gate=call?.micGateOpenAt||call?.mic_gate_open_at||null;
   if(!gate||!room||!connected||reconnecting||!localMicPermissionReady)return false;
   if(localMicPublished)return true;
+  const capture=audioCapturePolicy();
+  const owner=`call:${String(call?.id||'')}`;
+  if(!capture?.claimExternal){
+    lastError='microphone_policy_unavailable';
+    emit('microphone-policy-unavailable');
+    return false;
+  }
+  if(callMicOwner&&callMicOwner!==owner){
+    capture.releaseExternal({owner:callMicOwner});
+    callMicOwner='';
+  }
+  if(!callMicOwner){
+    if(!capture.claimExternal({owner})){
+      lastError='microphone_busy';
+      emit('microphone-busy');
+      return false;
+    }
+    callMicOwner=owner;
+  }
   const localGeneration=generation;
   try{
-    await room.localParticipant.setMicrophoneEnabled(true,{
-      echoCancellation:true,
-      noiseSuppression:true,
-      autoGainControl:true,
-      channelCount:1
-    });
-    if(localGeneration!==generation||String(call?.id||'')!==String(roomCallId||''))return false;
+    await room.localParticipant.setMicrophoneEnabled(
+      true,
+      capture.liveKitOptions?.({purpose:'call'})||{
+        echoCancellation:true,
+        noiseSuppression:true,
+        autoGainControl:true,
+        channelCount:1
+      }
+    );
+    if(localGeneration!==generation||String(call?.id||'')!==String(roomCallId||'')){
+      try{await room?.localParticipant?.setMicrophoneEnabled?.(false);}catch{}
+      capture.releaseExternal({owner});
+      if(callMicOwner===owner)callMicOwner='';
+      return false;
+    }
     localMicPublished=Boolean(room.localParticipant.isMicrophoneEnabled);
+    if(!localMicPublished){
+      capture.releaseExternal({owner});
+      if(callMicOwner===owner)callMicOwner='';
+    }
     emit(localMicPublished?'microphone-published':'microphone-publish-failed');
     if(localMicPublished)void maybeSubmitMediaReady('local-mic-published');
     return localMicPublished;
   }catch(error){
     if(localGeneration!==generation)return false;
+    capture.releaseExternal({owner});
+    if(callMicOwner===owner)callMicOwner='';
     lastError=String(error?.message||error||'microphone_publish_failed');
     localMicPublished=false;
     emit('microphone-publish-error');
@@ -404,6 +468,18 @@ async function quiet({reason='quiet'}={}){
   const current=room;
   if(!current)return false;
   try{await current.localParticipant?.setMicrophoneEnabled?.(false);}catch{}
+  if(callMicOwner){
+    audioCapturePolicy()?.releaseExternal?.({owner:callMicOwner});
+    callMicOwner='';
+  }
+  localMicPublished=false;
+  active=false;
+  emit(reason);
+  return true;
+}={}){
+  const current=room;
+  if(!current)return false;
+  try{await current.localParticipant?.setMicrophoneEnabled?.(false);}catch{}
   localMicPublished=false;
   active=false;
   emit(reason);
@@ -411,6 +487,27 @@ async function quiet({reason='quiet'}={}){
 }
 
 async function leave({reason='leave',intentional=true}={}){
+  const old=room;
+  const oldCallId=roomCallId;
+  const oldMicOwner=callMicOwner;
+  generation+=1;
+  intentionalLeave=Boolean(intentional);
+  if(old){
+    try{await old.localParticipant?.setMicrophoneEnabled?.(false);}catch{}
+  }
+  if(oldMicOwner)audioCapturePolicy()?.releaseExternal?.({owner:oldMicOwner});
+  callMicOwner='';
+  room=null;
+  roomCallId='';
+  resetFlags();
+  cleanupAudio();
+  if(old){
+    try{await old.disconnect?.();}catch{}
+  }
+  emit(reason);
+  intentionalLeave=false;
+  return Boolean(old||oldCallId);
+}={}){
   const old=room;
   const oldCallId=roomCallId;
   generation+=1;

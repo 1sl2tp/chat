@@ -53,6 +53,8 @@ const appShell=document.getElementById('appShell');
 const screenHost=document.getElementById('screenHost');
 const globalOverlayRoot=document.getElementById('globalOverlayRoot');
 
+function audioCapturePolicy(){return window.V21AudioCapturePolicy||null;}
+
 const InteractionMode=Object.freeze({
   NONE:'NONE',
   IMAGE_VIEWER:'IMAGE_VIEWER',
@@ -401,9 +403,9 @@ const AppBootController={
 
     this.phase='ERROR';
     modeLabel.textContent='ERROR';
-    runtimeError.textContent='V21.72.15 runtime: '+message;
+    runtimeError.textContent='V21.72.16 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.15]',error);
+    console.error('[ChatScreenModule V21.72.16]',error);
   },
   ready(){
     this.phase='READY';
@@ -462,7 +464,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.15 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.16 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -516,7 +518,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.15',
+  releaseVersion:'V21.72.16',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -5249,7 +5251,7 @@ async function readAudioDurationMs(blob,{timeoutMs=1800}={}){
 async function startRecording(){
   clearComposerMediaError();
   if(
-    !navigator.mediaDevices?.getUserMedia ||
+    !audioCapturePolicy()?.acquire ||
     typeof MediaRecorder==='undefined'
   ){
     composerHint.textContent='Trình duyệt không hỗ trợ ghi âm';
@@ -5282,15 +5284,16 @@ async function startRecording(){
   try{
     const requestedDraftKey=ComposerDraftOwner.currentKey();
     const requestedScope=currentComposerScope();
-    const acquiredStream=await navigator.mediaDevices.getUserMedia({
-      audio:true
+    const acquiredStream=await audioCapturePolicy().acquire({
+      owner:'audio-recorder',
+      purpose:'recording'
     });
 
     if(
       requestedDraftKey!==ComposerDraftOwner.currentKey() ||
       !InteractionController.isLeaseCurrent(interactionLease)
     ){
-      acquiredStream.getTracks().forEach(track=>track.stop());
+      audioCapturePolicy()?.release?.(acquiredStream,{owner:'audio-recorder'});
       InteractionController.exit(InteractionMode.AUDIO_RECORDING,{owner:'audio-recorder'});
       setAudioWorkflowState('IDLE');
       renderAttachmentTray();
@@ -5356,7 +5359,7 @@ async function startRecording(){
       // Recording interaction owns only microphone capture. Release that owner
       // completely before exposing PREVIEW so pointer/send state cannot inherit
       // a stale AUDIO_RECORDING lease or STOPPING geometry.
-      mediaStream?.getTracks().forEach(track=>track.stop());
+      if(mediaStream)audioCapturePolicy()?.release?.(mediaStream,{owner:'audio-recorder'});
       mediaStream=null;
       mediaRecorder=null;
       mediaChunks=[];
@@ -5390,7 +5393,7 @@ async function startRecording(){
     updateTimer();
     recordingTimer=setInterval(updateTimer,500);
   }catch(error){
-    mediaStream?.getTracks().forEach(track=>track.stop());
+    if(mediaStream)audioCapturePolicy()?.release?.(mediaStream,{owner:'audio-recorder'});
     mediaStream=null;
     mediaRecorder=null;
     setRecordingUi(false);
@@ -5441,7 +5444,7 @@ document.addEventListener('v21-interaction-abort',()=>{
   if(mediaRecorder&&mediaRecorder.state!=='inactive'){
     stopRecording({discard:true});
   }else if(mediaStream){
-    mediaStream.getTracks().forEach(track=>track.stop());
+    audioCapturePolicy()?.release?.(mediaStream,{owner:'audio-recorder'});
     mediaStream=null;
     InteractionController.exit(InteractionMode.AUDIO_RECORDING,{owner:'audio-recorder'});
   }
@@ -6389,7 +6392,7 @@ window.V21ConversationBridge={
 };
 
 window.ChatScreenModule={
-  version:'V21.72.15',
+  version:'V21.72.16',
   snapshot(){
     return{
       viewportMode:viewport.mode,

@@ -4,6 +4,7 @@ on:
     branches:
       - main
       - v21-72-16-audio-pwa
+  pull_request:
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -15,7 +16,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: V21.72.16 audio/PWA contract
-        run: python tests/test_v21_72_16_audio_pwa_contract.py
-      - name: V21.72.16 audio policy runtime
-        run: node tests/test_v21_72_16_audio_policy_runtime.js
+      - name: Install test dependency
+        run: python -m pip install pytest
+      - name: Verify canonical source
+        run: python tools/verify_current.py
