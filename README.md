@@ -7,7 +7,7 @@ This repository contains only the current CHAT/CALL web/PWA source. The previous
 ## Status
 - Release: `V21.72.16`
 - State: `CANDIDATE`
-- Automated checkpoint: 311 pytest PASS; media 202/202; source sync 20/20; JS syntax 13/13; geometry 9/9.
+- Current CI gate: canonical bundle/source sync PASS; 10 viewport pytest PASS; message/media/sync runtime PASS; AudioCapturePolicy runtime PASS; PWA/update runtime PASS.
 - Audio capture uses one canonical mic policy for Recorder + LiveKit (AEC/NS/AGC/mono, device pinning, duplicate capture guard).
 - GitHub Pages app registers a PWA service worker and checks version.json; safe sessions auto-reload to new releases without F5.
 - Real-device iOS/Android Web/PWA verification remains open before Production LOCK.
@@ -18,7 +18,7 @@ python tools/build_current_preview.py
 ```
 
 Canonical `index.html` SHA-256:
-`580e65f75103fac0dbed974acdaafb3f58606c36d3eda0142793106b15490a44`
+`a54f3e1583287a236b8e1974038815eb354ba7b06a457f94675cb0f0364dad1e`
 
 ## Verify
 ```bash

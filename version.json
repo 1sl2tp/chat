@@ -2,5 +2,6 @@
   "version": "V21.72.16",
   "channel": "candidate",
   "update_policy": "auto-when-safe",
-  "published_from": "github-main"
+  "published_from": "github-main",
+  "index_sha256": "a54f3e1583287a236b8e1974038815eb354ba7b06a457f94675cb0f0364dad1e"
 }
