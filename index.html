@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.18">
+<meta name="app-release-version" content="V21.72.19">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -15,7 +15,7 @@
 <meta name="chat-call-preview-only" content="true">
 <meta name="chat-v21-session-runtime" content="v21-only">
 <meta name="chat-v21-contact-runtime" content="v21-only">
-<title>Chat Screen Module V21.72.18</title>
+<title>Chat Screen Module V21.72.19</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style data-inlined-source="reference/chatgpt/full-source/chatgpt-core-exact.css">
 /* ChatGPT exact core extraction.
@@ -2144,7 +2144,12 @@ button{
 .contact-avatar-source{
   width:48px;
   height:48px;
-  border-radius:999px;
+  min-width:48px;
+  min-height:48px;
+  aspect-ratio:1;
+  border-radius:50%;
+  overflow:hidden;
+  flex:0 0 auto;
   display:grid;
   place-items:center;
   background:var(--account-avatar-bg,#d1fae5);
@@ -2409,7 +2414,7 @@ button{
 .shell-sidebar-account-action:hover{background:#1f1f1f}
 .shell-sidebar-account-action:active{transform:translateY(1px)}
 .shell-sidebar-account-footer[data-state="guest"] .shell-sidebar-account-action{display:none}
-.shell-avatar-image{display:block;width:100%;height:100%;object-fit:cover;border-radius:inherit}
+.shell-avatar-image{display:block;width:100%;height:100%;max-width:none;max-height:none;object-fit:cover;object-position:center;border-radius:50%;pointer-events:none}
 .shell-contact-row{position:relative;width:100%;height:72px;min-height:72px;border-radius:18px;overflow:hidden;overflow-anchor:none}
 .shell-contact-row[data-active="true"]{background:var(--theme-surface-secondary)}
 .shell-contact-row[data-locked="true"]{opacity:.72}
@@ -2446,12 +2451,12 @@ button{
 .shell-profile-close:hover{background:var(--theme-surface-secondary)}
 .shell-profile-form{display:grid;gap:14px}
 .shell-profile-avatar-picker{display:flex;align-items:center;gap:12px;width:max-content;cursor:pointer}
-.shell-profile-avatar{width:58px;height:58px;font-size:1rem}
+.shell-profile-avatar{width:58px;height:58px;min-width:58px;min-height:58px;aspect-ratio:1;border-radius:50%;overflow:hidden;flex:0 0 58px;font-size:1rem}
 .shell-profile-avatar-label{font-size:.9rem;color:var(--theme-content-secondary)}
-.shell-profile-field{position:relative;display:block}
-.shell-profile-field>span{position:absolute;top:-8px;left:14px;padding:0 6px;background:var(--theme-surface-primary);color:var(--theme-content-secondary);font-size:.75rem;z-index:1}
+.shell-profile-field{position:relative;display:grid;gap:6px}
+.shell-profile-field>span{position:static;padding:0 4px;background:transparent;color:var(--theme-content-secondary);font-size:.78rem;line-height:1rem}
 .shell-profile-field input{width:100%;height:52px;border:1px solid rgba(0,0,0,.16);border-radius:18px;padding:0 16px;background:transparent;color:inherit;font:inherit;outline:none;-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
-.shell-profile-field input:focus{border-color:#0a84ff;box-shadow:0 0 0 1px #0a84ff}
+.shell-profile-field input:focus{border-color:rgba(0,0,0,.58);box-shadow:0 0 0 1px rgba(0,0,0,.10)}
 .shell-profile-error{margin:0;color:#d92d20;font-size:.82rem}
 .shell-profile-save,.shell-profile-secondary,.shell-profile-danger{width:100%;min-height:48px;border-radius:18px;font:inherit;font-weight:600;cursor:pointer}
 .shell-profile-save{border:0;background:#0d0d0d;color:#fff}
@@ -2507,7 +2512,7 @@ button{
 <div id="runtimeError" class="hidden fixed z-[9999] left-2 right-2 top-2 rounded-xl bg-red-600 text-white text-xs px-3 py-2 shadow-lg"></div>
 
 <!-- V21.69.9 unified runtime marker. Earlier V21.20/V21.64 labels below are provenance for inherited geometry/style contracts only, not separate live runtimes. -->
-<div id="appShell" data-app-shell data-chat-screen-version="V21.72.18" data-app-shell-version="V21.72.18" data-auth-state="booting" data-default-route="chat" data-route="chat">
+<div id="appShell" data-app-shell data-chat-screen-version="V21.72.19" data-app-shell-version="V21.72.19" data-auth-state="booting" data-default-route="chat" data-route="chat">
   <div id="screenHost" data-screen-host>
     <div id="activeScreenSlot" data-active-screen-slot>
       <section id="chatScreen" class="app-screen" data-screen="chat">
@@ -3436,7 +3441,7 @@ window.V21RuntimeId=Object.freeze({version:VERSION,create:createRuntimeId});
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.18';
+const RELEASE_VERSION='V21.72.19';
 const MODULE_CONTRACT_VERSION='audio-capture-v1';
 const DEVICE_KEY='taphoa.v21.audio.inputDeviceId';
 const BASE=Object.freeze({
@@ -4063,9 +4068,9 @@ const AppBootController={
 
     this.phase='ERROR';
     modeLabel.textContent='ERROR';
-    runtimeError.textContent='V21.72.18 runtime: '+message;
+    runtimeError.textContent='V21.72.19 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.18]',error);
+    console.error('[ChatScreenModule V21.72.19]',error);
   },
   ready(){
     this.phase='READY';
@@ -4124,7 +4129,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.18 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.19 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -4178,7 +4183,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.18',
+  releaseVersion:'V21.72.19',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -10052,7 +10057,7 @@ window.V21ConversationBridge={
 };
 
 window.ChatScreenModule={
-  version:'V21.72.18',
+  version:'V21.72.19',
   snapshot(){
     return{
       viewportMode:viewport.mode,
@@ -10736,6 +10741,36 @@ function avatarUrlFor(path){
   return path?String(profileStore()?.avatarUrl?.(path)||''):'';
 }
 
+function renderAvatarInitials(node,display,fallback='TK'){
+  if(!node)return;
+  node.replaceChildren();
+  node.textContent=initialsFor(display,fallback);
+  node.dataset.avatarState='initials';
+}
+
+function renderAvatarImage(node,url,display,fallback='TK'){
+  if(!node||!url)return false;
+  node.replaceChildren();
+  const img=document.createElement('img');
+  img.className='shell-avatar-image';
+  img.alt='';
+  img.decoding='async';
+  img.draggable=false;
+  img.src=url;
+  img.addEventListener('load',()=>{
+    if(!node.contains(img))return;
+    node.dataset.avatarState='image';
+    if(node.dataset.avatarFailedUrl===url)delete node.dataset.avatarFailedUrl;
+  },{once:true});
+  img.addEventListener('error',()=>{
+    if(!node.contains(img))return;
+    node.dataset.avatarFailedUrl=url;
+    renderAvatarInitials(node,display,fallback);
+  },{once:true});
+  node.appendChild(img);
+  return true;
+}
+
 function renderAvatarNode(node,model,fallback='TK'){
   if(!node)return;
   applyAvatarColors(node,model);
@@ -10744,15 +10779,10 @@ function renderAvatarNode(node,model,fallback='TK'){
   const signature=`${url}|${display}|${fallback}`;
   if(node.dataset.avatarSignature===signature)return;
   node.dataset.avatarSignature=signature;
-  node.replaceChildren();
-  if(url){
-    const img=document.createElement('img');
-    img.className='shell-avatar-image';
-    img.alt='';
-    img.src=url;
-    node.appendChild(img);
+  if(url&&node.dataset.avatarFailedUrl!==url){
+    renderAvatarImage(node,url,display,fallback);
   }else{
-    node.textContent=initialsFor(display,fallback);
+    renderAvatarInitials(node,display,fallback);
   }
 }
 
@@ -10861,6 +10891,7 @@ function buildProfileEditor({mode='self',account:target}={}){
           <input type="file" accept="image/png,image/jpeg,image/webp" data-profile-avatar-file hidden>
         </label>
         <label class="shell-profile-field"><span>Tên</span><input type="text" maxlength="50" autocomplete="name" data-profile-name></label>
+        <label class="shell-profile-field"><span>Tên đăng nhập</span><input type="text" maxlength="24" autocomplete="username" autocapitalize="none" spellcheck="false" inputmode="text" data-profile-username></label>
         <label class="shell-profile-field"><span>Mật khẩu mới</span><input type="password" minlength="6" maxlength="128" autocomplete="new-password" data-profile-password placeholder="Để trống nếu không đổi"></label>
         <p class="shell-profile-error" data-profile-error hidden></p>
         <button type="submit" class="shell-profile-save">Lưu</button>
@@ -10883,6 +10914,7 @@ function buildProfileEditor({mode='self',account:target}={}){
 
   const title=wrap.querySelector('.shell-profile-header h2');
   const nameInput=wrap.querySelector('[data-profile-name]');
+  const usernameInput=wrap.querySelector('[data-profile-username]');
   const passwordInput=wrap.querySelector('[data-profile-password]');
   const avatar=wrap.querySelector('[data-profile-avatar]');
   const fileInput=wrap.querySelector('[data-profile-avatar-file]');
@@ -10897,6 +10929,7 @@ function buildProfileEditor({mode='self',account:target}={}){
 
   title.textContent=selfMode?'Hồ sơ':String(model.display_name||model.username||'Người dùng');
   nameInput.value=String(model.display_name||'');
+  usernameInput.value=String(model.username||'');
   renderAvatarNode(avatar,model,'TK');
 
   if(managed){
@@ -10922,6 +10955,7 @@ function buildProfileEditor({mode='self',account:target}={}){
     Object.assign(model,next);
     title.textContent=selfMode?'Hồ sơ':String(model.display_name||model.username||'Người dùng');
     nameInput.value=String(model.display_name||'');
+    usernameInput.value=String(model.username||'');
     passwordInput.value='';
     fileInput.value='';
     if(profilePreviewUrl){URL.revokeObjectURL(profilePreviewUrl);profilePreviewUrl='';}
@@ -10932,15 +10966,25 @@ function buildProfileEditor({mode='self',account:target}={}){
   fileInput.addEventListener('change',()=>{
     const file=fileInput.files?.[0]||null;
     if(!file)return;
+    if(!['image/png','image/jpeg','image/webp'].includes(String(file.type||'').toLowerCase())){
+      setError('Chỉ dùng ảnh PNG, JPG hoặc WebP');fileInput.value='';return;
+    }
     if(file.size>2*1024*1024){setError('Ảnh tối đa 2 MB');fileInput.value='';return;}
     if(profilePreviewUrl)URL.revokeObjectURL(profilePreviewUrl);
     profilePreviewUrl=URL.createObjectURL(file);
-    avatar.replaceChildren();
-    const img=document.createElement('img');img.className='shell-avatar-image';img.alt='';img.src=profilePreviewUrl;avatar.appendChild(img);
+    delete avatar.dataset.avatarFailedUrl;
+    avatar.dataset.avatarSignature=`preview|${profilePreviewUrl}`;
+    if(!renderAvatarImage(avatar,profilePreviewUrl,String(nameInput.value||model.display_name||model.username||''),'TK')){
+      renderAvatarInitials(avatar,String(nameInput.value||model.display_name||model.username||''),'TK');
+    }
     setError('');
   });
 
-  wrap.querySelector('.shell-profile-backdrop').addEventListener('click',closeProfileEditor);
+  usernameInput.addEventListener('blur',()=>{
+    usernameInput.value=usernameInput.value.trim().replace(/^@/,'').toLowerCase();
+  });
+
+    wrap.querySelector('.shell-profile-backdrop').addEventListener('click',closeProfileEditor);
   wrap.querySelector('.shell-profile-close').addEventListener('click',closeProfileEditor);
 
   wrap.querySelector('[data-profile-form]').addEventListener('submit',async event=>{
@@ -10949,11 +10993,15 @@ function buildProfileEditor({mode='self',account:target}={}){
     const store=profileStore();
     if(!store){setError('Không thể mở hồ sơ');return;}
     const payload={
+      username:usernameInput.value.trim().replace(/^@/,'').toLowerCase(),
       displayName:nameInput.value.trim(),
       password:passwordInput.value,
       avatarFile:fileInput.files?.[0]||null
     };
     if(!payload.displayName){setError('Tên không được để trống');return;}
+    if(!/^[a-z0-9_]{3,24}$/.test(payload.username)){
+      setError('Tên đăng nhập phải có 3–24 ký tự, chỉ gồm a-z, 0-9 và _');return;
+    }
     if(payload.password&&payload.password.length<6){setError('Mật khẩu tối thiểu 6 ký tự');return;}
     setBusy(true);
     try{
@@ -11412,7 +11460,7 @@ AuthUI.renderAccountFooter();
 syncDesktopSidebarMode();
 
 window.ChatAppShell={
-  version:'V21.72.18',
+  version:'V21.72.19',
   NavigationCommand,
   CallCommand,
   AuthUI,
@@ -11446,7 +11494,7 @@ window.ChatAppShell={
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.18';
+const RELEASE_VERSION='V21.72.19';
 const MODULE_CONTRACT_VERSION='shell-form-viewport-v1';
 const KEYBOARD_THRESHOLD_PX=80;
 const EDGE_PX=12;
@@ -11680,7 +11728,8 @@ window.V21ShellFormViewportPolicy=Object.freeze({
 (()=>{
 'use strict';
 
-const VERSION='V21.72.5';
+const RELEASE_VERSION='V21.72.19';
+const MODULE_CONTRACT_VERSION='auth-session-v21.72.5';
 const SUPABASE_URL='https://gcnoahqsrquxkwkjbuxy.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_UY3gfQ9MsntDFCUJ_uV0UA__eTYXz_w';
 const AUTH_STORAGE_KEY='taphoa.v21.auth';
@@ -11698,6 +11747,12 @@ let handlingRevoke=false;
 
 function normalizeUsername(value){
   return String(value??'').trim().replace(/^@/,'').toLowerCase();
+}
+
+const AVATAR_TYPES=new Set(['image/png','image/jpeg','image/webp']);
+
+function normalizeProfileUsername(value){
+  return normalizeUsername(value);
 }
 
 function getDeviceKey(){
@@ -11887,7 +11942,7 @@ function avatarUrl(path){
 
 async function uploadAvatar(targetAccountId,file){
   if(!client||!targetAccountId||!file)return null;
-  if(!String(file.type||'').startsWith('image/'))throw new Error('invalid_avatar');
+  if(!AVATAR_TYPES.has(String(file.type||'').toLowerCase()))throw new Error('invalid_avatar');
   if(Number(file.size)>2*1024*1024)throw new Error('avatar_too_large');
   const ext=String(file.type||'image/webp').split('/')[1]?.replace('jpeg','jpg')||'webp';
   const path=`${String(targetAccountId)}/${Date.now()}-${window.V21RuntimeId.create()}.${ext}`;
@@ -11904,6 +11959,8 @@ async function removeAvatar(path){
 function profileError(error,fallback='Không thể lưu thay đổi'){
   const raw=String(error?.message||error?.code||error||'').toLowerCase();
   if(raw.includes('invalid_display_name'))return'Tên không hợp lệ';
+  if(raw.includes('invalid_username'))return'Tên đăng nhập phải có 3–24 ký tự, chỉ gồm a-z, 0-9 và _';
+  if(raw.includes('username_taken'))return'Tên đăng nhập đã được sử dụng';
   if(raw.includes('invalid_password')||raw.includes('password'))return'Mật khẩu tối thiểu 6 ký tự';
   if(raw.includes('avatar_too_large'))return'Ảnh tối đa 2 MB';
   if(raw.includes('invalid_avatar'))return'Chỉ dùng ảnh PNG, JPG hoặc WebP';
@@ -11911,24 +11968,34 @@ function profileError(error,fallback='Không thể lưu thay đổi'){
   return fallback;
 }
 
-async function updateSelf({displayName,password='',avatarFile=null}={}){
+async function updateSelf({username,displayName,password='',avatarFile=null}={}){
   if(state!=='AUTHENTICATED'||!account?.id||!appSessionId||!client)return{ok:false,message:'Chưa đăng nhập'};
   let newPath=null;
   const oldPath=account.avatar_path||null;
+  const currentUsername=String(account.username||'').toLowerCase();
+  const nextUsername=normalizeProfileUsername(username||currentUsername);
   try{
     if(avatarFile)newPath=await uploadAvatar(account.id,avatarFile);
-    const {data,error}=await client.rpc('v21_account_update_self',{
-      p_app_session_id:appSessionId,
-      p_display_name:String(displayName||'').trim(),
-      p_avatar_path:newPath
-    });
+    const body={
+      app_session_id:appSessionId,
+      username:nextUsername,
+      display_name:String(displayName||'').trim(),
+      password:password?String(password):undefined
+    };
+    if(newPath!==null)body.avatar_path=newPath;
+
+    const {data,error}=await client.functions.invoke('v21-account-self',{body});
     if(error)throw error;
-    if(password){
-      const {error:passwordError}=await client.auth.updateUser({password:String(password)});
-      if(passwordError)throw passwordError;
-    }
-    account={...account,...(data||{}),avatar_path:newPath||data?.avatar_path||account.avatar_path||null};
+    if(!data?.ok)throw new Error(data?.code||'profile_update_failed');
+
+    account={...account,...(data.account||{})};
     authUI()?.setAccount(account);
+
+    if(nextUsername!==currentUsername){
+      void client.auth.refreshSession()
+        .then(()=>syncRealtimeAuth())
+        .catch(()=>false);
+    }
     if(newPath&&oldPath&&oldPath!==newPath)void removeAvatar(oldPath);
     document.dispatchEvent(new CustomEvent('v21-account-profile-updated',{detail:{account:{...account}}}));
     void window.V21SyncEngine?.wake?.({reason:'self-profile'});
@@ -11947,7 +12014,7 @@ async function invokeAdmin(body){
   return{ok:true,account:data.account||null};
 }
 
-async function adminSaveUser({targetAccountId,displayName,password='',avatarFile=null}={}){
+async function adminSaveUser({targetAccountId,username,displayName,password='',avatarFile=null}={}){
   const target=ContactStore.contacts.find(row=>String(row.id)===String(targetAccountId));
   if(!target||target.role!=='user')return{ok:false,message:'Người dùng không tồn tại'};
   let newPath=null;
@@ -11955,7 +12022,9 @@ async function adminSaveUser({targetAccountId,displayName,password='',avatarFile
   try{
     if(avatarFile)newPath=await uploadAvatar(targetAccountId,avatarFile);
     const result=await invokeAdmin({
-      action:'save',target_account_id:String(targetAccountId),
+      action:'save',
+      target_account_id:String(targetAccountId),
+      username:String(username||'').trim(),
       display_name:String(displayName||'').trim(),
       avatar_path:newPath===null?undefined:newPath,
       password:password?String(password):undefined
@@ -11990,7 +12059,8 @@ async function adminDeleteUser({targetAccountId}={}){
 }
 
 const AccountProfileStore={
-  version:VERSION,avatarUrl,updateSelf,adminSaveUser,adminSetLocked,adminDeleteUser,
+  version:RELEASE_VERSION,moduleContractVersion:MODULE_CONTRACT_VERSION,
+  avatarUrl,updateSelf,adminSaveUser,adminSetLocked,adminDeleteUser,
   snapshot(){return{account:account?{...account}:null,state};}
 };
 
@@ -12124,7 +12194,7 @@ async function boot(){
 window.V21ContactStore=ContactStore;
 window.V21AccountProfileStore=AccountProfileStore;
 window.V21AuthSessionStore={
-  version:VERSION,
+  version:RELEASE_VERSION,moduleContractVersion:MODULE_CONTRACT_VERSION,
   boot,login,register,logout,heartbeat,syncRealtimeAuth,handleRevoked,
   getClient(){return client;},
   snapshot(){return{state,account:account?{...account}:null,appSessionId,deviceId,busy,deviceKey:getDeviceKey()};}
@@ -15776,7 +15846,7 @@ queueMicrotask(()=>{if(authenticated())void start();else emitPresence();});
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.18';
+const RELEASE_VERSION='V21.72.19';
 const MODULE_CONTRACT_VERSION='app-update-v1';
 const CHECK_INTERVAL_MS=45000;
 const DEFER_RECHECK_MS=2500;

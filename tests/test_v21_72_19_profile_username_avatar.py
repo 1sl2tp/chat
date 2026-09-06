@@ -53,7 +53,7 @@ assert 'object-fit:cover' in image_css
 assert 'object-position:center' in image_css
 assert 'border-radius:50%' in image_css
 
-render_start=shell.index('function renderAvatarNode(')
+render_start=shell.index('function renderAvatarInitials(')
 render_end=shell.index('function compactPreview',render_start)
 render=shell[render_start:render_end]
 assert "img.addEventListener('error'" in render
