@@ -3,7 +3,7 @@ import hashlib, json, subprocess, sys
 ROOT=Path(__file__).resolve().parents[1]
 version=json.loads((ROOT/'version.json').read_text('utf-8'))
 release=str(version.get('version') or '')
-assert release=='V21.72.17', release
+assert release=='V21.72.18', release
 committed=(ROOT/'index.html').read_bytes()
 subprocess.run([sys.executable,str(ROOT/'tools'/'build_current_preview.py')],check=True,cwd=ROOT)
 generated=(ROOT/'index.html').read_bytes()
@@ -28,4 +28,5 @@ subprocess.run(['node',str(ROOT/'tests'/'test_v21_72_16_audio_policy_runtime.js'
 subprocess.run(['node',str(ROOT/'tests'/'test_v21_72_16_update_runtime.js')],check=True,cwd=ROOT)
 subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_17_mobile_form_keyboard_contract.py')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_v21_72_17_mobile_form_keyboard_runtime.js')],check=True,cwd=ROOT)
-print(f'V21.72.17 canonical source verify PASS sha256={sha}')
+subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_18_auth_actions_row.py')],check=True,cwd=ROOT)
+print(f'V21.72.18 canonical source verify PASS sha256={sha}')

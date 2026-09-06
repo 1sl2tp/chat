@@ -1,6 +1,7 @@
 'use strict';
-const VERSION='V21.72.16';
-const CACHE_NAME='taphoa-chat-shell-'+VERSION;
+const RELEASE_VERSION='V21.72.18';
+const MODULE_CONTRACT_VERSION='pwa-sw-v1';
+const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION;
 const SHELL=['./','./manifest.webmanifest','./icons/chat-192.png','./icons/chat-512.png'];
 
 self.addEventListener('install',event=>{

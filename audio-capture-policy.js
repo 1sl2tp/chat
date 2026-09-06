@@ -1,7 +1,7 @@
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.17';
+const RELEASE_VERSION='V21.72.18';
 const MODULE_CONTRACT_VERSION='audio-capture-v1';
 const DEVICE_KEY='taphoa.v21.audio.inputDeviceId';
 const BASE=Object.freeze({
