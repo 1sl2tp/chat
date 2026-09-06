@@ -15,7 +15,7 @@ for token in [
     'focusout',
     'guestAuthThread',
     'shell-profile-card',
-    'data-mobile-keyboard',
+    'dataset.mobileKeyboard',
     '--shell-form-vv-top',
     '--shell-form-vv-height',
     'requestAnimationFrame'
