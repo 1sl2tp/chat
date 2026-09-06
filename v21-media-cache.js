@@ -1,6 +1,6 @@
 (()=>{
 'use strict';
-const VERSION='V21.71';
+const VERSION='V21.72.15';
 const DEFAULT_SOFT_LIMIT=128*1024*1024;
 const MEDIA_BUCKET='v21-media';
 const inflight=new Map();
@@ -135,20 +135,47 @@ async function listForMessage({accountId,messageId}){
   return grouped.get(String(messageId))||[];
 }
 
+function mediaHydrationRetryable(error){
+  const message=String(error?.message||error?.error||error||'').toLowerCase();
+  const status=Number(error?.statusCode||error?.status||error?.status_code||0)||0;
+  if(status===408||status===425||status===429||status>=500)return true;
+  if(status>=400&&status<500)return false;
+  return /failed to fetch|network|load failed|timeout|timed out|connection|offline|abort/i.test(message);
+}
+
+function emitMediaHydrationError(error,{accountId,assetId,meta=null}={}){
+  document.dispatchEvent(new CustomEvent('v21-media-hydration-error',{
+    detail:{
+      accountId:String(accountId||''),
+      assetId:String(assetId||''),
+      conversationId:String(meta?.conversation_id||''),
+      kind:String(meta?.kind||'file'),
+      retryable:mediaHydrationRetryable(error),
+      message:String(error?.message||error?.error||error||'media_hydration_failed')
+    }
+  }));
+}
+
 async function ensureRemote({accountId,assetId,client}={}){
   if(!accountId||!assetId||!client)return null;
   const cacheKey=key(accountId,assetId);
   if(inflight.has(cacheKey))return inflight.get(cacheKey);
 
+  let fallback=null;
   const promise=(async()=>{
     const existing=await get({accountId,assetId});
+    fallback=existing||null;
     if(existing?.blob instanceof Blob)return existing;
     const meta=existing?.remote_meta||null;
     const storageKey=String(meta?.storage_key||'');
     if(!storageKey||meta?.deleted_at)return existing||null;
 
     const {data,error}=await client.storage.from(MEDIA_BUCKET).download(storageKey);
-    if(error||!(data instanceof Blob))return existing||null;
+    if(error){
+      emitMediaHydrationError(error,{accountId,assetId,meta});
+      return existing||null;
+    }
+    if(!(data instanceof Blob))return existing||null;
 
     await cache()?.putMediaRecord?.(accountId,assetId,{
       blob:data,
@@ -165,7 +192,10 @@ async function ensureRemote({accountId,assetId,client}={}){
       detail:{accountId:String(accountId),assetId:String(assetId)}
     }));
     return row;
-  })().finally(()=>inflight.delete(cacheKey));
+  })().catch(error=>{
+    emitMediaHydrationError(error,{accountId,assetId,meta:fallback?.remote_meta||null});
+    return fallback;
+  }).finally(()=>inflight.delete(cacheKey));
 
   inflight.set(cacheKey,promise);
   return promise;

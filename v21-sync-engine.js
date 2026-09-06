@@ -1,6 +1,6 @@
 (()=>{
 'use strict';
-const VERSION='V21.71';
+const VERSION='V21.72.15';
 const PULL_LIMIT=200;
 let client=null;
 let accountId=null;
@@ -558,6 +558,14 @@ async function prewarmCachedContacts(contactRows,excludeContactId=null){
   return primed;
 }
 
+function isTransientSyncError(error){
+  const status=Number(error?.statusCode||error?.status||error?.status_code||0)||0;
+  const message=String(error?.message||error?.details||error||'').toLowerCase();
+  if(status===408||status===425||status===429||status>=500)return true;
+  if(status>=400&&status<500)return false;
+  return /failed to fetch|network|load failed|timeout|timed out|connection|offline|abort/i.test(message);
+}
+
 async function openContact(contactId){
   const target=contactId?String(contactId):null;
   const epoch=++contactEpoch;
@@ -598,7 +606,15 @@ async function openContact(contactId){
     // to generic realtime/manual sync. Cache/UI is already visible; snapshot
     // only merges canonical data for this context and is generation-guarded.
     if(online()&&!await isConversationHydrated(currentConversationId)){
-      await canonicalReconcileActive();
+      try{
+        await canonicalReconcileActive();
+      }catch(error){
+        if(!isTransientSyncError(error))throw error;
+        console.warn('[V21SyncEngine] transient openContact refresh failure',{
+          contactId:target,conversationId:currentConversationId,error
+        });
+        void wake({reason:'open-contact-network-recovery'});
+      }
       if(epoch!==contactEpoch||String(currentContactId||'')!==target)return false;
     }
   }

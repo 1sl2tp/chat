@@ -7,7 +7,7 @@
 <meta name="chat-call-preview-only" content="true">
 <meta name="chat-v21-session-runtime" content="v21-only">
 <meta name="chat-v21-contact-runtime" content="v21-only">
-<title>Chat Screen Module V21.72.14</title>
+<title>Chat Screen Module V21.72.15</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style data-inlined-source="reference/chatgpt/full-source/chatgpt-core-exact.css">
 /* ChatGPT exact core extraction.
@@ -2471,7 +2471,7 @@ button{
 <div id="runtimeError" class="hidden fixed z-[9999] left-2 right-2 top-2 rounded-xl bg-red-600 text-white text-xs px-3 py-2 shadow-lg"></div>
 
 <!-- V21.69.9 unified runtime marker. Earlier V21.20/V21.64 labels below are provenance for inherited geometry/style contracts only, not separate live runtimes. -->
-<div id="appShell" data-app-shell data-chat-screen-version="V21.72.14" data-app-shell-version="V21.72.14" data-auth-state="booting" data-default-route="chat" data-route="chat">
+<div id="appShell" data-app-shell data-chat-screen-version="V21.72.15" data-app-shell-version="V21.72.15" data-auth-state="booting" data-default-route="chat" data-route="chat">
   <div id="screenHost" data-screen-host>
     <div id="activeScreenSlot" data-active-screen-slot>
       <section id="chatScreen" class="app-screen" data-screen="chat">
@@ -3800,9 +3800,9 @@ const AppBootController={
 
     this.phase='ERROR';
     modeLabel.textContent='ERROR';
-    runtimeError.textContent='V21.72.14 runtime: '+message;
+    runtimeError.textContent='V21.72.15 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.14]',error);
+    console.error('[ChatScreenModule V21.72.15]',error);
   },
   ready(){
     this.phase='READY';
@@ -3861,7 +3861,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.14 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.15 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -3915,7 +3915,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.14',
+  releaseVersion:'V21.72.15',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -9788,7 +9788,7 @@ window.V21ConversationBridge={
 };
 
 window.ChatScreenModule={
-  version:'V21.72.14',
+  version:'V21.72.15',
   snapshot(){
     return{
       viewportMode:viewport.mode,
@@ -11149,7 +11149,7 @@ AuthUI.renderAccountFooter();
 syncDesktopSidebarMode();
 
 window.ChatAppShell={
-  version:'V21.72.14',
+  version:'V21.72.15',
   NavigationCommand,
   CallCommand,
   AuthUI,
@@ -12026,7 +12026,7 @@ window.V21CacheStore={
 <script data-inlined-source="v21-media-cache.js">
 (()=>{
 'use strict';
-const VERSION='V21.71';
+const VERSION='V21.72.15';
 const DEFAULT_SOFT_LIMIT=128*1024*1024;
 const MEDIA_BUCKET='v21-media';
 const inflight=new Map();
@@ -12161,20 +12161,47 @@ async function listForMessage({accountId,messageId}){
   return grouped.get(String(messageId))||[];
 }
 
+function mediaHydrationRetryable(error){
+  const message=String(error?.message||error?.error||error||'').toLowerCase();
+  const status=Number(error?.statusCode||error?.status||error?.status_code||0)||0;
+  if(status===408||status===425||status===429||status>=500)return true;
+  if(status>=400&&status<500)return false;
+  return /failed to fetch|network|load failed|timeout|timed out|connection|offline|abort/i.test(message);
+}
+
+function emitMediaHydrationError(error,{accountId,assetId,meta=null}={}){
+  document.dispatchEvent(new CustomEvent('v21-media-hydration-error',{
+    detail:{
+      accountId:String(accountId||''),
+      assetId:String(assetId||''),
+      conversationId:String(meta?.conversation_id||''),
+      kind:String(meta?.kind||'file'),
+      retryable:mediaHydrationRetryable(error),
+      message:String(error?.message||error?.error||error||'media_hydration_failed')
+    }
+  }));
+}
+
 async function ensureRemote({accountId,assetId,client}={}){
   if(!accountId||!assetId||!client)return null;
   const cacheKey=key(accountId,assetId);
   if(inflight.has(cacheKey))return inflight.get(cacheKey);
 
+  let fallback=null;
   const promise=(async()=>{
     const existing=await get({accountId,assetId});
+    fallback=existing||null;
     if(existing?.blob instanceof Blob)return existing;
     const meta=existing?.remote_meta||null;
     const storageKey=String(meta?.storage_key||'');
     if(!storageKey||meta?.deleted_at)return existing||null;
 
     const {data,error}=await client.storage.from(MEDIA_BUCKET).download(storageKey);
-    if(error||!(data instanceof Blob))return existing||null;
+    if(error){
+      emitMediaHydrationError(error,{accountId,assetId,meta});
+      return existing||null;
+    }
+    if(!(data instanceof Blob))return existing||null;
 
     await cache()?.putMediaRecord?.(accountId,assetId,{
       blob:data,
@@ -12191,7 +12218,10 @@ async function ensureRemote({accountId,assetId,client}={}){
       detail:{accountId:String(accountId),assetId:String(assetId)}
     }));
     return row;
-  })().finally(()=>inflight.delete(cacheKey));
+  })().catch(error=>{
+    emitMediaHydrationError(error,{accountId,assetId,meta:fallback?.remote_meta||null});
+    return fallback;
+  }).finally(()=>inflight.delete(cacheKey));
 
   inflight.set(cacheKey,promise);
   return promise;
@@ -12555,7 +12585,7 @@ window.V21MessageStore={
 <script data-inlined-source="v21-sync-engine.js">
 (()=>{
 'use strict';
-const VERSION='V21.71';
+const VERSION='V21.72.15';
 const PULL_LIMIT=200;
 let client=null;
 let accountId=null;
@@ -13113,6 +13143,14 @@ async function prewarmCachedContacts(contactRows,excludeContactId=null){
   return primed;
 }
 
+function isTransientSyncError(error){
+  const status=Number(error?.statusCode||error?.status||error?.status_code||0)||0;
+  const message=String(error?.message||error?.details||error||'').toLowerCase();
+  if(status===408||status===425||status===429||status>=500)return true;
+  if(status>=400&&status<500)return false;
+  return /failed to fetch|network|load failed|timeout|timed out|connection|offline|abort/i.test(message);
+}
+
 async function openContact(contactId){
   const target=contactId?String(contactId):null;
   const epoch=++contactEpoch;
@@ -13153,7 +13191,15 @@ async function openContact(contactId){
     // to generic realtime/manual sync. Cache/UI is already visible; snapshot
     // only merges canonical data for this context and is generation-guarded.
     if(online()&&!await isConversationHydrated(currentConversationId)){
-      await canonicalReconcileActive();
+      try{
+        await canonicalReconcileActive();
+      }catch(error){
+        if(!isTransientSyncError(error))throw error;
+        console.warn('[V21SyncEngine] transient openContact refresh failure',{
+          contactId:target,conversationId:currentConversationId,error
+        });
+        void wake({reason:'open-contact-network-recovery'});
+      }
       if(epoch!==contactEpoch||String(currentContactId||'')!==target)return false;
     }
   }
