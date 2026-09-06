@@ -22,7 +22,7 @@ for token in [
     assert token in policy, token
 assert 'AudioContext' not in policy
 assert "MODULE_CONTRACT_VERSION='audio-capture-v1'" in policy
-assert "RELEASE_VERSION='V21.72.20'" in policy
+assert "RELEASE_VERSION='V21.72.21'" in policy
 assert 'createMediaStreamDestination' not in policy
 
 app=read('app.js')
@@ -41,7 +41,7 @@ assert 'remoteTrackKey' in livekit
 
 source=read('index.source.html')
 assert '<link rel="manifest" href="./manifest.webmanifest">' in source
-assert 'name="app-release-version" content="V21.72.20"' in source
+assert 'name="app-release-version" content="V21.72.21"' in source
 assert './audio-capture-policy.js' in source
 assert './app-update-controller.js' in source
 assert 'apple-mobile-web-app-capable' in source
@@ -60,7 +60,7 @@ for token in ['skipWaiting','clients.claim','version.json','cache: \'no-store\''
 
 update=read('app-update-controller.js')
 assert "MODULE_CONTRACT_VERSION='app-update-v1'" in update
-assert "RELEASE_VERSION='V21.72.20'" in update
+assert "RELEASE_VERSION='V21.72.21'" in update
 for token in [
     'version.json',
     "cache:'no-store'",
@@ -75,4 +75,4 @@ for token in [
     'serviceWorker.register'
 ]:
     assert token in update, token
-print('V21.72.20 audio/PWA contract PASS')
+print('V21.72.21 audio/PWA contract PASS')
