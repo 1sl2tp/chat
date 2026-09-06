@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.21">
+<meta name="app-release-version" content="V21.72.22">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -15,7 +15,7 @@
 <meta name="chat-call-preview-only" content="true">
 <meta name="chat-v21-session-runtime" content="v21-only">
 <meta name="chat-v21-contact-runtime" content="v21-only">
-<title>Chat Screen Module V21.72.21</title>
+<title>Chat Screen Module V21.72.22</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style data-inlined-source="reference/chatgpt/full-source/chatgpt-core-exact.css">
 /* ChatGPT exact core extraction.
@@ -2076,11 +2076,17 @@ button{
   box-shadow:0 0 0 1px var(--guest-auth-focus);
   outline:none;
 }
-.guest-auth-field[aria-invalid="true"]{border-color:var(--theme-border-danger)}
+.guest-auth-field[aria-invalid="true"]{
+  border-color:var(--theme-border-danger,#e11900);
+  box-shadow:0 0 0 1px var(--theme-border-danger,#e11900);
+}
 .guest-auth-field[aria-invalid="true"]:focus,.guest-auth-field[aria-invalid="true"]:focus-visible{
-  border-color:var(--theme-border-danger);
-  box-shadow:0 0 0 1px var(--theme-border-danger);
+  border-color:var(--theme-border-danger,#e11900);
+  box-shadow:0 0 0 1px var(--theme-border-danger,#e11900);
   outline:none;
+}
+.guest-auth-control:has(.guest-auth-field[aria-invalid="true"]) .guest-auth-field-label{
+  color:var(--theme-border-danger,#e11900);
 }
 .guest-auth-field:-webkit-autofill,
 .guest-auth-field:-webkit-autofill:hover,
@@ -2518,10 +2524,14 @@ button{
 
 .shell-profile-overlay{
   position:fixed;
-  inset:0;
+  inset-inline:0;
+  top:var(--shell-form-vv-top,0px);
+  bottom:auto;
+  height:var(--shell-form-vv-height,100svh);
   z-index:140;
   display:grid;
   place-items:center;
+  box-sizing:border-box;
   padding:18px;
   pointer-events:auto;
 }
@@ -2643,6 +2653,15 @@ button{
   border-color:#0a84ff;
   box-shadow:0 0 0 1px #0a84ff;
 }
+.shell-profile-field input[aria-invalid="true"]{
+  border-color:#e11900;
+  box-shadow:0 0 0 1px #e11900;
+}
+.shell-profile-field input[aria-invalid="true"]:focus{
+  border-color:#e11900;
+  box-shadow:0 0 0 1px #e11900;
+}
+.shell-profile-field:has(input[aria-invalid="true"])>label{color:#e11900}
 .shell-profile-field input:-webkit-autofill,
 .shell-profile-field input:-webkit-autofill:hover,
 .shell-profile-field input:-webkit-autofill:focus{
@@ -2700,7 +2719,7 @@ button{
   .shell-profile-overlay{place-items:center;padding:10px}
   .shell-profile-card{
     width:100%;
-    max-height:calc(100svh - 20px);
+    max-height:calc(var(--shell-form-vv-height,100svh) - 20px);
     border-radius:28px;
     padding:24px 18px 22px;
   }
@@ -2710,11 +2729,61 @@ button{
   .shell-profile-save,.shell-profile-secondary{min-height:56px}
 }
 @media(max-width:767px), (pointer:coarse){
-  .guest-auth-thread[data-mobile-keyboard="true"],
-  .shell-profile-card[data-mobile-keyboard="true"]{
+  .guest-auth-thread[data-mobile-keyboard="true"]{
+    max-height:calc(var(--shell-form-vv-height,100svh) - var(--header-height,72px) - 16px);
+    margin-top:8px;
+    margin-bottom:8px;
+    padding:18px 16px 16px;
     scroll-behavior:auto;
-    scroll-padding-block:16px;
+    scroll-padding-block:12px 72px;
   }
+  .guest-auth-thread[data-mobile-keyboard="true"] .guest-auth-content{gap:12px}
+  .guest-auth-thread[data-mobile-keyboard="true"] .guest-auth-thread-title{
+    font-size:1.65rem;
+    line-height:2rem;
+  }
+  .guest-auth-thread[data-mobile-keyboard="true"] .guest-auth-form{gap:11px}
+  .guest-auth-thread[data-mobile-keyboard="true"] .guest-auth-field,
+  .guest-auth-thread[data-mobile-keyboard="true"] .guest-auth-primary{min-height:52px}
+  .guest-auth-thread[data-mobile-keyboard="true"] .guest-auth-switch-row{min-height:32px}
+
+  .shell-profile-overlay[data-mobile-keyboard="true"]{
+    place-items:center;
+    padding:8px 10px;
+  }
+  .shell-profile-card[data-mobile-keyboard="true"]{
+    max-height:calc(var(--shell-form-vv-height,100svh) - 16px);
+    padding:16px 18px 16px;
+    scroll-behavior:auto;
+    scroll-padding-block:12px 72px;
+  }
+  .shell-profile-card[data-mobile-keyboard="true"] .shell-profile-header{
+    min-height:36px;
+    margin-bottom:10px;
+  }
+  .shell-profile-card[data-mobile-keyboard="true"] .shell-profile-header h2{
+    font-size:1.55rem;
+    line-height:1.9rem;
+  }
+  .shell-profile-card[data-mobile-keyboard="true"] .shell-profile-avatar-picker{
+    gap:4px;
+    margin-bottom:0;
+  }
+  .shell-profile-card[data-mobile-keyboard="true"] .shell-profile-avatar{
+    width:48px;
+    height:48px;
+    min-width:48px;
+    min-height:48px;
+    flex-basis:48px;
+  }
+  .shell-profile-card[data-mobile-keyboard="true"] .shell-profile-avatar-label{font-size:.8rem}
+  .shell-profile-card[data-mobile-keyboard="true"] .shell-profile-form{gap:10px}
+  .shell-profile-card[data-mobile-keyboard="true"] .shell-profile-field input{
+    height:52px;
+    border-radius:20px;
+  }
+  .shell-profile-card[data-mobile-keyboard="true"] .shell-profile-save,
+  .shell-profile-card[data-mobile-keyboard="true"] .shell-profile-secondary{min-height:52px}
 }
 
 </style>
@@ -2725,7 +2794,7 @@ button{
 <div id="runtimeError" class="hidden fixed z-[9999] left-2 right-2 top-2 rounded-xl bg-red-600 text-white text-xs px-3 py-2 shadow-lg"></div>
 
 <!-- V21.69.9 unified runtime marker. Earlier V21.20/V21.64 labels below are provenance for inherited geometry/style contracts only, not separate live runtimes. -->
-<div id="appShell" data-app-shell data-chat-screen-version="V21.72.21" data-app-shell-version="V21.72.21" data-auth-state="booting" data-default-route="chat" data-route="chat">
+<div id="appShell" data-app-shell data-chat-screen-version="V21.72.22" data-app-shell-version="V21.72.22" data-auth-state="booting" data-default-route="chat" data-route="chat">
   <div id="screenHost" data-screen-host>
     <div id="activeScreenSlot" data-active-screen-slot>
       <section id="chatScreen" class="app-screen" data-screen="chat">
@@ -3658,7 +3727,7 @@ window.V21RuntimeId=Object.freeze({version:VERSION,create:createRuntimeId});
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.21';
+const RELEASE_VERSION='V21.72.22';
 const MODULE_CONTRACT_VERSION='audio-capture-v1';
 const DEVICE_KEY='taphoa.v21.audio.inputDeviceId';
 const BASE=Object.freeze({
@@ -4285,9 +4354,9 @@ const AppBootController={
 
     this.phase='ERROR';
     modeLabel.textContent='ERROR';
-    runtimeError.textContent='V21.72.21 runtime: '+message;
+    runtimeError.textContent='V21.72.22 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.21]',error);
+    console.error('[ChatScreenModule V21.72.22]',error);
   },
   ready(){
     this.phase='READY';
@@ -4346,7 +4415,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.21 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.22 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -4400,7 +4469,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.21',
+  releaseVersion:'V21.72.22',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -10274,7 +10343,7 @@ window.V21ConversationBridge={
 };
 
 window.ChatScreenModule={
-  version:'V21.72.21',
+  version:'V21.72.22',
   snapshot(){
     return{
       viewportMode:viewport.mode,
@@ -11159,6 +11228,32 @@ function buildProfileEditor({mode='self',account:target}={}){
     errorNode.hidden=!message;
   }
 
+  function setProfileInvalid(input,invalid=true){
+    if(!input)return;
+    if(invalid)input.setAttribute('aria-invalid','true');
+    else input.removeAttribute('aria-invalid');
+  }
+
+  function clearProfileValidation(){
+    setError('');
+    for(const input of [nameInput,usernameInput,passwordInput])setProfileInvalid(input,false);
+  }
+
+  function markProfileResultError(message=''){
+    const text=String(message||'');
+    if(text.includes('Tên đăng nhập'))setProfileInvalid(usernameInput,true);
+    else if(text.includes('Mật khẩu'))setProfileInvalid(passwordInput,true);
+    else if(text.startsWith('Tên'))setProfileInvalid(nameInput,true);
+    setError(text||'Không thể lưu thay đổi');
+  }
+
+  for(const input of [nameInput,usernameInput,passwordInput]){
+    input.addEventListener('input',()=>{
+      setProfileInvalid(input,false);
+      if(![nameInput,usernameInput,passwordInput].some(node=>node.getAttribute('aria-invalid')==='true'))setError('');
+    });
+  }
+
   function setBusy(busy){
     wrap.dataset.busy=String(Boolean(busy));
     wrap.setAttribute('aria-busy',String(Boolean(busy)));
@@ -11206,7 +11301,7 @@ function buildProfileEditor({mode='self',account:target}={}){
 
   wrap.querySelector('[data-profile-form]').addEventListener('submit',async event=>{
     event.preventDefault();
-    setError('');
+    clearProfileValidation();
     const store=profileStore();
     if(!store){setError('Không thể mở hồ sơ');return;}
     const payload={
@@ -11215,20 +11310,33 @@ function buildProfileEditor({mode='self',account:target}={}){
       password:passwordInput.value,
       avatarFile:fileInput.files?.[0]||null
     };
-    if(!payload.displayName){setError('Tên không được để trống');return;}
-    if(!/^[a-z0-9_]{3,24}$/.test(payload.username)){
-      setError('Tên đăng nhập phải có 3–24 ký tự, chỉ gồm a-z, 0-9 và _');return;
+    if(!payload.displayName){
+      setProfileInvalid(nameInput,true);
+      setError('Tên không được để trống');
+      nameInput.focus({preventScroll:true});
+      return;
     }
-    if(payload.password&&payload.password.length<6){setError('Mật khẩu tối thiểu 6 ký tự');return;}
+    if(!/^[a-z0-9_]{3,24}$/.test(payload.username)){
+      setProfileInvalid(usernameInput,true);
+      setError('Tên đăng nhập phải có 3–24 ký tự, chỉ gồm a-z, 0-9 và _');
+      usernameInput.focus({preventScroll:true});
+      return;
+    }
+    if(payload.password&&payload.password.length<6){
+      setProfileInvalid(passwordInput,true);
+      setError('Mật khẩu tối thiểu 6 ký tự');
+      passwordInput.focus({preventScroll:true});
+      return;
+    }
     setBusy(true);
     try{
       const result=selfMode
         ?await store.updateSelf(payload)
         :await store.adminSaveUser({...payload,targetAccountId:String(model.id)});
-      if(!result?.ok){setError(result?.message||'Không thể lưu thay đổi');return;}
+      if(!result?.ok){markProfileResultError(result?.message||'Không thể lưu thay đổi');return;}
       applyProfileResult(result);
       closeProfileEditor();
-    }catch(error){setError(String(error?.message||'Không thể lưu thay đổi'));}
+    }catch(error){markProfileResultError(String(error?.message||'Không thể lưu thay đổi'));}
     finally{setBusy(false);}
   });
 
@@ -11720,7 +11828,7 @@ AuthUI.renderAccountFooter();
 syncDesktopSidebarMode();
 
 window.ChatAppShell={
-  version:'V21.72.21',
+  version:'V21.72.22',
   NavigationCommand,
   CallCommand,
   AuthUI,
@@ -11754,7 +11862,7 @@ window.ChatAppShell={
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.21';
+const RELEASE_VERSION='V21.72.22';
 const MODULE_CONTRACT_VERSION='call-screen-wake-lock-v1';
 
 let callActive=false;
@@ -11860,8 +11968,8 @@ window.V21CallScreenWakeLock=Object.freeze({
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.21';
-const MODULE_CONTRACT_VERSION='shell-form-viewport-v2';
+const RELEASE_VERSION='V21.72.22';
+const MODULE_CONTRACT_VERSION='shell-form-viewport-v3';
 const KEYBOARD_THRESHOLD_PX=80;
 const EDGE_PX=12;
 
@@ -11902,12 +12010,23 @@ function sameOwner(a,b){
   return Boolean(a&&b&&a.kind===b.kind&&a.surface===b.surface&&a.host===b.host);
 }
 
-function clearOwner(owner){
-  if(!owner)return;
-  for(const node of new Set([owner.host,owner.surface])){
-    if(!node)continue;
+function nodesFor(owner){
+  return owner?[...new Set([owner.host,owner.surface].filter(Boolean))]:[];
+}
+
+function clearKeyboardState(owner){
+  for(const node of nodesFor(owner)){
     delete node.dataset.mobileKeyboard;
     node.style?.removeProperty?.('--shell-form-keyboard-inset');
+  }
+}
+
+function clearOwner(owner){
+  if(!owner)return;
+  clearKeyboardState(owner);
+  for(const node of nodesFor(owner)){
+    node.style?.removeProperty?.('--shell-form-vv-top');
+    node.style?.removeProperty?.('--shell-form-vv-height');
   }
 }
 
@@ -11934,6 +12053,14 @@ function readViewport(){
       heightDrop>=KEYBOARD_THRESHOLD_PX
     )
   };
+}
+
+function publishViewport(owner,state){
+  if(!owner||!state)return;
+  for(const node of nodesFor(owner)){
+    node.style.setProperty('--shell-form-vv-top',`${state.visualTop}px`);
+    node.style.setProperty('--shell-form-vv-height',`${state.visualHeight}px`);
+  }
 }
 
 function actionFor(owner){
@@ -11987,8 +12114,10 @@ function publish(){
   if(!activeOwner)return false;
 
   const state=readViewport();
+  publishViewport(activeOwner,state);
+
   if(!state.keyboardOpen){
-    clearOwner(activeOwner);
+    clearKeyboardState(activeOwner);
     return false;
   }
 
@@ -12060,13 +12189,14 @@ window.V21ShellFormViewportPolicy=Object.freeze({
   })
 });
 })();
+
 </script>
 <script data-inlined-source="auth-session-store.js">
 
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.21';
+const RELEASE_VERSION='V21.72.22';
 const MODULE_CONTRACT_VERSION='auth-session-v21.72.5';
 const SUPABASE_URL='https://gcnoahqsrquxkwkjbuxy.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_UY3gfQ9MsntDFCUJ_uV0UA__eTYXz_w';
@@ -16184,7 +16314,7 @@ queueMicrotask(()=>{if(authenticated())void start();else emitPresence();});
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.21';
+const RELEASE_VERSION='V21.72.22';
 const MODULE_CONTRACT_VERSION='app-update-v1';
 const CHECK_INTERVAL_MS=45000;
 const DEFER_RECHECK_MS=2500;
