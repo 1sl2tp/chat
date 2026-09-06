@@ -1133,8 +1133,8 @@ const AuthUI={
     const password=authField('password');
     const passwordToggle=document.querySelector('#guestAuthThread [data-password-toggle]');
     if(title)title.textContent=authMode==='register'?'Đăng ký':'Đăng nhập';
-    if(primary)primary.textContent=authMode==='register'?'Đăng ký':'Đăng nhập';
-    if(secondary)secondary.textContent=authMode==='register'?'Đăng nhập':'Đăng ký';
+    if(primary)primary.textContent='Tiếp tục';
+    if(secondary)secondary.textContent=authMode==='register'?'Về đăng nhập':'Tạo tài khoản';
     if(switchPrefix)switchPrefix.textContent=authMode==='register'?'Đã có tài khoản?':'Chưa có tài khoản?';
     if(password){
       password.autocomplete=authMode==='register'?'new-password':'current-password';
@@ -1456,7 +1456,7 @@ AuthUI.renderAccountFooter();
 syncDesktopSidebarMode();
 
 window.ChatAppShell={
-  version:'V21.72.22',
+  version:'V21.72.23',
   NavigationCommand,
   CallCommand,
   AuthUI,

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.22">
+<meta name="app-release-version" content="V21.72.23">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -15,7 +15,7 @@
 <meta name="chat-call-preview-only" content="true">
 <meta name="chat-v21-session-runtime" content="v21-only">
 <meta name="chat-v21-contact-runtime" content="v21-only">
-<title>Chat Screen Module V21.72.22</title>
+<title>Chat Screen Module V21.72.23</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="./reference/chatgpt/full-source/chatgpt-core-exact.css" data-build-source="reference/chatgpt/full-source/chatgpt-core-exact.css">
 <link rel="stylesheet" href="./reference/chatgpt/chatgpt-token-aliases.css" data-build-source="reference/chatgpt/chatgpt-token-aliases.css">
@@ -2033,14 +2033,17 @@ button{
   text-align:start;
 }
 .contact-avatar-source{
+  box-sizing:border-box;
   width:48px;
   height:48px;
   min-width:48px;
   min-height:48px;
-  aspect-ratio:1;
+  max-width:48px;
+  max-height:48px;
+  aspect-ratio:1 / 1;
   border-radius:50%;
   overflow:hidden;
-  flex:0 0 auto;
+  flex:0 0 48px;
   display:grid;
   place-items:center;
   background:var(--account-avatar-bg,#d1fae5);
@@ -2305,7 +2308,20 @@ button{
 .shell-sidebar-account-action:hover{background:#1f1f1f}
 .shell-sidebar-account-action:active{transform:translateY(1px)}
 .shell-sidebar-account-footer[data-state="guest"] .shell-sidebar-account-action{display:none}
-.shell-avatar-image{display:block;width:100%;height:100%;max-width:none;max-height:none;object-fit:cover;object-position:center;border-radius:50%;pointer-events:none}
+.shell-avatar-image{
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  min-width:100%!important;
+  min-height:100%!important;
+  max-width:100%!important;
+  max-height:100%!important;
+  aspect-ratio:1 / 1;
+  object-fit:cover!important;
+  object-position:center!important;
+  border-radius:50%;
+  pointer-events:none;
+}
 .shell-contact-row{position:relative;width:100%;height:72px;min-height:72px;border-radius:18px;overflow:hidden;overflow-anchor:none}
 .shell-contact-row[data-active="true"]{background:var(--theme-surface-secondary)}
 .shell-contact-row[data-locked="true"]{opacity:.72}
@@ -2411,14 +2427,18 @@ button{
   cursor:pointer;
 }
 .shell-profile-avatar{
+  box-sizing:border-box;
   width:64px;
   height:64px;
   min-width:64px;
   min-height:64px;
-  aspect-ratio:1;
+  max-width:64px;
+  max-height:64px;
+  aspect-ratio:1 / 1;
   border-radius:50%;
   overflow:hidden;
   flex:0 0 64px;
+  align-self:center;
   font-size:1rem;
 }
 .shell-profile-avatar-label{font-size:.88rem;color:var(--theme-content-secondary)}
@@ -2582,7 +2602,10 @@ button{
     height:48px;
     min-width:48px;
     min-height:48px;
-    flex-basis:48px;
+    max-width:48px;
+    max-height:48px;
+    aspect-ratio:1 / 1;
+    flex:0 0 48px;
   }
   .shell-profile-card[data-mobile-keyboard="true"] .shell-profile-avatar-label{font-size:.8rem}
   .shell-profile-card[data-mobile-keyboard="true"] .shell-profile-form{gap:10px}
@@ -2602,7 +2625,7 @@ button{
 <div id="runtimeError" class="hidden fixed z-[9999] left-2 right-2 top-2 rounded-xl bg-red-600 text-white text-xs px-3 py-2 shadow-lg"></div>
 
 <!-- V21.69.9 unified runtime marker. Earlier V21.20/V21.64 labels below are provenance for inherited geometry/style contracts only, not separate live runtimes. -->
-<div id="appShell" data-app-shell data-chat-screen-version="V21.72.22" data-app-shell-version="V21.72.22" data-auth-state="booting" data-default-route="chat" data-route="chat">
+<div id="appShell" data-app-shell data-chat-screen-version="V21.72.23" data-app-shell-version="V21.72.23" data-auth-state="booting" data-default-route="chat" data-route="chat">
   <div id="screenHost" data-screen-host>
     <div id="activeScreenSlot" data-active-screen-slot>
       <section id="chatScreen" class="app-screen" data-screen="chat">
@@ -2699,10 +2722,10 @@ button{
                     <label class="guest-auth-field-label" for="guest-auth-password">Mật khẩu</label>
                     <button class="shell-form-password-toggle" type="button" data-password-toggle aria-controls="guest-auth-password" aria-label="Hiện mật khẩu" aria-pressed="false"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M2.75 12s3.35-5.25 9.25-5.25S21.25 12 21.25 12 17.9 17.25 12 17.25 2.75 12 2.75 12Z" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linejoin="round"/><circle cx="12" cy="12" r="2.6" fill="none" stroke="currentColor" stroke-width="1.65"/></svg></button>
                   </div>
-                  <button class="wm-button wm-button--medium wm-button--primary wm-button--radius-full guest-auth-primary" type="submit"><span class="wm-button__label" data-auth-primary-label>Đăng nhập</span></button>
+                  <button class="wm-button wm-button--medium wm-button--primary wm-button--radius-full guest-auth-primary" type="submit"><span class="wm-button__label" data-auth-primary-label>Tiếp tục</span></button>
                   <div class="guest-auth-switch-row">
                     <span data-auth-switch-prefix>Chưa có tài khoản?</span>
-                    <button class="guest-auth-secondary" type="button" data-auth-command="mode.switch"><span class="wm-button__label" data-auth-secondary-label>Đăng ký</span></button>
+                    <button class="guest-auth-secondary" type="button" data-auth-command="mode.switch"><span class="wm-button__label" data-auth-secondary-label>Tạo tài khoản</span></button>
                   </div>
                 </form>
               </div>
