@@ -3568,9 +3568,13 @@ async function refreshDevices(){
   refreshPromise=(async()=>{
     const all=await devices.enumerateDevices();
     inputDevices=Array.from(all||[]).filter(device=>device?.kind==='audioinput');
+    const knownDeviceIds=inputDevices
+      .map(device=>String(device.deviceId||''))
+      .filter(Boolean);
     if(
       preferredDeviceIdValue &&
-      !inputDevices.some(device=>String(device.deviceId||'')===preferredDeviceIdValue)
+      knownDeviceIds.length>0 &&
+      !knownDeviceIds.includes(preferredDeviceIdValue)
     ){
       persistPreferredDeviceId('');
       emit('preferred-device-removed');
@@ -15546,6 +15550,10 @@ function safeToReload(){
   if(document.visibilityState&&document.visibilityState!=='visible')return false;
   const interaction=window.V21InteractionController?.snapshot?.()||null;
   if(interaction&&String(interaction.mode||'NONE')!=='NONE')return false;
+  const capture=window.V21AudioCapturePolicy?.active?.()||null;
+  if(capture&&String(capture.mode||'idle')!=='idle')return false;
+  const sync=window.V21SyncEngine?.snapshot?.()||null;
+  if(sync&&(sync.syncing||sync.wakePending))return false;
   if(hasDraft())return false;
   return true;
 }

@@ -35,6 +35,10 @@ function safeToReload(){
   if(document.visibilityState&&document.visibilityState!=='visible')return false;
   const interaction=window.V21InteractionController?.snapshot?.()||null;
   if(interaction&&String(interaction.mode||'NONE')!=='NONE')return false;
+  const capture=window.V21AudioCapturePolicy?.active?.()||null;
+  if(capture&&String(capture.mode||'idle')!=='idle')return false;
+  const sync=window.V21SyncEngine?.snapshot?.()||null;
+  if(sync&&(sync.syncing||sync.wakePending))return false;
   if(hasDraft())return false;
   return true;
 }

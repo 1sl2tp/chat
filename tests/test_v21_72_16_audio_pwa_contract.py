@@ -66,6 +66,8 @@ for token in [
     'visibilitychange',
     'setInterval',
     'V21InteractionController',
+    'V21AudioCapturePolicy',
+    'V21SyncEngine',
     "document.getElementById('editor')",
     "document.getElementById('attachmentTray')",
     'location.reload()',

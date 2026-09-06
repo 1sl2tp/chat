@@ -161,9 +161,13 @@ async function refreshDevices(){
   refreshPromise=(async()=>{
     const all=await devices.enumerateDevices();
     inputDevices=Array.from(all||[]).filter(device=>device?.kind==='audioinput');
+    const knownDeviceIds=inputDevices
+      .map(device=>String(device.deviceId||''))
+      .filter(Boolean);
     if(
       preferredDeviceIdValue &&
-      !inputDevices.some(device=>String(device.deviceId||'')===preferredDeviceIdValue)
+      knownDeviceIds.length>0 &&
+      !knownDeviceIds.includes(preferredDeviceIdValue)
     ){
       persistPreferredDeviceId('');
       emit('preferred-device-removed');
