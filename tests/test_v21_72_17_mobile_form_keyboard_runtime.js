@@ -80,7 +80,8 @@ vvListeners.resize();
 flushRaf();
 assert.strictEqual(auth.dataset.mobileKeyboard,'true');
 assert.strictEqual(auth.style.getPropertyValue('--shell-form-keyboard-inset'),'320px');
-assert.strictEqual(auth.style.getPropertyValue('--shell-form-vv-height'),'');
+assert.strictEqual(auth.style.getPropertyValue('--shell-form-vv-height'),'380px');
+assert.strictEqual(auth.style.getPropertyValue('--shell-form-vv-top'),'0px');
 assert(auth.scrollTop>0,'auth card must reveal focused field/action internally without changing outer geometry');
 
 activeElement=profileField;
@@ -90,7 +91,9 @@ vvListeners.resize();
 flushRaf();
 assert.strictEqual(overlay.dataset.mobileKeyboard,'true');
 assert.strictEqual(profile.style.getPropertyValue('--shell-form-keyboard-inset'),'320px');
-assert.strictEqual(overlay.style.getPropertyValue('--shell-form-vv-height'),'');
+assert.strictEqual(overlay.style.getPropertyValue('--shell-form-vv-height'),'380px');
+assert.strictEqual(profile.style.getPropertyValue('--shell-form-vv-height'),'380px');
+assert.strictEqual(overlay.style.getPropertyValue('--shell-form-vv-top'),'0px');
 assert(profile.scrollTop>0,'profile card must reveal focused field/action internally without changing outer geometry');
 
 vv.height=700;
@@ -98,5 +101,6 @@ vvListeners.resize();
 flushRaf();
 assert.notStrictEqual(overlay.dataset.mobileKeyboard,'true');
 assert.notStrictEqual(auth.dataset.mobileKeyboard,'true');
+assert.strictEqual(overlay.style.getPropertyValue('--shell-form-vv-height'),'700px');
 
-console.log('V21.72.17 mobile form keyboard runtime PASS');
+console.log('V21.72.22 visual viewport form keyboard runtime PASS');
