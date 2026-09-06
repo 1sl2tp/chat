@@ -1,7 +1,7 @@
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.20';
+const RELEASE_VERSION='V21.72.21';
 const MODULE_CONTRACT_VERSION='shell-form-viewport-v2';
 const KEYBOARD_THRESHOLD_PX=80;
 const EDGE_PX=12;
