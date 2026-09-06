@@ -1,0 +1,21 @@
+name: Verify V21
+on:
+  push:
+    branches:
+      - main
+      - v21-72-16-audio-pwa
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: V21.72.16 audio/PWA contract
+        run: python tests/test_v21_72_16_audio_pwa_contract.py
+      - name: V21.72.16 audio policy runtime
+        run: node tests/test_v21_72_16_audio_policy_runtime.js
