@@ -17,6 +17,10 @@ assert "invalid_username" in shell or "Tên đăng nhập" in shell
 assert 'data-password-toggle' in shell
 assert 'shell-profile-field' in shell
 assert "selfMode?'Đổi thông tin'" in shell
+assert 'setProfileInvalid' in shell
+assert 'clearProfileValidation' in shell
+assert 'markProfileResultError' in shell
+assert "input.setAttribute('aria-invalid','true')" in shell
 
 auth=read('auth-session-store.js')
 assert "async function updateSelf({username,displayName,password='',avatarFile=null}={})" in auth
@@ -36,6 +40,9 @@ admin_body=auth[admin_start:admin_end]
 assert "username:String(username||'')" in admin_body
 
 source=read('index.source.html')
+assert '.shell-profile-field input[aria-invalid="true"]' in source
+assert '.shell-profile-field:has(input[aria-invalid="true"])>label{color:#e11900}' in source
+assert '.shell-profile-overlay[data-mobile-keyboard="true"]' in source
 avatar_start=source.index('.contact-avatar-source{')
 avatar_end=source.index('}',avatar_start)
 avatar_css=source[avatar_start:avatar_end]
@@ -86,4 +93,4 @@ for token in [
 ]:
     assert token in admin_edge, token
 
-print('V21.72.21 profile username/avatar contract PASS')
+print('V21.72.22 profile username/avatar contract PASS')
