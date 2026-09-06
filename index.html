@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.22">
+<meta name="app-release-version" content="V21.72.23">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -15,7 +15,7 @@
 <meta name="chat-call-preview-only" content="true">
 <meta name="chat-v21-session-runtime" content="v21-only">
 <meta name="chat-v21-contact-runtime" content="v21-only">
-<title>Chat Screen Module V21.72.22</title>
+<title>Chat Screen Module V21.72.23</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style data-inlined-source="reference/chatgpt/full-source/chatgpt-core-exact.css">
 /* ChatGPT exact core extraction.
@@ -2225,14 +2225,17 @@ button{
   text-align:start;
 }
 .contact-avatar-source{
+  box-sizing:border-box;
   width:48px;
   height:48px;
   min-width:48px;
   min-height:48px;
-  aspect-ratio:1;
+  max-width:48px;
+  max-height:48px;
+  aspect-ratio:1 / 1;
   border-radius:50%;
   overflow:hidden;
-  flex:0 0 auto;
+  flex:0 0 48px;
   display:grid;
   place-items:center;
   background:var(--account-avatar-bg,#d1fae5);
@@ -2497,7 +2500,20 @@ button{
 .shell-sidebar-account-action:hover{background:#1f1f1f}
 .shell-sidebar-account-action:active{transform:translateY(1px)}
 .shell-sidebar-account-footer[data-state="guest"] .shell-sidebar-account-action{display:none}
-.shell-avatar-image{display:block;width:100%;height:100%;max-width:none;max-height:none;object-fit:cover;object-position:center;border-radius:50%;pointer-events:none}
+.shell-avatar-image{
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  min-width:100%!important;
+  min-height:100%!important;
+  max-width:100%!important;
+  max-height:100%!important;
+  aspect-ratio:1 / 1;
+  object-fit:cover!important;
+  object-position:center!important;
+  border-radius:50%;
+  pointer-events:none;
+}
 .shell-contact-row{position:relative;width:100%;height:72px;min-height:72px;border-radius:18px;overflow:hidden;overflow-anchor:none}
 .shell-contact-row[data-active="true"]{background:var(--theme-surface-secondary)}
 .shell-contact-row[data-locked="true"]{opacity:.72}
@@ -2603,14 +2619,18 @@ button{
   cursor:pointer;
 }
 .shell-profile-avatar{
+  box-sizing:border-box;
   width:64px;
   height:64px;
   min-width:64px;
   min-height:64px;
-  aspect-ratio:1;
+  max-width:64px;
+  max-height:64px;
+  aspect-ratio:1 / 1;
   border-radius:50%;
   overflow:hidden;
   flex:0 0 64px;
+  align-self:center;
   font-size:1rem;
 }
 .shell-profile-avatar-label{font-size:.88rem;color:var(--theme-content-secondary)}
@@ -2774,7 +2794,10 @@ button{
     height:48px;
     min-width:48px;
     min-height:48px;
-    flex-basis:48px;
+    max-width:48px;
+    max-height:48px;
+    aspect-ratio:1 / 1;
+    flex:0 0 48px;
   }
   .shell-profile-card[data-mobile-keyboard="true"] .shell-profile-avatar-label{font-size:.8rem}
   .shell-profile-card[data-mobile-keyboard="true"] .shell-profile-form{gap:10px}
@@ -2794,7 +2817,7 @@ button{
 <div id="runtimeError" class="hidden fixed z-[9999] left-2 right-2 top-2 rounded-xl bg-red-600 text-white text-xs px-3 py-2 shadow-lg"></div>
 
 <!-- V21.69.9 unified runtime marker. Earlier V21.20/V21.64 labels below are provenance for inherited geometry/style contracts only, not separate live runtimes. -->
-<div id="appShell" data-app-shell data-chat-screen-version="V21.72.22" data-app-shell-version="V21.72.22" data-auth-state="booting" data-default-route="chat" data-route="chat">
+<div id="appShell" data-app-shell data-chat-screen-version="V21.72.23" data-app-shell-version="V21.72.23" data-auth-state="booting" data-default-route="chat" data-route="chat">
   <div id="screenHost" data-screen-host>
     <div id="activeScreenSlot" data-active-screen-slot>
       <section id="chatScreen" class="app-screen" data-screen="chat">
@@ -2891,10 +2914,10 @@ button{
                     <label class="guest-auth-field-label" for="guest-auth-password">Mật khẩu</label>
                     <button class="shell-form-password-toggle" type="button" data-password-toggle aria-controls="guest-auth-password" aria-label="Hiện mật khẩu" aria-pressed="false"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M2.75 12s3.35-5.25 9.25-5.25S21.25 12 21.25 12 17.9 17.25 12 17.25 2.75 12 2.75 12Z" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linejoin="round"/><circle cx="12" cy="12" r="2.6" fill="none" stroke="currentColor" stroke-width="1.65"/></svg></button>
                   </div>
-                  <button class="wm-button wm-button--medium wm-button--primary wm-button--radius-full guest-auth-primary" type="submit"><span class="wm-button__label" data-auth-primary-label>Đăng nhập</span></button>
+                  <button class="wm-button wm-button--medium wm-button--primary wm-button--radius-full guest-auth-primary" type="submit"><span class="wm-button__label" data-auth-primary-label>Tiếp tục</span></button>
                   <div class="guest-auth-switch-row">
                     <span data-auth-switch-prefix>Chưa có tài khoản?</span>
-                    <button class="guest-auth-secondary" type="button" data-auth-command="mode.switch"><span class="wm-button__label" data-auth-secondary-label>Đăng ký</span></button>
+                    <button class="guest-auth-secondary" type="button" data-auth-command="mode.switch"><span class="wm-button__label" data-auth-secondary-label>Tạo tài khoản</span></button>
                   </div>
                 </form>
               </div>
@@ -3727,7 +3750,7 @@ window.V21RuntimeId=Object.freeze({version:VERSION,create:createRuntimeId});
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.22';
+const RELEASE_VERSION='V21.72.23';
 const MODULE_CONTRACT_VERSION='audio-capture-v1';
 const DEVICE_KEY='taphoa.v21.audio.inputDeviceId';
 const BASE=Object.freeze({
@@ -4354,9 +4377,9 @@ const AppBootController={
 
     this.phase='ERROR';
     modeLabel.textContent='ERROR';
-    runtimeError.textContent='V21.72.22 runtime: '+message;
+    runtimeError.textContent='V21.72.23 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.22]',error);
+    console.error('[ChatScreenModule V21.72.23]',error);
   },
   ready(){
     this.phase='READY';
@@ -4415,7 +4438,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.22 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.23 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -4469,7 +4492,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.22',
+  releaseVersion:'V21.72.23',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -10343,7 +10366,7 @@ window.V21ConversationBridge={
 };
 
 window.ChatScreenModule={
-  version:'V21.72.22',
+  version:'V21.72.23',
   snapshot(){
     return{
       viewportMode:viewport.mode,
@@ -11505,8 +11528,8 @@ const AuthUI={
     const password=authField('password');
     const passwordToggle=document.querySelector('#guestAuthThread [data-password-toggle]');
     if(title)title.textContent=authMode==='register'?'Đăng ký':'Đăng nhập';
-    if(primary)primary.textContent=authMode==='register'?'Đăng ký':'Đăng nhập';
-    if(secondary)secondary.textContent=authMode==='register'?'Đăng nhập':'Đăng ký';
+    if(primary)primary.textContent='Tiếp tục';
+    if(secondary)secondary.textContent=authMode==='register'?'Về đăng nhập':'Tạo tài khoản';
     if(switchPrefix)switchPrefix.textContent=authMode==='register'?'Đã có tài khoản?':'Chưa có tài khoản?';
     if(password){
       password.autocomplete=authMode==='register'?'new-password':'current-password';
@@ -11828,7 +11851,7 @@ AuthUI.renderAccountFooter();
 syncDesktopSidebarMode();
 
 window.ChatAppShell={
-  version:'V21.72.22',
+  version:'V21.72.23',
   NavigationCommand,
   CallCommand,
   AuthUI,
@@ -11862,7 +11885,7 @@ window.ChatAppShell={
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.22';
+const RELEASE_VERSION='V21.72.23';
 const MODULE_CONTRACT_VERSION='call-screen-wake-lock-v1';
 
 let callActive=false;
@@ -11968,7 +11991,7 @@ window.V21CallScreenWakeLock=Object.freeze({
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.22';
+const RELEASE_VERSION='V21.72.23';
 const MODULE_CONTRACT_VERSION='shell-form-viewport-v3';
 const KEYBOARD_THRESHOLD_PX=80;
 const EDGE_PX=12;
@@ -12196,7 +12219,7 @@ window.V21ShellFormViewportPolicy=Object.freeze({
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.22';
+const RELEASE_VERSION='V21.72.23';
 const MODULE_CONTRACT_VERSION='auth-session-v21.72.5';
 const SUPABASE_URL='https://gcnoahqsrquxkwkjbuxy.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_UY3gfQ9MsntDFCUJ_uV0UA__eTYXz_w';
@@ -16314,7 +16337,7 @@ queueMicrotask(()=>{if(authenticated())void start();else emitPresence();});
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.22';
+const RELEASE_VERSION='V21.72.23';
 const MODULE_CONTRACT_VERSION='app-update-v1';
 const CHECK_INTERVAL_MS=45000;
 const DEFER_RECHECK_MS=2500;
