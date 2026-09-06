@@ -655,6 +655,36 @@ function avatarUrlFor(path){
   return path?String(profileStore()?.avatarUrl?.(path)||''):'';
 }
 
+function renderAvatarInitials(node,display,fallback='TK'){
+  if(!node)return;
+  node.replaceChildren();
+  node.textContent=initialsFor(display,fallback);
+  node.dataset.avatarState='initials';
+}
+
+function renderAvatarImage(node,url,display,fallback='TK'){
+  if(!node||!url)return false;
+  node.replaceChildren();
+  const img=document.createElement('img');
+  img.className='shell-avatar-image';
+  img.alt='';
+  img.decoding='async';
+  img.draggable=false;
+  img.src=url;
+  img.addEventListener('load',()=>{
+    if(!node.contains(img))return;
+    node.dataset.avatarState='image';
+    if(node.dataset.avatarFailedUrl===url)delete node.dataset.avatarFailedUrl;
+  },{once:true});
+  img.addEventListener('error',()=>{
+    if(!node.contains(img))return;
+    node.dataset.avatarFailedUrl=url;
+    renderAvatarInitials(node,display,fallback);
+  },{once:true});
+  node.appendChild(img);
+  return true;
+}
+
 function renderAvatarNode(node,model,fallback='TK'){
   if(!node)return;
   applyAvatarColors(node,model);
@@ -663,15 +693,10 @@ function renderAvatarNode(node,model,fallback='TK'){
   const signature=`${url}|${display}|${fallback}`;
   if(node.dataset.avatarSignature===signature)return;
   node.dataset.avatarSignature=signature;
-  node.replaceChildren();
-  if(url){
-    const img=document.createElement('img');
-    img.className='shell-avatar-image';
-    img.alt='';
-    img.src=url;
-    node.appendChild(img);
+  if(url&&node.dataset.avatarFailedUrl!==url){
+    renderAvatarImage(node,url,display,fallback);
   }else{
-    node.textContent=initialsFor(display,fallback);
+    renderAvatarInitials(node,display,fallback);
   }
 }
 
@@ -780,6 +805,7 @@ function buildProfileEditor({mode='self',account:target}={}){
           <input type="file" accept="image/png,image/jpeg,image/webp" data-profile-avatar-file hidden>
         </label>
         <label class="shell-profile-field"><span>Tên</span><input type="text" maxlength="50" autocomplete="name" data-profile-name></label>
+        <label class="shell-profile-field"><span>Tên đăng nhập</span><input type="text" maxlength="24" autocomplete="username" autocapitalize="none" spellcheck="false" inputmode="text" data-profile-username></label>
         <label class="shell-profile-field"><span>Mật khẩu mới</span><input type="password" minlength="6" maxlength="128" autocomplete="new-password" data-profile-password placeholder="Để trống nếu không đổi"></label>
         <p class="shell-profile-error" data-profile-error hidden></p>
         <button type="submit" class="shell-profile-save">Lưu</button>
@@ -802,6 +828,7 @@ function buildProfileEditor({mode='self',account:target}={}){
 
   const title=wrap.querySelector('.shell-profile-header h2');
   const nameInput=wrap.querySelector('[data-profile-name]');
+  const usernameInput=wrap.querySelector('[data-profile-username]');
   const passwordInput=wrap.querySelector('[data-profile-password]');
   const avatar=wrap.querySelector('[data-profile-avatar]');
   const fileInput=wrap.querySelector('[data-profile-avatar-file]');
@@ -816,6 +843,7 @@ function buildProfileEditor({mode='self',account:target}={}){
 
   title.textContent=selfMode?'Hồ sơ':String(model.display_name||model.username||'Người dùng');
   nameInput.value=String(model.display_name||'');
+  usernameInput.value=String(model.username||'');
   renderAvatarNode(avatar,model,'TK');
 
   if(managed){
@@ -841,6 +869,7 @@ function buildProfileEditor({mode='self',account:target}={}){
     Object.assign(model,next);
     title.textContent=selfMode?'Hồ sơ':String(model.display_name||model.username||'Người dùng');
     nameInput.value=String(model.display_name||'');
+    usernameInput.value=String(model.username||'');
     passwordInput.value='';
     fileInput.value='';
     if(profilePreviewUrl){URL.revokeObjectURL(profilePreviewUrl);profilePreviewUrl='';}
@@ -851,15 +880,25 @@ function buildProfileEditor({mode='self',account:target}={}){
   fileInput.addEventListener('change',()=>{
     const file=fileInput.files?.[0]||null;
     if(!file)return;
+    if(!['image/png','image/jpeg','image/webp'].includes(String(file.type||'').toLowerCase())){
+      setError('Chỉ dùng ảnh PNG, JPG hoặc WebP');fileInput.value='';return;
+    }
     if(file.size>2*1024*1024){setError('Ảnh tối đa 2 MB');fileInput.value='';return;}
     if(profilePreviewUrl)URL.revokeObjectURL(profilePreviewUrl);
     profilePreviewUrl=URL.createObjectURL(file);
-    avatar.replaceChildren();
-    const img=document.createElement('img');img.className='shell-avatar-image';img.alt='';img.src=profilePreviewUrl;avatar.appendChild(img);
+    delete avatar.dataset.avatarFailedUrl;
+    avatar.dataset.avatarSignature=`preview|${profilePreviewUrl}`;
+    if(!renderAvatarImage(avatar,profilePreviewUrl,String(nameInput.value||model.display_name||model.username||''),'TK')){
+      renderAvatarInitials(avatar,String(nameInput.value||model.display_name||model.username||''),'TK');
+    }
     setError('');
   });
 
-  wrap.querySelector('.shell-profile-backdrop').addEventListener('click',closeProfileEditor);
+  usernameInput.addEventListener('blur',()=>{
+    usernameInput.value=usernameInput.value.trim().replace(/^@/,'').toLowerCase();
+  });
+
+    wrap.querySelector('.shell-profile-backdrop').addEventListener('click',closeProfileEditor);
   wrap.querySelector('.shell-profile-close').addEventListener('click',closeProfileEditor);
 
   wrap.querySelector('[data-profile-form]').addEventListener('submit',async event=>{
@@ -868,11 +907,15 @@ function buildProfileEditor({mode='self',account:target}={}){
     const store=profileStore();
     if(!store){setError('Không thể mở hồ sơ');return;}
     const payload={
+      username:usernameInput.value.trim().replace(/^@/,'').toLowerCase(),
       displayName:nameInput.value.trim(),
       password:passwordInput.value,
       avatarFile:fileInput.files?.[0]||null
     };
     if(!payload.displayName){setError('Tên không được để trống');return;}
+    if(!/^[a-z0-9_]{3,24}$/.test(payload.username)){
+      setError('Tên đăng nhập phải có 3–24 ký tự, chỉ gồm a-z, 0-9 và _');return;
+    }
     if(payload.password&&payload.password.length<6){setError('Mật khẩu tối thiểu 6 ký tự');return;}
     setBusy(true);
     try{
@@ -1331,7 +1374,7 @@ AuthUI.renderAccountFooter();
 syncDesktopSidebarMode();
 
 window.ChatAppShell={
-  version:'V21.72.18',
+  version:'V21.72.19',
   NavigationCommand,
   CallCommand,
   AuthUI,

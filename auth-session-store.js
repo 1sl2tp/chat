@@ -2,7 +2,8 @@
 (()=>{
 'use strict';
 
-const VERSION='V21.72.5';
+const RELEASE_VERSION='V21.72.19';
+const MODULE_CONTRACT_VERSION='auth-session-v21.72.5';
 const SUPABASE_URL='https://gcnoahqsrquxkwkjbuxy.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_UY3gfQ9MsntDFCUJ_uV0UA__eTYXz_w';
 const AUTH_STORAGE_KEY='taphoa.v21.auth';
@@ -20,6 +21,12 @@ let handlingRevoke=false;
 
 function normalizeUsername(value){
   return String(value??'').trim().replace(/^@/,'').toLowerCase();
+}
+
+const AVATAR_TYPES=new Set(['image/png','image/jpeg','image/webp']);
+
+function normalizeProfileUsername(value){
+  return normalizeUsername(value);
 }
 
 function getDeviceKey(){
@@ -209,7 +216,7 @@ function avatarUrl(path){
 
 async function uploadAvatar(targetAccountId,file){
   if(!client||!targetAccountId||!file)return null;
-  if(!String(file.type||'').startsWith('image/'))throw new Error('invalid_avatar');
+  if(!AVATAR_TYPES.has(String(file.type||'').toLowerCase()))throw new Error('invalid_avatar');
   if(Number(file.size)>2*1024*1024)throw new Error('avatar_too_large');
   const ext=String(file.type||'image/webp').split('/')[1]?.replace('jpeg','jpg')||'webp';
   const path=`${String(targetAccountId)}/${Date.now()}-${window.V21RuntimeId.create()}.${ext}`;
@@ -226,6 +233,8 @@ async function removeAvatar(path){
 function profileError(error,fallback='Không thể lưu thay đổi'){
   const raw=String(error?.message||error?.code||error||'').toLowerCase();
   if(raw.includes('invalid_display_name'))return'Tên không hợp lệ';
+  if(raw.includes('invalid_username'))return'Tên đăng nhập phải có 3–24 ký tự, chỉ gồm a-z, 0-9 và _';
+  if(raw.includes('username_taken'))return'Tên đăng nhập đã được sử dụng';
   if(raw.includes('invalid_password')||raw.includes('password'))return'Mật khẩu tối thiểu 6 ký tự';
   if(raw.includes('avatar_too_large'))return'Ảnh tối đa 2 MB';
   if(raw.includes('invalid_avatar'))return'Chỉ dùng ảnh PNG, JPG hoặc WebP';
@@ -233,24 +242,34 @@ function profileError(error,fallback='Không thể lưu thay đổi'){
   return fallback;
 }
 
-async function updateSelf({displayName,password='',avatarFile=null}={}){
+async function updateSelf({username,displayName,password='',avatarFile=null}={}){
   if(state!=='AUTHENTICATED'||!account?.id||!appSessionId||!client)return{ok:false,message:'Chưa đăng nhập'};
   let newPath=null;
   const oldPath=account.avatar_path||null;
+  const currentUsername=String(account.username||'').toLowerCase();
+  const nextUsername=normalizeProfileUsername(username||currentUsername);
   try{
     if(avatarFile)newPath=await uploadAvatar(account.id,avatarFile);
-    const {data,error}=await client.rpc('v21_account_update_self',{
-      p_app_session_id:appSessionId,
-      p_display_name:String(displayName||'').trim(),
-      p_avatar_path:newPath
-    });
+    const body={
+      app_session_id:appSessionId,
+      username:nextUsername,
+      display_name:String(displayName||'').trim(),
+      password:password?String(password):undefined
+    };
+    if(newPath!==null)body.avatar_path=newPath;
+
+    const {data,error}=await client.functions.invoke('v21-account-self',{body});
     if(error)throw error;
-    if(password){
-      const {error:passwordError}=await client.auth.updateUser({password:String(password)});
-      if(passwordError)throw passwordError;
-    }
-    account={...account,...(data||{}),avatar_path:newPath||data?.avatar_path||account.avatar_path||null};
+    if(!data?.ok)throw new Error(data?.code||'profile_update_failed');
+
+    account={...account,...(data.account||{})};
     authUI()?.setAccount(account);
+
+    if(nextUsername!==currentUsername){
+      void client.auth.refreshSession()
+        .then(()=>syncRealtimeAuth())
+        .catch(()=>false);
+    }
     if(newPath&&oldPath&&oldPath!==newPath)void removeAvatar(oldPath);
     document.dispatchEvent(new CustomEvent('v21-account-profile-updated',{detail:{account:{...account}}}));
     void window.V21SyncEngine?.wake?.({reason:'self-profile'});
@@ -269,7 +288,7 @@ async function invokeAdmin(body){
   return{ok:true,account:data.account||null};
 }
 
-async function adminSaveUser({targetAccountId,displayName,password='',avatarFile=null}={}){
+async function adminSaveUser({targetAccountId,username,displayName,password='',avatarFile=null}={}){
   const target=ContactStore.contacts.find(row=>String(row.id)===String(targetAccountId));
   if(!target||target.role!=='user')return{ok:false,message:'Người dùng không tồn tại'};
   let newPath=null;
@@ -277,7 +296,9 @@ async function adminSaveUser({targetAccountId,displayName,password='',avatarFile
   try{
     if(avatarFile)newPath=await uploadAvatar(targetAccountId,avatarFile);
     const result=await invokeAdmin({
-      action:'save',target_account_id:String(targetAccountId),
+      action:'save',
+      target_account_id:String(targetAccountId),
+      username:String(username||'').trim(),
       display_name:String(displayName||'').trim(),
       avatar_path:newPath===null?undefined:newPath,
       password:password?String(password):undefined
@@ -312,7 +333,8 @@ async function adminDeleteUser({targetAccountId}={}){
 }
 
 const AccountProfileStore={
-  version:VERSION,avatarUrl,updateSelf,adminSaveUser,adminSetLocked,adminDeleteUser,
+  version:RELEASE_VERSION,moduleContractVersion:MODULE_CONTRACT_VERSION,
+  avatarUrl,updateSelf,adminSaveUser,adminSetLocked,adminDeleteUser,
   snapshot(){return{account:account?{...account}:null,state};}
 };
 
@@ -446,7 +468,7 @@ async function boot(){
 window.V21ContactStore=ContactStore;
 window.V21AccountProfileStore=AccountProfileStore;
 window.V21AuthSessionStore={
-  version:VERSION,
+  version:RELEASE_VERSION,moduleContractVersion:MODULE_CONTRACT_VERSION,
   boot,login,register,logout,heartbeat,syncRealtimeAuth,handleRevoked,
   getClient(){return client;},
   snapshot(){return{state,account:account?{...account}:null,appSessionId,deviceId,busy,deviceKey:getDeviceKey()};}

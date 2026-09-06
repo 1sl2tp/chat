@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.18">
+<meta name="app-release-version" content="V21.72.19">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -15,7 +15,7 @@
 <meta name="chat-call-preview-only" content="true">
 <meta name="chat-v21-session-runtime" content="v21-only">
 <meta name="chat-v21-contact-runtime" content="v21-only">
-<title>Chat Screen Module V21.72.18</title>
+<title>Chat Screen Module V21.72.19</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="./reference/chatgpt/full-source/chatgpt-core-exact.css" data-build-source="reference/chatgpt/full-source/chatgpt-core-exact.css">
 <link rel="stylesheet" href="./reference/chatgpt/chatgpt-token-aliases.css" data-build-source="reference/chatgpt/chatgpt-token-aliases.css">
@@ -1952,7 +1952,12 @@ button{
 .contact-avatar-source{
   width:48px;
   height:48px;
-  border-radius:999px;
+  min-width:48px;
+  min-height:48px;
+  aspect-ratio:1;
+  border-radius:50%;
+  overflow:hidden;
+  flex:0 0 auto;
   display:grid;
   place-items:center;
   background:var(--account-avatar-bg,#d1fae5);
@@ -2217,7 +2222,7 @@ button{
 .shell-sidebar-account-action:hover{background:#1f1f1f}
 .shell-sidebar-account-action:active{transform:translateY(1px)}
 .shell-sidebar-account-footer[data-state="guest"] .shell-sidebar-account-action{display:none}
-.shell-avatar-image{display:block;width:100%;height:100%;object-fit:cover;border-radius:inherit}
+.shell-avatar-image{display:block;width:100%;height:100%;max-width:none;max-height:none;object-fit:cover;object-position:center;border-radius:50%;pointer-events:none}
 .shell-contact-row{position:relative;width:100%;height:72px;min-height:72px;border-radius:18px;overflow:hidden;overflow-anchor:none}
 .shell-contact-row[data-active="true"]{background:var(--theme-surface-secondary)}
 .shell-contact-row[data-locked="true"]{opacity:.72}
@@ -2254,12 +2259,12 @@ button{
 .shell-profile-close:hover{background:var(--theme-surface-secondary)}
 .shell-profile-form{display:grid;gap:14px}
 .shell-profile-avatar-picker{display:flex;align-items:center;gap:12px;width:max-content;cursor:pointer}
-.shell-profile-avatar{width:58px;height:58px;font-size:1rem}
+.shell-profile-avatar{width:58px;height:58px;min-width:58px;min-height:58px;aspect-ratio:1;border-radius:50%;overflow:hidden;flex:0 0 58px;font-size:1rem}
 .shell-profile-avatar-label{font-size:.9rem;color:var(--theme-content-secondary)}
-.shell-profile-field{position:relative;display:block}
-.shell-profile-field>span{position:absolute;top:-8px;left:14px;padding:0 6px;background:var(--theme-surface-primary);color:var(--theme-content-secondary);font-size:.75rem;z-index:1}
+.shell-profile-field{position:relative;display:grid;gap:6px}
+.shell-profile-field>span{position:static;padding:0 4px;background:transparent;color:var(--theme-content-secondary);font-size:.78rem;line-height:1rem}
 .shell-profile-field input{width:100%;height:52px;border:1px solid rgba(0,0,0,.16);border-radius:18px;padding:0 16px;background:transparent;color:inherit;font:inherit;outline:none;-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
-.shell-profile-field input:focus{border-color:#0a84ff;box-shadow:0 0 0 1px #0a84ff}
+.shell-profile-field input:focus{border-color:rgba(0,0,0,.58);box-shadow:0 0 0 1px rgba(0,0,0,.10)}
 .shell-profile-error{margin:0;color:#d92d20;font-size:.82rem}
 .shell-profile-save,.shell-profile-secondary,.shell-profile-danger{width:100%;min-height:48px;border-radius:18px;font:inherit;font-weight:600;cursor:pointer}
 .shell-profile-save{border:0;background:#0d0d0d;color:#fff}
@@ -2315,7 +2320,7 @@ button{
 <div id="runtimeError" class="hidden fixed z-[9999] left-2 right-2 top-2 rounded-xl bg-red-600 text-white text-xs px-3 py-2 shadow-lg"></div>
 
 <!-- V21.69.9 unified runtime marker. Earlier V21.20/V21.64 labels below are provenance for inherited geometry/style contracts only, not separate live runtimes. -->
-<div id="appShell" data-app-shell data-chat-screen-version="V21.72.18" data-app-shell-version="V21.72.18" data-auth-state="booting" data-default-route="chat" data-route="chat">
+<div id="appShell" data-app-shell data-chat-screen-version="V21.72.19" data-app-shell-version="V21.72.19" data-auth-state="booting" data-default-route="chat" data-route="chat">
   <div id="screenHost" data-screen-host>
     <div id="activeScreenSlot" data-active-screen-slot>
       <section id="chatScreen" class="app-screen" data-screen="chat">
