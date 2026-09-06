@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.17">
+<meta name="app-release-version" content="V21.72.18">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -15,7 +15,7 @@
 <meta name="chat-call-preview-only" content="true">
 <meta name="chat-v21-session-runtime" content="v21-only">
 <meta name="chat-v21-contact-runtime" content="v21-only">
-<title>Chat Screen Module V21.72.17</title>
+<title>Chat Screen Module V21.72.18</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style data-inlined-source="reference/chatgpt/full-source/chatgpt-core-exact.css">
 /* ChatGPT exact core extraction.
@@ -2025,10 +2025,11 @@ button{
   line-height:2rem;
   font-weight:400;
 }
-.guest-auth-form{display:grid;gap:.75rem}
+.guest-auth-form{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.75rem .625rem}
 .guest-auth-control{
   position:relative;
   display:grid;
+  grid-column:1/-1;
   gap:.375rem;
   padding-top:.375rem;
 }
@@ -2066,6 +2067,7 @@ button{
 .guest-auth-primary,
 .guest-auth-secondary{
   width:100%;
+  min-width:0;
   min-height:2.75rem;
   justify-content:center;
   border-radius:999px!important;
@@ -2505,7 +2507,7 @@ button{
 <div id="runtimeError" class="hidden fixed z-[9999] left-2 right-2 top-2 rounded-xl bg-red-600 text-white text-xs px-3 py-2 shadow-lg"></div>
 
 <!-- V21.69.9 unified runtime marker. Earlier V21.20/V21.64 labels below are provenance for inherited geometry/style contracts only, not separate live runtimes. -->
-<div id="appShell" data-app-shell data-chat-screen-version="V21.72.17" data-app-shell-version="V21.72.17" data-auth-state="booting" data-default-route="chat" data-route="chat">
+<div id="appShell" data-app-shell data-chat-screen-version="V21.72.18" data-app-shell-version="V21.72.18" data-auth-state="booting" data-default-route="chat" data-route="chat">
   <div id="screenHost" data-screen-host>
     <div id="activeScreenSlot" data-active-screen-slot>
       <section id="chatScreen" class="app-screen" data-screen="chat">
@@ -3434,7 +3436,7 @@ window.V21RuntimeId=Object.freeze({version:VERSION,create:createRuntimeId});
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.17';
+const RELEASE_VERSION='V21.72.18';
 const MODULE_CONTRACT_VERSION='audio-capture-v1';
 const DEVICE_KEY='taphoa.v21.audio.inputDeviceId';
 const BASE=Object.freeze({
@@ -4061,9 +4063,9 @@ const AppBootController={
 
     this.phase='ERROR';
     modeLabel.textContent='ERROR';
-    runtimeError.textContent='V21.72.17 runtime: '+message;
+    runtimeError.textContent='V21.72.18 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.17]',error);
+    console.error('[ChatScreenModule V21.72.18]',error);
   },
   ready(){
     this.phase='READY';
@@ -4122,7 +4124,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.17 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.18 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -4176,7 +4178,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.17',
+  releaseVersion:'V21.72.18',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -10050,7 +10052,7 @@ window.V21ConversationBridge={
 };
 
 window.ChatScreenModule={
-  version:'V21.72.17',
+  version:'V21.72.18',
   snapshot(){
     return{
       viewportMode:viewport.mode,
@@ -11410,7 +11412,7 @@ AuthUI.renderAccountFooter();
 syncDesktopSidebarMode();
 
 window.ChatAppShell={
-  version:'V21.72.17',
+  version:'V21.72.18',
   NavigationCommand,
   CallCommand,
   AuthUI,
@@ -11444,7 +11446,7 @@ window.ChatAppShell={
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.17';
+const RELEASE_VERSION='V21.72.18';
 const MODULE_CONTRACT_VERSION='shell-form-viewport-v1';
 const KEYBOARD_THRESHOLD_PX=80;
 const EDGE_PX=12;
@@ -15774,7 +15776,7 @@ queueMicrotask(()=>{if(authenticated())void start();else emitPresence();});
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.17';
+const RELEASE_VERSION='V21.72.18';
 const MODULE_CONTRACT_VERSION='app-update-v1';
 const CHECK_INTERVAL_MS=45000;
 const DEFER_RECHECK_MS=2500;
