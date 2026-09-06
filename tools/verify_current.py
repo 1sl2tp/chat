@@ -25,4 +25,5 @@ subprocess.run(['node',str(ROOT/'tests'/'test_v21_72_15_media_hydration_error_sc
 subprocess.run(['node',str(ROOT/'tests'/'test_v21_72_15_open_contact_network_recovery.js')],check=True,cwd=ROOT)
 subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_16_audio_pwa_contract.py')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_v21_72_16_audio_policy_runtime.js')],check=True,cwd=ROOT)
+subprocess.run(['node',str(ROOT/'tests'/'test_v21_72_16_update_runtime.js')],check=True,cwd=ROOT)
 print(f'V21.72.16 canonical source verify PASS sha256={sha}')
