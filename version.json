@@ -1,7 +1,7 @@
 {
-  "version": "V21.72.21",
+  "version": "V21.72.22",
   "channel": "candidate",
   "update_policy": "auto-when-safe",
   "published_from": "github-main",
-  "index_sha256": "1aacbccc4c4f2881799a293d9f677ad00ba276e7c8e0ffb8b5d861d65c1ab3c7"
+  "index_sha256": "030d07daee14e2a2bc1867e2e7477a58d810ea41175e53744c1edaa40e07318a"
 }
