@@ -27,7 +27,8 @@ assert 'createMediaStreamDestination' not in policy
 
 app=read('app.js')
 start=app[app.index('async function startRecording()'):app.index('function stopRecording',app.index('async function startRecording()'))]
-assert 'V21AudioCapturePolicy' in start
+assert 'audioCapturePolicy().acquire' in start
+assert 'window.V21AudioCapturePolicy' in app
 assert 'audio:true' not in start
 assert 'getUserMedia({' not in start
 
