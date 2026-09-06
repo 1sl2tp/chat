@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.21">
+<meta name="app-release-version" content="V21.72.22">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -15,7 +15,7 @@
 <meta name="chat-call-preview-only" content="true">
 <meta name="chat-v21-session-runtime" content="v21-only">
 <meta name="chat-v21-contact-runtime" content="v21-only">
-<title>Chat Screen Module V21.72.21</title>
+<title>Chat Screen Module V21.72.22</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="./reference/chatgpt/full-source/chatgpt-core-exact.css" data-build-source="reference/chatgpt/full-source/chatgpt-core-exact.css">
 <link rel="stylesheet" href="./reference/chatgpt/chatgpt-token-aliases.css" data-build-source="reference/chatgpt/chatgpt-token-aliases.css">
@@ -1884,11 +1884,17 @@ button{
   box-shadow:0 0 0 1px var(--guest-auth-focus);
   outline:none;
 }
-.guest-auth-field[aria-invalid="true"]{border-color:var(--theme-border-danger)}
+.guest-auth-field[aria-invalid="true"]{
+  border-color:var(--theme-border-danger,#e11900);
+  box-shadow:0 0 0 1px var(--theme-border-danger,#e11900);
+}
 .guest-auth-field[aria-invalid="true"]:focus,.guest-auth-field[aria-invalid="true"]:focus-visible{
-  border-color:var(--theme-border-danger);
-  box-shadow:0 0 0 1px var(--theme-border-danger);
+  border-color:var(--theme-border-danger,#e11900);
+  box-shadow:0 0 0 1px var(--theme-border-danger,#e11900);
   outline:none;
+}
+.guest-auth-control:has(.guest-auth-field[aria-invalid="true"]) .guest-auth-field-label{
+  color:var(--theme-border-danger,#e11900);
 }
 .guest-auth-field:-webkit-autofill,
 .guest-auth-field:-webkit-autofill:hover,
@@ -2326,10 +2332,14 @@ button{
 
 .shell-profile-overlay{
   position:fixed;
-  inset:0;
+  inset-inline:0;
+  top:var(--shell-form-vv-top,0px);
+  bottom:auto;
+  height:var(--shell-form-vv-height,100svh);
   z-index:140;
   display:grid;
   place-items:center;
+  box-sizing:border-box;
   padding:18px;
   pointer-events:auto;
 }
@@ -2451,6 +2461,15 @@ button{
   border-color:#0a84ff;
   box-shadow:0 0 0 1px #0a84ff;
 }
+.shell-profile-field input[aria-invalid="true"]{
+  border-color:#e11900;
+  box-shadow:0 0 0 1px #e11900;
+}
+.shell-profile-field input[aria-invalid="true"]:focus{
+  border-color:#e11900;
+  box-shadow:0 0 0 1px #e11900;
+}
+.shell-profile-field:has(input[aria-invalid="true"])>label{color:#e11900}
 .shell-profile-field input:-webkit-autofill,
 .shell-profile-field input:-webkit-autofill:hover,
 .shell-profile-field input:-webkit-autofill:focus{
@@ -2508,7 +2527,7 @@ button{
   .shell-profile-overlay{place-items:center;padding:10px}
   .shell-profile-card{
     width:100%;
-    max-height:calc(100svh - 20px);
+    max-height:calc(var(--shell-form-vv-height,100svh) - 20px);
     border-radius:28px;
     padding:24px 18px 22px;
   }
@@ -2518,11 +2537,61 @@ button{
   .shell-profile-save,.shell-profile-secondary{min-height:56px}
 }
 @media(max-width:767px), (pointer:coarse){
-  .guest-auth-thread[data-mobile-keyboard="true"],
-  .shell-profile-card[data-mobile-keyboard="true"]{
+  .guest-auth-thread[data-mobile-keyboard="true"]{
+    max-height:calc(var(--shell-form-vv-height,100svh) - var(--header-height,72px) - 16px);
+    margin-top:8px;
+    margin-bottom:8px;
+    padding:18px 16px 16px;
     scroll-behavior:auto;
-    scroll-padding-block:16px;
+    scroll-padding-block:12px 72px;
   }
+  .guest-auth-thread[data-mobile-keyboard="true"] .guest-auth-content{gap:12px}
+  .guest-auth-thread[data-mobile-keyboard="true"] .guest-auth-thread-title{
+    font-size:1.65rem;
+    line-height:2rem;
+  }
+  .guest-auth-thread[data-mobile-keyboard="true"] .guest-auth-form{gap:11px}
+  .guest-auth-thread[data-mobile-keyboard="true"] .guest-auth-field,
+  .guest-auth-thread[data-mobile-keyboard="true"] .guest-auth-primary{min-height:52px}
+  .guest-auth-thread[data-mobile-keyboard="true"] .guest-auth-switch-row{min-height:32px}
+
+  .shell-profile-overlay[data-mobile-keyboard="true"]{
+    place-items:center;
+    padding:8px 10px;
+  }
+  .shell-profile-card[data-mobile-keyboard="true"]{
+    max-height:calc(var(--shell-form-vv-height,100svh) - 16px);
+    padding:16px 18px 16px;
+    scroll-behavior:auto;
+    scroll-padding-block:12px 72px;
+  }
+  .shell-profile-card[data-mobile-keyboard="true"] .shell-profile-header{
+    min-height:36px;
+    margin-bottom:10px;
+  }
+  .shell-profile-card[data-mobile-keyboard="true"] .shell-profile-header h2{
+    font-size:1.55rem;
+    line-height:1.9rem;
+  }
+  .shell-profile-card[data-mobile-keyboard="true"] .shell-profile-avatar-picker{
+    gap:4px;
+    margin-bottom:0;
+  }
+  .shell-profile-card[data-mobile-keyboard="true"] .shell-profile-avatar{
+    width:48px;
+    height:48px;
+    min-width:48px;
+    min-height:48px;
+    flex-basis:48px;
+  }
+  .shell-profile-card[data-mobile-keyboard="true"] .shell-profile-avatar-label{font-size:.8rem}
+  .shell-profile-card[data-mobile-keyboard="true"] .shell-profile-form{gap:10px}
+  .shell-profile-card[data-mobile-keyboard="true"] .shell-profile-field input{
+    height:52px;
+    border-radius:20px;
+  }
+  .shell-profile-card[data-mobile-keyboard="true"] .shell-profile-save,
+  .shell-profile-card[data-mobile-keyboard="true"] .shell-profile-secondary{min-height:52px}
 }
 
 </style>
@@ -2533,7 +2602,7 @@ button{
 <div id="runtimeError" class="hidden fixed z-[9999] left-2 right-2 top-2 rounded-xl bg-red-600 text-white text-xs px-3 py-2 shadow-lg"></div>
 
 <!-- V21.69.9 unified runtime marker. Earlier V21.20/V21.64 labels below are provenance for inherited geometry/style contracts only, not separate live runtimes. -->
-<div id="appShell" data-app-shell data-chat-screen-version="V21.72.21" data-app-shell-version="V21.72.21" data-auth-state="booting" data-default-route="chat" data-route="chat">
+<div id="appShell" data-app-shell data-chat-screen-version="V21.72.22" data-app-shell-version="V21.72.22" data-auth-state="booting" data-default-route="chat" data-route="chat">
   <div id="screenHost" data-screen-host>
     <div id="activeScreenSlot" data-active-screen-slot>
       <section id="chatScreen" class="app-screen" data-screen="chat">
