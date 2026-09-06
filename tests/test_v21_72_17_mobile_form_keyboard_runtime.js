@@ -51,13 +51,20 @@ const document={
 };
 const vvListeners={};
 const vv={height:700,offsetTop:0,addEventListener(type,fn){vvListeners[type]=fn}};
+const rafQueue=[];
+function flushRaf(){
+  while(rafQueue.length){
+    const batch=rafQueue.splice(0);
+    for(const fn of batch)fn();
+  }
+}
 const windowObj={
   visualViewport:vv,
   innerHeight:700,
   navigator:{maxTouchPoints:5,userAgent:'Android'},
   matchMedia:()=>({matches:true}),
   addEventListener(){},
-  requestAnimationFrame(fn){fn();return 1},
+  requestAnimationFrame(fn){rafQueue.push(fn);return rafQueue.length},
   cancelAnimationFrame(){}
 };
 class CE{constructor(type,init={}){this.type=type;this.detail=init.detail}}
@@ -67,21 +74,26 @@ const policy=ctx.window.V21ShellFormViewportPolicy;assert(policy);
 
 activeElement=authField;
 listeners.focusin({target:authField});
+flushRaf();
 vv.height=380;
 vvListeners.resize();
+flushRaf();
 assert.strictEqual(auth.dataset.mobileKeyboard,'true');
 assert.strictEqual(auth.style.getPropertyValue('--shell-form-vv-height'),'380px');
 assert(auth.scrollTop>0,'auth card must reveal focused field/action internally');
 
 activeElement=profileField;
 listeners.focusin({target:profileField});
+flushRaf();
 vvListeners.resize();
+flushRaf();
 assert.strictEqual(overlay.dataset.mobileKeyboard,'true');
 assert.strictEqual(overlay.style.getPropertyValue('--shell-form-vv-height'),'380px');
 assert(profile.scrollTop>0,'profile card must reveal focused field/action internally');
 
 vv.height=700;
 vvListeners.resize();
+flushRaf();
 assert.notStrictEqual(overlay.dataset.mobileKeyboard,'true');
 assert.notStrictEqual(auth.dataset.mobileKeyboard,'true');
 
