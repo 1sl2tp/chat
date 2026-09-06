@@ -77,7 +77,7 @@ for token in [
     'username_taken',
     '^[a-z0-9_]{3,24}$',
     'admin.auth.admin.updateUserById',
-    'email_confirm: true',
+    'patch.email_confirm = true',
     'rollback'
 ]:
     assert token in admin_edge, token
