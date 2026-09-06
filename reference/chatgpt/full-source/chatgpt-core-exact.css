@@ -1,0 +1,166 @@
+/* ChatGPT exact core extraction.
+   Values below are copied from the saved compiled CSS bundle, not approximated.
+   Raw source mirrors live in ./raw-css and are SHA-256 inventoried. */
+
+:root{
+--white:#fff;
+--black:#000;
+--black-transparent-a0:#0000;
+--black-transparent-a5:#0000000d;
+--black-transparent-a10:#0000001a;
+--black-transparent-a20:#0003;
+--gray-25:#fcfcfc;
+--gray-50:#f9f9f9;
+--gray-75:#f3f3f3;
+--gray-100:#e8e8e8;
+--gray-200:#cdcdcd;
+--gray-300:#afafaf;
+--gray-400:#8f8f8f;
+--gray-500:#5d5d5d;
+--gray-600:#414141;
+--gray-700:#303030;
+--gray-800:#212121;
+--gray-900:#181818;
+--gray-950:#131313;
+--gray-1000:#0d0d0d;
+--blue-25:#f6fafe;
+--blue-50:#e8f3fe;
+--blue-75:#d1e5fd;
+--blue-100:#a4cdfb;
+--blue-200:#63a8f8;
+--blue-300:#539af8;
+--blue-400:#3a83f7;
+--blue-500:#2c67c5;
+--blue-600:#1f4e94;
+--blue-700:#173e76;
+--blue-800:#133463;
+--blue-900:#0c274a;
+--blue-1000:#020d18;
+--button-primary-background-color-disabled:var(--gray-300);
+--button-primary-background-color-rest:var(--background-color-inverse);
+--button-primary-icon-color:var(--text-color-on-emphasis);
+--button-primary-text-color:var(--text-color-on-emphasis);
+
+--font-family-sans:-apple-system-body, ui-sans-serif, -apple-system, system-ui, "Segoe UI", "Helvetica", "Apple Color Emoji", "Arial", sans-serif, "Segoe UI Emoji", "Segoe UI Symbol";
+--radius-2xl:1.75rem;
+--border-width-thin:.0625rem;
+--border-width-thick:.125rem;
+}
+
+:root,[data-theme=light]{
+--background-color-elevated:var(--white);
+--background-color-inverse:var(--gray-1000);
+--background-color-layer-1:var(--white);
+--background-color-layer-2:var(--gray-75);
+--background-color-layer-3:var(--gray-100);
+--background-color-navigation:var(--background-color-page);
+--background-color-page:var(--gray-25);
+
+--border-color-default:var(--black-transparent-a10);
+--border-color-emphasis:var(--black-transparent-a20);
+--border-color-subtle:var(--black-transparent-a5);
+
+--text-color-primary:var(--gray-1000);
+--text-color-on-emphasis:var(--white);
+--text-color-secondary:var(--gray-500);
+--text-color-tertiary:var(--gray-400);
+
+--status-info-background-color:var(--blue-100);
+--status-info-border-color:var(--blue-500);
+--status-info-icon-color:var(--blue-500);
+--status-info-text-color:var(--blue-600);
+
+--control-background-color-hover:var(--background-color-layer-2);
+--control-background-color-pressed:var(--background-color-layer-3);
+--button-ghost-background-color-hover:var(--control-background-color-hover);
+--button-ghost-background-color-pressed:var(--control-background-color-pressed);
+}
+
+:root{
+--theme-content-primary:var(--text-color-primary);
+--theme-content-secondary:var(--text-color-secondary);
+--theme-content-tertiary:var(--text-color-tertiary);
+--theme-content-accent:var(--blue-400);
+
+--theme-surface-accent:var(--status-info-background-color);
+--theme-surface-canvas:var(--background-color-page);
+--theme-surface-elevated:var(--background-color-elevated);
+--theme-surface-primary:var(--background-color-layer-1);
+--theme-surface-secondary:var(--background-color-layer-2);
+--theme-surface-tertiary:var(--background-color-layer-3);
+
+--theme-border-default:var(--border-color-default);
+--theme-border-strong:var(--border-color-emphasis);
+--theme-border-subtle:var(--border-color-subtle);
+
+--theme-action-ghost-surface-hover:var(--button-ghost-background-color-hover);
+--theme-action-ghost-surface-pressed:var(--button-ghost-background-color-pressed);
+
+--component-conversation-composer-border:var(--border-color-emphasis);
+--component-conversation-composer-radius:var(--radius-2xl);
+--component-conversation-composer-surface:var(--background-color-layer-1);
+--component-conversation-message-user-surface:var(--background-color-layer-3);
+
+--message-user-surface:var(--component-conversation-message-user-surface,var(--theme-surface-tertiary));
+--composer-border:var(--component-conversation-composer-border,var(--theme-border-strong));
+--composer-shadow:0 1px 1px #00000008;
+
+--accent-primary:var(--theme-content-primary);
+--label-primary:var(--theme-content-primary);
+--label-secondary:var(--theme-content-secondary);
+--label-tertiary:var(--theme-content-tertiary);
+
+--cgpt-source-user-radius:1.375rem;
+--cgpt-source-user-padding:.625rem 1rem;
+--cgpt-source-user-font-size:1rem;
+--cgpt-source-user-line-height:1.5rem;
+--cgpt-source-user-max-inline-size:70%;
+--cgpt-source-user-min-block-size:2.75rem;
+--cgpt-source-user-min-inline-size:2.75rem;
+
+--cgpt-source-assistant-font-size:1rem;
+--cgpt-source-assistant-line-height:1.625rem;
+
+--cgpt-source-message-actions-block-size:2rem;
+--cgpt-source-assistant-actions-min-block-size:max(44px,2.75rem);
+--cgpt-source-message-action-icon-size:1.25rem;
+
+--cgpt-important-surface:var(--theme-surface-accent);
+--cgpt-important-rail:var(--status-info-border-color);
+--cgpt-important-text:var(--theme-content-primary);
+}
+
+@keyframes cgpt-source-mobile-message-stream-dot-pulse{to{transform:scale(.75)}}
+
+/* Runtime adapters: exact source values, local stable selectors. */
+.cgpt-source-user-visual{
+  background:var(--message-user-surface);
+  min-block-size:var(--cgpt-source-user-min-block-size);
+  min-inline-size:var(--cgpt-source-user-min-inline-size);
+  color:var(--theme-content-primary);
+  border:0;
+  border-radius:var(--cgpt-source-user-radius);
+  padding:var(--cgpt-source-user-padding);
+  font-size:var(--cgpt-source-user-font-size);
+  line-height:var(--cgpt-source-user-line-height);
+}
+
+.cgpt-source-assistant-visual{
+  color:var(--theme-content-primary);
+  background:transparent;
+  font-size:var(--cgpt-source-assistant-font-size);
+  line-height:var(--cgpt-source-assistant-line-height);
+}
+
+.cgpt-source-action-button{
+  color:var(--label-secondary);
+  border:0;
+  border-radius:.5rem;
+}
+.cgpt-source-action-button:hover{
+  background:var(--theme-action-ghost-surface-hover);
+}
+
+.cgpt-source-streaming-dot{
+  animation:.55s ease-in infinite alternate-reverse both cgpt-source-mobile-message-stream-dot-pulse;
+}

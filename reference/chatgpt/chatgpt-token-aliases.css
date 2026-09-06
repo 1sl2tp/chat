@@ -1,0 +1,13 @@
+/* ChatGPT semantic aliases backed by exact compiled source tokens. */
+:root {
+  --cgpt-text-primary:var(--theme-content-primary);
+  --cgpt-text-secondary:var(--theme-content-secondary);
+  --cgpt-text-tertiary:var(--theme-content-tertiary);
+  --cgpt-main-surface-primary:var(--theme-surface-primary);
+  --cgpt-main-surface-secondary:var(--message-user-surface);
+  --cgpt-surface-hover:var(--theme-action-ghost-surface-hover);
+  --cgpt-composer-surface-primary:var(--component-conversation-composer-surface);
+  --cgpt-important-surface:var(--theme-surface-accent);
+  --cgpt-important-rail:var(--status-info-border-color);
+  --cgpt-important-text:var(--theme-content-primary);
+}

@@ -1,0 +1,2627 @@
+<!doctype html>
+<html lang="vi" data-theme="light" data-contrast="default">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#ffffff">
+<meta name="chat-call-preview-only" content="true">
+<meta name="chat-v21-session-runtime" content="v21-only">
+<meta name="chat-v21-contact-runtime" content="v21-only">
+<title>Chat Screen Module V21.72.14</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="./reference/chatgpt/full-source/chatgpt-core-exact.css" data-build-source="reference/chatgpt/full-source/chatgpt-core-exact.css">
+<link rel="stylesheet" href="./reference/chatgpt/chatgpt-token-aliases.css" data-build-source="reference/chatgpt/chatgpt-token-aliases.css">
+<link rel="stylesheet" href="./reference/chatgpt/full-source/raw-css/app-CIyuNPp8.css" data-build-source="reference/chatgpt/full-source/raw-css/app-CIyuNPp8.css">
+<link rel="stylesheet" href="./reference/chatgpt/full-source/raw-css/app-DoSQTy6T.css" data-build-source="reference/chatgpt/full-source/raw-css/app-DoSQTy6T.css">
+<link rel="stylesheet" href="./reference/chatgpt/full-source/raw-css/app-dBt1eElS.css" data-build-source="reference/chatgpt/full-source/raw-css/app-dBt1eElS.css">
+<style>
+html,body{
+  width:100%;
+  height:100%;
+  margin:0;
+  overflow:hidden;
+  overscroll-behavior:none;
+  -webkit-text-size-adjust:100%;
+  text-size-adjust:100%;
+}
+/* RuntimeProfile document viewport lock. iOS Safari may pan the document
+   itself to reveal a focused textarea even though the chat owns its own scroller.
+   Lock only the app shell; ScrollRoot remains the sole conversation scroll owner. */
+:root[data-runtime-document-viewport-lock] #appShell{
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+}
+
+body{
+  background:var(--theme-surface-primary);
+  color:var(--theme-content-primary);
+  font-family:var(--font-family-sans);
+  -webkit-font-smoothing:antialiased;
+  font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  -webkit-tap-highlight-color:transparent;
+  -webkit-user-select:none;
+  user-select:none;
+}
+button,textarea{font-size:16px}
+.native-file-input{
+  position:fixed;
+  inline-size:1px;
+  block-size:1px;
+  inset-inline-start:-10000px;
+  inset-block-start:0;
+  opacity:0;
+  pointer-events:none;
+}
+
+:root{
+  --text-primary:var(--cgpt-text-primary);
+  --text-secondary:var(--cgpt-text-secondary);
+  --text-tertiary:var(--cgpt-text-tertiary);
+  --main-surface-primary:var(--cgpt-main-surface-primary);
+  --main-surface-secondary:var(--cgpt-main-surface-secondary);
+  --surface-hover:var(--cgpt-surface-hover);
+  --composer-surface-primary:var(--cgpt-composer-surface-primary);
+  --border-heavy:var(--composer-border);
+}
+
+.text-token-text-primary{
+  color:var(--text-primary);
+}
+.text-token-text-secondary{
+  color:var(--text-secondary);
+}
+.text-token-text-tertiary{
+  color:var(--text-tertiary);
+}
+.user-message-bubble-color{
+  background:var(--main-surface-secondary);
+}
+.bg-token-main-surface-primary{
+  background:var(--main-surface-primary);
+}
+button{
+  touch-action:manipulation;
+  -webkit-user-select:none;
+  user-select:none;
+}
+#svhProbe{
+  position:fixed;
+  left:-9999px;
+  top:0;
+  width:1px;
+  height:100svh;
+  visibility:hidden;
+  pointer-events:none;
+}
+
+/*
+  Reference contract baseline from the supplied ChatGPT.html.
+  V21.64 P2P repair: ScrollRoot owns conversation display only; Composer is a
+  sibling overlay layer. The scroller receives only an inert bottom reserve,
+  never Composer input/focus events.
+*/
+#stageLayout{position:relative;}
+#scrollRoot{
+  --thread-content-max-width:40rem;
+  --sticky-padding-top:var(--header-height,72px);
+  --sticky-padding-bottom:0px; /* telemetry only; never a ScrollRoot owner */
+  --screen-keyboard-height:0px; /* keyboard metadata only */
+  --scroll-root-safe-area-inset-top:
+    calc(var(--sticky-padding-top) + env(safe-area-inset-top,0px));
+  --scroll-root-safe-scroll-bottom:0px;
+  --scroll-root-safe-area-inset-bottom:0px;
+  --composer-overlap-px:28px;
+  --thread-component-gap:var(--runtime-thread-component-gap-px,24px);
+  --composer-visual-top:0px;
+  --composer-flow-reserve:0px;
+
+  scroll-padding-top:var(--scroll-root-safe-area-inset-top);
+  scroll-padding-bottom:0px;
+  scrollbar-gutter:stable;
+  overflow-anchor:none;
+  scrollbar-width:none;
+}
+#scrollRoot::-webkit-scrollbar{display:none;width:0;height:0}
+
+
+/* =========================================================
+   V21.64 — COMPOSER PLACEMENT OWNER SWITCH
+   CLOSED: sticky bottom-0 inside ScrollRoot.
+   OPEN:   fixed to the measured VisualViewport bottom.
+   Only one placement owner is active at a time.
+   ========================================================= */
+#composerPlacementSpacer{
+  display:block;
+  height:var(--composer-flow-reserve,0px);
+  flex:0 0 auto;
+  pointer-events:none;
+}
+
+/* CLOSED: Composer is a stage overlay sibling, not a ScrollRoot child.
+   Typing cannot ask the conversation scroller to reveal the caret. */
+#thread-bottom-container{
+  position:absolute;
+  inset-inline:0;
+  bottom:0;
+  width:100%;
+  margin:0;
+  z-index:40;
+}
+
+/* OPEN: VisualViewport owns only Composer placement; ScrollRoot remains the
+   same conversation-display layer. */
+#stageLayout[data-composer-placement="visual-viewport"] #thread-bottom-container{
+  position:fixed;
+  top:var(--composer-visual-top,0px);
+  right:0;
+  bottom:auto;
+  left:0;
+  width:100%;
+  margin:0;
+  z-index:40;
+}
+
+#stageLayout[data-composer-placement="visual-viewport"] .composer-source-frame{
+  margin-bottom:0;
+  padding-bottom:0;
+}
+
+/* Conversation content may pass under the floating Composer fade. */
+#threadContent{
+  margin-bottom:calc(-1 * var(--composer-overlap-px));
+  padding-bottom:var(--composer-overlap-px);
+  background:var(--theme-surface-primary);
+}
+
+#tailRunwaySpace{
+  min-height:var(--gutter-remaining-height,0px);
+}
+
+/* P2P message actions — V21.9 ZERO REFLOW SIDE RAIL.
+   The rail is outside normal flow. Hover/tap only changes visibility. */
+.message-unit{
+  position:relative;
+  width:fit-content;
+  max-width:100%;
+}
+.user-message-unit{
+  margin-left:auto;
+  max-width:70%;
+}
+.assistant-message-unit{
+  margin-right:auto;
+  max-width:min(70%,calc(100% - 46px));
+}
+
+.message-action-group{
+  position:absolute;
+  top:50%;
+  z-index:4;
+  display:flex;
+  align-items:center;
+  gap:0;
+  height:32px;
+  min-height:32px;
+  overflow:visible;
+  padding:0;
+  margin:0;
+  white-space:nowrap;
+  pointer-events:none;
+  opacity:0;
+  user-select:none;
+  transform:translateY(-50%) scale(.96);
+  transform-origin:center;
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+.message-action-group.user-actions{
+  right:100%;
+  padding-right:6px;
+  justify-content:flex-end;
+}
+.message-action-group.assistant-actions{
+  left:100%;
+  padding-left:6px;
+  justify-content:flex-start;
+}
+
+/* Desktop hover owner is the actual message unit, not the full-width row. */
+.message-unit:hover .message-action-group,
+.message-unit:focus-within .message-action-group,
+.message-turn[data-actions-open="true"] .message-action-group{
+  pointer-events:auto;
+  opacity:1;
+  transform:translateY(-50%) scale(1);
+}
+
+/* Wheel/drag owns interaction while content is moving.
+   Do not let a stationary pointer make action rails jump between messages. */
+#scrollRoot[data-user-scrolling="true"] .message-unit:hover .message-action-group,
+#scrollRoot[data-user-dragging="true"] .message-unit:hover .message-action-group{
+  pointer-events:none;
+  opacity:0;
+  transform:translateY(-50%) scale(.96);
+}
+
+.assistant-turn-shell{
+  padding-bottom:8px;
+}
+
+@media (hover:none),(pointer:coarse){
+  .user-message-unit{
+    max-width:70%;
+  }
+  .assistant-message-unit{
+    max-width:min(70%,calc(100% - 46px));
+  }
+
+  .message-unit:hover .message-action-group,
+  .message-unit:focus-within .message-action-group{
+    pointer-events:none;
+    opacity:0;
+    transform:translateY(-50%) scale(.96);
+  }
+
+  .message-turn[data-actions-open="true"] .message-action-group{
+    pointer-events:auto;
+    opacity:1;
+    transform:translateY(-50%) scale(1);
+  }
+}
+
+/* 280px hard gate: keep the three remote touch actions on-screen. */
+@media (max-width:319px) and (hover:none),
+       (max-width:319px) and (pointer:coarse){
+  .user-message-unit{
+    max-width:70%;
+  }
+  .assistant-message-unit{
+    max-width:calc(100% - 42px);
+  }
+}
+
+
+/* V21.13 P2P Reply + Important.
+   Important colors are backed by exact ChatGPT source tokens. */
+.user-message-unit[data-important="true"] .message-text{
+  background:var(--cgpt-important-surface);
+}
+.assistant-message-unit[data-important="true"]::before{
+  content:"";
+  position:absolute;
+  inset-block:2px;
+  inset-inline-start:-10px;
+  width:3px;
+  border-radius:999px;
+  background:var(--cgpt-important-rail);
+  pointer-events:none;
+}
+.action-button[aria-pressed="true"] .p2p-important-icon{
+  fill:currentColor;
+}
+.reply-quote{
+  appearance:none;
+  width:100%;
+  color:var(--theme-content-secondary);
+  text-align:start;
+  background:transparent;
+  border:0;
+  border-inline-start:2px solid var(--theme-border-strong);
+  margin:0 0 6px;
+  padding:1px 0 1px 8px;
+  font:inherit;
+  font-size:12px;
+  line-height:16px;
+  cursor:pointer;
+  overflow:hidden;
+}
+.reply-quote:hover{color:var(--theme-content-primary)}
+.reply-quote-label{display:block;font-weight:600}
+.reply-quote-text{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.message-turn[data-reference-flash="true"] .message-text{
+  outline:2px solid var(--cgpt-important-rail);
+  outline-offset:3px;
+}
+.reply-context{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 32px;
+  align-items:center;
+  gap:8px;
+  margin:8px 10px 0;
+  padding:7px 8px 7px 10px;
+  border-inline-start:2px solid var(--cgpt-important-rail);
+  border-radius:8px;
+  background:var(--theme-surface-secondary);
+  color:var(--theme-content-secondary);
+}
+.reply-context[hidden]{display:none}
+.reply-context-copy{min-width:0}
+.reply-context-label{display:block;color:var(--theme-content-primary);font-size:12px;font-weight:600;line-height:16px}
+.reply-context-text{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;line-height:16px}
+.reply-context-close{
+  appearance:none;width:32px;height:32px;display:grid;place-items:center;
+  color:var(--theme-content-secondary);background:transparent;border:0;border-radius:8px;cursor:pointer
+}
+.reply-context-close:hover{background:var(--theme-action-ghost-surface-hover);color:var(--theme-content-primary)}
+
+.action-button{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:32px;
+  height:32px;
+  border-radius:8px;
+  color:var(--text-secondary);
+}
+.action-button:hover{
+  background:var(--surface-hover);
+}
+.action-button[aria-pressed="true"]{
+  color:#ef4444;
+}
+.action-button svg{
+  width:20px;
+  height:20px;
+}
+@media (hover:none),(pointer:coarse){
+  .action-button{
+    width:40px;
+    height:32px;
+  }
+}
+@media (max-width:319px) and (hover:none),
+       (max-width:319px) and (pointer:coarse){
+  .action-button{
+    width:36px;
+  }
+}
+
+/* Equivalent purpose to ChatGPT's threadFooterContentFade class:
+   messages may pass under the sticky composer, but visually fade below it. */
+#thread-bottom-container.threadFooterContentFade::before{
+  content:"";
+  position:absolute;
+  z-index:0;
+  pointer-events:none;
+  left:0;
+  right:0;
+  bottom:0;
+  height:calc(100% + 56px);
+  background:linear-gradient(
+    to bottom,
+    rgba(255,255,255,0) 0%,
+    rgba(255,255,255,.72) 30%,
+    rgba(255,255,255,.94) 54%,
+    #fff 76%
+  );
+}
+
+
+
+
+
+.thread-surface-source{
+  background:var(--theme-surface-primary);
+}
+.header-surface-source{
+  background:color-mix(in srgb, var(--theme-surface-primary) 95%, transparent);
+}
+.presence-source,
+.history-status-source{
+  color:var(--theme-content-tertiary);
+}
+.presence-source{
+  font-size:.875rem;
+  line-height:1.25rem;
+}
+.history-status-source{
+  font-size:.75rem;
+  line-height:1rem;
+}
+
+.composer-footer-control{
+  width:36px;
+  height:36px;
+  min-width:36px;
+  flex:0 0 36px;
+  align-self:center;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  box-sizing:border-box;
+  padding:0;
+  line-height:0;
+  vertical-align:middle;
+}
+.composer-footer-control svg{
+  display:block;
+  flex:none;
+}
+
+.send-button-source{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border:1px solid transparent;
+  border-radius:9999px;
+  background:var(--button-primary-background-color-disabled);
+  color:var(--button-primary-text-color);
+  transition:
+    background 120ms ease-out,
+    opacity 120ms ease-out;
+}
+#composerShell[data-can-send="true"] .send-button-source{
+  background:var(--button-primary-background-color-rest);
+}
+.send-button-source:disabled{
+  cursor:default;
+  opacity:1;
+}
+.send-button-source svg{
+  transform-origin:50% 50%;
+  transition:transform 120ms ease-out;
+}
+.send-button-source[data-arrow="right"] svg{
+  transform:rotate(90deg);
+}
+.send-button-source[data-mode-toggle="true"]{
+  cursor:pointer;
+}
+.composer-plus-source{
+  width:36px;
+  height:36px;
+  min-width:36px;
+  display:grid;
+  place-items:center;
+  padding:0;
+  border:0;
+  border-radius:9999px;
+  background:transparent;
+  color:var(--theme-content-primary);
+  cursor:pointer;
+  transition:background 120ms ease-out;
+  anchor-name:--composer-add-action-anchor;
+}
+.composer-plus-source:hover,
+#composer-plus-btn[data-state="open"]{
+  background:var(--theme-action-ghost-surface-hover);
+}
+.composer-plus-source:focus-visible{
+  outline:2px solid var(--focus-ring);
+  outline-offset:2px;
+}
+.composer-action-menu-source{
+  position:fixed;
+  z-index:60;
+  position-anchor:--composer-add-action-anchor;
+  top:calc(anchor(bottom) + .25rem);
+  right:auto;
+  bottom:auto;
+  left:calc(anchor(left) - .4375rem);
+  position-try-fallbacks:flip-block;
+  width:min(14rem,calc(100vw - 1.5rem));
+  min-width:3.125rem;
+  max-width:min(20rem,calc(100vw - .75rem));
+  color:var(--theme-content-primary);
+  background:transparent;
+  border:0;
+  border-radius:1.25rem;
+  margin:0;
+  padding:0;
+  display:none;
+}
+.composer-action-menu-source::backdrop{
+  background:transparent;
+}
+.composer-action-menu-source:popover-open,
+.composer-action-menu-source[data-fallback-open="true"]{
+  display:block;
+}
+.composer-action-menu-surface{
+  border:1px solid var(--theme-border-default);
+  border-radius:inherit;
+  background:color-mix(in srgb, var(--theme-surface-primary) 94%, transparent);
+  -webkit-backdrop-filter:blur(24px) saturate(1.2);
+  backdrop-filter:blur(24px) saturate(1.2);
+  display:grid;
+  gap:.125rem;
+  padding:.375rem;
+  box-shadow:0 .5rem 2rem #0000001f;
+}
+.composer-action-menu-item{
+  min-height:max(44px,2.875rem);
+  width:100%;
+  color:var(--theme-content-primary);
+  cursor:pointer;
+  font:inherit;
+  text-align:start;
+  border:0;
+  border-radius:.875rem;
+  background:transparent;
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;
+  gap:.625rem;
+  padding:.25rem .625rem .25rem .25rem;
+}
+.composer-action-menu-item:hover{
+  background:var(--theme-action-ghost-surface-hover);
+}
+.composer-action-menu-item:active{
+  background:var(--theme-action-ghost-surface-pressed);
+}
+.composer-action-menu-icon{
+  width:2.25rem;
+  height:2.25rem;
+  display:grid;
+  place-items:center;
+  border-radius:999px;
+  background:color-mix(in srgb,var(--theme-content-primary) 6%,transparent);
+}
+.composer-action-menu-label{
+  font-size:.9375rem;
+  font-weight:400;
+  line-height:1.25rem;
+}
+@media (hover:hover) and (pointer:fine){
+  .composer-action-camera{display:none}
+}
+@media (width>=48rem){
+  .composer-action-menu-source{
+    width:13.75rem;
+    border-radius:1rem;
+  }
+  .composer-action-menu-surface{
+    border:0;
+    -webkit-backdrop-filter:none;
+    backdrop-filter:none;
+    gap:0;
+    padding:.375rem 0;
+    box-shadow:
+      0 .5rem .75rem #00000014,
+      inset 0 0 1px #0000,
+      0 0 1px #0000009e;
+  }
+  .composer-action-menu-item{
+    min-height:max(44px,2.75rem);
+    width:calc(100% - .75rem);
+    margin-inline:.375rem;
+    border-radius:.625rem;
+    grid-template-columns:1.25rem minmax(0,1fr);
+    gap:.375rem;
+    padding:.375rem .625rem;
+  }
+  .composer-action-menu-icon{
+    width:1.25rem;
+    height:1.25rem;
+    border-radius:0;
+    background:transparent;
+  }
+  .composer-action-menu-label{
+    font-size:.875rem;
+    line-height:1.25rem;
+  }
+}
+
+
+.composer-source-frame{
+  /* V21.64: source-exact ChatGPT physical gap.
+     Composer placement owns only the 24px thread component gap. */
+  margin-bottom:var(--thread-component-gap,24px);
+  padding-bottom:0;
+}
+
+.composer-shell-source{
+  position:relative;
+  display:grid;
+  cursor:text;
+  overflow:clip;
+  border-radius:var(--component-conversation-composer-radius,var(--radius-2xl));
+  border:1px solid var(--composer-border);
+  background:var(--cgpt-composer-surface-primary);
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,.04),
+    0 2px 8px 0 rgba(0,0,0,.04),
+    0 4px 40px 8px rgba(0,0,0,.025);
+}
+.composer-hint-source{
+  min-width:0;
+  flex:1;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:var(--theme-content-tertiary);
+  font-family:var(--font-family-sans);
+  font-size:.75rem;
+  line-height:1rem;
+}
+
+.attachment-tray-media-strip{
+  display:flex;
+  flex-wrap:nowrap!important;
+  overflow-x:auto;
+  overflow-y:hidden;
+  scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;
+}
+.attachment-tray-media-strip::-webkit-scrollbar{display:none;}
+#attachmentTray[data-layout="audio"]{
+  display:block!important;
+  overflow-x:hidden;
+  overflow-y:visible;
+}
+#attachmentTray:empty{
+  display:none;
+}
+.attachment-chip{
+  display:inline-flex;
+  max-width:100%;
+  align-items:center;
+  gap:6px;
+  border:1px solid #e5e5e5;
+  background:#f7f7f7;
+  border-radius:12px;
+  padding:6px 9px;
+  font-size:12px;
+  line-height:16px;
+}
+
+/* V21.70 — one audio surface at a time.
+   RECORDING/PREVIEW/SENDING replace the normal text/footer UI instead of nesting inside it. */
+#composerShell[data-audio-state="REQUESTING_PERMISSION"] #editorWrap,
+#composerShell[data-audio-state="RECORDING"] #editorWrap,
+#composerShell[data-audio-state="STOPPING"] #editorWrap,
+#composerShell[data-audio-state="PREVIEW"] #editorWrap,
+#composerShell[data-audio-state="SENDING"] #editorWrap,
+#composerShell[data-audio-state="REQUESTING_PERMISSION"] #composerFooter,
+#composerShell[data-audio-state="RECORDING"] #composerFooter,
+#composerShell[data-audio-state="STOPPING"] #composerFooter,
+#composerShell[data-audio-state="PREVIEW"] #composerFooter,
+#composerShell[data-audio-state="SENDING"] #composerFooter{
+  display:none!important;
+}
+#composerShell[data-audio-state="REQUESTING_PERMISSION"] #attachmentTray,
+#composerShell[data-audio-state="RECORDING"] #attachmentTray,
+#composerShell[data-audio-state="STOPPING"] #attachmentTray,
+#composerShell[data-audio-state="PREVIEW"] #attachmentTray,
+#composerShell[data-audio-state="SENDING"] #attachmentTray{
+  display:block!important;
+  padding:.625rem .75rem!important;
+  overflow:visible!important;
+}
+.audio-recording-card,
+.audio-preview-card{
+  display:grid;
+  grid-template-columns:2.5rem minmax(5rem,1fr) auto auto;
+  align-items:center;
+  gap:.625rem;
+  width:100%;
+  min-width:0;
+  min-height:3.25rem;
+  box-sizing:border-box;
+  border:1px solid var(--composer-border);
+  background:var(--cgpt-composer-surface-primary);
+  border-radius:calc(var(--component-conversation-composer-radius,var(--radius-2xl)) - .5rem);
+  padding:.45rem .55rem;
+  contain:layout paint;
+}
+.audio-recording-indicator{
+  display:grid;place-items:center;width:2.5rem;height:2.5rem;border-radius:999px;background:#fff1f0;
+}
+.audio-recording-dot{width:.75rem;height:.75rem;border-radius:999px;background:#ef4444;box-shadow:0 0 0 .3rem rgba(239,68,68,.12);animation:audio-recording-pulse 1.25s ease-in-out infinite;}
+@keyframes audio-recording-pulse{50%{transform:scale(.8);opacity:.65;}}
+.audio-recording-main,.audio-preview-main{display:flex;align-items:center;gap:.75rem;min-width:0;}
+.audio-recording-waveform,.audio-preview-waveform{display:flex;align-items:center;gap:2px;height:1.75rem;min-width:4rem;overflow:hidden;flex:1;}
+.audio-recording-waveform i,.audio-preview-waveform i{display:block;width:2px;min-width:2px;border-radius:999px;background:var(--theme-content-tertiary);opacity:.68;}
+.audio-recording-waveform i:nth-child(-n+7){background:#ef4444;opacity:.9;}
+.audio-recording-time,.audio-preview-duration,.audio-message-time{font:500 .75rem/1rem var(--font-family-sans);color:var(--theme-content-secondary);white-space:nowrap;}
+.audio-recording-cancel,.audio-recording-stop,.audio-preview-cancel,.audio-preview-send{
+  min-height:2.4rem;border:0;border-radius:999px;padding:0 .8rem;font:600 .75rem/1 var(--font-family-sans);white-space:nowrap;
+}
+.audio-recording-cancel,.audio-preview-cancel{background:transparent;color:var(--theme-content-secondary);}
+.audio-recording-stop{background:#fee2e2;color:#dc2626;}
+.audio-preview-send{background:var(--theme-content-primary);color:var(--theme-surface-primary);}
+.audio-recording-stop:disabled,.audio-preview-send:disabled,.audio-preview-cancel:disabled{opacity:.45;cursor:default;}
+.audio-preview-play{
+  display:grid;place-items:center;width:2.5rem;height:2.5rem;border:0;border-radius:999px;
+  background:var(--theme-content-primary);color:var(--theme-surface-primary);font-size:.85rem;
+}
+.audio-preview-card audio,.audio-message-card audio{display:none;}
+
+/* V21.70 — audio visual hierarchy follows the existing grayscale chat language.
+   Remote stays neutral/outlined; self uses the same subtle user-message surface. */
+.audio-message-card{
+  display:grid;
+  grid-template-columns:2rem minmax(5.5rem,1fr) auto;
+  align-items:center;
+  gap:.5rem;
+  width:min(17rem,68vw);
+  max-width:100%;
+  min-height:2.75rem;
+  border:1px solid var(--composer-border);
+  border-radius:14px;
+  padding:.35rem .45rem;
+  background:var(--theme-surface-primary);
+  box-shadow:none;
+}
+.assistant-message-unit .audio-message-card{
+  background:var(--theme-surface-primary);
+  border-color:var(--composer-border);
+}
+.user-message-unit .audio-message-card{
+  background:var(--main-surface-secondary);
+  border-color:transparent;
+}
+.audio-message-play{
+  display:grid;
+  place-items:center;
+  width:2rem;
+  height:2rem;
+  border:1px solid var(--composer-border);
+  border-radius:999px;
+  background:var(--theme-surface-primary);
+  color:var(--theme-content-primary);
+  font-size:.72rem;
+  line-height:1;
+}
+.user-message-unit .audio-message-play{
+  border-color:transparent;
+  background:var(--theme-content-primary);
+  color:var(--theme-surface-primary);
+}
+.audio-message-progress{
+  position:relative;
+  height:1.15rem;
+  min-width:0;
+  display:flex;
+  align-items:center;
+  cursor:pointer;
+  touch-action:manipulation;
+  border:0;
+  background:transparent;
+  padding:0;
+}
+.audio-message-progress::before{
+  content:"";
+  position:absolute;
+  left:0;
+  right:0;
+  height:2px;
+  border-radius:999px;
+  background:var(--composer-border);
+}
+.audio-message-progress-fill{
+  position:absolute;
+  left:0;
+  width:0;
+  height:2px;
+  border-radius:999px;
+  background:var(--theme-content-secondary);
+  pointer-events:none;
+}
+.audio-message-time{
+  min-width:4.75rem;
+  text-align:right;
+  font:400 .6875rem/1rem var(--font-family-sans);
+  color:var(--theme-content-tertiary);
+  white-space:nowrap;
+  font-variant-numeric:tabular-nums;
+}
+@media(max-width:480px){
+  .audio-recording-card,.audio-preview-card{grid-template-columns:2.25rem minmax(4rem,1fr) auto auto;gap:.4rem;padding-inline:.45rem;}
+  .audio-recording-cancel,.audio-recording-stop,.audio-preview-cancel,.audio-preview-send{padding-inline:.6rem;}
+  .audio-message-card{width:min(16rem,76vw);grid-template-columns:1.9rem minmax(4.25rem,1fr) auto;gap:.42rem;padding:.32rem .42rem;}
+  .audio-message-play{width:1.9rem;height:1.9rem;}
+  .audio-message-time{min-width:4.4rem;font-size:.65625rem;}
+}
+
+
+/* V21.70.1 — generic file attachment card. Same durable media pipeline as image/audio. */
+.file-message-card{
+  display:grid;
+  grid-template-columns:2rem minmax(0,1fr);
+  align-items:center;
+  gap:.55rem;
+  width:min(18rem,72vw);
+  max-width:100%;
+  min-height:2.9rem;
+  border:1px solid var(--composer-border);
+  border-radius:14px;
+  padding:.42rem .5rem;
+  background:var(--theme-surface-primary);
+  color:var(--theme-content-primary);
+  text-align:left;
+  cursor:pointer;
+}
+.user-message-unit .file-message-card{
+  background:var(--main-surface-secondary);
+  border-color:transparent;
+}
+.file-message-icon{
+  display:grid;
+  place-items:center;
+  width:2rem;
+  height:2rem;
+  border-radius:10px;
+  border:1px solid var(--composer-border);
+  background:var(--theme-surface-primary);
+  font:700 .56rem/1 var(--font-family-sans);
+  letter-spacing:.02em;
+}
+.file-message-copy{display:grid;min-width:0;gap:.08rem;}
+.file-message-name{
+  display:block;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font:600 .75rem/1rem var(--font-family-sans);
+}
+.file-message-meta{
+  color:var(--theme-content-tertiary);
+  font:400 .6875rem/1rem var(--font-family-sans);
+  font-variant-numeric:tabular-nums;
+}
+@media(max-width:480px){
+  .file-message-card{width:min(16rem,78vw);}
+}
+
+.attachment-image-chip{
+  position:relative;
+  overflow:visible;
+  border:0;
+  background:transparent;
+  padding:0;
+  gap:0;
+  flex:none;
+  width:7.5rem;
+  height:7.5rem;
+  border-radius:calc(var(--component-conversation-composer-radius,var(--radius-2xl)) - .5rem);
+}
+.attachment-image-remove{
+  position:absolute;
+  top:-.1875rem;
+  right:-.1875rem;
+  z-index:4;
+  display:grid;
+  width:2.75rem;
+  height:2.75rem;
+  place-items:center;
+  border:0;
+  border-radius:999px;
+  background:transparent;
+  color:#fff;
+  cursor:pointer;
+  padding:0;
+  font:600 .875rem/1 system-ui,sans-serif;
+}
+.attachment-image-remove::before{
+  content:"";
+  position:absolute;
+  width:1.5rem;
+  height:1.5rem;
+  border-radius:999px;
+  background:rgba(13,13,13,.78);
+  box-shadow:0 1px 4px rgba(0,0,0,.2);
+}
+.attachment-image-remove svg{
+  position:relative;
+  z-index:1;
+  width:1rem;
+  height:1rem;
+  display:block;
+  pointer-events:none;
+}
+.attachment-image-remove:focus-visible{outline:2px solid #0d0d0d;outline-offset:1px;}
+
+.media-image-tile[data-ready="true"]{background:transparent;}
+
+/* Media review viewer rebuilt from the user-approved 3-region demo: Head -> Main -> Bottom. */
+.image-viewer-overlay{
+  box-sizing:border-box;
+  width:auto;
+  height:auto;
+  max-width:none;
+  max-height:none;
+  margin:0;
+  padding:0;
+  border:0;
+  position:fixed;
+  top:var(--image-viewer-top,0px);
+  right:var(--image-viewer-right,0px);
+  bottom:0;
+  left:var(--image-viewer-left,0px);
+  z-index:1;
+  pointer-events:auto;
+  overflow:hidden;
+  background:#000;
+  color:#fff;
+  display:none;
+  overscroll-behavior:contain;
+}
+.image-viewer-overlay[open]{display:block;}
+.image-viewer-overlay::backdrop{background:transparent;}
+.image-review{
+  width:100%;
+  height:100%;
+  min-width:0;
+  min-height:0;
+  display:flex;
+  flex-direction:column;
+  background:#0f0f10;
+  color:#fff;
+}
+.image-review-head{
+  flex:none;
+  min-height:4rem;
+  padding:.5rem 1rem;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:1rem;
+  background:#0f0f10;
+  border-bottom:1px solid #282828;
+}
+.image-review-heading{min-width:0;display:flex;flex-direction:column;gap:.16rem;}
+.image-review-title{font-size:.9375rem;font-weight:650;line-height:1.15rem;color:#fff;}
+.image-review-count{font-size:.75rem;line-height:1rem;color:#aaa;font-weight:550;}
+.image-review-control{
+  appearance:none;
+  -webkit-tap-highlight-color:transparent;
+  width:2.5rem;
+  height:2.5rem;
+  flex:0 0 2.5rem;
+  padding:0;
+  display:grid;
+  place-items:center;
+  border-radius:999px;
+  border:1px solid #ffffff24;
+  background:#ffffff16;
+  color:#fff;
+  cursor:pointer;
+  line-height:0;
+  outline:0;
+}
+.image-review-control:hover{background:#ffffff28;}
+.image-review-control:focus-visible{outline:none;box-shadow:0 0 0 1px #ffffff26 inset;background:#ffffff16;}
+.image-review-control[hidden]{display:none;}
+.image-review-control svg{width:1.125rem;height:1.125rem;display:block;pointer-events:none;}
+.image-review-close{border-color:#ffffff2e;background:#ffffff14;box-shadow:inset 0 0 0 1px #ffffff0f;}
+.image-review-close:focus-visible{outline:none;background:#ffffff14;border-color:#ffffff2e;box-shadow:inset 0 0 0 1px #ffffff0f;}
+.image-review-main{
+  flex:1;
+  min-width:0;
+  min-height:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+  overflow:hidden;
+  padding:1.25rem 4.75rem;
+  background:#000;
+  touch-action:pan-y;
+}
+.image-review-image{
+  max-width:100%;
+  max-height:100%;
+  width:auto;
+  height:auto;
+  object-fit:contain;
+  display:block;
+  border-radius:.5rem;
+  background:#101010;
+  user-select:none;
+  -webkit-user-select:none;
+  -webkit-user-drag:none;
+}
+.image-review-nav{
+  position:absolute;
+  top:50%;
+  transform:translateY(-50%);
+  z-index:2;
+}
+.image-review-prev{left:1.125rem;}
+.image-review-next{right:1.125rem;}
+.image-review-meta{
+  position:absolute;
+  left:50%;
+  bottom:.9rem;
+  transform:translateX(-50%);
+  max-width:calc(100% - 7rem);
+  padding:.38rem .65rem;
+  border-radius:999px;
+  background:#000a;
+  color:#d6d6d6;
+  font-size:.7rem;
+  line-height:1rem;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  pointer-events:none;
+}
+.image-review-bottom{
+  flex:none;
+  min-height:calc(7rem + env(safe-area-inset-bottom,0px));
+  padding:.55rem 1rem calc(.6rem + env(safe-area-inset-bottom,0px));
+  display:flex;
+  flex-direction:column;
+  gap:.5rem;
+  background:#0f0f10;
+  border-top:1px solid #282828;
+}
+.image-review-filters{
+  display:flex;
+  align-items:center;
+  gap:.4rem;
+  min-width:0;
+}
+.image-review-filter-scroll{
+  min-width:0;
+  flex:1 1 auto;
+  display:flex;
+  align-items:center;
+  gap:.4rem;
+  overflow-x:auto;
+  overflow-y:hidden;
+  scrollbar-width:none;
+}
+.image-review-filter-scroll::-webkit-scrollbar{display:none;}
+.image-review-filters::-webkit-scrollbar{display:none;}
+.image-review-chip{
+  appearance:none;
+  flex:0 0 auto;
+  border:1px solid #444;
+  background:transparent;
+  color:#aaa;
+  border-radius:999px;
+  padding:.34rem .62rem;
+  font-size:.7rem;
+  line-height:1rem;
+  font-weight:600;
+  white-space:nowrap;
+  cursor:pointer;
+}
+.image-review-chip[aria-current="true"]{background:#fff;color:#111;border-color:#fff;}
+.image-review-chip:disabled{opacity:.35;cursor:default;}
+.image-review-tools{position:relative;flex:0 0 auto;display:flex;align-items:center;justify-content:flex-end;}
+.image-review-more{font-size:1.2rem;font-weight:700;letter-spacing:.08em;}
+.image-review-menu{
+  position:absolute;
+  right:0;
+  bottom:calc(100% + .45rem);
+  min-width:10.75rem;
+  padding:.35rem;
+  display:flex;
+  flex-direction:column;
+  gap:.15rem;
+  border:1px solid #2f2f33;
+  border-radius:.9rem;
+  background:#141417;
+  box-shadow:0 12px 32px rgba(0,0,0,.38);
+}
+.image-review-menu[hidden]{display:none;}
+.image-review-menu-label{
+  padding:.35rem .5rem .25rem;
+  font-size:.68rem;
+  line-height:.95rem;
+  color:#8f8f95;
+  font-weight:600;
+}
+.image-review-menu-item{
+  appearance:none;
+  width:100%;
+  border:0;
+  border-radius:.7rem;
+  padding:.55rem .7rem;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:.75rem;
+  background:transparent;
+  color:#f1f1f2;
+  font-size:.8rem;
+  line-height:1.05rem;
+  text-align:left;
+  cursor:pointer;
+}
+.image-review-menu-item:hover{background:#ffffff14;}
+.image-review-menu-item[aria-current="true"]{background:#ffffff1b;}
+.image-review-menu-check{opacity:0;}
+.image-review-menu-item[aria-current="true"] .image-review-menu-check{opacity:1;}
+.image-review-thumbs{
+  min-width:0;
+  display:flex;
+  align-items:center;
+  gap:.45rem;
+  overflow-x:auto;
+  overflow-y:hidden;
+  scrollbar-width:none;
+  scroll-snap-type:x mandatory;
+  overscroll-behavior-x:contain;
+}
+.image-review-thumbs::-webkit-scrollbar{display:none;}
+.image-review-thumbs[hidden]{display:none;}
+.image-review-thumb{
+  appearance:none;
+  box-sizing:border-box;
+  width:4rem;
+  height:3.4rem;
+  flex:0 0 auto;
+  padding:0;
+  overflow:hidden;
+  border:2px solid transparent;
+  border-radius:.55rem;
+  background:#171717;
+  opacity:.58;
+  cursor:pointer;
+  scroll-snap-align:center;
+}
+.image-review-thumb:hover{opacity:.86;}
+.image-review-thumb:focus-visible{outline:2px solid #fff;outline-offset:2px;}
+.image-review-thumb[aria-current="true"]{border-color:#fff;opacity:1;}
+.image-review-thumb-image{width:100%;height:100%;object-fit:cover;display:block;background:#2a2a2a;}
+@media (max-width:700px){
+  .image-review-head{
+    min-height:3.5rem;
+    padding:.4rem .75rem;
+  }
+  .image-review-main{padding:.65rem 3rem;}
+  .image-review-prev{left:.45rem;}
+  .image-review-next{right:.45rem;}
+  .image-review-bottom{
+    min-height:calc(6.75rem + env(safe-area-inset-bottom,0px));
+    padding:.45rem .625rem calc(.5rem + env(safe-area-inset-bottom,0px));
+  }
+  .image-review-menu{right:0;left:auto;max-width:min(14rem,calc(100vw - 1.25rem));}
+  .image-review-thumb{width:3.875rem;height:3.25rem;}
+  .image-review-meta{bottom:.55rem;max-width:calc(100% - 6rem);}
+}
+
+.composer-icon-button{
+  display:inline-flex;
+  width:36px;
+  height:36px;
+  min-width:36px;
+  align-items:center;
+  justify-content:center;
+  border-radius:9999px;
+  color:var(--theme-content-primary);
+  background:transparent;
+  border:0;
+}
+.composer-icon-button:hover{
+  background:var(--theme-action-ghost-surface-hover);
+}
+.composer-icon-button[data-recording="true"]{
+  color:#dc2626;
+  background:#fee2e2;
+  box-shadow:inset 0 0 0 1px rgba(220,38,38,.10);
+}
+/* Virtualized message turns know the sticky safe bottom. */
+.message-row{
+  scroll-margin-bottom:12px;
+}
+.message-text{
+  -webkit-user-select:text;
+  user-select:text;
+  -webkit-touch-callout:default;
+}
+#editor{
+  height:var(--editor-height,40px);
+  min-height:40px;
+  max-height:112px;
+  resize:none;
+  overflow-y:hidden;
+  touch-action:manipulation;
+  color:var(--theme-content-primary);
+  font-family:var(--font-family-sans);
+  font-size:1rem;
+  font-weight:400;
+  line-height:1.5rem;
+  letter-spacing:normal;
+  caret-color:var(--theme-content-primary);
+  -webkit-user-select:text;
+  user-select:text;
+  -webkit-touch-callout:default;
+}
+#editor::placeholder{
+  color:var(--label-secondary);
+  opacity:1;
+}
+#editor[data-internal-scroll=true]{
+  overflow-y:auto;
+  overscroll-behavior-y:none;
+  touch-action:pan-y;
+  scrollbar-width:none;
+}
+#editor[data-internal-scroll=true]::-webkit-scrollbar{display:none}
+#measure{
+  position:absolute;
+  left:0;
+  top:0;
+  visibility:hidden;
+  pointer-events:none;
+  white-space:pre-wrap;
+  overflow-wrap:break-word;
+  box-sizing:border-box;
+}
+#threadScrollControlMotion{
+  position:absolute;
+  left:50%;
+  bottom:calc(
+    100% +
+    12px +
+    var(--thread-scroll-to-bottom-banner-offset,0px)
+  );
+  z-index:10;
+  transform:translateX(-50%) scale(.5) translateY(8px);
+  opacity:0;
+  pointer-events:none;
+  transition:
+    transform 100ms ease,
+    opacity 100ms ease;
+}
+
+#stageLayout[data-scroll-from-end] #threadScrollControlMotion{
+  transform:translateX(-50%) scale(1) translateY(0);
+  opacity:1;
+  pointer-events:auto;
+  transition:
+    transform 300ms ease 300ms,
+    opacity 300ms ease 300ms;
+}
+
+.thread-scroll-control-button{
+  position:relative;
+  display:flex;
+  width:32px;
+  height:32px;
+  align-items:center;
+  justify-content:center;
+  overflow:visible;
+  border:0;
+  border-radius:9999px;
+  box-sizing:content-box;
+  background:color-mix(in srgb, var(--theme-surface-primary) 65%, transparent);
+  color:var(--theme-content-primary);
+  box-shadow:
+    0 1px 2px rgba(0,0,0,.08),
+    0 2px 8px rgba(0,0,0,.08);
+  backdrop-filter:blur(2px);
+  -webkit-backdrop-filter:blur(2px);
+  touch-action:manipulation;
+  transition:
+    width 120ms ease-out,
+    background 120ms ease-out;
+}
+
+.thread-scroll-control-button:hover{
+  background:color-mix(in srgb, var(--theme-surface-secondary) 75%, transparent);
+}
+
+.thread-scroll-arrow{
+  width:20px;
+  height:20px;
+  opacity:1;
+  transition:opacity 120ms ease-out;
+}
+.thread-scroll-unseen-badge{
+  position:absolute;
+  top:-7px;
+  right:-10px;
+  min-width:18px;
+  height:18px;
+  padding:0 5px;
+  border:2px solid var(--theme-surface-primary);
+  border-radius:9999px;
+  background:var(--theme-content-accent);
+  color:var(--theme-content-inverse);
+  font-size:10px;
+  font-weight:700;
+  line-height:14px;
+  text-align:center;
+  box-sizing:border-box;
+  pointer-events:none;
+}
+.thread-scroll-unseen-badge[hidden]{display:none}
+
+
+
+/* V21.18 remote typing: centered compact indicator.
+   Scroll remains centered too, but stacks above when both are visible. */
+.remote-typing-center-wrap{
+  position:absolute;
+  inset-inline:0;
+  top:-32px;
+  z-index:7;
+  pointer-events:none;
+}
+.remote-typing-center{
+  position:absolute;
+  left:50%;
+  width:48px;
+  height:32px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  border:1px solid var(--theme-border-default);
+  border-radius:12px;
+  background:var(--theme-surface-primary);
+  color:var(--theme-content-secondary);
+  box-shadow:
+    0 1px 2px rgba(0,0,0,.08),
+    0 2px 8px rgba(0,0,0,.06);
+  transform:translateX(-50%);
+}
+.remote-typing-center[hidden]{
+  display:none;
+}
+.typing-dot{
+  width:5px;
+  height:5px;
+  flex:0 0 5px;
+  border-radius:999px;
+  background:currentColor;
+  opacity:.78;
+  animation:remote-typing-dot 1s ease-in-out infinite;
+}
+.typing-dot:nth-child(2){animation-delay:.12s}
+.typing-dot:nth-child(3){animation-delay:.24s}
+@keyframes remote-typing-dot{
+  0%,60%,100%{transform:translateY(0);opacity:.42}
+  30%{transform:translateY(-2px);opacity:1}
+}
+
+/* When scroll + typing are both visible, keep typing closest to Composer and
+   move the scroll button one level upward. */
+#stageLayout[data-scroll-from-end][data-stream-active] #threadScrollControlMotion{
+  bottom:calc(
+    100% +
+    52px +
+    var(--thread-scroll-to-bottom-banner-offset,0px)
+  );
+}
+
+
+
+/* ChatGPT auth source shell uses the saved bottom-sheet/auth CSS bundles.
+   The saved package does not contain the inline Google symbol sprite, so only
+   that icon has an explicitly-labelled fallback; layout/structure stays source-derived. */
+.auth-source-shell .wm-button{
+  min-height:44px;
+  border:1px solid var(--theme-border-default);
+  border-radius:999px;
+  background:var(--theme-surface-primary);
+  color:var(--theme-content-primary);
+  align-items:center;
+  justify-content:center;
+  text-decoration:none;
+  padding:0 16px;
+}
+.auth-source-shell ._X60mza_emailButton{
+  background:var(--theme-content-primary);
+  color:var(--theme-surface-primary);
+  border-color:var(--theme-content-primary);
+}
+.auth-source-shell .auth-google-fallback{
+  width:20px;height:20px;display:grid;place-items:center;font-weight:700;font-size:17px;line-height:1;
+}
+
+/* =========================================================
+   V21.24 COMPACT TOP + INLINE AUTH
+   Screen geometry remains owned by each Screen. These rules only own
+   shell overlays/navigation and static screen surfaces.
+   Sidebar internals use the saved ChatGPT source classes from
+   reference/chatgpt/full-source/raw-css/app-CIyuNPp8.css.
+   ========================================================= */
+#appShell{
+  position:relative;
+  width:100%;
+  min-width:0;
+  --chat-content-max-width:48rem;
+  --chat-content-gutter:12px;
+}
+#appShell .chat-content-axis{
+  box-sizing:border-box;
+  width:100%;
+  max-width:var(--chat-content-max-width)!important;
+  margin-inline:auto;
+  padding-inline:var(--chat-content-gutter)!important;
+}
+@media (max-width:319px){#appShell{--chat-content-gutter:8px;}}
+@media (min-width:640px){#appShell{--chat-content-gutter:16px;}}
+#screenHost,
+#activeScreenSlot,
+.app-screen{
+  min-width:0;
+}
+#shellNavigationLayer{
+  position:fixed;
+  inset:0;
+  z-index:80;
+  pointer-events:none;
+  visibility:hidden;
+}
+#shellNavigationLayer[data-open="true"]{
+  pointer-events:auto;
+  visibility:visible;
+}
+.shell-navigation-backdrop{
+  position:absolute;
+  inset:0;
+  border:0;
+  margin:0;
+  padding:0;
+  background:rgba(0,0,0,.32);
+  opacity:0;
+  transition:opacity 160ms ease;
+}
+#shellNavigationLayer[data-open="true"] .shell-navigation-backdrop{opacity:1}
+.shell-navigation-panel{
+  position:absolute;
+  inset-block:0;
+  inset-inline-start:0;
+  width:min(76vw,390px);
+  background:var(--theme-surface-primary);
+  transform:translateX(-102%);
+  transition:transform 190ms cubic-bezier(.2,.8,.2,1);
+  box-shadow:0 0 0 1px rgba(0,0,0,.04), 10px 0 36px rgba(0,0,0,.12);
+}
+#shellNavigationLayer[data-open="true"] .shell-navigation-panel{transform:translateX(0)}
+@media (prefers-reduced-motion:reduce){
+  .shell-navigation-backdrop,.shell-navigation-panel{transition:none}
+}
+.shell-wordmark{
+  margin:0;
+  font-size:1.875rem;
+  line-height:2.25rem;
+  font-weight:700;
+  letter-spacing:-.035em;
+}
+.shell-nav-close{
+  width:44px;
+  height:44px;
+  border:1px solid var(--theme-border-default);
+  border-radius:999px;
+  background:var(--theme-surface-primary);
+  display:grid;
+  place-items:center;
+  color:var(--theme-content-primary);
+}
+.shell-nav-section-label{
+  margin:10px 0 4px;
+  padding-inline:0;
+  color:var(--theme-content-tertiary);
+  font-size:.75rem;
+  line-height:1rem;
+}
+.shell-contact-icon{
+  width:20px;
+  height:20px;
+  display:block;
+}
+.shell-account-row{
+  border-block-start:1px solid var(--theme-border-default);
+  padding-block-start:12px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.shell-account-row .wm-sidebar-accountButton{min-width:0;flex:1}
+.wm-sidebar-guestLogin{flex:0 0 auto;white-space:nowrap}
+.wm-sidebar-sidebar{display:flex;flex-direction:column;height:100%;min-height:0}
+.wm-sidebar-body{flex:1 1 auto;min-height:0;overflow:auto}
+.shell-sidebar-account-footer{
+  flex:0 0 auto;
+  border-top:1px solid var(--theme-border-default);
+  padding:12px 0 max(12px,env(safe-area-inset-bottom));
+  display:grid;
+  gap:10px;
+  background:var(--theme-surface-primary);
+}
+.shell-sidebar-account-avatar{width:48px;height:48px;font-size:1rem;flex:0 0 48px}
+.shell-contact-empty{padding:.75rem .25rem;color:var(--theme-content-secondary);font-size:.875rem}
+.shell-mobile-menu-icon{display:block}
+.shell-desktop-sidebar-icon{display:none}
+@media (min-width:768px){
+  .shell-mobile-menu-icon{display:none}
+  .shell-desktop-sidebar-icon{display:block}
+}
+
+
+.compact-top-grid{
+  display:grid;
+  grid-template-columns:40px minmax(0,1fr) auto;
+  align-items:center;
+  column-gap:8px;
+  width:100%;
+  height:100%;
+  margin-inline:0;
+  box-sizing:border-box;
+}
+.compact-top-grid > .shell-icon-button{
+  grid-column:1;
+  justify-self:start;
+}
+.top-mode-switch{
+  grid-column:2;
+  min-width:0;
+  width:min(100%,260px);
+  box-sizing:border-box;
+  justify-self:center;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  gap:2px;
+  padding:3px;
+  border-radius:999px;
+  background:var(--theme-surface-secondary);
+}
+.top-mode-tab{
+  min-width:0;
+  min-height:38px;
+  border:0;
+  border-radius:999px;
+  padding:0 10px;
+  background:transparent;
+  color:var(--theme-content-secondary);
+  font:inherit;
+  font-size:14px;
+  font-weight:500;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  touch-action:manipulation;
+}
+.top-mode-tab[aria-selected="true"]{
+  color:var(--theme-content-primary);
+  background:var(--theme-surface-primary);
+  box-shadow:0 1px 5px rgba(0,0,0,.08);
+}
+.call-focus-slot{
+  grid-column:3;
+  width:auto;
+  min-width:44px;
+  max-width:min(56vw,330px);
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  gap:8px;
+}
+.call-status-chip{
+  --call-chip-fg:#17653f;
+  --call-chip-border:rgba(24,160,88,.18);
+  --call-chip-bg:rgba(224,249,236,.92);
+  min-width:0;
+  height:44px;
+  max-width:164px;
+  box-sizing:border-box;
+  border:1px solid var(--call-chip-border);
+  border-radius:999px;
+  padding:0 12px;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  color:var(--call-chip-fg);
+  background:var(--call-chip-bg);
+  box-shadow:0 4px 16px rgba(0,0,0,.035);
+  white-space:nowrap;
+  overflow:hidden;
+}
+.call-status-chip[hidden]{display:none!important}
+.call-status-chip[data-state="incoming"]{
+  --call-chip-fg:#0b5fb6;
+  --call-chip-border:rgba(10,132,255,.14);
+  --call-chip-bg:rgba(231,243,255,.96);
+}
+.call-status-chip[data-state="connecting"]{
+  --call-chip-fg:#0b5fb6;
+  --call-chip-border:rgba(10,132,255,.14);
+  --call-chip-bg:rgba(239,247,255,.96);
+}
+.call-status-chip[data-state="active"]{
+  --call-chip-fg:#17653f;
+  --call-chip-border:rgba(24,160,88,.16);
+  --call-chip-bg:rgba(232,249,240,.98);
+}
+.call-status-chip:is([data-state="ended"],[data-state="rejected"],[data-state="cancelled"],[data-state="missed"]){
+  --call-chip-fg:var(--theme-content-secondary);
+  --call-chip-border:var(--theme-border-default);
+  --call-chip-bg:var(--theme-surface-secondary);
+}
+.call-status-indicator{
+  width:16px;
+  height:16px;
+  flex:0 0 16px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:2px;
+  position:relative;
+}
+.call-status-indicator > i{
+  width:2px;
+  border-radius:999px;
+  background:currentColor;
+  display:block;
+  transform-origin:center;
+}
+.call-status-indicator > i:nth-child(1){height:7px;animation:call-status-wave 900ms ease-in-out infinite}
+.call-status-indicator > i:nth-child(2){height:13px;animation:call-status-wave 900ms ease-in-out 120ms infinite}
+.call-status-indicator > i:nth-child(3){height:9px;animation:call-status-wave 900ms ease-in-out 240ms infinite}
+.call-status-chip:not([data-state="calling"]) .call-status-indicator > i{display:none}
+.call-status-chip[data-state="incoming"] .call-status-indicator::before,
+.call-status-chip[data-state="active"] .call-status-indicator::before{
+  content:"";
+  width:8px;
+  height:8px;
+  border-radius:999px;
+  background:currentColor;
+  box-shadow:0 0 0 0 color-mix(in srgb,currentColor 22%,transparent);
+  animation:call-status-dot 1.6s ease-out infinite;
+}
+.call-status-chip[data-state="connecting"] .call-status-indicator{
+  width:16px;height:16px;border:2px solid color-mix(in srgb,currentColor 24%,transparent);
+  border-top-color:currentColor;border-radius:999px;
+  animation:call-status-spin 800ms linear infinite;
+}
+.call-status-chip:is([data-state="ended"],[data-state="rejected"],[data-state="cancelled"],[data-state="missed"]) .call-status-indicator::before{
+  content:"✓";
+  font-size:12px;
+  font-weight:800;
+  line-height:1;
+}
+.call-status-copy{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:1px;
+  overflow:hidden;
+}
+.call-status-title{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  font-size:12px;
+  font-weight:650;
+  line-height:15px;
+  letter-spacing:-.01em;
+}
+.call-status-subtitle{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  color:color-mix(in srgb,currentColor 72%,transparent);
+  font-size:9px;
+  font-weight:500;
+  line-height:11px;
+}
+.call-status-timer{
+  flex:0 0 auto;
+  font-size:12px;
+  font-weight:700;
+  font-variant-numeric:tabular-nums;
+  letter-spacing:.01em;
+}
+.call-focus-button{
+  --call-blue:#0a84ff;
+  width:44px;
+  min-width:44px;
+  height:44px;
+  border:0;
+  border-radius:999px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  padding:0;
+  background:var(--call-blue);
+  color:#fff;
+  box-shadow:0 8px 24px rgba(10,132,255,.24);
+  font:inherit;
+  font-size:12px;
+  font-weight:700;
+  line-height:1;
+  white-space:nowrap;
+  touch-action:manipulation;
+  transition:width 140ms ease,background 140ms ease,box-shadow 140ms ease,transform 140ms ease;
+}
+.call-focus-button[data-display="accept"]{width:72px;padding:0 12px}
+.call-focus-button[data-display="cancel"]{width:72px;padding:0 12px;background:#ff4d4f;box-shadow:0 8px 24px rgba(255,77,79,.22)}
+.call-focus-button[data-display="end"]{width:94px;padding:0 13px;background:#ff4d4f;box-shadow:0 8px 24px rgba(255,77,79,.22)}
+.call-focus-button:disabled{cursor:default;filter:saturate(.86)}
+.call-focus-button:not(:disabled):active{transform:scale(.96)}
+.call-focus-icon{width:20px;height:20px;display:block;flex:0 0 20px}
+.call-focus-icon-end{display:none}
+.call-focus-label{display:none;font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.call-focus-button[data-display="accept"] .call-focus-label,
+.call-focus-button[data-display="cancel"] .call-focus-label,
+.call-focus-button[data-display="end"] .call-focus-label{display:inline}
+.call-focus-button[data-display="cancel"] .call-focus-icon-call,
+.call-focus-button[data-display="end"] .call-focus-icon-call{display:none}
+.call-focus-button[data-display="cancel"] .call-focus-icon-end,
+.call-focus-button[data-display="end"] .call-focus-icon-end{display:block}
+
+.call-secondary-button{
+  width:82px;
+  min-width:44px;
+  height:44px;
+  border:0;
+  border-radius:999px;
+  padding:0 11px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+  background:#ff4d4f;
+  color:#fff;
+  box-shadow:0 8px 24px rgba(255,77,79,.18);
+  font:inherit;
+  font-size:11px;
+  font-weight:700;
+  white-space:nowrap;
+  touch-action:manipulation;
+}
+.call-secondary-button[hidden]{display:none!important}
+.call-secondary-button:disabled{cursor:default;filter:saturate(.86)}
+.call-secondary-button:not(:disabled):active{transform:scale(.96)}
+.call-secondary-icon{width:18px;height:18px;display:block;flex:0 0 18px}
+.call-secondary-label{display:inline}
+@keyframes call-status-wave{0%,100%{transform:scaleY(.55);opacity:.66}50%{transform:scaleY(1);opacity:1}}
+@keyframes call-status-dot{0%{box-shadow:0 0 0 0 color-mix(in srgb,currentColor 24%,transparent)}70%,100%{box-shadow:0 0 0 7px transparent}}
+@keyframes call-status-spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){
+  .call-focus-button{transition:none}
+  .call-status-indicator,.call-status-indicator::before,.call-status-indicator>i{animation:none!important}
+}
+@media (max-width:480px){
+  .compact-top-grid{column-gap:6px}
+  .top-mode-tab{font-size:12.5px;padding-inline:6px}
+  .call-focus-slot{gap:6px;max-width:196px}
+  .call-status-chip{height:40px;max-width:92px;padding-inline:8px;gap:6px}
+  .compact-top-grid:has(.call-focus-slot:not([data-call-ui-state="idle"])) .top-mode-switch{opacity:0;pointer-events:none}
+  .call-secondary-button{width:44px;height:40px;padding:0}
+  .call-secondary-label{display:none}
+  .call-status-title,.call-status-timer{font-size:11px}
+  .call-status-subtitle{display:none}
+  .call-focus-button[data-display="accept"],.call-focus-button[data-display="cancel"],.call-focus-button[data-display="end"]{width:44px;height:40px;padding:0}
+  .call-focus-button[data-display="accept"] .call-focus-label,.call-focus-button[data-display="cancel"] .call-focus-label,.call-focus-button[data-display="end"] .call-focus-label{display:none}
+}
+@media (max-width:339px){
+  .compact-top-grid:has(.call-focus-slot:not([data-call-ui-state="idle"])) .top-mode-switch{opacity:0;pointer-events:none}
+}
+
+.guest-auth-thread{
+  --guest-auth-border-idle:#00000024;
+  --guest-auth-focus:#0a84ff;
+  width:min(calc(100% - 24px),448px);
+  margin:20px auto 12px;
+  padding:28px 20px 24px;
+  box-sizing:border-box;
+  background:var(--component-overlay-surface,var(--theme-surface-elevated));
+  border:0;
+  border-radius:2rem;
+  box-shadow:0 -1.25rem 3rem #00000029,0 .25rem 1.5rem #0000001f;
+}
+.guest-auth-content{
+  width:100%;
+  max-width:23.3125rem;
+  margin-inline:auto;
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  gap:.875rem;
+}
+.guest-auth-thread-title{
+  margin:0 0 .25rem;
+  text-align:center;
+  font-size:1.5rem;
+  line-height:2rem;
+  font-weight:400;
+}
+.guest-auth-form{display:grid;gap:.75rem}
+.guest-auth-control{
+  position:relative;
+  display:grid;
+  gap:.375rem;
+  padding-top:.375rem;
+}
+.guest-auth-thread[data-auth-mode="login"] [data-register-only]{display:none!important}
+.guest-auth-field-label{
+  position:absolute;
+  z-index:1;
+  inset-block-start:.375rem;
+  inset-inline-start:1rem;
+  transform:translateY(-50%);
+  padding-inline:.375rem;
+  background:var(--theme-surface-canvas);
+  color:var(--label-secondary);
+  font-size:.75rem;
+  line-height:1rem;
+  pointer-events:none;
+}
+.guest-auth-field{
+  box-sizing:border-box;
+  width:100%;
+  min-height:2.75rem;
+  border:1px solid var(--guest-auth-border-idle,#00000024);
+  border-radius:999px;
+  padding-inline:1rem;
+  background:var(--theme-surface-canvas);
+  color:var(--label-primary);
+  font:inherit;
+  font-size:1rem;
+  line-height:1.25rem;
+  outline:none;
+}
+.guest-auth-field:focus,.guest-auth-field:focus-visible{border-color:var(--guest-auth-focus);box-shadow:0 0 0 1px var(--guest-auth-focus);outline:none}
+.guest-auth-field[aria-invalid="true"]{border-color:var(--theme-border-danger)}
+.guest-auth-field[aria-invalid="true"]:focus,.guest-auth-field[aria-invalid="true"]:focus-visible{border-color:var(--theme-border-danger);box-shadow:0 0 0 1px var(--theme-border-danger);outline:none}
+.guest-auth-primary,
+.guest-auth-secondary{
+  width:100%;
+  min-height:2.75rem;
+  justify-content:center;
+  border-radius:999px!important;
+  font:inherit;
+  font-size:1rem;
+  font-weight:500;
+}
+.guest-auth-primary{
+  background:#0d0d0d!important;
+  border:1px solid #0d0d0d!important;
+  color:#fff!important;
+}
+.guest-auth-primary .wm-button__label{color:#fff!important}
+.guest-auth-secondary{
+  background:var(--theme-surface-canvas)!important;
+  border:1px solid var(--guest-auth-border-idle,#00000024)!important;
+  color:var(--label-primary)!important;
+}
+.guest-auth-secondary .wm-button__label{color:var(--label-primary)!important}
+.guest-auth-secondary:hover{background:var(--theme-surface-secondary)!important}
+.guest-auth-secondary:focus-visible,
+.guest-auth-primary:focus-visible{outline:2px solid var(--guest-auth-focus);outline-offset:2px}
+
+@media (min-width:48rem){
+  .guest-auth-thread{padding-inline:28px}
+}
+#appShell[data-auth-state="guest"] #historyStatus,
+#appShell[data-auth-state="guest"] #topSpacer,
+#appShell[data-auth-state="guest"] #messageWindow,
+#appShell[data-auth-state="guest"] #bottomSpacer{display:none!important}
+#appShell[data-auth-state="authenticated"] #guestAuthThread{display:none}
+#appShell[data-auth-state="booting"] #guestAuthThread,
+#appShell[data-auth-state="booting"] #historyStatus,
+#appShell[data-auth-state="booting"] #topSpacer,
+#appShell[data-auth-state="booting"] #messageWindow,
+#appShell[data-auth-state="booting"] #bottomSpacer{display:none!important}
+
+.thread-mode-view{
+  min-width:0;
+  width:100%;
+}
+#workThreadView[hidden],
+[data-chat-thread-node][hidden]{display:none!important}
+.work-thread-card{
+  width:min(calc(100% - 24px),560px);
+  min-height:240px;
+  margin:20px auto 12px;
+  padding:20px;
+  border:1px dashed var(--theme-border-default);
+  border-radius:24px;
+  display:grid;
+  place-items:center;
+  text-align:center;
+  color:var(--theme-content-tertiary);
+  box-sizing:border-box;
+}
+.shell-card{
+  border:1px solid var(--theme-border-default);
+  border-radius:18px;
+  background:var(--theme-surface-primary);
+}
+.contact-row-source{
+  width:100%;
+  min-height:72px;
+  display:grid;
+  grid-template-columns:48px minmax(0,1fr) 44px;
+  align-items:center;
+  gap:12px;
+  padding:10px 12px;
+  border:0;
+  background:transparent;
+  text-align:start;
+}
+.contact-avatar-source{
+  width:48px;
+  height:48px;
+  border-radius:999px;
+  display:grid;
+  place-items:center;
+  background:var(--account-avatar-bg,#d1fae5);
+  color:var(--account-avatar-fg,#111827);
+  font-size:1.15rem;
+  font-weight:500;
+}
+.contact-name-source{
+  font-size:1.05rem;
+  line-height:1.35rem;
+  font-weight:600;
+}
+.contact-presence-source{
+  margin-top:3px;
+  color:var(--theme-content-tertiary);
+  font-size:.92rem;
+  line-height:1.2rem;
+}
+.shell-icon-button{
+  position:relative;
+  width:40px;
+  height:40px;
+  min-width:40px;
+  border:0;
+  border-radius:999px;
+  background:transparent;
+  color:var(--theme-content-primary);
+  display:grid;
+  place-items:center;
+  touch-action:manipulation;
+}
+.shell-icon-button:hover{background:var(--theme-action-ghost-surface-hover)}
+
+.shell-menu-unread-dot{
+  position:absolute;
+  inset-block-start:3px;
+  inset-inline-end:3px;
+  width:8px;
+  height:8px;
+  border-radius:999px;
+  background:#0a84ff;
+  box-shadow:0 0 0 2px var(--theme-surface-primary);
+  pointer-events:none;
+}
+.shell-menu-unread-dot[hidden]{display:none}
+.shell-primary-button{
+  min-height:44px;
+  border:0;
+  border-radius:999px;
+  padding:0 18px;
+  background:var(--theme-content-primary);
+  color:var(--theme-content-inverse,#fff);
+  font:inherit;
+  font-weight:600;
+}
+.media-search-source{
+  width:100%;
+  min-height:52px;
+  border:1px solid var(--theme-border-default);
+  border-radius:999px;
+  padding:0 18px;
+  font:inherit;
+  font-size:16px;
+  background:transparent;
+  color:var(--theme-content-primary);
+  outline:none;
+}
+.media-tabs-source{
+  display:flex;
+  gap:8px;
+  margin-top:18px;
+}
+.media-tab-source{
+  min-height:40px;
+  padding:0 14px;
+  border:0;
+  border-radius:999px;
+  background:transparent;
+  font:inherit;
+}
+.media-tab-source[aria-selected="true"]{background:var(--theme-surface-secondary)}
+.media-empty-source{
+  margin-top:28px;
+  min-height:320px;
+  border:1px dashed var(--theme-border-default);
+  border-radius:24px;
+  display:grid;
+  place-items:center;
+  color:var(--theme-content-tertiary);
+  text-align:center;
+  padding:24px;
+}
+#globalOverlayRoot{
+  position:fixed;
+  inset:0;
+  z-index:95;
+  pointer-events:none;
+}
+#appShell[data-image-viewer-mode="true"] #thread-bottom-container{
+  visibility:hidden;
+  pointer-events:none;
+}
+
+@supports not (height:100svh){
+  #stageLayout{height:100vh}
+  #svhProbe{height:100vh}
+}
+
+
+/* =========================================================
+   V21.64 — COMPACT PERSISTENT DESKTOP DIRECTORY
+   Repair root: ScreenHost/AppShell geometry only.
+   ChatScreen internals stay owned by frozen V21.20.
+   ========================================================= */
+@media (min-width:68rem) and (hover:hover) and (pointer:fine){
+  #appShell[data-auth-state="authenticated"]{
+    --chat-content-gutter:24px;
+  }
+  #appShell[data-auth-state="authenticated"] #screenHost{
+    --desktop-directory-width:clamp(280px,24vw,304px);
+    display:grid;
+    grid-template-columns:var(--desktop-directory-width) minmax(0,1fr);
+    grid-template-rows:minmax(0,1fr);
+    width:100%;
+    max-width:none;
+    height:100svh;
+    min-height:0;
+    margin:0;
+    overflow:hidden;
+  }
+  #appShell[data-auth-state="authenticated"] #activeScreenSlot{
+    grid-column:2;
+    grid-row:1;
+    min-width:0;
+    min-height:0;
+    width:100%;
+  }
+  #appShell[data-auth-state="authenticated"] #stageLayout{
+    width:100%;
+    max-width:100%;
+  }
+
+  /* Header stays full Chat-region width. Its interactive grid shares the
+     same content axis/gutter as messages and Composer. Viewer remains full
+     Chat-region width and deliberately does not use this content axis. */
+  #appShell[data-auth-state="authenticated"] #regionTop .compact-top-grid{
+    width:100%;
+    margin-inline:auto;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer{
+    grid-column:1;
+    grid-row:1;
+    position:relative;
+    inset:auto;
+    z-index:30;
+    width:100%;
+    height:100%;
+    min-width:0;
+    min-height:0;
+    pointer-events:auto;
+    visibility:visible;
+    overflow:hidden;
+    background:var(--theme-surface-primary);
+    border-inline-end:1px solid var(--theme-border-default);
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-navigation-backdrop{
+    display:none;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-navigation-panel{
+    position:relative;
+    inset:auto;
+    width:100%;
+    height:100%;
+    min-width:0;
+    transform:none;
+    transition:none;
+    box-shadow:none;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer [data-shell-command="sidebar.close"]{
+    display:none;
+  }
+  #appShell[data-auth-state="authenticated"] #regionTop [data-shell-command="sidebar.open"]{
+    visibility:hidden;
+    pointer-events:none;
+  }
+}
+@supports not (height:100svh){
+  @media (min-width:68rem) and (hover:hover) and (pointer:fine){
+    #appShell[data-auth-state="authenticated"] #screenHost{height:100vh}
+  }
+}
+
+/* V21.64 — account row mirrors the approved contact-row proportions */
+.shell-sidebar-account-footer{gap:8px}
+.shell-sidebar-account-main{
+  appearance:none;border:0;background:var(--theme-surface-secondary);color:inherit;text-align:start;
+  display:grid;
+  grid-template-columns:48px minmax(0,1fr) 36px;
+  grid-template-rows:1.3rem 1.15rem;
+  align-content:center;
+  column-gap:12px;
+  row-gap:3px;
+  width:100%;
+  min-width:0;
+  height:72px;
+  min-height:72px;
+  padding:10px 8px;
+  cursor:pointer;
+  border-radius:18px;
+}
+.shell-sidebar-account-main:hover{background:color-mix(in srgb,var(--theme-surface-secondary) 82%,var(--theme-content-primary) 4%)}
+.shell-sidebar-account-avatar{
+  width:48px;
+  height:48px;
+  font-size:1rem;
+  flex:0 0 48px;
+  grid-column:1;
+  grid-row:1 / span 2;
+  align-self:center;
+}
+.shell-sidebar-account-copy{display:contents}
+.shell-sidebar-account-copy strong{
+  grid-column:2;
+  grid-row:1;
+  align-self:center;
+  min-width:0;
+  font-size:1rem;
+  line-height:1.3rem;
+  font-weight:600;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.shell-sidebar-account-copy span{
+  grid-column:2;
+  grid-row:2;
+  align-self:center;
+  min-width:0;
+  margin-top:0;
+  color:var(--theme-content-secondary);
+  font-size:.86rem;
+  line-height:1.15rem;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.shell-sidebar-account-chevron{
+  grid-column:3;
+  grid-row:1 / span 2;
+  align-self:center;
+  justify-self:center;
+  width:36px;
+  color:var(--theme-content-tertiary);
+  font-size:1.3rem;
+  line-height:1;
+  text-align:center;
+}
+.shell-sidebar-account-action{
+  appearance:none;border:0;font:inherit;font-size:.92rem;font-weight:600;min-height:44px;padding:8px 12px;border-radius:14px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;width:100%;background:#0d0d0d;color:#fff;
+}
+.shell-sidebar-account-action:hover{background:#1f1f1f}
+.shell-sidebar-account-action:active{transform:translateY(1px)}
+.shell-sidebar-account-footer[data-state="guest"] .shell-sidebar-account-action{display:none}
+.shell-avatar-image{display:block;width:100%;height:100%;object-fit:cover;border-radius:inherit}
+.shell-contact-row{position:relative;width:100%;height:72px;min-height:72px;border-radius:18px;overflow:hidden;overflow-anchor:none}
+.shell-contact-row[data-active="true"]{background:var(--theme-surface-secondary)}
+.shell-contact-row[data-locked="true"]{opacity:.72}
+.shell-contact-chat{
+  appearance:none;border:0;background:transparent;color:inherit;width:100%;min-height:72px;display:grid;
+  grid-template-columns:48px minmax(0,1fr) 36px;grid-template-rows:1.3rem 1.15rem;align-content:center;column-gap:12px;row-gap:3px;height:72px;min-height:72px;padding:10px 8px;text-align:start;cursor:pointer;
+}
+.shell-contact-row:not([data-active="true"]) .shell-contact-chat:hover{background:color-mix(in srgb,var(--theme-surface-secondary) 65%,transparent)}
+.shell-contact-avatar-wrap{position:relative;width:48px;height:48px;display:block;grid-column:1;grid-row:1 / span 2;align-self:center}
+.shell-contact-avatar{width:48px;height:48px;font-size:1rem}
+.shell-contact-unread-dot{
+  position:absolute;right:0;bottom:1px;width:10px;height:10px;border-radius:999px;background:#0a84ff;
+  border:2px solid var(--theme-surface-primary);box-sizing:content-box;
+}
+.shell-contact-copy{display:contents}
+.shell-contact-name{grid-column:2;grid-row:1;align-self:center;min-width:0;font-size:1rem;line-height:1.3rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.shell-contact-preview{grid-column:2;grid-row:2;align-self:center;min-width:0;color:var(--theme-content-secondary);font-size:.86rem;line-height:1.15rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.shell-contact-time{grid-column:3;grid-row:1;align-self:center;justify-self:center;width:36px;margin:0;color:var(--theme-content-tertiary);font-size:.75rem;line-height:1rem;text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums}
+.shell-contact-manage{
+  position:absolute;right:8px;bottom:7px;z-index:2;width:36px;height:24px;border:0;border-radius:999px;background:transparent;color:var(--theme-content-secondary);
+  font-size:1.2rem;line-height:1;display:grid;place-items:center;cursor:pointer;padding:0;
+}
+.shell-contact-manage:hover{background:var(--theme-surface-secondary);color:var(--theme-content-primary)}
+
+.shell-profile-overlay{position:fixed;inset:0;z-index:140;display:grid;place-items:center;padding:18px;pointer-events:auto}
+.shell-profile-backdrop{position:absolute;inset:0;border:0;background:rgba(0,0,0,.28);backdrop-filter:blur(2px);touch-action:none;-webkit-user-select:none;user-select:none}
+.shell-profile-card{
+  position:relative;width:min(100%,420px);max-height:min(720px,calc(100svh - 36px));overflow:auto;background:var(--theme-surface-primary);
+  border-radius:28px;box-shadow:0 24px 80px rgba(0,0,0,.22);padding:22px;overscroll-behavior:contain;
+}
+.shell-profile-header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px}
+.shell-profile-header h2{margin:0;font-size:1.35rem;line-height:1.7rem;font-weight:650;letter-spacing:-.02em}
+.shell-profile-close{width:38px;height:38px;border:0;border-radius:999px;background:transparent;color:inherit;font-size:1.8rem;line-height:1;cursor:pointer}
+.shell-profile-close:hover{background:var(--theme-surface-secondary)}
+.shell-profile-form{display:grid;gap:14px}
+.shell-profile-avatar-picker{display:flex;align-items:center;gap:12px;width:max-content;cursor:pointer}
+.shell-profile-avatar{width:58px;height:58px;font-size:1rem}
+.shell-profile-avatar-label{font-size:.9rem;color:var(--theme-content-secondary)}
+.shell-profile-field{position:relative;display:block}
+.shell-profile-field>span{position:absolute;top:-8px;left:14px;padding:0 6px;background:var(--theme-surface-primary);color:var(--theme-content-secondary);font-size:.75rem;z-index:1}
+.shell-profile-field input{width:100%;height:52px;border:1px solid rgba(0,0,0,.16);border-radius:18px;padding:0 16px;background:transparent;color:inherit;font:inherit;outline:none;-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
+.shell-profile-field input:focus{border-color:#0a84ff;box-shadow:0 0 0 1px #0a84ff}
+.shell-profile-error{margin:0;color:#d92d20;font-size:.82rem}
+.shell-profile-save,.shell-profile-secondary,.shell-profile-danger{width:100%;min-height:48px;border-radius:18px;font:inherit;font-weight:600;cursor:pointer}
+.shell-profile-save{border:0;background:#0d0d0d;color:#fff}
+.shell-profile-admin-actions{display:grid;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--theme-border-default)}
+.shell-profile-secondary{border:1px solid rgba(0,0,0,.14);background:var(--theme-surface-primary);color:var(--theme-content-primary)}
+.shell-profile-danger{border:0;background:transparent;color:#e11900}
+
+.shell-profile-confirm{position:absolute;inset:0;z-index:4;display:grid;place-items:center;padding:20px;border-radius:inherit;background:color-mix(in srgb,var(--theme-surface-primary) 92%,transparent);backdrop-filter:blur(8px)}
+.shell-profile-confirm[hidden]{display:none}
+.shell-profile-confirm-card{width:min(100%,330px);display:grid;gap:12px;text-align:center}
+.shell-profile-confirm-card strong{font-size:1.08rem}
+.shell-profile-confirm-card p{margin:0;color:var(--theme-content-secondary);font-size:.88rem;line-height:1.35rem}
+.shell-profile-confirm-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
+.shell-profile-danger-solid{min-height:48px;border:0;border-radius:18px;background:#e11900;color:#fff;font:inherit;font-weight:600;cursor:pointer}
+.shell-profile-overlay[data-busy="true"] .shell-profile-card{cursor:progress}
+.shell-profile-overlay[data-busy="true"] .shell-profile-card button:disabled{opacity:.72}
+#screenHost[data-profile-modal-locked="true"]{pointer-events:none}
+@media(max-width:520px){
+  .shell-profile-overlay{place-items:end center;padding:8px}
+  .shell-profile-card{width:100%;border-radius:28px 28px 20px 20px;padding:20px;max-height:88svh}
+}
+</style>
+</head>
+<body>
+<div id="svhProbe"></div>
+
+<div id="runtimeError" class="hidden fixed z-[9999] left-2 right-2 top-2 rounded-xl bg-red-600 text-white text-xs px-3 py-2 shadow-lg"></div>
+
+<!-- V21.69.9 unified runtime marker. Earlier V21.20/V21.64 labels below are provenance for inherited geometry/style contracts only, not separate live runtimes. -->
+<div id="appShell" data-app-shell data-chat-screen-version="V21.72.14" data-app-shell-version="V21.72.14" data-auth-state="booting" data-default-route="chat" data-route="chat">
+  <div id="screenHost" data-screen-host>
+    <div id="activeScreenSlot" data-active-screen-slot>
+      <section id="chatScreen" class="app-screen" data-screen="chat">
+<div id="stageLayout" class="stage-layout flex h-svh w-screen flex-col pt-[env(safe-area-inset-top,0px)]">
+  <div
+    id="scrollRoot"
+    data-scroll-owner="conversation-scroll-root"
+    data-keyboard-contract="stateful-visual-viewport-placement"
+    data-keyboard-open="false" data-composer-placement="sticky"
+    data-scroll-root
+    class="group/scroll-root relative flex min-h-0 min-w-0 flex-1 flex-col overflow-x-clip overflow-y-auto"
+  >
+    <header
+      id="regionTop"
+      data-fixed-header="always"
+      class="header-surface-source sticky top-0 z-20 h-[var(--header-height,72px)] backdrop-blur-sm pointer-events-none"
+    >
+      <div class="h-full *:pointer-events-auto compact-top-grid chat-content-axis">
+        <button
+          type="button"
+          class="shell-icon-button"
+          aria-label="Mở menu"
+          aria-controls="shellNavigationLayer"
+          aria-expanded="false"
+          data-shell-command="sidebar.open"
+          data-chatgpt-source-icon="lightweight-sidebar-sidebar"
+        >
+          <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" class="shell-mobile-menu-icon"><use href="#lightweight-shell-mobile-sidebar-toggle"></use></svg><svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" class="shell-desktop-sidebar-icon"><use href="#lightweight-sidebar-sidebar"></use></svg>
+          <span class="shell-menu-unread-dot" data-menu-unread-dot hidden aria-hidden="true"></span>
+        </button>
+
+        <div class="top-mode-switch" role="tablist" aria-label="Chế độ làm việc">
+          <button type="button" class="top-mode-tab" role="tab" aria-selected="true" data-top-tab="chat" data-nav-target="chat">Trò chuyện</button>
+          <button type="button" class="top-mode-tab" role="tab" aria-selected="false" data-top-tab="work" data-nav-target="work">Công việc</button>
+        </div>
+
+        <div class="call-focus-slot" data-call-focus-slot data-call-ui-state="idle">
+          <div class="call-status-chip" data-call-status-chip data-state="idle" role="status" aria-live="polite" hidden>
+            <span class="call-status-indicator" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span class="call-status-copy">
+              <span class="call-status-title" data-call-status-title></span>
+              <span class="call-status-subtitle" data-call-status-subtitle hidden></span>
+            </span>
+            <span class="call-status-timer" data-call-status-timer hidden>00:00</span>
+          </div>
+          <button type="button" class="call-secondary-button" data-call-secondary-button aria-label="Từ chối cuộc gọi" hidden>
+            <svg class="call-secondary-icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <path d="M5.2 15.3c4.4-3.3 9.2-3.3 13.6 0" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+              <path d="M6.4 14.6 5.2 17M17.6 14.6l1.2 2.4" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+            <span class="call-secondary-label">Từ chối</span>
+          </button>
+          <button
+            id="chatCallFocus"
+            type="button"
+            class="call-focus-button"
+            aria-label="Gọi"
+            data-call-focus-button
+            data-display="icon"
+            data-tone="primary"
+            data-call-live="false"
+          >
+            <svg class="call-focus-icon call-focus-icon-call" viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><use href="#lightweight-auth-phone"></use></svg>
+            <svg class="call-focus-icon call-focus-icon-end" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+              <path d="M5.2 15.3c4.4-3.3 9.2-3.3 13.6 0" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+              <path d="M6.4 14.6 5.2 17M17.6 14.6l1.2 2.4" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+            <span class="call-focus-label"></span>
+          </button>
+        </div>
+        <div id="modeLabel" class="sr-only">BOOT</div>
+        <button id="remote" tabindex="-1" type="button" class="sr-only" aria-hidden="true">B+</button>
+      </div>
+    </header>
+
+    <main id="main" class="min-h-0 flex-1">
+      <div id="thread" class="group/thread flex min-h-full flex-col">
+        <div class="composer-parent flex flex-1 flex-col focus-visible:outline-0">
+          <div id="threadContent" class="relative basis-auto grow flex flex-col thread-surface-source">
+            <section id="guestAuthThread" class="guest-auth-thread" data-chat-thread-node data-guest-auth-thread data-auth-mode="login" aria-labelledby="guest-auth-title">
+              <div class="guest-auth-content">
+                <h2 id="guest-auth-title" class="guest-auth-thread-title">Đăng nhập</h2>
+                <form class="guest-auth-form" data-guest-auth-form novalidate>
+                  <div class="guest-auth-control" data-register-only>
+                    <input class="guest-auth-field" autocapitalize="words" autocomplete="name" id="guest-auth-name" spellcheck="false" type="text" name="name">
+                    <label class="guest-auth-field-label" for="guest-auth-name">Tên</label>
+                  </div>
+                  <div class="guest-auth-control">
+                    <input class="guest-auth-field" autocapitalize="none" autocomplete="username" id="guest-auth-account" required spellcheck="false" type="text" name="account">
+                    <label class="guest-auth-field-label" for="guest-auth-account">Tài khoản</label>
+                  </div>
+                  <div class="guest-auth-control">
+                    <input class="guest-auth-field" autocomplete="current-password" id="guest-auth-password" required type="password" name="password">
+                    <label class="guest-auth-field-label" for="guest-auth-password">Mật khẩu</label>
+                  </div>
+                  <button class="wm-button wm-button--medium wm-button--primary wm-button--radius-full guest-auth-primary" type="submit"><span class="wm-button__label" data-auth-primary-label>Đăng nhập</span></button>
+                  <button class="wm-button wm-button--medium wm-button--secondary wm-button--radius-full guest-auth-secondary" type="button" data-auth-command="mode.switch"><span class="wm-button__label" data-auth-secondary-label>Đăng ký</span></button>
+                </form>
+              </div>
+            </section>
+            <div id="historyStatus" data-chat-thread-node class="hidden text-center history-status-source py-2">Đang tải tin cũ…</div>
+            <div id="topSpacer" data-chat-thread-node aria-hidden="true"></div>
+            <div id="messageWindow" data-chat-thread-node class="py-3"></div>
+            <div id="bottomSpacer" data-chat-thread-node aria-hidden="true"></div>
+            <div id="workThreadView" class="thread-mode-view" data-thread-view="work" hidden>
+              <div class="work-thread-card">
+                <div>
+                  <strong class="block text-token-text-primary text-lg">Công việc</strong>
+                  <span class="block mt-1">Khu vực này để phát triển sau. Tỷ lệ và khung hiển thị giữ nguyên như Trò chuyện.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            id="tailSentinel"
+            aria-hidden="true"
+            class="pointer-events-none -mt-px h-px"
+          ></div>
+
+          <div id="tailRunway" class="invisible mt-auto grid">
+            <div class="col-start-1 row-start-1">
+              <div
+                id="tailRunwaySpace"
+                aria-hidden="true"
+                class="pointer-events-none"
+              ></div>
+            </div>
+
+            <div id="threadDisclaimer" class="hidden" aria-hidden="true"></div>
+          </div>
+
+          <div
+            id="composerPlacementSpacer"
+            aria-hidden="true"
+          ></div>
+
+
+        </div>
+      </div>
+    </main>
+  </div>
+
+          <div
+            id="thread-bottom-container"
+            data-composer-placement-owner="stateful-sticky-or-visual-viewport"
+            data-composer-visual-mode="floating-outside-scroll-root-or-visual-viewport"
+            class="threadFooterContentFade z-10 isolate w-full basis-auto pointer-events-none flex flex-col"
+          >
+            <div class="pointer-events-none h-0" aria-hidden="true"></div>
+
+            <div
+              id="threadScrollControlWrap"
+              class="pointer-events-auto relative mx-auto h-0"
+              style="--thread-scroll-to-bottom-banner-offset:0px"
+            >
+              <div id="threadScrollControlMotion" class="thread-scroll-control-motion">
+                <button
+                  id="threadScrollControl"
+                  type="button"
+                  aria-label="Cuộn xuống cuối"
+                  class="thread-scroll-control-button"
+                >
+                  <span
+                    id="threadScrollArrow"
+                    data-chatgpt-source-icon="scroll-down"
+                    aria-hidden="true"
+                  ></span>
+                  <span
+                    id="threadScrollUnseenBadge"
+                    class="thread-scroll-unseen-badge"
+                    aria-hidden="true"
+                    hidden
+                  ></span>
+                </button>
+              </div>
+            </div>
+
+            <div
+              id="composerInteractive"
+              data-composer-interaction-owner="true"
+              class="pointer-events-auto relative z-[1] flex w-full flex-col"
+            >              <div class="remote-typing-center-wrap" aria-live="polite" aria-label="Bên kia đang nhập">
+                <div id="remoteTypingCenter" class="remote-typing-center" hidden aria-hidden="true">
+                  <span class="typing-dot"></span>
+                  <span class="typing-dot"></span>
+                  <span class="typing-dot"></span>
+                </div>
+              </div>
+
+              <div class="composer-source-frame chat-content-axis">
+                <form id="composerForm" class="group/composer w-full" data-type="unified-composer">
+                  <div
+                    id="composerShell"
+                    data-composer-surface="true"
+                    class="composer-shell-source"
+                  >
+                    <div id="replyContext" class="reply-context" hidden data-feature-disabled="true">
+                      <div class="reply-context-copy">
+                        <span id="replyContextLabel" class="reply-context-label">Đang trả lời</span>
+                        <span id="replyContextText" class="reply-context-text"></span>
+                      </div>
+                      <button id="replyContextClose" type="button" class="reply-context-close" aria-label="Hủy trả lời"></button>
+                    </div>
+                    <div id="editorWrap" class="min-h-0 min-w-0 px-3 pt-2">
+                      <textarea
+                        id="editor"
+                        rows="1"
+                        placeholder="Nhắn tin..."
+                        autocomplete="off"
+                        autocorrect="off"
+                        autocapitalize="none"
+                        spellcheck="false"
+                        enterkeyhint="enter"
+                        class="w-full bg-transparent px-1 py-2 outline-none leading-5"
+                      ></textarea>
+                    </div>
+                    <div id="attachmentTray" class="px-3 pt-1 pb-1 flex gap-2 overflow-x-auto"></div>
+
+                    <div id="composerFooter" class="composer-footer-row-source flex items-center gap-1 px-2 pb-2">
+                      <button id="composer-plus-btn" data-chatgpt-source-icon="plus-regular-20" data-state="closed" type="button" class="composer-plus-source" aria-label="Thêm tệp và nhiều nội dung khác">
+                        <svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><path d="M10 3.25v13.5M3.25 10h13.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                      </button>
+                      <div id="composerHint" class="composer-hint-source">Return xuống dòng · ↑ gửi</div>
+                      <button id="composer-mic-btn" data-chatgpt-source-icon="microphone-regular-24" type="button" class="composer-icon-button composer-footer-control" aria-label="Bắt đầu ghi âm" data-recording="false">
+                        <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Z" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M5.8 10.8a6.2 6.2 0 0 0 12.4 0M12 17v3M9.5 20h5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                      </button>
+                      <button id="send" type="submit" data-action="send" data-arrow="up" data-mode-toggle="true" class="send-button-source composer-footer-control" aria-label="Đổi sang Return gửi">
+                        <svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><path d="M10 16V4m0 0L5.7 8.3M10 4l4.3 4.3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                    </div>
+
+                    <input id="upload-files" class="native-file-input" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,application/pdf,text/plain,text/csv,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+                    <input id="upload-photos" class="native-file-input" type="file" multiple accept="image/*">
+                    <input id="upload-camera" class="native-file-input" type="file" accept="image/*" capture="environment">
+                    <input id="upload-ios-source" class="native-file-input" type="file">
+                    <div id="measure" aria-hidden="true"></div>
+                  </div>
+                </form>
+
+                <div id="composerActionMenu" class="composer-action-menu-source" popover="auto" role="menu" aria-label="Thêm">
+                  <div class="composer-action-menu-surface">
+                    <button type="button" class="composer-action-menu-item composer-action-camera" data-upload-kind="camera" role="menuitem">
+                      <span class="composer-action-menu-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="22" height="22"><path d="M8 7.25 9.2 5.5h5.6L16 7.25h2.25A2.75 2.75 0 0 1 21 10v7.25A2.75 2.75 0 0 1 18.25 20H5.75A2.75 2.75 0 0 1 3 17.25V10a2.75 2.75 0 0 1 2.75-2.75H8Z" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linejoin="round"/><circle cx="12" cy="13.5" r="3.5" fill="none" stroke="currentColor" stroke-width="1.65"/></svg>
+                      </span>
+                      <span class="composer-action-menu-label">Máy ảnh</span>
+                    </button>
+                    <button type="button" class="composer-action-menu-item" data-upload-kind="photos" role="menuitem">
+                      <span class="composer-action-menu-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="22" height="22"><rect x="3.5" y="4" width="17" height="16" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.65"/><circle cx="9" cy="9" r="1.5" fill="currentColor"/><path d="m5.5 17 4.25-4.25 3.25 3.25 2.25-2.25L18.5 17" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </span>
+                      <span class="composer-action-menu-label">Thư viện ảnh</span>
+                    </button>
+                    <button type="button" class="composer-action-menu-item" data-upload-kind="files" role="menuitem">
+                      <span class="composer-action-menu-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="22" height="22"><path d="M6 3.75h8l4 4v12.5H6V3.75Z" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linejoin="round"/><path d="M14 3.75v4h4" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linejoin="round"/></svg>
+                      </span>
+                      <span class="composer-action-menu-label">File</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+      </section>
+    </div>
+
+    <div id="shellNavigationLayer" data-open="false" aria-hidden="true">
+      <button class="shell-navigation-backdrop" type="button" aria-label="Đóng menu" data-shell-command="sidebar.close"></button>
+      <aside class="shell-navigation-panel" aria-label="Danh bạ">
+        <div class="wm-sidebar-sidebar">
+          <header class="wm-sidebar-header">
+            <h1 class="shell-wordmark">Danh bạ</h1>
+            <div class="wm-sidebar-headerActions">
+              <button class="wm-sidebar-utilityButton" type="button" aria-label="Đóng menu" data-shell-command="sidebar.close">
+                <svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><path d="M5 5l10 10M15 5 5 15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+              </button>
+            </div>
+          </header>
+          <div class="wm-sidebar-body">
+            <nav aria-label="Danh bạ" class="wm-sidebar-navigation">
+              <div class="wm-sidebar-primaryNavigation" data-v21-contact-list></div>
+            </nav>
+          </div>
+          <footer class="shell-sidebar-account-footer" data-sidebar-account-footer data-state="guest">
+            <button type="button" class="shell-sidebar-account-main" data-account-self-edit aria-label="Đăng nhập">
+              <span class="contact-avatar-source shell-sidebar-account-avatar" data-account-avatar aria-hidden="true">?</span>
+              <span class="shell-sidebar-account-copy">
+                <strong data-account-name>Vãng lai</strong>
+                <span data-account-handle>Chưa đăng nhập</span>
+              </span>
+              <span class="shell-sidebar-account-chevron" aria-hidden="true">›</span>
+            </button>
+            <button class="shell-sidebar-account-action" type="button" data-auth-command="login.open">
+              <span data-account-action-label>Đăng nhập</span>
+            </button>
+          </footer>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <div id="sessionHost" data-session-host aria-hidden="true" hidden>
+    <div data-auth-session-store></div>
+    <div data-realtime-session></div>
+    <div data-call-session-host data-phase="shell-only"></div>
+  </div>
+</div>
+
+<div id="globalOverlayRoot" data-global-overlay-root aria-live="polite"></div>
+
+<svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute;overflow:hidden">
+  <defs>
+    <symbol id="lightweight-shell-mobile-sidebar-toggle" viewBox="0 0 24 24"><path d="M14 15C14.5523 15 15 15.4477 15 16C15 16.5523 14.5523 17 14 17H4C3.44772 17 3 16.5523 3 16C3 15.4477 3.44772 15 4 15H14Z" fill="currentColor"></path><path d="M20 7C20.5523 7 21 7.44772 21 8C21 8.55228 20.5523 9 20 9H4C3.44772 9 3 8.55228 3 8C3 7.44772 3.44772 7 4 7H20Z" fill="currentColor"></path></symbol>
+    <symbol id="lightweight-sidebar-sidebar" viewBox="0 0 20 20"><g transform="translate(0 -0.000488)"><path fill-rule="evenodd" clip-rule="evenodd" d="M14.5 2.66699C16.6401 2.66699 18.375 4.40189 18.375 6.54199V13.459C18.3748 15.5989 16.64 17.334 14.5 17.334H5.5C3.36 17.334 1.62518 15.5989 1.625 13.459V6.54199C1.625 4.40189 3.3599 2.66699 5.5 2.66699H14.5ZM8.375 15.584H14.5C15.6735 15.584 16.6248 14.6324 16.625 13.459V6.54199C16.625 5.36839 15.6736 4.41699 14.5 4.41699H8.375V15.584ZM5.5 4.41699C4.3264 4.41699 3.375 5.36839 3.375 6.54199V13.459C3.37518 14.6324 4.3265 15.584 5.5 15.584H6.625V4.41699H5.5Z" fill="currentColor"></path></g></symbol>
+    <symbol id="lightweight-sidebar-compose" viewBox="0 0 20 20"><g transform="translate(-0.049561 0.051391)"><path d="M8.16675 2.50127C8.53391 2.50127 8.83161 2.7992 8.83179 3.16631C8.83179 3.53358 8.53402 3.83135 8.16675 3.83135H5.83374C4.72836 3.83135 3.83197 4.72797 3.83179 5.8333V14.1663C3.83179 15.2718 4.72825 16.1683 5.83374 16.1683H14.1667C15.2722 16.1683 16.1687 15.2718 16.1687 14.1663V11.8333C16.1689 11.4662 16.4666 11.1683 16.8337 11.1683C17.2007 11.1684 17.4986 11.4663 17.4988 11.8333V14.1663C17.4988 16.0063 16.0068 17.4983 14.1667 17.4983H5.83374C3.99371 17.4983 2.50171 16.0063 2.50171 14.1663V5.8333C2.50189 3.99343 3.99382 2.50127 5.83374 2.50127H8.16675Z" fill="currentColor"></path><path fill-rule="evenodd" clip-rule="evenodd" d="M13.4265 3.10381C14.3857 2.15908 15.9276 2.16466 16.8796 3.11651C17.8339 4.07106 17.8372 5.61827 16.8865 6.57647L11.7244 11.7786C11.3005 12.2058 10.7622 12.5027 10.1746 12.6321L7.78784 13.1565C7.20661 13.2842 6.6889 12.766 6.81714 12.1849L7.34253 9.80498C7.47294 9.21426 7.77197 8.67391 8.20288 8.24932L13.4265 3.10381ZM15.9392 4.05694C15.5038 3.62172 14.7988 3.61907 14.3601 4.05108L9.13647 9.19659C8.88861 9.44077 8.71644 9.75138 8.64136 10.0911L8.28979 11.6849L9.88843 11.3333C10.2265 11.2588 10.5362 11.0878 10.78 10.8421L15.9421 5.63897C16.3769 5.20075 16.3756 4.49352 15.9392 4.05694Z" fill="currentColor"></path></g></symbol>
+    <symbol id="lightweight-sidebar-images" viewBox="0 0 20 20"><path d="M8.95794 8.50151C9.7853 8.50151 10.4567 9.17226 10.457 9.99956C10.457 10.8271 9.78545 11.4986 8.95794 11.4986C8.13064 11.4983 7.45989 10.8269 7.45989 9.99956C7.46013 9.17241 8.13079 8.50175 8.95794 8.50151Z" fill="currentColor"></path><path fill-rule="evenodd" clip-rule="evenodd" d="M6.97356 3.95073C7.20937 2.27472 8.75937 1.1068 10.4355 1.34233L16.4101 2.18217C18.0862 2.41792 19.2541 3.96793 19.0185 5.64409L18.1786 11.6187C17.9429 13.2945 16.3936 14.4613 14.7177 14.2261L13.7802 14.0943L13.8095 14.3003C14.0449 15.9764 12.878 17.5265 11.2021 17.7623L5.22747 18.6011C3.55135 18.8367 2.00136 17.6697 1.76556 15.9937L0.925712 10.0191C0.690149 8.34297 1.85809 6.79299 3.53411 6.55717L6.6679 6.11577L6.97356 3.95073ZM6.45696 13.4781C5.86813 13.0344 5.02959 13.1519 4.58587 13.7408L3.07317 15.7476L3.08196 15.8082C3.21543 16.7568 4.09325 17.4179 5.04192 17.2847L10.4911 16.5181L6.45696 13.4781ZM9.69427 7.03471L3.71966 7.87358C2.77088 8.00692 2.10994 8.88478 2.24309 9.83354L2.81145 13.8843L3.52434 12.94C4.41016 11.765 6.08147 11.5301 7.25677 12.4156L11.9775 15.9732C12.3629 15.6007 12.5733 15.0575 12.4931 14.4859L11.6533 8.51128C11.5199 7.56254 10.643 6.90155 9.69427 7.03471ZM10.2509 2.65971C9.30204 2.52636 8.42434 3.18743 8.29095 4.13628L8.03899 5.92339L9.50872 5.71733C11.1849 5.4819 12.7351 6.65051 12.9706 8.32671L13.5878 12.7242L14.9023 12.9097C15.851 13.0429 16.7278 12.3818 16.8613 11.4332L17.7011 5.45854C17.8343 4.50986 17.1732 3.63205 16.2245 3.49858L10.2509 2.65971Z" fill="currentColor"></path></symbol>
+    <symbol id="lightweight-sidebar-settings" viewBox="0 0 20 20"><path d="M10 6.55a3.45 3.45 0 1 1 0 6.9 3.45 3.45 0 0 1 0-6.9Zm0 1.35a2.1 2.1 0 1 0 0 4.2 2.1 2.1 0 0 0 0-4.2Z" fill="currentColor"></path><path d="M9.25 1.5h1.5c.6 0 1.16.32 1.46.84l.96 1.72c.07.12.19.19.32.19h2.01c.6 0 1.16.32 1.46.84l.75 1.29c.3.52.3 1.16 0 1.68L16.6 10l1.11 1.94c.3.52.3 1.16 0 1.68l-.75 1.29c-.3.52-.86.84-1.46.84h-2.01a.36.36 0 0 0-.32.19l-.96 1.72c-.3.52-.86.84-1.46.84h-1.5c-.6 0-1.16-.32-1.46-.84l-.96-1.72a.36.36 0 0 0-.32-.19H4.5c-.6 0-1.16-.32-1.46-.84l-.75-1.29a1.68 1.68 0 0 1 0-1.68L3.4 10 2.29 8.06a1.68 1.68 0 0 1 0-1.68l.75-1.29c.3-.52.86-.84 1.46-.84h2.01c.13 0 .25-.07.32-.19l.96-1.72c.3-.52.86-.84 1.46-.84Z" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round"></path></symbol>
+    <symbol id="lightweight-auth-close" viewBox="0 0 20 20"><g transform="translate(-0.000138 0.000244)"><path d="M13.6964 5.36252C13.9561 5.10319 14.3782 5.10304 14.6378 5.36252C14.8974 5.62211 14.8972 6.0442 14.6378 6.30393L10.9405 10.0002L14.6368 13.6965C14.8964 13.9562 14.8965 14.3773 14.6368 14.6369C14.3772 14.8966 13.9561 14.8965 13.6964 14.6369L10.0001 10.9406L6.30382 14.6369C6.04411 14.8965 5.62304 14.8966 5.36339 14.6369C5.10386 14.3773 5.10389 13.9562 5.36339 13.6965L9.05871 10.0002L5.36242 6.30393C5.10316 6.0442 5.10286 5.62208 5.36242 5.36252C5.62197 5.10297 6.04409 5.10326 6.30382 5.36252L10.0001 9.05881L13.6964 5.36252Z" fill="currentColor"></path></g></symbol>
+    <symbol id="lightweight-auth-apple" viewBox="0 0 20 20"><g transform="translate(-0.000122 0.320511)"><path d="M15.1693 7.52095C14.7259 7.7924 14.3587 8.1719 14.1019 8.62393C13.8451 9.07597 13.7073 9.58576 13.7012 10.1056C13.7029 10.6907 13.8763 11.2624 14.1997 11.7499C14.5232 12.2374 14.9825 12.6194 15.5209 12.8484C15.3087 13.5333 14.9945 14.1823 14.589 14.7736C14.0089 15.6088 13.4022 16.4439 12.4792 16.4439C11.5562 16.4439 11.3188 15.9077 10.255 15.9077C9.21767 15.9077 8.84842 16.4615 8.00446 16.4615C7.16051 16.4615 6.57157 15.6879 5.89461 14.7385C5.00041 13.4084 4.50896 11.8486 4.47925 10.2462C4.47925 7.60888 6.19355 6.21113 7.88138 6.21113C8.77811 6.21113 9.52538 6.80007 10.088 6.80007C10.6243 6.80007 11.4595 6.17589 12.4792 6.17589C13.0035 6.16237 13.5231 6.27797 13.9922 6.51252C14.4613 6.74708 14.8655 7.09339 15.1693 7.52095ZM11.9957 5.05947C12.4452 4.53067 12.6997 3.86365 12.7166 3.16982C12.7173 3.07835 12.7085 2.98706 12.6902 2.89744C11.918 2.97287 11.204 3.34089 10.6946 3.92602C10.2407 4.43374 9.97668 5.08295 9.94731 5.76332C9.94765 5.84606 9.9565 5.92855 9.9737 6.00949C10.0346 6.02099 10.0964 6.02689 10.1583 6.0271C10.5142 5.99879 10.8606 5.89841 11.1764 5.73206C11.4923 5.56572 11.771 5.33688 11.9957 5.05947Z" fill="currentColor"></path></g></symbol>
+    <symbol id="lightweight-auth-phone" viewBox="0 0 20 20"><g transform="translate(-0.000305 -0.416596)"><path d="M3.72616 3.21721C4.5936 2.34613 6.00119 2.34631 6.86874 3.21721L9.05624 5.41349C9.61838 5.97799 9.61826 6.8919 9.05624 7.45646L8.56308 7.95256C8.37066 8.14578 8.2724 8.31886 8.22812 8.47306C8.18471 8.62449 8.1806 8.79948 8.23984 9.01701C8.36645 9.48192 8.76847 10.0941 9.5621 10.891C10.356 11.6882 10.965 12.0905 11.4264 12.2172C11.6418 12.2764 11.8142 12.2721 11.9635 12.2289C12.1157 12.1848 12.2876 12.0873 12.4801 11.894L12.9742 11.3988C13.5379 10.8329 14.4525 10.833 15.0162 11.3988L17.2037 13.5951C18.0696 14.4648 18.0697 15.874 17.2037 16.7436L17.0748 16.8725C15.5712 18.3823 13.7048 18.5605 11.8316 17.9184C9.99958 17.2903 8.11048 15.8715 6.35214 14.1059C4.46168 12.2074 3.04355 10.3075 2.45175 8.49455C2.15259 7.57792 2.05816 6.66301 2.23984 5.77775C2.42242 4.88808 2.87448 4.0729 3.59726 3.34709L3.72616 3.21721ZM5.92636 4.15568C5.57866 3.80679 5.01614 3.80663 4.66855 4.15568L4.53964 4.28556C3.97868 4.84888 3.66729 5.43761 3.54257 6.04533C3.417 6.65738 3.47146 7.3339 3.71542 8.08146C4.21001 9.59691 5.45295 11.318 7.29452 13.1674C8.99377 14.8737 10.7118 16.1287 12.2633 16.6606C13.7734 17.1781 15.0686 17.0022 16.1324 15.934L16.2613 15.8051C16.6105 15.4544 16.6105 14.8843 16.2613 14.5336L14.0738 12.3373C14.03 12.2934 13.9604 12.2934 13.9166 12.3373L13.4225 12.8324C13.106 13.1502 12.7451 13.388 12.3326 13.5072C11.917 13.6274 11.4927 13.6154 11.0738 13.5004C10.2666 13.2787 9.45453 12.6678 8.61972 11.8295C7.78454 10.9908 7.17699 10.1757 6.95663 9.36662C6.8424 8.94719 6.8306 8.52265 6.9498 8.10685C7.06819 7.69398 7.30419 7.33192 7.62069 7.01408L8.11386 6.51799C8.15909 6.47236 8.15921 6.39751 8.11386 6.35197L5.92636 4.15568Z" fill="currentColor"></path></g></symbol>
+
+  </defs>
+</svg>
+
+<script src="./reference/chatgpt/chatgpt-reference.js" data-build-source="reference/chatgpt/chatgpt-reference.js"></script>
+<script src="./reference/p2p/p2p-reference.js" data-build-source="reference/p2p/p2p-reference.js"></script>
+<script src="./conversation-core.js" data-build-source="conversation-core.js"></script>
+<script src="./keyboard-inset-core.js" data-build-source="keyboard-inset-core.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
+<script src="./runtime-id.js" data-build-source="runtime-id.js"></script>
+<script src="./app.js" data-build-source="app.js"></script>
+<script src="./shell.js" data-build-source="shell.js"></script>
+<script src="./auth-session-store.js" data-build-source="auth-session-store.js"></script>
+<script src="./v21-cache-store.js" data-build-source="v21-cache-store.js"></script>
+<script src="./v21-media-cache.js" data-build-source="v21-media-cache.js"></script>
+<script src="./v21-message-store.js" data-build-source="v21-message-store.js"></script>
+<script src="./v21-sync-engine.js" data-build-source="v21-sync-engine.js"></script>
+<script src="./v21-call-engine.js" data-build-source="v21-call-engine.js"></script>
+<script src="./v21-livekit-session.js" data-build-source="v21-livekit-session.js"></script>
+<script src="./v21-realtime-session.js" data-build-source="v21-realtime-session.js"></script>
+<!-- V21.64 SIDEBAR ACCOUNT POLISH / V21.43 SMART MULTILINE / V21.39 SYNC FOUNDATION gate -->
+</body>
+</html>

@@ -1,0 +1,12 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert'),path=require('path');
+const code=fs.readFileSync(path.join(__dirname,'..','v21-message-store.js'),'utf8');
+const calls={append:0,reconcile:0};
+const ctx={console,window:null,Map,Set,Array,Object,String,Number,Boolean,Date,JSON,Math};ctx.window=ctx;
+ctx.V21AuthSessionStore={snapshot:()=>({state:'AUTHENTICATED',appSessionId:'S',account:{id:'ME'}})};
+ctx.V21SyncEngine={queueText:async x=>x,queueMediaFiles:async x=>x,openContact:async()=>true,wake:async()=>true};
+ctx.V21ConversationBridge={snapshot:()=>({size:0}),replace:()=>0,reconcile:()=>{calls.reconcile++;return {size:1}},append:()=>{calls.append++;return true},captureViewState:()=>null,clear:()=>true,remove:()=>true};
+vm.createContext(ctx);vm.runInContext(code,ctx);const store=ctx.V21MessageStore;assert(store);
+const rowB={id:'m1',client_id:'c1',sender_account_id:'B',conversation_id:'CONV-B',body:'x',created_at:'2026-01-01'};
+store.setContext({contactId:'A',conversationId:null});store.merge([rowB],{contactId:'A'});assert.strictEqual(calls.reconcile,0);assert.strictEqual(store.apply(rowB,{remote:true}),false);
+store.setContext({contactId:'A',conversationId:'CONV-B'});assert.strictEqual(store.apply(rowB,{remote:true}),true);
+(async()=>{store.setContext({contactId:'A',conversationId:null});let err='';try{await store.sendMedia({clientId:'x',contactId:'A',assets:[{assetId:'a',conversationId:'CONV-B'}]})}catch(e){err=e.message}assert.strictEqual(err,'conversation_not_ready');console.log('V21.72.14 message scope runtime PASS')})().catch(e=>{console.error(e);process.exit(1)});
