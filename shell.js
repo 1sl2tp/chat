@@ -804,9 +804,9 @@ function buildProfileEditor({mode='self',account:target}={}){
           <span class="shell-profile-avatar-label">Đổi ảnh</span>
           <input type="file" accept="image/png,image/jpeg,image/webp" data-profile-avatar-file hidden>
         </label>
-        <label class="shell-profile-field"><span>Tên</span><input type="text" maxlength="50" autocomplete="name" data-profile-name></label>
-        <label class="shell-profile-field"><span>Tên đăng nhập</span><input type="text" maxlength="24" autocomplete="username" autocapitalize="none" spellcheck="false" inputmode="text" data-profile-username></label>
-        <label class="shell-profile-field"><span>Mật khẩu mới</span><input type="password" minlength="6" maxlength="128" autocomplete="new-password" data-profile-password placeholder="Để trống nếu không đổi"></label>
+        <div class="shell-profile-field"><label for="shell-profile-name">Tên</label><input id="shell-profile-name" type="text" maxlength="50" autocomplete="name" data-profile-name></div>
+        <div class="shell-profile-field"><label for="shell-profile-username">Tên đăng nhập</label><input id="shell-profile-username" type="text" maxlength="24" autocomplete="username" autocapitalize="none" spellcheck="false" inputmode="text" data-profile-username></div>
+        <div class="shell-profile-field"><label for="shell-profile-password">Mật khẩu mới</label><input id="shell-profile-password" type="password" minlength="6" maxlength="128" autocomplete="new-password" data-profile-password placeholder="Để trống nếu không đổi"><button class="shell-form-password-toggle" type="button" data-password-toggle aria-controls="shell-profile-password" aria-label="Hiện mật khẩu" aria-pressed="false"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M2.75 12s3.35-5.25 9.25-5.25S21.25 12 21.25 12 17.9 17.25 12 17.25 2.75 12 2.75 12Z" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linejoin="round"/><circle cx="12" cy="12" r="2.6" fill="none" stroke="currentColor" stroke-width="1.65"/></svg></button></div>
         <p class="shell-profile-error" data-profile-error hidden></p>
         <button type="submit" class="shell-profile-save">Lưu</button>
       </form>
@@ -841,7 +841,7 @@ function buildProfileEditor({mode='self',account:target}={}){
   const deleteConfirmAction=wrap.querySelector('[data-profile-delete-confirm-action]');
   const saveButton=wrap.querySelector('.shell-profile-save');
 
-  title.textContent=selfMode?'Hồ sơ':String(model.display_name||model.username||'Người dùng');
+  title.textContent=selfMode?'Đổi thông tin':String(model.display_name||model.username||'Người dùng');
   nameInput.value=String(model.display_name||'');
   usernameInput.value=String(model.username||'');
   renderAvatarNode(avatar,model,'TK');
@@ -867,7 +867,7 @@ function buildProfileEditor({mode='self',account:target}={}){
     const next=result?.account||null;
     if(!next)return;
     Object.assign(model,next);
-    title.textContent=selfMode?'Hồ sơ':String(model.display_name||model.username||'Người dùng');
+    title.textContent=selfMode?'Đổi thông tin':String(model.display_name||model.username||'Người dùng');
     nameInput.value=String(model.display_name||'');
     usernameInput.value=String(model.username||'');
     passwordInput.value='';
@@ -966,7 +966,9 @@ function buildProfileEditor({mode='self',account:target}={}){
   }
   globalOverlayRoot.appendChild(wrap);
   profileOverlay=wrap;
-  window.setTimeout(()=>nameInput.focus({preventScroll:true}),0);
+  if(shouldAutoFocusShellForm()){
+    window.setTimeout(()=>nameInput.focus({preventScroll:true}),0);
+  }
   return wrap;
 }
 
@@ -1049,12 +1051,36 @@ function patchRenderedContact(item){
   return true;
 }
 
+function shouldAutoFocusShellForm(){
+  const runtimeMobile=window.V21RuntimeAdapter?.isMobile?.();
+  if(runtimeMobile===true)return false;
+  return !Boolean(
+    Number(navigator.maxTouchPoints||0)>0 ||
+    window.matchMedia?.('(pointer:coarse)')?.matches ||
+    /iPhone|iPad|iPod|Android/i.test(navigator.userAgent||'')
+  );
+}
+
+function setPasswordVisibility(input,button,visible){
+  if(!input)return false;
+  const show=Boolean(visible);
+  input.type=show?'text':'password';
+  input.dataset.passwordVisible=String(show);
+  if(button){
+    button.setAttribute('aria-pressed',String(show));
+    button.setAttribute('aria-label',show?'Ẩn mật khẩu':'Hiện mật khẩu');
+  }
+  return show;
+}
+
 const AuthUI={
   openLogin(){
     NavigationCommand.openChat();
     this.setMode('login');
     const card=document.getElementById('guestAuthThread');
-    window.setTimeout(()=>authField('account')?.focus({preventScroll:true}),180);
+    if(shouldAutoFocusShellForm()){
+      window.setTimeout(()=>authField('account')?.focus({preventScroll:true}),180);
+    }
     return Boolean(card);
   },
   setMode(mode){
@@ -1064,11 +1090,17 @@ const AuthUI={
     const title=document.getElementById('guest-auth-title');
     const primary=document.querySelector('[data-auth-primary-label]');
     const secondary=document.querySelector('[data-auth-secondary-label]');
+    const switchPrefix=document.querySelector('[data-auth-switch-prefix]');
     const password=authField('password');
+    const passwordToggle=document.querySelector('#guestAuthThread [data-password-toggle]');
     if(title)title.textContent=authMode==='register'?'Đăng ký':'Đăng nhập';
     if(primary)primary.textContent=authMode==='register'?'Đăng ký':'Đăng nhập';
     if(secondary)secondary.textContent=authMode==='register'?'Đăng nhập':'Đăng ký';
-    if(password)password.autocomplete=authMode==='register'?'new-password':'current-password';
+    if(switchPrefix)switchPrefix.textContent=authMode==='register'?'Đã có tài khoản?':'Chưa có tài khoản?';
+    if(password){
+      password.autocomplete=authMode==='register'?'new-password':'current-password';
+      setPasswordVisibility(password,passwordToggle,false);
+    }
     clearAuthErrors();
     return authMode;
   },
@@ -1259,6 +1291,15 @@ document.addEventListener('click',event=>{
   const target=event.target instanceof Element?event.target:null;
   if(!target)return;
 
+  const passwordToggle=target.closest('[data-password-toggle]');
+  if(passwordToggle){
+    event.preventDefault();
+    const control=passwordToggle.closest('.guest-auth-control,.shell-profile-field');
+    const input=control?.querySelector('input[type="password"],input[data-password-visible="true"]')||null;
+    if(input)setPasswordVisibility(input,passwordToggle,input.type==='password');
+    return;
+  }
+
   const shellButton=target.closest('[data-shell-command]');
   if(shellButton){
     const command=shellButton.dataset.shellCommand;
@@ -1317,7 +1358,9 @@ document.addEventListener('click',event=>{
     }
     if(command==='mode.switch'){
       AuthUI.setMode(authMode==='login'?'register':'login');
-      window.setTimeout(()=>authField(authMode==='register'?'name':'account')?.focus({preventScroll:true}),0);
+      if(shouldAutoFocusShellForm()){
+        window.setTimeout(()=>authField(authMode==='register'?'name':'account')?.focus({preventScroll:true}),0);
+      }
       return;
     }
     if(command==='logout'){
