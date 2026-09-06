@@ -4,10 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
+<meta name="app-release-version" content="V21.72.16">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Chat">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" sizes="192x192" href="./icons/chat-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="./icons/chat-192.png">
 <meta name="chat-call-preview-only" content="true">
 <meta name="chat-v21-session-runtime" content="v21-only">
 <meta name="chat-v21-contact-runtime" content="v21-only">
-<title>Chat Screen Module V21.72.15</title>
+<title>Chat Screen Module V21.72.16</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style data-inlined-source="reference/chatgpt/full-source/chatgpt-core-exact.css">
 /* ChatGPT exact core extraction.
@@ -2471,7 +2479,7 @@ button{
 <div id="runtimeError" class="hidden fixed z-[9999] left-2 right-2 top-2 rounded-xl bg-red-600 text-white text-xs px-3 py-2 shadow-lg"></div>
 
 <!-- V21.69.9 unified runtime marker. Earlier V21.20/V21.64 labels below are provenance for inherited geometry/style contracts only, not separate live runtimes. -->
-<div id="appShell" data-app-shell data-chat-screen-version="V21.72.15" data-app-shell-version="V21.72.15" data-auth-state="booting" data-default-route="chat" data-route="chat">
+<div id="appShell" data-app-shell data-chat-screen-version="V21.72.16" data-app-shell-version="V21.72.16" data-auth-state="booting" data-default-route="chat" data-route="chat">
   <div id="screenHost" data-screen-host>
     <div id="activeScreenSlot" data-active-screen-slot>
       <section id="chatScreen" class="app-screen" data-screen="chat">
@@ -3396,6 +3404,224 @@ window.V21RuntimeId=Object.freeze({version:VERSION,create:createRuntimeId});
 })();
 
 </script>
+<script data-inlined-source="audio-capture-policy.js">
+(()=>{
+'use strict';
+
+const VERSION='V21.72.16';
+const DEVICE_KEY='taphoa.v21.audio.inputDeviceId';
+const BASE=Object.freeze({
+  echoCancellation:true,
+  noiseSuppression:true,
+  autoGainControl:true,
+  channelCount:1
+});
+
+let activeStream=null;
+let activeOwner='';
+let externalOwner='';
+let preferredDeviceIdValue=readPreferredDeviceId();
+let inputDevices=[];
+let refreshPromise=null;
+
+function mediaDevices(){return navigator.mediaDevices||null;}
+function readPreferredDeviceId(){
+  try{return String(localStorage.getItem(DEVICE_KEY)||'');}catch{return'';}
+}
+function persistPreferredDeviceId(value){
+  preferredDeviceIdValue=String(value||'');
+  try{
+    if(preferredDeviceIdValue)localStorage.setItem(DEVICE_KEY,preferredDeviceIdValue);
+    else localStorage.removeItem(DEVICE_KEY);
+  }catch{}
+}
+function emit(reason,detail={}){
+  try{
+    document.dispatchEvent(new CustomEvent('v21-audio-capture-state',{
+      detail:{...snapshot(),reason:String(reason||'change'),...detail}
+    }));
+  }catch{}
+}
+function constraints({pinDevice=true}={}){
+  const audio={...BASE};
+  if(pinDevice&&preferredDeviceIdValue)audio.deviceId={exact:preferredDeviceIdValue};
+  return audio;
+}
+function liveKitOptions(){
+  const options={...BASE};
+  if(preferredDeviceIdValue)options.deviceId=preferredDeviceIdValue;
+  return options;
+}
+function tracks(stream){
+  return Array.from(stream?.getAudioTracks?.()||stream?.getTracks?.()||[])
+    .filter(track=>track?.kind==='audio'||typeof track?.kind==='undefined');
+}
+function stopStream(stream){
+  for(const track of Array.from(stream?.getTracks?.()||[])){
+    try{track.stop?.();}catch{}
+  }
+}
+function rememberTrackDevice(track){
+  const id=String(track?.getSettings?.()?.deviceId||'');
+  if(id&&id!==preferredDeviceIdValue){
+    persistPreferredDeviceId(id);
+    emit('device-pinned',{deviceId:id});
+  }
+}
+function isPinnedDeviceFailure(error){
+  const name=String(error?.name||'');
+  return ['OverconstrainedError','NotFoundError','DevicesNotFoundError'].includes(name);
+}
+function normalizeSingleTrack(stream){
+  const audioTracks=tracks(stream).filter(track=>track?.readyState!=='ended');
+  if(!audioTracks.length){
+    stopStream(stream);
+    throw new Error('microphone_not_ready');
+  }
+  const primary=audioTracks[0];
+  for(const duplicate of audioTracks.slice(1)){
+    try{duplicate.stop?.();}catch{}
+  }
+  return primary;
+}
+async function acquire({owner,purpose='default'}={}){
+  const captureOwner=String(owner||'').trim();
+  if(!captureOwner)throw new Error('audio_capture_owner_required');
+  if(activeStream){
+    if(activeOwner===captureOwner)return activeStream;
+    throw new Error('audio_capture_busy');
+  }
+  if(externalOwner)throw new Error('audio_capture_busy');
+  const devices=mediaDevices();
+  if(!devices?.getUserMedia)throw new Error('microphone_unavailable');
+
+  let stream=null;
+  try{
+    try{
+      stream=await devices.getUserMedia({audio:constraints({pinDevice:true})});
+    }catch(error){
+      if(!preferredDeviceIdValue||!isPinnedDeviceFailure(error))throw error;
+      persistPreferredDeviceId('');
+      emit('pinned-device-unavailable');
+      stream=await devices.getUserMedia({audio:constraints({pinDevice:false})});
+    }
+
+    if(activeStream||externalOwner){
+      stopStream(stream);
+      throw new Error('audio_capture_busy');
+    }
+    const primary=normalizeSingleTrack(stream);
+    activeStream=stream;
+    activeOwner=captureOwner;
+    rememberTrackDevice(primary);
+    try{
+      primary.addEventListener?.('ended',()=>{
+        if(activeStream!==stream)return;
+        activeStream=null;
+        activeOwner='';
+        emit('track-ended',{purpose:String(purpose||'default')});
+      },{once:true});
+    }catch{}
+    emit('acquired',{purpose:String(purpose||'default')});
+    return stream;
+  }catch(error){
+    if(stream&&stream!==activeStream)stopStream(stream);
+    throw error;
+  }
+}
+function release(stream,{owner=''}={}){
+  if(!stream)return false;
+  const expectedOwner=String(owner||'');
+  if(stream===activeStream&&expectedOwner&&expectedOwner!==activeOwner)return false;
+  stopStream(stream);
+  if(stream===activeStream){
+    const releasedOwner=activeOwner;
+    activeStream=null;
+    activeOwner='';
+    emit('released',{owner:releasedOwner});
+  }
+  return true;
+}
+function claimExternal({owner}={}){
+  const value=String(owner||'').trim();
+  if(!value)return false;
+  if(activeStream)return false;
+  if(externalOwner&&externalOwner!==value)return false;
+  externalOwner=value;
+  emit('external-claimed');
+  return true;
+}
+function releaseExternal({owner}={}){
+  const value=String(owner||'').trim();
+  if(!externalOwner)return false;
+  if(value&&value!==externalOwner)return false;
+  const releasedOwner=externalOwner;
+  externalOwner='';
+  emit('external-released',{owner:releasedOwner});
+  return true;
+}
+async function refreshDevices(){
+  if(refreshPromise)return refreshPromise;
+  const devices=mediaDevices();
+  if(!devices?.enumerateDevices)return[];
+  refreshPromise=(async()=>{
+    const all=await devices.enumerateDevices();
+    inputDevices=Array.from(all||[]).filter(device=>device?.kind==='audioinput');
+    if(
+      preferredDeviceIdValue &&
+      !inputDevices.some(device=>String(device.deviceId||'')===preferredDeviceIdValue)
+    ){
+      persistPreferredDeviceId('');
+      emit('preferred-device-removed');
+    }else{
+      emit('devices-refreshed');
+    }
+    return inputDevices.map(device=>({
+      deviceId:String(device.deviceId||''),
+      label:String(device.label||''),
+      groupId:String(device.groupId||'')
+    }));
+  })().finally(()=>{refreshPromise=null;});
+  return refreshPromise;
+}
+function preferredDeviceId(){return preferredDeviceIdValue;}
+function snapshot(){
+  return{
+    version:VERSION,
+    owner:activeOwner||externalOwner||null,
+    mode:activeStream?'stream':(externalOwner?'external':'idle'),
+    preferredDeviceId:preferredDeviceIdValue||null,
+    inputCount:inputDevices.length,
+    mixing:false,
+    echoCancellation:true,
+    noiseSuppression:true,
+    autoGainControl:true,
+    channelCount:1
+  };
+}
+
+try{
+  mediaDevices()?.addEventListener?.('devicechange',()=>{
+    void refreshDevices().catch(()=>{});
+  });
+}catch{}
+void refreshDevices().catch(()=>{});
+
+window.V21AudioCapturePolicy=Object.freeze({
+  version:VERSION,
+  constraints,
+  liveKitOptions,
+  acquire,
+  release,
+  claimExternal,
+  releaseExternal,
+  refreshDevices,
+  preferredDeviceId,
+  active:snapshot
+});
+})();
+
+</script>
 <script data-inlined-source="app.js">
 
 (()=>{
@@ -3451,6 +3677,8 @@ let composerMediaErrorText='';
 const appShell=document.getElementById('appShell');
 const screenHost=document.getElementById('screenHost');
 const globalOverlayRoot=document.getElementById('globalOverlayRoot');
+
+function audioCapturePolicy(){return window.V21AudioCapturePolicy||null;}
 
 const InteractionMode=Object.freeze({
   NONE:'NONE',
@@ -3800,9 +4028,9 @@ const AppBootController={
 
     this.phase='ERROR';
     modeLabel.textContent='ERROR';
-    runtimeError.textContent='V21.72.15 runtime: '+message;
+    runtimeError.textContent='V21.72.16 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.15]',error);
+    console.error('[ChatScreenModule V21.72.16]',error);
   },
   ready(){
     this.phase='READY';
@@ -3861,7 +4089,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.15 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.16 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -3915,7 +4143,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.15',
+  releaseVersion:'V21.72.16',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -8648,7 +8876,7 @@ async function readAudioDurationMs(blob,{timeoutMs=1800}={}){
 async function startRecording(){
   clearComposerMediaError();
   if(
-    !navigator.mediaDevices?.getUserMedia ||
+    !audioCapturePolicy()?.acquire ||
     typeof MediaRecorder==='undefined'
   ){
     composerHint.textContent='Trình duyệt không hỗ trợ ghi âm';
@@ -8681,15 +8909,16 @@ async function startRecording(){
   try{
     const requestedDraftKey=ComposerDraftOwner.currentKey();
     const requestedScope=currentComposerScope();
-    const acquiredStream=await navigator.mediaDevices.getUserMedia({
-      audio:true
+    const acquiredStream=await audioCapturePolicy().acquire({
+      owner:'audio-recorder',
+      purpose:'recording'
     });
 
     if(
       requestedDraftKey!==ComposerDraftOwner.currentKey() ||
       !InteractionController.isLeaseCurrent(interactionLease)
     ){
-      acquiredStream.getTracks().forEach(track=>track.stop());
+      audioCapturePolicy()?.release?.(acquiredStream,{owner:'audio-recorder'});
       InteractionController.exit(InteractionMode.AUDIO_RECORDING,{owner:'audio-recorder'});
       setAudioWorkflowState('IDLE');
       renderAttachmentTray();
@@ -8755,7 +8984,7 @@ async function startRecording(){
       // Recording interaction owns only microphone capture. Release that owner
       // completely before exposing PREVIEW so pointer/send state cannot inherit
       // a stale AUDIO_RECORDING lease or STOPPING geometry.
-      mediaStream?.getTracks().forEach(track=>track.stop());
+      if(mediaStream)audioCapturePolicy()?.release?.(mediaStream,{owner:'audio-recorder'});
       mediaStream=null;
       mediaRecorder=null;
       mediaChunks=[];
@@ -8789,7 +9018,7 @@ async function startRecording(){
     updateTimer();
     recordingTimer=setInterval(updateTimer,500);
   }catch(error){
-    mediaStream?.getTracks().forEach(track=>track.stop());
+    if(mediaStream)audioCapturePolicy()?.release?.(mediaStream,{owner:'audio-recorder'});
     mediaStream=null;
     mediaRecorder=null;
     setRecordingUi(false);
@@ -8840,7 +9069,7 @@ document.addEventListener('v21-interaction-abort',()=>{
   if(mediaRecorder&&mediaRecorder.state!=='inactive'){
     stopRecording({discard:true});
   }else if(mediaStream){
-    mediaStream.getTracks().forEach(track=>track.stop());
+    audioCapturePolicy()?.release?.(mediaStream,{owner:'audio-recorder'});
     mediaStream=null;
     InteractionController.exit(InteractionMode.AUDIO_RECORDING,{owner:'audio-recorder'});
   }
@@ -9788,7 +10017,7 @@ window.V21ConversationBridge={
 };
 
 window.ChatScreenModule={
-  version:'V21.72.15',
+  version:'V21.72.16',
   snapshot(){
     return{
       viewportMode:viewport.mode,
@@ -11149,7 +11378,7 @@ AuthUI.renderAccountFooter();
 syncDesktopSidebarMode();
 
 window.ChatAppShell={
-  version:'V21.72.15',
+  version:'V21.72.16',
   NavigationCommand,
   CallCommand,
   AuthUI,
@@ -12026,7 +12255,7 @@ window.V21CacheStore={
 <script data-inlined-source="v21-media-cache.js">
 (()=>{
 'use strict';
-const VERSION='V21.72.15';
+const VERSION='V21.72.16';
 const DEFAULT_SOFT_LIMIT=128*1024*1024;
 const MEDIA_BUCKET='v21-media';
 const inflight=new Map();
@@ -12585,7 +12814,7 @@ window.V21MessageStore={
 <script data-inlined-source="v21-sync-engine.js">
 (()=>{
 'use strict';
-const VERSION='V21.72.15';
+const VERSION='V21.72.16';
 const PULL_LIMIT=200;
 let client=null;
 let accountId=null;
@@ -14481,10 +14710,13 @@ let generation=0;
 let lastReason='boot';
 let lastError=null;
 let peerLossTimer=0;
+let callMicOwner='';
 const audioElements=new Set();
+const remoteAudioAttachments=new Map();
 
 function authStore(){return window.V21AuthSessionStore||null;}
 function callEngine(){return window.V21CallEngine||null;}
+function audioCapturePolicy(){return window.V21AudioCapturePolicy||null;}
 function authSnapshot(){return authStore()?.snapshot?.()||{state:'GUEST'};}
 function authenticated(){const s=authSnapshot();return s.state==='AUTHENTICATED'&&Boolean(s.appSessionId&&s.account?.id);}
 function client(){return authStore()?.getClient?.()||null;}
@@ -14521,6 +14753,7 @@ function cleanupAudio(){
     try{el.remove?.();}catch{}
   }
   audioElements.clear();
+  remoteAudioAttachments.clear();
 }
 
 function loadSdk(){
@@ -14572,8 +14805,26 @@ async function tokenFor(call){
 
 function remoteParticipantCount(){return Number(room?.remoteParticipants?.size||0);}
 
+function remoteTrackKey(track){
+  return String(
+    track?.sid ||
+    track?.trackSid ||
+    track?.mediaStreamTrack?.id ||
+    ''
+  );
+}
+
 async function attachAudio(track,next){
   let el=null;
+  const key=remoteTrackKey(track);
+  const existing=key?remoteAudioAttachments.get(key):null;
+  if(existing?.element?.isConnected)return true;
+  if(existing?.element){
+    try{existing.element.pause?.();}catch{}
+    try{existing.element.remove?.();}catch{}
+    audioElements.delete(existing.element);
+    remoteAudioAttachments.delete(key);
+  }
   try{
     el=track.attach();
     if(!el)return false;
@@ -14587,21 +14838,35 @@ async function attachAudio(track,next){
     el.style.inset='auto 0 0 auto';
     document.body.appendChild(el);
     audioElements.add(el);
+    if(key)remoteAudioAttachments.set(key,{track,element:el});
     try{await next?.startAudio?.();}catch{}
     const playResult=el.play?.();
     if(playResult&&typeof playResult.then==='function')await playResult;
     return true;
   }catch(error){
+    if(el){
+      audioElements.delete(el);
+      try{el.remove?.();}catch{}
+    }
+    if(key)remoteAudioAttachments.delete(key);
     lastError=String(error?.message||error||'remote_audio_playback_blocked');
     return false;
   }
 }
 
 function detachAudio(track){
+  const key=remoteTrackKey(track);
+  const existing=key?remoteAudioAttachments.get(key):null;
+  if(existing?.element){
+    audioElements.delete(existing.element);
+    try{existing.element.pause?.();}catch{}
+    try{existing.element.remove?.();}catch{}
+    remoteAudioAttachments.delete(key);
+  }
   try{
     for(const el of track.detach?.()||[]){
       audioElements.delete(el);
-      el.remove?.();
+      try{el.remove?.();}catch{}
     }
   }catch{}
 }
@@ -14609,28 +14874,23 @@ function detachAudio(track){
 async function preflightMicrophone(call){
   if(localMicPermissionReady)return true;
   if(micPreflightPromise)return micPreflightPromise;
-  if(!navigator.mediaDevices?.getUserMedia){
+  const capture=audioCapturePolicy();
+  if(!capture?.acquire){
     lastError='microphone_unavailable';
     emit('microphone-unavailable');
     return false;
   }
   const localGeneration=generation;
+  const captureOwner=`call-preflight:${String(call?.id||'unknown')}`;
   micPreflightPromise=(async()=>{
     let stream=null;
     try{
-      stream=await navigator.mediaDevices.getUserMedia({audio:{
-        echoCancellation:true,
-        noiseSuppression:true,
-        autoGainControl:true,
-        channelCount:1
-      }});
+      stream=await capture.acquire({owner:captureOwner,purpose:'call-preflight'});
       if(localGeneration!==generation||String(call?.id||'')!==String(roomCallId||''))return false;
       const tracks=stream.getAudioTracks?.()||[];
       const ok=tracks.some(track=>track&&track.readyState==='live'&&track.enabled!==false);
       if(!ok)throw new Error('microphone_not_ready');
-      // Preflight must not hold the hardware open while waiting for Supabase.
-      // Stop the temporary track immediately after device health is proven.
-      try{for(const track of stream.getTracks?.()||[])track.stop?.();}catch{}
+      capture.release(stream,{owner:captureOwner});
       stream=null;
       localMicPermissionReady=true;
       lastError=null;
@@ -14656,7 +14916,7 @@ async function preflightMicrophone(call){
       emit('microphone-permission-failed');
       return false;
     }finally{
-      try{for(const track of stream?.getTracks?.()||[])track.stop?.();}catch{}
+      if(stream)capture.release(stream,{owner:captureOwner});
       micPreflightPromise=null;
     }
   })();
@@ -14667,21 +14927,54 @@ async function publishMicrophoneIfGateOpen(call){
   const gate=call?.micGateOpenAt||call?.mic_gate_open_at||null;
   if(!gate||!room||!connected||reconnecting||!localMicPermissionReady)return false;
   if(localMicPublished)return true;
+  const capture=audioCapturePolicy();
+  const owner=`call:${String(call?.id||'')}`;
+  if(!capture?.claimExternal){
+    lastError='microphone_policy_unavailable';
+    emit('microphone-policy-unavailable');
+    return false;
+  }
+  if(callMicOwner&&callMicOwner!==owner){
+    capture.releaseExternal({owner:callMicOwner});
+    callMicOwner='';
+  }
+  if(!callMicOwner){
+    if(!capture.claimExternal({owner})){
+      lastError='microphone_busy';
+      emit('microphone-busy');
+      return false;
+    }
+    callMicOwner=owner;
+  }
   const localGeneration=generation;
   try{
-    await room.localParticipant.setMicrophoneEnabled(true,{
-      echoCancellation:true,
-      noiseSuppression:true,
-      autoGainControl:true,
-      channelCount:1
-    });
-    if(localGeneration!==generation||String(call?.id||'')!==String(roomCallId||''))return false;
+    await room.localParticipant.setMicrophoneEnabled(
+      true,
+      capture.liveKitOptions?.({purpose:'call'})||{
+        echoCancellation:true,
+        noiseSuppression:true,
+        autoGainControl:true,
+        channelCount:1
+      }
+    );
+    if(localGeneration!==generation||String(call?.id||'')!==String(roomCallId||'')){
+      try{await room?.localParticipant?.setMicrophoneEnabled?.(false);}catch{}
+      capture.releaseExternal({owner});
+      if(callMicOwner===owner)callMicOwner='';
+      return false;
+    }
     localMicPublished=Boolean(room.localParticipant.isMicrophoneEnabled);
+    if(!localMicPublished){
+      capture.releaseExternal({owner});
+      if(callMicOwner===owner)callMicOwner='';
+    }
     emit(localMicPublished?'microphone-published':'microphone-publish-failed');
     if(localMicPublished)void maybeSubmitMediaReady('local-mic-published');
     return localMicPublished;
   }catch(error){
     if(localGeneration!==generation)return false;
+    capture.releaseExternal({owner});
+    if(callMicOwner===owner)callMicOwner='';
     lastError=String(error?.message||error||'microphone_publish_failed');
     localMicPublished=false;
     emit('microphone-publish-error');
@@ -14861,6 +15154,18 @@ async function quiet({reason='quiet'}={}){
   const current=room;
   if(!current)return false;
   try{await current.localParticipant?.setMicrophoneEnabled?.(false);}catch{}
+  if(callMicOwner){
+    audioCapturePolicy()?.releaseExternal?.({owner:callMicOwner});
+    callMicOwner='';
+  }
+  localMicPublished=false;
+  active=false;
+  emit(reason);
+  return true;
+}={}){
+  const current=room;
+  if(!current)return false;
+  try{await current.localParticipant?.setMicrophoneEnabled?.(false);}catch{}
   localMicPublished=false;
   active=false;
   emit(reason);
@@ -14868,6 +15173,27 @@ async function quiet({reason='quiet'}={}){
 }
 
 async function leave({reason='leave',intentional=true}={}){
+  const old=room;
+  const oldCallId=roomCallId;
+  const oldMicOwner=callMicOwner;
+  generation+=1;
+  intentionalLeave=Boolean(intentional);
+  if(old){
+    try{await old.localParticipant?.setMicrophoneEnabled?.(false);}catch{}
+  }
+  if(oldMicOwner)audioCapturePolicy()?.releaseExternal?.({owner:oldMicOwner});
+  callMicOwner='';
+  room=null;
+  roomCallId='';
+  resetFlags();
+  cleanupAudio();
+  if(old){
+    try{await old.disconnect?.();}catch{}
+  }
+  emit(reason);
+  intentionalLeave=false;
+  return Boolean(old||oldCallId);
+}={}){
   const old=room;
   const oldCallId=roomCallId;
   generation+=1;
@@ -15200,6 +15526,174 @@ window.V21RealtimeSession={
 };
 
 queueMicrotask(()=>{if(authenticated())void start();else emitPresence();});
+})();
+
+</script>
+<script data-inlined-source="app-update-controller.js">
+(()=>{
+'use strict';
+
+const VERSION='V21.72.16';
+const CHECK_INTERVAL_MS=45000;
+const DEFER_RECHECK_MS=2500;
+const RELOAD_GUARD_MS=20000;
+const VERSION_URL='./version.json';
+const currentVersion=String(
+  document.querySelector('meta[name="app-release-version"]')?.content||VERSION
+);
+let registration=null;
+let pendingVersion='';
+let checkPromise=null;
+let deferredTimer=0;
+
+function emit(reason,detail={}){
+  try{
+    document.dispatchEvent(new CustomEvent('v21-app-update',{
+      detail:{reason:String(reason||'change'),currentVersion,pendingVersion,...detail}
+    }));
+  }catch{}
+}
+function hasDraft(){
+  const editor=document.getElementById('editor');
+  if(String(editor?.value||'').length)return true;
+  const tray=document.getElementById('attachmentTray');
+  if(Number(tray?.childElementCount||0)>0)return true;
+  const reply=document.getElementById('replyContext');
+  if(reply&&!reply.hidden)return true;
+  return false;
+}
+function safeToReload(){
+  if(document.visibilityState&&document.visibilityState!=='visible')return false;
+  const interaction=window.V21InteractionController?.snapshot?.()||null;
+  if(interaction&&String(interaction.mode||'NONE')!=='NONE')return false;
+  if(hasDraft())return false;
+  return true;
+}
+function guardKey(version){return 'taphoa.v21.reload.'+String(version||'unknown');}
+function recentlyReloaded(version){
+  try{
+    const value=Number(sessionStorage.getItem(guardKey(version))||0);
+    return value>0&&Date.now()-value<RELOAD_GUARD_MS;
+  }catch{return false;}
+}
+function rememberReload(version){
+  try{sessionStorage.setItem(guardKey(version),String(Date.now()));}catch{}
+}
+function scheduleDeferred(){
+  if(deferredTimer)return;
+  deferredTimer=setTimeout(()=>{
+    deferredTimer=0;
+    maybeReload();
+  },DEFER_RECHECK_MS);
+}
+function maybeReload(){
+  if(!pendingVersion)return false;
+  document.documentElement.dataset.appUpdatePending=pendingVersion;
+  if(!safeToReload()){
+    emit('reload-deferred');
+    scheduleDeferred();
+    return false;
+  }
+  if(recentlyReloaded(pendingVersion)){
+    emit('reload-guarded');
+    scheduleDeferred();
+    return false;
+  }
+  rememberReload(pendingVersion);
+  emit('reloading');
+  location.reload();
+  return true;
+}
+async function activateWaitingWorker(){
+  try{
+    if(registration?.waiting){
+      registration.waiting.postMessage({type:'SKIP_WAITING'});
+      return true;
+    }
+  }catch{}
+  return false;
+}
+async function checkForUpdate({reason='interval'}={}){
+  if(checkPromise)return checkPromise;
+  checkPromise=(async()=>{
+    try{
+      try{await registration?.update?.();}catch{}
+      const response=await fetch(
+        VERSION_URL+'?t='+Date.now(),
+        {cache:'no-store',credentials:'same-origin'}
+      );
+      if(!response.ok)return false;
+      const remote=await response.json();
+      const next=String(remote?.version||'');
+      if(!next||next===currentVersion)return false;
+      pendingVersion=next;
+      emit('update-found',{trigger:String(reason||'check'),remote});
+      await activateWaitingWorker();
+      maybeReload();
+      return true;
+    }catch(error){
+      emit('check-failed',{message:String(error?.message||error||'update_check_failed')});
+      return false;
+    }finally{
+      checkPromise=null;
+    }
+  })();
+  return checkPromise;
+}
+async function registerServiceWorker(){
+  if(!('serviceWorker' in navigator))return null;
+  if(location.protocol!=='https:'&&location.hostname!=='localhost')return null;
+  try{
+    registration=await navigator.serviceWorker.register('./sw.js',{
+      scope:'./',
+      updateViaCache:'none'
+    });
+    registration.addEventListener?.('updatefound',()=>{
+      const worker=registration.installing;
+      worker?.addEventListener?.('statechange',()=>{
+        if(worker.state==='installed'&&navigator.serviceWorker.controller){
+          void activateWaitingWorker();
+          if(pendingVersion)maybeReload();
+        }
+      });
+    });
+    await registration.update().catch(()=>{});
+    return registration;
+  }catch(error){
+    emit('service-worker-failed',{message:String(error?.message||error||'service_worker_failed')});
+    return null;
+  }
+}
+function bind(){
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='visible')void checkForUpdate({reason:'visible'});
+  });
+  window.addEventListener('focus',()=>void checkForUpdate({reason:'focus'}));
+  window.addEventListener('online',()=>void checkForUpdate({reason:'online'}));
+  document.addEventListener('v21-interaction-mode',()=>maybeReload());
+  document.addEventListener('input',()=>maybeReload(),true);
+  navigator.serviceWorker?.addEventListener?.('controllerchange',()=>maybeReload());
+  setInterval(()=>void checkForUpdate({reason:'interval'}),CHECK_INTERVAL_MS);
+}
+async function boot(){
+  bind();
+  await registerServiceWorker();
+  void checkForUpdate({reason:'boot'});
+}
+
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',()=>void boot(),{once:true});
+}else{
+  void boot();
+}
+
+window.V21AppUpdateController=Object.freeze({
+  version:VERSION,
+  currentVersion,
+  check:checkForUpdate,
+  safeToReload,
+  snapshot:()=>({currentVersion,pendingVersion,serviceWorker:Boolean(registration)})
+});
 })();
 
 </script>
