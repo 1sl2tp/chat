@@ -2,19 +2,28 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 
 source=(ROOT/'index.source.html').read_text('utf-8')
+shell=(ROOT/'shell.js').read_text('utf-8')
 sw=(ROOT/'sw.js').read_text('utf-8')
 
-assert 'V21.72.20' in source
+assert 'V21.72.21' in source
 assert '.guest-auth-form{' in source
-assert 'grid-template-columns:minmax(0,1fr) minmax(0,1fr)' in source
-assert '.guest-auth-control{' in source
-assert 'grid-column:1/-1' in source
+auth_form=source[source.index('.guest-auth-form{'):source.index('.guest-auth-control{')]
+assert 'grid-template-columns:minmax(0,1fr)' in auth_form
+assert 'minmax(0,1fr) minmax(0,1fr)' not in auth_form
+assert '.guest-auth-switch-row{' in source
+assert 'data-auth-switch-prefix' in source
+assert 'Chưa có tài khoản?' in source
+assert 'data-password-toggle' in source
+assert '.shell-form-password-toggle{' in source
+assert '.guest-auth-primary{' in source
+primary=source[source.index('.guest-auth-primary{'):source.index('.guest-auth-primary .wm-button__label')]
+assert 'min-height:58px' in primary
+assert "switchPrefix.textContent=authMode==='register'?'Đã có tài khoản?':'Chưa có tài khoản?'" in shell
+assert 'setPasswordVisibility' in shell
+assert 'shouldAutoFocusShellForm' in shell
 
-button_block=source[source.index('.guest-auth-primary,'):source.index('.guest-auth-primary{',source.index('.guest-auth-primary,'))]
-assert 'min-width:0' in button_block
-
-assert "RELEASE_VERSION='V21.72.20'" in sw
+assert "RELEASE_VERSION='V21.72.21'" in sw
 assert "MODULE_CONTRACT_VERSION='pwa-sw-v1'" in sw
 assert "CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION" in sw
 
-print('V21.72.20 auth actions row / PWA SW release contract PASS')
+print('V21.72.21 auth single-action form / PWA SW release contract PASS')

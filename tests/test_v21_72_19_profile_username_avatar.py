@@ -14,6 +14,10 @@ assert 'username:usernameInput.value' in shell
 assert "usernameInput.value=String(model.username||'')" in shell
 assert "invalid_username" in shell or "Tên đăng nhập" in shell
 
+assert 'data-password-toggle' in shell
+assert 'shell-profile-field' in shell
+assert "selfMode?'Đổi thông tin'" in shell
+
 auth=read('auth-session-store.js')
 assert "async function updateSelf({username,displayName,password='',avatarFile=null}={})" in auth
 self_start=auth.index("async function updateSelf(")
@@ -44,7 +48,7 @@ profile_end=source.index('}',profile_start)
 profile_css=source[profile_start:profile_end]
 assert 'overflow:hidden' in profile_css
 assert 'border-radius:50%' in profile_css
-assert 'flex:0 0 58px' in profile_css
+assert 'flex:0 0 64px' in profile_css
 
 image_start=source.index('.shell-avatar-image{')
 image_end=source.index('}',image_start)
@@ -82,4 +86,4 @@ for token in [
 ]:
     assert token in admin_edge, token
 
-print('V21.72.20 profile username/avatar contract PASS')
+print('V21.72.21 profile username/avatar contract PASS')

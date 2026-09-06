@@ -1,8 +1,8 @@
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.20';
-const MODULE_CONTRACT_VERSION='shell-form-viewport-v1';
+const RELEASE_VERSION='V21.72.21';
+const MODULE_CONTRACT_VERSION='shell-form-viewport-v2';
 const KEYBOARD_THRESHOLD_PX=80;
 const EDGE_PX=12;
 
@@ -30,15 +30,11 @@ function ownerFor(node){
   const profileCard=node.closest?.('.shell-profile-card')||null;
   if(profileCard){
     const overlay=profileCard.closest?.('.shell-profile-overlay')||null;
-    if(overlay){
-      return{kind:'profile',surface:profileCard,host:overlay};
-    }
+    if(overlay)return{kind:'profile',surface:profileCard,host:overlay};
   }
 
   const auth=node.closest?.('#guestAuthThread')||null;
-  if(auth){
-    return{kind:'auth',surface:auth,host:auth};
-  }
+  if(auth)return{kind:'auth',surface:auth,host:auth};
 
   return null;
 }
@@ -52,10 +48,7 @@ function clearOwner(owner){
   for(const node of new Set([owner.host,owner.surface])){
     if(!node)continue;
     delete node.dataset.mobileKeyboard;
-    node.style?.removeProperty?.('--shell-form-vv-top');
-    node.style?.removeProperty?.('--shell-form-vv-height');
-    node.style?.removeProperty?.('--shell-form-vv-content-top');
-    node.style?.removeProperty?.('--shell-form-vv-content-height');
+    node.style?.removeProperty?.('--shell-form-keyboard-inset');
   }
 }
 
@@ -70,20 +63,10 @@ function readViewport(){
   }
 
   const heightDrop=Math.max(0,restingVisualHeight-visualHeight);
-  const header=document.getElementById?.('regionTop')||null;
-  const headerBottom=Math.max(
-    visualTop,
-    Math.round(header?.getBoundingClientRect?.().bottom||visualTop)
-  );
-  const contentTop=Math.min(visualBottom,Math.max(visualTop,headerBottom));
-  const contentHeight=Math.max(1,visualBottom-contentTop);
-
   return{
     visualTop,
     visualHeight,
     visualBottom,
-    contentTop,
-    contentHeight,
     occlusion:heightDrop,
     keyboardOpen:Boolean(
       vv &&
@@ -100,16 +83,18 @@ function actionFor(owner){
   return null;
 }
 
-function revealWithinOwner(owner,field){
-  if(!owner?.surface||!field?.getBoundingClientRect)return false;
+function revealWithinOwner(owner,field,state){
+  if(!owner?.surface||!field?.getBoundingClientRect||!state)return false;
 
   const surface=owner.surface;
   const surfaceRect=surface.getBoundingClientRect();
   const fieldRect=field.getBoundingClientRect();
   if(!surfaceRect||!fieldRect)return false;
 
-  const visibleTop=surfaceRect.top+EDGE_PX;
-  const visibleBottom=surfaceRect.bottom-EDGE_PX;
+  const visibleTop=Math.max(surfaceRect.top+EDGE_PX,state.visualTop+EDGE_PX);
+  const visibleBottom=Math.min(surfaceRect.bottom-EDGE_PX,state.visualBottom-EDGE_PX);
+  if(visibleBottom<=visibleTop)return false;
+
   let revealTop=fieldRect.top;
   let revealBottom=fieldRect.bottom;
 
@@ -118,7 +103,7 @@ function revealWithinOwner(owner,field){
   if(actionRect){
     const clusterTop=Math.min(revealTop,actionRect.top);
     const clusterBottom=Math.max(revealBottom,actionRect.bottom);
-    const available=Math.max(1,surfaceRect.height-(EDGE_PX*2));
+    const available=Math.max(1,visibleBottom-visibleTop);
     if(clusterBottom-clusterTop<=available){
       revealTop=clusterTop;
       revealBottom=clusterBottom;
@@ -126,11 +111,8 @@ function revealWithinOwner(owner,field){
   }
 
   let delta=0;
-  if(revealBottom>visibleBottom){
-    delta=revealBottom-visibleBottom;
-  }else if(revealTop<visibleTop){
-    delta=revealTop-visibleTop;
-  }
+  if(revealBottom>visibleBottom)delta=revealBottom-visibleBottom;
+  else if(revealTop<visibleTop)delta=revealTop-visibleTop;
   if(!delta)return false;
 
   surface.scrollTop=Math.max(0,Number(surface.scrollTop||0)+delta);
@@ -141,14 +123,9 @@ function publish(){
   frame=0;
   const nextOwner=ownerFor(activeField);
 
-  if(activeOwner&&!sameOwner(activeOwner,nextOwner)){
-    clearOwner(activeOwner);
-  }
+  if(activeOwner&&!sameOwner(activeOwner,nextOwner))clearOwner(activeOwner);
   activeOwner=nextOwner;
-
-  if(!activeOwner){
-    return false;
-  }
+  if(!activeOwner)return false;
 
   const state=readViewport();
   if(!state.keyboardOpen){
@@ -156,20 +133,16 @@ function publish(){
     return false;
   }
 
-  const host=activeOwner.host;
-  host.dataset.mobileKeyboard='true';
-  host.style.setProperty('--shell-form-vv-top',`${state.visualTop}px`);
-  host.style.setProperty('--shell-form-vv-height',`${state.visualHeight}px`);
-  host.style.setProperty('--shell-form-vv-content-top',`${state.contentTop}px`);
-  host.style.setProperty('--shell-form-vv-content-height',`${state.contentHeight}px`);
-
-  if(activeOwner.surface!==host){
-    activeOwner.surface.dataset.mobileKeyboard='true';
-  }
+  activeOwner.host.dataset.mobileKeyboard='true';
+  activeOwner.surface.dataset.mobileKeyboard='true';
+  activeOwner.surface.style.setProperty(
+    '--shell-form-keyboard-inset',
+    `${Math.max(0,Math.round(state.occlusion))}px`
+  );
 
   requestAnimationFrame(()=>{
     if(!activeOwner||!activeField)return;
-    revealWithinOwner(activeOwner,activeField);
+    revealWithinOwner(activeOwner,activeField,state);
   });
   return true;
 }
