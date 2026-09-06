@@ -1,11 +1,11 @@
 # TAPHOA CHAT/CALL
 
-Current canonical source: **V21.72.19 — Profile Username + Avatar Circle Hardening**.
+Current canonical source: **V21.72.20 — Active Call Screen Wake Lock**.
 
 This repository contains only the current CHAT/CALL web/PWA source. The previous Chatwoot source is not part of this repository.
 
 ## Status
-- Release: `V21.72.19`
+- Release: `V21.72.20`
 - State: `CANDIDATE`
 - Current CI gate: canonical bundle/source sync PASS; 10 viewport pytest PASS; message/media/sync runtime PASS; AudioCapturePolicy runtime PASS; PWA/update runtime PASS.
 - Audio capture uses one canonical mic policy for Recorder + LiveKit (AEC/NS/AGC/mono, device pinning, duplicate capture guard).

@@ -3,7 +3,7 @@ import hashlib, json, subprocess, sys
 ROOT=Path(__file__).resolve().parents[1]
 version=json.loads((ROOT/'version.json').read_text('utf-8'))
 release=str(version.get('version') or '')
-assert release=='V21.72.19', release
+assert release=='V21.72.20', release
 committed=(ROOT/'index.html').read_bytes()
 subprocess.run([sys.executable,str(ROOT/'tools'/'build_current_preview.py')],check=True,cwd=ROOT)
 generated=(ROOT/'index.html').read_bytes()
@@ -13,7 +13,7 @@ expected=str(version.get('index_sha256') or '')
 if expected:
     assert sha==expected,(sha,expected)
 for n in [
-    'runtime-id.js','audio-capture-policy.js','app.js','shell.js','auth-session-store.js',
+    'runtime-id.js','audio-capture-policy.js','app.js','shell.js','call-screen-wake-lock.js','auth-session-store.js',
     'conversation-core.js','keyboard-inset-core.js','v21-cache-store.js','v21-media-cache.js',
     'v21-message-store.js','v21-call-engine.js','v21-livekit-session.js',
     'v21-realtime-session.js','v21-sync-engine.js','app-update-controller.js','shell-form-viewport-policy.js','sw.js'
@@ -30,4 +30,5 @@ subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_17_mobile_form_keyb
 subprocess.run(['node',str(ROOT/'tests'/'test_v21_72_17_mobile_form_keyboard_runtime.js')],check=True,cwd=ROOT)
 subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_18_auth_actions_row.py')],check=True,cwd=ROOT)
 subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_19_profile_username_avatar.py')],check=True,cwd=ROOT)
-print(f'V21.72.19 canonical source verify PASS sha256={sha}')
+subprocess.run(['node',str(ROOT/'tests'/'test_v21_72_20_call_screen_wake_lock.js')],check=True,cwd=ROOT)
+print(f'V21.72.20 canonical source verify PASS sha256={sha}')
