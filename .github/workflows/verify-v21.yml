@@ -6,6 +6,7 @@ on:
       - v21-72-16-audio-pwa
       - v21-72-17-mobile-form-keyboard
       - v21-72-18-auth-actions-row
+      - v21-72-19-profile-username-avatar
   pull_request:
 jobs:
   verify:
@@ -26,5 +27,7 @@ jobs:
         run: node tests/test_v21_72_17_mobile_form_keyboard_runtime.js
       - name: V21.72.18 auth actions/PWA SW contract
         run: python tests/test_v21_72_18_auth_actions_row.py
+      - name: V21.72.19 profile username/avatar contract
+        run: python tests/test_v21_72_19_profile_username_avatar.py
       - name: Verify canonical source
         run: python tools/verify_current.py
