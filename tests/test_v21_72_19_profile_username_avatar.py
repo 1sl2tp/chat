@@ -48,7 +48,10 @@ avatar_end=source.index('}',avatar_start)
 avatar_css=source[avatar_start:avatar_end]
 assert 'overflow:hidden' in avatar_css
 assert 'border-radius:50%' in avatar_css
-assert 'aspect-ratio:1' in avatar_css
+assert 'aspect-ratio:1 / 1' in avatar_css
+assert 'max-width:48px' in avatar_css
+assert 'max-height:48px' in avatar_css
+assert 'flex:0 0 48px' in avatar_css
 
 profile_start=source.index('.shell-profile-avatar{')
 profile_end=source.index('}',profile_start)
@@ -56,12 +59,16 @@ profile_css=source[profile_start:profile_end]
 assert 'overflow:hidden' in profile_css
 assert 'border-radius:50%' in profile_css
 assert 'flex:0 0 64px' in profile_css
+assert 'max-width:64px' in profile_css
+assert 'max-height:64px' in profile_css
+assert 'aspect-ratio:1 / 1' in profile_css
 
 image_start=source.index('.shell-avatar-image{')
 image_end=source.index('}',image_start)
 image_css=source[image_start:image_end]
-assert 'object-fit:cover' in image_css
-assert 'object-position:center' in image_css
+assert 'object-fit:cover!important' in image_css
+assert 'object-position:center!important' in image_css
+assert 'aspect-ratio:1 / 1' in image_css
 assert 'border-radius:50%' in image_css
 
 render_start=shell.index('function renderAvatarInitials(')
@@ -93,4 +100,4 @@ for token in [
 ]:
     assert token in admin_edge, token
 
-print('V21.72.22 profile username/avatar contract PASS')
+print('V21.72.23 profile username/avatar contract PASS')
