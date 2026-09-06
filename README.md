@@ -19,7 +19,7 @@ python tools/build_current_preview.py
 ```
 
 Canonical `index.html` SHA-256:
-`pending-ci-hash`
+`b2727a165db78d2053768ae19a16839c9414b43676743d458c6ddca61b5a93f6`
 
 ## Verify
 ```bash
