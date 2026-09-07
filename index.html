@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.26">
+<meta name="app-release-version" content="V21.72.27">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -15,7 +15,7 @@
 <meta name="chat-call-preview-only" content="true">
 <meta name="chat-v21-session-runtime" content="v21-only">
 <meta name="chat-v21-contact-runtime" content="v21-only">
-<title>Chat Screen Module V21.72.26</title>
+<title>Chat Screen Module V21.72.27</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style data-inlined-source="reference/chatgpt/full-source/chatgpt-core-exact.css">
 /* ChatGPT exact core extraction.
@@ -590,15 +590,17 @@ button{
   fill:currentColor;
 }
 .reply-quote{
+  --reply-rail:#78aef8;
   appearance:none;
   width:100%;
   color:var(--theme-content-secondary);
   text-align:start;
   background:transparent;
   border:0;
-  border-inline-start:2px solid var(--theme-border-strong);
+  border-inline-start:2px solid var(--reply-rail);
+  border-radius:0;
   margin:0 0 6px;
-  padding:1px 0 1px 8px;
+  padding:2px 0 2px 9px;
   font:inherit;
   font-size:12px;
   line-height:16px;
@@ -606,22 +608,23 @@ button{
   overflow:hidden;
 }
 .reply-quote:hover{color:var(--theme-content-primary)}
-.reply-quote-label{display:block;font-weight:600}
 .reply-quote-text{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .message-turn[data-reference-flash="true"] .message-text{
-  outline:2px solid var(--cgpt-important-rail);
+  outline:2px solid #78aef8;
   outline-offset:3px;
 }
 .reply-context{
+  --reply-rail:#78aef8;
   display:grid;
   grid-template-columns:minmax(0,1fr) 32px;
   align-items:center;
   gap:8px;
   margin:8px 10px 0;
   padding:7px 8px 7px 10px;
-  border-inline-start:2px solid var(--cgpt-important-rail);
-  border-radius:8px;
-  background:var(--theme-surface-secondary);
+  border:0;
+  border-inline-start:2px solid var(--reply-rail);
+  border-radius:0;
+  background:color-mix(in srgb,#78aef8 5%,var(--theme-surface-secondary));
   color:var(--theme-content-secondary);
 }
 .reply-context[hidden]{display:none}
@@ -630,9 +633,9 @@ button{
 .reply-context-text{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;line-height:16px}
 .reply-context-close{
   appearance:none;width:32px;height:32px;display:grid;place-items:center;
-  color:var(--theme-content-secondary);background:transparent;border:0;border-radius:8px;cursor:pointer
+  color:var(--theme-content-secondary);background:transparent;border:0;border-radius:0;cursor:pointer
 }
-.reply-context-close:hover{background:var(--theme-action-ghost-surface-hover);color:var(--theme-content-primary)}
+.reply-context-close:hover{background:color-mix(in srgb,#78aef8 8%,transparent);color:var(--theme-content-primary)}
 
 .action-button{
   display:inline-flex;
@@ -2933,7 +2936,7 @@ button{
 <div id="runtimeError" class="hidden fixed z-[9999] left-2 right-2 top-2 rounded-xl bg-red-600 text-white text-xs px-3 py-2 shadow-lg"></div>
 
 <!-- V21.69.9 unified runtime marker. Earlier V21.20/V21.64 labels below are provenance for inherited geometry/style contracts only, not separate live runtimes. -->
-<div id="appShell" data-app-shell data-chat-screen-version="V21.72.26" data-app-shell-version="V21.72.26" data-auth-state="booting" data-default-route="chat" data-route="chat">
+<div id="appShell" data-app-shell data-chat-screen-version="V21.72.27" data-app-shell-version="V21.72.27" data-auth-state="booting" data-default-route="chat" data-route="chat">
   <div id="screenHost" data-screen-host>
     <div id="activeScreenSlot" data-active-screen-slot>
       <section id="chatScreen" class="app-screen" data-screen="chat">
@@ -3868,7 +3871,7 @@ window.V21RuntimeId=Object.freeze({version:VERSION,create:createRuntimeId});
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.26';
+const RELEASE_VERSION='V21.72.27';
 const MODULE_CONTRACT_VERSION='audio-capture-v1';
 const DEVICE_KEY='taphoa.v21.audio.inputDeviceId';
 const BASE=Object.freeze({
@@ -4495,9 +4498,9 @@ const AppBootController={
 
     this.phase='ERROR';
     modeLabel.textContent='ERROR';
-    runtimeError.textContent='V21.72.26 runtime: '+message;
+    runtimeError.textContent='V21.72.27 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.26]',error);
+    console.error('[ChatScreenModule V21.72.27]',error);
   },
   ready(){
     this.phase='READY';
@@ -4556,7 +4559,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.26 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.27 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -4610,7 +4613,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.26',
+  releaseVersion:'V21.72.27',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -7263,10 +7266,7 @@ function compactReplyTarget(message){
 function setReplyTarget(message){
   if(!MESSAGE_FEATURES.reply)return;
   replyTarget=compactReplyTarget(message);
-  replyContextLabel.textContent=
-    message.sender==='self'
-      ?'Đang trả lời tin của bạn'
-      :'Đang trả lời B';
+  replyContextLabel.textContent='Đang trả lời';
   replyContextText.textContent=replyTarget.text;
   setInteractionGeometryAnchor(replyTarget.id,{kind:'reply'});
   replyContext.hidden=false;
@@ -7322,15 +7322,11 @@ function createReplyQuote(replyTo){
   quote.className='reply-quote';
   quote.setAttribute('aria-label','Đi đến tin nhắn được trả lời');
 
-  const label=document.createElement('span');
-  label.className='reply-quote-label';
-  label.textContent=replyTo.sender==='self'?'Bạn':'B';
-
   const text=document.createElement('span');
   text.className='reply-quote-text';
   text.textContent=replyTo.text||'Tin nhắn';
 
-  quote.append(label,text);
+  quote.append(text);
   quote.addEventListener('pointerdown',event=>event.stopPropagation());
   quote.addEventListener('pointerup',event=>event.stopPropagation());
   quote.addEventListener('click',event=>{
@@ -10492,7 +10488,7 @@ window.V21ConversationBridge={
 };
 
 window.ChatScreenModule={
-  version:'V21.72.26',
+  version:'V21.72.27',
   snapshot(){
     return{
       viewportMode:viewport.mode,
@@ -11977,7 +11973,7 @@ AuthUI.renderAccountFooter();
 syncDesktopSidebarMode();
 
 window.ChatAppShell={
-  version:'V21.72.26',
+  version:'V21.72.27',
   NavigationCommand,
   CallCommand,
   AuthUI,
@@ -12011,7 +12007,7 @@ window.ChatAppShell={
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.26';
+const RELEASE_VERSION='V21.72.27';
 const MODULE_CONTRACT_VERSION='call-screen-wake-lock-v1';
 
 let callActive=false;
@@ -12117,7 +12113,7 @@ window.V21CallScreenWakeLock=Object.freeze({
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.26';
+const RELEASE_VERSION='V21.72.27';
 const MODULE_CONTRACT_VERSION='shell-form-viewport-v3';
 const KEYBOARD_THRESHOLD_PX=80;
 const EDGE_PX=12;
@@ -12345,7 +12341,7 @@ window.V21ShellFormViewportPolicy=Object.freeze({
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.26';
+const RELEASE_VERSION='V21.72.27';
 const MODULE_CONTRACT_VERSION='auth-session-v21.72.5';
 const SUPABASE_URL='https://gcnoahqsrquxkwkjbuxy.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_UY3gfQ9MsntDFCUJ_uV0UA__eTYXz_w';
@@ -16463,7 +16459,7 @@ queueMicrotask(()=>{if(authenticated())void start();else emitPresence();});
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.26';
+const RELEASE_VERSION='V21.72.27';
 const MODULE_CONTRACT_VERSION='app-update-v1';
 const CHECK_INTERVAL_MS=45000;
 const DEFER_RECHECK_MS=2500;
