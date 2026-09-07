@@ -403,9 +403,9 @@ const AppBootController={
 
     this.phase='ERROR';
     modeLabel.textContent='ERROR';
-    runtimeError.textContent='V21.72.27 runtime: '+message;
+    runtimeError.textContent='V21.72.28 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.27]',error);
+    console.error('[ChatScreenModule V21.72.28]',error);
   },
   ready(){
     this.phase='READY';
@@ -464,7 +464,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.27 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.28 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -518,7 +518,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.27',
+  releaseVersion:'V21.72.28',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -2106,9 +2106,47 @@ function imageAspectRatio(media){
   return Math.max(.22,Math.min(4.5,ratio||1.5));
 }
 
+function singleImagePresentation(media){
+  const sourceRatio=imageAspectRatio(media);
+  if(sourceRatio<.82){
+    return{
+      kind:'portrait',
+      width:256,
+      aspectRatio:Math.max(.5,Math.min(.82,sourceRatio))
+    };
+  }
+  if(sourceRatio<=1.2){
+    return{
+      kind:'square',
+      width:320,
+      aspectRatio:Math.max(.82,Math.min(1.2,sourceRatio))
+    };
+  }
+  return{
+    kind:'landscape',
+    width:400,
+    aspectRatio:Math.max(1.2,Math.min(2.2,sourceRatio))
+  };
+}
+
 function singleImageDisplayWidth(media){
-  const ratio=imageAspectRatio(media);
-  return Math.round(Math.max(150,Math.min(360,ratio*420)));
+  return singleImagePresentation(media).width;
+}
+
+function applySingleImagePresentation(wrap,media){
+  if(!wrap||!media)return wrap;
+  const presentation=singleImagePresentation(media);
+  wrap.dataset.imagePresentation=presentation.kind;
+  wrap.dataset.sourceAspectRatio=String(imageAspectRatio(media));
+  wrap.style.width=`${presentation.width}px`;
+  wrap.style.maxWidth='100%';
+  wrap.style.aspectRatio=String(presentation.aspectRatio);
+  const img=wrap.querySelector('img');
+  if(img){
+    img.style.objectFit='contain';
+    img.style.objectPosition='center';
+  }
+  return wrap;
 }
 
 function stableMessageDomKey(message){
@@ -2194,7 +2232,7 @@ function patchImageTileNode(wrap,media,{viewerContext={},overlayText=null}={}){
     wrap.__viewerContext.createdAt=viewerContext.createdAt||'';
   }
   if(wrap.dataset.galleryTile!=='true'){
-    wrap.style.aspectRatio=String(imageAspectRatio(media));
+    applySingleImagePresentation(wrap,media);
   }
 
   const img=wrap.querySelector('img');
@@ -2301,9 +2339,9 @@ function createImageTile(media,{className='block h-full w-full object-contain',o
 }
 
 function applyImageGalleryGeometry(grid,count){
-  grid.dataset.layout=count===3?'three':count===4?'four':'multi';
+  grid.dataset.layout=count===2?'two':count===3?'three':count===4?'four':'multi';
   grid.setAttribute('data-gallery-count',String(count));
-  grid.style.cssText='display:grid;width:360px;max-width:100%;gap:4px;overflow:hidden;border-radius:14px;';
+  grid.style.cssText='display:grid;width:400px;max-width:100%;gap:4px;overflow:hidden;border-radius:14px;';
   if(count===2){
     grid.style.gridTemplateColumns='repeat(2,minmax(0,1fr))';
     grid.style.gridTemplateRows='';
@@ -2387,24 +2425,10 @@ function createImageGalleryNode(media,{message=null}={}){
   const grid=document.createElement('div');
   grid.className='media-gallery-grid';
   if(message?.text||message?.replyTo)grid.classList.add('mt-2');
-  grid.dataset.layout=items.length===3?'three':items.length===4?'four':'multi';
   grid.dataset.albumId=String(message?.id||'');
   grid.dataset.messageMediaRoot='true';
   grid.dataset.mediaRootKind='gallery';
-  grid.setAttribute('data-gallery-count',String(items.length));
-  grid.style.cssText='display:grid;width:360px;max-width:100%;gap:4px;overflow:hidden;border-radius:14px;';
-  if(items.length===2){
-    grid.style.gridTemplateColumns='repeat(2,minmax(0,1fr))';
-    grid.style.aspectRatio='1.7';
-  }else if(items.length===3){
-    grid.style.gridTemplateColumns='minmax(0,1.55fr) minmax(0,1fr)';
-    grid.style.gridTemplateRows='repeat(2,minmax(0,1fr))';
-    grid.style.aspectRatio='1.32';
-  }else{
-    grid.style.gridTemplateColumns='repeat(2,minmax(0,1fr))';
-    grid.style.gridTemplateRows='repeat(2,minmax(0,1fr))';
-    grid.style.aspectRatio='1.2';
-  }
+  applyImageGalleryGeometry(grid,items.length);
   const visible=items.slice(0,4);
   visible.forEach((item,index)=>{
     const remaining=index===3?items.length-4:0;
@@ -2859,8 +2883,7 @@ function patchMediaNode(node,media,{message=null}={}){
       }
     });
     node.classList.toggle('mt-2',Boolean(message?.text||message?.replyTo));
-    node.style.width=`${singleImageDisplayWidth(media)}px`;
-    node.style.maxWidth='100%';
+    applySingleImagePresentation(node,media);
     return node;
   }
 
@@ -2895,8 +2918,7 @@ function createMediaNode(media,{message=null}={}){
     });
     wrap.className+=' max-w-full rounded-xl';
     if(message?.text||message?.replyTo)wrap.classList.add('mt-2');
-    wrap.style.width=`${singleImageDisplayWidth(media)}px`;
-    wrap.style.maxWidth='100%';
+    applySingleImagePresentation(wrap,media);
     node=wrap;
   }else if(media.type==='file'){
     if(media.kind==='audio'){
@@ -6393,7 +6415,7 @@ window.V21ConversationBridge={
 };
 
 window.ChatScreenModule={
-  version:'V21.72.27',
+  version:'V21.72.28',
   snapshot(){
     return{
       viewportMode:viewport.mode,
