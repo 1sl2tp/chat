@@ -403,9 +403,9 @@ const AppBootController={
 
     this.phase='ERROR';
     modeLabel.textContent='ERROR';
-    runtimeError.textContent='V21.72.26 runtime: '+message;
+    runtimeError.textContent='V21.72.27 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.26]',error);
+    console.error('[ChatScreenModule V21.72.27]',error);
   },
   ready(){
     this.phase='READY';
@@ -464,7 +464,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.26 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.27 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -518,7 +518,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.26',
+  releaseVersion:'V21.72.27',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -3171,10 +3171,7 @@ function compactReplyTarget(message){
 function setReplyTarget(message){
   if(!MESSAGE_FEATURES.reply)return;
   replyTarget=compactReplyTarget(message);
-  replyContextLabel.textContent=
-    message.sender==='self'
-      ?'Đang trả lời tin của bạn'
-      :'Đang trả lời B';
+  replyContextLabel.textContent='Đang trả lời';
   replyContextText.textContent=replyTarget.text;
   setInteractionGeometryAnchor(replyTarget.id,{kind:'reply'});
   replyContext.hidden=false;
@@ -3230,15 +3227,11 @@ function createReplyQuote(replyTo){
   quote.className='reply-quote';
   quote.setAttribute('aria-label','Đi đến tin nhắn được trả lời');
 
-  const label=document.createElement('span');
-  label.className='reply-quote-label';
-  label.textContent=replyTo.sender==='self'?'Bạn':'B';
-
   const text=document.createElement('span');
   text.className='reply-quote-text';
   text.textContent=replyTo.text||'Tin nhắn';
 
-  quote.append(label,text);
+  quote.append(text);
   quote.addEventListener('pointerdown',event=>event.stopPropagation());
   quote.addEventListener('pointerup',event=>event.stopPropagation());
   quote.addEventListener('click',event=>{
@@ -6400,7 +6393,7 @@ window.V21ConversationBridge={
 };
 
 window.ChatScreenModule={
-  version:'V21.72.26',
+  version:'V21.72.27',
   snapshot(){
     return{
       viewportMode:viewport.mode,
