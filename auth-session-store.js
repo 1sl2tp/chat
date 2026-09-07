@@ -2,7 +2,7 @@
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.36';
+const RELEASE_VERSION='V21.72.37';
 const MODULE_CONTRACT_VERSION='auth-session-v21.72.5';
 const SUPABASE_URL='https://gcnoahqsrquxkwkjbuxy.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_UY3gfQ9MsntDFCUJ_uV0UA__eTYXz_w';

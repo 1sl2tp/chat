@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.36">
+<meta name="app-release-version" content="V21.72.37">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -15,7 +15,7 @@
 <meta name="chat-call-preview-only" content="true">
 <meta name="chat-v21-session-runtime" content="v21-only">
 <meta name="chat-v21-contact-runtime" content="v21-only">
-<title>Chat Screen Module V21.72.36</title>
+<title>Chat Screen Module V21.72.37</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style data-inlined-source="reference/chatgpt/full-source/chatgpt-core-exact.css">
 /* ChatGPT exact core extraction.
@@ -1065,7 +1065,7 @@ button{
 }
 .audio-preview-card audio,.audio-message-card audio{display:none;}
 
-/* V21.72.36 — image presentation owner.
+/* V21.72.37 — image presentation owner.
    Single images keep the full source via contain inside a normalized envelope.
    Gallery tiles intentionally use cover so mixed portrait/landscape sources form one balanced unit. */
 .media-image-tile[data-image-presentation]{
@@ -2009,19 +2009,32 @@ button{
 }
 .call-focus-slot:not([data-call-ui-state="idle"]) .call-status-chip{
   height:40px;
-  max-width:148px;
+  max-width:132px;
   padding-inline:10px;
   gap:6px;
 }
+.call-focus-slot:not([data-call-ui-state="idle"]) .call-status-chip[data-state="incoming"]{
+  max-width:124px;
+}
+.call-focus-slot:not([data-call-ui-state="idle"]) .call-focus-button,
+.call-focus-slot:not([data-call-ui-state="idle"]) .call-secondary-button{
+  height:40px;
+}
+.call-focus-slot:not([data-call-ui-state="idle"]) .call-focus-button[data-display="accept"]{
+  width:68px;
+  padding-inline:7px;
+}
 .call-focus-slot:not([data-call-ui-state="idle"]) .call-focus-button[data-display="cancel"]{
   width:64px;
-  height:40px;
-  padding-inline:10px;
+  padding-inline:8px;
 }
 .call-focus-slot:not([data-call-ui-state="idle"]) .call-focus-button[data-display="end"]{
-  width:84px;
-  height:40px;
-  padding-inline:11px;
+  width:86px;
+  padding-inline:7px;
+}
+.call-focus-slot:not([data-call-ui-state="idle"]) .call-secondary-button{
+  width:80px;
+  padding-inline:6px;
 }
 .call-status-chip{
   --call-chip-fg:#17653f;
@@ -2065,9 +2078,9 @@ button{
   --call-chip-bg:var(--theme-surface-secondary);
 }
 .call-status-indicator{
-  width:16px;
-  height:16px;
-  flex:0 0 16px;
+  width:14px;
+  height:14px;
+  flex:0 0 14px;
   display:inline-flex;
   align-items:center;
   justify-content:center;
@@ -2081,9 +2094,9 @@ button{
   display:block;
   transform-origin:center;
 }
-.call-status-indicator > i:nth-child(1){height:7px;animation:call-status-wave 900ms ease-in-out infinite}
-.call-status-indicator > i:nth-child(2){height:13px;animation:call-status-wave 900ms ease-in-out 120ms infinite}
-.call-status-indicator > i:nth-child(3){height:9px;animation:call-status-wave 900ms ease-in-out 240ms infinite}
+.call-status-indicator > i:nth-child(1){height:6px;animation:call-status-wave 900ms ease-in-out infinite}
+.call-status-indicator > i:nth-child(2){height:11px;animation:call-status-wave 900ms ease-in-out 120ms infinite}
+.call-status-indicator > i:nth-child(3){height:8px;animation:call-status-wave 900ms ease-in-out 240ms infinite}
 .call-status-chip:not([data-state="calling"]) .call-status-indicator > i{display:none}
 .call-status-chip[data-state="incoming"] .call-status-indicator::before,
 .call-status-chip[data-state="active"] .call-status-indicator::before{
@@ -2096,7 +2109,7 @@ button{
   animation:call-status-dot 1.6s ease-out infinite;
 }
 .call-status-chip[data-state="connecting"] .call-status-indicator{
-  width:16px;height:16px;border:2px solid color-mix(in srgb,currentColor 24%,transparent);
+  width:14px;height:14px;border:2px solid color-mix(in srgb,currentColor 24%,transparent);
   border-top-color:currentColor;border-radius:999px;
   animation:call-status-spin 800ms linear infinite;
 }
@@ -2118,9 +2131,9 @@ button{
   min-width:0;
   overflow:hidden;
   text-overflow:ellipsis;
-  font-size:12px;
+  font-size:13px;
   font-weight:650;
-  line-height:15px;
+  line-height:16px;
   letter-spacing:-.01em;
 }
 .call-status-subtitle{
@@ -2134,7 +2147,7 @@ button{
 }
 .call-status-timer{
   flex:0 0 auto;
-  font-size:12px;
+  font-size:12.5px;
   font-weight:700;
   font-variant-numeric:tabular-nums;
   letter-spacing:.01em;
@@ -2155,19 +2168,19 @@ button{
   color:#fff;
   box-shadow:0 8px 24px rgba(10,132,255,.24);
   font:inherit;
-  font-size:12px;
+  font-size:13px;
   font-weight:700;
   line-height:1;
   white-space:nowrap;
   touch-action:manipulation;
   transition:width 140ms ease,background 140ms ease,box-shadow 140ms ease,transform 140ms ease;
 }
-.call-focus-button[data-display="accept"]{width:72px;padding:0 12px}
-.call-focus-button[data-display="cancel"]{width:72px;padding:0 12px;background:#ff4d4f;box-shadow:0 8px 24px rgba(255,77,79,.22)}
-.call-focus-button[data-display="end"]{width:94px;padding:0 13px;background:#ff4d4f;box-shadow:0 8px 24px rgba(255,77,79,.22)}
+.call-focus-button[data-display="accept"]{width:68px;padding:0 7px}
+.call-focus-button[data-display="cancel"]{width:64px;padding:0 8px;background:#ff4d4f;box-shadow:0 8px 24px rgba(255,77,79,.22)}
+.call-focus-button[data-display="end"]{width:86px;padding:0 7px;background:#ff4d4f;box-shadow:0 8px 24px rgba(255,77,79,.22)}
 .call-focus-button:disabled{cursor:default;filter:saturate(.86)}
 .call-focus-button:not(:disabled):active{transform:scale(.96)}
-.call-focus-icon{width:20px;height:20px;display:block;flex:0 0 20px}
+.call-focus-icon{width:18px;height:18px;display:block;flex:0 0 18px}
 .call-focus-icon-end{display:none}
 .call-focus-label{display:none;font-variant-numeric:tabular-nums;letter-spacing:.01em}
 .call-focus-button[data-display="accept"] .call-focus-label,
@@ -2179,21 +2192,21 @@ button{
 .call-focus-button[data-display="end"] .call-focus-icon-end{display:block}
 
 .call-secondary-button{
-  width:82px;
+  width:80px;
   min-width:44px;
-  height:44px;
+  height:40px;
   border:0;
   border-radius:999px;
-  padding:0 11px;
+  padding:0 6px;
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  gap:5px;
+  gap:6px;
   background:#ff4d4f;
   color:#fff;
   box-shadow:0 8px 24px rgba(255,77,79,.18);
   font:inherit;
-  font-size:11px;
+  font-size:13px;
   font-weight:700;
   white-space:nowrap;
   touch-action:manipulation;
@@ -3047,7 +3060,7 @@ button{
 <div id="runtimeError" class="hidden fixed z-[9999] left-2 right-2 top-2 rounded-xl bg-red-600 text-white text-xs px-3 py-2 shadow-lg"></div>
 
 <!-- V21.69.9 unified runtime marker. Earlier V21.20/V21.64 labels below are provenance for inherited geometry/style contracts only, not separate live runtimes. -->
-<div id="appShell" data-app-shell data-chat-screen-version="V21.72.36" data-app-shell-version="V21.72.36" data-auth-state="booting" data-default-route="chat" data-route="chat">
+<div id="appShell" data-app-shell data-chat-screen-version="V21.72.37" data-app-shell-version="V21.72.37" data-auth-state="booting" data-default-route="chat" data-route="chat">
   <div id="screenHost" data-screen-host>
     <div id="activeScreenSlot" data-active-screen-slot>
       <section id="chatScreen" class="app-screen" data-screen="chat">
@@ -3982,7 +3995,7 @@ window.V21RuntimeId=Object.freeze({version:VERSION,create:createRuntimeId});
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.36';
+const RELEASE_VERSION='V21.72.37';
 const MODULE_CONTRACT_VERSION='audio-capture-v1';
 const DEVICE_KEY='taphoa.v21.audio.inputDeviceId';
 const BASE=Object.freeze({
@@ -4609,9 +4622,9 @@ const AppBootController={
 
     this.phase='ERROR';
     modeLabel.textContent='ERROR';
-    runtimeError.textContent='V21.72.36 runtime: '+message;
+    runtimeError.textContent='V21.72.37 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.36]',error);
+    console.error('[ChatScreenModule V21.72.37]',error);
   },
   ready(){
     this.phase='READY';
@@ -4670,7 +4683,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.36 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.37 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -4724,7 +4737,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.36',
+  releaseVersion:'V21.72.37',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -10831,7 +10844,7 @@ window.V21ConversationBridge={
 };
 
 window.ChatScreenModule={
-  version:'V21.72.36',
+  version:'V21.72.37',
   snapshot(){
     return{
       viewportMode:viewport.mode,
@@ -11170,7 +11183,7 @@ function callFocusPresentation(){
 
   if(callState==='INCOMING_RINGING'){
     return{
-      state:'incoming',title:'Cuộc gọi đến',subtitle:'Nhấn Nghe để trả lời',timer:'',
+      state:'incoming',title:'Cuộc gọi đến',subtitle:'',timer:'',
       action:'accept',actionLabel:'Nghe',tone:'primary',disabled:callBusy,
       secondary:'reject',secondaryLabel:'Từ chối',aria:`Nghe cuộc gọi từ ${activeContact?.name||'liên hệ'}`
     };
@@ -12322,7 +12335,7 @@ AuthUI.renderAccountFooter();
 syncDesktopSidebarMode();
 
 window.ChatAppShell={
-  version:'V21.72.36',
+  version:'V21.72.37',
   NavigationCommand,
   CallCommand,
   AuthUI,
@@ -12356,7 +12369,7 @@ window.ChatAppShell={
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.36';
+const RELEASE_VERSION='V21.72.37';
 const MODULE_CONTRACT_VERSION='call-screen-wake-lock-v1';
 
 let callActive=false;
@@ -12462,7 +12475,7 @@ window.V21CallScreenWakeLock=Object.freeze({
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.36';
+const RELEASE_VERSION='V21.72.37';
 const MODULE_CONTRACT_VERSION='shell-form-viewport-v3';
 const KEYBOARD_THRESHOLD_PX=80;
 const EDGE_PX=12;
@@ -12690,7 +12703,7 @@ window.V21ShellFormViewportPolicy=Object.freeze({
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.36';
+const RELEASE_VERSION='V21.72.37';
 const MODULE_CONTRACT_VERSION='auth-session-v21.72.5';
 const SUPABASE_URL='https://gcnoahqsrquxkwkjbuxy.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_UY3gfQ9MsntDFCUJ_uV0UA__eTYXz_w';
@@ -16808,7 +16821,7 @@ queueMicrotask(()=>{if(authenticated())void start();else emitPresence();});
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.36';
+const RELEASE_VERSION='V21.72.37';
 const MODULE_CONTRACT_VERSION='app-update-v1';
 const CHECK_INTERVAL_MS=45000;
 const DEFER_RECHECK_MS=2500;

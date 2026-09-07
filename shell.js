@@ -310,7 +310,7 @@ function callFocusPresentation(){
 
   if(callState==='INCOMING_RINGING'){
     return{
-      state:'incoming',title:'Cuộc gọi đến',subtitle:'Nhấn Nghe để trả lời',timer:'',
+      state:'incoming',title:'Cuộc gọi đến',subtitle:'',timer:'',
       action:'accept',actionLabel:'Nghe',tone:'primary',disabled:callBusy,
       secondary:'reject',secondaryLabel:'Từ chối',aria:`Nghe cuộc gọi từ ${activeContact?.name||'liên hệ'}`
     };
@@ -1462,7 +1462,7 @@ AuthUI.renderAccountFooter();
 syncDesktopSidebarMode();
 
 window.ChatAppShell={
-  version:'V21.72.36',
+  version:'V21.72.37',
   NavigationCommand,
   CallCommand,
   AuthUI,
