@@ -7,6 +7,12 @@ assert release=='V21.72.30', release
 committed=(ROOT/'index.html').read_bytes()
 subprocess.run([sys.executable,str(ROOT/'tools'/'build_current_preview.py')],check=True,cwd=ROOT)
 generated=(ROOT/'index.html').read_bytes()
+if generated!=committed:
+    import difflib
+    before=committed.decode('utf-8').splitlines()
+    after=generated.decode('utf-8').splitlines()
+    diff=list(difflib.unified_diff(before,after,fromfile='committed/index.html',tofile='generated/index.html',n=3))
+    print('\n'.join(diff[:240]))
 assert generated==committed,'index.html is not synchronized with modular source'
 sha=hashlib.sha256(generated).hexdigest()
 expected=str(version.get('index_sha256') or '')
