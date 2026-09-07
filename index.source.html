@@ -1554,11 +1554,8 @@ button{
 /* When scroll + typing are both visible, keep typing closest to Composer and
    move the scroll button one level upward. */
 #stageLayout[data-scroll-from-end][data-stream-active] #threadScrollControlMotion{
-  bottom:calc(
-    100% +
-    52px +
-    var(--thread-scroll-to-bottom-banner-offset,0px)
-  );
+  top:6px;
+  bottom:auto;
 }
 
 
@@ -3197,9 +3194,3 @@ button{
 <!-- V21.64 SIDEBAR ACCOUNT POLISH / V21.43 SMART MULTILINE / V21.39 SYNC FOUNDATION gate -->
 </body>
 </html>
-
-/* V21.72.30 — Scroll-to-bottom owns a footer lane instead of floating over messages. */
-#stageLayout[data-scroll-from-end][data-stream-active] #threadScrollControlMotion{
-  top:6px;
-  bottom:auto;
-}
