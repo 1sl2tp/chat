@@ -568,31 +568,55 @@ function isTransientSyncError(error){
 
 async function openContact(contactId){
   const target=contactId?String(contactId):null;
+  const previousContactId=currentContactId?String(currentContactId):null;
   const epoch=++contactEpoch;
-  dirtyActiveMessageIds.clear();
-  messages()?.stashCurrentView?.();
-  currentContactId=target;
-  currentConversationId=null;
+  let switchMounted=false;
+  const publishSwitch=phase=>{
+    document.dispatchEvent(new CustomEvent('v21-conversation-switch',{
+      detail:{
+        phase:String(phase||''),
+        epoch,
+        contactId:target,
+        previousContactId,
+        conversationId:currentConversationId
+      }
+    }));
+  };
+  publishSwitch('start');
 
-  if(!target||!accountId){
-    messages()?.setContext?.({contactId:null,conversationId:null});
-    messages()?.replace?.([],{conversationId:null,contactId:null});
-    return false;
-  }
+  try{
+    dirtyActiveMessageIds.clear();
+    messages()?.stashCurrentView?.();
+    currentContactId=target;
+    currentConversationId=null;
 
-  const restored=messages()?.restoreSession?.(target)||null;
-  if(restored){
-    currentConversationId=restored.conversationId?String(restored.conversationId):null;
-    document.dispatchEvent(new CustomEvent('v21-conversation-context',{detail:{accountId,currentContactId:target,currentConversationId}}));
-  }else{
-    messages()?.setContext?.({contactId:target,conversationId:null});
-    messages()?.replace?.([],{conversationId:null,contactId:target});
-  }
+    if(!target||!accountId){
+      messages()?.setContext?.({contactId:null,conversationId:null});
+      messages()?.replace?.([],{conversationId:null,contactId:null});
+      publishSwitch('mounted');
+      switchMounted=true;
+      return false;
+    }
 
-  const hydrated=await hydrateContactFromCache(target,{renderMode:restored?'merge':'replace',epoch});
-  if(epoch!==contactEpoch||String(currentContactId||'')!==target)return false;
+    const restored=messages()?.restoreSession?.(target)||null;
+    if(restored){
+      currentConversationId=restored.conversationId?String(restored.conversationId):null;
+      document.dispatchEvent(new CustomEvent('v21-conversation-context',{detail:{accountId,currentContactId:target,currentConversationId}}));
+    }else{
+      messages()?.setContext?.({contactId:target,conversationId:null});
+      messages()?.replace?.([],{conversationId:null,contactId:target});
+    }
 
-  let conversationId=hydrated.conversationId||currentConversationId||null;
+    const hydrated=await hydrateContactFromCache(target,{renderMode:restored?'merge':'replace',epoch});
+    if(epoch!==contactEpoch||String(currentContactId||'')!==target)return false;
+
+    // The contact's local/session view is now mounted. Release the scroll gate
+    // before any optional network work; the viewport owner settles it over two
+    // animation frames so stale arrow state from the previous contact cannot flash.
+    publishSwitch('mounted');
+    switchMounted=true;
+
+    let conversationId=hydrated.conversationId||currentConversationId||null;
   if(!conversationId&&online())conversationId=await ensureConversation(target);
   if(epoch!==contactEpoch||String(currentContactId||'')!==target)return false;
 
@@ -619,9 +643,12 @@ async function openContact(contactId){
     }
   }
 
-  if(chatVisible())scheduleMarkRead(currentConversationId);
-  if(online())void wake({reason:'open-contact'});
-  return true;
+    if(chatVisible())scheduleMarkRead(currentConversationId);
+    if(online())void wake({reason:'open-contact'});
+    return true;
+  }finally{
+    if(!switchMounted)publishSwitch('abort');
+  }
 }
 
 async function queueText({clientId,text,contactId,conversationId,reply=null}={}){
