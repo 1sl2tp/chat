@@ -793,9 +793,9 @@ function buildProfileEditor({mode='self',account:target}={}){
   wrap.dataset.profileOverlay='';
   wrap.innerHTML=`
     <button type="button" class="shell-profile-backdrop" aria-label="Đóng"></button>
-    <section class="shell-profile-card" role="dialog" aria-modal="true" aria-label="Hồ sơ">
+    <section class="shell-profile-card" role="dialog" aria-modal="true" aria-labelledby="shell-profile-title">
       <header class="shell-profile-header">
-        <h2></h2>
+        <h2 id="shell-profile-title"></h2>
         <button type="button" class="shell-profile-close" aria-label="Đóng">×</button>
       </header>
       <form class="shell-profile-form" data-profile-form>
@@ -804,7 +804,7 @@ function buildProfileEditor({mode='self',account:target}={}){
           <span class="shell-profile-avatar-label">Đổi ảnh</span>
           <input type="file" accept="image/png,image/jpeg,image/webp" data-profile-avatar-file hidden>
         </label>
-        <div class="shell-profile-field"><label for="shell-profile-name">Tên</label><input id="shell-profile-name" type="text" maxlength="50" autocomplete="name" data-profile-name></div>
+        <div class="shell-profile-field"><label for="shell-profile-name">Tên hiển thị</label><input id="shell-profile-name" type="text" maxlength="50" autocomplete="name" data-profile-name></div>
         <div class="shell-profile-field"><label for="shell-profile-username">Tên đăng nhập</label><input id="shell-profile-username" type="text" maxlength="24" autocomplete="username" autocapitalize="none" spellcheck="false" inputmode="text" data-profile-username></div>
         <div class="shell-profile-field"><label for="shell-profile-password">Mật khẩu mới</label><input id="shell-profile-password" type="password" minlength="6" maxlength="128" autocomplete="new-password" data-profile-password placeholder="Để trống nếu không đổi"><button class="shell-form-password-toggle" type="button" data-password-toggle aria-controls="shell-profile-password" aria-label="Hiện mật khẩu" aria-pressed="false"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M2.75 12s3.35-5.25 9.25-5.25S21.25 12 21.25 12 17.9 17.25 12 17.25 2.75 12 2.75 12Z" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linejoin="round"/><circle cx="12" cy="12" r="2.6" fill="none" stroke="currentColor" stroke-width="1.65"/></svg></button></div>
         <p class="shell-profile-error" data-profile-error hidden></p>
@@ -841,7 +841,7 @@ function buildProfileEditor({mode='self',account:target}={}){
   const deleteConfirmAction=wrap.querySelector('[data-profile-delete-confirm-action]');
   const saveButton=wrap.querySelector('.shell-profile-save');
 
-  title.textContent=selfMode?'Đổi thông tin':String(model.display_name||model.username||'Người dùng');
+  title.textContent=selfMode?'Thông tin cá nhân':'Thông tin liên hệ';
   nameInput.value=String(model.display_name||'');
   usernameInput.value=String(model.username||'');
   renderAvatarNode(avatar,model,'TK');
@@ -893,7 +893,7 @@ function buildProfileEditor({mode='self',account:target}={}){
     const next=result?.account||null;
     if(!next)return;
     Object.assign(model,next);
-    title.textContent=selfMode?'Đổi thông tin':String(model.display_name||model.username||'Người dùng');
+    title.textContent=selfMode?'Thông tin cá nhân':'Thông tin liên hệ';
     nameInput.value=String(model.display_name||'');
     usernameInput.value=String(model.username||'');
     passwordInput.value='';
@@ -940,7 +940,7 @@ function buildProfileEditor({mode='self',account:target}={}){
     };
     if(!payload.displayName){
       setProfileInvalid(nameInput,true);
-      setError('Tên không được để trống');
+      setError('Tên hiển thị không được để trống');
       nameInput.focus({preventScroll:true});
       return;
     }
@@ -1059,7 +1059,7 @@ function createRenderedContactRow(item){
 
   if(authAccount?.role==='admin'&&item.role==='user'){
     const manage=document.createElement('button');
-    manage.type='button';manage.className='shell-contact-manage';manage.dataset.contactManage='';manage.dataset.contactId=String(item.id);manage.setAttribute('aria-label',`Quản lý ${title.textContent}`);manage.textContent='⋯';
+    manage.type='button';manage.className='shell-contact-manage';manage.dataset.contactManage='';manage.dataset.contactId=String(item.id);manage.setAttribute('aria-label',`Mở thông tin liên hệ ${title.textContent}`);manage.textContent='⋯';
     row.appendChild(manage);
   }
   return row;
@@ -1086,7 +1086,7 @@ function patchRenderedContact(item){
   const time=row.querySelector('.shell-contact-time');
   if(time){time.textContent=formatContactTime(item.latest_at);if(item.latest_at)time.dateTime=String(item.latest_at);else time.removeAttribute('datetime');}
   const manage=row.querySelector('[data-contact-manage]');
-  if(manage)manage.setAttribute('aria-label',`Quản lý ${String(item.display_name||item.username||'Liên hệ')}`);
+  if(manage)manage.setAttribute('aria-label',`Mở thông tin liên hệ ${String(item.display_name||item.username||'Liên hệ')}`);
   return true;
 }
 
@@ -1187,7 +1187,7 @@ const AuthUI={
       if(name)name.textContent=String(authAccount.display_name||authAccount.username||'Tài khoản');
       if(handle)handle.textContent=authAccount.username?`@${String(authAccount.username).replace(/^@/,'')}`:'';
       renderAvatarNode(avatar,authAccount,'TK');
-      for(const selfButton of selfButtons){selfButton.disabled=false;selfButton.setAttribute('aria-label','Đổi thông tin tài khoản');}
+      for(const selfButton of selfButtons){selfButton.disabled=false;selfButton.setAttribute('aria-label','Mở thông tin cá nhân');}
       if(action)action.dataset.authCommand='logout';
       if(actionLabel)actionLabel.textContent='Đăng xuất';
     }else{
@@ -1456,7 +1456,7 @@ AuthUI.renderAccountFooter();
 syncDesktopSidebarMode();
 
 window.ChatAppShell={
-  version:'V21.72.32',
+  version:'V21.72.33',
   NavigationCommand,
   CallCommand,
   AuthUI,
