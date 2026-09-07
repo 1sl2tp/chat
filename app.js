@@ -403,9 +403,9 @@ const AppBootController={
 
     this.phase='ERROR';
     modeLabel.textContent='ERROR';
-    runtimeError.textContent='V21.72.28 runtime: '+message;
+    runtimeError.textContent='V21.72.29 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.28]',error);
+    console.error('[ChatScreenModule V21.72.29]',error);
   },
   ready(){
     this.phase='READY';
@@ -464,7 +464,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.28 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.29 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -518,7 +518,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.28',
+  releaseVersion:'V21.72.29',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -3348,6 +3348,54 @@ document.addEventListener('pointerdown',event=>{
   }
 },{passive:true});
 
+const MESSAGE_LINK_RE=/https?:\/\/[^\s<]+/giu;
+
+function appendMessageTextWithLinks(container,value){
+  if(!container)return false;
+  const text=String(value??'');
+  let cursor=0;
+  let hasLink=false;
+  MESSAGE_LINK_RE.lastIndex=0;
+  for(const match of text.matchAll(MESSAGE_LINK_RE)){
+    const raw=String(match[0]||'');
+    const start=Number(match.index||0);
+    if(start>cursor)container.appendChild(document.createTextNode(text.slice(cursor,start)));
+
+    let href=raw;
+    let trailing='';
+    while(href&&/[),.;!?]$/u.test(href)){
+      trailing=href.slice(-1)+trailing;
+      href=href.slice(0,-1);
+    }
+
+    if(href){
+      const link=document.createElement('a');
+      link.className='message-link';
+      link.href=href;
+      link.target='_blank';
+      link.rel='noopener noreferrer';
+      link.textContent=href;
+      try{link.dataset.linkHost=new URL(href).hostname;}catch{}
+      container.appendChild(link);
+      hasLink=true;
+    }else{
+      container.appendChild(document.createTextNode(raw));
+    }
+
+    if(trailing)container.appendChild(document.createTextNode(trailing));
+    cursor=start+raw.length;
+  }
+  if(cursor<text.length)container.appendChild(document.createTextNode(text.slice(cursor)));
+  return hasLink;
+}
+
+function renderMessageBody(container,value){
+  if(!container)return container;
+  container.replaceChildren();
+  container.dataset.hasLink=appendMessageTextWithLinks(container,value)?'true':'false';
+  return container;
+}
+
 function messageContentKind(message){
   const media=message?.media||null;
   if(!media)return 'text';
@@ -3421,7 +3469,7 @@ function patchMessageNode(node,message){
   if(replyQuote)text.appendChild(replyQuote);
   const messageBody=document.createElement('div');
   messageBody.className='message-body';
-  messageBody.textContent=message.text;
+  renderMessageBody(messageBody,message.text);
   text.appendChild(messageBody);
   const textVisible=Boolean(message.replyTo||message.kind==='text'||message.kind==='mixed');
   text.hidden=!textVisible;
@@ -3510,7 +3558,7 @@ function renderMessageNode(message){
   if(replyQuote)text.appendChild(replyQuote);
   const messageBody=document.createElement('div');
   messageBody.className='message-body';
-  messageBody.textContent=message.text;
+  renderMessageBody(messageBody,message.text);
   text.appendChild(messageBody);
   const textVisible=Boolean(message.replyTo||message.kind==='text'||message.kind==='mixed');
   text.hidden=!textVisible;
@@ -6415,7 +6463,7 @@ window.V21ConversationBridge={
 };
 
 window.ChatScreenModule={
-  version:'V21.72.28',
+  version:'V21.72.29',
   snapshot(){
     return{
       viewportMode:viewport.mode,
