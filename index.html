@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.24">
+<meta name="app-release-version" content="V21.72.25">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -15,7 +15,7 @@
 <meta name="chat-call-preview-only" content="true">
 <meta name="chat-v21-session-runtime" content="v21-only">
 <meta name="chat-v21-contact-runtime" content="v21-only">
-<title>Chat Screen Module V21.72.24</title>
+<title>Chat Screen Module V21.72.25</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style data-inlined-source="reference/chatgpt/full-source/chatgpt-core-exact.css">
 /* ChatGPT exact core extraction.
@@ -453,21 +453,43 @@ button{
   min-width:0;
 }
 #messageWindow{
-  padding-block:12px;
+  padding-block:14px 18px;
 }
 #messageWindow>.message-row{
   margin:0;
 }
 #messageWindow>.message-row+.message-row{
+  margin-top:8px;
+}
+#messageWindow>.message-row[data-turn="user"]+.message-row[data-turn="user"],
+#messageWindow>.message-row[data-turn="assistant"]+.message-row[data-turn="assistant"]{
+  margin-top:6px;
+}
+#messageWindow>.message-row[data-has-media="true"]+.message-row[data-turn="user"],
+#messageWindow>.message-row[data-has-media="true"]+.message-row[data-turn="assistant"],
+#messageWindow>.message-row[data-turn="user"]+.message-row[data-has-media="true"],
+#messageWindow>.message-row[data-turn="assistant"]+.message-row[data-has-media="true"]{
   margin-top:10px;
 }
 #messageWindow>.message-row[data-turn="user"]+.message-row[data-turn="assistant"],
 #messageWindow>.message-row[data-turn="assistant"]+.message-row[data-turn="user"]{
-  margin-top:16px;
+  margin-top:14px;
+}
+.message-body{
+  font-size:1rem;
+  line-height:1.5rem;
+}
+.assistant-message-unit>.message-text{
+  min-height:0;
+  padding-block:0;
 }
 @media(max-width:520px){
-  #messageWindow{padding-block:10px}
-  #messageWindow>.message-row+.message-row{margin-top:8px}
+  #messageWindow{padding-block:10px 14px}
+  #messageWindow>.message-row+.message-row{margin-top:6px}
+  #messageWindow>.message-row[data-has-media="true"]+.message-row[data-turn="user"],
+  #messageWindow>.message-row[data-has-media="true"]+.message-row[data-turn="assistant"],
+  #messageWindow>.message-row[data-turn="user"]+.message-row[data-has-media="true"],
+  #messageWindow>.message-row[data-turn="assistant"]+.message-row[data-has-media="true"]{margin-top:8px}
   #messageWindow>.message-row[data-turn="user"]+.message-row[data-turn="assistant"],
   #messageWindow>.message-row[data-turn="assistant"]+.message-row[data-turn="user"]{margin-top:12px}
 }
@@ -1645,8 +1667,9 @@ button{
   width:100%;
   min-width:0;
   --chat-content-max-width:48rem;
-  --conversation-content-max-width:44rem;
+  --conversation-content-max-width:48rem;
   --chat-content-gutter:12px;
+  --conversation-content-gutter:12px;
 }
 #appShell .chat-content-axis{
   box-sizing:border-box;
@@ -1661,7 +1684,7 @@ button{
   max-width:var(--conversation-content-max-width);
   min-width:0;
   margin-inline:auto;
-  padding-inline:var(--chat-content-gutter);
+  padding-inline:var(--conversation-content-gutter);
 }
 #conversationContentAxis>#historyStatus,
 #conversationContentAxis>#topSpacer,
@@ -1671,8 +1694,21 @@ button{
   min-width:0;
   box-sizing:border-box;
 }
-@media (max-width:319px){#appShell{--chat-content-gutter:8px;}}
-@media (min-width:640px){#appShell{--chat-content-gutter:16px;}}
+@media (max-width:319px){
+  #appShell{
+    --chat-content-gutter:8px;
+    --conversation-content-gutter:8px;
+  }
+}
+@media (min-width:640px){
+  #appShell{
+    --chat-content-gutter:16px;
+    --conversation-content-gutter:20px;
+  }
+}
+@media (min-width:900px){
+  #appShell{--conversation-content-gutter:24px;}
+}
 #screenHost,
 #activeScreenSlot,
 .app-screen{
@@ -2854,7 +2890,7 @@ button{
 <div id="runtimeError" class="hidden fixed z-[9999] left-2 right-2 top-2 rounded-xl bg-red-600 text-white text-xs px-3 py-2 shadow-lg"></div>
 
 <!-- V21.69.9 unified runtime marker. Earlier V21.20/V21.64 labels below are provenance for inherited geometry/style contracts only, not separate live runtimes. -->
-<div id="appShell" data-app-shell data-chat-screen-version="V21.72.24" data-app-shell-version="V21.72.24" data-auth-state="booting" data-default-route="chat" data-route="chat">
+<div id="appShell" data-app-shell data-chat-screen-version="V21.72.25" data-app-shell-version="V21.72.25" data-auth-state="booting" data-default-route="chat" data-route="chat">
   <div id="screenHost" data-screen-host>
     <div id="activeScreenSlot" data-active-screen-slot>
       <section id="chatScreen" class="app-screen" data-screen="chat">
@@ -3789,7 +3825,7 @@ window.V21RuntimeId=Object.freeze({version:VERSION,create:createRuntimeId});
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.24';
+const RELEASE_VERSION='V21.72.25';
 const MODULE_CONTRACT_VERSION='audio-capture-v1';
 const DEVICE_KEY='taphoa.v21.audio.inputDeviceId';
 const BASE=Object.freeze({
@@ -4416,9 +4452,9 @@ const AppBootController={
 
     this.phase='ERROR';
     modeLabel.textContent='ERROR';
-    runtimeError.textContent='V21.72.24 runtime: '+message;
+    runtimeError.textContent='V21.72.25 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.24]',error);
+    console.error('[ChatScreenModule V21.72.25]',error);
   },
   ready(){
     this.phase='READY';
@@ -4477,7 +4513,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.24 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.25 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -4531,7 +4567,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.24',
+  releaseVersion:'V21.72.25',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -7354,6 +7390,7 @@ function patchMessageIdentity(node,message){
   node.dataset.id=nextId;
   node.dataset.renderKey=stableMessageDomKey(message);
   node.dataset.turn=message.sender==='self'?'user':'assistant';
+  node.dataset.hasMedia=message.media?'true':'false';
 
   if(previousId&&nextId&&previousId!==nextId&&heightCache.has(previousId)){
     if(!heightCache.has(nextId))heightCache.set(nextId,heightCache.get(previousId));
@@ -7400,7 +7437,7 @@ function patchMessageNode(node,message){
   text.className='message-text whitespace-pre-wrap break-words'+(
     message.sender==='self'
       ?' cgpt-source-user-visual'
-      :' cgpt-source-assistant-visual min-h-8 py-1'
+      :' cgpt-source-assistant-visual'
   );
   text.replaceChildren();
   const replyQuote=createReplyQuote(message.replyTo);
@@ -7462,6 +7499,7 @@ function renderMessageNode(message){
     message.sender==='self'
       ?'user'
       :'assistant';
+  turn.dataset.hasMedia=message.media?'true':'false';
   turn.__message=message;
 
   const outer=document.createElement('div');
@@ -7488,7 +7526,7 @@ function renderMessageNode(message){
   if(message.sender==='self'){
     text.className+=' cgpt-source-user-visual';
   }else{
-    text.className+=' cgpt-source-assistant-visual min-h-8 py-1';
+    text.className+=' cgpt-source-assistant-visual';
   }
   const replyQuote=createReplyQuote(message.replyTo);
   if(replyQuote)text.appendChild(replyQuote);
@@ -10399,7 +10437,7 @@ window.V21ConversationBridge={
 };
 
 window.ChatScreenModule={
-  version:'V21.72.24',
+  version:'V21.72.25',
   snapshot(){
     return{
       viewportMode:viewport.mode,
@@ -11884,7 +11922,7 @@ AuthUI.renderAccountFooter();
 syncDesktopSidebarMode();
 
 window.ChatAppShell={
-  version:'V21.72.24',
+  version:'V21.72.25',
   NavigationCommand,
   CallCommand,
   AuthUI,
@@ -11918,7 +11956,7 @@ window.ChatAppShell={
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.24';
+const RELEASE_VERSION='V21.72.25';
 const MODULE_CONTRACT_VERSION='call-screen-wake-lock-v1';
 
 let callActive=false;
@@ -12024,7 +12062,7 @@ window.V21CallScreenWakeLock=Object.freeze({
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.24';
+const RELEASE_VERSION='V21.72.25';
 const MODULE_CONTRACT_VERSION='shell-form-viewport-v3';
 const KEYBOARD_THRESHOLD_PX=80;
 const EDGE_PX=12;
@@ -12252,7 +12290,7 @@ window.V21ShellFormViewportPolicy=Object.freeze({
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.24';
+const RELEASE_VERSION='V21.72.25';
 const MODULE_CONTRACT_VERSION='auth-session-v21.72.5';
 const SUPABASE_URL='https://gcnoahqsrquxkwkjbuxy.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_UY3gfQ9MsntDFCUJ_uV0UA__eTYXz_w';
@@ -16370,7 +16408,7 @@ queueMicrotask(()=>{if(authenticated())void start();else emitPresence();});
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.24';
+const RELEASE_VERSION='V21.72.25';
 const MODULE_CONTRACT_VERSION='app-update-v1';
 const CHECK_INTERVAL_MS=45000;
 const DEFER_RECHECK_MS=2500;
