@@ -9,7 +9,7 @@ def read(path):
 shell=read("shell.js")
 source=read("index.source.html")
 
-assert "V21.72.34" in source
+assert "V21.72.35" in source
 
 # Semantic title owns the modal role, not a person's display name.
 assert "title.textContent=selfMode?'Thông tin cá nhân':'Thông tin liên hệ';" in shell
@@ -36,4 +36,4 @@ assert ".wm-sidebar-body{flex:1 1 auto;min-height:0;overflow:auto}" in source
 footer=source[source.index(".shell-sidebar-account-footer{"):source.index(".shell-sidebar-account-avatar",source.index(".shell-sidebar-account-footer{"))]
 assert "flex:0 0 auto;" in footer
 
-print("V21.72.34 directory/profile polish contract PASS")
+print("V21.72.35 directory/profile polish contract PASS")

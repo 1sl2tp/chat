@@ -188,11 +188,17 @@ function renderTopTabs(){
 const NavigationCommand={
   open(nextRoute){
     if(!ROUTES.includes(nextRoute))return false;
+    const previousRoute=route;
+    if(previousRoute!==nextRoute){
+      document.dispatchEvent(new CustomEvent('navigation-will-change',{
+        detail:{from:previousRoute,to:nextRoute}
+      }));
+    }
     route=nextRoute;
     setSidebar(false);
     applyRoutePresentation();
     persistScreenSession();
-    document.dispatchEvent(new CustomEvent('navigation-change',{detail:{route}}));
+    document.dispatchEvent(new CustomEvent('navigation-change',{detail:{route,from:previousRoute}}));
     return true;
   },
   openChat(){return this.open('chat')},
@@ -1456,7 +1462,7 @@ AuthUI.renderAccountFooter();
 syncDesktopSidebarMode();
 
 window.ChatAppShell={
-  version:'V21.72.34',
+  version:'V21.72.35',
   NavigationCommand,
   CallCommand,
   AuthUI,

@@ -9,7 +9,7 @@ def read(path):
 app=read("app.js")
 source=read("index.source.html")
 
-assert "V21.72.34" in source
+assert "V21.72.35" in source
 
 # Timer truth: monotonic clock begins from MediaRecorder's actual start event.
 assert "function recordingNowMs()" in app
@@ -50,4 +50,4 @@ assert "recordingElapsedMsAtStop=recordingElapsedMs();" in stop_body
 assert "stopRecordingTimer();" in stop_body
 assert "stopRecordingLevelMeter();" in stop_body
 
-print("V21.72.34 audio recorder runtime contract PASS")
+print("V21.72.35 audio recorder runtime contract PASS")

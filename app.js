@@ -403,9 +403,9 @@ const AppBootController={
 
     this.phase='ERROR';
     modeLabel.textContent='ERROR';
-    runtimeError.textContent='V21.72.34 runtime: '+message;
+    runtimeError.textContent='V21.72.35 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.34]',error);
+    console.error('[ChatScreenModule V21.72.35]',error);
   },
   ready(){
     this.phase='READY';
@@ -464,7 +464,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.34 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.35 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -518,7 +518,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.34',
+  releaseVersion:'V21.72.35',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -621,6 +621,12 @@ let pendingInteractionAnchorFrame=0;
 let interactionAnchorGeneration=0;
 let tailRevealTargetMessageId='';
 let conversationViewEpoch=0;
+let routeScrollSnapshot=null;
+let routeGeometrySuspended=false;
+
+function chatRouteVisible(){
+  return String(appShell?.dataset.route||'chat')==='chat';
+}
 
 
 /* =========================================================
@@ -1194,9 +1200,12 @@ function scheduleInteractionAnchorGeometryReconcile(reason='interaction-anchor')
 }
 
 function publishViewportGeometryChange(reason='geometry'){
-  // One policy decision per geometry event. TAIL and ANCHOR never both react to
-  // the same resize/load/keyboard frame.
+  // Route changes temporarily remove Chat nodes from layout. Ignore those
+  // synthetic geometry changes and never start a second tail transaction while
+  // an explicit tail transaction is already converging.
+  if(!chatRouteVisible()||routeGeometrySuspended)return false;
   if(viewport.mode===VIEWPORT_STATES.FOLLOW_TAIL){
+    if(pendingTailFrame||pendingTailReason)return true;
     return scheduleFollowTailGeometryReconcile(reason);
   }
   if(interactionGeometryAnchor){
@@ -1209,7 +1218,9 @@ function scheduleFollowTailGeometryReconcile(reason='geometry'){
   // Geometry observers publish intent only. ScrollRoot/scrollToTail remains the
   // sole programmatic scroll writer. This covers late image decode, file-meta
   // wrapping, audio hydration and Composer/keyboard obstruction changes.
+  if(!chatRouteVisible()||routeGeometrySuspended)return false;
   if(viewport.mode!==VIEWPORT_STATES.FOLLOW_TAIL)return false;
+  if(pendingTailFrame||pendingTailReason)return true;
   pendingGeometryTailReasons.add(String(reason||'geometry'));
   if(pendingGeometryTailFrame)return true;
   const viewEpoch=conversationViewEpoch;
@@ -3847,6 +3858,7 @@ function scheduleWindowRebase(direction){
    SMART SCROLL
    ========================================================= */
 function updateScrollFromEndControl(){
+  if(!chatRouteVisible()||routeGeometrySuspended)return false;
   const awayFromTail=
     viewport.mode!==VIEWPORT_STATES.FOLLOW_TAIL ||
     distanceFromTail()>24;
@@ -3863,7 +3875,39 @@ function updateScrollFromEndControl(){
       count>0?`Cuộn xuống cuối, ${count} tin mới`:'Cuộn xuống cuối'
     );
   }
+  return awayFromTail;
 }
+
+document.addEventListener('navigation-will-change',event=>{
+  const from=String(event?.detail?.from||'');
+  const to=String(event?.detail?.to||'');
+  if(from!=='chat'||to==='chat')return;
+  routeGeometrySuspended=true;
+  routeScrollSnapshot={
+    mode:viewport.mode,
+    scrollTop:scrollRoot.scrollTop,
+    anchor:viewport.mode===VIEWPORT_STATES.USER_AWAY?firstVisibleAnchor():null
+  };
+  cancelPendingTailTransaction();
+});
+
+document.addEventListener('navigation-change',event=>{
+  const nextRoute=String(event?.detail?.route||appShell?.dataset.route||'');
+  if(nextRoute!=='chat')return;
+  const snapshot=routeScrollSnapshot;
+  routeScrollSnapshot=null;
+
+  if(snapshot?.mode===VIEWPORT_STATES.FOLLOW_TAIL){
+    viewport.returnToTail();
+    setScrollTop(scrollRoot.scrollHeight-scrollRoot.clientHeight);
+  }else if(snapshot){
+    if(snapshot.anchor)restoreAnchor(snapshot.anchor);
+    else setScrollTop(snapshot.scrollTop);
+  }
+
+  routeGeometrySuspended=false;
+  updateScrollFromEndControl();
+});
 
 function appendScrollPolicy({inserted=false,remote=false,messageIds=[]}={}){
   if(!inserted){
@@ -3980,13 +4024,10 @@ scrollRoot.addEventListener(
   {passive:true}
 );
 
-threadScrollControl.addEventListener('click',async()=>{
-  try{
-    await window.V21MessageStore?.reconcileCurrent?.();
-    await new Promise(resolve=>requestAnimationFrame(resolve));
-  }finally{
-    scrollToTail('user-arrow');
-  }
+threadScrollControl.addEventListener('click',()=>{
+  // Viewport control owns viewport movement only. SyncEngine/MessageStore own
+  // reconciliation; coupling refresh here caused an extra render before scroll.
+  scrollToTail('user-arrow');
 });
 
 /* =========================================================
@@ -6577,7 +6618,7 @@ window.V21ConversationBridge={
 };
 
 window.ChatScreenModule={
-  version:'V21.72.34',
+  version:'V21.72.35',
   snapshot(){
     return{
       viewportMode:viewport.mode,
