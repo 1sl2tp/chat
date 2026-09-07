@@ -89,5 +89,5 @@ async function flush(){
   await flush();
   assert.deepStrictEqual(unsupported.counts(),{wakeRequests:0,releases:0},'unsupported browsers must degrade to no-op');
 
-  console.log('V21.72.27 call screen wake lock PASS');
+  console.log('V21.72.28 call screen wake lock PASS');
 })().catch(error=>{console.error(error);process.exit(1);});
