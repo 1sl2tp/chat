@@ -9,7 +9,7 @@ def read(path):
 source=read("index.source.html")
 shell=read("shell.js")
 
-assert "V21.72.35" in source
+assert "V21.72.36" in source
 
 # Copy only: field semantics stay username/password/display-name.
 assert '<label class="guest-auth-field-label" for="guest-auth-name">Tên hiển thị</label>' in source
@@ -28,4 +28,4 @@ assert "if(primary)primary.textContent='Tiếp tục';" in shell
 assert "if(secondary)secondary.textContent=authMode==='register'?'đăng nhập':'đăng ký';" in shell
 assert "if(switchPrefix)switchPrefix.textContent=authMode==='register'?'Bạn đã có tài khoản? Hãy':'Bạn chưa có tài khoản? Hãy';" in shell
 
-print("V21.72.35 auth copy OpenAI-style contract PASS")
+print("V21.72.36 auth copy OpenAI-style contract PASS")
