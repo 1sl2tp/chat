@@ -9,7 +9,7 @@ def read(path):
 source=read('index.source.html')
 app=read('app.js')
 
-assert 'V21.72.38' in source
+assert 'V21.72.39' in source
 assert '--conversation-content-max-width:48rem' in source
 assert 'id="conversationContentAxis"' in source
 assert 'data-conversation-content-owner="true"' in source
@@ -49,4 +49,4 @@ assert app.count("outer.className='message-turn-shell';")==2
 assert "'chat-content-axis pt-3'" not in app
 assert "'assistant-turn-shell chat-content-axis'" not in app
 
-print('V21.72.38 conversation content axis contract PASS')
+print('V21.72.39 conversation content axis contract PASS')
