@@ -9,7 +9,7 @@ def read(path):
 app=read("app.js")
 source=read("index.source.html")
 
-assert "V21.72.37" in source
+assert "V21.72.38" in source
 
 # Action rail position remains outside the content on each side.
 assert ".message-action-group.user-actions{" in source
@@ -50,4 +50,4 @@ assert "if(mediaNode)unit.appendChild(mediaNode);" in app
 assert "const replyQuote=createReplyQuote(message.replyTo);" in app
 assert "if(replyQuote)text.appendChild(replyQuote);" in app
 
-print("V21.72.37 message action mirror / bubble owner contract PASS")
+print("V21.72.38 message action mirror / bubble owner contract PASS")

@@ -403,9 +403,9 @@ const AppBootController={
 
     this.phase='ERROR';
     modeLabel.textContent='ERROR';
-    runtimeError.textContent='V21.72.37 runtime: '+message;
+    runtimeError.textContent='V21.72.38 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.37]',error);
+    console.error('[ChatScreenModule V21.72.38]',error);
   },
   ready(){
     this.phase='READY';
@@ -464,7 +464,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.37 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.38 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -518,7 +518,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.37',
+  releaseVersion:'V21.72.38',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -623,9 +623,77 @@ let tailRevealTargetMessageId='';
 let conversationViewEpoch=0;
 let routeScrollSnapshot=null;
 let routeGeometrySuspended=false;
+let contactSwitchGate=null;
+let contactSwitchSettleFrame=0;
+let contactSwitchSettleFrame2=0;
 
 function chatRouteVisible(){
   return String(appShell?.dataset.route||'chat')==='chat';
+}
+
+function scrollGeometrySuspended(){
+  return routeGeometrySuspended||Boolean(contactSwitchGate);
+}
+
+function cancelContactSwitchSettle(){
+  if(contactSwitchSettleFrame)cancelAnimationFrame(contactSwitchSettleFrame);
+  if(contactSwitchSettleFrame2)cancelAnimationFrame(contactSwitchSettleFrame2);
+  contactSwitchSettleFrame=0;
+  contactSwitchSettleFrame2=0;
+}
+
+function suppressScrollFromEndControl(){
+  scrollRoot.removeAttribute('data-scroll-from-end');
+  stageLayout.removeAttribute('data-scroll-from-end');
+  stageLayout.dataset.contactSwitching='true';
+  if(threadScrollControl){
+    threadScrollControl.disabled=true;
+    threadScrollControl.setAttribute('aria-hidden','true');
+  }
+  if(threadScrollUnseenBadge)threadScrollUnseenBadge.hidden=true;
+}
+
+function beginContactSwitchGate(detail={}){
+  const epoch=Number(detail.epoch)||0;
+  if(!epoch)return false;
+  cancelContactSwitchSettle();
+  contactSwitchGate={
+    epoch,
+    contactId:String(detail.contactId||''),
+    previousContactId:String(detail.previousContactId||'')
+  };
+  suppressScrollFromEndControl();
+  cancelPendingTailTransaction();
+  if(windowRebaseFrame)cancelAnimationFrame(windowRebaseFrame);
+  windowRebaseFrame=0;
+  return true;
+}
+
+function settleContactSwitchGate(detail={}){
+  const epoch=Number(detail.epoch)||0;
+  if(!contactSwitchGate||contactSwitchGate.epoch!==epoch)return false;
+  cancelContactSwitchSettle();
+  contactSwitchSettleFrame=requestAnimationFrame(()=>{
+    contactSwitchSettleFrame=0;
+    if(!contactSwitchGate||contactSwitchGate.epoch!==epoch)return;
+    contactSwitchSettleFrame2=requestAnimationFrame(()=>{
+      contactSwitchSettleFrame2=0;
+      if(!contactSwitchGate||contactSwitchGate.epoch!==epoch)return;
+      contactSwitchGate=null;
+      delete stageLayout.dataset.contactSwitching;
+      if(threadScrollControl){
+        threadScrollControl.disabled=false;
+        threadScrollControl.removeAttribute('aria-hidden');
+      }
+      if(!chatRouteVisible())return;
+      if(viewport.mode===VIEWPORT_STATES.FOLLOW_TAIL){
+        scrollToTail('contact-switch-settled');
+      }else{
+        updateScrollFromEndControl();
+      }
+    });
+  });
+  return true;
 }
 
 
@@ -1203,7 +1271,7 @@ function publishViewportGeometryChange(reason='geometry'){
   // Route changes temporarily remove Chat nodes from layout. Ignore those
   // synthetic geometry changes and never start a second tail transaction while
   // an explicit tail transaction is already converging.
-  if(!chatRouteVisible()||routeGeometrySuspended)return false;
+  if(!chatRouteVisible()||scrollGeometrySuspended())return false;
   if(viewport.mode===VIEWPORT_STATES.FOLLOW_TAIL){
     if(pendingTailFrame||pendingTailReason)return true;
     return scheduleFollowTailGeometryReconcile(reason);
@@ -1218,7 +1286,7 @@ function scheduleFollowTailGeometryReconcile(reason='geometry'){
   // Geometry observers publish intent only. ScrollRoot/scrollToTail remains the
   // sole programmatic scroll writer. This covers late image decode, file-meta
   // wrapping, audio hydration and Composer/keyboard obstruction changes.
-  if(!chatRouteVisible()||routeGeometrySuspended)return false;
+  if(!chatRouteVisible()||scrollGeometrySuspended())return false;
   if(viewport.mode!==VIEWPORT_STATES.FOLLOW_TAIL)return false;
   if(pendingTailFrame||pendingTailReason)return true;
   pendingGeometryTailReasons.add(String(reason||'geometry'));
@@ -3865,7 +3933,14 @@ function scheduleWindowRebase(direction){
    SMART SCROLL
    ========================================================= */
 function updateScrollFromEndControl(){
-  if(!chatRouteVisible()||routeGeometrySuspended)return false;
+  if(!chatRouteVisible()||scrollGeometrySuspended()){
+    if(contactSwitchGate)suppressScrollFromEndControl();
+    return false;
+  }
+  if(threadScrollControl){
+    threadScrollControl.disabled=false;
+    threadScrollControl.removeAttribute('aria-hidden');
+  }
   const awayFromTail=
     viewport.mode!==VIEWPORT_STATES.FOLLOW_TAIL ||
     distanceFromTail()>24;
@@ -3884,6 +3959,18 @@ function updateScrollFromEndControl(){
   }
   return awayFromTail;
 }
+
+document.addEventListener('v21-conversation-switch',event=>{
+  const detail=event?.detail||{};
+  const phase=String(detail.phase||'');
+  if(phase==='start'){
+    beginContactSwitchGate(detail);
+    return;
+  }
+  if(phase==='mounted'||phase==='abort'){
+    settleContactSwitchGate(detail);
+  }
+});
 
 document.addEventListener('navigation-will-change',event=>{
   const from=String(event?.detail?.from||'');
@@ -6625,7 +6712,7 @@ window.V21ConversationBridge={
 };
 
 window.ChatScreenModule={
-  version:'V21.72.37',
+  version:'V21.72.38',
   snapshot(){
     return{
       viewportMode:viewport.mode,
