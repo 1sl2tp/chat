@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.37">
+<meta name="app-release-version" content="V21.72.38">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -15,7 +15,7 @@
 <meta name="chat-call-preview-only" content="true">
 <meta name="chat-v21-session-runtime" content="v21-only">
 <meta name="chat-v21-contact-runtime" content="v21-only">
-<title>Chat Screen Module V21.72.37</title>
+<title>Chat Screen Module V21.72.38</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style data-inlined-source="reference/chatgpt/full-source/chatgpt-core-exact.css">
 /* ChatGPT exact core extraction.
@@ -1065,7 +1065,7 @@ button{
 }
 .audio-preview-card audio,.audio-message-card audio{display:none;}
 
-/* V21.72.37 — image presentation owner.
+/* V21.72.38 — image presentation owner.
    Single images keep the full source via contain inside a normalized envelope.
    Gallery tiles intentionally use cover so mixed portrait/landscape sources form one balanced unit. */
 .media-image-tile[data-image-presentation]{
@@ -1634,6 +1634,19 @@ button{
 #stageLayout[data-scroll-from-end] #threadScrollControlWrap{
   height:44px;
   margin-bottom:4px;
+}
+/* Contact switching owns a hard visibility/geometry gate for the scroll
+   control. Old contact state may never reserve the 44px lane or overlap the
+   Composer while the next conversation is mounting/restoring. */
+#stageLayout[data-contact-switching="true"] #threadScrollControlWrap{
+  height:0!important;
+  margin-bottom:0!important;
+}
+#stageLayout[data-contact-switching="true"] #threadScrollControlMotion{
+  opacity:0!important;
+  pointer-events:none!important;
+  transform:translateX(-50%) scale(.96) translateY(4px)!important;
+  transition:none!important;
 }
 #threadScrollControlMotion{
   position:absolute;
@@ -3060,7 +3073,7 @@ button{
 <div id="runtimeError" class="hidden fixed z-[9999] left-2 right-2 top-2 rounded-xl bg-red-600 text-white text-xs px-3 py-2 shadow-lg"></div>
 
 <!-- V21.69.9 unified runtime marker. Earlier V21.20/V21.64 labels below are provenance for inherited geometry/style contracts only, not separate live runtimes. -->
-<div id="appShell" data-app-shell data-chat-screen-version="V21.72.37" data-app-shell-version="V21.72.37" data-auth-state="booting" data-default-route="chat" data-route="chat">
+<div id="appShell" data-app-shell data-chat-screen-version="V21.72.38" data-app-shell-version="V21.72.38" data-auth-state="booting" data-default-route="chat" data-route="chat">
   <div id="screenHost" data-screen-host>
     <div id="activeScreenSlot" data-active-screen-slot>
       <section id="chatScreen" class="app-screen" data-screen="chat">
@@ -3995,7 +4008,7 @@ window.V21RuntimeId=Object.freeze({version:VERSION,create:createRuntimeId});
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.37';
+const RELEASE_VERSION='V21.72.38';
 const MODULE_CONTRACT_VERSION='audio-capture-v1';
 const DEVICE_KEY='taphoa.v21.audio.inputDeviceId';
 const BASE=Object.freeze({
@@ -4622,9 +4635,9 @@ const AppBootController={
 
     this.phase='ERROR';
     modeLabel.textContent='ERROR';
-    runtimeError.textContent='V21.72.37 runtime: '+message;
+    runtimeError.textContent='V21.72.38 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.37]',error);
+    console.error('[ChatScreenModule V21.72.38]',error);
   },
   ready(){
     this.phase='READY';
@@ -4683,7 +4696,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.37 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.38 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -4737,7 +4750,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.37',
+  releaseVersion:'V21.72.38',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -4842,9 +4855,77 @@ let tailRevealTargetMessageId='';
 let conversationViewEpoch=0;
 let routeScrollSnapshot=null;
 let routeGeometrySuspended=false;
+let contactSwitchGate=null;
+let contactSwitchSettleFrame=0;
+let contactSwitchSettleFrame2=0;
 
 function chatRouteVisible(){
   return String(appShell?.dataset.route||'chat')==='chat';
+}
+
+function scrollGeometrySuspended(){
+  return routeGeometrySuspended||Boolean(contactSwitchGate);
+}
+
+function cancelContactSwitchSettle(){
+  if(contactSwitchSettleFrame)cancelAnimationFrame(contactSwitchSettleFrame);
+  if(contactSwitchSettleFrame2)cancelAnimationFrame(contactSwitchSettleFrame2);
+  contactSwitchSettleFrame=0;
+  contactSwitchSettleFrame2=0;
+}
+
+function suppressScrollFromEndControl(){
+  scrollRoot.removeAttribute('data-scroll-from-end');
+  stageLayout.removeAttribute('data-scroll-from-end');
+  stageLayout.dataset.contactSwitching='true';
+  if(threadScrollControl){
+    threadScrollControl.disabled=true;
+    threadScrollControl.setAttribute('aria-hidden','true');
+  }
+  if(threadScrollUnseenBadge)threadScrollUnseenBadge.hidden=true;
+}
+
+function beginContactSwitchGate(detail={}){
+  const epoch=Number(detail.epoch)||0;
+  if(!epoch)return false;
+  cancelContactSwitchSettle();
+  contactSwitchGate={
+    epoch,
+    contactId:String(detail.contactId||''),
+    previousContactId:String(detail.previousContactId||'')
+  };
+  suppressScrollFromEndControl();
+  cancelPendingTailTransaction();
+  if(windowRebaseFrame)cancelAnimationFrame(windowRebaseFrame);
+  windowRebaseFrame=0;
+  return true;
+}
+
+function settleContactSwitchGate(detail={}){
+  const epoch=Number(detail.epoch)||0;
+  if(!contactSwitchGate||contactSwitchGate.epoch!==epoch)return false;
+  cancelContactSwitchSettle();
+  contactSwitchSettleFrame=requestAnimationFrame(()=>{
+    contactSwitchSettleFrame=0;
+    if(!contactSwitchGate||contactSwitchGate.epoch!==epoch)return;
+    contactSwitchSettleFrame2=requestAnimationFrame(()=>{
+      contactSwitchSettleFrame2=0;
+      if(!contactSwitchGate||contactSwitchGate.epoch!==epoch)return;
+      contactSwitchGate=null;
+      delete stageLayout.dataset.contactSwitching;
+      if(threadScrollControl){
+        threadScrollControl.disabled=false;
+        threadScrollControl.removeAttribute('aria-hidden');
+      }
+      if(!chatRouteVisible())return;
+      if(viewport.mode===VIEWPORT_STATES.FOLLOW_TAIL){
+        scrollToTail('contact-switch-settled');
+      }else{
+        updateScrollFromEndControl();
+      }
+    });
+  });
+  return true;
 }
 
 
@@ -5422,7 +5503,7 @@ function publishViewportGeometryChange(reason='geometry'){
   // Route changes temporarily remove Chat nodes from layout. Ignore those
   // synthetic geometry changes and never start a second tail transaction while
   // an explicit tail transaction is already converging.
-  if(!chatRouteVisible()||routeGeometrySuspended)return false;
+  if(!chatRouteVisible()||scrollGeometrySuspended())return false;
   if(viewport.mode===VIEWPORT_STATES.FOLLOW_TAIL){
     if(pendingTailFrame||pendingTailReason)return true;
     return scheduleFollowTailGeometryReconcile(reason);
@@ -5437,7 +5518,7 @@ function scheduleFollowTailGeometryReconcile(reason='geometry'){
   // Geometry observers publish intent only. ScrollRoot/scrollToTail remains the
   // sole programmatic scroll writer. This covers late image decode, file-meta
   // wrapping, audio hydration and Composer/keyboard obstruction changes.
-  if(!chatRouteVisible()||routeGeometrySuspended)return false;
+  if(!chatRouteVisible()||scrollGeometrySuspended())return false;
   if(viewport.mode!==VIEWPORT_STATES.FOLLOW_TAIL)return false;
   if(pendingTailFrame||pendingTailReason)return true;
   pendingGeometryTailReasons.add(String(reason||'geometry'));
@@ -8084,7 +8165,14 @@ function scheduleWindowRebase(direction){
    SMART SCROLL
    ========================================================= */
 function updateScrollFromEndControl(){
-  if(!chatRouteVisible()||routeGeometrySuspended)return false;
+  if(!chatRouteVisible()||scrollGeometrySuspended()){
+    if(contactSwitchGate)suppressScrollFromEndControl();
+    return false;
+  }
+  if(threadScrollControl){
+    threadScrollControl.disabled=false;
+    threadScrollControl.removeAttribute('aria-hidden');
+  }
   const awayFromTail=
     viewport.mode!==VIEWPORT_STATES.FOLLOW_TAIL ||
     distanceFromTail()>24;
@@ -8103,6 +8191,18 @@ function updateScrollFromEndControl(){
   }
   return awayFromTail;
 }
+
+document.addEventListener('v21-conversation-switch',event=>{
+  const detail=event?.detail||{};
+  const phase=String(detail.phase||'');
+  if(phase==='start'){
+    beginContactSwitchGate(detail);
+    return;
+  }
+  if(phase==='mounted'||phase==='abort'){
+    settleContactSwitchGate(detail);
+  }
+});
 
 document.addEventListener('navigation-will-change',event=>{
   const from=String(event?.detail?.from||'');
@@ -10844,7 +10944,7 @@ window.V21ConversationBridge={
 };
 
 window.ChatScreenModule={
-  version:'V21.72.37',
+  version:'V21.72.38',
   snapshot(){
     return{
       viewportMode:viewport.mode,
@@ -12335,7 +12435,7 @@ AuthUI.renderAccountFooter();
 syncDesktopSidebarMode();
 
 window.ChatAppShell={
-  version:'V21.72.37',
+  version:'V21.72.38',
   NavigationCommand,
   CallCommand,
   AuthUI,
@@ -12369,7 +12469,7 @@ window.ChatAppShell={
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.37';
+const RELEASE_VERSION='V21.72.38';
 const MODULE_CONTRACT_VERSION='call-screen-wake-lock-v1';
 
 let callActive=false;
@@ -12475,7 +12575,7 @@ window.V21CallScreenWakeLock=Object.freeze({
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.37';
+const RELEASE_VERSION='V21.72.38';
 const MODULE_CONTRACT_VERSION='shell-form-viewport-v3';
 const KEYBOARD_THRESHOLD_PX=80;
 const EDGE_PX=12;
@@ -12703,7 +12803,7 @@ window.V21ShellFormViewportPolicy=Object.freeze({
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.37';
+const RELEASE_VERSION='V21.72.38';
 const MODULE_CONTRACT_VERSION='auth-session-v21.72.5';
 const SUPABASE_URL='https://gcnoahqsrquxkwkjbuxy.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_UY3gfQ9MsntDFCUJ_uV0UA__eTYXz_w';
@@ -14694,31 +14794,55 @@ function isTransientSyncError(error){
 
 async function openContact(contactId){
   const target=contactId?String(contactId):null;
+  const previousContactId=currentContactId?String(currentContactId):null;
   const epoch=++contactEpoch;
-  dirtyActiveMessageIds.clear();
-  messages()?.stashCurrentView?.();
-  currentContactId=target;
-  currentConversationId=null;
+  let switchMounted=false;
+  const publishSwitch=phase=>{
+    document.dispatchEvent(new CustomEvent('v21-conversation-switch',{
+      detail:{
+        phase:String(phase||''),
+        epoch,
+        contactId:target,
+        previousContactId,
+        conversationId:currentConversationId
+      }
+    }));
+  };
+  publishSwitch('start');
 
-  if(!target||!accountId){
-    messages()?.setContext?.({contactId:null,conversationId:null});
-    messages()?.replace?.([],{conversationId:null,contactId:null});
-    return false;
-  }
+  try{
+    dirtyActiveMessageIds.clear();
+    messages()?.stashCurrentView?.();
+    currentContactId=target;
+    currentConversationId=null;
 
-  const restored=messages()?.restoreSession?.(target)||null;
-  if(restored){
-    currentConversationId=restored.conversationId?String(restored.conversationId):null;
-    document.dispatchEvent(new CustomEvent('v21-conversation-context',{detail:{accountId,currentContactId:target,currentConversationId}}));
-  }else{
-    messages()?.setContext?.({contactId:target,conversationId:null});
-    messages()?.replace?.([],{conversationId:null,contactId:target});
-  }
+    if(!target||!accountId){
+      messages()?.setContext?.({contactId:null,conversationId:null});
+      messages()?.replace?.([],{conversationId:null,contactId:null});
+      publishSwitch('mounted');
+      switchMounted=true;
+      return false;
+    }
 
-  const hydrated=await hydrateContactFromCache(target,{renderMode:restored?'merge':'replace',epoch});
-  if(epoch!==contactEpoch||String(currentContactId||'')!==target)return false;
+    const restored=messages()?.restoreSession?.(target)||null;
+    if(restored){
+      currentConversationId=restored.conversationId?String(restored.conversationId):null;
+      document.dispatchEvent(new CustomEvent('v21-conversation-context',{detail:{accountId,currentContactId:target,currentConversationId}}));
+    }else{
+      messages()?.setContext?.({contactId:target,conversationId:null});
+      messages()?.replace?.([],{conversationId:null,contactId:target});
+    }
 
-  let conversationId=hydrated.conversationId||currentConversationId||null;
+    const hydrated=await hydrateContactFromCache(target,{renderMode:restored?'merge':'replace',epoch});
+    if(epoch!==contactEpoch||String(currentContactId||'')!==target)return false;
+
+    // The contact's local/session view is now mounted. Release the scroll gate
+    // before any optional network work; the viewport owner settles it over two
+    // animation frames so stale arrow state from the previous contact cannot flash.
+    publishSwitch('mounted');
+    switchMounted=true;
+
+    let conversationId=hydrated.conversationId||currentConversationId||null;
   if(!conversationId&&online())conversationId=await ensureConversation(target);
   if(epoch!==contactEpoch||String(currentContactId||'')!==target)return false;
 
@@ -14745,9 +14869,12 @@ async function openContact(contactId){
     }
   }
 
-  if(chatVisible())scheduleMarkRead(currentConversationId);
-  if(online())void wake({reason:'open-contact'});
-  return true;
+    if(chatVisible())scheduleMarkRead(currentConversationId);
+    if(online())void wake({reason:'open-contact'});
+    return true;
+  }finally{
+    if(!switchMounted)publishSwitch('abort');
+  }
 }
 
 async function queueText({clientId,text,contactId,conversationId,reply=null}={}){
@@ -16821,7 +16948,7 @@ queueMicrotask(()=>{if(authenticated())void start();else emitPresence();});
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.37';
+const RELEASE_VERSION='V21.72.38';
 const MODULE_CONTRACT_VERSION='app-update-v1';
 const CHECK_INTERVAL_MS=45000;
 const DEFER_RECHECK_MS=2500;
