@@ -403,9 +403,9 @@ const AppBootController={
 
     this.phase='ERROR';
     modeLabel.textContent='ERROR';
-    runtimeError.textContent='V21.72.35 runtime: '+message;
+    runtimeError.textContent='V21.72.36 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.35]',error);
+    console.error('[ChatScreenModule V21.72.36]',error);
   },
   ready(){
     this.phase='READY';
@@ -464,7 +464,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.35 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.36 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -518,7 +518,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.35',
+  releaseVersion:'V21.72.36',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -3142,9 +3142,10 @@ function createActionGroup(message){
   group.setAttribute('role','group');
 
   const resolveMessage=()=>group.__message||message;
+  const actions=[];
 
   if(canReplyToMessage(message)){
-    group.appendChild(makeActionButton({
+    actions.push(makeActionButton({
       label:'Trả lời',
       icon:'reply',
       onClick:event=>{
@@ -3166,9 +3167,9 @@ function createActionGroup(message){
         closeAllTurnActions();
       }
     });
-    group.appendChild(copy);
+    actions.push(copy);
   }else if(kind==='image'||kind==='file'){
-    group.appendChild(makeActionButton({
+    actions.push(makeActionButton({
       label:'Lưu',
       icon:'save',
       onClick:event=>{
@@ -3177,7 +3178,7 @@ function createActionGroup(message){
       }
     }));
     if(canNativeShareFiles()){
-      group.appendChild(makeActionButton({
+      actions.push(makeActionButton({
         label:'Chia sẻ',
         icon:'share',
         onClick:event=>{
@@ -3187,6 +3188,12 @@ function createActionGroup(message){
       }));
     }
   }
+
+  // Action order is defined from the outgoing outer edge toward content.
+  // Incoming is the exact mirror so the same "near-content" action remains
+  // adjacent to the message instead of reusing one global left-to-right order.
+  const orderedActions=isSelf?actions:[...actions].reverse();
+  group.append(...orderedActions);
 
   return group;
 }
@@ -6618,7 +6625,7 @@ window.V21ConversationBridge={
 };
 
 window.ChatScreenModule={
-  version:'V21.72.35',
+  version:'V21.72.36',
   snapshot(){
     return{
       viewportMode:viewport.mode,
