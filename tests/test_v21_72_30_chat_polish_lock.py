@@ -9,7 +9,7 @@ def read(path):
 source=read('index.source.html')
 app=read('app.js')
 
-assert 'V21.72.35' in source
+assert 'V21.72.36' in source
 
 # Scroll-down owns a real footer lane, so Composer height/reserve includes it.
 assert '#threadScrollControlWrap{' in source
@@ -39,4 +39,4 @@ assert "link.title=href;" in app
 assert "if(href.length>72)link.dataset.linkLong='true';" in app
 assert "link.href=href;" in app
 
-print('V21.72.35 chat polish lock contract PASS')
+print('V21.72.36 chat polish lock contract PASS')
