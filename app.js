@@ -403,9 +403,9 @@ const AppBootController={
 
     this.phase='ERROR';
     modeLabel.textContent='ERROR';
-    runtimeError.textContent='V21.72.37 runtime: '+message;
+    runtimeError.textContent='V21.72.38 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.37]',error);
+    console.error('[ChatScreenModule V21.72.38]',error);
   },
   ready(){
     this.phase='READY';
@@ -464,7 +464,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.37 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.38 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -518,7 +518,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.37',
+  releaseVersion:'V21.72.38',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -623,9 +623,16 @@ let tailRevealTargetMessageId='';
 let conversationViewEpoch=0;
 let routeScrollSnapshot=null;
 let routeGeometrySuspended=false;
+let contactGeometrySuspended=false;
+let contactGeometryTargetId=null;
+let contactGeometryReleaseFrame=0;
 
 function chatRouteVisible(){
   return String(appShell?.dataset.route||'chat')==='chat';
+}
+
+function scrollGeometrySuspended(){
+  return routeGeometrySuspended||contactGeometrySuspended;
 }
 
 
@@ -1203,7 +1210,7 @@ function publishViewportGeometryChange(reason='geometry'){
   // Route changes temporarily remove Chat nodes from layout. Ignore those
   // synthetic geometry changes and never start a second tail transaction while
   // an explicit tail transaction is already converging.
-  if(!chatRouteVisible()||routeGeometrySuspended)return false;
+  if(!chatRouteVisible()||scrollGeometrySuspended())return false;
   if(viewport.mode===VIEWPORT_STATES.FOLLOW_TAIL){
     if(pendingTailFrame||pendingTailReason)return true;
     return scheduleFollowTailGeometryReconcile(reason);
@@ -1218,7 +1225,7 @@ function scheduleFollowTailGeometryReconcile(reason='geometry'){
   // Geometry observers publish intent only. ScrollRoot/scrollToTail remains the
   // sole programmatic scroll writer. This covers late image decode, file-meta
   // wrapping, audio hydration and Composer/keyboard obstruction changes.
-  if(!chatRouteVisible()||routeGeometrySuspended)return false;
+  if(!chatRouteVisible()||scrollGeometrySuspended())return false;
   if(viewport.mode!==VIEWPORT_STATES.FOLLOW_TAIL)return false;
   if(pendingTailFrame||pendingTailReason)return true;
   pendingGeometryTailReasons.add(String(reason||'geometry'));
@@ -3865,7 +3872,7 @@ function scheduleWindowRebase(direction){
    SMART SCROLL
    ========================================================= */
 function updateScrollFromEndControl(){
-  if(!chatRouteVisible()||routeGeometrySuspended)return false;
+  if(!chatRouteVisible()||scrollGeometrySuspended())return false;
   const awayFromTail=
     viewport.mode!==VIEWPORT_STATES.FOLLOW_TAIL ||
     distanceFromTail()>24;
@@ -3884,6 +3891,38 @@ function updateScrollFromEndControl(){
   }
   return awayFromTail;
 }
+
+document.addEventListener('v21-active-contact-will-change',event=>{
+  const target=event?.detail?.toContactId?String(event.detail.toContactId):null;
+  contactGeometrySuspended=true;
+  contactGeometryTargetId=target;
+  if(contactGeometryReleaseFrame)cancelAnimationFrame(contactGeometryReleaseFrame);
+  contactGeometryReleaseFrame=0;
+  cancelPendingTailTransaction();
+  if(pendingGeometryTailFrame)cancelAnimationFrame(pendingGeometryTailFrame);
+  pendingGeometryTailFrame=0;
+  pendingGeometryTailReasons.clear();
+  scrollRoot.removeAttribute('data-scroll-from-end');
+  stageLayout.removeAttribute('data-scroll-from-end');
+  stageLayout.dataset.contactSwitching='true';
+});
+
+document.addEventListener('v21-contact-view-ready',event=>{
+  const target=event?.detail?.contactId?String(event.detail.contactId):null;
+  if(String(contactGeometryTargetId||'')!==String(target||''))return;
+  if(contactGeometryReleaseFrame)cancelAnimationFrame(contactGeometryReleaseFrame);
+  contactGeometryReleaseFrame=requestAnimationFrame(()=>{
+    contactGeometryReleaseFrame=requestAnimationFrame(()=>{
+      contactGeometryReleaseFrame=0;
+      contactGeometrySuspended=false;
+      contactGeometryTargetId=null;
+      delete stageLayout.dataset.contactSwitching;
+      if(!chatRouteVisible()||routeGeometrySuspended)return;
+      if(viewport.mode===VIEWPORT_STATES.FOLLOW_TAIL)scrollToTail('contact-switch-settle');
+      else updateScrollFromEndControl();
+    });
+  });
+});
 
 document.addEventListener('navigation-will-change',event=>{
   const from=String(event?.detail?.from||'');
@@ -6625,7 +6664,7 @@ window.V21ConversationBridge={
 };
 
 window.ChatScreenModule={
-  version:'V21.72.37',
+  version:'V21.72.38',
   snapshot(){
     return{
       viewportMode:viewport.mode,
