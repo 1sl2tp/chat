@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.25">
+<meta name="app-release-version" content="V21.72.26">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -15,7 +15,7 @@
 <meta name="chat-call-preview-only" content="true">
 <meta name="chat-v21-session-runtime" content="v21-only">
 <meta name="chat-v21-contact-runtime" content="v21-only">
-<title>Chat Screen Module V21.72.25</title>
+<title>Chat Screen Module V21.72.26</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="./reference/chatgpt/full-source/chatgpt-core-exact.css" data-build-source="reference/chatgpt/full-source/chatgpt-core-exact.css">
 <link rel="stylesheet" href="./reference/chatgpt/chatgpt-token-aliases.css" data-build-source="reference/chatgpt/chatgpt-token-aliases.css">
@@ -269,19 +269,48 @@ button{
 #messageWindow>.message-row+.message-row{
   margin-top:8px;
 }
+/* Conversation Content owns the rhythm between sibling messages.
+   Same-sender text stays compact; media gets more breathing room by type. */
 #messageWindow>.message-row[data-turn="user"]+.message-row[data-turn="user"],
 #messageWindow>.message-row[data-turn="assistant"]+.message-row[data-turn="assistant"]{
-  margin-top:6px;
+  margin-top:8px;
 }
-#messageWindow>.message-row[data-has-media="true"]+.message-row[data-turn="user"],
-#messageWindow>.message-row[data-has-media="true"]+.message-row[data-turn="assistant"],
-#messageWindow>.message-row[data-turn="user"]+.message-row[data-has-media="true"],
-#messageWindow>.message-row[data-turn="assistant"]+.message-row[data-has-media="true"]{
-  margin-top:10px;
+#messageWindow>.message-row[data-turn="user"][data-content-kind="audio"]+.message-row[data-turn="user"][data-content-kind="audio"],
+#messageWindow>.message-row[data-turn="assistant"][data-content-kind="audio"]+.message-row[data-turn="assistant"][data-content-kind="audio"]{
+  margin-top:7px;
 }
+#messageWindow>.message-row[data-turn="user"][data-content-kind="text"]+.message-row[data-turn="user"][data-content-kind="audio"],
+#messageWindow>.message-row[data-turn="assistant"][data-content-kind="text"]+.message-row[data-turn="assistant"][data-content-kind="audio"],
+#messageWindow>.message-row[data-turn="user"][data-content-kind="audio"]+.message-row[data-turn="user"][data-content-kind="text"],
+#messageWindow>.message-row[data-turn="assistant"][data-content-kind="audio"]+.message-row[data-turn="assistant"][data-content-kind="text"],
+#messageWindow>.message-row[data-turn="user"][data-content-kind="text"]+.message-row[data-turn="user"][data-content-kind="file"],
+#messageWindow>.message-row[data-turn="assistant"][data-content-kind="text"]+.message-row[data-turn="assistant"][data-content-kind="file"],
+#messageWindow>.message-row[data-turn="user"][data-content-kind="file"]+.message-row[data-turn="user"][data-content-kind="text"],
+#messageWindow>.message-row[data-turn="assistant"][data-content-kind="file"]+.message-row[data-turn="assistant"][data-content-kind="text"]{
+  margin-top:9px;
+}
+#messageWindow>.message-row[data-turn="user"][data-content-kind="text"]+.message-row[data-turn="user"][data-content-kind="image"],
+#messageWindow>.message-row[data-turn="assistant"][data-content-kind="text"]+.message-row[data-turn="assistant"][data-content-kind="image"],
+#messageWindow>.message-row[data-turn="user"][data-content-kind="text"]+.message-row[data-turn="user"][data-content-kind="gallery"],
+#messageWindow>.message-row[data-turn="assistant"][data-content-kind="text"]+.message-row[data-turn="assistant"][data-content-kind="gallery"],
+#messageWindow>.message-row[data-turn="user"][data-content-kind="image"]+.message-row[data-turn="user"][data-content-kind="text"],
+#messageWindow>.message-row[data-turn="assistant"][data-content-kind="image"]+.message-row[data-turn="assistant"][data-content-kind="text"],
+#messageWindow>.message-row[data-turn="user"][data-content-kind="gallery"]+.message-row[data-turn="user"][data-content-kind="text"],
+#messageWindow>.message-row[data-turn="assistant"][data-content-kind="gallery"]+.message-row[data-turn="assistant"][data-content-kind="text"],
+#messageWindow>.message-row[data-turn="user"][data-content-kind="audio"]+.message-row[data-turn="user"][data-content-kind="image"],
+#messageWindow>.message-row[data-turn="assistant"][data-content-kind="audio"]+.message-row[data-turn="assistant"][data-content-kind="image"],
+#messageWindow>.message-row[data-turn="user"][data-content-kind="audio"]+.message-row[data-turn="user"][data-content-kind="gallery"],
+#messageWindow>.message-row[data-turn="assistant"][data-content-kind="audio"]+.message-row[data-turn="assistant"][data-content-kind="gallery"],
+#messageWindow>.message-row[data-turn="user"][data-content-kind="image"]+.message-row[data-turn="user"][data-content-kind="audio"],
+#messageWindow>.message-row[data-turn="assistant"][data-content-kind="image"]+.message-row[data-turn="assistant"][data-content-kind="audio"],
+#messageWindow>.message-row[data-turn="user"][data-content-kind="gallery"]+.message-row[data-turn="user"][data-content-kind="audio"],
+#messageWindow>.message-row[data-turn="assistant"][data-content-kind="gallery"]+.message-row[data-turn="assistant"][data-content-kind="audio"]{
+  margin-top:11px;
+}
+/* Sender change is the strongest separator regardless of content kind. */
 #messageWindow>.message-row[data-turn="user"]+.message-row[data-turn="assistant"],
 #messageWindow>.message-row[data-turn="assistant"]+.message-row[data-turn="user"]{
-  margin-top:14px;
+  margin-top:15px;
 }
 .message-body{
   font-size:1rem;
@@ -291,15 +320,29 @@ button{
   min-height:0;
   padding-block:0;
 }
+/* Text + media inside one message uses the same rhythm family. */
+.message-unit>.message-text:not([hidden]) + [data-message-media-root="true"]{
+  margin-top:9px!important;
+}
+.message-unit>.message-text:not([hidden]) + [data-message-media-root="true"][data-media-root-kind="image"],
+.message-unit>.message-text:not([hidden]) + [data-message-media-root="true"][data-media-root-kind="gallery"]{
+  margin-top:11px!important;
+}
 @media(max-width:520px){
   #messageWindow{padding-block:10px 14px}
-  #messageWindow>.message-row+.message-row{margin-top:6px}
-  #messageWindow>.message-row[data-has-media="true"]+.message-row[data-turn="user"],
-  #messageWindow>.message-row[data-has-media="true"]+.message-row[data-turn="assistant"],
-  #messageWindow>.message-row[data-turn="user"]+.message-row[data-has-media="true"],
-  #messageWindow>.message-row[data-turn="assistant"]+.message-row[data-has-media="true"]{margin-top:8px}
+  #messageWindow>.message-row+.message-row{margin-top:7px}
+  #messageWindow>.message-row[data-turn="user"][data-content-kind="audio"]+.message-row[data-turn="user"][data-content-kind="audio"],
+  #messageWindow>.message-row[data-turn="assistant"][data-content-kind="audio"]+.message-row[data-turn="assistant"][data-content-kind="audio"]{margin-top:7px}
+  #messageWindow>.message-row[data-turn="user"][data-content-kind="text"]+.message-row[data-turn="user"][data-content-kind="audio"],
+  #messageWindow>.message-row[data-turn="assistant"][data-content-kind="text"]+.message-row[data-turn="assistant"][data-content-kind="audio"],
+  #messageWindow>.message-row[data-turn="user"][data-content-kind="audio"]+.message-row[data-turn="user"][data-content-kind="text"],
+  #messageWindow>.message-row[data-turn="assistant"][data-content-kind="audio"]+.message-row[data-turn="assistant"][data-content-kind="text"]{margin-top:8px}
+  #messageWindow>.message-row[data-turn="user"][data-content-kind="text"]+.message-row[data-turn="user"]:is([data-content-kind="image"],[data-content-kind="gallery"]),
+  #messageWindow>.message-row[data-turn="assistant"][data-content-kind="text"]+.message-row[data-turn="assistant"]:is([data-content-kind="image"],[data-content-kind="gallery"]),
+  #messageWindow>.message-row[data-turn="user"]:is([data-content-kind="image"],[data-content-kind="gallery"])+.message-row[data-turn="user"][data-content-kind="text"],
+  #messageWindow>.message-row[data-turn="assistant"]:is([data-content-kind="image"],[data-content-kind="gallery"])+.message-row[data-turn="assistant"][data-content-kind="text"]{margin-top:10px}
   #messageWindow>.message-row[data-turn="user"]+.message-row[data-turn="assistant"],
-  #messageWindow>.message-row[data-turn="assistant"]+.message-row[data-turn="user"]{margin-top:12px}
+  #messageWindow>.message-row[data-turn="assistant"]+.message-row[data-turn="user"]{margin-top:13px}
 }
 
 @media (hover:none),(pointer:coarse){
@@ -790,7 +833,7 @@ button{
   grid-template-columns:2rem minmax(5.5rem,1fr) auto;
   align-items:center;
   gap:.5rem;
-  width:min(17rem,68vw);
+  width:min(16.5rem,100%);
   max-width:100%;
   min-height:2.75rem;
   border:1px solid var(--composer-border);
@@ -865,7 +908,7 @@ button{
 @media(max-width:480px){
   .audio-recording-card,.audio-preview-card{grid-template-columns:2.25rem minmax(4rem,1fr) auto auto;gap:.4rem;padding-inline:.45rem;}
   .audio-recording-cancel,.audio-recording-stop,.audio-preview-cancel,.audio-preview-send{padding-inline:.6rem;}
-  .audio-message-card{width:min(16rem,76vw);grid-template-columns:1.9rem minmax(4.25rem,1fr) auto;gap:.42rem;padding:.32rem .42rem;}
+  .audio-message-card{width:min(16rem,100%);grid-template-columns:1.9rem minmax(4.25rem,1fr) auto;gap:.42rem;padding:.32rem .42rem;}
   .audio-message-play{width:1.9rem;height:1.9rem;}
   .audio-message-time{min-width:4.4rem;font-size:.65625rem;}
 }
@@ -2698,7 +2741,7 @@ button{
 <div id="runtimeError" class="hidden fixed z-[9999] left-2 right-2 top-2 rounded-xl bg-red-600 text-white text-xs px-3 py-2 shadow-lg"></div>
 
 <!-- V21.69.9 unified runtime marker. Earlier V21.20/V21.64 labels below are provenance for inherited geometry/style contracts only, not separate live runtimes. -->
-<div id="appShell" data-app-shell data-chat-screen-version="V21.72.25" data-app-shell-version="V21.72.25" data-auth-state="booting" data-default-route="chat" data-route="chat">
+<div id="appShell" data-app-shell data-chat-screen-version="V21.72.26" data-app-shell-version="V21.72.26" data-auth-state="booting" data-default-route="chat" data-route="chat">
   <div id="screenHost" data-screen-host>
     <div id="activeScreenSlot" data-active-screen-slot>
       <section id="chatScreen" class="app-screen" data-screen="chat">
