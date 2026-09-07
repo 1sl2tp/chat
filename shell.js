@@ -391,15 +391,17 @@ function renderCallFocus(){
 
 function setActiveContact(contactId,contactName){
   const previousId=activeContact?.id||null;
-  if(!contactId){
-    activeContact=null;
-  }else{
-    activeContact={id:String(contactId),name:String(contactName||'Liên hệ')};
+  const nextContact=contactId?{id:String(contactId),name:String(contactName||'Liên hệ')}:null;
+  const nextId=nextContact?.id||null;
+  if(previousId!==nextId){
+    document.dispatchEvent(new CustomEvent('v21-active-contact-will-change',{
+      detail:{fromContactId:previousId,toContactId:nextId}
+    }));
   }
+  activeContact=nextContact;
   renderCallFocus();
   syncContactActiveState();
   persistScreenSession();
-  const nextId=activeContact?.id||null;
   if(previousId!==nextId){
     document.dispatchEvent(new CustomEvent('v21-active-contact-change',{detail:{contact:activeContact?{...activeContact}:null}}));
   }
@@ -1462,7 +1464,7 @@ AuthUI.renderAccountFooter();
 syncDesktopSidebarMode();
 
 window.ChatAppShell={
-  version:'V21.72.37',
+  version:'V21.72.38',
   NavigationCommand,
   CallCommand,
   AuthUI,
