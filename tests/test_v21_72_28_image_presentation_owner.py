@@ -9,7 +9,7 @@ def read(path):
 source=read('index.source.html')
 app=read('app.js')
 
-assert 'V21.72.30' in source
+assert 'V21.72.31' in source
 assert 'function singleImagePresentation(media)' in app
 assert "kind:'portrait'" in app
 assert "kind:'square'" in app
@@ -36,4 +36,4 @@ assert 'width:min(25rem,100%)!important' in source
 assert '.media-gallery-grid .media-image-tile > img' in source
 assert 'object-fit:cover!important' in source
 
-print('V21.72.30 image presentation owner contract PASS')
+print('V21.72.31 image presentation owner contract PASS')
