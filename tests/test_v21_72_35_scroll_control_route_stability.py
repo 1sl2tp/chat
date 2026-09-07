@@ -34,7 +34,7 @@ assert "await new Promise" not in arrow
 publish_start=app.index("function publishViewportGeometryChange")
 publish_end=app.index("function scrollToTail",publish_start)
 publish=app[publish_start:publish_end]
-assert "if(!chatRouteVisible()||routeGeometrySuspended)return false;" in publish
+assert "if(!chatRouteVisible()||scrollGeometrySuspended())return false;" in publish
 assert "if(pendingTailFrame||pendingTailReason)return true;" in publish
 
 # Route lifecycle captures Chat before display:none can clamp scrollTop, ignores
