@@ -1,7 +1,7 @@
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.30';
+const RELEASE_VERSION='V21.72.31';
 const MODULE_CONTRACT_VERSION='call-screen-wake-lock-v1';
 
 let callActive=false;
