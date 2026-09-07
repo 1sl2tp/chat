@@ -30,5 +30,6 @@ subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_17_mobile_form_keyb
 subprocess.run(['node',str(ROOT/'tests'/'test_v21_72_17_mobile_form_keyboard_runtime.js')],check=True,cwd=ROOT)
 subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_18_auth_actions_row.py')],check=True,cwd=ROOT)
 subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_19_profile_username_avatar.py')],check=True,cwd=ROOT)
+subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_24_conversation_content_axis.py')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_v21_72_20_call_screen_wake_lock.js')],check=True,cwd=ROOT)
 print(f'V21.72.24 canonical source verify PASS sha256={sha}')
