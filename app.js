@@ -5316,7 +5316,7 @@ function sampleRecordingLevel(){
       level=Math.max(0,Math.min(1,(rms-.008)*7.5));
     }catch{}
   }
-  const smoothing=level>recordingSmoothedLevel?.44:.18;
+  const smoothing=level>recordingSmoothedLevel ? .44 : .18;
   recordingSmoothedLevel+=(level-recordingSmoothedLevel)*smoothing;
   if(!recordingAnalyser)recordingSmoothedLevel*=.82;
   recordingWaveformSamples.shift();
