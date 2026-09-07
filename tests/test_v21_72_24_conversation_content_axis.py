@@ -9,8 +9,8 @@ def read(path):
 source=read('index.source.html')
 app=read('app.js')
 
-assert 'V21.72.24' in source
-assert '--conversation-content-max-width:44rem' in source
+assert 'V21.72.25' in source
+assert '--conversation-content-max-width:48rem' in source
 assert 'id="conversationContentAxis"' in source
 assert 'data-conversation-content-owner="true"' in source
 
@@ -22,14 +22,21 @@ for token in ['id="historyStatus"','id="topSpacer"','id="messageWindow"','id="bo
 
 assert '#conversationContentAxis{' in source
 assert 'max-width:var(--conversation-content-max-width)' in source
-assert 'padding-inline:var(--chat-content-gutter)' in source
+assert 'padding-inline:var(--conversation-content-gutter)' in source
 assert '.message-turn-shell{' in source
 assert '#messageWindow>.message-row+.message-row{' in source
 assert '#messageWindow>.message-row[data-turn="user"]+.message-row[data-turn="assistant"]' in source
 assert '#messageWindow>.message-row[data-turn="assistant"]+.message-row[data-turn="user"]' in source
+assert '--conversation-content-gutter:24px' in source
+assert '.message-body{' in source
+assert 'line-height:1.5rem' in source
+assert '.assistant-message-unit>.message-text' in source
+assert 'node.dataset.hasMedia=message.media' in app
+assert "turn.dataset.hasMedia=message.media" in app
+assert 'cgpt-source-assistant-visual min-h-8 py-1' not in app
 
 assert app.count("outer.className='message-turn-shell';")==2
 assert "'chat-content-axis pt-3'" not in app
 assert "'assistant-turn-shell chat-content-axis'" not in app
 
-print('V21.72.24 conversation content axis contract PASS')
+print('V21.72.25 conversation content axis contract PASS')
