@@ -1,5 +1,5 @@
 'use strict';
-const RELEASE_VERSION='V21.72.28';
+const RELEASE_VERSION='V21.72.29';
 const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION;
 const SHELL=['./','./manifest.webmanifest','./icons/chat-192.png','./icons/chat-512.png'];
