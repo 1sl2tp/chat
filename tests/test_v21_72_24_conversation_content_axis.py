@@ -9,7 +9,7 @@ def read(path):
 source=read('index.source.html')
 app=read('app.js')
 
-assert 'V21.72.25' in source
+assert 'V21.72.26' in source
 assert '--conversation-content-max-width:48rem' in source
 assert 'id="conversationContentAxis"' in source
 assert 'data-conversation-content-owner="true"' in source
@@ -33,10 +33,20 @@ assert 'line-height:1.5rem' in source
 assert '.assistant-message-unit>.message-text' in source
 assert 'node.dataset.hasMedia=message.media' in app
 assert "turn.dataset.hasMedia=message.media" in app
+assert 'function messageContentKind(message)' in app
+assert "node.dataset.contentKind=messageContentKind(message)" in app
+assert "turn.dataset.contentKind=messageContentKind(message)" in app
+assert 'data-content-kind="audio"' in source
+assert 'data-content-kind="image"' in source
+assert 'data-content-kind="gallery"' in source
+assert 'margin-top:15px' in source
+assert 'width:min(16.5rem,100%)' in source
+assert 'width:min(16rem,100%)' in source
+assert '.message-unit>.message-text:not([hidden]) + [data-message-media-root="true"]' in source
 assert 'cgpt-source-assistant-visual min-h-8 py-1' not in app
 
 assert app.count("outer.className='message-turn-shell';")==2
 assert "'chat-content-axis pt-3'" not in app
 assert "'assistant-turn-shell chat-content-axis'" not in app
 
-print('V21.72.25 conversation content axis contract PASS')
+print('V21.72.26 conversation content axis contract PASS')

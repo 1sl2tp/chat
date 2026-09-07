@@ -403,9 +403,9 @@ const AppBootController={
 
     this.phase='ERROR';
     modeLabel.textContent='ERROR';
-    runtimeError.textContent='V21.72.25 runtime: '+message;
+    runtimeError.textContent='V21.72.26 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.25]',error);
+    console.error('[ChatScreenModule V21.72.26]',error);
   },
   ready(){
     this.phase='READY';
@@ -464,7 +464,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.25 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.26 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -518,7 +518,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.25',
+  releaseVersion:'V21.72.26',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -3333,6 +3333,16 @@ document.addEventListener('pointerdown',event=>{
   }
 },{passive:true});
 
+function messageContentKind(message){
+  const media=message?.media||null;
+  if(!media)return 'text';
+  if(media.type==='file'&&media.kind==='audio')return 'audio';
+  if(media.type==='image')return 'image';
+  if(media.type==='gallery')return 'gallery';
+  if(media.type==='file')return 'file';
+  return 'media';
+}
+
 function patchMessageIdentity(node,message){
   if(!node||!message)return node;
   const previousId=String(node.dataset.id||'');
@@ -3342,6 +3352,7 @@ function patchMessageIdentity(node,message){
   node.dataset.renderKey=stableMessageDomKey(message);
   node.dataset.turn=message.sender==='self'?'user':'assistant';
   node.dataset.hasMedia=message.media?'true':'false';
+  node.dataset.contentKind=messageContentKind(message);
 
   if(previousId&&nextId&&previousId!==nextId&&heightCache.has(previousId)){
     if(!heightCache.has(nextId))heightCache.set(nextId,heightCache.get(previousId));
@@ -3451,6 +3462,7 @@ function renderMessageNode(message){
       ?'user'
       :'assistant';
   turn.dataset.hasMedia=message.media?'true':'false';
+  turn.dataset.contentKind=messageContentKind(message);
   turn.__message=message;
 
   const outer=document.createElement('div');
@@ -6388,7 +6400,7 @@ window.V21ConversationBridge={
 };
 
 window.ChatScreenModule={
-  version:'V21.72.25',
+  version:'V21.72.26',
   snapshot(){
     return{
       viewportMode:viewport.mode,

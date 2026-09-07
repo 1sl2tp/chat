@@ -100,4 +100,4 @@ for token in [
 ]:
     assert token in admin_edge, token
 
-print('V21.72.25 profile username/avatar contract PASS')
+print('V21.72.26 profile username/avatar contract PASS')
