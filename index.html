@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.34">
+<meta name="app-release-version" content="V21.72.35">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -15,7 +15,7 @@
 <meta name="chat-call-preview-only" content="true">
 <meta name="chat-v21-session-runtime" content="v21-only">
 <meta name="chat-v21-contact-runtime" content="v21-only">
-<title>Chat Screen Module V21.72.34</title>
+<title>Chat Screen Module V21.72.35</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style data-inlined-source="reference/chatgpt/full-source/chatgpt-core-exact.css">
 /* ChatGPT exact core extraction.
@@ -1048,7 +1048,7 @@ button{
 }
 .audio-preview-card audio,.audio-message-card audio{display:none;}
 
-/* V21.72.34 — image presentation owner.
+/* V21.72.35 — image presentation owner.
    Single images keep the full source via contain inside a normalized envelope.
    Gallery tiles intentionally use cover so mixed portrait/landscape sources form one balanced unit. */
 .media-image-tile[data-image-presentation]{
@@ -1612,7 +1612,7 @@ button{
   height:0;
   margin-bottom:0;
   flex:0 0 auto;
-  transition:height 140ms ease,margin-bottom 140ms ease;
+  transition:none;
 }
 #stageLayout[data-scroll-from-end] #threadScrollControlWrap{
   height:44px;
@@ -1628,8 +1628,8 @@ button{
   opacity:0;
   pointer-events:none;
   transition:
-    transform 100ms ease,
-    opacity 100ms ease;
+    transform 90ms ease,
+    opacity 90ms ease;
 }
 
 #stageLayout[data-scroll-from-end] #threadScrollControlMotion{
@@ -1637,8 +1637,8 @@ button{
   opacity:1;
   pointer-events:auto;
   transition:
-    transform 300ms ease 300ms,
-    opacity 300ms ease 300ms;
+    transform 120ms ease,
+    opacity 120ms ease;
 }
 
 .thread-scroll-control-button{
@@ -3030,7 +3030,7 @@ button{
 <div id="runtimeError" class="hidden fixed z-[9999] left-2 right-2 top-2 rounded-xl bg-red-600 text-white text-xs px-3 py-2 shadow-lg"></div>
 
 <!-- V21.69.9 unified runtime marker. Earlier V21.20/V21.64 labels below are provenance for inherited geometry/style contracts only, not separate live runtimes. -->
-<div id="appShell" data-app-shell data-chat-screen-version="V21.72.34" data-app-shell-version="V21.72.34" data-auth-state="booting" data-default-route="chat" data-route="chat">
+<div id="appShell" data-app-shell data-chat-screen-version="V21.72.35" data-app-shell-version="V21.72.35" data-auth-state="booting" data-default-route="chat" data-route="chat">
   <div id="screenHost" data-screen-host>
     <div id="activeScreenSlot" data-active-screen-slot>
       <section id="chatScreen" class="app-screen" data-screen="chat">
@@ -3965,7 +3965,7 @@ window.V21RuntimeId=Object.freeze({version:VERSION,create:createRuntimeId});
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.34';
+const RELEASE_VERSION='V21.72.35';
 const MODULE_CONTRACT_VERSION='audio-capture-v1';
 const DEVICE_KEY='taphoa.v21.audio.inputDeviceId';
 const BASE=Object.freeze({
@@ -4592,9 +4592,9 @@ const AppBootController={
 
     this.phase='ERROR';
     modeLabel.textContent='ERROR';
-    runtimeError.textContent='V21.72.34 runtime: '+message;
+    runtimeError.textContent='V21.72.35 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.34]',error);
+    console.error('[ChatScreenModule V21.72.35]',error);
   },
   ready(){
     this.phase='READY';
@@ -4653,7 +4653,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.34 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.35 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -4707,7 +4707,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.34',
+  releaseVersion:'V21.72.35',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -4810,6 +4810,12 @@ let pendingInteractionAnchorFrame=0;
 let interactionAnchorGeneration=0;
 let tailRevealTargetMessageId='';
 let conversationViewEpoch=0;
+let routeScrollSnapshot=null;
+let routeGeometrySuspended=false;
+
+function chatRouteVisible(){
+  return String(appShell?.dataset.route||'chat')==='chat';
+}
 
 
 /* =========================================================
@@ -5383,9 +5389,12 @@ function scheduleInteractionAnchorGeometryReconcile(reason='interaction-anchor')
 }
 
 function publishViewportGeometryChange(reason='geometry'){
-  // One policy decision per geometry event. TAIL and ANCHOR never both react to
-  // the same resize/load/keyboard frame.
+  // Route changes temporarily remove Chat nodes from layout. Ignore those
+  // synthetic geometry changes and never start a second tail transaction while
+  // an explicit tail transaction is already converging.
+  if(!chatRouteVisible()||routeGeometrySuspended)return false;
   if(viewport.mode===VIEWPORT_STATES.FOLLOW_TAIL){
+    if(pendingTailFrame||pendingTailReason)return true;
     return scheduleFollowTailGeometryReconcile(reason);
   }
   if(interactionGeometryAnchor){
@@ -5398,7 +5407,9 @@ function scheduleFollowTailGeometryReconcile(reason='geometry'){
   // Geometry observers publish intent only. ScrollRoot/scrollToTail remains the
   // sole programmatic scroll writer. This covers late image decode, file-meta
   // wrapping, audio hydration and Composer/keyboard obstruction changes.
+  if(!chatRouteVisible()||routeGeometrySuspended)return false;
   if(viewport.mode!==VIEWPORT_STATES.FOLLOW_TAIL)return false;
+  if(pendingTailFrame||pendingTailReason)return true;
   pendingGeometryTailReasons.add(String(reason||'geometry'));
   if(pendingGeometryTailFrame)return true;
   const viewEpoch=conversationViewEpoch;
@@ -8036,6 +8047,7 @@ function scheduleWindowRebase(direction){
    SMART SCROLL
    ========================================================= */
 function updateScrollFromEndControl(){
+  if(!chatRouteVisible()||routeGeometrySuspended)return false;
   const awayFromTail=
     viewport.mode!==VIEWPORT_STATES.FOLLOW_TAIL ||
     distanceFromTail()>24;
@@ -8052,7 +8064,39 @@ function updateScrollFromEndControl(){
       count>0?`Cuộn xuống cuối, ${count} tin mới`:'Cuộn xuống cuối'
     );
   }
+  return awayFromTail;
 }
+
+document.addEventListener('navigation-will-change',event=>{
+  const from=String(event?.detail?.from||'');
+  const to=String(event?.detail?.to||'');
+  if(from!=='chat'||to==='chat')return;
+  routeGeometrySuspended=true;
+  routeScrollSnapshot={
+    mode:viewport.mode,
+    scrollTop:scrollRoot.scrollTop,
+    anchor:viewport.mode===VIEWPORT_STATES.USER_AWAY?firstVisibleAnchor():null
+  };
+  cancelPendingTailTransaction();
+});
+
+document.addEventListener('navigation-change',event=>{
+  const nextRoute=String(event?.detail?.route||appShell?.dataset.route||'');
+  if(nextRoute!=='chat')return;
+  const snapshot=routeScrollSnapshot;
+  routeScrollSnapshot=null;
+
+  if(snapshot?.mode===VIEWPORT_STATES.FOLLOW_TAIL){
+    viewport.returnToTail();
+    setScrollTop(scrollRoot.scrollHeight-scrollRoot.clientHeight);
+  }else if(snapshot){
+    if(snapshot.anchor)restoreAnchor(snapshot.anchor);
+    else setScrollTop(snapshot.scrollTop);
+  }
+
+  routeGeometrySuspended=false;
+  updateScrollFromEndControl();
+});
 
 function appendScrollPolicy({inserted=false,remote=false,messageIds=[]}={}){
   if(!inserted){
@@ -8169,13 +8213,10 @@ scrollRoot.addEventListener(
   {passive:true}
 );
 
-threadScrollControl.addEventListener('click',async()=>{
-  try{
-    await window.V21MessageStore?.reconcileCurrent?.();
-    await new Promise(resolve=>requestAnimationFrame(resolve));
-  }finally{
-    scrollToTail('user-arrow');
-  }
+threadScrollControl.addEventListener('click',()=>{
+  // Viewport control owns viewport movement only. SyncEngine/MessageStore own
+  // reconciliation; coupling refresh here caused an extra render before scroll.
+  scrollToTail('user-arrow');
 });
 
 /* =========================================================
@@ -10766,7 +10807,7 @@ window.V21ConversationBridge={
 };
 
 window.ChatScreenModule={
-  version:'V21.72.34',
+  version:'V21.72.35',
   snapshot(){
     return{
       viewportMode:viewport.mode,
@@ -10983,11 +11024,17 @@ function renderTopTabs(){
 const NavigationCommand={
   open(nextRoute){
     if(!ROUTES.includes(nextRoute))return false;
+    const previousRoute=route;
+    if(previousRoute!==nextRoute){
+      document.dispatchEvent(new CustomEvent('navigation-will-change',{
+        detail:{from:previousRoute,to:nextRoute}
+      }));
+    }
     route=nextRoute;
     setSidebar(false);
     applyRoutePresentation();
     persistScreenSession();
-    document.dispatchEvent(new CustomEvent('navigation-change',{detail:{route}}));
+    document.dispatchEvent(new CustomEvent('navigation-change',{detail:{route,from:previousRoute}}));
     return true;
   },
   openChat(){return this.open('chat')},
@@ -12251,7 +12298,7 @@ AuthUI.renderAccountFooter();
 syncDesktopSidebarMode();
 
 window.ChatAppShell={
-  version:'V21.72.34',
+  version:'V21.72.35',
   NavigationCommand,
   CallCommand,
   AuthUI,
@@ -12285,7 +12332,7 @@ window.ChatAppShell={
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.34';
+const RELEASE_VERSION='V21.72.35';
 const MODULE_CONTRACT_VERSION='call-screen-wake-lock-v1';
 
 let callActive=false;
@@ -12391,7 +12438,7 @@ window.V21CallScreenWakeLock=Object.freeze({
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.34';
+const RELEASE_VERSION='V21.72.35';
 const MODULE_CONTRACT_VERSION='shell-form-viewport-v3';
 const KEYBOARD_THRESHOLD_PX=80;
 const EDGE_PX=12;
@@ -12619,7 +12666,7 @@ window.V21ShellFormViewportPolicy=Object.freeze({
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.34';
+const RELEASE_VERSION='V21.72.35';
 const MODULE_CONTRACT_VERSION='auth-session-v21.72.5';
 const SUPABASE_URL='https://gcnoahqsrquxkwkjbuxy.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_UY3gfQ9MsntDFCUJ_uV0UA__eTYXz_w';
@@ -16737,7 +16784,7 @@ queueMicrotask(()=>{if(authenticated())void start();else emitPresence();});
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.34';
+const RELEASE_VERSION='V21.72.35';
 const MODULE_CONTRACT_VERSION='app-update-v1';
 const CHECK_INTERVAL_MS=45000;
 const DEFER_RECHECK_MS=2500;
