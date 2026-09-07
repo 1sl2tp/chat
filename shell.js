@@ -1462,7 +1462,7 @@ AuthUI.renderAccountFooter();
 syncDesktopSidebarMode();
 
 window.ChatAppShell={
-  version:'V21.72.37',
+  version:'V21.72.38',
   NavigationCommand,
   CallCommand,
   AuthUI,
