@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.32">
+<meta name="app-release-version" content="V21.72.33">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -15,7 +15,7 @@
 <meta name="chat-call-preview-only" content="true">
 <meta name="chat-v21-session-runtime" content="v21-only">
 <meta name="chat-v21-contact-runtime" content="v21-only">
-<title>Chat Screen Module V21.72.32</title>
+<title>Chat Screen Module V21.72.33</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style data-inlined-source="reference/chatgpt/full-source/chatgpt-core-exact.css">
 /* ChatGPT exact core extraction.
@@ -1048,7 +1048,7 @@ button{
 }
 .audio-preview-card audio,.audio-message-card audio{display:none;}
 
-/* V21.72.32 — image presentation owner.
+/* V21.72.33 — image presentation owner.
    Single images keep the full source via contain inside a normalized envelope.
    Gallery tiles intentionally use cover so mixed portrait/landscape sources form one balanced unit. */
 .media-image-tile[data-image-presentation]{
@@ -3030,7 +3030,7 @@ button{
 <div id="runtimeError" class="hidden fixed z-[9999] left-2 right-2 top-2 rounded-xl bg-red-600 text-white text-xs px-3 py-2 shadow-lg"></div>
 
 <!-- V21.69.9 unified runtime marker. Earlier V21.20/V21.64 labels below are provenance for inherited geometry/style contracts only, not separate live runtimes. -->
-<div id="appShell" data-app-shell data-chat-screen-version="V21.72.32" data-app-shell-version="V21.72.32" data-auth-state="booting" data-default-route="chat" data-route="chat">
+<div id="appShell" data-app-shell data-chat-screen-version="V21.72.33" data-app-shell-version="V21.72.33" data-auth-state="booting" data-default-route="chat" data-route="chat">
   <div id="screenHost" data-screen-host>
     <div id="activeScreenSlot" data-active-screen-slot>
       <section id="chatScreen" class="app-screen" data-screen="chat">
@@ -3965,7 +3965,7 @@ window.V21RuntimeId=Object.freeze({version:VERSION,create:createRuntimeId});
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.32';
+const RELEASE_VERSION='V21.72.33';
 const MODULE_CONTRACT_VERSION='audio-capture-v1';
 const DEVICE_KEY='taphoa.v21.audio.inputDeviceId';
 const BASE=Object.freeze({
@@ -4592,9 +4592,9 @@ const AppBootController={
 
     this.phase='ERROR';
     modeLabel.textContent='ERROR';
-    runtimeError.textContent='V21.72.32 runtime: '+message;
+    runtimeError.textContent='V21.72.33 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.32]',error);
+    console.error('[ChatScreenModule V21.72.33]',error);
   },
   ready(){
     this.phase='READY';
@@ -4653,7 +4653,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.32 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.33 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -4707,7 +4707,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.32',
+  releaseVersion:'V21.72.33',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -10654,7 +10654,7 @@ window.V21ConversationBridge={
 };
 
 window.ChatScreenModule={
-  version:'V21.72.32',
+  version:'V21.72.33',
   snapshot(){
     return{
       viewportMode:viewport.mode,
@@ -11476,9 +11476,9 @@ function buildProfileEditor({mode='self',account:target}={}){
   wrap.dataset.profileOverlay='';
   wrap.innerHTML=`
     <button type="button" class="shell-profile-backdrop" aria-label="Đóng"></button>
-    <section class="shell-profile-card" role="dialog" aria-modal="true" aria-label="Hồ sơ">
+    <section class="shell-profile-card" role="dialog" aria-modal="true" aria-labelledby="shell-profile-title">
       <header class="shell-profile-header">
-        <h2></h2>
+        <h2 id="shell-profile-title"></h2>
         <button type="button" class="shell-profile-close" aria-label="Đóng">×</button>
       </header>
       <form class="shell-profile-form" data-profile-form>
@@ -11487,7 +11487,7 @@ function buildProfileEditor({mode='self',account:target}={}){
           <span class="shell-profile-avatar-label">Đổi ảnh</span>
           <input type="file" accept="image/png,image/jpeg,image/webp" data-profile-avatar-file hidden>
         </label>
-        <div class="shell-profile-field"><label for="shell-profile-name">Tên</label><input id="shell-profile-name" type="text" maxlength="50" autocomplete="name" data-profile-name></div>
+        <div class="shell-profile-field"><label for="shell-profile-name">Tên hiển thị</label><input id="shell-profile-name" type="text" maxlength="50" autocomplete="name" data-profile-name></div>
         <div class="shell-profile-field"><label for="shell-profile-username">Tên đăng nhập</label><input id="shell-profile-username" type="text" maxlength="24" autocomplete="username" autocapitalize="none" spellcheck="false" inputmode="text" data-profile-username></div>
         <div class="shell-profile-field"><label for="shell-profile-password">Mật khẩu mới</label><input id="shell-profile-password" type="password" minlength="6" maxlength="128" autocomplete="new-password" data-profile-password placeholder="Để trống nếu không đổi"><button class="shell-form-password-toggle" type="button" data-password-toggle aria-controls="shell-profile-password" aria-label="Hiện mật khẩu" aria-pressed="false"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M2.75 12s3.35-5.25 9.25-5.25S21.25 12 21.25 12 17.9 17.25 12 17.25 2.75 12 2.75 12Z" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linejoin="round"/><circle cx="12" cy="12" r="2.6" fill="none" stroke="currentColor" stroke-width="1.65"/></svg></button></div>
         <p class="shell-profile-error" data-profile-error hidden></p>
@@ -11524,7 +11524,7 @@ function buildProfileEditor({mode='self',account:target}={}){
   const deleteConfirmAction=wrap.querySelector('[data-profile-delete-confirm-action]');
   const saveButton=wrap.querySelector('.shell-profile-save');
 
-  title.textContent=selfMode?'Đổi thông tin':String(model.display_name||model.username||'Người dùng');
+  title.textContent=selfMode?'Thông tin cá nhân':'Thông tin liên hệ';
   nameInput.value=String(model.display_name||'');
   usernameInput.value=String(model.username||'');
   renderAvatarNode(avatar,model,'TK');
@@ -11576,7 +11576,7 @@ function buildProfileEditor({mode='self',account:target}={}){
     const next=result?.account||null;
     if(!next)return;
     Object.assign(model,next);
-    title.textContent=selfMode?'Đổi thông tin':String(model.display_name||model.username||'Người dùng');
+    title.textContent=selfMode?'Thông tin cá nhân':'Thông tin liên hệ';
     nameInput.value=String(model.display_name||'');
     usernameInput.value=String(model.username||'');
     passwordInput.value='';
@@ -11623,7 +11623,7 @@ function buildProfileEditor({mode='self',account:target}={}){
     };
     if(!payload.displayName){
       setProfileInvalid(nameInput,true);
-      setError('Tên không được để trống');
+      setError('Tên hiển thị không được để trống');
       nameInput.focus({preventScroll:true});
       return;
     }
@@ -11742,7 +11742,7 @@ function createRenderedContactRow(item){
 
   if(authAccount?.role==='admin'&&item.role==='user'){
     const manage=document.createElement('button');
-    manage.type='button';manage.className='shell-contact-manage';manage.dataset.contactManage='';manage.dataset.contactId=String(item.id);manage.setAttribute('aria-label',`Quản lý ${title.textContent}`);manage.textContent='⋯';
+    manage.type='button';manage.className='shell-contact-manage';manage.dataset.contactManage='';manage.dataset.contactId=String(item.id);manage.setAttribute('aria-label',`Mở thông tin liên hệ ${title.textContent}`);manage.textContent='⋯';
     row.appendChild(manage);
   }
   return row;
@@ -11769,7 +11769,7 @@ function patchRenderedContact(item){
   const time=row.querySelector('.shell-contact-time');
   if(time){time.textContent=formatContactTime(item.latest_at);if(item.latest_at)time.dateTime=String(item.latest_at);else time.removeAttribute('datetime');}
   const manage=row.querySelector('[data-contact-manage]');
-  if(manage)manage.setAttribute('aria-label',`Quản lý ${String(item.display_name||item.username||'Liên hệ')}`);
+  if(manage)manage.setAttribute('aria-label',`Mở thông tin liên hệ ${String(item.display_name||item.username||'Liên hệ')}`);
   return true;
 }
 
@@ -11870,7 +11870,7 @@ const AuthUI={
       if(name)name.textContent=String(authAccount.display_name||authAccount.username||'Tài khoản');
       if(handle)handle.textContent=authAccount.username?`@${String(authAccount.username).replace(/^@/,'')}`:'';
       renderAvatarNode(avatar,authAccount,'TK');
-      for(const selfButton of selfButtons){selfButton.disabled=false;selfButton.setAttribute('aria-label','Đổi thông tin tài khoản');}
+      for(const selfButton of selfButtons){selfButton.disabled=false;selfButton.setAttribute('aria-label','Mở thông tin cá nhân');}
       if(action)action.dataset.authCommand='logout';
       if(actionLabel)actionLabel.textContent='Đăng xuất';
     }else{
@@ -12139,7 +12139,7 @@ AuthUI.renderAccountFooter();
 syncDesktopSidebarMode();
 
 window.ChatAppShell={
-  version:'V21.72.32',
+  version:'V21.72.33',
   NavigationCommand,
   CallCommand,
   AuthUI,
@@ -12173,7 +12173,7 @@ window.ChatAppShell={
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.32';
+const RELEASE_VERSION='V21.72.33';
 const MODULE_CONTRACT_VERSION='call-screen-wake-lock-v1';
 
 let callActive=false;
@@ -12279,7 +12279,7 @@ window.V21CallScreenWakeLock=Object.freeze({
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.32';
+const RELEASE_VERSION='V21.72.33';
 const MODULE_CONTRACT_VERSION='shell-form-viewport-v3';
 const KEYBOARD_THRESHOLD_PX=80;
 const EDGE_PX=12;
@@ -12507,7 +12507,7 @@ window.V21ShellFormViewportPolicy=Object.freeze({
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.32';
+const RELEASE_VERSION='V21.72.33';
 const MODULE_CONTRACT_VERSION='auth-session-v21.72.5';
 const SUPABASE_URL='https://gcnoahqsrquxkwkjbuxy.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_UY3gfQ9MsntDFCUJ_uV0UA__eTYXz_w';
@@ -16625,7 +16625,7 @@ queueMicrotask(()=>{if(authenticated())void start();else emitPresence();});
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.32';
+const RELEASE_VERSION='V21.72.33';
 const MODULE_CONTRACT_VERSION='app-update-v1';
 const CHECK_INTERVAL_MS=45000;
 const DEFER_RECHECK_MS=2500;
