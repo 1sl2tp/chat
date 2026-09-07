@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.35">
+<meta name="app-release-version" content="V21.72.36">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -15,7 +15,7 @@
 <meta name="chat-call-preview-only" content="true">
 <meta name="chat-v21-session-runtime" content="v21-only">
 <meta name="chat-v21-contact-runtime" content="v21-only">
-<title>Chat Screen Module V21.72.35</title>
+<title>Chat Screen Module V21.72.36</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style data-inlined-source="reference/chatgpt/full-source/chatgpt-core-exact.css">
 /* ChatGPT exact core extraction.
@@ -430,6 +430,24 @@ button{
   justify-content:flex-start;
 }
 
+/* Sender surfaces are intentionally asymmetric:
+   outgoing text/link/reply uses a soft bubble; incoming stays on canvas.
+   File/audio/image keep their own media containers and receive no outer bubble. */
+.user-message-unit>.message-text{
+  background:var(--theme-surface-secondary);
+  border:0;
+  border-radius:22px;
+  box-shadow:none;
+  padding:9px 13px;
+}
+.assistant-message-unit>.message-text{
+  background:transparent!important;
+  border:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  padding:0!important;
+}
+
 /* Desktop hover owner is the actual message unit, not the full-width row. */
 .message-unit:hover .message-action-group,
 .message-unit:focus-within .message-action-group,
@@ -537,7 +555,6 @@ button{
 }
 .assistant-message-unit>.message-text{
   min-height:0;
-  padding-block:0;
 }
 /* Text + media inside one message uses the same rhythm family. */
 .message-unit>.message-text:not([hidden]) + [data-message-media-root="true"]{
@@ -1048,7 +1065,7 @@ button{
 }
 .audio-preview-card audio,.audio-message-card audio{display:none;}
 
-/* V21.72.35 — image presentation owner.
+/* V21.72.36 — image presentation owner.
    Single images keep the full source via contain inside a normalized envelope.
    Gallery tiles intentionally use cover so mixed portrait/landscape sources form one balanced unit. */
 .media-image-tile[data-image-presentation]{
@@ -3030,7 +3047,7 @@ button{
 <div id="runtimeError" class="hidden fixed z-[9999] left-2 right-2 top-2 rounded-xl bg-red-600 text-white text-xs px-3 py-2 shadow-lg"></div>
 
 <!-- V21.69.9 unified runtime marker. Earlier V21.20/V21.64 labels below are provenance for inherited geometry/style contracts only, not separate live runtimes. -->
-<div id="appShell" data-app-shell data-chat-screen-version="V21.72.35" data-app-shell-version="V21.72.35" data-auth-state="booting" data-default-route="chat" data-route="chat">
+<div id="appShell" data-app-shell data-chat-screen-version="V21.72.36" data-app-shell-version="V21.72.36" data-auth-state="booting" data-default-route="chat" data-route="chat">
   <div id="screenHost" data-screen-host>
     <div id="activeScreenSlot" data-active-screen-slot>
       <section id="chatScreen" class="app-screen" data-screen="chat">
@@ -3965,7 +3982,7 @@ window.V21RuntimeId=Object.freeze({version:VERSION,create:createRuntimeId});
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.35';
+const RELEASE_VERSION='V21.72.36';
 const MODULE_CONTRACT_VERSION='audio-capture-v1';
 const DEVICE_KEY='taphoa.v21.audio.inputDeviceId';
 const BASE=Object.freeze({
@@ -4592,9 +4609,9 @@ const AppBootController={
 
     this.phase='ERROR';
     modeLabel.textContent='ERROR';
-    runtimeError.textContent='V21.72.35 runtime: '+message;
+    runtimeError.textContent='V21.72.36 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.35]',error);
+    console.error('[ChatScreenModule V21.72.36]',error);
   },
   ready(){
     this.phase='READY';
@@ -4653,7 +4670,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.35 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.36 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -4707,7 +4724,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.35',
+  releaseVersion:'V21.72.36',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -7331,9 +7348,10 @@ function createActionGroup(message){
   group.setAttribute('role','group');
 
   const resolveMessage=()=>group.__message||message;
+  const actions=[];
 
   if(canReplyToMessage(message)){
-    group.appendChild(makeActionButton({
+    actions.push(makeActionButton({
       label:'Trả lời',
       icon:'reply',
       onClick:event=>{
@@ -7355,9 +7373,9 @@ function createActionGroup(message){
         closeAllTurnActions();
       }
     });
-    group.appendChild(copy);
+    actions.push(copy);
   }else if(kind==='image'||kind==='file'){
-    group.appendChild(makeActionButton({
+    actions.push(makeActionButton({
       label:'Lưu',
       icon:'save',
       onClick:event=>{
@@ -7366,7 +7384,7 @@ function createActionGroup(message){
       }
     }));
     if(canNativeShareFiles()){
-      group.appendChild(makeActionButton({
+      actions.push(makeActionButton({
         label:'Chia sẻ',
         icon:'share',
         onClick:event=>{
@@ -7376,6 +7394,12 @@ function createActionGroup(message){
       }));
     }
   }
+
+  // Action order is defined from the outgoing outer edge toward content.
+  // Incoming is the exact mirror so the same "near-content" action remains
+  // adjacent to the message instead of reusing one global left-to-right order.
+  const orderedActions=isSelf?actions:[...actions].reverse();
+  group.append(...orderedActions);
 
   return group;
 }
@@ -10807,7 +10831,7 @@ window.V21ConversationBridge={
 };
 
 window.ChatScreenModule={
-  version:'V21.72.35',
+  version:'V21.72.36',
   snapshot(){
     return{
       viewportMode:viewport.mode,
@@ -12298,7 +12322,7 @@ AuthUI.renderAccountFooter();
 syncDesktopSidebarMode();
 
 window.ChatAppShell={
-  version:'V21.72.35',
+  version:'V21.72.36',
   NavigationCommand,
   CallCommand,
   AuthUI,
@@ -12332,7 +12356,7 @@ window.ChatAppShell={
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.35';
+const RELEASE_VERSION='V21.72.36';
 const MODULE_CONTRACT_VERSION='call-screen-wake-lock-v1';
 
 let callActive=false;
@@ -12438,7 +12462,7 @@ window.V21CallScreenWakeLock=Object.freeze({
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.35';
+const RELEASE_VERSION='V21.72.36';
 const MODULE_CONTRACT_VERSION='shell-form-viewport-v3';
 const KEYBOARD_THRESHOLD_PX=80;
 const EDGE_PX=12;
@@ -12666,7 +12690,7 @@ window.V21ShellFormViewportPolicy=Object.freeze({
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.35';
+const RELEASE_VERSION='V21.72.36';
 const MODULE_CONTRACT_VERSION='auth-session-v21.72.5';
 const SUPABASE_URL='https://gcnoahqsrquxkwkjbuxy.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_UY3gfQ9MsntDFCUJ_uV0UA__eTYXz_w';
@@ -16784,7 +16808,7 @@ queueMicrotask(()=>{if(authenticated())void start();else emitPresence();});
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.35';
+const RELEASE_VERSION='V21.72.36';
 const MODULE_CONTRACT_VERSION='app-update-v1';
 const CHECK_INTERVAL_MS=45000;
 const DEFER_RECHECK_MS=2500;
