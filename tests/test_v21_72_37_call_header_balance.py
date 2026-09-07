@@ -17,7 +17,7 @@ assert "Nhấn Nghe để trả lời" not in shell
 
 # Every live call control shares one 40px visual height.
 start=source.index('.call-focus-slot:not([data-call-ui-state="idle"]){')
-end=source.index('.call-status-chip{',start)
+end=source.index('.call-status-chip{\n  --call-chip-fg',start)
 non_idle=source[start:end]
 assert "height:40px;" in non_idle
 assert '.call-focus-button,' in non_idle
