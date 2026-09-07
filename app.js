@@ -403,9 +403,9 @@ const AppBootController={
 
     this.phase='ERROR';
     modeLabel.textContent='ERROR';
-    runtimeError.textContent='V21.72.24 runtime: '+message;
+    runtimeError.textContent='V21.72.25 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.24]',error);
+    console.error('[ChatScreenModule V21.72.25]',error);
   },
   ready(){
     this.phase='READY';
@@ -464,7 +464,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.24 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.25 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -518,7 +518,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.24',
+  releaseVersion:'V21.72.25',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -3341,6 +3341,7 @@ function patchMessageIdentity(node,message){
   node.dataset.id=nextId;
   node.dataset.renderKey=stableMessageDomKey(message);
   node.dataset.turn=message.sender==='self'?'user':'assistant';
+  node.dataset.hasMedia=message.media?'true':'false';
 
   if(previousId&&nextId&&previousId!==nextId&&heightCache.has(previousId)){
     if(!heightCache.has(nextId))heightCache.set(nextId,heightCache.get(previousId));
@@ -3387,7 +3388,7 @@ function patchMessageNode(node,message){
   text.className='message-text whitespace-pre-wrap break-words'+(
     message.sender==='self'
       ?' cgpt-source-user-visual'
-      :' cgpt-source-assistant-visual min-h-8 py-1'
+      :' cgpt-source-assistant-visual'
   );
   text.replaceChildren();
   const replyQuote=createReplyQuote(message.replyTo);
@@ -3449,6 +3450,7 @@ function renderMessageNode(message){
     message.sender==='self'
       ?'user'
       :'assistant';
+  turn.dataset.hasMedia=message.media?'true':'false';
   turn.__message=message;
 
   const outer=document.createElement('div');
@@ -3475,7 +3477,7 @@ function renderMessageNode(message){
   if(message.sender==='self'){
     text.className+=' cgpt-source-user-visual';
   }else{
-    text.className+=' cgpt-source-assistant-visual min-h-8 py-1';
+    text.className+=' cgpt-source-assistant-visual';
   }
   const replyQuote=createReplyQuote(message.replyTo);
   if(replyQuote)text.appendChild(replyQuote);
@@ -6386,7 +6388,7 @@ window.V21ConversationBridge={
 };
 
 window.ChatScreenModule={
-  version:'V21.72.24',
+  version:'V21.72.25',
   snapshot(){
     return{
       viewportMode:viewport.mode,
