@@ -3,7 +3,7 @@ import hashlib, json, subprocess, sys
 ROOT=Path(__file__).resolve().parents[1]
 version=json.loads((ROOT/'version.json').read_text('utf-8'))
 release=str(version.get('version') or '')
-assert release=='V21.72.28', release
+assert release=='V21.72.29', release
 committed=(ROOT/'index.html').read_bytes()
 subprocess.run([sys.executable,str(ROOT/'tools'/'build_current_preview.py')],check=True,cwd=ROOT)
 generated=(ROOT/'index.html').read_bytes()
@@ -33,5 +33,6 @@ subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_19_profile_username
 subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_24_conversation_content_axis.py')],check=True,cwd=ROOT)
 subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_27_reply_visual_contract.py')],check=True,cwd=ROOT)
 subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_28_image_presentation_owner.py')],check=True,cwd=ROOT)
+subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_29_link_file_presentation.py')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_v21_72_20_call_screen_wake_lock.js')],check=True,cwd=ROOT)
-print(f'V21.72.28 canonical source verify PASS sha256={sha}')
+print(f'V21.72.29 canonical source verify PASS sha256={sha}')
