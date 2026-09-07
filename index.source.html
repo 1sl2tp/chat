@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.34">
+<meta name="app-release-version" content="V21.72.35">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -15,7 +15,7 @@
 <meta name="chat-call-preview-only" content="true">
 <meta name="chat-v21-session-runtime" content="v21-only">
 <meta name="chat-v21-contact-runtime" content="v21-only">
-<title>Chat Screen Module V21.72.34</title>
+<title>Chat Screen Module V21.72.35</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="./reference/chatgpt/full-source/chatgpt-core-exact.css" data-build-source="reference/chatgpt/full-source/chatgpt-core-exact.css">
 <link rel="stylesheet" href="./reference/chatgpt/chatgpt-token-aliases.css" data-build-source="reference/chatgpt/chatgpt-token-aliases.css">
@@ -856,7 +856,7 @@ button{
 }
 .audio-preview-card audio,.audio-message-card audio{display:none;}
 
-/* V21.72.34 — image presentation owner.
+/* V21.72.35 — image presentation owner.
    Single images keep the full source via contain inside a normalized envelope.
    Gallery tiles intentionally use cover so mixed portrait/landscape sources form one balanced unit. */
 .media-image-tile[data-image-presentation]{
@@ -1420,7 +1420,7 @@ button{
   height:0;
   margin-bottom:0;
   flex:0 0 auto;
-  transition:height 140ms ease,margin-bottom 140ms ease;
+  transition:none;
 }
 #stageLayout[data-scroll-from-end] #threadScrollControlWrap{
   height:44px;
@@ -1436,8 +1436,8 @@ button{
   opacity:0;
   pointer-events:none;
   transition:
-    transform 100ms ease,
-    opacity 100ms ease;
+    transform 90ms ease,
+    opacity 90ms ease;
 }
 
 #stageLayout[data-scroll-from-end] #threadScrollControlMotion{
@@ -1445,8 +1445,8 @@ button{
   opacity:1;
   pointer-events:auto;
   transition:
-    transform 300ms ease 300ms,
-    opacity 300ms ease 300ms;
+    transform 120ms ease,
+    opacity 120ms ease;
 }
 
 .thread-scroll-control-button{
@@ -2838,7 +2838,7 @@ button{
 <div id="runtimeError" class="hidden fixed z-[9999] left-2 right-2 top-2 rounded-xl bg-red-600 text-white text-xs px-3 py-2 shadow-lg"></div>
 
 <!-- V21.69.9 unified runtime marker. Earlier V21.20/V21.64 labels below are provenance for inherited geometry/style contracts only, not separate live runtimes. -->
-<div id="appShell" data-app-shell data-chat-screen-version="V21.72.34" data-app-shell-version="V21.72.34" data-auth-state="booting" data-default-route="chat" data-route="chat">
+<div id="appShell" data-app-shell data-chat-screen-version="V21.72.35" data-app-shell-version="V21.72.35" data-auth-state="booting" data-default-route="chat" data-route="chat">
   <div id="screenHost" data-screen-host>
     <div id="activeScreenSlot" data-active-screen-slot>
       <section id="chatScreen" class="app-screen" data-screen="chat">
