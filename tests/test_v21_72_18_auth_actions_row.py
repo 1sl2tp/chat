@@ -5,7 +5,7 @@ source=(ROOT/'index.source.html').read_text('utf-8')
 shell=(ROOT/'shell.js').read_text('utf-8')
 sw=(ROOT/'sw.js').read_text('utf-8')
 
-assert 'V21.72.35' in source
+assert 'V21.72.36' in source
 assert '.guest-auth-form{' in source
 auth_form=source[source.index('.guest-auth-form{'):source.index('.guest-auth-control{')]
 assert 'grid-template-columns:minmax(0,1fr)' in auth_form
@@ -28,8 +28,8 @@ assert '>đăng ký</span>' in source
 assert 'setPasswordVisibility' in shell
 assert 'shouldAutoFocusShellForm' in shell
 
-assert "RELEASE_VERSION='V21.72.35'" in sw
+assert "RELEASE_VERSION='V21.72.36'" in sw
 assert "MODULE_CONTRACT_VERSION='pwa-sw-v1'" in sw
 assert "CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION" in sw
 
-print('V21.72.35 auth single-action form / PWA SW release contract PASS')
+print('V21.72.36 auth single-action form / PWA SW release contract PASS')
