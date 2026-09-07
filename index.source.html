@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.29">
+<meta name="app-release-version" content="V21.72.30">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -15,7 +15,7 @@
 <meta name="chat-call-preview-only" content="true">
 <meta name="chat-v21-session-runtime" content="v21-only">
 <meta name="chat-v21-contact-runtime" content="v21-only">
-<title>Chat Screen Module V21.72.29</title>
+<title>Chat Screen Module V21.72.30</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="./reference/chatgpt/full-source/chatgpt-core-exact.css" data-build-source="reference/chatgpt/full-source/chatgpt-core-exact.css">
 <link rel="stylesheet" href="./reference/chatgpt/chatgpt-token-aliases.css" data-build-source="reference/chatgpt/chatgpt-token-aliases.css">
@@ -327,6 +327,15 @@ button{
   overflow-wrap:anywhere;
   word-break:break-word;
   -webkit-tap-highlight-color:transparent;
+}
+.message-link[data-link-long="true"]{
+  display:-webkit-box;
+  width:fit-content;
+  max-width:100%;
+  overflow:hidden;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:2;
+  line-clamp:2;
 }
 .message-link:hover{text-decoration:underline}
 .message-link:focus-visible{
@@ -847,7 +856,7 @@ button{
 }
 .audio-preview-card audio,.audio-message-card audio{display:none;}
 
-/* V21.72.29 — image presentation owner.
+/* V21.72.30 — image presentation owner.
    Single images keep the full source via contain inside a normalized envelope.
    Gallery tiles intentionally use cover so mixed portrait/landscape sources form one balanced unit. */
 .media-image-tile[data-image-presentation]{
@@ -1406,14 +1415,22 @@ button{
   overflow-wrap:break-word;
   box-sizing:border-box;
 }
+#threadScrollControlWrap{
+  width:44px;
+  height:0;
+  margin-bottom:0;
+  flex:0 0 auto;
+  transition:height 140ms ease,margin-bottom 140ms ease;
+}
+#stageLayout[data-scroll-from-end] #threadScrollControlWrap{
+  height:44px;
+  margin-bottom:4px;
+}
 #threadScrollControlMotion{
   position:absolute;
   left:50%;
-  bottom:calc(
-    100% +
-    12px +
-    var(--thread-scroll-to-bottom-banner-offset,0px)
-  );
+  top:6px;
+  bottom:auto;
   z-index:10;
   transform:translateX(-50%) scale(.5) translateY(8px);
   opacity:0;
@@ -1537,11 +1554,8 @@ button{
 /* When scroll + typing are both visible, keep typing closest to Composer and
    move the scroll button one level upward. */
 #stageLayout[data-scroll-from-end][data-stream-active] #threadScrollControlMotion{
-  bottom:calc(
-    100% +
-    52px +
-    var(--thread-scroll-to-bottom-banner-offset,0px)
-  );
+  top:6px;
+  bottom:auto;
 }
 
 
@@ -1779,6 +1793,26 @@ button{
   justify-content:flex-end;
   align-items:center;
   gap:8px;
+}
+.call-focus-slot:not([data-call-ui-state="idle"]){
+  max-width:min(52vw,286px);
+  gap:6px;
+}
+.call-focus-slot:not([data-call-ui-state="idle"]) .call-status-chip{
+  height:40px;
+  max-width:148px;
+  padding-inline:10px;
+  gap:6px;
+}
+.call-focus-slot:not([data-call-ui-state="idle"]) .call-focus-button[data-display="cancel"]{
+  width:64px;
+  height:40px;
+  padding-inline:10px;
+}
+.call-focus-slot:not([data-call-ui-state="idle"]) .call-focus-button[data-display="end"]{
+  width:84px;
+  height:40px;
+  padding-inline:11px;
 }
 .call-status-chip{
   --call-chip-fg:#17653f;
@@ -2804,7 +2838,7 @@ button{
 <div id="runtimeError" class="hidden fixed z-[9999] left-2 right-2 top-2 rounded-xl bg-red-600 text-white text-xs px-3 py-2 shadow-lg"></div>
 
 <!-- V21.69.9 unified runtime marker. Earlier V21.20/V21.64 labels below are provenance for inherited geometry/style contracts only, not separate live runtimes. -->
-<div id="appShell" data-app-shell data-chat-screen-version="V21.72.29" data-app-shell-version="V21.72.29" data-auth-state="booting" data-default-route="chat" data-route="chat">
+<div id="appShell" data-app-shell data-chat-screen-version="V21.72.30" data-app-shell-version="V21.72.30" data-auth-state="booting" data-default-route="chat" data-route="chat">
   <div id="screenHost" data-screen-host>
     <div id="activeScreenSlot" data-active-screen-slot>
       <section id="chatScreen" class="app-screen" data-screen="chat">
