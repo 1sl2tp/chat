@@ -54,7 +54,7 @@ assert "updateScrollFromEndControl();" in settle
 
 # CSS is a hard guard: stale data-scroll-from-end cannot reserve a lane or overlap Composer.
 assert '#stageLayout[data-contact-switching="true"] #threadScrollControlWrap{' in source
-gate_css=source[source.index('#stageLayout[data-contact-switching="true"] #threadScrollControlWrap{'):source.index('#threadScrollControlMotion{',source.index('#stageLayout[data-contact-switching="true"] #threadScrollControlWrap{'))]
+gate_css=source[source.index('#stageLayout[data-contact-switching="true"] #threadScrollControlWrap{'):source.index('\n#threadScrollControlMotion{',source.index('#stageLayout[data-contact-switching="true"] #threadScrollControlWrap{'))]
 assert "height:0!important;" in gate_css
 assert "margin-bottom:0!important;" in gate_css
 assert "opacity:0!important;" in gate_css
