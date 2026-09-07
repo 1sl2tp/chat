@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.24">
+<meta name="app-release-version" content="V21.72.25">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -15,7 +15,7 @@
 <meta name="chat-call-preview-only" content="true">
 <meta name="chat-v21-session-runtime" content="v21-only">
 <meta name="chat-v21-contact-runtime" content="v21-only">
-<title>Chat Screen Module V21.72.24</title>
+<title>Chat Screen Module V21.72.25</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="./reference/chatgpt/full-source/chatgpt-core-exact.css" data-build-source="reference/chatgpt/full-source/chatgpt-core-exact.css">
 <link rel="stylesheet" href="./reference/chatgpt/chatgpt-token-aliases.css" data-build-source="reference/chatgpt/chatgpt-token-aliases.css">
@@ -261,21 +261,43 @@ button{
   min-width:0;
 }
 #messageWindow{
-  padding-block:12px;
+  padding-block:14px 18px;
 }
 #messageWindow>.message-row{
   margin:0;
 }
 #messageWindow>.message-row+.message-row{
+  margin-top:8px;
+}
+#messageWindow>.message-row[data-turn="user"]+.message-row[data-turn="user"],
+#messageWindow>.message-row[data-turn="assistant"]+.message-row[data-turn="assistant"]{
+  margin-top:6px;
+}
+#messageWindow>.message-row[data-has-media="true"]+.message-row[data-turn="user"],
+#messageWindow>.message-row[data-has-media="true"]+.message-row[data-turn="assistant"],
+#messageWindow>.message-row[data-turn="user"]+.message-row[data-has-media="true"],
+#messageWindow>.message-row[data-turn="assistant"]+.message-row[data-has-media="true"]{
   margin-top:10px;
 }
 #messageWindow>.message-row[data-turn="user"]+.message-row[data-turn="assistant"],
 #messageWindow>.message-row[data-turn="assistant"]+.message-row[data-turn="user"]{
-  margin-top:16px;
+  margin-top:14px;
+}
+.message-body{
+  font-size:1rem;
+  line-height:1.5rem;
+}
+.assistant-message-unit>.message-text{
+  min-height:0;
+  padding-block:0;
 }
 @media(max-width:520px){
-  #messageWindow{padding-block:10px}
-  #messageWindow>.message-row+.message-row{margin-top:8px}
+  #messageWindow{padding-block:10px 14px}
+  #messageWindow>.message-row+.message-row{margin-top:6px}
+  #messageWindow>.message-row[data-has-media="true"]+.message-row[data-turn="user"],
+  #messageWindow>.message-row[data-has-media="true"]+.message-row[data-turn="assistant"],
+  #messageWindow>.message-row[data-turn="user"]+.message-row[data-has-media="true"],
+  #messageWindow>.message-row[data-turn="assistant"]+.message-row[data-has-media="true"]{margin-top:8px}
   #messageWindow>.message-row[data-turn="user"]+.message-row[data-turn="assistant"],
   #messageWindow>.message-row[data-turn="assistant"]+.message-row[data-turn="user"]{margin-top:12px}
 }
@@ -1453,8 +1475,9 @@ button{
   width:100%;
   min-width:0;
   --chat-content-max-width:48rem;
-  --conversation-content-max-width:44rem;
+  --conversation-content-max-width:48rem;
   --chat-content-gutter:12px;
+  --conversation-content-gutter:12px;
 }
 #appShell .chat-content-axis{
   box-sizing:border-box;
@@ -1469,7 +1492,7 @@ button{
   max-width:var(--conversation-content-max-width);
   min-width:0;
   margin-inline:auto;
-  padding-inline:var(--chat-content-gutter);
+  padding-inline:var(--conversation-content-gutter);
 }
 #conversationContentAxis>#historyStatus,
 #conversationContentAxis>#topSpacer,
@@ -1479,8 +1502,21 @@ button{
   min-width:0;
   box-sizing:border-box;
 }
-@media (max-width:319px){#appShell{--chat-content-gutter:8px;}}
-@media (min-width:640px){#appShell{--chat-content-gutter:16px;}}
+@media (max-width:319px){
+  #appShell{
+    --chat-content-gutter:8px;
+    --conversation-content-gutter:8px;
+  }
+}
+@media (min-width:640px){
+  #appShell{
+    --chat-content-gutter:16px;
+    --conversation-content-gutter:20px;
+  }
+}
+@media (min-width:900px){
+  #appShell{--conversation-content-gutter:24px;}
+}
 #screenHost,
 #activeScreenSlot,
 .app-screen{
@@ -2662,7 +2698,7 @@ button{
 <div id="runtimeError" class="hidden fixed z-[9999] left-2 right-2 top-2 rounded-xl bg-red-600 text-white text-xs px-3 py-2 shadow-lg"></div>
 
 <!-- V21.69.9 unified runtime marker. Earlier V21.20/V21.64 labels below are provenance for inherited geometry/style contracts only, not separate live runtimes. -->
-<div id="appShell" data-app-shell data-chat-screen-version="V21.72.24" data-app-shell-version="V21.72.24" data-auth-state="booting" data-default-route="chat" data-route="chat">
+<div id="appShell" data-app-shell data-chat-screen-version="V21.72.25" data-app-shell-version="V21.72.25" data-auth-state="booting" data-default-route="chat" data-route="chat">
   <div id="screenHost" data-screen-host>
     <div id="activeScreenSlot" data-active-screen-slot>
       <section id="chatScreen" class="app-screen" data-screen="chat">
