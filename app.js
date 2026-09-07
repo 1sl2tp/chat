@@ -403,9 +403,9 @@ const AppBootController={
 
     this.phase='ERROR';
     modeLabel.textContent='ERROR';
-    runtimeError.textContent='V21.72.23 runtime: '+message;
+    runtimeError.textContent='V21.72.24 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.23]',error);
+    console.error('[ChatScreenModule V21.72.24]',error);
   },
   ready(){
     this.phase='READY';
@@ -464,7 +464,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.23 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.24 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -518,7 +518,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.23',
+  releaseVersion:'V21.72.24',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -3367,10 +3367,7 @@ function patchMessageNode(node,message){
   const unit=messageWrap?.firstElementChild;
   if(!outer||!messageWrap||!unit)return node;
 
-  outer.className=
-    message.sender==='self'
-      ?'chat-content-axis pt-3'
-      :'assistant-turn-shell chat-content-axis';
+  outer.className='message-turn-shell';
   messageWrap.className=
     message.sender==='self'
       ?'flex w-full justify-end'
@@ -3455,10 +3452,7 @@ function renderMessageNode(message){
   turn.__message=message;
 
   const outer=document.createElement('div');
-  outer.className=
-    message.sender==='self'
-      ?'chat-content-axis pt-3'
-      :'assistant-turn-shell chat-content-axis';
+  outer.className='message-turn-shell';
 
   const stack=document.createElement('div');
   stack.className='flex w-full flex-col';
@@ -6392,7 +6386,7 @@ window.V21ConversationBridge={
 };
 
 window.ChatScreenModule={
-  version:'V21.72.23',
+  version:'V21.72.24',
   snapshot(){
     return{
       viewportMode:viewport.mode,
