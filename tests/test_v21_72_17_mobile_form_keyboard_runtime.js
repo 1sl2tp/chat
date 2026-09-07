@@ -103,4 +103,4 @@ assert.notStrictEqual(overlay.dataset.mobileKeyboard,'true');
 assert.notStrictEqual(auth.dataset.mobileKeyboard,'true');
 assert.strictEqual(overlay.style.getPropertyValue('--shell-form-vv-height'),'700px');
 
-console.log('V21.72.34 visual viewport form keyboard runtime PASS');
+console.log('V21.72.35 visual viewport form keyboard runtime PASS');
