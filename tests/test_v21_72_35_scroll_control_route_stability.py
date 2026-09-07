@@ -10,7 +10,7 @@ app=read("app.js")
 shell=read("shell.js")
 source=read("index.source.html")
 
-assert "V21.72.36" in source
+assert "V21.72.37" in source
 
 # Scroll-control lane changes geometry instantly; only the button itself animates.
 wrap=source[source.index("#threadScrollControlWrap{"):source.index("#threadScrollControlMotion{")]
@@ -57,4 +57,4 @@ assert "if(snapshot?.mode===VIEWPORT_STATES.FOLLOW_TAIL)" in app
 assert "if(snapshot.anchor)restoreAnchor(snapshot.anchor);" in app
 assert "routeGeometrySuspended=false;" in app
 
-print("V21.72.36 scroll-control/route stability contract PASS")
+print("V21.72.37 scroll-control/route stability contract PASS")
