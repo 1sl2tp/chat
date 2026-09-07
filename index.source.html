@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.27">
+<meta name="app-release-version" content="V21.72.28">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -15,7 +15,7 @@
 <meta name="chat-call-preview-only" content="true">
 <meta name="chat-v21-session-runtime" content="v21-only">
 <meta name="chat-v21-contact-runtime" content="v21-only">
-<title>Chat Screen Module V21.72.27</title>
+<title>Chat Screen Module V21.72.28</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="./reference/chatgpt/full-source/chatgpt-core-exact.css" data-build-source="reference/chatgpt/full-source/chatgpt-core-exact.css">
 <link rel="stylesheet" href="./reference/chatgpt/chatgpt-token-aliases.css" data-build-source="reference/chatgpt/chatgpt-token-aliases.css">
@@ -828,6 +828,48 @@ button{
   background:var(--theme-content-primary);color:var(--theme-surface-primary);font-size:.85rem;
 }
 .audio-preview-card audio,.audio-message-card audio{display:none;}
+
+/* V21.72.28 — image presentation owner.
+   Single images keep the full source via contain inside a normalized envelope.
+   Gallery tiles intentionally use cover so mixed portrait/landscape sources form one balanced unit. */
+.media-image-tile[data-image-presentation]{
+  display:block;
+  max-width:100%;
+  border-radius:14px;
+  overflow:hidden;
+  background:transparent;
+}
+.media-image-tile[data-image-presentation] > img{
+  width:100%!important;
+  height:100%!important;
+  display:block;
+  object-fit:contain!important;
+  object-position:center!important;
+}
+.media-gallery-grid{
+  width:min(25rem,100%)!important;
+  max-width:100%;
+  gap:4px!important;
+  border-radius:14px!important;
+  overflow:hidden;
+}
+.media-gallery-grid .media-image-tile{
+  min-width:0;
+  min-height:0;
+  border-radius:0;
+}
+.media-gallery-grid .media-image-tile > img{
+  width:100%!important;
+  height:100%!important;
+  object-fit:cover!important;
+  object-position:center!important;
+}
+@media(max-width:520px){
+  .media-image-tile[data-image-presentation="portrait"]{width:min(16rem,100%)!important}
+  .media-image-tile[data-image-presentation="square"]{width:min(20rem,100%)!important}
+  .media-image-tile[data-image-presentation="landscape"]{width:min(25rem,100%)!important}
+  .media-gallery-grid{width:min(25rem,100%)!important}
+}
 
 /* V21.70 — audio visual hierarchy follows the existing grayscale chat language.
    Remote stays neutral/outlined; self uses the same subtle user-message surface. */
@@ -2744,7 +2786,7 @@ button{
 <div id="runtimeError" class="hidden fixed z-[9999] left-2 right-2 top-2 rounded-xl bg-red-600 text-white text-xs px-3 py-2 shadow-lg"></div>
 
 <!-- V21.69.9 unified runtime marker. Earlier V21.20/V21.64 labels below are provenance for inherited geometry/style contracts only, not separate live runtimes. -->
-<div id="appShell" data-app-shell data-chat-screen-version="V21.72.27" data-app-shell-version="V21.72.27" data-auth-state="booting" data-default-route="chat" data-route="chat">
+<div id="appShell" data-app-shell data-chat-screen-version="V21.72.28" data-app-shell-version="V21.72.28" data-auth-state="booting" data-default-route="chat" data-route="chat">
   <div id="screenHost" data-screen-host>
     <div id="activeScreenSlot" data-active-screen-slot>
       <section id="chatScreen" class="app-screen" data-screen="chat">
