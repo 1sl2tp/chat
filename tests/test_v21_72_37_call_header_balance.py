@@ -9,7 +9,7 @@ def read(path):
 source=read("index.source.html")
 shell=read("shell.js")
 
-assert "V21.72.38" in source
+assert "V21.72.39" in source
 
 # Incoming call stays one line; actions already communicate what to do.
 assert "state:'incoming',title:'Cuộc gọi đến',subtitle:'',timer:''" in shell
@@ -48,4 +48,4 @@ assert "height:14px;" in status
 assert "font-size:13px;" in status
 assert "font-size:12.5px;" in status
 
-print("V21.72.38 call header balance contract PASS")
+print("V21.72.39 call header balance contract PASS")

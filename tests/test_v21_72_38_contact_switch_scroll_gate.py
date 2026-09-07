@@ -10,7 +10,7 @@ app=read("app.js")
 sync=read("v21-sync-engine.js")
 source=read("index.source.html")
 
-assert "V21.72.38" in source
+assert "V21.72.39" in source
 
 # Conversation Root publishes a switch gate before stashing/rendering the old view.
 open_start=sync.index("async function openContact(contactId)")
@@ -61,4 +61,4 @@ assert "opacity:0!important;" in gate_css
 assert "pointer-events:none!important;" in gate_css
 assert "transition:none!important;" in gate_css
 
-print("V21.72.38 contact-switch scroll gate contract PASS")
+print("V21.72.39 contact-switch scroll gate contract PASS")
