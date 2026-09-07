@@ -16,7 +16,8 @@ assert "invalid_username" in shell or "Tên đăng nhập" in shell
 
 assert 'data-password-toggle' in shell
 assert 'shell-profile-field' in shell
-assert "selfMode?'Đổi thông tin'" in shell
+assert '>Tên hiển thị</label>' in shell
+assert "selfMode?'Thông tin cá nhân':'Thông tin liên hệ'" in shell
 assert 'setProfileInvalid' in shell
 assert 'clearProfileValidation' in shell
 assert 'markProfileResultError' in shell
@@ -100,4 +101,4 @@ for token in [
 ]:
     assert token in admin_edge, token
 
-print('V21.72.32 profile username/avatar contract PASS')
+print('V21.72.33 profile username/avatar contract PASS')
