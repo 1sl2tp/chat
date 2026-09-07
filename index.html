@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.33">
+<meta name="app-release-version" content="V21.72.34">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -15,7 +15,7 @@
 <meta name="chat-call-preview-only" content="true">
 <meta name="chat-v21-session-runtime" content="v21-only">
 <meta name="chat-v21-contact-runtime" content="v21-only">
-<title>Chat Screen Module V21.72.33</title>
+<title>Chat Screen Module V21.72.34</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style data-inlined-source="reference/chatgpt/full-source/chatgpt-core-exact.css">
 /* ChatGPT exact core extraction.
@@ -1048,7 +1048,7 @@ button{
 }
 .audio-preview-card audio,.audio-message-card audio{display:none;}
 
-/* V21.72.33 — image presentation owner.
+/* V21.72.34 — image presentation owner.
    Single images keep the full source via contain inside a normalized envelope.
    Gallery tiles intentionally use cover so mixed portrait/landscape sources form one balanced unit. */
 .media-image-tile[data-image-presentation]{
@@ -3030,7 +3030,7 @@ button{
 <div id="runtimeError" class="hidden fixed z-[9999] left-2 right-2 top-2 rounded-xl bg-red-600 text-white text-xs px-3 py-2 shadow-lg"></div>
 
 <!-- V21.69.9 unified runtime marker. Earlier V21.20/V21.64 labels below are provenance for inherited geometry/style contracts only, not separate live runtimes. -->
-<div id="appShell" data-app-shell data-chat-screen-version="V21.72.33" data-app-shell-version="V21.72.33" data-auth-state="booting" data-default-route="chat" data-route="chat">
+<div id="appShell" data-app-shell data-chat-screen-version="V21.72.34" data-app-shell-version="V21.72.34" data-auth-state="booting" data-default-route="chat" data-route="chat">
   <div id="screenHost" data-screen-host>
     <div id="activeScreenSlot" data-active-screen-slot>
       <section id="chatScreen" class="app-screen" data-screen="chat">
@@ -3965,7 +3965,7 @@ window.V21RuntimeId=Object.freeze({version:VERSION,create:createRuntimeId});
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.33';
+const RELEASE_VERSION='V21.72.34';
 const MODULE_CONTRACT_VERSION='audio-capture-v1';
 const DEVICE_KEY='taphoa.v21.audio.inputDeviceId';
 const BASE=Object.freeze({
@@ -4592,9 +4592,9 @@ const AppBootController={
 
     this.phase='ERROR';
     modeLabel.textContent='ERROR';
-    runtimeError.textContent='V21.72.33 runtime: '+message;
+    runtimeError.textContent='V21.72.34 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.33]',error);
+    console.error('[ChatScreenModule V21.72.34]',error);
   },
   ready(){
     this.phase='READY';
@@ -4653,7 +4653,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.33 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.34 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -4707,7 +4707,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.33',
+  releaseVersion:'V21.72.34',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -8336,7 +8336,14 @@ let mediaRecorder=null;
 let mediaStream=null;
 let mediaChunks=[];
 let recordingStartedAt=0;
+let recordingElapsedMsAtStop=0;
 let recordingTimer=0;
+let recordingAudioContext=null;
+let recordingAudioSource=null;
+let recordingAnalyser=null;
+let recordingAnalyserData=null;
+let recordingSmoothedLevel=0;
+let recordingWaveformSamples=Array(24).fill(.06);
 let discardRecordingOnStop=false;
 let recordingDraftKey=null;
 let recordingOwnerScope=null;
@@ -9061,19 +9068,12 @@ function appendAudioWaveform(target,{seconds=0,count=22}={}){
 }
 
 
-function updateAudioWaveform(target,{seconds=0}={}){
-  const bars=Array.from(target?.children||[]);
-  for(const [n,bar] of bars.entries()){
-    bar.style.height=`${6+((n*7+Math.max(1,seconds)*3)%16)}px`;
-  }
-}
-
 function updateRecordingSurface(card){
   if(!card)return;
   card.dataset.audioRecordingState=audioWorkflowState;
-  const seconds=Math.max(0,Math.floor((Date.now()-recordingStartedAt)/1000));
+  const seconds=Math.max(0,Math.floor(recordingElapsedMs()/1000));
   const waveform=card.querySelector('.audio-recording-waveform');
-  updateAudioWaveform(waveform,{seconds});
+  renderRecordingWaveform(waveform);
   const time=card.querySelector('[data-audio-recording-time]');
   if(time){
     if(audioWorkflowState==='REQUESTING_PERMISSION')time.textContent='Đang mở mic…';
@@ -9462,6 +9462,95 @@ function stopRecordingTimer(){
   renderComposerModeHint();
 }
 
+function recordingNowMs(){
+  return typeof performance!=='undefined'&&typeof performance.now==='function'
+    ?performance.now()
+    :Date.now();
+}
+
+function recordingElapsedMs(){
+  if(!(recordingStartedAt>0))return 0;
+  return Math.max(0,recordingNowMs()-recordingStartedAt);
+}
+
+function resetRecordingWaveformSamples(count=24){
+  const total=Math.max(1,Number(count)||24);
+  recordingWaveformSamples=Array(total).fill(.06);
+  recordingSmoothedLevel=0;
+}
+
+function renderRecordingWaveform(target){
+  const bars=Array.from(target?.children||[]);
+  if(!bars.length)return;
+  if(recordingWaveformSamples.length!==bars.length){
+    resetRecordingWaveformSamples(bars.length);
+  }
+  for(const [index,bar] of bars.entries()){
+    const level=Math.max(.04,Math.min(1,Number(recordingWaveformSamples[index])||0));
+    bar.style.height=`${4+Math.round(level*20)}px`;
+  }
+}
+
+function sampleRecordingLevel(){
+  let level=0;
+  if(recordingAnalyser&&recordingAnalyserData){
+    try{
+      recordingAnalyser.getByteTimeDomainData(recordingAnalyserData);
+      let sum=0;
+      for(const value of recordingAnalyserData){
+        const centered=(Number(value)-128)/128;
+        sum+=centered*centered;
+      }
+      const rms=Math.sqrt(sum/Math.max(1,recordingAnalyserData.length));
+      level=Math.max(0,Math.min(1,(rms-.008)*7.5));
+    }catch{}
+  }
+  const smoothing=level>recordingSmoothedLevel ? .44 : .18;
+  recordingSmoothedLevel+=(level-recordingSmoothedLevel)*smoothing;
+  if(!recordingAnalyser)recordingSmoothedLevel*=.82;
+  recordingWaveformSamples.shift();
+  recordingWaveformSamples.push(Math.max(.04,recordingSmoothedLevel));
+  return recordingSmoothedLevel;
+}
+
+function stopRecordingLevelMeter(){
+  try{recordingAudioSource?.disconnect?.();}catch{}
+  try{recordingAnalyser?.disconnect?.();}catch{}
+  const context=recordingAudioContext;
+  recordingAudioSource=null;
+  recordingAnalyser=null;
+  recordingAnalyserData=null;
+  recordingAudioContext=null;
+  if(context&&context.state!=='closed'){
+    void context.close?.().catch?.(()=>{});
+  }
+}
+
+async function startRecordingLevelMeter(stream){
+  stopRecordingLevelMeter();
+  const AudioContextCtor=window.AudioContext||window.webkitAudioContext;
+  if(typeof AudioContextCtor!=='function'||!stream)return false;
+  try{
+    const context=new AudioContextCtor();
+    const analyser=context.createAnalyser();
+    analyser.fftSize=256;
+    analyser.smoothingTimeConstant=.72;
+    const source=context.createMediaStreamSource(stream);
+    source.connect(analyser);
+    recordingAudioContext=context;
+    recordingAudioSource=source;
+    recordingAnalyser=analyser;
+    recordingAnalyserData=new Uint8Array(analyser.fftSize);
+    resetRecordingWaveformSamples();
+    if(context.state==='suspended')await context.resume().catch(()=>{});
+    return recordingAudioContext===context;
+  }catch(error){
+    stopRecordingLevelMeter();
+    console.warn('Audio level meter unavailable',error);
+    return false;
+  }
+}
+
 function setRecordingUi(active){
   micButton.dataset.recording=
     active?'true':'false';
@@ -9568,7 +9657,30 @@ async function startRecording(){
     discardRecordingOnStop=false;
     mediaChunks=[];
     mediaRecorder=new MediaRecorder(mediaStream);
-    recordingStartedAt=Date.now();
+    recordingStartedAt=0;
+    recordingElapsedMsAtStop=0;
+    resetRecordingWaveformSamples();
+    void startRecordingLevelMeter(mediaStream);
+
+    mediaRecorder.addEventListener('start',()=>{
+      recordingStartedAt=recordingNowMs();
+      recordingElapsedMsAtStop=0;
+      setAudioWorkflowState('RECORDING');
+      setRecordingUi(true);
+      renderAttachmentTray();
+
+      const updateRuntime=()=>{
+        const surface=attachmentTray.querySelector('[data-audio-recording-surface]');
+        const seconds=Math.max(0,Math.floor(recordingElapsedMs()/1000));
+        const label=surface?.querySelector?.('[data-audio-recording-time]');
+        if(label)label.textContent=formatAudioClock(seconds);
+        sampleRecordingLevel();
+        renderRecordingWaveform(surface?.querySelector?.('.audio-recording-waveform'));
+      };
+      updateRuntime();
+      stopRecordingTimer();
+      recordingTimer=setInterval(updateRuntime,80);
+    },{once:true});
 
     mediaRecorder.addEventListener('dataavailable',event=>{
       if(event.data && event.data.size){
@@ -9579,7 +9691,13 @@ async function startRecording(){
     mediaRecorder.addEventListener('stop',async()=>{
       const recorderMime=mediaRecorder?.mimeType||'audio/webm';
       const blob=new Blob(mediaChunks,{type:recorderMime});
-      const durationMs=await readAudioDurationMs(blob);
+      const metadataDurationMs=await readAudioDurationMs(blob);
+      const elapsedFallbackMs=recordingElapsedMsAtStop>0
+        ?recordingElapsedMsAtStop
+        :recordingElapsedMs();
+      const durationMs=metadataDurationMs==null&&elapsedFallbackMs>0
+        ?Math.max(1,Math.round(elapsedFallbackMs))
+        :metadataDurationMs;
       const durationSeconds=durationMs==null?null:durationMs/1000;
       const shouldKeep=
         !discardRecordingOnStop &&
@@ -9629,6 +9747,10 @@ async function startRecording(){
       recordingOwnerScope=null;
       discardRecordingOnStop=false;
       stopRecordingTimer();
+      stopRecordingLevelMeter();
+      recordingStartedAt=0;
+      recordingElapsedMsAtStop=0;
+      resetRecordingWaveformSamples();
       InteractionController.exit(InteractionMode.AUDIO_RECORDING,{owner:'audio-recorder'});
       setRecordingUi(false);
       setAudioWorkflowState(settledAudioState);
@@ -9637,29 +9759,16 @@ async function startRecording(){
     });
 
     mediaRecorder.start();
-    setAudioWorkflowState('RECORDING');
-    setRecordingUi(true);
-    renderAttachmentTray();
-
-    const updateTimer=()=>{
-      const seconds=Math.max(
-        0,
-        Math.floor((Date.now()-recordingStartedAt)/1000)
-      );
-      const surface=attachmentTray.querySelector('[data-audio-recording-surface]');
-      const label=surface?.querySelector?.('[data-audio-recording-time]');
-      if(label)label.textContent=formatAudioClock(seconds);
-      updateAudioWaveform(surface?.querySelector?.('.audio-recording-waveform'),{seconds});
-    };
-
-    updateTimer();
-    recordingTimer=setInterval(updateTimer,500);
   }catch(error){
     if(mediaStream)audioCapturePolicy()?.release?.(mediaStream,{owner:'audio-recorder'});
     mediaStream=null;
     mediaRecorder=null;
     setRecordingUi(false);
     stopRecordingTimer();
+    stopRecordingLevelMeter();
+    recordingStartedAt=0;
+    recordingElapsedMsAtStop=0;
+    resetRecordingWaveformSamples();
     composerHint.textContent='Không thể mở micro';
     setAudioWorkflowState('ERROR');
     InteractionController.exit(InteractionMode.AUDIO_RECORDING,{owner:'audio-recorder'});
@@ -9671,6 +9780,9 @@ async function startRecording(){
 
 function stopRecording({discard=false}={}){
   if(discard)discardRecordingOnStop=true;
+  if(recordingStartedAt>0)recordingElapsedMsAtStop=recordingElapsedMs();
+  stopRecordingTimer();
+  stopRecordingLevelMeter();
   setAudioWorkflowState('STOPPING');
   renderAttachmentTray();
   if(
@@ -10654,7 +10766,7 @@ window.V21ConversationBridge={
 };
 
 window.ChatScreenModule={
-  version:'V21.72.33',
+  version:'V21.72.34',
   snapshot(){
     return{
       viewportMode:viewport.mode,
@@ -12139,7 +12251,7 @@ AuthUI.renderAccountFooter();
 syncDesktopSidebarMode();
 
 window.ChatAppShell={
-  version:'V21.72.33',
+  version:'V21.72.34',
   NavigationCommand,
   CallCommand,
   AuthUI,
@@ -12173,7 +12285,7 @@ window.ChatAppShell={
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.33';
+const RELEASE_VERSION='V21.72.34';
 const MODULE_CONTRACT_VERSION='call-screen-wake-lock-v1';
 
 let callActive=false;
@@ -12279,7 +12391,7 @@ window.V21CallScreenWakeLock=Object.freeze({
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.33';
+const RELEASE_VERSION='V21.72.34';
 const MODULE_CONTRACT_VERSION='shell-form-viewport-v3';
 const KEYBOARD_THRESHOLD_PX=80;
 const EDGE_PX=12;
@@ -12507,7 +12619,7 @@ window.V21ShellFormViewportPolicy=Object.freeze({
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.33';
+const RELEASE_VERSION='V21.72.34';
 const MODULE_CONTRACT_VERSION='auth-session-v21.72.5';
 const SUPABASE_URL='https://gcnoahqsrquxkwkjbuxy.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_UY3gfQ9MsntDFCUJ_uV0UA__eTYXz_w';
@@ -16625,7 +16737,7 @@ queueMicrotask(()=>{if(authenticated())void start();else emitPresence();});
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.33';
+const RELEASE_VERSION='V21.72.34';
 const MODULE_CONTRACT_VERSION='app-update-v1';
 const CHECK_INTERVAL_MS=45000;
 const DEFER_RECHECK_MS=2500;

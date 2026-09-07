@@ -9,7 +9,7 @@ def read(path):
 source=read('index.source.html')
 app=read('app.js')
 
-assert 'V21.72.33' in source
+assert 'V21.72.34' in source
 
 assert 'const MESSAGE_LINK_RE=' in app
 assert 'function appendMessageTextWithLinks(container,value)' in app
@@ -41,4 +41,4 @@ assert 'link-preview-card' not in source
 assert 'createLinkPreview' not in app
 assert 'fetchLinkPreview' not in app
 
-print('V21.72.33 link/file presentation contract PASS')
+print('V21.72.34 link/file presentation contract PASS')

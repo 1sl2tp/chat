@@ -403,9 +403,9 @@ const AppBootController={
 
     this.phase='ERROR';
     modeLabel.textContent='ERROR';
-    runtimeError.textContent='V21.72.33 runtime: '+message;
+    runtimeError.textContent='V21.72.34 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.33]',error);
+    console.error('[ChatScreenModule V21.72.34]',error);
   },
   ready(){
     this.phase='READY';
@@ -464,7 +464,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.33 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.34 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -518,7 +518,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.33',
+  releaseVersion:'V21.72.34',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -4147,7 +4147,14 @@ let mediaRecorder=null;
 let mediaStream=null;
 let mediaChunks=[];
 let recordingStartedAt=0;
+let recordingElapsedMsAtStop=0;
 let recordingTimer=0;
+let recordingAudioContext=null;
+let recordingAudioSource=null;
+let recordingAnalyser=null;
+let recordingAnalyserData=null;
+let recordingSmoothedLevel=0;
+let recordingWaveformSamples=Array(24).fill(.06);
 let discardRecordingOnStop=false;
 let recordingDraftKey=null;
 let recordingOwnerScope=null;
@@ -4872,19 +4879,12 @@ function appendAudioWaveform(target,{seconds=0,count=22}={}){
 }
 
 
-function updateAudioWaveform(target,{seconds=0}={}){
-  const bars=Array.from(target?.children||[]);
-  for(const [n,bar] of bars.entries()){
-    bar.style.height=`${6+((n*7+Math.max(1,seconds)*3)%16)}px`;
-  }
-}
-
 function updateRecordingSurface(card){
   if(!card)return;
   card.dataset.audioRecordingState=audioWorkflowState;
-  const seconds=Math.max(0,Math.floor((Date.now()-recordingStartedAt)/1000));
+  const seconds=Math.max(0,Math.floor(recordingElapsedMs()/1000));
   const waveform=card.querySelector('.audio-recording-waveform');
-  updateAudioWaveform(waveform,{seconds});
+  renderRecordingWaveform(waveform);
   const time=card.querySelector('[data-audio-recording-time]');
   if(time){
     if(audioWorkflowState==='REQUESTING_PERMISSION')time.textContent='Đang mở mic…';
@@ -5273,6 +5273,95 @@ function stopRecordingTimer(){
   renderComposerModeHint();
 }
 
+function recordingNowMs(){
+  return typeof performance!=='undefined'&&typeof performance.now==='function'
+    ?performance.now()
+    :Date.now();
+}
+
+function recordingElapsedMs(){
+  if(!(recordingStartedAt>0))return 0;
+  return Math.max(0,recordingNowMs()-recordingStartedAt);
+}
+
+function resetRecordingWaveformSamples(count=24){
+  const total=Math.max(1,Number(count)||24);
+  recordingWaveformSamples=Array(total).fill(.06);
+  recordingSmoothedLevel=0;
+}
+
+function renderRecordingWaveform(target){
+  const bars=Array.from(target?.children||[]);
+  if(!bars.length)return;
+  if(recordingWaveformSamples.length!==bars.length){
+    resetRecordingWaveformSamples(bars.length);
+  }
+  for(const [index,bar] of bars.entries()){
+    const level=Math.max(.04,Math.min(1,Number(recordingWaveformSamples[index])||0));
+    bar.style.height=`${4+Math.round(level*20)}px`;
+  }
+}
+
+function sampleRecordingLevel(){
+  let level=0;
+  if(recordingAnalyser&&recordingAnalyserData){
+    try{
+      recordingAnalyser.getByteTimeDomainData(recordingAnalyserData);
+      let sum=0;
+      for(const value of recordingAnalyserData){
+        const centered=(Number(value)-128)/128;
+        sum+=centered*centered;
+      }
+      const rms=Math.sqrt(sum/Math.max(1,recordingAnalyserData.length));
+      level=Math.max(0,Math.min(1,(rms-.008)*7.5));
+    }catch{}
+  }
+  const smoothing=level>recordingSmoothedLevel ? .44 : .18;
+  recordingSmoothedLevel+=(level-recordingSmoothedLevel)*smoothing;
+  if(!recordingAnalyser)recordingSmoothedLevel*=.82;
+  recordingWaveformSamples.shift();
+  recordingWaveformSamples.push(Math.max(.04,recordingSmoothedLevel));
+  return recordingSmoothedLevel;
+}
+
+function stopRecordingLevelMeter(){
+  try{recordingAudioSource?.disconnect?.();}catch{}
+  try{recordingAnalyser?.disconnect?.();}catch{}
+  const context=recordingAudioContext;
+  recordingAudioSource=null;
+  recordingAnalyser=null;
+  recordingAnalyserData=null;
+  recordingAudioContext=null;
+  if(context&&context.state!=='closed'){
+    void context.close?.().catch?.(()=>{});
+  }
+}
+
+async function startRecordingLevelMeter(stream){
+  stopRecordingLevelMeter();
+  const AudioContextCtor=window.AudioContext||window.webkitAudioContext;
+  if(typeof AudioContextCtor!=='function'||!stream)return false;
+  try{
+    const context=new AudioContextCtor();
+    const analyser=context.createAnalyser();
+    analyser.fftSize=256;
+    analyser.smoothingTimeConstant=.72;
+    const source=context.createMediaStreamSource(stream);
+    source.connect(analyser);
+    recordingAudioContext=context;
+    recordingAudioSource=source;
+    recordingAnalyser=analyser;
+    recordingAnalyserData=new Uint8Array(analyser.fftSize);
+    resetRecordingWaveformSamples();
+    if(context.state==='suspended')await context.resume().catch(()=>{});
+    return recordingAudioContext===context;
+  }catch(error){
+    stopRecordingLevelMeter();
+    console.warn('Audio level meter unavailable',error);
+    return false;
+  }
+}
+
 function setRecordingUi(active){
   micButton.dataset.recording=
     active?'true':'false';
@@ -5379,7 +5468,30 @@ async function startRecording(){
     discardRecordingOnStop=false;
     mediaChunks=[];
     mediaRecorder=new MediaRecorder(mediaStream);
-    recordingStartedAt=Date.now();
+    recordingStartedAt=0;
+    recordingElapsedMsAtStop=0;
+    resetRecordingWaveformSamples();
+    void startRecordingLevelMeter(mediaStream);
+
+    mediaRecorder.addEventListener('start',()=>{
+      recordingStartedAt=recordingNowMs();
+      recordingElapsedMsAtStop=0;
+      setAudioWorkflowState('RECORDING');
+      setRecordingUi(true);
+      renderAttachmentTray();
+
+      const updateRuntime=()=>{
+        const surface=attachmentTray.querySelector('[data-audio-recording-surface]');
+        const seconds=Math.max(0,Math.floor(recordingElapsedMs()/1000));
+        const label=surface?.querySelector?.('[data-audio-recording-time]');
+        if(label)label.textContent=formatAudioClock(seconds);
+        sampleRecordingLevel();
+        renderRecordingWaveform(surface?.querySelector?.('.audio-recording-waveform'));
+      };
+      updateRuntime();
+      stopRecordingTimer();
+      recordingTimer=setInterval(updateRuntime,80);
+    },{once:true});
 
     mediaRecorder.addEventListener('dataavailable',event=>{
       if(event.data && event.data.size){
@@ -5390,7 +5502,13 @@ async function startRecording(){
     mediaRecorder.addEventListener('stop',async()=>{
       const recorderMime=mediaRecorder?.mimeType||'audio/webm';
       const blob=new Blob(mediaChunks,{type:recorderMime});
-      const durationMs=await readAudioDurationMs(blob);
+      const metadataDurationMs=await readAudioDurationMs(blob);
+      const elapsedFallbackMs=recordingElapsedMsAtStop>0
+        ?recordingElapsedMsAtStop
+        :recordingElapsedMs();
+      const durationMs=metadataDurationMs==null&&elapsedFallbackMs>0
+        ?Math.max(1,Math.round(elapsedFallbackMs))
+        :metadataDurationMs;
       const durationSeconds=durationMs==null?null:durationMs/1000;
       const shouldKeep=
         !discardRecordingOnStop &&
@@ -5440,6 +5558,10 @@ async function startRecording(){
       recordingOwnerScope=null;
       discardRecordingOnStop=false;
       stopRecordingTimer();
+      stopRecordingLevelMeter();
+      recordingStartedAt=0;
+      recordingElapsedMsAtStop=0;
+      resetRecordingWaveformSamples();
       InteractionController.exit(InteractionMode.AUDIO_RECORDING,{owner:'audio-recorder'});
       setRecordingUi(false);
       setAudioWorkflowState(settledAudioState);
@@ -5448,29 +5570,16 @@ async function startRecording(){
     });
 
     mediaRecorder.start();
-    setAudioWorkflowState('RECORDING');
-    setRecordingUi(true);
-    renderAttachmentTray();
-
-    const updateTimer=()=>{
-      const seconds=Math.max(
-        0,
-        Math.floor((Date.now()-recordingStartedAt)/1000)
-      );
-      const surface=attachmentTray.querySelector('[data-audio-recording-surface]');
-      const label=surface?.querySelector?.('[data-audio-recording-time]');
-      if(label)label.textContent=formatAudioClock(seconds);
-      updateAudioWaveform(surface?.querySelector?.('.audio-recording-waveform'),{seconds});
-    };
-
-    updateTimer();
-    recordingTimer=setInterval(updateTimer,500);
   }catch(error){
     if(mediaStream)audioCapturePolicy()?.release?.(mediaStream,{owner:'audio-recorder'});
     mediaStream=null;
     mediaRecorder=null;
     setRecordingUi(false);
     stopRecordingTimer();
+    stopRecordingLevelMeter();
+    recordingStartedAt=0;
+    recordingElapsedMsAtStop=0;
+    resetRecordingWaveformSamples();
     composerHint.textContent='Không thể mở micro';
     setAudioWorkflowState('ERROR');
     InteractionController.exit(InteractionMode.AUDIO_RECORDING,{owner:'audio-recorder'});
@@ -5482,6 +5591,9 @@ async function startRecording(){
 
 function stopRecording({discard=false}={}){
   if(discard)discardRecordingOnStop=true;
+  if(recordingStartedAt>0)recordingElapsedMsAtStop=recordingElapsedMs();
+  stopRecordingTimer();
+  stopRecordingLevelMeter();
   setAudioWorkflowState('STOPPING');
   renderAttachmentTray();
   if(
@@ -6465,7 +6577,7 @@ window.V21ConversationBridge={
 };
 
 window.ChatScreenModule={
-  version:'V21.72.33',
+  version:'V21.72.34',
   snapshot(){
     return{
       viewportMode:viewport.mode,

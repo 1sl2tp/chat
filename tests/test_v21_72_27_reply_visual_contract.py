@@ -9,7 +9,7 @@ def read(path):
 source=read('index.source.html')
 app=read('app.js')
 
-assert 'V21.72.33' in source
+assert 'V21.72.34' in source
 assert '.reply-quote{' in source
 assert '.reply-context{' in source
 assert '--reply-rail:#78aef8' in source
@@ -25,4 +25,4 @@ assert "label.textContent=replyTo.sender==='self'?'Bạn':'B'" not in app
 assert "quote.append(text)" in app
 assert "quote.append(label,text)" not in app
 
-print('V21.72.33 reply visual cleanup contract PASS')
+print('V21.72.34 reply visual cleanup contract PASS')
