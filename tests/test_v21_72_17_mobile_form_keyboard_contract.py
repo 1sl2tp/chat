@@ -9,7 +9,7 @@ def read(path):
 policy=read('shell-form-viewport-policy.js')
 for token in [
     "MODULE_CONTRACT_VERSION='shell-form-viewport-v3'",
-    "RELEASE_VERSION='V21.72.28'",
+    "RELEASE_VERSION='V21.72.29'",
     'visualViewport',
     'focusin',
     'focusout',
@@ -34,7 +34,7 @@ for forbidden in [
     assert forbidden not in policy, forbidden
 
 source=read('index.source.html')
-assert 'V21.72.28' in source
+assert 'V21.72.29' in source
 assert './shell-form-viewport-policy.js' in source
 assert '.guest-auth-thread[data-mobile-keyboard="true"]' in source
 assert '.shell-profile-overlay[data-mobile-keyboard="true"]' in source
@@ -52,4 +52,4 @@ assert 'scrollIntoView' not in login
 assert 'shouldAutoFocusShellForm()' in login
 assert "Number(navigator.maxTouchPoints||0)>0" in shell
 
-print('V21.72.28 visual viewport form keyboard contract PASS')
+print('V21.72.29 visual viewport form keyboard contract PASS')

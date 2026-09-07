@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.28">
+<meta name="app-release-version" content="V21.72.29">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -15,7 +15,7 @@
 <meta name="chat-call-preview-only" content="true">
 <meta name="chat-v21-session-runtime" content="v21-only">
 <meta name="chat-v21-contact-runtime" content="v21-only">
-<title>Chat Screen Module V21.72.28</title>
+<title>Chat Screen Module V21.72.29</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style data-inlined-source="reference/chatgpt/full-source/chatgpt-core-exact.css">
 /* ChatGPT exact core extraction.
@@ -507,6 +507,24 @@ button{
 .message-body{
   font-size:1rem;
   line-height:1.5rem;
+}
+.message-body[data-has-link="true"]{
+  overflow-wrap:anywhere;
+  word-break:break-word;
+}
+.message-link{
+  color:#4f86d9;
+  text-decoration:none;
+  text-underline-offset:.14em;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+  -webkit-tap-highlight-color:transparent;
+}
+.message-link:hover{text-decoration:underline}
+.message-link:focus-visible{
+  outline:2px solid #78aef8;
+  outline-offset:2px;
+  border-radius:2px;
 }
 .assistant-message-unit>.message-text{
   min-height:0;
@@ -1021,7 +1039,7 @@ button{
 }
 .audio-preview-card audio,.audio-message-card audio{display:none;}
 
-/* V21.72.28 — image presentation owner.
+/* V21.72.29 — image presentation owner.
    Single images keep the full source via contain inside a normalized envelope.
    Gallery tiles intentionally use cover so mixed portrait/landscape sources form one balanced unit. */
 .media-image-tile[data-image-presentation]{
@@ -1157,11 +1175,11 @@ button{
   grid-template-columns:2rem minmax(0,1fr);
   align-items:center;
   gap:.55rem;
-  width:min(18rem,72vw);
+  width:min(18rem,100%);
   max-width:100%;
-  min-height:2.9rem;
+  min-height:3rem;
   border:1px solid var(--composer-border);
-  border-radius:14px;
+  border-radius:12px;
   padding:.42rem .5rem;
   background:var(--theme-surface-primary);
   color:var(--theme-content-primary);
@@ -1198,7 +1216,7 @@ button{
   font-variant-numeric:tabular-nums;
 }
 @media(max-width:480px){
-  .file-message-card{width:min(16rem,78vw);}
+  .file-message-card{width:min(17rem,100%);}
 }
 
 .attachment-image-chip{
@@ -2978,7 +2996,7 @@ button{
 <div id="runtimeError" class="hidden fixed z-[9999] left-2 right-2 top-2 rounded-xl bg-red-600 text-white text-xs px-3 py-2 shadow-lg"></div>
 
 <!-- V21.69.9 unified runtime marker. Earlier V21.20/V21.64 labels below are provenance for inherited geometry/style contracts only, not separate live runtimes. -->
-<div id="appShell" data-app-shell data-chat-screen-version="V21.72.28" data-app-shell-version="V21.72.28" data-auth-state="booting" data-default-route="chat" data-route="chat">
+<div id="appShell" data-app-shell data-chat-screen-version="V21.72.29" data-app-shell-version="V21.72.29" data-auth-state="booting" data-default-route="chat" data-route="chat">
   <div id="screenHost" data-screen-host>
     <div id="activeScreenSlot" data-active-screen-slot>
       <section id="chatScreen" class="app-screen" data-screen="chat">
@@ -3913,7 +3931,7 @@ window.V21RuntimeId=Object.freeze({version:VERSION,create:createRuntimeId});
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.28';
+const RELEASE_VERSION='V21.72.29';
 const MODULE_CONTRACT_VERSION='audio-capture-v1';
 const DEVICE_KEY='taphoa.v21.audio.inputDeviceId';
 const BASE=Object.freeze({
@@ -4540,9 +4558,9 @@ const AppBootController={
 
     this.phase='ERROR';
     modeLabel.textContent='ERROR';
-    runtimeError.textContent='V21.72.28 runtime: '+message;
+    runtimeError.textContent='V21.72.29 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.28]',error);
+    console.error('[ChatScreenModule V21.72.29]',error);
   },
   ready(){
     this.phase='READY';
@@ -4601,7 +4619,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.28 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.29 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -4655,7 +4673,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.28',
+  releaseVersion:'V21.72.29',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -7485,6 +7503,54 @@ document.addEventListener('pointerdown',event=>{
   }
 },{passive:true});
 
+const MESSAGE_LINK_RE=/https?:\/\/[^\s<]+/giu;
+
+function appendMessageTextWithLinks(container,value){
+  if(!container)return false;
+  const text=String(value??'');
+  let cursor=0;
+  let hasLink=false;
+  MESSAGE_LINK_RE.lastIndex=0;
+  for(const match of text.matchAll(MESSAGE_LINK_RE)){
+    const raw=String(match[0]||'');
+    const start=Number(match.index||0);
+    if(start>cursor)container.appendChild(document.createTextNode(text.slice(cursor,start)));
+
+    let href=raw;
+    let trailing='';
+    while(href&&/[),.;!?]$/u.test(href)){
+      trailing=href.slice(-1)+trailing;
+      href=href.slice(0,-1);
+    }
+
+    if(href){
+      const link=document.createElement('a');
+      link.className='message-link';
+      link.href=href;
+      link.target='_blank';
+      link.rel='noopener noreferrer';
+      link.textContent=href;
+      try{link.dataset.linkHost=new URL(href).hostname;}catch{}
+      container.appendChild(link);
+      hasLink=true;
+    }else{
+      container.appendChild(document.createTextNode(raw));
+    }
+
+    if(trailing)container.appendChild(document.createTextNode(trailing));
+    cursor=start+raw.length;
+  }
+  if(cursor<text.length)container.appendChild(document.createTextNode(text.slice(cursor)));
+  return hasLink;
+}
+
+function renderMessageBody(container,value){
+  if(!container)return container;
+  container.replaceChildren();
+  container.dataset.hasLink=appendMessageTextWithLinks(container,value)?'true':'false';
+  return container;
+}
+
 function messageContentKind(message){
   const media=message?.media||null;
   if(!media)return 'text';
@@ -7558,7 +7624,7 @@ function patchMessageNode(node,message){
   if(replyQuote)text.appendChild(replyQuote);
   const messageBody=document.createElement('div');
   messageBody.className='message-body';
-  messageBody.textContent=message.text;
+  renderMessageBody(messageBody,message.text);
   text.appendChild(messageBody);
   const textVisible=Boolean(message.replyTo||message.kind==='text'||message.kind==='mixed');
   text.hidden=!textVisible;
@@ -7647,7 +7713,7 @@ function renderMessageNode(message){
   if(replyQuote)text.appendChild(replyQuote);
   const messageBody=document.createElement('div');
   messageBody.className='message-body';
-  messageBody.textContent=message.text;
+  renderMessageBody(messageBody,message.text);
   text.appendChild(messageBody);
   const textVisible=Boolean(message.replyTo||message.kind==='text'||message.kind==='mixed');
   text.hidden=!textVisible;
@@ -10552,7 +10618,7 @@ window.V21ConversationBridge={
 };
 
 window.ChatScreenModule={
-  version:'V21.72.28',
+  version:'V21.72.29',
   snapshot(){
     return{
       viewportMode:viewport.mode,
@@ -12037,7 +12103,7 @@ AuthUI.renderAccountFooter();
 syncDesktopSidebarMode();
 
 window.ChatAppShell={
-  version:'V21.72.28',
+  version:'V21.72.29',
   NavigationCommand,
   CallCommand,
   AuthUI,
@@ -12071,7 +12137,7 @@ window.ChatAppShell={
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.28';
+const RELEASE_VERSION='V21.72.29';
 const MODULE_CONTRACT_VERSION='call-screen-wake-lock-v1';
 
 let callActive=false;
@@ -12177,7 +12243,7 @@ window.V21CallScreenWakeLock=Object.freeze({
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.28';
+const RELEASE_VERSION='V21.72.29';
 const MODULE_CONTRACT_VERSION='shell-form-viewport-v3';
 const KEYBOARD_THRESHOLD_PX=80;
 const EDGE_PX=12;
@@ -12405,7 +12471,7 @@ window.V21ShellFormViewportPolicy=Object.freeze({
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.28';
+const RELEASE_VERSION='V21.72.29';
 const MODULE_CONTRACT_VERSION='auth-session-v21.72.5';
 const SUPABASE_URL='https://gcnoahqsrquxkwkjbuxy.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_UY3gfQ9MsntDFCUJ_uV0UA__eTYXz_w';
@@ -16523,7 +16589,7 @@ queueMicrotask(()=>{if(authenticated())void start();else emitPresence();});
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.28';
+const RELEASE_VERSION='V21.72.29';
 const MODULE_CONTRACT_VERSION='app-update-v1';
 const CHECK_INTERVAL_MS=45000;
 const DEFER_RECHECK_MS=2500;

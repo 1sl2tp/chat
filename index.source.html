@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.28">
+<meta name="app-release-version" content="V21.72.29">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -15,7 +15,7 @@
 <meta name="chat-call-preview-only" content="true">
 <meta name="chat-v21-session-runtime" content="v21-only">
 <meta name="chat-v21-contact-runtime" content="v21-only">
-<title>Chat Screen Module V21.72.28</title>
+<title>Chat Screen Module V21.72.29</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="./reference/chatgpt/full-source/chatgpt-core-exact.css" data-build-source="reference/chatgpt/full-source/chatgpt-core-exact.css">
 <link rel="stylesheet" href="./reference/chatgpt/chatgpt-token-aliases.css" data-build-source="reference/chatgpt/chatgpt-token-aliases.css">
@@ -315,6 +315,24 @@ button{
 .message-body{
   font-size:1rem;
   line-height:1.5rem;
+}
+.message-body[data-has-link="true"]{
+  overflow-wrap:anywhere;
+  word-break:break-word;
+}
+.message-link{
+  color:#4f86d9;
+  text-decoration:none;
+  text-underline-offset:.14em;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+  -webkit-tap-highlight-color:transparent;
+}
+.message-link:hover{text-decoration:underline}
+.message-link:focus-visible{
+  outline:2px solid #78aef8;
+  outline-offset:2px;
+  border-radius:2px;
 }
 .assistant-message-unit>.message-text{
   min-height:0;
@@ -829,7 +847,7 @@ button{
 }
 .audio-preview-card audio,.audio-message-card audio{display:none;}
 
-/* V21.72.28 — image presentation owner.
+/* V21.72.29 — image presentation owner.
    Single images keep the full source via contain inside a normalized envelope.
    Gallery tiles intentionally use cover so mixed portrait/landscape sources form one balanced unit. */
 .media-image-tile[data-image-presentation]{
@@ -965,11 +983,11 @@ button{
   grid-template-columns:2rem minmax(0,1fr);
   align-items:center;
   gap:.55rem;
-  width:min(18rem,72vw);
+  width:min(18rem,100%);
   max-width:100%;
-  min-height:2.9rem;
+  min-height:3rem;
   border:1px solid var(--composer-border);
-  border-radius:14px;
+  border-radius:12px;
   padding:.42rem .5rem;
   background:var(--theme-surface-primary);
   color:var(--theme-content-primary);
@@ -1006,7 +1024,7 @@ button{
   font-variant-numeric:tabular-nums;
 }
 @media(max-width:480px){
-  .file-message-card{width:min(16rem,78vw);}
+  .file-message-card{width:min(17rem,100%);}
 }
 
 .attachment-image-chip{
@@ -2786,7 +2804,7 @@ button{
 <div id="runtimeError" class="hidden fixed z-[9999] left-2 right-2 top-2 rounded-xl bg-red-600 text-white text-xs px-3 py-2 shadow-lg"></div>
 
 <!-- V21.69.9 unified runtime marker. Earlier V21.20/V21.64 labels below are provenance for inherited geometry/style contracts only, not separate live runtimes. -->
-<div id="appShell" data-app-shell data-chat-screen-version="V21.72.28" data-app-shell-version="V21.72.28" data-auth-state="booting" data-default-route="chat" data-route="chat">
+<div id="appShell" data-app-shell data-chat-screen-version="V21.72.29" data-app-shell-version="V21.72.29" data-auth-state="booting" data-default-route="chat" data-route="chat">
   <div id="screenHost" data-screen-host>
     <div id="activeScreenSlot" data-active-screen-slot>
       <section id="chatScreen" class="app-screen" data-screen="chat">
