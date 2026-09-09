@@ -14,7 +14,7 @@ const appShell=document.getElementById('appShell');
 const DESKTOP_DIRECTORY_QUERY='(min-width: 68rem) and (hover: hover) and (pointer: fine)';
 const desktopDirectoryMedia=window.matchMedia(DESKTOP_DIRECTORY_QUERY);
 
-let route='chat';
+let route='work';
 let authState='BOOTING';
 let authAccount=null;
 let sidebarOpen=false;
@@ -62,7 +62,7 @@ function persistScreenSession(){
   const key=screenSessionKey();
   if(!key)return false;
   const payload={
-    route:ROUTES.includes(route)?route:'chat',
+    route:ROUTES.includes(route)?route:'work',
     activeContact:activeContact?.id?{id:String(activeContact.id),name:String(activeContact.name||'Liên hệ')}:null
   };
   try{sessionStorage.setItem(key,JSON.stringify(payload));return true;}catch{return false;}
@@ -95,7 +95,7 @@ const ScreenSession={
   restore(account){
     const accountId=account?.id||null;
     const saved=readScreenSession(accountId);
-    route=ROUTES.includes(saved?.route)?saved.route:'chat';
+    route=ROUTES.includes(saved?.route)?saved.route:'work';
     const contact=saved?.activeContact;
     activeContact=contact?.id?{id:String(contact.id),name:String(contact.name||'Liên hệ')}:null;
     sidebarOpen=false;
@@ -1378,7 +1378,12 @@ document.addEventListener('click',event=>{
   const navTarget=target.closest('[data-nav-target]');
   if(navTarget){
     event.preventDefault();
-    NavigationCommand.open(navTarget.dataset.navTarget);
+    const nextRoute=String(navTarget.dataset.navTarget||'');
+    if(nextRoute==='chat'&&authState!=='AUTHENTICATED'){
+      AuthUI.openLogin();
+      return;
+    }
+    NavigationCommand.open(nextRoute);
     return;
   }
 
@@ -1454,9 +1459,7 @@ document.addEventListener('v21-interaction-abort',()=>{
   CallCommand.forceReset();
 });
 
-screenHost.dataset.route=route;
-renderTopTabs();
-renderCallFocus();
+applyRoutePresentation();
 renderMenuUnread();
 AuthUI.renderAccountFooter();
 syncDesktopSidebarMode();
