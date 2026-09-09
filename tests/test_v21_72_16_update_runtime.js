@@ -6,7 +6,11 @@ const tray={childElementCount:0};
 const reply={hidden:true};
 const document={
   readyState:'loading',visibilityState:'visible',documentElement:{dataset:{}},
-  querySelector(sel){return sel==='meta[name="app-release-version"]'?{content:'V21.72.16'}:null},
+  querySelector(sel){
+    if(sel==='meta[name="app-release-version"]')return {content:'V21.72.39'};
+    if(sel==='meta[name="app-build-id"]')return {content:'build-a'};
+    return null;
+  },
   getElementById(id){return id==='editor'?editor:id==='attachmentTray'?tray:id==='replyContext'?reply:null},
   addEventListener(type,fn){listeners['d:'+type]=fn},
   dispatchEvent(){return true}
@@ -19,12 +23,16 @@ const windowObj={
 };
 const serviceWorker={addEventListener(){},register:async()=>null};
 const session=new Map();
-let reloads=0;
+let replaces=0,lastUrl='';
 const ctx={
   window:windowObj,document,navigator:{serviceWorker},
-  location:{protocol:'https:',hostname:'chat.taphoa.xyz',reload(){reloads++}},
+  location:{
+    protocol:'https:',hostname:'chat.taphoa.xyz',href:'https://chat.taphoa.xyz/',
+    replace(url){replaces++;lastUrl=String(url)},reload(){throw new Error('reload fallback should not be used')}
+  },
+  URL,
   sessionStorage:{getItem:k=>session.get(k)||null,setItem:(k,v)=>session.set(k,String(v))},
-  fetch:async()=>({ok:true,json:async()=>({version:'V21.72.17'})}),
+  fetch:async()=>({ok:true,json:async()=>({version:'V21.72.39',build_id:'build-b'})}),
   setTimeout:()=>1,clearTimeout(){},setInterval:()=>1,
   CustomEvent:class{constructor(type,init={}){this.type=type;this.detail=init.detail}},
   console,Date,String,Number,Boolean,Object,Array,Map,Set,Promise
@@ -32,14 +40,16 @@ const ctx={
 vm.createContext(ctx);vm.runInContext(code,ctx);
 const controller=ctx.window.V21AppUpdateController;assert(controller);
 (async()=>{
+  assert.strictEqual(controller.currentBuild,'build-a');
   await controller.check({reason:'draft'});
-  assert.strictEqual(reloads,0,'draft must defer reload');
+  assert.strictEqual(replaces,0,'draft must defer reload');
   editor.value='';
   ctx.window.V21SyncEngine.snapshot=()=>({syncing:true,wakePending:false});
   await controller.check({reason:'syncing'});
-  assert.strictEqual(reloads,0,'active sync must defer reload');
+  assert.strictEqual(replaces,0,'active sync must defer reload');
   ctx.window.V21SyncEngine.snapshot=()=>({syncing:false,wakePending:false});
   await controller.check({reason:'safe'});
-  assert.strictEqual(reloads,1,'safe session must auto reload without F5');
-  console.log('V21.72.16 app update runtime PASS');
+  assert.strictEqual(replaces,1,'safe session must auto replace without F5');
+  assert(lastUrl.includes('__build=build-b'),'reload URL must be keyed by the new build');
+  console.log('V21.72.39 build-aware app update runtime PASS');
 })().catch(e=>{console.error(e);process.exit(1)});
