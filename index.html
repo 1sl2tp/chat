@@ -2448,18 +2448,43 @@ button{
 }
 #workThreadView[hidden],
 [data-chat-thread-node][hidden]{display:none!important}
-.work-thread-card{
-  width:min(calc(100% - 24px),560px);
-  min-height:240px;
-  margin:20px auto 12px;
-  padding:20px;
-  border:1px dashed var(--theme-border-default);
-  border-radius:24px;
-  display:grid;
-  place-items:center;
-  text-align:center;
-  color:var(--theme-content-tertiary);
+#workThreadView:not([hidden]){
+  display:flex;
+  flex:0 0 auto;
+  width:100%;
+  height:calc(100svh - var(--header-height,72px) - var(--composer-flow-reserve,0px));
+  min-height:0;
+  padding:8px 12px;
+  overflow:hidden;
   box-sizing:border-box;
+}
+.work-thread-frame{
+  width:100%;
+  height:100%;
+  min-width:0;
+  min-height:0;
+  border:1px solid var(--theme-border-default);
+  border-radius:18px;
+  background:var(--theme-surface-primary);
+  overflow:hidden;
+  box-sizing:border-box;
+}
+.work-thread-embed{
+  display:block;
+  width:100%;
+  height:100%;
+  min-width:0;
+  min-height:0;
+  border:0;
+  background:#fff;
+}
+@media(max-width:640px){
+  #workThreadView:not([hidden]){
+    padding:6px;
+  }
+  .work-thread-frame{
+    border-radius:14px;
+  }
 }
 .shell-card{
   border:1px solid var(--theme-border-default);
@@ -3183,11 +3208,15 @@ button{
               <div id="bottomSpacer" data-chat-thread-node aria-hidden="true"></div>
             </div>
             <div id="workThreadView" class="thread-mode-view" data-thread-view="work" hidden>
-              <div class="work-thread-card">
-                <div>
-                  <strong class="block text-token-text-primary text-lg">Công việc</strong>
-                  <span class="block mt-1">Khu vực này để phát triển sau. Tỷ lệ và khung hiển thị giữ nguyên như Trò chuyện.</span>
-                </div>
+              <div class="work-thread-frame" data-work-frame-owner="getlink">
+                <iframe
+                  id="workGetlinkFrame"
+                  class="work-thread-embed"
+                  src="https://get.taphoa.xyz/?embed=1"
+                  title="Công việc"
+                  loading="eager"
+                  referrerpolicy="strict-origin-when-cross-origin"
+                ></iframe>
               </div>
             </div>
           </div>
