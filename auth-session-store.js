@@ -94,6 +94,9 @@ function emitAuthState(){
 function renderGuest(){
   state='GUEST'; account=null; appSessionId=null; deviceId=null;
   authUI()?.setAuthenticated(false,null);
+  // Public preview: guest users land in Công việc without authentication.
+  // Chat/Call keeps the existing authentication gate.
+  shell()?.NavigationCommand?.openWork?.();
   ContactStore.clear();
   emitAuthState();
 }
