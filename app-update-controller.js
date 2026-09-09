@@ -2,23 +2,28 @@
 'use strict';
 
 const RELEASE_VERSION='V21.72.39';
-const MODULE_CONTRACT_VERSION='app-update-v1';
+const MODULE_CONTRACT_VERSION='app-update-v2';
 const CHECK_INTERVAL_MS=45000;
 const DEFER_RECHECK_MS=2500;
 const RELOAD_GUARD_MS=20000;
 const VERSION_URL='./version.json';
+const BUILD_PARAM='__build';
 const currentVersion=String(
   document.querySelector('meta[name="app-release-version"]')?.content||RELEASE_VERSION
 );
+const currentBuild=String(
+  document.querySelector('meta[name="app-build-id"]')?.content||currentVersion
+);
 let registration=null;
 let pendingVersion='';
+let pendingBuild='';
 let checkPromise=null;
 let deferredTimer=0;
 
 function emit(reason,detail={}){
   try{
     document.dispatchEvent(new CustomEvent('v21-app-update',{
-      detail:{reason:String(reason||'change'),currentVersion,pendingVersion,...detail}
+      detail:{reason:String(reason||'change'),currentVersion,currentBuild,pendingVersion,pendingBuild,...detail}
     }));
   }catch{}
 }
@@ -42,15 +47,15 @@ function safeToReload(){
   if(hasDraft())return false;
   return true;
 }
-function guardKey(version){return 'taphoa.v21.reload.'+String(version||'unknown');}
-function recentlyReloaded(version){
+function guardKey(build){return 'taphoa.v21.reload.'+String(build||'unknown');}
+function recentlyReloaded(build){
   try{
-    const value=Number(sessionStorage.getItem(guardKey(version))||0);
+    const value=Number(sessionStorage.getItem(guardKey(build))||0);
     return value>0&&Date.now()-value<RELOAD_GUARD_MS;
   }catch{return false;}
 }
-function rememberReload(version){
-  try{sessionStorage.setItem(guardKey(version),String(Date.now()));}catch{}
+function rememberReload(build){
+  try{sessionStorage.setItem(guardKey(build),String(Date.now()));}catch{}
 }
 function scheduleDeferred(){
   if(deferredTimer)return;
@@ -59,22 +64,33 @@ function scheduleDeferred(){
     maybeReload();
   },DEFER_RECHECK_MS);
 }
+function reloadUrl(build){
+  try{
+    const next=new URL(location.href);
+    next.searchParams.set(BUILD_PARAM,String(build||''));
+    return next.toString();
+  }catch{
+    return location.href;
+  }
+}
 function maybeReload(){
-  if(!pendingVersion)return false;
-  document.documentElement.dataset.appUpdatePending=pendingVersion;
+  if(!pendingBuild)return false;
+  document.documentElement.dataset.appUpdatePending=pendingBuild;
   if(!safeToReload()){
     emit('reload-deferred');
     scheduleDeferred();
     return false;
   }
-  if(recentlyReloaded(pendingVersion)){
+  if(recentlyReloaded(pendingBuild)){
     emit('reload-guarded');
     scheduleDeferred();
     return false;
   }
-  rememberReload(pendingVersion);
+  rememberReload(pendingBuild);
   emit('reloading');
-  location.reload();
+  const next=reloadUrl(pendingBuild);
+  if(typeof location.replace==='function')location.replace(next);
+  else location.reload();
   return true;
 }
 async function activateWaitingWorker(){
@@ -97,9 +113,11 @@ async function checkForUpdate({reason='interval'}={}){
       );
       if(!response.ok)return false;
       const remote=await response.json();
-      const next=String(remote?.version||'');
-      if(!next||next===currentVersion)return false;
-      pendingVersion=next;
+      const nextVersion=String(remote?.version||'');
+      const nextBuild=String(remote?.build_id||remote?.index_sha256||nextVersion||'');
+      if(!nextBuild||nextBuild===currentBuild)return false;
+      pendingVersion=nextVersion||currentVersion;
+      pendingBuild=nextBuild;
       emit('update-found',{trigger:String(reason||'check'),remote});
       await activateWaitingWorker();
       maybeReload();
@@ -117,16 +135,13 @@ async function registerServiceWorker(){
   if(!('serviceWorker' in navigator))return null;
   if(location.protocol!=='https:'&&location.hostname!=='localhost')return null;
   try{
-    registration=await navigator.serviceWorker.register('./sw.js',{
-      scope:'./',
-      updateViaCache:'none'
-    });
+    registration=await navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'});
     registration.addEventListener?.('updatefound',()=>{
       const worker=registration.installing;
       worker?.addEventListener?.('statechange',()=>{
         if(worker.state==='installed'&&navigator.serviceWorker.controller){
           void activateWaitingWorker();
-          if(pendingVersion)maybeReload();
+          if(pendingBuild)maybeReload();
         }
       });
     });
@@ -153,19 +168,17 @@ async function boot(){
   await registerServiceWorker();
   void checkForUpdate({reason:'boot'});
 }
-
 if(document.readyState==='loading'){
   document.addEventListener('DOMContentLoaded',()=>void boot(),{once:true});
 }else{
   void boot();
 }
-
 window.V21AppUpdateController=Object.freeze({
   version:RELEASE_VERSION,
   moduleContractVersion:MODULE_CONTRACT_VERSION,
-  currentVersion,
+  currentVersion,currentBuild,
   check:checkForUpdate,
   safeToReload,
-  snapshot:()=>({currentVersion,pendingVersion,serviceWorker:Boolean(registration)})
+  snapshot:()=>({currentVersion,currentBuild,pendingVersion,pendingBuild,serviceWorker:Boolean(registration)})
 });
 })();
