@@ -33,6 +33,7 @@ async function networkFirst(request,{navigation=false}={}){
     if(response&&response.ok&&new URL(request.url).origin===self.location.origin){
       const cache=await caches.open(CACHE_NAME);
       void cache.put(request,response.clone()).catch(()=>{});
+      if(navigation)void cache.put('./',response.clone()).catch(()=>{});
     }
     return response;
   }catch(error){

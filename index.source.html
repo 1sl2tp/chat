@@ -5,17 +5,18 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
+<meta name="app-build-id" content="__APP_BUILD_ID__">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Chat">
+<meta name="apple-mobile-web-app-title" content="TAPHOA Chat">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" sizes="192x192" href="./icons/chat-192.png">
 <link rel="icon" type="image/png" sizes="192x192" href="./icons/chat-192.png">
 <meta name="chat-call-preview-only" content="true">
 <meta name="chat-v21-session-runtime" content="v21-only">
 <meta name="chat-v21-contact-runtime" content="v21-only">
-<title>Chat Screen Module V21.72.39</title>
+<title>TAPHOA Chat</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="./reference/chatgpt/full-source/chatgpt-core-exact.css" data-build-source="reference/chatgpt/full-source/chatgpt-core-exact.css">
 <link rel="stylesheet" href="./reference/chatgpt/chatgpt-token-aliases.css" data-build-source="reference/chatgpt/chatgpt-token-aliases.css">
@@ -2256,18 +2257,43 @@ button{
 }
 #workThreadView[hidden],
 [data-chat-thread-node][hidden]{display:none!important}
-.work-thread-card{
-  width:min(calc(100% - 24px),560px);
-  min-height:240px;
-  margin:20px auto 12px;
-  padding:20px;
-  border:1px dashed var(--theme-border-default);
-  border-radius:24px;
-  display:grid;
-  place-items:center;
-  text-align:center;
-  color:var(--theme-content-tertiary);
+#workThreadView:not([hidden]){
+  display:flex;
+  flex:0 0 auto;
+  width:100%;
+  height:calc(100svh - var(--header-height,72px) - var(--composer-flow-reserve,0px));
+  min-height:0;
+  padding:8px 12px;
+  overflow:hidden;
   box-sizing:border-box;
+}
+.work-thread-frame{
+  width:100%;
+  height:100%;
+  min-width:0;
+  min-height:0;
+  border:1px solid var(--theme-border-default);
+  border-radius:18px;
+  background:var(--theme-surface-primary);
+  overflow:hidden;
+  box-sizing:border-box;
+}
+.work-thread-embed{
+  display:block;
+  width:100%;
+  height:100%;
+  min-width:0;
+  min-height:0;
+  border:0;
+  background:#fff;
+}
+@media(max-width:640px){
+  #workThreadView:not([hidden]){
+    padding:6px;
+  }
+  .work-thread-frame{
+    border-radius:14px;
+  }
 }
 .shell-card{
   border:1px solid var(--theme-border-default);
@@ -2879,7 +2905,7 @@ button{
 <div id="runtimeError" class="hidden fixed z-[9999] left-2 right-2 top-2 rounded-xl bg-red-600 text-white text-xs px-3 py-2 shadow-lg"></div>
 
 <!-- V21.69.9 unified runtime marker. Earlier V21.20/V21.64 labels below are provenance for inherited geometry/style contracts only, not separate live runtimes. -->
-<div id="appShell" data-app-shell data-chat-screen-version="V21.72.39" data-app-shell-version="V21.72.39" data-auth-state="booting" data-default-route="chat" data-route="chat">
+<div id="appShell" data-app-shell data-chat-screen-version="V21.72.39" data-app-shell-version="V21.72.39" data-auth-state="booting" data-default-route="work" data-route="work">
   <div id="screenHost" data-screen-host>
     <div id="activeScreenSlot" data-active-screen-slot>
       <section id="chatScreen" class="app-screen" data-screen="chat">
@@ -2912,8 +2938,8 @@ button{
         </button>
 
         <div class="top-mode-switch" role="tablist" aria-label="Chế độ làm việc">
-          <button type="button" class="top-mode-tab" role="tab" aria-selected="true" data-top-tab="chat" data-nav-target="chat">Trò chuyện</button>
-          <button type="button" class="top-mode-tab" role="tab" aria-selected="false" data-top-tab="work" data-nav-target="work">Công việc</button>
+          <button type="button" class="top-mode-tab" role="tab" aria-selected="false" data-top-tab="chat" data-nav-target="chat">Trò chuyện</button>
+          <button type="button" class="top-mode-tab" role="tab" aria-selected="true" data-top-tab="work" data-nav-target="work">Công việc</button>
         </div>
 
         <div class="call-focus-slot" data-call-focus-slot data-call-ui-state="idle">
@@ -2991,11 +3017,15 @@ button{
               <div id="bottomSpacer" data-chat-thread-node aria-hidden="true"></div>
             </div>
             <div id="workThreadView" class="thread-mode-view" data-thread-view="work" hidden>
-              <div class="work-thread-card">
-                <div>
-                  <strong class="block text-token-text-primary text-lg">Công việc</strong>
-                  <span class="block mt-1">Khu vực này để phát triển sau. Tỷ lệ và khung hiển thị giữ nguyên như Trò chuyện.</span>
-                </div>
+              <div class="work-thread-frame" data-work-frame-owner="getlink">
+                <iframe
+                  id="workGetlinkFrame"
+                  class="work-thread-embed"
+                  src="https://get.taphoa.xyz/?embed=1"
+                  title="Công việc"
+                  loading="eager"
+                  referrerpolicy="strict-origin-when-cross-origin"
+                ></iframe>
               </div>
             </div>
           </div>

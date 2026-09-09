@@ -42,6 +42,9 @@ assert 'remoteTrackKey' in livekit
 source=read('index.source.html')
 assert '<link rel="manifest" href="./manifest.webmanifest">' in source
 assert 'name="app-release-version" content="V21.72.39"' in source
+assert 'name="app-build-id" content="__APP_BUILD_ID__"' in source
+assert 'apple-mobile-web-app-title" content="TAPHOA Chat"' in source
+assert '<title>TAPHOA Chat</title>' in source
 assert './audio-capture-policy.js' in source
 assert './app-update-controller.js' in source
 assert 'apple-mobile-web-app-capable' in source
@@ -49,6 +52,8 @@ assert 'mobile-web-app-capable' in source
 
 manifest=json.loads(read('manifest.webmanifest'))
 assert manifest['display']=='standalone'
+assert manifest['name']=='TAPHOA Chat'
+assert manifest['short_name']=='TAPHOA Chat'
 assert manifest['start_url']=='./'
 assert manifest['scope']=='./'
 sizes={icon.get('sizes') for icon in manifest.get('icons',[])}
@@ -59,10 +64,12 @@ for token in ['skipWaiting','clients.claim','version.json','cache: \'no-store\''
     assert token in sw, token
 
 update=read('app-update-controller.js')
-assert "MODULE_CONTRACT_VERSION='app-update-v1'" in update
+assert "MODULE_CONTRACT_VERSION='app-update-v2'" in update
 assert "RELEASE_VERSION='V21.72.39'" in update
 for token in [
     'version.json',
+    'build_id',
+    "BUILD_PARAM='__build'",
     "cache:'no-store'",
     'visibilitychange',
     'setInterval',
@@ -71,8 +78,8 @@ for token in [
     'V21SyncEngine',
     "document.getElementById('editor')",
     "document.getElementById('attachmentTray')",
-    'location.reload()',
+    'location.replace',
     'serviceWorker.register'
 ]:
     assert token in update, token
-print('V21.72.39 audio/PWA contract PASS')
+print('V21.72.39 audio/PWA/update contract PASS')
