@@ -1,12 +1,11 @@
 from pathlib import Path
-import hashlib, json, subprocess, sys
+import hashlib, json, subprocess, sys, re
 ROOT=Path(__file__).resolve().parents[1]
-version=json.loads((ROOT/'version.json').read_text('utf-8'))
-release=str(version.get('version') or '')
-assert release=='V21.72.39', release
 committed=(ROOT/'index.html').read_bytes()
+committed_version=(ROOT/'version.json').read_bytes()
 subprocess.run([sys.executable,str(ROOT/'tools'/'build_current_preview.py')],check=True,cwd=ROOT)
 generated=(ROOT/'index.html').read_bytes()
+generated_version=(ROOT/'version.json').read_bytes()
 if generated!=committed:
     import difflib
     before=committed.decode('utf-8').splitlines()
@@ -14,6 +13,12 @@ if generated!=committed:
     diff=list(difflib.unified_diff(before,after,fromfile='committed/index.html',tofile='generated/index.html',n=3))
     print('\n'.join(diff[:240]))
 assert generated==committed,'index.html is not synchronized with modular source'
+assert generated_version==committed_version,'version.json is not synchronized with canonical build'
+version=json.loads(generated_version.decode('utf-8'))
+release=str(version.get('version') or '')
+assert re.fullmatch(r'V\d+(?:\.\d+)+',release),release
+build_id=str(version.get('build_id') or '')
+assert re.fullmatch(r'[0-9a-f]{64}',build_id),build_id
 sha=hashlib.sha256(generated).hexdigest()
 expected=str(version.get('index_sha256') or '')
 if expected:
@@ -51,4 +56,4 @@ subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_37_call_header_bala
 subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_38_contact_switch_scroll_gate.py')],check=True,cwd=ROOT)
 subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_39_scroll_arrow_hide_stability.py')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_v21_72_20_call_screen_wake_lock.js')],check=True,cwd=ROOT)
-print(f'V21.72.39 canonical source verify PASS sha256={sha}')
+print(f'{release} canonical source verify PASS build_id={build_id} sha256={sha}')
