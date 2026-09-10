@@ -25,7 +25,7 @@ class AccountDeleteRecreateContract(unittest.TestCase):
 
     def test_auth_delete_trigger_cleans_restricting_user_data_before_account_cascade(self):
         text = self.migration_text()
-        self.assertIn("create or replace function public.v21_hard_delete_user_cleanup", text)
+        self.assertIn("create or replace function v21_private.v21_hard_delete_user_cleanup", text)
         self.assertIn("before delete on auth.users", text)
         self.assertIn("delete from public.getlink_debt_ledger", text)
         self.assertIn("delete from public.getlink_sales_orders", text)
@@ -34,12 +34,17 @@ class AccountDeleteRecreateContract(unittest.TestCase):
         self.assertIn("delete from public.orders", text)
         self.assertIn("delete from public.v21_calls", text)
 
-    def test_admin_delete_revokes_session_then_hard_deletes_supabase_auth_user(self):
+    def test_admin_delete_removes_storage_revokes_session_then_hard_deletes_auth_user(self):
         text = self.admin_text()
         delete_block = text[text.index('action === "delete"'):]
+        media_pos = delete_block.index('admin.storage.from("v21-media").remove')
+        avatar_pos = delete_block.index('admin.storage.from("v21-avatars").remove')
         revoke_pos = delete_block.index("await revokeTargetSessions()")
         auth_delete_pos = delete_block.index("admin.auth.admin.deleteUser(target.auth_user_id)")
+        self.assertLess(media_pos, auth_delete_pos)
+        self.assertLess(avatar_pos, auth_delete_pos)
         self.assertLess(revoke_pos, auth_delete_pos)
+        self.assertIn("storage_delete_failed", delete_block)
         self.assertIn("auth_delete_failed", delete_block)
         self.assertNotIn("deleted_at: now", delete_block)
 
