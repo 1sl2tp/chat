@@ -12,6 +12,7 @@ class GetlinkWorkEmbedContract(unittest.TestCase):
     def test_chat_has_work_tab_and_getlink_iframe_in_source_and_build(self):
         for path in (SOURCE, INDEX):
             text = path.read_text(encoding="utf-8")
+            self.assertIn('data-default-route="chat" data-route="chat"', text, str(path))
             self.assertIn('data-top-tab="work"', text, str(path))
             self.assertIn('data-nav-target="work"', text, str(path))
             self.assertIn('id="workThreadView"', text, str(path))
