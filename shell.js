@@ -2,7 +2,7 @@
 (()=>{
 'use strict';
 
-const ROUTES=Object.freeze(['chat']);
+const ROUTES=Object.freeze(['chat','work']);
 const screenHost=document.getElementById('screenHost');
 const activeScreenSlot=document.getElementById('activeScreenSlot');
 const chatScreen=document.getElementById('chatScreen');
@@ -202,6 +202,7 @@ const NavigationCommand={
     return true;
   },
   openChat(){return this.open('chat')},
+  openWork(){return this.open('work')}
 };
 
 function formatCallElapsed(totalSeconds){
