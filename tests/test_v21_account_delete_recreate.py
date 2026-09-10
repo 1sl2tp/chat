@@ -6,6 +6,7 @@ ADMIN = ROOT / "supabase/functions/v21-account-admin/index.ts"
 REGISTER = ROOT / "supabase/functions/v21-register/index.ts"
 MIGRATIONS = ROOT / "supabase/migrations"
 CONVERSATION_PATCH = MIGRATIONS / "20260910190000_v21_hard_delete_user_conversation_cleanup.sql"
+DELETE_SYNC_PATCH = MIGRATIONS / "20260910193000_v21_account_delete_sync.sql"
 
 
 class AccountDeleteRecreateContract(unittest.TestCase):
@@ -42,6 +43,15 @@ class AccountDeleteRecreateContract(unittest.TestCase):
         conversations_pos = text.index("delete from public.v21_conversations")
         self.assertLess(calls_pos, conversations_pos)
         self.assertIn("member_a = v_account_id or member_b = v_account_id", text)
+
+    def test_hard_delete_emits_realtime_contact_delete_event(self):
+        self.assertTrue(DELETE_SYNC_PATCH.exists(), "account DELETE sync patch must exist")
+        text = DELETE_SYNC_PATCH.read_text(encoding="utf-8").lower()
+        self.assertIn("after insert or update or delete on public.v21_accounts", text)
+        self.assertIn("tg_op = 'delete'", text)
+        self.assertIn("v_op := 'delete'", text)
+        self.assertIn("old.version + 1", text)
+        self.assertIn("return old", text)
 
     def test_admin_delete_removes_storage_revokes_session_then_hard_deletes_auth_user(self):
         text = self.admin_text()
