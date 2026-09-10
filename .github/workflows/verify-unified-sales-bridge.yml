@@ -9,12 +9,45 @@ permissions:
 
 jobs:
   bridge-contract:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Insert bridge into canonical source
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.source.html')
+          s=p.read_text(encoding='utf-8')
+          anchor='<script src="./auth-session-store.js" data-build-source="auth-session-store.js"></script>'
+          bridge='<script src="./work-auth-bridge.js" data-build-source="work-auth-bridge.js"></script>'
+          if bridge not in s:
+              if anchor not in s: raise SystemExit('auth session script anchor missing')
+              s=s.replace(anchor,anchor+'\n'+bridge,1)
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Build canonical preview
+        run: python tools/build_current_preview.py
       - name: Unified sales bridge contract
         run: python -m unittest tests.test_v21_work_auth_bridge -v
+      - name: Verify canonical Chat build
+        run: |
+          node --check work-auth-bridge.js
+          python tools/verify_current.py
+      - name: Commit verified bridge
+        run: |
+          git config user.name "TAPHOA Chat Build"
+          git config user.email "actions@users.noreply.github.com"
+          git rm .github/workflows/verify-unified-sales-bridge.yml
+          git add index.source.html index.html version.json work-auth-bridge.js tests/test_v21_work_auth_bridge.py
+          git commit -m "Bridge shared Chat account into GETLINK Work"
+          git push origin HEAD:unified-sales-foundation
