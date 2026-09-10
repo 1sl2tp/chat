@@ -1,5 +1,4 @@
 from pathlib import Path
-import re
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -19,26 +18,34 @@ class AccountDeleteRecreateContract(unittest.TestCase):
 
     def migration_text(self):
         self.assertTrue(MIGRATIONS.exists(), "supabase/migrations directory must exist")
-        texts = []
-        for path in sorted(MIGRATIONS.glob("*.sql")):
-            texts.append(path.read_text(encoding="utf-8"))
-        return "\n".join(texts).lower()
+        return "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in sorted(MIGRATIONS.glob("*.sql"))
+        ).lower()
 
-    def test_deleted_account_detaches_auth_identity_without_deleting_history_row(self):
+    def test_auth_delete_trigger_cleans_restricting_user_data_before_account_cascade(self):
         text = self.migration_text()
-        self.assertIn("alter column auth_user_id drop not null", text)
-        self.assertRegex(text, r"foreign key\s*\(auth_user_id\).*references\s+auth\.users\s*\(id\).*on delete set null")
+        self.assertIn("create or replace function public.v21_hard_delete_user_cleanup", text)
+        self.assertIn("before delete on auth.users", text)
+        self.assertIn("delete from public.getlink_debt_ledger", text)
+        self.assertIn("delete from public.getlink_sales_orders", text)
+        self.assertIn("delete from public.debts", text)
+        self.assertIn("delete from public.order_items", text)
+        self.assertIn("delete from public.orders", text)
+        self.assertIn("delete from public.v21_calls", text)
 
-    def test_admin_delete_revokes_app_sessions_then_deletes_supabase_auth_user(self):
+    def test_admin_delete_revokes_session_then_hard_deletes_supabase_auth_user(self):
         text = self.admin_text()
         delete_block = text[text.index('action === "delete"'):]
         revoke_pos = delete_block.index("await revokeTargetSessions()")
         auth_delete_pos = delete_block.index("admin.auth.admin.deleteUser(target.auth_user_id)")
         self.assertLess(revoke_pos, auth_delete_pos)
         self.assertIn("auth_delete_failed", delete_block)
+        self.assertNotIn("deleted_at: now", delete_block)
 
-    def test_registration_still_creates_fresh_auth_identity(self):
+    def test_registration_creates_fresh_identity_and_only_checks_live_username(self):
         text = self.register_text()
+        self.assertIn('.is("deleted_at", null)', text)
         self.assertIn("admin.auth.admin.createUser", text)
         self.assertIn("auth_user_id: created.user.id", text)
         self.assertNotIn("restore", text.lower())
