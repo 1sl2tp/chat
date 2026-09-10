@@ -31,5 +31,7 @@ jobs:
         run: python tests/test_v21_72_19_profile_username_avatar.py
       - name: GETLINK shared auth bridge contract
         run: python tests/test_v21_getlink_auth_bridge.py
+      - name: Chat-only GETLINK embed isolation contract
+        run: python tests/test_v21_remove_getlink_embed.py
       - name: Verify canonical source
         run: python tools/verify_current.py
