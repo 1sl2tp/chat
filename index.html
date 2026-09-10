@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="52a4c1bfe316d6bb4ca835f618e073a9bbc38fbe62e7070a5d2e9b327a2bf907">
+<meta name="app-build-id" content="f6d7e9644ff6889b67d15b76b57ee23f5976bc8c46f29013ec418554c66d695f">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -4676,6 +4676,19 @@ const AppBootController={
 function isOwnedRuntimeErrorEvent(event){
   const message=String(event?.message||'').trim();
   const filename=String(event?.filename||'').trim();
+  const externalMessage=`${message} ${String(event?.error?.message||'')}`.trim();
+
+  // Zalo's in-app WebView can inject a bridge reference into the page and
+  // then report the missing bridge as a page-level ReferenceError with no
+  // trustworthy filename. It is outside Chat ownership; ignore only this
+  // exact bridge signature so real application ReferenceErrors still fail.
+  if(
+    /\bzalojsv2\b/i.test(externalMessage) &&
+    /(?:can't find variable|is not defined|referenceerror)/i.test(externalMessage)
+  ){
+    console.warn('[ChatScreenModule] ignored Zalo WebView bridge ReferenceError.',event);
+    return false;
+  }
 
   // Safari/file:// and browser extensions can surface an opaque cross-origin
   // ErrorEvent as exactly "Script error." with no usable Error object.

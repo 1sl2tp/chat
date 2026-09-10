@@ -56,4 +56,5 @@ subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_37_call_header_bala
 subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_38_contact_switch_scroll_gate.py')],check=True,cwd=ROOT)
 subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_39_scroll_arrow_hide_stability.py')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_v21_72_20_call_screen_wake_lock.js')],check=True,cwd=ROOT)
+subprocess.run(['node',str(ROOT/'tests'/'test_v21_zalo_webview_runtime_error.js')],check=True,cwd=ROOT)
 print(f'{release} canonical source verify PASS build_id={build_id} sha256={sha}')
