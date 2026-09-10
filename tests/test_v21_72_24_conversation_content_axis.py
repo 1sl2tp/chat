@@ -15,7 +15,7 @@ assert 'id="conversationContentAxis"' in source
 assert 'data-conversation-content-owner="true"' in source
 
 owner_start=source.index('<div id="conversationContentAxis"')
-owner_end=source.index('<div id="workThreadView"',owner_start)
+owner_end=source.index('id="thread-bottom-container"',owner_start)
 owner=source[owner_start:owner_end]
 for token in ['id="historyStatus"','id="topSpacer"','id="messageWindow"','id="bottomSpacer"']:
     assert token in owner, token
