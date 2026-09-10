@@ -4,6 +4,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 BRIDGE = ROOT / "getlink-auth-bridge.js"
 SOURCE = ROOT / "index.source.html"
+INDEX = ROOT / "index.html"
 
 
 class GetlinkAuthBridgeContract(unittest.TestCase):
@@ -39,11 +40,12 @@ class GetlinkAuthBridgeContract(unittest.TestCase):
         self.assertIn("accessToken:null", text)
         self.assertIn("snapshot.state!=='AUTHENTICATED'", text)
 
-    def test_canonical_source_loads_bridge_after_auth_store(self):
-        source = SOURCE.read_text(encoding="utf-8")
-        auth = source.index('auth-session-store.js')
-        bridge = source.index('getlink-auth-bridge.js')
-        self.assertGreater(bridge, auth)
+    def test_canonical_source_and_build_load_bridge_after_auth_store(self):
+        for path in (SOURCE, INDEX):
+            source = path.read_text(encoding="utf-8")
+            auth = source.index('auth-session-store.js')
+            bridge = source.index('getlink-auth-bridge.js')
+            self.assertGreater(bridge, auth, str(path))
 
 
 if __name__ == '__main__':
