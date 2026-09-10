@@ -15,7 +15,8 @@ class GetlinkAuthBridgeContract(unittest.TestCase):
         text = self.text()
         self.assertIn("const GETLINK_ORIGIN='https://get.taphoa.xyz';", text)
         self.assertIn("getElementById('workGetlinkFrame')", text)
-        self.assertIn("postMessage(payload,GETLINK_ORIGIN)", text)
+        self.assertIn("postMessage(message,GETLINK_ORIGIN)", text)
+        self.assertIn("event.origin!==GETLINK_ORIGIN", text)
 
     def test_bridge_sends_access_token_and_chat_account_only(self):
         text = self.text()
@@ -30,12 +31,13 @@ class GetlinkAuthBridgeContract(unittest.TestCase):
         self.assertIn("syncGetlinkAuthBridge", text)
         self.assertIn("v21-auth-state", text)
         self.assertIn("v21-auth-token-refreshed", text)
+        self.assertIn("taphoa-getlink-auth-request", text)
         self.assertGreaterEqual(text.count("syncGetlinkAuthBridge"), 3)
 
     def test_guest_state_clears_getlink_auth(self):
         text = self.text()
         self.assertIn("accessToken:null", text)
-        self.assertIn("state==='AUTHENTICATED'", text)
+        self.assertIn("snapshot.state!=='AUTHENTICATED'", text)
 
     def test_canonical_source_loads_bridge_after_auth_store(self):
         source = SOURCE.read_text(encoding="utf-8")
