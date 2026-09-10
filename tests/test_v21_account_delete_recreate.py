@@ -13,7 +13,7 @@ class AccountDeleteRecreateContract(unittest.TestCase):
         return ADMIN.read_text(encoding="utf-8")
 
     def register_text(self):
-        self.assertTrue(REGISTER.exists(), "v21-register edge function must exist")
+        self.assertTrue(REGISTER.exists(), "v21-register edge function source must be versioned")
         return REGISTER.read_text(encoding="utf-8")
 
     def migration_text(self):
@@ -36,15 +36,16 @@ class AccountDeleteRecreateContract(unittest.TestCase):
 
     def test_admin_delete_removes_storage_revokes_session_then_hard_deletes_auth_user(self):
         text = self.admin_text()
+        self.assertIn('admin.storage.from("v21-media").remove', text)
+        self.assertIn('admin.storage.from("v21-avatars").remove', text)
+        self.assertIn("storage_delete_failed", text)
+
         delete_block = text[text.index('action === "delete"'):]
-        media_pos = delete_block.index('admin.storage.from("v21-media").remove')
-        avatar_pos = delete_block.index('admin.storage.from("v21-avatars").remove')
+        storage_pos = delete_block.index("await removeTargetStorage()")
         revoke_pos = delete_block.index("await revokeTargetSessions()")
         auth_delete_pos = delete_block.index("admin.auth.admin.deleteUser(target.auth_user_id)")
-        self.assertLess(media_pos, auth_delete_pos)
-        self.assertLess(avatar_pos, auth_delete_pos)
+        self.assertLess(storage_pos, auth_delete_pos)
         self.assertLess(revoke_pos, auth_delete_pos)
-        self.assertIn("storage_delete_failed", delete_block)
         self.assertIn("auth_delete_failed", delete_block)
         self.assertNotIn("deleted_at: now", delete_block)
 
