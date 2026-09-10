@@ -91,6 +91,58 @@ Deno.serve(async (req: Request) => {
       if (rows.length) await admin.from("v21_session_events").insert(rows);
     }
 
+    async function removeStoragePaths(bucket: string, paths: string[]) {
+      const unique = [...new Set(paths.filter(Boolean))];
+      for (let i = 0; i < unique.length; i += 100) {
+        const { error } = await admin.storage.from(bucket).remove(unique.slice(i, i + 100));
+        if (error) throw error;
+      }
+    }
+
+    async function removeTargetStorage() {
+      const { data: conversations, error: conversationError } = await admin
+        .from("v21_conversations")
+        .select("id")
+        .or(`member_a.eq.${targetId},member_b.eq.${targetId}`);
+      if (conversationError) throw conversationError;
+
+      const conversationIds = (conversations || []).map((row: { id: string }) => String(row.id));
+      const mediaKeys = new Set<string>();
+
+      let offset = 0;
+      while (true) {
+        const { data: owned, error } = await admin
+          .from("v21_media_assets")
+          .select("storage_key")
+          .eq("owner_account_id", targetId)
+          .range(offset, offset + 499);
+        if (error) throw error;
+        for (const row of owned || []) if (row.storage_key) mediaKeys.add(String(row.storage_key));
+        if ((owned || []).length < 500) break;
+        offset += 500;
+      }
+
+      for (let i = 0; i < conversationIds.length; i += 100) {
+        const ids = conversationIds.slice(i, i + 100);
+        if (!ids.length) continue;
+        let page = 0;
+        while (true) {
+          const { data: rows, error } = await admin
+            .from("v21_media_assets")
+            .select("storage_key")
+            .in("conversation_id", ids)
+            .range(page, page + 499);
+          if (error) throw error;
+          for (const row of rows || []) if (row.storage_key) mediaKeys.add(String(row.storage_key));
+          if ((rows || []).length < 500) break;
+          page += 500;
+        }
+      }
+
+      await removeStoragePaths("v21-media", [...mediaKeys]);
+      if (target.avatar_path) await removeStoragePaths("v21-avatars", [String(target.avatar_path)]);
+    }
+
     if (action === "save") {
       const username = normalizeUsername(body?.username ?? target.username);
       const displayName = String(body?.display_name ?? target.display_name).trim();
@@ -170,13 +222,22 @@ Deno.serve(async (req: Request) => {
       if (error) return reply(400, { ok: false, code: "lock_update_failed" });
       if (locked) await revokeTargetSessions();
     } else if (action === "delete") {
-      const now = new Date().toISOString();
-      const { error } = await admin
+      const { error: lockError } = await admin
         .from("v21_accounts")
-        .update({ deleted_at: now, locked_at: now })
+        .update({ locked_at: new Date().toISOString() })
         .eq("id", targetId);
-      if (error) return reply(400, { ok: false, code: "delete_failed" });
+      if (lockError) return reply(400, { ok: false, code: "delete_failed" });
+
       await revokeTargetSessions();
+
+      try {
+        await removeTargetStorage();
+      } catch {
+        return reply(400, { ok: false, code: "storage_delete_failed" });
+      }
+
+      const { error: authDeleteError } = await admin.auth.admin.deleteUser(target.auth_user_id);
+      if (authDeleteError) return reply(400, { ok: false, code: "auth_delete_failed" });
     } else {
       return reply(400, { ok: false, code: "invalid_action" });
     }
