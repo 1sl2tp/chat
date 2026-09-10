@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="c8667e8c5fc11b2f90b216f5c3deed59c9b3ca45eab0c66ee015a42057b48572">
+<meta name="app-build-id" content="0d9c1a7b760db13d6d9f670e3c61ff97f0cfd8c61b06ada56b2eab382bff38a2">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -3097,7 +3097,7 @@ button{
 <div id="runtimeError" class="hidden fixed z-[9999] left-2 right-2 top-2 rounded-xl bg-red-600 text-white text-xs px-3 py-2 shadow-lg"></div>
 
 <!-- V21.69.9 unified runtime marker. Earlier V21.20/V21.64 labels below are provenance for inherited geometry/style contracts only, not separate live runtimes. -->
-<div id="appShell" data-app-shell data-chat-screen-version="V21.72.39" data-app-shell-version="V21.72.39" data-auth-state="booting" data-default-route="work" data-route="work">
+<div id="appShell" data-app-shell data-chat-screen-version="V21.72.39" data-app-shell-version="V21.72.39" data-auth-state="booting" data-default-route="chat" data-route="chat">
   <div id="screenHost" data-screen-host>
     <div id="activeScreenSlot" data-active-screen-slot>
       <section id="chatScreen" class="app-screen" data-screen="chat">
@@ -3131,6 +3131,7 @@ button{
 
         <div class="top-mode-switch" role="tablist" aria-label="Chế độ làm việc">
           <button type="button" class="top-mode-tab" role="tab" aria-selected="false" data-top-tab="chat" data-nav-target="chat">Trò chuyện</button>
+          <button type="button" class="top-mode-tab" role="tab" aria-selected="false" data-top-tab="work" data-nav-target="work">Công việc</button>
         </div>
 
         <div class="call-focus-slot" data-call-focus-slot data-call-ui-state="idle">
@@ -3206,6 +3207,18 @@ button{
               <div id="topSpacer" data-chat-thread-node aria-hidden="true"></div>
               <div id="messageWindow" data-chat-thread-node></div>
               <div id="bottomSpacer" data-chat-thread-node aria-hidden="true"></div>
+            </div>
+            <div id="workThreadView" class="thread-mode-view" data-thread-view="work" hidden>
+              <div class="work-thread-frame" data-work-frame-owner="getlink">
+                <iframe
+                  id="workGetlinkFrame"
+                  class="work-thread-embed"
+                  src="https://get.taphoa.xyz/?embed=1"
+                  title="Công việc"
+                  loading="eager"
+                  referrerpolicy="strict-origin-when-cross-origin"
+                ></iframe>
+              </div>
             </div>
           </div>
 
@@ -11017,7 +11030,7 @@ window.ChatScreenModule={
 (()=>{
 'use strict';
 
-const ROUTES=Object.freeze(['chat']);
+const ROUTES=Object.freeze(['chat','work']);
 const screenHost=document.getElementById('screenHost');
 const activeScreenSlot=document.getElementById('activeScreenSlot');
 const chatScreen=document.getElementById('chatScreen');
@@ -11217,6 +11230,7 @@ const NavigationCommand={
     return true;
   },
   openChat(){return this.open('chat')},
+  openWork(){return this.open('work')}
 };
 
 function formatCallElapsed(totalSeconds){
@@ -13325,6 +13339,60 @@ window.V21AuthSessionStore={
 void boot();
 })();
 
+
+</script>
+<script data-inlined-source="getlink-auth-bridge.js">
+(()=>{
+'use strict';
+
+const GETLINK_ORIGIN='https://get.taphoa.xyz';
+let syncSeq=0;
+
+function frame(){return document.getElementById('workGetlinkFrame')}
+function authStore(){return window.V21AuthSessionStore||null}
+
+async function currentAccessToken(){
+  const store=authStore();
+  const snapshot=store?.snapshot?.()||{};
+  if(snapshot.state!=='AUTHENTICATED')return null;
+  try{
+    const result=await store.getClient()?.auth?.getSession?.();
+    return result?.data?.session?.access_token||null;
+  }catch{return null;}
+}
+
+async function syncGetlinkAuthBridge(){
+  const seq=++syncSeq;
+  const target=frame();
+  if(!target?.contentWindow)return false;
+  const accessToken=await currentAccessToken();
+  if(seq!==syncSeq)return false;
+  target.contentWindow.postMessage({type:'taphoa-chat-auth',accessToken},GETLINK_ORIGIN);
+  return true;
+}
+
+function bindFrame(){
+  const target=frame();
+  if(!target||target.dataset.chatAuthBridgeBound==='true')return false;
+  target.dataset.chatAuthBridgeBound='true';
+  target.addEventListener('load',()=>{void syncGetlinkAuthBridge();});
+  return true;
+}
+
+document.addEventListener('v21-auth-state',()=>{void syncGetlinkAuthBridge();});
+document.addEventListener('v21-auth-token-refreshed',()=>{void syncGetlinkAuthBridge();});
+document.addEventListener('navigation-change',event=>{
+  if(event?.detail?.route==='work')void syncGetlinkAuthBridge();
+});
+window.addEventListener('message',event=>{
+  if(event.origin!==GETLINK_ORIGIN)return;
+  if(event.data?.type==='taphoa-getlink-auth-request')void syncGetlinkAuthBridge();
+});
+
+bindFrame();
+void syncGetlinkAuthBridge();
+window.V21GetlinkAuthBridge=Object.freeze({sync:syncGetlinkAuthBridge});
+})();
 
 </script>
 <script data-inlined-source="v21-cache-store.js">
