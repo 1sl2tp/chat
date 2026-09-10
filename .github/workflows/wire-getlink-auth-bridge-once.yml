@@ -1,5 +1,6 @@
 name: Wire GETLINK auth bridge once
 
+# Retry after aligning the contract with the implementation variable names.
 on:
   push:
     branches:
