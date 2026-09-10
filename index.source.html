@@ -2939,7 +2939,6 @@ button{
 
         <div class="top-mode-switch" role="tablist" aria-label="Chế độ làm việc">
           <button type="button" class="top-mode-tab" role="tab" aria-selected="false" data-top-tab="chat" data-nav-target="chat">Trò chuyện</button>
-          <button type="button" class="top-mode-tab" role="tab" aria-selected="true" data-top-tab="work" data-nav-target="work">Công việc</button>
         </div>
 
         <div class="call-focus-slot" data-call-focus-slot data-call-ui-state="idle">
@@ -3015,18 +3014,6 @@ button{
               <div id="topSpacer" data-chat-thread-node aria-hidden="true"></div>
               <div id="messageWindow" data-chat-thread-node></div>
               <div id="bottomSpacer" data-chat-thread-node aria-hidden="true"></div>
-            </div>
-            <div id="workThreadView" class="thread-mode-view" data-thread-view="work" hidden>
-              <div class="work-thread-frame" data-work-frame-owner="getlink">
-                <iframe
-                  id="workGetlinkFrame"
-                  class="work-thread-embed"
-                  src="https://get.taphoa.xyz/?embed=1"
-                  title="Công việc"
-                  loading="eager"
-                  referrerpolicy="strict-origin-when-cross-origin"
-                ></iframe>
-              </div>
             </div>
           </div>
 
@@ -3254,7 +3241,6 @@ button{
 <script src="./call-screen-wake-lock.js" data-build-source="call-screen-wake-lock.js"></script>
 <script src="./shell-form-viewport-policy.js" data-build-source="shell-form-viewport-policy.js"></script>
 <script src="./auth-session-store.js" data-build-source="auth-session-store.js"></script>
-<script src="./getlink-auth-bridge.js" data-build-source="getlink-auth-bridge.js"></script>
 <script src="./v21-cache-store.js" data-build-source="v21-cache-store.js"></script>
 <script src="./v21-media-cache.js" data-build-source="v21-media-cache.js"></script>
 <script src="./v21-message-store.js" data-build-source="v21-message-store.js"></script>

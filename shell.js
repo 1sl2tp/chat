@@ -2,7 +2,7 @@
 (()=>{
 'use strict';
 
-const ROUTES=Object.freeze(['chat','work']);
+const ROUTES=Object.freeze(['chat']);
 const screenHost=document.getElementById('screenHost');
 const activeScreenSlot=document.getElementById('activeScreenSlot');
 const chatScreen=document.getElementById('chatScreen');
@@ -14,7 +14,7 @@ const appShell=document.getElementById('appShell');
 const DESKTOP_DIRECTORY_QUERY='(min-width: 68rem) and (hover: hover) and (pointer: fine)';
 const desktopDirectoryMedia=window.matchMedia(DESKTOP_DIRECTORY_QUERY);
 
-let route='work';
+let route='chat';
 let authState='BOOTING';
 let authAccount=null;
 let sidebarOpen=false;
@@ -62,7 +62,7 @@ function persistScreenSession(){
   const key=screenSessionKey();
   if(!key)return false;
   const payload={
-    route:ROUTES.includes(route)?route:'work',
+    route:ROUTES.includes(route)?route:'chat',
     activeContact:activeContact?.id?{id:String(activeContact.id),name:String(activeContact.name||'Liên hệ')}:null
   };
   try{sessionStorage.setItem(key,JSON.stringify(payload));return true;}catch{return false;}
@@ -95,7 +95,7 @@ const ScreenSession={
   restore(account){
     const accountId=account?.id||null;
     const saved=readScreenSession(accountId);
-    route=ROUTES.includes(saved?.route)?saved.route:'work';
+    route=ROUTES.includes(saved?.route)?saved.route:'chat';
     const contact=saved?.activeContact;
     activeContact=contact?.id?{id:String(contact.id),name:String(contact.name||'Liên hệ')}:null;
     sidebarOpen=false;
@@ -202,7 +202,6 @@ const NavigationCommand={
     return true;
   },
   openChat(){return this.open('chat')},
-  openWork(){return this.open('work')}
 };
 
 function formatCallElapsed(totalSeconds){
