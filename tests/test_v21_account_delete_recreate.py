@@ -5,6 +5,7 @@ ROOT = Path(__file__).resolve().parents[1]
 ADMIN = ROOT / "supabase/functions/v21-account-admin/index.ts"
 REGISTER = ROOT / "supabase/functions/v21-register/index.ts"
 MIGRATIONS = ROOT / "supabase/migrations"
+CONVERSATION_PATCH = MIGRATIONS / "20260910190000_v21_hard_delete_user_conversation_cleanup.sql"
 
 
 class AccountDeleteRecreateContract(unittest.TestCase):
@@ -33,6 +34,14 @@ class AccountDeleteRecreateContract(unittest.TestCase):
         self.assertIn("delete from public.order_items", text)
         self.assertIn("delete from public.orders", text)
         self.assertIn("delete from public.v21_calls", text)
+
+    def test_hard_delete_removes_calls_then_conversation_before_account_fk_actions(self):
+        self.assertTrue(CONVERSATION_PATCH.exists(), "reply-safe hard-delete patch must exist")
+        text = CONVERSATION_PATCH.read_text(encoding="utf-8").lower()
+        calls_pos = text.index("delete from public.v21_calls")
+        conversations_pos = text.index("delete from public.v21_conversations")
+        self.assertLess(calls_pos, conversations_pos)
+        self.assertIn("member_a = v_account_id or member_b = v_account_id", text)
 
     def test_admin_delete_removes_storage_revokes_session_then_hard_deletes_auth_user(self):
         text = self.admin_text()
