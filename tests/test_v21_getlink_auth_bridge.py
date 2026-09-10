@@ -2,12 +2,14 @@ from pathlib import Path
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-AUTH = ROOT / "auth-session-store.js"
+BRIDGE = ROOT / "getlink-auth-bridge.js"
+SOURCE = ROOT / "index.source.html"
 
 
 class GetlinkAuthBridgeContract(unittest.TestCase):
     def text(self):
-        return AUTH.read_text(encoding="utf-8")
+        self.assertTrue(BRIDGE.exists(), "GETLINK auth bridge module must exist")
+        return BRIDGE.read_text(encoding="utf-8")
 
     def test_bridge_targets_only_getlink_origin(self):
         text = self.text()
@@ -23,17 +25,23 @@ class GetlinkAuthBridgeContract(unittest.TestCase):
         self.assertNotIn("refresh_token", text)
         self.assertNotIn("refreshToken", text)
 
-    def test_bridge_syncs_on_authenticated_render_and_token_refresh(self):
+    def test_bridge_syncs_on_auth_state_and_token_refresh(self):
         text = self.text()
         self.assertIn("syncGetlinkAuthBridge", text)
-        self.assertIn("renderAuthenticated", text)
-        self.assertIn("TOKEN_REFRESHED", text)
+        self.assertIn("v21-auth-state", text)
+        self.assertIn("v21-auth-token-refreshed", text)
         self.assertGreaterEqual(text.count("syncGetlinkAuthBridge"), 3)
 
     def test_guest_state_clears_getlink_auth(self):
         text = self.text()
         self.assertIn("accessToken:null", text)
-        self.assertIn("renderGuest", text)
+        self.assertIn("state==='AUTHENTICATED'", text)
+
+    def test_canonical_source_loads_bridge_after_auth_store(self):
+        source = SOURCE.read_text(encoding="utf-8")
+        auth = source.index('auth-session-store.js')
+        bridge = source.index('getlink-auth-bridge.js')
+        self.assertGreater(bridge, auth)
 
 
 if __name__ == '__main__':
