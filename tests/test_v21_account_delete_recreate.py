@@ -36,8 +36,9 @@ class AccountDeleteRecreateContract(unittest.TestCase):
 
     def test_admin_delete_removes_storage_revokes_session_then_hard_deletes_auth_user(self):
         text = self.admin_text()
-        self.assertIn('admin.storage.from("v21-media").remove', text)
-        self.assertIn('admin.storage.from("v21-avatars").remove', text)
+        self.assertIn("admin.storage.from(bucket).remove", text)
+        self.assertIn('removeStoragePaths("v21-media"', text)
+        self.assertIn('removeStoragePaths("v21-avatars"', text)
         self.assertIn("storage_delete_failed", text)
 
         delete_block = text[text.index('action === "delete"'):]
