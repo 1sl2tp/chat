@@ -47,6 +47,12 @@ jobs:
           src=src.replace(label_rule,label_rule+'\n'+work_rule,1)
           src_path.write_text(src,'utf-8')
 
+          t45=Path('tests/test_v21_72_45_directory_image_order_tab_polish.py')
+          s=t45.read_text('utf-8')
+          s=s.replace('# Active-contact identity gets more width than Công việc so names remain useful.','# Active-contact identity uses the remaining width while Công việc stays fully visible.')
+          s=s.replace("assert 'grid-template-columns:minmax(0,2fr) minmax(0,1fr);' in source","assert 'grid-template-columns:minmax(0,1fr) max-content;' in source")
+          t45.write_text(s,'utf-8')
+
           t46=Path('tests/test_v21_72_46_top_mode_switch_state_geometry.py')
           s=t46.read_text('utf-8')
           s=s.replace('# Only the active chat-contact identity expands the chat side to 2/3.','# Only the active chat-contact identity gives Work intrinsic width; chat uses the remainder.')
