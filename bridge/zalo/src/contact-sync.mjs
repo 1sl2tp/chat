@@ -33,3 +33,9 @@ export function createContactSync({endpoint,bridgeToken,fetchImpl=fetch}){
     return body;
   };
 }
+
+export async function syncApiContacts({api,sync}){
+  if(!api||typeof api.getAllFriends!=='function'||typeof sync!=='function')return null;
+  const friends=await api.getAllFriends();
+  return sync(friends);
+}
