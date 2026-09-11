@@ -1,0 +1,15 @@
+name: V21.72.47 RED
+on:
+  push:
+    branches:
+      - feature/mobile-header-picker-keyboard-occlusion
+jobs:
+  red:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run RED contract
+        run: python tests/test_v21_72_47_mobile_header_picker_keyboard_occlusion.py
