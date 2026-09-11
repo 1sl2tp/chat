@@ -1,0 +1,144 @@
+.zalo-admin-link{
+  display:grid;
+  gap:10px;
+  margin-top:2px;
+  padding:12px 0 2px;
+  border-top:1px solid color-mix(in srgb,var(--theme-border-default,#d9d9d9) 72%,transparent);
+}
+.zalo-admin-summary{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  min-width:0;
+}
+.zalo-admin-copy{
+  display:grid;
+  gap:2px;
+  min-width:0;
+}
+.zalo-admin-copy strong{
+  color:var(--theme-content-primary,#171717);
+  font-size:14px;
+  font-weight:600;
+  line-height:20px;
+}
+.zalo-admin-copy span{
+  overflow:hidden;
+  color:var(--theme-content-secondary,#6b6b6b);
+  font-size:13px;
+  line-height:18px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.zalo-admin-summary-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+  flex:0 0 auto;
+}
+.zalo-admin-change,.zalo-admin-unlink{
+  min-height:34px;
+  border:0;
+  border-radius:9px;
+  padding:0 10px;
+  background:var(--theme-surface-secondary,#f3f3f3);
+  color:var(--theme-content-primary,#171717);
+  font:inherit;
+  font-size:13px;
+  cursor:pointer;
+}
+.zalo-admin-unlink{
+  background:transparent;
+  color:#b42318;
+}
+.zalo-admin-change:disabled,.zalo-admin-unlink:disabled{opacity:.5;cursor:default}
+.zalo-admin-picker{
+  display:grid;
+  gap:8px;
+}
+.zalo-admin-search-wrap{display:block}
+.zalo-admin-search-wrap input{
+  box-sizing:border-box;
+  width:100%;
+  height:38px;
+  border:1px solid var(--theme-border-default,#d9d9d9);
+  border-radius:10px;
+  padding:0 11px;
+  outline:none;
+  background:var(--theme-surface-primary,#fff);
+  color:var(--theme-content-primary,#171717);
+  font:inherit;
+  font-size:14px;
+}
+.zalo-admin-search-wrap input:focus{border-color:#8aaee8;box-shadow:0 0 0 2px rgba(78,132,216,.12)}
+.zalo-admin-list{
+  display:grid;
+  gap:2px;
+  max-height:min(42vh,320px);
+  overflow:auto;
+  overscroll-behavior:contain;
+  padding:2px;
+}
+.zalo-admin-contact{
+  display:grid;
+  grid-template-columns:36px minmax(0,1fr);
+  align-items:center;
+  gap:10px;
+  width:100%;
+  min-height:48px;
+  border:0;
+  border-radius:10px;
+  padding:6px 8px;
+  background:transparent;
+  color:inherit;
+  text-align:left;
+  cursor:pointer;
+}
+.zalo-admin-contact:not(:disabled):hover,.zalo-admin-contact:not(:disabled):focus-visible{background:var(--theme-surface-secondary,#f3f3f3)}
+.zalo-admin-contact:disabled{opacity:.5;cursor:default}
+.zalo-admin-avatar{
+  display:grid;
+  place-items:center;
+  width:36px;
+  height:36px;
+  overflow:hidden;
+  border-radius:50%;
+  background:var(--theme-surface-secondary,#ececec);
+  color:var(--theme-content-secondary,#666);
+  font-size:14px;
+  font-weight:600;
+}
+.zalo-admin-avatar img{width:100%;height:100%;object-fit:cover}
+.zalo-admin-contact-copy{
+  display:grid;
+  gap:1px;
+  min-width:0;
+}
+.zalo-admin-contact-copy strong{
+  overflow:hidden;
+  font-size:14px;
+  font-weight:500;
+  line-height:19px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.zalo-admin-contact-copy small{
+  color:var(--theme-content-secondary,#777);
+  font-size:12px;
+  line-height:16px;
+}
+.zalo-admin-empty,.zalo-admin-error{
+  margin:0;
+  padding:6px 2px;
+  color:var(--theme-content-secondary,#777);
+  font-size:13px;
+  line-height:18px;
+}
+.zalo-admin-error{color:#b42318}
+@media(max-width:420px){
+  .zalo-admin-summary{align-items:flex-start}
+  .zalo-admin-summary-actions{gap:4px}
+  .zalo-admin-change,.zalo-admin-unlink{padding-inline:8px}
+}
