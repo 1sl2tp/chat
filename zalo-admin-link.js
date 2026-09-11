@@ -508,11 +508,13 @@ async function openAccountAdmin(){
       <header class="zalo-account-modal-head"><div><h2 id="zalo-account-title">Zalo & tài khoản</h2><p>Quản lý Chat User ↔ Zalo</p></div><button type="button" class="zalo-account-close" aria-label="Đóng">×</button></header>
       <p class="zalo-account-error" data-zalo-account-error hidden></p>
       <div class="zalo-account-list" data-zalo-account-list></div>
-      <div data-zalo-account-panel></div>
+      <div class="zalo-account-submodal" data-zalo-account-panel></div>
     </section>`;
   host.appendChild(accountModal);
   accountModal.querySelector('.zalo-account-backdrop').addEventListener('click',closeAccountAdmin);
   accountModal.querySelector('.zalo-account-close').addEventListener('click',closeAccountAdmin);
+  const submodal=accountModal.querySelector('[data-zalo-account-panel]');
+  submodal.addEventListener('click',event=>{if(event.target===submodal)closeAccountPanel();});
   setAccountBusy(true);
   try{await refreshAccountAdmin();}
   catch(error){setAccountError(errorText(error?.message||error));}
