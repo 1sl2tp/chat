@@ -1,0 +1,121 @@
+name: Apply V21.72.45 Green
+on:
+  push:
+    branches:
+      - feature/directory-image-order-tab-polish-impl
+permissions:
+  contents: write
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/directory-image-order-tab-polish-impl
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply bounded fixes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              p=Path(path)
+              text=p.read_text('utf-8')
+              count=text.count(old)
+              assert count==1, f'{path}: expected one match, got {count}'
+              p.write_text(text.replace(old,new,1),'utf-8')
+
+          # 1) Filtered directory rows stay packed at the top.
+          p=Path('index.source.html')
+          source=p.read_text('utf-8')
+          anchor='.wm-sidebar-navigation::-webkit-scrollbar-thumb{background:rgba(0,0,0,.28);border-radius:999px}\n'
+          assert source.count(anchor)==1
+          source=source.replace(anchor,anchor+'[data-v21-contact-list]{align-content:start;grid-auto-rows:max-content}\n',1)
+
+          # 2) Single image follows sender edge just like gallery.
+          anchor2='.user-message-unit>.media-gallery-grid{margin-left:auto}\n.assistant-message-unit>.media-gallery-grid{margin-right:auto}\n'
+          assert source.count(anchor2)==1
+          source=source.replace(anchor2,anchor2+'.user-message-unit>.media-image-tile[data-image-presentation]{margin-left:auto}\n.assistant-message-unit>.media-image-tile[data-image-presentation]{margin-right:auto}\n',1)
+
+          # 3) Give active-contact identity more horizontal room than Công việc.
+          old_grid='grid-template-columns:minmax(0,1fr) minmax(0,1fr);'
+          assert source.count(old_grid)>=1
+          source=source.replace(old_grid,'grid-template-columns:minmax(0,2fr) minmax(0,1fr);',1)
+          p.write_text(source,'utf-8')
+
+          # 4) Directory order is activity-owned only; equal activity remains stable.
+          replace_once(
+              'contact-directory-admin.js',
+              "      if(activity)return activity;\n      const an=String(a?.display_name||a?.username||'');\n      const bn=String(b?.display_name||b?.username||'');\n      return an.localeCompare(bn,'vi',{sensitivity:'base'});",
+              "      if(activity)return activity;\n      return 0;"
+          )
+
+          # 5) Profile/account events cannot erase conversation activity when summary fields are absent.
+          sync=Path('v21-sync-engine.js')
+          text=sync.read_text('utf-8')
+          canonical_end="""function canonicalContact(payload){
+            return payload?{
+              id:payload.id,
+              username:payload.username,
+              display_name:payload.display_name,
+              role:payload.role,
+              avatar_path:payload.avatar_path||null,
+              locked_at:payload.locked_at||null,
+              conversation_id:payload.conversation_id||null,
+              preview_text:payload.preview_text||null,
+              preview_kind:payload.preview_kind||'text',
+              latest_at:payload.latest_at||null,
+              has_unread:Boolean(payload.has_unread),
+              version:Number(payload.version)||0,
+              updated_at:payload.updated_at||null,
+              deleted_at:payload.deleted_at||null
+            }:null;
+          }
+          """
+          assert text.count(canonical_end)==1
+          helper="""
+          function mergeContactEventPreservingActivity(cached,payload,eventPayload){
+            const next={...(cached||{}),...(payload||{})};
+            if(!cached||!eventPayload||typeof eventPayload!=='object')return next;
+            for(const key of ['conversation_id','preview_text','preview_kind','latest_at','has_unread']){
+              if(!Object.prototype.hasOwnProperty.call(eventPayload,key))next[key]=cached[key];
+            }
+            return next;
+          }
+          """
+          text=text.replace(canonical_end,canonical_end+helper,1)
+          old_apply="""  }else{
+            const next={...(cached||{}),...payload};
+            await cache()?.upsertContact?.(accountId,next);
+            contacts()?.upsert?.(next);
+          }
+          """
+          new_apply="""  }else{
+            const next=mergeContactEventPreservingActivity(cached,payload,event?.payload);
+            await cache()?.upsertContact?.(accountId,next);
+            contacts()?.upsert?.(next);
+          }
+          """
+          assert text.count(old_apply)==1
+          text=text.replace(old_apply,new_apply,1)
+          sync.write_text(text,'utf-8')
+          PY
+      - name: Build canonical preview
+        run: python tools/build_current_preview.py
+      - name: Verify GREEN
+        run: python tools/verify_current.py
+      - name: Commit GREEN and remove temporary workflow
+        run: |
+          rm .github/workflows/apply-v21-72-45.yml
+          git config user.name '1sl2tp'
+          git config user.email '1sl2tp@gmail.com'
+          git add -A
+          git commit -m 'fix: polish directory image order and contact tab'
+          git push origin HEAD:feature/directory-image-order-tab-polish-impl
