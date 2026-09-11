@@ -5,6 +5,7 @@ SQL = (ROOT / "supabase/migrations/20260911_zalo_user_link_bridge.sql").read_tex
 ADMIN_API = ROOT / "supabase/functions/v21-zalo-admin/index.ts"
 SIGNAL_SQL = ROOT / "supabase/migrations/20260911_zalo_outbound_signal.sql"
 MEDIA_SQL = ROOT / "supabase/migrations/20260911_zalo_media_bridge.sql"
+AUDIO_SQL = ROOT / "supabase/migrations/20260911_zalo_audio_bridge.sql"
 MEDIA_API = ROOT / "supabase/functions/v21-zalo-bridge/index.ts"
 
 
@@ -55,6 +56,21 @@ def test_zalo_media_outbound_is_scoped_to_images_and_files_only():
     assert "a.kind in ('image','file')" in sql
 
 
+def test_zalo_audio_bridge_extends_media_scope_without_replacing_canonical_tables():
+    assert AUDIO_SQL.exists(), "additive Zalo audio migration is required"
+    sql = AUDIO_SQL.read_text("utf-8").lower()
+    for token in [
+        "v21_zalo_ingress_media",
+        "enqueue_zalo_media_outbound",
+        "v21_zalo_outbound_due_media",
+        "v21_media_assets",
+        "service_role",
+    ]:
+        assert token in sql, token
+    assert "new.kind not in ('image','audio','file')" in sql
+    assert "a.kind in ('image','audio','file')" in sql
+
+
 def test_zalo_media_ingress_serializes_duplicate_retries_and_cleans_race_uploads():
     assert MEDIA_SQL.exists(), "Zalo media bridge migration is required"
     assert MEDIA_API.exists(), "v21-zalo-bridge Edge Function is required"
@@ -78,6 +94,14 @@ def test_zalo_bridge_edge_function_accepts_multipart_media_and_signs_outbound_as
         "media",
     ]:
         assert token in source, token
+
+
+def test_zalo_bridge_edge_function_accepts_audio_as_audio_not_generic_file():
+    assert MEDIA_API.exists(), "v21-zalo-bridge Edge Function is required"
+    source = MEDIA_API.read_text("utf-8").lower()
+    assert "['image','audio','file']" in source
+    assert "kind==='audio'" in source
+    assert "mimetype.startswith('audio/')" in source
 
 
 def test_admin_zalo_link_api_contract():
