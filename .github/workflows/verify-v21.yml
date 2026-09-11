@@ -31,5 +31,16 @@ jobs:
         run: python tests/test_v21_72_19_profile_username_avatar.py
       - name: GETLINK thin work embed contract
         run: python tests/test_v21_remove_getlink_embed.py
+      - name: Build canonical candidate
+        run: python tools/build_current_preview.py
+      - name: Export canonical candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: canonical-build
+          path: |
+            index.html
+            version.json
+          if-no-files-found: error
+          retention-days: 1
       - name: Verify canonical source
         run: python tools/verify_current.py
