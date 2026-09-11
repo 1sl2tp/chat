@@ -38,7 +38,7 @@ def test_zalo_account_admin_is_one_simple_popup_inside_existing_module():
         "admin_snapshot",
         "create_and_link",
         "data-zalo-account-admin-open",
-        "data-zalo-account-admin-modal",
+        "zaloAccountAdminModal",
         "Đã kết nối",
         "Chưa kết nối",
         "Zalo đã được gán",
