@@ -1,0 +1,174 @@
+name: Admin Push Task7 Route Sync
+on:
+  push:
+    branches:
+      - feature/admin-web-push-design
+permissions:
+  contents: write
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/admin-web-push-design
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Patch route and cleanup ownership
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          shell_path=Path('shell.js')
+          shell=shell_path.read_text('utf-8')
+          old="  openChat(){return this.open('chat')},\n  openWork(){return this.open('work')}\n};"
+          new=(
+            "  openChat(){return this.open('chat')},\n"
+            "  openWork(){return this.open('work')},\n"
+            "  openContact(contactId,contactName=null){\n"
+            "    if(authState!=='AUTHENTICATED')return false;\n"
+            "    const id=String(contactId||'').trim();\n"
+            "    if(!id)return false;\n"
+            "    const item=window.V21ContactStore?.snapshot?.().find(row=>\n"
+            "      row?.id&&!row.deleted_at&&String(row.id)===id\n"
+            "    )||null;\n"
+            "    const name=String(contactName||item?.display_name||item?.username||'Liên hệ');\n"
+            "    this.open('chat');\n"
+            "    setActiveContact(id,name);\n"
+            "    return true;\n"
+            "  }\n"
+            "};"
+          )
+          assert old in shell, 'shell NavigationCommand marker missing'
+          shell=shell.replace(old,new,1)
+          shell_path.write_text(shell,'utf-8')
+
+          sw_path=Path('sw.js')
+          sw=sw_path.read_text('utf-8')
+          marker=(
+            "  if(event.data?.type==='ADMIN_PUSH_STATE'&&event.source?.id){\n"
+            "    const state={...event.data,updatedAt:Date.now()};\n"
+            "    adminPushClientState.set(event.source.id,state);\n"
+            "    if(state.visible&&state.focused)void clearAdminPushBadge();\n"
+            "  }\n"
+            "});"
+          )
+          replacement=(
+            "  if(event.data?.type==='ADMIN_PUSH_STATE'&&event.source?.id){\n"
+            "    const state={...event.data,updatedAt:Date.now()};\n"
+            "    adminPushClientState.set(event.source.id,state);\n"
+            "    if(state.visible&&state.focused)void clearAdminPushBadge();\n"
+            "  }\n"
+            "  if(event.data?.type==='ADMIN_PUSH_CLEAR'&&event.source?.id){\n"
+            "    adminPushClientState.delete(event.source.id);\n"
+            "    void clearAdminPushBadge();\n"
+            "  }\n"
+            "});"
+          )
+          assert marker in sw, 'SW message marker missing'
+          sw=sw.replace(marker,replacement,1)
+          sw_path.write_text(sw,'utf-8')
+
+          controller_path=Path('admin-push-controller.js')
+          controller=controller_path.read_text('utf-8')
+          state_line="let state={admin:false,supported:false,code:'idle',enabled:false,permission:'default',platform:'web'};\n"
+          assert state_line in controller
+          controller=controller.replace(state_line,state_line+"let pendingOpen=null;\n",1)
+
+          sync_marker="function syncState(){\n  if(!isAdmin())return false;"
+          sync_replacement=(
+            "function clearClientState(){\n"
+            "  try{\n"
+            "    navigator.serviceWorker?.controller?.postMessage?.({type:'ADMIN_PUSH_CLEAR'});\n"
+            "    return true;\n"
+            "  }catch{return false;}\n"
+            "}\n\n"
+            "function syncState(){\n"
+            "  if(!isAdmin()){clearClientState();return false;}"
+          )
+          assert sync_marker in controller
+          controller=controller.replace(sync_marker,sync_replacement,1)
+
+          open_marker="async function handleOpen(){return false;}\nfunction snapshot(){return Object.freeze({...state});}"
+          open_replacement=(
+            "function coldOpenFromLocation(){\n"
+            "  try{\n"
+            "    const params=new URLSearchParams(String(location.search||''));\n"
+            "    const contactId=String(params.get('push_contact')||'').trim();\n"
+            "    const conversationId=String(params.get('push_conversation')||'').trim();\n"
+            "    if(!contactId&&!conversationId)return null;\n"
+            "    return{contactId,conversationId};\n"
+            "  }catch{return null;}\n"
+            "}\n\n"
+            "function clearColdOpenQuery(){\n"
+            "  try{\n"
+            "    const url=new URL(location.href);\n"
+            "    url.searchParams.delete('push_contact');\n"
+            "    url.searchParams.delete('push_conversation');\n"
+            "    const next=`${url.pathname}${url.search}${url.hash}`||'./';\n"
+            "    history.replaceState(history.state??null,'',next);\n"
+            "    return true;\n"
+            "  }catch{return false;}\n"
+            "}\n\n"
+            "async function handleOpen(payload={}){\n"
+            "  const contactId=String(payload?.contactId??payload?.contact_id??'').trim();\n"
+            "  const conversationId=String(payload?.conversationId??payload?.conversation_id??'').trim();\n"
+            "  if(!contactId&&!conversationId)return false;\n"
+            "  if(!isAdmin()||!contactId){pendingOpen={contactId,conversationId};return false;}\n"
+            "  const opened=Boolean(window.ChatAppShell?.NavigationCommand?.openContact?.(contactId));\n"
+            "  if(!opened){pendingOpen={contactId,conversationId};return false;}\n"
+            "  pendingOpen=null;\n"
+            "  clearColdOpenQuery();\n"
+            "  syncState();\n"
+            "  return true;\n"
+            "}\n\n"
+            "async function consumePendingOpen(){\n"
+            "  if(!pendingOpen||!isAdmin())return false;\n"
+            "  return handleOpen({...pendingOpen});\n"
+            "}\n\n"
+            "function onAuthState(event){\n"
+            "  const detail=event?.detail||{};\n"
+            "  if(detail.state==='AUTHENTICATED'&&detail.account?.role==='admin'){\n"
+            "    void consumePendingOpen();\n"
+            "    syncState();\n"
+            "    return;\n"
+            "  }\n"
+            "  clearClientState();\n"
+            "}\n\n"
+            "pendingOpen=coldOpenFromLocation();\n"
+            "navigator.serviceWorker?.addEventListener('message',event=>{\n"
+            "  if(event.data?.type==='ADMIN_PUSH_OPEN')void handleOpen(event.data);\n"
+            "});\n"
+            "document.addEventListener('v21-auth-state',onAuthState);\n"
+            "document.addEventListener('visibilitychange',syncState);\n"
+            "window.addEventListener('focus',syncState);\n"
+            "window.addEventListener('blur',syncState);\n"
+            "document.addEventListener('navigation-change',syncState);\n"
+            "document.addEventListener('v21-active-contact-change',syncState);\n"
+            "document.addEventListener('v21-conversation-context',syncState);\n\n"
+            "if(isAdmin()){void consumePendingOpen();syncState();}\n"
+            "else clearClientState();\n\n"
+            "function snapshot(){return Object.freeze({...state,pendingOpen:pendingOpen?{...pendingOpen}:null});}"
+          )
+          assert open_marker in controller, 'controller open marker missing'
+          controller=controller.replace(open_marker,open_replacement,1)
+          controller_path.write_text(controller,'utf-8')
+          PY
+      - name: Verify Task 7 contract and syntax
+        run: |
+          python -m pip install -q pytest
+          python -m pytest -q tests/test_v21_admin_web_push_open_route.py tests/test_v21_admin_web_push_ui_contract.py
+          node --check admin-push-controller.js
+          node --check shell.js
+          node --check sw.js
+      - name: Build canonical preview
+        run: python tools/build_current_preview.py
+      - name: Commit route changes and remove one-shot workflow
+        run: |
+          rm -f .github/workflows/admin-push-task7-route-sync.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add admin-push-controller.js shell.js sw.js index.html version.json .github/workflows/admin-push-task7-route-sync.yml
+          git commit -m "feat: route admin push to exact chat target"
+          git push origin HEAD:feature/admin-web-push-design
