@@ -8,6 +8,7 @@ import {createSupabaseSessionStore} from './session-store.mjs';
 import {createContactSync,syncApiContacts} from './contact-sync.mjs';
 import {bindIncomingMessageListener} from './incoming-message.mjs';
 import {createMessageGateway} from './message-gateway.mjs';
+import {createCoalescingRunner} from './bridge-core.mjs';
 
 const port=Math.max(1,Number(process.env.PORT)||8787);
 const qrPath=process.env.ZALO_QR_PATH||path.resolve(process.cwd(),'qr.png');
@@ -29,42 +30,38 @@ const state=createLoginState();
 let api=null;
 let unbindIncoming=()=>{};
 let outboundTimer=0;
-let outboundPolling=false;
 
-async function pollOutbound(){
-  if(outboundPolling||!api||!messageGateway)return 0;
-  outboundPolling=true;
-  try{
-    const rows=await messageGateway.listOutbound(20);
-    for(const row of rows){
+async function runOutboundPass(){
+  if(!api||!messageGateway)return 0;
+  const rows=await messageGateway.listOutbound(20);
+  for(const row of rows){
+    try{
+      const sent=await api.sendMessage({msg:row.text},row.zaloId,ThreadType.User);
+      const zaloMessageId=sent?.message?.msgId??sent?.msgId??null;
+      await messageGateway.markOutboundResult({
+        deliveryId:row.deliveryId,
+        ok:true,
+        zaloMessageId,
+      });
+      console.log('[zalo-bridge] outbound sent',row.deliveryId,String(zaloMessageId??''));
+    }catch(error){
+      const message=String(error?.message||error);
       try{
-        const sent=await api.sendMessage({msg:row.text},row.zaloId,ThreadType.User);
-        const zaloMessageId=sent?.message?.msgId??sent?.msgId??null;
         await messageGateway.markOutboundResult({
           deliveryId:row.deliveryId,
-          ok:true,
-          zaloMessageId,
+          ok:false,
+          error:message,
         });
-        console.log('[zalo-bridge] outbound sent',row.deliveryId,String(zaloMessageId??''));
-      }catch(error){
-        const message=String(error?.message||error);
-        try{
-          await messageGateway.markOutboundResult({
-            deliveryId:row.deliveryId,
-            ok:false,
-            error:message,
-          });
-        }catch(markError){
-          console.warn('[zalo-bridge] outbound result failed',String(markError?.message||markError));
-        }
-        console.warn('[zalo-bridge] outbound failed',row.deliveryId,message);
+      }catch(markError){
+        console.warn('[zalo-bridge] outbound result failed',String(markError?.message||markError));
       }
+      console.warn('[zalo-bridge] outbound failed',row.deliveryId,message);
     }
-    return rows.length;
-  }finally{
-    outboundPolling=false;
   }
+  return rows.length;
 }
+
+const pollOutbound=createCoalescingRunner(runOutboundPass);
 
 const handler=createRequestHandler({
   state,
