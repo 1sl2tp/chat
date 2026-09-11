@@ -4,29 +4,19 @@ ROOT = Path(__file__).parents[1]
 
 
 def test_directory_reorders_contacts_by_latest_activity_and_exposes_search_filters():
-    auth = (ROOT / "auth-session-store.js").read_text("utf-8")
-    shell = (ROOT / "shell.js").read_text("utf-8")
-    sync = (ROOT / "v21-sync-engine.js").read_text("utf-8")
-
+    module = (ROOT / "zalo-admin-link.js").read_text("utf-8")
     for token in [
         "function sortDirectoryContacts",
         "latest_at",
-        "contact_group",
-        "this.contacts=sortDirectoryContacts",
-    ]:
-        assert token in auth, token
-
-    for token in [
         "data-contact-directory-search",
         "data-contact-directory-filter",
         "Tất cả",
         "KH",
         "Bạn bè",
         "Khác",
+        "v21-contact-store-change",
     ]:
-        assert token in shell, token
-
-    assert "contact_group:payload.contact_group" in sync
+        assert token in module, token
 
 
 def test_group_editing_exists_only_in_zalo_account_admin_popup():
@@ -34,16 +24,16 @@ def test_group_editing_exists_only_in_zalo_account_admin_popup():
     for token in [
         "action:'set_group'",
         "contact_group",
-        "KH",
-        "Bạn bè",
-        "Khác",
+        "customer",
+        "friend",
+        "other",
     ]:
         assert token in module, token
 
     assert "data-contact-group-edit" not in (ROOT / "shell.js").read_text("utf-8")
 
 
-def test_contact_group_schema_and_sidebar_contract():
+def test_contact_group_schema_and_admin_backend_contract():
     migration = ROOT / "supabase/migrations/20260911_contact_directory_groups.sql"
     assert migration.exists(), "contact-directory group migration is required"
     sql = migration.read_text("utf-8").lower()
@@ -52,8 +42,7 @@ def test_contact_group_schema_and_sidebar_contract():
         "customer",
         "friend",
         "other",
-        "v21_contacts_sidebar",
-        "latest_at",
+        "check",
     ]:
         assert token in sql, token
 
