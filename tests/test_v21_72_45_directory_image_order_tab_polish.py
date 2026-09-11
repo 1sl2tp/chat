@@ -9,8 +9,8 @@ source = read('index.source.html')
 directory = read('contact-directory-admin.js')
 sync = read('v21-sync-engine.js')
 
-# Filtered contact results must stay packed at the top instead of stretching
-# auto grid tracks across the full navigation height.
+# Filtered contact results stay packed at the top instead of stretching auto
+# grid tracks across the full navigation height.
 assert '[data-v21-contact-list]{align-content:start;grid-auto-rows:max-content}' in source
 
 # Single-image media follows the same sender-edge ownership as galleries while
