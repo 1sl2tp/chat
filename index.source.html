@@ -1748,7 +1748,10 @@ button{
 .wm-sidebar-guestLogin{flex:0 0 auto;white-space:nowrap}
 .wm-sidebar-sidebar{display:flex;flex-direction:column;height:100%;min-height:0}
 .wm-sidebar-body{flex:1 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column}
-.wm-sidebar-navigation{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+.wm-sidebar-navigation{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:rgba(0,0,0,.28) transparent;scrollbar-gutter:stable}
+.wm-sidebar-navigation::-webkit-scrollbar{width:3px}
+.wm-sidebar-navigation::-webkit-scrollbar-track{background:transparent}
+.wm-sidebar-navigation::-webkit-scrollbar-thumb{background:rgba(0,0,0,.28);border-radius:999px}
 .shell-sidebar-account-footer{
   flex:0 0 auto;
   border-top:1px solid var(--theme-border-default);
@@ -1776,7 +1779,12 @@ button{
   height:100%;
   margin-inline:0;
   box-sizing:border-box;
+  position:relative;
 }
+.active-contact-context{grid-column:2;grid-row:1;align-self:end;justify-self:center;max-width:min(72vw,260px);margin-bottom:2px;color:var(--theme-content-tertiary);font-size:11px;line-height:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
+.active-contact-context[hidden]{display:none}
+#appShell[data-admin-contact-context="true"] .top-mode-switch{transform:translateY(-9px)}
+.compact-top-grid:has(.call-focus-slot:not([data-call-ui-state="idle"])) .active-contact-context{display:none}
 .compact-top-grid > .shell-icon-button{
   grid-column:1;
   justify-self:start;
@@ -2047,6 +2055,7 @@ button{
 }
 @media (max-width:480px){
   .compact-top-grid{column-gap:6px}
+  .active-contact-context{max-width:210px;font-size:10.5px}
   .top-mode-tab{font-size:12.5px;padding-inline:6px}
   .call-focus-slot{gap:6px;max-width:196px}
   .call-status-chip{height:40px;max-width:92px;padding-inline:8px;gap:6px}
@@ -2527,12 +2536,17 @@ button{
 }
 
 /* V21.64 — account row mirrors the approved contact-row proportions */
-.shell-sidebar-account-footer{grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px;padding:6px 0 max(6px,env(safe-area-inset-bottom))}
-.shell-sidebar-account-footer .shell-sidebar-account-main,.shell-sidebar-account-footer .shell-sidebar-account-action,.shell-sidebar-account-footer .zalo-account-admin-open{width:100%;min-width:0;height:40px;min-height:40px;padding:0 8px;border-radius:12px;font-size:.82rem;font-weight:600}
+.shell-sidebar-account-footer{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 42px;gap:4px;padding:4px 0 max(4px,env(safe-area-inset-bottom));align-items:center}
+.shell-sidebar-account-footer .shell-sidebar-account-main,.shell-sidebar-account-footer .shell-sidebar-account-action,.shell-sidebar-account-footer .zalo-account-admin-open{width:100%;min-width:0;height:38px;min-height:38px;padding:0 8px;border-radius:11px;font-size:.8rem;font-weight:600}
 .shell-sidebar-account-footer .shell-sidebar-account-main{display:flex;align-items:center;justify-content:center;background:var(--theme-surface-secondary)}
 .shell-sidebar-account-footer .shell-sidebar-account-avatar,.shell-sidebar-account-footer .shell-sidebar-account-copy span,.shell-sidebar-account-footer .shell-sidebar-account-chevron{display:none}
-.shell-sidebar-account-footer .shell-sidebar-account-copy strong{display:block;min-width:0;font-size:.82rem;line-height:1rem;font-weight:600;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.shell-sidebar-account-footer .shell-sidebar-account-copy strong{display:block;min-width:0;font-size:.8rem;line-height:1rem;font-weight:600;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .shell-sidebar-account-footer .zalo-account-admin-open{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.shell-sidebar-account-footer[data-state="authenticated"] .shell-sidebar-account-action{width:42px;min-width:42px;padding:0}
+.shell-sidebar-account-footer[data-state="authenticated"] .shell-sidebar-account-action [data-account-action-label]{display:none}
+.shell-sidebar-logout-icon{display:none;width:18px;height:18px;pointer-events:none}
+.shell-sidebar-account-footer[data-state="authenticated"] .shell-sidebar-logout-icon{display:block}
+@media(max-width:67.999rem){#shellNavigationLayer .shell-navigation-panel{height:100dvh;max-height:100dvh}}
 
 .shell-sidebar-account-main{
   appearance:none;border:0;background:var(--theme-surface-secondary);color:inherit;text-align:start;
@@ -2957,6 +2971,7 @@ button{
           <button type="button" class="top-mode-tab" role="tab" aria-selected="false" data-top-tab="chat" data-nav-target="chat">Trò chuyện</button>
           <button type="button" class="top-mode-tab" role="tab" aria-selected="false" data-top-tab="work" data-nav-target="work">Công việc</button>
         </div>
+        <div class="active-contact-context" data-active-contact-context hidden aria-live="polite"><span data-active-contact-context-text></span></div>
 
         <div class="call-focus-slot" data-call-focus-slot data-call-ui-state="idle">
           <div class="call-status-chip" data-call-status-chip data-state="idle" role="status" aria-live="polite" hidden>
@@ -3227,6 +3242,7 @@ button{
               <span class="shell-sidebar-account-chevron" aria-hidden="true">›</span>
             </button>
             <button class="shell-sidebar-account-action" type="button" data-auth-command="login.open">
+              <svg class="shell-sidebar-logout-icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M10 5H6.5A2.5 2.5 0 0 0 4 7.5v9A2.5 2.5 0 0 0 6.5 19H10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M13 8l4 4-4 4M8 12h9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
               <span data-account-action-label>Đăng nhập</span>
             </button>
           </footer>

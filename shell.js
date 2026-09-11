@@ -87,6 +87,7 @@ function applyRoutePresentation(){
   for(const node of chatNodes)node.hidden=route!=='chat';
   if(workView)workView.hidden=route!=='work';
   renderTopTabs();
+  renderActiveContactContext();
   renderCallFocus();
 }
 
@@ -228,6 +229,22 @@ function renderTopTabs(){
   for(const tab of document.querySelectorAll('[data-top-tab]')){
     tab.setAttribute('aria-selected',String(tab.dataset.topTab===route));
   }
+}
+
+function renderActiveContactContext(){
+  const node=document.querySelector('[data-active-contact-context]');
+  const text=node?.querySelector('[data-active-contact-context-text]');
+  const visible=Boolean(
+    authState==='AUTHENTICATED' &&
+    authAccount?.role==='admin' &&
+    route==='chat' &&
+    activeContact?.id
+  );
+  if(appShell)appShell.dataset.adminContactContext=String(visible);
+  if(!node)return visible;
+  node.hidden=!visible;
+  if(text)text.textContent=visible?`Đang chat · ${String(activeContact?.name||'Liên hệ')}`:'';
+  return visible;
 }
 
 const NavigationCommand={
@@ -442,6 +459,7 @@ function setActiveContact(contactId,contactName){
     activeContact={id:String(contactId),name:String(contactName||'Liên hệ')};
   }
   renderCallFocus();
+  renderActiveContactContext();
   syncContactActiveState();
   persistScreenSession();
   const nextId=activeContact?.id||null;
@@ -1315,6 +1333,7 @@ const AuthUI={
   setAccount(account){
     authAccount=account?{...account}:null;
     this.renderAccountFooter();
+    renderActiveContactContext();
   },
   setAuthenticated(authenticated,account=null){
     authState=authenticated?'AUTHENTICATED':'GUEST';

@@ -3447,6 +3447,20 @@ document.addEventListener('pointerdown',event=>{
   }
 },{passive:true});
 
+const DISPLAY_EMOTICONS=Object.freeze({
+  ':)':'🙂',':-)':'🙂',
+  ':D':'😄',':-D':'😄',
+  ';)':'😉',';-)':'😉',
+  ':(':'🙁',':-(':'🙁',
+  ':P':'😛',':-P':'😛',':p':'😛',':-p':'😛',
+  ':~':'😅'
+});
+const DISPLAY_EMOTICON_RE=/(^|[\s([{])(:-\)|:\)|:-D|:D|;-\)|;\)|:-\(|:\(|:-P|:P|:-p|:p|:~)(?=$|[\s)\]},.!?])/gu;
+
+function normalizeDisplayEmoticons(value){
+  return String(value??'').replace(DISPLAY_EMOTICON_RE,(_match,prefix,token)=>`${prefix}${DISPLAY_EMOTICONS[token]||token}`);
+}
+
 const MESSAGE_LINK_RE=/https?:\/\/[^\s<]+/giu;
 
 function appendMessageTextWithLinks(container,value){
@@ -3458,7 +3472,7 @@ function appendMessageTextWithLinks(container,value){
   for(const match of text.matchAll(MESSAGE_LINK_RE)){
     const raw=String(match[0]||'');
     const start=Number(match.index||0);
-    if(start>cursor)container.appendChild(document.createTextNode(text.slice(cursor,start)));
+    if(start>cursor)container.appendChild(document.createTextNode(normalizeDisplayEmoticons(text.slice(cursor,start))));
 
     let href=raw;
     let trailing='';
@@ -3486,7 +3500,7 @@ function appendMessageTextWithLinks(container,value){
     if(trailing)container.appendChild(document.createTextNode(trailing));
     cursor=start+raw.length;
   }
-  if(cursor<text.length)container.appendChild(document.createTextNode(text.slice(cursor)));
+  if(cursor<text.length)container.appendChild(document.createTextNode(normalizeDisplayEmoticons(text.slice(cursor))));
   return hasLink;
 }
 
