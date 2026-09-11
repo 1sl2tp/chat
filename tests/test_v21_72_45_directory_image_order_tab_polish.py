@@ -31,7 +31,7 @@ assert "localeCompare(bn,'vi'" not in directory
 assert 'function mergeContactEventPreservingActivity(cached,payload,eventPayload)' in sync
 assert 'mergeContactEventPreservingActivity(cached,payload,event?.payload)' in sync
 
-# Active-contact identity gets more width than Công việc so names remain useful.
-assert 'grid-template-columns:minmax(0,2fr) minmax(0,1fr);' in source
+# Active-contact identity uses the remaining width while Công việc stays fully visible.
+assert 'grid-template-columns:minmax(0,1fr) max-content;' in source
 
 print('V21.72.45 directory/image/order/tab polish contract PASS')
