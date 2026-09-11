@@ -31,3 +31,13 @@ def test_existing_profile_actions_are_preserved():
     lower = EDGE.lower()
     for token in ['action === "snapshot"', 'action === "link"', 'action === "unlink"']:
         assert token in lower, token
+
+
+def test_link_syncs_zalo_avatar_to_existing_chat_account():
+    lower = EDGE.lower()
+    for token in [
+        'async function synclinkedavatar',
+        '.update({ avatar_path:',
+        'await synclinkedavatar(targetid, zaloid)',
+    ]:
+        assert token in lower, token
