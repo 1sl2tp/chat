@@ -233,6 +233,7 @@ function renderTopTabs(){
 
 function renderChatTabIdentity(){
   const tab=document.querySelector('[data-top-tab="chat"]');
+  const switcher=tab?.closest?.('.top-mode-switch')||document.querySelector('.top-mode-switch');
   const avatar=tab?.querySelector('[data-chat-tab-avatar]');
   const label=tab?.querySelector('[data-chat-tab-label]');
   const visible=Boolean(
@@ -241,6 +242,8 @@ function renderChatTabIdentity(){
     route==='chat' &&
     activeContact?.id
   );
+  if(switcher)switcher.dataset.contactIdentity=String(visible);
+  if(tab)tab.dataset.contactIdentity=String(visible);
   if(!tab||!avatar||!label)return visible;
   if(!visible){
     avatar.hidden=true;
