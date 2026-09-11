@@ -36,6 +36,39 @@ test('health endpoint returns JSON state',async()=>{
   assert.equal(JSON.parse(res.body.toString()).status,'waiting_qr');
 });
 
+test('outbound signal endpoint rejects a bad bridge hash',async()=>{
+  const state=createLoginState();
+  let calls=0;
+  const handler=createRequestHandler({
+    state,
+    qrPath:'/tmp/not-created.png',
+    signalTokenHash:'abc123',
+    outboundNow:async()=>{calls+=1;return 0;},
+  });
+  const req={method:'POST',url:'/outbound-now',headers:{'x-bridge-token-sha256':'wrong'}};
+  const res=makeResponse();
+  await handler(req,res);
+  assert.equal(res.statusCode,401);
+  assert.equal(calls,0);
+});
+
+test('outbound signal endpoint invokes the outbound poll immediately',async()=>{
+  const state=createLoginState();
+  let calls=0;
+  const handler=createRequestHandler({
+    state,
+    qrPath:'/tmp/not-created.png',
+    signalTokenHash:'abc123',
+    outboundNow:async()=>{calls+=1;return 2;},
+  });
+  const req={method:'POST',url:'/outbound-now',headers:{'x-bridge-token-sha256':'abc123'}};
+  const res=makeResponse();
+  await handler(req,res);
+  assert.equal(res.statusCode,200);
+  assert.equal(calls,1);
+  assert.deepEqual(JSON.parse(res.body.toString()),{ok:true,processed:2});
+});
+
 test('qr endpoint returns 404 until qr file exists',async()=>{
   const state=createLoginState();
   const handler=createRequestHandler({state,qrPath:'/tmp/not-created.png'});
