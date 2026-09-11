@@ -118,3 +118,16 @@
   .zalo-account-submodal:not(:empty){place-items:end center;padding:8px}
   .zalo-account-submodal>.zalo-account-panel{width:100%;max-height:calc(100svh - 16px);border-radius:20px;padding:14px}
 }
+
+
+.zalo-account-notification{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0;margin:0 0 12px;padding:10px 12px;border:1px solid var(--theme-border-default,#e1e1e1);border-radius:16px;background:color-mix(in srgb,var(--theme-surface-secondary,#f3f3f3) 46%,var(--theme-surface-primary,#fff))
+}
+.zalo-account-notification-copy{display:grid;gap:2px;min-width:0}
+.zalo-account-notification-copy strong{font-size:14px;font-weight:600;line-height:20px}
+.zalo-account-notification-copy small{color:var(--theme-content-secondary,#777);font-size:12px;line-height:17px}
+.zalo-account-notification-action{
+  flex:0 0 auto;min-height:36px;border:0;border-radius:10px;padding:0 11px;background:var(--theme-content-primary,#171717);color:var(--theme-surface-primary,#fff);font:inherit;font-size:13px;font-weight:600;cursor:pointer
+}
+.zalo-account-notification-action:disabled{opacity:.55;cursor:default}
+.zalo-account-notification-action[hidden]{display:none!important}

@@ -502,6 +502,61 @@ function closeAccountAdmin(){
   accountBusy=false;
 }
 
+function adminPushView(snapshot={}){
+  const code=String(snapshot?.code||'');
+  if(code==='ios_install_required')return{status:'Cài TAPHOA Chat ra Màn hình chính để nhận thông báo nền',action:'',mode:'none'};
+  if(code==='unsupported'||snapshot?.supported===false)return{status:'Thiết bị này không hỗ trợ',action:'',mode:'none'};
+  if(code==='blocked')return{status:'Thông báo bị chặn',action:'',mode:'none'};
+  if(snapshot?.enabled)return{status:'Đã bật thông báo',action:'Tắt thông báo',mode:'disable'};
+  return{status:'Bật thông báo',action:'Bật thông báo',mode:'enable'};
+}
+
+function paintAdminPushSetting(snapshot={}){
+  if(!accountModal)return;
+  const setting=accountModal.querySelector('[data-admin-push-setting]');
+  const statusNode=setting?.querySelector?.('[data-admin-push-status]');
+  const action=setting?.querySelector?.('[data-admin-push-action]');
+  if(!setting||!statusNode||!action)return;
+  const view=adminPushView(snapshot);
+  statusNode.textContent=view.status;
+  action.textContent=view.action||'Bật thông báo';
+  action.dataset.mode=view.mode;
+  action.hidden=view.mode==='none';
+  action.disabled=false;
+  setting.dataset.state=String(snapshot?.code||view.mode||'idle');
+}
+
+async function refreshAdminPushSetting(){
+  const push=window.V21AdminPush;
+  if(!push?.status){
+    paintAdminPushSetting({supported:false,code:'unsupported'});
+    return null;
+  }
+  try{
+    const snapshot=await push.status();
+    paintAdminPushSetting(snapshot);
+    return snapshot;
+  }catch{
+    paintAdminPushSetting({supported:false,code:'unsupported'});
+    return null;
+  }
+}
+
+async function runAdminPushAction(button){
+  const push=window.V21AdminPush;
+  if(!push||!button||button.disabled)return;
+  button.disabled=true;
+  const mode=String(button.dataset.mode||'enable');
+  try{
+    const snapshot=mode==='disable'?await push.disable():await push.enable();
+    paintAdminPushSetting(snapshot);
+  }catch{
+    await refreshAdminPushSetting();
+  }finally{
+    if(button.isConnected)button.disabled=false;
+  }
+}
+
 async function openAccountAdmin(){
   if(!currentAdmin())return null;
   closeAccountAdmin();
@@ -513,6 +568,10 @@ async function openAccountAdmin(){
     <button type="button" class="zalo-account-backdrop" aria-label="Đóng"></button>
     <section class="zalo-account-card" role="dialog" aria-modal="true" aria-labelledby="zalo-account-title">
       <header class="zalo-account-modal-head"><div><h2 id="zalo-account-title">Zalo & tài khoản</h2><p>Quản lý Chat User ↔ Zalo</p></div><button type="button" class="zalo-account-close" aria-label="Đóng">×</button></header>
+      <div class="zalo-account-notification" data-admin-push-setting>
+        <span class="zalo-account-notification-copy"><strong>Thông báo</strong><small data-admin-push-status>Bật thông báo</small></span>
+        <button type="button" class="zalo-account-notification-action" data-admin-push-action data-mode="enable">Bật thông báo</button>
+      </div>
       <p class="zalo-account-error" data-zalo-account-error hidden></p>
       <div class="zalo-account-list" data-zalo-account-list></div>
       <div class="zalo-account-submodal" data-zalo-account-panel></div>
@@ -520,6 +579,9 @@ async function openAccountAdmin(){
   host.appendChild(accountModal);
   accountModal.querySelector('.zalo-account-backdrop').addEventListener('click',closeAccountAdmin);
   accountModal.querySelector('.zalo-account-close').addEventListener('click',closeAccountAdmin);
+  const pushAction=accountModal.querySelector('[data-admin-push-action]');
+  pushAction?.addEventListener('click',()=>void runAdminPushAction(pushAction));
+  void refreshAdminPushSetting();
   const submodal=accountModal.querySelector('[data-zalo-account-panel]');
   submodal.addEventListener('click',event=>{if(event.target===submodal)closeAccountPanel();});
   setAccountBusy(true);

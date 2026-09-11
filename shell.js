@@ -279,7 +279,20 @@ const NavigationCommand={
     return true;
   },
   openChat(){return this.open('chat')},
-  openWork(){return this.open('work')}
+  openWork(){return this.open('work')},
+  openContact(contactId,contactName=null){
+    if(authState!=='AUTHENTICATED')return false;
+    const id=String(contactId||'').trim();
+    if(!id)return false;
+    const item=window.V21ContactStore?.snapshot?.().find(row=>
+      row?.id&&!row.deleted_at&&String(row.id)===id
+    )||null;
+    if(!item)return false;
+    const name=String(contactName||item.display_name||item.username||'Liên hệ');
+    this.open('chat');
+    setActiveContact(id,name);
+    return true;
+  }
 };
 
 function formatCallElapsed(totalSeconds){

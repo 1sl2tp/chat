@@ -1,0 +1,40 @@
+name: Admin Push TDD
+on:
+  push:
+    branches:
+      - feature/admin-web-push-design
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pytest
+        run: python -m pip install pytest
+      - name: Admin push schema contract
+        run: python -m pytest -q tests/test_v21_admin_web_push_schema.py
+      - name: Admin push core contract
+        run: node tests/test_v21_admin_web_push_core.mjs
+      - name: Admin push edge contract
+        run: python -m pytest -q tests/test_v21_admin_web_push_edge_contract.py
+      - name: Admin push service worker runtime
+        run: node tests/test_v21_admin_web_push_sw_runtime.js
+      - name: Admin push controller runtime
+        run: node tests/test_v21_admin_web_push_controller.js
+      - name: Admin push browser ownership contract
+        run: python -m pytest -q tests/test_v21_admin_web_push_ui_contract.py
+      - name: Admin push open route and logout cleanup contract
+        run: python -m pytest -q tests/test_v21_admin_web_push_open_route.py
+      - name: Admin push open route runtime
+        run: node tests/test_v21_admin_web_push_open_runtime.js
+      - name: Final syntax gate
+        run: |
+          node --check admin-push-controller.js
+          node --check shell.js
+          node --check sw.js

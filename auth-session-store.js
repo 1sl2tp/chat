@@ -121,6 +121,9 @@ function clearHeartbeat(){
 async function handleRevoked(){
   if(handlingRevoke)return;
   handlingRevoke=true;
+  if(account?.role==='admin'){
+    try{await window.V21AdminPush?.disable?.({bestEffort:true});}catch{}
+  }
   state='REVOKED';
   clearHeartbeat();
   const revokedAppSessionId=appSessionId||null;
@@ -409,6 +412,9 @@ async function logout(){
   setBusy(true);
   try{
     const logoutAppSessionId=appSessionId||null;
+    if(account?.role==='admin'){
+      try{await window.V21AdminPush?.disable?.({bestEffort:true});}catch{}
+    }
     await window.V21CallEngine?.stopCurrent?.({reason:'logout'});
     window.V21CallEngine?.clearLocal?.('logout');
     shell()?.CallCommand?.forceReset?.();
