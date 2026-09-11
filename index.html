@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="a9d8e862d40dd7fd33d2339ab69c7e7de5f5cd6b0f9c131f82fe71b2b6515490">
+<meta name="app-build-id" content="f73f192609d0c411cd1e1467b9a858c44c502b3f52213a410b7ebf0bd207aa78">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -336,6 +336,19 @@
   .zalo-account-submodal:not(:empty){place-items:end center;padding:8px}
   .zalo-account-submodal>.zalo-account-panel{width:100%;max-height:calc(100svh - 16px);border-radius:20px;padding:14px}
 }
+
+
+.zalo-account-notification{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0;margin:0 0 12px;padding:10px 12px;border:1px solid var(--theme-border-default,#e1e1e1);border-radius:16px;background:color-mix(in srgb,var(--theme-surface-secondary,#f3f3f3) 46%,var(--theme-surface-primary,#fff))
+}
+.zalo-account-notification-copy{display:grid;gap:2px;min-width:0}
+.zalo-account-notification-copy strong{font-size:14px;font-weight:600;line-height:20px}
+.zalo-account-notification-copy small{color:var(--theme-content-secondary,#777);font-size:12px;line-height:17px}
+.zalo-account-notification-action{
+  flex:0 0 auto;min-height:36px;border:0;border-radius:10px;padding:0 11px;background:var(--theme-content-primary,#171717);color:var(--theme-surface-primary,#fff);font:inherit;font-size:13px;font-weight:600;cursor:pointer
+}
+.zalo-account-notification-action:disabled{opacity:.55;cursor:default}
+.zalo-account-notification-action[hidden]{display:none!important}
 
 </style>
 <style>
@@ -14114,6 +14127,61 @@ function closeAccountAdmin(){
   accountBusy=false;
 }
 
+function adminPushView(snapshot={}){
+  const code=String(snapshot?.code||'');
+  if(code==='ios_install_required')return{status:'Cài TAPHOA Chat ra Màn hình chính để nhận thông báo nền',action:'',mode:'none'};
+  if(code==='unsupported'||snapshot?.supported===false)return{status:'Thiết bị này không hỗ trợ',action:'',mode:'none'};
+  if(code==='blocked')return{status:'Thông báo bị chặn',action:'',mode:'none'};
+  if(snapshot?.enabled)return{status:'Đã bật thông báo',action:'Tắt thông báo',mode:'disable'};
+  return{status:'Bật thông báo',action:'Bật thông báo',mode:'enable'};
+}
+
+function paintAdminPushSetting(snapshot={}){
+  if(!accountModal)return;
+  const setting=accountModal.querySelector('[data-admin-push-setting]');
+  const statusNode=setting?.querySelector?.('[data-admin-push-status]');
+  const action=setting?.querySelector?.('[data-admin-push-action]');
+  if(!setting||!statusNode||!action)return;
+  const view=adminPushView(snapshot);
+  statusNode.textContent=view.status;
+  action.textContent=view.action||'Bật thông báo';
+  action.dataset.mode=view.mode;
+  action.hidden=view.mode==='none';
+  action.disabled=false;
+  setting.dataset.state=String(snapshot?.code||view.mode||'idle');
+}
+
+async function refreshAdminPushSetting(){
+  const push=window.V21AdminPush;
+  if(!push?.status){
+    paintAdminPushSetting({supported:false,code:'unsupported'});
+    return null;
+  }
+  try{
+    const snapshot=await push.status();
+    paintAdminPushSetting(snapshot);
+    return snapshot;
+  }catch{
+    paintAdminPushSetting({supported:false,code:'unsupported'});
+    return null;
+  }
+}
+
+async function runAdminPushAction(button){
+  const push=window.V21AdminPush;
+  if(!push||!button||button.disabled)return;
+  button.disabled=true;
+  const mode=String(button.dataset.mode||'enable');
+  try{
+    const snapshot=mode==='disable'?await push.disable():await push.enable();
+    paintAdminPushSetting(snapshot);
+  }catch{
+    await refreshAdminPushSetting();
+  }finally{
+    if(button.isConnected)button.disabled=false;
+  }
+}
+
 async function openAccountAdmin(){
   if(!currentAdmin())return null;
   closeAccountAdmin();
@@ -14132,6 +14200,9 @@ async function openAccountAdmin(){
   host.appendChild(accountModal);
   accountModal.querySelector('.zalo-account-backdrop').addEventListener('click',closeAccountAdmin);
   accountModal.querySelector('.zalo-account-close').addEventListener('click',closeAccountAdmin);
+  const pushAction=accountModal.querySelector('[data-admin-push-action]');
+  pushAction?.addEventListener('click',()=>void runAdminPushAction(pushAction));
+  void refreshAdminPushSetting();
   const submodal=accountModal.querySelector('[data-zalo-account-panel]');
   submodal.addEventListener('click',event=>{if(event.target===submodal)closeAccountPanel();});
   setAccountBusy(true);
@@ -17975,30 +18046,30 @@ function subscriptionJSON(subscription){
 async function status(){
   const admin=isAdmin();
   const currentPlatform=platform();
-  if(!admin)return result({admin:false,supported:false,enabled:false,code:'admin_required',platform:currentPlatform});
-  if(!browserSupported())return result({admin:true,supported:false,enabled:false,code:'unsupported',platform:currentPlatform});
-  if(currentPlatform==='ios-web')return result({admin:true,supported:true,enabled:false,code:'ios_install_required',platform:currentPlatform,permission:String(Notification.permission||'default')});
+  if(!admin)return result({ok:false,admin:false,supported:false,enabled:false,code:'admin_required',platform:currentPlatform});
+  if(!browserSupported())return result({ok:true,admin:true,supported:false,enabled:false,code:'unsupported',platform:currentPlatform});
+  if(currentPlatform==='ios-web')return result({ok:true,admin:true,supported:true,enabled:false,code:'ios_install_required',platform:currentPlatform,permission:String(Notification.permission||'default')});
   const permission=String(Notification.permission||'default');
-  if(permission==='denied')return result({admin:true,supported:true,enabled:false,code:'blocked',platform:currentPlatform,permission});
+  if(permission==='denied')return result({ok:true,admin:true,supported:true,enabled:false,code:'blocked',platform:currentPlatform,permission});
   const subscription=await localSubscription();
-  if(!subscription)return result({admin:true,supported:true,enabled:false,code:'disabled',platform:currentPlatform,permission});
+  if(!subscription)return result({ok:true,admin:true,supported:true,enabled:false,code:'disabled',platform:currentPlatform,permission});
   try{
     const data=await invoke('status',{endpoint:String(subscription.endpoint||'')});
-    return result({admin:true,supported:true,enabled:Boolean(data.enabled),code:data.enabled?'enabled':'disabled',platform:currentPlatform,permission});
+    return result({ok:true,admin:true,supported:true,enabled:Boolean(data.enabled),code:data.enabled?'enabled':'disabled',platform:currentPlatform,permission});
   }catch{
-    return result({admin:true,supported:true,enabled:false,code:'status_error',platform:currentPlatform,permission});
+    return result({ok:false,admin:true,supported:true,enabled:false,code:'status_error',platform:currentPlatform,permission});
   }
 }
 
 async function enable(){
   const currentPlatform=platform();
-  if(!isAdmin())return result({admin:false,supported:false,enabled:false,code:'admin_required',platform:currentPlatform});
-  if(!browserSupported())return result({admin:true,supported:false,enabled:false,code:'unsupported',platform:currentPlatform});
-  if(currentPlatform==='ios-web')return result({admin:true,supported:true,enabled:false,code:'ios_install_required',platform:currentPlatform});
+  if(!isAdmin())return result({ok:false,admin:false,supported:false,enabled:false,code:'admin_required',platform:currentPlatform});
+  if(!browserSupported())return result({ok:false,admin:true,supported:false,enabled:false,code:'unsupported',platform:currentPlatform});
+  if(currentPlatform==='ios-web')return result({ok:false,admin:true,supported:true,enabled:false,code:'ios_install_required',platform:currentPlatform});
   let permission=String(Notification.permission||'default');
-  if(permission==='denied')return result({admin:true,supported:true,enabled:false,code:'blocked',platform:currentPlatform,permission});
+  if(permission==='denied')return result({ok:false,admin:true,supported:true,enabled:false,code:'blocked',platform:currentPlatform,permission});
   if(permission!=='granted')permission=String(await Notification.requestPermission());
-  if(permission!=='granted')return result({admin:true,supported:true,enabled:false,code:permission==='denied'?'blocked':'disabled',platform:currentPlatform,permission});
+  if(permission!=='granted')return result({ok:false,admin:true,supported:true,enabled:false,code:permission==='denied'?'blocked':'disabled',platform:currentPlatform,permission});
 
   try{
     const reg=await registration();
@@ -18020,9 +18091,9 @@ async function enable(){
       user_agent:String(navigator.userAgent||''),
     });
     syncState();
-    return result({admin:true,supported:true,enabled:true,code:'enabled',platform:currentPlatform,permission});
+    return result({ok:true,admin:true,supported:true,enabled:true,code:'enabled',platform:currentPlatform,permission});
   }catch(error){
-    return result({admin:true,supported:true,enabled:false,code:String(error?.message||'enable_failed'),platform:currentPlatform,permission});
+    return result({ok:false,admin:true,supported:true,enabled:false,code:String(error?.message||'enable_failed'),platform:currentPlatform,permission});
   }
 }
 
@@ -18032,12 +18103,12 @@ async function disable({bestEffort=false}={}){
   let serverOk=true;
   if(subscription&&isAdmin()){
     try{await invoke('unsubscribe',{endpoint:String(subscription.endpoint||'')});}
-    catch(error){serverOk=false;if(!bestEffort)return result({admin:true,supported:browserSupported(),enabled:true,code:String(error?.message||'unsubscribe_failed'),platform:currentPlatform});}
+    catch(error){serverOk=false;if(!bestEffort)return result({ok:false,admin:true,supported:browserSupported(),enabled:true,code:String(error?.message||'unsubscribe_failed'),platform:currentPlatform});}
   }
   if(subscription){
     try{await subscription.unsubscribe?.();}catch(error){if(!bestEffort)throw error;}
   }
-  return result({admin:isAdmin(),supported:browserSupported(),enabled:false,code:serverOk?'disabled':'disabled_local',platform:currentPlatform,permission:typeof Notification==='undefined'?'default':String(Notification.permission||'default')});
+  return result({ok:true,admin:isAdmin(),supported:browserSupported(),enabled:false,code:serverOk?'disabled':'disabled_local',platform:currentPlatform,permission:typeof Notification==='undefined'?'default':String(Notification.permission||'default')});
 }
 
 function syncState(){
