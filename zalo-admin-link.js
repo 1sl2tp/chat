@@ -563,3 +563,5 @@ scan();
 window.V21ZaloAccountAdmin=Object.freeze({version:MODULE_VERSION,open:openAccountAdmin,close:closeAccountAdmin,refresh:refreshAccountAdmin});
 window.V21ZaloAdminLink=Object.freeze({version:MODULE_VERSION,mount,scan});
 })();
+
+void import('./contact-directory-admin.js').catch(error=>console.warn('[contact-directory-admin]',error));
