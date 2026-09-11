@@ -1,6 +1,6 @@
 import http from 'node:http';
 import path from 'node:path';
-import {Zalo} from 'zca-js';
+import {Zalo,ThreadType} from 'zca-js';
 import {createLoginState,createRequestHandler} from './login-server-core.mjs';
 import {startZaloLogin} from './login-runtime.mjs';
 import {createSupabaseSessionStore} from './session-store.mjs';
@@ -26,6 +26,44 @@ const messageGateway=supabaseUrl&&bridgeToken
 const state=createLoginState();
 let api=null;
 let unbindIncoming=()=>{};
+let outboundTimer=0;
+let outboundPolling=false;
+
+async function pollOutbound(){
+  if(outboundPolling||!api||!messageGateway)return 0;
+  outboundPolling=true;
+  try{
+    const rows=await messageGateway.listOutbound(20);
+    for(const row of rows){
+      try{
+        const sent=await api.sendMessage({msg:row.text},row.zaloId,ThreadType.User);
+        const zaloMessageId=sent?.message?.msgId??sent?.msgId??null;
+        await messageGateway.markOutboundResult({
+          deliveryId:row.deliveryId,
+          ok:true,
+          zaloMessageId,
+        });
+        console.log('[zalo-bridge] outbound sent',row.deliveryId,String(zaloMessageId??''));
+      }catch(error){
+        const message=String(error?.message||error);
+        try{
+          await messageGateway.markOutboundResult({
+            deliveryId:row.deliveryId,
+            ok:false,
+            error:message,
+          });
+        }catch(markError){
+          console.warn('[zalo-bridge] outbound result failed',String(markError?.message||markError));
+        }
+        console.warn('[zalo-bridge] outbound failed',row.deliveryId,message);
+      }
+    }
+    return rows.length;
+  }finally{
+    outboundPolling=false;
+  }
+}
+
 const handler=createRequestHandler({
   state,
   qrPath,
@@ -76,18 +114,16 @@ server.listen(port,'0.0.0.0',()=>{
         }
       }
       if(messageGateway){
-        try{
-          const synced=await messageGateway.syncLinkedAvatars();
-          console.log(`[zalo-bridge] linked avatars synced ${Number(synced?.count)||0}`);
-        }catch(error){
-          console.warn('[zalo-bridge] linked avatar sync failed',String(error?.message||error));
-        }
+        void pollOutbound();
+        outboundTimer=setInterval(()=>{void pollOutbound();},5000);
+        console.log('[zalo-login] outbound text poll enabled 5000ms');
       }
     })
     .catch(()=>{});
 });
 
 const shutdown=()=>{
+  if(outboundTimer){clearInterval(outboundTimer);outboundTimer=0;}
   try{unbindIncoming();}catch{}
   try{api?.listener?.stop?.();}catch{}
   server.close(()=>process.exit(0));
