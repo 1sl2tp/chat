@@ -17,6 +17,18 @@ async function sha256Hex(value:string){
   return Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,"0")).join("");
 }
 
+type VapidConfig={publicKey:string;privateKey:string;subject:string};
+async function loadVapid(admin:ReturnType<typeof createClient>):Promise<VapidConfig|null>{
+  const {data,error}=await admin.rpc("chat_service_get_call_push_vapid");
+  if(error)return null;
+  const row=(data&&typeof data==="object")?data as Record<string,unknown>:{};
+  const publicKey=clean(row.public_key,512);
+  const privateKey=clean(row.private_key,512);
+  const subject=clean(row.subject,512)||"mailto:admin@taphoa.xyz";
+  if(!publicKey||!privateKey)return null;
+  return{publicKey,privateKey,subject};
+}
+
 Deno.serve(async(req:Request)=>{
   if(req.method==="OPTIONS")return new Response("ok",{headers});
   if(req.method!=="POST")return reply(405,{ok:false,code:"method_not_allowed"});
@@ -24,9 +36,6 @@ Deno.serve(async(req:Request)=>{
   const url=Deno.env.get("SUPABASE_URL")??"";
   const anon=Deno.env.get("SUPABASE_ANON_KEY")??"";
   const service=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")??"";
-  const vapidPublic=Deno.env.get("VAPID_PUBLIC_KEY")??"";
-  const vapidPrivate=Deno.env.get("VAPID_PRIVATE_KEY")??"";
-  const vapidSubject=Deno.env.get("VAPID_SUBJECT")??"";
   if(!url||!service)return reply(500,{ok:false,code:"server_config_missing"});
   const admin=createClient(url,service,{auth:{autoRefreshToken:false,persistSession:false}});
 
@@ -42,9 +51,10 @@ Deno.serve(async(req:Request)=>{
       .select("token_sha256").eq("id","primary").maybeSingle();
     if(wakeError)return reply(500,{ok:false,code:"wake_lookup_failed"});
     if(!wakeAuth||String(wakeAuth.token_sha256)!==wakeHash)return reply(403,{ok:false,code:"wake_invalid"});
-    if(!vapidPublic||!vapidPrivate||!vapidSubject)return reply(503,{ok:false,code:"push_not_configured"});
+    const vapid=await loadVapid(admin);
+    if(!vapid)return reply(503,{ok:false,code:"push_not_configured"});
 
-    webpush.setVapidDetails(vapidSubject,vapidPublic,vapidPrivate);
+    webpush.setVapidDetails(vapid.subject,vapid.publicKey,vapid.privateKey);
     const {data:claimed,error:claimError}=await admin.rpc("v21_admin_push_claim",{p_limit:20});
     if(claimError)return reply(500,{ok:false,code:"claim_failed"});
 
@@ -166,8 +176,9 @@ Deno.serve(async(req:Request)=>{
   }
 
   if(action === "public_key"){
-    if(!vapidPublic)return reply(503,{ok:false,code:"push_not_configured"});
-    return reply(200,{ok:true,public_key:vapidPublic});
+    const vapid=await loadVapid(admin);
+    if(!vapid)return reply(503,{ok:false,code:"push_not_configured"});
+    return reply(200,{ok:true,public_key:vapid.publicKey});
   }
 
   if(action === "subscribe"){
