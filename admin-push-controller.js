@@ -97,12 +97,25 @@ async function refreshUnreadBadge(){
   return applyUnreadPresentation(count);
 }
 
+function cancelUnreadBadgeRefresh(){
+  if(unreadRefreshTimer>0&&typeof clearTimeout==='function')clearTimeout(unreadRefreshTimer);
+  unreadRefreshTimer=0;
+}
 function scheduleUnreadBadgeRefresh(delay=32){
-  if(unreadRefreshTimer)clearTimeout(unreadRefreshTimer);
-  unreadRefreshTimer=setTimeout(()=>{
+  cancelUnreadBadgeRefresh();
+  const run=()=>{
     unreadRefreshTimer=0;
     void refreshUnreadBadge();
-  },Math.max(0,Number(delay)||0));
+  };
+  if(typeof setTimeout==='function'){
+    unreadRefreshTimer=setTimeout(run,Math.max(0,Number(delay)||0));
+  }else{
+    unreadRefreshTimer=-1;
+    void Promise.resolve().then(()=>{
+      if(unreadRefreshTimer!==-1)return;
+      run();
+    });
+  }
 }
 
 async function status(){
@@ -175,7 +188,7 @@ async function disable({bestEffort=false}={}){
 }
 
 function clearClientState(){
-  if(unreadRefreshTimer){clearTimeout(unreadRefreshTimer);unreadRefreshTimer=0;}
+  cancelUnreadBadgeRefresh();
   void applyUnreadPresentation(0,{notifyWorker:false});
   try{
     navigator.serviceWorker?.controller?.postMessage?.({type:'ADMIN_PUSH_CLEAR'});
