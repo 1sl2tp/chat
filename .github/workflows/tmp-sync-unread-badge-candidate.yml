@@ -1,0 +1,38 @@
+name: Sync unread badge candidate
+on:
+  push:
+    branches:
+      - feature/unread-badge-notification-polish
+    paths:
+      - '.github/workflows/tmp-sync-unread-badge-candidate.yml'
+      - 'admin-push-controller.js'
+      - 'sw.js'
+      - 'index.source.html'
+      - 'manifest.webmanifest'
+      - 'tools/build_current_preview.py'
+permissions:
+  contents: write
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/unread-badge-notification-polish
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build canonical preview
+        run: python tools/build_current_preview.py
+      - name: Commit generated artifacts
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html version.json
+          if git diff --cached --quiet; then
+            echo 'Generated artifacts already current'
+            exit 0
+          fi
+          git commit -m 'chore(build): sync unread badge candidate'
+          git push origin HEAD:feature/unread-badge-notification-polish
