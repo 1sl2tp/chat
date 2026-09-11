@@ -1,6 +1,30 @@
+export function createCoalescingRunner(worker){
+  let running=null;
+  let rerun=false;
+
+  return function run(){
+    rerun=true;
+    if(running)return running;
+
+    running=(async()=>{
+      let total=0;
+      try{
+        while(rerun){
+          rerun=false;
+          total+=Number(await worker())||0;
+        }
+        return total;
+      }finally{
+        running=null;
+      }
+    })();
+
+    return running;
+  };
+}
+
 export function createBridge({adapter,gateway,clock=()=>new Date().toISOString(),logger=console}){
   let started=false;
-  let polling=false;
   const processingInbound=new Set();
   const seenInbound=new Set();
 
@@ -32,6 +56,30 @@ export function createBridge({adapter,gateway,clock=()=>new Date().toISOString()
     }
   };
 
+  const runOutboundPass=async()=>{
+    if(!started)return 0;
+    const rows=await gateway.listOutbound(20);
+    for(const row of rows){
+      try{
+        const external=await adapter.sendText({zaloId:row.zaloId,text:row.text});
+        await gateway.markOutboundResult({
+          deliveryId:row.deliveryId,
+          ok:true,
+          zaloMessageId:external?.messageId||null,
+        });
+      }catch(error){
+        await gateway.markOutboundResult({
+          deliveryId:row.deliveryId,
+          ok:false,
+          error:String(error?.message||error),
+        });
+      }
+    }
+    return rows.length;
+  };
+
+  const pollOutbound=createCoalescingRunner(runOutboundPass);
+
   return {
     async start(){
       if(started)return false;
@@ -45,32 +93,7 @@ export function createBridge({adapter,gateway,clock=()=>new Date().toISOString()
       }
     },
 
-    async pollOutbound(){
-      if(!started||polling)return 0;
-      polling=true;
-      try{
-        const rows=await gateway.listOutbound(20);
-        for(const row of rows){
-          try{
-            const external=await adapter.sendText({zaloId:row.zaloId,text:row.text});
-            await gateway.markOutboundResult({
-              deliveryId:row.deliveryId,
-              ok:true,
-              zaloMessageId:external?.messageId||null,
-            });
-          }catch(error){
-            await gateway.markOutboundResult({
-              deliveryId:row.deliveryId,
-              ok:false,
-              error:String(error?.message||error),
-            });
-          }
-        }
-        return rows.length;
-      }finally{
-        polling=false;
-      }
-    },
+    pollOutbound,
 
     async stop(){
       if(!started)return false;
