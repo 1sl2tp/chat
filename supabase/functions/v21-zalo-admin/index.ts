@@ -21,6 +21,30 @@ function errorCode(error: unknown) {
   return "zalo_update_failed";
 }
 
+async function loadAdminSnapshot(admin: ReturnType<typeof createClient>) {
+  const [accountsResult, contactsResult, linksResult] = await Promise.all([
+    admin.from("v21_accounts")
+      .select("id,username,display_name,role,avatar_path,locked_at")
+      .eq("role", "user")
+      .is("deleted_at", null)
+      .order("display_name", { ascending: true }),
+    admin.from("zalo_contacts")
+      .select("zalo_id,display_name,avatar_url,last_seen_at")
+      .order("display_name", { ascending: true }),
+    admin.from("zalo_user_links")
+      .select("chat_account_id,zalo_id,linked_by_account_id,linked_at,updated_at")
+      .order("linked_at", { ascending: false }),
+  ]);
+
+  const error = accountsResult.error || contactsResult.error || linksResult.error;
+  if (error) throw error;
+  return {
+    accounts: accountsResult.data ?? [],
+    contacts: contactsResult.data ?? [],
+    links: linksResult.data ?? [],
+  };
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers });
   if (req.method !== "POST") return reply(405, { ok: false, code: "method_not_allowed" });
@@ -59,6 +83,12 @@ Deno.serve(async (req: Request) => {
 
     const body = await req.json();
     const action = String(body?.action ?? "").trim().toLowerCase();
+
+    if (action === "admin_snapshot") {
+      const snapshot = await loadAdminSnapshot(admin);
+      return reply(200, { ok: true, snapshot });
+    }
+
     const targetId = String(body?.target_account_id ?? "").trim();
     if (!targetId) return reply(400, { ok: false, code: "target_required" });
 
