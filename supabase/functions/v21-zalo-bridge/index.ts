@@ -95,6 +95,10 @@ Deno.serve(async(req:Request)=>{
       await admin.storage.from(MEDIA_BUCKET).remove([storageKey]);
       return reply(500,{ok:false,error:"ingress_media_failed"});
     }
+    if(Boolean(stored.idempotent_reuse)&&String(stored.asset_id??"")!==assetId){
+      const {error:cleanupError}=await admin.storage.from(MEDIA_BUCKET).remove([storageKey]);
+      if(cleanupError)console.warn("[v21-zalo-bridge] duplicate media cleanup failed",cleanupError.message);
+    }
     return reply(200,{ok:true,message_id:stored.message_id??null,asset_id:stored.asset_id??assetId,idempotent_reuse:Boolean(stored.idempotent_reuse)});
   }
 
