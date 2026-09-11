@@ -115,6 +115,8 @@ begin
   if v_kind='image' and v_mime not like 'image/%' then return null; end if;
   if v_kind='file' and (nullif(btrim(coalesce(p_file_name,'')),'') is null or v_mime like 'image/%' or v_mime like 'audio/%') then return null; end if;
 
+  perform pg_advisory_xact_lock(hashtextextended(v_zalo_id || ':' || v_external_id,0));
+
   v_target:=public.v21_zalo_media_target(v_zalo_id,v_external_id,v_event_at);
   if v_target is null then return null; end if;
   v_account_id:=(v_target->>'chat_account_id')::uuid;
