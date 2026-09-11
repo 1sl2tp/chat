@@ -44,9 +44,7 @@ function sortDirectoryContacts(items=[]){
     .sort((a,b)=>{
       const activity=activityTime(b)-activityTime(a);
       if(activity)return activity;
-      const an=String(a?.display_name||a?.username||'');
-      const bn=String(b?.display_name||b?.username||'');
-      return an.localeCompare(bn,'vi',{sensitivity:'base'});
+      return 0;
     });
 }
 async function invokeBody(body){

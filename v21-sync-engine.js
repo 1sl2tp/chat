@@ -82,6 +82,15 @@ function canonicalContact(payload){
   }:null;
 }
 
+function mergeContactEventPreservingActivity(cached,payload,eventPayload){
+  const next={...(cached||{}),...(payload||{})};
+  if(!cached||!eventPayload||typeof eventPayload!=='object')return next;
+  for(const key of ['conversation_id','preview_text','preview_kind','latest_at','has_unread']){
+    if(!Object.prototype.hasOwnProperty.call(eventPayload,key))next[key]=cached[key];
+  }
+  return next;
+}
+
 function canonicalMessage(payload){
   return payload?{
     id:payload.id,
@@ -236,7 +245,7 @@ async function applyContactEvent(event){
     await cache()?.removeContact?.(accountId,payload.id);
     contacts()?.remove?.(payload.id);
   }else{
-    const next={...(cached||{}),...payload};
+    const next=mergeContactEventPreservingActivity(cached,payload,event?.payload);
     await cache()?.upsertContact?.(accountId,next);
     contacts()?.upsert?.(next);
   }

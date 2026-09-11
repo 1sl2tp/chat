@@ -901,6 +901,8 @@ button{
 }
 .user-message-unit>.media-gallery-grid{margin-left:auto}
 .assistant-message-unit>.media-gallery-grid{margin-right:auto}
+.user-message-unit>.media-image-tile[data-image-presentation]{margin-left:auto}
+.assistant-message-unit>.media-image-tile[data-image-presentation]{margin-right:auto}
 .media-gallery-grid .media-image-tile{
   min-width:0;
   min-height:0;
@@ -1754,6 +1756,7 @@ button{
 .wm-sidebar-navigation::-webkit-scrollbar{width:3px}
 .wm-sidebar-navigation::-webkit-scrollbar-track{background:transparent}
 .wm-sidebar-navigation::-webkit-scrollbar-thumb{background:rgba(0,0,0,.28);border-radius:999px}
+[data-v21-contact-list]{align-content:start;grid-auto-rows:max-content}
 .shell-sidebar-account-footer{
   flex:0 0 auto;
   border-top:1px solid var(--theme-border-default);
@@ -1799,7 +1802,7 @@ button{
   box-sizing:border-box;
   justify-self:center;
   display:grid;
-  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  grid-template-columns:minmax(0,2fr) minmax(0,1fr);
   gap:2px;
   padding:3px;
   border-radius:999px;
