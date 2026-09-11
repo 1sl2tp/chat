@@ -4,6 +4,7 @@ import {Zalo} from 'zca-js';
 import {createLoginState,createRequestHandler} from './login-server-core.mjs';
 import {startZaloLogin} from './login-runtime.mjs';
 import {createSupabaseSessionStore} from './session-store.mjs';
+import {createContactSync,syncApiContacts} from './contact-sync.mjs';
 
 const port=Math.max(1,Number(process.env.PORT)||8787);
 const qrPath=process.env.ZALO_QR_PATH||path.resolve(process.cwd(),'qr.png');
@@ -13,6 +14,9 @@ const publishableKey=String(process.env.SUPABASE_PUBLISHABLE_KEY||'').trim();
 const bridgeToken=String(process.env.ZALO_BRIDGE_TOKEN||'').trim();
 const sessionStore=supabaseUrl&&publishableKey&&bridgeToken
   ?createSupabaseSessionStore({supabaseUrl,publishableKey,bridgeToken})
+  :null;
+const contactSync=supabaseUrl&&bridgeToken
+  ?createContactSync({endpoint:`${supabaseUrl.replace(/\/$/,'')}/functions/v1/v21-zalo-contacts`,bridgeToken})
   :null;
 const state=createLoginState();
 let api=null;
@@ -37,8 +41,19 @@ server.listen(port,'0.0.0.0',()=>{
   console.log(`[zalo-login] web ready on :${port}`);
   if(!accessToken)console.warn('[zalo-login] LOGIN_TOKEN is empty; QR page is public');
   console.log(`[zalo-login] persistent session ${sessionStore?'enabled':'disabled'}`);
+  console.log(`[zalo-login] contacts sync ${contactSync?'enabled':'disabled'}`);
   void startZaloLogin({ZaloClass:Zalo,state,qrPath,logger:console,sessionStore})
-    .then(result=>{api=result;})
+    .then(async result=>{
+      api=result;
+      if(contactSync){
+        try{
+          const synced=await syncApiContacts({api,sync:contactSync});
+          console.log(`[zalo-login] contacts synced ${Number(synced?.count)||0}`);
+        }catch(error){
+          console.warn('[zalo-login] contacts sync failed',String(error?.message||error));
+        }
+      }
+    })
     .catch(()=>{});
 });
 
