@@ -5,6 +5,7 @@ import {createLoginState,createRequestHandler} from './login-server-core.mjs';
 import {startZaloLogin} from './login-runtime.mjs';
 import {createSupabaseSessionStore} from './session-store.mjs';
 import {createContactSync,syncApiContacts} from './contact-sync.mjs';
+import {bindIncomingMessageListener} from './incoming-message.mjs';
 
 const port=Math.max(1,Number(process.env.PORT)||8787);
 const qrPath=process.env.ZALO_QR_PATH||path.resolve(process.cwd(),'qr.png');
@@ -20,6 +21,7 @@ const contactSync=supabaseUrl&&bridgeToken
   :null;
 const state=createLoginState();
 let api=null;
+let unbindIncoming=()=>{};
 const handler=createRequestHandler({
   state,
   qrPath,
@@ -45,6 +47,14 @@ server.listen(port,'0.0.0.0',()=>{
   void startZaloLogin({ZaloClass:Zalo,state,qrPath,logger:console,sessionStore})
     .then(async result=>{
       api=result;
+      unbindIncoming=bindIncomingMessageListener({
+        api,
+        logger:console,
+        onMessage:async event=>{
+          console.log('[zalo-incoming]',JSON.stringify(event));
+        },
+      });
+      console.log('[zalo-login] incoming text listener enabled');
       if(contactSync){
         try{
           const synced=await syncApiContacts({api,sync:contactSync});
@@ -58,6 +68,7 @@ server.listen(port,'0.0.0.0',()=>{
 });
 
 const shutdown=()=>{
+  try{unbindIncoming();}catch{}
   try{api?.listener?.stop?.();}catch{}
   server.close(()=>process.exit(0));
   setTimeout(()=>process.exit(0),3000).unref();
