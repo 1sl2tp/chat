@@ -77,6 +77,52 @@ test('login runtime writes QR path, marks logged in and starts listener',async()
   assert.equal(calls.at(-1),'listener.start');
 });
 
+test('login runtime restores saved credentials before falling back to QR',async()=>{
+  const state=createLoginState();
+  const calls=[];
+  const saved={cookie:[{name:'zpsid',value:'cookie'}],imei:'imei-1',userAgent:'ua-1'};
+  const api={
+    getContext(){return {uid:'zalo-self'};},
+    listener:{start(){calls.push('listener.start');}},
+  };
+  class FakeZalo{
+    constructor(options){calls.push(['ctor',options]);}
+    async login(credentials){calls.push(['login',credentials]);return api;}
+    async loginQR(options){calls.push(['loginQR',options]);return api;}
+  }
+  const sessionStore={
+    async load(){calls.push('store.load');return saved;},
+    async save(){calls.push('store.save');},
+  };
+  await startZaloLogin({ZaloClass:FakeZalo,state,qrPath:'/tmp/zalo-qr.png',sessionStore});
+  assert.deepEqual(calls[1],'store.load');
+  assert.deepEqual(calls[2],['login',saved]);
+  assert.equal(calls.some(call=>Array.isArray(call)&&call[0]==='loginQR'),false);
+  assert.equal(calls.includes('store.save'),false);
+});
+
+test('login runtime saves cookie imei and userAgent after QR login',async()=>{
+  const state=createLoginState();
+  const calls=[];
+  const credentials={cookie:[{name:'zpsid',value:'cookie'}],imei:'imei-2',userAgent:'ua-2'};
+  const api={
+    getContext(){return {uid:'zalo-self',imei:credentials.imei,userAgent:credentials.userAgent,cookie:{toJSON(){return {cookies:credentials.cookie};}}};},
+    listener:{start(){calls.push('listener.start');}},
+  };
+  class FakeZalo{
+    async login(){throw new Error('should not restore');}
+    async loginQR(options){calls.push(['loginQR',options]);return api;}
+  }
+  const sessionStore={
+    async load(){calls.push('store.load');return null;},
+    async save(value){calls.push(['store.save',value]);},
+  };
+  await startZaloLogin({ZaloClass:FakeZalo,state,qrPath:'/tmp/zalo-qr.png',sessionStore});
+  assert.deepEqual(calls[0],'store.load');
+  assert.deepEqual(calls[1],['loginQR',{qrPath:'/tmp/zalo-qr.png'}]);
+  assert.deepEqual(calls[2],['store.save',credentials]);
+});
+
 test('contacts endpoint requires an active Zalo login',async()=>{
   const state=createLoginState();
   const handler=createRequestHandler({
