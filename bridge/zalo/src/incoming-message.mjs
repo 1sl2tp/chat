@@ -118,6 +118,14 @@ function normalizeFile(content){
   };
 }
 
+function normalizeMissedCall(content){
+  const data=objectValue(content);
+  if(!data)return null;
+  const action=String(data.action||'').trim().toLowerCase();
+  if(!action.includes('misscall'))return null;
+  return{text:'Cuộc gọi nhỡ',media:null};
+}
+
 export function normalizeIncomingMessage(message,{userThreadType=USER_THREAD_TYPE}={}){
   if(!message||message.type!==userThreadType||message.isSelf)return null;
   const zaloId=String(message.threadId||'').trim();
@@ -130,6 +138,7 @@ export function normalizeIncomingMessage(message,{userThreadType=USER_THREAD_TYP
   if(msgType==='chat.photo')normalized=normalizePhoto(content);
   else if(msgType==='chat.voice')normalized=normalizeVoice(content);
   else if(msgType==='share.file')normalized=normalizeFile(content);
+  else if(msgType==='chat.recommended')normalized=normalizeMissedCall(content);
   else if(typeof content==='string'&&(!msgType||msgType==='webchat')){
     const text=content.trim();
     if(text)normalized={text,media:null};
