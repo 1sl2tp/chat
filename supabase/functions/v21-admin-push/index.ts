@@ -9,11 +9,13 @@ const headers={
   "Content-Type":"application/json; charset=utf-8",
   "Cache-Control":"no-store",
 };
-const CLAIM_RPC="v21_admin_push_claim";
-const RESULT_RPC="v21_admin_push_result";
 
 function reply(status:number,body:unknown){return new Response(JSON.stringify(body),{status,headers});}
 function clean(value:unknown,max=4096){return String(value??"").trim().slice(0,max);}
+async function sha256Hex(value:string){
+  const digest=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,"0")).join("");
+}
 
 Deno.serve(async(req:Request)=>{
   if(req.method==="OPTIONS")return new Response("ok",{headers});
@@ -33,9 +35,116 @@ Deno.serve(async(req:Request)=>{
   const action=clean(body.action,64).toLowerCase();
 
   if(action === "drain"){
-    // Task 3 owns wake authentication and delivery. Refuse delivery until then.
-    void CLAIM_RPC; void RESULT_RPC; void webpush; void buildNotificationPayload; void isGoneStatus; void retryDelaySeconds;
-    return reply(503,{ok:false,code:"drain_not_configured"});
+    const wakeToken=req.headers.get("x-push-wake-token")??"";
+    if(!wakeToken)return reply(401,{ok:false,code:"wake_required"});
+    const wakeHash=await sha256Hex(wakeToken);
+    const {data:wakeAuth,error:wakeError}=await admin.from("v21_admin_push_auth")
+      .select("token_sha256").eq("id","primary").maybeSingle();
+    if(wakeError)return reply(500,{ok:false,code:"wake_lookup_failed"});
+    if(!wakeAuth||String(wakeAuth.token_sha256)!==wakeHash)return reply(403,{ok:false,code:"wake_invalid"});
+    if(!vapidPublic||!vapidPrivate||!vapidSubject)return reply(503,{ok:false,code:"push_not_configured"});
+
+    webpush.setVapidDetails(vapidSubject,vapidPublic,vapidPrivate);
+    const {data:claimed,error:claimError}=await admin.rpc("v21_admin_push_claim",{p_limit:20});
+    if(claimError)return reply(500,{ok:false,code:"claim_failed"});
+
+    let delivered=0;
+    let disabled=0;
+    let retried=0;
+    const rows=Array.isArray(claimed)?claimed:[];
+
+    for(const claim of rows){
+      const outboxId=String(claim?.outbox_id??"");
+      if(!outboxId)continue;
+      const messageId=String(claim?.message_id??"");
+      const recipientId=String(claim?.recipient_account_id??"");
+      const senderId=String(claim?.sender_account_id??"");
+      let transientError="";
+      let terminal=false;
+
+      try{
+        const [recipientResult,senderResult,messageResult,mediaResult,subsResult]=await Promise.all([
+          admin.from("v21_accounts").select("id,role,locked_at,deleted_at").eq("id",recipientId).maybeSingle(),
+          admin.from("v21_accounts").select("id,role,display_name,username,locked_at,deleted_at").eq("id",senderId).maybeSingle(),
+          admin.from("v21_messages").select("id,body,conversation_id,sender_account_id,deleted_at").eq("id",messageId).maybeSingle(),
+          admin.from("v21_media_assets").select("kind,file_name,sort_index,deleted_at").eq("message_id",messageId).is("deleted_at",null).order("sort_index",{ascending:true}),
+          admin.from("v21_push_subscriptions").select("id,endpoint,p256dh,auth,enabled,failure_count").eq("account_id",recipientId).eq("enabled",true),
+        ]);
+        const lookupError=recipientResult.error||senderResult.error||messageResult.error||mediaResult.error||subsResult.error;
+        if(lookupError)throw lookupError;
+
+        const recipient=recipientResult.data;
+        const sender=senderResult.data;
+        const message=messageResult.data;
+        if(!recipient||recipient.role!=="admin"||recipient.locked_at||recipient.deleted_at||
+           !sender||sender.role!=="user"||sender.locked_at||sender.deleted_at||
+           !message||message.deleted_at||String(message.sender_account_id)!==senderId){
+          terminal=true;
+        }else{
+          const subscriptions=Array.isArray(subsResult.data)?subsResult.data:[];
+          const payload=buildNotificationPayload({
+            outbox_id:outboxId,
+            message_id:messageId,
+            conversation_id:String(message.conversation_id??claim?.conversation_id??""),
+            sender_account_id:senderId,
+            sender_display_name:sender.display_name,
+            sender_username:sender.username,
+            body:message.body,
+            media:mediaResult.data??[],
+          });
+
+          for(const subscription of subscriptions){
+            const subscriptionId=String(subscription?.id??"");
+            try{
+              await webpush.sendNotification({
+                endpoint:String(subscription.endpoint??""),
+                keys:{p256dh:String(subscription.p256dh??""),auth:String(subscription.auth??"")},
+              },JSON.stringify(payload),{TTL:60,urgency:"normal"});
+              delivered++;
+              await admin.from("v21_push_subscriptions").update({
+                failure_count:0,last_success_at:new Date().toISOString(),last_failure_at:null,updated_at:new Date().toISOString(),
+              }).eq("id",subscriptionId);
+            }catch(error){
+              const statusCode=Number((error as {statusCode?:unknown})?.statusCode||0);
+              const messageText=clean((error as {message?:unknown})?.message||error,500)||"push_send_failed";
+              if(isGoneStatus(statusCode)){
+                disabled++;
+                await admin.from("v21_push_subscriptions").update({
+                  enabled:false,
+                  failure_count:Number(subscription.failure_count||0)+1,
+                  last_failure_at:new Date().toISOString(),
+                  updated_at:new Date().toISOString(),
+                }).eq("id",subscriptionId);
+              }else{
+                transientError=transientError||messageText;
+                await admin.from("v21_push_subscriptions").update({
+                  failure_count:Number(subscription.failure_count||0)+1,
+                  last_failure_at:new Date().toISOString(),
+                  updated_at:new Date().toISOString(),
+                }).eq("id",subscriptionId);
+              }
+            }
+          }
+        }
+      }catch(error){
+        transientError=clean((error as {message?:unknown})?.message||error,500)||"push_delivery_failed";
+      }
+
+      if(transientError&&!terminal){
+        retried++;
+        const attempt=Number(claim?.attempt_count||1);
+        void retryDelaySeconds(attempt);
+        await admin.rpc("v21_admin_push_result",{
+          p_outbox_id:outboxId,p_ok:false,p_error:transientError,p_dead:false,
+        });
+      }else{
+        await admin.rpc("v21_admin_push_result",{
+          p_outbox_id:outboxId,p_ok:true,p_error:null,p_dead:false,
+        });
+      }
+    }
+
+    return reply(200,{ok:true,claimed:rows.length,delivered,disabled,retried});
   }
 
   const authHeader=req.headers.get("Authorization")??"";
@@ -105,9 +214,5 @@ Deno.serve(async(req:Request)=>{
     return reply(200,{ok:true,enabled:Boolean(data?.enabled),subscription:data??null});
   }
 
-  // Keep the VAPID secret names present only for server delivery configuration.
-  if(vapidPublic&&vapidPrivate&&vapidSubject){
-    webpush.setVapidDetails(vapidSubject,vapidPublic,vapidPrivate);
-  }
   return reply(400,{ok:false,code:"invalid_action"});
 });
