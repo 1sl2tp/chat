@@ -481,10 +481,17 @@ function openCreateAccount(contact){
   window.setTimeout(()=>username.focus({preventScroll:true}),0);
 }
 
+function renderAccountRowsPreservingScroll(){
+  const card=accountModal?.querySelector?.('.zalo-account-card');
+  const scrollTop=card?.scrollTop||0;
+  renderAccountRows();
+  if(card)card.scrollTop=scrollTop;
+}
+
 async function refreshAccountAdmin(){
   const data=await invokeBody({action:'admin_snapshot'});
   accountSnapshot=data?.snapshot||{accounts:[],contacts:[],links:[]};
-  renderAccountRows();
+  renderAccountRowsPreservingScroll();
   return accountSnapshot;
 }
 
