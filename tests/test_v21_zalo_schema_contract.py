@@ -4,7 +4,6 @@ ROOT = Path(__file__).parents[1]
 SQL = (ROOT / "supabase/migrations/20260911_zalo_user_link_bridge.sql").read_text("utf-8")
 ADMIN_API = ROOT / "supabase/functions/v21-zalo-admin/index.ts"
 SIGNAL_SQL = ROOT / "supabase/migrations/20260911_zalo_outbound_signal.sql"
-SIGNAL_API = ROOT / "supabase/functions/v21-zalo-signal/index.ts"
 
 
 def test_zalo_bridge_schema_and_security_contract():
@@ -50,20 +49,15 @@ def test_admin_zalo_link_api_contract():
 
 def test_zalo_outbound_is_signaled_immediately_with_night_quiet_hours():
     assert SIGNAL_SQL.exists(), "outbound signal migration is required"
-    assert SIGNAL_API.exists(), "v21-zalo-signal Edge Function is required"
     sql = SIGNAL_SQL.read_text("utf-8").lower()
-    edge = SIGNAL_API.read_text("utf-8").lower()
     for token in [
         "net.http_post",
         "asia/ho_chi_minh",
         "05:00",
         "zalo_outbound_signal",
+        "v21_zalo_bridge_auth",
+        "token_sha256",
+        "https://taphoa-zalo-login.onrender.com/outbound-now",
+        "x-bridge-token-sha256",
     ]:
         assert token in sql, token
-    for token in [
-        "zalo_bridge_token",
-        "/outbound-now",
-        "x-bridge-token-sha256",
-        "crypto.subtle.digest",
-    ]:
-        assert token in edge, token
