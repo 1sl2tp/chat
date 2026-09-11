@@ -91,20 +91,10 @@ jobs:
           }
           """
           text=text.replace(canonical_end,canonical_end+helper,1)
-          old_apply="""  }else{
-            const next={...(cached||{}),...payload};
-            await cache()?.upsertContact?.(accountId,next);
-            contacts()?.upsert?.(next);
-          }
-          """
-          new_apply="""  }else{
-            const next=mergeContactEventPreservingActivity(cached,payload,event?.payload);
-            await cache()?.upsertContact?.(accountId,next);
-            contacts()?.upsert?.(next);
-          }
-          """
-          assert text.count(old_apply)==1
-          text=text.replace(old_apply,new_apply,1)
+          old_line="const next={...(cached||{}),...payload};"
+          new_line="const next=mergeContactEventPreservingActivity(cached,payload,event?.payload);"
+          assert text.count(old_line)==1
+          text=text.replace(old_line,new_line,1)
           sync.write_text(text,'utf-8')
           PY
       - name: Build canonical preview
