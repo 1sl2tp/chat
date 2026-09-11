@@ -1,0 +1,93 @@
+name: Apply V21.72.46 Green
+on:
+  push:
+    branches:
+      - feature/top-mode-switch-state-geometry-tdd
+permissions:
+  contents: write
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/top-mode-switch-state-geometry-tdd
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install verify dependency
+        run: python -m pip install pytest
+      - name: Apply bounded header geometry fix
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          source_path=Path('index.source.html')
+          source=source_path.read_text('utf-8')
+
+          old_grid='  grid-template-columns:minmax(0,2fr) minmax(0,1fr);\n'
+          assert source.count(old_grid)==1, source.count(old_grid)
+          source=source.replace(old_grid,'  grid-template-columns:minmax(0,1fr) minmax(0,1fr);\n',1)
+
+          anchor='.top-mode-tab[data-top-tab="chat"]{display:flex;align-items:center;justify-content:center;gap:6px}\n'
+          assert source.count(anchor)==1, source.count(anchor)
+          source=source.replace(anchor,anchor+'.top-mode-tab[data-top-tab="chat"][data-contact-identity="true"]{\n  justify-content:flex-start;\n  padding-left:4px;\n  padding-right:8px;\n}\n',1)
+
+          marker='.top-mode-tab{\n'
+          assert source.count(marker)>=1
+          conditional='.top-mode-switch[data-contact-identity="true"]{\n  grid-template-columns:minmax(0,2fr) minmax(0,1fr);\n}\n'
+          source=source.replace(marker,conditional+marker,1)
+          source_path.write_text(source,'utf-8')
+
+          shell_path=Path('shell.js')
+          shell=shell_path.read_text('utf-8')
+          old="""function renderChatTabIdentity(){
+  const tab=document.querySelector('[data-top-tab=\"chat\"]');
+  const avatar=tab?.querySelector('[data-chat-tab-avatar]');
+  const label=tab?.querySelector('[data-chat-tab-label]');
+  const visible=Boolean(
+"""
+          new="""function renderChatTabIdentity(){
+  const tab=document.querySelector('[data-top-tab=\"chat\"]');
+  const switcher=tab?.closest?.('.top-mode-switch')||document.querySelector('.top-mode-switch');
+  const avatar=tab?.querySelector('[data-chat-tab-avatar]');
+  const label=tab?.querySelector('[data-chat-tab-label]');
+  const visible=Boolean(
+"""
+          assert shell.count(old)==1, shell.count(old)
+          shell=shell.replace(old,new,1)
+
+          old2="""  );
+  if(!tab||!avatar||!label)return visible;
+  if(!visible){
+"""
+          new2="""  );
+  if(switcher)switcher.dataset.contactIdentity=String(visible);
+  if(tab)tab.dataset.contactIdentity=String(visible);
+  if(!tab||!avatar||!label)return visible;
+  if(!visible){
+"""
+          assert shell.count(old2)>=1
+          # Narrow to the first occurrence after renderChatTabIdentity.
+          start=shell.index('function renderChatTabIdentity(){')
+          pos=shell.index(old2,start)
+          shell=shell[:pos]+new2+shell[pos+len(old2):]
+          shell_path.write_text(shell,'utf-8')
+          PY
+      - name: Build canonical preview
+        run: python tools/build_current_preview.py
+      - name: Verify GREEN
+        run: python tools/verify_current.py
+      - name: Commit GREEN and remove temporary workflow
+        run: |
+          rm .github/workflows/apply-v21-72-46.yml
+          git config user.name '1sl2tp'
+          git config user.email '1sl2tp@gmail.com'
+          git add -A
+          git commit -m 'fix: stabilize top mode switch geometry'
+          git push origin HEAD:feature/top-mode-switch-state-geometry-tdd
