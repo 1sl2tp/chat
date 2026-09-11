@@ -4,6 +4,8 @@ language plpgsql
 security definer
 set search_path to 'public', 'v21_private', 'net'
 as $$
+declare
+  v_token_hash text;
 begin
   if new.direction <> 'outbound' or new.state <> 'pending' then
     return new;
@@ -13,14 +15,21 @@ begin
     return new;
   end if;
 
+  select token_sha256 into v_token_hash
+  from public.v21_zalo_bridge_auth
+  where id='primary';
+
+  if length(coalesce(v_token_hash,'')) <> 64 then
+    return new;
+  end if;
+
   perform net.http_post(
-    url := 'https://gcnoahqsrquxkwkjbuxy.supabase.co/functions/v1/v21-zalo-signal',
+    url := 'https://taphoa-zalo-login.onrender.com/outbound-now',
     headers := jsonb_build_object(
       'Content-Type','application/json',
-      'apikey','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdjbm9haHFzcnF1eGt3a2pidXh5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5NDY5MDEsImV4cCI6MjEwMzUyMjkwMX0.16EE_LENbAV5oD29XQGpR5c2eYXPqBSWkGTFdOqeRQE',
-      'Authorization','Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdjbm9haHFzcnF1eGt3a2pidXh5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5NDY5MDEsImV4cCI6MjEwMzUyMjkwMX0.16EE_LENbAV5oD29XQGpR5c2eYXPqBSWkGTFdOqeRQE'
+      'x-bridge-token-sha256',v_token_hash
     ),
-    body := jsonb_build_object('delivery_id',new.id),
+    body := '{}'::jsonb,
     timeout_milliseconds := 5000
   );
 
