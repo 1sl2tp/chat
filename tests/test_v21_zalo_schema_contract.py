@@ -48,6 +48,13 @@ def test_zalo_media_bridge_uses_canonical_v21_media_and_media_only_outbound_trig
         assert token in sql, token
 
 
+def test_zalo_media_outbound_is_scoped_to_images_and_files_only():
+    assert MEDIA_SQL.exists(), "Zalo media bridge migration is required"
+    sql = MEDIA_SQL.read_text("utf-8").lower()
+    assert "new.kind not in ('image','file')" in sql
+    assert "a.kind in ('image','file')" in sql
+
+
 def test_zalo_bridge_edge_function_accepts_multipart_media_and_signs_outbound_assets():
     assert MEDIA_API.exists(), "v21-zalo-bridge Edge Function is required"
     source = MEDIA_API.read_text("utf-8").lower()
