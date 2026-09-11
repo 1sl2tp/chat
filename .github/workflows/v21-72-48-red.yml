@@ -1,0 +1,15 @@
+name: V21.72.48 RED
+on:
+  push:
+    branches:
+      - feature/contact-tab-content-width
+jobs:
+  red:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run RED contract
+        run: python tests/test_v21_72_48_contact_tab_content_width.py
