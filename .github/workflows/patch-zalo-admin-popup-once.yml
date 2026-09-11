@@ -1,0 +1,44 @@
+name: Patch Zalo admin popup once
+on:
+  push:
+    branches:
+      - fix/zalo-admin-avatar-subpopup
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/zalo-admin-avatar-subpopup
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Patch scroll preservation
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('zalo-admin-link.js')
+          s=p.read_text('utf-8')
+          old="""async function refreshAccountAdmin(){\n  const data=await invokeBody({action:'admin_snapshot'});\n  accountSnapshot=data?.snapshot||{accounts:[],contacts:[],links:[]};\n  renderAccountRows();\n  return accountSnapshot;\n}\n"""
+          new="""function renderAccountRowsPreservingScroll(){\n  const card=accountModal?.querySelector?.('.zalo-account-card');\n  const scrollTop=card?.scrollTop||0;\n  renderAccountRows();\n  if(card)card.scrollTop=scrollTop;\n}\n\nasync function refreshAccountAdmin(){\n  const data=await invokeBody({action:'admin_snapshot'});\n  accountSnapshot=data?.snapshot||{accounts:[],contacts:[],links:[]};\n  renderAccountRowsPreservingScroll();\n  return accountSnapshot;\n}\n"""
+          if old not in s:
+              raise SystemExit('target block not found')
+          p.write_text(s.replace(old,new,1),'utf-8')
+          PY
+      - name: Build canonical preview
+        run: python tools/build_current_preview.py
+      - name: Verify targeted contracts
+        run: |
+          python -m pip install pytest
+          python -m pytest -q tests/test_v21_zalo_account_admin_contract.py tests/test_v21_zalo_admin_ui_contract.py
+          python tools/verify_current.py
+      - name: Commit patch and remove one-shot workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/patch-zalo-admin-popup-once.yml
+          git add zalo-admin-link.js index.html version.json
+          git commit -m "fix: keep Zalo account actions in nested popup"
+          git push origin HEAD:fix/zalo-admin-avatar-subpopup
