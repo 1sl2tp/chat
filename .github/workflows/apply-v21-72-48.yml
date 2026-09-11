@@ -1,0 +1,83 @@
+name: Apply V21.72.48 Green
+on:
+  push:
+    branches:
+      - feature/contact-tab-content-width
+permissions:
+  contents: write
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/contact-tab-content-width
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install verify dependency
+        run: python -m pip install pytest
+      - name: Apply bounded contact-tab sizing fix
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          src_path=Path('index.source.html')
+          src=src_path.read_text('utf-8')
+
+          old_avatar='.top-mode-contact-avatar{width:20px;height:20px;flex:0 0 20px;box-sizing:border-box;min-width:20px;min-height:20px;max-width:20px;max-height:20px;border-radius:999px;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;background:var(--account-avatar-bg,#d1fae5);color:var(--account-avatar-fg,#111827);font-size:9px;line-height:1;font-weight:700}'
+          new_avatar='.top-mode-contact-avatar{width:26px;height:26px;flex:0 0 26px;box-sizing:border-box;min-width:26px;min-height:26px;max-width:26px;max-height:26px;border-radius:999px;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;background:var(--account-avatar-bg,#d1fae5);color:var(--account-avatar-fg,#111827);font-size:10px;line-height:1;font-weight:700}'
+          assert src.count(old_avatar)==1, src.count(old_avatar)
+          src=src.replace(old_avatar,new_avatar,1)
+
+          old_identity='.top-mode-switch[data-contact-identity="true"]{\n  grid-template-columns:minmax(0,2fr) minmax(0,1fr);\n}'
+          new_identity='.top-mode-switch[data-contact-identity="true"]{\n  grid-template-columns:minmax(0,1fr) max-content;\n}'
+          assert src.count(old_identity)==1, src.count(old_identity)
+          src=src.replace(old_identity,new_identity,1)
+
+          label_rule='.top-mode-tab[data-top-tab="chat"] [data-chat-tab-label]{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
+          work_rule='.top-mode-tab[data-top-tab="work"]{min-width:max-content;padding-inline:12px}'
+          assert src.count(label_rule)==1, src.count(label_rule)
+          assert work_rule not in src
+          src=src.replace(label_rule,label_rule+'\n'+work_rule,1)
+          src_path.write_text(src,'utf-8')
+
+          t46=Path('tests/test_v21_72_46_top_mode_switch_state_geometry.py')
+          s=t46.read_text('utf-8')
+          s=s.replace('# Only the active chat-contact identity expands the chat side to 2/3.','# Only the active chat-contact identity gives Work intrinsic width; chat uses the remainder.')
+          s=s.replace("assert 'grid-template-columns:minmax(0,2fr) minmax(0,1fr);' in source","assert 'grid-template-columns:minmax(0,1fr) max-content;' in source")
+          s=s.replace("assert '.top-mode-contact-avatar{width:20px;height:20px;' in source","assert '.top-mode-contact-avatar{width:26px;height:26px;' in source")
+          t46.write_text(s,'utf-8')
+
+          t47=Path('tests/test_v21_72_47_mobile_header_picker_keyboard_occlusion.py')
+          s=t47.read_text('utf-8')
+          s=s.replace('# 1) Header identity avatar must own its 20px geometry. It must not inherit','# 1) Header identity avatar must own its bounded geometry. It must not inherit')
+          s=s.replace("assert '.top-mode-contact-avatar{width:20px;height:20px;flex:0 0 20px;' in SRC","assert '.top-mode-contact-avatar{width:26px;height:26px;flex:0 0 26px;' in SRC")
+          t47.write_text(s,'utf-8')
+
+          verify_path=Path('tools/verify_current.py')
+          verify=verify_path.read_text('utf-8')
+          anchor="subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_47_mobile_header_picker_keyboard_occlusion.py')],check=True,cwd=ROOT)\n"
+          add="subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_48_contact_tab_content_width.py')],check=True,cwd=ROOT)\n"
+          assert verify.count(anchor)==1, verify.count(anchor)
+          if add not in verify:
+              verify=verify.replace(anchor,anchor+add,1)
+          verify_path.write_text(verify,'utf-8')
+          PY
+      - name: Build canonical preview
+        run: python tools/build_current_preview.py
+      - name: Verify GREEN
+        run: python tools/verify_current.py
+      - name: Commit GREEN and remove temporary workflows
+        run: |
+          rm -f .github/workflows/v21-72-48-red.yml .github/workflows/apply-v21-72-48.yml
+          git config user.name '1sl2tp'
+          git config user.email '1sl2tp@gmail.com'
+          git add -A
+          git commit -m 'fix: balance contact identity and work tab width'
+          git push origin HEAD:feature/contact-tab-content-width
