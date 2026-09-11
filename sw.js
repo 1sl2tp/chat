@@ -1,6 +1,6 @@
 'use strict';
 const RELEASE_VERSION='V21.72.39';
-const MODULE_CONTRACT_VERSION='pwa-sw-v1';
+const MODULE_CONTRACT_VERSION='pwa-sw-v2-unread-badge';
 const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION;
 const SHELL=['./','./manifest.webmanifest','./icons/chat-192.png','./icons/chat-512.png'];
 const adminPushClientState=new Map();
@@ -24,13 +24,20 @@ self.addEventListener('activate',event=>{
   })());
 });
 
-async function clearAdminPushBadge(){
-  adminPushBadgeCount=0;
-  try{if(typeof navigator?.clearAppBadge==='function')await navigator.clearAppBadge();}catch{}
+async function setAdminPushBadge(count){
+  adminPushBadgeCount=Math.max(0,Number(count)||0);
+  try{
+    if(adminPushBadgeCount>0&&typeof navigator?.setAppBadge==='function')await navigator.setAppBadge(adminPushBadgeCount);
+    else if(adminPushBadgeCount===0&&typeof navigator?.clearAppBadge==='function')await navigator.clearAppBadge();
+  }catch{}
+  return adminPushBadgeCount;
 }
-async function bumpAdminPushBadge(){
-  adminPushBadgeCount+=1;
-  try{if(typeof navigator?.setAppBadge==='function')await navigator.setAppBadge(adminPushBadgeCount);}catch{}
+async function clearAdminPushBadge(){return setAdminPushBadge(0);}
+async function bumpAdminPushBadge(){return setAdminPushBadge(adminPushBadgeCount+1);}
+function notifyBadgeDirty(clients){
+  for(const client of clients||[]){
+    try{client.postMessage?.({type:'ADMIN_PUSH_BADGE_DIRTY'});}catch{}
+  }
 }
 
 self.addEventListener('message',event=>{
@@ -38,10 +45,12 @@ self.addEventListener('message',event=>{
   if(event.data?.type==='ADMIN_PUSH_STATE'&&event.source?.id){
     const state={...event.data,updatedAt:Date.now()};
     adminPushClientState.set(event.source.id,state);
-    if(state.visible&&state.focused)void clearAdminPushBadge();
   }
-  if(event.data?.type==='ADMIN_PUSH_CLEAR'&&event.source?.id){
-    adminPushClientState.delete(event.source.id);
+  if(event.data?.type==='ADMIN_PUSH_BADGE_SET'){
+    void setAdminPushBadge(event.data?.count);
+  }
+  if(event.data?.type==='ADMIN_PUSH_CLEAR'){
+    if(event.source?.id)adminPushClientState.delete(event.source.id);
     void clearAdminPushBadge();
   }
 });
@@ -60,7 +69,7 @@ self.addEventListener('push',event=>{
         String(state.conversationId||'')===conversationId
       );
     });
-    if(readingSame){await clearAdminPushBadge();return;}
+    if(readingSame)return;
 
     await self.registration.showNotification(String(payload.title||'TAPHOA Chat'),{
       body:String(payload.body||'Tin nhắn mới'),
@@ -74,6 +83,7 @@ self.addEventListener('push',event=>{
       }
     });
     await bumpAdminPushBadge();
+    notifyBadgeDirty(clients);
   })());
 });
 
@@ -88,14 +98,12 @@ self.addEventListener('notificationclick',event=>{
       const client=clients[0];
       try{await client.focus?.();}catch{}
       try{client.postMessage?.({type:'ADMIN_PUSH_OPEN',conversationId,contactId});}catch{}
-      await clearAdminPushBadge();
       return;
     }
     const target=new URL('./',self.location.origin);
     if(contactId)target.searchParams.set('push_contact',contactId);
     if(conversationId)target.searchParams.set('push_conversation',conversationId);
     await self.clients.openWindow(target.toString());
-    await clearAdminPushBadge();
   })());
 });
 
