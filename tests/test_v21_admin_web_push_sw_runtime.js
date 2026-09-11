@@ -46,12 +46,23 @@ function harness(){
   await bg.dispatch('push',{data:{json:()=>payload}});
   assert.equal(bg.notices.length,1,'background push must show one notification');
   assert.equal(bg.notices[0].options.tag,'chat:conv-1');
+  assert.equal(bg.getBadge(),1,'background push increments provisional app badge');
+
+  const authoritative=harness();
+  const authoritativeClient=authoritative.client('c-authoritative');
+  authoritative.setClients([authoritativeClient]);
+  await authoritative.dispatch('message',{data:{type:'ADMIN_PUSH_BADGE_SET',count:4},source:authoritativeClient});
+  assert.equal(authoritative.getBadge(),4,'page unread count must set authoritative app badge');
+  await authoritative.dispatch('message',{data:{type:'ADMIN_PUSH_STATE',visible:true,focused:true,route:'chat',conversationId:'conv-2',contactId:'user-2'},source:authoritativeClient});
+  assert.equal(authoritative.getBadge(),4,'focusing the app must not clear unread badge');
 
   const same=harness();
   const sameClient=same.client('c1');same.setClients([sameClient]);
+  await same.dispatch('message',{data:{type:'ADMIN_PUSH_BADGE_SET',count:2},source:sameClient});
   await same.dispatch('message',{data:{type:'ADMIN_PUSH_STATE',visible:true,focused:true,route:'chat',conversationId:'conv-1',contactId:'user-1'},source:sameClient});
   await same.dispatch('push',{data:{json:()=>payload}});
   assert.equal(same.notices.length,0,'focused same conversation must suppress system notification');
+  assert.equal(same.getBadge(),2,'suppressed same-conversation push must preserve other unread badge count');
 
   const other=harness();
   const otherClient=other.client('c1');other.setClients([otherClient]);
@@ -61,11 +72,13 @@ function harness(){
 
   const click=harness();
   const clickClient=click.client('c9');click.setClients([clickClient]);
+  await click.dispatch('message',{data:{type:'ADMIN_PUSH_BADGE_SET',count:3},source:clickClient});
   let closed=false;
   await click.dispatch('notificationclick',{notification:{data:{conversationId:'conv-1',contactId:'user-1'},close(){closed=true}}});
   assert.equal(closed,true);
   assert.deepEqual(click.posted[0],{type:'ADMIN_PUSH_OPEN',conversationId:'conv-1',contactId:'user-1'});
   assert.equal(click.opened.length,0);
+  assert.equal(click.getBadge(),3,'notification click must not clear unread from other messages');
 
   const cold=harness();cold.setClients([]);
   await cold.dispatch('notificationclick',{notification:{data:{conversationId:'conv-1',contactId:'user-1'},close(){}}});
