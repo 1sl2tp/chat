@@ -23,7 +23,7 @@ def test_zalo_account_admin_backend_contract():
     ]:
         assert token in lower, token
 
-    assert 'select("id,username,display_name,role,avatar_path,locked_at")' in lower
+    assert 'select("id,username,display_name,role,avatar_path,locked_at,contact_group")' in lower
     assert 'password:' not in lower.split('return reply(200')[-1]
 
 

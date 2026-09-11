@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="f2cf6f2e4474ffe87e3e48c02c13af32d004bd41c1b751b2c35bc86f415da8ad">
+<meta name="app-build-id" content="2c5fed621722054d5fa76b75ac925befd738f155c4edb880df1c6fcac84c75c4">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -14032,6 +14032,8 @@ scan();
 window.V21ZaloAccountAdmin=Object.freeze({version:MODULE_VERSION,open:openAccountAdmin,close:closeAccountAdmin,refresh:refreshAccountAdmin});
 window.V21ZaloAdminLink=Object.freeze({version:MODULE_VERSION,mount,scan});
 })();
+
+void import('./contact-directory-admin.js').catch(error=>console.warn('[contact-directory-admin]',error));
 
 </script>
 <script data-inlined-source="getlink-auth-bridge.js">

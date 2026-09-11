@@ -19,5 +19,9 @@ jobs:
         run: python -m pytest -q tests/test_v21_zalo_account_admin_contract.py
       - name: Zalo Admin UI contract
         run: python -m pytest -q tests/test_v21_zalo_admin_ui_contract.py
+      - name: Contact directory order/search/group contract
+        run: python -m pytest -q tests/test_v21_contact_directory_groups.py
+      - name: Contact directory module syntax
+        run: node --check contact-directory-admin.js
       - name: Zalo bridge core tests
         run: cd bridge/zalo && npm test
