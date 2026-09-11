@@ -15,7 +15,11 @@ begin
 
   perform net.http_post(
     url := 'https://gcnoahqsrquxkwkjbuxy.supabase.co/functions/v1/v21-zalo-signal',
-    headers := jsonb_build_object('Content-Type','application/json'),
+    headers := jsonb_build_object(
+      'Content-Type','application/json',
+      'apikey','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdjbm9haHFzcnF1eGt3a2pidXh5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5NDY5MDEsImV4cCI6MjEwMzUyMjkwMX0.16EE_LENbAV5oD29XQGpR5c2eYXPqBSWkGTFdOqeRQE',
+      'Authorization','Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdjbm9haHFzcnF1eGt3a2pidXh5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5NDY5MDEsImV4cCI6MjEwMzUyMjkwMX0.16EE_LENbAV5oD29XQGpR5c2eYXPqBSWkGTFdOqeRQE'
+    ),
     body := jsonb_build_object('delivery_id',new.id),
     timeout_milliseconds := 5000
   );
