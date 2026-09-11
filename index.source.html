@@ -2444,7 +2444,7 @@ button{
     --chat-content-gutter:24px;
   }
   #appShell[data-auth-state="authenticated"] #screenHost{
-    --desktop-directory-width:clamp(280px,24vw,304px);
+    --desktop-directory-width:clamp(328px,27vw,340px);
     display:grid;
     grid-template-columns:var(--desktop-directory-width) minmax(0,1fr);
     grid-template-rows:minmax(0,1fr);
@@ -2510,6 +2510,14 @@ button{
     visibility:hidden;
     pointer-events:none;
   }
+
+  /* V21.72.40 — desktop directory width + compact footer */
+  .shell-sidebar-account-footer{padding:8px 0 8px;gap:6px}
+  .shell-sidebar-account-main{min-height:58px;padding:5px 8px;border-radius:16px;grid-template-columns:40px minmax(0,1fr) 32px}
+  .shell-sidebar-account-main{height:58px;column-gap:10px}
+  .shell-sidebar-account-avatar{width:40px;height:40px;flex-basis:40px}
+  .shell-sidebar-account-chevron{width:32px}
+  .shell-sidebar-account-action,.zalo-account-admin-open{min-height:38px;border-radius:12px}
 }
 @supports not (height:100svh){
   @media (min-width:68rem) and (hover:hover) and (pointer:fine){

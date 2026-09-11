@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="2c5fed621722054d5fa76b75ac925befd738f155c4edb880df1c6fcac84c75c4">
+<meta name="app-build-id" content="12b21b5fe781a02613d4786b7b54c5faa6c94be65ddb846901de22ff55a77d65">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -2758,7 +2758,7 @@ button{
     --chat-content-gutter:24px;
   }
   #appShell[data-auth-state="authenticated"] #screenHost{
-    --desktop-directory-width:clamp(280px,24vw,304px);
+    --desktop-directory-width:clamp(328px,27vw,340px);
     display:grid;
     grid-template-columns:var(--desktop-directory-width) minmax(0,1fr);
     grid-template-rows:minmax(0,1fr);
@@ -2824,6 +2824,14 @@ button{
     visibility:hidden;
     pointer-events:none;
   }
+
+  /* V21.72.40 — desktop directory width + compact footer */
+  .shell-sidebar-account-footer{padding:8px 0 8px;gap:6px}
+  .shell-sidebar-account-main{min-height:58px;padding:5px 8px;border-radius:16px;grid-template-columns:40px minmax(0,1fr) 32px}
+  .shell-sidebar-account-main{height:58px;column-gap:10px}
+  .shell-sidebar-account-avatar{width:40px;height:40px;flex-basis:40px}
+  .shell-sidebar-account-chevron{width:32px}
+  .shell-sidebar-account-action,.zalo-account-admin-open{min-height:38px;border-radius:12px}
 }
 @supports not (height:100svh){
   @media (min-width:68rem) and (hover:hover) and (pointer:fine){
@@ -11329,6 +11337,51 @@ function setSidebar(open){
   }
   return sidebarOpen;
 }
+
+const MOBILE_SIDEBAR_EDGE_PX=28;
+const MOBILE_SIDEBAR_OPEN_DISTANCE_PX=56;
+
+function bindMobileSidebarEdgeSwipe(){
+  if(!appShell)return false;
+  let tracking=false;
+  let startX=0;
+  let startY=0;
+
+  const reset=()=>{tracking=false;startX=0;startY=0;};
+  const onTouchStart=event=>{
+    if(desktopSidebarPersistent||sidebarOpen||event.touches.length!==1){reset();return;}
+    const touch=event.touches[0];
+    startX=touch.clientX;
+    startY=touch.clientY;
+    if(startX>MOBILE_SIDEBAR_EDGE_PX){reset();return;}
+    tracking=true;
+  };
+  const onTouchMove=event=>{
+    if(!tracking||event.touches.length!==1)return;
+    const touch=event.touches[0];
+    const dx=touch.clientX-startX;
+    const dy=touch.clientY-startY;
+    if(dx<0||Math.abs(dy)>36){reset();return;}
+    if(dx>12&&dx>Math.abs(dy)*1.25)event.preventDefault();
+  };
+  const onTouchEnd=event=>{
+    if(!tracking){reset();return;}
+    const touch=event.changedTouches?.[0];
+    const dx=(touch?.clientX??startX)-startX;
+    const dy=(touch?.clientY??startY)-startY;
+    if(dx>=MOBILE_SIDEBAR_OPEN_DISTANCE_PX&&Math.abs(dy)<=36)setSidebar(true);
+    reset();
+  };
+  const onTouchCancel=()=>reset();
+
+  appShell.addEventListener('touchstart',onTouchStart,{passive:true});
+  appShell.addEventListener('touchmove',onTouchMove,{passive:false});
+  appShell.addEventListener('touchend',onTouchEnd,{passive:true});
+  appShell.addEventListener('touchcancel',onTouchCancel,{passive:true});
+  return true;
+}
+
+bindMobileSidebarEdgeSwipe();
 
 function renderTopTabs(){
   for(const tab of document.querySelectorAll('[data-top-tab]')){
