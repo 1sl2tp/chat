@@ -32,7 +32,8 @@ assert "className:'block h-full w-full object-cover'" in app
 assert '.media-image-tile[data-image-presentation]' in source
 assert 'object-fit:contain!important' in source
 assert '.media-gallery-grid{' in source
-assert 'width:min(25rem,100%)!important' in source
+assert '.media-gallery-grid{width:25rem!important;max-width:100%}' in source
+assert '.media-gallery-grid{width:min(25rem,100%)!important}' not in source
 assert '.media-gallery-grid .media-image-tile > img' in source
 assert 'object-fit:cover!important' in source
 

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="0ee044db56f522c349aef9ba922c0e5173908ec9e79ffe3af2d032df15e62951">
+<meta name="app-build-id" content="eb366e6586e81bbcd361247edb66ea472a94541f773cc36a52cfdf9d044945e6">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1207,12 +1207,14 @@ button{
   object-position:center!important;
 }
 .media-gallery-grid{
-  width:min(25rem,100%)!important;
+  width:25rem!important;
   max-width:100%;
   gap:4px!important;
   border-radius:14px!important;
   overflow:hidden;
 }
+.user-message-unit>.media-gallery-grid{margin-left:auto}
+.assistant-message-unit>.media-gallery-grid{margin-right:auto}
 .media-gallery-grid .media-image-tile{
   min-width:0;
   min-height:0;
@@ -1228,7 +1230,7 @@ button{
   .media-image-tile[data-image-presentation="portrait"]{width:min(16rem,100%)!important}
   .media-image-tile[data-image-presentation="square"]{width:min(20rem,100%)!important}
   .media-image-tile[data-image-presentation="landscape"]{width:min(25rem,100%)!important}
-  .media-gallery-grid{width:min(25rem,100%)!important}
+  .media-gallery-grid{width:25rem!important;max-width:100%}
 }
 
 /* V21.70 — audio visual hierarchy follows the existing grayscale chat language.
