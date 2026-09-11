@@ -9,15 +9,17 @@ def test_admin_push_edge_contract():
     EDGE=edge_path.read_text('utf-8')
     for token in [
         'npm:web-push@3.6.7',
-        'VAPID_PUBLIC_KEY', 'VAPID_PRIVATE_KEY', 'VAPID_SUBJECT',
+        'chat_service_get_call_push_vapid',
         'action === "public_key"', 'action === "subscribe"',
         'action === "unsubscribe"', 'action === "status"', 'action === "drain"',
         'admin_required', 'v21_push_subscriptions', 'v21_admin_push_claim',
         'v21_admin_push_result'
     ]:
         assert token in EDGE, token
+    for forbidden in ['VAPID_PUBLIC_KEY', 'VAPID_PRIVATE_KEY', 'VAPID_SUBJECT']:
+        assert forbidden not in EDGE, f'admin push must reuse canonical Vault VAPID, not {forbidden}'
     public_key_block=EDGE.split('action === "public_key"',1)[1].split('if(action ===',1)[0]
-    assert 'VAPID_PRIVATE_KEY' not in public_key_block
+    assert 'private_key' not in public_key_block
 
 
 def test_admin_push_drain_wake_auth_and_delivery_contract():
@@ -31,6 +33,7 @@ def test_admin_push_drain_wake_auth_and_delivery_contract():
         'urgency:"normal"',
         'isGoneStatus',
         'v21_push_subscriptions',
+        'chat_service_get_call_push_vapid',
     ]:
         assert token in EDGE, token
     drain=EDGE.split('action === "drain"',1)[1].split('const authHeader',1)[0]
