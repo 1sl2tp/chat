@@ -42,7 +42,7 @@ Deno.serve(async(req:Request)=>{
     const widthPx=integer(form.get("width_px"));
     const heightPx=integer(form.get("height_px"));
     const file=form.get("file");
-    if(!(file instanceof File)||!zaloId||!zaloMessageId||!['image','file'].includes(kind)){
+    if(!(file instanceof File)||!zaloId||!zaloMessageId||!['image','audio','file'].includes(kind)){
       return reply(400,{ok:false,error:"invalid_media"});
     }
     if(file.size<1||file.size>MEDIA_LIMIT)return reply(413,{ok:false,error:"media_size_out_of_range"});
@@ -50,6 +50,7 @@ Deno.serve(async(req:Request)=>{
     const mimeType=(requestedMime||file.type||"application/octet-stream").split(';',1)[0].trim().toLowerCase();
     const fileName=kind==="file"?(requestedFileName||file.name||"file").slice(0,255):null;
     if(kind==="image"&&!mimeType.startsWith("image/"))return reply(400,{ok:false,error:"image_type_required"});
+    if(kind==='audio'&&!mimeType.startsWith('audio/'))return reply(400,{ok:false,error:"audio_type_required"});
     if(kind==="file"&&(!fileName||mimeType.startsWith("image/")||mimeType.startsWith("audio/"))){
       return reply(400,{ok:false,error:"file_type_required"});
     }

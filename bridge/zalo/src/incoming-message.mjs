@@ -44,6 +44,16 @@ function imageMimeFromUrl(url){
   return'image/jpeg';
 }
 
+function audioMimeFromUrl(url){
+  const clean=String(url||'').split(/[?#]/,1)[0].toLowerCase();
+  if(clean.endsWith('.mp3'))return'audio/mpeg';
+  if(clean.endsWith('.ogg'))return'audio/ogg';
+  if(clean.endsWith('.webm'))return'audio/webm';
+  if(clean.endsWith('.wav'))return'audio/wav';
+  if(clean.endsWith('.aac'))return'audio/aac';
+  return'audio/mp4';
+}
+
 function normalizePhoto(content){
   const data=objectValue(content);
   if(!data)return null;
@@ -61,6 +71,27 @@ function normalizePhoto(content){
       sizeBytes:numberOrNull(params.hdSize,params.totalSize,data.hdSize,data.totalSize,data.size)||0,
       widthPx:numberOrNull(params.width,data.width),
       heightPx:numberOrNull(params.height,data.height),
+    }
+  };
+}
+
+function normalizeVoice(content){
+  const data=objectValue(content);
+  if(!data)return null;
+  const params=paramsValue(data);
+  const sourceUrl=String(data.m4aUrl||data.voiceUrl||data.href||data.url||params.m4aUrl||params.voiceUrl||'').trim();
+  if(!/^https?:\/\//i.test(sourceUrl))return null;
+  return{
+    text:String(data.description||data.desc||'').trim(),
+    media:{
+      kind:'audio',
+      sourceUrl,
+      thumbUrl:null,
+      fileName:null,
+      mimeType:String(data.mimeType||data.contentType||params.mimeType||'').split(';',1)[0].trim().toLowerCase()||audioMimeFromUrl(sourceUrl),
+      sizeBytes:numberOrNull(data.fileSize,data.totalSize,data.size,params.fileSize,params.totalSize)||0,
+      widthPx:null,
+      heightPx:null,
     }
   };
 }
@@ -97,6 +128,7 @@ export function normalizeIncomingMessage(message,{userThreadType=USER_THREAD_TYP
   const content=message?.data?.content;
   let normalized=null;
   if(msgType==='chat.photo')normalized=normalizePhoto(content);
+  else if(msgType==='chat.voice')normalized=normalizeVoice(content);
   else if(msgType==='share.file')normalized=normalizeFile(content);
   else if(typeof content==='string'&&(!msgType||msgType==='webchat')){
     const text=content.trim();
