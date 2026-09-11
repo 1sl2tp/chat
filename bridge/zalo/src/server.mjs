@@ -6,6 +6,7 @@ import {startZaloLogin} from './login-runtime.mjs';
 import {createSupabaseSessionStore} from './session-store.mjs';
 import {createContactSync,syncApiContacts} from './contact-sync.mjs';
 import {bindIncomingMessageListener} from './incoming-message.mjs';
+import {createMessageGateway} from './message-gateway.mjs';
 
 const port=Math.max(1,Number(process.env.PORT)||8787);
 const qrPath=process.env.ZALO_QR_PATH||path.resolve(process.cwd(),'qr.png');
@@ -18,6 +19,9 @@ const sessionStore=supabaseUrl&&publishableKey&&bridgeToken
   :null;
 const contactSync=supabaseUrl&&bridgeToken
   ?createContactSync({endpoint:`${supabaseUrl.replace(/\/$/,'')}/functions/v1/v21-zalo-contacts`,bridgeToken})
+  :null;
+const messageGateway=supabaseUrl&&bridgeToken
+  ?createMessageGateway({endpoint:`${supabaseUrl.replace(/\/$/,'')}/functions/v1/v21-zalo-bridge`,bridgeToken})
   :null;
 const state=createLoginState();
 let api=null;
@@ -44,6 +48,7 @@ server.listen(port,'0.0.0.0',()=>{
   if(!accessToken)console.warn('[zalo-login] LOGIN_TOKEN is empty; QR page is public');
   console.log(`[zalo-login] persistent session ${sessionStore?'enabled':'disabled'}`);
   console.log(`[zalo-login] contacts sync ${contactSync?'enabled':'disabled'}`);
+  console.log(`[zalo-login] message bridge ${messageGateway?'enabled':'disabled'}`);
   void startZaloLogin({ZaloClass:Zalo,state,qrPath,logger:console,sessionStore})
     .then(async result=>{
       api=result;
@@ -52,6 +57,13 @@ server.listen(port,'0.0.0.0',()=>{
         logger:console,
         onMessage:async event=>{
           console.log('[zalo-incoming]',JSON.stringify(event));
+          if(!messageGateway)return;
+          try{
+            const bridged=await messageGateway.ingestText(event);
+            console.log(`[zalo-bridge] inbound ${bridged?.messageId?'stored':'ignored'}`);
+          }catch(error){
+            console.warn('[zalo-bridge] inbound failed',String(error?.message||error));
+          }
         },
       });
       console.log('[zalo-login] incoming text listener enabled');
@@ -61,6 +73,14 @@ server.listen(port,'0.0.0.0',()=>{
           console.log(`[zalo-login] contacts synced ${Number(synced?.count)||0}`);
         }catch(error){
           console.warn('[zalo-login] contacts sync failed',String(error?.message||error));
+        }
+      }
+      if(messageGateway){
+        try{
+          const synced=await messageGateway.syncLinkedAvatars();
+          console.log(`[zalo-bridge] linked avatars synced ${Number(synced?.count)||0}`);
+        }catch(error){
+          console.warn('[zalo-bridge] linked avatar sync failed',String(error?.message||error));
         }
       }
     })
