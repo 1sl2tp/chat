@@ -9,6 +9,7 @@ function harness(){
   const swMessages=[];
   const openCalls=[];
   const historyCalls=[];
+  let contactReady=false;
   const authStore={
     snapshot(){return{state:'AUTHENTICATED',account:{id:'admin-1',role:'admin'},deviceId:'device-1'}},
     getClient(){return{functions:{async invoke(){return{data:{ok:true,enabled:false},error:null}}}}}
@@ -26,7 +27,7 @@ function harness(){
   const navigator={serviceWorker,userAgent:'Mozilla/5.0 Chrome/140',standalone:false};
   const Notification={permission:'granted',async requestPermission(){return'granted'}};
   const shell={
-    NavigationCommand:{openContact(id){openCalls.push(String(id));return true}},
+    NavigationCommand:{openContact(id){if(!contactReady)return false;openCalls.push(String(id));return true}},
     snapshot(){return{route:'chat',activeContact:{id:openCalls.at(-1)||''}}}
   };
   const sync={snapshot(){return{currentConversationId:'conv-current',currentContactId:openCalls.at(-1)||''}}};
@@ -44,12 +45,20 @@ function harness(){
   const history={state:null,replaceState(...args){historyCalls.push(args)}};
   const ctx={window:windowObj,document,navigator,Notification,location,history,URL,URLSearchParams,Uint8Array,atob:s=>Buffer.from(s,'base64').toString('binary'),String,Number,Boolean,Object,Array,Promise,console};
   vm.createContext(ctx);vm.runInContext(code,ctx);
-  return{api:ctx.window.V21AdminPush,documentListeners,windowListeners,swListeners,swMessages,openCalls,historyCalls};
+  return{
+    api:ctx.window.V21AdminPush,documentListeners,windowListeners,swListeners,swMessages,openCalls,historyCalls,
+    setContactReady(value){contactReady=Boolean(value)}
+  };
 }
 
 (async()=>{
   const h=harness();
-  assert.equal(h.openCalls[0],'cold-1','cold-open query must route through canonical contact command');
+  assert.equal(h.openCalls.length,0,'cold-open must wait until canonical contact store is ready');
+  assert(h.api.snapshot().pendingOpen,'cold-open target must remain pending');
+  h.setContactReady(true);
+  h.documentListeners['v21-contact-store-change']({detail:{reason:'replace'}});
+  await Promise.resolve();
+  assert.equal(h.openCalls[0],'cold-1','contact-store ready event must retry canonical route');
   assert(h.historyCalls.length>=1,'cold-open query must be removed after routing');
 
   const opened=await h.api.handleOpen({contactId:'live-2',conversationId:'conv-2'});
@@ -57,6 +66,7 @@ function harness(){
   assert.equal(h.openCalls.at(-1),'live-2');
 
   h.swListeners.message({data:{type:'ADMIN_PUSH_OPEN',contactId:'live-3',conversationId:'conv-3'}});
+  await Promise.resolve();
   assert.equal(h.openCalls.at(-1),'live-3','existing-window SW click must use same open handler');
 
   h.documentListeners['v21-auth-state']({detail:{state:'GUEST',account:null}});
