@@ -62,6 +62,8 @@ assert '192x192' in sizes and '512x512' in sizes
 sw=read('sw.js')
 for token in ['skipWaiting','clients.claim','version.json','cache: \'no-store\'','request.mode===\'navigate\'']:
     assert token in sw, token
+for token in ["self.addEventListener('push'","self.addEventListener('notificationclick'",'ADMIN_PUSH_STATE','ADMIN_PUSH_OPEN','showNotification','chat:']:
+    assert token in sw, token
 
 update=read('app-update-controller.js')
 assert "MODULE_CONTRACT_VERSION='app-update-v2'" in update
