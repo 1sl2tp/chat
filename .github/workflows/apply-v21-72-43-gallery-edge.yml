@@ -31,15 +31,18 @@ jobs:
           text=source.read_text('utf-8')
           old=""".media-gallery-grid{\n  width:min(25rem,100%)!important;\n  max-width:100%;"""
           new=""".media-gallery-grid{\n  width:25rem!important;\n  max-width:100%;"""
-          assert old in text, 'gallery base width contract not found'
-          text=text.replace(old,new,1)
+          base_count=text.count(old)
+          assert base_count>0, 'gallery base width contract not found'
+          text=text.replace(old,new)
           mobile=".media-gallery-grid{width:min(25rem,100%)!important}"
-          assert mobile in text, 'gallery mobile width contract not found'
-          text=text.replace(mobile,".media-gallery-grid{width:25rem!important;max-width:100%}",1)
+          mobile_count=text.count(mobile)
+          assert mobile_count>0, 'gallery mobile width contract not found'
+          text=text.replace(mobile,".media-gallery-grid{width:25rem!important;max-width:100%}")
           anchor=""".media-gallery-grid .media-image-tile{\n  min-width:0;"""
           insert=""".user-message-unit>.media-gallery-grid{margin-left:auto}\n.assistant-message-unit>.media-gallery-grid{margin-right:auto}\n.media-gallery-grid .media-image-tile{\n  min-width:0;"""
-          assert anchor in text, 'gallery tile anchor not found'
-          text=text.replace(anchor,insert,1)
+          anchor_count=text.count(anchor)
+          assert anchor_count>0, 'gallery tile anchor not found'
+          text=text.replace(anchor,insert)
           source.write_text(text,'utf-8')
 
           test=root/'tests'/'test_v21_72_28_image_presentation_owner.py'
@@ -48,7 +51,7 @@ jobs:
           assert old_assert in t, 'old image presentation contract not found'
           t=t.replace(old_assert,"assert 'width:25rem!important' in source\nassert 'max-width:100%' in source\nassert 'width:min(25rem,100%)!important' not in source")
           test.write_text(t,'utf-8')
-          print('V21.72.43 gallery edge patch applied')
+          print(f'V21.72.43 gallery edge patch applied base={base_count} mobile={mobile_count} anchors={anchor_count}')
           PY
       - name: Build canonical preview
         run: python tools/build_current_preview.py
