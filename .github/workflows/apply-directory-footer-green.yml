@@ -24,26 +24,17 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           root=Path('.')
-
           source=root/'index.source.html'
           s=source.read_text('utf-8')
           old='.wm-sidebar-body{flex:1 1 auto;min-height:0;overflow:auto}'
           new='.wm-sidebar-body{flex:1 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column}\n.wm-sidebar-navigation{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain}'
           assert s.count(old)==1, s.count(old)
           s=s.replace(old,new,1)
-
           old_footer='.shell-sidebar-account-footer{gap:8px}'
-          new_footer='''.shell-sidebar-account-footer{grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px;padding:6px 0 max(6px,env(safe-area-inset-bottom))}
-.shell-sidebar-account-footer .shell-sidebar-account-main,.shell-sidebar-account-footer .shell-sidebar-account-action,.shell-sidebar-account-footer .zalo-account-admin-open{width:100%;min-width:0;height:40px;min-height:40px;padding:0 8px;border-radius:12px;font-size:.82rem;font-weight:600}
-.shell-sidebar-account-footer .shell-sidebar-account-main{display:flex;align-items:center;justify-content:center;background:var(--theme-surface-secondary)}
-.shell-sidebar-account-footer .shell-sidebar-account-avatar,.shell-sidebar-account-footer .shell-sidebar-account-copy span,.shell-sidebar-account-footer .shell-sidebar-account-chevron{display:none}
-.shell-sidebar-account-footer .shell-sidebar-account-copy strong{display:block;min-width:0;font-size:.82rem;line-height:1rem;font-weight:600;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.shell-sidebar-account-footer .zalo-account-admin-open{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-'''
+          new_footer='.shell-sidebar-account-footer{grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px;padding:6px 0 max(6px,env(safe-area-inset-bottom))}\n.shell-sidebar-account-footer .shell-sidebar-account-main,.shell-sidebar-account-footer .shell-sidebar-account-action,.shell-sidebar-account-footer .zalo-account-admin-open{width:100%;min-width:0;height:40px;min-height:40px;padding:0 8px;border-radius:12px;font-size:.82rem;font-weight:600}\n.shell-sidebar-account-footer .shell-sidebar-account-main{display:flex;align-items:center;justify-content:center;background:var(--theme-surface-secondary)}\n.shell-sidebar-account-footer .shell-sidebar-account-avatar,.shell-sidebar-account-footer .shell-sidebar-account-copy span,.shell-sidebar-account-footer .shell-sidebar-account-chevron{display:none}\n.shell-sidebar-account-footer .shell-sidebar-account-copy strong{display:block;min-width:0;font-size:.82rem;line-height:1rem;font-weight:600;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n.shell-sidebar-account-footer .zalo-account-admin-open{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n'
           assert s.count(old_footer)==1, s.count(old_footer)
           s=s.replace(old_footer,new_footer,1)
           source.write_text(s,'utf-8')
-
           directory=root/'contact-directory-admin.js'
           d=directory.read_text('utf-8')
           old_tools='.contact-directory-tools{position:sticky;top:0;z-index:4;'
@@ -55,7 +46,6 @@ jobs:
           assert d.count(old_scroll)==1, d.count(old_scroll)
           d=d.replace(old_scroll,new_scroll,1)
           directory.write_text(d,'utf-8')
-
           zalo=root/'zalo-admin-link.js'
           z=zalo.read_text('utf-8')
           old_label="button.textContent='Zalo & tài khoản';"
