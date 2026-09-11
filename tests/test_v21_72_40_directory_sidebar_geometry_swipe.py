@@ -10,8 +10,8 @@ def read(path):
 source=read("index.source.html")
 shell=read("shell.js")
 
-# Release checkpoint for this bounded directory-only change.
-assert "V21.72.40" in source
+# This bounded UI change does not bump the release checkpoint.
+assert "V21.72.39" in source
 
 # Desktop directory gets visibly wider without becoming an oversized rail.
 assert "--desktop-directory-width:clamp(328px,27vw,340px);" in source
