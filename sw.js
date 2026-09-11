@@ -40,6 +40,10 @@ self.addEventListener('message',event=>{
     adminPushClientState.set(event.source.id,state);
     if(state.visible&&state.focused)void clearAdminPushBadge();
   }
+  if(event.data?.type==='ADMIN_PUSH_CLEAR'&&event.source?.id){
+    adminPushClientState.delete(event.source.id);
+    void clearAdminPushBadge();
+  }
 });
 
 self.addEventListener('push',event=>{

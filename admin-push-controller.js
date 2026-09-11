@@ -3,6 +3,7 @@
 
 const VERSION='V21.73.3-admin-push-v1';
 let state={admin:false,supported:false,code:'idle',enabled:false,permission:'default',platform:'web'};
+let pendingOpen=null;
 
 function authStore(){return window.V21AuthSessionStore||null;}
 function authSnapshot(){return authStore()?.snapshot?.()||{};}
@@ -130,8 +131,15 @@ async function disable({bestEffort=false}={}){
   return result({ok:true,admin:isAdmin(),supported:browserSupported(),enabled:false,code:serverOk?'disabled':'disabled_local',platform:currentPlatform,permission:typeof Notification==='undefined'?'default':String(Notification.permission||'default')});
 }
 
+function clearClientState(){
+  try{
+    navigator.serviceWorker?.controller?.postMessage?.({type:'ADMIN_PUSH_CLEAR'});
+    return true;
+  }catch{return false;}
+}
+
 function syncState(){
-  if(!isAdmin())return false;
+  if(!isAdmin()){clearClientState();return false;}
   const shell=window.ChatAppShell?.snapshot?.()||{};
   const sync=window.V21SyncEngine?.snapshot?.()||{};
   const payload={
@@ -145,8 +153,71 @@ function syncState(){
   try{navigator.serviceWorker?.controller?.postMessage?.(payload);return true;}catch{return false;}
 }
 
-async function handleOpen(){return false;}
-function snapshot(){return Object.freeze({...state});}
+function coldOpenFromLocation(){
+  try{
+    const params=new URLSearchParams(String(location.search||''));
+    const contactId=String(params.get('push_contact')||'').trim();
+    const conversationId=String(params.get('push_conversation')||'').trim();
+    if(!contactId&&!conversationId)return null;
+    return{contactId,conversationId};
+  }catch{return null;}
+}
+
+function clearColdOpenQuery(){
+  try{
+    const url=new URL(location.href);
+    url.searchParams.delete('push_contact');
+    url.searchParams.delete('push_conversation');
+    const next=`${url.pathname}${url.search}${url.hash}`||'./';
+    history.replaceState(history.state??null,'',next);
+    return true;
+  }catch{return false;}
+}
+
+async function handleOpen(payload={}){
+  const contactId=String(payload?.contactId??payload?.contact_id??'').trim();
+  const conversationId=String(payload?.conversationId??payload?.conversation_id??'').trim();
+  if(!contactId&&!conversationId)return false;
+  if(!isAdmin()||!contactId){pendingOpen={contactId,conversationId};return false;}
+  const opened=Boolean(window.ChatAppShell?.NavigationCommand?.openContact?.(contactId));
+  if(!opened){pendingOpen={contactId,conversationId};return false;}
+  pendingOpen=null;
+  clearColdOpenQuery();
+  syncState();
+  return true;
+}
+
+async function consumePendingOpen(){
+  if(!pendingOpen||!isAdmin())return false;
+  return handleOpen({...pendingOpen});
+}
+
+function onAuthState(event){
+  const detail=event?.detail||{};
+  if(detail.state==='AUTHENTICATED'&&detail.account?.role==='admin'){
+    void consumePendingOpen();
+    syncState();
+    return;
+  }
+  clearClientState();
+}
+
+pendingOpen=coldOpenFromLocation();
+navigator.serviceWorker?.addEventListener('message',event=>{
+  if(event.data?.type==='ADMIN_PUSH_OPEN')void handleOpen(event.data);
+});
+document.addEventListener('v21-auth-state',onAuthState);
+document.addEventListener('visibilitychange',syncState);
+window.addEventListener('focus',syncState);
+window.addEventListener('blur',syncState);
+document.addEventListener('navigation-change',syncState);
+document.addEventListener('v21-active-contact-change',syncState);
+document.addEventListener('v21-conversation-context',syncState);
+
+if(isAdmin()){void consumePendingOpen();syncState();}
+else clearClientState();
+
+function snapshot(){return Object.freeze({...state,pendingOpen:pendingOpen?{...pendingOpen}:null});}
 
 state={...state,admin:isAdmin(),supported:isAdmin()&&browserSupported(),permission:typeof Notification==='undefined'?'default':String(Notification.permission||'default'),platform:platform()};
 window.V21AdminPush=Object.freeze({version:VERSION,status,enable,disable,syncState,handleOpen,snapshot});
