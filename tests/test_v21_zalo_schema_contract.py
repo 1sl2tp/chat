@@ -6,6 +6,7 @@ ADMIN_API = ROOT / "supabase/functions/v21-zalo-admin/index.ts"
 SIGNAL_SQL = ROOT / "supabase/migrations/20260911_zalo_outbound_signal.sql"
 MEDIA_SQL = ROOT / "supabase/migrations/20260911_zalo_media_bridge.sql"
 AUDIO_SQL = ROOT / "supabase/migrations/20260911_zalo_audio_bridge.sql"
+CALL_SQL = ROOT / "supabase/migrations/20260911_zalo_call_notifications.sql"
 MEDIA_API = ROOT / "supabase/functions/v21-zalo-bridge/index.ts"
 
 
@@ -69,6 +70,30 @@ def test_zalo_audio_bridge_extends_media_scope_without_replacing_canonical_table
         assert token in sql, token
     assert "new.kind not in ('image','audio','file')" in sql
     assert "a.kind in ('image','audio','file')" in sql
+
+
+def test_zalo_call_notifications_use_canonical_messages_without_touching_livekit_calls():
+    assert CALL_SQL.exists(), "additive Zalo call notification migration is required"
+    sql = CALL_SQL.read_text("utf-8").lower()
+    for token in [
+        "v21_zalo_ingress_call",
+        "v21_zalo_media_target",
+        "v21_messages",
+        "zalo_message_links",
+        "zalo-call:",
+        "service_role",
+    ]:
+        assert token in sql, token
+    assert "v21_calls" not in sql
+    assert "livekit" not in sql
+
+
+def test_zalo_call_notification_edge_action_is_bridge_token_protected():
+    assert MEDIA_API.exists(), "v21-zalo-bridge Edge Function is required"
+    source = MEDIA_API.read_text("utf-8").lower()
+    assert "ingress_call" in source
+    assert "v21_zalo_ingress_call" in source
+    assert source.index('x-bridge-token') < source.index('ingress_call')
 
 
 def test_zalo_media_ingress_serializes_duplicate_retries_and_cleans_race_uploads():
