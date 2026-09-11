@@ -26,58 +26,31 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
-
-          source_path=Path('index.source.html')
-          source=source_path.read_text('utf-8')
-
+          p=Path('index.source.html')
+          s=p.read_text('utf-8')
           old_grid='  grid-template-columns:minmax(0,2fr) minmax(0,1fr);\n'
-          assert source.count(old_grid)==1, source.count(old_grid)
-          source=source.replace(old_grid,'  grid-template-columns:minmax(0,1fr) minmax(0,1fr);\n',1)
-
+          assert s.count(old_grid)==1, s.count(old_grid)
+          s=s.replace(old_grid,'  grid-template-columns:minmax(0,1fr) minmax(0,1fr);\n',1)
           anchor='.top-mode-tab[data-top-tab="chat"]{display:flex;align-items:center;justify-content:center;gap:6px}\n'
-          assert source.count(anchor)==1, source.count(anchor)
-          source=source.replace(anchor,anchor+'.top-mode-tab[data-top-tab="chat"][data-contact-identity="true"]{\n  justify-content:flex-start;\n  padding-left:4px;\n  padding-right:8px;\n}\n',1)
-
+          assert s.count(anchor)==1, s.count(anchor)
+          s=s.replace(anchor,anchor+'.top-mode-tab[data-top-tab="chat"][data-contact-identity="true"]{\n  justify-content:flex-start;\n  padding-left:4px;\n  padding-right:8px;\n}\n',1)
           marker='.top-mode-tab{\n'
-          assert source.count(marker)>=1
+          assert s.count(marker)>=1
           conditional='.top-mode-switch[data-contact-identity="true"]{\n  grid-template-columns:minmax(0,2fr) minmax(0,1fr);\n}\n'
-          source=source.replace(marker,conditional+marker,1)
-          source_path.write_text(source,'utf-8')
-
-          shell_path=Path('shell.js')
-          shell=shell_path.read_text('utf-8')
-          old="""function renderChatTabIdentity(){
-  const tab=document.querySelector('[data-top-tab=\"chat\"]');
-  const avatar=tab?.querySelector('[data-chat-tab-avatar]');
-  const label=tab?.querySelector('[data-chat-tab-label]');
-  const visible=Boolean(
-"""
-          new="""function renderChatTabIdentity(){
-  const tab=document.querySelector('[data-top-tab=\"chat\"]');
-  const switcher=tab?.closest?.('.top-mode-switch')||document.querySelector('.top-mode-switch');
-  const avatar=tab?.querySelector('[data-chat-tab-avatar]');
-  const label=tab?.querySelector('[data-chat-tab-label]');
-  const visible=Boolean(
-"""
-          assert shell.count(old)==1, shell.count(old)
-          shell=shell.replace(old,new,1)
-
-          old2="""  );
-  if(!tab||!avatar||!label)return visible;
-  if(!visible){
-"""
-          new2="""  );
-  if(switcher)switcher.dataset.contactIdentity=String(visible);
-  if(tab)tab.dataset.contactIdentity=String(visible);
-  if(!tab||!avatar||!label)return visible;
-  if(!visible){
-"""
-          assert shell.count(old2)>=1
-          # Narrow to the first occurrence after renderChatTabIdentity.
-          start=shell.index('function renderChatTabIdentity(){')
-          pos=shell.index(old2,start)
-          shell=shell[:pos]+new2+shell[pos+len(old2):]
-          shell_path.write_text(shell,'utf-8')
+          s=s.replace(marker,conditional+marker,1)
+          p.write_text(s,'utf-8')
+          p=Path('shell.js')
+          s=p.read_text('utf-8')
+          old='function renderChatTabIdentity(){\n  const tab=document.querySelector(\'[data-top-tab="chat"]\');\n  const avatar=tab?.querySelector(\'[data-chat-tab-avatar]\');\n  const label=tab?.querySelector(\'[data-chat-tab-label]\');\n  const visible=Boolean(\n'
+          new='function renderChatTabIdentity(){\n  const tab=document.querySelector(\'[data-top-tab="chat"]\');\n  const switcher=tab?.closest?.(\'.top-mode-switch\')||document.querySelector(\'.top-mode-switch\');\n  const avatar=tab?.querySelector(\'[data-chat-tab-avatar]\');\n  const label=tab?.querySelector(\'[data-chat-tab-label]\');\n  const visible=Boolean(\n'
+          assert s.count(old)==1, s.count(old)
+          s=s.replace(old,new,1)
+          start=s.index('function renderChatTabIdentity(){')
+          old2='  );\n  if(!tab||!avatar||!label)return visible;\n  if(!visible){\n'
+          new2='  );\n  if(switcher)switcher.dataset.contactIdentity=String(visible);\n  if(tab)tab.dataset.contactIdentity=String(visible);\n  if(!tab||!avatar||!label)return visible;\n  if(!visible){\n'
+          pos=s.index(old2,start)
+          s=s[:pos]+new2+s[pos+len(old2):]
+          p.write_text(s,'utf-8')
           PY
       - name: Build canonical preview
         run: python tools/build_current_preview.py
