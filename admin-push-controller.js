@@ -65,30 +65,30 @@ function subscriptionJSON(subscription){
 async function status(){
   const admin=isAdmin();
   const currentPlatform=platform();
-  if(!admin)return result({admin:false,supported:false,enabled:false,code:'admin_required',platform:currentPlatform});
-  if(!browserSupported())return result({admin:true,supported:false,enabled:false,code:'unsupported',platform:currentPlatform});
-  if(currentPlatform==='ios-web')return result({admin:true,supported:true,enabled:false,code:'ios_install_required',platform:currentPlatform,permission:String(Notification.permission||'default')});
+  if(!admin)return result({ok:false,admin:false,supported:false,enabled:false,code:'admin_required',platform:currentPlatform});
+  if(!browserSupported())return result({ok:true,admin:true,supported:false,enabled:false,code:'unsupported',platform:currentPlatform});
+  if(currentPlatform==='ios-web')return result({ok:true,admin:true,supported:true,enabled:false,code:'ios_install_required',platform:currentPlatform,permission:String(Notification.permission||'default')});
   const permission=String(Notification.permission||'default');
-  if(permission==='denied')return result({admin:true,supported:true,enabled:false,code:'blocked',platform:currentPlatform,permission});
+  if(permission==='denied')return result({ok:true,admin:true,supported:true,enabled:false,code:'blocked',platform:currentPlatform,permission});
   const subscription=await localSubscription();
-  if(!subscription)return result({admin:true,supported:true,enabled:false,code:'disabled',platform:currentPlatform,permission});
+  if(!subscription)return result({ok:true,admin:true,supported:true,enabled:false,code:'disabled',platform:currentPlatform,permission});
   try{
     const data=await invoke('status',{endpoint:String(subscription.endpoint||'')});
-    return result({admin:true,supported:true,enabled:Boolean(data.enabled),code:data.enabled?'enabled':'disabled',platform:currentPlatform,permission});
+    return result({ok:true,admin:true,supported:true,enabled:Boolean(data.enabled),code:data.enabled?'enabled':'disabled',platform:currentPlatform,permission});
   }catch{
-    return result({admin:true,supported:true,enabled:false,code:'status_error',platform:currentPlatform,permission});
+    return result({ok:false,admin:true,supported:true,enabled:false,code:'status_error',platform:currentPlatform,permission});
   }
 }
 
 async function enable(){
   const currentPlatform=platform();
-  if(!isAdmin())return result({admin:false,supported:false,enabled:false,code:'admin_required',platform:currentPlatform});
-  if(!browserSupported())return result({admin:true,supported:false,enabled:false,code:'unsupported',platform:currentPlatform});
-  if(currentPlatform==='ios-web')return result({admin:true,supported:true,enabled:false,code:'ios_install_required',platform:currentPlatform});
+  if(!isAdmin())return result({ok:false,admin:false,supported:false,enabled:false,code:'admin_required',platform:currentPlatform});
+  if(!browserSupported())return result({ok:false,admin:true,supported:false,enabled:false,code:'unsupported',platform:currentPlatform});
+  if(currentPlatform==='ios-web')return result({ok:false,admin:true,supported:true,enabled:false,code:'ios_install_required',platform:currentPlatform});
   let permission=String(Notification.permission||'default');
-  if(permission==='denied')return result({admin:true,supported:true,enabled:false,code:'blocked',platform:currentPlatform,permission});
+  if(permission==='denied')return result({ok:false,admin:true,supported:true,enabled:false,code:'blocked',platform:currentPlatform,permission});
   if(permission!=='granted')permission=String(await Notification.requestPermission());
-  if(permission!=='granted')return result({admin:true,supported:true,enabled:false,code:permission==='denied'?'blocked':'disabled',platform:currentPlatform,permission});
+  if(permission!=='granted')return result({ok:false,admin:true,supported:true,enabled:false,code:permission==='denied'?'blocked':'disabled',platform:currentPlatform,permission});
 
   try{
     const reg=await registration();
@@ -110,9 +110,9 @@ async function enable(){
       user_agent:String(navigator.userAgent||''),
     });
     syncState();
-    return result({admin:true,supported:true,enabled:true,code:'enabled',platform:currentPlatform,permission});
+    return result({ok:true,admin:true,supported:true,enabled:true,code:'enabled',platform:currentPlatform,permission});
   }catch(error){
-    return result({admin:true,supported:true,enabled:false,code:String(error?.message||'enable_failed'),platform:currentPlatform,permission});
+    return result({ok:false,admin:true,supported:true,enabled:false,code:String(error?.message||'enable_failed'),platform:currentPlatform,permission});
   }
 }
 
@@ -122,12 +122,12 @@ async function disable({bestEffort=false}={}){
   let serverOk=true;
   if(subscription&&isAdmin()){
     try{await invoke('unsubscribe',{endpoint:String(subscription.endpoint||'')});}
-    catch(error){serverOk=false;if(!bestEffort)return result({admin:true,supported:browserSupported(),enabled:true,code:String(error?.message||'unsubscribe_failed'),platform:currentPlatform});}
+    catch(error){serverOk=false;if(!bestEffort)return result({ok:false,admin:true,supported:browserSupported(),enabled:true,code:String(error?.message||'unsubscribe_failed'),platform:currentPlatform});}
   }
   if(subscription){
     try{await subscription.unsubscribe?.();}catch(error){if(!bestEffort)throw error;}
   }
-  return result({admin:isAdmin(),supported:browserSupported(),enabled:false,code:serverOk?'disabled':'disabled_local',platform:currentPlatform,permission:typeof Notification==='undefined'?'default':String(Notification.permission||'default')});
+  return result({ok:true,admin:isAdmin(),supported:browserSupported(),enabled:false,code:serverOk?'disabled':'disabled_local',platform:currentPlatform,permission:typeof Notification==='undefined'?'default':String(Notification.permission||'default')});
 }
 
 function syncState(){
