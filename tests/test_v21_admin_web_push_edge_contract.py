@@ -2,6 +2,7 @@ from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
 
+# Final user-authored gate for canonical Vault VAPID reuse.
 
 def test_admin_push_edge_contract():
     edge_path=ROOT/'supabase/functions/v21-admin-push/index.ts'
