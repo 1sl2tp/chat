@@ -40,6 +40,14 @@ admin_end=auth.index("async function adminSetLocked",admin_start)
 admin_body=auth[admin_start:admin_end]
 assert "username:String(username||'')" in admin_body
 
+# Zalo-linked accounts store a full https avatar URL in avatar_path. The
+# renderer must use that URL directly instead of treating it as a Storage key.
+avatar_url_start=auth.index('function avatarUrl(')
+avatar_url_end=auth.index('async function uploadAvatar',avatar_url_start)
+avatar_url_body=auth[avatar_url_start:avatar_url_end]
+assert "https?:\\/\\/" in avatar_url_body
+assert "return raw" in avatar_url_body
+
 source=read('index.source.html')
 assert '.shell-profile-field input[aria-invalid="true"]' in source
 assert '.shell-profile-field:has(input[aria-invalid="true"])>label{color:#e11900}' in source
