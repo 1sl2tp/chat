@@ -8,6 +8,7 @@ import {createSupabaseSessionStore} from './session-store.mjs';
 import {createContactSync,syncApiContacts} from './contact-sync.mjs';
 import {bindIncomingMessageListener} from './incoming-message.mjs';
 import {createMessageGateway} from './message-gateway.mjs';
+import {downloadInboundMedia,buildOutboundMessage} from './media-transfer.mjs';
 import {createCoalescingRunner} from './bridge-core.mjs';
 
 const port=Math.max(1,Number(process.env.PORT)||8787);
@@ -36,8 +37,9 @@ async function runOutboundPass(){
   const rows=await messageGateway.listOutbound(20);
   for(const row of rows){
     try{
-      const sent=await api.sendMessage({msg:row.text},row.zaloId,ThreadType.User);
-      const zaloMessageId=sent?.message?.msgId??sent?.msgId??null;
+      const outgoing=await buildOutboundMessage(row);
+      const sent=await api.sendMessage(outgoing,row.zaloId,ThreadType.User);
+      const zaloMessageId=sent?.message?.msgId??sent?.attachment?.[0]?.msgId??sent?.msgId??null;
       await messageGateway.markOutboundResult({
         deliveryId:row.deliveryId,
         ok:true,
@@ -97,14 +99,20 @@ server.listen(port,'0.0.0.0',()=>{
         onMessage:async event=>{
           if(!messageGateway)return;
           try{
-            const bridged=await messageGateway.ingestText(event);
+            let bridged;
+            if(Array.isArray(event?.media)&&event.media.length){
+              const binary=await downloadInboundMedia({api,media:event.media[0]});
+              bridged=await messageGateway.ingestMedia(event,binary);
+            }else{
+              bridged=await messageGateway.ingestText(event);
+            }
             console.log(`[zalo-bridge] inbound ${bridged?.messageId?'stored':'ignored'}`);
           }catch(error){
             console.warn('[zalo-bridge] inbound failed',String(error?.message||error));
           }
         },
       });
-      console.log('[zalo-login] incoming text listener enabled');
+      console.log('[zalo-login] incoming message listener enabled');
       if(contactSync){
         try{
           const synced=await syncApiContacts({api,sync:contactSync});
