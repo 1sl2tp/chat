@@ -39,6 +39,7 @@ def test_admin_push_setting_lives_inside_existing_zalo_account_popup():
         '.disable()',
     ]:
         assert token in module, token
+    # Regression: the controls must exist in the rendered popup markup, not only in helper logic.
     popup=re.search(r"accountModal\.innerHTML=`(?P<html>.*?)`;\s*host\.appendChild\(accountModal\)",module,re.S)
     assert popup, 'account popup markup not found'
     popup_html=popup.group('html')
