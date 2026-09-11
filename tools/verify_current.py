@@ -24,7 +24,7 @@ expected=str(version.get('index_sha256') or '')
 if expected:
     assert sha==expected,(sha,expected)
 for n in [
-    'runtime-id.js','audio-capture-policy.js','app.js','shell.js','call-screen-wake-lock.js','auth-session-store.js',
+    'runtime-id.js','audio-capture-policy.js','app.js','shell.js','call-screen-wake-lock.js','auth-session-store.js','zalo-admin-link.js',
     'conversation-core.js','keyboard-inset-core.js','v21-cache-store.js','v21-media-cache.js',
     'v21-message-store.js','v21-call-engine.js','v21-livekit-session.js',
     'v21-realtime-session.js','v21-sync-engine.js','app-update-controller.js','shell-form-viewport-policy.js','sw.js'
@@ -57,4 +57,5 @@ subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_38_contact_switch_s
 subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_39_scroll_arrow_hide_stability.py')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_v21_72_20_call_screen_wake_lock.js')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_v21_zalo_webview_runtime_error.js')],check=True,cwd=ROOT)
+subprocess.run([sys.executable,'-m','pytest','-q',str(ROOT/'tests'/'test_v21_zalo_admin_ui_contract.py')],check=True,cwd=ROOT)
 print(f'{release} canonical source verify PASS build_id={build_id} sha256={sha}')

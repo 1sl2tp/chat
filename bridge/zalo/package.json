@@ -1,0 +1,14 @@
+{
+  "name": "taphoa-zalo-bridge",
+  "private": true,
+  "type": "module",
+  "engines": {"node": ">=20"},
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "start": "node src/server.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "zca-js": "2.2.0"
+  }
+}

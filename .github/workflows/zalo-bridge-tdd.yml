@@ -1,0 +1,23 @@
+name: Zalo Bridge TDD
+on:
+  pull_request:
+jobs:
+  tdd:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: python -m pip install pytest
+      - name: Zalo schema contract
+        run: python -m pytest -q tests/test_v21_zalo_schema_contract.py
+      - name: Zalo account admin contract
+        run: python -m pytest -q tests/test_v21_zalo_account_admin_contract.py
+      - name: Zalo Admin UI contract
+        run: python -m pytest -q tests/test_v21_zalo_admin_ui_contract.py
+      - name: Zalo bridge core tests
+        run: cd bridge/zalo && npm test

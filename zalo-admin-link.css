@@ -1,0 +1,106 @@
+.zalo-admin-link{
+  display:grid;
+  gap:10px;
+  margin-top:2px;
+  padding:12px 0 2px;
+  border-top:1px solid color-mix(in srgb,var(--theme-border-default,#d9d9d9) 72%,transparent);
+}
+.zalo-admin-summary{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  min-width:0;
+}
+.zalo-admin-copy{display:grid;gap:2px;min-width:0}
+.zalo-admin-copy strong{color:var(--theme-content-primary,#171717);font-size:14px;font-weight:600;line-height:20px}
+.zalo-admin-copy span{overflow:hidden;color:var(--theme-content-secondary,#6b6b6b);font-size:13px;line-height:18px;text-overflow:ellipsis;white-space:nowrap}
+.zalo-admin-summary-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex:0 0 auto}
+.zalo-admin-change,.zalo-admin-unlink{
+  min-height:34px;border:0;border-radius:9px;padding:0 10px;background:var(--theme-surface-secondary,#f3f3f3);color:var(--theme-content-primary,#171717);font:inherit;font-size:13px;cursor:pointer
+}
+.zalo-admin-unlink{background:transparent;color:#b42318}
+.zalo-admin-change:disabled,.zalo-admin-unlink:disabled{opacity:.5;cursor:default}
+.zalo-admin-picker{display:grid;gap:8px}
+.zalo-admin-search-wrap{display:block}
+.zalo-admin-search-wrap input{
+  box-sizing:border-box;width:100%;height:38px;border:1px solid var(--theme-border-default,#d9d9d9);border-radius:10px;padding:0 11px;outline:none;background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#171717);font:inherit;font-size:14px
+}
+.zalo-admin-search-wrap input:focus{border-color:#8aaee8;box-shadow:0 0 0 2px rgba(78,132,216,.12)}
+.zalo-admin-list{display:grid;gap:2px;max-height:min(42vh,320px);overflow:auto;overscroll-behavior:contain;padding:2px}
+.zalo-admin-contact{
+  display:grid;grid-template-columns:36px minmax(0,1fr);align-items:center;gap:10px;width:100%;min-height:48px;border:0;border-radius:10px;padding:6px 8px;background:transparent;color:inherit;text-align:left;cursor:pointer
+}
+.zalo-admin-contact:not(:disabled):hover,.zalo-admin-contact:not(:disabled):focus-visible{background:var(--theme-surface-secondary,#f3f3f3)}
+.zalo-admin-contact:disabled{opacity:.5;cursor:default}
+.zalo-admin-avatar{
+  display:grid;place-items:center;width:36px;height:36px;overflow:hidden;border-radius:50%;background:var(--theme-surface-secondary,#ececec);color:var(--theme-content-secondary,#666);font-size:14px;font-weight:600;flex:0 0 36px
+}
+.zalo-admin-avatar img{width:100%;height:100%;object-fit:cover}
+.zalo-admin-contact-copy,.zalo-account-person-copy{display:grid;gap:1px;min-width:0}
+.zalo-admin-contact-copy strong,.zalo-account-person-copy strong{overflow:hidden;font-size:14px;font-weight:500;line-height:19px;text-overflow:ellipsis;white-space:nowrap}
+.zalo-admin-contact-copy small,.zalo-account-person-copy small{color:var(--theme-content-secondary,#777);font-size:12px;line-height:16px}
+.zalo-admin-empty,.zalo-admin-error,.zalo-account-empty,.zalo-account-error{margin:0;padding:6px 2px;color:var(--theme-content-secondary,#777);font-size:13px;line-height:18px}
+.zalo-admin-error,.zalo-account-error{color:#b42318}
+
+.zalo-account-admin-open{
+  appearance:none;width:100%;min-height:42px;border:1px solid var(--theme-border-default,#d9d9d9);border-radius:14px;background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#171717);font:inherit;font-size:.9rem;font-weight:600;cursor:pointer
+}
+.zalo-account-admin-open:hover{background:var(--theme-surface-secondary,#f3f3f3)}
+.zalo-account-modal{
+  position:fixed;inset:0;z-index:180;display:grid;place-items:center;padding:18px;pointer-events:auto;box-sizing:border-box
+}
+.zalo-account-backdrop{position:absolute;inset:0;border:0;background:rgba(0,0,0,.3);backdrop-filter:blur(2px)}
+.zalo-account-card{
+  position:relative;width:min(100%,760px);max-height:min(86svh,760px);overflow:auto;overscroll-behavior:contain;background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#171717);border-radius:26px;box-shadow:0 18px 60px rgba(0,0,0,.2);padding:20px
+}
+.zalo-account-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:12px}
+.zalo-account-modal-head h2{margin:0;font-size:1.35rem;line-height:1.7rem;font-weight:650}
+.zalo-account-modal-head p{margin:3px 0 0;color:var(--theme-content-secondary,#777);font-size:.85rem}
+.zalo-account-close{
+  appearance:none;width:38px;height:38px;flex:0 0 38px;border:0;border-radius:999px;background:transparent;color:inherit;font:inherit;font-size:1.55rem;line-height:1;cursor:pointer
+}
+.zalo-account-close:hover{background:var(--theme-surface-secondary,#f3f3f3)}
+.zalo-account-list{display:grid;gap:8px}
+.zalo-account-row{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;align-items:center;gap:12px;min-width:0;border:1px solid var(--theme-border-default,#e1e1e1);border-radius:16px;padding:10px 12px;background:var(--theme-surface-primary,#fff)
+}
+.zalo-account-row-zalo-only{background:color-mix(in srgb,var(--theme-surface-secondary,#f3f3f3) 55%,var(--theme-surface-primary,#fff))}
+.zalo-account-person,.zalo-account-relation{display:flex;align-items:center;gap:9px;min-width:0}
+.zalo-account-missing{color:var(--theme-content-secondary,#777)}
+.zalo-account-row-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}
+.zalo-account-action,.zalo-account-panel button,.zalo-account-create-submit{
+  min-height:36px;border:0;border-radius:10px;padding:0 10px;background:var(--theme-surface-secondary,#f3f3f3);color:var(--theme-content-primary,#171717);font:inherit;font-size:13px;font-weight:600;cursor:pointer
+}
+.zalo-account-action-danger{background:transparent;color:#b42318}
+.zalo-account-modal[data-busy="true"] button:disabled{opacity:.55;cursor:default}
+.zalo-account-panel{
+  display:grid;gap:10px;margin-top:12px;padding:12px;border:1px solid var(--theme-border-default,#ddd);border-radius:16px;background:var(--theme-surface-secondary,#f7f7f7)
+}
+.zalo-account-panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.zalo-account-panel-head strong{font-size:14px;line-height:19px}
+.zalo-account-panel input[type="search"],.zalo-account-create-form input:not([type="checkbox"]){
+  box-sizing:border-box;width:100%;height:40px;border:1px solid var(--theme-border-default,#d9d9d9);border-radius:11px;padding:0 11px;background:var(--theme-surface-primary,#fff);color:inherit;font:inherit;font-size:14px;outline:none
+}
+.zalo-account-picker-list{display:grid;gap:4px;max-height:300px;overflow:auto}
+.zalo-account-picker-option{
+  display:grid!important;grid-template-columns:36px minmax(0,1fr);align-items:center;gap:9px;width:100%;min-height:48px;text-align:left!important;justify-content:stretch!important;padding:6px 8px!important
+}
+.zalo-account-picker-option[data-unavailable="true"]{opacity:.5}
+.zalo-account-create-form label{display:grid;gap:5px;color:var(--theme-content-secondary,#666);font-size:12px}
+.zalo-account-check{display:flex!important;align-items:center;gap:8px!important;color:var(--theme-content-primary,#171717)!important;font-size:13px!important}
+.zalo-account-check input{width:18px;height:18px}
+.zalo-account-create-submit{background:#0d0d0d!important;color:#fff!important;min-height:42px!important}
+
+@media(max-width:640px){
+  .zalo-account-modal{place-items:end center;padding:8px}
+  .zalo-account-card{width:100%;max-height:calc(100svh - 16px);border-radius:24px;padding:16px 12px}
+  .zalo-account-row{grid-template-columns:minmax(0,1fr);gap:8px;padding:10px}
+  .zalo-account-row-actions{justify-content:flex-start}
+  .zalo-account-modal-head{padding-inline:2px}
+}
+@media(max-width:420px){
+  .zalo-admin-summary{align-items:flex-start}
+  .zalo-admin-summary-actions{gap:4px}
+  .zalo-admin-change,.zalo-admin-unlink{padding-inline:8px}
+}
