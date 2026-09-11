@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="c4628a58fff8315690e770b1210498e9546b0f0848967c76d5c950eb211d8a6d">
+<meta name="app-build-id" content="49d3d7857baff8eeed7bdbd0cf3080f2cbcae04cb40ae5a9b400a79cf94a103b">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -321,6 +321,20 @@
   .zalo-admin-summary{align-items:flex-start}
   .zalo-admin-summary-actions{gap:4px}
   .zalo-admin-change,.zalo-admin-unlink{padding-inline:8px}
+}
+
+
+/* Zalo account chooser/create is a nested popup: no scrolling to the bottom of the main admin list. */
+.zalo-account-submodal:empty{display:none}
+.zalo-account-submodal:not(:empty){
+  position:fixed;inset:0;z-index:190;display:grid;place-items:center;padding:18px;box-sizing:border-box;background:rgba(0,0,0,.24);backdrop-filter:blur(2px)
+}
+.zalo-account-submodal>.zalo-account-panel{
+  width:min(100%,520px);max-height:min(82svh,640px);overflow:auto;overscroll-behavior:contain;margin:0;background:var(--theme-surface-primary,#fff);box-shadow:0 18px 60px rgba(0,0,0,.22)
+}
+@media(max-width:640px){
+  .zalo-account-submodal:not(:empty){place-items:end center;padding:8px}
+  .zalo-account-submodal>.zalo-account-panel{width:100%;max-height:calc(100svh - 16px);border-radius:20px;padding:14px}
 }
 
 </style>
@@ -13934,10 +13948,17 @@ function openCreateAccount(contact){
   window.setTimeout(()=>username.focus({preventScroll:true}),0);
 }
 
+function renderAccountRowsPreservingScroll(){
+  const card=accountModal?.querySelector?.('.zalo-account-card');
+  const scrollTop=card?.scrollTop||0;
+  renderAccountRows();
+  if(card)card.scrollTop=scrollTop;
+}
+
 async function refreshAccountAdmin(){
   const data=await invokeBody({action:'admin_snapshot'});
   accountSnapshot=data?.snapshot||{accounts:[],contacts:[],links:[]};
-  renderAccountRows();
+  renderAccountRowsPreservingScroll();
   return accountSnapshot;
 }
 
@@ -13961,11 +13982,13 @@ async function openAccountAdmin(){
       <header class="zalo-account-modal-head"><div><h2 id="zalo-account-title">Zalo & tài khoản</h2><p>Quản lý Chat User ↔ Zalo</p></div><button type="button" class="zalo-account-close" aria-label="Đóng">×</button></header>
       <p class="zalo-account-error" data-zalo-account-error hidden></p>
       <div class="zalo-account-list" data-zalo-account-list></div>
-      <div data-zalo-account-panel></div>
+      <div class="zalo-account-submodal" data-zalo-account-panel></div>
     </section>`;
   host.appendChild(accountModal);
   accountModal.querySelector('.zalo-account-backdrop').addEventListener('click',closeAccountAdmin);
   accountModal.querySelector('.zalo-account-close').addEventListener('click',closeAccountAdmin);
+  const submodal=accountModal.querySelector('[data-zalo-account-panel]');
+  submodal.addEventListener('click',event=>{if(event.target===submodal)closeAccountPanel();});
   setAccountBusy(true);
   try{await refreshAccountAdmin();}
   catch(error){setAccountError(errorText(error?.message||error));}

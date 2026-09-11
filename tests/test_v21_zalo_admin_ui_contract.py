@@ -55,3 +55,26 @@ def test_zalo_account_admin_is_one_simple_popup_inside_existing_module():
     assert "zalo-account-admin.css" not in source
     assert "zalo-account-modal" in css
     assert "@media" in css and "max-width" in css
+
+
+def test_zalo_picker_and_create_forms_use_nested_popup_not_bottom_scroll_panel():
+    module = (ROOT / "zalo-admin-link.js").read_text("utf-8")
+    css = (ROOT / "zalo-admin-link.css").read_text("utf-8")
+    for token in [
+        "zalo-account-submodal",
+        "openAccountPicker",
+        "openCreateAccount",
+    ]:
+        assert token in module, token
+    assert ".zalo-account-submodal" in css
+    assert "position:fixed" in css
+
+
+def test_admin_list_scroll_position_is_preserved_after_link_or_create_refresh():
+    module = (ROOT / "zalo-admin-link.js").read_text("utf-8")
+    for token in [
+        "function renderAccountRowsPreservingScroll",
+        "card.scrollTop=scrollTop",
+        "renderAccountRowsPreservingScroll();",
+    ]:
+        assert token in module, token

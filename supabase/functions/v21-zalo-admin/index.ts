@@ -30,6 +30,21 @@ function errorCode(error: unknown) {
   return "zalo_update_failed";
 }
 
+async function syncLinkedAvatar(admin: ReturnType<typeof createClient>, targetId: string, zaloId: string) {
+  const { data: contact, error: contactError } = await admin.from("zalo_contacts")
+    .select("avatar_url")
+    .eq("zalo_id", zaloId)
+    .maybeSingle();
+  if (contactError) throw contactError;
+  const avatarPath = String(contact?.avatar_url ?? "").trim() || null;
+  const { error: accountError } = await admin.from("v21_accounts")
+    .update({ avatar_path: avatarPath })
+    .eq("id", targetId)
+    .is("deleted_at", null);
+  if (accountError) throw accountError;
+  return avatarPath;
+}
+
 async function loadAdminSnapshot(admin: ReturnType<typeof createClient>) {
   const [accountsResult, contactsResult, linksResult] = await Promise.all([
     admin.from("v21_accounts")
@@ -191,11 +206,12 @@ Deno.serve(async (req: Request) => {
       p_actor_account_id: caller.id,
       p_target_account_id: targetId,
     };
+    let zaloId = "";
 
     if (action === "snapshot") {
       rpcName = "v21_zalo_admin_snapshot";
     } else if (action === "link") {
-      const zaloId = String(body?.zalo_id ?? "").trim();
+      zaloId = String(body?.zalo_id ?? "").trim();
       if (!zaloId) return reply(400, { ok: false, code: "zalo_required" });
       rpcName = "v21_zalo_admin_link";
       params = { ...params, p_zalo_id: zaloId };
@@ -213,7 +229,10 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "snapshot") return reply(200, { ok: true, snapshot: data ?? null });
-    if (action === "link") return reply(200, { ok: true, link: data ?? null });
+    if (action === "link") {
+      await syncLinkedAvatar(admin, targetId, zaloId);
+      return reply(200, { ok: true, link: data ?? null });
+    }
     return reply(200, { ok: true });
   } catch {
     return reply(400, { ok: false, code: "invalid_request" });
