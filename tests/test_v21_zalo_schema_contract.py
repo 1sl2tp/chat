@@ -4,6 +4,8 @@ ROOT = Path(__file__).parents[1]
 SQL = (ROOT / "supabase/migrations/20260911_zalo_user_link_bridge.sql").read_text("utf-8")
 ADMIN_API = ROOT / "supabase/functions/v21-zalo-admin/index.ts"
 SIGNAL_SQL = ROOT / "supabase/migrations/20260911_zalo_outbound_signal.sql"
+MEDIA_SQL = ROOT / "supabase/migrations/20260911_zalo_media_bridge.sql"
+MEDIA_API = ROOT / "supabase/functions/v21-zalo-bridge/index.ts"
 
 
 def test_zalo_bridge_schema_and_security_contract():
@@ -28,6 +30,37 @@ def test_zalo_bridge_schema_and_security_contract():
         assert token in lower, token
     assert "grant execute on function public.v21_zalo_ingress" in lower
     assert "to service_role" in lower
+
+
+def test_zalo_media_bridge_uses_canonical_v21_media_and_media_only_outbound_trigger():
+    assert MEDIA_SQL.exists(), "Zalo media bridge migration is required"
+    sql = MEDIA_SQL.read_text("utf-8").lower()
+    for token in [
+        "v21_zalo_media_target",
+        "v21_zalo_ingress_media",
+        "v21_media_assets",
+        "enqueue_zalo_media_outbound",
+        "v21_media_assets_enqueue_zalo_outbound_trg",
+        "revoke all on function",
+        "grant execute on function",
+        "to service_role",
+    ]:
+        assert token in sql, token
+
+
+def test_zalo_bridge_edge_function_accepts_multipart_media_and_signs_outbound_assets():
+    assert MEDIA_API.exists(), "v21-zalo-bridge Edge Function is required"
+    source = MEDIA_API.read_text("utf-8").lower()
+    for token in [
+        "multipart/form-data",
+        "ingress_media",
+        "v21_zalo_media_target",
+        "v21_zalo_ingress_media",
+        "v21-media",
+        "createsignedurl",
+        "media",
+    ]:
+        assert token in source, token
 
 
 def test_admin_zalo_link_api_contract():
