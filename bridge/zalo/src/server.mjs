@@ -8,7 +8,16 @@ const port=Math.max(1,Number(process.env.PORT)||8787);
 const qrPath=process.env.ZALO_QR_PATH||path.resolve(process.cwd(),'qr.png');
 const accessToken=String(process.env.LOGIN_TOKEN||'').trim();
 const state=createLoginState();
-const handler=createRequestHandler({state,qrPath,accessToken});
+let api=null;
+const handler=createRequestHandler({
+  state,
+  qrPath,
+  accessToken,
+  listFriends:async()=>{
+    if(!api||typeof api.getAllFriends!=='function')throw new Error('zalo_api_not_ready');
+    return api.getAllFriends();
+  },
+});
 const server=http.createServer((req,res)=>{
   Promise.resolve(handler(req,res)).catch(error=>{
     console.error('[zalo-login] http error',error);
@@ -20,10 +29,13 @@ const server=http.createServer((req,res)=>{
 server.listen(port,'0.0.0.0',()=>{
   console.log(`[zalo-login] web ready on :${port}`);
   if(!accessToken)console.warn('[zalo-login] LOGIN_TOKEN is empty; QR page is public');
-  void startZaloLogin({ZaloClass:Zalo,state,qrPath,logger:console}).catch(()=>{});
+  void startZaloLogin({ZaloClass:Zalo,state,qrPath,logger:console})
+    .then(result=>{api=result;})
+    .catch(()=>{});
 });
 
 const shutdown=()=>{
+  try{api?.listener?.stop?.();}catch{}
   server.close(()=>process.exit(0));
   setTimeout(()=>process.exit(0),3000).unref();
 };
