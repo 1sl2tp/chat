@@ -1,6 +1,8 @@
 -- Admin-only Web Push foundation.
 -- Canonical Chat data remains v21_messages/v21_media_assets; push is secondary delivery only.
 
+create extension if not exists pgcrypto with schema extensions;
+
 create table if not exists public.v21_push_subscriptions(
   id uuid primary key default gen_random_uuid(),
   account_id uuid not null references public.v21_accounts(id) on delete cascade,
@@ -183,3 +185,84 @@ revoke all on function public.v21_admin_push_claim(integer) from public,anon,aut
 revoke all on function public.v21_admin_push_result(uuid,boolean,text,boolean) from public,anon,authenticated;
 grant execute on function public.v21_admin_push_claim(integer) to service_role;
 grant execute on function public.v21_admin_push_result(uuid,boolean,text,boolean) to service_role;
+
+-- Wake authentication: plaintext token stays private; only its SHA-256 is exposed to service-role reads.
+create table if not exists v21_private.v21_admin_push_wake_secret(
+  id text primary key,
+  token text not null,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.v21_admin_push_auth(
+  id text primary key,
+  token_sha256 text not null,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.v21_admin_push_auth enable row level security;
+revoke all on table public.v21_admin_push_auth from public,anon,authenticated;
+grant select on table public.v21_admin_push_auth to service_role;
+revoke all on table v21_private.v21_admin_push_wake_secret from public,anon,authenticated;
+grant select on table v21_private.v21_admin_push_wake_secret to service_role;
+
+do $$
+declare
+  v_token text;
+begin
+  insert into v21_private.v21_admin_push_wake_secret(id,token)
+  values('primary',encode(extensions.gen_random_bytes(32),'hex'))
+  on conflict(id) do nothing;
+
+  select token into v_token
+  from v21_private.v21_admin_push_wake_secret
+  where id='primary';
+
+  insert into public.v21_admin_push_auth(id,token_sha256,updated_at)
+  values('primary',encode(extensions.digest(v_token,'sha256'),'hex'),now())
+  on conflict(id) do update
+  set token_sha256=excluded.token_sha256,
+      updated_at=excluded.updated_at;
+end;
+$$;
+
+create or replace function v21_private.admin_push_signal()
+returns trigger
+language plpgsql
+security definer
+set search_path to 'public','v21_private','net'
+as $$
+declare
+  v_token text;
+begin
+  select token into v_token
+  from v21_private.v21_admin_push_wake_secret
+  where id='primary';
+
+  if coalesce(v_token,'')='' then return new; end if;
+
+  begin
+    perform net.http_post(
+      url := 'https://gcnoahqsrquxkwkjbuxy.supabase.co/functions/v1/v21-admin-push',
+      headers := jsonb_build_object(
+        'Content-Type','application/json',
+        'x-push-wake-token',v_token
+      ),
+      body := jsonb_build_object('action','drain'),
+      timeout_milliseconds := 5000
+    );
+  exception when others then
+    null;
+  end;
+
+  return new;
+end;
+$$;
+
+revoke all on function v21_private.admin_push_signal() from public;
+
+drop trigger if exists v21_admin_push_signal_trg on public.v21_push_outbox;
+create trigger v21_admin_push_signal_trg
+after insert on public.v21_push_outbox
+for each row
+when (new.state='pending')
+execute function v21_private.admin_push_signal();
