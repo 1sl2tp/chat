@@ -45,9 +45,23 @@ async function tick(){try{const r=await fetch('/health',{cache:'no-store'});cons
 </script></main></body></html>`;
 }
 
-export function createRequestHandler({state,qrPath,accessToken='',listFriends=null}){
+export function createRequestHandler({state,qrPath,accessToken='',listFriends=null,signalTokenHash='',outboundNow=null}){
   return async function handle(req,res){
     const url=new URL(req.url||'/', 'http://localhost');
+
+    if(url.pathname==='/outbound-now'){
+      if(req.method!=='POST')return sendJson(res,405,{ok:false,error:'method_not_allowed'});
+      const provided=String(req.headers?.['x-bridge-token-sha256']||'').trim();
+      if(!signalTokenHash||provided!==signalTokenHash)return sendJson(res,401,{ok:false,error:'unauthorized'});
+      if(typeof outboundNow!=='function')return sendJson(res,503,{ok:false,error:'outbound_not_ready'});
+      try{
+        const processed=Number(await outboundNow())||0;
+        return sendJson(res,200,{ok:true,processed});
+      }catch(error){
+        return sendJson(res,502,{ok:false,error:'outbound_failed',detail:String(error?.message||error)});
+      }
+    }
+
     if(req.method!=='GET')return sendJson(res,405,{ok:false,error:'method_not_allowed'});
 
     if(url.pathname==='/health'){
