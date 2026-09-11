@@ -21,3 +21,15 @@ def test_admin_push_schema_contract():
 
     assert 'grant select on public.v21_push_subscriptions to authenticated' not in SQL.lower()
     assert 'grant select on public.v21_push_outbox to authenticated' not in SQL.lower()
+
+
+def test_admin_push_wake_signal_contract():
+    for token in [
+        'v21_admin_push_wake_secret',
+        'v21_admin_push_auth',
+        'net.http_post',
+        'x-push-wake-token',
+        'functions/v1/v21-admin-push',
+        'create or replace function v21_private.admin_push_signal()',
+    ]:
+        assert token in SQL, token
