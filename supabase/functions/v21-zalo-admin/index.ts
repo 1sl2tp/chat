@@ -8,6 +8,8 @@ const headers = {
   "Cache-Control": "no-store",
 };
 
+const CONTACT_GROUPS = new Set(["customer", "friend", "other"]);
+
 function reply(status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), { status, headers });
 }
@@ -48,7 +50,7 @@ async function syncLinkedAvatar(admin: ReturnType<typeof createClient>, targetId
 async function loadAdminSnapshot(admin: ReturnType<typeof createClient>) {
   const [accountsResult, contactsResult, linksResult] = await Promise.all([
     admin.from("v21_accounts")
-      .select("id,username,display_name,role,avatar_path,locked_at")
+      .select("id,username,display_name,role,avatar_path,locked_at,contact_group")
       .eq("role", "user")
       .is("deleted_at", null)
       .order("display_name", { ascending: true }),
@@ -107,6 +109,15 @@ Deno.serve(async (req: Request) => {
 
     const body = await req.json();
     const action = String(body?.action ?? "").trim().toLowerCase();
+
+    if (action === "directory_groups") {
+      const { data, error } = await admin.from("v21_accounts")
+        .select("id,contact_group")
+        .eq("role", "user")
+        .is("deleted_at", null);
+      if (error) return reply(400, { ok: false, code: "zalo_update_failed" });
+      return reply(200, { ok: true, groups: data ?? [] });
+    }
 
     if (action === "admin_snapshot") {
       const snapshot = await loadAdminSnapshot(admin);
@@ -174,8 +185,9 @@ Deno.serve(async (req: Request) => {
           display_name: displayName,
           role: "user",
           avatar_path: avatarPath,
+          contact_group: "other",
         })
-        .select("id,username,display_name,role,avatar_path,locked_at")
+        .select("id,username,display_name,role,avatar_path,locked_at,contact_group")
         .single();
 
       if (accountError || !account) {
@@ -200,6 +212,21 @@ Deno.serve(async (req: Request) => {
 
     const targetId = String(body?.target_account_id ?? "").trim();
     if (!targetId) return reply(400, { ok: false, code: "target_required" });
+
+    if (action === "set_group") {
+      const contactGroup = String(body?.contact_group ?? "").trim().toLowerCase();
+      if (!CONTACT_GROUPS.has(contactGroup)) return reply(400, { ok: false, code: "invalid_group" });
+      const { data: account, error } = await admin.from("v21_accounts")
+        .update({ contact_group: contactGroup })
+        .eq("id", targetId)
+        .eq("role", "user")
+        .is("deleted_at", null)
+        .select("id,username,display_name,role,avatar_path,locked_at,contact_group")
+        .maybeSingle();
+      if (error) return reply(400, { ok: false, code: "zalo_update_failed" });
+      if (!account) return reply(404, { ok: false, code: "user_not_found" });
+      return reply(200, { ok: true, account });
+    }
 
     let rpcName = "";
     let params: Record<string, unknown> = {
