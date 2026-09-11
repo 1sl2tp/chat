@@ -68,3 +68,5 @@ def test_zalo_picker_and_create_forms_use_nested_popup_not_bottom_scroll_panel()
         assert token in module, token
     assert ".zalo-account-submodal" in css
     assert "position:fixed" in css
+
+# Regression: chooser/create must stay modal instead of appending below the long account list.
