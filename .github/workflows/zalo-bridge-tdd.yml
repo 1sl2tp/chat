@@ -15,3 +15,5 @@ jobs:
       - run: python -m pip install pytest
       - name: Zalo schema contract
         run: python -m pytest -q tests/test_v21_zalo_schema_contract.py
+      - name: Zalo bridge core tests
+        run: cd bridge/zalo && npm test
