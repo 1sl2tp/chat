@@ -182,7 +182,7 @@ declare
   v_peer_role text;
   v_link public.zalo_user_links%rowtype;
 begin
-  if new.deleted_at is not null or new.message_id is null then return new; end if;
+  if new.deleted_at is not null or new.message_id is null or new.kind not in ('image','file') then return new; end if;
 
   select * into v_message from public.v21_messages m where m.id=new.message_id and m.deleted_at is null;
   if v_message.id is null or btrim(coalesce(v_message.body,''))<>'' then return new; end if;
@@ -253,6 +253,7 @@ as $$
       ) order by a.sort_index,a.created_at,a.id)
       from public.v21_media_assets a
       where a.message_id=m.id and a.deleted_at is null and a.storage_key is not null
+        and a.kind in ('image','file')
     ),'[]'::jsonb) as media
   from public.zalo_message_links d
   join public.v21_messages m on m.id=d.chat_message_id and m.deleted_at is null
