@@ -11,7 +11,7 @@ source=read("index.source.html")
 app=read("app.js")
 
 # Multi-image gallery keeps the same 400px presentation target as runtime,
-# but must not use a cyclic min(...,100%) width inside a fit-content message unit.
+# without cyclic percentage sizing inside the shrink-to-fit message unit.
 assert "width:400px;max-width:100%;gap:4px" in app
 assert ".media-gallery-grid{\n  width:25rem!important;\n  max-width:100%;" in source
 assert ".media-gallery-grid{width:min(25rem,100%)!important}" not in source
