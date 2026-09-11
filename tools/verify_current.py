@@ -67,4 +67,5 @@ subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_48_contact_tab_cont
 subprocess.run(['node',str(ROOT/'tests'/'test_v21_72_20_call_screen_wake_lock.js')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_v21_zalo_webview_runtime_error.js')],check=True,cwd=ROOT)
 subprocess.run([sys.executable,'-m','pytest','-q',str(ROOT/'tests'/'test_v21_zalo_admin_ui_contract.py')],check=True,cwd=ROOT)
+subprocess.run([sys.executable,'-m','pytest','-q',str(ROOT/'tests'/'test_v21_admin_web_push_schema.py')],check=True,cwd=ROOT)
 print(f'{release} canonical source verify PASS build_id={build_id} sha256={sha}')
