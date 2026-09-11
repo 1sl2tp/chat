@@ -1,0 +1,97 @@
+name: Admin Push Task7 Hardening
+on:
+  push:
+    branches:
+      - feature/admin-web-push-design
+permissions:
+  contents: write
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/admin-web-push-design
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Patch hardening changes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          auth_path=Path('auth-session-store.js')
+          auth=auth_path.read_text('utf-8')
+          revoked_old="""async function handleRevoked(){
+  if(handlingRevoke)return;
+  handlingRevoke=true;
+  state='REVOKED';
+  clearHeartbeat();"""
+          revoked_new="""async function handleRevoked(){
+  if(handlingRevoke)return;
+  handlingRevoke=true;
+  if(account?.role==='admin'){
+    try{await window.V21AdminPush?.disable?.({bestEffort:true});}catch{}
+  }
+  state='REVOKED';
+  clearHeartbeat();"""
+          assert revoked_old in auth, 'handleRevoked marker missing'
+          auth=auth.replace(revoked_old,revoked_new,1)
+
+          logout_old="""  try{
+    const logoutAppSessionId=appSessionId||null;
+    await window.V21CallEngine?.stopCurrent?.({reason:'logout'});"""
+          logout_new="""  try{
+    const logoutAppSessionId=appSessionId||null;
+    if(account?.role==='admin'){
+      try{await window.V21AdminPush?.disable?.({bestEffort:true});}catch{}
+    }
+    await window.V21CallEngine?.stopCurrent?.({reason:'logout'});"""
+          assert logout_old in auth, 'logout marker missing'
+          auth=auth.replace(logout_old,logout_new,1)
+          auth_path.write_text(auth,'utf-8')
+
+          shell_path=Path('shell.js')
+          shell=shell_path.read_text('utf-8')
+          shell_old="""    const item=window.V21ContactStore?.snapshot?.().find(row=>
+      row?.id&&!row.deleted_at&&String(row.id)===id
+    )||null;
+    const name=String(contactName||item?.display_name||item?.username||'Liên hệ');"""
+          shell_new="""    const item=window.V21ContactStore?.snapshot?.().find(row=>
+      row?.id&&!row.deleted_at&&String(row.id)===id
+    )||null;
+    if(!item)return false;
+    const name=String(contactName||item.display_name||item.username||'Liên hệ');"""
+          assert shell_old in shell, 'openContact marker missing'
+          shell=shell.replace(shell_old,shell_new,1)
+          shell_path.write_text(shell,'utf-8')
+
+          controller_path=Path('admin-push-controller.js')
+          controller=controller_path.read_text('utf-8')
+          listener_old="""document.addEventListener('v21-auth-state',onAuthState);
+document.addEventListener('visibilitychange',syncState);"""
+          listener_new="""document.addEventListener('v21-auth-state',onAuthState);
+document.addEventListener('v21-contact-store-change',()=>{void consumePendingOpen();syncState();});
+document.addEventListener('visibilitychange',syncState);"""
+          assert listener_old in controller, 'controller listener marker missing'
+          controller=controller.replace(listener_old,listener_new,1)
+          controller_path.write_text(controller,'utf-8')
+          PY
+      - name: Verify hardening contracts
+        run: |
+          python -m pip install -q pytest
+          python -m pytest -q tests/test_v21_admin_web_push_open_route.py
+          node tests/test_v21_admin_web_push_open_runtime.js
+          node --check auth-session-store.js
+          node --check shell.js
+          node --check admin-push-controller.js
+      - name: Build canonical preview
+        run: python tools/build_current_preview.py
+      - name: Commit and remove one-shot workflow
+        run: |
+          rm -f .github/workflows/admin-push-task7-hardening.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add auth-session-store.js shell.js admin-push-controller.js index.html version.json .github/workflows/admin-push-task7-hardening.yml
+          git commit -m "fix: harden admin push logout and cold-open routing"
+          git push origin HEAD:feature/admin-web-push-design
