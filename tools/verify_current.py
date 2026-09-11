@@ -24,7 +24,7 @@ expected=str(version.get('index_sha256') or '')
 if expected:
     assert sha==expected,(sha,expected)
 for n in [
-    'runtime-id.js','audio-capture-policy.js','app.js','shell.js','call-screen-wake-lock.js','auth-session-store.js','zalo-admin-link.js',
+    'runtime-id.js','audio-capture-policy.js','app.js','shell.js','call-screen-wake-lock.js','auth-session-store.js','zalo-admin-link.js','admin-push-controller.js',
     'conversation-core.js','keyboard-inset-core.js','v21-cache-store.js','v21-media-cache.js',
     'v21-message-store.js','v21-call-engine.js','v21-livekit-session.js',
     'v21-realtime-session.js','v21-sync-engine.js','app-update-controller.js','shell-form-viewport-policy.js','sw.js'
