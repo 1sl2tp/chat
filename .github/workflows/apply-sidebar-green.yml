@@ -1,0 +1,75 @@
+name: Apply Sidebar Green
+on:
+  push:
+    branches:
+      - feature/contact-sidebar-geometry-swipe
+permissions:
+  contents: write
+jobs:
+  apply:
+    if: ${{ !contains(github.event.head_commit.message, '[sidebar-green]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply bounded sidebar changes
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          root=Path('.')
+          source=root/'index.source.html'
+          shell=root/'shell.js'
+          old_test=root/'tests/test_v21_72_33_directory_profile_polish.py'
+
+          s=source.read_text('utf-8')
+          old='<meta name="app-release-version" content="V21.72.39">'
+          new='<meta name="app-release-version" content="V21.72.40">'
+          assert s.count(old)==1
+          s=s.replace(old,new,1)
+          old_width='--desktop-directory-width:clamp(280px,24vw,304px);'
+          new_width='--desktop-directory-width:clamp(328px,27vw,340px);'
+          assert s.count(old_width)==1
+          s=s.replace(old_width,new_width,1)
+          anchor='''  #appShell[data-auth-state="authenticated"] #regionTop [data-shell-command="sidebar.open"]{\n    visibility:hidden;\n    pointer-events:none;\n  }\n}\n'''
+          assert s.count(anchor)==1
+          compact='''  #appShell[data-auth-state="authenticated"] #regionTop [data-shell-command="sidebar.open"]{\n    visibility:hidden;\n    pointer-events:none;\n  }\n\n  /* V21.72.40 — desktop directory width + compact footer */\n  .shell-sidebar-account-footer{padding:8px 0 8px;gap:6px}\n  .shell-sidebar-account-main{min-height:58px;height:58px;padding:5px 8px;border-radius:16px;grid-template-columns:40px minmax(0,1fr) 32px;column-gap:10px}\n  .shell-sidebar-account-avatar{width:40px;height:40px;flex-basis:40px}\n  .shell-sidebar-account-chevron{width:32px}\n  .shell-sidebar-account-action,.zalo-account-admin-open{min-height:38px;border-radius:12px}\n}\n'''
+          s=s.replace(anchor,compact,1)
+          source.write_text(s,'utf-8')
+
+          j=shell.read_text('utf-8')
+          marker='''function renderTopTabs(){\n'''
+          assert j.count(marker)==1
+          gesture='''const MOBILE_SIDEBAR_EDGE_PX=28;\nconst MOBILE_SIDEBAR_OPEN_DISTANCE_PX=56;\n\nfunction bindMobileSidebarEdgeSwipe(){\n  if(!appShell)return false;\n  let tracking=false;\n  let startX=0;\n  let startY=0;\n\n  const reset=()=>{tracking=false;startX=0;startY=0;};\n  const onTouchStart=event=>{\n    if(desktopSidebarPersistent||sidebarOpen||event.touches.length!==1){reset();return;}\n    const touch=event.touches[0];\n    startX=touch.clientX;\n    startY=touch.clientY;\n    if(startX>MOBILE_SIDEBAR_EDGE_PX){reset();return;}\n    tracking=true;\n  };\n  const onTouchMove=event=>{\n    if(!tracking||event.touches.length!==1)return;\n    const touch=event.touches[0];\n    const dx=touch.clientX-startX;\n    const dy=touch.clientY-startY;\n    if(dx<0||Math.abs(dy)>36){reset();return;}\n    if(dx>12&&dx>Math.abs(dy)*1.25)event.preventDefault();\n  };\n  const onTouchEnd=event=>{\n    if(!tracking){reset();return;}\n    const touch=event.changedTouches?.[0];\n    const dx=(touch?.clientX??startX)-startX;\n    const dy=(touch?.clientY??startY)-startY;\n    if(dx>=MOBILE_SIDEBAR_OPEN_DISTANCE_PX&&Math.abs(dy)<=36)setSidebar(true);\n    reset();\n  };\n  const onTouchCancel=()=>reset();\n\n  appShell.addEventListener('touchstart',onTouchStart,{passive:true});\n  appShell.addEventListener('touchmove',onTouchMove,{passive:false});\n  appShell.addEventListener('touchend',onTouchEnd,{passive:true});\n  appShell.addEventListener('touchcancel',onTouchCancel,{passive:true});\n  return true;\n}\n\nbindMobileSidebarEdgeSwipe();\n\nfunction renderTopTabs(){\n'''
+          j=j.replace(marker,gesture,1)
+          assert j.count("version:'V21.72.39'")==1
+          j=j.replace("version:'V21.72.39'","version:'V21.72.40'",1)
+          shell.write_text(j,'utf-8')
+
+          t=old_test.read_text('utf-8')
+          assert 'V21.72.39' in t
+          t=t.replace('V21.72.39','V21.72.40')
+          old_test.write_text(t,'utf-8')
+          PY
+      - name: Build canonical preview
+        run: python tools/build_current_preview.py
+      - name: Install verify dependency
+        run: python -m pip install pytest
+      - name: Verify green
+        run: python tools/verify_current.py
+      - name: Commit generated green state
+        shell: bash
+        run: |
+          rm .github/workflows/apply-sidebar-green.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.source.html shell.js index.html version.json tests/test_v21_72_33_directory_profile_polish.py .github/workflows/apply-sidebar-green.yml
+          git commit -m "feat: widen directory and add mobile edge swipe [sidebar-green]"
+          git push origin HEAD:feature/contact-sidebar-geometry-swipe
