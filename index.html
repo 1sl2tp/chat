@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="35c864aa53d37de83aee8973cafd75b943d0b8b7da2eb43fabf56585ef4dcb78">
+<meta name="app-build-id" content="c4392af945a74cb3c300203b9ddcecf9bddd33ccb2f36e50a9571254535f525a">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1215,6 +1215,8 @@ button{
 }
 .user-message-unit>.media-gallery-grid{margin-left:auto}
 .assistant-message-unit>.media-gallery-grid{margin-right:auto}
+.user-message-unit>.media-image-tile[data-image-presentation]{margin-left:auto}
+.assistant-message-unit>.media-image-tile[data-image-presentation]{margin-right:auto}
 .media-gallery-grid .media-image-tile{
   min-width:0;
   min-height:0;
@@ -2068,6 +2070,7 @@ button{
 .wm-sidebar-navigation::-webkit-scrollbar{width:3px}
 .wm-sidebar-navigation::-webkit-scrollbar-track{background:transparent}
 .wm-sidebar-navigation::-webkit-scrollbar-thumb{background:rgba(0,0,0,.28);border-radius:999px}
+[data-v21-contact-list]{align-content:start;grid-auto-rows:max-content}
 .shell-sidebar-account-footer{
   flex:0 0 auto;
   border-top:1px solid var(--theme-border-default);
@@ -2113,7 +2116,7 @@ button{
   box-sizing:border-box;
   justify-self:center;
   display:grid;
-  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  grid-template-columns:minmax(0,2fr) minmax(0,1fr);
   gap:2px;
   padding:3px;
   border-radius:999px;
@@ -15242,6 +15245,15 @@ function canonicalContact(payload){
   }:null;
 }
 
+function mergeContactEventPreservingActivity(cached,payload,eventPayload){
+  const next={...(cached||{}),...(payload||{})};
+  if(!cached||!eventPayload||typeof eventPayload!=='object')return next;
+  for(const key of ['conversation_id','preview_text','preview_kind','latest_at','has_unread']){
+    if(!Object.prototype.hasOwnProperty.call(eventPayload,key))next[key]=cached[key];
+  }
+  return next;
+}
+
 function canonicalMessage(payload){
   return payload?{
     id:payload.id,
@@ -15396,7 +15408,7 @@ async function applyContactEvent(event){
     await cache()?.removeContact?.(accountId,payload.id);
     contacts()?.remove?.(payload.id);
   }else{
-    const next={...(cached||{}),...payload};
+    const next=mergeContactEventPreservingActivity(cached,payload,event?.payload);
     await cache()?.upsertContact?.(accountId,next);
     contacts()?.upsert?.(next);
   }
