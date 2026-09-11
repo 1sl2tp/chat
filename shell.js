@@ -179,6 +179,51 @@ function setSidebar(open){
   return sidebarOpen;
 }
 
+const MOBILE_SIDEBAR_EDGE_PX=28;
+const MOBILE_SIDEBAR_OPEN_DISTANCE_PX=56;
+
+function bindMobileSidebarEdgeSwipe(){
+  if(!appShell)return false;
+  let tracking=false;
+  let startX=0;
+  let startY=0;
+
+  const reset=()=>{tracking=false;startX=0;startY=0;};
+  const onTouchStart=event=>{
+    if(desktopSidebarPersistent||sidebarOpen||event.touches.length!==1){reset();return;}
+    const touch=event.touches[0];
+    startX=touch.clientX;
+    startY=touch.clientY;
+    if(startX>MOBILE_SIDEBAR_EDGE_PX){reset();return;}
+    tracking=true;
+  };
+  const onTouchMove=event=>{
+    if(!tracking||event.touches.length!==1)return;
+    const touch=event.touches[0];
+    const dx=touch.clientX-startX;
+    const dy=touch.clientY-startY;
+    if(dx<0||Math.abs(dy)>36){reset();return;}
+    if(dx>12&&dx>Math.abs(dy)*1.25)event.preventDefault();
+  };
+  const onTouchEnd=event=>{
+    if(!tracking){reset();return;}
+    const touch=event.changedTouches?.[0];
+    const dx=(touch?.clientX??startX)-startX;
+    const dy=(touch?.clientY??startY)-startY;
+    if(dx>=MOBILE_SIDEBAR_OPEN_DISTANCE_PX&&Math.abs(dy)<=36)setSidebar(true);
+    reset();
+  };
+  const onTouchCancel=()=>reset();
+
+  appShell.addEventListener('touchstart',onTouchStart,{passive:true});
+  appShell.addEventListener('touchmove',onTouchMove,{passive:false});
+  appShell.addEventListener('touchend',onTouchEnd,{passive:true});
+  appShell.addEventListener('touchcancel',onTouchCancel,{passive:true});
+  return true;
+}
+
+bindMobileSidebarEdgeSwipe();
+
 function renderTopTabs(){
   for(const tab of document.querySelectorAll('[data-top-tab]')){
     tab.setAttribute('aria-selected',String(tab.dataset.topTab===route));
