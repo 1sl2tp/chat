@@ -568,6 +568,10 @@ async function openAccountAdmin(){
     <button type="button" class="zalo-account-backdrop" aria-label="Đóng"></button>
     <section class="zalo-account-card" role="dialog" aria-modal="true" aria-labelledby="zalo-account-title">
       <header class="zalo-account-modal-head"><div><h2 id="zalo-account-title">Zalo & tài khoản</h2><p>Quản lý Chat User ↔ Zalo</p></div><button type="button" class="zalo-account-close" aria-label="Đóng">×</button></header>
+      <div class="zalo-account-notification" data-admin-push-setting>
+        <span class="zalo-account-notification-copy"><strong>Thông báo</strong><small data-admin-push-status>Bật thông báo</small></span>
+        <button type="button" class="zalo-account-notification-action" data-admin-push-action data-mode="enable">Bật thông báo</button>
+      </div>
       <p class="zalo-account-error" data-zalo-account-error hidden></p>
       <div class="zalo-account-list" data-zalo-account-list></div>
       <div class="zalo-account-submodal" data-zalo-account-panel></div>
