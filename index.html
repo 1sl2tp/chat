@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="230735ec163952962d5d59ac0a1643b397d785ddec302d37b921a5f5a2999abb">
+<meta name="app-build-id" content="72273f39ef0b70c874f3939abe611fab5f9f277792c1c827759a5d28fa37dd0e">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -14212,6 +14212,10 @@ async function openAccountAdmin(){
     <button type="button" class="zalo-account-backdrop" aria-label="Đóng"></button>
     <section class="zalo-account-card" role="dialog" aria-modal="true" aria-labelledby="zalo-account-title">
       <header class="zalo-account-modal-head"><div><h2 id="zalo-account-title">Zalo & tài khoản</h2><p>Quản lý Chat User ↔ Zalo</p></div><button type="button" class="zalo-account-close" aria-label="Đóng">×</button></header>
+      <div class="zalo-account-notification" data-admin-push-setting>
+        <span class="zalo-account-notification-copy"><strong>Thông báo</strong><small data-admin-push-status>Bật thông báo</small></span>
+        <button type="button" class="zalo-account-notification-action" data-admin-push-action data-mode="enable">Bật thông báo</button>
+      </div>
       <p class="zalo-account-error" data-zalo-account-error hidden></p>
       <div class="zalo-account-list" data-zalo-account-list></div>
       <div class="zalo-account-submodal" data-zalo-account-panel></div>
@@ -14268,7 +14272,6 @@ window.V21ZaloAdminLink=Object.freeze({version:MODULE_VERSION,mount,scan});
 })();
 
 void import('./contact-directory-admin.js').catch(error=>console.warn('[contact-directory-admin]',error));
-
 </script>
 <script data-inlined-source="getlink-auth-bridge.js">
 (()=>{
