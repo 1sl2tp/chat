@@ -32,13 +32,26 @@ let api=null;
 let unbindIncoming=()=>{};
 let outboundTimer=0;
 
+async function sendOutboundRow(row){
+  const media=Array.isArray(row?.media)?row.media.filter(Boolean):[];
+  const kind=String(media[0]?.kind||'').toLowerCase();
+  if(kind==='audio'){
+    if(media.length!==1||String(row?.text||'').trim())throw new Error('mixed_audio_outbound_not_supported');
+    const voiceUrl=String(media[0]?.signedUrl||'').trim();
+    if(!/^https?:\/\//i.test(voiceUrl))throw new Error('invalid_signed_voice_url');
+    return api.sendVoice({voiceUrl},row.zaloId,ThreadType.User);
+  }
+  if(media.some(asset=>String(asset?.kind||'').toLowerCase()==='audio'))throw new Error('mixed_audio_outbound_not_supported');
+  const outgoing=await buildOutboundMessage(row);
+  return api.sendMessage(outgoing,row.zaloId,ThreadType.User);
+}
+
 async function runOutboundPass(){
   if(!api||!messageGateway)return 0;
   const rows=await messageGateway.listOutbound(20);
   for(const row of rows){
     try{
-      const outgoing=await buildOutboundMessage(row);
-      const sent=await api.sendMessage(outgoing,row.zaloId,ThreadType.User);
+      const sent=await sendOutboundRow(row);
       const zaloMessageId=sent?.message?.msgId??sent?.attachment?.[0]?.msgId??sent?.msgId??null;
       await messageGateway.markOutboundResult({
         deliveryId:row.deliveryId,
