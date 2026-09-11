@@ -1,4 +1,4 @@
-import {ThreadType} from 'zca-js';
+const USER_THREAD_TYPE=0;
 
 function eventAtFromTs(value){
   const raw=Number(value);
@@ -7,8 +7,8 @@ function eventAtFromTs(value){
   return new Date(ms).toISOString();
 }
 
-export function normalizeIncomingMessage(message){
-  if(!message||message.type!==ThreadType.User||message.isSelf)return null;
+export function normalizeIncomingMessage(message,{userThreadType=USER_THREAD_TYPE}={}){
+  if(!message||message.type!==userThreadType||message.isSelf)return null;
   if(typeof message?.data?.content!=='string')return null;
   const zaloId=String(message.threadId||'').trim();
   const messageId=String(message?.data?.msgId||message?.data?.cliMsgId||'').trim();
@@ -22,10 +22,10 @@ export function normalizeIncomingMessage(message){
   };
 }
 
-export function bindIncomingMessageListener({api,onMessage,logger=console}){
+export function bindIncomingMessageListener({api,onMessage,logger=console,userThreadType=USER_THREAD_TYPE}){
   if(!api?.listener?.on||typeof onMessage!=='function')return ()=>{};
   const handler=async raw=>{
-    const event=normalizeIncomingMessage(raw);
+    const event=normalizeIncomingMessage(raw,{userThreadType});
     if(!event)return;
     try{await onMessage(event);}
     catch(error){logger?.warn?.('[zalo-incoming] handler failed',String(error?.message||error));}
