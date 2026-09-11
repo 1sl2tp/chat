@@ -5,11 +5,11 @@ ROOT = Path(__file__).resolve().parents[1]
 SRC = (ROOT / 'index.source.html').read_text('utf-8')
 APP = (ROOT / 'app.js').read_text('utf-8')
 
-# 1) Header identity avatar must own its 20px geometry. It must not inherit
+# 1) Header identity avatar must own its bounded geometry. It must not inherit
 # the 48px contact-directory source class.
 assert 'class="top-mode-contact-avatar" data-chat-tab-avatar' in SRC
 assert 'class="contact-avatar-source top-mode-contact-avatar" data-chat-tab-avatar' not in SRC
-assert '.top-mode-contact-avatar{width:20px;height:20px;flex:0 0 20px;' in SRC
+assert '.top-mode-contact-avatar{width:26px;height:26px;flex:0 0 26px;' in SRC
 
 # 2) On iOS the + action must release the editor/keyboard before invoking the
 # native file source picker, while staying inside the same click activation.

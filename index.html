@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="d15a154ad9519eacfcb7ba010409ceaa3da256aae8ff4a16d91906f16b76973f">
+<meta name="app-build-id" content="9a69b54e006894ad6070e501ec514e6a4809336b965524301ccc8424c9329f85">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -2110,10 +2110,11 @@ button{
   padding-left:4px;
   padding-right:8px;
 }
-.top-mode-contact-avatar{width:20px;height:20px;flex:0 0 20px;box-sizing:border-box;min-width:20px;min-height:20px;max-width:20px;max-height:20px;border-radius:999px;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;background:var(--account-avatar-bg,#d1fae5);color:var(--account-avatar-fg,#111827);font-size:9px;line-height:1;font-weight:700}
+.top-mode-contact-avatar{width:26px;height:26px;flex:0 0 26px;box-sizing:border-box;min-width:26px;min-height:26px;max-width:26px;max-height:26px;border-radius:999px;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;background:var(--account-avatar-bg,#d1fae5);color:var(--account-avatar-fg,#111827);font-size:10px;line-height:1;font-weight:700}
 .top-mode-contact-avatar[hidden]{display:none!important}
 .top-mode-contact-avatar>img{width:100%;height:100%;display:block;object-fit:cover}
 .top-mode-tab[data-top-tab="chat"] [data-chat-tab-label]{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.top-mode-tab[data-top-tab="work"]{min-width:max-content;padding-inline:12px}
 .compact-top-grid > .shell-icon-button{
   grid-column:1;
   justify-self:start;
@@ -2132,7 +2133,7 @@ button{
   background:var(--theme-surface-secondary);
 }
 .top-mode-switch[data-contact-identity="true"]{
-  grid-template-columns:minmax(0,2fr) minmax(0,1fr);
+  grid-template-columns:minmax(0,1fr) max-content;
 }
 .top-mode-tab{
   min-width:0;
