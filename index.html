@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="2908179bdfba1812f3073c12e5ae29c44f68aa5bd16566654cb6e78745c232b0">
+<meta name="app-build-id" content="d15a154ad9519eacfcb7ba010409ceaa3da256aae8ff4a16d91906f16b76973f">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -450,6 +450,10 @@ button{
   scrollbar-width:none;
 }
 #scrollRoot::-webkit-scrollbar{display:none;width:0;height:0}
+#stageLayout[data-keyboard-open="true"] #scrollRoot{
+  -webkit-clip-path:inset(0 0 var(--screen-keyboard-height,0px) 0);
+  clip-path:inset(0 0 var(--screen-keyboard-height,0px) 0);
+}
 
 
 /* =========================================================
@@ -2106,7 +2110,7 @@ button{
   padding-left:4px;
   padding-right:8px;
 }
-.top-mode-contact-avatar{width:20px;height:20px;flex:0 0 20px;border-radius:999px;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;font-size:9px;line-height:1;font-weight:700}
+.top-mode-contact-avatar{width:20px;height:20px;flex:0 0 20px;box-sizing:border-box;min-width:20px;min-height:20px;max-width:20px;max-height:20px;border-radius:999px;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;background:var(--account-avatar-bg,#d1fae5);color:var(--account-avatar-fg,#111827);font-size:9px;line-height:1;font-weight:700}
 .top-mode-contact-avatar[hidden]{display:none!important}
 .top-mode-contact-avatar>img{width:100%;height:100%;display:block;object-fit:cover}
 .top-mode-tab[data-top-tab="chat"] [data-chat-tab-label]{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -3295,7 +3299,7 @@ button{
         </button>
 
         <div class="top-mode-switch" role="tablist" aria-label="Chế độ làm việc">
-          <button type="button" class="top-mode-tab" role="tab" aria-selected="false" data-top-tab="chat" data-nav-target="chat"><span class="contact-avatar-source top-mode-contact-avatar" data-chat-tab-avatar hidden></span><span data-chat-tab-label>Trò chuyện</span></button>
+          <button type="button" class="top-mode-tab" role="tab" aria-selected="false" data-top-tab="chat" data-nav-target="chat"><span class="top-mode-contact-avatar" data-chat-tab-avatar hidden></span><span data-chat-tab-label>Trò chuyện</span></button>
           <button type="button" class="top-mode-tab" role="tab" aria-selected="false" data-top-tab="work" data-nav-target="work">Công việc</button>
         </div>
 
@@ -9812,6 +9816,7 @@ plusButton.addEventListener('click',event=>{
   // Files). Showing the app menu first duplicates the same decision and may
   // place choices under Safari's bottom address bar.
   if(RuntimeProfile.pickerMode==='ios-native'){
+    if(document.activeElement===editor)editor.blur();
     setComposerActionMenuOpen(false);
     const opened=openNativeFilePicker(uploadIOSSourceInput);
     if(!opened)composerHint.textContent='Không thể mở bộ chọn tệp';

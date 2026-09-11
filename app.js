@@ -5386,6 +5386,7 @@ plusButton.addEventListener('click',event=>{
   // Files). Showing the app menu first duplicates the same decision and may
   // place choices under Safari's bottom address bar.
   if(RuntimeProfile.pickerMode==='ios-native'){
+    if(document.activeElement===editor)editor.blur();
     setComposerActionMenuOpen(false);
     const opened=openNativeFilePicker(uploadIOSSourceInput);
     if(!opened)composerHint.textContent='Không thể mở bộ chọn tệp';
