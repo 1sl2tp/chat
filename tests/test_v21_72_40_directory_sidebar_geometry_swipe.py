@@ -10,7 +10,7 @@ def read(path):
 source=read("index.source.html")
 shell=read("shell.js")
 
-# This bounded UI change does not bump the release checkpoint.
+# Final PR-head contract: keep the established release checkpoint unchanged.
 assert "V21.72.39" in source
 
 # Desktop directory gets visibly wider without becoming an oversized rail.
