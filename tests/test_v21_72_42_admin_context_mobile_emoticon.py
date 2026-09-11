@@ -21,7 +21,7 @@ assert "grid-template-columns:minmax(0,1fr) minmax(0,1fr) 42px" in source
 assert "shell-sidebar-logout-icon" in source
 assert '[data-state="authenticated"] .shell-sidebar-account-action [data-account-action-label]{display:none}' in source
 
-# Admin chat context is explicit in the header, but normal users stay unchanged.
+# Admin-only conversation context stays in the header so rapid contact switching never loses who owns the thread.
 assert "data-active-contact-context" in source
 assert "function renderActiveContactContext()" in shell
 assert "authAccount?.role==='admin'" in shell
