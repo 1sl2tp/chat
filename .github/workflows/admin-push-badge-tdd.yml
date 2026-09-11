@@ -1,0 +1,29 @@
+name: Admin Push Badge TDD
+on:
+  pull_request:
+    paths:
+      - 'sw.js'
+      - 'admin-push-controller.js'
+      - 'supabase/functions/v21-admin-push/**'
+      - 'tests/test_v21_admin_web_push_sw_runtime.js'
+      - 'tests/test_v21_admin_web_push_controller.js'
+      - 'tests/test_v21_admin_web_push_notification_contract.mjs'
+      - '.github/workflows/admin-push-badge-tdd.yml'
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Service worker unread badge runtime
+        run: node tests/test_v21_admin_web_push_sw_runtime.js
+      - name: Admin push controller unread badge runtime
+        run: node tests/test_v21_admin_web_push_controller.js
+      - name: Notification copy contract
+        run: node tests/test_v21_admin_web_push_notification_contract.mjs
+      - name: Syntax gate
+        run: |
+          node --check admin-push-controller.js
+          node --check sw.js
