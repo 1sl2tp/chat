@@ -19,11 +19,9 @@ test('server polls pending Chat text and sends it to direct-user Zalo',async()=>
   assert.match(source,/setInterval/);
 });
 
-test('runtime queues one immediate outbound rerun when a signal arrives during an active send',async()=>{
+test('runtime coalesces an outbound signal that arrives during an active send',async()=>{
   const source=await fs.readFile(new URL('../src/server.mjs',import.meta.url),'utf8');
-  assert.match(source,/outboundRerunRequested/);
-  assert.match(source,/if\(outboundPolling\)\{/);
-  assert.match(source,/outboundRerunRequested=true/);
-  assert.match(source,/do\{/);
-  assert.match(source,/while\(outboundRerunRequested\)/);
+  assert.match(source,/createCoalescingRunner/);
+  assert.match(source,/const pollOutbound=createCoalescingRunner\(runOutboundPass\)/);
+  assert.match(source,/outboundNow:pollOutbound/);
 });
