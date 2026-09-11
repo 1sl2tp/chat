@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createContactSync} from '../src/contact-sync.mjs';
+import {createContactSync,syncApiContacts} from '../src/contact-sync.mjs';
 
 test('contact sync posts only id name and avatar to bridge endpoint',async()=>{
   const calls=[];
@@ -29,4 +29,24 @@ test('contact sync posts only id name and avatar to bridge endpoint',async()=>{
       {zalo_id:'z2',display_name:'Anh Bình',avatar_url:'https://img/2.jpg'},
     ],
   });
+});
+
+test('syncApiContacts reads friends once and sends them to configured sync',async()=>{
+  const calls=[];
+  const api={
+    async getAllFriends(){
+      calls.push('friends');
+      return [{userId:'z1',displayName:'C Sâm Phủ Lý',avatar:'https://img/1.jpg'}];
+    },
+  };
+  const sync=async(rows)=>{
+    calls.push(['sync',rows]);
+    return {ok:true,count:rows.length};
+  };
+  const result=await syncApiContacts({api,sync});
+  assert.deepEqual(result,{ok:true,count:1});
+  assert.deepEqual(calls,[
+    'friends',
+    ['sync',[{userId:'z1',displayName:'C Sâm Phủ Lý',avatar:'https://img/1.jpg'}]],
+  ]);
 });
