@@ -11,7 +11,7 @@ source=read("index.source.html")
 directory=read("contact-directory-admin.js")
 zalo=read("zalo-admin-link.js")
 
-# Keep the existing release checkpoint; this is a bounded directory-only UI change.
+# Keep the existing release checkpoint; this remains a bounded directory-only UI change.
 assert "V21.72.39" in source
 
 # The body is a layout owner, not the scroll owner. Search/filter stay fixed above the nav.
