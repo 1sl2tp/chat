@@ -1747,7 +1747,8 @@ button{
 .shell-account-row .wm-sidebar-accountButton{min-width:0;flex:1}
 .wm-sidebar-guestLogin{flex:0 0 auto;white-space:nowrap}
 .wm-sidebar-sidebar{display:flex;flex-direction:column;height:100%;min-height:0}
-.wm-sidebar-body{flex:1 1 auto;min-height:0;overflow:auto}
+.wm-sidebar-body{flex:1 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column}
+.wm-sidebar-navigation{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain}
 .shell-sidebar-account-footer{
   flex:0 0 auto;
   border-top:1px solid var(--theme-border-default);
@@ -2526,7 +2527,13 @@ button{
 }
 
 /* V21.64 — account row mirrors the approved contact-row proportions */
-.shell-sidebar-account-footer{gap:8px}
+.shell-sidebar-account-footer{grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px;padding:6px 0 max(6px,env(safe-area-inset-bottom))}
+.shell-sidebar-account-footer .shell-sidebar-account-main,.shell-sidebar-account-footer .shell-sidebar-account-action,.shell-sidebar-account-footer .zalo-account-admin-open{width:100%;min-width:0;height:40px;min-height:40px;padding:0 8px;border-radius:12px;font-size:.82rem;font-weight:600}
+.shell-sidebar-account-footer .shell-sidebar-account-main{display:flex;align-items:center;justify-content:center;background:var(--theme-surface-secondary)}
+.shell-sidebar-account-footer .shell-sidebar-account-avatar,.shell-sidebar-account-footer .shell-sidebar-account-copy span,.shell-sidebar-account-footer .shell-sidebar-account-chevron{display:none}
+.shell-sidebar-account-footer .shell-sidebar-account-copy strong{display:block;min-width:0;font-size:.82rem;line-height:1rem;font-weight:600;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.shell-sidebar-account-footer .zalo-account-admin-open{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
 .shell-sidebar-account-main{
   appearance:none;border:0;background:var(--theme-surface-secondary);color:inherit;text-align:start;
   display:grid;

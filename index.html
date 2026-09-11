@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="12b21b5fe781a02613d4786b7b54c5faa6c94be65ddb846901de22ff55a77d65">
+<meta name="app-build-id" content="45316f3c909bea12913397e5fe1387ffbe1b6b258e338e0b29ab0f937c5878e4">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -2061,7 +2061,8 @@ button{
 .shell-account-row .wm-sidebar-accountButton{min-width:0;flex:1}
 .wm-sidebar-guestLogin{flex:0 0 auto;white-space:nowrap}
 .wm-sidebar-sidebar{display:flex;flex-direction:column;height:100%;min-height:0}
-.wm-sidebar-body{flex:1 1 auto;min-height:0;overflow:auto}
+.wm-sidebar-body{flex:1 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column}
+.wm-sidebar-navigation{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain}
 .shell-sidebar-account-footer{
   flex:0 0 auto;
   border-top:1px solid var(--theme-border-default);
@@ -2840,7 +2841,13 @@ button{
 }
 
 /* V21.64 — account row mirrors the approved contact-row proportions */
-.shell-sidebar-account-footer{gap:8px}
+.shell-sidebar-account-footer{grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px;padding:6px 0 max(6px,env(safe-area-inset-bottom))}
+.shell-sidebar-account-footer .shell-sidebar-account-main,.shell-sidebar-account-footer .shell-sidebar-account-action,.shell-sidebar-account-footer .zalo-account-admin-open{width:100%;min-width:0;height:40px;min-height:40px;padding:0 8px;border-radius:12px;font-size:.82rem;font-weight:600}
+.shell-sidebar-account-footer .shell-sidebar-account-main{display:flex;align-items:center;justify-content:center;background:var(--theme-surface-secondary)}
+.shell-sidebar-account-footer .shell-sidebar-account-avatar,.shell-sidebar-account-footer .shell-sidebar-account-copy span,.shell-sidebar-account-footer .shell-sidebar-account-chevron{display:none}
+.shell-sidebar-account-footer .shell-sidebar-account-copy strong{display:block;min-width:0;font-size:.82rem;line-height:1rem;font-weight:600;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.shell-sidebar-account-footer .zalo-account-admin-open{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
 .shell-sidebar-account-main{
   appearance:none;border:0;background:var(--theme-surface-secondary);color:inherit;text-align:start;
   display:grid;
@@ -14065,7 +14072,8 @@ function syncAccountAdminButton(){
   button.type='button';
   button.className='zalo-account-admin-open';
   button.dataset.zaloAccountAdminOpen='';
-  button.textContent='Zalo & tài khoản';
+  button.textContent='Zalo';
+  button.setAttribute('aria-label','Zalo & tài khoản');
   button.addEventListener('click',()=>void openAccountAdmin());
   const authAction=footer.querySelector('.shell-sidebar-account-action');
   footer.insertBefore(button,authAction||null);

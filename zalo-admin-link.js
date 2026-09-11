@@ -543,7 +543,8 @@ function syncAccountAdminButton(){
   button.type='button';
   button.className='zalo-account-admin-open';
   button.dataset.zaloAccountAdminOpen='';
-  button.textContent='Zalo & tài khoản';
+  button.textContent='Zalo';
+  button.setAttribute('aria-label','Zalo & tài khoản');
   button.addEventListener('click',()=>void openAccountAdmin());
   const authAction=footer.querySelector('.shell-sidebar-account-action');
   footer.insertBefore(button,authAction||null);
