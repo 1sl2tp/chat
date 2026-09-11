@@ -87,7 +87,7 @@ function applyRoutePresentation(){
   for(const node of chatNodes)node.hidden=route!=='chat';
   if(workView)workView.hidden=route!=='work';
   renderTopTabs();
-  renderActiveContactContext();
+  renderChatTabIdentity();
   renderCallFocus();
 }
 
@@ -231,20 +231,32 @@ function renderTopTabs(){
   }
 }
 
-function renderActiveContactContext(){
-  const node=document.querySelector('[data-active-contact-context]');
-  const text=node?.querySelector('[data-active-contact-context-text]');
+function renderChatTabIdentity(){
+  const tab=document.querySelector('[data-top-tab="chat"]');
+  const avatar=tab?.querySelector('[data-chat-tab-avatar]');
+  const label=tab?.querySelector('[data-chat-tab-label]');
   const visible=Boolean(
     authState==='AUTHENTICATED' &&
     authAccount?.role==='admin' &&
     route==='chat' &&
     activeContact?.id
   );
-  if(appShell)appShell.dataset.adminContactContext=String(visible);
-  if(!node)return visible;
-  node.hidden=!visible;
-  if(text)text.textContent=visible?`Đang chat · ${String(activeContact?.name||'Liên hệ')}`:'';
-  return visible;
+  if(!tab||!avatar||!label)return visible;
+  if(!visible){
+    avatar.hidden=true;
+    label.textContent='Trò chuyện';
+    tab.removeAttribute('title');
+    return false;
+  }
+  const item=window.V21ContactStore?.snapshot?.().find(row=>
+    row?.id&&!row.deleted_at&&String(row.id)===String(activeContact.id)
+  )||null;
+  const name=String(item?.display_name||item?.username||activeContact?.name||'Liên hệ');
+  label.textContent=name;
+  tab.title=name;
+  avatar.hidden=false;
+  renderAvatarNode(avatar,item||{id:activeContact.id,display_name:name,username:name,avatar_path:null},'L');
+  return true;
 }
 
 const NavigationCommand={
@@ -459,7 +471,7 @@ function setActiveContact(contactId,contactName){
     activeContact={id:String(contactId),name:String(contactName||'Liên hệ')};
   }
   renderCallFocus();
-  renderActiveContactContext();
+  renderChatTabIdentity();
   syncContactActiveState();
   persistScreenSession();
   const nextId=activeContact?.id||null;
@@ -1333,7 +1345,7 @@ const AuthUI={
   setAccount(account){
     authAccount=account?{...account}:null;
     this.renderAccountFooter();
-    renderActiveContactContext();
+    renderChatTabIdentity();
   },
   setAuthenticated(authenticated,account=null){
     authState=authenticated?'AUTHENTICATED':'GUEST';
@@ -1369,6 +1381,7 @@ document.addEventListener('keydown',event=>{
 
 document.addEventListener('v21-contact-store-change',event=>{
   reconcileActiveContactFromStore(event.detail||{});
+  renderChatTabIdentity();
 });
 
 document.addEventListener('click',event=>{

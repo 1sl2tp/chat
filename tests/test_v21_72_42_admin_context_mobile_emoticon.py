@@ -21,13 +21,15 @@ assert "grid-template-columns:minmax(0,1fr) minmax(0,1fr) 42px" in source
 assert "shell-sidebar-logout-icon" in source
 assert '[data-state="authenticated"] .shell-sidebar-account-action [data-account-action-label]{display:none}' in source
 
-# Admin-only conversation context stays in the header so rapid contact switching never loses who owns the thread.
-assert "data-active-contact-context" in source
-assert "function renderActiveContactContext()" in shell
+# Admin-only conversation identity stays in the header, now inside the Chat tab itself.
+assert "data-active-contact-context" not in source
+assert "data-chat-tab-avatar" in source
+assert "data-chat-tab-label" in source
+assert "function renderChatTabIdentity()" in shell
 assert "authAccount?.role==='admin'" in shell
 assert "route==='chat'" in shell
 assert "activeContact?.id" in shell
-assert "Đang chat ·" in shell
+assert "Đang chat ·" not in shell
 
 # Emoticons are a display-only transform. Raw message data/link href stay untouched.
 assert "function normalizeDisplayEmoticons(value)" in app

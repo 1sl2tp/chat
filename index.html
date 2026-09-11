@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="eb366e6586e81bbcd361247edb66ea472a94541f773cc36a52cfdf9d044945e6">
+<meta name="app-build-id" content="35c864aa53d37de83aee8973cafd75b943d0b8b7da2eb43fabf56585ef4dcb78">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -2097,10 +2097,11 @@ button{
   box-sizing:border-box;
   position:relative;
 }
-.active-contact-context{grid-column:2;grid-row:1;align-self:end;justify-self:center;max-width:min(72vw,260px);margin-bottom:2px;color:var(--theme-content-tertiary);font-size:11px;line-height:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
-.active-contact-context[hidden]{display:none}
-#appShell[data-admin-contact-context="true"] .top-mode-switch{transform:translateY(-9px)}
-.compact-top-grid:has(.call-focus-slot:not([data-call-ui-state="idle"])) .active-contact-context{display:none}
+.top-mode-tab[data-top-tab="chat"]{display:flex;align-items:center;justify-content:center;gap:6px}
+.top-mode-contact-avatar{width:20px;height:20px;flex:0 0 20px;border-radius:999px;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;font-size:9px;line-height:1;font-weight:700}
+.top-mode-contact-avatar[hidden]{display:none!important}
+.top-mode-contact-avatar>img{width:100%;height:100%;display:block;object-fit:cover}
+.top-mode-tab[data-top-tab="chat"] [data-chat-tab-label]{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .compact-top-grid > .shell-icon-button{
   grid-column:1;
   justify-self:start;
@@ -2371,7 +2372,6 @@ button{
 }
 @media (max-width:480px){
   .compact-top-grid{column-gap:6px}
-  .active-contact-context{max-width:210px;font-size:10.5px}
   .top-mode-tab{font-size:12.5px;padding-inline:6px}
   .call-focus-slot{gap:6px;max-width:196px}
   .call-status-chip{height:40px;max-width:92px;padding-inline:8px;gap:6px}
@@ -3284,10 +3284,9 @@ button{
         </button>
 
         <div class="top-mode-switch" role="tablist" aria-label="Chế độ làm việc">
-          <button type="button" class="top-mode-tab" role="tab" aria-selected="false" data-top-tab="chat" data-nav-target="chat">Trò chuyện</button>
+          <button type="button" class="top-mode-tab" role="tab" aria-selected="false" data-top-tab="chat" data-nav-target="chat"><span class="contact-avatar-source top-mode-contact-avatar" data-chat-tab-avatar hidden></span><span data-chat-tab-label>Trò chuyện</span></button>
           <button type="button" class="top-mode-tab" role="tab" aria-selected="false" data-top-tab="work" data-nav-target="work">Công việc</button>
         </div>
-        <div class="active-contact-context" data-active-contact-context hidden aria-live="polite"><span data-active-contact-context-text></span></div>
 
         <div class="call-focus-slot" data-call-focus-slot data-call-ui-state="idle">
           <div class="call-status-chip" data-call-status-chip data-state="idle" role="status" aria-live="polite" hidden>
@@ -11285,7 +11284,7 @@ function applyRoutePresentation(){
   for(const node of chatNodes)node.hidden=route!=='chat';
   if(workView)workView.hidden=route!=='work';
   renderTopTabs();
-  renderActiveContactContext();
+  renderChatTabIdentity();
   renderCallFocus();
 }
 
@@ -11429,20 +11428,32 @@ function renderTopTabs(){
   }
 }
 
-function renderActiveContactContext(){
-  const node=document.querySelector('[data-active-contact-context]');
-  const text=node?.querySelector('[data-active-contact-context-text]');
+function renderChatTabIdentity(){
+  const tab=document.querySelector('[data-top-tab="chat"]');
+  const avatar=tab?.querySelector('[data-chat-tab-avatar]');
+  const label=tab?.querySelector('[data-chat-tab-label]');
   const visible=Boolean(
     authState==='AUTHENTICATED' &&
     authAccount?.role==='admin' &&
     route==='chat' &&
     activeContact?.id
   );
-  if(appShell)appShell.dataset.adminContactContext=String(visible);
-  if(!node)return visible;
-  node.hidden=!visible;
-  if(text)text.textContent=visible?`Đang chat · ${String(activeContact?.name||'Liên hệ')}`:'';
-  return visible;
+  if(!tab||!avatar||!label)return visible;
+  if(!visible){
+    avatar.hidden=true;
+    label.textContent='Trò chuyện';
+    tab.removeAttribute('title');
+    return false;
+  }
+  const item=window.V21ContactStore?.snapshot?.().find(row=>
+    row?.id&&!row.deleted_at&&String(row.id)===String(activeContact.id)
+  )||null;
+  const name=String(item?.display_name||item?.username||activeContact?.name||'Liên hệ');
+  label.textContent=name;
+  tab.title=name;
+  avatar.hidden=false;
+  renderAvatarNode(avatar,item||{id:activeContact.id,display_name:name,username:name,avatar_path:null},'L');
+  return true;
 }
 
 const NavigationCommand={
@@ -11657,7 +11668,7 @@ function setActiveContact(contactId,contactName){
     activeContact={id:String(contactId),name:String(contactName||'Liên hệ')};
   }
   renderCallFocus();
-  renderActiveContactContext();
+  renderChatTabIdentity();
   syncContactActiveState();
   persistScreenSession();
   const nextId=activeContact?.id||null;
@@ -12531,7 +12542,7 @@ const AuthUI={
   setAccount(account){
     authAccount=account?{...account}:null;
     this.renderAccountFooter();
-    renderActiveContactContext();
+    renderChatTabIdentity();
   },
   setAuthenticated(authenticated,account=null){
     authState=authenticated?'AUTHENTICATED':'GUEST';
@@ -12567,6 +12578,7 @@ document.addEventListener('keydown',event=>{
 
 document.addEventListener('v21-contact-store-change',event=>{
   reconcileActiveContactFromStore(event.detail||{});
+  renderChatTabIdentity();
 });
 
 document.addEventListener('click',event=>{
