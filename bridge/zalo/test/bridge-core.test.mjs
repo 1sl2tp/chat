@@ -89,19 +89,24 @@ test('failed outbound send records failure without throwing out of the poll', as
   assert.match(gateway.results[0].error,/offline/);
 });
 
-test('outbound polling is single-flight', async()=>{
+test('outbound signal during an active poll queues one immediate rerun', async()=>{
   const adapter=makeAdapter();
   const gate=deferred();
   const gateway=makeGateway();
-  gateway.listOutbound=async()=>{gateway._listCalls=(gateway._listCalls||0)+1;await gate.promise;return [];};
+  gateway.listOutbound=async()=>{
+    gateway._listCalls=(gateway._listCalls||0)+1;
+    if(gateway._listCalls===1)await gate.promise;
+    return [];
+  };
   const bridge=createBridge({adapter,gateway,logger:{warn(){},error(){},info(){}}});
   await bridge.start();
   const first=bridge.pollOutbound();
   const second=bridge.pollOutbound();
-  assert.equal(await second,0);
+  assert.equal(gateway._listCalls,1);
   gate.resolve();
   assert.equal(await first,0);
-  assert.equal(gateway._listCalls,1);
+  assert.equal(await second,0);
+  assert.equal(gateway._listCalls,2);
 });
 
 test('stop closes the adapter once', async()=>{
