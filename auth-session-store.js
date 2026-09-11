@@ -213,8 +213,11 @@ const ContactStore={
 
 
 function avatarUrl(path){
-  if(!client||!path)return'';
-  try{return client.storage.from('v21-avatars').getPublicUrl(String(path)).data?.publicUrl||'';}catch{return'';}
+  if(!path)return'';
+  const raw=String(path).trim();
+  if(/^https?:\/\//i.test(raw))return raw;
+  if(!client)return'';
+  try{return client.storage.from('v21-avatars').getPublicUrl(raw).data?.publicUrl||'';}catch{return'';}
 }
 
 async function uploadAvatar(targetAccountId,file){
@@ -479,4 +482,3 @@ window.V21AuthSessionStore={
 
 void boot();
 })();
-

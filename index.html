@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="49d3d7857baff8eeed7bdbd0cf3080f2cbcae04cb40ae5a9b400a79cf94a103b">
+<meta name="app-build-id" content="f2cf6f2e4474ffe87e3e48c02c13af32d004bd41c1b751b2c35bc86f415da8ad">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -13195,8 +13195,11 @@ const ContactStore={
 
 
 function avatarUrl(path){
-  if(!client||!path)return'';
-  try{return client.storage.from('v21-avatars').getPublicUrl(String(path)).data?.publicUrl||'';}catch{return'';}
+  if(!path)return'';
+  const raw=String(path).trim();
+  if(/^https?:\/\//i.test(raw))return raw;
+  if(!client)return'';
+  try{return client.storage.from('v21-avatars').getPublicUrl(raw).data?.publicUrl||'';}catch{return'';}
 }
 
 async function uploadAvatar(targetAccountId,file){
@@ -13461,7 +13464,6 @@ window.V21AuthSessionStore={
 
 void boot();
 })();
-
 
 </script>
 <script data-inlined-source="zalo-admin-link.js">
