@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="48b4591f34e7064eaf49298f20866871211ad3c3753d72465ab5b1c9be59a320">
+<meta name="app-build-id" content="230735ec163952962d5d59ac0a1643b397d785ddec302d37b921a5f5a2999abb">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -11514,7 +11514,8 @@ const NavigationCommand={
     const item=window.V21ContactStore?.snapshot?.().find(row=>
       row?.id&&!row.deleted_at&&String(row.id)===id
     )||null;
-    const name=String(contactName||item?.display_name||item?.username||'Liên hệ');
+    if(!item)return false;
+    const name=String(contactName||item.display_name||item.username||'Liên hệ');
     this.open('chat');
     setActiveContact(id,name);
     return true;
@@ -13271,6 +13272,9 @@ function clearHeartbeat(){
 async function handleRevoked(){
   if(handlingRevoke)return;
   handlingRevoke=true;
+  if(account?.role==='admin'){
+    try{await window.V21AdminPush?.disable?.({bestEffort:true});}catch{}
+  }
   state='REVOKED';
   clearHeartbeat();
   const revokedAppSessionId=appSessionId||null;
@@ -13559,6 +13563,9 @@ async function logout(){
   setBusy(true);
   try{
     const logoutAppSessionId=appSessionId||null;
+    if(account?.role==='admin'){
+      try{await window.V21AdminPush?.disable?.({bestEffort:true});}catch{}
+    }
     await window.V21CallEngine?.stopCurrent?.({reason:'logout'});
     window.V21CallEngine?.clearLocal?.('logout');
     shell()?.CallCommand?.forceReset?.();
@@ -18200,6 +18207,7 @@ navigator.serviceWorker?.addEventListener('message',event=>{
   if(event.data?.type==='ADMIN_PUSH_OPEN')void handleOpen(event.data);
 });
 document.addEventListener('v21-auth-state',onAuthState);
+document.addEventListener('v21-contact-store-change',()=>{void consumePendingOpen();syncState();});
 document.addEventListener('visibilitychange',syncState);
 window.addEventListener('focus',syncState);
 window.addEventListener('blur',syncState);

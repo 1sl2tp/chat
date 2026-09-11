@@ -287,7 +287,8 @@ const NavigationCommand={
     const item=window.V21ContactStore?.snapshot?.().find(row=>
       row?.id&&!row.deleted_at&&String(row.id)===id
     )||null;
-    const name=String(contactName||item?.display_name||item?.username||'Liên hệ');
+    if(!item)return false;
+    const name=String(contactName||item.display_name||item.username||'Liên hệ');
     this.open('chat');
     setActiveContact(id,name);
     return true;

@@ -207,6 +207,7 @@ navigator.serviceWorker?.addEventListener('message',event=>{
   if(event.data?.type==='ADMIN_PUSH_OPEN')void handleOpen(event.data);
 });
 document.addEventListener('v21-auth-state',onAuthState);
+document.addEventListener('v21-contact-store-change',()=>{void consumePendingOpen();syncState();});
 document.addEventListener('visibilitychange',syncState);
 window.addEventListener('focus',syncState);
 window.addEventListener('blur',syncState);
