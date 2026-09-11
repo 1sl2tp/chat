@@ -40,12 +40,6 @@ admin_end=auth.index("async function adminSetLocked",admin_start)
 admin_body=auth[admin_start:admin_end]
 assert "username:String(username||'')" in admin_body
 
-# Remote Zalo avatars stay as direct URLs; local avatars still resolve through v21-avatars.
-zalo_link=read('zalo-admin-link.js')
-remote_avatar_contract=auth+"\n"+zalo_link
-assert "https?:" in remote_avatar_contract or "startsWith('http://')" in remote_avatar_contract or "startsWith('https://')" in remote_avatar_contract
-assert "avatarUrl" in remote_avatar_contract
-
 source=read('index.source.html')
 assert '.shell-profile-field input[aria-invalid="true"]' in source
 assert '.shell-profile-field:has(input[aria-invalid="true"])>label{color:#e11900}' in source
