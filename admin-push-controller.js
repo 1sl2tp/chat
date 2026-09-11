@@ -1,9 +1,13 @@
 (()=>{
 'use strict';
 
-const VERSION='V21.73.3-admin-push-v1';
+const VERSION='V21.73.4-admin-push-badge-v1';
+const BASE_DOCUMENT_TITLE=String(document.title||'TAPHOA Chat').replace(/^\(\d+\)\s*/,'')||'TAPHOA Chat';
+const faviconNode=document.querySelector?.('link[rel~="icon"]')||null;
+const BASE_FAVICON_HREF=String(faviconNode?.getAttribute?.('href')||faviconNode?.href||'./icons/chat-192.png');
 let state={admin:false,supported:false,code:'idle',enabled:false,permission:'default',platform:'web'};
 let pendingOpen=null;
+let unreadRefreshTimer=0;
 
 function authStore(){return window.V21AuthSessionStore||null;}
 function authSnapshot(){return authStore()?.snapshot?.()||{};}
@@ -63,6 +67,44 @@ function subscriptionJSON(subscription){
   };
 }
 
+function unreadFaviconHref(count){
+  if(Math.max(0,Number(count)||0)===0)return BASE_FAVICON_HREF;
+  const svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect x="4" y="4" width="56" height="56" rx="15" fill="#34c759"/><path d="M18 20h28v19H30l-8 7v-7h-4z" fill="white"/><circle cx="50" cy="14" r="10" fill="#ff3b30" stroke="white" stroke-width="3"/></svg>';
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
+async function applyUnreadPresentation(count,{notifyWorker=true}={}){
+  const normalized=Math.max(0,Number(count)||0);
+  document.title=normalized>0?`(${normalized}) ${BASE_DOCUMENT_TITLE}`:BASE_DOCUMENT_TITLE;
+  try{faviconNode?.setAttribute?.('href',unreadFaviconHref(normalized));}catch{}
+  try{
+    if(normalized>0&&typeof navigator?.setAppBadge==='function')await navigator.setAppBadge(normalized);
+    else if(normalized===0&&typeof navigator?.clearAppBadge==='function')await navigator.clearAppBadge();
+  }catch{}
+  if(notifyWorker){
+    try{navigator.serviceWorker?.controller?.postMessage?.({type:'ADMIN_PUSH_BADGE_SET',count:normalized});}catch{}
+  }
+  return normalized;
+}
+
+async function refreshUnreadBadge(){
+  if(!isAdmin())return applyUnreadPresentation(0);
+  let count=Math.max(0,Number(window.ChatAppShell?.UnreadIndicator?.snapshot?.()||0));
+  try{
+    const refresh=window.V21SyncEngine?.refreshUnread;
+    if(typeof refresh==='function')count=Math.max(0,Number(await refresh())||0);
+  }catch{}
+  return applyUnreadPresentation(count);
+}
+
+function scheduleUnreadBadgeRefresh(delay=32){
+  if(unreadRefreshTimer)clearTimeout(unreadRefreshTimer);
+  unreadRefreshTimer=setTimeout(()=>{
+    unreadRefreshTimer=0;
+    void refreshUnreadBadge();
+  },Math.max(0,Number(delay)||0));
+}
+
 async function status(){
   const admin=isAdmin();
   const currentPlatform=platform();
@@ -111,6 +153,7 @@ async function enable(){
       user_agent:String(navigator.userAgent||''),
     });
     syncState();
+    scheduleUnreadBadgeRefresh(0);
     return result({ok:true,admin:true,supported:true,enabled:true,code:'enabled',platform:currentPlatform,permission});
   }catch(error){
     return result({ok:false,admin:true,supported:true,enabled:false,code:String(error?.message||'enable_failed'),platform:currentPlatform,permission});
@@ -132,6 +175,8 @@ async function disable({bestEffort=false}={}){
 }
 
 function clearClientState(){
+  if(unreadRefreshTimer){clearTimeout(unreadRefreshTimer);unreadRefreshTimer=0;}
+  void applyUnreadPresentation(0,{notifyWorker:false});
   try{
     navigator.serviceWorker?.controller?.postMessage?.({type:'ADMIN_PUSH_CLEAR'});
     return true;
@@ -184,6 +229,7 @@ async function handleOpen(payload={}){
   pendingOpen=null;
   clearColdOpenQuery();
   syncState();
+  scheduleUnreadBadgeRefresh(0);
   return true;
 }
 
@@ -197,6 +243,7 @@ function onAuthState(event){
   if(detail.state==='AUTHENTICATED'&&detail.account?.role==='admin'){
     void consumePendingOpen();
     syncState();
+    scheduleUnreadBadgeRefresh(0);
     return;
   }
   clearClientState();
@@ -205,21 +252,22 @@ function onAuthState(event){
 pendingOpen=coldOpenFromLocation();
 navigator.serviceWorker?.addEventListener('message',event=>{
   if(event.data?.type==='ADMIN_PUSH_OPEN')void handleOpen(event.data);
+  if(event.data?.type==='ADMIN_PUSH_BADGE_DIRTY')scheduleUnreadBadgeRefresh(0);
 });
 document.addEventListener('v21-auth-state',onAuthState);
-document.addEventListener('v21-contact-store-change',()=>{void consumePendingOpen();syncState();});
-document.addEventListener('visibilitychange',syncState);
-window.addEventListener('focus',syncState);
+document.addEventListener('v21-contact-store-change',()=>{void consumePendingOpen();syncState();scheduleUnreadBadgeRefresh();});
+document.addEventListener('visibilitychange',()=>{syncState();if(document.visibilityState==='visible')scheduleUnreadBadgeRefresh(0);});
+window.addEventListener('focus',()=>{syncState();scheduleUnreadBadgeRefresh(0);});
 window.addEventListener('blur',syncState);
 document.addEventListener('navigation-change',syncState);
 document.addEventListener('v21-active-contact-change',syncState);
 document.addEventListener('v21-conversation-context',syncState);
 
-if(isAdmin()){void consumePendingOpen();syncState();}
+if(isAdmin()){void consumePendingOpen();syncState();scheduleUnreadBadgeRefresh(0);}
 else clearClientState();
 
 function snapshot(){return Object.freeze({...state,pendingOpen:pendingOpen?{...pendingOpen}:null});}
 
 state={...state,admin:isAdmin(),supported:isAdmin()&&browserSupported(),permission:typeof Notification==='undefined'?'default':String(Notification.permission||'default'),platform:platform()};
-window.V21AdminPush=Object.freeze({version:VERSION,status,enable,disable,syncState,handleOpen,snapshot});
+window.V21AdminPush=Object.freeze({version:VERSION,status,enable,disable,syncState,refreshUnreadBadge,handleOpen,snapshot});
 })();
