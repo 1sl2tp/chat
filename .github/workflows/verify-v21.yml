@@ -8,11 +8,15 @@ on:
       - v21-72-18-auth-actions-row
       - v21-72-19-profile-username-avatar
   pull_request:
+permissions:
+  contents: write
 jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -31,5 +35,17 @@ jobs:
         run: python tests/test_v21_72_19_profile_username_avatar.py
       - name: GETLINK thin work embed contract
         run: python tests/test_v21_remove_getlink_embed.py
+      - name: Build canonical candidate
+        run: python tools/build_current_preview.py
+      - name: Sync canonical build to PR branch
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          if ! git diff --quiet -- index.html version.json; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add index.html version.json
+            git commit -m "build: sync avatar fix preview"
+            git push origin "HEAD:${{ github.head_ref }}"
+          fi
       - name: Verify canonical source
         run: python tools/verify_current.py
