@@ -38,6 +38,6 @@ def test_link_syncs_zalo_avatar_to_existing_chat_account():
     for token in [
         'async function synclinkedavatar',
         '.update({ avatar_path:',
-        'await synclinkedavatar(targetid, zaloid)',
+        'await synclinkedavatar(admin, targetid, zaloid)',
     ]:
         assert token in lower, token
