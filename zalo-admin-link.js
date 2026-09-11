@@ -7,19 +7,6 @@ const mounted=new WeakSet();
 function authStore(){return window.V21AuthSessionStore||null;}
 function contactStore(){return window.V21ContactStore||null;}
 
-function installRemoteAvatarResolver(){
-  const store=window.V21AccountProfileStore;
-  if(!store||typeof store.avatarUrl!=='function'||store.__zaloRemoteAvatarResolver)return;
-  const localAvatarUrl=store.avatarUrl.bind(store);
-  store.avatarUrl=(path)=>{
-    const raw=String(path||'').trim();
-    if(/^https?:\/\//i.test(raw))return raw;
-    return localAvatarUrl(path);
-  };
-  store.__zaloRemoteAvatarResolver=true;
-}
-installRemoteAvatarResolver();
-
 function currentAdmin(){
   const snapshot=authStore()?.snapshot?.()||{};
   return snapshot.state==='AUTHENTICATED'&&snapshot.account?.role==='admin'
@@ -243,7 +230,6 @@ function tryMountProfile(root){
 }
 
 function scan(){
-  installRemoteAvatarResolver();
   for(const root of document.querySelectorAll('[data-profile-overlay]'))tryMountProfile(root);
 }
 
