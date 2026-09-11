@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -38,5 +39,16 @@ def test_admin_push_setting_lives_inside_existing_zalo_account_popup():
         '.disable()',
     ]:
         assert token in module, token
+    popup=re.search(r"accountModal\.innerHTML=`(?P<html>.*?)`;\s*host\.appendChild\(accountModal\)",module,re.S)
+    assert popup, 'account popup markup not found'
+    popup_html=popup.group('html')
+    for token in [
+        'data-admin-push-setting',
+        'data-admin-push-status',
+        'data-admin-push-action',
+        'Thông báo',
+        'Bật thông báo',
+    ]:
+        assert token in popup_html, f'{token} must be rendered inside Zalo & tài khoản popup'
     assert '.zalo-account-notification' in css
     assert 'Notification.requestPermission' not in module
