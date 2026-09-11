@@ -18,3 +18,20 @@ def test_admin_push_edge_contract():
         assert token in EDGE, token
     public_key_block=EDGE.split('action === "public_key"',1)[1].split('if(action ===',1)[0]
     assert 'VAPID_PRIVATE_KEY' not in public_key_block
+
+
+def test_admin_push_drain_wake_auth_and_delivery_contract():
+    EDGE=(ROOT/'supabase/functions/v21-admin-push/index.ts').read_text('utf-8')
+    for token in [
+        'x-push-wake-token',
+        'v21_admin_push_auth',
+        'sha256Hex',
+        'webpush.sendNotification',
+        'TTL:60',
+        'urgency:"normal"',
+        'isGoneStatus',
+        'v21_push_subscriptions',
+    ]:
+        assert token in EDGE, token
+    drain=EDGE.split('action === "drain"',1)[1].split('const authHeader',1)[0]
+    assert drain.index('x-push-wake-token') < drain.index('v21_admin_push_claim')
