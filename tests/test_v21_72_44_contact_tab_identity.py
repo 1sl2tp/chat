@@ -10,8 +10,8 @@ def read(path):
 source=read("index.source.html")
 shell=read("shell.js")
 
-# The chat tab owns active-contact identity for admins; there is no second
-# context row competing for vertical space beneath the mode switch.
+# The chat tab is the single owner of active-contact identity for admins;
+# there is no second context row competing for header vertical space.
 assert 'data-active-contact-context' not in source
 assert 'data-chat-tab-avatar' in source
 assert 'data-chat-tab-label' in source
