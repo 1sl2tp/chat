@@ -173,7 +173,12 @@ function syncAdminGroupControls(){
   for(const row of modal.querySelectorAll('[data-account-id]')){
     const accountId=String(row.dataset.accountId||'');
     const actions=row.querySelector('.zalo-account-row-actions');
-    if(!accountId||!actions||actions.querySelector('[data-contact-group-select]'))continue;
+    if(!accountId||!actions)continue;
+    const existing=actions.querySelector('[data-contact-group-select]');
+    if(existing){
+      if(!existing.disabled)existing.value=groupKey(groupMap.get(accountId));
+      continue;
+    }
     const select=document.createElement('select');
     select.className='zalo-account-group-select';
     select.dataset.contactGroupSelect='';
@@ -243,7 +248,10 @@ document.addEventListener('v21-contact-store-change',scheduleSync);
 document.addEventListener('v21-auth-state',resetForAuth);
 document.addEventListener('click',event=>{
   const target=event.target instanceof Element?event.target:null;
-  if(target?.closest?.('[data-zalo-account-admin-open]'))window.setTimeout(scheduleSync,0);
+  if(target?.closest?.('[data-zalo-account-admin-open]')){
+    window.setTimeout(scheduleSync,0);
+    void ensureGroups({force:true});
+  }
 });
 const overlayRoot=document.querySelector('[data-global-overlay-root]')||document.body;
 new MutationObserver(scheduleSync).observe(overlayRoot,{childList:true,subtree:true});
