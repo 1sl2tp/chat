@@ -4,7 +4,9 @@ ROOT = Path(__file__).parents[1]
 
 
 def test_directory_reorders_contacts_by_latest_activity_and_exposes_search_filters():
-    module = (ROOT / "zalo-admin-link.js").read_text("utf-8")
+    module_path = ROOT / "contact-directory-admin.js"
+    assert module_path.exists(), "contact-directory-admin.js is required"
+    module = module_path.read_text("utf-8")
     for token in [
         "function sortDirectoryContacts",
         "latest_at",
@@ -18,15 +20,19 @@ def test_directory_reorders_contacts_by_latest_activity_and_exposes_search_filte
     ]:
         assert token in module, token
 
+    loader = (ROOT / "zalo-admin-link.js").read_text("utf-8")
+    assert "contact-directory-admin.js" in loader
+
 
 def test_group_editing_exists_only_in_zalo_account_admin_popup():
-    module = (ROOT / "zalo-admin-link.js").read_text("utf-8")
+    module = (ROOT / "contact-directory-admin.js").read_text("utf-8")
     for token in [
         "action:'set_group'",
         "contact_group",
         "customer",
         "friend",
         "other",
+        "data-zalo-account-admin-modal",
     ]:
         assert token in module, token
 
@@ -48,6 +54,7 @@ def test_contact_group_schema_and_admin_backend_contract():
 
     edge = (ROOT / "supabase/functions/v21-zalo-admin/index.ts").read_text("utf-8").lower()
     for token in [
+        'action === "directory_groups"',
         'action === "set_group"',
         "contact_group",
         "customer",
