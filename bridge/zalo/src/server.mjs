@@ -1,5 +1,6 @@
 import http from 'node:http';
 import path from 'node:path';
+import {createHash} from 'node:crypto';
 import {Zalo,ThreadType} from 'zca-js';
 import {createLoginState,createRequestHandler} from './login-server-core.mjs';
 import {startZaloLogin} from './login-runtime.mjs';
@@ -14,6 +15,7 @@ const accessToken=String(process.env.LOGIN_TOKEN||'').trim();
 const supabaseUrl=String(process.env.SUPABASE_URL||'').trim();
 const publishableKey=String(process.env.SUPABASE_PUBLISHABLE_KEY||'').trim();
 const bridgeToken=String(process.env.ZALO_BRIDGE_TOKEN||'').trim();
+const signalTokenHash=bridgeToken?createHash('sha256').update(bridgeToken).digest('hex'):'';
 const sessionStore=supabaseUrl&&publishableKey&&bridgeToken
   ?createSupabaseSessionStore({supabaseUrl,publishableKey,bridgeToken})
   :null;
@@ -68,6 +70,8 @@ const handler=createRequestHandler({
   state,
   qrPath,
   accessToken,
+  signalTokenHash,
+  outboundNow:pollOutbound,
   listFriends:async()=>{
     if(!api||typeof api.getAllFriends!=='function')throw new Error('zalo_api_not_ready');
     return api.getAllFriends();
@@ -94,7 +98,6 @@ server.listen(port,'0.0.0.0',()=>{
         api,
         logger:console,
         onMessage:async event=>{
-          console.log('[zalo-incoming]',JSON.stringify(event));
           if(!messageGateway)return;
           try{
             const bridged=await messageGateway.ingestText(event);
@@ -115,8 +118,8 @@ server.listen(port,'0.0.0.0',()=>{
       }
       if(messageGateway){
         void pollOutbound();
-        outboundTimer=setInterval(()=>{void pollOutbound();},5000);
-        console.log('[zalo-login] outbound text poll enabled 5000ms');
+        outboundTimer=setInterval(()=>{void pollOutbound();},60000);
+        console.log('[zalo-login] outbound event signal enabled; fallback poll 60000ms');
       }
     })
     .catch(()=>{});
