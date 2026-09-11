@@ -14,7 +14,7 @@ app=read("app.js")
 # but must not use a cyclic min(...,100%) width inside a fit-content message unit.
 assert "width:400px;max-width:100%;gap:4px" in app
 assert ".media-gallery-grid{\n  width:25rem!important;\n  max-width:100%;" in source
-assert "width:min(25rem,100%)!important" not in source
+assert ".media-gallery-grid{width:min(25rem,100%)!important}" not in source
 
 # Outgoing galleries anchor to the sender edge even if the message unit has
 # spare width after shrink-to-fit/max-width resolution.
