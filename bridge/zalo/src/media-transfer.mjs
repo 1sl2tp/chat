@@ -10,6 +10,7 @@ function extensionForMime(mimeType,fallback='bin'){
   const mime=baseMime(mimeType);
   const map={
     'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif',
+    'audio/mp4':'m4a','audio/m4a':'m4a','audio/mpeg':'mp3','audio/ogg':'ogg','audio/webm':'webm','audio/wav':'wav','audio/x-wav':'wav','audio/aac':'aac',
     'application/pdf':'pdf','text/plain':'txt','text/csv':'csv',
     'application/zip':'zip','application/x-zip-compressed':'zip',
     'application/msword':'doc','application/vnd.openxmlformats-officedocument.wordprocessingml.document':'docx',
@@ -54,7 +55,7 @@ function sessionHeaders(api,sourceUrl){
 export async function downloadInboundMedia({api,fetchImpl=fetch,media,maxBytes=MAX_MEDIA_BYTES}={}){
   const sourceUrl=String(media?.sourceUrl||'').trim();
   const kind=String(media?.kind||'').toLowerCase();
-  if(!/^https?:\/\//i.test(sourceUrl)||!['image','file'].includes(kind))throw new Error('invalid_media_source');
+  if(!/^https?:\/\//i.test(sourceUrl)||!['image','audio','file'].includes(kind))throw new Error('invalid_media_source');
 
   const response=await fetchImpl(sourceUrl,{
     method:'GET',
@@ -64,15 +65,20 @@ export async function downloadInboundMedia({api,fetchImpl=fetch,media,maxBytes=M
   if(!response?.ok)throw new Error(`zalo_media_http_${Number(response?.status)||0}`);
   const data=await readResponseBuffer(response,maxBytes);
   const responseMime=baseMime(response?.headers?.get?.('content-type')||media?.mimeType);
-  const mimeType=responseMime==='application/octet-stream'&&kind==='image'
-    ?baseMime(media?.mimeType||'image/jpeg')
-    :responseMime;
+  let mimeType=responseMime;
+  if(responseMime==='application/octet-stream'){
+    if(kind==='image')mimeType=baseMime(media?.mimeType||'image/jpeg');
+    if(kind==='audio')mimeType=baseMime(media?.mimeType||'audio/mp4');
+  }
   if(kind==='image'&&!mimeType.startsWith('image/'))throw new Error('image_type_required');
+  if(kind==='audio'&&!mimeType.startsWith('audio/'))throw new Error('audio_type_required');
+  if(kind==='file'&&(mimeType.startsWith('image/')||mimeType.startsWith('audio/')))throw new Error('file_type_required');
 
   let filename=String(media?.fileName||'').trim();
   if(!filename){
-    const ext=extensionForMime(mimeType,kind==='image'?'jpg':'bin');
-    filename=kind==='image'?`zalo-image.${ext}`:`zalo-file.${ext}`;
+    const fallback=kind==='image'?'jpg':kind==='audio'?'m4a':'bin';
+    const ext=extensionForMime(mimeType,fallback);
+    filename=kind==='image'?`zalo-image.${ext}`:kind==='audio'?`zalo-audio.${ext}`:`zalo-file.${ext}`;
   }
   return{
     data,
@@ -87,12 +93,13 @@ export async function downloadInboundMedia({api,fetchImpl=fetch,media,maxBytes=M
 async function downloadSignedAsset(asset,index,{fetchImpl,maxBytes}){
   const signedUrl=String(asset?.signedUrl||'').trim();
   if(!/^https?:\/\//i.test(signedUrl))throw new Error('invalid_signed_media_url');
+  const kind=String(asset?.kind||'file').toLowerCase();
+  if(kind==='audio')throw new Error('audio_requires_send_voice');
   const response=await fetchImpl(signedUrl,{method:'GET',redirect:'follow'});
   if(!response?.ok)throw new Error(`chat_media_http_${Number(response?.status)||0}`);
   const data=await readResponseBuffer(response,maxBytes);
   const responseMime=baseMime(response?.headers?.get?.('content-type')||asset?.mimeType);
   const mimeType=responseMime==='application/octet-stream'?baseMime(asset?.mimeType):responseMime;
-  const kind=String(asset?.kind||'file').toLowerCase();
   if(kind==='image'&&!mimeType.startsWith('image/'))throw new Error('image_type_required');
   if(kind==='file'&&(mimeType.startsWith('image/')||mimeType.startsWith('audio/')))throw new Error('file_type_required');
 
