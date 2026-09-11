@@ -49,7 +49,7 @@ jobs:
           t=test.read_text('utf-8')
           old_assert="assert 'width:min(25rem,100%)!important' in source"
           assert old_assert in t, 'old image presentation contract not found'
-          t=t.replace(old_assert,"assert 'width:25rem!important' in source\nassert 'max-width:100%' in source\nassert 'width:min(25rem,100%)!important' not in source")
+          t=t.replace(old_assert,"assert '.media-gallery-grid{width:25rem!important;max-width:100%}' in source\nassert '.media-gallery-grid{width:min(25rem,100%)!important}' not in source")
           test.write_text(t,'utf-8')
           print(f'V21.72.43 gallery edge patch applied base={base_count} mobile={mobile_count} anchors={anchor_count}')
           PY
