@@ -17,66 +17,8 @@ jobs:
           python-version: '3.12'
       - name: Patch hardening changes
         run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          auth_path=Path('auth-session-store.js')
-          auth=auth_path.read_text('utf-8')
-          revoked_old="""async function handleRevoked(){
-  if(handlingRevoke)return;
-  handlingRevoke=true;
-  state='REVOKED';
-  clearHeartbeat();"""
-          revoked_new="""async function handleRevoked(){
-  if(handlingRevoke)return;
-  handlingRevoke=true;
-  if(account?.role==='admin'){
-    try{await window.V21AdminPush?.disable?.({bestEffort:true});}catch{}
-  }
-  state='REVOKED';
-  clearHeartbeat();"""
-          assert revoked_old in auth, 'handleRevoked marker missing'
-          auth=auth.replace(revoked_old,revoked_new,1)
-
-          logout_old="""  try{
-    const logoutAppSessionId=appSessionId||null;
-    await window.V21CallEngine?.stopCurrent?.({reason:'logout'});"""
-          logout_new="""  try{
-    const logoutAppSessionId=appSessionId||null;
-    if(account?.role==='admin'){
-      try{await window.V21AdminPush?.disable?.({bestEffort:true});}catch{}
-    }
-    await window.V21CallEngine?.stopCurrent?.({reason:'logout'});"""
-          assert logout_old in auth, 'logout marker missing'
-          auth=auth.replace(logout_old,logout_new,1)
-          auth_path.write_text(auth,'utf-8')
-
-          shell_path=Path('shell.js')
-          shell=shell_path.read_text('utf-8')
-          shell_old="""    const item=window.V21ContactStore?.snapshot?.().find(row=>
-      row?.id&&!row.deleted_at&&String(row.id)===id
-    )||null;
-    const name=String(contactName||item?.display_name||item?.username||'Liên hệ');"""
-          shell_new="""    const item=window.V21ContactStore?.snapshot?.().find(row=>
-      row?.id&&!row.deleted_at&&String(row.id)===id
-    )||null;
-    if(!item)return false;
-    const name=String(contactName||item.display_name||item.username||'Liên hệ');"""
-          assert shell_old in shell, 'openContact marker missing'
-          shell=shell.replace(shell_old,shell_new,1)
-          shell_path.write_text(shell,'utf-8')
-
-          controller_path=Path('admin-push-controller.js')
-          controller=controller_path.read_text('utf-8')
-          listener_old="""document.addEventListener('v21-auth-state',onAuthState);
-document.addEventListener('visibilitychange',syncState);"""
-          listener_new="""document.addEventListener('v21-auth-state',onAuthState);
-document.addEventListener('v21-contact-store-change',()=>{void consumePendingOpen();syncState();});
-document.addEventListener('visibilitychange',syncState);"""
-          assert listener_old in controller, 'controller listener marker missing'
-          controller=controller.replace(listener_old,listener_new,1)
-          controller_path.write_text(controller,'utf-8')
-          PY
+          echo 'ZnJvbSBwYXRobGliIGltcG9ydCBQYXRoCgphdXRoX3BhdGg9UGF0aCgnYXV0aC1zZXNzaW9uLXN0b3JlLmpzJykKYXV0aD1hdXRoX3BhdGgucmVhZF90ZXh0KCd1dGYtOCcpCnJldm9rZWRfb2xkPSIiImFzeW5jIGZ1bmN0aW9uIGhhbmRsZVJldm9rZWQoKXsKICBpZihoYW5kbGluZ1Jldm9rZSlyZXR1cm47CiAgaGFuZGxpbmdSZXZva2U9dHJ1ZTsKICBzdGF0ZT0nUkVWT0tFRCc7CiAgY2xlYXJIZWFydGJlYXQoKTsiIiIKcmV2b2tlZF9uZXc9IiIiYXN5bmMgZnVuY3Rpb24gaGFuZGxlUmV2b2tlZCgpewogIGlmKGhhbmRsaW5nUmV2b2tlKXJldHVybjsKICBoYW5kbGluZ1Jldm9rZT10cnVlOwogIGlmKGFjY291bnQ/LnJvbGU9PT0nYWRtaW4nKXsKICAgIHRyeXthd2FpdCB3aW5kb3cuVjIxQWRtaW5QdXNoPy5kaXNhYmxlPy4oe2Jlc3RFZmZvcnQ6dHJ1ZX0pO31jYXRjaHt9CiAgfQogIHN0YXRlPSdSRVZPS0VEJzsKICBjbGVhckhlYXJ0YmVhdCgpOyIiIgphc3NlcnQgcmV2b2tlZF9vbGQgaW4gYXV0aCwgJ2hhbmRsZVJldm9rZWQgbWFya2VyIG1pc3NpbmcnCmF1dGg9YXV0aC5yZXBsYWNlKHJldm9rZWRfb2xkLHJldm9rZWRfbmV3LDEpCgpsb2dvdXRfb2xkPSIiIiAgdHJ5ewogICAgY29uc3QgbG9nb3V0QXBwU2Vzc2lvbklkPWFwcFNlc3Npb25JZHx8bnVsbDsKICAgIGF3YWl0IHdpbmRvdy5WMjFDYWxsRW5naW5lPy5zdG9wQ3VycmVudD8uKHtyZWFzb246J2xvZ291dCd9KTsiIiIKbG9nb3V0X25ldz0iIiIgIHRyeXsKICAgIGNvbnN0IGxvZ291dEFwcFNlc3Npb25JZD1hcHBTZXNzaW9uSWR8fG51bGw7CiAgICBpZihhY2NvdW50Py5yb2xlPT09J2FkbWluJyl7CiAgICAgIHRyeXthd2FpdCB3aW5kb3cuVjIxQWRtaW5QdXNoPy5kaXNhYmxlPy4oe2Jlc3RFZmZvcnQ6dHJ1ZX0pO31jYXRjaHt9CiAgICB9CiAgICBhd2FpdCB3aW5kb3cuVjIxQ2FsbEVuZ2luZT8uc3RvcEN1cnJlbnQ/Lih7cmVhc29uOidsb2dvdXQnfSk7IiIiCmFzc2VydCBsb2dvdXRfb2xkIGluIGF1dGgsICdsb2dvdXQgbWFya2VyIG1pc3NpbmcnCmF1dGg9YXV0aC5yZXBsYWNlKGxvZ291dF9vbGQsbG9nb3V0X25ldywxKQphdXRoX3BhdGgud3JpdGVfdGV4dChhdXRoLCd1dGYtOCcpCgpzaGVsbF9wYXRoPVBhdGgoJ3NoZWxsLmpzJykKc2hlbGw9c2hlbGxfcGF0aC5yZWFkX3RleHQoJ3V0Zi04JykKc2hlbGxfb2xkPSIiIiAgICBjb25zdCBpdGVtPXdpbmRvdy5WMjFDb250YWN0U3RvcmU/LnNuYXBzaG90Py4oKS5maW5kKHJvdz0+CiAgICAgIHJvdz8uaWQmJiFyb3cuZGVsZXRlZF9hdCYmU3RyaW5nKHJvdy5pZCk9PT1pZAogICAgKXx8bnVsbDsKICAgIGNvbnN0IG5hbWU9U3RyaW5nKGNvbnRhY3ROYW1lfHxpdGVtPy5kaXNwbGF5X25hbWV8fGl0ZW0/LnVzZXJuYW1lfHwnTGnDqm4gaOG7hycpOyIiIgpzaGVsbF9uZXc9IiIiICAgIGNvbnN0IGl0ZW09d2luZG93LlYyMUNvbnRhY3RTdG9yZT8uc25hcHNob3Q/LigpLmZpbmQocm93PT4KICAgICAgcm93Py5pZCYmIXJvdy5kZWxldGVkX2F0JiZTdHJpbmcocm93LmlkKT09PWlkCiAgICApfHxudWxsOwogICAgaWYoIWl0ZW0pcmV0dXJuIGZhbHNlOwogICAgY29uc3QgbmFtZT1TdHJpbmcoY29udGFjdE5hbWV8fGl0ZW0uZGlzcGxheV9uYW1lfHxpdGVtLnVzZXJuYW1lfHwnTGnDqm4gaOG7hycpOyIiIgphc3NlcnQgc2hlbGxfb2xkIGluIHNoZWxsLCAnb3BlbkNvbnRhY3QgbWFya2VyIG1pc3NpbmcnCnNoZWxsPXNoZWxsLnJlcGxhY2Uoc2hlbGxfb2xkLHNoZWxsX25ldywxKQpzaGVsbF9wYXRoLndyaXRlX3RleHQoc2hlbGwsJ3V0Zi04JykKCmNvbnRyb2xsZXJfcGF0aD1QYXRoKCdhZG1pbi1wdXNoLWNvbnRyb2xsZXIuanMnKQpjb250cm9sbGVyPWNvbnRyb2xsZXJfcGF0aC5yZWFkX3RleHQoJ3V0Zi04JykKbGlzdGVuZXJfb2xkPSIiImRvY3VtZW50LmFkZEV2ZW50TGlzdGVuZXIoJ3YyMS1hdXRoLXN0YXRlJyxvbkF1dGhTdGF0ZSk7CmRvY3VtZW50LmFkZEV2ZW50TGlzdGVuZXIoJ3Zpc2liaWxpdHljaGFuZ2UnLHN5bmNTdGF0ZSk7IiIiCmxpc3RlbmVyX25ldz0iIiJkb2N1bWVudC5hZGRFdmVudExpc3RlbmVyKCd2MjEtYXV0aC1zdGF0ZScsb25BdXRoU3RhdGUpOwpkb2N1bWVudC5hZGRFdmVudExpc3RlbmVyKCd2MjEtY29udGFjdC1zdG9yZS1jaGFuZ2UnLCgpPT57dm9pZCBjb25zdW1lUGVuZGluZ09wZW4oKTtzeW5jU3RhdGUoKTt9KTsKZG9jdW1lbnQuYWRkRXZlbnRMaXN0ZW5lcigndmlzaWJpbGl0eWNoYW5nZScsc3luY1N0YXRlKTsiIiIKYXNzZXJ0IGxpc3RlbmVyX29sZCBpbiBjb250cm9sbGVyLCAnY29udHJvbGxlciBsaXN0ZW5lciBtYXJrZXIgbWlzc2luZycKY29udHJvbGxlcj1jb250cm9sbGVyLnJlcGxhY2UobGlzdGVuZXJfb2xkLGxpc3RlbmVyX25ldywxKQpjb250cm9sbGVyX3BhdGgud3JpdGVfdGV4dChjb250cm9sbGVyLCd1dGYtOCcpCg==' | base64 -d > /tmp/admin-push-hardening.py
+          python /tmp/admin-push-hardening.py
       - name: Verify hardening contracts
         run: |
           python -m pip install -q pytest
