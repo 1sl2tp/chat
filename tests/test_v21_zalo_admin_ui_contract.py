@@ -28,20 +28,17 @@ def test_zalo_link_is_admin_managed_profile_only():
     assert "zalo" not in sync_engine, "Zalo transport must not be added to SyncEngine"
 
 
-def test_zalo_account_admin_settings_surface():
-    module_path = ROOT / "zalo-account-admin.js"
-    css_path = ROOT / "zalo-account-admin.css"
-    assert module_path.exists(), "zalo-account-admin.js is required"
-    assert css_path.exists(), "zalo-account-admin.css is required"
-
-    module = module_path.read_text("utf-8")
-    css = css_path.read_text("utf-8")
+def test_zalo_account_admin_is_one_simple_popup_inside_existing_module():
+    module = (ROOT / "zalo-admin-link.js").read_text("utf-8")
+    css = (ROOT / "zalo-admin-link.css").read_text("utf-8")
     source = (ROOT / "index.source.html").read_text("utf-8")
+
     for token in [
-        "V21ZaloAccountAdmin",
         "Zalo & tài khoản",
         "admin_snapshot",
         "create_and_link",
+        "data-zalo-account-admin-open",
+        "data-zalo-account-admin-modal",
         "Đã kết nối",
         "Chưa kết nối",
         "Zalo đã được gán",
@@ -52,6 +49,9 @@ def test_zalo_account_admin_settings_surface():
     ]:
         assert token in module, token
 
-    assert 'data-build-source="zalo-account-admin.css"' in source
-    assert 'data-build-source="zalo-account-admin.js"' in source
+    assert 'data-build-source="zalo-admin-link.css"' in source
+    assert 'data-build-source="zalo-admin-link.js"' in source
+    assert "zalo-account-admin.js" not in source
+    assert "zalo-account-admin.css" not in source
+    assert "zalo-account-modal" in css
     assert "@media" in css and "max-width" in css
