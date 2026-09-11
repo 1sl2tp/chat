@@ -76,3 +76,45 @@ test('login runtime writes QR path, marks logged in and starts listener',async()
   assert.deepEqual(calls[1],['loginQR',{qrPath:'/tmp/zalo-qr.png'}]);
   assert.equal(calls.at(-1),'listener.start');
 });
+
+test('contacts endpoint requires an active Zalo login',async()=>{
+  const state=createLoginState();
+  const handler=createRequestHandler({
+    state,
+    qrPath:'/tmp/not-created.png',
+    accessToken:'secret',
+    listFriends:async()=>[],
+  });
+  const req={method:'GET',url:'/contacts?token=secret'};
+  const res=makeResponse();
+  await handler(req,res);
+  assert.equal(res.statusCode,409);
+  assert.equal(JSON.parse(res.body.toString()).error,'zalo_not_logged_in');
+});
+
+test('contacts endpoint returns only id name and avatar from Zalo friends',async()=>{
+  const state=createLoginState();
+  state.setLoggedIn({userId:'me'});
+  const handler=createRequestHandler({
+    state,
+    qrPath:'/tmp/not-created.png',
+    accessToken:'secret',
+    listFriends:async()=>[
+      {userId:'z1',displayName:'C Sâm Phủ Lý',zaloName:'Sâm',avatar:'https://img/1.jpg',phoneNumber:'hidden'},
+      {userId:'z2',displayName:'',zaloName:'Anh Bình',avatar:'https://img/2.jpg'},
+    ],
+  });
+  const req={method:'GET',url:'/contacts?token=secret'};
+  const res=makeResponse();
+  await handler(req,res);
+  assert.equal(res.statusCode,200);
+  const body=JSON.parse(res.body.toString());
+  assert.deepEqual(body,{
+    ok:true,
+    count:2,
+    contacts:[
+      {id:'z1',name:'C Sâm Phủ Lý',avatar:'https://img/1.jpg'},
+      {id:'z2',name:'Anh Bình',avatar:'https://img/2.jpg'},
+    ],
+  });
+});
