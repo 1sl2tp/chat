@@ -29,3 +29,5 @@ jobs:
         run: node tests/test_v21_admin_web_push_controller.js
       - name: Admin push browser ownership contract
         run: python -m pytest -q tests/test_v21_admin_web_push_ui_contract.py
+      - name: Admin push open route and logout cleanup contract
+        run: python -m pytest -q tests/test_v21_admin_web_push_open_route.py
