@@ -1,0 +1,78 @@
+name: Apply V21.72.47 Green
+on:
+  push:
+    branches:
+      - feature/mobile-header-picker-keyboard-occlusion
+permissions:
+  contents: write
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/mobile-header-picker-keyboard-occlusion
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install verify dependency
+        run: python -m pip install pytest
+      - name: Apply bounded mobile viewport fixes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          src_path=Path('index.source.html')
+          src=src_path.read_text('utf-8')
+
+          old_dom='class="contact-avatar-source top-mode-contact-avatar" data-chat-tab-avatar hidden'
+          new_dom='class="top-mode-contact-avatar" data-chat-tab-avatar hidden'
+          assert src.count(old_dom)==1, src.count(old_dom)
+          src=src.replace(old_dom,new_dom,1)
+
+          old_avatar='.top-mode-contact-avatar{width:20px;height:20px;flex:0 0 20px;border-radius:999px;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;font-size:9px;line-height:1;font-weight:700}'
+          new_avatar='.top-mode-contact-avatar{box-sizing:border-box;width:20px;height:20px;min-width:20px;min-height:20px;max-width:20px;max-height:20px;flex:0 0 20px;border-radius:999px;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;background:var(--account-avatar-bg,#d1fae5);color:var(--account-avatar-fg,#111827);font-size:9px;line-height:1;font-weight:700}'
+          assert src.count(old_avatar)==1, src.count(old_avatar)
+          src=src.replace(old_avatar,new_avatar,1)
+
+          scroll_anchor='#scrollRoot::-webkit-scrollbar{display:none;width:0;height:0}\n'
+          clip_rule='#stageLayout[data-keyboard-open="true"] #scrollRoot{\n  -webkit-clip-path:inset(0 0 var(--screen-keyboard-height,0px) 0);\n  clip-path:inset(0 0 var(--screen-keyboard-height,0px) 0);\n}\n'
+          assert src.count(scroll_anchor)==1, src.count(scroll_anchor)
+          assert clip_rule not in src
+          src=src.replace(scroll_anchor,scroll_anchor+clip_rule,1)
+          src_path.write_text(src,'utf-8')
+
+          app_path=Path('app.js')
+          app=app_path.read_text('utf-8')
+          old_ios="if(RuntimeProfile.pickerMode==='ios-native'){\n    setComposerActionMenuOpen(false);\n    const opened=openNativeFilePicker(uploadIOSSourceInput);"
+          new_ios="if(RuntimeProfile.pickerMode==='ios-native'){\n    if(document.activeElement===editor)editor.blur();\n    setComposerActionMenuOpen(false);\n    const opened=openNativeFilePicker(uploadIOSSourceInput);"
+          assert app.count(old_ios)==1, app.count(old_ios)
+          app=app.replace(old_ios,new_ios,1)
+          app_path.write_text(app,'utf-8')
+
+          verify_path=Path('tools/verify_current.py')
+          verify=verify_path.read_text('utf-8')
+          anchor="subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_46_top_mode_switch_state_geometry.py')],check=True,cwd=ROOT)\n"
+          add="subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_47_mobile_header_picker_keyboard_occlusion.py')],check=True,cwd=ROOT)\n"
+          assert verify.count(anchor)==1, verify.count(anchor)
+          if add not in verify:
+              verify=verify.replace(anchor,anchor+add,1)
+          verify_path.write_text(verify,'utf-8')
+          PY
+      - name: Build canonical preview
+        run: python tools/build_current_preview.py
+      - name: Verify GREEN
+        run: python tools/verify_current.py
+      - name: Commit GREEN and remove temporary workflows
+        run: |
+          rm -f .github/workflows/v21-72-47-red.yml .github/workflows/apply-v21-72-47.yml
+          git config user.name '1sl2tp'
+          git config user.email '1sl2tp@gmail.com'
+          git add -A
+          git commit -m 'fix: stabilize mobile avatar picker and keyboard occlusion'
+          git push origin HEAD:feature/mobile-header-picker-keyboard-occlusion
