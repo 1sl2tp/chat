@@ -10,7 +10,7 @@ def read(path):
 source = read('index.source.html')
 shell = read('shell.js')
 
-# The outer switch keeps one stable size. Default/no-contact/work state is balanced.
+# Stable outer switch: default/no-contact/work stays balanced at 1/2–1/2.
 assert 'width:min(100%,260px);' in source
 assert 'grid-template-columns:minmax(0,1fr) minmax(0,1fr);' in source
 
