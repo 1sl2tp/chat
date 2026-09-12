@@ -17,9 +17,10 @@ const SEARCH_WORD_DICTIONARY=new Map([
   ['ko','khong'],
 ]);
 
-const BRANCH_FIELDS=['c1','c2'];
-const DETAIL_FIELDS=['size','label2','form','color','volume','variant'];
-const STRUCTURED_PRIORITY_FIELDS=['type',...BRANCH_FIELDS,...DETAIL_FIELDS];
+// The configured columns are only an ordered source path. Their old labels
+// do not define search semantics. Empty cells collapse, so every product is
+// searched as level 1 -> level 2 -> ... -> level 9 (or however many exist).
+const LEVEL_FIELDS=['type','c1','c2','size','label2','form','color','volume','variant'];
 
 function normalizeSearch(value){
   return normalize(value)
@@ -65,12 +66,14 @@ function aliases(value){
     .filter(Boolean);
 }
 
-function structuredValue(row,field){
-  return row?.[field];
+function structuredPath(row){
+  return LEVEL_FIELDS
+    .map(field=>aliases(row?.[field]))
+    .filter(levelAliases=>levelAliases.length>0);
 }
 
 function hasStructuredKeys(row){
-  return STRUCTURED_PRIORITY_FIELDS.some(field=>clean(structuredValue(row,field)));
+  return structuredPath(row).length>0;
 }
 
 function aliasMatchesQuery(alias,queryTokenSet){
@@ -78,73 +81,57 @@ function aliasMatchesQuery(alias,queryTokenSet){
   return aliasTokens.length>0&&aliasTokens.every(token=>queryTokenSet.has(token));
 }
 
-function rowMatchesStructuredField(row,field,queryTokenSet){
-  return aliases(structuredValue(row,field)).some(alias=>aliasMatchesQuery(alias,queryTokenSet));
+function levelMatchesQuery(levelAliases,queryTokenSet){
+  return levelAliases.some(alias=>aliasMatchesQuery(alias,queryTokenSet));
 }
 
-function branchMatchScore(row,queryTokenSet){
-  let score=0;
-  for(const field of BRANCH_FIELDS){
-    if(rowMatchesStructuredField(row,field,queryTokenSet))score+=1;
+function pathMatch(row,queryTokenSet){
+  const path=structuredPath(row);
+  const matchedIndexes=[];
+  for(let index=0;index<path.length;index++){
+    if(levelMatchesQuery(path[index],queryTokenSet))matchedIndexes.push(index);
   }
-  return score;
-}
 
-function unmatchedPathCount(row,queryTokenSet){
-  let count=0;
-  for(const field of [...BRANCH_FIELDS,...DETAIL_FIELDS]){
-    const fieldAliases=aliases(structuredValue(row,field));
-    if(!fieldAliases.length)continue;
-    if(!fieldAliases.some(alias=>aliasMatchesQuery(alias,queryTokenSet)))count+=1;
-  }
-  return count;
-}
+  // A single leaf word is too weak to jump into an unrelated branch.
+  // One-key input remains unresolved unless the canonical-name search above
+  // already found it. Two or more real levels may identify a path suffix.
+  if(matchedIndexes.length<2)return null;
 
-function explicitBasePath(rows,queryTokenSet){
-  const selected=rows.filter(row=>unmatchedPathCount(row,queryTokenSet)===0);
-  return uniqueNameMatch(selected);
+  const first=matchedIndexes[0];
+  const last=matchedIndexes[matchedIndexes.length-1];
+  return {
+    row,
+    path,
+    matchedCount:matchedIndexes.length,
+    gapCount:(last-first+1)-matchedIndexes.length,
+  };
 }
 
 function findStructuredProduct(query,rows){
-  let candidates=rows.filter(hasStructuredKeys);
+  const candidates=rows.filter(hasStructuredKeys);
   if(!candidates.length)return {matched:false,result:null};
 
   const queryTokenSet=new Set(tokens(query));
-  let matched=false;
+  const scored=candidates
+    .map(row=>pathMatch(row,queryTokenSet))
+    .filter(Boolean);
 
-  // C1/C2 are the main product branch and are equal-priority keys.
-  // If either appears in the input, lock the strongest matching branch first.
-  const scored=candidates.map(row=>({row,score:branchMatchScore(row,queryTokenSet)}));
-  const maxBranchScore=Math.max(0,...scored.map(item=>item.score));
-  const branchMatched=maxBranchScore>0;
-  if(branchMatched){
-    candidates=scored.filter(item=>item.score===maxBranchScore).map(item=>item.row);
-    matched=true;
-  }
+  if(!scored.length)return {matched:false,result:null};
 
-  // Remaining columns only refine inside the branch already selected.
-  // Type is useful when present, but never outranks C1/C2.
-  for(const field of ['type',...DETAIL_FIELDS]){
-    const narrowed=candidates.filter(row=>rowMatchesStructuredField(row,field,queryTokenSet));
-    if(!narrowed.length)continue;
-    candidates=narrowed;
-    matched=true;
-  }
+  // First prefer the path containing the most actual input levels.
+  const maxMatched=Math.max(...scored.map(item=>item.matchedCount));
+  let best=scored.filter(item=>item.matchedCount===maxMatched);
 
-  if(!matched)return {matched:false,result:null};
+  // If the same keys fit both a direct path and a deeper path with an omitted
+  // node in the middle, prefer the direct path. Example:
+  //   chua -> co      beats      chua -> nha dam -> co
+  const minGaps=Math.min(...best.map(item=>item.gapCount));
+  best=best.filter(item=>item.gapCount===minGaps);
 
-  const direct=uniqueNameMatch(candidates);
-  if(direct)return {matched:true,result:direct};
-
-  // If C1/C2 were explicitly supplied, a base row may win only when every
-  // structured key on that row was actually present in the input. This lets
-  // `chua + có đường` choose the base yogurt row, but `tho + do` stays
-  // unresolved because every remaining row still needs giay/sat/volume.
-  if(branchMatched){
-    return {matched:true,result:explicitBasePath(candidates,queryTokenSet)};
-  }
-
-  return {matched:true,result:null};
+  return {
+    matched:true,
+    result:uniqueNameMatch(best.map(item=>item.row)),
+  };
 }
 
 function catalogRowForMatch(match,rows){
@@ -158,16 +145,25 @@ function catalogRowForMatch(match,rows){
   return rows.find(row=>normalize(rowName(row))===matchName)||null;
 }
 
+function sharedLevelAlias(previousLevel,nextLevel){
+  const nextSet=new Set(nextLevel);
+  return previousLevel.find(alias=>nextSet.has(alias))||null;
+}
+
 function sharedContextTerms(previousRow,nextRow){
   if(!previousRow||!nextRow||!hasStructuredKeys(previousRow)||!hasStructuredKeys(nextRow))return [];
-  const terms=[];
 
-  for(const field of STRUCTURED_PRIORITY_FIELDS){
-    if(field==='variant')continue;
-    const previousAliases=aliases(structuredValue(previousRow,field));
-    const nextAliases=new Set(aliases(structuredValue(nextRow,field)));
-    const shared=previousAliases.find(alias=>nextAliases.has(alias));
-    if(shared)terms.push(shared);
+  const previousPath=structuredPath(previousRow);
+  const nextPath=structuredPath(nextRow);
+  const terms=[];
+  const limit=Math.min(previousPath.length,nextPath.length);
+
+  // Context is only the common tree prefix. Once the two neighbours diverge,
+  // nothing below that split may be inherited by the middle line.
+  for(let index=0;index<limit;index++){
+    const shared=sharedLevelAlias(previousPath[index],nextPath[index]);
+    if(!shared)break;
+    terms.push(shared);
   }
   return terms;
 }
