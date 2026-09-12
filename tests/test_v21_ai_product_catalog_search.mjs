@@ -78,8 +78,8 @@ assert.deepEqual(
   'partial keys carry; each following line backs off 4-3-2-1 and then continues left-to-right',
 );
 
-// Split/search resolution order is intentionally preserved because cross-line
-// carry depends on it. Only the final Search display is normalized and sorted.
+// Search display may normalize accents, but must never reorder rows because
+// row order carries context and shared-parent structure from the customer input.
 const searched=resolveParsedLinesWithCatalog([
   {quantity:2,productName:'Probi to có đường',line:'2 Probi to có đường'},
   {quantity:3,productName:'Chua nha dam co',line:'3 Chua nha dam co'},
@@ -97,11 +97,11 @@ assert.deepEqual(
 assert.deepEqual(
   formatCatalogSearchDisplayRows(searched).map(row=>row.line),
   [
-    '1 Sua chua co duong *',
-    '3 Sua chua nha dam co (Chua nha dam co)',
     '2 Sua probi to co duong *',
+    '3 Sua chua nha dam co (Chua nha dam co)',
+    '1 Sua chua co duong *',
   ],
-  'only Tìm display is accent-free and sorted A-Z by product name',
+  'Tìm display keeps original row order; no A-Z sorting',
 );
 
-console.log('chat binary progressive key + full carry/backoff + search display sort PASS');
+console.log('chat binary progressive key + full carry/backoff + stable search display order PASS');
