@@ -231,7 +231,7 @@ function scanAnchor(productText,index,scopePrefix=null){
     for(let start=0;start<=tokens.length-size;start++){
       const key=tokens.slice(start,start+size).join(' ');
       const result=resolveExactKey(key,index,scopePrefix);
-      const anchor=anchorFromResolution(result);
+      const anchor=Array.isArray(result?.prefix)&&result.prefix.length?result.prefix:null;
       if(anchor?.length)anchors.push(anchor);
     }
     if(!anchors.length)continue;
