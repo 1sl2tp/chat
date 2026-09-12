@@ -20,48 +20,31 @@ async function runtimeConfig(){
 }
 
 async function loadActiveCatalog(){
-  const result=await db.from("products")
-    .select("id,name")
-    .eq("active",true)
-    .limit(5000);
-  if(result.error){
-    console.warn("[v21-ai-product-parser] shared product lookup failed",result.error.message);
-    return [];
-  }
-
-  const products=Array.isArray(result.data)?result.data:[];
   const keyResult=await db.from("chat_ai_product_keys")
-    .select("product_name,source,level1,level2,level3,level4,level5,level6,level7,level8,level9")
+    .select("product_code,product_name,source,level1,level2,level3,level4,level5,level6,level7,level8,level9")
     .eq("active",true)
     .limit(5000);
   if(keyResult.error){
-    console.warn("[v21-ai-product-parser] structured key lookup failed",keyResult.error.message);
-    return products;
+    console.warn("[v21-ai-product-parser] latest product-key lookup failed",keyResult.error.message);
+    return [];
   }
 
-  const keysByName=new Map<string,any>();
-  for(const row of Array.isArray(keyResult.data)?keyResult.data:[]){
-    const productName=clean(row?.product_name,500);
-    if(productName&&!keysByName.has(productName))keysByName.set(productName,row);
-  }
-
-  return products.map((row:any)=>{
-    const keyRow=keysByName.get(clean(row?.name,500));
-    if(!keyRow)return row;
-    return {
-      ...row,
-      source:keyRow.source,
-      level1:keyRow.level1,
-      level2:keyRow.level2,
-      level3:keyRow.level3,
-      level4:keyRow.level4,
-      level5:keyRow.level5,
-      level6:keyRow.level6,
-      level7:keyRow.level7,
-      level8:keyRow.level8,
-      level9:keyRow.level9,
-    };
-  });
+  return (Array.isArray(keyResult.data)?keyResult.data:[])
+    .map((row:any)=>({
+      id:clean(row?.product_code,100)||null,
+      name:clean(row?.product_name,500),
+      source:row?.source,
+      level1:row?.level1,
+      level2:row?.level2,
+      level3:row?.level3,
+      level4:row?.level4,
+      level5:row?.level5,
+      level6:row?.level6,
+      level7:row?.level7,
+      level8:row?.level8,
+      level9:row?.level9,
+    }))
+    .filter((row:any)=>row.name);
 }
 
 async function activeAdminId(conversationId:string){
@@ -170,7 +153,7 @@ Deno.serve(async(req:Request)=>{
         input_only:true,
         catalog_sync:true,
         dictionary_search:true,
-        catalog_source:"products",
+        catalog_source:"chat_ai_product_keys",
         order_workflow:false,
         external_api:false,
         output:"SL + Tên",
