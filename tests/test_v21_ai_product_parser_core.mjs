@@ -83,4 +83,16 @@ import { splitCustomerSegments, parseCustomerText } from '../supabase/functions/
   );
 }
 
+{
+  assert.deepEqual(
+    parseCustomerText('3 downy 1.4l : đỏ, tím, xanh'),
+    [
+      {quantity:1,productName:'Downy 1.4l đỏ',line:'1 Downy 1.4l đỏ'},
+      {quantity:1,productName:'Downy 1.4l tím',line:'1 Downy 1.4l tím'},
+      {quantity:1,productName:'Downy 1.4l xanh',line:'1 Downy 1.4l xanh'},
+    ],
+    'when parent total equals the number of quantity-less children, infer one unit per child',
+  );
+}
+
 console.log('local SL + name parser contract PASS');
