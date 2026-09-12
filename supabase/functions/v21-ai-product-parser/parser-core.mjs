@@ -2,6 +2,16 @@ function clean(value){
   return String(value??'').replace(/\s+/g,' ').trim();
 }
 
+function normalize(value){
+  return String(value??'')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .replace(/đ/gi,'d')
+    .toLowerCase()
+    .replace(/\s+/g,' ')
+    .trim();
+}
+
 function numberValue(value){
   const n=Number(String(value??'').replace(',','.'));
   return Number.isFinite(n)&&n>0?n:null;
@@ -19,215 +29,108 @@ function upperFirst(value){
   return text.slice(0,1).toLocaleUpperCase('vi-VN')+text.slice(1);
 }
 
-const UNIT='(?:t|th|thùng|thung|bao|ba0|bịch|bich|gói|goi|chai|lốc|loc|hộp|hop|cây|cay)';
-const explicitQty=new RegExp(`(^|\\s)(\\d+(?:[.,]\\d+)?)(\\s*)(${UNIT})(?=\\s|$)`,'iu');
-const chatter=/\b(?:cho|em|e|c|chị|chi|anh|ok|nhé|nhe|thế|the|t2)\b/iu;
-const childQty=new RegExp(`^(\\d+(?:[.,]\\d+)?)(\\s*${UNIT})?\\s+(.+)$`,'iu');
-const parentTotal=new RegExp(`^(\\d+(?:[.,]\\d+)?)(?:\\s*${UNIT})?\\s+(.+)$`,'iu');
-const tobaccoName=/\b(?:cứng|cung|mềm|mem|dẹt|det|melon)\b/iu;
-const protectedThName=/^th\s+(?:bé|be|to|có|co|ít|it|không|khong|ko|đường|duong|dâu|dau|socola|sô\s*cô\s*la|true|organic)(?:\s|$)/iu;
+const UNIT='(?:t|th|thùng|thung|bao|ba0|bịch|bich|gói|goi|chai|lốc|loc|hộp|hop|cây|cay|lon|khay|túi|tui)';
+const startUnit=new RegExp(`^(\\d+(?:[.,]\\d+)?)\\s*(${UNIT})\\s+(.+)$`,'iu');
+const endUnit=new RegExp(`^(.+?)\\s+(?:x\\s*)?(\\d+(?:[.,]\\d+)?)(?:\\s*(${UNIT}))?$`,'iu');
 
-function canonicalUnit(value){
-  const unit=clean(value).toLocaleLowerCase('vi-VN');
-  if(['t','th','thùng','thung'].includes(unit))return 'thung';
-  if(['bao','ba0'].includes(unit))return 'bao';
-  if(['bịch','bich'].includes(unit))return 'bich';
-  if(['gói','goi'].includes(unit))return 'goi';
-  if(unit==='chai')return 'chai';
-  if(['lốc','loc'].includes(unit))return 'loc';
-  if(['hộp','hop'].includes(unit))return 'hop';
-  if(['cây','cay'].includes(unit))return 'cay';
+// Confirmed numeric-leading product names only. These prevent a leading brand number from being read as quantity.
+const NUMERIC_NAME_PREFIXES=[
+  '555','333','3 mien','7 up','7up','1664 blanc','584 nha trang','3k',
+  '3 co gai','3 con tom','7days','7 days','888','2 chew',
+];
+
+function numericNamePrefix(value){
+  const text=normalize(value);
+  for(const prefix of NUMERIC_NAME_PREFIXES){
+    if(text===prefix||text.startsWith(`${prefix} `))return prefix;
+  }
   return null;
 }
 
-function isProtectedThName(value){
-  return protectedThName.test(clean(value));
+function nameRemainderAfterNumericPrefix(value){
+  const text=normalize(value);
+  const prefix=numericNamePrefix(text);
+  if(!prefix)return text;
+  return text.slice(prefix.length).trim();
 }
 
-function stripLeadingUnit(value){
-  const text=clean(value);
-  if(isProtectedThName(text))return {name:text,unit:null,explicitUnit:false};
-  const match=text.match(new RegExp(`^(${UNIT})(?:\\s+|$)(.*)$`,'iu'));
-  if(!match)return {name:text,unit:null,explicitUnit:false};
-  return {name:clean(match[2]),unit:canonicalUnit(match[1]),explicitUnit:true};
-}
-
-function splitList(value){
-  return String(value??'')
-    .split(/\s*(?:,|;)\s*|\s+\/\s+/)
-    .map(part=>part.trim())
-    .filter(Boolean);
-}
-
-function cleanSharedParent(value){
-  return clean(value).replace(/\s+cũng\s+(?:đc|dc|được|duoc)$/iu,'').trim();
-}
-
-function sameToken(a,b){
-  return clean(a).toLocaleLowerCase('vi-VN')===clean(b).toLocaleLowerCase('vi-VN');
-}
-
-function mergeSharedParent(parent,child){
-  const parentText=clean(parent);
-  const childTokens=clean(child).split(/\s+/).filter(Boolean);
-  const parentTokens=parentText.split(/\s+/).filter(Boolean);
-  if(!parentTokens.length||!childTokens.length)return clean(`${parentText} ${child}`);
-  const tail=parentTokens[parentTokens.length-1];
-  if(childTokens.length>1&&sameToken(childTokens[0],tail))childTokens.shift();
-  if(childTokens.length>1&&sameToken(childTokens[childTokens.length-1],tail))childTokens.pop();
-  return clean(`${parentText} ${childTokens.join(' ')}`);
-}
-
-function expandParentLine(line){
-  const text=line.replace(/^\s*[-•]\s*/,'').trim();
-  if(!text)return [];
-  const colon=text.indexOf(':');
-  if(colon<=0||colon===text.length-1){
-    const parts=splitList(text);
-    if(parts.length>1&&!parts[0].match(childQty)){
-      const parent=cleanSharedParent(parts[0]);
-      const matches=parts.slice(1).map(part=>part.match(childQty));
-      if(parent&&matches.length&&matches.every(Boolean)){
-        return matches.map(match=>{
-          const qty=`${match[1]}${match[2]||''}`;
-          return clean(`${qty} ${mergeSharedParent(parent,match[3])}`);
-        });
-      }
-    }
-    return parts;
+function looksLikeUnseparatedMultiItem(productName){
+  const parts=nameRemainderAfterNumericPrefix(productName).split(/\s+/).filter(Boolean);
+  for(let i=0;i<parts.length-1;i++){
+    if(!/^\d+(?:[.,]\d+)?$/.test(parts[i]))continue;
+    if(parts.slice(i+1).some(token=>/[a-z]/i.test(token)))return true;
   }
-
-  const parent=clean(text.slice(0,colon));
-  const children=splitList(text.slice(colon+1));
-  if(!parent||!children.length)return splitList(text);
-
-  const childMatches=children.map(child=>child.match(childQty));
-  const hasAnyChildQty=childMatches.some(Boolean);
-
-  if(!hasAnyChildQty){
-    const totalMatch=parent.match(parentTotal);
-    if(totalMatch){
-      const total=numberValue(totalMatch[1]);
-      const parentName=clean(totalMatch[2]);
-      if(total!=null&&Number.isInteger(total)&&total===children.length&&parentName){
-        return children.map(child=>clean(`1 ${parentName} ${child}`));
-      }
-    }
-  }
-
-  const expanded=[];
-  for(let i=0;i<children.length;i++){
-    const child=children[i];
-    const match=childMatches[i];
-    if(!match){
-      expanded.push(child);
-      continue;
-    }
-    const qty=`${match[1]}${match[2]||''}`;
-    expanded.push(clean(`${qty} ${parent} ${match[3]}`));
-  }
-  return expanded;
+  return false;
 }
 
-export function splitCustomerSegments(value){
-  return String(value??'')
-    .replace(/\r\n?/g,'\n')
-    .split(/\n/)
-    .flatMap(expandParentLine)
-    .filter(Boolean);
-}
-
-function finalizeParsed(quantity,name,unit=null,explicitUnit=false){
-  if(quantity==null||!name)return null;
+function finalize(quantity,name){
+  const q=numberValue(quantity);
   const productName=upperFirst(name);
-  if(!productName)return null;
-  const isTobacco=tobaccoName.test(productName);
-  const normalizedQuantity=isTobacco&&unit==='thung'?quantity*50:quantity;
-  const confirmation=isTobacco&&!explicitUnit&&quantity<=2
-    ?{quantity,productName,prompt:`${quantityText(quantity)} ${productName} — 1 = thùng, 0 = cây`}
-    :null;
-  return {
-    line:{quantity:normalizedQuantity,productName,line:`${quantityText(normalizedQuantity)} ${productName}`},
-    confirmation,
-  };
+  if(q==null||!productName||looksLikeUnseparatedMultiItem(productName))return null;
+  return {quantity:q,productName,line:`${quantityText(q)} ${productName}`};
 }
 
 function parseSegmentDetailed(raw){
   const text=clean(raw);
-  if(!text)return null;
+  if(!text||text.includes('=')||text.includes(':'))return null;
 
-  const explicit=text.match(explicitQty);
-  if(explicit){
-    const quantity=numberValue(explicit[2]);
-    if(quantity==null)return null;
-    const markerStart=(explicit.index||0)+(explicit[1]?.length||0);
-    const markerEnd=(explicit.index||0)+explicit[0].length;
-    const before=clean(text.slice(0,markerStart));
-    const after=clean(text.slice(markerEnd));
-    const unitText=clean(explicit[4]);
-    const spaced=Boolean(explicit[3]);
-    const protectedTh=unitText.toLocaleLowerCase('vi-VN')==='th'&&spaced&&isProtectedThName(clean(`th ${after}`));
-    if(!protectedTh){
-      const name=after||before;
-      return finalizeParsed(quantity,name,canonicalUnit(unitText),true);
-    }
+  if(numericNamePrefix(text)){
+    const match=text.match(endUnit);
+    if(!match||!numericNamePrefix(match[1]))return null;
+    return finalize(match[2],match[1]);
   }
 
-  const start=text.match(/^(\d+(?:[.,]\d+)?)\s+(.*)$/u);
-  if(start){
-    const quantity=numberValue(start[1]);
-    if(quantity==null)return null;
-    const stripped=stripLeadingUnit(start[2]);
-    if(!stripped.name)return null;
-    return finalizeParsed(quantity,stripped.name,stripped.unit,stripped.explicitUnit);
-  }
+  let match=text.match(startUnit);
+  if(match)return finalize(match[1],match[3]);
 
-  const loose=[...text.matchAll(/(?:^|\s)(\d+(?:[.,]\d+)?)(?=\s)/gu)];
-  for(const match of loose){
-    const markerStart=(match.index||0)+(match[0].length-match[1].length);
-    const prefix=clean(text.slice(0,markerStart));
-    if(!prefix||!chatter.test(prefix))continue;
-    const quantity=numberValue(match[1]);
-    const stripped=stripLeadingUnit(text.slice(markerStart+match[1].length));
-    if(quantity==null||!stripped.name)continue;
-    return finalizeParsed(quantity,stripped.name,stripped.unit,stripped.explicitUnit);
-  }
+  match=text.match(/^(\d+(?:[.,]\d+)?)\s+(.+)$/u);
+  if(match)return finalize(match[1],match[2]);
+
+  match=text.match(endUnit);
+  if(match)return finalize(match[2],match[1]);
 
   return null;
 }
 
-export function parseCustomerTextDetailed(value){
-  const lines=[];
-  const confirmations=[];
-  for(const segment of splitCustomerSegments(value)){
-    const parsed=parseSegmentDetailed(segment);
-    if(!parsed)continue;
-    if(parsed.confirmation)confirmations.push(parsed.confirmation);
-    else lines.push(parsed.line);
+export function splitCustomerSegments(value){
+  const text=String(value??'').replace(/\r\n?/g,'\n');
+  const parts=[];
+  let buffer='';
+
+  for(let i=0;i<text.length;i++){
+    const char=text[i];
+    const simpleSeparator=char==='/'||char===';'||char==='\n';
+    const decimalComma=char===','&&/\d/.test(text[i-1]||'')&&/\d/.test(text[i+1]||'');
+    const commaSeparator=char===','&&!decimalComma;
+
+    if(simpleSeparator||commaSeparator){
+      const part=buffer.trim();
+      if(part)parts.push(part);
+      buffer='';
+      continue;
+    }
+    buffer+=char;
   }
-  return {lines,confirmations};
+
+  const tail=buffer.trim();
+  if(tail)parts.push(tail);
+  return parts;
 }
 
-export function resolveTobaccoConfirmation(confirmations,decision){
-  const choice=String(decision??'').trim();
-  if(choice!=='1'&&choice!=='0')return [];
-  const multiplier=choice==='1'?50:1;
-  return (Array.isArray(confirmations)?confirmations:[]).map(item=>{
-    const quantity=numberValue(item?.quantity);
-    const productName=upperFirst(item?.productName);
-    if(quantity==null||!productName)return null;
-    const resolved=quantity*multiplier;
-    return {quantity:resolved,productName,line:`${quantityText(resolved)} ${productName}`};
-  }).filter(Boolean);
-}
+export function parseCustomerTextDetailed(value){
+  const original=String(value??'').replace(/\r\n?/g,'\n').trim();
+  if(!original||original.includes('=')||original.includes(':'))return {lines:[],confirmations:[]};
 
-export function splitLeadingConfirmationChoice(values){
-  const messages=(Array.isArray(values)?values:[])
-    .map(value=>String(value??'').trim())
-    .filter(Boolean);
-  const first=messages[0]||'';
-  if(first==='1'||first==='0')return {choice:first,rest:messages.slice(1)};
-  return {choice:null,rest:messages};
+  const segments=splitCustomerSegments(original);
+  if(!segments.length)return {lines:[],confirmations:[]};
+
+  const lines=[];
+  for(const segment of segments){
+    const parsed=parseSegmentDetailed(segment);
+    if(!parsed)return {lines:[],confirmations:[]};
+    lines.push(parsed);
+  }
+  return {lines,confirmations:[]};
 }
 
 export function parseCustomerText(value){
