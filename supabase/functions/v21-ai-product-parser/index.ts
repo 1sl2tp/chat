@@ -1,11 +1,12 @@
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
-import { parseCustomerText } from "./parser-core.mjs";
+import { parseCustomerTextDetailed, resolveTobaccoConfirmation } from "./parser-core.mjs";
 
 const SUPABASE_URL=String(Deno.env.get("SUPABASE_URL")||"").trim();
 const SERVICE_KEY=String(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"").trim();
 const db=createClient(SUPABASE_URL,SERVICE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
 const clean=(value:unknown,max=8000)=>String(value??"").replace(/\s+/g," ").trim().slice(0,max);
 const sleep=(ms:number)=>new Promise<void>(resolve=>setTimeout(resolve,ms));
+const TOBACCO_CONFIRM_MARKER="1 = thùng, 0 = cây";
 
 async function runtimeConfig(){
   const result=await db.rpc("getlink_ai_runtime_config");
@@ -60,6 +61,46 @@ async function sendChatReply(conversationId:string,turnKey:string,body:string){
   return String(inserted.data.id);
 }
 
+async function replaceChatReply(messageId:string,body:string){
+  const updated=await db.from("v21_messages")
+    .update({body})
+    .eq("id",messageId)
+    .select("id")
+    .single();
+  if(updated.error)throw updated.error;
+  return String(updated.data.id);
+}
+
+async function findPendingTobaccoConfirmation(conversationId:string,customerId:string,currentCreatedAt:string){
+  const adminId=await activeAdminId(conversationId);
+  const previous=await db.from("v21_messages")
+    .select("id,sender_account_id,client_id,body,created_at")
+    .eq("conversation_id",conversationId)
+    .lt("created_at",currentCreatedAt)
+    .order("created_at",{ascending:false})
+    .limit(1)
+    .maybeSingle();
+  if(previous.error)throw previous.error;
+  const row=previous.data;
+  if(!row?.id||String(row.sender_account_id)!==adminId)return null;
+  if(!String(row.client_id||"").startsWith("ai:product:"))return null;
+  if(!String(row.body||"").includes(TOBACCO_CONFIRM_MARKER))return null;
+
+  const source=await db.from("v21_messages")
+    .select("id,body,created_at")
+    .eq("conversation_id",conversationId)
+    .eq("sender_account_id",customerId)
+    .lt("created_at",String(row.created_at))
+    .order("created_at",{ascending:false})
+    .limit(1)
+    .maybeSingle();
+  if(source.error)throw source.error;
+  if(!source.data?.body)return null;
+  const parsed=parseCustomerTextDetailed(String(source.data.body));
+  if(!parsed.confirmations.length)return null;
+  return {replyMessageId:String(row.id),parsed};
+}
+
 async function markInbox(ids:string[],status:"processed"|"ignored"|"failed",lastError:string|null=null){
   if(!ids.length)return;
   const result=await db.from("getlink_ai_message_inbox").update({
@@ -83,13 +124,30 @@ async function processConversation(conversationId:string,cfg:any){
   }
   try{
     const customerText=rows.map((row:any)=>String(row.message_body||"").trim()).filter(Boolean).join("\n");
-    const lines=parseCustomerText(customerText);
-    if(lines.length){
-      const body=lines.map((row:any)=>row.line).join("\n");
+    const choice=customerText.trim();
+    if(choice==='1'||choice==='0'){
+      const currentCreatedAt=String(rows[0]?.message_created_at||new Date().toISOString());
+      const pending=await findPendingTobaccoConfirmation(conversationId,customerId,currentCreatedAt);
+      if(pending){
+        const resolved=resolveTobaccoConfirmation(pending.parsed.confirmations,choice);
+        const body=[...pending.parsed.lines,...resolved].map((row:any)=>row.line).join("\n");
+        if(body)await replaceChatReply(pending.replyMessageId,body);
+        await markInbox(inboxIds,"processed");
+        return {claimed:rows.length,replied:Boolean(body),confirmed:true,items:pending.parsed.lines.length+resolved.length};
+      }
+    }
+
+    const parsed=parseCustomerTextDetailed(customerText);
+    const output=[
+      ...parsed.lines.map((row:any)=>row.line),
+      ...parsed.confirmations.map((row:any)=>row.prompt),
+    ];
+    if(output.length){
+      const body=output.join("\n");
       await sendChatReply(conversationId,clean(rows[0]?.turn_key,100)||String(rows[0]?.message_id||Date.now()),body);
     }
     await markInbox(inboxIds,"processed");
-    return {claimed:rows.length,replied:lines.length>0,items:lines.length};
+    return {claimed:rows.length,replied:output.length>0,items:parsed.lines.length,confirmations:parsed.confirmations.length};
   }catch(error){
     await markInbox(inboxIds,"failed",String(error).slice(0,500));
     throw error;
@@ -106,6 +164,7 @@ Deno.serve(async(req:Request)=>{
         order_workflow:false,
         external_api:false,
         output:"SL + Tên",
+        tobacco_confirmation:"1=thùng,0=cây",
         mode:cfg.mode,
       }),{headers:{"content-type":"application/json"}});
     }
