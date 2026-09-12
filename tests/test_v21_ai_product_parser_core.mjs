@@ -37,10 +37,30 @@ assert.deepEqual(lines('7 up'),[]);
 assert.deepEqual(lines('cung 1 det 1'),[]);
 assert.deepEqual(lines('cung 1 det 1 mem 1'),[]);
 
-assert.deepEqual(lines('sim: 1 den, 2 xanh'),[]);
+assert.deepEqual(
+  lines('sim: 1 den, 2 xanh'),
+  ['1 Sim den','2 Sim xanh'],
+  'colon is shared-parent syntax inside part 1, not a reason to drop the whole message',
+);
 assert.deepEqual(lines('cung = cung, 2 sim'),[]);
 assert.deepEqual(lines('cung, 2 sim'),[]);
 assert.deepEqual(lines('2 sim / mem'),[]);
+
+assert.deepEqual(
+  lines('3 chua có đường\n3 ít đường\n3 nha đam có\n3 ko đường\nprobi to : 3 có đường, 2 ít, 2 vq\nProbi bé : 3 có, 2 dưa'),
+  [
+    '3 Chua có đường',
+    '3 Ít đường',
+    '3 Nha đam có',
+    '3 Ko đường',
+    '3 Probi to có đường',
+    '2 Probi to ít',
+    '2 Probi to vq',
+    '3 Probi bé có',
+    '2 Probi bé dưa',
+  ],
+  'one multi-line customer message must be fully split before catalog search runs',
+);
 
 assert.deepEqual(
   parseCustomerTextDetailed('5 dẹt'),
