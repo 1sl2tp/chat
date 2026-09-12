@@ -189,6 +189,15 @@ export function resolveTobaccoConfirmation(confirmations,decision){
   }).filter(Boolean);
 }
 
+export function splitLeadingConfirmationChoice(values){
+  const messages=(Array.isArray(values)?values:[])
+    .map(value=>String(value??'').trim())
+    .filter(Boolean);
+  const first=messages[0]||'';
+  if(first==='1'||first==='0')return {choice:first,rest:messages.slice(1)};
+  return {choice:null,rest:messages};
+}
+
 export function parseCustomerText(value){
   return parseCustomerTextDetailed(value).lines;
 }
