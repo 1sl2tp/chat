@@ -32,6 +32,7 @@ function upperFirst(value){
 const UNIT='(?:t|th|thùng|thung|bao|ba0|bịch|bich|gói|goi|chai|lốc|loc|hộp|hop|cây|cay|lon|khay|túi|tui)';
 const startUnit=new RegExp(`^(\\d+(?:[.,]\\d+)?)\\s*(${UNIT})\\s+(.+)$`,'iu');
 const endUnit=new RegExp(`^(.+?)\\s+(?:x\\s*)?(\\d+(?:[.,]\\d+)?)(?:\\s*(${UNIT}))?$`,'iu');
+const sharedChild=new RegExp(`^(\\d+(?:[.,]\\d+)?)(?:\\s*(${UNIT}))?\\s+(.+)$`,'iu');
 
 // Confirmed numeric-leading product names only. These prevent a leading brand number from being read as quantity.
 const NUMERIC_NAME_PREFIXES=[
@@ -92,14 +93,14 @@ function parseSegmentDetailed(raw){
   return null;
 }
 
-export function splitCustomerSegments(value){
-  const text=String(value??'').replace(/\r\n?/g,'\n');
+function splitFlatSegments(value){
+  const text=String(value??'');
   const parts=[];
   let buffer='';
 
   for(let i=0;i<text.length;i++){
     const char=text[i];
-    const simpleSeparator=char==='/'||char===';'||char==='\n';
+    const simpleSeparator=char==='/'||char===';';
     const decimalComma=char===','&&/\d/.test(text[i-1]||'')&&/\d/.test(text[i+1]||'');
     const commaSeparator=char===','&&!decimalComma;
 
@@ -117,9 +118,37 @@ export function splitCustomerSegments(value){
   return parts;
 }
 
+function expandLine(rawLine){
+  const line=clean(String(rawLine??'').replace(/^[-•]\s*/,''));
+  if(!line)return [];
+
+  const colon=line.indexOf(':');
+  if(colon<=0||colon===line.length-1)return splitFlatSegments(line);
+
+  const parent=clean(line.slice(0,colon));
+  const children=splitFlatSegments(line.slice(colon+1));
+  if(!parent||!children.length)return [line];
+
+  const expanded=[];
+  for(const child of children){
+    const match=child.match(sharedChild);
+    if(!match)return [line];
+    expanded.push(clean(`${match[1]} ${parent} ${match[3]}`));
+  }
+  return expanded;
+}
+
+export function splitCustomerSegments(value){
+  return String(value??'')
+    .replace(/\r\n?/g,'\n')
+    .split('\n')
+    .flatMap(expandLine)
+    .filter(Boolean);
+}
+
 export function parseCustomerTextDetailed(value){
   const original=String(value??'').replace(/\r\n?/g,'\n').trim();
-  if(!original||original.includes('=')||original.includes(':'))return {lines:[],confirmations:[]};
+  if(!original||original.includes('='))return {lines:[],confirmations:[]};
 
   const segments=splitCustomerSegments(original);
   if(!segments.length)return {lines:[],confirmations:[]};
