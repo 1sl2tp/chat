@@ -10,6 +10,18 @@ const catalog=[
   {id:'tau90',name:'Keo trai cay khong duong'},
 ];
 
+const structuredCatalog=[
+  {id:'vnm19',name:'Sua chua greenfram',type:'Sữa',c1:'chua',label2:'greenfram, green, fram'},
+  {id:'vnm33',name:'Sua green fram to it 180ml',type:'Sữa',c1:'green',c2:'fram',size:'to, 180',variant:'ít, ít đường'},
+  {id:'vnm32',name:'Sua green fram to co 180ml',type:'Sữa',c1:'green',c2:'fram',size:'to, 180',variant:'có, có đường'},
+  {id:'vnm58',name:'Sua green lit',type:'Sữa',c1:'green',form:'lit'},
+  {id:'vnm46',name:'Sua probi to mau - viet quat',type:'Sữa',c1:'probi, bi, proby',size:'to, 180',label2:'mau',variant:'viet quat'},
+  {id:'vnm47',name:'Sua probi to trang',type:'Sữa',c1:'probi, bi, proby',size:'to, 180',color:'trắng, có, truyền thống'},
+  {id:'vnm50',name:'Sua tho do giay 1284g',type:'Sữa',c1:'tho',label2:'do',form:'giay',volume:'1284g, 1,2kg'},
+  {id:'vnm51',name:'Sua tho do giay 1kg',type:'Sữa',c1:'tho',label2:'do',form:'giay',volume:'1kg'},
+  {id:'vnm53',name:'Sua tho do sat',type:'Sữa',c1:'tho',label2:'do',form:'sat'},
+];
+
 function line(productName,quantity=1){
   return {quantity,productName,line:`${quantity} ${productName}`};
 }
@@ -48,5 +60,47 @@ assert.deepEqual(
 );
 
 assert.equal(findCatalogProduct('sua chua ko',catalog)?.productId,'vnm21');
+
+assert.equal(
+  findCatalogProduct('bi to viet quat',structuredCatalog)?.productName,
+  'Sua probi to mau - viet quat',
+  'a configured alias in an earlier priority column can be the main key',
+);
+
+assert.equal(
+  findCatalogProduct('proby to xyz viet quat',structuredCatalog)?.productName,
+  'Sua probi to mau - viet quat',
+  'unknown lower-priority wording must not destroy a unique structured match',
+);
+
+assert.equal(
+  findCatalogProduct('sua chua green',structuredCatalog)?.productName,
+  'Sua chua greenfram',
+  'multi-name cells are searched as aliases without requiring the canonical combined spelling',
+);
+
+assert.equal(
+  findCatalogProduct('green lit',structuredCatalog)?.productName,
+  'Sua green lit',
+  'the leftmost matching key wins before later-column aliases are considered',
+);
+
+assert.equal(
+  findCatalogProduct('tho do',structuredCatalog),
+  null,
+  'a correct parent path stays unresolved while multiple products remain',
+);
+
+assert.equal(
+  findCatalogProduct('tho do giay 1,2kg',structuredCatalog)?.productName,
+  'Sua tho do giay 1284g',
+  'later priority columns disambiguate within the already-matched parent path',
+);
+
+assert.deepEqual(
+  resolveParsedLinesWithCatalog([line('bi to viet quat',5)],structuredCatalog).map(row=>row.line),
+  ['5 Sua probi to mau - viet quat (bi to viet quat)'],
+  'a unique structured match outputs the canonical product name (column K)',
+);
 
 console.log('chat shared-product catalog search contract PASS');
