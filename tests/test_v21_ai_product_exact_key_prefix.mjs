@@ -9,35 +9,24 @@ const cosyCatalog = [
   {id:'ht16',name:'Banh cosy que',source:'Hàng thường',level1:'banh',level2:'cosy',level3:'que'},
 ];
 
-// Exact key lookup may climb left only when every matching row has the same left prefix.
 assert.deepEqual(
   findCatalogProduct('cosy', cosyCatalog),
   {productName:'Banh cosy', productId:null},
-  'cosy is exact level 2 in four rows and all four share banh > cosy, so only that common prefix is certain',
+  'cosy is exact level 2 in four rows and all four share banh > cosy',
 );
-
-// Exact means exact: no substring/fuzzy lookup.
 assert.equal(findCatalogProduct('cos', cosyCatalog), null);
 assert.equal(findCatalogProduct('cosyy', cosyCatalog), null);
-
-// Adding an exact next key resolves the one full product.
 assert.equal(findCatalogProduct('cosy 336', cosyCatalog)?.productName, 'Banh cosy 336');
-
-// If the same exact key exists under different left parents, no parent may be invented.
 assert.equal(
   findCatalogProduct('cosy', [
     ...cosyCatalog,
     {id:'k1',name:'Keo cosy deo',source:'Hàng thường',level1:'keo',level2:'cosy',level3:'deo'},
   ]),
   null,
-  'banh > cosy and keo > cosy disagree on the left prefix, so cosy stays unresolved',
+  'different left parents make cosy unresolved',
 );
-
-// 100% unaccented exact key search still resolves a unique one-row branch.
 assert.equal(
-  findCatalogProduct('cung', [
-    {id:'tl1',name:'Cứng',source:'Thuốc lá',level1:'cung'},
-  ])?.productName,
+  findCatalogProduct('cung', [{id:'tl1',name:'Cứng',source:'Thuốc lá',level1:'cung'}])?.productName,
   'Cứng',
 );
 
@@ -52,13 +41,17 @@ const milkCatalog = [
 assert.deepEqual(
   findCatalogProduct('chua co duong', milkCatalog),
   {productName:'Sua chua co', productId:'s17'},
-  'customer wording co duong maps only to the exact catalog key co; chua+co is then the exact 2-3 window and may infer level 1 sua',
+  'co duong collapses to catalog key co, then exact 2-3 window infers sua',
 );
-
 assert.deepEqual(
   findCatalogProduct('chua nha dam', milkCatalog),
   {productName:'Sua chua nha dam', productId:null},
-  'three exact adjacent keys may match a 2-3-4 window and infer only the common level 1 to the left',
+  'exact adjacent 2-3-4 window may infer common level 1',
+);
+assert.equal(
+  findCatalogProduct('chua dam', milkCatalog),
+  null,
+  'levels may not be skipped; only adjacent windows are valid',
 );
 
 assert.deepEqual(
@@ -69,10 +62,10 @@ assert.deepEqual(
   ],milkCatalog).map(row=>row.line),
   [
     '3 Sua chua co (Chua có đường)',
-    '3 Sua chua it (Ít đường)',
-    '3 Sua chua khong (Không đường)',
+    '3 Ít đường',
+    '3 Không đường',
   ],
-  'once chua+co establishes the sua chua branch, exact it/khong sugar wording stays inside that branch',
+  'each input line is independent; no previous-line branch/context is inherited',
 );
 
 const numericCatalog = [
@@ -97,9 +90,7 @@ assert.deepEqual(
     catalogMatched:true,
     catalogContextMatched:false,
   },
-  'when part 1 reads 9 as quantity, exact catalog phrase 9 hat must protect the numeric product phrase and move trailing 2 to quantity',
 );
-
 assert.deepEqual(
   resolveParsedLinesWithCatalog(
     protectNumericLeadingProducts([{quantity:247,productName:'2',line:'247 2'}],numericCatalog),
@@ -114,7 +105,6 @@ assert.deepEqual(
     catalogMatched:true,
     catalogContextMatched:false,
   },
-  '247 is an exact catalog key with one shared left parent nuoc, so 247 2 means product 247 quantity 2',
 );
 
-console.log('chat exact key + common-left-prefix formula PASS');
+console.log('chat exact key + adjacent-window formula PASS');
