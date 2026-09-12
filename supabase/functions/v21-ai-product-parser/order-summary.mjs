@@ -21,22 +21,6 @@ function quantityText(value){
   return Number.isInteger(n)?String(n):String(Math.round(n*100)/100);
 }
 
-const TOBACCO_PHRASE_HINTS=['thang long','sai gon','ba so'];
-
-function containsPhrase(text,phrase){
-  const haystack=` ${normalize(text)} `;
-  const needle=` ${normalize(phrase)} `;
-  return haystack.includes(needle);
-}
-
-function hasTobaccoPhrase(row){
-  for(const candidate of [row?.productName,row?.rawProductName,row?.line]){
-    if(!candidate)continue;
-    if(TOBACCO_PHRASE_HINTS.some(phrase=>containsPhrase(candidate,phrase)))return true;
-  }
-  return false;
-}
-
 function catalogSourceLookup(catalog=[]){
   const byId=new Map();
   const byName=new Map();
@@ -72,7 +56,6 @@ function rowSource(row,lookup){
     if(source)return clean(source);
   }
 
-  if(hasTobaccoPhrase(row))return 'Thuốc lá';
   return '';
 }
 
@@ -83,16 +66,16 @@ function isTobaccoSource(source){
 export function formatOrderSummary(rows=[],catalog=[]){
   const items=Array.isArray(rows)?rows:[];
   const lookup=catalogSourceLookup(catalog);
-  let cartonQuantity=0;
+  let totalProducts=0;
   let tobaccoTrees=0;
 
   for(const row of items){
     const quantity=quantityValue(row?.quantity);
+    totalProducts+=quantity;
     if(isTobaccoSource(rowSource(row,lookup)))tobaccoTrees+=quantity;
-    else cartonQuantity+=quantity;
   }
 
-  let footer=`— Tổng: ${items.length} mã · ${quantityText(cartonQuantity)} thùng`;
+  let footer=`— Tổng: ${items.length} dòng · ${quantityText(totalProducts)} sản phẩm`;
   if(tobaccoTrees>0){
     footer+=` · Thuốc lá: ${quantityText(tobaccoTrees)} cây`;
     if(tobaccoTrees>50){
