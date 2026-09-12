@@ -14,12 +14,7 @@ function normalizeLoose(value){
 }
 
 function normalizeQuery(value){
-  return normalizeLoose(value)
-    .replace(/\bco duong\b/g,'co')
-    .replace(/\bit duong\b/g,'it')
-    .replace(/\bkhong duong\b/g,'khong')
-    .replace(/\s+/g,' ')
-    .trim();
+  return normalizeLoose(value);
 }
 
 function quantityText(value){
@@ -42,6 +37,12 @@ function rowPath(row){
   return LEVEL_FIELDS
     .map(field=>normalizeLoose(row?.[field]))
     .filter(Boolean);
+}
+
+function rowAliases(row){
+  const raw=row?.aliases??row?.alias??row?.product_aliases??row?.productAliases;
+  const values=Array.isArray(raw)?raw:String(raw??'').split(/[|;\n]+/);
+  return [...new Set(values.map(normalizeLoose).filter(Boolean))];
 }
 
 function rowKey(row){
@@ -79,6 +80,27 @@ function buildCatalogIndex(catalog=[]){
           start,
           end,
           prefix:path.slice(0,end+1),
+        });
+      }
+    }
+
+    // Aliases are explicit data, never guessed. They are alternate names for
+    // the row's leaf key, so index the same adjacent windows with only the
+    // final leaf replaced by the alias phrase. The resolved prefix remains
+    // canonical (the original level path).
+    const leaf=path.length-1;
+    for(const alias of rowAliases(row)){
+      if(alias===path[leaf])continue;
+      for(let start=0;start<=leaf;start++){
+        const left=path.slice(start,leaf);
+        entries.push({
+          key:[...left,alias].filter(Boolean).join(' '),
+          row,
+          path,
+          start,
+          end:leaf,
+          prefix:path.slice(0,leaf+1),
+          alias:true,
         });
       }
     }
