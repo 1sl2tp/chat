@@ -261,6 +261,33 @@ function resolveWithBackoff(productText,index,activeAnchor){
   return null;
 }
 
+function resolveProgressivePrefix(productText,index){
+  const rawTokens=clean(productText).split(/\s+/).filter(Boolean);
+  const tokens=normalizeQuery(productText).split(' ').filter(Boolean);
+  if(!tokens.length||tokens.length!==rawTokens.length)return null;
+
+  let current=resolveExactKey(tokens[0],index,null);
+  let prefix=anchorFromResolution(current);
+  if(!prefix?.length)return null;
+
+  let consumed=1;
+  while(consumed<tokens.length){
+    const next=resolveNextPhrase(tokens[consumed],index,prefix);
+    if(!next)break;
+    current=next;
+    prefix=anchorFromResolution(next);
+    if(!prefix?.length)break;
+    consumed++;
+  }
+
+  if(consumed>=tokens.length)return null;
+  return {
+    prefix,
+    productName:titlePrefix(prefix.join(' ')),
+    tail:rawTokens.slice(consumed).join(' '),
+  };
+}
+
 function publicMatch(result){
   return result?{productName:result.productName,productId:result.productId}:null;
 }
@@ -282,6 +309,20 @@ function resolvedRow(row,match,contextMatched=false){
     catalogMatched:true,
     catalogContextMatched:contextMatched,
     line:`${quantityText(row?.quantity)} ${match.productName}${review}`,
+  };
+}
+
+function partialRow(row,partial){
+  const rawProductName=clean(row?.productName);
+  const productName=clean(`${partial.productName} ${partial.tail}`);
+  return {
+    ...row,
+    rawProductName,
+    productName,
+    productId:null,
+    catalogMatched:false,
+    catalogContextMatched:false,
+    line:`${quantityText(row?.quantity)} ${productName} *`,
   };
 }
 
@@ -318,6 +359,12 @@ export function resolveParsedLinesWithCatalog(lines,catalog=[]){
       output.push(resolvedRow(row,globalExact,false));
       const nextAnchor=anchorFromResolution(globalExact);
       if(nextAnchor?.length)activeAnchor=nextAnchor;
+      continue;
+    }
+
+    const progressive=resolveProgressivePrefix(text,index);
+    if(progressive){
+      output.push(partialRow(row,progressive));
       continue;
     }
 
