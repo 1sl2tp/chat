@@ -213,7 +213,7 @@ function resolveExactPhrase(productText,index,scopePrefix=null){
 function anchorFromResolution(result){
   const prefix=result?.prefix;
   if(!Array.isArray(prefix)||!prefix.length)return null;
-  return prefix.slice(0,Math.min(2,prefix.length));
+  return [...prefix];
 }
 
 function sameAnchor(left,right){
@@ -239,6 +239,24 @@ function scanAnchor(productText,index,scopePrefix=null){
     const unique=new Map();
     for(const anchor of anchors)unique.set(anchor.join('\u0000'),anchor);
     if(unique.size===1)return [...unique.values()][0];
+  }
+  return null;
+}
+
+function resolveNextPhrase(productText,index,scopePrefix){
+  const query=normalizeQuery(productText);
+  if(!query||!scopePrefix?.length)return null;
+  const hits=binaryLookup(index,query,scopePrefix)
+    .filter(hit=>hit.start===scopePrefix.length);
+  return resolveHits(hits);
+}
+
+function resolveWithBackoff(productText,index,activeAnchor){
+  if(!activeAnchor?.length)return null;
+  for(let keep=activeAnchor.length;keep>=1;keep--){
+    const scope=activeAnchor.slice(0,keep);
+    const result=resolveNextPhrase(productText,index,scope);
+    if(result)return result;
   }
   return null;
 }
@@ -286,28 +304,21 @@ export function resolveParsedLinesWithCatalog(lines,catalog=[]){
 
   for(const row of input){
     const text=clean(row?.productName);
-    const globalExact=resolveExactPhrase(text,index,null);
-    const discoveredAnchor=anchorFromResolution(globalExact)||scanAnchor(text,index,null);
 
-    if(discoveredAnchor?.length&&!sameAnchor(activeAnchor,discoveredAnchor)){
-      activeAnchor=discoveredAnchor;
-    }
-
-    if(globalExact){
-      output.push(resolvedRow(row,globalExact,false));
-      const exactAnchor=anchorFromResolution(globalExact);
-      if(exactAnchor?.length)activeAnchor=exactAnchor;
+    const contextual=resolveWithBackoff(text,index,activeAnchor);
+    if(contextual){
+      output.push(resolvedRow(row,contextual,true));
+      const nextAnchor=anchorFromResolution(contextual);
+      if(nextAnchor?.length)activeAnchor=nextAnchor;
       continue;
     }
 
-    if(activeAnchor?.length){
-      const scopedExact=resolveExactPhrase(text,index,activeAnchor);
-      if(scopedExact){
-        output.push(resolvedRow(row,scopedExact,true));
-        const scopedAnchor=anchorFromResolution(scopedExact);
-        if(scopedAnchor?.length)activeAnchor=scopedAnchor;
-        continue;
-      }
+    const globalExact=resolveExactPhrase(text,index,null);
+    if(globalExact){
+      output.push(resolvedRow(row,globalExact,false));
+      const nextAnchor=anchorFromResolution(globalExact);
+      if(nextAnchor?.length)activeAnchor=nextAnchor;
+      continue;
     }
 
     output.push(unresolvedRow(row));
