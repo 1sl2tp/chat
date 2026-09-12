@@ -13,6 +13,14 @@ function normalizeLoose(value){
     .trim();
 }
 
+function displayWithoutMarks(value){
+  return String(value??'')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .replace(/đ/g,'d')
+    .replace(/Đ/g,'D');
+}
+
 function normalizeQuery(value){
   return normalizeLoose(value);
 }
@@ -300,6 +308,24 @@ function publicMatch(result){
 export function findCatalogProduct(productText,catalog=[]){
   const index=buildCatalogIndex(catalog);
   return publicMatch(resolveExactPhrase(productText,index,null));
+}
+
+export function formatCatalogSearchDisplayRows(rows=[]){
+  const display=(Array.isArray(rows)?rows:[]).map((row,index)=>({
+    ...row,
+    line:displayWithoutMarks(row?.line),
+    __displayOrder:index,
+  }));
+
+  display.sort((left,right)=>{
+    const a=normalizeLoose(left?.productName||left?.rawProductName||left?.line);
+    const b=normalizeLoose(right?.productName||right?.rawProductName||right?.line);
+    if(a<b)return -1;
+    if(a>b)return 1;
+    return left.__displayOrder-right.__displayOrder;
+  });
+
+  return display.map(({__displayOrder,...row})=>row);
 }
 
 function resolvedRow(row,match,contextMatched=false){
