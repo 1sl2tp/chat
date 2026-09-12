@@ -10,7 +10,11 @@ for required in [
     'getlink_ai_claim_turn',
     'v21_messages',
     'getlink_ai_runtime_config',
-    'parseCustomerText',
+    'parseCustomerTextDetailed',
+    'resolveTobaccoConfirmation',
+    'findPendingTobaccoConfirmation',
+    'replaceChatReply',
+    '1 = thùng, 0 = cây',
     'ai:product:',
     'external_api:false',
 ]:
@@ -33,4 +37,4 @@ for forbidden in [
 ]:
     assert forbidden not in text, forbidden
 
-print('chat local SL + name parser isolation contract PASS')
+print('chat local SL + name parser isolation/confirmation contract PASS')
