@@ -10,8 +10,8 @@ assert.equal(
     {quantity:5,productName:'Nam ngu',source:'Hàng masan',line:'5 Nam ngu *'},
     {quantity:20,productName:'SG bac',source:'Thuốc lá',line:'20 SG bac *'},
   ]),
-  '— Tổng: 5 mã · 20 thùng · Thuốc lá: 20 cây',
-  'summary counts every result row, including unresolved *, while tobacco is separated from the non-tobacco quantity',
+  '— Tổng: 5 dòng · 40 sản phẩm · Thuốc lá: 20 cây',
+  'summary counts every line and every quantity; known tobacco is only an extra breakdown',
 );
 
 assert.equal(
@@ -19,16 +19,16 @@ assert.equal(
     {quantity:10,productName:'Sua',source:'Sữa',line:'10 Sua *'},
     {quantity:60,productName:'SG bac',source:'Thuốc lá',line:'60 SG bac *'},
   ]),
-  '— Tổng: 2 mã · 10 thùng · Thuốc lá: 60 cây ~ 1 thùng',
-  'tobacco over 50 trees gets an approximate carton hint',
+  '— Tổng: 2 dòng · 70 sản phẩm · Thuốc lá: 60 cây ~ 1 thùng',
+  'known tobacco may keep the approximate-carton hint without changing the neutral total',
 );
 
 assert.equal(
   formatOrderSummary([
     {quantity:3,productName:'Unknown',line:'3 Unknown *'},
   ]),
-  '— Tổng: 1 mã · 3 thùng',
-  'unresolved rows still participate in the aggregate',
+  '— Tổng: 1 dòng · 3 sản phẩm',
+  'unresolved rows still participate in the neutral aggregate without guessing a unit',
 );
 
 const summaryCatalog=[
@@ -41,8 +41,8 @@ const resolved=resolveParsedLinesWithCatalog([
 ],summaryCatalog);
 assert.equal(
   formatOrderSummary(resolved,summaryCatalog),
-  '— Tổng: 2 mã · 4 thùng · Thuốc lá: 20 cây',
-  'catalog metadata classifies tobacco after normal search resolution',
+  '— Tổng: 2 dòng · 24 sản phẩm · Thuốc lá: 20 cây',
+  'catalog metadata adds a tobacco breakdown only after normal search resolution',
 );
 
 const tobaccoCatalog=[
@@ -65,8 +65,8 @@ assert.equal(
     {quantity:10,productName:'Lotus',productId:'TL-LOTUS',line:'10 Lotus'},
     {quantity:10,productName:'Ba so det vang',line:'10 Ba so det vang *'},
   ],tobaccoCatalog),
-  '— Tổng: 7 mã · 0 thùng · Thuốc lá: 59 cây ~ 1 thùng',
-  'unresolved cigarette brand wording is still classified as tobacco for the aggregate footer',
+  '— Tổng: 7 dòng · 59 sản phẩm · Thuốc lá: 10 cây',
+  'unresolved display wording must not be guessed as tobacco; only identified source contributes to the breakdown',
 );
 
 assert.equal(
@@ -75,8 +75,8 @@ assert.equal(
     {quantity:1,productName:'Thang long mem',line:'1 Thang long mem *'},
     {quantity:1,productName:'Sai gon dua',line:'1 Sai gon dua *'},
   ],tobaccoCatalog),
-  '— Tổng: 3 mã · 42 thùng · Thuốc lá: 2 cây',
-  'mixed orders keep unresolved tobacco out of the ordinary-carton total',
+  '— Tổng: 3 dòng · 44 sản phẩm',
+  'unresolved tobacco-looking wording remains neutral and is still fully counted in total products',
 );
 
-console.log('chat order summary footer contract PASS');
+console.log('chat neutral line/product summary footer contract PASS');
