@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<meta property="og:title" content="Báo giá TAPHOA">
+<meta property="og:type" content="website">
+<title>Báo giá TAPHOA</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;color:#171717;background:#f6f7f8;font-size:16px}
+*{box-sizing:border-box}
+body{margin:0;background:#f6f7f8;color:#171717}
+main{width:100%;max-width:1180px;margin:0 auto;padding:12px}
+.quote-head{position:sticky;top:0;z-index:3;margin:-12px -12px 10px;padding:12px;background:rgba(255,255,255,.96);border-bottom:1px solid #e5e7eb}
+h1{font-size:20px;line-height:1.25;margin:0 0 4px}.quote-meta{font-size:13px;color:#6b7280}
+#quote-search{width:100%;height:42px;margin-top:10px;border:1px solid #d1d5db;border-radius:10px;background:#fff;padding:0 12px;font:inherit;outline:none}
+#quote-search:focus{border-color:#9ca3af}
+.quote-status{padding:26px 12px;text-align:center;color:#6b7280}
+.quote-error{max-width:520px;margin:28px auto;background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:18px;text-align:center}
+.quote-error strong{display:block;margin-bottom:8px;color:#111827}.quote-error p{margin:7px 0;color:#6b7280;line-height:1.45}
+.copy-link{min-height:42px;border:0;border-radius:10px;padding:0 14px;background:#111827;color:#fff;font:600 14px inherit;cursor:pointer}
+.source-title{font-size:13px;font-weight:700;color:#4b5563;margin:16px 2px 7px;text-transform:none}
+.quote-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;background:#fff;border:1px solid #e5e7eb;border-radius:11px;padding:10px 11px;margin-bottom:7px}
+.quote-name{font-size:15px;line-height:1.35;font-weight:550;min-width:0}.quote-price{font-size:15px;line-height:1.35;font-weight:700;text-align:right;white-space:nowrap}.quote-sub{grid-column:1/-1;font-size:12px;color:#6b7280;line-height:1.35}
+.quote-table{display:none;width:100%;border-collapse:collapse;background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden}.quote-table th,.quote-table td{padding:9px 10px;border-bottom:1px solid #eef0f2;text-align:left;font-size:13px}.quote-table th{background:#f9fafb;color:#4b5563;font-weight:650}.quote-table td.price{text-align:right;font-weight:700;white-space:nowrap}.quote-table td.pack{color:#6b7280}.quote-table tr:last-child td{border-bottom:0}
+[hidden]{display:none!important}
+@media (min-width:760px){main{padding:20px}.quote-head{position:static;margin:0 0 14px;padding:0;background:transparent;border:0;display:grid;grid-template-columns:1fr minmax(260px,380px);align-items:end;gap:16px}.quote-head-copy{min-width:0}#quote-search{margin:0}.mobile-list{display:none}.quote-table{display:table}.source-title{display:none}}
+</style>
+</head>
+<body>
+<main>
+  <header class="quote-head" id="quote-head" hidden>
+    <div class="quote-head-copy">
+      <h1>Báo giá TAPHOA</h1>
+      <div class="quote-meta" id="quote-meta"></div>
+    </div>
+    <input id="quote-search" type="search" autocomplete="off" placeholder="Tìm sản phẩm" aria-label="Tìm sản phẩm">
+  </header>
+  <div class="quote-status" id="quote-status">Đang tải báo giá…</div>
+  <section class="quote-error" id="quote-error" hidden>
+    <strong>Không mở được báo giá</strong>
+    <p>Trong Zalo: chọn ⋯ → Mở bằng trình duyệt</p>
+    <button class="copy-link" id="copy-link" type="button">Sao chép liên kết</button>
+  </section>
+  <div class="mobile-list" id="quote-list"></div>
+  <table class="quote-table" id="quote-table" hidden>
+    <thead><tr><th>Nguồn</th><th>Sản phẩm</th><th>Quy cách</th><th style="text-align:right">Giá</th></tr></thead>
+    <tbody id="quote-table-body"></tbody>
+  </table>
+</main>
+<script>
+(()=>{
+'use strict';
+const QUOTE_API='https://gcnoahqsrquxkwkjbuxy.supabase.co/functions/v1/v21-quote';
+const sourceNames={'hang-thuong':'Hàng thường','hang-u':'Hàng U','masan':'Hàng masan','sua':'Sữa','thuoc-la':'Thuốc lá'};
+const params=new URLSearchParams(location.search);
+const token=params.get('k')||'';
+const status=document.getElementById('quote-status');
+const errorBox=document.getElementById('quote-error');
+const head=document.getElementById('quote-head');
+const meta=document.getElementById('quote-meta');
+const search=document.getElementById('quote-search');
+const list=document.getElementById('quote-list');
+const table=document.getElementById('quote-table');
+const tableBody=document.getElementById('quote-table-body');
+const copyButton=document.getElementById('copy-link');
+let snapshot=null;
+
+function esc(value){return String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));}
+function money(value){const n=Number(value);return Number.isFinite(n)&&n>0?new Intl.NumberFormat('vi-VN').format(n):'';}
+function sourceLabel(key){return sourceNames[String(key||'')]||String(key||'Khác');}
+function packText(item){
+  const parts=[];
+  if(item.primary_packaging)parts.push(String(item.primary_packaging));
+  if(Number(item.units_per_carton)>0&&item.retail_unit)parts.push(`${Number(item.units_per_carton)} ${item.retail_unit}`);
+  if(item.retail_price_vnd&&Number(item.retail_price_vnd)!==Number(item.display_price_vnd))parts.push(`Lẻ ${money(item.retail_price_vnd)}`);
+  return parts.join(' · ');
+}
+function normalized(value){return String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/gi,'d').toLowerCase();}
+function visibleItems(){
+  const q=normalized(search.value).trim();
+  const items=Array.isArray(snapshot?.items)?snapshot.items:[];
+  return q?items.filter(item=>normalized(`${item.product_name} ${sourceLabel(item.source_key)}`).includes(q)):items;
+}
+function render(){
+  const items=visibleItems();
+  const bySource=new Map();
+  for(const item of items){const key=String(item.source_key||'khac');if(!bySource.has(key))bySource.set(key,[]);bySource.get(key).push(item);}
+  let cards='';
+  for(const [key,rows] of bySource){
+    if(snapshot.scope==='all')cards+=`<div class="source-title">${esc(sourceLabel(key))}</div>`;
+    for(const item of rows){cards+=`<article class="quote-card"><div class="quote-name">${esc(item.product_name)}</div><div class="quote-price">${money(item.display_price_vnd)}</div><div class="quote-sub">${esc(packText(item))}</div></article>`;}
+  }
+  list.innerHTML=cards||'<div class="quote-status">Không có sản phẩm phù hợp</div>';
+  tableBody.innerHTML=items.map(item=>`<tr><td>${esc(sourceLabel(item.source_key))}</td><td>${esc(item.product_name)}</td><td class="pack">${esc(packText(item))}</td><td class="price">${money(item.display_price_vnd)}</td></tr>`).join('');
+}
+function fail(){status.hidden=true;head.hidden=true;table.hidden=true;list.innerHTML='';errorBox.hidden=false;}
+async function copyCurrent(){
+  try{await navigator.clipboard.writeText(location.toString());copyButton.textContent='Đã sao chép';}
+  catch(_error){copyButton.textContent='Không sao chép được';}
+}
+copyButton.addEventListener('click',copyCurrent);
+search.addEventListener('input',render);
+if(!token){fail();return;}
+fetch(`${QUOTE_API}?k=${encodeURIComponent(token)}`)
+  .then(response=>{if(!response.ok)throw new Error('quote_load_failed');return response.json();})
+  .then(data=>{
+    if(!data?.ok||!Array.isArray(data.items))throw new Error('quote_invalid');
+    snapshot=data;
+    const created=data.created_at?new Date(data.created_at).toLocaleString('vi-VN',{dateStyle:'short',timeStyle:'short'}):'';
+    meta.textContent=`${data.scope==='source'?(data.source_name||sourceLabel(data.source_key)):'Tất cả'}${created?` · ${created}`:''} · ${data.item_count||data.items.length} sản phẩm`;
+    status.hidden=true;errorBox.hidden=true;head.hidden=false;table.hidden=false;render();
+  })
+  .catch(fail);
+})();
+</script>
+</body>
+</html>
