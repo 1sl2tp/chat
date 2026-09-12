@@ -35,8 +35,12 @@ for needle in required:
     assert needle in low, f"missing quotation edge behavior: {needle}"
 
 for forbidden in [
-    'input_price_vnd,', 'margin_thousand,', 'actual_profit_vnd,',
-    'expected_profit_vnd,', 'supplier_price_history', 'service_role_key" + '"',
+    'input_price_vnd,',
+    'margin_thousand,',
+    'actual_profit_vnd,',
+    'expected_profit_vnd,',
+    'supplier_price_history',
+    'service_role_key"',
 ]:
     assert forbidden not in low, f"public quotation source must not select/expose internal field: {forbidden}"
 
