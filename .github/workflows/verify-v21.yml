@@ -51,5 +51,7 @@ jobs:
         run: python tests/test_v21_quote_edge_contract.py
       - name: Chat quote public page contract
         run: python tests/test_v21_quote_public_page.py
+      - name: Chat quote Admin UI contract
+        run: python tests/test_v21_quote_chat_ui.py
       - name: Verify canonical source
         run: python tools/verify_current.py
