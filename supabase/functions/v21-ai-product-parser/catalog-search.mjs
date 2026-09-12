@@ -85,17 +85,23 @@ function levelMatchesQuery(levelAliases,queryTokenSet){
   return levelAliases.some(alias=>aliasMatchesQuery(alias,queryTokenSet));
 }
 
-function pathMatch(row,queryTokenSet){
+function pathMatch(row,query,queryTokenSet){
   const path=structuredPath(row);
   const matchedIndexes=[];
   for(let index=0;index<path.length;index++){
     if(levelMatchesQuery(path[index],queryTokenSet))matchedIndexes.push(index);
   }
 
-  // A single leaf word is too weak to jump into an unrelated branch.
-  // One-key input remains unresolved unless the canonical-name search above
-  // already found it. Two or more real levels may identify a path suffix.
-  if(matchedIndexes.length<2)return null;
+  if(!matchedIndexes.length)return null;
+
+  // A complete level-1/root alias may identify a product by itself.
+  // Example: `huong duong my vi` is the root alias for `Huong duong mv`.
+  // A lone lower-level word such as `vi` is never enough to jump branches.
+  if(matchedIndexes.length===1){
+    const onlyIndex=matchedIndexes[0];
+    const exactRoot=onlyIndex===0&&path[0].some(alias=>alias===query);
+    if(!exactRoot)return null;
+  }
 
   const first=matchedIndexes[0];
   const last=matchedIndexes[matchedIndexes.length-1];
@@ -113,7 +119,7 @@ function findStructuredProduct(query,rows){
 
   const queryTokenSet=new Set(tokens(query));
   const scored=candidates
-    .map(row=>pathMatch(row,queryTokenSet))
+    .map(row=>pathMatch(row,query,queryTokenSet))
     .filter(Boolean);
 
   if(!scored.length)return {matched:false,result:null};
