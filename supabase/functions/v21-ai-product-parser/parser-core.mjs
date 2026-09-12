@@ -140,6 +140,7 @@ function splitInlineQuantityItems(raw){
   const prefix=clean(text.slice(0,starts[0]));
   const normalizedPrefix=normalize(prefix);
   const shortOrderPreface=/(?:^|\s)cho\s+(?:em|anh|chi)$/.test(normalizedPrefix);
+  if(prefix&&!shortOrderPreface)return [];
   if(starts.length<2&&!shortOrderPreface)return [];
 
   const parsed=[];
