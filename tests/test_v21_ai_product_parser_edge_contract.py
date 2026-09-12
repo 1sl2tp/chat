@@ -7,28 +7,24 @@ assert EDGE.exists(), 'v21-ai-product-parser edge function is missing'
 text=EDGE.read_text(encoding='utf-8')
 
 for required in [
-    'getlink_supplier_products',
-    'getlink_ai_knowledge_rules',
-    'getlink_ai_product_aliases',
-    'getlink_ai_training_examples',
     'getlink_ai_claim_turn',
     'v21_messages',
     'getlink_ai_runtime_config',
-    'groq_api_key',
-    'https://api.groq.com/openai/v1/chat/completions',
-    'choices',
-    'finalizeProductLines',
-    'splitCustomerSegments',
-    'input_segments',
-    'segment_index',
+    'parseCustomerText',
     'ai:product:',
+    'external_api:false',
 ]:
     assert required in text, required
 
 for forbidden in [
+    'api.groq.com',
     'generativelanguage.googleapis.com',
-    'getlink_ai_runtime_config_gemini',
+    'groq_api_key',
     'gemini_api_key',
+    'getlink_supplier_products',
+    'getlink_ai_knowledge_rules',
+    'getlink_ai_product_aliases',
+    'getlink_ai_training_examples',
     'getlink_ai_order_sessions',
     'getlink_ai_order_draft_lines',
     'getlink_ai_reply_outbox',
@@ -37,4 +33,4 @@ for forbidden in [
 ]:
     assert forbidden not in text, forbidden
 
-print('chat AI product parser Groq/isolation contract PASS')
+print('chat local SL + name parser isolation contract PASS')
