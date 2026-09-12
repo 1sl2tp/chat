@@ -31,6 +31,7 @@ const structuredCatalog=[
   {id:'vnm51',name:'Sua tho do giay 1kg',type:'Sữa',c1:'tho',label2:'do',form:'giay',volume:'1kg'},
   {id:'vnm53',name:'Sua tho do sat',type:'Sữa',c1:'tho',label2:'do',form:'sat'},
   {id:'vnm56',name:'Sua tho vi',type:'Sữa',c1:'tho',form:'vi'},
+  {id:'tau67',name:'Huong duong mv',type:'huong duong my vi, huong duong mv'},
 ];
 
 function line(productName,quantity=1){
@@ -139,9 +140,15 @@ assert.equal(
 );
 
 assert.equal(
-  findCatalogProduct('huong duong my vi',structuredCatalog),
+  findCatalogProduct('huong duong my vi',structuredCatalog)?.productName,
+  'Huong duong mv',
+  'an exact configured level-1 root may resolve by itself',
+);
+
+assert.equal(
+  findCatalogProduct('my vi',structuredCatalog),
   null,
-  'one weak leaf word such as vi must never jump into an unrelated Sữa > tho > vi branch',
+  'partial words from a level-1 root must not fall through to the unrelated Sữa > tho > vi leaf',
 );
 
 assert.deepEqual(
