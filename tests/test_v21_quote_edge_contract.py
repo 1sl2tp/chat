@@ -12,6 +12,8 @@ low = src.lower()
 
 required = [
     'authorization',
+    'apikey',
+    'x-client-info',
     'bearer ',
     'db.auth.getuser',
     'from("v21_accounts")',
