@@ -26,8 +26,8 @@ function json(data:unknown,status=200,extra:Record<string,string>={}){
 
 function accessTokenFromRequest(req:Request){
   const header=clean(req.headers.get('authorization'),4000);
-  const match=header.match(/^Bearer\s+(.+)$/i);
-  return clean(match?.[1],4000);
+  if(!header.toLowerCase().startsWith('bearer '))return '';
+  return clean(header.slice(7),4000);
 }
 
 function makeToken(){
