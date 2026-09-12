@@ -52,7 +52,7 @@ h1{font-size:20px;line-height:1.25;margin:0 0 4px}.quote-meta{font-size:13px;col
 <script>
 (()=>{
 'use strict';
-const QUOTE_API='https://gcnoahqsrquxkwkjbuxy.supabase.co/functions/v1/v21-quote';
+const QUOTE_READ_API='https://gcnoahqsrquxkwkjbuxy.supabase.co/functions/v1/v21-quote?k=';
 const sourceNames={'hang-thuong':'Hàng thường','hang-u':'Hàng U','masan':'Hàng masan','sua':'Sữa','thuoc-la':'Thuốc lá'};
 const params=new URLSearchParams(location.search);
 const token=params.get('k')||'';
@@ -103,7 +103,7 @@ async function copyCurrent(){
 copyButton.addEventListener('click',copyCurrent);
 search.addEventListener('input',render);
 if(!token){fail();return;}
-fetch(`${QUOTE_API}?k=${encodeURIComponent(token)}`)
+fetch(`${QUOTE_READ_API}${encodeURIComponent(token)}`)
   .then(response=>{if(!response.ok)throw new Error('quote_load_failed');return response.json();})
   .then(data=>{
     if(!data?.ok||!Array.isArray(data.items))throw new Error('quote_invalid');
