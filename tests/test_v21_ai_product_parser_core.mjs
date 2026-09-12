@@ -1,5 +1,10 @@
 import assert from 'node:assert/strict';
-import { splitCustomerSegments, parseCustomerText } from '../supabase/functions/v21-ai-product-parser/parser-core.mjs';
+import {
+  splitCustomerSegments,
+  parseCustomerText,
+  parseCustomerTextDetailed,
+  resolveTobaccoConfirmation,
+} from '../supabase/functions/v21-ai-product-parser/parser-core.mjs';
 
 {
   assert.deepEqual(
@@ -92,6 +97,49 @@ import { splitCustomerSegments, parseCustomerText } from '../supabase/functions/
       {quantity:1,productName:'Downy 1.4l xanh',line:'1 Downy 1.4l xanh'},
     ],
     'when parent total equals the number of quantity-less children, infer one unit per child',
+  );
+}
+
+{
+  assert.deepEqual(
+    parseCustomerText('10 th bé có'),
+    [{quantity:10,productName:'Th bé có',line:'10 Th bé có'}],
+    'TH can be part of a product name and must not always be stripped as thùng',
+  );
+  assert.deepEqual(
+    parseCustomerText('1 th VIM xanh 750ml'),
+    [{quantity:1,productName:'VIM xanh 750ml',line:'1 VIM xanh 750ml'}],
+    'th remains a supported thùng shorthand when context is not a protected TH-name sample',
+  );
+}
+
+{
+  const pending=parseCustomerTextDetailed('1 cứng');
+  assert.deepEqual(pending.lines,[]);
+  assert.deepEqual(pending.confirmations,[
+    {quantity:1,productName:'Cứng',prompt:'1 Cứng — 1 = thùng, 0 = cây'},
+  ]);
+  assert.deepEqual(resolveTobaccoConfirmation(pending.confirmations,'1'),[
+    {quantity:50,productName:'Cứng',line:'50 Cứng'},
+  ]);
+  assert.deepEqual(resolveTobaccoConfirmation(pending.confirmations,'0'),[
+    {quantity:1,productName:'Cứng',line:'1 Cứng'},
+  ]);
+}
+
+{
+  assert.deepEqual(
+    parseCustomerText('1 thùng cứng\n2 cây mềm'),
+    [
+      {quantity:50,productName:'Cứng',line:'50 Cứng'},
+      {quantity:2,productName:'Mềm',line:'2 Mềm'},
+    ],
+    'explicit tobacco thùng is converted to 50 cây while explicit cây stays unchanged',
+  );
+  assert.deepEqual(
+    parseCustomerTextDetailed('5 dẹt'),
+    {lines:[{quantity:5,productName:'Dẹt',line:'5 Dẹt'}],confirmations:[]},
+    'only low 1-2 quantities need tobacco unit confirmation',
   );
 }
 
