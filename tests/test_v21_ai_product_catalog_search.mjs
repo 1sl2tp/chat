@@ -1,181 +1,68 @@
 import assert from 'node:assert/strict';
 import { findCatalogProduct, resolveParsedLinesWithCatalog } from '../supabase/functions/v21-ai-product-parser/catalog-search.mjs';
 
-const productOnlyCatalog=[
-  {id:'tl30',name:'555 dẹt'},
-  {id:'khac202',name:'Mi tom hao hao'},
-  {id:'tau53',name:'Chan don cuu ca'},
-  {id:'tau54',name:'Chan ga doi ana'},
+const catalog=[
+  {id:'b1',name:'Banh cosy 336',source:'Hàng thường',level1:'banh',level2:'cosy',level3:'336'},
+  {id:'b2',name:'Banh cosy 48',source:'Hàng thường',level1:'banh',level2:'cosy',level3:'48'},
+  {id:'s1',name:'Sua chua co',source:'Sữa',level1:'sua',level2:'chua',level3:'co'},
+  {id:'s2',name:'Sua chua it',source:'Sữa',level1:'sua',level2:'chua',level3:'it'},
+  {id:'s3',name:'Sua chua khong',source:'Sữa',level1:'sua',level2:'chua',level3:'khong'},
+  {id:'s4',name:'Sua chua nha dam co',source:'Sữa',level1:'sua',level2:'chua',level3:'nha',level4:'dam',level5:'co'},
+  {id:'s5',name:'Sua chua nha dam it',source:'Sữa',level1:'sua',level2:'chua',level3:'nha',level4:'dam',level5:'it'},
+  {id:'p1',name:'Sua probi be mau - dua',source:'Sữa',level1:'sua',level2:'probi',level3:'be',level4:'mau',level5:'dua'},
+  {id:'p2',name:'Sua probi to mau - it',source:'Sữa',level1:'sua',level2:'probi',level3:'to',level4:'mau',level5:'it'},
+  {id:'w1',name:'Cf wakeup bich',source:'Hàng thường',level1:'cf',level2:'wakeup',level3:'bich'},
+  {id:'g1',name:'Cf g7 bich',source:'Hàng thường',level1:'cf',level2:'g7',level3:'bich'},
+  {id:'m1',name:'Sua bo bich co',source:'Sữa',level1:'sua',level2:'bo',level3:'bich',level4:'co'},
 ];
 
-const levelCatalog=[
-  {id:'vnm4',name:'Sua bo be co',source:'Sữa',level1:'bo',level2:'bé, 110',level3:'có, có đường'},
-  {id:'vnm5',name:'Sua bo be it',source:'Sữa',level1:'bo',level2:'bé, 110',level3:'ít, ít đường'},
-  {id:'vnm6',name:'Sua bo bich co',source:'Sữa',level1:'bo',level2:'bich',level3:'có, có đường'},
-  {id:'vnm7',name:'Sua bo bich it',source:'Sữa',level1:'bo',level2:'bich',level3:'ít, ít đường'},
-  {id:'vnm8',name:'Sua bo bich khong',source:'Sữa',level1:'bo',level2:'bich',level3:'không, không đường'},
-  {id:'vnm11',name:'Sua bo lit co',source:'Sữa',level1:'bo',level2:'lit',level3:'có, có đường'},
-  {id:'vnm13',name:'Sua bo lit khong',source:'Sữa',level1:'bo',level2:'lit',level3:'không, không đường'},
-  {id:'vnm17',name:'Sua chua co',source:'Sữa',level1:'chua',level2:'có, có đường'},
-  {id:'vnm20',name:'Sua chua it',source:'Sữa',level1:'chua',level2:'ít, ít đường'},
-  {id:'vnm21',name:'Sua chua khong',source:'Sữa',level1:'chua',level2:'không, không đường'},
-  {id:'vnm23',name:'Sua chua nha dam co',source:'Sữa',level1:'chua',level2:'nha dam, nha, dam',level3:'có, có đường'},
-  {id:'vnm24',name:'Sua chua nha dam it',source:'Sữa',level1:'chua',level2:'nha dam, nha, dam',level3:'ít, ít đường'},
-  {id:'vnm38',name:'Sua probi be mau - dứa',source:'Sữa',level1:'probi, bi, proby',level2:'be',level3:'mau',level4:'dứa'},
-  {id:'vnm39',name:'Sua probi be mau - dưa gang',source:'Sữa',level1:'probi, bi, proby',level2:'be',level3:'mau',level4:'dưa gang, dưa'},
-  {id:'vnm40',name:'Sua probi be mau - it',source:'Sữa',level1:'probi, bi, proby',level2:'be',level3:'mau',level4:'ít, ít đường'},
-  {id:'vnm41',name:'Sua probi be mau - viet quat',source:'Sữa',level1:'probi, bi, proby',level2:'be',level3:'mau',level4:'viet quat, vq'},
-  {id:'vnm42',name:'Sua probi be trang',source:'Sữa',level1:'probi, bi, proby',level2:'be',level3:'trắng, có, truyền thống'},
-  {id:'vnm45',name:'Sua probi to mau - it',source:'Sữa',level1:'probi, bi, proby',level2:'to',level3:'mau',level4:'ít, ít đường'},
-  {id:'vnm46',name:'Sua probi to mau - viet quat',source:'Sữa',level1:'probi, bi, proby',level2:'to, 180',level3:'mau',level4:'viet quat, vq'},
-  {id:'vnm47',name:'Sua probi to trang',source:'Sữa',level1:'probi, bi, proby',level2:'to, 180',level3:'trắng, có, truyền thống'},
-  {id:'vnm50',name:'Sua tho do giay 1284g',source:'Sữa',level1:'tho',level2:'do',level3:'giay',level4:'1284g, 1,2kg'},
-  {id:'vnm51',name:'Sua tho do giay 1kg',source:'Sữa',level1:'tho',level2:'do',level3:'giay',level4:'1kg'},
-  {id:'vnm53',name:'Sua tho do sat',source:'Sữa',level1:'tho',level2:'do',level3:'sat'},
-  {id:'tau67',name:'Huong duong mv',source:'Hàng thường',level1:'hương dương mỹ vị, huong duong mv'},
-];
+// Exact single key may infer only a common left prefix.
+assert.deepEqual(findCatalogProduct('cosy',catalog),{productName:'Banh cosy',productId:null});
+assert.deepEqual(findCatalogProduct('probi',catalog),{productName:'Sua probi',productId:null});
+assert.equal(findCatalogProduct('bich',catalog),null,'bich has multiple different left parents');
 
-function line(productName,quantity=1){
-  return {quantity,productName,line:`${quantity} ${productName}`};
-}
+// Exact adjacent two-level window.
+assert.equal(findCatalogProduct('chua co',catalog)?.productName,'Sua chua co');
+assert.equal(findCatalogProduct('cosy 336',catalog)?.productName,'Banh cosy 336');
 
-// Products without configured 1..9 keys are never renamed from partial name tokens.
-assert.equal(findCatalogProduct('cửu ca',productOnlyCatalog),null);
-assert.equal(findCatalogProduct('chân đôi ana',productOnlyCatalog),null);
-assert.equal(findCatalogProduct('hao hao',productOnlyCatalog),null);
-assert.equal(findCatalogProduct('555 det',productOnlyCatalog),null);
+// Exact adjacent three-level window.
 assert.deepEqual(
-  resolveParsedLinesWithCatalog([line('cửu ca',1),line('chân đôi ana',2)],productOnlyCatalog).map(row=>row.line),
-  ['1 cửu ca','2 chân đôi ana'],
-);
-
-// A full canonical name is deterministic and may match itself exactly.
-assert.equal(findCatalogProduct('Chan don cuu ca',productOnlyCatalog)?.productId,'tau53');
-
-// Source is only the already-selected search domain; it is not level 1.
-assert.equal(
-  findCatalogProduct('Sữa',[{id:'x',name:'Only milk row',source:'Sữa',level1:'adm',level2:'bé'}]),
-  null,
-  'source must never be consumed as a 1..9 product key',
-);
-
-// A fully supplied compact path wins before any path that would need inferred nodes.
-assert.equal(
-  findCatalogProduct('chua có đường',levelCatalog)?.productName,
-  'Sua chua co',
-  '1-2 exact path beats 1-[missing]-3',
-);
-
-// Missing nodes are allowed only after the whole configured path set is checked.
-assert.equal(
-  findCatalogProduct('nha dam có',levelCatalog)?.productName,
-  'Sua chua nha dam co',
-  'visible 2-3 keys may fill the missing root only when one whole path remains',
-);
-assert.equal(
-  findCatalogProduct('bich khong',levelCatalog)?.productName,
-  'Sua bo bich khong',
-  'visible 2-3 keys may identify one unique full path',
+  findCatalogProduct('chua nha dam',catalog),
+  {productName:'Sua chua nha dam',productId:null},
 );
 assert.deepEqual(
-  findCatalogProduct('tho do',levelCatalog),
-  {productName:'Tho do',productId:null},
-  'an exact shared key prefix is certain even when several right-side branches remain',
-);
-assert.equal(
-  findCatalogProduct('tho do giay 1,2kg',levelCatalog)?.productName,
-  'Sua tho do giay 1284g',
+  findCatalogProduct('probi be mau',catalog),
+  {productName:'Sua probi be mau',productId:null},
 );
 
-// User example: probi > bé > màu > dưa gang. Input has 1,2,4.
-assert.equal(
-  findCatalogProduct('probi bé dưa',levelCatalog)?.productName,
-  'Sua probi be mau - dưa gang',
-  'root key first narrows the branch, then accentless be may match bé and 1,2,4 fills mau only when one whole path remains',
-);
-assert.equal(
-  findCatalogProduct('probi bé dứa',levelCatalog)?.productName,
-  'Sua probi be mau - dứa',
-  'dứa is a different explicit key from dưa',
-);
-assert.equal(
-  findCatalogProduct('probi bé vq',levelCatalog)?.productName,
-  'Sua probi be mau - viet quat',
-  'explicit aliases participate in the same path formula',
-);
-assert.equal(
-  findCatalogProduct('probi bé có',levelCatalog)?.productName,
-  'Sua probi be trang',
-  'the probi root de-noises be/bé before the remaining path is evaluated',
-);
+// No skipped level and no fuzzy/substring search.
+assert.equal(findCatalogProduct('chua dam',catalog),null);
+assert.equal(findCatalogProduct('probi mau',catalog),null);
+assert.equal(findCatalogProduct('cos',catalog),null);
+assert.equal(findCatalogProduct('prob',catalog),null);
 
-const ambiguous124=[
-  {id:'a',name:'A',source:'Sữa',level1:'probi',level2:'bé, be',level3:'mau',level4:'dưa gang, dưa'},
-  {id:'b',name:'B',source:'Sữa',level1:'probi',level2:'bé, be',level3:'khac',level4:'dưa gang, dưa'},
-];
-assert.equal(
-  findCatalogProduct('probi bé dưa',ambiguous124),
-  null,
-  '1,2,4 cannot invent level 3 when two complete 1-4 paths remain',
-);
+// Sugar wording is a tiny dictionary overlay, not a new tree level.
+assert.equal(findCatalogProduct('chua co duong',catalog)?.productName,'Sua chua co');
+assert.equal(findCatalogProduct('chua it duong',catalog)?.productName,'Sua chua it');
+assert.equal(findCatalogProduct('chua khong duong',catalog)?.productName,'Sua chua khong');
 
-// Accent fallback is deterministic: unaccented `dua` is ambiguous between dưa/dứa.
-assert.equal(findCatalogProduct('probi be dua',levelCatalog),null);
-assert.equal(
-  findCatalogProduct('probi be dua gang',levelCatalog)?.productName,
-  'Sua probi be mau - dưa gang',
-  'dua gang is unambiguous inside the probi branch',
-);
+// Full canonical name remains valid.
+assert.equal(findCatalogProduct('Sua chua nha dam co',catalog)?.productName,'Sua chua nha dam co');
 
-// A real one-node root product may resolve; a partial phrase cannot jump to another branch.
-assert.equal(
-  findCatalogProduct('hương dương mỹ vị',levelCatalog)?.productName,
-  'Huong duong mv',
-);
-assert.equal(findCatalogProduct('my vi',levelCatalog),null);
-
-// Unknown words are not silently ignored.
-assert.equal(findCatalogProduct('probi bé xyz dưa',levelCatalog),null);
-
-// Input is a human conversation stream. A resolved line establishes the nearest
-// parent key path; shorter following lines inherit that path until an explicit
-// new root switches the stream.
+// Every line is independent. There is no previous-line topic/context carry.
 assert.deepEqual(
   resolveParsedLinesWithCatalog([
-    line('Probi to ít',2),
-    line('vq',2),
-    line('Probi bé có',3),
-    line('Chua có đường',3),
-    line('Ít đường',3),
-    line('Không đường',3),
-    line('Probi to có',3),
-  ],levelCatalog).map(row=>row.line),
+    {quantity:3,productName:'Chua có đường',line:'3 Chua có đường'},
+    {quantity:3,productName:'Ít đường',line:'3 Ít đường'},
+    {quantity:2,productName:'Probi be mau',line:'2 Probi be mau'},
+    {quantity:3,productName:'Không đường',line:'3 Không đường'},
+  ],catalog).map(row=>row.line),
   [
-    '2 Sua probi to mau - it (Probi to ít)',
-    '2 Sua probi to mau - viet quat (vq)',
-    '3 Sua probi be trang (Probi bé có)',
     '3 Sua chua co (Chua có đường)',
-    '3 Sua chua it (Ít đường)',
-    '3 Sua chua khong (Không đường)',
-    '3 Sua probi to trang (Probi to có)',
+    '3 Ít đường',
+    '2 Sua probi be mau (Probi be mau)',
+    '3 Không đường',
   ],
-  'nearest input key context follows the current human topic and switches only on an explicit new branch',
 );
 
-assert.deepEqual(
-  resolveParsedLinesWithCatalog([
-    line('Chua có đường',1),
-    line('Ít đường',1),
-    line('Probi to vq',1),
-    line('Ít đường',1),
-  ],levelCatalog).map(row=>row.line),
-  [
-    '1 Sua chua co (Chua có đường)',
-    '1 Sua chua it (Ít đường)',
-    '1 Sua probi to mau - viet quat (Probi to vq)',
-    '1 Sua probi to mau - it (Ít đường)',
-  ],
-  'after an explicit probi line the same shorthand leaf belongs to probi, not the older chua topic',
-);
-
-console.log('chat deterministic compact 1..9 product path formula PASS');
+console.log('chat exact adjacent 1-3 level product formula PASS');
