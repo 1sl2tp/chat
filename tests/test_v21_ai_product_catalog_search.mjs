@@ -77,10 +77,10 @@ assert.equal(
   'Sua bo bich khong',
   'visible 2-3 keys may identify one unique full path',
 );
-assert.equal(
+assert.deepEqual(
   findCatalogProduct('tho do',levelCatalog),
-  null,
-  'a visible 1-2 subset shared by several whole paths stays unresolved',
+  {productName:'Tho do',productId:null},
+  'an exact shared key prefix is certain even when several right-side branches remain',
 );
 assert.equal(
   findCatalogProduct('tho do giay 1,2kg',levelCatalog)?.productName,
