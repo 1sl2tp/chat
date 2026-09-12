@@ -8,6 +8,15 @@ function quantityText(value){
   return Number.isInteger(n)?String(n):String(Math.round(n*100)/100);
 }
 
+export function splitCustomerSegments(value){
+  return String(value??'')
+    .replace(/\r\n?/g,'\n')
+    .split(/\n/)
+    .flatMap(line=>line.split(/\s*(?:,|;)\s*|\s+\/\s+/))
+    .map(part=>part.replace(/^\s*[-•]\s*/,'').trim())
+    .filter(Boolean);
+}
+
 export function finalizeProductLines(items,catalog){
   const byCode=new Map(
     (Array.isArray(catalog)?catalog:[])
