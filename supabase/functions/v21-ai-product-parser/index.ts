@@ -31,7 +31,7 @@ async function loadActiveCatalog(){
 
   const products=Array.isArray(result.data)?result.data:[];
   const keyResult=await db.from("chat_ai_product_keys")
-    .select("product_name,type,c1,c2,size,label2,form,color,volume,variant")
+    .select("product_name,source,level1,level2,level3,level4,level5,level6,level7,level8,level9")
     .eq("active",true)
     .limit(5000);
   if(keyResult.error){
@@ -50,15 +50,16 @@ async function loadActiveCatalog(){
     if(!keyRow)return row;
     return {
       ...row,
-      type:keyRow.type,
-      c1:keyRow.c1,
-      c2:keyRow.c2,
-      size:keyRow.size,
-      label2:keyRow.label2,
-      form:keyRow.form,
-      color:keyRow.color,
-      volume:keyRow.volume,
-      variant:keyRow.variant,
+      source:keyRow.source,
+      level1:keyRow.level1,
+      level2:keyRow.level2,
+      level3:keyRow.level3,
+      level4:keyRow.level4,
+      level5:keyRow.level5,
+      level6:keyRow.level6,
+      level7:keyRow.level7,
+      level8:keyRow.level8,
+      level9:keyRow.level9,
     };
   });
 }
