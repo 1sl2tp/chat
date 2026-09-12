@@ -23,6 +23,7 @@ const UNIT='(?:t|th|thùng|thung|bao|ba0|bịch|bich|gói|goi|chai|lốc|loc|h�
 const explicitQty=new RegExp(`(^|\\s)(\\d+(?:[.,]\\d+)?)\\s*(${UNIT})(?=\\s|$)`,'iu');
 const chatter=/\b(?:cho|em|e|c|chị|chi|anh|ok|nhé|nhe|thế|the|t2)\b/iu;
 const childQty=new RegExp(`^(\\d+(?:[.,]\\d+)?)(\\s*${UNIT})?\\s+(.+)$`,'iu');
+const parentTotal=new RegExp(`^(\\d+(?:[.,]\\d+)?)(?:\\s*${UNIT})?\\s+(.+)$`,'iu');
 
 function splitList(value){
   return String(value??'')
@@ -41,9 +42,24 @@ function expandParentLine(line){
   const children=splitList(text.slice(colon+1));
   if(!parent||!children.length)return splitList(text);
 
+  const childMatches=children.map(child=>child.match(childQty));
+  const hasAnyChildQty=childMatches.some(Boolean);
+
+  if(!hasAnyChildQty){
+    const totalMatch=parent.match(parentTotal);
+    if(totalMatch){
+      const total=numberValue(totalMatch[1]);
+      const parentName=clean(totalMatch[2]);
+      if(total!=null&&Number.isInteger(total)&&total===children.length&&parentName){
+        return children.map(child=>clean(`1 ${parentName} ${child}`));
+      }
+    }
+  }
+
   const expanded=[];
-  for(const child of children){
-    const match=child.match(childQty);
+  for(let i=0;i<children.length;i++){
+    const child=children[i];
+    const match=childMatches[i];
     if(!match){
       expanded.push(child);
       continue;
