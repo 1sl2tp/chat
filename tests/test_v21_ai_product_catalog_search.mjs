@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { findCatalogProduct, resolveParsedLinesWithCatalog } from '../supabase/functions/v21-ai-product-parser/catalog-search.mjs';
+import { findCatalogProduct, formatCatalogSearchDisplayRows, resolveParsedLinesWithCatalog } from '../supabase/functions/v21-ai-product-parser/catalog-search.mjs';
 
 const catalog=[
   {id:'b1',name:'Banh cosy 336',source:'Hàng thường',level1:'banh',level2:'cosy',level3:'336'},
@@ -78,4 +78,30 @@ assert.deepEqual(
   'partial keys carry; each following line backs off 4-3-2-1 and then continues left-to-right',
 );
 
-console.log('chat binary progressive key + full carry/backoff PASS');
+// Split/search resolution order is intentionally preserved because cross-line
+// carry depends on it. Only the final Search display is normalized and sorted.
+const searched=resolveParsedLinesWithCatalog([
+  {quantity:2,productName:'Probi to có đường',line:'2 Probi to có đường'},
+  {quantity:3,productName:'Chua nha dam co',line:'3 Chua nha dam co'},
+  {quantity:1,productName:'Chua co đường',line:'1 Chua co đường'},
+],catalog);
+assert.deepEqual(
+  searched.map(row=>row.line),
+  [
+    '2 Sua probi to có đường *',
+    '3 Sua chua nha dam co (Chua nha dam co)',
+    '1 Sua chua co đường *',
+  ],
+  'Tách / resolver order stays unchanged',
+);
+assert.deepEqual(
+  formatCatalogSearchDisplayRows(searched).map(row=>row.line),
+  [
+    '1 Sua chua co duong *',
+    '3 Sua chua nha dam co (Chua nha dam co)',
+    '2 Sua probi to co duong *',
+  ],
+  'only Tìm display is accent-free and sorted A-Z by product name',
+);
+
+console.log('chat binary progressive key + full carry/backoff + search display sort PASS');
