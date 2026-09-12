@@ -3,10 +3,13 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 SQL=ROOT/'supabase'/'migrations'/'20260912_chat_ai_product_parser.sql'
 KEYS_SQL=ROOT/'supabase'/'migrations'/'20260912_chat_ai_product_keys.sql'
+LEVELS_SQL=ROOT/'supabase'/'migrations'/'20260912_chat_ai_product_levels.sql'
 assert SQL.exists(), 'chat AI migration is missing'
 assert KEYS_SQL.exists(), 'chat AI product-key migration is missing'
+assert LEVELS_SQL.exists(), 'chat AI explicit level migration is missing'
 text=SQL.read_text(encoding='utf-8')
 keys_text=KEYS_SQL.read_text(encoding='utf-8')
+levels_text=LEVELS_SQL.read_text(encoding='utf-8')
 
 for required in [
     'chat_ai_message_inbox',
@@ -22,19 +25,28 @@ for required in [
 for required in [
     'chat_ai_product_keys',
     'product_name',
-    'c1',
-    'c2',
-    'size',
-    'label2',
-    'form',
-    'color',
-    'volume',
-    'variant',
 ]:
     assert required in keys_text, required
 
+for required in [
+    'alter table public.chat_ai_product_keys',
+    'source text',
+    'level1 text',
+    'level2 text',
+    'level3 text',
+    'level4 text',
+    'level5 text',
+    'level6 text',
+    'level7 text',
+    'level8 text',
+    'level9 text',
+    'array_remove',
+]:
+    assert required in levels_text, required
+
 assert 'getlink_' not in text
 assert 'getlink_' not in keys_text
+assert 'getlink_' not in levels_text
 assert 'getlink_ai_' not in text
 assert 'getlink_sales_orders' not in text
-print('chat-owned AI DB isolation contract PASS')
+print('chat-owned deterministic 1..9 DB isolation contract PASS')
