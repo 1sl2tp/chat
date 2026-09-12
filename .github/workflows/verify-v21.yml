@@ -49,5 +49,7 @@ jobs:
         run: node tests/test_v21_quote_core.mjs
       - name: Chat quote edge contract
         run: python tests/test_v21_quote_edge_contract.py
+      - name: Chat quote public page contract
+        run: python tests/test_v21_quote_public_page.py
       - name: Verify canonical source
         run: python tools/verify_current.py
