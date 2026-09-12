@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { formatOrderSummary } from '../supabase/functions/v21-ai-product-parser/order-summary.mjs';
+import { resolveParsedLinesWithCatalog } from '../supabase/functions/v21-ai-product-parser/catalog-search.mjs';
 
 assert.equal(
   formatOrderSummary([
@@ -28,6 +29,19 @@ assert.equal(
   ]),
   '— Tổng: 1 mã · 3 thùng',
   'unresolved rows still participate in the aggregate',
+);
+
+const resolved=resolveParsedLinesWithCatalog([
+  {quantity:4,productName:'Sua chua co',line:'4 Sua chua co'},
+  {quantity:20,productName:'SG bac',line:'20 SG bac'},
+],[
+  {id:'S-1',name:'Sua chua co',source:'Sữa',level1:'sua',level2:'chua',level3:'co'},
+  {id:'TL-1',name:'SG bạc',source:'Thuốc lá',level1:'sg',level2:'bac'},
+]);
+assert.equal(
+  formatOrderSummary(resolved),
+  '— Tổng: 2 mã · 4 thùng · Thuốc lá: 20 cây',
+  'catalog source must survive resolution so tobacco is not counted as a normal carton',
 );
 
 console.log('chat order summary footer contract PASS');
