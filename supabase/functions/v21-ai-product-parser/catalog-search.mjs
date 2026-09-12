@@ -84,10 +84,6 @@ function buildCatalogIndex(catalog=[]){
       }
     }
 
-    // Aliases are explicit data, never guessed. They are alternate names for
-    // the row's leaf key, so index the same adjacent windows with only the
-    // final leaf replaced by the alias phrase. The resolved prefix remains
-    // canonical (the original level path).
     const leaf=path.length-1;
     for(const alias of rowAliases(row)){
       if(alias===path[leaf])continue;
@@ -216,33 +212,6 @@ function anchorFromResolution(result){
   return [...prefix];
 }
 
-function sameAnchor(left,right){
-  if(!left?.length||!right?.length||left.length!==right.length)return false;
-  return left.every((value,index)=>value===right[index]);
-}
-
-function scanAnchor(productText,index,scopePrefix=null){
-  const query=normalizeQuery(productText);
-  const tokens=query.split(' ').filter(Boolean);
-  if(!tokens.length)return null;
-
-  for(let size=tokens.length;size>=1;size--){
-    const anchors=[];
-    for(let start=0;start<=tokens.length-size;start++){
-      const key=tokens.slice(start,start+size).join(' ');
-      const result=resolveExactKey(key,index,scopePrefix);
-      const anchor=Array.isArray(result?.prefix)&&result.prefix.length?result.prefix:null;
-      if(anchor?.length)anchors.push(anchor);
-    }
-    if(!anchors.length)continue;
-
-    const unique=new Map();
-    for(const anchor of anchors)unique.set(anchor.join('\u0000'),anchor);
-    if(unique.size===1)return [...unique.values()][0];
-  }
-  return null;
-}
-
 function resolveNextPhrase(productText,index,scopePrefix){
   const query=normalizeQuery(productText);
   if(!query||!scopePrefix?.length)return null;
@@ -261,31 +230,67 @@ function resolveWithBackoff(productText,index,activeAnchor){
   return null;
 }
 
+function continueProgressive(rawTokens,tokens,index,current,prefix,consumed){
+  let match=current;
+  let nextPrefix=prefix;
+  let used=consumed;
+
+  while(used<tokens.length){
+    const next=resolveNextPhrase(tokens[used],index,nextPrefix);
+    if(!next)break;
+    match=next;
+    nextPrefix=anchorFromResolution(next);
+    if(!nextPrefix?.length)break;
+    used++;
+  }
+
+  if(used>=tokens.length){
+    return {
+      complete:true,
+      match,
+      prefix:nextPrefix,
+      productName:match?.productName||titlePrefix(nextPrefix.join(' ')),
+      tail:'',
+    };
+  }
+
+  return {
+    complete:false,
+    match,
+    prefix:nextPrefix,
+    productName:titlePrefix(nextPrefix.join(' ')),
+    tail:rawTokens.slice(used).join(' '),
+  };
+}
+
 function resolveProgressivePrefix(productText,index){
   const rawTokens=clean(productText).split(/\s+/).filter(Boolean);
   const tokens=normalizeQuery(productText).split(' ').filter(Boolean);
   if(!tokens.length||tokens.length!==rawTokens.length)return null;
 
-  let current=resolveExactKey(tokens[0],index,null);
-  let prefix=anchorFromResolution(current);
+  const current=resolveExactKey(tokens[0],index,null);
+  const prefix=anchorFromResolution(current);
   if(!prefix?.length)return null;
 
-  let consumed=1;
-  while(consumed<tokens.length){
-    const next=resolveNextPhrase(tokens[consumed],index,prefix);
-    if(!next)break;
-    current=next;
-    prefix=anchorFromResolution(next);
-    if(!prefix?.length)break;
-    consumed++;
+  return continueProgressive(rawTokens,tokens,index,current,prefix,1);
+}
+
+function resolveProgressiveWithBackoff(productText,index,activeAnchor){
+  if(!activeAnchor?.length)return null;
+
+  const rawTokens=clean(productText).split(/\s+/).filter(Boolean);
+  const tokens=normalizeQuery(productText).split(' ').filter(Boolean);
+  if(!tokens.length||tokens.length!==rawTokens.length)return null;
+
+  for(let keep=activeAnchor.length;keep>=1;keep--){
+    const scope=activeAnchor.slice(0,keep);
+    const current=resolveNextPhrase(tokens[0],index,scope);
+    const prefix=anchorFromResolution(current);
+    if(!prefix?.length)continue;
+    return continueProgressive(rawTokens,tokens,index,current,prefix,1);
   }
 
-  if(consumed>=tokens.length)return null;
-  return {
-    prefix,
-    productName:titlePrefix(prefix.join(' ')),
-    tail:rawTokens.slice(consumed).join(' '),
-  };
+  return null;
 }
 
 function publicMatch(result){
@@ -312,7 +317,7 @@ function resolvedRow(row,match,contextMatched=false){
   };
 }
 
-function partialRow(row,partial){
+function partialRow(row,partial,contextMatched=false){
   const rawProductName=clean(row?.productName);
   const productName=clean(`${partial.productName} ${partial.tail}`);
   return {
@@ -321,7 +326,7 @@ function partialRow(row,partial){
     productName,
     productId:null,
     catalogMatched:false,
-    catalogContextMatched:false,
+    catalogContextMatched:contextMatched,
     line:`${quantityText(row?.quantity)} ${productName} *`,
   };
 }
@@ -354,6 +359,17 @@ export function resolveParsedLinesWithCatalog(lines,catalog=[]){
       continue;
     }
 
+    const contextualProgressive=resolveProgressiveWithBackoff(text,index,activeAnchor);
+    if(contextualProgressive){
+      if(contextualProgressive.complete){
+        output.push(resolvedRow(row,contextualProgressive.match,true));
+      }else{
+        output.push(partialRow(row,contextualProgressive,true));
+      }
+      if(contextualProgressive.prefix?.length)activeAnchor=[...contextualProgressive.prefix];
+      continue;
+    }
+
     const globalExact=resolveExactPhrase(text,index,null);
     if(globalExact){
       output.push(resolvedRow(row,globalExact,false));
@@ -364,7 +380,12 @@ export function resolveParsedLinesWithCatalog(lines,catalog=[]){
 
     const progressive=resolveProgressivePrefix(text,index);
     if(progressive){
-      output.push(partialRow(row,progressive));
+      if(progressive.complete){
+        output.push(resolvedRow(row,progressive.match,false));
+      }else{
+        output.push(partialRow(row,progressive,false));
+      }
+      if(progressive.prefix?.length)activeAnchor=[...progressive.prefix];
       continue;
     }
 
