@@ -1,5 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
-import { finalizeProductLines } from "./parser-core.mjs";
+import { finalizeProductLines, splitCustomerSegments } from "./parser-core.mjs";
 
 const SUPABASE_URL=String(Deno.env.get("SUPABASE_URL")||"").trim();
 const SERVICE_KEY=String(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"").trim();
@@ -86,45 +86,53 @@ function responseSchema(){
     type:"object",
     additionalProperties:false,
     properties:{
-      items:{
+      results:{
         type:"array",
         items:{
           type:"object",
           additionalProperties:false,
           properties:{
-            raw_text:{type:"string"},
+            segment_index:{type:"integer",minimum:0},
+            is_product:{type:"boolean"},
             product_name:{type:"string"},
             product_code:{type:["string","null"]},
             quantity:{type:"number",minimum:0.000001},
             unit_hint:{type:["string","null"]},
           },
-          required:["raw_text","product_name","product_code","quantity","unit_hint"],
+          required:["segment_index","is_product","product_name","product_code","quantity","unit_hint"],
         },
       },
     },
-    required:["items"],
+    required:["results"],
   };
 }
 
 async function parseWithGemini(customerText:string,catalog:any[],library:any,cfg:any){
+  const segments=splitCustomerSegments(customerText);
+  if(!segments.length)return [];
+  const input_segments=segments.map((text,index)=>({segment_index:index,text}));
   const input={
-    customer_text:customerText,
+    input_segments,
     catalog:catalog.map(row=>({product_code:row.productCode,product_name:row.productName})),
     learning_library:library,
   };
   const systemInstruction=[
     "Bạn là bộ phân tích tên hàng trong Chat của một cửa hàng tạp hóa.",
-    "Chỉ làm một việc: tách tin khách thành các dòng sản phẩm, số lượng và nhận diện tên hàng.",
+    "Tầng 1 đã tách input thành input_segments bằng dấu phân cách thật: xuống dòng, dấu phẩy, dấu chấm phẩy hoặc dấu / có khoảng trắng.",
+    "Mỗi input_segment là một món tối đa. Tuyệt đối không tách thêm một segment chỉ vì bên trong có số khác.",
+    "Ví dụ 'T2 cho em 2t chân gà 1 cửu ca' là một segment: số lượng 2, tên là 'chân gà 1 cửu ca'; số 1 nằm trong tên, không tạo món mới.",
+    "Nếu nhiều segment đứng cùng cụm, được dùng ngữ cảnh giữa các segment để hiểu cha/nhóm chung, nhưng vẫn phải trả tối đa một result cho mỗi segment_index.",
+    "Chỉ làm một việc: lấy từng segment, bỏ câu dẫn nếu có, xác định số lượng và nhận diện tên hàng.",
     "Không tạo đơn hàng, không tính giá, không xử lý giỏ hàng, công nợ hay trạng thái bán hàng.",
-    "Phải tách và giữ mọi món khách đã nhắn; chưa nhận diện được SKU cũng không được bỏ món.",
+    "Phải giữ mọi segment có sản phẩm; chưa nhận diện được SKU cũng không được bỏ.",
     "Input có thể có ít thành phần hơn tên trong catalog. Hãy sửa lỗi chữ, viết tắt và từ tương đương bằng learning_library rồi đặt các thành phần vào đúng ngữ cảnh.",
-    "Một số số là thành phần tên hoặc cỡ như 120g, 3 ngăn, 1.8kg; không được lấy chúng làm số lượng nếu cấu trúc câu cho thấy chúng thuộc tên hàng.",
+    "Một số số là thành phần tên hoặc cỡ như 120g, 3 ngăn, 1.8kg; không được lấy chúng làm số lượng nếu cấu trúc segment cho thấy chúng thuộc tên hàng.",
     "aliases, rules và examples trong learning_library là tham chiếu đã học. Quy tắc theo ngữ cảnh phải giữ đúng ngữ cảnh, không biến thành alias toàn cục.",
     "Nếu nhận diện chắc chắn một sản phẩm có trong catalog, product_code phải là đúng mã có sẵn trong catalog.",
-    "Tuyệt đối không tự tạo product_code. Nếu chưa đủ chắc hoặc catalog chưa có, product_code=null và product_name giữ cách gọi của khách sau sửa lỗi chữ tối thiểu.",
-    "Nếu có SKU thì product_name có thể dùng tên catalog; backend vẫn sẽ kiểm tra lại bằng product_code.",
-    "quantity là số lượng khách đặt; unit_hint có thể giữ để hiểu nội bộ nhưng không dùng nó làm một phần câu trả lời cho khách.",
-    "Nếu tin nhắn không có sản phẩm cần tách thì items=[]; không trả lời trò chuyện thông thường.",
+    "Tuyệt đối không tự tạo product_code. Nếu chưa đủ chắc hoặc catalog chưa có, product_code=null và product_name giữ cách gọi của khách sau sửa lỗi chữ tối thiểu, không làm mất thành phần tên.",
+    "Nếu có SKU thì product_name có thể dùng tên catalog; backend sẽ kiểm tra lại bằng product_code.",
+    "quantity là số lượng khách đặt; unit_hint chỉ để hiểu nội bộ và không xuất hiện trong câu trả lời Chat.",
+    "Với segment không phải sản phẩm, trả is_product=false. Không tự sinh thêm segment_index ngoài input_segments.",
     "Chỉ trả JSON theo schema, không thêm văn bản giải thích.",
   ].join(" ");
   const response=await fetch(GEMINI_URL,{
@@ -141,10 +149,28 @@ async function parseWithGemini(customerText:string,catalog:any[],library:any,cfg
   });
   let payload:any;
   try{payload=await response.json();}catch{throw new Error("model_response_not_json");}
-  if(!response.ok||["failed","incomplete","cancelled","budget_exceeded"].includes(String(payload?.status||"")))throw new Error("model_request_failed");
+  if(!response.ok||["failed","incomplete","cancelled","budget_exceeded"].includes(String(payload?.status||"")))throw new Error(`model_request_failed:${response.status}:${clean(payload?.error?.message||payload?.status||"unknown",220)}`);
   let parsed:any;
   try{parsed=JSON.parse(outputText(payload));}catch{throw new Error("model_output_invalid");}
-  return Array.isArray(parsed?.items)?parsed.items:[];
+  const seen=new Set<number>();
+  const items:any[]=[];
+  for(const row of Array.isArray(parsed?.results)?parsed.results:[]){
+    const index=Number(row?.segment_index);
+    if(!Number.isInteger(index)||index<0||index>=segments.length||seen.has(index))continue;
+    seen.add(index);
+    if(row?.is_product!==true)continue;
+    const quantity=Number(row?.quantity);
+    const productName=clean(row?.product_name,500);
+    if(!Number.isFinite(quantity)||quantity<=0||!productName)continue;
+    items.push({
+      raw_text:segments[index],
+      product_name:productName,
+      product_code:row?.product_code?clean(row.product_code,120):null,
+      quantity,
+      unit_hint:row?.unit_hint?clean(row.unit_hint,80):null,
+    });
+  }
+  return items;
 }
 
 async function activeAdminId(conversationId:string){
