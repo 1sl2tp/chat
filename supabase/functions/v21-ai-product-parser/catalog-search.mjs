@@ -269,6 +269,7 @@ function contextFromRow(row){
   return {
     source:rowSource(row),
     levels:path.length>1?path.slice(0,-1):path,
+    pathLength:path.length,
   };
 }
 
@@ -297,6 +298,16 @@ function findCatalogProductInContext(productText,rows,context){
   for(let depth=context.levels.length;depth>=1;depth--){
     const scoped=rows.filter(row=>rowMatchesContextPrefix(row,context,depth));
     if(!scoped.length)continue;
+
+    // Human shorthand normally changes the leaf while keeping the same key
+    // level. Prefer that sibling depth first (chua/co -> chua/it) before any
+    // deeper child such as chua/nha-dam/it.
+    if(context.pathLength){
+      const sameDepth=scoped.filter(row=>rowPath(row).length===context.pathLength);
+      const sameDepthMatch=findStructuredProduct(query,sameDepth,1);
+      if(sameDepthMatch)return sameDepthMatch;
+    }
+
     const match=findStructuredProduct(query,scoped,1);
     if(match)return match;
   }
