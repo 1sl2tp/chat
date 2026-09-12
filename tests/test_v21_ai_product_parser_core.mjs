@@ -33,6 +33,7 @@ assert.deepEqual(lines('2 chew 3'),['3 2 chew']);
 assert.deepEqual(lines('555 det 2'),['2 555 det']);
 assert.deepEqual(lines('3 miền 2'),['2 3 miền']);
 assert.deepEqual(lines('7 up 2'),['2 7 up']);
+assert.deepEqual(lines('9 hat 2'),['2 9 hat'],'9 hat is a protected numeric-leading catalog phrase; the trailing 2 is quantity');
 
 assert.deepEqual(lines('555 det'),[]);
 assert.deepEqual(lines('3 mien'),[]);
