@@ -341,6 +341,51 @@ function resolvedRow(row,match,contextMatched=false){
   };
 }
 
+function exactKeyCommonLeftPrefix(query,rows){
+  const target=normalizeLoose(query);
+  if(!target)return null;
+
+  const hits=[];
+  for(const row of rows.filter(hasConfiguredPath)){
+    const path=rowPath(row);
+    for(let start=0;start<path.length;start++){
+      let combinations=[''];
+      for(let end=start;end<path.length;end++){
+        const next=[];
+        for(const prefix of combinations){
+          for(const alias of path[end]){
+            const piece=normalizeLoose(alias);
+            if(!piece)continue;
+            next.push(prefix?`${prefix} ${piece}`:piece);
+          }
+        }
+        combinations=[...new Set(next)];
+        if(!combinations.includes(target))continue;
+
+        const prefixLevels=path
+          .slice(0,end+1)
+          .map(level=>normalizeLoose(level[0]||''))
+          .filter(Boolean);
+        hits.push({row,prefix:prefixLevels.join(' ')});
+      }
+    }
+  }
+
+  if(!hits.length)return null;
+
+  const rowKeys=new Set(hits.map(({row})=>{
+    const id=rowId(row);
+    return `${rowSource(row)}\u0000${id||normalizeLoose(rowName(row))}`;
+  }));
+  if(rowKeys.size===1)return uniqueNameMatch(hits.map(hit=>hit.row));
+
+  const prefixes=new Set(hits.map(hit=>hit.prefix).filter(Boolean));
+  if(prefixes.size!==1)return null;
+
+  const prefix=[...prefixes][0];
+  return {productName:prefix.charAt(0).toUpperCase()+prefix.slice(1),productId:null};
+}
+
 export function findCatalogProduct(productText,catalog=[]){
   const query=normalizeQuery(productText);
   if(!query)return null;
@@ -348,6 +393,9 @@ export function findCatalogProduct(productText,catalog=[]){
   const rows=(Array.isArray(catalog)?catalog:[]).filter(row=>rowName(row));
   const exact=rows.filter(row=>normalizeStrict(rowName(row))===query);
   if(exact.length)return uniqueNameMatch(exact);
+
+  const exactKey=exactKeyCommonLeftPrefix(query,rows);
+  if(exactKey)return exactKey;
 
   const direct=findStructuredProduct(query,rows,2);
   if(direct)return direct;
