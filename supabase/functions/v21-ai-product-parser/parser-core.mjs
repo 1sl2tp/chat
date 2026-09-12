@@ -25,7 +25,7 @@ const chatter=/\b(?:cho|em|e|c|chị|chi|anh|ok|nhé|nhe|thế|the|t2)\b/iu;
 const childQty=new RegExp(`^(\\d+(?:[.,]\\d+)?)(\\s*${UNIT})?\\s+(.+)$`,'iu');
 const parentTotal=new RegExp(`^(\\d+(?:[.,]\\d+)?)(?:\\s*${UNIT})?\\s+(.+)$`,'iu');
 const tobaccoName=/\b(?:cứng|cung|mềm|mem|dẹt|det|melon)\b/iu;
-const protectedThName=/^th\s+(?:bé|be|to|có|co|ít|it|không|khong|ko|đường|duong|dâu|dau|socola|sô\s*cô\s*la|true|organic)\b/iu;
+const protectedThName=/^th\s+(?:bé|be|to|có|co|ít|it|không|khong|ko|đường|duong|dâu|dau|socola|sô\s*cô\s*la|true|organic)(?:\s|$)/iu;
 
 function canonicalUnit(value){
   const unit=clean(value).toLocaleLowerCase('vi-VN');
