@@ -11,11 +11,17 @@ const catalog=[
 ];
 
 const structuredCatalog=[
+  {id:'vnm6',name:'Sua bo bich co',type:'Sữa',c1:'bo',form:'bich',variant:'có, có đường'},
+  {id:'vnm7',name:'Sua bo bich it',type:'Sữa',c1:'bo',form:'bich',variant:'ít, ít đường'},
+  {id:'vnm8',name:'Sua bo bich khong',type:'Sữa',c1:'bo',form:'bich',variant:'không, không đường'},
+  {id:'vnm11',name:'Sua bo lit co',type:'Sữa',c1:'bo',form:'lit',variant:'có, có đường'},
+  {id:'vnm13',name:'Sua bo lit khong',type:'Sữa',c1:'bo',form:'lit',variant:'không, không đường'},
   {id:'vnm19',name:'Sua chua greenfram',type:'Sữa',c1:'chua',label2:'greenfram, green, fram'},
+  {id:'vnm21',name:'Sua chua khong',type:'Sữa',c1:'chua',variant:'không, không đường'},
   {id:'vnm33',name:'Sua green fram to it 180ml',type:'Sữa',c1:'green',c2:'fram',size:'to, 180',variant:'ít, ít đường'},
   {id:'vnm32',name:'Sua green fram to co 180ml',type:'Sữa',c1:'green',c2:'fram',size:'to, 180',variant:'có, có đường'},
   {id:'vnm58',name:'Sua green lit',type:'Sữa',c1:'green',form:'lit'},
-  {id:'vnm46',name:'Sua probi to mau - viet quat',type:'Sữa',c1:'probi, bi, proby',size:'to, 180',label2:'mau',variant:'viet quat'},
+  {id:'vnm46',name:'Sua probi to mau - viet quat',type:'Sữa',c1:'probi, bi, proby',size:'to, 180',label2:'mau',variant:'viet quat, vq'},
   {id:'vnm47',name:'Sua probi to trang',type:'Sữa',c1:'probi, bi, proby',size:'to, 180',color:'trắng, có, truyền thống'},
   {id:'vnm50',name:'Sua tho do giay 1284g',type:'Sữa',c1:'tho',label2:'do',form:'giay',volume:'1284g, 1,2kg'},
   {id:'vnm51',name:'Sua tho do giay 1kg',type:'Sữa',c1:'tho',label2:'do',form:'giay',volume:'1kg'},
@@ -101,6 +107,34 @@ assert.deepEqual(
   resolveParsedLinesWithCatalog([line('bi to viet quat',5)],structuredCatalog).map(row=>row.line),
   ['5 Sua probi to mau - viet quat (bi to viet quat)'],
   'a unique structured match outputs the canonical product name (column K)',
+);
+
+assert.deepEqual(
+  resolveParsedLinesWithCatalog([
+    line('Bịch có',2),
+    line('Không',2),
+    line('Bịch ít',2),
+  ],structuredCatalog).map(row=>row.line),
+  [
+    '2 Sua bo bich co (Bịch có)',
+    '2 Sua bo bich khong (Không)',
+    '2 Sua bo bich it (Bịch ít)',
+  ],
+  'an ambiguous middle line inherits only the shared nearest-above/below branch inside the same input',
+);
+
+assert.deepEqual(
+  resolveParsedLinesWithCatalog([
+    line('Bịch có',2),
+    line('Không',2),
+    line('Lít có',2),
+  ],structuredCatalog).map(row=>row.line),
+  [
+    '2 Sua bo bich co (Bịch có)',
+    '2 Không',
+    '2 Sua bo lit co (Lít có)',
+  ],
+  'conflicting nearest neighbors must not guess a branch for the middle line',
 );
 
 console.log('chat shared-product catalog search contract PASS');
