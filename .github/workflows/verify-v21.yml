@@ -33,6 +33,8 @@ jobs:
         run: python tests/test_v21_remove_getlink_embed.py
       - name: Chat AI product parser core contract
         run: node tests/test_v21_ai_product_parser_core.mjs
+      - name: Chat shared-product catalog search contract
+        run: node tests/test_v21_ai_product_catalog_search.mjs
       - name: Chat AI product parser edge isolation contract
         run: python tests/test_v21_ai_product_parser_edge_contract.py
       - name: Chat AI database isolation contract
