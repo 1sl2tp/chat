@@ -30,6 +30,7 @@ const structuredCatalog=[
   {id:'vnm50',name:'Sua tho do giay 1284g',type:'Sữa',c1:'tho',label2:'do',form:'giay',volume:'1284g, 1,2kg'},
   {id:'vnm51',name:'Sua tho do giay 1kg',type:'Sữa',c1:'tho',label2:'do',form:'giay',volume:'1kg'},
   {id:'vnm53',name:'Sua tho do sat',type:'Sữa',c1:'tho',label2:'do',form:'sat'},
+  {id:'vnm56',name:'Sua tho vi',type:'Sữa',c1:'tho',form:'vi'},
 ];
 
 function line(productName,quantity=1){
@@ -92,25 +93,37 @@ assert.equal(
 assert.equal(
   findCatalogProduct('chua có đường',structuredCatalog)?.productName,
   'Sua chua co',
-  'when c1 + variant match both a base row and a deeper child row, omitted child keys prefer the base row',
+  'when a shorter 1-2-3 path and a deeper 1-2-3-4 path match the same input keys, omitted child nodes prefer the shorter path',
 );
 
 assert.equal(
   findCatalogProduct('chua ít đường',structuredCatalog)?.productName,
   'Sua chua it',
-  'the same base-row rule applies to another yogurt variant',
+  'the same shortest-complete-path rule applies to another yogurt variant',
 );
 
 assert.equal(
   findCatalogProduct('nha dam có',structuredCatalog)?.productName,
   'Sua chua nha dam co',
-  'an explicitly present child key selects the deeper child row',
+  'explicit child nodes select the deeper path even when the source/root node is omitted from input',
+);
+
+assert.equal(
+  findCatalogProduct('bo bich khong',structuredCatalog)?.productName,
+  'Sua bo bich khong',
+  'non-empty configured cells collapse into consecutive levels: Sữa > bo > bich > không',
+);
+
+assert.equal(
+  findCatalogProduct('bich khong',structuredCatalog)?.productName,
+  'Sua bo bich khong',
+  'a consecutive suffix of two real tree levels may identify a product without typing its parents',
 );
 
 assert.equal(
   findCatalogProduct('green lit',structuredCatalog)?.productName,
   'Sua green lit',
-  'the leftmost matching key wins before later-column aliases are considered',
+  'tree levels are derived from non-empty cells in left-to-right order',
 );
 
 assert.equal(
@@ -122,7 +135,13 @@ assert.equal(
 assert.equal(
   findCatalogProduct('tho do giay 1,2kg',structuredCatalog)?.productName,
   'Sua tho do giay 1284g',
-  'later priority columns disambiguate within the already-matched parent path',
+  'later tree levels disambiguate within the already-matched path',
+);
+
+assert.equal(
+  findCatalogProduct('huong duong my vi',structuredCatalog),
+  null,
+  'one weak leaf word such as vi must never jump into an unrelated Sữa > tho > vi branch',
 );
 
 assert.deepEqual(
