@@ -19,6 +19,7 @@ for required in [
     'product_code,product_name,source,level1,level2,level3,level4,level5,level6,level7,level8,level9',
     'parseCustomerTextDetailed',
     'resolveParsedLinesWithCatalog',
+    'const body=[...output,`— Tổng: ${output.length} sản phẩm`].join("\\n")',
     'catalog_sync:true',
     'catalog_source:"chat_ai_product_keys"',
     'external_api:false',
