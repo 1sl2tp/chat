@@ -45,6 +45,8 @@ const UNIT='(?:t|th|thùng|thung|bao|ba0|gói|goi|chai|lốc|loc|hộp|hop|cây|
 const startUnit=new RegExp(`^(\\d+(?:[.,]\\d+)?)\\s*(${UNIT})\\s+(.+)$`,'iu');
 const endUnit=new RegExp(`^(.+?)\\s+(?:x\\s*)?(\\d+(?:[.,]\\d+)?)(?:\\s*(${UNIT}))?$`,'iu');
 const sharedChild=new RegExp(`^(\\d+(?:[.,]\\d+)?)(?:\\s*(${UNIT}))?\\s+(.+)$`,'iu');
+const inlineQuantityStart=new RegExp(`(^|\\s)(\\d+(?:[.,]\\d+)?(?:\\s*${UNIT})?)(?=\\s+\\S)`,'giu');
+const MEASURE_WORDS=new Set(['lit','l','kg','g','gram','ml']);
 
 // Confirmed numeric-leading product names only. These prevent a leading brand number from being read as quantity.
 const NUMERIC_NAME_PREFIXES=[
@@ -103,6 +105,51 @@ function parseSegmentDetailed(raw){
   if(match)return finalize(match[2],match[1]);
 
   return null;
+}
+
+function isIgnorableGreeting(raw){
+  const text=normalize(raw).replace(/[.!?]+$/g,'').trim();
+  return /^(?:ok|oke|okay)(?:\s+(?:anh|em|chi))?$/.test(text);
+}
+
+function hasAttachedUnit(marker){
+  return clean(marker).replace(/^\d+(?:[.,]\d+)?\s*/u,'').length>0;
+}
+
+function splitInlineQuantityItems(raw){
+  const text=clean(raw);
+  if(!text)return [];
+
+  inlineQuantityStart.lastIndex=0;
+  const starts=[];
+  let match;
+  while((match=inlineQuantityStart.exec(text))){
+    const start=match.index+match[1].length;
+    const marker=clean(match[2]);
+    const rest=text.slice(start+marker.length).trimStart();
+    const nextWord=normalize(rest.split(/\s+/)[0]||'');
+
+    // `1 lít`, `1 kg`, ... can be part of a product description rather than
+    // another order line. Do not create a new item from that weaker signal.
+    if(starts.length&&!hasAttachedUnit(marker)&&MEASURE_WORDS.has(nextWord))continue;
+    starts.push(start);
+  }
+
+  if(!starts.length)return [];
+
+  const prefix=clean(text.slice(0,starts[0]));
+  const normalizedPrefix=normalize(prefix);
+  const shortOrderPreface=/(?:^|\s)cho\s+(?:em|anh|chi)$/.test(normalizedPrefix);
+  if(starts.length<2&&!shortOrderPreface)return [];
+
+  const parsed=[];
+  for(let i=0;i<starts.length;i++){
+    const chunk=clean(text.slice(starts[i],i+1<starts.length?starts[i+1]:text.length));
+    const item=parseSegmentDetailed(chunk);
+    if(!item)return [];
+    parsed.push(item);
+  }
+  return parsed;
 }
 
 function splitFlatSegments(value){
@@ -168,8 +215,19 @@ export function parseCustomerTextDetailed(value){
   const lines=[];
   for(const segment of segments){
     const parsed=parseSegmentDetailed(segment);
-    if(!parsed)return {lines:[],confirmations:[]};
-    lines.push(parsed);
+    if(parsed){
+      lines.push(parsed);
+      continue;
+    }
+
+    const inlineItems=splitInlineQuantityItems(segment);
+    if(inlineItems.length){
+      lines.push(...inlineItems);
+      continue;
+    }
+
+    if(isIgnorableGreeting(segment))continue;
+    return {lines:[],confirmations:[]};
   }
   return {lines,confirmations:[]};
 }
