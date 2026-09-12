@@ -1,44 +1,5 @@
 import assert from 'node:assert/strict';
-import { finalizeProductLines, splitCustomerSegments, selectRelevantContext } from '../supabase/functions/v21-ai-product-parser/parser-core.mjs';
-
-const catalog=[
-  {productCode:'SUA-000022',productName:'Sua chua nep cam'},
-  {productCode:'HT-000105',productName:'Mi indi'},
-];
-
-{
-  const result=finalizeProductLines([
-    {quantity:2,product_code:'SUA-000022',product_name:'sc nep cam',unit_hint:'thùng'},
-  ],catalog);
-  assert.deepEqual(result,[{
-    quantity:2,
-    productCode:'SUA-000022',
-    productName:'Sua chua nep cam',
-    matched:true,
-    line:'2 Sua chua nep cam',
-  }]);
-}
-
-{
-  const result=finalizeProductLines([
-    {quantity:2,product_code:null,product_name:'chân gà',unit_hint:'thùng'},
-    {quantity:1,product_code:'FAKE-001',product_name:'cửu ca',unit_hint:null},
-  ],catalog);
-  assert.equal(result[0].line,'2 chân gà (chưa có SKU)');
-  assert.equal(result[1].line,'1 cửu ca (chưa có SKU)');
-  assert.equal(result[0].productCode,null);
-  assert.equal(result[1].productCode,null);
-  assert.equal(result[0].matched,false);
-  assert.equal(result[1].matched,false);
-}
-
-{
-  const result=finalizeProductLines([
-    {quantity:10,product_code:'HT-000105',product_name:'indomie',unit_hint:'thùng'},
-  ],catalog);
-  assert.equal(result[0].line,'10 Mi indi');
-  assert.doesNotMatch(result[0].line,/thùng|HT-000105/i);
-}
+import { splitCustomerSegments, parseCustomerText } from '../supabase/functions/v21-ai-product-parser/parser-core.mjs';
 
 {
   assert.deepEqual(
@@ -50,44 +11,53 @@ const catalog=[
 
 {
   assert.deepEqual(
-    splitCustomerSegments('2 bịch hướng dương\n- 2 bát 1.8kg, 2 bát 1kg, 2 bát 454\n5 có / 5 ko / 5 nha đam / 3 ít'),
-    [
-      '2 bịch hướng dương',
-      '2 bát 1.8kg',
-      '2 bát 1kg',
-      '2 bát 454',
-      '5 có',
-      '5 ko',
-      '5 nha đam',
-      '3 ít',
-    ],
-    'only explicit separators split customer items',
+    parseCustomerText('T2 cho em 2t chân gà 1 cửu ca'),
+    [{quantity:2,productName:'Chân gà 1 cửu ca',line:'2 Chân gà 1 cửu ca'}],
   );
 }
 
 {
-  const manyCatalog=[
-    ...Array.from({length:120},(_,i)=>({productCode:`X-${i}`,productName:`San pham khac ${i}`})),
-    {productCode:'SUA-000022',productName:'Sua chua nep cam'},
-    {productCode:'HT-000105',productName:'Mi indi'},
-  ];
-  const library={
-    rules:Array.from({length:80},(_,i)=>({rule_type:'behavior',rule_text:`quy tac khac ${i}`})),
-    aliases:[
-      ...Array.from({length:100},(_,i)=>({alias:`alias khac ${i}`,product_code:`X-${i}`,scope:'store'})),
-      {alias:'indomie',product_code:'HT-000105',scope:'customer'},
-      {alias:'vnm chua nep cam',product_code:'SUA-000022',scope:'customer'},
+  assert.deepEqual(
+    parseCustomerText('2 bịch hướng dương\n- 2 bát 1.8kg, 2 bát 1kg, 2 bát 454\n5 có / 5 ko / 5 nha đam / 3 ít'),
+    [
+      {quantity:2,productName:'Hướng dương',line:'2 Hướng dương'},
+      {quantity:2,productName:'Bát 1.8kg',line:'2 Bát 1.8kg'},
+      {quantity:2,productName:'Bát 1kg',line:'2 Bát 1kg'},
+      {quantity:2,productName:'Bát 454',line:'2 Bát 454'},
+      {quantity:5,productName:'Có',line:'5 Có'},
+      {quantity:5,productName:'Ko',line:'5 Ko'},
+      {quantity:5,productName:'Nha đam',line:'5 Nha đam'},
+      {quantity:3,productName:'Ít',line:'3 Ít'},
     ],
-    examples:Array.from({length:60},(_,i)=>({raw_text:`mau khac ${i}`,product_name:`San pham khac ${i}`,product_code:`X-${i}`})),
-  };
-  const selected=selectRelevantContext(['10 thùng indomie','2 sc nếp cẩm'],manyCatalog,library);
-  assert(selected.catalog.some(row=>row.productCode==='HT-000105'));
-  assert(selected.catalog.some(row=>row.productCode==='SUA-000022'));
-  assert(selected.aliases.some(row=>row.alias==='indomie'));
-  assert(selected.catalog.length<=60);
-  assert(selected.aliases.length<=50);
-  assert(selected.rules.length<=30);
-  assert(selected.examples.length<=20);
+  );
 }
 
-console.log('chat AI product parser core contract PASS');
+{
+  assert.deepEqual(
+    parseCustomerText('2t chân đôi ana\n4t kẹo 3viên\nKẹo bigbag 120g 3t\nHương dương mỹ vị 1ba0\nMít sấy hoà phát 1t\n2t bánh pò bịch\n1t 3ngăn'),
+    [
+      {quantity:2,productName:'Chân đôi ana',line:'2 Chân đôi ana'},
+      {quantity:4,productName:'Kẹo 3viên',line:'4 Kẹo 3viên'},
+      {quantity:3,productName:'Kẹo bigbag 120g',line:'3 Kẹo bigbag 120g'},
+      {quantity:1,productName:'Hương dương mỹ vị',line:'1 Hương dương mỹ vị'},
+      {quantity:1,productName:'Mít sấy hoà phát',line:'1 Mít sấy hoà phát'},
+      {quantity:2,productName:'Bánh pò bịch',line:'2 Bánh pò bịch'},
+      {quantity:1,productName:'3ngăn',line:'1 3ngăn'},
+    ],
+  );
+}
+
+{
+  assert.deepEqual(
+    parseCustomerText('Thế cho c 2 sữa chua chân châu đường đen\n3 ko đường bịch\n2 sc nếp cẩm\n5 vnm ít đường bé\n5 milo to 180 có dg\nNhé'),
+    [
+      {quantity:2,productName:'Sữa chua chân châu đường đen',line:'2 Sữa chua chân châu đường đen'},
+      {quantity:3,productName:'Ko đường bịch',line:'3 Ko đường bịch'},
+      {quantity:2,productName:'Sc nếp cẩm',line:'2 Sc nếp cẩm'},
+      {quantity:5,productName:'Vnm ít đường bé',line:'5 Vnm ít đường bé'},
+      {quantity:5,productName:'Milo to 180 có dg',line:'5 Milo to 180 có dg'},
+    ],
+  );
+}
+
+console.log('local SL + name parser contract PASS');
