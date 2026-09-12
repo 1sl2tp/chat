@@ -146,6 +146,17 @@ import {
 
 {
   assert.deepEqual(
+    parseCustomerText('Th bé cũng đc, 10 có, 10 ít bé'),
+    [
+      {quantity:10,productName:'Th bé có',line:'10 Th bé có'},
+      {quantity:10,productName:'Th bé ít',line:'10 Th bé ít'},
+    ],
+    'a quantity-less leading phrase before commas becomes the shared parent and repeated parent modifiers are not duplicated',
+  );
+}
+
+{
+  assert.deepEqual(
     splitLeadingConfirmationChoice(['1','Th bé cũng đc, 10 có, 10 ít bé']),
     {choice:'1',rest:['Th bé cũng đc, 10 có, 10 ít bé']},
     'a leading 1/0 confirmation must survive the 4-second message batch and leave later messages to parse normally',
