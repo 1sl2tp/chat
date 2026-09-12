@@ -53,5 +53,7 @@ jobs:
         run: python tests/test_v21_quote_public_page.py
       - name: Chat quote Admin UI contract
         run: python tests/test_v21_quote_chat_ui.py
+      - name: Chat call invite database contract
+        run: python -m pytest tests/test_v21_call_invite_db_contract.py -q
       - name: Verify canonical source
         run: python tools/verify_current.py
