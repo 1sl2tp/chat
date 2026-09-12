@@ -22,7 +22,7 @@ for required in [
     'parseCustomerTextDetailed',
     'resolveParsedLinesWithCatalog',
     'formatOrderSummary',
-    'const body=[...output,formatOrderSummary(resolved)].join("\\n")',
+    'const body=[...output,formatOrderSummary(resolved,catalog)].join("\\n")',
     'catalog_sync:true',
     'catalog_source:"chat_ai_product_keys"',
     'external_api:false',
