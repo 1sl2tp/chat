@@ -78,6 +78,20 @@ assert.deepEqual(
   '2-token input falls back to an exclusive 1-token anchor; a different 1/1-2 anchor resets the previous filter',
 );
 
+// When a failed full input contains a longer valid embedded phrase, prefer that
+// phrase over its shorter sub-phrase and keep the exact branch it identified.
+assert.deepEqual(
+  resolveParsedLinesWithCatalog([
+    {quantity:1,productName:'Probi to xyz',line:'1 Probi to xyz'},
+    {quantity:2,productName:'mau',line:'2 mau'},
+  ],catalog).map(row=>row.line),
+  [
+    '1 Probi to xyz *',
+    '2 Sua probi to mau (mau)',
+  ],
+  'probi to must win over probi and preserve the sua/probi/to branch',
+);
+
 assert.deepEqual(
   resolveParsedLinesWithCatalog([
     {quantity:1,productName:'Ít đường',line:'1 Ít đường'},
