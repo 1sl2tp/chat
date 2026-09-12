@@ -66,6 +66,22 @@ assert.deepEqual(
 );
 
 assert.deepEqual(
+  lines('Ok anh\nT2 cho em 2t chân gà 1 cửu ca\n2t chân đôi ana\n4t kẹo 3viên\nKẹo bigbag 120g 3t\nHương dương mỹ vị 1ba0\nMít sấy hoà phát 1t\n2t bánh pò bịch\n1t 3ngăn'),
+  [
+    '2 Chân gà',
+    '1 Cửu ca',
+    '2 Chân đôi ana',
+    '4 Kẹo 3viên',
+    '3 Kẹo bigbag 120g',
+    '1 Hương dương mỹ vị',
+    '1 Mít sấy hoà phát',
+    '2 Bánh pò bịch',
+    '1 3ngăn',
+  ],
+  'normal order clusters must survive a greeting and a short order preface, including two items on one line',
+);
+
+assert.deepEqual(
   parseCustomerTextDetailed('5 dẹt'),
   {lines:[{quantity:5,productName:'Dẹt',line:'5 Dẹt'}],confirmations:[]},
 );
