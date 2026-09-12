@@ -1,13 +1,12 @@
 import assert from 'node:assert/strict';
 import { findCatalogProduct, resolveParsedLinesWithCatalog } from '../supabase/functions/v21-ai-product-parser/catalog-search.mjs';
 
-const catalog=[
+const productOnlyCatalog=[
   {id:'tl30',name:'555 dẹt'},
   {id:'tl34',name:'555 dẹt bấm'},
   {id:'khac202',name:'Mi tom hao hao'},
-  {id:'vnm21',name:'Sua chua khong'},
-  {id:'vnm17',name:'Sua chua co'},
-  {id:'tau90',name:'Keo trai cay khong duong'},
+  {id:'tau53',name:'Chan don cuu ca'},
+  {id:'tau54',name:'Chan ga doi ana'},
 ];
 
 const structuredCatalog=[
@@ -22,141 +21,119 @@ const structuredCatalog=[
   {id:'vnm21',name:'Sua chua khong',type:'Sữa',c1:'chua',variant:'không, không đường'},
   {id:'vnm23',name:'Sua chua nha dam co',type:'Sữa',c1:'chua',label2:'nha dam, nha, dam',variant:'có, có đường'},
   {id:'vnm24',name:'Sua chua nha dam it',type:'Sữa',c1:'chua',label2:'nha dam, nha, dam',variant:'ít, ít đường'},
-  {id:'vnm33',name:'Sua green fram to it 180ml',type:'Sữa',c1:'green',c2:'fram',size:'to, 180',variant:'ít, ít đường'},
   {id:'vnm32',name:'Sua green fram to co 180ml',type:'Sữa',c1:'green',c2:'fram',size:'to, 180',variant:'có, có đường'},
+  {id:'vnm33',name:'Sua green fram to it 180ml',type:'Sữa',c1:'green',c2:'fram',size:'to, 180',variant:'ít, ít đường'},
   {id:'vnm58',name:'Sua green lit',type:'Sữa',c1:'green',form:'lit'},
+  {id:'vnm38',name:'Sua probi be mau - dứa',type:'Sữa',c1:'probi, bi, proby',size:'be',label2:'mau',variant:'dứa'},
+  {id:'vnm39',name:'Sua probi be mau - dưa gang',type:'Sữa',c1:'probi, bi, proby',size:'be',label2:'mau',variant:'dưa gang, dưa'},
+  {id:'vnm41',name:'Sua probi be mau - viet quat',type:'Sữa',c1:'probi, bi, proby',size:'be',label2:'mau',variant:'viet quat, vq'},
   {id:'vnm46',name:'Sua probi to mau - viet quat',type:'Sữa',c1:'probi, bi, proby',size:'to, 180',label2:'mau',variant:'viet quat, vq'},
   {id:'vnm47',name:'Sua probi to trang',type:'Sữa',c1:'probi, bi, proby',size:'to, 180',color:'trắng, có, truyền thống'},
   {id:'vnm50',name:'Sua tho do giay 1284g',type:'Sữa',c1:'tho',label2:'do',form:'giay',volume:'1284g, 1,2kg'},
   {id:'vnm51',name:'Sua tho do giay 1kg',type:'Sữa',c1:'tho',label2:'do',form:'giay',volume:'1kg'},
   {id:'vnm53',name:'Sua tho do sat',type:'Sữa',c1:'tho',label2:'do',form:'sat'},
   {id:'vnm56',name:'Sua tho vi',type:'Sữa',c1:'tho',form:'vi'},
-  {id:'tau67',name:'Huong duong mv',type:'huong duong my vi, huong duong mv'},
+  {id:'tau67',name:'Huong duong mv',type:'hương dương mỹ vị, huong duong mv'},
 ];
 
 function line(productName,quantity=1){
   return {quantity,productName,line:`${quantity} ${productName}`};
 }
 
+// Products without configured 1..9 keys must not be guessed from partial name tokens.
+assert.equal(findCatalogProduct('cửu ca',productOnlyCatalog),null);
+assert.equal(findCatalogProduct('chân đôi ana',productOnlyCatalog),null);
 assert.deepEqual(
-  resolveParsedLinesWithCatalog([line('555 det',2)],catalog).map(row=>row.line),
-  ['2 555 dẹt (555 det)'],
+  resolveParsedLinesWithCatalog([line('cửu ca',1),line('chân đôi ana',2)],productOnlyCatalog).map(row=>row.line),
+  ['1 cửu ca','2 chân đôi ana'],
+  'unconfigured products keep the customer wording instead of legacy fuzzy renaming',
 );
 
-assert.deepEqual(
-  resolveParsedLinesWithCatalog([line('hao hao',2)],catalog).map(row=>row.line),
-  ['2 Mi tom hao hao (hao hao)'],
-);
+// A full canonical name is still deterministic and may match itself exactly.
+assert.equal(findCatalogProduct('Chan don cuu ca',productOnlyCatalog)?.productId,'tau53');
 
-assert.deepEqual(
-  resolveParsedLinesWithCatalog([line('sua chua ko',3)],catalog).map(row=>row.line),
-  ['3 Sua chua khong (sua chua ko)'],
-  'search dictionary expands ko -> khong without rewriting the raw customer text',
-);
+// No legacy token-subset fallback for ordinary unconfigured catalog names.
+assert.equal(findCatalogProduct('hao hao',productOnlyCatalog),null);
+assert.equal(findCatalogProduct('555 det',productOnlyCatalog),null);
 
-assert.deepEqual(
-  resolveParsedLinesWithCatalog([line('sua chua',2)],catalog).map(row=>row.line),
-  ['2 sua chua'],
-  'ambiguous search keeps the parsed customer wording',
-);
-
-assert.deepEqual(
-  resolveParsedLinesWithCatalog([line('ko duong',3)],catalog).map(row=>row.line),
-  ['3 ko duong'],
-  'generic attribute-only text is not enough to rename to an unrelated unique product',
-);
-
-assert.deepEqual(
-  resolveParsedLinesWithCatalog([line('san pham khong co',3)],catalog).map(row=>row.line),
-  ['3 san pham khong co'],
-);
-
-assert.equal(findCatalogProduct('sua chua ko',catalog)?.productId,'vnm21');
-
-assert.equal(
-  findCatalogProduct('bi to viet quat',structuredCatalog)?.productName,
-  'Sua probi to mau - viet quat',
-  'a configured alias in an earlier priority column can be the main key',
-);
-
-assert.equal(
-  findCatalogProduct('proby to xyz viet quat',structuredCatalog)?.productName,
-  'Sua probi to mau - viet quat',
-  'unknown lower-priority wording must not destroy a unique structured match',
-);
-
-assert.equal(
-  findCatalogProduct('sua chua green',structuredCatalog)?.productName,
-  'Sua chua greenfram',
-  'multi-name cells are searched as aliases without requiring the canonical combined spelling',
-);
-
+// 1..9 is the only structured search axis. Missing positions are allowed only
+// when the keys actually present in the input leave one deterministic path.
 assert.equal(
   findCatalogProduct('chua có đường',structuredCatalog)?.productName,
   'Sua chua co',
-  'when a shorter 1-2-3 path and a deeper 1-2-3-4 path match the same input keys, omitted child nodes prefer the shorter path',
-);
-
-assert.equal(
-  findCatalogProduct('chua ít đường',structuredCatalog)?.productName,
-  'Sua chua it',
-  'the same shortest-complete-path rule applies to another yogurt variant',
+  'the shorter complete path wins over a deeper path that requires an omitted nha-dam node',
 );
 
 assert.equal(
   findCatalogProduct('nha dam có',structuredCatalog)?.productName,
   'Sua chua nha dam co',
-  'explicit child nodes select the deeper path even when the source/root node is omitted from input',
-);
-
-assert.equal(
-  findCatalogProduct('bo bich khong',structuredCatalog)?.productName,
-  'Sua bo bich khong',
-  'non-empty configured cells collapse into consecutive levels: Sữa > bo > bich > không',
+  'keys from non-adjacent configured positions may identify one unique path',
 );
 
 assert.equal(
   findCatalogProduct('bich khong',structuredCatalog)?.productName,
   'Sua bo bich khong',
-  'a consecutive suffix of two real tree levels may identify a product without typing its parents',
-);
-
-assert.equal(
-  findCatalogProduct('green lit',structuredCatalog)?.productName,
-  'Sua green lit',
-  'tree levels are derived from non-empty cells in left-to-right order',
+  'a unique subset of configured positions may fill omitted parent positions',
 );
 
 assert.equal(
   findCatalogProduct('tho do',structuredCatalog),
   null,
-  'a correct parent path stays unresolved while multiple products remain',
+  'a subset shared by multiple 1..9 paths stays unresolved',
 );
 
 assert.equal(
   findCatalogProduct('tho do giay 1,2kg',structuredCatalog)?.productName,
   'Sua tho do giay 1284g',
-  'later tree levels disambiguate within the already-matched path',
+  'additional configured positions disambiguate the path',
+);
+
+// Missing `mau` is filled only because probi + be + dưa identifies one path.
+assert.equal(
+  findCatalogProduct('probi bé dưa',structuredCatalog)?.productName,
+  'Sua probi be mau - dưa gang',
+  'dưa is the explicit alias of dưa gang and a unique 1..9 subset may fill the missing mau node',
 );
 
 assert.equal(
-  findCatalogProduct('huong duong my vi',structuredCatalog)?.productName,
-  'Huong duong mv',
-  'an exact configured level-1 root may resolve by itself',
+  findCatalogProduct('probi bé dứa',structuredCatalog)?.productName,
+  'Sua probi be mau - dứa',
+  'dứa is a different configured key from dưa',
 );
 
 assert.equal(
-  findCatalogProduct('my vi',structuredCatalog),
+  findCatalogProduct('probi bé vq',structuredCatalog)?.productName,
+  'Sua probi be mau - viet quat',
+  'vq is the explicit alias of viet quat and may fill the omitted mau node when the path is unique',
+);
+
+const ambiguousMissingNodeCatalog=[
+  {id:'a',name:'A',type:'Sữa',c1:'probi',size:'be',label2:'mau',variant:'dưa gang, dưa'},
+  {id:'b',name:'B',type:'Sữa',c1:'probi',size:'be',label2:'khac',variant:'dưa gang, dưa'},
+];
+assert.equal(
+  findCatalogProduct('probi bé dưa',ambiguousMissingNodeCatalog),
   null,
-  'partial words from a level-1 root must not fall through to the unrelated Sữa > tho > vi leaf',
+  'a missing position is never invented when the same visible key subset fits two paths',
 );
 
-assert.deepEqual(
-  resolveParsedLinesWithCatalog([line('bi to viet quat',5)],structuredCatalog).map(row=>row.line),
-  ['5 Sua probi to mau - viet quat (bi to viet quat)'],
-  'a unique structured match outputs the canonical product name (column K)',
-);
+// Accent fallback is allowed only when it is unambiguous. be<->bé remains
+// usable, while dưa and dứa must never collapse into one key.
+assert.equal(findCatalogProduct('probi be dua',structuredCatalog),null);
 
+// A complete level-1/root alias can resolve by itself. Partial words cannot
+// jump to an unrelated lower-level node such as Sữa > tho > vi.
+assert.equal(
+  findCatalogProduct('hương dương mỹ vị',structuredCatalog)?.productName,
+  'Huong duong mv',
+);
+assert.equal(findCatalogProduct('my vi',structuredCatalog),null);
+
+// Unknown words are not silently ignored by the formula.
+assert.equal(findCatalogProduct('probi bé xyz dưa',structuredCatalog),null);
+
+// Neighbour context remains deterministic: it only contributes configured
+// keys shared at the same 1..9 positions, then the same formula runs again.
 assert.deepEqual(
   resolveParsedLinesWithCatalog([
     line('Bịch có',2),
@@ -168,7 +145,6 @@ assert.deepEqual(
     '2 Sua bo bich khong (Không)',
     '2 Sua bo bich it (Bịch ít)',
   ],
-  'an ambiguous middle line inherits only the shared nearest-above/below branch inside the same input',
 );
 
 assert.deepEqual(
@@ -182,7 +158,7 @@ assert.deepEqual(
     '2 Không',
     '2 Sua bo lit co (Lít có)',
   ],
-  'conflicting nearest neighbors must not guess a branch for the middle line',
+  'conflicting neighbours do not create a unique path',
 );
 
-console.log('chat shared-product catalog search contract PASS');
+console.log('chat deterministic 1..9 product path search contract PASS');
