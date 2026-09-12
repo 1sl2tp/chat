@@ -43,13 +43,13 @@ assert.deepEqual(
   ],milkCatalog).map(row=>row.line),
   [
     '3 Sua chua co (Chua có đường)',
-    '3 Sua chua it (Ít đường)',
+    '3 Ít đường *',
     '2 Sua probi to mau (Probi to mau)',
-    '2 vq',
+    '2 vq *',
     '3 Sua chua khong (Chua không đường)',
-    '3 Sua chua it (Ít đường)',
+    '3 Ít đường *',
   ],
-  'a resolved 1-2/1-2-3 anchor lets following lines continue only from prefix 1-2, then a different direct 1-2/1-2-3 resets it; no deeper branch is inherited',
+  'binary filter carries only 1/1-2; deeper ambiguity is not inherited or guessed',
 );
 
 const numericCatalog = [
@@ -69,4 +69,4 @@ assert.deepEqual(
   {quantity:2,productName:'Nuoc 247',line:'2 Nuoc 247 (247)',rawProductName:'247',productId:null,catalogMatched:true,catalogContextMatched:false},
 );
 
-console.log('chat exact key + limited line context PASS');
+console.log('chat exact key + binary 1/1-2 filter PASS');
