@@ -28,7 +28,39 @@ async function loadActiveCatalog(){
     console.warn("[v21-ai-product-parser] shared product lookup failed",result.error.message);
     return [];
   }
-  return Array.isArray(result.data)?result.data:[];
+
+  const products=Array.isArray(result.data)?result.data:[];
+  const keyResult=await db.from("chat_ai_product_keys")
+    .select("product_name,type,c1,c2,size,label2,form,color,volume,variant")
+    .eq("active",true)
+    .limit(5000);
+  if(keyResult.error){
+    console.warn("[v21-ai-product-parser] structured key lookup failed",keyResult.error.message);
+    return products;
+  }
+
+  const keysByName=new Map<string,any>();
+  for(const row of Array.isArray(keyResult.data)?keyResult.data:[]){
+    const productName=clean(row?.product_name,500);
+    if(productName&&!keysByName.has(productName))keysByName.set(productName,row);
+  }
+
+  return products.map((row:any)=>{
+    const keyRow=keysByName.get(clean(row?.name,500));
+    if(!keyRow)return row;
+    return {
+      ...row,
+      type:keyRow.type,
+      c1:keyRow.c1,
+      c2:keyRow.c2,
+      size:keyRow.size,
+      label2:keyRow.label2,
+      form:keyRow.form,
+      color:keyRow.color,
+      volume:keyRow.volume,
+      variant:keyRow.variant,
+    };
+  });
 }
 
 async function activeAdminId(conversationId:string){
