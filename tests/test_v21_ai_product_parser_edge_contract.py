@@ -13,7 +13,10 @@ for required in [
     'getlink_ai_training_examples',
     'getlink_ai_claim_turn',
     'v21_messages',
-    'generativelanguage.googleapis.com/v1beta/interactions',
+    'getlink_ai_runtime_config',
+    'groq_api_key',
+    'https://api.groq.com/openai/v1/chat/completions',
+    'choices',
     'finalizeProductLines',
     'splitCustomerSegments',
     'input_segments',
@@ -23,6 +26,9 @@ for required in [
     assert required in text, required
 
 for forbidden in [
+    'generativelanguage.googleapis.com',
+    'getlink_ai_runtime_config_gemini',
+    'gemini_api_key',
     'getlink_ai_order_sessions',
     'getlink_ai_order_draft_lines',
     'getlink_ai_reply_outbox',
@@ -31,4 +37,4 @@ for forbidden in [
 ]:
     assert forbidden not in text, forbidden
 
-print('chat AI product parser edge isolation contract PASS')
+print('chat AI product parser Groq/isolation contract PASS')
