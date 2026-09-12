@@ -45,5 +45,9 @@ jobs:
         run: python tests/test_v21_ai_product_parser_db_contract.py
       - name: Chat quote database contract
         run: python tests/test_v21_quote_db_contract.py
+      - name: Chat quote core contract
+        run: node tests/test_v21_quote_core.mjs
+      - name: Chat quote edge contract
+        run: python tests/test_v21_quote_edge_contract.py
       - name: Verify canonical source
         run: python tools/verify_current.py
