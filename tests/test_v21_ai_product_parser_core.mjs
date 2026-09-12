@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { finalizeProductLines } from '../supabase/functions/v21-ai-product-parser/parser-core.mjs';
+import { finalizeProductLines, splitCustomerSegments } from '../supabase/functions/v21-ai-product-parser/parser-core.mjs';
 
 const catalog=[
   {productCode:'SUA-000022',productName:'Sua chua nep cam'},
@@ -38,6 +38,31 @@ const catalog=[
   ],catalog);
   assert.equal(result[0].line,'10 Mi indi');
   assert.doesNotMatch(result[0].line,/thùng|HT-000105/i);
+}
+
+{
+  assert.deepEqual(
+    splitCustomerSegments('T2 cho em 2t chân gà 1 cửu ca'),
+    ['T2 cho em 2t chân gà 1 cửu ca'],
+    'a later number without a real separator must remain inside the same product name segment',
+  );
+}
+
+{
+  assert.deepEqual(
+    splitCustomerSegments('2 bịch hướng dương\n- 2 bát 1.8kg, 2 bát 1kg, 2 bát 454\n5 có / 5 ko / 5 nha đam / 3 ít'),
+    [
+      '2 bịch hướng dương',
+      '2 bát 1.8kg',
+      '2 bát 1kg',
+      '2 bát 454',
+      '5 có',
+      '5 ko',
+      '5 nha đam',
+      '3 ít',
+    ],
+    'only explicit separators split customer items',
+  );
 }
 
 console.log('chat AI product parser core contract PASS');
