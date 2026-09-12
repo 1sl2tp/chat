@@ -2,36 +2,44 @@ function clean(value){
   return String(value??'').replace(/\s+/g,' ').trim();
 }
 
-function normalize(value){
+function normalizeStrict(value){
   return String(value??'')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g,'')
-    .replace(/đ/gi,'d')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g,' ')
+    .normalize('NFC')
+    .toLocaleLowerCase('vi-VN')
+    .replace(/[^\p{L}\p{N}]+/gu,' ')
     .replace(/\s+/g,' ')
     .trim();
 }
 
+function normalizeLoose(value){
+  return normalizeStrict(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .replace(/đ/gi,'d');
+}
+
 const SEARCH_WORD_DICTIONARY=new Map([
-  ['ko','khong'],
+  ['ko','không'],
 ]);
 
-// The configured columns are only an ordered source path. Their old labels
-// do not define search semantics. Empty cells collapse, so every product is
-// searched as level 1 -> level 2 -> ... -> level 9 (or however many exist).
+// These are only absolute positions 1..9. Their old business labels are not
+// search semantics. Empty positions stay empty; they are never collapsed.
 const LEVEL_FIELDS=['type','c1','c2','size','label2','form','color','volume','variant'];
 
-function normalizeSearch(value){
-  return normalize(value)
+function normalizeQuery(value){
+  return normalizeStrict(value)
     .split(' ')
     .filter(Boolean)
     .map(token=>SEARCH_WORD_DICTIONARY.get(token)||token)
     .join(' ');
 }
 
-function tokens(value){
-  return normalize(value).split(' ').filter(Boolean);
+function strictTokens(value){
+  return normalizeStrict(value).split(' ').filter(Boolean);
+}
+
+function looseTokens(value){
+  return normalizeLoose(value).split(' ').filter(Boolean);
 }
 
 function quantityText(value){
@@ -52,7 +60,7 @@ function uniqueNameMatch(rows){
   const byName=new Map();
   for(const row of rows){
     const productName=rowName(row);
-    const key=normalize(productName);
+    const key=normalizeStrict(productName);
     if(!productName||!key||byName.has(key))continue;
     byName.set(key,{productName,productId:rowId(row)||null});
   }
@@ -62,82 +70,144 @@ function uniqueNameMatch(rows){
 function aliases(value){
   return clean(value)
     .split(/,\s+/)
-    .map(normalizeSearch)
+    .map(normalizeStrict)
     .filter(Boolean);
 }
 
-function structuredPath(row){
-  return LEVEL_FIELDS
-    .map(field=>aliases(row?.[field]))
-    .filter(levelAliases=>levelAliases.length>0);
+function rowLevels(row){
+  return LEVEL_FIELDS.map(field=>aliases(row?.[field]));
 }
 
 function hasStructuredKeys(row){
-  return structuredPath(row).length>0;
+  return rowLevels(row).some(level=>level.length>0);
 }
 
-function aliasMatchesQuery(alias,queryTokenSet){
-  const aliasTokens=tokens(alias);
-  return aliasTokens.length>0&&aliasTokens.every(token=>queryTokenSet.has(token));
+function buildLooseAliasIndex(rows){
+  const index=new Map();
+  for(const row of rows){
+    for(const level of rowLevels(row)){
+      for(const alias of level){
+        const loose=normalizeLoose(alias);
+        if(!loose)continue;
+        if(!index.has(loose))index.set(loose,new Set());
+        index.get(loose).add(alias);
+      }
+    }
+  }
+  return index;
 }
 
-function levelMatchesQuery(levelAliases,queryTokenSet){
-  return levelAliases.some(alias=>aliasMatchesQuery(alias,queryTokenSet));
+function findTokenSpan(queryTokens,aliasTokens){
+  if(!aliasTokens.length||aliasTokens.length>queryTokens.length)return null;
+  for(let start=0;start<=queryTokens.length-aliasTokens.length;start++){
+    let ok=true;
+    for(let offset=0;offset<aliasTokens.length;offset++){
+      if(queryTokens[start+offset]!==aliasTokens[offset]){
+        ok=false;
+        break;
+      }
+    }
+    if(ok)return {start,end:start+aliasTokens.length};
+  }
+  return null;
 }
 
-function pathMatch(row,query,queryTokenSet){
-  const path=structuredPath(row);
-  const matchedIndexes=[];
-  for(let index=0;index<path.length;index++){
-    if(levelMatchesQuery(path[index],queryTokenSet))matchedIndexes.push(index);
+function aliasMatch(alias,queryStrictTokens,queryLooseTokens,looseAliasIndex){
+  const strictAliasTokens=strictTokens(alias);
+  const strictSpan=findTokenSpan(queryStrictTokens,strictAliasTokens);
+  if(strictSpan)return {...strictSpan,strict:true};
+
+  const looseAlias=normalizeLoose(alias);
+  const strictForms=looseAliasIndex.get(looseAlias);
+  if(!strictForms||strictForms.size!==1)return null;
+
+  const looseSpan=findTokenSpan(queryLooseTokens,looseTokens(alias));
+  return looseSpan?{...looseSpan,strict:false}:null;
+}
+
+function rowFormulaMatch(row,query,queryStrictTokens,queryLooseTokens,looseAliasIndex){
+  const levels=rowLevels(row);
+  const covered=new Set();
+  const matchedPositions=[];
+  let strictLevelCount=0;
+  let wholeRootMatch=false;
+
+  for(let levelIndex=0;levelIndex<levels.length;levelIndex++){
+    let levelMatched=false;
+    let levelStrict=false;
+
+    for(const alias of levels[levelIndex]){
+      const match=aliasMatch(alias,queryStrictTokens,queryLooseTokens,looseAliasIndex);
+      if(!match)continue;
+      levelMatched=true;
+      if(match.strict)levelStrict=true;
+      for(let i=match.start;i<match.end;i++)covered.add(i);
+
+      if(levelIndex===0&&match.start===0&&match.end===queryStrictTokens.length){
+        wholeRootMatch=true;
+      }
+    }
+
+    if(levelMatched){
+      matchedPositions.push(levelIndex);
+      if(levelStrict)strictLevelCount+=1;
+    }
   }
 
-  if(!matchedIndexes.length)return null;
+  // Every customer token must be explained by configured keys. No old fuzzy
+  // token-subset rule and no silently ignored words.
+  if(covered.size!==queryStrictTokens.length)return null;
+  if(!matchedPositions.length)return null;
 
-  // A complete level-1/root alias may identify a product by itself.
-  // Example: `huong duong my vi` is the root alias for `Huong duong mv`.
-  // A lone lower-level word such as `vi` is never enough to jump branches.
-  if(matchedIndexes.length===1){
-    const onlyIndex=matchedIndexes[0];
-    const exactRoot=onlyIndex===0&&path[0].some(alias=>alias===query);
-    if(!exactRoot)return null;
+  // One configured node is enough only when it is the complete level-1 root.
+  if(matchedPositions.length===1&&!wholeRootMatch)return null;
+
+  const first=matchedPositions[0];
+  const last=matchedPositions[matchedPositions.length-1];
+  let omittedBetween=0;
+  for(let index=first;index<=last;index++){
+    if(levels[index].length&&!matchedPositions.includes(index))omittedBetween+=1;
   }
 
-  const first=matchedIndexes[0];
-  const last=matchedIndexes[matchedIndexes.length-1];
   return {
     row,
-    path,
-    matchedCount:matchedIndexes.length,
-    gapCount:(last-first+1)-matchedIndexes.length,
+    matchedCount:matchedPositions.length,
+    matchedPositions,
+    strictLevelCount,
+    omittedBetween,
+    wholeRootMatch,
   };
 }
 
 function findStructuredProduct(query,rows){
   const candidates=rows.filter(hasStructuredKeys);
-  if(!candidates.length)return {matched:false,result:null};
+  if(!candidates.length)return null;
 
-  const queryTokenSet=new Set(tokens(query));
-  const scored=candidates
-    .map(row=>pathMatch(row,query,queryTokenSet))
+  const queryStrictTokens=strictTokens(query);
+  const queryLooseTokens=looseTokens(query);
+  if(!queryStrictTokens.length)return null;
+
+  const looseAliasIndex=buildLooseAliasIndex(candidates);
+  const matches=candidates
+    .map(row=>rowFormulaMatch(row,query,queryStrictTokens,queryLooseTokens,looseAliasIndex))
     .filter(Boolean);
+  if(!matches.length)return null;
 
-  if(!scored.length)return {matched:false,result:null};
+  // 1) Prefer the path that explains the most actual configured positions.
+  const maxMatched=Math.max(...matches.map(item=>item.matchedCount));
+  let best=matches.filter(item=>item.matchedCount===maxMatched);
 
-  // First prefer the path containing the most actual input levels.
-  const maxMatched=Math.max(...scored.map(item=>item.matchedCount));
-  let best=scored.filter(item=>item.matchedCount===maxMatched);
+  // 2) Exact-accent key matches beat safe accent fallback when otherwise tied.
+  const maxStrict=Math.max(...best.map(item=>item.strictLevelCount));
+  best=best.filter(item=>item.strictLevelCount===maxStrict);
 
-  // If the same keys fit both a direct path and a deeper path with an omitted
-  // node in the middle, prefer the direct path. Example:
-  //   chua -> co      beats      chua -> nha dam -> co
-  const minGaps=Math.min(...best.map(item=>item.gapCount));
-  best=best.filter(item=>item.gapCount===minGaps);
+  // 3) If the same visible keys fit a direct path and a path with an omitted
+  // configured node between them, prefer the direct path. Missing nodes are
+  // filled only when the remaining formula still leaves one unique product.
+  const minOmitted=Math.min(...best.map(item=>item.omittedBetween));
+  best=best.filter(item=>item.omittedBetween===minOmitted);
 
-  return {
-    matched:true,
-    result:uniqueNameMatch(best.map(item=>item.row)),
-  };
+  return uniqueNameMatch(best.map(item=>item.row));
 }
 
 function catalogRowForMatch(match,rows){
@@ -147,8 +217,8 @@ function catalogRowForMatch(match,rows){
     const byId=rows.find(row=>rowId(row)===matchId);
     if(byId)return byId;
   }
-  const matchName=normalize(match.productName);
-  return rows.find(row=>normalize(rowName(row))===matchName)||null;
+  const matchName=normalizeStrict(match.productName);
+  return rows.find(row=>normalizeStrict(rowName(row))===matchName)||null;
 }
 
 function sharedLevelAlias(previousLevel,nextLevel){
@@ -159,17 +229,16 @@ function sharedLevelAlias(previousLevel,nextLevel){
 function sharedContextTerms(previousRow,nextRow){
   if(!previousRow||!nextRow||!hasStructuredKeys(previousRow)||!hasStructuredKeys(nextRow))return [];
 
-  const previousPath=structuredPath(previousRow);
-  const nextPath=structuredPath(nextRow);
+  const previousLevels=rowLevels(previousRow);
+  const nextLevels=rowLevels(nextRow);
   const terms=[];
-  const limit=Math.min(previousPath.length,nextPath.length);
 
-  // Context is only the common tree prefix. Once the two neighbours diverge,
-  // nothing below that split may be inherited by the middle line.
-  for(let index=0;index<limit;index++){
-    const shared=sharedLevelAlias(previousPath[index],nextPath[index]);
-    if(!shared)break;
-    terms.push(shared);
+  // Neighbour context obeys the same 1..9 formula: only values shared at the
+  // exact same configured position are borrowed. Empty levels are skipped.
+  for(let index=0;index<LEVEL_FIELDS.length;index++){
+    if(!previousLevels[index].length||!nextLevels[index].length)continue;
+    const shared=sharedLevelAlias(previousLevels[index],nextLevels[index]);
+    if(shared)terms.push(shared);
   }
   return terms;
 }
@@ -191,26 +260,18 @@ function resolvedRow(row,match,contextMatched=false){
 }
 
 export function findCatalogProduct(productText,catalog=[]){
-  const query=normalizeSearch(productText);
+  const query=normalizeQuery(productText);
   if(!query)return null;
 
   const rows=(Array.isArray(catalog)?catalog:[]).filter(row=>rowName(row));
-  const exact=rows.filter(row=>normalize(rowName(row))===query);
+
+  // Full canonical equality is deterministic and does not invent missing
+  // words, so it remains allowed even when the product has no 1..9 keys.
+  const exact=rows.filter(row=>normalizeStrict(rowName(row))===query);
   if(exact.length)return uniqueNameMatch(exact);
 
-  const structured=findStructuredProduct(query,rows);
-  if(structured.matched)return structured.result;
-
-  const queryTokens=tokens(query);
-  if(queryTokens.length<2)return null;
-
-  const candidates=rows.filter(row=>{
-    const candidateTokens=tokens(rowName(row));
-    const candidateSet=new Set(candidateTokens);
-    if(!queryTokens.every(token=>candidateSet.has(token)))return false;
-    return queryTokens.length/candidateTokens.length>=0.5;
-  });
-  return uniqueNameMatch(candidates);
+  // Every non-exact rename now comes only from the configured 1..9 formula.
+  return findStructuredProduct(query,rows);
 }
 
 export function resolveParsedLinesWithCatalog(lines,catalog=[]){
