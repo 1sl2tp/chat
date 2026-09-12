@@ -21,6 +21,22 @@ function quantityText(value){
   return Number.isInteger(n)?String(n):String(Math.round(n*100)/100);
 }
 
+const TOBACCO_PHRASE_HINTS=['thang long','sai gon','ba so'];
+
+function containsPhrase(text,phrase){
+  const haystack=` ${normalize(text)} `;
+  const needle=` ${normalize(phrase)} `;
+  return haystack.includes(needle);
+}
+
+function hasTobaccoPhrase(row){
+  for(const candidate of [row?.productName,row?.rawProductName,row?.line]){
+    if(!candidate)continue;
+    if(TOBACCO_PHRASE_HINTS.some(phrase=>containsPhrase(candidate,phrase)))return true;
+  }
+  return false;
+}
+
 function catalogSourceLookup(catalog=[]){
   const byId=new Map();
   const byName=new Map();
@@ -56,6 +72,7 @@ function rowSource(row,lookup){
     if(source)return clean(source);
   }
 
+  if(hasTobaccoPhrase(row))return 'Thuốc lá';
   return '';
 }
 
