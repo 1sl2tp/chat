@@ -67,7 +67,7 @@ function uniqueNameMatch(rows){
 
 function aliases(value){
   return clean(value)
-    .split(/\s*,\s*/)
+    .split(/,\s+/)
     .map(normalizeStrict)
     .filter(Boolean);
 }
@@ -133,8 +133,6 @@ function rowFormulaMatch(row,queryStrictTokens,queryLooseTokens,looseAliasIndex)
     }
     if(levelIndex>=path.length)return;
 
-    // Missing configured nodes are allowed, but only the final all-path
-    // uniqueness check may decide whether they can be filled.
     walk(levelIndex+1,queryIndex,matchedLevels,strictCount);
 
     const candidates=[];
@@ -143,8 +141,6 @@ function rowFormulaMatch(row,queryStrictTokens,queryLooseTokens,looseAliasIndex)
       if(match)candidates.push(match);
     }
 
-    // Prefer consuming the longest alias at this one node; shorter aliases of
-    // the same node are still tried when they lead to a different full cover.
     candidates.sort((a,b)=>b.length-a.length||Number(b.strict)-Number(a.strict));
     for(const match of candidates){
       matchedLevels.push(levelIndex);
@@ -156,8 +152,6 @@ function rowFormulaMatch(row,queryStrictTokens,queryLooseTokens,looseAliasIndex)
   walk(0,0,[],0);
   if(!solutions.length)return null;
 
-  // One visible node is too weak unless it is the complete one-node product
-  // path itself. This avoids leaf-only jumps across unrelated branches.
   const valid=solutions.filter(solution=>solution.matchedLevels.length>=2||path.length===1);
   if(!valid.length)return null;
 
@@ -180,9 +174,6 @@ function findStructuredProduct(query,rows){
     .filter(Boolean);
   if(!matches.length)return null;
 
-  // Exact complete 1..N paths are authoritative. Only when there is no full
-  // path do we permit omitted nodes, and then the entire configured path set
-  // must leave one unique product. No fuzzy score, no gap score, no guessing.
   const fullMatches=matches.filter(item=>item.full);
   if(fullMatches.length){
     return uniqueNameMatch(fullMatches.map(item=>item.row));
@@ -212,9 +203,6 @@ export function findCatalogProduct(productText,catalog=[]){
   if(!query)return null;
 
   const rows=(Array.isArray(catalog)?catalog:[]).filter(row=>rowName(row));
-
-  // A complete canonical product name can match itself. Partial product-name
-  // tokens never rename anything; every non-exact rename must come from 1..9.
   const exact=rows.filter(row=>normalizeStrict(rowName(row))===query);
   if(exact.length)return uniqueNameMatch(exact);
 
