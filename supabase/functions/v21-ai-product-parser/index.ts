@@ -123,7 +123,7 @@ async function processConversation(conversationId:string,cfg:any){
     const output=formatCatalogSearchDisplayRows(resolved).map((row:any)=>row.line);
 
     if(output.length){
-      const body=output.join("\n");
+      const body=[...output,`— Tổng: ${output.length} sản phẩm`].join("\n");
       await sendChatReply(
         conversationId,
         clean(rows[0]?.turn_key,100)||String(rows[0]?.message_id||Date.now()),
