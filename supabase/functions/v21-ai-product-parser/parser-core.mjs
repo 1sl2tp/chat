@@ -41,7 +41,7 @@ function upperFirst(value){
   return text.slice(0,1).toLocaleUpperCase('vi-VN')+text.slice(1);
 }
 
-const UNIT='(?:t|th|thùng|thung|bao|ba0|bịch|bich|gói|goi|chai|lốc|loc|hộp|hop|cây|cay|lon|khay|túi|tui)';
+const UNIT='(?:t|th|thùng|thung|bao|ba0|gói|goi|chai|lốc|loc|hộp|hop|cây|cay|lon|khay|túi|tui)';
 const startUnit=new RegExp(`^(\\d+(?:[.,]\\d+)?)\\s*(${UNIT})\\s+(.+)$`,'iu');
 const endUnit=new RegExp(`^(.+?)\\s+(?:x\\s*)?(\\d+(?:[.,]\\d+)?)(?:\\s*(${UNIT}))?$`,'iu');
 const sharedChild=new RegExp(`^(\\d+(?:[.,]\\d+)?)(?:\\s*(${UNIT}))?\\s+(.+)$`,'iu');
