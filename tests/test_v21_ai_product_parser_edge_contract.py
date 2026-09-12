@@ -7,6 +7,7 @@ CATALOG=ROOT/'supabase'/'functions'/'v21-ai-product-parser'/'catalog-search.mjs'
 assert EDGE.exists(), 'v21-ai-product-parser edge function is missing'
 assert CATALOG.exists(), 'chat catalog search module is missing'
 text=EDGE.read_text(encoding='utf-8')
+catalog_text=CATALOG.read_text(encoding='utf-8')
 
 for required in [
     'chat_ai_claim_turn',
@@ -16,7 +17,7 @@ for required in [
     'from("products")',
     '.eq("active",true)',
     'from("chat_ai_product_keys")',
-    'product_name,type,c1,c2,size,label2,form,color,volume,variant',
+    'product_name,source,level1,level2,level3,level4,level5,level6,level7,level8,level9',
     'parseCustomerTextDetailed',
     'resolveParsedLinesWithCatalog',
     'catalog_sync:true',
@@ -24,6 +25,12 @@ for required in [
     'external_api:false',
 ]:
     assert required in text, required
+
+for required in [
+    "const LEVEL_FIELDS=['level1','level2','level3','level4','level5','level6','level7','level8','level9']",
+    'return findStructuredProduct(query,rows)',
+]:
+    assert required in catalog_text, required
 
 for forbidden in [
     'getlink_',
@@ -35,7 +42,8 @@ for forbidden in [
     'findPendingTobaccoConfirmation',
     '1 = thùng, 0 = cây',
     'order_workflow:true',
+    'product_name,type,c1,c2,size,label2,form,color,volume,variant',
 ]:
     assert forbidden not in text, forbidden
 
-print('chat-owned input split + shared product search edge contract PASS')
+print('chat-owned deterministic 1..9 shared product search edge contract PASS')
