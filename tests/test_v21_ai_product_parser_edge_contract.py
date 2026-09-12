@@ -16,7 +16,8 @@ for required in [
     'v21_messages',
     '.eq("active",true)',
     'from("chat_ai_product_keys")',
-    'product_code,product_name,source,level1,level2,level3,level4,level5,level6,level7,level8,level9',
+    'product_code,product_name,source,aliases,level1,level2,level3,level4,level5,level6,level7,level8,level9',
+    'aliases:row?.aliases',
     'parseCustomerTextDetailed',
     'resolveParsedLinesWithCatalog',
     'catalog_sync:true',
@@ -28,6 +29,7 @@ for required in [
 for required in [
     "const LEVEL_FIELDS=['level1','level2','level3','level4','level5','level6','level7','level8','level9']",
     'buildCatalogIndex',
+    'rowAliases',
     'lowerBound',
     'upperBound',
     'binaryLookup',
@@ -57,4 +59,4 @@ for forbidden in [
 ]:
     assert forbidden not in text, forbidden
 
-print('chat-owned binary exact-window filter edge contract PASS')
+print('chat-owned binary exact-window + explicit alias edge contract PASS')
