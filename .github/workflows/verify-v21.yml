@@ -35,6 +35,8 @@ jobs:
         run: node tests/test_v21_ai_product_parser_core.mjs
       - name: Chat shared-product catalog search contract
         run: node tests/test_v21_ai_product_catalog_search.mjs
+      - name: Chat order summary footer contract
+        run: node tests/test_v21_ai_order_summary.mjs
       - name: Chat exact key common-left-prefix contract
         run: node tests/test_v21_ai_product_exact_key_prefix.mjs
       - name: Chat AI product parser edge isolation contract
