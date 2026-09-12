@@ -59,11 +59,43 @@ function splitList(value){
     .filter(Boolean);
 }
 
+function cleanSharedParent(value){
+  return clean(value).replace(/\s+cũng\s+(?:đc|dc|được|duoc)$/iu,'').trim();
+}
+
+function sameToken(a,b){
+  return clean(a).toLocaleLowerCase('vi-VN')===clean(b).toLocaleLowerCase('vi-VN');
+}
+
+function mergeSharedParent(parent,child){
+  const parentText=clean(parent);
+  const childTokens=clean(child).split(/\s+/).filter(Boolean);
+  const parentTokens=parentText.split(/\s+/).filter(Boolean);
+  if(!parentTokens.length||!childTokens.length)return clean(`${parentText} ${child}`);
+  const tail=parentTokens[parentTokens.length-1];
+  if(childTokens.length>1&&sameToken(childTokens[0],tail))childTokens.shift();
+  if(childTokens.length>1&&sameToken(childTokens[childTokens.length-1],tail))childTokens.pop();
+  return clean(`${parentText} ${childTokens.join(' ')}`);
+}
+
 function expandParentLine(line){
   const text=line.replace(/^\s*[-•]\s*/,'').trim();
   if(!text)return [];
   const colon=text.indexOf(':');
-  if(colon<=0||colon===text.length-1)return splitList(text);
+  if(colon<=0||colon===text.length-1){
+    const parts=splitList(text);
+    if(parts.length>1&&!parts[0].match(childQty)){
+      const parent=cleanSharedParent(parts[0]);
+      const matches=parts.slice(1).map(part=>part.match(childQty));
+      if(parent&&matches.length&&matches.every(Boolean)){
+        return matches.map(match=>{
+          const qty=`${match[1]}${match[2]||''}`;
+          return clean(`${qty} ${mergeSharedParent(parent,match[3])}`);
+        });
+      }
+    }
+    return parts;
+  }
 
   const parent=clean(text.slice(0,colon));
   const children=splitList(text.slice(colon+1));
