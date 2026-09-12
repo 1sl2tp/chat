@@ -100,20 +100,8 @@ function unmatchedPathCount(row,queryTokenSet){
   return count;
 }
 
-function shortestExplicitPath(rows,queryTokenSet){
-  if(!rows.length)return null;
-  let min=Infinity;
-  const selected=[];
-  for(const row of rows){
-    const count=unmatchedPathCount(row,queryTokenSet);
-    if(count<min){
-      min=count;
-      selected.length=0;
-      selected.push(row);
-    }else if(count===min){
-      selected.push(row);
-    }
-  }
+function explicitBasePath(rows,queryTokenSet){
+  const selected=rows.filter(row=>unmatchedPathCount(row,queryTokenSet)===0);
   return uniqueNameMatch(selected);
 }
 
@@ -148,12 +136,12 @@ function findStructuredProduct(query,rows){
   const direct=uniqueNameMatch(candidates);
   if(direct)return {matched:true,result:direct};
 
-  // When the customer explicitly supplied a C1/C2 branch, prefer the row whose
-  // structured path requires the fewest additional hidden keys. This makes
-  // `chua + có đường` resolve to the base yogurt row, while `chua + nha dam + có`
-  // still selects the deeper nha-dam child. Without a C1/C2 key we do not guess.
+  // If C1/C2 were explicitly supplied, a base row may win only when every
+  // structured key on that row was actually present in the input. This lets
+  // `chua + có đường` choose the base yogurt row, but `tho + do` stays
+  // unresolved because every remaining row still needs giay/sat/volume.
   if(branchMatched){
-    return {matched:true,result:shortestExplicitPath(candidates,queryTokenSet)};
+    return {matched:true,result:explicitBasePath(candidates,queryTokenSet)};
   }
 
   return {matched:true,result:null};
