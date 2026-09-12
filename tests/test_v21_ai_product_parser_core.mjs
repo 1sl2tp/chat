@@ -20,6 +20,7 @@ assert.deepEqual(lines('sim 2 th'),['2 Sim']);
 assert.deepEqual(lines('sim 1 2'),['2 Sim 1']);
 assert.deepEqual(lines('sim den 1 3'),['3 Sim den 1']);
 assert.deepEqual(lines('2 sim 1'),['2 Sim 1']);
+assert.deepEqual(lines('3 ko đường'),['3 Không đường'],'part 1 normalizes the standalone shorthand ko -> không before catalog search');
 
 assert.deepEqual(lines('333 lon 2'),['2 333 lon']);
 assert.deepEqual(lines('1664 blanc 2'),['2 1664 blanc']);
@@ -52,14 +53,14 @@ assert.deepEqual(
     '3 Chua có đường',
     '3 Ít đường',
     '3 Nha đam có',
-    '3 Ko đường',
+    '3 Không đường',
     '3 Probi to có đường',
     '2 Probi to ít',
     '2 Probi to vq',
     '3 Probi bé có',
     '2 Probi bé dưa',
   ],
-  'one multi-line customer message must be fully split before catalog search runs',
+  'one multi-line customer message must be fully split and normalized before catalog search runs',
 );
 
 assert.deepEqual(
