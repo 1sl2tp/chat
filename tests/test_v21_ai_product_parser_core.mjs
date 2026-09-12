@@ -21,6 +21,8 @@ assert.deepEqual(lines('sim 1 2'),['2 Sim 1']);
 assert.deepEqual(lines('sim den 1 3'),['3 Sim den 1']);
 assert.deepEqual(lines('2 sim 1'),['2 Sim 1']);
 assert.deepEqual(lines('3 ko đường'),['3 Không đường'],'part 1 normalizes the standalone shorthand ko -> không before catalog search');
+assert.deepEqual(lines('2 bịch không'),['2 Bịch không'],'bịch is a product-form key and must survive part 1 for prioritized catalog search');
+assert.deepEqual(lines('2 bich khong'),['2 Bich khong'],'unaccented bich is also preserved as a product-form key');
 
 assert.deepEqual(lines('333 lon 2'),['2 333 lon']);
 assert.deepEqual(lines('1664 blanc 2'),['2 1664 blanc']);
