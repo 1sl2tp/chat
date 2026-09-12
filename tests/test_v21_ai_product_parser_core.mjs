@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { finalizeProductLines, splitCustomerSegments } from '../supabase/functions/v21-ai-product-parser/parser-core.mjs';
+import { finalizeProductLines, splitCustomerSegments, selectRelevantContext } from '../supabase/functions/v21-ai-product-parser/parser-core.mjs';
 
 const catalog=[
   {productCode:'SUA-000022',productName:'Sua chua nep cam'},
@@ -63,6 +63,31 @@ const catalog=[
     ],
     'only explicit separators split customer items',
   );
+}
+
+{
+  const manyCatalog=[
+    ...Array.from({length:120},(_,i)=>({productCode:`X-${i}`,productName:`San pham khac ${i}`})),
+    {productCode:'SUA-000022',productName:'Sua chua nep cam'},
+    {productCode:'HT-000105',productName:'Mi indi'},
+  ];
+  const library={
+    rules:Array.from({length:80},(_,i)=>({rule_type:'behavior',rule_text:`quy tac khac ${i}`})),
+    aliases:[
+      ...Array.from({length:100},(_,i)=>({alias:`alias khac ${i}`,product_code:`X-${i}`,scope:'store'})),
+      {alias:'indomie',product_code:'HT-000105',scope:'customer'},
+      {alias:'vnm chua nep cam',product_code:'SUA-000022',scope:'customer'},
+    ],
+    examples:Array.from({length:60},(_,i)=>({raw_text:`mau khac ${i}`,product_name:`San pham khac ${i}`,product_code:`X-${i}`})),
+  };
+  const selected=selectRelevantContext(['10 thùng indomie','2 sc nếp cẩm'],manyCatalog,library);
+  assert(selected.catalog.some(row=>row.productCode==='HT-000105'));
+  assert(selected.catalog.some(row=>row.productCode==='SUA-000022'));
+  assert(selected.aliases.some(row=>row.alias==='indomie'));
+  assert(selected.catalog.length<=60);
+  assert(selected.aliases.length<=50);
+  assert(selected.rules.length<=30);
+  assert(selected.examples.length<=20);
 }
 
 console.log('chat AI product parser core contract PASS');
