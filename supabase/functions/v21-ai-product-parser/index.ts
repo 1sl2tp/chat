@@ -4,19 +4,19 @@ import { finalizeProductLines, splitCustomerSegments } from "./parser-core.mjs";
 const SUPABASE_URL=String(Deno.env.get("SUPABASE_URL")||"").trim();
 const SERVICE_KEY=String(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"").trim();
 const db=createClient(SUPABASE_URL,SERVICE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
-const GEMINI_URL="https://generativelanguage.googleapis.com/v1beta/interactions";
+const GROQ_URL="https://api.groq.com/openai/v1/chat/completions";
 const clean=(value:unknown,max=8000)=>String(value??"").replace(/\s+/g," ").trim().slice(0,max);
 const sleep=(ms:number)=>new Promise<void>(resolve=>setTimeout(resolve,ms));
 
 async function runtimeConfig(){
-  const result=await db.rpc("getlink_ai_runtime_config_gemini");
+  const result=await db.rpc("getlink_ai_runtime_config");
   if(result.error)throw result.error;
   const row=Array.isArray(result.data)?result.data[0]:result.data;
   return {
     mode:clean(row?.mode,40),
     model:clean(row?.model_name,120),
     secret:clean(row?.webhook_secret,500),
-    apiKey:clean(row?.gemini_api_key,500),
+    apiKey:clean(row?.groq_api_key,500),
     pilotIds:new Set<string>((row?.pilot_customer_ids||[]).map((v:unknown)=>clean(v,100)).filter(Boolean)),
   };
 }
@@ -70,17 +70,6 @@ async function loadLearningLibrary(customerId:string){
   };
 }
 
-function outputText(payload:any){
-  if(typeof payload?.output_text==="string"&&payload.output_text.trim())return payload.output_text.trim();
-  for(const step of Array.isArray(payload?.steps)?payload.steps:[]){
-    if(step?.type!=="model_output")continue;
-    for(const part of Array.isArray(step?.content)?step.content:[]){
-      if(part?.type==="text"&&typeof part.text==="string"&&part.text.trim())return part.text.trim();
-    }
-  }
-  throw new Error("model_output_missing");
-}
-
 function responseSchema(){
   return {
     type:"object",
@@ -107,7 +96,7 @@ function responseSchema(){
   };
 }
 
-async function parseWithGemini(customerText:string,catalog:any[],library:any,cfg:any){
+async function parseWithGroq(customerText:string,catalog:any[],library:any,cfg:any){
   const segments=splitCustomerSegments(customerText);
   if(!segments.length)return [];
   const input_segments=segments.map((text,index)=>({segment_index:index,text}));
@@ -122,10 +111,10 @@ async function parseWithGemini(customerText:string,catalog:any[],library:any,cfg
     "Mỗi input_segment là một món tối đa. Tuyệt đối không tách thêm một segment chỉ vì bên trong có số khác.",
     "Ví dụ 'T2 cho em 2t chân gà 1 cửu ca' là một segment: số lượng 2, tên là 'chân gà 1 cửu ca'; số 1 nằm trong tên, không tạo món mới.",
     "Nếu nhiều segment đứng cùng cụm, được dùng ngữ cảnh giữa các segment để hiểu cha/nhóm chung, nhưng vẫn phải trả tối đa một result cho mỗi segment_index.",
-    "Chỉ làm một việc: lấy từng segment, bỏ câu dẫn nếu có, xác định số lượng và nhận diện tên hàng.",
+    "Lấy từng segment, bỏ câu dẫn nếu có, xác định số lượng và nhận diện tên hàng.",
     "Không tạo đơn hàng, không tính giá, không xử lý giỏ hàng, công nợ hay trạng thái bán hàng.",
     "Phải giữ mọi segment có sản phẩm; chưa nhận diện được SKU cũng không được bỏ.",
-    "Input có thể có ít thành phần hơn tên trong catalog. Hãy sửa lỗi chữ, viết tắt và từ tương đương bằng learning_library rồi đặt các thành phần vào đúng ngữ cảnh.",
+    "Input có thể có ít thành phần hơn tên trong catalog. Sửa lỗi chữ, viết tắt và từ tương đương bằng learning_library rồi đặt các thành phần vào đúng ngữ cảnh.",
     "Một số số là thành phần tên hoặc cỡ như 120g, 3 ngăn, 1.8kg; không được lấy chúng làm số lượng nếu cấu trúc segment cho thấy chúng thuộc tên hàng.",
     "aliases, rules và examples trong learning_library là tham chiếu đã học. Quy tắc theo ngữ cảnh phải giữ đúng ngữ cảnh, không biến thành alias toàn cục.",
     "Nếu nhận diện chắc chắn một sản phẩm có trong catalog, product_code phải là đúng mã có sẵn trong catalog.",
@@ -135,23 +124,30 @@ async function parseWithGemini(customerText:string,catalog:any[],library:any,cfg
     "Với segment không phải sản phẩm, trả is_product=false. Không tự sinh thêm segment_index ngoài input_segments.",
     "Chỉ trả JSON theo schema, không thêm văn bản giải thích.",
   ].join(" ");
-  const response=await fetch(GEMINI_URL,{
+  const response=await fetch(GROQ_URL,{
     method:"POST",
-    headers:{"x-goog-api-key":cfg.apiKey,"content-type":"application/json"},
+    headers:{authorization:`Bearer ${cfg.apiKey}`,"content-type":"application/json"},
     body:JSON.stringify({
       model:cfg.model,
-      store:false,
-      system_instruction:systemInstruction,
-      input:JSON.stringify(input),
-      generation_config:{max_output_tokens:2200,thinking_level:"low"},
-      response_format:{type:"text",mime_type:"application/json",schema:responseSchema()},
+      messages:[
+        {role:"system",content:systemInstruction},
+        {role:"user",content:JSON.stringify(input)},
+      ],
+      temperature:0,
+      max_completion_tokens:2200,
+      response_format:{
+        type:"json_schema",
+        json_schema:{name:"chat_product_segments",strict:true,schema:responseSchema()},
+      },
     }),
   });
   let payload:any;
   try{payload=await response.json();}catch{throw new Error("model_response_not_json");}
-  if(!response.ok||["failed","incomplete","cancelled","budget_exceeded"].includes(String(payload?.status||"")))throw new Error(`model_request_failed:${response.status}:${clean(payload?.error?.message||payload?.status||"unknown",220)}`);
+  if(!response.ok)throw new Error(`model_request_failed:${response.status}:${clean(payload?.error?.message||"unknown",220)}`);
+  const output=payload?.choices?.[0]?.message?.content;
+  if(typeof output!=="string"||!output.trim())throw new Error("model_output_missing");
   let parsed:any;
-  try{parsed=JSON.parse(outputText(payload));}catch{throw new Error("model_output_invalid");}
+  try{parsed=JSON.parse(output);}catch{throw new Error("model_output_invalid");}
   const seen=new Set<number>();
   const items:any[]=[];
   for(const row of Array.isArray(parsed?.results)?parsed.results:[]){
@@ -239,7 +235,7 @@ async function processConversation(conversationId:string,cfg:any){
   try{
     const [catalog,library]=await Promise.all([loadCatalog(),loadLearningLibrary(customerId)]);
     const customerText=rows.map((row:any)=>String(row.message_body||"").trim()).filter(Boolean).join("\n");
-    const modelItems=await parseWithGemini(customerText,catalog,library,cfg);
+    const modelItems=await parseWithGroq(customerText,catalog,library,cfg);
     const lines=finalizeProductLines(modelItems,catalog);
     if(lines.length){
       const body=lines.map((row:any)=>row.line).join("\n");
@@ -258,12 +254,8 @@ Deno.serve(async(req:Request)=>{
     const cfg=await runtimeConfig();
     if(req.method==="GET"){
       return new Response(JSON.stringify({
-        ok:true,
-        chat_ai:true,
-        order_workflow:false,
-        model:cfg.model,
-        model_configured:Boolean(cfg.model&&cfg.apiKey),
-        mode:cfg.mode,
+        ok:true,chat_ai:true,order_workflow:false,provider:"groq",model:cfg.model,
+        model_configured:Boolean(cfg.model&&cfg.apiKey),mode:cfg.mode,
       }),{headers:{"content-type":"application/json"}});
     }
     if(req.method!=="POST")return new Response("method not allowed",{status:405});
