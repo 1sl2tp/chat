@@ -2,49 +2,33 @@ function clean(value){
   return String(value??'').replace(/\s+/g,' ').trim();
 }
 
-function normalizeStrict(value){
+function normalizeLoose(value){
   return String(value??'')
-    .normalize('NFC')
-    .toLocaleLowerCase('vi-VN')
-    .replace(/[^\p{L}\p{N}]+/gu,' ')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .replace(/đ/gi,'d')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g,' ')
     .replace(/\s+/g,' ')
     .trim();
 }
 
-function normalizeLoose(value){
-  return normalizeStrict(value)
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g,'')
-    .replace(/đ/gi,'d');
-}
-
-const SEARCH_WORD_DICTIONARY=new Map([
-  ['ko','không'],
-]);
-
-const LEVEL_FIELDS=['level1','level2','level3','level4','level5','level6','level7','level8','level9'];
-
 function normalizeQuery(value){
-  return normalizeStrict(value)
-    .split(' ')
-    .filter(Boolean)
-    .map(token=>SEARCH_WORD_DICTIONARY.get(token)||token)
-    .join(' ');
-}
-
-function strictTokens(value){
-  return normalizeStrict(value).split(' ').filter(Boolean);
-}
-
-function looseTokens(value){
-  return normalizeLoose(value).split(' ').filter(Boolean);
+  return normalizeLoose(value)
+    .replace(/\bco duong\b/g,'co')
+    .replace(/\bit duong\b/g,'it')
+    .replace(/\bkhong duong\b/g,'khong')
+    .replace(/\s+/g,' ')
+    .trim();
 }
 
 function quantityText(value){
   const n=Number(value);
-  if(!Number.isFinite(n))return String(value??'').trim();
+  if(!Number.isFinite(n))return clean(value);
   return Number.isInteger(n)?String(n):String(Math.round(n*100)/100);
 }
+
+const LEVEL_FIELDS=['level1','level2','level3','level4','level5','level6','level7','level8','level9'];
 
 function rowName(row){
   return clean(row?.name??row?.product_name??row?.productName);
@@ -54,411 +38,257 @@ function rowId(row){
   return clean(row?.id??row?.product_id??row?.productId??row?.product_code??row?.productCode);
 }
 
-function rowSource(row){
-  return normalizeStrict(row?.source);
-}
-
-function uniqueNameMatch(rows){
-  const byName=new Map();
-  for(const row of rows){
-    const productName=rowName(row);
-    const key=normalizeStrict(productName);
-    if(!productName||!key||byName.has(key))continue;
-    byName.set(key,{productName,productId:rowId(row)||null});
-  }
-  return byName.size===1?[...byName.values()][0]:null;
-}
-
-function aliases(value){
-  return clean(value)
-    .split(/,\s+/)
-    .map(normalizeStrict)
+function rowPath(row){
+  return LEVEL_FIELDS
+    .map(field=>normalizeLoose(row?.[field]))
     .filter(Boolean);
 }
 
-function rowPath(row){
-  return LEVEL_FIELDS
-    .map(field=>aliases(row?.[field]))
-    .filter(level=>level.length>0);
+function rowKey(row){
+  return rowId(row)||`${normalizeLoose(rowName(row))}\u0000${normalizeLoose(row?.source)}`;
 }
 
-function hasConfiguredPath(row){
-  return rowPath(row).length>0;
+function titlePrefix(prefix){
+  const text=clean(prefix);
+  return text?text.charAt(0).toUpperCase()+text.slice(1):'';
 }
 
-function buildLooseAliasIndex(rows){
-  const index=new Map();
-  for(const row of rows){
-    for(const level of rowPath(row)){
-      for(const alias of level){
-        const loose=normalizeLoose(alias);
-        if(!loose)continue;
-        if(!index.has(loose))index.set(loose,new Set());
-        index.get(loose).add(alias);
+function startsWithPath(path,prefix){
+  if(!prefix?.length)return true;
+  if(path.length<prefix.length)return false;
+  for(let i=0;i<prefix.length;i++){
+    if(path[i]!==prefix[i])return false;
+  }
+  return true;
+}
+
+function buildCatalogIndex(catalog=[]){
+  const rows=(Array.isArray(catalog)?catalog:[])
+    .filter(row=>rowName(row)&&rowPath(row).length)
+    .map(row=>({row,path:rowPath(row)}));
+
+  const entries=[];
+  for(const item of rows){
+    const {row,path}=item;
+    for(let start=0;start<path.length;start++){
+      for(let end=start;end<path.length;end++){
+        entries.push({
+          key:path.slice(start,end+1).join(' '),
+          row,
+          path,
+          start,
+          end,
+          prefix:path.slice(0,end+1),
+        });
       }
     }
   }
-  return index;
+
+  entries.sort((a,b)=>{
+    if(a.key<b.key)return -1;
+    if(a.key>b.key)return 1;
+    const ar=rowKey(a.row);
+    const br=rowKey(b.row);
+    if(ar<br)return -1;
+    if(ar>br)return 1;
+    return a.start-b.start||a.end-b.end;
+  });
+
+  return {rows,entries};
 }
 
-function buildLooseRootAliasIndex(rows){
-  const index=new Map();
-  for(const row of rows){
-    const root=rowPath(row)[0]||[];
-    for(const alias of root){
-      const loose=normalizeLoose(alias);
-      if(!loose)continue;
-      if(!index.has(loose))index.set(loose,new Set());
-      index.get(loose).add(alias);
-    }
+function lowerBound(entries,key){
+  let lo=0;
+  let hi=entries.length;
+  while(lo<hi){
+    const mid=(lo+hi)>>1;
+    if(entries[mid].key<key)lo=mid+1;
+    else hi=mid;
   }
-  return index;
+  return lo;
 }
 
-function tokensEqualAt(queryTokens,queryIndex,aliasTokens){
-  if(!aliasTokens.length||queryIndex+aliasTokens.length>queryTokens.length)return false;
-  for(let i=0;i<aliasTokens.length;i++){
-    if(queryTokens[queryIndex+i]!==aliasTokens[i])return false;
+function upperBound(entries,key){
+  let lo=0;
+  let hi=entries.length;
+  while(lo<hi){
+    const mid=(lo+hi)>>1;
+    if(entries[mid].key<=key)lo=mid+1;
+    else hi=mid;
   }
-  return true;
+  return lo;
 }
 
-function tokenSpanAnywhere(queryTokens,aliasTokens){
-  if(!aliasTokens.length||aliasTokens.length>queryTokens.length)return false;
-  for(let index=0;index<=queryTokens.length-aliasTokens.length;index++){
-    if(tokensEqualAt(queryTokens,index,aliasTokens))return true;
-  }
-  return false;
+function binaryLookup(index,key,scopePrefix=null){
+  if(!key)return [];
+  const from=lowerBound(index.entries,key);
+  const to=upperBound(index.entries,key);
+  if(from>=to)return [];
+  const slice=index.entries.slice(from,to);
+  return scopePrefix?.length?slice.filter(entry=>startsWithPath(entry.path,scopePrefix)):slice;
 }
 
-function aliasMatchAt(alias,queryIndex,queryStrictTokens,queryLooseTokens,looseAliasIndex){
-  const strictAliasTokens=strictTokens(alias);
-  if(tokensEqualAt(queryStrictTokens,queryIndex,strictAliasTokens)){
-    return {length:strictAliasTokens.length,strict:true};
-  }
+function resolveHits(hits){
+  if(!hits.length)return null;
 
-  const looseAlias=normalizeLoose(alias);
-  const strictForms=looseAliasIndex.get(looseAlias);
-  if(!strictForms||strictForms.size!==1)return null;
-
-  const looseAliasTokens=looseTokens(alias);
-  if(!tokensEqualAt(queryLooseTokens,queryIndex,looseAliasTokens))return null;
-  return {length:looseAliasTokens.length,strict:false};
-}
-
-function aliasAppears(alias,queryStrictTokens,queryLooseTokens,looseAliasIndex){
-  if(tokenSpanAnywhere(queryStrictTokens,strictTokens(alias)))return true;
-  const looseAlias=normalizeLoose(alias);
-  const strictForms=looseAliasIndex.get(looseAlias);
-  if(!strictForms||strictForms.size!==1)return false;
-  return tokenSpanAnywhere(queryLooseTokens,looseTokens(alias));
-}
-
-function rowFormulaMatch(row,queryStrictTokens,queryLooseTokens,looseAliasIndex,minimumMatchedLevels=2){
-  const path=rowPath(row);
-  if(!path.length)return null;
-
-  const solutions=[];
-
-  function walk(levelIndex,queryIndex,matchedLevels,strictCount){
-    if(queryIndex===queryStrictTokens.length){
-      solutions.push({matchedLevels:[...matchedLevels],strictCount});
-      return;
-    }
-    if(levelIndex>=path.length)return;
-
-    walk(levelIndex+1,queryIndex,matchedLevels,strictCount);
-
-    const candidates=[];
-    for(const alias of path[levelIndex]){
-      const match=aliasMatchAt(alias,queryIndex,queryStrictTokens,queryLooseTokens,looseAliasIndex);
-      if(match)candidates.push(match);
-    }
-
-    candidates.sort((a,b)=>b.length-a.length||Number(b.strict)-Number(a.strict));
-    for(const match of candidates){
-      matchedLevels.push(levelIndex);
-      walk(levelIndex+1,queryIndex+match.length,matchedLevels,strictCount+(match.strict?1:0));
-      matchedLevels.pop();
-    }
+  const byRow=new Map();
+  for(const hit of hits){
+    const key=rowKey(hit.row);
+    if(!byRow.has(key))byRow.set(key,hit.row);
   }
 
-  walk(0,0,[],0);
-  if(!solutions.length)return null;
-
-  const valid=solutions.filter(solution=>solution.matchedLevels.length>=minimumMatchedLevels||path.length===1);
-  if(!valid.length)return null;
-
-  const full=valid.some(solution=>solution.matchedLevels.length===path.length);
-  const maxStrict=Math.max(...valid.map(solution=>solution.strictCount));
-  return {row,full,maxStrict};
-}
-
-function findStructuredProduct(query,rows,minimumMatchedLevels=2){
-  const candidates=rows.filter(hasConfiguredPath);
-  if(!candidates.length)return null;
-
-  const queryStrictTokens=strictTokens(query);
-  const queryLooseTokens=looseTokens(query);
-  if(!queryStrictTokens.length)return null;
-
-  const looseAliasIndex=buildLooseAliasIndex(candidates);
-  const matches=candidates
-    .map(row=>rowFormulaMatch(row,queryStrictTokens,queryLooseTokens,looseAliasIndex,minimumMatchedLevels))
-    .filter(Boolean);
-  if(!matches.length)return null;
-
-  const fullMatches=matches.filter(item=>item.full);
-  if(fullMatches.length){
-    return uniqueNameMatch(fullMatches.map(item=>item.row));
+  const prefixes=new Set(hits.map(hit=>hit.prefix.join(' ')).filter(Boolean));
+  const canonicalNames=new Map();
+  for(const row of byRow.values()){
+    const name=rowName(row);
+    const key=normalizeLoose(name);
+    if(name&&key&&!canonicalNames.has(key))canonicalNames.set(key,name);
   }
 
-  return uniqueNameMatch(matches.map(item=>item.row));
-}
-
-function rootScopeGroups(query,rows){
-  const queryStrictTokens=strictTokens(query);
-  const queryLooseTokens=looseTokens(query);
-  if(!queryStrictTokens.length)return [];
-
-  const looseRootIndex=buildLooseRootAliasIndex(rows);
-  const groups=new Map();
-
-  for(const row of rows.filter(hasConfiguredPath)){
-    const path=rowPath(row);
-    const root=path[0]||[];
-    if(!root.some(alias=>aliasAppears(alias,queryStrictTokens,queryLooseTokens,looseRootIndex)))continue;
-
-    const key=`${rowSource(row)}\u0000${normalizeLoose(root[0]||'')}`;
-    if(!groups.has(key))groups.set(key,[]);
-    groups.get(key).push(row);
+  let productName='';
+  let productId=null;
+  if(byRow.size===1){
+    const only=[...byRow.values()][0];
+    productName=rowName(only);
+    productId=rowId(only)||null;
+  }else if(canonicalNames.size===1){
+    productName=[...canonicalNames.values()][0];
+  }else if(prefixes.size===1){
+    productName=titlePrefix([...prefixes][0]);
+  }else{
+    return null;
   }
 
-  return [...groups.values()];
-}
-
-function findByExplicitRoot(query,rows){
-  const groups=rootScopeGroups(query,rows);
-  if(!groups.length)return null;
-
-  const matches=[];
-  for(const groupRows of groups){
-    const match=findStructuredProduct(query,groupRows,2);
-    if(match)matches.push(match);
+  const commonPrefix=prefixes.size===1?[...prefixes][0].split(' ').filter(Boolean):null;
+  let anchorPrefix=commonPrefix;
+  if(!anchorPrefix&&byRow.size===1){
+    const onlyKey=[...byRow.keys()][0];
+    const firstHit=hits.find(hit=>rowKey(hit.row)===onlyKey);
+    anchorPrefix=firstHit?.prefix||firstHit?.path||null;
+  }
+  if(!anchorPrefix&&canonicalNames.size===1){
+    const first=hits[0];
+    anchorPrefix=first?.prefix||null;
   }
 
-  const byName=new Map(matches.map(match=>[normalizeStrict(match.productName),match]));
-  return byName.size===1?[...byName.values()][0]:null;
-}
-
-function rowForMatch(match,rows){
-  if(!match)return null;
-  const id=clean(match.productId);
-  if(id){
-    const byId=rows.find(row=>rowId(row)===id);
-    if(byId)return byId;
-  }
-  const name=normalizeStrict(match.productName);
-  return rows.find(row=>normalizeStrict(rowName(row))===name)||null;
-}
-
-function contextFromRow(row){
-  if(!row)return null;
-  const path=rowPath(row);
-  if(!path.length)return null;
   return {
-    source:rowSource(row),
-    levels:path.length>1?path.slice(0,-1):path,
-    pathLength:path.length,
+    productName,
+    productId,
+    prefix:Array.isArray(anchorPrefix)?anchorPrefix:null,
   };
 }
 
-function sameAliasLevel(left,right){
-  const rightStrict=new Set(right);
-  if(left.some(alias=>rightStrict.has(alias)))return true;
-
-  const rightLoose=new Set(right.map(normalizeLoose));
-  return left.some(alias=>rightLoose.has(normalizeLoose(alias)));
+function resolveExactKey(key,index,scopePrefix=null){
+  return resolveHits(binaryLookup(index,key,scopePrefix));
 }
 
-function rowMatchesContextPrefix(row,context,depth){
-  if(context.source&&rowSource(row)!==context.source)return false;
-  const path=rowPath(row);
-  if(path.length<depth)return false;
-  for(let index=0;index<depth;index++){
-    if(!sameAliasLevel(path[index],context.levels[index]))return false;
-  }
-  return true;
-}
-
-function findCatalogProductInContext(productText,rows,context){
+function resolveExactPhrase(productText,index,scopePrefix=null){
   const query=normalizeQuery(productText);
-  if(!query||!context?.levels?.length)return null;
+  if(!query)return null;
+  return resolveExactKey(query,index,scopePrefix);
+}
 
-  for(let depth=context.levels.length;depth>=1;depth--){
-    const scoped=rows.filter(row=>rowMatchesContextPrefix(row,context,depth));
-    if(!scoped.length)continue;
+function anchorFromResolution(result){
+  const prefix=result?.prefix;
+  if(!Array.isArray(prefix)||!prefix.length)return null;
+  return prefix.slice(0,Math.min(2,prefix.length));
+}
 
-    // Human shorthand normally changes the leaf while keeping the same key
-    // level. Prefer that sibling depth first (chua/co -> chua/it) before any
-    // deeper child such as chua/nha-dam/it.
-    if(context.pathLength){
-      const sameDepth=scoped.filter(row=>rowPath(row).length===context.pathLength);
-      const sameDepthMatch=findStructuredProduct(query,sameDepth,1);
-      if(sameDepthMatch)return sameDepthMatch;
+function sameAnchor(left,right){
+  if(!left?.length||!right?.length||left.length!==right.length)return false;
+  return left.every((value,index)=>value===right[index]);
+}
+
+function scanAnchor(productText,index,scopePrefix=null){
+  const query=normalizeQuery(productText);
+  const tokens=query.split(' ').filter(Boolean);
+  if(!tokens.length)return null;
+
+  for(let size=tokens.length;size>=1;size--){
+    const anchors=[];
+    for(let start=0;start<=tokens.length-size;start++){
+      const key=tokens.slice(start,start+size).join(' ');
+      const result=resolveExactKey(key,index,scopePrefix);
+      const anchor=anchorFromResolution(result);
+      if(anchor?.length)anchors.push(anchor);
     }
+    if(!anchors.length)continue;
 
-    const match=findStructuredProduct(query,scoped,1);
-    if(match)return match;
+    const unique=new Map();
+    for(const anchor of anchors)unique.set(anchor.join('\u0000'),anchor);
+    if(unique.size===1)return [...unique.values()][0];
   }
   return null;
 }
 
-function explicitRootContext(productText,rows){
-  const query=normalizeQuery(productText);
-  const groups=rootScopeGroups(query,rows);
-  if(groups.length!==1)return null;
+function publicMatch(result){
+  return result?{productName:result.productName,productId:result.productId}:null;
+}
 
-  const first=groups[0][0];
-  const root=rowPath(first)[0];
-  if(!root?.length)return null;
-  return {source:rowSource(first),levels:[root]};
+export function findCatalogProduct(productText,catalog=[]){
+  const index=buildCatalogIndex(catalog);
+  return publicMatch(resolveExactPhrase(productText,index,null));
 }
 
 function resolvedRow(row,match,contextMatched=false){
   const rawProductName=clean(row?.productName);
-  const productName=match.productName;
-  const changed=clean(productName)!==rawProductName;
+  const changed=clean(match.productName)!==rawProductName;
   const review=changed&&rawProductName?` (${rawProductName})`:'';
   return {
     ...row,
     rawProductName,
-    productName,
+    productName:match.productName,
     productId:match.productId,
     catalogMatched:true,
     catalogContextMatched:contextMatched,
-    line:`${quantityText(row?.quantity)} ${productName}${review}`,
+    line:`${quantityText(row?.quantity)} ${match.productName}${review}`,
   };
 }
 
-function exactKeyCommonLeftPrefix(query,rows){
-  const target=normalizeLoose(query);
-  if(!target)return null;
-
-  const hits=[];
-  for(const row of rows.filter(hasConfiguredPath)){
-    const path=rowPath(row);
-    for(let start=0;start<path.length;start++){
-      let combinations=[''];
-      for(let end=start;end<path.length;end++){
-        const next=[];
-        for(const prefix of combinations){
-          for(const alias of path[end]){
-            const piece=normalizeLoose(alias);
-            if(!piece)continue;
-            next.push(prefix?`${prefix} ${piece}`:piece);
-          }
-        }
-        combinations=[...new Set(next)];
-        if(!combinations.includes(target))continue;
-
-        const prefixLevels=path
-          .slice(0,end+1)
-          .map(level=>normalizeLoose(level[0]||''))
-          .filter(Boolean);
-        hits.push({row,prefix:prefixLevels.join(' ')});
-      }
-    }
-  }
-
-  if(!hits.length)return null;
-
-  const rowKeys=new Set(hits.map(({row})=>{
-    const id=rowId(row);
-    return `${rowSource(row)}\u0000${id||normalizeLoose(rowName(row))}`;
-  }));
-  if(rowKeys.size===1)return uniqueNameMatch(hits.map(hit=>hit.row));
-
-  const prefixes=new Set(hits.map(hit=>hit.prefix).filter(Boolean));
-  if(prefixes.size!==1)return null;
-
-  const prefix=[...prefixes][0];
-  return {productName:prefix.charAt(0).toUpperCase()+prefix.slice(1),productId:null};
-}
-
-export function findCatalogProduct(productText,catalog=[]){
-  const query=normalizeQuery(productText);
-  if(!query)return null;
-
-  const rows=(Array.isArray(catalog)?catalog:[]).filter(row=>rowName(row));
-  const exact=rows.filter(row=>normalizeStrict(rowName(row))===query);
-  if(exact.length)return uniqueNameMatch(exact);
-
-  const exactKey=exactKeyCommonLeftPrefix(query,rows);
-  if(exactKey)return exactKey;
-
-  const direct=findStructuredProduct(query,rows,2);
-  if(direct)return direct;
-
-  // When a level-1/root key is explicit, narrow to that branch first. This is
-  // the deterministic de-noising step for dictionary forms such as be/bé.
-  return findByExplicitRoot(query,rows);
+function unresolvedRow(row){
+  const rawProductName=clean(row?.productName);
+  return {
+    ...row,
+    rawProductName,
+    catalogMatched:false,
+    catalogContextMatched:false,
+    line:`${quantityText(row?.quantity)} ${rawProductName} *`,
+  };
 }
 
 export function resolveParsedLinesWithCatalog(lines,catalog=[]){
   const input=Array.isArray(lines)?lines:[];
-  const catalogRows=(Array.isArray(catalog)?catalog:[]).filter(row=>rowName(row));
-  const directMatches=input.map(row=>findCatalogProduct(clean(row?.productName),catalogRows));
-  const directRows=directMatches.map(match=>rowForMatch(match,catalogRows));
-  const rootContexts=input.map(row=>explicitRootContext(clean(row?.productName),catalogRows));
-
-  let activeContext=null;
+  const index=buildCatalogIndex(catalog);
   const output=[];
+  let activeAnchor=null;
 
-  for(let index=0;index<input.length;index++){
-    const row=input[index];
-    const directMatch=directMatches[index];
-    if(directMatch){
-      output.push(resolvedRow(row,directMatch,false));
-      activeContext=contextFromRow(directRows[index]);
+  for(const row of input){
+    const text=clean(row?.productName);
+    const globalExact=resolveExactPhrase(text,index,null);
+    const discoveredAnchor=anchorFromResolution(globalExact)||scanAnchor(text,index,null);
+
+    if(discoveredAnchor?.length&&!sameAnchor(activeAnchor,discoveredAnchor)){
+      activeAnchor=discoveredAnchor;
+    }
+
+    if(globalExact){
+      output.push(resolvedRow(row,globalExact,false));
+      const exactAnchor=anchorFromResolution(globalExact);
+      if(exactAnchor?.length)activeAnchor=exactAnchor;
       continue;
     }
 
-    // An explicit new root is a topic switch. Never drag the older branch into
-    // it, even if this line itself is still incomplete.
-    if(rootContexts[index]){
-      activeContext=rootContexts[index];
-      const rootMatch=findCatalogProductInContext(clean(row?.productName),catalogRows,activeContext);
-      if(rootMatch){
-        output.push(resolvedRow(row,rootMatch,true));
-        activeContext=contextFromRow(rowForMatch(rootMatch,catalogRows));
-      }else{
-        output.push({...row,catalogMatched:false});
-      }
-      continue;
-    }
-
-    let contextMatch=null;
-    if(activeContext){
-      contextMatch=findCatalogProductInContext(clean(row?.productName),catalogRows,activeContext);
-    }else{
-      // Only when there is no key above, the nearest usable key below may
-      // provide the input topic. Above wins once a topic has been established.
-      for(let next=index+1;next<input.length;next++){
-        const below=directRows[next]?contextFromRow(directRows[next]):rootContexts[next];
-        if(!below)continue;
-        contextMatch=findCatalogProductInContext(clean(row?.productName),catalogRows,below);
-        if(contextMatch)activeContext=below;
-        break;
+    if(activeAnchor?.length){
+      const scopedExact=resolveExactPhrase(text,index,activeAnchor);
+      if(scopedExact){
+        output.push(resolvedRow(row,scopedExact,true));
+        const scopedAnchor=anchorFromResolution(scopedExact);
+        if(scopedAnchor?.length)activeAnchor=scopedAnchor;
+        continue;
       }
     }
 
-    if(contextMatch){
-      output.push(resolvedRow(row,contextMatch,true));
-      activeContext=contextFromRow(rowForMatch(contextMatch,catalogRows));
-    }else{
-      output.push({...row,catalogMatched:false});
-    }
+    output.push(unresolvedRow(row));
   }
 
   return output;
