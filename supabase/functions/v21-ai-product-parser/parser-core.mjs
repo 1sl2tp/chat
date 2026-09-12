@@ -22,13 +22,43 @@ function upperFirst(value){
 const UNIT='(?:t|th|thùng|thung|bao|ba0|bịch|bich|gói|goi|chai|lốc|loc|hộp|hop|cây|cay)';
 const explicitQty=new RegExp(`(^|\\s)(\\d+(?:[.,]\\d+)?)\\s*(${UNIT})(?=\\s|$)`,'iu');
 const chatter=/\b(?:cho|em|e|c|chị|chi|anh|ok|nhé|nhe|thế|the|t2)\b/iu;
+const childQty=new RegExp(`^(\\d+(?:[.,]\\d+)?)(\\s*${UNIT})?\\s+(.+)$`,'iu');
+
+function splitList(value){
+  return String(value??'')
+    .split(/\s*(?:,|;)\s*|\s+\/\s+/)
+    .map(part=>part.trim())
+    .filter(Boolean);
+}
+
+function expandParentLine(line){
+  const text=line.replace(/^\s*[-•]\s*/,'').trim();
+  if(!text)return [];
+  const colon=text.indexOf(':');
+  if(colon<=0||colon===text.length-1)return splitList(text);
+
+  const parent=clean(text.slice(0,colon));
+  const children=splitList(text.slice(colon+1));
+  if(!parent||!children.length)return splitList(text);
+
+  const expanded=[];
+  for(const child of children){
+    const match=child.match(childQty);
+    if(!match){
+      expanded.push(child);
+      continue;
+    }
+    const qty=`${match[1]}${match[2]||''}`;
+    expanded.push(clean(`${qty} ${parent} ${match[3]}`));
+  }
+  return expanded;
+}
 
 export function splitCustomerSegments(value){
   return String(value??'')
     .replace(/\r\n?/g,'\n')
     .split(/\n/)
-    .flatMap(line=>line.split(/\s*(?:,|;)\s*|\s+\/\s+/))
-    .map(part=>part.replace(/^\s*[-•]\s*/,'').trim())
+    .flatMap(expandParentLine)
     .filter(Boolean);
 }
 
