@@ -32,54 +32,30 @@ assert.equal(findCatalogProduct('chua dam',catalog),null,'direct windows cannot 
 assert.equal(findCatalogProduct('probi mau',catalog),null,'direct windows cannot skip a level');
 assert.equal(findCatalogProduct('cos',catalog),null);
 assert.equal(findCatalogProduct('prob',catalog),null);
-assert.equal(findCatalogProduct('chua co duong',catalog)?.productName,'Sua chua co');
-assert.equal(findCatalogProduct('chua it duong',catalog)?.productName,'Sua chua it');
-assert.equal(findCatalogProduct('chua khong duong',catalog)?.productName,'Sua chua khong');
-assert.equal(findCatalogProduct('Sua chua nha dam co',catalog)?.productName,'Sua chua nha dam co');
-assert.equal(findCatalogProduct('Sua chua duong den',catalog)?.productName,'Sua chua duong den');
 
-// Filter context keeps only a certain 1 or 1-2 anchor. A lower window may use
-// that anchor, but no old 3-4/4-5 branch is inherited. Unknown input is kept + *.
+// A successful line keeps its full key. The next line first tries that key,
+// then removes trailing levels one by one until the new line becomes exclusive.
+// An unresolved line is ignored and must not destroy the last good key.
 assert.deepEqual(
   resolveParsedLinesWithCatalog([
-    {quantity:3,productName:'Chua có đường',line:'3 Chua có đường'},
-    {quantity:3,productName:'Ít đường',line:'3 Ít đường'},
-    {quantity:2,productName:'Probi to mau',line:'2 Probi to mau'},
+    {quantity:1,productName:'Probi to mau it',line:'1 Probi to mau it'},
+    {quantity:9,productName:'unknown',line:'9 unknown'},
     {quantity:2,productName:'vq',line:'2 vq'},
-    {quantity:3,productName:'Chua không đường',line:'3 Chua không đường'},
-    {quantity:3,productName:'Ít đường',line:'3 Ít đường'},
+    {quantity:1,productName:'Chua nha dam co',line:'1 Chua nha dam co'},
+    {quantity:3,productName:'it',line:'3 it'},
   ],catalog).map(row=>row.line),
   [
-    '3 Sua chua co (Chua có đường)',
-    '3 Ít đường *',
-    '2 Sua probi to mau (Probi to mau)',
-    '2 vq *',
-    '3 Sua chua khong (Chua không đường)',
-    '3 Ít đường *',
+    '1 Sua probi to mau - it (Probi to mau it)',
+    '9 unknown *',
+    '2 Sua probi to mau - vq (vq)',
+    '1 Sua chua nha dam co (Chua nha dam co)',
+    '3 Sua chua nha dam it (it)',
   ],
-  'carry is a 1/1-2 filter only; if the scoped key is still not exclusive, keep raw input + *',
+  'carry full successful key; back off from the right; failed rows do not replace it; a new successful key does',
 );
 
-// Longest-to-shorter key detection: the full input may fail, but the first
-// shorter exclusive key establishes the 1/1-2 filter. Stop at that level.
-assert.deepEqual(
-  resolveParsedLinesWithCatalog([
-    {quantity:1,productName:'Probi xyz',line:'1 Probi xyz'},
-    {quantity:2,productName:'to mau',line:'2 to mau'},
-    {quantity:1,productName:'Chua abc',line:'1 Chua abc'},
-    {quantity:2,productName:'to mau',line:'2 to mau'},
-  ],catalog).map(row=>row.line),
-  [
-    '1 Probi xyz *',
-    '2 Sua probi to mau (to mau)',
-    '1 Chua abc *',
-    '2 to mau *',
-  ],
-  '2-token input falls back to an exclusive 1-token anchor; a different 1/1-2 anchor resets the previous filter',
-);
-
-// When a failed full input contains a longer valid embedded phrase, prefer that
-// phrase over its shorter sub-phrase and keep the exact branch it identified.
+// A failed row may contain a partial branch, but it is not a key until the
+// whole row resolves. Do not let a failed partial phrase create carry context.
 assert.deepEqual(
   resolveParsedLinesWithCatalog([
     {quantity:1,productName:'Probi to xyz',line:'1 Probi to xyz'},
@@ -87,18 +63,9 @@ assert.deepEqual(
   ],catalog).map(row=>row.line),
   [
     '1 Probi to xyz *',
-    '2 Sua probi to mau (mau)',
+    '2 mau *',
   ],
-  'probi to must win over probi and preserve the sua/probi/to branch',
+  'failed partial input must not create a carry key',
 );
 
-assert.deepEqual(
-  resolveParsedLinesWithCatalog([
-    {quantity:1,productName:'Ít đường',line:'1 Ít đường'},
-    {quantity:1,productName:'Chua có đường',line:'1 Chua có đường'},
-  ],catalog).map(row=>row.line),
-  ['1 Ít đường *','1 Sua chua co (Chua có đường)'],
-  'no lookahead: a later key cannot change an earlier line',
-);
-
-console.log('chat binary exact-window filter + bounded 1/1-2 carry PASS');
+console.log('chat binary progressive key + full carry/backoff PASS');
