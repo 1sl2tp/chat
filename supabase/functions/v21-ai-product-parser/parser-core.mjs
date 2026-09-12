@@ -12,6 +12,18 @@ function normalize(value){
     .trim();
 }
 
+const SPLIT_WORD_DICTIONARY=new Map([
+  ['ko','không'],
+]);
+
+function normalizeSplitName(value){
+  return clean(value)
+    .split(' ')
+    .filter(Boolean)
+    .map(token=>SPLIT_WORD_DICTIONARY.get(token.toLocaleLowerCase('vi-VN'))||token)
+    .join(' ');
+}
+
 function numberValue(value){
   const n=Number(String(value??'').replace(',','.'));
   return Number.isFinite(n)&&n>0?n:null;
@@ -66,7 +78,7 @@ function looksLikeUnseparatedMultiItem(productName){
 
 function finalize(quantity,name){
   const q=numberValue(quantity);
-  const productName=upperFirst(name);
+  const productName=upperFirst(normalizeSplitName(name));
   if(q==null||!productName||looksLikeUnseparatedMultiItem(productName))return null;
   return {quantity:q,productName,line:`${quantityText(q)} ${productName}`};
 }
