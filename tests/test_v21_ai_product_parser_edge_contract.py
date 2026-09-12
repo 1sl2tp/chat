@@ -15,6 +15,8 @@ for required in [
     'v21_messages',
     'from("products")',
     '.eq("active",true)',
+    'from("chat_ai_product_keys")',
+    'product_name,type,c1,c2,size,label2,form,color,volume,variant',
     'parseCustomerTextDetailed',
     'resolveParsedLinesWithCatalog',
     'catalog_sync:true',
