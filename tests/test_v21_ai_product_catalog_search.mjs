@@ -20,7 +20,6 @@ const catalog=[
   {id:'x1',name:'Keo to mau',source:'Hàng thường',level1:'keo',level2:'to',level3:'mau'},
 ];
 
-// Direct keys are exact adjacent level windows only.
 assert.deepEqual(findCatalogProduct('cosy',catalog),{productName:'Banh cosy',productId:null});
 assert.deepEqual(findCatalogProduct('probi',catalog),{productName:'Sua probi',productId:null});
 assert.equal(findCatalogProduct('bich',catalog),null);
@@ -33,9 +32,6 @@ assert.equal(findCatalogProduct('probi mau',catalog),null,'direct windows cannot
 assert.equal(findCatalogProduct('cos',catalog),null);
 assert.equal(findCatalogProduct('prob',catalog),null);
 
-// A successful line keeps its full key. The next line first tries that key,
-// then removes trailing levels one by one until the new line becomes exclusive.
-// An unresolved line is ignored and must not destroy the last good key.
 assert.deepEqual(
   resolveParsedLinesWithCatalog([
     {quantity:1,productName:'Probi to mau it',line:'1 Probi to mau it'},
@@ -54,9 +50,6 @@ assert.deepEqual(
   'carry full successful key; back off from the right; failed rows do not replace it; a new successful key does',
 );
 
-// Within one row, walk input words left-to-right. Keep the deepest exclusive
-// prefix already proven even when a later word does not match. The unresolved
-// tail stays visible with *, but this partial row is not allowed to become carry.
 assert.deepEqual(
   resolveParsedLinesWithCatalog([
     {quantity:3,productName:'Probi to có đường',line:'3 Probi to có đường'},
@@ -65,16 +58,24 @@ assert.deepEqual(
   'same-line progressive search must keep sua/probi/to before the unknown tail',
 );
 
+// A partial line has already proven a level key. Keep that key for the next
+// line. The next line tries the deepest key first, then backs off right-to-left
+// (4,3,2,1...) until its first word becomes exclusive, and continues the rest
+// of that same line from the newly proven key.
 assert.deepEqual(
   resolveParsedLinesWithCatalog([
-    {quantity:1,productName:'Probi to xyz',line:'1 Probi to xyz'},
-    {quantity:2,productName:'mau',line:'2 mau'},
+    {quantity:3,productName:'Chua co đường',line:'3 Chua co đường'},
+    {quantity:3,productName:'Ít đường',line:'3 Ít đường'},
+    {quantity:3,productName:'Nha đam có',line:'3 Nha đam có'},
+    {quantity:3,productName:'Không đường',line:'3 Không đường'},
   ],catalog).map(row=>row.line),
   [
-    '1 Sua probi to xyz *',
-    '2 mau *',
+    '3 Sua chua co đường *',
+    '3 Sua chua it đường *',
+    '3 Sua chua nha dam co (Nha đam có)',
+    '3 Sua chua khong đường *',
   ],
-  'a partial row may display its proven prefix but must not create carry context',
+  'partial keys carry; each following line backs off 4-3-2-1 and then continues left-to-right',
 );
 
 console.log('chat binary progressive key + full carry/backoff PASS');
