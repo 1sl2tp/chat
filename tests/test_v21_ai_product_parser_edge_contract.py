@@ -15,6 +15,9 @@ for required in [
     'v21_messages',
     'generativelanguage.googleapis.com/v1beta/interactions',
     'finalizeProductLines',
+    'splitCustomerSegments',
+    'input_segments',
+    'segment_index',
     'ai:product:',
 ]:
     assert required in text, required
