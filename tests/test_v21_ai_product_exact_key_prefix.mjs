@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { findCatalogProduct, resolveParsedLinesWithCatalog } from '../supabase/functions/v21-ai-product-parser/catalog-search.mjs';
+import { protectNumericLeadingProducts } from '../supabase/functions/v21-ai-product-parser/numeric-product-protection.mjs';
 
 const cosyCatalog = [
   {id:'ht13',name:'Banh cosy 336',source:'Hàng thường',level1:'banh',level2:'cosy',level3:'336'},
@@ -49,7 +50,10 @@ const numericCatalog = [
 ];
 
 assert.deepEqual(
-  resolveParsedLinesWithCatalog([{quantity:9,productName:'Hat 2',line:'9 Hat 2'}],numericCatalog)[0],
+  resolveParsedLinesWithCatalog(
+    protectNumericLeadingProducts([{quantity:9,productName:'Hat 2',line:'9 Hat 2'}],numericCatalog),
+    numericCatalog,
+  )[0],
   {
     quantity:2,
     productName:'Sua 9 hat',
@@ -63,7 +67,10 @@ assert.deepEqual(
 );
 
 assert.deepEqual(
-  resolveParsedLinesWithCatalog([{quantity:247,productName:'2',line:'247 2'}],numericCatalog)[0],
+  resolveParsedLinesWithCatalog(
+    protectNumericLeadingProducts([{quantity:247,productName:'2',line:'247 2'}],numericCatalog),
+    numericCatalog,
+  )[0],
   {
     quantity:2,
     productName:'Nuoc 247',
