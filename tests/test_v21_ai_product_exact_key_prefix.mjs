@@ -41,6 +41,40 @@ assert.equal(
   'Cứng',
 );
 
+const milkCatalog = [
+  {id:'s17',name:'Sua chua co',source:'Sữa',level1:'sua',level2:'chua',level3:'co'},
+  {id:'s20',name:'Sua chua it',source:'Sữa',level1:'sua',level2:'chua',level3:'it'},
+  {id:'s21',name:'Sua chua khong',source:'Sữa',level1:'sua',level2:'chua',level3:'khong'},
+  {id:'s23',name:'Sua chua nha dam co',source:'Sữa',level1:'sua',level2:'chua',level3:'nha',level4:'dam',level5:'co'},
+  {id:'s24',name:'Sua chua nha dam it',source:'Sữa',level1:'sua',level2:'chua',level3:'nha',level4:'dam',level5:'it'},
+];
+
+assert.deepEqual(
+  findCatalogProduct('chua co duong', milkCatalog),
+  {productName:'Sua chua co', productId:'s17'},
+  'customer wording co duong maps only to the exact catalog key co; chua+co is then the exact 2-3 window and may infer level 1 sua',
+);
+
+assert.deepEqual(
+  findCatalogProduct('chua nha dam', milkCatalog),
+  {productName:'Sua chua nha dam', productId:null},
+  'three exact adjacent keys may match a 2-3-4 window and infer only the common level 1 to the left',
+);
+
+assert.deepEqual(
+  resolveParsedLinesWithCatalog([
+    {quantity:3,productName:'Chua có đường',line:'3 Chua có đường'},
+    {quantity:3,productName:'Ít đường',line:'3 Ít đường'},
+    {quantity:3,productName:'Không đường',line:'3 Không đường'},
+  ],milkCatalog).map(row=>row.line),
+  [
+    '3 Sua chua co (Chua có đường)',
+    '3 Sua chua it (Ít đường)',
+    '3 Sua chua khong (Không đường)',
+  ],
+  'once chua+co establishes the sua chua branch, exact it/khong sugar wording stays inside that branch',
+);
+
 const numericCatalog = [
   {id:'s1',name:'Sua 9 hat',source:'Sữa',level1:'sua',level2:'9',level3:'hat'},
   {id:'s2',name:'Sua 9 hat cao dam',source:'Sữa',level1:'sua',level2:'9',level3:'hat',level4:'cao',level5:'dam'},
