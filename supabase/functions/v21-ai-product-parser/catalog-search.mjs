@@ -17,6 +17,18 @@ const SEARCH_WORD_DICTIONARY=new Map([
   ['ko','khong'],
 ]);
 
+const STRUCTURED_PRIORITY_FIELDS=[
+  'type',
+  'c1',
+  'c2',
+  'size',
+  'label2',
+  'form',
+  'color',
+  'volume',
+  'variant',
+];
+
 function normalizeSearch(value){
   return normalize(value)
     .split(' ')
@@ -54,6 +66,50 @@ function uniqueNameMatch(rows){
   return byName.size===1?[...byName.values()][0]:null;
 }
 
+function aliases(value){
+  return clean(value)
+    .split(/,\s+/)
+    .map(normalizeSearch)
+    .filter(Boolean);
+}
+
+function structuredValue(row,field){
+  return row?.[field];
+}
+
+function hasStructuredKeys(row){
+  return STRUCTURED_PRIORITY_FIELDS.some(field=>clean(structuredValue(row,field)));
+}
+
+function aliasMatchesQuery(alias,queryTokenSet){
+  const aliasTokens=tokens(alias);
+  return aliasTokens.length>0&&aliasTokens.every(token=>queryTokenSet.has(token));
+}
+
+function rowMatchesStructuredField(row,field,queryTokenSet){
+  return aliases(structuredValue(row,field)).some(alias=>aliasMatchesQuery(alias,queryTokenSet));
+}
+
+function findStructuredProduct(query,rows){
+  let candidates=rows.filter(hasStructuredKeys);
+  if(!candidates.length)return {matched:false,result:null};
+
+  const queryTokenSet=new Set(tokens(query));
+  let matched=false;
+
+  for(const field of STRUCTURED_PRIORITY_FIELDS){
+    const narrowed=candidates.filter(row=>rowMatchesStructuredField(row,field,queryTokenSet));
+    if(!narrowed.length)continue;
+    candidates=narrowed;
+    matched=true;
+  }
+
+  return {
+    matched,
+    result:matched?uniqueNameMatch(candidates):null,
+  };
+}
+
 export function findCatalogProduct(productText,catalog=[]){
   const query=normalizeSearch(productText);
   if(!query)return null;
@@ -61,6 +117,9 @@ export function findCatalogProduct(productText,catalog=[]){
   const rows=(Array.isArray(catalog)?catalog:[]).filter(row=>rowName(row));
   const exact=rows.filter(row=>normalize(rowName(row))===query);
   if(exact.length)return uniqueNameMatch(exact);
+
+  const structured=findStructuredProduct(query,rows);
+  if(structured.matched)return structured.result;
 
   const queryTokens=tokens(query);
   if(queryTokens.length<2)return null;
