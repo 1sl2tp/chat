@@ -16,8 +16,12 @@ const structuredCatalog=[
   {id:'vnm8',name:'Sua bo bich khong',type:'Sữa',c1:'bo',form:'bich',variant:'không, không đường'},
   {id:'vnm11',name:'Sua bo lit co',type:'Sữa',c1:'bo',form:'lit',variant:'có, có đường'},
   {id:'vnm13',name:'Sua bo lit khong',type:'Sữa',c1:'bo',form:'lit',variant:'không, không đường'},
+  {id:'vnm17',name:'Sua chua co',type:'Sữa',c1:'chua',variant:'có, có đường'},
   {id:'vnm19',name:'Sua chua greenfram',type:'Sữa',c1:'chua',label2:'greenfram, green, fram'},
+  {id:'vnm20',name:'Sua chua it',type:'Sữa',c1:'chua',variant:'ít, ít đường'},
   {id:'vnm21',name:'Sua chua khong',type:'Sữa',c1:'chua',variant:'không, không đường'},
+  {id:'vnm23',name:'Sua chua nha dam co',type:'Sữa',c1:'chua',label2:'nha dam, nha, dam',variant:'có, có đường'},
+  {id:'vnm24',name:'Sua chua nha dam it',type:'Sữa',c1:'chua',label2:'nha dam, nha, dam',variant:'ít, ít đường'},
   {id:'vnm33',name:'Sua green fram to it 180ml',type:'Sữa',c1:'green',c2:'fram',size:'to, 180',variant:'ít, ít đường'},
   {id:'vnm32',name:'Sua green fram to co 180ml',type:'Sữa',c1:'green',c2:'fram',size:'to, 180',variant:'có, có đường'},
   {id:'vnm58',name:'Sua green lit',type:'Sữa',c1:'green',form:'lit'},
@@ -83,6 +87,24 @@ assert.equal(
   findCatalogProduct('sua chua green',structuredCatalog)?.productName,
   'Sua chua greenfram',
   'multi-name cells are searched as aliases without requiring the canonical combined spelling',
+);
+
+assert.equal(
+  findCatalogProduct('chua có đường',structuredCatalog)?.productName,
+  'Sua chua co',
+  'when c1 + variant match both a base row and a deeper child row, omitted child keys prefer the base row',
+);
+
+assert.equal(
+  findCatalogProduct('chua ít đường',structuredCatalog)?.productName,
+  'Sua chua it',
+  'the same base-row rule applies to another yogurt variant',
+);
+
+assert.equal(
+  findCatalogProduct('nha dam có',structuredCatalog)?.productName,
+  'Sua chua nha dam co',
+  'an explicitly present child key selects the deeper child row',
 );
 
 assert.equal(
