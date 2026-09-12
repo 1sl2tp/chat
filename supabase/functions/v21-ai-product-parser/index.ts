@@ -2,6 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.57.4";
 import { parseCustomerTextDetailed } from "./parser-core.mjs";
 import { formatCatalogSearchDisplayRows, resolveParsedLinesWithCatalog } from "./catalog-search.mjs";
 import { protectNumericLeadingProducts } from "./numeric-product-protection.mjs";
+import { formatOrderSummary } from "./order-summary.mjs";
 
 const SUPABASE_URL=String(Deno.env.get("SUPABASE_URL")||"").trim();
 const SERVICE_KEY=String(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"").trim();
@@ -123,7 +124,7 @@ async function processConversation(conversationId:string,cfg:any){
     const output=formatCatalogSearchDisplayRows(resolved).map((row:any)=>row.line);
 
     if(output.length){
-      const body=[...output,`— Tổng: ${output.length} sản phẩm`].join("\n");
+      const body=[...output,formatOrderSummary(resolved,catalog)].join("\n");
       await sendChatReply(
         conversationId,
         clean(rows[0]?.turn_key,100)||String(rows[0]?.message_id||Date.now()),
