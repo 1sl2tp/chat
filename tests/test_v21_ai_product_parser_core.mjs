@@ -4,6 +4,7 @@ import {
   parseCustomerText,
   parseCustomerTextDetailed,
   resolveTobaccoConfirmation,
+  splitLeadingConfirmationChoice,
 } from '../supabase/functions/v21-ai-product-parser/parser-core.mjs';
 
 {
@@ -140,6 +141,18 @@ import {
     parseCustomerTextDetailed('5 dẹt'),
     {lines:[{quantity:5,productName:'Dẹt',line:'5 Dẹt'}],confirmations:[]},
     'only low 1-2 quantities need tobacco unit confirmation',
+  );
+}
+
+{
+  assert.deepEqual(
+    splitLeadingConfirmationChoice(['1','Th bé cũng đc, 10 có, 10 ít bé']),
+    {choice:'1',rest:['Th bé cũng đc, 10 có, 10 ít bé']},
+    'a leading 1/0 confirmation must survive the 4-second message batch and leave later messages to parse normally',
+  );
+  assert.deepEqual(
+    splitLeadingConfirmationChoice(['10 th bé có']),
+    {choice:null,rest:['10 th bé có']},
   );
 }
 
