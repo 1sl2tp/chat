@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
 import { parseCustomerTextDetailed } from "./parser-core.mjs";
-import { resolveParsedLinesWithCatalog } from "./catalog-search.mjs";
+import { formatCatalogSearchDisplayRows, resolveParsedLinesWithCatalog } from "./catalog-search.mjs";
 import { protectNumericLeadingProducts } from "./numeric-product-protection.mjs";
 
 const SUPABASE_URL=String(Deno.env.get("SUPABASE_URL")||"").trim();
@@ -120,7 +120,7 @@ async function processConversation(conversationId:string,cfg:any){
     const catalog=parsed.lines.length?await loadActiveCatalog():[];
     const protectedLines=protectNumericLeadingProducts(parsed.lines,catalog);
     const resolved=resolveParsedLinesWithCatalog(protectedLines,catalog);
-    const output=resolved.map((row:any)=>row.line);
+    const output=formatCatalogSearchDisplayRows(resolved).map((row:any)=>row.line);
 
     if(output.length){
       const body=output.join("\n");
