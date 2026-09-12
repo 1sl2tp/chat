@@ -59,5 +59,9 @@ jobs:
         run: node tests/test_v21_call_invite_admin_core.mjs
       - name: Chat call invite Admin Edge contract
         run: python -m pytest tests/test_v21_call_invite_admin_edge_contract.py -q
+      - name: Chat call invite guest core contract
+        run: node tests/test_v21_call_invite_guest_core.mjs
+      - name: Chat call invite guest Edge contract
+        run: python -m pytest tests/test_v21_call_invite_guest_edge_contract.py -q
       - name: Verify canonical source
         run: python tools/verify_current.py
