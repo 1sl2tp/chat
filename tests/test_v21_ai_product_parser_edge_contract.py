@@ -2,39 +2,38 @@ from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
 EDGE=ROOT/'supabase'/'functions'/'v21-ai-product-parser'/'index.ts'
+CATALOG=ROOT/'supabase'/'functions'/'v21-ai-product-parser'/'catalog-search.mjs'
 
 assert EDGE.exists(), 'v21-ai-product-parser edge function is missing'
+assert CATALOG.exists(), 'chat catalog search module is missing'
 text=EDGE.read_text(encoding='utf-8')
 
 for required in [
-    'getlink_ai_claim_turn',
+    'chat_ai_claim_turn',
+    'chat_ai_runtime_config',
+    'chat_ai_message_inbox',
     'v21_messages',
-    'getlink_ai_runtime_config',
+    'from("products")',
+    '.eq("active",true)',
     'parseCustomerTextDetailed',
-    'resolveTobaccoConfirmation',
-    'findPendingTobaccoConfirmation',
-    'replaceChatReply',
-    '1 = thùng, 0 = cây',
-    'ai:product:',
+    'resolveParsedLinesWithCatalog',
+    'catalog_sync:true',
+    'catalog_source:"products"',
     'external_api:false',
 ]:
     assert required in text, required
 
 for forbidden in [
+    'getlink_',
     'api.groq.com',
     'generativelanguage.googleapis.com',
     'groq_api_key',
     'gemini_api_key',
-    'getlink_supplier_products',
-    'getlink_ai_knowledge_rules',
-    'getlink_ai_product_aliases',
-    'getlink_ai_training_examples',
-    'getlink_ai_order_sessions',
-    'getlink_ai_order_draft_lines',
-    'getlink_ai_reply_outbox',
-    'getlink_sales_orders',
-    'getlink-orders',
+    'resolveTobaccoConfirmation',
+    'findPendingTobaccoConfirmation',
+    '1 = thùng, 0 = cây',
+    'order_workflow:true',
 ]:
     assert forbidden not in text, forbidden
 
-print('chat local SL + name parser isolation/confirmation contract PASS')
+print('chat-owned input split + shared product search edge contract PASS')
