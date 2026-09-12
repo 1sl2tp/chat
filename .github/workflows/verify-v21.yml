@@ -35,5 +35,7 @@ jobs:
         run: node tests/test_v21_ai_product_parser_core.mjs
       - name: Chat AI product parser edge isolation contract
         run: python tests/test_v21_ai_product_parser_edge_contract.py
+      - name: Chat AI database isolation contract
+        run: python tests/test_v21_ai_product_parser_db_contract.py
       - name: Verify canonical source
         run: python tools/verify_current.py
