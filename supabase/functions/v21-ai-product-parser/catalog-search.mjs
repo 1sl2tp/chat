@@ -110,6 +110,47 @@ function findStructuredProduct(query,rows){
   };
 }
 
+function catalogRowForMatch(match,rows){
+  if(!match)return null;
+  const matchId=clean(match.productId);
+  if(matchId){
+    const byId=rows.find(row=>rowId(row)===matchId);
+    if(byId)return byId;
+  }
+  const matchName=normalize(match.productName);
+  return rows.find(row=>normalize(rowName(row))===matchName)||null;
+}
+
+function sharedContextTerms(previousRow,nextRow){
+  if(!previousRow||!nextRow||!hasStructuredKeys(previousRow)||!hasStructuredKeys(nextRow))return [];
+  const terms=[];
+
+  for(const field of STRUCTURED_PRIORITY_FIELDS){
+    if(field==='variant')continue;
+    const previousAliases=aliases(structuredValue(previousRow,field));
+    const nextAliases=new Set(aliases(structuredValue(nextRow,field)));
+    const shared=previousAliases.find(alias=>nextAliases.has(alias));
+    if(shared)terms.push(shared);
+  }
+  return terms;
+}
+
+function resolvedRow(row,match,contextMatched=false){
+  const rawProductName=clean(row?.productName);
+  const productName=match.productName;
+  const changed=clean(productName)!==rawProductName;
+  const review=changed&&rawProductName?` (${rawProductName})`:'';
+  return {
+    ...row,
+    rawProductName,
+    productName,
+    productId:match.productId,
+    catalogMatched:true,
+    catalogContextMatched:contextMatched,
+    line:`${quantityText(row?.quantity)} ${productName}${review}`,
+  };
+}
+
 export function findCatalogProduct(productText,catalog=[]){
   const query=normalizeSearch(productText);
   if(!query)return null;
@@ -134,21 +175,30 @@ export function findCatalogProduct(productText,catalog=[]){
 }
 
 export function resolveParsedLinesWithCatalog(lines,catalog=[]){
-  return (Array.isArray(lines)?lines:[]).map(row=>{
-    const rawProductName=clean(row?.productName);
-    const match=findCatalogProduct(rawProductName,catalog);
-    if(!match)return {...row,catalogMatched:false};
+  const input=Array.isArray(lines)?lines:[];
+  const catalogRows=(Array.isArray(catalog)?catalog:[]).filter(row=>rowName(row));
 
-    const productName=match.productName;
-    const changed=clean(productName)!==rawProductName;
-    const review=changed&&rawProductName?` (${rawProductName})`:'';
-    return {
-      ...row,
-      rawProductName,
-      productName,
-      productId:match.productId,
-      catalogMatched:true,
-      line:`${quantityText(row?.quantity)} ${productName}${review}`,
-    };
+  const directMatches=input.map(row=>findCatalogProduct(clean(row?.productName),catalogRows));
+  const directRows=directMatches.map(match=>catalogRowForMatch(match,catalogRows));
+
+  return input.map((row,index)=>{
+    const directMatch=directMatches[index];
+    if(directMatch)return resolvedRow(row,directMatch,false);
+
+    let previousIndex=index-1;
+    while(previousIndex>=0&&!directMatches[previousIndex])previousIndex-=1;
+    let nextIndex=index+1;
+    while(nextIndex<input.length&&!directMatches[nextIndex])nextIndex+=1;
+
+    if(previousIndex>=0&&nextIndex<input.length){
+      const contextTerms=sharedContextTerms(directRows[previousIndex],directRows[nextIndex]);
+      if(contextTerms.length){
+        const rawProductName=clean(row?.productName);
+        const contextMatch=findCatalogProduct(`${rawProductName} ${contextTerms.join(' ')}`,catalogRows);
+        if(contextMatch)return resolvedRow(row,contextMatch,true);
+      }
+    }
+
+    return {...row,catalogMatched:false};
   });
 }
