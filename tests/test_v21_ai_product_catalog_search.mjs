@@ -54,18 +54,27 @@ assert.deepEqual(
   'carry full successful key; back off from the right; failed rows do not replace it; a new successful key does',
 );
 
-// A failed row may contain a partial branch, but it is not a key until the
-// whole row resolves. Do not let a failed partial phrase create carry context.
+// Within one row, walk input words left-to-right. Keep the deepest exclusive
+// prefix already proven even when a later word does not match. The unresolved
+// tail stays visible with *, but this partial row is not allowed to become carry.
+assert.deepEqual(
+  resolveParsedLinesWithCatalog([
+    {quantity:3,productName:'Probi to có đường',line:'3 Probi to có đường'},
+  ],catalog).map(row=>row.line),
+  ['3 Sua probi to có đường *'],
+  'same-line progressive search must keep sua/probi/to before the unknown tail',
+);
+
 assert.deepEqual(
   resolveParsedLinesWithCatalog([
     {quantity:1,productName:'Probi to xyz',line:'1 Probi to xyz'},
     {quantity:2,productName:'mau',line:'2 mau'},
   ],catalog).map(row=>row.line),
   [
-    '1 Probi to xyz *',
+    '1 Sua probi to xyz *',
     '2 mau *',
   ],
-  'failed partial input must not create a carry key',
+  'a partial row may display its proven prefix but must not create carry context',
 );
 
 console.log('chat binary progressive key + full carry/backoff PASS');
