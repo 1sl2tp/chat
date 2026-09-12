@@ -3,9 +3,11 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 EDGE=ROOT/'supabase'/'functions'/'v21-ai-product-parser'/'index.ts'
 CATALOG=ROOT/'supabase'/'functions'/'v21-ai-product-parser'/'catalog-search.mjs'
+SUMMARY=ROOT/'supabase'/'functions'/'v21-ai-product-parser'/'order-summary.mjs'
 
 assert EDGE.exists(), 'v21-ai-product-parser edge function is missing'
 assert CATALOG.exists(), 'chat catalog search module is missing'
+assert SUMMARY.exists(), 'chat order summary module is missing'
 text=EDGE.read_text(encoding='utf-8')
 catalog_text=CATALOG.read_text(encoding='utf-8')
 
@@ -19,7 +21,8 @@ for required in [
     'product_code,product_name,source,level1,level2,level3,level4,level5,level6,level7,level8,level9',
     'parseCustomerTextDetailed',
     'resolveParsedLinesWithCatalog',
-    'const body=[...output,`— Tổng: ${output.length} sản phẩm`].join("\\n")',
+    'formatOrderSummary',
+    'const body=[...output,formatOrderSummary(resolved)].join("\\n")',
     'catalog_sync:true',
     'catalog_source:"chat_ai_product_keys"',
     'external_api:false',
