@@ -14,25 +14,28 @@ for required in [
     'chat_ai_runtime_config',
     'chat_ai_message_inbox',
     'v21_messages',
-    'from("products")',
     '.eq("active",true)',
     'from("chat_ai_product_keys")',
-    'product_name,source,level1,level2,level3,level4,level5,level6,level7,level8,level9',
+    'product_code,product_name,source,level1,level2,level3,level4,level5,level6,level7,level8,level9',
     'parseCustomerTextDetailed',
     'resolveParsedLinesWithCatalog',
     'catalog_sync:true',
-    'catalog_source:"products"',
+    'catalog_source:"chat_ai_product_keys"',
     'external_api:false',
 ]:
     assert required in text, required
 
 for required in [
     "const LEVEL_FIELDS=['level1','level2','level3','level4','level5','level6','level7','level8','level9']",
-    'return findStructuredProduct(query,rows)',
+    'findCatalogProductInContext',
+    'rootScopeGroups',
+    'pathLength:path.length',
 ]:
     assert required in catalog_text, required
 
 for forbidden in [
+    'from("products")',
+    'catalog_source:"products"',
     'getlink_',
     'api.groq.com',
     'generativelanguage.googleapis.com',
@@ -46,4 +49,4 @@ for forbidden in [
 ]:
     assert forbidden not in text, forbidden
 
-print('chat-owned deterministic 1..9 shared product search edge contract PASS')
+print('chat-owned deterministic 1..9 latest-product-key search edge contract PASS')
