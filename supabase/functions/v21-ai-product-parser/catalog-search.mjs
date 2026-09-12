@@ -311,21 +311,10 @@ export function findCatalogProduct(productText,catalog=[]){
 }
 
 export function formatCatalogSearchDisplayRows(rows=[]){
-  const display=(Array.isArray(rows)?rows:[]).map((row,index)=>({
+  return (Array.isArray(rows)?rows:[]).map(row=>({
     ...row,
     line:displayWithoutMarks(row?.line),
-    __displayOrder:index,
   }));
-
-  display.sort((left,right)=>{
-    const a=normalizeLoose(left?.productName||left?.rawProductName||left?.line);
-    const b=normalizeLoose(right?.productName||right?.rawProductName||right?.line);
-    if(a<b)return -1;
-    if(a>b)return 1;
-    return left.__displayOrder-right.__displayOrder;
-  });
-
-  return display.map(({__displayOrder,...row})=>row);
 }
 
 function resolvedRow(row,match,contextMatched=false){
