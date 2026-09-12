@@ -1,15 +1,15 @@
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
-import { parseCustomerTextDetailed, resolveTobaccoConfirmation, splitLeadingConfirmationChoice } from "./parser-core.mjs";
+import { parseCustomerTextDetailed } from "./parser-core.mjs";
+import { resolveParsedLinesWithCatalog } from "./catalog-search.mjs";
 
 const SUPABASE_URL=String(Deno.env.get("SUPABASE_URL")||"").trim();
 const SERVICE_KEY=String(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"").trim();
 const db=createClient(SUPABASE_URL,SERVICE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
 const clean=(value:unknown,max=8000)=>String(value??"").replace(/\s+/g," ").trim().slice(0,max);
 const sleep=(ms:number)=>new Promise<void>(resolve=>setTimeout(resolve,ms));
-const TOBACCO_CONFIRM_MARKER="1 = thùng, 0 = cây";
 
 async function runtimeConfig(){
-  const result=await db.rpc("getlink_ai_runtime_config");
+  const result=await db.rpc("chat_ai_runtime_config");
   if(result.error)throw result.error;
   const row=Array.isArray(result.data)?result.data[0]:result.data;
   return {
@@ -17,6 +17,18 @@ async function runtimeConfig(){
     secret:clean(row?.webhook_secret,500),
     pilotIds:new Set<string>((row?.pilot_customer_ids||[]).map((v:unknown)=>clean(v,100)).filter(Boolean)),
   };
+}
+
+async function loadActiveCatalog(){
+  const result=await db.from("products")
+    .select("id,name")
+    .eq("active",true)
+    .limit(5000);
+  if(result.error){
+    console.warn("[v21-ai-product-parser] shared product lookup failed",result.error.message);
+    return [];
+  }
+  return Array.isArray(result.data)?result.data:[];
 }
 
 async function activeAdminId(conversationId:string){
@@ -61,49 +73,9 @@ async function sendChatReply(conversationId:string,turnKey:string,body:string){
   return String(inserted.data.id);
 }
 
-async function replaceChatReply(messageId:string,body:string){
-  const updated=await db.from("v21_messages")
-    .update({body})
-    .eq("id",messageId)
-    .select("id")
-    .single();
-  if(updated.error)throw updated.error;
-  return String(updated.data.id);
-}
-
-async function findPendingTobaccoConfirmation(conversationId:string,customerId:string,currentCreatedAt:string){
-  const adminId=await activeAdminId(conversationId);
-  const previous=await db.from("v21_messages")
-    .select("id,sender_account_id,client_id,body,created_at")
-    .eq("conversation_id",conversationId)
-    .lt("created_at",currentCreatedAt)
-    .order("created_at",{ascending:false})
-    .limit(1)
-    .maybeSingle();
-  if(previous.error)throw previous.error;
-  const row=previous.data;
-  if(!row?.id||String(row.sender_account_id)!==adminId)return null;
-  if(!String(row.client_id||"").startsWith("ai:product:"))return null;
-  if(!String(row.body||"").includes(TOBACCO_CONFIRM_MARKER))return null;
-
-  const source=await db.from("v21_messages")
-    .select("id,body,created_at")
-    .eq("conversation_id",conversationId)
-    .eq("sender_account_id",customerId)
-    .lt("created_at",String(row.created_at))
-    .order("created_at",{ascending:false})
-    .limit(1)
-    .maybeSingle();
-  if(source.error)throw source.error;
-  if(!source.data?.body)return null;
-  const parsed=parseCustomerTextDetailed(String(source.data.body));
-  if(!parsed.confirmations.length)return null;
-  return {replyMessageId:String(row.id),parsed};
-}
-
 async function markInbox(ids:string[],status:"processed"|"ignored"|"failed",lastError:string|null=null){
   if(!ids.length)return;
-  const result=await db.from("getlink_ai_message_inbox").update({
+  const result=await db.from("chat_ai_message_inbox").update({
     status,
     processed_at:new Date().toISOString(),
     last_error:lastError,
@@ -112,58 +84,42 @@ async function markInbox(ids:string[],status:"processed"|"ignored"|"failed",last
 }
 
 async function processConversation(conversationId:string,cfg:any){
-  const claimed=await db.rpc("getlink_ai_claim_turn",{p_conversation_id:conversationId});
+  const claimed=await db.rpc("chat_ai_claim_turn",{p_conversation_id:conversationId});
   if(claimed.error)throw claimed.error;
   const rows=Array.isArray(claimed.data)?claimed.data:[];
   if(!rows.length)return {claimed:0,replied:false};
+
   const inboxIds=rows.map((row:any)=>String(row.inbox_id));
   const customerId=clean(rows[0]?.customer_account_id,100);
-  if(cfg.mode!=="pilot"||!cfg.pilotIds.has(customerId)){
+  const allowed=cfg.mode==="live"||(cfg.mode==="pilot"&&cfg.pilotIds.has(customerId));
+  if(!allowed){
     await markInbox(inboxIds,"ignored");
     return {claimed:rows.length,replied:false};
   }
+
   try{
-    const messageTexts=rows.map((row:any)=>String(row.message_body||"").trim()).filter(Boolean);
-    const leading=splitLeadingConfirmationChoice(messageTexts);
-    let confirmed=false;
-    let resolvedItems=0;
-    let textsToParse=messageTexts;
-
-    if(leading.choice){
-      const currentCreatedAt=String(rows[0]?.message_created_at||new Date().toISOString());
-      const pending=await findPendingTobaccoConfirmation(conversationId,customerId,currentCreatedAt);
-      if(pending){
-        const resolved=resolveTobaccoConfirmation(pending.parsed.confirmations,leading.choice);
-        const body=[...pending.parsed.lines,...resolved].map((row:any)=>row.line).join("\n");
-        if(body)await replaceChatReply(pending.replyMessageId,body);
-        confirmed=true;
-        resolvedItems=pending.parsed.lines.length+resolved.length;
-        textsToParse=leading.rest;
-      }
-    }
-
-    const customerText=textsToParse.join("\n").trim();
-    if(!customerText){
-      await markInbox(inboxIds,"processed");
-      return {claimed:rows.length,replied:confirmed,confirmed,items:resolvedItems};
-    }
-
+    const customerText=rows.map((row:any)=>String(row.message_body||"").trim()).filter(Boolean).join("\n");
     const parsed=parseCustomerTextDetailed(customerText);
-    const output=[
-      ...parsed.lines.map((row:any)=>row.line),
-      ...parsed.confirmations.map((row:any)=>row.prompt),
-    ];
+    const catalog=parsed.lines.length?await loadActiveCatalog():[];
+    const resolved=resolveParsedLinesWithCatalog(parsed.lines,catalog);
+    const output=resolved.map((row:any)=>row.line);
+
     if(output.length){
       const body=output.join("\n");
-      await sendChatReply(conversationId,clean(rows[0]?.turn_key,100)||String(rows[0]?.message_id||Date.now()),body);
+      await sendChatReply(
+        conversationId,
+        clean(rows[0]?.turn_key,100)||String(rows[0]?.message_id||Date.now()),
+        body,
+      );
     }
+
     await markInbox(inboxIds,"processed");
     return {
       claimed:rows.length,
-      replied:confirmed||output.length>0,
-      confirmed,
-      items:resolvedItems+parsed.lines.length,
-      confirmations:parsed.confirmations.length,
+      replied:output.length>0,
+      items:resolved.length,
+      catalog_matches:resolved.filter((row:any)=>row.catalogMatched).length,
+      confirmations:0,
     };
   }catch(error){
     await markInbox(inboxIds,"failed",String(error).slice(0,500));
@@ -178,19 +134,26 @@ Deno.serve(async(req:Request)=>{
       return new Response(JSON.stringify({
         ok:true,
         chat_parser:true,
+        input_only:true,
+        catalog_sync:true,
+        dictionary_search:true,
+        catalog_source:"products",
         order_workflow:false,
         external_api:false,
         output:"SL + Tên",
-        tobacco_confirmation:"1=thùng,0=cây",
+        tobacco_confirmation:false,
         mode:cfg.mode,
       }),{headers:{"content-type":"application/json"}});
     }
+
     if(req.method!=="POST")return new Response("method not allowed",{status:405});
-    if(!cfg.secret||req.headers.get("x-order-agent-secret")!==cfg.secret)return new Response("unauthorized",{status:401});
+    if(!cfg.secret||req.headers.get("x-chat-ai-secret")!==cfg.secret)return new Response("unauthorized",{status:401});
+
     let body:any={};
     try{body=await req.json();}catch{body={};}
     const conversationId=clean(body?.conversation_id,100);
     if(!conversationId)return new Response(JSON.stringify({ok:false,error:"conversation_id_required"}),{status:400,headers:{"content-type":"application/json"}});
+
     await sleep(4200);
     const result=await processConversation(conversationId,cfg);
     return new Response(JSON.stringify({ok:true,...result}),{headers:{"content-type":"application/json"}});
