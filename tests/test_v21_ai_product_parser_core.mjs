@@ -18,6 +18,14 @@ import { splitCustomerSegments, parseCustomerText } from '../supabase/functions/
 
 {
   assert.deepEqual(
+    parseCustomerText('sua th be 10'),
+    [{quantity:10,productName:'Sua th be',line:'10 Sua th be'}],
+    'a bare quantity at the end of a simple product line must be accepted',
+  );
+}
+
+{
+  assert.deepEqual(
     parseCustomerText('2 bịch hướng dương\n- 2 bát 1.8kg, 2 bát 1kg, 2 bát 454\n5 có / 5 ko / 5 nha đam / 3 ít'),
     [
       {quantity:2,productName:'Hướng dương',line:'2 Hướng dương'},
