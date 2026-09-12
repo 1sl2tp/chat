@@ -1,5 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
-import { parseCustomerTextDetailed, resolveTobaccoConfirmation } from "./parser-core.mjs";
+import { parseCustomerTextDetailed, resolveTobaccoConfirmation, splitLeadingConfirmationChoice } from "./parser-core.mjs";
 
 const SUPABASE_URL=String(Deno.env.get("SUPABASE_URL")||"").trim();
 const SERVICE_KEY=String(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"").trim();
@@ -123,18 +123,29 @@ async function processConversation(conversationId:string,cfg:any){
     return {claimed:rows.length,replied:false};
   }
   try{
-    const customerText=rows.map((row:any)=>String(row.message_body||"").trim()).filter(Boolean).join("\n");
-    const choice=customerText.trim();
-    if(choice==='1'||choice==='0'){
+    const messageTexts=rows.map((row:any)=>String(row.message_body||"").trim()).filter(Boolean);
+    const leading=splitLeadingConfirmationChoice(messageTexts);
+    let confirmed=false;
+    let resolvedItems=0;
+    let textsToParse=messageTexts;
+
+    if(leading.choice){
       const currentCreatedAt=String(rows[0]?.message_created_at||new Date().toISOString());
       const pending=await findPendingTobaccoConfirmation(conversationId,customerId,currentCreatedAt);
       if(pending){
-        const resolved=resolveTobaccoConfirmation(pending.parsed.confirmations,choice);
+        const resolved=resolveTobaccoConfirmation(pending.parsed.confirmations,leading.choice);
         const body=[...pending.parsed.lines,...resolved].map((row:any)=>row.line).join("\n");
         if(body)await replaceChatReply(pending.replyMessageId,body);
-        await markInbox(inboxIds,"processed");
-        return {claimed:rows.length,replied:Boolean(body),confirmed:true,items:pending.parsed.lines.length+resolved.length};
+        confirmed=true;
+        resolvedItems=pending.parsed.lines.length+resolved.length;
+        textsToParse=leading.rest;
       }
+    }
+
+    const customerText=textsToParse.join("\n").trim();
+    if(!customerText){
+      await markInbox(inboxIds,"processed");
+      return {claimed:rows.length,replied:confirmed,confirmed,items:resolvedItems};
     }
 
     const parsed=parseCustomerTextDetailed(customerText);
@@ -147,7 +158,13 @@ async function processConversation(conversationId:string,cfg:any){
       await sendChatReply(conversationId,clean(rows[0]?.turn_key,100)||String(rows[0]?.message_id||Date.now()),body);
     }
     await markInbox(inboxIds,"processed");
-    return {claimed:rows.length,replied:output.length>0,items:parsed.lines.length,confirmations:parsed.confirmations.length};
+    return {
+      claimed:rows.length,
+      replied:confirmed||output.length>0,
+      confirmed,
+      items:resolvedItems+parsed.lines.length,
+      confirmations:parsed.confirmations.length,
+    };
   }catch(error){
     await markInbox(inboxIds,"failed",String(error).slice(0,500));
     throw error;
