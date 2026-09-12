@@ -17,17 +17,9 @@ const SEARCH_WORD_DICTIONARY=new Map([
   ['ko','khong'],
 ]);
 
-const STRUCTURED_PRIORITY_FIELDS=[
-  'type',
-  'c1',
-  'c2',
-  'size',
-  'label2',
-  'form',
-  'color',
-  'volume',
-  'variant',
-];
+const BRANCH_FIELDS=['c1','c2'];
+const DETAIL_FIELDS=['size','label2','form','color','volume','variant'];
+const STRUCTURED_PRIORITY_FIELDS=['type',...BRANCH_FIELDS,...DETAIL_FIELDS];
 
 function normalizeSearch(value){
   return normalize(value)
@@ -90,6 +82,41 @@ function rowMatchesStructuredField(row,field,queryTokenSet){
   return aliases(structuredValue(row,field)).some(alias=>aliasMatchesQuery(alias,queryTokenSet));
 }
 
+function branchMatchScore(row,queryTokenSet){
+  let score=0;
+  for(const field of BRANCH_FIELDS){
+    if(rowMatchesStructuredField(row,field,queryTokenSet))score+=1;
+  }
+  return score;
+}
+
+function unmatchedPathCount(row,queryTokenSet){
+  let count=0;
+  for(const field of [...BRANCH_FIELDS,...DETAIL_FIELDS]){
+    const fieldAliases=aliases(structuredValue(row,field));
+    if(!fieldAliases.length)continue;
+    if(!fieldAliases.some(alias=>aliasMatchesQuery(alias,queryTokenSet)))count+=1;
+  }
+  return count;
+}
+
+function shortestExplicitPath(rows,queryTokenSet){
+  if(!rows.length)return null;
+  let min=Infinity;
+  const selected=[];
+  for(const row of rows){
+    const count=unmatchedPathCount(row,queryTokenSet);
+    if(count<min){
+      min=count;
+      selected.length=0;
+      selected.push(row);
+    }else if(count===min){
+      selected.push(row);
+    }
+  }
+  return uniqueNameMatch(selected);
+}
+
 function findStructuredProduct(query,rows){
   let candidates=rows.filter(hasStructuredKeys);
   if(!candidates.length)return {matched:false,result:null};
@@ -97,17 +124,39 @@ function findStructuredProduct(query,rows){
   const queryTokenSet=new Set(tokens(query));
   let matched=false;
 
-  for(const field of STRUCTURED_PRIORITY_FIELDS){
+  // C1/C2 are the main product branch and are equal-priority keys.
+  // If either appears in the input, lock the strongest matching branch first.
+  const scored=candidates.map(row=>({row,score:branchMatchScore(row,queryTokenSet)}));
+  const maxBranchScore=Math.max(0,...scored.map(item=>item.score));
+  const branchMatched=maxBranchScore>0;
+  if(branchMatched){
+    candidates=scored.filter(item=>item.score===maxBranchScore).map(item=>item.row);
+    matched=true;
+  }
+
+  // Remaining columns only refine inside the branch already selected.
+  // Type is useful when present, but never outranks C1/C2.
+  for(const field of ['type',...DETAIL_FIELDS]){
     const narrowed=candidates.filter(row=>rowMatchesStructuredField(row,field,queryTokenSet));
     if(!narrowed.length)continue;
     candidates=narrowed;
     matched=true;
   }
 
-  return {
-    matched,
-    result:matched?uniqueNameMatch(candidates):null,
-  };
+  if(!matched)return {matched:false,result:null};
+
+  const direct=uniqueNameMatch(candidates);
+  if(direct)return {matched:true,result:direct};
+
+  // When the customer explicitly supplied a C1/C2 branch, prefer the row whose
+  // structured path requires the fewest additional hidden keys. This makes
+  // `chua + có đường` resolve to the base yogurt row, while `chua + nha dam + có`
+  // still selects the deeper nha-dam child. Without a C1/C2 key we do not guess.
+  if(branchMatched){
+    return {matched:true,result:shortestExplicitPath(candidates,queryTokenSet)};
+  }
+
+  return {matched:true,result:null};
 }
 
 function catalogRowForMatch(match,rows){
