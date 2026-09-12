@@ -9,7 +9,7 @@ const PUBLIC_PRODUCT_FIELDS='product_code,product_name,source_key,display_price_
 const corsHeaders={
   'access-control-allow-origin':'*',
   'access-control-allow-methods':'GET,POST,OPTIONS',
-  'access-control-allow-headers':'authorization,content-type',
+  'access-control-allow-headers':'authorization, x-client-info, apikey, content-type',
   'vary':'Origin',
 };
 
