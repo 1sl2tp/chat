@@ -9,26 +9,12 @@ const cosyCatalog = [
   {id:'ht16',name:'Banh cosy que',source:'Hàng thường',level1:'banh',level2:'cosy',level3:'que'},
 ];
 
-assert.deepEqual(
-  findCatalogProduct('cosy', cosyCatalog),
-  {productName:'Banh cosy', productId:null},
-  'cosy is exact level 2 in four rows and all four share banh > cosy',
-);
-assert.equal(findCatalogProduct('cos', cosyCatalog), null);
-assert.equal(findCatalogProduct('cosyy', cosyCatalog), null);
-assert.equal(findCatalogProduct('cosy 336', cosyCatalog)?.productName, 'Banh cosy 336');
-assert.equal(
-  findCatalogProduct('cosy', [
-    ...cosyCatalog,
-    {id:'k1',name:'Keo cosy deo',source:'Hàng thường',level1:'keo',level2:'cosy',level3:'deo'},
-  ]),
-  null,
-  'different left parents make cosy unresolved',
-);
-assert.equal(
-  findCatalogProduct('cung', [{id:'tl1',name:'Cứng',source:'Thuốc lá',level1:'cung'}])?.productName,
-  'Cứng',
-);
+assert.deepEqual(findCatalogProduct('cosy',cosyCatalog),{productName:'Banh cosy',productId:null});
+assert.equal(findCatalogProduct('cos',cosyCatalog),null);
+assert.equal(findCatalogProduct('cosyy',cosyCatalog),null);
+assert.equal(findCatalogProduct('cosy 336',cosyCatalog)?.productName,'Banh cosy 336');
+assert.equal(findCatalogProduct('cosy',[...cosyCatalog,{id:'k1',name:'Keo cosy deo',source:'Hàng thường',level1:'keo',level2:'cosy',level3:'deo'}]),null);
+assert.equal(findCatalogProduct('cung',[{id:'tl1',name:'Cứng',source:'Thuốc lá',level1:'cung'}])?.productName,'Cứng');
 
 const milkCatalog = [
   {id:'s17',name:'Sua chua co',source:'Sữa',level1:'sua',level2:'chua',level3:'co'},
@@ -36,36 +22,34 @@ const milkCatalog = [
   {id:'s21',name:'Sua chua khong',source:'Sữa',level1:'sua',level2:'chua',level3:'khong'},
   {id:'s23',name:'Sua chua nha dam co',source:'Sữa',level1:'sua',level2:'chua',level3:'nha',level4:'dam',level5:'co'},
   {id:'s24',name:'Sua chua nha dam it',source:'Sữa',level1:'sua',level2:'chua',level3:'nha',level4:'dam',level5:'it'},
+  {id:'p1',name:'Sua probi be mau - it',source:'Sữa',level1:'sua',level2:'probi',level3:'be',level4:'mau',level5:'it'},
+  {id:'p2',name:'Sua probi be mau - vq',source:'Sữa',level1:'sua',level2:'probi',level3:'be',level4:'mau',level5:'vq'},
+  {id:'p3',name:'Sua probi to mau - it',source:'Sữa',level1:'sua',level2:'probi',level3:'to',level4:'mau',level5:'it'},
+  {id:'p4',name:'Sua probi to mau - vq',source:'Sữa',level1:'sua',level2:'probi',level3:'to',level4:'mau',level5:'vq'},
 ];
 
-assert.deepEqual(
-  findCatalogProduct('chua co duong', milkCatalog),
-  {productName:'Sua chua co', productId:'s17'},
-  'co duong collapses to catalog key co, then exact 2-3 window infers sua',
-);
-assert.deepEqual(
-  findCatalogProduct('chua nha dam', milkCatalog),
-  {productName:'Sua chua nha dam', productId:null},
-  'exact adjacent 2-3-4 window may infer common level 1',
-);
-assert.equal(
-  findCatalogProduct('chua dam', milkCatalog),
-  null,
-  'levels may not be skipped; only adjacent windows are valid',
-);
+assert.deepEqual(findCatalogProduct('chua co duong',milkCatalog),{productName:'Sua chua co',productId:'s17'});
+assert.deepEqual(findCatalogProduct('chua nha dam',milkCatalog),{productName:'Sua chua nha dam',productId:null});
+assert.equal(findCatalogProduct('chua dam',milkCatalog),null,'direct windows cannot skip a level');
 
 assert.deepEqual(
   resolveParsedLinesWithCatalog([
     {quantity:3,productName:'Chua có đường',line:'3 Chua có đường'},
     {quantity:3,productName:'Ít đường',line:'3 Ít đường'},
-    {quantity:3,productName:'Không đường',line:'3 Không đường'},
+    {quantity:2,productName:'Probi to mau',line:'2 Probi to mau'},
+    {quantity:2,productName:'vq',line:'2 vq'},
+    {quantity:3,productName:'Chua không đường',line:'3 Chua không đường'},
+    {quantity:3,productName:'Ít đường',line:'3 Ít đường'},
   ],milkCatalog).map(row=>row.line),
   [
     '3 Sua chua co (Chua có đường)',
-    '3 Ít đường',
-    '3 Không đường',
+    '3 Sua chua it (Ít đường)',
+    '2 Sua probi to mau (Probi to mau)',
+    '2 vq',
+    '3 Sua chua khong (Chua không đường)',
+    '3 Sua chua it (Ít đường)',
   ],
-  'each input line is independent; no previous-line branch/context is inherited',
+  'a resolved 1-2/1-2-3 anchor lets following lines continue only from prefix 1-2, then a different direct 1-2/1-2-3 resets it; no deeper branch is inherited',
 );
 
 const numericCatalog = [
@@ -77,34 +61,12 @@ const numericCatalog = [
 ];
 
 assert.deepEqual(
-  resolveParsedLinesWithCatalog(
-    protectNumericLeadingProducts([{quantity:9,productName:'Hat 2',line:'9 Hat 2'}],numericCatalog),
-    numericCatalog,
-  )[0],
-  {
-    quantity:2,
-    productName:'Sua 9 hat',
-    line:'2 Sua 9 hat (9 Hat)',
-    rawProductName:'9 Hat',
-    productId:null,
-    catalogMatched:true,
-    catalogContextMatched:false,
-  },
+  resolveParsedLinesWithCatalog(protectNumericLeadingProducts([{quantity:9,productName:'Hat 2',line:'9 Hat 2'}],numericCatalog),numericCatalog)[0],
+  {quantity:2,productName:'Sua 9 hat',line:'2 Sua 9 hat (9 Hat)',rawProductName:'9 Hat',productId:null,catalogMatched:true,catalogContextMatched:false},
 );
 assert.deepEqual(
-  resolveParsedLinesWithCatalog(
-    protectNumericLeadingProducts([{quantity:247,productName:'2',line:'247 2'}],numericCatalog),
-    numericCatalog,
-  )[0],
-  {
-    quantity:2,
-    productName:'Nuoc 247',
-    line:'2 Nuoc 247 (247)',
-    rawProductName:'247',
-    productId:null,
-    catalogMatched:true,
-    catalogContextMatched:false,
-  },
+  resolveParsedLinesWithCatalog(protectNumericLeadingProducts([{quantity:247,productName:'2',line:'247 2'}],numericCatalog),numericCatalog)[0],
+  {quantity:2,productName:'Nuoc 247',line:'2 Nuoc 247 (247)',rawProductName:'247',productId:null,catalogMatched:true,catalogContextMatched:false},
 );
 
-console.log('chat exact key + adjacent-window formula PASS');
+console.log('chat exact key + limited line context PASS');
