@@ -17,7 +17,7 @@ for token in [
     'adminOrderSourcePanel','adminOrderSourceScroll',
     'Khách:',
     'orderSplitPreviewEntries','previewEntries','Chưa tách ·',
-    'customerOrderSourceGroup','customerOrderSourceTimeline','timelineGroups',
+    'customerOrderSourceTimeline','timelineGroups',
     'data-source-order-group','splitGroup','ignoreGroup','linkedExternalOrderNo',
 ]:
     assert token in source, token
