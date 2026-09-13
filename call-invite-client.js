@@ -380,17 +380,23 @@ async function reconcileIncomingInvites(){
   return rows;
 }
 
-function startIncomingWatch(){
+async function startIncomingWatch(){
   stopIncomingWatch();
   if(!currentAdmin())return false;
-  const client=authStore()?.getClient?.();
+  const store=authStore();
+  const client=store?.getClient?.();
   if(!client?.channel)return false;
-  incomingWatchChannel=client.channel('call-invite-incoming')
+  if(!await store?.syncRealtimeAuth?.())return false;
+  if(!currentAdmin())return false;
+  const channel=client.channel('call-invite-incoming')
     .on('postgres_changes',{
       event:'UPDATE',schema:'public',table:'chat_call_invites',
-    },payload=>processInviteRow(payload?.new||{}))
-    .subscribe();
-  void reconcileIncomingInvites();
+    },payload=>processInviteRow(payload?.new||{}));
+  incomingWatchChannel=channel;
+  channel.subscribe(status=>{
+    if(incomingWatchChannel!==channel)return;
+    if(status==='SUBSCRIBED')void reconcileIncomingInvites();
+  });
   return true;
 }
 
