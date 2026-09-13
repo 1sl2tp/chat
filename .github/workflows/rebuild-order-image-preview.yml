@@ -19,6 +19,10 @@ jobs:
           python-version: '3.12'
       - name: Install verify dependency
         run: python -m pip install pytest
+      - name: Fix generated-source escape typo
+        run: |
+          grep -q "&quot'" admin-order-source.js
+          perl -0pi -e "s/&quot'/&quot;'/g" admin-order-source.js
       - name: Rebuild canonical output
         run: python tools/build_current_preview.py
       - name: Verify canonical output
@@ -27,10 +31,10 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html version.json
+          git add admin-order-source.js index.html version.json
           if git diff --cached --quiet; then
             echo "No generated changes"
             exit 0
           fi
-          git commit -m "build: refresh handwritten order image preview"
+          git commit -m "fix: finalize handwritten order image preview"
           git push origin HEAD:feature/order-scribe-image-vision
