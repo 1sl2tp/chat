@@ -87,8 +87,14 @@ assert "taphoacallinviteclient" in low
 assert "createandsend" in low and "contactid" in low
 assert "v21_call_start" not in low
 
-# Future order entries are visible placeholders only; no order business logic is wired yet.
-assert "disabled" in low
+# Tạo đơn is now active. It offers exactly two extraction modes and calls the isolated
+# manual scribe endpoint; the remaining order menu entries stay future placeholders.
+for needle in ["tách nhanh", "ai ghi đơn", "v21-order-scribe", "data-order-mode"]:
+    assert needle in low, f"missing Tạo đơn mode contract: {needle}"
+assert "action:'create',label:'tạo đơn',order:false" in compact or "action:'create',label:'tạođơn',order:false" in compact
+assert "functions.invoke('v21-order-scribe'" in low or 'functions.invoke("v21-order-scribe"' in low
+for action in ["draft", "delivered", "debt"]:
+    assert f"action:'{action}'" in compact and "order:true" in compact[compact.index(f"action:'{action}'"):compact.index(f"action:'{action}'")+100]
 assert "sắp có" in low
 
 # Old profile quote/call blocks are visually hidden, never removed: removing them would
