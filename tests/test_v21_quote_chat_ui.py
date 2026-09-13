@@ -78,10 +78,13 @@ assert "v21_call_start" not in low
 assert "disabled" in low
 assert "sắp có" in low
 
-# Old profile quote/call blocks are suppressed so the composer + is the only visible entry point.
+# Old profile quote/call blocks are visually hidden, never removed: removing them would
+# trigger their own mount observers and create a mount/remove loop.
 assert "[data-quote-admin-block]" in actions
 assert "[data-call-invite-admin-block]" in actions
-assert ".remove()" in actions
+assert "display:none!important" in low
+assert "node.remove()" not in low
+assert "new mutationobserver(schedulelegacysuppression)" not in low
 
 # quote-client is already loaded by the Admin directory chain and bootstraps the composer adapter.
 assert "import('./admin-composer-actions.js')" in quote or 'import("./admin-composer-actions.js")' in quote
