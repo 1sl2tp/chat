@@ -41,6 +41,8 @@ jobs:
         run: python tests/test_v21_order_source_edge_contract.py
       - name: Customer order source timeline UI contract
         run: python tests/test_v21_order_source_ui.py
+      - name: Customer order source inline image viewer contract
+        run: python tests/test_v21_order_source_inline_image_viewer.py
       - name: Chat AI product parser core contract
         run: node tests/test_v21_ai_product_parser_core.mjs
       - name: Chat shared-product catalog search contract
