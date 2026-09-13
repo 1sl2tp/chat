@@ -78,31 +78,38 @@ function looksLikeUnseparatedMultiItem(productName){
   return false;
 }
 
-function finalize(quantity,name){
+function finalize(quantity,name,{preserveRaw=false,rawName=name}={}){
   const q=numberValue(quantity);
   const productName=upperFirst(normalizeSplitName(name));
   if(q==null||!productName||looksLikeUnseparatedMultiItem(productName))return null;
-  return {quantity:q,productName,line:`${quantityText(q)} ${productName}`};
+  const result={quantity:q,productName,line:`${quantityText(q)} ${productName}`};
+  if(preserveRaw)result.rawProductName=clean(rawName);
+  return result;
 }
 
-function parseSegmentDetailed(raw){
+function parseSegmentDetailed(raw,{preserveRaw=false}={}){
   const text=clean(raw);
   if(!text||text.includes('=')||text.includes(':'))return null;
 
   if(numericNamePrefix(text)){
     const match=text.match(endUnit);
     if(!match||!numericNamePrefix(match[1]))return null;
-    return finalize(match[2],match[1]);
+    return finalize(match[2],match[1],{preserveRaw,rawName:match[1]});
   }
 
   let match=text.match(startUnit);
-  if(match)return finalize(match[1],match[3]);
+  if(match){
+    const quantityEnd=String(match[1]).length;
+    const unitWasAttached=!/^\s/u.test(text.slice(quantityEnd));
+    const rawName=unitWasAttached?match[3]:`${match[2]} ${match[3]}`;
+    return finalize(match[1],match[3],{preserveRaw,rawName});
+  }
 
   match=text.match(/^(\d+(?:[.,]\d+)?)\s+(.+)$/u);
-  if(match)return finalize(match[1],match[2]);
+  if(match)return finalize(match[1],match[2],{preserveRaw,rawName:match[2]});
 
   match=text.match(endUnit);
-  if(match)return finalize(match[2],match[1]);
+  if(match)return finalize(match[2],match[1],{preserveRaw,rawName:match[1]});
 
   return null;
 }
@@ -116,7 +123,7 @@ function hasAttachedUnit(marker){
   return clean(marker).replace(/^\d+(?:[.,]\d+)?\s*/u,'').length>0;
 }
 
-function splitInlineQuantityItems(raw){
+function splitInlineQuantityItems(raw,{preserveRaw=false}={}){
   const text=clean(raw);
   if(!text)return [];
 
@@ -146,7 +153,7 @@ function splitInlineQuantityItems(raw){
   const parsed=[];
   for(let i=0;i<starts.length;i++){
     const chunk=clean(text.slice(starts[i],i+1<starts.length?starts[i+1]:text.length));
-    const item=parseSegmentDetailed(chunk);
+    const item=parseSegmentDetailed(chunk,{preserveRaw});
     if(!item)return [];
     parsed.push(item);
   }
@@ -206,31 +213,39 @@ export function splitCustomerSegments(value){
     .filter(Boolean);
 }
 
-export function parseCustomerTextDetailed(value){
+export function parseCustomerTextPartial(value,{preserveRaw=false}={}){
   const original=String(value??'').replace(/\r\n?/g,'\n').trim();
-  if(!original||original.includes('='))return {lines:[],confirmations:[]};
+  if(!original)return {lines:[],unresolved:[],confirmations:[]};
+  if(original.includes('='))return {lines:[],unresolved:[{raw:original}],confirmations:[]};
 
   const segments=splitCustomerSegments(original);
-  if(!segments.length)return {lines:[],confirmations:[]};
+  if(!segments.length)return {lines:[],unresolved:[],confirmations:[]};
 
   const lines=[];
+  const unresolved=[];
   for(const segment of segments){
-    const parsed=parseSegmentDetailed(segment);
+    const parsed=parseSegmentDetailed(segment,{preserveRaw});
     if(parsed){
       lines.push(parsed);
       continue;
     }
 
-    const inlineItems=splitInlineQuantityItems(segment);
+    const inlineItems=splitInlineQuantityItems(segment,{preserveRaw});
     if(inlineItems.length){
       lines.push(...inlineItems);
       continue;
     }
 
     if(isIgnorableGreeting(segment))continue;
-    return {lines:[],confirmations:[]};
+    unresolved.push({raw:segment});
   }
-  return {lines,confirmations:[]};
+  return {lines,unresolved,confirmations:[]};
+}
+
+export function parseCustomerTextDetailed(value){
+  const result=parseCustomerTextPartial(value);
+  if(result.unresolved.length)return {lines:[],confirmations:[]};
+  return {lines:result.lines,confirmations:[]};
 }
 
 export function parseCustomerText(value){
