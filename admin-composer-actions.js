@@ -10,6 +10,7 @@ const QUOTE_MODAL_OWNER='admin-quote-modal';
 const ORDER_MODAL_MODE='ORDER_MODAL';
 const ORDER_MODAL_OWNER='admin-order-modal';
 let quoteModulePromise=null;
+let draftModulePromise=null;
 let quoteOverlay=null;
 let quoteReturnFocus=null;
 let orderOverlay=null;
@@ -31,6 +32,18 @@ function activeContactId(){
   const shellState=window.ChatAppShell?.ScreenSession?.snapshot?.()||{};
   return String(shellState.activeContact?.id||'').trim();
 }
+function activeContactName(){
+  const contactId=activeContactId();
+  const shell=window.ChatAppShell?.ScreenSession?.snapshot?.()||{};
+  const active=shell.activeContact||{};
+  if(contactId&&String(active.id||'')===contactId&&active.name)return String(active.name);
+  const rows=window.V21ContactStore?.snapshot?.()||[];
+  const row=Array.isArray(rows)?rows.find(item=>String(item?.id||'')===contactId):null;
+  return String(row?.display_name||row?.username||active.name||'Liên hệ');
+}
+function currentConversationId(){
+  return String(window.V21MessageStore?.snapshot?.().currentConversationId||'').trim()||null;
+}
 function interactionController(){return window.V21InteractionController||null;}
 function lockModal(mode,owner){
   return interactionController()?.enter?.(mode,{owner,lockBaseUi:true})||null;
@@ -47,10 +60,10 @@ function lockQuoteBackground(){
 }
 function unlockQuoteBackground({restoreFocus=true}={}){
   unlockModal(QUOTE_MODAL_MODE,QUOTE_MODAL_OWNER);
-  const returnFocus=quoteReturnFocus;
+  const returnNode=quoteReturnFocus;
   quoteReturnFocus=null;
-  if(restoreFocus&&returnFocus?.isConnected){
-    window.setTimeout(()=>{try{returnFocus.focus({preventScroll:true});}catch{}},0);
+  if(restoreFocus&&returnNode?.isConnected){
+    window.setTimeout(()=>{try{returnNode.focus({preventScroll:true});}catch{}},0);
   }
 }
 function lockOrderBackground(){
@@ -62,12 +75,13 @@ function lockOrderBackground(){
 }
 function unlockOrderBackground({restoreFocus=true}={}){
   unlockModal(ORDER_MODAL_MODE,ORDER_MODAL_OWNER);
-  const returnFocus=orderReturnFocus;
+  const returnNode=orderReturnFocus;
   orderReturnFocus=null;
-  if(restoreFocus&&returnFocus?.isConnected){
-    window.setTimeout(()=>{try{returnFocus.focus({preventScroll:true});}catch{}},0);
+  if(restoreFocus&&returnNode?.isConnected){
+    window.setTimeout(()=>{try{returnNode.focus({preventScroll:true});}catch{}},0);
   }
 }
+
 function actionMenu(){return document.getElementById(MENU_ID);}
 function menuSurface(){return actionMenu()?.querySelector?.('.composer-action-menu-surface')||null;}
 function isPopoverOpen(node){
@@ -131,16 +145,17 @@ function installStyle(){
     .admin-composer-quote-card,.admin-composer-order-card{position:relative;z-index:1;width:min(92vw,390px);display:grid;gap:12px;padding:16px;border:1px solid var(--theme-border-default,#dedede);border-radius:20px;background:var(--theme-surface-primary,#fff);box-shadow:0 18px 50px rgba(0,0,0,.18)}
     .admin-composer-quote-title,.admin-composer-order-title{margin:0;font-size:17px;font-weight:700}
     .admin-composer-quote-scopes,.admin-composer-order-modes{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-    .admin-composer-quote-scopes button,.admin-composer-quote-send,.admin-composer-quote-cancel,.admin-composer-order-modes button,.admin-composer-order-close,.admin-composer-order-copy{min-height:42px;border:1px solid var(--theme-border-default,#dedede);border-radius:13px;background:var(--theme-surface-secondary,#f5f5f5);color:var(--theme-content-primary,#171717);font:inherit;font-weight:650;cursor:pointer}
+    .admin-composer-quote-scopes button,.admin-composer-quote-send,.admin-composer-quote-cancel,.admin-composer-order-modes button,.admin-composer-order-close{min-height:42px;border:1px solid var(--theme-border-default,#dedede);border-radius:13px;background:var(--theme-surface-secondary,#f5f5f5);color:var(--theme-content-primary,#171717);font:inherit;font-weight:650;cursor:pointer}
     .admin-composer-quote-scopes button[data-active="true"],.admin-composer-order-modes button[data-active="true"]{background:var(--theme-content-primary,#171717);color:var(--theme-surface-primary,#fff);border-color:var(--theme-content-primary,#171717)}
     .admin-composer-quote-source{width:100%;min-height:42px;border:1px solid var(--theme-border-default,#dedede);border-radius:13px;padding:0 10px;background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#171717);font:inherit}
-    .admin-composer-quote-source[hidden],.admin-composer-order-result[hidden]{display:none}
+    .admin-composer-quote-source[hidden]{display:none}
     .admin-composer-quote-status,.admin-composer-order-status{min-height:18px;margin:0;color:var(--theme-content-secondary,#666);font-size:12px;line-height:18px}
-    .admin-composer-quote-actions,.admin-composer-order-actions{display:grid;grid-template-columns:1fr 1.4fr;gap:8px}
-    .admin-composer-quote-send,.admin-composer-order-copy{background:var(--theme-content-primary,#171717);color:var(--theme-surface-primary,#fff);border-color:var(--theme-content-primary,#171717)}
-    .admin-composer-quote-send:disabled,.admin-composer-quote-cancel:disabled,.admin-composer-order-modes button:disabled,.admin-composer-order-copy:disabled,.admin-composer-order-close:disabled{opacity:.5;cursor:default}
+    .admin-composer-quote-actions{display:grid;grid-template-columns:1fr 1.4fr;gap:8px}
+    .admin-composer-quote-send{background:var(--theme-content-primary,#171717);color:var(--theme-surface-primary,#fff);border-color:var(--theme-content-primary,#171717)}
+    .admin-composer-quote-send:disabled,.admin-composer-quote-cancel:disabled,.admin-composer-order-modes button:disabled,.admin-composer-order-close:disabled{opacity:.5;cursor:default}
     .admin-composer-order-note{margin:0;color:var(--theme-content-secondary,#666);font-size:12px;line-height:17px}
-    .admin-composer-order-result{max-height:min(48vh,360px);overflow:auto;margin:0;padding:11px 12px;border:1px solid var(--theme-border-default,#dedede);border-radius:13px;background:var(--theme-surface-secondary,#f7f7f7);white-space:pre-wrap;font:500 14px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--theme-content-primary,#171717)}
+    .admin-composer-order-actions{display:flex;justify-content:flex-end}
+    .admin-composer-order-close{min-width:110px}
   `;
   document.head.appendChild(style);
 }
@@ -196,7 +211,7 @@ function ensureAdminMenu(){
       makeDivider(),
       makeLabel('Đơn'),
       actionButton({action:'create',label:'Tạo đơn',kind:'order',order:false}),
-      actionButton({action:'draft',label:'Đơn tạm',order:true}),
+      actionButton({action:'draft',label:'Đơn tạm',kind:'order',order:false}),
       actionButton({action:'delivered',label:'Đã giao',order:true}),
       actionButton({action:'debt',label:'Công nợ',order:true}),
     );
@@ -216,7 +231,10 @@ function syncVisibility(){
   if(label)label.hidden=!admin;
   if(section)section.hidden=!admin;
   if(section){
-    for(const button of section.querySelectorAll(`[${ACTION_ATTR}]`))button.disabled=!contact;
+    for(const button of section.querySelectorAll(`[${ACTION_ATTR}]`)){
+      const action=String(button.getAttribute(ACTION_ATTR)||'');
+      button.disabled=!admin||(action!=='draft'&&!contact);
+    }
   }
   return admin;
 }
@@ -225,6 +243,11 @@ async function quoteClient(){
   if(window.V21QuoteClient)return window.V21QuoteClient;
   if(!quoteModulePromise)quoteModulePromise=import('./quote-client.js').then(()=>window.V21QuoteClient||null);
   return quoteModulePromise;
+}
+async function draftClient(){
+  if(window.V21AdminOrderDraft)return window.V21AdminOrderDraft;
+  if(!draftModulePromise)draftModulePromise=import('./admin-order-draft.js').then(()=>window.V21AdminOrderDraft||null);
+  return draftModulePromise;
 }
 async function sendQuoteTextLink(url,contactId){
   const text=String(url||'').trim();
@@ -252,8 +275,8 @@ function closeQuote({restoreFocus=true}={}){
 async function openQuote(contactId){
   const client=await quoteClient();
   if(!client?.create)throw new Error('quote_client_unavailable');
-  const overlayRoot=document.getElementById('globalOverlayRoot');
-  if(!overlayRoot)throw new Error('quote_overlay_unavailable');
+  const root=document.getElementById('globalOverlayRoot');
+  if(!root)throw new Error('quote_overlay_unavailable');
   closeQuote({restoreFocus:false});
   if(!lockQuoteBackground())throw new Error('quote_modal_busy');
   const sources=Array.isArray(client.sources)?client.sources:[];
@@ -275,7 +298,7 @@ async function openQuote(contactId){
         <button type="button" class="admin-composer-quote-send" data-quote-send>Gửi báo giá</button>
       </div>
     </div>`;
-  overlayRoot.appendChild(overlay);
+  root.appendChild(overlay);
   quoteOverlay=overlay;
   let scope='all';
   const source=overlay.querySelector('[data-quote-source]');
@@ -322,6 +345,8 @@ function orderErrorText(error){
     ai_response_invalid:'AI trả kết quả không hợp lệ.',
     invalid_ai_span:'AI không giữ được nguyên văn. Kết quả đã bị từ chối.',
     ai_items_missing:'AI chưa tách được mặt hàng.',
+    order_scribe_empty:'Không tách được dòng hàng.',
+    order_draft_unavailable:'Đơn tạm chưa sẵn sàng.',
   };
   return known[raw]||raw;
 }
@@ -339,15 +364,9 @@ async function invokeOrderScribe(mode,contactId,text=''){
   if(!data?.ok)throw new Error(String(data?.error||'order_scribe_failed'));
   return data;
 }
-async function copyText(value){
-  const text=String(value||'');
-  if(!text)return false;
-  await navigator.clipboard.writeText(text);
-  return true;
-}
 async function openOrder(contactId){
-  const overlayRoot=document.getElementById('globalOverlayRoot');
-  if(!overlayRoot)throw new Error('order_overlay_unavailable');
+  const root=document.getElementById('globalOverlayRoot');
+  if(!root)throw new Error('order_overlay_unavailable');
   closeOrder({restoreFocus:false});
   if(!lockOrderBackground())throw new Error('order_modal_busy');
   const sourceText=selectedChatText();
@@ -364,51 +383,54 @@ async function openOrder(contactId){
         <button type="button" data-order-mode="ai">AI ghi đơn</button>
       </div>
       <p class="admin-composer-order-status" data-order-status>Chọn cách tách.</p>
-      <pre class="admin-composer-order-result" data-order-result hidden></pre>
       <div class="admin-composer-order-actions">
         <button type="button" class="admin-composer-order-close" data-order-close>Đóng</button>
-        <button type="button" class="admin-composer-order-copy" data-order-copy disabled>Sao chép</button>
       </div>
     </div>`;
-  overlayRoot.appendChild(overlay);
+  root.appendChild(overlay);
   orderOverlay=overlay;
   const status=overlay.querySelector('[data-order-status]');
-  const result=overlay.querySelector('[data-order-result]');
-  const copy=overlay.querySelector('[data-order-copy]');
   const modeButtons=[...overlay.querySelectorAll('[data-order-mode]')];
-  let output='';
   function setBusy(busy){
     for(const button of modeButtons)button.disabled=Boolean(busy);
     for(const button of overlay.querySelectorAll('[data-order-close]'))button.disabled=Boolean(busy);
-    copy.disabled=Boolean(busy)||!output;
   }
   for(const button of overlay.querySelectorAll('[data-order-close]'))button.addEventListener('click',closeOrder);
   for(const button of modeButtons)button.addEventListener('click',async()=>{
     const mode=String(button.dataset.orderMode||'');
     for(const item of modeButtons)item.dataset.active=String(item===button);
-    output='';result.hidden=true;result.textContent='';setBusy(true);
+    setBusy(true);
     status.textContent=mode==='ai'?'AI đang ghi đơn…':'Đang tách nhanh…';
     try{
       const data=await invokeOrderScribe(mode,contactId,sourceText);
-      output=String(data.text||'').trim();
-      if(!output)throw new Error('order_scribe_empty');
-      result.textContent=output;
-      result.hidden=false;
-      status.textContent=`${Array.isArray(data.items)?data.items.length:0} dòng · ${data.source==='selection'?'đoạn đã chọn':'tin khách mới nhất'}`;
+      if(!Array.isArray(data.items)||!data.items.length)throw new Error('order_scribe_empty');
+      const drafts=await draftClient();
+      if(!drafts?.createFromParsed)throw new Error('order_draft_unavailable');
+      status.textContent=`${data.items.length} dòng · Đang mở đơn tạm…`;
+      const payload={
+        contactId,
+        conversationId:currentConversationId(),
+        customerName:activeContactName(),
+        items:data.items,
+      };
+      closeOrder({restoreFocus:false});
+      await drafts.createFromParsed(payload);
     }catch(error){
-      status.textContent=orderErrorText(error);
-    }finally{setBusy(false);}
-  });
-  copy.addEventListener('click',async()=>{
-    if(!output)return;
-    try{await copyText(output);status.textContent='Đã sao chép';}catch{status.textContent='Không thể sao chép';}
+      if(orderOverlay===overlay){
+        status.textContent=orderErrorText(error);
+        setBusy(false);
+      }else{
+        setTransientHint(orderErrorText(error),2600);
+      }
+    }
   });
   return true;
 }
 
 async function runAction(action){
+  if(!currentAdmin())return false;
   const contactId=activeContactId();
-  if(!currentAdmin()||!contactId)return false;
+  if(action!=='draft'&&!contactId)return false;
   hideMenu();
   if(action==='quote'){
     try{return await openQuote(contactId);}catch{setTransientHint('Không thể mở báo giá');return false;}
@@ -422,6 +444,13 @@ async function runAction(action){
   }
   if(action==='create'){
     try{return await openOrder(contactId);}catch{setTransientHint('Không thể mở tạo đơn');return false;}
+  }
+  if(action==='draft'){
+    try{
+      const drafts=await draftClient();
+      if(!drafts?.openList)throw new Error('order_draft_unavailable');
+      return await drafts.openList();
+    }catch{setTransientHint('Không thể mở đơn tạm',2600);return false;}
   }
   return false;
 }
@@ -463,5 +492,7 @@ window.V21AdminComposerActions=Object.freeze({
   openQuote,
   openOrder,
   activeContactId,
+  activeContactName,
+  currentConversationId,
 });
 })();
