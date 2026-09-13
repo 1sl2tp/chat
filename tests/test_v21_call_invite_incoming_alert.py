@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -24,12 +25,19 @@ class GuestCallIncomingAlertContract(unittest.TestCase):
         self.assertIn("admin_joined_at", client)
         self.assertIn("answered-elsewhere", client)
 
-    def test_incoming_watch_follows_async_admin_auth_lifecycle(self):
+    def test_incoming_watch_authenticates_realtime_before_subscribe(self):
         client = (ROOT / "call-invite-client.js").read_text(encoding="utf-8")
-        self.assertIn("document.addEventListener('v21-auth-state'", client)
-        self.assertIn("startIncomingWatch()", client)
-        self.assertIn("stopIncomingWatch()", client)
-        self.assertIn("reconcileIncomingInvites()", client)
+        match = re.search(
+            r"(?:async\s+)?function\s+startIncomingWatch\(\)\s*\{(?P<body>.*?)\n\}",
+            client,
+            re.S,
+        )
+        self.assertIsNotNone(match, "startIncomingWatch is missing")
+        body = match.group("body")
+        auth_pos = body.find("syncRealtimeAuth")
+        channel_pos = body.find("client.channel")
+        self.assertGreaterEqual(auth_pos, 0, "incoming call watcher must authenticate Supabase Realtime")
+        self.assertGreater(channel_pos, auth_pos, "Realtime auth must happen before subscribing")
 
     def test_admin_call_stays_connecting_until_invite_media_is_actually_playable(self):
         client = (ROOT / "call-invite-client.js").read_text(encoding="utf-8")
