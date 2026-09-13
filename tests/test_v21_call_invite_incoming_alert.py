@@ -24,6 +24,13 @@ class GuestCallIncomingAlertContract(unittest.TestCase):
         self.assertIn("admin_joined_at", client)
         self.assertIn("answered-elsewhere", client)
 
+    def test_incoming_watch_follows_async_admin_auth_lifecycle(self):
+        client = (ROOT / "call-invite-client.js").read_text(encoding="utf-8")
+        self.assertIn("document.addEventListener('v21-auth-state'", client)
+        self.assertIn("startIncomingWatch()", client)
+        self.assertIn("stopIncomingWatch()", client)
+        self.assertIn("reconcileIncomingInvites()", client)
+
     def test_admin_call_stays_connecting_until_invite_media_is_actually_playable(self):
         client = (ROOT / "call-invite-client.js").read_text(encoding="utf-8")
         self.assertIn("taphoa-guest-call-session-state", client)
