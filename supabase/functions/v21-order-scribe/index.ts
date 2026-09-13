@@ -1,5 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
-import { formatOrderItems, materializeAiImageItems, materializeAiSpans, parseQuickOrderText } from "./scribe-core.mjs";
+import { formatOrderItems, materializeAiImageTranscriptions, materializeAiSpans, parseQuickOrderText } from "./scribe-core.mjs";
 
 const SUPABASE_URL=String(Deno.env.get('SUPABASE_URL')||'').trim();
 const SERVICE_KEY=String(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'').trim();
@@ -224,14 +224,14 @@ async function aiVision(source:string,images:any[]){
   const cfg=await runtimeConfig();
   if(!cfg.key)throw new Error('ai_not_configured');
   const prompt=[
-    'Bạn đang đọc ghi chú đặt hàng từ Chat. Nhiệm vụ duy nhất: tách SL + phần tên hàng để người bán nhìn dễ.',
-    'KHÔNG tra database/catalog, KHÔNG tìm SKU, KHÔNG chuẩn hóa thương hiệu, KHÔNG sửa chính tả hay tự đổi tên sản phẩm.',
-    'VỚI MỖI ẢNH: TRƯỚC KHI ĐỌC, hãy xác định hướng chữ đúng và xoay ảnh trong nhận thức theo 0/90/180/270 độ để chữ đứng đúng chiều như người gửi đang nhìn.',
-    'Sau khi xoay đúng hướng, đọc theo bố cục chữ viết tay: cột, dòng, dấu :, gạch lặp, cha-con nếu nhìn thấy.',
-    'Mỗi mặt hàng trả quantity là số, quantity_text là đúng ký hiệu SL nhìn thấy như "3T", "1th", "2 thùng"; name là phần chữ còn lại của mặt hàng.',
-    'Nếu chữ/tên không chắc, vẫn giữ phần nhìn được gần nguyên văn và đặt uncertain=true. Không được bịa để làm cho tên có vẻ đúng.',
-    'Không tự chia tổng SL cho các màu/vị nếu người viết không ghi SL riêng cho từng loại.',
-    'Nếu SOURCE_TEXT có chữ chat, tách phần chữ đó bằng offset; KHÔNG trả rewritten name cho text_items.',
+    'Bạn đang đọc ghi chú đặt hàng từ Chat. Với phần ẢNH, nhiệm vụ bước đầu tiên và duy nhất của Vision là CHÉP NGUYÊN VĂN từng dòng chữ nhìn thấy.',
+    'KHÔNG tra database/catalog, KHÔNG tìm SKU, KHÔNG chuẩn hóa thương hiệu, KHÔNG sửa chính tả, KHÔNG suy diễn từ ngữ theo nghĩa sản phẩm.',
+    'Ví dụ nếu nét chữ trông như "tuýp" thì chép đúng nét nhìn thấy; không đổi thành một từ có vẻ hợp nghĩa hơn như "truyền".',
+    'VỚI MỖI ẢNH: TRƯỚC KHI CHÉP, xác định hướng chữ đúng và xoay ảnh trong nhận thức theo 0/90/180/270 độ để chữ đứng đúng chiều như người gửi đang nhìn.',
+    'Sau khi xoay đúng hướng, đọc theo bố cục thật: giữ thứ tự dòng, cột, dấu :, dấu gạch lặp và ký hiệu SL đúng như trên giấy.',
+    'Mỗi phần tử image_lines chỉ có text là dòng CHÉP NGUYÊN VĂN và uncertain. KHÔNG tách quantity/name trong Vision.',
+    'Nếu một chữ không chắc, giữ cách đọc sát nét nhất và đặt uncertain=true. Không được bịa để làm câu có vẻ đúng.',
+    'Nếu SOURCE_TEXT có chữ chat, chỉ phần text_items mới dùng offset; KHÔNG viết lại tên trong text_items.',
     '',
     'SOURCE_TEXT:',source||'(trống)',
     '',
@@ -239,7 +239,7 @@ async function aiVision(source:string,images:any[]){
   ].join('\n');
   const parts:any[]=[{text:prompt}];
   images.forEach((image,index)=>{
-    parts.push({text:`ẢNH ${index+1}: đọc ảnh này theo đúng hướng chữ sau khi tự xoay.`});
+    parts.push({text:`ẢNH ${index+1}: xoay đúng hướng trước, sau đó chép nguyên văn từng dòng. Không suy diễn.`});
     parts.push({inlineData:{mimeType:image.mimeType,data:image.data}});
   });
   const parsed=await geminiRequest(cfg,parts,{
@@ -252,19 +252,19 @@ async function aiVision(source:string,images:any[]){
           required:['quantity','quantity_text','name_start','name_end'],
         },
       },
-      image_items:{
+      image_lines:{
         type:'ARRAY',items:{
           type:'OBJECT',
-          properties:{quantity:{type:'NUMBER'},quantity_text:{type:'STRING'},name:{type:'STRING'},uncertain:{type:'BOOLEAN'}},
-          required:['quantity','quantity_text','name','uncertain'],
+          properties:{text:{type:'STRING'},uncertain:{type:'BOOLEAN'}},
+          required:['text','uncertain'],
         },
       },
     },
-    required:['text_items','image_items'],
+    required:['text_items','image_lines'],
   });
   return{
     textItems:Array.isArray(parsed?.text_items)?parsed.text_items:[],
-    imageItems:Array.isArray(parsed?.image_items)?parsed.image_items:[],
+    imageLines:Array.isArray(parsed?.image_lines)?parsed.image_lines:[],
   };
 }
 
@@ -297,10 +297,11 @@ Deno.serve(async(req:Request)=>{
     const images=await loadInboundImages(String(admin.account.id),source.contactId,imageAssetIds);
     const vision=await aiVision(source.text,images);
     const textItems=source.text&&vision.textItems.length?materializeAiSpans(source.text,vision.textItems):[];
-    const imageItems=vision.imageItems.length?materializeAiImageItems(vision.imageItems):[];
-    const items=[...textItems,...imageItems];
-    if(!items.length)throw new Error('ai_items_missing');
-    return json({ok:true,mode:'ai',source:source.source,items,text:formatOrderItems(items)});
+    const imageParsed=vision.imageLines.length?materializeAiImageTranscriptions(vision.imageLines):{items:[],unresolved:[]};
+    const items=[...textItems,...imageParsed.items];
+    const unresolved=imageParsed.unresolved;
+    if(!items.length&&!unresolved.length)throw new Error('ai_items_missing');
+    return json({ok:true,mode:'ai',source:source.source,items,unresolved,text:formatOrderItems(items)});
   }catch(error){
     const code=String((error as any)?.message||error||'internal_error');
     const status=['contact_required','conversation_not_found','customer_message_not_found','order_text_required','source_image_not_found'].includes(code)?400:
