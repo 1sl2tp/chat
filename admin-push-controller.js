@@ -1,7 +1,7 @@
 (()=>{
 'use strict';
 
-const VERSION='V21.73.4-admin-push-badge-v1';
+const VERSION='V21.73.5-admin-push-call-invite-v1';
 const BASE_DOCUMENT_TITLE=String(document.title||'TAPHOA Chat').replace(/^\(\d+\)\s*/,'')||'TAPHOA Chat';
 const faviconNode=document.querySelector?.('link[rel~="icon"]')||null;
 const BASE_FAVICON_HREF=String(faviconNode?.getAttribute?.('href')||faviconNode?.href||'./icons/chat-192.png');
@@ -216,8 +216,9 @@ function coldOpenFromLocation(){
     const params=new URLSearchParams(String(location.search||''));
     const contactId=String(params.get('push_contact')||'').trim();
     const conversationId=String(params.get('push_conversation')||'').trim();
-    if(!contactId&&!conversationId)return null;
-    return{contactId,conversationId};
+    const inviteId=String(params.get('push_call_invite')||'').trim();
+    if(!contactId&&!conversationId&&!inviteId)return null;
+    return{kind:inviteId?'call_invite':'message',contactId,conversationId,inviteId};
   }catch{return null;}
 }
 
@@ -226,6 +227,7 @@ function clearColdOpenQuery(){
     const url=new URL(location.href);
     url.searchParams.delete('push_contact');
     url.searchParams.delete('push_conversation');
+    url.searchParams.delete('push_call_invite');
     const next=`${url.pathname}${url.search}${url.hash}`||'./';
     history.replaceState(history.state??null,'',next);
     return true;
@@ -233,16 +235,33 @@ function clearColdOpenQuery(){
 }
 
 async function handleOpen(payload={}){
+  const kind=String(payload?.kind||'message');
+  const inviteId=String(payload?.inviteId??payload?.invite_id??'').trim();
   const contactId=String(payload?.contactId??payload?.contact_id??'').trim();
   const conversationId=String(payload?.conversationId??payload?.conversation_id??'').trim();
-  if(!contactId&&!conversationId)return false;
-  if(!isAdmin()||!contactId){pendingOpen={contactId,conversationId};return false;}
-  const opened=Boolean(window.ChatAppShell?.NavigationCommand?.openContact?.(contactId));
-  if(!opened){pendingOpen={contactId,conversationId};return false;}
+  if(!contactId&&!conversationId&&!inviteId)return false;
+  if(!isAdmin()||(!contactId&&!inviteId)){
+    pendingOpen={kind,inviteId,contactId,conversationId};
+    return false;
+  }
+
+  let opened=true;
+  if(contactId)opened=Boolean(window.ChatAppShell?.NavigationCommand?.openContact?.(contactId));
+  if(!opened){
+    pendingOpen={kind,inviteId,contactId,conversationId};
+    return false;
+  }
+
   pendingOpen=null;
   clearColdOpenQuery();
   syncState();
-  scheduleUnreadBadgeRefresh(0);
+  if(kind==='call_invite'&&inviteId){
+    document.dispatchEvent(new CustomEvent('v21-call-invite-push-open',{
+      detail:{inviteId,contactId,conversationId}
+    }));
+  }else{
+    scheduleUnreadBadgeRefresh(0);
+  }
   return true;
 }
 
