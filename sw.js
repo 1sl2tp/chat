@@ -60,9 +60,11 @@ self.addEventListener('push',event=>{
     let payload=null;
     try{payload=event.data?.json?.()||null;}catch{return;}
     if(!payload||typeof payload!=='object')return;
+    const kind=String(payload.kind||'message');
     const conversationId=String(payload.conversation_id||'');
+    const inviteId=String(payload.invite_id||'');
     const clients=await self.clients.matchAll({type:'window',includeUncontrolled:true});
-    const readingSame=clients.some(client=>{
+    const readingSame=kind!=='call_invite'&&clients.some(client=>{
       const state=adminPushClientState.get(client.id);
       return Boolean(
         state&&state.visible&&state.focused&&state.route==='chat'&&
@@ -72,18 +74,22 @@ self.addEventListener('push',event=>{
     if(readingSame)return;
 
     await self.registration.showNotification(String(payload.title||'TAPHOA Chat'),{
-      body:String(payload.body||'Tin nhắn mới'),
+      body:String(payload.body||(kind==='call_invite'?'Cuộc gọi đến':'Tin nhắn mới')),
       icon:String(payload.icon||'./icons/chat-192.png'),
       badge:'./icons/chat-192.png',
-      tag:String(payload.tag||('chat:'+conversationId)),
+      tag:String(payload.tag||(kind==='call_invite'?`call-invite:${inviteId}`:`chat:${conversationId}`)),
       renotify:true,
       data:{
+        kind,
+        inviteId,
         conversationId,
         contactId:String(payload.contact_id||''),
       }
     });
-    await bumpAdminPushBadge();
-    notifyBadgeDirty(clients);
+    if(kind!=='call_invite'){
+      await bumpAdminPushBadge();
+      notifyBadgeDirty(clients);
+    }
   })());
 });
 
@@ -91,18 +97,27 @@ self.addEventListener('notificationclick',event=>{
   event.notification?.close?.();
   event.waitUntil((async()=>{
     const data=event.notification?.data||{};
+    const kind=String(data.kind||'message');
+    const inviteId=String(data.inviteId||'');
     const conversationId=String(data.conversationId||'');
     const contactId=String(data.contactId||'');
     const clients=await self.clients.matchAll({type:'window',includeUncontrolled:true});
     if(clients.length){
       const client=clients[0];
       try{await client.focus?.();}catch{}
-      try{client.postMessage?.({type:'ADMIN_PUSH_OPEN',conversationId,contactId});}catch{}
+      try{
+        if(kind==='call_invite'){
+          client.postMessage?.({type:'ADMIN_PUSH_OPEN',kind:'call_invite',inviteId,conversationId,contactId});
+        }else{
+          client.postMessage?.({type:'ADMIN_PUSH_OPEN',conversationId,contactId});
+        }
+      }catch{}
       return;
     }
     const target=new URL('./',self.location.origin);
     if(contactId)target.searchParams.set('push_contact',contactId);
     if(conversationId)target.searchParams.set('push_conversation',conversationId);
+    if(kind==='call_invite'&&inviteId)target.searchParams.set('push_call_invite',inviteId);
     await self.clients.openWindow(target.toString());
   })());
 });
