@@ -1595,7 +1595,7 @@ function enterImageViewerMode(){
   if(!appShell)return false;
   const lease=InteractionController.enter(InteractionMode.IMAGE_VIEWER,{
     owner:'image-viewer',
-    lockBaseUi:true
+    lockBaseUi:false
   });
   if(!lease)return false;
   appShell.dataset.imageViewerMode='true';
@@ -1610,7 +1610,7 @@ function exitImageViewerMode(){
 function positionImageViewerBelowHeader(){
   if(!imageViewerOverlay)return 0;
   const top=regionTop?Math.max(0,regionTop.getBoundingClientRect().bottom):0;
-  const host=document.getElementById('activeScreenSlot')||document.getElementById('chatScreen');
+  const host=stageLayout||document.getElementById('threadContent');
   const rect=host?.getBoundingClientRect?.()||null;
   const viewportWidth=Math.max(0,window.innerWidth||document.documentElement.clientWidth||0);
   const left=rect?Math.max(0,rect.left):0;
