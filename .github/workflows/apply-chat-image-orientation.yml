@@ -1,0 +1,32 @@
+name: Apply chat image orientation patch
+on:
+  push:
+    branches:
+      - fix/chat-image-rotate-column2
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/chat-image-rotate-column2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply bounded patch
+        run: python tools/apply_chat_image_orientation.py
+      - name: Rebuild canonical preview
+        run: python tools/build_current_preview.py
+      - name: Run focused contract
+        run: python tests/test_v21_chat_image_orientation_column.py
+      - name: Commit generated changes
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git diff --cached --quiet && exit 0
+          git commit -m "fix: keep chat images rotatable inside chat column"
+          git push origin HEAD:fix/chat-image-rotate-column2
