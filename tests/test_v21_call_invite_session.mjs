@@ -40,9 +40,9 @@ const navigator={
 };
 const fetch=async(url,options={})=>{
   const body=JSON.parse(String(options.body||'{}'));
-  fetchCalls.push({url:String(url),body});
+  fetchCalls.push({url:String(url),body,headers:options.headers||{}});
   if(body.action==='join'){
-    return {ok:true,json:async()=>({ok:true,serverUrl:'wss://example.livekit.cloud',participantToken:'guest-token'})};
+    return {ok:true,json:async()=>({ok:true,serverUrl:'wss://example.livekit.cloud',participantToken:'invite-token'})};
   }
   if(body.action==='connected')return {ok:true,json:async()=>({ok:true})};
   throw new Error(`unexpected action ${body.action}`);
@@ -75,4 +75,24 @@ await window.TaphoaGuestCallSession.leave({reason:'test'});
 assert.equal(disconnects,1,'leave disconnects LiveKit room');
 assert.equal(window.TaphoaGuestCallSession.snapshot().connected,false);
 
-console.log('guest call media session contract PASS');
+assert.equal(typeof window.TaphoaGuestCallSession.joinAdmin,'function','Admin join is an explicit sibling action');
+const adminJoined=await window.TaphoaGuestCallSession.joinAdmin({
+  inviteId:'123e4567-e89b-12d3-a456-426614174000',
+  endpoint:'https://example.supabase.co/functions/v1/v21-call-invite-admin',
+  apiKey:'publishable-key',
+  accessToken:'admin-access-token',
+});
+assert.equal(adminJoined,true);
+assert.equal(micRequests,2,'Admin mic is requested only by explicit joinAdmin');
+assert.equal(microphoneEnabled,2,'Admin explicit join publishes microphone once');
+const adminCalls=fetchCalls.slice(-2);
+assert.deepEqual(adminCalls.map(call=>call.body.action),['join','connected']);
+assert.equal(adminCalls[0].body.inviteId,'123e4567-e89b-12d3-a456-426614174000');
+assert.equal(adminCalls[0].headers.authorization,'Bearer admin-access-token');
+assert.equal(window.TaphoaGuestCallSession.snapshot().connected,true);
+
+await window.TaphoaGuestCallSession.leave({reason:'test-admin'});
+assert.equal(disconnects,2,'Admin leave disconnects invite room');
+assert.equal(window.TaphoaGuestCallSession.snapshot().connected,false);
+
+console.log('guest/Admin invite media session contract PASS');
