@@ -33,6 +33,8 @@ jobs:
         run: python tests/test_v21_remove_getlink_embed.py
       - name: Desktop chat workspace 3-column contract
         run: python tests/test_v21_chat_workspace_3col.py
+      - name: Customer order source core contract
+        run: node tests/test_v21_order_source_core.mjs
       - name: Chat AI product parser core contract
         run: node tests/test_v21_ai_product_parser_core.mjs
       - name: Chat shared-product catalog search contract
