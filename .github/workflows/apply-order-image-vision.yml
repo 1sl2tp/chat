@@ -1,0 +1,63 @@
+name: Apply Order Image Vision
+on:
+  push:
+    branches:
+      - feature/order-scribe-image-vision
+permissions:
+  contents: write
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/order-scribe-image-vision
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply bounded text fixes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('supabase/functions/_shared/customer-order-parser.mjs')
+          s=p.read_text()
+          old="|bao|ba0|gói|goi|"
+          new="|bao|ba0|bịch|bich|gói|goi|"
+          assert old in s
+          p.write_text(s.replace(old,new,1))
+          p=Path('admin-order-source.js')
+          s=p.read_text()
+          old="'\\\"':'&quot'"
+          new="'\\\"':'&quot;'"
+          assert old in s
+          p.write_text(s.replace(old,new,1))
+          PY
+      - name: Run focused contracts
+        run: |
+          node tests/test_v21_order_source_core.mjs
+          python tests/test_v21_order_source_edge_contract.py
+          python tests/test_v21_order_source_ui.py
+          node tests/test_v21_ai_product_parser_core.mjs
+          node tests/test_v21_order_scribe_core.mjs
+          node tests/test_v21_order_scribe_client_runtime.js
+          python tests/test_v21_order_scribe_edge_contract.py
+      - name: Rebuild canonical output
+        run: python tools/build_current_preview.py
+      - name: Verify canonical output
+        run: python tools/verify_current.py
+      - name: Commit generated and bounded fixes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add supabase/functions/_shared/customer-order-parser.mjs admin-order-source.js index.html version.json
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "fix: finish handwritten order image flow"
+          git push origin HEAD:feature/order-scribe-image-vision
