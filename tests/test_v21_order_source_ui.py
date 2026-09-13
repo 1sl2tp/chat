@@ -22,7 +22,8 @@ assert 'admin-order-source.js' in index
 assert 'order-scribe-client.js' in index
 assert 'data-top-tab="chat"' in index
 assert 'data-top-tab="work"' in index
-assert 'v21-active-contact-change' in source
+assert '[data-contact-row]' in source, 'open source panel must follow directory customer changes'
+assert 'selectedIds.clear()' in source
 assert 'workThreadView' in shell
 
 print('customer order source timeline UI contract PASS')
