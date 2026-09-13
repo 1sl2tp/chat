@@ -5,23 +5,24 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class GuestCallIncomingAlertContract(unittest.TestCase):
-    def test_shell_reuses_existing_call_ui_with_external_adapter(self):
-        shell = (ROOT / "shell.js").read_text(encoding="utf-8")
-        self.assertIn("receiveExternalIncoming", shell)
-        self.assertIn("externalCallAdapter", shell)
-        self.assertIn("externalCallAdapter?.accept", shell)
-        self.assertIn("externalCallAdapter?.decline", shell)
-        self.assertIn("externalCallAdapter?.hangup", shell)
-        self.assertIn("dismissExternal", shell)
+    def test_existing_call_ui_is_reused_without_editing_native_call_engine(self):
+        client = (ROOT / "call-invite-client.js").read_text(encoding="utf-8")
+        self.assertIn("installCallEngineAdapter", client)
+        self.assertIn("nativeCallEngine", client)
+        self.assertIn("externalCallAdapter", client)
+        self.assertIn("receiveIncoming", client)
+        self.assertIn("acceptCurrent", client)
+        self.assertIn("rejectCurrent", client)
+        self.assertIn("stopCurrent", client)
 
     def test_admin_client_globally_watches_joined_invites(self):
         client = (ROOT / "call-invite-client.js").read_text(encoding="utf-8")
         self.assertIn("call-invite-incoming", client)
         self.assertIn("guest_joined_at", client)
-        self.assertIn("receiveExternalIncoming", client)
         self.assertIn("focusIncomingInvite", client)
         self.assertIn("reconcileIncomingInvites", client)
         self.assertIn("admin_joined_at", client)
+        self.assertIn("answered-elsewhere", client)
 
     def test_call_invite_push_reuses_existing_admin_push_pipeline(self):
         migration = ROOT / "supabase/migrations/20260913_call_invite_incoming_push.sql"
