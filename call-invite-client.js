@@ -450,7 +450,7 @@ function statusText(invite){
   if(invite.endedAt)return 'Cuộc gọi đã kết thúc';
   if(invite.revokedAt||isExpired(invite))return 'Link gọi đã hết hạn';
   if(invite.adminConnected)return 'Đang nghe';
-  if(invite.guestJoinedAt)return 'Khách đang gọi';
+  if(invite.guestJoinedAt)return 'Khách đã vào phòng · đang gọi';
   if(invite.openedAt)return 'Khách đã mở link';
   if(invite.sendFailed)return 'Link đã tạo nhưng chưa gửi';
   return 'Đã gửi link gọi · hiệu lực 10 phút';
