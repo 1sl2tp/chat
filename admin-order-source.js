@@ -13,6 +13,7 @@ let requestSeq=0;
 let lastRange={from:'',to:''};
 let corePromise=null;
 let orderGroup={sourceMessageIds:[],text:'',firstCreatedAt:'',lastCreatedAt:'',count:0};
+let timelineGroups=[];
 let groupSplitResult=null;
 
 function authStore(){return window.V21AuthSessionStore||null;}
@@ -166,6 +167,7 @@ function stateLabel(value){return STATE_LABELS[String(value||'pending')]||STATE_
 function emptyOrderGroup(){return{sourceMessageIds:[],text:'',firstCreatedAt:'',lastCreatedAt:'',count:0};}
 function resetOrderGroup(){
   orderGroup=emptyOrderGroup();
+  timelineGroups=[];
   groupSplitResult=null;
   selectedIds.clear();
 }
@@ -180,6 +182,31 @@ function renderResult(result){
     ${!entries.length?'<div>Không có dòng để tách.</div>':''}
   </div>`;
 }
+function syncTimeline(helper){
+  timelineGroups=helper.customerOrderSourceTimeline(rows);
+  orderGroup=timelineGroups.find(group=>group.state!=='imported')||emptyOrderGroup();
+  selectedIds=new Set(orderGroup.sourceMessageIds);
+}
+function renderTimelineGroup(group){
+  const imported=group.state==='imported';
+  const first=timeText(group.firstCreatedAt);
+  const last=timeText(group.lastCreatedAt);
+  const timeRange=first&&last&&first!==last?`${first} → ${last}`:(first||last);
+  const orderNo=clean(group.linkedExternalOrderNo);
+  const stateText=imported?`Đã tạo${orderNo?` · ${orderNo}`:''}`:`${group.count} tin · 1 đơn`;
+  return`<article class="order-source-message" data-source-order-group data-selected="${String(!imported)}" data-state="${imported?'imported':'working'}">
+    <div class="order-source-message-top">
+      <time class="order-source-time">${escapeHtml(timeRange)}</time>
+      <span class="order-source-state" data-state="${imported?'imported':'working'}">${escapeHtml(stateText)}</span>
+    </div>
+    <div class="order-source-text">${escapeHtml(group.text)}</div>
+    ${imported?'':`<div class="order-source-actions">
+      <button type="button" data-source-action="quick">Tách nhanh</button>
+      <button type="button" data-source-action="ai">AI</button>
+      <button type="button" data-source-action="ignore">Bỏ qua</button>
+    </div>${renderResult(groupSplitResult)}`}
+  </article>`;
+}
 function render(){
   ensurePanel();
   const contact=currentContact();
@@ -187,8 +214,9 @@ function render(){
   const summary=panel.querySelector('[data-source-summary]');
   const scroll=panel.querySelector('#adminOrderSourceScroll');
   if(customer)customer.textContent=contact?`Khách: ${contact.name}`:'Chưa chọn khách';
+  const timelineMessageCount=timelineGroups.reduce((sum,group)=>sum+Number(group.count||0),0);
   if(summary)summary.textContent=contact
-    ?`Chỉ tin khách gửi · ${orderGroup.count} tin · ${orderGroup.count?'1 đơn':'0 đơn'}`
+    ?`Chỉ tin khách gửi · ${timelineMessageCount} tin · ${timelineGroups.length} đơn`
     :'Chỉ tin khách gửi';
   for(const button of panel.querySelectorAll('[data-source-preset]'))button.setAttribute('aria-pressed',String(button.dataset.sourcePreset===preset));
   const include=panel.querySelector('[data-source-include-all]');
@@ -198,23 +226,8 @@ function render(){
   for(const input of panel.querySelectorAll('[data-source-date]'))input.value=customRange[input.dataset.sourceDate]||'';
   if(!scroll)return;
   if(!contact){scroll.innerHTML='<div class="order-source-empty">Chọn khách trong Danh bạ để xem tin báo hàng.</div>';return;}
-  if(!orderGroup.count){scroll.innerHTML='<div class="order-source-empty">Không còn tin đơn hàng chưa tạo trong khoảng này. Có thể bật “Hiện tất cả tin khách”.</div>';return;}
-  const first=timeText(orderGroup.firstCreatedAt);
-  const last=timeText(orderGroup.lastCreatedAt);
-  const timeRange=first&&last&&first!==last?`${first} → ${last}`:(first||last);
-  scroll.innerHTML=`<article class="order-source-message" data-source-order-group data-selected="true" data-state="working">
-    <div class="order-source-message-top">
-      <time class="order-source-time">${escapeHtml(timeRange)}</time>
-      <span class="order-source-state" data-state="working">${orderGroup.count} tin · 1 đơn</span>
-    </div>
-    <div class="order-source-text">${escapeHtml(orderGroup.text)}</div>
-    <div class="order-source-actions">
-      <button type="button" data-source-action="quick">Tách nhanh</button>
-      <button type="button" data-source-action="ai">AI</button>
-      <button type="button" data-source-action="ignore">Bỏ qua</button>
-    </div>
-    ${renderResult(groupSplitResult)}
-  </article>`;
+  if(!timelineGroups.length){scroll.innerHTML='<div class="order-source-empty">Không có tin đơn hàng trong khoảng này. Có thể bật “Hiện tất cả tin khách”.</div>';return;}
+  scroll.innerHTML=timelineGroups.map(group=>renderTimelineGroup(group)).join('');
 }
 function setStatus(text,error=false){
   const scroll=ensurePanel().querySelector('#adminOrderSourceScroll');
@@ -240,8 +253,7 @@ async function refresh(){
     lastRange=range;
     rows=Array.isArray(data.items)?data.items:[];
     const helper=await core();
-    orderGroup=helper.customerOrderSourceGroup(rows);
-    selectedIds=new Set(orderGroup.sourceMessageIds);
+    syncTimeline(helper);
     groupSplitResult=null;
     render();
     dispatchContext();
@@ -286,8 +298,7 @@ async function ignoreGroup(){
   if(!ids.length)return false;
   await setGroupState(ids,'ignored');
   const helper=await core();
-  orderGroup=helper.customerOrderSourceGroup(rows);
-  selectedIds=new Set(orderGroup.sourceMessageIds);
+  syncTimeline(helper);
   groupSplitResult=null;
   render();
   dispatchContext();
@@ -332,10 +343,14 @@ async function markImported({contactId,messageIds,externalOrderId='',externalOrd
   const ids=Array.from(new Set((Array.isArray(messageIds)?messageIds:[]).map(clean).filter(Boolean)));
   if(!clean(contactId)||!ids.length)return false;
   const data=await invoke('mark_imported',{contactId:String(contactId),messageIds:ids,externalOrderId:String(externalOrderId||''),externalOrderNo:String(externalOrderNo||'')});
-  for(const row of rows){if(ids.includes(String(row.messageId||'')))row.state='imported';}
+  for(const row of rows){
+    if(!ids.includes(String(row.messageId||'')))continue;
+    row.state='imported';
+    row.linkedExternalOrderId=clean(externalOrderId)||row.linkedExternalOrderId||null;
+    row.linkedExternalOrderNo=clean(externalOrderNo)||row.linkedExternalOrderNo||null;
+  }
   const helper=await core();
-  orderGroup=helper.customerOrderSourceGroup(rows);
-  selectedIds=new Set(orderGroup.sourceMessageIds);
+  syncTimeline(helper);
   groupSplitResult=null;
   render();
   dispatchContext();

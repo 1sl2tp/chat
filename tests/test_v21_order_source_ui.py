@@ -12,12 +12,13 @@ shell=SHELL.read_text(encoding='utf-8')
 
 for token in [
     'Hôm nay','Hôm qua','Tuần này','Tùy chọn','Hiện tất cả tin khách',
-    'Chưa xử lý','Đang xử lý','Đã nhập','Bỏ qua',
+    'Chưa xử lý','Đang xử lý','Đã nhập','Bỏ qua','Đã tạo',
     'v21-order-source','v21-work-context','V21AdminOrderSource',
     'adminOrderSourcePanel','adminOrderSourceScroll',
     'Khách:',
     'orderSplitPreviewEntries','previewEntries','Chưa tách ·',
-    'customerOrderSourceGroup','data-source-order-group','splitGroup','ignoreGroup','1 đơn',
+    'customerOrderSourceTimeline','timelineGroups',
+    'data-source-order-group','splitGroup','ignoreGroup','linkedExternalOrderNo',
 ]:
     assert token in source, token
 
@@ -48,11 +49,15 @@ assert 'inset-inline-end:var(--desktop-work-width)' in compact
 assert 'helper.orderSplitPreviewEntries(splitResult)' in compact
 assert 'entry.type===\'unresolved\'' in compact
 
-# All active order-source messages for the selected customer/range are one order.
-# Imported/ignored filtering and chronological joining are owned by the core helper.
-assert 'helper.customerOrderSourceGroup(rows)' in compact
+# Timeline semantics: active messages form the current order/context, while imported
+# orders stay visible as time-based history instead of disappearing after creation.
+assert 'helper.customerOrderSourceTimeline(rows)' in compact
+assert 'timelineGroups.find(group=>group.state!==\'imported\')' in compact
 assert 'selectedIds=newSet(orderGroup.sourceMessageIds)' in compact
-assert 'text:orderGroup.text' in compact
+assert 'group.state===\'imported\'' in compact
+assert 'group.linkedExternalOrderNo' in source
+assert 'Không có tin đơn hàng trong khoảng này.' in source
+assert 'Không còn tin đơn hàng chưa tạo trong khoảng này.' not in source
 assert 'rows.map(row=>' not in compact, 'UI must not render one card per message anymore'
 
 print('customer order source timeline UI contract PASS')
