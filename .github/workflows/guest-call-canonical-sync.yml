@@ -1,0 +1,28 @@
+name: Guest call canonical sync
+on:
+  push:
+    branches:
+      - feature/guest-call-incoming-alert
+permissions:
+  contents: write
+jobs:
+  sync:
+    if: ${{ !contains(github.event.head_commit.message, '[canonical-sync]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/guest-call-incoming-alert
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build canonical files
+        run: python tools/build_current_preview.py
+      - name: Commit canonical files
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add index.html version.json
+          git diff --cached --quiet && exit 0
+          git commit -m "chore: sync guest call canonical build [canonical-sync]"
+          git push origin HEAD:feature/guest-call-incoming-alert
