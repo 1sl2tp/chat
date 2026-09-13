@@ -1,0 +1,39 @@
+name: Apply Order Source UI
+on:
+  push:
+    branches:
+      - design/customer-order-source-timeline
+permissions:
+  contents: write
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: design/customer-order-source-timeline
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: python tools/apply_order_source_ui_patch.py
+      - run: python tools/build_current_preview.py
+      - run: node tests/test_v21_order_scribe_client_runtime.js
+      - run: python tests/test_v21_order_source_ui.py
+      - run: python tests/test_v21_order_scribe_edge_contract.py
+      - run: node --check admin-order-source.js
+      - name: Commit UI build
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.source.html index.html version.json
+          if git diff --cached --quiet; then
+            echo "No UI build changes"
+            exit 0
+          fi
+          git commit -m "feat: load customer order source timeline ui"
+          git push origin HEAD:design/customer-order-source-timeline
