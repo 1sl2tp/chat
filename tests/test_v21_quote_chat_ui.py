@@ -74,6 +74,13 @@ assert "contactid" in low
 quote_overlay_css = low.split(".admin-composer-quote-overlay", 1)[1].split("}", 1)[0]
 assert "pointer-events:auto" in quote_overlay_css, "quote overlay must receive pointer events"
 
+# A visible quote popup is a real modal. It must acquire the shared InteractionController
+# with lockBaseUi=true so the chat/image layer becomes inert until the popup closes.
+assert "v21interactioncontroller" in low, "quote modal must use the shared interaction owner"
+assert ".enter(" in low and "lockbaseui:true" in low, "quote modal must lock the base chat UI"
+assert "admin-quote-modal" in low, "quote modal must have a stable interaction owner"
+assert ".exit(" in low, "quote modal close must release the interaction lock"
+
 # Guest call link reuses the existing invite client and never starts a normal Chat call.
 assert "taphoacallinviteclient" in low
 assert "createandsend" in low and "contactid" in low
