@@ -43,6 +43,49 @@ import {
 }
 
 {
+  const result=parseQuickOrderText([
+    '2 bịch hướng dương',
+    '- 2 bật 1.8kg, 2 bật 1kg, 2 bật 454',
+    '- 2 omo 1.15kg, 2 omo 5.5kg, 2 omo 5.1kg, 2 omo 2.9kg, 2 omo 2.6kg, 2 omo 700g, 1 omo 380g',
+    '- 2 cái lăn 1l, 2 cái lăn 5l',
+    '- 2 meizan 1l, 2 meizan 5l',
+    '- 5 gạo 2l, 5 nếp 2l',
+  ].join('\n'));
+  assert.equal(result.ok,true);
+  assert.deepEqual(result.unresolved,[], 'quick split must use the same bullet/comma segmentation rules as chat input parsing');
+  assert.deepEqual(result.items,[
+    {quantity:2,name:'bịch hướng dương'},
+    {quantity:2,name:'bật 1.8kg'},
+    {quantity:2,name:'bật 1kg'},
+    {quantity:2,name:'bật 454'},
+    {quantity:2,name:'omo 1.15kg'},
+    {quantity:2,name:'omo 5.5kg'},
+    {quantity:2,name:'omo 5.1kg'},
+    {quantity:2,name:'omo 2.9kg'},
+    {quantity:2,name:'omo 2.6kg'},
+    {quantity:2,name:'omo 700g'},
+    {quantity:1,name:'omo 380g'},
+    {quantity:2,name:'cái lăn 1l'},
+    {quantity:2,name:'cái lăn 5l'},
+    {quantity:2,name:'meizan 1l'},
+    {quantity:2,name:'meizan 5l'},
+    {quantity:5,name:'gạo 2l'},
+    {quantity:5,name:'nếp 2l'},
+  ]);
+}
+
+{
+  const result=parseQuickOrderText('probi to: 3 có đường, 2 ít, 2 vq');
+  assert.equal(result.ok,true);
+  assert.deepEqual(result.unresolved,[],'quick split must share chat parent/child syntax');
+  assert.deepEqual(result.items,[
+    {quantity:3,name:'probi to có đường'},
+    {quantity:2,name:'probi to ít'},
+    {quantity:2,name:'probi to vq'},
+  ]);
+}
+
+{
   const source='15 thùng bò một thùng sim 5 lít hai thùng sim 2 l';
   const start1=source.indexOf('thùng bò');
   const end1=start1+'thùng bò'.length;
