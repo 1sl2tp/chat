@@ -46,13 +46,14 @@ function loadSdk(){
   return sdkPromise;
 }
 
-async function post(action,{key=activeKey,endpoint=activeEndpoint,apiKey=activeApiKey}={}){
+async function jsonPost(endpoint,body,{apiKey='',accessToken=''}={}){
   const headers={'content-type':'application/json'};
   if(apiKey)headers.apikey=String(apiKey);
+  if(accessToken)headers.authorization=`Bearer ${String(accessToken)}`;
   const response=await fetch(String(endpoint),{
     method:'POST',
     headers,
-    body:JSON.stringify({action,key:String(key||'')}),
+    body:JSON.stringify(body),
   });
   const data=await response.json().catch(()=>({}));
   if(!response.ok||data?.ok===false){
@@ -61,6 +62,10 @@ async function post(action,{key=activeKey,endpoint=activeEndpoint,apiKey=activeA
     throw error;
   }
   return data||{};
+}
+
+async function post(action,{key=activeKey,endpoint=activeEndpoint,apiKey=activeApiKey}={}){
+  return jsonPost(endpoint,{action,key:String(key||'')},{apiKey});
 }
 
 async function preflightMicrophone(){
@@ -99,6 +104,44 @@ function attachRemoteTrack(track,nextRoom){
   }catch{}
 }
 
+async function connectWithToken(sdk,tokenData){
+  if(!tokenData?.serverUrl||!tokenData?.participantToken)throw new Error('livekit_token_failed');
+  const next=new sdk.Room();
+  const disconnectedEvent=sdk.RoomEvent?.Disconnected||'disconnected';
+  const trackSubscribedEvent=sdk.RoomEvent?.TrackSubscribed||'trackSubscribed';
+  next.on?.(trackSubscribedEvent,(track)=>{
+    if(track?.kind==='audio'||track?.kind===sdk.Track?.Kind?.Audio)attachRemoteTrack(track,next);
+  });
+  next.on?.(disconnectedEvent,()=>{
+    if(next!==room)return;
+    connected=false;
+    state='disconnected';
+    cleanupRemoteAudio();
+  });
+  await next.connect(String(tokenData.serverUrl),String(tokenData.participantToken));
+  room=next;
+  await next.localParticipant?.setMicrophoneEnabled?.(true,{
+    echoCancellation:true,
+    noiseSuppression:true,
+    autoGainControl:true,
+    channelCount:1,
+  });
+  connected=true;
+  state='connected';
+  return true;
+}
+
+function failJoin(error){
+  lastError=String(error?.code||error?.name||error?.message||error||'call_join_failed');
+  state='error';
+  connected=false;
+  const current=room;
+  room=null;
+  try{current?.disconnect?.();}catch{}
+  cleanupRemoteAudio();
+  return false;
+}
+
 async function joinGuest({key,endpoint,apiKey=''}={}){
   if(connected)return true;
   if(state==='joining')return false;
@@ -122,41 +165,39 @@ async function joinGuest({key,endpoint,apiKey=''}={}){
       loadSdk(),
       post('join',{key:activeKey,endpoint:activeEndpoint,apiKey:activeApiKey}),
     ]);
-    if(!tokenData?.serverUrl||!tokenData?.participantToken)throw new Error('livekit_token_failed');
-
-    const next=new sdk.Room();
-    const disconnectedEvent=sdk.RoomEvent?.Disconnected||'disconnected';
-    const trackSubscribedEvent=sdk.RoomEvent?.TrackSubscribed||'trackSubscribed';
-    next.on?.(trackSubscribedEvent,(track)=>{
-      if(track?.kind==='audio'||track?.kind===sdk.Track?.Kind?.Audio)attachRemoteTrack(track,next);
-    });
-    next.on?.(disconnectedEvent,()=>{
-      if(next!==room)return;
-      connected=false;
-      state='disconnected';
-      cleanupRemoteAudio();
-    });
-
-    await next.connect(String(tokenData.serverUrl),String(tokenData.participantToken));
-    room=next;
-    await next.localParticipant?.setMicrophoneEnabled?.(true,{
-      echoCancellation:true,
-      noiseSuppression:true,
-      autoGainControl:true,
-      channelCount:1,
-    });
-    connected=true;
-    state='connected';
+    await connectWithToken(sdk,tokenData);
     await post('connected',{key:activeKey,endpoint:activeEndpoint,apiKey:activeApiKey});
     return true;
   }catch(error){
-    lastError=String(error?.code||error?.name||error?.message||error||'call_join_failed');
+    return failJoin(error);
+  }
+}
+
+async function joinAdmin({inviteId,endpoint,apiKey='',accessToken=''}={}){
+  if(connected)return true;
+  if(state==='joining')return false;
+  const normalizedInviteId=String(inviteId||'').trim();
+  const normalizedEndpoint=String(endpoint||'').trim();
+  const normalizedAccessToken=String(accessToken||'').trim();
+  if(!normalizedInviteId||!normalizedEndpoint||!normalizedAccessToken){
     state='error';
-    connected=false;
-    try{await room?.disconnect?.();}catch{}
-    room=null;
-    cleanupRemoteAudio();
+    lastError='invalid_admin_invite';
     return false;
+  }
+
+  state='joining';
+  lastError=null;
+  try{
+    await preflightMicrophone();
+    const [sdk,tokenData]=await Promise.all([
+      loadSdk(),
+      jsonPost(normalizedEndpoint,{action:'join',inviteId:normalizedInviteId},{apiKey,accessToken:normalizedAccessToken}),
+    ]);
+    await connectWithToken(sdk,tokenData);
+    await jsonPost(normalizedEndpoint,{action:'connected',inviteId:normalizedInviteId},{apiKey,accessToken:normalizedAccessToken});
+    return true;
+  }catch(error){
+    return failJoin(error);
   }
 }
 
@@ -173,5 +214,5 @@ async function leave({reason='leave'}={}){
   cleanupRemoteAudio();
 }
 
-window.TaphoaGuestCallSession={joinGuest,leave,snapshot};
+window.TaphoaGuestCallSession={joinGuest,joinAdmin,leave,snapshot};
 })();
