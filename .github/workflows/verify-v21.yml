@@ -53,6 +53,8 @@ jobs:
         run: python tests/test_v21_ai_product_parser_db_contract.py
       - name: Manual order scribe raw-name core contract
         run: node tests/test_v21_order_scribe_core.mjs
+      - name: Manual order scribe client normalization
+        run: node tests/test_v21_order_scribe_client_runtime.js
       - name: Manual order scribe Edge contract
         run: python tests/test_v21_order_scribe_edge_contract.py
       - name: Chat order draft database contract
