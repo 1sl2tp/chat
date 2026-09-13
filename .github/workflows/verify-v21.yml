@@ -8,17 +8,48 @@ on:
       - v21-72-18-auth-actions-row
       - v21-72-19-profile-username-avatar
   pull_request:
+permissions:
+  contents: write
 jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Wire and build guest call invite client
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path=Path('index.source.html')
+          text=path.read_text('utf-8')
+          guest='<script src="./guest-call-session.js" data-build-source="guest-call-session.js"></script>'
+          client='<script src="./call-invite-client.js" data-build-source="call-invite-client.js"></script>'
+          anchor='<script src="./v21-cache-store.js" data-build-source="v21-cache-store.js"></script>'
+          if guest not in text or client not in text:
+              assert anchor in text, 'canonical script anchor missing'
+              text=text.replace(anchor, guest+'\n'+client+'\n'+anchor, 1)
+              path.write_text(text,'utf-8')
+          assert text.index(guest)<text.index(client)
+          PY
+          python tools/build_current_preview.py
+      - name: Commit synchronized canonical build
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add index.source.html index.html version.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'chore: sync canonical call invite build'
+            BRANCH="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
+            git push origin "HEAD:${BRANCH}"
+          fi
       - name: Install test dependency
         run: python -m pip install pytest
       - name: V21.72.17 mobile form keyboard contract
