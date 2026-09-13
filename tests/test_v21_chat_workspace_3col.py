@@ -15,8 +15,6 @@ assert "desktopWorkspace?false:route!=='work'" in "".join(SHELL.split())
 compact_shell = "".join(SHELL.split())
 
 # Authentication is the state transition that makes the desktop workspace eligible.
-# Recompute workspace mode there; otherwise boot writes data-desktop-workspace=false
-# and the directory appears while the work iframe remains hidden until a media-query change.
 assert "setAuthenticated(authenticated,account=null){" in compact_shell
 assert "syncDesktopSidebarMode();syncDesktopWorkspaceMode();" in compact_shell
 
@@ -36,8 +34,8 @@ assert '#appShell[data-auth-state="authenticated"][data-desktop-workspace="true"
 assert '#appShell[data-auth-state="authenticated"][data-desktop-workspace="true"]#thread-bottom-container' in compact
 assert '#appShell[data-auth-state="authenticated"][data-desktop-workspace="true"][data-route="chat"]' not in compact
 
-# PC proportions: directory compact, chat deliberately moderate, work iframe gets the rest.
-assert "--desktop-directory-width:clamp(260px,17vw,300px)" in SOURCE
+# Keep the locked directory width; make chat moderate and give the iframe all remaining space.
+assert "--desktop-directory-width:clamp(328px,27vw,340px)" in SOURCE
 assert "--desktop-chat-width:clamp(420px,28vw,560px)" in SOURCE
 assert "--desktop-work-width:calc(100% - var(--desktop-chat-width))" in SOURCE
 
