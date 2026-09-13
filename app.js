@@ -1613,8 +1613,17 @@ function positionImageViewerBelowHeader(){
   const host=stageLayout||document.getElementById('threadContent');
   const rect=host?.getBoundingClientRect?.()||null;
   const viewportWidth=Math.max(0,window.innerWidth||document.documentElement.clientWidth||0);
+  const workThreadView=document.getElementById('workThreadView');
+  const workspaceActive=appShell?.dataset?.desktopWorkspace==='true';
+  const workRect=workspaceActive&&workThreadView?.getBoundingClientRect
+    ?workThreadView.getBoundingClientRect()
+    :null;
+  const regionRight=(
+    rect&&workRect&&workRect.width>0&&
+    workRect.left>rect.left&&workRect.left<rect.right
+  )?workRect.left:(rect?.right||viewportWidth);
   const left=rect?Math.max(0,rect.left):0;
-  const right=rect?Math.max(0,viewportWidth-rect.right):0;
+  const right=Math.max(0,viewportWidth-regionRight);
   imageViewerOverlay.style.setProperty('--image-viewer-top',`${Math.round(top*100)/100}px`);
   imageViewerOverlay.style.setProperty('--image-viewer-left',`${Math.round(left*100)/100}px`);
   imageViewerOverlay.style.setProperty('--image-viewer-right',`${Math.round(right*100)/100}px`);

@@ -43,6 +43,8 @@ jobs:
         run: python tests/test_v21_order_source_ui.py
       - name: Chat image orientation + column-2 viewer contract
         run: python tests/test_v21_chat_image_orientation_column.py
+      - name: Chat album viewer column-2 geometry contract
+        run: python tests/test_v21_chat_album_viewer_column2.py
       - name: Chat AI product parser core contract
         run: node tests/test_v21_ai_product_parser_core.mjs
       - name: Chat shared-product catalog search contract
