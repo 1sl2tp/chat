@@ -11,7 +11,7 @@ export function isLikelyOrderSource(value,aliases=[]){
   if(!text)return false;
   const valueNorm=normalized(text);
   if(/^(em cam on|cam on|vang|da|ok|oke|ok e|em cam on a)\b/u.test(valueNorm))return false;
-  const hasQty=/(^|\s)\d+(?:[.,]\d+)?\s+\S/u.test(valueNorm);
+  const hasQty=/(^|\s)\d+(?:[.,]\d+)?(?:(?:\s+\S)|(?=[^\d\s]))/u.test(valueNorm);
   if(!hasQty)return false;
   const hasPack=/\b(thung|loc|goi|bich|tui|chai|lon|hop|khay|cay)\b/u.test(valueNorm);
   const multiLine=text.split(/\n+/u).filter(Boolean).length>1;
