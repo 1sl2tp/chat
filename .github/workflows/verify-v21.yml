@@ -71,6 +71,8 @@ jobs:
           python tests/test_v21_order_draft_ui.py
       - name: Chat order draft composer integration
         run: python tests/test_v21_order_draft_composer_integration.py
+      - name: Work context bridge contract
+        run: python tests/test_v21_work_context_bridge.py
       - name: Chat quote database contract
         run: python tests/test_v21_quote_db_contract.py
       - name: Chat quote core contract
