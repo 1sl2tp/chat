@@ -1,7 +1,10 @@
 from pathlib import Path
 
-SQL_PATH = Path(__file__).resolve().parents[1] / "supabase/migrations/20260913_chat_order_drafts.sql"
+ROOT = Path(__file__).resolve().parents[1]
+SQL_PATH = ROOT / "supabase/migrations/20260913_chat_order_drafts.sql"
+SOURCE_LINK_PATH = ROOT / "supabase/migrations/20260913_chat_order_source_states.sql"
 SQL = SQL_PATH.read_text(encoding="utf-8").lower()
+SOURCE_LINK_SQL = SOURCE_LINK_PATH.read_text(encoding="utf-8").lower()
 compact = "".join(SQL.split())
 
 for table in ["chat_order_drafts", "chat_order_draft_lines"]:
@@ -25,5 +28,11 @@ assert "jsonb_array_elements" in SQL
 assert "grant execute on function public.chat_order_draft_create" in SQL
 assert "to service_role" in SQL
 assert "to anon" not in compact.split("chat_order_draft_create", 1)[1]
+
+# Source-message linkage is additive. The deployed base draft migration stays immutable.
+assert "source_message_id" not in SQL
+assert "alter table public.chat_order_draft_lines" in SOURCE_LINK_SQL
+assert "add column if not exists source_message_id uuid" in SOURCE_LINK_SQL
+assert "references public.v21_messages(id) on delete set null" in SOURCE_LINK_SQL
 
 print("chat order draft database contract PASS")
