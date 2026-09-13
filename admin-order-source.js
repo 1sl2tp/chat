@@ -84,6 +84,7 @@ function installStyle(){
     html[data-order-source-open="true"] #scrollRoot{overflow:hidden!important}
     html[data-order-source-open="true"] #threadContent{position:relative;min-height:0;height:100%;margin-bottom:0;padding-bottom:0;overflow:hidden}
     #adminOrderSourcePanel{position:absolute;inset:0;box-sizing:border-box;height:100%;min-height:0;display:grid;grid-template-rows:auto auto minmax(0,1fr);overflow:hidden;background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#171717)}
+    #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #adminOrderSourcePanel{inset-inline-end:var(--desktop-work-width)}
     #adminOrderSourcePanel[hidden]{display:none!important}
     .order-source-head{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--theme-border-default,#e7e7e7)}
     .order-source-head-copy{min-width:0;flex:1}.order-source-head-copy strong,.order-source-head-copy small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.order-source-head-copy strong{font-size:15px}.order-source-head-copy small{margin-top:2px;color:var(--theme-content-secondary,#6b6b6b);font-size:11px}
