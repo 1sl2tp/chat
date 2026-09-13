@@ -15,6 +15,7 @@ for token in [
     'Chưa xử lý','Đang xử lý','Đã nhập','Bỏ qua',
     'v21-order-source','v21-work-context','V21AdminOrderSource',
     'adminOrderSourcePanel','adminOrderSourceScroll',
+    'Khách:',
 ]:
     assert token in source, token
 
@@ -25,5 +26,13 @@ assert 'data-top-tab="work"' in index
 assert '[data-contact-row]' in source, 'open source panel must follow directory customer changes'
 assert 'selectedIds.clear()' in source
 assert 'workThreadView' in shell
+
+# Header/range stay fixed in the panel; only the message list owns vertical scrolling.
+compact=''.join(source.split())
+assert '#adminOrderSourcePanel{position:absolute;inset:0;' in compact
+assert 'overflow:hidden' in compact
+assert '.order-source-scroll{' in source
+assert 'overflow-y:auto' in compact
+assert '-webkit-overflow-scrolling:touch' in compact
 
 print('customer order source timeline UI contract PASS')

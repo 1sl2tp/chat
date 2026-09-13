@@ -1,0 +1,253 @@
+function clean(value){
+  return String(value??'').replace(/\s+/g,' ').trim();
+}
+
+function normalize(value){
+  return String(value??'')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .replace(/đ/gi,'d')
+    .toLowerCase()
+    .replace(/\s+/g,' ')
+    .trim();
+}
+
+const SPLIT_WORD_DICTIONARY=new Map([
+  ['ko','không'],
+]);
+
+function normalizeSplitName(value){
+  return clean(value)
+    .split(' ')
+    .filter(Boolean)
+    .map(token=>SPLIT_WORD_DICTIONARY.get(token.toLocaleLowerCase('vi-VN'))||token)
+    .join(' ');
+}
+
+function numberValue(value){
+  const n=Number(String(value??'').replace(',','.'));
+  return Number.isFinite(n)&&n>0?n:null;
+}
+
+function quantityText(value){
+  const n=numberValue(value);
+  if(n==null)return '1';
+  return Number.isInteger(n)?String(n):String(Math.round(n*100)/100);
+}
+
+function upperFirst(value){
+  const text=clean(value);
+  if(!text)return '';
+  return text.slice(0,1).toLocaleUpperCase('vi-VN')+text.slice(1);
+}
+
+const UNIT='(?:t|th|thùng|thung|bao|ba0|gói|goi|chai|lốc|loc|hộp|hop|cây|cay|lon|khay|túi|tui)';
+const startUnit=new RegExp(`^(\\d+(?:[.,]\\d+)?)\\s*(${UNIT})\\s+(.+)$`,'iu');
+const endUnit=new RegExp(`^(.+?)\\s+(?:x\\s*)?(\\d+(?:[.,]\\d+)?)(?:\\s*(${UNIT}))?$`,'iu');
+const sharedChild=new RegExp(`^(\\d+(?:[.,]\\d+)?)(?:\\s*(${UNIT}))?\\s+(.+)$`,'iu');
+const inlineQuantityStart=new RegExp(`(^|\\s)(\\d+(?:[.,]\\d+)?(?:\\s*${UNIT})?)(?=\\s+\\S)`,'giu');
+const MEASURE_WORDS=new Set(['lit','l','kg','g','gram','ml']);
+const SPOKEN_QUANTITY_UNIT=/(?:^|\s)(?:mot|hai|ba|bon|nam|sau|bay|tam|chin|muoi)\s+(?:thung|hop|goi|bich|tui|chai|lon|loc|khay|cay)\b/u;
+
+const NUMERIC_NAME_PREFIXES=[
+  '555','333','3 mien','7 up','7up','1664 blanc','584 nha trang','3k',
+  '3 co gai','3 con tom','7days','7 days','888','2 chew',
+];
+
+function numericNamePrefix(value){
+  const text=normalize(value);
+  for(const prefix of NUMERIC_NAME_PREFIXES){
+    if(text===prefix||text.startsWith(`${prefix} `))return prefix;
+  }
+  return null;
+}
+
+function nameRemainderAfterNumericPrefix(value){
+  const text=normalize(value);
+  const prefix=numericNamePrefix(text);
+  if(!prefix)return text;
+  return text.slice(prefix.length).trim();
+}
+
+function looksLikeUnseparatedMultiItem(productName){
+  const remainder=nameRemainderAfterNumericPrefix(productName);
+  if(SPOKEN_QUANTITY_UNIT.test(remainder))return true;
+  const parts=remainder.split(/\s+/).filter(Boolean);
+  for(let i=0;i<parts.length-1;i++){
+    if(!/^\d+(?:[.,]\d+)?$/.test(parts[i]))continue;
+    if(MEASURE_WORDS.has(parts[i+1]))continue;
+    if(parts.slice(i+1).some(token=>/[a-z]/i.test(token)))return true;
+  }
+  return false;
+}
+
+function finalize(quantity,name,{preserveRaw=false,rawName=name}={}){
+  const q=numberValue(quantity);
+  const productName=upperFirst(normalizeSplitName(name));
+  if(q==null||!productName||looksLikeUnseparatedMultiItem(productName))return null;
+  const result={quantity:q,productName,line:`${quantityText(q)} ${productName}`};
+  if(preserveRaw)result.rawProductName=clean(rawName);
+  return result;
+}
+
+function parseSegmentDetailed(raw,{preserveRaw=false}={}){
+  const text=clean(raw);
+  if(!text||text.includes('=')||text.includes(':'))return null;
+
+  if(numericNamePrefix(text)){
+    const match=text.match(endUnit);
+    if(!match||!numericNamePrefix(match[1]))return null;
+    return finalize(match[2],match[1],{preserveRaw,rawName:match[1]});
+  }
+
+  let match=text.match(startUnit);
+  if(match){
+    const quantityEnd=String(match[1]).length;
+    const unitWasAttached=!/^\s/u.test(text.slice(quantityEnd));
+    const rawName=unitWasAttached?match[3]:`${match[2]} ${match[3]}`;
+    return finalize(match[1],match[3],{preserveRaw,rawName});
+  }
+
+  match=text.match(/^(\d+(?:[.,]\d+)?)\s+(.+)$/u);
+  if(match)return finalize(match[1],match[2],{preserveRaw,rawName:match[2]});
+
+  match=text.match(endUnit);
+  if(match)return finalize(match[2],match[1],{preserveRaw,rawName:match[1]});
+
+  return null;
+}
+
+function isIgnorableGreeting(raw){
+  const text=normalize(raw).replace(/[.!?]+$/g,'').trim();
+  return /^(?:ok|oke|okay)(?:\s+(?:anh|em|chi))?$/.test(text);
+}
+
+function hasAttachedUnit(marker){
+  return clean(marker).replace(/^\d+(?:[.,]\d+)?\s*/u,'').length>0;
+}
+
+function splitInlineQuantityItems(raw,{preserveRaw=false}={}){
+  const text=clean(raw);
+  if(!text)return [];
+
+  inlineQuantityStart.lastIndex=0;
+  const starts=[];
+  let match;
+  while((match=inlineQuantityStart.exec(text))){
+    const start=match.index+match[1].length;
+    const marker=clean(match[2]);
+    const rest=text.slice(start+marker.length).trimStart();
+    const nextWord=normalize(rest.split(/\s+/)[0]||'');
+    if(starts.length&&!hasAttachedUnit(marker)&&MEASURE_WORDS.has(nextWord))continue;
+    starts.push(start);
+  }
+
+  if(!starts.length)return [];
+
+  const prefix=clean(text.slice(0,starts[0]));
+  const normalizedPrefix=normalize(prefix);
+  const shortOrderPreface=/(?:^|\s)cho\s+(?:em|anh|chi)$/.test(normalizedPrefix);
+  if(prefix&&!shortOrderPreface)return [];
+  if(starts.length<2&&!shortOrderPreface)return [];
+
+  const parsed=[];
+  for(let i=0;i<starts.length;i++){
+    const chunk=clean(text.slice(starts[i],i+1<starts.length?starts[i+1]:text.length));
+    const item=parseSegmentDetailed(chunk,{preserveRaw});
+    if(!item)return [];
+    parsed.push(item);
+  }
+  return parsed;
+}
+
+function splitFlatSegments(value){
+  const text=String(value??'');
+  const parts=[];
+  let buffer='';
+
+  for(let i=0;i<text.length;i++){
+    const char=text[i];
+    const simpleSeparator=char==='/'||char===';';
+    const decimalComma=char===','&&/\d/.test(text[i-1]||'')&&/\d/.test(text[i+1]||'');
+    const commaSeparator=char===','&&!decimalComma;
+
+    if(simpleSeparator||commaSeparator){
+      const part=buffer.trim();
+      if(part)parts.push(part);
+      buffer='';
+      continue;
+    }
+    buffer+=char;
+  }
+
+  const tail=buffer.trim();
+  if(tail)parts.push(tail);
+  return parts;
+}
+
+function expandLine(rawLine){
+  const line=clean(String(rawLine??'').replace(/^[-•]\s*/,''));
+  if(!line)return [];
+
+  const colon=line.indexOf(':');
+  if(colon<=0||colon===line.length-1)return splitFlatSegments(line);
+
+  const parent=clean(line.slice(0,colon));
+  const children=splitFlatSegments(line.slice(colon+1));
+  if(!parent||!children.length)return [line];
+
+  const expanded=[];
+  for(const child of children){
+    const match=child.match(sharedChild);
+    if(!match)return [line];
+    expanded.push(clean(`${match[1]} ${parent} ${match[3]}`));
+  }
+  return expanded;
+}
+
+export function splitCustomerSegments(value){
+  return String(value??'')
+    .replace(/\r\n?/g,'\n')
+    .split('\n')
+    .flatMap(expandLine)
+    .filter(Boolean);
+}
+
+export function parseCustomerTextPartial(value,{preserveRaw=false}={}){
+  const original=String(value??'').replace(/\r\n?/g,'\n').trim();
+  if(!original)return {lines:[],unresolved:[],confirmations:[]};
+  if(original.includes('='))return {lines:[],unresolved:[{raw:original}],confirmations:[]};
+
+  const segments=splitCustomerSegments(original);
+  if(!segments.length)return {lines:[],unresolved:[],confirmations:[]};
+
+  const lines=[];
+  const unresolved=[];
+  for(const segment of segments){
+    const parsed=parseSegmentDetailed(segment,{preserveRaw});
+    if(parsed){
+      lines.push(parsed);
+      continue;
+    }
+
+    const inlineItems=splitInlineQuantityItems(segment,{preserveRaw});
+    if(inlineItems.length){
+      lines.push(...inlineItems);
+      continue;
+    }
+
+    if(isIgnorableGreeting(segment))continue;
+    unresolved.push({raw:segment});
+  }
+  return {lines,unresolved,confirmations:[]};
+}
+
+export function parseCustomerTextDetailed(value){
+  const result=parseCustomerTextPartial(value);
+  if(result.unresolved.length)return {lines:[],confirmations:[]};
+  return {lines:result.lines,confirmations:[]};
+}
+
+export function parseCustomerText(value){
+  return parseCustomerTextDetailed(value).lines;
+}
