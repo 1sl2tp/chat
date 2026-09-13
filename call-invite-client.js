@@ -156,6 +156,7 @@ function inviteFromRow(row,current=null){
     endedAt:row?.ended_at||current?.endedAt||null,
     sendFailed:Boolean(current?.sendFailed),
     adminConnected:Boolean(current?.adminConnected),
+    adminMediaReady:Boolean(current?.adminMediaReady),
   };
 }
 
@@ -186,6 +187,41 @@ function dismissExternal(reason='answered-elsewhere',inviteId=externalCallAdapte
   return true;
 }
 
+function updateConnectedInviteMedia(detail={}){
+  const healthy=Boolean(detail?.mediaReady&&detail?.remotePlaybackReady);
+  for(const [contactId,invite] of invitesByContact){
+    if(!invite?.adminConnected||invite?.endedAt||invite?.revokedAt)continue;
+    if(invite.adminMediaReady===healthy)continue;
+    invite.adminMediaReady=healthy;
+    invitesByContact.set(contactId,invite);
+    document.dispatchEvent(new CustomEvent('v21-call-invite-state',{
+      detail:{contactId,invite:{...invite}}
+    }));
+  }
+  return healthy;
+}
+
+function syncExternalMedia(detail=window.TaphoaGuestCallSession?.snapshot?.()||{}){
+  const adapter=externalCallAdapter;
+  const healthy=updateConnectedInviteMedia(detail);
+  if(!adapter||adapter.phase==='ringing')return healthy;
+  if(healthy){
+    if(adapter.phase!=='active'){
+      adapter.phase='active';
+      adapter.startedAt=adapter.startedAt||new Date().toISOString();
+      callCommand()?.enterActive?.(adapter.contactId,adapter.contactName,{
+        id:adapter.inviteId,direction:'incoming',source:'guest-link',mediaStartedAt:adapter.startedAt
+      });
+    }
+    return true;
+  }
+  if(adapter.phase!=='connecting')adapter.phase='connecting';
+  callCommand()?.enterConnecting?.(adapter.contactId,adapter.contactName,{
+    id:adapter.inviteId,direction:'incoming',source:'guest-link'
+  });
+  return false;
+}
+
 async function acceptExternalCurrent(){
   const adapter=externalCallAdapter;
   if(!adapter||adapter.busy||adapter.phase!=='ringing')return false;
@@ -200,12 +236,9 @@ async function acceptExternalCurrent(){
     if(!ok)throw new Error('livekit_token_failed');
     if(externalCallAdapter!==adapter)return false;
     adapter.busy=false;
-    adapter.phase='active';
-    adapter.startedAt=new Date().toISOString();
+    adapter.phase='connecting';
     acceptingInviteId='';
-    callCommand()?.enterActive?.(adapter.contactId,adapter.contactName,{
-      id:adapter.inviteId,direction:'incoming',source:'guest-link',mediaStartedAt:adapter.startedAt
-    });
+    syncExternalMedia(window.TaphoaGuestCallSession?.snapshot?.()||{});
     return true;
   }catch(error){
     adapter.busy=false;
@@ -391,7 +424,7 @@ async function createAndSend({contactId=targetAccountId}={}){
 
   const invite={
     inviteId:String(data.inviteId),url:String(data.url),expiresAt:String(data.expiresAt||''),createdAt:new Date().toISOString(),
-    openedAt:null,guestJoinedAt:null,adminJoinedAt:null,revokedAt:null,endedAt:null,sendFailed:false,adminConnected:false,
+    openedAt:null,guestJoinedAt:null,adminJoinedAt:null,revokedAt:null,endedAt:null,sendFailed:false,adminConnected:false,adminMediaReady:false,
   };
   invitesByContact.set(target,invite);
   watchInvite(target,invite.inviteId);
@@ -415,6 +448,7 @@ async function joinInvite({contactId=targetAccountId}={}){
   const ok=await session.joinAdmin({inviteId:invite.inviteId,endpoint:ADMIN_ENDPOINT,apiKey:PUBLIC_KEY,accessToken:token});
   if(!ok)throw new Error(session.snapshot?.().error||'livekit_token_failed');
   invite.adminConnected=true;
+  invite.adminMediaReady=Boolean(session.snapshot?.().mediaReady&&session.snapshot?.().remotePlaybackReady);
   invite.adminJoinedAt=invite.adminJoinedAt||new Date().toISOString();
   invitesByContact.set(target,invite);
   document.dispatchEvent(new CustomEvent('v21-call-invite-state',{detail:{contactId:target,invite:{...invite}}}));
@@ -428,6 +462,7 @@ async function endInvite({contactId=targetAccountId}={}){
   await window.TaphoaGuestCallSession?.leave?.({reason:'ended'});
   try{await invokeAdmin({action:'end',inviteId:invite.inviteId});}catch{}
   invite.adminConnected=false;
+  invite.adminMediaReady=false;
   invite.endedAt=invite.endedAt||new Date().toISOString();
   invitesByContact.set(target,invite);
   document.dispatchEvent(new CustomEvent('v21-call-invite-state',{detail:{contactId:target,invite:{...invite}}}));
@@ -449,7 +484,7 @@ function statusText(invite){
   if(!invite)return '';
   if(invite.endedAt)return 'Cuộc gọi đã kết thúc';
   if(invite.revokedAt||isExpired(invite))return 'Link gọi đã hết hạn';
-  if(invite.adminConnected)return 'Đang nghe';
+  if(invite.adminConnected)return invite.adminMediaReady?'Đang nghe':'Đang kết nối âm thanh';
   if(invite.guestJoinedAt)return 'Khách đã vào phòng · đang gọi';
   if(invite.openedAt)return 'Khách đã mở link';
   if(invite.sendFailed)return 'Link đã tạo nhưng chưa gửi';
@@ -551,6 +586,9 @@ document.addEventListener('v21-auth-state',event=>{
     stopIncomingWatch();
     dismissExternal('auth-reset');
   }
+});
+document.addEventListener('taphoa-guest-call-session-state',event=>{
+  syncExternalMedia(event?.detail||{});
 });
 document.addEventListener('v21-call-invite-push-open',event=>{
   const detail=event?.detail||{};
