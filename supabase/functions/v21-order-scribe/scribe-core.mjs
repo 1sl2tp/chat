@@ -76,12 +76,6 @@ const IMAGE_QTY_START=new RegExp(`^(\\d+(?:[.,]\\d+)?)(\\s*${IMAGE_QTY_UNIT})?(?
 const IMAGE_QTY_END_WITH_UNIT=new RegExp(`^(.+?)\\s*(?:[:\\-]\\s*)?(\\d+(?:[.,]\\d+)?)(\\s*${IMAGE_QTY_UNIT})\\s*[.]?$`,'iu');
 const IMAGE_QTY_END_AFTER_SEPARATOR=new RegExp(`^(.+?)\\s*[:\\-]\\s*(\\d+(?:[.,]\\d+)?)\\s*[.]?$`,'u');
 const IMAGE_REPEAT_MARKER=/^(?:_{2,}|—+|–{2,}|-{2,})\s*/u;
-const SUGAR_VARIANT=/^(?:không|ko|0|ít|có)\s+đường$/iu;
-const SUGAR_SUFFIX=/\s+(?:không|ko|0|ít|có)\s+đường$/iu;
-const MEASURE_VARIANT=/^\d+(?:[.,]\d+)?\s*(?:ml|l|lít|lit|kg|g|gram)$/iu;
-const MEASURE_SUFFIX=/\s+\d+(?:[.,]\d+)?\s*(?:ml|l|lít|lit|kg|g|gram)$/iu;
-const SIZE_VARIANT=/^(?:to|bé|lớn|nhỏ)$/iu;
-const SIZE_SUFFIX=/\s+(?:to|bé|lớn|nhỏ)$/iu;
 
 function trimLiteralName(value){
   return String(value??'').trim().replace(/[\s:;,-]+$/u,'').trim();
@@ -122,13 +116,25 @@ function repeatRemainder(value){
   return text.replace(IMAGE_REPEAT_MARKER,'').trim();
 }
 
+function normalizedToken(value){
+  return String(value??'').toLocaleLowerCase('vi-VN');
+}
+
 function inheritedBase(previousName,newVariant){
-  const prior=String(previousName??'').trim();
-  const variant=String(newVariant??'').trim();
-  if(!prior||!variant)return '';
-  if(SUGAR_VARIANT.test(variant)&&SUGAR_SUFFIX.test(prior))return prior.replace(SUGAR_SUFFIX,'').trim();
-  if(MEASURE_VARIANT.test(variant)&&MEASURE_SUFFIX.test(prior))return prior.replace(MEASURE_SUFFIX,'').trim();
-  if(SIZE_VARIANT.test(variant)&&SIZE_SUFFIX.test(prior))return prior.replace(SIZE_SUFFIX,'').trim();
+  const priorTokens=String(previousName??'').trim().split(/\s+/u).filter(Boolean);
+  const variantTokens=String(newVariant??'').trim().split(/\s+/u).filter(Boolean);
+  if(!priorTokens.length||!variantTokens.length)return '';
+
+  const firstVariant=normalizedToken(variantTokens[0]);
+  const anchorIndex=priorTokens.findIndex((token,index)=>index>0&&normalizedToken(token)===firstVariant);
+  if(anchorIndex>0)return priorTokens.slice(0,anchorIndex).join(' ');
+
+  // The handwritten line means the prefix was intentionally omitted. Without
+  // product data, the safest deterministic reconstruction is positional: the
+  // visible remainder replaces the same number of trailing words above.
+  if(variantTokens.length<priorTokens.length){
+    return priorTokens.slice(0,priorTokens.length-variantTokens.length).join(' ');
+  }
   return '';
 }
 
