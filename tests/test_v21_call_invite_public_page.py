@@ -20,6 +20,8 @@ def test_public_guest_call_page_contract():
         'taphoa-guest-call-session-state',
         'mediaReady',
         'Đã kết nối. Bạn có thể nói chuyện.',
+        'Bật loa',
+        'TaphoaGuestCallSession.retryAudio',
     ]
     for needle in required:
         assert needle in text, needle
