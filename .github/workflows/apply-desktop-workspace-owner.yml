@@ -74,8 +74,22 @@ jobs:
       - name: Rebuild canonical output
         run: python tools/build_current_preview.py
       - name: Verify full canonical source
-        run: python tools/verify_current.py
+        id: verify
+        continue-on-error: true
+        run: python tools/verify_current.py > verify-debug.txt 2>&1
+      - name: Commit debug log on verify failure
+        if: steps.verify.outcome == 'failure'
+        run: |
+          git config user.name '1sl2tp'
+          git config user.email '1sl2tp@gmail.com'
+          git add verify-debug.txt
+          git commit -m 'debug: capture desktop workspace verify failure'
+          git push origin HEAD:fix/desktop-workspace-auth-sync
+      - name: Stop on verify failure
+        if: steps.verify.outcome == 'failure'
+        run: exit 1
       - name: Commit product files
+        if: steps.verify.outcome == 'success'
         run: |
           git config user.name '1sl2tp'
           git config user.email '1sl2tp@gmail.com'
