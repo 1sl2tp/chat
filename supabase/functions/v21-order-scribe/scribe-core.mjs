@@ -17,22 +17,23 @@ function looksLikeSpokenMultiItem(name){
 
 export function parseQuickOrderText(value){
   const source=normalizeSource(value);
-  if(!source)return {ok:false,items:[],error:'order_text_required'};
+  if(!source)return {ok:false,items:[],unresolved:[],error:'order_text_required'};
   const chunks=quickChunks(source);
-  if(!chunks.length)return {ok:false,items:[],error:'order_text_required'};
+  if(!chunks.length)return {ok:false,items:[],unresolved:[],error:'order_text_required'};
   const items=[];
+  const unresolved=[];
   for(const chunk of chunks){
     const match=chunk.match(/^\s*(\d+(?:[.,]\d+)?)\s+([\s\S]+?)\s*$/u);
-    if(!match)return {ok:false,items:[],error:'quick_parse_failed'};
+    if(!match){unresolved.push({raw:chunk});continue;}
     const quantity=quantityNumber(match[1]);
     const name=String(match[2]??'').trim();
-    if(!quantity||!name)return {ok:false,items:[],error:'quick_parse_failed'};
-    if(chunks.length===1&&looksLikeSpokenMultiItem(name)){
-      return {ok:false,items:[],error:'quick_parse_failed'};
+    if(!quantity||!name||(chunks.length===1&&looksLikeSpokenMultiItem(name))){
+      unresolved.push({raw:chunk});
+      continue;
     }
     items.push({quantity,name});
   }
-  return {ok:true,items,error:null};
+  return {ok:true,items,unresolved,error:null};
 }
 
 export function materializeAiSpans(value,spans){
