@@ -1,0 +1,46 @@
+name: Feature Call Invite Canonical Build
+on:
+  push:
+    branches:
+      - feature/livekit-guest-call-links
+permissions:
+  contents: write
+jobs:
+  wire-build:
+    if: ${{ !contains(github.event.head_commit.message, 'sync canonical call invite build') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Wire invite modules into canonical source
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path=Path('index.source.html')
+          text=path.read_text('utf-8')
+          guest='<script src="./guest-call-session.js" data-build-source="guest-call-session.js"></script>'
+          client='<script src="./call-invite-client.js" data-build-source="call-invite-client.js"></script>'
+          anchor='<script src="./v21-cache-store.js" data-build-source="v21-cache-store.js"></script>'
+          if guest not in text or client not in text:
+              assert anchor in text, 'canonical script anchor missing'
+              text=text.replace(anchor, guest+'\n'+client+'\n'+anchor, 1)
+              path.write_text(text,'utf-8')
+          assert text.index(guest)<text.index(client)
+          PY
+      - name: Build canonical index
+        run: python tools/build_current_preview.py
+      - name: Commit canonical build
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add index.source.html index.html version.json
+          if git diff --cached --quiet; then
+            echo 'canonical build already synchronized'
+          else
+            git commit -m 'chore: sync canonical call invite build'
+            git push origin HEAD:${GITHUB_REF_NAME}
+          fi
