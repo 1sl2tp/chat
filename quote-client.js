@@ -253,3 +253,5 @@ window.V21QuoteClient=Object.freeze({
   mount:mountQuotePanel,
 });
 })();
+
+void import('./admin-composer-actions.js').catch(error=>console.warn('[admin-composer-actions]',error));
