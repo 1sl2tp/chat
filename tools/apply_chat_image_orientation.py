@@ -49,12 +49,4 @@ for obsolete in [ROOT/'order-source-image-viewer.js',ROOT/'tests/test_v21_order_
     if obsolete.exists():
         obsolete.unlink()
 
-workflow=ROOT/'.github/workflows/verify-v21.yml'
-workflow_text=workflow.read_text(encoding='utf-8')
-workflow_text=workflow_text.replace(
-    "      - name: Customer order source inline image viewer contract\n        run: python tests/test_v21_order_source_inline_image_viewer.py\n",
-    '',
-)
-workflow.write_text(workflow_text,encoding='utf-8')
-
 print('chat image orientation patch applied')
