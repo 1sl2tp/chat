@@ -47,6 +47,7 @@ const endUnit=new RegExp(`^(.+?)\\s+(?:x\\s*)?(\\d+(?:[.,]\\d+)?)(?:\\s*(${UNIT}
 const sharedChild=new RegExp(`^(\\d+(?:[.,]\\d+)?)(?:\\s*(${UNIT}))?\\s+(.+)$`,'iu');
 const inlineQuantityStart=new RegExp(`(^|\\s)(\\d+(?:[.,]\\d+)?(?:\\s*${UNIT})?)(?=\\s+\\S)`,'giu');
 const MEASURE_WORDS=new Set(['lit','l','kg','g','gram','ml']);
+const SPOKEN_QUANTITY_UNIT=/(?:^|\s)(?:mot|hai|ba|bon|nam|sau|bay|tam|chin|muoi)\s+(?:thung|hop|goi|bich|tui|chai|lon|loc|khay|cay)\b/u;
 
 // Confirmed numeric-leading product names only. These prevent a leading brand number from being read as quantity.
 const NUMERIC_NAME_PREFIXES=[
@@ -70,7 +71,9 @@ function nameRemainderAfterNumericPrefix(value){
 }
 
 function looksLikeUnseparatedMultiItem(productName){
-  const parts=nameRemainderAfterNumericPrefix(productName).split(/\s+/).filter(Boolean);
+  const remainder=nameRemainderAfterNumericPrefix(productName);
+  if(SPOKEN_QUANTITY_UNIT.test(remainder))return true;
+  const parts=remainder.split(/\s+/).filter(Boolean);
   for(let i=0;i<parts.length-1;i++){
     if(!/^\d+(?:[.,]\d+)?$/.test(parts[i]))continue;
     if(MEASURE_WORDS.has(parts[i+1]))continue;
