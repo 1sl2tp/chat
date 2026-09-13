@@ -1,0 +1,15 @@
+name: RED Chat Workspace 3 Col
+on:
+  push:
+    branches:
+      - feature/chat-workspace-3col
+jobs:
+  red:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Desktop chat workspace contract
+        run: python tests/test_v21_chat_workspace_3col.py
