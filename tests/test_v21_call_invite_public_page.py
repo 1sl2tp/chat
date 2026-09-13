@@ -16,6 +16,12 @@ def test_public_guest_call_page_contract():
         "action:'open'",
         'Liên kết đã hết hạn hoặc không còn hiệu lực',
         'Không thể kết nối cuộc gọi',
+        'Đã vào phòng. Đang chờ bên kia…',
+        'taphoa-guest-call-session-state',
+        'mediaReady',
+        'Đã kết nối. Bạn có thể nói chuyện.',
+        'Bật loa',
+        'TaphoaGuestCallSession.retryAudio',
     ]
     for needle in required:
         assert needle in text, needle
@@ -37,6 +43,16 @@ def test_public_guest_call_page_contract():
     assert open_pos >= 0
     assert join_handler_pos > open_pos
     assert join_call_pos > join_handler_pos
+
+    # The waiting message is also used by renderMedia() above the click handler.
+    # Require a second/post-join occurrence so a successful room join cannot
+    # immediately claim that two-way audio is active.
+    waiting_pos = text.find('Đã vào phòng. Đang chờ bên kia…', join_call_pos)
+    healthy_pos = text.find('Đã kết nối. Bạn có thể nói chuyện.')
+    media_listener_pos = text.find('taphoa-guest-call-session-state')
+    assert waiting_pos > join_call_pos
+    assert media_listener_pos >= 0
+    assert healthy_pos >= 0
 
 
 def test_public_page_does_not_expose_livekit_token_or_service_secret():

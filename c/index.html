@@ -35,7 +35,7 @@ button{width:100%;min-height:48px;border:0;border-radius:14px;font:inherit;font-
     <button id="joinButton" type="button" disabled>Tham gia cuộc gọi</button>
     <button id="leaveButton" type="button" class="hidden">Kết thúc</button>
   </div>
-  <div class="help">Nếu Zalo không cấp quyền micro, chọn ⋯ → Mở bằng trình duyệt.</div>
+  <div class="help">Nếu Zalo không cấp quyền micro hoặc loa, chọn ⋯ → Mở bằng trình duyệt.</div>
 </main>
 <script src="../guest-call-session.js"></script>
 <script>
@@ -49,13 +49,37 @@ const statusEl=document.getElementById('status');
 const joinButton=document.getElementById('joinButton');
 const leaveButton=document.getElementById('leaveButton');
 let ready=false;
+let joined=false;
+let retryingAudio=false;
 
 function show(message){statusEl.textContent=message;}
 function terminal(){
   ready=false;
+  joined=false;
+  joinButton.textContent='Tham gia cuộc gọi';
   joinButton.disabled=true;
   leaveButton.classList.add('hidden');
   show('Liên kết đã hết hạn hoặc không còn hiệu lực');
+}
+function renderMedia(detail=window.TaphoaGuestCallSession?.snapshot?.()||{}){
+  if(!joined)return;
+  if(detail?.mediaReady){
+    joinButton.textContent='Tham gia cuộc gọi';
+    joinButton.disabled=true;
+    show('Đã kết nối. Bạn có thể nói chuyện.');
+    return;
+  }
+  if(detail?.connected&&String(detail?.error||'')==='remote_audio_playback_blocked'){
+    joinButton.textContent='Bật loa';
+    joinButton.disabled=false;
+    show('Đã vào phòng nhưng loa chưa phát. Bấm “Bật loa”.');
+    return;
+  }
+  if(detail?.connected){
+    joinButton.textContent='Tham gia cuộc gọi';
+    joinButton.disabled=true;
+    show('Đã vào phòng. Đang chờ bên kia…');
+  }
 }
 async function request(body){
   const response=await fetch(ENDPOINT,{
@@ -86,7 +110,21 @@ async function openInvite(){
   }
 }
 
+document.addEventListener('taphoa-guest-call-session-state',event=>{
+  renderMedia(event?.detail||{});
+});
+
 joinButton.addEventListener('click',async()=>{
+  if(joined){
+    if(retryingAudio)return;
+    retryingAudio=true;
+    joinButton.disabled=true;
+    show('Đang bật loa…');
+    await window.TaphoaGuestCallSession.retryAudio();
+    retryingAudio=false;
+    renderMedia(window.TaphoaGuestCallSession.snapshot());
+    return;
+  }
   if(!ready)return;
   joinButton.disabled=true;
   show('Đang kết nối cuộc gọi…');
@@ -100,13 +138,17 @@ joinButton.addEventListener('click',async()=>{
     }
     return;
   }
-  show('Đã kết nối. Bạn có thể nói chuyện.');
+  joined=true;
   leaveButton.classList.remove('hidden');
+  show('Đã vào phòng. Đang chờ bên kia…');
+  renderMedia(window.TaphoaGuestCallSession.snapshot());
 });
 
 leaveButton.addEventListener('click',async()=>{
   await window.TaphoaGuestCallSession.leave({reason:'ended'});
   ready=false;
+  joined=false;
+  joinButton.textContent='Tham gia cuộc gọi';
   joinButton.disabled=true;
   leaveButton.classList.add('hidden');
   show('Cuộc gọi đã kết thúc.');

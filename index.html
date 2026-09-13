@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="57fc5c2a4f9c0c168bf29ea9edcce6039e64d11ead84f93c83ac0bf8d8160d23">
+<meta name="app-build-id" content="aff5c9d72d1927fd89ef44c5693468f606a69d49a2deaac0de4895c5446c1d05">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -14340,18 +14340,66 @@ let lastError=null;
 let activeKey='';
 let activeEndpoint='';
 let activeApiKey='';
+let localMicPublished=false;
+let remoteAudioSubscribed=false;
+let remotePlaybackReady=false;
+let mediaReady=false;
 const remoteAudio=new Set();
+const remoteTracks=new Set();
+const remoteAttachments=new Map();
 
 function snapshot(){
-  return {state,error:lastError,connected};
+  return {
+    state,
+    error:lastError,
+    connected,
+    localMicPublished,
+    remoteAudioSubscribed,
+    remotePlaybackReady,
+    mediaReady,
+  };
 }
 
-function cleanupRemoteAudio(){
+function emit(reason='state'){
+  mediaReady=Boolean(connected&&localMicPublished&&remoteAudioSubscribed&&remotePlaybackReady);
+  if(connected)state=mediaReady?'active':'connected';
+  try{
+    if(typeof CustomEvent==='function'){
+      document.dispatchEvent?.(new CustomEvent('taphoa-guest-call-session-state',{
+        detail:{...snapshot(),reason:String(reason||'state')},
+      }));
+    }
+  }catch{}
+}
+
+function removeAttachment(track){
+  const el=remoteAttachments.get(track)||null;
+  if(el){
+    remoteAttachments.delete(track);
+    remoteAudio.delete(el);
+    try{el.pause?.();}catch{}
+    try{el.remove?.();}catch{}
+  }
+  try{
+    for(const detached of track?.detach?.()||[]){
+      remoteAudio.delete(detached);
+      try{detached.pause?.();}catch{}
+      try{detached.remove?.();}catch{}
+    }
+  }catch{}
+}
+
+function cleanupRemoteAudio({clearTracks=true}={}){
   for(const el of remoteAudio){
     try{el.pause?.();}catch{}
     try{el.remove?.();}catch{}
   }
   remoteAudio.clear();
+  remoteAttachments.clear();
+  if(clearTracks)remoteTracks.clear();
+  remoteAudioSubscribed=remoteTracks.size>0;
+  remotePlaybackReady=false;
+  mediaReady=false;
 }
 
 function loadSdk(){
@@ -14415,49 +14463,116 @@ async function preflightMicrophone(){
   }
 }
 
-function attachRemoteTrack(track,nextRoom){
+async function attachRemoteTrack(track,nextRoom){
+  if(!track||nextRoom!==room)return false;
+  remoteTracks.add(track);
+  remoteAudioSubscribed=remoteTracks.size>0;
+  let el=remoteAttachments.get(track)||null;
   try{
-    const el=track?.attach?.();
-    if(!el)return;
-    el.autoplay=true;
-    el.playsInline=true;
-    el.style.position='fixed';
-    el.style.width='1px';
-    el.style.height='1px';
-    el.style.opacity='0';
-    el.style.pointerEvents='none';
-    document.body?.appendChild?.(el);
-    remoteAudio.add(el);
-    try{nextRoom?.startAudio?.();}catch{}
-    const play=el.play?.();
-    if(play&&typeof play.catch==='function')play.catch(()=>{});
-  }catch{}
+    if(!el||!el.isConnected){
+      if(el){
+        remoteAttachments.delete(track);
+        remoteAudio.delete(el);
+        try{el.remove?.();}catch{}
+      }
+      el=track.attach?.();
+      if(!el)throw new Error('remote_audio_attach_failed');
+      el.autoplay=true;
+      el.playsInline=true;
+      el.style.position='fixed';
+      el.style.width='1px';
+      el.style.height='1px';
+      el.style.opacity='0';
+      el.style.pointerEvents='none';
+      document.body?.appendChild?.(el);
+      remoteAttachments.set(track,el);
+      remoteAudio.add(el);
+    }
+    const started=nextRoom.startAudio?.();
+    if(started&&typeof started.then==='function')await started;
+    const played=el.play?.();
+    if(played&&typeof played.then==='function')await played;
+    if(nextRoom!==room)return false;
+    remotePlaybackReady=remoteAttachments.size>0;
+    if(lastError==='remote_audio_playback_blocked')lastError=null;
+    emit('remote-audio-playable');
+    return true;
+  }catch(error){
+    if(el){
+      remoteAttachments.delete(track);
+      remoteAudio.delete(el);
+      try{el.pause?.();}catch{}
+      try{el.remove?.();}catch{}
+    }
+    remotePlaybackReady=remoteAttachments.size>0;
+    lastError='remote_audio_playback_blocked';
+    emit('remote-audio-blocked');
+    return false;
+  }
+}
+
+async function retryAudio(){
+  const current=room;
+  if(!current||!connected||remoteTracks.size===0)return false;
+  let ok=false;
+  for(const track of [...remoteTracks]){
+    if(await attachRemoteTrack(track,current))ok=true;
+  }
+  emit(ok?'remote-audio-retry-ok':'remote-audio-retry-failed');
+  return Boolean(ok&&mediaReady);
 }
 
 async function connectWithToken(sdk,tokenData){
   if(!tokenData?.serverUrl||!tokenData?.participantToken)throw new Error('livekit_token_failed');
   const next=new sdk.Room();
+  room=next;
+  cleanupRemoteAudio();
+  localMicPublished=false;
+  connected=false;
   const disconnectedEvent=sdk.RoomEvent?.Disconnected||'disconnected';
   const trackSubscribedEvent=sdk.RoomEvent?.TrackSubscribed||'trackSubscribed';
+  const trackUnsubscribedEvent=sdk.RoomEvent?.TrackUnsubscribed||'trackUnsubscribed';
   next.on?.(trackSubscribedEvent,(track)=>{
-    if(track?.kind==='audio'||track?.kind===sdk.Track?.Kind?.Audio)attachRemoteTrack(track,next);
+    if(next!==room)return;
+    if(track?.kind==='audio'||track?.kind===sdk.Track?.Kind?.Audio){
+      remoteTracks.add(track);
+      remoteAudioSubscribed=true;
+      emit('remote-audio-subscribed');
+      void attachRemoteTrack(track,next);
+    }
+  });
+  next.on?.(trackUnsubscribedEvent,(track)=>{
+    if(next!==room)return;
+    if(track?.kind==='audio'||track?.kind===sdk.Track?.Kind?.Audio){
+      removeAttachment(track);
+      remoteTracks.delete(track);
+      remoteAudioSubscribed=remoteTracks.size>0;
+      remotePlaybackReady=remoteAttachments.size>0;
+      emit('remote-audio-unsubscribed');
+    }
   });
   next.on?.(disconnectedEvent,()=>{
     if(next!==room)return;
     connected=false;
+    localMicPublished=false;
     state='disconnected';
     cleanupRemoteAudio();
+    emit('disconnected');
   });
   await next.connect(String(tokenData.serverUrl),String(tokenData.participantToken));
-  room=next;
+  if(next!==room)throw new Error('livekit_room_replaced');
+  connected=true;
+  state='connected';
+  emit('room-connected');
   await next.localParticipant?.setMicrophoneEnabled?.(true,{
     echoCancellation:true,
     noiseSuppression:true,
     autoGainControl:true,
     channelCount:1,
   });
-  connected=true;
-  state='connected';
+  localMicPublished=Boolean(next.localParticipant?.isMicrophoneEnabled??true);
+  if(!localMicPublished)throw new Error('microphone_publish_failed');
+  emit('microphone-published');
   return true;
 }
 
@@ -14465,10 +14580,12 @@ function failJoin(error){
   lastError=String(error?.code||error?.name||error?.message||error||'call_join_failed');
   state='error';
   connected=false;
+  localMicPublished=false;
   const current=room;
   room=null;
   try{current?.disconnect?.();}catch{}
   cleanupRemoteAudio();
+  emit('join-error');
   return false;
 }
 
@@ -14480,6 +14597,7 @@ async function joinGuest({key,endpoint,apiKey=''}={}){
   if(!normalizedKey||!normalizedEndpoint){
     state='error';
     lastError='invalid_invite';
+    emit('invalid-invite');
     return false;
   }
 
@@ -14488,6 +14606,7 @@ async function joinGuest({key,endpoint,apiKey=''}={}){
   activeApiKey=String(apiKey||'').trim();
   state='joining';
   lastError=null;
+  emit('joining');
 
   try{
     await preflightMicrophone();
@@ -14512,11 +14631,13 @@ async function joinAdmin({inviteId,endpoint,apiKey='',accessToken=''}={}){
   if(!normalizedInviteId||!normalizedEndpoint||!normalizedAccessToken){
     state='error';
     lastError='invalid_admin_invite';
+    emit('invalid-admin-invite');
     return false;
   }
 
   state='joining';
   lastError=null;
+  emit('joining');
   try{
     await preflightMicrophone();
     const [sdk,tokenData]=await Promise.all([
@@ -14535,6 +14656,7 @@ async function leave({reason='leave'}={}){
   const current=room;
   room=null;
   connected=false;
+  localMicPublished=false;
   state=reason==='ended'?'ended':'idle';
   lastError=null;
   if(current){
@@ -14542,9 +14664,10 @@ async function leave({reason='leave'}={}){
     try{await current.disconnect?.();}catch{}
   }
   cleanupRemoteAudio();
+  emit(reason);
 }
 
-window.TaphoaGuestCallSession={joinGuest,joinAdmin,leave,snapshot};
+window.TaphoaGuestCallSession={joinGuest,joinAdmin,retryAudio,leave,snapshot};
 })();
 
 </script>
@@ -14707,6 +14830,7 @@ function inviteFromRow(row,current=null){
     endedAt:row?.ended_at||current?.endedAt||null,
     sendFailed:Boolean(current?.sendFailed),
     adminConnected:Boolean(current?.adminConnected),
+    adminMediaReady:Boolean(current?.adminMediaReady),
   };
 }
 
@@ -14737,6 +14861,41 @@ function dismissExternal(reason='answered-elsewhere',inviteId=externalCallAdapte
   return true;
 }
 
+function updateConnectedInviteMedia(detail={}){
+  const healthy=Boolean(detail?.mediaReady&&detail?.remotePlaybackReady);
+  for(const [contactId,invite] of invitesByContact){
+    if(!invite?.adminConnected||invite?.endedAt||invite?.revokedAt)continue;
+    if(invite.adminMediaReady===healthy)continue;
+    invite.adminMediaReady=healthy;
+    invitesByContact.set(contactId,invite);
+    document.dispatchEvent(new CustomEvent('v21-call-invite-state',{
+      detail:{contactId,invite:{...invite}}
+    }));
+  }
+  return healthy;
+}
+
+function syncExternalMedia(detail=window.TaphoaGuestCallSession?.snapshot?.()||{}){
+  const adapter=externalCallAdapter;
+  const healthy=updateConnectedInviteMedia(detail);
+  if(!adapter||adapter.phase==='ringing')return healthy;
+  if(healthy){
+    if(adapter.phase!=='active'){
+      adapter.phase='active';
+      adapter.startedAt=adapter.startedAt||new Date().toISOString();
+      callCommand()?.enterActive?.(adapter.contactId,adapter.contactName,{
+        id:adapter.inviteId,direction:'incoming',source:'guest-link',mediaStartedAt:adapter.startedAt
+      });
+    }
+    return true;
+  }
+  if(adapter.phase!=='connecting')adapter.phase='connecting';
+  callCommand()?.enterConnecting?.(adapter.contactId,adapter.contactName,{
+    id:adapter.inviteId,direction:'incoming',source:'guest-link'
+  });
+  return false;
+}
+
 async function acceptExternalCurrent(){
   const adapter=externalCallAdapter;
   if(!adapter||adapter.busy||adapter.phase!=='ringing')return false;
@@ -14751,12 +14910,9 @@ async function acceptExternalCurrent(){
     if(!ok)throw new Error('livekit_token_failed');
     if(externalCallAdapter!==adapter)return false;
     adapter.busy=false;
-    adapter.phase='active';
-    adapter.startedAt=new Date().toISOString();
+    adapter.phase='connecting';
     acceptingInviteId='';
-    callCommand()?.enterActive?.(adapter.contactId,adapter.contactName,{
-      id:adapter.inviteId,direction:'incoming',source:'guest-link',mediaStartedAt:adapter.startedAt
-    });
+    syncExternalMedia(window.TaphoaGuestCallSession?.snapshot?.()||{});
     return true;
   }catch(error){
     adapter.busy=false;
@@ -14942,7 +15098,7 @@ async function createAndSend({contactId=targetAccountId}={}){
 
   const invite={
     inviteId:String(data.inviteId),url:String(data.url),expiresAt:String(data.expiresAt||''),createdAt:new Date().toISOString(),
-    openedAt:null,guestJoinedAt:null,adminJoinedAt:null,revokedAt:null,endedAt:null,sendFailed:false,adminConnected:false,
+    openedAt:null,guestJoinedAt:null,adminJoinedAt:null,revokedAt:null,endedAt:null,sendFailed:false,adminConnected:false,adminMediaReady:false,
   };
   invitesByContact.set(target,invite);
   watchInvite(target,invite.inviteId);
@@ -14966,6 +15122,7 @@ async function joinInvite({contactId=targetAccountId}={}){
   const ok=await session.joinAdmin({inviteId:invite.inviteId,endpoint:ADMIN_ENDPOINT,apiKey:PUBLIC_KEY,accessToken:token});
   if(!ok)throw new Error(session.snapshot?.().error||'livekit_token_failed');
   invite.adminConnected=true;
+  invite.adminMediaReady=Boolean(session.snapshot?.().mediaReady&&session.snapshot?.().remotePlaybackReady);
   invite.adminJoinedAt=invite.adminJoinedAt||new Date().toISOString();
   invitesByContact.set(target,invite);
   document.dispatchEvent(new CustomEvent('v21-call-invite-state',{detail:{contactId:target,invite:{...invite}}}));
@@ -14979,6 +15136,7 @@ async function endInvite({contactId=targetAccountId}={}){
   await window.TaphoaGuestCallSession?.leave?.({reason:'ended'});
   try{await invokeAdmin({action:'end',inviteId:invite.inviteId});}catch{}
   invite.adminConnected=false;
+  invite.adminMediaReady=false;
   invite.endedAt=invite.endedAt||new Date().toISOString();
   invitesByContact.set(target,invite);
   document.dispatchEvent(new CustomEvent('v21-call-invite-state',{detail:{contactId:target,invite:{...invite}}}));
@@ -15000,7 +15158,7 @@ function statusText(invite){
   if(!invite)return '';
   if(invite.endedAt)return 'Cuộc gọi đã kết thúc';
   if(invite.revokedAt||isExpired(invite))return 'Link gọi đã hết hạn';
-  if(invite.adminConnected)return 'Đang nghe';
+  if(invite.adminConnected)return invite.adminMediaReady?'Đang nghe':'Đang kết nối âm thanh';
   if(invite.guestJoinedAt)return 'Khách đã vào phòng · đang gọi';
   if(invite.openedAt)return 'Khách đã mở link';
   if(invite.sendFailed)return 'Link đã tạo nhưng chưa gửi';
@@ -15103,6 +15261,9 @@ document.addEventListener('v21-auth-state',event=>{
     dismissExternal('auth-reset');
   }
 });
+document.addEventListener('taphoa-guest-call-session-state',event=>{
+  syncExternalMedia(event?.detail||{});
+});
 document.addEventListener('v21-call-invite-push-open',event=>{
   const detail=event?.detail||{};
   void focusIncomingInvite(detail.inviteId,detail.contactId);
@@ -15118,7 +15279,6 @@ window.TaphoaCallInviteClient=Object.freeze({
   snapshot:(contactId=targetAccountId)=>activeInvite(contactId),
 });
 })();
-
 </script>
 <script data-inlined-source="v21-cache-store.js">
 (()=>{

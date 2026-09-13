@@ -24,6 +24,14 @@ class GuestCallIncomingAlertContract(unittest.TestCase):
         self.assertIn("admin_joined_at", client)
         self.assertIn("answered-elsewhere", client)
 
+    def test_admin_call_stays_connecting_until_invite_media_is_actually_playable(self):
+        client = (ROOT / "call-invite-client.js").read_text(encoding="utf-8")
+        self.assertIn("taphoa-guest-call-session-state", client)
+        self.assertIn("mediaReady", client)
+        self.assertIn("remotePlaybackReady", client)
+        self.assertIn("phase='connecting'", client)
+        self.assertIn("enterActive", client)
+
     def test_call_invite_push_reuses_existing_admin_push_pipeline(self):
         migration = ROOT / "supabase/migrations/20260913_call_invite_incoming_push.sql"
         self.assertTrue(migration.exists(), "incoming-call push migration is missing")
