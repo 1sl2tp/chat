@@ -1,4 +1,4 @@
-import {parseCustomerTextPartial} from '../v21-ai-product-parser/parser-core.mjs';
+import {parseCustomerTextPartial} from '../_shared/customer-order-parser.mjs';
 
 function normalizeSource(value){
   return String(value??'').replace(/\r\n?/g,'\n').trim();
