@@ -12,13 +12,18 @@ shell=SHELL.read_text(encoding='utf-8')
 
 for token in [
     'Hôm nay','Hôm qua','Tuần này','Tùy chọn','Hiện tất cả tin khách',
-    'Bỏ qua','v21-order-source','V21AdminOrderSource',
+    'v21-order-source','V21AdminOrderSource',
     'adminOrderSourcePanel','adminOrderSourceScroll',
     'Khách:','tin phù hợp',
     'orderSplitPreviewEntries','previewEntries','Chưa tách ·',
-    'customerOrderSourceGroup','data-source-order-group','splitGroup','ignoreGroup',
+    'customerOrderSourceGroup','data-source-order-group','splitGroup',
 ]:
     assert token in source, token
+
+assert 'Bỏ qua' not in source, 'Tin đơn is read-only and must not offer an action that hides customer messages'
+assert 'data-source-action="ignore"' not in source
+assert 'ignoreGroup' not in source
+assert "invoke('set_state'" not in source, 'Tin đơn UI must not mutate visibility state'
 
 assert 'admin-order-source.js' in index
 assert 'order-scribe-client.js' in index
@@ -53,7 +58,7 @@ assert "imageAssetIds:mode==='ai'" in compact, 'only the explicit AI button may 
 assert "imageAssetIds:mode==='quick'" not in compact
 
 # Chat-only semantics: every matching customer message in the selected time range
-# is one raw summary, regardless of any legacy selling/imported state.
+# is one raw summary, regardless of any legacy selling/imported/ignored state.
 assert 'helper.customerOrderSourceGroup(rows)' in compact
 assert 'selectedIds=newSet(orderGroup.sourceMessageIds)' not in compact
 assert 'customerOrderSourceTimeline' not in source
