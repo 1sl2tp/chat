@@ -7,7 +7,6 @@ on:
       - v21-72-17-mobile-form-keyboard
       - v21-72-18-auth-actions-row
       - v21-72-19-profile-username-avatar
-      - feature/chat-workspace-3col
   pull_request:
 jobs:
   verify:
