@@ -25,16 +25,19 @@ jobs:
       - run: node tests/test_v21_order_scribe_client_runtime.js
       - run: python tests/test_v21_order_source_ui.py
       - run: python tests/test_v21_order_scribe_edge_contract.py
+      - run: python tests/test_v21_order_draft_composer_integration.py
       - run: python tests/test_v21_work_context_bridge.py
       - run: node --check admin-order-source.js
+      - run: node --check admin-composer-actions.js
+      - run: node --check getlink-auth-bridge.js
       - name: Commit UI build
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.source.html index.html version.json
+          git add admin-composer-actions.js index.source.html index.html version.json
           if git diff --cached --quiet; then
             echo "No UI build changes"
             exit 0
           fi
-          git commit -m "feat: load customer order source timeline ui"
+          git commit -m "feat: connect customer order source timeline"
           git push origin HEAD:design/customer-order-source-timeline
