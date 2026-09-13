@@ -1530,6 +1530,150 @@ let imageViewerFilterScroll=null;
 let imageViewerTimeMenuButton=null;
 let imageViewerTimeMenuPanel=null;
 const imageViewerOwnedUrls=new Map();
+const IMAGE_VIEWER_ROTATION_KEY='taphoa.chat.v21.imageViewerRotations';
+const imageViewerRotations=new Map();
+let imageViewerZoom=1;
+let imageViewerPanX=0;
+let imageViewerPanY=0;
+let imageViewerPointerId=null;
+let imageViewerPointerStartX=0;
+let imageViewerPointerStartY=0;
+let imageViewerPointerBaseX=0;
+let imageViewerPointerBaseY=0;
+let imageViewerZoomLabel=null;
+
+function loadImageViewerRotations(){
+  try{
+    const raw=localStorage.getItem(IMAGE_VIEWER_ROTATION_KEY);
+    const values=raw?JSON.parse(raw):null;
+    if(!values||typeof values!=='object')return;
+    for(const [assetId,value] of Object.entries(values)){
+      const rotation=((Number(value)||0)%360+360)%360;
+      if(assetId&&[0,90,180,270].includes(rotation))imageViewerRotations.set(assetId,rotation);
+    }
+  }catch(_error){}
+}
+
+function persistImageViewerRotations(){
+  try{
+    localStorage.setItem(IMAGE_VIEWER_ROTATION_KEY,JSON.stringify(Object.fromEntries(imageViewerRotations)));
+  }catch(_error){}
+}
+
+function activeImageViewerAssetId(){
+  return String(imageViewerItems[imageViewerIndex]?.assetId||'');
+}
+
+function imageViewerRotation(assetId=activeImageViewerAssetId()){
+  return Number(imageViewerRotations.get(String(assetId||'')))||0;
+}
+
+function applyImageViewerTransform(){
+  if(!imageViewerImage)return false;
+  const rotation=imageViewerRotation();
+  imageViewerImage.style.transform=`translate3d(${imageViewerPanX}px,${imageViewerPanY}px,0) scale(${imageViewerZoom}) rotate(${rotation}deg)`;
+  if(imageViewerZoomLabel)imageViewerZoomLabel.textContent=`${Math.round(imageViewerZoom*100)}%`;
+  if(imageViewerMain)imageViewerMain.dataset.zoomed=imageViewerZoom>1.001?'true':'false';
+  return true;
+}
+
+function rotateImageViewer(delta){
+  const assetId=activeImageViewerAssetId();
+  if(!assetId)return false;
+  const next=((imageViewerRotation(assetId)+Number(delta||0))%360+360)%360;
+  imageViewerRotations.set(assetId,next);
+  persistImageViewerRotations();
+  imageViewerPanX=0;
+  imageViewerPanY=0;
+  return applyImageViewerTransform();
+}
+
+function zoomImageViewer(delta){
+  imageViewerZoom=Math.max(.5,Math.min(4,Math.round((imageViewerZoom+Number(delta||0))*100)/100));
+  if(imageViewerZoom<=1){imageViewerPanX=0;imageViewerPanY=0;}
+  return applyImageViewerTransform();
+}
+
+function fitImageViewer(){
+  imageViewerZoom=1;
+  imageViewerPanX=0;
+  imageViewerPanY=0;
+  return applyImageViewerTransform();
+}
+
+function ensureImageViewerWorkbenchStyles(){
+  if(document.getElementById('imageViewerWorkbenchStyles'))return;
+  const style=document.createElement('style');
+  style.id='imageViewerWorkbenchStyles';
+  style.textContent=`
+/* #imageViewerWorkbenchStyles: Chat-owned non-modal image workbench. */
+.image-viewer-overlay[open]{
+  position:fixed!important;
+  inset:auto!important;
+  top:calc(var(--image-viewer-top,0px) + 8px)!important;
+  right:max(8px,var(--image-viewer-right,0px))!important;
+  left:auto!important;
+  bottom:auto!important;
+  width:min(540px,calc(100vw - var(--image-viewer-left,0px) - var(--image-viewer-right,0px) - 16px))!important;
+  height:min(70vh,680px)!important;
+  max-width:none!important;
+  max-height:none!important;
+  margin:0!important;
+  padding:0!important;
+  border:1px solid rgba(15,23,42,.16)!important;
+  border-radius:16px!important;
+  background:#fff!important;
+  color:#111827!important;
+  box-shadow:0 16px 42px rgba(15,23,42,.2)!important;
+  overflow:hidden!important;
+  z-index:35!important;
+  pointer-events:auto!important;
+}
+.image-viewer-overlay::backdrop{display:none!important;background:transparent!important;}
+.image-viewer-overlay .image-review{background:#fff!important;color:#111827!important;}
+.image-viewer-overlay .image-review-head{background:#fff!important;color:#111827!important;border-bottom:1px solid rgba(15,23,42,.1)!important;gap:8px!important;}
+.image-viewer-overlay .image-review-heading{min-width:0!important;flex:1 1 auto!important;}
+.image-viewer-overlay .image-review-main{position:relative!important;min-height:0!important;overflow:hidden!important;background:#111!important;touch-action:none!important;cursor:default!important;}
+.image-viewer-overlay .image-review-main[data-zoomed="true"]{cursor:grab!important;}
+.image-viewer-overlay .image-review-main[data-panning="true"]{cursor:grabbing!important;}
+.image-viewer-overlay .image-review-image{max-width:100%!important;max-height:100%!important;object-fit:contain!important;transform-origin:center center!important;will-change:transform;user-select:none!important;-webkit-user-drag:none;}
+.image-viewer-overlay .image-review-bottom{background:#fff!important;color:#111827!important;border-top:1px solid rgba(15,23,42,.08)!important;}
+.image-workbench-toolbar{display:flex;align-items:center;justify-content:flex-end;gap:4px;flex:0 0 auto;}
+.image-workbench-tool{display:grid;place-items:center;min-width:32px;height:32px;padding:0 8px;border:1px solid rgba(15,23,42,.12);border-radius:9px;background:#f8fafc;color:#111827;font:600 13px/1 system-ui,sans-serif;cursor:pointer;}
+.image-workbench-tool:hover{background:#f1f5f9;}
+.image-workbench-zoom{min-width:48px;font-variant-numeric:tabular-nums;}
+@media (max-width: 759px){
+  .image-viewer-overlay[open]{
+    top:calc(var(--image-viewer-top,0px) + 6px)!important;
+    right:8px!important;
+    left:8px!important;
+    width:auto!important;
+    height:min(44vh,420px)!important;
+    border-radius:14px!important;
+  }
+  .image-viewer-overlay .image-review-title{font-size:14px!important;}
+  .image-viewer-overlay .image-review-count{font-size:11px!important;}
+  .image-workbench-toolbar{gap:2px;}
+  .image-workbench-tool{min-width:30px;height:30px;padding:0 6px;font-size:12px;}
+  .image-workbench-zoom{min-width:42px;}
+  .image-viewer-overlay .image-review-bottom{max-height:82px!important;overflow:hidden!important;}
+}
+`;
+  document.head.appendChild(style);
+}
+
+function imageViewerToolButton(label,text,onClick,{className=''}={}){
+  const button=document.createElement('button');
+  button.type='button';
+  button.className=`image-workbench-tool ${className}`.trim();
+  button.setAttribute('aria-label',label);
+  button.title=label;
+  button.textContent=text;
+  button.addEventListener('click',event=>{event.stopPropagation();onClick?.();});
+  return button;
+}
+
+loadImageViewerRotations();
 
 function viewerIconSvg(name){
   const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
@@ -1593,18 +1737,14 @@ function revokeViewerOwnedUrls(){
 function enterImageViewerMode(){
   setComposerActionMenuOpen(false);
   if(!appShell)return false;
-  const lease=InteractionController.enter(InteractionMode.IMAGE_VIEWER,{
-    owner:'image-viewer',
-    lockBaseUi:true
-  });
-  if(!lease)return false;
+  // Image inspection is a non-modal Chat workbench. It must not lease the
+  // exclusive InteractionController because Composer/order entry stays usable.
   appShell.dataset.imageViewerMode='true';
   return true;
 }
 
 function exitImageViewerMode(){
   if(appShell)delete appShell.dataset.imageViewerMode;
-  InteractionController.exit(InteractionMode.IMAGE_VIEWER,{owner:'image-viewer'});
 }
 
 function positionImageViewerBelowHeader(){
@@ -1662,7 +1802,10 @@ function closeImageViewer({restoreFocus=true}={}){
   imageViewerTimeFilter='all';
   closeImageViewerTimeMenu();
   if(imageViewerOverlay?.open)imageViewerOverlay.close();
-  unlockAppHeaderForImageViewer();
+  imageViewerPointerId=null;
+  imageViewerZoom=1;
+  imageViewerPanX=0;
+  imageViewerPanY=0;
   exitImageViewerMode();
   const returnFocus=imageViewerReturnFocus;
   imageViewerReturnFocus=null;
@@ -1881,6 +2024,7 @@ function updateImageViewerChrome(){
 }
 
 function ensureImageViewer(){
+  ensureImageViewerWorkbenchStyles();
   if(imageViewerOverlay)return imageViewerOverlay;
   const overlay=document.createElement('dialog');
   overlay.className='image-viewer-overlay';
@@ -1906,7 +2050,19 @@ function ensureImageViewer(){
   close.className='image-review-control image-review-close';
   close.setAttribute('aria-label','Đóng ảnh');
   close.appendChild(viewerIconSvg('close'));
-  head.append(heading,close);
+  const toolbar=document.createElement('div');
+  toolbar.className='image-workbench-toolbar';
+  const rotateLeft=imageViewerToolButton('Xoay trái','↶',()=>rotateImageViewer(-90));
+  const zoomOut=imageViewerToolButton('Thu nhỏ','−',()=>zoomImageViewer(-.25));
+  const zoomLabel=document.createElement('span');
+  zoomLabel.className='image-workbench-tool image-workbench-zoom';
+  zoomLabel.setAttribute('aria-label','Mức phóng');
+  zoomLabel.textContent='100%';
+  const zoomIn=imageViewerToolButton('Phóng to','+',()=>zoomImageViewer(.25));
+  const fit=imageViewerToolButton('Vừa khung','Vừa',()=>fitImageViewer());
+  const rotateRight=imageViewerToolButton('Xoay phải','↷',()=>rotateImageViewer(90));
+  toolbar.append(rotateLeft,zoomOut,zoomLabel,zoomIn,fit,rotateRight);
+  head.append(heading,toolbar,close);
 
   const main=document.createElement('div');
   main.className='image-review-main';
@@ -1952,13 +2108,44 @@ function ensureImageViewer(){
     else if(event.key==='ArrowRight'){event.preventDefault();void showImageViewerIndex(imageViewerIndex+1);}
   });
   main.addEventListener('touchstart',event=>{
+    if(imageViewerZoom>1.001)return;
     imageViewerSwipeStartX=event.changedTouches?.[0]?.screenX||0;
   },{passive:true});
   main.addEventListener('touchend',event=>{
+    if(imageViewerZoom>1.001)return;
     const endX=event.changedTouches?.[0]?.screenX||0;
     const dx=endX-imageViewerSwipeStartX;
     if(Math.abs(dx)>45)void showImageViewerIndex(imageViewerIndex+(dx<0?1:-1));
   },{passive:true});
+  main.addEventListener('pointerdown',event=>{
+    if(imageViewerZoom<=1.001||event.button!==0||event.target?.closest?.('button'))return;
+    imageViewerPointerId=event.pointerId;
+    imageViewerPointerStartX=event.clientX;
+    imageViewerPointerStartY=event.clientY;
+    imageViewerPointerBaseX=imageViewerPanX;
+    imageViewerPointerBaseY=imageViewerPanY;
+    main.dataset.panning='true';
+    try{main.setPointerCapture(event.pointerId);}catch(_error){}
+  });
+  main.addEventListener('pointermove',event=>{
+    if(imageViewerPointerId!==event.pointerId)return;
+    imageViewerPanX=imageViewerPointerBaseX+(event.clientX-imageViewerPointerStartX);
+    imageViewerPanY=imageViewerPointerBaseY+(event.clientY-imageViewerPointerStartY);
+    applyImageViewerTransform();
+  });
+  const endPan=event=>{
+    if(imageViewerPointerId!==event.pointerId)return;
+    imageViewerPointerId=null;
+    delete main.dataset.panning;
+    try{main.releasePointerCapture(event.pointerId);}catch(_error){}
+  };
+  main.addEventListener('pointerup',endPan);
+  main.addEventListener('pointercancel',endPan);
+  main.addEventListener('wheel',event=>{
+    if(!event.ctrlKey&&!event.metaKey)return;
+    event.preventDefault();
+    zoomImageViewer(event.deltaY<0?.2:-.2);
+  },{passive:false});
   thumbs.addEventListener('scroll',()=>{
     if(imageViewerFilmstripScrollFrame)return;
     imageViewerFilmstripScrollFrame=requestAnimationFrame(()=>{
@@ -1985,6 +2172,8 @@ function ensureImageViewer(){
   imageViewerMeta=meta;
   imageViewerPrev=prev;
   imageViewerNext=next;
+  imageViewerZoomLabel=zoomLabel;
+  applyImageViewerTransform();
   return overlay;
 }
 
@@ -2079,6 +2268,7 @@ async function showImageViewerIndex(index,{behavior='smooth'}={}){
   const nextIndex=Math.max(0,Math.min(imageViewerItems.length-1,Number(index)||0));
   const navId=++imageViewerNavigationSeq;
   imageViewerIndex=nextIndex;
+  fitImageViewer();
   updateImageViewerChrome();
   const item=imageViewerItems[nextIndex];
   const source=await loadViewerAssetSource(item);
@@ -2135,16 +2325,13 @@ async function openImageViewer({assetId,accountId=currentMediaAccountId(),previe
       return false;
     }
     positionImageViewerBelowHeader();
-    lockAppHeaderForImageViewer();
     try{
-      if(typeof imageViewerOverlay.showModal==='function')imageViewerOverlay.showModal();
-      else imageViewerOverlay.show();
+      // Non-modal dialog: Chat, Composer and order-entry controls remain live.
+      imageViewerOverlay.show();
     }catch(error){
-      unlockAppHeaderForImageViewer();
       exitImageViewerMode();
       throw error;
     }
-    requestAnimationFrame(()=>imageViewerOverlay.querySelector('.image-review-close')?.focus({preventScroll:true}));
   }else{
     positionImageViewerBelowHeader();
   }
