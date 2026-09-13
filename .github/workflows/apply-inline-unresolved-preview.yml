@@ -1,0 +1,63 @@
+name: Apply Inline Unresolved Preview
+on:
+  push:
+    branches:
+      - fix/order-source-inline-unresolved
+permissions:
+  contents: write
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/order-source-inline-unresolved
+          fetch-depth: 0
+      - name: Patch quick preview UI
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path=Path('admin-order-source.js')
+          text=path.read_text(encoding='utf-8')
+          start=text.index('function renderResult(row){')
+          end=text.index('function render(){',start)
+          render="""function renderResult(row){
+            const result=row?._splitResult;
+            if(!result)return'';
+            if(result.error)return`<div class=\"order-source-result\"><div class=\"order-source-unresolved\">${escapeHtml(result.error)}</div></div>`;
+            const entries=Array.isArray(result.previewEntries)?result.previewEntries:[];
+            return`<div class=\"order-source-result\">
+              ${entries.map(entry=>entry.type==='unresolved'
+                ?`<div class=\"order-source-unresolved\">Chưa tách · ${escapeHtml(entry.text||'')}</div>`
+                :`<div><b>${Number(entry.quantity||0)}</b> ${escapeHtml(entry.name||'')}</div>`).join('')}
+              ${!entries.length?'<div>Không có dòng để tách.</div>':''}
+            </div>`;
+          }
+          """
+          text=text[:start]+render+text[end:]
+          old="    row._splitResult={items:data.items||[],unresolved:data.unresolved||[],error:''};"
+          new="""    const helper=await core();
+              const splitResult={items:data.items||[],unresolved:data.unresolved||[],error:''};
+              splitResult.previewEntries=helper.orderSplitPreviewEntries(splitResult);
+              row._splitResult=splitResult;"""
+          assert old in text, 'split success assignment changed unexpectedly'
+          text=text.replace(old,new,1)
+          path.write_text(text,encoding='utf-8')
+          PY
+      - name: Verify focused contracts
+        run: |
+          node tests/test_v21_order_source_core.mjs
+          python tests/test_v21_order_source_ui.py
+      - name: Rebuild canonical output
+        run: python tools/build_current_preview.py
+      - name: Verify canonical output
+        run: python tools/verify_current.py
+      - name: Commit implementation
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add admin-order-source.js index.html version.json
+          git diff --cached --quiet && exit 0
+          git commit -m "fix: show unresolved order text first in preview"
+          git push origin HEAD:fix/order-source-inline-unresolved
