@@ -44,21 +44,21 @@ const rows=[
   {messageId:'old-2',text:'2 thùng đơn cũ',createdAt:'2026-09-13T02:02:00.000Z',state:'imported',linkedExternalOrderId:'o-1',linkedExternalOrderNo:'A101'},
   {messageId:'old-1',text:'1 thùng đơn cũ',createdAt:'2026-09-13T02:00:00.000Z',state:'imported',linkedExternalOrderId:'o-1',linkedExternalOrderNo:'A101'},
   {messageId:'m1',text:'1 thùng dầu simply',createdAt:'2026-09-13T03:00:00.000Z',state:'working'},
-  {messageId:'skip',text:'3 thùng bỏ qua',createdAt:'2026-09-13T03:03:00.000Z',state:'ignored'},
+  {messageId:'skip',text:'3 thùng trước đây từng bị bỏ qua',createdAt:'2026-09-13T03:03:00.000Z',state:'ignored'},
 ];
 assert.deepEqual(customerOrderSourceGroup(rows),{
-  sourceMessageIds:['old-1','old-2','m1','m2'],
-  text:'1 thùng đơn cũ\n2 thùng đơn cũ\n1 thùng dầu simply\n2 thùng omo',
+  sourceMessageIds:['old-1','old-2','m1','skip','m2'],
+  text:'1 thùng đơn cũ\n2 thùng đơn cũ\n1 thùng dầu simply\n3 thùng trước đây từng bị bỏ qua\n2 thùng omo',
   firstCreatedAt:'2026-09-13T02:00:00.000Z',
   lastCreatedAt:'2026-09-13T03:05:00.000Z',
-  count:4,
+  count:5,
 });
 assert.deepEqual(customerOrderSourceGroup([
   {messageId:'old',text:'đơn cũ',createdAt:'2026-09-13T02:00:00.000Z',state:'imported'},
-  {messageId:'skip',text:'bỏ qua',createdAt:'2026-09-13T02:01:00.000Z',state:'ignored'},
+  {messageId:'skip',text:'tin từng bị bỏ qua',createdAt:'2026-09-13T02:01:00.000Z',state:'ignored'},
 ]),{
-  sourceMessageIds:['old'],text:'đơn cũ',firstCreatedAt:'2026-09-13T02:00:00.000Z',lastCreatedAt:'2026-09-13T02:00:00.000Z',count:1,
-});
+  sourceMessageIds:['old','skip'],text:'đơn cũ\ntin từng bị bỏ qua',firstCreatedAt:'2026-09-13T02:00:00.000Z',lastCreatedAt:'2026-09-13T02:01:00.000Z',count:2,
+},'Tin đơn is a read-only view over Chat history: legacy ignored state must never hide customer messages');
 
 assert.deepEqual(customerOrderSourceGroup([
   {
