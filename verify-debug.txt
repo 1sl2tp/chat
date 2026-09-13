@@ -1,0 +1,47 @@
+index.html 778354 bytes build_id=249b926cf107b69c409d4e658b412d6ae44051188d1bc8c1a3a5c7349bdac57c sha256=3673b0e362cc35bdf3a729f5a6dbfd716c359f8109c9a0c3736196fd85b7e605
+..........                                                               [100%]
+10 passed in 0.05s
+V21.72.14 message scope runtime PASS
+V21.72.15 media hydration error scope PASS
+[V21SyncEngine] transient openContact refresh failure {
+  contactId: 'B',
+  conversationId: 'CONV',
+  error: TypeError: Load failed
+      at Object.rpc (/home/runner/work/chat/chat/tests/test_v21_72_15_open_contact_network_recovery.js:10:106)
+      at canonicalReconcileActive (evalmachine.<anonymous>:426:35)
+      at Object.openContact (evalmachine.<anonymous>:643:15)
+      at async /home/runner/work/chat/chat/tests/test_v21_72_15_open_contact_network_recovery.js:16:87
+}
+V21.72.15 openContact network recovery PASS
+V21.72.39 audio/PWA/update contract PASS
+V21.72.16 audio capture policy runtime PASS
+V21.72.39 build-aware app update runtime PASS
+V21.72.39 visual viewport form keyboard contract PASS
+V21.72.39 visual viewport form keyboard runtime PASS
+V21.72.39 auth single-action form / PWA SW release contract PASS
+V21.72.39 profile username/avatar contract PASS
+V21.72.39 conversation content axis contract PASS
+V21.72.39 reply visual cleanup contract PASS
+V21.72.39 image presentation owner contract PASS
+V21.72.39 link/file presentation contract PASS
+V21.72.39 chat polish lock contract PASS
+V21.72.39 auth copy cleanup contract PASS
+V21.72.39 auth copy OpenAI-style contract PASS
+V21.72.39 directory/profile polish contract PASS
+V21.72.39 audio recorder runtime contract PASS
+V21.72.39 scroll-control/route stability contract PASS
+V21.72.39 message action mirror / bubble owner contract PASS
+V21.72.39 call header balance contract PASS
+V21.72.39 contact-switch scroll gate contract PASS
+V21.72.39 scroll-arrow hide stability contract PASS
+Traceback (most recent call last):
+  File "/home/runner/work/chat/chat/tests/test_v21_72_40_directory_sidebar_geometry_swipe.py", line 17, in <module>
+    assert "--desktop-directory-width:clamp(328px,27vw,340px);" in source
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+Traceback (most recent call last):
+  File "/home/runner/work/chat/chat/tools/verify_current.py", line 58, in <module>
+    subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_40_directory_sidebar_geometry_swipe.py')],check=True,cwd=ROOT)
+  File "/opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['/opt/hostedtoolcache/Python/3.12.14/x64/bin/python', '/home/runner/work/chat/chat/tests/test_v21_72_40_directory_sidebar_geometry_swipe.py']' returned non-zero exit status 1.
