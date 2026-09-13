@@ -59,15 +59,17 @@ for forbidden in ["catalog-search", "products_shared", "product_code", "resolvep
     assert forbidden not in edge, f"manual order scribe must not translate names through catalog: {forbidden}"
 
 # Image AI is manual only: validate inbound image assets, download from canonical Chat
-# storage, send inline vision input, and tell the model to orient handwriting before reading.
+# storage, orient first, then TRANSCRIBE literally. AI must not directly rewrite a product name.
 assert "imageassetids" in edge
 assert "v21_media_assets" in edge
 assert "v21-media" in edge
 assert "inlinedata" in edge
-assert "quantity_text" in edge
-assert "materializeaiimageitems" in compact
 assert "0/90/180/270" in edge, "vision prompt must explicitly handle rotated sender photos"
 assert "xoay" in edge, "vision prompt must orient the image before handwriting extraction"
+assert "chép nguyên văn" in edge, "handwriting stage must explicitly be literal transcription"
+assert "không suy diễn" in edge, "vision must be forbidden from semantic correction/guessing"
+assert "image_lines" in edge, "vision schema must return literal handwritten lines rather than product names"
+assert "materializeaiimagetranscriptions" in compact, "server code must parse SL/name only after literal transcription"
 assert "uncertain" in edge, "uncertain handwriting must be marked instead of guessed confidently"
 
 # The Chat runtime owns the model setting but reuses the already-provisioned Gemini vault secret

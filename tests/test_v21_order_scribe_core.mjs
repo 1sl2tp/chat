@@ -4,6 +4,7 @@ import {
   parseQuickOrderText,
   materializeAiSpans,
   materializeAiImageItems,
+  materializeAiImageTranscriptions,
 } from '../supabase/functions/v21-order-scribe/scribe-core.mjs';
 
 {
@@ -151,7 +152,32 @@ import {
   ]),[
     {quantity:3,quantityLabel:'3T',name:'Mì bò chua cay',uncertain:false},
     {quantity:5,quantityLabel:'5T',name:'Hẻm chén sứ (1,8)',uncertain:true},
-  ],'image AI keeps the visible quantity marker and flags uncertain handwriting instead of inventing certainty');
+  ],'legacy image materializer remains stable for old callers');
+}
+
+{
+  const result=materializeAiImageTranscriptions([
+    {text:'Thọ tuýp đỏ : 1T',uncertain:false},
+    {text:'2T probi (65) đường',uncertain:false},
+    {text:'probi (130) ít đường 2T',uncertain:true},
+    {text:'dòng chữ chưa thấy số lượng',uncertain:true},
+  ]);
+  assert.deepEqual(result,{
+    items:[
+      {quantity:1,quantityLabel:'1T',name:'Thọ tuýp đỏ',uncertain:false},
+      {quantity:2,quantityLabel:'2T',name:'probi (65) đường',uncertain:false},
+      {quantity:2,quantityLabel:'2T',name:'probi (130) ít đường',uncertain:true},
+    ],
+    unresolved:[{raw:'dòng chữ chưa thấy số lượng ?'}],
+  },'handwriting must be transcribed literally first; deterministic code then removes only the visible quantity marker');
+}
+
+{
+  assert.deepEqual(materializeAiImageTranscriptions([
+    {text:'Thọ truyền đỏ : 1T',uncertain:true},
+  ]).items,[
+    {quantity:1,quantityLabel:'1T',name:'Thọ truyền đỏ',uncertain:true},
+  ],'server must never silently correct or translate a transcription; uncertainty stays visible');
 }
 
 {
