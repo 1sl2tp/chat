@@ -37,6 +37,12 @@ assert '.order-source-scroll{' in source
 assert 'overflow-y:auto' in compact
 assert '-webkit-overflow-scrolling:touch' in compact
 
+# Desktop workspace gives threadContent a large right padding for the Work column.
+# The absolute order-source overlay must therefore explicitly stop at that same
+# Work boundary instead of laying itself out at the full stage width and getting clipped.
+assert '#appShell[data-auth-state="authenticated"][data-desktop-workspace="true"]#adminOrderSourcePanel{' in compact
+assert 'inset-inline-end:var(--desktop-work-width)' in compact
+
 # A quick preview reads as one order summary: unresolved text is prepared by the
 # core preview-order helper and rendered inline in the same result block.
 assert 'helper.orderSplitPreviewEntries(splitResult)' in compact
