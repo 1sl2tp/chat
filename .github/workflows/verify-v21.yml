@@ -70,6 +70,8 @@ jobs:
       - name: Chat call invite public page contract
         run: python -m pytest tests/test_v21_call_invite_public_page.py -q
       - name: Chat call invite incoming alert contract
-        run: python -m pytest tests/test_v21_call_invite_incoming_alert.py -q
+        run: |
+          node --check call-invite-client.js
+          python -m pytest tests/test_v21_call_invite_incoming_alert.py -q
       - name: Verify canonical source
         run: python tools/verify_current.py
