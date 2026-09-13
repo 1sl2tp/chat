@@ -20,16 +20,30 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Apply bounded parser fix
+      - name: Apply bounded quick-parser fix
         run: |
           python - <<'PY'
           from pathlib import Path
           p=Path('supabase/functions/_shared/customer-order-parser.mjs')
           s=p.read_text()
-          old="|bao|ba0|gói|goi|"
-          new="|bao|ba0|bịch|bich|gói|goi|"
-          assert old in s
-          p.write_text(s.replace(old,new,1))
+          marker="const startUnit=new RegExp(`^(\\\\d+(?:[.,]\\\\d+)?)\\\\s*(${UNIT})\\\\s+(.+)$`,'iu');"
+          assert marker in s
+          s=s.replace(marker, marker+"\nconst quickOnlyStartUnit=/^(\\d+(?:[.,]\\d+)?)\\s*(bịch|bich)\\s+(.+)$/iu;",1)
+          needle="  let match=text.match(startUnit);\n"
+          assert needle in s
+          block="""  if(preserveRaw){
+    const quickMatch=text.match(quickOnlyStartUnit);
+    if(quickMatch){
+      const quantityEnd=String(quickMatch[1]).length;
+      const unitWasAttached=!/^\\s/u.test(text.slice(quantityEnd));
+      const rawQuantityLabel=unitWasAttached?`${quickMatch[1]}${quickMatch[2]}`:`${quickMatch[1]} ${quickMatch[2]}`;
+      return finalize(quickMatch[1],quickMatch[3],{preserveRaw,rawName:quickMatch[3],rawQuantityLabel});
+    }
+  }
+
+"""
+          s=s.replace(needle,block+needle,1)
+          p.write_text(s)
           PY
       - name: Run focused contracts
         run: |
