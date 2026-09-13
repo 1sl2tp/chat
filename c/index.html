@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<meta name="description" content="TAPHOA Call">
+<title>TAPHOA Call</title>
+<style>
+:root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:#f5f5f4;color:#1c1917}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:#f5f5f4}
+body{display:grid;min-height:100svh;place-items:center;padding:18px}
+main{width:min(100%,420px);background:#fff;border:1px solid #e7e5e4;border-radius:22px;padding:24px;box-shadow:0 14px 38px rgba(28,25,23,.08)}
+.brand{font-size:13px;font-weight:700;letter-spacing:.08em;color:#78716c;text-transform:uppercase}
+h1{margin:8px 0 8px;font-size:28px;line-height:1.15}
+p{margin:0;color:#57534e;line-height:1.5}
+.status{margin-top:18px;padding:13px 14px;border-radius:14px;background:#f5f5f4;color:#44403c;font-size:14px;line-height:1.45}
+.actions{display:grid;gap:10px;margin-top:18px}
+button{width:100%;min-height:48px;border:0;border-radius:14px;font:inherit;font-weight:700;cursor:pointer}
+#joinButton{background:#171717;color:#fff}
+#joinButton:disabled{opacity:.5;cursor:default}
+#leaveButton{background:#f5f5f4;color:#292524}
+.help{margin-top:16px;font-size:13px;color:#78716c}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<main>
+  <div class="brand">TAPHOA Call</div>
+  <h1>Cuộc gọi thoại</h1>
+  <p>Nhấn tham gia khi bạn sẵn sàng. Micro chỉ được bật sau khi bạn bấm nút bên dưới.</p>
+  <div id="status" class="status" aria-live="polite">Đang kiểm tra liên kết…</div>
+  <div class="actions">
+    <button id="joinButton" type="button" disabled>Tham gia cuộc gọi</button>
+    <button id="leaveButton" type="button" class="hidden">Kết thúc</button>
+  </div>
+  <div class="help">Nếu Zalo không cấp quyền micro, chọn ⋯ → Mở bằng trình duyệt.</div>
+</main>
+<script src="../guest-call-session.js"></script>
+<script>
+(()=>{
+'use strict';
+const ENDPOINT='https://gcnoahqsrquxkwkjbuxy.supabase.co/functions/v1/v21-call-invite-guest';
+const PUBLIC_KEY='sb_publishable_UY3gfQ9MsntDFCUJ_uV0UA__eTYXz_w';
+const params=new URLSearchParams(window.location.search);
+const key=String(params.get('k')||'').trim();
+const statusEl=document.getElementById('status');
+const joinButton=document.getElementById('joinButton');
+const leaveButton=document.getElementById('leaveButton');
+let ready=false;
+
+function show(message){statusEl.textContent=message;}
+function terminal(){
+  ready=false;
+  joinButton.disabled=true;
+  leaveButton.classList.add('hidden');
+  show('Liên kết đã hết hạn hoặc không còn hiệu lực');
+}
+async function request(body){
+  const response=await fetch(ENDPOINT,{
+    method:'POST',
+    headers:{'content-type':'application/json','apikey':PUBLIC_KEY},
+    body:JSON.stringify(body),
+  });
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok||data?.ok===false){
+    const error=new Error(String(data?.error||'request_failed'));
+    error.code=String(data?.error||'request_failed');
+    throw error;
+  }
+  return data;
+}
+
+async function openInvite(){
+  if(key.length<20){terminal();return;}
+  try{
+    const data=await request({action:'open',key});
+    if(data?.status!=='ready'){terminal();return;}
+    ready=true;
+    joinButton.disabled=false;
+    show('Liên kết còn hiệu lực. Bấm “Tham gia cuộc gọi” khi bạn sẵn sàng.');
+  }catch(error){
+    if(String(error?.code||'').includes('invalid_or_expired'))terminal();
+    else show('Không thể kết nối cuộc gọi');
+  }
+}
+
+joinButton.addEventListener('click',async()=>{
+  if(!ready)return;
+  joinButton.disabled=true;
+  show('Đang kết nối cuộc gọi…');
+  const ok=await window.TaphoaGuestCallSession.joinGuest({key,endpoint:ENDPOINT,apiKey:PUBLIC_KEY});
+  if(!ok){
+    const error=window.TaphoaGuestCallSession.snapshot()?.error||'';
+    if(String(error).includes('invalid_or_expired'))terminal();
+    else{
+      joinButton.disabled=false;
+      show('Không thể kết nối cuộc gọi');
+    }
+    return;
+  }
+  show('Đã kết nối. Bạn có thể nói chuyện.');
+  leaveButton.classList.remove('hidden');
+});
+
+leaveButton.addEventListener('click',async()=>{
+  await window.TaphoaGuestCallSession.leave({reason:'ended'});
+  ready=false;
+  joinButton.disabled=true;
+  leaveButton.classList.add('hidden');
+  show('Cuộc gọi đã kết thúc.');
+});
+
+void openInvite();
+})();
+</script>
+</body>
+</html>
