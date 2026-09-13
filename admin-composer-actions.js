@@ -5,11 +5,9 @@ const MENU_ID='composerActionMenu';
 const SECTION_ATTR='data-admin-composer-section';
 const ACTION_ATTR='data-admin-composer-action';
 const ORDER_ATTR='data-admin-order-action';
-const LEGACY_PROFILE_SELECTOR='[data-quote-admin-block],[data-call-invite-admin-block]';
 let quoteModulePromise=null;
 let quoteOverlay=null;
 let transientHintTimer=0;
-let suppressQueued=false;
 
 function authStore(){return window.V21AuthSessionStore||null;}
 function currentAdmin(){
@@ -63,6 +61,8 @@ function installStyle(){
   const style=document.createElement('style');
   style.id='v21-admin-composer-actions-style';
   style.textContent=`
+    html[data-admin-composer-actions="true"] [data-quote-admin-block],
+    html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:none!important}
     .admin-composer-menu-label{padding:7px 12px 4px;color:var(--theme-content-tertiary,#888);font-size:11px;font-weight:700;line-height:14px;text-transform:uppercase;letter-spacing:.04em}
     .admin-composer-menu-divider{height:1px;margin:6px 8px;background:var(--theme-border-default,#e5e5e5)}
     .admin-composer-menu-note{margin-left:auto;color:var(--theme-content-tertiary,#999);font-size:11px;font-weight:500}
@@ -148,8 +148,9 @@ function ensureAdminMenu(){
 function syncVisibility(){
   const admin=Boolean(currentAdmin());
   const contact=activeContactId();
+  document.documentElement.dataset.adminComposerActions=String(admin);
   const surface=menuSurface();
-  if(!surface)return false;
+  if(!surface)return admin;
   const label=surface.querySelector('[data-admin-composer-send-label]');
   const section=surface.querySelector(`[${SECTION_ATTR}]`);
   if(label)label.hidden=!admin;
@@ -160,23 +161,6 @@ function syncVisibility(){
     }
   }
   return admin;
-}
-
-function suppressLegacyProfileActions(){
-  let removed=false;
-  for(const node of document.querySelectorAll(LEGACY_PROFILE_SELECTOR)){
-    node.remove();
-    removed=true;
-  }
-  return removed;
-}
-function scheduleLegacySuppression(){
-  if(suppressQueued)return;
-  suppressQueued=true;
-  queueMicrotask(()=>{
-    suppressQueued=false;
-    suppressLegacyProfileActions();
-  });
 }
 
 async function quoteClient(){
@@ -309,8 +293,6 @@ function bind(){
   const plus=document.getElementById('composer-plus-btn');
   if(!plus)return false;
   ensureAdminMenu();
-  suppressLegacyProfileActions();
-  new MutationObserver(scheduleLegacySuppression).observe(document.documentElement,{childList:true,subtree:true});
   plus.addEventListener('click',event=>{
     if(!currentAdmin())return;
     event.preventDefault();
@@ -328,7 +310,7 @@ function bind(){
     event.stopPropagation();
     void runAction(String(button.getAttribute(ACTION_ATTR)||''));
   },true);
-  document.addEventListener('v21-auth-state',()=>{ensureAdminMenu();syncVisibility();scheduleLegacySuppression();});
+  document.addEventListener('v21-auth-state',()=>{ensureAdminMenu();syncVisibility();});
   document.addEventListener('v21-message-store-state',syncVisibility);
   document.addEventListener('navigation-change',syncVisibility);
   return true;
@@ -342,6 +324,5 @@ window.V21AdminComposerActions=Object.freeze({
   run:runAction,
   openQuote,
   activeContactId,
-  suppressLegacyProfileActions,
 });
 })();
