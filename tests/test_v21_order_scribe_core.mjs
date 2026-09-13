@@ -1,3 +1,4 @@
+// RED gate: quick split must reuse the tested chat-input parser behavior.
 import assert from 'node:assert/strict';
 import {
   parseQuickOrderText,
