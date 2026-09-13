@@ -2,49 +2,58 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CLIENT = ROOT / "quote-client.js"
-DIRECTORY = ROOT / "contact-directory-admin.js"
+ACTIONS = ROOT / "admin-composer-actions.js"
+CALL_CLIENT = ROOT / "call-invite-client.js"
+SOURCE = ROOT / "index.source.html"
 
-assert CLIENT.exists(), "quotation UI/client module must exist"
-assert DIRECTORY.exists(), "contact directory admin module must exist"
+assert CLIENT.exists(), "quotation client module must exist"
+assert CALL_CLIENT.exists(), "call invite client module must exist"
+assert ACTIONS.exists(), "Admin composer actions module must exist"
+assert SOURCE.exists(), "canonical source must exist"
 
-src = CLIENT.read_text(encoding="utf-8")
-low = src.lower()
-directory = DIRECTORY.read_text(encoding="utf-8").lower()
+quote = CLIENT.read_text(encoding="utf-8")
+actions = ACTIONS.read_text(encoding="utf-8")
+call = CALL_CLIENT.read_text(encoding="utf-8")
+source = SOURCE.read_text(encoding="utf-8")
+low = actions.lower()
 
-required = [
+# Composer + remains the single owner for Admin send/actions.
+for needle in [
     "role==='admin'",
-    "[data-contact-manage]",
-    "[data-profile-overlay]",
     "báo giá",
-    "tất cả",
-    "theo nguồn",
-    "tạo link",
-    "sao chép",
-    "gửi",
-    "hang-thuong",
-    "hang-u",
-    "masan",
-    "sua",
-    "thuoc-la",
-    "v21-quote",
-    "navigator.clipboard",
-    "v21syncengine",
-    "queuetext",
-]
-for needle in required:
-    assert needle in low, f"missing quotation Chat UI contract: {needle}"
-
-assert "import('./quote-client.js')" in directory or 'import("./quote-client.js")' in directory, "loaded Admin module must import quotation UI"
-
-for forbidden in [
-    "v21-zalo-",
-    "zalo.me",
-    "openapi.zalo",
-    "zalo api",
+    "link gọi",
+    "đơn",
+    "tạo đơn",
+    "đơn tạm",
+    "đã giao",
+    "công nợ",
+    "data-admin-composer-action",
+    "data-admin-order-action",
 ]:
-    assert forbidden not in low, f"quotation UI must never send directly to Zalo: {forbidden}"
+    assert needle in low, f"missing Admin composer action contract: {needle}"
 
-assert "functions.invoke('v21-quote'" in low or 'functions.invoke("v21-quote"' in low, "quotation creation must use dedicated Edge Function"
-assert "contactid:targetaccountid" in low.replace(" ", ""), "quotation send must target the User whose ellipsis opened the modal"
+# Quote keeps its existing backend, but composer passes the active contact explicitly.
+assert "functions.invoke('v21-quote'" in quote or 'functions.invoke("v21-quote"' in quote
+assert "sendquotelink" in low and "contactid" in low
+assert "v21quoteclient" in low
 
-print("chat quote Admin UI contract PASS")
+# Guest call link uses the existing invite client and never the normal Chat call start RPC.
+assert "taphoacallinviteclient" in low
+assert "createandsend" in low and "contactid" in low
+assert "v21_call_start" not in low
+
+# Future order entries are visible placeholders only; no order business logic is wired yet.
+assert "disabled" in low
+assert "sắp có" in low
+
+# Old contact-profile entry points stay disabled so there is only one visible owner.
+assert "PROFILE_QUOTE_ACTION_ENABLED=false" in quote
+assert "PROFILE_CALL_INVITE_ACTION_ENABLED=false" in call
+
+# Canonical source loads the Admin composer adapter after call invite support.
+call_pos = source.find('./call-invite-client.js')
+actions_pos = source.find('./admin-composer-actions.js')
+assert call_pos >= 0
+assert actions_pos > call_pos
+
+print("chat Admin composer actions contract PASS")
