@@ -15,7 +15,7 @@ assert MODEL_MIGRATION.exists(), "order scribe current-model migration must exis
 
 edge = EDGE.read_text(encoding="utf-8").lower()
 core = CORE.read_text(encoding="utf-8").lower()
-shared = SHARED.read_text(encoding="utf-8")
+shared = SHARED.read_text(encoding="utf-8").lower()
 migration = MIGRATION.read_text(encoding="utf-8").lower()
 model_migration = MODEL_MIGRATION.read_text(encoding="utf-8").lower()
 compact = "".join(edge.split())
@@ -33,8 +33,8 @@ assert "chat_ai_enqueue" not in edge
 # Quick parsing is partial-success and must preserve unresolved text for manual handling.
 assert "unresolved:parsed.unresolved" in compact
 assert "../_shared/customer-order-parser.mjs" in core, "Tách nhanh must import the same parser core as Chat"
-assert "parseCustomerTextPartial" in core
-assert "parseCustomerTextPartial" in shared
+assert "parsecustomertextpartial" in core
+assert "parsecustomertextpartial" in shared
 
 # Provider/network failures use stable application codes instead of surfacing HTTP details.
 assert "ai_unavailable" in edge
