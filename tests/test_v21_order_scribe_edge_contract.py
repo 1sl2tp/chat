@@ -27,6 +27,14 @@ assert "aispans(source.text)" in compact, "non-quick path must invoke the isolat
 assert "chat_ai_message_inbox" not in edge
 assert "chat_ai_enqueue" not in edge
 
+# Quick parsing is partial-success and must preserve unresolved text for manual handling.
+assert "unresolved:parsed.unresolved" in compact
+
+# Provider/network failures use stable application codes instead of surfacing HTTP details.
+assert "ai_unavailable" in edge
+assert "ai_response_invalid" in edge
+assert "ai_request_failed" not in edge
+
 # If the Admin does not explicitly select text, the server may use the latest inbound
 # customer message for that contact/conversation.
 assert "v21_conversations" in edge
