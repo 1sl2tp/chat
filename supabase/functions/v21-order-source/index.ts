@@ -79,31 +79,67 @@ async function listSources(adminId:string,body:any){
     .eq('conversation_id',conversationId)
     .eq('sender_account_id',contactId)
     .is('deleted_at',null)
-    .not('body','is',null)
     .gte('created_at',from)
     .lt('created_at',to)
     .order('created_at',{ascending:true});
   if(messages.error)throw messages.error;
   const rows=Array.isArray(messages.data)?messages.data:[];
   const ids=rows.map((row:any)=>String(row?.id||'')).filter(Boolean);
+
   let states:any[]=[];
+  let mediaRows:any[]=[];
   if(ids.length){
-    const stateResult=await db.from('chat_order_source_states')
-      .select('message_id,state,linked_draft_id,linked_external_order_id,linked_external_order_no,updated_at')
-      .eq('admin_account_id',adminId)
-      .in('message_id',ids);
+    const [stateResult,mediaResult]=await Promise.all([
+      db.from('chat_order_source_states')
+        .select('message_id,state,linked_draft_id,linked_external_order_id,linked_external_order_no,updated_at')
+        .eq('admin_account_id',adminId)
+        .in('message_id',ids),
+      db.from('v21_media_assets')
+        .select('id,message_id,mime_type,width_px,height_px,sort_index,created_at')
+        .eq('conversation_id',conversationId)
+        .eq('owner_account_id',contactId)
+        .eq('kind','image')
+        .is('deleted_at',null)
+        .in('message_id',ids)
+        .order('sort_index',{ascending:true})
+        .order('created_at',{ascending:true}),
+    ]);
     if(stateResult.error)throw stateResult.error;
+    if(mediaResult.error)throw mediaResult.error;
     states=Array.isArray(stateResult.data)?stateResult.data:[];
+    mediaRows=Array.isArray(mediaResult.data)?mediaResult.data:[];
   }
+
   const stateMap=new Map(states.map((row:any)=>[String(row.message_id),row]));
+  const imageMap=new Map<string,any[]>();
+  for(const asset of mediaRows){
+    const messageId=String(asset?.message_id||'');
+    if(!messageId)continue;
+    const list=imageMap.get(messageId)||[];
+    list.push({
+      assetId:String(asset?.id||''),
+      mimeType:String(asset?.mime_type||'image/jpeg'),
+      widthPx:Number(asset?.width_px)||null,
+      heightPx:Number(asset?.height_px)||null,
+    });
+    imageMap.set(messageId,list);
+  }
+
   const includeAll=body?.includeAll===true;
-  const items=rows.filter((row:any)=>includeAll||isLikelyOrderSource(row?.body)).map((row:any)=>{
-    const state:any=stateMap.get(String(row.id))||{};
+  const items=rows.filter((row:any)=>{
+    const messageId=String(row?.id||'');
+    const imageAssets=imageMap.get(messageId)||[];
+    return includeAll||imageAssets.length>0||isLikelyOrderSource(row?.body);
+  }).map((row:any)=>{
+    const messageId=String(row.id||'');
+    const state:any=stateMap.get(messageId)||{};
+    const imageAssets=imageMap.get(messageId)||[];
     return {
-      messageId:String(row.id||''),
+      messageId,
       text:String(row.body||''),
       createdAt:String(row.created_at||''),
       state:String(state.state||'pending'),
+      imageAssets,
       linkedDraftId:state.linked_draft_id?String(state.linked_draft_id):null,
       linkedExternalOrderId:state.linked_external_order_id?String(state.linked_external_order_id):null,
       linkedExternalOrderNo:state.linked_external_order_no?String(state.linked_external_order_no):null,
