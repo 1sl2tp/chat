@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
-import { buildNotificationPayload, isGoneStatus, retryDelaySeconds } from "./push-core.mjs";
+import { buildNotificationPayload, buildCallInviteNotificationPayload, isGoneStatus, retryDelaySeconds } from "./push-core.mjs";
 
 const headers={
   "Access-Control-Allow-Origin":"*",
@@ -29,6 +29,50 @@ async function loadVapid(admin:ReturnType<typeof createClient>):Promise<VapidCon
   return{publicKey,privateKey,subject};
 }
 
+async function deliverToSubscriptions(
+  admin:ReturnType<typeof createClient>,
+  subscriptions:any[],
+  payload:Record<string,unknown>,
+  urgency:"very-low"|"low"|"normal"|"high"="normal"
+){
+  let delivered=0;
+  let disabled=0;
+  let transientError="";
+  for(const subscription of subscriptions){
+    const subscriptionId=String(subscription?.id??"");
+    try{
+      await webpush.sendNotification({
+        endpoint:String(subscription.endpoint??""),
+        keys:{p256dh:String(subscription.p256dh??""),auth:String(subscription.auth??"")},
+      },JSON.stringify(payload),{TTL:60,urgency});
+      delivered++;
+      await admin.from("v21_push_subscriptions").update({
+        failure_count:0,last_success_at:new Date().toISOString(),last_failure_at:null,updated_at:new Date().toISOString(),
+      }).eq("id",subscriptionId);
+    }catch(error){
+      const statusCode=Number((error as {statusCode?:unknown})?.statusCode||0);
+      const messageText=clean((error as {message?:unknown})?.message||error,500)||"push_send_failed";
+      if(isGoneStatus(statusCode)){
+        disabled++;
+        await admin.from("v21_push_subscriptions").update({
+          enabled:false,
+          failure_count:Number(subscription.failure_count||0)+1,
+          last_failure_at:new Date().toISOString(),
+          updated_at:new Date().toISOString(),
+        }).eq("id",subscriptionId);
+      }else{
+        transientError=transientError||messageText;
+        await admin.from("v21_push_subscriptions").update({
+          failure_count:Number(subscription.failure_count||0)+1,
+          last_failure_at:new Date().toISOString(),
+          updated_at:new Date().toISOString(),
+        }).eq("id",subscriptionId);
+      }
+    }
+  }
+  return{delivered,disabled,transientError};
+}
+
 Deno.serve(async(req:Request)=>{
   if(req.method==="OPTIONS")return new Response("ok",{headers});
   if(req.method!=="POST")return reply(405,{ok:false,code:"method_not_allowed"});
@@ -55,13 +99,18 @@ Deno.serve(async(req:Request)=>{
     if(!vapid)return reply(503,{ok:false,code:"push_not_configured"});
 
     webpush.setVapidDetails(vapid.subject,vapid.publicKey,vapid.privateKey);
-    const {data:claimed,error:claimError}=await admin.rpc("v21_admin_push_claim",{p_limit:20});
+    const [{data:claimed,error:claimError},{data:callClaimed,error:callClaimError}]=await Promise.all([
+      admin.rpc("v21_admin_push_claim",{p_limit:20}),
+      admin.rpc("v21_call_invite_push_claim",{p_limit:20}),
+    ]);
     if(claimError)return reply(500,{ok:false,code:"claim_failed"});
+    if(callClaimError)return reply(500,{ok:false,code:"call_claim_failed"});
 
     let delivered=0;
     let disabled=0;
     let retried=0;
     const rows=Array.isArray(claimed)?claimed:[];
+    const callRows=Array.isArray(callClaimed)?callClaimed:[];
 
     for(const claim of rows){
       const outboxId=String(claim?.outbox_id??"");
@@ -91,7 +140,6 @@ Deno.serve(async(req:Request)=>{
            !message||message.deleted_at||String(message.sender_account_id)!==senderId){
           terminal=true;
         }else{
-          const subscriptions=Array.isArray(subsResult.data)?subsResult.data:[];
           const payload=buildNotificationPayload({
             outbox_id:outboxId,
             message_id:messageId,
@@ -102,39 +150,10 @@ Deno.serve(async(req:Request)=>{
             body:message.body,
             media:mediaResult.data??[],
           });
-
-          for(const subscription of subscriptions){
-            const subscriptionId=String(subscription?.id??"");
-            try{
-              await webpush.sendNotification({
-                endpoint:String(subscription.endpoint??""),
-                keys:{p256dh:String(subscription.p256dh??""),auth:String(subscription.auth??"")},
-              },JSON.stringify(payload),{TTL:60,urgency:"normal"});
-              delivered++;
-              await admin.from("v21_push_subscriptions").update({
-                failure_count:0,last_success_at:new Date().toISOString(),last_failure_at:null,updated_at:new Date().toISOString(),
-              }).eq("id",subscriptionId);
-            }catch(error){
-              const statusCode=Number((error as {statusCode?:unknown})?.statusCode||0);
-              const messageText=clean((error as {message?:unknown})?.message||error,500)||"push_send_failed";
-              if(isGoneStatus(statusCode)){
-                disabled++;
-                await admin.from("v21_push_subscriptions").update({
-                  enabled:false,
-                  failure_count:Number(subscription.failure_count||0)+1,
-                  last_failure_at:new Date().toISOString(),
-                  updated_at:new Date().toISOString(),
-                }).eq("id",subscriptionId);
-              }else{
-                transientError=transientError||messageText;
-                await admin.from("v21_push_subscriptions").update({
-                  failure_count:Number(subscription.failure_count||0)+1,
-                  last_failure_at:new Date().toISOString(),
-                  updated_at:new Date().toISOString(),
-                }).eq("id",subscriptionId);
-              }
-            }
-          }
+          const outcome=await deliverToSubscriptions(admin,Array.isArray(subsResult.data)?subsResult.data:[],payload,"normal");
+          delivered+=outcome.delivered;
+          disabled+=outcome.disabled;
+          transientError=outcome.transientError;
         }
       }catch(error){
         transientError=clean((error as {message?:unknown})?.message||error,500)||"push_delivery_failed";
@@ -142,19 +161,67 @@ Deno.serve(async(req:Request)=>{
 
       if(transientError&&!terminal){
         retried++;
-        const attempt=Number(claim?.attempt_count||1);
-        void retryDelaySeconds(attempt);
-        await admin.rpc("v21_admin_push_result",{
-          p_outbox_id:outboxId,p_ok:false,p_error:transientError,p_dead:false,
-        });
+        void retryDelaySeconds(Number(claim?.attempt_count||1));
+        await admin.rpc("v21_admin_push_result",{p_outbox_id:outboxId,p_ok:false,p_error:transientError,p_dead:false});
       }else{
-        await admin.rpc("v21_admin_push_result",{
-          p_outbox_id:outboxId,p_ok:true,p_error:null,p_dead:false,
-        });
+        await admin.rpc("v21_admin_push_result",{p_outbox_id:outboxId,p_ok:true,p_error:null,p_dead:false});
       }
     }
 
-    return reply(200,{ok:true,claimed:rows.length,delivered,disabled,retried});
+    for(const claim of callRows){
+      const outboxId=String(claim?.outbox_id??"");
+      if(!outboxId)continue;
+      const inviteId=String(claim?.invite_id??"");
+      const recipientId=String(claim?.recipient_account_id??"");
+      const contactId=String(claim?.contact_id??"");
+      let transientError="";
+      let terminal=false;
+
+      try{
+        const [recipientResult,inviteResult,contactResult,subsResult]=await Promise.all([
+          admin.from("v21_accounts").select("id,role,locked_at,deleted_at").eq("id",recipientId).maybeSingle(),
+          admin.from("chat_call_invites").select("id,contact_id,expires_at,guest_joined_at,admin_joined_at,revoked_at,ended_at").eq("id",inviteId).maybeSingle(),
+          admin.from("v21_accounts").select("id,role,display_name,username,locked_at,deleted_at").eq("id",contactId).maybeSingle(),
+          admin.from("v21_push_subscriptions").select("id,endpoint,p256dh,auth,enabled,failure_count").eq("account_id",recipientId).eq("enabled",true),
+        ]);
+        const lookupError=recipientResult.error||inviteResult.error||contactResult.error||subsResult.error;
+        if(lookupError)throw lookupError;
+        const recipient=recipientResult.data;
+        const invite=inviteResult.data;
+        const contact=contactResult.data;
+        const expiresAt=Date.parse(String(invite?.expires_at||""));
+        if(!recipient||recipient.role!=="admin"||recipient.locked_at||recipient.deleted_at||
+           !invite||!invite.guest_joined_at||invite.admin_joined_at||invite.revoked_at||invite.ended_at||
+           !Number.isFinite(expiresAt)||expiresAt<=Date.now()||String(invite.contact_id||"")!==contactId||
+           !contact||contact.deleted_at||contact.locked_at){
+          terminal=true;
+        }else{
+          const payload=buildCallInviteNotificationPayload({
+            outbox_id:outboxId,
+            invite_id:inviteId,
+            contact_id:contactId,
+            contact_display_name:contact.display_name,
+            contact_username:contact.username,
+          });
+          const outcome=await deliverToSubscriptions(admin,Array.isArray(subsResult.data)?subsResult.data:[],payload,"high");
+          delivered+=outcome.delivered;
+          disabled+=outcome.disabled;
+          transientError=outcome.transientError;
+        }
+      }catch(error){
+        transientError=clean((error as {message?:unknown})?.message||error,500)||"call_push_delivery_failed";
+      }
+
+      if(transientError&&!terminal){
+        retried++;
+        void retryDelaySeconds(Number(claim?.attempt_count||1));
+        await admin.rpc("v21_call_invite_push_result",{p_outbox_id:outboxId,p_ok:false,p_error:transientError,p_dead:false});
+      }else{
+        await admin.rpc("v21_call_invite_push_result",{p_outbox_id:outboxId,p_ok:true,p_error:null,p_dead:false});
+      }
+    }
+
+    return reply(200,{ok:true,claimed:rows.length,call_claimed:callRows.length,delivered,disabled,retried});
   }
 
   const authHeader=req.headers.get("Authorization")??"";
