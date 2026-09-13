@@ -443,7 +443,11 @@ async function runAction(action){
     catch{setTransientHint('Không thể gửi link gọi',2600);return false;}
   }
   if(action==='create'){
-    try{return await openOrder(contactId);}catch{setTransientHint('Không thể mở tạo đơn');return false;}
+    try{
+      const source=window.V21AdminOrderSource;
+      if(!source?.open)throw new Error('order_source_unavailable');
+      return await source.open({preset:'today'});
+    }catch{setTransientHint('Không thể mở tin báo hàng',2600);return false;}
   }
   if(action==='draft'){
     try{
