@@ -43,3 +43,18 @@ export function isLikelyOrderSource(value,aliases=[]){
   if(looksTimeOnly)return false;
   return true;
 }
+
+export function orderSplitPreviewEntries(result={}){
+  const unresolved=(Array.isArray(result?.unresolved)?result.unresolved:[])
+    .map(item=>String(item?.raw||'').trim())
+    .filter(Boolean)
+    .map(text=>({type:'unresolved',text}));
+  const items=(Array.isArray(result?.items)?result.items:[])
+    .map(item=>({
+      type:'item',
+      quantity:Number(item?.quantity),
+      name:String(item?.name||'').trim(),
+    }))
+    .filter(item=>Number.isFinite(item.quantity)&&item.quantity>0&&item.name);
+  return [...unresolved,...items];
+}
