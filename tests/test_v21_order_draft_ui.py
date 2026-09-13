@@ -15,9 +15,9 @@ for action in [
 ]:
     assert action in UI
 
-assert "data-draft-quantity" in UI
-assert "data-draft-raw-name" in UI
-assert "data-draft-product" in UI
+assert "data-draft-quantity" in UI or "dataset.draftquantity" in compact
+assert "data-draft-raw-name" in UI or "dataset.draftrawname" in compact
+assert "data-draft-product" in UI or "dataset.draftproduct" in compact
 assert "tên sản phẩm" in UI
 assert "giá" in UI
 assert "gửi đơn" in UI
@@ -28,6 +28,7 @@ assert "queuetext" not in compact
 assert "v21_message_send" not in compact
 assert "v21-ai-product-parser" not in UI
 assert "data-draft-product-quantity" not in UI
+assert "dataset.draftproductquantity" not in compact
 assert "navigator.clipboard" not in UI
 
 print("chat order draft UI contract PASS")
