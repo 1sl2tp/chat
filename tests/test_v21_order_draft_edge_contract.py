@@ -21,7 +21,7 @@ assert "chat_order_draft_create" in EDGE
 assert ".from('products')" in EDGE or '.from("products")' in EDGE
 assert ".eq('active',true)" in compact or '.eq("active",true)' in compact
 assert "select('id,name,price')" in compact or 'select("id,name,price")' in compact
-assert "chat-" in EDGE
+assert "productid(" in compact
 assert "created_by_account_id" in EDGE
 assert "conversation_mismatch" in EDGE
 
