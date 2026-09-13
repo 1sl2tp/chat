@@ -58,3 +58,27 @@ export function orderSplitPreviewEntries(result={}){
     .filter(item=>Number.isFinite(item.quantity)&&item.quantity>0&&item.name);
   return [...unresolved,...items];
 }
+
+export function customerOrderSourceGroup(rows=[]){
+  const active=(Array.isArray(rows)?rows:[])
+    .map((row,index)=>({row:row||{},index}))
+    .filter(({row})=>{
+      const state=String(row?.state||'pending');
+      return state!=='imported'&&state!=='ignored'&&String(row?.messageId||'').trim()&&String(row?.text||'').trim();
+    })
+    .sort((a,b)=>{
+      const at=Date.parse(String(a.row?.createdAt||''));
+      const bt=Date.parse(String(b.row?.createdAt||''));
+      if(Number.isFinite(at)&&Number.isFinite(bt)&&at!==bt)return at-bt;
+      if(Number.isFinite(at)!==Number.isFinite(bt))return Number.isFinite(at)?-1:1;
+      return a.index-b.index;
+    })
+    .map(({row})=>row);
+  return{
+    sourceMessageIds:active.map(row=>String(row.messageId||'').trim()),
+    text:active.map(row=>String(row.text||'').trim()).join('\n'),
+    firstCreatedAt:active.length?String(active[0]?.createdAt||''):'',
+    lastCreatedAt:active.length?String(active[active.length-1]?.createdAt||''):'',
+    count:active.length,
+  };
+}
