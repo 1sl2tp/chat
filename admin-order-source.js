@@ -9,7 +9,7 @@ let customRange={from:'',to:''};
 let rows=[];
 let requestSeq=0;
 let corePromise=null;
-let orderGroup={sourceMessageIds:[],text:'',firstCreatedAt:'',lastCreatedAt:'',count:0};
+let orderGroup={sourceMessageIds:[],text:'',firstCreatedAt:'',lastCreatedAt:'',count:0,images:[]};
 let groupSplitResult=null;
 
 function authStore(){return window.V21AuthSessionStore||null;}
@@ -63,10 +63,12 @@ function errorText(error){
     admin_required:'Chỉ Admin được xem nguồn tin.',
     conversation_not_found:'Chưa có cuộc trò chuyện với khách này.',
     invalid_date_range:'Khoảng ngày chưa hợp lệ.',
-    ai_unavailable:'AI chưa dùng được — vẫn có thể Tách nhanh.',
-    invalid_response:'AI chưa dùng được — vẫn có thể Tách nhanh.',
-    ai_not_configured:'AI chưa dùng được — vẫn có thể Tách nhanh.',
-    ai_response_invalid:'AI chưa dùng được — vẫn có thể Tách nhanh.',
+    source_image_not_found:'Không đọc được ảnh của khách trong đoạn chat này.',
+    image_unavailable:'Không tải được ảnh để AI đọc.',
+    ai_unavailable:'AI chưa dùng được — vẫn có thể Tách nhanh phần chữ.',
+    invalid_response:'AI chưa dùng được — vẫn có thể Tách nhanh phần chữ.',
+    ai_not_configured:'AI chưa dùng được — vẫn có thể Tách nhanh phần chữ.',
+    ai_response_invalid:'AI chưa dùng được — vẫn có thể Tách nhanh phần chữ.',
   };
   return known[code]||code;
 }
@@ -93,8 +95,9 @@ function installStyle(){
     .order-source-message{display:grid;gap:7px;padding:10px;border:1px solid #10a37f;border-radius:13px;background:var(--theme-surface-primary,#fff);box-shadow:inset 3px 0 0 #10a37f}
     .order-source-message-top{display:flex;align-items:center;gap:8px}.order-source-count{margin-left:auto;font-size:11px;font-weight:700;color:#0b7a5f}
     .order-source-text{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;line-height:1.45;user-select:text;-webkit-user-select:text}.order-source-time{font-size:11px;color:var(--theme-content-tertiary,#888)}
+    .order-source-images{padding:8px 9px;border:1px solid var(--theme-border-default,#e1e1e1);border-radius:9px;background:var(--theme-surface-secondary,#f6f6f6);font-size:12px;color:var(--theme-content-secondary,#666)}
     .order-source-actions{display:flex;gap:6px;flex-wrap:wrap}.order-source-actions button{min-height:32px;padding:0 10px;border:1px solid var(--theme-border-default,#ddd);border-radius:9px;background:var(--theme-surface-secondary,#f6f6f6);font-size:12px;font-weight:650;cursor:pointer}.order-source-actions button[data-source-action="quick"]{background:#eef8f5;color:#08765a}.order-source-actions button[data-source-action="ignore"]{margin-left:auto}
-    .order-source-result{display:grid;gap:4px;padding:8px;border-radius:9px;background:var(--theme-surface-secondary,#f6f6f6);font-size:12px;line-height:1.4}.order-source-result strong{font-size:11px}.order-source-unresolved{color:#9a3412}.order-source-empty,.order-source-status{padding:18px 8px;text-align:center;color:var(--theme-content-secondary,#666);font-size:13px}.order-source-status[data-error="true"]{color:#b42318}
+    .order-source-result{display:grid;gap:4px;padding:8px;border-radius:9px;background:var(--theme-surface-secondary,#f6f6f6);font-size:12px;line-height:1.4}.order-source-result strong{font-size:11px}.order-source-unresolved{color:#9a3412}.order-source-uncertain{color:#9a3412;font-size:11px}.order-source-empty,.order-source-status{padding:18px 8px;text-align:center;color:var(--theme-content-secondary,#666);font-size:13px}.order-source-status[data-error="true"]{color:#b42318}
     @media(max-width:639px){.order-source-presets{grid-template-columns:1fr 1fr}.order-source-options{align-items:flex-start;flex-direction:column}.order-source-custom{margin-left:0;width:100%}.order-source-custom input{max-width:none;flex:1}}
   `;
   document.head.appendChild(style);
@@ -142,7 +145,7 @@ function setOpen(open){
   return open;
 }
 function close(){setOpen(false);return true;}
-function emptyOrderGroup(){return{sourceMessageIds:[],text:'',firstCreatedAt:'',lastCreatedAt:'',count:0};}
+function emptyOrderGroup(){return{sourceMessageIds:[],text:'',firstCreatedAt:'',lastCreatedAt:'',count:0,images:[]};}
 function resetOrderGroup(){
   orderGroup=emptyOrderGroup();
   groupSplitResult=null;
@@ -154,7 +157,7 @@ function renderResult(result){
   return`<div class="order-source-result">
     ${entries.map(entry=>entry.type==='unresolved'
       ?`<div class="order-source-unresolved">Chưa tách · ${escapeHtml(entry.text||'')}</div>`
-      :`<div><b>${Number(entry.quantity||0)}</b> ${escapeHtml(entry.name||'')}</div>`).join('')}
+      :`<div><b>${escapeHtml(entry.quantityLabel||entry.quantity||'')}</b> ${escapeHtml(entry.name||'')}${entry.uncertain?'<span class="order-source-uncertain"> · ?</span>':''}</div>`).join('')}
     ${!entries.length?'<div>Không có dòng để tách.</div>':''}
   </div>`;
 }
@@ -162,12 +165,14 @@ function renderOrderGroup(){
   const first=timeText(orderGroup.firstCreatedAt);
   const last=timeText(orderGroup.lastCreatedAt);
   const timeRange=first&&last&&first!==last?`${first} → ${last}`:(first||last);
+  const images=Array.isArray(orderGroup.images)?orderGroup.images:[];
   return`<article class="order-source-message" data-source-order-group>
     <div class="order-source-message-top">
       <time class="order-source-time">${escapeHtml(timeRange)}</time>
       <span class="order-source-count">${orderGroup.count} tin</span>
     </div>
-    <div class="order-source-text">${escapeHtml(orderGroup.text)}</div>
+    ${orderGroup.text?`<div class="order-source-text">${escapeHtml(orderGroup.text)}</div>`:''}
+    ${images.length?`<div class="order-source-images">Ảnh · ${images.length} · Bấm AI để đọc chữ viết tay</div>`:''}
     <div class="order-source-actions">
       <button type="button" data-source-action="quick">Tách nhanh</button>
       <button type="button" data-source-action="ai">AI</button>
@@ -221,6 +226,7 @@ async function refresh(){
     rows=Array.isArray(data.items)?data.items:[];
     const helper=await core();
     orderGroup=helper.customerOrderSourceGroup(rows);
+    if(!Array.isArray(orderGroup.images))orderGroup.images=[];
     groupSplitResult=null;
     render();
     return true;
@@ -242,13 +248,24 @@ async function setGroupState(messageIds,state){
 }
 async function splitGroup(mode){
   const contact=currentContact();
-  if(!contact?.id||!orderGroup.count||!orderGroup.text)return false;
-  groupSplitResult={items:[],unresolved:[],error:mode==='ai'?'AI đang tách…':'Đang tách nhanh…'};
+  const imageAssetIds=(Array.isArray(orderGroup.images)?orderGroup.images:[]).map(image=>clean(image?.assetId)).filter(Boolean);
+  if(!contact?.id||!orderGroup.count)return false;
+  if(mode==='quick'&&!orderGroup.text){
+    groupSplitResult={items:[],unresolved:[],error:imageAssetIds.length?'Ảnh chỉ đọc bằng AI.':'Không có dòng chữ để tách.'};
+    render();
+    return true;
+  }
+  if(mode==='ai'&&!orderGroup.text&&!imageAssetIds.length)return false;
+  groupSplitResult={items:[],unresolved:[],error:mode==='ai'?'AI đang đọc/tách…':'Đang tách nhanh…'};
   render();
   try{
     const client=window.V21OrderScribeClient;
     if(!client?.[mode])throw new Error('invalid_response');
-    const data=await client[mode]({contactId:contact.id,text:orderGroup.text});
+    const data=await client[mode]({
+      contactId:contact.id,
+      text:orderGroup.text,
+      imageAssetIds:mode==='ai'?imageAssetIds:[],
+    });
     const helper=await core();
     const splitResult={items:data.items||[],unresolved:data.unresolved||[],error:''};
     splitResult.previewEntries=helper.orderSplitPreviewEntries(splitResult);
@@ -265,6 +282,7 @@ async function ignoreGroup(){
   await setGroupState(ids,'ignored');
   const helper=await core();
   orderGroup=helper.customerOrderSourceGroup(rows);
+  if(!Array.isArray(orderGroup.images))orderGroup.images=[];
   groupSplitResult=null;
   render();
   return true;

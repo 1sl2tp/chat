@@ -7,6 +7,9 @@ function quantityNumber(value){
   const amount=Number(String(value??'').replace(',','.'));
   return Number.isFinite(amount)&&amount>0?amount:null;
 }
+function quantityLabel(value,fallback){
+  return String(value??'').trim()||String(fallback??'').trim();
+}
 
 export function parseQuickOrderText(value){
   const source=normalizeSource(value);
@@ -15,6 +18,7 @@ export function parseQuickOrderText(value){
   const parsed=parseCustomerTextPartial(source,{preserveRaw:true});
   const items=(Array.isArray(parsed?.lines)?parsed.lines:[]).map(line=>({
     quantity:Number(line?.quantity),
+    quantityLabel:quantityLabel(line?.rawQuantityLabel,line?.quantity),
     name:String(line?.rawProductName||line?.productName||'').trim(),
   })).filter(item=>Number.isFinite(item.quantity)&&item.quantity>0&&item.name);
   const unresolved=(Array.isArray(parsed?.unresolved)?parsed.unresolved:[])
@@ -40,12 +44,35 @@ export function materializeAiSpans(value,spans){
     )throw new Error('invalid_ai_span');
     const name=source.slice(start,end).trim();
     if(!name)throw new Error('invalid_ai_span');
-    items.push({quantity,name});
+    items.push({
+      quantity,
+      quantityLabel:quantityLabel(raw?.quantity_text,quantity),
+      name,
+    });
     priorEnd=end;
   }
   return items;
 }
 
+export function materializeAiImageItems(rawItems){
+  if(!Array.isArray(rawItems)||!rawItems.length)throw new Error('ai_items_missing');
+  return rawItems.map(raw=>{
+    const quantity=quantityNumber(raw?.quantity);
+    const name=String(raw?.name??'').trim();
+    if(!quantity||!name)throw new Error('invalid_ai_image_item');
+    return{
+      quantity,
+      quantityLabel:quantityLabel(raw?.quantity_text,quantity),
+      name,
+      uncertain:raw?.uncertain===true,
+    };
+  });
+}
+
 export function formatOrderItems(items){
-  return (Array.isArray(items)?items:[]).map(item=>`${Number(item.quantity)} ${String(item.name??'')}`).join('\n');
+  return (Array.isArray(items)?items:[]).map(item=>{
+    const marker=quantityLabel(item?.quantityLabel,item?.quantity);
+    const name=String(item?.name??'').trim();
+    return `${marker} ${name}${item?.uncertain===true?' [?]':''}`.trim();
+  }).join('\n');
 }

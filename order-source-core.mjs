@@ -31,7 +31,7 @@ export function isLikelyOrderSource(value,aliases=[]){
   if(!text)return false;
   const valueNorm=normalized(text);
   if(/^(em cam on|cam on|vang|da|ok|oke|ok e|em cam on a)\b/u.test(valueNorm))return false;
-  const hasQty=/(^|\s)\d+(?:[.,]\d+)?\s+\S/u.test(valueNorm);
+  const hasQty=/(^|\s)\d+(?:[.,]\d+)?(?:(?:\s+\S)|(?=[^\d\s]))/u.test(valueNorm);
   if(!hasQty)return false;
   const hasPack=/\b(thung|loc|goi|bich|tui|chai|lon|hop|khay|cay)\b/u.test(valueNorm);
   const multiLine=text.split(/\n+/u).filter(Boolean).length>1;
@@ -53,16 +53,36 @@ export function orderSplitPreviewEntries(result={}){
     .map(item=>({
       type:'item',
       quantity:Number(item?.quantity),
+      quantityLabel:String(item?.quantityLabel??item?.quantity??'').trim(),
       name:String(item?.name||'').trim(),
+      uncertain:item?.uncertain===true,
     }))
     .filter(item=>Number.isFinite(item.quantity)&&item.quantity>0&&item.name);
   return [...unresolved,...items];
 }
 
+function imageAssetsForRow(row={}){
+  const messageId=String(row?.messageId||'').trim();
+  return (Array.isArray(row?.imageAssets)?row.imageAssets:[])
+    .map(asset=>({
+      assetId:String(asset?.assetId||'').trim(),
+      messageId,
+      mimeType:String(asset?.mimeType||'image/jpeg').trim()||'image/jpeg',
+      widthPx:Number(asset?.widthPx)||null,
+      heightPx:Number(asset?.heightPx)||null,
+    }))
+    .filter(asset=>asset.assetId);
+}
+
 function sortedRows(rows=[]){
   return (Array.isArray(rows)?rows:[])
     .map((row,index)=>({row:row||{},index}))
-    .filter(({row})=>String(row?.messageId||'').trim()&&String(row?.text||'').trim())
+    .filter(({row})=>{
+      const hasMessageId=Boolean(String(row?.messageId||'').trim());
+      const hasText=Boolean(String(row?.text||'').trim());
+      const hasImages=imageAssetsForRow(row).length>0;
+      return hasMessageId&&(hasText||hasImages);
+    })
     .sort((a,b)=>{
       const at=Date.parse(String(a.row?.createdAt||''));
       const bt=Date.parse(String(b.row?.createdAt||''));
@@ -78,11 +98,15 @@ export function customerOrderSourceGroup(rows=[]){
   // Chat-local "ignored" được loại; các trạng thái bán hàng cũ không có quyền
   // làm tin nhắn biến mất khỏi phần tổng hợp.
   const active=sortedRows(rows).filter(row=>String(row?.state||'pending')!=='ignored');
-  return{
+  const text=active.map(row=>String(row?.text||'').trim()).filter(Boolean).join('\n');
+  const images=active.flatMap(imageAssetsForRow);
+  const result={
     sourceMessageIds:active.map(row=>String(row.messageId||'').trim()),
-    text:active.map(row=>String(row.text||'').trim()).join('\n'),
+    text,
     firstCreatedAt:active.length?String(active[0]?.createdAt||''):'',
     lastCreatedAt:active.length?String(active[active.length-1]?.createdAt||''):'',
     count:active.length,
   };
+  if(images.length)result.images=images;
+  return result;
 }
