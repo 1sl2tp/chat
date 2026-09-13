@@ -22,10 +22,25 @@ class GetlinkWorkEmbedContract(unittest.TestCase):
 
     def test_shell_supports_work_without_changing_chat_default(self):
         text = SHELL.read_text(encoding="utf-8")
+        compact = "".join(text.split())
         self.assertIn("const ROUTES=Object.freeze(['chat','work']);", text)
         self.assertIn("let route='chat';", text)
         self.assertIn("openWork(){return this.open('work')}", text)
-        self.assertIn("if(workView)workView.hidden=route!=='work';", text)
+        self.assertIn("DESKTOP_WORKSPACE_QUERY", text)
+        self.assertIn("desktopWorkspaceMedia", text)
+        self.assertIn("dataset.desktopWorkspace", text)
+        self.assertIn("desktopWorkspace?false:route!=='chat'", compact)
+        self.assertIn("desktopWorkspace?false:route!=='work'", compact)
+
+    def test_desktop_is_directory_chat_work_while_mobile_keeps_route_switching(self):
+        for path in (SOURCE, INDEX):
+            text = path.read_text(encoding="utf-8")
+            compact = "".join(text.split())
+            self.assertIn("--desktop-work-width", text, str(path))
+            self.assertIn('data-desktop-workspace="true"', text, str(path))
+            self.assertIn('#appShell[data-auth-state="authenticated"][data-desktop-workspace="true"]#workThreadView', compact, str(path))
+            self.assertIn('#appShell[data-auth-state="authenticated"][data-desktop-workspace="true"]#thread-bottom-container', compact, str(path))
+            self.assertIn('[data-top-tab="work"]', text, str(path))
 
     def test_bridge_is_token_only_and_origin_locked(self):
         self.assertTrue(BRIDGE.exists())
