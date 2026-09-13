@@ -1,0 +1,50 @@
+name: Apply Order Source Column Fit
+on:
+  push:
+    branches:
+      - fix/order-source-column-fit
+permissions:
+  contents: write
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/order-source-column-fit
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install verification dependency
+        run: python -m pip install pytest
+      - name: Patch order-source overlay geometry
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path=Path('admin-order-source.js')
+          text=path.read_text(encoding='utf-8')
+          old='''    #adminOrderSourcePanel{position:absolute;inset:0;box-sizing:border-box;height:100%;min-height:0;display:grid;grid-template-rows:auto auto minmax(0,1fr);overflow:hidden;background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#171717)}\n    #adminOrderSourcePanel[hidden]{display:none!important}'''
+          new='''    #adminOrderSourcePanel{position:absolute;inset:0;box-sizing:border-box;height:100%;min-height:0;display:grid;grid-template-rows:auto auto minmax(0,1fr);overflow:hidden;background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#171717)}\n    #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #adminOrderSourcePanel{inset-inline-end:var(--desktop-work-width)}\n    #adminOrderSourcePanel[hidden]{display:none!important}'''
+          if old not in text:
+              raise SystemExit('expected panel style anchor not found')
+          path.write_text(text.replace(old,new,1),encoding='utf-8')
+          PY
+      - name: Verify focused contract
+        run: python tests/test_v21_order_source_ui.py
+      - name: Rebuild canonical output
+        run: python tools/build_current_preview.py
+      - name: Verify canonical output
+        run: python tools/verify_current.py
+      - name: Commit implementation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add admin-order-source.js index.html version.json
+          if git diff --cached --quiet; then
+            echo "No implementation changes to commit"
+            exit 0
+          fi
+          git commit -m "fix: fit order source panel to chat column"
+          git push origin HEAD:fix/order-source-column-fit
