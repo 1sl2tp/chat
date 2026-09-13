@@ -73,6 +73,7 @@ function looksLikeUnseparatedMultiItem(productName){
   const parts=nameRemainderAfterNumericPrefix(productName).split(/\s+/).filter(Boolean);
   for(let i=0;i<parts.length-1;i++){
     if(!/^\d+(?:[.,]\d+)?$/.test(parts[i]))continue;
+    if(MEASURE_WORDS.has(parts[i+1]))continue;
     if(parts.slice(i+1).some(token=>/[a-z]/i.test(token)))return true;
   }
   return false;
