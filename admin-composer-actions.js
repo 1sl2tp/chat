@@ -5,8 +5,11 @@ const MENU_ID='composerActionMenu';
 const SECTION_ATTR='data-admin-composer-section';
 const ACTION_ATTR='data-admin-composer-action';
 const ORDER_ATTR='data-admin-order-action';
+const QUOTE_MODAL_MODE='QUOTE_MODAL';
+const QUOTE_MODAL_OWNER='admin-quote-modal';
 let quoteModulePromise=null;
 let quoteOverlay=null;
+let quoteReturnFocus=null;
 let transientHintTimer=0;
 
 function authStore(){return window.V21AuthSessionStore||null;}
@@ -22,6 +25,25 @@ function activeContactId(){
   if(fromMessage)return fromMessage;
   const shellState=window.ChatAppShell?.ScreenSession?.snapshot?.()||{};
   return String(shellState.activeContact?.id||'').trim();
+}
+function interactionController(){return window.V21InteractionController||null;}
+function lockQuoteBackground(){
+  const lease=interactionController()?.enter?.(QUOTE_MODAL_MODE,{
+    owner:QUOTE_MODAL_OWNER,
+    lockBaseUi:true
+  });
+  if(!lease)return false;
+  quoteReturnFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;
+  try{quoteReturnFocus?.blur?.();}catch{}
+  return true;
+}
+function unlockQuoteBackground({restoreFocus=true}={}){
+  interactionController()?.exit?.(QUOTE_MODAL_MODE,{owner:QUOTE_MODAL_OWNER});
+  const returnFocus=quoteReturnFocus;
+  quoteReturnFocus=null;
+  if(restoreFocus&&returnFocus?.isConnected){
+    window.setTimeout(()=>{try{returnFocus.focus({preventScroll:true});}catch{}},0);
+  }
 }
 function actionMenu(){return document.getElementById(MENU_ID);}
 function menuSurface(){return actionMenu()?.querySelector?.('.composer-action-menu-surface')||null;}
@@ -178,6 +200,7 @@ async function sendQuoteTextLink(url,contactId){
   const sync=window.V21SyncEngine||null;
   const messageState=messageStore?.snapshot?.()||{};
   const clientId=window.V21RuntimeId?.create?.()||`quote-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+
   if(
     messageStore?.send&&
     messageState.ready&&
@@ -203,16 +226,22 @@ async function sendQuoteTextLink(url,contactId){
   void sync?.wake?.({reason:'quote-link-send'});
   return true;
 }
-function closeQuote(){
-  if(!quoteOverlay)return false;
-  quoteOverlay.remove();
-  quoteOverlay=null;
-  return true;
+function closeQuote({restoreFocus=true}={}){
+  const hadOverlay=Boolean(quoteOverlay);
+  if(quoteOverlay){
+    quoteOverlay.remove();
+    quoteOverlay=null;
+  }
+  unlockQuoteBackground({restoreFocus});
+  return hadOverlay;
 }
 async function openQuote(contactId){
   const client=await quoteClient();
   if(!client?.create)throw new Error('quote_client_unavailable');
-  closeQuote();
+  const overlayRoot=document.getElementById('globalOverlayRoot');
+  if(!overlayRoot)throw new Error('quote_overlay_unavailable');
+  closeQuote({restoreFocus:false});
+  if(!lockQuoteBackground())throw new Error('quote_modal_busy');
   const sources=Array.isArray(client.sources)?client.sources:[];
   const overlay=document.createElement('section');
   overlay.className='admin-composer-quote-overlay';
@@ -232,7 +261,7 @@ async function openQuote(contactId){
         <button type="button" class="admin-composer-quote-send" data-quote-send>Gửi báo giá</button>
       </div>
     </div>`;
-  document.getElementById('globalOverlayRoot')?.appendChild(overlay);
+  overlayRoot.appendChild(overlay);
   quoteOverlay=overlay;
   let scope='all';
   const source=overlay.querySelector('[data-quote-source]');
