@@ -91,7 +91,9 @@ assert "v21_call_start" not in low
 # manual scribe endpoint; the remaining order menu entries stay future placeholders.
 for needle in ["tách nhanh", "ai ghi đơn", "v21-order-scribe", "data-order-mode"]:
     assert needle in low, f"missing Tạo đơn mode contract: {needle}"
-assert "action:'create',label:'tạo đơn',order:false" in compact or "action:'create',label:'tạođơn',order:false" in compact
+create_start = compact.index("action:'create'")
+create_call = compact[create_start:create_start+140]
+assert "label:'tạođơn'" in create_call and "order:false" in create_call, "Tạo đơn must be active"
 assert "functions.invoke('v21-order-scribe'" in low or 'functions.invoke("v21-order-scribe"' in low
 for action in ["draft", "delivered", "debt"]:
     assert f"action:'{action}'" in compact and "order:true" in compact[compact.index(f"action:'{action}'"):compact.index(f"action:'{action}'")+100]
