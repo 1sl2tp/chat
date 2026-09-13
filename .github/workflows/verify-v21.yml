@@ -43,6 +43,10 @@ jobs:
         run: python tests/test_v21_ai_product_parser_edge_contract.py
       - name: Chat AI database isolation contract
         run: python tests/test_v21_ai_product_parser_db_contract.py
+      - name: Manual order scribe raw-name core contract
+        run: node tests/test_v21_order_scribe_core.mjs
+      - name: Manual order scribe Edge contract
+        run: python tests/test_v21_order_scribe_edge_contract.py
       - name: Chat quote database contract
         run: python tests/test_v21_quote_db_contract.py
       - name: Chat quote core contract
