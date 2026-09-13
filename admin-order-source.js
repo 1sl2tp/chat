@@ -96,7 +96,7 @@ function installStyle(){
     .order-source-message-top{display:flex;align-items:center;gap:8px}.order-source-count{margin-left:auto;font-size:11px;font-weight:700;color:#0b7a5f}
     .order-source-text{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;line-height:1.45;user-select:text;-webkit-user-select:text}.order-source-time{font-size:11px;color:var(--theme-content-tertiary,#888)}
     .order-source-images{padding:8px 9px;border:1px solid var(--theme-border-default,#e1e1e1);border-radius:9px;background:var(--theme-surface-secondary,#f6f6f6);font-size:12px;color:var(--theme-content-secondary,#666)}
-    .order-source-actions{display:flex;gap:6px;flex-wrap:wrap}.order-source-actions button{min-height:32px;padding:0 10px;border:1px solid var(--theme-border-default,#ddd);border-radius:9px;background:var(--theme-surface-secondary,#f6f6f6);font-size:12px;font-weight:650;cursor:pointer}.order-source-actions button[data-source-action="quick"]{background:#eef8f5;color:#08765a}.order-source-actions button[data-source-action="ignore"]{margin-left:auto}
+    .order-source-actions{display:flex;gap:6px;flex-wrap:wrap}.order-source-actions button{min-height:32px;padding:0 10px;border:1px solid var(--theme-border-default,#ddd);border-radius:9px;background:var(--theme-surface-secondary,#f6f6f6);font-size:12px;font-weight:650;cursor:pointer}.order-source-actions button[data-source-action="quick"]{background:#eef8f5;color:#08765a}
     .order-source-result{display:grid;gap:4px;padding:8px;border-radius:9px;background:var(--theme-surface-secondary,#f6f6f6);font-size:12px;line-height:1.4}.order-source-result strong{font-size:11px}.order-source-unresolved{color:#9a3412}.order-source-uncertain{color:#9a3412;font-size:11px}.order-source-empty,.order-source-status{padding:18px 8px;text-align:center;color:var(--theme-content-secondary,#666);font-size:13px}.order-source-status[data-error="true"]{color:#b42318}
     @media(max-width:639px){.order-source-presets{grid-template-columns:1fr 1fr}.order-source-options{align-items:flex-start;flex-direction:column}.order-source-custom{margin-left:0;width:100%}.order-source-custom input{max-width:none;flex:1}}
   `;
@@ -176,7 +176,6 @@ function renderOrderGroup(){
     <div class="order-source-actions">
       <button type="button" data-source-action="quick">Tách nhanh</button>
       <button type="button" data-source-action="ai">AI</button>
-      <button type="button" data-source-action="ignore">Bỏ qua</button>
     </div>
     ${renderResult(groupSplitResult)}
   </article>`;
@@ -238,14 +237,6 @@ async function refresh(){
     return false;
   }
 }
-async function setGroupState(messageIds,state){
-  const contact=currentContact();
-  const ids=Array.from(new Set((Array.isArray(messageIds)?messageIds:[]).map(clean).filter(Boolean)));
-  if(!contact?.id||!ids.length)return false;
-  for(const messageId of ids)await invoke('set_state',{contactId:contact.id,messageId,state});
-  for(const row of rows){if(ids.includes(String(row.messageId||'')))row.state=state;}
-  return true;
-}
 async function splitGroup(mode){
   const contact=currentContact();
   const imageAssetIds=(Array.isArray(orderGroup.images)?orderGroup.images:[]).map(image=>clean(image?.assetId)).filter(Boolean);
@@ -276,17 +267,6 @@ async function splitGroup(mode){
   render();
   return true;
 }
-async function ignoreGroup(){
-  const ids=[...orderGroup.sourceMessageIds];
-  if(!ids.length)return false;
-  await setGroupState(ids,'ignored');
-  const helper=await core();
-  orderGroup=helper.customerOrderSourceGroup(rows);
-  if(!Array.isArray(orderGroup.images))orderGroup.images=[];
-  groupSplitResult=null;
-  render();
-  return true;
-}
 function onClick(event){
   const button=event.target.closest?.('[data-source-preset],[data-source-action]');
   if(!button)return;
@@ -303,7 +283,6 @@ function onClick(event){
   }
   const action=String(button.dataset.sourceAction||'');
   if(action==='quick'||action==='ai')void splitGroup(action);
-  else if(action==='ignore')void ignoreGroup();
 }
 function onChange(event){
   const target=event.target;
