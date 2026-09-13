@@ -6,7 +6,7 @@
 
 **Architecture:** Chat owns message aggregation, source-state tracking, quick/AI split helpers, and the middle-column source timeline. The existing work iframe remains the order-entry owner. Chat sends exact-origin work context to the iframe and accepts an exact-origin “order created” callback so source messages can be marked `Đã nhập` without text matching.
 
-**Tech Stack:** Vanilla JavaScript, Node.js contract/runtime tests, Python contract tests, Supabase PostgreSQL migrations, Supabase Edge Functions (Deno/TypeScript), GitHub Actions, GitHub Pages.
+**Tech Stack:** Vanilla JavaScript, Node.js runtime/contract tests, Python contract tests, Supabase PostgreSQL migrations, Supabase Edge Functions (Deno/TypeScript), GitHub Actions, GitHub Pages.
 
 **Spec:** `docs/superpowers/specs/2026-09-13-customer-order-source-timeline-design.md`
 
@@ -14,20 +14,20 @@
 
 - Only inbound customer messages are eligible as order source material.
 - Operator/admin replies must never enter the source aggregate or add quantity to an order.
-- Original customer text and timestamps are immutable display/source data.
+- Original customer text and timestamps are immutable source data.
 - Default time window is `Hôm nay`; supported windows are `Hôm nay | Hôm qua | Tuần này | Tùy chọn`.
 - Quick split must work without AI and one unresolved line must not fail the whole source block.
 - AI is optional; AI failure must never block manual order entry.
 - Desktop keeps `Danh bạ | nguồn báo hàng | Công việc`; the source column and work iframe scroll independently.
-- Mobile remains one-column and keeps `Trò chuyện | Công việc` navigation.
-- Never show raw HTTP `200` as the user-facing error.
+- Mobile remains one-column and keeps `Trò chuyện | Công việc`.
+- Never show raw HTTP `200` as the primary user-facing error.
 - Do not auto-merge repeated customer lines and do not auto-finalize an order.
 - Do not modify Chat/Call/media sending behavior outside the source/order handoff.
 - Production remains GitHub Pages; do not introduce Vercel.
 
 ---
 
-### Task 1: Add pure source-range and candidate-filter core, and make quick split partial-success
+### Task 1: Add pure time-range/candidate helpers and partial-success quick split
 
 **Files:**
 - Create: `order-source-core.mjs`
@@ -36,12 +36,14 @@
 - Modify: `tests/test_v21_order_scribe_core.mjs`
 
 **Interfaces:**
-- Produces: `rangeForPreset(preset, nowMs, offsetMinutes, custom?) -> {from,to}`.
-- Produces: `isLikelyOrderSource(text, aliases=[]) -> boolean`.
-- Produces: `parseQuickOrderText(text) -> {ok:boolean,items:Array<{quantity:number,name:string}>,unresolved:Array<{raw:string}>,error:string|null}`.
-- Preserves: `materializeAiSpans()` exact-source slicing.
+- Produces `rangeForPreset(preset,nowMs,offsetMinutes,custom?) -> {from,to}`.
+- Produces `isLikelyOrderSource(text,aliases=[]) -> boolean`.
+- Changes `parseQuickOrderText(text)` to return `{ok,items,unresolved,error}`.
+- Preserves `materializeAiSpans()` exact-source slicing.
 
-- [ ] **Step 1: Write RED tests for time ranges and inbound text candidate rules**
+- [ ] **Step 1: Write RED range/candidate tests**
+
+Create `tests/test_v21_order_source_core.mjs`:
 
 ```js
 import assert from 'node:assert/strict';
@@ -53,6 +55,10 @@ assert.deepEqual(rangeForPreset('today',now,vnOffset),{
   from:'2026-09-12T17:00:00.000Z',
   to:'2026-09-13T17:00:00.000Z',
 });
+assert.deepEqual(rangeForPreset('yesterday',now,vnOffset),{
+  from:'2026-09-11T17:00:00.000Z',
+  to:'2026-09-12T17:00:00.000Z',
+});
 assert.equal(isLikelyOrderSource('3 chua có đường'),true);
 assert.equal(isLikelyOrderSource('2 thùng sim 1 lít'),true);
 assert.equal(isLikelyOrderSource('em cảm ơn ạ'),false);
@@ -60,23 +66,27 @@ assert.equal(isLikelyOrderSource('mai 2 giờ em qua'),false);
 assert.equal(isLikelyOrderSource('5 sua chua khong duong',['sua chua khong duong']),true);
 ```
 
-- [ ] **Step 2: Run the new core test and confirm RED**
+- [ ] **Step 2: Run RED**
 
 Run: `node tests/test_v21_order_source_core.mjs`
 
 Expected: FAIL because `order-source-core.mjs` does not exist.
 
-- [ ] **Step 3: Implement range and candidate helpers**
+- [ ] **Step 3: Implement the pure helpers**
+
+Create `order-source-core.mjs`:
 
 ```js
 const DAY=86400000;
 
+function normalized(value){
+  return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D').toLowerCase().trim();
+}
+
 export function rangeForPreset(preset,nowMs=Date.now(),offsetMinutes=new Date().getTimezoneOffset(),custom={}){
-  const shifted=new Date(Number(nowMs)-Number(offsetMinutes)*60000);
-  const y=shifted.getUTCFullYear();
-  const m=shifted.getUTCMonth();
-  const d=shifted.getUTCDate();
-  const localMidnightUtc=Date.UTC(y,m,d)+Number(offsetMinutes)*60000;
+  const offset=Number(offsetMinutes)||0;
+  const shifted=new Date(Number(nowMs)-offset*60000);
+  const localMidnightUtc=Date.UTC(shifted.getUTCFullYear(),shifted.getUTCMonth(),shifted.getUTCDate())+offset*60000;
   if(preset==='today')return {from:new Date(localMidnightUtc).toISOString(),to:new Date(localMidnightUtc+DAY).toISOString()};
   if(preset==='yesterday')return {from:new Date(localMidnightUtc-DAY).toISOString(),to:new Date(localMidnightUtc).toISOString()};
   if(preset==='week'){
@@ -85,11 +95,11 @@ export function rangeForPreset(preset,nowMs=Date.now(),offsetMinutes=new Date().
     return {from:new Date(start).toISOString(),to:new Date(localMidnightUtc+DAY).toISOString()};
   }
   if(preset==='custom'){
-    const from=String(custom.from||'');
-    const to=String(custom.to||'');
-    const start=Date.parse(from+'T00:00:00.000Z')+Number(offsetMinutes)*60000;
-    const end=Date.parse(to+'T00:00:00.000Z')+Number(offsetMinutes)*60000+DAY;
-    if(!Number.isFinite(start)||!Number.isFinite(end)||end<=start)throw new Error('invalid_date_range');
+    const from=String(custom.from||'').trim();
+    const to=String(custom.to||'').trim();
+    const start=Date.parse(`${from}T00:00:00.000Z`)+offset*60000;
+    const end=Date.parse(`${to}T00:00:00.000Z`)+offset*60000+DAY;
+    if(!from||!to||!Number.isFinite(start)||!Number.isFinite(end)||end<=start)throw new Error('invalid_date_range');
     return {from:new Date(start).toISOString(),to:new Date(end).toISOString()};
   }
   throw new Error('invalid_range_preset');
@@ -98,18 +108,25 @@ export function rangeForPreset(preset,nowMs=Date.now(),offsetMinutes=new Date().
 export function isLikelyOrderSource(value,aliases=[]){
   const text=String(value||'').trim();
   if(!text)return false;
-  const normalized=text.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').toLowerCase();
-  const hasQty=/(^|\s)\d+(?:[.,]\d+)?\s+\S/u.test(normalized);
-  const hasPack=/\b(thung|loc|goi|bich|tui|chai|lon|hop|khay|cay)\b/u.test(normalized);
+  const valueNorm=normalized(text);
+  if(/^(em cam on|cam on|vang|da|ok|oke|ok e|em cam on a)\b/u.test(valueNorm))return false;
+  const hasQty=/(^|\s)\d+(?:[.,]\d+)?\s+\S/u.test(valueNorm);
+  if(!hasQty)return false;
+  const hasPack=/\b(thung|loc|goi|bich|tui|chai|lon|hop|khay|cay)\b/u.test(valueNorm);
   const multiLine=text.split(/\n+/u).filter(Boolean).length>1;
-  const aliasHit=(Array.isArray(aliases)?aliases:[]).some(alias=>normalized.includes(String(alias||'').trim().toLowerCase()));
-  return Boolean((hasQty&&hasPack)||(hasQty&&multiLine)||(hasQty&&aliasHit));
+  const aliasHit=(Array.isArray(aliases)?aliases:[]).some(alias=>{
+    const key=normalized(alias);
+    return key&&valueNorm.includes(key);
+  });
+  const looksTimeOnly=/\b\d{1,2}\s*(gio|h|phut)\b/u.test(valueNorm)&&!hasPack&&!multiLine&&!aliasHit;
+  if(looksTimeOnly)return false;
+  return true;
 }
 ```
 
-- [ ] **Step 4: Extend quick split tests for partial success**
+- [ ] **Step 4: Add RED partial-split tests**
 
-Add to `tests/test_v21_order_scribe_core.mjs`:
+Append to `tests/test_v21_order_scribe_core.mjs`:
 
 ```js
 {
@@ -121,7 +138,6 @@ Add to `tests/test_v21_order_scribe_core.mjs`:
   ]);
   assert.deepEqual(result.unresolved,[{raw:'em cảm ơn ạ'}]);
 }
-
 {
   const result=parseQuickOrderText('15 thùng bò một thùng sim 5 lít hai thùng sim 2 l');
   assert.equal(result.ok,true);
@@ -130,7 +146,9 @@ Add to `tests/test_v21_order_scribe_core.mjs`:
 }
 ```
 
-- [ ] **Step 5: Change `parseQuickOrderText` to collect unresolved chunks instead of aborting**
+- [ ] **Step 5: Implement partial-success quick split**
+
+Replace only `parseQuickOrderText` in `scribe-core.mjs`:
 
 ```js
 export function parseQuickOrderText(value){
@@ -154,70 +172,61 @@ export function parseQuickOrderText(value){
 }
 ```
 
-- [ ] **Step 6: Run focused tests**
-
-Run:
+- [ ] **Step 6: Verify and commit**
 
 ```bash
 node tests/test_v21_order_source_core.mjs
 node tests/test_v21_order_scribe_core.mjs
-```
-
-Expected: both PASS.
-
-- [ ] **Step 7: Commit**
-
-```bash
 git add order-source-core.mjs tests/test_v21_order_source_core.mjs supabase/functions/v21-order-scribe/scribe-core.mjs tests/test_v21_order_scribe_core.mjs
 git commit -m "feat: add customer order source core"
 ```
 
+Expected: both tests PASS before commit.
+
 ---
 
-### Task 2: Store source processing state and source-message links safely
+### Task 2: Store source state and source-message links
 
 **Files:**
 - Create: `supabase/migrations/20260913_chat_order_source_states.sql`
-- Modify: `tests/test_v21_order_draft_db_contract.py`
 - Create: `tests/test_v21_order_source_db_contract.py`
+- Modify: `tests/test_v21_order_draft_db_contract.py`
 
 **Interfaces:**
-- Produces table: `public.chat_order_source_states` keyed by `(message_id, admin_account_id)`.
-- Produces optional draft-line link: `chat_order_draft_lines.source_message_id`.
-- State values: `pending | working | ignored | imported`.
-- External work-order callback fields: `linked_external_order_id`, `linked_external_order_no`.
+- Adds nullable `chat_order_draft_lines.source_message_id`.
+- Creates `chat_order_source_states(message_id,admin_account_id,contact_id,conversation_id,state,linked_draft_id,linked_external_order_id,linked_external_order_no,updated_at)`.
+- Allowed state values: `pending | working | ignored | imported`.
 
-- [ ] **Step 1: Write RED schema contracts**
+- [ ] **Step 1: Write RED schema contract**
 
 ```python
 from pathlib import Path
-
 ROOT=Path(__file__).resolve().parents[1]
-MIGRATION=ROOT/'supabase/migrations/20260913_chat_order_source_states.sql'
-assert MIGRATION.exists()
-text=MIGRATION.read_text(encoding='utf-8').lower()
+M=ROOT/'supabase/migrations/20260913_chat_order_source_states.sql'
+assert M.exists()
+text=M.read_text(encoding='utf-8').lower()
 for token in [
+    'add column if not exists source_message_id uuid',
+    'references public.v21_messages(id) on delete set null',
     'create table if not exists public.chat_order_source_states',
     'message_id uuid not null references public.v21_messages(id)',
     'admin_account_id uuid not null references public.v21_accounts(id)',
     "check (state in ('pending','working','ignored','imported'))",
     'linked_external_order_id text null',
     'linked_external_order_no text null',
-    'add column if not exists source_message_id uuid',
-    'references public.v21_messages(id) on delete set null',
+    'primary key(message_id,admin_account_id)',
     'enable row level security',
     'revoke all',
-]:
-    assert token in text
+]: assert token in text
 ```
 
-- [ ] **Step 2: Run and confirm RED**
+- [ ] **Step 2: Run RED**
 
 Run: `python tests/test_v21_order_source_db_contract.py`
 
 Expected: FAIL because migration does not exist.
 
-- [ ] **Step 3: Add migration**
+- [ ] **Step 3: Create additive migration**
 
 ```sql
 begin;
@@ -248,35 +257,25 @@ create index if not exists chat_order_source_states_contact_updated_idx
 
 alter table public.chat_order_source_states enable row level security;
 revoke all on public.chat_order_source_states from public,anon,authenticated;
-
 commit;
 ```
 
-- [ ] **Step 4: Extend draft DB contract to require `source_message_id` preservation**
+- [ ] **Step 4: Extend existing draft schema test**
 
-Add an assertion to `tests/test_v21_order_draft_db_contract.py` that the new migration adds the nullable source link and does not remove the existing draft tables/RLS.
+`tests/test_v21_order_draft_db_contract.py` must assert the original draft schema still exists and the additive migration owns `source_message_id`; do not edit the already-deployed `20260913_chat_order_drafts.sql`.
 
-- [ ] **Step 5: Run schema contracts**
-
-Run:
+- [ ] **Step 5: Verify and commit**
 
 ```bash
 python tests/test_v21_order_source_db_contract.py
 python tests/test_v21_order_draft_db_contract.py
-```
-
-Expected: PASS.
-
-- [ ] **Step 6: Commit**
-
-```bash
 git add supabase/migrations/20260913_chat_order_source_states.sql tests/test_v21_order_source_db_contract.py tests/test_v21_order_draft_db_contract.py
 git commit -m "feat: store order source processing state"
 ```
 
 ---
 
-### Task 3: Add an admin-only inbound source timeline Edge Function
+### Task 3: Add admin-only inbound source timeline Edge Function
 
 **Files:**
 - Create: `supabase/functions/v21-order-source/index.ts`
@@ -288,42 +287,36 @@ git commit -m "feat: store order source processing state"
 - `POST {action:'list',contactId,from,to,includeAll}` -> `{ok:true,conversationId,items:[{messageId,text,createdAt,state,linkedDraftId,linkedExternalOrderId,linkedExternalOrderNo}]}`.
 - `POST {action:'set_state',contactId,messageId,state}` -> `{ok:true,state}`.
 - `POST {action:'mark_imported',contactId,messageIds,externalOrderId,externalOrderNo}` -> `{ok:true,count}`.
-- Only admin bearer may call the function.
-- Every source query must include `.eq('sender_account_id',contactId)`.
+- Every list/mutation validates that the message belongs to the resolved conversation and `sender_account_id===contactId`.
 
-- [ ] **Step 1: Write RED edge contract**
+- [ ] **Step 1: Write RED Edge contract**
 
 ```python
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 EDGE=ROOT/'supabase/functions/v21-order-source/index.ts'
 CORE=ROOT/'supabase/functions/v21-order-source/source-core.mjs'
-assert EDGE.exists()
-assert CORE.exists()
-text=EDGE.read_text(encoding='utf-8').lower()
-compact=''.join(text.split())
-assert "db.auth.getuser" in compact
+assert EDGE.exists() and CORE.exists()
+text=EDGE.read_text(encoding='utf-8').lower(); compact=''.join(text.split())
+assert 'db.auth.getuser' in compact
 assert "eq('role','admin')" in compact or 'eq("role","admin")' in compact
-assert "v21_conversations" in text
-assert "v21_messages" in text
+assert 'v21_conversations' in text and 'v21_messages' in text
 assert "eq('sender_account_id',contactid)" in compact or 'eq("sender_account_id",contactid)' in compact
-assert ".gte('created_at',from)" in compact or '.gte("created_at",from)' in compact
-assert ".lt('created_at',to)" in compact or '.lt("created_at",to)' in compact
-assert "chat_order_source_states" in text
-assert "action==='list'" in compact
-assert "action==='set_state'" in compact
-assert "action==='mark_imported'" in compact
+assert "gte('created_at',from)" in compact or 'gte("created_at",from)' in compact
+assert "lt('created_at',to)" in compact or 'lt("created_at",to)' in compact
+for action in ["action==='list'","action==='set_state'","action==='mark_imported'"]:
+    assert action in compact
 ```
 
-- [ ] **Step 2: Run and confirm RED**
+- [ ] **Step 2: Run RED**
 
 Run: `python tests/test_v21_order_source_edge_contract.py`
 
-Expected: FAIL because the function does not exist.
+Expected: FAIL because function files do not exist.
 
-- [ ] **Step 3: Add pure server helper**
+- [ ] **Step 3: Implement server core validation**
 
-`source-core.mjs` exports `clean`, `normalizeState`, and the same inclusive deterministic candidate logic as `order-source-core.mjs`; do not import browser-only globals.
+`source-core.mjs` exports `clean`, deterministic candidate filtering equivalent to Task 1, and:
 
 ```js
 export function normalizeState(value){
@@ -333,9 +326,13 @@ export function normalizeState(value){
 }
 ```
 
-- [ ] **Step 4: Implement `list` with inbound-only filtering**
+- [ ] **Step 4: Implement admin auth + conversation resolution**
 
-Core query shape:
+Reuse the `requireAdmin()` shape from `v21-order-scribe`. Resolve the conversation containing the authenticated admin and requested contact before any message query.
+
+- [ ] **Step 5: Implement inbound-only range query**
+
+Use this query shape:
 
 ```ts
 const messages=await db.from('v21_messages')
@@ -349,39 +346,20 @@ const messages=await db.from('v21_messages')
   .order('created_at',{ascending:true});
 ```
 
-Then load states for returned message ids and return exact `body` text unchanged. If `includeAll!==true`, apply deterministic candidate filtering only; do not call AI from this endpoint.
+Load state rows for returned ids. With `includeAll!==true`, apply only deterministic filtering; no AI call belongs in this endpoint.
 
-- [ ] **Step 5: Implement state mutation with membership validation**
+- [ ] **Step 6: Implement validated state mutations**
 
-Before update/upsert, query the exact message and require `conversation_id===resolvedConversationId` and `sender_account_id===contactId`. Upsert state using the authenticated admin account id as part of the primary key.
+Before `set_state` or `mark_imported`, re-read the exact message and require the resolved conversation plus `sender_account_id===contactId`. `mark_imported` upserts `state:'imported'` plus external order id/no and authenticated admin id.
 
-- [ ] **Step 6: Implement `mark_imported` for exact source ids**
+- [ ] **Step 7: Add CI and verify**
 
-For each validated inbound message id, upsert:
-
-```ts
-{
-  message_id:messageId,
-  admin_account_id:String(admin.account.id),
-  contact_id:contactId,
-  conversation_id:conversationId,
-  state:'imported',
-  linked_external_order_id:externalOrderId||null,
-  linked_external_order_no:externalOrderNo||null,
-  updated_at:new Date().toISOString(),
-}
-```
-
-- [ ] **Step 7: Add CI step**
-
-Add to `.github/workflows/verify-v21.yml`:
+Add:
 
 ```yaml
 - name: Customer order source timeline Edge contract
   run: python tests/test_v21_order_source_edge_contract.py
 ```
-
-- [ ] **Step 8: Run focused tests and Deno check**
 
 Run:
 
@@ -390,9 +368,7 @@ python tests/test_v21_order_source_edge_contract.py
 deno check supabase/functions/v21-order-source/index.ts
 ```
 
-Expected: PASS.
-
-- [ ] **Step 9: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
 git add supabase/functions/v21-order-source tests/test_v21_order_source_edge_contract.py .github/workflows/verify-v21.yml
@@ -401,7 +377,7 @@ git commit -m "feat: add inbound order source endpoint"
 
 ---
 
-### Task 4: Normalize scribe responses and remove raw “200” failures
+### Task 4: Normalize scribe responses and eliminate misleading `200` failures
 
 **Files:**
 - Create: `order-scribe-client.js`
@@ -411,33 +387,33 @@ git commit -m "feat: add inbound order source endpoint"
 - Modify: `index.source.html`
 
 **Interfaces:**
-- Produces: `window.V21OrderScribeClient.quick({contactId,text})`.
-- Produces: `window.V21OrderScribeClient.ai({contactId,text})`.
-- Throws stable codes: `invalid_response`, `ai_unavailable`, or server application error code; never raw status text `200`.
+- `V21OrderScribeClient.quick({contactId,text})`.
+- `V21OrderScribeClient.ai({contactId,text})`.
+- Client errors are stable application codes, not raw HTTP status strings.
 
-- [ ] **Step 1: Write RED runtime tests for result normalization**
-
-Test cases:
+- [ ] **Step 1: Write RED client normalization test**
 
 ```js
+import assert from 'node:assert/strict';
+import {normalizeInvokeResult} from '../order-scribe-client.js';
 assert.equal(normalizeInvokeResult({data:{ok:true,items:[]},error:null}).ok,true);
 assert.throws(()=>normalizeInvokeResult({data:{ok:false,error:'quick_parse_failed'},error:null}),/quick_parse_failed/);
 assert.throws(()=>normalizeInvokeResult({data:null,error:{message:'FunctionsHttpError',context:{status:200}}}),/invalid_response/);
 ```
 
-Also test that an application payload error wins over transport `error.message` when `data?.error` is available.
-
-- [ ] **Step 2: Run and confirm RED**
+- [ ] **Step 2: Run RED**
 
 Run: `node tests/test_v21_order_scribe_client_runtime.js`
 
 Expected: FAIL because the client does not exist.
 
-- [ ] **Step 3: Implement the browser client**
+- [ ] **Step 3: Implement browser normalizer and authenticated invoke**
+
+Core:
 
 ```js
-function normalizeInvokeResult({data,error}){
-  if(data&&data.ok===true)return data;
+export function normalizeInvokeResult({data,error}){
+  if(data?.ok===true)return data;
   const code=String(data?.error||'').trim();
   if(code)throw new Error(code);
   if(error)throw new Error('invalid_response');
@@ -445,21 +421,19 @@ function normalizeInvokeResult({data,error}){
 }
 ```
 
-`invoke(action,{contactId,text})` must acquire the current Chat Supabase session and call `v21-order-scribe`; `quick` and `ai` wrap this helper.
+The runtime wrapper acquires the existing Chat Supabase session, calls `v21-order-scribe`, then passes `{data,error}` to the normalizer.
 
-- [ ] **Step 4: Stabilize provider errors in the Edge Function**
+- [ ] **Step 4: Stabilize Edge errors**
 
-Change AI provider/network failures to `ai_unavailable`; keep malformed AI JSON as `ai_response_invalid`. Quick partial-success responses must return HTTP 200 with `items` and `unresolved`; they must not return 422 merely because one raw block is unresolved.
+Map Gemini network/provider failures to `ai_unavailable`; retain `ai_response_invalid` for malformed AI JSON. Quick parsing with unresolved blocks returns HTTP 200 `{ok:true,items,unresolved,...}`.
 
-- [ ] **Step 5: Load the client before admin order-source UI**
+- [ ] **Step 5: Load the client and verify**
 
-Add to `index.source.html`:
+Add before the admin source UI in `index.source.html`:
 
 ```html
 <script src="./order-scribe-client.js" data-build-source="order-scribe-client.js"></script>
 ```
-
-- [ ] **Step 6: Run focused tests**
 
 Run:
 
@@ -469,9 +443,7 @@ node tests/test_v21_order_scribe_core.mjs
 python tests/test_v21_order_scribe_edge_contract.py
 ```
 
-Expected: PASS.
-
-- [ ] **Step 7: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add order-scribe-client.js tests/test_v21_order_scribe_client_runtime.js supabase/functions/v21-order-scribe/index.ts tests/test_v21_order_scribe_edge_contract.py index.source.html
@@ -480,7 +452,7 @@ git commit -m "fix: make order scribe failures actionable"
 
 ---
 
-### Task 5: Build the middle-column customer source timeline UI
+### Task 5: Build the middle-column inbound source timeline UI
 
 **Files:**
 - Create: `admin-order-source.js`
@@ -490,36 +462,34 @@ git commit -m "fix: make order scribe failures actionable"
 - Modify: `.github/workflows/verify-v21.yml`
 
 **Interfaces:**
-- Produces: `window.V21AdminOrderSource.open({preset='today'})`.
-- Produces: `window.V21AdminOrderSource.context() -> {contactId,customerName,preset,from,to,sourceMessageIds}`.
-- Produces: `window.V21AdminOrderSource.markImported({contactId,messageIds,externalOrderId,externalOrderNo})`.
-- Dispatches: `document.dispatchEvent(new CustomEvent('v21-work-context',{detail:context}))` whenever selected source ids/customer/time window changes.
-- Default on wide authenticated Admin workspace: source mode visible; ordinary Chat remains reachable with a local `Chat` switch.
+- `V21AdminOrderSource.open({preset='today'})`.
+- `V21AdminOrderSource.context() -> {contactId,customerName,preset,from,to,sourceMessageIds}`.
+- `V21AdminOrderSource.markImported({contactId,messageIds,externalOrderId,externalOrderNo})`.
+- Dispatches `v21-work-context` when source selection/customer/range changes.
 
 - [ ] **Step 1: Write RED UI contract**
 
-Require these literal UI/data contracts in `admin-order-source.js`:
+Require literals/functions:
 
 ```python
 for token in [
-    "Hôm nay", "Hôm qua", "Tuần này", "Tùy chọn",
-    "Hiện tất cả tin khách", "Chưa xử lý", "Đang xử lý", "Đã nhập", "Bỏ qua",
-    "v21-order-source", "v21-work-context", "V21AdminOrderSource",
-]:
-    assert token in source
+    'Hôm nay','Hôm qua','Tuần này','Tùy chọn','Hiện tất cả tin khách',
+    'Chưa xử lý','Đang xử lý','Đã nhập','Bỏ qua',
+    'v21-order-source','v21-work-context','V21AdminOrderSource',
+]: assert token in source
 ```
 
-Require `index.source.html` to load `admin-order-source.js` and keep mobile one-column contract unchanged.
+Also assert `index.source.html` loads `admin-order-source.js` and existing mobile one-column selectors remain unchanged.
 
-- [ ] **Step 2: Run and confirm RED**
+- [ ] **Step 2: Run RED**
 
 Run: `python tests/test_v21_order_source_ui.py`
 
-Expected: FAIL because `admin-order-source.js` does not exist.
+Expected: FAIL because source UI file does not exist.
 
-- [ ] **Step 3: Implement source panel host and independent scroll owner**
+- [ ] **Step 3: Create an independent middle-column source panel**
 
-Create the panel at runtime as a sibling of the existing chat scroll root inside the middle-column thread host. The panel must own its own scroll element:
+Runtime markup:
 
 ```html
 <section id="adminOrderSourcePanel" hidden>
@@ -529,35 +499,35 @@ Create the panel at runtime as a sibling of the existing chat scroll root inside
 </section>
 ```
 
-When source mode is active, hide only the chat scroll/composer nodes; do not hide the contact header and do not move `#workThreadView` back into the chat scroller.
+It is a sibling of the ordinary chat scroller inside the middle column. It owns its own scrolling and must never reparent or resize `#workThreadView`.
 
-- [ ] **Step 4: Implement range controls and custom dates**
+- [ ] **Step 4: Implement time controls**
 
-Use `rangeForPreset()` from `order-source-core.mjs`; browser offset is `new Date().getTimezoneOffset()`. Presets map to API payload `from/to`. Custom range requires both dates and uses inclusive selected end date via the core helper.
+Use `rangeForPreset()` with `new Date().getTimezoneOffset()`. Default `today`; preserve chosen preset when switching customers. Custom range requires explicit start/end dates.
 
-- [ ] **Step 5: Fetch only the active customer and render exact source text**
+- [ ] **Step 5: Fetch/render exact inbound text**
 
-Call `v21-order-source` action `list` with current active contact id. Render each card with exact text, formatted timestamp, and state. Never mutate displayed text with parser output.
+Invoke `v21-order-source` with active `contactId/from/to/includeAll`. Render exact returned `text`, timestamp and state. `Hiện tất cả tin khách` toggles `includeAll=true`; it never asks AI to decide visibility.
 
-- [ ] **Step 6: Add inclusive fallback and selection behavior**
+- [ ] **Step 6: Implement source selection/state actions**
 
-`Hiện tất cả tin khách` toggles `includeAll=true`. Each card has a selection checkbox/button. Selecting a source id dispatches `v21-work-context` and marks it `working` through the source endpoint. `Bỏ qua` writes `ignored`. Imported messages remain visible and can be inspected.
+Selecting a message adds its exact id to `sourceMessageIds`, writes `working`, and dispatches `v21-work-context`. `Bỏ qua` writes `ignored`. Imported messages remain visible with `Đã nhập`.
 
-- [ ] **Step 7: Add quick and AI helper actions per selected source**
+- [ ] **Step 7: Add optional quick/AI helpers**
 
-Quick action calls `V21OrderScribeClient.quick` on exact card text and renders parsed rows plus unresolved raw rows. AI action calls `.ai` only on demand. On `ai_unavailable`, render exactly:
+Quick uses exact source text and renders `items + unresolved`. AI is invoked only by explicit action. On `ai_unavailable`, display exactly:
 
 `AI chưa dùng được — vẫn có thể Tách nhanh hoặc nhập tay.`
 
-Do not close or disable the right work panel on any parser error.
+No parsing error disables the right work iframe.
 
-- [ ] **Step 8: Keep contact switches scoped**
+- [ ] **Step 8: Scope contact changes**
 
-Subscribe to the existing active-contact/navigation events used by the shell. On contact change: cancel stale request sequence, clear selected source ids, retain the chosen time preset, fetch the new customer, dispatch a new work context. Do not alter any existing work order/draft identity directly.
+On active-contact change: increment request sequence, clear selected message ids, keep preset, fetch new contact source, dispatch new context. Do not retarget any existing work order/draft directly from Chat.
 
-- [ ] **Step 9: Add CI and run focused tests**
+- [ ] **Step 9: Add CI, verify, commit**
 
-Add workflow step:
+Add:
 
 ```yaml
 - name: Customer order source timeline UI contract
@@ -571,9 +541,7 @@ python tests/test_v21_order_source_ui.py
 python tests/test_v21_chat_workspace_3col.py
 ```
 
-Expected: PASS.
-
-- [ ] **Step 10: Commit**
+Then:
 
 ```bash
 git add admin-order-source.js tests/test_v21_order_source_ui.py index.source.html shell.js .github/workflows/verify-v21.yml
@@ -582,7 +550,7 @@ git commit -m "feat: add customer order source timeline ui"
 
 ---
 
-### Task 6: Route “Tạo đơn” into the source timeline and bridge work context to the iframe
+### Task 6: Route `Tạo đơn` to the source timeline and bridge context to Công việc
 
 **Files:**
 - Modify: `admin-composer-actions.js`
@@ -591,39 +559,23 @@ git commit -m "feat: add customer order source timeline ui"
 - Create: `tests/test_v21_work_context_bridge.py`
 
 **Interfaces:**
-- `Tạo đơn` opens the current customer source timeline, default `today`; it no longer requires AI/scribe success before the operator can work.
-- Chat -> iframe message: `{type:'taphoa-chat-work-context',contactId,customerName,sourceMessageIds,preset,from,to}`.
-- iframe -> Chat message: `{type:'taphoa-work-order-created',contactId,sourceMessageIds,orderId,orderNo}`.
-- Both directions use exact `https://get.taphoa.xyz` / `https://chat.taphoa.xyz` origin checks already used by the auth bridge.
+- `Tạo đơn` opens source timeline for the current customer, default `today`.
+- Chat -> iframe: `{type:'taphoa-chat-work-context',contactId,customerName,sourceMessageIds,preset,from,to}`.
+- iframe -> Chat: `{type:'taphoa-work-order-created',contactId,sourceMessageIds,orderId,orderNo}`.
+- Exact GETLINK origin check remains mandatory.
 
 - [ ] **Step 1: Write RED composer/bridge contracts**
 
-Composer contract must require:
+Require `V21AdminOrderSource.open`, both message types, exact-origin guard, and reject `invokeOrderScribe()` as a prerequisite for opening work.
 
-```python
-assert "V21AdminOrderSource" in composer
-assert ".open(" in composer
-assert "taphoa-chat-work-context" in bridge
-assert "taphoa-work-order-created" in bridge
-assert "event.origin!==GETLINK_ORIGIN" in bridge.replace(' ', '')
-```
-
-Also reject making `invokeOrderScribe()` a prerequisite for opening order work.
-
-- [ ] **Step 2: Run and confirm RED**
-
-Run:
+- [ ] **Step 2: Run RED**
 
 ```bash
 python tests/test_v21_order_draft_composer_integration.py
 python tests/test_v21_work_context_bridge.py
 ```
 
-Expected: FAIL on the new source/bridge expectations.
-
 - [ ] **Step 3: Change `Tạo đơn` action**
-
-After resolving the active contact, call:
 
 ```js
 const source=window.V21AdminOrderSource;
@@ -631,24 +583,26 @@ if(!source?.open)throw new Error('order_source_unavailable');
 await source.open({preset:'today'});
 ```
 
-Keep `Đơn tạm` as a separate action; do not remove legacy draft inspection in this task.
+Keep `Đơn tạm` as its existing separate action.
 
-- [ ] **Step 4: Extend the existing auth bridge with work context**
+- [ ] **Step 4: Extend exact-origin iframe bridge**
 
-On `v21-work-context`, post exact context to the iframe:
+Store latest work context in `getlink-auth-bridge.js`. On `v21-work-context` post:
 
 ```js
 target.contentWindow.postMessage({type:'taphoa-chat-work-context',...detail},GETLINK_ORIGIN);
 ```
 
-On iframe load, send auth first and then the latest work context.
+On iframe load, send auth first, then latest work context.
 
-- [ ] **Step 5: Handle order-created callback**
+- [ ] **Step 5: Accept confirmed-order callback**
 
-In the existing `message` listener, after the exact-origin check:
+Inside the existing `event.origin===GETLINK_ORIGIN` listener:
 
 ```js
 if(event.data?.type==='taphoa-work-order-created'){
+  const current=window.V21AdminOrderSource?.context?.();
+  if(String(current?.contactId||'')!==String(event.data.contactId||''))return;
   void window.V21AdminOrderSource?.markImported?.({
     contactId:event.data.contactId,
     messageIds:event.data.sourceMessageIds,
@@ -658,56 +612,43 @@ if(event.data?.type==='taphoa-work-order-created'){
 }
 ```
 
-Reject callbacks whose contact id is not the current source context.
-
-- [ ] **Step 6: Run focused tests**
-
-Run:
+- [ ] **Step 6: Verify and commit**
 
 ```bash
 python tests/test_v21_order_draft_composer_integration.py
 python tests/test_v21_work_context_bridge.py
-```
-
-Expected: PASS.
-
-- [ ] **Step 7: Commit**
-
-```bash
 git add admin-composer-actions.js getlink-auth-bridge.js tests/test_v21_order_draft_composer_integration.py tests/test_v21_work_context_bridge.py
 git commit -m "feat: hand order source context to work panel"
 ```
 
 ---
 
-### Task 7: Preserve source ids when legacy Chat draft creation is used
+### Task 7: Preserve source ids when legacy Chat draft flow is used
 
 **Files:**
 - Modify: `admin-order-draft.js`
+- Modify: `supabase/functions/v21-order-draft/draft-core.mjs`
 - Modify: `supabase/functions/v21-order-draft/index.ts`
-- Modify: `supabase/migrations/20260913_chat_order_drafts.sql` only if the create RPC is still the insertion owner; otherwise add an additive follow-up migration rather than editing deployed history.
 - Modify: `tests/test_v21_order_draft_core.mjs`
 - Modify: `tests/test_v21_order_draft_edge_contract.py`
 - Modify: `tests/test_v21_order_draft_ui.py`
 
 **Interfaces:**
-- Draft line payload may include `sourceMessageId`.
-- Existing callers without `sourceMessageId` continue to work.
-- A source id is never inferred by text comparison.
+- Optional line field `sourceMessageId` maps to the `source_message_id` column already added in Task 2.
+- Existing callers without source ids remain valid.
+- Never infer source ids by comparing text.
 
-- [ ] **Step 1: Add RED tests**
+- [ ] **Step 1: Add RED normalization/storage tests**
 
-Require payload normalization to preserve:
+Require this payload to survive normalization:
 
 ```js
 {quantity:3,name:'chua có đường',sourceMessageId:'11111111-1111-1111-1111-111111111111'}
 ```
 
-Require Edge insert/update to map it to `source_message_id` and allow `null` for manual rows.
+Require Edge insert/update to write `source_message_id`, and manual rows to write `null`.
 
-- [ ] **Step 2: Run and confirm RED**
-
-Run:
+- [ ] **Step 2: Run RED**
 
 ```bash
 node tests/test_v21_order_draft_core.mjs
@@ -715,39 +656,38 @@ python tests/test_v21_order_draft_edge_contract.py
 python tests/test_v21_order_draft_ui.py
 ```
 
-- [ ] **Step 3: Implement optional source id propagation**
+- [ ] **Step 3: Propagate optional source id**
 
-When a parsed source block becomes a Chat draft, attach the card’s exact message id to every line derived from that card. Manual product additions keep `sourceMessageId:null`.
+When source UI creates/extends a Chat draft, every parsed line from one message receives that exact `messageId`; manually added rows use `null`.
 
-- [ ] **Step 4: Mark source imported only after successful draft write**
+- [ ] **Step 4: Mark imported only after confirmed draft write**
 
-After the draft Edge Function confirms creation/update, call the source endpoint `mark_imported` for the successfully linked message ids. Parser success alone must not change source state to imported.
+After successful draft create/update, call `v21-order-source` action `mark_imported` for linked message ids and store `linked_draft_id`. Parser success alone never marks imported.
 
-- [ ] **Step 5: Run focused tests**
-
-Same commands as Step 2; expected PASS.
-
-- [ ] **Step 6: Commit**
+- [ ] **Step 5: Verify and commit**
 
 ```bash
+node tests/test_v21_order_draft_core.mjs
+python tests/test_v21_order_draft_edge_contract.py
+python tests/test_v21_order_draft_ui.py
 git add admin-order-draft.js supabase/functions/v21-order-draft tests/test_v21_order_draft_core.mjs tests/test_v21_order_draft_edge_contract.py tests/test_v21_order_draft_ui.py
 git commit -m "feat: link draft lines to customer source messages"
 ```
 
 ---
 
-### Task 8: Full Chat verification, Supabase deployment, and merge gate
+### Task 8: Full Chat verification, Supabase rollout and production gate
 
-**Files:**
-- Modify generated build outputs only through the existing canonical build tool: `index.html`, `version.json`.
-- Deploy: migration `20260913_chat_order_source_states.sql`.
-- Deploy Edge Functions: `v21-order-source`, updated `v21-order-scribe`, updated `v21-order-draft` if changed.
+**Files/Deployments:**
+- Build outputs: `index.html`, `version.json` via existing canonical build tool only.
+- Apply: `supabase/migrations/20260913_chat_order_source_states.sql`.
+- Deploy: new `v21-order-source`; updated `v21-order-scribe`; updated `v21-order-draft` if Task 7 changed it.
 
 **Interfaces:**
-- Consumes: all GREEN tasks above.
-- Produces: merge-ready Chat side of the feature; the work iframe callback remains harmless if the companion work-panel change is not deployed yet.
+- Consumes all GREEN tasks above.
+- Produces merge-ready Chat side; iframe completion callback remains harmless until its companion implementation is deployed.
 
-- [ ] **Step 1: Run all focused contracts**
+- [ ] **Step 1: Run focused suite**
 
 ```bash
 node tests/test_v21_order_source_core.mjs
@@ -774,32 +714,33 @@ deno check supabase/functions/v21-order-scribe/index.ts
 deno check supabase/functions/v21-order-draft/index.ts
 ```
 
+- [ ] **Step 3: Rebuild and verify canonical Chat output**
+
+```bash
+python tools/build_current_preview.py
+python tools/verify_current.py
+```
+
 Expected: PASS.
 
-- [ ] **Step 3: Rebuild canonical output**
+- [ ] **Step 4: Apply migration, then deploy Edge Functions**
 
-Run: `python tools/build_current_preview.py`
+Use the existing Supabase project. Apply the Task 2 migration before deploying any function that reads `chat_order_source_states` or `source_message_id`. Deploy `v21-order-source`, then updated `v21-order-scribe`, then updated `v21-order-draft` if changed.
 
-- [ ] **Step 4: Run full canonical verification**
+- [ ] **Step 5: Verify unauthenticated and authenticated contracts**
 
-Run: `python tools/verify_current.py`
+Unauthenticated `v21-order-source` must return its intended authorization failure; an authenticated Admin list call must return only the requested contact’s inbound messages inside the requested `from/to` window.
 
-Expected: PASS with no Chat/Call/media regressions.
+- [ ] **Step 6: Open/update implementation PR and require all CI GREEN**
 
-- [ ] **Step 5: Deploy database and Edge Functions to the existing Supabase project**
+Required checks: `Verify V21`, `Admin Push TDD`, `Zalo Bridge TDD`.
 
-Apply the additive migration first, then deploy `v21-order-source`, `v21-order-scribe`, and `v21-order-draft` if modified. Verify each deployed function returns the intended admin-only error on unauthenticated requests instead of a provider/network error.
+- [ ] **Step 7: Merge only after GREEN and verify exact merge SHA on main + GitHub Pages**
 
-- [ ] **Step 6: Open/update implementation PR and wait for all CI**
-
-Required green checks: `Verify V21`, `Admin Push TDD`, `Zalo Bridge TDD`.
-
-- [ ] **Step 7: Merge only after GREEN and verify GitHub Pages on the exact merge SHA**
-
-Do not use Vercel. Confirm Pages `completed/success` and `Verify V21` on `main` for the merge SHA before asking the user to test production.
+Do not use Vercel. Confirm both `Verify V21` and GitHub Pages `completed/success` for the exact merge SHA before asking the user to test production.
 
 ---
 
-## Companion work-panel plan dependency
+## Companion work-panel dependency
 
-This Chat plan deliberately does not make the iframe own Chat state. The iframe-side implementation is a separate plan in `1sl2tp/getlink` because it has its own order/cart/customer state owner and separate CI/deployment. It must accept `taphoa-chat-work-context`, preselect the same customer only when safe, and post `taphoa-work-order-created` after a confirmed backend order create. The Chat callback implemented in Task 6 is testable independently with a synthetic exact-origin message and becomes active automatically once the companion work-panel plan is deployed.
+The iframe-side implementation is specified in `1sl2tp/getlink/docs/superpowers/plans/2026-09-13-chat-order-source-handoff.md`. It accepts `taphoa-chat-work-context`, refuses to silently switch customer when a cart already has items, and posts `taphoa-work-order-created` only after the existing backend order create succeeds.
