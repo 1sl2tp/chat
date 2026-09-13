@@ -16,6 +16,7 @@ for token in [
     'v21-order-source','v21-work-context','V21AdminOrderSource',
     'adminOrderSourcePanel','adminOrderSourceScroll',
     'Khách:',
+    'orderSplitPreviewEntries','previewEntries','Chưa tách ·',
 ]:
     assert token in source, token
 
@@ -34,5 +35,10 @@ assert 'overflow:hidden' in compact
 assert '.order-source-scroll{' in source
 assert 'overflow-y:auto' in compact
 assert '-webkit-overflow-scrolling:touch' in compact
+
+# A quick preview reads as one order summary: unresolved text is prepared by the
+# core preview-order helper and rendered inline in the same result block.
+assert 'helper.orderSplitPreviewEntries(splitResult)' in compact
+assert 'entry.type===\'unresolved\'' in compact
 
 print('customer order source timeline UI contract PASS')
