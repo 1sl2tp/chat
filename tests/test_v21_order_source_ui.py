@@ -17,6 +17,7 @@ for token in [
     'adminOrderSourcePanel','adminOrderSourceScroll',
     'Khách:',
     'orderSplitPreviewEntries','previewEntries','Chưa tách ·',
+    'customerOrderSourceGroup','data-source-order-group','splitGroup','ignoreGroup','1 đơn',
 ]:
     assert token in source, token
 
@@ -28,7 +29,7 @@ assert '[data-contact-row]' in source, 'open source panel must follow directory 
 assert 'selectedIds.clear()' in source
 assert 'workThreadView' in shell
 
-# Header/range stay fixed in the panel; only the message list owns vertical scrolling.
+# Header/range stay fixed in the panel; only the order preview owns vertical scrolling.
 compact=''.join(source.split())
 assert '#adminOrderSourcePanel{position:absolute;inset:0;' in compact
 assert 'overflow:hidden' in compact
@@ -40,5 +41,12 @@ assert '-webkit-overflow-scrolling:touch' in compact
 # core preview-order helper and rendered inline in the same result block.
 assert 'helper.orderSplitPreviewEntries(splitResult)' in compact
 assert 'entry.type===\'unresolved\'' in compact
+
+# All active order-source messages for the selected customer/range are one order.
+# Imported/ignored filtering and chronological joining are owned by the core helper.
+assert 'helper.customerOrderSourceGroup(rows)' in compact
+assert 'selectedIds=newSet(orderGroup.sourceMessageIds)' in compact
+assert 'text:orderGroup.text' in compact
+assert 'rows.map(row=>' not in compact, 'UI must not render one card per message anymore'
 
 print('customer order source timeline UI contract PASS')
