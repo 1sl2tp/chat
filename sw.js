@@ -105,7 +105,13 @@ self.addEventListener('notificationclick',event=>{
     if(clients.length){
       const client=clients[0];
       try{await client.focus?.();}catch{}
-      try{client.postMessage?.({type:'ADMIN_PUSH_OPEN',kind,inviteId,conversationId,contactId});}catch{}
+      try{
+        if(kind==='call_invite'){
+          client.postMessage?.({type:'ADMIN_PUSH_OPEN',kind:'call_invite',inviteId,conversationId,contactId});
+        }else{
+          client.postMessage?.({type:'ADMIN_PUSH_OPEN',conversationId,contactId});
+        }
+      }catch{}
       return;
     }
     const target=new URL('./',self.location.origin);
