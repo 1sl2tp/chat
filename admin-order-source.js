@@ -2,18 +2,14 @@
 'use strict';
 
 const FUNCTION_NAME='v21-order-source';
-const STATE_LABELS={pending:'Chưa xử lý',working:'Đang xử lý',imported:'Đã nhập',ignored:'Bỏ qua'};
 let panel=null;
 let preset='today';
 let includeAll=false;
 let customRange={from:'',to:''};
 let rows=[];
-let selectedIds=new Set();
 let requestSeq=0;
-let lastRange={from:'',to:''};
 let corePromise=null;
 let orderGroup={sourceMessageIds:[],text:'',firstCreatedAt:'',lastCreatedAt:'',count:0};
-let timelineGroups=[];
 let groupSplitResult=null;
 
 function authStore(){return window.V21AuthSessionStore||null;}
@@ -64,13 +60,13 @@ function errorText(error){
   const code=String(error?.message||error||'order_source_failed').replace(/^FunctionsHttpError:\s*/,'').trim();
   const known={
     authentication_required:'Cần đăng nhập Admin.',
-    admin_required:'Chỉ Admin được xem nguồn đơn.',
+    admin_required:'Chỉ Admin được xem nguồn tin.',
     conversation_not_found:'Chưa có cuộc trò chuyện với khách này.',
     invalid_date_range:'Khoảng ngày chưa hợp lệ.',
-    ai_unavailable:'AI chưa dùng được — vẫn có thể Tách nhanh hoặc nhập tay.',
-    invalid_response:'AI chưa dùng được — vẫn có thể Tách nhanh hoặc nhập tay.',
-    ai_not_configured:'AI chưa dùng được — vẫn có thể Tách nhanh hoặc nhập tay.',
-    ai_response_invalid:'AI chưa dùng được — vẫn có thể Tách nhanh hoặc nhập tay.',
+    ai_unavailable:'AI chưa dùng được — vẫn có thể Tách nhanh.',
+    invalid_response:'AI chưa dùng được — vẫn có thể Tách nhanh.',
+    ai_not_configured:'AI chưa dùng được — vẫn có thể Tách nhanh.',
+    ai_response_invalid:'AI chưa dùng được — vẫn có thể Tách nhanh.',
   };
   return known[code]||code;
 }
@@ -94,8 +90,8 @@ function installStyle(){
     .order-source-presets{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.order-source-presets button{min-height:36px;border:1px solid var(--theme-border-default,#ddd);border-radius:10px;background:var(--theme-surface-secondary,#f6f6f6);font:650 12px/1 system-ui;cursor:pointer}.order-source-presets button[aria-pressed="true"]{background:var(--theme-content-primary,#171717);color:var(--theme-surface-primary,#fff);border-color:var(--theme-content-primary,#171717)}
     .order-source-options{display:flex;align-items:center;gap:10px;min-width:0}.order-source-options label{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--theme-content-secondary,#666)}.order-source-custom{margin-left:auto;display:flex;align-items:center;gap:5px}.order-source-custom input{min-width:0;max-width:132px;height:32px;border:1px solid var(--theme-border-default,#ddd);border-radius:8px;padding:0 6px;background:var(--theme-surface-primary,#fff);font-size:12px}
     .order-source-scroll{min-height:0;overflow-y:auto;overflow-x:hidden;padding:10px 12px 20px;display:grid;align-content:start;gap:8px;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
-    .order-source-message{display:grid;gap:7px;padding:10px;border:1px solid var(--theme-border-default,#e1e1e1);border-radius:13px;background:var(--theme-surface-primary,#fff)}.order-source-message[data-selected="true"]{border-color:#10a37f;box-shadow:inset 3px 0 0 #10a37f}.order-source-message[data-state="imported"]{opacity:.72}
-    .order-source-message-top{display:flex;align-items:center;gap:8px}.order-source-select{width:22px;height:22px;accent-color:#10a37f}.order-source-state{margin-left:auto;font-size:11px;font-weight:700;color:var(--theme-content-secondary,#666)}.order-source-state[data-state="working"]{color:#0b7a5f}.order-source-state[data-state="imported"]{color:#0b7a5f}.order-source-state[data-state="ignored"]{color:#8b5d00}
+    .order-source-message{display:grid;gap:7px;padding:10px;border:1px solid #10a37f;border-radius:13px;background:var(--theme-surface-primary,#fff);box-shadow:inset 3px 0 0 #10a37f}
+    .order-source-message-top{display:flex;align-items:center;gap:8px}.order-source-count{margin-left:auto;font-size:11px;font-weight:700;color:#0b7a5f}
     .order-source-text{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;line-height:1.45;user-select:text;-webkit-user-select:text}.order-source-time{font-size:11px;color:var(--theme-content-tertiary,#888)}
     .order-source-actions{display:flex;gap:6px;flex-wrap:wrap}.order-source-actions button{min-height:32px;padding:0 10px;border:1px solid var(--theme-border-default,#ddd);border-radius:9px;background:var(--theme-surface-secondary,#f6f6f6);font-size:12px;font-weight:650;cursor:pointer}.order-source-actions button[data-source-action="quick"]{background:#eef8f5;color:#08765a}.order-source-actions button[data-source-action="ignore"]{margin-left:auto}
     .order-source-result{display:grid;gap:4px;padding:8px;border-radius:9px;background:var(--theme-surface-secondary,#f6f6f6);font-size:12px;line-height:1.4}.order-source-result strong{font-size:11px}.order-source-unresolved{color:#9a3412}.order-source-empty,.order-source-status{padding:18px 8px;text-align:center;color:var(--theme-content-secondary,#666);font-size:13px}.order-source-status[data-error="true"]{color:#b42318}
@@ -139,23 +135,6 @@ function ensurePanel(){
   panel.addEventListener('change',onChange);
   return panel;
 }
-function context(){
-  const contact=currentContact();
-  return{
-    contactId:String(contact?.id||''),
-    customerName:String(contact?.name||''),
-    preset,
-    from:lastRange.from,
-    to:lastRange.to,
-    sourceMessageIds:[...selectedIds],
-  };
-}
-function dispatchContext(){
-  const detail=context();
-  if(!detail.contactId)return false;
-  document.dispatchEvent(new CustomEvent('v21-work-context',{detail}));
-  return true;
-}
 function setOpen(open){
   ensurePanel();
   panel.hidden=!open;
@@ -163,13 +142,10 @@ function setOpen(open){
   return open;
 }
 function close(){setOpen(false);return true;}
-function stateLabel(value){return STATE_LABELS[String(value||'pending')]||STATE_LABELS.pending;}
 function emptyOrderGroup(){return{sourceMessageIds:[],text:'',firstCreatedAt:'',lastCreatedAt:'',count:0};}
 function resetOrderGroup(){
   orderGroup=emptyOrderGroup();
-  timelineGroups=[];
   groupSplitResult=null;
-  selectedIds.clear();
 }
 function renderResult(result){
   if(!result)return'';
@@ -182,29 +158,22 @@ function renderResult(result){
     ${!entries.length?'<div>Không có dòng để tách.</div>':''}
   </div>`;
 }
-function syncTimeline(helper){
-  timelineGroups=helper.customerOrderSourceTimeline(rows);
-  orderGroup=timelineGroups.find(group=>group.state!=='imported')||emptyOrderGroup();
-  selectedIds=new Set(orderGroup.sourceMessageIds);
-}
-function renderTimelineGroup(group){
-  const imported=group.state==='imported';
-  const first=timeText(group.firstCreatedAt);
-  const last=timeText(group.lastCreatedAt);
+function renderOrderGroup(){
+  const first=timeText(orderGroup.firstCreatedAt);
+  const last=timeText(orderGroup.lastCreatedAt);
   const timeRange=first&&last&&first!==last?`${first} → ${last}`:(first||last);
-  const orderNo=clean(group.linkedExternalOrderNo);
-  const stateText=imported?`Đã tạo${orderNo?` · ${orderNo}`:''}`:`${group.count} tin · 1 đơn`;
-  return`<article class="order-source-message" data-source-order-group data-selected="${String(!imported)}" data-state="${imported?'imported':'working'}">
+  return`<article class="order-source-message" data-source-order-group>
     <div class="order-source-message-top">
       <time class="order-source-time">${escapeHtml(timeRange)}</time>
-      <span class="order-source-state" data-state="${imported?'imported':'working'}">${escapeHtml(stateText)}</span>
+      <span class="order-source-count">${orderGroup.count} tin</span>
     </div>
-    <div class="order-source-text">${escapeHtml(group.text)}</div>
-    ${imported?'':`<div class="order-source-actions">
+    <div class="order-source-text">${escapeHtml(orderGroup.text)}</div>
+    <div class="order-source-actions">
       <button type="button" data-source-action="quick">Tách nhanh</button>
       <button type="button" data-source-action="ai">AI</button>
       <button type="button" data-source-action="ignore">Bỏ qua</button>
-    </div>${renderResult(groupSplitResult)}`}
+    </div>
+    ${renderResult(groupSplitResult)}
   </article>`;
 }
 function render(){
@@ -214,9 +183,8 @@ function render(){
   const summary=panel.querySelector('[data-source-summary]');
   const scroll=panel.querySelector('#adminOrderSourceScroll');
   if(customer)customer.textContent=contact?`Khách: ${contact.name}`:'Chưa chọn khách';
-  const timelineMessageCount=timelineGroups.reduce((sum,group)=>sum+Number(group.count||0),0);
   if(summary)summary.textContent=contact
-    ?`Chỉ tin khách gửi · ${timelineMessageCount} tin · ${timelineGroups.length} đơn`
+    ?`Chỉ tin khách gửi · ${orderGroup.count} ${includeAll?'tin':'tin phù hợp'}`
     :'Chỉ tin khách gửi';
   for(const button of panel.querySelectorAll('[data-source-preset]'))button.setAttribute('aria-pressed',String(button.dataset.sourcePreset===preset));
   const include=panel.querySelector('[data-source-include-all]');
@@ -226,8 +194,8 @@ function render(){
   for(const input of panel.querySelectorAll('[data-source-date]'))input.value=customRange[input.dataset.sourceDate]||'';
   if(!scroll)return;
   if(!contact){scroll.innerHTML='<div class="order-source-empty">Chọn khách trong Danh bạ để xem tin báo hàng.</div>';return;}
-  if(!timelineGroups.length){scroll.innerHTML='<div class="order-source-empty">Không có tin đơn hàng trong khoảng này. Có thể bật “Hiện tất cả tin khách”.</div>';return;}
-  scroll.innerHTML=timelineGroups.map(group=>renderTimelineGroup(group)).join('');
+  if(!orderGroup.count){scroll.innerHTML='<div class="order-source-empty">Không có tin báo hàng phù hợp trong khoảng này. Có thể bật “Hiện tất cả tin khách”.</div>';return;}
+  scroll.innerHTML=renderOrderGroup();
 }
 function setStatus(text,error=false){
   const scroll=ensurePanel().querySelector('#adminOrderSourceScroll');
@@ -244,19 +212,17 @@ async function computeRange(){
 async function refresh(){
   const seq=++requestSeq;
   const contact=currentContact();
-  if(!contact){rows=[];resetOrderGroup();lastRange={from:'',to:''};render();return false;}
+  if(!contact){rows=[];resetOrderGroup();render();return false;}
   setStatus('Đang tổng hợp tin khách…');
   try{
     const range=await computeRange();
     const data=await invoke('list',{contactId:contact.id,from:range.from,to:range.to,includeAll});
     if(seq!==requestSeq)return false;
-    lastRange=range;
     rows=Array.isArray(data.items)?data.items:[];
     const helper=await core();
-    syncTimeline(helper);
+    orderGroup=helper.customerOrderSourceGroup(rows);
     groupSplitResult=null;
     render();
-    dispatchContext();
     return true;
   }catch(error){
     if(seq!==requestSeq)return false;
@@ -298,10 +264,9 @@ async function ignoreGroup(){
   if(!ids.length)return false;
   await setGroupState(ids,'ignored');
   const helper=await core();
-  syncTimeline(helper);
+  orderGroup=helper.customerOrderSourceGroup(rows);
   groupSplitResult=null;
   render();
-  dispatchContext();
   return true;
 }
 function onClick(event){
@@ -339,23 +304,6 @@ async function open(options={}){
   await refresh();
   return true;
 }
-async function markImported({contactId,messageIds,externalOrderId='',externalOrderNo=''}={}){
-  const ids=Array.from(new Set((Array.isArray(messageIds)?messageIds:[]).map(clean).filter(Boolean)));
-  if(!clean(contactId)||!ids.length)return false;
-  const data=await invoke('mark_imported',{contactId:String(contactId),messageIds:ids,externalOrderId:String(externalOrderId||''),externalOrderNo:String(externalOrderNo||'')});
-  for(const row of rows){
-    if(!ids.includes(String(row.messageId||'')))continue;
-    row.state='imported';
-    row.linkedExternalOrderId=clean(externalOrderId)||row.linkedExternalOrderId||null;
-    row.linkedExternalOrderNo=clean(externalOrderNo)||row.linkedExternalOrderNo||null;
-  }
-  const helper=await core();
-  syncTimeline(helper);
-  groupSplitResult=null;
-  render();
-  dispatchContext();
-  return Boolean(data?.ok);
-}
 
 document.addEventListener('v21-active-contact-change',()=>{
   requestSeq++;
@@ -378,10 +326,9 @@ document.addEventListener('click',event=>{
     requestSeq++;
     resetOrderGroup();
     rows=[];
-    lastRange={from:'',to:''};
     void refresh();
   },0);
 },true);
 
-window.V21AdminOrderSource=Object.freeze({open,close,refresh,context,markImported});
+window.V21AdminOrderSource=Object.freeze({open,close,refresh});
 })();
