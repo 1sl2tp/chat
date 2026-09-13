@@ -41,10 +41,15 @@ async function deliverToSubscriptions(
   for(const subscription of subscriptions){
     const subscriptionId=String(subscription?.id??"");
     try{
-      await webpush.sendNotification({
+      const target={
         endpoint:String(subscription.endpoint??""),
         keys:{p256dh:String(subscription.p256dh??""),auth:String(subscription.auth??"")},
-      },JSON.stringify(payload),{TTL:60,urgency});
+      };
+      if(urgency==="high"){
+        await webpush.sendNotification(target,JSON.stringify(payload),{TTL:60,urgency:"high"});
+      }else{
+        await webpush.sendNotification(target,JSON.stringify(payload),{TTL:60,urgency:"normal"});
+      }
       delivered++;
       await admin.from("v21_push_subscriptions").update({
         failure_count:0,last_success_at:new Date().toISOString(),last_failure_at:null,updated_at:new Date().toISOString(),
