@@ -44,7 +44,7 @@ jobs:
       - name: Chat AI database isolation contract
         run: python tests/test_v21_ai_product_parser_db_contract.py
       - name: Chat quote database contract
-        run: python tests/test_v21_quote_db_contract.py -q
+        run: python tests/test_v21_quote_db_contract.py
       - name: Chat quote core contract
         run: node tests/test_v21_quote_core.mjs
       - name: Chat quote edge contract
@@ -63,10 +63,10 @@ jobs:
         run: node tests/test_v21_call_invite_guest_core.mjs
       - name: Chat call invite guest Edge contract
         run: python -m pytest tests/test_v21_call_invite_guest_edge_contract.py -q
-      - name: Chat call invite Admin UI contract
-        run: python -m pytest tests/test_v21_call_invite_admin_ui.py -q
       - name: Chat call invite guest session contract
         run: node tests/test_v21_call_invite_session.mjs
+      - name: Chat call invite Admin UI contract
+        run: python -m pytest tests/test_v21_call_invite_admin_ui.py -q
       - name: Chat call invite public page contract
         run: python -m pytest tests/test_v21_call_invite_public_page.py -q
       - name: Verify canonical source
