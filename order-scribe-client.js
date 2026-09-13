@@ -10,14 +10,16 @@ function normalizeInvokeResult({data,error}={}){
 }
 
 function authStore(){return globalThis.V21AuthSessionStore||null;}
-async function invoke(action,{contactId,text}={}){
+async function invoke(action,{contactId,text,imageAssetIds=[]}={}){
   const client=authStore()?.getClient?.();
   if(!client)throw new Error('authentication_required');
   const session=await client.auth.getSession();
   const accessToken=String(session?.data?.session?.access_token||'');
   if(!accessToken)throw new Error('authentication_required');
+  const assets=Array.from(new Set((Array.isArray(imageAssetIds)?imageAssetIds:[])
+    .map(value=>String(value||'').trim()).filter(Boolean))).slice(0,8);
   const result=await client.functions.invoke('v21-order-scribe',{
-    body:{action,contactId:String(contactId||''),text:String(text||'')},
+    body:{action,contactId:String(contactId||''),text:String(text||''),imageAssetIds:assets},
     headers:{authorization:`Bearer ${accessToken}`},
   });
   return normalizeInvokeResult(result);
