@@ -2,13 +2,19 @@ from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
 EDGE=ROOT/'supabase'/'functions'/'v21-ai-product-parser'/'index.ts'
+PARSER=ROOT/'supabase'/'functions'/'v21-ai-product-parser'/'parser-core.mjs'
+SHARED=ROOT/'supabase'/'functions'/'_shared'/'customer-order-parser.mjs'
 CATALOG=ROOT/'supabase'/'functions'/'v21-ai-product-parser'/'catalog-search.mjs'
 SUMMARY=ROOT/'supabase'/'functions'/'v21-ai-product-parser'/'order-summary.mjs'
 
 assert EDGE.exists(), 'v21-ai-product-parser edge function is missing'
+assert PARSER.exists(), 'chat parser facade is missing'
+assert SHARED.exists(), 'Chat and Tách nhanh must share one customer-order parser core'
 assert CATALOG.exists(), 'chat catalog search module is missing'
 assert SUMMARY.exists(), 'chat order summary module is missing'
 text=EDGE.read_text(encoding='utf-8')
+parser_text=PARSER.read_text(encoding='utf-8')
+shared_text=SHARED.read_text(encoding='utf-8')
 catalog_text=CATALOG.read_text(encoding='utf-8')
 
 for required in [
@@ -28,6 +34,12 @@ for required in [
     'external_api:false',
 ]:
     assert required in text, required
+
+assert '../_shared/customer-order-parser.mjs' in parser_text
+assert 'parseCustomerTextDetailed' in parser_text
+assert 'parseCustomerTextPartial' in parser_text
+assert 'splitCustomerSegments' in parser_text
+assert 'export function parseCustomerTextPartial' in shared_text
 
 for required in [
     "const LEVEL_FIELDS=['level1','level2','level3','level4','level5','level6','level7','level8','level9']",
