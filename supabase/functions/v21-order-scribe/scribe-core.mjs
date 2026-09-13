@@ -1,3 +1,5 @@
+import {parseCustomerTextPartial} from '../v21-ai-product-parser/parser-core.mjs';
+
 function normalizeSource(value){
   return String(value??'').replace(/\r\n?/g,'\n').trim();
 }
@@ -5,34 +7,20 @@ function quantityNumber(value){
   const amount=Number(String(value??'').replace(',','.'));
   return Number.isFinite(amount)&&amount>0?amount:null;
 }
-function quickChunks(source){
-  if(/\n|;|\/(?:\s|$)|,(?!\d)/u.test(source)){
-    return source.split(/\s*(?:\n|;|\/(?:\s|$)|,(?!\d))\s*/u).map(value=>value.trim()).filter(Boolean);
-  }
-  return [source.trim()];
-}
-function looksLikeSpokenMultiItem(name){
-  return /\s(?:một|mot|hai|ba|bốn|bon|năm|nam|sáu|sau|bảy|bay|tám|tam|chín|chin|mười|muoi)\s+(?:thùng|thung|hộp|hop|gói|goi|bịch|bich|túi|tui|chai|lon|lốc|loc|khay|cây|cay)\b/iu.test(name);
-}
 
 export function parseQuickOrderText(value){
   const source=normalizeSource(value);
   if(!source)return {ok:false,items:[],unresolved:[],error:'order_text_required'};
-  const chunks=quickChunks(source);
-  if(!chunks.length)return {ok:false,items:[],unresolved:[],error:'order_text_required'};
-  const items=[];
-  const unresolved=[];
-  for(const chunk of chunks){
-    const match=chunk.match(/^\s*(\d+(?:[.,]\d+)?)\s+([\s\S]+?)\s*$/u);
-    if(!match){unresolved.push({raw:chunk});continue;}
-    const quantity=quantityNumber(match[1]);
-    const name=String(match[2]??'').trim();
-    if(!quantity||!name||(chunks.length===1&&looksLikeSpokenMultiItem(name))){
-      unresolved.push({raw:chunk});
-      continue;
-    }
-    items.push({quantity,name});
-  }
+
+  const parsed=parseCustomerTextPartial(source,{preserveRaw:true});
+  const items=(Array.isArray(parsed?.lines)?parsed.lines:[]).map(line=>({
+    quantity:Number(line?.quantity),
+    name:String(line?.rawProductName||line?.productName||'').trim(),
+  })).filter(item=>Number.isFinite(item.quantity)&&item.quantity>0&&item.name);
+  const unresolved=(Array.isArray(parsed?.unresolved)?parsed.unresolved:[])
+    .map(item=>({raw:String(item?.raw||'').trim()}))
+    .filter(item=>item.raw);
+
   return {ok:true,items,unresolved,error:null};
 }
 
