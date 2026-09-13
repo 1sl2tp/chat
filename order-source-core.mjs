@@ -73,57 +73,16 @@ function sortedRows(rows=[]){
     .map(({row})=>row);
 }
 
-function groupShape(rows,state='working'){
-  const list=sortedRows(rows);
-  const first=list[0]||{};
-  return{
-    state,
-    sourceMessageIds:list.map(row=>String(row.messageId||'').trim()),
-    text:list.map(row=>String(row.text||'').trim()).join('\n'),
-    firstCreatedAt:list.length?String(first.createdAt||''):'',
-    lastCreatedAt:list.length?String(list[list.length-1]?.createdAt||''):'',
-    count:list.length,
-    linkedExternalOrderId:first.linkedExternalOrderId?String(first.linkedExternalOrderId):null,
-    linkedExternalOrderNo:first.linkedExternalOrderNo?String(first.linkedExternalOrderNo):null,
-  };
-}
-
 export function customerOrderSourceGroup(rows=[]){
-  const active=sortedRows(rows).filter(row=>{
-    const state=String(row?.state||'pending');
-    return state!=='imported'&&state!=='ignored';
-  });
-  const group=groupShape(active,'working');
+  // Tin đơn là một cách đọc lại lịch sử Chat theo thời gian. Chỉ trạng thái
+  // Chat-local "ignored" được loại; các trạng thái bán hàng cũ không có quyền
+  // làm tin nhắn biến mất khỏi phần tổng hợp.
+  const active=sortedRows(rows).filter(row=>String(row?.state||'pending')!=='ignored');
   return{
-    sourceMessageIds:group.sourceMessageIds,
-    text:group.text,
-    firstCreatedAt:group.firstCreatedAt,
-    lastCreatedAt:group.lastCreatedAt,
-    count:group.count,
+    sourceMessageIds:active.map(row=>String(row.messageId||'').trim()),
+    text:active.map(row=>String(row.text||'').trim()).join('\n'),
+    firstCreatedAt:active.length?String(active[0]?.createdAt||''):'',
+    lastCreatedAt:active.length?String(active[active.length-1]?.createdAt||''):'',
+    count:active.length,
   };
-}
-
-export function customerOrderSourceTimeline(rows=[]){
-  const ordered=sortedRows(rows);
-  const active=ordered.filter(row=>{
-    const state=String(row?.state||'pending');
-    return state!=='imported'&&state!=='ignored';
-  });
-  const timeline=[];
-  if(active.length)timeline.push(groupShape(active,'working'));
-
-  const importedGroups=new Map();
-  for(const row of ordered){
-    if(String(row?.state||'pending')!=='imported')continue;
-    const orderId=String(row?.linkedExternalOrderId||'').trim();
-    const orderNo=String(row?.linkedExternalOrderNo||'').trim();
-    const messageId=String(row?.messageId||'').trim();
-    const key=orderId?`id:${orderId}`:orderNo?`no:${orderNo}`:`message:${messageId}`;
-    if(!importedGroups.has(key))importedGroups.set(key,[]);
-    importedGroups.get(key).push(row);
-  }
-  const history=[...importedGroups.values()]
-    .map(group=>groupShape(group,'imported'))
-    .sort((a,b)=>Date.parse(String(b.lastCreatedAt||''))-Date.parse(String(a.lastCreatedAt||'')));
-  return [...timeline,...history];
 }

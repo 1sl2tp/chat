@@ -6,13 +6,14 @@ compact=''.join(BRIDGE.split())
 
 assert "const GETLINK_ORIGIN='https://get.taphoa.xyz'" in BRIDGE
 assert "event.origin!==GETLINK_ORIGIN" in compact
-assert "v21-work-context" in BRIDGE
-assert "taphoa-chat-work-context" in BRIDGE
-assert "taphoa-work-order-created" in BRIDGE
-assert "sourceMessageIds" in BRIDGE
-assert "markImported" in BRIDGE
-assert "latestWorkContext" in BRIDGE
 assert "target.contentWindow.postMessage({type:'taphoa-chat-auth'" in compact
-assert "target.contentWindow.postMessage({type:'taphoa-chat-work-context'" in compact
+assert "taphoa-getlink-auth-request" in BRIDGE
 
-print('work context bridge PASS')
+# Chat order-source is independent from GETLINK. The iframe bridge only carries auth.
+for forbidden in [
+    'v21-work-context','taphoa-chat-work-context','taphoa-work-order-created',
+    'sourceMessageIds','markImported','latestWorkContext','postWorkContext',
+]:
+    assert forbidden not in BRIDGE, forbidden
+
+print('GETLINK auth-only bridge PASS')
