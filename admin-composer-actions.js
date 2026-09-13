@@ -3,9 +3,13 @@
 
 const MENU_ID='composerActionMenu';
 const SECTION_ATTR='data-admin-composer-section';
+const ACTION_ATTR='data-admin-composer-action';
+const ORDER_ATTR='data-admin-order-action';
+const LEGACY_PROFILE_SELECTOR='[data-quote-admin-block],[data-call-invite-admin-block]';
 let quoteModulePromise=null;
 let quoteOverlay=null;
 let transientHintTimer=0;
+let suppressQueued=false;
 
 function authStore(){return window.V21AuthSessionStore||null;}
 function currentAdmin(){
@@ -46,10 +50,11 @@ function setTransientHint(text,duration=1800){
   if(!hint)return;
   if(transientHintTimer)clearTimeout(transientHintTimer);
   const previous=hint.textContent;
-  hint.textContent=String(text||'');
+  const next=String(text||'');
+  hint.textContent=next;
   transientHintTimer=window.setTimeout(()=>{
     transientHintTimer=0;
-    if(hint.textContent===String(text||''))hint.textContent=previous;
+    if(hint.textContent===next)hint.textContent=previous;
   },Math.max(600,Number(duration)||1800));
 }
 
@@ -93,10 +98,10 @@ function actionButton({action='',label='',kind='order',order=false}={}){
   button.className='composer-action-menu-item admin-composer-menu-item';
   button.setAttribute('role','menuitem');
   if(order){
-    button.dataset.adminOrderAction=action;
+    button.setAttribute(ORDER_ATTR,action);
     button.disabled=true;
   }else{
-    button.dataset.adminComposerAction=action;
+    button.setAttribute(ACTION_ATTR,action);
   }
   button.innerHTML=`<span class="composer-action-menu-icon" aria-hidden="true">${iconSvg(kind)}</span><span class="composer-action-menu-label">${label}</span>${order?'<span class="admin-composer-menu-note">Sắp có</span>':''}`;
   return button;
@@ -150,11 +155,28 @@ function syncVisibility(){
   if(label)label.hidden=!admin;
   if(section)section.hidden=!admin;
   if(section){
-    for(const button of section.querySelectorAll('[data-admin-composer-action]')){
+    for(const button of section.querySelectorAll(`[${ACTION_ATTR}]`)){
       button.disabled=!contact;
     }
   }
   return admin;
+}
+
+function suppressLegacyProfileActions(){
+  let removed=false;
+  for(const node of document.querySelectorAll(LEGACY_PROFILE_SELECTOR)){
+    node.remove();
+    removed=true;
+  }
+  return removed;
+}
+function scheduleLegacySuppression(){
+  if(suppressQueued)return;
+  suppressQueued=true;
+  queueMicrotask(()=>{
+    suppressQueued=false;
+    suppressLegacyProfileActions();
+  });
 }
 
 async function quoteClient(){
@@ -164,6 +186,39 @@ async function quoteClient(){
   }
   return quoteModulePromise;
 }
+async function sendQuoteTextLink(url,contactId){
+  const text=String(url||'').trim();
+  const target=String(contactId||'').trim();
+  if(!text||!target)throw new Error('conversation_not_ready');
+  const messageStore=window.V21MessageStore||null;
+  const sync=window.V21SyncEngine||null;
+  const messageState=messageStore?.snapshot?.()||{};
+  const clientId=window.V21RuntimeId?.create?.()||`quote-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+  if(
+    messageStore?.send&&
+    messageState.ready&&
+    String(messageState.currentContactId||'')===target
+  ){
+    await messageStore.send({
+      clientId,
+      text,
+      contactId:target,
+      conversationId:messageState.currentConversationId||null,
+      reply:null,
+    });
+  }else{
+    if(!sync?.queueText)throw new Error('conversation_not_ready');
+    await sync.queueText({
+      clientId,
+      text,
+      contactId:target,
+      conversationId:null,
+      reply:null,
+    });
+  }
+  void sync?.wake?.({reason:'quote-link-send'});
+  return true;
+}
 function closeQuote(){
   if(!quoteOverlay)return false;
   quoteOverlay.remove();
@@ -172,7 +227,7 @@ function closeQuote(){
 }
 async function openQuote(contactId){
   const client=await quoteClient();
-  if(!client?.create||!client?.sendQuoteLink)throw new Error('quote_client_unavailable');
+  if(!client?.create)throw new Error('quote_client_unavailable');
   closeQuote();
   const sources=Array.isArray(client.sources)?client.sources:[];
   const overlay=document.createElement('section');
@@ -216,7 +271,7 @@ async function openQuote(contactId){
     status.textContent='Đang tạo và gửi…';
     try{
       const quote=await client.create({scope,sourceKey:scope==='source'?source.value:''});
-      await client.sendQuoteLink(quote.url,contactId);
+      await sendQuoteTextLink(quote.url,contactId);
       closeQuote();
       setTransientHint('Đã gửi link báo giá');
     }catch(error){
@@ -254,6 +309,8 @@ function bind(){
   const plus=document.getElementById('composer-plus-btn');
   if(!plus)return false;
   ensureAdminMenu();
+  suppressLegacyProfileActions();
+  new MutationObserver(scheduleLegacySuppression).observe(document.documentElement,{childList:true,subtree:true});
   plus.addEventListener('click',event=>{
     if(!currentAdmin())return;
     event.preventDefault();
@@ -265,13 +322,13 @@ function bind(){
   },true);
   document.addEventListener('click',event=>{
     const target=event.target instanceof Element?event.target:null;
-    const button=target?.closest?.('[data-admin-composer-action]');
+    const button=target?.closest?.(`[${ACTION_ATTR}]`);
     if(!button||button.disabled)return;
     event.preventDefault();
     event.stopPropagation();
-    void runAction(String(button.dataset.adminComposerAction||''));
+    void runAction(String(button.getAttribute(ACTION_ATTR)||''));
   },true);
-  document.addEventListener('v21-auth-state',()=>{ensureAdminMenu();syncVisibility();});
+  document.addEventListener('v21-auth-state',()=>{ensureAdminMenu();syncVisibility();scheduleLegacySuppression();});
   document.addEventListener('v21-message-store-state',syncVisibility);
   document.addEventListener('navigation-change',syncVisibility);
   return true;
@@ -285,5 +342,6 @@ window.V21AdminComposerActions=Object.freeze({
   run:runAction,
   openQuote,
   activeContactId,
+  suppressLegacyProfileActions,
 });
 })();
