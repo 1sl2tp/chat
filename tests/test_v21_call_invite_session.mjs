@@ -43,7 +43,7 @@ class FakeRoom{
 const window={
   LivekitClient:{
     Room:FakeRoom,
-    RoomEvent:{Disconnected:'disconnected',TrackSubscribed:'trackSubscribed'},
+    RoomEvent:{Disconnected:'disconnected',TrackSubscribed:'trackSubscribed',TrackUnsubscribed:'trackUnsubscribed'},
     Track:{Kind:{Audio:'audio'}},
   },
 };
@@ -86,6 +86,7 @@ function makeRemoteAudioTrack(){
   return {
     kind:'audio',
     attach(){return makeAudioElement();},
+    detach(){return [];},
   };
 }
 const document={
@@ -103,6 +104,7 @@ const context=vm.createContext({window,navigator,fetch,document,CustomEvent,cons
 vm.runInContext(source,context,{filename:'guest-call-session.js'});
 
 assert.ok(window.TaphoaGuestCallSession,'session API is exposed');
+assert.equal(typeof window.TaphoaGuestCallSession.retryAudio,'function','speaker playback can be retried from a fresh user gesture');
 assert.equal(micRequests,0,'module load never asks for microphone');
 assert.equal(fetchCalls.length,0,'module load never mints a token');
 
@@ -153,7 +155,8 @@ assert.deepEqual(adminCalls.map(call=>call.body.action),['join','connected']);
 assert.equal(adminCalls[0].body.inviteId,'123e4567-e89b-12d3-a456-426614174000');
 assert.equal(adminCalls[0].headers.authorization,'Bearer admin-access-token');
 
-roomInstances.at(-1).emit('trackSubscribed',makeRemoteAudioTrack());
+const blockedTrack=makeRemoteAudioTrack();
+roomInstances.at(-1).emit('trackSubscribed',blockedTrack);
 await new Promise(resolve=>setTimeout(resolve,0));
 await new Promise(resolve=>setTimeout(resolve,0));
 snapshot=window.TaphoaGuestCallSession.snapshot();
@@ -163,6 +166,13 @@ assert.equal(snapshot.remoteAudioSubscribed,true);
 assert.equal(snapshot.remotePlaybackReady,false,'speaker playback failure must be visible');
 assert.equal(snapshot.mediaReady,false,'speaker playback failure must never be reported as a healthy call');
 assert.equal(snapshot.error,'remote_audio_playback_blocked','speaker playback failure must not be swallowed');
+
+playbackMode='ok';
+const retried=await window.TaphoaGuestCallSession.retryAudio();
+assert.equal(retried,true,'a fresh user gesture can retry blocked speaker playback');
+snapshot=window.TaphoaGuestCallSession.snapshot();
+assert.equal(snapshot.remotePlaybackReady,true);
+assert.equal(snapshot.mediaReady,true,'retry promotes the call only after remote audio really plays');
 
 await window.TaphoaGuestCallSession.leave({reason:'test-admin'});
 assert.equal(disconnects,2,'Admin leave disconnects invite room');
