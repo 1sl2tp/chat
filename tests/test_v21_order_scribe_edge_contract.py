@@ -19,7 +19,8 @@ assert "db.auth.getuser" in compact
 assert 'eq("role","admin")' in compact or "eq('role','admin')" in compact
 assert "contactid" in edge
 assert "action==='quick'" in compact
-assert "action==='ai'" in compact
+assert "action!=='quick'&&action!=='ai'" in compact, "only quick/ai manual actions may enter the scribe"
+assert "aispans(source.text)" in compact, "non-quick path must invoke the isolated AI scribe"
 assert "chat_ai_message_inbox" not in edge
 assert "chat_ai_enqueue" not in edge
 
