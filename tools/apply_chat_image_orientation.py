@@ -1,6 +1,7 @@
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
+# This helper is intentionally branch-only and is removed before merge.
 
 
 def replace_once(path,old,new,label):
