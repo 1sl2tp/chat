@@ -47,11 +47,12 @@ const endUnit=new RegExp(`^(.+?)\\s+(?:x\\s*)?(\\d+(?:[.,]\\d+)?)(?:\\s*(${UNIT}
 const sharedChild=new RegExp(`^(\\d+(?:[.,]\\d+)?)(?:\\s*(${UNIT}))?\\s+(.+)$`,'iu');
 const inlineQuantityStart=new RegExp(`(^|\\s)(\\d+(?:[.,]\\d+)?(?:\\s*${UNIT})?)(?=\\s+\\S)`,'giu');
 const MEASURE_WORDS=new Set(['lit','l','kg','g','gram','ml']);
+const VARIANT_COUNT_WORDS=new Set(['mau','vi','loai']);
 const SPOKEN_QUANTITY_UNIT=/(?:^|\s)(?:mot|hai|ba|bon|nam|sau|bay|tam|chin|muoi)\s+(?:thung|hop|goi|bich|tui|chai|lon|loc|khay|cay)\b/u;
 
 const NUMERIC_NAME_PREFIXES=[
-  '555','333','3 mien','7 up','7up','1664 blanc','584 nha trang','3k',
-  '3 co gai','3 con tom','7days','7 days','888','2 chew',
+  '555','333','3 mien','3mien','7 up','7up','1664 blanc','1664blanc','584 nha trang','584nhatrang','3k',
+  '3 co gai','3cogai','3 con tom','3contom','7days','7 days','888','2 chew','2chew',
 ];
 
 function numericNamePrefix(value){
@@ -75,51 +76,62 @@ function looksLikeUnseparatedMultiItem(productName){
   const parts=remainder.split(/\s+/).filter(Boolean);
   for(let i=0;i<parts.length-1;i++){
     if(!/^\d+(?:[.,]\d+)?$/.test(parts[i]))continue;
-    if(MEASURE_WORDS.has(parts[i+1]))continue;
+    if(MEASURE_WORDS.has(parts[i+1])||VARIANT_COUNT_WORDS.has(parts[i+1]))continue;
     if(parts.slice(i+1).some(token=>/[a-z]/i.test(token)))return true;
   }
   return false;
 }
 
-function finalize(quantity,name,{preserveRaw=false,rawName=name}={}){
+function finalize(quantity,name,{preserveRaw=false,rawName=name,rawQuantityLabel=quantity}={}){
   const q=numberValue(quantity);
   const productName=upperFirst(normalizeSplitName(name));
   if(q==null||!productName||looksLikeUnseparatedMultiItem(productName))return null;
   const result={quantity:q,productName,line:`${quantityText(q)} ${productName}`};
-  if(preserveRaw)result.rawProductName=clean(rawName);
+  if(preserveRaw){
+    result.rawProductName=clean(rawName);
+    result.rawQuantityLabel=clean(rawQuantityLabel)||quantityText(q);
+  }
   return result;
 }
 
 function parseSegmentDetailed(raw,{preserveRaw=false}={}){
   const text=clean(raw);
-  if(!text||text.includes('=')||text.includes(':'))return null;
+  if(!text||text.includes('='))return null;
+  if(text.includes(':')&&!/^\d/u.test(text))return null;
 
   if(numericNamePrefix(text)){
     const match=text.match(endUnit);
     if(!match||!numericNamePrefix(match[1]))return null;
-    return finalize(match[2],match[1],{preserveRaw,rawName:match[1]});
+    const rawQuantityLabel=clean(`${match[2]}${match[3]?` ${match[3]}`:''}`);
+    return finalize(match[2],match[1],{preserveRaw,rawName:match[1],rawQuantityLabel});
   }
 
   let match=text.match(startUnit);
   if(match){
     const quantityEnd=String(match[1]).length;
     const unitWasAttached=!/^\s/u.test(text.slice(quantityEnd));
-    const rawName=unitWasAttached?match[3]:`${match[2]} ${match[3]}`;
-    return finalize(match[1],match[3],{preserveRaw,rawName});
+    const rawQuantityLabel=unitWasAttached?`${match[1]}${match[2]}`:`${match[1]} ${match[2]}`;
+    return finalize(match[1],match[3],{preserveRaw,rawName:match[3],rawQuantityLabel});
   }
 
+  match=text.match(/^(\d+(?:[.,]\d+)?)([^\d\s].+)$/u);
+  if(match)return finalize(match[1],match[2],{preserveRaw,rawName:match[2],rawQuantityLabel:match[1]});
+
   match=text.match(/^(\d+(?:[.,]\d+)?)\s+(.+)$/u);
-  if(match)return finalize(match[1],match[2],{preserveRaw,rawName:match[2]});
+  if(match)return finalize(match[1],match[2],{preserveRaw,rawName:match[2],rawQuantityLabel:match[1]});
 
   match=text.match(endUnit);
-  if(match)return finalize(match[2],match[1],{preserveRaw,rawName:match[1]});
+  if(match){
+    const rawQuantityLabel=clean(`${match[2]}${match[3]?` ${match[3]}`:''}`);
+    return finalize(match[2],match[1],{preserveRaw,rawName:match[1],rawQuantityLabel});
+  }
 
   return null;
 }
 
 function isIgnorableGreeting(raw){
   const text=normalize(raw).replace(/[.!?]+$/g,'').trim();
-  return /^(?:ok|oke|okay)(?:\s+(?:anh|em|chi))?$/.test(text);
+  return /^(?:(?:ok|oke|okay)(?:\s+(?:anh|em|chi))?|cho\s+(?:e|em|anh|chi))$/.test(text);
 }
 
 function hasAttachedUnit(marker){
@@ -146,7 +158,7 @@ function splitInlineQuantityItems(raw,{preserveRaw=false}={}){
 
   const prefix=clean(text.slice(0,starts[0]));
   const normalizedPrefix=normalize(prefix);
-  const shortOrderPreface=/(?:^|\s)cho\s+(?:em|anh|chi)$/.test(normalizedPrefix);
+  const shortOrderPreface=/(?:^|\s)cho\s+(?:e|em|anh|chi)$/.test(normalizedPrefix);
   if(prefix&&!shortOrderPreface)return [];
   if(starts.length<2&&!shortOrderPreface)return [];
 
@@ -200,17 +212,39 @@ function expandLine(rawLine){
   for(const child of children){
     const match=child.match(sharedChild);
     if(!match)return [line];
-    expanded.push(clean(`${match[1]} ${parent} ${match[3]}`));
+    const marker=clean(`${match[1]}${match[2]?` ${match[2]}`:''}`);
+    expanded.push(clean(`${marker} ${parent} ${match[3]}`));
   }
   return expanded;
 }
 
 export function splitCustomerSegments(value){
-  return String(value??'')
-    .replace(/\r\n?/g,'\n')
-    .split('\n')
-    .flatMap(expandLine)
-    .filter(Boolean);
+  const source=String(value??'').replace(/\r\n?/g,'\n');
+  const segments=[];
+  let parent='';
+  for(const rawLine of source.split('\n')){
+    const line=clean(String(rawLine??'').replace(/^[-•]\s*/,''));
+    if(!line)continue;
+
+    const parentOnly=line.match(/^(.+?)\s*:\s*$/u);
+    if(parentOnly&&!/^\d/u.test(clean(parentOnly[1]))){
+      parent=clean(parentOnly[1]);
+      continue;
+    }
+
+    if(parent){
+      const child=line.match(sharedChild);
+      if(child){
+        const marker=clean(`${child[1]}${child[2]?` ${child[2]}`:''}`);
+        segments.push(clean(`${marker} ${parent} ${child[3]}`));
+        continue;
+      }
+      parent='';
+    }
+
+    segments.push(...expandLine(line));
+  }
+  return segments.filter(Boolean);
 }
 
 export function parseCustomerTextPartial(value,{preserveRaw=false}={}){
