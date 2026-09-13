@@ -12,6 +12,13 @@ assert "data.desktopWorkspace" in SHELL or "dataset.desktopWorkspace" in SHELL
 assert "desktopWorkspace?false:route!=='chat'" in "".join(SHELL.split())
 assert "desktopWorkspace?false:route!=='work'" in "".join(SHELL.split())
 
+# Authentication is the state transition that makes the desktop workspace eligible.
+# Recompute workspace mode there; otherwise boot writes data-desktop-workspace=false
+# and the directory appears while the work iframe remains hidden until a media-query change.
+compact_shell = "".join(SHELL.split())
+assert "setAuthenticated(authenticated,account=null){" in compact_shell
+assert "syncDesktopSidebarMode();syncDesktopWorkspaceMode();" in compact_shell
+
 compact = "".join(SOURCE.split())
 assert "--desktop-work-width" in SOURCE
 assert 'data-desktop-workspace="true"' in SOURCE
