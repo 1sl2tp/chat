@@ -13,6 +13,8 @@ const appShell=document.getElementById('appShell');
 
 const DESKTOP_DIRECTORY_QUERY='(min-width: 68rem) and (hover: hover) and (pointer: fine)';
 const desktopDirectoryMedia=window.matchMedia(DESKTOP_DIRECTORY_QUERY);
+const DESKTOP_WORKSPACE_QUERY='(min-width: 74rem) and (hover: hover) and (pointer: fine)';
+const desktopWorkspaceMedia=window.matchMedia(DESKTOP_WORKSPACE_QUERY);
 
 let route='chat';
 let authState='BOOTING';
@@ -79,13 +81,20 @@ function readScreenSession(accountId){
   }catch{return null;}
 }
 
+function desktopWorkspaceEnabled(){
+  return authState==='AUTHENTICATED'&&desktopWorkspaceMedia.matches;
+}
+
 function applyRoutePresentation(){
+  const desktopWorkspace=desktopWorkspaceEnabled();
+  if(desktopWorkspace&&route==='work')route='chat';
   screenHost.dataset.route=route;
   appShell.dataset.route=route;
+  appShell.dataset.desktopWorkspace=String(desktopWorkspace);
   const chatNodes=document.querySelectorAll('[data-chat-thread-node]');
   const workView=document.getElementById('workThreadView');
-  for(const node of chatNodes)node.hidden=route!=='chat';
-  if(workView)workView.hidden=route!=='work';
+  for(const node of chatNodes)node.hidden=desktopWorkspace?false:route!=='chat';
+  if(workView)workView.hidden=desktopWorkspace?false:route!=='work';
   renderTopTabs();
   renderChatTabIdentity();
   renderCallFocus();
@@ -163,6 +172,18 @@ if(typeof desktopDirectoryMedia.addEventListener==='function'){
   desktopDirectoryMedia.addEventListener('change',syncDesktopSidebarMode);
 }else if(typeof desktopDirectoryMedia.addListener==='function'){
   desktopDirectoryMedia.addListener(syncDesktopSidebarMode);
+}
+
+function syncDesktopWorkspaceMode(){
+  applyRoutePresentation();
+  if(desktopWorkspaceEnabled())void window.V21GetlinkAuthBridge?.sync?.();
+  return desktopWorkspaceEnabled();
+}
+
+if(typeof desktopWorkspaceMedia.addEventListener==='function'){
+  desktopWorkspaceMedia.addEventListener('change',syncDesktopWorkspaceMode);
+}else if(typeof desktopWorkspaceMedia.addListener==='function'){
+  desktopWorkspaceMedia.addListener(syncDesktopWorkspaceMode);
 }
 
 function setSidebar(open){

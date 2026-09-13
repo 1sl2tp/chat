@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="86c38d64feb7e4de3274f77f79175f27f97888da66c174099106ae205268c54d">
+<meta name="app-build-id" content="90b3a6244c0b3ccbe71d98cb7c91666c80403b2bed54c5b069a13820ebccde31">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -2877,6 +2877,51 @@ button{
 @supports not (height:100svh){
   @media (min-width:68rem) and (hover:hover) and (pointer:fine){
     #appShell[data-auth-state="authenticated"] #screenHost{height:100vh}
+  }
+}
+
+
+/* Desktop work surface: Danh bạ | Trò chuyện | Công việc.
+   Narrow/mobile keeps the existing one-view-at-a-time route model. */
+@media (min-width:74rem) and (hover:hover) and (pointer:fine){
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"]{
+    --desktop-work-width:clamp(360px,30vw,440px);
+  }
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #threadContent{
+    box-sizing:border-box;
+    padding-inline-end:var(--desktop-work-width);
+  }
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #workThreadView{
+    position:absolute;
+    inset-block:0;
+    inset-inline-end:0;
+    display:block!important;
+    width:var(--desktop-work-width);
+    min-width:0;
+    min-height:0;
+    padding:8px 8px 8px 0;
+    box-sizing:border-box;
+    overflow:hidden;
+    background:var(--theme-surface-primary);
+    border-inline-start:1px solid var(--theme-border-default);
+    z-index:20;
+  }
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #workThreadView .work-thread-frame{
+    border-radius:16px;
+  }
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #thread-bottom-container{
+    right:var(--desktop-work-width);
+    width:auto;
+  }
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #regionTop .compact-top-grid{
+    box-sizing:border-box;
+    padding-inline-end:var(--desktop-work-width);
+  }
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] .top-mode-switch{
+    grid-template-columns:minmax(0,1fr)!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] [data-top-tab="work"]{
+    display:none!important;
   }
 }
 
@@ -11240,6 +11285,8 @@ const appShell=document.getElementById('appShell');
 
 const DESKTOP_DIRECTORY_QUERY='(min-width: 68rem) and (hover: hover) and (pointer: fine)';
 const desktopDirectoryMedia=window.matchMedia(DESKTOP_DIRECTORY_QUERY);
+const DESKTOP_WORKSPACE_QUERY='(min-width: 74rem) and (hover: hover) and (pointer: fine)';
+const desktopWorkspaceMedia=window.matchMedia(DESKTOP_WORKSPACE_QUERY);
 
 let route='chat';
 let authState='BOOTING';
@@ -11306,13 +11353,20 @@ function readScreenSession(accountId){
   }catch{return null;}
 }
 
+function desktopWorkspaceEnabled(){
+  return authState==='AUTHENTICATED'&&desktopWorkspaceMedia.matches;
+}
+
 function applyRoutePresentation(){
+  const desktopWorkspace=desktopWorkspaceEnabled();
+  if(desktopWorkspace&&route==='work')route='chat';
   screenHost.dataset.route=route;
   appShell.dataset.route=route;
+  appShell.dataset.desktopWorkspace=String(desktopWorkspace);
   const chatNodes=document.querySelectorAll('[data-chat-thread-node]');
   const workView=document.getElementById('workThreadView');
-  for(const node of chatNodes)node.hidden=route!=='chat';
-  if(workView)workView.hidden=route!=='work';
+  for(const node of chatNodes)node.hidden=desktopWorkspace?false:route!=='chat';
+  if(workView)workView.hidden=desktopWorkspace?false:route!=='work';
   renderTopTabs();
   renderChatTabIdentity();
   renderCallFocus();
@@ -11390,6 +11444,18 @@ if(typeof desktopDirectoryMedia.addEventListener==='function'){
   desktopDirectoryMedia.addEventListener('change',syncDesktopSidebarMode);
 }else if(typeof desktopDirectoryMedia.addListener==='function'){
   desktopDirectoryMedia.addListener(syncDesktopSidebarMode);
+}
+
+function syncDesktopWorkspaceMode(){
+  applyRoutePresentation();
+  if(desktopWorkspaceEnabled())void window.V21GetlinkAuthBridge?.sync?.();
+  return desktopWorkspaceEnabled();
+}
+
+if(typeof desktopWorkspaceMedia.addEventListener==='function'){
+  desktopWorkspaceMedia.addEventListener('change',syncDesktopWorkspaceMode);
+}else if(typeof desktopWorkspaceMedia.addListener==='function'){
+  desktopWorkspaceMedia.addListener(syncDesktopWorkspaceMode);
 }
 
 function setSidebar(open){
