@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {rangeForPreset,isLikelyOrderSource,orderSplitPreviewEntries} from '../order-source-core.mjs';
+import {rangeForPreset,isLikelyOrderSource,orderSplitPreviewEntries,customerOrderSourceGroup} from '../order-source-core.mjs';
 
 const now=Date.parse('2026-09-13T08:30:00.000Z');
 const vnOffset=-420;
@@ -35,5 +35,23 @@ assert.deepEqual(preview,[
   {type:'item',quantity:2,name:'thùng'},
   {type:'item',quantity:95,name:'(hoặc 90)'},
 ]);
+
+const group=customerOrderSourceGroup([
+  {messageId:'m2',text:'2 thùng omo',createdAt:'2026-09-13T03:05:00.000Z',state:'pending'},
+  {messageId:'old',text:'9 thùng cũ',createdAt:'2026-09-13T02:00:00.000Z',state:'imported'},
+  {messageId:'m1',text:'1 thùng dầu simply',createdAt:'2026-09-13T03:00:00.000Z',state:'working'},
+  {messageId:'skip',text:'3 thùng bỏ qua',createdAt:'2026-09-13T03:03:00.000Z',state:'ignored'},
+]);
+assert.deepEqual(group,{
+  sourceMessageIds:['m1','m2'],
+  text:'1 thùng dầu simply\n2 thùng omo',
+  firstCreatedAt:'2026-09-13T03:00:00.000Z',
+  lastCreatedAt:'2026-09-13T03:05:00.000Z',
+  count:2,
+});
+assert.deepEqual(customerOrderSourceGroup([
+  {messageId:'old',text:'đơn cũ',createdAt:'2026-09-13T02:00:00.000Z',state:'imported'},
+  {messageId:'skip',text:'bỏ qua',createdAt:'2026-09-13T02:01:00.000Z',state:'ignored'},
+]),{sourceMessageIds:[],text:'',firstCreatedAt:'',lastCreatedAt:'',count:0});
 
 console.log('customer order source core contract PASS');
