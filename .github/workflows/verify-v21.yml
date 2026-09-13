@@ -37,6 +37,8 @@ jobs:
         run: node tests/test_v21_order_source_core.mjs
       - name: Customer order source database contract
         run: python tests/test_v21_order_source_db_contract.py
+      - name: Customer order source Edge contract
+        run: python tests/test_v21_order_source_edge_contract.py
       - name: Chat AI product parser core contract
         run: node tests/test_v21_ai_product_parser_core.mjs
       - name: Chat shared-product catalog search contract
