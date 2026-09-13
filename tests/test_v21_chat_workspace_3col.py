@@ -21,6 +21,10 @@ assert '#appShell[data-auth-state="authenticated"][data-desktop-workspace="true"
 assert '#appShell[data-auth-state="authenticated"][data-desktop-workspace="true"]#thread-bottom-container' in compact
 assert '#appShell[data-auth-state="authenticated"][data-desktop-workspace="true"][data-route="chat"]' not in compact
 
+# The chat stage must size to its active grid cell, not the full viewport.
+# Otherwise the message column is pushed away from Danh bạ and the work iframe lands off-screen.
+assert '#appShell[data-auth-state="authenticated"][data-desktop-workspace="true"]#stageLayout{width:100%;}' in compact
+
 # Mobile/narrow layout keeps the existing one-view-at-a-time route model.
 assert "const ROUTES=Object.freeze(['chat','work']);" in SHELL
 assert "route!=='chat'" in SHELL
