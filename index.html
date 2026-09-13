@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="aff5c9d72d1927fd89ef44c5693468f606a69d49a2deaac0de4895c5446c1d05">
+<meta name="app-build-id" content="86c38d64feb7e4de3274f77f79175f27f97888da66c174099106ae205268c54d">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -15054,17 +15054,23 @@ async function reconcileIncomingInvites(){
   return rows;
 }
 
-function startIncomingWatch(){
+async function startIncomingWatch(){
   stopIncomingWatch();
   if(!currentAdmin())return false;
-  const client=authStore()?.getClient?.();
+  const store=authStore();
+  const client=store?.getClient?.();
   if(!client?.channel)return false;
-  incomingWatchChannel=client.channel('call-invite-incoming')
+  if(!await store?.syncRealtimeAuth?.())return false;
+  if(!currentAdmin())return false;
+  const channel=client.channel('call-invite-incoming')
     .on('postgres_changes',{
       event:'UPDATE',schema:'public',table:'chat_call_invites',
-    },payload=>processInviteRow(payload?.new||{}))
-    .subscribe();
-  void reconcileIncomingInvites();
+    },payload=>processInviteRow(payload?.new||{}));
+  incomingWatchChannel=channel;
+  channel.subscribe(status=>{
+    if(incomingWatchChannel!==channel)return;
+    if(status==='SUBSCRIBED')void reconcileIncomingInvites();
+  });
   return true;
 }
 
