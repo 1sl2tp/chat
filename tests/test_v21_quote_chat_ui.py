@@ -78,9 +78,9 @@ assert "pointer-events:auto" in quote_overlay_css, "quote overlay must receive p
 # A visible quote popup is a real modal. It must acquire the shared InteractionController
 # with lockBaseUi=true so the chat/image layer becomes inert until the popup closes.
 assert "v21interactioncontroller" in low, "quote modal must use the shared interaction owner"
-assert ".enter(" in compact and "lockbaseui:true" in compact, "quote modal must lock the base chat UI"
+assert "enter?.(" in compact and "lockbaseui:true" in compact, "quote modal must lock the base chat UI"
 assert "admin-quote-modal" in low, "quote modal must have a stable interaction owner"
-assert ".exit(" in compact, "quote modal close must release the interaction lock"
+assert "exit?.(" in compact, "quote modal close must release the interaction lock"
 
 # Guest call link reuses the existing invite client and never starts a normal Chat call.
 assert "taphoacallinviteclient" in low
