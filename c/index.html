@@ -57,11 +57,11 @@ function terminal(){
   leaveButton.classList.add('hidden');
   show('Liên kết đã hết hạn hoặc không còn hiệu lực');
 }
-async function request(action){
+async function request(body){
   const response=await fetch(ENDPOINT,{
     method:'POST',
     headers:{'content-type':'application/json','apikey':PUBLIC_KEY},
-    body:JSON.stringify({action,key}),
+    body:JSON.stringify(body),
   });
   const data=await response.json().catch(()=>({}));
   if(!response.ok||data?.ok===false){
@@ -75,7 +75,7 @@ async function request(action){
 async function openInvite(){
   if(key.length<20){terminal();return;}
   try{
-    const data=await request('open');
+    const data=await request({action:'open',key});
     if(data?.status!=='ready'){terminal();return;}
     ready=true;
     joinButton.disabled=false;
