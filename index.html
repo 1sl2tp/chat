@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="90b3a6244c0b3ccbe71d98cb7c91666c80403b2bed54c5b069a13820ebccde31">
+<meta name="app-build-id" content="fc04a9f20ebf7a88c4324333179d8524903c8cd7e04d8da9cfddc8e3d06ec5ff">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -349,6 +349,12 @@
 }
 .zalo-account-notification-action:disabled{opacity:.55;cursor:default}
 .zalo-account-notification-action[hidden]{display:none!important}
+
+/* Desktop workspace geometry: the chat stage belongs to the active grid cell,
+   never to the full viewport. This keeps Danh bạ | Chat | Công việc contiguous. */
+@media (min-width:74rem) and (hover:hover) and (pointer:fine){
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #stageLayout{width:100%;}
+}
 
 </style>
 <style>

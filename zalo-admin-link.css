@@ -131,3 +131,9 @@
 }
 .zalo-account-notification-action:disabled{opacity:.55;cursor:default}
 .zalo-account-notification-action[hidden]{display:none!important}
+
+/* Desktop workspace geometry: the chat stage belongs to the active grid cell,
+   never to the full viewport. This keeps Danh bạ | Chat | Công việc contiguous. */
+@media (min-width:74rem) and (hover:hover) and (pointer:fine){
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #stageLayout{width:100%;}
+}
