@@ -36,11 +36,6 @@ function installStyle(){
       display:grid;place-items:center;background:rgba(0,0,0,.52);color:#fff;font:700 17px/1 system-ui;cursor:pointer;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)
     }
     .chat-image-rotate-button:focus-visible{outline:2px solid #fff;outline-offset:2px}
-    .image-viewer-overlay[open]{
-      left:var(--chat-image-viewer-left,var(--image-viewer-left,0px))!important;
-      right:var(--chat-image-viewer-right,var(--image-viewer-right,0px))!important;
-      top:var(--chat-image-viewer-top,var(--image-viewer-top,0px))!important;
-    }
     .chat-image-viewer-rotate-controls{display:flex;align-items:center;gap:.35rem;margin-left:auto;margin-right:.45rem}
     .chat-image-viewer-rotate-controls button{
       width:2.25rem;height:2.25rem;border:1px solid #ffffff2e;border-radius:999px;background:#ffffff14;color:#fff;font:700 1rem/1 system-ui;cursor:pointer
@@ -101,19 +96,6 @@ function applyTileRotation(tile){
 function applyAllTileRotations(){
   for(const tile of document.querySelectorAll('.media-image-tile[data-media-asset-id]'))applyTileRotation(tile);
 }
-function updateViewerBounds(){
-  const overlay=document.querySelector('.image-viewer-overlay');
-  if(!overlay?.open)return;
-  const host=document.querySelector('#stageLayout');
-  if(!host)return;
-  const rect=host.getBoundingClientRect();
-  const viewportWidth=Math.max(0,window.innerWidth||document.documentElement.clientWidth||0);
-  const topOwner=document.getElementById('regionTop');
-  const top=Math.max(rect.top,topOwner?.getBoundingClientRect?.().bottom||rect.top,0);
-  overlay.style.setProperty('--chat-image-viewer-left',`${Math.max(0,Math.round(rect.left*100)/100)}px`);
-  overlay.style.setProperty('--chat-image-viewer-right',`${Math.max(0,Math.round((viewportWidth-rect.right)*100)/100)}px`);
-  overlay.style.setProperty('--chat-image-viewer-top',`${Math.max(0,Math.round(top*100)/100)}px`);
-}
 function ensureViewerRotateControls(overlay){
   const head=overlay?.querySelector?.('.image-review-head');
   if(!head)return;
@@ -129,7 +111,6 @@ function ensureViewerRotateControls(overlay){
 function applyViewerRotation(){
   const overlay=document.querySelector('.image-viewer-overlay');
   if(!overlay?.open)return;
-  updateViewerBounds();
   ensureViewerRotateControls(overlay);
   const assetId=activeViewerAssetId(overlay);
   const img=overlay.querySelector('.image-review-image');

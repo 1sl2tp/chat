@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="e1135f9cb008b142d8af872e2b1a94aae676ef90e9e7b1a357eb73332ba0feb0">
+<meta name="app-build-id" content="4e856eb980be3b7fa4cdf01eecf097d8413d8f7ecd6041334a5994954249a73d">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -6485,8 +6485,17 @@ function positionImageViewerBelowHeader(){
   const host=stageLayout||document.getElementById('threadContent');
   const rect=host?.getBoundingClientRect?.()||null;
   const viewportWidth=Math.max(0,window.innerWidth||document.documentElement.clientWidth||0);
+  const workThreadView=document.getElementById('workThreadView');
+  const workspaceActive=appShell?.dataset?.desktopWorkspace==='true';
+  const workRect=workspaceActive&&workThreadView?.getBoundingClientRect
+    ?workThreadView.getBoundingClientRect()
+    :null;
+  const regionRight=(
+    rect&&workRect&&workRect.width>0&&
+    workRect.left>rect.left&&workRect.left<rect.right
+  )?workRect.left:(rect?.right||viewportWidth);
   const left=rect?Math.max(0,rect.left):0;
-  const right=rect?Math.max(0,viewportWidth-rect.right):0;
+  const right=Math.max(0,viewportWidth-regionRight);
   imageViewerOverlay.style.setProperty('--image-viewer-top',`${Math.round(top*100)/100}px`);
   imageViewerOverlay.style.setProperty('--image-viewer-left',`${Math.round(left*100)/100}px`);
   imageViewerOverlay.style.setProperty('--image-viewer-right',`${Math.round(right*100)/100}px`);
@@ -11691,11 +11700,6 @@ function installStyle(){
       display:grid;place-items:center;background:rgba(0,0,0,.52);color:#fff;font:700 17px/1 system-ui;cursor:pointer;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)
     }
     .chat-image-rotate-button:focus-visible{outline:2px solid #fff;outline-offset:2px}
-    .image-viewer-overlay[open]{
-      left:var(--chat-image-viewer-left,var(--image-viewer-left,0px))!important;
-      right:var(--chat-image-viewer-right,var(--image-viewer-right,0px))!important;
-      top:var(--chat-image-viewer-top,var(--image-viewer-top,0px))!important;
-    }
     .chat-image-viewer-rotate-controls{display:flex;align-items:center;gap:.35rem;margin-left:auto;margin-right:.45rem}
     .chat-image-viewer-rotate-controls button{
       width:2.25rem;height:2.25rem;border:1px solid #ffffff2e;border-radius:999px;background:#ffffff14;color:#fff;font:700 1rem/1 system-ui;cursor:pointer
@@ -11756,19 +11760,6 @@ function applyTileRotation(tile){
 function applyAllTileRotations(){
   for(const tile of document.querySelectorAll('.media-image-tile[data-media-asset-id]'))applyTileRotation(tile);
 }
-function updateViewerBounds(){
-  const overlay=document.querySelector('.image-viewer-overlay');
-  if(!overlay?.open)return;
-  const host=document.querySelector('#stageLayout');
-  if(!host)return;
-  const rect=host.getBoundingClientRect();
-  const viewportWidth=Math.max(0,window.innerWidth||document.documentElement.clientWidth||0);
-  const topOwner=document.getElementById('regionTop');
-  const top=Math.max(rect.top,topOwner?.getBoundingClientRect?.().bottom||rect.top,0);
-  overlay.style.setProperty('--chat-image-viewer-left',`${Math.max(0,Math.round(rect.left*100)/100)}px`);
-  overlay.style.setProperty('--chat-image-viewer-right',`${Math.max(0,Math.round((viewportWidth-rect.right)*100)/100)}px`);
-  overlay.style.setProperty('--chat-image-viewer-top',`${Math.max(0,Math.round(top*100)/100)}px`);
-}
 function ensureViewerRotateControls(overlay){
   const head=overlay?.querySelector?.('.image-review-head');
   if(!head)return;
@@ -11784,7 +11775,6 @@ function ensureViewerRotateControls(overlay){
 function applyViewerRotation(){
   const overlay=document.querySelector('.image-viewer-overlay');
   if(!overlay?.open)return;
-  updateViewerBounds();
   ensureViewerRotateControls(overlay);
   const assetId=activeViewerAssetId(overlay);
   const img=overlay.querySelector('.image-review-image');
