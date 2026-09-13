@@ -1,3 +1,5 @@
+import './order-source-image-viewer.js';
+
 const DAY=86400000;
 
 function normalized(value){
@@ -107,5 +109,6 @@ export function customerOrderSourceGroup(rows=[]){
     count:active.length,
   };
   if(images.length)result.images=images;
+  if(typeof globalThis!=='undefined')globalThis.__V21LastOrderSourceGroup=result;
   return result;
 }
