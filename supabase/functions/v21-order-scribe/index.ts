@@ -4,7 +4,7 @@ import { formatOrderItems, materializeAiSpans, parseQuickOrderText } from "./scr
 const SUPABASE_URL=String(Deno.env.get('SUPABASE_URL')||'').trim();
 const SERVICE_KEY=String(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'').trim();
 const db=createClient(SUPABASE_URL,SERVICE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
-const DEFAULT_MODEL='gemini-2.5-flash-lite';
+const DEFAULT_MODEL='gemini-3.5-flash-lite';
 const MAX_SOURCE_CHARS=6000;
 const corsHeaders={
   'access-control-allow-origin':'*',
