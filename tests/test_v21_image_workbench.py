@@ -3,6 +3,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 APP = (ROOT / 'app.js').read_text(encoding='utf-8')
 
+# Regression gate: the image viewer is a workbench, not an exclusive mode.
 # Image review must no longer take over the whole Chat screen. The composer and
 # order-entry surface stay interactive while the image is open.
 enter_start = APP.index('function enterImageViewerMode()')
