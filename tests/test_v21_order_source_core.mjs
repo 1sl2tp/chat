@@ -13,15 +13,16 @@ assert.deepEqual(rangeForPreset('yesterday',now,vnOffset),{
 });
 assert.equal(isLikelyOrderSource('3 chua có đường'),true);
 assert.equal(isLikelyOrderSource('2 thùng sim 1 lít'),true);
+assert.equal(isLikelyOrderSource('2proby to ít đường'),true,'quantity attached to the name is still an order signal');
 assert.equal(isLikelyOrderSource('em cảm ơn ạ'),false);
 assert.equal(isLikelyOrderSource('mai 2 giờ em qua'),false);
 assert.equal(isLikelyOrderSource('5 sua chua khong duong',['sua chua khong duong']),true);
 
 const preview=orderSplitPreviewEntries({
   items:[
-    {quantity:1,name:'thùng 40'},
+    {quantity:1,quantityLabel:'1th',name:'thùng 40'},
     {quantity:2,name:'thùng'},
-    {quantity:95,name:'(hoặc 90)'},
+    {quantity:95,name:'(hoặc 90)',uncertain:true},
   ],
   unresolved:[
     {raw:'Tôi thiếu 4 thùng bánh kinh đô của khách'},
@@ -31,9 +32,9 @@ const preview=orderSplitPreviewEntries({
 assert.deepEqual(preview,[
   {type:'unresolved',text:'Tôi thiếu 4 thùng bánh kinh đô của khách'},
   {type:'unresolved',text:'mai xem lấy đc trên chợ ko láo ơi'},
-  {type:'item',quantity:1,name:'thùng 40'},
-  {type:'item',quantity:2,name:'thùng'},
-  {type:'item',quantity:95,name:'(hoặc 90)'},
+  {type:'item',quantity:1,quantityLabel:'1th',name:'thùng 40',uncertain:false},
+  {type:'item',quantity:2,quantityLabel:'2',name:'thùng',uncertain:false},
+  {type:'item',quantity:95,quantityLabel:'95',name:'(hoặc 90)',uncertain:true},
 ]);
 
 // Tin đơn là một cách đọc lịch sử Chat theo thời gian. Trạng thái "imported"
@@ -58,5 +59,15 @@ assert.deepEqual(customerOrderSourceGroup([
 ]),{
   sourceMessageIds:['old'],text:'đơn cũ',firstCreatedAt:'2026-09-13T02:00:00.000Z',lastCreatedAt:'2026-09-13T02:00:00.000Z',count:1,
 });
+
+assert.deepEqual(customerOrderSourceGroup([
+  {
+    messageId:'img-1',text:'',createdAt:'2026-09-13T04:00:00.000Z',state:'pending',
+    imageAssets:[{assetId:'asset-1',mimeType:'image/jpeg',widthPx:1536,heightPx:2048}],
+  },
+]),{
+  sourceMessageIds:['img-1'],text:'',firstCreatedAt:'2026-09-13T04:00:00.000Z',lastCreatedAt:'2026-09-13T04:00:00.000Z',count:1,
+  images:[{assetId:'asset-1',messageId:'img-1',mimeType:'image/jpeg',widthPx:1536,heightPx:2048}],
+},'image-only inbound messages stay in the Chat summary without fabricating text');
 
 console.log('customer order source core contract PASS');
