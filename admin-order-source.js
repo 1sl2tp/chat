@@ -343,5 +343,21 @@ document.addEventListener('v21-auth-state',event=>{
   if(event?.detail?.state!=='AUTHENTICATED'&&panel&&!panel.hidden)close();
 });
 
+document.addEventListener('click',event=>{
+  const target=event.target instanceof Element?event.target:null;
+  const row=target?.closest?.('[data-contact-row]');
+  if(!row||!panel||panel.hidden)return;
+  const before=String(currentContact()?.id||'');
+  window.setTimeout(()=>{
+    const after=String(currentContact()?.id||'');
+    if(!after||after===before)return;
+    requestSeq++;
+    selectedIds.clear();
+    rows=[];
+    lastRange={from:'',to:''};
+    void refresh();
+  },0);
+},true);
+
 window.V21AdminOrderSource=Object.freeze({open,close,refresh,context,markImported});
 })();

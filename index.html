@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="4edd731179443f95cb87cfded0b27b8aee6b726d34a0dfae80f4e38afe930b55">
+<meta name="app-build-id" content="47b2cbaecde4dfb9b76b773f5aca3cfe1ef3176a90b618c8f3e283b0b27be136">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -4878,6 +4878,22 @@ document.addEventListener('v21-active-contact-change',()=>{
 document.addEventListener('v21-auth-state',event=>{
   if(event?.detail?.state!=='AUTHENTICATED'&&panel&&!panel.hidden)close();
 });
+
+document.addEventListener('click',event=>{
+  const target=event.target instanceof Element?event.target:null;
+  const row=target?.closest?.('[data-contact-row]');
+  if(!row||!panel||panel.hidden)return;
+  const before=String(currentContact()?.id||'');
+  window.setTimeout(()=>{
+    const after=String(currentContact()?.id||'');
+    if(!after||after===before)return;
+    requestSeq++;
+    selectedIds.clear();
+    rows=[];
+    lastRange={from:'',to:''};
+    void refresh();
+  },0);
+},true);
 
 window.V21AdminOrderSource=Object.freeze({open,close,refresh,context,markImported});
 })();
