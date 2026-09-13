@@ -34,5 +34,6 @@ as $$
 $$;
 
 revoke all on function public.chat_order_scribe_runtime_config() from public, anon, authenticated;
+grant execute on function public.chat_order_scribe_runtime_config() to service_role;
 
 commit;
