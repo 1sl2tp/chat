@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="47b2cbaecde4dfb9b76b773f5aca3cfe1ef3176a90b618c8f3e283b0b27be136">
+<meta name="app-build-id" content="56a6ea6f2714a4606f4a2404072b96b4706111fe5cff0bd20940c05d0cbd8d0b">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -4616,8 +4616,8 @@ function installStyle(){
     html[data-order-source-open="true"] #guestAuthThread,
     html[data-order-source-open="true"] #thread-bottom-container{display:none!important}
     html[data-order-source-open="true"] #scrollRoot{overflow:hidden!important}
-    html[data-order-source-open="true"] #threadContent{min-height:0;height:100%;margin-bottom:0;padding-bottom:0}
-    #adminOrderSourcePanel{box-sizing:border-box;height:100%;min-height:0;display:grid;grid-template-rows:auto auto minmax(0,1fr);background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#171717)}
+    html[data-order-source-open="true"] #threadContent{position:relative;min-height:0;height:100%;margin-bottom:0;padding-bottom:0;overflow:hidden}
+    #adminOrderSourcePanel{position:absolute;inset:0;box-sizing:border-box;height:100%;min-height:0;display:grid;grid-template-rows:auto auto minmax(0,1fr);overflow:hidden;background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#171717)}
     #adminOrderSourcePanel[hidden]{display:none!important}
     .order-source-head{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--theme-border-default,#e7e7e7)}
     .order-source-head-copy{min-width:0;flex:1}.order-source-head-copy strong,.order-source-head-copy small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.order-source-head-copy strong{font-size:15px}.order-source-head-copy small{margin-top:2px;color:var(--theme-content-secondary,#6b6b6b);font-size:11px}
@@ -4625,7 +4625,7 @@ function installStyle(){
     .order-source-range{display:grid;gap:8px;padding:10px 12px;border-bottom:1px solid var(--theme-border-default,#e7e7e7);background:var(--theme-surface-primary,#fff)}
     .order-source-presets{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.order-source-presets button{min-height:36px;border:1px solid var(--theme-border-default,#ddd);border-radius:10px;background:var(--theme-surface-secondary,#f6f6f6);font:650 12px/1 system-ui;cursor:pointer}.order-source-presets button[aria-pressed="true"]{background:var(--theme-content-primary,#171717);color:var(--theme-surface-primary,#fff);border-color:var(--theme-content-primary,#171717)}
     .order-source-options{display:flex;align-items:center;gap:10px;min-width:0}.order-source-options label{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--theme-content-secondary,#666)}.order-source-custom{margin-left:auto;display:flex;align-items:center;gap:5px}.order-source-custom input{min-width:0;max-width:132px;height:32px;border:1px solid var(--theme-border-default,#ddd);border-radius:8px;padding:0 6px;background:var(--theme-surface-primary,#fff);font-size:12px}
-    .order-source-scroll{min-height:0;overflow:auto;padding:10px 12px 20px;display:grid;align-content:start;gap:8px;overscroll-behavior:contain}
+    .order-source-scroll{min-height:0;overflow-y:auto;overflow-x:hidden;padding:10px 12px 20px;display:grid;align-content:start;gap:8px;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
     .order-source-message{display:grid;gap:7px;padding:10px;border:1px solid var(--theme-border-default,#e1e1e1);border-radius:13px;background:var(--theme-surface-primary,#fff)}.order-source-message[data-selected="true"]{border-color:#10a37f;box-shadow:inset 3px 0 0 #10a37f}.order-source-message[data-state="imported"]{opacity:.72}
     .order-source-message-top{display:flex;align-items:center;gap:8px}.order-source-select{width:22px;height:22px;accent-color:#10a37f}.order-source-state{margin-left:auto;font-size:11px;font-weight:700;color:var(--theme-content-secondary,#666)}.order-source-state[data-state="working"]{color:#0b7a5f}.order-source-state[data-state="imported"]{color:#0b7a5f}.order-source-state[data-state="ignored"]{color:#8b5d00}
     .order-source-text{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;line-height:1.45;user-select:text;-webkit-user-select:text}.order-source-time{font-size:11px;color:var(--theme-content-tertiary,#888)}
@@ -4714,7 +4714,7 @@ function render(){
   const customer=panel.querySelector('[data-source-customer]');
   const summary=panel.querySelector('[data-source-summary]');
   const scroll=panel.querySelector('#adminOrderSourceScroll');
-  if(customer)customer.textContent=contact?contact.name:'Chưa chọn khách';
+  if(customer)customer.textContent=contact?`Khách: ${contact.name}`:'Chưa chọn khách';
   if(summary)summary.textContent=`Chỉ tin khách gửi · ${rows.length} đoạn · ${selectedIds.size} đang dùng`;
   for(const button of panel.querySelectorAll('[data-source-preset]'))button.setAttribute('aria-pressed',String(button.dataset.sourcePreset===preset));
   const include=panel.querySelector('[data-source-include-all]');
