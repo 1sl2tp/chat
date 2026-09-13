@@ -25,6 +25,7 @@ jobs:
       - run: node tests/test_v21_order_scribe_client_runtime.js
       - run: python tests/test_v21_order_source_ui.py
       - run: python tests/test_v21_order_scribe_edge_contract.py
+      - run: python tests/test_v21_work_context_bridge.py
       - run: node --check admin-order-source.js
       - name: Commit UI build
         run: |
