@@ -12,6 +12,7 @@ import {
     {quantity:3,name:'chua có đường'},
     {quantity:2,name:'chua nha đam'},
   ]);
+  assert.deepEqual(result.unresolved,[]);
 }
 
 {
@@ -21,11 +22,24 @@ import {
     {quantity:15,name:'thùng bò'},
     {quantity:1,name:'sim 5 lít'},
   ]);
+  assert.deepEqual(result.unresolved,[]);
+}
+
+{
+  const result=parseQuickOrderText('3 chua có đường\nem cảm ơn ạ\n2 chua nha đam');
+  assert.equal(result.ok,true);
+  assert.deepEqual(result.items,[
+    {quantity:3,name:'chua có đường'},
+    {quantity:2,name:'chua nha đam'},
+  ]);
+  assert.deepEqual(result.unresolved,[{raw:'em cảm ơn ạ'}]);
 }
 
 {
   const result=parseQuickOrderText('15 thùng bò một thùng sim 5 lít hai thùng sim 2 l');
-  assert.equal(result.ok,false,'quick mode must refuse an unseparated spoken-style order instead of guessing');
+  assert.equal(result.ok,true,'quick mode keeps an unseparated spoken-style order unresolved instead of guessing');
+  assert.deepEqual(result.items,[]);
+  assert.deepEqual(result.unresolved,[{raw:'15 thùng bò một thùng sim 5 lít hai thùng sim 2 l'}]);
 }
 
 {
