@@ -1,0 +1,75 @@
+name: Fix Admin Call Watch Temp
+
+on:
+  push:
+    branches:
+      - fix/admin-incoming-call-auth-watch
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/admin-incoming-call-auth-watch
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Patch incoming call realtime authentication
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('call-invite-client.js')
+          s=p.read_text('utf-8')
+          old="""function startIncomingWatch(){
+            stopIncomingWatch();
+            if(!currentAdmin())return false;
+            const client=authStore()?.getClient?.();
+            if(!client?.channel)return false;
+            incomingWatchChannel=client.channel('call-invite-incoming')
+              .on('postgres_changes',{
+                event:'UPDATE',schema:'public',table:'chat_call_invites',
+              },payload=>processInviteRow(payload?.new||{}))
+              .subscribe();
+            void reconcileIncomingInvites();
+            return true;
+          }
+          """
+          new="""async function startIncomingWatch(){
+            stopIncomingWatch();
+            if(!currentAdmin())return false;
+            const store=authStore();
+            const client=store?.getClient?.();
+            if(!client?.channel)return false;
+            if(!await store?.syncRealtimeAuth?.())return false;
+            if(!currentAdmin())return false;
+            const channel=client.channel('call-invite-incoming')
+              .on('postgres_changes',{
+                event:'UPDATE',schema:'public',table:'chat_call_invites',
+              },payload=>processInviteRow(payload?.new||{}));
+            incomingWatchChannel=channel;
+            channel.subscribe(status=>{
+              if(incomingWatchChannel!==channel)return;
+              if(status==='SUBSCRIBED')void reconcileIncomingInvites();
+            });
+            return true;
+          }
+          """
+          if old not in s:
+              raise SystemExit('expected startIncomingWatch block not found')
+          p.write_text(s.replace(old,new,1),'utf-8')
+          PY
+      - name: Build canonical preview
+        run: python tools/build_current_preview.py
+      - name: Commit fix and canonical output
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add call-invite-client.js index.html version.json
+          git commit -m "fix: authenticate admin incoming call realtime watch"
+          git push origin HEAD:fix/admin-incoming-call-auth-watch
