@@ -3,16 +3,19 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 EDGE = ROOT / "supabase/functions/v21-order-scribe/index.ts"
 CORE = ROOT / "supabase/functions/v21-order-scribe/scribe-core.mjs"
+SHARED = ROOT / "supabase/functions/_shared/customer-order-parser.mjs"
 MIGRATION = ROOT / "supabase/migrations/20260913_chat_order_scribe.sql"
 MODEL_MIGRATION = ROOT / "supabase/migrations/20260913_chat_order_scribe_model_35.sql"
 
 assert EDGE.exists(), "manual order scribe Edge Function must exist"
 assert CORE.exists(), "manual order scribe core must exist"
+assert SHARED.exists(), "Chat and Tách nhanh must share one customer-order parser core"
 assert MIGRATION.exists(), "order scribe runtime config migration must exist"
 assert MODEL_MIGRATION.exists(), "order scribe current-model migration must exist"
 
 edge = EDGE.read_text(encoding="utf-8").lower()
 core = CORE.read_text(encoding="utf-8").lower()
+shared = SHARED.read_text(encoding="utf-8")
 migration = MIGRATION.read_text(encoding="utf-8").lower()
 model_migration = MODEL_MIGRATION.read_text(encoding="utf-8").lower()
 compact = "".join(edge.split())
@@ -29,6 +32,9 @@ assert "chat_ai_enqueue" not in edge
 
 # Quick parsing is partial-success and must preserve unresolved text for manual handling.
 assert "unresolved:parsed.unresolved" in compact
+assert "../_shared/customer-order-parser.mjs" in core, "Tách nhanh must import the same parser core as Chat"
+assert "parseCustomerTextPartial" in core
+assert "parseCustomerTextPartial" in shared
 
 # Provider/network failures use stable application codes instead of surfacing HTTP details.
 assert "ai_unavailable" in edge
