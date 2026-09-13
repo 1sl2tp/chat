@@ -181,7 +181,4 @@ window.V21AppUpdateController=Object.freeze({
   safeToReload,
   snapshot:()=>({currentVersion,currentBuild,pendingVersion,pendingBuild,serviceWorker:Boolean(registration)})
 });
-void import('./admin-composer-actions.js').catch(error=>{
-  console.error('[V21AdminComposerActions] bootstrap failed',error);
-});
 })();
