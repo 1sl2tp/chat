@@ -94,10 +94,9 @@ function sortedRows(rows=[]){
 }
 
 export function customerOrderSourceGroup(rows=[]){
-  // Tin đơn là một cách đọc lại lịch sử Chat theo thời gian. Chỉ trạng thái
-  // Chat-local "ignored" được loại; các trạng thái bán hàng cũ không có quyền
-  // làm tin nhắn biến mất khỏi phần tổng hợp.
-  const active=sortedRows(rows).filter(row=>String(row?.state||'pending')!=='ignored');
+  // Tin đơn chỉ là cách đọc lại lịch sử Chat theo thời gian. Trạng thái cũ
+  // (kể cả "ignored") không được làm tin nhắn khách biến mất khỏi tổng hợp.
+  const active=sortedRows(rows);
   const text=active.map(row=>String(row?.text||'').trim()).filter(Boolean).join('\n');
   const images=active.flatMap(imageAssetsForRow);
   const result={
