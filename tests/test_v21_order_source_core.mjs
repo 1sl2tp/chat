@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {rangeForPreset,isLikelyOrderSource,orderSplitPreviewEntries,customerOrderSourceGroup} from '../order-source-core.mjs';
+import {isLikelyOrderSource as isLikelyOrderSourceEdge} from '../supabase/functions/v21-order-source/source-core.mjs';
 
 const now=Date.parse('2026-09-13T08:30:00.000Z');
 const vnOffset=-420;
@@ -14,6 +15,7 @@ assert.deepEqual(rangeForPreset('yesterday',now,vnOffset),{
 assert.equal(isLikelyOrderSource('3 chua có đường'),true);
 assert.equal(isLikelyOrderSource('2 thùng sim 1 lít'),true);
 assert.equal(isLikelyOrderSource('2proby to ít đường'),true,'quantity attached to the name is still an order signal');
+assert.equal(isLikelyOrderSourceEdge('2proby to ít đường'),true,'Edge filtering must not discard attached-quantity order lines');
 assert.equal(isLikelyOrderSource('em cảm ơn ạ'),false);
 assert.equal(isLikelyOrderSource('mai 2 giờ em qua'),false);
 assert.equal(isLikelyOrderSource('5 sua chua khong duong',['sua chua khong duong']),true);
@@ -37,8 +39,6 @@ assert.deepEqual(preview,[
   {type:'item',quantity:95,quantityLabel:'95',name:'(hoặc 90)',uncertain:true},
 ]);
 
-// Tin đơn là một cách đọc lịch sử Chat theo thời gian. Trạng thái "imported"
-// cũ từ tích hợp bán hàng không được làm tin biến mất hay chia thành lịch sử đơn riêng.
 const rows=[
   {messageId:'m2',text:'2 thùng omo',createdAt:'2026-09-13T03:05:00.000Z',state:'pending'},
   {messageId:'old-2',text:'2 thùng đơn cũ',createdAt:'2026-09-13T02:02:00.000Z',state:'imported',linkedExternalOrderId:'o-1',linkedExternalOrderNo:'A101'},
