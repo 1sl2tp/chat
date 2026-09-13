@@ -44,7 +44,10 @@ def test_public_guest_call_page_contract():
     assert join_handler_pos > open_pos
     assert join_call_pos > join_handler_pos
 
-    waiting_pos = text.find('Đã vào phòng. Đang chờ bên kia…')
+    # The waiting message is also used by renderMedia() above the click handler.
+    # Require a second/post-join occurrence so a successful room join cannot
+    # immediately claim that two-way audio is active.
+    waiting_pos = text.find('Đã vào phòng. Đang chờ bên kia…', join_call_pos)
     healthy_pos = text.find('Đã kết nối. Bạn có thể nói chuyện.')
     media_listener_pos = text.find('taphoa-guest-call-session-state')
     assert waiting_pos > join_call_pos
