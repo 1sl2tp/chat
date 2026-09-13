@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="56a6ea6f2714a4606f4a2404072b96b4706111fe5cff0bd20940c05d0cbd8d0b">
+<meta name="app-build-id" content="aba03d2b8b59e1e8d17b49bc7e23e4c9075cf9f0a6b323aff112a89a02e11bfd">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -4700,12 +4700,12 @@ function renderResult(row){
   const result=row?._splitResult;
   if(!result)return'';
   if(result.error)return`<div class="order-source-result"><div class="order-source-unresolved">${escapeHtml(result.error)}</div></div>`;
-  const items=Array.isArray(result.items)?result.items:[];
-  const unresolved=Array.isArray(result.unresolved)?result.unresolved:[];
+  const entries=Array.isArray(result.previewEntries)?result.previewEntries:[];
   return`<div class="order-source-result">
-    ${items.map(item=>`<div><b>${Number(item.quantity||0)}</b> ${escapeHtml(item.name||'')}</div>`).join('')}
-    ${unresolved.map(item=>`<div class="order-source-unresolved">Chưa tách: ${escapeHtml(item.raw||'')}</div>`).join('')}
-    ${!items.length&&!unresolved.length?'<div>Không có dòng để tách.</div>':''}
+    ${entries.map(entry=>entry.type==='unresolved'
+      ?`<div class="order-source-unresolved">Chưa tách · ${escapeHtml(entry.text||'')}</div>`
+      :`<div><b>${Number(entry.quantity||0)}</b> ${escapeHtml(entry.name||'')}</div>`).join('')}
+    ${!entries.length?'<div>Không có dòng để tách.</div>':''}
   </div>`;
 }
 function render(){
@@ -4808,7 +4808,10 @@ async function splitRow(messageId,mode){
     const client=window.V21OrderScribeClient;
     if(!client?.[mode])throw new Error('invalid_response');
     const data=await client[mode]({contactId:contact.id,text:row.text});
-    row._splitResult={items:data.items||[],unresolved:data.unresolved||[],error:''};
+    const helper=await core();
+    const splitResult={items:data.items||[],unresolved:data.unresolved||[],error:''};
+    splitResult.previewEntries=helper.orderSplitPreviewEntries(splitResult);
+    row._splitResult=splitResult;
   }catch(error){
     row._splitResult={items:[],unresolved:[],error:errorText(error)};
   }
@@ -4897,7 +4900,6 @@ document.addEventListener('click',event=>{
 
 window.V21AdminOrderSource=Object.freeze({open,close,refresh,context,markImported});
 })();
-
 </script>
 <script data-inlined-source="app.js">
 

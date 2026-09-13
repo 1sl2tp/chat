@@ -164,12 +164,12 @@ function renderResult(row){
   const result=row?._splitResult;
   if(!result)return'';
   if(result.error)return`<div class="order-source-result"><div class="order-source-unresolved">${escapeHtml(result.error)}</div></div>`;
-  const items=Array.isArray(result.items)?result.items:[];
-  const unresolved=Array.isArray(result.unresolved)?result.unresolved:[];
+  const entries=Array.isArray(result.previewEntries)?result.previewEntries:[];
   return`<div class="order-source-result">
-    ${items.map(item=>`<div><b>${Number(item.quantity||0)}</b> ${escapeHtml(item.name||'')}</div>`).join('')}
-    ${unresolved.map(item=>`<div class="order-source-unresolved">Chưa tách: ${escapeHtml(item.raw||'')}</div>`).join('')}
-    ${!items.length&&!unresolved.length?'<div>Không có dòng để tách.</div>':''}
+    ${entries.map(entry=>entry.type==='unresolved'
+      ?`<div class="order-source-unresolved">Chưa tách · ${escapeHtml(entry.text||'')}</div>`
+      :`<div><b>${Number(entry.quantity||0)}</b> ${escapeHtml(entry.name||'')}</div>`).join('')}
+    ${!entries.length?'<div>Không có dòng để tách.</div>':''}
   </div>`;
 }
 function render(){
@@ -272,7 +272,10 @@ async function splitRow(messageId,mode){
     const client=window.V21OrderScribeClient;
     if(!client?.[mode])throw new Error('invalid_response');
     const data=await client[mode]({contactId:contact.id,text:row.text});
-    row._splitResult={items:data.items||[],unresolved:data.unresolved||[],error:''};
+    const helper=await core();
+    const splitResult={items:data.items||[],unresolved:data.unresolved||[],error:''};
+    splitResult.previewEntries=helper.orderSplitPreviewEntries(splitResult);
+    row._splitResult=splitResult;
   }catch(error){
     row._splitResult={items:[],unresolved:[],error:errorText(error)};
   }
