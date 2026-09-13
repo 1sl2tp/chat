@@ -43,6 +43,7 @@ function upperFirst(value){
 
 const UNIT='(?:t|th|thùng|thung|bao|ba0|gói|goi|chai|lốc|loc|hộp|hop|cây|cay|lon|khay|túi|tui)';
 const startUnit=new RegExp(`^(\\d+(?:[.,]\\d+)?)\\s*(${UNIT})\\s+(.+)$`,'iu');
+const quickOnlyStartUnit=/^(\d+(?:[.,]\d+)?)\s*(bịch|bich)\s+(.+)$/iu;
 const endUnit=new RegExp(`^(.+?)\\s+(?:x\\s*)?(\\d+(?:[.,]\\d+)?)(?:\\s*(${UNIT}))?$`,'iu');
 const sharedChild=new RegExp(`^(\\d+(?:[.,]\\d+)?)(?:\\s*(${UNIT}))?\\s+(.+)$`,'iu');
 const inlineQuantityStart=new RegExp(`(^|\\s)(\\d+(?:[.,]\\d+)?(?:\\s*${UNIT})?)(?=\\s+\\S)`,'giu');
@@ -104,6 +105,16 @@ function parseSegmentDetailed(raw,{preserveRaw=false}={}){
     if(!match||!numericNamePrefix(match[1]))return null;
     const rawQuantityLabel=clean(`${match[2]}${match[3]?` ${match[3]}`:''}`);
     return finalize(match[2],match[1],{preserveRaw,rawName:match[1],rawQuantityLabel});
+  }
+
+  if(preserveRaw){
+    const quickMatch=text.match(quickOnlyStartUnit);
+    if(quickMatch){
+      const quantityEnd=String(quickMatch[1]).length;
+      const unitWasAttached=!/^\s/u.test(text.slice(quantityEnd));
+      const rawQuantityLabel=unitWasAttached?`${quickMatch[1]}${quickMatch[2]}`:`${quickMatch[1]} ${quickMatch[2]}`;
+      return finalize(quickMatch[1],quickMatch[3],{preserveRaw,rawName:quickMatch[3],rawQuantityLabel});
+    }
   }
 
   let match=text.match(startUnit);
