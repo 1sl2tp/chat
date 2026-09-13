@@ -1,0 +1,72 @@
+from pathlib import Path
+
+shell=Path('shell.js')
+s=shell.read_text('utf-8')
+old="const DESKTOP_DIRECTORY_QUERY='(min-width: 68rem) and (hover: hover) and (pointer: fine)';\nconst desktopDirectoryMedia=window.matchMedia(DESKTOP_DIRECTORY_QUERY);\n"
+new=old+"const DESKTOP_WORKSPACE_QUERY='(min-width: 74rem) and (hover: hover) and (pointer: fine)';\nconst desktopWorkspaceMedia=window.matchMedia(DESKTOP_WORKSPACE_QUERY);\n"
+assert s.count(old)==1, s.count(old)
+s=s.replace(old,new,1)
+
+old="function applyRoutePresentation(){\n  screenHost.dataset.route=route;\n  appShell.dataset.route=route;\n  const chatNodes=document.querySelectorAll('[data-chat-thread-node]');\n  const workView=document.getElementById('workThreadView');\n  for(const node of chatNodes)node.hidden=route!=='chat';\n  if(workView)workView.hidden=route!=='work';\n  renderTopTabs();\n  renderChatTabIdentity();\n  renderCallFocus();\n}\n"
+new="function desktopWorkspaceEnabled(){\n  return authState==='AUTHENTICATED'&&desktopWorkspaceMedia.matches;\n}\n\nfunction applyRoutePresentation(){\n  const desktopWorkspace=desktopWorkspaceEnabled();\n  if(desktopWorkspace&&route==='work')route='chat';\n  screenHost.dataset.route=route;\n  appShell.dataset.route=route;\n  appShell.dataset.desktopWorkspace=String(desktopWorkspace);\n  const chatNodes=document.querySelectorAll('[data-chat-thread-node]');\n  const workView=document.getElementById('workThreadView');\n  for(const node of chatNodes)node.hidden=desktopWorkspace?false:route!=='chat';\n  if(workView)workView.hidden=desktopWorkspace?false:route!=='work';\n  renderTopTabs();\n  renderChatTabIdentity();\n  renderCallFocus();\n}\n"
+assert s.count(old)==1, s.count(old)
+s=s.replace(old,new,1)
+
+old="if(typeof desktopDirectoryMedia.addEventListener==='function'){\n  desktopDirectoryMedia.addEventListener('change',syncDesktopSidebarMode);\n}else if(typeof desktopDirectoryMedia.addListener==='function'){\n  desktopDirectoryMedia.addListener(syncDesktopSidebarMode);\n}\n"
+new=old+"\nfunction syncDesktopWorkspaceMode(){\n  applyRoutePresentation();\n  if(desktopWorkspaceEnabled())void window.V21GetlinkAuthBridge?.sync?.();\n  return desktopWorkspaceEnabled();\n}\n\nif(typeof desktopWorkspaceMedia.addEventListener==='function'){\n  desktopWorkspaceMedia.addEventListener('change',syncDesktopWorkspaceMode);\n}else if(typeof desktopWorkspaceMedia.addListener==='function'){\n  desktopWorkspaceMedia.addListener(syncDesktopWorkspaceMode);\n}\n"
+assert s.count(old)==1, s.count(old)
+s=s.replace(old,new,1)
+shell.write_text(s,'utf-8')
+
+source=Path('index.source.html')
+s=source.read_text('utf-8')
+anchor="@supports not (height:100svh){\n  @media (min-width:68rem) and (hover:hover) and (pointer:fine){\n    #appShell[data-auth-state=\"authenticated\"] #screenHost{height:100vh}\n  }\n}\n"
+block='''
+
+/* Desktop work surface: Danh bạ | Trò chuyện | Công việc.
+   Narrow/mobile keeps the existing one-view-at-a-time route model. */
+@media (min-width:74rem) and (hover:hover) and (pointer:fine){
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"]{
+    --desktop-work-width:clamp(360px,30vw,440px);
+  }
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #threadContent{
+    box-sizing:border-box;
+    padding-inline-end:var(--desktop-work-width);
+  }
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #workThreadView{
+    position:absolute;
+    inset-block:0;
+    inset-inline-end:0;
+    display:block!important;
+    width:var(--desktop-work-width);
+    min-width:0;
+    min-height:0;
+    padding:8px 8px 8px 0;
+    box-sizing:border-box;
+    overflow:hidden;
+    background:var(--theme-surface-primary);
+    border-inline-start:1px solid var(--theme-border-default);
+    z-index:20;
+  }
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #workThreadView .work-thread-frame{
+    border-radius:16px;
+  }
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #thread-bottom-container{
+    right:var(--desktop-work-width);
+    width:auto;
+  }
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #regionTop .compact-top-grid{
+    box-sizing:border-box;
+    padding-inline-end:var(--desktop-work-width);
+  }
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] .top-mode-switch{
+    grid-template-columns:minmax(0,1fr)!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] [data-top-tab="work"]{
+    display:none!important;
+  }
+}
+'''
+assert s.count(anchor)==1, s.count(anchor)
+s=s.replace(anchor,anchor+block,1)
+source.write_text(s,'utf-8')
