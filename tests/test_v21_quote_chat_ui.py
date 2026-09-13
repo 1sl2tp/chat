@@ -87,15 +87,18 @@ assert "taphoacallinviteclient" in low
 assert "createandsend" in low and "contactid" in low
 assert "v21_call_start" not in low
 
-# Tạo đơn is now active. It offers exactly two extraction modes and calls the isolated
-# manual scribe endpoint; the remaining order menu entries stay future placeholders.
+# Tạo đơn and Đơn tạm are active. Tạo đơn offers exactly two extraction modes and calls
+# the isolated manual scribe endpoint; Đã giao/Công nợ remain future placeholders.
 for needle in ["tách nhanh", "ai ghi đơn", "v21-order-scribe", "data-order-mode"]:
     assert needle in low, f"missing Tạo đơn mode contract: {needle}"
 create_start = compact.index("action:'create'")
 create_call = compact[create_start:create_start+140]
 assert "label:'tạođơn'" in create_call and "order:false" in create_call, "Tạo đơn must be active"
+draft_start = compact.index("action:'draft'")
+draft_call = compact[draft_start:draft_start+140]
+assert "label:'đơntạm'" in draft_call and "order:false" in draft_call, "Đơn tạm must be active"
 assert "functions.invoke('v21-order-scribe'" in low or 'functions.invoke("v21-order-scribe"' in low
-for action in ["draft", "delivered", "debt"]:
+for action in ["delivered", "debt"]:
     assert f"action:'{action}'" in compact and "order:true" in compact[compact.index(f"action:'{action}'"):compact.index(f"action:'{action}'")+100]
 assert "sắp có" in low
 
