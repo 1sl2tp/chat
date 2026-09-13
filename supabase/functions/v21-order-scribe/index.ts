@@ -117,39 +117,45 @@ async function aiSpans(source:string){
     'SOURCE_INDEXED:',indexedSource(source),
   ].join('\n');
   const endpoint=`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
-  const response=await fetch(endpoint,{
-    method:'POST',
-    headers:{'content-type':'application/json','x-goog-api-key':cfg.key},
-    body:JSON.stringify({
-      contents:[{role:'user',parts:[{text:prompt}]}],
-      generationConfig:{
-        temperature:0,
-        responseMimeType:'application/json',
-        responseSchema:{
-          type:'OBJECT',
-          properties:{
-            items:{
-              type:'ARRAY',
+  let response:Response;
+  try{
+    response=await fetch(endpoint,{
+      method:'POST',
+      headers:{'content-type':'application/json','x-goog-api-key':cfg.key},
+      body:JSON.stringify({
+        contents:[{role:'user',parts:[{text:prompt}]}],
+        generationConfig:{
+          temperature:0,
+          responseMimeType:'application/json',
+          responseSchema:{
+            type:'OBJECT',
+            properties:{
               items:{
-                type:'OBJECT',
-                properties:{
-                  quantity:{type:'NUMBER'},
-                  name_start:{type:'INTEGER'},
-                  name_end:{type:'INTEGER'},
+                type:'ARRAY',
+                items:{
+                  type:'OBJECT',
+                  properties:{
+                    quantity:{type:'NUMBER'},
+                    name_start:{type:'INTEGER'},
+                    name_end:{type:'INTEGER'},
+                  },
+                  required:['quantity','name_start','name_end'],
                 },
-                required:['quantity','name_start','name_end'],
               },
             },
+            required:['items'],
           },
-          required:['items'],
         },
-      },
-    }),
-  });
+      }),
+    });
+  }catch(error){
+    console.error('[v21-order-scribe:gemini]','network',String((error as any)?.message||error||'request_failed'));
+    throw new Error('ai_unavailable');
+  }
   const payload=await response.json().catch(()=>null);
   if(!response.ok){
     console.error('[v21-order-scribe:gemini]',response.status,payload?.error?.message||'request_failed');
-    throw new Error('ai_request_failed');
+    throw new Error('ai_unavailable');
   }
   let parsed:any=null;
   try{parsed=JSON.parse(responseText(payload));}catch{throw new Error('ai_response_invalid');}
@@ -172,7 +178,7 @@ Deno.serve(async(req:Request)=>{
     if(action==='quick'){
       const parsed=parseQuickOrderText(source.text);
       if(!parsed.ok)return json({ok:false,error:parsed.error||'quick_parse_failed',source:source.source},422);
-      return json({ok:true,mode:'quick',source:source.source,items:parsed.items,text:formatOrderItems(parsed.items)});
+      return json({ok:true,mode:'quick',source:source.source,items:parsed.items,unresolved:parsed.unresolved,text:formatOrderItems(parsed.items)});
     }
 
     const spans=await aiSpans(source.text);
@@ -181,7 +187,8 @@ Deno.serve(async(req:Request)=>{
   }catch(error){
     const code=String((error as any)?.message||error||'internal_error');
     const status=['contact_required','conversation_not_found','customer_message_not_found','order_text_required'].includes(code)?400:
-      ['invalid_ai_span','ai_items_missing'].includes(code)?422:500;
+      ['invalid_ai_span','ai_items_missing','ai_response_invalid'].includes(code)?422:
+      code==='ai_unavailable'?503:500;
     console.error('[v21-order-scribe]',code);
     return json({ok:false,error:code},status);
   }
