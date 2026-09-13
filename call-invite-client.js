@@ -7,10 +7,15 @@ let targetAccountId='';
 let mountQueued=false;
 let watchChannel=null;
 let watchInviteId='';
+let incomingWatchChannel=null;
+let nativeCallEngine=null;
+let externalCallAdapter=null;
+let acceptingInviteId='';
 const invitesByContact=new Map();
 
 function authStore(){return window.V21AuthSessionStore||null;}
 function contactStore(){return window.V21ContactStore||null;}
+function callCommand(){return window.ChatAppShell?.CallCommand||null;}
 function currentAdmin(){
   const snapshot=authStore()?.snapshot?.()||{};
   return snapshot.state==='AUTHENTICATED'&&snapshot.account?.role==='admin'
@@ -20,12 +25,25 @@ function currentAdmin(){
 function targetContact(){
   return contactStore()?.snapshot?.().find(item=>String(item?.id||'')===String(targetAccountId||''))||null;
 }
+function contactForId(contactId){
+  return contactStore()?.snapshot?.().find(item=>String(item?.id||'')===String(contactId||''))||null;
+}
+function contactNameFor(contactId){
+  const contact=contactForId(contactId);
+  return String(contact?.display_name||contact?.username||'Khách hàng');
+}
 function activeInvite(contactId=targetAccountId){
   return invitesByContact.get(String(contactId||''))||null;
 }
 function isExpired(invite){
   const due=Date.parse(String(invite?.expiresAt||''));
   return !Number.isFinite(due)||Date.now()>=due;
+}
+function isIncomingPending(invite){
+  return Boolean(
+    invite?.inviteId&&invite?.guestJoinedAt&&!invite?.adminJoinedAt&&
+    !invite?.revokedAt&&!invite?.endedAt&&!isExpired(invite)
+  );
 }
 function errorText(error){
   const raw=String(error?.message||error||'Không thể tạo link gọi').trim();
@@ -124,21 +142,168 @@ function stopWatch(){
   watchInviteId='';
 }
 
-function mergeInviteRow(contactId,row){
-  const key=String(contactId||'');
-  const current=invitesByContact.get(key);
-  if(!current||String(current.inviteId)!==String(row?.id||current.inviteId))return current||null;
-  const next={
-    ...current,
-    openedAt:row?.opened_at||current.openedAt||null,
-    guestJoinedAt:row?.guest_joined_at||current.guestJoinedAt||null,
-    adminJoinedAt:row?.admin_joined_at||current.adminJoinedAt||null,
-    revokedAt:row?.revoked_at||current.revokedAt||null,
-    endedAt:row?.ended_at||current.endedAt||null,
+function inviteFromRow(row,current=null){
+  return {
+    ...(current||{}),
+    inviteId:String(row?.id||current?.inviteId||''),
+    url:String(current?.url||''),
+    expiresAt:String(row?.expires_at||current?.expiresAt||''),
+    createdAt:row?.created_at||current?.createdAt||null,
+    openedAt:row?.opened_at||current?.openedAt||null,
+    guestJoinedAt:row?.guest_joined_at||current?.guestJoinedAt||null,
+    adminJoinedAt:row?.admin_joined_at||current?.adminJoinedAt||null,
+    revokedAt:row?.revoked_at||current?.revokedAt||null,
+    endedAt:row?.ended_at||current?.endedAt||null,
+    sendFailed:Boolean(current?.sendFailed),
+    adminConnected:Boolean(current?.adminConnected),
   };
+}
+
+function mergeInviteRow(contactId,row){
+  const key=String(contactId||row?.contact_id||'');
+  if(!key)return null;
+  const current=invitesByContact.get(key)||null;
+  if(current&&String(current.inviteId)!==String(row?.id||'')){
+    const currentCreated=Date.parse(String(current.createdAt||''));
+    const incomingCreated=Date.parse(String(row?.created_at||''));
+    if(Number.isFinite(currentCreated)&&Number.isFinite(incomingCreated)&&currentCreated>incomingCreated)return current;
+  }
+  const next=inviteFromRow(row,current&&String(current.inviteId)===String(row?.id||'')?current:null);
   invitesByContact.set(key,next);
   document.dispatchEvent(new CustomEvent('v21-call-invite-state',{detail:{contactId:key,invite:{...next}}}));
   return next;
+}
+
+function dismissExternal(reason='answered-elsewhere',inviteId=externalCallAdapter?.inviteId){
+  const current=externalCallAdapter;
+  if(!current||String(current.inviteId)!==String(inviteId||''))return false;
+  externalCallAdapter=null;
+  acceptingInviteId='';
+  callCommand()?.forceReset?.();
+  document.dispatchEvent(new CustomEvent('v21-call-invite-incoming-dismissed',{
+    detail:{inviteId:String(inviteId||''),reason:String(reason||'answered-elsewhere')}
+  }));
+  return true;
+}
+
+async function acceptExternalCurrent(){
+  const adapter=externalCallAdapter;
+  if(!adapter||adapter.busy||adapter.phase!=='ringing')return false;
+  adapter.busy=true;
+  acceptingInviteId=adapter.inviteId;
+  callCommand()?.refresh?.();
+  callCommand()?.enterConnecting?.(adapter.contactId,adapter.contactName,{
+    id:adapter.inviteId,direction:'incoming',source:'guest-link'
+  });
+  try{
+    const ok=await joinInvite({contactId:adapter.contactId});
+    if(!ok)throw new Error('livekit_token_failed');
+    if(externalCallAdapter!==adapter)return false;
+    adapter.busy=false;
+    adapter.phase='active';
+    adapter.startedAt=new Date().toISOString();
+    acceptingInviteId='';
+    callCommand()?.enterActive?.(adapter.contactId,adapter.contactName,{
+      id:adapter.inviteId,direction:'incoming',source:'guest-link',mediaStartedAt:adapter.startedAt
+    });
+    return true;
+  }catch(error){
+    adapter.busy=false;
+    acceptingInviteId='';
+    externalCallAdapter=null;
+    callCommand()?.forceReset?.();
+    return false;
+  }
+}
+
+async function declineExternalCurrent(){
+  const adapter=externalCallAdapter;
+  if(!adapter||adapter.busy||adapter.phase!=='ringing')return false;
+  adapter.busy=true;
+  callCommand()?.refresh?.();
+  try{await endInvite({contactId:adapter.contactId});}catch{}
+  externalCallAdapter=null;
+  acceptingInviteId='';
+  callCommand()?.forceReset?.();
+  return true;
+}
+
+async function hangupExternalCurrent({reason='hangup'}={}){
+  const adapter=externalCallAdapter;
+  if(!adapter||adapter.busy)return false;
+  adapter.busy=true;
+  callCommand()?.endOptimistic?.(reason);
+  try{await endInvite({contactId:adapter.contactId});}catch{}
+  externalCallAdapter=null;
+  acceptingInviteId='';
+  return true;
+}
+
+function installCallEngineAdapter(){
+  if(nativeCallEngine&&window.V21CallEngine?.__guestInviteAdapter)return true;
+  const engine=window.V21CallEngine||null;
+  if(!engine?.acceptCurrent||!engine?.rejectCurrent||!engine?.stopCurrent)return false;
+  nativeCallEngine=engine;
+  window.V21CallEngine=Object.freeze({
+    ...engine,
+    __guestInviteAdapter:true,
+    acceptCurrent:(...args)=>externalCallAdapter?acceptExternalCurrent():nativeCallEngine.acceptCurrent(...args),
+    rejectCurrent:(...args)=>externalCallAdapter?declineExternalCurrent():nativeCallEngine.rejectCurrent(...args),
+    stopCurrent:(...args)=>externalCallAdapter?hangupExternalCurrent(...args):nativeCallEngine.stopCurrent(...args),
+    snapshot(){
+      const snap=nativeCallEngine?.snapshot?.()||{};
+      if(!externalCallAdapter)return snap;
+      return {
+        ...snap,
+        busy:Boolean(externalCallAdapter.busy),
+        guestInvite:{
+          inviteId:externalCallAdapter.inviteId,
+          contactId:externalCallAdapter.contactId,
+          phase:externalCallAdapter.phase,
+        },
+      };
+    },
+  });
+  return true;
+}
+
+function presentIncoming(invite,contactId){
+  if(!currentAdmin()||!isIncomingPending(invite))return false;
+  const inviteId=String(invite.inviteId||'');
+  if(externalCallAdapter?.inviteId===inviteId)return true;
+  if(externalCallAdapter)return false;
+  if(!installCallEngineAdapter())return false;
+  const nativeCall=nativeCallEngine?.snapshot?.().call||null;
+  if(nativeCall)return false;
+  const name=contactNameFor(contactId);
+  const adapter={inviteId,contactId:String(contactId),contactName:name,phase:'ringing',busy:false};
+  externalCallAdapter=adapter;
+  const received=Boolean(callCommand()?.receiveIncoming?.(contactId,name,{
+    id:inviteId,direction:'incoming',source:'guest-link'
+  }));
+  if(!received){externalCallAdapter=null;return false;}
+  document.dispatchEvent(new CustomEvent('v21-call-invite-incoming',{
+    detail:{inviteId,contactId:String(contactId),contactName:name}
+  }));
+  return true;
+}
+
+function processInviteRow(row){
+  const contactId=String(row?.contact_id||'');
+  const invite=mergeInviteRow(contactId,row);
+  if(!invite)return null;
+  if(isIncomingPending(invite)){
+    presentIncoming(invite,contactId);
+    return invite;
+  }
+  if(externalCallAdapter?.inviteId===invite.inviteId){
+    if(invite.adminJoinedAt&&!invite.adminConnected&&acceptingInviteId!==invite.inviteId){
+      dismissExternal('answered-elsewhere',invite.inviteId);
+    }else if(invite.revokedAt||invite.endedAt||isExpired(invite)){
+      dismissExternal('invite-ended',invite.inviteId);
+    }
+  }
+  return invite;
 }
 
 function watchInvite(contactId,inviteId){
@@ -148,13 +313,69 @@ function watchInvite(contactId,inviteId){
   watchInviteId=String(inviteId);
   watchChannel=client.channel(`call-invite:${watchInviteId}`)
     .on('postgres_changes',{
-      event:'UPDATE',
-      schema:'public',
-      table:'chat_call_invites',
-      filter:`id=eq.${watchInviteId}`,
-    },payload=>mergeInviteRow(contactId,payload?.new||{}))
+      event:'UPDATE',schema:'public',table:'chat_call_invites',filter:`id=eq.${watchInviteId}`,
+    },payload=>processInviteRow(payload?.new||{}))
     .subscribe();
   return true;
+}
+
+function stopIncomingWatch(){
+  if(!incomingWatchChannel)return;
+  try{incomingWatchChannel.unsubscribe?.();}catch{}
+  const client=authStore()?.getClient?.();
+  try{client?.removeChannel?.(incomingWatchChannel);}catch{}
+  incomingWatchChannel=null;
+}
+
+async function reconcileIncomingInvites(){
+  if(!currentAdmin())return [];
+  const client=authStore()?.getClient?.();
+  if(!client?.from)return [];
+  const now=new Date().toISOString();
+  const {data,error}=await client.from('chat_call_invites')
+    .select('id,contact_id,created_at,expires_at,opened_at,guest_joined_at,admin_joined_at,revoked_at,ended_at')
+    .not('guest_joined_at','is',null)
+    .is('admin_joined_at',null)
+    .is('revoked_at',null)
+    .is('ended_at',null)
+    .gt('expires_at',now)
+    .order('guest_joined_at',{ascending:false})
+    .limit(10);
+  if(error)return [];
+  const rows=Array.isArray(data)?data:[];
+  for(const row of rows)processInviteRow(row);
+  return rows;
+}
+
+function startIncomingWatch(){
+  stopIncomingWatch();
+  if(!currentAdmin())return false;
+  const client=authStore()?.getClient?.();
+  if(!client?.channel)return false;
+  incomingWatchChannel=client.channel('call-invite-incoming')
+    .on('postgres_changes',{
+      event:'UPDATE',schema:'public',table:'chat_call_invites',
+    },payload=>processInviteRow(payload?.new||{}))
+    .subscribe();
+  void reconcileIncomingInvites();
+  return true;
+}
+
+async function focusIncomingInvite(inviteId,contactId=''){
+  const id=String(inviteId||'').trim();
+  if(!id||!currentAdmin())return false;
+  installCallEngineAdapter();
+  const client=authStore()?.getClient?.();
+  if(!client?.from)return false;
+  const {data,error}=await client.from('chat_call_invites')
+    .select('id,contact_id,created_at,expires_at,opened_at,guest_joined_at,admin_joined_at,revoked_at,ended_at')
+    .eq('id',id)
+    .maybeSingle();
+  if(error||!data)return false;
+  const resolvedContactId=String(data.contact_id||contactId||'');
+  if(resolvedContactId)window.ChatAppShell?.NavigationCommand?.openContact?.(resolvedContactId);
+  const invite=processInviteRow(data);
+  return Boolean(invite&&isIncomingPending(invite));
 }
 
 async function createAndSend({contactId=targetAccountId}={}){
@@ -163,31 +384,20 @@ async function createAndSend({contactId=targetAccountId}={}){
   if(!currentAdmin())throw new Error('admin_required');
   const {client,token}=await accessToken();
   const {data,error}=await client.functions.invoke('v21-call-invite-admin',{
-    body:{action:'create',contactId:target},
-    headers:{authorization:`Bearer ${token}`},
+    body:{action:'create',contactId:target},headers:{authorization:`Bearer ${token}`},
   });
   if(error)throw error;
   if(!data?.ok||!data?.inviteId||!data?.url)throw new Error(data?.error||'invite_create_failed');
 
   const invite={
-    inviteId:String(data.inviteId),
-    url:String(data.url),
-    expiresAt:String(data.expiresAt||''),
-    openedAt:null,
-    guestJoinedAt:null,
-    adminJoinedAt:null,
-    revokedAt:null,
-    endedAt:null,
-    sendFailed:false,
-    adminConnected:false,
+    inviteId:String(data.inviteId),url:String(data.url),expiresAt:String(data.expiresAt||''),createdAt:new Date().toISOString(),
+    openedAt:null,guestJoinedAt:null,adminJoinedAt:null,revokedAt:null,endedAt:null,sendFailed:false,adminConnected:false,
   };
   invitesByContact.set(target,invite);
   watchInvite(target,invite.inviteId);
-  try{
-    await sendTextLink(invite.url,target);
-  }catch(error){
-    invite.sendFailed=true;
-    invitesByContact.set(target,invite);
+  try{await sendTextLink(invite.url,target);}
+  catch(error){
+    invite.sendFailed=true;invitesByContact.set(target,invite);
     document.dispatchEvent(new CustomEvent('v21-call-invite-state',{detail:{contactId:target,invite:{...invite}}}));
     throw error;
   }
@@ -202,14 +412,10 @@ async function joinInvite({contactId=targetAccountId}={}){
   const {token}=await accessToken();
   const session=window.TaphoaGuestCallSession||null;
   if(!session?.joinAdmin)throw new Error('livekit_session_unavailable');
-  const ok=await session.joinAdmin({
-    inviteId:invite.inviteId,
-    endpoint:ADMIN_ENDPOINT,
-    apiKey:PUBLIC_KEY,
-    accessToken:token,
-  });
+  const ok=await session.joinAdmin({inviteId:invite.inviteId,endpoint:ADMIN_ENDPOINT,apiKey:PUBLIC_KEY,accessToken:token});
   if(!ok)throw new Error(session.snapshot?.().error||'livekit_token_failed');
   invite.adminConnected=true;
+  invite.adminJoinedAt=invite.adminJoinedAt||new Date().toISOString();
   invitesByContact.set(target,invite);
   document.dispatchEvent(new CustomEvent('v21-call-invite-state',{detail:{contactId:target,invite:{...invite}}}));
   return true;
@@ -243,7 +449,8 @@ function statusText(invite){
   if(!invite)return '';
   if(invite.endedAt)return 'Cuộc gọi đã kết thúc';
   if(invite.revokedAt||isExpired(invite))return 'Link gọi đã hết hạn';
-  if(invite.guestJoinedAt)return 'Khách đã vào phòng';
+  if(invite.adminConnected)return 'Đang nghe';
+  if(invite.guestJoinedAt)return 'Khách đang gọi';
   if(invite.openedAt)return 'Khách đã mở link';
   if(invite.sendFailed)return 'Link đã tạo nhưng chưa gửi';
   return 'Đã gửi link gọi · hiệu lực 10 phút';
@@ -280,10 +487,7 @@ function mountCallInvitePanel(){
   let busy=false;
 
   function setBusy(next){
-    busy=Boolean(next);
-    sendButton.disabled=busy;
-    joinButton.disabled=busy;
-    endButton.disabled=busy;
+    busy=Boolean(next);sendButton.disabled=busy;joinButton.disabled=busy;endButton.disabled=busy;
   }
   function render(){
     const invite=activeInvite(contactId);
@@ -296,35 +500,20 @@ function mountCallInvitePanel(){
   }
 
   sendButton.addEventListener('click',async()=>{
-    if(busy)return;
-    setBusy(true);
-    try{
-      const invite=activeInvite(contactId);
-      if(invite?.sendFailed&&!isExpired(invite))await resendInvite(contactId);
-      else await createAndSend({contactId});
-    }catch(error){status.textContent=errorText(error);}
-    finally{setBusy(false);render();}
+    if(busy)return;setBusy(true);
+    try{const invite=activeInvite(contactId);if(invite?.sendFailed&&!isExpired(invite))await resendInvite(contactId);else await createAndSend({contactId});}
+    catch(error){status.textContent=errorText(error);}finally{setBusy(false);render();}
   });
-
   joinButton.addEventListener('click',async()=>{
-    if(busy)return;
-    setBusy(true);status.textContent='Đang vào phòng…';
-    try{await joinInvite({contactId});}
-    catch(error){status.textContent=errorText(error);}
-    finally{setBusy(false);render();}
+    if(busy)return;setBusy(true);status.textContent='Đang vào phòng…';
+    try{await joinInvite({contactId});}catch(error){status.textContent=errorText(error);}finally{setBusy(false);render();}
   });
-
   endButton.addEventListener('click',async()=>{
-    if(busy)return;
-    setBusy(true);
-    try{await endInvite({contactId});}
-    catch(error){status.textContent=errorText(error);}
-    finally{setBusy(false);render();}
+    if(busy)return;setBusy(true);
+    try{await endInvite({contactId});}catch(error){status.textContent=errorText(error);}finally{setBusy(false);render();}
   });
 
-  const stateListener=event=>{
-    if(String(event?.detail?.contactId||'')===contactId&&host.isConnected)render();
-  };
+  const stateListener=event=>{if(String(event?.detail?.contactId||'')===contactId&&host.isConnected)render();};
   document.addEventListener('v21-call-invite-state',stateListener);
   render();
   return true;
@@ -342,6 +531,9 @@ function scheduleMount(){
 }
 
 installStyle();
+installCallEngineAdapter();
+window.setTimeout(installCallEngineAdapter,0);
+window.setTimeout(installCallEngineAdapter,250);
 document.addEventListener('click',event=>{
   const target=event.target instanceof Element?event.target:null;
   const manage=target?.closest?.('[data-contact-manage]');
@@ -350,14 +542,28 @@ document.addEventListener('click',event=>{
   window.setTimeout(scheduleMount,0);
 },true);
 new MutationObserver(scheduleMount).observe(document.documentElement,{childList:true,subtree:true});
-document.addEventListener('v21-auth-state',scheduleMount);
+document.addEventListener('v21-auth-state',event=>{
+  scheduleMount();
+  if(event?.detail?.state==='AUTHENTICATED'&&event?.detail?.account?.role==='admin'){
+    installCallEngineAdapter();
+    startIncomingWatch();
+  }else{
+    stopIncomingWatch();
+    dismissExternal('auth-reset');
+  }
+});
+document.addEventListener('v21-call-invite-push-open',event=>{
+  const detail=event?.detail||{};
+  void focusIncomingInvite(detail.inviteId,detail.contactId);
+});
+document.addEventListener('v21-contact-store-change',()=>{
+  if(currentAdmin())void reconcileIncomingInvites();
+});
+
+if(currentAdmin())startIncomingWatch();
 
 window.TaphoaCallInviteClient=Object.freeze({
-  openForContact,
-  createAndSend,
-  resendInvite,
-  joinInvite,
-  endInvite,
+  openForContact,createAndSend,resendInvite,joinInvite,endInvite,focusIncomingInvite,reconcileIncomingInvites,
   snapshot:(contactId=targetAccountId)=>activeInvite(contactId),
 });
 })();
