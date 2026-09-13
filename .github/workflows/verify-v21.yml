@@ -55,10 +55,14 @@ jobs:
         run: python tests/test_v21_ai_product_parser_db_contract.py
       - name: Manual order scribe raw-name core contract
         run: node tests/test_v21_order_scribe_core.mjs
+      - name: Handwritten repeat-marker inheritance contract
+        run: node tests/test_v21_order_scribe_inherit_marker.mjs
       - name: Manual order scribe client normalization
         run: node tests/test_v21_order_scribe_client_runtime.js
       - name: Manual order scribe Edge contract
         run: python tests/test_v21_order_scribe_edge_contract.py
+      - name: Handwritten repeat-marker Edge contract
+        run: python tests/test_v21_order_scribe_inherit_marker_edge.py
       - name: Chat order draft database contract
         run: python tests/test_v21_order_draft_db_contract.py
       - name: Chat order draft core contract

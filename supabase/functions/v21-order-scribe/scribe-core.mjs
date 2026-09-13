@@ -75,6 +75,7 @@ const IMAGE_QTY_UNIT='(?:t|th|thùng|thung|bao|gói|goi|bịch|bich|túi|tui|cha
 const IMAGE_QTY_START=new RegExp(`^(\\d+(?:[.,]\\d+)?)(\\s*${IMAGE_QTY_UNIT})?(?:\\s*[:\\-]\\s*|\\s+)(.+)$`,'iu');
 const IMAGE_QTY_END_WITH_UNIT=new RegExp(`^(.+?)\\s*(?:[:\\-]\\s*)?(\\d+(?:[.,]\\d+)?)(\\s*${IMAGE_QTY_UNIT})\\s*[.]?$`,'iu');
 const IMAGE_QTY_END_AFTER_SEPARATOR=new RegExp(`^(.+?)\\s*[:\\-]\\s*(\\d+(?:[.,]\\d+)?)\\s*[.]?$`,'u');
+const IMAGE_REPEAT_MARKER=/^(?:_{2,}|—+|–{2,}|-{2,})\s*/u;
 
 function trimLiteralName(value){
   return String(value??'').trim().replace(/[\s:;,-]+$/u,'').trim();
@@ -109,17 +110,66 @@ function parseLiteralImageLine(value){
   return null;
 }
 
+function repeatRemainder(value){
+  const text=String(value??'').trim();
+  if(!IMAGE_REPEAT_MARKER.test(text))return null;
+  return text.replace(IMAGE_REPEAT_MARKER,'').trim();
+}
+
+function normalizedToken(value){
+  return String(value??'').toLocaleLowerCase('vi-VN');
+}
+
+function inheritedBase(previousName,newVariant){
+  const priorTokens=String(previousName??'').trim().split(/\s+/u).filter(Boolean);
+  const variantTokens=String(newVariant??'').trim().split(/\s+/u).filter(Boolean);
+  if(!priorTokens.length||!variantTokens.length)return '';
+
+  const firstVariant=normalizedToken(variantTokens[0]);
+  const anchorIndex=priorTokens.findIndex((token,index)=>index>0&&normalizedToken(token)===firstVariant);
+  if(anchorIndex>0)return priorTokens.slice(0,anchorIndex).join(' ');
+
+  // The handwritten line means the prefix was intentionally omitted. Without
+  // product data, the safest deterministic reconstruction is positional: the
+  // visible remainder replaces the same number of trailing words above.
+  if(variantTokens.length<priorTokens.length){
+    return priorTokens.slice(0,priorTokens.length-variantTokens.length).join(' ');
+  }
+  return '';
+}
+
 export function materializeAiImageTranscriptions(rawLines){
   if(!Array.isArray(rawLines)||!rawLines.length)throw new Error('ai_items_missing');
   const items=[];
   const unresolved=[];
+  let previous=null;
   for(const raw of rawLines){
     const text=String(raw?.text??'').trim();
     if(!text)continue;
     const uncertain=raw?.uncertain===true;
+    const repeated=repeatRemainder(text);
+    if(repeated!==null){
+      const fragment=parseLiteralImageLine(repeated);
+      const base=previous&&fragment?inheritedBase(previous.name,fragment.name):'';
+      if(fragment&&base){
+        const item={
+          ...fragment,
+          name:`${base} ${fragment.name}`.trim(),
+          uncertain:uncertain||previous?.uncertain===true,
+        };
+        items.push(item);
+        previous=item;
+        continue;
+      }
+      unresolved.push({raw:`${text}${uncertain&&!/\?\s*$/u.test(text)?' ?':''}`});
+      continue;
+    }
+
     const parsed=parseLiteralImageLine(text);
     if(parsed){
-      items.push({...parsed,uncertain});
+      const item={...parsed,uncertain};
+      items.push(item);
+      previous=item;
       continue;
     }
     unresolved.push({raw:`${text}${uncertain&&!/\?\s*$/u.test(text)?' ?':''}`});
