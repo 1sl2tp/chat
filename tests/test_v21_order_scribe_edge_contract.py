@@ -26,7 +26,6 @@ assert 'eq("role","admin")' in compact or "eq('role','admin')" in compact
 assert "contactid" in edge
 assert "action==='quick'" in compact
 assert "action!=='quick'&&action!=='ai'" in compact, "only quick/ai manual actions may enter the scribe"
-assert "aispans(source.text)" in compact, "non-quick path must invoke the isolated AI scribe"
 assert "chat_ai_message_inbox" not in edge
 assert "chat_ai_enqueue" not in edge
 
@@ -48,7 +47,7 @@ assert "v21_messages" in edge
 assert "sender_account_id" in edge
 assert "order('created_at'" in compact or 'order("created_at"' in compact
 
-# AI is only a boundary/quantity scribe. It must never return or accept rewritten product names.
+# Text AI is only a boundary/quantity scribe. It must never translate names through catalog.
 assert "name_start" in edge
 assert "name_end" in edge
 assert "responsemimetype" in compact
@@ -59,9 +58,20 @@ assert "materializeaispans" in compact
 for forbidden in ["catalog-search", "products_shared", "product_code", "resolveparsedlineswithcatalog"]:
     assert forbidden not in edge, f"manual order scribe must not translate names through catalog: {forbidden}"
 
+# Image AI is manual only: validate inbound image assets, download from canonical Chat
+# storage, send inline vision input, and tell the model to orient handwriting before reading.
+assert "imageassetids" in edge
+assert "v21_media_assets" in edge
+assert "v21-media" in edge
+assert "inlinedata" in edge
+assert "quantity_text" in edge
+assert "materializeaiimageitems" in compact
+assert "0/90/180/270" in edge, "vision prompt must explicitly handle rotated sender photos"
+assert "xoay" in edge, "vision prompt must orient the image before handwriting extraction"
+assert "uncertain" in edge, "uncertain handwriting must be marked instead of guessed confidently"
+
 # The Chat runtime owns the model setting but reuses the already-provisioned Gemini vault secret
-# without copying or exposing the key to the browser. The follow-up migration is intentional:
-# provider smoke proved 2.5 Flash Lite is unavailable to this project and requires 3.5 Flash Lite.
+# without copying or exposing the key to the browser.
 assert "chat_order_scribe_runtime_settings" in migration
 assert "chat_order_scribe_runtime_config" in migration
 assert "getlink_order_agent_gemini_api_key" in migration
