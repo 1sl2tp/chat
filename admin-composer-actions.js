@@ -67,7 +67,7 @@ function installStyle(){
     .admin-composer-menu-divider{height:1px;margin:6px 8px;background:var(--theme-border-default,#e5e5e5)}
     .admin-composer-menu-note{margin-left:auto;color:var(--theme-content-tertiary,#999);font-size:11px;font-weight:500}
     .admin-composer-menu-item[disabled]{opacity:.48;cursor:default}
-    .admin-composer-quote-overlay{position:fixed;inset:0;z-index:170;display:grid;place-items:center;padding:18px}
+    .admin-composer-quote-overlay{position:fixed;inset:0;z-index:170;display:grid;place-items:center;padding:18px;pointer-events:auto}
     .admin-composer-quote-backdrop{position:absolute;inset:0;border:0;background:rgba(0,0,0,.28);backdrop-filter:blur(2px)}
     .admin-composer-quote-card{position:relative;z-index:1;width:min(92vw,360px);display:grid;gap:12px;padding:16px;border:1px solid var(--theme-border-default,#dedede);border-radius:20px;background:var(--theme-surface-primary,#fff);box-shadow:0 18px 50px rgba(0,0,0,.18)}
     .admin-composer-quote-title{margin:0;font-size:17px;font-weight:700}

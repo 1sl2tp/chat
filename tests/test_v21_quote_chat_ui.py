@@ -69,6 +69,11 @@ assert "v21quoteclient" in low
 assert "queuetext" in low or "v21messagestore" in low
 assert "contactid" in low
 
+# The global overlay root is pointer-events:none in the shell. Quote overlay must opt back in,
+# otherwise every scope/cancel/send button is visible but untappable.
+quote_overlay_css = low.split(".admin-composer-quote-overlay", 1)[1].split("}", 1)[0]
+assert "pointer-events:auto" in quote_overlay_css, "quote overlay must receive pointer events"
+
 # Guest call link reuses the existing invite client and never starts a normal Chat call.
 assert "taphoacallinviteclient" in low
 assert "createandsend" in low and "contactid" in low
