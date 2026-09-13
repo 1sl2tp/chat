@@ -47,6 +47,12 @@ jobs:
         run: node tests/test_v21_order_scribe_core.mjs
       - name: Manual order scribe Edge contract
         run: python tests/test_v21_order_scribe_edge_contract.py
+      - name: Chat order draft database contract
+        run: python tests/test_v21_order_draft_db_contract.py
+      - name: Chat order draft core contract
+        run: node tests/test_v21_order_draft_core.mjs
+      - name: Chat order draft Edge contract
+        run: python tests/test_v21_order_draft_edge_contract.py
       - name: Chat quote database contract
         run: python tests/test_v21_quote_db_contract.py
       - name: Chat quote core contract
