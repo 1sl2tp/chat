@@ -1,0 +1,36 @@
+name: Rebuild Order Image Preview
+on:
+  push:
+    branches:
+      - feature/order-scribe-image-vision
+permissions:
+  contents: write
+jobs:
+  rebuild:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/order-scribe-image-vision
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install verify dependency
+        run: python -m pip install pytest
+      - name: Rebuild canonical output
+        run: python tools/build_current_preview.py
+      - name: Verify canonical output
+        run: python tools/verify_current.py
+      - name: Commit generated output
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html version.json
+          if git diff --cached --quiet; then
+            echo "No generated changes"
+            exit 0
+          fi
+          git commit -m "build: refresh handwritten order image preview"
+          git push origin HEAD:feature/order-scribe-image-vision
