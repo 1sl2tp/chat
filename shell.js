@@ -10,6 +10,10 @@ const shellNavigationLayer=document.getElementById('shellNavigationLayer');
 const globalOverlayRoot=document.getElementById('globalOverlayRoot');
 const sessionHost=document.getElementById('sessionHost');
 const appShell=document.getElementById('appShell');
+const stageLayout=document.getElementById('stageLayout');
+const workView=document.getElementById('workThreadView');
+const workThreadHome=workView?.parentNode||null;
+const workThreadNext=workView?.nextSibling||null;
 
 const DESKTOP_DIRECTORY_QUERY='(min-width: 68rem) and (hover: hover) and (pointer: fine)';
 const desktopDirectoryMedia=window.matchMedia(DESKTOP_DIRECTORY_QUERY);
@@ -85,14 +89,30 @@ function desktopWorkspaceEnabled(){
   return authState==='AUTHENTICATED'&&desktopWorkspaceMedia.matches;
 }
 
+function syncDesktopWorkOwner(desktopWorkspace){
+  if(!workView||!stageLayout||!workThreadHome)return false;
+  if(desktopWorkspace){
+    if(workView.parentNode!==stageLayout)stageLayout.appendChild(workView);
+    return true;
+  }
+  if(workView.parentNode!==workThreadHome){
+    if(workThreadNext&&workThreadNext.parentNode===workThreadHome){
+      workThreadHome.insertBefore(workView,workThreadNext);
+    }else{
+      workThreadHome.appendChild(workView);
+    }
+  }
+  return false;
+}
+
 function applyRoutePresentation(){
   const desktopWorkspace=desktopWorkspaceEnabled();
   if(desktopWorkspace&&route==='work')route='chat';
   screenHost.dataset.route=route;
   appShell.dataset.route=route;
   appShell.dataset.desktopWorkspace=String(desktopWorkspace);
+  syncDesktopWorkOwner(desktopWorkspace);
   const chatNodes=document.querySelectorAll('[data-chat-thread-node]');
-  const workView=document.getElementById('workThreadView');
   for(const node of chatNodes)node.hidden=desktopWorkspace?false:route!=='chat';
   if(workView)workView.hidden=desktopWorkspace?false:route!=='work';
   renderTopTabs();
@@ -1389,6 +1409,7 @@ const AuthUI={
     if(appShell)appShell.dataset.authState=authenticated?'authenticated':'guest';
     this.setAccount(authenticated?account:null);
     syncDesktopSidebarMode();
+    syncDesktopWorkspaceMode();
   }
 };
 
