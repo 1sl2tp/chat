@@ -44,6 +44,14 @@ assert 'inset-inline-end:var(--desktop-work-width)' in compact
 assert 'helper.orderSplitPreviewEntries(splitResult)' in compact
 assert 'entry.type===\'unresolved\'' in compact
 
+# Images are visible as Chat evidence but never trigger vision automatically.
+assert 'orderGroup.images' in source
+assert 'imageAssetIds' in source
+assert 'Ảnh' in source
+assert "mode==='ai'" in compact
+assert "imageAssetIds:mode==='ai'" in compact, 'only the explicit AI button may send images to vision'
+assert "imageAssetIds:mode==='quick'" not in compact
+
 # Chat-only semantics: every matching customer message in the selected time range
 # is one raw summary, regardless of any legacy selling/imported state.
 assert 'helper.customerOrderSourceGroup(rows)' in compact
