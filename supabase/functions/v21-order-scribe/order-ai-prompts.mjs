@@ -13,7 +13,7 @@ Hãy trích xuất chính xác văn bản từ hình ảnh và tuân thủ NGHI�
 
 3. ĐỌC CHỮ THEO HÌNH HỌC + NGỮ CẢNH TẠP HÓA VIỆT NAM:
    - Đọc chính xác từng ký tự theo đúng hình học nét chữ trong ảnh.
-   - Khi nét chữ rõ: GIỮ cách đọc theo nét chữ, không tự sửa cho đẹp.
+   - Khi nét chữ rõ: KHÔNG tự ý sửa chính tả. GIỮ cách đọc theo nét chữ.
    - Khi nét chữ MƠ HỒ giữa nhiều cách đọc hợp lý: ĐƯỢC PHÉP dùng ngữ cảnh TẠP HÓA VIỆT NAM để chọn cách đọc phù hợp nhất.
    - Phải hiểu các nhóm hàng quen thuộc như: sữa, dầu ăn, tương, nước mắm, mì, bia, nước ngọt, bánh, kẹo, hóa phẩm...
    - Phải nhận biết thương hiệu/tên quen thuộc khi nét chữ có căn cứ như: Probi, OMO, PS, Ông Thọ, Mộc Châu, Vinamilk... và các thương hiệu tạp hóa phổ biến khác.
