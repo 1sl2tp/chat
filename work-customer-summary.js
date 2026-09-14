@@ -5,11 +5,16 @@ const REFRESH_MS=60000;
 let timer=0;
 let loading=false;
 let generation=0;
+let rowsCache=[];
+let forceOverview=false;
+const completionBusy=new Set();
 
 function root(){return document.querySelector('[data-work-summary-root]');}
 function authStore(){return window.V21AuthSessionStore||null;}
 function snapshot(){return authStore()?.snapshot?.()||{state:'BOOTING',account:null};}
 function client(){return authStore()?.getClient?.()||null;}
+function shellSnapshot(){return window.ChatAppShell?.ScreenSession?.snapshot?.()||{route:'work',activeContact:null};}
+function activeContact(){return shellSnapshot()?.activeContact||null;}
 
 function node(tag,className,text){
   const el=document.createElement(tag);
@@ -18,99 +23,82 @@ function node(tag,className,text){
   return el;
 }
 
-function formatTime(value){
-  if(!value)return '';
-  const date=new Date(value);
-  if(Number.isNaN(date.getTime()))return '';
-  try{return new Intl.DateTimeFormat('vi-VN',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).format(date);}
-  catch{return date.toLocaleString();}
+function itemName(item={}){
+  return String(item?.name||item?.rawEvidence||'').trim();
+}
+
+function numericQuantity(item={}){
+  if(item?.quantity===null||item?.quantity===undefined||item?.quantity==='')return null;
+  const quantity=Number(item.quantity);
+  return Number.isFinite(quantity)&&quantity>0?quantity:null;
+}
+
+function validSummaryItems(result={}){
+  const items=Array.isArray(result?.items)?result.items:[];
+  return items.filter(item=>Boolean(String(item?.name||'').trim())&&numericQuantity(item)!==null);
+}
+
+function summaryProductCount(items=[]){
+  return items.reduce((sum,item)=>sum+(numericQuantity(item)||0),0);
+}
+
+function formatNumber(value){
+  const n=Number(value);
+  if(!Number.isFinite(n))return String(value??'');
+  if(Number.isInteger(n))return String(n);
+  try{return new Intl.NumberFormat('vi-VN',{maximumFractionDigits:3}).format(n);}
+  catch{return String(n);}
 }
 
 function quantityText(item={}){
-  if(item.quantity===null||item.quantity===undefined||item.quantity==='')return '?';
-  const quantity=Number(item.quantity);
-  const label=Number.isFinite(quantity)?String(quantity):String(item.quantity);
-  return item.unit?`${label} ${String(item.unit)}`:label;
+  const quantity=numericQuantity(item);
+  return quantity===null?'?':formatNumber(quantity);
 }
 
-function totalText(result={}){
-  const parts=[];
-  const totalLines=Number(result.totalLines)||0;
-  parts.push(`${totalLines} dòng`);
-  for(const total of Array.isArray(result.totals)?result.totals:[]){
-    const quantity=Number(total?.quantity);
-    if(!Number.isFinite(quantity)||quantity<=0)continue;
-    parts.push(total?.unit?`${quantity} ${String(total.unit)}`:`${quantity} SL`);
-  }
-  return parts.join(' · ');
-}
-
-function sourceLabel(item={}){
-  const source=String(item.source||'').toLowerCase();
-  if(source.includes('image')&&source.includes('text'))return 'ẢNH + TEXT';
-  if(source.includes('image'))return 'ẢNH';
-  if(source.includes('admin-context'))return 'NGỮ CẢNH';
-  return '';
-}
-
-function renderItem(item,index){
-  const li=node('li','work-summary-item');
-  const main=node('div','work-summary-item-main');
-  const name=node('span','work-summary-item-name',item?.name||item?.rawEvidence||'Chưa rõ');
-  const qty=node('strong','work-summary-item-qty',quantityText(item));
-  main.append(name,qty);
-  li.append(main);
-
-  const badges=[];
-  const source=sourceLabel(item);
-  if(source)badges.push(source);
-  if(item?.ambiguous)badges.push('NGHI NGỜ');
-  if(item?.inferred)badges.push('SUY LUẬN');
-  if(badges.length){
-    const meta=node('div','work-summary-item-meta');
-    for(const label of badges)meta.append(node('span','work-summary-badge',label));
-    li.append(meta);
-  }
-
-  const evidence=String(item?.rawEvidence||'').trim();
-  if(evidence&&(item?.ambiguous||item?.inferred)){
-    const original=node('div','work-summary-evidence');
-    original.append(node('span','work-summary-evidence-label','Gốc: '));
-    original.append(document.createTextNode(evidence));
-    li.append(original);
-  }
-  li.dataset.index=String(index+1);
-  return li;
-}
-
-function renderCustomer(row){
+function resultFor(row={}){
   const result=row?.result_json&&typeof row.result_json==='object'?row.result_json:{};
-  const items=Array.isArray(result.items)?result.items:[];
-  const card=node('section','work-summary-customer');
-  card.dataset.customerId=String(row?.customer_id||'');
+  // Keep the scanner's original aggregate fields available for diagnostics,
+  // while the Work UI intentionally recalculates compact totals from valid items.
+  void result.totalLines;
+  void result.totals;
+  return result;
+}
 
-  const head=node('div','work-summary-customer-head');
-  const titleWrap=node('div','work-summary-customer-title');
-  titleWrap.append(node('strong','work-summary-customer-name',row?.display_name||row?.username||'Khách hàng'));
-  const stamp=formatTime(row?.last_scanned_at);
-  if(stamp)titleWrap.append(node('span','work-summary-customer-time',stamp));
-  head.append(titleWrap,node('span','work-summary-total',totalText(result)));
-  card.append(head);
+function rowSummary(row={}){
+  const items=validSummaryItems(resultFor(row));
+  return{
+    row,
+    items,
+    codeCount:items.length,
+    productCount:summaryProductCount(items)
+  };
+}
 
-  if(row?.last_error){
-    card.append(node('div','work-summary-warning',`Lần quét gần nhất có lỗi: ${String(row.last_error)}`));
-  }
+function normalizeKeyText(value){
+  return String(value??'').trim().toLowerCase().replace(/\s+/g,' ');
+}
 
-  if(!items.length){
-    card.append(node('div','work-summary-empty-customer','Không có dòng hàng được xác định.'));
-    return card;
-  }
+function itemBaseKey(item={}){
+  return `v1|${normalizeKeyText(itemName(item))}|${formatNumber(numericQuantity(item))}`;
+}
 
-  const list=node('ol','work-summary-list');
-  list.start=1;
-  items.forEach((item,index)=>list.append(renderItem(item,index)));
-  card.append(list);
-  return card;
+function reconcileRecords(row={}){
+  const completed=new Set((Array.isArray(row?.completed_item_keys)?row.completed_item_keys:[]).map(String));
+  const occurrences=new Map();
+  return validSummaryItems(resultFor(row)).map((item,index)=>{
+    const base=itemBaseKey(item);
+    const occurrence=(occurrences.get(base)||0)+1;
+    occurrences.set(base,occurrence);
+    const itemKey=`${base}|${occurrence}`;
+    return{item,index,itemKey,completed:completed.has(itemKey)};
+  });
+}
+
+function sortItemsForReconcile(records=[]){
+  return records.slice().sort((a,b)=>{
+    if(Boolean(a.completed)!==Boolean(b.completed))return a.completed?1:-1;
+    return Number(a.index)-Number(b.index);
+  });
 }
 
 function renderShell(message,kind='muted'){
@@ -123,26 +111,135 @@ function renderShell(message,kind='muted'){
   host.append(shell);
 }
 
-function renderRows(rows=[]){
+function renderOverviewRow(summary){
+  const row=summary.row||{};
+  const card=node('section','work-summary-overview-row work-summary-customer');
+  card.dataset.customerId=String(row.customer_id||'');
+  card.append(node('strong','work-summary-overview-name',row.display_name||row.username||'Khách hàng'));
+  card.append(node('span','work-summary-overview-total',`${summary.codeCount} mã · ${formatNumber(summary.productCount)} sản phẩm`));
+  return card;
+}
+
+function renderOverview(rows=[]){
   const host=root();
   if(!host)return;
   host.replaceChildren();
 
+  const summaries=rows.map(rowSummary).filter(summary=>summary.codeCount>0);
   const header=node('div','work-summary-header');
   const title=node('div','work-summary-header-title');
-  title.append(node('strong','work-summary-heading','Tổng hợp hàng hóa'));
-  title.append(node('span','work-summary-subheading',`${rows.length} khách có kết quả quét`));
+  title.append(node('strong','work-summary-heading','Tổng hợp'));
+  title.append(node('span','work-summary-subheading',`${summaries.length} khách có hàng`));
   header.append(title);
   host.append(header);
 
-  if(!rows.length){
-    host.append(node('div','work-summary-state work-summary-state-muted','Chưa có kết quả quét.'));
+  if(!summaries.length){
+    host.append(node('div','work-summary-state work-summary-state-muted','Chưa có khách nào có đủ tên hàng và số lượng.'));
     return;
   }
 
-  const body=node('div','work-summary-body');
-  for(const row of rows)body.append(renderCustomer(row));
+  const body=node('div','work-summary-body work-summary-overview');
+  for(const summary of summaries)body.append(renderOverviewRow(summary));
   host.append(body);
+}
+
+function renderDetailItem(record,customerId){
+  const {item,itemKey,completed}=record;
+  const li=node('li',`work-summary-item${completed?' is-completed':''}`);
+  li.dataset.itemKey=itemKey;
+
+  const toggle=node('button','work-summary-check');
+  toggle.type='button';
+  toggle.dataset.workItemToggle='true';
+  toggle.dataset.customerId=String(customerId||'');
+  toggle.dataset.itemKey=itemKey;
+  toggle.setAttribute('role','checkbox');
+  toggle.setAttribute('aria-checked',String(completed));
+  toggle.setAttribute('aria-label',completed?'Bỏ đánh dấu hoàn thành':'Đánh dấu hoàn thành');
+  toggle.textContent=completed?'✓':'';
+
+  const main=node('div','work-summary-item-main');
+  main.append(node('span','work-summary-item-name',itemName(item)||'Chưa rõ'));
+  main.append(node('strong','work-summary-item-qty',quantityText(item)));
+  li.append(toggle,main);
+  return li;
+}
+
+function renderCustomerDetail(row,contact){
+  const host=root();
+  if(!host)return;
+  host.replaceChildren();
+
+  const customerId=String(row?.customer_id||contact?.id||'');
+  const records=sortItemsForReconcile(row?reconcileRecords(row):[]);
+  const productCount=summaryProductCount(records.map(record=>record.item));
+
+  const header=node('div','work-summary-header work-summary-detail-header');
+  const all=node('button','work-summary-all','Tất cả');
+  all.type='button';
+  all.dataset.workSummaryAll='true';
+  const title=node('div','work-summary-header-title');
+  title.append(node('strong','work-summary-heading',row?.display_name||row?.username||contact?.name||'Khách hàng'));
+  title.append(node('span','work-summary-subheading',`${records.length} mã · ${formatNumber(productCount)} sản phẩm`));
+  header.append(all,title);
+  host.append(header);
+
+  if(!records.length){
+    host.append(node('div','work-summary-state work-summary-state-muted','Khách này chưa có dòng hàng đủ tên và số lượng.'));
+    return;
+  }
+
+  const body=node('div','work-summary-body work-summary-detail');
+  const list=node('ol','work-summary-list');
+  records.forEach(record=>list.append(renderDetailItem(record,customerId)));
+  body.append(list);
+  host.append(body);
+}
+
+function renderCurrent(){
+  const contact=activeContact();
+  if(forceOverview||!contact?.id){
+    renderOverview(rowsCache);
+    return;
+  }
+  const row=rowsCache.find(item=>String(item?.customer_id||'')===String(contact.id))||null;
+  renderCustomerDetail(row,contact);
+}
+
+function setCachedCompleted(row,itemKey,completed){
+  const set=new Set((Array.isArray(row?.completed_item_keys)?row.completed_item_keys:[]).map(String));
+  if(completed)set.add(String(itemKey));
+  else set.delete(String(itemKey));
+  row.completed_item_keys=Array.from(set);
+}
+
+async function setCompleted(customerId,itemKey,completed){
+  const db=client();
+  const key=`${customerId}::${itemKey}`;
+  if(!db||completionBusy.has(key))return false;
+  const row=rowsCache.find(item=>String(item?.customer_id||'')===String(customerId))||null;
+  if(!row)return false;
+
+  completionBusy.add(key);
+  const before=Array.isArray(row.completed_item_keys)?row.completed_item_keys.slice():[];
+  setCachedCompleted(row,itemKey,completed);
+  renderCurrent();
+  try{
+    const {error}=await db.rpc('chat_customer_summary_set_completed',{
+      p_customer_id:String(customerId),
+      p_item_key:String(itemKey),
+      p_completed:Boolean(completed)
+    });
+    if(error)throw error;
+    return true;
+  }catch(error){
+    row.completed_item_keys=before;
+    renderCurrent();
+    console.error('[work-customer-summary completion]',error);
+    return false;
+  }finally{
+    completionBusy.delete(key);
+  }
 }
 
 async function refresh(reason='timer'){
@@ -150,6 +247,7 @@ async function refresh(reason='timer'){
   if(!host||loading)return false;
   const auth=snapshot();
   if(auth.state!=='AUTHENTICATED'||auth.account?.role!=='admin'){
+    rowsCache=[];
     renderShell('Đăng nhập Admin để xem kết quả quét.');
     return false;
   }
@@ -159,12 +257,13 @@ async function refresh(reason='timer'){
   loading=true;
   const requestGeneration=++generation;
   host.dataset.loading='true';
-  if(!host.querySelector('.work-summary-customer'))renderShell('Đang tải kết quả quét…');
+  if(!rowsCache.length)renderShell('Đang tải kết quả quét…');
   try{
     const {data,error}=await db.rpc('chat_customer_summary_work_feed');
     if(error)throw error;
     if(requestGeneration!==generation)return false;
-    renderRows(Array.isArray(data)?data:[]);
+    rowsCache=Array.isArray(data)?data.map(row=>({...row})):[];
+    renderCurrent();
     host.dataset.lastRefreshReason=String(reason||'refresh');
     host.dataset.lastRefreshedAt=new Date().toISOString();
     return true;
@@ -183,11 +282,40 @@ function schedule(){
   timer=window.setInterval(()=>{void refresh('interval');},REFRESH_MS);
 }
 
-document.addEventListener('v21-auth-state',()=>{void refresh('auth-state');});
+document.addEventListener('v21-auth-state',()=>{
+  forceOverview=false;
+  void refresh('auth-state');
+});
+document.addEventListener('v21-active-contact-change',()=>{
+  forceOverview=false;
+  renderCurrent();
+});
+document.addEventListener('navigation-change',event=>{
+  if(event?.detail?.route==='chat'&&activeContact()?.id){
+    forceOverview=false;
+    renderCurrent();
+  }
+});
 document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='visible')void refresh('visible');
 });
 document.addEventListener('click',event=>{
+  const all=event.target?.closest?.('[data-work-summary-all]');
+  if(all){
+    forceOverview=true;
+    renderOverview(rowsCache);
+    return;
+  }
+
+  const toggle=event.target?.closest?.('[data-work-item-toggle]');
+  if(toggle){
+    const customerId=String(toggle.dataset.customerId||'');
+    const itemKey=String(toggle.dataset.itemKey||'');
+    const completed=toggle.getAttribute('aria-checked')!=='true';
+    if(customerId&&itemKey)void setCompleted(customerId,itemKey,completed);
+    return;
+  }
+
   const target=event.target?.closest?.('[data-top-tab="work"],[data-nav-target="work"]');
   if(target)void refresh('open-work');
 });
@@ -195,5 +323,5 @@ document.addEventListener('click',event=>{
 schedule();
 void refresh('boot');
 
-window.V21WorkCustomerSummary=Object.freeze({refresh});
+window.V21WorkCustomerSummary=Object.freeze({refresh,renderCurrent});
 })();
