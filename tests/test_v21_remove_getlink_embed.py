@@ -16,7 +16,7 @@ class GetlinkWorkEmbedContract(unittest.TestCase):
             self.assertIn('data-default-route="work" data-route="work"', text, str(path))
             self.assertIn('data-top-tab="work"', text, str(path))
             self.assertIn('data-nav-target="work"', text, str(path))
-            self.assertIn('data-top-tab="work" data-nav-target="work" aria-selected="true"', compact, str(path))
+            self.assertIn('aria-selected="true"data-top-tab="work"data-nav-target="work"', compact, str(path))
             self.assertIn('id="workThreadView"', text, str(path))
             self.assertIn('id="workGetlinkFrame"', text, str(path))
             self.assertIn('src="https://get.taphoa.xyz/?embed=1"', text, str(path))
