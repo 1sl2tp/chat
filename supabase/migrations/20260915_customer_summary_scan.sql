@@ -61,7 +61,7 @@ begin
     insert into public.chat_customer_summary_state(customer_id,last_scanned_at,updated_at)
     select e.id,now(),now() from eligible e
     limit least(greatest(coalesce(p_limit,15),1),15)
-    on conflict(customer_id) do update
+    on conflict on constraint chat_customer_summary_state_pkey do update
       set last_scanned_at=excluded.last_scanned_at,
           updated_at=excluded.updated_at
     returning chat_customer_summary_state.customer_id
