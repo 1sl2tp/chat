@@ -43,6 +43,8 @@ jobs:
         run: python tests/test_v21_chat_workspace_3col.py
       - name: Legacy Chat order-source removal contract
         run: python tests/test_v21_legacy_chat_order_source_removed.py
+      - name: Manual Chat order tools removal contract
+        run: python tests/test_v21_chat_manual_order_tools_removed.py
       - name: Chat image orientation + column-2 viewer contract
         run: python tests/test_v21_chat_image_orientation_column.py
       - name: Chat album viewer column-2 geometry contract
