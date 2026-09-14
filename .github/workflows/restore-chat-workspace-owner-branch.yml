@@ -66,31 +66,29 @@ jobs:
             line-height:1.35rem;
           }'''
 
-          old_markup = '''              <div class="work-thread-frame" data-work-frame-owner="getlink">
-                        <iframe
-                          id="workGetlinkFrame"
-                          class="work-thread-embed"
-                          src="https://get.taphoa.xyz/?embed=1"
-                          title="Công việc"
-                          loading="lazy"
-                          referrerpolicy="strict-origin-when-cross-origin"
-                        ></iframe>
-                      </div>'''
-          new_markup = '''              <div class="work-thread-frame" data-work-owner="chat">
-                        <div class="work-thread-empty" role="status" aria-live="polite">
-                          <strong>Công việc</strong>
-                          <span>Khu vực này để phát triển sau.</span>
-                        </div>
-                      </div>'''
-
           bridge_script = '<script src="./getlink-auth-bridge.js" data-build-source="getlink-auth-bridge.js"></script>\n'
 
           assert source.count(old_css) == 1, 'expected exactly one GETLINK iframe CSS block'
-          assert source.count(old_markup) == 1, 'expected exactly one GETLINK iframe markup block'
           assert source.count(bridge_script) == 1, 'expected exactly one GETLINK auth bridge script include'
-
           source = source.replace(old_css, new_css)
-          source = source.replace(old_markup, new_markup)
+
+          marker = '<div class="work-thread-frame" data-work-frame-owner="getlink">'
+          assert source.count(marker) == 1, 'expected exactly one GETLINK iframe owner block'
+          marker_at = source.index(marker)
+          line_start = source.rfind('\n', 0, marker_at) + 1
+          indent = source[line_start:marker_at]
+          iframe_end = source.index('</iframe>', marker_at) + len('</iframe>')
+          frame_end = source.index('</div>', iframe_end) + len('</div>')
+          old_markup = source[line_start:frame_end]
+          new_markup = (
+              f'{indent}<div class="work-thread-frame" data-work-owner="chat">\n'
+              f'{indent}  <div class="work-thread-empty" role="status" aria-live="polite">\n'
+              f'{indent}    <strong>Công việc</strong>\n'
+              f'{indent}    <span>Khu vực này để phát triển sau.</span>\n'
+              f'{indent}  </div>\n'
+              f'{indent}</div>'
+          )
+          source = source[:line_start] + new_markup + source[frame_end:]
           source = source.replace(bridge_script, '')
           source_path.write_text(source, encoding='utf-8')
 
@@ -111,7 +109,6 @@ jobs:
           if bridge_path.exists():
               bridge_path.unlink()
 
-          # Ownership gate before build.
           source = source_path.read_text(encoding='utf-8')
           shell = shell_path.read_text(encoding='utf-8')
           for forbidden in (
