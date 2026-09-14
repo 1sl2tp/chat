@@ -43,6 +43,10 @@ jobs:
         run: python tests/test_v21_chat_workspace_3col.py
       - name: Legacy Chat split/search/order removal contract
         run: python tests/test_v21_legacy_chat_order_source_removed.py
+      - name: Customer summary scan contract
+        run: python tests/test_v21_customer_summary_scan_contract.py
+      - name: Customer summary core
+        run: node tests/test_v21_customer_summary_core.mjs
       - name: Chat image orientation + column-2 viewer contract
         run: python tests/test_v21_chat_image_orientation_column.py
       - name: Chat album viewer column-2 geometry contract
