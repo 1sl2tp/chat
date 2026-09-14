@@ -47,6 +47,14 @@ jobs:
         run: python tests/test_v21_order_source_db_contract.py
       - name: Customer order source Edge contract
         run: python tests/test_v21_order_source_edge_contract.py
+      - name: Retire legacy source heuristic
+        run: python tests/test_v21_order_source_no_heuristic.py
+      - name: Incremental AI scan database contract
+        run: python tests/test_v21_ai_incremental_scan_db_contract.py
+      - name: Incremental AI scan core contract
+        run: node tests/test_v21_ai_incremental_scan_core.mjs
+      - name: Incremental AI scan Edge contract
+        run: python tests/test_v21_ai_incremental_scan_edge_contract.py
       - name: Customer order source timeline UI contract
         run: python tests/test_v21_order_source_ui.py
       - name: Chat image orientation + column-2 viewer contract

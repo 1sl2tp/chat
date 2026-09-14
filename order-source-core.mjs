@@ -1,9 +1,5 @@
 const DAY=86400000;
 
-function normalized(value){
-  return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D').toLowerCase().trim();
-}
-
 export function rangeForPreset(preset,nowMs=Date.now(),offsetMinutes=new Date().getTimezoneOffset(),custom={}){
   const offset=Number(offsetMinutes)||0;
   const shifted=new Date(Number(nowMs)-offset*60000);
@@ -24,24 +20,6 @@ export function rangeForPreset(preset,nowMs=Date.now(),offsetMinutes=new Date().
     return {from:new Date(start).toISOString(),to:new Date(end).toISOString()};
   }
   throw new Error('invalid_range_preset');
-}
-
-export function isLikelyOrderSource(value,aliases=[]){
-  const text=String(value||'').trim();
-  if(!text)return false;
-  const valueNorm=normalized(text);
-  if(/^(em cam on|cam on|vang|da|ok|oke|ok e|em cam on a)\b/u.test(valueNorm))return false;
-  const hasQty=/(^|\s)\d+(?:[.,]\d+)?(?:(?:\s+\S)|(?=[^\d\s]))/u.test(valueNorm);
-  if(!hasQty)return false;
-  const hasPack=/\b(thung|loc|goi|bich|tui|chai|lon|hop|khay|cay)\b/u.test(valueNorm);
-  const multiLine=text.split(/\n+/u).filter(Boolean).length>1;
-  const aliasHit=(Array.isArray(aliases)?aliases:[]).some(alias=>{
-    const key=normalized(alias);
-    return key&&valueNorm.includes(key);
-  });
-  const looksTimeOnly=/\b\d{1,2}\s*(gio|h|phut)\b/u.test(valueNorm)&&!hasPack&&!multiLine&&!aliasHit;
-  if(looksTimeOnly)return false;
-  return true;
 }
 
 export function orderSplitPreviewEntries(result={}){
@@ -94,8 +72,7 @@ function sortedRows(rows=[]){
 }
 
 export function customerOrderSourceGroup(rows=[]){
-  // Tin đơn chỉ là cách đọc lại lịch sử Chat theo thời gian. Trạng thái cũ
-  // (kể cả "ignored") không được làm tin nhắn khách biến mất khỏi tổng hợp.
+  // Tin đơn is only a read-only view of Chat history. Legacy state must not hide messages.
   const active=sortedRows(rows);
   const text=active.map(row=>String(row?.text||'').trim()).filter(Boolean).join('\n');
   const images=active.flatMap(imageAssetsForRow);

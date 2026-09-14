@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
-import {rangeForPreset,isLikelyOrderSource,orderSplitPreviewEntries,customerOrderSourceGroup} from '../order-source-core.mjs';
-import {isLikelyOrderSource as isLikelyOrderSourceEdge} from '../supabase/functions/v21-order-source/source-core.mjs';
+import {rangeForPreset,orderSplitPreviewEntries,customerOrderSourceGroup} from '../order-source-core.mjs';
 
 const now=Date.parse('2026-09-13T08:30:00.000Z');
 const vnOffset=-420;
@@ -12,13 +11,6 @@ assert.deepEqual(rangeForPreset('yesterday',now,vnOffset),{
   from:'2026-09-11T17:00:00.000Z',
   to:'2026-09-12T17:00:00.000Z',
 });
-assert.equal(isLikelyOrderSource('3 chua có đường'),true);
-assert.equal(isLikelyOrderSource('2 thùng sim 1 lít'),true);
-assert.equal(isLikelyOrderSource('2proby to ít đường'),true,'quantity attached to the name is still an order signal');
-assert.equal(isLikelyOrderSourceEdge('2proby to ít đường'),true,'Edge filtering must not discard attached-quantity order lines');
-assert.equal(isLikelyOrderSource('em cảm ơn ạ'),false);
-assert.equal(isLikelyOrderSource('mai 2 giờ em qua'),false);
-assert.equal(isLikelyOrderSource('5 sua chua khong duong',['sua chua khong duong']),true);
 
 const preview=orderSplitPreviewEntries({
   items:[
