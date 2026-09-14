@@ -67,6 +67,8 @@ jobs:
         run: python tests/test_v21_ai_product_parser_db_contract.py
       - name: Manual order scribe raw-name core contract
         run: node tests/test_v21_order_scribe_core.mjs
+      - name: Master full SL + name contract
+        run: node tests/test_v21_order_master_full.mjs
       - name: Handwritten repeat-marker inheritance contract
         run: node tests/test_v21_order_scribe_inherit_marker.mjs
       - name: Manual order scribe client normalization

@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
 import { formatOrderItems, parseQuickOrderText } from "./scribe-core.mjs";
+import { parseMasterOrderResponseText } from "./master-order-core.mjs";
 import { ORDER_MASTER_PROMPT } from "./order-ai-prompts.mjs";
 import { buildGroceryReferenceContext, buildOwnRecognitionVocabulary, loadGroceryReferenceLibrary, rankGroceryCandidates } from "./grocery-reference.mjs";
 
@@ -87,10 +88,7 @@ async function runtimeConfig(){
   const result=await db.rpc('chat_order_scribe_runtime_config');
   if(result.error)throw result.error;
   const row=Array.isArray(result.data)?result.data[0]:result.data;
-  return {
-    model:clean(row?.model_name,100)||DEFAULT_MODEL,
-    key:String(row?.gemini_api_key||'').trim(),
-  };
+  return {model:clean(row?.model_name,100)||DEFAULT_MODEL,key:String(row?.gemini_api_key||'').trim()};
 }
 function responseText(payload:any){
   const parts=payload?.candidates?.[0]?.content?.parts;
@@ -160,10 +158,7 @@ async function geminiTextRequest(cfg:any,parts:any[]){
     response=await fetch(endpoint,{
       method:'POST',
       headers:{'content-type':'application/json','x-goog-api-key':cfg.key},
-      body:JSON.stringify({
-        contents:[{role:'user',parts}],
-        generationConfig:{temperature:0},
-      }),
+      body:JSON.stringify({contents:[{role:'user',parts}],generationConfig:{temperature:0,responseMimeType:'application/json'}}),
     });
   }catch(error){
     console.error('[v21-order-scribe:gemini]','network',String((error as any)?.message||error||'request_failed'));
@@ -177,68 +172,6 @@ async function geminiTextRequest(cfg:any,parts:any[]){
   const text=responseText(payload);
   if(!text)throw new Error('ai_response_invalid');
   return text;
-}
-
-function jsonCandidates(value:string){
-  const source=String(value||'').trim();
-  const out:string[]=[];
-  const fenced=/```(?:json)?\s*([\s\S]*?)```/giu;
-  for(const match of source.matchAll(fenced)){
-    const candidate=String(match[1]||'').trim();
-    if(candidate)out.push(candidate);
-  }
-  const first=source.indexOf('{');
-  const last=source.lastIndexOf('}');
-  if(first>=0&&last>first)out.push(source.slice(first,last+1));
-  return Array.from(new Set(out));
-}
-function masterPayload(value:string){
-  for(const candidate of jsonCandidates(value)){
-    try{
-      const parsed=JSON.parse(candidate);
-      if(parsed&&typeof parsed==='object'&&Array.isArray(parsed.parsed_items))return parsed;
-    }catch{}
-  }
-  throw new Error('ai_response_invalid');
-}
-function positiveNumber(value:any){
-  const number=Number(String(value??'').replace(',','.'));
-  return Number.isFinite(number)&&number>0?number:null;
-}
-function masterItemText(item:any){
-  return [String(item?.quantityLabel||item?.quantity||'').trim(),String(item?.unit||'').trim(),String(item?.name||'').trim()]
-    .filter(Boolean).join(' ').replace(/\s+/g,' ').trim();
-}
-function parseMasterOrderResponse(value:string){
-  const payload=masterPayload(value);
-  const items=[];
-  const unresolved=[];
-  for(const raw of payload.parsed_items){
-    const quantity=positiveNumber(raw?.quantity_number);
-    const name=clean(raw?.normalized_vn,500);
-    const unit=clean(raw?.unit,50);
-    if(!quantity||!name){
-      const unresolvedRaw=clean(raw?.raw_text,500);
-      if(unresolvedRaw)unresolved.push({raw:unresolvedRaw});
-      continue;
-    }
-    items.push({
-      quantity,
-      quantityLabel:String(quantity),
-      unit,
-      name,
-      rawText:clean(raw?.raw_text,500),
-      detectedBrand:clean(raw?.detected_brand,200),
-      action:clean(raw?.action,50),
-    });
-  }
-  if(!items.length)throw new Error('ai_items_missing');
-  return {
-    items,
-    unresolved,
-    summary:payload.summary&&typeof payload.summary==='object'?payload.summary:null,
-    text:items.map(masterItemText).filter(Boolean).join('\n'),
-  };
 }
 async function resolveOrderWithAi(source:string,images:any[],cfg:any,referenceContext=''){
   const input=clean(source,MAX_SOURCE_CHARS);
@@ -290,11 +223,14 @@ Deno.serve(async(req:Request)=>{
     if(sourceText)rankGroceryCandidates(sourceText,groceryLibrary,1);
 
     const aiResponse=await resolveOrderWithAi(sourceText,images,cfg,referenceContext);
-    const final=parseMasterOrderResponse(aiResponse);
+    const final=parseMasterOrderResponseText(aiResponse);
     return json({
       ok:true,
       mode:'ai',
       source:source.source,
+      intent:final.intent,
+      requiresHumanAction:final.requiresHumanAction,
+      humanActionReason:final.humanActionReason,
       items:final.items,
       unresolved:final.unresolved,
       summary:final.summary,
