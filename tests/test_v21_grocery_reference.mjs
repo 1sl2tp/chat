@@ -1,3 +1,4 @@
+// Recognition library is evidence only; clear source phrases must survive unchanged.
 import assert from 'node:assert/strict';
 import {
   normalizeRecognitionCore,
