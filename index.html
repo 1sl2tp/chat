@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="d3ea194b80ea7f2f67c468d765396ed9f4156c17806a1abdfbf72fbaabb45646">
+<meta name="app-build-id" content="561defdc6a656a54a929e9665666418903ad3beb5bac4cc7d09fccf02664793d">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -423,6 +423,208 @@
     pointer-events:none;
   }
   #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #workThreadView .work-thread-empty{display:none!important}
+}
+
+</style>
+<style data-inlined-source="work-customer-summary.css">
+[data-work-summary-root]{
+  width:100%;
+  height:100%;
+  min-width:0;
+  min-height:0;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  background:var(--theme-surface-primary);
+  color:var(--theme-content-primary);
+}
+.work-summary-header{
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:14px 16px 12px;
+  border-bottom:1px solid var(--theme-border-default);
+}
+.work-summary-header-title{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+.work-summary-heading{
+  font-size:16px;
+  line-height:22px;
+  font-weight:650;
+}
+.work-summary-subheading,
+.work-summary-customer-time{
+  font-size:12px;
+  line-height:17px;
+  color:var(--theme-content-tertiary);
+}
+.work-summary-body{
+  min-height:0;
+  flex:1 1 auto;
+  overflow:auto;
+  overscroll-behavior:contain;
+  padding:10px 12px 20px;
+  scrollbar-width:thin;
+}
+.work-summary-customer{
+  background:var(--theme-surface-primary);
+  border:1px solid var(--theme-border-default);
+  border-radius:14px;
+  overflow:hidden;
+}
+.work-summary-customer+.work-summary-customer{margin-top:10px;}
+.work-summary-customer-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  padding:11px 12px 9px;
+  background:var(--theme-surface-secondary);
+  border-bottom:1px solid var(--theme-border-default);
+}
+.work-summary-customer-title{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:1px;
+}
+.work-summary-customer-name{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:15px;
+  line-height:21px;
+  font-weight:650;
+}
+.work-summary-total{
+  flex:0 0 auto;
+  max-width:52%;
+  text-align:right;
+  font-size:12px;
+  line-height:18px;
+  color:var(--theme-content-secondary);
+}
+.work-summary-list{
+  margin:0;
+  padding:0;
+  list-style:none;
+  counter-reset:work-summary-row;
+}
+.work-summary-item{
+  counter-increment:work-summary-row;
+  position:relative;
+  padding:9px 12px 9px 40px;
+}
+.work-summary-item::before{
+  content:counter(work-summary-row) ".";
+  position:absolute;
+  left:12px;
+  top:9px;
+  width:22px;
+  text-align:right;
+  font-variant-numeric:tabular-nums;
+  color:var(--theme-content-tertiary);
+  font-size:13px;
+  line-height:20px;
+}
+.work-summary-item+.work-summary-item{
+  border-top:1px solid color-mix(in srgb,var(--theme-border-default) 70%,transparent);
+}
+.work-summary-item-main{
+  min-width:0;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:start;
+  gap:10px;
+}
+.work-summary-item-name{
+  min-width:0;
+  font-size:14px;
+  line-height:20px;
+  overflow-wrap:anywhere;
+}
+.work-summary-item-qty{
+  min-width:0;
+  font-size:14px;
+  line-height:20px;
+  font-weight:650;
+  text-align:right;
+  font-variant-numeric:tabular-nums;
+  white-space:nowrap;
+}
+.work-summary-item-meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+  margin-top:5px;
+}
+.work-summary-badge{
+  display:inline-flex;
+  align-items:center;
+  min-height:18px;
+  padding:1px 6px;
+  border-radius:999px;
+  background:var(--theme-surface-secondary);
+  color:var(--theme-content-tertiary);
+  font-size:10px;
+  line-height:14px;
+  font-weight:650;
+  letter-spacing:.02em;
+}
+.work-summary-evidence{
+  margin-top:4px;
+  font-size:12px;
+  line-height:17px;
+  color:var(--theme-content-secondary);
+  overflow-wrap:anywhere;
+}
+.work-summary-evidence-label{color:var(--theme-content-tertiary);}
+.work-summary-warning{
+  padding:8px 12px;
+  font-size:12px;
+  line-height:17px;
+  color:var(--theme-content-secondary);
+  border-bottom:1px solid var(--theme-border-default);
+}
+.work-summary-empty-customer,
+.work-summary-state{
+  padding:18px 16px;
+  color:var(--theme-content-secondary);
+  font-size:13px;
+  line-height:19px;
+}
+.work-summary-state{
+  width:100%;
+  height:100%;
+  box-sizing:border-box;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  gap:4px;
+  text-align:center;
+}
+.work-summary-state-title{
+  color:var(--theme-content-primary);
+  font-size:16px;
+  line-height:22px;
+}
+.work-summary-state-error .work-summary-state-text{color:var(--theme-content-secondary);}
+@media(max-width:640px){
+  .work-summary-header{padding:12px 12px 10px;}
+  .work-summary-body{padding:8px 8px 18px;}
+  .work-summary-customer{border-radius:12px;}
+  .work-summary-customer-head{padding:10px;}
+  .work-summary-item{padding:9px 10px 9px 36px;}
+  .work-summary-item::before{left:8px;}
+  .work-summary-total{max-width:48%;}
 }
 
 </style>
@@ -3553,10 +3755,7 @@ button{
             </div>
             <div id="workThreadView" class="thread-mode-view" data-thread-view="work" hidden>
               <div class="work-thread-frame" data-work-owner="chat">
-                <div class="work-thread-empty" role="status" aria-live="polite">
-                  <strong>Công việc</strong>
-                  <span>Khu vực này để phát triển sau.</span>
-                </div>
+                <div class="work-summary-root" data-work-summary-root role="region" aria-label="Tổng hợp hàng hóa" aria-live="polite"></div>
               </div>
             </div>
           </div>
@@ -14048,6 +14247,208 @@ window.V21AuthSessionStore={
 };
 
 void boot();
+})();
+
+</script>
+<script data-inlined-source="work-customer-summary.js">
+(()=>{
+'use strict';
+
+const REFRESH_MS=60000;
+let timer=0;
+let loading=false;
+let generation=0;
+
+function root(){return document.querySelector('[data-work-summary-root]');}
+function authStore(){return window.V21AuthSessionStore||null;}
+function snapshot(){return authStore()?.snapshot?.()||{state:'BOOTING',account:null};}
+function client(){return authStore()?.getClient?.()||null;}
+
+function node(tag,className,text){
+  const el=document.createElement(tag);
+  if(className)el.className=className;
+  if(text!==undefined&&text!==null)el.textContent=String(text);
+  return el;
+}
+
+function formatTime(value){
+  if(!value)return '';
+  const date=new Date(value);
+  if(Number.isNaN(date.getTime()))return '';
+  try{return new Intl.DateTimeFormat('vi-VN',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).format(date);}
+  catch{return date.toLocaleString();}
+}
+
+function quantityText(item={}){
+  if(item.quantity===null||item.quantity===undefined||item.quantity==='')return '?';
+  const quantity=Number(item.quantity);
+  const label=Number.isFinite(quantity)?String(quantity):String(item.quantity);
+  return item.unit?`${label} ${String(item.unit)}`:label;
+}
+
+function totalText(result={}){
+  const parts=[];
+  const totalLines=Number(result.totalLines)||0;
+  parts.push(`${totalLines} dòng`);
+  for(const total of Array.isArray(result.totals)?result.totals:[]){
+    const quantity=Number(total?.quantity);
+    if(!Number.isFinite(quantity)||quantity<=0)continue;
+    parts.push(total?.unit?`${quantity} ${String(total.unit)}`:`${quantity} SL`);
+  }
+  return parts.join(' · ');
+}
+
+function sourceLabel(item={}){
+  const source=String(item.source||'').toLowerCase();
+  if(source.includes('image')&&source.includes('text'))return 'ẢNH + TEXT';
+  if(source.includes('image'))return 'ẢNH';
+  if(source.includes('admin-context'))return 'NGỮ CẢNH';
+  return '';
+}
+
+function renderItem(item,index){
+  const li=node('li','work-summary-item');
+  const main=node('div','work-summary-item-main');
+  const name=node('span','work-summary-item-name',item?.name||item?.rawEvidence||'Chưa rõ');
+  const qty=node('strong','work-summary-item-qty',quantityText(item));
+  main.append(name,qty);
+  li.append(main);
+
+  const badges=[];
+  const source=sourceLabel(item);
+  if(source)badges.push(source);
+  if(item?.ambiguous)badges.push('NGHI NGỜ');
+  if(item?.inferred)badges.push('SUY LUẬN');
+  if(badges.length){
+    const meta=node('div','work-summary-item-meta');
+    for(const label of badges)meta.append(node('span','work-summary-badge',label));
+    li.append(meta);
+  }
+
+  const evidence=String(item?.rawEvidence||'').trim();
+  if(evidence&&(item?.ambiguous||item?.inferred)){
+    const original=node('div','work-summary-evidence');
+    original.append(node('span','work-summary-evidence-label','Gốc: '));
+    original.append(document.createTextNode(evidence));
+    li.append(original);
+  }
+  li.dataset.index=String(index+1);
+  return li;
+}
+
+function renderCustomer(row){
+  const result=row?.result_json&&typeof row.result_json==='object'?row.result_json:{};
+  const items=Array.isArray(result.items)?result.items:[];
+  const card=node('section','work-summary-customer');
+  card.dataset.customerId=String(row?.customer_id||'');
+
+  const head=node('div','work-summary-customer-head');
+  const titleWrap=node('div','work-summary-customer-title');
+  titleWrap.append(node('strong','work-summary-customer-name',row?.display_name||row?.username||'Khách hàng'));
+  const stamp=formatTime(row?.last_scanned_at);
+  if(stamp)titleWrap.append(node('span','work-summary-customer-time',stamp));
+  head.append(titleWrap,node('span','work-summary-total',totalText(result)));
+  card.append(head);
+
+  if(row?.last_error){
+    card.append(node('div','work-summary-warning',`Lần quét gần nhất có lỗi: ${String(row.last_error)}`));
+  }
+
+  if(!items.length){
+    card.append(node('div','work-summary-empty-customer','Không có dòng hàng được xác định.'));
+    return card;
+  }
+
+  const list=node('ol','work-summary-list');
+  list.start=1;
+  items.forEach((item,index)=>list.append(renderItem(item,index)));
+  card.append(list);
+  return card;
+}
+
+function renderShell(message,kind='muted'){
+  const host=root();
+  if(!host)return;
+  host.replaceChildren();
+  const shell=node('div',`work-summary-state work-summary-state-${kind}`);
+  shell.append(node('strong','work-summary-state-title','Tổng hợp hàng hóa'));
+  shell.append(node('span','work-summary-state-text',message));
+  host.append(shell);
+}
+
+function renderRows(rows=[]){
+  const host=root();
+  if(!host)return;
+  host.replaceChildren();
+
+  const header=node('div','work-summary-header');
+  const title=node('div','work-summary-header-title');
+  title.append(node('strong','work-summary-heading','Tổng hợp hàng hóa'));
+  title.append(node('span','work-summary-subheading',`${rows.length} khách có kết quả quét`));
+  header.append(title);
+  host.append(header);
+
+  if(!rows.length){
+    host.append(node('div','work-summary-state work-summary-state-muted','Chưa có kết quả quét.'));
+    return;
+  }
+
+  const body=node('div','work-summary-body');
+  for(const row of rows)body.append(renderCustomer(row));
+  host.append(body);
+}
+
+async function refresh(reason='timer'){
+  const host=root();
+  if(!host||loading)return false;
+  const auth=snapshot();
+  if(auth.state!=='AUTHENTICATED'||auth.account?.role!=='admin'){
+    renderShell('Đăng nhập Admin để xem kết quả quét.');
+    return false;
+  }
+  const db=client();
+  if(!db){renderShell('Chưa sẵn sàng kết nối dữ liệu.','error');return false;}
+
+  loading=true;
+  const requestGeneration=++generation;
+  host.dataset.loading='true';
+  if(!host.querySelector('.work-summary-customer'))renderShell('Đang tải kết quả quét…');
+  try{
+    const {data,error}=await db.rpc('chat_customer_summary_work_feed');
+    if(error)throw error;
+    if(requestGeneration!==generation)return false;
+    renderRows(Array.isArray(data)?data:[]);
+    host.dataset.lastRefreshReason=String(reason||'refresh');
+    host.dataset.lastRefreshedAt=new Date().toISOString();
+    return true;
+  }catch(error){
+    console.error('[work-customer-summary]',error);
+    renderShell('Không tải được tổng hợp hàng hóa.','error');
+    return false;
+  }finally{
+    loading=false;
+    host.removeAttribute('data-loading');
+  }
+}
+
+function schedule(){
+  if(timer)clearInterval(timer);
+  timer=window.setInterval(()=>{void refresh('interval');},REFRESH_MS);
+}
+
+document.addEventListener('v21-auth-state',()=>{void refresh('auth-state');});
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible')void refresh('visible');
+});
+document.addEventListener('click',event=>{
+  const target=event.target?.closest?.('[data-top-tab="work"],[data-nav-target="work"]');
+  if(target)void refresh('open-work');
+});
+
+schedule();
+void refresh('boot');
+
+window.V21WorkCustomerSummary=Object.freeze({refresh});
 })();
 
 </script>
