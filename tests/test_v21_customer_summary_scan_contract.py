@@ -33,6 +33,11 @@ assert 'ADMIN_CONTEXT' in c, 'Admin messages must be clearly marked as context o
 assert 'KHACH' in c, 'customer messages must be clearly marked as customer source'
 assert 'không được tạo hàng từ lời admin' in cl or 'không tạo hàng từ lời admin' in cl, 'prompt must forbid creating goods from Admin text'
 
+# Product-defining customer words are part of the name, not disposable prose.
+for token in ('bé','to','đắt','rẻ','có đường','ít đường','không đường','màu'):
+    assert token in cl, f'prompt must preserve product differentiator: {token}'
+assert 'normalizeSummaryPayload(parsed,messages)' in compact or 'normalizeSummaryPayload(parsed,sourceRows)' in compact, 'runtime normalization must receive original customer messages so it can repair model-truncated differentiators'
+
 # Images from the customer are part of the source: order image yes, product illustration no.
 assert 'v21_media_assets' in e and "eq('kind','image')" in compact, 'customer images must be loaded for vision input'
 assert 'ảnh đơn' in cl, 'prompt must explicitly recognize order images'
