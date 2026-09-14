@@ -39,6 +39,14 @@ assert '.work-summary-overview-list-scroll' in s, 'overview customer-row scrolle
 assert 'overflow-y:auto' in s.replace(' ', ''), 'customer-row scroller must own vertical scrolling'
 assert '.work-summary-overview{\n  display:block;\n  overflow:hidden;' in s, 'overview body itself must not scroll'
 
+# Work route must disable the conversation ScrollRoot entirely. Otherwise the whole
+# Work frame (Tổng hợp/header/footer included) can still move a few pixels while the
+# inner numbered list also scrolls.
+compact = ''.join(s.split())
+assert '#appShell[data-route="work"]#scrollRoot' in compact, 'Work must explicitly take scroll ownership away from conversation ScrollRoot'
+assert 'overflow-y:hidden!important' in compact, 'conversation ScrollRoot must not scroll while Work is active'
+assert 'overscroll-behavior:none' in compact, 'Work outer scroller must not rubber-band or chain scrolling'
+
 # Selecting a chat contact switches Work to that customer; Tất cả returns to overview.
 assert 'v21-active-contact-change' in c, 'Work must react to the selected customer'
 assert 'renderCustomerDetail' in c, 'selected-customer reconciliation view is required'
