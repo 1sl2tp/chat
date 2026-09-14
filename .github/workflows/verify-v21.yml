@@ -79,6 +79,10 @@ jobs:
         run: node tests/test_v21_grocery_reference.mjs
       - name: Handwritten repeat-marker Edge contract
         run: python tests/test_v21_order_scribe_inherit_marker_edge.py
+      - name: Incremental AI scan core contract
+        run: node tests/test_v21_ai_incremental_scan_core.mjs
+      - name: Incremental AI scan database/edge contract
+        run: python tests/test_v21_ai_incremental_scan_db_contract.py
       - name: Chat order draft database contract
         run: python tests/test_v21_order_draft_db_contract.py
       - name: Chat order draft core contract
