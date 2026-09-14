@@ -2,7 +2,6 @@ import { createClient } from "npm:@supabase/supabase-js@2.57.4";
 import { formatOrderItems, parseQuickOrderText } from "./scribe-core.mjs";
 import { parseMasterOrderResponseText } from "./master-order-core.mjs";
 import { ORDER_MASTER_PROMPT } from "./order-ai-prompts.mjs";
-import { buildGroceryReferenceContext, buildOwnRecognitionVocabulary, loadGroceryReferenceLibrary, rankGroceryCandidates } from "./grocery-reference.mjs";
 
 const SUPABASE_URL=String(Deno.env.get('SUPABASE_URL')||'').trim();
 const SERVICE_KEY=String(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'').trim();
@@ -173,13 +172,10 @@ async function geminiTextRequest(cfg:any,parts:any[]){
   if(!text)throw new Error('ai_response_invalid');
   return text;
 }
-async function resolveOrderWithAi(source:string,images:any[],cfg:any,referenceContext=''){
+async function resolveOrderWithAi(source:string,images:any[],cfg:any){
   const input=clean(source,MAX_SOURCE_CHARS);
   if(!input&&!images.length)throw new Error('order_text_required');
   const parts:any[]=[{text:ORDER_MASTER_PROMPT}];
-  if(referenceContext){
-    parts.push({text:`\n\nDỮ LIỆU THAM CHIẾU NỘI BỘ (chỉ dùng để đối chiếu tên/alias/quy cách, không thay thế luật MASTER):\n${referenceContext}`});
-  }
   if(input)parts.push({text:`\n\nĐẦU VÀO TEXT / VOICE-TO-TEXT / SỬA ĐƠN QUA CHAT:\n${input}`});
   for(let index=0;index<images.length;index++){
     const image=images[index];
@@ -211,18 +207,11 @@ Deno.serve(async(req:Request)=>{
 
     const cfg=await runtimeConfig();
     if(!cfg.key)throw new Error('ai_not_configured');
-    const groceryLibrary=await loadGroceryReferenceLibrary(db);
     const images=imageAssetIds.length
       ?await loadInboundImages(String(admin.account.id),source.contactId,imageAssetIds)
       :[];
-
     const sourceText=clean(source.text,MAX_SOURCE_CHARS);
-    const ownVocabulary=buildOwnRecognitionVocabulary(groceryLibrary,{maxChars:12000});
-    const nearbyReference=sourceText?buildGroceryReferenceContext(sourceText,groceryLibrary):'';
-    const referenceContext=[nearbyReference,ownVocabulary].filter(Boolean).join('\n\n');
-    if(sourceText)rankGroceryCandidates(sourceText,groceryLibrary,1);
-
-    const aiResponse=await resolveOrderWithAi(sourceText,images,cfg,referenceContext);
+    const aiResponse=await resolveOrderWithAi(sourceText,images,cfg);
     const final=parseMasterOrderResponseText(aiResponse);
     return json({
       ok:true,
