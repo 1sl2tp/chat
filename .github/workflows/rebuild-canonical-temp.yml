@@ -1,0 +1,28 @@
+name: Rebuild canonical temp
+
+on:
+  push:
+    branches:
+      - feature/ai-fmcg-intent-filter
+    paths:
+      - .github/workflows/rebuild-canonical-temp.yml
+
+permissions:
+  contents: write
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/ai-fmcg-intent-filter
+      - name: Rebuild canonical files and remove temporary workflow
+        run: |
+          python tools/build_current_preview.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html version.json
+          git rm .github/workflows/rebuild-canonical-temp.yml
+          git commit -m "build: synchronize canonical bundle"
+          git push origin HEAD:feature/ai-fmcg-intent-filter
