@@ -38,6 +38,7 @@ legacy_paths = [
     'admin-ai-extract.js',
     'admin-order-draft.js',
     'order-scribe-client.js',
+    'supabase/functions/_shared/customer-order-parser.mjs',
     'supabase/functions/v21-order-source',
     'supabase/functions/v21-order-scribe',
     'supabase/functions/v21-order-draft',
