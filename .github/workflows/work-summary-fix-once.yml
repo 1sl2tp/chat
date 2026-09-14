@@ -1,0 +1,116 @@
+name: Work Summary Fix Once
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.work-summary-fix-trigger'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Patch Work summary behavior
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          js_path=Path('work-customer-summary.js')
+          c=js_path.read_text('utf-8')
+
+          c=c.replace("let mobileSwipe=null;\nconst completionBusy=new Set();", "let mobileSwipe=null;\nlet pendingReorderKey='';\nconst completionBusy=new Set();")
+
+          c=re.sub(
+            r"function rowSummary\(row=\{\}\)\{.*?\n\}\n\nfunction normalizeKeyText",
+            """function rowSummary(row={}){\n  const remainingRecords=reconcileRecords(row).filter(record=>!record.completed);\n  const items=remainingRecords.map(record=>record.item);\n  return{\n    row,\n    items,\n    codeCount:items.length,\n    productCount:summaryProductCount(items)\n  };\n}\n\nfunction normalizeKeyText""",
+            c,
+            count=1,
+            flags=re.S,
+          )
+
+          c=re.sub(
+            r"function sortItemsForReconcile\(records=\[\]\)\{.*?\n\}\n\nfunction renderShell",
+            """function sortItemsForReconcile(records=[]){\n  return records.slice().sort((a,b)=>{\n    const aCompleted=Boolean(a.completed)&&a.itemKey!==pendingReorderKey;\n    const bCompleted=Boolean(b.completed)&&b.itemKey!==pendingReorderKey;\n    if(aCompleted!==bCompleted)return aCompleted?1:-1;\n    return Number(a.index)-Number(b.index);\n  });\n}\n\nfunction detailBody(){\n  return root()?.querySelector?.('.work-summary-body.work-summary-detail')||null;\n}\n\nfunction captureDetailScroll(){\n  const body=detailBody();\n  return body?Number(body.scrollTop)||0:0;\n}\n\nfunction restoreDetailScroll(scrollTop=0){\n  const body=detailBody();\n  if(!body)return false;\n  body.scrollTop=Math.max(0,Number(scrollTop)||0);\n  return true;\n}\n\nfunction renderShell""",
+            c,
+            count=1,
+            flags=re.S,
+          )
+
+          c=re.sub(
+            r"function renderOverviewRow\(summary\)\{.*?\n\}\n\nfunction renderDetailItem",
+            """function renderOverviewRow(summary,index){\n  const row=summary.row||{};\n  const card=node('div','work-summary-overview-row work-summary-customer work-summary-overview-grid-row');\n  card.dataset.customerId=String(row.customer_id||'');\n  card.append(node('span','work-summary-overview-index',String(index+1)));\n  card.append(node('strong','work-summary-overview-name',row.display_name||row.username||'Khách hàng'));\n  card.append(node('span','work-summary-overview-code',formatNumber(summary.codeCount)));\n  card.append(node('span','work-summary-overview-product',formatNumber(summary.productCount)));\n  return card;\n}\n\nfunction renderOverview(rows=[]){\n  const host=root();\n  if(!host)return;\n  host.replaceChildren();\n\n  const summaries=rows.map(rowSummary).filter(summary=>summary.codeCount>0);\n  const header=node('div','work-summary-header');\n  const title=node('div','work-summary-header-title');\n  title.append(node('strong','work-summary-heading','Tổng hợp'));\n  title.append(node('span','work-summary-subheading',`${summaries.length} khách có hàng`));\n  header.append(title);\n  host.append(header);\n\n  if(!summaries.length){\n    host.append(node('div','work-summary-state work-summary-state-muted','Chưa có khách nào có hàng chưa hoàn thành.'));\n    return;\n  }\n\n  const body=node('div','work-summary-body work-summary-overview');\n  const grid=node('div','work-summary-overview-grid');\n  const head=node('div','work-summary-overview-head work-summary-overview-grid-row');\n  head.append(node('span','work-summary-overview-index','STT'));\n  head.append(node('span','work-summary-overview-name','Tên'));\n  head.append(node('span','work-summary-overview-code','Mã'));\n  head.append(node('span','work-summary-overview-product','Sản phẩm'));\n  grid.append(head);\n  summaries.forEach((summary,index)=>grid.append(renderOverviewRow(summary,index)));\n\n  const totalCodes=summaries.reduce((sum,summary)=>sum+summary.codeCount,0);\n  const totalProducts=summaries.reduce((sum,summary)=>sum+summary.productCount,0);\n  const total=node('div','work-summary-overview-grand-total work-summary-overview-grid-row');\n  total.append(node('span','work-summary-overview-index',''));\n  total.append(node('strong','work-summary-overview-name','Tổng'));\n  total.append(node('strong','work-summary-overview-code',formatNumber(totalCodes)));\n  total.append(node('strong','work-summary-overview-product',formatNumber(totalProducts)));\n  grid.append(total);\n\n  body.append(grid);\n  host.append(body);\n}\n\nfunction renderDetailItem""",
+            c,
+            count=1,
+            flags=re.S,
+          )
+
+          c=c.replace(
+            "const li=node('li',`work-summary-item${completed?' is-completed':''}`);",
+            "const li=node('li',`work-summary-item${completed?' is-completed':''}${itemKey===pendingReorderKey?' is-just-updated':''}`);",
+          )
+
+          c=re.sub(
+            r"function renderCustomerDetail\(row,contact\)\{.*?\n\}\n\nfunction renderCurrent",
+            """function renderCustomerDetail(row,contact){\n  const host=root();\n  if(!host)return;\n  host.replaceChildren();\n\n  const customerId=String(row?.customer_id||contact?.id||'');\n  const allRecords=row?reconcileRecords(row):[];\n  const records=sortItemsForReconcile(allRecords);\n  const remainingRecords=allRecords.filter(record=>!record.completed);\n  const remainingProductCount=summaryProductCount(remainingRecords.map(record=>record.item));\n\n  const header=node('div','work-summary-header work-summary-detail-header');\n  const all=node('button','work-summary-all','Tất cả');\n  all.type='button';\n  all.dataset.workSummaryAll='true';\n  const title=node('div','work-summary-header-title');\n  title.append(node('strong','work-summary-heading',row?.display_name||row?.username||contact?.name||'Khách hàng'));\n  title.append(node('span','work-summary-subheading',`${remainingRecords.length} mã · ${formatNumber(remainingProductCount)} sản phẩm`));\n  header.append(all,title);\n  host.append(header);\n\n  if(!records.length){\n    host.append(node('div','work-summary-state work-summary-state-muted','Khách này chưa có dòng hàng đủ tên và số lượng.'));\n    return;\n  }\n\n  const body=node('div','work-summary-body work-summary-detail');\n  const list=node('ol','work-summary-list');\n  records.forEach(record=>list.append(renderDetailItem(record,customerId)));\n  body.append(list);\n  host.append(body);\n}\n\nfunction renderCurrent""",
+            c,
+            count=1,
+            flags=re.S,
+          )
+
+          c=re.sub(
+            r"async function setCompleted\(customerId,itemKey,completed\)\{.*?\n\}\n\nasync function refresh",
+            """async function setCompleted(customerId,itemKey,completed){\n  const db=client();\n  const key=`${customerId}::${itemKey}`;\n  if(!db||completionBusy.has(key))return false;\n  const row=rowsCache.find(item=>String(item?.customer_id||'')===String(customerId))||null;\n  if(!row)return false;\n\n  completionBusy.add(key);\n  const before=Array.isArray(row.completed_item_keys)?row.completed_item_keys.slice():[];\n  const scrollTop=captureDetailScroll();\n  pendingReorderKey=String(itemKey);\n  setCachedCompleted(row,itemKey,completed);\n  renderCurrent();\n  restoreDetailScroll(scrollTop);\n\n  const reorderTimer=window.setTimeout(()=>{\n    if(pendingReorderKey!==String(itemKey))return;\n    const currentScroll=captureDetailScroll();\n    pendingReorderKey='';\n    renderCurrent();\n    restoreDetailScroll(currentScroll);\n  },360);\n\n  try{\n    const {error}=await db.rpc('chat_customer_summary_set_completed',{\n      p_customer_id:String(customerId),\n      p_item_key:String(itemKey),\n      p_completed:Boolean(completed)\n    });\n    if(error)throw error;\n    return true;\n  }catch(error){\n    window.clearTimeout(reorderTimer);\n    row.completed_item_keys=before;\n    if(pendingReorderKey===String(itemKey))pendingReorderKey='';\n    const rollbackScroll=captureDetailScroll();\n    renderCurrent();\n    restoreDetailScroll(rollbackScroll);\n    console.error('[work-customer-summary completion]',error);\n    return false;\n  }finally{\n    completionBusy.delete(key);\n  }\n}\n\nasync function refresh""",
+            c,
+            count=1,
+            flags=re.S,
+          )
+
+          c=c.replace(
+            "loading=true;\n  const requestGeneration=++generation;",
+            "loading=true;\n  const detailScrollTop=captureDetailScroll();\n  const requestGeneration=++generation;",
+          )
+          c=c.replace(
+            "rowsCache=Array.isArray(data)?data.map(row=>({...row})):[];\n    renderCurrent();\n    if(shellSnapshot().route==='work')pinWorkOuterScroll();",
+            "rowsCache=Array.isArray(data)?data.map(row=>({...row})):[];\n    renderCurrent();\n    restoreDetailScroll(detailScrollTop);\n    if(shellSnapshot().route==='work')pinWorkOuterScroll();",
+          )
+
+          js_path.write_text(c,'utf-8')
+
+          css_path=Path('work-customer-summary.css')
+          s=css_path.read_text('utf-8')
+          s=re.sub(
+            r"\.work-summary-overview\{.*?\.work-summary-overview-total\{.*?\n\}",
+            """.work-summary-overview{\n  display:block;\n}\n.work-summary-overview-grid{\n  min-width:0;\n  border:1px solid var(--theme-border-default);\n  border-radius:12px;\n  overflow:hidden;\n  background:var(--theme-surface-primary);\n}\n.work-summary-overview-grid-row{\n  min-width:0;\n  min-height:44px;\n  display:grid;\n  grid-template-columns:44px minmax(0,1fr) 64px 88px;\n  align-items:center;\n}\n.work-summary-overview-head{\n  min-height:36px;\n  background:var(--theme-surface-secondary);\n  color:var(--theme-content-secondary);\n  font-size:12px;\n  line-height:16px;\n  font-weight:600;\n}\n.work-summary-customer{\n  background:var(--theme-surface-primary);\n  border:0;\n  border-radius:0;\n  overflow:visible;\n}\n.work-summary-overview-row{\n  padding:0;\n  font-size:13px;\n  line-height:18px;\n}\n.work-summary-overview-row+.work-summary-overview-row,\n.work-summary-overview-head+.work-summary-overview-row,\n.work-summary-overview-grand-total{\n  border-top:1px solid color-mix(in srgb,var(--theme-border-default) 70%,transparent);\n}\n.work-summary-overview-index{\n  min-width:0;\n  text-align:center;\n  color:var(--theme-content-tertiary);\n  font-variant-numeric:tabular-nums;\n}\n.work-summary-overview-name{\n  min-width:0;\n  padding:0 8px;\n  overflow:hidden;\n  text-overflow:ellipsis;\n  white-space:nowrap;\n  font-size:13px;\n  line-height:18px;\n  font-weight:600;\n}\n.work-summary-overview-code,\n.work-summary-overview-product{\n  min-width:0;\n  padding-right:12px;\n  text-align:right;\n  font-variant-numeric:tabular-nums;\n}\n.work-summary-overview-grand-total{\n  min-height:40px;\n  background:var(--theme-surface-secondary);\n  font-size:13px;\n}\n.work-summary-overview-grand-total .work-summary-overview-name{\n  font-weight:700;\n}""",
+            s,
+            count=1,
+            flags=re.S,
+          )
+
+          s=s.replace(
+            ".work-summary-item.is-completed .work-summary-check{\n  background:var(--theme-surface-secondary);\n}",
+            ".work-summary-item.is-completed .work-summary-check{\n  background:var(--theme-surface-secondary);\n}\n.work-summary-item.is-just-updated{\n  animation:workSummaryPulse 360ms ease;\n  background:color-mix(in srgb,var(--theme-content-primary) 7%,var(--theme-surface-primary));\n}\n@keyframes workSummaryPulse{\n  0%{transform:scale(.995);}\n  45%{transform:scale(1);}\n  100%{transform:scale(1);}\n}",
+          )
+          s=s.replace(
+            "  .work-summary-overview-row{padding:10px;}",
+            "  .work-summary-overview-grid-row{grid-template-columns:34px minmax(0,1fr) 48px 68px;}\n  .work-summary-overview-name{padding-inline:6px;}\n  .work-summary-overview-code,.work-summary-overview-product{padding-right:8px;}\n  .work-summary-overview-row{padding:0;}",
+          )
+          css_path.write_text(s,'utf-8')
+          PY
+      - name: Verify targeted Work summary contracts
+        run: |
+          node --check work-customer-summary.js
+          python tests/test_v21_work_customer_summary_ui.py
+          python tests/test_v21_work_customer_summary_reconcile.py
+      - name: Build canonical preview
+        run: python tools/build_current_preview.py
+      - name: Commit Work summary fix
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add work-customer-summary.js work-customer-summary.css index.html version.json
+          git commit -m 'fix: stabilize Work summary reconciliation'
+          git push origin main
