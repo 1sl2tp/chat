@@ -35,6 +35,6 @@ assert './admin-ai-extract.js' in CLIENT, "order-scribe client must bootstrap th
 assert 'dataset.imageAiAction' in ai
 assert '.image-review-head' in ai
 assert 'aria-current' in ai and 'image-review-thumb-image' in ai
-assert 'dataset.assetId' in ai
+assert 'dataset?.assetId' in ai
 
 print("chat draft/order + AI extraction integration PASS")
