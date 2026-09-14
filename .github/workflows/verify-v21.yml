@@ -43,6 +43,8 @@ jobs:
         run: python tests/test_v21_chat_workspace_3col.py
       - name: Legacy Chat order-source removal contract
         run: python tests/test_v21_legacy_chat_order_source_removed.py
+      - name: Manual Chat order tools removal contract
+        run: python tests/test_v21_chat_manual_order_tools_removed.py
       - name: Chat image orientation + column-2 viewer contract
         run: python tests/test_v21_chat_image_orientation_column.py
       - name: Chat album viewer column-2 geometry contract
@@ -65,8 +67,6 @@ jobs:
         run: node tests/test_v21_order_master_full.mjs
       - name: Handwritten repeat-marker inheritance contract
         run: node tests/test_v21_order_scribe_inherit_marker.mjs
-      - name: Manual order scribe client normalization
-        run: node tests/test_v21_order_scribe_client_runtime.js
       - name: Manual order scribe Edge contract
         run: python tests/test_v21_order_scribe_edge_contract.py
       - name: Grocery reference ranking contract
@@ -83,14 +83,6 @@ jobs:
         run: node tests/test_v21_order_draft_core.mjs
       - name: Chat order draft Edge contract
         run: python tests/test_v21_order_draft_edge_contract.py
-      - name: Chat order draft UI contract
-        run: |
-          node --check admin-order-draft.js
-          python tests/test_v21_order_draft_ui.py
-      - name: Chat order draft composer integration
-        run: |
-          node --check admin-ai-extract.js
-          python tests/test_v21_order_draft_composer_integration.py
       - name: CHAT work isolation contract
         run: python tests/test_v21_work_context_bridge.py
       - name: Chat quote database contract
