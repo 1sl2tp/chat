@@ -18,7 +18,7 @@ assert "[data-top-tab=\"chat\"]" in client or "[data-top-tab='chat']" in client,
 assert 'v21-active-contact-change' in client, 'choosing a contact must switch from Danh bạ to the chat thread'
 
 # The directory is a real mobile screen, not the old narrow popup/drawer.
-assert 'data-mobile-directory' in client, 'runtime must own an explicit mobile directory screen state'
+assert 'dataset.mobileDirectory' in client, 'runtime must own an explicit mobile directory screen state'
 assert 'data-mobile-directory="true"' in style, 'mobile directory state needs full-screen geometry'
 assert '#shellNavigationLayer' in style and '.shell-navigation-panel' in style, 'directory geometry must override the existing shell layer'
 assert 'width:100%' in style.replace(' ', ''), 'mobile directory panel must occupy the whole available width'
