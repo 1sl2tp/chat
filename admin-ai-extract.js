@@ -327,7 +327,7 @@ function init(){
   ensureSelectionButton();
   document.addEventListener('selectionchange',scheduleSelectionAction);
   document.addEventListener('navigation-change',hideSelectionButton);
-  document.addEventListener('v21-auth-session-change',()=>{hideSelectionButton();ensureImageAiAction();});
+  document.addEventListener('v21-auth-state',()=>{hideSelectionButton();ensureImageAiAction();});
   window.addEventListener('scroll',hideSelectionButton,true);
   window.addEventListener('resize',hideSelectionButton,{passive:true});
   observeImageViewer();
