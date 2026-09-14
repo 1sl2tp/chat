@@ -115,6 +115,8 @@ function applyRoutePresentation(){
   const chatNodes=document.querySelectorAll('[data-chat-thread-node]');
   for(const node of chatNodes)node.hidden=desktopWorkspace?false:route!=='chat';
   if(workView)workView.hidden=desktopWorkspace?false:route!=='work';
+  const composer=document.getElementById('thread-bottom-container');
+  if(composer)composer.hidden=!desktopWorkspace&&route==='work';
   renderTopTabs();
   renderChatTabIdentity();
   renderCallFocus();
