@@ -30,6 +30,52 @@ export function normalizeRecognitionCore(value){
     .filter(token=>!PACKAGING_NOISE.has(token)&&!POLITE_NOISE.has(token));
   return tokens.join(' ').trim();
 }
+function splitEvidenceValue(value){
+  const values=Array.isArray(value)?value:[value];
+  const out=[];
+  for(const raw of values){
+    for(const part of String(raw??'').split(/[,;|]+/u)){
+      const text=String(part||'').trim();
+      if(text)out.push(text);
+    }
+  }
+  return out;
+}
+function derivedAliases(value){
+  const core=normalizeRecognitionCore(value);
+  if(!core)return [];
+  const out=[];
+  const tokens=core.split(' ').filter(Boolean);
+  if(tokens.length===2&&tokens.every(token=>token.length>=2))out.push(tokens.map(token=>token[0]).join(''));
+  if(core.includes('duong')){
+    out.push(core.replace(/\bduong\b/g,'dg'));
+    if(core.includes('khong'))out.push(core.replace(/\bkhong\b/g,'ko').replace(/\bduong\b/g,'dg'));
+  }
+  return out.filter(Boolean);
+}
+function rowEvidencePhrases(row){
+  const values=[row?.name,row?.category,row?.alias,row?.aliases,row?.specs,row?.levels];
+  const seen=new Set();
+  const out=[];
+  for(const value of values){
+    for(const part of splitEvidenceValue(value)){
+      const core=normalizeRecognitionCore(part);
+      if(core&&!seen.has(core)){seen.add(core);out.push(core);}
+      for(const alias of derivedAliases(part)){
+        const derived=normalizeRecognitionCore(alias);
+        if(derived&&!seen.has(derived)){seen.add(derived);out.push(derived);}
+      }
+    }
+  }
+  return out;
+}
+function evidenceText(row){return rowEvidencePhrases(row).join(' ');}
+function evidenceCovers(row,query){
+  const queryTokens=query.split(' ').filter(Boolean);
+  if(queryTokens.length<2)return false;
+  const evidenceTokens=new Set(evidenceText(row).split(' ').filter(Boolean));
+  return queryTokens.every(token=>evidenceTokens.has(token));
+}
 function trigrams(value){
   const text=`  ${String(value||'')}  `;
   const out=new Map();
@@ -68,13 +114,15 @@ function digitScore(query,candidate){
   const q=[...query.matchAll(/\b\d+\b/g)].map(x=>x[0]);
   if(!q.length)return 0;
   const c=new Set([...candidate.matchAll(/\b\d+\b/g)].map(x=>x[0]));
-  return q.every(x=>c.has(x))?0.16:-0.18;
+  return q.every(x=>c.has(x))?0.22:-0.20;
 }
 function categoryScore(query,row){
   const category=normalizeRecognitionCore(row?.category||'');
-  if(!category)return 0;
+  const levels=splitEvidenceValue(row?.levels).map(normalizeRecognitionCore).filter(Boolean).join(' ');
+  const categoryEvidence=`${category} ${levels}`.trim();
+  if(!categoryEvidence)return 0;
   const tokens=query.split(' ').filter(Boolean);
-  if(tokens.some(token=>category.split(' ').includes(token)))return 0.10;
+  if(tokens.some(token=>categoryEvidence.split(' ').includes(token)))return 0.12;
   return 0;
 }
 function sourceBoost(row){
@@ -84,11 +132,20 @@ function sourceBoost(row){
 function candidateScore(query,row){
   const candidate=normalizeRecognitionCore(row?.name||'');
   if(!query||!candidate)return 0;
-  const exact=candidate===query?1.25:contiguousPhrase(candidate,query)?0.92:contiguousPhrase(query,candidate)?0.78:0;
-  const overlap=tokenOverlap(query,candidate);
-  const shape=dice(query,candidate);
-  const prefix=(candidate.startsWith(query)||query.startsWith(candidate))?0.10:0;
-  return exact+overlap*0.52+shape*0.34+prefix+digitScore(query,candidate)+categoryScore(query,row)+sourceBoost(row);
+  const phrases=rowEvidencePhrases(row);
+  const evidence=phrases.join(' ');
+  let phraseMatch=0;
+  let shape=0;
+  let prefix=0;
+  for(const phrase of phrases){
+    const isName=phrase===candidate;
+    const exact=phrase===query?(isName?1.25:1.05):contiguousPhrase(phrase,query)?(isName?0.92:0.76):contiguousPhrase(query,phrase)?(isName?0.78:0.62):0;
+    phraseMatch=Math.max(phraseMatch,exact);
+    shape=Math.max(shape,dice(query,phrase));
+    if(phrase.startsWith(query)||query.startsWith(phrase))prefix=Math.max(prefix,isName?0.10:0.07);
+  }
+  const overlap=tokenOverlap(query,evidence);
+  return phraseMatch+overlap*0.58+shape*0.32+prefix+digitScore(query,evidence)+categoryScore(query,row)+sourceBoost(row);
 }
 export function rankGroceryCandidates(query,rows,limit=8){
   const core=normalizeRecognitionCore(query);
@@ -107,10 +164,9 @@ export function rankGroceryCandidates(query,rows,limit=8){
 export function recognitionDecision(source,ranked){
   const core=normalizeRecognitionCore(source);
   if(!core)return {mode:'empty',value:''};
-  const tokens=core.split(' ').filter(Boolean);
   const candidates=Array.isArray(ranked)?ranked:[];
-  const exactPhrase=tokens.length>=2&&candidates.some(row=>contiguousPhrase(normalizeRecognitionCore(row?.name||''),core));
-  if(exactPhrase)return {mode:'preserve',value:core};
+  const confirmed=candidates.some(row=>evidenceCovers(row,core));
+  if(confirmed)return {mode:'preserve',value:core};
   const top=candidates[0];
   const second=candidates[1];
   if(top&&top.score>=0.92&&(!second||top.score-second.score>=0.08)){
@@ -118,10 +174,16 @@ export function recognitionDecision(source,ranked){
   }
   return {mode:'preserve',value:core};
 }
+function displayEvidence(value,limit=5){
+  return splitEvidenceValue(value).map(item=>String(item).trim()).filter(Boolean).slice(0,limit).join(', ');
+}
 function referenceLine(row){
   const category=String(row?.category||'').trim()||'Khac';
   const source=String(row?.source||'').trim()||'library';
-  return `- [${source}] [cha:${category}] ${String(row?.name||'').trim()}`;
+  const aliases=displayEvidence(row?.aliases);
+  const specs=displayEvidence(row?.specs);
+  const extra=[aliases?`alias:${aliases}`:'',specs?`spec:${specs}`:''].filter(Boolean).join(' | ');
+  return `- [${source}] [cha:${category}] ${String(row?.name||'').trim()}${extra?` | ${extra}`:''}`;
 }
 export function buildGroceryReferenceContext(source,rows,{perLine=6,maxLines=30}={}){
   const lines=String(source??'').replace(/\r\n?/g,'\n').split('\n').map(x=>x.trim()).filter(Boolean).slice(0,maxLines);
@@ -139,9 +201,9 @@ export function buildGroceryReferenceContext(source,rows,{perLine=6,maxLines=30}
   if(!blocks.length)return '';
   return [
     'THU VIEN THAM CHIEU NHAN DIEN HANG HOA:',
-    'Ten trong thu vien chi la bang chung nhan dien. Khong duoc tu them tu, nhan hieu, quy cach hay mo rong cum da ro.',
-    'Neu cum nguon da xuat hien nguyen ven trong mot ten thu vien (vi du: banh gao, dns 681, xx poni) thi GIU NGUYEN cum nguon; thu vien chi xac nhan cum do la hop le.',
-    'Thong tin [cha:...] la danh muc cha de ho tro suy luan khi net chu/am doc mo ho. Bao bi thung/hop/loc/bich/chai/lon/goi khong quyet dinh ten hang.',
+    'Ten/alias/spec trong thu vien chi la BANG CHUNG NHAN DIEN. Khong duoc tu them tu, nhan hieu, quy cach hay mo rong cum da ro.',
+    'Neu cum nguon da duoc thu vien xac nhan (ke ca alias viet tat nhu sc, xx, dg) thi GIU NGUYEN cum nguon; thu vien chi giup doc dung phan mo ho.',
+    'Thong tin [cha:...] la danh muc cha; spec la dung tich/trong luong/ma so de doi chieu. Bao bi thung/hop/loc/bich/chai/lon/goi chi la bang chung phu, khong quyet dinh ten hang.',
     '',
     ...blocks,
   ].join('\n');
@@ -160,11 +222,14 @@ export function buildOwnRecognitionVocabulary(rows,{maxChars=12000}={}){
     if(!name||!key||seen.has(key))continue;
     seen.add(key);
     const category=String(row?.category||'').trim()||'Khac';
-    const line=`[${category}] ${name}`;
+    const aliases=displayEvidence(row?.aliases,3);
+    const specs=displayEvidence(row?.specs,3);
+    const suffix=[aliases?`alias:${aliases}`:'',specs?`spec:${specs}`:''].filter(Boolean).join(' | ');
+    const line=`[${category}] ${name}${suffix?` | ${suffix}`:''}`;
     if(size+line.length+1>maxChars)break;
     out.push(line);size+=line.length+1;
   }
-  return out.length?`TU DIEN TEN HANG UU TIEN (chi de doi chieu net chu, khong duoc tu them):\n${out.join('\n')}`:'';
+  return out.length?`TU DIEN TEN HANG UU TIEN (chi de doi chieu net chu/am doc, khong duoc tu them):\n${out.join('\n')}`:'';
 }
 async function fetchAll(db,table,select,filter){
   const out=[];
@@ -196,11 +261,25 @@ function ownCategory(row){
   const first=words(row?.name||'')[0]||'';
   return first||'Khac';
 }
+function nonEmptyValues(values){return values.map(value=>String(value??'').trim()).filter(Boolean);}
+function aiKeyAliases(row){
+  const base=nonEmptyValues([row?.c1,row?.c2,row?.label2,row?.form,row?.color,row?.variant]);
+  const out=[];
+  for(const value of base)out.push(...splitEvidenceValue(value));
+  return Array.from(new Set(out));
+}
+function aiKeySpecs(row){
+  const base=nonEmptyValues([row?.size,row?.volume]);
+  const out=[];
+  for(const value of base)out.push(...splitEvidenceValue(value));
+  const numeric=[...String(row?.product_name||'').matchAll(/\b\d+(?:[.,]\d+)?(?:ml|g|kg|l)?\b/giu)].map(match=>match[0]);
+  return Array.from(new Set([...out,...numeric]));
+}
 export async function loadGroceryReferenceLibrary(db,{force=false}={}){
   const now=Date.now();
   if(!force&&cache.rows.length&&now-cache.at<CACHE_TTL_MS)return cache.rows;
   const [keys,products,suppliers,market,brands]=await Promise.all([
-    fetchAll(db,'chat_ai_product_keys','product_name,type,source,level1,level2,level3,level4',q=>q.eq('active',true)),
+    fetchAll(db,'chat_ai_product_keys','product_name,type,source,c1,c2,size,label2,form,color,volume,variant,level1,level2,level3,level4,level5,level6,level7,level8,level9',q=>q.eq('active',true)),
     fetchAll(db,'products','name,group_name,source_id',q=>q.eq('active',true)),
     fetchAll(db,'getlink_supplier_products','product_name,primary_packaging,retail_packaging',q=>q.eq('is_active',true)),
     fetchAll(db,'getlink_links','name,group_name,branch_name,source,link_type',q=>q.eq('link_type','product')),
@@ -208,10 +287,21 @@ export async function loadGroceryReferenceLibrary(db,{force=false}={}){
   ]);
   const refs=new Map();
   for(const row of products)addRef(refs,{name:row.name,category:ownCategory(row),source:String(row.group_name||'').toLowerCase().includes('thuốc lá')?'tobacco':'own',priority:120});
-  for(const row of keys)addRef(refs,{name:row.product_name,category:row.type||row.level1||row.source,source:'ai_key',priority:115,levels:[row.level1,row.level2,row.level3,row.level4].filter(Boolean)});
-  for(const row of suppliers)addRef(refs,{name:row.product_name,category:'',source:'supplier',priority:90});
+  for(const row of keys){
+    const levels=[row.level1,row.level2,row.level3,row.level4,row.level5,row.level6,row.level7,row.level8,row.level9].filter(Boolean);
+    addRef(refs,{
+      name:row.product_name,
+      category:row.type||row.level1||row.source,
+      source:'ai_key',
+      priority:115,
+      levels,
+      aliases:aiKeyAliases(row),
+      specs:aiKeySpecs(row),
+    });
+  }
+  for(const row of suppliers)addRef(refs,{name:row.product_name,category:'',source:'supplier',priority:90,specs:[row.primary_packaging,row.retail_packaging].filter(Boolean)});
   for(const row of market)addRef(refs,{name:row.name,category:row.group_name||row.branch_name||row.source,source:`market:${row.source||'unknown'}`,priority:60});
-  for(const row of brands)addRef(refs,{name:row.canonical_name,category:'Thuong hieu',source:'brand',priority:80,alias:row.brand_key});
+  for(const row of brands)addRef(refs,{name:row.canonical_name,category:'Thuong hieu',source:'brand',priority:80,aliases:[row.brand_key].filter(Boolean)});
   cache={at:now,rows:[...refs.values()]};
   return cache.rows;
 }
