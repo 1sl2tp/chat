@@ -10,13 +10,13 @@ SHARED = ROOT / "supabase/functions/_shared/customer-order-parser.mjs"
 MIGRATION = ROOT / "supabase/migrations/20260913_chat_order_scribe.sql"
 MODEL_MIGRATION = ROOT / "supabase/migrations/20260913_chat_order_scribe_model_35.sql"
 
-assert EDGE.exists(), "manual order scribe Edge Function must exist"
-assert CORE.exists(), "manual order scribe core must exist"
-assert PROMPTS.exists(), "AI OCR/NLP prompts must live in a dedicated lock file"
-assert REFERENCE.exists(), "grocery recognition reference module must exist"
-assert SHARED.exists(), "Chat and Tách nhanh must share one customer-order parser core"
-assert MIGRATION.exists(), "order scribe runtime config migration must exist"
-assert MODEL_MIGRATION.exists(), "order scribe current-model migration must exist"
+assert EDGE.exists()
+assert CORE.exists()
+assert PROMPTS.exists()
+assert REFERENCE.exists()
+assert SHARED.exists()
+assert MIGRATION.exists()
+assert MODEL_MIGRATION.exists()
 
 edge = EDGE.read_text(encoding="utf-8")
 core = CORE.read_text(encoding="utf-8")
@@ -27,7 +27,6 @@ migration = MIGRATION.read_text(encoding="utf-8")
 model_migration = MODEL_MIGRATION.read_text(encoding="utf-8")
 edge_lower = edge.lower()
 compact = "".join(edge_lower.split())
-prompts_lower = prompts.lower()
 reference_lower = reference.lower()
 core_lower = core.lower()
 
@@ -45,8 +44,6 @@ assert "action!=='quick'&&action!=='ai'" in compact
 assert "chat_ai_message_inbox" not in edge_lower
 assert "chat_ai_enqueue" not in edge_lower
 
-assert "unresolved:final.unresolved" in compact
-assert "text:final.text" in compact
 assert "../_shared/customer-order-parser.mjs" in core
 assert "parsecustomertextpartial" in core_lower
 assert "parsecustomertextpartial" in shared.lower()
@@ -57,66 +54,57 @@ assert "ai_items_missing" in edge_lower
 assert "gemini-3.5-flash-lite" in edge_lower
 assert "generativelanguage.googleapis.com" in edge_lower
 
-assert "ORDER_OCR_PROMPT" in edge
-assert "ORDER_NORMALIZE_PROMPT" in edge
-assert "normalizeOrderTextWithAi" in edge
-assert "ocrInboundImagesWithAi" in edge
-assert "extractOrderIntentSource" in edge
-assert "finalizeAiOrderText" in edge
-assert "ORDER_SEGMENT_PROMPT" not in edge
-assert "materializeAiSpans" not in edge
+# One instruction source only: the uploaded MASTER prompt drives text, voice/chat and images.
+assert "ORDER_MASTER_PROMPT" in edge
+assert "ORDER_OCR_PROMPT" not in edge
+assert "ORDER_NORMALIZE_PROMPT" not in edge
+assert "ocrInboundImagesWithAi" not in edge
+assert "normalizeOrderTextWithAi" not in edge
+assert "extractOrderIntentSource" not in edge
+assert "finalizeAiOrderText" not in edge
+assert "resolveOrderWithAi" in edge
+assert "parseMasterOrderResponse" in edge
 
-# Both selected text and OCR image text must pass through the same order-intent filter.
-assert "let aiInput=extractOrderIntentSource(source.text)" in edge
-assert "const filteredOcr=extractOrderIntentSource(ocrText)" in edge
-assert "const final=finalizeAiOrderText(normalized)" in edge
-assert "if(!final.items.length)throw new Error('ai_items_missing')" in edge
+# Raw source reaches the master prompt; correction/noise decisions must not be pre-filtered by code.
+assert "const sourceText=clean(source.text,MAX_SOURCE_CHARS)" in edge
+assert "resolveOrderWithAi(sourceText,images,cfg,referenceContext)" in edge
+assert "ĐẦU VÀO TEXT / VOICE-TO-TEXT / SỬA ĐƠN QUA CHAT" in edge
+assert "HÌNH ẢNH NGUỒN" in edge
+assert "inlinedata" in edge_lower
 
 for required in [
-    "tap hoa/fmcg viet nam",
-    "thuong hieu",
-    "alias",
-    "spec",
-    "danh muc cha",
-    "dg",
-    "sua",
-    "dau an",
-    "tuong",
+    "hinh anh viet tay",
+    "hoa don",
+    "nhan in",
+    "text tho",
+    "sua don qua chat",
+    "voice-to-text",
     "thuoc la",
-    "thu vien tham chieu",
-    "khong tu them",
-    "banh gao",
-    "dns 681",
-    "xx poni",
-    "sl + ten",
-    "nhe",
-    "cam on",
+    "tobacco industry resolution",
+    "fmcg entity resolution",
+    "dau gach ngang",
+    "a * b",
+    "khong thuc hien phep tinh nhan",
+    "loc nhieu hoi thoai",
+    "bat buoc bo qua",
+    "correction protocol",
+    "khong phai [a] ma la [b]",
+    "ko lay [a] / lay [b]",
+    "lay them",
+    "10 no 10 kia",
+    "ma json chuan cau truc",
+    "parsed_items",
+    "quantity_number",
+    "normalized_vn",
 ]:
-    assert required in prompts_fold, f"FMCG OCR/NLP rule missing: {required}"
-
-for required in [
-    "hinh hoc net chu",
-    "gach ngan dau dong",
-    "duong ke ngang dai",
-    "gach bo",
-    "to xoa",
-    "moi dong doc lap",
-]:
-    assert required in prompts_fold, f"handwriting geometry rule missing: {required}"
-
-assert "export function toGeometryAscii" in core
-assert "export function extractOrderIntentSource" in core
-assert "export function finalizeAiOrderText" in core
-assert "formatOrderItems(parsed.items)" in core
+    assert required in prompts_fold, f"MASTER rule missing: {required}"
 
 assert "imageassetids" in edge_lower
 assert "v21_media_assets" in edge_lower
 assert "v21-media" in edge_lower
-assert "inlinedata" in edge_lower
 assert "owner_account_id" in edge_lower
 
-# Catalog data is recognition evidence only. It may rank names/categories/aliases/specs,
-# but must not resolve a SKU, price, order line, or draft automatically.
+# Catalog/reference data remains recognition evidence only; it never creates drafts or prices here.
 for required in [
     "chat_ai_product_keys",
     "products",
@@ -140,4 +128,4 @@ assert "revoke all" in migration.lower()
 assert "gemini-3.5-flash-lite" in model_migration.lower()
 assert "update public.chat_order_scribe_runtime_settings" in model_migration.lower()
 
-print("manual order scribe FMCG intent-filter OCR/NLP contract PASS")
+print("manual order scribe single MASTER prompt contract PASS")
