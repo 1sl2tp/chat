@@ -147,9 +147,10 @@ export function buildGroceryReferenceContext(source,rows,{perLine=6,maxLines=30}
   ].join('\n');
 }
 export function buildOwnRecognitionVocabulary(rows,{maxChars=12000}={}){
+  const sourceRank={tobacco:3,ai_key:2,own:1};
   const preferred=(Array.isArray(rows)?rows:[])
-    .filter(row=>['own','ai_key','tobacco'].includes(String(row?.source||'')))
-    .sort((a,b)=>(Number(b.priority)||0)-(Number(a.priority)||0));
+    .filter(row=>Object.prototype.hasOwnProperty.call(sourceRank,String(row?.source||'')))
+    .sort((a,b)=>(sourceRank[String(b?.source||'')]||0)-(sourceRank[String(a?.source||'')]||0)||(Number(b.priority)||0)-(Number(a.priority)||0));
   const seen=new Set();
   const out=[];
   let size=0;
@@ -189,6 +190,12 @@ function addRef(target,row){
     if(!existing||Number(row?.priority||0)>Number(existing?.priority||0))target.set(key,{...row,name,category,source});
   }
 }
+function ownCategory(row){
+  const group=String(row?.group_name||'').trim();
+  if(group&&group!=='#')return group;
+  const first=words(row?.name||'')[0]||'';
+  return first||'Khac';
+}
 export async function loadGroceryReferenceLibrary(db,{force=false}={}){
   const now=Date.now();
   if(!force&&cache.rows.length&&now-cache.at<CACHE_TTL_MS)return cache.rows;
@@ -200,8 +207,8 @@ export async function loadGroceryReferenceLibrary(db,{force=false}={}){
     fetchAll(db,'getlink_brand_aliases','canonical_name,brand_key',null),
   ]);
   const refs=new Map();
-  for(const row of products)addRef(refs,{name:row.name,category:row.group_name,source:String(row.group_name||'').toLowerCase().includes('thuốc lá')?'tobacco':'own',priority:120});
-  for(const row of keys)addRef(refs,{name:row.product_name,category:row.type||row.source||row.level1,source:'ai_key',priority:115,levels:[row.level1,row.level2,row.level3,row.level4].filter(Boolean)});
+  for(const row of products)addRef(refs,{name:row.name,category:ownCategory(row),source:String(row.group_name||'').toLowerCase().includes('thuốc lá')?'tobacco':'own',priority:120});
+  for(const row of keys)addRef(refs,{name:row.product_name,category:row.type||row.level1||row.source,source:'ai_key',priority:115,levels:[row.level1,row.level2,row.level3,row.level4].filter(Boolean)});
   for(const row of suppliers)addRef(refs,{name:row.product_name,category:'',source:'supplier',priority:90});
   for(const row of market)addRef(refs,{name:row.name,category:row.group_name||row.branch_name||row.source,source:`market:${row.source||'unknown'}`,priority:60});
   for(const row of brands)addRef(refs,{name:row.canonical_name,category:'Thuong hieu',source:'brand',priority:80,alias:row.brand_key});
