@@ -144,6 +144,14 @@ async function loadImageParts(messages:any[],mediaMap:Map<string,any[]>){
   return byMessage;
 }
 
+function appendImageReadVerify(parts:any[],row:any,image:any){
+  const at=clean(row?.created_at,80)||'?';
+  parts.push({text:`ẢNH ĐỌC LẦN 1 — ảnh khách gửi lúc ${at}. Nếu là ảnh đơn, đọc tuần tự từng dòng vật lý từ trên xuống dưới và hết từng cột. Chưa lọc trùng, chưa gộp các dòng gần giống; mục tiêu là không bỏ sót dòng.`});
+  parts.push({inlineData:{mimeType:image.mimeType,data:image.data}});
+  parts.push({text:`ẢNH KIỂM TRA LẦN 2 — cùng ảnh lúc ${at}. Đối chiếu lại toàn bộ ảnh với danh sách vừa đọc: tìm dòng nào bị bỏ sót, đặc biệt các dòng cùng tên gốc/cùng số lượng nhưng khác có đường, ít đường, không đường, màu, dung tích, trọng lượng, mã hoặc quy cách. Chỉ sau bước kiểm tra này mới áp dụng sửa đơn/lọc trùng theo prompt.`});
+  parts.push({inlineData:{mimeType:image.mimeType,data:image.data}});
+}
+
 async function geminiRequest(cfg:any,parts:any[]){
   const endpoint=`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(cfg.model||DEFAULT_MODEL)}:generateContent`;
   for(let attempt=0;attempt<2;attempt++){
@@ -261,8 +269,7 @@ async function scanCustomer(customer:any,cfg:any){
   for(const row of messages){
     if(row?.sender_role!=='customer')continue;
     for(const image of imagesByMessage.get(String(row.id))||[]){
-      parts.push({text:`ẢNH KHÁCH GỬI gắn với tin lúc ${clean(row.created_at,80)}. Tự phân loại: nếu là ảnh đơn thì đọc vùng đơn; nếu chỉ là ảnh minh họa sản phẩm thì bỏ qua.`});
-      parts.push({inlineData:{mimeType:image.mimeType,data:image.data}});
+      appendImageReadVerify(parts,row,image);
     }
   }
 
