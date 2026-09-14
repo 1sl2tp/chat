@@ -32,6 +32,8 @@ alter table public.chat_customer_summary_runs enable row level security;
 alter table public.chat_customer_summary_state enable row level security;
 revoke all on public.chat_customer_summary_runs from public,anon,authenticated;
 revoke all on public.chat_customer_summary_state from public,anon,authenticated;
+grant select,insert,update on public.chat_customer_summary_runs to service_role;
+grant select,insert,update on public.chat_customer_summary_state to service_role;
 
 create or replace function public.chat_customer_summary_claim_batch(p_limit integer default 15)
 returns table(customer_id uuid,username text,display_name text)
