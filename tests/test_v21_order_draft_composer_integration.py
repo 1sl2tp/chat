@@ -19,7 +19,7 @@ assert "v21adminordersource" in compact
 assert AI_PATH.exists(), "selection/image AI extraction UI module must exist"
 ai = AI_PATH.read_text(encoding="utf-8")
 ai_lower = ai.lower()
-assert 'data-ai-selection-action' in ai
+assert 'dataset.aiSelectionAction' in ai
 assert 'selectionchange' in ai_lower
 assert 'getboundingclientrect' in ai_lower, "selection AI action should float near the selected text"
 assert '#messageWindow' in ai or '#scrollRoot' in ai, "only chat selections may trigger the AI action"
@@ -28,11 +28,11 @@ assert '.ai(' in ai
 assert 'imageAssetIds' in ai
 assert 'navigator.clipboard' in ai, "AI result must support copy"
 assert 'createFromParsed' in ai, "AI result must optionally enter the existing draft-order flow"
-assert 'data-ai-result' in ai, "AI output needs its own compact result surface"
+assert 'dataset.aiResult' in ai, "AI output needs its own compact result surface"
 assert './admin-ai-extract.js' in CLIENT, "order-scribe client must bootstrap the AI extraction UI module"
 
 # The dedicated module extends the existing image viewer without changing viewer ownership.
-assert 'data-image-ai-action' in ai
+assert 'dataset.imageAiAction' in ai
 assert '.image-review-head' in ai
 assert 'aria-current' in ai and 'image-review-thumb-image' in ai
 assert 'dataset.assetId' in ai
