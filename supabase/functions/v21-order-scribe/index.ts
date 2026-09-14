@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
-import { formatOrderItems, materializeAiSpans, parseQuickOrderText, toGeometryAscii } from "./scribe-core.mjs";
-import { ORDER_OCR_PROMPT, ORDER_SEGMENT_PROMPT } from "./order-ai-prompts.mjs";
+import { formatOrderItems, parseNormalizedOrderText, parseQuickOrderText, toGeometryAscii } from "./scribe-core.mjs";
+import { ORDER_NORMALIZE_PROMPT, ORDER_OCR_PROMPT } from "./order-ai-prompts.mjs";
 
 const SUPABASE_URL=String(Deno.env.get('SUPABASE_URL')||'').trim();
 const SERVICE_KEY=String(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'').trim();
@@ -91,16 +91,6 @@ async function runtimeConfig(){
     key:String(row?.gemini_api_key||'').trim(),
   };
 }
-function indexedSource(source:string){
-  const entries=[];
-  const matcher=/\S+/gu;
-  for(const match of source.matchAll(matcher)){
-    const start=Number(match.index)||0;
-    const token=String(match[0]||'');
-    entries.push(`[${start}:${start+token.length}]${token}`);
-  }
-  return entries.join(' ');
-}
 function responseText(payload:any){
   const parts=payload?.candidates?.[0]?.content?.parts;
   if(!Array.isArray(parts))return '';
@@ -187,71 +177,22 @@ async function geminiTextRequest(cfg:any,parts:any[]){
   if(!text)throw new Error('ai_response_invalid');
   return text;
 }
-async function geminiJsonRequest(cfg:any,parts:any[],responseSchema:any){
-  const model=cfg.model||DEFAULT_MODEL;
-  const endpoint=`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
-  let response:Response;
-  try{
-    response=await fetch(endpoint,{
-      method:'POST',
-      headers:{'content-type':'application/json','x-goog-api-key':cfg.key},
-      body:JSON.stringify({
-        contents:[{role:'user',parts}],
-        generationConfig:{temperature:0,responseMimeType:'application/json',responseSchema},
-      }),
-    });
-  }catch(error){
-    console.error('[v21-order-scribe:gemini]','network',String((error as any)?.message||error||'request_failed'));
-    throw new Error('ai_unavailable');
-  }
-  const payload=await response.json().catch(()=>null);
-  if(!response.ok){
-    console.error('[v21-order-scribe:gemini]',response.status,payload?.error?.message||'request_failed');
-    throw new Error('ai_unavailable');
-  }
-  try{return JSON.parse(responseText(payload));}
-  catch{throw new Error('ai_response_invalid');}
-}
-async function segmentLiteralSource(source:string,cfg:any){
-  const literal=toGeometryAscii(source).trim();
-  if(!literal)throw new Error('order_text_required');
-  const prompt=[
-    ORDER_SEGMENT_PROMPT,
-    '',
-    'SOURCE:',literal,
-    '',
-    'SOURCE_INDEXED:',indexedSource(literal),
-  ].join('\n');
-  const parsed=await geminiJsonRequest(cfg,[{text:prompt}],{
-    type:'OBJECT',
-    properties:{
-      items:{
-        type:'ARRAY',items:{
-          type:'OBJECT',
-          properties:{
-            quantity:{type:'NUMBER'},
-            quantity_text:{type:'STRING'},
-            name_start:{type:'INTEGER'},
-            name_end:{type:'INTEGER'},
-          },
-          required:['quantity','quantity_text','name_start','name_end'],
-        },
-      },
-    },
-    required:['items'],
-  });
-  const spans=Array.isArray(parsed?.items)?parsed.items:[];
-  return {source:literal,items:materializeAiSpans(literal,spans)};
+async function normalizeOrderTextWithAi(source:string,cfg:any){
+  const input=clean(source,MAX_SOURCE_CHARS);
+  if(!input)throw new Error('order_text_required');
+  return geminiTextRequest(cfg,[
+    {text:ORDER_NORMALIZE_PROMPT},
+    {text:`\n\nĐẦU VÀO:\n${input}`},
+  ]);
 }
 async function ocrInboundImagesWithAi(images:any[],cfg:any){
   const outputs=[];
   for(const image of images){
-    const raw=await geminiTextRequest(cfg,[
+    const text=await geminiTextRequest(cfg,[
       {text:ORDER_OCR_PROMPT},
       {inlineData:{mimeType:image.mimeType,data:image.data}},
     ]);
-    const literal=toGeometryAscii(raw).trim();
-    if(literal)outputs.push(literal);
+    if(text)outputs.push(text);
   }
   if(!outputs.length)throw new Error('ai_items_missing');
   return outputs.join('\n');
@@ -280,24 +221,24 @@ Deno.serve(async(req:Request)=>{
     const cfg=await runtimeConfig();
     if(!cfg.key)throw new Error('ai_not_configured');
 
-    const literalParts=[];
-    const literalText=toGeometryAscii(source.text).trim();
-    if(literalText)literalParts.push(literalText);
+    let aiInput=source.text;
     if(imageAssetIds.length){
       const images=await loadInboundImages(String(admin.account.id),source.contactId,imageAssetIds);
       const ocrText=await ocrInboundImagesWithAi(images,cfg);
-      if(ocrText)literalParts.push(ocrText);
+      aiInput=[source.text,ocrText].filter(Boolean).join('\n');
     }
-    const literalSource=literalParts.join('\n').trim();
-    const segmented=await segmentLiteralSource(literalSource,cfg);
-    const items=segmented.items;
+
+    const normalized=await normalizeOrderTextWithAi(aiInput,cfg);
+    const asciiNormalized=toGeometryAscii(normalized).trim();
+    const parsed=parseNormalizedOrderText(asciiNormalized);
+    if(!parsed.items.length&&!parsed.unresolved.length)throw new Error('ai_items_missing');
     return json({
       ok:true,
       mode:'ai',
       source:source.source,
-      items,
-      unresolved:[],
-      text:formatOrderItems(items),
+      items:parsed.items,
+      unresolved:parsed.unresolved,
+      text:asciiNormalized,
     });
   }catch(error){
     const code=String((error as any)?.message||error||'internal_error');
