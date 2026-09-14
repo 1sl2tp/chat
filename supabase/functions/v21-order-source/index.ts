@@ -1,5 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
-import { clean, isLikelyOrderSource, normalizeState } from "./source-core.mjs";
+import { clean, normalizeState } from "./source-core.mjs";
 
 const SUPABASE_URL=String(Deno.env.get('SUPABASE_URL')||'').trim();
 const SERVICE_KEY=String(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'').trim();
@@ -125,12 +125,9 @@ async function listSources(adminId:string,body:any){
     imageMap.set(messageId,list);
   }
 
-  const includeAll=body?.includeAll===true;
-  const items=rows.filter((row:any)=>{
-    const messageId=String(row?.id||'');
-    const imageAssets=imageMap.get(messageId)||[];
-    return includeAll||imageAssets.length>0||isLikelyOrderSource(row?.body);
-  }).map((row:any)=>{
+  // Read-only history: do not pre-decide which messages look like orders.
+  // The incremental AI scanner owns semantic filtering for NEW customer input.
+  const items=rows.map((row:any)=>{
     const messageId=String(row.id||'');
     const state:any=stateMap.get(messageId)||{};
     const imageAssets=imageMap.get(messageId)||[];
