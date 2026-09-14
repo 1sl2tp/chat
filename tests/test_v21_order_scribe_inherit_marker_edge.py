@@ -3,9 +3,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PROMPTS = (ROOT / 'supabase/functions/v21-order-scribe/order-ai-prompts.mjs').read_text(encoding='utf-8')
 
-assert 'Nét gạch ngắn đầu dòng (-): chỉ là bullet; bỏ dấu gạch, KHÔNG tự kế thừa tên dòng trên.' in PROMPTS
-assert 'Đường kẻ ngang dài (______), dấu nháy lặp (\") hoặc dấu + dùng rõ ràng như ký hiệu lặp: được phép kế thừa tên mặt hàng gần nhất phía trên.' in PROMPTS
-assert 'Dòng trống tự nó KHÔNG phải bằng chứng kế thừa.' in PROMPTS
-assert 'nếu xuất hiện tên hàng mới thì ngắt kế thừa ngay.' in PROMPTS
+assert 'Nét gạch ngắn đầu dòng (-) chỉ là bullet, KHÔNG kế thừa dòng trên.' in PROMPTS
+assert 'Đường kẻ ngang dài (______) hoặc ký hiệu lặp rõ ràng mới cho phép kế thừa mặt hàng gần nhất phía trên.' in PROMPTS
+assert 'KHÔNG kế thừa chỉ vì dòng hiện tại ngắn' in PROMPTS
+assert 'inherited_from_line chỉ điền khi thực sự có ký hiệu lặp/kế thừa rõ ràng; bình thường để null.' in PROMPTS
 
 print('master safe inheritance/geometry Edge contract PASS')
