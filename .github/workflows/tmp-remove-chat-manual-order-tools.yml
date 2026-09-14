@@ -1,0 +1,35 @@
+name: Temporary remove Chat manual order tools
+on:
+  push:
+    branches:
+      - cleanup/remove-chat-manual-order-tools
+permissions:
+  contents: write
+jobs:
+  rebuild:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cleanup/remove-chat-manual-order-tools
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Remove manual order client and rebuild canonical index
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.source.html')
+          s=p.read_text(encoding='utf-8')
+          needle='<script src="./order-scribe-client.js" data-build-source="order-scribe-client.js"></script>\n'
+          assert needle in s, 'manual order-scribe script tag not found'
+          p.write_text(s.replace(needle,''),encoding='utf-8')
+          PY
+          python tools/build_current_preview.py
+          git rm .github/workflows/tmp-remove-chat-manual-order-tools.yml
+          git add index.source.html index.html version.json
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git commit -m "build: remove manual Chat order runtime"
+          git push
