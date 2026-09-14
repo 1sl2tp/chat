@@ -8,14 +8,66 @@ on:
       - v21-72-18-auth-actions-row
       - v21-72-19-profile-username-avatar
   pull_request:
+permissions:
+  contents: write
 jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: cleanup/remove-legacy-chat-order-source
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Apply legacy Chat order-source cleanup
+        shell: bash
+        run: |
+          if [ ! -f admin-order-source.js ]; then
+            echo "Legacy Chat order-source already removed"
+          else
+            python - <<'PY'
+          from pathlib import Path
+          root=Path('.')
+          index_path=root/'index.source.html'
+          text=index_path.read_text(encoding='utf-8')
+          legacy='<script src="./admin-order-source.js" data-build-source="admin-order-source.js"></script>\n'
+          assert legacy in text
+          index_path.write_text(text.replace(legacy,'',1),encoding='utf-8')
+
+          workflow_path=root/'.github/workflows/verify-v21.yml'
+          workflow=workflow_path.read_text(encoding='utf-8')
+          blocks=[
+              "      - name: Customer order source core contract\n        run: node tests/test_v21_order_source_core.mjs\n",
+              "      - name: Customer order source database contract\n        run: python tests/test_v21_order_source_db_contract.py\n",
+              "      - name: Customer order source Edge contract\n        run: python tests/test_v21_order_source_edge_contract.py\n",
+              "      - name: Customer order source timeline UI contract\n        run: python tests/test_v21_order_source_ui.py\n",
+          ]
+          for block in blocks:
+              assert block in workflow
+              workflow=workflow.replace(block,'',1)
+          workflow_path.write_text(workflow,encoding='utf-8')
+
+          migration=root/'supabase/migrations/20260915_remove_legacy_chat_order_source.sql'
+          migration.write_text("""begin;\n\n-- KH incremental scanning now owns new customer-order ingestion.\n-- Remove only the obsolete Chat-side source-state table.\ndrop table if exists public.chat_order_source_states;\n\ncommit;\n""",encoding='utf-8')
+          PY
+            rm -f \
+              admin-order-source.js \
+              order-source-core.mjs \
+              supabase/functions/v21-order-source/index.ts \
+              supabase/functions/v21-order-source/source-core.mjs \
+              tests/test_v21_order_source_core.mjs \
+              tests/test_v21_order_source_db_contract.py \
+              tests/test_v21_order_source_edge_contract.py \
+              tests/test_v21_order_source_ui.py
+            python tools/build_current_preview.py
+            python tests/test_v21_legacy_chat_order_source_removed.py
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -A
+            git commit -m "refactor: remove legacy Chat order-source flow"
+            git push origin HEAD:cleanup/remove-legacy-chat-order-source
+          fi
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
