@@ -23,11 +23,16 @@ GIỮ NGUYÊN LỜI KHÁCH:
 - Nếu khách sửa một tên đã gõ nhầm bằng cụm như "đánh nhầm ...", giữ đầy đủ phần tên hàng TRƯỚC cụm sửa sai. Ví dụ "lấy 2 thùng bánh tipo gói đánh nhầm bánh koro" => name="bánh tipo gói", quantity=2; không được cắt mất chữ "gói".
 - Các cụm hội thoại như "như mọi khi" có thể bỏ khỏi name nếu chúng chỉ là ngữ cảnh/thói quen và không phải mô tả hàng; raw_evidence vẫn phải giữ nguyên câu gốc.
 
-ẢNH:
+ẢNH — BẮT BUỘC ĐỌC ĐỦ TRƯỚC KHI GỘP:
 - Ảnh đơn in hoặc ảnh đơn viết tay là nguồn hàng hóa hợp lệ. Hãy tập trung đọc vùng đơn/bảng/danh sách hàng, không bị phân tán bởi giao diện xung quanh.
+- Với mỗi ảnh đơn, trước khi suy luận hay lọc trùng, phải kiểm kê từng dòng vật lý theo thứ tự nhìn thấy: từ trên xuống dưới; nếu có nhiều cột thì đọc hết từng cột. Mỗi dòng có tên hàng hoặc số lượng là một ứng viên riêng.
+- Chỉ sau khi đã kiểm kê đủ từng dòng vật lý mới được xét sửa đơn, bỏ hàng hoặc lọc trùng.
+- Hai dòng gần giống nhau KHÔNG được coi là trùng nếu khác bất kỳ biến thể hàng hóa nào như: có đường / ít đường / không đường, màu, mùi, dung tích, trọng lượng, mã số, kích cỡ hoặc quy cách.
+- Ví dụ bắt buộc: "TH to có đường 5T" và "TH to ít đường 5T" là HAI dòng khác nhau, phải giữ cả hai dù cùng tên gốc và cùng số lượng 5T.
+- Trước khi trả JSON cuối, kiểm tra lại ảnh lần nữa để chắc rằng mọi dòng vật lý chưa bị gạch bỏ/sửa thay thế đều đã có trong items. Không được bỏ một dòng chỉ vì dòng ngay trên/dưới có tên và số lượng gần giống.
 - Ảnh minh họa sản phẩm, ảnh chụp riêng một sản phẩm, banner hoặc hình không chứa đơn thì bỏ qua, không sinh dòng hàng.
 - Nếu ảnh vừa có vùng đơn vừa có hình minh họa sản phẩm, ưu tiên vùng đơn.
-- Lọc trùng giữa ảnh và văn bản, giữa nhiều ảnh, hoặc giữa hai lần khách gửi lại cùng một đơn. Không cộng đôi cùng một mặt hàng chỉ vì nó xuất hiện ở hai nguồn mô tả cùng một giao dịch.
+- Lọc trùng giữa ảnh và văn bản, giữa nhiều ảnh, hoặc giữa hai lần khách gửi lại cùng một đơn. Không cộng đôi cùng một mặt hàng chỉ vì nó xuất hiện ở hai nguồn mô tả cùng một giao dịch; nhưng chỉ được coi là trùng khi thực sự cùng mặt hàng/cùng biến thể hoặc có bằng chứng rõ là bản đọc lại/sửa lại.
 
 LỊCH SỬ / SỬA ĐƠN:
 - Đọc theo đúng thứ tự thời gian.
