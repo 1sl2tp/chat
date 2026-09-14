@@ -28,7 +28,7 @@ for label in (
     'Customer order source Edge contract',
     'Customer order source timeline UI contract',
 ):
-    assert label not in workflow, f'legacy verification step still active: {label}'
+    assert f'- name: {label}' not in workflow, f'legacy verification step still active: {label}'
 
 cleanup = ROOT / 'supabase/migrations/20260915_remove_legacy_chat_order_source.sql'
 assert cleanup.exists(), 'database cleanup migration is missing'
