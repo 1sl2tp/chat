@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
-import { formatOrderItems, materializeAiImageTranscriptions, materializeAiSpans, parseQuickOrderText } from "./scribe-core.mjs";
+import { formatOrderItems, parseNormalizedOrderText, parseQuickOrderText } from "./scribe-core.mjs";
+import { ORDER_NORMALIZE_PROMPT, ORDER_OCR_PROMPT } from "./order-ai-prompts.mjs";
 
 const SUPABASE_URL=String(Deno.env.get('SUPABASE_URL')||'').trim();
 const SERVICE_KEY=String(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'').trim();
@@ -90,16 +91,6 @@ async function runtimeConfig(){
     key:String(row?.gemini_api_key||'').trim(),
   };
 }
-function indexedSource(source:string){
-  const entries=[];
-  const matcher=/\S+/gu;
-  for(const match of source.matchAll(matcher)){
-    const start=Number(match.index)||0;
-    const token=String(match[0]||'');
-    entries.push(`[${start}:${start+token.length}]${token}`);
-  }
-  return entries.join(' ');
-}
 function responseText(payload:any){
   const parts=payload?.candidates?.[0]?.content?.parts;
   if(!Array.isArray(parts))return '';
@@ -160,7 +151,7 @@ async function loadInboundImages(adminAccountId:string,contactId:string,imageAss
   }
   return loaded;
 }
-async function geminiRequest(cfg:any,parts:any[],responseSchema:any){
+async function geminiTextRequest(cfg:any,parts:any[]){
   const model=cfg.model||DEFAULT_MODEL;
   const endpoint=`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
   let response:Response;
@@ -170,7 +161,7 @@ async function geminiRequest(cfg:any,parts:any[],responseSchema:any){
       headers:{'content-type':'application/json','x-goog-api-key':cfg.key},
       body:JSON.stringify({
         contents:[{role:'user',parts}],
-        generationConfig:{temperature:0,responseMimeType:'application/json',responseSchema},
+        generationConfig:{temperature:0},
       }),
     });
   }catch(error){
@@ -182,90 +173,29 @@ async function geminiRequest(cfg:any,parts:any[],responseSchema:any){
     console.error('[v21-order-scribe:gemini]',response.status,payload?.error?.message||'request_failed');
     throw new Error('ai_unavailable');
   }
-  let parsed:any=null;
-  try{parsed=JSON.parse(responseText(payload));}catch{throw new Error('ai_response_invalid');}
-  return parsed;
+  const text=responseText(payload);
+  if(!text)throw new Error('ai_response_invalid');
+  return text;
 }
-async function aiSpans(source:string){
-  const cfg=await runtimeConfig();
-  if(!cfg.key)throw new Error('ai_not_configured');
-  const prompt=[
-    'Bạn là người ghi đơn hàng. Chỉ tách SỐ LƯỢNG và RANH GIỚI TÊN HÀNG trong nguyên văn.',
-    'TUYỆT ĐỐI không sửa chính tả, không đổi tên, không chuẩn hóa thương hiệu, đơn vị, dung tích, không tra catalog.',
-    'Bạn KHÔNG được trả về tên hàng. Chỉ trả quantity, quantity_text, name_start, name_end.',
-    'quantity_text giữ nguyên ký hiệu số lượng khách viết/nói nếu nhìn thấy, ví dụ "1th", "2 thùng", "3".',
-    'quantity là số lượng được hiểu từ số hoặc chữ số lượng (ví dụ một=1, hai=2, bốn=4).',
-    'name_start/name_end là offset zero-based [start,end) trong chuỗi SOURCE. Tên cuối cùng sẽ do server cắt trực tiếp từ SOURCE.',
-    'Dùng bảng SOURCE_INDEXED: mỗi token có [start:end]. name_start phải là start của token đầu tiên của tên; name_end là end của token cuối cùng của tên.',
-    'Không đưa từ nối hội thoại như "và", "với", "nhé", "ạ" vào tên nếu chúng nằm giữa các mặt hàng; nhưng nếu từ đó thực sự nằm trong tên khách nói thì giữ.',
-    '',
-    'SOURCE:',source,
-    '',
-    'SOURCE_INDEXED:',indexedSource(source),
-  ].join('\n');
-  const parsed=await geminiRequest(cfg,[{text:prompt}],{
-    type:'OBJECT',
-    properties:{
-      items:{
-        type:'ARRAY',items:{
-          type:'OBJECT',
-          properties:{
-            quantity:{type:'NUMBER'},quantity_text:{type:'STRING'},name_start:{type:'INTEGER'},name_end:{type:'INTEGER'},
-          },
-          required:['quantity','quantity_text','name_start','name_end'],
-        },
-      },
-    },
-    required:['items'],
-  });
-  return Array.isArray(parsed?.items)?parsed.items:[];
+async function normalizeOrderTextWithAi(source:string,cfg:any){
+  const input=clean(source,MAX_SOURCE_CHARS);
+  if(!input)throw new Error('order_text_required');
+  return geminiTextRequest(cfg,[
+    {text:ORDER_NORMALIZE_PROMPT},
+    {text:`\n\nĐẦU VÀO:\n${input}`},
+  ]);
 }
-async function aiVision(source:string,images:any[]){
-  const cfg=await runtimeConfig();
-  if(!cfg.key)throw new Error('ai_not_configured');
-  const prompt=[
-    'Bạn đang đọc ghi chú đặt hàng từ Chat. Với phần ẢNH, nhiệm vụ bước đầu tiên và duy nhất của Vision là CHÉP NGUYÊN VĂN từng dòng chữ nhìn thấy.',
-    'KHÔNG tra database/catalog, KHÔNG tìm SKU, KHÔNG chuẩn hóa thương hiệu, KHÔNG sửa chính tả, KHÔNG suy diễn từ ngữ theo nghĩa sản phẩm.',
-    'Ví dụ nếu nét chữ trông như "tuýp" thì chép đúng nét nhìn thấy; không đổi thành một từ có vẻ hợp nghĩa hơn như "truyền".',
-    'VỚI MỖI ẢNH: TRƯỚC KHI CHÉP, xác định hướng chữ đúng và xoay ảnh trong nhận thức theo 0/90/180/270 độ để chữ đứng đúng chiều như người gửi đang nhìn.',
-    'Sau khi xoay đúng hướng, đọc theo bố cục thật: giữ thứ tự dòng, cột, dấu :, dấu gạch lặp và ký hiệu SL đúng như trên giấy.',
-    'Mỗi phần tử image_lines chỉ có text là dòng CHÉP NGUYÊN VĂN và uncertain. KHÔNG tách quantity/name trong Vision.',
-    'Nếu một chữ không chắc, giữ cách đọc sát nét nhất và đặt uncertain=true. Không được bịa để làm câu có vẻ đúng.',
-    'Nếu SOURCE_TEXT có chữ chat, chỉ phần text_items mới dùng offset; KHÔNG viết lại tên trong text_items.',
-    '',
-    'SOURCE_TEXT:',source||'(trống)',
-    '',
-    'SOURCE_INDEXED:',source?indexedSource(source):'(trống)',
-  ].join('\n');
-  const parts:any[]=[{text:prompt}];
-  images.forEach((image,index)=>{
-    parts.push({text:`ẢNH ${index+1}: xoay đúng hướng trước, sau đó chép nguyên văn từng dòng. Không suy diễn.`});
-    parts.push({inlineData:{mimeType:image.mimeType,data:image.data}});
-  });
-  const parsed=await geminiRequest(cfg,parts,{
-    type:'OBJECT',
-    properties:{
-      text_items:{
-        type:'ARRAY',items:{
-          type:'OBJECT',
-          properties:{quantity:{type:'NUMBER'},quantity_text:{type:'STRING'},name_start:{type:'INTEGER'},name_end:{type:'INTEGER'}},
-          required:['quantity','quantity_text','name_start','name_end'],
-        },
-      },
-      image_lines:{
-        type:'ARRAY',items:{
-          type:'OBJECT',
-          properties:{text:{type:'STRING'},uncertain:{type:'BOOLEAN'}},
-          required:['text','uncertain'],
-        },
-      },
-    },
-    required:['text_items','image_lines'],
-  });
-  return{
-    textItems:Array.isArray(parsed?.text_items)?parsed.text_items:[],
-    imageLines:Array.isArray(parsed?.image_lines)?parsed.image_lines:[],
-  };
+async function ocrInboundImagesWithAi(images:any[],cfg:any){
+  const outputs=[];
+  for(const image of images){
+    const text=await geminiTextRequest(cfg,[
+      {text:ORDER_OCR_PROMPT},
+      {inlineData:{mimeType:image.mimeType,data:image.data}},
+    ]);
+    if(text)outputs.push(text);
+  }
+  if(!outputs.length)throw new Error('ai_items_missing');
+  return outputs.join('\n');
 }
 
 Deno.serve(async(req:Request)=>{
@@ -288,20 +218,27 @@ Deno.serve(async(req:Request)=>{
       return json({ok:true,mode:'quick',source:source.source,items:parsed.items,unresolved:parsed.unresolved,text:formatOrderItems(parsed.items)});
     }
 
-    if(!imageAssetIds.length){
-      const spans=await aiSpans(source.text);
-      const items=materializeAiSpans(source.text,spans);
-      return json({ok:true,mode:'ai',source:source.source,items,text:formatOrderItems(items)});
+    const cfg=await runtimeConfig();
+    if(!cfg.key)throw new Error('ai_not_configured');
+
+    let aiInput=source.text;
+    if(imageAssetIds.length){
+      const images=await loadInboundImages(String(admin.account.id),source.contactId,imageAssetIds);
+      const ocrText=await ocrInboundImagesWithAi(images,cfg);
+      aiInput=[source.text,ocrText].filter(Boolean).join('\n');
     }
 
-    const images=await loadInboundImages(String(admin.account.id),source.contactId,imageAssetIds);
-    const vision=await aiVision(source.text,images);
-    const textItems=source.text&&vision.textItems.length?materializeAiSpans(source.text,vision.textItems):[];
-    const imageParsed=vision.imageLines.length?materializeAiImageTranscriptions(vision.imageLines):{items:[],unresolved:[]};
-    const items=[...textItems,...imageParsed.items];
-    const unresolved=imageParsed.unresolved;
-    if(!items.length&&!unresolved.length)throw new Error('ai_items_missing');
-    return json({ok:true,mode:'ai',source:source.source,items,unresolved,text:formatOrderItems(items)});
+    const normalized=await normalizeOrderTextWithAi(aiInput,cfg);
+    const parsed=parseNormalizedOrderText(normalized);
+    if(!parsed.items.length&&!parsed.unresolved.length)throw new Error('ai_items_missing');
+    return json({
+      ok:true,
+      mode:'ai',
+      source:source.source,
+      items:parsed.items,
+      unresolved:parsed.unresolved,
+      text:normalized,
+    });
   }catch(error){
     const code=String((error as any)?.message||error||'internal_error');
     const status=['contact_required','conversation_not_found','customer_message_not_found','order_text_required','source_image_not_found'].includes(code)?400:
