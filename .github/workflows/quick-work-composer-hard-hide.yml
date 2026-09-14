@@ -1,0 +1,40 @@
+name: Quick work composer hard hide
+permissions:
+  contents: write
+on:
+  push:
+    branches: [main]
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Patch composer owner
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('shell.js')
+          s=p.read_text('utf-8')
+          old="""  if(workView)workView.hidden=desktopWorkspace?false:route!=='work';\n  const composer=document.getElementById('thread-bottom-container');\n  if(composer)composer.hidden=!desktopWorkspace&&route==='work';\n  renderTopTabs();"""
+          new="""  const hideWork=!desktopWorkspace&&route==='work';\n  if(workView){\n    workView.hidden=desktopWorkspace?false:route!=='work';\n    workView.style.height=hideWork?'calc(100svh - var(--header-height,72px))':'';\n  }\n  const composer=document.getElementById('thread-bottom-container');\n  if(composer){\n    composer.hidden=hideWork;\n    composer.style.display=hideWork?'none':'';\n  }\n  renderTopTabs();"""
+          if old not in s: raise SystemExit('route presentation anchor not found')
+          p.write_text(s.replace(old,new,1),'utf-8')
+          t=Path('tests/test_v21_work_hides_composer.py')
+          t.write_text('''from pathlib import Path\nimport unittest\nSHELL=Path(__file__).resolve().parents[1].joinpath("shell.js").read_text("utf-8")\nclass WorkComposerContract(unittest.TestCase):\n    def test_work_route_hard_hides_composer_and_reclaims_height(self):\n        self.assertIn("const hideWork=!desktopWorkspace&&route==='work';", SHELL)\n        self.assertIn("composer.style.display=hideWork?'none':'';", SHELL)\n        self.assertIn("workView.style.height=hideWork?'calc(100svh - var(--header-height,72px))':'';", SHELL)\nif __name__=="__main__": unittest.main()\n''','utf-8')
+          PY
+      - name: Verify focused fix
+        run: |
+          python -m unittest tests.test_v21_work_hides_composer -v
+          node --check shell.js
+      - name: Commit and self-remove helper
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm -f .github/workflows/quick-work-composer-hard-hide.yml
+          git add shell.js tests/test_v21_work_hides_composer.py
+          git commit -m 'fix: hard hide chat composer in work mode'
+          git push origin HEAD:main
