@@ -1,0 +1,88 @@
+name: Temporary apply desktop minimal geometry
+on:
+  push:
+    branches:
+      - fix/desktop-three-column-minimal
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/desktop-three-column-minimal
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply desktop-only geometry overrides
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('zalo-admin-link.css')
+          css = path.read_text('utf-8')
+          marker = '/* Desktop minimal three-column refinement. */'
+          if marker not in css:
+              css += r'''
+
+          /* Desktop minimal three-column refinement. */
+          @media (min-width:74rem) and (hover:hover) and (pointer:fine){
+            #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] .wm-sidebar-header{padding-bottom:8px!important}
+            #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] .wm-sidebar-body{padding-top:0!important}
+
+            #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #regionTop .top-mode-switch{
+              background:transparent!important;
+              box-shadow:none!important;
+              padding:0!important;
+            }
+            #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #regionTop [data-top-tab="chat"]{
+              display:flex!important;
+              align-items:center;
+              justify-content:center;
+              gap:8px;
+              background:transparent!important;
+              box-shadow:none!important;
+              border-radius:0!important;
+            }
+            #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #regionTop [data-top-tab="chat"]::before{
+              content:"Trò chuyện";
+              flex:0 0 auto;
+              color:var(--theme-content-secondary);
+              font-size:.82rem;
+              font-weight:500;
+            }
+
+            #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #workThreadView .work-thread-frame{
+              display:flex;
+              flex-direction:column;
+            }
+            #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #workThreadView .work-thread-frame::before{
+              content:"Công việc";
+              box-sizing:border-box;
+              display:flex;
+              align-items:center;
+              min-height:var(--header-height,72px);
+              padding-inline:24px;
+              color:var(--theme-content-primary);
+              background:var(--theme-surface-primary);
+              font-size:.95rem;
+              font-weight:600;
+            }
+            #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #workThreadView .work-thread-empty{display:none!important}
+          }
+          '''
+              path.write_text(css, 'utf-8')
+          PY
+      - name: Rebuild canonical preview
+        run: python tools/build_current_preview.py
+      - name: Commit implementation and generated files
+        run: |
+          if git diff --quiet -- zalo-admin-link.css index.html version.json; then
+            echo "Already applied"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add zalo-admin-link.css index.html version.json
+          git commit -m "fix: align desktop chat work columns"
+          git push origin HEAD:fix/desktop-three-column-minimal
