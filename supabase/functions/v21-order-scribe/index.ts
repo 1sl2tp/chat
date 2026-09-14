@@ -1,5 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
-import { formatOrderItems, parseNormalizedOrderText, parseQuickOrderText, toGeometryAscii } from "./scribe-core.mjs";
+import { extractOrderIntentSource, finalizeAiOrderText, formatOrderItems, parseQuickOrderText } from "./scribe-core.mjs";
 import { ORDER_NORMALIZE_PROMPT, ORDER_OCR_PROMPT } from "./order-ai-prompts.mjs";
 import { buildGroceryReferenceContext, buildOwnRecognitionVocabulary, loadGroceryReferenceLibrary, rankGroceryCandidates } from "./grocery-reference.mjs";
 
@@ -223,31 +223,30 @@ Deno.serve(async(req:Request)=>{
     if(!cfg.key)throw new Error('ai_not_configured');
     const groceryLibrary=await loadGroceryReferenceLibrary(db);
 
-    let aiInput=source.text;
+    let aiInput=extractOrderIntentSource(source.text);
+    const ownVocabulary=buildOwnRecognitionVocabulary(groceryLibrary,{maxChars:12000});
     if(imageAssetIds.length){
       const images=await loadInboundImages(String(admin.account.id),source.contactId,imageAssetIds);
-      const ownVocabulary=buildOwnRecognitionVocabulary(groceryLibrary);
       const ocrText=await ocrInboundImagesWithAi(images,cfg,ownVocabulary);
-      aiInput=[source.text,ocrText].filter(Boolean).join('\n');
+      const filteredOcr=extractOrderIntentSource(ocrText);
+      aiInput=[aiInput,filteredOcr].filter(Boolean).join('\n');
     }
+    if(!aiInput)throw new Error('ai_items_missing');
 
-    // Candidate ranking is evidence only. The model receives nearby real names plus
-    // parent categories, but the prompt requires preserving any clear source phrase.
-    const referenceContext=buildGroceryReferenceContext(aiInput,groceryLibrary);
-    // Keep this explicit use visible in the edge contract: ranking is local evidence,
-    // never an automatic SKU/name replacement.
-    if(aiInput)rankGroceryCandidates(aiInput,groceryLibrary,1);
+    const nearbyReference=buildGroceryReferenceContext(aiInput,groceryLibrary);
+    const referenceContext=[nearbyReference,ownVocabulary].filter(Boolean).join('\n\n');
+    // Ranking is evidence only; it must never auto-replace a clear source phrase.
+    rankGroceryCandidates(aiInput,groceryLibrary,1);
     const normalized=await normalizeOrderTextWithAi(aiInput,cfg,referenceContext);
-    const asciiNormalized=toGeometryAscii(normalized).trim();
-    const parsed=parseNormalizedOrderText(asciiNormalized);
-    if(!parsed.items.length&&!parsed.unresolved.length)throw new Error('ai_items_missing');
+    const final=finalizeAiOrderText(normalized);
+    if(!final.items.length)throw new Error('ai_items_missing');
     return json({
       ok:true,
       mode:'ai',
       source:source.source,
-      items:parsed.items,
-      unresolved:parsed.unresolved,
-      text:asciiNormalized,
+      items:final.items,
+      unresolved:final.unresolved,
+      text:final.text,
     });
   }catch(error){
     const code=String((error as any)?.message||error||'internal_error');
