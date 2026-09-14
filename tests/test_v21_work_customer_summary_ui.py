@@ -25,7 +25,7 @@ assert 'v21-auth-state' in c, 'summary view must react to login/logout state'
 assert 'setInterval' in c or 'setTimeout' in c, 'summary view must refresh automatically'
 assert 'rawEvidence' in c, 'uncertain/inferred lines must keep original evidence visible'
 assert 'totalLines' in c and 'totals' in c, 'view must show line count and totals'
-assert '<ol' in c or 'createElement(\'ol\')' in c or 'createElement("ol")' in c, 'items must render with visible STT ordering'
+assert "node('ol'" in c or 'node("ol"' in c or "createElement('ol')" in c or 'createElement("ol")' in c, 'items must render with visible STT ordering'
 
 lower_m = m.lower()
 assert 'chat_customer_summary_work_feed' in lower_m, 'migration must define the feed RPC'
