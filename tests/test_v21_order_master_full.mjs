@@ -10,10 +10,10 @@ assert.equal(typeof core.parseMasterOrderPayload,'function','master JSON parser 
     parsed_items:[
       {
         line_number:1,
-        raw_text:'5 vnm it dg be',
+        raw_text:'5 vnm ít đường bé',
         detected_brand:'VNM',
         action:'new',
-        normalized_name:'Vnm it duong be',
+        normalized_name:'Vinamilk it duong be',
         quantity_number:5,
         unit:null,
         is_ambiguous:false,
@@ -34,19 +34,81 @@ assert.equal(typeof core.parseMasterOrderPayload,'function','master JSON parser 
       },
     ],
   });
-  assert.equal(order.text,'5 Vnm it duong be\n15 Nuoc 247','visible result must be strictly SL + Ten and must not include packaging unit');
-  assert.deepEqual(order.items.map(({quantity,name,unit,isAmbiguous})=>({quantity,name,unit,isAmbiguous})),[
-    {quantity:5,name:'Vnm it duong be',unit:null,isAmbiguous:false},
-    {quantity:15,name:'Nuoc 247',unit:'thung',isAmbiguous:false},
-  ]);
+  assert.equal(order.text,'5 vnm it duong be\n15 th 247','visible result must preserve the literal source after quantity; only Vietnamese accents are removed');
 }
 
 {
-  const legacy=core.parseMasterOrderPayload({
+  const literal=core.parseMasterOrderPayload({
     intent:'ORDER',
-    parsed_items:[{quantity_number:5,unit:'bich',normalized_vn:'5 bich Sua chua khong duong'}],
+    parsed_items:[
+      {
+        line_number:1,
+        raw_text:'Thế cho c 2 sữa chua chân châu đường đen',
+        action:'new',
+        normalized_name:'Sua chua chan chau duong den',
+        quantity_number:2,
+        unit:null,
+        inherited_from_line:null,
+      },
+      {
+        line_number:2,
+        raw_text:'3 ko đường bịch',
+        action:'new',
+        normalized_name:'Sua chua khong duong',
+        quantity_number:3,
+        unit:'bich',
+        inherited_from_line:null,
+      },
+      {
+        line_number:3,
+        raw_text:'2 sc nếp cẩm',
+        action:'new',
+        normalized_name:'Sua chua nep cam',
+        quantity_number:2,
+        unit:null,
+        inherited_from_line:null,
+      },
+      {
+        line_number:4,
+        raw_text:'5 milo to 180 có dg',
+        action:'new',
+        normalized_name:'Milo to 180 co duong',
+        quantity_number:5,
+        unit:null,
+        inherited_from_line:null,
+      },
+      {
+        line_number:5,
+        raw_text:'Cho c thêm 5 thùng green ita đường to',
+        action:'new',
+        normalized_name:'Green it duong to',
+        quantity_number:5,
+        unit:'thung',
+        inherited_from_line:null,
+      },
+    ],
   });
-  assert.equal(legacy.text,'5 Sua chua khong duong','legacy normalized_vn must not duplicate quantity or packaging in visible text');
+  assert.equal(
+    literal.text,
+    '2 sua chua chan chau duong den\n3 ko duong bich\n2 sc nep cam\n5 milo to 180 co dg\n5 thung green ita duong to',
+    'AI may select the order line, but must not rewrite abbreviations, inherit a product name, or drop packaging words from the literal name',
+  );
+}
+
+{
+  const inherited=core.parseMasterOrderPayload({
+    intent:'IMAGE_ORDER',
+    parsed_items:[{
+      line_number:2,
+      raw_text:'______ 3 không đường',
+      action:'new',
+      normalized_name:'Sua chua khong duong',
+      quantity_number:3,
+      unit:null,
+      inherited_from_line:1,
+    }],
+  });
+  assert.equal(inherited.text,'3 Sua chua khong duong','explicit repeat-marker inheritance may use the resolved inherited name');
 }
 
 {
