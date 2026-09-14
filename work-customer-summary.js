@@ -128,6 +128,52 @@ function bindMobileChatSwipe(){
   return true;
 }
 
+function bindLegacyEdgeSwipeBlocker(){
+  const app=document.getElementById('appShell');
+  if(!app)return false;
+  let edgeSwipe=null;
+  const reset=()=>{edgeSwipe=null;};
+
+  const onTouchStart=event=>{
+    if(!mobileDirectoryAllowed()||event.touches?.length!==1||event.target?.closest?.('#chatScreen')){
+      reset();
+      return;
+    }
+    const touch=event.touches[0];
+    if(touch.clientX>30){reset();return;}
+    edgeSwipe={startX:touch.clientX,startY:touch.clientY};
+  };
+  const onTouchMove=event=>{
+    if(!edgeSwipe||event.touches?.length!==1)return;
+    const touch=event.touches[0];
+    const dx=touch.clientX-edgeSwipe.startX;
+    const dy=touch.clientY-edgeSwipe.startY;
+    if(dx>12&&dx>Math.abs(dy)*MOBILE_CHAT_SWIPE_DOMINANCE){
+      if(event.cancelable)event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+  };
+  const onTouchEnd=event=>{
+    if(!edgeSwipe)return;
+    const state=edgeSwipe;
+    const touch=event.changedTouches?.[0];
+    reset();
+    if(!touch)return;
+    const dx=touch.clientX-state.startX;
+    const dy=touch.clientY-state.startY;
+    if(dx>=MOBILE_CHAT_SWIPE_DISTANCE_PX&&dx>Math.abs(dy)*MOBILE_CHAT_SWIPE_DOMINANCE){
+      if(event.cancelable)event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+  };
+
+  app.addEventListener('touchstart',onTouchStart,{passive:true,capture:true});
+  app.addEventListener('touchmove',onTouchMove,{passive:false,capture:true});
+  app.addEventListener('touchend',onTouchEnd,{passive:false,capture:true});
+  app.addEventListener('touchcancel',reset,{passive:true,capture:true});
+  return true;
+}
+
 function itemName(item={}){
   return String(item?.name||item?.rawEvidence||'').trim();
 }
@@ -448,6 +494,7 @@ document.addEventListener('click',event=>{
 });
 
 bindMobileChatSwipe();
+bindLegacyEdgeSwipeBlocker();
 schedule();
 void refresh('boot');
 window.setTimeout(()=>{
