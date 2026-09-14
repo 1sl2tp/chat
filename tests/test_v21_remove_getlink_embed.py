@@ -19,7 +19,8 @@ class ChatOwnedWorkSurfaceContract(unittest.TestCase):
             self.assertIn('aria-selected="true"data-top-tab="work"data-nav-target="work"', compact, str(path))
             self.assertIn('id="workThreadView"', text, str(path))
             self.assertIn('data-work-owner="chat"', text, str(path))
-            self.assertIn('Khu vực này để phát triển sau.', text, str(path))
+            self.assertIn('data-work-summary-root', text, str(path))
+            self.assertNotIn('Khu vực này để phát triển sau.', text, str(path))
 
     def test_getlink_is_not_embedded_or_owned_by_chat(self):
         for path in (SOURCE, INDEX):
