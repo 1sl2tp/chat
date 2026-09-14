@@ -1,0 +1,102 @@
+name: Patch work default boot
+
+on:
+  push:
+    branches:
+      - fix/work-default-boot-stall
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/work-default-boot-stall
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Confirm focused contract is red before implementation
+        run: |
+          set +e
+          python tests/test_v21_remove_getlink_embed.py
+          status=$?
+          set -e
+          test "$status" -ne 0
+      - name: Patch work-first boot at the shell owner
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          source = Path('index.source.html')
+          text = source.read_text('utf-8')
+
+          def replace_one(old, new):
+              global text
+              count = text.count(old)
+              assert count == 1, (old, count)
+              text = text.replace(old, new, 1)
+
+          replace_one(
+              'data-default-route="chat" data-route="chat"',
+              'data-default-route="work" data-route="work"',
+          )
+          replace_one(
+              'aria-selected="false" data-top-tab="work" data-nav-target="work"',
+              'aria-selected="true" data-top-tab="work" data-nav-target="work"',
+          )
+          replace_one('loading="eager"', 'loading="lazy"')
+
+          hidden_contract = '''#workThreadView[hidden],
+          [data-chat-thread-node][hidden]{display:none!important}
+          '''
+          static_work = hidden_contract + '''#appShell[data-route="work"] #workThreadView{
+            display:flex!important;
+            flex:0 0 auto;
+            width:100%;
+            height:calc(100svh - var(--header-height,72px) - var(--composer-flow-reserve,0px));
+            min-height:0;
+            padding:8px 12px;
+            overflow:hidden;
+            box-sizing:border-box;
+          }
+          #appShell[data-route="work"] [data-chat-thread-node]{display:none!important}
+          @media(max-width:640px){
+            #appShell[data-route="work"] #workThreadView{padding:6px}
+          }
+          '''
+          assert text.count(hidden_contract) == 1, text.count(hidden_contract)
+          text = text.replace(hidden_contract, static_work, 1)
+          source.write_text(text, 'utf-8')
+
+          shell = Path('shell.js')
+          code = shell.read_text('utf-8')
+          replacements = [
+              ("let route='chat';", "let route='work';"),
+              ("route:ROUTES.includes(route)?route:'chat'", "route:ROUTES.includes(route)?route:'work'"),
+              ("route=ROUTES.includes(saved?.route)?saved.route:'chat';", "route=ROUTES.includes(saved?.route)?saved.route:'work';"),
+          ]
+          for old, new in replacements:
+              count = code.count(old)
+              assert count == 1, (old, count)
+              code = code.replace(old, new, 1)
+          shell.write_text(code, 'utf-8')
+          PY
+      - name: Rebuild canonical index and build id
+        run: python tools/build_current_preview.py
+      - name: Focused contract is green
+        run: python tests/test_v21_remove_getlink_embed.py
+      - name: Verify canonical source after build
+        run: python tools/verify_current.py
+      - name: Remove one-time patch workflow
+        run: rm .github/workflows/patch-work-default-boot.yml
+      - name: Commit implementation and self-cleanup
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: boot mobile into work without eager embed"
+          git push origin HEAD:fix/work-default-boot-stall
