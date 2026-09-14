@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="831df373440f1de9cf777e95fffc0671eca81200a00f96922e2858544144438d">
+<meta name="app-build-id" content="0e273fd5e973a32ac75b8369f8067cb65687254ac246c6cb6f0b0450b36ab930">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -427,6 +427,11 @@
 
 </style>
 <style data-inlined-source="work-customer-summary.css">
+#appShell[data-route="work"] #scrollRoot{
+  overflow-y:hidden!important;
+  overscroll-behavior:none;
+}
+
 [data-work-summary-root]{
   width:100%;
   height:100%;
