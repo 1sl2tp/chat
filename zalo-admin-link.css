@@ -187,21 +187,22 @@
     font-weight:500;
   }
 
-  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #workThreadView .work-thread-frame{
-    display:flex;
-    flex-direction:column;
-  }
-  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #workThreadView .work-thread-frame::before{
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #regionTop::after{
     content:"Công việc";
+    position:absolute;
+    inset-block:0;
+    inset-inline-end:0;
+    width:var(--desktop-work-width);
     box-sizing:border-box;
     display:flex;
     align-items:center;
-    min-height:var(--header-height,72px);
     padding-inline:24px;
+    border-inline-start:1px solid var(--theme-border-default);
     color:var(--theme-content-primary);
     background:var(--theme-surface-primary);
     font-size:.95rem;
     font-weight:600;
+    pointer-events:none;
   }
   #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #workThreadView .work-thread-empty{display:none!important}
 }
