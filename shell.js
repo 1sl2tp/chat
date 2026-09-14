@@ -114,9 +114,16 @@ function applyRoutePresentation(){
   syncDesktopWorkOwner(desktopWorkspace);
   const chatNodes=document.querySelectorAll('[data-chat-thread-node]');
   for(const node of chatNodes)node.hidden=desktopWorkspace?false:route!=='chat';
-  if(workView)workView.hidden=desktopWorkspace?false:route!=='work';
+  const hideWork=!desktopWorkspace&&route==='work';
+  if(workView){
+    workView.hidden=desktopWorkspace?false:route!=='work';
+    workView.style.height=hideWork?'calc(100svh - var(--header-height,72px))':'';
+  }
   const composer=document.getElementById('thread-bottom-container');
-  if(composer)composer.hidden=!desktopWorkspace&&route==='work';
+  if(composer){
+    composer.hidden=hideWork;
+    composer.style.display=hideWork?'none':'';
+  }
   renderTopTabs();
   renderChatTabIdentity();
   renderCallFocus();
