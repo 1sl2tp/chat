@@ -4,6 +4,8 @@
 
 **Branch:** `feature/restore-chat-workspace-owner`
 
+**Execution status:** RED ownership tests are committed. Branch-only patch/build workflow is armed to apply the CHAT-side removal and canonical rebuild; `main` remains untouched.
+
 ## Task 1 — Lock the new ownership contract (RED)
 
 **Files:**
