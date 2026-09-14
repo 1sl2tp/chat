@@ -222,25 +222,29 @@ async function recordResult(customer:any,messages:any[],imagesByMessage:Map<stri
 
 async function recordFailure(customer:any,error:unknown){
   const code=String((error as any)?.message||error||'scan_failed').slice(0,200);
-  await db.from('chat_customer_summary_runs').insert({
-    customer_id:customer.id,
-    customer_username:customer.username||null,
-    customer_display_name:customer.display_name||null,
-    message_count:0,
-    customer_message_count:0,
-    image_count:0,
-    status:'failed',
-    raw_output:'',
-    result_json:{items:[],notes:[]},
-    error_code:code,
-    finished_at:new Date().toISOString(),
-  }).catch(()=>{});
-  await db.from('chat_customer_summary_state').upsert({
-    customer_id:customer.id,
-    last_scanned_at:new Date().toISOString(),
-    last_error:code,
-    updated_at:new Date().toISOString(),
-  },{onConflict:'customer_id'}).catch(()=>{});
+  try{
+    await db.from('chat_customer_summary_runs').insert({
+      customer_id:customer.id,
+      customer_username:customer.username||null,
+      customer_display_name:customer.display_name||null,
+      message_count:0,
+      customer_message_count:0,
+      image_count:0,
+      status:'failed',
+      raw_output:'',
+      result_json:{items:[],notes:[]},
+      error_code:code,
+      finished_at:new Date().toISOString(),
+    });
+  }catch{}
+  try{
+    await db.from('chat_customer_summary_state').upsert({
+      customer_id:customer.id,
+      last_scanned_at:new Date().toISOString(),
+      last_error:code,
+      updated_at:new Date().toISOString(),
+    },{onConflict:'customer_id'});
+  }catch{}
 }
 
 async function scanCustomer(customer:any,cfg:any){
