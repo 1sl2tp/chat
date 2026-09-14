@@ -46,6 +46,33 @@ assert.deepEqual(
   'summary must preserve product suffixes/codes and only remove explicit correction commentary'
 );
 
+// Regression: product-defining customer words must survive even if the model shortened
+// both name and rawEvidence. Conversation fillers such as "nhé" must not become product names.
+const differentiated=core.normalizeSummaryPayload({
+  items:[
+    {name:'mộc Châu',quantity:2,unit:'thùng',source:'text',raw_evidence:'2 thùng mộc Châu'},
+    {name:'Ensure',quantity:2,unit:'thùng',source:'text+admin-context',raw_evidence:'Có ensure rẻ k a ... 2 a'},
+    {name:'Gạo ichi',quantity:null,unit:null,source:'text',raw_evidence:'Gạo ichi',ambiguous:true},
+    {name:'bò',quantity:5,unit:'thùng',source:'text',raw_evidence:'5 bò'},
+    {name:'ngôi sao',quantity:2,unit:'thùng',source:'text',raw_evidence:'2 ngôi sao'},
+  ]
+},[
+  {sender_role:'customer',body:'Hai thùng mì lô tô và 2 thùng mộc Châu bé nhé'},
+  {sender_role:'customer',body:'Có ensure rẻ k a'},
+  {sender_role:'admin',body:'Lấy mấy thùng?'},
+  {sender_role:'customer',body:'2 a'},
+  {sender_role:'customer',body:'Gạo ichi to nhỏ'},
+  {sender_role:'customer',body:'5 bò to ít đường'},
+  {sender_role:'customer',body:'2 ngôi sao xanh lá'},
+]);
+assert.deepEqual(
+  differentiated.items.map(({name})=>name),
+  ['mộc Châu bé','Ensure rẻ','Gạo ichi to nhỏ','bò to ít đường','ngôi sao xanh lá'],
+  'summary must preserve size/price/sugar/color differentiators from customer-authored text'
+);
+assert.equal(differentiated.items[0].rawEvidence,'Hai thùng mì lô tô và 2 thùng mộc Châu bé nhé');
+assert.equal(/nhé/i.test(differentiated.items[0].name),false,'conversation filler must not be appended to product name');
+
 const history=core.buildConversationHistory([
   {created_at:'2026-09-15T00:00:00Z',sender_role:'customer',body:'Có ensure rẻ k a'},
   {created_at:'2026-09-15T00:00:10Z',sender_role:'admin',body:'Lấy mấy thùng?'},
