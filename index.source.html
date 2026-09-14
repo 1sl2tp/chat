@@ -2286,6 +2286,20 @@ button{
 }
 #workThreadView[hidden],
 [data-chat-thread-node][hidden]{display:none!important}
+#appShell[data-route="work"] #workThreadView{
+  display:flex!important;
+  flex:0 0 auto;
+  width:100%;
+  height:calc(100svh - var(--header-height,72px) - var(--composer-flow-reserve,0px));
+  min-height:0;
+  padding:8px 12px;
+  overflow:hidden;
+  box-sizing:border-box;
+}
+#appShell[data-route="work"] [data-chat-thread-node]{display:none!important}
+@media(max-width:640px){
+  #appShell[data-route="work"] #workThreadView{padding:6px}
+}
 #workThreadView:not([hidden]){
   display:flex;
   flex:0 0 auto;
@@ -3002,7 +3016,7 @@ button{
 <div id="runtimeError" class="hidden fixed z-[9999] left-2 right-2 top-2 rounded-xl bg-red-600 text-white text-xs px-3 py-2 shadow-lg"></div>
 
 <!-- V21.69.9 unified runtime marker. Earlier V21.20/V21.64 labels below are provenance for inherited geometry/style contracts only, not separate live runtimes. -->
-<div id="appShell" data-app-shell data-chat-screen-version="V21.72.39" data-app-shell-version="V21.72.39" data-auth-state="booting" data-default-route="chat" data-route="chat">
+<div id="appShell" data-app-shell data-chat-screen-version="V21.72.39" data-app-shell-version="V21.72.39" data-auth-state="booting" data-default-route="work" data-route="work">
   <div id="screenHost" data-screen-host>
     <div id="activeScreenSlot" data-active-screen-slot>
       <section id="chatScreen" class="app-screen" data-screen="chat">
@@ -3036,7 +3050,7 @@ button{
 
         <div class="top-mode-switch" role="tablist" aria-label="Chế độ làm việc">
           <button type="button" class="top-mode-tab" role="tab" aria-selected="false" data-top-tab="chat" data-nav-target="chat"><span class="top-mode-contact-avatar" data-chat-tab-avatar hidden></span><span data-chat-tab-label>Trò chuyện</span></button>
-          <button type="button" class="top-mode-tab" role="tab" aria-selected="false" data-top-tab="work" data-nav-target="work">Công việc</button>
+          <button type="button" class="top-mode-tab" role="tab" aria-selected="true" data-top-tab="work" data-nav-target="work">Công việc</button>
         </div>
 
         <div class="call-focus-slot" data-call-focus-slot data-call-ui-state="idle">
@@ -3120,7 +3134,7 @@ button{
                   class="work-thread-embed"
                   src="https://get.taphoa.xyz/?embed=1"
                   title="Công việc"
-                  loading="eager"
+                  loading="lazy"
                   referrerpolicy="strict-origin-when-cross-origin"
                 ></iframe>
               </div>
