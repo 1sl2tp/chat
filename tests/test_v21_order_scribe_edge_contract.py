@@ -18,13 +18,11 @@ edge = EDGE.read_text(encoding="utf-8")
 core = CORE.read_text(encoding="utf-8")
 master_core = MASTER_CORE.read_text(encoding="utf-8")
 prompts = PROMPTS.read_text(encoding="utf-8")
-reference = REFERENCE.read_text(encoding="utf-8")
 shared = SHARED.read_text(encoding="utf-8")
 migration = MIGRATION.read_text(encoding="utf-8")
 model_migration = MODEL_MIGRATION.read_text(encoding="utf-8")
 edge_lower = edge.lower()
 compact = "".join(edge_lower.split())
-reference_lower = reference.lower()
 core_lower = core.lower()
 master_lower = master_core.lower()
 
@@ -61,12 +59,27 @@ assert "resolveOrderWithAi" in edge
 assert "parseMasterOrderResponseText" in edge
 assert "master-order-core.mjs" in edge
 
-# Raw source reaches MASTER; no lossy pre-filter before intent/correction analysis.
+# Raw source reaches MASTER directly; no catalog/reference payload is attached to the AI request.
 assert "const sourceText=clean(source.text,MAX_SOURCE_CHARS)" in edge
-assert "resolveOrderWithAi(sourceText,images,cfg,referenceContext)" in edge
+assert "resolveOrderWithAi(sourceText,images,cfg)" in edge
 assert "ĐẦU VÀO TEXT / VOICE-TO-TEXT / SỬA ĐƠN QUA CHAT" in edge
 assert "HÌNH ẢNH NGUỒN" in edge
 assert "inlinedata" in edge_lower
+for forbidden in [
+    "grocery-reference.mjs",
+    "loadGroceryReferenceLibrary",
+    "buildGroceryReferenceContext",
+    "buildOwnRecognitionVocabulary",
+    "rankGroceryCandidates",
+    "referenceContext",
+    "ownVocabulary",
+    "nearbyReference",
+    "chat_ai_product_keys",
+    "getlink_supplier_products",
+    "getlink_links",
+    "getlink_brand_aliases",
+]:
+    assert forbidden.lower() not in edge_lower, f"active order scribe must not load/send catalog data: {forbidden}"
 
 for required in [
     "hinh anh viet tay",
@@ -80,7 +93,6 @@ for required in [
     "strict original text protocol",
     "khong tu y bo sung don vi tinh",
     "khong tu bo sung thuong hieu",
-    "thu vien tham chieu",
     "thuoc la",
     "intent",
     "no_action",
@@ -120,20 +132,6 @@ assert "v21_media_assets" in edge_lower
 assert "v21-media" in edge_lower
 assert "owner_account_id" in edge_lower
 
-# Catalog/reference data remains recognition evidence only.
-for required in [
-    "chat_ai_product_keys",
-    "products",
-    "getlink_supplier_products",
-    "getlink_links",
-    "getlink_brand_aliases",
-    "rankgrocerycandidates",
-    "buildgroceryreferencecontext",
-    "aliases",
-    "specs",
-    "level9",
-]:
-    assert required in (edge_lower + reference_lower), f"grocery reference source missing: {required}"
 for forbidden in ["resolveparsedlineswithcatalog", "createfromparsed", "draft_id", "unit_price", "price_vnd"]:
     assert forbidden not in edge_lower, f"recognition flow must stay read-only: {forbidden}"
 
@@ -144,4 +142,4 @@ assert "revoke all" in migration.lower()
 assert "gemini-3.5-flash-lite" in model_migration.lower()
 assert "update public.chat_order_scribe_runtime_settings" in model_migration.lower()
 
-print("manual order scribe reviewed full MASTER contract PASS")
+print("manual order scribe direct-request contract PASS")
