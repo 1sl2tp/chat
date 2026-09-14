@@ -1,0 +1,61 @@
+name: Work Summary Build Sync
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.work-summary-build-trigger'
+permissions:
+  contents: write
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Patch canonical source
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('index.source.html')
+          s=p.read_text('utf-8')
+
+          css_anchor='<link rel="stylesheet" href="./zalo-admin-link.css" data-build-source="zalo-admin-link.css">'
+          css_line='<link rel="stylesheet" href="./work-customer-summary.css" data-build-source="work-customer-summary.css">'
+          if css_line not in s:
+              assert css_anchor in s, 'stylesheet anchor missing'
+              s=s.replace(css_anchor, css_anchor+'\n'+css_line, 1)
+
+          if 'data-work-summary-root' not in s:
+              pattern=re.compile(
+                  r'<div class="work-thread-empty" role="status" aria-live="polite">\s*'
+                  r'<strong>Công việc</strong>\s*'
+                  r'<span>Khu vực này để phát triển sau\.</span>\s*'
+                  r'</div>'
+              )
+              replacement='<div class="work-summary-root" data-work-summary-root role="region" aria-label="Tổng hợp hàng hóa" aria-live="polite"></div>'
+              s,count=pattern.subn(replacement,s,count=1)
+              assert count==1, 'work empty-state anchor missing'
+
+          js_anchor='<script src="./auth-session-store.js" data-build-source="auth-session-store.js"></script>'
+          js_line='<script src="./work-customer-summary.js" data-build-source="work-customer-summary.js"></script>'
+          if js_line not in s:
+              assert js_anchor in s, 'auth script anchor missing'
+              s=s.replace(js_anchor, js_anchor+'\n'+js_line, 1)
+
+          p.write_text(s,'utf-8')
+          PY
+      - name: Build canonical preview
+        run: python tools/build_current_preview.py
+      - name: Commit generated source and preview
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.source.html index.html version.json
+          if git diff --cached --quiet; then
+            echo 'No build changes'
+          else
+            git commit -m 'build: wire customer summary into Work'
+            git push origin main
+          fi
