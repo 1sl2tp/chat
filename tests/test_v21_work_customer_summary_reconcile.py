@@ -8,12 +8,18 @@ MIGRATION = ROOT / 'supabase/migrations/20260915_customer_summary_completion.sql
 c = CLIENT.read_text('utf-8')
 s = STYLE.read_text('utf-8')
 
-# Aggregate mode: only customers with at least one complete quantity + name line,
-# and the compact second line is strictly "N mã · M sản phẩm" with units ignored.
+# Aggregate mode: only customers with at least one complete quantity + name line.
 assert 'validSummaryItems' in c, 'aggregate view must filter to items with both name and quantity'
-assert 'mã' in c and 'sản phẩm' in c, 'aggregate card must show compact code/product totals'
 assert 'summaryProductCount' in c, 'aggregate total must sum raw quantities regardless of unit'
-assert 'work-summary-overview-row' in s, 'aggregate rows need a dedicated compact two-line layout'
+
+# Overview must be a readable table: STT | Tên | Mã | Sản phẩm + Tổng footer.
+assert 'work-summary-overview-head' in c, 'overview needs an explicit column header row'
+assert "'STT'" in c and "'Tên'" in c and "'Mã'" in c and "'Sản phẩm'" in c, 'overview columns must be STT/Tên/Mã/Sản phẩm'
+assert 'work-summary-overview-index' in c, 'each overview customer row needs an STT cell'
+assert 'work-summary-overview-grand-total' in c, 'overview needs a final Tổng row'
+assert 'Tổng' in c, 'overview total row must be labelled Tổng'
+assert '.work-summary-overview-grid' in s, 'overview table needs a stable grid geometry'
+assert 'grid-template-columns' in s, 'overview columns must use explicit grid tracks'
 
 # Selecting a chat contact switches Work to that customer; Tất cả returns to overview.
 assert 'v21-active-contact-change' in c, 'Work must react to the selected customer'
@@ -26,6 +32,19 @@ assert 'data-work-item-toggle' in c, 'each detail item needs a completion contro
 assert 'sortItemsForReconcile' in c, 'completed rows must sort below incomplete rows'
 assert '.work-summary-item.is-completed' in s, 'completed rows need a muted/struck visual state'
 assert 'text-decoration:line-through' in s.replace(' ', ''), 'completed text must be struck through'
+
+# Detail totals are remaining work only, not the original full order.
+assert 'remainingRecords' in c, 'detail header must derive totals from incomplete records'
+assert 'remainingProductCount' in c, 'detail header must sum only incomplete quantities'
+
+# Completing an item must not throw the operator back to the top.
+assert 'captureDetailScroll' in c, 'completion must capture the current detail scroll position'
+assert 'restoreDetailScroll' in c, 'completion must restore the working viewport after reorder'
+assert 'scrollTop' in c, 'detail scroll position must be preserved explicitly'
+
+# The tapped row needs visible acknowledgement before/while it moves to completed.
+assert 'is-just-updated' in c, 'runtime must tag the just-toggled item for feedback'
+assert '.work-summary-item.is-just-updated' in s, 'just-toggled item needs a visual feedback state'
 
 # Completion state is persistent and admin-scoped in Supabase.
 assert MIGRATION.exists(), 'completion persistence migration is missing'
