@@ -64,12 +64,13 @@ for required in [
     "sữa",
     "dầu ăn",
     "tương",
-    "probi",
-    "omo",
-    "ps",
+    "thuốc lá",
     "tham chiếu",
     "không được tự thêm",
     "cụm đã rõ",
+    "banh gao",
+    "dns 681",
+    "xx poni",
 ]:
     assert required in prompts_lower, f"grocery OCR/NLP context missing: {required}"
 
