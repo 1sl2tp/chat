@@ -41,56 +41,12 @@ jobs:
         run: python tests/test_v21_remove_getlink_embed.py
       - name: Desktop chat workspace 3-column contract
         run: python tests/test_v21_chat_workspace_3col.py
-      - name: Legacy Chat order-source removal contract
+      - name: Legacy Chat split/search/order removal contract
         run: python tests/test_v21_legacy_chat_order_source_removed.py
       - name: Chat image orientation + column-2 viewer contract
         run: python tests/test_v21_chat_image_orientation_column.py
       - name: Chat album viewer column-2 geometry contract
         run: python tests/test_v21_chat_album_viewer_column2.py
-      - name: Chat AI product parser core contract
-        run: node tests/test_v21_ai_product_parser_core.mjs
-      - name: Chat shared-product catalog search contract
-        run: node tests/test_v21_ai_product_catalog_search.mjs
-      - name: Chat order summary footer contract
-        run: node tests/test_v21_ai_order_summary.mjs
-      - name: Chat exact key common-left-prefix contract
-        run: node tests/test_v21_ai_product_exact_key_prefix.mjs
-      - name: Chat AI product parser edge isolation contract
-        run: python tests/test_v21_ai_product_parser_edge_contract.py
-      - name: Chat AI database isolation contract
-        run: python tests/test_v21_ai_product_parser_db_contract.py
-      - name: Manual order scribe raw-name core contract
-        run: node tests/test_v21_order_scribe_core.mjs
-      - name: Master full SL + name contract
-        run: node tests/test_v21_order_master_full.mjs
-      - name: Handwritten repeat-marker inheritance contract
-        run: node tests/test_v21_order_scribe_inherit_marker.mjs
-      - name: Manual order scribe client normalization
-        run: node tests/test_v21_order_scribe_client_runtime.js
-      - name: Manual order scribe Edge contract
-        run: python tests/test_v21_order_scribe_edge_contract.py
-      - name: Grocery reference ranking contract
-        run: node tests/test_v21_grocery_reference.mjs
-      - name: Handwritten repeat-marker Edge contract
-        run: python tests/test_v21_order_scribe_inherit_marker_edge.py
-      - name: Incremental AI scan core contract
-        run: node tests/test_v21_ai_incremental_scan_core.mjs
-      - name: Incremental AI scan database/edge contract
-        run: python tests/test_v21_ai_incremental_scan_db_contract.py
-      - name: Chat order draft database contract
-        run: python tests/test_v21_order_draft_db_contract.py
-      - name: Chat order draft core contract
-        run: node tests/test_v21_order_draft_core.mjs
-      - name: Chat order draft Edge contract
-        run: python tests/test_v21_order_draft_edge_contract.py
-      - name: Chat order draft UI contract
-        run: |
-          node --check admin-order-draft.js
-          python tests/test_v21_order_draft_ui.py
-      - name: Chat order draft composer integration
-        run: |
-          node --check admin-ai-extract.js
-          python tests/test_v21_order_draft_composer_integration.py
       - name: CHAT work isolation contract
         run: python tests/test_v21_work_context_bridge.py
       - name: Chat quote database contract
