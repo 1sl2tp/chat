@@ -22,6 +22,9 @@ assert 'LIMIT 15' in m.upper() or 'least(15' in m.lower(), 'eligible batch must 
 # A customer without their own message must never consume an API slot.
 assert 'sender_account_id = a.id' in m or 'sender_account_id=a.id' in m, 'eligibility must require customer-authored chat'
 
+# The claim upsert must not use the OUT-parameter name as an ambiguous conflict target.
+assert 'on conflict on constraint chat_customer_summary_state_pkey' in m.lower(), 'claim batch must use the named PK constraint to avoid customer_id ambiguity'
+
 # Whole chat history is loaded, but Admin is context only.
 compact = e.replace(' ', '')
 assert 'PAGE_SIZE' in e and '.range(' in e, 'full conversation history must be paged instead of using a recent window'
