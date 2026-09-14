@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="580dc9ab01e46b1f03f9454ff8417494e6229437a94339a53368d182a7157f8f">
+<meta name="app-build-id" content="520e869fe27825e511040ad3fd68c5dfd92b3520d059dcc0f0af6d10b4330d21">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -11985,7 +11985,16 @@ function applyRoutePresentation(){
   syncDesktopWorkOwner(desktopWorkspace);
   const chatNodes=document.querySelectorAll('[data-chat-thread-node]');
   for(const node of chatNodes)node.hidden=desktopWorkspace?false:route!=='chat';
-  if(workView)workView.hidden=desktopWorkspace?false:route!=='work';
+  const hideWork=!desktopWorkspace&&route==='work';
+  if(workView){
+    workView.hidden=desktopWorkspace?false:route!=='work';
+    workView.style.height=hideWork?'calc(100svh - var(--header-height,72px))':'';
+  }
+  const composer=document.getElementById('thread-bottom-container');
+  if(composer){
+    composer.hidden=hideWork;
+    composer.style.display=hideWork?'none':'';
+  }
   renderTopTabs();
   renderChatTabIdentity();
   renderCallFocus();
