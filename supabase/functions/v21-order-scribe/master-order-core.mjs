@@ -1,6 +1,6 @@
 const VALID_INTENTS=new Set(['ORDER','CANCEL_CHANGE','INQUIRY','MIXED','GET_DETAIL','IMAGE_ORDER','NO_ACTION']);
 const EMPTY_OK_INTENTS=new Set(['NO_ACTION','INQUIRY','GET_DETAIL','CANCEL_CHANGE']);
-const UNIT_WORDS=new Set(['thung','kien','cay','bao','loc','bich','can','chai','tui','goi','hop','khay','vi']);
+const UNIT_WORDS=new Set(['t','th','thung','kien','cay','bao','loc','bich','can','chai','tui','goi','hop','khay','vi']);
 
 function clean(value,max=1000){
   return String(value??'').replace(/\r\n?/g,'\n').replace(/\s+/g,' ').trim().slice(0,max);
@@ -15,6 +15,10 @@ function ascii(value){
 function positiveNumber(value){
   const number=Number(String(value??'').replace(',','.'));
   return Number.isFinite(number)&&number>0?number:null;
+}
+function positiveInteger(value){
+  const number=Number(value);
+  return Number.isSafeInteger(number)&&number>0?number:null;
 }
 function intentOf(value){
   const intent=clean(value,40).toUpperCase();
@@ -39,10 +43,16 @@ function literalNameFromRaw(rawText,quantity){
   const q=String(quantity??'').trim();
   if(!source||!q)return '';
   const escaped=q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-  const match=new RegExp(`(?:^|\\s)${escaped}(?:[.,]0+)?(?:\\s+|$)`,'u').exec(source);
+  const match=new RegExp(`(^|\\s)(${escaped}(?:[.,]0+)?)(?=\\s|[^0-9]|$)`,'u').exec(source);
   if(!match)return '';
-  const name=source.slice(match.index+match[0].length).trim();
-  return ascii(name).trim();
+  const numberStart=match.index+String(match[1]||'').length;
+  const numberEnd=numberStart+String(match[2]||'').length;
+  const before=source.slice(0,numberStart).trim();
+  const after=source.slice(numberEnd).trim();
+  if(!after&&before)return ascii(before).trim();
+  const afterCore=ascii(after).toLowerCase().replace(/[.:;,-]+$/u,'').trim();
+  if(before&&UNIT_WORDS.has(afterCore))return ascii(before).trim();
+  return ascii(after).trim();
 }
 function itemName(raw,quantity,unit){
   const inherited=Number.isInteger(Number(raw?.inherited_from_line))&&Number(raw?.inherited_from_line)>0;
@@ -80,6 +90,8 @@ export function parseMasterOrderPayload(payload){
       isAmbiguous:raw?.is_ambiguous===true,
       inheritedFromLine:Number.isInteger(Number(raw?.inherited_from_line))&&Number(raw?.inherited_from_line)>0?Number(raw.inherited_from_line):null,
       priceCode:clean(raw?.price_code,100)||null,
+      sourceMessageSeq:positiveInteger(raw?.source_message_seq),
+      sourceLineNo:positiveInteger(raw?.source_line_no),
     });
   }
   if(!items.length&&!EMPTY_OK_INTENTS.has(intent))throw new Error('ai_items_missing');
