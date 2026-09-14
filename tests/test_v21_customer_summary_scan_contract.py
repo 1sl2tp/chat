@@ -39,6 +39,14 @@ assert 'ảnh đơn' in cl, 'prompt must explicitly recognize order images'
 assert 'ảnh minh họa' in cl or 'ảnh minh hoạ' in cl, 'prompt must explicitly ignore product-only illustration images'
 assert 'lọc trùng' in cl or 'trùng' in cl, 'prompt must deduplicate image/text duplicates'
 
+# Handwritten order images must be read losslessly before reconciliation. Similar-looking
+# variants are separate physical rows and must not be dropped as duplicates.
+assert 'từng dòng vật lý' in cl, 'prompt must require a physical-row inventory before image reconciliation'
+assert 'có đường' in cl and 'ít đường' in cl and 'không đường' in cl, 'prompt must distinguish sugar variants instead of deduplicating them'
+assert 'không được coi là trùng' in cl or 'không coi là trùng' in cl, 'prompt must forbid deduplicating distinct product variants'
+assert 'appendImageReadVerify' in e, 'edge input must include a second verification pass for each order image in the same AI call'
+assert 'ẢNH ĐỌC LẦN 1' in e and 'ẢNH KIỂM TRA LẦN 2' in e, 'each image must be presented for read then verification without another API call'
+
 # Evidence must remain auditable; uncertain content cannot invent quantity.
 assert 'raw_evidence' in c, 'AI output must preserve original evidence text'
 assert 'ambiguous' in c, 'AI output must expose ambiguous lines'
