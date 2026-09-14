@@ -25,8 +25,8 @@ assert.deepEqual(
 
 assert.equal(
   buildScanSourceText(sourcesAfterCursor(rows,10)),
-  '[11]\n3 ko duong bich\n\n[12]\n2 sc nep cam',
-  'scan input must contain only new messages and preserve literal source text',
+  '3 ko duong bich\n\n2 sc nep cam',
+  'scan input must contain only new messages in source sequence and preserve literal text without metadata numbers',
 );
 
 console.log('incremental AI scan core contract PASS');
