@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="5bd613bbce09011a9e8a58bb2377748b1cd7506e3c2b5177fa9642b959e21483">
+<meta name="app-build-id" content="cf0e02ea3d083e251896ae21cd7a7b0d39157af69b98e10b1157d10c19adb4d6">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -439,29 +439,51 @@
   color:var(--theme-content-primary);
 }
 .work-summary-header{
+  position:sticky;
+  top:0;
+  z-index:4;
   flex:0 0 auto;
   display:flex;
   align-items:center;
   justify-content:space-between;
   gap:12px;
-  padding:14px 16px 12px;
+  min-height:58px;
+  box-sizing:border-box;
+  padding:12px 16px;
+  background:var(--theme-surface-primary);
   border-bottom:1px solid var(--theme-border-default);
 }
 .work-summary-detail-header{
   justify-content:flex-start;
+  min-height:64px;
+  overflow:visible;
 }
 .work-summary-header-title{
   min-width:0;
+  flex:1 1 auto;
   display:flex;
   flex-direction:column;
+  justify-content:center;
   gap:2px;
+  padding-block:2px;
+  overflow:visible;
 }
 .work-summary-heading{
+  display:block;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
   font-size:16px;
   line-height:22px;
   font-weight:650;
 }
 .work-summary-subheading{
+  display:block;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
   font-size:12px;
   line-height:17px;
   color:var(--theme-content-tertiary);
@@ -622,8 +644,53 @@
   line-height:22px;
 }
 .work-summary-state-error .work-summary-state-text{color:var(--theme-content-secondary);}
+
+@media(max-width:67.999rem){
+  #appShell[data-mobile-directory="true"] #shellNavigationLayer{
+    position:fixed;
+    inset-block-start:var(--header-height,72px);
+    inset-inline:0;
+    bottom:0;
+    width:100%;
+    height:calc(100dvh - var(--header-height,72px));
+    z-index:70;
+    visibility:visible!important;
+    pointer-events:auto!important;
+    overflow:hidden;
+    background:var(--theme-surface-primary);
+  }
+  #appShell[data-mobile-directory="true"] #shellNavigationLayer .shell-navigation-backdrop{
+    display:none!important;
+  }
+  #appShell[data-mobile-directory="true"] #shellNavigationLayer .shell-navigation-panel{
+    position:absolute;
+    inset:0;
+    width:100%!important;
+    max-width:none!important;
+    height:100%;
+    min-height:0;
+    transform:none!important;
+    transition:none!important;
+    box-shadow:none!important;
+    border:0;
+  }
+  #appShell[data-mobile-directory="true"] #shellNavigationLayer [data-shell-command="sidebar.close"]{
+    display:none!important;
+  }
+  #appShell[data-route="chat"] #chatScreen{
+    touch-action:pan-y;
+  }
+}
+
 @media(max-width:640px){
-  .work-summary-header{padding:12px 12px 10px;}
+  .work-summary-header{
+    min-height:58px;
+    padding:10px 12px;
+  }
+  .work-summary-detail-header{
+    min-height:64px;
+    padding-block:11px;
+  }
   .work-summary-body{padding:8px 8px 18px;}
   .work-summary-overview-row{padding:10px;}
   .work-summary-item{padding:9px 10px 9px 36px;}
@@ -14258,11 +14325,14 @@ void boot();
 'use strict';
 
 const REFRESH_MS=60000;
+const MOBILE_CHAT_SWIPE_DISTANCE_PX=56;
+const MOBILE_CHAT_SWIPE_DOMINANCE=1.2;
 let timer=0;
 let loading=false;
 let generation=0;
 let rowsCache=[];
 let forceOverview=false;
+let mobileSwipe=null;
 const completionBusy=new Set();
 
 function root(){return document.querySelector('[data-work-summary-root]');}
@@ -14271,12 +14341,160 @@ function snapshot(){return authStore()?.snapshot?.()||{state:'BOOTING',account:n
 function client(){return authStore()?.getClient?.()||null;}
 function shellSnapshot(){return window.ChatAppShell?.ScreenSession?.snapshot?.()||{route:'work',activeContact:null};}
 function activeContact(){return shellSnapshot()?.activeContact||null;}
+function navigation(){return window.ChatAppShell?.NavigationCommand||null;}
+function mobileDirectoryAllowed(){
+  return !window.matchMedia?.('(min-width:68rem) and (hover:hover) and (pointer:fine)')?.matches;
+}
 
 function node(tag,className,text){
   const el=document.createElement(tag);
   if(className)el.className=className;
   if(text!==undefined&&text!==null)el.textContent=String(text);
   return el;
+}
+
+function showMobileDirectory(reason='directory'){
+  if(!mobileDirectoryAllowed())return false;
+  const app=document.getElementById('appShell');
+  const layer=document.getElementById('shellNavigationLayer');
+  if(!app||!layer)return false;
+  app.dataset.mobileDirectory='true';
+  layer.dataset.mobileDirectory='true';
+  layer.dataset.open='true';
+  layer.setAttribute('aria-hidden','false');
+  app.dataset.mobileDirectoryReason=String(reason||'directory');
+  void window.V21ContactStore?.refresh?.();
+  return true;
+}
+
+function hideMobileDirectory(reason='chat'){
+  const app=document.getElementById('appShell');
+  const layer=document.getElementById('shellNavigationLayer');
+  if(!app||!layer)return false;
+  app.dataset.mobileDirectory='false';
+  layer.dataset.mobileDirectory='false';
+  app.dataset.mobileDirectoryReason=String(reason||'chat');
+  if(app.dataset.desktopSidebarPersistent!=='true'){
+    layer.dataset.open='false';
+    layer.setAttribute('aria-hidden','true');
+  }
+  return true;
+}
+
+function pinWorkOuterScroll(){
+  if(shellSnapshot().route!=='work')return false;
+  const scroll=document.getElementById('scrollRoot');
+  if(!scroll)return false;
+  scroll.scrollTop=0;
+  return true;
+}
+
+function swipeIgnoredTarget(target){
+  return Boolean(target?.closest?.('textarea,input,select,[contenteditable="true"],button,a,#thread-bottom-container'));
+}
+
+function bindMobileChatSwipe(){
+  const chat=document.getElementById('chatScreen');
+  if(!chat)return false;
+
+  const reset=()=>{mobileSwipe=null;};
+  const onTouchStart=event=>{
+    if(!mobileDirectoryAllowed()||shellSnapshot().route!=='chat'||event.touches?.length!==1||swipeIgnoredTarget(event.target)){
+      reset();
+      return;
+    }
+    const touch=event.touches[0];
+    mobileSwipe={startX:touch.clientX,startY:touch.clientY,claimed:false};
+  };
+  const onTouchMove=event=>{
+    if(!mobileSwipe||event.touches?.length!==1)return;
+    const touch=event.touches[0];
+    const dx=touch.clientX-mobileSwipe.startX;
+    const dy=touch.clientY-mobileSwipe.startY;
+    if(Math.abs(dy)>Math.abs(dx)&&Math.abs(dy)>18){reset();return;}
+    if(Math.abs(dx)>14&&Math.abs(dx)>Math.abs(dy)*MOBILE_CHAT_SWIPE_DOMINANCE){
+      mobileSwipe.claimed=true;
+      if(event.cancelable)event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+  };
+  const onTouchEnd=event=>{
+    if(!mobileSwipe)return;
+    const state=mobileSwipe;
+    const touch=event.changedTouches?.[0];
+    reset();
+    if(!touch)return;
+    const dx=touch.clientX-state.startX;
+    const dy=touch.clientY-state.startY;
+    const horizontal=Math.abs(dx)>=MOBILE_CHAT_SWIPE_DISTANCE_PX&&Math.abs(dx)>Math.abs(dy)*MOBILE_CHAT_SWIPE_DOMINANCE;
+    if(!horizontal)return;
+    event.stopImmediatePropagation();
+    if(event.cancelable)event.preventDefault();
+    if(dx<=-MOBILE_CHAT_SWIPE_DISTANCE_PX){
+      showMobileDirectory('swipe-left');
+      return;
+    }
+    if(dx>=MOBILE_CHAT_SWIPE_DISTANCE_PX){
+      hideMobileDirectory('swipe-right-work');
+      forceOverview=false;
+      navigation()?.openWork?.();
+      pinWorkOuterScroll();
+      renderCurrent();
+    }
+  };
+  const onTouchCancel=()=>reset();
+
+  chat.addEventListener('touchstart',onTouchStart,{passive:true});
+  chat.addEventListener('touchmove',onTouchMove,{passive:false});
+  chat.addEventListener('touchend',onTouchEnd,{passive:false});
+  chat.addEventListener('touchcancel',onTouchCancel,{passive:true});
+  return true;
+}
+
+function bindLegacyEdgeSwipeBlocker(){
+  const app=document.getElementById('appShell');
+  if(!app)return false;
+  let edgeSwipe=null;
+  const reset=()=>{edgeSwipe=null;};
+
+  const onTouchStart=event=>{
+    if(!mobileDirectoryAllowed()||event.touches?.length!==1||event.target?.closest?.('#chatScreen')){
+      reset();
+      return;
+    }
+    const touch=event.touches[0];
+    if(touch.clientX>30){reset();return;}
+    edgeSwipe={startX:touch.clientX,startY:touch.clientY};
+  };
+  const onTouchMove=event=>{
+    if(!edgeSwipe||event.touches?.length!==1)return;
+    const touch=event.touches[0];
+    const dx=touch.clientX-edgeSwipe.startX;
+    const dy=touch.clientY-edgeSwipe.startY;
+    if(dx>12&&dx>Math.abs(dy)*MOBILE_CHAT_SWIPE_DOMINANCE){
+      if(event.cancelable)event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+  };
+  const onTouchEnd=event=>{
+    if(!edgeSwipe)return;
+    const state=edgeSwipe;
+    const touch=event.changedTouches?.[0];
+    reset();
+    if(!touch)return;
+    const dx=touch.clientX-state.startX;
+    const dy=touch.clientY-state.startY;
+    if(dx>=MOBILE_CHAT_SWIPE_DISTANCE_PX&&dx>Math.abs(dy)*MOBILE_CHAT_SWIPE_DOMINANCE){
+      if(event.cancelable)event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+  };
+
+  app.addEventListener('touchstart',onTouchStart,{passive:true,capture:true});
+  app.addEventListener('touchmove',onTouchMove,{passive:false,capture:true});
+  app.addEventListener('touchend',onTouchEnd,{passive:false,capture:true});
+  app.addEventListener('touchcancel',reset,{passive:true,capture:true});
+  return true;
 }
 
 function itemName(item={}){
@@ -14313,8 +14531,6 @@ function quantityText(item={}){
 
 function resultFor(row={}){
   const result=row?.result_json&&typeof row.result_json==='object'?row.result_json:{};
-  // Keep the scanner's original aggregate fields available for diagnostics,
-  // while the Work UI intentionally recalculates compact totals from valid items.
   void result.totalLines;
   void result.totals;
   return result;
@@ -14520,6 +14736,7 @@ async function refresh(reason='timer'){
     if(requestGeneration!==generation)return false;
     rowsCache=Array.isArray(data)?data.map(row=>({...row})):[];
     renderCurrent();
+    if(shellSnapshot().route==='work')pinWorkOuterScroll();
     host.dataset.lastRefreshReason=String(reason||'refresh');
     host.dataset.lastRefreshedAt=new Date().toISOString();
     return true;
@@ -14543,10 +14760,17 @@ document.addEventListener('v21-auth-state',()=>{
   void refresh('auth-state');
 });
 document.addEventListener('v21-active-contact-change',()=>{
+  hideMobileDirectory('contact-selected');
   forceOverview=false;
   renderCurrent();
 });
 document.addEventListener('navigation-change',event=>{
+  if(event?.detail?.route==='work'){
+    hideMobileDirectory('work-route');
+    pinWorkOuterScroll();
+    renderCurrent();
+    return;
+  }
   if(event?.detail?.route==='chat'&&activeContact()?.id){
     forceOverview=false;
     renderCurrent();
@@ -14572,14 +14796,40 @@ document.addEventListener('click',event=>{
     return;
   }
 
-  const target=event.target?.closest?.('[data-top-tab="work"],[data-nav-target="work"]');
-  if(target)void refresh('open-work');
+  const chatTab=event.target?.closest?.('[data-top-tab="chat"]');
+  if(chatTab&&mobileDirectoryAllowed()){
+    window.queueMicrotask(()=>showMobileDirectory('chat-tab'));
+    return;
+  }
+
+  const directoryButton=event.target?.closest?.('[data-shell-command="sidebar.open"]');
+  if(directoryButton&&mobileDirectoryAllowed()){
+    window.queueMicrotask(()=>showMobileDirectory('menu-button'));
+    return;
+  }
+
+  const workTarget=event.target?.closest?.('[data-top-tab="work"],[data-nav-target="work"]');
+  if(workTarget){
+    hideMobileDirectory('work-tab');
+    pinWorkOuterScroll();
+    void refresh('open-work');
+  }
 });
 
+bindMobileChatSwipe();
+bindLegacyEdgeSwipeBlocker();
 schedule();
 void refresh('boot');
+window.setTimeout(()=>{
+  if(shellSnapshot().route==='chat'&&mobileDirectoryAllowed())showMobileDirectory('chat-default');
+},0);
 
-window.V21WorkCustomerSummary=Object.freeze({refresh,renderCurrent});
+window.V21WorkCustomerSummary=Object.freeze({
+  refresh,
+  renderCurrent,
+  showMobileDirectory,
+  hideMobileDirectory
+});
 })();
 
 </script>
