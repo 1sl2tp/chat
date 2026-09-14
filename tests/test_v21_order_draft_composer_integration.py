@@ -9,13 +9,13 @@ ACTIONS = ACTIONS_PATH.read_text(encoding="utf-8").lower()
 CLIENT = CLIENT_PATH.read_text(encoding="utf-8")
 compact = "".join(ACTIONS.split())
 
-# Existing draft/order workflow remains available.
+# Existing draft/order workflow elsewhere in Chat remains available.
 assert "./admin-order-draft.js" in ACTIONS
 assert "openlist" in compact
 assert "action:'draft'" in compact
 assert "v21adminordersource" in compact
 
-# Dedicated AI extraction UI must exist and be bootstrapped by the order-scribe client.
+# AI extraction is now read/copy only. It must not create or enter draft orders.
 assert AI_PATH.exists(), "selection/image AI extraction UI module must exist"
 ai = AI_PATH.read_text(encoding="utf-8")
 ai_lower = ai.lower()
@@ -27,9 +27,11 @@ assert 'V21OrderScribeClient' in ai
 assert '.ai(' in ai
 assert 'imageAssetIds' in ai
 assert 'navigator.clipboard' in ai, "AI result must support copy"
-assert 'createFromParsed' in ai, "AI result must optionally enter the existing draft-order flow"
 assert 'dataset.aiResult' in ai, "AI output needs its own compact result surface"
 assert './admin-ai-extract.js' in CLIENT, "order-scribe client must bootstrap the AI extraction UI module"
+assert 'data-ai-draft' not in ai
+assert 'createFromParsed' not in ai
+assert 'draftModulePromise' not in ai
 
 # The dedicated module extends the existing image viewer without changing viewer ownership.
 assert 'dataset.imageAiAction' in ai
@@ -37,4 +39,4 @@ assert '.image-review-head' in ai
 assert 'aria-current' in ai and 'image-review-thumb-image' in ai
 assert 'dataset?.assetId' in ai
 
-print("chat draft/order + AI extraction integration PASS")
+print("chat AI extraction read/copy-only integration PASS")

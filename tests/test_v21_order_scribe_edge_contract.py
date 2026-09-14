@@ -10,7 +10,7 @@ MODEL_MIGRATION = ROOT / "supabase/migrations/20260913_chat_order_scribe_model_3
 
 assert EDGE.exists(), "manual order scribe Edge Function must exist"
 assert CORE.exists(), "manual order scribe core must exist"
-assert PROMPTS.exists(), "approved AI OCR/NLP prompts must live in a dedicated lock file"
+assert PROMPTS.exists(), "AI OCR/segmentation prompts must live in a dedicated lock file"
 assert SHARED.exists(), "Chat and Tách nhanh must share one customer-order parser core"
 assert MIGRATION.exists(), "order scribe runtime config migration must exist"
 assert MODEL_MIGRATION.exists(), "order scribe current-model migration must exist"
@@ -45,41 +45,34 @@ assert "ai_response_invalid" in edge_lower
 assert "gemini-3.5-flash-lite" in edge_lower
 assert "generativelanguage.googleapis.com" in edge_lower
 
-# Approved Prompt 1 baseline: handwriting/image OCR. Keep the user's working wording.
-for required in [
-    "Bạn là một hệ thống OCR ghi nhận văn bản thô (Plain Text OCR).",
-    "CHỈ lấy nội dung nằm TRỌN VẸN trên tờ giấy danh sách",
-    "Xử lý LẦN LƯỢT TỪNG DÒNG MỘT từ trên xuống dưới.",
-    "NÉT GẠCH NGẮN ĐẦU DÒNG (-): BỎ QUA nét gạch này",
-    "ĐƯỜNG KẺ NGANG DÀI (______): Đây là ký hiệu LẶP LẠI.",
-    "Đọc chính xác từng ký tự theo đúng hình học nét chữ trong ảnh",
-    "CHUYỂN SỐ LƯỢNG LÊN ĐẦU DÒNG",
-    "Không chứa bất kỳ định dạng markdown, lời giải thích hay câu mở đầu/kết thúc.",
-]:
-    assert required in prompts, f"OCR prompt baseline missing: {required}"
+# Both selected text and OCR text must be forced into literal Vietnamese ASCII
+# before AI segmentation. This is deterministic code, not a model preference.
+assert "export function toGeometryAscii" in core
+assert ".normalize('NFD')" in core or '.normalize("NFD")' in core
+assert "toGeometryAscii" in edge
+assert "source.text" in edge
+assert "ocr" in edge_lower
 
-# Approved Prompt 2 baseline: normalize selected text / OCR output to SL + name lines.
+# Image OCR is geometry/literal reading only: no spelling repair, catalog lookup,
+# or semantic product-name normalization. Output is explicitly no-diacritic.
 for required in [
-    "Bạn là một hệ thống trích xuất và chuẩn hóa đơn hàng bán buôn/bán lẻ (Order Parsing OCR & NLP System).",
-    "ĐỊNH DẠNG MỖI DÒNG: [Số lượng dạng số] [Tên sản phẩm/Nhãn hàng/Đặc tính]",
-    "Bỏ toàn bộ các từ chỉ đơn vị tính ở cuối hoặc giữa dòng",
-    "Tách các câu văn nói dài",
-    "Chuyển toàn bộ từ chỉ số lượng bằng chữ",
-    "GIỮ NGUYÊN THỨ TỰ CÂU TRONG ẢNH/ĐẦU VÀO",
-    "Không chứa bất kỳ định dạng Markdown, lời giải thích hay câu mở đầu/kết thúc.",
+    "hình học nét chữ",
+    "không dấu",
+    "không sửa chính tả",
+    "không đoán",
+    "không chuẩn hóa tên",
 ]:
-    assert required in prompts, f"normalization prompt baseline missing: {required}"
+    assert required.lower() in prompts.lower(), f"literal OCR prompt rule missing: {required}"
 
-# The Edge Function must use Prompt 2 directly for selected text and a strict
-# Prompt 1 -> Prompt 2 pipeline for inbound customer images.
-assert "ORDER_OCR_PROMPT" in edge
-assert "ORDER_NORMALIZE_PROMPT" in edge
-assert "geminiTextRequest" in edge
-assert "normalizeOrderTextWithAi" in edge
-assert "ocrInboundImagesWithAi" in edge
-assert "parseNormalizedOrderText" in core
-assert "materializeAiSpans" not in edge, "AI mode should no longer use the old boundary-only prompt"
-assert "image_lines" not in edge, "image flow should run the approved plain-text OCR prompt instead of the old JSON transcription schema"
+# Stage 2 may identify quantity and name boundaries, but it must never return or
+# rewrite the product name. Server slices the name directly from ASCII source.
+assert "ORDER_SEGMENT_PROMPT" in edge
+assert "materializeAiSpans" in edge
+assert "name_start" in edge and "name_end" in edge
+assert "quantity_text" in edge
+assert "source.slice" in core
+assert "ORDER_NORMALIZE_PROMPT" not in edge
+assert "normalizeOrderTextWithAi" not in edge
 
 # Image AI remains manual and limited to canonical inbound Chat image assets.
 assert "imageassetids" in edge_lower
@@ -100,4 +93,4 @@ assert "revoke all" in migration.lower()
 assert "gemini-3.5-flash-lite" in model_migration.lower()
 assert "update public.chat_order_scribe_runtime_settings" in model_migration.lower()
 
-print("manual order scribe Edge contract PASS")
+print("manual order scribe literal ASCII geometry contract PASS")
