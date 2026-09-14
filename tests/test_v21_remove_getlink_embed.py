@@ -9,28 +9,41 @@ BRIDGE = ROOT / "getlink-auth-bridge.js"
 
 
 class GetlinkWorkEmbedContract(unittest.TestCase):
-    def test_chat_has_work_tab_and_getlink_iframe_in_source_and_build(self):
+    def test_chat_boots_into_work_and_does_not_force_eager_iframe_load(self):
         for path in (SOURCE, INDEX):
             text = path.read_text(encoding="utf-8")
-            self.assertIn('data-default-route="chat" data-route="chat"', text, str(path))
+            compact = "".join(text.split())
+            self.assertIn('data-default-route="work" data-route="work"', text, str(path))
             self.assertIn('data-top-tab="work"', text, str(path))
             self.assertIn('data-nav-target="work"', text, str(path))
+            self.assertIn('data-top-tab="work" data-nav-target="work" aria-selected="true"', compact, str(path))
             self.assertIn('id="workThreadView"', text, str(path))
             self.assertIn('id="workGetlinkFrame"', text, str(path))
             self.assertIn('src="https://get.taphoa.xyz/?embed=1"', text, str(path))
+            self.assertIn('loading="lazy"', text, str(path))
+            self.assertNotIn('loading="eager"', text, str(path))
             self.assertIn("getlink-auth-bridge.js", text, str(path))
 
-    def test_shell_supports_work_without_changing_chat_default(self):
+    def test_shell_uses_work_as_default_route_but_keeps_chat_available(self):
         text = SHELL.read_text(encoding="utf-8")
         compact = "".join(text.split())
         self.assertIn("const ROUTES=Object.freeze(['chat','work']);", text)
-        self.assertIn("let route='chat';", text)
+        self.assertIn("let route='work';", text)
+        self.assertIn("route=ROUTES.includes(saved?.route)?saved.route:'work';", compact)
         self.assertIn("openWork(){return this.open('work')}", text)
+        self.assertIn("openChat(){return this.open('chat')}", text)
         self.assertIn("DESKTOP_WORKSPACE_QUERY", text)
         self.assertIn("desktopWorkspaceMedia", text)
         self.assertIn("dataset.desktopWorkspace", text)
         self.assertIn("desktopWorkspace?false:route!=='chat'", compact)
         self.assertIn("desktopWorkspace?false:route!=='work'", compact)
+
+    def test_static_work_route_can_render_before_shell_finishes_booting(self):
+        for path in (SOURCE, INDEX):
+            text = path.read_text(encoding="utf-8")
+            compact = "".join(text.split())
+            self.assertIn('#appShell[data-route="work"]#workThreadView', compact, str(path))
+            self.assertIn('#appShell[data-route="work"][data-chat-thread-node]', compact, str(path))
 
     def test_desktop_is_directory_chat_work_while_mobile_keeps_route_switching(self):
         for path in (SOURCE, INDEX):
