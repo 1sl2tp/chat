@@ -9,7 +9,7 @@ NGUỒN VÀ VAI TRÒ:
 - ADMIN_CONTEXT chỉ là ngữ cảnh nối câu. Admin có thể hỏi để làm rõ tên, số lượng, quy cách, màu, loại hoặc xác nhận mua.
 - Không được tạo hàng từ lời Admin. Chỉ dùng Admin để nối với câu KHACH ngay trước/sau khi đó là một cặp hỏi-đáp trực tiếp.
 - Chỉ dùng ADMIN_CONTEXT khi Admin thực sự HỎI trực tiếp phần còn thiếu và khách trả lời ngay sau đó. Admin tự ghi chú, tự nhắc lại, tự nhớ hàng, tự xác nhận một chiều hoặc nhắn tên hàng/số lượng mà không hỏi khách thì KHÔNG được dùng để tạo hay bổ sung dòng hàng.
-- Ví dụ hợp lệ: KHACH "Có ensure rẻ k a" -> ADMIN_CONTEXT "Lấy mấy thùng?" -> KHACH "2 a" thì hiểu Ensure = 2 thùng.
+- Ví dụ hợp lệ: KHACH "Có ensure rẻ k a" -> ADMIN_CONTEXT "Lấy mấy thùng?" -> KHACH "2 a" thì hiểu Ensure rẻ = 2 thùng.
 - Ví dụ không hợp lệ: KHACH gửi đơn -> ADMIN_CONTEXT "Thọ 380g" hoặc "Tho giay 380g 1" để người bán tự ghi nhớ. Không lấy hai câu Admin này làm hàng của khách.
 - Nếu đã chen sang chủ đề hoặc mặt hàng khác thì không được nối.
 
@@ -17,6 +17,9 @@ GIỮ NGUYÊN LỜI KHÁCH:
 - Không sửa chính tả, không chuẩn hóa tên sản phẩm, không tự mở rộng viết tắt, không đổi tên theo kho.
 - raw_evidence phải giữ nguyên phần gốc dùng để kết luận. Nếu có Admin làm ngữ cảnh, raw_evidence vẫn phải chứa rõ lời KHACH; có thể thêm admin_context riêng trong reasoning nội bộ nhưng không thay lời khách.
 - Không tự thêm số lượng nếu nguồn không có số lượng. Mặc định quantity=null, ambiguous=true và giữ nguyên raw_evidence.
+- Các từ PHÂN BIỆT MÃ/HÀNG là một phần bắt buộc của name, tuyệt đối không được ăn bớt: bé, to, nhỏ, lớn, đắt, rẻ; có đường, ít đường, không đường; có/ít/không khi đang là biến thể trong một cụm sản phẩm; màu hoặc tên màu như xanh, đỏ, vàng, trắng, đen, tím, hồng, cam, nâu; cùng các mô tả mùi, vị, dung tích, trọng lượng, mã và quy cách.
+- Ví dụ bắt buộc: "2 thùng mộc Châu bé nhé" => name="mộc Châu bé"; chỉ được bỏ từ hội thoại "nhé". "Gạo ichi to nhỏ" => name="Gạo ichi to nhỏ". "Có ensure rẻ k a" rồi khách chốt 2 => name="Ensure rẻ", quantity=2. "5 bò to ít đường" => name="bò to ít đường". "2 ngôi sao xanh lá" => name="ngôi sao xanh lá".
+- Chỉ được bỏ các từ thuần hội thoại không định danh hàng như "nhé", "nha", "ạ", "ơi", hoặc "như mọi khi" khi cụm đó chỉ là thói quen/ngữ cảnh. Không được dùng lý do rút gọn để bỏ từ phân biệt hàng.
 - Khi câu đã có số lượng rõ ở ĐẦU, không được lấy một số trần ở CUỐI làm quantity chỉ vì nó là số. Số cuối có thể là mã/quy cách/tên rút gọn và phải giữ trong name nếu không có dấu hiệu rõ đó là số lượng.
 - Ví dụ bắt buộc: "1 sim 2" => name="sim 2", quantity=1; "1 nép 2" => name="nép 2", quantity=1; "1 nép 1" => name="nép 1", quantity=1; "1 mezan 5" => name="mezan 5", quantity=1.
 - Giữ các mã/quy cách trong tên như "mì chính 454", "Knorr 400", "Knorr 900", "Danisa 681", "grenfam 110", "Mezan 5L".
@@ -132,7 +135,70 @@ function repairFromRawEvidence(item){
   return {...item,name,quantity,ambiguous};
 }
 
-export function normalizeSummaryPayload(payload={}){
+function customerTextSegments(sourceRows=[]){
+  const segments=[];
+  for(const row of Array.isArray(sourceRows)?sourceRows:[]){
+    if(String(row?.sender_role||'').toLowerCase()!=='customer')continue;
+    const body=clean(row?.body,20000);
+    if(!body)continue;
+    for(const part of body.split(/[\n;]+/)){
+      const segment=clean(part,4000);
+      if(segment)segments.push(segment);
+    }
+  }
+  return segments;
+}
+
+function clipBeforeNextProduct(tail){
+  const next=tail.match(/(?:\s+\b(?:và|va)\b|,)\s*(?=(?:\d+(?:[.,]\d+)?|một|mot|hai|ba|bốn|bon|năm|nam|sáu|sau|bảy|bay|tám|tam|chín|chin|mười|muoi)\b)/i);
+  return next&&Number.isInteger(next.index)?tail.slice(0,next.index):tail;
+}
+
+function distinctiveMatches(text){
+  const re=/(^|[\s(])((?:không|khong|ko)\s*(?:đường|duong|dg|mùi|mui)|(?:ít|it)\s*(?:đường|duong|dg)|(?:có|co)\s*(?:đường|duong|dg)|xanh\s+(?:lá|la|dương|duong|biển|bien|đậm|dam)|(?:bé|be|to|nhỏ|nho|lớn|đắt|dat|rẻ|re|xanh|đỏ|do|vàng|vang|trắng|trang|đen|den|tím|tim|hồng|hong|cam|nâu|nau))(?=$|[\s,.;:)])/giu;
+  const found=[];
+  for(const match of String(text||'').matchAll(re)){
+    const value=clean(match[2],80);
+    if(value)found.push(value);
+  }
+  return found;
+}
+
+function hasPhrase(value,phrase){
+  const hay=` ${normalizedCompare(value)} `;
+  const needle=` ${normalizedCompare(phrase)} `;
+  return hay.includes(needle);
+}
+
+function repairDistinctiveWordsFromCustomerText(item,sourceRows=[]){
+  if(!String(item?.source||'').toLowerCase().includes('text'))return item;
+  let name=clean(item?.name,500);
+  if(!name)return item;
+  const nameLower=name.toLocaleLowerCase('vi-VN');
+
+  for(const segment of customerTextSegments(sourceRows)){
+    const segmentLower=segment.toLocaleLowerCase('vi-VN');
+    const at=segmentLower.indexOf(nameLower);
+    if(at<0)continue;
+    const tail=clipBeforeNextProduct(segment.slice(at+name.length));
+    const missing=[];
+    for(const descriptor of distinctiveMatches(tail)){
+      if(hasPhrase(name,descriptor)||missing.some(value=>hasPhrase(value,descriptor)))continue;
+      missing.push(descriptor);
+    }
+    if(!missing.length)continue;
+    name=clean(`${name} ${missing.join(' ')}`,500);
+    const keepCombinedEvidence=String(item?.source||'').toLowerCase().includes('admin-context');
+    return {
+      ...item,
+      name,
+      rawEvidence:keepCombinedEvidence?item.rawEvidence:segment,
+    };
+  }
+  return item;
+}
+
+export function normalizeSummaryPayload(payload={},sourceRows=[]){
   const items=[];
   for(const raw of Array.isArray(payload?.items)?payload.items:[]){
     const name=clean(raw?.name,500);
@@ -143,7 +209,7 @@ export function normalizeSummaryPayload(payload={}){
       const numeric=Number(raw.quantity);
       if(Number.isFinite(numeric)&&numeric>0)quantity=numeric;
     }
-    const repaired=repairFromRawEvidence({
+    const repairedEvidence=repairFromRawEvidence({
       name:name||rawEvidence,
       quantity,
       unit:clean(raw?.unit,80)||null,
@@ -152,7 +218,7 @@ export function normalizeSummaryPayload(payload={}){
       ambiguous:Boolean(raw?.ambiguous)||quantity===null,
       inferred:Boolean(raw?.inferred),
     });
-    items.push(repaired);
+    items.push(repairDistinctiveWordsFromCustomerText(repairedEvidence,sourceRows));
   }
   const totalsMap=new Map();
   for(const item of items){
