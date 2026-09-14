@@ -205,7 +205,6 @@ if(typeof desktopDirectoryMedia.addEventListener==='function'){
 
 function syncDesktopWorkspaceMode(){
   applyRoutePresentation();
-  if(desktopWorkspaceEnabled())void window.V21GetlinkAuthBridge?.sync?.();
   return desktopWorkspaceEnabled();
 }
 
