@@ -186,11 +186,11 @@ async function geminiRequest(cfg:any,parts:any[]){
   throw new Error('ai_unavailable');
 }
 
-function parseJsonResponse(text:string){
+function parseJsonResponse(text:string,messages:any[]=[]){
   const raw=String(text||'').trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'');
   let parsed:any;
   try{parsed=JSON.parse(raw);}catch{throw new Error('ai_response_invalid');}
-  return normalizeSummaryPayload(parsed);
+  return normalizeSummaryPayload(parsed,messages);
 }
 
 function messagePart(row:any){
@@ -274,7 +274,7 @@ async function scanCustomer(customer:any,cfg:any){
   }
 
   const rawOutput=await geminiRequest(cfg,parts);
-  const result=parseJsonResponse(rawOutput);
+  const result=parseJsonResponse(rawOutput,messages);
   const runId=await recordResult(customer,messages,imagesByMessage,rawOutput,result);
   return {skipped:false,aiCalls:1,lineCount:result.totalLines,runId};
 }
