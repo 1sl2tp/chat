@@ -54,6 +54,24 @@ export function materializeAiSpans(value,spans){
   return items;
 }
 
+export function parseNormalizedOrderText(value){
+  const source=normalizeSource(value);
+  if(!source)return {items:[],unresolved:[]};
+  const items=[];
+  const unresolved=[];
+  for(const rawLine of source.split('\n')){
+    const line=String(rawLine||'').trim();
+    if(!line)continue;
+    const match=line.match(/^(\d+(?:[.,]\d+)?)\s+(.+)$/u);
+    if(!match){unresolved.push({raw:line});continue;}
+    const quantity=quantityNumber(match[1]);
+    const name=String(match[2]||'').trim();
+    if(!quantity||!name){unresolved.push({raw:line});continue;}
+    items.push({quantity,quantityLabel:String(match[1]).trim(),name});
+  }
+  return {items,unresolved};
+}
+
 // Kept for compatibility with older callers/tests. New handwriting flow does not
 // ask Vision to invent product fields; it transcribes raw lines first instead.
 export function materializeAiImageItems(rawItems){
