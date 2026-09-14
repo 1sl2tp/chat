@@ -5,6 +5,8 @@ import {
   materializeAiSpans,
   materializeAiImageItems,
   materializeAiImageTranscriptions,
+  extractOrderIntentSource,
+  finalizeAiOrderText,
 } from '../supabase/functions/v21-order-scribe/scribe-core.mjs';
 
 {
@@ -186,6 +188,52 @@ import {
     /invalid_ai_span/,
     'invalid AI boundaries must fail instead of fabricating or correcting a name',
   );
+}
+
+{
+  const selected=[
+    'Thế cho c 2 sữa chua chân châu đường đen',
+    '3 ko đường bịch',
+    '2 sc nếp cẩm',
+    '5 vnm ít đường bé',
+    '5 milo to 180 có dg',
+    'Nhé',
+    'Nay e ko đi hàng a',
+    'Cho c thêm 5 thùng green ita đường to',
+  ].join('\n');
+  assert.equal(extractOrderIntentSource(selected),[
+    '2 sữa chua chân châu đường đen',
+    '3 ko đường bịch',
+    '2 sc nếp cẩm',
+    '5 vnm ít đường bé',
+    '5 milo to 180 có dg',
+    '5 thùng green ita đường to',
+  ].join('\n'),'AI source filter must remove chat-only lines and strip conversational order prefixes without touching product words');
+}
+
+{
+  assert.equal(extractOrderIntentSource('Probi:\n2 to ít đường\nNhé\n1 bé có đường'),'Probi:\n2 to ít đường\n1 bé có đường','a parent label is kept only when it directly scopes quantity lines');
+  assert.equal(extractOrderIntentSource('cho c hai thùng sim 2 l\nnhé'),'hai thùng sim 2 l','spoken quantity words must remain valid order intent');
+}
+
+{
+  const final=finalizeAiOrderText([
+    '2 Sua chua chan chau duong den',
+    'Nhe',
+    '3 Ko duong bich',
+    'Nay e ko di hang a',
+    '5 Green ita duong to',
+  ].join('\n'));
+  assert.deepEqual(final.items.map(({quantity,name})=>({quantity,name})),[
+    {quantity:2,name:'Sua chua chan chau duong den'},
+    {quantity:3,name:'Ko duong bich'},
+    {quantity:5,name:'Green ita duong to'},
+  ]);
+  assert.equal(final.text,[
+    '2 Sua chua chan chau duong den',
+    '3 Ko duong bich',
+    '5 Green ita duong to',
+  ].join('\n'),'final AI text must contain only quantity + product name lines');
 }
 
 console.log('manual order scribe raw-name core contract PASS');
