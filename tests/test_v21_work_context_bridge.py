@@ -1,19 +1,26 @@
 from pathlib import Path
 
-ROOT=Path(__file__).resolve().parents[1]
-BRIDGE=(ROOT/'getlink-auth-bridge.js').read_text(encoding='utf-8')
-compact=''.join(BRIDGE.split())
+ROOT = Path(__file__).resolve().parents[1]
+BRIDGE = ROOT / 'getlink-auth-bridge.js'
+SHELL = (ROOT / 'shell.js').read_text(encoding='utf-8')
+SOURCE = (ROOT / 'index.source.html').read_text(encoding='utf-8')
 
-assert "const GETLINK_ORIGIN='https://get.taphoa.xyz'" in BRIDGE
-assert "event.origin!==GETLINK_ORIGIN" in compact
-assert "target.contentWindow.postMessage({type:'taphoa-chat-auth'" in compact
-assert "taphoa-getlink-auth-request" in BRIDGE
+# CHAT keeps its own work route, but must not authenticate or message GETLINK.
+assert "const ROUTES=Object.freeze(['chat','work']);" in SHELL
+assert "openWork(){return this.open('work')}" in SHELL
+assert 'id="workThreadView"' in SOURCE
+assert 'data-work-owner="chat"' in SOURCE
 
-# Chat order-source is independent from GETLINK. The iframe bridge only carries auth.
+assert not BRIDGE.exists(), 'GETLINK auth bridge must be removed from CHAT'
 for forbidden in [
-    'v21-work-context','taphoa-chat-work-context','taphoa-work-order-created',
-    'sourceMessageIds','markImported','latestWorkContext','postWorkContext',
+    'V21GetlinkAuthBridge',
+    'GETLINK_ORIGIN',
+    'taphoa-chat-auth',
+    'taphoa-getlink-auth-request',
+    'workGetlinkFrame',
+    'https://get.taphoa.xyz/?embed=1',
 ]:
-    assert forbidden not in BRIDGE, forbidden
+    assert forbidden not in SHELL, forbidden
+    assert forbidden not in SOURCE, forbidden
 
-print('GETLINK auth-only bridge PASS')
+print('CHAT-owned work surface has no GETLINK bridge PASS')
