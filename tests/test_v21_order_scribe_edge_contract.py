@@ -97,7 +97,7 @@ for required in [
 for required in [
     "hinh hoc net chu",
     "gach ngan dau dong",
-    "gach ngang dai",
+    "duong ke ngang dai",
     "gach bo",
     "to xoa",
     "moi dong doc lap",
