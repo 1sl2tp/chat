@@ -20,6 +20,66 @@ function quantityLabel(value,fallback){
   return String(value??'').trim()||String(fallback??'').trim();
 }
 
+const ORDER_NUMBER_WORDS=new Set([
+  'mot','hai','ba','bon','nam','sau','bay','tam','chin','muoi','tram','chuc',
+]);
+const ORDER_PREFIX_PATTERNS=[
+  /^(?:the\s+)?cho\s+(?:c|chi|e|em|anh|minh|toi)\s+(?:them\s+)?/u,
+  /^(?:the\s+)?lay\s+(?:cho\s+)?(?:c|chi|e|em|anh|minh|toi)\s+(?:them\s+)?/u,
+  /^(?:the\s+)?(?:gui|dua)\s+(?:cho\s+)?(?:c|chi|e|em|anh|minh|toi)\s+(?:them\s+)?/u,
+];
+function asciiLower(value){return toGeometryAscii(value).toLowerCase();}
+function hasQuantitySignal(value){
+  const text=asciiLower(value).replace(/[^a-z0-9.,]+/g,' ').trim();
+  if(!text)return false;
+  if(/\d/.test(text))return true;
+  return text.split(/\s+/).some(token=>ORDER_NUMBER_WORDS.has(token));
+}
+function stripConversationPrefix(value){
+  let text=String(value??'').trim().replace(/^[-•]\s*/u,'');
+  if(!text)return '';
+  for(let pass=0;pass<2;pass++){
+    const plain=asciiLower(text);
+    let changed=false;
+    for(const pattern of ORDER_PREFIX_PATTERNS){
+      const match=plain.match(pattern);
+      if(!match)continue;
+      text=text.slice(match[0].length).trimStart();
+      changed=true;
+      break;
+    }
+    if(!changed)break;
+  }
+  return text.trim();
+}
+function parentIntentLine(value){
+  const text=String(value??'').trim();
+  return Boolean(text&&!hasQuantitySignal(text)&&/:\s*$/u.test(text));
+}
+
+export function extractOrderIntentSource(value){
+  const raw=normalizeSource(value);
+  if(!raw)return '';
+  const lines=raw.split('\n').map(stripConversationPrefix).map(line=>line.trim());
+  const out=[];
+  for(let i=0;i<lines.length;i++){
+    const line=lines[i];
+    if(!line)continue;
+    if(hasQuantitySignal(line)){
+      out.push(line);
+      continue;
+    }
+    if(parentIntentLine(line)){
+      let next='';
+      for(let j=i+1;j<lines.length;j++){
+        if(lines[j]){next=lines[j];break;}
+      }
+      if(next&&hasQuantitySignal(next))out.push(line);
+    }
+  }
+  return out.join('\n').trim();
+}
+
 export function parseQuickOrderText(value){
   const source=normalizeSource(value);
   if(!source)return {ok:false,items:[],unresolved:[],error:'order_text_required'};
@@ -79,6 +139,17 @@ export function parseNormalizedOrderText(value){
     items.push({quantity,quantityLabel:String(match[1]).trim(),name});
   }
   return {items,unresolved};
+}
+
+export function finalizeAiOrderText(value){
+  const ascii=toGeometryAscii(value);
+  const filtered=extractOrderIntentSource(ascii);
+  const parsed=parseNormalizedOrderText(filtered);
+  return {
+    items:parsed.items,
+    unresolved:parsed.unresolved,
+    text:formatOrderItems(parsed.items),
+  };
 }
 
 // Kept for compatibility with older callers/tests. New handwriting flow does not
