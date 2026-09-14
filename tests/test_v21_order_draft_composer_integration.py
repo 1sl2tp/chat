@@ -3,11 +3,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 ACTIONS_PATH = ROOT / "admin-composer-actions.js"
 AI_PATH = ROOT / "admin-ai-extract.js"
-APP_PATH = ROOT / "app.js"
 INDEX_PATH = ROOT / "index.source.html"
 
 ACTIONS = ACTIONS_PATH.read_text(encoding="utf-8").lower()
-APP = APP_PATH.read_text(encoding="utf-8")
 INDEX = INDEX_PATH.read_text(encoding="utf-8")
 compact = "".join(ACTIONS.split())
 
@@ -33,9 +31,10 @@ assert 'createFromParsed' in ai, "AI result must optionally enter the existing d
 assert 'data-ai-result' in ai, "AI output needs its own compact result surface"
 assert './admin-ai-extract.js' in INDEX, "canonical page must load the AI extraction UI module"
 
-# Image viewer owns the image trigger and hands the current asset id to AI extraction.
-assert 'data-image-ai-action' in APP
-assert 'V21AIExtract' in APP
-assert 'assetId' in APP
+# The dedicated module extends the existing image viewer without changing viewer ownership.
+assert 'data-image-ai-action' in ai
+assert '.image-review-head' in ai
+assert 'aria-current' in ai and 'image-review-thumb-image' in ai
+assert 'dataset.assetId' in ai
 
 print("chat draft/order + AI extraction integration PASS")
