@@ -1,5 +1,14 @@
 import {parseCustomerTextPartial} from '../_shared/customer-order-parser.mjs';
 
+export function toGeometryAscii(value){
+  return String(value??'')
+    .replace(/\r\n?/g,'\n')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .replace(/đ/g,'d')
+    .replace(/Đ/g,'D');
+}
+
 function normalizeSource(value){
   return String(value??'').replace(/\r\n?/g,'\n').trim();
 }
@@ -147,9 +156,6 @@ function inheritedBase(previousName,newVariant){
   const anchorIndex=priorTokens.findIndex((token,index)=>index>0&&normalizedToken(token)===firstVariant);
   if(anchorIndex>0)return priorTokens.slice(0,anchorIndex).join(' ');
 
-  // The handwritten line means the prefix was intentionally omitted. Without
-  // product data, the safest deterministic reconstruction is positional: the
-  // visible remainder replaces the same number of trailing words above.
   if(variantTokens.length<priorTokens.length){
     return priorTokens.slice(0,priorTokens.length-variantTokens.length).join(' ');
   }
