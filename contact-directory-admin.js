@@ -13,6 +13,7 @@ let groupMap=new Map();
 let loadedAdminId='';
 let loadingGroups=false;
 let syncQueued=false;
+let syncScrollToTop=false;
 
 function authStore(){return window.V21AuthSessionStore||null;}
 function contactStore(){return window.V21ContactStore||null;}
@@ -126,7 +127,7 @@ function matchesDirectory(item){
   if(filter==='all')return true;
   return groupKey(groupMap.get(String(item?.id||'')))===filter;
 }
-function syncDirectoryRows(){
+function syncDirectoryRows({scrollToTop=false}={}){
   if(!currentAdmin()){
     removeDirectoryTools();
     return;
@@ -156,7 +157,7 @@ function syncDirectoryRows(){
     empty.textContent='Không tìm thấy';
     host.appendChild(empty);
   }
-  if(scrollHost)scrollHost.scrollTop=previousScrollTop;
+  if(scrollHost)scrollHost.scrollTop=scrollToTop?0:previousScrollTop;
 }
 function setPopupError(message=''){
   const node=document.querySelector('[data-zalo-account-admin-modal] [data-zalo-account-error]');
@@ -222,13 +223,16 @@ async function ensureGroups({force=false}={}){
     return false;
   }finally{loadingGroups=false;}
 }
-function scheduleSync(){
+function scheduleSync({scrollToTop=false}={}){
+  if(scrollToTop)syncScrollToTop=true;
   if(syncQueued)return;
   syncQueued=true;
   queueMicrotask(()=>{
+    scrollToTop=syncScrollToTop;
+    syncScrollToTop=false;
     syncQueued=false;
     ensureDirectoryTools();
-    syncDirectoryRows();
+    syncDirectoryRows({scrollToTop});
     syncAdminGroupControls();
     void ensureGroups();
   });
@@ -242,7 +246,7 @@ function resetForAuth(){
 }
 
 installStyle();
-document.addEventListener('v21-contact-store-change',scheduleSync);
+document.addEventListener('v21-contact-store-change',()=>scheduleSync({scrollToTop:true}));
 document.addEventListener('v21-auth-state',resetForAuth);
 document.addEventListener('click',event=>{
   const target=event.target instanceof Element?event.target:null;
