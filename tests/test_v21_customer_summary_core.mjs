@@ -23,6 +23,29 @@ assert.deepEqual(parsed.items,[
 assert.equal(parsed.totalLines,3);
 assert.deepEqual(parsed.totals,[{unit:'thùng',quantity:32}]);
 
+// Regression: when a customer writes an explicit leading quantity and a bare number at the end,
+// do not steal the trailing number from the product name and reinterpret it as quantity.
+const preserved=core.normalizeSummaryPayload({
+  items:[
+    {name:'sim',quantity:2,unit:null,source:'text',raw_evidence:'1 sim 2',ambiguous:true},
+    {name:'nép',quantity:2,unit:null,source:'text',raw_evidence:'1 nép 2',ambiguous:true},
+    {name:'nép',quantity:1,unit:null,source:'text',raw_evidence:'1 nép 1',ambiguous:true},
+    {name:'mezan',quantity:5,unit:null,source:'text',raw_evidence:'1 mezan 5',ambiguous:true},
+    {name:'Bánh tipo',quantity:2,unit:'thùng',source:'text',raw_evidence:'lấy 2 thùng bánh tipo gói đánh nhầm bánh koro'},
+  ]
+});
+assert.deepEqual(
+  preserved.items.map(({name,quantity})=>({name,quantity})),
+  [
+    {name:'sim 2',quantity:1},
+    {name:'nép 2',quantity:1},
+    {name:'nép 1',quantity:1},
+    {name:'mezan 5',quantity:1},
+    {name:'bánh tipo gói',quantity:2},
+  ],
+  'summary must preserve product suffixes/codes and only remove explicit correction commentary'
+);
+
 const history=core.buildConversationHistory([
   {created_at:'2026-09-15T00:00:00Z',sender_role:'customer',body:'Có ensure rẻ k a'},
   {created_at:'2026-09-15T00:00:10Z',sender_role:'admin',body:'Lấy mấy thùng?'},
@@ -31,6 +54,7 @@ const history=core.buildConversationHistory([
 assert.match(history,/KHACH.*Có ensure rẻ k a/s);
 assert.match(history,/ADMIN_CONTEXT.*Lấy mấy thùng\?/s);
 assert.match(history,/KHACH.*2 a/s);
+assert.match(core.MASTER_PROMPT,/Admin.*ghi chú|ghi chú.*Admin/i,'admin self-notes must be explicitly excluded from contextual inference');
 
 const hints=core.customerSpecificHints({username:'ngocle',display_name:'E Ngọc tt'});
 assert.match(hints,/thùng/i);
