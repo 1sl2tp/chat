@@ -28,6 +28,7 @@ edge_lower = edge.lower()
 compact = "".join(edge_lower.split())
 prompts_lower = prompts.lower()
 reference_lower = reference.lower()
+core_lower = core.lower()
 
 assert "db.auth.getuser" in compact
 assert 'eq("role","admin")' in compact or "eq('role','admin')" in compact
@@ -37,13 +38,15 @@ assert "action!=='quick'&&action!=='ai'" in compact
 assert "chat_ai_message_inbox" not in edge_lower
 assert "chat_ai_enqueue" not in edge_lower
 
-assert "unresolved:parsed.unresolved" in compact
+assert "unresolved:final.unresolved" in compact
+assert "text:final.text" in compact
 assert "../_shared/customer-order-parser.mjs" in core
-assert "parsecustomertextpartial" in core.lower()
+assert "parsecustomertextpartial" in core_lower
 assert "parsecustomertextpartial" in shared.lower()
 
 assert "ai_unavailable" in edge_lower
 assert "ai_response_invalid" in edge_lower
+assert "ai_items_missing" in edge_lower
 assert "gemini-3.5-flash-lite" in edge_lower
 assert "generativelanguage.googleapis.com" in edge_lower
 
@@ -51,41 +54,53 @@ assert "ORDER_OCR_PROMPT" in edge
 assert "ORDER_NORMALIZE_PROMPT" in edge
 assert "normalizeOrderTextWithAi" in edge
 assert "ocrInboundImagesWithAi" in edge
-assert "parseNormalizedOrderText" in edge
+assert "extractOrderIntentSource" in edge
+assert "finalizeAiOrderText" in edge
 assert "ORDER_SEGMENT_PROMPT" not in edge
 assert "materializeAiSpans" not in edge
 
+# Both selected text and OCR image text must pass through the same order-intent filter.
+assert "let aiInput=extractOrderIntentSource(source.text)" in edge
+assert "const filteredOcr=extractOrderIntentSource(ocrText)" in edge
+assert "const final=finalizeAiOrderText(normalized)" in edge
+assert "if(!final.items.length)throw new Error('ai_items_missing')" in edge
+
 for required in [
-    "tạp hóa việt nam",
+    "tạp hóa/fmcg việt nam",
     "thương hiệu",
-    "từ viết tắt",
+    "alias",
+    "spec",
+    "danh mục cha",
     "dg",
-    "duong",
     "sữa",
     "dầu ăn",
     "tương",
     "thuốc lá",
-    "tham chiếu",
-    "không được tự thêm",
-    "cụm đã rõ",
+    "thư viện tham chiếu",
+    "không tự thêm",
     "banh gao",
     "dns 681",
     "xx poni",
+    "sl + tên",
+    "nhe",
+    "cam on",
 ]:
-    assert required in prompts_lower, f"grocery OCR/NLP context missing: {required}"
+    assert required in prompts_lower, f"FMCG OCR/NLP rule missing: {required}"
 
 for required in [
-    "đúng hình học nét chữ",
-    "nét gạch ngắn đầu dòng",
-    "đường kẻ ngang dài",
+    "hình học nét chữ",
+    "gạch ngắn đầu dòng",
+    "gạch ngang dài",
     "gạch bỏ",
     "tô xóa",
+    "mỗi dòng độc lập",
 ]:
     assert required in prompts_lower, f"handwriting geometry rule missing: {required}"
 
 assert "export function toGeometryAscii" in core
-assert "toGeometryAscii(normalized)" in edge
-assert "parseNormalizedOrderText(asciiNormalized)" in edge
+assert "export function extractOrderIntentSource" in core
+assert "export function finalizeAiOrderText" in core
+assert "formatOrderItems(parsed.items)" in core
 
 assert "imageassetids" in edge_lower
 assert "v21_media_assets" in edge_lower
@@ -93,8 +108,8 @@ assert "v21-media" in edge_lower
 assert "inlinedata" in edge_lower
 assert "owner_account_id" in edge_lower
 
-# Catalog data is recognition evidence only. It may rank names/categories but must not
-# resolve a SKU, price, order line, or draft automatically.
+# Catalog data is recognition evidence only. It may rank names/categories/aliases/specs,
+# but must not resolve a SKU, price, order line, or draft automatically.
 for required in [
     "chat_ai_product_keys",
     "products",
@@ -103,6 +118,9 @@ for required in [
     "getlink_brand_aliases",
     "rankgrocerycandidates",
     "buildgroceryreferencecontext",
+    "aliases",
+    "specs",
+    "level9",
 ]:
     assert required in (edge_lower + reference_lower), f"grocery reference source missing: {required}"
 for forbidden in ["resolveparsedlineswithcatalog", "createfromparsed", "draft_id", "unit_price", "price_vnd"]:
@@ -115,4 +133,4 @@ assert "revoke all" in migration.lower()
 assert "gemini-3.5-flash-lite" in model_migration.lower()
 assert "update public.chat_order_scribe_runtime_settings" in model_migration.lower()
 
-print("manual order scribe grocery-reference OCR/NLP contract PASS")
+print("manual order scribe FMCG intent-filter OCR/NLP contract PASS")
