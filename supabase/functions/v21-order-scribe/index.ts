@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
-import { extractOrderIntentSource, finalizeAiOrderText, formatOrderItems, parseQuickOrderText } from "./scribe-core.mjs";
-import { ORDER_NORMALIZE_PROMPT, ORDER_OCR_PROMPT } from "./order-ai-prompts.mjs";
+import { formatOrderItems, parseQuickOrderText } from "./scribe-core.mjs";
+import { ORDER_MASTER_PROMPT } from "./order-ai-prompts.mjs";
 import { buildGroceryReferenceContext, buildOwnRecognitionVocabulary, loadGroceryReferenceLibrary, rankGroceryCandidates } from "./grocery-reference.mjs";
 
 const SUPABASE_URL=String(Deno.env.get('SUPABASE_URL')||'').trim();
@@ -178,25 +178,82 @@ async function geminiTextRequest(cfg:any,parts:any[]){
   if(!text)throw new Error('ai_response_invalid');
   return text;
 }
-async function normalizeOrderTextWithAi(source:string,cfg:any,referenceContext=''){
-  const input=clean(source,MAX_SOURCE_CHARS);
-  if(!input)throw new Error('order_text_required');
-  const parts:any[]=[{text:ORDER_NORMALIZE_PROMPT}];
-  if(referenceContext)parts.push({text:`\n\n${referenceContext}`});
-  parts.push({text:`\n\nĐẦU VÀO:\n${input}`});
-  return geminiTextRequest(cfg,parts);
-}
-async function ocrInboundImagesWithAi(images:any[],cfg:any,recognitionVocabulary=''){
-  const outputs=[];
-  for(const image of images){
-    const parts:any[]=[{text:ORDER_OCR_PROMPT}];
-    if(recognitionVocabulary)parts.push({text:`\n\n${recognitionVocabulary}`});
-    parts.push({inlineData:{mimeType:image.mimeType,data:image.data}});
-    const text=await geminiTextRequest(cfg,parts);
-    if(text)outputs.push(text);
+
+function jsonCandidates(value:string){
+  const source=String(value||'').trim();
+  const out:string[]=[];
+  const fenced=/```(?:json)?\s*([\s\S]*?)```/giu;
+  for(const match of source.matchAll(fenced)){
+    const candidate=String(match[1]||'').trim();
+    if(candidate)out.push(candidate);
   }
-  if(!outputs.length)throw new Error('ai_items_missing');
-  return outputs.join('\n');
+  const first=source.indexOf('{');
+  const last=source.lastIndexOf('}');
+  if(first>=0&&last>first)out.push(source.slice(first,last+1));
+  return Array.from(new Set(out));
+}
+function masterPayload(value:string){
+  for(const candidate of jsonCandidates(value)){
+    try{
+      const parsed=JSON.parse(candidate);
+      if(parsed&&typeof parsed==='object'&&Array.isArray(parsed.parsed_items))return parsed;
+    }catch{}
+  }
+  throw new Error('ai_response_invalid');
+}
+function positiveNumber(value:any){
+  const number=Number(String(value??'').replace(',','.'));
+  return Number.isFinite(number)&&number>0?number:null;
+}
+function masterItemText(item:any){
+  return [String(item?.quantityLabel||item?.quantity||'').trim(),String(item?.unit||'').trim(),String(item?.name||'').trim()]
+    .filter(Boolean).join(' ').replace(/\s+/g,' ').trim();
+}
+function parseMasterOrderResponse(value:string){
+  const payload=masterPayload(value);
+  const items=[];
+  const unresolved=[];
+  for(const raw of payload.parsed_items){
+    const quantity=positiveNumber(raw?.quantity_number);
+    const name=clean(raw?.normalized_vn,500);
+    const unit=clean(raw?.unit,50);
+    if(!quantity||!name){
+      const unresolvedRaw=clean(raw?.raw_text,500);
+      if(unresolvedRaw)unresolved.push({raw:unresolvedRaw});
+      continue;
+    }
+    items.push({
+      quantity,
+      quantityLabel:String(quantity),
+      unit,
+      name,
+      rawText:clean(raw?.raw_text,500),
+      detectedBrand:clean(raw?.detected_brand,200),
+      action:clean(raw?.action,50),
+    });
+  }
+  if(!items.length)throw new Error('ai_items_missing');
+  return {
+    items,
+    unresolved,
+    summary:payload.summary&&typeof payload.summary==='object'?payload.summary:null,
+    text:items.map(masterItemText).filter(Boolean).join('\n'),
+  };
+}
+async function resolveOrderWithAi(source:string,images:any[],cfg:any,referenceContext=''){
+  const input=clean(source,MAX_SOURCE_CHARS);
+  if(!input&&!images.length)throw new Error('order_text_required');
+  const parts:any[]=[{text:ORDER_MASTER_PROMPT}];
+  if(referenceContext){
+    parts.push({text:`\n\nDỮ LIỆU THAM CHIẾU NỘI BỘ (chỉ dùng để đối chiếu tên/alias/quy cách, không thay thế luật MASTER):\n${referenceContext}`});
+  }
+  if(input)parts.push({text:`\n\nĐẦU VÀO TEXT / VOICE-TO-TEXT / SỬA ĐƠN QUA CHAT:\n${input}`});
+  for(let index=0;index<images.length;index++){
+    const image=images[index];
+    parts.push({text:`\n\nHÌNH ẢNH NGUỒN ${index+1}:`});
+    parts.push({inlineData:{mimeType:image.mimeType,data:image.data}});
+  }
+  return geminiTextRequest(cfg,parts);
 }
 
 Deno.serve(async(req:Request)=>{
@@ -222,30 +279,25 @@ Deno.serve(async(req:Request)=>{
     const cfg=await runtimeConfig();
     if(!cfg.key)throw new Error('ai_not_configured');
     const groceryLibrary=await loadGroceryReferenceLibrary(db);
+    const images=imageAssetIds.length
+      ?await loadInboundImages(String(admin.account.id),source.contactId,imageAssetIds)
+      :[];
 
-    let aiInput=extractOrderIntentSource(source.text);
+    const sourceText=clean(source.text,MAX_SOURCE_CHARS);
     const ownVocabulary=buildOwnRecognitionVocabulary(groceryLibrary,{maxChars:12000});
-    if(imageAssetIds.length){
-      const images=await loadInboundImages(String(admin.account.id),source.contactId,imageAssetIds);
-      const ocrText=await ocrInboundImagesWithAi(images,cfg,ownVocabulary);
-      const filteredOcr=extractOrderIntentSource(ocrText);
-      aiInput=[aiInput,filteredOcr].filter(Boolean).join('\n');
-    }
-    if(!aiInput)throw new Error('ai_items_missing');
-
-    const nearbyReference=buildGroceryReferenceContext(aiInput,groceryLibrary);
+    const nearbyReference=sourceText?buildGroceryReferenceContext(sourceText,groceryLibrary):'';
     const referenceContext=[nearbyReference,ownVocabulary].filter(Boolean).join('\n\n');
-    // Ranking is evidence only; it must never auto-replace a clear source phrase.
-    rankGroceryCandidates(aiInput,groceryLibrary,1);
-    const normalized=await normalizeOrderTextWithAi(aiInput,cfg,referenceContext);
-    const final=finalizeAiOrderText(normalized);
-    if(!final.items.length)throw new Error('ai_items_missing');
+    if(sourceText)rankGroceryCandidates(sourceText,groceryLibrary,1);
+
+    const aiResponse=await resolveOrderWithAi(sourceText,images,cfg,referenceContext);
+    const final=parseMasterOrderResponse(aiResponse);
     return json({
       ok:true,
       mode:'ai',
       source:source.source,
       items:final.items,
       unresolved:final.unresolved,
+      summary:final.summary,
       text:final.text,
     });
   }catch(error){
