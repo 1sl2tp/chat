@@ -8,6 +8,7 @@ style = (ROOT / 'work-customer-summary.css').read_text('utf-8')
 assert 'showMobileDirectory' in client, 'mobile chat must expose a full-screen directory transition'
 assert 'hideMobileDirectory' in client, 'selecting a contact must leave the directory screen'
 assert 'bindMobileChatSwipe' in client, 'mobile chat needs a whole-chat horizontal swipe owner'
+assert 'bindLegacyEdgeSwipeBlocker' in client, 'legacy edge-drawer swipe must be blocked outside the chat gesture owner too'
 assert 'MOBILE_CHAT_SWIPE_DISTANCE_PX' in client, 'whole-chat swipe needs an explicit distance threshold'
 assert 'NavigationCommand?.openWork' in client or 'NavigationCommand.openWork' in client, 'swipe right must open Công việc'
 assert "dx<=-MOBILE_CHAT_SWIPE_DISTANCE_PX" in client.replace(' ', ''), 'swipe left must return to Danh bạ'
