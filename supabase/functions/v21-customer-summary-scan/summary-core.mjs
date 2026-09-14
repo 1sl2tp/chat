@@ -8,13 +8,20 @@ NGUỒN VÀ VAI TRÒ:
 - KHACH là nguồn quyết định hàng hóa.
 - ADMIN_CONTEXT chỉ là ngữ cảnh nối câu. Admin có thể hỏi để làm rõ tên, số lượng, quy cách, màu, loại hoặc xác nhận mua.
 - Không được tạo hàng từ lời Admin. Chỉ dùng Admin để nối với câu KHACH ngay trước/sau khi đó là một cặp hỏi-đáp trực tiếp.
-- Ví dụ: KHACH "Có ensure rẻ k a" -> ADMIN_CONTEXT "Lấy mấy thùng?" -> KHACH "2 a" thì hiểu Ensure = 2 thùng.
+- Chỉ dùng ADMIN_CONTEXT khi Admin thực sự HỎI trực tiếp phần còn thiếu và khách trả lời ngay sau đó. Admin tự ghi chú, tự nhắc lại, tự nhớ hàng, tự xác nhận một chiều hoặc nhắn tên hàng/số lượng mà không hỏi khách thì KHÔNG được dùng để tạo hay bổ sung dòng hàng.
+- Ví dụ hợp lệ: KHACH "Có ensure rẻ k a" -> ADMIN_CONTEXT "Lấy mấy thùng?" -> KHACH "2 a" thì hiểu Ensure = 2 thùng.
+- Ví dụ không hợp lệ: KHACH gửi đơn -> ADMIN_CONTEXT "Thọ 380g" hoặc "Tho giay 380g 1" để người bán tự ghi nhớ. Không lấy hai câu Admin này làm hàng của khách.
 - Nếu đã chen sang chủ đề hoặc mặt hàng khác thì không được nối.
 
 GIỮ NGUYÊN LỜI KHÁCH:
 - Không sửa chính tả, không chuẩn hóa tên sản phẩm, không tự mở rộng viết tắt, không đổi tên theo kho.
 - raw_evidence phải giữ nguyên phần gốc dùng để kết luận. Nếu có Admin làm ngữ cảnh, raw_evidence vẫn phải chứa rõ lời KHACH; có thể thêm admin_context riêng trong reasoning nội bộ nhưng không thay lời khách.
 - Không tự thêm số lượng nếu nguồn không có số lượng. Mặc định quantity=null, ambiguous=true và giữ nguyên raw_evidence.
+- Khi câu đã có số lượng rõ ở ĐẦU, không được lấy một số trần ở CUỐI làm quantity chỉ vì nó là số. Số cuối có thể là mã/quy cách/tên rút gọn và phải giữ trong name nếu không có dấu hiệu rõ đó là số lượng.
+- Ví dụ bắt buộc: "1 sim 2" => name="sim 2", quantity=1; "1 nép 2" => name="nép 2", quantity=1; "1 nép 1" => name="nép 1", quantity=1; "1 mezan 5" => name="mezan 5", quantity=1.
+- Giữ các mã/quy cách trong tên như "mì chính 454", "Knorr 400", "Knorr 900", "Danisa 681", "grenfam 110", "Mezan 5L".
+- Nếu khách sửa một tên đã gõ nhầm bằng cụm như "đánh nhầm ...", giữ đầy đủ phần tên hàng TRƯỚC cụm sửa sai. Ví dụ "lấy 2 thùng bánh tipo gói đánh nhầm bánh koro" => name="bánh tipo gói", quantity=2; không được cắt mất chữ "gói".
+- Các cụm hội thoại như "như mọi khi" có thể bỏ khỏi name nếu chúng chỉ là ngữ cảnh/thói quen và không phải mô tả hàng; raw_evidence vẫn phải giữ nguyên câu gốc.
 
 ẢNH:
 - Ảnh đơn in hoặc ảnh đơn viết tay là nguồn hàng hóa hợp lệ. Hãy tập trung đọc vùng đơn/bảng/danh sách hàng, không bị phân tán bởi giao diện xung quanh.
@@ -72,6 +79,54 @@ export function buildConversationHistory(rows=[]){
   }).join('\n');
 }
 
+function normalizedCompare(value){
+  return clean(value,500).toLocaleLowerCase('vi-VN').replace(/\s+/g,' ');
+}
+
+function repairFromRawEvidence(item){
+  const rawEvidence=clean(item?.rawEvidence,2000);
+  let name=clean(item?.name,500);
+  let quantity=item?.quantity??null;
+  let ambiguous=Boolean(item?.ambiguous);
+  if(!rawEvidence)return {...item,name,quantity,ambiguous};
+
+  // Customer correction wording: keep the complete intended product phrase before "đánh nhầm ...".
+  // Example: "lấy 2 thùng bánh tipo gói đánh nhầm bánh koro" -> 2 x "bánh tipo gói".
+  const correction=rawEvidence.match(/^\s*(?:lấy|lay)\s+(\d+(?:[.,]\d+)?)\s+(?:(thùng|thung|t|bao|bịch|bich|gói|goi|chai|lon|hộp|hop|cây|cay)\s+)?(.+?)\s+(?:đánh\s+nhầm|danh\s+nham)\b/i);
+  if(correction){
+    const leading=Number(String(correction[1]).replace(',','.'));
+    const intended=clean(correction[3],500);
+    if(Number.isFinite(leading)&&leading>0&&intended){
+      name=intended;
+      quantity=leading;
+      ambiguous=false;
+      return {...item,name,quantity,ambiguous};
+    }
+  }
+
+  // Structural guard for "SL + product name ending in a bare numeric code/variant".
+  // Only repair when the model demonstrably stripped that final number and used it as quantity.
+  // Delimiter-style rows such as "555 dẹt | 5" are intentionally excluded.
+  if(!/[|:*]/.test(rawEvidence)){
+    const edge=rawEvidence.match(/^\s*(\d+(?:[.,]\d+)?)\s+(.+?)\s+(\d+(?:[.,]\d+)?)\s*$/);
+    if(edge){
+      const leading=Number(String(edge[1]).replace(',','.'));
+      const middle=clean(edge[2],500);
+      const trailingText=clean(edge[3],80);
+      const trailing=Number(trailingText.replace(',','.'));
+      const modelNameMatchesMiddle=normalizedCompare(name)===normalizedCompare(middle);
+      const modelUsedTrailingAsQuantity=Number.isFinite(trailing)&&quantity!==null&&Number(quantity)===trailing;
+      if(Number.isFinite(leading)&&leading>0&&middle&&modelNameMatchesMiddle&&modelUsedTrailingAsQuantity){
+        name=`${middle} ${trailingText}`;
+        quantity=leading;
+        ambiguous=false;
+      }
+    }
+  }
+
+  return {...item,name,quantity,ambiguous};
+}
+
 export function normalizeSummaryPayload(payload={}){
   const items=[];
   for(const raw of Array.isArray(payload?.items)?payload.items:[]){
@@ -83,7 +138,7 @@ export function normalizeSummaryPayload(payload={}){
       const numeric=Number(raw.quantity);
       if(Number.isFinite(numeric)&&numeric>0)quantity=numeric;
     }
-    items.push({
+    const repaired=repairFromRawEvidence({
       name:name||rawEvidence,
       quantity,
       unit:clean(raw?.unit,80)||null,
@@ -92,6 +147,7 @@ export function normalizeSummaryPayload(payload={}){
       ambiguous:Boolean(raw?.ambiguous)||quantity===null,
       inferred:Boolean(raw?.inferred),
     });
+    items.push(repaired);
   }
   const totalsMap=new Map();
   for(const item of items){
