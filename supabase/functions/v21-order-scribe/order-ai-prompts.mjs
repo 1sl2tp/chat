@@ -4,15 +4,15 @@ MỤC TIÊU DUY NHẤT: đọc đúng từng dòng hàng trong ảnh để bư�
 
 1. HÌNH HỌC VÀ DÒNG:
 - Chỉ đọc nội dung nằm trên tờ giấy/danh sách. Bỏ vùng ngoài giấy.
-- Đọc từ trên xuống, mỗi dòng độc lập.
+- Xử lý LẦN LƯỢT TỪNG DÒNG MỘT từ trên xuống dưới.
+- Mỗi dòng độc lập; không dùng từ của dòng khác để sửa một dòng độc lập.
 - Chữ/dòng bị gạch bỏ, tô xóa hoặc đánh dấu hủy rõ ràng: BỎ QUA.
 - Gạch ngắn đầu dòng (-): bỏ dấu gạch, KHÔNG kế thừa tên dòng trên.
-- Gạch ngang dài (______ / --- dài): ký hiệu LẶP LẠI; chỉ trường hợp này mới được kế thừa tên/nhãn chính từ dòng gần nhất phía trên.
-- Không dùng từ của dòng khác để sửa một dòng độc lập.
+- ĐƯỜNG KẺ NGANG DÀI (______): Đây là ký hiệu LẶP LẠI. Chỉ trường hợp này mới được kế thừa tên/nhãn chính từ dòng gần nhất phía trên.
 
 2. NHẬN DIỆN FMCG:
 - HÌNH HỌC NÉT CHỮ là bằng chứng số 1.
-- Khi nét rõ: giữ đúng cách đọc, không tự chữa thành một từ "có nghĩa hơn".
+- Khi nét rõ: KHÔNG tự ý sửa chính tả. Giữ đúng cách đọc, không tự chữa thành một từ "có nghĩa hơn".
 - Khi nét mơ hồ: dùng THƯ VIỆN THAM CHIẾU được gửi kèm để đối chiếu tên thật, thương hiệu, alias/cách gọi tắt, danh mục cha và spec (mã số/dung tích/trọng lượng).
 - Ví dụ TH, Thọ, XX/X.X, dg/đg, sc, vnm... có thể là cách viết tắt/cách gọi trong tạp hóa. Chỉ dùng thư viện và ngữ cảnh để XÁC NHẬN cách đọc gần nét nhất; không tự mở rộng cụm đã rõ.
 - Các số như 380, 681, 990, 65, 130, 180, 1.8... là bằng chứng nhận diện rất mạnh khi chúng xuất hiện trên dòng; phải giữ nguyên số nhìn thấy.
