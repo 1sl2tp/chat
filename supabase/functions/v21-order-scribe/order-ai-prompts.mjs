@@ -55,7 +55,17 @@ IV. STRICT ORIGINAL TEXT PROTOCOL
 - is_ambiguous=true chỉ khi thực sự không đọc chắc; không được dùng cờ mơ hồ làm lý do để tự sửa.
 
 ==================================================
-V. JSON DUY NHẤT
+V. MỐC NGUỒN KHI QUÉT TỰ ĐỘNG
+==================================================
+- Nếu đầu vào có marker dạng [MSG_SEQ=123;MSG_ID=...], marker chỉ là ranh giới nguồn, KHÔNG phải nội dung khách viết.
+- Mỗi parsed_item phải giữ đúng source_message_seq của marker chứa dòng hàng đó.
+- source_line_no đánh số 1,2,3... theo thứ tự CÁC DÒNG HÀNG được bóc trong chính message đó.
+- Không đưa marker vào raw_text.
+- Tuyệt đối không kéo sản phẩm từ message trước sang message sau.
+- Nếu đầu vào thủ công không có MSG_SEQ thì source_message_seq và source_line_no để null.
+
+==================================================
+VI. JSON DUY NHẤT
 ==================================================
 Chỉ trả đúng 1 JSON hợp lệ, không Markdown, không lời dẫn.
 
@@ -64,8 +74,8 @@ Mỗi parsed_item:
 - quantity_number: số lượng dạng số.
 - normalized_name: trường dự phòng. Bình thường chỉ lấy phần tên sau số lượng, TIẾNG VIỆT KHÔNG DẤU, nhưng vẫn giữ nguyên chữ viết tắt và từ gốc; KHÔNG chứa số lượng. Trường này không được dùng để tự sửa nguồn.
 - unit: metadata nếu cần; KHÔNG được dùng để viết lại raw_text.
-- normalized_name KHÔNG CHỨA SỐ LƯỢNG và KHÔNG CHỨA ĐƠN VỊ MUA HÀNG khi đơn vị đã tách riêng, trừ trường hợp kế thừa đặc biệt cần mô tả đầy đủ tên đã kế thừa.
 - inherited_from_line: null trừ khi có kế thừa rõ ràng.
+- source_message_seq/source_line_no: chỉ dùng khi có marker MSG_SEQ như mục V.
 
 SCHEMA:
 {
@@ -84,7 +94,9 @@ SCHEMA:
       "unit": null,
       "is_ambiguous": false,
       "inherited_from_line": null,
-      "price_code": null
+      "price_code": null,
+      "source_message_seq": null,
+      "source_line_no": null
     }
   ]
 }
