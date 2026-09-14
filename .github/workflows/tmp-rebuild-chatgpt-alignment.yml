@@ -1,0 +1,30 @@
+name: Temporary rebuild ChatGPT alignment
+on:
+  push:
+    branches:
+      - fix/chatgpt-visual-alignment
+permissions:
+  contents: write
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/chatgpt-visual-alignment
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Rebuild canonical preview
+        run: python tools/build_current_preview.py
+      - name: Commit generated canonical files
+        run: |
+          if git diff --quiet -- index.html version.json; then
+            echo "Canonical files already synchronized"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html version.json
+          git commit -m "build: synchronize ChatGPT visual alignment"
+          git push origin HEAD:fix/chatgpt-visual-alignment
