@@ -9,7 +9,6 @@ let resultOverlay=null;
 let resultReturnFocus=null;
 let currentResult=null;
 let selectionFrame=0;
-let draftModulePromise=null;
 let viewerObserver=null;
 
 function authStore(){return window.V21AuthSessionStore||null;}
@@ -25,18 +24,6 @@ function activeContactId(){
   if(fromMessage)return fromMessage;
   const shell=window.ChatAppShell?.ScreenSession?.snapshot?.()||{};
   return String(shell.activeContact?.id||'').trim();
-}
-function activeContactName(){
-  const id=activeContactId();
-  const shell=window.ChatAppShell?.ScreenSession?.snapshot?.()||{};
-  const active=shell.activeContact||{};
-  if(id&&String(active.id||'')===id&&active.name)return String(active.name);
-  const rows=window.V21ContactStore?.snapshot?.()||[];
-  const row=Array.isArray(rows)?rows.find(item=>String(item?.id||'')===id):null;
-  return String(row?.display_name||row?.username||active.name||'Liên hệ');
-}
-function currentConversationId(){
-  return String(window.V21MessageStore?.snapshot?.().currentConversationId||'').trim()||null;
 }
 function interactionController(){return window.V21InteractionController||null;}
 function overlayRoot(){return document.getElementById('globalOverlayRoot')||document.body;}
@@ -59,11 +46,10 @@ function installStyle(){
     .ai-extract-status{min-height:18px;margin:0;color:var(--theme-content-secondary,#666);font-size:12px;line-height:18px}
     .ai-extract-status[data-error="true"]{color:#b42318}
     .ai-extract-text{box-sizing:border-box;min-height:120px;max-height:52vh;margin:0;padding:12px;border:1px solid var(--theme-border-default,#dedede);border-radius:12px;background:var(--theme-surface-secondary,#f7f7f7);color:var(--theme-content-primary,#171717);overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font:500 14px/1.55 system-ui;user-select:text;-webkit-user-select:text}
-    .ai-extract-actions{display:grid;grid-template-columns:1fr 1.1fr auto;gap:8px}
+    .ai-extract-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
     .ai-extract-action{min-height:40px;border:1px solid var(--theme-border-default,#dedede);border-radius:11px;background:var(--theme-surface-secondary,#f5f5f5);color:var(--theme-content-primary,#171717);font:650 13px/1 system-ui;cursor:pointer}
-    .ai-extract-action[data-primary="true"]{background:var(--theme-content-primary,#171717);color:var(--theme-surface-primary,#fff);border-color:var(--theme-content-primary,#171717)}
     .ai-extract-action:disabled{opacity:.45;cursor:default}
-    @media(max-width:520px){.ai-extract-overlay{padding:8px}.ai-extract-card{width:min(96vw,480px);padding:11px;border-radius:15px}.ai-extract-actions{grid-template-columns:1fr 1fr}.ai-extract-actions .ai-extract-action:last-child{grid-column:1/-1}}
+    @media(max-width:520px){.ai-extract-overlay{padding:8px}.ai-extract-card{width:min(96vw,480px);padding:11px;border-radius:15px}}
   `;
   document.head.appendChild(style);
 }
@@ -141,14 +127,14 @@ function resultErrorText(error){
   const code=String(error?.message||error||'ai_unavailable').replace(/^FunctionsHttpError:\s*/,'').trim();
   const known={
     authentication_required:'Cần đăng nhập Admin.',
-    admin_required:'Chỉ Admin được dùng AI ghi đơn.',
+    admin_required:'Chỉ Admin được dùng AI.',
     contact_required:'Chọn khách trước.',
     source_image_not_found:'Ảnh này không phải ảnh khách gửi hoặc không còn khả dụng.',
     image_unavailable:'Không tải được ảnh.',
     ai_not_configured:'AI chưa được cấu hình.',
     ai_unavailable:'AI đang không khả dụng, thử lại sau.',
     ai_response_invalid:'AI trả kết quả không hợp lệ.',
-    ai_items_missing:'AI chưa tách được dòng hàng.',
+    ai_items_missing:'AI chưa tách được nội dung.',
     order_text_required:'Chưa có nội dung để AI đọc.',
   };
   return known[code]||code;
@@ -182,84 +168,49 @@ function buildResultOverlay(){
   section.dataset.aiResult='';
   section.innerHTML=`
     <button type="button" class="ai-extract-backdrop" data-ai-close aria-label="Đóng"></button>
-    <div class="ai-extract-card" role="dialog" aria-modal="true" aria-label="AI tách đơn">
+    <div class="ai-extract-card" role="dialog" aria-modal="true" aria-label="AI tách nội dung">
       <div class="ai-extract-head">
-        <h2 class="ai-extract-title">AI tách đơn</h2>
+        <h2 class="ai-extract-title">AI tách nội dung</h2>
         <button type="button" class="ai-extract-close" data-ai-close aria-label="Đóng">×</button>
       </div>
       <p class="ai-extract-status" data-ai-status data-error="false">Đang đọc…</p>
       <pre class="ai-extract-text" data-ai-result-text>Đang xử lý…</pre>
       <div class="ai-extract-actions">
         <button type="button" class="ai-extract-action" data-ai-copy disabled>Copy</button>
-        <button type="button" class="ai-extract-action" data-ai-draft data-primary="true" disabled>Đơn tạm</button>
         <button type="button" class="ai-extract-action" data-ai-close>Đóng</button>
       </div>
     </div>`;
   for(const button of section.querySelectorAll('[data-ai-close]'))button.addEventListener('click',()=>closeResult());
   section.querySelector('[data-ai-copy]')?.addEventListener('click',()=>void copyCurrentResult());
-  section.querySelector('[data-ai-draft]')?.addEventListener('click',()=>void createDraftFromCurrent());
   overlayRoot().appendChild(section);
   resultOverlay=section;
   return section;
 }
-function setResultState({status='',text='',error=false,busy=false,canDraft=false}={}){
+function setResultState({status='',text='',error=false,busy=false}={}){
   const overlay=buildResultOverlay();
   const statusNode=overlay.querySelector('[data-ai-status]');
   const textNode=overlay.querySelector('[data-ai-result-text]');
   const copyButton=overlay.querySelector('[data-ai-copy]');
-  const draftButton=overlay.querySelector('[data-ai-draft]');
   if(statusNode){statusNode.textContent=String(status||'');statusNode.dataset.error=String(Boolean(error));}
   if(textNode)textNode.textContent=String(text||'');
   if(copyButton)copyButton.disabled=busy||!String(text||'').trim();
-  if(draftButton)draftButton.disabled=busy||!canDraft;
 }
 async function copyCurrentResult(){
   const text=String(currentResult?.text||'').trim();
   if(!text)return false;
   try{
     await navigator.clipboard.writeText(text);
-    setResultState({status:'Đã sao chép.',text,canDraft:Boolean(currentResult?.items?.length)});
+    setResultState({status:'Đã sao chép.',text});
     return true;
   }catch(error){
-    setResultState({status:'Không sao chép được.',text,error:true,canDraft:Boolean(currentResult?.items?.length)});
-    return false;
-  }
-}
-async function draftClient(){
-  if(window.V21AdminOrderDraft)return window.V21AdminOrderDraft;
-  if(!draftModulePromise)draftModulePromise=import('./admin-order-draft.js').then(()=>window.V21AdminOrderDraft||null);
-  return draftModulePromise;
-}
-async function createDraftFromCurrent(){
-  const snapshot=currentResult;
-  const contactId=activeContactId();
-  if(!snapshot?.items?.length||!contactId)return false;
-  const items=snapshot.items.map(item=>({
-    quantity:Number(item?.quantity),
-    quantityLabel:String(item?.quantityLabel||item?.quantity||''),
-    name:String(item?.name||'').trim(),
-  })).filter(item=>Number.isFinite(item.quantity)&&item.quantity>0&&item.name);
-  if(!items.length)return false;
-  closeResult({restoreFocus:false});
-  try{
-    const drafts=await draftClient();
-    if(!drafts?.createFromParsed)throw new Error('order_draft_unavailable');
-    await drafts.createFromParsed({
-      contactId,
-      conversationId:currentConversationId(),
-      customerName:activeContactName(),
-      items,
-    });
-    return true;
-  }catch(error){
-    await showError(error);
+    setResultState({status:'Không sao chép được.',text,error:true});
     return false;
   }
 }
 async function showError(error){
   try{
     buildResultOverlay();
-    setResultState({status:resultErrorText(error),text:'',error:true,busy:false,canDraft:false});
+    setResultState({status:resultErrorText(error),text:'',error:true,busy:false});
   }catch{}
 }
 async function runAI({text='',imageAssetIds=[]}={}){
@@ -269,21 +220,20 @@ async function runAI({text='',imageAssetIds=[]}={}){
   if(!client?.ai){await showError(new Error('ai_unavailable'));return null;}
   try{
     buildResultOverlay();
-    setResultState({status:imageAssetIds.length?'AI đang đọc ảnh…':'AI đang tách đoạn đã chọn…',text:'Đang xử lý…',busy:true,canDraft:false});
+    setResultState({status:imageAssetIds.length?'AI đang đọc ảnh…':'AI đang tách đoạn đã chọn…',text:'Đang xử lý…',busy:true});
     const data=await client.ai({contactId,text:String(text||''),imageAssetIds});
     const resultText=String(data?.text||'').trim();
     const items=Array.isArray(data?.items)?data.items:[];
     currentResult={...data,text:resultText,items};
     setResultState({
-      status:`${items.length} dòng hàng`,
+      status:`${items.length} dòng`,
       text:resultText||'Không có kết quả.',
       busy:false,
-      canDraft:items.length>0,
     });
     return currentResult;
   }catch(error){
     currentResult=null;
-    setResultState({status:resultErrorText(error),text:'',error:true,busy:false,canDraft:false});
+    setResultState({status:resultErrorText(error),text:'',error:true,busy:false});
     return null;
   }
 }
