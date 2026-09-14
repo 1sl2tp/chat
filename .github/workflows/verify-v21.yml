@@ -86,7 +86,9 @@ jobs:
           node --check admin-order-draft.js
           python tests/test_v21_order_draft_ui.py
       - name: Chat order draft composer integration
-        run: python tests/test_v21_order_draft_composer_integration.py
+        run: |
+          node --check admin-ai-extract.js
+          python tests/test_v21_order_draft_composer_integration.py
       - name: CHAT work isolation contract
         run: python tests/test_v21_work_context_bridge.py
       - name: Chat quote database contract

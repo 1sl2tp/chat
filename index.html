@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="4bd9661ecc8f4bbdd0772368725d0f182f5d59e3d59adfc90d452d6b96b37670">
+<meta name="app-build-id" content="a0799b11d68ad1413b13dcb368b8be656270cc8ca5ba6fdf734fe8f00ab654f1">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -4633,6 +4633,9 @@ const api={
 
 globalThis.V21OrderScribeClient=api;
 if(typeof exports==='object')exports.normalizeInvokeResult=normalizeInvokeResult;
+if(typeof window==='object'){
+  import('./admin-ai-extract.js').catch(error=>console.error('[V21AIExtract bootstrap]',error));
+}
 })();
 
 </script>

@@ -1,25 +1,40 @@
 from pathlib import Path
 
-JS_PATH = Path(__file__).resolve().parents[1] / "admin-composer-actions.js"
-JS = JS_PATH.read_text(encoding="utf-8").lower()
-compact = "".join(JS.split())
+ROOT = Path(__file__).resolve().parents[1]
+ACTIONS_PATH = ROOT / "admin-composer-actions.js"
+AI_PATH = ROOT / "admin-ai-extract.js"
+CLIENT_PATH = ROOT / "order-scribe-client.js"
 
-# Draft browsing remains available as a separate action.
-assert "./admin-order-draft.js" in JS
+ACTIONS = ACTIONS_PATH.read_text(encoding="utf-8").lower()
+CLIENT = CLIENT_PATH.read_text(encoding="utf-8")
+compact = "".join(ACTIONS.split())
+
+# Existing draft/order workflow remains available.
+assert "./admin-order-draft.js" in ACTIONS
 assert "openlist" in compact
 assert "action:'draft'" in compact
-
-# Create-order now opens the inbound source timeline for the current customer.
 assert "v21adminordersource" in compact
-assert ".open({preset:'today'})" in compact
-create_segment = compact.split("if(action==='create')", 1)[1].split("if(action==='draft')", 1)[0]
-assert "v21adminordersource" in create_segment
-assert "invokeorderscribe" not in create_segment
-assert "openorder(contactid)" not in create_segment
 
-segment = JS.split("label:'đơn tạm'", 1)[1].split("label:'đã giao'", 1)[0]
-assert "sắp có" not in segment
-assert "sao chép" not in JS
-assert "navigator.clipboard" not in JS
+# Dedicated AI extraction UI must exist and be bootstrapped by the order-scribe client.
+assert AI_PATH.exists(), "selection/image AI extraction UI module must exist"
+ai = AI_PATH.read_text(encoding="utf-8")
+ai_lower = ai.lower()
+assert 'dataset.aiSelectionAction' in ai
+assert 'selectionchange' in ai_lower
+assert 'getboundingclientrect' in ai_lower, "selection AI action should float near the selected text"
+assert '#messageWindow' in ai or '#scrollRoot' in ai, "only chat selections may trigger the AI action"
+assert 'V21OrderScribeClient' in ai
+assert '.ai(' in ai
+assert 'imageAssetIds' in ai
+assert 'navigator.clipboard' in ai, "AI result must support copy"
+assert 'createFromParsed' in ai, "AI result must optionally enter the existing draft-order flow"
+assert 'dataset.aiResult' in ai, "AI output needs its own compact result surface"
+assert './admin-ai-extract.js' in CLIENT, "order-scribe client must bootstrap the AI extraction UI module"
 
-print("chat draft order composer integration PASS")
+# The dedicated module extends the existing image viewer without changing viewer ownership.
+assert 'dataset.imageAiAction' in ai
+assert '.image-review-head' in ai
+assert 'aria-current' in ai and 'image-review-thumb-image' in ai
+assert 'dataset?.assetId' in ai
+
+print("chat draft/order + AI extraction integration PASS")

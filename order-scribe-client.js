@@ -33,4 +33,7 @@ const api={
 
 globalThis.V21OrderScribeClient=api;
 if(typeof exports==='object')exports.normalizeInvokeResult=normalizeInvokeResult;
+if(typeof window==='object'){
+  import('./admin-ai-extract.js').catch(error=>console.error('[V21AIExtract bootstrap]',error));
+}
 })();
