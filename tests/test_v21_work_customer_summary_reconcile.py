@@ -21,6 +21,17 @@ assert 'Tổng' in c, 'overview total row must be labelled Tổng'
 assert '.work-summary-overview-grid' in s, 'overview table needs a stable grid geometry'
 assert 'grid-template-columns' in s, 'overview columns must use explicit grid tracks'
 
+# Directory is still Trò chuyện. While the directory is open, Work defaults to Tất cả,
+# never the last customer's detail, and the Chat tab must show Trò chuyện instead of stale identity.
+assert 'resetWorkSelectionForDirectory' in c, 'directory entry must clear Work customer selection and force overview'
+assert 'syncDirectoryChatTab' in c, 'directory entry must restore the Trò chuyện tab identity'
+assert "'Trò chuyện'" in c, 'directory tab label must explicitly return to Trò chuyện'
+
+# Overview customer name is a direct drill-down into that customer's Work detail.
+assert 'selectedWorkCustomerId' in c, 'Work needs a local customer selection independent of Chat activeContact'
+assert 'data-work-summary-customer' in c, 'overview customer names need a direct drill-down control'
+assert 'openOverviewCustomer' in c, 'overview customer click must open Work detail directly'
+
 # Overview geometry: Tổng hợp/header, column header, and Tổng footer stay fixed.
 # Only the numbered customer rows are allowed to scroll.
 assert 'work-summary-overview-list-scroll' in c, 'overview needs a dedicated scroll owner for numbered customer rows'
