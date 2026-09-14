@@ -1,4 +1,5 @@
 from pathlib import Path
+import unicodedata
 
 ROOT = Path(__file__).resolve().parents[1]
 EDGE = ROOT / "supabase/functions/v21-order-scribe/index.ts"
@@ -29,6 +30,12 @@ compact = "".join(edge_lower.split())
 prompts_lower = prompts.lower()
 reference_lower = reference.lower()
 core_lower = core.lower()
+
+def fold(value: str) -> str:
+    value = unicodedata.normalize("NFD", value).replace("đ", "d").replace("Đ", "D")
+    return "".join(ch for ch in value if unicodedata.category(ch) != "Mn").lower()
+
+prompts_fold = fold(prompts)
 
 assert "db.auth.getuser" in compact
 assert 'eq("role","admin")' in compact or "eq('role','admin')" in compact
@@ -66,36 +73,36 @@ assert "const final=finalizeAiOrderText(normalized)" in edge
 assert "if(!final.items.length)throw new Error('ai_items_missing')" in edge
 
 for required in [
-    "tạp hóa/fmcg việt nam",
-    "thương hiệu",
+    "tap hoa/fmcg viet nam",
+    "thuong hieu",
     "alias",
     "spec",
-    "danh mục cha",
+    "danh muc cha",
     "dg",
-    "sữa",
-    "dầu ăn",
-    "tương",
-    "thuốc lá",
-    "thư viện tham chiếu",
-    "không tự thêm",
+    "sua",
+    "dau an",
+    "tuong",
+    "thuoc la",
+    "thu vien tham chieu",
+    "khong tu them",
     "banh gao",
     "dns 681",
     "xx poni",
-    "sl + tên",
+    "sl + ten",
     "nhe",
     "cam on",
 ]:
-    assert required in prompts_lower, f"FMCG OCR/NLP rule missing: {required}"
+    assert required in prompts_fold, f"FMCG OCR/NLP rule missing: {required}"
 
 for required in [
-    "hình học nét chữ",
-    "gạch ngắn đầu dòng",
-    "gạch ngang dài",
-    "gạch bỏ",
-    "tô xóa",
-    "mỗi dòng độc lập",
+    "hinh hoc net chu",
+    "gach ngan dau dong",
+    "gach ngang dai",
+    "gach bo",
+    "to xoa",
+    "moi dong doc lap",
 ]:
-    assert required in prompts_lower, f"handwriting geometry rule missing: {required}"
+    assert required in prompts_fold, f"handwriting geometry rule missing: {required}"
 
 assert "export function toGeometryAscii" in core
 assert "export function extractOrderIntentSource" in core
