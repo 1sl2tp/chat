@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="4e856eb980be3b7fa4cdf01eecf097d8413d8f7ecd6041334a5994954249a73d">
+<meta name="app-build-id" content="580dc9ab01e46b1f03f9454ff8417494e6229437a94339a53368d182a7157f8f">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -2619,6 +2619,20 @@ button{
 }
 #workThreadView[hidden],
 [data-chat-thread-node][hidden]{display:none!important}
+#appShell[data-route="work"] #workThreadView{
+  display:flex!important;
+  flex:0 0 auto;
+  width:100%;
+  height:calc(100svh - var(--header-height,72px) - var(--composer-flow-reserve,0px));
+  min-height:0;
+  padding:8px 12px;
+  overflow:hidden;
+  box-sizing:border-box;
+}
+#appShell[data-route="work"] [data-chat-thread-node]{display:none!important}
+@media(max-width:640px){
+  #appShell[data-route="work"] #workThreadView{padding:6px}
+}
 #workThreadView:not([hidden]){
   display:flex;
   flex:0 0 auto;
@@ -3335,7 +3349,7 @@ button{
 <div id="runtimeError" class="hidden fixed z-[9999] left-2 right-2 top-2 rounded-xl bg-red-600 text-white text-xs px-3 py-2 shadow-lg"></div>
 
 <!-- V21.69.9 unified runtime marker. Earlier V21.20/V21.64 labels below are provenance for inherited geometry/style contracts only, not separate live runtimes. -->
-<div id="appShell" data-app-shell data-chat-screen-version="V21.72.39" data-app-shell-version="V21.72.39" data-auth-state="booting" data-default-route="chat" data-route="chat">
+<div id="appShell" data-app-shell data-chat-screen-version="V21.72.39" data-app-shell-version="V21.72.39" data-auth-state="booting" data-default-route="work" data-route="work">
   <div id="screenHost" data-screen-host>
     <div id="activeScreenSlot" data-active-screen-slot>
       <section id="chatScreen" class="app-screen" data-screen="chat">
@@ -3369,7 +3383,7 @@ button{
 
         <div class="top-mode-switch" role="tablist" aria-label="Chế độ làm việc">
           <button type="button" class="top-mode-tab" role="tab" aria-selected="false" data-top-tab="chat" data-nav-target="chat"><span class="top-mode-contact-avatar" data-chat-tab-avatar hidden></span><span data-chat-tab-label>Trò chuyện</span></button>
-          <button type="button" class="top-mode-tab" role="tab" aria-selected="false" data-top-tab="work" data-nav-target="work">Công việc</button>
+          <button type="button" class="top-mode-tab" role="tab" aria-selected="true" data-top-tab="work" data-nav-target="work">Công việc</button>
         </div>
 
         <div class="call-focus-slot" data-call-focus-slot data-call-ui-state="idle">
@@ -3453,7 +3467,7 @@ button{
                   class="work-thread-embed"
                   src="https://get.taphoa.xyz/?embed=1"
                   title="Công việc"
-                  loading="eager"
+                  loading="lazy"
                   referrerpolicy="strict-origin-when-cross-origin"
                 ></iframe>
               </div>
@@ -11877,7 +11891,7 @@ const desktopDirectoryMedia=window.matchMedia(DESKTOP_DIRECTORY_QUERY);
 const DESKTOP_WORKSPACE_QUERY='(min-width: 74rem) and (hover: hover) and (pointer: fine)';
 const desktopWorkspaceMedia=window.matchMedia(DESKTOP_WORKSPACE_QUERY);
 
-let route='chat';
+let route='work';
 let authState='BOOTING';
 let authAccount=null;
 let sidebarOpen=false;
@@ -11925,7 +11939,7 @@ function persistScreenSession(){
   const key=screenSessionKey();
   if(!key)return false;
   const payload={
-    route:ROUTES.includes(route)?route:'chat',
+    route:ROUTES.includes(route)?route:'work',
     activeContact:activeContact?.id?{id:String(activeContact.id),name:String(activeContact.name||'Liên hệ')}:null
   };
   try{sessionStorage.setItem(key,JSON.stringify(payload));return true;}catch{return false;}
@@ -11982,7 +11996,7 @@ const ScreenSession={
   restore(account){
     const accountId=account?.id||null;
     const saved=readScreenSession(accountId);
-    route=ROUTES.includes(saved?.route)?saved.route:'chat';
+    route=ROUTES.includes(saved?.route)?saved.route:'work';
     const contact=saved?.activeContact;
     activeContact=contact?.id?{id:String(contact.id),name:String(contact.name||'Liên hệ')}:null;
     sidebarOpen=false;
