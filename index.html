@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="cf0e02ea3d083e251896ae21cd7a7b0d39157af69b98e10b1157d10c19adb4d6">
+<meta name="app-build-id" content="632fd494c61217bfbf28080acab5bb5efe3c0479f84541d8156f9d8251d4834b">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -509,36 +509,76 @@
   scrollbar-width:thin;
 }
 .work-summary-overview{
-  display:flex;
-  flex-direction:column;
-  gap:8px;
+  display:block;
 }
-.work-summary-customer{
-  background:var(--theme-surface-primary);
+.work-summary-overview-grid{
+  min-width:0;
   border:1px solid var(--theme-border-default);
   border-radius:12px;
   overflow:hidden;
+  background:var(--theme-surface-primary);
+}
+.work-summary-overview-grid-row{
+  min-width:0;
+  min-height:44px;
+  display:grid;
+  grid-template-columns:44px minmax(0,1fr) 64px 88px;
+  align-items:center;
+}
+.work-summary-overview-head{
+  min-height:36px;
+  background:var(--theme-surface-secondary);
+  color:var(--theme-content-secondary);
+  font-size:12px;
+  line-height:16px;
+  font-weight:600;
+}
+.work-summary-customer{
+  background:var(--theme-surface-primary);
+  border:0;
+  border-radius:0;
+  overflow:visible;
 }
 .work-summary-overview-row{
-  display:flex;
-  flex-direction:column;
-  gap:2px;
-  padding:10px 12px;
+  padding:0;
+  font-size:13px;
+  line-height:18px;
+}
+.work-summary-overview-row+.work-summary-overview-row,
+.work-summary-overview-head+.work-summary-overview-row,
+.work-summary-overview-grand-total{
+  border-top:1px solid color-mix(in srgb,var(--theme-border-default) 70%,transparent);
+}
+.work-summary-overview-index{
+  min-width:0;
+  text-align:center;
+  color:var(--theme-content-tertiary);
+  font-variant-numeric:tabular-nums;
 }
 .work-summary-overview-name{
   min-width:0;
+  padding:0 8px;
   overflow:hidden;
   text-overflow:ellipsis;
   white-space:nowrap;
-  font-size:14px;
-  line-height:20px;
-  font-weight:650;
+  font-size:13px;
+  line-height:18px;
+  font-weight:600;
 }
-.work-summary-overview-total{
-  font-size:12px;
-  line-height:17px;
-  color:var(--theme-content-secondary);
+.work-summary-overview-code,
+.work-summary-overview-product{
+  min-width:0;
+  padding-right:12px;
+  text-align:right;
   font-variant-numeric:tabular-nums;
+}
+.work-summary-overview-grand-total{
+  min-height:40px;
+  background:var(--theme-surface-secondary);
+  font-size:13px;
+}
+.work-summary-overview-grand-total .work-summary-overview-name{
+  font-weight:700;
 }
 .work-summary-list{
   margin:0;
@@ -621,6 +661,15 @@
 .work-summary-item.is-completed .work-summary-check{
   background:var(--theme-surface-secondary);
 }
+.work-summary-item.is-just-updated{
+  animation:workSummaryPulse 360ms ease;
+  background:color-mix(in srgb,var(--theme-content-primary) 7%,var(--theme-surface-primary));
+}
+@keyframes workSummaryPulse{
+  0%{transform:scale(.995);}
+  45%{transform:scale(1);}
+  100%{transform:scale(1);}
+}
 .work-summary-state{
   padding:18px 16px;
   color:var(--theme-content-secondary);
@@ -692,7 +741,10 @@
     padding-block:11px;
   }
   .work-summary-body{padding:8px 8px 18px;}
-  .work-summary-overview-row{padding:10px;}
+  .work-summary-overview-grid-row{grid-template-columns:34px minmax(0,1fr) 48px 68px;}
+  .work-summary-overview-name{padding-inline:6px;}
+  .work-summary-overview-code,.work-summary-overview-product{padding-right:8px;}
+  .work-summary-overview-row{padding:0;}
   .work-summary-item{padding:9px 10px 9px 36px;}
   .work-summary-item::before{left:6px;}
 }
@@ -14333,6 +14385,7 @@ let generation=0;
 let rowsCache=[];
 let forceOverview=false;
 let mobileSwipe=null;
+let pendingReorderKey='';
 const completionBusy=new Set();
 
 function root(){return document.querySelector('[data-work-summary-root]');}
@@ -14537,7 +14590,8 @@ function resultFor(row={}){
 }
 
 function rowSummary(row={}){
-  const items=validSummaryItems(resultFor(row));
+  const remainingRecords=reconcileRecords(row).filter(record=>!record.completed);
+  const items=remainingRecords.map(record=>record.item);
   return{
     row,
     items,
@@ -14568,9 +14622,27 @@ function reconcileRecords(row={}){
 
 function sortItemsForReconcile(records=[]){
   return records.slice().sort((a,b)=>{
-    if(Boolean(a.completed)!==Boolean(b.completed))return a.completed?1:-1;
+    const aCompleted=Boolean(a.completed)&&a.itemKey!==pendingReorderKey;
+    const bCompleted=Boolean(b.completed)&&b.itemKey!==pendingReorderKey;
+    if(aCompleted!==bCompleted)return aCompleted?1:-1;
     return Number(a.index)-Number(b.index);
   });
+}
+
+function detailBody(){
+  return root()?.querySelector?.('.work-summary-body.work-summary-detail')||null;
+}
+
+function captureDetailScroll(){
+  const body=detailBody();
+  return body?Number(body.scrollTop)||0:0;
+}
+
+function restoreDetailScroll(scrollTop=0){
+  const body=detailBody();
+  if(!body)return false;
+  body.scrollTop=Math.max(0,Number(scrollTop)||0);
+  return true;
 }
 
 function renderShell(message,kind='muted'){
@@ -14583,12 +14655,14 @@ function renderShell(message,kind='muted'){
   host.append(shell);
 }
 
-function renderOverviewRow(summary){
+function renderOverviewRow(summary,index){
   const row=summary.row||{};
-  const card=node('section','work-summary-overview-row work-summary-customer');
+  const card=node('div','work-summary-overview-row work-summary-customer work-summary-overview-grid-row');
   card.dataset.customerId=String(row.customer_id||'');
+  card.append(node('span','work-summary-overview-index',String(index+1)));
   card.append(node('strong','work-summary-overview-name',row.display_name||row.username||'Khách hàng'));
-  card.append(node('span','work-summary-overview-total',`${summary.codeCount} mã · ${formatNumber(summary.productCount)} sản phẩm`));
+  card.append(node('span','work-summary-overview-code',formatNumber(summary.codeCount)));
+  card.append(node('span','work-summary-overview-product',formatNumber(summary.productCount)));
   return card;
 }
 
@@ -14606,18 +14680,36 @@ function renderOverview(rows=[]){
   host.append(header);
 
   if(!summaries.length){
-    host.append(node('div','work-summary-state work-summary-state-muted','Chưa có khách nào có đủ tên hàng và số lượng.'));
+    host.append(node('div','work-summary-state work-summary-state-muted','Chưa có khách nào có hàng chưa hoàn thành.'));
     return;
   }
 
   const body=node('div','work-summary-body work-summary-overview');
-  for(const summary of summaries)body.append(renderOverviewRow(summary));
+  const grid=node('div','work-summary-overview-grid');
+  const head=node('div','work-summary-overview-head work-summary-overview-grid-row');
+  head.append(node('span','work-summary-overview-index','STT'));
+  head.append(node('span','work-summary-overview-name','Tên'));
+  head.append(node('span','work-summary-overview-code','Mã'));
+  head.append(node('span','work-summary-overview-product','Sản phẩm'));
+  grid.append(head);
+  summaries.forEach((summary,index)=>grid.append(renderOverviewRow(summary,index)));
+
+  const totalCodes=summaries.reduce((sum,summary)=>sum+summary.codeCount,0);
+  const totalProducts=summaries.reduce((sum,summary)=>sum+summary.productCount,0);
+  const total=node('div','work-summary-overview-grand-total work-summary-overview-grid-row');
+  total.append(node('span','work-summary-overview-index',''));
+  total.append(node('strong','work-summary-overview-name','Tổng'));
+  total.append(node('strong','work-summary-overview-code',formatNumber(totalCodes)));
+  total.append(node('strong','work-summary-overview-product',formatNumber(totalProducts)));
+  grid.append(total);
+
+  body.append(grid);
   host.append(body);
 }
 
 function renderDetailItem(record,customerId){
   const {item,itemKey,completed}=record;
-  const li=node('li',`work-summary-item${completed?' is-completed':''}`);
+  const li=node('li',`work-summary-item${completed?' is-completed':''}${itemKey===pendingReorderKey?' is-just-updated':''}`);
   li.dataset.itemKey=itemKey;
 
   const toggle=node('button','work-summary-check');
@@ -14643,8 +14735,10 @@ function renderCustomerDetail(row,contact){
   host.replaceChildren();
 
   const customerId=String(row?.customer_id||contact?.id||'');
-  const records=sortItemsForReconcile(row?reconcileRecords(row):[]);
-  const productCount=summaryProductCount(records.map(record=>record.item));
+  const allRecords=row?reconcileRecords(row):[];
+  const records=sortItemsForReconcile(allRecords);
+  const remainingRecords=allRecords.filter(record=>!record.completed);
+  const remainingProductCount=summaryProductCount(remainingRecords.map(record=>record.item));
 
   const header=node('div','work-summary-header work-summary-detail-header');
   const all=node('button','work-summary-all','Tất cả');
@@ -14652,7 +14746,7 @@ function renderCustomerDetail(row,contact){
   all.dataset.workSummaryAll='true';
   const title=node('div','work-summary-header-title');
   title.append(node('strong','work-summary-heading',row?.display_name||row?.username||contact?.name||'Khách hàng'));
-  title.append(node('span','work-summary-subheading',`${records.length} mã · ${formatNumber(productCount)} sản phẩm`));
+  title.append(node('span','work-summary-subheading',`${remainingRecords.length} mã · ${formatNumber(remainingProductCount)} sản phẩm`));
   header.append(all,title);
   host.append(header);
 
@@ -14694,8 +14788,20 @@ async function setCompleted(customerId,itemKey,completed){
 
   completionBusy.add(key);
   const before=Array.isArray(row.completed_item_keys)?row.completed_item_keys.slice():[];
+  const scrollTop=captureDetailScroll();
+  pendingReorderKey=String(itemKey);
   setCachedCompleted(row,itemKey,completed);
   renderCurrent();
+  restoreDetailScroll(scrollTop);
+
+  const reorderTimer=window.setTimeout(()=>{
+    if(pendingReorderKey!==String(itemKey))return;
+    const currentScroll=captureDetailScroll();
+    pendingReorderKey='';
+    renderCurrent();
+    restoreDetailScroll(currentScroll);
+  },360);
+
   try{
     const {error}=await db.rpc('chat_customer_summary_set_completed',{
       p_customer_id:String(customerId),
@@ -14705,8 +14811,12 @@ async function setCompleted(customerId,itemKey,completed){
     if(error)throw error;
     return true;
   }catch(error){
+    window.clearTimeout(reorderTimer);
     row.completed_item_keys=before;
+    if(pendingReorderKey===String(itemKey))pendingReorderKey='';
+    const rollbackScroll=captureDetailScroll();
     renderCurrent();
+    restoreDetailScroll(rollbackScroll);
     console.error('[work-customer-summary completion]',error);
     return false;
   }finally{
@@ -14727,6 +14837,7 @@ async function refresh(reason='timer'){
   if(!db){renderShell('Chưa sẵn sàng kết nối dữ liệu.','error');return false;}
 
   loading=true;
+  const detailScrollTop=captureDetailScroll();
   const requestGeneration=++generation;
   host.dataset.loading='true';
   if(!rowsCache.length)renderShell('Đang tải kết quả quét…');
@@ -14736,6 +14847,7 @@ async function refresh(reason='timer'){
     if(requestGeneration!==generation)return false;
     rowsCache=Array.isArray(data)?data.map(row=>({...row})):[];
     renderCurrent();
+    restoreDetailScroll(detailScrollTop);
     if(shellSnapshot().route==='work')pinWorkOuterScroll();
     host.dataset.lastRefreshReason=String(reason||'refresh');
     host.dataset.lastRefreshedAt=new Date().toISOString();

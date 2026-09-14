@@ -10,6 +10,7 @@ let generation=0;
 let rowsCache=[];
 let forceOverview=false;
 let mobileSwipe=null;
+let pendingReorderKey='';
 const completionBusy=new Set();
 
 function root(){return document.querySelector('[data-work-summary-root]');}
@@ -214,7 +215,8 @@ function resultFor(row={}){
 }
 
 function rowSummary(row={}){
-  const items=validSummaryItems(resultFor(row));
+  const remainingRecords=reconcileRecords(row).filter(record=>!record.completed);
+  const items=remainingRecords.map(record=>record.item);
   return{
     row,
     items,
@@ -245,9 +247,27 @@ function reconcileRecords(row={}){
 
 function sortItemsForReconcile(records=[]){
   return records.slice().sort((a,b)=>{
-    if(Boolean(a.completed)!==Boolean(b.completed))return a.completed?1:-1;
+    const aCompleted=Boolean(a.completed)&&a.itemKey!==pendingReorderKey;
+    const bCompleted=Boolean(b.completed)&&b.itemKey!==pendingReorderKey;
+    if(aCompleted!==bCompleted)return aCompleted?1:-1;
     return Number(a.index)-Number(b.index);
   });
+}
+
+function detailBody(){
+  return root()?.querySelector?.('.work-summary-body.work-summary-detail')||null;
+}
+
+function captureDetailScroll(){
+  const body=detailBody();
+  return body?Number(body.scrollTop)||0:0;
+}
+
+function restoreDetailScroll(scrollTop=0){
+  const body=detailBody();
+  if(!body)return false;
+  body.scrollTop=Math.max(0,Number(scrollTop)||0);
+  return true;
 }
 
 function renderShell(message,kind='muted'){
@@ -260,12 +280,14 @@ function renderShell(message,kind='muted'){
   host.append(shell);
 }
 
-function renderOverviewRow(summary){
+function renderOverviewRow(summary,index){
   const row=summary.row||{};
-  const card=node('section','work-summary-overview-row work-summary-customer');
+  const card=node('div','work-summary-overview-row work-summary-customer work-summary-overview-grid-row');
   card.dataset.customerId=String(row.customer_id||'');
+  card.append(node('span','work-summary-overview-index',String(index+1)));
   card.append(node('strong','work-summary-overview-name',row.display_name||row.username||'Khách hàng'));
-  card.append(node('span','work-summary-overview-total',`${summary.codeCount} mã · ${formatNumber(summary.productCount)} sản phẩm`));
+  card.append(node('span','work-summary-overview-code',formatNumber(summary.codeCount)));
+  card.append(node('span','work-summary-overview-product',formatNumber(summary.productCount)));
   return card;
 }
 
@@ -283,18 +305,36 @@ function renderOverview(rows=[]){
   host.append(header);
 
   if(!summaries.length){
-    host.append(node('div','work-summary-state work-summary-state-muted','Chưa có khách nào có đủ tên hàng và số lượng.'));
+    host.append(node('div','work-summary-state work-summary-state-muted','Chưa có khách nào có hàng chưa hoàn thành.'));
     return;
   }
 
   const body=node('div','work-summary-body work-summary-overview');
-  for(const summary of summaries)body.append(renderOverviewRow(summary));
+  const grid=node('div','work-summary-overview-grid');
+  const head=node('div','work-summary-overview-head work-summary-overview-grid-row');
+  head.append(node('span','work-summary-overview-index','STT'));
+  head.append(node('span','work-summary-overview-name','Tên'));
+  head.append(node('span','work-summary-overview-code','Mã'));
+  head.append(node('span','work-summary-overview-product','Sản phẩm'));
+  grid.append(head);
+  summaries.forEach((summary,index)=>grid.append(renderOverviewRow(summary,index)));
+
+  const totalCodes=summaries.reduce((sum,summary)=>sum+summary.codeCount,0);
+  const totalProducts=summaries.reduce((sum,summary)=>sum+summary.productCount,0);
+  const total=node('div','work-summary-overview-grand-total work-summary-overview-grid-row');
+  total.append(node('span','work-summary-overview-index',''));
+  total.append(node('strong','work-summary-overview-name','Tổng'));
+  total.append(node('strong','work-summary-overview-code',formatNumber(totalCodes)));
+  total.append(node('strong','work-summary-overview-product',formatNumber(totalProducts)));
+  grid.append(total);
+
+  body.append(grid);
   host.append(body);
 }
 
 function renderDetailItem(record,customerId){
   const {item,itemKey,completed}=record;
-  const li=node('li',`work-summary-item${completed?' is-completed':''}`);
+  const li=node('li',`work-summary-item${completed?' is-completed':''}${itemKey===pendingReorderKey?' is-just-updated':''}`);
   li.dataset.itemKey=itemKey;
 
   const toggle=node('button','work-summary-check');
@@ -320,8 +360,10 @@ function renderCustomerDetail(row,contact){
   host.replaceChildren();
 
   const customerId=String(row?.customer_id||contact?.id||'');
-  const records=sortItemsForReconcile(row?reconcileRecords(row):[]);
-  const productCount=summaryProductCount(records.map(record=>record.item));
+  const allRecords=row?reconcileRecords(row):[];
+  const records=sortItemsForReconcile(allRecords);
+  const remainingRecords=allRecords.filter(record=>!record.completed);
+  const remainingProductCount=summaryProductCount(remainingRecords.map(record=>record.item));
 
   const header=node('div','work-summary-header work-summary-detail-header');
   const all=node('button','work-summary-all','Tất cả');
@@ -329,7 +371,7 @@ function renderCustomerDetail(row,contact){
   all.dataset.workSummaryAll='true';
   const title=node('div','work-summary-header-title');
   title.append(node('strong','work-summary-heading',row?.display_name||row?.username||contact?.name||'Khách hàng'));
-  title.append(node('span','work-summary-subheading',`${records.length} mã · ${formatNumber(productCount)} sản phẩm`));
+  title.append(node('span','work-summary-subheading',`${remainingRecords.length} mã · ${formatNumber(remainingProductCount)} sản phẩm`));
   header.append(all,title);
   host.append(header);
 
@@ -371,8 +413,20 @@ async function setCompleted(customerId,itemKey,completed){
 
   completionBusy.add(key);
   const before=Array.isArray(row.completed_item_keys)?row.completed_item_keys.slice():[];
+  const scrollTop=captureDetailScroll();
+  pendingReorderKey=String(itemKey);
   setCachedCompleted(row,itemKey,completed);
   renderCurrent();
+  restoreDetailScroll(scrollTop);
+
+  const reorderTimer=window.setTimeout(()=>{
+    if(pendingReorderKey!==String(itemKey))return;
+    const currentScroll=captureDetailScroll();
+    pendingReorderKey='';
+    renderCurrent();
+    restoreDetailScroll(currentScroll);
+  },360);
+
   try{
     const {error}=await db.rpc('chat_customer_summary_set_completed',{
       p_customer_id:String(customerId),
@@ -382,8 +436,12 @@ async function setCompleted(customerId,itemKey,completed){
     if(error)throw error;
     return true;
   }catch(error){
+    window.clearTimeout(reorderTimer);
     row.completed_item_keys=before;
+    if(pendingReorderKey===String(itemKey))pendingReorderKey='';
+    const rollbackScroll=captureDetailScroll();
     renderCurrent();
+    restoreDetailScroll(rollbackScroll);
     console.error('[work-customer-summary completion]',error);
     return false;
   }finally{
@@ -404,6 +462,7 @@ async function refresh(reason='timer'){
   if(!db){renderShell('Chưa sẵn sàng kết nối dữ liệu.','error');return false;}
 
   loading=true;
+  const detailScrollTop=captureDetailScroll();
   const requestGeneration=++generation;
   host.dataset.loading='true';
   if(!rowsCache.length)renderShell('Đang tải kết quả quét…');
@@ -413,6 +472,7 @@ async function refresh(reason='timer'){
     if(requestGeneration!==generation)return false;
     rowsCache=Array.isArray(data)?data.map(row=>({...row})):[];
     renderCurrent();
+    restoreDetailScroll(detailScrollTop);
     if(shellSnapshot().route==='work')pinWorkOuterScroll();
     host.dataset.lastRefreshReason=String(reason||'refresh');
     host.dataset.lastRefreshedAt=new Date().toISOString();
