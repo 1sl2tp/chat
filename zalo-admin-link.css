@@ -137,3 +137,24 @@
 @media (min-width:74rem) and (hover:hover) and (pointer:fine){
   #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #stageLayout{width:100%;}
 }
+
+/* ChatGPT reference alignment: visual geometry only, no behavior ownership. */
+#appShell[data-auth-state="authenticated"]{
+  --chat-content-gutter:16px!important;
+  --conversation-content-gutter:16px!important;
+}
+#attachmentTray:empty{display:none!important}
+#composerFooter{padding-bottom:6px!important}
+#composer-plus-btn{width:36px!important;height:36px!important;min-width:36px!important;border-radius:999px!important}
+#composer-plus-btn svg{width:20px;height:20px}
+.header-surface-source{
+  background:var(--theme-surface-primary)!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+}
+#regionTop .top-mode-switch{
+  background:color-mix(in srgb,var(--theme-surface-secondary) 45%,var(--theme-surface-primary))!important;
+}
+#regionTop .top-mode-tab[aria-selected="true"]{
+  box-shadow:0 1px 3px rgba(0,0,0,.06)!important;
+}
