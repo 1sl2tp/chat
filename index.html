@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="8998174e449b932e31cb15f10a8675e5225592e32230ed5ceb0b14167e56ec5b">
+<meta name="app-build-id" content="857c558b6a24b7c3ffb7e08018005dacefd96ba722f71c13f5458214cbf9ec00">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -375,6 +375,53 @@
 }
 #regionTop .top-mode-tab[aria-selected="true"]{
   box-shadow:0 1px 3px rgba(0,0,0,.06)!important;
+}
+
+
+/* Desktop minimal three-column refinement. */
+@media (min-width:74rem) and (hover:hover) and (pointer:fine){
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] .wm-sidebar-header{padding-bottom:8px!important}
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] .wm-sidebar-body{padding-top:0!important}
+
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #regionTop .top-mode-switch{
+    background:transparent!important;
+    box-shadow:none!important;
+    padding:0!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #regionTop [data-top-tab="chat"]{
+    display:flex!important;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    background:transparent!important;
+    box-shadow:none!important;
+    border-radius:0!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #regionTop [data-top-tab="chat"]::before{
+    content:"Trò chuyện";
+    flex:0 0 auto;
+    color:var(--theme-content-secondary);
+    font-size:.82rem;
+    font-weight:500;
+  }
+
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #workThreadView .work-thread-frame{
+    display:flex;
+    flex-direction:column;
+  }
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #workThreadView .work-thread-frame::before{
+    content:"Công việc";
+    box-sizing:border-box;
+    display:flex;
+    align-items:center;
+    min-height:var(--header-height,72px);
+    padding-inline:24px;
+    color:var(--theme-content-primary);
+    background:var(--theme-surface-primary);
+    font-size:.95rem;
+    font-weight:600;
+  }
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #workThreadView .work-thread-empty{display:none!important}
 }
 
 </style>
