@@ -22,8 +22,9 @@ def test_desktop_chat_header_reads_as_chat_plus_selected_contact():
     assert f'{owner}.top-mode-switch{{background:transparent!important' in css
 
 
-def test_desktop_work_column_starts_at_the_top_and_empty_state_is_not_centered():
+def test_desktop_work_column_starts_in_the_shared_top_header():
     css = compact(CSS)
-    owner = '#appShell[data-auth-state="authenticated"][data-desktop-workspace="true"]#workThreadView'
-    assert f'{owner}.work-thread-frame::before{{content:"Côngviệc"' in css
-    assert f'{owner}.work-thread-empty{{display:none!important}}' in css
+    top = '#appShell[data-auth-state="authenticated"][data-desktop-workspace="true"]#regionTop'
+    work = '#appShell[data-auth-state="authenticated"][data-desktop-workspace="true"]#workThreadView'
+    assert f'{top}::after{{content:"Côngviệc"' in css
+    assert f'{work}.work-thread-empty{{display:none!important}}' in css
