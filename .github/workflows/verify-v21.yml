@@ -29,7 +29,7 @@ jobs:
         run: python tests/test_v21_72_18_auth_actions_row.py
       - name: V21.72.19 profile username/avatar contract
         run: python tests/test_v21_72_19_profile_username_avatar.py
-      - name: GETLINK thin work embed contract
+      - name: CHAT-owned work surface contract
         run: python tests/test_v21_remove_getlink_embed.py
       - name: Desktop chat workspace 3-column contract
         run: python tests/test_v21_chat_workspace_3col.py
@@ -79,7 +79,7 @@ jobs:
           python tests/test_v21_order_draft_ui.py
       - name: Chat order draft composer integration
         run: python tests/test_v21_order_draft_composer_integration.py
-      - name: Work context bridge contract
+      - name: CHAT work isolation contract
         run: python tests/test_v21_work_context_bridge.py
       - name: Chat quote database contract
         run: python tests/test_v21_quote_db_contract.py
