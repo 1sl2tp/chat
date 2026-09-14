@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="012d97f56f424ef57df8b582185ef575b640c9455b1aacf75f7ed23b482bbafc">
+<meta name="app-build-id" content="4bd9661ecc8f4bbdd0772368725d0f182f5d59e3d59adfc90d452d6b96b37670">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -3133,7 +3133,7 @@ button{
 .shell-contact-row[data-locked="true"]{opacity:.72}
 .shell-contact-chat{
   appearance:none;border:0;background:transparent;color:inherit;width:100%;min-height:72px;display:grid;
-  grid-template-columns:48px minmax(0,1fr) 36px;grid-template-rows:1.3rem 1.15rem;align-content:center;column-gap:12px;row-gap:3px;height:72px;min-height:72px;padding:10px 8px;text-align:start;cursor:pointer;
+  grid-template-columns:48px minmax(0,1fr) 58px;grid-template-rows:1.3rem 1.15rem;align-content:center;column-gap:12px;row-gap:3px;height:72px;min-height:72px;padding:10px 8px;text-align:start;cursor:pointer;
 }
 .shell-contact-row:not([data-active="true"]) .shell-contact-chat:hover{background:color-mix(in srgb,var(--theme-surface-secondary) 65%,transparent)}
 .shell-contact-avatar-wrap{position:relative;width:48px;height:48px;display:block;grid-column:1;grid-row:1 / span 2;align-self:center}
@@ -3145,12 +3145,21 @@ button{
 .shell-contact-copy{display:contents}
 .shell-contact-name{grid-column:2;grid-row:1;align-self:center;min-width:0;font-size:1rem;line-height:1.3rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .shell-contact-preview{grid-column:2;grid-row:2;align-self:center;min-width:0;color:var(--theme-content-secondary);font-size:.86rem;line-height:1.15rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.shell-contact-time{grid-column:3;grid-row:1;align-self:center;justify-self:center;width:36px;margin:0;color:var(--theme-content-tertiary);font-size:.75rem;line-height:1rem;text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums}
+.shell-contact-time{grid-column:3;grid-row:1;align-self:center;justify-self:end;width:58px;margin:0;color:var(--theme-content-tertiary);font-size:.75rem;line-height:1rem;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
 .shell-contact-manage{
   position:absolute;right:8px;bottom:7px;z-index:2;width:36px;height:24px;border:0;border-radius:999px;background:transparent;color:var(--theme-content-secondary);
   font-size:1.2rem;line-height:1;display:grid;place-items:center;cursor:pointer;padding:0;
 }
 .shell-contact-manage:hover{background:var(--theme-surface-secondary);color:var(--theme-content-primary)}
+.shell-contact-row:not(:last-child)::after{
+  content:"";position:absolute;left:68px;right:8px;bottom:0;height:1px;z-index:3;
+  background:color-mix(in srgb,var(--theme-border-default,#dedede) 72%,transparent);pointer-events:none;
+}
+@media (hover:hover) and (pointer:fine){
+  .shell-contact-manage{opacity:0;pointer-events:none;transition:opacity 120ms ease,background-color 120ms ease,color 120ms ease}
+  .shell-contact-row:hover .shell-contact-manage,
+  .shell-contact-row:focus-within .shell-contact-manage{opacity:1;pointer-events:auto}
+}
 
 .shell-profile-overlay{
   position:fixed;
@@ -12804,10 +12813,12 @@ function formatContactTime(value){
   const date=new Date(value);
   if(Number.isNaN(date.getTime()))return'';
   const now=new Date();
-  const sameDay=date.getFullYear()===now.getFullYear()&&date.getMonth()===now.getMonth()&&date.getDate()===now.getDate();
-  if(sameDay)return date.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false});
-  if(date.getFullYear()===now.getFullYear())return date.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'});
-  return date.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'2-digit'});
+  const startOfToday=new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime();
+  const startOfDate=new Date(date.getFullYear(),date.getMonth(),date.getDate()).getTime();
+  const dayDiff=Math.floor((startOfToday-startOfDate)/86400000);
+  if(dayDiff===0)return date.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false});
+  if(dayDiff>=1&&dayDiff<=6)return date.toLocaleDateString('vi-VN',{weekday:'long'});
+  return date.toLocaleDateString('vi-VN',{day:'numeric',month:'numeric',year:'2-digit'});
 }
 
 function contactPreview(item){
