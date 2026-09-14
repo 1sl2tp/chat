@@ -10,29 +10,51 @@
   color:var(--theme-content-primary);
 }
 .work-summary-header{
+  position:sticky;
+  top:0;
+  z-index:4;
   flex:0 0 auto;
   display:flex;
   align-items:center;
   justify-content:space-between;
   gap:12px;
-  padding:14px 16px 12px;
+  min-height:58px;
+  box-sizing:border-box;
+  padding:12px 16px;
+  background:var(--theme-surface-primary);
   border-bottom:1px solid var(--theme-border-default);
 }
 .work-summary-detail-header{
   justify-content:flex-start;
+  min-height:64px;
+  overflow:visible;
 }
 .work-summary-header-title{
   min-width:0;
+  flex:1 1 auto;
   display:flex;
   flex-direction:column;
+  justify-content:center;
   gap:2px;
+  padding-block:2px;
+  overflow:visible;
 }
 .work-summary-heading{
+  display:block;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
   font-size:16px;
   line-height:22px;
   font-weight:650;
 }
 .work-summary-subheading{
+  display:block;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
   font-size:12px;
   line-height:17px;
   color:var(--theme-content-tertiary);
@@ -193,8 +215,53 @@
   line-height:22px;
 }
 .work-summary-state-error .work-summary-state-text{color:var(--theme-content-secondary);}
+
+@media(max-width:67.999rem){
+  #appShell[data-mobile-directory="true"] #shellNavigationLayer{
+    position:fixed;
+    inset-block-start:var(--header-height,72px);
+    inset-inline:0;
+    bottom:0;
+    width:100%;
+    height:calc(100dvh - var(--header-height,72px));
+    z-index:70;
+    visibility:visible!important;
+    pointer-events:auto!important;
+    overflow:hidden;
+    background:var(--theme-surface-primary);
+  }
+  #appShell[data-mobile-directory="true"] #shellNavigationLayer .shell-navigation-backdrop{
+    display:none!important;
+  }
+  #appShell[data-mobile-directory="true"] #shellNavigationLayer .shell-navigation-panel{
+    position:absolute;
+    inset:0;
+    width:100%!important;
+    max-width:none!important;
+    height:100%;
+    min-height:0;
+    transform:none!important;
+    transition:none!important;
+    box-shadow:none!important;
+    border:0;
+  }
+  #appShell[data-mobile-directory="true"] #shellNavigationLayer [data-shell-command="sidebar.close"]{
+    display:none!important;
+  }
+  #appShell[data-route="chat"] #chatScreen{
+    touch-action:pan-y;
+  }
+}
+
 @media(max-width:640px){
-  .work-summary-header{padding:12px 12px 10px;}
+  .work-summary-header{
+    min-height:58px;
+    padding:10px 12px;
+  }
+  .work-summary-detail-header{
+    min-height:64px;
+    padding-block:11px;
+  }
   .work-summary-body{padding:8px 8px 18px;}
   .work-summary-overview-row{padding:10px;}
   .work-summary-item{padding:9px 10px 9px 36px;}
