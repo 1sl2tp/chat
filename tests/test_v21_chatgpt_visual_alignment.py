@@ -25,9 +25,9 @@ def test_chatgpt_reference_plus_button_geometry_stays_compact():
 
 def test_chatgpt_reference_top_surface_is_neutral_white():
     css = compact(CSS)
-    assert ".header-surface-source{background:var(--theme-surface-primary)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}" in css
-    assert "#regionTop.top-mode-switch{background:color-mix(insrgb,var(--theme-surface-secondary)45%,var(--theme-surface-primary))!important}" in css
-    assert "#regionTop.top-mode-tab[aria-selected=\"true\"]{box-shadow:01px3pxrgba(0,0,0,.06)!important}" in css
+    assert ".header-surface-source{background:var(--theme-surface-primary)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;}" in css
+    assert "#regionTop.top-mode-switch{background:color-mix(insrgb,var(--theme-surface-secondary)45%,var(--theme-surface-primary))!important;}" in css
+    assert "#regionTop.top-mode-tab[aria-selected=\"true\"]{box-shadow:01px3pxrgba(0,0,0,.06)!important;}" in css
 
 
 def test_reference_structure_still_uses_one_shared_chat_content_axis():
