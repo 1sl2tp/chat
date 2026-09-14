@@ -48,4 +48,9 @@ assert 'không tự thêm số lượng' in cl, 'prompt must forbid invented qua
 assert 'ngocle' in cl, 'E Ngoc tt customer-specific speaking rule must be encoded'
 assert 'mỗi màu' in cl, 'E Ngoc same-product color variants must inherit one carton per color'
 
+# PostgREST builders are PromiseLike, not regular Promises. Error recording must not call
+# .catch() on the builder; otherwise the first customer error can abort the whole 15-customer batch.
+assert '.catch(()=>{})' not in compact, 'recordFailure must contain DB write errors with try/catch, not builder.catch()'
+assert 'async function safeDbWrite' in e or 'try{' in e[e.find('async function recordFailure'):e.find('async function scanCustomer')], 'recordFailure must safely isolate its own DB write failures'
+
 print('Customer summary scan contract PASS')
