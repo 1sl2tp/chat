@@ -1,11 +1,25 @@
 (()=>{
 'use strict';
 
-function normalizeInvokeResult({data,error}={}){
+async function responseErrorCode(error){
+  const context=error?.context;
+  if(!context)return '';
+  try{
+    const response=typeof context.clone==='function'?context.clone():context;
+    if(typeof response?.json!=='function')return '';
+    const payload=await response.json();
+    return String(payload?.error||'').trim();
+  }catch{return '';}
+}
+async function normalizeInvokeResult({data,error}={}){
   if(data?.ok===true)return data;
   const code=String(data?.error||'').trim();
   if(code)throw new Error(code);
-  if(error)throw new Error('invalid_response');
+  if(error){
+    const responseCode=await responseErrorCode(error);
+    if(responseCode)throw new Error(responseCode);
+    throw new Error('invalid_response');
+  }
   throw new Error('invalid_response');
 }
 
@@ -22,7 +36,7 @@ async function invoke(action,{contactId,text,imageAssetIds=[]}={}){
     body:{action,contactId:String(contactId||''),text:String(text||''),imageAssetIds:assets},
     headers:{authorization:`Bearer ${accessToken}`},
   });
-  return normalizeInvokeResult(result);
+  return await normalizeInvokeResult(result);
 }
 
 const api={
