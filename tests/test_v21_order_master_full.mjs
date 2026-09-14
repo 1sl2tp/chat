@@ -96,6 +96,40 @@ assert.equal(typeof core.parseMasterOrderPayload,'function','master JSON parser 
 }
 
 {
+  const imageLine=core.parseMasterOrderPayload({
+    intent:'IMAGE_ORDER',
+    parsed_items:[{
+      line_number:1,
+      raw_text:'Mì bát omachi bò 3T',
+      normalized_name:'Mi bat omachi bo',
+      quantity_number:3,
+      unit:'thung',
+      inherited_from_line:null,
+    }],
+  });
+  assert.equal(imageLine.text,'3 Mi bat omachi bo','handwritten quantity at the end must keep the literal product text before the quantity marker');
+}
+
+{
+  const scanned=core.parseMasterOrderPayload({
+    intent:'ORDER',
+    parsed_items:[{
+      line_number:2,
+      raw_text:'3 ko đường bịch',
+      normalized_name:'ko duong bich',
+      quantity_number:3,
+      unit:'bich',
+      inherited_from_line:null,
+      source_message_seq:123,
+      source_line_no:2,
+    }],
+  });
+  assert.equal(scanned.items[0].sourceMessageSeq,123);
+  assert.equal(scanned.items[0].sourceLineNo,2);
+  assert.equal(scanned.items[0].name,'ko duong bich');
+}
+
+{
   const inherited=core.parseMasterOrderPayload({
     intent:'IMAGE_ORDER',
     parsed_items:[{
