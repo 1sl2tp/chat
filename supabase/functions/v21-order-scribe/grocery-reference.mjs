@@ -1,7 +1,7 @@
 const CACHE_TTL_MS=10*60*1000;
 const PAGE_SIZE=1000;
 const PACKAGING_NOISE=new Set([
-  'thung','t','th','hop','loc','bich','goi','chai','lon','khay','tui','vi','bao','cay','can',
+  'thung','t','hop','loc','bich','goi','chai','lon','khay','tui','vi','bao','cay','can',
   'thùng','hộp','lốc','bịch','gói','khay','túi','vỉ','cây',
 ]);
 const POLITE_NOISE=new Set(['nhe','a','ah','cho','lay','them']);
