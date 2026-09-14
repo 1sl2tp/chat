@@ -21,6 +21,13 @@ assert 'Tổng' in c, 'overview total row must be labelled Tổng'
 assert '.work-summary-overview-grid' in s, 'overview table needs a stable grid geometry'
 assert 'grid-template-columns' in s, 'overview columns must use explicit grid tracks'
 
+# Overview geometry: Tổng hợp/header, column header, and Tổng footer stay fixed.
+# Only the numbered customer rows are allowed to scroll.
+assert 'work-summary-overview-list-scroll' in c, 'overview needs a dedicated scroll owner for numbered customer rows'
+assert '.work-summary-overview-list-scroll' in s, 'overview customer-row scroller needs dedicated geometry'
+assert 'overflow-y:auto' in s.replace(' ', ''), 'customer-row scroller must own vertical scrolling'
+assert '.work-summary-overview{\n  display:block;\n  overflow:hidden;' in s, 'overview body itself must not scroll'
+
 # Selecting a chat contact switches Work to that customer; Tất cả returns to overview.
 assert 'v21-active-contact-change' in c, 'Work must react to the selected customer'
 assert 'renderCustomerDetail' in c, 'selected-customer reconciliation view is required'
