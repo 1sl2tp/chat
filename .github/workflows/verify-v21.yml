@@ -48,7 +48,9 @@ jobs:
       - name: Customer summary core
         run: node tests/test_v21_customer_summary_core.mjs
       - name: Work customer summary UI contract
-        run: python tests/test_v21_work_customer_summary_ui.py
+        run: |
+          node --check work-customer-summary.js
+          python tests/test_v21_work_customer_summary_ui.py
       - name: Chat image orientation + column-2 viewer contract
         run: python tests/test_v21_chat_image_orientation_column.py
       - name: Chat album viewer column-2 geometry contract
