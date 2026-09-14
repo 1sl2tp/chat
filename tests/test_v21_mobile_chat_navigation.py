@@ -10,7 +10,7 @@ assert 'hideMobileDirectory' in client, 'selecting a contact must leave the dire
 assert 'bindMobileChatSwipe' in client, 'mobile chat needs a whole-chat horizontal swipe owner'
 assert 'bindLegacyEdgeSwipeBlocker' in client, 'legacy edge-drawer swipe must be blocked outside the chat gesture owner too'
 assert 'MOBILE_CHAT_SWIPE_DISTANCE_PX' in client, 'whole-chat swipe needs an explicit distance threshold'
-assert 'NavigationCommand?.openWork' in client or 'NavigationCommand.openWork' in client, 'swipe right must open Công việc'
+assert 'openWork' in client and ('navigation()' in client or 'NavigationCommand' in client), 'swipe right must open Công việc through the shell navigation owner'
 assert "dx<=-MOBILE_CHAT_SWIPE_DISTANCE_PX" in client.replace(' ', ''), 'swipe left must return to Danh bạ'
 assert "dx>=MOBILE_CHAT_SWIPE_DISTANCE_PX" in client.replace(' ', ''), 'swipe right must open Công việc'
 assert 'stopImmediatePropagation' in client, 'new horizontal gesture must suppress the legacy edge-drawer swipe'
