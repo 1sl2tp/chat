@@ -73,6 +73,8 @@ jobs:
         run: node tests/test_v21_order_scribe_client_runtime.js
       - name: Manual order scribe Edge contract
         run: python tests/test_v21_order_scribe_edge_contract.py
+      - name: Grocery reference ranking contract
+        run: node tests/test_v21_grocery_reference.mjs
       - name: Handwritten repeat-marker Edge contract
         run: python tests/test_v21_order_scribe_inherit_marker_edge.py
       - name: Chat order draft database contract
