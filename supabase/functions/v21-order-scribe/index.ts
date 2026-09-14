@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
 import { formatOrderItems, parseNormalizedOrderText, parseQuickOrderText, toGeometryAscii } from "./scribe-core.mjs";
 import { ORDER_NORMALIZE_PROMPT, ORDER_OCR_PROMPT } from "./order-ai-prompts.mjs";
+import { buildGroceryReferenceContext, buildOwnRecognitionVocabulary, loadGroceryReferenceLibrary, rankGroceryCandidates } from "./grocery-reference.mjs";
 
 const SUPABASE_URL=String(Deno.env.get('SUPABASE_URL')||'').trim();
 const SERVICE_KEY=String(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'').trim();
@@ -177,21 +178,21 @@ async function geminiTextRequest(cfg:any,parts:any[]){
   if(!text)throw new Error('ai_response_invalid');
   return text;
 }
-async function normalizeOrderTextWithAi(source:string,cfg:any){
+async function normalizeOrderTextWithAi(source:string,cfg:any,referenceContext=''){
   const input=clean(source,MAX_SOURCE_CHARS);
   if(!input)throw new Error('order_text_required');
-  return geminiTextRequest(cfg,[
-    {text:ORDER_NORMALIZE_PROMPT},
-    {text:`\n\nĐẦU VÀO:\n${input}`},
-  ]);
+  const parts:any[]=[{text:ORDER_NORMALIZE_PROMPT}];
+  if(referenceContext)parts.push({text:`\n\n${referenceContext}`});
+  parts.push({text:`\n\nĐẦU VÀO:\n${input}`});
+  return geminiTextRequest(cfg,parts);
 }
-async function ocrInboundImagesWithAi(images:any[],cfg:any){
+async function ocrInboundImagesWithAi(images:any[],cfg:any,recognitionVocabulary=''){
   const outputs=[];
   for(const image of images){
-    const text=await geminiTextRequest(cfg,[
-      {text:ORDER_OCR_PROMPT},
-      {inlineData:{mimeType:image.mimeType,data:image.data}},
-    ]);
+    const parts:any[]=[{text:ORDER_OCR_PROMPT}];
+    if(recognitionVocabulary)parts.push({text:`\n\n${recognitionVocabulary}`});
+    parts.push({inlineData:{mimeType:image.mimeType,data:image.data}});
+    const text=await geminiTextRequest(cfg,parts);
     if(text)outputs.push(text);
   }
   if(!outputs.length)throw new Error('ai_items_missing');
@@ -220,15 +221,23 @@ Deno.serve(async(req:Request)=>{
 
     const cfg=await runtimeConfig();
     if(!cfg.key)throw new Error('ai_not_configured');
+    const groceryLibrary=await loadGroceryReferenceLibrary(db);
 
     let aiInput=source.text;
     if(imageAssetIds.length){
       const images=await loadInboundImages(String(admin.account.id),source.contactId,imageAssetIds);
-      const ocrText=await ocrInboundImagesWithAi(images,cfg);
+      const ownVocabulary=buildOwnRecognitionVocabulary(groceryLibrary);
+      const ocrText=await ocrInboundImagesWithAi(images,cfg,ownVocabulary);
       aiInput=[source.text,ocrText].filter(Boolean).join('\n');
     }
 
-    const normalized=await normalizeOrderTextWithAi(aiInput,cfg);
+    // Candidate ranking is evidence only. The model receives nearby real names plus
+    // parent categories, but the prompt requires preserving any clear source phrase.
+    const referenceContext=buildGroceryReferenceContext(aiInput,groceryLibrary);
+    // Keep this explicit use visible in the edge contract: ranking is local evidence,
+    // never an automatic SKU/name replacement.
+    if(aiInput)rankGroceryCandidates(aiInput,groceryLibrary,1);
+    const normalized=await normalizeOrderTextWithAi(aiInput,cfg,referenceContext);
     const asciiNormalized=toGeometryAscii(normalized).trim();
     const parsed=parseNormalizedOrderText(asciiNormalized);
     if(!parsed.items.length&&!parsed.unresolved.length)throw new Error('ai_items_missing');
