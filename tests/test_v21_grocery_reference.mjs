@@ -21,6 +21,7 @@ const refs=[
 
 assert.equal(normalizeRecognitionCore('2 thung Banh dns 681'),'banh dns 681');
 assert.equal(normalizeRecognitionCore('3 hop 555 det'),'555 det');
+assert.equal(normalizeRecognitionCore('1 thung Sua TH it duong'),'sua th it duong');
 
 let ranked=rankGroceryCandidates('dns 681',refs,5);
 assert.equal(ranked[0].name,'Banh dns 681');
