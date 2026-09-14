@@ -1,6 +1,7 @@
 from pathlib import Path
 import unittest
 
+# Work-first boot contract: keep Chat available, but never blank the mobile shell during startup.
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "index.source.html"
 INDEX = ROOT / "index.html"
