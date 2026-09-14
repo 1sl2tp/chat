@@ -34,7 +34,22 @@ function stripDuplicateQuantity(value,quantity,unit){
   }
   return text;
 }
+function literalNameFromRaw(rawText,quantity){
+  const source=clean(rawText,500);
+  const q=String(quantity??'').trim();
+  if(!source||!q)return '';
+  const escaped=q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  const match=new RegExp(`(?:^|\\s)${escaped}(?:[.,]0+)?(?:\\s+|$)`,'u').exec(source);
+  if(!match)return '';
+  const name=source.slice(match.index+match[0].length).trim();
+  return ascii(name).trim();
+}
 function itemName(raw,quantity,unit){
+  const inherited=Number.isInteger(Number(raw?.inherited_from_line))&&Number(raw?.inherited_from_line)>0;
+  if(!inherited){
+    const literal=literalNameFromRaw(raw?.raw_text,quantity);
+    if(literal)return literal;
+  }
   const source=raw?.normalized_name??raw?.normalized_vn??raw?.name??'';
   return ascii(stripDuplicateQuantity(source,quantity,unit)).trim();
 }
