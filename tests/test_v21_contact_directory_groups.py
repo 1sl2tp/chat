@@ -24,6 +24,24 @@ def test_directory_reorders_contacts_by_latest_activity_and_exposes_search_filte
     assert "contact-directory-admin.js" in loader
 
 
+def test_directory_activity_refresh_scrolls_to_latest_contact_while_manual_filter_keeps_position():
+    module = (ROOT / "contact-directory-admin.js").read_text("utf-8")
+
+    # Contact-store activity means a newer conversation can move to row 1.
+    # The directory viewport must follow that reorder to the top instead of
+    # restoring the stale scrollTop that hid the latest conversation.
+    assert "function syncDirectoryRows({scrollToTop=false}={})" in module
+    assert "scrollHost.scrollTop=scrollToTop?0:previousScrollTop" in module
+    assert "function scheduleSync({scrollToTop=false}={})" in module
+    assert "syncDirectoryRows({scrollToTop})" in module
+    assert "document.addEventListener('v21-contact-store-change',()=>scheduleSync({scrollToTop:true}))" in module
+
+    # Search/filter changes are user-owned navigation inside the directory and
+    # must not force a jump to the top.
+    assert "input.addEventListener('input',()=>{query=String(input.value||'');syncDirectoryRows();})" in module
+    assert "syncDirectoryRows();" in module
+
+
 def test_group_editing_exists_only_in_zalo_account_admin_popup():
     module = (ROOT / "contact-directory-admin.js").read_text("utf-8")
     for token in [
