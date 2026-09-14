@@ -34,20 +34,6 @@ jobs:
           legacy='<script src="./admin-order-source.js" data-build-source="admin-order-source.js"></script>\n'
           assert legacy in text
           index_path.write_text(text.replace(legacy,'',1),encoding='utf-8')
-
-          workflow_path=root/'.github/workflows/verify-v21.yml'
-          workflow=workflow_path.read_text(encoding='utf-8')
-          blocks=[
-              "      - name: Customer order source core contract\n        run: node tests/test_v21_order_source_core.mjs\n",
-              "      - name: Customer order source database contract\n        run: python tests/test_v21_order_source_db_contract.py\n",
-              "      - name: Customer order source Edge contract\n        run: python tests/test_v21_order_source_edge_contract.py\n",
-              "      - name: Customer order source timeline UI contract\n        run: python tests/test_v21_order_source_ui.py\n",
-          ]
-          for block in blocks:
-              assert block in workflow
-              workflow=workflow.replace(block,'',1)
-          workflow_path.write_text(workflow,encoding='utf-8')
-
           migration=root/'supabase/migrations/20260915_remove_legacy_chat_order_source.sql'
           migration.write_text("""begin;\n\n-- KH incremental scanning now owns new customer-order ingestion.\n-- Remove only the obsolete Chat-side source-state table.\ndrop table if exists public.chat_order_source_states;\n\ncommit;\n""",encoding='utf-8')
           PY
@@ -92,14 +78,6 @@ jobs:
         run: python tests/test_v21_remove_getlink_embed.py
       - name: Desktop chat workspace 3-column contract
         run: python tests/test_v21_chat_workspace_3col.py
-      - name: Customer order source core contract
-        run: node tests/test_v21_order_source_core.mjs
-      - name: Customer order source database contract
-        run: python tests/test_v21_order_source_db_contract.py
-      - name: Customer order source Edge contract
-        run: python tests/test_v21_order_source_edge_contract.py
-      - name: Customer order source timeline UI contract
-        run: python tests/test_v21_order_source_ui.py
       - name: Legacy Chat order-source removal contract
         run: python tests/test_v21_legacy_chat_order_source_removed.py
       - name: Chat image orientation + column-2 viewer contract
