@@ -46,6 +46,12 @@ assert "--desktop-directory-width:clamp(300px,26vw,340px)" in SOURCE
 assert "--desktop-chat-width:clamp(520px,40vw,640px)" in SOURCE, 'wide desktop chat column must no longer collapse to ~420px'
 assert "--desktop-work-width:calc(100% - var(--desktop-chat-width))" in SOURCE
 
+# Active customer identity must hug its content instead of occupying a fixed share
+# of the 260px mode switch. Short names stay short; long names cap then ellipsize.
+assert '.top-mode-switch[data-contact-identity="true"]{width:max-content;max-width:min(100%,260px);grid-template-columns:max-content max-content;}' in compact
+assert '.top-mode-switch[data-contact-identity="true"] .top-mode-tab[data-top-tab="chat"]{width:max-content;max-width:170px;}' in compact
+assert '.top-mode-tab[data-top-tab="chat"] [data-chat-tab-label]{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' in compact
+
 # Mobile directory ownership must stop at the same 64rem breakpoint; otherwise
 # 64-68rem desktops can accidentally get both persistent and mobile directory states.
 assert '(min-width:64rem)' in WORK_JS.replace(' ', ''), 'mobile directory JS breakpoint must align with persistent desktop directory'
@@ -60,4 +66,4 @@ assert "const ROUTES=Object.freeze(['chat','work']);" in SHELL
 assert "route!=='chat'" in SHELL
 assert "route!=='work'" in SHELL
 
-print("desktop chat workspace responsive 2/3-column contract PASS")
+print("desktop chat workspace responsive 2/3-column + identity fit contract PASS")
