@@ -40,7 +40,7 @@ assert 'setActiveContact(null' in compact_shell, 'clear command must reset the r
 assert 'clearActiveContact' in client, 'entering the directory parent must clear the selected contact for same-customer reselection'
 assert 'rememberConversationBeforeWork' in client and 'clearActiveContact' in client, 'return-state memory and shell contact clearing must be separate concerns'
 
-# Hamburger on mobile is account/settings/logout only. It must never open the contact directory/sidebar.
+# Hamburger on mobile is account/settings/logout only for authenticated users. It must never open the contact directory/sidebar.
 assert 'openMobileAccountMenu' in client and 'closeMobileAccountMenu' in client, 'mobile hamburger needs a compact account menu owner'
 for label in ('Tài khoản', 'Cài đặt', 'Thoát'):
     assert label in client, f'mobile account menu must contain {label}'
@@ -49,6 +49,13 @@ assert 'data-account-self-edit' in client, 'Tài khoản must reuse the existing
 assert 'data-auth-command="logout"' in client or "data-auth-command='logout'" in client, 'Thoát must reuse the existing logout action'
 assert "showMobileDirectory('menu-button')" not in client, 'hamburger must not open Danh bạ'
 assert 'data-mobile-account-menu' in style, 'compact mobile account menu needs its own geometry'
+
+# Guest mobile must never be trapped behind the full-screen directory overlay.
+# The login card is owned by Chat; directory is authenticated-only.
+assert "snapshot().state!=='AUTHENTICATED'" in compact_client or "snapshot().state!==\"AUTHENTICATED\"" in compact_client, 'mobile directory must be gated to authenticated sessions'
+assert 'AuthUI?.openLogin?.()' in client or 'AuthUI.openLogin' in client, 'guest hamburger/auth transition must expose the existing login form'
+assert "hideMobileDirectory('guest-auth')" in client, 'guest auth state must remove the directory overlay before showing login'
+assert "snapshot().state==='AUTHENTICATED'" in compact_client or "snapshot().state===\"AUTHENTICATED\"" in compact_client, 'boot/default directory must only open after authentication'
 
 # Danh bạ is a full Trò chuyện screen on mobile, not a narrow popup/drawer, and account footer is not part of it.
 assert 'dataset.mobileDirectory' in client, 'runtime must own explicit mobile directory screen state'
@@ -71,4 +78,4 @@ assert '.work-summary-detail-header' in style, 'customer detail header must have
 assert 'position:sticky' in compact_style, 'customer name/summary header must stay pinned'
 assert 'overflow:auto' in compact_style, 'work item list must keep its own scrolling region'
 
-print('Mobile hierarchy swipe + compact account menu + directory rhythm + pinned Work header contract PASS')
+print('Mobile hierarchy swipe + guest login reachability + compact account menu + directory rhythm + pinned Work header contract PASS')
