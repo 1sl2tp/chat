@@ -3,6 +3,18 @@
   overscroll-behavior:none;
 }
 
+/* Active chat identity hugs avatar + customer name. The mode switch remains
+   centered, but no longer stretches short customer names to a fixed share. */
+#appShell .top-mode-switch[data-contact-identity="true"]{
+  width:max-content;
+  max-width:min(100%,260px);
+  grid-template-columns:max-content max-content;
+}
+#appShell .top-mode-switch[data-contact-identity="true"] .top-mode-tab[data-top-tab="chat"]{
+  width:max-content;
+  max-width:170px;
+}
+
 [data-work-summary-root]{
   width:100%;
   height:100%;
