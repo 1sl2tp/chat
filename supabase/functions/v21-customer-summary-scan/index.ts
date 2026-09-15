@@ -49,13 +49,14 @@ async function runtimeConfig(){
 }
 
 async function claimCustomers(){
-  const result=await db.rpc('chat_customer_summary_claim_batch',{p_limit:MAX_CUSTOMERS_PER_RUN});
+  const result=await db.rpc('chat_customer_summary_claim_dirty_batch',{p_limit:MAX_CUSTOMERS_PER_RUN});
   if(result.error)throw result.error;
   return (Array.isArray(result.data)?result.data:[]).map((row:any)=>({
     id:String(row?.customer_id||''),
     username:String(row?.username||''),
     display_name:String(row?.display_name||''),
-  })).filter((row:any)=>row.id);
+    claimVersion:Number(row?.claim_version)||0,
+  })).filter((row:any)=>row.id&&row.claimVersion>0);
 }
 
 async function loadConversationIds(customerId:string){
@@ -193,12 +194,6 @@ function parseJsonResponse(text:string,messages:any[]=[]){
   return normalizeSummaryPayload(parsed,messages);
 }
 
-function messagePart(row:any){
-  const role=row?.sender_role==='customer'?'KHACH':'ADMIN_CONTEXT';
-  const body=clean(row?.body,20000);
-  return `TIN [${clean(row?.created_at,80)||'?'}] ${role}: ${body}`;
-}
-
 async function recordResult(customer:any,messages:any[],imagesByMessage:Map<string,any[]>,rawOutput:string,result:any){
   const customerMessageCount=messages.filter(row=>row?.sender_role==='customer').length;
   const imageCount=Array.from(imagesByMessage.values()).reduce((sum,list)=>sum+list.length,0);
@@ -216,15 +211,13 @@ async function recordResult(customer:any,messages:any[],imagesByMessage:Map<stri
   }).select('id').single();
   if(insert.error)throw insert.error;
   const runId=String(insert.data?.id||'');
-  const state=await db.from('chat_customer_summary_state').upsert({
-    customer_id:customer.id,
-    last_scanned_at:new Date().toISOString(),
-    last_run_id:runId||null,
-    last_result:result,
-    last_error:null,
-    updated_at:new Date().toISOString(),
-  },{onConflict:'customer_id'});
-  if(state.error)throw state.error;
+  const ack=await db.rpc('chat_customer_summary_finish_success',{
+    p_customer_id:customer.id,
+    p_claim_version:customer.claimVersion,
+    p_run_id:runId||null,
+    p_result:result,
+  });
+  if(ack.error)throw ack.error;
   return runId;
 }
 
@@ -246,12 +239,11 @@ async function recordFailure(customer:any,error:unknown){
     });
   }catch{}
   try{
-    await db.from('chat_customer_summary_state').upsert({
-      customer_id:customer.id,
-      last_scanned_at:new Date().toISOString(),
-      last_error:code,
-      updated_at:new Date().toISOString(),
-    },{onConflict:'customer_id'});
+    await db.rpc('chat_customer_summary_finish_failure',{
+      p_customer_id:customer.id,
+      p_claim_version:customer.claimVersion,
+      p_error:code,
+    });
   }catch{}
 }
 
@@ -259,7 +251,11 @@ async function scanCustomer(customer:any,cfg:any){
   const conversationIds=await loadConversationIds(customer.id);
   const messages=await loadConversationMessages(customer.id,conversationIds);
   const customerMessages=messages.filter(row=>row?.sender_role==='customer');
-  if(!customerMessages.length)return {skipped:true,aiCalls:0,lineCount:0};
+  if(!customerMessages.length){
+    const emptyResult={items:[],notes:[],totalLines:0,totals:[]};
+    const runId=await recordResult(customer,messages,new Map(),'',emptyResult);
+    return {skipped:true,aiCalls:0,lineCount:0,runId};
+  }
 
   const mediaMap=await loadCustomerImages(customer.id,messages);
   const imagesByMessage=await loadImageParts(messages,mediaMap);
@@ -299,11 +295,11 @@ Deno.serve(async(req:Request)=>{
         const result=await scanCustomer(customer,cfg);
         if(!result.skipped)scannedCustomers+=1;
         aiCalls+=Number(result.aiCalls)||0;
-        results.push({customerId:customer.id,username:customer.username,ok:true,lineCount:result.lineCount||0,runId:result.runId||null});
+        results.push({customerId:customer.id,username:customer.username,ok:true,lineCount:result.lineCount||0,runId:result.runId||null,claimVersion:customer.claimVersion});
       }catch(error){
         failed+=1;
         await recordFailure(customer,error);
-        results.push({customerId:customer.id,username:customer.username,ok:false,error:String((error as any)?.message||error||'scan_failed')});
+        results.push({customerId:customer.id,username:customer.username,ok:false,error:String((error as any)?.message||error||'scan_failed'),claimVersion:customer.claimVersion});
         console.error('[v21-customer-summary-scan]',customer.id,String((error as any)?.message||error||'scan_failed'));
       }
     }
