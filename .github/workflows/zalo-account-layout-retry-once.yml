@@ -1,0 +1,175 @@
+name: Zalo Account Layout Retry Once
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/zalo-account-layout-retry-once.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Pin tools, add search, compact group
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p=Path('zalo-admin-link.js')
+          s=p.read_text('utf-8')
+          marker="function renderAccountRows(){"
+          assert marker in s and 'function normalizeAccountSearch(value)' not in s
+          helper="""function normalizeAccountSearch(value){
+            return String(value||'')
+              .normalize('NFD')
+              .replace(/[\\u0300-\\u036f]/g,'')
+              .replace(/đ/g,'d').replace(/Đ/g,'D')
+              .toLocaleLowerCase('vi')
+              .trim();
+          }
+
+          function accountMatchesSearch(account,contact,query){
+            if(!query)return true;
+            const haystack=normalizeAccountSearch(`${account?.display_name||''} ${account?.username||''} ${contact?.display_name||''}`);
+            return haystack.includes(query);
+          }
+
+          """
+          s=s.replace(marker,helper+marker,1)
+
+          old="  const model=accountModel();\n\n  for(const account of model.accounts){"
+          new="  const model=accountModel();\n  const query=normalizeAccountSearch(accountModal?.querySelector?.('[data-zalo-account-search]')?.value||'');\n\n  for(const account of model.accounts){"
+          assert old in s
+          s=s.replace(old,new,1)
+
+          old="    const contact=link?model.contactsById.get(String(link.zalo_id))||null:null;\n    const row=document.createElement('div');"
+          new="    const contact=link?model.contactsById.get(String(link.zalo_id))||null:null;\n    if(!accountMatchesSearch(account,contact,query))continue;\n    const row=document.createElement('div');"
+          assert old in s
+          s=s.replace(old,new,1)
+
+          old="  for(const contact of model.contacts){\n    if(model.linksByZalo.has(String(contact.zalo_id)))continue;\n    const row=document.createElement('div');"
+          new="  for(const contact of model.contacts){\n    if(model.linksByZalo.has(String(contact.zalo_id)))continue;\n    if(!accountMatchesSearch(null,contact,query))continue;\n    const row=document.createElement('div');"
+          assert old in s
+          s=s.replace(old,new,1)
+
+          old="""function renderAccountRowsPreservingScroll(){
+            const card=accountModal?.querySelector?.('.zalo-account-card');
+            const scrollTop=card?.scrollTop||0;
+            renderAccountRows();
+            if(card)card.scrollTop=scrollTop;
+          }
+          """
+          new="""function renderAccountRowsPreservingScroll(){
+            const scrollHost=accountModal?.querySelector?.('[data-zalo-account-list]');
+            const scrollTop=scrollHost?.scrollTop||0;
+            renderAccountRows();
+            if(scrollHost)scrollHost.scrollTop=scrollTop;
+          }
+          """
+          assert old in s
+          s=s.replace(old,new,1)
+
+          marker='      <p class="zalo-account-error" data-zalo-account-error hidden></p>'
+          assert marker in s
+          search='      <label class="zalo-account-search"><span class="sr-only">Tìm tài khoản</span><input type="search" autocomplete="off" inputmode="search" placeholder="Tìm tên Chat, @username hoặc Zalo" data-zalo-account-search></label>\n'
+          s=s.replace(marker,search+marker,1)
+
+          old="""  pushAction?.addEventListener('click',()=>void runAdminPushAction(pushAction));
+            void refreshAdminPushSetting();
+          """
+          new="""  pushAction?.addEventListener('click',()=>void runAdminPushAction(pushAction));
+            const search=accountModal.querySelector('[data-zalo-account-search]');
+            search?.addEventListener('input',()=>{
+              renderAccountRows();
+              const list=accountModal?.querySelector?.('[data-zalo-account-list]');
+              if(list)list.scrollTop=0;
+            });
+            void refreshAdminPushSetting();
+          """
+          assert old in s
+          s=s.replace(old,new,1)
+          p.write_text(s,'utf-8')
+
+          p=Path('contact-directory-admin.js')
+          s=p.read_text('utf-8')
+          old="""    const actions=row.querySelector('.zalo-account-row-actions');
+              if(!accountId||!actions)continue;
+              const existing=actions.querySelector('[data-contact-group-select]');
+              if(existing){
+          """
+          new="""    const actions=row.querySelector('.zalo-account-row-actions');
+              if(!accountId||!actions)continue;
+              let group=row.querySelector('.zalo-account-row-group');
+              if(!group){
+                group=document.createElement('div');
+                group.className='zalo-account-row-group';
+                row.insertBefore(group,actions);
+              }
+              const existing=group.querySelector('[data-contact-group-select]');
+              if(existing){
+          """
+          assert old in s
+          s=s.replace(old,new,1)
+          assert "    actions.insertBefore(select,actions.firstChild);" in s
+          s=s.replace("    actions.insertBefore(select,actions.firstChild);","    group.appendChild(select);",1)
+          assert "min-height:36px" in s and "min-width:104px" in s
+          s=s.replace(".zalo-account-group-select{box-sizing:border-box;min-height:36px;border:1px solid var(--theme-border-default,#ddd);border-radius:10px;padding:0 28px 0 9px", ".zalo-account-group-select{box-sizing:border-box;min-height:32px;border:1px solid var(--theme-border-default,#ddd);border-radius:999px;padding:0 24px 0 9px",1)
+          s=s.replace(".zalo-account-group-select{min-width:104px}", ".zalo-account-group-select{min-width:72px;max-width:88px}",1)
+          p.write_text(s,'utf-8')
+
+          p=Path('zalo-admin-link.css')
+          s=p.read_text('utf-8')
+          old="position:relative;width:min(100%,760px);max-height:min(86svh,760px);overflow:auto;overscroll-behavior:contain"
+          new="position:relative;display:flex;flex-direction:column;width:min(100%,760px);height:min(86svh,760px);max-height:min(86svh,760px);overflow:hidden;overscroll-behavior:contain"
+          assert old in s
+          s=s.replace(old,new,1)
+          old=""".zalo-account-list{display:grid;gap:8px}
+          .zalo-account-row{
+            display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;align-items:center;gap:12px;min-width:0;border:1px solid var(--theme-border-default,#e1e1e1);border-radius:16px;padding:10px 12px;background:var(--theme-surface-primary,#fff)
+          }
+          """
+          new=""".zalo-account-search{display:block;flex:0 0 auto;margin:0 0 10px}
+          .zalo-account-search input{box-sizing:border-box;width:100%;height:40px;border:1px solid var(--theme-border-default,#d9d9d9);border-radius:12px;padding:0 12px;background:var(--theme-surface-primary,#fff);color:inherit;font:inherit;font-size:14px;outline:none}
+          .zalo-account-search input:focus{border-color:#9ab7e6;box-shadow:0 0 0 2px rgba(78,132,216,.1)}
+          .zalo-account-list{min-height:0;flex:1 1 auto;display:grid;align-content:start;gap:8px;overflow:auto;overscroll-behavior:contain;padding-right:3px}
+          .zalo-account-row{
+            display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto auto;align-items:center;gap:12px;min-width:0;border:1px solid var(--theme-border-default,#e1e1e1);border-radius:16px;padding:10px 12px;background:var(--theme-surface-primary,#fff)
+          }
+          .zalo-account-row-group{display:flex;align-items:center;justify-content:flex-end;min-width:0}
+          """
+          assert old in s
+          s=s.replace(old,new,1)
+          old="""  .zalo-account-card{width:100%;max-height:calc(100svh - 16px);border-radius:24px;padding:16px 12px}
+            .zalo-account-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px 10px;padding:10px}
+            .zalo-account-row-actions{grid-column:1/-1;justify-content:flex-start}
+          """
+          new="""  .zalo-account-card{width:100%;height:calc(100svh - 16px);max-height:calc(100svh - 16px);border-radius:24px;padding:16px 12px}
+            .zalo-account-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:8px 8px;padding:10px}
+            .zalo-account-row-group{align-self:start;justify-content:flex-end}
+            .zalo-account-row-actions{grid-column:1/-1;justify-content:flex-start}
+          """
+          assert old in s
+          s=s.replace(old,new,1)
+          p.write_text(s,'utf-8')
+          PY
+      - name: Focused contract
+        run: |
+          node --check zalo-admin-link.js
+          node --check contact-directory-admin.js
+          python tests/test_v21_zalo_account_admin_layout.py
+          python tests/test_v21_admin_push_device_persistence.py
+      - name: Rebuild canonical preview
+        run: python tools/build_current_preview.py
+      - name: Recheck focused contract
+        run: python tests/test_v21_zalo_account_admin_layout.py
+      - name: Commit fix
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add zalo-admin-link.js contact-directory-admin.js zalo-admin-link.css index.html version.json
+          git commit -m 'feat: pin Zalo account tools and add search'
+          git push
