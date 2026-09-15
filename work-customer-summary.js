@@ -61,6 +61,7 @@ function showMobileDirectory(reason='directory'){
   layer.setAttribute('aria-hidden','false');
   app.dataset.mobileDirectoryReason=String(reason||'directory');
   resetWorkSelectionForDirectory();
+  navigation()?.clearActiveContact?.();
   syncDirectoryChatTab(true);
   void window.V21ContactStore?.refresh?.();
   return true;
@@ -544,10 +545,14 @@ document.addEventListener('v21-auth-state',()=>{
   forceOverview=false;
   void refresh('auth-state');
 });
-document.addEventListener('v21-active-contact-change',()=>{
-  hideMobileDirectory('contact-selected');
+document.addEventListener('v21-active-contact-change',event=>{
   selectedWorkCustomerId='';
-  forceOverview=false;
+  if(event?.detail?.contact?.id){
+    hideMobileDirectory('contact-selected');
+    forceOverview=false;
+  }else if(mobileDirectoryAllowed()){
+    forceOverview=true;
+  }
   renderCurrent();
 });
 document.addEventListener('navigation-change',event=>{

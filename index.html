@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="0e273fd5e973a32ac75b8369f8067cb65687254ac246c6cb6f0b0450b36ab930">
+<meta name="app-build-id" content="67db221cd6360b921eda3a08ce9bb49fd71683ba68192060ffa863177db90cbc">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -12265,6 +12265,11 @@ const NavigationCommand={
   },
   openChat(){return this.open('chat')},
   openWork(){return this.open('work')},
+  clearActiveContact(){
+    if(authState!=='AUTHENTICATED')return false;
+    setActiveContact(null,null);
+    return true;
+  },
   openContact(contactId,contactName=null){
     if(authState!=='AUTHENTICATED')return false;
     const id=String(contactId||'').trim();
@@ -14466,6 +14471,7 @@ function showMobileDirectory(reason='directory'){
   layer.setAttribute('aria-hidden','false');
   app.dataset.mobileDirectoryReason=String(reason||'directory');
   resetWorkSelectionForDirectory();
+  navigation()?.clearActiveContact?.();
   syncDirectoryChatTab(true);
   void window.V21ContactStore?.refresh?.();
   return true;
@@ -14949,10 +14955,14 @@ document.addEventListener('v21-auth-state',()=>{
   forceOverview=false;
   void refresh('auth-state');
 });
-document.addEventListener('v21-active-contact-change',()=>{
-  hideMobileDirectory('contact-selected');
+document.addEventListener('v21-active-contact-change',event=>{
   selectedWorkCustomerId='';
-  forceOverview=false;
+  if(event?.detail?.contact?.id){
+    hideMobileDirectory('contact-selected');
+    forceOverview=false;
+  }else if(mobileDirectoryAllowed()){
+    forceOverview=true;
+  }
   renderCurrent();
 });
 document.addEventListener('navigation-change',event=>{

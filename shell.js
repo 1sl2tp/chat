@@ -329,6 +329,11 @@ const NavigationCommand={
   },
   openChat(){return this.open('chat')},
   openWork(){return this.open('work')},
+  clearActiveContact(){
+    if(authState!=='AUTHENTICATED')return false;
+    setActiveContact(null,null);
+    return true;
+  },
   openContact(contactId,contactName=null){
     if(authState!=='AUTHENTICATED')return false;
     const id=String(contactId||'').trim();
