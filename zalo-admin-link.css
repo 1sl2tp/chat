@@ -95,8 +95,9 @@
 @media(max-width:640px){
   .zalo-account-modal{place-items:end center;padding:8px}
   .zalo-account-card{width:100%;max-height:calc(100svh - 16px);border-radius:24px;padding:16px 12px}
-  .zalo-account-row{grid-template-columns:minmax(0,1fr);gap:8px;padding:10px}
-  .zalo-account-row-actions{justify-content:flex-start}
+  .zalo-account-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px 10px;padding:10px}
+  .zalo-account-row-actions{grid-column:1/-1;justify-content:flex-start}
+  .zalo-account-person,.zalo-account-relation{align-items:flex-start}
   .zalo-account-modal-head{padding-inline:2px}
 }
 @media(max-width:420px){

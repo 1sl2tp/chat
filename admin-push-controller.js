@@ -8,6 +8,7 @@ const BASE_FAVICON_HREF=String(faviconNode?.getAttribute?.('href')||faviconNode?
 let state={admin:false,supported:false,code:'idle',enabled:false,permission:'default',platform:'web'};
 let pendingOpen=null;
 let unreadRefreshTimer=0;
+const NOTIFICATION_WANTED_KEY='taphoa.v21.adminPushWanted';
 
 function authStore(){return window.V21AuthSessionStore||null;}
 function authSnapshot(){return authStore()?.snapshot?.()||{};}
@@ -26,6 +27,12 @@ function platform(){
 }
 function browserSupported(){
   return typeof Notification!=='undefined'&&Boolean(navigator.serviceWorker);
+}
+function notificationWanted(){
+  try{return localStorage.getItem(NOTIFICATION_WANTED_KEY)==='1';}catch{return false;}
+}
+function setNotificationWanted(next){
+  try{localStorage.setItem(NOTIFICATION_WANTED_KEY,next?'1':'0');return true;}catch{return false;}
 }
 function result(next={}){
   state={...state,...next};
@@ -118,6 +125,40 @@ function scheduleUnreadBadgeRefresh(delay=32){
   }
 }
 
+async function reconcileWantedSubscription(){
+  const currentPlatform=platform();
+  if(!isAdmin()||!notificationWanted())return null;
+  if(!browserSupported())return result({ok:true,admin:true,supported:false,enabled:false,code:'unsupported',platform:currentPlatform});
+  if(currentPlatform==='ios-web')return result({ok:true,admin:true,supported:true,enabled:false,code:'ios_install_required',platform:currentPlatform,permission:String(Notification.permission||'default')});
+  const permission=String(Notification.permission||'default');
+  if(permission!=='granted')return result({ok:true,admin:true,supported:true,enabled:false,code:permission==='denied'?'blocked':'disabled',platform:currentPlatform,permission});
+  try{
+    const reg=await registration();
+    let subscription=await reg.pushManager.getSubscription();
+    if(!subscription){
+      const key=await invoke('public_key');
+      subscription=await reg.pushManager.subscribe({
+        userVisibleOnly:true,
+        applicationServerKey:urlBase64ToUint8Array(key.public_key),
+      });
+    }
+    const snap=authSnapshot();
+    const normalized=subscriptionJSON(subscription);
+    if(!normalized.endpoint||!normalized.keys.p256dh||!normalized.keys.auth)throw new Error('invalid_subscription');
+    await invoke('subscribe',{
+      subscription:normalized,
+      device_id:snap.deviceId||null,
+      platform:currentPlatform,
+      user_agent:String(navigator.userAgent||''),
+    });
+    syncState();
+    scheduleUnreadBadgeRefresh(0);
+    return result({ok:true,admin:true,supported:true,enabled:true,code:'enabled',platform:currentPlatform,permission});
+  }catch(error){
+    return result({ok:false,admin:true,supported:true,enabled:false,code:String(error?.message||'rebind_failed'),platform:currentPlatform,permission});
+  }
+}
+
 async function status(){
   const admin=isAdmin();
   const currentPlatform=platform();
@@ -126,10 +167,15 @@ async function status(){
   if(currentPlatform==='ios-web')return result({ok:true,admin:true,supported:true,enabled:false,code:'ios_install_required',platform:currentPlatform,permission:String(Notification.permission||'default')});
   const permission=String(Notification.permission||'default');
   if(permission==='denied')return result({ok:true,admin:true,supported:true,enabled:false,code:'blocked',platform:currentPlatform,permission});
+  if(notificationWanted()&&permission==='granted'){
+    const restored=await reconcileWantedSubscription();
+    if(restored)return restored;
+  }
   const subscription=await localSubscription();
   if(!subscription)return result({ok:true,admin:true,supported:true,enabled:false,code:'disabled',platform:currentPlatform,permission});
   try{
     const data=await invoke('status',{endpoint:String(subscription.endpoint||'')});
+    if(data.enabled)setNotificationWanted(true);
     return result({ok:true,admin:true,supported:true,enabled:Boolean(data.enabled),code:data.enabled?'enabled':'disabled',platform:currentPlatform,permission});
   }catch{
     return result({ok:false,admin:true,supported:true,enabled:false,code:'status_error',platform:currentPlatform,permission});
@@ -145,6 +191,7 @@ async function enable(){
   if(permission==='denied')return result({ok:false,admin:true,supported:true,enabled:false,code:'blocked',platform:currentPlatform,permission});
   if(permission!=='granted')permission=String(await Notification.requestPermission());
   if(permission!=='granted')return result({ok:false,admin:true,supported:true,enabled:false,code:permission==='denied'?'blocked':'disabled',platform:currentPlatform,permission});
+  setNotificationWanted(true);
 
   try{
     const reg=await registration();
@@ -174,6 +221,7 @@ async function enable(){
 }
 
 async function disable({bestEffort=false}={}){
+  setNotificationWanted(false);
   const currentPlatform=platform();
   const subscription=await localSubscription();
   let serverOk=true;
@@ -276,6 +324,7 @@ function onAuthState(event){
     void consumePendingOpen();
     syncState();
     scheduleUnreadBadgeRefresh(0);
+    void reconcileWantedSubscription();
     return;
   }
   clearClientState();
@@ -295,11 +344,11 @@ document.addEventListener('navigation-change',syncState);
 document.addEventListener('v21-active-contact-change',syncState);
 document.addEventListener('v21-conversation-context',syncState);
 
-if(isAdmin()){void consumePendingOpen();syncState();scheduleUnreadBadgeRefresh(0);}
+if(isAdmin()){void consumePendingOpen();syncState();scheduleUnreadBadgeRefresh(0);void reconcileWantedSubscription();}
 else clearClientState();
 
 function snapshot(){return Object.freeze({...state,pendingOpen:pendingOpen?{...pendingOpen}:null});}
 
 state={...state,admin:isAdmin(),supported:isAdmin()&&browserSupported(),permission:typeof Notification==='undefined'?'default':String(Notification.permission||'default'),platform:platform()};
-window.V21AdminPush=Object.freeze({version:VERSION,status,enable,disable,syncState,refreshUnreadBadge,handleOpen,snapshot});
+window.V21AdminPush=Object.freeze({version:VERSION,status,enable,disable,reconcileWantedSubscription,notificationWanted,syncState,refreshUnreadBadge,handleOpen,snapshot});
 })();
