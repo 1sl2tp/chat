@@ -5,11 +5,15 @@ const SUPABASE_URL=String(Deno.env.get('SUPABASE_URL')||'').trim();
 const SERVICE_KEY=String(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'').trim();
 const db=createClient(SUPABASE_URL,SERVICE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
 
-const MAX_CUSTOMERS_PER_RUN=15;
+const MAX_CUSTOMERS_PER_RUN=14;
+const MAX_AI_CALLS_PER_RUN=15;
 const PAGE_SIZE=500;
 const MAX_IMAGE_BYTES=15*1024*1024;
 const MAX_TOTAL_IMAGE_BYTES=40*1024*1024;
 const DEFAULT_MODEL='gemini-3.5-flash-lite';
+const FALLBACK_MODEL='gemini-3.6-flash';
+
+type AiBudget={calls:number};
 
 function clean(value:unknown,max=12000){
   return String(value??'').replace(/\r\n?/g,'\n').trim().slice(0,max);
@@ -17,7 +21,6 @@ function clean(value:unknown,max=12000){
 function json(data:unknown,status=200){
   return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
 }
-function sleep(ms:number){return new Promise(resolve=>setTimeout(resolve,ms));}
 function responseText(payload:any){
   const parts=payload?.candidates?.[0]?.content?.parts;
   if(!Array.isArray(parts))return '';
@@ -35,6 +38,16 @@ function chunks<T>(items:T[],size=100){
   const out:T[][]=[];
   for(let i=0;i<items.length;i+=size)out.push(items.slice(i,i+size));
   return out;
+}
+function aiErrorCode(status:number){
+  if(status===429)return 'ai_rate_limited';
+  if(status===404)return 'ai_model_unavailable';
+  if(status>=500)return 'ai_server_unavailable';
+  return `ai_http_${status}`;
+}
+function retryableAiError(error:unknown){
+  const code=String((error as any)?.message||error||'');
+  return code==='ai_rate_limited'||code==='ai_server_unavailable'||code==='ai_network'||code==='ai_model_unavailable';
 }
 
 async function runtimeConfig(){
@@ -153,38 +166,33 @@ function appendImageReadVerify(parts:any[],row:any,image:any){
   parts.push({inlineData:{mimeType:image.mimeType,data:image.data}});
 }
 
-async function geminiRequest(cfg:any,parts:any[]){
+async function geminiRequest(cfg:any,parts:any[],budget:AiBudget){
+  if(budget.calls>=MAX_AI_CALLS_PER_RUN)throw new Error('ai_budget_exhausted');
+  budget.calls+=1;
   const endpoint=`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(cfg.model||DEFAULT_MODEL)}:generateContent`;
-  for(let attempt=0;attempt<2;attempt++){
-    let response:Response;
-    try{
-      response=await fetch(endpoint,{
-        method:'POST',
-        headers:{'content-type':'application/json','x-goog-api-key':cfg.geminiKey},
-        body:JSON.stringify({
-          contents:[{role:'user',parts}],
-          generationConfig:{temperature:0,responseMimeType:'application/json'},
-        }),
-      });
-    }catch(error){
-      if(attempt===0){await sleep(700);continue;}
-      console.error('[v21-customer-summary-scan:gemini] network',String((error as any)?.message||error));
-      throw new Error('ai_unavailable');
-    }
-    const payload=await response.json().catch(()=>null);
-    if(response.ok){
-      const text=responseText(payload);
-      if(!text)throw new Error('ai_response_invalid');
-      return text;
-    }
-    if(attempt===0&&(response.status===429||response.status>=500)){
-      await sleep(700);
-      continue;
-    }
-    console.error('[v21-customer-summary-scan:gemini]',response.status,payload?.error?.message||'request_failed');
-    throw new Error('ai_unavailable');
+  let response:Response;
+  try{
+    response=await fetch(endpoint,{
+      method:'POST',
+      headers:{'content-type':'application/json','x-goog-api-key':cfg.geminiKey},
+      body:JSON.stringify({
+        contents:[{role:'user',parts}],
+        generationConfig:{temperature:0,responseMimeType:'application/json'},
+      }),
+    });
+  }catch(error){
+    console.error('[v21-customer-summary-scan:gemini] network',String((error as any)?.message||error));
+    throw new Error('ai_network');
   }
-  throw new Error('ai_unavailable');
+  const payload=await response.json().catch(()=>null);
+  if(response.ok){
+    const text=responseText(payload);
+    if(!text)throw new Error('ai_response_invalid');
+    return text;
+  }
+  const code=aiErrorCode(response.status);
+  console.error('[v21-customer-summary-scan:gemini]',response.status,code,payload?.error?.message||'request_failed');
+  throw new Error(code);
 }
 
 function parseJsonResponse(text:string,messages:any[]=[]){
@@ -247,14 +255,14 @@ async function recordFailure(customer:any,error:unknown){
   }catch{}
 }
 
-async function scanCustomer(customer:any,cfg:any){
+async function scanCustomer(customer:any,cfg:any,budget:AiBudget){
   const conversationIds=await loadConversationIds(customer.id);
   const messages=await loadConversationMessages(customer.id,conversationIds);
   const customerMessages=messages.filter(row=>row?.sender_role==='customer');
   if(!customerMessages.length){
     const emptyResult={items:[],notes:[],totalLines:0,totals:[]};
     const runId=await recordResult(customer,messages,new Map(),'',emptyResult);
-    return {skipped:true,aiCalls:0,lineCount:0,runId};
+    return {skipped:true,lineCount:0,runId};
   }
 
   const mediaMap=await loadCustomerImages(customer.id,messages);
@@ -269,10 +277,10 @@ async function scanCustomer(customer:any,cfg:any){
     }
   }
 
-  const rawOutput=await geminiRequest(cfg,parts);
+  const rawOutput=await geminiRequest(cfg,parts,budget);
   const result=parseJsonResponse(rawOutput,messages);
   const runId=await recordResult(customer,messages,imagesByMessage,rawOutput,result);
-  return {skipped:false,aiCalls:1,lineCount:result.totalLines,runId};
+  return {skipped:false,lineCount:result.totalLines,runId};
 }
 
 Deno.serve(async(req:Request)=>{
@@ -284,27 +292,39 @@ Deno.serve(async(req:Request)=>{
     if(!cfg.geminiKey)return json({ok:false,error:'ai_not_configured'},503);
 
     const customers=await claimCustomers();
-    if(!customers.length)return json({ok:true,eligibleCustomers:0,scannedCustomers:0,aiCalls:0,failed:0});
+    if(!customers.length)return json({ok:true,eligibleCustomers:0,scannedCustomers:0,aiCalls:0,failed:0,model:cfg.model,failoverUsed:false});
 
+    const budget:AiBudget={calls:0};
+    let activeCfg={...cfg};
+    let failoverUsed=false;
     let scannedCustomers=0;
-    let aiCalls=0;
     let failed=0;
     const results:any[]=[];
     for(const customer of customers){
       try{
-        const result=await scanCustomer(customer,cfg);
+        let result:any;
+        try{
+          result=await scanCustomer(customer,activeCfg,budget);
+        }catch(error){
+          if(!failoverUsed&&activeCfg.model!==FALLBACK_MODEL&&retryableAiError(error)&&budget.calls<MAX_AI_CALLS_PER_RUN){
+            failoverUsed=true;
+            activeCfg={...cfg,model:FALLBACK_MODEL};
+            result=await scanCustomer(customer,activeCfg,budget);
+          }else{
+            throw error;
+          }
+        }
         if(!result.skipped)scannedCustomers+=1;
-        aiCalls+=Number(result.aiCalls)||0;
-        results.push({customerId:customer.id,username:customer.username,ok:true,lineCount:result.lineCount||0,runId:result.runId||null,claimVersion:customer.claimVersion});
+        results.push({customerId:customer.id,username:customer.username,ok:true,lineCount:result.lineCount||0,runId:result.runId||null,claimVersion:customer.claimVersion,model:activeCfg.model});
       }catch(error){
         failed+=1;
         await recordFailure(customer,error);
-        results.push({customerId:customer.id,username:customer.username,ok:false,error:String((error as any)?.message||error||'scan_failed'),claimVersion:customer.claimVersion});
+        results.push({customerId:customer.id,username:customer.username,ok:false,error:String((error as any)?.message||error||'scan_failed'),claimVersion:customer.claimVersion,model:activeCfg.model});
         console.error('[v21-customer-summary-scan]',customer.id,String((error as any)?.message||error||'scan_failed'));
       }
     }
 
-    return json({ok:true,eligibleCustomers:customers.length,scannedCustomers,aiCalls,failed,results});
+    return json({ok:true,eligibleCustomers:customers.length,scannedCustomers,aiCalls:budget.calls,failed,model:activeCfg.model,failoverUsed,results});
   }catch(error){
     console.error('[v21-customer-summary-scan:fatal]',String((error as any)?.message||error||'internal_error'));
     return json({ok:false,error:'scan_failed'},500);
