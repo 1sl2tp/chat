@@ -11,6 +11,8 @@ let rowsCache=[];
 let forceOverview=false;
 let selectedWorkCustomerId='';
 let mobileSwipe=null;
+let mobileConversationReturnState={kind:'directory',contact:null};
+let mobileAccountMenu=null;
 let pendingReorderKey='';
 const completionBusy=new Set();
 
@@ -50,11 +52,36 @@ function resetWorkSelectionForDirectory(){
   return true;
 }
 
+function mobileDirectoryOpen(){
+  const app=document.getElementById('appShell');
+  return Boolean(app?.dataset?.mobileDirectory==='true');
+}
+
+function conversationStateNow(){
+  if(mobileDirectoryOpen())return{kind:'directory',contact:null};
+  const contact=activeContact();
+  if(contact?.id){
+    return{kind:'contact',contact:{id:String(contact.id),name:String(contact.name||'Liên hệ')}};
+  }
+  return{kind:'directory',contact:null};
+}
+
+function rememberConversationBeforeWork(){
+  mobileConversationReturnState=conversationStateNow();
+  if(mobileConversationReturnState.kind==='directory')resetWorkSelectionForDirectory();
+  else{
+    selectedWorkCustomerId='';
+    forceOverview=false;
+  }
+  return mobileConversationReturnState;
+}
+
 function showMobileDirectory(reason='directory'){
   if(!mobileDirectoryAllowed())return false;
   const app=document.getElementById('appShell');
   const layer=document.getElementById('shellNavigationLayer');
   if(!app||!layer)return false;
+  closeMobileAccountMenu();
   app.dataset.mobileDirectory='true';
   layer.dataset.mobileDirectory='true';
   layer.dataset.open='true';
@@ -89,17 +116,107 @@ function pinWorkOuterScroll(){
   return true;
 }
 
-function swipeIgnoredTarget(target){
-  return Boolean(target?.closest?.('textarea,input,select,[contenteditable="true"],button,a,#thread-bottom-container'));
+function openWorkFromMobileConversation(reason='mobile-work'){
+  if(!mobileDirectoryAllowed())return false;
+  const previous=rememberConversationBeforeWork();
+  hideMobileDirectory(reason);
+  if(previous.kind==='directory')resetWorkSelectionForDirectory();
+  else{
+    selectedWorkCustomerId='';
+    forceOverview=false;
+  }
+  navigation()?.openWork?.();
+  pinWorkOuterScroll();
+  renderCurrent();
+  return true;
 }
 
-function bindMobileChatSwipe(){
-  const chat=document.getElementById('chatScreen');
-  if(!chat)return false;
+function restoreConversationFromWork(reason='work-back'){
+  if(!mobileDirectoryAllowed())return false;
+  const state=mobileConversationReturnState||{kind:'directory',contact:null};
+  if(state.kind==='contact'&&state.contact?.id){
+    hideMobileDirectory(reason);
+    forceOverview=false;
+    selectedWorkCustomerId='';
+    navigation()?.openContact?.(state.contact.id,state.contact.name);
+    return true;
+  }
+  navigation()?.openChat?.();
+  showMobileDirectory(reason);
+  return true;
+}
 
+function closeMobileAccountMenu(){
+  if(!mobileAccountMenu)return false;
+  mobileAccountMenu.dataset.open='false';
+  mobileAccountMenu.hidden=true;
+  return true;
+}
+
+function ensureMobileAccountMenu(){
+  if(mobileAccountMenu?.isConnected)return mobileAccountMenu;
+  const host=document.querySelector('[data-global-overlay-root]')||document.body;
+  if(!host)return null;
+  const wrap=document.createElement('div');
+  wrap.className='mobile-account-menu';
+  wrap.dataset.mobileAccountMenu='';
+  wrap.dataset.open='false';
+  wrap.hidden=true;
+  wrap.innerHTML=`
+    <button type="button" class="mobile-account-menu-backdrop" data-mobile-account-close aria-label="Đóng menu"></button>
+    <div class="mobile-account-menu-panel" role="menu" aria-label="Tài khoản">
+      <button type="button" class="mobile-account-menu-row" role="menuitem" data-mobile-account-action="account">Tài khoản</button>
+      <button type="button" class="mobile-account-menu-row" role="menuitem" data-mobile-account-action="settings">Cài đặt</button>
+      <button type="button" class="mobile-account-menu-row" role="menuitem" data-mobile-account-action="logout">Thoát</button>
+    </div>`;
+  wrap.addEventListener('click',event=>{
+    const target=event.target instanceof Element?event.target:null;
+    if(!target)return;
+    if(target.closest('[data-mobile-account-close]')){
+      closeMobileAccountMenu();
+      return;
+    }
+    const action=target.closest('[data-mobile-account-action]')?.getAttribute('data-mobile-account-action')||'';
+    if(!action)return;
+    closeMobileAccountMenu();
+    if(action==='account'){
+      document.querySelector('[data-account-self-edit]')?.click?.();
+      return;
+    }
+    if(action==='settings'){
+      void window.V21ZaloAccountAdmin?.open?.();
+      return;
+    }
+    if(action==='logout'){
+      const logout=document.querySelector('[data-auth-command="logout"]');
+      if(logout)logout.click();
+      else window.V21AuthSessionStore?.logout?.();
+    }
+  });
+  host.appendChild(wrap);
+  mobileAccountMenu=wrap;
+  return wrap;
+}
+
+function openMobileAccountMenu(){
+  if(!mobileDirectoryAllowed())return false;
+  const menu=ensureMobileAccountMenu();
+  if(!menu)return false;
+  menu.hidden=false;
+  menu.dataset.open='true';
+  return true;
+}
+
+function swipeIgnoredTarget(target){
+  return Boolean(target?.closest?.('textarea,input,select,[contenteditable="true"],#thread-bottom-container'));
+}
+
+function bindMobileHierarchySwipe(){
+  const app=document.getElementById('appShell');
+  if(!app)return false;
   const reset=()=>{mobileSwipe=null;};
   const onTouchStart=event=>{
-    if(!mobileDirectoryAllowed()||shellSnapshot().route!=='chat'||event.touches?.length!==1||swipeIgnoredTarget(event.target)){
+    if(!mobileDirectoryAllowed()||event.touches?.length!==1||swipeIgnoredTarget(event.target)||mobileAccountMenu?.dataset.open==='true'){
       reset();
       return;
     }
@@ -128,73 +245,67 @@ function bindMobileChatSwipe(){
     const dy=touch.clientY-state.startY;
     const horizontal=Math.abs(dx)>=MOBILE_CHAT_SWIPE_DISTANCE_PX&&Math.abs(dx)>Math.abs(dy)*MOBILE_CHAT_SWIPE_DOMINANCE;
     if(!horizontal)return;
-    event.stopImmediatePropagation();
     if(event.cancelable)event.preventDefault();
-    if(dx<=-MOBILE_CHAT_SWIPE_DISTANCE_PX){
-      showMobileDirectory('swipe-left');
+    event.stopImmediatePropagation();
+
+    const route=shellSnapshot().route;
+    if(route==='work'){
+      if(dx<=-MOBILE_CHAT_SWIPE_DISTANCE_PX)restoreConversationFromWork('swipe-left-chat');
       return;
     }
-    if(dx>=MOBILE_CHAT_SWIPE_DISTANCE_PX){
-      hideMobileDirectory('swipe-right-work');
-      selectedWorkCustomerId='';
-      forceOverview=false;
-      navigation()?.openWork?.();
-      pinWorkOuterScroll();
-      renderCurrent();
-    }
-  };
-  const onTouchCancel=()=>reset();
-
-  chat.addEventListener('touchstart',onTouchStart,{passive:true});
-  chat.addEventListener('touchmove',onTouchMove,{passive:false});
-  chat.addEventListener('touchend',onTouchEnd,{passive:false});
-  chat.addEventListener('touchcancel',onTouchCancel,{passive:true});
-  return true;
-}
-
-function bindLegacyEdgeSwipeBlocker(){
-  const app=document.getElementById('appShell');
-  if(!app)return false;
-  let edgeSwipe=null;
-  const reset=()=>{edgeSwipe=null;};
-
-  const onTouchStart=event=>{
-    if(!mobileDirectoryAllowed()||event.touches?.length!==1||event.target?.closest?.('#chatScreen')){
-      reset();
+    if(route!=='chat')return;
+    if(mobileDirectoryOpen()){
+      if(dx>=MOBILE_CHAT_SWIPE_DISTANCE_PX)openWorkFromMobileConversation('directory-swipe-right');
       return;
     }
-    const touch=event.touches[0];
-    if(touch.clientX>30){reset();return;}
-    edgeSwipe={startX:touch.clientX,startY:touch.clientY};
-  };
-  const onTouchMove=event=>{
-    if(!edgeSwipe||event.touches?.length!==1)return;
-    const touch=event.touches[0];
-    const dx=touch.clientX-edgeSwipe.startX;
-    const dy=touch.clientY-edgeSwipe.startY;
-    if(dx>12&&dx>Math.abs(dy)*MOBILE_CHAT_SWIPE_DOMINANCE){
-      if(event.cancelable)event.preventDefault();
-      event.stopImmediatePropagation();
+    if(activeContact()?.id){
+      if(dx<=-MOBILE_CHAT_SWIPE_DISTANCE_PX){
+        showMobileDirectory('chat-swipe-left');
+        return;
+      }
+      if(dx>=MOBILE_CHAT_SWIPE_DISTANCE_PX)openWorkFromMobileConversation('chat-swipe-right');
+      return;
     }
-  };
-  const onTouchEnd=event=>{
-    if(!edgeSwipe)return;
-    const state=edgeSwipe;
-    const touch=event.changedTouches?.[0];
-    reset();
-    if(!touch)return;
-    const dx=touch.clientX-state.startX;
-    const dy=touch.clientY-state.startY;
-    if(dx>=MOBILE_CHAT_SWIPE_DISTANCE_PX&&dx>Math.abs(dy)*MOBILE_CHAT_SWIPE_DOMINANCE){
-      if(event.cancelable)event.preventDefault();
-      event.stopImmediatePropagation();
-    }
+    if(dx>=MOBILE_CHAT_SWIPE_DISTANCE_PX)openWorkFromMobileConversation('directory-swipe-right');
   };
 
   app.addEventListener('touchstart',onTouchStart,{passive:true,capture:true});
   app.addEventListener('touchmove',onTouchMove,{passive:false,capture:true});
   app.addEventListener('touchend',onTouchEnd,{passive:false,capture:true});
   app.addEventListener('touchcancel',reset,{passive:true,capture:true});
+  return true;
+}
+
+function bindMobileNavigationClicks(){
+  document.addEventListener('click',event=>{
+    if(!mobileDirectoryAllowed())return;
+    const target=event.target instanceof Element?event.target:null;
+    if(!target)return;
+
+    const hamburger=target.closest('[data-shell-command="sidebar.open"]');
+    if(hamburger){
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      openMobileAccountMenu();
+      return;
+    }
+
+    const chatTab=target.closest('[data-top-tab="chat"]');
+    if(chatTab){
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if(shellSnapshot().route==='work')restoreConversationFromWork('chat-tab');
+      else if(!activeContact()?.id&&!mobileDirectoryOpen())showMobileDirectory('chat-tab');
+      return;
+    }
+
+    const workTab=target.closest('[data-top-tab="work"],[data-nav-target="work"]');
+    if(workTab){
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if(shellSnapshot().route!=='work')openWorkFromMobileConversation('work-tab');
+    }
+  },true);
   return true;
 }
 
@@ -543,6 +654,8 @@ function schedule(){
 document.addEventListener('v21-auth-state',()=>{
   selectedWorkCustomerId='';
   forceOverview=false;
+  mobileConversationReturnState={kind:'directory',contact:null};
+  closeMobileAccountMenu();
   void refresh('auth-state');
 });
 document.addEventListener('v21-active-contact-change',event=>{
@@ -550,10 +663,14 @@ document.addEventListener('v21-active-contact-change',event=>{
   if(event?.detail?.contact?.id){
     hideMobileDirectory('contact-selected');
     forceOverview=false;
-  }else if(mobileDirectoryAllowed()){
+  }else if(mobileDirectoryAllowed()&&mobileDirectoryOpen()){
     forceOverview=true;
   }
   renderCurrent();
+});
+document.addEventListener('navigation-will-change',event=>{
+  if(!mobileDirectoryAllowed())return;
+  if(event?.detail?.from==='chat'&&event?.detail?.to==='work')rememberConversationBeforeWork();
 });
 document.addEventListener('navigation-change',event=>{
   if(event?.detail?.route==='work'){
@@ -563,6 +680,7 @@ document.addEventListener('navigation-change',event=>{
     return;
   }
   if(event?.detail?.route==='chat'&&activeContact()?.id){
+    hideMobileDirectory('chat-route-contact');
     forceOverview=false;
     renderCurrent();
   }
@@ -591,43 +709,28 @@ document.addEventListener('click',event=>{
     const itemKey=String(toggle.dataset.itemKey||'');
     const completed=toggle.getAttribute('aria-checked')!=='true';
     if(customerId&&itemKey)void setCompleted(customerId,itemKey,completed);
-    return;
-  }
-
-  const chatTab=event.target?.closest?.('[data-top-tab="chat"]');
-  if(chatTab&&mobileDirectoryAllowed()){
-    window.queueMicrotask(()=>showMobileDirectory('chat-tab'));
-    return;
-  }
-
-  const directoryButton=event.target?.closest?.('[data-shell-command="sidebar.open"]');
-  if(directoryButton&&mobileDirectoryAllowed()){
-    window.queueMicrotask(()=>showMobileDirectory('menu-button'));
-    return;
-  }
-
-  const workTarget=event.target?.closest?.('[data-top-tab="work"],[data-nav-target="work"]');
-  if(workTarget){
-    const app=document.getElementById('appShell');
-    if(app?.dataset.mobileDirectory==='true')resetWorkSelectionForDirectory();
-    hideMobileDirectory('work-tab');
-    pinWorkOuterScroll();
-    void refresh('open-work');
   }
 });
 
-bindMobileChatSwipe();
-bindLegacyEdgeSwipeBlocker();
+bindMobileHierarchySwipe();
+bindMobileNavigationClicks();
 schedule();
 void refresh('boot');
 window.setTimeout(()=>{
-  if(shellSnapshot().route==='chat'&&mobileDirectoryAllowed())showMobileDirectory('chat-default');
+  if(shellSnapshot().route==='chat'&&mobileDirectoryAllowed()){
+    mobileConversationReturnState={kind:'directory',contact:null};
+    showMobileDirectory('chat-default');
+  }
 },0);
 
 window.V21WorkCustomerSummary=Object.freeze({
   refresh,
   renderCurrent,
   showMobileDirectory,
-  hideMobileDirectory
+  hideMobileDirectory,
+  openWorkFromMobileConversation,
+  restoreConversationFromWork,
+  openMobileAccountMenu,
+  closeMobileAccountMenu
 });
 })();

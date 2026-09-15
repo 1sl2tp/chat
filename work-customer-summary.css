@@ -361,3 +361,65 @@
   .work-summary-item{padding:9px 10px 9px 36px;}
   .work-summary-item::before{left:6px;}
 }
+
+
+/* Mobile hierarchy navigation: Danh bạ is a Trò chuyện screen; hamburger owns only account actions. */
+@media(max-width:63.999rem){
+  #appShell[data-mobile-directory="true"] #shellNavigationLayer .shell-sidebar-account-footer{
+    display:none!important;
+  }
+  #appShell[data-route="chat"] #chatScreen,
+  #appShell[data-mobile-directory="true"] #shellNavigationLayer,
+  #appShell[data-route="work"] #workThreadView{
+    touch-action:pan-y;
+  }
+  [data-mobile-account-menu]{
+    position:fixed;
+    inset:0;
+    z-index:120;
+    pointer-events:none;
+  }
+  [data-mobile-account-menu][data-open="true"]{
+    pointer-events:auto;
+  }
+  [data-mobile-account-menu][hidden]{display:none!important;}
+  .mobile-account-menu-backdrop{
+    position:absolute;
+    inset:0;
+    border:0;
+    background:transparent;
+  }
+  .mobile-account-menu-panel{
+    position:absolute;
+    top:calc(env(safe-area-inset-top,0px) + 58px);
+    left:12px;
+    width:190px;
+    box-sizing:border-box;
+    overflow:hidden;
+    border:1px solid var(--theme-border-default);
+    border-radius:14px;
+    background:var(--theme-surface-primary);
+    box-shadow:0 10px 32px color-mix(in srgb,var(--theme-content-primary) 14%,transparent);
+  }
+  .mobile-account-menu-row{
+    display:flex;
+    width:100%;
+    min-height:46px;
+    align-items:center;
+    padding:0 14px;
+    border:0;
+    border-radius:0;
+    background:transparent;
+    color:var(--theme-content-primary);
+    font:inherit;
+    font-size:15px;
+    line-height:20px;
+    text-align:left;
+  }
+  .mobile-account-menu-row+.mobile-account-menu-row{
+    border-top:1px solid color-mix(in srgb,var(--theme-border-default) 70%,transparent);
+  }
+  .mobile-account-menu-row:active{
+    background:var(--theme-surface-secondary);
+  }
+}
