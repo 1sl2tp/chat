@@ -59,6 +59,8 @@ jobs:
         run: python tests/test_v21_work_customer_summary_reconcile.py
       - name: Mobile chat navigation + pinned Work header contract
         run: python tests/test_v21_mobile_chat_navigation.py
+      - name: Admin push device persistence + compact account rows
+        run: python tests/test_v21_admin_push_device_persistence.py
       - name: Chat image orientation + column-2 viewer contract
         run: python tests/test_v21_chat_image_orientation_column.py
       - name: Chat album viewer column-2 geometry contract
