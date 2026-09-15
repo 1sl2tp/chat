@@ -74,7 +74,8 @@ def test_admin_list_scroll_position_is_preserved_after_link_or_create_refresh():
     module = (ROOT / "zalo-admin-link.js").read_text("utf-8")
     for token in [
         "function renderAccountRowsPreservingScroll",
-        "card.scrollTop=scrollTop",
+        "const scrollHost=accountModal?.querySelector?.('[data-zalo-account-list]')",
+        "scrollHost.scrollTop=scrollTop",
         "renderAccountRowsPreservingScroll();",
     ]:
         assert token in module, token
