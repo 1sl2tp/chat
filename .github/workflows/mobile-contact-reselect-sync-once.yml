@@ -13,6 +13,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Install verify dependency
+        run: python -m pip install pytest
       - name: Rebuild canonical files
         run: python tools/build_current_preview.py
       - name: Verify canonical files before commit
