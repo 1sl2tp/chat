@@ -271,15 +271,32 @@ function closeAccountPanel(){
   if(panel)panel.replaceChildren();
 }
 
+function normalizeAccountSearch(value){
+  return String(value||'')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .replace(/đ/g,'d').replace(/Đ/g,'D')
+    .toLocaleLowerCase('vi')
+    .trim();
+}
+
+function accountMatchesSearch(account,contact,query){
+  if(!query)return true;
+  const haystack=normalizeAccountSearch(`${account?.display_name||''} ${account?.username||''} ${contact?.display_name||''}`);
+  return haystack.includes(query);
+}
+
 function renderAccountRows(){
   const body=accountModal?.querySelector?.('[data-zalo-account-list]');
   if(!body)return;
   body.replaceChildren();
   const model=accountModel();
+  const query=normalizeAccountSearch(accountModal?.querySelector?.('[data-zalo-account-search]')?.value||'');
 
   for(const account of model.accounts){
     const link=model.linksByAccount.get(String(account.id))||null;
     const contact=link?model.contactsById.get(String(link.zalo_id))||null:null;
+    if(!accountMatchesSearch(account,contact,query))continue;
     const row=document.createElement('div');
     row.className='zalo-account-row';
     row.dataset.accountId=String(account.id||'');
@@ -342,6 +359,7 @@ function renderAccountRows(){
 
   for(const contact of model.contacts){
     if(model.linksByZalo.has(String(contact.zalo_id)))continue;
+    if(!accountMatchesSearch(null,contact,query))continue;
     const row=document.createElement('div');
     row.className='zalo-account-row zalo-account-row-zalo-only';
     const chat=document.createElement('div');
@@ -482,10 +500,10 @@ function openCreateAccount(contact){
 }
 
 function renderAccountRowsPreservingScroll(){
-  const card=accountModal?.querySelector?.('.zalo-account-card');
-  const scrollTop=card?.scrollTop||0;
+  const scrollHost=accountModal?.querySelector?.('[data-zalo-account-list]');
+  const scrollTop=scrollHost?.scrollTop||0;
   renderAccountRows();
-  if(card)card.scrollTop=scrollTop;
+  if(scrollHost)scrollHost.scrollTop=scrollTop;
 }
 
 async function refreshAccountAdmin(){
@@ -572,6 +590,7 @@ async function openAccountAdmin(){
         <span class="zalo-account-notification-copy"><strong>Thông báo</strong><small data-admin-push-status>Bật thông báo</small></span>
         <button type="button" class="zalo-account-notification-action" data-admin-push-action data-mode="enable">Bật thông báo</button>
       </div>
+      <label class="zalo-account-search"><span class="sr-only">Tìm tài khoản</span><input type="search" autocomplete="off" inputmode="search" placeholder="Tìm tên Chat, @username hoặc Zalo" data-zalo-account-search></label>
       <p class="zalo-account-error" data-zalo-account-error hidden></p>
       <div class="zalo-account-list" data-zalo-account-list></div>
       <div class="zalo-account-submodal" data-zalo-account-panel></div>
@@ -581,6 +600,12 @@ async function openAccountAdmin(){
   accountModal.querySelector('.zalo-account-close').addEventListener('click',closeAccountAdmin);
   const pushAction=accountModal.querySelector('[data-admin-push-action]');
   pushAction?.addEventListener('click',()=>void runAdminPushAction(pushAction));
+  const search=accountModal.querySelector('[data-zalo-account-search]');
+  search?.addEventListener('input',()=>{
+    renderAccountRows();
+    const list=accountModal?.querySelector?.('[data-zalo-account-list]');
+    if(list)list.scrollTop=0;
+  });
   void refreshAdminPushSetting();
   const submodal=accountModal.querySelector('[data-zalo-account-panel]');
   submodal.addEventListener('click',event=>{if(event.target===submodal)closeAccountPanel();});

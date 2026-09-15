@@ -69,9 +69,9 @@ function installStyle(){
     .contact-directory-filter{appearance:none;min-height:30px;flex:0 0 auto;border:0;border-radius:999px;padding:0 10px;background:var(--theme-surface-secondary,#f3f3f3);color:var(--theme-content-secondary,#666);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
     .contact-directory-filter[data-active="true"]{background:var(--theme-content-primary,#171717);color:var(--theme-surface-primary,#fff)}
     .contact-directory-empty{padding:18px 10px;text-align:center;color:var(--theme-content-secondary,#777);font-size:13px}
-    .zalo-account-group-select{box-sizing:border-box;min-height:36px;border:1px solid var(--theme-border-default,#ddd);border-radius:10px;padding:0 28px 0 9px;background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#171717);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+    .zalo-account-group-select{box-sizing:border-box;min-height:32px;border:1px solid var(--theme-border-default,#ddd);border-radius:999px;padding:0 24px 0 9px;background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#171717);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
     .zalo-account-group-select:disabled{opacity:.55;cursor:default}
-    @media(max-width:640px){.contact-directory-tools{margin-top:-12px;padding-inline:6px}.zalo-account-group-select{min-width:104px}}
+    @media(max-width:640px){.contact-directory-tools{margin-top:-12px;padding-inline:6px}.zalo-account-group-select{min-width:72px;max-width:88px}}
   `;
   document.head.appendChild(style);
 }
@@ -173,7 +173,13 @@ function syncAdminGroupControls(){
     const accountId=String(row.dataset.accountId||'');
     const actions=row.querySelector('.zalo-account-row-actions');
     if(!accountId||!actions)continue;
-    const existing=actions.querySelector('[data-contact-group-select]');
+    let group=row.querySelector('.zalo-account-row-group');
+    if(!group){
+      group=document.createElement('div');
+      group.className='zalo-account-row-group';
+      row.insertBefore(group,actions);
+    }
+    const existing=group.querySelector('[data-contact-group-select]');
     if(existing){
       if(!existing.disabled)existing.value=groupKey(groupMap.get(accountId));
       continue;
@@ -201,7 +207,7 @@ function syncAdminGroupControls(){
         setPopupError(String(error?.message||'Không thể đổi nhóm'));
       }finally{select.disabled=false;}
     });
-    actions.insertBefore(select,actions.firstChild);
+    group.appendChild(select);
   }
 }
 async function ensureGroups({force=false}={}){
