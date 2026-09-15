@@ -4,6 +4,8 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE = (ROOT / "index.source.html").read_text(encoding="utf-8")
 SHELL = (ROOT / "shell.js").read_text(encoding="utf-8")
 SHELL_CSS = (ROOT / "zalo-admin-link.css").read_text(encoding="utf-8")
+WORK_JS = (ROOT / "work-customer-summary.js").read_text(encoding="utf-8")
+WORK_CSS = (ROOT / "work-customer-summary.css").read_text(encoding="utf-8")
 
 # Desktop becomes one working surface: persistent directory | chat | work.
 assert "DESKTOP_WORKSPACE_QUERY" in SHELL
@@ -34,10 +36,20 @@ assert '#appShell[data-auth-state="authenticated"][data-desktop-workspace="true"
 assert '#appShell[data-auth-state="authenticated"][data-desktop-workspace="true"]#thread-bottom-container' in compact
 assert '#appShell[data-auth-state="authenticated"][data-desktop-workspace="true"][data-route="chat"]' not in compact
 
-# Keep the locked directory width; make chat moderate and give the iframe all remaining space.
-assert "--desktop-directory-width:clamp(328px,27vw,340px)" in SOURCE
-assert "--desktop-chat-width:clamp(420px,28vw,560px)" in SOURCE
+# Medium desktop must already fit Danh bạ + the full chat surface. Wide desktop
+# adds Công việc only when there is enough room for a useful chat column.
+assert "DESKTOP_DIRECTORY_QUERY='(min-width: 64rem)" in SHELL, 'fine-pointer desktop should enter 2-column mode from 64rem'
+assert "DESKTOP_WORKSPACE_QUERY='(min-width: 80rem)" in SHELL, '3-column workspace must wait until 80rem'
+assert '@media (min-width:64rem)' in SOURCE.replace(' ', ''), 'persistent directory CSS must match the 64rem runtime breakpoint'
+assert '@media (min-width:80rem)' in SOURCE.replace(' ', ''), 'three-column CSS must match the 80rem runtime breakpoint'
+assert "--desktop-directory-width:clamp(300px,26vw,340px)" in SOURCE
+assert "--desktop-chat-width:clamp(520px,40vw,640px)" in SOURCE, 'wide desktop chat column must no longer collapse to ~420px'
 assert "--desktop-work-width:calc(100% - var(--desktop-chat-width))" in SOURCE
+
+# Mobile directory ownership must stop at the same 64rem breakpoint; otherwise
+# 64-68rem desktops can accidentally get both persistent and mobile directory states.
+assert '(min-width:64rem)' in WORK_JS.replace(' ', ''), 'mobile directory JS breakpoint must align with persistent desktop directory'
+assert '@media(max-width:63.999rem)' in WORK_CSS.replace(' ', ''), 'mobile directory CSS breakpoint must align with persistent desktop directory'
 
 # The chat stage must size to its active grid cell, not the full viewport.
 compact_css = "".join(SHELL_CSS.split())
@@ -48,4 +60,4 @@ assert "const ROUTES=Object.freeze(['chat','work']);" in SHELL
 assert "route!=='chat'" in SHELL
 assert "route!=='work'" in SHELL
 
-print("desktop chat workspace 3-column contract PASS")
+print("desktop chat workspace responsive 2/3-column contract PASS")
