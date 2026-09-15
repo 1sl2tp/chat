@@ -45,6 +45,8 @@ jobs:
         run: python tests/test_v21_legacy_chat_order_source_removed.py
       - name: Customer summary scan contract
         run: python tests/test_v21_customer_summary_scan_contract.py
+      - name: Customer summary dirty queue contract
+        run: python tests/test_v21_customer_summary_dirty_queue.py
       - name: Customer summary core
         run: node tests/test_v21_customer_summary_core.mjs
       - name: Work customer summary UI contract
