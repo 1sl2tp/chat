@@ -13,8 +13,8 @@ shell=read("shell.js")
 # Final PR-head contract: keep the established release checkpoint unchanged.
 assert "V21.72.39" in source
 
-# Desktop directory gets visibly wider without becoming an oversized rail.
-assert "--desktop-directory-width:clamp(328px,27vw,340px);" in source
+# Responsive desktop directory stays substantial but yields more room to Chat at the 2-column threshold.
+assert "--desktop-directory-width:clamp(300px,26vw,340px);" in source
 
 # Desktop pointer layout compacts only the account/footer chrome; mobile touch sizes stay intact.
 assert "/* V21.72.40 — desktop directory width + compact footer */" in source
