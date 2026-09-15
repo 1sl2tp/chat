@@ -25,7 +25,7 @@ def test_notification_intent_is_persistent_per_device_and_reconciled():
 def test_mobile_account_rows_keep_people_side_by_side_and_actions_below():
     css = compact(CSS)
     assert '@media(max-width:640px)' in css
-    assert '.zalo-account-row{grid-template-columns:minmax(0,1fr)minmax(0,1fr);' in css, 'mobile account row should keep Chat and Zalo in two columns'
+    assert '.zalo-account-row{grid-template-columns:minmax(0,1fr)minmax(0,1fr)auto;' in css, 'mobile account row should keep Chat and Zalo side by side with the compact group control'
     assert '.zalo-account-row-actions{grid-column:1/-1;' in css, 'mobile actions should occupy a compact second row'
     assert '.zalo-account-person-copystrong' in css and 'text-overflow:ellipsis' in css, 'long names must ellipsize instead of breaking layout'
 
