@@ -1,4 +1,5 @@
 name: Zalo Account Layout Retry Once
+# rerun after updating the mobile account row contract
 on:
   push:
     branches: [main]
