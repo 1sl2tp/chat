@@ -15,9 +15,9 @@ const workView=document.getElementById('workThreadView');
 const workThreadHome=workView?.parentNode||null;
 const workThreadNext=workView?.nextSibling||null;
 
-const DESKTOP_DIRECTORY_QUERY='(min-width: 68rem) and (hover: hover) and (pointer: fine)';
+const DESKTOP_DIRECTORY_QUERY='(min-width: 64rem) and (hover: hover) and (pointer: fine)';
 const desktopDirectoryMedia=window.matchMedia(DESKTOP_DIRECTORY_QUERY);
-const DESKTOP_WORKSPACE_QUERY='(min-width: 74rem) and (hover: hover) and (pointer: fine)';
+const DESKTOP_WORKSPACE_QUERY='(min-width: 80rem) and (hover: hover) and (pointer: fine)';
 const desktopWorkspaceMedia=window.matchMedia(DESKTOP_WORKSPACE_QUERY);
 
 let route='work';

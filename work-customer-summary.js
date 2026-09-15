@@ -22,7 +22,7 @@ function shellSnapshot(){return window.ChatAppShell?.ScreenSession?.snapshot?.()
 function activeContact(){return shellSnapshot()?.activeContact||null;}
 function navigation(){return window.ChatAppShell?.NavigationCommand||null;}
 function mobileDirectoryAllowed(){
-  return !window.matchMedia?.('(min-width:68rem) and (hover:hover) and (pointer:fine)')?.matches;
+  return !window.matchMedia?.('(min-width:64rem) and (hover:hover) and (pointer:fine)')?.matches;
 }
 
 function node(tag,className,text){

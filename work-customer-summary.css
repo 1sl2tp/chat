@@ -295,7 +295,7 @@
 }
 .work-summary-state-error .work-summary-state-text{color:var(--theme-content-secondary);}
 
-@media(max-width:67.999rem){
+@media(max-width:63.999rem){
   #appShell[data-mobile-directory="true"] #shellNavigationLayer{
     position:fixed;
     inset-block-start:var(--header-height,72px);

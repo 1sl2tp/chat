@@ -134,7 +134,7 @@
 
 /* Desktop workspace geometry: the chat stage belongs to the active grid cell,
    never to the full viewport. This keeps Danh bạ | Chat | Công việc contiguous. */
-@media (min-width:74rem) and (hover:hover) and (pointer:fine){
+@media (min-width:80rem) and (hover:hover) and (pointer:fine){
   #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #stageLayout{width:100%;}
 }
 
@@ -161,7 +161,7 @@
 
 
 /* Desktop minimal three-column refinement. */
-@media (min-width:74rem) and (hover:hover) and (pointer:fine){
+@media (min-width:80rem) and (hover:hover) and (pointer:fine){
   #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] .wm-sidebar-header{padding-bottom:8px!important}
   #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] .wm-sidebar-body{padding-top:0!important}
 
