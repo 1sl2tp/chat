@@ -18,6 +18,7 @@ assert 'stopImmediatePropagation' in client, 'new horizontal gesture must suppre
 assert "[data-top-tab=\"chat\"]" in client or "[data-top-tab='chat']" in client, 'opening Trò chuyện must default to Danh bạ'
 assert 'v21-active-contact-change' in client, 'choosing a contact must switch from Danh bạ to the chat thread'
 
+# Regression: customer A -> Danh bạ -> customer A must behave as a fresh selection.
 # Returning to mobile Danh bạ must clear the shell contact owner, so selecting the same customer again
 # becomes null -> customer and emits the normal active-contact change event.
 compact_shell = shell.replace(' ', '').replace('\n', '')
