@@ -4,6 +4,7 @@ ROOT = Path(__file__).resolve().parents[1]
 edge = (ROOT / 'supabase/functions/v21-customer-summary-scan/index.ts').read_text('utf-8')
 compact = edge.replace(' ', '').replace('\n', '')
 
+# Regression: scanner may process customers each minute, but the provider request budget itself is absolute.
 assert 'MAX_AI_CALLS_PER_RUN=15' in compact, 'scanner needs a hard 15-request AI budget'
 assert 'MAX_CUSTOMERS_PER_RUN=14' in compact, 'reserve one request slot for one run-level model failover'
 assert 'budget.calls' in edge, 'every outbound Gemini request must consume the shared run budget'
