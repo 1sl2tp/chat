@@ -2,8 +2,10 @@
 'use strict';
 
 const REFRESH_MS=60000;
-const MOBILE_CHAT_SWIPE_DISTANCE_PX=56;
+const MOBILE_CHAT_SWIPE_DISTANCE_PX=48;
+const MOBILE_CHAT_SWIPE_EDGE_INSET_PX=28;
 const MOBILE_CHAT_SWIPE_DOMINANCE=1.2;
+const MOBILE_TAB_DOUBLE_TAP_MS=250;
 let timer=0;
 let loading=false;
 let generation=0;
@@ -13,6 +15,7 @@ let selectedWorkCustomerId='';
 let mobileSwipe=null;
 let mobileConversationReturnState={kind:'directory',contact:null};
 let mobileAccountMenu=null;
+let mobileTopTabTap={key:'',timer:0,lastAt:0};
 let pendingReorderKey='';
 const completionBusy=new Set();
 
@@ -227,7 +230,7 @@ function openMobileAccountMenu(){
 }
 
 function swipeIgnoredTarget(target){
-  return Boolean(target?.closest?.('textarea,input,select,[contenteditable="true"],#thread-bottom-container'));
+  return Boolean(target?.closest?.('textarea,input,select,button,a,[role="button"],[contenteditable="true"],#thread-bottom-container'));
 }
 
 function bindMobileHierarchySwipe(){
@@ -240,6 +243,10 @@ function bindMobileHierarchySwipe(){
       return;
     }
     const touch=event.touches[0];
+    if(touch.clientX<MOBILE_CHAT_SWIPE_EDGE_INSET_PX||touch.clientX>window.innerWidth-MOBILE_CHAT_SWIPE_EDGE_INSET_PX){
+      reset();
+      return;
+    }
     mobileSwipe={startX:touch.clientX,startY:touch.clientY,claimed:false};
   };
   const onTouchMove=event=>{
@@ -295,6 +302,57 @@ function bindMobileHierarchySwipe(){
   return true;
 }
 
+function runMobileTopTabSingle(key){
+  if(key==='chat'){
+    if(shellSnapshot().route==='work')restoreConversationFromWork('chat-tab');
+    else if(!activeContact()?.id&&!mobileDirectoryOpen())showMobileDirectory('chat-tab');
+    return;
+  }
+  if(key==='work'&&shellSnapshot().route!=='work')openWorkFromMobileConversation('work-tab');
+}
+
+function runMobileTopTabDouble(key){
+  if(key==='chat'){
+    navigation()?.openChat?.();
+    showMobileDirectory('chat-tab-double');
+    return;
+  }
+  if(key==='work'){
+    if(shellSnapshot().route!=='work')rememberConversationBeforeWork();
+    hideMobileDirectory('work-tab-double');
+    selectedWorkCustomerId='';
+    forceOverview=true;
+    resetWorkSelectionForDirectory();
+    navigation()?.openWork?.();
+    pinWorkOuterScroll();
+    renderCurrent();
+  }
+}
+
+function handleMobileTopTabTap(key){
+  const now=Date.now();
+  if(mobileTopTabTap.timer&&mobileTopTabTap.key===key&&now-mobileTopTabTap.lastAt<=MOBILE_TAB_DOUBLE_TAP_MS){
+    clearTimeout(mobileTopTabTap.timer);
+    mobileTopTabTap={key:'',timer:0,lastAt:0};
+    runMobileTopTabDouble(key);
+    return true;
+  }
+  if(mobileTopTabTap.timer){
+    clearTimeout(mobileTopTabTap.timer);
+    const previous=mobileTopTabTap.key;
+    mobileTopTabTap={key:'',timer:0,lastAt:0};
+    runMobileTopTabSingle(previous);
+  }
+  mobileTopTabTap.key=key;
+  mobileTopTabTap.lastAt=now;
+  mobileTopTabTap.timer=window.setTimeout(()=>{
+    const pending=mobileTopTabTap.key;
+    mobileTopTabTap={key:'',timer:0,lastAt:0};
+    runMobileTopTabSingle(pending);
+  },MOBILE_TAB_DOUBLE_TAP_MS);
+  return true;
+}
+
 function bindMobileNavigationClicks(){
   document.addEventListener('click',event=>{
     if(!mobileDirectoryAllowed())return;
@@ -313,8 +371,7 @@ function bindMobileNavigationClicks(){
     if(chatTab){
       event.preventDefault();
       event.stopImmediatePropagation();
-      if(shellSnapshot().route==='work')restoreConversationFromWork('chat-tab');
-      else if(!activeContact()?.id&&!mobileDirectoryOpen())showMobileDirectory('chat-tab');
+      handleMobileTopTabTap('chat');
       return;
     }
 
@@ -322,7 +379,7 @@ function bindMobileNavigationClicks(){
     if(workTab){
       event.preventDefault();
       event.stopImmediatePropagation();
-      if(shellSnapshot().route!=='work')openWorkFromMobileConversation('work-tab');
+      handleMobileTopTabTap('work');
     }
   },true);
   return true;
