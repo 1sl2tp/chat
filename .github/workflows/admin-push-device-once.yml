@@ -1,0 +1,211 @@
+name: Admin Push Device Once
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/admin-push-device-once.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Persist push intent and compact mobile account rows
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p=Path('admin-push-controller.js')
+          s=p.read_text('utf-8')
+
+          old="""let pendingOpen=null;
+          let unreadRefreshTimer=0;
+          """
+          new="""let pendingOpen=null;
+          let unreadRefreshTimer=0;
+          const NOTIFICATION_WANTED_KEY='taphoa.v21.adminPushWanted';
+          """
+          assert old in s, 'push state owner changed'
+          s=s.replace(old,new,1)
+
+          old="""function browserSupported(){
+            return typeof Notification!=='undefined'&&Boolean(navigator.serviceWorker);
+          }
+          """
+          new="""function browserSupported(){
+            return typeof Notification!=='undefined'&&Boolean(navigator.serviceWorker);
+          }
+          function notificationWanted(){
+            try{return localStorage.getItem(NOTIFICATION_WANTED_KEY)==='1';}catch{return false;}
+          }
+          function setNotificationWanted(next){
+            try{localStorage.setItem(NOTIFICATION_WANTED_KEY,next?'1':'0');return true;}catch{return false;}
+          }
+          """
+          assert old in s, 'browserSupported owner changed'
+          s=s.replace(old,new,1)
+
+          marker="""async function status(){
+          """
+          assert marker in s, 'status owner missing'
+          reconcile="""async function reconcileWantedSubscription(){
+            const currentPlatform=platform();
+            if(!isAdmin()||!notificationWanted())return null;
+            if(!browserSupported())return result({ok:true,admin:true,supported:false,enabled:false,code:'unsupported',platform:currentPlatform});
+            if(currentPlatform==='ios-web')return result({ok:true,admin:true,supported:true,enabled:false,code:'ios_install_required',platform:currentPlatform,permission:String(Notification.permission||'default')});
+            const permission=String(Notification.permission||'default');
+            if(permission!=='granted')return result({ok:true,admin:true,supported:true,enabled:false,code:permission==='denied'?'blocked':'disabled',platform:currentPlatform,permission});
+            try{
+              const reg=await registration();
+              let subscription=await reg.pushManager.getSubscription();
+              if(!subscription){
+                const key=await invoke('public_key');
+                subscription=await reg.pushManager.subscribe({
+                  userVisibleOnly:true,
+                  applicationServerKey:urlBase64ToUint8Array(key.public_key),
+                });
+              }
+              const snap=authSnapshot();
+              const normalized=subscriptionJSON(subscription);
+              if(!normalized.endpoint||!normalized.keys.p256dh||!normalized.keys.auth)throw new Error('invalid_subscription');
+              await invoke('subscribe',{
+                subscription:normalized,
+                device_id:snap.deviceId||null,
+                platform:currentPlatform,
+                user_agent:String(navigator.userAgent||''),
+              });
+              syncState();
+              scheduleUnreadBadgeRefresh(0);
+              return result({ok:true,admin:true,supported:true,enabled:true,code:'enabled',platform:currentPlatform,permission});
+            }catch(error){
+              return result({ok:false,admin:true,supported:true,enabled:false,code:String(error?.message||'rebind_failed'),platform:currentPlatform,permission});
+            }
+          }
+
+          """
+          s=s.replace(marker,reconcile+marker,1)
+
+          old="""  const permission=String(Notification.permission||'default');
+            if(permission==='denied')return result({ok:true,admin:true,supported:true,enabled:false,code:'blocked',platform:currentPlatform,permission});
+            const subscription=await localSubscription();
+          """
+          new="""  const permission=String(Notification.permission||'default');
+            if(permission==='denied')return result({ok:true,admin:true,supported:true,enabled:false,code:'blocked',platform:currentPlatform,permission});
+            if(notificationWanted()&&permission==='granted'){
+              const restored=await reconcileWantedSubscription();
+              if(restored)return restored;
+            }
+            const subscription=await localSubscription();
+          """
+          assert old in s, 'status permission block changed'
+          s=s.replace(old,new,1)
+
+          old="""    const data=await invoke('status',{endpoint:String(subscription.endpoint||'')});
+              return result({ok:true,admin:true,supported:true,enabled:Boolean(data.enabled),code:data.enabled?'enabled':'disabled',platform:currentPlatform,permission});
+          """
+          new="""    const data=await invoke('status',{endpoint:String(subscription.endpoint||'')});
+              if(data.enabled)setNotificationWanted(true);
+              return result({ok:true,admin:true,supported:true,enabled:Boolean(data.enabled),code:data.enabled?'enabled':'disabled',platform:currentPlatform,permission});
+          """
+          assert old in s, 'status server block changed'
+          s=s.replace(old,new,1)
+
+          old="""  if(permission!=='granted')permission=String(await Notification.requestPermission());
+            if(permission!=='granted')return result({ok:false,admin:true,supported:true,enabled:false,code:permission==='denied'?'blocked':'disabled',platform:currentPlatform,permission});
+
+            try{
+          """
+          new="""  if(permission!=='granted')permission=String(await Notification.requestPermission());
+            if(permission!=='granted')return result({ok:false,admin:true,supported:true,enabled:false,code:permission==='denied'?'blocked':'disabled',platform:currentPlatform,permission});
+            setNotificationWanted(true);
+
+            try{
+          """
+          assert old in s, 'enable permission block changed'
+          s=s.replace(old,new,1)
+
+          old="""async function disable({bestEffort=false}={}){
+            const currentPlatform=platform();
+          """
+          new="""async function disable({bestEffort=false}={}){
+            setNotificationWanted(false);
+            const currentPlatform=platform();
+          """
+          assert old in s, 'disable owner changed'
+          s=s.replace(old,new,1)
+
+          old="""  if(detail.state==='AUTHENTICATED'&&detail.account?.role==='admin'){
+              void consumePendingOpen();
+              syncState();
+              scheduleUnreadBadgeRefresh(0);
+              return;
+          """
+          new="""  if(detail.state==='AUTHENTICATED'&&detail.account?.role==='admin'){
+              void consumePendingOpen();
+              syncState();
+              scheduleUnreadBadgeRefresh(0);
+              void reconcileWantedSubscription();
+              return;
+          """
+          assert old in s, 'auth state block changed'
+          s=s.replace(old,new,1)
+
+          old="""if(isAdmin()){void consumePendingOpen();syncState();scheduleUnreadBadgeRefresh(0);}
+          else clearClientState();
+          """
+          new="""if(isAdmin()){void consumePendingOpen();syncState();scheduleUnreadBadgeRefresh(0);void reconcileWantedSubscription();}
+          else clearClientState();
+          """
+          assert old in s, 'boot admin block changed'
+          s=s.replace(old,new,1)
+
+          old="""window.V21AdminPush=Object.freeze({version:VERSION,status,enable,disable,syncState,refreshUnreadBadge,handleOpen,snapshot});
+          """
+          new="""window.V21AdminPush=Object.freeze({version:VERSION,status,enable,disable,reconcileWantedSubscription,notificationWanted,syncState,refreshUnreadBadge,handleOpen,snapshot});
+          """
+          assert old in s, 'push export changed'
+          s=s.replace(old,new,1)
+          p.write_text(s,'utf-8')
+
+          p=Path('zalo-admin-link.css')
+          s=p.read_text('utf-8')
+          old="""@media(max-width:640px){
+            .zalo-account-modal{place-items:end center;padding:8px}
+            .zalo-account-card{width:100%;max-height:calc(100svh - 16px);border-radius:24px;padding:16px 12px}
+            .zalo-account-row{grid-template-columns:minmax(0,1fr);gap:8px;padding:10px}
+            .zalo-account-row-actions{justify-content:flex-start}
+            .zalo-account-modal-head{padding-inline:2px}
+          }
+          """
+          new="""@media(max-width:640px){
+            .zalo-account-modal{place-items:end center;padding:8px}
+            .zalo-account-card{width:100%;max-height:calc(100svh - 16px);border-radius:24px;padding:16px 12px}
+            .zalo-account-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px 10px;padding:10px}
+            .zalo-account-row-actions{grid-column:1/-1;justify-content:flex-start}
+            .zalo-account-person,.zalo-account-relation{align-items:flex-start}
+            .zalo-account-modal-head{padding-inline:2px}
+          }
+          """
+          assert old in s, 'mobile account CSS owner changed'
+          s=s.replace(old,new,1)
+          p.write_text(s,'utf-8')
+          PY
+      - name: Focused contract
+        run: |
+          node --check admin-push-controller.js
+          python tests/test_v21_admin_push_device_persistence.py
+      - name: Rebuild canonical preview
+        run: python tools/build_current_preview.py
+      - name: Recheck focused contract
+        run: python tests/test_v21_admin_push_device_persistence.py
+      - name: Commit fix
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add admin-push-controller.js zalo-admin-link.css index.html version.json
+          git commit -m 'fix: persist admin push intent per device'
+          git push
