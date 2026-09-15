@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="e821ac958835197d0e8f492db219687387d42282299fc2095342f757bd09d583">
+<meta name="app-build-id" content="158e0ba00806c2c1f95c3a1f865cda820e90271578f011db3d5645644916e05d">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -430,6 +430,18 @@
 #appShell[data-route="work"] #scrollRoot{
   overflow-y:hidden!important;
   overscroll-behavior:none;
+}
+
+/* Active chat identity hugs avatar + customer name. The mode switch remains
+   centered, but no longer stretches short customer names to a fixed share. */
+#appShell .top-mode-switch[data-contact-identity="true"]{
+  width:max-content;
+  max-width:min(100%,260px);
+  grid-template-columns:max-content max-content;
+}
+#appShell .top-mode-switch[data-contact-identity="true"] .top-mode-tab[data-top-tab="chat"]{
+  width:max-content;
+  max-width:170px;
 }
 
 [data-work-summary-root]{
