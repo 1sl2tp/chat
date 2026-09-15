@@ -21,6 +21,7 @@ assert 'v21-active-contact-change' in client, 'choosing a contact must switch fr
 # Regression: customer A -> Danh bạ -> customer A must behave as a fresh selection.
 # Returning to mobile Danh bạ must clear the shell contact owner, so selecting the same customer again
 # becomes null -> customer and emits the normal active-contact change event.
+# This contract intentionally covers both swipe/menu return-to-directory paths because they share showMobileDirectory().
 compact_shell = shell.replace(' ', '').replace('\n', '')
 compact_client = client.replace(' ', '').replace('\n', '')
 assert 'clearActiveContact' in shell, 'shell navigation must expose an explicit active-contact clear command'
