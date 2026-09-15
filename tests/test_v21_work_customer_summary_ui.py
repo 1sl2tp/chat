@@ -14,6 +14,7 @@ assert migration.exists(), 'customer summary work-feed migration is missing'
 c = client.read_text('utf-8')
 s = style.read_text('utf-8')
 m = migration.read_text('utf-8')
+compact_s = ''.join(s.split())
 
 assert 'data-work-summary-root' in index_source, 'Công việc needs a dedicated summary root'
 assert 'work-customer-summary.css' in index_source, 'summary stylesheet must be part of the canonical build'
@@ -35,5 +36,19 @@ assert 'grant execute' in lower_m and 'authenticated' in lower_m, 'feed RPC must
 
 assert '.work-summary-customer' in s, 'customer summary card styling is missing'
 assert '.work-summary-item' in s, 'summary item styling is missing'
+
+# Detail density contract: back/all + customer + remaining counts share one row.
+assert '.work-summary-detail-header .work-summary-header-title' in s, 'detail header needs a dedicated one-line title owner'
+assert 'flex-direction:row' in compact_s, 'detail title + counts must stay on one horizontal line'
+assert 'align-items:baseline' in compact_s or 'align-items:center' in compact_s, 'detail one-line header needs vertical alignment'
+
+# Every product row is one physical line: STT + checkbox + name + quantity.
+assert '.work-summary-item-name' in s and 'white-space:nowrap' in compact_s, 'product names must not wrap to a second line'
+assert 'text-overflow:ellipsis' in compact_s, 'long product names must ellipsize instead of wrapping'
+assert '.work-summary-item-main' in s and 'grid-template-columns:minmax(0,1fr)auto' in compact_s, 'name and quantity must remain one row'
+
+# Zebra rhythm must be subtle and automatic without changing completed-state semantics.
+assert '.work-summary-item:nth-child(even)' in s, 'detail rows need alternating background rhythm'
+assert 'color-mix(' in s, 'alternating rows must use a subtle mixed surface color'
 
 print('Work customer summary UI contract PASS')
