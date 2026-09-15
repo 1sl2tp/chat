@@ -1,0 +1,29 @@
+name: Mobile Contact Reselect Once
+on:
+  push:
+    paths:
+      - '.github/workflows/mobile-contact-reselect-once.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Patch mobile contact reselect
+        run: python tools/patch_mobile_contact_reselect.py
+      - name: Verify focused navigation contract
+        run: python tests/test_v21_mobile_chat_navigation.py
+      - name: Rebuild canonical preview
+        run: python tools/build_current_preview.py
+      - name: Commit source and canonical build
+        run: |
+          rm -f tools/patch_mobile_contact_reselect.py .github/workflows/mobile-contact-reselect-once.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add shell.js work-customer-summary.js index.html tools/patch_mobile_contact_reselect.py .github/workflows/mobile-contact-reselect-once.yml
+          git commit -m 'fix: reopen same mobile contact after directory'
+          git push
