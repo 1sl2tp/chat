@@ -5,40 +5,58 @@ client = (ROOT / 'work-customer-summary.js').read_text('utf-8')
 style = (ROOT / 'work-customer-summary.css').read_text('utf-8')
 shell = (ROOT / 'shell.js').read_text('utf-8')
 
-# Mobile conversation gestures are full-screen navigation, not the old edge drawer.
-assert 'showMobileDirectory' in client, 'mobile chat must expose a full-screen directory transition'
-assert 'hideMobileDirectory' in client, 'selecting a contact must leave the directory screen'
-assert 'bindMobileChatSwipe' in client, 'mobile chat needs a whole-chat horizontal swipe owner'
-assert 'bindLegacyEdgeSwipeBlocker' in client, 'legacy edge-drawer swipe must be blocked outside the chat gesture owner too'
-assert 'MOBILE_CHAT_SWIPE_DISTANCE_PX' in client, 'whole-chat swipe needs an explicit distance threshold'
-assert 'openWork' in client and ('navigation()' in client or 'NavigationCommand' in client), 'swipe right must open Công việc through the shell navigation owner'
-assert "dx<=-MOBILE_CHAT_SWIPE_DISTANCE_PX" in client.replace(' ', ''), 'swipe left must return to Danh bạ'
-assert "dx>=MOBILE_CHAT_SWIPE_DISTANCE_PX" in client.replace(' ', ''), 'swipe right must open Công việc'
-assert 'stopImmediatePropagation' in client, 'new horizontal gesture must suppress the legacy edge-drawer swipe'
-assert "[data-top-tab=\"chat\"]" in client or "[data-top-tab='chat']" in client, 'opening Trò chuyện must default to Danh bạ'
-assert 'v21-active-contact-change' in client, 'choosing a contact must switch from Danh bạ to the chat thread'
+compact_client = ''.join(client.split())
+compact_shell = ''.join(shell.split())
+compact_style = ''.join(style.split())
 
-# Regression: customer A -> Danh bạ -> customer A must behave as a fresh selection.
-# Returning to mobile Danh bạ must clear the shell contact owner, so selecting the same customer again
-# becomes null -> customer and emits the normal active-contact change event.
-# This contract intentionally covers both swipe/menu return-to-directory paths because they share showMobileDirectory().
-compact_shell = shell.replace(' ', '').replace('\n', '')
-compact_client = client.replace(' ', '').replace('\n', '')
-assert 'clearActiveContact' in shell, 'shell navigation must expose an explicit active-contact clear command'
+# Mobile Trò chuyện is a parent branch: Danh bạ is the root, a customer thread is its child,
+# and Công việc is a sibling branch. Gestures are owned by the whole mobile surface, never an edge drawer.
+assert 'bindMobileHierarchySwipe' in client, 'mobile must have one hierarchy swipe owner for directory/chat/work surfaces'
+assert 'MOBILE_CHAT_SWIPE_DISTANCE_PX' in client, 'hierarchy swipe needs an explicit horizontal threshold'
+assert 'mobileConversationReturnState' in client, 'Work must remember the exact previous Trò chuyện state'
+assert 'rememberConversationBeforeWork' in client, 'entering Work must snapshot directory vs customer thread before navigation'
+assert 'openWorkFromMobileConversation' in client, 'directory/chat -> Work must share one transition owner'
+assert 'restoreConversationFromWork' in client, 'Work swipe-left/chat-tab must restore the previous Trò chuyện state'
+assert "kind:'directory'" in compact_client and "kind:'contact'" in compact_client, 'return state must distinguish directory from a specific customer thread'
+assert 'navigation()?.openContact?.' in client or 'navigation().openContact' in client, 'restoring a customer thread must reopen the remembered customer'
+assert 'stopImmediatePropagation' in client, 'horizontal gesture must claim the gesture once it is recognized'
+
+# Direction contract: Danh bạ -> right -> Work; customer chat -> left -> Danh bạ / right -> Work;
+# Work -> left -> exact prior Trò chuyện state. There is no wrap-around on the opposite directions.
+assert 'mobileDirectoryOpen' in client, 'gesture owner must know whether Trò chuyện is currently at the Danh bạ parent'
+assert 'route===\'work\'' in compact_client or 'route==="work"' in compact_client, 'gesture owner must branch explicitly for Work'
+assert 'dx<=-MOBILE_CHAT_SWIPE_DISTANCE_PX' in compact_client, 'left swipe must be explicitly handled'
+assert 'dx>=MOBILE_CHAT_SWIPE_DISTANCE_PX' in compact_client, 'right swipe must be explicitly handled'
+assert 'showMobileDirectory' in client and 'hideMobileDirectory' in client, 'Danh bạ remains a real Trò chuyện screen'
+
+# Regression: customer A -> Danh bạ -> customer A must still behave as a fresh selection.
+# Directory may clear the shell activeContact, but the Work return state is stored separately before that clear.
+assert 'clearActiveContact' in shell, 'shell navigation must expose explicit active-contact clearing'
 assert 'setActiveContact(null' in compact_shell, 'clear command must reset the real shell activeContact state'
-assert 'clearActiveContact' in client, 'showing mobile directory must clear the previous active contact'
-assert "event?.detail?.contact?.id" in client or "event.detail?.contact?.id" in client, 'null contact emitted while entering directory must not immediately hide the directory again'
+assert 'clearActiveContact' in client, 'entering the directory parent must clear the selected contact for same-customer reselection'
+assert 'rememberConversationBeforeWork' in client and 'clearActiveContact' in client, 'return-state memory and shell contact clearing must be separate concerns'
 
-# The directory is a real mobile screen, not the old narrow popup/drawer.
-assert 'dataset.mobileDirectory' in client, 'runtime must own an explicit mobile directory screen state'
+# Hamburger on mobile is account/settings/logout only. It must never open the contact directory/sidebar.
+assert 'openMobileAccountMenu' in client and 'closeMobileAccountMenu' in client, 'mobile hamburger needs a compact account menu owner'
+for label in ('Tài khoản', 'Cài đặt', 'Thoát'):
+    assert label in client, f'mobile account menu must contain {label}'
+assert 'V21ZaloAccountAdmin' in client, 'Cài đặt must reuse the existing settings/account admin surface'
+assert 'data-account-self-edit' in client, 'Tài khoản must reuse the existing self-profile action'
+assert 'data-auth-command="logout"' in client or "data-auth-command='logout'" in client, 'Thoát must reuse the existing logout action'
+assert "showMobileDirectory('menu-button')" not in client, 'hamburger must not open Danh bạ'
+assert 'data-mobile-account-menu' in style, 'compact mobile account menu needs its own geometry'
+
+# Danh bạ is a full Trò chuyện screen on mobile, not a narrow popup/drawer, and account footer is not part of it.
+assert 'dataset.mobileDirectory' in client, 'runtime must own explicit mobile directory screen state'
 assert 'data-mobile-directory="true"' in style, 'mobile directory state needs full-screen geometry'
-assert '#shellNavigationLayer' in style and '.shell-navigation-panel' in style, 'directory geometry must override the existing shell layer'
-assert 'width:100%' in style.replace(' ', ''), 'mobile directory panel must occupy the whole available width'
-assert '.shell-navigation-backdrop' in style and 'display:none' in style.replace(' ', ''), 'mobile directory must not render a drawer backdrop'
+assert '#shellNavigationLayer' in style and '.shell-navigation-panel' in style, 'directory screen may reuse the existing contact DOM owner'
+assert 'width:100%' in compact_style, 'mobile directory must occupy the whole available content width'
+assert '.shell-navigation-backdrop' in style and 'display:none' in compact_style, 'mobile directory must not render a drawer backdrop'
+assert '.shell-sidebar-account-footer' in style and 'display:none!important' in compact_style, 'mobile directory must not carry the old sidebar account/footer chrome'
 
 # Work customer identity remains pinned while its own list scrolls below.
 assert '.work-summary-detail-header' in style, 'customer detail header must have an explicit geometry owner'
-assert 'position:sticky' in style.replace(' ', ''), 'customer name/summary header must stay pinned'
-assert 'overflow:auto' in style.replace(' ', ''), 'work item list must keep its own scrolling region'
+assert 'position:sticky' in compact_style, 'customer name/summary header must stay pinned'
+assert 'overflow:auto' in compact_style, 'work item list must keep its own scrolling region'
 
-print('Mobile chat navigation + pinned Work header contract PASS')
+print('Mobile hierarchy swipe + compact account menu + pinned Work header contract PASS')
