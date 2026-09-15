@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="d18ad07fb68c5407e48d674ab93973955120804e38f660d6d98f14eabd9f088b">
+<meta name="app-build-id" content="84e92ec6643ff366cc473511ac977e1744447f632ac4b1014d8eb0bab9aeb943">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -14524,6 +14524,12 @@ function rememberConversationBeforeWork(){
 
 function showMobileDirectory(reason='directory'){
   if(!mobileDirectoryAllowed())return false;
+  if(snapshot().state!=='AUTHENTICATED'){
+    hideMobileDirectory('guest-auth');
+    navigation()?.openChat?.();
+    window.ChatAppShell?.AuthUI?.openLogin?.();
+    return false;
+  }
   const app=document.getElementById('appShell');
   const layer=document.getElementById('shellNavigationLayer');
   if(!app||!layer)return false;
@@ -14646,6 +14652,13 @@ function ensureMobileAccountMenu(){
 
 function openMobileAccountMenu(){
   if(!mobileDirectoryAllowed())return false;
+  if(snapshot().state!=='AUTHENTICATED'){
+    closeMobileAccountMenu();
+    hideMobileDirectory('guest-auth');
+    navigation()?.openChat?.();
+    window.ChatAppShell?.AuthUI?.openLogin?.();
+    return true;
+  }
   const menu=ensureMobileAccountMenu();
   if(!menu)return false;
   menu.hidden=false;
@@ -15102,6 +15115,14 @@ document.addEventListener('v21-auth-state',()=>{
   forceOverview=false;
   mobileConversationReturnState={kind:'directory',contact:null};
   closeMobileAccountMenu();
+  const auth=snapshot();
+  if(mobileDirectoryAllowed()&&auth.state!=='AUTHENTICATED'){
+    hideMobileDirectory('guest-auth');
+    navigation()?.openChat?.();
+    window.ChatAppShell?.AuthUI?.openLogin?.();
+  }else if(mobileDirectoryAllowed()&&auth.state==='AUTHENTICATED'&&shellSnapshot().route==='chat'&&!activeContact()?.id){
+    showMobileDirectory('auth-directory');
+  }
   void refresh('auth-state');
 });
 document.addEventListener('v21-active-contact-change',event=>{
@@ -15163,9 +15184,14 @@ bindMobileNavigationClicks();
 schedule();
 void refresh('boot');
 window.setTimeout(()=>{
-  if(shellSnapshot().route==='chat'&&mobileDirectoryAllowed()){
+  const auth=snapshot();
+  if(auth.state==='AUTHENTICATED'&&shellSnapshot().route==='chat'&&mobileDirectoryAllowed()){
     mobileConversationReturnState={kind:'directory',contact:null};
     showMobileDirectory('chat-default');
+  }else if(auth.state==='GUEST'&&mobileDirectoryAllowed()){
+    hideMobileDirectory('guest-boot');
+    navigation()?.openChat?.();
+    window.ChatAppShell?.AuthUI?.openLogin?.();
   }
 },0);
 

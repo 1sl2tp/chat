@@ -78,6 +78,12 @@ function rememberConversationBeforeWork(){
 
 function showMobileDirectory(reason='directory'){
   if(!mobileDirectoryAllowed())return false;
+  if(snapshot().state!=='AUTHENTICATED'){
+    hideMobileDirectory('guest-auth');
+    navigation()?.openChat?.();
+    window.ChatAppShell?.AuthUI?.openLogin?.();
+    return false;
+  }
   const app=document.getElementById('appShell');
   const layer=document.getElementById('shellNavigationLayer');
   if(!app||!layer)return false;
@@ -200,6 +206,13 @@ function ensureMobileAccountMenu(){
 
 function openMobileAccountMenu(){
   if(!mobileDirectoryAllowed())return false;
+  if(snapshot().state!=='AUTHENTICATED'){
+    closeMobileAccountMenu();
+    hideMobileDirectory('guest-auth');
+    navigation()?.openChat?.();
+    window.ChatAppShell?.AuthUI?.openLogin?.();
+    return true;
+  }
   const menu=ensureMobileAccountMenu();
   if(!menu)return false;
   menu.hidden=false;
@@ -656,6 +669,14 @@ document.addEventListener('v21-auth-state',()=>{
   forceOverview=false;
   mobileConversationReturnState={kind:'directory',contact:null};
   closeMobileAccountMenu();
+  const auth=snapshot();
+  if(mobileDirectoryAllowed()&&auth.state!=='AUTHENTICATED'){
+    hideMobileDirectory('guest-auth');
+    navigation()?.openChat?.();
+    window.ChatAppShell?.AuthUI?.openLogin?.();
+  }else if(mobileDirectoryAllowed()&&auth.state==='AUTHENTICATED'&&shellSnapshot().route==='chat'&&!activeContact()?.id){
+    showMobileDirectory('auth-directory');
+  }
   void refresh('auth-state');
 });
 document.addEventListener('v21-active-contact-change',event=>{
@@ -717,9 +738,14 @@ bindMobileNavigationClicks();
 schedule();
 void refresh('boot');
 window.setTimeout(()=>{
-  if(shellSnapshot().route==='chat'&&mobileDirectoryAllowed()){
+  const auth=snapshot();
+  if(auth.state==='AUTHENTICATED'&&shellSnapshot().route==='chat'&&mobileDirectoryAllowed()){
     mobileConversationReturnState={kind:'directory',contact:null};
     showMobileDirectory('chat-default');
+  }else if(auth.state==='GUEST'&&mobileDirectoryAllowed()){
+    hideMobileDirectory('guest-boot');
+    navigation()?.openChat?.();
+    window.ChatAppShell?.AuthUI?.openLogin?.();
   }
 },0);
 
