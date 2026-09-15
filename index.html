@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="e57a0135a1e073067b37cf85f3b1da255d0152463e80a75a5e29357563da3d70">
+<meta name="app-build-id" content="00481a3e5f62a9ac217fabb46c5f997d5f3c947459ba8e27323b887816a10e9d">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -851,6 +851,77 @@
   .mobile-account-menu-row:active{
     background:var(--theme-surface-secondary);
   }
+}
+
+
+/* Work detail single-line density */
+.work-summary-detail-header{
+  min-height:52px;
+  flex-wrap:nowrap;
+  overflow:hidden;
+}
+.work-summary-detail-header .work-summary-header-title{
+  flex-direction:row;
+  align-items:baseline;
+  justify-content:flex-start;
+  gap:8px;
+  padding-block:0;
+  overflow:hidden;
+  white-space:nowrap;
+}
+.work-summary-detail-header .work-summary-heading{
+  flex:0 1 auto;
+}
+.work-summary-detail-header .work-summary-subheading{
+  flex:0 0 auto;
+}
+.work-summary-item{
+  min-height:44px;
+  align-items:center;
+  padding:8px 12px 8px 38px;
+}
+.work-summary-item::before{
+  top:50%;
+  transform:translateY(-50%);
+}
+.work-summary-item-main{
+  align-items:center;
+}
+.work-summary-item-name{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  overflow-wrap:normal;
+}
+.work-summary-item:nth-child(even){
+  background:color-mix(in srgb,var(--theme-content-primary) 3%,var(--theme-surface-primary));
+}
+.work-summary-item.is-completed{
+  background:var(--theme-surface-secondary);
+}
+.work-summary-item.is-just-updated{
+  background:color-mix(in srgb,var(--theme-content-primary) 7%,var(--theme-surface-primary));
+}
+@media(max-width:640px){
+  .work-summary-detail-header{
+    min-height:52px;
+    padding-block:8px;
+    gap:8px;
+  }
+  .work-summary-detail-header .work-summary-header-title{gap:6px;}
+  .work-summary-detail-header .work-summary-heading{
+    font-size:14px;
+    line-height:20px;
+  }
+  .work-summary-detail-header .work-summary-subheading{
+    font-size:11px;
+    line-height:16px;
+  }
+  .work-summary-item{
+    min-height:42px;
+    padding:7px 10px 7px 36px;
+  }
+  .work-summary-item::before{left:6px;}
 }
 
 </style>
