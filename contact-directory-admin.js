@@ -71,7 +71,7 @@ function installStyle(){
     .contact-directory-empty{padding:18px 10px;text-align:center;color:var(--theme-content-secondary,#777);font-size:13px}
     .zalo-account-group-select{box-sizing:border-box;min-height:36px;border:1px solid var(--theme-border-default,#ddd);border-radius:10px;padding:0 28px 0 9px;background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#171717);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
     .zalo-account-group-select:disabled{opacity:.55;cursor:default}
-    @media(max-width:640px){.contact-directory-tools{padding-inline:6px}.zalo-account-group-select{min-width:104px}}
+    @media(max-width:640px){.contact-directory-tools{margin-top:-12px;padding-inline:6px}.zalo-account-group-select{min-width:104px}}
   `;
   document.head.appendChild(style);
 }

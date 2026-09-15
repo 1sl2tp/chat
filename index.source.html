@@ -2759,6 +2759,9 @@ button{
   .shell-contact-row:hover .shell-contact-manage,
   .shell-contact-row:focus-within .shell-contact-manage{opacity:1;pointer-events:auto}
 }
+@media (hover:none), (pointer:coarse){
+  .shell-contact-manage{display:none!important}
+}
 
 .shell-profile-overlay{
   position:fixed;

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="1ae4b05969d5a4e27837f2500a7525e3b9bbb3f7bb814b54090a6eed92ebbdf0">
+<meta name="app-build-id" content="d18ad07fb68c5407e48d674ab93973955120804e38f660d6d98f14eabd9f088b">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -3587,6 +3587,9 @@ button{
   .shell-contact-manage{opacity:0;pointer-events:none;transition:opacity 120ms ease,background-color 120ms ease,color 120ms ease}
   .shell-contact-row:hover .shell-contact-manage,
   .shell-contact-row:focus-within .shell-contact-manage{opacity:1;pointer-events:auto}
+}
+@media (hover:none), (pointer:coarse){
+  .shell-contact-manage{display:none!important}
 }
 
 .shell-profile-overlay{
