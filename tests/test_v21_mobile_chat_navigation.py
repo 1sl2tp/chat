@@ -40,15 +40,25 @@ assert 'setActiveContact(null' in compact_shell, 'clear command must reset the r
 assert 'clearActiveContact' in client, 'entering the directory parent must clear the selected contact for same-customer reselection'
 assert 'rememberConversationBeforeWork' in client and 'clearActiveContact' in client, 'return-state memory and shell contact clearing must be separate concerns'
 
-# Hamburger on mobile is account/settings/logout only for authenticated users. It must never open the contact directory/sidebar.
+# Hamburger on mobile owns navigation/account actions, never the old contact drawer.
 assert 'openMobileAccountMenu' in client and 'closeMobileAccountMenu' in client, 'mobile hamburger needs a compact account menu owner'
-for label in ('Tài khoản', 'Cài đặt', 'Thoát'):
+for label in ('Danh bạ', 'Tài khoản', 'Cài đặt', 'Thoát'):
     assert label in client, f'mobile account menu must contain {label}'
+assert 'data-mobile-account-action="directory"' in client, 'mobile account menu must expose an explicit Danh bạ action'
+assert "showMobileDirectory('account-menu-directory')" in client, 'Danh bạ menu action must open the real directory screen'
 assert 'V21ZaloAccountAdmin' in client, 'Cài đặt must reuse the existing settings/account admin surface'
 assert 'data-account-self-edit' in client, 'Tài khoản must reuse the existing self-profile action'
 assert 'data-auth-command="logout"' in client or "data-auth-command='logout'" in client, 'Thoát must reuse the existing logout action'
-assert "showMobileDirectory('menu-button')" not in client, 'hamburger must not open Danh bạ'
+assert "showMobileDirectory('menu-button')" not in client, 'hamburger must not open Danh bạ implicitly'
 assert 'data-mobile-account-menu' in style, 'compact mobile account menu needs its own geometry'
+
+# Work detail back button follows its origin: chat-origin returns to that chat; overview-origin returns to overview.
+assert 'workDetailBackMode' in client, 'Work detail needs an explicit back-target owner'
+assert "'Quay lại'" in client or '"Quay lại"' in client, 'chat-origin Work detail must label the control as Quay lại'
+assert "dataset.workSummaryBack='conversation'" in compact_client or 'dataset.workSummaryBack="conversation"' in compact_client, 'chat-origin detail must mark the back action as conversation'
+assert "restoreConversationFromWork('work-detail-back')" in client, 'chat-origin detail back must restore the prior chat state'
+assert "dataset.workSummaryBack='overview'" in compact_client or 'dataset.workSummaryBack="overview"' in compact_client, 'overview-origin detail must mark the back action as overview'
+assert 'renderOverview(rowsCache)' in client, 'overview-origin detail back must return to Tổng hợp'
 
 # Guest mobile must never be trapped behind the full-screen directory overlay.
 # The login card is owned by Chat; directory is authenticated-only.
@@ -79,4 +89,4 @@ assert '.work-summary-detail-header' in style, 'customer detail header must have
 assert 'position:sticky' in compact_style, 'customer name/summary header must stay pinned'
 assert 'overflow:auto' in compact_style, 'work item list must keep its own scrolling region'
 
-print('Mobile hierarchy swipe + guest login reachability + compact account menu + directory rhythm + pinned Work header contract PASS')
+print('Mobile hierarchy swipe + directory menu + origin-aware Work back + guest login + pinned Work header contract PASS')
