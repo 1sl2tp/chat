@@ -16,7 +16,8 @@ compact_directory = ''.join(directory.split())
 # Mobile Trò chuyện is a parent branch: Danh bạ is the root, a customer thread is its child,
 # and Công việc is a sibling branch. Gestures are owned by the whole mobile surface, never an edge drawer.
 assert 'bindMobileHierarchySwipe' in client, 'mobile must have one hierarchy swipe owner for directory/chat/work surfaces'
-assert 'MOBILE_CHAT_SWIPE_DISTANCE_PX' in client, 'hierarchy swipe needs an explicit horizontal threshold'
+assert 'MOBILE_CHAT_SWIPE_DISTANCE_PX=48' in compact_client, 'center swipe threshold should be an easier 48px'
+assert 'MOBILE_CHAT_SWIPE_EDGE_INSET_PX=28' in compact_client, 'swipe must reserve 28px at both screen edges'
 assert 'mobileConversationReturnState' in client, 'Work must remember the exact previous Trò chuyện state'
 assert 'rememberConversationBeforeWork' in client, 'entering Work must snapshot directory vs customer thread before navigation'
 assert 'openWorkFromMobileConversation' in client, 'directory/chat -> Work must share one transition owner'
@@ -24,6 +25,9 @@ assert 'restoreConversationFromWork' in client, 'Work swipe-left/chat-tab must r
 assert "kind:'directory'" in compact_client and "kind:'contact'" in compact_client, 'return state must distinguish directory from a specific customer thread'
 assert 'navigation()?.openContact?.' in client or 'navigation().openContact' in client, 'restoring a customer thread must reopen the remembered customer'
 assert 'stopImmediatePropagation' in client, 'horizontal gesture must claim the gesture once it is recognized'
+assert 'window.innerWidth-MOBILE_CHAT_SWIPE_EDGE_INSET_PX' in compact_client, 'swipe start must reject the reserved right-edge zone'
+assert 'touch.clientX<MOBILE_CHAT_SWIPE_EDGE_INSET_PX' in compact_client, 'swipe start must reject the reserved left-edge zone'
+assert "button,a,[role=\"button\"]" in client or "button,a,[role='button']" in client, 'swipe must not steal gestures that start on controls'
 
 # Direction contract: Danh bạ -> right -> Work; customer chat -> left -> Danh bạ / right -> Work;
 # Work -> left -> exact prior Trò chuyện state. There is no wrap-around on the opposite directions.
@@ -32,6 +36,14 @@ assert 'route===\'work\'' in compact_client or 'route==="work"' in compact_clien
 assert 'dx<=-MOBILE_CHAT_SWIPE_DISTANCE_PX' in compact_client, 'left swipe must be explicitly handled'
 assert 'dx>=MOBILE_CHAT_SWIPE_DISTANCE_PX' in compact_client, 'right swipe must be explicitly handled'
 assert 'showMobileDirectory' in client and 'hideMobileDirectory' in client, 'Danh bạ remains a real Trò chuyện screen'
+
+# Top tabs: single tap preserves current navigation semantics; double tap jumps to the branch root.
+assert 'MOBILE_TAB_DOUBLE_TAP_MS=250' in compact_client, 'double tap needs a short explicit timing window'
+assert 'handleMobileTopTabTap' in client, 'top tabs need one tap/double-tap arbitration owner'
+assert "showMobileDirectory('chat-tab-double')" in client, 'double tap Trò chuyện must always return to Danh bạ'
+assert 'resetWorkSelectionForDirectory' in client, 'double tap Công việc must clear customer detail selection'
+assert "forceOverview=true" in compact_client, 'double tap Công việc must force Tổng hợp overview'
+assert 'setTimeout' in client and 'clearTimeout' in client, 'single tap must be deferred/cancelled so double tap does not flicker through the single action first'
 
 # Regression: customer A -> Danh bạ -> customer A must still behave as a fresh selection.
 # Directory may clear the shell activeContact, but the Work return state is stored separately before that clear.
@@ -89,4 +101,4 @@ assert '.work-summary-detail-header' in style, 'customer detail header must have
 assert 'position:sticky' in compact_style, 'customer name/summary header must stay pinned'
 assert 'overflow:auto' in compact_style, 'work item list must keep its own scrolling region'
 
-print('Mobile hierarchy swipe + directory menu + origin-aware Work back + guest login + pinned Work header contract PASS')
+print('Mobile center swipe + double-tap roots + hierarchy navigation + pinned Work header contract PASS')
