@@ -3,6 +3,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 client = (ROOT / 'work-customer-summary.js').read_text('utf-8')
 style = (ROOT / 'work-customer-summary.css').read_text('utf-8')
+shell = (ROOT / 'shell.js').read_text('utf-8')
 
 # Mobile conversation gestures are full-screen navigation, not the old edge drawer.
 assert 'showMobileDirectory' in client, 'mobile chat must expose a full-screen directory transition'
@@ -16,6 +17,15 @@ assert "dx>=MOBILE_CHAT_SWIPE_DISTANCE_PX" in client.replace(' ', ''), 'swipe ri
 assert 'stopImmediatePropagation' in client, 'new horizontal gesture must suppress the legacy edge-drawer swipe'
 assert "[data-top-tab=\"chat\"]" in client or "[data-top-tab='chat']" in client, 'opening Trò chuyện must default to Danh bạ'
 assert 'v21-active-contact-change' in client, 'choosing a contact must switch from Danh bạ to the chat thread'
+
+# Returning to mobile Danh bạ must clear the shell contact owner, so selecting the same customer again
+# becomes null -> customer and emits the normal active-contact change event.
+compact_shell = shell.replace(' ', '').replace('\n', '')
+compact_client = client.replace(' ', '').replace('\n', '')
+assert 'clearActiveContact' in shell, 'shell navigation must expose an explicit active-contact clear command'
+assert 'setActiveContact(null' in compact_shell, 'clear command must reset the real shell activeContact state'
+assert 'clearActiveContact' in client, 'showing mobile directory must clear the previous active contact'
+assert "event?.detail?.contact?.id" in client or "event.detail?.contact?.id" in client, 'null contact emitted while entering directory must not immediately hide the directory again'
 
 # The directory is a real mobile screen, not the old narrow popup/drawer.
 assert 'dataset.mobileDirectory' in client, 'runtime must own an explicit mobile directory screen state'
