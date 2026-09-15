@@ -48,8 +48,9 @@ assert "--desktop-work-width:calc(100% - var(--desktop-chat-width))" in SOURCE
 
 # Active customer identity must hug its content instead of occupying a fixed share
 # of the 260px mode switch. Short names stay short; long names cap then ellipsize.
-assert '.top-mode-switch[data-contact-identity="true"]{width:max-content;max-width:min(100%,260px);grid-template-columns:max-content max-content;}' in compact
-assert '.top-mode-switch[data-contact-identity="true"] .top-mode-tab[data-top-tab="chat"]{width:max-content;max-width:170px;}' in compact
+work_compact = "".join(WORK_CSS.split())
+assert '#appShell .top-mode-switch[data-contact-identity="true"]{width:max-content;max-width:min(100%,260px);grid-template-columns:max-content max-content;}' in work_compact
+assert '#appShell .top-mode-switch[data-contact-identity="true"] .top-mode-tab[data-top-tab="chat"]{width:max-content;max-width:170px;}' in work_compact
 assert '.top-mode-tab[data-top-tab="chat"] [data-chat-tab-label]{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' in compact
 
 # Mobile directory ownership must stop at the same 64rem breakpoint; otherwise
