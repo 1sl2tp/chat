@@ -1,0 +1,111 @@
+name: Work Summary Density Once
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/work-summary-density-once.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply compact one-line Work summary styling
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('work-customer-summary.css')
+          s = path.read_text('utf-8')
+          marker = '/* Work detail single-line density */'
+          assert marker not in s, 'density patch already present'
+          s += r'''
+
+/* Work detail single-line density */
+.work-summary-detail-header{
+  min-height:52px;
+  flex-wrap:nowrap;
+  overflow:hidden;
+}
+.work-summary-detail-header .work-summary-header-title{
+  flex-direction:row;
+  align-items:baseline;
+  justify-content:flex-start;
+  gap:8px;
+  padding-block:0;
+  overflow:hidden;
+  white-space:nowrap;
+}
+.work-summary-detail-header .work-summary-heading{
+  flex:0 1 auto;
+}
+.work-summary-detail-header .work-summary-subheading{
+  flex:0 0 auto;
+}
+.work-summary-item{
+  min-height:44px;
+  align-items:center;
+  padding:8px 12px 8px 38px;
+}
+.work-summary-item::before{
+  top:50%;
+  transform:translateY(-50%);
+}
+.work-summary-item-main{
+  align-items:center;
+}
+.work-summary-item-name{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  overflow-wrap:normal;
+}
+.work-summary-item:nth-child(even){
+  background:color-mix(in srgb,var(--theme-content-primary) 3%,var(--theme-surface-primary));
+}
+.work-summary-item.is-completed{
+  background:var(--theme-surface-secondary);
+}
+.work-summary-item.is-just-updated{
+  background:color-mix(in srgb,var(--theme-content-primary) 7%,var(--theme-surface-primary));
+}
+@media(max-width:640px){
+  .work-summary-detail-header{
+    min-height:52px;
+    padding-block:8px;
+    gap:8px;
+  }
+  .work-summary-detail-header .work-summary-header-title{gap:6px;}
+  .work-summary-detail-header .work-summary-heading{
+    font-size:14px;
+    line-height:20px;
+  }
+  .work-summary-detail-header .work-summary-subheading{
+    font-size:11px;
+    line-height:16px;
+  }
+  .work-summary-item{
+    min-height:42px;
+    padding:7px 10px 7px 36px;
+  }
+  .work-summary-item::before{left:6px;}
+}
+'''
+          path.write_text(s, 'utf-8')
+          PY
+      - name: Focused Work summary contract
+        run: python tests/test_v21_work_customer_summary_ui.py
+      - name: Rebuild canonical preview
+        run: python tools/build_current_preview.py
+      - name: Recheck focused contract
+        run: python tests/test_v21_work_customer_summary_ui.py
+      - name: Commit fix
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add work-customer-summary.css index.html version.json
+          git commit -m 'style: compact Work summary rows'
+          git push
