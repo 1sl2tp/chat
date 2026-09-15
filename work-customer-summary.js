@@ -171,6 +171,7 @@ function ensureMobileAccountMenu(){
   wrap.innerHTML=`
     <button type="button" class="mobile-account-menu-backdrop" data-mobile-account-close aria-label="Đóng menu"></button>
     <div class="mobile-account-menu-panel" role="menu" aria-label="Tài khoản">
+      <button type="button" class="mobile-account-menu-row" role="menuitem" data-mobile-account-action="directory">Danh bạ</button>
       <button type="button" class="mobile-account-menu-row" role="menuitem" data-mobile-account-action="account">Tài khoản</button>
       <button type="button" class="mobile-account-menu-row" role="menuitem" data-mobile-account-action="settings">Cài đặt</button>
       <button type="button" class="mobile-account-menu-row" role="menuitem" data-mobile-account-action="logout">Thoát</button>
@@ -185,6 +186,11 @@ function ensureMobileAccountMenu(){
     const action=target.closest('[data-mobile-account-action]')?.getAttribute('data-mobile-account-action')||'';
     if(!action)return;
     closeMobileAccountMenu();
+    if(action==='directory'){
+      navigation()?.openChat?.();
+      showMobileDirectory('account-menu-directory');
+      return;
+    }
     if(action==='account'){
       document.querySelector('[data-account-self-edit]')?.click?.();
       return;
@@ -508,6 +514,13 @@ function renderDetailItem(record,customerId){
   return li;
 }
 
+function workDetailBackMode(){
+  if(!mobileDirectoryAllowed())return 'overview';
+  if(shellSnapshot().route!=='work')return 'overview';
+  if(selectedWorkCustomerId)return 'overview';
+  return mobileConversationReturnState?.kind==='contact'?'conversation':'overview';
+}
+
 function renderCustomerDetail(row,contact){
   const host=root();
   if(!host)return;
@@ -520,9 +533,12 @@ function renderCustomerDetail(row,contact){
   const remainingProductCount=summaryProductCount(remainingRecords.map(record=>record.item));
 
   const header=node('div','work-summary-header work-summary-detail-header');
-  const all=node('button','work-summary-all','Tất cả');
+  const backMode=workDetailBackMode();
+  const all=node('button','work-summary-all',backMode==='conversation'?'Quay lại':'Tất cả');
   all.type='button';
   all.dataset.workSummaryAll='true';
+  if(backMode==='conversation')all.dataset.workSummaryBack='conversation';
+  else all.dataset.workSummaryBack='overview';
   const title=node('div','work-summary-header-title');
   title.append(node('strong','work-summary-heading',row?.display_name||row?.username||contact?.name||'Khách hàng'));
   title.append(node('span','work-summary-subheading',`${remainingRecords.length} mã · ${formatNumber(remainingProductCount)} sản phẩm`));
@@ -712,6 +728,10 @@ document.addEventListener('visibilitychange',()=>{
 document.addEventListener('click',event=>{
   const all=event.target?.closest?.('[data-work-summary-all]');
   if(all){
+    if(all.dataset.workSummaryBack==='conversation'&&mobileDirectoryAllowed()){
+      restoreConversationFromWork('work-detail-back');
+      return;
+    }
     selectedWorkCustomerId='';
     forceOverview=true;
     renderOverview(rowsCache);
