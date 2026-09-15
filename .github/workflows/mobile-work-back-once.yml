@@ -1,0 +1,123 @@
+name: Mobile Work Back Once
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/mobile-work-back-once.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply mobile directory menu and Work back fix
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('work-customer-summary.js')
+          s = path.read_text('utf-8')
+
+          old = '''    <div class="mobile-account-menu-panel" role="menu" aria-label="Tài khoản">
+              <button type="button" class="mobile-account-menu-row" role="menuitem" data-mobile-account-action="account">Tài khoản</button>
+              <button type="button" class="mobile-account-menu-row" role="menuitem" data-mobile-account-action="settings">Cài đặt</button>
+              <button type="button" class="mobile-account-menu-row" role="menuitem" data-mobile-account-action="logout">Thoát</button>
+            </div>`;'''
+          new = '''    <div class="mobile-account-menu-panel" role="menu" aria-label="Tài khoản">
+              <button type="button" class="mobile-account-menu-row" role="menuitem" data-mobile-account-action="directory">Danh bạ</button>
+              <button type="button" class="mobile-account-menu-row" role="menuitem" data-mobile-account-action="account">Tài khoản</button>
+              <button type="button" class="mobile-account-menu-row" role="menuitem" data-mobile-account-action="settings">Cài đặt</button>
+              <button type="button" class="mobile-account-menu-row" role="menuitem" data-mobile-account-action="logout">Thoát</button>
+            </div>`;'''
+          assert old in s, 'mobile account menu markup changed'
+          s = s.replace(old, new, 1)
+
+          old = '''    closeMobileAccountMenu();
+            if(action==='account'){
+              document.querySelector('[data-account-self-edit]')?.click?.();
+              return;
+            }'''
+          new = '''    closeMobileAccountMenu();
+            if(action==='directory'){
+              navigation()?.openChat?.();
+              showMobileDirectory('account-menu-directory');
+              return;
+            }
+            if(action==='account'){
+              document.querySelector('[data-account-self-edit]')?.click?.();
+              return;
+            }'''
+          assert old in s, 'mobile account action handler changed'
+          s = s.replace(old, new, 1)
+
+          marker = '''function renderCustomerDetail(row,contact){
+          '''
+          helper = '''function workDetailBackMode(){
+            if(!mobileDirectoryAllowed())return 'overview';
+            if(shellSnapshot().route!=='work')return 'overview';
+            if(selectedWorkCustomerId)return 'overview';
+            return mobileConversationReturnState?.kind==='contact'?'conversation':'overview';
+          }
+
+          function renderCustomerDetail(row,contact){
+          '''
+          assert marker in s, 'renderCustomerDetail marker changed'
+          s = s.replace(marker, helper, 1)
+
+          old = '''  const header=node('div','work-summary-header work-summary-detail-header');
+            const all=node('button','work-summary-all','Tất cả');
+            all.type='button';
+            all.dataset.workSummaryAll='true';
+            const title=node('div','work-summary-header-title');'''
+          new = '''  const header=node('div','work-summary-header work-summary-detail-header');
+            const backMode=workDetailBackMode();
+            const all=node('button','work-summary-all',backMode==='conversation'?'Quay lại':'Tất cả');
+            all.type='button';
+            all.dataset.workSummaryAll='true';
+            if(backMode==='conversation')all.dataset.workSummaryBack='conversation';
+            else all.dataset.workSummaryBack='overview';
+            const title=node('div','work-summary-header-title');'''
+          assert old in s, 'Work detail header changed'
+          s = s.replace(old, new, 1)
+
+          old = '''  const all=event.target?.closest?.('[data-work-summary-all]');
+            if(all){
+              selectedWorkCustomerId='';
+              forceOverview=true;
+              renderOverview(rowsCache);
+              return;
+            }'''
+          new = '''  const all=event.target?.closest?.('[data-work-summary-all]');
+            if(all){
+              if(all.dataset.workSummaryBack==='conversation'&&mobileDirectoryAllowed()){
+                restoreConversationFromWork('work-detail-back');
+                return;
+              }
+              selectedWorkCustomerId='';
+              forceOverview=true;
+              renderOverview(rowsCache);
+              return;
+            }'''
+          assert old in s, 'Work detail back click handler changed'
+          s = s.replace(old, new, 1)
+
+          path.write_text(s, 'utf-8')
+          PY
+      - name: Focused mobile navigation contract
+        run: |
+          node --check work-customer-summary.js
+          python tests/test_v21_mobile_chat_navigation.py
+      - name: Rebuild canonical preview
+        run: python tools/build_current_preview.py
+      - name: Recheck focused contract
+        run: python tests/test_v21_mobile_chat_navigation.py
+      - name: Commit fix
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add work-customer-summary.js index.html version.json
+          git commit -m 'fix: make mobile Work back origin-aware'
+          git push
