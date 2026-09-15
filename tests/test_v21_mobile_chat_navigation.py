@@ -4,10 +4,14 @@ ROOT = Path(__file__).resolve().parents[1]
 client = (ROOT / 'work-customer-summary.js').read_text('utf-8')
 style = (ROOT / 'work-customer-summary.css').read_text('utf-8')
 shell = (ROOT / 'shell.js').read_text('utf-8')
+source = (ROOT / 'index.source.html').read_text('utf-8')
+directory = (ROOT / 'contact-directory-admin.js').read_text('utf-8')
 
 compact_client = ''.join(client.split())
 compact_shell = ''.join(shell.split())
 compact_style = ''.join(style.split())
+compact_source = ''.join(source.split())
+compact_directory = ''.join(directory.split())
 
 # Mobile Trò chuyện is a parent branch: Danh bạ is the root, a customer thread is its child,
 # and Công việc is a sibling branch. Gestures are owned by the whole mobile surface, never an edge drawer.
@@ -54,9 +58,17 @@ assert 'width:100%' in compact_style, 'mobile directory must occupy the whole av
 assert '.shell-navigation-backdrop' in style and 'display:none' in compact_style, 'mobile directory must not render a drawer backdrop'
 assert '.shell-sidebar-account-footer' in style and 'display:none!important' in compact_style, 'mobile directory must not carry the old sidebar account/footer chrome'
 
+# Mobile directory visual rhythm: title sits closer to search, and row manage ellipsis is touch-hidden.
+assert '@media(max-width:640px)' in compact_directory, 'mobile directory tools need an explicit narrow-screen rhythm owner'
+assert '.contact-directory-tools{margin-top:-12px' in compact_directory, 'Danh bạ title/search gap must be tightened on mobile'
+assert '@media(hover:none),(pointer:coarse)' in compact_source, 'touch devices need an explicit contact-manage visibility rule'
+assert '.shell-contact-manage{display:none!important}' in compact_source, 'touch devices must not show the row ellipsis by default'
+assert '.shell-contact-row:hover .shell-contact-manage' in source, 'desktop ellipsis must appear only from row hover'
+assert '.shell-contact-row:focus-within .shell-contact-manage' in source, 'desktop keyboard focus must keep the manage action reachable'
+
 # Work customer identity remains pinned while its own list scrolls below.
 assert '.work-summary-detail-header' in style, 'customer detail header must have an explicit geometry owner'
 assert 'position:sticky' in compact_style, 'customer name/summary header must stay pinned'
 assert 'overflow:auto' in compact_style, 'work item list must keep its own scrolling region'
 
-print('Mobile hierarchy swipe + compact account menu + pinned Work header contract PASS')
+print('Mobile hierarchy swipe + compact account menu + directory rhythm + pinned Work header contract PASS')
