@@ -40,8 +40,8 @@ assert '#appShell[data-auth-state="authenticated"][data-desktop-workspace="true"
 # adds Công việc only when there is enough room for a useful chat column.
 assert "DESKTOP_DIRECTORY_QUERY='(min-width: 64rem)" in SHELL, 'fine-pointer desktop should enter 2-column mode from 64rem'
 assert "DESKTOP_WORKSPACE_QUERY='(min-width: 80rem)" in SHELL, '3-column workspace must wait until 80rem'
-assert '@media (min-width:64rem)' in SOURCE.replace(' ', ''), 'persistent directory CSS must match the 64rem runtime breakpoint'
-assert '@media (min-width:80rem)' in SOURCE.replace(' ', ''), 'three-column CSS must match the 80rem runtime breakpoint'
+assert '@media(min-width:64rem)' in SOURCE.replace(' ', ''), 'persistent directory CSS must match the 64rem runtime breakpoint'
+assert '@media(min-width:80rem)' in SOURCE.replace(' ', ''), 'three-column CSS must match the 80rem runtime breakpoint'
 assert "--desktop-directory-width:clamp(300px,26vw,340px)" in SOURCE
 assert "--desktop-chat-width:clamp(520px,40vw,640px)" in SOURCE, 'wide desktop chat column must no longer collapse to ~420px'
 assert "--desktop-work-width:calc(100% - var(--desktop-chat-width))" in SOURCE
