@@ -122,3 +122,4 @@ jobs:
           git add work-customer-summary.js index.html version.json
           git commit -m 'fix: restore mobile guest login access'
           git push
+# rerun after behavior-level assertion correction
