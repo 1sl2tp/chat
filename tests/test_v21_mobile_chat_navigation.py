@@ -55,7 +55,8 @@ assert 'data-mobile-account-menu' in style, 'compact mobile account menu needs i
 assert "snapshot().state!=='AUTHENTICATED'" in compact_client or "snapshot().state!==\"AUTHENTICATED\"" in compact_client, 'mobile directory must be gated to authenticated sessions'
 assert 'AuthUI?.openLogin?.()' in client or 'AuthUI.openLogin' in client, 'guest hamburger/auth transition must expose the existing login form'
 assert "hideMobileDirectory('guest-auth')" in client, 'guest auth state must remove the directory overlay before showing login'
-assert "snapshot().state==='AUTHENTICATED'" in compact_client or "snapshot().state===\"AUTHENTICATED\"" in compact_client, 'boot/default directory must only open after authentication'
+assert ("auth.state==='AUTHENTICATED'" in compact_client or "auth.state===\"AUTHENTICATED\"" in compact_client or
+        "snapshot().state==='AUTHENTICATED'" in compact_client or "snapshot().state===\"AUTHENTICATED\"" in compact_client), 'boot/default directory must only open after authentication'
 
 # Danh bạ is a full Trò chuyện screen on mobile, not a narrow popup/drawer, and account footer is not part of it.
 assert 'dataset.mobileDirectory' in client, 'runtime must own explicit mobile directory screen state'
