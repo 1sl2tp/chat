@@ -71,7 +71,7 @@ test('syncApiGroups resolves group ids, filters exact Vietnamese group name and 
     return {ok:true,count:rows.length};
   };
   const result=await syncApiGroups({api,sync,filter:'Báo giá Tùng 0911479555'});
-  assert.deepEqual(result,{ok:true,count:1,matched:1,names:['Báo giá Tùng 0911479555']});
+  assert.deepEqual(result,{ok:true,count:1,total:2,matched:1,names:['Báo giá Tùng 0911479555']});
   assert.deepEqual(calls,[
     'groups',
     ['info',['g1','g2']],

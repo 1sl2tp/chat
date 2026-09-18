@@ -72,15 +72,6 @@ export async function syncApiGroups({api,sync,filter}){
     matches=groups.filter(group=>normalizeSearch(group?.name).includes(wanted));
   }
 
-  const candidateNames=groups
-    .map(group=>String(group?.name||'').trim())
-    .filter(Boolean)
-    .filter(name=>{
-      const key=normalizeSearch(name);
-      return key.includes('0911')||key.includes('tung')||key.includes('baogia');
-    })
-    .slice(0,30);
-
   const rows=matches.map(group=>({
     groupId:String(group?.groupId||'').trim(),
     name:String(group?.name||'').trim(),
@@ -89,5 +80,5 @@ export async function syncApiGroups({api,sync,filter}){
   })).filter(row=>row.groupId&&row.name);
 
   const result=await sync(rows);
-  return {...result,total:groups.length,matched:rows.length,names:rows.map(row=>row.name),candidates:candidateNames};
+  return {...result,total:groups.length,matched:rows.length,names:rows.map(row=>row.name)};
 }
