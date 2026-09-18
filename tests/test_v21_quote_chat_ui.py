@@ -4,16 +4,19 @@ import subprocess
 ROOT = Path(__file__).resolve().parents[1]
 CLIENT = ROOT / "quote-client.js"
 ACTIONS = ROOT / "admin-composer-actions.js"
+ACTIONS_CSS = ROOT / "admin-composer-actions.css"
 CALL_CLIENT = ROOT / "call-invite-client.js"
 DIRECTORY = ROOT / "contact-directory-admin.js"
 
 assert CLIENT.exists(), "quotation UI/client module must exist"
 assert CALL_CLIENT.exists(), "call invite client module must exist"
 assert ACTIONS.exists(), "Admin composer actions module must exist"
+assert ACTIONS_CSS.exists(), "Admin composer actions stylesheet must exist"
 assert DIRECTORY.exists(), "contact directory admin module must exist"
 
 quote = CLIENT.read_text(encoding="utf-8")
 actions = ACTIONS.read_text(encoding="utf-8")
+actions_css = ACTIONS_CSS.read_text(encoding="utf-8")
 call = CALL_CLIENT.read_text(encoding="utf-8")
 directory = DIRECTORY.read_text(encoding="utf-8")
 low = actions.lower()
@@ -65,7 +68,7 @@ assert "queuetext" not in quote_low
 assert "sendquotelink" not in quote_low
 assert "queuetext" in low or "v21messagestore" in low
 assert "contactid" in low
-quote_overlay_css = low.split(".admin-composer-quote-overlay", 1)[1].split("}", 1)[0]
+quote_overlay_css = actions_css.lower().split(".admin-composer-quote-overlay", 1)[1].split("}", 1)[0]
 assert "pointer-events:auto" in quote_overlay_css
 assert "v21interactioncontroller" in low
 assert "enter?.(" in compact and "lockbaseui:true" in compact
