@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="a3b03292795c916c72775a1fefc587558b4e85c941ab43bb81f9ec9a11778210">
+<meta name="app-build-id" content="4d2eae8d088e0b172e19f04c6a9c034f2ac0210be7400bae2b65d84050f7852b">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -4386,6 +4386,54 @@ window.P2PVisualReference=Object.freeze({icons,getIcon,iconMarkup});
 })();
 
 </script>
+<script data-inlined-source="ui-icons.js">
+(()=>{
+'use strict';
+
+function escAttr(value){
+  return String(value).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+const CUSTOM=Object.freeze({
+  forward:Object.freeze({viewBox:'0 0 20 20',stroke:1.55,body:'<path d="M11.75 5.25 16.25 9.75l-4.5 4.5"></path><path d="M15.75 9.75h-6.1c-3.65 0-5.9 1.85-5.9 5"></path>'}),
+  save:Object.freeze({viewBox:'0 0 20 20',stroke:1.55,body:'<path d="M10 2.75v9.1"></path><path d="m6.8 8.8 3.2 3.2 3.2-3.2"></path><path d="M4 13.25v1.15A2.6 2.6 0 0 0 6.6 17h6.8a2.6 2.6 0 0 0 2.6-2.6v-1.15"></path>'}),
+  close:Object.freeze({viewBox:'0 0 24 24',stroke:2,body:'<path d="M6.5 6.5 17.5 17.5M17.5 6.5 6.5 17.5"></path>'}),
+  'chevron-left':Object.freeze({viewBox:'0 0 24 24',stroke:2.1,body:'<path d="m14.5 6-6 6 6 6"></path>'}),
+  'chevron-right':Object.freeze({viewBox:'0 0 24 24',stroke:2.1,body:'<path d="m9.5 6 6 6-6 6"></path>'}),
+  quote:Object.freeze({viewBox:'0 0 24 24',stroke:1.6,body:'<path d="M5 4h14v16H5z"></path><path d="M8 8h8M8 12h8M8 16h5"></path>'}),
+  call:Object.freeze({viewBox:'0 0 24 24',stroke:1.6,body:'<path d="M7.2 4.5 10 8l-1.8 2.2c1.2 2.5 3.1 4.4 5.6 5.6L16 14l3.5 2.8-.9 2.7c-.3.8-1.1 1.3-2 1.2C9.4 19.8 4.2 14.6 3.3 7.4c-.1-.9.4-1.7 1.2-2l2.7-.9Z"></path>'})
+});
+
+function customMarkup(name,{size=20}={}){
+  const spec=CUSTOM[name];
+  if(!spec)return '';
+  const px=Math.max(12,Math.min(32,Number(size)||20));
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="'+escAttr(px)+'" height="'+escAttr(px)+'" viewBox="'+escAttr(spec.viewBox)+'" focusable="false" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="'+escAttr(spec.stroke)+'" stroke-linecap="round" stroke-linejoin="round">'+spec.body+'</svg>';
+}
+
+function markup(name,options={}){
+  const key=String(name||'');
+  const size=Number(options.size)||20;
+  const chatgpt=window.ChatGPTVisualReference;
+  const p2p=window.P2PVisualReference;
+  if(key==='copy')return chatgpt?.iconMarkup?.('copy-user',{width:size,height:size})||'';
+  if(key==='share')return chatgpt?.iconMarkup?.('share',{width:size,height:size})||'';
+  if(key==='reply'||key==='important')return p2p?.iconMarkup?.(key)||'';
+  return customMarkup(key,{size});
+}
+
+function node(name,options={}){
+  const html=markup(name,options);
+  if(!html)return null;
+  const holder=document.createElement('span');
+  holder.innerHTML=html;
+  return holder.firstElementChild;
+}
+
+window.V21Icons=Object.freeze({markup,node});
+})();
+
+</script>
 <script data-inlined-source="conversation-core.js">
 (function(root,factory){
   const api=factory();
@@ -5139,6 +5187,7 @@ const {
 
 const ChatGPTRef=window.ChatGPTVisualReference;
 const P2PRef=window.P2PVisualReference;
+const Icons=window.V21Icons;
 const MESSAGE_FEATURES=Object.freeze({
   reply:true,
   important:false
@@ -6660,22 +6709,7 @@ let imageViewerTimeMenuPanel=null;
 const imageViewerOwnedUrls=new Map();
 
 function viewerIconSvg(name){
-  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
-  svg.setAttribute('viewBox','0 0 24 24');
-  svg.setAttribute('aria-hidden','true');
-  svg.setAttribute('focusable','false');
-  svg.setAttribute('fill','none');
-  svg.setAttribute('stroke','currentColor');
-  svg.setAttribute('stroke-width','2.25');
-  svg.setAttribute('stroke-linecap','round');
-  svg.setAttribute('stroke-linejoin','round');
-  const path=document.createElementNS('http://www.w3.org/2000/svg','path');
-  if(name==='close')path.setAttribute('d','M6.5 6.5 17.5 17.5M17.5 6.5 6.5 17.5');
-  else if(name==='chevron-left')path.setAttribute('d','m14.5 6-6 6 6 6');
-  else if(name==='chevron-right')path.setAttribute('d','m9.5 6 6 6-6 6');
-  else return svg;
-  svg.appendChild(path);
-  return svg;
+  return Icons?.node?.(name,{size:24})||document.createElement('span');
 }
 
 function mediaViewerItem(media,previewUrl='',createdAt=Date.now(),context={}){
@@ -8452,22 +8486,7 @@ window.addEventListener('pagehide',()=>{
 });
 
 function iconSvg(name){
-  if(name==='copy'){
-    return ChatGPTRef?.iconMarkup('copy-user')||'';
-  }
-  if(name==='share'){
-    return ChatGPTRef?.iconMarkup('share')||'';
-  }
-  if(name==='save'){
-    return ChatGPTRef?.iconMarkup('scroll-down')||'';
-  }
-  if(name==='forward'){
-    return '<svg viewBox="0 0 20 20" width="20" height="20" focusable="false" aria-hidden="true"><path d="M11.75 5.25 16.25 9.75l-4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"></path><path d="M15.75 9.75h-6.1c-3.65 0-5.9 1.85-5.9 5" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round"></path></svg>';
-  }
-  if(name==='reply' || name==='important'){
-    return P2PRef?.iconMarkup(name)||'';
-  }
-  return '';
+  return Icons?.markup?.(name,{size:20})||'';
 }
 
 function makeActionButton({
@@ -16605,7 +16624,7 @@ async function openAccountAdmin(){
   accountModal.innerHTML=`
     <button type="button" class="zalo-account-backdrop" aria-label="Đóng"></button>
     <section class="zalo-account-card" role="dialog" aria-modal="true" aria-labelledby="zalo-account-title">
-      <header class="zalo-account-modal-head"><div><h2 id="zalo-account-title">Cài đặt tài khoản</h2><p>Zalo · Thông báo · Thiết bị</p></div><button type="button" class="zalo-account-close" aria-label="Đóng">×</button></header>
+      <header class="zalo-account-modal-head"><div><h2 id="zalo-account-title">Cài đặt tài khoản</h2><p>Zalo · Thông báo · Thiết bị</p></div><button type="button" class="zalo-account-close" aria-label="Đóng"></button></header>
       <div class="zalo-account-notification" data-admin-push-setting>
         <span class="zalo-account-notification-copy"><strong>Thông báo</strong><small data-admin-push-status>Bật thông báo</small></span>
         <button type="button" class="zalo-account-notification-action" data-admin-push-action data-mode="enable">Bật thông báo</button>
@@ -16620,6 +16639,8 @@ async function openAccountAdmin(){
       <div class="zalo-account-submodal" data-zalo-account-panel></div>
     </section>`;
   host.appendChild(accountModal);
+  const modalClose=accountModal.querySelector('.zalo-account-close');
+  if(modalClose)modalClose.innerHTML=window.V21Icons?.markup?.('close',{size:20})||'×';
   accountModal.querySelector('.zalo-account-backdrop').addEventListener('click',closeAccountAdmin);
   accountModal.querySelector('.zalo-account-close').addEventListener('click',closeAccountAdmin);
   const pushAction=accountModal.querySelector('[data-admin-push-action]');
