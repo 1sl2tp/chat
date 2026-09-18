@@ -84,6 +84,17 @@ async function activeSources(){
     .filter((row:any)=>row.source_key);
 }
 
+async function pricedSourceKeys(){
+  const result=await db.from("taphoa_products")
+    .select('source_key')
+    .eq("is_active",true)
+    .eq("sync_status","active")
+    .is("deleted_at",null)
+    .gt('sale_price_vnd',0);
+  if(result.error)throw result.error;
+  return new Set((result.data||[]).map((row:any)=>clean(row?.source_key,100)).filter(Boolean));
+}
+
 async function createQuote(req:Request){
   const admin=await requireAdmin(req);
   if(admin.error)return admin.error;
@@ -92,7 +103,11 @@ async function createQuote(req:Request){
   try{body=await req.json();}catch{return json({ok:false,error:'invalid_json'},400);}
 
   let sources;
-  try{sources=await activeSources();}catch{return json({ok:false,error:'source_lookup_failed'},500);}
+  try{
+    const active=await activeSources();
+    const priced=await pricedSourceKeys();
+    sources=active.filter((row:any)=>priced.has(row.source_key));
+  }catch{return json({ok:false,error:'source_lookup_failed'},500);}
   if(clean(body?.action,40)==='sources')return json({ok:true,sources});
 
   const scope=clean(body?.scope,20);
