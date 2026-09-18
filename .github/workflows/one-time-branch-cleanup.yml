@@ -1,0 +1,33 @@
+name: One-time branch cleanup
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    if: github.repository == '1sl2tp/chat'
+    steps:
+      - name: Delete every branch except main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          remote="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          mapfile -t branches < <(
+            git ls-remote --heads "$remote" |
+            awk '{print $2}' |
+            sed 's#^refs/heads/##' |
+            grep -vx 'main' || true
+          )
+          echo "Found ${#branches[@]} branches to delete."
+          for branch in "${branches[@]}"; do
+            echo "Deleting: $branch"
+            git push "$remote" --delete "$branch"
+          done
+          echo "Cleanup complete."
