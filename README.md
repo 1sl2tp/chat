@@ -41,6 +41,7 @@ Keep each runtime concern with one owner:
 - **Conversation rendering and composer orchestration** → `app.js`. New standalone features should be separate modules instead of adding another large block here.
 - **Message state** → `v21-message-store.js`.
 - **Send / sync / retry / media forwarding** → `v21-sync-engine.js`.
+- **Message forward UI / destination picker** → `message-forward.js`; it calls `v21-sync-engine.js` for the actual send/copy operation.
 - **Realtime conversation delivery** → `v21-realtime-session.js`.
 - **Media cache** → `v21-media-cache.js`.
 - **Work / customer summary UI** → `work-customer-summary.js`; scanner results arrive through Admin-only Realtime, with the 60-second refresh only as fallback.
