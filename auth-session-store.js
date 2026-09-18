@@ -18,6 +18,7 @@ let deviceId=null;
 let heartbeatId=0;
 let busy=false;
 let handlingRevoke=false;
+let lastBootstrapError='';
 
 function normalizeUsername(value){
   return String(value??'').trim().replace(/^@/,'').toLowerCase();
@@ -60,6 +61,7 @@ function mapError(error,fallback='unknown'){
   if(raw.includes('invalid login credentials')||raw.includes('invalid_credentials'))return 'invalid_credentials';
   if(raw.includes('username_taken')||raw.includes('already registered')||raw.includes('already_registered'))return 'account_exists';
   if(raw.includes('invalid_password')||raw.includes('password'))return 'weak_password';
+  if(raw.includes('device_approval_required'))return 'device_approval_required';
   if(raw.includes('session_revoked')||raw.includes('account_locked'))return 'session_revoked';
   if(raw.includes('account_not_registered'))return 'invalid_credentials';
   return fallback;
@@ -349,14 +351,24 @@ const AccountProfileStore={
 
 async function bootstrap(){
   if(!client)return false;
+  lastBootstrapError='';
   const {data:{session}}=await client.auth.getSession();
   if(!session){renderGuest();return false;}
   const {data,error}=await client.rpc('v21_auth_bootstrap',{
     p_device_key:getDeviceKey(),p_label:deviceLabel(),p_platform:platformLabel()
   });
   if(error){
+    lastBootstrapError=mapError(error,'invalid_credentials');
     await client.auth.signOut({scope:'local'}).catch(()=>{});
     renderGuest();
+    authUI()?.setError?.(lastBootstrapError);
+    return false;
+  }
+  if(data?.device_approval_required||String(data?.session?.status||'')==='approval_required'){
+    lastBootstrapError='device_approval_required';
+    await client.auth.signOut({scope:'local'}).catch(()=>{});
+    renderGuest();
+    authUI()?.setError?.(lastBootstrapError);
     return false;
   }
   renderAuthenticated(data);
@@ -372,7 +384,7 @@ async function login({account:username,password}){
     const {error}=await client.auth.signInWithPassword({email:`${user}@taphoa.chat`,password:String(password??'')});
     if(error)throw error;
     const ok=await bootstrap();
-    if(!ok)throw new Error('invalid_credentials');
+    if(!ok)throw new Error(lastBootstrapError||'invalid_credentials');
     return true;
   }catch(error){
     authUI()?.setError(mapError(error,'invalid_credentials'));
@@ -399,7 +411,7 @@ async function register({name,account:username,password}){
     const {error}=await client.auth.signInWithPassword({email:`${user}@taphoa.chat`,password:String(password??'')});
     if(error)throw error;
     const ok=await bootstrap();
-    if(!ok)throw new Error('registration_failed');
+    if(!ok)throw new Error(lastBootstrapError||'registration_failed');
     return true;
   }catch(error){
     authUI()?.setError(mapError(error,'registration_failed'));

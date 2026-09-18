@@ -2208,6 +2208,15 @@ button{
 .shell-form-password-toggle:hover{background:var(--theme-surface-secondary)}
 .shell-form-password-toggle:focus-visible{outline:2px solid var(--guest-auth-focus);outline-offset:1px}
 .shell-form-password-toggle svg{display:block}
+.guest-auth-status{
+  margin:0;
+  padding:0 4px;
+  color:var(--theme-content-secondary,#666);
+  font-size:.9rem;
+  line-height:1.35rem;
+  text-align:center;
+}
+.guest-auth-status[hidden]{display:none}
 .guest-auth-primary{
   width:100%;
   min-width:0;
@@ -3139,6 +3148,7 @@ button{
                     <label class="guest-auth-field-label" for="guest-auth-password">Mật khẩu</label>
                     <button class="shell-form-password-toggle" type="button" data-password-toggle aria-controls="guest-auth-password" aria-label="Hiện mật khẩu" aria-pressed="false"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M2.75 12s3.35-5.25 9.25-5.25S21.25 12 21.25 12 17.9 17.25 12 17.25 2.75 12 2.75 12Z" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linejoin="round"/><circle cx="12" cy="12" r="2.6" fill="none" stroke="currentColor" stroke-width="1.65"/></svg></button>
                   </div>
+                  <p class="guest-auth-status" data-auth-status role="status" aria-live="polite" hidden></p>
                   <button class="wm-button wm-button--medium wm-button--primary wm-button--radius-full guest-auth-primary" type="submit"><span class="wm-button__label" data-auth-primary-label>Tiếp tục</span></button>
                   <div class="guest-auth-switch-row">
                     <span data-auth-switch-prefix>Bạn chưa có tài khoản? Hãy</span>

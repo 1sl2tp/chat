@@ -5,6 +5,7 @@ const MODULE_VERSION='V21.73.0';
 const mounted=new WeakSet();
 let accountModal=null;
 let accountSnapshot={accounts:[],contacts:[],links:[]};
+let deviceSnapshot=[];
 let accountBusy=false;
 
 function authStore(){return window.V21AuthSessionStore||null;}
@@ -517,7 +518,135 @@ function closeAccountAdmin(){
   accountModal?.remove?.();
   accountModal=null;
   accountSnapshot={accounts:[],contacts:[],links:[]};
+  deviceSnapshot=[];
   accountBusy=false;
+}
+
+function deviceStatusText(device){
+  const status=String(device?.status||'');
+  if(device?.current_device)return'Thiết bị này · đang hoạt động';
+  if(status==='pending')return'Chờ duyệt';
+  if(status==='revoked')return'Đã thu hồi';
+  if(Number(device?.active_sessions)>0)return'Đã duyệt · đang hoạt động';
+  return'Đã duyệt';
+}
+
+function formatDeviceSeen(value){
+  if(!value)return'';
+  const date=new Date(value);
+  if(Number.isNaN(date.getTime()))return'';
+  return date.toLocaleString('vi-VN',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+}
+
+function paintAdminDeviceSetting(){
+  if(!accountModal)return;
+  const status=accountModal.querySelector('[data-admin-device-status]');
+  if(!status)return;
+  const pending=deviceSnapshot.filter(item=>item?.status==='pending').length;
+  const active=deviceSnapshot.filter(item=>Number(item?.active_sessions)>0).length;
+  status.textContent=pending>0
+    ?`${pending} thiết bị chờ duyệt · ${active} đang hoạt động`
+    :`${deviceSnapshot.length} thiết bị đã đăng ký · ${active} đang hoạt động`;
+}
+
+async function refreshAdminDevices(){
+  const client=authStore()?.getClient?.();
+  const snap=authStore()?.snapshot?.()||{};
+  if(!client||!currentAdmin()||!snap.appSessionId)throw new Error('admin_required');
+  const {data,error}=await client.rpc('v21_admin_devices_list',{p_app_session_id:String(snap.appSessionId)});
+  if(error)throw error;
+  deviceSnapshot=Array.isArray(data)?data:[];
+  paintAdminDeviceSetting();
+  return deviceSnapshot;
+}
+
+async function runDeviceAction(device,action){
+  const client=authStore()?.getClient?.();
+  const snap=authStore()?.snapshot?.()||{};
+  if(!client||!snap.appSessionId||!device?.id)throw new Error('admin_required');
+  const rpc=action==='revoke'?'v21_admin_device_revoke':'v21_admin_device_approve';
+  const {error}=await client.rpc(rpc,{
+    p_app_session_id:String(snap.appSessionId),
+    p_device_id:String(device.id)
+  });
+  if(error)throw error;
+  await refreshAdminDevices();
+  return true;
+}
+
+function openDevicePanel(){
+  if(!accountModal)return;
+  const panel=accountModal.querySelector('[data-zalo-account-panel]');
+  panel.replaceChildren();
+  const box=document.createElement('section');
+  box.className='zalo-account-panel';
+  box.innerHTML='<div class="zalo-account-panel-head"><strong>Thiết bị Admin</strong><button type="button" data-close>Đóng</button></div><div class="zalo-account-picker-list" data-device-list></div><p class="zalo-account-error" data-device-error hidden></p>';
+  panel.appendChild(box);
+  box.querySelector('[data-close]').addEventListener('click',closeAccountPanel);
+  const list=box.querySelector('[data-device-list]');
+  const errorNode=box.querySelector('[data-device-error]');
+
+  const paint=()=>{
+    list.replaceChildren();
+    for(const device of deviceSnapshot){
+      const row=document.createElement('div');
+      row.className='zalo-account-row';
+      const copy=document.createElement('div');
+      copy.className='zalo-account-person-copy';
+      const name=document.createElement('strong');
+      name.textContent=String(device?.label||'Thiết bị');
+      const meta=document.createElement('small');
+      const seen=formatDeviceSeen(device?.last_seen_at);
+      meta.textContent=`${deviceStatusText(device)}${seen?` · ${seen}`:''}`;
+      copy.append(name,meta);
+
+      const relation=document.createElement('div');
+      relation.className='zalo-account-relation';
+      const platform=document.createElement('span');
+      platform.className='zalo-account-person-copy';
+      platform.innerHTML='<strong></strong><small></small>';
+      platform.querySelector('strong').textContent=String(device?.platform||'web');
+      platform.querySelector('small').textContent=String(device?.status||'approved')==='pending'?'Chưa được phép đăng nhập':'';
+      relation.appendChild(platform);
+
+      const actions=document.createElement('div');
+      actions.className='zalo-account-row-actions';
+      if(!device?.current_device){
+        const button=document.createElement('button');
+        button.type='button';
+        button.className='zalo-account-action';
+        const needsApprove=String(device?.status||'')!=='approved';
+        button.textContent=needsApprove?'Duyệt':'Thu hồi';
+        if(!needsApprove)button.classList.add('zalo-account-action-danger');
+        button.addEventListener('click',async()=>{
+          if(accountBusy)return;
+          setAccountBusy(true);
+          errorNode.hidden=true;
+          try{
+            await runDeviceAction(device,needsApprove?'approve':'revoke');
+            paint();
+          }catch(error){
+            errorNode.textContent=String(error?.message||'Không thể cập nhật thiết bị');
+            errorNode.hidden=false;
+          }finally{setAccountBusy(false);}
+        });
+        actions.appendChild(button);
+      }
+      row.append(copy,relation,actions);
+      list.appendChild(row);
+    }
+    if(!list.childElementCount){
+      const empty=document.createElement('p');
+      empty.className='zalo-account-empty';
+      empty.textContent='Chưa có thiết bị';
+      list.appendChild(empty);
+    }
+  };
+
+  void refreshAdminDevices().then(paint).catch(error=>{
+    errorNode.textContent=String(error?.message||'Không thể tải thiết bị');
+    errorNode.hidden=false;
+  });
 }
 
 function adminPushView(snapshot={}){
@@ -590,6 +719,10 @@ async function openAccountAdmin(){
         <span class="zalo-account-notification-copy"><strong>Thông báo</strong><small data-admin-push-status>Bật thông báo</small></span>
         <button type="button" class="zalo-account-notification-action" data-admin-push-action data-mode="enable">Bật thông báo</button>
       </div>
+      <div class="zalo-account-notification" data-admin-device-setting>
+        <span class="zalo-account-notification-copy"><strong>Thiết bị</strong><small data-admin-device-status>Đang tải thiết bị…</small></span>
+        <button type="button" class="zalo-account-notification-action" data-admin-device-open>Quản lý</button>
+      </div>
       <label class="zalo-account-search"><span class="sr-only">Tìm tài khoản</span><input type="search" autocomplete="off" inputmode="search" placeholder="Tìm tên Chat, @username hoặc Zalo" data-zalo-account-search></label>
       <p class="zalo-account-error" data-zalo-account-error hidden></p>
       <div class="zalo-account-list" data-zalo-account-list></div>
@@ -600,6 +733,8 @@ async function openAccountAdmin(){
   accountModal.querySelector('.zalo-account-close').addEventListener('click',closeAccountAdmin);
   const pushAction=accountModal.querySelector('[data-admin-push-action]');
   pushAction?.addEventListener('click',()=>void runAdminPushAction(pushAction));
+  const deviceAction=accountModal.querySelector('[data-admin-device-open]');
+  deviceAction?.addEventListener('click',openDevicePanel);
   const search=accountModal.querySelector('[data-zalo-account-search]');
   search?.addEventListener('input',()=>{
     renderAccountRows();
@@ -607,6 +742,7 @@ async function openAccountAdmin(){
     if(list)list.scrollTop=0;
   });
   void refreshAdminPushSetting();
+  void refreshAdminDevices().catch(()=>{paintAdminDeviceSetting();});
   const submodal=accountModal.querySelector('[data-zalo-account-panel]');
   submodal.addEventListener('click',event=>{if(event.target===submodal)closeAccountPanel();});
   setAccountBusy(true);

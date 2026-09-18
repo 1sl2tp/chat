@@ -730,7 +730,11 @@ function clearFieldInvalid(name){
 function setFieldInvalid(name){
   authField(name)?.setAttribute('aria-invalid','true');
 }
-function clearAuthErrors(){['name','account','password'].forEach(clearFieldInvalid)}
+function clearAuthErrors(){
+  ['name','account','password'].forEach(clearFieldInvalid);
+  const status=document.querySelector('[data-auth-status]');
+  if(status){status.textContent='';status.hidden=true;}
+}
 
 
 function initialsFor(value,fallback='TK'){
@@ -1254,6 +1258,14 @@ const AuthUI={
   },
   setError(code){
     clearAuthErrors();
+    if(code==='device_approval_required'){
+      const status=document.querySelector('[data-auth-status]');
+      if(status){
+        status.textContent='Thiết bị này đang chờ Admin duyệt. Sau khi được duyệt, hãy đăng nhập lại.';
+        status.hidden=false;
+      }
+      return;
+    }
     if(code==='invalid_credentials'){
       setFieldInvalid('account');
       setFieldInvalid('password');
