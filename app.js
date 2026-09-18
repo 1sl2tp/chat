@@ -5460,14 +5460,23 @@ if(cameraActionButton){
   cameraActionButton.hidden=RuntimeProfile.pickerMode!=='app-3';
 }
 
+function hasAppOwnedComposerActions(){
+  const section=actionMenu.querySelector('[data-admin-composer-section]');
+  return Boolean(
+    section &&
+    !section.hidden &&
+    section.querySelector('button:not([disabled])')
+  );
+}
+
 plusButton.addEventListener('click',event=>{
   event.preventDefault();
   event.stopPropagation();
 
-  // iOS already provides one native source sheet (Camera / Photo Library /
-  // Files). Showing the app menu first duplicates the same decision and may
-  // place choices under Safari's bottom address bar.
-  if(RuntimeProfile.pickerMode==='ios-native'){
+  // iOS may open its native source sheet directly only when there are no
+  // app-owned chat actions. Admin conversations must keep the app menu so
+  // Báo giá / Link gọi / Thông tin đăng nhập stay reachable.
+  if(RuntimeProfile.pickerMode==='ios-native'&&!hasAppOwnedComposerActions()){
     if(document.activeElement===editor)editor.blur();
     setComposerActionMenuOpen(false);
     const opened=openNativeFilePicker(uploadIOSSourceInput);
@@ -5475,8 +5484,6 @@ plusButton.addEventListener('click',event=>{
     return;
   }
 
-  // Android keeps the explicit 3-item app menu because its generic input may
-  // expose Camera/Camcorder/Files. Desktop keeps only Image/File.
   toggleComposerActionMenu();
 });
 
