@@ -64,14 +64,14 @@ test('media ingress posts multipart binary and canonical metadata through the sa
   assert.equal(file.name,'zalo-image.jpg');
 });
 
-test('outbound due and result use one protected endpoint and preserve media metadata',async()=>{
+test('outbound due preserves thread type and media metadata',async()=>{
   const calls=[];
   const gateway=createMessageGateway({
     endpoint:'https://example.test/functions/v1/v21-zalo-bridge',
     bridgeToken:'secret',
     fetchImpl:fakeFetch(calls,[
       {ok:true,status:200,body:{ok:true,rows:[{
-        delivery_id:'d1',zalo_id:'z1',body:'reply',
+        delivery_id:'d1',zalo_id:'g1',thread_type:'group',body:'reply',
         media:[{kind:'file',signed_url:'https://storage.test/file',file_name:'a.pdf',mime_type:'application/pdf',size_bytes:10,sort_index:0}]
       }]}},
       {ok:true,status:200,body:{ok:true}},
@@ -79,7 +79,7 @@ test('outbound due and result use one protected endpoint and preserve media meta
   });
   const rows=await gateway.listOutbound(20);
   assert.deepEqual(rows,[{
-    deliveryId:'d1',zaloId:'z1',text:'reply',
+    deliveryId:'d1',zaloId:'g1',threadType:'group',text:'reply',
     media:[{kind:'file',signedUrl:'https://storage.test/file',fileName:'a.pdf',mimeType:'application/pdf',sizeBytes:10,widthPx:null,heightPx:null,sortIndex:0}]
   }]);
   await gateway.markOutboundResult({deliveryId:'d1',ok:true,zaloMessageId:'99'});

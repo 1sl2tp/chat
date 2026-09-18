@@ -55,7 +55,7 @@ async function loadAdminSnapshot(admin: ReturnType<typeof createClient>) {
       .is("deleted_at", null)
       .order("display_name", { ascending: true }),
     admin.from("zalo_contacts")
-      .select("zalo_id,display_name,avatar_url,last_seen_at")
+      .select("zalo_id,display_name,avatar_url,last_seen_at,thread_type")
       .order("display_name", { ascending: true }),
     admin.from("zalo_user_links")
       .select("chat_account_id,zalo_id,linked_by_account_id,linked_at,updated_at")

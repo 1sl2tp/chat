@@ -11,13 +11,15 @@ test('server forwards normalized incoming Zalo text and media to message gateway
   assert.match(source,/messageGateway\.ingestMedia/);
 });
 
-test('server polls pending Chat text or media and sends it to direct-user Zalo',async()=>{
+test('server syncs the configured Zalo group and routes outbound by user/group thread type',async()=>{
   const source=await fs.readFile(new URL('../src/server.mjs',import.meta.url),'utf8');
-  assert.match(source,/ThreadType/);
+  assert.match(source,/ZALO_GROUP_FILTER/);
+  assert.match(source,/syncApiGroups/);
+  assert.match(source,/ThreadType\.Group/);
+  assert.match(source,/ThreadType\.User/);
   assert.match(source,/messageGateway\.listOutbound/);
   assert.match(source,/buildOutboundMessage/);
   assert.match(source,/api\.sendMessage/);
-  assert.match(source,/ThreadType\.User/);
   assert.match(source,/messageGateway\.markOutboundResult/);
   assert.match(source,/setInterval/);
 });

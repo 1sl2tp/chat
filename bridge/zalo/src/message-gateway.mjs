@@ -85,6 +85,7 @@ export function createMessageGateway({endpoint,bridgeToken,fetchImpl=fetch}={}){
         return{
           deliveryId:String(row?.delivery_id||''),
           zaloId:String(row?.zalo_id||''),
+          threadType:String(row?.thread_type||'user').toLowerCase()==='group'?'group':'user',
           text:String(row?.body||''),
           ...(media.length?{media}:{}),
         };

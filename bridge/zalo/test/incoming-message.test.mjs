@@ -20,6 +20,21 @@ test('normalizes new direct-user text from zca listener',()=>{
   });
 });
 
+test('normalizes group text using the group thread id as the external endpoint id',()=>{
+  const event=normalizeIncomingMessage({
+    type:GROUP,
+    isSelf:false,
+    threadId:'zalo-group-1',
+    data:{msgId:'group-msg-1',msgType:'webchat',ts:'1789105000000',content:' báo giá mới '}
+  });
+  assert.deepEqual(event,{
+    zaloId:'zalo-group-1',
+    messageId:'group-msg-1',
+    text:'báo giá mới',
+    eventAt:'2026-09-11T05:36:40.000Z'
+  });
+});
+
 test('normalizes inbound Zalo photo into canonical media metadata',()=>{
   const event=normalizeIncomingMessage({
     type:USER,
@@ -89,20 +104,19 @@ test('normalizes JSON-string share.file and prefers fileUrl for download',()=>{
   });
 });
 
-test('ignores self, group and unsupported non-text messages',()=>{
+test('ignores self and unsupported non-text messages',()=>{
   assert.equal(normalizeIncomingMessage({type:USER,isSelf:true,threadId:'z1',data:{msgId:'m1',msgType:'webchat',ts:'1',content:'x'}}),null);
-  assert.equal(normalizeIncomingMessage({type:GROUP,isSelf:false,threadId:'g1',data:{msgId:'m2',msgType:'webchat',ts:'1',content:'x'}}),null);
   assert.equal(normalizeIncomingMessage({type:USER,isSelf:false,threadId:'z1',data:{msgId:'m3',msgType:'chat.sticker',ts:'1',content:{type:'sticker'}}}),null);
 });
 
-test('binds message listener and forwards only normalized events',async()=>{
+test('binds message listener and forwards normalized user and group events',async()=>{
   let messageHandler=null;
   const api={listener:{on(name,handler){assert.equal(name,'message');messageHandler=handler;}}};
   const seen=[];
   const unbind=bindIncomingMessageListener({api,onMessage:event=>{seen.push(event);}});
   assert.equal(typeof messageHandler,'function');
   await messageHandler({type:USER,isSelf:false,threadId:'z2',data:{msgId:'m9',msgType:'webchat',ts:'1789105000000',content:'hello'}});
-  assert.equal(seen.length,1);
-  assert.equal(seen[0].zaloId,'z2');
+  await messageHandler({type:GROUP,isSelf:false,threadId:'g2',data:{msgId:'g9',msgType:'webchat',ts:'1789105000000',content:'group hello'}});
+  assert.deepEqual(seen.map(event=>event.zaloId),['z2','g2']);
   assert.equal(typeof unbind,'function');
 });

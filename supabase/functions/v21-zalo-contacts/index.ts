@@ -15,7 +15,8 @@ async function sha256Hex(value: string) {
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-type Contact = { zalo_id: string; display_name: string; avatar_url: string | null };
+type ThreadType = "user" | "group";
+type Contact = { zalo_id: string; display_name: string; avatar_url: string | null; thread_type: ThreadType };
 
 function normalizeContacts(value: unknown): Contact[] | null {
   if (!Array.isArray(value) || value.length > 5000) return null;
@@ -26,8 +27,14 @@ function normalizeContacts(value: unknown): Contact[] | null {
     const zaloId = String(input.zalo_id ?? "").trim();
     const displayName = String(input.display_name ?? "").trim();
     const avatarRaw = String(input.avatar_url ?? "").trim();
-    if (!zaloId || !displayName) return null;
-    out.push({ zalo_id: zaloId, display_name: displayName, avatar_url: avatarRaw || null });
+    const threadTypeRaw = String(input.thread_type ?? "user").trim().toLowerCase();
+    if (!zaloId || !displayName || !["user", "group"].includes(threadTypeRaw)) return null;
+    out.push({
+      zalo_id: zaloId,
+      display_name: displayName,
+      avatar_url: avatarRaw || null,
+      thread_type: threadTypeRaw as ThreadType,
+    });
   }
   return out;
 }

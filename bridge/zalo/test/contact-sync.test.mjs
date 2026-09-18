@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createContactSync,syncApiContacts} from '../src/contact-sync.mjs';
+import {createContactSync,syncApiContacts,syncApiGroups} from '../src/contact-sync.mjs';
 
-test('contact sync posts only id name and avatar to bridge endpoint',async()=>{
+test('contact sync posts endpoint identity, name, avatar and thread type',async()=>{
   const calls=[];
   const sync=createContactSync({
     endpoint:'https://example.test/functions/v1/v21-zalo-contacts',
@@ -25,8 +25,8 @@ test('contact sync posts only id name and avatar to bridge endpoint',async()=>{
   assert.equal(calls[0].options.headers['x-bridge-token'],'secret');
   assert.deepEqual(JSON.parse(calls[0].options.body),{
     contacts:[
-      {zalo_id:'z1',display_name:'C Sâm Phủ Lý',avatar_url:'https://img/1.jpg'},
-      {zalo_id:'z2',display_name:'Anh Bình',avatar_url:'https://img/2.jpg'},
+      {zalo_id:'z1',display_name:'C Sâm Phủ Lý',avatar_url:'https://img/1.jpg',thread_type:'user'},
+      {zalo_id:'z2',display_name:'Anh Bình',avatar_url:'https://img/2.jpg',thread_type:'user'},
     ],
   });
 });
@@ -48,5 +48,33 @@ test('syncApiContacts reads friends once and sends them to configured sync',asyn
   assert.deepEqual(calls,[
     'friends',
     ['sync',[{userId:'z1',displayName:'C Sâm Phủ Lý',avatar:'https://img/1.jpg'}]],
+  ]);
+});
+
+test('syncApiGroups resolves group ids, filters exact Vietnamese group name and marks group thread',async()=>{
+  const calls=[];
+  const api={
+    async getAllGroups(){
+      calls.push('groups');
+      return {gridVerMap:{g1:'1',g2:'1'}};
+    },
+    async getGroupInfo(ids){
+      calls.push(['info',ids]);
+      return {gridInfoMap:{
+        g1:{groupId:'g1',name:'Báo giá Tùng 0911479555',fullAvt:'https://img/group.jpg'},
+        g2:{groupId:'g2',name:'Nhóm khác',fullAvt:''},
+      }};
+    },
+  };
+  const sync=async(rows)=>{
+    calls.push(['sync',rows]);
+    return {ok:true,count:rows.length};
+  };
+  const result=await syncApiGroups({api,sync,filter:'Báo giá Tùng 0911479555'});
+  assert.deepEqual(result,{ok:true,count:1,matched:1,names:['Báo giá Tùng 0911479555']});
+  assert.deepEqual(calls,[
+    'groups',
+    ['info',['g1','g2']],
+    ['sync',[{groupId:'g1',name:'Báo giá Tùng 0911479555',fullAvt:'https://img/group.jpg',threadType:'group'}]],
   ]);
 });

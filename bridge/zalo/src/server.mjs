@@ -5,7 +5,7 @@ import {Zalo,ThreadType} from 'zca-js';
 import {createLoginState,createRequestHandler} from './login-server-core.mjs';
 import {startZaloLogin} from './login-runtime.mjs';
 import {createSupabaseSessionStore} from './session-store.mjs';
-import {createContactSync,syncApiContacts} from './contact-sync.mjs';
+import {createContactSync,syncApiContacts,syncApiGroups} from './contact-sync.mjs';
 import {bindIncomingMessageListener} from './incoming-message.mjs';
 import {createMessageGateway} from './message-gateway.mjs';
 import {downloadInboundMedia,buildOutboundMessage} from './media-transfer.mjs';
@@ -17,6 +17,7 @@ const accessToken=String(process.env.LOGIN_TOKEN||'').trim();
 const supabaseUrl=String(process.env.SUPABASE_URL||'').trim();
 const publishableKey=String(process.env.SUPABASE_PUBLISHABLE_KEY||'').trim();
 const bridgeToken=String(process.env.ZALO_BRIDGE_TOKEN||'').trim();
+const targetGroupName=String(process.env.ZALO_GROUP_FILTER||'').trim();
 const signalTokenHash=bridgeToken?createHash('sha256').update(bridgeToken).digest('hex'):'';
 const sessionStore=supabaseUrl&&publishableKey&&bridgeToken
   ?createSupabaseSessionStore({supabaseUrl,publishableKey,bridgeToken})
@@ -35,15 +36,16 @@ let outboundTimer=0;
 async function sendOutboundRow(row){
   const media=Array.isArray(row?.media)?row.media.filter(Boolean):[];
   const kind=String(media[0]?.kind||'').toLowerCase();
+  const threadType=String(row?.threadType||'user').toLowerCase()==='group'?ThreadType.Group:ThreadType.User;
   if(kind==='audio'){
     if(media.length!==1||String(row?.text||'').trim())throw new Error('mixed_audio_outbound_not_supported');
     const voiceUrl=String(media[0]?.signedUrl||'').trim();
     if(!/^https?:\/\//i.test(voiceUrl))throw new Error('invalid_signed_voice_url');
-    return api.sendVoice({voiceUrl},row.zaloId,ThreadType.User);
+    return api.sendVoice({voiceUrl},row.zaloId,threadType);
   }
   if(media.some(asset=>String(asset?.kind||'').toLowerCase()==='audio'))throw new Error('mixed_audio_outbound_not_supported');
   const outgoing=await buildOutboundMessage(row);
-  return api.sendMessage(outgoing,row.zaloId,ThreadType.User);
+  return api.sendMessage(outgoing,row.zaloId,threadType);
 }
 
 async function runOutboundPass(){
@@ -130,6 +132,10 @@ server.listen(port,'0.0.0.0',()=>{
         try{
           const synced=await syncApiContacts({api,sync:contactSync});
           console.log(`[zalo-login] contacts synced ${Number(synced?.count)||0}`);
+          if(targetGroupName){
+            const groups=await syncApiGroups({api,sync:contactSync,filter:targetGroupName});
+            console.log(`[zalo-login] target groups synced ${Number(groups?.matched)||0}: ${(groups?.names||[]).join(' | ')}`);
+          }
         }catch(error){
           console.warn('[zalo-login] contacts sync failed',String(error?.message||error));
         }

@@ -1,4 +1,5 @@
 const USER_THREAD_TYPE=0;
+const GROUP_THREAD_TYPE=1;
 
 function eventAtFromTs(value){
   const raw=Number(value);
@@ -126,8 +127,8 @@ function normalizeMissedCall(content){
   return{text:'Cuộc gọi nhỡ',media:null};
 }
 
-export function normalizeIncomingMessage(message,{userThreadType=USER_THREAD_TYPE}={}){
-  if(!message||message.type!==userThreadType||message.isSelf)return null;
+export function normalizeIncomingMessage(message,{userThreadType=USER_THREAD_TYPE,groupThreadType=GROUP_THREAD_TYPE}={}){
+  if(!message||![userThreadType,groupThreadType].includes(message.type)||message.isSelf)return null;
   const zaloId=String(message.threadId||'').trim();
   const messageId=String(message?.data?.msgId||message?.data?.cliMsgId||'').trim();
   if(!zaloId||!messageId)return null;
@@ -155,10 +156,10 @@ export function normalizeIncomingMessage(message,{userThreadType=USER_THREAD_TYP
   return event;
 }
 
-export function bindIncomingMessageListener({api,onMessage,logger=console,userThreadType=USER_THREAD_TYPE}){
+export function bindIncomingMessageListener({api,onMessage,logger=console,userThreadType=USER_THREAD_TYPE,groupThreadType=GROUP_THREAD_TYPE}){
   if(!api?.listener?.on||typeof onMessage!=='function')return ()=>{};
   const handler=async raw=>{
-    const event=normalizeIncomingMessage(raw,{userThreadType});
+    const event=normalizeIncomingMessage(raw,{userThreadType,groupThreadType});
     if(!event)return;
     try{await onMessage(event);}
     catch(error){logger?.warn?.('[zalo-incoming] handler failed',String(error?.message||error));}
