@@ -1,34 +1,34 @@
 # TAPHOA CHAT/CALL
 
-Current canonical source: **V21.72.20 — Active Call Screen Wake Lock**.
+Canonical branch: **main**  
+Current release: **V21.72.39**  
+Channel: **candidate**
 
-This repository contains only the current CHAT/CALL web/PWA source. The previous Chatwoot source is not part of this repository.
+This repository contains the current TAPHOA Chat/Call web/PWA source. Old development branches and superseded planning/backup material were removed on 2026-09-18 so `main` is the single source of truth.
 
-## Status
-- Release: `V21.72.20`
-- State: `CANDIDATE`
-- Current CI gate: canonical bundle/source sync PASS; 10 viewport pytest PASS; message/media/sync runtime PASS; AudioCapturePolicy runtime PASS; PWA/update runtime PASS.
-- Audio capture uses one canonical mic policy for Recorder + LiveKit (AEC/NS/AGC/mono, device pinning, duplicate capture guard).
-- GitHub Pages app registers a PWA service worker and checks version.json; safe sessions auto-reload to new releases without F5.
-- Mobile Auth/Profile use ShellFormViewportPolicy so login/register/profile fields remain reachable above the software keyboard without writing Chat ScrollRoot.
-- Login/Register primary and secondary actions share one compact two-column row.
-- Profile supports changing the login username for self and admin-managed users; backend updates the auth email mapping and v21_accounts together with rollback on failure.
-- Avatar rendering is hard-clipped to a circle for preview/saved/fallback states and falls back to initials when an image fails.
-- Real-device iOS/Android Web/PWA verification remains open before Production LOCK.
+## Current status
+
+- `Verify V21`: PASS on the current application checkpoint.
+- GitHub Pages deploys the app to **https://chat.taphoa.xyz/**.
+- PWA updates are controlled by `version.json` with `auto-when-safe`.
+- `index.source.html` is the canonical HTML build source; `index.html` is generated from it.
+- `reference/chatgpt/` contains runtime CSS/assets used by the current build and is not a backup.
+- `b/` is the active public quote page.
+- `c/` is the active guest-call page.
+- Supabase migrations/functions, tests, and runtime modules in `main` belong to the current source tree.
 
 ## Build
+
 ```bash
 python tools/build_current_preview.py
 ```
 
-Canonical `index.html` SHA-256:
-`a09f23ac611329f2ad9fc6682e425168e99e2b6fd8a9f18c0a7c2d0e25d229da`
-
 ## Verify
+
 ```bash
 python tools/verify_current.py
 ```
 
-Stable preview: `https://taphoa-chat-preview-1sl2tp.vercel.app`
+## Repository rule
 
-Vercel remains direct-deploy and is independent from GitHub `main`.
+Do new work from the latest `main`. Do not restore or reuse deleted historical branches as implementation bases.
