@@ -517,6 +517,8 @@ function openCreateAccount(contact){
   const password=form.elements.namedItem('password');
   const useAvatar=form.elements.namedItem('use_zalo_avatar');
   const sendCredentials=form.elements.namedItem('send_credentials');
+  const submit=form.querySelector('.zalo-account-create-submit');
+  let createdCredentials=null;
   displayName.value=String(contact.display_name||'').trim();
   useAvatar.checked=Boolean(String(contact.avatar_url||'').trim());
   form.addEventListener('submit',async event=>{
@@ -525,6 +527,13 @@ function openCreateAccount(contact){
     setAccountBusy(true);setAccountError('');
     try{
       const plainPassword=String(password.value||'');
+      if(createdCredentials){
+        await sendAccountCredentials({...createdCredentials,password:plainPassword});
+        password.value='';
+        await refreshAccountAdmin();
+        closeAccountPanel();
+        return;
+      }
       const normalizedUsername=String(username.value||'').trim().replace(/^@/,'').toLowerCase();
       const result=await invokeBody({
         action:'create_and_link',
@@ -534,18 +543,28 @@ function openCreateAccount(contact){
         password:plainPassword,
         use_zalo_avatar:Boolean(useAvatar.checked),
       });
+      createdCredentials={
+        accountId:String(result?.account?.id||''),
+        username:String(result?.account?.username||normalizedUsername),
+      };
       if(sendCredentials?.checked){
-        await sendAccountCredentials({
-          accountId:String(result?.account?.id||''),
-          username:String(result?.account?.username||normalizedUsername),
-          password:plainPassword,
-        });
+        try{
+          await sendAccountCredentials({...createdCredentials,password:plainPassword});
+        }catch{
+          username.disabled=true;
+          displayName.disabled=true;
+          useAvatar.disabled=true;
+          sendCredentials.disabled=true;
+          if(submit)submit.textContent='Gửi lại user/pass';
+          setAccountError('Tài khoản đã tạo. Chưa gửi được user/pass; bấm Gửi lại user/pass để thử lại.');
+          return;
+        }
       }
       password.value='';
       await refreshAccountAdmin();
       closeAccountPanel();
     }catch(error){
-      password.value='';
+      if(!createdCredentials)password.value='';
       setAccountError(errorText(error?.message||error));
     }finally{setAccountBusy(false);}
   });
