@@ -11,3 +11,13 @@ assert "lockBaseUi:false" in app
 assert "#regionTop button,#shellNavigationLayer button,[data-contact-row],[data-contact-manage]" in app
 assert "document.addEventListener('v21-active-contact-change'" in app
 print("non-modal image viewer shell controls contract PASS")
+
+assert "let imageViewerZoom=1;" in app
+assert "const imageViewerPointers=new Map();" in app
+assert "function setImageViewerZoom" in app
+assert "function resetImageViewerZoom" in app
+assert "beginImageViewerPinch" in app
+assert "main.addEventListener('pointermove'" in app
+assert "main.addEventListener('wheel'" in app
+assert "image.addEventListener('dblclick'" in app
+assert "imageViewerZoom===1" in app
