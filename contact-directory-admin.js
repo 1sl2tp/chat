@@ -267,5 +267,3 @@ scheduleSync();
 
 window.V21ContactDirectoryAdmin=Object.freeze({sortDirectoryContacts,sync:syncDirectoryRows,refreshGroups:()=>ensureGroups({force:true})});
 })();
-
-void import('./quote-client.js').catch(error=>console.warn('[quote-client]',error));
