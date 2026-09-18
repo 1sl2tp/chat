@@ -12,7 +12,8 @@ const CUSTOM=Object.freeze({
   'chevron-left':Object.freeze({viewBox:'0 0 24 24',stroke:2.1,body:'<path d="m14.5 6-6 6 6 6"></path>'}),
   'chevron-right':Object.freeze({viewBox:'0 0 24 24',stroke:2.1,body:'<path d="m9.5 6 6 6-6 6"></path>'}),
   quote:Object.freeze({viewBox:'0 0 24 24',stroke:1.6,body:'<path d="M5 4h14v16H5z"></path><path d="M8 8h8M8 12h8M8 16h5"></path>'}),
-  call:Object.freeze({viewBox:'0 0 24 24',stroke:1.6,body:'<path d="M7.2 4.5 10 8l-1.8 2.2c1.2 2.5 3.1 4.4 5.6 5.6L16 14l3.5 2.8-.9 2.7c-.3.8-1.1 1.3-2 1.2C9.4 19.8 4.2 14.6 3.3 7.4c-.1-.9.4-1.7 1.2-2l2.7-.9Z"></path>'})
+  call:Object.freeze({viewBox:'0 0 24 24',stroke:1.6,body:'<path d="M7.2 4.5 10 8l-1.8 2.2c1.2 2.5 3.1 4.4 5.6 5.6L16 14l3.5 2.8-.9 2.7c-.3.8-1.1 1.3-2 1.2C9.4 19.8 4.2 14.6 3.3 7.4c-.1-.9.4-1.7 1.2-2l2.7-.9Z"></path>'}),
+  key:Object.freeze({viewBox:'0 0 24 24',stroke:1.7,body:'<circle cx="8.5" cy="12" r="3.5"></circle><path d="M12 12h8M17 12v3M20 12v2"></path>'})
 });
 
 function customMarkup(name,{size=20}={}){
