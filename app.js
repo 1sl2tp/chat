@@ -3496,7 +3496,7 @@ function openMessageForward(message){
     <section class="message-forward-card" role="dialog" aria-modal="true" aria-label="Chuyển tiếp tin nhắn">
       <div class="message-forward-head">
         <h2 class="message-forward-title">Chuyển tiếp</h2>
-        <button type="button" class="message-forward-close" data-forward-close aria-label="Đóng">×</button>
+        <button type="button" class="message-forward-close" data-forward-close aria-label="Đóng"></button>
       </div>
       <input class="message-forward-search" type="search" inputmode="search" autocomplete="off" placeholder="Tìm khách hàng…" aria-label="Tìm khách hàng">
       <div class="message-forward-list" role="list"></div>
@@ -3505,6 +3505,8 @@ function openMessageForward(message){
   (globalOverlayRoot||document.body).appendChild(overlay);
   messageForwardOverlay=overlay;
 
+  const forwardClose=overlay.querySelector('.message-forward-close');
+  if(forwardClose)forwardClose.innerHTML=Icons?.markup?.('close',{size:20})||'×';
   const input=overlay.querySelector('.message-forward-search');
   const list=overlay.querySelector('.message-forward-list');
   const status=overlay.querySelector('.message-forward-status');
