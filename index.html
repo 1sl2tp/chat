@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="1ca9991e2e3883a31cb665810540146132accc9019acd3c532c1ca5ff9440705">
+<meta name="app-build-id" content="17838d17b8b26d881b4b676cab742e91c05212e74969cb63bfcf10bf97b48fd5">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -4459,7 +4459,8 @@ const CUSTOM=Object.freeze({
   'chevron-left':Object.freeze({viewBox:'0 0 24 24',stroke:2.1,body:'<path d="m14.5 6-6 6 6 6"></path>'}),
   'chevron-right':Object.freeze({viewBox:'0 0 24 24',stroke:2.1,body:'<path d="m9.5 6 6 6-6 6"></path>'}),
   quote:Object.freeze({viewBox:'0 0 24 24',stroke:1.6,body:'<path d="M5 4h14v16H5z"></path><path d="M8 8h8M8 12h8M8 16h5"></path>'}),
-  call:Object.freeze({viewBox:'0 0 24 24',stroke:1.6,body:'<path d="M7.2 4.5 10 8l-1.8 2.2c1.2 2.5 3.1 4.4 5.6 5.6L16 14l3.5 2.8-.9 2.7c-.3.8-1.1 1.3-2 1.2C9.4 19.8 4.2 14.6 3.3 7.4c-.1-.9.4-1.7 1.2-2l2.7-.9Z"></path>'})
+  call:Object.freeze({viewBox:'0 0 24 24',stroke:1.6,body:'<path d="M7.2 4.5 10 8l-1.8 2.2c1.2 2.5 3.1 4.4 5.6 5.6L16 14l3.5 2.8-.9 2.7c-.3.8-1.1 1.3-2 1.2C9.4 19.8 4.2 14.6 3.3 7.4c-.1-.9.4-1.7 1.2-2l2.7-.9Z"></path>'}),
+  key:Object.freeze({viewBox:'0 0 24 24',stroke:1.7,body:'<circle cx="8.5" cy="12" r="3.5"></circle><path d="M12 12h8M17 12v3M20 12v2"></path>'})
 });
 
 function customMarkup(name,{size=20}={}){
@@ -10838,14 +10839,23 @@ if(cameraActionButton){
   cameraActionButton.hidden=RuntimeProfile.pickerMode!=='app-3';
 }
 
+function hasAppOwnedComposerActions(){
+  const section=actionMenu.querySelector('[data-admin-composer-section]');
+  return Boolean(
+    section &&
+    !section.hidden &&
+    section.querySelector('button:not([disabled])')
+  );
+}
+
 plusButton.addEventListener('click',event=>{
   event.preventDefault();
   event.stopPropagation();
 
-  // iOS already provides one native source sheet (Camera / Photo Library /
-  // Files). Showing the app menu first duplicates the same decision and may
-  // place choices under Safari's bottom address bar.
-  if(RuntimeProfile.pickerMode==='ios-native'){
+  // iOS may open its native source sheet directly only when there are no
+  // app-owned chat actions. Admin conversations must keep the app menu so
+  // Báo giá / Link gọi / Thông tin đăng nhập stay reachable.
+  if(RuntimeProfile.pickerMode==='ios-native'&&!hasAppOwnedComposerActions()){
     if(document.activeElement===editor)editor.blur();
     setComposerActionMenuOpen(false);
     const opened=openNativeFilePicker(uploadIOSSourceInput);
@@ -10853,8 +10863,6 @@ plusButton.addEventListener('click',event=>{
     return;
   }
 
-  // Android keeps the explicit 3-item app menu because its generic input may
-  // expose Camera/Camcorder/Files. Desktop keeps only Image/File.
   toggleComposerActionMenu();
 });
 
@@ -17620,6 +17628,579 @@ window.TaphoaCallInviteClient=Object.freeze({
   snapshot:(contactId=targetAccountId)=>activeInvite(contactId),
 });
 })();
+</script>
+<script data-inlined-source="quote-client.js">
+(()=>{
+'use strict';
+
+const FALLBACK_SOURCES=Object.freeze([
+  ['hang-thuong','Hàng thường'],
+  ['hang-u','Hàng U'],
+  ['sua','Sữa'],
+  ['thuoc-la','Thuốc lá'],
+]);
+
+let targetAccountId='';
+let mountQueued=false;
+
+function authStore(){return window.V21AuthSessionStore||null;}
+function contactStore(){return window.V21ContactStore||null;}
+function currentAdmin(){
+  const snapshot=authStore()?.snapshot?.()||{};
+  return snapshot.state==='AUTHENTICATED'&&snapshot.account?.role==='admin'
+    ?snapshot.account
+    :null;
+}
+function targetContact(){
+  return contactStore()?.snapshot?.().find(item=>String(item?.id||'')===String(targetAccountId||''))||null;
+}
+function errorText(error){
+  const raw=String(error?.message||error||'Không thể tạo báo giá').trim();
+  const known={
+    admin_required:'Chỉ Admin được tạo báo giá',
+    unauthorized:'Phiên đăng nhập đã hết hạn',
+    source_not_found:'Nguồn không tồn tại',
+    quote_empty:'Nguồn này chưa có giá bán',
+    quote_create_failed:'Không thể lưu báo giá',
+    conversation_not_ready:'Đoạn chat chưa sẵn sàng',
+    authentication_required:'Phiên đăng nhập chưa sẵn sàng',
+  };
+  return known[raw]||raw;
+}
+
+
+async function listSources(){
+  if(!currentAdmin())throw new Error('admin_required');
+  const client=authStore()?.getClient?.();
+  if(!client)throw new Error('authentication_required');
+  const sessionResult=await client.auth.getSession();
+  const accessToken=String(sessionResult?.data?.session?.access_token||'');
+  if(!accessToken)throw new Error('authentication_required');
+  const {data,error}=await client.functions.invoke('v21-quote',{
+    body:{action:'sources'},
+    headers:{authorization:`Bearer ${accessToken}`},
+  });
+  if(error)throw error;
+  const rows=Array.isArray(data?.sources)?data.sources:[];
+  return rows.length
+    ?rows.map(row=>[String(row?.source_key||''),String(row?.source_name||row?.source_key||'')]).filter(([key])=>key)
+    :[...FALLBACK_SOURCES];
+}
+
+async function createQuote({scope='all',sourceKey=''}={}){
+  if(!currentAdmin())throw new Error('admin_required');
+  const client=authStore()?.getClient?.();
+  if(!client)throw new Error('authentication_required');
+  const sessionResult=await client.auth.getSession();
+  const accessToken=String(sessionResult?.data?.session?.access_token||'');
+  if(!accessToken)throw new Error('authentication_required');
+  const body=scope==='source'
+    ?{scope:'source',source_key:String(sourceKey||'')}
+    :{scope:'all'};
+  const {data,error}=await client.functions.invoke('v21-quote',{
+    body,
+    headers:{authorization:`Bearer ${accessToken}`},
+  });
+  if(error)throw error;
+  if(!data?.ok||!data?.url)throw new Error(data?.error||'quote_create_failed');
+  return data;
+}
+
+
+async function copyQuoteLink(url){
+  const text=String(url||'').trim();
+  if(!text)throw new Error('quote_url_missing');
+  await navigator.clipboard.writeText(text);
+  return true;
+}
+
+function mountQuotePanel(){
+  if(!currentAdmin()||!targetAccountId)return false;
+  const overlay=document.querySelector('[data-profile-overlay]');
+  if(!overlay)return false;
+  const title=String(overlay.querySelector('#shell-profile-title')?.textContent||'').trim();
+  if(title!=='Thông tin liên hệ')return false;
+  const adminActions=overlay.querySelector('[data-profile-admin-actions]');
+  if(!adminActions||adminActions.parentElement?.querySelector('[data-quote-admin-block]'))return Boolean(adminActions);
+
+  const target=targetContact();
+  const host=document.createElement('section');
+  host.className='quote-admin-block';
+  host.dataset.quoteAdminBlock='';
+  host.innerHTML=`
+    <button type="button" class="quote-admin-open" data-quote-open>Link báo giá</button>
+    <div class="quote-admin-panel" data-quote-panel data-quote-hidden="true">
+      <div class="quote-admin-scope" role="group" aria-label="Phạm vi báo giá">
+        <button type="button" data-quote-scope="all" data-active="true">Tất cả</button>
+        <button type="button" data-quote-scope="source" data-active="false">Theo nguồn</button>
+      </div>
+      <select class="quote-admin-source" data-quote-source data-quote-hidden="true" aria-label="Nguồn báo giá">
+        ${FALLBACK_SOURCES.map(([key,label])=>`<option value="${key}">${label}</option>`).join('')}
+      </select>
+      <button type="button" class="quote-admin-create" data-quote-create>Tạo link</button>
+      <p class="quote-admin-status" data-quote-status></p>
+      <div class="quote-admin-result" data-quote-result data-quote-hidden="true">
+        <div class="quote-admin-result-copy" data-quote-result-copy></div>
+        <input class="quote-admin-url" data-quote-url readonly aria-label="Link báo giá">
+        <div class="quote-admin-actions">
+          <button type="button" class="quote-admin-action" data-quote-copy>Sao chép link</button>
+        </div>
+      </div>
+    </div>`;
+  adminActions.parentElement.insertBefore(host,adminActions);
+
+  const openButton=host.querySelector('[data-quote-open]');
+  const panel=host.querySelector('[data-quote-panel]');
+  const sourceSelect=host.querySelector('[data-quote-source]');
+  const createButton=host.querySelector('[data-quote-create]');
+  const status=host.querySelector('[data-quote-status]');
+  const result=host.querySelector('[data-quote-result]');
+  const resultCopy=host.querySelector('[data-quote-result-copy]');
+  const urlInput=host.querySelector('[data-quote-url]');
+  const copyButton=host.querySelector('[data-quote-copy]');
+  const scopeButtons=[...host.querySelectorAll('[data-quote-scope]')];
+  let scope='all';
+  let quote=null;
+
+  function setStatus(value=''){status.textContent=String(value||'');}
+  function setBusy(busy){
+    createButton.disabled=Boolean(busy);
+    copyButton.disabled=Boolean(busy);
+  }
+  function chooseScope(next){
+    scope=next==='source'?'source':'all';
+    for(const button of scopeButtons)button.dataset.active=String(button.dataset.quoteScope===scope);
+    sourceSelect.dataset.quoteHidden=String(scope!=='source');
+    quote=null;
+    result.dataset.quoteHidden='true';
+    setStatus('');
+  }
+
+  openButton.addEventListener('click',()=>{
+    const opening=panel.dataset.quoteHidden==='true';
+    panel.dataset.quoteHidden=String(!opening);
+    openButton.textContent=opening?'Đóng link báo giá':'Link báo giá';
+    if(opening){
+      setStatus(target?`Tạo link cho ${String(target.display_name||target.username||'khách hàng')}`:'');
+      void listSources().then(rows=>{
+        const selected=sourceSelect.value;
+        sourceSelect.replaceChildren(...rows.map(([key,label])=>{
+          const option=document.createElement('option');
+          option.value=key;
+          option.textContent=label;
+          return option;
+        }));
+        if(rows.some(([key])=>key===selected))sourceSelect.value=selected;
+      }).catch(()=>{});
+    }
+  });
+  for(const button of scopeButtons)button.addEventListener('click',()=>chooseScope(button.dataset.quoteScope));
+
+  createButton.addEventListener('click',async()=>{
+    setBusy(true);setStatus('Đang tạo link…');result.dataset.quoteHidden='true';
+    try{
+      quote=await createQuote({scope,sourceKey:sourceSelect.value});
+      urlInput.value=String(quote.url||'');
+      const label=scope==='source'?(quote.source_name||sourceSelect.selectedOptions?.[0]?.textContent||'Theo nguồn'):'Tất cả';
+      resultCopy.textContent=`${label} · ${Number(quote.item_count)||0} sản phẩm`;
+      result.dataset.quoteHidden='false';
+      setStatus('Đã tạo báo giá');
+    }catch(error){
+      quote=null;
+      setStatus(errorText(error));
+    }finally{setBusy(false);}
+  });
+
+  copyButton.addEventListener('click',async()=>{
+    if(!quote?.url)return;
+    setBusy(true);
+    try{await copyQuoteLink(quote.url);setStatus('Đã sao chép link');}
+    catch(error){setStatus(errorText(error));}
+    finally{setBusy(false);}
+  });
+
+  return true;
+}
+
+function scheduleMount(){
+  if(mountQueued)return;
+  mountQueued=true;
+  queueMicrotask(()=>{mountQueued=false;mountQuotePanel();});
+}
+
+document.addEventListener('click',event=>{
+  const target=event.target instanceof Element?event.target:null;
+  const manage=target?.closest?.('[data-contact-manage]');
+  if(!manage)return;
+  targetAccountId=String(manage.dataset.contactId||'');
+  window.setTimeout(scheduleMount,0);
+},true);
+new MutationObserver(scheduleMount).observe(document.documentElement,{childList:true,subtree:true});
+document.addEventListener('v21-auth-state',scheduleMount);
+
+window.V21QuoteClient=Object.freeze({
+  create:createQuote,
+  copyQuoteLink,
+  sources:FALLBACK_SOURCES,
+  listSources,
+  mount:mountQuotePanel,
+});
+})();
+
+</script>
+<script data-inlined-source="admin-composer-actions.js">
+(()=>{
+'use strict';
+
+const MENU_ID='composerActionMenu';
+const SECTION_ATTR='data-admin-composer-section';
+const ACTION_ATTR='data-admin-composer-action';
+const QUOTE_MODAL_MODE='QUOTE_MODAL';
+const QUOTE_MODAL_OWNER='admin-quote-modal';
+let quoteModulePromise=null;
+let quoteOverlay=null;
+let credentialsOverlay=null;
+let quoteReturnFocus=null;
+let transientHintTimer=0;
+
+function authStore(){return window.V21AuthSessionStore||null;}
+function currentAdmin(){
+  const snapshot=authStore()?.snapshot?.()||{};
+  return snapshot.state==='AUTHENTICATED'&&snapshot.account?.role==='admin'
+    ?snapshot.account
+    :null;
+}
+function activeContactId(){
+  const messageState=window.V21MessageStore?.snapshot?.()||{};
+  const fromMessage=String(messageState.currentContactId||'').trim();
+  if(fromMessage)return fromMessage;
+  const shellState=window.ChatAppShell?.ScreenSession?.snapshot?.()||{};
+  return String(shellState.activeContact?.id||'').trim();
+}
+function activeContact(){
+  const id=activeContactId();
+  if(!id)return null;
+  const rows=window.V21ContactStore?.snapshot?.()||[];
+  return rows.find(row=>String(row?.id||'')===id)||null;
+}
+function interactionController(){return window.V21InteractionController||null;}
+function lockQuoteBackground(){
+  const lease=interactionController()?.enter?.(QUOTE_MODAL_MODE,{owner:QUOTE_MODAL_OWNER,lockBaseUi:true});
+  if(!lease)return false;
+  quoteReturnFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;
+  try{quoteReturnFocus?.blur?.();}catch{}
+  return true;
+}
+function unlockQuoteBackground({restoreFocus=true}={}){
+  interactionController()?.exit?.(QUOTE_MODAL_MODE,{owner:QUOTE_MODAL_OWNER});
+  const returnNode=quoteReturnFocus;
+  quoteReturnFocus=null;
+  if(restoreFocus&&returnNode?.isConnected){
+    window.setTimeout(()=>{try{returnNode.focus({preventScroll:true});}catch{}},0);
+  }
+}
+
+function actionMenu(){return document.getElementById(MENU_ID);}
+function menuSurface(){return actionMenu()?.querySelector?.('.composer-action-menu-surface')||null;}
+function hideMenu(){
+  const owner=window.V21ComposerActionMenu;
+  if(owner?.close){owner.close();return true;}
+  const menu=actionMenu();
+  if(!menu)return false;
+  try{menu.hidePopover?.();}catch{}
+  delete menu.dataset.fallbackOpen;
+  return true;
+}
+function setTransientHint(text,duration=1800){
+  const hint=document.getElementById('composerHint');
+  if(!hint)return;
+  if(transientHintTimer)clearTimeout(transientHintTimer);
+  const previous=hint.textContent;
+  const next=String(text||'');
+  hint.textContent=next;
+  transientHintTimer=window.setTimeout(()=>{
+    transientHintTimer=0;
+    if(hint.textContent===next)hint.textContent=previous;
+  },Math.max(600,Number(duration)||1800));
+}
+
+
+function iconSvg(kind){
+  return window.V21Icons?.markup?.(kind,{size:22})||'';
+}
+function actionButton({action='',label='',kind='quote'}={}){
+  const button=document.createElement('button');
+  button.type='button';
+  button.className='composer-action-menu-item admin-composer-menu-item';
+  button.setAttribute('role','menuitem');
+  button.setAttribute(ACTION_ATTR,action);
+  button.innerHTML=`<span class="composer-action-menu-icon" aria-hidden="true">${iconSvg(kind)}</span><span class="composer-action-menu-label">${label}</span>`;
+  return button;
+}
+function makeLabel(text){
+  const node=document.createElement('div');
+  node.className='admin-composer-menu-label';
+  node.textContent=text;
+  return node;
+}
+function ensureAdminMenu(){
+  const surface=menuSurface();
+  if(!surface)return null;
+  let section=surface.querySelector(`[${SECTION_ATTR}]`);
+  if(!section){
+    const sendLabel=makeLabel('Gửi');
+    sendLabel.dataset.adminComposerSendLabel='';
+    surface.insertBefore(sendLabel,surface.firstChild);
+    section=document.createElement('div');
+    section.setAttribute(SECTION_ATTR,'');
+    section.append(
+      actionButton({action:'quote',label:'Báo giá',kind:'quote'}),
+      actionButton({action:'call-link',label:'Link gọi',kind:'call'}),
+      actionButton({action:'credentials',label:'Thông tin đăng nhập',kind:'key'}),
+    );
+    surface.insertBefore(section,sendLabel.nextSibling);
+  }
+  syncVisibility();
+  return section;
+}
+function syncVisibility(){
+  const admin=Boolean(currentAdmin());
+  const contact=Boolean(activeContactId());
+  document.documentElement.dataset.adminComposerActions=String(admin);
+  const surface=menuSurface();
+  if(!surface)return admin;
+  const label=surface.querySelector('[data-admin-composer-send-label]');
+  const section=surface.querySelector(`[${SECTION_ATTR}]`);
+  if(label)label.hidden=!admin;
+  if(section)section.hidden=!admin;
+  if(section){
+    for(const button of section.querySelectorAll(`[${ACTION_ATTR}]`))button.disabled=!admin||!contact;
+  }
+  return admin;
+}
+
+async function quoteClient(){
+  if(window.V21QuoteClient)return window.V21QuoteClient;
+  if(!quoteModulePromise)quoteModulePromise=import('./quote-client.js').then(()=>window.V21QuoteClient||null);
+  return quoteModulePromise;
+}
+async function sendAdminText(value,contactId,reason='admin-chat-send'){
+  const text=String(value||'').trim();
+  const target=String(contactId||'').trim();
+  if(!text||!target)throw new Error('conversation_not_ready');
+  const messageStore=window.V21MessageStore||null;
+  const sync=window.V21SyncEngine||null;
+  const messageState=messageStore?.snapshot?.()||{};
+  const clientId=window.V21RuntimeId?.create?.()||`admin-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+  if(messageStore?.send&&messageState.ready&&String(messageState.currentContactId||'')===target){
+    await messageStore.send({clientId,text,contactId:target,conversationId:messageState.currentConversationId||null,reply:null});
+  }else{
+    if(!sync?.queueText)throw new Error('conversation_not_ready');
+    await sync.queueText({clientId,text,contactId:target,conversationId:null,reply:null});
+  }
+  void sync?.wake?.({reason});
+  return true;
+}
+function closeQuote({restoreFocus=true}={}){
+  const hadOverlay=Boolean(quoteOverlay);
+  if(quoteOverlay){quoteOverlay.remove();quoteOverlay=null;}
+  unlockQuoteBackground({restoreFocus});
+  return hadOverlay;
+}
+async function openQuote(contactId){
+  const client=await quoteClient();
+  if(!client?.create)throw new Error('quote_client_unavailable');
+  const root=document.getElementById('globalOverlayRoot');
+  if(!root)throw new Error('quote_overlay_unavailable');
+  closeQuote({restoreFocus:false});
+  if(!lockQuoteBackground())throw new Error('quote_modal_busy');
+  let sources=Array.isArray(client.sources)?client.sources:[];
+  if(typeof client.listSources==='function'){
+    try{sources=await client.listSources();}catch{}
+  }
+  const overlay=document.createElement('section');
+  overlay.className='admin-composer-quote-overlay';
+  overlay.dataset.adminComposerQuote='';
+  overlay.innerHTML=`
+    <button type="button" class="admin-composer-quote-backdrop" data-quote-close aria-label="Đóng"></button>
+    <div class="admin-composer-quote-card" role="dialog" aria-modal="true" aria-label="Báo giá">
+      <h2 class="admin-composer-quote-title">Báo giá</h2>
+      <div class="admin-composer-quote-scopes" role="group" aria-label="Phạm vi báo giá">
+        <button type="button" data-quote-scope="all" data-active="true">Tất cả</button>
+        <button type="button" data-quote-scope="source" data-active="false">Theo nguồn</button>
+      </div>
+      <select class="admin-composer-quote-source" data-quote-source hidden aria-label="Nguồn báo giá">${sources.map(([key,label])=>`<option value="${String(key)}">${String(label)}</option>`).join('')}</select>
+      <p class="admin-composer-quote-status" data-quote-status></p>
+      <div class="admin-composer-quote-actions">
+        <button type="button" class="admin-composer-quote-cancel" data-quote-close>Hủy</button>
+        <button type="button" class="admin-composer-quote-send" data-quote-send>Gửi báo giá</button>
+      </div>
+    </div>`;
+  root.appendChild(overlay);
+  quoteOverlay=overlay;
+  let scope='all';
+  const source=overlay.querySelector('[data-quote-source]');
+  const status=overlay.querySelector('[data-quote-status]');
+  const send=overlay.querySelector('[data-quote-send]');
+  const scopeButtons=[...overlay.querySelectorAll('[data-quote-scope]')];
+  function setBusy(busy){
+    send.disabled=Boolean(busy);
+    for(const button of overlay.querySelectorAll('[data-quote-close]'))button.disabled=Boolean(busy);
+  }
+  for(const button of overlay.querySelectorAll('[data-quote-close]'))button.addEventListener('click',closeQuote);
+  for(const button of scopeButtons)button.addEventListener('click',()=>{
+    scope=button.dataset.quoteScope==='source'?'source':'all';
+    for(const item of scopeButtons)item.dataset.active=String(item.dataset.quoteScope===scope);
+    source.hidden=scope!=='source';
+    status.textContent='';
+  });
+  send.addEventListener('click',async()=>{
+    setBusy(true);status.textContent='Đang tạo và gửi…';
+    try{
+      const quote=await client.create({scope,sourceKey:scope==='source'?source.value:''});
+      await sendAdminText(quote.url,contactId,'quote-link-send');
+      closeQuote();
+      setTransientHint('Đã gửi link báo giá');
+    }catch(error){status.textContent=String(error?.message||error||'Không thể gửi báo giá');setBusy(false);}
+  });
+  return true;
+}
+
+function closeCredentials({restoreFocus=true}={}){
+  const hadOverlay=Boolean(credentialsOverlay);
+  if(credentialsOverlay){credentialsOverlay.remove();credentialsOverlay=null;}
+  unlockQuoteBackground({restoreFocus});
+  return hadOverlay;
+}
+
+async function openCredentials(contactId){
+  const contact=activeContact();
+  if(!contact||String(contact.id||'')!==String(contactId||''))throw new Error('contact_not_ready');
+  const username=String(contact.username||'').trim().replace(/^@/,'');
+  const displayName=String(contact.display_name||contact.name||username||'Khách hàng').trim();
+  if(!username)throw new Error('username_missing');
+  const root=document.getElementById('globalOverlayRoot');
+  if(!root)throw new Error('credentials_overlay_unavailable');
+  closeCredentials({restoreFocus:false});
+  if(!lockQuoteBackground())throw new Error('credentials_modal_busy');
+
+  const overlay=document.createElement('section');
+  overlay.className='admin-composer-quote-overlay';
+  overlay.dataset.adminComposerCredentials='';
+  overlay.innerHTML=`
+    <button type="button" class="admin-composer-quote-backdrop" data-credentials-close aria-label="Đóng"></button>
+    <div class="admin-composer-quote-card" role="dialog" aria-modal="true" aria-label="Thông tin đăng nhập">
+      <h2 class="admin-composer-quote-title">Thông tin đăng nhập</h2>
+      <input class="admin-composer-quote-source" data-credentials-username value="${username}" readonly aria-label="Tên đăng nhập">
+      <input class="admin-composer-quote-source" data-credentials-password type="password" autocomplete="new-password" minlength="6" maxlength="128" placeholder="Mật khẩu gửi cho khách" aria-label="Mật khẩu">
+      <p class="admin-composer-quote-status" data-credentials-status>Nhập mật khẩu. Hệ thống sẽ đặt đúng mật khẩu này rồi gửi cho khách.</p>
+      <div class="admin-composer-quote-actions">
+        <button type="button" class="admin-composer-quote-cancel" data-credentials-close>Hủy</button>
+        <button type="button" class="admin-composer-quote-send" data-credentials-send>Đặt mật khẩu & gửi</button>
+      </div>
+    </div>`;
+  root.appendChild(overlay);
+  credentialsOverlay=overlay;
+
+  const password=overlay.querySelector('[data-credentials-password]');
+  const status=overlay.querySelector('[data-credentials-status]');
+  const send=overlay.querySelector('[data-credentials-send]');
+  const closeButtons=[...overlay.querySelectorAll('[data-credentials-close]')];
+  const setBusy=busy=>{
+    send.disabled=Boolean(busy);
+    password.disabled=Boolean(busy);
+    for(const button of closeButtons)button.disabled=Boolean(busy);
+  };
+  for(const button of closeButtons)button.addEventListener('click',closeCredentials);
+  send.addEventListener('click',async()=>{
+    const plainPassword=String(password.value||'');
+    if(plainPassword.length<6){
+      status.textContent='Mật khẩu cần ít nhất 6 ký tự';
+      password.focus({preventScroll:true});
+      return;
+    }
+    setBusy(true);
+    status.textContent='Đang đặt mật khẩu và gửi…';
+    try{
+      const profile=window.V21AccountProfileStore;
+      if(!profile?.adminSaveUser)throw new Error('account_profile_unavailable');
+      const result=await profile.adminSaveUser({
+        targetAccountId:String(contactId),
+        username,
+        displayName,
+        password:plainPassword,
+      });
+      if(!result?.ok)throw new Error(result?.message||'password_update_failed');
+      const text=[
+        'Thông tin đăng nhập TAPHOA Chat',
+        `Tài khoản: ${username}`,
+        `Mật khẩu: ${plainPassword}`,
+        'Đăng nhập: https://chat.taphoa.xyz',
+      ].join('\n');
+      await sendAdminText(text,contactId,'account-credentials-send');
+      password.value='';
+      closeCredentials();
+      setTransientHint('Đã gửi thông tin đăng nhập');
+    }catch(error){
+      status.textContent=String(error?.message||error||'Không thể gửi thông tin đăng nhập');
+      setBusy(false);
+    }
+  });
+  window.setTimeout(()=>password.focus({preventScroll:true}),0);
+  return true;
+}
+
+async function runAction(action){
+  if(!currentAdmin())return false;
+  const contactId=activeContactId();
+  if(!contactId)return false;
+  hideMenu();
+  if(action==='quote'){
+    try{return await openQuote(contactId);}catch{setTransientHint('Không thể mở báo giá');return false;}
+  }
+  if(action==='credentials'){
+    try{return await openCredentials(contactId);}catch{setTransientHint('Không thể mở thông tin đăng nhập');return false;}
+  }
+  if(action==='call-link'){
+    const client=window.TaphoaCallInviteClient||null;
+    if(!client?.createAndSend){setTransientHint('Link gọi chưa sẵn sàng');return false;}
+    setTransientHint('Đang gửi link gọi…',2400);
+    try{await client.createAndSend({contactId});setTransientHint('Đã gửi link gọi');return true;}
+    catch{setTransientHint('Không thể gửi link gọi',2600);return false;}
+  }
+  return false;
+}
+
+function bind(){
+  const plus=document.getElementById('composer-plus-btn');
+  if(!plus)return false;
+  ensureAdminMenu();
+  document.addEventListener('click',event=>{
+    const target=event.target instanceof Element?event.target:null;
+    const button=target?.closest?.(`[${ACTION_ATTR}]`);
+    if(!button||button.disabled)return;
+    event.preventDefault();
+    event.stopPropagation();
+    void runAction(String(button.getAttribute(ACTION_ATTR)||''));
+  },true);
+  document.addEventListener('v21-auth-state',()=>{ensureAdminMenu();syncVisibility();});
+  document.addEventListener('v21-message-store-state',syncVisibility);
+  document.addEventListener('navigation-change',syncVisibility);
+  return true;
+}
+
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind,{once:true});
+else bind();
+
+window.V21AdminComposerActions=Object.freeze({
+  mount:ensureAdminMenu,
+  run:runAction,
+  openQuote,
+  openCredentials,
+  activeContactId,
+});
+})();
+
 </script>
 <script data-inlined-source="v21-cache-store.js">
 (()=>{
