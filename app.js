@@ -1526,7 +1526,6 @@ let imageViewerNavigationSeq=0;
 let imageViewerFilmstripScrollFrame=0;
 let imageViewerSwipeStartX=0;
 let imageViewerReturnFocus=null;
-let imageViewerHeaderWasInert=false;
 let imageViewerFilterScroll=null;
 let imageViewerTimeMenuButton=null;
 let imageViewerTimeMenuPanel=null;
@@ -1631,20 +1630,6 @@ function positionImageViewerBelowHeader(){
   return top;
 }
 
-function lockAppHeaderForImageViewer(){
-  if(!regionTop)return;
-  imageViewerHeaderWasInert=regionTop.hasAttribute('inert');
-  regionTop.setAttribute('inert','');
-  regionTop.dataset.imageViewerInert='true';
-}
-
-function unlockAppHeaderForImageViewer(){
-  if(!regionTop)return;
-  delete regionTop.dataset.imageViewerInert;
-  if(!imageViewerHeaderWasInert)regionTop.removeAttribute('inert');
-  imageViewerHeaderWasInert=false;
-}
-
 function syncOpenImageViewerRegion(){
   if(imageViewerOverlay?.open)positionImageViewerBelowHeader();
 }
@@ -1652,6 +1637,20 @@ function syncOpenImageViewerRegion(){
 window.addEventListener('resize',syncOpenImageViewerRegion,{passive:true});
 window.visualViewport?.addEventListener('resize',syncOpenImageViewerRegion,{passive:true});
 window.visualViewport?.addEventListener('scroll',syncOpenImageViewerRegion,{passive:true});
+
+document.addEventListener('pointerdown',event=>{
+  if(!imageViewerOverlay?.open)return;
+  const target=event.target instanceof Element?event.target:null;
+  if(!target||imageViewerOverlay.contains(target))return;
+  const actionable=target.closest(
+    '#regionTop button,#shellNavigationLayer button,[data-contact-row],[data-contact-manage]'
+  );
+  if(actionable)closeImageViewer({restoreFocus:false});
+},true);
+
+document.addEventListener('v21-active-contact-change',()=>{
+  if(imageViewerOverlay?.open)closeImageViewer({restoreFocus:false});
+});
 
 function closeImageViewer({restoreFocus=true}={}){
   imageViewerSessionSeq+=1;
@@ -1672,7 +1671,6 @@ function closeImageViewer({restoreFocus=true}={}){
   imageViewerTimeFilter='all';
   closeImageViewerTimeMenu();
   if(imageViewerOverlay?.open)imageViewerOverlay.close();
-  unlockAppHeaderForImageViewer();
   exitImageViewerMode();
   const returnFocus=imageViewerReturnFocus;
   imageViewerReturnFocus=null;
@@ -2145,12 +2143,9 @@ async function openImageViewer({assetId,accountId=currentMediaAccountId(),previe
       return false;
     }
     positionImageViewerBelowHeader();
-    lockAppHeaderForImageViewer();
     try{
-      if(typeof imageViewerOverlay.showModal==='function')imageViewerOverlay.showModal();
-      else imageViewerOverlay.show();
+      imageViewerOverlay.show();
     }catch(error){
-      unlockAppHeaderForImageViewer();
       exitImageViewerMode();
       throw error;
     }
