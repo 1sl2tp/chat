@@ -30,7 +30,7 @@ for needle in [
     "theo nguồn",
     "tạo link",
     "sao chép",
-    "gửi",
+    "link báo giá",
     "hang-thuong",
     "hang-u",
     "sua",
@@ -48,6 +48,9 @@ for forbidden in ["v21-zalo-", "zalo.me", "openapi.zalo", "zalo api"]:
     assert forbidden not in quote_low
 assert "functions.invoke('v21-quote'" in quote_low or 'functions.invoke("v21-quote"' in quote_low
 assert "contactid:targetaccountid" in quote_low.replace(" ", "")
+assert "data-quote-send" not in quote_low
+assert "tạo link cho" in quote_low
+assert "đang tạo và gửi" in low
 
 for needle in ["role==='admin'", "báo giá", "link gọi", "data-admin-composer-action"]:
     assert needle in low, f"missing Admin composer action contract: {needle}"

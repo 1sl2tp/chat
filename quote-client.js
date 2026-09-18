@@ -55,7 +55,7 @@ function installStyle(){
     .quote-admin-result{display:grid;gap:8px;padding:10px;border:1px solid var(--theme-border-default,#dedede);border-radius:14px;background:var(--theme-surface-secondary,#f7f7f7)}
     .quote-admin-result-copy{font-size:12px;color:var(--theme-content-secondary,#666)}
     .quote-admin-url{width:100%;height:40px;border:1px solid var(--theme-border-default,#dedede);border-radius:10px;padding:0 9px;background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#171717);font:inherit;font-size:12px}
-    .quote-admin-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .quote-admin-actions{display:grid;grid-template-columns:1fr;gap:8px}
     [data-quote-hidden="true"]{display:none!important}
   `;
   document.head.appendChild(style);
@@ -153,7 +153,7 @@ function mountQuotePanel(){
   host.className='quote-admin-block';
   host.dataset.quoteAdminBlock='';
   host.innerHTML=`
-    <button type="button" class="quote-admin-open" data-quote-open>Báo giá</button>
+    <button type="button" class="quote-admin-open" data-quote-open>Link báo giá</button>
     <div class="quote-admin-panel" data-quote-panel data-quote-hidden="true">
       <div class="quote-admin-scope" role="group" aria-label="Phạm vi báo giá">
         <button type="button" data-quote-scope="all" data-active="true">Tất cả</button>
@@ -168,8 +168,7 @@ function mountQuotePanel(){
         <div class="quote-admin-result-copy" data-quote-result-copy></div>
         <input class="quote-admin-url" data-quote-url readonly aria-label="Link báo giá">
         <div class="quote-admin-actions">
-          <button type="button" class="quote-admin-action" data-quote-copy>Sao chép</button>
-          <button type="button" class="quote-admin-action" data-quote-send>Gửi</button>
+          <button type="button" class="quote-admin-action" data-quote-copy>Sao chép link</button>
         </div>
       </div>
     </div>`;
@@ -184,7 +183,6 @@ function mountQuotePanel(){
   const resultCopy=host.querySelector('[data-quote-result-copy]');
   const urlInput=host.querySelector('[data-quote-url]');
   const copyButton=host.querySelector('[data-quote-copy]');
-  const sendButton=host.querySelector('[data-quote-send]');
   const scopeButtons=[...host.querySelectorAll('[data-quote-scope]')];
   let scope='all';
   let quote=null;
@@ -193,7 +191,6 @@ function mountQuotePanel(){
   function setBusy(busy){
     createButton.disabled=Boolean(busy);
     copyButton.disabled=Boolean(busy);
-    sendButton.disabled=Boolean(busy);
   }
   function chooseScope(next){
     scope=next==='source'?'source':'all';
@@ -207,9 +204,9 @@ function mountQuotePanel(){
   openButton.addEventListener('click',()=>{
     const opening=panel.dataset.quoteHidden==='true';
     panel.dataset.quoteHidden=String(!opening);
-    openButton.textContent=opening?'Đóng báo giá':'Báo giá';
+    openButton.textContent=opening?'Đóng link báo giá':'Link báo giá';
     if(opening){
-      setStatus(target?`Gửi cho ${String(target.display_name||target.username||'khách hàng')}`:'');
+      setStatus(target?`Tạo link cho ${String(target.display_name||target.username||'khách hàng')}`:'');
       void listSources().then(rows=>{
         const selected=sourceSelect.value;
         sourceSelect.replaceChildren(...rows.map(([key,label])=>{
@@ -247,13 +244,6 @@ function mountQuotePanel(){
     finally{setBusy(false);}
   });
 
-  sendButton.addEventListener('click',async()=>{
-    if(!quote?.url)return;
-    setBusy(true);setStatus('Đang gửi…');
-    try{await sendQuoteLink(quote.url);setStatus('Đã gửi link báo giá');}
-    catch(error){setStatus(errorText(error));}
-    finally{setBusy(false);}
-  });
   return true;
 }
 
