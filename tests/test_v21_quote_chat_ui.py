@@ -2,6 +2,7 @@ from pathlib import Path
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
+SOURCE = ROOT / "index.source.html"
 CLIENT = ROOT / "quote-client.js"
 ACTIONS = ROOT / "admin-composer-actions.js"
 ACTIONS_CSS = ROOT / "admin-composer-actions.css"
@@ -19,6 +20,7 @@ actions = ACTIONS.read_text(encoding="utf-8")
 actions_css = ACTIONS_CSS.read_text(encoding="utf-8")
 call = CALL_CLIENT.read_text(encoding="utf-8")
 directory = DIRECTORY.read_text(encoding="utf-8")
+source = SOURCE.read_text(encoding="utf-8")
 low = actions.lower()
 compact = "".join(low.split())
 quote_low = quote.lower()
@@ -44,7 +46,6 @@ for needle in [
 ]:
     assert needle in quote_low, f"missing quotation Chat UI contract: {needle}"
 
-assert "import('./quote-client.js')" in directory or 'import("./quote-client.js")' in directory
 for forbidden in ["v21-zalo-", "zalo.me", "openapi.zalo", "zalo api"]:
     assert forbidden not in quote_low
 assert "functions.invoke('v21-quote'" in quote_low or 'functions.invoke("v21-quote"' in quote_low
@@ -82,6 +83,12 @@ assert "[data-call-invite-admin-block]" in actions_css
 assert "display:none!important" in actions_css.lower()
 assert "node.remove()" not in low
 assert "new mutationobserver(schedulelegacysuppression)" not in low
-assert "import('./admin-composer-actions.js')" in quote or 'import("./admin-composer-actions.js")' in quote
+assert 'data-build-source="quote-client.js"' in source
+assert 'data-build-source="admin-composer-actions.js"' in source
+assert "import('./quote-client.js')" not in directory
+assert "import('./admin-composer-actions.js')" not in quote
+assert "action:'credentials'" in actions
+assert 'Đặt mật khẩu & gửi' in actions
+assert 'account-credentials-send' in actions
 subprocess.run(["node", "--check", str(ACTIONS)], check=True)
 print("chat quote + Admin composer actions contract PASS")
