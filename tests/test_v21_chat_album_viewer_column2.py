@@ -7,7 +7,7 @@ ORIENTATION = (ROOT / 'chat-image-orientation.js').read_text(encoding='utf-8')
 # Album hiện tại uses the same overlay as single-image viewing; both must stop
 # at the work-column boundary on the 3-column desktop workspace.
 start = APP.index('function positionImageViewerBelowHeader()')
-end = APP.index('function lockAppHeaderForImageViewer()', start)
+end = APP.index('function syncOpenImageViewerRegion()', start)
 POSITION = APP[start:end]
 
 assert "workThreadView" in POSITION, (
