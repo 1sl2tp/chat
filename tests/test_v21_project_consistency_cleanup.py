@@ -14,6 +14,11 @@ assert 'Cài đặt tài khoản' in zalo
 assert 'Nhóm Zalo' in zalo and 'Zalo cá nhân' in zalo
 assert 'data-picker-title' in zalo and 'data-create-title' in zalo
 assert '<strong>Tạo tài khoản từ ${String(contact.display_name' not in zalo
+assert 'data-send-credentials' in zalo
+assert 'sendAccountCredentials' in zalo
+assert 'V21SyncEngine' in zalo and 'queueText' in zalo
+assert 'Tài khoản:' in zalo and 'Mật khẩu:' in zalo
+assert 'https://chat.taphoa.xyz' in zalo
 
 assert 'chat_customer_summary_state' in work
 assert ".on('postgres_changes'" in work
