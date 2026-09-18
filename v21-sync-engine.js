@@ -660,6 +660,114 @@ async function openContact(contactId){
   }
 }
 
+async function forwardMessage({sourceMessageId,text='',targetContactId,clientId}={}){
+  const context=captureSyncOwnerContext();
+  const role=String(authSnapshot()?.account?.role||'');
+  if(role!=='admin')throw new Error('admin_required');
+  if(!context.accountId||!context.appSessionId||!context.client)throw new Error('authentication_required');
+  if(!online())throw new Error('network_required');
+
+  const target=String(targetContactId||'').trim();
+  const sourceId=String(sourceMessageId||'').trim();
+  const body=String(text||'').trim();
+  if(!target)throw new Error('contact_required');
+  if(!sourceId)throw new Error('source_message_required');
+  if(target===String(currentContactId||''))throw new Error('forward_same_contact');
+
+  const conversationId=String(await ensureConversation(target,{context})||'');
+  if(!conversationId||!syncOwnerContextCurrent(context))throw new Error('conversation_required');
+
+  let sourceAssets=await media()?.listForMessage?.({accountId:context.accountId,messageId:sourceId})||[];
+  sourceAssets=(Array.isArray(sourceAssets)?sourceAssets:[])
+    .filter(asset=>asset&&!asset.deleted_at&&['image','audio','file'].includes(String(asset.kind||'').toLowerCase()))
+    .sort((a,b)=>Number(a.sort_index||0)-Number(b.sort_index||0)||String(a.id||'').localeCompare(String(b.id||'')));
+
+  const messageClientId=String(clientId||window.V21RuntimeId.create());
+  let messageRow=null;
+  let mediaRows=[];
+
+  if(!sourceAssets.length){
+    if(!body)throw new Error('forward_empty_message');
+    const {data,error}=await context.client.rpc('v21_message_send',{
+      p_app_session_id:context.appSessionId,
+      p_conversation_id:conversationId,
+      p_client_id:messageClientId,
+      p_body:body
+    });
+    if(error)throw error;
+    const row=Array.isArray(data)?data[0]:data;
+    messageRow=canonicalMessage(row);
+    if(!messageRow)throw new Error('forward_message_missing');
+  }else{
+    if(sourceAssets.length>12)throw new Error('media_assets_count_out_of_range');
+    const rpcAssets=[];
+    for(const [index,source] of sourceAssets.entries()){
+      if(!syncOwnerContextCurrent(context))throw syncContextChangedError();
+      const sourceKey=String(source.storage_key||'').trim();
+      const kind=String(source.kind||'').toLowerCase();
+      if(!sourceKey)throw new Error('forward_source_missing');
+      const assetId=window.V21RuntimeId.create();
+      const storageKey=`${context.accountId}/${conversationId}/${assetId}`;
+      const {error:copyError}=await context.client.storage.from('v21-media').copy(sourceKey,storageKey);
+      if(copyError)throw copyError;
+      rpcAssets.push({
+        id:String(assetId),
+        kind,
+        storage_key:storageKey,
+        file_name:kind==='file'?(String(source.file_name||'').trim().slice(0,255)||null):null,
+        mime_type:String(source.mime_type||'application/octet-stream'),
+        size_bytes:Number(source.size_bytes)||0,
+        content_hash:kind==='image'?(source.content_hash||null):null,
+        width_px:kind==='image'?(Number(source.width_px)||null):null,
+        height_px:kind==='image'?(Number(source.height_px)||null):null,
+        duration_ms:kind==='audio'&&(Number(source.duration_ms)>0)?Math.round(Number(source.duration_ms)):null,
+        sort_index:Number(source.sort_index??index)||0
+      });
+    }
+
+    const {data,error}=await context.client.rpc('v21_media_assets_send',{
+      p_app_session_id:context.appSessionId,
+      p_conversation_id:conversationId,
+      p_client_id:messageClientId,
+      p_body:body,
+      p_assets:rpcAssets
+    });
+    if(error)throw error;
+    const payload=Array.isArray(data)?data[0]:data;
+    messageRow=canonicalMessage(payload?.message||payload?.message_row||null);
+    mediaRows=(Array.isArray(payload?.media)?payload.media:[])
+      .map(canonicalMedia).filter(Boolean)
+      .sort((a,b)=>Number(a.sort_index||0)-Number(b.sort_index||0));
+    if(!messageRow)throw new Error('forward_message_missing');
+    if(mediaRows.length)messageRow={...messageRow,_media_assets:mediaRows};
+    for(const mediaRow of mediaRows){
+      await media()?.putRemoteMeta?.({accountId:context.accountId,assetId:mediaRow.id,meta:mediaRow});
+    }
+  }
+
+  await cache()?.putMessage?.(context.accountId,messageRow);
+  messages()?.mergeForContact?.(messageRow,{contactId:target,conversationId});
+  const summary=messagePreviewContract(messageRow);
+  await patchContactSummary(conversationId,{...summary,latest_at:messageRow.created_at||new Date().toISOString()});
+  document.dispatchEvent(new CustomEvent('v21-message-forwarded',{
+    detail:{
+      sourceMessageId:sourceId,
+      targetContactId:target,
+      conversationId,
+      messageId:String(messageRow.id||''),
+      mediaCount:mediaRows.length
+    }
+  }));
+  return{
+    ok:true,
+    sourceMessageId:sourceId,
+    targetContactId:target,
+    conversationId,
+    messageId:String(messageRow.id||''),
+    mediaCount:mediaRows.length
+  };
+}
+
 async function queueText({clientId,text,contactId,conversationId,reply=null}={}){
   const context=captureSyncOwnerContext();
   if(!context.accountId||!context.appSessionId)throw new Error('authentication_required');
@@ -1354,7 +1462,7 @@ document.addEventListener('navigation-change',event=>{
 });
 
 window.V21SyncEngine={
-  version:VERSION,wake,openContact,queueText,queueMediaFiles,flushOutbox,refreshUnread,markRead,syncContacts,clearAccount,ensureMediaRemote,
+  version:VERSION,wake,openContact,queueText,queueMediaFiles,forwardMessage,flushOutbox,refreshUnread,markRead,syncContacts,clearAccount,ensureMediaRemote,
   recoverActiveFromSnapshot:canonicalReconcileActive,
   snapshot(){return{accountId,appSessionId,currentContactId,currentConversationId,syncing,wakePending,wakeHint,lastReason,online:online()};}
 };
