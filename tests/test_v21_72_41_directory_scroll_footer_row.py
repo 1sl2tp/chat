@@ -28,7 +28,7 @@ assert ".shell-sidebar-account-footer .shell-sidebar-account-main,.shell-sidebar
 assert ".shell-sidebar-account-footer .shell-sidebar-account-avatar,.shell-sidebar-account-footer .shell-sidebar-account-copy span,.shell-sidebar-account-footer .shell-sidebar-account-chevron{display:none}" in source
 
 # The long admin label is compact in the footer while accessibility keeps the full destination name.
-assert "button.textContent='Zalo';" in zalo
-assert "button.setAttribute('aria-label','Zalo & tài khoản');" in zalo
+assert "button.textContent='Cài đặt';" in zalo
+assert "button.setAttribute('aria-label','Cài đặt tài khoản');" in zalo
 
 print("V21.72.41 directory fixed tools/footer row contract PASS")
