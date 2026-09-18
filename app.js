@@ -3266,157 +3266,6 @@ function canReplyToMessage(message){
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
 }
 
-const MESSAGE_FORWARD_OWNER='message-forward';
-let messageForwardOverlay=null;
-let messageForwardReturnFocus=null;
-
-function forwardSearchKey(value){
-  return String(value||'')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g,'')
-    .replace(/đ/g,'d').replace(/Đ/g,'D')
-    .toLocaleLowerCase('vi')
-    .replace(/\s+/g,' ')
-    .trim();
-}
-
-function canForwardMessage(message){
-  const auth=window.V21AuthSessionStore?.snapshot?.()||{};
-  const id=String(message?.id||'');
-  return auth.state==='AUTHENTICATED' &&
-    auth.account?.role==='admin' &&
-    String(message?.status||'sent')==='sent' &&
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
-}
-
-function forwardContactRows(){
-  const active=String(window.V21MessageStore?.snapshot?.().currentContactId||'');
-  const selfId=String(window.V21AuthSessionStore?.snapshot?.().account?.id||'');
-  return (window.V21ContactStore?.snapshot?.()||[])
-    .filter(contact=>contact?.id&&String(contact.id)!==active&&String(contact.id)!==selfId)
-    .sort((a,b)=>String(a.display_name||a.username||'').localeCompare(String(b.display_name||b.username||''),'vi'));
-}
-
-function forwardContactName(contact){
-  return String(contact?.display_name||contact?.username||'Khách hàng').trim()||'Khách hàng';
-}
-
-
-function closeMessageForward({restoreFocus=true}={}){
-  if(!messageForwardOverlay)return false;
-  const overlay=messageForwardOverlay;
-  messageForwardOverlay=null;
-  overlay.remove();
-  window.V21InteractionController?.exit?.(InteractionMode.MESSAGE_FORWARD,{owner:MESSAGE_FORWARD_OWNER});
-  const returnNode=messageForwardReturnFocus;
-  messageForwardReturnFocus=null;
-  if(restoreFocus&&returnNode?.isConnected){
-    window.setTimeout(()=>{try{returnNode.focus({preventScroll:true});}catch{}},0);
-  }
-  return true;
-}
-
-async function forwardMessageToContact(message,contact,{statusNode=null,listNode=null}={}){
-  const name=forwardContactName(contact);
-  if(statusNode)statusNode.textContent=`Đang chuyển tiếp tới ${name}…`;
-  if(listNode)for(const button of listNode.querySelectorAll('button'))button.disabled=true;
-  try{
-    await window.V21SyncEngine?.forwardMessage?.({
-      sourceMessageId:String(message?.id||''),
-      text:String(message?.text||''),
-      targetContactId:String(contact?.id||''),
-      clientId:window.V21RuntimeId.create()
-    });
-    if(statusNode)statusNode.textContent=`Đã chuyển tiếp tới ${name}`;
-    window.setTimeout(()=>closeMessageForward({restoreFocus:false}),220);
-    return true;
-  }catch(error){
-    if(statusNode)statusNode.textContent='Không thể chuyển tiếp. Vui lòng thử lại.';
-    if(listNode)for(const button of listNode.querySelectorAll('button'))button.disabled=false;
-    console.warn('[message-forward] failed',error);
-    return false;
-  }
-}
-
-function openMessageForward(message){
-  if(!canForwardMessage(message))return false;
-  closeAllTurnActions();
-  closeMessageForward({restoreFocus:false});
-  const lease=window.V21InteractionController?.enter?.(
-    InteractionMode.MESSAGE_FORWARD,
-    {owner:MESSAGE_FORWARD_OWNER,lockBaseUi:true}
-  );
-  if(!lease)return false;
-
-  messageForwardReturnFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;
-  const overlay=document.createElement('div');
-  overlay.className='message-forward-overlay';
-  overlay.innerHTML=`
-    <button type="button" class="message-forward-backdrop" data-forward-close aria-label="Đóng"></button>
-    <section class="message-forward-card" role="dialog" aria-modal="true" aria-label="Chuyển tiếp tin nhắn">
-      <div class="message-forward-head">
-        <h2 class="message-forward-title">Chuyển tiếp</h2>
-        <button type="button" class="message-forward-close" data-forward-close aria-label="Đóng"></button>
-      </div>
-      <input class="message-forward-search" type="search" inputmode="search" autocomplete="off" placeholder="Tìm khách hàng…" aria-label="Tìm khách hàng">
-      <div class="message-forward-list" role="list"></div>
-      <p class="message-forward-status" aria-live="polite"></p>
-    </section>`;
-  (globalOverlayRoot||document.body).appendChild(overlay);
-  messageForwardOverlay=overlay;
-
-  const forwardClose=overlay.querySelector('.message-forward-close');
-  if(forwardClose)forwardClose.innerHTML=Icons?.markup?.('close',{size:20})||'×';
-  const input=overlay.querySelector('.message-forward-search');
-  const list=overlay.querySelector('.message-forward-list');
-  const status=overlay.querySelector('.message-forward-status');
-  const contacts=forwardContactRows();
-
-  const render=()=>{
-    const query=forwardSearchKey(input?.value||'');
-    const rows=contacts.filter(contact=>{
-      if(!query)return true;
-      return forwardSearchKey(`${contact.display_name||''} ${contact.username||''}`).includes(query);
-    });
-    list.replaceChildren();
-    if(!rows.length){
-      const empty=document.createElement('div');
-      empty.className='message-forward-empty';
-      empty.textContent='Không tìm thấy khách hàng';
-      list.appendChild(empty);
-      return;
-    }
-    for(const contact of rows){
-      const button=document.createElement('button');
-      button.type='button';
-      button.className='message-forward-contact';
-      button.setAttribute('role','listitem');
-      const name=forwardContactName(contact);
-      const initials=name.split(/\s+/).filter(Boolean).slice(-2).map(part=>part[0]||'').join('').toUpperCase()||'KH';
-      const avatar=document.createElement('span');
-      avatar.className='message-forward-avatar';
-      avatar.textContent=initials;
-      const label=document.createElement('span');
-      label.className='message-forward-name';
-      label.textContent=name;
-      button.append(avatar,label);
-      button.addEventListener('click',()=>{void forwardMessageToContact(message,contact,{statusNode:status,listNode:list});});
-      list.appendChild(button);
-    }
-  };
-
-  for(const close of overlay.querySelectorAll('[data-forward-close]')){
-    close.addEventListener('click',()=>closeMessageForward());
-  }
-  input?.addEventListener('input',render);
-  overlay.addEventListener('keydown',event=>{
-    if(event.key==='Escape'){event.preventDefault();closeMessageForward();}
-  });
-  render();
-  window.setTimeout(()=>{try{input?.focus({preventScroll:true});}catch{}},0);
-  return true;
-}
-
 function createActionGroup(message){
   const group=document.createElement('div');
   const isSelf=message.sender==='self';
@@ -3449,13 +3298,14 @@ function createActionGroup(message){
     }));
   }
 
-  if(canForwardMessage(message)){
+  if(window.V21MessageForward?.canForward?.(message)){
     actions.push(makeActionButton({
       label:'Chuyển tiếp',
       icon:'forward',
       onClick:event=>{
         event.stopPropagation();
-        openMessageForward(resolveMessage());
+        closeAllTurnActions();
+        window.V21MessageForward?.open?.(resolveMessage());
       }
     }));
   }
@@ -6884,12 +6734,7 @@ function mapV21ServerMessage(row,selfId){
   });
 }
 
-window.V21MessageForward=Object.freeze({
-  canForward:canForwardMessage,
-  open:openMessageForward,
-  close:closeMessageForward,
-  contacts:forwardContactRows
-});
+
 
 window.V21ConversationBridge={
   clear(){
