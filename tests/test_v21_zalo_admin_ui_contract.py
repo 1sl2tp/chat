@@ -34,14 +34,15 @@ def test_zalo_account_admin_is_one_simple_popup_inside_existing_module():
     source = (ROOT / "index.source.html").read_text("utf-8")
 
     for token in [
-        "Zalo & tài khoản",
+        "Cài đặt tài khoản",
         "admin_snapshot",
         "create_and_link",
         "data-zalo-account-admin-open",
         "zaloAccountAdminModal",
         "Đã kết nối",
         "Chưa kết nối",
-        "Zalo đã được gán",
+        "Nhóm Zalo",
+        "Zalo cá nhân",
         "Chưa có tài khoản Chat",
         "Tạo tài khoản",
         "Chọn Zalo",
