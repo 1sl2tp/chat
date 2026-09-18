@@ -8,6 +8,7 @@ const QUOTE_MODAL_MODE='QUOTE_MODAL';
 const QUOTE_MODAL_OWNER='admin-quote-modal';
 let quoteModulePromise=null;
 let quoteOverlay=null;
+let credentialsOverlay=null;
 let quoteReturnFocus=null;
 let transientHintTimer=0;
 
@@ -24,6 +25,12 @@ function activeContactId(){
   if(fromMessage)return fromMessage;
   const shellState=window.ChatAppShell?.ScreenSession?.snapshot?.()||{};
   return String(shellState.activeContact?.id||'').trim();
+}
+function activeContact(){
+  const id=activeContactId();
+  if(!id)return null;
+  const rows=window.V21ContactStore?.snapshot?.()||[];
+  return rows.find(row=>String(row?.id||'')===id)||null;
 }
 function interactionController(){return window.V21InteractionController||null;}
 function lockQuoteBackground(){
@@ -98,8 +105,9 @@ function ensureAdminMenu(){
     section.append(
       actionButton({action:'quote',label:'Báo giá',kind:'quote'}),
       actionButton({action:'call-link',label:'Link gọi',kind:'call'}),
+      actionButton({action:'credentials',label:'Thông tin đăng nhập',kind:'key'}),
     );
-    surface.appendChild(section);
+    surface.insertBefore(section,sendLabel.nextSibling);
   }
   syncVisibility();
   return section;
@@ -125,21 +133,21 @@ async function quoteClient(){
   if(!quoteModulePromise)quoteModulePromise=import('./quote-client.js').then(()=>window.V21QuoteClient||null);
   return quoteModulePromise;
 }
-async function sendQuoteTextLink(url,contactId){
-  const text=String(url||'').trim();
+async function sendAdminText(value,contactId,reason='admin-chat-send'){
+  const text=String(value||'').trim();
   const target=String(contactId||'').trim();
   if(!text||!target)throw new Error('conversation_not_ready');
   const messageStore=window.V21MessageStore||null;
   const sync=window.V21SyncEngine||null;
   const messageState=messageStore?.snapshot?.()||{};
-  const clientId=window.V21RuntimeId?.create?.()||`quote-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+  const clientId=window.V21RuntimeId?.create?.()||`admin-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
   if(messageStore?.send&&messageState.ready&&String(messageState.currentContactId||'')===target){
     await messageStore.send({clientId,text,contactId:target,conversationId:messageState.currentConversationId||null,reply:null});
   }else{
     if(!sync?.queueText)throw new Error('conversation_not_ready');
     await sync.queueText({clientId,text,contactId:target,conversationId:null,reply:null});
   }
-  void sync?.wake?.({reason:'quote-link-send'});
+  void sync?.wake?.({reason});
   return true;
 }
 function closeQuote({restoreFocus=true}={}){
@@ -199,11 +207,95 @@ async function openQuote(contactId){
     setBusy(true);status.textContent='Đang tạo và gửi…';
     try{
       const quote=await client.create({scope,sourceKey:scope==='source'?source.value:''});
-      await sendQuoteTextLink(quote.url,contactId);
+      await sendAdminText(quote.url,contactId,'quote-link-send');
       closeQuote();
       setTransientHint('Đã gửi link báo giá');
     }catch(error){status.textContent=String(error?.message||error||'Không thể gửi báo giá');setBusy(false);}
   });
+  return true;
+}
+
+function closeCredentials({restoreFocus=true}={}){
+  const hadOverlay=Boolean(credentialsOverlay);
+  if(credentialsOverlay){credentialsOverlay.remove();credentialsOverlay=null;}
+  unlockQuoteBackground({restoreFocus});
+  return hadOverlay;
+}
+
+async function openCredentials(contactId){
+  const contact=activeContact();
+  if(!contact||String(contact.id||'')!==String(contactId||''))throw new Error('contact_not_ready');
+  const username=String(contact.username||'').trim().replace(/^@/,'');
+  const displayName=String(contact.display_name||contact.name||username||'Khách hàng').trim();
+  if(!username)throw new Error('username_missing');
+  const root=document.getElementById('globalOverlayRoot');
+  if(!root)throw new Error('credentials_overlay_unavailable');
+  closeCredentials({restoreFocus:false});
+  if(!lockQuoteBackground())throw new Error('credentials_modal_busy');
+
+  const overlay=document.createElement('section');
+  overlay.className='admin-composer-quote-overlay';
+  overlay.dataset.adminComposerCredentials='';
+  overlay.innerHTML=`
+    <button type="button" class="admin-composer-quote-backdrop" data-credentials-close aria-label="Đóng"></button>
+    <div class="admin-composer-quote-card" role="dialog" aria-modal="true" aria-label="Thông tin đăng nhập">
+      <h2 class="admin-composer-quote-title">Thông tin đăng nhập</h2>
+      <input class="admin-composer-quote-source" data-credentials-username value="${username}" readonly aria-label="Tên đăng nhập">
+      <input class="admin-composer-quote-source" data-credentials-password type="password" autocomplete="new-password" minlength="6" maxlength="128" placeholder="Mật khẩu gửi cho khách" aria-label="Mật khẩu">
+      <p class="admin-composer-quote-status" data-credentials-status>Nhập mật khẩu. Hệ thống sẽ đặt đúng mật khẩu này rồi gửi cho khách.</p>
+      <div class="admin-composer-quote-actions">
+        <button type="button" class="admin-composer-quote-cancel" data-credentials-close>Hủy</button>
+        <button type="button" class="admin-composer-quote-send" data-credentials-send>Đặt mật khẩu & gửi</button>
+      </div>
+    </div>`;
+  root.appendChild(overlay);
+  credentialsOverlay=overlay;
+
+  const password=overlay.querySelector('[data-credentials-password]');
+  const status=overlay.querySelector('[data-credentials-status]');
+  const send=overlay.querySelector('[data-credentials-send]');
+  const closeButtons=[...overlay.querySelectorAll('[data-credentials-close]')];
+  const setBusy=busy=>{
+    send.disabled=Boolean(busy);
+    password.disabled=Boolean(busy);
+    for(const button of closeButtons)button.disabled=Boolean(busy);
+  };
+  for(const button of closeButtons)button.addEventListener('click',closeCredentials);
+  send.addEventListener('click',async()=>{
+    const plainPassword=String(password.value||'');
+    if(plainPassword.length<6){
+      status.textContent='Mật khẩu cần ít nhất 6 ký tự';
+      password.focus({preventScroll:true});
+      return;
+    }
+    setBusy(true);
+    status.textContent='Đang đặt mật khẩu và gửi…';
+    try{
+      const profile=window.V21AccountProfileStore;
+      if(!profile?.adminSaveUser)throw new Error('account_profile_unavailable');
+      const result=await profile.adminSaveUser({
+        targetAccountId:String(contactId),
+        username,
+        displayName,
+        password:plainPassword,
+      });
+      if(!result?.ok)throw new Error(result?.message||'password_update_failed');
+      const text=[
+        'Thông tin đăng nhập TAPHOA Chat',
+        `Tài khoản: ${username}`,
+        `Mật khẩu: ${plainPassword}`,
+        'Đăng nhập: https://chat.taphoa.xyz',
+      ].join('\n');
+      await sendAdminText(text,contactId,'account-credentials-send');
+      password.value='';
+      closeCredentials();
+      setTransientHint('Đã gửi thông tin đăng nhập');
+    }catch(error){
+      status.textContent=String(error?.message||error||'Không thể gửi thông tin đăng nhập');
+      setBusy(false);
+    }
+  });
+  window.setTimeout(()=>password.focus({preventScroll:true}),0);
   return true;
 }
 
@@ -214,6 +306,9 @@ async function runAction(action){
   hideMenu();
   if(action==='quote'){
     try{return await openQuote(contactId);}catch{setTransientHint('Không thể mở báo giá');return false;}
+  }
+  if(action==='credentials'){
+    try{return await openCredentials(contactId);}catch{setTransientHint('Không thể mở thông tin đăng nhập');return false;}
   }
   if(action==='call-link'){
     const client=window.TaphoaCallInviteClient||null;
@@ -250,6 +345,7 @@ window.V21AdminComposerActions=Object.freeze({
   mount:ensureAdminMenu,
   run:runAction,
   openQuote,
+  openCredentials,
   activeContactId,
 });
 })();
