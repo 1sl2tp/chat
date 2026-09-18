@@ -1,0 +1,17 @@
+html[data-admin-composer-actions="true"] [data-quote-admin-block],
+html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:none!important}
+.admin-composer-menu-label{padding:7px 12px 4px;color:var(--theme-content-tertiary,#888);font-size:11px;font-weight:700;line-height:14px;text-transform:uppercase;letter-spacing:.04em}
+.admin-composer-menu-item[disabled]{opacity:.48;cursor:default}
+.admin-composer-quote-overlay{position:fixed;inset:0;z-index:170;display:grid;place-items:center;padding:18px;pointer-events:auto}
+.admin-composer-quote-backdrop{position:absolute;inset:0;border:0;background:rgba(0,0,0,.28);backdrop-filter:blur(2px)}
+.admin-composer-quote-card{position:relative;z-index:1;width:min(92vw,390px);display:grid;gap:12px;padding:16px;border:1px solid var(--theme-border-default,#dedede);border-radius:20px;background:var(--theme-surface-primary,#fff);box-shadow:0 18px 50px rgba(0,0,0,.18)}
+.admin-composer-quote-title{margin:0;font-size:17px;font-weight:700}
+.admin-composer-quote-scopes{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.admin-composer-quote-scopes button,.admin-composer-quote-send,.admin-composer-quote-cancel{min-height:42px;border:1px solid var(--theme-border-default,#dedede);border-radius:13px;background:var(--theme-surface-secondary,#f5f5f5);color:var(--theme-content-primary,#171717);font:inherit;font-weight:650;cursor:pointer}
+.admin-composer-quote-scopes button[data-active="true"]{background:var(--theme-content-primary,#171717);color:var(--theme-surface-primary,#fff);border-color:var(--theme-content-primary,#171717)}
+.admin-composer-quote-source{width:100%;min-height:42px;border:1px solid var(--theme-border-default,#dedede);border-radius:13px;padding:0 10px;background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#171717);font:inherit}
+.admin-composer-quote-source[hidden]{display:none}
+.admin-composer-quote-status{min-height:18px;margin:0;color:var(--theme-content-secondary,#666);font-size:12px;line-height:18px}
+.admin-composer-quote-actions{display:grid;grid-template-columns:1fr 1.4fr;gap:8px}
+.admin-composer-quote-send{background:var(--theme-content-primary,#171717);color:var(--theme-surface-primary,#fff);border-color:var(--theme-content-primary,#171717)}
+.admin-composer-quote-send:disabled,.admin-composer-quote-cancel:disabled{opacity:.5;cursor:default}

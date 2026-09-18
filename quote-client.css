@@ -1,0 +1,16 @@
+.quote-admin-block{display:grid;gap:10px;margin-top:16px;padding-top:16px;border-top:1px solid var(--theme-border-default,#dedede)}
+.quote-admin-open,.quote-admin-create,.quote-admin-action{appearance:none;min-height:46px;border:1px solid var(--theme-border-default,#dedede);border-radius:16px;background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#171717);font:inherit;font-weight:600;cursor:pointer}
+.quote-admin-open:hover,.quote-admin-action:hover{background:var(--theme-surface-secondary,#f3f3f3)}
+.quote-admin-panel{display:grid;gap:10px}
+.quote-admin-scope{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.quote-admin-scope button{appearance:none;min-height:40px;border:1px solid var(--theme-border-default,#dedede);border-radius:13px;background:var(--theme-surface-secondary,#f3f3f3);color:var(--theme-content-secondary,#666);font:inherit;font-size:13px;font-weight:650;cursor:pointer}
+.quote-admin-scope button[data-active="true"]{background:var(--theme-content-primary,#171717);color:var(--theme-surface-primary,#fff);border-color:var(--theme-content-primary,#171717)}
+.quote-admin-source{width:100%;min-height:42px;border:1px solid var(--theme-border-default,#dedede);border-radius:13px;padding:0 10px;background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#171717);font:inherit}
+.quote-admin-create{background:var(--theme-content-primary,#171717);color:var(--theme-surface-primary,#fff);border-color:var(--theme-content-primary,#171717)}
+.quote-admin-create:disabled,.quote-admin-action:disabled{opacity:.55;cursor:default}
+.quote-admin-status{margin:0;min-height:18px;color:var(--theme-content-secondary,#666);font-size:12px;line-height:18px}
+.quote-admin-result{display:grid;gap:8px;padding:10px;border:1px solid var(--theme-border-default,#dedede);border-radius:14px;background:var(--theme-surface-secondary,#f7f7f7)}
+.quote-admin-result-copy{font-size:12px;color:var(--theme-content-secondary,#666)}
+.quote-admin-url{width:100%;height:40px;border:1px solid var(--theme-border-default,#dedede);border-radius:10px;padding:0 9px;background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#171717);font:inherit;font-size:12px}
+.quote-admin-actions{display:grid;grid-template-columns:1fr;gap:8px}
+[data-quote-hidden="true"]{display:none!important}

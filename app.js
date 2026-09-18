@@ -3441,30 +3441,6 @@ function forwardContactName(contact){
   return String(contact?.display_name||contact?.username||'Khách hàng').trim()||'Khách hàng';
 }
 
-function installMessageForwardStyle(){
-  if(document.getElementById('v21-message-forward-style'))return;
-  const style=document.createElement('style');
-  style.id='v21-message-forward-style';
-  style.textContent=`
-    .message-forward-overlay{position:fixed;inset:0;z-index:178;display:grid;place-items:center;padding:16px;pointer-events:auto}
-    .message-forward-backdrop{position:absolute;inset:0;border:0;background:rgba(0,0,0,.28);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
-    .message-forward-card{position:relative;z-index:1;width:min(92vw,420px);max-height:min(76dvh,640px);display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;gap:10px;padding:14px;border:1px solid var(--theme-border-default,#dedede);border-radius:20px;background:var(--theme-surface-primary,#fff);box-shadow:0 18px 50px rgba(0,0,0,.2)}
-    .message-forward-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
-    .message-forward-title{margin:0;font-size:17px;line-height:22px;font-weight:700}
-    .message-forward-close{width:34px;height:34px;border:0;border-radius:999px;background:transparent;color:inherit;font-size:22px;cursor:pointer}
-    .message-forward-search{width:100%;height:42px;border:1px solid var(--theme-border-default,#dedede);border-radius:13px;padding:0 12px;background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#171717);font:inherit;outline:none}
-    .message-forward-search:focus{border-color:var(--theme-content-tertiary,#888)}
-    .message-forward-list{min-height:120px;overflow:auto;overscroll-behavior:contain;border-top:1px solid var(--theme-border-subtle,#eee)}
-    .message-forward-contact{width:100%;min-height:52px;display:grid;grid-template-columns:36px minmax(0,1fr);align-items:center;gap:10px;padding:7px 4px;border:0;border-bottom:1px solid var(--theme-border-subtle,#eee);background:transparent;color:inherit;text-align:left;cursor:pointer}
-    .message-forward-contact:disabled{opacity:.5;cursor:default}
-    .message-forward-avatar{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--theme-surface-secondary,#f2f2f2);font-size:12px;font-weight:700}
-    .message-forward-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:650}
-    .message-forward-empty{padding:24px 8px;text-align:center;color:var(--theme-content-secondary,#777);font-size:13px}
-    .message-forward-status{min-height:18px;margin:0;color:var(--theme-content-secondary,#666);font-size:12px;line-height:18px}
-    @media(max-width:639px){.message-forward-overlay{align-items:end;padding:0}.message-forward-card{width:100%;max-height:78dvh;border-radius:22px 22px 0 0;padding:14px 14px calc(14px + env(safe-area-inset-bottom))}}
-  `;
-  document.head.appendChild(style);
-}
 
 function closeMessageForward({restoreFocus=true}={}){
   if(!messageForwardOverlay)return false;
@@ -3512,7 +3488,6 @@ function openMessageForward(message){
   );
   if(!lease)return false;
 
-  installMessageForwardStyle();
   messageForwardReturnFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;
   const overlay=document.createElement('div');
   overlay.className='message-forward-overlay';
