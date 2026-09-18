@@ -8,6 +8,8 @@ assert 'place:placeComposerActionMenu' in app
 assert 'open:()=>setComposerActionMenuOpen(true)' in app
 assert 'close:()=>setComposerActionMenuOpen(false)' in app
 assert "rect.top-menuHeight-8" in app
+assert "function hasAppOwnedComposerActions()" in app
+assert "RuntimeProfile.pickerMode==='ios-native'&&!hasAppOwnedComposerActions()" in app
 
 assert "event.stopImmediatePropagation()" not in admin
 assert "function showMenu()" not in admin
