@@ -74,6 +74,22 @@ assert.equal(differentiated.items[0].rawEvidence,'Hai thùng mì lô tô và 2 t
 assert.equal(/nhé/i.test(differentiated.items[0].name),false,'conversation filler must not be appended to product name');
 
 
+const explicitSource=core.normalizeSummaryPayload({
+  items:[
+    {name:'ảnh hàng',quantity:2,source:'image',source_message_id:'img-msg-2',raw_evidence:'2 T - ảnh hàng'},
+    {name:'đường bao 30kg đóng sẵn',quantity:5,source:'text+admin-context',source_message_id:'customer-final',raw_evidence:'Giá đẹp e lấy 5 bao (sau khi hỏi Đường bao 30kg đóng sẵn)'},
+  ]
+},[
+  {id:'img-msg-1',created_at:'2026-09-15T00:00:00Z',sender_role:'customer',body:''},
+  {id:'img-msg-2',created_at:'2026-09-16T00:00:00Z',sender_role:'customer',body:''},
+  {id:'admin-question',created_at:'2026-09-17T00:00:00Z',sender_role:'admin',body:'Giá đẹp lấy mấy bao?'},
+  {id:'customer-final',created_at:'2026-09-17T00:00:10Z',sender_role:'customer',body:'Giá đẹp e lấy 5 bao'},
+]);
+assert.equal(explicitSource.items[0].sourceMessageId,'img-msg-2');
+assert.equal(explicitSource.items[0].sourceMessageIndex,1);
+assert.equal(explicitSource.items[1].sourceMessageId,'customer-final');
+assert.equal(explicitSource.items[1].sourceMessageIndex,3);
+
 const sourceOrdered=core.normalizeSummaryPayload({
   items:[
     {name:'bột omo 5.1kg',quantity:2,source:'text',raw_evidence:'2 bột omo 5.1kg'},

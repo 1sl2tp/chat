@@ -52,6 +52,7 @@ Trả đúng MỘT JSON, không Markdown:
       "quantity":2,
       "unit":"thùng",
       "source":"text | image | text+admin-context | image+text",
+      "source_message_id":"ID chính xác của tin KHACH làm nguồn cho dòng này",
       "raw_evidence":"nguyên văn nguồn quan trọng nhất",
       "ambiguous":false,
       "inferred":false
@@ -62,6 +63,10 @@ Trả đúng MỘT JSON, không Markdown:
 - quantity là số hoặc null. Không dùng 0 thay cho không biết.
 - ambiguous=true nếu tên/SL/đơn vị thực sự chưa đủ chắc.
 - inferred=true chỉ khi áp dụng một quy ước khách-specific được cung cấp bên dưới; vẫn phải giữ raw_evidence gốc.
+- source_message_id là BẮT BUỘC cho mỗi item. Chỉ dùng ID của tin KHACH, không dùng ID của ADMIN_CONTEXT.
+- Nếu item đến từ ảnh, lấy đúng message_id được ghi ngay trước ảnh đó.
+- Nếu một mặt hàng được khách hoàn tất/sửa qua nhiều tin liên tiếp, source_message_id là tin KHACH MỚI NHẤT làm cho dòng hàng đạt trạng thái cuối cùng hiện tại.
+- Không tự bịa ID. Chỉ dùng ID đã xuất hiện trong LỊCH SỬ CHAT hoặc nhãn ảnh.
 `;
 
 export function customerSpecificHints(account={}){
@@ -82,8 +87,9 @@ export function buildConversationHistory(rows=[]){
   return (Array.isArray(rows)?rows:[]).map((row,index)=>{
     const role=String(row?.sender_role||'').toLowerCase()==='customer'?'KHACH':'ADMIN_CONTEXT';
     const at=clean(row?.created_at,80)||'?';
+    const messageId=clean(row?.id,120)||'?';
     const body=clean(row?.body,12000);
-    return `TIN ${index+1} [${at}] ${role}: ${body}`;
+    return `TIN ${index+1} [${at}] [message_id=${messageId}] ${role}: ${body}`;
   }).join('\n');
 }
 
@@ -198,8 +204,25 @@ function repairDistinctiveWordsFromCustomerText(item,sourceRows=[]){
   return item;
 }
 
-function sourceMessageMetadata(item,sourceRows=[]){
+function sourceMessageMetadata(item,sourceRows=[],raw={}){
   const rows=Array.isArray(sourceRows)?sourceRows:[];
+  const directId=clean(raw?.source_message_id??raw?.sourceMessageId,120);
+  if(directId){
+    const directIndex=rows.findIndex(row=>
+      String(row?.sender_role||'').toLowerCase()==='customer' &&
+      clean(row?.id,120)===directId
+    );
+    if(directIndex>=0){
+      const row=rows[directIndex];
+      const createdAt=clean(row?.created_at,80);
+      return{
+        sourceMessageId:directId,
+        ...(createdAt?{sourceCreatedAt:createdAt}:{}),
+        sourceMessageIndex:directIndex,
+      };
+    }
+  }
+
   const evidence=normalizedCompare(item?.rawEvidence);
   const name=normalizedCompare(item?.name);
 
@@ -244,7 +267,7 @@ export function normalizeSummaryPayload(payload={},sourceRows=[]){
       inferred:Boolean(raw?.inferred),
     });
     const repaired=repairDistinctiveWordsFromCustomerText(repairedEvidence,sourceRows);
-    items.push({...repaired,...sourceMessageMetadata(repaired,sourceRows)});
+    items.push({...repaired,...sourceMessageMetadata(repaired,sourceRows,raw)});
   }
   const totalsMap=new Map();
   for(const item of items){

@@ -160,9 +160,9 @@ async function loadImageParts(messages:any[],mediaMap:Map<string,any[]>){
 
 function appendImageReadVerify(parts:any[],row:any,image:any){
   const at=clean(row?.created_at,80)||'?';
-  parts.push({text:`ẢNH ĐỌC LẦN 1 — ảnh khách gửi lúc ${at}. Nếu là ảnh đơn, đọc tuần tự từng dòng vật lý từ trên xuống dưới và hết từng cột. Chưa lọc trùng, chưa gộp các dòng gần giống; mục tiêu là không bỏ sót dòng.`});
+  parts.push({text:`ẢNH ĐỌC LẦN 1 — message_id=${String(row?.id||'?')} — ảnh khách gửi lúc ${at}. Nếu là ảnh đơn, đọc tuần tự từng dòng vật lý từ trên xuống dưới và hết từng cột. Chưa lọc trùng, chưa gộp các dòng gần giống; mục tiêu là không bỏ sót dòng.`});
   parts.push({inlineData:{mimeType:image.mimeType,data:image.data}});
-  parts.push({text:`ẢNH KIỂM TRA LẦN 2 — cùng ảnh lúc ${at}. Đối chiếu lại toàn bộ ảnh với danh sách vừa đọc: tìm dòng nào bị bỏ sót, đặc biệt các dòng cùng tên gốc/cùng số lượng nhưng khác có đường, ít đường, không đường, màu, dung tích, trọng lượng, mã hoặc quy cách. Chỉ sau bước kiểm tra này mới áp dụng sửa đơn/lọc trùng theo prompt.`});
+  parts.push({text:`ẢNH KIỂM TRA LẦN 2 — message_id=${String(row?.id||'?')} — cùng ảnh lúc ${at}. Đối chiếu lại toàn bộ ảnh với danh sách vừa đọc: tìm dòng nào bị bỏ sót, đặc biệt các dòng cùng tên gốc/cùng số lượng nhưng khác có đường, ít đường, không đường, màu, dung tích, trọng lượng, mã hoặc quy cách. Chỉ sau bước kiểm tra này mới áp dụng sửa đơn/lọc trùng theo prompt.`});
   parts.push({inlineData:{mimeType:image.mimeType,data:image.data}});
 }
 
