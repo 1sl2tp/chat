@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="306f540b57760c6c9240255307aaac223919d3a79d83f24058e0b8f14aa13bef">
+<meta name="app-build-id" content="2c2fc2a2a67f1dff5c15adca75088f44658ee289ae6a09e9ea5be20ccfd2927f">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -3114,6 +3114,15 @@ button{
 .shell-form-password-toggle:hover{background:var(--theme-surface-secondary)}
 .shell-form-password-toggle:focus-visible{outline:2px solid var(--guest-auth-focus);outline-offset:1px}
 .shell-form-password-toggle svg{display:block}
+.guest-auth-status{
+  margin:0;
+  padding:0 4px;
+  color:var(--theme-content-secondary,#666);
+  font-size:.9rem;
+  line-height:1.35rem;
+  text-align:center;
+}
+.guest-auth-status[hidden]{display:none}
 .guest-auth-primary{
   width:100%;
   min-width:0;
@@ -13016,7 +13025,11 @@ function clearFieldInvalid(name){
 function setFieldInvalid(name){
   authField(name)?.setAttribute('aria-invalid','true');
 }
-function clearAuthErrors(){['name','account','password'].forEach(clearFieldInvalid)}
+function clearAuthErrors(){
+  ['name','account','password'].forEach(clearFieldInvalid);
+  const status=document.querySelector('[data-auth-status]');
+  if(status){status.textContent='';status.hidden=true;}
+}
 
 
 function initialsFor(value,fallback='TK'){
@@ -13540,6 +13553,14 @@ const AuthUI={
   },
   setError(code){
     clearAuthErrors();
+    if(code==='device_approval_required'){
+      const status=document.querySelector('[data-auth-status]');
+      if(status){
+        status.textContent='Thiết bị này đang chờ Admin duyệt. Sau khi được duyệt, hãy đăng nhập lại.';
+        status.hidden=false;
+      }
+      return;
+    }
     if(code==='invalid_credentials'){
       setFieldInvalid('account');
       setFieldInvalid('password');
@@ -14244,6 +14265,7 @@ let deviceId=null;
 let heartbeatId=0;
 let busy=false;
 let handlingRevoke=false;
+let lastBootstrapError='';
 
 function normalizeUsername(value){
   return String(value??'').trim().replace(/^@/,'').toLowerCase();
@@ -14286,6 +14308,7 @@ function mapError(error,fallback='unknown'){
   if(raw.includes('invalid login credentials')||raw.includes('invalid_credentials'))return 'invalid_credentials';
   if(raw.includes('username_taken')||raw.includes('already registered')||raw.includes('already_registered'))return 'account_exists';
   if(raw.includes('invalid_password')||raw.includes('password'))return 'weak_password';
+  if(raw.includes('device_approval_required'))return 'device_approval_required';
   if(raw.includes('session_revoked')||raw.includes('account_locked'))return 'session_revoked';
   if(raw.includes('account_not_registered'))return 'invalid_credentials';
   return fallback;
@@ -14575,14 +14598,24 @@ const AccountProfileStore={
 
 async function bootstrap(){
   if(!client)return false;
+  lastBootstrapError='';
   const {data:{session}}=await client.auth.getSession();
   if(!session){renderGuest();return false;}
   const {data,error}=await client.rpc('v21_auth_bootstrap',{
     p_device_key:getDeviceKey(),p_label:deviceLabel(),p_platform:platformLabel()
   });
   if(error){
+    lastBootstrapError=mapError(error,'invalid_credentials');
     await client.auth.signOut({scope:'local'}).catch(()=>{});
     renderGuest();
+    authUI()?.setError?.(lastBootstrapError);
+    return false;
+  }
+  if(data?.device_approval_required||String(data?.session?.status||'')==='approval_required'){
+    lastBootstrapError='device_approval_required';
+    await client.auth.signOut({scope:'local'}).catch(()=>{});
+    renderGuest();
+    authUI()?.setError?.(lastBootstrapError);
     return false;
   }
   renderAuthenticated(data);
@@ -14598,7 +14631,7 @@ async function login({account:username,password}){
     const {error}=await client.auth.signInWithPassword({email:`${user}@taphoa.chat`,password:String(password??'')});
     if(error)throw error;
     const ok=await bootstrap();
-    if(!ok)throw new Error('invalid_credentials');
+    if(!ok)throw new Error(lastBootstrapError||'invalid_credentials');
     return true;
   }catch(error){
     authUI()?.setError(mapError(error,'invalid_credentials'));
@@ -14625,7 +14658,7 @@ async function register({name,account:username,password}){
     const {error}=await client.auth.signInWithPassword({email:`${user}@taphoa.chat`,password:String(password??'')});
     if(error)throw error;
     const ok=await bootstrap();
-    if(!ok)throw new Error('registration_failed');
+    if(!ok)throw new Error(lastBootstrapError||'registration_failed');
     return true;
   }catch(error){
     authUI()?.setError(mapError(error,'registration_failed'));
@@ -15583,6 +15616,7 @@ const MODULE_VERSION='V21.73.0';
 const mounted=new WeakSet();
 let accountModal=null;
 let accountSnapshot={accounts:[],contacts:[],links:[]};
+let deviceSnapshot=[];
 let accountBusy=false;
 
 function authStore(){return window.V21AuthSessionStore||null;}
@@ -16095,7 +16129,135 @@ function closeAccountAdmin(){
   accountModal?.remove?.();
   accountModal=null;
   accountSnapshot={accounts:[],contacts:[],links:[]};
+  deviceSnapshot=[];
   accountBusy=false;
+}
+
+function deviceStatusText(device){
+  const status=String(device?.status||'');
+  if(device?.current_device)return'Thiết bị này · đang hoạt động';
+  if(status==='pending')return'Chờ duyệt';
+  if(status==='revoked')return'Đã thu hồi';
+  if(Number(device?.active_sessions)>0)return'Đã duyệt · đang hoạt động';
+  return'Đã duyệt';
+}
+
+function formatDeviceSeen(value){
+  if(!value)return'';
+  const date=new Date(value);
+  if(Number.isNaN(date.getTime()))return'';
+  return date.toLocaleString('vi-VN',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+}
+
+function paintAdminDeviceSetting(){
+  if(!accountModal)return;
+  const status=accountModal.querySelector('[data-admin-device-status]');
+  if(!status)return;
+  const pending=deviceSnapshot.filter(item=>item?.status==='pending').length;
+  const active=deviceSnapshot.filter(item=>Number(item?.active_sessions)>0).length;
+  status.textContent=pending>0
+    ?`${pending} thiết bị chờ duyệt · ${active} đang hoạt động`
+    :`${deviceSnapshot.length} thiết bị đã đăng ký · ${active} đang hoạt động`;
+}
+
+async function refreshAdminDevices(){
+  const client=authStore()?.getClient?.();
+  const snap=authStore()?.snapshot?.()||{};
+  if(!client||!currentAdmin()||!snap.appSessionId)throw new Error('admin_required');
+  const {data,error}=await client.rpc('v21_admin_devices_list',{p_app_session_id:String(snap.appSessionId)});
+  if(error)throw error;
+  deviceSnapshot=Array.isArray(data)?data:[];
+  paintAdminDeviceSetting();
+  return deviceSnapshot;
+}
+
+async function runDeviceAction(device,action){
+  const client=authStore()?.getClient?.();
+  const snap=authStore()?.snapshot?.()||{};
+  if(!client||!snap.appSessionId||!device?.id)throw new Error('admin_required');
+  const rpc=action==='revoke'?'v21_admin_device_revoke':'v21_admin_device_approve';
+  const {error}=await client.rpc(rpc,{
+    p_app_session_id:String(snap.appSessionId),
+    p_device_id:String(device.id)
+  });
+  if(error)throw error;
+  await refreshAdminDevices();
+  return true;
+}
+
+function openDevicePanel(){
+  if(!accountModal)return;
+  const panel=accountModal.querySelector('[data-zalo-account-panel]');
+  panel.replaceChildren();
+  const box=document.createElement('section');
+  box.className='zalo-account-panel';
+  box.innerHTML='<div class="zalo-account-panel-head"><strong>Thiết bị Admin</strong><button type="button" data-close>Đóng</button></div><div class="zalo-account-picker-list" data-device-list></div><p class="zalo-account-error" data-device-error hidden></p>';
+  panel.appendChild(box);
+  box.querySelector('[data-close]').addEventListener('click',closeAccountPanel);
+  const list=box.querySelector('[data-device-list]');
+  const errorNode=box.querySelector('[data-device-error]');
+
+  const paint=()=>{
+    list.replaceChildren();
+    for(const device of deviceSnapshot){
+      const row=document.createElement('div');
+      row.className='zalo-account-row';
+      const copy=document.createElement('div');
+      copy.className='zalo-account-person-copy';
+      const name=document.createElement('strong');
+      name.textContent=String(device?.label||'Thiết bị');
+      const meta=document.createElement('small');
+      const seen=formatDeviceSeen(device?.last_seen_at);
+      meta.textContent=`${deviceStatusText(device)}${seen?` · ${seen}`:''}`;
+      copy.append(name,meta);
+
+      const relation=document.createElement('div');
+      relation.className='zalo-account-relation';
+      const platform=document.createElement('span');
+      platform.className='zalo-account-person-copy';
+      platform.innerHTML='<strong></strong><small></small>';
+      platform.querySelector('strong').textContent=String(device?.platform||'web');
+      platform.querySelector('small').textContent=String(device?.status||'approved')==='pending'?'Chưa được phép đăng nhập':'';
+      relation.appendChild(platform);
+
+      const actions=document.createElement('div');
+      actions.className='zalo-account-row-actions';
+      if(!device?.current_device){
+        const button=document.createElement('button');
+        button.type='button';
+        button.className='zalo-account-action';
+        const needsApprove=String(device?.status||'')!=='approved';
+        button.textContent=needsApprove?'Duyệt':'Thu hồi';
+        if(!needsApprove)button.classList.add('zalo-account-action-danger');
+        button.addEventListener('click',async()=>{
+          if(accountBusy)return;
+          setAccountBusy(true);
+          errorNode.hidden=true;
+          try{
+            await runDeviceAction(device,needsApprove?'approve':'revoke');
+            paint();
+          }catch(error){
+            errorNode.textContent=String(error?.message||'Không thể cập nhật thiết bị');
+            errorNode.hidden=false;
+          }finally{setAccountBusy(false);}
+        });
+        actions.appendChild(button);
+      }
+      row.append(copy,relation,actions);
+      list.appendChild(row);
+    }
+    if(!list.childElementCount){
+      const empty=document.createElement('p');
+      empty.className='zalo-account-empty';
+      empty.textContent='Chưa có thiết bị';
+      list.appendChild(empty);
+    }
+  };
+
+  void refreshAdminDevices().then(paint).catch(error=>{
+    errorNode.textContent=String(error?.message||'Không thể tải thiết bị');
+    errorNode.hidden=false;
+  });
 }
 
 function adminPushView(snapshot={}){
@@ -16168,6 +16330,10 @@ async function openAccountAdmin(){
         <span class="zalo-account-notification-copy"><strong>Thông báo</strong><small data-admin-push-status>Bật thông báo</small></span>
         <button type="button" class="zalo-account-notification-action" data-admin-push-action data-mode="enable">Bật thông báo</button>
       </div>
+      <div class="zalo-account-notification" data-admin-device-setting>
+        <span class="zalo-account-notification-copy"><strong>Thiết bị</strong><small data-admin-device-status>Đang tải thiết bị…</small></span>
+        <button type="button" class="zalo-account-notification-action" data-admin-device-open>Quản lý</button>
+      </div>
       <label class="zalo-account-search"><span class="sr-only">Tìm tài khoản</span><input type="search" autocomplete="off" inputmode="search" placeholder="Tìm tên Chat, @username hoặc Zalo" data-zalo-account-search></label>
       <p class="zalo-account-error" data-zalo-account-error hidden></p>
       <div class="zalo-account-list" data-zalo-account-list></div>
@@ -16178,6 +16344,8 @@ async function openAccountAdmin(){
   accountModal.querySelector('.zalo-account-close').addEventListener('click',closeAccountAdmin);
   const pushAction=accountModal.querySelector('[data-admin-push-action]');
   pushAction?.addEventListener('click',()=>void runAdminPushAction(pushAction));
+  const deviceAction=accountModal.querySelector('[data-admin-device-open]');
+  deviceAction?.addEventListener('click',openDevicePanel);
   const search=accountModal.querySelector('[data-zalo-account-search]');
   search?.addEventListener('input',()=>{
     renderAccountRows();
@@ -16185,6 +16353,7 @@ async function openAccountAdmin(){
     if(list)list.scrollTop=0;
   });
   void refreshAdminPushSetting();
+  void refreshAdminDevices().catch(()=>{paintAdminDeviceSetting();});
   const submodal=accountModal.querySelector('[data-zalo-account-panel]');
   submodal.addEventListener('click',event=>{if(event.target===submodal)closeAccountPanel();});
   setAccountBusy(true);

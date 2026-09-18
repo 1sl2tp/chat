@@ -22,4 +22,10 @@ assert "data-admin-device-setting" in zalo
 assert "v21_sessions_one_active_per_device" in migration
 assert "v21_sessions_one_active_per_account" in migration
 assert "approved_at" in migration
+assert "create or replace function v21_private.open_session" in migration
+assert "create or replace function public.v21_admin_devices_list" in migration
+assert "create or replace function public.v21_admin_device_approve" in migration
+assert "create or replace function public.v21_admin_device_revoke" in migration
+assert "where device_id=v_device.id and revoked_at is null" in migration
+assert "where account_id=p_account_id and revoked_at is null" in migration
 print("admin parallel approved devices contract PASS")
