@@ -65,6 +65,37 @@ async function invoke(action,targetAccountId,zaloId=null){
   return invokeBody(body);
 }
 
+async function sendAccountCredentials({accountId='',username='',password=''}={}){
+  const target=String(accountId||'').trim();
+  const user=String(username||'').trim();
+  const pass=String(password||'');
+  if(!target||!user||!pass)throw new Error('credentials_missing');
+  const text=[
+    'Thông tin đăng nhập TAPHOA Chat',
+    `Tài khoản: ${user}`,
+    `Mật khẩu: ${pass}`,
+    'Đăng nhập: https://chat.taphoa.xyz',
+  ].join('\n');
+  const messageStore=window.V21MessageStore||null;
+  const sync=window.V21SyncEngine||null;
+  const state=messageStore?.snapshot?.()||{};
+  const clientId=window.V21RuntimeId?.create?.()||`login-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+  if(messageStore?.send&&state.ready&&String(state.currentContactId||'')===target){
+    await messageStore.send({
+      clientId,
+      text,
+      contactId:target,
+      conversationId:state.currentConversationId||null,
+      reply:null,
+    });
+  }else{
+    if(!sync?.queueText)throw new Error('conversation_not_ready');
+    await sync.queueText({clientId,text,contactId:target,conversationId:null,reply:null});
+  }
+  void sync?.wake?.({reason:'account-credentials-send'});
+  return true;
+}
+
 function avatarNode(contact){
   const avatar=document.createElement('span');
   avatar.className='zalo-admin-avatar';
@@ -476,6 +507,7 @@ function openCreateAccount(contact){
     <label>Tên hiển thị<input name="display_name" required maxlength="50"></label>
     <label>Mật khẩu<input name="password" required type="password" autocomplete="new-password" minlength="6" maxlength="128"></label>
     <label class="zalo-account-check"><input name="use_zalo_avatar" type="checkbox"> Dùng ảnh Zalo</label>
+    <label class="zalo-account-check"><input name="send_credentials" type="checkbox" data-send-credentials checked> Gửi user/pass vào chat</label>
     <button type="submit" class="zalo-account-create-submit">Tạo tài khoản</button>`;
   form.querySelector('[data-create-title]').textContent=`Tạo tài khoản từ ${String(contact.display_name||'Zalo')}`;
   panel.appendChild(form);
@@ -484,6 +516,7 @@ function openCreateAccount(contact){
   const displayName=form.elements.namedItem('display_name');
   const password=form.elements.namedItem('password');
   const useAvatar=form.elements.namedItem('use_zalo_avatar');
+  const sendCredentials=form.elements.namedItem('send_credentials');
   displayName.value=String(contact.display_name||'').trim();
   useAvatar.checked=Boolean(String(contact.avatar_url||'').trim());
   form.addEventListener('submit',async event=>{
@@ -491,14 +524,23 @@ function openCreateAccount(contact){
     if(accountBusy)return;
     setAccountBusy(true);setAccountError('');
     try{
-      await invokeBody({
+      const plainPassword=String(password.value||'');
+      const normalizedUsername=String(username.value||'').trim().replace(/^@/,'').toLowerCase();
+      const result=await invokeBody({
         action:'create_and_link',
         zalo_id:String(contact.zalo_id),
-        username:String(username.value||'').trim().replace(/^@/,'').toLowerCase(),
+        username:normalizedUsername,
         display_name:String(displayName.value||'').trim(),
-        password:String(password.value||''),
+        password:plainPassword,
         use_zalo_avatar:Boolean(useAvatar.checked),
       });
+      if(sendCredentials?.checked){
+        await sendAccountCredentials({
+          accountId:String(result?.account?.id||''),
+          username:String(result?.account?.username||normalizedUsername),
+          password:plainPassword,
+        });
+      }
       password.value='';
       await refreshAccountAdmin();
       closeAccountPanel();
