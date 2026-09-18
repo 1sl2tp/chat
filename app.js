@@ -1525,6 +1525,12 @@ let imageViewerSessionSeq=0;
 let imageViewerNavigationSeq=0;
 let imageViewerFilmstripScrollFrame=0;
 let imageViewerSwipeStartX=0;
+let imageViewerZoom=1;
+let imageViewerPanX=0;
+let imageViewerPanY=0;
+let imageViewerGesture=null;
+let imageViewerGesturePinched=false;
+const imageViewerPointers=new Map();
 let imageViewerReturnFocus=null;
 let imageViewerFilterScroll=null;
 let imageViewerTimeMenuButton=null;
@@ -1669,6 +1675,7 @@ function closeImageViewer({restoreFocus=true}={}){
   imageViewerFilter='all';
   imageViewerAlbumId=null;
   imageViewerTimeFilter='all';
+  resetImageViewerZoom();
   closeImageViewerTimeMenu();
   if(imageViewerOverlay?.open)imageViewerOverlay.close();
   exitImageViewerMode();
@@ -1888,6 +1895,120 @@ function updateImageViewerChrome(){
   updateImageViewerFilterChips();
 }
 
+function clampImageViewerZoom(value){
+  const zoom=Number(value)||1;
+  return Math.max(1,Math.min(5,zoom));
+}
+
+function imageViewerContentViewport(){
+  if(!imageViewerMain)return{width:1,height:1};
+  const style=getComputedStyle(imageViewerMain);
+  const px=value=>Number.parseFloat(value)||0;
+  return{
+    width:Math.max(1,imageViewerMain.clientWidth-px(style.paddingLeft)-px(style.paddingRight)),
+    height:Math.max(1,imageViewerMain.clientHeight-px(style.paddingTop)-px(style.paddingBottom))
+  };
+}
+
+function clampImageViewerPan(){
+  if(!imageViewerImage||imageViewerZoom<=1){
+    imageViewerPanX=0;
+    imageViewerPanY=0;
+    return;
+  }
+  const viewport=imageViewerContentViewport();
+  const scaledWidth=Math.max(0,imageViewerImage.offsetWidth*imageViewerZoom);
+  const scaledHeight=Math.max(0,imageViewerImage.offsetHeight*imageViewerZoom);
+  const maxX=Math.max(0,(scaledWidth-viewport.width)/2);
+  const maxY=Math.max(0,(scaledHeight-viewport.height)/2);
+  imageViewerPanX=Math.max(-maxX,Math.min(maxX,imageViewerPanX));
+  imageViewerPanY=Math.max(-maxY,Math.min(maxY,imageViewerPanY));
+}
+
+function applyImageViewerTransform(){
+  if(!imageViewerImage||!imageViewerMain)return;
+  clampImageViewerPan();
+  const zoom=Math.round(imageViewerZoom*1000)/1000;
+  imageViewerImage.style.transform=zoom===1
+    ?''
+    :`translate3d(${Math.round(imageViewerPanX*10)/10}px,${Math.round(imageViewerPanY*10)/10}px,0) scale(${zoom})`;
+  imageViewerImage.dataset.zoom=String(zoom);
+  imageViewerMain.dataset.zoomed=zoom>1?'true':'false';
+}
+
+function resetImageViewerZoom(){
+  imageViewerPointers.clear();
+  imageViewerGesture=null;
+  imageViewerGesturePinched=false;
+  imageViewerZoom=1;
+  imageViewerPanX=0;
+  imageViewerPanY=0;
+  applyImageViewerTransform();
+}
+
+function setImageViewerZoom(next,{clientX=null,clientY=null}={}){
+  if(!imageViewerMain)return false;
+  const previous=imageViewerZoom;
+  const zoom=clampImageViewerZoom(next);
+  if(Math.abs(zoom-previous)<.001)return false;
+  if(zoom<=1){
+    imageViewerZoom=1;
+    imageViewerPanX=0;
+    imageViewerPanY=0;
+    applyImageViewerTransform();
+    return true;
+  }
+  const rect=imageViewerMain.getBoundingClientRect();
+  const localX=Number.isFinite(clientX)?clientX-rect.left-rect.width/2:0;
+  const localY=Number.isFinite(clientY)?clientY-rect.top-rect.height/2:0;
+  const ratio=zoom/Math.max(1,previous);
+  imageViewerPanX=localX-(localX-imageViewerPanX)*ratio;
+  imageViewerPanY=localY-(localY-imageViewerPanY)*ratio;
+  imageViewerZoom=zoom;
+  applyImageViewerTransform();
+  return true;
+}
+
+function beginImageViewerPinch(){
+  if(imageViewerPointers.size<2||!imageViewerMain)return false;
+  const points=[...imageViewerPointers.values()].slice(0,2);
+  const [a,b]=points;
+  const dx=b.x-a.x;
+  const dy=b.y-a.y;
+  const rect=imageViewerMain.getBoundingClientRect();
+  const centerX=(a.x+b.x)/2;
+  const centerY=(a.y+b.y)/2;
+  imageViewerGesture={
+    kind:'pinch',
+    startDistance:Math.max(1,Math.hypot(dx,dy)),
+    startZoom:imageViewerZoom,
+    startPanX:imageViewerPanX,
+    startPanY:imageViewerPanY,
+    startCenterLocalX:centerX-rect.left-rect.width/2,
+    startCenterLocalY:centerY-rect.top-rect.height/2
+  };
+  imageViewerGesturePinched=true;
+  return true;
+}
+
+function continueImageViewerWithRemainingPointer(){
+  if(imageViewerPointers.size!==1){
+    imageViewerGesture=null;
+    return;
+  }
+  const [pointerId,point]=imageViewerPointers.entries().next().value;
+  imageViewerGesture={
+    kind:'pan',
+    pointerId,
+    pointerType:point.pointerType,
+    startX:point.x,
+    startY:point.y,
+    startPanX:imageViewerPanX,
+    startPanY:imageViewerPanY,
+    moved:false
+  };
+}
+
 function ensureImageViewer(){
   if(imageViewerOverlay)return imageViewerOverlay;
   const overlay=document.createElement('dialog');
@@ -1956,17 +2077,117 @@ function ensureImageViewer(){
   overlay.addEventListener('cancel',event=>{event.preventDefault();closeImageViewer();});
   overlay.addEventListener('keydown',event=>{
     if(event.key==='Escape'){event.preventDefault();closeImageViewer();}
-    else if(event.key==='ArrowLeft'){event.preventDefault();void showImageViewerIndex(imageViewerIndex-1);}
-    else if(event.key==='ArrowRight'){event.preventDefault();void showImageViewerIndex(imageViewerIndex+1);}
+    else if(event.key==='ArrowLeft'&&imageViewerZoom===1){event.preventDefault();void showImageViewerIndex(imageViewerIndex-1);}
+    else if(event.key==='ArrowRight'&&imageViewerZoom===1){event.preventDefault();void showImageViewerIndex(imageViewerIndex+1);}
+    else if(event.key==='+'||event.key==='='){event.preventDefault();setImageViewerZoom(imageViewerZoom*1.25);}
+    else if(event.key==='-'){event.preventDefault();setImageViewerZoom(imageViewerZoom/1.25);}
+    else if(event.key==='0'){event.preventDefault();resetImageViewerZoom();}
   });
-  main.addEventListener('touchstart',event=>{
-    imageViewerSwipeStartX=event.changedTouches?.[0]?.screenX||0;
-  },{passive:true});
-  main.addEventListener('touchend',event=>{
-    const endX=event.changedTouches?.[0]?.screenX||0;
-    const dx=endX-imageViewerSwipeStartX;
-    if(Math.abs(dx)>45)void showImageViewerIndex(imageViewerIndex+(dx<0?1:-1));
-  },{passive:true});
+
+  main.addEventListener('pointerdown',event=>{
+    if(event.target instanceof Element&&event.target.closest('button'))return;
+    if(event.pointerType==='mouse'&&event.button!==0)return;
+    imageViewerPointers.set(event.pointerId,{
+      x:event.clientX,
+      y:event.clientY,
+      pointerType:event.pointerType
+    });
+    try{main.setPointerCapture(event.pointerId);}catch{}
+    if(imageViewerPointers.size>=2){
+      beginImageViewerPinch();
+      event.preventDefault();
+      return;
+    }
+    imageViewerSwipeStartX=event.clientX;
+    imageViewerGesture={
+      kind:'pan',
+      pointerId:event.pointerId,
+      pointerType:event.pointerType,
+      startX:event.clientX,
+      startY:event.clientY,
+      startPanX:imageViewerPanX,
+      startPanY:imageViewerPanY,
+      moved:false
+    };
+  });
+
+  main.addEventListener('pointermove',event=>{
+    const point=imageViewerPointers.get(event.pointerId);
+    if(!point)return;
+    point.x=event.clientX;
+    point.y=event.clientY;
+    if(imageViewerPointers.size>=2){
+      if(imageViewerGesture?.kind!=='pinch')beginImageViewerPinch();
+      const points=[...imageViewerPointers.values()].slice(0,2);
+      const [a,b]=points;
+      const distance=Math.max(1,Math.hypot(b.x-a.x,b.y-a.y));
+      const gesture=imageViewerGesture;
+      if(gesture?.kind!=='pinch')return;
+      const zoom=clampImageViewerZoom(gesture.startZoom*(distance/gesture.startDistance));
+      const rect=main.getBoundingClientRect();
+      const currentCenterLocalX=(a.x+b.x)/2-rect.left-rect.width/2;
+      const currentCenterLocalY=(a.y+b.y)/2-rect.top-rect.height/2;
+      const ratio=zoom/Math.max(1,gesture.startZoom);
+      imageViewerZoom=zoom;
+      imageViewerPanX=currentCenterLocalX-(gesture.startCenterLocalX-gesture.startPanX)*ratio;
+      imageViewerPanY=currentCenterLocalY-(gesture.startCenterLocalY-gesture.startPanY)*ratio;
+      applyImageViewerTransform();
+      event.preventDefault();
+      return;
+    }
+    const gesture=imageViewerGesture;
+    if(gesture?.kind!=='pan'||gesture.pointerId!==event.pointerId)return;
+    const dx=event.clientX-gesture.startX;
+    const dy=event.clientY-gesture.startY;
+    if(Math.hypot(dx,dy)>5)gesture.moved=true;
+    if(imageViewerZoom>1){
+      imageViewerPanX=gesture.startPanX+dx;
+      imageViewerPanY=gesture.startPanY+dy;
+      applyImageViewerTransform();
+      event.preventDefault();
+    }
+  });
+
+  const finishPointer=event=>{
+    const point=imageViewerPointers.get(event.pointerId);
+    if(!point)return;
+    const gesture=imageViewerGesture;
+    const wasPinch=imageViewerGesturePinched||gesture?.kind==='pinch';
+    const dx=event.clientX-(gesture?.startX??event.clientX);
+    const dy=event.clientY-(gesture?.startY??event.clientY);
+    imageViewerPointers.delete(event.pointerId);
+    try{main.releasePointerCapture(event.pointerId);}catch{}
+    if(!wasPinch&&gesture?.kind==='pan'&&gesture.pointerId===event.pointerId&&imageViewerZoom===1){
+      if(
+        (point.pointerType==='touch'||point.pointerType==='pen')&&
+        Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)*1.1
+      ){
+        void showImageViewerIndex(imageViewerIndex+(dx<0?1:-1));
+      }
+    }
+    if(imageViewerPointers.size===1){
+      continueImageViewerWithRemainingPointer();
+    }else if(imageViewerPointers.size===0){
+      imageViewerGesture=null;
+      imageViewerGesturePinched=false;
+    }
+  };
+  main.addEventListener('pointerup',finishPointer);
+  main.addEventListener('pointercancel',finishPointer);
+
+  main.addEventListener('wheel',event=>{
+    if(event.target instanceof Element&&event.target.closest('button'))return;
+    const factor=Math.exp(-event.deltaY*.0018);
+    setImageViewerZoom(imageViewerZoom*factor,{clientX:event.clientX,clientY:event.clientY});
+    event.preventDefault();
+  },{passive:false});
+
+  image.addEventListener('dblclick',event=>{
+    event.preventDefault();
+    event.stopPropagation();
+    if(imageViewerZoom>1)resetImageViewerZoom();
+    else setImageViewerZoom(2.5,{clientX:event.clientX,clientY:event.clientY});
+  });
   thumbs.addEventListener('scroll',()=>{
     if(imageViewerFilmstripScrollFrame)return;
     imageViewerFilmstripScrollFrame=requestAnimationFrame(()=>{
@@ -2085,6 +2306,7 @@ function preloadViewerNeighbors(){
 async function showImageViewerIndex(index,{behavior='smooth'}={}){
   if(!imageViewerItems.length||!imageViewerImage)return false;
   const nextIndex=Math.max(0,Math.min(imageViewerItems.length-1,Number(index)||0));
+  resetImageViewerZoom();
   const navId=++imageViewerNavigationSeq;
   imageViewerIndex=nextIndex;
   updateImageViewerChrome();
