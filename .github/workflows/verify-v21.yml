@@ -3,10 +3,6 @@ on:
   push:
     branches:
       - main
-      - v21-72-16-audio-pwa
-      - v21-72-17-mobile-form-keyboard
-      - v21-72-18-auth-actions-row
-      - v21-72-19-profile-username-avatar
   pull_request:
 jobs:
   verify:
@@ -105,5 +101,7 @@ jobs:
         run: python tests/test_v21_message_forward_contract.py
       - name: Admin parallel approved devices contract
         run: python tests/test_v21_admin_parallel_devices.py
+      - name: Project consistency cleanup contract
+        run: python tests/test_v21_project_consistency_cleanup.py
       - name: Verify canonical source
         run: python tools/verify_current.py

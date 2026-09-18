@@ -7,6 +7,16 @@ let accountModal=null;
 let accountSnapshot={accounts:[],contacts:[],links:[]};
 let deviceSnapshot=[];
 let accountBusy=false;
+const ACCOUNT_SETTINGS_OWNER='zalo-account-settings';
+
+function interactionController(){return window.V21InteractionController||null;}
+function accountSettingsMode(){return window.V21InteractionMode?.ACCOUNT_SETTINGS||'ACCOUNT_SETTINGS';}
+function zaloEndpointKind(contact){
+  return String(contact?.thread_type||'user').toLowerCase()==='group'?'Nhóm Zalo':'Zalo cá nhân';
+}
+function zaloEndpointShort(contact){
+  return String(contact?.thread_type||'user').toLowerCase()==='group'?'Nhóm':'Cá nhân';
+}
 
 function authStore(){return window.V21AuthSessionStore||null;}
 function contactStore(){return window.V21ContactStore||null;}
@@ -136,7 +146,7 @@ function mount({root,targetAccount}={}){
   function renderSummary(){
     const link=snapshot?.link||null;
     if(link){
-      label.textContent='Zalo';
+      label.textContent=zaloEndpointKind(link);
       value.textContent=String(link.display_name||'Đã liên kết');
       change.textContent='Đổi';
       unlink.hidden=false;
@@ -179,11 +189,9 @@ function mount({root,targetAccount}={}){
       const name=document.createElement('strong');
       name.textContent=String(contact?.display_name||'Zalo');
       text.appendChild(name);
-      if(linkedElsewhere||linkedHere){
-        const state=document.createElement('small');
-        state.textContent=linkedElsewhere?'Đã gán':'Đang gán';
-        text.appendChild(state);
-      }
+      const state=document.createElement('small');
+      state.textContent=`${zaloEndpointShort(contact)} · ${linkedElsewhere?'Đã gán':linkedHere?'Đang gán':'Có thể chọn'}`;
+      text.appendChild(state);
       button.appendChild(text);
 
       if(!linkedElsewhere){
@@ -320,7 +328,7 @@ function renderAccountRows(){
       copy.className='zalo-account-person-copy';
       copy.innerHTML='<strong></strong><small></small>';
       copy.querySelector('strong').textContent=String(contact.display_name||'Zalo');
-      copy.querySelector('small').textContent='Đã kết nối';
+      copy.querySelector('small').textContent=`${zaloEndpointKind(contact)} · Đã kết nối`;
       relation.appendChild(copy);
     }else{
       const copy=document.createElement('span');
@@ -374,7 +382,7 @@ function renderAccountRows(){
     copy.className='zalo-account-person-copy';
     copy.innerHTML='<strong></strong><small></small>';
     copy.querySelector('strong').textContent=String(contact.display_name||'Zalo');
-    copy.querySelector('small').textContent='Zalo chưa được gán';
+    copy.querySelector('small').textContent=`${zaloEndpointKind(contact)} · Chưa được gán`;
     relation.appendChild(copy);
 
     const actions=document.createElement('div');
@@ -404,7 +412,8 @@ function openAccountPicker(account){
   panel.replaceChildren();
   const box=document.createElement('section');
   box.className='zalo-account-panel';
-  box.innerHTML=`<div class="zalo-account-panel-head"><strong>Chọn Zalo cho ${String(account.display_name||account.username||'User')}</strong><button type="button" data-close>Đóng</button></div><input type="search" placeholder="Tìm tên Zalo" autocomplete="off" data-search><div class="zalo-account-picker-list" data-list></div>`;
+  box.innerHTML='<div class="zalo-account-panel-head"><strong data-picker-title></strong><button type="button" data-close>Đóng</button></div><input type="search" placeholder="Tìm Zalo cá nhân hoặc nhóm" autocomplete="off" data-search><div class="zalo-account-picker-list" data-list></div>';
+  box.querySelector('[data-picker-title]').textContent=`Chọn Zalo cho ${String(account.display_name||account.username||'User')}`;
   panel.appendChild(box);
   box.querySelector('[data-close]').addEventListener('click',closeAccountPanel);
   const search=box.querySelector('[data-search]');
@@ -427,7 +436,7 @@ function openAccountPicker(account){
       copy.className='zalo-account-person-copy';
       copy.innerHTML='<strong></strong><small></small>';
       copy.querySelector('strong').textContent=String(contact.display_name||'Zalo');
-      copy.querySelector('small').textContent=unavailable?'Zalo đã được gán':linkedHere?'Đã kết nối với User này':'Có thể chọn';
+      copy.querySelector('small').textContent=`${zaloEndpointShort(contact)} · ${unavailable?'Đã được gán':linkedHere?'Đã kết nối với User này':'Có thể chọn'}`;
       button.appendChild(copy);
       if(!unavailable&&!linkedHere){
         button.addEventListener('click',async()=>{
@@ -462,12 +471,13 @@ function openCreateAccount(contact){
   const form=document.createElement('form');
   form.className='zalo-account-panel zalo-account-create-form';
   form.innerHTML=`
-    <div class="zalo-account-panel-head"><strong>Tạo tài khoản từ ${String(contact.display_name||'Zalo')}</strong><button type="button" data-close>Đóng</button></div>
+    <div class="zalo-account-panel-head"><strong data-create-title></strong><button type="button" data-close>Đóng</button></div>
     <label>Tên đăng nhập<input name="username" required autocomplete="off" maxlength="24"></label>
     <label>Tên hiển thị<input name="display_name" required maxlength="50"></label>
     <label>Mật khẩu<input name="password" required type="password" autocomplete="new-password" minlength="6" maxlength="128"></label>
     <label class="zalo-account-check"><input name="use_zalo_avatar" type="checkbox"> Dùng ảnh Zalo</label>
     <button type="submit" class="zalo-account-create-submit">Tạo tài khoản</button>`;
+  form.querySelector('[data-create-title]').textContent=`Tạo tài khoản từ ${String(contact.display_name||'Zalo')}`;
   panel.appendChild(form);
   form.querySelector('[data-close]').addEventListener('click',closeAccountPanel);
   const username=form.elements.namedItem('username');
@@ -520,6 +530,7 @@ function closeAccountAdmin(){
   accountSnapshot={accounts:[],contacts:[],links:[]};
   deviceSnapshot=[];
   accountBusy=false;
+  interactionController()?.exit?.(accountSettingsMode(),{owner:ACCOUNT_SETTINGS_OWNER});
 }
 
 function deviceStatusText(device){
@@ -707,6 +718,9 @@ async function runAdminPushAction(button){
 async function openAccountAdmin(){
   if(!currentAdmin())return null;
   closeAccountAdmin();
+  const controller=interactionController();
+  const lease=controller?.enter?.(accountSettingsMode(),{owner:ACCOUNT_SETTINGS_OWNER,lockBaseUi:true});
+  if(controller&&!lease)return null;
   const host=document.querySelector('[data-global-overlay-root]')||document.body;
   accountModal=document.createElement('div');
   accountModal.className='zalo-account-modal';
@@ -714,7 +728,7 @@ async function openAccountAdmin(){
   accountModal.innerHTML=`
     <button type="button" class="zalo-account-backdrop" aria-label="Đóng"></button>
     <section class="zalo-account-card" role="dialog" aria-modal="true" aria-labelledby="zalo-account-title">
-      <header class="zalo-account-modal-head"><div><h2 id="zalo-account-title">Zalo & tài khoản</h2><p>Quản lý Chat User ↔ Zalo</p></div><button type="button" class="zalo-account-close" aria-label="Đóng">×</button></header>
+      <header class="zalo-account-modal-head"><div><h2 id="zalo-account-title">Cài đặt tài khoản</h2><p>Zalo · Thông báo · Thiết bị</p></div><button type="button" class="zalo-account-close" aria-label="Đóng">×</button></header>
       <div class="zalo-account-notification" data-admin-push-setting>
         <span class="zalo-account-notification-copy"><strong>Thông báo</strong><small data-admin-push-status>Bật thông báo</small></span>
         <button type="button" class="zalo-account-notification-action" data-admin-push-action data-mode="enable">Bật thông báo</button>
@@ -723,7 +737,7 @@ async function openAccountAdmin(){
         <span class="zalo-account-notification-copy"><strong>Thiết bị</strong><small data-admin-device-status>Đang tải thiết bị…</small></span>
         <button type="button" class="zalo-account-notification-action" data-admin-device-open>Quản lý</button>
       </div>
-      <label class="zalo-account-search"><span class="sr-only">Tìm tài khoản</span><input type="search" autocomplete="off" inputmode="search" placeholder="Tìm tên Chat, @username hoặc Zalo" data-zalo-account-search></label>
+      <label class="zalo-account-search"><span class="sr-only">Tìm tài khoản</span><input type="search" autocomplete="off" inputmode="search" placeholder="Tìm Chat, @username, Zalo hoặc nhóm" data-zalo-account-search></label>
       <p class="zalo-account-error" data-zalo-account-error hidden></p>
       <div class="zalo-account-list" data-zalo-account-list></div>
       <div class="zalo-account-submodal" data-zalo-account-panel></div>
@@ -766,8 +780,8 @@ function syncAccountAdminButton(){
   button.type='button';
   button.className='zalo-account-admin-open';
   button.dataset.zaloAccountAdminOpen='';
-  button.textContent='Zalo';
-  button.setAttribute('aria-label','Zalo & tài khoản');
+  button.textContent='Cài đặt';
+  button.setAttribute('aria-label','Cài đặt tài khoản');
   button.addEventListener('click',()=>void openAccountAdmin());
   const authAction=footer.querySelector('.shell-sidebar-account-action');
   footer.insertBefore(button,authAction||null);

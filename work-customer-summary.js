@@ -7,6 +7,8 @@ const MOBILE_CHAT_SWIPE_EDGE_INSET_PX=28;
 const MOBILE_CHAT_SWIPE_DOMINANCE=1.2;
 const MOBILE_TAB_DOUBLE_TAP_MS=250;
 let timer=0;
+let realtimeChannel=null;
+let realtimeRefreshTimer=0;
 let loading=false;
 let generation=0;
 let rowsCache=[];
@@ -749,12 +751,44 @@ async function refresh(reason='timer'){
   }
 }
 
+function stopRealtimeSubscription(){
+  if(realtimeRefreshTimer){clearTimeout(realtimeRefreshTimer);realtimeRefreshTimer=0;}
+  const db=client();
+  if(realtimeChannel&&db?.removeChannel)void db.removeChannel(realtimeChannel);
+  realtimeChannel=null;
+}
+
+function scheduleRealtimeRefresh(reason='realtime-summary'){
+  if(realtimeRefreshTimer)clearTimeout(realtimeRefreshTimer);
+  realtimeRefreshTimer=window.setTimeout(()=>{
+    realtimeRefreshTimer=0;
+    void refresh(reason);
+  },160);
+}
+
+function syncRealtimeSubscription(){
+  stopRealtimeSubscription();
+  const auth=snapshot();
+  const db=client();
+  if(auth.state!=='AUTHENTICATED'||auth.account?.role!=='admin'||!db?.channel)return false;
+  realtimeChannel=db
+    .channel(`work-customer-summary-${String(auth.account?.id||'admin').slice(0,8)}`)
+    .on('postgres_changes',{
+      event:'*',
+      schema:'public',
+      table:'chat_customer_summary_state'
+    },()=>scheduleRealtimeRefresh('realtime-summary'))
+    .subscribe();
+  return true;
+}
+
 function schedule(){
   if(timer)clearInterval(timer);
   timer=window.setInterval(()=>{void refresh('interval');},REFRESH_MS);
 }
 
 document.addEventListener('v21-auth-state',()=>{
+  syncRealtimeSubscription();
   selectedWorkCustomerId='';
   forceOverview=false;
   mobileConversationReturnState={kind:'directory',contact:null};
@@ -797,7 +831,10 @@ document.addEventListener('navigation-change',event=>{
   }
 });
 document.addEventListener('visibilitychange',()=>{
-  if(document.visibilityState==='visible')void refresh('visible');
+  if(document.visibilityState==='visible'){
+    if(!realtimeChannel)syncRealtimeSubscription();
+    void refresh('visible');
+  }
 });
 document.addEventListener('click',event=>{
   const all=event.target?.closest?.('[data-work-summary-all]');
@@ -830,7 +867,9 @@ document.addEventListener('click',event=>{
 bindMobileHierarchySwipe();
 bindMobileNavigationClicks();
 schedule();
+syncRealtimeSubscription();
 void refresh('boot');
+window.addEventListener('beforeunload',stopRealtimeSubscription,{once:true});
 window.setTimeout(()=>{
   const auth=snapshot();
   if(auth.state==='AUTHENTICATED'&&shellSnapshot().route==='chat'&&mobileDirectoryAllowed()){
@@ -851,6 +890,8 @@ window.V21WorkCustomerSummary=Object.freeze({
   openWorkFromMobileConversation,
   restoreConversationFromWork,
   openMobileAccountMenu,
-  closeMobileAccountMenu
+  closeMobileAccountMenu,
+  syncRealtimeSubscription,
+  stopRealtimeSubscription
 });
 })();
