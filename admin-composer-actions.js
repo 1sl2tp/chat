@@ -194,7 +194,10 @@ async function openQuote(contactId){
   if(!root)throw new Error('quote_overlay_unavailable');
   closeQuote({restoreFocus:false});
   if(!lockQuoteBackground())throw new Error('quote_modal_busy');
-  const sources=Array.isArray(client.sources)?client.sources:[];
+  let sources=Array.isArray(client.sources)?client.sources:[];
+  if(typeof client.listSources==='function'){
+    try{sources=await client.listSources();}catch{}
+  }
   const overlay=document.createElement('section');
   overlay.className='admin-composer-quote-overlay';
   overlay.dataset.adminComposerQuote='';
