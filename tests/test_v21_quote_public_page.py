@@ -31,6 +31,8 @@ required = [
     "item.source_key===activesource",
     'overflow-y:auto',
     'height:100dvh',
+    'generated_at',
+    'cập nhật',
 ]
 for needle in required:
     assert needle in low, f"missing public quote page contract: {needle}"
