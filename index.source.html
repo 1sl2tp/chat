@@ -1197,8 +1197,11 @@ button{
   overflow:hidden;
   padding:1.25rem 4.75rem;
   background:#000;
-  touch-action:pan-y;
+  touch-action:none;
+  cursor:zoom-in;
 }
+.image-review-main[data-zoomed="true"]{cursor:grab;}
+.image-review-main[data-zoomed="true"]:active{cursor:grabbing;}
 .image-review-image{
   max-width:100%;
   max-height:100%;
@@ -1211,6 +1214,9 @@ button{
   user-select:none;
   -webkit-user-select:none;
   -webkit-user-drag:none;
+  transform-origin:center center;
+  will-change:transform;
+  touch-action:none;
 }
 .image-review-nav{
   position:absolute;
