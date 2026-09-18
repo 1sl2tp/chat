@@ -101,6 +101,8 @@ jobs:
         run: python tests/test_v21_message_forward_contract.py
       - name: Admin parallel approved devices contract
         run: python tests/test_v21_admin_parallel_devices.py
+      - name: Shared UI icon registry contract
+        run: python tests/test_v21_ui_icon_registry.py
       - name: Project consistency cleanup contract
         run: python tests/test_v21_project_consistency_cleanup.py
       - name: Verify canonical source

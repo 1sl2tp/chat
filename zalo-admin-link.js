@@ -728,7 +728,7 @@ async function openAccountAdmin(){
   accountModal.innerHTML=`
     <button type="button" class="zalo-account-backdrop" aria-label="Đóng"></button>
     <section class="zalo-account-card" role="dialog" aria-modal="true" aria-labelledby="zalo-account-title">
-      <header class="zalo-account-modal-head"><div><h2 id="zalo-account-title">Cài đặt tài khoản</h2><p>Zalo · Thông báo · Thiết bị</p></div><button type="button" class="zalo-account-close" aria-label="Đóng">×</button></header>
+      <header class="zalo-account-modal-head"><div><h2 id="zalo-account-title">Cài đặt tài khoản</h2><p>Zalo · Thông báo · Thiết bị</p></div><button type="button" class="zalo-account-close" aria-label="Đóng"></button></header>
       <div class="zalo-account-notification" data-admin-push-setting>
         <span class="zalo-account-notification-copy"><strong>Thông báo</strong><small data-admin-push-status>Bật thông báo</small></span>
         <button type="button" class="zalo-account-notification-action" data-admin-push-action data-mode="enable">Bật thông báo</button>
@@ -743,6 +743,8 @@ async function openAccountAdmin(){
       <div class="zalo-account-submodal" data-zalo-account-panel></div>
     </section>`;
   host.appendChild(accountModal);
+  const modalClose=accountModal.querySelector('.zalo-account-close');
+  if(modalClose)modalClose.innerHTML=window.V21Icons?.markup?.('close',{size:20})||'×';
   accountModal.querySelector('.zalo-account-backdrop').addEventListener('click',closeAccountAdmin);
   accountModal.querySelector('.zalo-account-close').addEventListener('click',closeAccountAdmin);
   const pushAction=accountModal.querySelector('[data-admin-push-action]');

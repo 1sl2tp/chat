@@ -18,6 +18,7 @@ const {
 
 const ChatGPTRef=window.ChatGPTVisualReference;
 const P2PRef=window.P2PVisualReference;
+const Icons=window.V21Icons;
 const MESSAGE_FEATURES=Object.freeze({
   reply:true,
   important:false
@@ -1539,22 +1540,7 @@ let imageViewerTimeMenuPanel=null;
 const imageViewerOwnedUrls=new Map();
 
 function viewerIconSvg(name){
-  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
-  svg.setAttribute('viewBox','0 0 24 24');
-  svg.setAttribute('aria-hidden','true');
-  svg.setAttribute('focusable','false');
-  svg.setAttribute('fill','none');
-  svg.setAttribute('stroke','currentColor');
-  svg.setAttribute('stroke-width','2.25');
-  svg.setAttribute('stroke-linecap','round');
-  svg.setAttribute('stroke-linejoin','round');
-  const path=document.createElementNS('http://www.w3.org/2000/svg','path');
-  if(name==='close')path.setAttribute('d','M6.5 6.5 17.5 17.5M17.5 6.5 6.5 17.5');
-  else if(name==='chevron-left')path.setAttribute('d','m14.5 6-6 6 6 6');
-  else if(name==='chevron-right')path.setAttribute('d','m9.5 6 6 6-6 6');
-  else return svg;
-  svg.appendChild(path);
-  return svg;
+  return Icons?.node?.(name,{size:24})||document.createElement('span');
 }
 
 function mediaViewerItem(media,previewUrl='',createdAt=Date.now(),context={}){
@@ -3331,22 +3317,7 @@ window.addEventListener('pagehide',()=>{
 });
 
 function iconSvg(name){
-  if(name==='copy'){
-    return ChatGPTRef?.iconMarkup('copy-user')||'';
-  }
-  if(name==='share'){
-    return ChatGPTRef?.iconMarkup('share')||'';
-  }
-  if(name==='save'){
-    return ChatGPTRef?.iconMarkup('scroll-down')||'';
-  }
-  if(name==='forward'){
-    return '<svg viewBox="0 0 20 20" width="20" height="20" focusable="false" aria-hidden="true"><path d="M11.75 5.25 16.25 9.75l-4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"></path><path d="M15.75 9.75h-6.1c-3.65 0-5.9 1.85-5.9 5" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round"></path></svg>';
-  }
-  if(name==='reply' || name==='important'){
-    return P2PRef?.iconMarkup(name)||'';
-  }
-  return '';
+  return Icons?.markup?.(name,{size:20})||'';
 }
 
 function makeActionButton({

@@ -102,11 +102,7 @@ function installStyle(){
 }
 
 function iconSvg(kind){
-  const icons={
-    quote:'<svg viewBox="0 0 24 24" width="22" height="22"><path d="M5 4h14v16H5z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 8h8M8 12h8M8 16h5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
-    call:'<svg viewBox="0 0 24 24" width="22" height="22"><path d="M7.2 4.5 10 8l-1.8 2.2c1.2 2.5 3.1 4.4 5.6 5.6L16 14l3.5 2.8-.9 2.7c-.3.8-1.1 1.3-2 1.2C9.4 19.8 4.2 14.6 3.3 7.4c-.1-.9.4-1.7 1.2-2l2.7-.9Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>',
-  };
-  return icons[kind]||icons.quote;
+  return window.V21Icons?.markup?.(kind,{size:22})||'';
 }
 function actionButton({action='',label='',kind='quote'}={}){
   const button=document.createElement('button');
