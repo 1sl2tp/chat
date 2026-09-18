@@ -5,7 +5,13 @@ const SUPABASE_URL=String(Deno.env.get('SUPABASE_URL')||'').trim();
 const SERVICE_KEY=String(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'').trim();
 const db=createClient(SUPABASE_URL,SERVICE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
 const PUBLIC_BASE='https://chat.taphoa.xyz/b/?k=';
-const PUBLIC_PRODUCT_FIELDS='product_code,product_name,source_key,display_price_vnd,carton_price_vnd,retail_price_vnd,primary_packaging,retail_packaging,units_per_carton,retail_unit';
+const PUBLIC_PRODUCT_FIELDS='product_code,product_name,source_key,sale_price_vnd,carton_price_vnd,retail_price_vnd,input_price_basis,units_per_carton,retail_unit';
+const CORE_SOURCE_LABELS=Object.freeze({
+  'hang-thuong':'Hàng thường',
+  'hang-u':'Hàng U',
+  'sua':'Sữa',
+  'thuoc-la':'Thuốc lá',
+});
 const corsHeaders={
   'access-control-allow-origin':'*',
   'access-control-allow-methods':'GET,POST,OPTIONS',
@@ -58,15 +64,24 @@ async function requireAdmin(req:Request){
   return {accountId:String(account.data.id)};
 }
 
-async function sourceNameFor(sourceKey:string){
-  const source=await db.from("getlink_supplier_sources")
-    .select('source_key,source_name')
-    .eq('source_key',sourceKey)
-    .eq('enabled',true)
-    .maybeSingle();
-  if(source.error)throw source.error;
-  if(!source.data?.source_key)return null;
-  return clean(source.data.source_name,200)||sourceKey;
+async function activeSources(){
+  const result=await db.from("taphoa_sources")
+    .select('source_key,name,sort_order')
+    .eq('active',true)
+    .eq('sync_status','active')
+    .order('sort_order',{ascending:true})
+    .order('source_key',{ascending:true});
+  if(result.error)throw result.error;
+  return (result.data||[])
+    .map((row:any)=>{
+      const sourceKey=clean(row?.source_key,100);
+      return {
+        source_key:sourceKey,
+        source_name:(CORE_SOURCE_LABELS as Record<string,string>)[sourceKey]||clean(row?.name,200)||sourceKey,
+        sort_order:Number(row?.sort_order)||0,
+      };
+    })
+    .filter((row:any)=>row.source_key);
 }
 
 async function createQuote(req:Request){
@@ -75,31 +90,46 @@ async function createQuote(req:Request){
 
   let body:any={};
   try{body=await req.json();}catch{return json({ok:false,error:'invalid_json'},400);}
+
+  let sources;
+  try{sources=await activeSources();}catch{return json({ok:false,error:'source_lookup_failed'},500);}
+  if(clean(body?.action,40)==='sources')return json({ok:true,sources});
+
   const scope=clean(body?.scope,20);
   if(scope!=='all'&&scope!=='source')return json({ok:false,error:'invalid_scope'},400);
 
+  const sourceMap=new Map(sources.map((row:any)=>[row.source_key,row]));
   let sourceKey:string|null=null;
   let sourceName:string|null='Tất cả';
   if(scope==='source'){
     sourceKey=clean(body?.source_key,100);
     if(!sourceKey)return json({ok:false,error:'source_key_required'},400);
-    try{sourceName=await sourceNameFor(sourceKey);}catch{return json({ok:false,error:'source_lookup_failed'},500);}
-    if(!sourceName)return json({ok:false,error:'source_not_found'},404);
+    const source:any=sourceMap.get(sourceKey);
+    if(!source)return json({ok:false,error:'source_not_found'},404);
+    sourceName=source.source_name;
   }
 
-  let products=db.from("getlink_supplier_products")
+  const allowedKeys=sources.map((row:any)=>row.source_key);
+  if(!allowedKeys.length)return json({ok:false,error:'quote_empty'},422);
+
+  let products=db.from("taphoa_products")
     .select(PUBLIC_PRODUCT_FIELDS)
     .eq("is_active",true)
+    .eq("sync_status","active")
     .is("deleted_at",null)
-    .gt('display_price_vnd',0)
+    .gt('sale_price_vnd',0)
     .order('source_key',{ascending:true})
     .order('source_row',{ascending:true});
   if(scope==='source'&&sourceKey)products=products.eq('source_key',sourceKey);
+  else products=products.in('source_key',allowedKeys);
 
   const productResult=await products;
   if(productResult.error)return json({ok:false,error:'product_lookup_failed'},500);
   const items=buildQuoteItems(productResult.data||[]);
   if(!items.length)return json({ok:false,error:'quote_empty'},422);
+
+  const usedKeys=new Set(items.map((item:any)=>clean(item?.source_key,100)).filter(Boolean));
+  const usedSources=sources.filter((row:any)=>usedKeys.has(row.source_key));
 
   const token=makeToken();
   const inserted=await db.from("chat_quote_snapshots").insert({
@@ -108,7 +138,7 @@ async function createQuote(req:Request){
     source_key:sourceKey,
     source_name:sourceName,
     item_count:items.length,
-    payload:{items},
+    payload:{items,sources:usedSources},
     created_by:admin.accountId,
   }).select('token,item_count,source_name').single();
   if(inserted.error)return json({ok:false,error:'quote_create_failed'},500);
@@ -119,6 +149,7 @@ async function createQuote(req:Request){
     url:`${PUBLIC_BASE}${encodeURIComponent(token)}`,
     item_count:Number(inserted.data.item_count)||items.length,
     source_name:clean(inserted.data.source_name,200)||sourceName,
+    sources:usedSources,
   });
 }
 
