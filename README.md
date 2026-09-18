@@ -32,3 +32,31 @@ python tools/verify_current.py
 ## Repository rule
 
 Do new work from the latest `main`. Do not restore or reuse deleted historical branches as implementation bases.
+
+## Runtime ownership
+
+Keep each runtime concern with one owner:
+
+- **Shell / navigation / profile** → `shell.js`.
+- **Conversation rendering and composer orchestration** → `app.js`. New standalone features should be separate modules instead of adding another large block here.
+- **Message state** → `v21-message-store.js`.
+- **Send / sync / retry / media forwarding** → `v21-sync-engine.js`.
+- **Realtime conversation delivery** → `v21-realtime-session.js`.
+- **Media cache** → `v21-media-cache.js`.
+- **Work / customer summary UI** → `work-customer-summary.js`; scanner results arrive through Admin-only Realtime, with the 60-second refresh only as fallback.
+- **Zalo transport** → `bridge/zalo/` + Zalo Edge Functions. Do not add Zalo transport logic to `v21-sync-engine.js`.
+- **Quote data** → `v21-quote` Edge Function + `quote-client.js`. The composer `+` action is the send path; the contact profile only creates/copies a quote link.
+- **Interaction / overlay ownership** → `V21InteractionController`. Full-screen or modal surfaces must acquire/release an interaction mode instead of independently disabling the base UI.
+- **Primary UI icons** → `ui-icons.js` / `V21Icons`.
+- **Feature styling** → dedicated CSS files. Do not inject a new full feature stylesheet from JavaScript.
+
+## UI consistency rules
+
+1. Keep mobile Chat one-column and desktop Chat three-column; do not implement desktop by shrinking mobile geometry.
+2. A control that performs the same business action must have one primary path and one label.
+3. Zalo endpoints must show whether they are **Zalo cá nhân** or **Nhóm Zalo**.
+4. External/user-provided names are rendered with `textContent`, not interpolated into `innerHTML`.
+5. Modal surfaces use the shared interaction controller; non-modal viewers must not make visible shell controls inert.
+6. Message/media forwarding creates a new destination message/asset; it never reuses ownership of the source asset.
+7. Preserve `index.source.html` as the canonical HTML source and rebuild `index.html` after any build-source change.
+
