@@ -63,8 +63,7 @@ h1{font-size:20px;line-height:1.25;margin:0 0 4px}.quote-meta{font-size:13px;col
 (()=>{
 'use strict';
 const QUOTE_READ_API='https://gcnoahqsrquxkwkjbuxy.supabase.co/functions/v1/v21-quote?k=';
-const sourceNames={'hang-thuong':'Hàng thường','hang-u':'Hàng U','masan':'Hàng masan','sua':'Sữa','thuoc-la':'Thuốc lá'};
-const sourceFilters=[['all','Tất cả'],['hang-thuong','Hàng thường'],['hang-u','Hàng U'],['masan','Masan'],['sua','Sữa'],['thuoc-la','Thuốc lá']];
+const fallbackSourceNames={'hang-thuong':'Hàng thường','hang-u':'Hàng U','masan':'Masan','sua':'Sữa','thuoc-la':'Thuốc lá'};
 const params=new URLSearchParams(location.search);
 const token=params.get('k')||'';
 const status=document.getElementById('quote-status');
@@ -84,7 +83,20 @@ let createdLabel='';
 
 function esc(value){return String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));}
 function money(value){const n=Number(value);return Number.isFinite(n)&&n>0?new Intl.NumberFormat('vi-VN').format(n):'';}
-function sourceLabel(key){return sourceNames[String(key||'')]||String(key||'Khác');}
+function snapshotSources(){
+  const rows=Array.isArray(snapshot?.sources)?snapshot.sources:[];
+  if(rows.length)return rows.map(row=>[String(row?.source_key||''),String(row?.source_name||row?.source_key||'')]).filter(([key])=>key);
+  const seen=new Set();
+  return (Array.isArray(snapshot?.items)?snapshot.items:[])
+    .map(item=>String(item?.source_key||''))
+    .filter(key=>key&&!seen.has(key)&&seen.add(key))
+    .map(key=>[key,fallbackSourceNames[key]||key]);
+}
+function sourceLabel(key){
+  const wanted=String(key||'');
+  const found=snapshotSources().find(([sourceKey])=>sourceKey===wanted);
+  return found?.[1]||fallbackSourceNames[wanted]||wanted||'Khác';
+}
 function packText(item){
   const parts=[];
   if(item.primary_packaging)parts.push(String(item.primary_packaging));
@@ -106,6 +118,7 @@ function renderFilters(){
     return;
   }
   filters.hidden=false;
+  const sourceFilters=[['all','Tất cả'],...snapshotSources()];
   filters.innerHTML=sourceFilters.map(([key,label])=>`<button type="button" class="quote-source-filter" data-source-filter="${esc(key)}" data-active="${String(activeSource===key)}">${esc(label)}</button>`).join('');
 }
 function updateMeta(count){
@@ -139,7 +152,7 @@ filters.addEventListener('click',event=>{
   const button=event.target instanceof Element?event.target.closest('[data-source-filter]'):null;
   if(!button)return;
   const next=String(button.dataset.sourceFilter||'all');
-  if(!sourceFilters.some(([key])=>key===next))return;
+  if(next!=='all'&&!snapshotSources().some(([key])=>key===next))return;
   activeSource=next;
   scroll.scrollTop=0;
   render();
