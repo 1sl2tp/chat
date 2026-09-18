@@ -1,10 +1,9 @@
 (()=>{
 'use strict';
 
-const SOURCES=Object.freeze([
+const FALLBACK_SOURCES=Object.freeze([
   ['hang-thuong','Hàng thường'],
   ['hang-u','Hàng U'],
-  ['masan','Hàng masan'],
   ['sua','Sữa'],
   ['thuoc-la','Thuốc lá'],
 ]);
@@ -60,6 +59,24 @@ function installStyle(){
     [data-quote-hidden="true"]{display:none!important}
   `;
   document.head.appendChild(style);
+}
+
+async function listSources(){
+  if(!currentAdmin())throw new Error('admin_required');
+  const client=authStore()?.getClient?.();
+  if(!client)throw new Error('authentication_required');
+  const sessionResult=await client.auth.getSession();
+  const accessToken=String(sessionResult?.data?.session?.access_token||'');
+  if(!accessToken)throw new Error('authentication_required');
+  const {data,error}=await client.functions.invoke('v21-quote',{
+    body:{action:'sources'},
+    headers:{authorization:`Bearer ${accessToken}`},
+  });
+  if(error)throw error;
+  const rows=Array.isArray(data?.sources)?data.sources:[];
+  return rows.length
+    ?rows.map(row=>[String(row?.source_key||''),String(row?.source_name||row?.source_key||'')]).filter(([key])=>key)
+    :[...FALLBACK_SOURCES];
 }
 
 async function createQuote({scope='all',sourceKey=''}={}){
@@ -143,7 +160,7 @@ function mountQuotePanel(){
         <button type="button" data-quote-scope="source" data-active="false">Theo nguồn</button>
       </div>
       <select class="quote-admin-source" data-quote-source data-quote-hidden="true" aria-label="Nguồn báo giá">
-        ${SOURCES.map(([key,label])=>`<option value="${key}">${label}</option>`).join('')}
+        ${FALLBACK_SOURCES.map(([key,label])=>`<option value="${key}">${label}</option>`).join('')}
       </select>
       <button type="button" class="quote-admin-create" data-quote-create>Tạo link</button>
       <p class="quote-admin-status" data-quote-status></p>
@@ -191,7 +208,19 @@ function mountQuotePanel(){
     const opening=panel.dataset.quoteHidden==='true';
     panel.dataset.quoteHidden=String(!opening);
     openButton.textContent=opening?'Đóng báo giá':'Báo giá';
-    if(opening)setStatus(target?`Gửi cho ${String(target.display_name||target.username||'khách hàng')}`:'');
+    if(opening){
+      setStatus(target?`Gửi cho ${String(target.display_name||target.username||'khách hàng')}`:'');
+      void listSources().then(rows=>{
+        const selected=sourceSelect.value;
+        sourceSelect.replaceChildren(...rows.map(([key,label])=>{
+          const option=document.createElement('option');
+          option.value=key;
+          option.textContent=label;
+          return option;
+        }));
+        if(rows.some(([key])=>key===selected))sourceSelect.value=selected;
+      }).catch(()=>{});
+    }
   });
   for(const button of scopeButtons)button.addEventListener('click',()=>chooseScope(button.dataset.quoteScope));
 
@@ -249,7 +278,8 @@ window.V21QuoteClient=Object.freeze({
   create:createQuote,
   sendQuoteLink,
   copyQuoteLink,
-  sources:SOURCES,
+  sources:FALLBACK_SOURCES,
+  listSources,
   mount:mountQuotePanel,
 });
 })();
