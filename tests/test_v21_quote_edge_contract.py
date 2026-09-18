@@ -33,7 +33,8 @@ required = [
     'https://chat.taphoa.xyz/b/?k=',
     '.eq("token",token)',
     '.is("revoked_at",null)',
-    'public, max-age=60',
+    'generated_at',
+    "'cache-control':'no-store'",
     'access-control-allow-origin',
 ]
 for needle in required:
@@ -54,3 +55,6 @@ assert "req.method===\"get\"" in low or "req.method==='get'" in low
 assert "req.method===\"options\"" in low or "req.method==='options'" in low
 
 print("chat quote edge contract PASS")
+
+assert low.count('from("taphoa_products")') >= 2, "shared quote GET must reload current products instead of serving the stored snapshot"
+assert "select('scope,source_key,source_name,created_at')" in low, "public quote token should store scope/access metadata, not be the public price source"
