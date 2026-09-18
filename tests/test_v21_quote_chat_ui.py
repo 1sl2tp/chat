@@ -77,9 +77,9 @@ assert "exit?.(" in compact
 assert "taphoacallinviteclient" in low
 assert "createandsend" in low and "contactid" in low
 assert "v21_call_start" not in low
-assert "[data-quote-admin-block]" in actions
-assert "[data-call-invite-admin-block]" in actions
-assert "display:none!important" in low
+assert "[data-quote-admin-block]" in actions_css
+assert "[data-call-invite-admin-block]" in actions_css
+assert "display:none!important" in actions_css.lower()
 assert "node.remove()" not in low
 assert "new mutationobserver(schedulelegacysuppression)" not in low
 assert "import('./admin-composer-actions.js')" in quote or 'import("./admin-composer-actions.js")' in quote
