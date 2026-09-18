@@ -44,22 +44,13 @@ function unlockQuoteBackground({restoreFocus=true}={}){
 
 function actionMenu(){return document.getElementById(MENU_ID);}
 function menuSurface(){return actionMenu()?.querySelector?.('.composer-action-menu-surface')||null;}
-function isPopoverOpen(node){
-  if(!node)return false;
-  try{return node.matches(':popover-open');}catch{return node.dataset.adminOpen==='true';}
-}
 function hideMenu(){
+  const owner=window.V21ComposerActionMenu;
+  if(owner?.close){owner.close();return true;}
   const menu=actionMenu();
   if(!menu)return false;
   try{menu.hidePopover?.();}catch{}
-  menu.dataset.adminOpen='false';
-  return true;
-}
-function showMenu(){
-  const menu=actionMenu();
-  if(!menu)return false;
-  try{menu.showPopover?.();}catch{}
-  menu.dataset.adminOpen='true';
+  delete menu.dataset.fallbackOpen;
   return true;
 }
 function setTransientHint(text,duration=1800){
@@ -238,15 +229,6 @@ function bind(){
   const plus=document.getElementById('composer-plus-btn');
   if(!plus)return false;
   ensureAdminMenu();
-  plus.addEventListener('click',event=>{
-    if(!currentAdmin())return;
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    ensureAdminMenu();
-    const menu=actionMenu();
-    if(!menu)return;
-    isPopoverOpen(menu)?hideMenu():showMenu();
-  },true);
   document.addEventListener('click',event=>{
     const target=event.target instanceof Element?event.target:null;
     const button=target?.closest?.(`[${ACTION_ATTR}]`);

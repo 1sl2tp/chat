@@ -5437,6 +5437,14 @@ function toggleComposerActionMenu(){
   );
 }
 
+window.V21ComposerActionMenu=Object.freeze({
+  open:()=>setComposerActionMenuOpen(true),
+  close:()=>setComposerActionMenuOpen(false),
+  toggle:toggleComposerActionMenu,
+  place:placeComposerActionMenu,
+  isOpen:isComposerActionMenuOpen
+});
+
 if(supportsPopoverApi)actionMenu.addEventListener('toggle',()=>{
   plusButton.dataset.state=
     isComposerActionMenuOpen()
