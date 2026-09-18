@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="2c2fc2a2a67f1dff5c15adca75088f44658ee289ae6a09e9ea5be20ccfd2927f">
+<meta name="app-build-id" content="46e8f0e92ea8efe53fbfc10901977eeaf606f5dcb9aaa0596902b24969d7f759">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -6641,7 +6641,6 @@ let imageViewerNavigationSeq=0;
 let imageViewerFilmstripScrollFrame=0;
 let imageViewerSwipeStartX=0;
 let imageViewerReturnFocus=null;
-let imageViewerHeaderWasInert=false;
 let imageViewerFilterScroll=null;
 let imageViewerTimeMenuButton=null;
 let imageViewerTimeMenuPanel=null;
@@ -6746,20 +6745,6 @@ function positionImageViewerBelowHeader(){
   return top;
 }
 
-function lockAppHeaderForImageViewer(){
-  if(!regionTop)return;
-  imageViewerHeaderWasInert=regionTop.hasAttribute('inert');
-  regionTop.setAttribute('inert','');
-  regionTop.dataset.imageViewerInert='true';
-}
-
-function unlockAppHeaderForImageViewer(){
-  if(!regionTop)return;
-  delete regionTop.dataset.imageViewerInert;
-  if(!imageViewerHeaderWasInert)regionTop.removeAttribute('inert');
-  imageViewerHeaderWasInert=false;
-}
-
 function syncOpenImageViewerRegion(){
   if(imageViewerOverlay?.open)positionImageViewerBelowHeader();
 }
@@ -6767,6 +6752,20 @@ function syncOpenImageViewerRegion(){
 window.addEventListener('resize',syncOpenImageViewerRegion,{passive:true});
 window.visualViewport?.addEventListener('resize',syncOpenImageViewerRegion,{passive:true});
 window.visualViewport?.addEventListener('scroll',syncOpenImageViewerRegion,{passive:true});
+
+document.addEventListener('pointerdown',event=>{
+  if(!imageViewerOverlay?.open)return;
+  const target=event.target instanceof Element?event.target:null;
+  if(!target||imageViewerOverlay.contains(target))return;
+  const actionable=target.closest(
+    '#regionTop button,#shellNavigationLayer button,[data-contact-row],[data-contact-manage]'
+  );
+  if(actionable)closeImageViewer({restoreFocus:false});
+},true);
+
+document.addEventListener('v21-active-contact-change',()=>{
+  if(imageViewerOverlay?.open)closeImageViewer({restoreFocus:false});
+});
 
 function closeImageViewer({restoreFocus=true}={}){
   imageViewerSessionSeq+=1;
@@ -6787,7 +6786,6 @@ function closeImageViewer({restoreFocus=true}={}){
   imageViewerTimeFilter='all';
   closeImageViewerTimeMenu();
   if(imageViewerOverlay?.open)imageViewerOverlay.close();
-  unlockAppHeaderForImageViewer();
   exitImageViewerMode();
   const returnFocus=imageViewerReturnFocus;
   imageViewerReturnFocus=null;
@@ -7260,12 +7258,9 @@ async function openImageViewer({assetId,accountId=currentMediaAccountId(),previe
       return false;
     }
     positionImageViewerBelowHeader();
-    lockAppHeaderForImageViewer();
     try{
-      if(typeof imageViewerOverlay.showModal==='function')imageViewerOverlay.showModal();
-      else imageViewerOverlay.show();
+      imageViewerOverlay.show();
     }catch(error){
-      unlockAppHeaderForImageViewer();
       exitImageViewerMode();
       throw error;
     }
