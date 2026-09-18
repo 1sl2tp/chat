@@ -19,8 +19,10 @@ jobs:
         run: |
           set -euo pipefail
           remote="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git init -q
+          git remote add origin "$remote"
           mapfile -t branches < <(
-            git ls-remote --heads "$remote" |
+            git ls-remote --heads origin |
             awk '{print $2}' |
             sed 's#^refs/heads/##' |
             grep -vx 'main' || true
@@ -28,6 +30,6 @@ jobs:
           echo "Found ${#branches[@]} branches to delete."
           for branch in "${branches[@]}"; do
             echo "Deleting: $branch"
-            git push "$remote" --delete "$branch"
+            git push origin --delete "$branch"
           done
           echo "Cleanup complete."
