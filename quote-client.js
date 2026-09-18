@@ -74,39 +74,6 @@ async function createQuote({scope='all',sourceKey=''}={}){
   return data;
 }
 
-async function sendQuoteLink(url){
-  const text=String(url||'').trim();
-  if(!text||!targetAccountId)throw new Error('conversation_not_ready');
-  const messageStore=window.V21MessageStore||null;
-  const sync=window.V21SyncEngine||null;
-  const messageState=messageStore?.snapshot?.()||{};
-  const clientId=window.V21RuntimeId?.create?.()||`quote-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
-
-  if(
-    messageStore?.send&&
-    messageState.ready&&
-    String(messageState.currentContactId||'')===String(targetAccountId)
-  ){
-    await messageStore.send({
-      clientId,
-      text,
-      contactId:targetAccountId,
-      conversationId:messageState.currentConversationId||null,
-      reply:null,
-    });
-  }else{
-    if(!sync?.queueText)throw new Error('conversation_not_ready');
-    await sync.queueText({
-      clientId,
-      text,
-      contactId:targetAccountId,
-      conversationId:null,
-      reply:null,
-    });
-  }
-  void sync?.wake?.({reason:'quote-link-send'});
-  return true;
-}
 
 async function copyQuoteLink(url){
   const text=String(url||'').trim();
@@ -241,7 +208,6 @@ document.addEventListener('v21-auth-state',scheduleMount);
 
 window.V21QuoteClient=Object.freeze({
   create:createQuote,
-  sendQuoteLink,
   copyQuoteLink,
   sources:FALLBACK_SOURCES,
   listSources,

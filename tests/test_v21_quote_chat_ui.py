@@ -38,8 +38,6 @@ for needle in [
     "listsources",
     "v21-quote",
     "navigator.clipboard",
-    "v21syncengine",
-    "queuetext",
 ]:
     assert needle in quote_low, f"missing quotation Chat UI contract: {needle}"
 
@@ -47,7 +45,6 @@ assert "import('./quote-client.js')" in directory or 'import("./quote-client.js"
 for forbidden in ["v21-zalo-", "zalo.me", "openapi.zalo", "zalo api"]:
     assert forbidden not in quote_low
 assert "functions.invoke('v21-quote'" in quote_low or 'functions.invoke("v21-quote"' in quote_low
-assert "contactid:targetaccountid" in quote_low.replace(" ", "")
 assert "data-quote-send" not in quote_low
 assert "tạo link cho" in quote_low
 assert "đang tạo và gửi" in low
@@ -63,6 +60,9 @@ for forbidden in [
     assert forbidden not in low, f"legacy Chat order/split behavior remains: {forbidden}"
 
 assert "v21quoteclient" in low
+assert "v21syncengine" not in quote_low
+assert "queuetext" not in quote_low
+assert "sendquotelink" not in quote_low
 assert "queuetext" in low or "v21messagestore" in low
 assert "contactid" in low
 quote_overlay_css = low.split(".admin-composer-quote-overlay", 1)[1].split("}", 1)[0]
