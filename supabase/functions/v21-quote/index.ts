@@ -153,7 +153,7 @@ async function createQuote(req:Request){
     source_key:sourceKey,
     source_name:sourceName,
     item_count:items.length,
-    payload:{items,sources:usedSources},
+    payload:{sources:usedSources},
     created_by:admin.accountId,
   }).select('token,item_count,source_name').single();
   if(inserted.error)return json({ok:false,error:'quote_create_failed'},500);
