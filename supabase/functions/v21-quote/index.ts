@@ -174,14 +174,57 @@ async function readQuote(req:Request){
   if(!token)return json({ok:false,error:'token_required'},400,{'cache-control':'no-store'});
 
   const snapshot=await db.from("chat_quote_snapshots")
-    .select('scope,source_key,source_name,item_count,payload,created_at')
+    .select('scope,source_key,source_name,created_at')
     .eq("token",token)
     .is("revoked_at",null)
     .maybeSingle();
   if(snapshot.error)return json({ok:false,error:'quote_lookup_failed'},500,{'cache-control':'no-store'});
   if(!snapshot.data)return json({ok:false,error:'quote_not_found'},404,{'cache-control':'no-store'});
 
-  return json(makePublicPayload(snapshot.data),200,{'cache-control':'public, max-age=60'});
+  let sources;
+  try{
+    const active=await activeSources();
+    const priced=await pricedSourceKeys();
+    sources=active.filter((row:any)=>priced.has(row.source_key));
+  }catch{
+    return json({ok:false,error:'source_lookup_failed'},500,{'cache-control':'no-store'});
+  }
+
+  const scope=clean(snapshot.data.scope,20)==='source'?'source':'all';
+  const sourceKey=scope==='source'?clean(snapshot.data.source_key,100):'';
+  if(scope==='source'&&!sources.some((row:any)=>row.source_key===sourceKey)){
+    return json({ok:false,error:'quote_empty'},404,{'cache-control':'no-store'});
+  }
+
+  const allowedKeys=scope==='source'?[sourceKey]:sources.map((row:any)=>row.source_key);
+  if(!allowedKeys.length)return json({ok:false,error:'quote_empty'},404,{'cache-control':'no-store'});
+
+  let products=db.from("taphoa_products")
+    .select(PUBLIC_PRODUCT_FIELDS)
+    .eq("is_active",true)
+    .eq("sync_status","active")
+    .is("deleted_at",null)
+    .gt('sale_price_vnd',0)
+    .order('source_key',{ascending:true})
+    .order('source_row',{ascending:true});
+  products=scope==='source'?products.eq('source_key',sourceKey):products.in('source_key',allowedKeys);
+
+  const productResult=await products;
+  if(productResult.error)return json({ok:false,error:'product_lookup_failed'},500,{'cache-control':'no-store'});
+  const items=buildQuoteItems(productResult.data||[]);
+  if(!items.length)return json({ok:false,error:'quote_empty'},404,{'cache-control':'no-store'});
+
+  const usedKeys=new Set(items.map((item:any)=>clean(item?.source_key,100)).filter(Boolean));
+  const usedSources=sources.filter((row:any)=>usedKeys.has(row.source_key));
+  const liveSnapshot={
+    ...snapshot.data,
+    item_count:items.length,
+    payload:{items,sources:usedSources},
+  };
+  return json({
+    ...makePublicPayload(liveSnapshot),
+    generated_at:new Date().toISOString(),
+  },200,{'cache-control':'no-store'});
 }
 
 Deno.serve(async(req:Request)=>{
