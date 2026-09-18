@@ -134,7 +134,7 @@ server.listen(port,'0.0.0.0',()=>{
           console.log(`[zalo-login] contacts synced ${Number(synced?.count)||0}`);
           if(targetGroupName){
             const groups=await syncApiGroups({api,sync:contactSync,filter:targetGroupName});
-            console.log(`[zalo-login] target groups synced ${Number(groups?.matched)||0}: ${(groups?.names||[]).join(' | ')}`);
+            console.log(`[zalo-login] group directory ${Number(groups?.total)||0}; target groups synced ${Number(groups?.matched)||0}: ${(groups?.names||[]).join(' | ')}; candidates: ${(groups?.candidates||[]).join(' | ')}`);
           }
         }catch(error){
           console.warn('[zalo-login] contacts sync failed',String(error?.message||error));
