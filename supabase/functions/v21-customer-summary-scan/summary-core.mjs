@@ -198,6 +198,31 @@ function repairDistinctiveWordsFromCustomerText(item,sourceRows=[]){
   return item;
 }
 
+function sourceMessageMetadata(item,sourceRows=[]){
+  const rows=Array.isArray(sourceRows)?sourceRows:[];
+  const evidence=normalizedCompare(item?.rawEvidence);
+  const name=normalizedCompare(item?.name);
+
+  for(let index=rows.length-1;index>=0;index--){
+    const row=rows[index];
+    if(String(row?.sender_role||'').toLowerCase()!=='customer')continue;
+    const body=normalizedCompare(row?.body);
+    if(!body)continue;
+    const evidenceMatch=Boolean(evidence&&body.includes(evidence));
+    const nameMatch=Boolean(!evidenceMatch&&name&&body.includes(name));
+    if(!evidenceMatch&&!nameMatch)continue;
+
+    const messageId=clean(row?.id,120);
+    const createdAt=clean(row?.created_at,80);
+    return{
+      ...(messageId?{sourceMessageId:messageId}:{}),
+      ...(createdAt?{sourceCreatedAt:createdAt}:{}),
+      sourceMessageIndex:index,
+    };
+  }
+  return{};
+}
+
 export function normalizeSummaryPayload(payload={},sourceRows=[]){
   const items=[];
   for(const raw of Array.isArray(payload?.items)?payload.items:[]){
@@ -218,7 +243,8 @@ export function normalizeSummaryPayload(payload={},sourceRows=[]){
       ambiguous:Boolean(raw?.ambiguous)||quantity===null,
       inferred:Boolean(raw?.inferred),
     });
-    items.push(repairDistinctiveWordsFromCustomerText(repairedEvidence,sourceRows));
+    const repaired=repairDistinctiveWordsFromCustomerText(repairedEvidence,sourceRows);
+    items.push({...repaired,...sourceMessageMetadata(repaired,sourceRows)});
   }
   const totalsMap=new Map();
   for(const item of items){

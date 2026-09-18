@@ -455,11 +455,28 @@ function reconcileRecords(row={}){
   });
 }
 
+function recordSourceMessageIndex(record={}){
+  const value=Number(record?.item?.sourceMessageIndex);
+  return Number.isFinite(value)&&value>=0?value:null;
+}
+
 function sortItemsForReconcile(records=[]){
   return records.slice().sort((a,b)=>{
     const aCompleted=Boolean(a.completed)&&a.itemKey!==pendingReorderKey;
     const bCompleted=Boolean(b.completed)&&b.itemKey!==pendingReorderKey;
     if(aCompleted!==bCompleted)return aCompleted?1:-1;
+
+    if(!aCompleted&&!bCompleted){
+      const aSource=recordSourceMessageIndex(a);
+      const bSource=recordSourceMessageIndex(b);
+      if(aSource!==null||bSource!==null){
+        if(aSource===null)return 1;
+        if(bSource===null)return -1;
+        if(aSource!==bSource)return bSource-aSource;
+      }
+    }
+
+    // Preserve the customer's line order inside one source message.
     return Number(a.index)-Number(b.index);
   });
 }

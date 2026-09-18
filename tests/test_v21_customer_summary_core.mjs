@@ -73,6 +73,26 @@ assert.deepEqual(
 assert.equal(differentiated.items[0].rawEvidence,'Hai thùng mì lô tô và 2 thùng mộc Châu bé nhé');
 assert.equal(/nhé/i.test(differentiated.items[0].name),false,'conversation filler must not be appended to product name');
 
+
+const sourceOrdered=core.normalizeSummaryPayload({
+  items:[
+    {name:'bột omo 5.1kg',quantity:2,source:'text',raw_evidence:'2 bột omo 5.1kg'},
+    {name:'danisa 681',quantity:2,source:'text',raw_evidence:'2 danisa 681'},
+    {name:'sài gòn đào',quantity:10,source:'text',raw_evidence:'10 sài gòn đào'},
+  ]
+},[
+  {id:'old-order',created_at:'2026-09-16T00:00:00Z',sender_role:'customer',body:'2 bột omo 5.1kg'},
+  {id:'admin-context',created_at:'2026-09-17T00:00:00Z',sender_role:'admin',body:'ok a'},
+  {id:'latest-order',created_at:'2026-09-18T00:00:00Z',sender_role:'customer',body:'2 danisa 681\n10 sài gòn đào'},
+]);
+assert.equal(sourceOrdered.items[0].sourceMessageId,'old-order');
+assert.equal(sourceOrdered.items[0].sourceMessageIndex,0);
+assert.equal(sourceOrdered.items[1].sourceMessageId,'latest-order');
+assert.equal(sourceOrdered.items[1].sourceMessageIndex,2);
+assert.equal(sourceOrdered.items[2].sourceMessageId,'latest-order');
+assert.equal(sourceOrdered.items[2].sourceMessageIndex,2);
+assert.equal(sourceOrdered.items[1].sourceCreatedAt,'2026-09-18T00:00:00Z');
+
 const history=core.buildConversationHistory([
   {created_at:'2026-09-15T00:00:00Z',sender_role:'customer',body:'Có ensure rẻ k a'},
   {created_at:'2026-09-15T00:00:10Z',sender_role:'admin',body:'Lấy mấy thùng?'},

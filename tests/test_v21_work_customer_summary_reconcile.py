@@ -52,6 +52,11 @@ assert 'v21-active-contact-change' in c, 'Work must react to the selected custom
 assert 'renderCustomerDetail' in c, 'selected-customer reconciliation view is required'
 assert 'data-work-summary-all' in c, 'detail view needs a Tất cả control'
 
+# Newest customer order batch must rise to the top while preserving line order inside that message.
+assert 'recordSourceMessageIndex' in c, 'Work detail must know the source-message order for each extracted line'
+assert 'sourceMessageIndex' in c, 'Work detail must sort by source-message metadata, not by product name'
+assert 'bSource-aSource' in c, 'newer source messages must sort before older source messages'
+
 # Reconciliation: checkbox/toggle, completed rows last, muted + struck through.
 assert 'chat_customer_summary_set_completed' in c, 'completion must persist through the backend RPC'
 assert 'data-work-item-toggle' in c, 'each detail item needs a completion control'
