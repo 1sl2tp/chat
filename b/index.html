@@ -163,7 +163,7 @@ fetch(`${QUOTE_READ_API}${encodeURIComponent(token)}`)
   .then(data=>{
     if(!data?.ok||!Array.isArray(data.items))throw new Error('quote_invalid');
     snapshot=data;
-    createdLabel=data.created_at?new Date(data.created_at).toLocaleString('vi-VN',{dateStyle:'short',timeStyle:'short'}):'';
+    createdLabel=data.generated_at?`Cập nhật ${new Date(data.generated_at).toLocaleString('vi-VN',{dateStyle:'short',timeStyle:'short'})}`:'';
     status.hidden=true;errorBox.hidden=true;head.hidden=false;table.hidden=false;render();
   })
   .catch(fail);
