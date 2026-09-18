@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="2d2704dd892adeae38240ded94d6a1d8be4c6eb4ab0950ce6f46ee9126af9d3f">
+<meta name="app-build-id" content="282d6f99f286ef139931b43e704f7988f428e86a0fe751048319cbdaea8e0af3">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -10814,6 +10814,14 @@ function toggleComposerActionMenu(){
     !isComposerActionMenuOpen()
   );
 }
+
+window.V21ComposerActionMenu=Object.freeze({
+  open:()=>setComposerActionMenuOpen(true),
+  close:()=>setComposerActionMenuOpen(false),
+  toggle:toggleComposerActionMenu,
+  place:placeComposerActionMenu,
+  isOpen:isComposerActionMenuOpen
+});
 
 if(supportsPopoverApi)actionMenu.addEventListener('toggle',()=>{
   plusButton.dataset.state=
