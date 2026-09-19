@@ -3691,52 +3691,162 @@ function normalizeDisplayEmoticons(value){
 }
 
 const MESSAGE_LINK_RE=/https?:\/\/[^\s<]+/giu;
+const MESSAGE_INLINE_TOKEN_RE=/https?:\/\/[^\s<]+|\*\*[^*\n]+\*\*|~~[^~\n]+~~|==[^=\n]+==|`[^`\n]+`|\*[^*\n]+\*/giu;
 
-function appendMessageTextWithLinks(container,value){
+function appendMessageLink(container,rawValue){
+  let href=String(rawValue||'');
+  let trailing='';
+  while(href&&/[),.;!?]$/u.test(href)){
+    trailing=href.slice(-1)+trailing;
+    href=href.slice(0,-1);
+  }
+  if(!href){
+    container.appendChild(document.createTextNode(rawValue));
+    return false;
+  }
+  const link=document.createElement('a');
+  link.className='message-link';
+  link.href=href;
+  link.target='_blank';
+  link.rel='noopener noreferrer';
+  link.textContent=href;
+  link.title=href;
+  if(href.length>72)link.dataset.linkLong='true';
+  try{link.dataset.linkHost=new URL(href).hostname;}catch{}
+  container.appendChild(link);
+  if(trailing)container.appendChild(document.createTextNode(trailing));
+  return true;
+}
+
+function appendMessageInlineMarkup(container,value){
   if(!container)return false;
   const text=String(value??'');
   let cursor=0;
   let hasLink=false;
-  MESSAGE_LINK_RE.lastIndex=0;
-  for(const match of text.matchAll(MESSAGE_LINK_RE)){
+  const tokenRe=new RegExp(MESSAGE_INLINE_TOKEN_RE.source,MESSAGE_INLINE_TOKEN_RE.flags);
+  for(const match of text.matchAll(tokenRe)){
     const raw=String(match[0]||'');
     const start=Number(match.index||0);
-    if(start>cursor)container.appendChild(document.createTextNode(normalizeDisplayEmoticons(text.slice(cursor,start))));
-
-    let href=raw;
-    let trailing='';
-    while(href&&/[),.;!?]$/u.test(href)){
-      trailing=href.slice(-1)+trailing;
-      href=href.slice(0,-1);
+    if(start>cursor){
+      container.appendChild(document.createTextNode(normalizeDisplayEmoticons(text.slice(cursor,start))));
     }
 
-    if(href){
-      const link=document.createElement('a');
-      link.className='message-link';
-      link.href=href;
-      link.target='_blank';
-      link.rel='noopener noreferrer';
-      link.textContent=href;
-      link.title=href;
-      if(href.length>72)link.dataset.linkLong='true';
-      try{link.dataset.linkHost=new URL(href).hostname;}catch{}
-      container.appendChild(link);
-      hasLink=true;
+    if(/^https?:\/\//iu.test(raw)){
+      hasLink=appendMessageLink(container,raw)||hasLink;
+    }else if(raw.startsWith('**')&&raw.endsWith('**')){
+      const strong=document.createElement('strong');
+      strong.textContent=normalizeDisplayEmoticons(raw.slice(2,-2));
+      container.appendChild(strong);
+    }else if(raw.startsWith('~~')&&raw.endsWith('~~')){
+      const strike=document.createElement('s');
+      strike.textContent=normalizeDisplayEmoticons(raw.slice(2,-2));
+      container.appendChild(strike);
+    }else if(raw.startsWith('==')&&raw.endsWith('==')){
+      const mark=document.createElement('mark');
+      mark.className='message-inline-mark';
+      mark.textContent=normalizeDisplayEmoticons(raw.slice(2,-2));
+      container.appendChild(mark);
+    }else if(raw.startsWith('`')&&raw.endsWith('`')){
+      const code=document.createElement('code');
+      code.className='message-inline-code';
+      code.textContent=raw.slice(1,-1);
+      container.appendChild(code);
+    }else if(raw.startsWith('*')&&raw.endsWith('*')){
+      const em=document.createElement('em');
+      em.textContent=normalizeDisplayEmoticons(raw.slice(1,-1));
+      container.appendChild(em);
     }else{
-      container.appendChild(document.createTextNode(raw));
+      container.appendChild(document.createTextNode(normalizeDisplayEmoticons(raw)));
     }
-
-    if(trailing)container.appendChild(document.createTextNode(trailing));
     cursor=start+raw.length;
   }
-  if(cursor<text.length)container.appendChild(document.createTextNode(normalizeDisplayEmoticons(text.slice(cursor))));
+  if(cursor<text.length){
+    container.appendChild(document.createTextNode(normalizeDisplayEmoticons(text.slice(cursor))));
+  }
   return hasLink;
+}
+
+function messageRichLine(tagName,className,text){
+  const node=document.createElement(tagName);
+  node.className=className;
+  const hasLink=appendMessageInlineMarkup(node,text);
+  return {node,hasLink};
 }
 
 function renderMessageBody(container,value){
   if(!container)return container;
   container.replaceChildren();
-  container.dataset.hasLink=appendMessageTextWithLinks(container,value)?'true':'false';
+
+  const source=String(value??'').replace(/\r\n?/gu,'\n');
+  const lines=source.split('\n');
+  let hasLink=false;
+  let rich=false;
+  let list=null;
+  let listKind='';
+
+  const closeList=()=>{
+    list=null;
+    listKind='';
+  };
+
+  for(const line of lines){
+    if(/^\s*$/u.test(line)){
+      closeList();
+      const gap=document.createElement('div');
+      gap.className='message-rich-gap';
+      gap.setAttribute('aria-hidden','true');
+      container.appendChild(gap);
+      continue;
+    }
+
+    const heading=line.match(/^\s*(#{1,3})\s+(.+)$/u);
+    if(heading){
+      closeList();
+      const level=Math.min(3,heading[1].length);
+      const rendered=messageRichLine(`h${level+2}`,`message-rich-heading message-rich-heading-${level}`,heading[2]);
+      hasLink=rendered.hasLink||hasLink;
+      container.appendChild(rendered.node);
+      rich=true;
+      continue;
+    }
+
+    const quote=line.match(/^\s*>\s?(.*)$/u);
+    if(quote){
+      closeList();
+      const rendered=messageRichLine('blockquote','message-rich-quote',quote[1]);
+      hasLink=rendered.hasLink||hasLink;
+      container.appendChild(rendered.node);
+      rich=true;
+      continue;
+    }
+
+    const ordered=line.match(/^\s*(\d+)\.\s+(.+)$/u);
+    const unordered=line.match(/^\s*[-•]\s+(.+)$/u);
+    if(ordered||unordered){
+      const nextKind=ordered?'ol':'ul';
+      if(!list||listKind!==nextKind){
+        closeList();
+        list=document.createElement(nextKind);
+        list.className='message-rich-list';
+        container.appendChild(list);
+        listKind=nextKind;
+      }
+      const item=document.createElement('li');
+      hasLink=appendMessageInlineMarkup(item,ordered?ordered[2]:unordered[1])||hasLink;
+      list.appendChild(item);
+      rich=true;
+      continue;
+    }
+
+    closeList();
+    const rendered=messageRichLine('div','message-rich-line',line);
+    hasLink=rendered.hasLink||hasLink;
+    container.appendChild(rendered.node);
+    if(/\*\*|~~|==|`|\*[^*]+\*/u.test(line))rich=true;
+  }
+
+  container.dataset.hasLink=hasLink?'true':'false';
+  container.dataset.richText=rich?'true':'false';
   return container;
 }
 

@@ -12,7 +12,8 @@ app=read('app.js')
 assert 'V21.72.39' in source
 
 assert 'const MESSAGE_LINK_RE=' in app
-assert 'function appendMessageTextWithLinks(container,value)' in app
+assert 'function appendMessageLink(container,rawValue)' in app
+assert 'function appendMessageInlineMarkup(container,value)' in app
 assert 'function renderMessageBody(container,value)' in app
 assert "link.className='message-link'" in app
 assert "link.target='_blank'" in app

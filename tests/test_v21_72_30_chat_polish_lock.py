@@ -40,3 +40,19 @@ assert "if(href.length>72)link.dataset.linkLong='true';" in app
 assert "link.href=href;" in app
 
 print('V21.72.39 chat polish lock contract PASS')
+
+
+# Rich message rendering stays safe DOM-based and supports ChatGPT-like emphasis.
+assert "const MESSAGE_INLINE_TOKEN_RE=" in app
+assert "function appendMessageInlineMarkup(container,value)" in app
+assert "document.createElement('strong')" in app
+assert "document.createElement('em')" in app
+assert "document.createElement('s')" in app
+assert "document.createElement('mark')" in app
+assert "document.createElement('code')" in app
+assert "message-rich-quote" in app
+assert "message-rich-list" in app
+assert "innerHTML=String(value" not in app
+assert ".message-rich-heading{" in source
+assert ".message-inline-code{" in source
+assert ".composer-shell-source:focus-within{" in source
