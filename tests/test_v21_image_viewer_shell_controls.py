@@ -25,8 +25,10 @@ assert "imageViewerZoom===1" in app
 assert "image-review-zoom-controls" in app
 assert "image-review-zoom-value" in app
 assert "stepImageViewerZoom" in app
-assert "imageViewerZoom<2?2:Math.min(5,imageViewerZoom+.5)" in app
-assert "if(imageViewerZoom>1)resetImageViewerZoom();" not in app
+assert "const next=imageViewerZoom>1?1:2.5;" in app
+assert "const imageViewerTapStarts=new Map();" in app
+assert "dy>72" in app
+assert "event.target!==main" in app
 
 assert "window.matchMedia?.('(max-width:700px)')" in app
 assert "title.textContent='Xem ảnh'" in app

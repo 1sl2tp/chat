@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="f61b866c245c780df5623c7d492ffe4abe0bf3ab126307e3c850acc086ce4556">
+<meta name="app-build-id" content="d2f90dd68dc4478338b904c331a29b63538774d95e0760ee4c79f0fca89f726e">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -434,6 +434,198 @@
     pointer-events:none;
   }
   #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #workThreadView .work-thread-empty{display:none!important}
+}
+
+
+/* V21.72.49 chat management reference polish */
+#appShell[data-auth-state="authenticated"] .composer-shell-source{
+  border:1px solid color-mix(in srgb,var(--theme-border-default,#d9d9d9) 92%,transparent)!important;
+  border-radius:24px!important;
+  background:var(--theme-surface-primary,#fff)!important;
+  box-shadow:0 1px 2px rgba(0,0,0,.035)!important;
+}
+#appShell[data-auth-state="authenticated"] #composerFooter{
+  padding-inline:8px!important;
+  padding-bottom:7px!important;
+}
+#appShell[data-auth-state="authenticated"] #editorWrap{
+  padding-inline:12px!important;
+  padding-top:8px!important;
+}
+#appShell[data-auth-state="authenticated"] #threadScrollControl{
+  border:1px solid var(--theme-border-default)!important;
+  background:color-mix(in srgb,var(--theme-surface-primary) 94%,transparent)!important;
+  box-shadow:0 4px 16px rgba(0,0,0,.09)!important;
+}
+
+/* Directory density follows the supplied compact mobile/desktop reference
+   without changing the current directory routing model. */
+#appShell[data-auth-state="authenticated"] .shell-contact-row,
+#appShell[data-auth-state="authenticated"] .shell-contact-chat{
+  height:64px!important;
+  min-height:64px!important;
+  border-radius:14px!important;
+}
+#appShell[data-auth-state="authenticated"] .shell-contact-chat{
+  grid-template-columns:40px minmax(0,1fr) 54px!important;
+  grid-template-rows:1.2rem 1.05rem!important;
+  column-gap:10px!important;
+  row-gap:2px!important;
+  padding:8px 8px!important;
+}
+#appShell[data-auth-state="authenticated"] .shell-contact-avatar-wrap,
+#appShell[data-auth-state="authenticated"] .shell-contact-avatar{
+  width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important;
+}
+#appShell[data-auth-state="authenticated"] .shell-contact-name{
+  font-size:.88rem!important;
+  line-height:1.2rem!important;
+}
+#appShell[data-auth-state="authenticated"] .shell-contact-preview{
+  font-size:.76rem!important;
+  line-height:1.05rem!important;
+}
+#appShell[data-auth-state="authenticated"] .shell-contact-time{
+  width:54px!important;
+  font-size:.68rem!important;
+}
+#appShell[data-auth-state="authenticated"] .shell-contact-row:not(:last-child)::after{
+  left:58px!important;
+}
+
+/* Header reads as menu + selected contact/work mode + call, matching the
+   supplied reference while retaining the existing tab/call controllers. */
+#appShell[data-auth-state="authenticated"] #regionTop .top-mode-switch{
+  width:max-content!important;
+  max-width:min(100%,300px)!important;
+  background:transparent!important;
+  padding:0!important;
+  gap:6px!important;
+}
+#appShell[data-auth-state="authenticated"] #regionTop .top-mode-tab{
+  min-height:34px!important;
+  font-size:12.5px!important;
+  box-shadow:none!important;
+}
+#appShell[data-auth-state="authenticated"] #regionTop .top-mode-tab[aria-selected="true"]{
+  background:var(--theme-surface-secondary)!important;
+  border:1px solid color-mix(in srgb,var(--theme-border-default) 78%,transparent)!important;
+}
+#appShell[data-auth-state="authenticated"] #regionTop .top-mode-tab:not([aria-selected="true"]){
+  background:transparent!important;
+  color:var(--theme-content-secondary)!important;
+}
+
+/* Work column adopts the compact selected-product card rhythm from the
+   reference, but keeps CHAT's existing reconcile/check business logic. */
+[data-work-summary-root] .work-summary-header{
+  min-height:56px!important;
+  padding:10px 14px!important;
+}
+[data-work-summary-root] .work-summary-body{
+  padding:10px 12px 18px!important;
+}
+[data-work-summary-root] .work-summary-list{
+  display:grid!important;
+  gap:8px!important;
+  border:0!important;
+  border-radius:0!important;
+  overflow:visible!important;
+  background:transparent!important;
+}
+[data-work-summary-root] .work-summary-item{
+  min-height:44px!important;
+  border:1px solid color-mix(in srgb,var(--theme-border-default) 86%,transparent)!important;
+  border-radius:12px!important;
+  background:var(--theme-surface-primary)!important;
+  padding:8px 10px 8px 36px!important;
+}
+[data-work-summary-root] .work-summary-item+.work-summary-item{
+  border-top:1px solid color-mix(in srgb,var(--theme-border-default) 86%,transparent)!important;
+}
+[data-work-summary-root] .work-summary-item:nth-child(even){
+  background:color-mix(in srgb,var(--theme-surface-secondary) 54%,var(--theme-surface-primary))!important;
+}
+[data-work-summary-root] .work-summary-item.is-completed{
+  opacity:.52!important;
+  background:var(--theme-surface-secondary)!important;
+}
+[data-work-summary-root] .work-summary-check{
+  width:22px!important;height:22px!important;min-width:22px!important;
+  border-radius:6px!important;
+}
+[data-work-summary-root] .work-summary-item-name,
+[data-work-summary-root] .work-summary-item-qty{
+  font-size:13px!important;
+  line-height:18px!important;
+}
+
+@media (min-width:64rem) and (hover:hover) and (pointer:fine){
+  #appShell[data-auth-state="authenticated"] #screenHost{
+    --desktop-directory-width:clamp(300px,24vw,360px)!important;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer{
+    background:var(--theme-surface-primary)!important;
+  }
+}
+
+/* Mobile media viewing: interaction-first, like a messaging app viewer.
+   Toolbar/filter chrome is removed; gestures own zoom/navigation/dismissal. */
+@media (max-width:700px) and (pointer:coarse){
+  .image-viewer-overlay{
+    top:0!important;right:0!important;bottom:0!important;left:0!important;
+    width:100vw!important;height:100dvh!important;
+    background:#000!important;
+  }
+  .image-review{
+    background:#000!important;
+  }
+  .image-review-main{
+    padding:
+      calc(4.15rem + env(safe-area-inset-top,0px))
+      .5rem
+      calc(.75rem + env(safe-area-inset-bottom,0px))!important;
+    background:#000!important;
+    touch-action:none!important;
+  }
+  .image-review-bottom,
+  .image-review-nav,
+  .image-review .image-review-zoom-controls,
+  .image-review .chat-image-viewer-rotate-controls{
+    display:none!important;
+  }
+  .image-review-head{
+    min-height:calc(3.8rem + env(safe-area-inset-top,0px))!important;
+    padding:calc(.48rem + env(safe-area-inset-top,0px)) .7rem .7rem!important;
+    background:linear-gradient(180deg,rgba(0,0,0,.76),rgba(0,0,0,.22) 62%,transparent)!important;
+  }
+  .image-review-title{
+    font-size:.9rem!important;
+    font-weight:650!important;
+  }
+  .image-review-count{
+    font-size:.68rem!important;
+    color:rgba(255,255,255,.62)!important;
+  }
+  .image-review-close{
+    width:2.35rem!important;height:2.35rem!important;flex-basis:2.35rem!important;
+    border-color:rgba(255,255,255,.14)!important;
+    background:rgba(28,28,30,.58)!important;
+  }
+  .image-review-image{
+    max-width:100%!important;
+    max-height:100%!important;
+    border-radius:0!important;
+    box-shadow:none!important;
+    background:transparent!important;
+  }
+  .image-review-meta{
+    bottom:calc(.7rem + env(safe-area-inset-bottom,0px))!important;
+    max-width:calc(100% - 2rem)!important;
+    background:rgba(0,0,0,.38)!important;
+    border-color:rgba(255,255,255,.06)!important;
+    font-size:.62rem!important;
+  }
 }
 
 </style>
@@ -7014,6 +7206,11 @@ let imageViewerPanY=0;
 let imageViewerGesture=null;
 let imageViewerGesturePinched=false;
 const imageViewerPointers=new Map();
+const imageViewerTapStarts=new Map();
+let imageViewerBackdropClickBlockedUntil=0;
+let imageViewerLastTapAt=0;
+let imageViewerLastTapX=0;
+let imageViewerLastTapY=0;
 let imageViewerReturnFocus=null;
 let imageViewerFilterScroll=null;
 let imageViewerTimeMenuButton=null;
@@ -7151,6 +7348,9 @@ function closeImageViewer({restoreFocus=true}={}){
   imageViewerAlbumId=null;
   imageViewerTimeFilter='all';
   resetImageViewerZoom();
+imageViewerTapStarts.clear();
+imageViewerBackdropClickBlockedUntil=0;
+imageViewerLastTapAt=0;
   closeImageViewerTimeMenu();
   if(imageViewerOverlay?.open)imageViewerOverlay.close();
   exitImageViewerMode();
@@ -7713,6 +7913,88 @@ function ensureImageViewer(){
   main.addEventListener('pointerup',finishPointer);
   main.addEventListener('pointercancel',finishPointer);
 
+// Mobile-first media viewer gesture layer. Keep this separate from the
+// pan/pinch engine above so single taps never interfere with zoom/pan.
+main.addEventListener('pointerdown',event=>{
+  if(event.target instanceof Element&&event.target.closest('button'))return;
+  const pointerType=String(event.pointerType||'');
+  if(pointerType!=='touch'&&pointerType!=='pen')return;
+  const existing=[...imageViewerTapStarts.values()];
+  const multi=existing.length>0;
+  if(multi){
+    for(const start of existing)start.multi=true;
+  }
+  imageViewerTapStarts.set(event.pointerId,{
+    x:event.clientX,
+    y:event.clientY,
+    pointerType,
+    onImage:event.target===image,
+    moved:false,
+    multi
+  });
+});
+main.addEventListener('pointermove',event=>{
+  const start=imageViewerTapStarts.get(event.pointerId);
+  if(!start)return;
+  if(Math.hypot(event.clientX-start.x,event.clientY-start.y)>8)start.moved=true;
+},{passive:true});
+const finishViewerTap=event=>{
+  const start=imageViewerTapStarts.get(event.pointerId);
+  if(!start)return;
+  imageViewerTapStarts.delete(event.pointerId);
+  const dx=event.clientX-start.x;
+  const dy=event.clientY-start.y;
+  const moved=start.moved||Math.hypot(dx,dy)>8;
+  if(start.multi||moved)imageViewerBackdropClickBlockedUntil=performance.now()+320;
+  if(start.multi)return;
+
+  if(
+    imageViewerZoom===1&&
+    dy>72&&
+    Math.abs(dy)>Math.abs(dx)*1.15
+  ){
+    imageViewerBackdropClickBlockedUntil=performance.now()+360;
+    imageViewerLastTapAt=0;
+    closeImageViewer({restoreFocus:false});
+    return;
+  }
+
+  if(!start.onImage||moved)return;
+  const now=performance.now();
+  const isDoubleTap=(
+    imageViewerLastTapAt>0&&
+    now-imageViewerLastTapAt<=285&&
+    Math.hypot(event.clientX-imageViewerLastTapX,event.clientY-imageViewerLastTapY)<=34
+  );
+  if(isDoubleTap){
+    imageViewerLastTapAt=0;
+    imageViewerBackdropClickBlockedUntil=now+320;
+    const next=imageViewerZoom>1?1:2.5;
+    setImageViewerZoom(next,{clientX:event.clientX,clientY:event.clientY});
+    return;
+  }
+  imageViewerLastTapAt=now;
+  imageViewerLastTapX=event.clientX;
+  imageViewerLastTapY=event.clientY;
+};
+main.addEventListener('pointerup',finishViewerTap);
+main.addEventListener('pointercancel',event=>{
+  imageViewerTapStarts.delete(event.pointerId);
+  imageViewerBackdropClickBlockedUntil=performance.now()+180;
+});
+
+main.addEventListener('click',event=>{
+  if(event.target!==main)return;
+  if(performance.now()<imageViewerBackdropClickBlockedUntil)return;
+  closeImageViewer({restoreFocus:false});
+});
+review.addEventListener('click',event=>{
+  if(event.target!==review)return;
+  if(performance.now()<imageViewerBackdropClickBlockedUntil)return;
+  closeImageViewer({restoreFocus:false});
+});
+
+
   main.addEventListener('wheel',event=>{
     if(event.target instanceof Element&&event.target.closest('button'))return;
     const factor=Math.exp(-event.deltaY*.0018);
@@ -7723,7 +8005,7 @@ function ensureImageViewer(){
   image.addEventListener('dblclick',event=>{
     event.preventDefault();
     event.stopPropagation();
-    const next=imageViewerZoom<2?2:Math.min(5,imageViewerZoom+.5);
+    const next=imageViewerZoom>1?1:2.5;
     setImageViewerZoom(next,{clientX:event.clientX,clientY:event.clientY});
   });
   thumbs.addEventListener('scroll',()=>{
