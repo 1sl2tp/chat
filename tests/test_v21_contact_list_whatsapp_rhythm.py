@@ -24,9 +24,11 @@ def test_contact_manage_action_only_appears_on_hover_or_keyboard_focus_desktop()
 
 def test_contact_rows_follow_chatgpt_compact_surface_rhythm():
     source = compact(SOURCE)
-    assert ".shell-contact-row{position:relative;width:100%;height:60px;min-height:60px" in source
+    assert ".shell-contact-row{position:relative;box-sizing:border-box;width:100%;height:60px;min-height:60px" in source
     assert "grid-template-columns:40pxminmax(0,1fr);grid-template-rows:1fr;align-items:center;column-gap:12px" in source
     assert ".shell-contact-copy{grid-column:2;grid-row:1;align-self:center;min-width:0;display:grid;grid-template-columns:minmax(0,1fr)52px;grid-template-rows:autoauto;column-gap:8px;row-gap:2px;align-items:center;}" in source
+    assert ".shell-contact-row{position:relative;box-sizing:border-box;width:100%;height:60px;min-height:60px" in source
+    assert "box-sizing:border-box;grid-template-columns:40pxminmax(0,1fr)" in source
     assert ".shell-contact-avatar-wrap{position:relative;width:40px;height:40px;display:block;grid-column:1;grid-row:1;align-self:center}" in source
     assert ".shell-contact-preview:empty{display:none}" in source
     assert ".shell-contact-row:not(:last-child)::after{display:none}" in source

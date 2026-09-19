@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="1559390002e3fdaeed0a66d792c0fc1d2bdd4a1f194761363d14030b6084275f">
+<meta name="app-build-id" content="3c45b0d2a5dd883fccf34c3141a53e39f27fca4110b299ea7816d11a1b64a4d0">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -3129,6 +3129,7 @@ button{
 #activeScreenSlot,
 .app-screen{
   min-width:0;
+  min-height:0;
 }
 #shellNavigationLayer{
   position:fixed;
@@ -3204,9 +3205,35 @@ button{
 }
 .shell-account-row .wm-sidebar-accountButton{min-width:0;flex:1}
 .wm-sidebar-guestLogin{flex:0 0 auto;white-space:nowrap}
-.wm-sidebar-sidebar{display:flex;flex-direction:column;height:100%;min-height:0}
-.wm-sidebar-body{flex:1 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column}
-.wm-sidebar-navigation{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:rgba(0,0,0,.28) transparent;scrollbar-gutter:stable}
+.wm-sidebar-sidebar{
+  box-sizing:border-box;
+  display:grid;
+  grid-template-areas:"header" "navigation" "footer";
+  grid-template-rows:auto minmax(0,1fr) auto;
+  height:100%;
+  min-height:0;
+  overflow:hidden;
+}
+.wm-sidebar-header{grid-area:header;min-width:0;box-sizing:border-box}
+.wm-sidebar-body{
+  grid-area:navigation;
+  min-width:0;
+  min-height:0;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+}
+.wm-sidebar-navigation{
+  flex:1 1 auto;
+  min-width:0;
+  min-height:0;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  scrollbar-width:thin;
+  scrollbar-color:rgba(0,0,0,.28) transparent;
+  scrollbar-gutter:stable;
+}
+.shell-sidebar-account-footer{grid-area:footer;min-width:0;box-sizing:border-box}
 .wm-sidebar-navigation::-webkit-scrollbar{width:3px}
 .wm-sidebar-navigation::-webkit-scrollbar-track{background:transparent}
 .wm-sidebar-navigation::-webkit-scrollbar-thumb{background:rgba(0,0,0,.28);border-radius:999px}
@@ -3946,6 +3973,11 @@ button{
 }
 
 
+/* V21 geometry owner map: mobile is one active screen + overlay directory;
+   desktop >=64rem is Region 1 Directory | Region 2 Active screen;
+   wide desktop >=80rem keeps Region 3 Work inside the active screen owner.
+   Children must not exceed the geometry set by these owners. */
+
 /* =========================================================
    V21.64 — COMPACT PERSISTENT DESKTOP DIRECTORY
    Repair root: ScreenHost/AppShell geometry only.
@@ -4185,11 +4217,12 @@ button{
   border-radius:50%;
   pointer-events:none;
 }
-.shell-contact-row{position:relative;width:100%;height:60px;min-height:60px;border-radius:10px;overflow:hidden;overflow-anchor:none}
+.shell-contact-row{position:relative;box-sizing:border-box;width:100%;height:60px;min-height:60px;border-radius:10px;overflow:hidden;overflow-anchor:none}
 .shell-contact-row[data-active="true"]{background:var(--theme-surface-secondary)}
 .shell-contact-row[data-locked="true"]{opacity:.72}
 .shell-contact-chat{
   appearance:none;border:0;background:transparent;color:inherit;width:100%;min-height:60px;display:grid;
+  box-sizing:border-box;
   grid-template-columns:40px minmax(0,1fr);grid-template-rows:1fr;align-items:center;column-gap:12px;height:60px;min-height:60px;padding:7px 8px;text-align:start;cursor:pointer;border-radius:10px;
 }
 .shell-contact-row:not([data-active="true"]) .shell-contact-chat:hover{background:var(--theme-action-ghost-surface-hover)}
