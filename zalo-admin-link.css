@@ -172,9 +172,15 @@
   #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] .wm-sidebar-body{padding-top:0!important}
 
   #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #regionTop .top-mode-switch{
+    width:auto!important;
+    max-width:min(100%,320px)!important;
+    grid-template-columns:minmax(0,1fr)!important;
     background:transparent!important;
     box-shadow:none!important;
     padding:0!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #regionTop [data-top-tab="work"]{
+    display:none!important;
   }
   #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #regionTop [data-top-tab="chat"]{
     display:flex!important;
@@ -189,11 +195,7 @@
     display:none!important;
   }
   #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #regionTop [data-top-tab="chat"]::before{
-    content:"Trò chuyện";
-    flex:0 0 auto;
-    color:var(--theme-content-secondary);
-    font-size:.82rem;
-    font-weight:500;
+    content:none!important;
   }
 
   #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #regionTop::after{
