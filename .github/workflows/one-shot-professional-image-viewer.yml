@@ -1,10 +1,307 @@
-name: One-shot chat UI + mobile viewer polish (retired)
+name: One-shot reference layout surface
 on:
-  workflow_dispatch:
+  push:
+    branches: [main]
 permissions:
-  contents: read
+  contents: write
 jobs:
-  retired:
+  patch:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Chat UI, multi-image layout and mobile viewer polish already applied."
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install verification dependency
+        run: python -m pip install pytest
+      - name: Apply visible reference layout
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess, sys
+
+          root=Path('.')
+          css_path=root/'zalo-admin-link.css'
+          css=css_path.read_text('utf-8')
+          marker='/* V21.72.51 visible chat-management reference layout */'
+          if marker not in css:
+              css += r'''
+
+          /* V21.72.51 visible chat-management reference layout */
+          /* This is intentionally more than a micro-polish: it makes the current
+             CHAT shell visibly follow the supplied Danh bạ | Trò chuyện | Công việc
+             reference while leaving all existing state, sync and order logic intact. */
+
+          #appShell[data-auth-state="authenticated"]{
+            --reference-panel-bg:#ffffff;
+            --reference-canvas:#f1f5f9;
+            --reference-border:#e2e8f0;
+          }
+
+          /* Header: compact messaging-app rhythm, selected context as a pill. */
+          #appShell[data-auth-state="authenticated"] #regionTop{
+            background:var(--reference-panel-bg)!important;
+            border-bottom:1px solid #eef2f7!important;
+            box-shadow:0 1px 2px rgba(15,23,42,.025)!important;
+            backdrop-filter:none!important;
+            -webkit-backdrop-filter:none!important;
+          }
+          #appShell[data-auth-state="authenticated"] #regionTop .compact-top-grid{
+            padding-inline:12px!important;
+            gap:8px!important;
+          }
+          #appShell[data-auth-state="authenticated"] #regionTop .shell-icon-button{
+            border-radius:10px!important;
+          }
+          #appShell[data-auth-state="authenticated"] #regionTop .top-mode-switch{
+            display:flex!important;
+            align-items:center!important;
+            justify-content:flex-start!important;
+            width:max-content!important;
+            max-width:min(100%,360px)!important;
+            min-width:0!important;
+            padding:0!important;
+            gap:6px!important;
+            background:transparent!important;
+            box-shadow:none!important;
+          }
+          #appShell[data-auth-state="authenticated"] #regionTop .top-mode-tab{
+            min-width:0!important;
+            min-height:32px!important;
+            height:32px!important;
+            padding:0 10px!important;
+            border:1px solid transparent!important;
+            border-radius:999px!important;
+            background:transparent!important;
+            color:#64748b!important;
+            font-size:12px!important;
+            font-weight:500!important;
+            box-shadow:none!important;
+          }
+          #appShell[data-auth-state="authenticated"] #regionTop .top-mode-tab[aria-selected="true"]{
+            background:#f1f5f9!important;
+            border-color:#e2e8f0!important;
+            color:#0f172a!important;
+            font-weight:650!important;
+          }
+          #appShell[data-auth-state="authenticated"] #regionTop .call-focus-button[data-display="icon"]{
+            width:36px!important;height:36px!important;min-width:36px!important;
+            border-radius:999px!important;
+            background:#2563eb!important;
+            color:#fff!important;
+            border:0!important;
+            box-shadow:0 2px 5px rgba(37,99,235,.22)!important;
+          }
+
+          /* Composer: one clear rounded message field like the supplied reference. */
+          #appShell[data-auth-state="authenticated"] .composer-source-frame{
+            padding-inline:12px!important;
+            padding-bottom:10px!important;
+          }
+          #appShell[data-auth-state="authenticated"] .composer-shell-source{
+            border:1px solid #cbd5e1!important;
+            border-radius:24px!important;
+            background:#fff!important;
+            box-shadow:0 1px 2px rgba(15,23,42,.035)!important;
+          }
+          #appShell[data-auth-state="authenticated"] .composer-shell-source:focus-within{
+            border-color:#94a3b8!important;
+            box-shadow:0 0 0 2px rgba(148,163,184,.12)!important;
+          }
+          #appShell[data-auth-state="authenticated"] #editor{
+            font-size:14px!important;
+            color:#1e293b!important;
+          }
+          #appShell[data-auth-state="authenticated"] #composerFooter{
+            min-height:38px!important;
+            padding:2px 8px 7px!important;
+          }
+          #appShell[data-auth-state="authenticated"] #composerHint{
+            color:#94a3b8!important;
+            font-size:11px!important;
+          }
+          #appShell[data-auth-state="authenticated"] #send{
+            width:32px!important;height:32px!important;min-width:32px!important;
+          }
+
+          /* Conversation canvas and message density. */
+          #appShell[data-auth-state="authenticated"] #threadContent{
+            background:#fff!important;
+          }
+          #appShell[data-auth-state="authenticated"] #messageWindow{
+            padding-top:16px!important;
+          }
+          #appShell[data-auth-state="authenticated"] .user-message-unit>.message-text{
+            border-radius:18px!important;
+            background:#f1f5f9!important;
+          }
+
+          /* Sidebar: compact cards, lighter active row and clear separation. */
+          #appShell[data-auth-state="authenticated"] .wm-sidebar-sidebar{
+            background:#fff!important;
+          }
+          #appShell[data-auth-state="authenticated"] .wm-sidebar-header{
+            padding:14px 12px 10px!important;
+            border-bottom:1px solid #f1f5f9!important;
+          }
+          #appShell[data-auth-state="authenticated"] .shell-wordmark{
+            color:#0f172a!important;
+            font-size:20px!important;
+            font-weight:750!important;
+            letter-spacing:-.02em!important;
+          }
+          #appShell[data-auth-state="authenticated"] .wm-sidebar-body{
+            padding:8px!important;
+          }
+          #appShell[data-auth-state="authenticated"] .shell-contact-row{
+            height:60px!important;
+            min-height:60px!important;
+            border-radius:12px!important;
+          }
+          #appShell[data-auth-state="authenticated"] .shell-contact-row[data-active="true"]{
+            background:#f1f5f9!important;
+            box-shadow:inset 0 0 0 1px #e2e8f0!important;
+          }
+          #appShell[data-auth-state="authenticated"] .shell-contact-chat{
+            height:60px!important;
+            min-height:60px!important;
+            grid-template-columns:40px minmax(0,1fr) 52px!important;
+            grid-template-rows:1.15rem 1rem!important;
+            column-gap:10px!important;
+            row-gap:2px!important;
+            padding:7px 8px!important;
+          }
+          #appShell[data-auth-state="authenticated"] .shell-contact-name{
+            font-size:12px!important;
+            line-height:1.15rem!important;
+            color:#0f172a!important;
+          }
+          #appShell[data-auth-state="authenticated"] .shell-contact-preview{
+            font-size:12px!important;
+            line-height:1rem!important;
+            color:#64748b!important;
+          }
+          #appShell[data-auth-state="authenticated"] .shell-contact-time{
+            width:52px!important;
+            font-size:10px!important;
+            color:#94a3b8!important;
+          }
+          #appShell[data-auth-state="authenticated"] .shell-contact-row:not(:last-child)::after{
+            left:58px!important;right:8px!important;background:#f1f5f9!important;
+          }
+
+          /* A visibly carded desktop workspace, matching the supplied desktop demo.
+             Keep current 64rem directory / 80rem three-column behavior unchanged. */
+          @media (min-width:64rem) and (hover:hover) and (pointer:fine){
+            #appShell[data-auth-state="authenticated"]{
+              background:var(--reference-canvas)!important;
+            }
+            #appShell[data-auth-state="authenticated"] #screenHost{
+              box-sizing:border-box!important;
+              height:100svh!important;
+              padding:12px!important;
+              gap:12px!important;
+              background:var(--reference-canvas)!important;
+              --desktop-directory-width:clamp(288px,24vw,340px)!important;
+            }
+            #appShell[data-auth-state="authenticated"] #shellNavigationLayer{
+              border:1px solid var(--reference-border)!important;
+              border-radius:18px!important;
+              overflow:hidden!important;
+              box-shadow:0 1px 3px rgba(15,23,42,.045)!important;
+              background:#fff!important;
+            }
+            #appShell[data-auth-state="authenticated"] #activeScreenSlot{
+              height:calc(100svh - 24px)!important;
+              border:1px solid var(--reference-border)!important;
+              border-radius:18px!important;
+              overflow:hidden!important;
+              background:#fff!important;
+              box-shadow:0 1px 3px rgba(15,23,42,.045)!important;
+            }
+            #appShell[data-auth-state="authenticated"] #stageLayout{
+              height:100%!important;
+              min-height:0!important;
+              border-radius:18px!important;
+              overflow:hidden!important;
+              background:#fff!important;
+            }
+            #appShell[data-auth-state="authenticated"] .shell-sidebar-account-footer{
+              margin:0 8px 8px!important;
+              padding:8px!important;
+              border-top:1px solid #f1f5f9!important;
+              border-radius:14px!important;
+              background:#f8fafc!important;
+            }
+          }
+
+          /* Wide desktop: visually separate the right work surface from chat instead
+             of presenting it as one continuous white sheet. */
+          @media (min-width:80rem) and (hover:hover) and (pointer:fine){
+            #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"]{
+              --desktop-chat-width:clamp(540px,46vw,720px)!important;
+              --desktop-work-width:calc(100% - var(--desktop-chat-width))!important;
+            }
+            #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #workThreadView{
+              box-sizing:border-box!important;
+              padding-left:12px!important;
+              border-inline-start:0!important;
+              background:var(--reference-canvas)!important;
+            }
+            #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #workThreadView .work-thread-frame{
+              height:100%!important;
+              border:1px solid var(--reference-border)!important;
+              border-radius:16px 0 0 16px!important;
+              background:#fff!important;
+              overflow:hidden!important;
+            }
+            #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #regionTop::after{
+              width:var(--desktop-work-width)!important;
+              padding-inline:24px!important;
+              border-inline-start:12px solid var(--reference-canvas)!important;
+              background:#fff!important;
+              color:#0f172a!important;
+              font-size:13px!important;
+            }
+          }
+
+          /* Mobile keeps one-column navigation, but the visible chat header/composer
+             now matches the reference instead of retaining the old large-shell feel. */
+          @media (max-width:63.999rem){
+            #appShell[data-auth-state="authenticated"] #regionTop .compact-top-grid{
+              padding-inline:10px!important;
+            }
+            #appShell[data-auth-state="authenticated"] .composer-source-frame{
+              padding-inline:8px!important;
+              padding-bottom:8px!important;
+            }
+            #appShell[data-auth-state="authenticated"] #messageWindow{
+              padding-inline:12px!important;
+            }
+          }
+          '''
+              css_path.write_text(css,'utf-8')
+
+          subprocess.run([sys.executable,'tools/build_current_preview.py'],check=True)
+          subprocess.run(['node','--check','app.js'],check=True)
+          subprocess.run([sys.executable,'-m','pytest','-q','tests/test_v21_desktop_three_column_minimal.py'],check=True)
+          subprocess.run([sys.executable,'-m','pytest','-q','tests/test_v21_contact_list_whatsapp_rhythm.py'],check=True)
+          subprocess.run([sys.executable,'tools/verify_current.py'],check=True)
+          PY
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add zalo-admin-link.css index.html version.json
+          if git diff --cached --quiet; then
+            echo "No changes"
+            exit 0
+          fi
+          git commit -m "Apply visible chat management layout"
+          git push
