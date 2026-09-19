@@ -22,9 +22,9 @@ def test_contact_manage_action_only_appears_on_hover_or_keyboard_focus_desktop()
     assert ".shell-contact-row:hover.shell-contact-manage,.shell-contact-row:focus-within.shell-contact-manage{opacity:1;pointer-events:auto" in source
 
 
-def test_contact_rows_have_whatsapp_style_inset_dividers():
+def test_contact_rows_follow_chatgpt_compact_surface_rhythm():
     source = compact(SOURCE)
-    assert ".shell-contact-row:not(:last-child)::after{" in source
-    assert "left:68px" in source
-    assert "right:8px" in source
-    assert "height:1px" in source
+    assert ".shell-contact-row{position:relative;width:100%;height:60px;min-height:60px" in source
+    assert "grid-template-columns:40pxminmax(0,1fr)52px" in source
+    assert ".shell-contact-row:not(:last-child)::after{display:none}" in source
+    assert "background:var(--theme-action-ghost-surface-hover)" in source
