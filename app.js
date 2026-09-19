@@ -1396,11 +1396,6 @@ let imageViewerPanY=0;
 let imageViewerGesture=null;
 let imageViewerGesturePinched=false;
 const imageViewerPointers=new Map();
-const imageViewerTapStarts=new Map();
-let imageViewerBackdropClickBlockedUntil=0;
-let imageViewerLastTapAt=0;
-let imageViewerLastTapX=0;
-let imageViewerLastTapY=0;
 let imageViewerReturnFocus=null;
 let imageViewerFilterScroll=null;
 let imageViewerTimeMenuButton=null;
@@ -1538,9 +1533,6 @@ function closeImageViewer({restoreFocus=true}={}){
   imageViewerAlbumId=null;
   imageViewerTimeFilter='all';
   resetImageViewerZoom();
-imageViewerTapStarts.clear();
-imageViewerBackdropClickBlockedUntil=0;
-imageViewerLastTapAt=0;
   closeImageViewerTimeMenu();
   if(imageViewerOverlay?.open)imageViewerOverlay.close();
   exitImageViewerMode();
@@ -2103,88 +2095,6 @@ function ensureImageViewer(){
   main.addEventListener('pointerup',finishPointer);
   main.addEventListener('pointercancel',finishPointer);
 
-// Mobile-first media viewer gesture layer. Keep this separate from the
-// pan/pinch engine above so single taps never interfere with zoom/pan.
-main.addEventListener('pointerdown',event=>{
-  if(event.target instanceof Element&&event.target.closest('button'))return;
-  const pointerType=String(event.pointerType||'');
-  if(pointerType!=='touch'&&pointerType!=='pen')return;
-  const existing=[...imageViewerTapStarts.values()];
-  const multi=existing.length>0;
-  if(multi){
-    for(const start of existing)start.multi=true;
-  }
-  imageViewerTapStarts.set(event.pointerId,{
-    x:event.clientX,
-    y:event.clientY,
-    pointerType,
-    onImage:event.target===image,
-    moved:false,
-    multi
-  });
-});
-main.addEventListener('pointermove',event=>{
-  const start=imageViewerTapStarts.get(event.pointerId);
-  if(!start)return;
-  if(Math.hypot(event.clientX-start.x,event.clientY-start.y)>8)start.moved=true;
-},{passive:true});
-const finishViewerTap=event=>{
-  const start=imageViewerTapStarts.get(event.pointerId);
-  if(!start)return;
-  imageViewerTapStarts.delete(event.pointerId);
-  const dx=event.clientX-start.x;
-  const dy=event.clientY-start.y;
-  const moved=start.moved||Math.hypot(dx,dy)>8;
-  if(start.multi||moved)imageViewerBackdropClickBlockedUntil=performance.now()+320;
-  if(start.multi)return;
-
-  if(
-    imageViewerZoom===1&&
-    dy>72&&
-    Math.abs(dy)>Math.abs(dx)*1.15
-  ){
-    imageViewerBackdropClickBlockedUntil=performance.now()+360;
-    imageViewerLastTapAt=0;
-    closeImageViewer({restoreFocus:false});
-    return;
-  }
-
-  if(!start.onImage||moved)return;
-  const now=performance.now();
-  const isDoubleTap=(
-    imageViewerLastTapAt>0&&
-    now-imageViewerLastTapAt<=285&&
-    Math.hypot(event.clientX-imageViewerLastTapX,event.clientY-imageViewerLastTapY)<=34
-  );
-  if(isDoubleTap){
-    imageViewerLastTapAt=0;
-    imageViewerBackdropClickBlockedUntil=now+320;
-    const next=imageViewerZoom>1?1:2.5;
-    setImageViewerZoom(next,{clientX:event.clientX,clientY:event.clientY});
-    return;
-  }
-  imageViewerLastTapAt=now;
-  imageViewerLastTapX=event.clientX;
-  imageViewerLastTapY=event.clientY;
-};
-main.addEventListener('pointerup',finishViewerTap);
-main.addEventListener('pointercancel',event=>{
-  imageViewerTapStarts.delete(event.pointerId);
-  imageViewerBackdropClickBlockedUntil=performance.now()+180;
-});
-
-main.addEventListener('click',event=>{
-  if(event.target!==main)return;
-  if(performance.now()<imageViewerBackdropClickBlockedUntil)return;
-  closeImageViewer({restoreFocus:false});
-});
-review.addEventListener('click',event=>{
-  if(event.target!==review)return;
-  if(performance.now()<imageViewerBackdropClickBlockedUntil)return;
-  closeImageViewer({restoreFocus:false});
-});
-
-
   main.addEventListener('wheel',event=>{
     if(event.target instanceof Element&&event.target.closest('button'))return;
     const factor=Math.exp(-event.deltaY*.0018);
@@ -2195,7 +2105,7 @@ review.addEventListener('click',event=>{
   image.addEventListener('dblclick',event=>{
     event.preventDefault();
     event.stopPropagation();
-    const next=imageViewerZoom>1?1:2.5;
+    const next=imageViewerZoom<2?2:Math.min(5,imageViewerZoom+.5);
     setImageViewerZoom(next,{clientX:event.clientX,clientY:event.clientY});
   });
   thumbs.addEventListener('scroll',()=>{

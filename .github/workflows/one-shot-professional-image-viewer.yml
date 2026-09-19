@@ -1,4 +1,4 @@
-name: One-shot geometry repair (retired)
+name: One-shot professional image viewer (retired)
 on:
   workflow_dispatch:
 permissions:
@@ -7,4 +7,4 @@ jobs:
   retired:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Composer geometry and narrow image viewer repair already applied."
+      - run: echo "Image viewer redesign already applied; workflow retired."
