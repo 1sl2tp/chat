@@ -36,12 +36,36 @@ function installStyle(){
       display:grid;place-items:center;background:rgba(0,0,0,.52);color:#fff;font:700 17px/1 system-ui;cursor:pointer;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)
     }
     .chat-image-rotate-button:focus-visible{outline:2px solid #fff;outline-offset:2px}
-    .chat-image-viewer-rotate-controls{display:flex;align-items:center;gap:.35rem;margin-left:auto;margin-right:.45rem}
-    .chat-image-viewer-rotate-controls button{
-      width:2.25rem;height:2.25rem;border:1px solid #ffffff2e;border-radius:999px;background:#ffffff14;color:#fff;font:700 1rem/1 system-ui;cursor:pointer
+    .chat-image-viewer-rotate-controls,
+    .image-review-zoom-controls{
+      display:flex;align-items:center;height:38px;padding:2px;gap:2px;
+      border:1px solid rgba(255,255,255,.16);border-radius:12px;
+      background:rgba(255,255,255,.08);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)
     }
-    .chat-image-viewer-rotate-controls button:hover{background:#ffffff28}
-    @media(max-width:639px){.chat-image-rotate-button{width:28px;height:28px;right:6px;top:6px}}
+    .chat-image-viewer-rotate-controls{margin-left:auto}
+    .image-review-zoom-controls{margin-left:8px;margin-right:8px}
+    .chat-image-viewer-rotate-controls button,
+    .image-review-zoom-button{
+      width:32px;height:32px;padding:0;border:0;border-radius:9px;background:transparent;color:#fff;
+      display:grid;place-items:center;cursor:pointer;font:600 18px/1 system-ui;transition:background .14s ease,color .14s ease,opacity .14s ease
+    }
+    .chat-image-viewer-rotate-controls button:hover,
+    .image-review-zoom-button:hover{background:rgba(255,255,255,.13)}
+    .chat-image-viewer-rotate-controls button:focus-visible,
+    .image-review-zoom-button:focus-visible{outline:2px solid rgba(255,255,255,.82);outline-offset:1px}
+    .image-review-zoom-button:disabled{opacity:.32;cursor:default;background:transparent}
+    .image-review-zoom-value{
+      width:46px;text-align:center;color:rgba(255,255,255,.82);font:600 11px/1 system-ui;
+      font-variant-numeric:tabular-nums;user-select:none
+    }
+    .chat-image-viewer-rotate-controls svg{width:18px;height:18px;display:block}
+    @media(max-width:639px){
+      .chat-image-rotate-button{width:28px;height:28px;right:6px;top:6px}
+      .chat-image-viewer-rotate-controls,.image-review-zoom-controls{height:36px}
+      .chat-image-viewer-rotate-controls button,.image-review-zoom-button{width:30px;height:30px}
+      .image-review-zoom-controls{margin-left:5px;margin-right:5px}
+      .image-review-zoom-value{width:40px;font-size:10px}
+    }
   `;
   document.head.appendChild(style);
 }
@@ -103,10 +127,15 @@ function ensureViewerRotateControls(overlay){
   const controls=document.createElement('div');
   controls.className='chat-image-viewer-rotate-controls';
   controls.innerHTML=`
-    <button type="button" data-chat-viewer-rotate-left aria-label="Xoay trái 90 độ" title="Xoay trái">↶</button>
-    <button type="button" data-chat-viewer-rotate-right aria-label="Xoay phải 90 độ" title="Xoay phải">↷</button>`;
+    <button type="button" data-chat-viewer-rotate-left aria-label="Xoay trái 90 độ" title="Xoay trái">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6H4v-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.4 6.1A8 8 0 1 1 5.8 17.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </button>
+    <button type="button" data-chat-viewer-rotate-right aria-label="Xoay phải 90 độ" title="Xoay phải">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6h5v-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M19.6 6.1A8 8 0 1 0 18.2 17.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </button>`;
   const close=head.querySelector('.image-review-close');
-  head.insertBefore(controls,close||null);
+  const zoom=head.querySelector('.image-review-zoom-controls');
+  head.insertBefore(controls,zoom||close||null);
 }
 function applyViewerRotation(){
   const overlay=document.querySelector('.image-viewer-overlay');
@@ -120,7 +149,6 @@ function applyViewerRotation(){
   const quarter=rotation===90||rotation===270;
   img.dataset.chatImageRotation=String(rotation);
   img.style.transformOrigin='center center';
-  img.style.transform=`rotate(${rotation}deg)`;
   if(stage&&quarter){
     const rect=stage.getBoundingClientRect();
     img.style.maxWidth=`${Math.max(1,Math.round(rect.height))}px`;
@@ -129,6 +157,7 @@ function applyViewerRotation(){
     img.style.maxWidth='100%';
     img.style.maxHeight='100%';
   }
+  window.V21ImageViewerVisual?.applyTransform?.();
 }
 function rotateAsset(assetId,delta){
   const id=clean(assetId);

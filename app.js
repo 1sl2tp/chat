@@ -1388,6 +1388,9 @@ let imageViewerNavigationSeq=0;
 let imageViewerFilmstripScrollFrame=0;
 let imageViewerSwipeStartX=0;
 let imageViewerZoom=1;
+let imageViewerZoomOut=null;
+let imageViewerZoomIn=null;
+let imageViewerZoomValue=null;
 let imageViewerPanX=0;
 let imageViewerPanY=0;
 let imageViewerGesture=null;
@@ -1757,6 +1760,11 @@ function imageViewerContentViewport(){
   };
 }
 
+function imageViewerRotation(){
+  const raw=Number(imageViewerImage?.dataset?.chatImageRotation)||0;
+  return ((Math.round(raw/90)*90)%360+360)%360;
+}
+
 function clampImageViewerPan(){
   if(!imageViewerImage||imageViewerZoom<=1){
     imageViewerPanX=0;
@@ -1764,23 +1772,40 @@ function clampImageViewerPan(){
     return;
   }
   const viewport=imageViewerContentViewport();
-  const scaledWidth=Math.max(0,imageViewerImage.offsetWidth*imageViewerZoom);
-  const scaledHeight=Math.max(0,imageViewerImage.offsetHeight*imageViewerZoom);
+  const rotation=imageViewerRotation();
+  const quarter=rotation===90||rotation===270;
+  const baseWidth=quarter?imageViewerImage.offsetHeight:imageViewerImage.offsetWidth;
+  const baseHeight=quarter?imageViewerImage.offsetWidth:imageViewerImage.offsetHeight;
+  const scaledWidth=Math.max(0,baseWidth*imageViewerZoom);
+  const scaledHeight=Math.max(0,baseHeight*imageViewerZoom);
   const maxX=Math.max(0,(scaledWidth-viewport.width)/2);
   const maxY=Math.max(0,(scaledHeight-viewport.height)/2);
   imageViewerPanX=Math.max(-maxX,Math.min(maxX,imageViewerPanX));
   imageViewerPanY=Math.max(-maxY,Math.min(maxY,imageViewerPanY));
 }
 
+function updateImageViewerZoomControls(){
+  const percent=Math.round(imageViewerZoom*100);
+  if(imageViewerZoomValue)imageViewerZoomValue.textContent=`${percent}%`;
+  if(imageViewerZoomOut)imageViewerZoomOut.disabled=imageViewerZoom<=1.001;
+  if(imageViewerZoomIn)imageViewerZoomIn.disabled=imageViewerZoom>=4.999;
+}
+
 function applyImageViewerTransform(){
   if(!imageViewerImage||!imageViewerMain)return;
   clampImageViewerPan();
   const zoom=Math.round(imageViewerZoom*1000)/1000;
-  imageViewerImage.style.transform=zoom===1
-    ?''
-    :`translate3d(${Math.round(imageViewerPanX*10)/10}px,${Math.round(imageViewerPanY*10)/10}px,0) scale(${zoom})`;
+  const rotation=imageViewerRotation();
+  const parts=[];
+  if(zoom!==1||imageViewerPanX||imageViewerPanY){
+    parts.push(`translate3d(${Math.round(imageViewerPanX*10)/10}px,${Math.round(imageViewerPanY*10)/10}px,0)`);
+  }
+  if(zoom!==1)parts.push(`scale(${zoom})`);
+  if(rotation)parts.push(`rotate(${rotation}deg)`);
+  imageViewerImage.style.transform=parts.join(' ');
   imageViewerImage.dataset.zoom=String(zoom);
   imageViewerMain.dataset.zoomed=zoom>1?'true':'false';
+  updateImageViewerZoomControls();
 }
 
 function resetImageViewerZoom(){
@@ -1797,7 +1822,10 @@ function setImageViewerZoom(next,{clientX=null,clientY=null}={}){
   if(!imageViewerMain)return false;
   const previous=imageViewerZoom;
   const zoom=clampImageViewerZoom(next);
-  if(Math.abs(zoom-previous)<.001)return false;
+  if(Math.abs(zoom-previous)<.001){
+    updateImageViewerZoomControls();
+    return false;
+  }
   if(zoom<=1){
     imageViewerZoom=1;
     imageViewerPanX=0;
@@ -1815,6 +1843,17 @@ function setImageViewerZoom(next,{clientX=null,clientY=null}={}){
   applyImageViewerTransform();
   return true;
 }
+
+function stepImageViewerZoom(direction){
+  const delta=direction>0?.25:-.25;
+  const next=Math.round((imageViewerZoom+delta)*4)/4;
+  return setImageViewerZoom(next);
+}
+
+window.V21ImageViewerVisual=Object.assign(window.V21ImageViewerVisual||{},{
+  applyTransform:applyImageViewerTransform,
+  getZoom:()=>imageViewerZoom
+});
 
 function beginImageViewerPinch(){
   if(imageViewerPointers.size<2||!imageViewerMain)return false;
@@ -1877,12 +1916,37 @@ function ensureImageViewer(){
   counter.className='image-review-count';
   heading.append(title,counter);
 
+  const zoomControls=document.createElement('div');
+  zoomControls.className='image-review-zoom-controls';
+  zoomControls.setAttribute('aria-label','Phóng to thu nhỏ ảnh');
+
+  const zoomOut=document.createElement('button');
+  zoomOut.type='button';
+  zoomOut.className='image-review-zoom-button';
+  zoomOut.setAttribute('aria-label','Thu nhỏ ảnh');
+  zoomOut.setAttribute('title','Thu nhỏ');
+  zoomOut.textContent='−';
+
+  const zoomValue=document.createElement('span');
+  zoomValue.className='image-review-zoom-value';
+  zoomValue.setAttribute('aria-live','polite');
+  zoomValue.textContent='100%';
+
+  const zoomIn=document.createElement('button');
+  zoomIn.type='button';
+  zoomIn.className='image-review-zoom-button';
+  zoomIn.setAttribute('aria-label','Phóng to ảnh');
+  zoomIn.setAttribute('title','Phóng to');
+  zoomIn.textContent='+';
+
+  zoomControls.append(zoomOut,zoomValue,zoomIn);
+
   const close=document.createElement('button');
   close.type='button';
   close.className='image-review-control image-review-close';
   close.setAttribute('aria-label','Đóng ảnh');
   close.appendChild(viewerIconSvg('close'));
-  head.append(heading,close);
+  head.append(heading,zoomControls,close);
 
   const main=document.createElement('div');
   main.className='image-review-main';
@@ -1919,6 +1983,8 @@ function ensureImageViewer(){
   bottom.append(filters,thumbs);
 
   close.addEventListener('click',event=>{event.stopPropagation();closeImageViewer();});
+  zoomOut.addEventListener('click',event=>{event.stopPropagation();stepImageViewerZoom(-1);});
+  zoomIn.addEventListener('click',event=>{event.stopPropagation();stepImageViewerZoom(1);});
   prev.addEventListener('click',event=>{event.stopPropagation();void showImageViewerIndex(imageViewerIndex-1);});
   next.addEventListener('click',event=>{event.stopPropagation();void showImageViewerIndex(imageViewerIndex+1);});
   overlay.addEventListener('cancel',event=>{event.preventDefault();closeImageViewer();});
@@ -1926,8 +1992,8 @@ function ensureImageViewer(){
     if(event.key==='Escape'){event.preventDefault();closeImageViewer();}
     else if(event.key==='ArrowLeft'&&imageViewerZoom===1){event.preventDefault();void showImageViewerIndex(imageViewerIndex-1);}
     else if(event.key==='ArrowRight'&&imageViewerZoom===1){event.preventDefault();void showImageViewerIndex(imageViewerIndex+1);}
-    else if(event.key==='+'||event.key==='='){event.preventDefault();setImageViewerZoom(imageViewerZoom*1.25);}
-    else if(event.key==='-'){event.preventDefault();setImageViewerZoom(imageViewerZoom/1.25);}
+    else if(event.key==='+'||event.key==='='){event.preventDefault();stepImageViewerZoom(1);}
+    else if(event.key==='-'){event.preventDefault();stepImageViewerZoom(-1);}
     else if(event.key==='0'){event.preventDefault();resetImageViewerZoom();}
   });
 
@@ -2032,8 +2098,8 @@ function ensureImageViewer(){
   image.addEventListener('dblclick',event=>{
     event.preventDefault();
     event.stopPropagation();
-    if(imageViewerZoom>1)resetImageViewerZoom();
-    else setImageViewerZoom(2.5,{clientX:event.clientX,clientY:event.clientY});
+    const next=imageViewerZoom<2?2:Math.min(5,imageViewerZoom+.5);
+    setImageViewerZoom(next,{clientX:event.clientX,clientY:event.clientY});
   });
   thumbs.addEventListener('scroll',()=>{
     if(imageViewerFilmstripScrollFrame)return;
@@ -2061,6 +2127,10 @@ function ensureImageViewer(){
   imageViewerMeta=meta;
   imageViewerPrev=prev;
   imageViewerNext=next;
+  imageViewerZoomOut=zoomOut;
+  imageViewerZoomIn=zoomIn;
+  imageViewerZoomValue=zoomValue;
+  updateImageViewerZoomControls();
   return overlay;
 }
 

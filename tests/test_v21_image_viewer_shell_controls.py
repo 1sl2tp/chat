@@ -21,3 +21,9 @@ assert "main.addEventListener('pointermove'" in app
 assert "main.addEventListener('wheel'" in app
 assert "image.addEventListener('dblclick'" in app
 assert "imageViewerZoom===1" in app
+
+assert "image-review-zoom-controls" in app
+assert "image-review-zoom-value" in app
+assert "stepImageViewerZoom" in app
+assert "imageViewerZoom<2?2:Math.min(5,imageViewerZoom+.5)" in app
+assert "if(imageViewerZoom>1)resetImageViewerZoom();" not in app
