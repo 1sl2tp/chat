@@ -25,6 +25,6 @@ def test_contact_manage_action_only_appears_on_hover_or_keyboard_focus_desktop()
 def test_contact_rows_follow_chatgpt_compact_surface_rhythm():
     source = compact(SOURCE)
     assert ".shell-contact-row{position:relative;width:100%;height:60px;min-height:60px" in source
-    assert "grid-template-columns:40pxminmax(0,1fr)52px" in source
+    assert "grid-template-columns:40pxminmax(0,1fr)52px" in source\n    assert "column-gap:12px" in source
     assert ".shell-contact-row:not(:last-child)::after{display:none}" in source
     assert "background:var(--theme-action-ghost-surface-hover)" in source
