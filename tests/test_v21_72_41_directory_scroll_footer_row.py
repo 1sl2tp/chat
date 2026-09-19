@@ -8,6 +8,7 @@ def read(path):
     return p.read_text("utf-8")
 
 source=read("index.source.html")
+shell=read("shell.js")
 directory=read("contact-directory-admin.js")
 zalo=read("zalo-admin-link.js")
 
@@ -43,6 +44,5 @@ print("V21.72.41 directory fixed tools/footer row contract PASS")
 
 
 # Renderer preserves the list scroll owner established by the sidebar geometry.
-shell=read("shell.js")
 assert "const scrollHost=host.closest('.wm-sidebar-navigation');" in shell
 assert "const scrollHost=host.closest('.wm-sidebar-body');" not in shell
