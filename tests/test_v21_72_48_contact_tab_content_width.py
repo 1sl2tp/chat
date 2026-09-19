@@ -5,7 +5,7 @@ SRC = (ROOT / 'index.source.html').read_text('utf-8')
 
 # Active-contact avatar is larger than the previous 20px, but still safely
 # contained within the existing 38px tab height.
-assert '.top-mode-contact-avatar{width:26px;height:26px;flex:0 0 26px;' in SRC
+assert '.top-mode-contact-avatar{position:relative;width:26px;height:26px;flex:0 0 26px;' in SRC
 assert 'min-width:26px;min-height:26px;max-width:26px;max-height:26px;' in SRC
 assert '.top-mode-tab{' in SRC and 'min-height:38px;' in SRC
 
