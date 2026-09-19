@@ -1,10 +1,31 @@
-name: One-shot professional image viewer (retired)
+name: Build ChatGPT shell polish
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - fix/chatgpt-shell-polish
 permissions:
-  contents: read
+  contents: write
 jobs:
-  retired:
+  build:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Image viewer redesign already applied; workflow retired."
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build canonical preview
+        run: python tools/build_current_preview.py
+      - name: Commit generated artifacts
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html version.json
+          if git diff --cached --quiet; then
+            echo "No generated changes"
+            exit 0
+          fi
+          git commit -m "Build ChatGPT shell polish"
+          git push
