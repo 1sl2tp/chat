@@ -28,11 +28,14 @@ for token in ["max-width:132px;","max-width:124px;","width:68px;","width:64px;",
     assert token in non_idle, token
 
 # Text/icon rhythm is shared across primary and secondary actions.
-focus_start=source.index('.call-focus-button{\n  --call-blue')
+focus_start=source.index('.call-focus-button{\n  width:44px')
 focus_end=source.index('.call-secondary-button{\n  width:80px',focus_start)
 focus=source[focus_start:focus_end]
 assert "gap:6px;" in focus
 assert "font-size:13px;" in focus
+assert "background:transparent;" in focus
+assert "color:var(--theme-content-primary);" in focus
+assert '.call-focus-button[data-display="accept"]{width:68px;padding:0 7px;background:var(--blue-400);color:#fff;box-shadow:none}' in source
 assert '.call-focus-icon{width:18px;height:18px;display:block;flex:0 0 18px}' in source
 
 secondary_start=source.index('.call-secondary-button{\n  width:80px')
