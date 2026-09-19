@@ -18,7 +18,8 @@ def test_contact_time_uses_clock_then_weekday_then_compact_date():
 
 def test_contact_manage_action_only_appears_on_hover_or_keyboard_focus_desktop():
     source = compact(SOURCE)
-    assert "@media(hover:hover)and(pointer:fine){.shell-contact-manage{opacity:0;pointer-events:none" in source
+    assert "@media(hover:hover)and(pointer:fine){" in source
+    assert ".shell-contact-manage{opacity:0;pointer-events:none;transition:opacity120msease,background-color120msease,color120msease}" in source
     assert ".shell-contact-row:hover.shell-contact-manage,.shell-contact-row:focus-within.shell-contact-manage{opacity:1;pointer-events:auto" in source
 
 
