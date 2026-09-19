@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="vi" data-theme="light" data-contrast="default">
+<html lang="vi" data-theme="light" data-contrast="default" data-chat-theme="blue" data-ds-colored-user-message-bubbles="true">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="fbfb65b9b90c7d7bfcb669715d5a6083d9e545b7d65cef4a4d59308a0a410439">
+<meta name="app-build-id" content="29227920f9eab0ec0501e5a5afc444456eb6677c7d9a1dc0de13f80e08d6a2cf">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -202,6 +202,26 @@
   --cgpt-important-surface:var(--theme-surface-accent);
   --cgpt-important-rail:var(--status-info-border-color);
   --cgpt-important-text:var(--theme-content-primary);
+}
+
+
+/* ChatGPT blue chat theme copied from the supplied ChatGPT webarchive.
+   The archive declares data-chat-theme="blue" and colored user bubbles. */
+:root{
+  --blue-theme-user-msg-bg:var(--blue-50);
+  --blue-theme-user-msg-text:var(--blue-900);
+  --blue-theme-submit-btn-bg:var(--blue-400);
+  --blue-theme-submit-btn-text:#fff;
+  --blue-theme-secondary-btn-bg:var(--blue-50);
+  --blue-theme-secondary-btn-text:var(--blue-900);
+}
+:root[data-chat-theme="blue"]{
+  --theme-user-msg-bg:var(--blue-theme-user-msg-bg);
+  --theme-user-msg-text:var(--blue-theme-user-msg-text);
+  --theme-submit-btn-bg:var(--blue-theme-submit-btn-bg);
+  --theme-submit-btn-text:var(--blue-theme-submit-btn-text);
+  --theme-secondary-btn-bg:var(--blue-theme-secondary-btn-bg);
+  --theme-secondary-btn-text:var(--blue-theme-secondary-btn-text);
 }
 
 </style>
@@ -1208,7 +1228,8 @@ button,textarea{font-size:16px}
   color:var(--text-tertiary);
 }
 .user-message-bubble-color{
-  background:var(--main-surface-secondary);
+  background:var(--theme-user-msg-bg);
+  color:var(--theme-user-msg-text);
 }
 .bg-token-main-surface-primary{
   background:var(--main-surface-primary);
@@ -1368,7 +1389,8 @@ button{
    outgoing text/link/reply uses a soft bubble; incoming stays on canvas.
    File/audio/image keep their own media containers and receive no outer bubble. */
 .user-message-unit>.message-text{
-  background:var(--theme-surface-secondary);
+  background:var(--theme-user-msg-bg);
+  color:var(--theme-user-msg-text);
   border:0;
   border-radius:22px;
   box-shadow:none;
@@ -1722,7 +1744,8 @@ button{
     opacity 120ms ease-out;
 }
 #composerShell[data-can-send="true"] .send-button-source{
-  background:var(--button-primary-background-color-rest);
+  background:var(--theme-submit-btn-bg);
+  color:var(--theme-submit-btn-text);
 }
 .send-button-source:disabled{
   cursor:default;
@@ -2066,7 +2089,8 @@ button{
   border-color:var(--composer-border);
 }
 .user-message-unit .audio-message-card{
-  background:var(--main-surface-secondary);
+  background:var(--theme-user-msg-bg);
+  color:var(--theme-user-msg-text);
   border-color:transparent;
 }
 .audio-message-play{
@@ -2151,7 +2175,8 @@ button{
   cursor:pointer;
 }
 .user-message-unit .file-message-card{
-  background:var(--main-surface-secondary);
+  background:var(--theme-user-msg-bg);
+  color:var(--theme-user-msg-text);
   border-color:transparent;
 }
 .file-message-icon{
