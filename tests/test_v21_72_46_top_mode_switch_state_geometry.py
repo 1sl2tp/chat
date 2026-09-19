@@ -23,7 +23,7 @@ assert 'grid-template-columns:minmax(0,1fr) max-content;' in source
 assert 'switcher.dataset.contactIdentity=String(visible);' in shell
 
 # Avatar remains inside the existing tab geometry and moves closer to the inner left edge.
-assert '.top-mode-contact-avatar{width:26px;height:26px;' in source
+assert '.top-mode-contact-avatar{position:relative;width:26px;height:26px;' in source
 assert '.top-mode-tab{\n  min-width:0;\n  min-height:38px;' in source
 assert '.top-mode-tab[data-top-tab="chat"][data-contact-identity="true"]{' in source
 assert 'padding-left:4px;' in source
