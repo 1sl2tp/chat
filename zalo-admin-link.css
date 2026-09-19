@@ -185,6 +185,9 @@
     box-shadow:none!important;
     border-radius:0!important;
   }
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #regionTop .top-mode-contact-avatar{
+    display:none!important;
+  }
   #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #regionTop [data-top-tab="chat"]::before{
     content:"Trò chuyện";
     flex:0 0 auto;

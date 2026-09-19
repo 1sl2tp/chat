@@ -20,6 +20,7 @@ def test_desktop_chat_header_reads_as_chat_plus_selected_contact():
     owner = '#appShell[data-auth-state="authenticated"][data-desktop-workspace="true"]#regionTop'
     assert f'{owner}[data-top-tab="chat"]::before{{content:"Tròchuyện"' in css
     assert f'{owner}.top-mode-switch{{background:transparent!important' in css
+    assert f'{owner}.top-mode-contact-avatar{{display:none!important;}}' in css
 
 
 def test_desktop_work_column_starts_in_the_shared_top_header():
