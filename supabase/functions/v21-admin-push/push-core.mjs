@@ -24,7 +24,7 @@ export function buildNotificationPayload(row={}){
     title:String(row.sender_display_name||row.sender_username||'Tin nhắn mới'),
     body:summarizeNotification({body:row.body,media:row.media}),
     tag:`chat:${String(row.conversation_id??'')}`,
-    icon:'./icons/chat-192.png'
+    icon:'./icons/chat-notification-icon-192-v4.png'
   };
 }
 
@@ -42,6 +42,6 @@ export function buildCallInviteNotificationPayload(row={}){
     title:`Cuộc gọi đến · ${name}`,
     body:'Nhấn để mở Chat và nghe',
     tag:`call-invite:${inviteId}`,
-    icon:'./icons/chat-192.png'
+    icon:'./icons/chat-notification-icon-192-v4.png'
   };
 }

@@ -46,6 +46,8 @@ function harness(){
   await bg.dispatch('push',{data:{json:()=>payload}});
   assert.equal(bg.notices.length,1,'background push must show one notification');
   assert.equal(bg.notices[0].options.tag,'chat:conv-1');
+  assert.equal(bg.notices[0].options.icon,'./icons/chat-notification-icon-192-v4.png','notification must use dedicated crisp icon');
+  assert.equal(bg.notices[0].options.badge,'./icons/chat-notification-badge-96-v4.png','notification badge must use dedicated monochrome asset');
   assert.equal(bg.getBadge(),1,'background push increments provisional app badge');
 
   const authoritative=harness();

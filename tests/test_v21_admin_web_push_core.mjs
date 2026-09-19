@@ -17,6 +17,7 @@ assert.equal(payload.title,'Cha yêu');
 assert.equal(payload.body,'Xin chào');
 assert.equal(payload.tag,'chat:c1');
 assert.equal(payload.contact_id,'u1');
+assert.equal(payload.icon,'./icons/chat-notification-icon-192-v4.png','push payload advertises dedicated notification icon');
 assert.equal(Object.prototype.hasOwnProperty.call(payload,'timestamp'),false,'OS owns notification date/time presentation');
 assert.equal(Object.prototype.hasOwnProperty.call(payload,'app_name'),false,'payload must not add redundant app-name copy');
 console.log('admin web push core PASS');
