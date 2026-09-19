@@ -33,3 +33,12 @@ def test_contact_rows_follow_chatgpt_compact_surface_rhythm():
     assert ".shell-contact-preview:empty{display:none}" in source
     assert ".shell-contact-row:not(:last-child)::after{display:none}" in source
     assert "background:var(--theme-action-ghost-surface-hover)" in source
+
+
+def test_contact_context_action_replaces_time_on_hover_without_shifting_row():
+    source = compact(SOURCE)
+    assert ".shell-contact-manage{position:absolute;right:6px;top:50%;" in source
+    assert "width:30px;height:30px;" in source
+    assert "transform:translateY(-50%)" in source
+    assert ".shell-contact-row:hover.shell-contact-time,.shell-contact-row:focus-within.shell-contact-time{opacity:0}" in source
+    assert ".shell-contact-row:hover.shell-contact-manage,.shell-contact-row:focus-within.shell-contact-manage{opacity:1;pointer-events:auto}" in source
