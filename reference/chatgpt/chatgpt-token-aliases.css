@@ -11,3 +11,23 @@
   --cgpt-important-rail:var(--status-info-border-color);
   --cgpt-important-text:var(--theme-content-primary);
 }
+
+
+/* ChatGPT blue chat theme copied from the supplied ChatGPT webarchive.
+   The archive declares data-chat-theme="blue" and colored user bubbles. */
+:root{
+  --blue-theme-user-msg-bg:var(--blue-50);
+  --blue-theme-user-msg-text:var(--blue-900);
+  --blue-theme-submit-btn-bg:var(--blue-400);
+  --blue-theme-submit-btn-text:#fff;
+  --blue-theme-secondary-btn-bg:var(--blue-50);
+  --blue-theme-secondary-btn-text:var(--blue-900);
+}
+:root[data-chat-theme="blue"]{
+  --theme-user-msg-bg:var(--blue-theme-user-msg-bg);
+  --theme-user-msg-text:var(--blue-theme-user-msg-text);
+  --theme-submit-btn-bg:var(--blue-theme-submit-btn-bg);
+  --theme-submit-btn-text:var(--blue-theme-submit-btn-text);
+  --theme-secondary-btn-bg:var(--blue-theme-secondary-btn-bg);
+  --theme-secondary-btn-text:var(--blue-theme-secondary-btn-text);
+}
