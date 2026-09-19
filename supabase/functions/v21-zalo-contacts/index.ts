@@ -99,7 +99,7 @@ async function syncLinkedAccountAvatars(
 ) {
   const sources = new Map(
     contacts
-      .filter((contact) => contact.thread_type === "user" && contact.avatar_url)
+      .filter((contact) => contact.avatar_url)
       .map((contact) => [contact.zalo_id, String(contact.avatar_url)]),
   );
   const zaloIds = [...sources.keys()];

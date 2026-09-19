@@ -20,3 +20,10 @@ test('contacts edge authenticates bridge token and upserts only contact fields',
   assert.match(source,/zalo_user_links/);
   assert.match(source,/avatars_mirrored/);
 });
+
+
+test('group avatars are mirrored too instead of being excluded from app storage',()=>{
+  const source=fs.readFileSync(sourcePath,'utf8');
+  assert.doesNotMatch(source,/contact\.thread_type === "user" && contact\.avatar_url/);
+  assert.match(source,/\.filter\(\(contact\) => contact\.avatar_url\)/);
+});
