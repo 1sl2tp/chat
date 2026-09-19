@@ -1,0 +1,398 @@
+name: One-shot image viewer controls
+on:
+  push:
+    branches:
+      - main
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Patch image viewer zoom and rotation controls
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess, sys
+
+          root=Path('.')
+          app_path=root/'app.js'
+          app=app_path.read_text('utf-8')
+
+          old="""let imageViewerSwipeStartX=0;
+let imageViewerZoom=1;
+let imageViewerPanX=0;
+let imageViewerPanY=0;
+let imageViewerGesture=null;"""
+          new="""let imageViewerSwipeStartX=0;
+let imageViewerZoom=1;
+let imageViewerZoomOut=null;
+let imageViewerZoomIn=null;
+let imageViewerZoomValue=null;
+let imageViewerPanX=0;
+let imageViewerPanY=0;
+let imageViewerGesture=null;"""
+          assert old in app, 'zoom state anchor missing'
+          app=app.replace(old,new,1)
+
+          old="""function clampImageViewerPan(){
+  if(!imageViewerImage||imageViewerZoom<=1){
+    imageViewerPanX=0;
+    imageViewerPanY=0;
+    return;
+  }
+  const viewport=imageViewerContentViewport();
+  const scaledWidth=Math.max(0,imageViewerImage.offsetWidth*imageViewerZoom);
+  const scaledHeight=Math.max(0,imageViewerImage.offsetHeight*imageViewerZoom);
+  const maxX=Math.max(0,(scaledWidth-viewport.width)/2);
+  const maxY=Math.max(0,(scaledHeight-viewport.height)/2);
+  imageViewerPanX=Math.max(-maxX,Math.min(maxX,imageViewerPanX));
+  imageViewerPanY=Math.max(-maxY,Math.min(maxY,imageViewerPanY));
+}
+
+function applyImageViewerTransform(){
+  if(!imageViewerImage||!imageViewerMain)return;
+  clampImageViewerPan();
+  const zoom=Math.round(imageViewerZoom*1000)/1000;
+  imageViewerImage.style.transform=zoom===1
+    ?''
+    :`translate3d(${Math.round(imageViewerPanX*10)/10}px,${Math.round(imageViewerPanY*10)/10}px,0) scale(${zoom})`;
+  imageViewerImage.dataset.zoom=String(zoom);
+  imageViewerMain.dataset.zoomed=zoom>1?'true':'false';
+}"""
+          new="""function imageViewerRotation(){
+  const raw=Number(imageViewerImage?.dataset?.chatImageRotation)||0;
+  return ((Math.round(raw/90)*90)%360+360)%360;
+}
+
+function clampImageViewerPan(){
+  if(!imageViewerImage||imageViewerZoom<=1){
+    imageViewerPanX=0;
+    imageViewerPanY=0;
+    return;
+  }
+  const viewport=imageViewerContentViewport();
+  const rotation=imageViewerRotation();
+  const quarter=rotation===90||rotation===270;
+  const baseWidth=quarter?imageViewerImage.offsetHeight:imageViewerImage.offsetWidth;
+  const baseHeight=quarter?imageViewerImage.offsetWidth:imageViewerImage.offsetHeight;
+  const scaledWidth=Math.max(0,baseWidth*imageViewerZoom);
+  const scaledHeight=Math.max(0,baseHeight*imageViewerZoom);
+  const maxX=Math.max(0,(scaledWidth-viewport.width)/2);
+  const maxY=Math.max(0,(scaledHeight-viewport.height)/2);
+  imageViewerPanX=Math.max(-maxX,Math.min(maxX,imageViewerPanX));
+  imageViewerPanY=Math.max(-maxY,Math.min(maxY,imageViewerPanY));
+}
+
+function updateImageViewerZoomControls(){
+  const percent=Math.round(imageViewerZoom*100);
+  if(imageViewerZoomValue)imageViewerZoomValue.textContent=`${percent}%`;
+  if(imageViewerZoomOut)imageViewerZoomOut.disabled=imageViewerZoom<=1.001;
+  if(imageViewerZoomIn)imageViewerZoomIn.disabled=imageViewerZoom>=4.999;
+}
+
+function applyImageViewerTransform(){
+  if(!imageViewerImage||!imageViewerMain)return;
+  clampImageViewerPan();
+  const zoom=Math.round(imageViewerZoom*1000)/1000;
+  const rotation=imageViewerRotation();
+  const parts=[];
+  if(zoom!==1||imageViewerPanX||imageViewerPanY){
+    parts.push(`translate3d(${Math.round(imageViewerPanX*10)/10}px,${Math.round(imageViewerPanY*10)/10}px,0)`);
+  }
+  if(zoom!==1)parts.push(`scale(${zoom})`);
+  if(rotation)parts.push(`rotate(${rotation}deg)`);
+  imageViewerImage.style.transform=parts.join(' ');
+  imageViewerImage.dataset.zoom=String(zoom);
+  imageViewerMain.dataset.zoomed=zoom>1?'true':'false';
+  updateImageViewerZoomControls();
+}"""
+          assert old in app, 'transform owner block missing'
+          app=app.replace(old,new,1)
+
+          old="""function setImageViewerZoom(next,{clientX=null,clientY=null}={}){
+  if(!imageViewerMain)return false;
+  const previous=imageViewerZoom;
+  const zoom=clampImageViewerZoom(next);
+  if(Math.abs(zoom-previous)<.001)return false;
+  if(zoom<=1){
+    imageViewerZoom=1;
+    imageViewerPanX=0;
+    imageViewerPanY=0;
+    applyImageViewerTransform();
+    return true;
+  }
+  const rect=imageViewerMain.getBoundingClientRect();
+  const localX=Number.isFinite(clientX)?clientX-rect.left-rect.width/2:0;
+  const localY=Number.isFinite(clientY)?clientY-rect.top-rect.height/2:0;
+  const ratio=zoom/Math.max(1,previous);
+  imageViewerPanX=localX-(localX-imageViewerPanX)*ratio;
+  imageViewerPanY=localY-(localY-imageViewerPanY)*ratio;
+  imageViewerZoom=zoom;
+  applyImageViewerTransform();
+  return true;
+}
+
+function beginImageViewerPinch(){"""
+          new="""function setImageViewerZoom(next,{clientX=null,clientY=null}={}){
+  if(!imageViewerMain)return false;
+  const previous=imageViewerZoom;
+  const zoom=clampImageViewerZoom(next);
+  if(Math.abs(zoom-previous)<.001){
+    updateImageViewerZoomControls();
+    return false;
+  }
+  if(zoom<=1){
+    imageViewerZoom=1;
+    imageViewerPanX=0;
+    imageViewerPanY=0;
+    applyImageViewerTransform();
+    return true;
+  }
+  const rect=imageViewerMain.getBoundingClientRect();
+  const localX=Number.isFinite(clientX)?clientX-rect.left-rect.width/2:0;
+  const localY=Number.isFinite(clientY)?clientY-rect.top-rect.height/2:0;
+  const ratio=zoom/Math.max(1,previous);
+  imageViewerPanX=localX-(localX-imageViewerPanX)*ratio;
+  imageViewerPanY=localY-(localY-imageViewerPanY)*ratio;
+  imageViewerZoom=zoom;
+  applyImageViewerTransform();
+  return true;
+}
+
+function stepImageViewerZoom(direction){
+  const delta=direction>0?.25:-.25;
+  const next=Math.round((imageViewerZoom+delta)*4)/4;
+  return setImageViewerZoom(next);
+}
+
+window.V21ImageViewerVisual=Object.assign(window.V21ImageViewerVisual||{},{
+  applyTransform:applyImageViewerTransform,
+  getZoom:()=>imageViewerZoom
+});
+
+function beginImageViewerPinch(){"""
+          assert old in app, 'set zoom block missing'
+          app=app.replace(old,new,1)
+
+          old="""  const close=document.createElement('button');
+  close.type='button';
+  close.className='image-review-control image-review-close';
+  close.setAttribute('aria-label','Đóng ảnh');
+  close.appendChild(viewerIconSvg('close'));
+  head.append(heading,close);
+
+  const main=document.createElement('div');"""
+          new="""  const zoomControls=document.createElement('div');
+  zoomControls.className='image-review-zoom-controls';
+  zoomControls.setAttribute('aria-label','Phóng to thu nhỏ ảnh');
+
+  const zoomOut=document.createElement('button');
+  zoomOut.type='button';
+  zoomOut.className='image-review-zoom-button';
+  zoomOut.setAttribute('aria-label','Thu nhỏ ảnh');
+  zoomOut.setAttribute('title','Thu nhỏ');
+  zoomOut.textContent='−';
+
+  const zoomValue=document.createElement('span');
+  zoomValue.className='image-review-zoom-value';
+  zoomValue.setAttribute('aria-live','polite');
+  zoomValue.textContent='100%';
+
+  const zoomIn=document.createElement('button');
+  zoomIn.type='button';
+  zoomIn.className='image-review-zoom-button';
+  zoomIn.setAttribute('aria-label','Phóng to ảnh');
+  zoomIn.setAttribute('title','Phóng to');
+  zoomIn.textContent='+';
+
+  zoomControls.append(zoomOut,zoomValue,zoomIn);
+
+  const close=document.createElement('button');
+  close.type='button';
+  close.className='image-review-control image-review-close';
+  close.setAttribute('aria-label','Đóng ảnh');
+  close.appendChild(viewerIconSvg('close'));
+  head.append(heading,zoomControls,close);
+
+  const main=document.createElement('div');"""
+          assert old in app, 'viewer head block missing'
+          app=app.replace(old,new,1)
+
+          old="""  close.addEventListener('click',event=>{event.stopPropagation();closeImageViewer();});
+  prev.addEventListener('click',event=>{event.stopPropagation();void showImageViewerIndex(imageViewerIndex-1);});
+  next.addEventListener('click',event=>{event.stopPropagation();void showImageViewerIndex(imageViewerIndex+1);});"""
+          new="""  close.addEventListener('click',event=>{event.stopPropagation();closeImageViewer();});
+  zoomOut.addEventListener('click',event=>{event.stopPropagation();stepImageViewerZoom(-1);});
+  zoomIn.addEventListener('click',event=>{event.stopPropagation();stepImageViewerZoom(1);});
+  prev.addEventListener('click',event=>{event.stopPropagation();void showImageViewerIndex(imageViewerIndex-1);});
+  next.addEventListener('click',event=>{event.stopPropagation();void showImageViewerIndex(imageViewerIndex+1);});"""
+          assert old in app, 'viewer listeners anchor missing'
+          app=app.replace(old,new,1)
+
+          old="""    else if(event.key==='+'||event.key==='='){event.preventDefault();setImageViewerZoom(imageViewerZoom*1.25);}
+    else if(event.key==='-'){event.preventDefault();setImageViewerZoom(imageViewerZoom/1.25);}
+    else if(event.key==='0'){event.preventDefault();resetImageViewerZoom();}"""
+          new="""    else if(event.key==='+'||event.key==='='){event.preventDefault();stepImageViewerZoom(1);}
+    else if(event.key==='-'){event.preventDefault();stepImageViewerZoom(-1);}
+    else if(event.key==='0'){event.preventDefault();resetImageViewerZoom();}"""
+          assert old in app, 'keyboard zoom anchor missing'
+          app=app.replace(old,new,1)
+
+          old="""  image.addEventListener('dblclick',event=>{
+    event.preventDefault();
+    event.stopPropagation();
+    if(imageViewerZoom>1)resetImageViewerZoom();
+    else setImageViewerZoom(2.5,{clientX:event.clientX,clientY:event.clientY});
+  });"""
+          new="""  image.addEventListener('dblclick',event=>{
+    event.preventDefault();
+    event.stopPropagation();
+    const next=imageViewerZoom<2?2:Math.min(5,imageViewerZoom+.5);
+    setImageViewerZoom(next,{clientX:event.clientX,clientY:event.clientY});
+  });"""
+          assert old in app, 'double click zoom anchor missing'
+          app=app.replace(old,new,1)
+
+          old="""  imageViewerPrev=prev;
+  imageViewerNext=next;
+  return overlay;"""
+          new="""  imageViewerPrev=prev;
+  imageViewerNext=next;
+  imageViewerZoomOut=zoomOut;
+  imageViewerZoomIn=zoomIn;
+  imageViewerZoomValue=zoomValue;
+  updateImageViewerZoomControls();
+  return overlay;"""
+          assert old in app, 'viewer ref anchor missing'
+          app=app.replace(old,new,1)
+
+          app_path.write_text(app,'utf-8')
+
+          orient_path=root/'chat-image-orientation.js'
+          orient=orient_path.read_text('utf-8')
+
+          old="""    .chat-image-viewer-rotate-controls{display:flex;align-items:center;gap:.35rem;margin-left:auto;margin-right:.45rem}
+    .chat-image-viewer-rotate-controls button{
+      width:2.25rem;height:2.25rem;border:1px solid #ffffff2e;border-radius:999px;background:#ffffff14;color:#fff;font:700 1rem/1 system-ui;cursor:pointer
+    }
+    .chat-image-viewer-rotate-controls button:hover{background:#ffffff28}
+    @media(max-width:639px){.chat-image-rotate-button{width:28px;height:28px;right:6px;top:6px}}"""
+          new="""    .chat-image-viewer-rotate-controls,
+    .image-review-zoom-controls{
+      display:flex;align-items:center;height:38px;padding:2px;gap:2px;
+      border:1px solid rgba(255,255,255,.16);border-radius:12px;
+      background:rgba(255,255,255,.08);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)
+    }
+    .chat-image-viewer-rotate-controls{margin-left:auto}
+    .image-review-zoom-controls{margin-left:8px;margin-right:8px}
+    .chat-image-viewer-rotate-controls button,
+    .image-review-zoom-button{
+      width:32px;height:32px;padding:0;border:0;border-radius:9px;background:transparent;color:#fff;
+      display:grid;place-items:center;cursor:pointer;font:600 18px/1 system-ui;transition:background .14s ease,color .14s ease,opacity .14s ease
+    }
+    .chat-image-viewer-rotate-controls button:hover,
+    .image-review-zoom-button:hover{background:rgba(255,255,255,.13)}
+    .chat-image-viewer-rotate-controls button:focus-visible,
+    .image-review-zoom-button:focus-visible{outline:2px solid rgba(255,255,255,.82);outline-offset:1px}
+    .image-review-zoom-button:disabled{opacity:.32;cursor:default;background:transparent}
+    .image-review-zoom-value{
+      width:46px;text-align:center;color:rgba(255,255,255,.82);font:600 11px/1 system-ui;
+      font-variant-numeric:tabular-nums;user-select:none
+    }
+    .chat-image-viewer-rotate-controls svg{width:18px;height:18px;display:block}
+    @media(max-width:639px){
+      .chat-image-rotate-button{width:28px;height:28px;right:6px;top:6px}
+      .chat-image-viewer-rotate-controls,.image-review-zoom-controls{height:36px}
+      .chat-image-viewer-rotate-controls button,.image-review-zoom-button{width:30px;height:30px}
+      .image-review-zoom-controls{margin-left:5px;margin-right:5px}
+      .image-review-zoom-value{width:40px;font-size:10px}
+    }"""
+          assert old in orient, 'orientation style anchor missing'
+          orient=orient.replace(old,new,1)
+
+          old="""  controls.innerHTML=`
+    <button type="button" data-chat-viewer-rotate-left aria-label="Xoay trái 90 độ" title="Xoay trái">↶</button>
+    <button type="button" data-chat-viewer-rotate-right aria-label="Xoay phải 90 độ" title="Xoay phải">↷</button>`;
+  const close=head.querySelector('.image-review-close');
+  head.insertBefore(controls,close||null);"""
+          new="""  controls.innerHTML=`
+    <button type="button" data-chat-viewer-rotate-left aria-label="Xoay trái 90 độ" title="Xoay trái">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6H4v-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.4 6.1A8 8 0 1 1 5.8 17.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </button>
+    <button type="button" data-chat-viewer-rotate-right aria-label="Xoay phải 90 độ" title="Xoay phải">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6h5v-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M19.6 6.1A8 8 0 1 0 18.2 17.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </button>`;
+  const close=head.querySelector('.image-review-close');
+  const zoom=head.querySelector('.image-review-zoom-controls');
+  head.insertBefore(controls,zoom||close||null);"""
+          assert old in orient, 'rotate controls markup anchor missing'
+          orient=orient.replace(old,new,1)
+
+          old="""  img.dataset.chatImageRotation=String(rotation);
+  img.style.transformOrigin='center center';
+  img.style.transform=`rotate(${rotation}deg)`;
+  if(stage&&quarter){"""
+          new="""  img.dataset.chatImageRotation=String(rotation);
+  img.style.transformOrigin='center center';
+  if(stage&&quarter){"""
+          assert old in orient, 'viewer direct transform anchor missing'
+          orient=orient.replace(old,new,1)
+
+          old="""  }else{
+    img.style.maxWidth='100%';
+    img.style.maxHeight='100%';
+  }
+}"""
+          new="""  }else{
+    img.style.maxWidth='100%';
+    img.style.maxHeight='100%';
+  }
+  window.V21ImageViewerVisual?.applyTransform?.();
+}"""
+          assert old in orient, 'viewer apply rotation tail missing'
+          orient=orient.replace(old,new,1)
+          orient_path.write_text(orient,'utf-8')
+
+          test_path=root/'tests/test_v21_image_viewer_shell_controls.py'
+          test=test_path.read_text('utf-8')
+          add="""
+assert "image-review-zoom-controls" in app
+assert "image-review-zoom-value" in app
+assert "stepImageViewerZoom" in app
+assert "imageViewerZoom<2?2:Math.min(5,imageViewerZoom+.5)" in app
+assert "if(imageViewerZoom>1)resetImageViewerZoom();" not in app
+"""
+          if 'image-review-zoom-value' not in test:
+              test += add
+          test_path.write_text(test,'utf-8')
+
+          orient_test_path=root/'tests/test_v21_chat_image_orientation_column.py'
+          orient_test=orient_test_path.read_text('utf-8')
+          add2="""
+assert 'V21ImageViewerVisual?.applyTransform?.()' in SRC, 'rotation must delegate final viewer transform to app.js so zoom is preserved'
+assert "img.style.transform=`rotate(" not in SRC, 'rotation helper must not overwrite the viewer zoom transform'
+assert 'image-review-zoom-controls' in SRC, 'rotation and zoom controls must share one visual toolbar language'
+"""
+          if 'rotation must delegate final viewer transform' not in orient_test:
+              orient_test += add2
+          orient_test_path.write_text(orient_test,'utf-8')
+
+          subprocess.run([sys.executable,'tools/build_current_preview.py'],check=True)
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app.js chat-image-orientation.js tests/test_v21_image_viewer_shell_controls.py tests/test_v21_chat_image_orientation_column.py index.html version.json
+          if git diff --cached --quiet; then
+            echo "viewer controls already current"
+            exit 0
+          fi
+          git commit -m "Polish image viewer zoom and rotate controls"
+          git push
