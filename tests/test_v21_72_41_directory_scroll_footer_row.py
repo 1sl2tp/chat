@@ -34,3 +34,9 @@ assert "button.textContent='Cài đặt';" in zalo
 assert "button.setAttribute('aria-label','Cài đặt tài khoản');" in zalo
 
 print("V21.72.41 directory fixed tools/footer row contract PASS")
+
+
+# Renderer preserves the list scroll owner established by the sidebar geometry.
+shell=read("shell.js")
+assert "const scrollHost=host.closest('.wm-sidebar-navigation');" in shell
+assert "const scrollHost=host.closest('.wm-sidebar-body');" not in shell

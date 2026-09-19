@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="3c45b0d2a5dd883fccf34c3141a53e39f27fca4110b299ea7816d11a1b64a4d0">
+<meta name="app-build-id" content="eea7864882dbb92b730947be87033003027ba584b687339aa7cf55e9f766fb0d">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -4249,13 +4249,31 @@ button{
 .shell-contact-preview:empty{display:none}
 .shell-contact-time{grid-column:2;grid-row:1;align-self:center;justify-self:end;width:52px;margin:0;color:var(--theme-content-tertiary);font-size:.6875rem;line-height:1rem;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
 .shell-contact-manage{
-  position:absolute;right:7px;bottom:4px;z-index:2;width:32px;height:24px;border:0;border-radius:8px;background:transparent;color:var(--theme-content-secondary);
-  font-size:1.1rem;line-height:1;display:grid;place-items:center;cursor:pointer;padding:0;
+  position:absolute;
+  right:6px;
+  top:50%;
+  z-index:2;
+  width:30px;
+  height:30px;
+  border:0;
+  border-radius:9px;
+  background:transparent;
+  color:var(--theme-content-secondary);
+  font-size:1.1rem;
+  line-height:1;
+  display:grid;
+  place-items:center;
+  cursor:pointer;
+  padding:0;
+  transform:translateY(-50%);
 }
 .shell-contact-manage:hover{background:var(--theme-action-ghost-surface-hover);color:var(--theme-content-primary)}
 .shell-contact-row:not(:last-child)::after{display:none}
 @media (hover:hover) and (pointer:fine){
+  .shell-contact-time{transition:opacity 120ms ease}
   .shell-contact-manage{opacity:0;pointer-events:none;transition:opacity 120ms ease,background-color 120ms ease,color 120ms ease}
+  .shell-contact-row:hover .shell-contact-time,
+  .shell-contact-row:focus-within .shell-contact-time{opacity:0}
   .shell-contact-row:hover .shell-contact-manage,
   .shell-contact-row:focus-within .shell-contact-manage{opacity:1;pointer-events:auto}
 }
@@ -14616,7 +14634,7 @@ const AuthUI={
   renderContacts(contacts=[]){
     const host=document.querySelector('[data-v21-contact-list]');
     if(!host)return;
-    const scrollHost=host.closest('.wm-sidebar-body');
+    const scrollHost=host.closest('.wm-sidebar-navigation');
     const previousScrollTop=scrollHost?.scrollTop||0;
     const items=Array.isArray(contacts)?contacts.filter(item=>item&&item.id&&!item.deleted_at):[];
     const existingById=new Map(

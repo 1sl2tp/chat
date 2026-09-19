@@ -3113,13 +3113,31 @@ button{
 .shell-contact-preview:empty{display:none}
 .shell-contact-time{grid-column:2;grid-row:1;align-self:center;justify-self:end;width:52px;margin:0;color:var(--theme-content-tertiary);font-size:.6875rem;line-height:1rem;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
 .shell-contact-manage{
-  position:absolute;right:7px;bottom:4px;z-index:2;width:32px;height:24px;border:0;border-radius:8px;background:transparent;color:var(--theme-content-secondary);
-  font-size:1.1rem;line-height:1;display:grid;place-items:center;cursor:pointer;padding:0;
+  position:absolute;
+  right:6px;
+  top:50%;
+  z-index:2;
+  width:30px;
+  height:30px;
+  border:0;
+  border-radius:9px;
+  background:transparent;
+  color:var(--theme-content-secondary);
+  font-size:1.1rem;
+  line-height:1;
+  display:grid;
+  place-items:center;
+  cursor:pointer;
+  padding:0;
+  transform:translateY(-50%);
 }
 .shell-contact-manage:hover{background:var(--theme-action-ghost-surface-hover);color:var(--theme-content-primary)}
 .shell-contact-row:not(:last-child)::after{display:none}
 @media (hover:hover) and (pointer:fine){
+  .shell-contact-time{transition:opacity 120ms ease}
   .shell-contact-manage{opacity:0;pointer-events:none;transition:opacity 120ms ease,background-color 120ms ease,color 120ms ease}
+  .shell-contact-row:hover .shell-contact-time,
+  .shell-contact-row:focus-within .shell-contact-time{opacity:0}
   .shell-contact-row:hover .shell-contact-manage,
   .shell-contact-row:focus-within .shell-contact-manage{opacity:1;pointer-events:auto}
 }
