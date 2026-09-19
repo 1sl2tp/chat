@@ -1170,10 +1170,10 @@ function createRenderedContactRow(item){
   const preview=document.createElement('span');preview.className='shell-contact-preview';
   const previewText=contactPreview(item);
   preview.textContent=item.locked_at?(previewText==='Chưa có tin nhắn'?'Đã khóa':`Đã khóa · ${previewText}`):previewText;
-  copy.append(title,preview);
-
   const time=document.createElement('time');time.className='shell-contact-time';time.textContent=formatContactTime(item.latest_at);if(item.latest_at)time.dateTime=String(item.latest_at);
-  button.append(avatarWrap,copy,time);
+  copy.append(title,preview,time);
+
+  button.append(avatarWrap,copy);
   row.appendChild(button);
 
   if(authAccount?.role==='admin'&&item.role==='user'){
