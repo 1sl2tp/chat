@@ -2,6 +2,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CSS = (ROOT / "zalo-admin-link.css").read_text("utf-8")
+SOURCE = (ROOT / "index.source.html").read_text("utf-8")
 
 
 def compact(text: str) -> str:
