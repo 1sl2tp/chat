@@ -1396,6 +1396,10 @@ let imageViewerPanY=0;
 let imageViewerGesture=null;
 let imageViewerGesturePinched=false;
 const imageViewerPointers=new Map();
+const imageViewerTouchStarts=new Map();
+let imageViewerLastTouchTapAt=0;
+let imageViewerLastTouchTapX=0;
+let imageViewerLastTouchTapY=0;
 let imageViewerReturnFocus=null;
 let imageViewerFilterScroll=null;
 let imageViewerTimeMenuButton=null;
@@ -1533,6 +1537,8 @@ function closeImageViewer({restoreFocus=true}={}){
   imageViewerAlbumId=null;
   imageViewerTimeFilter='all';
   resetImageViewerZoom();
+  imageViewerTouchStarts.clear();
+  imageViewerLastTouchTapAt=0;
   closeImageViewerTimeMenu();
   if(imageViewerOverlay?.open)imageViewerOverlay.close();
   exitImageViewerMode();
@@ -2094,6 +2100,78 @@ function ensureImageViewer(){
   };
   main.addEventListener('pointerup',finishPointer);
   main.addEventListener('pointercancel',finishPointer);
+
+  /* Mobile viewer shortcuts: keep the stable desktop viewer unchanged.
+     Touch/pen only: double tap toggles zoom, tap black stage closes,
+     swipe down closes at fit-to-screen. */
+  main.addEventListener('pointerdown',event=>{
+    const pointerType=String(event.pointerType||'');
+    if(pointerType!=='touch'&&pointerType!=='pen')return;
+    if(event.target instanceof Element&&event.target.closest('button'))return;
+    const existing=[...imageViewerTouchStarts.values()];
+    const multi=existing.length>0;
+    if(multi)for(const start of existing)start.multi=true;
+    imageViewerTouchStarts.set(event.pointerId,{
+      x:event.clientX,
+      y:event.clientY,
+      onImage:event.target===image,
+      onStage:event.target===main,
+      moved:false,
+      multi
+    });
+  });
+
+  main.addEventListener('pointermove',event=>{
+    const start=imageViewerTouchStarts.get(event.pointerId);
+    if(!start)return;
+    if(Math.hypot(event.clientX-start.x,event.clientY-start.y)>8)start.moved=true;
+  },{passive:true});
+
+  const finishMobileViewerTouch=event=>{
+    const start=imageViewerTouchStarts.get(event.pointerId);
+    if(!start)return;
+    imageViewerTouchStarts.delete(event.pointerId);
+    const dx=event.clientX-start.x;
+    const dy=event.clientY-start.y;
+    const moved=start.moved||Math.hypot(dx,dy)>8;
+
+    if(!start.multi&&imageViewerZoom===1&&dy>72&&Math.abs(dy)>Math.abs(dx)*1.15){
+      imageViewerLastTouchTapAt=0;
+      closeImageViewer({restoreFocus:false});
+      return;
+    }
+
+    if(!start.multi&&!moved&&start.onStage){
+      imageViewerLastTouchTapAt=0;
+      closeImageViewer({restoreFocus:false});
+      return;
+    }
+
+    if(start.multi||moved||!start.onImage)return;
+    const now=performance.now();
+    const isDoubleTap=(
+      imageViewerLastTouchTapAt>0&&
+      now-imageViewerLastTouchTapAt<=285&&
+      Math.hypot(event.clientX-imageViewerLastTouchTapX,event.clientY-imageViewerLastTouchTapY)<=34
+    );
+    if(isDoubleTap){
+      imageViewerLastTouchTapAt=0;
+      setImageViewerZoom(imageViewerZoom>1?1:2.5,{
+        clientX:event.clientX,
+        clientY:event.clientY
+      });
+      return;
+    }
+    imageViewerLastTouchTapAt=now;
+    imageViewerLastTouchTapX=event.clientX;
+    imageViewerLastTouchTapY=event.clientY;
+  };
+
+  main.addEventListener('pointerup',finishMobileViewerTouch);
+  main.addEventListener('pointercancel',event=>{
+    imageViewerTouchStarts.delete(event.pointerId);
+    if(imageViewerTouchStarts.size===0)imageViewerLastTouchTapAt=0;
+  });
 
   main.addEventListener('wheel',event=>{
     if(event.target instanceof Element&&event.target.closest('button'))return;

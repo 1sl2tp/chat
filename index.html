@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="f61b866c245c780df5623c7d492ffe4abe0bf3ab126307e3c850acc086ce4556">
+<meta name="app-build-id" content="fbfb65b9b90c7d7bfcb669715d5a6083d9e545b7d65cef4a4d59308a0a410439">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -434,6 +434,156 @@
     pointer-events:none;
   }
   #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #workThreadView .work-thread-empty{display:none!important}
+}
+
+
+/* Stable-baseline mobile viewer reference: isolated narrow-screen polish. */
+@media (max-width:700px){
+  .image-viewer-overlay{
+    top:0!important;
+    right:0!important;
+    bottom:0!important;
+    left:0!important;
+    width:100vw!important;
+    height:100dvh!important;
+    max-width:100vw!important;
+    max-height:100dvh!important;
+    background:#000!important;
+    overflow:hidden!important;
+  }
+  .image-review{
+    width:100%!important;
+    height:100%!important;
+    min-width:0!important;
+    min-height:0!important;
+    background:#000!important;
+    overflow:hidden!important;
+  }
+
+  /* Mobile gestures own zoom/rotate. Keep chrome quiet like a chat-app viewer. */
+  .image-review .image-review-zoom-controls,
+  .image-review .chat-image-viewer-rotate-controls{
+    display:none!important;
+  }
+
+  .image-review-head{
+    min-height:calc(3.8rem + env(safe-area-inset-top,0px))!important;
+    padding:
+      calc(.45rem + env(safe-area-inset-top,0px))
+      max(.75rem,env(safe-area-inset-right,0px))
+      .65rem
+      max(.75rem,env(safe-area-inset-left,0px))!important;
+    gap:.75rem!important;
+    background:linear-gradient(180deg,rgba(0,0,0,.78),rgba(0,0,0,.2) 68%,transparent)!important;
+  }
+  .image-review-heading{
+    min-width:0!important;
+  }
+  .image-review-close{
+    width:2.4rem!important;
+    height:2.4rem!important;
+    min-width:2.4rem!important;
+    flex-basis:2.4rem!important;
+    margin:0!important;
+  }
+
+  .image-review-main{
+    box-sizing:border-box!important;
+    width:100%!important;
+    min-width:0!important;
+    min-height:0!important;
+    padding:
+      calc(4rem + env(safe-area-inset-top,0px))
+      max(.5rem,env(safe-area-inset-right,0px))
+      calc(2.8rem + env(safe-area-inset-bottom,0px))
+      max(.5rem,env(safe-area-inset-left,0px))!important;
+    background:#000!important;
+    overflow:hidden!important;
+    touch-action:none!important;
+  }
+  .image-review-image{
+    display:block!important;
+    width:auto!important;
+    height:auto!important;
+    max-width:100%!important;
+    max-height:100%!important;
+    object-fit:contain!important;
+    border-radius:0!important;
+    background:transparent!important;
+    box-shadow:none!important;
+  }
+
+  /* Keep only lightweight gallery position dots at the bottom on mobile. */
+  .image-review-bottom{
+    position:absolute!important;
+    left:0!important;
+    right:0!important;
+    bottom:0!important;
+    min-height:calc(2.5rem + env(safe-area-inset-bottom,0px))!important;
+    padding:.55rem 1rem calc(.65rem + env(safe-area-inset-bottom,0px))!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    background:linear-gradient(0deg,rgba(0,0,0,.62),transparent)!important;
+    border:0!important;
+    pointer-events:none!important;
+  }
+  .image-review-filters{
+    display:none!important;
+  }
+  .image-review-thumbs{
+    width:auto!important;
+    max-width:calc(100% - 2rem)!important;
+    margin:0 auto!important;
+    padding:0!important;
+    gap:.42rem!important;
+    justify-content:center!important;
+    overflow:hidden!important;
+    pointer-events:none!important;
+  }
+  .image-review-thumb{
+    width:.38rem!important;
+    height:.38rem!important;
+    min-width:.38rem!important;
+    flex-basis:.38rem!important;
+    padding:0!important;
+    border:0!important;
+    border-radius:999px!important;
+    background:rgba(255,255,255,.38)!important;
+    opacity:1!important;
+    transform:none!important;
+  }
+  .image-review-thumb[aria-current="true"]{
+    width:.48rem!important;
+    height:.48rem!important;
+    min-width:.48rem!important;
+    flex-basis:.48rem!important;
+    background:#fff!important;
+    border:0!important;
+    transform:none!important;
+  }
+  .image-review-thumb-image{
+    display:none!important;
+  }
+  .image-review-meta{
+    display:none!important;
+  }
+
+  .image-review-nav{
+    width:2.5rem!important;
+    height:2.5rem!important;
+    min-width:2.5rem!important;
+    flex-basis:2.5rem!important;
+    background:rgba(24,24,27,.56)!important;
+    border-color:rgba(255,255,255,.16)!important;
+    box-shadow:none!important;
+  }
+  .image-review-prev{
+    left:max(.5rem,env(safe-area-inset-left,0px))!important;
+  }
+  .image-review-next{
+    right:max(.5rem,env(safe-area-inset-right,0px))!important;
+  }
 }
 
 </style>
@@ -7014,6 +7164,10 @@ let imageViewerPanY=0;
 let imageViewerGesture=null;
 let imageViewerGesturePinched=false;
 const imageViewerPointers=new Map();
+const imageViewerTouchStarts=new Map();
+let imageViewerLastTouchTapAt=0;
+let imageViewerLastTouchTapX=0;
+let imageViewerLastTouchTapY=0;
 let imageViewerReturnFocus=null;
 let imageViewerFilterScroll=null;
 let imageViewerTimeMenuButton=null;
@@ -7151,6 +7305,8 @@ function closeImageViewer({restoreFocus=true}={}){
   imageViewerAlbumId=null;
   imageViewerTimeFilter='all';
   resetImageViewerZoom();
+  imageViewerTouchStarts.clear();
+  imageViewerLastTouchTapAt=0;
   closeImageViewerTimeMenu();
   if(imageViewerOverlay?.open)imageViewerOverlay.close();
   exitImageViewerMode();
@@ -7712,6 +7868,78 @@ function ensureImageViewer(){
   };
   main.addEventListener('pointerup',finishPointer);
   main.addEventListener('pointercancel',finishPointer);
+
+  /* Mobile viewer shortcuts: keep the stable desktop viewer unchanged.
+     Touch/pen only: double tap toggles zoom, tap black stage closes,
+     swipe down closes at fit-to-screen. */
+  main.addEventListener('pointerdown',event=>{
+    const pointerType=String(event.pointerType||'');
+    if(pointerType!=='touch'&&pointerType!=='pen')return;
+    if(event.target instanceof Element&&event.target.closest('button'))return;
+    const existing=[...imageViewerTouchStarts.values()];
+    const multi=existing.length>0;
+    if(multi)for(const start of existing)start.multi=true;
+    imageViewerTouchStarts.set(event.pointerId,{
+      x:event.clientX,
+      y:event.clientY,
+      onImage:event.target===image,
+      onStage:event.target===main,
+      moved:false,
+      multi
+    });
+  });
+
+  main.addEventListener('pointermove',event=>{
+    const start=imageViewerTouchStarts.get(event.pointerId);
+    if(!start)return;
+    if(Math.hypot(event.clientX-start.x,event.clientY-start.y)>8)start.moved=true;
+  },{passive:true});
+
+  const finishMobileViewerTouch=event=>{
+    const start=imageViewerTouchStarts.get(event.pointerId);
+    if(!start)return;
+    imageViewerTouchStarts.delete(event.pointerId);
+    const dx=event.clientX-start.x;
+    const dy=event.clientY-start.y;
+    const moved=start.moved||Math.hypot(dx,dy)>8;
+
+    if(!start.multi&&imageViewerZoom===1&&dy>72&&Math.abs(dy)>Math.abs(dx)*1.15){
+      imageViewerLastTouchTapAt=0;
+      closeImageViewer({restoreFocus:false});
+      return;
+    }
+
+    if(!start.multi&&!moved&&start.onStage){
+      imageViewerLastTouchTapAt=0;
+      closeImageViewer({restoreFocus:false});
+      return;
+    }
+
+    if(start.multi||moved||!start.onImage)return;
+    const now=performance.now();
+    const isDoubleTap=(
+      imageViewerLastTouchTapAt>0&&
+      now-imageViewerLastTouchTapAt<=285&&
+      Math.hypot(event.clientX-imageViewerLastTouchTapX,event.clientY-imageViewerLastTouchTapY)<=34
+    );
+    if(isDoubleTap){
+      imageViewerLastTouchTapAt=0;
+      setImageViewerZoom(imageViewerZoom>1?1:2.5,{
+        clientX:event.clientX,
+        clientY:event.clientY
+      });
+      return;
+    }
+    imageViewerLastTouchTapAt=now;
+    imageViewerLastTouchTapX=event.clientX;
+    imageViewerLastTouchTapY=event.clientY;
+  };
+
+  main.addEventListener('pointerup',finishMobileViewerTouch);
+  main.addEventListener('pointercancel',event=>{
+    imageViewerTouchStarts.delete(event.pointerId);
+    if(imageViewerTouchStarts.size===0)imageViewerLastTouchTapAt=0;
+  });
 
   main.addEventListener('wheel',event=>{
     if(event.target instanceof Element&&event.target.closest('button'))return;
