@@ -40,8 +40,8 @@ admin_end=auth.index("async function adminSetLocked",admin_start)
 admin_body=auth[admin_start:admin_end]
 assert "username:String(username||'')" in admin_body
 
-# Zalo-linked accounts store a full https avatar URL in avatar_path. The
-# renderer must use that URL directly instead of treating it as a Storage key.
+# Legacy Zalo-linked accounts may still carry a full https avatar URL while
+# the bridge migrates them into app-owned Storage. The renderer must support it.
 avatar_url_start=auth.index('function avatarUrl(')
 avatar_url_end=auth.index('async function uploadAvatar',avatar_url_start)
 avatar_url_body=auth[avatar_url_start:avatar_url_end]
@@ -61,6 +61,7 @@ assert 'aspect-ratio:1 / 1' in avatar_css
 assert 'max-width:48px' in avatar_css
 assert 'max-height:48px' in avatar_css
 assert 'flex:0 0 48px' in avatar_css
+assert 'position:relative' in avatar_css
 
 profile_start=source.index('.shell-profile-avatar{')
 profile_end=source.index('}',profile_start)
@@ -79,12 +80,17 @@ assert 'object-fit:cover!important' in image_css
 assert 'object-position:center!important' in image_css
 assert 'aspect-ratio:1 / 1' in image_css
 assert 'border-radius:50%' in image_css
+assert 'position:absolute!important' in image_css
+assert 'inset:0!important' in image_css
 
 render_start=shell.index('function renderAvatarInitials(')
 render_end=shell.index('function compactPreview',render_start)
 render=shell[render_start:render_end]
 assert "img.addEventListener('error'" in render
 assert "node.textContent=initialsFor" in render
+assert "renderAvatarInitials(node,display,fallback);" in render
+assert "img.style.opacity='0'" in render
+assert "node.replaceChildren(img)" in render
 
 self_edge=read('supabase/functions/v21-account-self/index.ts')
 for token in [

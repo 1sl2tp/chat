@@ -775,22 +775,28 @@ function renderAvatarInitials(node,display,fallback='TK'){
 
 function renderAvatarImage(node,url,display,fallback='TK'){
   if(!node||!url)return false;
-  node.replaceChildren();
+  // Keep initials visible until the real avatar has loaded, so a slow or
+  // expired external image can never leave a blank hole in the directory.
+  renderAvatarInitials(node,display,fallback);
   const img=document.createElement('img');
   img.className='shell-avatar-image';
   img.alt='';
   img.decoding='async';
   img.draggable=false;
+  img.style.opacity='0';
   img.src=url;
   img.addEventListener('load',()=>{
     if(!node.contains(img))return;
+    node.replaceChildren(img);
+    img.style.opacity='1';
     node.dataset.avatarState='image';
     if(node.dataset.avatarFailedUrl===url)delete node.dataset.avatarFailedUrl;
   },{once:true});
   img.addEventListener('error',()=>{
     if(!node.contains(img))return;
     node.dataset.avatarFailedUrl=url;
-    renderAvatarInitials(node,display,fallback);
+    img.remove();
+    node.dataset.avatarState='initials';
   },{once:true});
   node.appendChild(img);
   return true;

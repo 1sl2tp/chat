@@ -8,6 +8,65 @@ const headers = {
   "Cache-Control": "no-store",
 };
 
+async function sha256Hex(value: string) {
+  const bytes = new TextEncoder().encode(value);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+const AVATAR_BUCKET = "v21-avatars";
+const AVATAR_MIME_EXT: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
+
+function avatarSourceIdentity(value: string) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  try {
+    const parsed = new URL(raw);
+    return `${parsed.origin}${parsed.pathname}`;
+  } catch {
+    return raw.split(/[?#]/, 1)[0];
+  }
+}
+
+async function mirrorZaloAvatar(
+  admin: ReturnType<typeof createClient>,
+  accountId: string,
+  sourceUrl: string,
+  currentPath: string | null = null,
+) {
+  const raw = String(sourceUrl ?? "").trim();
+  if (!raw) return null;
+  const digest = (await sha256Hex(avatarSourceIdentity(raw))).slice(0, 32);
+  const prefix = `zalo/${accountId}/${digest}.`;
+  const current = String(currentPath ?? "").trim();
+  if (current.startsWith(prefix)) return current;
+
+  const response = await fetch(raw, { redirect: "follow" });
+  if (!response.ok) throw new Error(`avatar_fetch_${response.status}`);
+  const contentType = String(response.headers.get("content-type") ?? "").split(";", 1)[0].trim().toLowerCase();
+  const ext = AVATAR_MIME_EXT[contentType];
+  if (!ext) throw new Error("avatar_type_unsupported");
+  const blob = await response.blob();
+  if (blob.size < 1 || blob.size > 2 * 1024 * 1024) throw new Error("avatar_size_invalid");
+
+  const storagePath = `zalo/${accountId}/${digest}.${ext}`;
+  const { error: uploadError } = await admin.storage.from(AVATAR_BUCKET).upload(storagePath, blob, {
+    contentType,
+    cacheControl: "31536000",
+    upsert: true,
+  });
+  if (uploadError) throw uploadError;
+
+  if (current.startsWith(`zalo/${accountId}/`) && current !== storagePath) {
+    await admin.storage.from(AVATAR_BUCKET).remove([current]).catch(() => null);
+  }
+  return storagePath;
+}
+
 const CONTACT_GROUPS = new Set(["customer", "friend", "other"]);
 
 function reply(status: number, body: Record<string, unknown>) {
@@ -33,17 +92,23 @@ function errorCode(error: unknown) {
 }
 
 async function syncLinkedAvatar(admin: ReturnType<typeof createClient>, targetId: string, zaloId: string) {
-  const { data: contact, error: contactError } = await admin.from("zalo_contacts")
-    .select("avatar_url")
-    .eq("zalo_id", zaloId)
-    .maybeSingle();
+  const [{ data: contact, error: contactError }, { data: account, error: accountError }] = await Promise.all([
+    admin.from("zalo_contacts").select("avatar_url").eq("zalo_id", zaloId).maybeSingle(),
+    admin.from("v21_accounts").select("avatar_path").eq("id", targetId).is("deleted_at", null).maybeSingle(),
+  ]);
   if (contactError) throw contactError;
-  const avatarPath = String(contact?.avatar_url ?? "").trim() || null;
-  const { error: accountError } = await admin.from("v21_accounts")
+  if (accountError) throw accountError;
+  const sourceUrl = String(contact?.avatar_url ?? "").trim();
+  const current = String(account?.avatar_path ?? "").trim();
+  if (!sourceUrl) return current || null;
+  if (current && !/^https?:\/\//i.test(current) && !current.startsWith(`zalo/${targetId}/`)) return current;
+
+  const avatarPath = await mirrorZaloAvatar(admin, targetId, sourceUrl, current || null);
+  const { error: updateError } = await admin.from("v21_accounts")
     .update({ avatar_path: avatarPath })
     .eq("id", targetId)
     .is("deleted_at", null);
-  if (accountError) throw accountError;
+  if (updateError) throw updateError;
   return avatarPath;
 }
 
@@ -177,14 +242,13 @@ Deno.serve(async (req: Request) => {
         await admin.auth.admin.deleteUser(authUserId);
       }
 
-      const avatarPath = useZaloAvatar && contact.avatar_url ? String(contact.avatar_url) : null;
       const { data: account, error: accountError } = await admin.from("v21_accounts")
         .insert({
           auth_user_id: createdAuth.user.id,
           username,
           display_name: displayName,
           role: "user",
-          avatar_path: avatarPath,
+          avatar_path: null,
           contact_group: "other",
         })
         .select("id,username,display_name,role,avatar_path,locked_at,contact_group")
@@ -205,6 +269,14 @@ Deno.serve(async (req: Request) => {
         await cleanupCreatedAccount(account.id, createdAuth.user.id);
         const code = errorCode(linkError);
         return reply(code === "zalo_already_linked" ? 409 : code === "zalo_not_found" ? 404 : 400, { ok: false, code });
+      }
+
+      if (useZaloAvatar && contact.avatar_url) {
+        try {
+          account.avatar_path = await syncLinkedAvatar(admin, account.id, zaloId);
+        } catch {
+          account.avatar_path = null;
+        }
       }
 
       return reply(200, { ok: true, account, link: link ?? null });

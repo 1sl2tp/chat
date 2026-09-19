@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="49506630a3658c3dbbdd500a0ead9b4ab33b1fae9cac678159c25683e6967ead">
+<meta name="app-build-id" content="1f76b8b4a3999cd5e4767b1bc6cb4c5c85d2090c16b0896cf200cec7fade1c55">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -2770,7 +2770,7 @@ button{
   padding-left:4px;
   padding-right:8px;
 }
-.top-mode-contact-avatar{width:26px;height:26px;flex:0 0 26px;box-sizing:border-box;min-width:26px;min-height:26px;max-width:26px;max-height:26px;border-radius:999px;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;background:var(--account-avatar-bg,#d1fae5);color:var(--account-avatar-fg,#111827);font-size:10px;line-height:1;font-weight:700}
+.top-mode-contact-avatar{position:relative;width:26px;height:26px;flex:0 0 26px;box-sizing:border-box;min-width:26px;min-height:26px;max-width:26px;max-height:26px;border-radius:999px;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;background:var(--account-avatar-bg,#d1fae5);color:var(--account-avatar-fg,#111827);font-size:10px;line-height:1;font-weight:700}
 .top-mode-contact-avatar[hidden]{display:none!important}
 .top-mode-contact-avatar>img{width:100%;height:100%;display:block;object-fit:cover}
 .top-mode-tab[data-top-tab="chat"] [data-chat-tab-label]{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -3352,6 +3352,7 @@ button{
   text-align:start;
 }
 .contact-avatar-source{
+  position:relative;
   box-sizing:border-box;
   width:48px;
   height:48px;
@@ -3696,6 +3697,8 @@ button{
 .shell-sidebar-account-action:active{transform:translateY(1px)}
 .shell-sidebar-account-footer[data-state="guest"] .shell-sidebar-account-action{display:none}
 .shell-avatar-image{
+  position:absolute!important;
+  inset:0!important;
   display:block!important;
   width:100%!important;
   height:100%!important;
@@ -13224,22 +13227,28 @@ function renderAvatarInitials(node,display,fallback='TK'){
 
 function renderAvatarImage(node,url,display,fallback='TK'){
   if(!node||!url)return false;
-  node.replaceChildren();
+  // Keep initials visible until the real avatar has loaded, so a slow or
+  // expired external image can never leave a blank hole in the directory.
+  renderAvatarInitials(node,display,fallback);
   const img=document.createElement('img');
   img.className='shell-avatar-image';
   img.alt='';
   img.decoding='async';
   img.draggable=false;
+  img.style.opacity='0';
   img.src=url;
   img.addEventListener('load',()=>{
     if(!node.contains(img))return;
+    node.replaceChildren(img);
+    img.style.opacity='1';
     node.dataset.avatarState='image';
     if(node.dataset.avatarFailedUrl===url)delete node.dataset.avatarFailedUrl;
   },{once:true});
   img.addEventListener('error',()=>{
     if(!node.contains(img))return;
     node.dataset.avatarFailedUrl=url;
-    renderAvatarInitials(node,display,fallback);
+    img.remove();
+    node.dataset.avatarState='initials';
   },{once:true});
   node.appendChild(img);
   return true;

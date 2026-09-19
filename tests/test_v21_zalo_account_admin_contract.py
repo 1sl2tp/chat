@@ -20,6 +20,9 @@ def test_zalo_account_admin_backend_contract():
         'invalid_display_name',
         'invalid_password',
         'zalo_already_linked',
+        'v21-avatars',
+        'mirrorzaloavatar',
+        'admin.storage.from(avatar_bucket).upload',
     ]:
         assert token in lower, token
 
@@ -39,5 +42,7 @@ def test_link_syncs_zalo_avatar_to_existing_chat_account():
         'async function synclinkedavatar',
         '.update({ avatar_path:',
         'await synclinkedavatar(admin, targetid, zaloid)',
+        'zalo/',
+        'avatar_fetch_',
     ]:
         assert token in lower, token
