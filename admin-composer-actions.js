@@ -227,8 +227,25 @@ function parseCredentialMessage(body,username=''){
 }
 async function previousCredentialPassword(contactId,username){
   const admin=currentAdmin();
+  if(!admin?.id)return'';
+
+  const auth=authStore()?.snapshot?.()||{};
+  const client=authStore()?.getClient?.()||null;
+  if(client&&auth.appSessionId){
+    try{
+      const {data,error}=await client.rpc('v21_admin_last_credential_message',{
+        p_app_session_id:String(auth.appSessionId),
+        p_contact_id:String(contactId),
+      });
+      if(!error&&data){
+        const parsed=parseCredentialMessage(data,username);
+        if(parsed?.password)return parsed.password;
+      }
+    }catch{}
+  }
+
   const cache=window.V21CacheStore||null;
-  if(!admin?.id||!cache?.listMessages)return'';
+  if(!cache?.listMessages)return'';
   const contact=activeContact();
   const messageState=window.V21MessageStore?.snapshot?.()||{};
   let conversationId=String(contact?.conversation_id||messageState.currentConversationId||'').trim();
@@ -326,7 +343,7 @@ async function openCredentials(contactId){
         status.textContent='Đang tìm mật khẩu cũ…';
         effectivePassword=await previousCredentialPassword(contactId,username);
         if(!effectivePassword){
-          status.textContent='Chưa có mật khẩu cũ đã gửi. Hãy nhập mật khẩu mới.';
+          status.textContent='Khách này chưa từng được gửi mật khẩu. Hãy nhập mật khẩu mới một lần.';
           setBusy(false);
           password.focus({preventScroll:true});
           return;

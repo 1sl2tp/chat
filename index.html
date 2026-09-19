@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="4e223564e2d5176e880fc81c7bce527353ccc5ce64505c5d905c15b9c2c47a23">
+<meta name="app-build-id" content="49506630a3658c3dbbdd500a0ead9b4ab33b1fae9cac678159c25683e6967ead">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -18081,8 +18081,25 @@ function parseCredentialMessage(body,username=''){
 }
 async function previousCredentialPassword(contactId,username){
   const admin=currentAdmin();
+  if(!admin?.id)return'';
+
+  const auth=authStore()?.snapshot?.()||{};
+  const client=authStore()?.getClient?.()||null;
+  if(client&&auth.appSessionId){
+    try{
+      const {data,error}=await client.rpc('v21_admin_last_credential_message',{
+        p_app_session_id:String(auth.appSessionId),
+        p_contact_id:String(contactId),
+      });
+      if(!error&&data){
+        const parsed=parseCredentialMessage(data,username);
+        if(parsed?.password)return parsed.password;
+      }
+    }catch{}
+  }
+
   const cache=window.V21CacheStore||null;
-  if(!admin?.id||!cache?.listMessages)return'';
+  if(!cache?.listMessages)return'';
   const contact=activeContact();
   const messageState=window.V21MessageStore?.snapshot?.()||{};
   let conversationId=String(contact?.conversation_id||messageState.currentConversationId||'').trim();
@@ -18180,7 +18197,7 @@ async function openCredentials(contactId){
         status.textContent='Đang tìm mật khẩu cũ…';
         effectivePassword=await previousCredentialPassword(contactId,username);
         if(!effectivePassword){
-          status.textContent='Chưa có mật khẩu cũ đã gửi. Hãy nhập mật khẩu mới.';
+          status.textContent='Khách này chưa từng được gửi mật khẩu. Hãy nhập mật khẩu mới một lần.';
           setBusy(false);
           password.focus({preventScroll:true});
           return;
