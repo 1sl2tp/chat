@@ -65,3 +65,9 @@ assert "select('scope,source_key,source_name,created_at')" in low, "public quote
 assert "pricedsourcekeys" not in low
 assert low.count("sources=await activesources()") >= 2
 assert "scope==='all'\n    ?sources" in src
+
+
+# Active products remain in the quotation even when Admin has not entered
+# a sale price yet; the public page renders the price cell blank.
+assert ".gt('sale_price_vnd',0)" not in src
+assert '.gt("sale_price_vnd",0)' not in src

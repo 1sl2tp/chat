@@ -119,7 +119,6 @@ async function createQuote(req:Request){
     .eq("is_active",true)
     .eq("sync_status","active")
     .is("deleted_at",null)
-    .gt('sale_price_vnd',0)
     .order('source_key',{ascending:true})
     .order('source_row',{ascending:true});
   if(scope==='source'&&sourceKey)products=products.eq('source_key',sourceKey);
@@ -191,7 +190,6 @@ async function readQuote(req:Request){
     .eq("is_active",true)
     .eq("sync_status","active")
     .is("deleted_at",null)
-    .gt('sale_price_vnd',0)
     .order('source_key',{ascending:true})
     .order('source_row',{ascending:true});
   products=scope==='source'?products.eq('source_key',sourceKey):products.in('source_key',allowedKeys);

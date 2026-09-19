@@ -22,7 +22,6 @@ function positiveNumber(value){
 
 function publicItem(row={}){
   const display=positiveNumber(row?.sale_price_vnd??row?.display_price_vnd);
-  if(!display)return null;
   const basis=clean(row?.input_price_basis).toLowerCase()==='retail'?'retail':'carton';
   const retailUnit=clean(row?.retail_unit);
   const carton=positiveNumber(row?.carton_price_vnd) ?? (basis==='carton'?display:null);
