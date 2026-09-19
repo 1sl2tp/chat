@@ -1329,7 +1329,7 @@ const AuthUI={
   renderContacts(contacts=[]){
     const host=document.querySelector('[data-v21-contact-list]');
     if(!host)return;
-    const scrollHost=host.closest('.wm-sidebar-body');
+    const scrollHost=host.closest('.wm-sidebar-navigation');
     const previousScrollTop=scrollHost?.scrollTop||0;
     const items=Array.isArray(contacts)?contacts.filter(item=>item&&item.id&&!item.deleted_at):[];
     const existingById=new Map(
