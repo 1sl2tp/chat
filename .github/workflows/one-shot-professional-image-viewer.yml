@@ -31,11 +31,18 @@ jobs:
           app_path=root/'app.js'
           app=app_path.read_text('utf-8')
 
-          globals_anchor="const imageViewerPointers=new Map();\\nlet imageViewerReturnFocus=null;"
-          globals_replacement="const imageViewerPointers=new Map();\\nconst imageViewerTapStarts=new Map();\\nlet imageViewerBackdropClickBlockedUntil=0;\\nlet imageViewerLastTapAt=0;\\nlet imageViewerLastTapX=0;\\nlet imageViewerLastTapY=0;\\nlet imageViewerReturnFocus=null;"
           if 'const imageViewerTapStarts=new Map();' not in app:
-              assert globals_anchor in app, 'viewer globals anchor missing'
-              app=app.replace(globals_anchor,globals_replacement,1)
+              pointer_decl='const imageViewerPointers=new Map();'
+              assert pointer_decl in app, 'viewer pointer declaration missing'
+              app=app.replace(
+                  pointer_decl,
+                  pointer_decl+"""\nconst imageViewerTapStarts=new Map();
+          let imageViewerBackdropClickBlockedUntil=0;
+          let imageViewerLastTapAt=0;
+          let imageViewerLastTapX=0;
+          let imageViewerLastTapY=0;""",
+                  1
+              )
 
           old_zoom_line="const next=imageViewerZoom<2?2:Math.min(5,imageViewerZoom+.5);"
           new_zoom_line="const next=imageViewerZoom>1?1:2.5;"
@@ -44,8 +51,11 @@ jobs:
           else:
               assert new_zoom_line in app, 'viewer dblclick contract missing'
 
-          gesture_anchor="main.addEventListener('pointercancel',finishPointer);\\n\\n  main.addEventListener('wheel',event=>{"
-          gesture_block="""main.addEventListener('pointercancel',finishPointer);
+          if 'const finishViewerTap=event=>' not in app:
+              ensure_start=app.index('function ensureImageViewer(){')
+              anchor="main.addEventListener('pointercancel',finishPointer);"
+              anchor_at=app.index(anchor,ensure_start)+len(anchor)
+              gesture_block=r"""
 
           // Mobile-first media viewer gesture layer. Keep this separate from the
           // pan/pinch engine above so single taps never interfere with zoom/pan.
@@ -82,7 +92,6 @@ jobs:
             if(start.multi||moved)imageViewerBackdropClickBlockedUntil=performance.now()+320;
             if(start.multi)return;
 
-            // Familiar Zalo/WhatsApp-style downward dismissal at fit-to-screen.
             if(
               imageViewerZoom===1&&
               dy>72&&
@@ -118,8 +127,6 @@ jobs:
             imageViewerBackdropClickBlockedUntil=performance.now()+180;
           });
 
-          // A tap on the actual black stage closes immediately. Taps on the
-          // image and chrome remain owned by those controls.
           main.addEventListener('click',event=>{
             if(event.target!==main)return;
             if(performance.now()<imageViewerBackdropClickBlockedUntil)return;
@@ -130,17 +137,23 @@ jobs:
             if(performance.now()<imageViewerBackdropClickBlockedUntil)return;
             closeImageViewer({restoreFocus:false});
           });
+          """
+              app=app[:anchor_at]+gesture_block+app[anchor_at:]
 
-          main.addEventListener('wheel',event=>{"""
-          if 'const finishViewerTap=event=>' not in app:
-              assert gesture_anchor in app, 'viewer pointer gesture anchor missing'
-              app=app.replace(gesture_anchor,gesture_block,1)
-
-          close_anchor="resetImageViewerZoom();\\n  closeImageViewerTimeMenu();"
-          close_replacement="resetImageViewerZoom();\\n  imageViewerTapStarts.clear();\\n  imageViewerBackdropClickBlockedUntil=0;\\n  imageViewerLastTapAt=0;\\n  closeImageViewerTimeMenu();"
           if 'imageViewerTapStarts.clear();' not in app:
-              assert close_anchor in app, 'viewer close reset anchor missing'
-              app=app.replace(close_anchor,close_replacement,1)
+              close_start=app.index('function closeImageViewer(')
+              close_end=app.index('function formatViewerDate',close_start)
+              close_segment=app[close_start:close_end]
+              assert 'resetImageViewerZoom();' in close_segment, 'viewer close reset missing'
+              close_segment=close_segment.replace(
+                  'resetImageViewerZoom();',
+                  """resetImageViewerZoom();
+          imageViewerTapStarts.clear();
+          imageViewerBackdropClickBlockedUntil=0;
+          imageViewerLastTapAt=0;""",
+                  1
+              )
+              app=app[:close_start]+close_segment+app[close_end:]
 
           app_path.write_text(app,'utf-8')
 
@@ -349,13 +362,13 @@ jobs:
           test_path=root/'tests/test_v21_image_viewer_shell_controls.py'
           test=test_path.read_text('utf-8')
           test=test.replace(
-              'assert "imageViewerZoom<2?2:Math.min(5,imageViewerZoom+.5)" in app\n'
-              'assert "if(imageViewerZoom>1)resetImageViewerZoom();" not in app\n',
+              'assert "imageViewerZoom<2?2:Math.min(5,imageViewerZoom+.5)" in app',
               'assert "const next=imageViewerZoom>1?1:2.5;" in app\n'
               'assert "const imageViewerTapStarts=new Map();" in app\n'
               'assert "dy>72" in app\n'
-              'assert "event.target!==main" in app\n'
+              'assert "event.target!==main" in app'
           )
+          test=test.replace('assert "if(imageViewerZoom>1)resetImageViewerZoom();" not in app\n','')
           test_path.write_text(test,'utf-8')
 
           subprocess.run([sys.executable,'tools/build_current_preview.py'],check=True)
