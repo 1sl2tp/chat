@@ -1,0 +1,106 @@
+name: One-shot polished chat icon v3
+on:
+  push:
+    branches:
+      - main
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build polished iOS Android chat icons
+        run: |
+          python -m pip install pillow
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image, ImageDraw
+          import json, subprocess, sys
+
+          ROOT=Path('.')
+          ICONS=ROOT/'icons'
+          GREEN=(22,163,74)
+          WHITE=(255,255,255)
+
+          def make(size, maskable=False):
+              im=Image.new('RGB',(size,size),GREEN)
+              d=ImageDraw.Draw(im)
+              s=size
+              if not maskable:
+                  left,top,right,bottom=[int(s*x) for x in (0.17,0.23,0.83,0.69)]
+                  tail=[(int(s*0.29),int(s*0.64)),(int(s*0.235),int(s*0.78)),(int(s*0.43),int(s*0.69))]
+                  radius=int(s*0.13)
+                  dotr=int(s*0.034)
+                  cy=int(s*0.46)
+              else:
+                  left,top,right,bottom=[int(s*x) for x in (0.225,0.275,0.775,0.655)]
+                  tail=[(int(s*0.32),int(s*0.61)),(int(s*0.275),int(s*0.72)),(int(s*0.43),int(s*0.655))]
+                  radius=int(s*0.105)
+                  dotr=int(s*0.029)
+                  cy=int(s*0.465)
+              d.rounded_rectangle((left,top,right,bottom),radius=radius,fill=WHITE)
+              d.polygon(tail,fill=WHITE)
+              for cx in (0.405,0.5,0.595):
+                  x=int(s*cx)
+                  d.ellipse((x-dotr,cy-dotr,x+dotr,cy+dotr),fill=GREEN)
+              return im
+
+          make(180).save(ICONS/'chat-app-180-v3.png',optimize=True)
+          make(192).save(ICONS/'chat-app-192-v3.png',optimize=True)
+          make(512).save(ICONS/'chat-app-512-v3.png',optimize=True)
+          make(512,True).save(ICONS/'chat-maskable-512-v3.png',optimize=True)
+
+          (ICONS/'chat-app-icon-v3.svg').write_text(
+          '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="TAPHOA Chat">
+            <rect width="512" height="512" fill="#16a34a"/>
+            <rect x="87" y="118" width="338" height="235" rx="67" fill="#fff"/>
+            <path d="M148 328 120 399l100-46z" fill="#fff"/>
+            <circle cx="207" cy="236" r="17" fill="#16a34a"/>
+            <circle cx="256" cy="236" r="17" fill="#16a34a"/>
+            <circle cx="305" cy="236" r="17" fill="#16a34a"/>
+          </svg>
+          ''',encoding='utf-8')
+
+          source_path=ROOT/'index.source.html'
+          source=source_path.read_text('utf-8')
+          source=source.replace('./icons/chat-app-180-v2.png','./icons/chat-app-180-v3.png')
+          source_path.write_text(source,'utf-8')
+
+          manifest_path=ROOT/'manifest.webmanifest'
+          manifest=json.loads(manifest_path.read_text('utf-8'))
+          manifest['icons']=[
+              {'src':'./icons/chat-app-192-v3.png','sizes':'192x192','type':'image/png','purpose':'any'},
+              {'src':'./icons/chat-app-512-v3.png','sizes':'512x512','type':'image/png','purpose':'any'},
+              {'src':'./icons/chat-maskable-512-v3.png','sizes':'512x512','type':'image/png','purpose':'maskable'},
+          ]
+          manifest_path.write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n','utf-8')
+
+          sw_path=ROOT/'sw.js'
+          sw=sw_path.read_text('utf-8')
+          for old,new in [
+              ('chat-app-180-v2.png','chat-app-180-v3.png'),
+              ('chat-app-192-v2.png','chat-app-192-v3.png'),
+              ('chat-app-512-v2.png','chat-app-512-v3.png'),
+              ('chat-maskable-512-v2.png','chat-maskable-512-v3.png'),
+          ]:
+              sw=sw.replace(old,new)
+          sw_path.write_text(sw,'utf-8')
+
+          subprocess.run([sys.executable,'tools/build_current_preview.py'],check=True)
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add icons/chat-app-180-v3.png icons/chat-app-192-v3.png icons/chat-app-512-v3.png icons/chat-maskable-512-v3.png icons/chat-app-icon-v3.svg index.source.html index.html manifest.webmanifest sw.js version.json
+          if git diff --cached --quiet; then
+            echo "polished icon already current"
+            exit 0
+          fi
+          git commit -m "Polish TAPHOA Chat mobile icon"
+          git push
