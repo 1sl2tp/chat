@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="eea7864882dbb92b730947be87033003027ba584b687339aa7cf55e9f766fb0d">
+<meta name="app-build-id" content="9b93ff5d18f7e2e1b0db43e0cc403019024cda16c971fc893346041b283202ec">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -4118,17 +4118,132 @@ button{
   }
 }
 
-/* V21.64 — account row mirrors the approved contact-row proportions */
-.shell-sidebar-account-footer{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 42px;gap:4px;padding:4px 0 max(4px,env(safe-area-inset-bottom));align-items:center}
-.shell-sidebar-account-footer .shell-sidebar-account-main,.shell-sidebar-account-footer .shell-sidebar-account-action,.shell-sidebar-account-footer .zalo-account-admin-open{width:100%;min-width:0;height:38px;min-height:38px;padding:0 8px;border-radius:11px;font-size:.8rem;font-weight:600}
-.shell-sidebar-account-footer .shell-sidebar-account-main{display:flex;align-items:center;justify-content:center;background:var(--theme-surface-secondary)}
-.shell-sidebar-account-footer .shell-sidebar-account-avatar,.shell-sidebar-account-footer .shell-sidebar-account-copy span,.shell-sidebar-account-footer .shell-sidebar-account-chevron{display:none}
-.shell-sidebar-account-footer .shell-sidebar-account-copy strong{display:block;min-width:0;font-size:.8rem;line-height:1rem;font-weight:600;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.shell-sidebar-account-footer .zalo-account-admin-open{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.shell-sidebar-account-footer[data-state="authenticated"] .shell-sidebar-account-action{width:42px;min-width:42px;padding:0}
-.shell-sidebar-account-footer[data-state="authenticated"] .shell-sidebar-account-action [data-account-action-label]{display:none}
+/* Region 1 footer follows the ChatGPT account-row pattern:
+   one visible account control; secondary actions live in a popover above it. */
+.shell-sidebar-account-footer{
+  position:relative;
+  display:block;
+  padding:6px 0 max(6px,env(safe-area-inset-bottom));
+  background:var(--theme-surface-primary);
+}
+.shell-sidebar-account-footer .shell-sidebar-account-main{
+  box-sizing:border-box;
+  width:100%;
+  min-width:0;
+  height:50px;
+  min-height:50px;
+  padding:5px 8px;
+  border-radius:12px;
+  display:grid;
+  grid-template-columns:34px minmax(0,1fr) 28px;
+  grid-template-rows:auto auto;
+  align-items:center;
+  column-gap:10px;
+  row-gap:1px;
+  background:transparent;
+}
+.shell-sidebar-account-footer .shell-sidebar-account-main:hover,
+.shell-sidebar-account-footer[data-menu-open="true"] .shell-sidebar-account-main{
+  background:var(--theme-action-ghost-surface-hover);
+}
+.shell-sidebar-account-footer .shell-sidebar-account-avatar{
+  display:block;
+  width:34px;
+  height:34px;
+  min-width:34px;
+  min-height:34px;
+  grid-column:1;
+  grid-row:1 / span 2;
+  align-self:center;
+}
+.shell-sidebar-account-footer .shell-sidebar-account-copy{
+  display:block;
+  grid-column:2;
+  grid-row:1 / span 2;
+  min-width:0;
+}
+.shell-sidebar-account-footer .shell-sidebar-account-copy strong{
+  display:block;
+  min-width:0;
+  font-size:.84rem;
+  line-height:1.08rem;
+  font-weight:600;
+  text-align:start;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.shell-sidebar-account-footer .shell-sidebar-account-copy span{
+  display:block;
+  min-width:0;
+  margin-top:1px;
+  color:var(--theme-content-secondary);
+  font-size:.72rem;
+  line-height:.95rem;
+  text-align:start;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.shell-sidebar-account-footer .shell-sidebar-account-chevron{
+  display:block;
+  grid-column:3;
+  grid-row:1 / span 2;
+  width:28px;
+  align-self:center;
+  justify-self:center;
+  color:var(--theme-content-tertiary);
+  font-size:1.1rem;
+  line-height:1;
+  text-align:center;
+  transform:rotate(0deg);
+  transition:transform 140ms ease;
+}
+.shell-sidebar-account-footer[data-menu-open="true"] .shell-sidebar-account-chevron{transform:rotate(90deg)}
+.shell-sidebar-account-footer>.shell-sidebar-account-action,
+.shell-sidebar-account-footer>.zalo-account-admin-open{
+  display:none!important;
+}
+.shell-sidebar-account-menu{
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:calc(100% + 6px);
+  z-index:80;
+  box-sizing:border-box;
+  padding:6px;
+  border:1px solid color-mix(in srgb,var(--theme-border-default) 82%,transparent);
+  border-radius:14px;
+  background:var(--theme-surface-primary);
+  box-shadow:0 12px 34px rgba(0,0,0,.14);
+}
+.shell-sidebar-account-menu[hidden]{display:none!important}
+.shell-sidebar-account-menu>button{
+  width:100%;
+  min-height:40px;
+  border:0;
+  border-radius:9px;
+  padding:0 10px;
+  background:transparent;
+  color:var(--theme-content-primary);
+  font:inherit;
+  font-size:.84rem;
+  font-weight:500;
+  text-align:start;
+  cursor:pointer;
+}
+.shell-sidebar-account-menu>button:hover,
+.shell-sidebar-account-menu>button:focus-visible{
+  background:var(--theme-action-ghost-surface-hover);
+  outline:none;
+}
+.shell-sidebar-account-menu-separator{
+  height:1px;
+  margin:4px 6px;
+  background:var(--theme-border-default);
+}
+.shell-sidebar-account-menu>.shell-sidebar-account-menu-danger{color:#dc2626}
 .shell-sidebar-logout-icon{display:none;width:18px;height:18px;pointer-events:none}
-.shell-sidebar-account-footer[data-state="authenticated"] .shell-sidebar-logout-icon{display:block}
 @media(max-width:63.999rem){#shellNavigationLayer .shell-navigation-panel{height:100dvh;max-height:100dvh}}
 
 .shell-sidebar-account-main{
@@ -4851,7 +4966,7 @@ button{
             </nav>
           </div>
           <footer class="shell-sidebar-account-footer" data-sidebar-account-footer data-state="guest">
-            <button type="button" class="shell-sidebar-account-main" data-account-self-edit aria-label="Đăng nhập">
+            <button type="button" class="shell-sidebar-account-main" data-account-self-edit aria-label="Đăng nhập" aria-haspopup="menu" aria-expanded="false">
               <span class="contact-avatar-source shell-sidebar-account-avatar" data-account-avatar aria-hidden="true">?</span>
               <span class="shell-sidebar-account-copy">
                 <strong data-account-name>Vãng lai</strong>
@@ -4859,7 +4974,13 @@ button{
               </span>
               <span class="shell-sidebar-account-chevron" aria-hidden="true">›</span>
             </button>
-            <button class="shell-sidebar-account-action" type="button" data-auth-command="login.open">
+            <div class="shell-sidebar-account-menu" data-account-menu role="menu" aria-label="Tài khoản" hidden>
+              <button type="button" role="menuitem" data-account-menu-profile>Thông tin cá nhân</button>
+              <button type="button" role="menuitem" data-account-menu-settings hidden>Cài đặt</button>
+              <div class="shell-sidebar-account-menu-separator" role="separator"></div>
+              <button type="button" role="menuitem" class="shell-sidebar-account-menu-danger" data-account-menu-logout>Đăng xuất</button>
+            </div>
+            <button class="shell-sidebar-account-action" type="button" data-auth-command="login.open" hidden>
               <svg class="shell-sidebar-logout-icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M10 5H6.5A2.5 2.5 0 0 0 4 7.5v9A2.5 2.5 0 0 0 6.5 19H10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M13 8l4 4-4 4M8 12h9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
               <span data-account-action-label>Đăng nhập</span>
             </button>
@@ -13339,6 +13460,7 @@ let callPendingAction=null;
 let callTerminalNotice=null;
 let callTerminalNoticeTimer=0;
 let unreadCount=0;
+let accountMenuOpen=false;
 
 function interactionController(){
   return window.V21InteractionController||null;
@@ -13519,7 +13641,44 @@ if(typeof desktopWorkspaceMedia.addEventListener==='function'){
   desktopWorkspaceMedia.addListener(syncDesktopWorkspaceMode);
 }
 
+function accountMenuElements(){
+  const footer=document.querySelector('[data-sidebar-account-footer]');
+  return{
+    footer,
+    menu:footer?.querySelector?.('[data-account-menu]')||null,
+    trigger:footer?.querySelector?.('[data-account-self-edit]')||null
+  };
+}
+
+function closeAccountMenu({restoreFocus=false}={}){
+  if(!accountMenuOpen)return false;
+  const {footer,menu,trigger}=accountMenuElements();
+  accountMenuOpen=false;
+  if(footer)footer.dataset.menuOpen='false';
+  if(menu)menu.hidden=true;
+  if(trigger)trigger.setAttribute('aria-expanded','false');
+  if(restoreFocus&&trigger?.isConnected){try{trigger.focus({preventScroll:true});}catch{}}
+  return true;
+}
+
+function openAccountMenu(){
+  if(authState!=='AUTHENTICATED')return false;
+  const {footer,menu,trigger}=accountMenuElements();
+  if(!footer||!menu||!trigger)return false;
+  accountMenuOpen=true;
+  footer.dataset.menuOpen='true';
+  menu.hidden=false;
+  trigger.setAttribute('aria-expanded','true');
+  window.setTimeout(()=>menu.querySelector('button:not([hidden])')?.focus?.({preventScroll:true}),0);
+  return true;
+}
+
+function toggleAccountMenu(){
+  return accountMenuOpen?closeAccountMenu({restoreFocus:true}):openAccountMenu();
+}
+
 function setSidebar(open){
+  if(!open)closeAccountMenu(); 
   if(desktopSidebarPersistent){
     sidebarOpen=false;
     syncSidebarPresentation();
@@ -14613,8 +14772,15 @@ const AuthUI={
     const action=footer.querySelector('[data-auth-command]');
     const actionLabel=footer.querySelector('[data-account-action-label]');
     const selfButtons=[...footer.querySelectorAll('[data-account-self-edit]')];
+    const profileItem=footer.querySelector('[data-account-menu-profile]');
+    const settingsItem=footer.querySelector('[data-account-menu-settings]');
+    const logoutItem=footer.querySelector('[data-account-menu-logout]');
     const authenticated=authState==='AUTHENTICATED'&&authAccount;
     footer.dataset.state=authenticated?'authenticated':'guest';
+    if(settingsItem)settingsItem.hidden=!(authenticated&&authAccount?.role==='admin');
+    if(profileItem)profileItem.hidden=!authenticated;
+    if(logoutItem)logoutItem.hidden=!authenticated;
+    if(!authenticated)closeAccountMenu();
     if(authenticated){
       if(name)name.textContent=String(authAccount.display_name||authAccount.username||'Tài khoản');
       if(handle)handle.textContent=authAccount.username?`@${String(authAccount.username).replace(/^@/,'')}`:'';
@@ -14787,10 +14953,36 @@ document.addEventListener('click',event=>{
 
   const selfEdit=target.closest('[data-account-self-edit]');
   if(selfEdit){
-    if(authState==='AUTHENTICATED')openSelfProfile();
+    if(authState==='AUTHENTICATED')toggleAccountMenu();
     else AuthUI.openLogin();
     return;
   }
+
+  const accountProfile=target.closest('[data-account-menu-profile]');
+  if(accountProfile){
+    closeAccountMenu();
+    openSelfProfile();
+    return;
+  }
+
+  const accountSettings=target.closest('[data-account-menu-settings]');
+  if(accountSettings){
+    closeAccountMenu();
+    const existing=document.querySelector('[data-zalo-account-admin-open]');
+    if(existing instanceof HTMLElement){existing.click();return;}
+    window.V21ZaloAccountAdmin?.open?.();
+    return;
+  }
+
+  const accountLogout=target.closest('[data-account-menu-logout]');
+  if(accountLogout){
+    closeAccountMenu();
+    window.V21InteractionController?.forceReset?.('logout');
+    window.V21AuthSessionStore?.logout?.();
+    return;
+  }
+
+  if(accountMenuOpen&&!target.closest('[data-sidebar-account-footer]'))closeAccountMenu();
 
   const manage=target.closest('[data-contact-manage]');
   if(manage){
@@ -14883,6 +15075,7 @@ document.addEventListener('input',event=>{
 document.addEventListener('keydown',event=>{
   if(event.key!=='Escape')return;
   if(profileOverlay){closeProfileEditor();return;}
+  if(accountMenuOpen){event.preventDefault();closeAccountMenu({restoreFocus:true});return;}
   if(sidebarOpen)setSidebar(false);
 });
 
