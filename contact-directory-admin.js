@@ -61,7 +61,7 @@ function installStyle(){
   const style=document.createElement('style');
   style.id='contact-directory-admin-style';
   style.textContent=`
-    .contact-directory-tools{position:static;z-index:4;display:grid;gap:7px;padding:8px 8px 7px;background:var(--theme-surface-primary,#fff)}
+    .contact-directory-tools{position:static;z-index:4;box-sizing:border-box;flex:0 0 auto;display:grid;gap:7px;padding:8px 8px 7px;background:var(--theme-surface-primary,#fff)}
     .contact-directory-search{box-sizing:border-box;width:100%;height:38px;border:1px solid var(--theme-border-default,#dedede);border-radius:12px;padding:0 11px;background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#171717);font:inherit;font-size:14px;outline:none}
     .contact-directory-search:focus{border-color:#9ab7e6;box-shadow:0 0 0 2px rgba(78,132,216,.1)}
     .contact-directory-filters{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none}
