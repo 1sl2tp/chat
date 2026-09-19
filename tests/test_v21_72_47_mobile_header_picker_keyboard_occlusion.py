@@ -14,7 +14,7 @@ assert '.top-mode-contact-avatar{width:26px;height:26px;flex:0 0 26px;' in SRC
 # 2) On iOS the + action must release the editor/keyboard before invoking the
 # native file source picker, while staying inside the same click activation.
 ios = re.search(
-    r"if\(RuntimeProfile\.pickerMode==='ios-native'\)\{(?P<body>.*?)\n\s*return;\n\s*\}",
+    r"if\(RuntimeProfile\.pickerMode==='ios-native'(?:&&!hasAppOwnedComposerActions\(\))?\)\{(?P<body>.*?)\n\s*return;\n\s*\}",
     APP,
     re.S,
 )
