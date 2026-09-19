@@ -35,7 +35,7 @@ assert "'Mua hàng: https://app.taphoa.xyz'" in admin
 assert "Đặt mật khẩu & gửi" not in admin
 assert "security definer" in migration.lower()
 assert "v21_private.require_active_account" in migration
-assert "v_role <> 'admin'" in migration
+assert "coalesce(v_role,'') <> 'admin'" in migration
 assert "grant execute on function public.v21_admin_last_credential_message(uuid,uuid) to authenticated;" in migration
 
 print('composer action menu single-owner positioning PASS')
