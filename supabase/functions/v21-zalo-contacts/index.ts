@@ -49,7 +49,8 @@ async function mirrorZaloAvatar(
 
   const response = await fetch(raw, { redirect: "follow" });
   if (!response.ok) throw new Error(`avatar_fetch_${response.status}`);
-  const contentType = String(response.headers.get("content-type") ?? "").split(";", 1)[0].trim().toLowerCase();
+  let contentType = String(response.headers.get("content-type") ?? "").split(";", 1)[0].trim().toLowerCase();
+  if (contentType === "image/jpg") contentType = "image/jpeg";
   const ext = AVATAR_MIME_EXT[contentType];
   if (!ext) throw new Error("avatar_type_unsupported");
   const blob = await response.blob();

@@ -19,6 +19,8 @@ test('contacts edge authenticates bridge token and upserts only contact fields',
   assert.match(source,/syncLinkedAccountAvatars/);
   assert.match(source,/zalo_user_links/);
   assert.match(source,/avatars_mirrored/);
+  assert.match(source,/contentType === "image\/jpg"/);
+  assert.match(source,/contentType = "image\/jpeg"/);
 });
 
 

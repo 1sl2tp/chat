@@ -23,6 +23,8 @@ def test_zalo_account_admin_backend_contract():
         'v21-avatars',
         'mirrorzaloavatar',
         'admin.storage.from(avatar_bucket).upload',
+        'image/jpg',
+        'image/jpeg',
     ]:
         assert token in lower, token
 
