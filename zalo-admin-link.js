@@ -96,20 +96,39 @@ async function sendAccountCredentials({accountId='',username='',password=''}={})
   return true;
 }
 
+function avatarInitials(value,fallback='Z'){
+  const initials=String(value||'').trim().split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]?.toUpperCase()||'').join('');
+  return initials||fallback;
+}
+
 function avatarNode(contact){
   const avatar=document.createElement('span');
   avatar.className='zalo-admin-avatar';
-  const url=String(contact?.avatar_url||contact?.avatar_path||'').trim();
+  const raw=String(contact?.avatar_url||contact?.avatar_path||'').trim();
   const label=String(contact?.display_name||contact?.username||'Z').trim();
+  const fallback=avatarInitials(label,'Z');
+  const url=contact?.avatar_url
+    ? raw
+    : String(window.V21AccountProfileStore?.avatarUrl?.(raw)||raw).trim();
+  avatar.textContent=fallback;
   if(url){
     const img=document.createElement('img');
     img.src=url;
     img.alt='';
     img.loading='lazy';
     img.referrerPolicy='no-referrer';
-    img.addEventListener('error',()=>{img.remove();avatar.textContent=label.charAt(0).toUpperCase()||'Z';},{once:true});
+    img.style.opacity='0';
+    img.addEventListener('load',()=>{
+      if(!avatar.contains(img))return;
+      avatar.replaceChildren(img);
+      img.style.opacity='1';
+    },{once:true});
+    img.addEventListener('error',()=>{
+      img.remove();
+      avatar.textContent=fallback;
+    },{once:true});
     avatar.appendChild(img);
-  }else avatar.textContent=label.charAt(0).toUpperCase()||'Z';
+  }
   return avatar;
 }
 

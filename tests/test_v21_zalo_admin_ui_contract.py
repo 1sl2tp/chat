@@ -80,3 +80,12 @@ def test_admin_list_scroll_position_is_preserved_after_link_or_create_refresh():
         "renderAccountRowsPreservingScroll();",
     ]:
         assert token in module, token
+
+
+def test_zalo_admin_avatar_uses_same_storage_resolution_and_fallback_logic():
+    module = (ROOT / "zalo-admin-link.js").read_text("utf-8")
+    assert "function avatarInitials" in module
+    assert "window.V21AccountProfileStore?.avatarUrl?.(raw)" in module
+    assert "avatar.textContent=fallback" in module
+    assert "img.style.opacity='0'" in module
+    assert "avatar.replaceChildren(img)" in module
