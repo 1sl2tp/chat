@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="94c25118edfa5112693942e18bd19076498b04be926db1cf3396f39e2a5a2d88">
+<meta name="app-build-id" content="8f7c23e7d2fb64873af69c5202c0a0d0370fa8b39e97ace8266e2549fb0a70ad">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -914,6 +914,168 @@
   }
   #appShell[data-auth-state="authenticated"] #messageWindow{
     padding-inline:12px!important;
+  }
+}
+
+
+/* V21.72.52 geometry audit: composer + narrow viewer */
+/* Reference rule: fix the highest layout owner first. The composer must remain
+   inside the chat frame; narrow media viewing gets one simple gesture surface. */
+
+#appShell[data-auth-state="authenticated"]:not([data-image-viewer-mode="true"])
+  #thread-bottom-container:not([hidden]){
+  display:flex!important;
+  visibility:visible!important;
+  opacity:1!important;
+  box-sizing:border-box!important;
+  max-width:100%!important;
+  z-index:60!important;
+}
+
+#appShell[data-auth-state="authenticated"] #thread-bottom-container{
+  box-sizing:border-box!important;
+  overflow:visible!important;
+}
+
+/* Undo the card-padding height math that could place the absolute composer
+   outside the visible desktop chat cell. Keep the three columns, but make the
+   screen grid itself the geometry owner. */
+@media (min-width:64rem) and (hover:hover) and (pointer:fine){
+  #appShell[data-auth-state="authenticated"] #screenHost{
+    height:100svh!important;
+    min-height:0!important;
+    padding:0!important;
+    gap:0!important;
+    background:#fff!important;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer{
+    border-radius:0!important;
+    border-width:0 1px 0 0!important;
+    box-shadow:none!important;
+  }
+  #appShell[data-auth-state="authenticated"] #activeScreenSlot{
+    height:100%!important;
+    min-height:0!important;
+    border:0!important;
+    border-radius:0!important;
+    box-shadow:none!important;
+    overflow:hidden!important;
+  }
+  #appShell[data-auth-state="authenticated"] #stageLayout{
+    height:100%!important;
+    min-height:0!important;
+    border-radius:0!important;
+    overflow:hidden!important;
+  }
+  #appShell[data-auth-state="authenticated"] #thread-bottom-container{
+    bottom:0!important;
+  }
+  #appShell[data-auth-state="authenticated"] .shell-sidebar-account-footer{
+    margin:0!important;
+    border-radius:0!important;
+  }
+}
+
+/* Width, not pointer type, owns the mobile/narrow viewer. This also makes the
+   same layout testable by narrowing a desktop browser window. */
+@media (max-width:700px){
+  .image-viewer-overlay{
+    box-sizing:border-box!important;
+    inset:0!important;
+    width:100%!important;
+    height:100dvh!important;
+    max-width:100%!important;
+    max-height:100dvh!important;
+    overflow:hidden!important;
+    background:#000!important;
+  }
+  .image-review{
+    width:100%!important;
+    height:100%!important;
+    min-width:0!important;
+    min-height:0!important;
+    overflow:hidden!important;
+    background:#000!important;
+  }
+  .image-review-head{
+    box-sizing:border-box!important;
+    min-height:calc(3.75rem + env(safe-area-inset-top,0px))!important;
+    padding:
+      calc(.45rem + env(safe-area-inset-top,0px))
+      max(.75rem,env(safe-area-inset-right,0px))
+      .65rem
+      max(.75rem,env(safe-area-inset-left,0px))!important;
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) 2.4rem!important;
+    align-items:start!important;
+    gap:.6rem!important;
+    background:linear-gradient(180deg,rgba(0,0,0,.78),rgba(0,0,0,.24) 64%,transparent)!important;
+  }
+  .image-review-heading{
+    min-width:0!important;
+    align-self:center!important;
+  }
+  .image-review-close{
+    width:2.4rem!important;
+    height:2.4rem!important;
+    min-width:2.4rem!important;
+    flex-basis:2.4rem!important;
+    margin:0!important;
+    justify-self:end!important;
+  }
+  .image-review .image-review-zoom-controls,
+  .image-review .chat-image-viewer-rotate-controls,
+  .image-review-bottom,
+  .image-review-nav{
+    display:none!important;
+  }
+  .image-review-main{
+    box-sizing:border-box!important;
+    width:100%!important;
+    min-width:0!important;
+    min-height:0!important;
+    padding:
+      calc(4rem + env(safe-area-inset-top,0px))
+      max(.5rem,env(safe-area-inset-right,0px))
+      calc(.75rem + env(safe-area-inset-bottom,0px))
+      max(.5rem,env(safe-area-inset-left,0px))!important;
+    overflow:hidden!important;
+    background:#000!important;
+    touch-action:none!important;
+  }
+  .image-review-image{
+    display:block!important;
+    width:auto!important;
+    height:auto!important;
+    max-width:100%!important;
+    max-height:100%!important;
+    object-fit:contain!important;
+    border-radius:0!important;
+    box-shadow:none!important;
+    background:transparent!important;
+  }
+  .image-review-meta{
+    left:50%!important;
+    bottom:calc(.6rem + env(safe-area-inset-bottom,0px))!important;
+    max-width:calc(100% - 2rem)!important;
+    padding:.25rem .5rem!important;
+    font-size:.62rem!important;
+    line-height:.9rem!important;
+    background:rgba(0,0,0,.42)!important;
+    border:1px solid rgba(255,255,255,.06)!important;
+  }
+}
+
+/* On actual mobile browsers, keep the full chat stage stable under the dynamic
+   viewport so the composer cannot be clipped below browser chrome. */
+@media (max-width:63.999rem){
+  #appShell[data-auth-state="authenticated"] #stageLayout{
+    height:100dvh!important;
+    min-height:100dvh!important;
+  }
+  #appShell[data-auth-state="authenticated"]:not([data-image-viewer-mode="true"])
+    #thread-bottom-container:not([hidden]){
+    bottom:0!important;
   }
 }
 
@@ -13215,21 +13377,14 @@ function installStyle(){
       -webkit-backdrop-filter:blur(16px);
     }
     @media(max-width:700px){
-      .image-review .chat-image-viewer-rotate-controls{
-        position:fixed;
-        z-index:125;
-        left:50%;
-        bottom:calc(.62rem + env(safe-area-inset-bottom,0px));
-        transform:translateX(-7.15rem);
-        margin:0;
-      }
+      /* Mobile viewer is gesture-first. Keep the chrome minimal so rotate/zoom
+         controls never collide with thumbnails, safe-area or browser UI. */
+      .image-review .chat-image-viewer-rotate-controls,
       .image-review .image-review-zoom-controls{
-        position:fixed;
-        z-index:125;
-        left:50%;
-        bottom:calc(.62rem + env(safe-area-inset-bottom,0px));
-        transform:translateX(-3.15rem);
-        margin:0;
+        display:none!important;
+        position:static!important;
+        transform:none!important;
+        margin:0!important;
       }
     }
   `;
