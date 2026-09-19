@@ -31,46 +31,21 @@ jobs:
           app_path=root/'app.js'
           app=app_path.read_text('utf-8')
 
-          globals_anchor="""let imageViewerGesture=null;
-          let imageViewerGesturePinched=false;
-          const imageViewerPointers=new Map();
-          let imageViewerReturnFocus=null;"""
-          globals_replacement="""let imageViewerGesture=null;
-          let imageViewerGesturePinched=false;
-          const imageViewerPointers=new Map();
-          const imageViewerTapStarts=new Map();
-          let imageViewerBackdropClickBlockedUntil=0;
-          let imageViewerLastTapAt=0;
-          let imageViewerLastTapX=0;
-          let imageViewerLastTapY=0;
-          let imageViewerReturnFocus=null;"""
+          globals_anchor="const imageViewerPointers=new Map();\\nlet imageViewerReturnFocus=null;"
+          globals_replacement="const imageViewerPointers=new Map();\\nconst imageViewerTapStarts=new Map();\\nlet imageViewerBackdropClickBlockedUntil=0;\\nlet imageViewerLastTapAt=0;\\nlet imageViewerLastTapX=0;\\nlet imageViewerLastTapY=0;\\nlet imageViewerReturnFocus=null;"
           if 'const imageViewerTapStarts=new Map();' not in app:
               assert globals_anchor in app, 'viewer globals anchor missing'
               app=app.replace(globals_anchor,globals_replacement,1)
 
-          old_dbl="""  image.addEventListener('dblclick',event=>{
-            event.preventDefault();
-            event.stopPropagation();
-            const next=imageViewerZoom<2?2:Math.min(5,imageViewerZoom+.5);
-            setImageViewerZoom(next,{clientX:event.clientX,clientY:event.clientY});
-          });"""
-          new_dbl="""  image.addEventListener('dblclick',event=>{
-            event.preventDefault();
-            event.stopPropagation();
-            const next=imageViewerZoom>1?1:2.5;
-            setImageViewerZoom(next,{clientX:event.clientX,clientY:event.clientY});
-          });"""
-          if old_dbl in app:
-              app=app.replace(old_dbl,new_dbl,1)
+          old_zoom_line="const next=imageViewerZoom<2?2:Math.min(5,imageViewerZoom+.5);"
+          new_zoom_line="const next=imageViewerZoom>1?1:2.5;"
+          if old_zoom_line in app:
+              app=app.replace(old_zoom_line,new_zoom_line,1)
           else:
-              assert "const next=imageViewerZoom>1?1:2.5;" in app, 'viewer dblclick contract missing'
+              assert new_zoom_line in app, 'viewer dblclick contract missing'
 
-          gesture_anchor="""  main.addEventListener('pointerup',finishPointer);
-          main.addEventListener('pointercancel',finishPointer);
-
-          main.addEventListener('wheel',event=>{"""
-          gesture_block="""  main.addEventListener('pointerup',finishPointer);
-          main.addEventListener('pointercancel',finishPointer);
+          gesture_anchor="main.addEventListener('pointercancel',finishPointer);\\n\\n  main.addEventListener('wheel',event=>{"
+          gesture_block="""main.addEventListener('pointercancel',finishPointer);
 
           // Mobile-first media viewer gesture layer. Keep this separate from the
           // pan/pinch engine above so single taps never interfere with zoom/pan.
@@ -161,13 +136,8 @@ jobs:
               assert gesture_anchor in app, 'viewer pointer gesture anchor missing'
               app=app.replace(gesture_anchor,gesture_block,1)
 
-          close_anchor="""  resetImageViewerZoom();
-          closeImageViewerTimeMenu();"""
-          close_replacement="""  resetImageViewerZoom();
-          imageViewerTapStarts.clear();
-          imageViewerBackdropClickBlockedUntil=0;
-          imageViewerLastTapAt=0;
-          closeImageViewerTimeMenu();"""
+          close_anchor="resetImageViewerZoom();\\n  closeImageViewerTimeMenu();"
+          close_replacement="resetImageViewerZoom();\\n  imageViewerTapStarts.clear();\\n  imageViewerBackdropClickBlockedUntil=0;\\n  imageViewerLastTapAt=0;\\n  closeImageViewerTimeMenu();"
           if 'imageViewerTapStarts.clear();' not in app:
               assert close_anchor in app, 'viewer close reset anchor missing'
               app=app.replace(close_anchor,close_replacement,1)
