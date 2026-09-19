@@ -15,28 +15,22 @@
   "lang": "vi",
   "icons": [
     {
-      "src": "./icons/chat-192.png",
+      "src": "./icons/chat-app-192-v2.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "./icons/chat-512.png",
+      "src": "./icons/chat-app-512-v2.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "./icons/chat-512.png",
+      "src": "./icons/chat-maskable-512-v2.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
-    },
-    {
-      "src": "./icons/chat-icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
     }
   ]
 }
