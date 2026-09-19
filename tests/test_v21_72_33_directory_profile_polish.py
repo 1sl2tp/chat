@@ -31,9 +31,11 @@ assert "data-profile-admin-actions hidden" in shell
 assert ">Xóa tài khoản</button>" in shell
 assert "model.locked_at?'Mở khóa tài khoản':'Khóa tài khoản'" in shell
 
-# Directory body owns layout; navigation owns contact-list scrolling. Extra scrollbar styling may follow.
-assert ".wm-sidebar-body{flex:1 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column}" in source
-assert ".wm-sidebar-navigation{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain" in source
+# Sidebar owns the three vertical regions; body owns the flexible middle lane;
+# navigation alone owns contact-list scrolling. Extra scrollbar styling may follow.
+assert '.wm-sidebar-sidebar{\n  box-sizing:border-box;\n  display:grid;\n  grid-template-areas:"header" "navigation" "footer";\n  grid-template-rows:auto minmax(0,1fr) auto;' in source
+assert ".wm-sidebar-body{\n  grid-area:navigation;\n  min-width:0;\n  min-height:0;\n  overflow:hidden;\n  display:flex;\n  flex-direction:column" in source
+assert ".wm-sidebar-navigation{\n  flex:1 1 auto;\n  min-width:0;\n  min-height:0;\n  overflow-y:auto;\n  overscroll-behavior:contain" in source
 footer=source[source.index(".shell-sidebar-account-footer{"):source.index(".shell-sidebar-account-avatar",source.index(".shell-sidebar-account-footer{"))]
 assert "flex:0 0 auto;" in footer
 
