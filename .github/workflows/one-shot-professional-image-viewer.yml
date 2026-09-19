@@ -29,7 +29,7 @@ jobs:
           python tests/test_v21_chat_image_orientation_column.py
           python tests/test_v21_chat_album_viewer_column2.py
           python -m pytest tests/test_v21_desktop_three_column_minimal.py -q
-          python -m pytest tests/test_v21_chat_workspace_3col.py -q
+          python tests/test_v21_chat_workspace_3col.py
           python tools/verify_current.py
       - name: Commit built artifacts
         run: |
