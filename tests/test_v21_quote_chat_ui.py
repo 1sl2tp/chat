@@ -40,6 +40,8 @@ for needle in [
     "hang-u",
     "sua",
     "thuoc-la",
+    "sheet-1150410221",
+    "#",
     "listsources",
     "v21-quote",
     "navigator.clipboard",

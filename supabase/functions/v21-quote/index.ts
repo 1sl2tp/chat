@@ -84,17 +84,6 @@ async function activeSources(){
     .filter((row:any)=>row.source_key);
 }
 
-async function pricedSourceKeys(){
-  const result=await db.from("taphoa_products")
-    .select('source_key')
-    .eq("is_active",true)
-    .eq("sync_status","active")
-    .is("deleted_at",null)
-    .gt('sale_price_vnd',0);
-  if(result.error)throw result.error;
-  return new Set((result.data||[]).map((row:any)=>clean(row?.source_key,100)).filter(Boolean));
-}
-
 async function createQuote(req:Request){
   const admin=await requireAdmin(req);
   if(admin.error)return admin.error;
@@ -104,9 +93,7 @@ async function createQuote(req:Request){
 
   let sources;
   try{
-    const active=await activeSources();
-    const priced=await pricedSourceKeys();
-    sources=active.filter((row:any)=>priced.has(row.source_key));
+    sources=await activeSources();
   }catch{return json({ok:false,error:'source_lookup_failed'},500);}
   if(clean(body?.action,40)==='sources')return json({ok:true,sources});
 
@@ -144,7 +131,9 @@ async function createQuote(req:Request){
   if(!items.length)return json({ok:false,error:'quote_empty'},422);
 
   const usedKeys=new Set(items.map((item:any)=>clean(item?.source_key,100)).filter(Boolean));
-  const usedSources=sources.filter((row:any)=>usedKeys.has(row.source_key));
+  const usedSources=scope==='all'
+    ?sources
+    :sources.filter((row:any)=>usedKeys.has(row.source_key));
 
   const token=makeToken();
   const inserted=await db.from("chat_quote_snapshots").insert({
@@ -183,9 +172,7 @@ async function readQuote(req:Request){
 
   let sources;
   try{
-    const active=await activeSources();
-    const priced=await pricedSourceKeys();
-    sources=active.filter((row:any)=>priced.has(row.source_key));
+    sources=await activeSources();
   }catch{
     return json({ok:false,error:'source_lookup_failed'},500,{'cache-control':'no-store'});
   }
@@ -215,7 +202,9 @@ async function readQuote(req:Request){
   if(!items.length)return json({ok:false,error:'quote_empty'},404,{'cache-control':'no-store'});
 
   const usedKeys=new Set(items.map((item:any)=>clean(item?.source_key,100)).filter(Boolean));
-  const usedSources=sources.filter((row:any)=>usedKeys.has(row.source_key));
+  const usedSources=scope==='all'
+    ?sources
+    :sources.filter((row:any)=>usedKeys.has(row.source_key));
   const liveSnapshot={
     ...snapshot.data,
     item_count:items.length,

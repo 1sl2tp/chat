@@ -58,3 +58,10 @@ print("chat quote edge contract PASS")
 
 assert low.count('from("taphoa_products")') >= 2, "shared quote GET must reload current products instead of serving the stored snapshot"
 assert "select('scope,source_key,source_name,created_at')" in low, "public quote token should store scope/access metadata, not be the public price source"
+
+
+# Source catalog and price availability are separate concerns: active sources
+# must remain visible even before a price is available.
+assert "pricedsourcekeys" not in low
+assert low.count("sources=await activesources()") >= 2
+assert "scope==='all'\n    ?sources" in src
