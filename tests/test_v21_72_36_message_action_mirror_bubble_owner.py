@@ -30,7 +30,8 @@ assert "group.append(...orderedActions);" in action
 # Sender surfaces are deliberately asymmetric.
 assert ".user-message-unit>.message-text{" in source
 user=source[source.index(".user-message-unit>.message-text{"):source.index(".assistant-message-unit>.message-text{")]
-assert "background:var(--theme-surface-secondary);" in user
+assert "background:var(--theme-user-msg-bg);" in user
+assert "color:var(--theme-user-msg-text);" in user
 assert "border-radius:22px;" in user
 assert "padding:9px 13px;" in user
 
