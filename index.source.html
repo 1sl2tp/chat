@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="vi" data-theme="light" data-contrast="default">
+<html lang="vi" data-theme="light" data-contrast="default" data-chat-theme="blue" data-ds-colored-user-message-bubbles="true">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
@@ -94,7 +94,8 @@ button,textarea{font-size:16px}
   color:var(--text-tertiary);
 }
 .user-message-bubble-color{
-  background:var(--main-surface-secondary);
+  background:var(--theme-user-msg-bg);
+  color:var(--theme-user-msg-text);
 }
 .bg-token-main-surface-primary{
   background:var(--main-surface-primary);
@@ -254,7 +255,8 @@ button{
    outgoing text/link/reply uses a soft bubble; incoming stays on canvas.
    File/audio/image keep their own media containers and receive no outer bubble. */
 .user-message-unit>.message-text{
-  background:var(--theme-surface-secondary);
+  background:var(--theme-user-msg-bg);
+  color:var(--theme-user-msg-text);
   border:0;
   border-radius:22px;
   box-shadow:none;
@@ -608,7 +610,8 @@ button{
     opacity 120ms ease-out;
 }
 #composerShell[data-can-send="true"] .send-button-source{
-  background:var(--button-primary-background-color-rest);
+  background:var(--theme-submit-btn-bg);
+  color:var(--theme-submit-btn-text);
 }
 .send-button-source:disabled{
   cursor:default;
@@ -952,7 +955,8 @@ button{
   border-color:var(--composer-border);
 }
 .user-message-unit .audio-message-card{
-  background:var(--main-surface-secondary);
+  background:var(--theme-user-msg-bg);
+  color:var(--theme-user-msg-text);
   border-color:transparent;
 }
 .audio-message-play{
@@ -1037,7 +1041,8 @@ button{
   cursor:pointer;
 }
 .user-message-unit .file-message-card{
-  background:var(--main-surface-secondary);
+  background:var(--theme-user-msg-bg);
+  color:var(--theme-user-msg-text);
   border-color:transparent;
 }
 .file-message-icon{
