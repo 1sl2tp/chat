@@ -215,6 +215,46 @@ async function openQuote(contactId){
   return true;
 }
 
+function parseCredentialMessage(body,username=''){
+  const text=String(body||'');
+  if(!/^Thông tin đăng nhập TAPHOA(?: Chat)?\b/im.test(text))return null;
+  const account=String(text.match(/^Tài khoản:\s*(.+)$/im)?.[1]||'').trim().replace(/^@/,'');
+  const password=String(text.match(/^Mật khẩu:\s*(.+)$/im)?.[1]||'').trim();
+  const wanted=String(username||'').trim().replace(/^@/,'').toLowerCase();
+  if(!password)return null;
+  if(wanted&&account&&account.toLowerCase()!==wanted)return null;
+  return{username:account,password};
+}
+async function previousCredentialPassword(contactId,username){
+  const admin=currentAdmin();
+  const cache=window.V21CacheStore||null;
+  if(!admin?.id||!cache?.listMessages)return'';
+  const contact=activeContact();
+  const messageState=window.V21MessageStore?.snapshot?.()||{};
+  let conversationId=String(contact?.conversation_id||messageState.currentConversationId||'').trim();
+  if(!conversationId&&cache.getConversationId){
+    conversationId=String(await cache.getConversationId(admin.id,contactId)||'').trim();
+  }
+  if(!conversationId)return'';
+  const rows=await cache.listMessages(admin.id,conversationId,1000);
+  for(let index=rows.length-1;index>=0;index-=1){
+    const row=rows[index];
+    if(String(row?.sender_account_id||'')!==String(admin.id))continue;
+    const parsed=parseCredentialMessage(row?.body,username);
+    if(parsed?.password)return parsed.password;
+  }
+  return'';
+}
+function credentialMessage(username,password){
+  return[
+    'Thông tin đăng nhập TAPHOA',
+    `Tài khoản: ${username}`,
+    `Mật khẩu: ${password}`,
+    'Chat: https://chat.taphoa.xyz',
+    'Mua hàng: https://app.taphoa.xyz',
+  ].join('\n');
+}
+
 function closeCredentials({restoreFocus=true}={}){
   const hadOverlay=Boolean(credentialsOverlay);
   if(credentialsOverlay){credentialsOverlay.remove();credentialsOverlay=null;}
@@ -241,11 +281,11 @@ async function openCredentials(contactId){
     <div class="admin-composer-quote-card" role="dialog" aria-modal="true" aria-label="Thông tin đăng nhập">
       <h2 class="admin-composer-quote-title">Thông tin đăng nhập</h2>
       <input class="admin-composer-quote-source" data-credentials-username value="${username}" readonly aria-label="Tên đăng nhập">
-      <input class="admin-composer-quote-source" data-credentials-password type="password" autocomplete="new-password" minlength="6" maxlength="128" placeholder="Mật khẩu gửi cho khách" aria-label="Mật khẩu">
-      <p class="admin-composer-quote-status" data-credentials-status>Nhập mật khẩu. Hệ thống sẽ đặt đúng mật khẩu này rồi gửi cho khách.</p>
+      <input class="admin-composer-quote-source" data-credentials-password type="password" autocomplete="new-password" minlength="6" maxlength="128" placeholder="Để trống = dùng mật khẩu cũ" aria-label="Mật khẩu">
+      <p class="admin-composer-quote-status" data-credentials-status>Để trống để gửi lại mật khẩu cũ đã gửi. Nhập mật khẩu mới nếu muốn đổi.</p>
       <div class="admin-composer-quote-actions">
         <button type="button" class="admin-composer-quote-cancel" data-credentials-close>Hủy</button>
-        <button type="button" class="admin-composer-quote-send" data-credentials-send>Đặt mật khẩu & gửi</button>
+        <button type="button" class="admin-composer-quote-send" data-credentials-send>Gửi thông tin</button>
       </div>
     </div>`;
   root.appendChild(overlay);
@@ -262,31 +302,38 @@ async function openCredentials(contactId){
   };
   for(const button of closeButtons)button.addEventListener('click',closeCredentials);
   send.addEventListener('click',async()=>{
-    const plainPassword=String(password.value||'');
-    if(plainPassword.length<6){
+    const enteredPassword=String(password.value||'');
+    if(enteredPassword&&enteredPassword.length<6){
       status.textContent='Mật khẩu cần ít nhất 6 ký tự';
       password.focus({preventScroll:true});
       return;
     }
     setBusy(true);
-    status.textContent='Đang đặt mật khẩu và gửi…';
     try{
-      const profile=window.V21AccountProfileStore;
-      if(!profile?.adminSaveUser)throw new Error('account_profile_unavailable');
-      const result=await profile.adminSaveUser({
-        targetAccountId:String(contactId),
-        username,
-        displayName,
-        password:plainPassword,
-      });
-      if(!result?.ok)throw new Error(result?.message||'password_update_failed');
-      const text=[
-        'Thông tin đăng nhập TAPHOA Chat',
-        `Tài khoản: ${username}`,
-        `Mật khẩu: ${plainPassword}`,
-        'Đăng nhập: https://chat.taphoa.xyz',
-      ].join('\n');
-      await sendAdminText(text,contactId,'account-credentials-send');
+      let effectivePassword=enteredPassword;
+      if(enteredPassword){
+        status.textContent='Đang đặt mật khẩu mới và gửi…';
+        const profile=window.V21AccountProfileStore;
+        if(!profile?.adminSaveUser)throw new Error('account_profile_unavailable');
+        const result=await profile.adminSaveUser({
+          targetAccountId:String(contactId),
+          username,
+          displayName,
+          password:enteredPassword,
+        });
+        if(!result?.ok)throw new Error(result?.message||'password_update_failed');
+      }else{
+        status.textContent='Đang tìm mật khẩu cũ…';
+        effectivePassword=await previousCredentialPassword(contactId,username);
+        if(!effectivePassword){
+          status.textContent='Chưa có mật khẩu cũ đã gửi. Hãy nhập mật khẩu mới.';
+          setBusy(false);
+          password.focus({preventScroll:true});
+          return;
+        }
+        status.textContent='Đang gửi lại thông tin…';
+      }
+      await sendAdminText(credentialMessage(username,effectivePassword),contactId,'account-credentials-send');
       password.value='';
       closeCredentials();
       setTransientHint('Đã gửi thông tin đăng nhập');
