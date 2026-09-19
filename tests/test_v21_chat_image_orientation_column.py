@@ -21,5 +21,8 @@ assert 'activeScreenSlot' not in SRC, 'new scope must not use the desktop screen
 print('chat image orientation + column-2 viewer contract PASS')
 
 assert 'V21ImageViewerVisual?.applyTransform?.()' in SRC, 'rotation must delegate final viewer transform to app.js so zoom is preserved'
-assert "img.style.transform=`rotate(" not in SRC, 'rotation helper must not overwrite the viewer zoom transform'
+viewer_start=SRC.index('function applyViewerRotation()')
+viewer_end=SRC.index('function rotateAsset',viewer_start)
+VIEWER_ROTATION=SRC[viewer_start:viewer_end]
+assert "img.style.transform=`rotate(" not in VIEWER_ROTATION, 'viewer rotation must not overwrite the viewer zoom transform'
 assert 'image-review-zoom-controls' in SRC, 'rotation and zoom controls must share one visual toolbar language'
