@@ -53,8 +53,11 @@ async function mirrorZaloAvatar(
   if (contentType === "image/jpg") contentType = "image/jpeg";
   const ext = AVATAR_MIME_EXT[contentType];
   if (!ext) throw new Error("avatar_type_unsupported");
-  const blob = await response.blob();
-  if (blob.size < 1 || blob.size > 2 * 1024 * 1024) throw new Error("avatar_size_invalid");
+  const sourceBlob = await response.blob();
+  if (sourceBlob.size < 1 || sourceBlob.size > 2 * 1024 * 1024) throw new Error("avatar_size_invalid");
+  const blob = sourceBlob.type === contentType
+    ? sourceBlob
+    : new Blob([await sourceBlob.arrayBuffer()], { type: contentType });
 
   const storagePath = `zalo/${accountId}/${digest}.${ext}`;
   const { error: uploadError } = await admin.storage.from(AVATAR_BUCKET).upload(storagePath, blob, {

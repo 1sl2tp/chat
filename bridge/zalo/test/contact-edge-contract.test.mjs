@@ -21,6 +21,8 @@ test('contacts edge authenticates bridge token and upserts only contact fields',
   assert.match(source,/avatars_mirrored/);
   assert.match(source,/contentType === "image\/jpg"/);
   assert.match(source,/contentType = "image\/jpeg"/);
+  assert.match(source,/sourceBlob\.type === contentType/);
+  assert.match(source,/new Blob\(\[await sourceBlob\.arrayBuffer\(\)\], \{ type: contentType \}\)/);
 });
 
 

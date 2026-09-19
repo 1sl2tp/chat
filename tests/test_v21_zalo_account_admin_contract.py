@@ -25,6 +25,8 @@ def test_zalo_account_admin_backend_contract():
         'admin.storage.from(avatar_bucket).upload',
         'image/jpg',
         'image/jpeg',
+        'sourceblob.type === contenttype',
+        'new blob([await sourceblob.arraybuffer()], { type: contenttype })',
     ]:
         assert token in lower, token
 
