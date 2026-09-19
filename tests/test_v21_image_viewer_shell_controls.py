@@ -27,3 +27,6 @@ assert "image-review-zoom-value" in app
 assert "stepImageViewerZoom" in app
 assert "imageViewerZoom<2?2:Math.min(5,imageViewerZoom+.5)" in app
 assert "if(imageViewerZoom>1)resetImageViewerZoom();" not in app
+
+assert "window.matchMedia?.('(max-width:700px)')" in app
+assert "title.textContent='Xem ảnh'" in app

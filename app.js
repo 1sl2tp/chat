@@ -1465,6 +1465,13 @@ function exitImageViewerMode(){
 
 function positionImageViewerBelowHeader(){
   if(!imageViewerOverlay)return 0;
+  const compact=window.matchMedia?.('(max-width:700px)')?.matches===true;
+  if(compact){
+    imageViewerOverlay.style.setProperty('--image-viewer-top','0px');
+    imageViewerOverlay.style.setProperty('--image-viewer-left','0px');
+    imageViewerOverlay.style.setProperty('--image-viewer-right','0px');
+    return 0;
+  }
   const top=regionTop?Math.max(0,regionTop.getBoundingClientRect().bottom):0;
   const host=stageLayout||document.getElementById('threadContent');
   const rect=host?.getBoundingClientRect?.()||null;
@@ -1911,7 +1918,7 @@ function ensureImageViewer(){
   heading.className='image-review-heading';
   const title=document.createElement('div');
   title.className='image-review-title';
-  title.textContent='Xem lại ảnh';
+  title.textContent='Xem ảnh';
   const counter=document.createElement('div');
   counter.className='image-review-count';
   heading.append(title,counter);

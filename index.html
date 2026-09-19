@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="ba381cc64561a8d9b1e8caf9379b698d94ca1cbbb0f6328991b0551754021aca">
+<meta name="app-build-id" content="f61b866c245c780df5623c7d492ffe4abe0bf3ab126307e3c850acc086ce4556">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -2348,6 +2348,237 @@ button{
   .image-review-menu{right:0;left:auto;max-width:min(14rem,calc(100vw - 1.25rem));}
   .image-review-thumb{width:3.875rem;height:3.25rem;}
   .image-review-meta{bottom:.55rem;max-width:calc(100% - 6rem);}
+}
+
+/* V21 image viewer redesign — gallery-first, iOS/Photos inspired */
+.image-viewer-overlay{
+  background:#050506;
+}
+.image-review{
+  position:relative;
+  isolation:isolate;
+  background:
+    radial-gradient(circle at 50% 42%,rgba(42,48,58,.34),rgba(8,9,11,.08) 42%,transparent 66%),
+    #070708;
+}
+.image-review-head{
+  position:absolute;
+  inset:0 0 auto 0;
+  z-index:8;
+  min-height:4.5rem;
+  padding:.75rem 1rem;
+  border:0;
+  background:linear-gradient(180deg,rgba(6,7,9,.92) 0%,rgba(6,7,9,.62) 58%,transparent 100%);
+  pointer-events:none;
+}
+.image-review-heading,
+.image-review-head .image-review-control,
+.image-review-head .chat-image-viewer-rotate-controls,
+.image-review-head .image-review-zoom-controls{
+  pointer-events:auto;
+}
+.image-review-title{
+  font-size:1rem;
+  font-weight:700;
+  letter-spacing:-.01em;
+}
+.image-review-count{
+  color:rgba(255,255,255,.58);
+  font-weight:500;
+}
+.image-review-close{
+  margin-left:.25rem;
+  background:rgba(26,27,30,.74);
+  border-color:rgba(255,255,255,.16);
+  box-shadow:0 6px 18px rgba(0,0,0,.24),inset 0 0 0 1px rgba(255,255,255,.04);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+}
+.image-review-main{
+  padding:5.25rem 4.75rem 8rem;
+  background:transparent;
+}
+.image-review-image{
+  border-radius:.4rem;
+  background:#0b0b0c;
+  box-shadow:0 18px 60px rgba(0,0,0,.34);
+}
+.image-review-nav{
+  width:2.75rem;
+  height:2.75rem;
+  background:rgba(24,25,28,.62);
+  border-color:rgba(255,255,255,.17);
+  box-shadow:0 8px 24px rgba(0,0,0,.22);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+}
+.image-review-prev{left:1rem;}
+.image-review-next{right:1rem;}
+.image-review-meta{
+  bottom:6.2rem;
+  background:rgba(12,12,13,.64);
+  color:rgba(255,255,255,.68);
+  border:1px solid rgba(255,255,255,.08);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+}
+.image-review-bottom{
+  position:absolute;
+  z-index:7;
+  left:0;
+  right:0;
+  bottom:0;
+  min-height:6rem;
+  padding:.45rem 1rem calc(.7rem + env(safe-area-inset-bottom,0px));
+  border:0;
+  background:linear-gradient(0deg,rgba(6,7,9,.94) 0%,rgba(6,7,9,.70) 58%,transparent 100%);
+  pointer-events:none;
+}
+.image-review-bottom>*{pointer-events:auto;}
+.image-review-filters{
+  order:2;
+  min-height:2.5rem;
+}
+.image-review-thumbs{
+  order:1;
+  justify-content:center;
+  max-width:min(34rem,calc(100% - 7rem));
+  margin:0 auto;
+  gap:.38rem;
+}
+.image-review-thumb{
+  width:3.45rem;
+  height:3.05rem;
+  border-radius:.55rem;
+  border:2px solid transparent;
+  background:#111214;
+  opacity:.55;
+  transition:opacity .14s ease,transform .14s ease,border-color .14s ease;
+}
+.image-review-thumb[aria-current="true"]{
+  border-color:#0a84ff;
+  opacity:1;
+  transform:translateY(-2px);
+}
+.image-review-filter-scroll{
+  opacity:.7;
+}
+.image-review-chip{
+  background:rgba(20,21,24,.48);
+  border-color:rgba(255,255,255,.14);
+  color:rgba(255,255,255,.65);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+}
+.image-review-chip[aria-current="true"]{
+  background:rgba(255,255,255,.14);
+  color:#fff;
+  border-color:rgba(255,255,255,.26);
+}
+.image-review-more{
+  background:rgba(24,25,28,.66);
+  border-color:rgba(255,255,255,.16);
+}
+.image-review-menu{
+  background:rgba(24,25,28,.94);
+  border-color:rgba(255,255,255,.12);
+  box-shadow:0 18px 48px rgba(0,0,0,.42);
+  backdrop-filter:blur(22px);
+  -webkit-backdrop-filter:blur(22px);
+}
+
+@media (max-width:700px){
+  .image-viewer-overlay{
+    top:0!important;
+    right:0!important;
+    bottom:0!important;
+    left:0!important;
+    width:100vw;
+    height:100dvh;
+    z-index:120;
+  }
+  .image-review-head{
+    min-height:calc(4rem + env(safe-area-inset-top,0px));
+    padding:calc(.55rem + env(safe-area-inset-top,0px)) .75rem .8rem;
+    gap:.5rem;
+  }
+  .image-review-heading{
+    gap:.08rem;
+    padding-left:.15rem;
+  }
+  .image-review-title{font-size:.95rem;}
+  .image-review-count{font-size:.69rem;}
+  .image-review-close{
+    width:2.35rem;
+    height:2.35rem;
+    flex-basis:2.35rem;
+  }
+  .image-review-main{
+    padding:
+      calc(4.75rem + env(safe-area-inset-top,0px))
+      .75rem
+      calc(8.65rem + env(safe-area-inset-bottom,0px));
+  }
+  .image-review-image{
+    max-width:100%;
+    max-height:100%;
+    border-radius:.28rem;
+    box-shadow:none;
+  }
+  .image-review-nav{
+    width:2.45rem;
+    height:2.45rem;
+    flex-basis:2.45rem;
+    background:rgba(18,19,21,.54);
+  }
+  .image-review-prev{left:.4rem;}
+  .image-review-next{right:.4rem;}
+  .image-review-meta{
+    bottom:calc(7.25rem + env(safe-area-inset-bottom,0px));
+    max-width:calc(100% - 3rem);
+    padding:.28rem .5rem;
+    font-size:.62rem;
+    line-height:.9rem;
+    background:rgba(0,0,0,.42);
+  }
+  .image-review-bottom{
+    min-height:calc(7rem + env(safe-area-inset-bottom,0px));
+    padding:.35rem .7rem calc(.55rem + env(safe-area-inset-bottom,0px));
+    gap:.35rem;
+  }
+  .image-review-thumbs{
+    justify-content:flex-start;
+    max-width:100%;
+    margin:0;
+    padding-inline:.1rem;
+    gap:.32rem;
+  }
+  .image-review-thumb{
+    width:3rem;
+    height:2.72rem;
+    border-radius:.45rem;
+  }
+  .image-review-filters{
+    position:relative;
+    min-height:2.55rem;
+    justify-content:flex-end;
+  }
+  .image-review-filter-scroll{
+    display:none;
+  }
+  .image-review-tools{
+    margin-left:auto;
+  }
+  .image-review-more{
+    width:2.4rem;
+    height:2.4rem;
+    flex-basis:2.4rem;
+  }
+  .image-review-menu{
+    right:0;
+    bottom:calc(100% + .45rem);
+    max-width:min(15rem,calc(100vw - 1.4rem));
+  }
 }
 
 .composer-icon-button{
@@ -6852,6 +7083,13 @@ function exitImageViewerMode(){
 
 function positionImageViewerBelowHeader(){
   if(!imageViewerOverlay)return 0;
+  const compact=window.matchMedia?.('(max-width:700px)')?.matches===true;
+  if(compact){
+    imageViewerOverlay.style.setProperty('--image-viewer-top','0px');
+    imageViewerOverlay.style.setProperty('--image-viewer-left','0px');
+    imageViewerOverlay.style.setProperty('--image-viewer-right','0px');
+    return 0;
+  }
   const top=regionTop?Math.max(0,regionTop.getBoundingClientRect().bottom):0;
   const host=stageLayout||document.getElementById('threadContent');
   const rect=host?.getBoundingClientRect?.()||null;
@@ -7298,7 +7536,7 @@ function ensureImageViewer(){
   heading.className='image-review-heading';
   const title=document.createElement('div');
   title.className='image-review-title';
-  title.textContent='Xem lại ảnh';
+  title.textContent='Xem ảnh';
   const counter=document.createElement('div');
   counter.className='image-review-count';
   heading.append(title,counter);
@@ -12396,6 +12634,32 @@ function installStyle(){
       .chat-image-viewer-rotate-controls button,.image-review-zoom-button{width:30px;height:30px}
       .image-review-zoom-controls{margin-left:5px;margin-right:5px}
       .image-review-zoom-value{width:40px;font-size:10px}
+    }
+    .image-review .chat-image-viewer-rotate-controls,
+    .image-review .image-review-zoom-controls{
+      border-color:rgba(255,255,255,.14);
+      background:rgba(24,25,28,.66);
+      box-shadow:0 8px 24px rgba(0,0,0,.18);
+      backdrop-filter:blur(16px);
+      -webkit-backdrop-filter:blur(16px);
+    }
+    @media(max-width:700px){
+      .image-review .chat-image-viewer-rotate-controls{
+        position:fixed;
+        z-index:125;
+        left:50%;
+        bottom:calc(.62rem + env(safe-area-inset-bottom,0px));
+        transform:translateX(-7.15rem);
+        margin:0;
+      }
+      .image-review .image-review-zoom-controls{
+        position:fixed;
+        z-index:125;
+        left:50%;
+        bottom:calc(.62rem + env(safe-area-inset-bottom,0px));
+        transform:translateX(-3.15rem);
+        margin:0;
+      }
     }
   `;
   document.head.appendChild(style);

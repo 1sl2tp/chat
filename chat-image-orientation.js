@@ -66,6 +66,32 @@ function installStyle(){
       .image-review-zoom-controls{margin-left:5px;margin-right:5px}
       .image-review-zoom-value{width:40px;font-size:10px}
     }
+    .image-review .chat-image-viewer-rotate-controls,
+    .image-review .image-review-zoom-controls{
+      border-color:rgba(255,255,255,.14);
+      background:rgba(24,25,28,.66);
+      box-shadow:0 8px 24px rgba(0,0,0,.18);
+      backdrop-filter:blur(16px);
+      -webkit-backdrop-filter:blur(16px);
+    }
+    @media(max-width:700px){
+      .image-review .chat-image-viewer-rotate-controls{
+        position:fixed;
+        z-index:125;
+        left:50%;
+        bottom:calc(.62rem + env(safe-area-inset-bottom,0px));
+        transform:translateX(-7.15rem);
+        margin:0;
+      }
+      .image-review .image-review-zoom-controls{
+        position:fixed;
+        z-index:125;
+        left:50%;
+        bottom:calc(.62rem + env(safe-area-inset-bottom,0px));
+        transform:translateX(-3.15rem);
+        margin:0;
+      }
+    }
   `;
   document.head.appendChild(style);
 }
