@@ -407,3 +407,38 @@
     font-size:.62rem!important;
   }
 }
+
+
+/* V21.72.50 multi-image reference polish */
+#appShell[data-auth-state="authenticated"] .attachment-image-chip{
+  width:4.25rem!important;
+  height:4.25rem!important;
+  border-radius:12px!important;
+}
+#appShell[data-auth-state="authenticated"] .attachment-image-remove{
+  width:2rem!important;
+  height:2rem!important;
+  top:-.15rem!important;
+  right:-.15rem!important;
+}
+#appShell[data-auth-state="authenticated"] .attachment-image-remove::before{
+  width:1.35rem!important;
+  height:1.35rem!important;
+}
+#appShell[data-auth-state="authenticated"] #attachmentTray{
+  gap:.5rem!important;
+  padding-top:.4rem!important;
+  padding-bottom:.35rem!important;
+  overscroll-behavior-x:contain;
+  scrollbar-width:none;
+}
+#appShell[data-auth-state="authenticated"] #attachmentTray::-webkit-scrollbar{display:none;}
+@media (max-width:520px){
+  .media-gallery-grid{
+    width:min(22rem,100%)!important;
+    max-width:88vw!important;
+    gap:3px!important;
+    border-radius:16px!important;
+  }
+  .media-gallery-grid .media-image-tile{border-radius:10px!important;}
+}

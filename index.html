@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="d2f90dd68dc4478338b904c331a29b63538774d95e0760ee4c79f0fca89f726e">
+<meta name="app-build-id" content="d77d9244f7aa3f6e1ebda91c46e963d61c483fe171b4bac8045dc9177110703f">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -626,6 +626,41 @@
     border-color:rgba(255,255,255,.06)!important;
     font-size:.62rem!important;
   }
+}
+
+
+/* V21.72.50 multi-image reference polish */
+#appShell[data-auth-state="authenticated"] .attachment-image-chip{
+  width:4.25rem!important;
+  height:4.25rem!important;
+  border-radius:12px!important;
+}
+#appShell[data-auth-state="authenticated"] .attachment-image-remove{
+  width:2rem!important;
+  height:2rem!important;
+  top:-.15rem!important;
+  right:-.15rem!important;
+}
+#appShell[data-auth-state="authenticated"] .attachment-image-remove::before{
+  width:1.35rem!important;
+  height:1.35rem!important;
+}
+#appShell[data-auth-state="authenticated"] #attachmentTray{
+  gap:.5rem!important;
+  padding-top:.4rem!important;
+  padding-bottom:.35rem!important;
+  overscroll-behavior-x:contain;
+  scrollbar-width:none;
+}
+#appShell[data-auth-state="authenticated"] #attachmentTray::-webkit-scrollbar{display:none;}
+@media (max-width:520px){
+  .media-gallery-grid{
+    width:min(22rem,100%)!important;
+    max-width:88vw!important;
+    gap:3px!important;
+    border-radius:16px!important;
+  }
+  .media-gallery-grid .media-image-tile{border-radius:10px!important;}
 }
 
 </style>
