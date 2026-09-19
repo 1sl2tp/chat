@@ -88,7 +88,9 @@ assert 'data-build-source="admin-composer-actions.js"' in source
 assert "import('./quote-client.js')" not in directory
 assert "import('./admin-composer-actions.js')" not in quote
 assert "action:'credentials'" in actions
-assert 'Đặt mật khẩu & gửi' in actions
+assert 'Gửi thông tin' in actions
+assert 'Để trống = dùng mật khẩu cũ' in actions
+assert 'Đặt mật khẩu & gửi' not in actions
 assert 'account-credentials-send' in actions
 subprocess.run(["node", "--check", str(ACTIONS)], check=True)
 print("chat quote + Admin composer actions contract PASS")
