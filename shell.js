@@ -34,6 +34,7 @@ let callPendingAction=null;
 let callTerminalNotice=null;
 let callTerminalNoticeTimer=0;
 let unreadCount=0;
+let accountMenuOpen=false;
 
 function interactionController(){
   return window.V21InteractionController||null;
@@ -214,7 +215,44 @@ if(typeof desktopWorkspaceMedia.addEventListener==='function'){
   desktopWorkspaceMedia.addListener(syncDesktopWorkspaceMode);
 }
 
+function accountMenuElements(){
+  const footer=document.querySelector('[data-sidebar-account-footer]');
+  return{
+    footer,
+    menu:footer?.querySelector?.('[data-account-menu]')||null,
+    trigger:footer?.querySelector?.('[data-account-self-edit]')||null
+  };
+}
+
+function closeAccountMenu({restoreFocus=false}={}){
+  if(!accountMenuOpen)return false;
+  const {footer,menu,trigger}=accountMenuElements();
+  accountMenuOpen=false;
+  if(footer)footer.dataset.menuOpen='false';
+  if(menu)menu.hidden=true;
+  if(trigger)trigger.setAttribute('aria-expanded','false');
+  if(restoreFocus&&trigger?.isConnected){try{trigger.focus({preventScroll:true});}catch{}}
+  return true;
+}
+
+function openAccountMenu(){
+  if(authState!=='AUTHENTICATED')return false;
+  const {footer,menu,trigger}=accountMenuElements();
+  if(!footer||!menu||!trigger)return false;
+  accountMenuOpen=true;
+  footer.dataset.menuOpen='true';
+  menu.hidden=false;
+  trigger.setAttribute('aria-expanded','true');
+  window.setTimeout(()=>menu.querySelector('button:not([hidden])')?.focus?.({preventScroll:true}),0);
+  return true;
+}
+
+function toggleAccountMenu(){
+  return accountMenuOpen?closeAccountMenu({restoreFocus:true}):openAccountMenu();
+}
+
 function setSidebar(open){
+  if(!open)closeAccountMenu(); 
   if(desktopSidebarPersistent){
     sidebarOpen=false;
     syncSidebarPresentation();
@@ -1308,8 +1346,15 @@ const AuthUI={
     const action=footer.querySelector('[data-auth-command]');
     const actionLabel=footer.querySelector('[data-account-action-label]');
     const selfButtons=[...footer.querySelectorAll('[data-account-self-edit]')];
+    const profileItem=footer.querySelector('[data-account-menu-profile]');
+    const settingsItem=footer.querySelector('[data-account-menu-settings]');
+    const logoutItem=footer.querySelector('[data-account-menu-logout]');
     const authenticated=authState==='AUTHENTICATED'&&authAccount;
     footer.dataset.state=authenticated?'authenticated':'guest';
+    if(settingsItem)settingsItem.hidden=!(authenticated&&authAccount?.role==='admin');
+    if(profileItem)profileItem.hidden=!authenticated;
+    if(logoutItem)logoutItem.hidden=!authenticated;
+    if(!authenticated)closeAccountMenu();
     if(authenticated){
       if(name)name.textContent=String(authAccount.display_name||authAccount.username||'Tài khoản');
       if(handle)handle.textContent=authAccount.username?`@${String(authAccount.username).replace(/^@/,'')}`:'';
@@ -1482,10 +1527,36 @@ document.addEventListener('click',event=>{
 
   const selfEdit=target.closest('[data-account-self-edit]');
   if(selfEdit){
-    if(authState==='AUTHENTICATED')openSelfProfile();
+    if(authState==='AUTHENTICATED')toggleAccountMenu();
     else AuthUI.openLogin();
     return;
   }
+
+  const accountProfile=target.closest('[data-account-menu-profile]');
+  if(accountProfile){
+    closeAccountMenu();
+    openSelfProfile();
+    return;
+  }
+
+  const accountSettings=target.closest('[data-account-menu-settings]');
+  if(accountSettings){
+    closeAccountMenu();
+    const existing=document.querySelector('[data-zalo-account-admin-open]');
+    if(existing instanceof HTMLElement){existing.click();return;}
+    window.V21ZaloAccountAdmin?.open?.();
+    return;
+  }
+
+  const accountLogout=target.closest('[data-account-menu-logout]');
+  if(accountLogout){
+    closeAccountMenu();
+    window.V21InteractionController?.forceReset?.('logout');
+    window.V21AuthSessionStore?.logout?.();
+    return;
+  }
+
+  if(accountMenuOpen&&!target.closest('[data-sidebar-account-footer]'))closeAccountMenu();
 
   const manage=target.closest('[data-contact-manage]');
   if(manage){
@@ -1578,6 +1649,7 @@ document.addEventListener('input',event=>{
 document.addEventListener('keydown',event=>{
   if(event.key!=='Escape')return;
   if(profileOverlay){closeProfileEditor();return;}
+  if(accountMenuOpen){event.preventDefault();closeAccountMenu({restoreFocus:true});return;}
   if(sidebarOpen)setSidebar(false);
 });
 
