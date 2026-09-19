@@ -2,7 +2,7 @@
 const RELEASE_VERSION='V21.72.39';
 const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION;
-const SHELL=['./','./manifest.webmanifest','./icons/chat-app-180-v2.png','./icons/chat-app-192-v2.png','./icons/chat-app-512-v2.png','./icons/chat-maskable-512-v2.png'];
+const SHELL=['./','./manifest.webmanifest','./icons/chat-app-180-v3.png','./icons/chat-app-192-v3.png','./icons/chat-app-512-v3.png','./icons/chat-maskable-512-v3.png'];
 const adminPushClientState=new Map();
 let adminPushBadgeCount=0;
 
@@ -75,8 +75,8 @@ self.addEventListener('push',event=>{
 
     await self.registration.showNotification(String(payload.title||'TAPHOA Chat'),{
       body:String(payload.body||(kind==='call_invite'?'Cuộc gọi đến':'Tin nhắn mới')),
-      icon:String(payload.icon||'./icons/chat-app-192-v2.png'),
-      badge:'./icons/chat-app-192-v2.png',
+      icon:String(payload.icon||'./icons/chat-app-192-v3.png'),
+      badge:'./icons/chat-app-192-v3.png',
       tag:String(payload.tag||(kind==='call_invite'?`call-invite:${inviteId}`:`chat:${conversationId}`)),
       renotify:true,
       data:{
