@@ -15,11 +15,12 @@ def test_desktop_directory_search_is_pulled_into_the_title_cluster():
     assert f'{owner}.wm-sidebar-body{{padding-top:0!important}}' in css
 
 
-def test_desktop_chat_header_reads_as_chat_plus_selected_contact():
+def test_desktop_chat_header_uses_selected_contact_without_duplicate_mode_label():
     css = compact(CSS)
     owner = '#appShell[data-auth-state="authenticated"][data-desktop-workspace="true"]#regionTop'
-    assert f'{owner}[data-top-tab="chat"]::before{{content:"Tròchuyện"' in css
-    assert f'{owner}.top-mode-switch{{background:transparent!important' in css
+    assert f'{owner}[data-top-tab="chat"]::before{{content:none!important' in css
+    assert f'{owner}[data-top-tab="work"]{{display:none!important;}}' in css
+    assert f'{owner}.top-mode-switch{{width:auto!important' in css
     assert f'{owner}.top-mode-contact-avatar{{display:none!important;}}' in css
 
 
