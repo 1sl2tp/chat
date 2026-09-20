@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="652e6e825644a1f63a3336d5f349297fb7b5f561d5a0589e52e413983f104b04">
+<meta name="app-build-id" content="b5cb8b5965171884f5f86ee5c6082f6ec83773b2c45cc2ac7de809bbcaad4c52">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1085,6 +1085,11 @@
   }
   .mobile-account-menu-row+.mobile-account-menu-row{
     border-top:1px solid color-mix(in srgb,var(--theme-border-default) 70%,transparent);
+  }
+  .mobile-account-menu-row:hover,
+  .mobile-account-menu-row:focus-visible{
+    background:var(--theme-action-ghost-surface-hover);
+    outline:none;
   }
   .mobile-account-menu-row:active{
     background:var(--theme-surface-secondary);
@@ -16268,11 +16273,35 @@ function restoreConversationFromWork(reason='work-back'){
   return true;
 }
 
-function closeMobileAccountMenu(){
-  if(!mobileAccountMenu)return false;
+function mobileAccountMenuTrigger(){
+  return document.querySelector('[data-shell-command="sidebar.open"]');
+}
+
+function syncMobileAccountMenuTrigger(open){
+  const trigger=mobileAccountMenuTrigger();
+  if(!trigger)return false;
+  trigger.setAttribute('aria-haspopup','menu');
+  trigger.setAttribute('aria-controls','mobileAccountMenuPanel');
+  trigger.setAttribute('aria-expanded',String(Boolean(open)));
+  return true;
+}
+
+function closeMobileAccountMenu({restoreFocus=false}={}){
+  if(!mobileAccountMenu){
+    syncMobileAccountMenuTrigger(false);
+    return false;
+  }
+  const wasOpen=mobileAccountMenu.dataset.open==='true'&&!mobileAccountMenu.hidden;
   mobileAccountMenu.dataset.open='false';
   mobileAccountMenu.hidden=true;
-  return true;
+  syncMobileAccountMenuTrigger(false);
+  if(restoreFocus&&wasOpen){
+    const trigger=mobileAccountMenuTrigger();
+    if(trigger instanceof HTMLElement&&trigger.isConnected){
+      trigger.focus({preventScroll:true});
+    }
+  }
+  return wasOpen;
 }
 
 function ensureMobileAccountMenu(){
@@ -16286,7 +16315,7 @@ function ensureMobileAccountMenu(){
   wrap.hidden=true;
   wrap.innerHTML=`
     <button type="button" class="mobile-account-menu-backdrop" data-mobile-account-close aria-label="Đóng menu"></button>
-    <div class="mobile-account-menu-panel" role="menu" aria-label="Tài khoản">
+    <div id="mobileAccountMenuPanel" class="mobile-account-menu-panel" role="menu" aria-label="Tài khoản">
       <button type="button" class="mobile-account-menu-row" role="menuitem" data-mobile-account-action="directory">Danh bạ</button>
       <button type="button" class="mobile-account-menu-row" role="menuitem" data-mobile-account-action="account">Tài khoản</button>
       <button type="button" class="mobile-account-menu-row" role="menuitem" data-mobile-account-action="settings">Cài đặt</button>
@@ -16296,7 +16325,7 @@ function ensureMobileAccountMenu(){
     const target=event.target instanceof Element?event.target:null;
     if(!target)return;
     if(target.closest('[data-mobile-account-close]')){
-      closeMobileAccountMenu();
+      closeMobileAccountMenu({restoreFocus:true});
       return;
     }
     const action=target.closest('[data-mobile-account-action]')?.getAttribute('data-mobile-account-action')||'';
@@ -16323,6 +16352,7 @@ function ensureMobileAccountMenu(){
   });
   host.appendChild(wrap);
   mobileAccountMenu=wrap;
+  syncMobileAccountMenuTrigger(false);
   return wrap;
 }
 
@@ -16339,7 +16369,18 @@ function openMobileAccountMenu(){
   if(!menu)return false;
   menu.hidden=false;
   menu.dataset.open='true';
+  syncMobileAccountMenuTrigger(true);
+  window.setTimeout(()=>{
+    menu.querySelector('[role="menuitem"]')?.focus?.({preventScroll:true});
+  },0);
   return true;
+}
+
+function toggleMobileAccountMenu(){
+  if(mobileAccountMenu?.dataset.open==='true'&&!mobileAccountMenu.hidden){
+    return closeMobileAccountMenu({restoreFocus:true});
+  }
+  return openMobileAccountMenu();
 }
 
 function swipeIgnoredTarget(target){
@@ -16467,6 +16508,12 @@ function handleMobileTopTabTap(key){
 }
 
 function bindMobileNavigationClicks(){
+  document.addEventListener('keydown',event=>{
+    if(event.key!=='Escape'||mobileAccountMenu?.dataset.open!=='true')return;
+    event.preventDefault();
+    closeMobileAccountMenu({restoreFocus:true});
+  });
+
   document.addEventListener('click',event=>{
     if(!mobileDirectoryAllowed())return;
     const target=event.target instanceof Element?event.target:null;
@@ -16476,7 +16523,7 @@ function bindMobileNavigationClicks(){
     if(hamburger){
       event.preventDefault();
       event.stopImmediatePropagation();
-      openMobileAccountMenu();
+      toggleMobileAccountMenu();
       return;
     }
 
