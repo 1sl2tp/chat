@@ -22,9 +22,9 @@ assert 'margin-inline-end:auto;' in rule
 # Retire the ineffective padding subtraction that lost to chat-content-axis !important.
 assert 'padding-inline-end:var(--desktop-work-width);' not in rule
 
-# Existing 3-column owner variables and Work separation remain intact.
-assert '--desktop-chat-width:clamp(520px,40vw,640px);' in desktop
-assert '--desktop-work-width:calc(100% - var(--desktop-chat-width));' in desktop
+# The wide-desktop owner now bounds Work and lets Chat take the remainder.
+assert '--desktop-work-width:clamp(360px,30vw,400px);' in desktop
+assert '--desktop-chat-width:calc(100% - var(--desktop-work-width));' in desktop
 assert '#threadContent{' in desktop
 assert 'padding-inline-end:var(--desktop-work-width);' in desktop
 assert '#workThreadView{' in desktop

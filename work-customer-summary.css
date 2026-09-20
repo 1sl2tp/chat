@@ -554,6 +554,31 @@
   }
   .work-summary-item::before{left:6px;}
 }
+@media(min-width:80rem) and (hover:hover) and (pointer:fine){
+  .work-summary-detail-header{
+    min-height:58px;
+    padding:10px 14px;
+    gap:10px;
+  }
+  .work-summary-detail-header .work-summary-header-title{
+    gap:6px;
+  }
+  .work-summary-all{
+    min-height:32px;
+    padding-inline:11px;
+  }
+  .work-summary-item{
+    --work-summary-check-size:32px;
+    min-height:42px;
+    gap:8px;
+    padding:5px 12px 5px 34px;
+  }
+  .work-summary-item::before{
+    left:4px;
+    width:24px;
+  }
+}
+
 @media(hover:none),(pointer:coarse){
   .work-summary-item{--work-summary-check-size:44px;}
 }

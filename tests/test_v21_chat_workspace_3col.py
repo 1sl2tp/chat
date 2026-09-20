@@ -43,8 +43,8 @@ assert "DESKTOP_WORKSPACE_QUERY='(min-width: 80rem)" in SHELL, '3-column workspa
 assert '@media(min-width:64rem)' in SOURCE.replace(' ', ''), 'persistent directory CSS must match the 64rem runtime breakpoint'
 assert '@media(min-width:80rem)' in SOURCE.replace(' ', ''), 'three-column CSS must match the 80rem runtime breakpoint'
 assert "--desktop-directory-width:clamp(300px,26vw,340px)" in SOURCE
-assert "--desktop-chat-width:clamp(520px,40vw,640px)" in SOURCE, 'wide desktop chat column must no longer collapse to ~420px'
-assert "--desktop-work-width:calc(100% - var(--desktop-chat-width))" in SOURCE
+assert "--desktop-work-width:clamp(360px,30vw,400px)" in SOURCE, 'work stays useful without stealing the primary chat surface'
+assert "--desktop-chat-width:calc(100% - var(--desktop-work-width))" in SOURCE, 'chat owns the remainder of the active desktop surface'
 
 # Active customer identity must hug its content instead of occupying a fixed share
 # of the 260px mode switch. Short names stay short; long names cap then ellipsize.

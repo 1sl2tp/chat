@@ -40,6 +40,7 @@ def test_layout_owners_distinguish_mobile_desktop_and_wide_desktop():
     assert '@media(min-width:64rem)and(hover:hover)and(pointer:fine)' in compact_source
     assert 'grid-template-columns:var(--desktop-directory-width)minmax(0,1fr)' in compact_source
     assert '@media(min-width:80rem)and(hover:hover)and(pointer:fine)' in compact_source
-    assert '--desktop-chat-width:clamp(520px,40vw,640px)' in compact_source
+    assert '--desktop-work-width:clamp(360px,30vw,400px)' in compact_source
+    assert '--desktop-chat-width:calc(100%-var(--desktop-work-width))' in compact_source
     assert '#shellNavigationLayer{position:fixed;inset:0' in compact_source
     assert '.wm-sidebar-sidebar{box-sizing:border-box;display:grid;grid-template-areas:"header""navigation""footer";grid-template-rows:autominmax(0,1fr)auto' in compact_source

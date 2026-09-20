@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="30337ebbf925cedcea1f02c3cc9d9d3ca93760c4e57c275962b3a39d0d681243">
+<meta name="app-build-id" content="835a441d98164783779c05d9ae39a4ca88f8bf6c3981745388d5336895f0130e">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -478,6 +478,32 @@
   #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #workThreadView .work-thread-empty{display:none!important}
 }
 
+
+/* Wide-desktop density: chat remains the primary working surface.
+   Keep the composer compact, preserve a visible gap above it, and let media
+   share one stable edge/width instead of sizing each image independently. */
+@media (min-width:80rem) and (hover:hover) and (pointer:fine){
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #editorWrap{
+    padding-top:4px!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #editor{
+    padding-top:6px!important;
+    padding-bottom:5px!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #composerFooter{
+    min-height:40px!important;
+    padding-bottom:4px!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] .composer-source-frame{
+    margin-bottom:16px;
+  }
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] .composer-shell-source{
+    border-radius:24px;
+  }
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #messageWindow{
+    padding-bottom:28px;
+  }
+}
 
 /* Stable-baseline mobile viewer reference: isolated narrow-screen polish. */
 @media (max-width:700px){
@@ -1186,6 +1212,31 @@
   }
   .work-summary-item::before{left:6px;}
 }
+@media(min-width:80rem) and (hover:hover) and (pointer:fine){
+  .work-summary-detail-header{
+    min-height:58px;
+    padding:10px 14px;
+    gap:10px;
+  }
+  .work-summary-detail-header .work-summary-header-title{
+    gap:6px;
+  }
+  .work-summary-all{
+    min-height:32px;
+    padding-inline:11px;
+  }
+  .work-summary-item{
+    --work-summary-check-size:32px;
+    min-height:42px;
+    gap:8px;
+    padding:5px 12px 5px 34px;
+  }
+  .work-summary-item::before{
+    left:4px;
+    width:24px;
+  }
+}
+
 @media(hover:none),(pointer:coarse){
   .work-summary-item{--work-summary-check-size:44px;}
 }
@@ -2206,10 +2257,18 @@ button{
   overflow:hidden;
   background:var(--theme-surface-secondary);
 }
+#messageWindow .message-unit>.media-image-tile,
+#messageWindow .message-unit>.media-gallery-grid{
+  width:22.5rem!important;
+  max-width:100%;
+  box-sizing:border-box;
+}
 .user-message-unit>.media-gallery-grid{margin-left:auto}
 .assistant-message-unit>.media-gallery-grid{margin-right:auto}
 .user-message-unit>.media-image-tile[data-image-presentation]{margin-left:auto}
 .assistant-message-unit>.media-image-tile[data-image-presentation]{margin-right:auto}
+.user-message-unit>.media-image-tile{margin-left:auto}
+.assistant-message-unit>.media-image-tile{margin-right:auto}
 .media-gallery-grid .media-image-tile{
   min-width:0;
   min-height:0;
@@ -4189,8 +4248,8 @@ button{
    Narrow/mobile keeps the existing one-view-at-a-time route model. */
 @media (min-width:80rem) and (hover:hover) and (pointer:fine){
   #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"]{
-    --desktop-chat-width:clamp(520px,40vw,640px);
-    --desktop-work-width:calc(100% - var(--desktop-chat-width));
+    --desktop-work-width:clamp(360px,30vw,400px);
+    --desktop-chat-width:calc(100% - var(--desktop-work-width));
   }
   #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #threadContent{
     box-sizing:border-box;
