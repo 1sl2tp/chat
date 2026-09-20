@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="1c2d644ea5201cab5743b696ddd8673768c5d870933103a9319b313b58524b51">
+<meta name="app-build-id" content="c28f3836d800337f9fe582505a85fe3e285110bc030bd42580ac4fc39b3af757">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -753,10 +753,24 @@
   border-top:1px solid color-mix(in srgb,var(--theme-border-default) 70%,transparent);
 }
 .work-summary-customer{
+  width:100%;
+  padding:0;
   background:var(--theme-surface-primary);
   border:0;
   border-radius:0;
   overflow:visible;
+  color:inherit;
+  font:inherit;
+  text-align:inherit;
+  cursor:pointer;
+  touch-action:manipulation;
+}
+.work-summary-customer:hover{
+  background:var(--theme-action-ghost-surface-hover);
+}
+.work-summary-customer:focus-visible{
+  outline:2px solid color-mix(in srgb,var(--theme-content-primary) 24%,transparent);
+  outline-offset:-2px;
 }
 .work-summary-overview-row{
   padding:0;
@@ -780,15 +794,12 @@
   overflow:hidden;
   text-overflow:ellipsis;
   white-space:nowrap;
-  border:0;
-  background:transparent;
   color:inherit;
   text-align:left;
   font-family:inherit;
   font-size:13px;
   line-height:18px;
   font-weight:600;
-  cursor:pointer;
 }
 .work-summary-overview-code,
 .work-summary-overview-product{
@@ -16548,14 +16559,14 @@ function renderShell(message,kind='muted'){
 function renderOverviewRow(summary,index){
   const row=summary.row||{};
   const customerId=String(row.customer_id||'');
-  const card=node('div','work-summary-overview-row work-summary-customer work-summary-overview-grid-row');
+  const customerName=row.display_name||row.username||'Khách hàng';
+  const card=node('button','work-summary-overview-row work-summary-customer work-summary-overview-grid-row');
+  card.type='button';
   card.dataset.customerId=customerId;
+  card.dataset.workSummaryCustomer=customerId;
+  card.setAttribute('aria-label',`Mở công việc của ${customerName}`);
   card.append(node('span','work-summary-overview-index',String(index+1)));
-  const name=node('button','work-summary-overview-name',row.display_name||row.username||'Khách hàng');
-  name.type='button';
-  name.setAttribute('data-work-summary-customer',customerId);
-  name.setAttribute('aria-label',`Mở công việc của ${row.display_name||row.username||'khách hàng'}`);
-  card.append(name);
+  card.append(node('span','work-summary-overview-name',customerName));
   card.append(node('span','work-summary-overview-code',formatNumber(summary.codeCount)));
   card.append(node('span','work-summary-overview-product',formatNumber(summary.productCount)));
   return card;
