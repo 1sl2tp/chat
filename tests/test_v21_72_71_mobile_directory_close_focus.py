@@ -5,19 +5,19 @@ ROOT=Path(__file__).resolve().parents[1]
 js=(ROOT/'work-customer-summary.js').read_text('utf-8')
 
 def fn(name):
-    m=re.search(rf"function {re.escape(name)}\([^)]*\)\{{",js)
-    assert m,name
-    start=m.start()
+    marker=f"function {name}"
+    start=js.find(marker)
+    assert start>=0,name
+    brace=js.find('{',start)
+    assert brace>=0,name
     depth=0
-    seen=False
-    for i in range(m.end()-1,len(js)):
+    for i in range(brace,len(js)):
         c=js[i]
         if c=='{':
             depth+=1
-            seen=True
         elif c=='}':
             depth-=1
-            if seen and depth==0:
+            if depth==0:
                 return js[start:i+1]
     raise AssertionError(name)
 
