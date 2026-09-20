@@ -2636,37 +2636,39 @@ button{
 }
 #workThreadView[hidden],
 [data-chat-thread-node][hidden]{display:none!important}
+/* Region 3 outer owner: Work is a screen/column surface, not a card nested
+   inside another screen. Keep only one outer separator owner and let the
+   summary header/body own their internal lines. */
 #appShell[data-route="work"] #workThreadView{
   display:flex!important;
   flex:0 0 auto;
   width:100%;
   height:calc(100svh - var(--header-height,72px) - var(--composer-flow-reserve,0px));
   min-height:0;
-  padding:8px 12px;
+  padding:0;
   overflow:hidden;
   box-sizing:border-box;
+  background:var(--theme-surface-primary);
 }
 #appShell[data-route="work"] [data-chat-thread-node]{display:none!important}
-@media(max-width:640px){
-  #appShell[data-route="work"] #workThreadView{padding:6px}
-}
 #workThreadView:not([hidden]){
   display:flex;
   flex:0 0 auto;
   width:100%;
   height:calc(100svh - var(--header-height,72px) - var(--composer-flow-reserve,0px));
   min-height:0;
-  padding:8px 12px;
+  padding:0;
   overflow:hidden;
   box-sizing:border-box;
+  background:var(--theme-surface-primary);
 }
 .work-thread-frame{
   width:100%;
   height:100%;
   min-width:0;
   min-height:0;
-  border:1px solid var(--theme-border-default);
-  border-radius:18px;
+  border:0;
+  border-radius:0;
   background:var(--theme-surface-primary);
   overflow:hidden;
   box-sizing:border-box;
@@ -2695,10 +2697,7 @@ button{
 }
 @media(max-width:640px){
   #workThreadView:not([hidden]){
-    padding:6px;
-  }
-  .work-thread-frame{
-    border-radius:14px;
+    padding:0;
   }
 }
 .shell-card{
@@ -2965,9 +2964,8 @@ button{
     z-index:20;
   }
   #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #workThreadView .work-thread-frame{
+    border:0;
     border-radius:0;
-    border-block:0;
-    border-inline-end:0;
   }
   #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #thread-bottom-container{
     right:var(--desktop-work-width);
