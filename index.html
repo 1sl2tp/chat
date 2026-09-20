@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="568afebc4ec693a95e88862a788b26fb6cd2c528e9e22142fa873e8c6e40eb4b">
+<meta name="app-build-id" content="418859a1463c15d2ccf6b1f9a2adbc27b69b3a6c0390457aa1fb7e07d2e0b8fe">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -4218,7 +4218,10 @@ button{
   }
   #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #regionTop .compact-top-grid{
     box-sizing:border-box;
-    padding-inline-end:var(--desktop-work-width);
+    width:var(--desktop-chat-width)!important;
+    max-width:var(--desktop-chat-width)!important;
+    margin-inline-start:0;
+    margin-inline-end:auto;
   }
   #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] .top-mode-switch{
     grid-template-columns:minmax(0,1fr)!important;
