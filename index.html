@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="67563c4526d39022e8a620e9cc7c334c1a12a155718ccce265371eaf12a8d74e">
+<meta name="app-build-id" content="ac2a90861bd2ea5c091eb66cd0ab4f30ea8fe0801aae198ea607283d292011b1">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -3855,6 +3855,15 @@ button{
   overflow:hidden;
   box-sizing:border-box;
   background:var(--theme-surface-primary);
+}
+/* Region 3 mobile viewport owner: prefer dynamic viewport height on browsers
+   that support it so iOS/Android browser chrome changes do not leave a gap
+   or hide the bottom of Work. Keep the svh rule above as the fallback. */
+@supports (height:100dvh){
+  #appShell[data-route="work"] #workThreadView,
+  #workThreadView:not([hidden]){
+    height:calc(100dvh - var(--header-height,72px) - var(--composer-flow-reserve,0px));
+  }
 }
 .work-thread-frame{
   width:100%;
