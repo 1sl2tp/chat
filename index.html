@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="c74c01e43dc6226cd45e25f5df8e2e3175ca010699d27961a66f428d666b200d">
+<meta name="app-build-id" content="b9fd90f2f98c6661d2115ca08e74ed957719687971b10da8f3a16777d281b364">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -825,15 +825,18 @@
 .work-summary-overview-grand-total .work-summary-overview-name{
   font-weight:700;
 }
+/* Region 3 detail list is a flat work surface, not a card inside Work.
+   Rows and their separators own the internal rhythm. */
 .work-summary-list{
   margin:0;
   padding:0;
   list-style:none;
   counter-reset:work-summary-row;
-  border:1px solid var(--theme-border-default);
-  border-radius:12px;
-  overflow:hidden;
-  background:var(--theme-surface-primary);
+  border-block:1px solid var(--theme-border-default);
+  border-inline:0;
+  border-radius:0;
+  overflow:visible;
+  background:transparent;
 }
 .work-summary-item{
   --work-summary-check-size:36px;
