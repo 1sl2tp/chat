@@ -2938,6 +2938,14 @@ button{
   .shell-sidebar-account-chevron{width:32px}
   .shell-sidebar-account-action,.zalo-account-admin-open{min-height:38px;border-radius:12px}
 }
+/* Top-level desktop viewport owner: keep svh as the compatibility baseline,
+   but prefer dvh when available so browser chrome changes cannot desync the
+   directory/chat/work column height from the visible viewport. */
+@supports (height:100dvh){
+  @media (min-width:64rem) and (hover:hover) and (pointer:fine){
+    #appShell[data-auth-state="authenticated"] #screenHost{height:100dvh}
+  }
+}
 @supports not (height:100svh){
   @media (min-width:64rem) and (hover:hover) and (pointer:fine){
     #appShell[data-auth-state="authenticated"] #screenHost{height:100vh}
