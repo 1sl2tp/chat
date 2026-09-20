@@ -16,10 +16,12 @@ directory=read("contact-directory-admin.js")
 assert "scrollbar-width:thin" in source
 assert ".wm-sidebar-navigation::-webkit-scrollbar{width:3px}" in source
 
-# Authenticated mobile footer stays one compact row; logout is icon-only.
-assert "grid-template-columns:minmax(0,1fr) minmax(0,1fr) 42px" in source
-assert "shell-sidebar-logout-icon" in source
-assert '[data-state="authenticated"] .shell-sidebar-account-action [data-account-action-label]{display:none}' in source
+# Authenticated footer exposes one account row; logout/settings are contextual menu actions.
+assert 'data-account-menu role="menu" aria-label="Tài khoản"' in source
+assert "grid-template-columns:34px minmax(0,1fr) 28px" in source
+assert "data-account-menu-logout" in source
+assert "data-account-menu-settings" in source
+assert "function toggleAccountMenu()" in shell
 
 # Admin-only conversation identity stays in the header, now inside the Chat tab itself.
 assert "data-active-contact-context" not in source

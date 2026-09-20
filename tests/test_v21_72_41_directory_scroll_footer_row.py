@@ -8,6 +8,7 @@ def read(path):
     return p.read_text("utf-8")
 
 source=read("index.source.html")
+shell=read("shell.js")
 directory=read("contact-directory-admin.js")
 zalo=read("zalo-admin-link.js")
 
@@ -24,19 +25,24 @@ assert ".contact-directory-tools{position:static;z-index:4;box-sizing:border-box
 # Directory sync preserves the actual list scroll position, not the whole sidebar body.
 assert "const scrollHost=host.closest('.wm-sidebar-navigation');" in directory
 
-# Footer actions remain one compact horizontal row; V21.72.42 reserves a narrow icon-only logout column.
-assert ".shell-sidebar-account-footer{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 42px;gap:4px;" in source
-assert ".shell-sidebar-account-footer .shell-sidebar-account-main,.shell-sidebar-account-footer .shell-sidebar-account-action,.shell-sidebar-account-footer .zalo-account-admin-open{width:100%;min-width:0;height:38px;min-height:38px;" in source
-assert ".shell-sidebar-account-footer .shell-sidebar-account-avatar,.shell-sidebar-account-footer .shell-sidebar-account-copy span,.shell-sidebar-account-footer .shell-sidebar-account-chevron{display:none}" in source
+# Footer exposes one ChatGPT-style account row; secondary actions live in its popover.
+assert '<div class="shell-sidebar-account-menu" data-account-menu role="menu" aria-label="Tài khoản" hidden>' in source
+assert ".shell-sidebar-account-footer{\n  position:relative;\n  display:block;" in source
+assert "grid-template-columns:34px minmax(0,1fr) 28px;" in source
+assert ".shell-sidebar-account-footer>.shell-sidebar-account-action,\n.shell-sidebar-account-footer>.zalo-account-admin-open{\n  display:none!important;" in source
+assert ".shell-sidebar-account-menu{\n  position:absolute;" in source
 
-# The long admin label is compact in the footer while accessibility keeps the full destination name.
+# Existing settings action remains the backend/action owner, but is visually consolidated.
 assert "button.textContent='Cài đặt';" in zalo
 assert "button.setAttribute('aria-label','Cài đặt tài khoản');" in zalo
+assert "toggleAccountMenu()" in shell
+assert "data-account-menu-profile" in source
+assert "data-account-menu-settings" in source
+assert "data-account-menu-logout" in source
 
 print("V21.72.41 directory fixed tools/footer row contract PASS")
 
 
 # Renderer preserves the list scroll owner established by the sidebar geometry.
-shell=read("shell.js")
 assert "const scrollHost=host.closest('.wm-sidebar-navigation');" in shell
 assert "const scrollHost=host.closest('.wm-sidebar-body');" not in shell
