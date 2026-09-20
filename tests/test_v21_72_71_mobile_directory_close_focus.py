@@ -8,7 +8,21 @@ def fn(name):
     marker=f"function {name}"
     start=js.find(marker)
     assert start>=0,name
-    brace=js.find('{',start)
+    open_paren=js.find('(',start)
+    assert open_paren>=0,name
+    paren_depth=0
+    close_paren=-1
+    for i in range(open_paren,len(js)):
+        c=js[i]
+        if c=='(':
+            paren_depth+=1
+        elif c==')':
+            paren_depth-=1
+            if paren_depth==0:
+                close_paren=i
+                break
+    assert close_paren>=0,name
+    brace=js.find('{',close_paren)
     assert brace>=0,name
     depth=0
     for i in range(brace,len(js)):
