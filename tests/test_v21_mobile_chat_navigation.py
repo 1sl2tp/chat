@@ -96,9 +96,10 @@ assert '.shell-contact-manage{display:none!important}' in compact_source, 'touch
 assert '.shell-contact-row:hover .shell-contact-manage' in source, 'desktop ellipsis must appear only from row hover'
 assert '.shell-contact-row:focus-within .shell-contact-manage' in source, 'desktop keyboard focus must keep the manage action reachable'
 
-# Work customer identity remains pinned while its own list scrolls below.
+# Work customer identity remains pinned as a fixed flex sibling while only its body scrolls.
 assert '.work-summary-detail-header' in style, 'customer detail header must have an explicit geometry owner'
-assert 'position:sticky' in compact_style, 'customer name/summary header must stay pinned'
-assert 'overflow:auto' in compact_style, 'work item list must keep its own scrolling region'
+assert '.work-summary-header{position:relative;' in compact_style, 'customer name/summary header must remain a fixed sibling above the scroll body'
+assert '.work-summary-body{' in style and 'overflow:auto' in compact_style, 'work item list must keep its own scrolling region'
+assert 'scrollbar-gutter:stable' in compact_style, 'work scroll owner should reserve stable scrollbar space'
 
 print('Mobile center swipe + double-tap roots + hierarchy navigation + pinned Work header contract PASS')
