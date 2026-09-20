@@ -574,13 +574,17 @@ function renderDetailItem(record,customerId){
   li.dataset.itemKey=itemKey;
 
   const toggle=node('button','work-summary-check');
+  const busyKey=`${String(customerId||'')}::${String(itemKey||'')}`;
+  const busy=completionBusy.has(busyKey);
   toggle.type='button';
   toggle.dataset.workItemToggle='true';
   toggle.dataset.customerId=String(customerId||'');
   toggle.dataset.itemKey=itemKey;
   toggle.setAttribute('role','checkbox');
   toggle.setAttribute('aria-checked',String(completed));
+  toggle.setAttribute('aria-busy',String(busy));
   toggle.setAttribute('aria-label',completed?'Bỏ đánh dấu hoàn thành':'Đánh dấu hoàn thành');
+  toggle.disabled=busy;
   toggle.textContent=completed?'✓':'';
 
   const main=node('div','work-summary-item-main');
@@ -668,6 +672,22 @@ function setCachedCompleted(row,itemKey,completed){
   row.completed_item_keys=Array.from(set);
 }
 
+function syncCompletionControlBusy(customerId,itemKey,busy){
+  const host=root();
+  if(!host)return false;
+  const targetCustomer=String(customerId||'');
+  const targetItem=String(itemKey||'');
+  let changed=false;
+  host.querySelectorAll('[data-work-item-toggle]').forEach(control=>{
+    if(String(control.dataset.customerId||'')!==targetCustomer)return;
+    if(String(control.dataset.itemKey||'')!==targetItem)return;
+    control.disabled=Boolean(busy);
+    control.setAttribute('aria-busy',String(Boolean(busy)));
+    changed=true;
+  });
+  return changed;
+}
+
 async function setCompleted(customerId,itemKey,completed){
   const db=client();
   const key=`${customerId}::${itemKey}`;
@@ -681,6 +701,7 @@ async function setCompleted(customerId,itemKey,completed){
   pendingReorderKey=String(itemKey);
   setCachedCompleted(row,itemKey,completed);
   renderCurrent();
+  syncCompletionControlBusy(customerId,itemKey,true);
   restoreDetailScroll(scrollTop);
 
   const reorderTimer=window.setTimeout(()=>{
@@ -710,6 +731,7 @@ async function setCompleted(customerId,itemKey,completed){
     return false;
   }finally{
     completionBusy.delete(key);
+    syncCompletionControlBusy(customerId,itemKey,false);
   }
 }
 

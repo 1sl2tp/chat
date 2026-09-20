@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="d6ad7037eb0c82757f2f7c0ae8284409ac2ff909a0f3d284a72df40cfe2d5858">
+<meta name="app-build-id" content="d07cf0c215bab9075c0450aba3d5a30db2ee78a131e2d99d62e00b7090d91682">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -836,13 +836,14 @@
   background:var(--theme-surface-primary);
 }
 .work-summary-item{
+  --work-summary-check-size:36px;
   counter-increment:work-summary-row;
   position:relative;
   display:grid;
-  grid-template-columns:30px minmax(0,1fr);
-  align-items:start;
+  grid-template-columns:var(--work-summary-check-size) minmax(0,1fr);
+  align-items:center;
   gap:7px;
-  padding:9px 12px 9px 38px;
+  padding:6px 12px 6px 38px;
   transition:opacity 140ms ease,background 140ms ease;
 }
 .work-summary-item::before{
@@ -861,17 +862,41 @@
   border-top:1px solid color-mix(in srgb,var(--theme-border-default) 70%,transparent);
 }
 .work-summary-check{
-  width:24px;
-  height:24px;
-  min-width:24px;
+  width:var(--work-summary-check-size);
+  height:var(--work-summary-check-size);
+  min-width:var(--work-summary-check-size);
   padding:0;
   border:1px solid var(--theme-border-default);
-  border-radius:7px;
+  border-radius:10px;
   background:var(--theme-surface-primary);
   color:var(--theme-content-primary);
   font-size:14px;
-  line-height:22px;
+  line-height:1;
   text-align:center;
+  display:grid;
+  place-items:center;
+  cursor:pointer;
+  touch-action:manipulation;
+  transition:background-color 140ms ease,border-color 140ms ease,transform 120ms ease,opacity 140ms ease;
+}
+.work-summary-check:hover{
+  background:var(--theme-action-ghost-surface-hover);
+}
+.work-summary-check:active:not(:disabled){
+  transform:scale(.97);
+}
+.work-summary-check:focus-visible{
+  outline:2px solid color-mix(in srgb,var(--theme-content-primary) 24%,transparent);
+  outline-offset:2px;
+}
+.work-summary-check[aria-checked="true"]{
+  border-color:var(--blue-400);
+  background:var(--blue-400);
+  color:#fff;
+}
+.work-summary-check:disabled{
+  cursor:default;
+  opacity:.58;
 }
 .work-summary-item-main{
   min-width:0;
@@ -903,8 +928,10 @@
 .work-summary-item.is-completed .work-summary-item-qty{
   text-decoration:line-through;
 }
-.work-summary-item.is-completed .work-summary-check{
-  background:var(--theme-surface-secondary);
+.work-summary-item.is-completed .work-summary-check[aria-checked="true"]{
+  border-color:var(--blue-400);
+  background:var(--blue-400);
+  color:#fff;
 }
 .work-summary-item.is-just-updated{
   animation:workSummaryPulse 360ms ease;
@@ -1121,10 +1148,13 @@
     line-height:16px;
   }
   .work-summary-item{
-    min-height:42px;
-    padding:7px 10px 7px 36px;
+    min-height:48px;
+    padding:4px 10px 4px 36px;
   }
   .work-summary-item::before{left:6px;}
+}
+@media(hover:none),(pointer:coarse){
+  .work-summary-item{--work-summary-check-size:44px;}
 }
 
 </style>
@@ -16630,13 +16660,17 @@ function renderDetailItem(record,customerId){
   li.dataset.itemKey=itemKey;
 
   const toggle=node('button','work-summary-check');
+  const busyKey=`${String(customerId||'')}::${String(itemKey||'')}`;
+  const busy=completionBusy.has(busyKey);
   toggle.type='button';
   toggle.dataset.workItemToggle='true';
   toggle.dataset.customerId=String(customerId||'');
   toggle.dataset.itemKey=itemKey;
   toggle.setAttribute('role','checkbox');
   toggle.setAttribute('aria-checked',String(completed));
+  toggle.setAttribute('aria-busy',String(busy));
   toggle.setAttribute('aria-label',completed?'Bỏ đánh dấu hoàn thành':'Đánh dấu hoàn thành');
+  toggle.disabled=busy;
   toggle.textContent=completed?'✓':'';
 
   const main=node('div','work-summary-item-main');
@@ -16724,6 +16758,22 @@ function setCachedCompleted(row,itemKey,completed){
   row.completed_item_keys=Array.from(set);
 }
 
+function syncCompletionControlBusy(customerId,itemKey,busy){
+  const host=root();
+  if(!host)return false;
+  const targetCustomer=String(customerId||'');
+  const targetItem=String(itemKey||'');
+  let changed=false;
+  host.querySelectorAll('[data-work-item-toggle]').forEach(control=>{
+    if(String(control.dataset.customerId||'')!==targetCustomer)return;
+    if(String(control.dataset.itemKey||'')!==targetItem)return;
+    control.disabled=Boolean(busy);
+    control.setAttribute('aria-busy',String(Boolean(busy)));
+    changed=true;
+  });
+  return changed;
+}
+
 async function setCompleted(customerId,itemKey,completed){
   const db=client();
   const key=`${customerId}::${itemKey}`;
@@ -16737,6 +16787,7 @@ async function setCompleted(customerId,itemKey,completed){
   pendingReorderKey=String(itemKey);
   setCachedCompleted(row,itemKey,completed);
   renderCurrent();
+  syncCompletionControlBusy(customerId,itemKey,true);
   restoreDetailScroll(scrollTop);
 
   const reorderTimer=window.setTimeout(()=>{
@@ -16766,6 +16817,7 @@ async function setCompleted(customerId,itemKey,completed){
     return false;
   }finally{
     completionBusy.delete(key);
+    syncCompletionControlBusy(customerId,itemKey,false);
   }
 }
 
