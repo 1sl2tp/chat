@@ -2452,7 +2452,7 @@ function singleImagePresentation(media){
     return{
       kind:'portrait',
       width:MESSAGE_MEDIA_WIDTH_PX,
-      aspectRatio:Math.max(.5,Math.min(.82,sourceRatio))
+      aspectRatio:Math.max(.36,Math.min(.82,sourceRatio))
     };
   }
   if(sourceRatio<=1.2){
@@ -3938,6 +3938,22 @@ function patchMessageIdentity(node,message){
   return node;
 }
 
+function createMessageMediaShell(mediaNode,media){
+  const shell=document.createElement('div');
+  shell.className='message-media-shell';
+  shell.dataset.messageMediaShell='true';
+  shell.dataset.mediaShellKind=String(media?.type||media?.kind||'media');
+  if(mediaNode)shell.appendChild(mediaNode);
+  return shell;
+}
+
+function patchMessageMediaShell(shell,media){
+  if(!shell)return shell;
+  shell.dataset.messageMediaShell='true';
+  shell.dataset.mediaShellKind=String(media?.type||media?.kind||'media');
+  return shell;
+}
+
 function patchMessageNode(node,message){
   patchMessageIdentity(node,message);
 
@@ -3991,27 +4007,44 @@ function patchMessageNode(node,message){
     actionGroup.dataset.kind=isSelf?'user-actions':'assistant-actions';
   }
 
-  const existingMedia=unit.querySelector(':scope > [data-message-media-root="true"]');
+  let mediaShell=unit.querySelector(':scope > .message-media-shell[data-message-media-shell="true"]');
+  let existingMedia=
+    mediaShell?.querySelector(':scope > [data-message-media-root="true"]')||
+    unit.querySelector(':scope > [data-message-media-root="true"]');
   if(!message.media){
-    existingMedia?.remove();
+    if(mediaShell)mediaShell.remove();
+    else existingMedia?.remove();
   }else{
+    if(!mediaShell){
+      mediaShell=createMessageMediaShell(null,message.media);
+      if(existingMedia)mediaShell.appendChild(existingMedia);
+      unit.insertBefore(mediaShell,actionGroup);
+      bindTurnActionTap(node,mediaShell);
+    }else{
+      patchMessageMediaShell(mediaShell,message.media);
+    }
+
+    existingMedia=mediaShell.querySelector(':scope > [data-message-media-root="true"]');
     const reuseKey=mediaRootReuseKey(message.media);
     if(existingMedia&&String(existingMedia.dataset.mediaReuseKey||'')===reuseKey){
       patchMediaNode(existingMedia,message.media,{message});
       existingMedia.dataset.mediaReuseKey=reuseKey;
       existingMedia.dataset.mediaRootKind=String(message.media.type||'media');
-      if(existingMedia.nextElementSibling!==actionGroup){
-        unit.insertBefore(existingMedia,actionGroup);
-      }
     }else{
       const nextMedia=createMediaNode(message.media,{message});
       if(nextMedia){
-        bindTurnActionTap(node,nextMedia);
         if(existingMedia)existingMedia.replaceWith(nextMedia);
-        else unit.insertBefore(nextMedia,actionGroup);
+        else mediaShell.appendChild(nextMedia);
       }else{
         existingMedia?.remove();
       }
+    }
+
+    patchMessageMediaShell(mediaShell,message.media);
+    if(!mediaShell.querySelector(':scope > [data-message-media-root="true"]')){
+      mediaShell.remove();
+    }else if(mediaShell.nextElementSibling!==actionGroup){
+      unit.insertBefore(mediaShell,actionGroup);
     }
   }
 
@@ -4072,8 +4105,11 @@ function renderMessageNode(message){
 
   if(message.media){
     const mediaNode=createMediaNode(message.media,{message});
-    if(mediaNode)unit.appendChild(mediaNode);
-    if(mediaNode)bindTurnActionTap(turn,mediaNode);
+    if(mediaNode){
+      const mediaShell=createMessageMediaShell(mediaNode,message.media);
+      unit.appendChild(mediaShell);
+      bindTurnActionTap(turn,mediaShell);
+    }
   }
 
   unit.appendChild(createActionGroup(message));
