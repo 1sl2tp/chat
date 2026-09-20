@@ -512,14 +512,14 @@ function renderShell(message,kind='muted'){
 function renderOverviewRow(summary,index){
   const row=summary.row||{};
   const customerId=String(row.customer_id||'');
-  const card=node('div','work-summary-overview-row work-summary-customer work-summary-overview-grid-row');
+  const customerName=row.display_name||row.username||'Khách hàng';
+  const card=node('button','work-summary-overview-row work-summary-customer work-summary-overview-grid-row');
+  card.type='button';
   card.dataset.customerId=customerId;
+  card.dataset.workSummaryCustomer=customerId;
+  card.setAttribute('aria-label',`Mở công việc của ${customerName}`);
   card.append(node('span','work-summary-overview-index',String(index+1)));
-  const name=node('button','work-summary-overview-name',row.display_name||row.username||'Khách hàng');
-  name.type='button';
-  name.setAttribute('data-work-summary-customer',customerId);
-  name.setAttribute('aria-label',`Mở công việc của ${row.display_name||row.username||'khách hàng'}`);
-  card.append(name);
+  card.append(node('span','work-summary-overview-name',customerName));
   card.append(node('span','work-summary-overview-code',formatNumber(summary.codeCount)));
   card.append(node('span','work-summary-overview-product',formatNumber(summary.productCount)));
   return card;
