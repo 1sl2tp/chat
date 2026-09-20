@@ -504,6 +504,8 @@ function renderShell(message,kind='muted'){
   if(!host)return;
   host.replaceChildren();
   const shell=node('div',`work-summary-state work-summary-state-${kind}`);
+  shell.setAttribute('role',kind==='error'?'alert':'status');
+  shell.setAttribute('aria-live',kind==='error'?'assertive':'polite');
   shell.append(node('strong','work-summary-state-title','Tổng hợp hàng hóa'));
   shell.append(node('span','work-summary-state-text',message));
   host.append(shell);
@@ -539,7 +541,10 @@ function renderOverview(rows=[]){
   host.append(header);
 
   if(!summaries.length){
-    host.append(node('div','work-summary-state work-summary-state-muted','Chưa có khách nào có hàng chưa hoàn thành.'));
+    const empty=node('div','work-summary-state work-summary-state-muted','Chưa có khách nào có hàng chưa hoàn thành.');
+    empty.setAttribute('role','status');
+    empty.setAttribute('aria-live','polite');
+    host.append(empty);
     return;
   }
 
@@ -626,7 +631,10 @@ function renderCustomerDetail(row,contact){
   host.append(header);
 
   if(!records.length){
-    host.append(node('div','work-summary-state work-summary-state-muted','Khách này chưa có dòng hàng đủ tên và số lượng.'));
+    const empty=node('div','work-summary-state work-summary-state-muted','Khách này chưa có dòng hàng đủ tên và số lượng.');
+    empty.setAttribute('role','status');
+    empty.setAttribute('aria-live','polite');
+    host.append(empty);
     return;
   }
 

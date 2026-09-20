@@ -71,6 +71,7 @@ subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_52_region3_work_sur
 subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_53_region3_work_row_interaction.py')],check=True,cwd=ROOT)
 subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_54_region3_header_scroll_owner.py')],check=True,cwd=ROOT)
 subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_55_region3_detail_check_control.py')],check=True,cwd=ROOT)
+subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_56_region3_state_geometry.py')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_v21_72_20_call_screen_wake_lock.js')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_v21_zalo_webview_runtime_error.js')],check=True,cwd=ROOT)
 subprocess.run([sys.executable,'-m','pytest','-q',str(ROOT/'tests'/'test_v21_zalo_admin_ui_contract.py')],check=True,cwd=ROOT)
