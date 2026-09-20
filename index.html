@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="0b599dfc381cbe3aa589ef2f6345020ba5b186977b668e12397b55537fe954c4">
+<meta name="app-build-id" content="9b8ef78269cc04437624711fac904a09ad8a1677c76514b492405d87fc870bbe">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -4064,6 +4064,15 @@ button{
 @supports not (height:100svh){
   #stageLayout{height:100vh}
   #svhProbe{height:100vh}
+}
+
+/* Top-level mobile/narrow viewport owner: keep svh as the compatibility
+   baseline, but prefer dvh so the one active screen follows visible browser chrome.
+   The stable svhProbe remains unchanged for keyboard-occlusion detection. */
+@supports (height:100dvh){
+  @media (max-width:63.999rem), (hover:none), (pointer:coarse){
+    #stageLayout{height:100dvh}
+  }
 }
 
 
