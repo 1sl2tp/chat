@@ -213,15 +213,18 @@
 .work-summary-overview-grand-total .work-summary-overview-name{
   font-weight:700;
 }
+/* Region 3 detail list is a flat work surface, not a card inside Work.
+   Rows and their separators own the internal rhythm. */
 .work-summary-list{
   margin:0;
   padding:0;
   list-style:none;
   counter-reset:work-summary-row;
-  border:1px solid var(--theme-border-default);
-  border-radius:12px;
-  overflow:hidden;
-  background:var(--theme-surface-primary);
+  border-block:1px solid var(--theme-border-default);
+  border-inline:0;
+  border-radius:0;
+  overflow:visible;
+  background:transparent;
 }
 .work-summary-item{
   --work-summary-check-size:36px;
