@@ -83,6 +83,25 @@ function rememberConversationBeforeWork(){
   return mobileConversationReturnState;
 }
 
+function mobileDirectoryCloseControl(layer=document.getElementById('shellNavigationLayer')){
+  return layer?.querySelector?.('.shell-navigation-panel [data-shell-command="sidebar.close"]')||null;
+}
+
+function focusMobileDirectory(layer=document.getElementById('shellNavigationLayer')){
+  if(!mobileDirectoryOpen())return false;
+  const close=mobileDirectoryCloseControl(layer);
+  if(!(close instanceof HTMLElement)||!close.isConnected)return false;
+  close.focus({preventScroll:true});
+  return true;
+}
+
+function restoreMobileDirectoryTriggerFocus(){
+  const trigger=mobileAccountMenuTrigger();
+  if(!(trigger instanceof HTMLElement)||!trigger.isConnected)return false;
+  trigger.focus({preventScroll:true});
+  return true;
+}
+
 function showMobileDirectory(reason='directory'){
   if(!mobileDirectoryAllowed())return false;
   if(snapshot().state!=='AUTHENTICATED'){
@@ -104,13 +123,15 @@ function showMobileDirectory(reason='directory'){
   navigation()?.clearActiveContact?.();
   syncDirectoryChatTab(true);
   void window.V21ContactStore?.refresh?.();
+  window.setTimeout(()=>focusMobileDirectory(layer),0);
   return true;
 }
 
-function hideMobileDirectory(reason='chat'){
+function hideMobileDirectory(reason='chat',{restoreFocus=false}={}){
   const app=document.getElementById('appShell');
   const layer=document.getElementById('shellNavigationLayer');
   if(!app||!layer)return false;
+  const wasOpen=mobileDirectoryOpen();
   app.dataset.mobileDirectory='false';
   layer.dataset.mobileDirectory='false';
   app.dataset.mobileDirectoryReason=String(reason||'chat');
@@ -118,7 +139,8 @@ function hideMobileDirectory(reason='chat'){
     layer.dataset.open='false';
     layer.setAttribute('aria-hidden','true');
   }
-  return true;
+  if(restoreFocus&&wasOpen)restoreMobileDirectoryTriggerFocus();
+  return wasOpen;
 }
 
 function pinWorkOuterScroll(){
@@ -472,6 +494,12 @@ function bindMobileAccountMenuContractSync(){
 
 function bindMobileNavigationClicks(){
   document.addEventListener('keydown',event=>{
+    if(event.defaultPrevented)return;
+    if(event.key==='Escape'&&mobileDirectoryOpen()){
+      event.preventDefault();
+      hideMobileDirectory('escape',{restoreFocus:true});
+      return;
+    }
     if(mobileAccountMenu?.dataset.open!=='true')return;
     if(event.key==='Escape'){
       event.preventDefault();
@@ -485,6 +513,14 @@ function bindMobileNavigationClicks(){
     if(!mobileDirectoryAllowed())return;
     const target=event.target instanceof Element?event.target:null;
     if(!target)return;
+
+    const directoryClose=target.closest('#shellNavigationLayer [data-shell-command="sidebar.close"]');
+    if(directoryClose&&mobileDirectoryOpen()){
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      hideMobileDirectory('directory-close',{restoreFocus:true});
+      return;
+    }
 
     const hamburger=target.closest('[data-shell-command="sidebar.open"]');
     if(hamburger){
