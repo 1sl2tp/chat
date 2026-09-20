@@ -260,8 +260,14 @@
   #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] .composer-shell-source{
     border-radius:20px;
   }
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #scrollRoot{
+    --composer-overlap-px:0px;
+  }
   #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #messageWindow{
-    padding-bottom:40px;
+    padding-bottom:0;
+  }
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #tailRunwaySpace{
+    min-height:18px;
   }
 }
 
