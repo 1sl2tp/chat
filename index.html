@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="1f69d09ef3eb25fa4d5de7fe979158a741e4da21d57917f83bee887f2f44f68f">
+<meta name="app-build-id" content="9e60cc86ec2a0f0d5120224544db7d4960eb9d6891f86ffd8e6395a9e549b670">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -16357,12 +16357,21 @@ function mobileAccountMenuOwnedByTrigger(){
   return mobileDirectoryAllowed()&&snapshot().state==='AUTHENTICATED';
 }
 
+function syncMobileAccountMenuItems(menu=mobileAccountMenu){
+  if(!menu)return false;
+  const auth=snapshot();
+  const settings=menu.querySelector('[data-mobile-account-action="settings"]');
+  if(settings)settings.hidden=!(auth.state==='AUTHENTICATED'&&auth.account?.role==='admin');
+  return true;
+}
+
 function syncMobileAccountMenuTrigger(open){
   const trigger=mobileAccountMenuTrigger();
   if(!trigger)return false;
   const authenticated=snapshot().state==='AUTHENTICATED';
   if(mobileAccountMenuOwnedByTrigger()){
     if(!mobileAccountMenu?.isConnected)ensureMobileAccountMenu();
+    syncMobileAccountMenuItems();
     trigger.setAttribute('aria-haspopup','menu');
     trigger.setAttribute('aria-controls','mobileAccountMenuPanel');
     trigger.setAttribute('aria-expanded',String(Boolean(open)));
@@ -16437,6 +16446,7 @@ function ensureMobileAccountMenu(){
       return;
     }
     if(action==='settings'){
+      if(snapshot().account?.role!=='admin')return;
       void window.V21ZaloAccountAdmin?.open?.();
       return;
     }
@@ -16448,6 +16458,7 @@ function ensureMobileAccountMenu(){
   });
   host.appendChild(wrap);
   mobileAccountMenu=wrap;
+  syncMobileAccountMenuItems(wrap);
   return wrap;
 }
 
