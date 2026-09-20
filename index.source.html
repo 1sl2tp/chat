@@ -2847,6 +2847,15 @@ button{
   #svhProbe{height:100vh}
 }
 
+/* Top-level mobile/narrow viewport owner: keep svh as the compatibility
+   baseline, but prefer dvh so the one active screen follows visible browser chrome.
+   The stable svhProbe remains unchanged for keyboard-occlusion detection. */
+@supports (height:100dvh){
+  @media (max-width:63.999rem), (hover:none), (pointer:coarse){
+    #stageLayout{height:100dvh}
+  }
+}
+
 
 /* V21 geometry owner map: mobile is one active screen + overlay directory;
    desktop >=64rem is Region 1 Directory | Region 2 Active screen;
