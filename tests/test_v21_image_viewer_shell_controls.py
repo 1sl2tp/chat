@@ -41,3 +41,17 @@ assert "closeImageViewer({restoreFocus:!touchLike});" in app
 assert "if(pointerType==='mouse'&&event.button!==0)return;" in app
 assert "onImage:event.target===image" in app
 assert "onStage:event.target===main" in app
+
+
+# Viewer action menu exposes the current image as first-class save/share actions
+# while retaining the existing time filters.
+assert "function currentImageViewerDescriptor()" in app
+assert "async function saveCurrentImageViewerImage()" in app
+assert "async function shareCurrentImageViewerImage()" in app
+assert "saveText.textContent='Lưu ảnh';" in app
+assert "shareText.textContent='Chia sẻ';" in app
+assert "saveItem.dataset.viewerAction='save';" in app
+assert "shareItem.dataset.viewerAction='share';" in app
+assert "return saveMediaDescriptor(media,Math.max(0,imageViewerIndex));" in app
+assert "return shareMessageMedia({media});" in app
+assert "Tùy chọn ảnh ·" in app

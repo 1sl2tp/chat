@@ -1587,8 +1587,9 @@ function isViewerItemInTimeScope(item,scope){
 
 function updateImageViewerTimeMenu(){
   if(!imageViewerTimeMenuPanel||!imageViewerTimeMenuButton)return;
-  imageViewerTimeMenuButton.setAttribute('aria-label',`Lọc thời gian: ${viewerTimeFilterLabel(imageViewerTimeFilter)}`);
-  imageViewerTimeMenuButton.setAttribute('title',viewerTimeFilterLabel(imageViewerTimeFilter));
+  const timeLabel=viewerTimeFilterLabel(imageViewerTimeFilter);
+  imageViewerTimeMenuButton.setAttribute('aria-label',`Tùy chọn ảnh · ${timeLabel}`);
+  imageViewerTimeMenuButton.setAttribute('title',`Tùy chọn ảnh · ${timeLabel}`);
   for(const button of Array.from(imageViewerTimeMenuPanel.querySelectorAll('.image-review-menu-item'))){
     const active=button.dataset.timeFilter===imageViewerTimeFilter;
     button.toggleAttribute('aria-current',active);
@@ -1675,6 +1676,32 @@ function updateImageViewerFilterChips(){
   }
 }
 
+function currentImageViewerDescriptor(){
+  const item=imageViewerItems[imageViewerIndex]||null;
+  if(!item?.assetId)return null;
+  return{
+    type:'image',
+    kind:'image',
+    assetId:String(item.assetId),
+    accountId:String(item.accountId||currentMediaAccountId()||''),
+    previewUrl:String(item.previewUrl||''),
+    width:Number(item.width)||null,
+    height:Number(item.height)||null
+  };
+}
+
+async function saveCurrentImageViewerImage(){
+  const media=currentImageViewerDescriptor();
+  if(!media)return false;
+  return saveMediaDescriptor(media,Math.max(0,imageViewerIndex));
+}
+
+async function shareCurrentImageViewerImage(){
+  const media=currentImageViewerDescriptor();
+  if(!media)return false;
+  return shareMessageMedia({media});
+}
+
 function renderImageViewerFilters(){
   if(!imageViewerFilters)return;
   imageViewerFilters.replaceChildren();
@@ -1698,7 +1725,7 @@ function renderImageViewerFilters(){
   const more=document.createElement('button');
   more.type='button';
   more.className='image-review-control image-review-more';
-  more.setAttribute('aria-label',`Lọc thời gian: ${viewerTimeFilterLabel(imageViewerTimeFilter)}`);
+  more.setAttribute('aria-label',`Tùy chọn ảnh · ${viewerTimeFilterLabel(imageViewerTimeFilter)}`);
   more.setAttribute('aria-haspopup','menu');
   more.setAttribute('aria-expanded','false');
   more.setAttribute('aria-controls','imageReviewTimeMenu');
@@ -1708,6 +1735,44 @@ function renderImageViewerFilters(){
   menu.className='image-review-menu';
   menu.hidden=true;
   menu.setAttribute('role','menu');
+
+  const actionLabel=document.createElement('div');
+  actionLabel.className='image-review-menu-label';
+  actionLabel.textContent='Ảnh';
+  menu.appendChild(actionLabel);
+
+  const saveItem=document.createElement('button');
+  saveItem.type='button';
+  saveItem.className='image-review-menu-item';
+  saveItem.dataset.viewerAction='save';
+  saveItem.setAttribute('role','menuitem');
+  const saveText=document.createElement('span');
+  saveText.textContent='Lưu ảnh';
+  saveItem.appendChild(saveText);
+  saveItem.addEventListener('click',event=>{
+    event.stopPropagation();
+    closeImageViewerTimeMenu();
+    void saveCurrentImageViewerImage();
+  });
+  menu.appendChild(saveItem);
+
+  if(canNativeShareFiles()){
+    const shareItem=document.createElement('button');
+    shareItem.type='button';
+    shareItem.className='image-review-menu-item';
+    shareItem.dataset.viewerAction='share';
+    shareItem.setAttribute('role','menuitem');
+    const shareText=document.createElement('span');
+    shareText.textContent='Chia sẻ';
+    shareItem.appendChild(shareText);
+    shareItem.addEventListener('click',event=>{
+      event.stopPropagation();
+      closeImageViewerTimeMenu();
+      void shareCurrentImageViewerImage();
+    });
+    menu.appendChild(shareItem);
+  }
+
   const label=document.createElement('div');
   label.className='image-review-menu-label';
   label.textContent='Thời gian';
