@@ -47,6 +47,12 @@ assert '.work-summary-item-name' in s and 'white-space:nowrap' in compact_s, 'pr
 assert 'text-overflow:ellipsis' in compact_s, 'long product names must ellipsize instead of wrapping'
 assert '.work-summary-item-main' in s and 'grid-template-columns:minmax(0,1fr)auto' in compact_s, 'name and quantity must remain one row'
 
+# Desktop back/all control is navigation, not the visual focus of the Work header.
+assert '.work-summary-all' in s
+assert 'border-color:transparent' in compact_s
+assert 'color:var(--theme-content-secondary)' in compact_s
+assert 'font-weight:500' in compact_s
+
 # Zebra rhythm must be subtle and automatic without changing completed-state semantics.
 assert '.work-summary-item:nth-child(even)' in s, 'detail rows need alternating background rhythm'
 assert 'color-mix(' in s, 'alternating rows must use a subtle mixed surface color'
