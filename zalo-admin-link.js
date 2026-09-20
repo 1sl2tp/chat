@@ -4,6 +4,8 @@
 const MODULE_VERSION='V21.73.0';
 const mounted=new WeakSet();
 let accountModal=null;
+let accountModalReturnFocus=null;
+let accountPanelReturnFocus=null;
 let accountSnapshot={accounts:[],contacts:[],links:[]};
 let deviceSnapshot=[];
 let accountBusy=false;
@@ -325,9 +327,37 @@ function setAccountBusy(next){
   for(const input of accountModal.querySelectorAll('input'))input.disabled=accountBusy;
 }
 
-function closeAccountPanel(){
+function accountPanelNode(){
   const panel=accountModal?.querySelector?.('[data-zalo-account-panel]');
+  return panel?.firstElementChild||null;
+}
+
+function focusAccountFallback(preferred=null){
+  const target=preferred instanceof HTMLElement&&preferred.isConnected
+    ?preferred
+    :accountModal?.querySelector?.('[data-zalo-account-search],.zalo-account-close');
+  if(target instanceof HTMLElement&&target.isConnected){
+    window.setTimeout(()=>{try{target.focus({preventScroll:true});}catch{}},0);
+    return true;
+  }
+  return false;
+}
+
+function closeAccountPanel({restoreFocus=true}={}){
+  const panel=accountModal?.querySelector?.('[data-zalo-account-panel]');
+  const hadPanel=Boolean(panel?.firstElementChild);
   if(panel)panel.replaceChildren();
+  const returnFocus=accountPanelReturnFocus;
+  accountPanelReturnFocus=null;
+  if(restoreFocus&&hadPanel)focusAccountFallback(returnFocus);
+  return hadPanel;
+}
+
+function accountModalFocusable(){
+  if(!accountModal)return[];
+  const scope=accountPanelNode()||accountModal.querySelector('.zalo-account-card')||accountModal;
+  return [...scope.querySelectorAll('button:not([disabled]),input:not([disabled]),textarea:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])')]
+    .filter(node=>!node.hidden&&node.getClientRects().length>0);
 }
 
 function normalizeAccountSearch(value){
@@ -459,9 +489,13 @@ function openAccountPicker(account){
   if(!accountModal||!account?.id)return;
   const panel=accountModal.querySelector('[data-zalo-account-panel]');
   const model=accountModel();
+  accountPanelReturnFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;
   panel.replaceChildren();
   const box=document.createElement('section');
   box.className='zalo-account-panel';
+  box.setAttribute('role','dialog');
+  box.setAttribute('aria-modal','true');
+  box.setAttribute('aria-label','Chọn Zalo');
   box.innerHTML='<div class="zalo-account-panel-head"><strong data-picker-title></strong><button type="button" data-close>Đóng</button></div><input type="search" placeholder="Tìm Zalo cá nhân hoặc nhóm" autocomplete="off" data-search><div class="zalo-account-picker-list" data-list></div>';
   box.querySelector('[data-picker-title]').textContent=`Chọn Zalo cho ${String(account.display_name||account.username||'User')}`;
   panel.appendChild(box);
@@ -517,9 +551,13 @@ function openAccountPicker(account){
 function openCreateAccount(contact){
   if(!accountModal||!contact?.zalo_id)return;
   const panel=accountModal.querySelector('[data-zalo-account-panel]');
+  accountPanelReturnFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;
   panel.replaceChildren();
   const form=document.createElement('form');
   form.className='zalo-account-panel zalo-account-create-form';
+  form.setAttribute('role','dialog');
+  form.setAttribute('aria-modal','true');
+  form.setAttribute('aria-label','Tạo tài khoản');
   form.innerHTML=`
     <div class="zalo-account-panel-head"><strong data-create-title></strong><button type="button" data-close>Đóng</button></div>
     <label>Tên đăng nhập<input name="username" required autocomplete="off" maxlength="24"></label>
@@ -604,13 +642,21 @@ async function refreshAccountAdmin(){
   return accountSnapshot;
 }
 
-function closeAccountAdmin(){
+function closeAccountAdmin({restoreFocus=true}={}){
+  const hadModal=Boolean(accountModal);
+  closeAccountPanel({restoreFocus:false});
   accountModal?.remove?.();
   accountModal=null;
   accountSnapshot={accounts:[],contacts:[],links:[]};
   deviceSnapshot=[];
   accountBusy=false;
   interactionController()?.exit?.(accountSettingsMode(),{owner:ACCOUNT_SETTINGS_OWNER});
+  const returnFocus=accountModalReturnFocus;
+  accountModalReturnFocus=null;
+  if(restoreFocus&&hadModal&&returnFocus instanceof HTMLElement&&returnFocus.isConnected){
+    window.setTimeout(()=>{try{returnFocus.focus({preventScroll:true});}catch{}},0);
+  }
+  return hadModal;
 }
 
 function deviceStatusText(device){
@@ -668,9 +714,13 @@ async function runDeviceAction(device,action){
 function openDevicePanel(){
   if(!accountModal)return;
   const panel=accountModal.querySelector('[data-zalo-account-panel]');
+  accountPanelReturnFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;
   panel.replaceChildren();
   const box=document.createElement('section');
   box.className='zalo-account-panel';
+  box.setAttribute('role','dialog');
+  box.setAttribute('aria-modal','true');
+  box.setAttribute('aria-label','Thiết bị Admin');
   box.innerHTML='<div class="zalo-account-panel-head"><strong>Thiết bị Admin</strong><button type="button" data-close>Đóng</button></div><div class="zalo-account-picker-list" data-device-list></div><p class="zalo-account-error" data-device-error hidden></p>';
   panel.appendChild(box);
   box.querySelector('[data-close]').addEventListener('click',closeAccountPanel);
@@ -738,6 +788,7 @@ function openDevicePanel(){
     errorNode.textContent=String(error?.message||'Không thể tải thiết bị');
     errorNode.hidden=false;
   });
+  window.setTimeout(()=>box.querySelector('[data-close]')?.focus?.({preventScroll:true}),0);
 }
 
 function adminPushView(snapshot={}){
@@ -797,10 +848,12 @@ async function runAdminPushAction(button){
 
 async function openAccountAdmin(){
   if(!currentAdmin())return null;
-  closeAccountAdmin();
+  const returnFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;
+  closeAccountAdmin({restoreFocus:false});
   const controller=interactionController();
   const lease=controller?.enter?.(accountSettingsMode(),{owner:ACCOUNT_SETTINGS_OWNER,lockBaseUi:true});
   if(controller&&!lease)return null;
+  accountModalReturnFocus=returnFocus;
   const host=document.querySelector('[data-global-overlay-root]')||document.body;
   accountModal=document.createElement('div');
   accountModal.className='zalo-account-modal';
@@ -840,13 +893,36 @@ async function openAccountAdmin(){
   void refreshAdminPushSetting();
   void refreshAdminDevices().catch(()=>{paintAdminDeviceSetting();});
   const submodal=accountModal.querySelector('[data-zalo-account-panel]');
-  submodal.addEventListener('click',event=>{if(event.target===submodal)closeAccountPanel();});
+  submodal.addEventListener('click',event=>{if(event.target===submodal)closeAccountPanel({restoreFocus:true});});
   setAccountBusy(true);
   try{await refreshAccountAdmin();}
   catch(error){setAccountError(errorText(error?.message||error));}
   finally{setAccountBusy(false);}
+  window.setTimeout(()=>accountModal?.querySelector?.('[data-zalo-account-search]')?.focus?.({preventScroll:true}),0);
   return accountModal;
 }
+
+document.addEventListener('keydown',event=>{
+  if(!accountModal)return;
+  if(event.key==='Escape'){
+    event.preventDefault();
+    if(closeAccountPanel({restoreFocus:true}))return;
+    closeAccountAdmin({restoreFocus:true});
+    return;
+  }
+  if(event.key!=='Tab')return;
+  const focusable=accountModalFocusable();
+  if(!focusable.length)return;
+  const first=focusable[0];
+  const last=focusable[focusable.length-1];
+  if(event.shiftKey&&document.activeElement===first){
+    event.preventDefault();
+    last.focus();
+  }else if(!event.shiftKey&&document.activeElement===last){
+    event.preventDefault();
+    first.focus();
+  }
+});
 
 function syncAccountAdminButton(){
   const footer=document.querySelector('[data-sidebar-account-footer]');
