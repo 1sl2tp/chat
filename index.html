@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="755749ae55ac44be6aed05a6903b210c4680fd37258c38067d0939449ad32845">
+<meta name="app-build-id" content="827b8229143f060d1bf7b20c04671a07a53c97f42db0e8ac2477ffef6dfda6f2">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -344,6 +344,26 @@
   .zalo-account-row-actions{grid-column:1/-1;justify-content:flex-start}
   .zalo-account-person,.zalo-account-relation{align-items:flex-start}
   .zalo-account-modal-head{padding-inline:2px}
+}
+/* Settings modal viewport owner: preserve svh as fallback, prefer dvh so
+   mobile browser chrome changes cannot clip the bottom controls. */
+@supports (height:100dvh){
+  .zalo-account-card{
+    height:min(86dvh,760px);
+    max-height:min(86dvh,760px);
+  }
+  .zalo-account-submodal>.zalo-account-panel{
+    max-height:min(82dvh,640px);
+  }
+  @media(max-width:640px){
+    .zalo-account-card{
+      height:calc(100dvh - 16px);
+      max-height:calc(100dvh - 16px);
+    }
+    .zalo-account-submodal>.zalo-account-panel{
+      max-height:calc(100dvh - 16px);
+    }
+  }
 }
 @media(max-width:420px){
   .zalo-admin-summary{align-items:flex-start}
