@@ -1,42 +1,10 @@
-name: Verify global desktop dynamic viewport
+name: One-shot professional image viewer (retired)
 on:
-  push:
-    branches:
-      - fix/global-desktop-dynamic-viewport-owner
+  workflow_dispatch:
 permissions:
-  contents: write
+  contents: read
 jobs:
-  build:
-    if: github.actor != 'github-actions[bot]'
+  retired:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: true
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - run: python -m pip install pytest
-      - name: Build canonical preview
-        run: python tools/build_current_preview.py
-      - name: Verify desktop viewport owner and stable app
-        run: |
-          python tests/test_v21_72_60_global_desktop_dynamic_viewport.py
-          python tests/test_v21_72_59_region3_mobile_dynamic_viewport.py
-          python -m pytest tests/test_v21_desktop_three_column_minimal.py -q
-          python tests/test_v21_chat_workspace_3col.py
-          python tools/verify_current.py
-      - name: Commit generated artifacts
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html version.json
-          if git diff --cached --quiet; then
-            echo "No generated changes"
-            exit 0
-          fi
-          git commit -m "Build global desktop dynamic viewport owner"
-          git push
+      - run: echo "Image viewer redesign already applied; workflow retired."
