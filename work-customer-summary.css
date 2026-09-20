@@ -474,6 +474,11 @@
   .mobile-account-menu-row+.mobile-account-menu-row{
     border-top:1px solid color-mix(in srgb,var(--theme-border-default) 70%,transparent);
   }
+  .mobile-account-menu-row:hover,
+  .mobile-account-menu-row:focus-visible{
+    background:var(--theme-action-ghost-surface-hover);
+    outline:none;
+  }
   .mobile-account-menu-row:active{
     background:var(--theme-surface-secondary);
   }
