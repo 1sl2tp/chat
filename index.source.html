@@ -960,6 +960,25 @@ button{
 /* V21.72.39 — image presentation owner.
    Single images keep the full source via contain inside a normalized envelope.
    Gallery tiles intentionally use cover so mixed portrait/landscape sources form one balanced unit. */
+.message-media-shell{
+  min-width:0;
+  max-width:100%;
+  box-sizing:border-box;
+}
+.message-media-shell[data-media-shell-kind="image"],
+.message-media-shell[data-media-shell-kind="gallery"]{
+  width:22.5rem;
+  max-width:100%;
+}
+.user-message-unit>.message-media-shell{margin-left:auto}
+.assistant-message-unit>.message-media-shell{margin-right:auto}
+.message-media-shell[data-media-shell-kind="image"]>.media-image-tile,
+.message-media-shell[data-media-shell-kind="gallery"]>.media-gallery-grid {
+  width:100%!important;
+  max-width:100%;
+  margin:0!important;
+  box-sizing:border-box;
+}
 .media-image-tile[data-image-presentation]{
   display:block;
   width:22.5rem!important;
@@ -987,6 +1006,8 @@ button{
   overflow:hidden;
   background:var(--theme-surface-secondary);
 }
+/* Legacy direct-media selectors remain as a safe migration path for any
+   already-mounted message DOM during an app update. */
 #messageWindow .message-unit>.media-image-tile,
 #messageWindow .message-unit>.media-gallery-grid{
   width:22.5rem!important;

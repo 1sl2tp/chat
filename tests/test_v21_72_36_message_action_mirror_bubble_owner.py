@@ -42,10 +42,13 @@ assert "border-radius:0!important;" in assistant
 assert "box-shadow:none!important;" in assistant
 assert "padding:0!important;" in assistant
 
-# Media remains a sibling of message-text, so its own file/audio/image container is not double wrapped.
+# Media stays outside message-text, but now has one geometry shell owner before
+# the existing file/audio/image media root so image/gallery sizing is stable.
 assert "unit.appendChild(text);" in app
 assert "if(message.media){" in app
-assert "if(mediaNode)unit.appendChild(mediaNode);" in app
+assert "const mediaShell=createMessageMediaShell(mediaNode,message.media);" in app
+assert "unit.appendChild(mediaShell);" in app
+assert "shell.appendChild(mediaNode);" in app
 
 # Reply quote stays inside the text surface: outgoing inherits bubble; incoming stays canvas-native.
 assert "const replyQuote=createReplyQuote(message.replyTo);" in app

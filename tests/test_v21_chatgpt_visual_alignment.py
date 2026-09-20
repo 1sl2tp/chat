@@ -46,4 +46,5 @@ def test_wide_desktop_media_and_composer_use_stable_geometry():
     assert f'{owner}#composerFooter{{min-height:36px!important;padding-bottom:2px!important;}}' in css
     assert f'{owner}.composer-source-frame{{margin-bottom:12px;}}' in css
     assert f'{owner}.composer-shell-source{{border-radius:20px;}}' in css
-    assert f'{owner}#messageWindow{{padding-bottom:28px;}}' in css
+    assert f'{owner}#messageWindow{{padding-bottom:40px;}}' in css
+    assert '.message-media-shell[data-media-shell-kind="image"],.message-media-shell[data-media-shell-kind="gallery"]{width:22.5rem;max-width:100%;}' in source
