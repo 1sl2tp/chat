@@ -66,6 +66,7 @@ subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_47_mobile_header_pi
 subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_48_contact_tab_content_width.py')],check=True,cwd=ROOT)
 subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_49_region2_composer_menu_contract.py')],check=True,cwd=ROOT)
 subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_50_region2_message_action_contract.py')],check=True,cwd=ROOT)
+subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_72_51_region2_viewer_menu_contract.py')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_v21_72_20_call_screen_wake_lock.js')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_v21_zalo_webview_runtime_error.js')],check=True,cwd=ROOT)
 subprocess.run([sys.executable,'-m','pytest','-q',str(ROOT/'tests'/'test_v21_zalo_admin_ui_contract.py')],check=True,cwd=ROOT)
