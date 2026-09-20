@@ -3549,6 +3549,27 @@ button{
   .shell-profile-card[data-mobile-keyboard="true"] .shell-profile-secondary{min-height:52px}
 }
 
+/* Profile modal viewport owner: preserve svh as fallback, prefer dvh when
+   VisualViewport has not published a more precise pixel height. */
+@supports (height:100dvh){
+  .shell-profile-overlay{
+    height:var(--shell-form-vv-height,100dvh);
+  }
+  .shell-profile-card{
+    max-height:calc(var(--shell-form-vv-height,100dvh) - 36px);
+  }
+  @media(max-width:520px){
+    .shell-profile-card{
+      max-height:calc(var(--shell-form-vv-height,100dvh) - 20px);
+    }
+  }
+  @media(max-width:767px), (pointer:coarse){
+    .shell-profile-card[data-mobile-keyboard="true"]{
+      max-height:calc(var(--shell-form-vv-height,100dvh) - 16px);
+    }
+  }
+}
+
 </style>
 </head>
 <body>
