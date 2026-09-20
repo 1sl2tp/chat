@@ -14,12 +14,12 @@ sync = read('v21-sync-engine.js')
 assert '[data-v21-contact-list]{align-content:start;grid-auto-rows:max-content}' in source
 
 # Single-image media follows the same sender-edge ownership as galleries while
-# preserving the existing 256/320/400 presentation geometry.
+# preserving the current shared media-width owner.
 assert '.user-message-unit>.media-image-tile[data-image-presentation]{margin-left:auto}' in source
 assert '.assistant-message-unit>.media-image-tile[data-image-presentation]{margin-right:auto}' in source
-assert 'width:256' in read('app.js')
-assert 'width:320' in read('app.js')
-assert 'width:400' in read('app.js')
+app=read('app.js')
+assert 'const MESSAGE_MEDIA_WIDTH_PX=360;' in app
+assert app.count('width:MESSAGE_MEDIA_WIDTH_PX')>=3
 
 # Directory order is activity-owned only. Equal activity keeps stable store
 # order; display-name/profile edits are never a sort key.
