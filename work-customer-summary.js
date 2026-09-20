@@ -256,6 +256,7 @@ function ensureMobileAccountMenu(){
       return;
     }
     if(action==='settings'){
+      if(snapshot().account?.role!=='admin')return;
       void window.V21ZaloAccountAdmin?.open?.();
       return;
     }
