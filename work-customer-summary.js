@@ -167,12 +167,21 @@ function mobileAccountMenuOwnedByTrigger(){
   return mobileDirectoryAllowed()&&snapshot().state==='AUTHENTICATED';
 }
 
+function syncMobileAccountMenuItems(menu=mobileAccountMenu){
+  if(!menu)return false;
+  const auth=snapshot();
+  const settings=menu.querySelector('[data-mobile-account-action="settings"]');
+  if(settings)settings.hidden=!(auth.state==='AUTHENTICATED'&&auth.account?.role==='admin');
+  return true;
+}
+
 function syncMobileAccountMenuTrigger(open){
   const trigger=mobileAccountMenuTrigger();
   if(!trigger)return false;
   const authenticated=snapshot().state==='AUTHENTICATED';
   if(mobileAccountMenuOwnedByTrigger()){
     if(!mobileAccountMenu?.isConnected)ensureMobileAccountMenu();
+    syncMobileAccountMenuItems();
     trigger.setAttribute('aria-haspopup','menu');
     trigger.setAttribute('aria-controls','mobileAccountMenuPanel');
     trigger.setAttribute('aria-expanded',String(Boolean(open)));
@@ -258,6 +267,7 @@ function ensureMobileAccountMenu(){
   });
   host.appendChild(wrap);
   mobileAccountMenu=wrap;
+  syncMobileAccountMenuItems(wrap);
   return wrap;
 }
 
