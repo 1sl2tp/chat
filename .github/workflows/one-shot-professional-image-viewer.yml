@@ -1,10 +1,42 @@
-name: One-shot professional image viewer (retired)
+name: Verify mobile account menu contract
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - fix/mobile-account-menu-contract
 permissions:
-  contents: read
+  contents: write
 jobs:
-  retired:
+  build:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Image viewer redesign already applied; workflow retired."
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: python -m pip install pytest
+      - name: Build canonical preview
+        run: python tools/build_current_preview.py
+      - name: Verify mobile account menu and stable app
+        run: |
+          node --check work-customer-summary.js
+          python tests/test_v21_72_61_mobile_account_menu_contract.py
+          python tests/test_v21_mobile_chat_navigation.py
+          python tests/test_v21_72_60_global_desktop_dynamic_viewport.py
+          python tools/verify_current.py
+      - name: Commit generated artifacts
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html version.json
+          if git diff --cached --quiet; then
+            echo "No generated changes"
+            exit 0
+          fi
+          git commit -m "Build mobile account menu contract"
+          git push
