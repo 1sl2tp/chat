@@ -6,6 +6,8 @@ const MOBILE_CHAT_SWIPE_DISTANCE_PX=48;
 const MOBILE_CHAT_SWIPE_EDGE_INSET_PX=28;
 const MOBILE_CHAT_SWIPE_DOMINANCE=1.2;
 const MOBILE_TAB_DOUBLE_TAP_MS=250;
+const DESKTOP_PERSISTENT_MEDIA='(min-width:64rem) and (hover:hover) and (pointer:fine)';
+const desktopPersistentMedia=window.matchMedia?.(DESKTOP_PERSISTENT_MEDIA)||null;
 let timer=0;
 let realtimeChannel=null;
 let realtimeRefreshTimer=0;
@@ -29,7 +31,7 @@ function shellSnapshot(){return window.ChatAppShell?.ScreenSession?.snapshot?.()
 function activeContact(){return shellSnapshot()?.activeContact||null;}
 function navigation(){return window.ChatAppShell?.NavigationCommand||null;}
 function mobileDirectoryAllowed(){
-  return !window.matchMedia?.('(min-width:64rem) and (hover:hover) and (pointer:fine)')?.matches;
+  return !desktopPersistentMedia?.matches;
 }
 
 function node(tag,className,text){
@@ -388,6 +390,18 @@ function handleMobileTopTabTap(key){
     mobileTopTabTap={key:'',timer:0,lastAt:0};
     runMobileTopTabSingle(pending);
   },MOBILE_TAB_DOUBLE_TAP_MS);
+  return true;
+}
+
+function bindMobileViewportTransition(){
+  const media=desktopPersistentMedia;
+  if(!media)return false;
+  const onChange=event=>{
+    if(!event.matches)return;
+    closeMobileAccountMenu({restoreFocus:false});
+  };
+  if(typeof media.addEventListener==='function')media.addEventListener('change',onChange);
+  else if(typeof media.addListener==='function')media.addListener(onChange);
   return true;
 }
 
@@ -938,6 +952,7 @@ document.addEventListener('click',event=>{
 
 bindMobileHierarchySwipe();
 bindMobileNavigationClicks();
+bindMobileViewportTransition();
 schedule();
 syncRealtimeSubscription();
 void refresh('boot');
