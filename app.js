@@ -5675,13 +5675,21 @@ function isComposerActionMenuOpen(){
   return supportsPopoverApi?actionMenu.matches(':popover-open'):actionMenu.dataset.fallbackOpen==='true';
 }
 
+function syncComposerActionMenuTrigger(){
+  const open=isComposerActionMenuOpen();
+  plusButton.dataset.state=open?'open':'closed';
+  plusButton.setAttribute('aria-expanded',String(open));
+  return open;
+}
+
 function setComposerActionMenuOpen(open){
   open=Boolean(open);
-  if(open&&InteractionController.snapshot().mode!==InteractionMode.NONE)return;
+  if(open&&InteractionController.snapshot().mode!==InteractionMode.NONE)return false;
 
-  if(open===isComposerActionMenuOpen())return;
-
-  plusButton.dataset.state=open?'open':'closed';
+  if(open===isComposerActionMenuOpen()){
+    syncComposerActionMenuTrigger();
+    return open;
+  }
 
   if(open){
     actionMenu.style.visibility='hidden';
@@ -5694,10 +5702,12 @@ function setComposerActionMenuOpen(open){
     else delete actionMenu.dataset.fallbackOpen;
     actionMenu.style.removeProperty('visibility');
   }
+  syncComposerActionMenuTrigger();
+  return open;
 }
 
 function toggleComposerActionMenu(){
-  setComposerActionMenuOpen(
+  return setComposerActionMenuOpen(
     !isComposerActionMenuOpen()
   );
 }
@@ -5711,10 +5721,7 @@ window.V21ComposerActionMenu=Object.freeze({
 });
 
 if(supportsPopoverApi)actionMenu.addEventListener('toggle',()=>{
-  plusButton.dataset.state=
-    isComposerActionMenuOpen()
-      ?'open'
-      :'closed';
+  syncComposerActionMenuTrigger();
 });
 
 plusButton.addEventListener('pointerdown',event=>{
@@ -5797,6 +5804,23 @@ vv?.addEventListener('resize',()=>{
 vv?.addEventListener('scroll',()=>{
   if(isComposerActionMenuOpen())placeComposerActionMenu();
 },{passive:true});
+
+/* Native popover handles light-dismiss/Escape itself. The fallback path must
+   keep the same ChatGPT interaction contract on browsers/WebViews without it. */
+document.addEventListener('pointerdown',event=>{
+  if(supportsPopoverApi||!isComposerActionMenuOpen())return;
+  const target=event.target instanceof Element?event.target:null;
+  if(!target)return;
+  if(actionMenu.contains(target)||plusButton.contains(target))return;
+  setComposerActionMenuOpen(false);
+},true);
+
+document.addEventListener('keydown',event=>{
+  if(supportsPopoverApi||event.key!=='Escape'||!isComposerActionMenuOpen())return;
+  event.preventDefault();
+  setComposerActionMenuOpen(false);
+  if(plusButton.isConnected)plusButton.focus({preventScroll:true});
+});
 
 function stopRecordingTimer(){
   clearInterval(recordingTimer);
