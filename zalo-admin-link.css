@@ -261,7 +261,7 @@
     border-radius:20px;
   }
   #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #messageWindow{
-    padding-bottom:28px;
+    padding-bottom:40px;
   }
 }
 
