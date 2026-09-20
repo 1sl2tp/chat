@@ -1601,12 +1601,20 @@ function closeImageViewerTimeMenu(){
   if(imageViewerTimeMenuButton)imageViewerTimeMenuButton.setAttribute('aria-expanded','false');
 }
 
-function toggleImageViewerTimeMenu(force){
-  if(!imageViewerTimeMenuPanel||!imageViewerTimeMenuButton)return;
+function toggleImageViewerTimeMenu(force,{restoreFocus=false}={}){
+  if(!imageViewerTimeMenuPanel||!imageViewerTimeMenuButton)return false;
   const open=typeof force==='boolean'?force:Boolean(imageViewerTimeMenuPanel.hidden);
   imageViewerTimeMenuPanel.hidden=!open;
   imageViewerTimeMenuButton.setAttribute('aria-expanded',open?'true':'false');
-  if(open)updateImageViewerTimeMenu();
+  if(open){
+    updateImageViewerTimeMenu();
+    requestAnimationFrame(()=>{
+      imageViewerTimeMenuPanel?.querySelector?.('.image-review-menu-item')?.focus?.({preventScroll:true});
+    });
+  }else if(restoreFocus&&imageViewerTimeMenuButton.isConnected){
+    imageViewerTimeMenuButton.focus({preventScroll:true});
+  }
+  return open;
 }
 
 function applyCurrentImageViewerFilters({preferAssetId='',behavior='smooth'}={}){
@@ -1693,8 +1701,10 @@ function renderImageViewerFilters(){
   more.setAttribute('aria-label',`Lọc thời gian: ${viewerTimeFilterLabel(imageViewerTimeFilter)}`);
   more.setAttribute('aria-haspopup','menu');
   more.setAttribute('aria-expanded','false');
+  more.setAttribute('aria-controls','imageReviewTimeMenu');
   more.textContent='…';
   const menu=document.createElement('div');
+  menu.id='imageReviewTimeMenu';
   menu.className='image-review-menu';
   menu.hidden=true;
   menu.setAttribute('role','menu');
@@ -2002,7 +2012,14 @@ function ensureImageViewer(){
   next.addEventListener('click',event=>{event.stopPropagation();void showImageViewerIndex(imageViewerIndex+1);});
   overlay.addEventListener('cancel',event=>{event.preventDefault();closeImageViewer();});
   overlay.addEventListener('keydown',event=>{
-    if(event.key==='Escape'){event.preventDefault();closeImageViewer();}
+    if(event.key==='Escape'){
+      event.preventDefault();
+      if(imageViewerTimeMenuPanel?.hidden===false){
+        toggleImageViewerTimeMenu(false,{restoreFocus:true});
+      }else{
+        closeImageViewer();
+      }
+    }
     else if(event.key==='ArrowLeft'&&imageViewerZoom===1){event.preventDefault();void showImageViewerIndex(imageViewerIndex-1);}
     else if(event.key==='ArrowRight'&&imageViewerZoom===1){event.preventDefault();void showImageViewerIndex(imageViewerIndex+1);}
     else if(event.key==='+'||event.key==='='){event.preventDefault();stepImageViewerZoom(1);}
@@ -2196,7 +2213,7 @@ function ensureImageViewer(){
   overlay.addEventListener('click',event=>{
     if(imageViewerTimeMenuPanel?.hidden)return;
     if(event.target===imageViewerTimeMenuPanel||imageViewerTimeMenuPanel.contains(event.target)||event.target===imageViewerTimeMenuButton)return;
-    closeImageViewerTimeMenu();
+    toggleImageViewerTimeMenu(false);
   });
 
   review.append(head,main,bottom);
