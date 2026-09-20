@@ -2444,25 +2444,27 @@ function imageAspectRatio(media){
   return Math.max(.22,Math.min(4.5,ratio||1.5));
 }
 
+const MESSAGE_MEDIA_WIDTH_PX=360;
+
 function singleImagePresentation(media){
   const sourceRatio=imageAspectRatio(media);
   if(sourceRatio<.82){
     return{
       kind:'portrait',
-      width:256,
+      width:MESSAGE_MEDIA_WIDTH_PX,
       aspectRatio:Math.max(.5,Math.min(.82,sourceRatio))
     };
   }
   if(sourceRatio<=1.2){
     return{
       kind:'square',
-      width:320,
+      width:MESSAGE_MEDIA_WIDTH_PX,
       aspectRatio:Math.max(.82,Math.min(1.2,sourceRatio))
     };
   }
   return{
     kind:'landscape',
-    width:400,
+    width:MESSAGE_MEDIA_WIDTH_PX,
     aspectRatio:Math.max(1.2,Math.min(2.2,sourceRatio))
   };
 }
@@ -2583,7 +2585,7 @@ function patchImageTileNode(wrap,media,{viewerContext={},overlayText=null}={}){
       wrap.dataset.ready='true';
       wrap.dataset.localPreview='true';
       wrap.classList.remove('bg-slate-200');
-      wrap.style.background='transparent';
+      wrap.style.background='';
     }else if(!localPreview&&!img.getAttribute('src')){
       void hydrateImageElement(img,{assetId,accountId});
     }
@@ -2622,7 +2624,7 @@ function createImageTile(media,{className='block h-full w-full object-contain',o
     wrap.dataset.ready='true';
     wrap.dataset.localPreview='true';
     wrap.classList.remove('bg-slate-200');
-    wrap.style.background='transparent';
+    wrap.style.background='';
   }
   wrap.appendChild(img);
   img.addEventListener('load',()=>{
@@ -2630,7 +2632,7 @@ function createImageTile(media,{className='block h-full w-full object-contain',o
     img.dataset.retryCount='0';
     wrap.dataset.ready='true';
     wrap.classList.remove('bg-slate-200');
-    wrap.style.background='transparent';
+    wrap.style.background='';
     publishViewportGeometryChange('image-load');
   });
   img.addEventListener('error',()=>{
@@ -2679,7 +2681,7 @@ function createImageTile(media,{className='block h-full w-full object-contain',o
 function applyImageGalleryGeometry(grid,count){
   grid.dataset.layout=count===2?'two':count===3?'three':count===4?'four':'multi';
   grid.setAttribute('data-gallery-count',String(count));
-  grid.style.cssText='display:grid;width:400px;max-width:100%;gap:4px;overflow:hidden;border-radius:14px;';
+  grid.style.cssText=`display:grid;width:${MESSAGE_MEDIA_WIDTH_PX}px;max-width:100%;gap:4px;overflow:hidden;border-radius:14px;`;
   if(count===2){
     grid.style.gridTemplateColumns='repeat(2,minmax(0,1fr))';
     grid.style.gridTemplateRows='';
