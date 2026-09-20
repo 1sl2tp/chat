@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="87b2a86b2ce020b88f955bf000d30ef3a7bf9826144c697a2f825d6a50ebbc59">
+<meta name="app-build-id" content="6fc54a32ea2d126893db863d75cd7cb482a5aee659066155f094e948dcb5ceff">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -8386,12 +8386,13 @@ function ensureImageViewer(){
   main.addEventListener('pointerup',finishPointer);
   main.addEventListener('pointercancel',finishPointer);
 
-  /* Mobile viewer shortcuts: keep the stable desktop viewer unchanged.
-     Touch/pen only: double tap toggles zoom, tap black stage closes,
-     swipe down closes at fit-to-screen. */
+  /* Viewer stage shortcuts.
+     Any primary pointer may close the viewer by tapping/clicking the empty
+     black stage. Touch/pen additionally keep double-tap zoom and swipe-down
+     close. Starting on the image or a control never counts as a stage close. */
   main.addEventListener('pointerdown',event=>{
-    const pointerType=String(event.pointerType||'');
-    if(pointerType!=='touch'&&pointerType!=='pen')return;
+    const pointerType=String(event.pointerType||'mouse');
+    if(pointerType==='mouse'&&event.button!==0)return;
     if(event.target instanceof Element&&event.target.closest('button'))return;
     const existing=[...imageViewerTouchStarts.values()];
     const multi=existing.length>0;
@@ -8399,6 +8400,7 @@ function ensureImageViewer(){
     imageViewerTouchStarts.set(event.pointerId,{
       x:event.clientX,
       y:event.clientY,
+      pointerType,
       onImage:event.target===image,
       onStage:event.target===main,
       moved:false,
@@ -8412,15 +8414,16 @@ function ensureImageViewer(){
     if(Math.hypot(event.clientX-start.x,event.clientY-start.y)>8)start.moved=true;
   },{passive:true});
 
-  const finishMobileViewerTouch=event=>{
+  const finishImageViewerPointerShortcut=event=>{
     const start=imageViewerTouchStarts.get(event.pointerId);
     if(!start)return;
     imageViewerTouchStarts.delete(event.pointerId);
     const dx=event.clientX-start.x;
     const dy=event.clientY-start.y;
     const moved=start.moved||Math.hypot(dx,dy)>8;
+    const touchLike=start.pointerType==='touch'||start.pointerType==='pen';
 
-    if(!start.multi&&imageViewerZoom===1&&dy>72&&Math.abs(dy)>Math.abs(dx)*1.15){
+    if(touchLike&&!start.multi&&imageViewerZoom===1&&dy>72&&Math.abs(dy)>Math.abs(dx)*1.15){
       imageViewerLastTouchTapAt=0;
       closeImageViewer({restoreFocus:false});
       return;
@@ -8428,11 +8431,15 @@ function ensureImageViewer(){
 
     if(!start.multi&&!moved&&start.onStage){
       imageViewerLastTouchTapAt=0;
-      closeImageViewer({restoreFocus:false});
+      if(imageViewerTimeMenuPanel?.hidden===false){
+        toggleImageViewerTimeMenu(false);
+        return;
+      }
+      closeImageViewer({restoreFocus:!touchLike});
       return;
     }
 
-    if(start.multi||moved||!start.onImage)return;
+    if(!touchLike||start.multi||moved||!start.onImage)return;
     const now=performance.now();
     const isDoubleTap=(
       imageViewerLastTouchTapAt>0&&
@@ -8452,7 +8459,7 @@ function ensureImageViewer(){
     imageViewerLastTouchTapY=event.clientY;
   };
 
-  main.addEventListener('pointerup',finishMobileViewerTouch);
+  main.addEventListener('pointerup',finishImageViewerPointerShortcut);
   main.addEventListener('pointercancel',event=>{
     imageViewerTouchStarts.delete(event.pointerId);
     if(imageViewerTouchStarts.size===0)imageViewerLastTouchTapAt=0;

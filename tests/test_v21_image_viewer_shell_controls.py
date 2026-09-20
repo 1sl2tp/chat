@@ -30,3 +30,14 @@ assert "if(imageViewerZoom>1)resetImageViewerZoom();" not in app
 
 assert "window.matchMedia?.('(max-width:700px)')" in app
 assert "title.textContent='Xem ảnh'" in app
+
+
+# Empty black stage closes consistently with mouse/touch/pen, while image/control
+# interactions remain owned by zoom/navigation.
+assert "const finishImageViewerPointerShortcut=event=>{" in app
+assert "const touchLike=start.pointerType==='touch'||start.pointerType==='pen';" in app
+assert "if(!start.multi&&!moved&&start.onStage){" in app
+assert "closeImageViewer({restoreFocus:!touchLike});" in app
+assert "if(pointerType==='mouse'&&event.button!==0)return;" in app
+assert "onImage:event.target===image" in app
+assert "onStage:event.target===main" in app
