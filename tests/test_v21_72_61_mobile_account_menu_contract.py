@@ -21,7 +21,8 @@ assert 'id="mobileAccountMenuPanel"' in js
 assert 'functiontoggleMobileAccountMenu()' in jc
 assert "menu.querySelector('[role=\"menuitem\"]')?.focus?.({preventScroll:true});" in js
 assert 'closeMobileAccountMenu({restoreFocus:true});' in js
-assert "if(event.key!=='Escape'||mobileAccountMenu?.dataset.open!=='true')return;" in js
+assert "if(mobileAccountMenu?.dataset.open!=='true')return;" in js
+assert "if(event.key==='Escape')" in js
 assert 'toggleMobileAccountMenu();' in js
 
 # Menu rows expose hover/focus/pressed states without changing action semantics.
