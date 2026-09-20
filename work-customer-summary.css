@@ -26,10 +26,10 @@
   background:var(--theme-surface-primary);
   color:var(--theme-content-primary);
 }
+/* Region 3 internal owner map: Header is a fixed flex sibling; Body is the
+   only scroll owner. Do not make the header sticky inside a non-scrolling root. */
 .work-summary-header{
-  position:sticky;
-  top:0;
-  z-index:4;
+  position:relative;
   flex:0 0 auto;
   display:flex;
   align-items:center;
@@ -79,14 +79,22 @@
 .work-summary-all{
   flex:0 0 auto;
   min-height:34px;
-  padding:0 11px;
+  padding:0 12px;
   border:1px solid var(--theme-border-default);
-  border-radius:10px;
+  border-radius:999px;
   background:var(--theme-surface-primary);
   color:var(--theme-content-primary);
   font-size:13px;
   line-height:18px;
   font-weight:600;
+  touch-action:manipulation;
+}
+.work-summary-all:hover{
+  background:var(--theme-action-ghost-surface-hover);
+}
+.work-summary-all:focus-visible{
+  outline:2px solid color-mix(in srgb,var(--theme-content-primary) 24%,transparent);
+  outline-offset:2px;
 }
 .work-summary-body{
   min-height:0;
@@ -95,6 +103,7 @@
   overscroll-behavior:contain;
   padding:10px 12px 20px;
   scrollbar-width:thin;
+  scrollbar-gutter:stable;
 }
 .work-summary-overview{
   display:block;

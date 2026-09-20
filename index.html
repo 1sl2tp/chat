@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="c28f3836d800337f9fe582505a85fe3e285110bc030bd42580ac4fc39b3af757">
+<meta name="app-build-id" content="d6ad7037eb0c82757f2f7c0ae8284409ac2ff909a0f3d284a72df40cfe2d5858">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -638,10 +638,10 @@
   background:var(--theme-surface-primary);
   color:var(--theme-content-primary);
 }
+/* Region 3 internal owner map: Header is a fixed flex sibling; Body is the
+   only scroll owner. Do not make the header sticky inside a non-scrolling root. */
 .work-summary-header{
-  position:sticky;
-  top:0;
-  z-index:4;
+  position:relative;
   flex:0 0 auto;
   display:flex;
   align-items:center;
@@ -691,14 +691,22 @@
 .work-summary-all{
   flex:0 0 auto;
   min-height:34px;
-  padding:0 11px;
+  padding:0 12px;
   border:1px solid var(--theme-border-default);
-  border-radius:10px;
+  border-radius:999px;
   background:var(--theme-surface-primary);
   color:var(--theme-content-primary);
   font-size:13px;
   line-height:18px;
   font-weight:600;
+  touch-action:manipulation;
+}
+.work-summary-all:hover{
+  background:var(--theme-action-ghost-surface-hover);
+}
+.work-summary-all:focus-visible{
+  outline:2px solid color-mix(in srgb,var(--theme-content-primary) 24%,transparent);
+  outline-offset:2px;
 }
 .work-summary-body{
   min-height:0;
@@ -707,6 +715,7 @@
   overscroll-behavior:contain;
   padding:10px 12px 20px;
   scrollbar-width:thin;
+  scrollbar-gutter:stable;
 }
 .work-summary-overview{
   display:block;
