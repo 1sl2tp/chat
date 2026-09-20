@@ -157,11 +157,35 @@ function restoreConversationFromWork(reason='work-back'){
   return true;
 }
 
-function closeMobileAccountMenu(){
-  if(!mobileAccountMenu)return false;
+function mobileAccountMenuTrigger(){
+  return document.querySelector('[data-shell-command="sidebar.open"]');
+}
+
+function syncMobileAccountMenuTrigger(open){
+  const trigger=mobileAccountMenuTrigger();
+  if(!trigger)return false;
+  trigger.setAttribute('aria-haspopup','menu');
+  trigger.setAttribute('aria-controls','mobileAccountMenuPanel');
+  trigger.setAttribute('aria-expanded',String(Boolean(open)));
+  return true;
+}
+
+function closeMobileAccountMenu({restoreFocus=false}={}){
+  if(!mobileAccountMenu){
+    syncMobileAccountMenuTrigger(false);
+    return false;
+  }
+  const wasOpen=mobileAccountMenu.dataset.open==='true'&&!mobileAccountMenu.hidden;
   mobileAccountMenu.dataset.open='false';
   mobileAccountMenu.hidden=true;
-  return true;
+  syncMobileAccountMenuTrigger(false);
+  if(restoreFocus&&wasOpen){
+    const trigger=mobileAccountMenuTrigger();
+    if(trigger instanceof HTMLElement&&trigger.isConnected){
+      trigger.focus({preventScroll:true});
+    }
+  }
+  return wasOpen;
 }
 
 function ensureMobileAccountMenu(){
@@ -175,7 +199,7 @@ function ensureMobileAccountMenu(){
   wrap.hidden=true;
   wrap.innerHTML=`
     <button type="button" class="mobile-account-menu-backdrop" data-mobile-account-close aria-label="Đóng menu"></button>
-    <div class="mobile-account-menu-panel" role="menu" aria-label="Tài khoản">
+    <div id="mobileAccountMenuPanel" class="mobile-account-menu-panel" role="menu" aria-label="Tài khoản">
       <button type="button" class="mobile-account-menu-row" role="menuitem" data-mobile-account-action="directory">Danh bạ</button>
       <button type="button" class="mobile-account-menu-row" role="menuitem" data-mobile-account-action="account">Tài khoản</button>
       <button type="button" class="mobile-account-menu-row" role="menuitem" data-mobile-account-action="settings">Cài đặt</button>
@@ -185,7 +209,7 @@ function ensureMobileAccountMenu(){
     const target=event.target instanceof Element?event.target:null;
     if(!target)return;
     if(target.closest('[data-mobile-account-close]')){
-      closeMobileAccountMenu();
+      closeMobileAccountMenu({restoreFocus:true});
       return;
     }
     const action=target.closest('[data-mobile-account-action]')?.getAttribute('data-mobile-account-action')||'';
@@ -212,6 +236,7 @@ function ensureMobileAccountMenu(){
   });
   host.appendChild(wrap);
   mobileAccountMenu=wrap;
+  syncMobileAccountMenuTrigger(false);
   return wrap;
 }
 
@@ -228,7 +253,18 @@ function openMobileAccountMenu(){
   if(!menu)return false;
   menu.hidden=false;
   menu.dataset.open='true';
+  syncMobileAccountMenuTrigger(true);
+  window.setTimeout(()=>{
+    menu.querySelector('[role="menuitem"]')?.focus?.({preventScroll:true});
+  },0);
   return true;
+}
+
+function toggleMobileAccountMenu(){
+  if(mobileAccountMenu?.dataset.open==='true'&&!mobileAccountMenu.hidden){
+    return closeMobileAccountMenu({restoreFocus:true});
+  }
+  return openMobileAccountMenu();
 }
 
 function swipeIgnoredTarget(target){
@@ -356,6 +392,12 @@ function handleMobileTopTabTap(key){
 }
 
 function bindMobileNavigationClicks(){
+  document.addEventListener('keydown',event=>{
+    if(event.key!=='Escape'||mobileAccountMenu?.dataset.open!=='true')return;
+    event.preventDefault();
+    closeMobileAccountMenu({restoreFocus:true});
+  });
+
   document.addEventListener('click',event=>{
     if(!mobileDirectoryAllowed())return;
     const target=event.target instanceof Element?event.target:null;
@@ -365,7 +407,7 @@ function bindMobileNavigationClicks(){
     if(hamburger){
       event.preventDefault();
       event.stopImmediatePropagation();
-      openMobileAccountMenu();
+      toggleMobileAccountMenu();
       return;
     }
 
