@@ -2999,7 +2999,10 @@ button{
   }
   #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #regionTop .compact-top-grid{
     box-sizing:border-box;
-    padding-inline-end:var(--desktop-work-width);
+    width:var(--desktop-chat-width)!important;
+    max-width:var(--desktop-chat-width)!important;
+    margin-inline-start:0;
+    margin-inline-end:auto;
   }
   #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] .top-mode-switch{
     grid-template-columns:minmax(0,1fr)!important;
