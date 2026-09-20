@@ -299,6 +299,28 @@ function toggleMobileAccountMenu(){
   return openMobileAccountMenu();
 }
 
+function visibleMobileAccountMenuItems(){
+  if(!mobileAccountMenu)return[];
+  return [...mobileAccountMenu.querySelectorAll('[role="menuitem"]')]
+    .filter(item=>item instanceof HTMLElement&&!item.hidden&&!item.disabled);
+}
+
+function moveMobileAccountMenuFocus(event){
+  if(mobileAccountMenu?.dataset.open!=='true')return false;
+  if(!['ArrowDown','ArrowUp','Home','End'].includes(event.key))return false;
+  const items=visibleMobileAccountMenuItems();
+  if(!items.length)return false;
+  const current=items.indexOf(document.activeElement);
+  let next=0;
+  if(event.key==='End')next=items.length-1;
+  else if(event.key==='Home')next=0;
+  else if(event.key==='ArrowDown')next=current<0?0:(current+1)%items.length;
+  else next=current<0?items.length-1:(current-1+items.length)%items.length;
+  event.preventDefault();
+  items[next].focus({preventScroll:true});
+  return true;
+}
+
 function swipeIgnoredTarget(target){
   return Boolean(target?.closest?.('textarea,input,select,button,a,[role="button"],[contenteditable="true"],#thread-bottom-container'));
 }
@@ -450,9 +472,13 @@ function bindMobileAccountMenuContractSync(){
 
 function bindMobileNavigationClicks(){
   document.addEventListener('keydown',event=>{
-    if(event.key!=='Escape'||mobileAccountMenu?.dataset.open!=='true')return;
-    event.preventDefault();
-    closeMobileAccountMenu({restoreFocus:true});
+    if(mobileAccountMenu?.dataset.open!=='true')return;
+    if(event.key==='Escape'){
+      event.preventDefault();
+      closeMobileAccountMenu({restoreFocus:true});
+      return;
+    }
+    moveMobileAccountMenuFocus(event);
   });
 
   document.addEventListener('click',event=>{
