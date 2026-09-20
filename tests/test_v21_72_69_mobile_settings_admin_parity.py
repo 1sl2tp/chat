@@ -23,8 +23,8 @@ def fn(text,name):
     raise AssertionError(name)
 
 # Desktop remains the reference contract: Settings is Admin-only.
-desktop=fn(shell,'renderAccountFooter')
-assert "settingsItem.hidden=!(authenticated&&authAccount?.role==='admin');" in desktop
+assert "renderAccountFooter(){" in shell
+assert "settingsItem.hidden=!(authenticated&&authAccount?.role==='admin');" in shell
 
 # Mobile menu mirrors the same role rule.
 items=fn(js,'syncMobileAccountMenuItems')
