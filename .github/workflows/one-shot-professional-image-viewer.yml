@@ -1,10 +1,45 @@
-name: One-shot professional image viewer (retired)
+name: Verify Region 3 detail check control
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - fix/region3-detail-check-control
 permissions:
-  contents: read
+  contents: write
 jobs:
-  retired:
+  build:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Image viewer redesign already applied; workflow retired."
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: python -m pip install pytest
+      - name: Build canonical preview
+        run: python tools/build_current_preview.py
+      - name: Verify Region 3 detail completion and stable workspace
+        run: |
+          node --check work-customer-summary.js
+          python tests/test_v21_72_55_region3_detail_check_control.py
+          python tests/test_v21_72_54_region3_header_scroll_owner.py
+          python tests/test_v21_72_53_region3_work_row_interaction.py
+          python tests/test_v21_work_customer_summary_reconcile.py
+          python tests/test_v21_work_customer_summary_ui.py
+          python tests/test_v21_mobile_chat_navigation.py
+          python tools/verify_current.py
+      - name: Commit generated artifacts
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html version.json
+          if git diff --cached --quiet; then
+            echo "No generated changes"
+            exit 0
+          fi
+          git commit -m "Build Region 3 detail check control"
+          git push
