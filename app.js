@@ -3671,10 +3671,42 @@ function bindTurnActionTap(turn,target){
 document.addEventListener('pointerdown',event=>{
   if(event.pointerType==='mouse')return;
 
-  if(!event.target.closest('.message-turn')){
+  const turn=event.target instanceof Element
+    ?event.target.closest('.message-turn')
+    :null;
+
+  if(!turn){
+    closeAllTurnActions();
+    return;
+  }
+
+  // Touching another message dismisses the currently-open action rail first.
+  // The tapped message keeps its normal tap behavior; long-press can then open
+  // that message's own actions without two rails being visible at once.
+  if(turn.dataset.actionsOpen!=='true'){
     closeAllTurnActions();
   }
 },{passive:true});
+
+messageWindow.addEventListener('keydown',event=>{
+  if(event.key!=='Escape')return;
+  const openTurn=messageWindow.querySelector('.message-turn[data-actions-open="true"]');
+  if(!openTurn)return;
+  event.preventDefault();
+  closeAllTurnActions();
+  const focusTarget=openTurn.querySelector('.message-text,[data-message-media-root="true"]');
+  if(focusTarget instanceof HTMLElement&&focusTarget.isConnected){
+    focusTarget.focus?.({preventScroll:true});
+  }
+});
+
+scrollRoot.addEventListener('scroll',()=>{
+  closeAllTurnActions();
+},{passive:true});
+
+document.addEventListener('v21-active-contact-change',()=>{
+  closeAllTurnActions();
+});
 
 const DISPLAY_EMOTICONS=Object.freeze({
   ':)':'🙂',':-)':'🙂',
@@ -6176,6 +6208,7 @@ micButton.addEventListener('click',()=>{
 });
 
 document.addEventListener('v21-interaction-abort',()=>{
+  closeAllTurnActions();
   setComposerActionMenuOpen(false);
   if(imageViewerOverlay?.open)closeImageViewer({restoreFocus:false});
   if(duplicateUploadWarningOverlay?.style.display==='flex'){
