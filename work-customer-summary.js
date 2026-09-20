@@ -982,10 +982,10 @@ document.addEventListener('click',event=>{
   }
 });
 
+bindMobileAccountMenuContractSync();
 bindMobileHierarchySwipe();
 bindMobileNavigationClicks();
 bindMobileViewportTransition();
-bindMobileAccountMenuContractSync();
 schedule();
 syncRealtimeSubscription();
 void refresh('boot');
