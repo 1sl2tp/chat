@@ -27,7 +27,7 @@ jobs:
           node --check app.js
           python tests/test_v21_72_50_region2_message_action_contract.py
           python tests/test_v21_72_49_region2_composer_menu_contract.py
-          python -m pytest tests/test_v21_72_36_message_action_mirror_bubble_owner.py -q
+          python tests/test_v21_72_36_message_action_mirror_bubble_owner.py
           python tools/verify_current.py
       - name: Commit generated artifacts
         run: |
