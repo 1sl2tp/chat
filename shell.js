@@ -914,9 +914,29 @@ function closeProfileEditor({restoreFocus=true}={}){
   unlockProfileBackground({restoreFocus});
 }
 
+function profileDeleteConfirmation(){
+  if(!profileOverlay)return null;
+  const node=profileOverlay.querySelector('[data-profile-delete-confirm]');
+  return node&&!node.hidden?node:null;
+}
+
+function closeProfileDeleteConfirmation({restoreFocus=true}={}){
+  const confirm=profileDeleteConfirmation();
+  if(!confirm)return false;
+  confirm.hidden=true;
+  if(restoreFocus){
+    const trigger=profileOverlay?.querySelector?.('[data-profile-delete]');
+    if(trigger instanceof HTMLElement&&trigger.isConnected){
+      window.setTimeout(()=>{try{trigger.focus({preventScroll:true});}catch{}},0);
+    }
+  }
+  return true;
+}
+
 function profileFocusable(){
   if(!profileOverlay)return[];
-  return [...profileOverlay.querySelectorAll('button:not([disabled]),input:not([disabled]),textarea:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])')]
+  const scope=profileDeleteConfirmation()||profileOverlay;
+  return [...scope.querySelectorAll('button:not([disabled]),input:not([disabled]),textarea:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])')]
     .filter(node=>!node.hidden&&node.getClientRects().length>0);
 }
 
@@ -924,6 +944,7 @@ document.addEventListener('keydown',event=>{
   if(!profileOverlay)return;
   if(event.key==='Escape'){
     event.preventDefault();
+    if(closeProfileDeleteConfirmation({restoreFocus:true}))return;
     closeProfileEditor();
     return;
   }
@@ -972,7 +993,7 @@ function buildProfileEditor({mode='self',account:target}={}){
         <button type="button" class="shell-profile-danger" data-profile-delete>Xóa tài khoản</button>
       </div>
       <div class="shell-profile-confirm" data-profile-delete-confirm hidden>
-        <div class="shell-profile-confirm-card" role="alertdialog" aria-labelledby="profile-delete-title" aria-describedby="profile-delete-copy">
+        <div class="shell-profile-confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="profile-delete-title" aria-describedby="profile-delete-copy">
           <strong id="profile-delete-title">Xóa tài khoản?</strong>
           <p id="profile-delete-copy">Tài khoản sẽ bị đăng xuất và không thể đăng nhập lại.</p>
           <div class="shell-profile-confirm-actions">
@@ -1081,7 +1102,10 @@ function buildProfileEditor({mode='self',account:target}={}){
     usernameInput.value=usernameInput.value.trim().replace(/^@/,'').toLowerCase();
   });
 
-    wrap.querySelector('.shell-profile-backdrop').addEventListener('click',closeProfileEditor);
+  wrap.querySelector('.shell-profile-backdrop').addEventListener('click',()=>{
+    if(closeProfileDeleteConfirmation({restoreFocus:true}))return;
+    closeProfileEditor();
+  });
   wrap.querySelector('.shell-profile-close').addEventListener('click',closeProfileEditor);
 
   wrap.querySelector('[data-profile-form]').addEventListener('submit',async event=>{
@@ -1143,7 +1167,7 @@ function buildProfileEditor({mode='self',account:target}={}){
     deleteConfirm.hidden=false;
     window.setTimeout(()=>deleteCancel?.focus?.({preventScroll:true}),0);
   });
-  deleteCancel?.addEventListener('click',()=>{deleteConfirm.hidden=true;deleteButton?.focus?.({preventScroll:true});});
+  deleteCancel?.addEventListener('click',()=>{closeProfileDeleteConfirmation({restoreFocus:true});});
   deleteConfirmAction?.addEventListener('click',async()=>{
     if(!managed)return;
     setBusy(true);setError('');
