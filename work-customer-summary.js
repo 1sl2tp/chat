@@ -163,12 +163,32 @@ function mobileAccountMenuTrigger(){
   return document.querySelector('[data-shell-command="sidebar.open"]');
 }
 
+function mobileAccountMenuOwnedByTrigger(){
+  return mobileDirectoryAllowed()&&snapshot().state==='AUTHENTICATED';
+}
+
 function syncMobileAccountMenuTrigger(open){
   const trigger=mobileAccountMenuTrigger();
   if(!trigger)return false;
-  trigger.setAttribute('aria-haspopup','menu');
-  trigger.setAttribute('aria-controls','mobileAccountMenuPanel');
-  trigger.setAttribute('aria-expanded',String(Boolean(open)));
+  const authenticated=snapshot().state==='AUTHENTICATED';
+  if(mobileAccountMenuOwnedByTrigger()){
+    if(!mobileAccountMenu?.isConnected)ensureMobileAccountMenu();
+    trigger.setAttribute('aria-haspopup','menu');
+    trigger.setAttribute('aria-controls','mobileAccountMenuPanel');
+    trigger.setAttribute('aria-expanded',String(Boolean(open)));
+    trigger.setAttribute('aria-label',open?'Đóng menu':'Mở menu');
+    return true;
+  }
+  trigger.removeAttribute('aria-haspopup');
+  if(mobileDirectoryAllowed()&&!authenticated){
+    trigger.setAttribute('aria-controls','guestAuthThread');
+    trigger.removeAttribute('aria-expanded');
+    trigger.setAttribute('aria-label','Đăng nhập');
+    return true;
+  }
+  trigger.setAttribute('aria-controls','shellNavigationLayer');
+  trigger.setAttribute('aria-expanded','false');
+  trigger.setAttribute('aria-label','Mở menu');
   return true;
 }
 
@@ -238,7 +258,6 @@ function ensureMobileAccountMenu(){
   });
   host.appendChild(wrap);
   mobileAccountMenu=wrap;
-  syncMobileAccountMenuTrigger(false);
   return wrap;
 }
 
@@ -399,6 +418,19 @@ function bindMobileViewportTransition(){
   const onChange=event=>{
     if(!event.matches)return;
     closeMobileAccountMenu({restoreFocus:false});
+  };
+  if(typeof media.addEventListener==='function')media.addEventListener('change',onChange);
+  else if(typeof media.addListener==='function')media.addListener(onChange);
+  return true;
+}
+
+function bindMobileAccountMenuContractSync(){
+  syncMobileAccountMenuTrigger(false);
+  const media=desktopPersistentMedia;
+  if(!media)return true;
+  const onChange=event=>{
+    if(event.matches)return;
+    syncMobileAccountMenuTrigger(false);
   };
   if(typeof media.addEventListener==='function')media.addEventListener('change',onChange);
   else if(typeof media.addListener==='function')media.addListener(onChange);
@@ -953,6 +985,7 @@ document.addEventListener('click',event=>{
 bindMobileHierarchySwipe();
 bindMobileNavigationClicks();
 bindMobileViewportTransition();
+bindMobileAccountMenuContractSync();
 schedule();
 syncRealtimeSubscription();
 void refresh('boot');
