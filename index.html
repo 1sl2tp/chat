@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="b9fd90f2f98c6661d2115ca08e74ed957719687971b10da8f3a16777d281b364">
+<meta name="app-build-id" content="67563c4526d39022e8a620e9cc7c334c1a12a155718ccce265371eaf12a8d74e">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -721,6 +721,8 @@
   display:block;
   overflow:hidden;
 }
+/* Region 3 overview is a data table surface, not another rounded card.
+   Header/body/footer own hierarchy; the table gets only horizontal frame lines. */
 .work-summary-overview-grid{
   width:100%;
   height:100%;
@@ -728,8 +730,9 @@
   min-height:0;
   display:flex;
   flex-direction:column;
-  border:1px solid var(--theme-border-default);
-  border-radius:12px;
+  border-block:1px solid var(--theme-border-default);
+  border-inline:0;
+  border-radius:0;
   overflow:hidden;
   background:var(--theme-surface-primary);
 }
@@ -759,6 +762,7 @@
   overflow-x:hidden;
   overscroll-behavior:contain;
   scrollbar-width:thin;
+  scrollbar-gutter:stable;
   border-top:1px solid color-mix(in srgb,var(--theme-border-default) 70%,transparent);
 }
 .work-summary-customer{
