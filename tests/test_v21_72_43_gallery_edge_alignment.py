@@ -10,11 +10,11 @@ def read(path):
 source=read("index.source.html")
 app=read("app.js")
 
-# Multi-image gallery keeps the same 400px presentation target as runtime,
-# without cyclic percentage sizing inside the shrink-to-fit message unit.
-assert "width:400px;max-width:100%;gap:4px" in app
-assert ".media-gallery-grid{\n  width:25rem!important;\n  max-width:100%;" in source
-assert ".media-gallery-grid{width:min(25rem,100%)!important}" not in source
+# Multi-image gallery uses the shared 360px media owner and remains responsive.
+assert 'const MESSAGE_MEDIA_WIDTH_PX=360;' in app
+assert 'width:${MESSAGE_MEDIA_WIDTH_PX}px;max-width:100%;gap:4px' in app
+assert ".media-gallery-grid{\n  width:22.5rem!important;\n  max-width:100%;" in source
+assert 'background:var(--theme-surface-secondary);' in source
 
 # Outgoing galleries anchor to the sender edge even if the message unit has
 # spare width after shrink-to-fit/max-width resolution.
