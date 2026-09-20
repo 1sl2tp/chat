@@ -27,7 +27,7 @@ jobs:
           node --check shell.js
           python tests/test_v21_72_62_profile_delete_confirm_layer.py
           python tests/test_v21_72_61_mobile_account_menu_contract.py
-          python -m pytest tests/test_v21_72_33_directory_profile_polish.py -q
+          python tests/test_v21_72_33_directory_profile_polish.py
           python tools/verify_current.py
       - name: Commit generated artifacts
         run: |
