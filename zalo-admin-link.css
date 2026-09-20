@@ -239,6 +239,32 @@
 }
 
 
+/* Wide-desktop density: chat remains the primary working surface.
+   Keep the composer compact, preserve a visible gap above it, and let media
+   share one stable edge/width instead of sizing each image independently. */
+@media (min-width:80rem) and (hover:hover) and (pointer:fine){
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #editorWrap{
+    padding-top:4px!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #editor{
+    padding-top:6px!important;
+    padding-bottom:5px!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #composerFooter{
+    min-height:40px!important;
+    padding-bottom:4px!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] .composer-source-frame{
+    margin-bottom:16px;
+  }
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] .composer-shell-source{
+    border-radius:24px;
+  }
+  #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #messageWindow{
+    padding-bottom:28px;
+  }
+}
+
 /* Stable-baseline mobile viewer reference: isolated narrow-screen polish. */
 @media (max-width:700px){
   .image-viewer-overlay{
