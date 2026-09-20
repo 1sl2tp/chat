@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="827b8229143f060d1bf7b20c04671a07a53c97f42db0e8ac2477ffef6dfda6f2">
+<meta name="app-build-id" content="0b599dfc381cbe3aa589ef2f6345020ba5b186977b668e12397b55537fe954c4">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -4766,6 +4766,27 @@ button{
   }
   .shell-profile-card[data-mobile-keyboard="true"] .shell-profile-save,
   .shell-profile-card[data-mobile-keyboard="true"] .shell-profile-secondary{min-height:52px}
+}
+
+/* Profile modal viewport owner: preserve svh as fallback, prefer dvh when
+   VisualViewport has not published a more precise pixel height. */
+@supports (height:100dvh){
+  .shell-profile-overlay{
+    height:var(--shell-form-vv-height,100dvh);
+  }
+  .shell-profile-card{
+    max-height:calc(var(--shell-form-vv-height,100dvh) - 36px);
+  }
+  @media(max-width:520px){
+    .shell-profile-card{
+      max-height:calc(var(--shell-form-vv-height,100dvh) - 20px);
+    }
+  }
+  @media(max-width:767px), (pointer:coarse){
+    .shell-profile-card[data-mobile-keyboard="true"]{
+      max-height:calc(var(--shell-form-vv-height,100dvh) - 16px);
+    }
+  }
 }
 
 </style>
