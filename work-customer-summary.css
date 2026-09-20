@@ -564,8 +564,12 @@
     gap:6px;
   }
   .work-summary-all{
-    min-height:32px;
-    padding-inline:11px;
+    min-height:30px;
+    padding-inline:10px;
+    border-color:transparent;
+    background:transparent;
+    color:var(--theme-content-secondary);
+    font-weight:500;
   }
   .work-summary-item{
     --work-summary-check-size:32px;

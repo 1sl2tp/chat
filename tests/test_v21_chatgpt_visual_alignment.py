@@ -41,7 +41,9 @@ def test_wide_desktop_media_and_composer_use_stable_geometry():
     source = compact(SOURCE)
     assert '#messageWindow.message-unit>.media-image-tile,#messageWindow.message-unit>.media-gallery-grid{width:22.5rem!important;max-width:100%;box-sizing:border-box;}' in source
     owner = '#appShell[data-auth-state="authenticated"][data-desktop-workspace="true"]'
-    assert f'{owner}#editorWrap{{padding-top:4px!important;}}' in css
-    assert f'{owner}#composerFooter{{min-height:40px!important;padding-bottom:4px!important;}}' in css
-    assert f'{owner}.composer-source-frame{{margin-bottom:16px;}}' in css
+    assert f'{owner}#editorWrap{{padding-top:2px!important;}}' in css
+    assert f'{owner}#editor{{padding-top:4px!important;padding-bottom:3px!important;}}' in css
+    assert f'{owner}#composerFooter{{min-height:36px!important;padding-bottom:2px!important;}}' in css
+    assert f'{owner}.composer-source-frame{{margin-bottom:12px;}}' in css
+    assert f'{owner}.composer-shell-source{{border-radius:20px;}}' in css
     assert f'{owner}#messageWindow{{padding-bottom:28px;}}' in css

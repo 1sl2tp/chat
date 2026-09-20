@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="835a441d98164783779c05d9ae39a4ca88f8bf6c3981745388d5336895f0130e">
+<meta name="app-build-id" content="05e6a5aabeb77f7a7dade97eca4c90b821fa6addc201842cfcb09557d5389f9f">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -484,21 +484,21 @@
    share one stable edge/width instead of sizing each image independently. */
 @media (min-width:80rem) and (hover:hover) and (pointer:fine){
   #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #editorWrap{
-    padding-top:4px!important;
+    padding-top:2px!important;
   }
   #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #editor{
-    padding-top:6px!important;
-    padding-bottom:5px!important;
+    padding-top:4px!important;
+    padding-bottom:3px!important;
   }
   #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #composerFooter{
-    min-height:40px!important;
-    padding-bottom:4px!important;
+    min-height:36px!important;
+    padding-bottom:2px!important;
   }
   #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] .composer-source-frame{
-    margin-bottom:16px;
+    margin-bottom:12px;
   }
   #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] .composer-shell-source{
-    border-radius:24px;
+    border-radius:20px;
   }
   #appShell[data-auth-state="authenticated"][data-desktop-workspace="true"] #messageWindow{
     padding-bottom:28px;
@@ -1222,8 +1222,12 @@
     gap:6px;
   }
   .work-summary-all{
-    min-height:32px;
-    padding-inline:11px;
+    min-height:30px;
+    padding-inline:10px;
+    border-color:transparent;
+    background:transparent;
+    color:var(--theme-content-secondary);
+    font-weight:500;
   }
   .work-summary-item{
     --work-summary-check-size:32px;
