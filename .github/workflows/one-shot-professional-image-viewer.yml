@@ -1,42 +1,10 @@
-name: Verify Region 2 message actions
+name: One-shot professional image viewer (retired)
 on:
-  push:
-    branches:
-      - fix/region2-message-action-contract
+  workflow_dispatch:
 permissions:
-  contents: write
+  contents: read
 jobs:
-  build:
-    if: github.actor != 'github-actions[bot]'
+  retired:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: true
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - run: python -m pip install pytest
-      - name: Build canonical preview
-        run: python tools/build_current_preview.py
-      - name: Verify Region 2 message actions and stable app
-        run: |
-          node --check app.js
-          python tests/test_v21_72_50_region2_message_action_contract.py
-          python tests/test_v21_72_49_region2_composer_menu_contract.py
-          python tests/test_v21_72_36_message_action_mirror_bubble_owner.py
-          python tools/verify_current.py
-      - name: Commit generated artifacts
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html version.json
-          if git diff --cached --quiet; then
-            echo "No generated changes"
-            exit 0
-          fi
-          git commit -m "Build Region 2 message action contract"
-          git push
+      - run: echo "Image viewer redesign already applied; workflow retired."
