@@ -33,9 +33,18 @@ function installStyle(){
     .media-image-tile{position:relative}
     .chat-image-rotate-button{
       position:absolute;right:7px;top:7px;z-index:5;width:30px;height:30px;padding:0;border:1px solid rgba(255,255,255,.55);border-radius:999px;
-      display:grid;place-items:center;background:rgba(0,0,0,.52);color:#fff;font:700 17px/1 system-ui;cursor:pointer;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)
+      display:grid;place-items:center;background:rgba(0,0,0,.52);color:#fff;font:700 17px/1 system-ui;cursor:pointer;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+      opacity:0;pointer-events:none;transition:opacity .14s ease,background .14s ease
     }
     .chat-image-rotate-button:focus-visible{outline:2px solid #fff;outline-offset:2px}
+    @media(hover:hover) and (pointer:fine){
+      .media-image-tile:hover>.chat-image-rotate-button,
+      .media-image-tile:focus-within>.chat-image-rotate-button,
+      .chat-image-rotate-button:focus-visible{opacity:1;pointer-events:auto}
+    }
+    @media(hover:none),(pointer:coarse){
+      .media-image-tile>.chat-image-rotate-button{display:none}
+    }
     .chat-image-viewer-rotate-controls,
     .image-review-zoom-controls{
       display:flex;align-items:center;height:38px;padding:2px;gap:2px;
@@ -60,7 +69,6 @@ function installStyle(){
     }
     .chat-image-viewer-rotate-controls svg{width:18px;height:18px;display:block}
     @media(max-width:639px){
-      .chat-image-rotate-button{width:28px;height:28px;right:6px;top:6px}
       .chat-image-viewer-rotate-controls,.image-review-zoom-controls{height:36px}
       .chat-image-viewer-rotate-controls button,.image-review-zoom-button{width:30px;height:30px}
       .image-review-zoom-controls{margin-left:5px;margin-right:5px}
