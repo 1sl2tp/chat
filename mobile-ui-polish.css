@@ -343,8 +343,7 @@
     min-width:0!important;
     left:12px!important;
     right:12px!important;
-    top:auto!important;
-    bottom:calc(100% - anchor(top) + 8px)!important;
+    /* Vertical placement is owned by app.js placeComposerActionMenu(). */
     border-radius:24px!important;
   }
 
