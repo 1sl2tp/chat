@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="4574552cbde57e5d59738c539a018ccdcaa9e2cdea7a085417a8adc3fe54b9f6">
+<meta name="app-build-id" content="118c40ba19d8dfcfdda026167a11ad608b44eb4d2a7345b1e15fc3df6b7b3490">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1497,6 +1497,14 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
 
   #stageLayout[data-keyboard-open="true"] #composerShell{
     box-shadow:0 1px 4px rgba(0,0,0,.035);
+  }
+
+  /* When the software keyboard owns the visible bottom, do not add the
+     closed-state safe-area margin again. RuntimeProfile supplies the only
+     remaining visual gap: web 6px, app/PWA 0px. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #stageLayout[data-keyboard-open="true"][data-composer-placement="visual-viewport"] .composer-source-frame{
+    margin-bottom:0!important;
+    padding-bottom:0!important;
   }
 
   /* Keyboard-open placement must measure only the Composer surface.
