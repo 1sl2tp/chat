@@ -78,15 +78,15 @@
   }
 
   #shellNavigationLayer .shell-contact-row{
-    height:62px;
-    min-height:62px;
-    border-radius:13px;
+    height:60px;
+    min-height:60px;
+    border-radius:12px;
   }
 
   #shellNavigationLayer .shell-contact-chat{
-    height:62px;
-    min-height:62px;
-    grid-template-columns:42px minmax(0,1fr);
+    height:60px;
+    min-height:60px;
+    grid-template-columns:40px minmax(0,1fr);
     column-gap:11px;
     padding:8px 8px;
     border-radius:13px;
@@ -94,13 +94,13 @@
 
   #shellNavigationLayer .shell-contact-avatar-wrap,
   #shellNavigationLayer .shell-contact-avatar{
-    width:42px;
-    height:42px;
-    min-width:42px;
-    min-height:42px;
-    max-width:42px;
-    max-height:42px;
-    flex-basis:42px;
+    width:40px;
+    height:40px;
+    min-width:40px;
+    min-height:40px;
+    max-width:40px;
+    max-height:40px;
+    flex-basis:40px;
   }
 
   #shellNavigationLayer .shell-contact-copy{
@@ -109,14 +109,14 @@
   }
 
   #shellNavigationLayer .shell-contact-name{
-    font-size:.93rem;
-    line-height:1.18rem;
-    font-weight:600;
+    font-size:.92rem;
+    line-height:1.16rem;
+    font-weight:620;
   }
 
   #shellNavigationLayer .shell-contact-preview{
-    font-size:.78rem;
-    line-height:1.02rem;
+    font-size:.77rem;
+    line-height:1rem;
   }
 
   #shellNavigationLayer .shell-contact-time{
@@ -137,18 +137,18 @@
   [data-mobile-account-menu] .mobile-account-menu-panel{
     top:calc(env(safe-area-inset-top,0px) + 56px)!important;
     left:12px!important;
-    width:202px!important;
+    width:196px!important;
     border:1px solid var(--mobile-ui-line)!important;
-    border-radius:16px!important;
-    background:color-mix(in srgb,var(--theme-surface-primary) 98%,transparent)!important;
-    box-shadow:0 14px 36px rgba(0,0,0,.13)!important;
+    border-radius:15px!important;
+    background:color-mix(in srgb,var(--theme-surface-primary) 99%,transparent)!important;
+    box-shadow:0 12px 30px rgba(0,0,0,.12)!important;
     overflow:hidden!important;
   }
 
   [data-mobile-account-menu] .mobile-account-menu-row{
-    min-height:44px!important;
+    min-height:43px!important;
     padding:0 14px!important;
-    font-size:.92rem!important;
+    font-size:.9rem!important;
     line-height:1.15rem!important;
     font-weight:500!important;
   }
@@ -199,8 +199,8 @@
     max-height:calc(100dvh - 20px)!important;
     padding:16px 14px 12px!important;
     border:1px solid color-mix(in srgb,var(--theme-border-default) 62%,transparent);
-    border-radius:26px!important;
-    box-shadow:0 18px 52px rgba(0,0,0,.16)!important;
+    border-radius:24px!important;
+    box-shadow:0 16px 44px rgba(0,0,0,.14)!important;
   }
 
   .zalo-account-modal-head{
@@ -229,12 +229,13 @@
   }
 
   .zalo-account-notification{
-    min-height:58px;
+    min-height:54px;
     margin:0 0 8px!important;
     padding:8px 10px!important;
-    border:1px solid var(--mobile-ui-line)!important;
-    border-radius:15px!important;
-    background:color-mix(in srgb,var(--theme-surface-secondary) 34%,var(--theme-surface-primary))!important;
+    border:0!important;
+    border-bottom:1px solid var(--mobile-ui-line)!important;
+    border-radius:0!important;
+    background:transparent!important;
   }
 
   .zalo-account-notification-copy strong{
@@ -259,9 +260,9 @@
   }
 
   .zalo-account-search input{
-    height:42px!important;
+    height:40px!important;
     border:1px solid transparent!important;
-    border-radius:13px!important;
+    border-radius:12px!important;
     padding-inline:13px!important;
     background:color-mix(in srgb,var(--theme-surface-secondary) 72%,var(--theme-surface-primary))!important;
     font-size:14px!important;
@@ -337,58 +338,84 @@
 
   /* ---------- Composer + menu ---------- */
   .composer-action-menu-source{
-    width:min(220px,calc(100vw - 24px))!important;
-    max-width:min(220px,calc(100vw - 24px))!important;
-    border-radius:18px!important;
+    width:calc(100vw - 24px)!important;
+    max-width:calc(100vw - 24px)!important;
+    min-width:0!important;
+    left:12px!important;
+    right:12px!important;
+    top:auto!important;
+    bottom:calc(100% - anchor(top) + 8px)!important;
+    border-radius:24px!important;
   }
 
   .composer-action-menu-surface{
+    position:relative;
     gap:1px!important;
-    padding:6px!important;
-    border:1px solid var(--mobile-ui-line)!important;
-    border-radius:18px!important;
-    background:color-mix(in srgb,var(--theme-surface-primary) 97%,transparent)!important;
-    box-shadow:0 14px 36px rgba(0,0,0,.14)!important;
-    -webkit-backdrop-filter:blur(18px) saturate(1.1)!important;
-    backdrop-filter:blur(18px) saturate(1.1)!important;
+    padding:20px 8px 8px!important;
+    border:1px solid color-mix(in srgb,var(--theme-border-default) 70%,transparent)!important;
+    border-radius:24px!important;
+    background:color-mix(in srgb,var(--theme-surface-primary) 98%,transparent)!important;
+    box-shadow:0 18px 48px rgba(0,0,0,.16)!important;
+    -webkit-backdrop-filter:blur(22px) saturate(1.08)!important;
+    backdrop-filter:blur(22px) saturate(1.08)!important;
+  }
+
+  .composer-action-menu-surface::before{
+    content:"";
+    position:absolute;
+    top:7px;
+    left:50%;
+    width:34px;
+    height:4px;
+    border-radius:999px;
+    transform:translateX(-50%);
+    background:color-mix(in srgb,var(--theme-content-tertiary) 45%,transparent);
   }
 
   .admin-composer-menu-label{
-    padding:5px 10px 3px!important;
+    padding:5px 12px 4px!important;
     font-size:10px!important;
     line-height:12px!important;
-    letter-spacing:.06em!important;
+    letter-spacing:.07em!important;
   }
 
   .composer-action-menu-item{
-    min-height:44px!important;
-    border-radius:12px!important;
-    grid-template-columns:34px minmax(0,1fr)!important;
-    gap:9px!important;
-    padding:5px 9px 5px 5px!important;
+    min-height:48px!important;
+    border-radius:14px!important;
+    grid-template-columns:38px minmax(0,1fr)!important;
+    gap:10px!important;
+    padding:5px 10px 5px 6px!important;
+  }
+
+  .composer-action-menu-item+.composer-action-menu-item{
+    margin-top:1px;
+  }
+
+  .composer-action-menu-item:active{
+    transform:scale(.992);
   }
 
   .composer-action-menu-icon{
-    width:34px!important;
-    height:34px!important;
+    width:38px!important;
+    height:38px!important;
     border-radius:999px!important;
     background:color-mix(in srgb,var(--theme-content-primary) 5%,transparent)!important;
   }
 
   .composer-action-menu-icon svg{
-    width:19px!important;
-    height:19px!important;
+    width:20px!important;
+    height:20px!important;
   }
 
   .composer-action-menu-label{
-    font-size:.91rem!important;
-    line-height:1.15rem!important;
+    font-size:.94rem!important;
+    line-height:1.2rem!important;
     font-weight:500!important;
   }
 
   /* ---------- Conversation/header cohesion ---------- */
   #appShell[data-auth-state="authenticated"] .compact-top-grid{
-    min-height:68px;
+    min-height:64px;
     grid-template-columns:40px minmax(0,1fr) auto;
     column-gap:7px;
     padding-inline:10px;
@@ -400,9 +427,9 @@
   }
 
   #appShell[data-auth-state="authenticated"] .top-mode-tab{
-    min-height:40px;
+    min-height:38px;
     padding-inline:12px;
-    font-size:.92rem;
+    font-size:.9rem;
   }
 
   #appShell[data-auth-state="authenticated"] .top-mode-contact-avatar{
@@ -421,7 +448,19 @@
     min-width:36px;
   }
 
-  /* Keyboard contract stays owned elsewhere; this only keeps surfaces tight. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow{
+    padding-inline:14px;
+  }
+
+  #appShell[data-auth-state="authenticated"][data-route="chat"] .message-turn{
+    margin-top:8px;
+  }
+
+  #appShell[data-auth-state="authenticated"][data-route="chat"] .message-body{
+    letter-spacing:-.006em;
+  }
+
+    /* Keyboard contract stays owned elsewhere; this only keeps surfaces tight. */
   #stageLayout[data-keyboard-open="true"] .composer-action-menu-source{
     max-height:min(54dvh,360px);
     overflow:auto;
