@@ -9,6 +9,7 @@ const QUOTE_MODAL_OWNER='admin-quote-modal';
 let quoteModulePromise=null;
 let quoteOverlay=null;
 let credentialsOverlay=null;
+let stockCheckOverlay=null;
 let quoteReturnFocus=null;
 let transientHintTimer=0;
 
@@ -105,6 +106,7 @@ function ensureAdminMenu(){
     section.append(
       actionButton({action:'quote',label:'Báo giá',kind:'quote'}),
       actionButton({action:'debt',label:'Công nợ',kind:'debt'}),
+      actionButton({action:'stock-check',label:'Kiểm hàng',kind:'stock'}),
       actionButton({action:'call-link',label:'Link gọi',kind:'call'}),
       actionButton({action:'credentials',label:'Thông tin đăng nhập',kind:'key'}),
     );
@@ -212,6 +214,88 @@ async function openQuote(contactId){
       closeQuote();
       setTransientHint('Đã gửi link báo giá');
     }catch(error){status.textContent=String(error?.message||error||'Không thể gửi báo giá');setBusy(false);}
+  });
+  return true;
+}
+
+async function stockCheckLinks(contactId){
+  const client=authStore()?.getClient?.()||null;
+  if(!client)throw new Error('authentication_required');
+  const id=String(contactId||'').trim();
+  if(!id)throw new Error('customer_required');
+  const {data,error}=await client.rpc('taphoa_stock_check_links_for_customer',{p_customer_id:id});
+  if(error)throw error;
+  if(!data?.ok||!data?.employee_url||!data?.owner_url)throw new Error(data?.error||'stock_check_link_failed');
+  return data;
+}
+
+function closeStockCheck({restoreFocus=true}={}){
+  const hadOverlay=Boolean(stockCheckOverlay);
+  if(stockCheckOverlay){stockCheckOverlay.remove();stockCheckOverlay=null;}
+  unlockQuoteBackground({restoreFocus});
+  return hadOverlay;
+}
+
+async function openStockCheck(contactId){
+  const contact=activeContact();
+  if(!contact||String(contact.id||'')!==String(contactId||''))throw new Error('contact_not_ready');
+  const displayName=String(contact.display_name||contact.name||contact.username||'Khách hàng').trim();
+  const root=document.getElementById('globalOverlayRoot');
+  if(!root)throw new Error('stock_check_overlay_unavailable');
+  closeStockCheck({restoreFocus:false});
+  if(!lockQuoteBackground())throw new Error('stock_check_modal_busy');
+
+  const overlay=document.createElement('section');
+  overlay.className='admin-composer-quote-overlay';
+  overlay.dataset.adminComposerStockCheck='';
+  overlay.innerHTML=`
+    <button type="button" class="admin-composer-quote-backdrop" data-stock-check-close aria-label="Đóng"></button>
+    <div class="admin-composer-quote-card admin-composer-stock-card" role="dialog" aria-modal="true" aria-label="Kiểm hàng">
+      <h2 class="admin-composer-quote-title">Kiểm hàng</h2>
+      <p class="admin-composer-stock-customer"></p>
+      <div class="admin-composer-stock-options">
+        <button type="button" data-stock-check-role="employee">
+          <strong>Gửi nhân viên</strong>
+          <span>Chỉ nhập số lượng · không hiển thị tiền</span>
+        </button>
+        <button type="button" data-stock-check-role="owner">
+          <strong>Gửi chủ cửa hàng</strong>
+          <span>Rà soát số lượng · có tổng tiền</span>
+        </button>
+      </div>
+      <p class="admin-composer-quote-status" data-stock-check-status></p>
+      <div class="admin-composer-quote-actions admin-composer-stock-actions">
+        <button type="button" class="admin-composer-quote-cancel" data-stock-check-close>Hủy</button>
+      </div>
+    </div>`;
+  root.appendChild(overlay);
+  stockCheckOverlay=overlay;
+
+  const customer=overlay.querySelector('.admin-composer-stock-customer');
+  if(customer)customer.textContent=displayName;
+  const status=overlay.querySelector('[data-stock-check-status]');
+  const roleButtons=[...overlay.querySelectorAll('[data-stock-check-role]')];
+  const closeButtons=[...overlay.querySelectorAll('[data-stock-check-close]')];
+  const setBusy=busy=>{
+    for(const button of roleButtons)button.disabled=Boolean(busy);
+    for(const button of closeButtons)button.disabled=Boolean(busy);
+  };
+  for(const button of closeButtons)button.addEventListener('click',()=>closeStockCheck());
+  for(const button of roleButtons)button.addEventListener('click',async()=>{
+    const role=button.dataset.stockCheckRole==='owner'?'owner':'employee';
+    setBusy(true);
+    status.textContent='Đang tạo link…';
+    try{
+      const links=await stockCheckLinks(contactId);
+      const url=role==='owner'?links.owner_url:links.employee_url;
+      status.textContent='Đang gửi…';
+      await sendAdminText(url,contactId,`stock-check-${role}-link-send`);
+      closeStockCheck();
+      setTransientHint(role==='owner'?'Đã gửi link cho chủ cửa hàng':'Đã gửi link cho nhân viên');
+    }catch(error){
+      status.textContent=String(error?.message||error||'Không thể gửi link kiểm hàng');
+      setBusy(false);
+    }
   });
   return true;
 }
@@ -375,6 +459,9 @@ async function runAction(action){
   if(action==='credentials'){
     try{return await openCredentials(contactId);}catch{setTransientHint('Không thể mở thông tin đăng nhập');return false;}
   }
+  if(action==='stock-check'){
+    try{return await openStockCheck(contactId);}catch{setTransientHint('Không thể mở kiểm hàng');return false;}
+  }
   if(action==='debt'){
     setTransientHint('Đang tạo link công nợ…',2400);
     try{
@@ -425,6 +512,8 @@ window.V21AdminComposerActions=Object.freeze({
   run:runAction,
   openQuote,
   openCredentials,
+  openStockCheck,
+  stockCheckLinks,
   activeContactId,
 });
 })();
