@@ -5231,93 +5231,8 @@ async function sha256Blob(blob){
   return Array.from(new Uint8Array(digest),byte=>byte.toString(16).padStart(2,'0')).join('');
 }
 
-function mediaHashesFromDescriptor(media,result){
-  if(!media)return result;
-  if(media.type==='image'&&media.contentHash)result.add(String(media.contentHash));
-  if(media.type==='gallery'){
-    for(const item of (media.items||[]))if(item?.contentHash)result.add(String(item.contentHash));
-  }
-  return result;
-}
-
-async function hasDuplicateImageHash(scope,contentHash){
-  const hash=String(contentHash||'').toLowerCase();
-  if(!hash)return false;
-  const current=currentComposerScope();
-  const draftItems=(current.mediaKey===scope.mediaKey&&current.ownerDraftKey===scope.ownerDraftKey)
-    ?pendingAttachments
-    :(ComposerDraftOwner.drafts.get(scope.ownerDraftKey)?.attachments||[]);
-  if(draftItems.some(item=>item?.kind==='image'&&String(item.contentHash||'').toLowerCase()===hash))return true;
-
-  // The visible MessageStore is a window/session, not the durable duplicate
-  // authority. It remains a fast check, while MediaCache supplies the
-  // conversation-scoped persistent hash index across virtual-window changes.
-  if(current.mediaKey===scope.mediaKey){
-    const sentHashes=new Set();
-    for(const message of store.items)mediaHashesFromDescriptor(message?.media,sentHashes);
-    if(sentHashes.has(hash))return true;
-  }
-  const cached=await window.V21MediaCache?.findByContentHash?.({
-    accountId:scope.accountId,conversationId:scope.conversationId,contentHash:hash
-  });
-  return Boolean(cached);
-}
-
-let duplicateUploadWarningOverlay=null;
-let duplicateUploadWarningReturnFocus=null;
-
-function closeDuplicateUploadWarning({restoreFocus=true}={}){
-  if(!duplicateUploadWarningOverlay)return false;
-  duplicateUploadWarningOverlay.style.display='none';
-  InteractionController.exit(InteractionMode.DUPLICATE_WARNING,{owner:'duplicate-upload-warning'});
-  const returnFocus=duplicateUploadWarningReturnFocus;
-  duplicateUploadWarningReturnFocus=null;
-  if(restoreFocus&&returnFocus?.isConnected){
-    requestAnimationFrame(()=>{try{returnFocus.focus({preventScroll:true});}catch{}});
-  }
-  return true;
-}
-
-function showDuplicateUploadWarning(){
-  const lease=InteractionController.enter(InteractionMode.DUPLICATE_WARNING,{
-    owner:'duplicate-upload-warning',
-    lockBaseUi:true
-  });
-  if(!lease){
-    composerHint.textContent='Bạn đã tải lên tệp này từ trước.';
-    return false;
-  }
-  duplicateUploadWarningReturnFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;
-  if(!duplicateUploadWarningOverlay){
-    const overlay=document.createElement('div');
-    overlay.setAttribute('role','alertdialog');
-    overlay.setAttribute('aria-modal','true');
-    overlay.setAttribute('aria-label','Tệp đã tải lên');
-    overlay.style.cssText='position:fixed;inset:0;z-index:20;display:none;align-items:flex-start;justify-content:center;padding:max(56px,8vh) 16px 16px;background:rgba(0,0,0,.42);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);pointer-events:auto;';
-    const card=document.createElement('div');
-    card.style.cssText='width:min(430px,calc(100vw - 32px));border:1px solid rgba(0,0,0,.2);border-radius:18px;background:#fff;box-shadow:0 12px 40px rgba(0,0,0,.18);padding:28px 24px 22px;text-align:center;color:#0d0d0d;font-family:system-ui,sans-serif;';
-    const title=document.createElement('div');
-    title.textContent='Bạn đã tải lên tệp này từ trước.';
-    title.style.cssText='font-size:22px;line-height:1.25;font-weight:700;';
-    const sub=document.createElement('div');
-    sub.textContent='Thử tải lên nội dung mới.';
-    sub.style.cssText='margin-top:14px;font-size:16px;line-height:1.35;color:#666;';
-    const ok=document.createElement('button');
-    ok.type='button';ok.textContent='OK';
-    ok.style.cssText='margin-top:26px;width:100%;height:48px;border:0;border-radius:999px;background:#0d0d0d;color:white;font-size:16px;font-weight:600;';
-    ok.addEventListener('click',()=>closeDuplicateUploadWarning());
-    overlay.addEventListener('click',event=>{if(event.target===overlay)closeDuplicateUploadWarning();});
-    overlay.addEventListener('keydown',event=>{if(event.key==='Escape')closeDuplicateUploadWarning();});
-    card.append(title,sub,ok);overlay.appendChild(card);
-    if(!globalOverlayRoot)throw new Error('DuplicateUploadWarning invariant: globalOverlayRoot missing');
-    globalOverlayRoot.appendChild(overlay);
-    duplicateUploadWarningOverlay=overlay;
-  }
-  duplicateUploadWarningOverlay.style.display='flex';
-  duplicateUploadWarningOverlay.tabIndex=-1;
-  duplicateUploadWarningOverlay.focus({preventScroll:true});
-  return true;
-}
+// Re-sending an image is valid chat behavior. Content hashes are retained for
+// media metadata/cache integrity, but historical messages must never block a new send.
 
 async function warmLocalImagePreview(url){
   const src=String(url||'');
@@ -5377,10 +5292,6 @@ async function prepareImageAttachment(file,scope){
   const assetId=window.V21RuntimeId.create();
   const optimized=await optimizeImageBlob(file);
   const contentHash=await sha256Blob(optimized.blob);
-  if(await hasDuplicateImageHash(scope,contentHash)){
-    showDuplicateUploadWarning();
-    throw new Error('duplicate_image');
-  }
   const item={
     kind:'image',assetId,name:file.name||`image-${Date.now()}.jpg`,size:Number(optimized.blob.size)||0,
     type:optimized.blob.type||file.type||'image/jpeg',widthPx:Number(optimized.width)||null,heightPx:Number(optimized.height)||null,
@@ -5438,7 +5349,6 @@ async function ingestImageFiles(files,{scope=currentComposerScope()}={}){
       if(appendPreparedAttachment(scope,item))added+=1;
     }catch(error){
       const message=String(error?.message||'');
-      if(message==='duplicate_image')continue;
       // Only paint an error into the Composer that owns this ingest. If the
       // user switched contact while image preparation was async, the old draft
       // remains the owner and the new contact must not receive its UI error.
