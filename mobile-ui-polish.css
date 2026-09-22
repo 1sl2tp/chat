@@ -130,6 +130,33 @@
   }
 
   /* ---------- Quick/account menu ---------- */
+  [data-mobile-account-menu] .mobile-account-menu-backdrop{
+    background:rgba(0,0,0,.06)!important;
+  }
+
+  [data-mobile-account-menu] .mobile-account-menu-panel{
+    top:calc(env(safe-area-inset-top,0px) + 56px)!important;
+    left:12px!important;
+    width:202px!important;
+    border:1px solid var(--mobile-ui-line)!important;
+    border-radius:16px!important;
+    background:color-mix(in srgb,var(--theme-surface-primary) 98%,transparent)!important;
+    box-shadow:0 14px 36px rgba(0,0,0,.13)!important;
+    overflow:hidden!important;
+  }
+
+  [data-mobile-account-menu] .mobile-account-menu-row{
+    min-height:44px!important;
+    padding:0 14px!important;
+    font-size:.92rem!important;
+    line-height:1.15rem!important;
+    font-weight:500!important;
+  }
+
+  [data-mobile-account-menu] .mobile-account-menu-row+.mobile-account-menu-row{
+    border-top:1px solid var(--mobile-ui-line)!important;
+  }
+
   .shell-sidebar-account-menu{
     width:min(220px,calc(100vw - 32px));
     right:auto;
