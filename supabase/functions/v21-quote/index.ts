@@ -15,7 +15,7 @@ const CORE_SOURCE_LABELS=Object.freeze({
 const corsHeaders={
   'access-control-allow-origin':'*',
   'access-control-allow-methods':'GET,POST,OPTIONS',
-  'access-control-allow-headers':'authorization, x-customer-pin, x-client-info, apikey, content-type',
+  'access-control-allow-headers':'authorization, x-client-info, apikey, content-type',
   'vary':'Origin',
 };
 
@@ -63,38 +63,6 @@ async function requireAdmin(req:Request){
   return {accountId:String(account.data.id)};
 }
 
-async function isAdminRequest(req:Request){
-  const accessToken=accessTokenFromRequest(req);
-  if(!accessToken)return false;
-  const userResult=await db.auth.getUser(accessToken);
-  const user=userResult.data?.user;
-  if(userResult.error||!user?.id)return false;
-  const account=await db.from("v21_accounts")
-    .select('id')
-    .eq('auth_user_id',user.id)
-    .eq("role","admin")
-    .is("deleted_at",null)
-    .is("locked_at",null)
-    .maybeSingle();
-  return !account.error&&Boolean(account.data?.id);
-}
-
-async function authorizeCustomerSlug(req:Request,slug:string){
-  if(await isAdminRequest(req))return {ok:true,admin:true};
-  const pin=clean(req.headers.get('x-customer-pin'),20);
-  if(!pin)return {ok:false,error:'pin_required',status:401};
-  const result=await db.rpc('taphoa_public_pin_check',{p_public_slug:slug,p_pin:pin});
-  if(result.error)throw result.error;
-  if(result.data?.ok===true)return {ok:true,admin:false};
-  return {
-    ok:false,
-    error:clean(result.data?.error,40)||'pin_invalid',
-    status:clean(result.data?.error,40)==='pin_locked'?423:403,
-    remaining:result.data?.remaining,
-    retry_after:result.data?.retry_after,
-  };
-}
-
 async function customerAccount(customerId:string){
   if(!customerId)return null;
   const result=await db.from("v21_accounts")
@@ -117,13 +85,10 @@ async function ensureCustomerLinks(customerId:string){
   const slug=publicSlug(ensured.data?.public_slug);
   const accessKey=clean(ensured.data?.access_key,64);
   if(!slug||!/^[A-Za-z0-9_-]{16,32}$/.test(accessKey))throw new Error('public_link_failed');
-  const pinResult=await db.rpc('taphoa_public_pin_for_customer',{p_customer_id:customerId});
-  if(pinResult.error)throw pinResult.error;
   return {
     account,
     slug,
     accessKey,
-    pin:clean(pinResult.data,12),
     customer_url:`${PUBLIC_CUSTOMER_BASE}${encodeURIComponent(slug)}`,
     quote_url:`${PUBLIC_CUSTOMER_BASE}${encodeURIComponent(slug)}&tab=hang`,
     debt_url:`${PUBLIC_CUSTOMER_BASE}${encodeURIComponent(slug)}&tab=no`,
@@ -206,7 +171,6 @@ async function createQuote(req:Request){
       public_slug:links.slug,
       quote_url:links.quote_url,
       debt_url:links.debt_url,
-      pin:links.pin,
     });
   }
 
@@ -287,12 +251,6 @@ async function readQuote(req:Request){
   try{publicCustomer=await resolvePublicCustomer(customerSlug);}
   catch{return json({ok:false,error:'quote_lookup_failed'},500,{'cache-control':'no-store'});}
   if(!publicCustomer)return json({ok:false,error:'quote_not_found'},404,{'cache-control':'no-store'});
-  let access:any;
-  try{access=await authorizeCustomerSlug(req,customerSlug);}
-  catch{return json({ok:false,error:'access_check_failed'},500,{'cache-control':'no-store'});}
-  if(!access.ok)return json({
-    ok:false,error:access.error,remaining:access.remaining,retry_after:access.retry_after
-  },access.status||403,{'cache-control':'no-store'});
 
   if(miniMode){
     let sources;
