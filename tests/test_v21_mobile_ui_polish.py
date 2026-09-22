@@ -25,21 +25,21 @@ def test_directory_polish_contract():
     assert 'height:44px!important;' in c
     assert '.contact-directory-filter[data-active="true"]{' in c
     assert '.shell-contact-row{' in c
-    assert 'height:62px;' in c
+    assert 'height:60px;' in c
 
 
 def test_quick_menu_polish_contract():
     c = compact(CSS)
     assert '[data-mobile-account-menu].mobile-account-menu-panel{' in c
-    assert 'width:202px!important;' in c
+    assert 'width:196px!important;' in c
     assert '.mobile-account-menu-row{' in c
-    assert 'min-height:44px!important;' in c
+    assert 'min-height:43px!important;' in c
 
 
 def test_account_settings_polish_contract():
     c = compact(CSS)
     assert '.zalo-account-card{' in c
-    assert 'border-radius:26px!important;' in c
+    assert 'border-radius:24px!important;' in c
     assert '.zalo-account-searchinput{' in c
     assert '.zalo-account-row{' in c
     assert 'border-radius:0!important;' in c
@@ -48,11 +48,11 @@ def test_account_settings_polish_contract():
 def test_composer_menu_polish_contract():
     c = compact(CSS)
     assert '.composer-action-menu-source{' in c
-    assert 'width:min(220px,calc(100vw-24px))!important;' in c
+    assert 'width:calc(100vw-24px)!important;' in c
     assert '.composer-action-menu-item{' in c
-    assert 'min-height:44px!important;' in c
+    assert 'min-height:48px!important;' in c
     assert '.composer-action-menu-icon{' in c
-    assert 'width:34px!important;' in c
+    assert 'width:38px!important;' in c
 
 
 def test_keyboard_owner_stays_unchanged():
@@ -63,3 +63,13 @@ def test_keyboard_owner_stays_unchanged():
     c = compact(CSS)
     assert "position:fixed" not in c
     assert "safe-area-inset-bottom" not in c
+
+
+def test_composer_menu_is_mobile_sheet():
+    c = compact(CSS)
+    assert '.composer-action-menu-surface::before{' in c
+    assert 'width:34px;' in c
+    assert 'height:4px;' in c
+    assert 'left:12px!important;' in c
+    assert 'right:12px!important;' in c
+    assert 'border-radius:24px!important;' in c
