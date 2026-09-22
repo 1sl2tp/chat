@@ -13,9 +13,7 @@ required = [
     'property="og:title" content="báo giá taphoa"',
     'new urlsearchparams(location.search)',
     ".get('kh')",
-    ".get('k')",
     'v21-quote',
-    "publicparam=customerslug?'kh':'k'",
     'id="quote-search"',
     'id="quote-source-filters"',
     'id="quote-scroll"',
@@ -57,3 +55,7 @@ assert low.count('fetch(') == 1, "public quote page must make exactly one networ
 assert 'body{margin:0' in low and 'overflow:hidden' in low, "page shell must stay fixed while only quote results scroll"
 
 print("chat quote public page contract PASS")
+
+assert ".get('k')" not in low
+assert 'legacykey' not in low
+assert 'publicparam' not in low
