@@ -27,12 +27,6 @@ function publicSlug(value:unknown){
   const slug=clean(value,100).toLowerCase();
   return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)?slug:'';
 }
-function accessKeyFromHandle(value:unknown){
-  const handle=clean(value,160);
-  const at=handle.lastIndexOf('~');
-  const key=at>=0?handle.slice(at+1):'';
-  return /^[A-Za-z0-9_-]{16,32}$/.test(key)?key:'';
-}
 function json(data:unknown,status=200,extra:Record<string,string>={}){
   return new Response(JSON.stringify(data),{
     status,
@@ -103,33 +97,16 @@ async function ensureCustomerLinks(customerId:string){
 
 async function resolvePublicCustomer(value:string){
   const slug=publicSlug(value);
-  let link:any=null;
-
-  if(slug){
-    const bySlug=await db.from('v21_customer_public_links')
-      .select('customer_account_id,access_key,public_slug')
-      .eq('public_slug',slug)
-      .is('revoked_at',null)
-      .maybeSingle();
-    if(bySlug.error)throw bySlug.error;
-    link=bySlug.data||null;
-  }
-
-  if(!link){
-    const accessKey=accessKeyFromHandle(value);
-    if(!accessKey)return null;
-    const legacy=await db.from('v21_customer_public_links')
-      .select('customer_account_id,access_key,public_slug')
-      .eq('access_key',accessKey)
-      .is('revoked_at',null)
-      .maybeSingle();
-    if(legacy.error)throw legacy.error;
-    link=legacy.data||null;
-  }
-
-  if(!link?.customer_account_id)return null;
-  const account=await customerAccount(String(link.customer_account_id));
-  return account?{account,accessKey:clean(link.access_key,64),publicSlug:clean(link.public_slug,100)}:null;
+  if(!slug)return null;
+  const result=await db.from('v21_customer_public_links')
+    .select('customer_account_id,public_slug')
+    .eq('public_slug',slug)
+    .is('revoked_at',null)
+    .maybeSingle();
+  if(result.error)throw result.error;
+  if(!result.data?.customer_account_id)return null;
+  const account=await customerAccount(String(result.data.customer_account_id));
+  return account?{account,publicSlug:clean(result.data.public_slug,100)}:null;
 }
 
 async function activeSources(){
@@ -243,36 +220,24 @@ async function createQuote(req:Request){
 async function readQuote(req:Request){
   const url=new URL(req.url);
   const customerSlug=clean(url.searchParams.get('kh'),160);
-  const legacyKey=clean(url.searchParams.get('k'),160);
-  const publicId=customerSlug||legacyKey;
-  if(!publicId)return json({ok:false,error:'token_required'},400,{'cache-control':'no-store'});
+  if(!customerSlug)return json({ok:false,error:'token_required'},400,{'cache-control':'no-store'});
 
   let snapshot:any=null;
   let publicCustomer:any=null;
 
-  if(customerSlug||accessKeyFromHandle(legacyKey)){
-    try{publicCustomer=await resolvePublicCustomer(publicId);}
-    catch{return json({ok:false,error:'quote_lookup_failed'},500,{'cache-control':'no-store'});}
-    if(!publicCustomer)return json({ok:false,error:'quote_not_found'},404,{'cache-control':'no-store'});
+  try{publicCustomer=await resolvePublicCustomer(customerSlug);}
+  catch{return json({ok:false,error:'quote_lookup_failed'},500,{'cache-control':'no-store'});}
+  if(!publicCustomer)return json({ok:false,error:'quote_not_found'},404,{'cache-control':'no-store'});
 
-    const latest=await db.from("chat_quote_snapshots")
-      .select('scope,source_key,source_name,created_at')
-      .eq('customer_account_id',publicCustomer.account.id)
-      .is("revoked_at",null)
-      .order('created_at',{ascending:false})
-      .limit(1)
-      .maybeSingle();
-    if(latest.error)return json({ok:false,error:'quote_lookup_failed'},500,{'cache-control':'no-store'});
-    snapshot=latest.data;
-  }else{
-    const legacy=await db.from("chat_quote_snapshots")
-      .select('scope,source_key,source_name,created_at')
-      .eq("token",publicId)
-      .is("revoked_at",null)
-      .maybeSingle();
-    if(legacy.error)return json({ok:false,error:'quote_lookup_failed'},500,{'cache-control':'no-store'});
-    snapshot=legacy.data;
-  }
+  const latest=await db.from("chat_quote_snapshots")
+    .select('scope,source_key,source_name,created_at')
+    .eq('customer_account_id',publicCustomer.account.id)
+    .is("revoked_at",null)
+    .order('created_at',{ascending:false})
+    .limit(1)
+    .maybeSingle();
+  if(latest.error)return json({ok:false,error:'quote_lookup_failed'},500,{'cache-control':'no-store'});
+  snapshot=latest.data;
 
   if(!snapshot)return json({ok:false,error:'quote_not_found'},404,{'cache-control':'no-store'});
 
