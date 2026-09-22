@@ -104,6 +104,7 @@ function ensureAdminMenu(){
     section.setAttribute(SECTION_ATTR,'');
     section.append(
       actionButton({action:'quote',label:'Báo giá',kind:'quote'}),
+      actionButton({action:'debt',label:'Công nợ',kind:'debt'}),
       actionButton({action:'call-link',label:'Link gọi',kind:'call'}),
       actionButton({action:'credentials',label:'Thông tin đăng nhập',kind:'key'}),
     );
@@ -206,7 +207,7 @@ async function openQuote(contactId){
   send.addEventListener('click',async()=>{
     setBusy(true);status.textContent='Đang tạo và gửi…';
     try{
-      const quote=await client.create({scope,sourceKey:scope==='source'?source.value:''});
+      const quote=await client.create({scope,sourceKey:scope==='source'?source.value:'',customerId:contactId});
       await sendAdminText(quote.url,contactId,'quote-link-send');
       closeQuote();
       setTransientHint('Đã gửi link báo giá');
@@ -373,6 +374,20 @@ async function runAction(action){
   }
   if(action==='credentials'){
     try{return await openCredentials(contactId);}catch{setTransientHint('Không thể mở thông tin đăng nhập');return false;}
+  }
+  if(action==='debt'){
+    setTransientHint('Đang tạo link công nợ…',2400);
+    try{
+      const client=await quoteClient();
+      if(!client?.customerLinks)throw new Error('public_link_unavailable');
+      const links=await client.customerLinks(contactId);
+      await sendAdminText(links.debt_url,contactId,'debt-link-send');
+      setTransientHint('Đã gửi link công nợ');
+      return true;
+    }catch{
+      setTransientHint('Không thể gửi công nợ',2600);
+      return false;
+    }
   }
   if(action==='call-link'){
     const client=window.TaphoaCallInviteClient||null;
