@@ -59,7 +59,7 @@ for needle in ["role==='admin'", "báo giá", "link gọi", "data-admin-composer
     assert needle in low, f"missing Admin composer action contract: {needle}"
 
 for forbidden in [
-    "tạo đơn", "đơn tạm", "đã giao", "công nợ", "data-admin-order-action",
+    "tạo đơn", "đơn tạm", "đã giao", "data-admin-order-action",
     "tách nhanh", "ai ghi đơn", "v21-order-scribe", "data-order-mode",
     "selectedchattext", "capturechatselection", "selectionchange",
 ]:
@@ -71,6 +71,10 @@ assert "queuetext" not in quote_low
 assert "sendquotelink" not in quote_low
 assert "queuetext" in low or "v21messagestore" in low
 assert "contactid" in low
+assert "action:\'debt\'" in actions
+assert "debt-link-send" in actions
+assert "customerlinks" in quote_low
+assert "customer_account_id" in quote_low
 quote_overlay_css = actions_css.lower().split(".admin-composer-quote-overlay", 1)[1].split("}", 1)[0]
 assert "pointer-events:auto" in quote_overlay_css
 assert "v21interactioncontroller" in low
