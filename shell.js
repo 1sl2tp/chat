@@ -35,6 +35,8 @@ let callTerminalNotice=null;
 let callTerminalNoticeTimer=0;
 let unreadCount=0;
 let accountMenuOpen=false;
+let mobileRouteTransitionTimer=0;
+let mobileRouteSwipePointer=null;
 
 function interactionController(){
   return window.V21InteractionController||null;
@@ -305,6 +307,76 @@ function renderChatTabIdentity(){
   return true;
 }
 
+function setMobileRouteTransition(previousRoute,nextRoute){
+  if(previousRoute===nextRoute||desktopDirectoryMedia.matches)return false;
+  const direction=previousRoute==='chat'&&nextRoute==='work'
+    ?'forward'
+    :previousRoute==='work'&&nextRoute==='chat'
+      ?'back'
+      :'';
+  if(!direction)return false;
+  if(mobileRouteTransitionTimer){
+    clearTimeout(mobileRouteTransitionTimer);
+    mobileRouteTransitionTimer=0;
+  }
+  delete appShell.dataset.mobileRouteTransition;
+  // A frame boundary restarts the page-enter motion for repeated swipe/tab changes.
+  void appShell.offsetWidth;
+  appShell.dataset.mobileRouteTransition=direction;
+  mobileRouteTransitionTimer=window.setTimeout(()=>{
+    mobileRouteTransitionTimer=0;
+    delete appShell.dataset.mobileRouteTransition;
+  },220);
+  return true;
+}
+
+function mobileRouteSwipeTargetBlocked(target){
+  if(!(target instanceof Element))return true;
+  return Boolean(target.closest([
+    'textarea','input','select','button','a','[role="button"]','[contenteditable="true"]',
+    '.attachment-tray-media-strip','.media-gallery-grid','.media-image-tile',
+    '.thread-scroll-control-button','[data-horizontal-scroll]'
+  ].join(',')));
+}
+
+function canBeginMobileRouteSwipe(event){
+  if(!event||event.isPrimary===false)return false;
+  if(event.pointerType==='mouse')return false;
+  if(authState!=='AUTHENTICATED'||desktopDirectoryMedia.matches)return false;
+  if(sidebarOpen||callState!=='IDLE')return false;
+  if(stageLayout?.dataset.keyboardOpen==='true')return false;
+  if(globalOverlayRoot?.childElementCount)return false;
+  return !mobileRouteSwipeTargetBlocked(event.target);
+}
+
+function beginMobileRouteSwipe(event){
+  if(!canBeginMobileRouteSwipe(event))return;
+  mobileRouteSwipePointer={
+    id:event.pointerId,
+    x:Number(event.clientX)||0,
+    y:Number(event.clientY)||0,
+    at:performance.now()
+  };
+}
+
+function finishMobileRouteSwipe(event){
+  const start=mobileRouteSwipePointer;
+  mobileRouteSwipePointer=null;
+  if(!start||event.pointerId!==start.id)return false;
+  const dx=(Number(event.clientX)||0)-start.x;
+  const dy=(Number(event.clientY)||0)-start.y;
+  const elapsed=performance.now()-start.at;
+  const horizontal=Math.abs(dx);
+  if(elapsed>900||horizontal<64||horizontal<Math.abs(dy)*1.35)return false;
+  if(route==='chat'&&dx<0)return NavigationCommand.openWork();
+  if(route==='work'&&dx>0)return NavigationCommand.openChat();
+  return false;
+}
+
+function cancelMobileRouteSwipe(){
+  mobileRouteSwipePointer=null;
+}
+
 const NavigationCommand={
   open(nextRoute){
     if(!ROUTES.includes(nextRoute))return false;
@@ -314,6 +386,7 @@ const NavigationCommand={
         detail:{from:previousRoute,to:nextRoute}
       }));
     }
+    setMobileRouteTransition(previousRoute,nextRoute);
     route=nextRoute;
     setSidebar(false);
     applyRoutePresentation();
@@ -480,12 +553,16 @@ function callFocusPresentation(){
 function renderCallFocus(){
   const hasContact=Boolean(activeContact?.id);
   const presentation=callFocusPresentation();
+  const showIdleCall=route==='chat'&&hasContact;
+  const showCallSurface=presentation.state!=='idle'||showIdleCall;
   for(const slot of document.querySelectorAll('[data-call-focus-slot]')){
     const chip=slot.querySelector('[data-call-status-chip]');
     const title=slot.querySelector('[data-call-status-title]');
     const subtitle=slot.querySelector('[data-call-status-subtitle]');
     const timer=slot.querySelector('[data-call-status-timer]');
     const secondary=slot.querySelector('[data-call-secondary-button]');
+    slot.hidden=!showCallSurface;
+    slot.setAttribute('aria-hidden',String(!showCallSurface));
     slot.dataset.callUiState=presentation.state;
     if(chip){
       chip.hidden=presentation.state==='idle';
@@ -1681,6 +1758,10 @@ document.addEventListener('v21-interaction-abort',()=>{
   if(profileOverlay)closeProfileEditor({restoreFocus:false});
   CallCommand.forceReset();
 });
+
+screenHost.addEventListener('pointerdown',beginMobileRouteSwipe,{passive:true});
+screenHost.addEventListener('pointerup',finishMobileRouteSwipe,{passive:true});
+screenHost.addEventListener('pointercancel',cancelMobileRouteSwipe,{passive:true});
 
 applyRoutePresentation();
 renderMenuUnread();
