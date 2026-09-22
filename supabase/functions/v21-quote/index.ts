@@ -4,7 +4,7 @@ import { buildQuoteItems, makePublicPayload } from "./quote-core.mjs";
 const SUPABASE_URL=String(Deno.env.get('SUPABASE_URL')||'').trim();
 const SERVICE_KEY=String(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'').trim();
 const db=createClient(SUPABASE_URL,SERVICE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
-const PUBLIC_QUOTE_BASE='https://chat.taphoa.xyz/b/?kh=';
+const PUBLIC_QUOTE_BASE='https://app.taphoa.xyz/b/?kh=';
 const PUBLIC_DEBT_BASE='https://app.taphoa.xyz/no/?kh=';
 const PUBLIC_PRODUCT_FIELDS='product_code,product_name,source_key,sale_price_vnd,carton_price_vnd,retail_price_vnd,input_price_basis,units_per_carton,retail_unit';
 const CORE_SOURCE_LABELS=Object.freeze({
