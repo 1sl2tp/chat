@@ -30,7 +30,7 @@ required = [
     "sources",
     'from("chat_quote_snapshots")',
     'crypto.getrandomvalues',
-    'https://chat.taphoa.xyz/b/?kh=',
+    'https://app.taphoa.xyz/b/?kh=',
     'https://app.taphoa.xyz/no/?kh=',
     'v21_customer_public_links',
     'public_slug',
