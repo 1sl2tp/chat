@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="2037a2d2c7cd63b703917a296e8f5f19a1ff0f43b04d18554b2d8228e9dc8243">
+<meta name="app-build-id" content="d8f8a2946000140fa77c3faa5920e0cff074866732e52883d7be4bf27d36cf8b">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1308,6 +1308,15 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
 .admin-composer-quote-actions{display:grid;grid-template-columns:1fr 1.4fr;gap:8px}
 .admin-composer-quote-send{background:var(--theme-content-primary,#171717);color:var(--theme-surface-primary,#fff);border-color:var(--theme-content-primary,#171717)}
 .admin-composer-quote-send:disabled,.admin-composer-quote-cancel:disabled{opacity:.5;cursor:default}
+
+.admin-composer-stock-card{gap:10px}
+.admin-composer-stock-customer{margin:-2px 0 2px;color:var(--theme-content-secondary,#666);font-size:13px;line-height:18px}
+.admin-composer-stock-options{display:grid;gap:8px}
+.admin-composer-stock-options button{display:grid;gap:3px;min-height:58px;padding:10px 12px;text-align:left;border:1px solid var(--theme-border-default,#dedede);border-radius:14px;background:var(--theme-surface-secondary,#f7f7f7);color:var(--theme-content-primary,#171717);font:inherit;cursor:pointer}
+.admin-composer-stock-options button strong{font-size:14px;line-height:19px}
+.admin-composer-stock-options button span{color:var(--theme-content-secondary,#666);font-size:12px;line-height:17px}
+.admin-composer-stock-options button:disabled{opacity:.5;cursor:default}
+.admin-composer-stock-actions{grid-template-columns:1fr}
 
 </style>
 <style data-inlined-source="mobile-chat-refresh.css">
@@ -6068,7 +6077,8 @@ const CUSTOM=Object.freeze({
   quote:Object.freeze({viewBox:'0 0 24 24',stroke:1.6,body:'<path d="M5 4h14v16H5z"></path><path d="M8 8h8M8 12h8M8 16h5"></path>'}),
   debt:Object.freeze({viewBox:'0 0 24 24',stroke:1.6,body:'<rect x="4" y="5" width="16" height="14" rx="2.5"></rect><path d="M7.5 9h9M7.5 13h4.5M15.5 12v4M13.5 14h4"></path>'}),
   call:Object.freeze({viewBox:'0 0 24 24',stroke:1.6,body:'<path d="M7.2 4.5 10 8l-1.8 2.2c1.2 2.5 3.1 4.4 5.6 5.6L16 14l3.5 2.8-.9 2.7c-.3.8-1.1 1.3-2 1.2C9.4 19.8 4.2 14.6 3.3 7.4c-.1-.9.4-1.7 1.2-2l2.7-.9Z"></path>'}),
-  key:Object.freeze({viewBox:'0 0 24 24',stroke:1.7,body:'<circle cx="8.5" cy="12" r="3.5"></circle><path d="M12 12h8M17 12v3M20 12v2"></path>'})
+  key:Object.freeze({viewBox:'0 0 24 24',stroke:1.7,body:'<circle cx="8.5" cy="12" r="3.5"></circle><path d="M12 12h8M17 12v3M20 12v2"></path>'}),
+  stock:Object.freeze({viewBox:'0 0 24 24',stroke:1.65,body:'<rect x="5" y="4" width="14" height="16" rx="2.5"></rect><path d="M9 4.5h6v3H9z"></path><path d="M8.5 11.5h7M8.5 15.5h4"></path>'})
 });
 
 function customMarkup(name,{size=20}={}){
@@ -20376,6 +20386,7 @@ const QUOTE_MODAL_OWNER='admin-quote-modal';
 let quoteModulePromise=null;
 let quoteOverlay=null;
 let credentialsOverlay=null;
+let stockCheckOverlay=null;
 let quoteReturnFocus=null;
 let transientHintTimer=0;
 
@@ -20472,6 +20483,7 @@ function ensureAdminMenu(){
     section.append(
       actionButton({action:'quote',label:'Báo giá',kind:'quote'}),
       actionButton({action:'debt',label:'Công nợ',kind:'debt'}),
+      actionButton({action:'stock-check',label:'Kiểm hàng',kind:'stock'}),
       actionButton({action:'call-link',label:'Link gọi',kind:'call'}),
       actionButton({action:'credentials',label:'Thông tin đăng nhập',kind:'key'}),
     );
@@ -20579,6 +20591,88 @@ async function openQuote(contactId){
       closeQuote();
       setTransientHint('Đã gửi link báo giá');
     }catch(error){status.textContent=String(error?.message||error||'Không thể gửi báo giá');setBusy(false);}
+  });
+  return true;
+}
+
+async function stockCheckLinks(contactId){
+  const client=authStore()?.getClient?.()||null;
+  if(!client)throw new Error('authentication_required');
+  const id=String(contactId||'').trim();
+  if(!id)throw new Error('customer_required');
+  const {data,error}=await client.rpc('taphoa_stock_check_links_for_customer',{p_customer_id:id});
+  if(error)throw error;
+  if(!data?.ok||!data?.employee_url||!data?.owner_url)throw new Error(data?.error||'stock_check_link_failed');
+  return data;
+}
+
+function closeStockCheck({restoreFocus=true}={}){
+  const hadOverlay=Boolean(stockCheckOverlay);
+  if(stockCheckOverlay){stockCheckOverlay.remove();stockCheckOverlay=null;}
+  unlockQuoteBackground({restoreFocus});
+  return hadOverlay;
+}
+
+async function openStockCheck(contactId){
+  const contact=activeContact();
+  if(!contact||String(contact.id||'')!==String(contactId||''))throw new Error('contact_not_ready');
+  const displayName=String(contact.display_name||contact.name||contact.username||'Khách hàng').trim();
+  const root=document.getElementById('globalOverlayRoot');
+  if(!root)throw new Error('stock_check_overlay_unavailable');
+  closeStockCheck({restoreFocus:false});
+  if(!lockQuoteBackground())throw new Error('stock_check_modal_busy');
+
+  const overlay=document.createElement('section');
+  overlay.className='admin-composer-quote-overlay';
+  overlay.dataset.adminComposerStockCheck='';
+  overlay.innerHTML=`
+    <button type="button" class="admin-composer-quote-backdrop" data-stock-check-close aria-label="Đóng"></button>
+    <div class="admin-composer-quote-card admin-composer-stock-card" role="dialog" aria-modal="true" aria-label="Kiểm hàng">
+      <h2 class="admin-composer-quote-title">Kiểm hàng</h2>
+      <p class="admin-composer-stock-customer"></p>
+      <div class="admin-composer-stock-options">
+        <button type="button" data-stock-check-role="employee">
+          <strong>Gửi nhân viên</strong>
+          <span>Chỉ nhập số lượng · không hiển thị tiền</span>
+        </button>
+        <button type="button" data-stock-check-role="owner">
+          <strong>Gửi chủ cửa hàng</strong>
+          <span>Rà soát số lượng · có tổng tiền</span>
+        </button>
+      </div>
+      <p class="admin-composer-quote-status" data-stock-check-status></p>
+      <div class="admin-composer-quote-actions admin-composer-stock-actions">
+        <button type="button" class="admin-composer-quote-cancel" data-stock-check-close>Hủy</button>
+      </div>
+    </div>`;
+  root.appendChild(overlay);
+  stockCheckOverlay=overlay;
+
+  const customer=overlay.querySelector('.admin-composer-stock-customer');
+  if(customer)customer.textContent=displayName;
+  const status=overlay.querySelector('[data-stock-check-status]');
+  const roleButtons=[...overlay.querySelectorAll('[data-stock-check-role]')];
+  const closeButtons=[...overlay.querySelectorAll('[data-stock-check-close]')];
+  const setBusy=busy=>{
+    for(const button of roleButtons)button.disabled=Boolean(busy);
+    for(const button of closeButtons)button.disabled=Boolean(busy);
+  };
+  for(const button of closeButtons)button.addEventListener('click',()=>closeStockCheck());
+  for(const button of roleButtons)button.addEventListener('click',async()=>{
+    const role=button.dataset.stockCheckRole==='owner'?'owner':'employee';
+    setBusy(true);
+    status.textContent='Đang tạo link…';
+    try{
+      const links=await stockCheckLinks(contactId);
+      const url=role==='owner'?links.owner_url:links.employee_url;
+      status.textContent='Đang gửi…';
+      await sendAdminText(url,contactId,`stock-check-${role}-link-send`);
+      closeStockCheck();
+      setTransientHint(role==='owner'?'Đã gửi link cho chủ cửa hàng':'Đã gửi link cho nhân viên');
+    }catch(error){
+      status.textContent=String(error?.message||error||'Không thể gửi link kiểm hàng');
+      setBusy(false);
+    }
   });
   return true;
 }
@@ -20742,6 +20836,9 @@ async function runAction(action){
   if(action==='credentials'){
     try{return await openCredentials(contactId);}catch{setTransientHint('Không thể mở thông tin đăng nhập');return false;}
   }
+  if(action==='stock-check'){
+    try{return await openStockCheck(contactId);}catch{setTransientHint('Không thể mở kiểm hàng');return false;}
+  }
   if(action==='debt'){
     setTransientHint('Đang tạo link công nợ…',2400);
     try{
@@ -20792,6 +20889,8 @@ window.V21AdminComposerActions=Object.freeze({
   run:runAction,
   openQuote,
   openCredentials,
+  openStockCheck,
+  stockCheckLinks,
   activeContactId,
 });
 })();
