@@ -38,7 +38,7 @@ h1{font-size:20px;line-height:1.25;margin:0 0 4px}.quote-meta{font-size:13px;col
   <header class="quote-head" id="quote-head" hidden>
     <div class="quote-head-main">
       <div class="quote-head-copy">
-        <h1>Báo giá TAPHOA</h1>
+        <h1 id="quote-title">Báo giá TAPHOA</h1>
         <div class="quote-meta" id="quote-meta"></div>
       </div>
       <input id="quote-search" type="search" autocomplete="off" placeholder="Tìm sản phẩm" aria-label="Tìm sản phẩm">
@@ -70,6 +70,7 @@ const status=document.getElementById('quote-status');
 const errorBox=document.getElementById('quote-error');
 const head=document.getElementById('quote-head');
 const meta=document.getElementById('quote-meta');
+const title=document.getElementById('quote-title');
 const search=document.getElementById('quote-search');
 const filters=document.getElementById('quote-source-filters');
 const scroll=document.getElementById('quote-scroll');
@@ -163,6 +164,8 @@ fetch(`${QUOTE_READ_API}${encodeURIComponent(token)}`)
   .then(data=>{
     if(!data?.ok||!Array.isArray(data.items))throw new Error('quote_invalid');
     snapshot=data;
+    const customerName=String(data.customer_name||'').trim();
+    if(customerName){title.textContent=`Báo giá · ${customerName}`;document.title=`Báo giá ${customerName} · TAPHOA`;}
     createdLabel=data.generated_at?`Cập nhật ${new Date(data.generated_at).toLocaleString('vi-VN',{dateStyle:'short',timeStyle:'short'})}`:'';
     status.hidden=true;errorBox.hidden=true;head.hidden=false;table.hidden=false;render();
   })
