@@ -22,7 +22,6 @@ for token in (
     "label:'Tạo đơn'",
     "label:'Đơn tạm'",
     "label:'Đã giao'",
-    "label:'Công nợ'",
     'data-admin-order-action',
     'openOrder',
     'invokeOrderScribe',
