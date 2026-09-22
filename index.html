@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="f5c9e91001e602d02c44980896aec2a26e069b79c169ff591f543d06d4c2e44d">
+<meta name="app-build-id" content="09eba7f74d044739d78000ea6cd130263afe3947dd442810e2459d59a196a2cc">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1395,10 +1395,18 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
     align-items:center;
     gap:0 2px;
     overflow:visible;
+    border:1px solid color-mix(in srgb,var(--theme-border-default) 96%,transparent);
     border-radius:26px;
     padding:4px 5px;
     background:var(--cgpt-composer-surface-primary);
-    box-shadow:0 2px 10px rgba(0,0,0,.05);
+    box-shadow:0 1px 4px rgba(0,0,0,.04);
+  }
+
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell:focus-within{
+    border-color:color-mix(in srgb,var(--theme-border-default) 88%,var(--blue-75));
+    box-shadow:
+      0 0 0 1px color-mix(in srgb,var(--blue-400) 5%,transparent),
+      0 1px 4px rgba(0,0,0,.04);
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #replyContext{
@@ -1492,7 +1500,7 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
   }
 
   #stageLayout[data-keyboard-open="true"] #composerShell{
-    box-shadow:0 1px 6px rgba(0,0,0,.04);
+    box-shadow:0 1px 4px rgba(0,0,0,.035);
   }
 
   #threadScrollControlWrap{
