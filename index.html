@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="889cfae0f4da474cf225d074c775d570cd80093c9722ee32e28dc164331e6ba3">
+<meta name="app-build-id" content="4574552cbde57e5d59738c539a018ccdcaa9e2cdea7a085417a8adc3fe54b9f6">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1497,6 +1497,19 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
 
   #stageLayout[data-keyboard-open="true"] #composerShell{
     box-shadow:0 1px 4px rgba(0,0,0,.035);
+  }
+
+  /* Keyboard-open placement must measure only the Composer surface.
+     The scroll-to-latest control may float above it, but must not reserve
+     a 44px lane between the Composer and the software keyboard. */
+  #stageLayout[data-keyboard-open="true"] #threadScrollControlWrap{
+    height:0!important;
+    margin-bottom:0!important;
+  }
+
+  #stageLayout[data-keyboard-open="true"][data-scroll-from-end] #threadScrollControlMotion{
+    top:-46px;
+    bottom:auto;
   }
 
   #threadScrollControlWrap{

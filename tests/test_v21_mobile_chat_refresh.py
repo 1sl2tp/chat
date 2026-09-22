@@ -75,3 +75,9 @@ def test_keyboard_gap_has_one_owner():
     assert "'android-pwa':Object.freeze({keyboardVisualGapPx:0" in APP
     c = compact(CSS)
     assert '#stageLayout[data-keyboard-open="true"].composer-source-frame{margin-bottom:' not in c
+
+
+def test_keyboard_scroll_control_does_not_create_composer_gap():
+    c = compact(CSS)
+    assert '#stageLayout[data-keyboard-open="true"]#threadScrollControlWrap{height:0!important;margin-bottom:0!important;}' in c
+    assert '#stageLayout[data-keyboard-open="true"][data-scroll-from-end]#threadScrollControlMotion{top:-46px;bottom:auto;}' in c

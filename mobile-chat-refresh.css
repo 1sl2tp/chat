@@ -186,6 +186,19 @@
     box-shadow:0 1px 4px rgba(0,0,0,.035);
   }
 
+  /* Keyboard-open placement must measure only the Composer surface.
+     The scroll-to-latest control may float above it, but must not reserve
+     a 44px lane between the Composer and the software keyboard. */
+  #stageLayout[data-keyboard-open="true"] #threadScrollControlWrap{
+    height:0!important;
+    margin-bottom:0!important;
+  }
+
+  #stageLayout[data-keyboard-open="true"][data-scroll-from-end] #threadScrollControlMotion{
+    top:-46px;
+    bottom:auto;
+  }
+
   #threadScrollControlWrap{
     width:min(calc(100% - 24px),44rem);
   }
