@@ -66,6 +66,7 @@ const QUOTE_READ_API='https://gcnoahqsrquxkwkjbuxy.supabase.co/functions/v1/v21-
 const fallbackSourceNames={'hang-thuong':'Hàng thường','hang-u':'Hàng U','masan':'Masan','sua':'Sữa','thuoc-la':'Thuốc lá'};
 const params=new URLSearchParams(location.search);
 const customerSlug=params.get('kh')||'';
+const requestedSource=params.get('nguon')||'';
 const status=document.getElementById('quote-status');
 const errorBox=document.getElementById('quote-error');
 const head=document.getElementById('quote-head');
@@ -159,7 +160,7 @@ filters.addEventListener('click',event=>{
   render();
 });
 if(!customerSlug){fail();return;}
-fetch(`${QUOTE_READ_API}?kh=${encodeURIComponent(customerSlug)}`)
+fetch(`${QUOTE_READ_API}?kh=${encodeURIComponent(customerSlug)}${requestedSource?`&nguon=${encodeURIComponent(requestedSource)}`:''}`)
   .then(response=>{if(!response.ok)throw new Error('quote_load_failed');return response.json();})
   .then(data=>{
     if(!data?.ok||!Array.isArray(data.items))throw new Error('quote_invalid');

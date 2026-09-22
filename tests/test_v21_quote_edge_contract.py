@@ -35,6 +35,8 @@ required = [
     'v21_customer_public_links',
     'public_slug',
     "url.searchparams.get('kh')",
+    "url.searchparams.get('nguon')",
+    "&nguon=",
     'v21_customer_public_link_info_get_or_create',
     'customer_account_id',
     'customer-links',
@@ -81,3 +83,7 @@ assert '.gt("sale_price_vnd",0)' not in src
 assert "url.searchparams.get('k')" not in low
 assert "lastindexof('~')" not in low
 assert '.eq("token",' not in low
+
+assert ".eq('scope','source')" in src, "source-specific public links must resolve only source snapshots"
+assert ".eq('source_key',requestedSourceKey)" in src, "source-specific public links must stay pinned to their source"
+assert "scope=requestedSourceKey?'source'" in src, "requested source must override a newer snapshot from another source"

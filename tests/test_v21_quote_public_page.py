@@ -13,6 +13,7 @@ required = [
     'property="og:title" content="báo giá taphoa"',
     'new urlsearchparams(location.search)',
     ".get('kh')",
+    ".get('nguon')",
     'v21-quote',
     'id="quote-search"',
     'id="quote-source-filters"',
@@ -63,3 +64,6 @@ assert 'publicparam' not in low
 assert "format(n)" in low, "public quote prices must preserve TAPHOA literal values"
 assert "+'đ'" not in low and '+"đ"' not in low, "public quote prices must not append currency suffix"
 assert "format(n/1000)" not in low, "public quote must not rescale prices"
+
+assert "requestedSource" in html
+assert "&nguon=" in html, "public quote page must pass the pinned source to the read API"

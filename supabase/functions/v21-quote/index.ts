@@ -209,7 +209,9 @@ async function createQuote(req:Request){
     ok:true,
     token,
     public_slug:links.slug,
-    url:links.quote_url,
+    url:scope==='source'&&sourceKey
+      ?`${links.quote_url}&nguon=${encodeURIComponent(sourceKey)}`
+      :links.quote_url,
     customer_name:clean(links.account.display_name,80),
     item_count:Number(inserted.data.item_count)||items.length,
     source_name:clean(inserted.data.source_name,200)||sourceName,
@@ -220,6 +222,7 @@ async function createQuote(req:Request){
 async function readQuote(req:Request){
   const url=new URL(req.url);
   const customerSlug=clean(url.searchParams.get('kh'),160);
+  const requestedSourceKey=clean(url.searchParams.get('nguon'),100);
   if(!customerSlug)return json({ok:false,error:'token_required'},400,{'cache-control':'no-store'});
 
   let snapshot:any=null;
@@ -229,10 +232,16 @@ async function readQuote(req:Request){
   catch{return json({ok:false,error:'quote_lookup_failed'},500,{'cache-control':'no-store'});}
   if(!publicCustomer)return json({ok:false,error:'quote_not_found'},404,{'cache-control':'no-store'});
 
-  const latest=await db.from("chat_quote_snapshots")
+  let latestQuery=db.from("chat_quote_snapshots")
     .select('scope,source_key,source_name,created_at')
     .eq('customer_account_id',publicCustomer.account.id)
-    .is("revoked_at",null)
+    .is("revoked_at",null);
+  if(requestedSourceKey){
+    latestQuery=latestQuery
+      .eq('scope','source')
+      .eq('source_key',requestedSourceKey);
+  }
+  const latest=await latestQuery
     .order('created_at',{ascending:false})
     .limit(1)
     .maybeSingle();
@@ -245,8 +254,10 @@ async function readQuote(req:Request){
   try{sources=await activeSources();}
   catch{return json({ok:false,error:'source_lookup_failed'},500,{'cache-control':'no-store'});}
 
-  const scope=clean(snapshot.scope,20)==='source'?'source':'all';
-  const sourceKey=scope==='source'?clean(snapshot.source_key,100):'';
+  const scope=requestedSourceKey?'source':(clean(snapshot.scope,20)==='source'?'source':'all');
+  const sourceKey=requestedSourceKey||(
+    scope==='source'?clean(snapshot.source_key,100):''
+  );
   if(scope==='source'&&!sources.some((row:any)=>row.source_key===sourceKey)){
     return json({ok:false,error:'quote_empty'},404,{'cache-control':'no-store'});
   }
