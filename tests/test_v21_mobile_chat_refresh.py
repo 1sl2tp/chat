@@ -81,3 +81,9 @@ def test_keyboard_scroll_control_does_not_create_composer_gap():
     c = compact(CSS)
     assert '#stageLayout[data-keyboard-open="true"]#threadScrollControlWrap{height:0!important;margin-bottom:0!important;}' in c
     assert '#stageLayout[data-keyboard-open="true"][data-scroll-from-end]#threadScrollControlMotion{top:-46px;bottom:auto;}' in c
+
+
+def test_keyboard_open_removes_closed_safe_area_margin():
+    c = compact(CSS)
+    assert '#appShell[data-auth-state="authenticated"][data-route="chat"]#stageLayout[data-keyboard-open="true"][data-composer-placement="visual-viewport"].composer-source-frame{margin-bottom:0!important;padding-bottom:0!important;}' in c
+    assert 'margin-bottom:calc(8px+env(safe-area-inset-bottom,0px));' in c
