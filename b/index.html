@@ -83,7 +83,7 @@ let activeSource='all';
 let createdLabel='';
 
 function esc(value){return String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));}
-function money(value){const n=Number(value);return Number.isFinite(n)&&n>0?new Intl.NumberFormat('vi-VN').format(n):'';}
+function money(value){const n=Number(value);return Number.isFinite(n)&&n>0?new Intl.NumberFormat('vi-VN',{maximumFractionDigits:3}).format(n/1000):'';}
 function snapshotSources(){
   const rows=Array.isArray(snapshot?.sources)?snapshot.sources:[];
   if(rows.length)return rows.map(row=>[String(row?.source_key||''),String(row?.source_name||row?.source_key||'')]).filter(([key])=>key);
