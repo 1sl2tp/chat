@@ -41,6 +41,8 @@ jobs:
         run: python tests/test_v21_legacy_chat_order_source_removed.py
       - name: Customer summary scan contract
         run: python tests/test_v21_customer_summary_scan_contract.py
+      - name: Customer care schedule contract
+        run: python tests/test_v21_customer_care_schedule.py
       - name: Customer summary AI budget + failover contract
         run: python tests/test_v21_customer_summary_ai_budget.py
       - name: Customer summary dirty queue contract
