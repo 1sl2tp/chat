@@ -13,7 +13,7 @@ assert "asia/ho_chi_minh" in low
 
 # Monday (1) and Friday (5) are milk; every other day is regular goods.
 assert "extract(isodow from p_date)" in low
-assert "in (1,5)" in compact
+assert "in(1,5)" in compact
 assert "'source_key','sua'" in low
 assert "'source_key','hang-thuong'" in low
 
