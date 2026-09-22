@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="b01b919b8421684e44e70c901d3a771b9f0e598f042efe56cb58d3b4c751fe0c">
+<meta name="app-build-id" content="b46b41af1002a984f9858510d9cb902b458922568972e42b31ff39dffaf2bff3">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -13234,9 +13234,6 @@ document.addEventListener('v21-interaction-abort',()=>{
   closeAllTurnActions();
   setComposerActionMenuOpen(false);
   if(imageViewerOverlay?.open)closeImageViewer({restoreFocus:false});
-  if(duplicateUploadWarningOverlay?.style.display==='flex'){
-    closeDuplicateUploadWarning({restoreFocus:false});
-  }
   if(mediaRecorder&&mediaRecorder.state!=='inactive'){
     stopRecording({discard:true});
   }else if(mediaStream){

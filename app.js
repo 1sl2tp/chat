@@ -6248,9 +6248,6 @@ document.addEventListener('v21-interaction-abort',()=>{
   closeAllTurnActions();
   setComposerActionMenuOpen(false);
   if(imageViewerOverlay?.open)closeImageViewer({restoreFocus:false});
-  if(duplicateUploadWarningOverlay?.style.display==='flex'){
-    closeDuplicateUploadWarning({restoreFocus:false});
-  }
   if(mediaRecorder&&mediaRecorder.state!=='inactive'){
     stopRecording({discard:true});
   }else if(mediaStream){
