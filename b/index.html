@@ -62,10 +62,10 @@ h1{font-size:20px;line-height:1.25;margin:0 0 4px}.quote-meta{font-size:13px;col
 <script>
 (()=>{
 'use strict';
-const QUOTE_READ_API='https://gcnoahqsrquxkwkjbuxy.supabase.co/functions/v1/v21-quote?k=';
+const QUOTE_READ_API='https://gcnoahqsrquxkwkjbuxy.supabase.co/functions/v1/v21-quote';
 const fallbackSourceNames={'hang-thuong':'Hàng thường','hang-u':'Hàng U','masan':'Masan','sua':'Sữa','thuoc-la':'Thuốc lá'};
 const params=new URLSearchParams(location.search);
-const token=params.get('k')||'';
+const customerSlug=params.get('kh')||'';\nconst legacyKey=params.get('k')||'';\nconst publicId=customerSlug||legacyKey;\nconst publicParam=customerSlug?'kh':'k';
 const status=document.getElementById('quote-status');
 const errorBox=document.getElementById('quote-error');
 const head=document.getElementById('quote-head');
@@ -158,8 +158,8 @@ filters.addEventListener('click',event=>{
   scroll.scrollTop=0;
   render();
 });
-if(!token){fail();return;}
-fetch(`${QUOTE_READ_API}${encodeURIComponent(token)}`)
+if(!publicId){fail();return;}
+fetch(`${QUOTE_READ_API}?${publicParam}=${encodeURIComponent(publicId)}`)
   .then(response=>{if(!response.ok)throw new Error('quote_load_failed');return response.json();})
   .then(data=>{
     if(!data?.ok||!Array.isArray(data.items))throw new Error('quote_invalid');

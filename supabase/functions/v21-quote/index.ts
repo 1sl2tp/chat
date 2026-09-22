@@ -4,8 +4,8 @@ import { buildQuoteItems, makePublicPayload } from "./quote-core.mjs";
 const SUPABASE_URL=String(Deno.env.get('SUPABASE_URL')||'').trim();
 const SERVICE_KEY=String(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'').trim();
 const db=createClient(SUPABASE_URL,SERVICE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
-const PUBLIC_QUOTE_BASE='https://chat.taphoa.xyz/b/?k=';
-const PUBLIC_DEBT_BASE='https://app.taphoa.xyz/no/?k=';
+const PUBLIC_QUOTE_BASE='https://chat.taphoa.xyz/b/?kh=';
+const PUBLIC_DEBT_BASE='https://app.taphoa.xyz/no/?kh=';
 const PUBLIC_PRODUCT_FIELDS='product_code,product_name,source_key,sale_price_vnd,carton_price_vnd,retail_price_vnd,input_price_basis,units_per_carton,retail_unit';
 const CORE_SOURCE_LABELS=Object.freeze({
   'hang-thuong':'Hàng thường',
@@ -23,19 +23,15 @@ const corsHeaders={
 function clean(value:unknown,max=500){
   return String(value??'').replace(/\s+/g,' ').trim().slice(0,max);
 }
-function slugify(value:unknown){
-  return clean(value,80)
-    .normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/gi,'d')
-    .toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,56)||'khach-hang';
+function publicSlug(value:unknown){
+  const slug=clean(value,100).toLowerCase();
+  return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)?slug:'';
 }
 function accessKeyFromHandle(value:unknown){
   const handle=clean(value,160);
   const at=handle.lastIndexOf('~');
   const key=at>=0?handle.slice(at+1):'';
   return /^[A-Za-z0-9_-]{16,32}$/.test(key)?key:'';
-}
-function publicHandle(account:any,accessKey:string){
-  return `${slugify(account?.display_name||account?.username)}~${accessKey}`;
 }
 function json(data:unknown,status=200,extra:Record<string,string>={}){
   return new Response(JSON.stringify(data),{
@@ -91,31 +87,49 @@ async function customerAccount(customerId:string){
 async function ensureCustomerLinks(customerId:string){
   const account=await customerAccount(customerId);
   if(!account)throw new Error('customer_not_found');
-  const ensured=await db.rpc('v21_customer_public_link_get_or_create',{p_customer_id:customerId});
+  const ensured=await db.rpc('v21_customer_public_link_info_get_or_create',{p_customer_id:customerId});
   if(ensured.error)throw ensured.error;
-  const accessKey=clean(ensured.data,64);
-  if(!/^[A-Za-z0-9_-]{16,32}$/.test(accessKey))throw new Error('public_link_failed');
-  const handle=publicHandle(account,accessKey);
+  const slug=publicSlug(ensured.data?.public_slug);
+  const accessKey=clean(ensured.data?.access_key,64);
+  if(!slug||!/^[A-Za-z0-9_-]{16,32}$/.test(accessKey))throw new Error('public_link_failed');
   return {
     account,
-    handle,
-    quote_url:`${PUBLIC_QUOTE_BASE}${encodeURIComponent(handle)}`,
-    debt_url:`${PUBLIC_DEBT_BASE}${encodeURIComponent(handle)}`,
+    slug,
+    accessKey,
+    quote_url:`${PUBLIC_QUOTE_BASE}${encodeURIComponent(slug)}`,
+    debt_url:`${PUBLIC_DEBT_BASE}${encodeURIComponent(slug)}`,
   };
 }
 
-async function resolvePublicCustomer(handle:string){
-  const accessKey=accessKeyFromHandle(handle);
-  if(!accessKey)return null;
-  const link=await db.from('v21_customer_public_links')
-    .select('customer_account_id')
-    .eq('access_key',accessKey)
-    .is('revoked_at',null)
-    .maybeSingle();
-  if(link.error)throw link.error;
-  if(!link.data?.customer_account_id)return null;
-  const account=await customerAccount(String(link.data.customer_account_id));
-  return account?{account,accessKey}:null;
+async function resolvePublicCustomer(value:string){
+  const slug=publicSlug(value);
+  let link:any=null;
+
+  if(slug){
+    const bySlug=await db.from('v21_customer_public_links')
+      .select('customer_account_id,access_key,public_slug')
+      .eq('public_slug',slug)
+      .is('revoked_at',null)
+      .maybeSingle();
+    if(bySlug.error)throw bySlug.error;
+    link=bySlug.data||null;
+  }
+
+  if(!link){
+    const accessKey=accessKeyFromHandle(value);
+    if(!accessKey)return null;
+    const legacy=await db.from('v21_customer_public_links')
+      .select('customer_account_id,access_key,public_slug')
+      .eq('access_key',accessKey)
+      .is('revoked_at',null)
+      .maybeSingle();
+    if(legacy.error)throw legacy.error;
+    link=legacy.data||null;
+  }
+
+  if(!link?.customer_account_id)return null;
+  const account=await customerAccount(String(link.customer_account_id));
+  return account?{account,accessKey:clean(link.access_key,64),publicSlug:clean(link.public_slug,100)}:null;
 }
 
 async function activeSources(){
@@ -158,7 +172,7 @@ async function createQuote(req:Request){
     return json({
       ok:true,
       customer_name:clean(links.account.display_name,80),
-      handle:links.handle,
+      public_slug:links.slug,
       quote_url:links.quote_url,
       debt_url:links.debt_url,
     });
@@ -217,7 +231,7 @@ async function createQuote(req:Request){
   return json({
     ok:true,
     token,
-    handle:links.handle,
+    public_slug:links.slug,
     url:links.quote_url,
     customer_name:clean(links.account.display_name,80),
     item_count:Number(inserted.data.item_count)||items.length,
@@ -228,14 +242,14 @@ async function createQuote(req:Request){
 
 async function readQuote(req:Request){
   const url=new URL(req.url);
-  const key=clean(url.searchParams.get('k'),160);
-  if(!key)return json({ok:false,error:'token_required'},400,{'cache-control':'no-store'});
+  const publicId=clean(url.searchParams.get('kh')||url.searchParams.get('k'),160);
+  if(!publicId)return json({ok:false,error:'token_required'},400,{'cache-control':'no-store'});
 
   let snapshot:any=null;
   let publicCustomer:any=null;
 
-  if(accessKeyFromHandle(key)){
-    try{publicCustomer=await resolvePublicCustomer(key);}
+  if(publicSlug(publicId)||accessKeyFromHandle(publicId)){
+    try{publicCustomer=await resolvePublicCustomer(publicId);}
     catch{return json({ok:false,error:'quote_lookup_failed'},500,{'cache-control':'no-store'});}
     if(!publicCustomer)return json({ok:false,error:'quote_not_found'},404,{'cache-control':'no-store'});
 
@@ -251,7 +265,7 @@ async function readQuote(req:Request){
   }else{
     const legacy=await db.from("chat_quote_snapshots")
       .select('scope,source_key,source_name,created_at')
-      .eq("token",key)
+      .eq("token",publicId)
       .is("revoked_at",null)
       .maybeSingle();
     if(legacy.error)return json({ok:false,error:'quote_lookup_failed'},500,{'cache-control':'no-store'});
