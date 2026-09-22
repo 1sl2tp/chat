@@ -460,7 +460,16 @@ async function runAction(action){
     try{return await openCredentials(contactId);}catch{setTransientHint('Không thể mở thông tin đăng nhập');return false;}
   }
   if(action==='stock-check'){
-    try{return await openStockCheck(contactId);}catch{setTransientHint('Không thể mở kiểm hàng');return false;}
+    setTransientHint('Đang tạo link kiểm hàng…',2400);
+    try{
+      const links=await stockCheckLinks(contactId);
+      await sendAdminText('Kiểm hàng\nRà soát và cập nhật: '+links.owner_url,contactId,'stock-check-owner-link-send');
+      setTransientHint('Đã gửi link kiểm hàng');
+      return true;
+    }catch{
+      setTransientHint('Không thể gửi kiểm hàng',2600);
+      return false;
+    }
   }
   if(action==='debt'){
     setTransientHint('Đang tạo link công nợ…',2400);
