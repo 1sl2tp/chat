@@ -4,6 +4,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SHELL = (ROOT / "shell.js").read_text(encoding="utf-8")
 SOURCE = (ROOT / "index.source.html").read_text(encoding="utf-8")
 CSS = (ROOT / "mobile-chat-refresh.css").read_text(encoding="utf-8")
+APP = (ROOT / "app.js").read_text(encoding="utf-8")
 
 
 def compact(value: str) -> str:
@@ -65,3 +66,12 @@ def test_mobile_message_surfaces_keep_sender_hierarchy():
     assert '.assistant-message-unit>.message-text{' in c
     assert '.user-message-unit>.message-text{' in c
     assert 'background:color-mix(insrgb,var(--theme-surface-secondary)94%,var(--theme-surface-primary))!important;' in c
+
+
+def test_keyboard_gap_has_one_owner():
+    assert "'ios-web':Object.freeze({keyboardVisualGapPx:6" in APP
+    assert "'ios-pwa':Object.freeze({keyboardVisualGapPx:0" in APP
+    assert "'android-web':Object.freeze({keyboardVisualGapPx:6" in APP
+    assert "'android-pwa':Object.freeze({keyboardVisualGapPx:0" in APP
+    c = compact(CSS)
+    assert '#stageLayout[data-keyboard-open="true"].composer-source-frame{margin-bottom:' not in c
