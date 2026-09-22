@@ -59,3 +59,6 @@ print("chat quote public page contract PASS")
 assert ".get('k')" not in low
 assert 'legacykey' not in low
 assert 'publicparam' not in low
+
+assert "format(n/1000)" in low, "public quote prices must use TAPHOA thousand-unit display"
+assert "+'đ'" not in low and '+"đ"' not in low, "public quote prices must not append currency suffix"
