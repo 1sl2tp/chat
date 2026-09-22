@@ -87,3 +87,24 @@ def test_keyboard_open_removes_closed_safe_area_margin():
     c = compact(CSS)
     assert '#appShell[data-auth-state="authenticated"][data-route="chat"]#stageLayout[data-keyboard-open="true"][data-composer-placement="visual-viewport"].composer-source-frame{margin-bottom:0!important;padding-bottom:0!important;}' in c
     assert 'margin-bottom:calc(8px+env(safe-area-inset-bottom,0px));' in c
+
+
+def test_mobile_composer_polish_dimensions():
+    c = compact(CSS)
+    assert '#composerShell{grid-template-columns:36pxminmax(0,1fr)36px36px;' in c
+    assert 'grid-template-rows:autoautominmax(44px,auto);' in c
+    assert 'border-radius:22px;' in c
+    assert '#editor{min-height:36px;max-height:96px;' in c
+    assert '#composer-plus-btn{grid-column:1;grid-row:3;width:36px;height:36px;min-width:36px;' in c
+    assert '#composer-mic-btn{grid-column:3;grid-row:3;width:36px;height:36px;min-width:36px;' in c
+    assert '#send{grid-column:4;grid-row:3;width:36px;height:36px;min-width:36px;' in c
+    assert '.thread-scroll-control-button{width:36px;height:36px;}' in c
+
+
+def test_keyboard_gap_contract_is_unchanged_by_polish():
+    assert "'ios-web':Object.freeze({keyboardVisualGapPx:6" in APP
+    assert "'ios-pwa':Object.freeze({keyboardVisualGapPx:0" in APP
+    assert "'android-web':Object.freeze({keyboardVisualGapPx:6" in APP
+    assert "'android-pwa':Object.freeze({keyboardVisualGapPx:0" in APP
+    c = compact(CSS)
+    assert '#stageLayout[data-keyboard-open="true"][data-composer-placement="visual-viewport"].composer-source-frame{margin-bottom:0!important;padding-bottom:0!important;}' in c
