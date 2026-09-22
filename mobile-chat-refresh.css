@@ -186,6 +186,14 @@
     box-shadow:0 1px 4px rgba(0,0,0,.035);
   }
 
+  /* When the software keyboard owns the visible bottom, do not add the
+     closed-state safe-area margin again. RuntimeProfile supplies the only
+     remaining visual gap: web 6px, app/PWA 0px. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #stageLayout[data-keyboard-open="true"][data-composer-placement="visual-viewport"] .composer-source-frame{
+    margin-bottom:0!important;
+    padding-bottom:0!important;
+  }
+
   /* Keyboard-open placement must measure only the Composer surface.
      The scroll-to-latest control may float above it, but must not reserve
      a 44px lane between the Composer and the software keyboard. */
