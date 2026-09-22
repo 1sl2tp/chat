@@ -29,6 +29,12 @@ for action,label in [
     assert f"action:'{action}',label:'{label}'" in admin
 assert admin.count("actionButton({action:") == 5
 
+assert "if(action==='stock-check')" in admin
+assert "const links=await stockCheckLinks(contactId);" in admin
+assert "links.owner_url" in admin
+assert "Rà soát và cập nhật: " in admin
+assert "try{return await openStockCheck(contactId);}" not in admin
+
 assert "function parseCredentialMessage" in admin
 assert "async function previousCredentialPassword" in admin
 assert "window.V21CacheStore" in admin
