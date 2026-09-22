@@ -242,13 +242,15 @@ async function createQuote(req:Request){
 
 async function readQuote(req:Request){
   const url=new URL(req.url);
-  const publicId=clean(url.searchParams.get('kh')||url.searchParams.get('k'),160);
+  const customerSlug=clean(url.searchParams.get('kh'),160);
+  const legacyKey=clean(url.searchParams.get('k'),160);
+  const publicId=customerSlug||legacyKey;
   if(!publicId)return json({ok:false,error:'token_required'},400,{'cache-control':'no-store'});
 
   let snapshot:any=null;
   let publicCustomer:any=null;
 
-  if(publicSlug(publicId)||accessKeyFromHandle(publicId)){
+  if(customerSlug||accessKeyFromHandle(legacyKey)){
     try{publicCustomer=await resolvePublicCustomer(publicId);}
     catch{return json({ok:false,error:'quote_lookup_failed'},500,{'cache-control':'no-store'});}
     if(!publicCustomer)return json({ok:false,error:'quote_not_found'},404,{'cache-control':'no-store'});
