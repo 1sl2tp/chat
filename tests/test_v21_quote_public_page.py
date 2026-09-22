@@ -60,5 +60,6 @@ assert ".get('k')" not in low
 assert 'legacykey' not in low
 assert 'publicparam' not in low
 
-assert "format(n/1000)" in low, "public quote prices must use TAPHOA thousand-unit display"
+assert "format(n)" in low, "public quote prices must preserve TAPHOA literal values"
 assert "+'đ'" not in low and '+"đ"' not in low, "public quote prices must not append currency suffix"
+assert "format(n/1000)" not in low, "public quote must not rescale prices"
