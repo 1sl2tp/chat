@@ -1,0 +1,219 @@
+/*
+  Mobile Chat refresh — 2026-09-22
+  Owner map:
+  P1 shell: top route switch / call placement / route motion.
+  P2 conversation: message surface rhythm.
+  P3 composer: compact adaptive mobile dock.
+  Platform keyboard placement remains owned by keyboard-inset-core.js +
+  shell-form-viewport-policy.js. No viewport/fixed-position override lives here.
+*/
+
+@media (max-width:63.999rem), (pointer:coarse) {
+  #appShell[data-auth-state="authenticated"] .compact-top-grid{
+    min-height:var(--header-height,72px);
+    grid-template-columns:44px minmax(0,1fr) auto;
+    align-items:center;
+    column-gap:8px;
+    padding-inline:10px;
+  }
+
+  #appShell[data-auth-state="authenticated"] .top-mode-switch{
+    width:min(100%,21rem);
+    min-width:0;
+    justify-self:center;
+    padding:3px;
+    border-radius:999px;
+    background:color-mix(in srgb,var(--theme-surface-secondary) 92%,transparent);
+  }
+
+  #appShell[data-auth-state="authenticated"] .top-mode-tab{
+    min-width:0;
+    min-height:42px;
+    border-radius:999px;
+    padding-inline:14px;
+    font-size:.9375rem;
+    font-weight:500;
+  }
+
+  #appShell[data-auth-state="authenticated"] .top-mode-tab[aria-selected="true"]{
+    background:var(--theme-surface-primary);
+    color:var(--theme-content-primary);
+    box-shadow:0 1px 5px rgba(0,0,0,.07);
+  }
+
+  #appShell[data-auth-state="authenticated"] .call-focus-slot[hidden]{
+    display:none!important;
+  }
+
+  /* Conversation text keeps the sender hierarchy readable on touch:
+     remote = neutral soft surface, self = existing user surface. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] .assistant-message-unit>.message-text{
+    width:fit-content;
+    max-width:100%;
+    padding:9px 12px!important;
+    border:0!important;
+    border-radius:18px!important;
+    background:color-mix(in srgb,var(--theme-surface-secondary) 94%,var(--theme-surface-primary))!important;
+    box-shadow:none!important;
+  }
+
+  #appShell[data-auth-state="authenticated"][data-route="chat"] .user-message-unit>.message-text{
+    border-radius:18px;
+    padding:9px 12px;
+  }
+
+  #appShell[data-auth-state="authenticated"][data-route="chat"] .message-body{
+    font-size:.9375rem;
+    line-height:1.42rem;
+  }
+
+  /* ChatGPT-like adaptive dock: reply/attachments occupy rows above one
+     compact writing row. The existing keyboard owner still moves the whole
+     composer when VisualViewport opens. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] .composer-source-frame{
+    width:min(calc(100% - 16px),44rem);
+    margin-inline:auto;
+    margin-bottom:calc(8px + env(safe-area-inset-bottom,0px));
+  }
+
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell{
+    grid-template-columns:40px minmax(0,1fr) 40px 40px;
+    grid-template-rows:auto auto minmax(48px,auto);
+    align-items:center;
+    gap:0 2px;
+    overflow:visible;
+    border-radius:26px;
+    padding:4px 5px;
+    background:var(--cgpt-composer-surface-primary);
+    box-shadow:0 2px 10px rgba(0,0,0,.05);
+  }
+
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #replyContext{
+    grid-column:1 / -1;
+    grid-row:1;
+    margin:3px 5px 2px;
+  }
+
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #attachmentTray{
+    grid-column:1 / -1;
+    grid-row:2;
+    min-width:0;
+  }
+
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #editorWrap{
+    grid-column:2;
+    grid-row:3;
+    min-width:0;
+    padding:0 2px!important;
+  }
+
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #editor{
+    min-height:40px;
+    max-height:104px;
+    margin:0;
+    padding:9px 4px!important;
+    font-size:16px;
+    line-height:22px;
+  }
+
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerFooter{
+    display:contents;
+  }
+
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composer-plus-btn{
+    grid-column:1;
+    grid-row:3;
+    width:40px;
+    height:40px;
+    min-width:40px;
+    align-self:end;
+  }
+
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerHint{
+    display:none;
+  }
+
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composer-mic-btn{
+    grid-column:3;
+    grid-row:3;
+    width:40px;
+    height:40px;
+    min-width:40px;
+    align-self:end;
+  }
+
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #send{
+    grid-column:4;
+    grid-row:3;
+    width:40px;
+    height:40px;
+    min-width:40px;
+    align-self:end;
+  }
+
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #send svg{
+    width:20px;
+    height:20px;
+  }
+
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="REQUESTING_PERMISSION"],
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="RECORDING"],
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="STOPPING"],
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="PREVIEW"],
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="SENDING"]{
+    grid-template-columns:minmax(0,1fr);
+    grid-template-rows:auto;
+  }
+
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="REQUESTING_PERMISSION"] #attachmentTray,
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="RECORDING"] #attachmentTray,
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="STOPPING"] #attachmentTray,
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="PREVIEW"] #attachmentTray,
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="SENDING"] #attachmentTray{
+    grid-column:1;
+    grid-row:1;
+  }
+
+  #stageLayout[data-keyboard-open="true"] .composer-source-frame{
+    margin-bottom:4px;
+  }
+
+  #stageLayout[data-keyboard-open="true"] #composerShell{
+    box-shadow:0 1px 6px rgba(0,0,0,.04);
+  }
+
+  #threadScrollControlWrap{
+    width:min(calc(100% - 24px),44rem);
+  }
+
+  .thread-scroll-control-button{
+    width:40px;
+    height:40px;
+  }
+
+  /* Route switch gets a short page-enter motion after tab or swipe release.
+     No drag transform is applied, so vertical scrolling stays native. */
+  #appShell[data-mobile-route-transition="forward"] #threadContent{
+    animation:mobile-route-enter-forward 180ms cubic-bezier(.2,.8,.2,1);
+  }
+
+  #appShell[data-mobile-route-transition="back"] #threadContent{
+    animation:mobile-route-enter-back 180ms cubic-bezier(.2,.8,.2,1);
+  }
+}
+
+@keyframes mobile-route-enter-forward{
+  from{opacity:.72;transform:translateX(18px)}
+  to{opacity:1;transform:translateX(0)}
+}
+
+@keyframes mobile-route-enter-back{
+  from{opacity:.72;transform:translateX(-18px)}
+  to{opacity:1;transform:translateX(0)}
+}
+
+@media (prefers-reduced-motion:reduce){
+  #appShell[data-mobile-route-transition] #threadContent{
+    animation:none!important;
+  }
+}

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="d8b5a4427ce6e8635c20068814d6e5987c0fd23a6f5c0393124831bd347f8681">
+<meta name="app-build-id" content="f5c9e91001e602d02c44980896aec2a26e069b79c169ff591f543d06d4c2e44d">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1308,6 +1308,228 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
 .admin-composer-quote-actions{display:grid;grid-template-columns:1fr 1.4fr;gap:8px}
 .admin-composer-quote-send{background:var(--theme-content-primary,#171717);color:var(--theme-surface-primary,#fff);border-color:var(--theme-content-primary,#171717)}
 .admin-composer-quote-send:disabled,.admin-composer-quote-cancel:disabled{opacity:.5;cursor:default}
+
+</style>
+<style data-inlined-source="mobile-chat-refresh.css">
+/*
+  Mobile Chat refresh — 2026-09-22
+  Owner map:
+  P1 shell: top route switch / call placement / route motion.
+  P2 conversation: message surface rhythm.
+  P3 composer: compact adaptive mobile dock.
+  Platform keyboard placement remains owned by keyboard-inset-core.js +
+  shell-form-viewport-policy.js. No viewport/fixed-position override lives here.
+*/
+
+@media (max-width:63.999rem), (pointer:coarse) {
+  #appShell[data-auth-state="authenticated"] .compact-top-grid{
+    min-height:var(--header-height,72px);
+    grid-template-columns:44px minmax(0,1fr) auto;
+    align-items:center;
+    column-gap:8px;
+    padding-inline:10px;
+  }
+
+  #appShell[data-auth-state="authenticated"] .top-mode-switch{
+    width:min(100%,21rem);
+    min-width:0;
+    justify-self:center;
+    padding:3px;
+    border-radius:999px;
+    background:color-mix(in srgb,var(--theme-surface-secondary) 92%,transparent);
+  }
+
+  #appShell[data-auth-state="authenticated"] .top-mode-tab{
+    min-width:0;
+    min-height:42px;
+    border-radius:999px;
+    padding-inline:14px;
+    font-size:.9375rem;
+    font-weight:500;
+  }
+
+  #appShell[data-auth-state="authenticated"] .top-mode-tab[aria-selected="true"]{
+    background:var(--theme-surface-primary);
+    color:var(--theme-content-primary);
+    box-shadow:0 1px 5px rgba(0,0,0,.07);
+  }
+
+  #appShell[data-auth-state="authenticated"] .call-focus-slot[hidden]{
+    display:none!important;
+  }
+
+  /* Conversation text keeps the sender hierarchy readable on touch:
+     remote = neutral soft surface, self = existing user surface. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] .assistant-message-unit>.message-text{
+    width:fit-content;
+    max-width:100%;
+    padding:9px 12px!important;
+    border:0!important;
+    border-radius:18px!important;
+    background:color-mix(in srgb,var(--theme-surface-secondary) 94%,var(--theme-surface-primary))!important;
+    box-shadow:none!important;
+  }
+
+  #appShell[data-auth-state="authenticated"][data-route="chat"] .user-message-unit>.message-text{
+    border-radius:18px;
+    padding:9px 12px;
+  }
+
+  #appShell[data-auth-state="authenticated"][data-route="chat"] .message-body{
+    font-size:.9375rem;
+    line-height:1.42rem;
+  }
+
+  /* ChatGPT-like adaptive dock: reply/attachments occupy rows above one
+     compact writing row. The existing keyboard owner still moves the whole
+     composer when VisualViewport opens. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] .composer-source-frame{
+    width:min(calc(100% - 16px),44rem);
+    margin-inline:auto;
+    margin-bottom:calc(8px + env(safe-area-inset-bottom,0px));
+  }
+
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell{
+    grid-template-columns:40px minmax(0,1fr) 40px 40px;
+    grid-template-rows:auto auto minmax(48px,auto);
+    align-items:center;
+    gap:0 2px;
+    overflow:visible;
+    border-radius:26px;
+    padding:4px 5px;
+    background:var(--cgpt-composer-surface-primary);
+    box-shadow:0 2px 10px rgba(0,0,0,.05);
+  }
+
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #replyContext{
+    grid-column:1 / -1;
+    grid-row:1;
+    margin:3px 5px 2px;
+  }
+
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #attachmentTray{
+    grid-column:1 / -1;
+    grid-row:2;
+    min-width:0;
+  }
+
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #editorWrap{
+    grid-column:2;
+    grid-row:3;
+    min-width:0;
+    padding:0 2px!important;
+  }
+
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #editor{
+    min-height:40px;
+    max-height:104px;
+    margin:0;
+    padding:9px 4px!important;
+    font-size:16px;
+    line-height:22px;
+  }
+
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerFooter{
+    display:contents;
+  }
+
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composer-plus-btn{
+    grid-column:1;
+    grid-row:3;
+    width:40px;
+    height:40px;
+    min-width:40px;
+    align-self:end;
+  }
+
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerHint{
+    display:none;
+  }
+
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composer-mic-btn{
+    grid-column:3;
+    grid-row:3;
+    width:40px;
+    height:40px;
+    min-width:40px;
+    align-self:end;
+  }
+
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #send{
+    grid-column:4;
+    grid-row:3;
+    width:40px;
+    height:40px;
+    min-width:40px;
+    align-self:end;
+  }
+
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #send svg{
+    width:20px;
+    height:20px;
+  }
+
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="REQUESTING_PERMISSION"],
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="RECORDING"],
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="STOPPING"],
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="PREVIEW"],
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="SENDING"]{
+    grid-template-columns:minmax(0,1fr);
+    grid-template-rows:auto;
+  }
+
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="REQUESTING_PERMISSION"] #attachmentTray,
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="RECORDING"] #attachmentTray,
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="STOPPING"] #attachmentTray,
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="PREVIEW"] #attachmentTray,
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="SENDING"] #attachmentTray{
+    grid-column:1;
+    grid-row:1;
+  }
+
+  #stageLayout[data-keyboard-open="true"] .composer-source-frame{
+    margin-bottom:4px;
+  }
+
+  #stageLayout[data-keyboard-open="true"] #composerShell{
+    box-shadow:0 1px 6px rgba(0,0,0,.04);
+  }
+
+  #threadScrollControlWrap{
+    width:min(calc(100% - 24px),44rem);
+  }
+
+  .thread-scroll-control-button{
+    width:40px;
+    height:40px;
+  }
+
+  /* Route switch gets a short page-enter motion after tab or swipe release.
+     No drag transform is applied, so vertical scrolling stays native. */
+  #appShell[data-mobile-route-transition="forward"] #threadContent{
+    animation:mobile-route-enter-forward 180ms cubic-bezier(.2,.8,.2,1);
+  }
+
+  #appShell[data-mobile-route-transition="back"] #threadContent{
+    animation:mobile-route-enter-back 180ms cubic-bezier(.2,.8,.2,1);
+  }
+}
+
+@keyframes mobile-route-enter-forward{
+  from{opacity:.72;transform:translateX(18px)}
+  to{opacity:1;transform:translateX(0)}
+}
+
+@keyframes mobile-route-enter-back{
+  from{opacity:.72;transform:translateX(-18px)}
+  to{opacity:1;transform:translateX(0)}
+}
+
+@media (prefers-reduced-motion:reduce){
+  #appShell[data-mobile-route-transition] #threadContent{
+    animation:none!important;
+  }
+}
 
 </style>
 <style>
@@ -13882,6 +14104,8 @@ let callTerminalNotice=null;
 let callTerminalNoticeTimer=0;
 let unreadCount=0;
 let accountMenuOpen=false;
+let mobileRouteTransitionTimer=0;
+let mobileRouteSwipePointer=null;
 
 function interactionController(){
   return window.V21InteractionController||null;
@@ -14152,6 +14376,76 @@ function renderChatTabIdentity(){
   return true;
 }
 
+function setMobileRouteTransition(previousRoute,nextRoute){
+  if(previousRoute===nextRoute||desktopDirectoryMedia.matches)return false;
+  const direction=previousRoute==='chat'&&nextRoute==='work'
+    ?'forward'
+    :previousRoute==='work'&&nextRoute==='chat'
+      ?'back'
+      :'';
+  if(!direction)return false;
+  if(mobileRouteTransitionTimer){
+    clearTimeout(mobileRouteTransitionTimer);
+    mobileRouteTransitionTimer=0;
+  }
+  delete appShell.dataset.mobileRouteTransition;
+  // A frame boundary restarts the page-enter motion for repeated swipe/tab changes.
+  void appShell.offsetWidth;
+  appShell.dataset.mobileRouteTransition=direction;
+  mobileRouteTransitionTimer=window.setTimeout(()=>{
+    mobileRouteTransitionTimer=0;
+    delete appShell.dataset.mobileRouteTransition;
+  },220);
+  return true;
+}
+
+function mobileRouteSwipeTargetBlocked(target){
+  if(!(target instanceof Element))return true;
+  return Boolean(target.closest([
+    'textarea','input','select','button','a','[role="button"]','[contenteditable="true"]',
+    '.attachment-tray-media-strip','.media-gallery-grid','.media-image-tile',
+    '.thread-scroll-control-button','[data-horizontal-scroll]'
+  ].join(',')));
+}
+
+function canBeginMobileRouteSwipe(event){
+  if(!event||event.isPrimary===false)return false;
+  if(event.pointerType==='mouse')return false;
+  if(authState!=='AUTHENTICATED'||desktopDirectoryMedia.matches)return false;
+  if(sidebarOpen||callState!=='IDLE')return false;
+  if(stageLayout?.dataset.keyboardOpen==='true')return false;
+  if(globalOverlayRoot?.childElementCount)return false;
+  return !mobileRouteSwipeTargetBlocked(event.target);
+}
+
+function beginMobileRouteSwipe(event){
+  if(!canBeginMobileRouteSwipe(event))return;
+  mobileRouteSwipePointer={
+    id:event.pointerId,
+    x:Number(event.clientX)||0,
+    y:Number(event.clientY)||0,
+    at:performance.now()
+  };
+}
+
+function finishMobileRouteSwipe(event){
+  const start=mobileRouteSwipePointer;
+  mobileRouteSwipePointer=null;
+  if(!start||event.pointerId!==start.id)return false;
+  const dx=(Number(event.clientX)||0)-start.x;
+  const dy=(Number(event.clientY)||0)-start.y;
+  const elapsed=performance.now()-start.at;
+  const horizontal=Math.abs(dx);
+  if(elapsed>900||horizontal<64||horizontal<Math.abs(dy)*1.35)return false;
+  if(route==='chat'&&dx<0)return NavigationCommand.openWork();
+  if(route==='work'&&dx>0)return NavigationCommand.openChat();
+  return false;
+}
+
+function cancelMobileRouteSwipe(){
+  mobileRouteSwipePointer=null;
+}
+
 const NavigationCommand={
   open(nextRoute){
     if(!ROUTES.includes(nextRoute))return false;
@@ -14161,6 +14455,7 @@ const NavigationCommand={
         detail:{from:previousRoute,to:nextRoute}
       }));
     }
+    setMobileRouteTransition(previousRoute,nextRoute);
     route=nextRoute;
     setSidebar(false);
     applyRoutePresentation();
@@ -14327,12 +14622,16 @@ function callFocusPresentation(){
 function renderCallFocus(){
   const hasContact=Boolean(activeContact?.id);
   const presentation=callFocusPresentation();
+  const showIdleCall=route==='chat'&&hasContact;
+  const showCallSurface=presentation.state!=='idle'||showIdleCall;
   for(const slot of document.querySelectorAll('[data-call-focus-slot]')){
     const chip=slot.querySelector('[data-call-status-chip]');
     const title=slot.querySelector('[data-call-status-title]');
     const subtitle=slot.querySelector('[data-call-status-subtitle]');
     const timer=slot.querySelector('[data-call-status-timer]');
     const secondary=slot.querySelector('[data-call-secondary-button]');
+    slot.hidden=!showCallSurface;
+    slot.setAttribute('aria-hidden',String(!showCallSurface));
     slot.dataset.callUiState=presentation.state;
     if(chip){
       chip.hidden=presentation.state==='idle';
@@ -15528,6 +15827,10 @@ document.addEventListener('v21-interaction-abort',()=>{
   if(profileOverlay)closeProfileEditor({restoreFocus:false});
   CallCommand.forceReset();
 });
+
+screenHost.addEventListener('pointerdown',beginMobileRouteSwipe,{passive:true});
+screenHost.addEventListener('pointerup',finishMobileRouteSwipe,{passive:true});
+screenHost.addEventListener('pointercancel',cancelMobileRouteSwipe,{passive:true});
 
 applyRoutePresentation();
 renderMenuUnread();
