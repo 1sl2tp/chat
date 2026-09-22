@@ -11,8 +11,12 @@ def compact(value: str) -> str:
 
 
 def test_mobile_ui_polish_is_loaded_last():
-    assert 'href="./mobile-ui-polish.css"' in SOURCE
-    assert SOURCE.index('href="./mobile-ui-polish.css"') > SOURCE.index('href="./mobile-chat-refresh.css"')
+    polish = SOURCE.index('href="./mobile-ui-polish.css"')
+    head_close = SOURCE.index("</head>")
+    legacy_style_close = SOURCE.rindex("</style>", 0, head_close)
+    assert polish > SOURCE.index('href="./mobile-chat-refresh.css"')
+    assert polish > legacy_style_close
+    assert polish < head_close
 
 
 def test_directory_polish_contract():
