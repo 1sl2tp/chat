@@ -77,23 +77,23 @@
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell{
-    grid-template-columns:40px minmax(0,1fr) 40px 40px;
-    grid-template-rows:auto auto minmax(48px,auto);
+    grid-template-columns:36px minmax(0,1fr) 36px 36px;
+    grid-template-rows:auto auto minmax(44px,auto);
     align-items:center;
     gap:0 2px;
     overflow:visible;
-    border:1px solid color-mix(in srgb,var(--theme-border-default) 96%,transparent);
-    border-radius:26px;
-    padding:4px 5px;
+    border:1px solid color-mix(in srgb,var(--theme-border-default) 92%,transparent);
+    border-radius:22px;
+    padding:3px 4px;
     background:var(--cgpt-composer-surface-primary);
-    box-shadow:0 1px 4px rgba(0,0,0,.04);
+    box-shadow:0 1px 3px rgba(0,0,0,.035);
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell:focus-within{
-    border-color:color-mix(in srgb,var(--theme-border-default) 88%,var(--blue-75));
+    border-color:color-mix(in srgb,var(--theme-border-default) 82%,var(--theme-content-accent));
     box-shadow:
-      0 0 0 1px color-mix(in srgb,var(--blue-400) 5%,transparent),
-      0 1px 4px rgba(0,0,0,.04);
+      0 0 0 1px color-mix(in srgb,var(--theme-content-accent) 4%,transparent),
+      0 1px 3px rgba(0,0,0,.035);
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #replyContext{
@@ -116,10 +116,10 @@
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #editor{
-    min-height:40px;
-    max-height:104px;
+    min-height:36px;
+    max-height:96px;
     margin:0;
-    padding:9px 4px!important;
+    padding:7px 4px!important;
     font-size:16px;
     line-height:22px;
   }
@@ -131,10 +131,10 @@
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composer-plus-btn{
     grid-column:1;
     grid-row:3;
-    width:40px;
-    height:40px;
-    min-width:40px;
-    align-self:end;
+    width:36px;
+    height:36px;
+    min-width:36px;
+    align-self:center;
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composerHint{
@@ -144,19 +144,19 @@
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composer-mic-btn{
     grid-column:3;
     grid-row:3;
-    width:40px;
-    height:40px;
-    min-width:40px;
-    align-self:end;
+    width:36px;
+    height:36px;
+    min-width:36px;
+    align-self:center;
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #send{
     grid-column:4;
     grid-row:3;
-    width:40px;
-    height:40px;
-    min-width:40px;
-    align-self:end;
+    width:36px;
+    height:36px;
+    min-width:36px;
+    align-self:center;
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #send svg{
@@ -183,7 +183,7 @@
   }
 
   #stageLayout[data-keyboard-open="true"] #composerShell{
-    box-shadow:0 1px 4px rgba(0,0,0,.035);
+    box-shadow:0 1px 2px rgba(0,0,0,.03);
   }
 
   /* When the software keyboard owns the visible bottom, do not add the
@@ -212,8 +212,8 @@
   }
 
   .thread-scroll-control-button{
-    width:40px;
-    height:40px;
+    width:36px;
+    height:36px;
   }
 
   /* Route switch gets a short page-enter motion after tab or swipe release.
