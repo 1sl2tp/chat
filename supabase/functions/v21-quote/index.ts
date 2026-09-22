@@ -4,8 +4,7 @@ import { buildQuoteItems, makePublicPayload } from "./quote-core.mjs";
 const SUPABASE_URL=String(Deno.env.get('SUPABASE_URL')||'').trim();
 const SERVICE_KEY=String(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'').trim();
 const db=createClient(SUPABASE_URL,SERVICE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
-const PUBLIC_QUOTE_BASE='https://app.taphoa.xyz/b/?kh=';
-const PUBLIC_DEBT_BASE='https://app.taphoa.xyz/no/?kh=';
+const PUBLIC_CUSTOMER_BASE='https://app.taphoa.xyz/kh/?kh=';
 const PUBLIC_PRODUCT_FIELDS='product_code,product_name,source_key,sale_price_vnd,carton_price_vnd,retail_price_vnd,input_price_basis,units_per_carton,retail_unit';
 const CORE_SOURCE_LABELS=Object.freeze({
   'hang-thuong':'Hàng thường',
@@ -90,8 +89,9 @@ async function ensureCustomerLinks(customerId:string){
     account,
     slug,
     accessKey,
-    quote_url:`${PUBLIC_QUOTE_BASE}${encodeURIComponent(slug)}`,
-    debt_url:`${PUBLIC_DEBT_BASE}${encodeURIComponent(slug)}`,
+    customer_url:`${PUBLIC_CUSTOMER_BASE}${encodeURIComponent(slug)}`,
+    quote_url:`${PUBLIC_CUSTOMER_BASE}${encodeURIComponent(slug)}&tab=hang`,
+    debt_url:`${PUBLIC_CUSTOMER_BASE}${encodeURIComponent(slug)}&tab=no`,
   };
 }
 
@@ -127,6 +127,25 @@ async function activeSources(){
       };
     })
     .filter((row:any)=>row.source_key);
+}
+
+async function customerProductSignals(customerId:string){
+  const result=await db.rpc('taphoa_public_customer_product_signals',{p_customer_id:customerId});
+  if(result.error)throw result.error;
+  const map=new Map<string,any>();
+  for(const row of (result.data||[])){
+    const code=clean(row?.product_code,120);
+    if(!code)continue;
+    map.set(code,{
+      purchase_orders:Number(row?.order_count)||0,
+      purchase_qty:Number(row?.total_qty)||0,
+      last_bought_at:row?.last_bought_at||null,
+      market_customers:Number(row?.market_customer_count)||0,
+      market_qty:Number(row?.market_qty)||0,
+      last_market_bought_at:row?.last_market_bought_at||null,
+    });
+  }
+  return map;
 }
 
 async function createQuote(req:Request){
@@ -223,6 +242,7 @@ async function readQuote(req:Request){
   const url=new URL(req.url);
   const customerSlug=clean(url.searchParams.get('kh'),160);
   const requestedSourceKey=clean(url.searchParams.get('nguon'),100);
+  const miniMode=clean(url.searchParams.get('mini'),10)==='1';
   if(!customerSlug)return json({ok:false,error:'token_required'},400,{'cache-control':'no-store'});
 
   let snapshot:any=null;
@@ -231,6 +251,42 @@ async function readQuote(req:Request){
   try{publicCustomer=await resolvePublicCustomer(customerSlug);}
   catch{return json({ok:false,error:'quote_lookup_failed'},500,{'cache-control':'no-store'});}
   if(!publicCustomer)return json({ok:false,error:'quote_not_found'},404,{'cache-control':'no-store'});
+
+  if(miniMode){
+    let sources;
+    try{sources=await activeSources();}
+    catch{return json({ok:false,error:'source_lookup_failed'},500,{'cache-control':'no-store'});}
+    const allowedKeys=sources.map((row:any)=>row.source_key);
+    if(!allowedKeys.length)return json({ok:false,error:'quote_empty'},404,{'cache-control':'no-store'});
+
+    const productResult=await db.from("taphoa_products")
+      .select(PUBLIC_PRODUCT_FIELDS)
+      .eq("is_active",true)
+      .eq("sync_status","active")
+      .is("deleted_at",null)
+      .in('source_key',allowedKeys)
+      .order('source_key',{ascending:true})
+      .order('source_row',{ascending:true});
+    if(productResult.error)return json({ok:false,error:'product_lookup_failed'},500,{'cache-control':'no-store'});
+
+    let signals;
+    try{signals=await customerProductSignals(String(publicCustomer.account.id));}
+    catch{return json({ok:false,error:'signal_lookup_failed'},500,{'cache-control':'no-store'});}
+    const items=buildQuoteItems(productResult.data||[]).map((item:any)=>({
+      ...item,
+      ...(signals.get(clean(item?.product_code,120))||{
+        purchase_orders:0,purchase_qty:0,last_bought_at:null,
+        market_customers:0,market_qty:0,last_market_bought_at:null,
+      }),
+    }));
+    if(!items.length)return json({ok:false,error:'quote_empty'},404,{'cache-control':'no-store'});
+    return json({
+      ok:true,mode:'customer-mini',scope:'all',source_key:null,source_name:'Tất cả',
+      item_count:items.length,sources,items,
+      customer_name:clean(publicCustomer.account.display_name,80),
+      generated_at:new Date().toISOString(),
+    },200,{'cache-control':'no-store'});
+  }
 
   let latestQuery=db.from("chat_quote_snapshots")
     .select('scope,source_key,source_name,created_at')
