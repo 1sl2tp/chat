@@ -1,0 +1,44 @@
+name: Rebuild mobile chat refresh temp
+
+on:
+  push:
+    branches:
+      - feat/mobile-chat-refresh-20260922
+    paths:
+      - index.source.html
+      - shell.js
+      - mobile-chat-refresh.css
+      - tests/test_v21_mobile_chat_refresh.py
+      - .github/workflows/rebuild-mobile-chat-refresh-temp.yml
+
+permissions:
+  contents: write
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/mobile-chat-refresh-20260922
+
+      - name: Verify mobile UI contracts
+        run: |
+          python -m pytest -q tests/test_v21_mobile_chat_refresh.py
+
+      - name: Rebuild canonical bundle
+        run: |
+          python tools/build_current_preview.py
+
+      - name: Verify generated bundle
+        run: |
+          python -m pytest -q tests/test_v21_mobile_chat_refresh.py
+
+      - name: Publish generated files and remove temporary workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html version.json
+          git rm .github/workflows/rebuild-mobile-chat-refresh-temp.yml
+          git commit -m "build: sync mobile chat refresh"
+          git push origin HEAD:feat/mobile-chat-refresh-20260922
