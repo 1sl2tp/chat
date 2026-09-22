@@ -19,6 +19,16 @@ assert "window.V21ComposerActionMenu" in admin
 assert "owner?.close" in admin
 assert "ensureAdminMenu();" in admin
 
+for action,label in [
+    ("quote","Báo giá"),
+    ("debt","Công nợ"),
+    ("stock-check","Kiểm hàng"),
+    ("call-link","Link gọi"),
+    ("credentials","Thông tin đăng nhập"),
+]:
+    assert f"action:'{action}',label:'{label}'" in admin
+assert admin.count("actionButton({action:") == 5
+
 assert "function parseCredentialMessage" in admin
 assert "async function previousCredentialPassword" in admin
 assert "window.V21CacheStore" in admin
