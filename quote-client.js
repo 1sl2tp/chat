@@ -56,21 +56,37 @@ async function listSources(){
     :[...FALLBACK_SOURCES];
 }
 
-async function createQuote({scope='all',sourceKey=''}={}){
-  if(!currentAdmin())throw new Error('admin_required');
+async function invokeQuote(body){
   const client=authStore()?.getClient?.();
   if(!client)throw new Error('authentication_required');
   const sessionResult=await client.auth.getSession();
   const accessToken=String(sessionResult?.data?.session?.access_token||'');
   if(!accessToken)throw new Error('authentication_required');
-  const body=scope==='source'
-    ?{scope:'source',source_key:String(sourceKey||'')}
-    :{scope:'all'};
   const {data,error}=await client.functions.invoke('v21-quote',{
     body,
     headers:{authorization:`Bearer ${accessToken}`},
   });
   if(error)throw error;
+  return data;
+}
+
+async function customerLinks(customerId=targetAccountId){
+  if(!currentAdmin())throw new Error('admin_required');
+  const id=String(customerId||'').trim();
+  if(!id)throw new Error('customer_required');
+  const data=await invokeQuote({action:'customer-links',customer_account_id:id});
+  if(!data?.ok||!data?.quote_url||!data?.debt_url)throw new Error(data?.error||'public_link_failed');
+  return data;
+}
+
+async function createQuote({scope='all',sourceKey='',customerId=targetAccountId}={}){
+  if(!currentAdmin())throw new Error('admin_required');
+  const id=String(customerId||'').trim();
+  if(!id)throw new Error('customer_required');
+  const body=scope==='source'
+    ?{scope:'source',source_key:String(sourceKey||''),customer_account_id:id}
+    :{scope:'all',customer_account_id:id};
+  const data=await invokeQuote(body);
   if(!data?.ok||!data?.url)throw new Error(data?.error||'quote_create_failed');
   return data;
 }
@@ -168,7 +184,7 @@ function mountQuotePanel(){
   createButton.addEventListener('click',async()=>{
     setBusy(true);setStatus('Đang tạo link…');result.dataset.quoteHidden='true';
     try{
-      quote=await createQuote({scope,sourceKey:sourceSelect.value});
+      quote=await createQuote({scope,sourceKey:sourceSelect.value,customerId:targetAccountId});
       urlInput.value=String(quote.url||'');
       const label=scope==='source'?(quote.source_name||sourceSelect.selectedOptions?.[0]?.textContent||'Theo nguồn'):'Tất cả';
       resultCopy.textContent=`${label} · ${Number(quote.item_count)||0} sản phẩm`;
@@ -209,6 +225,7 @@ document.addEventListener('v21-auth-state',scheduleMount);
 
 window.V21QuoteClient=Object.freeze({
   create:createQuote,
+  customerLinks,
   copyQuoteLink,
   sources:FALLBACK_SOURCES,
   listSources,
