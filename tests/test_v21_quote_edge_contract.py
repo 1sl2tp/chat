@@ -38,7 +38,6 @@ required = [
     'v21_customer_public_link_info_get_or_create',
     'customer_account_id',
     'customer-links',
-    '.eq("token",publicid)',
     '.is("revoked_at",null)',
     'generated_at',
     "'cache-control':'no-store'",
@@ -78,3 +77,7 @@ assert "scope==='all'\n    ?sources" in src
 # a sale price yet; the public page renders the price cell blank.
 assert ".gt('sale_price_vnd',0)" not in src
 assert '.gt("sale_price_vnd",0)' not in src
+
+assert "url.searchparams.get('k')" not in low
+assert "lastindexof('~')" not in low
+assert '.eq("token",' not in low
