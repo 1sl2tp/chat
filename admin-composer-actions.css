@@ -15,3 +15,12 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
 .admin-composer-quote-actions{display:grid;grid-template-columns:1fr 1.4fr;gap:8px}
 .admin-composer-quote-send{background:var(--theme-content-primary,#171717);color:var(--theme-surface-primary,#fff);border-color:var(--theme-content-primary,#171717)}
 .admin-composer-quote-send:disabled,.admin-composer-quote-cancel:disabled{opacity:.5;cursor:default}
+
+.admin-composer-stock-card{gap:10px}
+.admin-composer-stock-customer{margin:-2px 0 2px;color:var(--theme-content-secondary,#666);font-size:13px;line-height:18px}
+.admin-composer-stock-options{display:grid;gap:8px}
+.admin-composer-stock-options button{display:grid;gap:3px;min-height:58px;padding:10px 12px;text-align:left;border:1px solid var(--theme-border-default,#dedede);border-radius:14px;background:var(--theme-surface-secondary,#f7f7f7);color:var(--theme-content-primary,#171717);font:inherit;cursor:pointer}
+.admin-composer-stock-options button strong{font-size:14px;line-height:19px}
+.admin-composer-stock-options button span{color:var(--theme-content-secondary,#666);font-size:12px;line-height:17px}
+.admin-composer-stock-options button:disabled{opacity:.5;cursor:default}
+.admin-composer-stock-actions{grid-template-columns:1fr}
