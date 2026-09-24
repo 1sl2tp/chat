@@ -950,9 +950,11 @@ function stopRealtimeSubscription(){
 }
 
 function scheduleRealtimeRefresh(reason='realtime-summary'){
+  if(document.hidden)return;
   if(realtimeRefreshTimer)clearTimeout(realtimeRefreshTimer);
   realtimeRefreshTimer=window.setTimeout(()=>{
     realtimeRefreshTimer=0;
+    if(document.hidden)return;
     void refresh(reason);
   },160);
 }
@@ -975,7 +977,10 @@ function syncRealtimeSubscription(){
 
 function schedule(){
   if(timer)clearInterval(timer);
-  timer=window.setInterval(()=>{void refresh('interval');},REFRESH_MS);
+  timer=window.setInterval(()=>{
+    if(document.hidden)return;
+    void refresh('interval');
+  },REFRESH_MS);
 }
 
 document.addEventListener('v21-auth-state',()=>{

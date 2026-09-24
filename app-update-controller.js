@@ -161,7 +161,10 @@ function bind(){
   document.addEventListener('v21-interaction-mode',()=>maybeReload());
   document.addEventListener('input',()=>maybeReload(),true);
   navigator.serviceWorker?.addEventListener?.('controllerchange',()=>maybeReload());
-  setInterval(()=>void checkForUpdate({reason:'interval'}),CHECK_INTERVAL_MS);
+  setInterval(()=>{
+    if(document.hidden)return;
+    void checkForUpdate({reason:'interval'});
+  },CHECK_INTERVAL_MS);
 }
 async function boot(){
   bind();

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="8778822e5ef79a279464fb3f3a3a19187fd0bfb4a82b636892c29f180fb5e895">
+<meta name="app-build-id" content="0419a5de7c45c3dc6b7fca665c539b63d7cc2a44dd187af24921c043fc8d5c55">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -18073,9 +18073,11 @@ function stopRealtimeSubscription(){
 }
 
 function scheduleRealtimeRefresh(reason='realtime-summary'){
+  if(document.hidden)return;
   if(realtimeRefreshTimer)clearTimeout(realtimeRefreshTimer);
   realtimeRefreshTimer=window.setTimeout(()=>{
     realtimeRefreshTimer=0;
+    if(document.hidden)return;
     void refresh(reason);
   },160);
 }
@@ -18098,7 +18100,10 @@ function syncRealtimeSubscription(){
 
 function schedule(){
   if(timer)clearInterval(timer);
-  timer=window.setInterval(()=>{void refresh('interval');},REFRESH_MS);
+  timer=window.setInterval(()=>{
+    if(document.hidden)return;
+    void refresh('interval');
+  },REFRESH_MS);
 }
 
 document.addEventListener('v21-auth-state',()=>{
@@ -25378,7 +25383,10 @@ function bind(){
   document.addEventListener('v21-interaction-mode',()=>maybeReload());
   document.addEventListener('input',()=>maybeReload(),true);
   navigator.serviceWorker?.addEventListener?.('controllerchange',()=>maybeReload());
-  setInterval(()=>void checkForUpdate({reason:'interval'}),CHECK_INTERVAL_MS);
+  setInterval(()=>{
+    if(document.hidden)return;
+    void checkForUpdate({reason:'interval'});
+  },CHECK_INTERVAL_MS);
 }
 async function boot(){
   bind();
