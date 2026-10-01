@@ -1,8 +1,8 @@
 (()=>{
 'use strict';
 
-const ADMIN_ENDPOINT='https://gcnoahqsrquxkwkjbuxy.supabase.co/functions/v1/v21-call-invite-admin';
-const PUBLIC_KEY='sb_publishable_UY3gfQ9MsntDFCUJ_uV0UA__eTYXz_w';
+const ADMIN_ENDPOINT='https://vtqhbhrkdxirqeqkgylo.supabase.co/functions/v1/v21-call-invite-admin';
+const PUBLIC_KEY='sb_publishable_3ms4nAPXQwBN18Zo2yNoIg_d4WrHu04';
 let targetAccountId='';
 let mountQueued=false;
 let watchChannel=null;
