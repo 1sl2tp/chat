@@ -174,6 +174,22 @@ Deno.serve(async(req:Request)=>{
     return reply(200,{ok:true,updated:Boolean(data)});
   }
 
+  if(action==="storage_cleanup"){
+    const {data:candidates,error:candidateError}=await admin.rpc("business_storage_orphan_objects",{p_limit:500});
+    if(candidateError)return reply(500,{ok:false,error:"storage_cleanup_scan_failed"});
+    const rows=Array.isArray(candidates)?candidates:[];
+    let deleted=0;
+    for(const bucket of ["v21-media","v21-avatars"]){
+      const paths=rows.filter((row:any)=>String(row?.bucket||"")===bucket)
+        .map((row:any)=>String(row?.name||"").trim()).filter(Boolean);
+      if(!paths.length)continue;
+      const {data:removed,error}=await admin.storage.from(bucket).remove(paths);
+      if(error)return reply(500,{ok:false,error:"storage_cleanup_delete_failed",bucket});
+      deleted+=Array.isArray(removed)?removed.length:paths.length;
+    }
+    return reply(200,{ok:true,scanned:rows.length,deleted});
+  }
+
   if(action==="sync_linked_avatars"){
     const {data:links,error:linksError}=await admin.from("zalo_user_links").select("chat_account_id,zalo_id");
     if(linksError)return reply(500,{ok:false,error:"links_read_failed"});
