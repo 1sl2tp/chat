@@ -347,6 +347,10 @@ async function pullAll(){
     });
     if(!syncOwnerContextCurrent(context))return total;
     if(error)throw error;
+    if(data?.reset_required===true){
+      await initializeFromServer();
+      return total;
+    }
     const events=Array.isArray(data?.events)?data.events:[];
     for(const event of events){
       if(!syncOwnerContextCurrent(context))return total;
