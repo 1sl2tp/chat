@@ -3,8 +3,10 @@
 const VERSION='V21.72.5';
 const SDK_URL='https://cdn.jsdelivr.net/npm/livekit-client@2.22.2/dist/livekit-client.umd.min.js';
 const PEER_LOSS_CONFIRM_MS=4000;
+const WARM_TTL_MS=10*60*1000;
 let sdkPromise=null;
 let warmPromise=null;
+let lastWarmAt=0;
 let room=null;
 let roomCallId='';
 let latestCanonicalCall=null;
@@ -94,13 +96,16 @@ function loadSdk(){
 
 async function warm(){
   if(!authenticated()||!online())return false;
+  if(Date.now()-lastWarmAt<WARM_TTL_MS&&window.LivekitClient?.Room)return true;
   if(warmPromise)return warmPromise;
   warmPromise=(async()=>{
     const api=client();
     const sdk=loadSdk().catch(()=>null);
     const fn=api?.functions?.invoke?.('v21-livekit-token',{body:{action:'warm'}}).catch?.(()=>null);
     await Promise.all([sdk,fn]);
-    return Boolean(window.LivekitClient?.Room);
+    const ok=Boolean(window.LivekitClient?.Room);
+    if(ok)lastWarmAt=Date.now();
+    return ok;
   })().finally(()=>{warmPromise=null;});
   return warmPromise;
 }
