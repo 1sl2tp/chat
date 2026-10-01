@@ -142,8 +142,9 @@ server.listen(port,'0.0.0.0',()=>{
       }
       if(messageGateway){
         void pollOutbound();
-        outboundTimer=setInterval(()=>{void pollOutbound();},120000);
-        console.log('[zalo-login] outbound event signal enabled; fallback poll 120000ms');
+        const fallbackPollMs=Math.max(300000,Number(process.env.ZALO_FALLBACK_POLL_MS)||300000);
+        outboundTimer=setInterval(()=>{void pollOutbound();},fallbackPollMs);
+        console.log(`[zalo-login] outbound event signal enabled; fallback poll ${fallbackPollMs}ms`);
       }
     })
     .catch(()=>{});
