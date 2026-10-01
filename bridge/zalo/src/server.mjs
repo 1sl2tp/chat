@@ -32,6 +32,16 @@ const state=createLoginState();
 let api=null;
 let unbindIncoming=()=>{};
 let outboundTimer=0;
+let bridgeStatsTimer=0;
+const bridgeStats={outboundSent:0,inboundStored:0,inboundIgnored:0};
+function flushBridgeStats(){
+  const total=bridgeStats.outboundSent+bridgeStats.inboundStored+bridgeStats.inboundIgnored;
+  if(!total)return;
+  console.log('[zalo-bridge] summary',JSON.stringify({...bridgeStats}));
+  bridgeStats.outboundSent=0;
+  bridgeStats.inboundStored=0;
+  bridgeStats.inboundIgnored=0;
+}
 
 async function sendOutboundRow(row){
   const media=Array.isArray(row?.media)?row.media.filter(Boolean):[];
@@ -60,7 +70,7 @@ async function runOutboundPass(){
         ok:true,
         zaloMessageId,
       });
-      console.log('[zalo-bridge] outbound sent',row.deliveryId,String(zaloMessageId??''));
+      bridgeStats.outboundSent+=1;
     }catch(error){
       const message=String(error?.message||error);
       try{
@@ -121,13 +131,18 @@ server.listen(port,'0.0.0.0',()=>{
             }else{
               bridged=await messageGateway.ingestText(event);
             }
-            console.log(`[zalo-bridge] inbound ${bridged?.messageId?'stored':'ignored'}`);
+            if(bridged?.messageId)bridgeStats.inboundStored+=1;
+            else bridgeStats.inboundIgnored+=1;
           }catch(error){
             console.warn('[zalo-bridge] inbound failed',String(error?.message||error));
           }
         },
       });
       console.log('[zalo-login] incoming message listener enabled');
+      if(!bridgeStatsTimer){
+        bridgeStatsTimer=setInterval(flushBridgeStats,15*60_000);
+        bridgeStatsTimer.unref?.();
+      }
       if(contactSync){
         try{
           const synced=await syncApiContacts({api,sync:contactSync});
@@ -159,6 +174,8 @@ server.listen(port,'0.0.0.0',()=>{
 });
 
 const shutdown=()=>{
+  flushBridgeStats();
+  if(bridgeStatsTimer){clearInterval(bridgeStatsTimer);bridgeStatsTimer=0;}
   if(outboundTimer){clearInterval(outboundTimer);outboundTimer=0;}
   try{unbindIncoming();}catch{}
   try{api?.listener?.stop?.();}catch{}
