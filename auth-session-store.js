@@ -354,9 +354,24 @@ async function bootstrap(){
   lastBootstrapError='';
   const {data:{session}}=await client.auth.getSession();
   if(!session){renderGuest();return false;}
-  const {data,error}=await client.rpc('v21_auth_bootstrap',{
+  let {data,error}=await client.rpc('v21_auth_bootstrap',{
     p_device_key:getDeviceKey(),p_label:deviceLabel(),p_platform:platformLabel()
   });
+  // Supabase migration continuity: the browser may still hold a valid refresh
+  // token issued by the previous project while its access JWT was signed by
+  // the previous project. Refresh once against the new project before forcing
+  // a logout. Auth sessions/refresh tokens are migrated during cutover.
+  if(error){
+    try{
+      const refreshed=await client.auth.refreshSession();
+      if(!refreshed?.error&&refreshed?.data?.session){
+        await syncRealtimeAuth();
+        ({data,error}=await client.rpc('v21_auth_bootstrap',{
+          p_device_key:getDeviceKey(),p_label:deviceLabel(),p_platform:platformLabel()
+        }));
+      }
+    }catch{}
+  }
   if(error){
     lastBootstrapError=mapError(error,'invalid_credentials');
     await client.auth.signOut({scope:'local'}).catch(()=>{});
