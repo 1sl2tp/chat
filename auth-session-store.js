@@ -4,8 +4,8 @@
 
 const RELEASE_VERSION='V21.72.39';
 const MODULE_CONTRACT_VERSION='auth-session-v21.72.5';
-const SUPABASE_URL='https://gcnoahqsrquxkwkjbuxy.supabase.co';
-const SUPABASE_PUBLISHABLE_KEY='sb_publishable_UY3gfQ9MsntDFCUJ_uV0UA__eTYXz_w';
+const SUPABASE_URL='https://vtqhbhrkdxirqeqkgylo.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY='sb_publishable_3ms4nAPXQwBN18Zo2yNoIg_d4WrHu04';
 const AUTH_STORAGE_KEY='taphoa.v21.auth';
 const DEVICE_STORAGE_KEY='taphoa.v21.deviceKey';
 const HEARTBEAT_MS=15000;
