@@ -3,7 +3,7 @@ const RELEASE_VERSION='V21.72.39';
 const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION;
 const AVATAR_CACHE_NAME='taphoa-chat-avatars-v1';
-const SUPABASE_ASSET_HOST='vtqhbhrkdxirqeqkgylo.supabase.co';
+const SUPABASE_ASSET_HOST_RE=/^[a-z0-9]+\.supabase\.co$/i;
 const AVATAR_CACHE_MAX=320;
 const SHELL=['./','./manifest.webmanifest','./icons/chat-app-180-v3.png','./icons/chat-app-192-v3.png','./icons/chat-app-512-v3.png','./icons/chat-maskable-512-v3.png','./icons/chat-notification-icon-192-v4.png','./icons/chat-notification-badge-96-v4.png'];
 const adminPushClientState=new Map();
@@ -11,7 +11,7 @@ let adminPushBadgeCount=0;
 
 function isSupabasePublicAvatar(request,url){
   return request.destination==='image'&&
-    url.hostname===SUPABASE_ASSET_HOST&&
+    SUPABASE_ASSET_HOST_RE.test(url.hostname)&&
     url.pathname.startsWith('/storage/v1/object/public/v21-avatars/');
 }
 
@@ -47,7 +47,10 @@ self.addEventListener('install',event=>{
 self.addEventListener('activate',event=>{
   event.waitUntil((async()=>{
     const keys=await caches.keys();
-    await Promise.all(keys.filter(key=>key.startsWith('taphoa-chat-shell-')&&key!==CACHE_NAME).map(key=>caches.delete(key)));
+    await Promise.all(keys.filter(key=>
+      (key.startsWith('taphoa-chat-shell-')&&key!==CACHE_NAME)||
+      (key.startsWith('taphoa-chat-avatars-')&&key!==AVATAR_CACHE_NAME)
+    ).map(key=>caches.delete(key)));
     await self.clients.claim();
   })());
 });
