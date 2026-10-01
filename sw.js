@@ -2,9 +2,37 @@
 const RELEASE_VERSION='V21.72.39';
 const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION;
+const AVATAR_CACHE_NAME='taphoa-chat-avatars-v1';
+const SUPABASE_ASSET_HOST='vtqhbhrkdxirqeqkgylo.supabase.co';
+const AVATAR_CACHE_MAX=320;
 const SHELL=['./','./manifest.webmanifest','./icons/chat-app-180-v3.png','./icons/chat-app-192-v3.png','./icons/chat-app-512-v3.png','./icons/chat-maskable-512-v3.png','./icons/chat-notification-icon-192-v4.png','./icons/chat-notification-badge-96-v4.png'];
 const adminPushClientState=new Map();
 let adminPushBadgeCount=0;
+
+function isSupabasePublicAvatar(request,url){
+  return request.destination==='image'&&
+    url.hostname===SUPABASE_ASSET_HOST&&
+    url.pathname.startsWith('/storage/v1/object/public/v21-avatars/');
+}
+
+async function trimAvatarCache(cache){
+  const keys=await cache.keys();
+  const extra=keys.length-AVATAR_CACHE_MAX;
+  if(extra<=0)return;
+  await Promise.all(keys.slice(0,extra).map(request=>cache.delete(request)));
+}
+
+async function cachedAvatarResponse(request){
+  const cache=await caches.open(AVATAR_CACHE_NAME);
+  const cached=await cache.match(request,{ignoreVary:true});
+  if(cached)return cached;
+  const fresh=await fetch(request);
+  if(fresh&&(fresh.ok||fresh.type==='opaque')){
+    await cache.put(request,fresh.clone()).catch(()=>{});
+    void trimAvatarCache(cache).catch(()=>{});
+  }
+  return fresh;
+}
 
 self.addEventListener('install',event=>{
   event.waitUntil((async()=>{
@@ -147,6 +175,10 @@ self.addEventListener('fetch',event=>{
   const request=event.request;
   if(request.method!=='GET')return;
   const url=new URL(request.url);
+  if(isSupabasePublicAvatar(request,url)){
+    event.respondWith(cachedAvatarResponse(request));
+    return;
+  }
   if(url.origin!==self.location.origin)return;
   if(url.pathname.endsWith('/version.json')||url.pathname.endsWith('version.json')){
     event.respondWith(fetch(new Request(request,{cache: 'no-store'})));
