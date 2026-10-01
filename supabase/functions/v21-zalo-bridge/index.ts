@@ -3,7 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const headers={"content-type":"application/json; charset=utf-8","cache-control":"no-store"};
 const MEDIA_BUCKET="v21-media";
 const MEDIA_LIMIT=15*1024*1024;
-const BRIDGE_AUTH_CACHE_MS=60_000;
+const BRIDGE_AUTH_CACHE_MS=15*60_000;
 let cachedBridgeTokenHash="";
 let cachedBridgeAuthAt=0;
 function reply(status:number,body:unknown){return new Response(JSON.stringify(body),{status,headers});}
@@ -24,16 +24,22 @@ Deno.serve(async(req:Request)=>{
   const bridgeToken=req.headers.get("x-bridge-token")??"";
   if(!bridgeToken)return reply(401,{ok:false,error:"unauthorized"});
   const tokenHash=await sha256Hex(bridgeToken);
-  const now=Date.now();
-  const cachedAuthorized=
-    cachedBridgeTokenHash===tokenHash&&
-    now-cachedBridgeAuthAt<BRIDGE_AUTH_CACHE_MS;
-  if(!cachedAuthorized){
-    const {data:authRow,error:authError}=await admin.from("v21_zalo_bridge_auth").select("token_sha256").eq("id","primary").maybeSingle();
-    if(authError)return reply(500,{ok:false,error:"auth_lookup_failed"});
-    if(!authRow||authRow.token_sha256!==tokenHash)return reply(403,{ok:false,error:"unauthorized"});
-    cachedBridgeTokenHash=tokenHash;
-    cachedBridgeAuthAt=now;
+  const configuredBridgeToken=String(Deno.env.get("ZALO_BRIDGE_TOKEN")??"").trim();
+  if(configuredBridgeToken){
+    const configuredHash=await sha256Hex(configuredBridgeToken);
+    if(configuredHash!==tokenHash)return reply(403,{ok:false,error:"unauthorized"});
+  }else{
+    const now=Date.now();
+    const cachedAuthorized=
+      cachedBridgeTokenHash===tokenHash&&
+      now-cachedBridgeAuthAt<BRIDGE_AUTH_CACHE_MS;
+    if(!cachedAuthorized){
+      const {data:authRow,error:authError}=await admin.from("v21_zalo_bridge_auth").select("token_sha256").eq("id","primary").maybeSingle();
+      if(authError)return reply(500,{ok:false,error:"auth_lookup_failed"});
+      if(!authRow||authRow.token_sha256!==tokenHash)return reply(403,{ok:false,error:"unauthorized"});
+      cachedBridgeTokenHash=tokenHash;
+      cachedBridgeAuthAt=now;
+    }
   }
 
   const contentType=(req.headers.get("content-type")??"").toLowerCase();
