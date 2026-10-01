@@ -104,5 +104,9 @@ export function createMessageGateway({endpoint,bridgeToken,fetchImpl=fetch}={}){
       const payload=await post({action:'sync_linked_avatars'});
       return{count:Number(payload?.count)||0};
     },
+    async cleanupStorage(){
+      const payload=await post({action:'storage_cleanup'});
+      return{scanned:Number(payload?.scanned)||0,deleted:Number(payload?.deleted)||0};
+    },
   });
 }
