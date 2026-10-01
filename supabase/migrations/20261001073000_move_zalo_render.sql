@@ -3,7 +3,7 @@
 -- Supabase stores only its SHA-256 digest.
 
 update public.v21_zalo_bridge_auth
-set token_sha256 = '09658c2910f7d9d288f18bd0cb137df208ab0895329aacb6fc3acbfcb1681430',
+set token_sha256 = '0f6f77d8cd8f6726f9f9114f3e48a7fbecd1d6e567b898a2e762fa531b08a68e',
     updated_at = now()
 where id = 'primary';
 
@@ -33,7 +33,7 @@ begin
   end if;
 
   perform net.http_post(
-    url := 'https://taphoa-zalo-bridge.onrender.com/outbound-now',
+    url := 'https://taphoa-zalo.onrender.com/outbound-now',
     headers := jsonb_build_object(
       'Content-Type','application/json',
       'x-bridge-token-sha256',v_token_hash
@@ -75,7 +75,7 @@ select cron.schedule(
   '0,12,24,36,48 5-23 * * *',
   $job$
     select net.http_get(
-      url := 'https://taphoa-zalo-bridge.onrender.com/health',
+      url := 'https://taphoa-zalo.onrender.com/health',
       timeout_milliseconds := 5000
     );
   $job$
