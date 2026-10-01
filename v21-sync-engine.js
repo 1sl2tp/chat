@@ -673,7 +673,7 @@ async function forwardMessage({sourceMessageId,text='',targetContactId,clientId}
 
   const target=String(targetContactId||'').trim();
   const sourceId=String(sourceMessageId||'').trim();
-  const body=String(text||'').trim();
+  let body=String(text||'').trim();
   if(!target)throw new Error('contact_required');
   if(!sourceId)throw new Error('source_message_required');
   if(target===String(currentContactId||''))throw new Error('forward_same_contact');
@@ -681,10 +681,27 @@ async function forwardMessage({sourceMessageId,text='',targetContactId,clientId}
   const conversationId=String(await ensureConversation(target,{context})||'');
   if(!conversationId||!syncOwnerContextCurrent(context))throw new Error('conversation_required');
 
-  let sourceAssets=await media()?.listForMessage?.({accountId:context.accountId,messageId:sourceId})||[];
-  sourceAssets=(Array.isArray(sourceAssets)?sourceAssets:[])
+  // Forwarding must use the canonical server source, not depend on whether the
+  // current device already hydrated media metadata into IndexedDB.
+  const {data:sourcePayload,error:sourceError}=await context.client.rpc('v21_message_forward_source',{
+    p_app_session_id:context.appSessionId,
+    p_message_id:sourceId
+  });
+  if(sourceError)throw sourceError;
+  if(!syncOwnerContextCurrent(context))throw syncContextChangedError();
+
+  const sourceMessage=sourcePayload?.message||null;
+  if(sourceMessage&&Object.prototype.hasOwnProperty.call(sourceMessage,'body')){
+    body=String(sourceMessage.body||'').trim();
+  }
+  let sourceAssets=(Array.isArray(sourcePayload?.media)?sourcePayload.media:[])
+    .map(canonicalMedia)
     .filter(asset=>asset&&!asset.deleted_at&&['image','audio','file'].includes(String(asset.kind||'').toLowerCase()))
     .sort((a,b)=>Number(a.sort_index||0)-Number(b.sort_index||0)||String(a.id||'').localeCompare(String(b.id||'')));
+
+  for(const sourceAsset of sourceAssets){
+    await media()?.putRemoteMeta?.({accountId:context.accountId,assetId:sourceAsset.id,meta:sourceAsset});
+  }
 
   const messageClientId=String(clientId||window.V21RuntimeId.create());
   let messageRow=null;
