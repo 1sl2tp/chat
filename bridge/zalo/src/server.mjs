@@ -142,6 +142,14 @@ server.listen(port,'0.0.0.0',()=>{
       }
       if(messageGateway){
         void pollOutbound();
+        void messageGateway.cleanupStorage()
+          .then(result=>{if(result.deleted)console.log('[zalo-login] storage cleanup',result);})
+          .catch(error=>console.warn('[zalo-login] storage cleanup failed',String(error?.message||error)));
+        setInterval(()=>{
+          void messageGateway.cleanupStorage()
+            .then(result=>{if(result.deleted)console.log('[zalo-login] storage cleanup',result);})
+            .catch(error=>console.warn('[zalo-login] storage cleanup failed',String(error?.message||error)));
+        },6*60*60_000).unref();
         const fallbackPollMs=Math.max(300000,Number(process.env.ZALO_FALLBACK_POLL_MS)||300000);
         outboundTimer=setInterval(()=>{void pollOutbound();},fallbackPollMs);
         console.log(`[zalo-login] outbound event signal enabled; fallback poll ${fallbackPollMs}ms`);
