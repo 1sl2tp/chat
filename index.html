@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="c2a9f8bea77e69603bd376258d986cefe5d259dc9dcc6d638384ea7b084566c7">
+<meta name="app-build-id" content="148fd3f73f175151afc457c89eab8cf21b394d9f7d311e41ee84f904011365da">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -16972,9 +16972,24 @@ async function bootstrap(){
   lastBootstrapError='';
   const {data:{session}}=await client.auth.getSession();
   if(!session){renderGuest();return false;}
-  const {data,error}=await client.rpc('v21_auth_bootstrap',{
+  let {data,error}=await client.rpc('v21_auth_bootstrap',{
     p_device_key:getDeviceKey(),p_label:deviceLabel(),p_platform:platformLabel()
   });
+  // Supabase migration continuity: the browser may still hold a valid refresh
+  // token issued by the previous project while its access JWT was signed by
+  // the previous project. Refresh once against the new project before forcing
+  // a logout. Auth sessions/refresh tokens are migrated during cutover.
+  if(error){
+    try{
+      const refreshed=await client.auth.refreshSession();
+      if(!refreshed?.error&&refreshed?.data?.session){
+        await syncRealtimeAuth();
+        ({data,error}=await client.rpc('v21_auth_bootstrap',{
+          p_device_key:getDeviceKey(),p_label:deviceLabel(),p_platform:platformLabel()
+        }));
+      }
+    }catch{}
+  }
   if(error){
     lastBootstrapError=mapError(error,'invalid_credentials');
     await client.auth.signOut({scope:'local'}).catch(()=>{});
