@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="435e881e0017cffee3161f3a0e6bcc6285b2b9fb69e7ccc94bdacae6e0822988">
+<meta name="app-build-id" content="847f56d3fe7854514477e0273e37afc5fa9facc2e2312657a24a2582c9f616c5">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -24081,8 +24081,10 @@ queueMicrotask(()=>{
 const VERSION='V21.72.5';
 const SDK_URL='https://cdn.jsdelivr.net/npm/livekit-client@2.22.2/dist/livekit-client.umd.min.js';
 const PEER_LOSS_CONFIRM_MS=4000;
+const WARM_TTL_MS=10*60*1000;
 let sdkPromise=null;
 let warmPromise=null;
+let lastWarmAt=0;
 let room=null;
 let roomCallId='';
 let latestCanonicalCall=null;
@@ -24172,13 +24174,16 @@ function loadSdk(){
 
 async function warm(){
   if(!authenticated()||!online())return false;
+  if(Date.now()-lastWarmAt<WARM_TTL_MS&&window.LivekitClient?.Room)return true;
   if(warmPromise)return warmPromise;
   warmPromise=(async()=>{
     const api=client();
     const sdk=loadSdk().catch(()=>null);
     const fn=api?.functions?.invoke?.('v21-livekit-token',{body:{action:'warm'}}).catch?.(()=>null);
     await Promise.all([sdk,fn]);
-    return Boolean(window.LivekitClient?.Room);
+    const ok=Boolean(window.LivekitClient?.Room);
+    if(ok)lastWarmAt=Date.now();
+    return ok;
   })().finally(()=>{warmPromise=null;});
   return warmPromise;
 }
