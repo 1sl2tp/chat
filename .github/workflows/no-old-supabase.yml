@@ -19,7 +19,7 @@ jobs:
         run: |
           set -euo pipefail
           OLD='gcnoahqsrquxkwkjbuxy'
-          if git grep -n "$OLD" --             ':!supabase/migrations/**'             ':!docs/**'             ':!tests/**'             ':!**/*.md'             ':!.github/workflows/no-old-supabase.yml'
+          if git grep -n "$OLD" --             ':!supabase/migrations/**'             ':!docs/**'             ':!tests/**'             ':!**/*.md'             ':!.github/workflows/**'
           then
             echo "::error::Old Supabase project ref found in active runtime/deploy code."
             exit 1
