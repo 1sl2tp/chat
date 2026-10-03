@@ -70,3 +70,44 @@ jobs:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Verify Pages custom domain
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          set -euo pipefail
+          DOMAIN="$(tr -d '\r\n[:space:]' < CNAME)"
+          test -n "$DOMAIN"
+          echo "Expected domain: $DOMAIN"
+          echo "GitHub Pages URL: $PAGE_URL"
+
+          case "$PAGE_URL" in
+            "https://$DOMAIN/"|"https://$DOMAIN") ;;
+            *)
+              echo "::error::GitHub Pages Custom domain is not bound to $DOMAIN. Open Settings → Pages → Custom domain and save $DOMAIN."
+              exit 1
+              ;;
+          esac
+
+          CNAME_TARGET="$(dig +short CNAME "$DOMAIN" | head -1 | tr -d '\r\n')"
+          echo "DNS CNAME: $CNAME_TARGET"
+          case "$CNAME_TARGET" in
+            *.github.io.) ;;
+            *)
+              echo "::error::DNS for $DOMAIN must be a CNAME to a github.io host."
+              exit 1
+              ;;
+          esac
+
+          for attempt in 1 2 3 4 5 6; do
+            CODE="$(curl -L -sS -o /tmp/pages-domain.html -w '%{http_code}' --max-time 20 "https://$DOMAIN/" || true)"
+            if [ "$CODE" = "200" ]; then
+              echo "HTTPS OK: https://$DOMAIN/"
+              exit 0
+            fi
+            echo "Attempt $attempt: HTTP $CODE; retrying..."
+            sleep 10
+          done
+
+          echo "::error::https://$DOMAIN/ did not return HTTP 200 after deployment."
+          exit 1
