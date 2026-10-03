@@ -1,0 +1,69 @@
+name: Deploy Chat Pages
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "tests/**"
+      - "tools/**"
+      - "**/*.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: chat-pages-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build canonical chat
+        run: python tools/build_current_preview.py
+
+      - name: Verify canonical chat
+        run: python tools/verify_current.py
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Build Pages artifact
+        run: |
+          rm -rf _site
+          mkdir -p _site
+          rsync -a ./ _site/ \
+            --exclude '.git/' \
+            --exclude '.github/' \
+            --exclude '_site/' \
+            --exclude 'tests/' \
+            --exclude 'tools/' \
+            --exclude '*.md' \
+            --exclude 'supabase/'
+          printf '%s\n' 'chat.taphoa.xyz' > _site/CNAME
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
