@@ -7,6 +7,9 @@ on:
       - "tests/**"
       - "tools/**"
       - "supabase/**"
+      - "bridge/**"
+      - ".github/**"
+      - "docs/**"
       - "**/*.md"
   workflow_dispatch:
 
@@ -59,8 +62,10 @@ jobs:
             --exclude '_site/' \
             --exclude 'tests/' \
             --exclude 'tools/' \
-            --exclude '*.md' \
-            --exclude 'supabase/'
+            --exclude 'supabase/' \
+            --exclude 'bridge/' \
+            --exclude 'docs/' \
+            --exclude '*.md'
           printf '%s\n' 'chat.taphoa.xyz' > _site/CNAME
 
       - name: Upload Pages artifact
