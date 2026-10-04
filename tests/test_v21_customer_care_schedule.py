@@ -33,8 +33,8 @@ assert "'source_key','hang-thuong'" in route_compact
 assert "'care_reason','route_day'" in route_compact
 assert "'care_reason','regular'" in route_compact
 assert "'delivery_day'" in route_low
-assert "when1then'Thứ2'" in route_compact
-assert "else'Thứ6'" in route_compact
+assert "when1then'thứ2'" in route_compact
+assert "else'thứ6'" in route_compact
 
 # Three days without a delivered order is already stale.
 assert ">= 3" in base_sql
