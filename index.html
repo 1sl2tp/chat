@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="8ebbcff28db9e0433d243c311bc659e6e64897221ba06502860ed562c80b7d70">
+<meta name="app-build-id" content="6fab167b812e2ba1993ae40d518d30a53af0ef84ffe504b4e5cfa89b73a7e12c">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -25047,6 +25047,23 @@ function scheduleUnreadBadgeRefresh(delay=32){
   }
 }
 
+async function reconcilePushMessage(){
+  if(!isAdmin())return false;
+  const wake=window.V21SyncEngine?.wake;
+  if(typeof wake!=='function'){
+    scheduleUnreadBadgeRefresh(0);
+    return false;
+  }
+  try{
+    await wake({reason:'admin-push-message'});
+    return true;
+  }catch{
+    return false;
+  }finally{
+    scheduleUnreadBadgeRefresh(0);
+  }
+}
+
 async function reconcileWantedSubscription(){
   const currentPlatform=platform();
   if(!isAdmin()||!notificationWanted())return null;
@@ -25255,6 +25272,7 @@ function onAuthState(event){
 pendingOpen=coldOpenFromLocation();
 navigator.serviceWorker?.addEventListener('message',event=>{
   if(event.data?.type==='ADMIN_PUSH_OPEN')void handleOpen(event.data);
+  if(event.data?.type==='ADMIN_PUSH_MESSAGE_DIRTY')void reconcilePushMessage(event.data);
   if(event.data?.type==='ADMIN_PUSH_BADGE_DIRTY')scheduleUnreadBadgeRefresh(0);
 });
 document.addEventListener('v21-auth-state',onAuthState);
