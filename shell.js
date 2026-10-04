@@ -254,11 +254,14 @@ function toggleAccountMenu(){
 }
 
 function setSidebar(open){
-  if(!open)closeAccountMenu(); 
+  if(!open)closeAccountMenu();
   if(desktopSidebarPersistent){
+    // Persistent desktop directory is already mounted and kept current by
+    // bootstrap/realtime. NavigationCommand.openChat() calls setSidebar(false)
+    // on every contact click; refreshing here caused an async full contact
+    // replace after the click and could reset the user's directory scroll.
     sidebarOpen=false;
     syncSidebarPresentation();
-    if(authState==='AUTHENTICATED')void window.V21ContactStore?.refresh?.();
     return false;
   }
   sidebarOpen=Boolean(open);
