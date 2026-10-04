@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="847f56d3fe7854514477e0273e37afc5fa9facc2e2312657a24a2582c9f616c5">
+<meta name="app-build-id" content="8ebbcff28db9e0433d243c311bc659e6e64897221ba06502860ed562c80b7d70">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -11544,17 +11544,17 @@ function appendScrollPolicy({inserted=false,remote=false,messageIds=[]}={}){
     return{followTail:false,preserve:'VIEW'};
   }
 
-  // FOLLOW_TAIL / USER_AWAY is the sole scroll policy owner. Transient
-  // wheel/touch flags may describe *how* the user interacted, but they must
-  // never veto a viewport that is still logically at the tail. Once a real
-  // user scroll moves > tailRearmPx, ConversationViewportModel itself enters
-  // USER_AWAY and this policy stops following.
-  const followTail=viewport.mode===VIEWPORT_STATES.FOLLOW_TAIL;
-
-  if(remote&&!followTail){
-    viewport.registerUnseen(messageIds);
+  // A new remote realtime message is an explicit "show newest" signal for
+  // the active conversation. Reveal the same event the sidebar just promoted,
+  // rather than leaving the thread parked on an older reading position.
+  if(remote){
+    viewport.returnToTail();
+    return{followTail:true,preserve:'AUTO'};
   }
 
+  // Local ACK/data merges keep the normal viewport policy. Own sends already
+  // claim tail intent in commitComposerSnapshotAfterSend().
+  const followTail=viewport.mode===VIEWPORT_STATES.FOLLOW_TAIL;
   return{
     followTail,
     preserve:followTail?'AUTO':'VIEW'
@@ -16778,6 +16778,15 @@ function startHeartbeat(){
 }
 
 
+function contactActivityMs(item){
+  const value=Date.parse(item?.latest_at||'');
+  return Number.isFinite(value)?value:0;
+}
+
+function sortContactsByActivity(items=[]){
+  return items.sort((a,b)=>contactActivityMs(b)-contactActivityMs(a));
+}
+
 function emitContactStoreChange(reason,changedId=null){
   document.dispatchEvent(new CustomEvent('v21-contact-store-change',{
     detail:{
@@ -16796,7 +16805,9 @@ const ContactStore={
     emitContactStoreChange('clear');
   },
   replace(items=[]){
-    this.contacts=(Array.isArray(items)?items:[]).filter(item=>item&&item.id).map(item=>({...item}));
+    this.contacts=sortContactsByActivity(
+      (Array.isArray(items)?items:[]).filter(item=>item&&item.id).map(item=>({...item}))
+    );
     authUI()?.renderContacts?.(this.contacts);
     emitContactStoreChange('replace');
     return this.snapshot();
@@ -16804,13 +16815,12 @@ const ContactStore={
   upsert(item){
     if(!item?.id)return false;
     const index=this.contacts.findIndex(row=>String(row.id)===String(item.id));
-    if(index>=0){
-      this.contacts[index]={...this.contacts[index],...item};
-      if(!authUI()?.patchContact?.(this.contacts[index]))authUI()?.renderContacts?.(this.contacts);
-    }else{
-      this.contacts.push({...item});
-      authUI()?.renderContacts?.(this.contacts);
-    }
+    if(index>=0)this.contacts[index]={...this.contacts[index],...item};
+    else this.contacts.push({...item});
+    sortContactsByActivity(this.contacts);
+    // Activity order is part of the contact-list contract: one canonical
+    // contact array drives both preview content and DOM position.
+    authUI()?.renderContacts?.(this.contacts);
     emitContactStoreChange(index>=0?'update':'insert',item.id);
     return true;
   },
@@ -22143,6 +22153,13 @@ async function applyMessageEvent(event){
   if(contactId)messages()?.mergeForContact?.(payload,{contactId,conversationId:payload.conversation_id});
   const own=String(payload.sender_account_id)===String(accountId);
   const visible=String(payload.conversation_id)===String(currentConversationId)&&chatVisible();
+  const renderableNow=Boolean(String(payload.body||'').trim());
+  if(visible&&renderableNow){
+    // The same canonical message event updates the open thread immediately.
+    // Media-only parents still wait for their asset event so we never flash
+    // an empty bubble before the media metadata exists.
+    messages()?.apply?.(payload,{remote:!own});
+  }
   const preview=messagePreviewContract(payload);
   await patchContactSummary(payload.conversation_id,{
     ...preview,latest_at:payload.created_at,
