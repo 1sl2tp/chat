@@ -1,6 +1,6 @@
 (()=>{
 'use strict';
-const VERSION='V21.72.5';
+const VERSION='V21.72.6';
 let client=null;
 let channel=null;
 let channelState='CLOSED';

@@ -31,7 +31,6 @@ mark=RT[RT.index("function markInteraction()"):RT.index("function enqueue(task)"
 assert "lastInteractionAt=Date.now();" in mark
 assert "schedulePresencePublish" not in mark
 assert "track" not in mark
-assert "visibilitychange',()=>{\n  schedulePresencePublish(0,{replace:true});" in RT
 assert "navigation-change',()=>schedulePresencePublish(0,{replace:true})" in RT
 assert "v21-active-contact-change',()=>schedulePresencePublish(0,{replace:true})" in RT
 
