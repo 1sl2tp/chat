@@ -54,3 +54,22 @@ Sau deploy, reload một lần các runtime cũ rồi test không refresh:
 - Không lưu plaintext password.
 - Không dùng Presence/heartbeat làm message transport.
 - Không cho push và direct-message fallback tự render message.
+
+
+## Root cause xác nhận sau test 19:10
+
+Supabase mới có publication + RLS đúng, trigger tạo đủ `v21_sync_events` cho cả admin và user, nhưng bị thiếu table privilege cho Realtime role:
+
+- `v21_sync_events`: authenticated SELECT = false
+- `v21_messages`: authenticated SELECT = false
+- `v21_session_events`: authenticated SELECT = false
+- `v21_call_events`: authenticated SELECT = true
+
+Do đó PostgreSQL Realtime subscription không đọc được 3 bảng đầu dù policy tồn tại. RPC/REST vẫn có thể hoạt động qua SECURITY DEFINER nên biểu hiện là gửi được nhưng các session đang mở không tự nhận.
+
+Production đã áp migration `restore_chat_realtime_authenticated_select`:
+- GRANT SELECT cho authenticated trên 3 bảng trên;
+- REVOKE ALL FROM anon;
+- giữ nguyên RLS và write privileges.
+
+Sau migration, cả 4 bảng Realtime: authenticated SELECT = true, anon SELECT = false.
