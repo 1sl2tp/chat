@@ -170,3 +170,17 @@ Contract mới:
 - nội dung dùng giọng "Đối chiếu công nợ", gồm số dư, ngày bắt đầu/số ngày, số đơn đã giao, câu đề nghị kiểm tra lịch sự và link chi tiết;
 - balance = 0 / dư tiền có mẫu riêng, không nói "chưa thanh toán hết";
 - nếu RPC lỗi thì không fallback gửi URL trần.
+
+
+### Debt share atomic send repair
+
+Symptom: Admin Composer showed "Đang tạo đối chiếu công nợ…" but no message appeared. Production probe confirmed the summary RPC resolved correctly for the active Admin session, while no new `v21_messages` row was created. The failure boundary was the browser's second step (RPC body → client send).
+
+Final owner:
+- one RPC: `v21_admin_send_debt_summary(customer_id, client_id)`;
+- server validates the current Admin app session;
+- server calls `debt_share_summary_payload`;
+- server inserts through canonical `taphoa_chat_notify_customer`;
+- client only issues the RPC, then wakes SyncEngine once for immediate catch-up;
+- idempotency key is `debt-share:<client_id>`;
+- no bare-link or browser-send fallback.
