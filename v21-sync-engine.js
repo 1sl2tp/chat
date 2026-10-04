@@ -1551,6 +1551,12 @@ async function onAuth(detail){
   }else{
     void wake({reason:'auth'});
   }
+
+  // Directory membership is canonical account data, never Presence/session state.
+  // Repair a stale local contact cache once per authenticated bootstrap so an
+  // offline account cannot disappear just because it has no active Chat session.
+  if(online())queueMicrotask(()=>{void syncContacts();});
+
   void prewarmCachedContacts(cachedContacts,active?.id||currentContactId||null);
 }
 
