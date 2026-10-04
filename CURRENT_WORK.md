@@ -184,3 +184,20 @@ Final owner:
 - client only issues the RPC, then wakes SyncEngine once for immediate catch-up;
 - idempotency key is `debt-share:<client_id>`;
 - no bare-link or browser-send fallback.
+
+
+## Admin image paste/send duplicate repair
+
+Root cause production: one Admin clipboard transaction can expose the same image through both `clipboardData.files` and `clipboardData.items`. Browser metadata (`name/lastModified`) can differ, so metadata-only dedupe allowed two prepared assets with different asset IDs but the same `content_hash` into one message.
+
+Evidence:
+- production had 3 Admin messages with duplicate non-null image hashes inside the same message;
+- newest incident contained 2 assets with identical SHA-256 content hash.
+
+Final contract:
+- `sameDraftImageContentExists()` owns same-draft image dedupe by canonical `contentHash`;
+- applies to both visible and inactive composer drafts, therefore covers picker + paste ingress;
+- duplicate prepared asset is released from local preview/cache before queueing;
+- historical reuse is still allowed after the draft/message commits;
+- one-time migration soft-deleted later same-hash Admin assets inside the same message; production duplicate-message count is now 0;
+- no polling/request owner was added.
