@@ -1,0 +1,39 @@
+name: One-shot rebuild current Chat runtime
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/one-shot-rebuild-current.yml"
+permissions:
+  contents: write
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify targeted repairs before build
+        run: |
+          node tests/test_repeat_media_upload_contract.js
+          python tests/test_v21_contact_click_position_stability.py
+      - name: Build canonical runtime
+        run: python tools/build_current_preview.py
+      - name: Commit generated runtime
+        run: |
+          git diff --check
+          if git diff --quiet -- index.html version.json; then
+            echo "No generated changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html version.json
+          git commit -m "Rebuild canonical Chat runtime [skip ci]"
+          git push origin HEAD:main
