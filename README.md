@@ -1,5 +1,12 @@
 # TAPHOA CHAT/CALL
 
+> ## ⚠️ BẮT BUỘC TRƯỚC KHI SỬA / DEPLOY
+>
+> Trước mọi sửa chữa phải đọc **[CURRENT_WORK.md](./CURRENT_WORK.md)** rồi **[README_MAINTENANCE.md](./README_MAINTENANCE.md)**.
+> Nếu thay đổi liên quan Realtime, polling, heartbeat, Presence, Supabase RPC, cache, log, cron, retention, push hoặc media phải đọc thêm **[README_RESOURCE_GUARDRAILS.md](./README_RESOURCE_GUARDRAILS.md)**.
+> Quy tắc mặc định: **message/read-state realtime là ưu tiên số 1; một incident → một owner → một patch → một deploy; không thêm polling/fallback mới nếu chưa chứng minh owner hiện tại sai.**
+> Job/deploy đang chạy thì không tạo job thứ hai; xem **[README_NO_WAIT_WORKFLOW.md](./README_NO_WAIT_WORKFLOW.md)**.
+>
 Canonical branch: **main**  
 Current release: **V21.72.39**  
 Channel: **candidate**
