@@ -273,6 +273,13 @@ async function applyMessageEvent(event){
   if(contactId)messages()?.mergeForContact?.(payload,{contactId,conversationId:payload.conversation_id});
   const own=String(payload.sender_account_id)===String(accountId);
   const visible=String(payload.conversation_id)===String(currentConversationId)&&chatVisible();
+  const renderableNow=Boolean(String(payload.body||'').trim());
+  if(visible&&renderableNow){
+    // The same canonical message event updates the open thread immediately.
+    // Media-only parents still wait for their asset event so we never flash
+    // an empty bubble before the media metadata exists.
+    messages()?.apply?.(payload,{remote:!own});
+  }
   const preview=messagePreviewContract(payload);
   await patchContactSummary(payload.conversation_id,{
     ...preview,latest_at:payload.created_at,

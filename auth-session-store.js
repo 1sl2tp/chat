@@ -160,6 +160,15 @@ function startHeartbeat(){
 }
 
 
+function contactActivityMs(item){
+  const value=Date.parse(item?.latest_at||'');
+  return Number.isFinite(value)?value:0;
+}
+
+function sortContactsByActivity(items=[]){
+  return items.sort((a,b)=>contactActivityMs(b)-contactActivityMs(a));
+}
+
 function emitContactStoreChange(reason,changedId=null){
   document.dispatchEvent(new CustomEvent('v21-contact-store-change',{
     detail:{
@@ -178,7 +187,9 @@ const ContactStore={
     emitContactStoreChange('clear');
   },
   replace(items=[]){
-    this.contacts=(Array.isArray(items)?items:[]).filter(item=>item&&item.id).map(item=>({...item}));
+    this.contacts=sortContactsByActivity(
+      (Array.isArray(items)?items:[]).filter(item=>item&&item.id).map(item=>({...item}))
+    );
     authUI()?.renderContacts?.(this.contacts);
     emitContactStoreChange('replace');
     return this.snapshot();
@@ -186,13 +197,12 @@ const ContactStore={
   upsert(item){
     if(!item?.id)return false;
     const index=this.contacts.findIndex(row=>String(row.id)===String(item.id));
-    if(index>=0){
-      this.contacts[index]={...this.contacts[index],...item};
-      if(!authUI()?.patchContact?.(this.contacts[index]))authUI()?.renderContacts?.(this.contacts);
-    }else{
-      this.contacts.push({...item});
-      authUI()?.renderContacts?.(this.contacts);
-    }
+    if(index>=0)this.contacts[index]={...this.contacts[index],...item};
+    else this.contacts.push({...item});
+    sortContactsByActivity(this.contacts);
+    // Activity order is part of the contact-list contract: one canonical
+    // contact array drives both preview content and DOM position.
+    authUI()?.renderContacts?.(this.contacts);
     emitContactStoreChange(index>=0?'update':'insert',item.id);
     return true;
   },

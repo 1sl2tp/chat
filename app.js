@@ -4547,17 +4547,17 @@ function appendScrollPolicy({inserted=false,remote=false,messageIds=[]}={}){
     return{followTail:false,preserve:'VIEW'};
   }
 
-  // FOLLOW_TAIL / USER_AWAY is the sole scroll policy owner. Transient
-  // wheel/touch flags may describe *how* the user interacted, but they must
-  // never veto a viewport that is still logically at the tail. Once a real
-  // user scroll moves > tailRearmPx, ConversationViewportModel itself enters
-  // USER_AWAY and this policy stops following.
-  const followTail=viewport.mode===VIEWPORT_STATES.FOLLOW_TAIL;
-
-  if(remote&&!followTail){
-    viewport.registerUnseen(messageIds);
+  // A new remote realtime message is an explicit "show newest" signal for
+  // the active conversation. Reveal the same event the sidebar just promoted,
+  // rather than leaving the thread parked on an older reading position.
+  if(remote){
+    viewport.returnToTail();
+    return{followTail:true,preserve:'AUTO'};
   }
 
+  // Local ACK/data merges keep the normal viewport policy. Own sends already
+  // claim tail intent in commitComposerSnapshotAfterSend().
+  const followTail=viewport.mode===VIEWPORT_STATES.FOLLOW_TAIL;
   return{
     followTail,
     preserve:followTail?'AUTO':'VIEW'
