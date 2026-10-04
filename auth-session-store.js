@@ -3,7 +3,7 @@
 'use strict';
 
 const RELEASE_VERSION='V21.72.39';
-const MODULE_CONTRACT_VERSION='auth-session-v21.72.5';
+const MODULE_CONTRACT_VERSION='auth-session-v21.72.6';
 const SUPABASE_URL='https://vtqhbhrkdxirqeqkgylo.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_3ms4nAPXQwBN18Zo2yNoIg_d4WrHu04';
 const AUTH_STORAGE_KEY='taphoa.v21.auth';
@@ -200,12 +200,22 @@ const ContactStore={
   upsert(item){
     if(!item?.id)return false;
     const index=this.contacts.findIndex(row=>String(row.id)===String(item.id));
-    if(index>=0)this.contacts[index]={...this.contacts[index],...item};
-    else this.contacts.push({...item});
-    sortContactsByActivity(this.contacts);
-    // Activity order is part of the contact-list contract: one canonical
-    // contact array drives both preview content and DOM position.
-    authUI()?.renderContacts?.(this.contacts);
+    const previous=index>=0?this.contacts[index]:null;
+    const next=previous?{...previous,...item}:{...item};
+    const activityChanged=!previous||contactActivityMs(previous)!==contactActivityMs(next);
+
+    if(index>=0)this.contacts[index]=next;
+    else this.contacts.push(next);
+
+    if(activityChanged){
+      sortContactsByActivity(this.contacts);
+      // Only real activity changes own ordering. Read/unread/profile patches
+      // must keep the clicked contact at the exact same list position.
+      authUI()?.renderContacts?.(this.contacts);
+    }else if(!authUI()?.patchContact?.(next)){
+      authUI()?.renderContacts?.(this.contacts);
+    }
+
     emitContactStoreChange(index>=0?'update':'insert',item.id);
     return true;
   },

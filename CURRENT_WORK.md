@@ -97,3 +97,14 @@ Cleanup đầu tiên:
 - revoked sessions: chưa xóa vì chưa đủ 30 ngày.
 
 Canonical messages/read/media/conversations không bị đụng.
+
+
+## Danh bạ — click không được nhảy vị trí
+
+Root cause: `ContactStore.upsert()` trước đây luôn sort + render toàn danh bạ kể cả patch chỉ đổi `has_unread` khi mark-read. Vì vậy click một contact có thể làm DOM list bị dựng/reorder lại và vị trí vừa bấm bị nhảy.
+
+Contract mới:
+- chỉ contact mới hoặc `latest_at` thật sự đổi mới được reorder;
+- `has_unread`, avatar, tên, profile update chỉ patch row tại chỗ;
+- tin nhắn mới vẫn đổi `latest_at` nên contact vẫn lên đầu;
+- full reorder khi có activity thật vẫn giữ `scrollTop` của `.wm-sidebar-navigation`.
