@@ -22,7 +22,7 @@ assert "chưa thanh toán hết" in LOW
 assert "nếu có khoản nào chưa khớp" in LOW
 assert "xem chi tiết công nợ:" in LOW
 assert "đã được thanh toán đầy đủ" in LOW
-assert "to authenticated,service_role" in COMPACT
+assert "toauthenticated,service_role" in COMPACT
 assert "from public,anon;" in LOW
 
 print("Admin debt share summary contract PASS")
