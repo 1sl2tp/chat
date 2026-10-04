@@ -10,6 +10,7 @@ function makeHarness({role='admin',permission='default',standalone=false,userAge
   let unreadCount=Math.max(0,Number(unread)||0);
   let appBadge=0;
   const invokeCalls=[];
+  const wakeCalls=[];
   const subscription={
     endpoint:'https://push.example/sub-1',
     toJSON(){return{endpoint:this.endpoint,keys:{p256dh:'p256dh-key',auth:'auth-key'}}},
@@ -70,7 +71,8 @@ function makeHarness({role='admin',permission='default',standalone=false,userAge
     },
     V21SyncEngine:{
       snapshot:()=>({currentConversationId:'conv-1',currentContactId:'contact-1'}),
-      async refreshUnread(){return unreadCount}
+      async refreshUnread(){return unreadCount},
+      async wake(options){wakeCalls.push(options||{});return true}
     },
     addEventListener(type,fn){listeners['w:'+type]=fn},
     matchMedia:()=>({matches:standalone}),
@@ -82,7 +84,9 @@ function makeHarness({role='admin',permission='default',standalone=false,userAge
   return{
     api:ctx.window.V21AdminPush,pushManager,subscription,invokeCalls,swMessages,
     getPermissionRequests:()=>permissionRequests,getLocalUnsubscribes:()=>localUnsubscribes,getSubscribeOptions:()=>subscribeOptions,
-    getAppBadge:()=>appBadge,getTitle:()=>document.title,getFaviconHref:()=>favicon.href,setUnread:value=>{unreadCount=Math.max(0,Number(value)||0)}
+    getAppBadge:()=>appBadge,getTitle:()=>document.title,getFaviconHref:()=>favicon.href,setUnread:value=>{unreadCount=Math.max(0,Number(value)||0)},
+    emitServiceWorkerMessage:data=>listeners['sw:message']?.({data}),
+    getWakeCalls:()=>wakeCalls.slice()
   };
 }
 
@@ -129,6 +133,11 @@ function makeHarness({role='admin',permission='default',standalone=false,userAge
   assert.equal(badge.getTitle(),'(3) TAPHOA Chat','browser title must show unread count');
   assert(badge.getFaviconHref().startsWith('data:image/svg+xml,'),'browser favicon must show unread state');
   assert.deepEqual(badge.swMessages.at(-1),{type:'ADMIN_PUSH_BADGE_SET',count:3});
+
+  badge.emitServiceWorkerMessage({type:'ADMIN_PUSH_MESSAGE_DIRTY',conversationId:'conv-1',contactId:'user-1',messageId:'message-1'});
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.equal(badge.getWakeCalls().at(-1)?.reason,'admin-push-message','push delivery must wake canonical message/contact sync');
 
   badge.setUnread(0);
   const unread0=await badge.api.refreshUnreadBadge();

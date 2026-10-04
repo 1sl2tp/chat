@@ -125,6 +125,23 @@ function scheduleUnreadBadgeRefresh(delay=32){
   }
 }
 
+async function reconcilePushMessage(){
+  if(!isAdmin())return false;
+  const wake=window.V21SyncEngine?.wake;
+  if(typeof wake!=='function'){
+    scheduleUnreadBadgeRefresh(0);
+    return false;
+  }
+  try{
+    await wake({reason:'admin-push-message'});
+    return true;
+  }catch{
+    return false;
+  }finally{
+    scheduleUnreadBadgeRefresh(0);
+  }
+}
+
 async function reconcileWantedSubscription(){
   const currentPlatform=platform();
   if(!isAdmin()||!notificationWanted())return null;
@@ -333,6 +350,7 @@ function onAuthState(event){
 pendingOpen=coldOpenFromLocation();
 navigator.serviceWorker?.addEventListener('message',event=>{
   if(event.data?.type==='ADMIN_PUSH_OPEN')void handleOpen(event.data);
+  if(event.data?.type==='ADMIN_PUSH_MESSAGE_DIRTY')void reconcilePushMessage(event.data);
   if(event.data?.type==='ADMIN_PUSH_BADGE_DIRTY')scheduleUnreadBadgeRefresh(0);
 });
 document.addEventListener('v21-auth-state',onAuthState);

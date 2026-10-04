@@ -65,6 +65,11 @@ function harness(){
   await same.dispatch('push',{data:{json:()=>payload}});
   assert.equal(same.notices.length,0,'focused same conversation must suppress system notification');
   assert.equal(same.getBadge(),2,'suppressed same-conversation push must preserve other unread badge count');
+  assert(same.posted.some(message=>
+    message.type==='ADMIN_PUSH_MESSAGE_DIRTY'&&
+    message.conversationId==='conv-1'&&
+    message.contactId==='user-1'
+  ),'same-conversation push must still wake the visible page so thread/sidebar update immediately');
 
   const other=harness();
   const otherClient=other.client('c1');other.setClients([otherClient]);

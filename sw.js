@@ -70,6 +70,17 @@ function notifyBadgeDirty(clients){
     try{client.postMessage?.({type:'ADMIN_PUSH_BADGE_DIRTY'});}catch{}
   }
 }
+function notifyMessageDirty(clients,payload={}){
+  const message={
+    type:'ADMIN_PUSH_MESSAGE_DIRTY',
+    conversationId:String(payload.conversation_id||''),
+    contactId:String(payload.contact_id||''),
+    messageId:String(payload.message_id||'')
+  };
+  for(const client of clients||[]){
+    try{client.postMessage?.(message);}catch{}
+  }
+}
 
 self.addEventListener('message',event=>{
   if(event.data?.type==='SKIP_WAITING')void self.skipWaiting();
@@ -95,6 +106,7 @@ self.addEventListener('push',event=>{
     const conversationId=String(payload.conversation_id||'');
     const inviteId=String(payload.invite_id||'');
     const clients=await self.clients.matchAll({type:'window',includeUncontrolled:true});
+    if(kind!=='call_invite')notifyMessageDirty(clients,payload);
     const readingSame=kind!=='call_invite'&&clients.some(client=>{
       const state=adminPushClientState.get(client.id);
       return Boolean(
