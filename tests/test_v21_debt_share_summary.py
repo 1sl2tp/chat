@@ -26,3 +26,16 @@ assert "toauthenticated,service_role" in COMPACT
 assert "from public,anon;" in LOW
 
 print("Admin debt share summary contract PASS")
+
+
+ATOMIC=(ROOT/'supabase/migrations/20261004203500_chat_send_debt_summary_atomic.sql').read_text('utf-8')
+ATOMIC_LOW=ATOMIC.lower()
+ATOMIC_COMPACT=''.join(ATOMIC_LOW.split())
+assert "create or replace function public.v21_admin_send_debt_summary" in ATOMIC_LOW
+assert "v21_private.current_active_account_id()" in ATOMIC_LOW
+assert "v21_private.debt_share_summary_payload(p_customer_id,now())" in ATOMIC_COMPACT
+assert "taphoa_chat_notify_customer" in ATOMIC_LOW
+assert "'debt-share:'||v_client_id" in ATOMIC_COMPACT
+assert "'message_id',v_message_id" in ATOMIC_COMPACT
+assert "'sent',v_message_idisnotnull" in ATOMIC_COMPACT
+assert "toauthenticated,service_role" in ATOMIC_COMPACT
