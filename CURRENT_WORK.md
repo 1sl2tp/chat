@@ -155,3 +155,18 @@ Pacing/safety contract:
 - outside windows the sender returns `outside_window` and sends nothing.
 
 This pacing reduces burst/spam-like behavior but cannot guarantee how a third-party platform classifies messages.
+
+
+## Admin Composer — Công nợ không gửi URL trần
+
+Root cause: `admin-composer-actions.js` action `debt` gọi `customerLinks()` rồi gửi trực tiếp `links.debt_url`.
+
+Contract mới:
+- click Công nợ gọi một RPC duy nhất `v21_admin_debt_share_summary(customer_id)`;
+- chỉ Admin session hợp lệ được gọi;
+- debt age = thời gian của đợt số dư dương liên tục hiện tại, không phải ngày đơn gần nhất;
+- số đơn = đơn đã giao trong đợt công nợ đó;
+- không gán thanh toán vào từng đơn vì collection hiện là balance-level;
+- nội dung dùng giọng "Đối chiếu công nợ", gồm số dư, ngày bắt đầu/số ngày, số đơn đã giao, câu đề nghị kiểm tra lịch sự và link chi tiết;
+- balance = 0 / dư tiền có mẫu riêng, không nói "chưa thanh toán hết";
+- nếu RPC lỗi thì không fallback gửi URL trần.

@@ -72,7 +72,11 @@ assert "sendquotelink" not in quote_low
 assert "queuetext" in low or "v21messagestore" in low
 assert "contactid" in low
 assert "action:\'debt\'" in actions
-assert "debt-link-send" in actions
+assert "debt-summary-send" in actions
+assert "v21_admin_debt_share_summary" in actions
+assert "p_customer_id:string(contactid)" in compact
+assert "sendadmintext(body,contactid,'debt-summary-send')" in compact
+assert "sendadmintext(links.debt_url" not in compact
 assert "customerlinks" in quote_low
 assert "customer_account_id" in quote_low
 quote_overlay_css = actions_css.lower().split(".admin-composer-quote-overlay", 1)[1].split("}", 1)[0]

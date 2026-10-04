@@ -472,13 +472,18 @@ async function runAction(action){
     }
   }
   if(action==='debt'){
-    setTransientHint('Đang tạo link công nợ…',2400);
+    setTransientHint('Đang tạo đối chiếu công nợ…',2400);
     try{
-      const client=await quoteClient();
-      if(!client?.customerLinks)throw new Error('public_link_unavailable');
-      const links=await client.customerLinks(contactId);
-      await sendAdminText(links.debt_url,contactId,'debt-link-send');
-      setTransientHint('Đã gửi link công nợ');
+      const client=authStore()?.getClient?.()||null;
+      if(!client)throw new Error('authentication_required');
+      const {data,error}=await client.rpc('v21_admin_debt_share_summary',{
+        p_customer_id:String(contactId),
+      });
+      if(error)throw error;
+      const body=String(data?.body||'').trim();
+      if(!data?.ok||!body)throw new Error(data?.error||'debt_summary_failed');
+      await sendAdminText(body,contactId,'debt-summary-send');
+      setTransientHint('Đã gửi đối chiếu công nợ');
       return true;
     }catch{
       setTransientHint('Không thể gửi công nợ',2600);
