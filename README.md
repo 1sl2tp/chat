@@ -78,3 +78,12 @@ Rule dùng chung bắt buộc: `1sl2tp/infrastructure/rules/02-EXTERNAL-DATA-SIN
 - LiveKit chỉ giữ transport/session realtime cần cho cuộc gọi; không phải nơi lưu lịch sử Chat hay account.
 - Render/Cloudflare/GitHub/Drive nếu được thêm sau này chỉ được giữ role đã khai báo trong central registry, có TTL/retention khi là cache/session.
 - Không thêm background two-way sync hoặc database sống thứ hai cho messages/read-state/accounts.
+
+
+## LiveKit owner lock
+
+- Production account-call token owner: `v21-livekit-token`.
+- Peer verification owner: `v21-livekit-confirm-peer`.
+- Guest-call entry owner: `v21-call-invite-guest`.
+- Legacy `taphoa-livekit-token` is retired and returns HTTP 410; do not reconnect it.
+- LiveKit is transport/session only. Message, account and durable call state remain canonical in Supabase `1sl2tpvn`.

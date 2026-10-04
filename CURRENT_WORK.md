@@ -1,3 +1,11 @@
+
+
+## 2026-10-05 — LiveKit single-owner cleanup
+
+- Confirmed production `v21-livekit-session.js` uses `v21-livekit-token`.
+- Confirmed guest call page uses `v21-call-invite-guest`.
+- Legacy `taphoa-livekit-token` had no current production reference and was retired to HTTP 410.
+- Current LiveKit role remains transport/session only; Supabase `1sl2tpvn` owns durable business/call state.
 # CURRENT WORK — TAPHOA CHAT
 
 Cập nhật: 2026-10-04
