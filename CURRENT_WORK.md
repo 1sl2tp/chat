@@ -1,5 +1,15 @@
 ## 2026-10-05 — Zalo media bandwidth preflight
 
+Production verification for media preflight:
+- GitHub commit: `cdb0da4a0f50c43fc61485e7a35c2318529a09ac`;
+- Verify V21: PASS;
+- Block old Supabase runtime refs: PASS;
+- Supabase `v21-zalo-bridge`: production version **8**;
+- Render `taphoa-zalo` deploy `dep-db1a86eq1p3s73f3pmhg`: **live** on the same commit;
+- post-deploy health: HTTP 200, `status=logged_in`;
+- production canonical probe on an unlinked Zalo contact: `v21_zalo_media_target(...)=NULL`, confirming the new Render preflight will stop before binary download for that class of traffic.
+
+
 Symptom:
 - Render Zalo listener receives upstream messages from the whole logged-in Zalo account, not only Chat-linked contacts.
 - Media was downloaded by Render and multipart-uploaded to Supabase before Supabase decided whether the sender was linked to Chat.
