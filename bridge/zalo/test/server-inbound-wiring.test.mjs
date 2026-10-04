@@ -7,6 +7,12 @@ test('server forwards normalized incoming Zalo text and media to message gateway
   assert.match(source,/createMessageGateway/);
   assert.match(source,/v21-zalo-bridge/);
   assert.match(source,/messageGateway\.ingestText\(event\)/);
+  assert.match(source,/messageGateway\.mediaTarget\(event\)/);
+  assert.match(source,/if\(!target\?\.needed\)/);
+  assert.ok(
+    source.indexOf('messageGateway.mediaTarget(event)') < source.indexOf('downloadInboundMedia({api,media:event.media[0]})'),
+    'media target preflight must happen before Zalo binary download'
+  );
   assert.match(source,/downloadInboundMedia/);
   assert.match(source,/messageGateway\.ingestMedia/);
 });

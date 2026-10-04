@@ -124,6 +124,25 @@ Deno.serve(async(req:Request)=>{
   try{body=await req.json();}catch{return reply(400,{ok:false,error:"invalid_json"});}
   const action=String(body?.action??"").trim();
 
+  if(action==="media_target"){
+    const zaloId=String(body.zalo_id??"").trim();
+    const zaloMessageId=String(body.zalo_message_id??"").trim();
+    const eventAt=body.event_at??null;
+    if(!zaloId||!zaloMessageId)return reply(400,{ok:false,error:"media_target_invalid"});
+    const {data,error}=await admin.rpc("v21_zalo_media_target",{
+      p_zalo_id:zaloId,
+      p_zalo_message_id:zaloMessageId,
+      p_event_at:eventAt,
+    });
+    if(error)return reply(500,{ok:false,error:"media_target_failed"});
+    return reply(200,{
+      ok:true,
+      needed:Boolean(data),
+      existing:Boolean(data?.existing),
+      message_id:data?.message_id??null,
+    });
+  }
+
   if(action==="ingress"){
     const {data,error}=await admin.rpc("v21_zalo_ingress",{
       p_zalo_id:String(body.zalo_id??""),

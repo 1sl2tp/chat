@@ -43,6 +43,19 @@ export function createMessageGateway({endpoint,bridgeToken,fetchImpl=fetch}={}){
   }
 
   return Object.freeze({
+    async mediaTarget(event){
+      const payload=await post({
+        action:'media_target',
+        zalo_id:String(event?.zaloId||''),
+        zalo_message_id:String(event?.messageId||''),
+        event_at:event?.eventAt||new Date().toISOString(),
+      });
+      return{
+        needed:Boolean(payload?.needed),
+        existing:Boolean(payload?.existing),
+        messageId:payload?.message_id||null,
+      };
+    },
     async ingestText(event){
       const payload=await post({
         action:'ingress',

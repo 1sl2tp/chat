@@ -14,6 +14,20 @@ function fakeFetch(calls,responses=[]){
   };
 }
 
+test('media preflight asks canonical Chat ownership before binary download',async()=>{
+  const calls=[];
+  const gateway=createMessageGateway({
+    endpoint:'https://example.test/functions/v1/v21-zalo-bridge',
+    bridgeToken:'secret',
+    fetchImpl:fakeFetch(calls,[{ok:true,status:200,body:{ok:true,needed:false,existing:false,message_id:null}}]),
+  });
+  const result=await gateway.mediaTarget({zaloId:'z-unlinked',messageId:'m-media',eventAt:'2026-10-05T00:00:00.000Z'});
+  assert.deepEqual(result,{needed:false,existing:false,messageId:null});
+  assert.deepEqual(calls[0].body,{
+    action:'media_target',zalo_id:'z-unlinked',zalo_message_id:'m-media',event_at:'2026-10-05T00:00:00.000Z'
+  });
+});
+
 test('ingress posts normalized text through protected bridge endpoint',async()=>{
   const calls=[];
   const gateway=createMessageGateway({

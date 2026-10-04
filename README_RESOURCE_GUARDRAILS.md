@@ -219,3 +219,14 @@ Guardrails:
 - do not insert a care message into a customer conversation active within the last 60 minutes;
 - use the canonical `taphoa_chat_notify_customer` path; never bypass message/Zalo ownership;
 - the pacing is intended to prevent bursts, not to claim or guarantee third-party anti-spam acceptance.
+
+
+### Zalo inbound media preflight
+
+- Zalo listener may receive upstream events outside the Chat-linked account set, but Render must not download media before canonical Chat ownership is known.
+- For image/audio/file inbound, Render first sends only `zalo_id + zalo_message_id + event_at` to `v21-zalo-bridge`.
+- `v21-zalo-bridge` resolves ownership through canonical `v21_zalo_media_target`.
+- `needed=false` => stop immediately: no Zalo media download, no multipart upload, no Storage write.
+- `needed=true` => only then download the binary and continue the existing idempotent media ingest path.
+- Text ingress remains on the existing lightweight canonical path; do not add a second text preflight just to save a sub-KB request.
+- Do not cache link ownership in Render as canonical truth. If a bounded cache is added later it must only optimize a verified canonical lookup and must tolerate stale entries safely.

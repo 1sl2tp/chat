@@ -126,6 +126,13 @@ server.listen(port,'0.0.0.0',()=>{
           try{
             let bridged;
             if(Array.isArray(event?.media)&&event.media.length){
+              // Ask canonical Chat ownership before downloading any Zalo binary.
+              // Unlinked Zalo traffic must not consume Render/Supabase media bandwidth.
+              const target=await messageGateway.mediaTarget(event);
+              if(!target?.needed){
+                bridgeStats.inboundIgnored+=1;
+                return;
+              }
               const binary=await downloadInboundMedia({api,media:event.media[0]});
               bridged=await messageGateway.ingestMedia(event,binary);
             }else{
