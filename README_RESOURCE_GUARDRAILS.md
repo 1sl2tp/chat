@@ -30,7 +30,9 @@ Các bảng vận hành đang tăng:
 ## 1. Message delivery là đường nóng bắt buộc
 
 Được phép:
-- app đang mở: `v21_sync_events` áp canonical payload thẳng vào cache/UI;
+- app visible/foreground: `v21_sync_events` áp canonical payload thẳng vào cache/UI;
+- hidden/closed user app: dừng foreground Realtime;
+- admin mobile background: Service Worker/Web Push là owner;
 - boot/foreground/reconnect: delta pull catch-up;
 - bounded reconnect/recovery;
 - direct message/push fallback chỉ để wake khi canonical Realtime không tới.
@@ -98,7 +100,8 @@ Read receipt phải chính xác, nhưng không cần RPC recount hàng loạt.
 - Push không ghi/nhân bản canonical message.
 - Push dirty không được vừa wake sync vừa gọi nhiều unread recount độc lập.
 - Same-conversation foreground có thể suppress system notification nhưng **không được suppress wake UI**.
-- User foreground nhận qua Realtime; không tạo polling chỉ vì user không có admin push.
+- User chỉ nhận foreground khi app visible; hidden/closed không chạy message polling.
+- Admin mobile hidden/closed dùng Web Push; khi app foreground lại thì catch-up delta ngay.
 
 ## 7. Database retention
 

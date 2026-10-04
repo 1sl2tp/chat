@@ -10,6 +10,7 @@ let recoveryTimer=0;
 let recoveryAttempt=0;
 let presencePublishTimer=0;
 let messageFallbackTimer=0;
+const pendingMessageFallbackIds=new Set();
 let generation=0;
 let lifecycle=Promise.resolve();
 let lastInteractionAt=Date.now();
@@ -24,15 +25,27 @@ function shell(){return window.ChatAppShell||null;}
 function snapshot(){return authStore()?.snapshot?.()||{state:'GUEST'};}
 function authenticated(){const s=snapshot();return s.state==='AUTHENTICATED'&&Boolean(s.appSessionId&&s.account?.id);}
 function online(){return navigator.onLine!==false;}
+function foregroundActive(){return authenticated()&&online()&&!document.hidden;}
 function clearTimer(){if(reconnectTimer){clearTimeout(reconnectTimer);reconnectTimer=0;}}
 function clearRecoveryTimer(){if(recoveryTimer){clearTimeout(recoveryTimer);recoveryTimer=0;}}
 function clearPresenceTimer(){if(presencePublishTimer){clearTimeout(presencePublishTimer);presencePublishTimer=0;}}
-function clearMessageFallback(){if(messageFallbackTimer){clearTimeout(messageFallbackTimer);messageFallbackTimer=0;}}
-function scheduleMessageFallback(){
-  if(messageFallbackTimer)return false;
+function clearMessageFallback(messageId=''){
+  const id=String(messageId||'');
+  if(id)pendingMessageFallbackIds.delete(id);
+  else pendingMessageFallbackIds.clear();
+  if(pendingMessageFallbackIds.size>0)return false;
+  if(messageFallbackTimer){clearTimeout(messageFallbackTimer);messageFallbackTimer=0;}
+  return true;
+}
+function scheduleMessageFallback(messageId=''){
+  const id=String(messageId||'');
+  if(id)pendingMessageFallbackIds.add(id);
+  if(messageFallbackTimer)return true;
   messageFallbackTimer=setTimeout(()=>{
     messageFallbackTimer=0;
-    void sync()?.wake?.({reason:'realtime-message-fallback'});
+    const shouldPull=pendingMessageFallbackIds.size>0;
+    pendingMessageFallbackIds.clear();
+    if(shouldPull)void sync()?.wake?.({reason:'realtime-message-fallback'});
   },MESSAGE_FALLBACK_DELAY_MS);
   return true;
 }
@@ -148,20 +161,20 @@ function stop(){
 }
 
 function schedule(immediate=false){
-  if(!authenticated()||!online()||reconnectTimer)return;
+  if(!foregroundActive()||reconnectTimer)return;
   const delay=immediate?0:Math.min(8000,600*(2**Math.min(reconnectAttempt,4)));
   reconnectAttempt+=1;
   reconnectTimer=setTimeout(()=>{reconnectTimer=0;void start();},delay);
 }
 
 function scheduleRecovery(){
-  if(!authenticated()||!online()||document.hidden||recoveryTimer||channelState==='SUBSCRIBED')return;
+  if(!foregroundActive()||recoveryTimer||channelState==='SUBSCRIBED')return;
   const index=Math.min(recoveryAttempt,RECOVERY_BACKOFF_MS.length-1);
   const delay=RECOVERY_BACKOFF_MS[index];
   recoveryAttempt+=1;
   recoveryTimer=setTimeout(async()=>{
     recoveryTimer=0;
-    if(!authenticated()||!online()||document.hidden||channelState==='SUBSCRIBED')return;
+    if(!foregroundActive()||channelState==='SUBSCRIBED')return;
     await sync()?.wake?.({reason:'realtime-backoff-recovery'});
     await callEngine()?.recover?.({reason:'realtime-backoff-recovery'});
     if(channelState!=='SUBSCRIBED')scheduleRecovery();
@@ -173,7 +186,7 @@ function start(){
   clearTimer();
   return enqueue(async()=>{
     await detachCurrent();
-    if(request!==generation||!authenticated()||!online())return false;
+    if(request!==generation||!foregroundActive())return false;
 
     client=authStore()?.getClient?.()||client;
     if(!client)return false;
@@ -181,7 +194,7 @@ function start(){
       if(request===generation){schedule(false);scheduleRecovery();}
       return false;
     }
-    if(request!==generation||!authenticated()||!online())return false;
+    if(request!==generation||!foregroundActive())return false;
 
     const s=snapshot();
     const local=request;
@@ -193,8 +206,10 @@ function start(){
         filter:`target_account_id=eq.${s.account.id}`
       },payload=>{
         if(local!==generation||channel!==next)return;
-        clearMessageFallback();
         const row=payload?.new||null;
+        if(row?.entity_type==='message'){
+          clearMessageFallback(String(row?.entity_key||row?.payload?.id||''));
+        }
         const direct=sync()?.consumeRealtimeEvent?.(row);
         if(direct&&typeof direct.catch==='function'){
           void direct.catch(()=>sync()?.wake?.({reason:'realtime-direct-failed'}));
@@ -204,11 +219,10 @@ function start(){
       })
       .on('postgres_changes',{
         event:'INSERT',schema:'public',table:'v21_messages'
-      },()=>{
+      },payload=>{
         if(local!==generation||channel!==next)return;
-        // Give canonical sync-event a short head start. If it arrives, its
-        // handler cancels this timer; otherwise this remains the fallback wake.
-        scheduleMessageFallback();
+        // Give the matching canonical message event a short head start.
+        scheduleMessageFallback(String(payload?.new?.id||''));
       })
       .on('postgres_changes',{
         event:'INSERT',schema:'public',table:'v21_session_events',
@@ -253,32 +267,30 @@ function start(){
 }
 
 document.addEventListener('v21-auth-state',event=>{
-  if(event.detail?.state==='AUTHENTICATED')void start();
+  if(event.detail?.state==='AUTHENTICATED'&&!document.hidden)void start();
   else void stop();
 });
-document.addEventListener('v21-auth-token-refreshed',()=>{if(authenticated())void start();});
+document.addEventListener('v21-auth-token-refreshed',()=>{
+  if(foregroundActive())void start();
+});
 window.addEventListener('online',()=>{
-  if(!authenticated())return;
+  if(!foregroundActive())return;
   recoveryAttempt=0;
-  schedule(true);
+  void start();
   void sync()?.wake?.({reason:'online'});
   void callEngine()?.recover?.({reason:'online'});
-  schedulePresencePublish(0,{replace:true});
 });
 window.addEventListener('offline',()=>{
-  clearTimer();
-  clearRecoveryTimer();
-  clearMessageFallback();
-  emitPresence();
+  void stop();
 });
 document.addEventListener('visibilitychange',()=>{
-  schedulePresencePublish(0,{replace:true});
-  if(document.hidden||!authenticated())return;
-  recoveryAttempt=0;
-  if(channelState!=='SUBSCRIBED'){
-    schedule(true);
-    scheduleRecovery();
+  if(document.hidden){
+    void stop();
+    return;
   }
+  if(!authenticated()||!online())return;
+  recoveryAttempt=0;
+  void start();
   void sync()?.wake?.({reason:'foreground'});
   void callEngine()?.recover?.({reason:'foreground'});
 });
@@ -297,5 +309,5 @@ window.V21RealtimeSession={
   };}
 };
 
-queueMicrotask(()=>{if(authenticated())void start();else emitPresence();});
+queueMicrotask(()=>{if(foregroundActive())void start();else emitPresence();});
 })();

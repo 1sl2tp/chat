@@ -34,3 +34,11 @@ assert "function mobileAdminBackground()" in PUSH
 assert "current==='ios-pwa'||current==='android-pwa'||current==='android-web'" in PUSH
 
 print("V21 persistent session + admin mobile background contract PASS")
+
+
+RT=(ROOT/'v21-realtime-session.js').read_text('utf-8')
+assert "function foregroundActive(){return authenticated()&&online()&&!document.hidden;}" in RT
+assert "if(document.hidden){\n    void stop();\n    return;" in RT
+assert "pendingMessageFallbackIds=new Set()" in RT
+
+print("V21 foreground-only realtime + targeted fallback contract PASS")
