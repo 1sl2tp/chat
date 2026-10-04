@@ -182,3 +182,23 @@ Không trả lời được 8 câu trên → chưa merge.
 - Heartbeat: chậm và visibility-aware.
 - Background work: dirty/demand-driven.
 - Operational tables: bounded retention.
+
+
+### Retention production 2026-10-04
+
+Một cron duy nhất `chat-operational-retention-daily` chạy 03:43 UTC, mỗi bảng tối đa 10.000 dòng/lượt:
+
+| Operational data | Retention |
+|---|---:|
+| `v21_sync_events` | 14 ngày |
+| `v21_session_events` | 7 ngày |
+| `v21_push_outbox` sent/dead | 7 ngày |
+| `v21_sessions` revoked | 30 ngày |
+| `chat_customer_summary_runs` failed | 7 ngày |
+| `chat_customer_summary_runs` done | 30 ngày |
+
+Canonical `messages/read_states/conversations/media` không thuộc cleanup.
+
+Nếu cursor client cũ hơn vùng `sync_events` còn giữ, `v21_sync_pull` trả `reset_required=true`; client bắt buộc gọi `initializeFromServer()`/snapshot rồi tiếp tục từ cursor mới.
+
+Không dùng `VACUUM FULL` trong production Chat để đòi giảm file ngay; regular autovacuum tái sử dụng free space mà không khóa bảng dài.

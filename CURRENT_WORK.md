@@ -73,3 +73,27 @@ Production đã áp migration `restore_chat_realtime_authenticated_select`:
 - giữ nguyên RLS và write privileges.
 
 Sau migration, cả 4 bảng Realtime: authenticated SELECT = true, anon SELECT = false.
+
+
+## Operational retention đã áp production
+
+Migration: `chat_operational_retention_guard`.
+
+Retention:
+- sync events: 14 ngày;
+- session events: 7 ngày;
+- push outbox sent/dead: 7 ngày;
+- revoked app sessions: 30 ngày;
+- summary failed: 7 ngày;
+- summary done: 30 ngày.
+
+Cron owner duy nhất: `chat-operational-retention-daily`, 03:43 UTC, tối đa 10.000 dòng/bảng/lượt.
+
+Cleanup đầu tiên:
+- `v21_session_events`: 228 → 3;
+- `v21_push_outbox`: 1264 → 234;
+- `chat_customer_summary_runs failed`: 1037 → 86;
+- `v21_sync_events`: chưa xóa vì chưa đủ 14 ngày;
+- revoked sessions: chưa xóa vì chưa đủ 30 ngày.
+
+Canonical messages/read/media/conversations không bị đụng.
