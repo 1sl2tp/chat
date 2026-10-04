@@ -30,10 +30,10 @@ Các bảng vận hành đang tăng:
 ## 1. Message delivery là đường nóng bắt buộc
 
 Được phép:
-- Realtime subscription;
-- delta pull khi có signal;
+- app đang mở: `v21_sync_events` áp canonical payload thẳng vào cache/UI;
+- boot/foreground/reconnect: delta pull catch-up;
 - bounded reconnect/recovery;
-- direct message/push fallback chỉ để wake.
+- direct message/push fallback chỉ để wake khi canonical Realtime không tới.
 
 Cấm:
 - interval polling message;
@@ -42,7 +42,7 @@ Cấm:
 - nhiều transport cùng render một message;
 - retry nhanh vô hạn khi Realtime lỗi.
 
-Một logical event có thể có nhiều wake signal, nhưng **chỉ một SyncEngine runner** xử lý và phải coalesce.
+Một logical event chỉ có một render owner: canonical `v21_sync_events`. Pull/fallback được phép replay nhưng phải idempotent theo id/version.
 
 ## 2. Presence chỉ là advisory
 
@@ -94,7 +94,7 @@ Read receipt phải chính xác, nhưng không cần RPC recount hàng loạt.
 
 ## 6. Push
 
-- Admin Web Push = background notification + fallback wake.
+- Admin Web Push = background channel của admin mobile + fallback wake khi app đang mở.
 - Push không ghi/nhân bản canonical message.
 - Push dirty không được vừa wake sync vừa gọi nhiều unread recount độc lập.
 - Same-conversation foreground có thể suppress system notification nhưng **không được suppress wake UI**.

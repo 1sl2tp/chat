@@ -22,3 +22,15 @@ assert "if(sent>0)await pullAll();" in do_sync
 assert "await flushOutbox();\n  await pullAll();" not in do_sync
 
 print("V21 resource guardrails runtime contract PASS")
+
+
+PUSH=(ROOT/'admin-push-controller.js').read_text('utf-8')
+SOURCE=(ROOT/'index.source.html').read_text('utf-8')
+assert "persistSession:true" in AUTH
+assert "autoRefreshToken:true" in AUTH
+assert 'autocomplete="username"' in SOURCE
+assert 'autocomplete="current-password"' in SOURCE
+assert "function mobileAdminBackground()" in PUSH
+assert "current==='ios-pwa'||current==='android-pwa'||current==='android-web'" in PUSH
+
+print("V21 persistent session + admin mobile background contract PASS")

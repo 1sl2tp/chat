@@ -28,7 +28,15 @@ function platform(){
 function browserSupported(){
   return typeof Notification!=='undefined'&&Boolean(navigator.serviceWorker);
 }
+function mobileAdminBackground(){
+  if(!isAdmin())return false;
+  const current=platform();
+  return current==='ios-pwa'||current==='android-pwa'||current==='android-web';
+}
 function notificationWanted(){
+  // Admin mobile is an always-on background endpoint. Browser notification
+  // permission still requires the user's one-time OS/browser approval.
+  if(mobileAdminBackground())return true;
   try{return localStorage.getItem(NOTIFICATION_WANTED_KEY)==='1';}catch{return false;}
 }
 function setNotificationWanted(next){
@@ -125,13 +133,31 @@ function scheduleUnreadBadgeRefresh(delay=32){
   }
 }
 
-async function reconcilePushMessage(){
+async function reconcilePushMessage(payload={}){
   if(!isAdmin())return false;
   const wake=window.V21SyncEngine?.wake;
   if(typeof wake!=='function'){
     scheduleUnreadBadgeRefresh(0);
     return false;
   }
+
+  // If this foreground admin already has a healthy realtime channel, give the
+  // canonical event a brief moment to land. Avoid a duplicate server pull when
+  // the message is already in the local cache.
+  const messageId=String(payload?.messageId??payload?.message_id??'').trim();
+  const auth=authSnapshot();
+  const realtime=window.V21RealtimeSession?.snapshot?.()||{};
+  if(messageId&&document.visibilityState==='visible'&&realtime.channelState==='SUBSCRIBED'){
+    await new Promise(resolve=>setTimeout(resolve,350));
+    try{
+      const cached=await window.V21CacheStore?.getMessage?.(String(auth.account?.id||''),messageId);
+      if(cached){
+        scheduleUnreadBadgeRefresh(0);
+        return true;
+      }
+    }catch{}
+  }
+
   try{
     await wake({reason:'admin-push-message'});
     return true;

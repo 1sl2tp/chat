@@ -194,8 +194,13 @@ function start(){
       },payload=>{
         if(local!==generation||channel!==next)return;
         clearMessageFallback();
-        const seq=Number(payload?.new?.seq)||0;
-        void sync()?.wake?.({reason:'realtime',hintSeq:seq});
+        const row=payload?.new||null;
+        const direct=sync()?.consumeRealtimeEvent?.(row);
+        if(direct&&typeof direct.catch==='function'){
+          void direct.catch(()=>sync()?.wake?.({reason:'realtime-direct-failed'}));
+        }else if(!direct){
+          void sync()?.wake?.({reason:'realtime-direct-unavailable'});
+        }
       })
       .on('postgres_changes',{
         event:'INSERT',schema:'public',table:'v21_messages'

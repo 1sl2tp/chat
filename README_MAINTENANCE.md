@@ -54,19 +54,21 @@ Luồng chuẩn:
 ```text
 message/read write
 → v21_sync_events
-→ Supabase Realtime wake
-→ SyncEngine delta pull
+→ app đang mở: áp canonical event thẳng vào SyncEngine/cache/UI
 → MessageStore + ContactStore cùng cập nhật
 → active thread xuống newest
 → mark-read chỉ khi conversation thật sự visible
+→ mở lại/reconnect: delta pull catch-up phần bị lỡ
 ```
 
 Các invariants:
 - Tin nhắn không phụ thuộc polling interval.
 - Danh bạ và thread phải dùng cùng canonical event.
 - Một account mở nhiều admin device: mọi session hợp lệ đều phải nhận wake.
-- Realtime signal chỉ đánh thức SyncEngine; không render trực tiếp từ nhiều source cạnh tranh.
-- Direct `v21_messages INSERT` hoặc push chỉ được làm fallback wake; SyncEngine phải coalesce để không duplicate.
+- Chỉ `v21_sync_events` được phép áp canonical payload trực tiếp khi app đang mở.
+- `v21_sync_pull` là catch-up khi boot/reconnect/gap, không phải vòng bắt buộc sau mỗi event.
+- Direct `v21_messages INSERT` hoặc push chỉ được làm fallback wake; không được trở thành render owner.
+- Admin mobile background dùng Web Push; user đóng app thì không chạy foreground sync.
 
 ## 5. Deploy
 

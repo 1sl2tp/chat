@@ -10,6 +10,11 @@ assert "const MESSAGE_FALLBACK_DELAY_MS=250;" in RT
 assert "scheduleMessageFallback();" in RT
 assert "clearMessageFallback();" in RT
 assert "reason:'realtime-message-fallback'" in RT
+assert "consumeRealtimeEvent" in RT
+SYNC=(ROOT/'v21-sync-engine.js').read_text('utf-8')
+assert "function consumeRealtimeEvent(event={})" in SYNC
+assert "await applyEvent(event);" in SYNC
+assert "version:VERSION,wake,consumeRealtimeEvent" in SYNC
 
 sync_pos=RT.index("table:'v21_sync_events'")
 message_pos=RT.index("table:'v21_messages'")
@@ -29,4 +34,4 @@ assert "visibilitychange',()=>{\n  schedulePresencePublish(0,{replace:true});" i
 assert "navigation-change',()=>schedulePresencePublish(0,{replace:true})" in RT
 assert "v21-active-contact-change',()=>schedulePresencePublish(0,{replace:true})" in RT
 
-print("V21 realtime fallback + lifecycle presence contract PASS")
+print("V21 direct foreground realtime + fallback + lifecycle presence contract PASS")

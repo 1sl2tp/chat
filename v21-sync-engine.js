@@ -20,6 +20,7 @@ let unreadRefreshPromise=null;
 let unreadRefreshTimer=0;
 let unreadRefreshQueued=false;
 let unreadLastStartedAt=0;
+let realtimeApplyChain=Promise.resolve();
 
 function authStore(){return window.V21AuthSessionStore||null;}
 function cache(){return window.V21CacheStore||null;}
@@ -299,7 +300,12 @@ async function applyReadEvent(event){
   const payload=event?.payload||null;
   if(!payload?.conversation_id||!payload?.account_id)return false;
   await cache()?.putReadState?.(accountId,payload);
-  if(String(payload.account_id)===String(accountId))await patchContactSummary(payload.conversation_id,{has_unread:false});
+  if(String(payload.account_id)===String(accountId)){
+    await patchContactSummary(payload.conversation_id,{has_unread:false});
+    // Reading on one open device must immediately reconcile unread state on
+    // the other open sessions of the same account.
+    void refreshUnread();
+  }
   return true;
 }
 
@@ -343,6 +349,26 @@ async function applyEvent(event){
   if(event.entity_type==='read_state')return applyReadEvent(event);
   if(event.entity_type==='media')return applyMediaEvent(event);
   return false;
+}
+
+function consumeRealtimeEvent(event={}){
+  const ownerAccountId=String(accountId||'');
+  const targetAccountId=String(event?.target_account_id||'');
+  if(!ownerAccountId||!appSessionId||!client||!event?.entity_type)return Promise.resolve(false);
+  if(targetAccountId&&targetAccountId!==ownerAccountId)return Promise.resolve(false);
+
+  const run=async()=>{
+    if(ownerAccountId!==String(accountId||'')||!appSessionId||!client)return false;
+    await applyEvent(event);
+    await flushActiveMessageVisuals();
+    // The contact/thread renders from the realtime payload itself. Server
+    // recount is only needed for the global unread badge when chat is not open.
+    if(event.entity_type==='message'&&!chatVisible())void refreshUnread();
+    return true;
+  };
+  const next=realtimeApplyChain.then(run,run);
+  realtimeApplyChain=next.catch(()=>false);
+  return next;
 }
 
 async function pullAll(){
@@ -1507,6 +1533,7 @@ async function onAuth(detail){
     readMarkConversationId=null;
     clearUnreadRefreshTimer();
     unreadRefreshPromise=null;unreadRefreshQueued=false;unreadLastStartedAt=0;
+    realtimeApplyChain=Promise.resolve();
     accountId=null;appSessionId=null;currentContactId=null;currentConversationId=null;
     wakeHint=0;wakePending=false;
     messages()?.reset?.();
@@ -1549,7 +1576,7 @@ document.addEventListener('navigation-change',event=>{
 });
 
 window.V21SyncEngine={
-  version:VERSION,wake,openContact,queueText,queueMediaFiles,forwardMessage,flushOutbox,refreshUnread,markRead,syncContacts,clearAccount,ensureMediaRemote,
+  version:VERSION,wake,consumeRealtimeEvent,openContact,queueText,queueMediaFiles,forwardMessage,flushOutbox,refreshUnread,markRead,syncContacts,clearAccount,ensureMediaRemote,
   recoverActiveFromSnapshot:canonicalReconcileActive,
   snapshot(){return{accountId,appSessionId,currentContactId,currentConversationId,syncing,wakePending,wakeHint,lastReason,online:online()};}
 };
