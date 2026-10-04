@@ -105,6 +105,9 @@ Deno.serve(async (req: Request) => {
       }
 
       const usernameChanged = username !== String(target.username || "").toLowerCase();
+      if (password && !target.auth_user_id) {
+        return reply(409, { ok: false, code: "login_not_enabled" });
+      }
       if (usernameChanged) {
         const { data: existing } = await admin
           .from("v21_accounts")
@@ -136,7 +139,7 @@ Deno.serve(async (req: Request) => {
         return reply(400, { ok: false, code: "update_failed" });
       }
 
-      if (usernameChanged || password) {
+      if ((usernameChanged || password) && target.auth_user_id) {
         const patch: Record<string, unknown> = {};
         if (usernameChanged) {
           const { data: targetAuth } = await admin.auth.admin.getUserById(target.auth_user_id);
