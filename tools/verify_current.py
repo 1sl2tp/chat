@@ -98,6 +98,7 @@ subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_realtime_message_fallb
 subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_resource_guardrails.py')],check=True,cwd=ROOT)
 subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_retention_reset_contract.py')],check=True,cwd=ROOT)
 subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_contact_click_position_stability.py')],check=True,cwd=ROOT)
+subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_customer_care_templates.py')],check=True,cwd=ROOT)
 subprocess.run([sys.executable,'-m','pytest','-q',str(ROOT/'tests'/'test_v21_zalo_admin_ui_contract.py')],check=True,cwd=ROOT)
 for test in sorted((ROOT/'tests').glob('test_v21_admin_web_push*.py')):
     subprocess.run([sys.executable,'-m','pytest','-q',str(test)],check=True,cwd=ROOT)

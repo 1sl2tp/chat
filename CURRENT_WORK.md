@@ -123,3 +123,15 @@ Final production rule:
 - no auto-send was added.
 
 Production was refreshed immediately after the migration. On 2026-10-04 (Sunday), today's open care plan is Hàng thường.
+
+
+## Customer-care message templates
+
+Both Hàng thường and Sữa use the same 3-tier recommendation contract:
+1. customer purchase history;
+2. popular products from the same source;
+3. active catalog fallback from the same source.
+
+Up to 5 items are returned. A customer with no purchase history still receives product suggestions, and Milk suggestions never mix with regular-goods suggestions.
+
+Canonical formatter: `chat_customer_care_message(customer_id,date)`.
