@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="a17b6ee04631f971e2e3ab6d7cf898165a7fc93eaf866e7e70787eb1725197ec">
+<meta name="app-build-id" content="326fe8ee965fdeb08826d8cf9a6efd4cc23fce2686e182e2464261beae3989cc">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -14755,11 +14755,14 @@ function toggleAccountMenu(){
 }
 
 function setSidebar(open){
-  if(!open)closeAccountMenu(); 
+  if(!open)closeAccountMenu();
   if(desktopSidebarPersistent){
+    // Persistent desktop directory is already mounted and kept current by
+    // bootstrap/realtime. NavigationCommand.openChat() calls setSidebar(false)
+    // on every contact click; refreshing here caused an async full contact
+    // replace after the click and could reset the user's directory scroll.
     sidebarOpen=false;
     syncSidebarPresentation();
-    if(authState==='AUTHENTICATED')void window.V21ContactStore?.refresh?.();
     return false;
   }
   sidebarOpen=Boolean(open);
