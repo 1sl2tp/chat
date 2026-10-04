@@ -53,7 +53,7 @@ assert "media.addEventListener('change',onChange)" in contract
 assert "media.addListener(onChange)" in contract
 
 # Keep the previously locked init sequence intact.
-assert 'bindMobileHierarchySwipe();\nbindMobileNavigationClicks();\nbindMobileViewportTransition();\nschedule();' in js
+assert "bindMobileHierarchySwipe();\nbindMobileNavigationClicks();\nbindMobileViewportTransition();\nsyncRealtimeSubscription();\nvoid refresh('boot');" in js
 assert 'bindMobileAccountMenuContractSync();\nbindMobileHierarchySwipe();' in js
 
 print('V21.72.68 mobile hamburger auth contract PASS')
