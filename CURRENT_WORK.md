@@ -201,3 +201,34 @@ Final contract:
 - historical reuse is still allowed after the draft/message commits;
 - one-time migration soft-deleted later same-hash Admin assets inside the same message; production duplicate-message count is now 0;
 - no polling/request owner was added.
+
+
+## Danh bạ — click giữ nguyên vùng cuộn + xóa ô tìm kiếm
+
+Triệu chứng:
+- Admin cuộn danh bạ xuống giữa/dưới rồi bấm một liên hệ (ví dụ Cô Huyền PL) thì sidebar nhảy về đầu.
+- Khi tìm một liên hệ rồi bấm mở, chữ trong ô tìm kiếm vẫn còn.
+
+Root cause:
+- `contact-directory-admin.js` bắt mọi `v21-contact-store-change` bằng `scheduleSync({scrollToTop:true})`.
+- Mở conversation có thể lập tức mark-read, sinh contact-store patch và extension Admin cưỡng bức `scrollTop=0`, dù `shell.js` đã giữ đúng viewport.
+- Module danh bạ được dynamic-import ngoài canonical bundle nên cần build-key để tránh browser giữ bản JS cũ.
+
+Final contract:
+- `v21-contact-store-change` chỉ sync/reorder và luôn giữ `.wm-sidebar-navigation.scrollTop`; mark-read không được kéo danh bạ về đầu.
+- Tin nhắn mới vẫn có thể reorder theo `latest_at`, nhưng viewport hiện tại thuộc về người dùng và không bị ép về row 1.
+- Click đúng `[data-contact-select]` sẽ xóa `query` + giá trị input tìm kiếm rồi sync danh sách; nút `...` quản lý liên hệ không bị coi là mở contact.
+- Dynamic import `contact-directory-admin.js` được gắn `__build=<app-build-id>` để deploy mới không dùng cache module cũ.
+- Không thêm polling/request/Realtime owner mới.
+
+Commits:
+- code + regression test: `2a304b7f54a1ed816f61c949962badaaf6620a52`;
+- sửa contract test cũ đang yêu cầu hành vi nhảy-top: `efbfee7e7873869657a4176ba024da5bbb05d5ea`;
+- sync canonical `index.html/version.json`: `9f192d36a13f9c5e48ffc9ae25ffc39da28017ab`.
+
+Verification:
+- Verify V21: PASS trên `9f192d36a13f9c5e48ffc9ae25ffc39da28017ab`.
+- Deploy Chat Pages: PASS.
+- Build canonical + verify canonical: PASS.
+- Pages deploy + custom-domain HTTPS probe: PASS.
+- Production build id: `568463e3960f72cd91676e369aac91e464ca5ae982838b87da450dfeb3c1dfa2`.
