@@ -37,6 +37,6 @@ assert 'hideMobileDirectory(' not in body
 assert 'navigation()?.openChat?.()' not in body
 
 # The listener is installed with the existing mobile hierarchy behavior.
-assert 'bindMobileHierarchySwipe();\nbindMobileNavigationClicks();\nbindMobileViewportTransition();\nschedule();' in js
+assert "bindMobileHierarchySwipe();\nbindMobileNavigationClicks();\nbindMobileViewportTransition();\nsyncRealtimeSubscription();\nvoid refresh('boot');" in js
 
 print('V21.72.67 mobile account menu breakpoint dismiss PASS')
