@@ -1,3 +1,42 @@
+## 2026-10-05 — Offline contact visibility + Admin→Zalo delivery
+
+Symptom:
+- one Chat account could be absent from the Admin directory while not online;
+- Admin manual message to a Zalo-linked account could wait for the bridge fallback poll before 05:00 because the outbound wake signal was time-gated.
+
+Production facts:
+- `v21_contacts_sidebar` does **not** filter by `v21_sessions`/Presence; directory membership is canonical `v21_accounts` data.
+- production currently has 79 active user accounts; 78 had no active Chat session in the 5-minute check window, yet all remain directory-eligible.
+- 76 accounts are linked to Zalo.
+- Admin→linked-account Chat insert already creates `zalo_message_links(direction='outbound', state='pending')` independent of target online state.
+
+Root cause:
+- desktop can retain a stale local contact cache even after the relevant old sync event is no longer useful for repairing that cache;
+- `v21_private.zalo_outbound_signal()` skipped immediate Render wake before 05:00 Asia/Ho_Chi_Minh, even for a manual Admin message.
+
+Final contract:
+- authenticated bootstrap performs exactly one bounded `v21_contacts_sidebar` refresh to repair stale local directory cache; no interval polling was added;
+- Presence/session state never controls whether an account appears in the directory;
+- manual Admin→Zalo outbound signals `taphoa-zalo/outbound-now` immediately at any hour;
+- customer-care scheduling remains controlled by its own daytime windows and pacing rules;
+- if recipient is offline and has Zalo link: canonical Chat message + Zalo outbound;
+- if recipient is offline and has no Zalo link: canonical Chat message remains unread and is delivered by normal Chat catch-up on next login; user-side Web Push is not currently an owner.
+
+Verification:
+- code commit: `1707790d2ac317656448b7a233d6dd79a4b7cab8`;
+- canonical build sync: `06370c3b1c3c7d4f304f9c19ab2820e71107a573`;
+- Verify V21: PASS;
+- Block old Supabase runtime refs: PASS;
+- Deploy Chat Pages: PASS;
+- GitHub Pages deployment: PASS;
+- production Zalo wake probe cleared the 4 current pending outbound rows; one historical failed row remains unrelated.
+
+Resource impact:
+- +1 bounded contacts RPC per authenticated bootstrap only;
+- 0 interval polling added;
+- manual Zalo message creates one immediate bridge wake instead of waiting up to the fallback poll;
+- no new canonical table or duplicate delivery store.
+
 
 
 ## 2026-10-05 — LiveKit single-owner cleanup
