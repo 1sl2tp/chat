@@ -472,17 +472,18 @@ async function runAction(action){
     }
   }
   if(action==='debt'){
-    setTransientHint('Đang tạo đối chiếu công nợ…',2400);
+    setTransientHint('Đang gửi đối chiếu công nợ…',4000);
     try{
       const client=authStore()?.getClient?.()||null;
       if(!client)throw new Error('authentication_required');
-      const {data,error}=await client.rpc('v21_admin_debt_share_summary',{
+      const clientId=window.V21RuntimeId?.create?.()||`debt-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+      const {data,error}=await client.rpc('v21_admin_send_debt_summary',{
         p_customer_id:String(contactId),
+        p_client_id:String(clientId),
       });
       if(error)throw error;
-      const body=String(data?.body||'').trim();
-      if(!data?.ok||!body)throw new Error(data?.error||'debt_summary_failed');
-      await sendAdminText(body,contactId,'debt-summary-send');
+      if(!data?.ok||!data?.sent||!data?.message_id)throw new Error(data?.error||'debt_summary_send_failed');
+      void window.V21SyncEngine?.wake?.({reason:'debt-summary-send'});
       setTransientHint('Đã gửi đối chiếu công nợ');
       return true;
     }catch{
