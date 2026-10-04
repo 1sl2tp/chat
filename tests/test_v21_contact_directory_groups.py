@@ -24,17 +24,18 @@ def test_directory_reorders_contacts_by_latest_activity_and_exposes_search_filte
     assert "contact-directory-admin.js" in loader
 
 
-def test_directory_activity_refresh_scrolls_to_latest_contact_while_manual_filter_keeps_position():
+def test_directory_activity_refresh_preserves_viewport_and_manual_filter_keeps_position():
     module = (ROOT / "contact-directory-admin.js").read_text("utf-8")
 
-    # Contact-store activity means a newer conversation can move to row 1.
-    # The directory viewport must follow that reorder to the top instead of
-    # restoring the stale scrollTop that hid the latest conversation.
+    # Contact-store activity may reorder rows, but the current directory
+    # viewport belongs to the user. Opening/marking a conversation read must
+    # never force the sidebar back to row 1.
     assert "function syncDirectoryRows({scrollToTop=false}={})" in module
     assert "scrollHost.scrollTop=scrollToTop?0:previousScrollTop" in module
     assert "function scheduleSync({scrollToTop=false}={})" in module
     assert "syncDirectoryRows({scrollToTop})" in module
-    assert "document.addEventListener('v21-contact-store-change',()=>scheduleSync({scrollToTop:true}))" in module
+    assert "document.addEventListener('v21-contact-store-change',()=>scheduleSync())" in module
+    assert "scheduleSync({scrollToTop:true})" not in module
 
     # Search/filter changes are user-owned navigation inside the directory and
     # must not force a jump to the top.
