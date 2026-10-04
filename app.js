@@ -5044,8 +5044,9 @@ function formatBytes(bytes){
 
 
 
-const MAX_IMAGE_EDGE=1600;
-const IMAGE_ENCODE_QUALITY=.78;
+const MAX_IMAGE_EDGE=4096;
+const MAX_IMAGE_UPLOAD_BYTES=15*1024*1024;
+const IMAGE_ENCODE_QUALITY=.92;
 const localImagePreviewUrls=new Map();
 
 function releaseLocalImageAttachment(item,{removeCache=true}={}){
@@ -5186,7 +5187,14 @@ async function optimizeImageBlob(file){
   if(mime==='image/gif'||mime==='image/svg+xml')return{blob:file,width,height,compressed:false};
 
   const scale=Math.min(1,MAX_IMAGE_EDGE/Math.max(width,height));
-  if(scale===1&&Number(file.size)<=512*1024)return{blob:file,width,height,compressed:false};
+  // Keep browser-native images byte-for-byte whenever they already fit the
+  // product upload limit. The chat bubble is only ~360px wide, so the old
+  // 1600px/.78 recompress looked fine there but became visibly soft in the
+  // full-screen viewer, especially for screenshots/text on Retina displays.
+  const browserNative=['image/jpeg','image/jpg','image/png','image/webp'].includes(mime);
+  if(scale===1&&browserNative&&Number(file.size)<=MAX_IMAGE_UPLOAD_BYTES){
+    return{blob:file,width,height,compressed:false};
+  }
 
   let source=null;
   let sourceRelease=null;

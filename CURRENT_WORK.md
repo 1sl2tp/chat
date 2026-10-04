@@ -232,3 +232,25 @@ Verification:
 - Build canonical + verify canonical: PASS.
 - Pages deploy + custom-domain HTTPS probe: PASS.
 - Production build id: `568463e3960f72cd91676e369aac91e464ca5ae982838b87da450dfeb3c1dfa2`.
+
+
+## Ảnh chat — mở full phải giữ độ nét
+
+Triệu chứng:
+- ảnh trong bong bóng chat nhìn nét nhưng khi mở viewer toàn màn hình thấy mềm/mờ hơn.
+
+Root cause:
+- Composer cũ ép mọi ảnh lớn về cạnh tối đa 1600px và JPEG/WebP quality 0.78;
+- ảnh trên bubble chỉ rộng khoảng 360px nên khó thấy suy giảm, nhưng viewer toàn màn hình/Retina phóng vùng ảnh lớn hơn nên lộ rõ;
+- production có nhiều media canonical bị chạm đúng trần 1600px, xác nhận đây là đường nén thực tế chứ không phải CSS viewer.
+
+Final contract:
+- JPEG/JPG/PNG/WebP có cạnh <=4096px và <=15 MiB được giữ nguyên byte, không re-encode chỉ vì file >512 KiB;
+- ảnh lớn hơn 4096px vẫn resize có kiểm soát về 4096px, quality encode 0.92;
+- giới hạn upload 15 MiB hiện hữu không đổi;
+- viewer/cache/Storage owner không đổi, không thêm request/polling/proxy/log;
+- ảnh đã gửi trước patch vẫn giữ chất lượng file đã lưu; patch áp cho ảnh gửi mới.
+
+Resource impact:
+- không tăng số request;
+- media mới có thể lớn hơn trước nên tăng byte Storage/egress theo kích thước ảnh thực, đổi lại viewer giữ độ nét sản phẩm; vẫn bị chặn bởi giới hạn 15 MiB/ảnh.
