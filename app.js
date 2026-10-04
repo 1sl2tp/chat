@@ -5315,6 +5315,16 @@ async function prepareImageAttachment(file,scope){
   return item;
 }
 
+function sameDraftImageContentExists(item,attachments){
+  if(item?.kind!=='image')return false;
+  const hash=String(item?.contentHash||'').trim().toLowerCase();
+  if(!hash)return false;
+  return (Array.isArray(attachments)?attachments:[]).some(existing=>
+    existing?.kind==='image'&&
+    String(existing?.contentHash||'').trim().toLowerCase()===hash
+  );
+}
+
 function appendPreparedAttachment(scope,item){
   const authAccount=String(window.V21AuthSessionStore?.snapshot?.().account?.id||'');
   if(authAccount!==scope.accountId){
@@ -5323,12 +5333,20 @@ function appendPreparedAttachment(scope,item){
   }
   const current=currentComposerScope();
   if(current.mediaKey===scope.mediaKey&&ComposerDraftOwner.currentKey()===scope.ownerDraftKey){
+    if(sameDraftImageContentExists(item,pendingAttachments)){
+      releaseLocalAttachment(item,{removeCache:true});
+      return false;
+    }
     pendingAttachments.push(item);
     ComposerDraftOwner.saveCurrent();
     renderAttachmentTray();syncSendButtonState();
     return true;
   }
   const draft=ComposerDraftOwner.drafts.get(scope.ownerDraftKey)||{text:'',replyTarget:null,attachments:[]};
+  if(sameDraftImageContentExists(item,draft.attachments||[])){
+    releaseLocalAttachment(item,{removeCache:true});
+    return false;
+  }
   draft.attachments=[...(draft.attachments||[]),item];
   ComposerDraftOwner.drafts.set(scope.ownerDraftKey,draft);
   return true;
