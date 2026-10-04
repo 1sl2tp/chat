@@ -61,6 +61,15 @@ async function runtimeConfig(){
   };
 }
 
+async function finishDispatch(){
+  const result=await db.rpc('chat_customer_summary_dispatch_finish');
+  if(result.error){
+    console.error('[v21-customer-summary-scan:dispatch-finish]',String(result.error.message||result.error));
+    return false;
+  }
+  return true;
+}
+
 async function claimCustomers(){
   const result=await db.rpc('chat_customer_summary_claim_dirty_batch',{p_limit:MAX_CUSTOMERS_PER_RUN});
   if(result.error)throw result.error;
@@ -292,7 +301,10 @@ Deno.serve(async(req:Request)=>{
     if(!cfg.geminiKey)return json({ok:false,error:'ai_not_configured'},503);
 
     const customers=await claimCustomers();
-    if(!customers.length)return json({ok:true,eligibleCustomers:0,scannedCustomers:0,aiCalls:0,failed:0,model:cfg.model,failoverUsed:false});
+    if(!customers.length){
+      await finishDispatch();
+      return json({ok:true,eligibleCustomers:0,scannedCustomers:0,aiCalls:0,failed:0,model:cfg.model,failoverUsed:false});
+    }
 
     const budget:AiBudget={calls:0};
     let activeCfg={...cfg};
@@ -324,6 +336,7 @@ Deno.serve(async(req:Request)=>{
       }
     }
 
+    await finishDispatch();
     return json({ok:true,eligibleCustomers:customers.length,scannedCustomers,aiCalls:budget.calls,failed,model:activeCfg.model,failoverUsed,results});
   }catch(error){
     console.error('[v21-customer-summary-scan:fatal]',String((error as any)?.message||error||'internal_error'));
