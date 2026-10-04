@@ -254,3 +254,12 @@ Final contract:
 Resource impact:
 - không tăng số request;
 - media mới có thể lớn hơn trước nên tăng byte Storage/egress theo kích thước ảnh thực, đổi lại viewer giữ độ nét sản phẩm; vẫn bị chặn bởi giới hạn 15 MiB/ảnh.
+
+Commit production: `7e2403a5fe97f0f797c0811a403100a69facf0e4`.
+- build id: `5b34014013eb2c58da951f3078708400d73bf71e7c1f8f9c6ade5215ff05e030`;
+- Verify V21: PASS;
+- Block old Supabase runtime refs: PASS;
+- Deploy Chat Pages: PASS;
+- GitHub Pages build/deployment: PASS;
+- canonical build/verify: PASS;
+- custom-domain production probe: PASS.
