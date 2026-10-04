@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="53664795a169488a8d867f1626ac509b7fa7fffecf8a5e060b7a45701fb43d81">
+<meta name="app-build-id" content="a17b6ee04631f971e2e3ab6d7cf898165a7fc93eaf866e7e70787eb1725197ec">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -12312,6 +12312,16 @@ async function prepareImageAttachment(file,scope){
   return item;
 }
 
+function sameDraftImageContentExists(item,attachments){
+  if(item?.kind!=='image')return false;
+  const hash=String(item?.contentHash||'').trim().toLowerCase();
+  if(!hash)return false;
+  return (Array.isArray(attachments)?attachments:[]).some(existing=>
+    existing?.kind==='image'&&
+    String(existing?.contentHash||'').trim().toLowerCase()===hash
+  );
+}
+
 function appendPreparedAttachment(scope,item){
   const authAccount=String(window.V21AuthSessionStore?.snapshot?.().account?.id||'');
   if(authAccount!==scope.accountId){
@@ -12320,12 +12330,20 @@ function appendPreparedAttachment(scope,item){
   }
   const current=currentComposerScope();
   if(current.mediaKey===scope.mediaKey&&ComposerDraftOwner.currentKey()===scope.ownerDraftKey){
+    if(sameDraftImageContentExists(item,pendingAttachments)){
+      releaseLocalAttachment(item,{removeCache:true});
+      return false;
+    }
     pendingAttachments.push(item);
     ComposerDraftOwner.saveCurrent();
     renderAttachmentTray();syncSendButtonState();
     return true;
   }
   const draft=ComposerDraftOwner.drafts.get(scope.ownerDraftKey)||{text:'',replyTarget:null,attachments:[]};
+  if(sameDraftImageContentExists(item,draft.attachments||[])){
+    releaseLocalAttachment(item,{removeCache:true});
+    return false;
+  }
   draft.attachments=[...(draft.attachments||[]),item];
   ComposerDraftOwner.drafts.set(scope.ownerDraftKey,draft);
   return true;
