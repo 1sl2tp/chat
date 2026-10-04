@@ -3,29 +3,38 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 BASE = ROOT / "supabase/migrations/20260922225500_customer_care_schedule.sql"
 POLICY = ROOT / "supabase/migrations/20260922232000_customer_care_pre_delivery_stagger.sql"
+ROUTE = ROOT / "supabase/migrations/20261004194500_restore_customer_care_milk_route_days.sql"
 
 assert BASE.exists(), "customer care base schedule migration is missing"
-assert POLICY.exists(), "customer care pre-delivery stagger migration is missing"
+assert POLICY.exists(), "customer care stagger migration is missing"
+assert ROUTE.exists(), "customer care final route-day override is missing"
 
 base_sql = BASE.read_text("utf-8")
 policy_sql = POLICY.read_text("utf-8")
-sql = base_sql + "\n" + policy_sql
+route_sql = ROUTE.read_text("utf-8")
+sql = base_sql + "\n" + policy_sql + "\n" + route_sql
 low = sql.lower()
 compact = "".join(low.split())
 policy_low = policy_sql.lower()
 policy_compact = "".join(policy_low.split())
+route_low = route_sql.lower()
+route_compact = "".join(route_low.split())
 
-# Vietnam time owns the policy.
+# Vietnam time owns the scheduler.
 assert "asia/ho_chi_minh" in policy_low
 
-# Milk is delivered Monday and Friday, so customer care reminds one day earlier:
-# Thursday (4) for Friday delivery and Sunday (7) for Monday delivery.
-assert "extract(isodow from p_date)" in policy_low
-assert "in(4,7)" in policy_compact
-assert "'source_key','sua'" in policy_low
-assert "'source_key','hang-thuong'" in policy_low
-assert "'care_reason','pre_delivery'" in policy_compact
-assert "'delivery_day'" in policy_low
+# Final route contract: Monday (1) and Friday (5) are Milk route days.
+# Every other day is regular goods. The later migration intentionally
+# overrides the historical one-day-early reminder rule.
+assert "extract(isodow from p_date)" in route_low
+assert "in(1,5)" in route_compact
+assert "'source_key','sua'" in route_compact
+assert "'source_key','hang-thuong'" in route_compact
+assert "'care_reason','route_day'" in route_compact
+assert "'care_reason','regular'" in route_compact
+assert "'delivery_day'" in route_low
+assert "when1then'Thứ2'" in route_compact
+assert "else'Thứ6'" in route_compact
 
 # Three days without a delivered order is already stale.
 assert ">= 3" in base_sql
@@ -54,7 +63,7 @@ assert "'send_mode','manual_staggered'" in policy_compact
 assert "primary key (business_date, customer_id)" in base_sql.lower()
 assert "'max_contact_per_customer_per_day',1" in policy_compact
 assert "'auto_send',false" in policy_compact
-assert "taphoa_chat_notify_customer" not in policy_low
-assert "insert into public.v21_messages" not in policy_low
+assert "taphoa_chat_notify_customer" not in route_low
+assert "insert into public.v21_messages" not in route_low
 
 print("Customer care schedule contract PASS")

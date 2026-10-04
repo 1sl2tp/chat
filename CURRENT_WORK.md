@@ -108,3 +108,18 @@ Contract mới:
 - `has_unread`, avatar, tên, profile update chỉ patch row tại chỗ;
 - tin nhắn mới vẫn đổi `latest_at` nên contact vẫn lên đầu;
 - full reorder khi có activity thật vẫn giữ `scrollTop` của `.wm-sidebar-navigation`.
+
+
+## Customer-care route schedule corrected
+
+Root cause: migration `20260922232000_customer_care_pre_delivery_stagger.sql` changed the source selector from the original route days (Monday/Friday) to one-day-early reminders (Sunday/Thursday).
+
+Final production rule:
+- Monday (Thứ 2): Sữa;
+- Friday (Thứ 6): Sữa;
+- every other day: Hàng thường;
+- scanners stay 09:15 and 14:00 Asia/Ho_Chi_Minh;
+- manual 2-minute staggering stays unchanged;
+- no auto-send was added.
+
+Production was refreshed immediately after the migration. On 2026-10-04 (Sunday), today's open care plan is Hàng thường.
