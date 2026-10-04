@@ -1,4 +1,5 @@
 name: Verify V21
+
 on:
   push:
     branches:
@@ -10,19 +11,75 @@ on:
     paths-ignore:
       - "**/*.md"
       - "docs/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chat-verify-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+
+      - name: Reject old business Supabase project in runtime code
+        shell: bash
+        run: |
+          set -euo pipefail
+          OLD='gcnoahqsrquxkwkjbuxy'
+          if git grep -n "$OLD" --             ':!supabase/migrations/**'             ':!docs/**'             ':!tests/**'             ':!**/*.md'             ':!.github/workflows/**'
+          then
+            echo "::error::Old Supabase project ref found in active runtime/deploy code."
+            exit 1
+          fi
+          echo "OK: active runtime/deploy code has no old Supabase project ref."
+
       - name: Install test dependency
         run: python -m pip install pytest
+
+      - name: Admin push schema contract
+        run: python -m pytest -q tests/test_v21_admin_web_push_schema.py
+      - name: Admin push core contract
+        run: node tests/test_v21_admin_web_push_core.mjs
+      - name: Admin push edge contract
+        run: python -m pytest -q tests/test_v21_admin_web_push_edge_contract.py
+      - name: Admin push service worker runtime
+        run: node tests/test_v21_admin_web_push_sw_runtime.js
+      - name: Admin push controller runtime
+        run: node tests/test_v21_admin_web_push_controller.js
+      - name: Admin push browser ownership contract
+        run: python -m pytest -q tests/test_v21_admin_web_push_ui_contract.py
+      - name: Admin push open route and logout cleanup contract
+        run: python -m pytest -q tests/test_v21_admin_web_push_open_route.py
+      - name: Admin push open route runtime
+        run: node tests/test_v21_admin_web_push_open_runtime.js
+
+      - name: Zalo schema contract
+        run: python -m pytest -q tests/test_v21_zalo_schema_contract.py
+      - name: Zalo audio contract
+        run: python -m pytest -q tests/test_v21_zalo_audio_contract.py
+      - name: Zalo account admin contract
+        run: python -m pytest -q tests/test_v21_zalo_account_admin_contract.py
+      - name: Zalo Admin UI contract
+        run: python -m pytest -q tests/test_v21_zalo_admin_ui_contract.py
+      - name: Contact directory module syntax
+        run: node --check contact-directory-admin.js
+      - name: Zalo bridge core tests
+        run: cd bridge/zalo && npm test
+
       - name: V21.72.17 mobile form keyboard contract
         run: python tests/test_v21_72_17_mobile_form_keyboard_contract.py
       - name: V21.72.17 mobile form keyboard runtime
@@ -121,5 +178,9 @@ jobs:
         run: python tests/test_v21_ui_icon_registry.py
       - name: Project consistency cleanup contract
         run: python tests/test_v21_project_consistency_cleanup.py
+      - name: Final syntax gate
+        run: |
+          node --check admin-push-controller.js
+          node --check shell.js
       - name: Verify canonical source
         run: python tools/verify_current.py
