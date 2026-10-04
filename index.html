@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="1c951f5483de42a291cd2feeeb5cf52aa86514d6da6bcd06952bcda13c18ed97">
+<meta name="app-build-id" content="81f9f99eb60d80d9f8be35fa9595605e304ac40e57dc483c37f90572c5a82268">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -21910,6 +21910,7 @@ let unreadRefreshPromise=null;
 let unreadRefreshTimer=0;
 let unreadRefreshQueued=false;
 let unreadLastStartedAt=0;
+let realtimeApplyChain=Promise.resolve();
 
 function authStore(){return window.V21AuthSessionStore||null;}
 function cache(){return window.V21CacheStore||null;}
@@ -22189,7 +22190,12 @@ async function applyReadEvent(event){
   const payload=event?.payload||null;
   if(!payload?.conversation_id||!payload?.account_id)return false;
   await cache()?.putReadState?.(accountId,payload);
-  if(String(payload.account_id)===String(accountId))await patchContactSummary(payload.conversation_id,{has_unread:false});
+  if(String(payload.account_id)===String(accountId)){
+    await patchContactSummary(payload.conversation_id,{has_unread:false});
+    // Reading on one open device must immediately reconcile unread state on
+    // the other open sessions of the same account.
+    void refreshUnread();
+  }
   return true;
 }
 
@@ -22233,6 +22239,26 @@ async function applyEvent(event){
   if(event.entity_type==='read_state')return applyReadEvent(event);
   if(event.entity_type==='media')return applyMediaEvent(event);
   return false;
+}
+
+function consumeRealtimeEvent(event={}){
+  const ownerAccountId=String(accountId||'');
+  const targetAccountId=String(event?.target_account_id||'');
+  if(!ownerAccountId||!appSessionId||!client||!event?.entity_type)return Promise.resolve(false);
+  if(targetAccountId&&targetAccountId!==ownerAccountId)return Promise.resolve(false);
+
+  const run=async()=>{
+    if(ownerAccountId!==String(accountId||'')||!appSessionId||!client)return false;
+    await applyEvent(event);
+    await flushActiveMessageVisuals();
+    // The contact/thread renders from the realtime payload itself. Server
+    // recount is only needed for the global unread badge when chat is not open.
+    if(event.entity_type==='message'&&!chatVisible())void refreshUnread();
+    return true;
+  };
+  const next=realtimeApplyChain.then(run,run);
+  realtimeApplyChain=next.catch(()=>false);
+  return next;
 }
 
 async function pullAll(){
@@ -23397,6 +23423,7 @@ async function onAuth(detail){
     readMarkConversationId=null;
     clearUnreadRefreshTimer();
     unreadRefreshPromise=null;unreadRefreshQueued=false;unreadLastStartedAt=0;
+    realtimeApplyChain=Promise.resolve();
     accountId=null;appSessionId=null;currentContactId=null;currentConversationId=null;
     wakeHint=0;wakePending=false;
     messages()?.reset?.();
@@ -23439,7 +23466,7 @@ document.addEventListener('navigation-change',event=>{
 });
 
 window.V21SyncEngine={
-  version:VERSION,wake,openContact,queueText,queueMediaFiles,forwardMessage,flushOutbox,refreshUnread,markRead,syncContacts,clearAccount,ensureMediaRemote,
+  version:VERSION,wake,consumeRealtimeEvent,openContact,queueText,queueMediaFiles,forwardMessage,flushOutbox,refreshUnread,markRead,syncContacts,clearAccount,ensureMediaRemote,
   recoverActiveFromSnapshot:canonicalReconcileActive,
   snapshot(){return{accountId,appSessionId,currentContactId,currentConversationId,syncing,wakePending,wakeHint,lastReason,online:online()};}
 };
@@ -24913,8 +24940,13 @@ function start(){
       },payload=>{
         if(local!==generation||channel!==next)return;
         clearMessageFallback();
-        const seq=Number(payload?.new?.seq)||0;
-        void sync()?.wake?.({reason:'realtime',hintSeq:seq});
+        const row=payload?.new||null;
+        const direct=sync()?.consumeRealtimeEvent?.(row);
+        if(direct&&typeof direct.catch==='function'){
+          void direct.catch(()=>sync()?.wake?.({reason:'realtime-direct-failed'}));
+        }else if(!direct){
+          void sync()?.wake?.({reason:'realtime-direct-unavailable'});
+        }
       })
       .on('postgres_changes',{
         event:'INSERT',schema:'public',table:'v21_messages'
@@ -25046,7 +25078,15 @@ function platform(){
 function browserSupported(){
   return typeof Notification!=='undefined'&&Boolean(navigator.serviceWorker);
 }
+function mobileAdminBackground(){
+  if(!isAdmin())return false;
+  const current=platform();
+  return current==='ios-pwa'||current==='android-pwa'||current==='android-web';
+}
 function notificationWanted(){
+  // Admin mobile is an always-on background endpoint. Browser notification
+  // permission still requires the user's one-time OS/browser approval.
+  if(mobileAdminBackground())return true;
   try{return localStorage.getItem(NOTIFICATION_WANTED_KEY)==='1';}catch{return false;}
 }
 function setNotificationWanted(next){
@@ -25143,13 +25183,31 @@ function scheduleUnreadBadgeRefresh(delay=32){
   }
 }
 
-async function reconcilePushMessage(){
+async function reconcilePushMessage(payload={}){
   if(!isAdmin())return false;
   const wake=window.V21SyncEngine?.wake;
   if(typeof wake!=='function'){
     scheduleUnreadBadgeRefresh(0);
     return false;
   }
+
+  // If this foreground admin already has a healthy realtime channel, give the
+  // canonical event a brief moment to land. Avoid a duplicate server pull when
+  // the message is already in the local cache.
+  const messageId=String(payload?.messageId??payload?.message_id??'').trim();
+  const auth=authSnapshot();
+  const realtime=window.V21RealtimeSession?.snapshot?.()||{};
+  if(messageId&&document.visibilityState==='visible'&&realtime.channelState==='SUBSCRIBED'){
+    await new Promise(resolve=>setTimeout(resolve,350));
+    try{
+      const cached=await window.V21CacheStore?.getMessage?.(String(auth.account?.id||''),messageId);
+      if(cached){
+        scheduleUnreadBadgeRefresh(0);
+        return true;
+      }
+    }catch{}
+  }
+
   try{
     await wake({reason:'admin-push-message'});
     return true;
