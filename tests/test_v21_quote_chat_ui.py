@@ -73,9 +73,13 @@ assert "queuetext" in low or "v21messagestore" in low
 assert "contactid" in low
 assert "action:\'debt\'" in actions
 assert "debt-summary-send" in actions
-assert "v21_admin_debt_share_summary" in actions
+assert "v21_admin_send_debt_summary" in actions
 assert "p_customer_id:string(contactid)" in compact
-assert "sendadmintext(body,contactid,'debt-summary-send')" in compact
+assert "p_client_id:string(clientid)" in compact
+assert "data?.sent" in actions
+assert "data?.message_id" in actions
+assert "v21syncengine?.wake" in compact
+assert "sendadmintext(body,contactid,'debt-summary-send')" not in compact
 assert "sendadmintext(links.debt_url" not in compact
 assert "customerlinks" in quote_low
 assert "customer_account_id" in quote_low
