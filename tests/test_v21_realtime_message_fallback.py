@@ -21,3 +21,11 @@ assert "messages()?.apply" not in fallback
 assert "setInterval" not in fallback
 
 print("V21 realtime message fallback contract PASS")
+
+assert "const PRESENCE_INTERACTION_MIN_MS=5000;" in RT
+assert "schedulePresencePublish(PRESENCE_INTERACTION_MIN_MS);" in RT
+assert "if(presencePublishTimer&&!replace)return false;" in RT
+assert "schedulePresencePublish(350);" not in RT
+assert "visibilitychange',()=>{\n  schedulePresencePublish(0,{replace:true});" in RT
+
+print("V21 realtime presence throttle contract PASS")

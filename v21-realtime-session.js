@@ -14,6 +14,7 @@ let lifecycle=Promise.resolve();
 let lastInteractionAt=Date.now();
 let remotePresence=[];
 const RECOVERY_BACKOFF_MS=[5000,10000,20000,30000];
+const PRESENCE_INTERACTION_MIN_MS=5000;
 
 function authStore(){return window.V21AuthSessionStore||null;}
 function sync(){return window.V21SyncEngine||null;}
@@ -89,14 +90,19 @@ async function publishPresence(){
   }catch{return false;}
 }
 
-function schedulePresencePublish(delay=120){
-  clearPresenceTimer();
+function schedulePresencePublish(delay=120,{replace=false}={}){
+  // Presence is advisory metadata, never the message transport. Interaction
+  // events can fire dozens of times per second while typing; keep one pending
+  // publication instead of resetting/spamming Realtime on every keystroke.
+  if(presencePublishTimer&&!replace)return false;
+  if(replace)clearPresenceTimer();
   presencePublishTimer=setTimeout(()=>{presencePublishTimer=0;void publishPresence();},Math.max(0,Number(delay)||0));
+  return true;
 }
 
 function markInteraction(){
   lastInteractionAt=Date.now();
-  schedulePresencePublish(350);
+  schedulePresencePublish(PRESENCE_INTERACTION_MIN_MS);
 }
 
 function enqueue(task){
@@ -241,7 +247,7 @@ window.addEventListener('online',()=>{
   schedule(true);
   void sync()?.wake?.({reason:'online'});
   void callEngine()?.recover?.({reason:'online'});
-  schedulePresencePublish(0);
+  schedulePresencePublish(0,{replace:true});
 });
 window.addEventListener('offline',()=>{
   clearTimer();
@@ -249,7 +255,7 @@ window.addEventListener('offline',()=>{
   schedulePresencePublish(0);
 });
 document.addEventListener('visibilitychange',()=>{
-  schedulePresencePublish(0);
+  schedulePresencePublish(0,{replace:true});
   if(document.hidden||!authenticated())return;
   recoveryAttempt=0;
   if(channelState!=='SUBSCRIBED'){
@@ -259,8 +265,8 @@ document.addEventListener('visibilitychange',()=>{
   void sync()?.wake?.({reason:'foreground'});
   void callEngine()?.recover?.({reason:'foreground'});
 });
-document.addEventListener('navigation-change',()=>schedulePresencePublish(0));
-document.addEventListener('v21-active-contact-change',()=>schedulePresencePublish(0));
+document.addEventListener('navigation-change',()=>schedulePresencePublish(0,{replace:true}));
+document.addEventListener('v21-active-contact-change',()=>schedulePresencePublish(0,{replace:true}));
 document.addEventListener('pointerdown',markInteraction,{passive:true,capture:true});
 document.addEventListener('keydown',markInteraction,{passive:true,capture:true});
 document.addEventListener('input',markInteraction,{passive:true,capture:true});
