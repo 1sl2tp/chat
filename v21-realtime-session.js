@@ -9,12 +9,13 @@ let reconnectAttempt=0;
 let recoveryTimer=0;
 let recoveryAttempt=0;
 let presencePublishTimer=0;
+let messageFallbackTimer=0;
 let generation=0;
 let lifecycle=Promise.resolve();
 let lastInteractionAt=Date.now();
 let remotePresence=[];
 const RECOVERY_BACKOFF_MS=[5000,10000,20000,30000];
-const PRESENCE_INTERACTION_MIN_MS=5000;
+const MESSAGE_FALLBACK_DELAY_MS=250;
 
 function authStore(){return window.V21AuthSessionStore||null;}
 function sync(){return window.V21SyncEngine||null;}
@@ -26,6 +27,15 @@ function online(){return navigator.onLine!==false;}
 function clearTimer(){if(reconnectTimer){clearTimeout(reconnectTimer);reconnectTimer=0;}}
 function clearRecoveryTimer(){if(recoveryTimer){clearTimeout(recoveryTimer);recoveryTimer=0;}}
 function clearPresenceTimer(){if(presencePublishTimer){clearTimeout(presencePublishTimer);presencePublishTimer=0;}}
+function clearMessageFallback(){if(messageFallbackTimer){clearTimeout(messageFallbackTimer);messageFallbackTimer=0;}}
+function scheduleMessageFallback(){
+  if(messageFallbackTimer)return false;
+  messageFallbackTimer=setTimeout(()=>{
+    messageFallbackTimer=0;
+    void sync()?.wake?.({reason:'realtime-message-fallback'});
+  },MESSAGE_FALLBACK_DELAY_MS);
+  return true;
+}
 
 function localPresencePayload(){
   const auth=snapshot();
@@ -101,8 +111,8 @@ function schedulePresencePublish(delay=120,{replace=false}={}){
 }
 
 function markInteraction(){
+  // Local-only activity metadata. Typing/clicking must never publish Presence.
   lastInteractionAt=Date.now();
-  schedulePresencePublish(PRESENCE_INTERACTION_MIN_MS);
 }
 
 function enqueue(task){
@@ -112,6 +122,7 @@ function enqueue(task){
 }
 
 async function detachCurrent(){
+  clearMessageFallback();
   const old=channel;
   channel=null;
   channelState='CLOSED';
@@ -182,6 +193,7 @@ function start(){
         filter:`target_account_id=eq.${s.account.id}`
       },payload=>{
         if(local!==generation||channel!==next)return;
+        clearMessageFallback();
         const seq=Number(payload?.new?.seq)||0;
         void sync()?.wake?.({reason:'realtime',hintSeq:seq});
       })
@@ -189,10 +201,9 @@ function start(){
         event:'INSERT',schema:'public',table:'v21_messages'
       },()=>{
         if(local!==generation||channel!==next)return;
-        // Direct message-table Realtime is a fallback wake path for every
-        // authenticated participant (admin and user). The canonical sync-event
-        // stream still owns ordering/cursor; wake() coalesces both signals.
-        void sync()?.wake?.({reason:'realtime-message-fallback'});
+        // Give canonical sync-event a short head start. If it arrives, its
+        // handler cancels this timer; otherwise this remains the fallback wake.
+        scheduleMessageFallback();
       })
       .on('postgres_changes',{
         event:'INSERT',schema:'public',table:'v21_session_events',
@@ -252,7 +263,8 @@ window.addEventListener('online',()=>{
 window.addEventListener('offline',()=>{
   clearTimer();
   clearRecoveryTimer();
-  schedulePresencePublish(0);
+  clearMessageFallback();
+  emitPresence();
 });
 document.addEventListener('visibilitychange',()=>{
   schedulePresencePublish(0,{replace:true});

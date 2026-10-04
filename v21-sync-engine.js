@@ -15,6 +15,11 @@ let contactEpoch=0;
 const dirtyActiveMessageIds=new Set();
 let readMarkTimer=0;
 let readMarkConversationId=null;
+const UNREAD_COOLDOWN_MS=750;
+let unreadRefreshPromise=null;
+let unreadRefreshTimer=0;
+let unreadRefreshQueued=false;
+let unreadLastStartedAt=0;
 
 function authStore(){return window.V21AuthSessionStore||null;}
 function cache(){return window.V21CacheStore||null;}
@@ -1276,13 +1281,65 @@ async function flushOutbox(){
   return sent;
 }
 
-async function refreshUnread(){
-  if(!client||!appSessionId||!online()){return shell()?.UnreadIndicator?.snapshot?.()||0;}
-  const {data,error}=await client.rpc('v21_unread_count',{p_app_session_id:appSessionId});
-  if(error)return shell()?.UnreadIndicator?.snapshot?.()||0;
-  const count=Math.max(0,Number(data)||0);
-  shell()?.UnreadIndicator?.set?.(count);
-  return count;
+function unreadSnapshot(){
+  return Math.max(0,Number(shell()?.UnreadIndicator?.snapshot?.()||0));
+}
+
+function clearUnreadRefreshTimer(){
+  if(unreadRefreshTimer){clearTimeout(unreadRefreshTimer);unreadRefreshTimer=0;}
+}
+
+function scheduleUnreadRefresh(delay){
+  if(unreadRefreshTimer)return false;
+  unreadRefreshTimer=setTimeout(()=>{
+    unreadRefreshTimer=0;
+    void refreshUnread({force:true});
+  },Math.max(0,Number(delay)||0));
+  return true;
+}
+
+async function refreshUnread({force=false}={}){
+  if(!client||!appSessionId||!online())return unreadSnapshot();
+
+  if(unreadRefreshPromise){
+    unreadRefreshQueued=true;
+    return unreadRefreshPromise;
+  }
+
+  const elapsed=Date.now()-unreadLastStartedAt;
+  const wait=force?0:Math.max(0,UNREAD_COOLDOWN_MS-elapsed);
+  if(wait>0){
+    unreadRefreshQueued=true;
+    scheduleUnreadRefresh(wait);
+    return unreadSnapshot();
+  }
+
+  clearUnreadRefreshTimer();
+  unreadRefreshQueued=false;
+  unreadLastStartedAt=Date.now();
+
+  const ownerAccountId=String(accountId||'');
+  const ownerAppSessionId=String(appSessionId||'');
+  const ownerClient=client;
+  const promise=(async()=>{
+    const {data,error}=await ownerClient.rpc('v21_unread_count',{p_app_session_id:ownerAppSessionId});
+    if(error)return unreadSnapshot();
+    if(ownerAccountId!==String(accountId||'')||ownerAppSessionId!==String(appSessionId||''))return unreadSnapshot();
+    const count=Math.max(0,Number(data)||0);
+    shell()?.UnreadIndicator?.set?.(count);
+    return count;
+  })();
+  unreadRefreshPromise=promise;
+
+  try{
+    return await promise;
+  }finally{
+    if(unreadRefreshPromise===promise)unreadRefreshPromise=null;
+    if(unreadRefreshQueued&&accountId&&appSessionId&&online()){
+      unreadRefreshQueued=false;
+      scheduleUnreadRefresh(UNREAD_COOLDOWN_MS);
+    }
+  }
 }
 
 async function markRead(conversationId=currentConversationId){
@@ -1291,7 +1348,7 @@ async function markRead(conversationId=currentConversationId){
   const {error}=await client.rpc('v21_mark_read',{p_app_session_id:appSessionId,p_conversation_id:target});
   if(!error){
     await patchContactSummary(target,{has_unread:false});
-    await refreshUnread();
+    await refreshUnread({force:true});
   }
   return !error;
 }
@@ -1326,8 +1383,8 @@ async function doSync(reason){
   if(!accountInitialized)await initializeFromServer();
   else await pullAll();
 
-  await flushOutbox();
-  await pullAll();
+  const sent=await flushOutbox();
+  if(sent>0)await pullAll();
   // Read state is a UI lifecycle action, not a generic sync side effect.
   // Calling markRead() from every realtime wake creates a feedback loop:
   // markRead -> read_state event -> realtime wake -> markRead.
@@ -1448,6 +1505,8 @@ async function onAuth(detail){
     contactEpoch+=1;
     if(readMarkTimer){clearTimeout(readMarkTimer);readMarkTimer=0;}
     readMarkConversationId=null;
+    clearUnreadRefreshTimer();
+    unreadRefreshPromise=null;unreadRefreshQueued=false;unreadLastStartedAt=0;
     accountId=null;appSessionId=null;currentContactId=null;currentConversationId=null;
     wakeHint=0;wakePending=false;
     messages()?.reset?.();
