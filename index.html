@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="6fab167b812e2ba1993ae40d518d30a53af0ef84ffe504b4e5cfa89b73a7e12c">
+<meta name="app-build-id" content="1e3f83584cb699a2a3214a76f9bb02899db32ddba740b897c61eb7ebb8dc1190">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -24828,6 +24828,15 @@ function start(){
         if(local!==generation||channel!==next)return;
         const seq=Number(payload?.new?.seq)||0;
         void sync()?.wake?.({reason:'realtime',hintSeq:seq});
+      })
+      .on('postgres_changes',{
+        event:'INSERT',schema:'public',table:'v21_messages'
+      },()=>{
+        if(local!==generation||channel!==next)return;
+        // Direct message-table Realtime is a fallback wake path for every
+        // authenticated participant (admin and user). The canonical sync-event
+        // stream still owns ordering/cursor; wake() coalesces both signals.
+        void sync()?.wake?.({reason:'realtime-message-fallback'});
       })
       .on('postgres_changes',{
         event:'INSERT',schema:'public',table:'v21_session_events',
