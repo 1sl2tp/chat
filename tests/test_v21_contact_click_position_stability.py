@@ -24,4 +24,18 @@ assert "const scrollHost=host.closest('.wm-sidebar-navigation');" in SHELL
 assert "const previousScrollTop=scrollHost?.scrollTop||0;" in SHELL
 assert "if(scrollHost)scrollHost.scrollTop=previousScrollTop;" in SHELL
 
+
+
+# Desktop persistent sidebar is already mounted. Contact navigation calls
+# setSidebar(false); that path must not trigger an async contacts refresh after
+# the click, otherwise a late full replace can reset the directory viewport.
+sidebar_start=SHELL.index("function setSidebar(open){")
+sidebar_end=SHELL.index("function renderTopTabs(){",sidebar_start)
+sidebar=SHELL[sidebar_start:sidebar_end]
+persistent_start=sidebar.index("if(desktopSidebarPersistent){")
+persistent_end=sidebar.index("}",persistent_start)
+persistent_branch=sidebar[persistent_start:persistent_end]
+assert "ContactStore?.refresh" not in persistent_branch
+assert "sidebarOpen=false;" in persistent_branch
+
 print("V21 contact click position stability contract PASS")
