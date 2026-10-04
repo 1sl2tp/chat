@@ -252,10 +252,24 @@ function resetForAuth(){
 }
 
 installStyle();
-document.addEventListener('v21-contact-store-change',()=>scheduleSync({scrollToTop:true}));
+// Contact-store patches (notably mark-read) must never reset the directory viewport.
+// Real activity reorders rows inside syncDirectoryRows(), which already preserves scrollTop.
+document.addEventListener('v21-contact-store-change',()=>scheduleSync());
 document.addEventListener('v21-auth-state',resetForAuth);
 document.addEventListener('click',event=>{
   const target=event.target instanceof Element?event.target:null;
+  const contact=target?.closest?.('[data-contact-select]');
+  if(contact&&currentAdmin()){
+    const host=document.querySelector('[data-v21-contact-list]');
+    if(host?.contains(contact)){
+      const input=directoryTools()?.querySelector('[data-contact-directory-search]');
+      if(query||String(input?.value||'')){
+        query='';
+        if(input)input.value='';
+        syncDirectoryRows();
+      }
+    }
+  }
   if(target?.closest?.('[data-zalo-account-admin-open]')){
     window.setTimeout(scheduleSync,0);
     void ensureGroups({force:true});

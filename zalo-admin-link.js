@@ -960,4 +960,5 @@ window.V21ZaloAccountAdmin=Object.freeze({version:MODULE_VERSION,open:openAccoun
 window.V21ZaloAdminLink=Object.freeze({version:MODULE_VERSION,mount,scan});
 })();
 
-void import('./contact-directory-admin.js').catch(error=>console.warn('[contact-directory-admin]',error));
+void import(`./contact-directory-admin.js?__build=${encodeURIComponent(document.querySelector('meta[name="app-build-id"]')?.content||MODULE_VERSION)}`)
+  .catch(error=>console.warn('[contact-directory-admin]',error));

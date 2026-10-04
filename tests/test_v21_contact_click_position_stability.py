@@ -38,4 +38,26 @@ persistent_branch=sidebar[persistent_start:persistent_end]
 assert "ContactStore?.refresh" not in persistent_branch
 assert "sidebarOpen=false;" in persistent_branch
 
+
+
+# Admin directory extension must not force the sidebar to top when a contact
+# patch arrives (opening a conversation can immediately mark it read).
+DIRECTORY=(ROOT/'contact-directory-admin.js').read_text('utf-8')
+assert "document.addEventListener('v21-contact-store-change',()=>scheduleSync());" in DIRECTORY
+assert "scheduleSync({scrollToTop:true})" not in DIRECTORY
+
+click_start=DIRECTORY.index("document.addEventListener('click',event=>{")
+click_end=DIRECTORY.index("const overlayRoot=",click_start)
+directory_click=DIRECTORY[click_start:click_end]
+assert "const contact=target?.closest?.('[data-contact-select]');" in directory_click
+assert "query='';" in directory_click
+assert "if(input)input.value='';" in directory_click
+assert "syncDirectoryRows();" in directory_click
+
+# contact-directory-admin.js is dynamically imported rather than inlined, so
+# tie its URL to the canonical build id to avoid serving a stale cached module.
+ZALO=(ROOT/'zalo-admin-link.js').read_text('utf-8')
+assert "contact-directory-admin.js?__build=" in ZALO
+assert "meta[name=\"app-build-id\"]" in ZALO
+
 print("V21 contact click position stability contract PASS")
