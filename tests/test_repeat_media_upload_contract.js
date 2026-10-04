@@ -29,6 +29,18 @@ assert(/const seen=new Set\(\)/.test(pasteDedupe),
 assert(/dedupeClipboardFiles\(\[\.\.\.direct,\.\.\.itemFiles\]\)/.test(app),
   'files/items from the same paste must collapse to one image');
 
+const appendPrepared=fn('appendPreparedAttachment');
+assert(/sameDraftImageContentExists\(item,pendingAttachments\)/.test(appendPrepared),
+  'visible composer draft must collapse same-content images before queueing');
+assert(/sameDraftImageContentExists\(item,draft\.attachments\|\|\[\]\)/.test(appendPrepared),
+  'inactive composer draft must collapse same-content images too');
+assert(/releaseLocalAttachment\(item,\{removeCache:true\}\)/.test(appendPrepared),
+  'discarded duplicate image must release its local preview/cache record');
+
+const sameDraft=fn('sameDraftImageContentExists');
+assert(/contentHash/.test(sameDraft)&&/toLowerCase\(\)/.test(sameDraft),
+  'same-draft dedupe must compare canonical image content hashes');
+
 const filePrepare=fn('prepareFileAttachment');
 assert(!/duplicate|contentHash|findByContentHash/i.test(filePrepare),
   'document file attachments must not be blocked as historical duplicates');
