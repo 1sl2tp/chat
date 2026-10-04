@@ -23,7 +23,10 @@ assert 'https://chat.taphoa.xyz' in zalo
 assert 'chat_customer_summary_state' in work
 assert ".on('postgres_changes'" in work
 assert 'realtime-summary' in work
-assert 'REFRESH_MS=60000' in work
+assert 'REFRESH_MS=60000' not in work
+assert 'setInterval' not in work
+assert "refresh('visible')" in work
+assert "refresh('boot')" in work
 assert 'stopRealtimeSubscription' in work
 
 assert 'chat_customer_summary_state_admin_realtime' in migration
