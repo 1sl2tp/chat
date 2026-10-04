@@ -135,3 +135,23 @@ Both Hàng thường and Sữa use the same 3-tier recommendation contract:
 Up to 5 items are returned. A customer with no purchase history still receives product suggestions, and Milk suggestions never mix with regular-goods suggestions.
 
 Canonical formatter: `chat_customer_care_message(customer_id,date)`.
+
+
+## Customer-care auto-send — KH only
+
+Auto-send is enabled only for `v21_accounts.contact_group='customer'` (nhóm KH). Friend/other groups are explicitly excluded both when planning and when sending.
+
+Pacing/safety contract:
+- refresh owners remain 09:15 and 14:00 Asia/Ho_Chi_Minh;
+- one auto-send owner: `chat-customer-care-auto-send`;
+- cron wakes every 5 minutes only in the morning/afternoon UTC bands; the function enforces exact Vietnam windows;
+- send windows: 09:30–11:35 and 14:15–17:35;
+- at most one care message per pass and one care message per customer/day;
+- no care send while Zalo outbound has unresolved work;
+- defer when any Zalo outbound was sent in the previous 2 minutes;
+- enforce an additional ~5-minute campaign gap;
+- skip a customer with any conversation activity in the previous 60 minutes;
+- message creation uses `taphoa_chat_notify_customer`, so normal Chat realtime/Zalo bridge ownership stays unchanged;
+- outside windows the sender returns `outside_window` and sends nothing.
+
+This pacing reduces burst/spam-like behavior but cannot guarantee how a third-party platform classifies messages.

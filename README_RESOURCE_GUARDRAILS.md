@@ -202,3 +202,20 @@ Canonical `messages/read_states/conversations/media` không thuộc cleanup.
 Nếu cursor client cũ hơn vùng `sync_events` còn giữ, `v21_sync_pull` trả `reset_required=true`; client bắt buộc gọi `initializeFromServer()`/snapshot rồi tiếp tục từ cursor mới.
 
 Không dùng `VACUUM FULL` trong production Chat để đòi giảm file ngay; regular autovacuum tái sử dụng free space mà không khóa bảng dài.
+
+
+### Customer-care auto-send
+
+Customer-care auto-send is a separate business workflow, not Chat realtime.
+
+Guardrails:
+- eligibility is only `contact_group='customer'` (KH);
+- one scheduler owner: `chat-customer-care-auto-send`;
+- one customer at most per 5-minute pass;
+- exact send windows: 09:30–11:35 and 14:15–17:35 Asia/Ho_Chi_Minh;
+- one care message/customer/day;
+- do not enqueue while Zalo outbound is pending/retrying;
+- leave at least 2 minutes after any other successful Zalo outbound;
+- do not insert a care message into a customer conversation active within the last 60 minutes;
+- use the canonical `taphoa_chat_notify_customer` path; never bypass message/Zalo ownership;
+- the pacing is intended to prevent bursts, not to claim or guarantee third-party anti-spam acceptance.
