@@ -180,6 +180,15 @@ function start(){
         void sync()?.wake?.({reason:'realtime',hintSeq:seq});
       })
       .on('postgres_changes',{
+        event:'INSERT',schema:'public',table:'v21_messages'
+      },()=>{
+        if(local!==generation||channel!==next)return;
+        // Direct message-table Realtime is a fallback wake path for every
+        // authenticated participant (admin and user). The canonical sync-event
+        // stream still owns ordering/cursor; wake() coalesces both signals.
+        void sync()?.wake?.({reason:'realtime-message-fallback'});
+      })
+      .on('postgres_changes',{
         event:'INSERT',schema:'public',table:'v21_session_events',
         filter:`target_app_session_id=eq.${s.appSessionId}`
       },()=>{
