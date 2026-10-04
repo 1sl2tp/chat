@@ -1,14 +1,12 @@
 (()=>{
 'use strict';
 
-const REFRESH_MS=60000;
 const MOBILE_CHAT_SWIPE_DISTANCE_PX=48;
 const MOBILE_CHAT_SWIPE_EDGE_INSET_PX=28;
 const MOBILE_CHAT_SWIPE_DOMINANCE=1.2;
 const MOBILE_TAB_DOUBLE_TAP_MS=250;
 const DESKTOP_PERSISTENT_MEDIA='(min-width:64rem) and (hover:hover) and (pointer:fine)';
 const desktopPersistentMedia=window.matchMedia?.(DESKTOP_PERSISTENT_MEDIA)||null;
-let timer=0;
 let realtimeChannel=null;
 let realtimeRefreshTimer=0;
 let loading=false;
@@ -904,7 +902,7 @@ async function setCompleted(customerId,itemKey,completed){
   }
 }
 
-async function refresh(reason='timer'){
+async function refresh(reason='manual'){
   const host=root();
   if(!host||loading)return false;
   const auth=snapshot();
@@ -973,14 +971,6 @@ function syncRealtimeSubscription(){
     },()=>scheduleRealtimeRefresh('realtime-summary'))
     .subscribe();
   return true;
-}
-
-function schedule(){
-  if(timer)clearInterval(timer);
-  timer=window.setInterval(()=>{
-    if(document.hidden)return;
-    void refresh('interval');
-  },REFRESH_MS);
 }
 
 document.addEventListener('v21-auth-state',()=>{
@@ -1064,7 +1054,6 @@ bindMobileAccountMenuContractSync();
 bindMobileHierarchySwipe();
 bindMobileNavigationClicks();
 bindMobileViewportTransition();
-schedule();
 syncRealtimeSubscription();
 void refresh('boot');
 window.addEventListener('beforeunload',stopRealtimeSubscription,{once:true});
