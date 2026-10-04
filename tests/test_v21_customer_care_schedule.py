@@ -47,7 +47,7 @@ assert "'send_mode','auto_safe_staggered'" in auto_compact
 
 # Only one sender owner and one candidate per pass.
 assert "pg_try_advisory_xact_lock" in auto_low
-assert "forupdateof d skiplocked" in auto_compact
+assert "forupdateofdskiplocked" in auto_compact
 assert "limit1" in auto_compact
 assert "jobname='chat-customer-care-auto-send'" in auto_compact
 
