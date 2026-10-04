@@ -68,3 +68,13 @@ Keep each runtime concern with one owner:
 6. Message/media forwarding creates a new destination message/asset; it never reuses ownership of the source asset.
 7. Preserve `index.source.html` as the canonical HTML source and rebuild `index.html` after any build-source change.
 
+
+
+## External data — Single Source of Truth
+
+Rule dùng chung bắt buộc: `1sl2tp/infrastructure/rules/02-EXTERNAL-DATA-SINGLE-SOURCE-OF-TRUTH.md`.
+
+- Supabase `1sl2tpvn` là canonical business data của Chat.
+- LiveKit chỉ giữ transport/session realtime cần cho cuộc gọi; không phải nơi lưu lịch sử Chat hay account.
+- Render/Cloudflare/GitHub/Drive nếu được thêm sau này chỉ được giữ role đã khai báo trong central registry, có TTL/retention khi là cache/session.
+- Không thêm background two-way sync hoặc database sống thứ hai cho messages/read-state/accounts.
