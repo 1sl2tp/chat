@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="5b34014013eb2c58da951f3078708400d73bf71e7c1f8f9c6ade5215ff05e030">
+<meta name="app-build-id" content="bf03b20905a45026bef1a58451de38137bbf01d2e1dd08415ed92f8cafe6cd8f">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -23487,6 +23487,12 @@ async function onAuth(detail){
   }else{
     void wake({reason:'auth'});
   }
+
+  // Directory membership is canonical account data, never Presence/session state.
+  // Repair a stale local contact cache once per authenticated bootstrap so an
+  // offline account cannot disappear just because it has no active Chat session.
+  if(online())queueMicrotask(()=>{void syncContacts();});
+
   void prewarmCachedContacts(cachedContacts,active?.id||currentContactId||null);
 }
 
