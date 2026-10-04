@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="14dadb7cff6a3feb7f7f11bc6b24654c5600f155b046e7829270ae3b290a9b70">
+<meta name="app-build-id" content="2a544ef05ee43f1fff5d2d48d5daabbd9cf0e7b14c505739ecf73ced9bcb4013">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -20898,13 +20898,18 @@ async function runAction(action){
     }
   }
   if(action==='debt'){
-    setTransientHint('Đang tạo link công nợ…',2400);
+    setTransientHint('Đang tạo đối chiếu công nợ…',2400);
     try{
-      const client=await quoteClient();
-      if(!client?.customerLinks)throw new Error('public_link_unavailable');
-      const links=await client.customerLinks(contactId);
-      await sendAdminText(links.debt_url,contactId,'debt-link-send');
-      setTransientHint('Đã gửi link công nợ');
+      const client=authStore()?.getClient?.()||null;
+      if(!client)throw new Error('authentication_required');
+      const {data,error}=await client.rpc('v21_admin_debt_share_summary',{
+        p_customer_id:String(contactId),
+      });
+      if(error)throw error;
+      const body=String(data?.body||'').trim();
+      if(!data?.ok||!body)throw new Error(data?.error||'debt_summary_failed');
+      await sendAdminText(body,contactId,'debt-summary-send');
+      setTransientHint('Đã gửi đối chiếu công nợ');
       return true;
     }catch{
       setTransientHint('Không thể gửi công nợ',2600);
