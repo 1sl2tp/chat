@@ -10,6 +10,8 @@ import {bindIncomingMessageListener} from './incoming-message.mjs';
 import {createMessageGateway} from './message-gateway.mjs';
 import {downloadInboundMedia,buildOutboundMessage} from './media-transfer.mjs';
 import {createCoalescingRunner} from './bridge-core.mjs';
+import {createReceiptOcrGateway} from './receipt-ocr-gateway.mjs';
+import {createReceiptOcrRunner} from './receipt-ocr-runner.mjs';
 
 const port=Math.max(1,Number(process.env.PORT)||8787);
 const qrPath=process.env.ZALO_QR_PATH||path.resolve(process.cwd(),'qr.png');
@@ -28,6 +30,10 @@ const contactSync=supabaseUrl&&bridgeToken
 const messageGateway=supabaseUrl&&bridgeToken
   ?createMessageGateway({endpoint:`${supabaseUrl.replace(/\/$/,'')}/functions/v1/v21-zalo-bridge`,bridgeToken})
   :null;
+const receiptOcrGateway=supabaseUrl&&bridgeToken
+  ?createReceiptOcrGateway({endpoint:supabaseUrl.replace(/\/$/,'')+'/functions/v1/v21-receipt-ocr-bridge',bridgeToken})
+  :null;
+const receiptOcr=receiptOcrGateway?createReceiptOcrRunner({gateway:receiptOcrGateway,logger:console}):null;
 const state=createLoginState();
 let api=null;
 let unbindIncoming=()=>{};
@@ -96,6 +102,7 @@ const handler=createRequestHandler({
   accessToken,
   signalTokenHash,
   outboundNow:pollOutbound,
+  receiptOcr,
   listFriends:async()=>{
     if(!api||typeof api.getAllFriends!=='function')throw new Error('zalo_api_not_ready');
     return api.getAllFriends();
@@ -115,6 +122,7 @@ server.listen(port,'0.0.0.0',()=>{
   console.log(`[zalo-login] persistent session ${sessionStore?'enabled':'disabled'}`);
   console.log(`[zalo-login] contacts sync ${contactSync?'enabled':'disabled'}`);
   console.log(`[zalo-login] message bridge ${messageGateway?'enabled':'disabled'}`);
+  console.log(`[zalo-login] receipt OCR ${receiptOcr?'enabled':'disabled'}`);
   void startZaloLogin({ZaloClass:Zalo,state,qrPath,logger:console,sessionStore})
     .then(async result=>{
       api=result;
