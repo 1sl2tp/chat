@@ -19,8 +19,11 @@ assert "2901181999999" not in EDGE
 assert "không suy đoán" in EDGE
 assert "recipient_account" in EDGE
 
-# Only indebted customers' new canonical images are scanned.
-assert "taphoa_chat_customer_balance_value(v_customer.id) <= 0" in MIG
+# Any customer image can be recognized as a receipt, even when balance is zero
+# or already in credit. Overpayment must remain valid customer credit.
+assert "taphoa_chat_customer_balance_value(v_customer.id) <= 0" not in MIG
+assert "amount_exceeds_current_debt" not in MIG
+assert "v_amount_ledger>v_balance_before" not in MIG.replace(" ","")
 assert "after insert or update of message_id,deleted_at,kind,storage_key" in MIG.lower()
 
 # Bank VND -> TAPHOA ledger thousand-VND unit, exact whole-thousand only.
