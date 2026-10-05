@@ -205,10 +205,39 @@ Deno.serve(async (req: Request) => {
   if (contacts === null) return reply(400, { ok: false, error: "invalid_contacts" });
   if (contacts.length === 0) return reply(200, { ok: true, count: 0 });
 
+  const existingById = new Map<string, Contact>();
+  const ids = contacts.map((contact) => contact.zalo_id);
+  for (let offset = 0; offset < ids.length; offset += 200) {
+    const chunk = ids.slice(offset, offset + 200);
+    const { data: existing, error: existingError } = await admin
+      .from("zalo_contacts")
+      .select("zalo_id,display_name,avatar_url,thread_type")
+      .in("zalo_id", chunk);
+    if (existingError) return reply(500, { ok: false, error: "contact_lookup_failed" });
+    for (const row of existing ?? []) {
+      existingById.set(String(row.zalo_id), {
+        zalo_id: String(row.zalo_id),
+        display_name: String(row.display_name ?? ""),
+        avatar_url: row.avatar_url == null ? null : String(row.avatar_url),
+        thread_type: String(row.thread_type ?? "user").toLowerCase() === "group" ? "group" : "user",
+      });
+    }
+  }
+
   const now = new Date().toISOString();
-  const rows = contacts.map((contact) => ({ ...contact, updated_at: now }));
-  const { error } = await admin.from("zalo_contacts").upsert(rows, { onConflict: "zalo_id" });
-  if (error) return reply(500, { ok: false, error: "contact_upsert_failed" });
+  const rows = contacts
+    .filter((contact) => {
+      const existing = existingById.get(contact.zalo_id);
+      return !existing ||
+        existing.display_name !== contact.display_name ||
+        String(existing.avatar_url ?? "") !== String(contact.avatar_url ?? "") ||
+        existing.thread_type !== contact.thread_type;
+    })
+    .map((contact) => ({ ...contact, updated_at: now }));
+  if (rows.length) {
+    const { error } = await admin.from("zalo_contacts").upsert(rows, { onConflict: "zalo_id" });
+    if (error) return reply(500, { ok: false, error: "contact_upsert_failed" });
+  }
 
   let avatarsMirrored = 0;
   try {
@@ -217,5 +246,5 @@ Deno.serve(async (req: Request) => {
     avatarsMirrored = 0;
   }
 
-  return reply(200, { ok: true, count: rows.length, avatars_mirrored: avatarsMirrored });
+  return reply(200, { ok: true, count: contacts.length, changed: rows.length, avatars_mirrored: avatarsMirrored });
 });
