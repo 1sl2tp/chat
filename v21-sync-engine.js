@@ -996,10 +996,63 @@ function errorStatus(error){
   return Number(error?.statusCode||error?.status||error?.status_code||0)||0;
 }
 
+function isEmptyStorageUploadError(error){
+  const status=errorStatus(error);
+  const message=String(error?.message||error?.error||error||'').toLowerCase();
+  return status===400&&(
+    message.includes('no content provided')||
+    message.includes('empty content')||
+    message.includes('content is empty')
+  );
+}
+
+function preferBinaryStorageUploadBody(){
+  const ua=String(globalThis.navigator?.userAgent||'');
+  const platform=String(globalThis.navigator?.platform||'');
+  const touchPoints=Number(globalThis.navigator?.maxTouchPoints||0);
+  // All iOS browsers use WebKit. A Blob restored from IndexedDB can
+  // occasionally become an empty multipart upload even though blob.size is
+  // non-zero. A Uint8Array takes the raw-body upload path instead.
+  return /iPhone|iPad|iPod/i.test(ua)||(platform==='MacIntel'&&touchPoints>1);
+}
+
+async function rematerializeStorageUploadBody(body,asset){
+  if(!(body instanceof Blob))return body;
+  const buffer=await body.arrayBuffer();
+  if(!buffer.byteLength)throw new Error(`${String(asset?.kind||'media')}_blob_empty`);
+  return new Uint8Array(buffer);
+}
+
+async function uploadMediaStorageObject(requestClient,asset,body){
+  const options={
+    cacheControl:'3600',
+    upsert:false,
+    contentType:asset.mime_type||body?.type||undefined
+  };
+  let requestBody=body;
+  if(preferBinaryStorageUploadBody()&&body instanceof Blob){
+    requestBody=await rematerializeStorageUploadBody(body,asset);
+  }
+  let {error}=await requestClient.storage.from('v21-media').upload(
+    asset.storage_key,requestBody,options
+  );
+  if(error&&isEmptyStorageUploadError(error)){
+    // One immediate recovery for the exact iPhone failure observed in
+    // production: Storage received multipart Content-Length: 0. Rebuild the
+    // body as raw bytes and retry without making the user send the image again.
+    const retryBody=await rematerializeStorageUploadBody(body,asset);
+    ({error}=await requestClient.storage.from('v21-media').upload(
+      asset.storage_key,retryBody,options
+    )));
+  }
+  return error||null;
+}
+
 function isRetryableOutboxError(error){
   const status=errorStatus(error);
   const code=String(error?.code||'').trim();
   const message=String(error?.message||error||'').toLowerCase();
+  if(isEmptyStorageUploadError(error))return true;
   if(status===408||status===425||status===429||status>=500)return true;
   if(status>=400&&status<500)return false;
   if(/^pgrst202$/i.test(code))return true;
@@ -1098,10 +1151,7 @@ async function flushMediaItem(item,conversationId,context=captureFlushContext())
     }
 
     if(!asset.uploaded){
-      const {error:uploadError}=await requestClient.storage.from('v21-media').upload(
-        asset.storage_key,uploadBody,
-        {cacheControl:'3600',upsert:false,contentType:asset.mime_type||uploadBody.type||undefined}
-      );
+      const uploadError=await uploadMediaStorageObject(requestClient,asset,uploadBody);
       if(uploadError&&!isStorageAlreadyExistsError(uploadError))throw uploadError;
       asset.uploaded=true;item.failed=false;
       await cache()?.updateOutbox?.(ownerAccountId,item);
