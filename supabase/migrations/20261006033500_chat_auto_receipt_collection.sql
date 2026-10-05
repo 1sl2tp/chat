@@ -1,5 +1,6 @@
 -- Automatic bank-receipt collection for TAPHOA Chat.
 -- Canonical debt data stays in Supabase. New customer image only -> one vision read.
+-- Collections may exceed current debt; negative ledger balance is retained as customer credit.
 -- Auto-collection requires exact recipient identity:
 --   BUI XUAN TUNG / Agribank / 2901181999999
 -- Duplicate protection is by transfer timestamp and, when present, transaction reference.
@@ -200,17 +201,6 @@ begin
 
   v_balance_before := public.taphoa_chat_customer_balance_value(v_job.customer_account_id);
 
-  if v_balance_before<=0 or v_amount_ledger>v_balance_before then
-    update public.v21_receipt_jobs
-    set status='needs_review',error_code='amount_exceeds_current_debt',
-        amount_ledger=v_amount_ledger,dedupe_key=v_dedupe,processed_at=now(),updated_at=now()
-    where id=p_job_id;
-    return jsonb_build_object(
-      'ok',true,'status','needs_review','reason','amount_exceeds_current_debt',
-      'balance',v_balance_before,'amount',v_amount_ledger
-    );
-  end if;
-
   insert into public.taphoa_debt_ledger(
     customer_account_id,entry_type,amount_vnd,note,created_by_account_id
   )
@@ -299,11 +289,6 @@ begin
     and a.locked_at is null;
 
   if not found then return new; end if;
-
-  -- Only indebted customers need automatic receipt recognition.
-  if public.taphoa_chat_customer_balance_value(v_customer.id) <= 0 then
-    return new;
-  end if;
 
   select * into v_conversation
   from public.v21_conversations c
