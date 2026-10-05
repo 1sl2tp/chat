@@ -31,3 +31,14 @@ test('group avatars are mirrored too instead of being excluded from app storage'
   assert.doesNotMatch(source,/contact\.thread_type === "user" && contact\.avatar_url/);
   assert.match(source,/\.filter\(\(contact\) => contact\.avatar_url\)/);
 });
+
+
+test('contact sync skips unchanged directory rows',()=>{
+  const source=fs.readFileSync(sourcePath,'utf8');
+  assert.match(source,/existingById/);
+  assert.match(source,/contact_lookup_failed/);
+  assert.match(source,/existing\.display_name !== contact\.display_name/);
+  assert.match(source,/existing\.thread_type !== contact\.thread_type/);
+  assert.match(source,/if \(rows\.length\) \{/);
+  assert.match(source,/changed: rows\.length/);
+});
