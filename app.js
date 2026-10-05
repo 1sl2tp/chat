@@ -1296,6 +1296,7 @@ function restoreAnchor(anchor){
 }
 
 const mediaObjectUrls=new Map();
+const mediaShareBlobs=new Map();
 const audioHydrationPromises=new WeakMap();
 const AudioPlaybackController={
   currentAudio:null,
@@ -1765,6 +1766,7 @@ function renderImageViewerFilters(){
     const shareText=document.createElement('span');
     shareText.textContent='Chia sẻ';
     shareItem.appendChild(shareText);
+    primeMessageShareOnIntent(shareItem,()=>({media:currentImageViewerDescriptor()}));
     shareItem.addEventListener('click',event=>{
       event.stopPropagation();
       closeImageViewerTimeMenu();
@@ -2504,6 +2506,7 @@ async function hydrateImageElement(img,media){
     row=await window.V21SyncEngine?.ensureMediaRemote?.({accountId,assetId})||row;
   }
   if(!(row?.blob instanceof Blob))return false;
+  cacheMediaShareBlob({...media,accountId,assetId},row.blob);
   if(img.dataset.mediaHydrateKey!==hydrateKey||accountId!==String(currentMediaAccountId()||''))return false;
 
   let url=mediaObjectUrls.get(cacheKey);
@@ -3110,6 +3113,64 @@ function fileTypeLabel(media){
   return 'TỆP';
 }
 
+function mediaShareCacheKey(media){
+  const accountId=String(media?.accountId||currentMediaAccountId()||'');
+  const assetId=String(media?.assetId||'');
+  return accountId&&assetId?`${accountId}::${assetId}`:'';
+}
+
+function cacheMediaShareBlob(media,blob){
+  const key=mediaShareCacheKey(media);
+  if(!key||!(blob instanceof Blob))return false;
+  mediaShareBlobs.set(key,blob);
+  return true;
+}
+
+function preparedShareFilesForMessage(message){
+  if(typeof File!=='function')return null;
+  const list=mediaDescriptorsForMessage(message).filter(item=>
+    item&&(item.kind==='file'||item.type==='image'||item.kind==='image')
+  );
+  if(!list.length)return null;
+  const files=[];
+  for(const [index,item] of list.entries()){
+    const blob=mediaShareBlobs.get(mediaShareCacheKey(item));
+    if(!(blob instanceof Blob))return null;
+    const name=mediaDownloadName(item,index);
+    const type=String(item?.mimeType||item?.type||blob.type||'application/octet-stream');
+    files.push(blob instanceof File&&blob.name===name&&String(blob.type||'')===type
+      ?blob
+      :new File([blob],name,{type,lastModified:Date.now()}));
+  }
+  return files;
+}
+
+async function prepareMessageShareFiles(message){
+  try{
+    const list=mediaDescriptorsForMessage(message).filter(item=>
+      item&&(item.kind==='file'||item.type==='image'||item.kind==='image')
+    );
+    for(const item of list){
+      if(mediaShareBlobs.get(mediaShareCacheKey(item)) instanceof Blob)continue;
+      const resolved=await mediaBlobForDescriptor(item);
+      if(resolved?.blob instanceof Blob)cacheMediaShareBlob(item,resolved.blob);
+    }
+    return Boolean(preparedShareFilesForMessage(message)?.length);
+  }catch(error){
+    console.warn('[V21 media share prepare]',error);
+    return false;
+  }
+}
+
+function primeMessageShareOnIntent(node,resolveMessage){
+  if(!node||typeof resolveMessage!=='function')return node;
+  const warm=()=>{void prepareMessageShareFiles(resolveMessage());};
+  node.addEventListener('pointerenter',warm,{once:true,passive:true});
+  node.addEventListener('focus',warm,{once:true});
+  node.addEventListener('touchstart',warm,{once:true,passive:true});
+  return node;
+}
+
 async function mediaBlobForDescriptor(media){
   const accountId=String(media?.accountId||currentMediaAccountId()||'');
   const assetId=String(media?.assetId||'');
@@ -3117,6 +3178,7 @@ async function mediaBlobForDescriptor(media){
   let row=await window.V21MediaCache?.get?.({accountId,assetId});
   if(!(row?.blob instanceof Blob))row=await window.V21SyncEngine?.ensureMediaRemote?.({accountId,assetId});
   if(!(row?.blob instanceof Blob)||accountId!==String(currentMediaAccountId()||''))return null;
+  cacheMediaShareBlob({...media,accountId,assetId},row.blob);
   return{row,blob:row.blob,accountId,assetId};
 }
 
@@ -3158,27 +3220,30 @@ async function saveMessageMedia(message){
 
 async function shareMessageMedia(message){
   if(!canNativeShareFiles())return false;
-  const list=mediaDescriptorsForMessage(message).filter(item=>
-    item&&(item.kind==='file'||item.type==='image'||item.kind==='image')
-  );
-  const files=[];
-  for(const [index,item] of list.entries()){
-    const resolved=await mediaBlobForDescriptor(item);
-    if(!resolved)continue;
-    const name=mediaDownloadName(item,index);
-    const type=String(item?.mimeType||resolved.blob.type||'application/octet-stream');
-    files.push(resolved.blob instanceof File&&resolved.blob.name===name
-      ?resolved.blob
-      :new File([resolved.blob],name,{type,lastModified:Date.now()}));
+
+  // Web Share requires transient user activation at navigator.share() call time.
+  // Never await Blob/cache hydration before this point. Media hydration/upload
+  // primes mediaShareBlobs ahead of the click; intent handlers warm any miss.
+  const files=preparedShareFilesForMessage(message);
+  if(!files?.length){
+    void prepareMessageShareFiles(message);
+    return false;
   }
-  if(!files.length)return false;
   if(typeof navigator.canShare==='function'&&!navigator.canShare({files}))return false;
+
   try{
     await navigator.share({files,title:files.length===1?files[0].name:'Tệp đính kèm'});
     return true;
   }catch(error){
-    if(String(error?.name||'')==='AbortError')return false;
-    throw error;
+    const name=String(error?.name||'');
+    if(name==='AbortError'||name==='NotAllowedError'||name==='SecurityError'){
+      console.warn('[V21 media share blocked]',name,String(error?.message||''));
+      return false;
+    }
+    // Native share failures are interaction-local. They must never become an
+    // unhandled rejection that flips the whole Chat runtime into ERROR mode.
+    console.warn('[V21 media share failed]',error);
+    return false;
   }
 }
 
@@ -3215,6 +3280,7 @@ async function hydrateFileCardMeta(node,media){
   if(current&&current!=='Tệp')return false;
   const accountId=String(media?.accountId||currentMediaAccountId()||'');
   const row=await window.V21MediaCache?.get?.({accountId,assetId:String(media.assetId)});
+  if(row?.blob instanceof Blob)cacheMediaShareBlob({...media,accountId},row.blob);
   const name=String(row?.remote_meta?.file_name||'').trim();
   if(!name||!node.isConnected)return false;
   media.name=name;
@@ -3416,6 +3482,7 @@ window.addEventListener('pagehide',()=>{
   if(mediaObjectUrlSweepFrame){cancelAnimationFrame(mediaObjectUrlSweepFrame);mediaObjectUrlSweepFrame=0;}
   for(const url of mediaObjectUrls.values())URL.revokeObjectURL(url);
   mediaObjectUrls.clear();
+  mediaShareBlobs.clear();
   for(const url of localImagePreviewUrls.values())URL.revokeObjectURL(url);
   localImagePreviewUrls.clear();
   for(const url of localAudioPreviewUrls.values())URL.revokeObjectURL(url);
@@ -3579,14 +3646,16 @@ function createActionGroup(message){
       }
     }));
     if(canNativeShareFiles()){
-      actions.push(makeActionButton({
+      const shareAction=makeActionButton({
         label:'Chia sẻ',
         icon:'share',
         onClick:event=>{
           event.stopPropagation();
           void shareMessageMedia(resolveMessage()).finally(()=>closeAllTurnActions());
         }
-      }));
+      });
+      primeMessageShareOnIntent(shareAction,resolveMessage);
+      actions.push(shareAction);
     }
   }
 
@@ -5032,6 +5101,7 @@ document.addEventListener('v21-auth-state',event=>{
     revokeViewerOwnedUrls();
     for(const url of mediaObjectUrls.values())URL.revokeObjectURL(url);
     mediaObjectUrls.clear();
+    mediaShareBlobs.clear();
   }
 });
 
@@ -5058,6 +5128,7 @@ function releaseLocalImageAttachment(item,{removeCache=true}={}){
     URL.revokeObjectURL(previewUrl);
     localImagePreviewUrls.delete(assetId);
   }
+  if(ownerAccountId)mediaShareBlobs.delete(`${ownerAccountId}::${assetId}`);
   if(removeCache&&ownerAccountId){
     void window.V21MediaCache?.remove?.({accountId:ownerAccountId,assetId});
   }
@@ -5128,6 +5199,7 @@ function releaseLocalFileAttachment(item,{removeCache=true}={}){
     URL.revokeObjectURL(durableUrl);
     mediaObjectUrls.delete(cacheKey);
   }
+  if(cacheKey)mediaShareBlobs.delete(cacheKey);
   if(removeCache&&ownerAccountId)void window.V21MediaCache?.remove?.({accountId:ownerAccountId,assetId});
   return true;
 }
@@ -5317,6 +5389,7 @@ async function prepareImageAttachment(file,scope){
       original_size_bytes:item.originalSize
     }
   });
+  cacheMediaShareBlob(item,optimized.blob);
   const previewUrl=URL.createObjectURL(optimized.blob);
   await warmLocalImagePreview(previewUrl);
   localImagePreviewUrls.set(String(assetId),previewUrl);
@@ -5420,6 +5493,7 @@ async function prepareFileAttachment(file,scope){
       size_bytes:item.sizeBytes,file_name:name,draft:true
     }
   });
+  cacheMediaShareBlob(item,file);
   return item;
 }
 
