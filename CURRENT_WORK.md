@@ -1,3 +1,29 @@
+## 2026-10-06 — Automatic Agribank receipt collection
+
+Owner:
+- new customer canonical image -> `v21_receipt_media_trigger` -> one `v21-receipt-scan` vision read -> `v21_receipt_finalize`;
+- canonical debt remains `taphoa_debt_ledger`; no polling/background rescan was added.
+
+Exact auto-apply contract:
+- bank must be Agribank;
+- recipient name must normalize exactly to `BUI XUAN TUNG`;
+- full recipient account must be exactly `2901181999999` (never suffix-only);
+- amount/date/time must be readable;
+- same transfer timestamp cannot be applied twice;
+- transaction reference, when present, is an independent duplicate key;
+- AI only extracts visible receipt fields and is not primed with the expected name/account; Postgres owns exact matching.
+
+Money semantics:
+- bank VND is converted to TAPHOA thousand-VND ledger units;
+- collection is allowed even when it exceeds current debt or the customer already has credit;
+- excess collection remains a negative ledger balance and is displayed as `Còn dư`;
+- production rollback probe: test account balance -241 + valid 8,370 collection => -8,611, proving overpayment becomes customer credit.
+
+Resource contract:
+- event-driven only; no cron/polling;
+- one vision read per new customer image in an Admin/customer conversation;
+- non-receipt/mismatched receipts create no debt entry.
+
 ## 2026-10-05 — Zalo media bandwidth preflight
 
 Production verification for media preflight:
