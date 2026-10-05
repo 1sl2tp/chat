@@ -19,6 +19,11 @@ assert "2901181999999" not in EDGE
 assert "không suy đoán" in EDGE
 assert "recipient_account" in EDGE
 
+# Eligibility is KH-only: only an active user in contact_group='customer' may
+# create a receipt job. Friend/other groups must never enter the scan/collection path.
+assert "and a.role='user'" in MIG
+assert "and a.contact_group='customer'" in MIG
+
 # Any customer image can be recognized as a receipt, even when balance is zero
 # or already in credit. Overpayment must remain valid customer credit.
 assert "taphoa_chat_customer_balance_value(v_customer.id) <= 0" not in MIG
