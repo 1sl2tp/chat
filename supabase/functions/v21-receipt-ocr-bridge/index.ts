@@ -131,7 +131,7 @@ Deno.serve(async(req:Request)=>{
 
   if(action==="finalize"){
     const result=body.result&&typeof body.result==="object"?body.result:{};
-    const {data,error}=await admin.rpc("v21_receipt_finalize",{p_job_id:jobId,p_result:result});
+    const {data,error}=await admin.rpc("v21_receipt_finalize_kh",{p_job_id:jobId,p_result:result});
     if(error)return reply(500,{ok:false,error:"receipt_finalize_failed"});
     return reply(200,{ok:true,status:data?.status||null,result:data});
   }
