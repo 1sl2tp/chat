@@ -1043,7 +1043,7 @@ async function uploadMediaStorageObject(requestClient,asset,body){
     const retryBody=await rematerializeStorageUploadBody(body,asset);
     ({error}=await requestClient.storage.from('v21-media').upload(
       asset.storage_key,retryBody,options
-    )));
+    ));
   }
   return error||null;
 }
