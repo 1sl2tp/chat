@@ -1,29 +1,9 @@
-## 2026-10-06 — Automatic Agribank receipt collection
+## 2026-10-06 — Receipt auto-collection removed
 
-Owner:
-- new customer canonical image -> `v21_receipt_media_trigger` -> one `v21-receipt-scan` vision read -> `v21_receipt_finalize`;
-- canonical debt remains `taphoa_debt_ledger`; no polling/background rescan was added.
-
-Exact auto-apply contract:
-- eligibility is strictly `v21_accounts.role='user' AND contact_group='customer'` (nhóm KH); friend/other groups never create a receipt job and therefore never enter the scan/collection path;
-- bank must be Agribank;
-- recipient name must normalize exactly to `BUI XUAN TUNG`;
-- full recipient account must be exactly `2901181999999` (never suffix-only);
-- amount/date/time must be readable;
-- same transfer timestamp cannot be applied twice;
-- transaction reference, when present, is an independent duplicate key;
-- AI only extracts visible receipt fields and is not primed with the expected name/account; Postgres owns exact matching.
-
-Money semantics:
-- bank VND is converted to TAPHOA thousand-VND ledger units;
-- collection is allowed even when it exceeds current debt or the customer already has credit;
-- excess collection remains a negative ledger balance and is displayed as `Còn dư`;
-- production rollback probe: test account balance -241 + valid 8,370 collection => -8,611, proving overpayment becomes customer credit.
-
-Resource contract:
-- event-driven only; no cron/polling;
-- one vision read per new customer image in an Admin/customer conversation;
-- non-receipt/mismatched receipts create no debt entry.
+- Bill images are ordinary Chat media only.
+- Chat does not OCR/AI-scan bills and does not create automatic debt collections from images.
+- Debt/collection changes remain explicit/manual through the existing canonical debt flows.
+- No receipt polling, OCR worker, Edge Function, or Render route is an active owner.
 
 ## 2026-10-05 — Zalo media bandwidth preflight
 
