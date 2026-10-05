@@ -36,3 +36,10 @@ test('runtime coalesces an outbound signal that arrives during an active send',a
   assert.match(source,/const pollOutbound=createCoalescingRunner\(runOutboundPass\)/);
   assert.match(source,/outboundNow:pollOutbound/);
 });
+
+
+test('fallback outbound polling stays long because event wake is primary',async()=>{
+  const source=await readFile(new URL('../src/server.mjs',import.meta.url),'utf8');
+  assert.match(source,/Math\.max\(15\*60_000,Number\(process\.env\.ZALO_FALLBACK_POLL_MS\)\|\|15\*60_000\)/);
+  assert.match(source,/outboundNow:pollOutbound/);
+});
