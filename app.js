@@ -5117,6 +5117,10 @@ function formatBytes(bytes){
 const MAX_IMAGE_EDGE=4096;
 const MAX_IMAGE_UPLOAD_BYTES=15*1024*1024;
 const IMAGE_ENCODE_QUALITY=.92;
+// A multi-image chat send favors fast round-trip and fast receiver hydration.
+// Single images keep the full-resolution policy above for viewer/detail quality.
+const BATCH_IMAGE_MAX_EDGE=2048;
+const BATCH_IMAGE_ENCODE_QUALITY=.86;
 const localImagePreviewUrls=new Map();
 
 function releaseLocalImageAttachment(item,{removeCache=true}={}){
@@ -5251,20 +5255,25 @@ async function imageDimensions(file){
   }
 }
 
-async function optimizeImageBlob(file){
+async function optimizeImageBlob(file,{
+  maxEdge=MAX_IMAGE_EDGE,
+  quality=IMAGE_ENCODE_QUALITY,
+  preserveNative=true
+}={}){
   const original=await imageDimensions(file);
   const width=Math.max(1,Number(original.width)||1);
   const height=Math.max(1,Number(original.height)||1);
   const mime=String(file.type||'').toLowerCase();
   if(mime==='image/gif'||mime==='image/svg+xml')return{blob:file,width,height,compressed:false};
 
-  const scale=Math.min(1,MAX_IMAGE_EDGE/Math.max(width,height));
-  // Keep browser-native images byte-for-byte whenever they already fit the
-  // product upload limit. The chat bubble is only ~360px wide, so the old
-  // 1600px/.78 recompress looked fine there but became visibly soft in the
-  // full-screen viewer, especially for screenshots/text on Retina displays.
+  const safeMaxEdge=Math.max(320,Number(maxEdge)||MAX_IMAGE_EDGE);
+  const safeQuality=Math.max(.6,Math.min(.96,Number(quality)||IMAGE_ENCODE_QUALITY));
+  const scale=Math.min(1,safeMaxEdge/Math.max(width,height));
+  // Single images preserve browser-native bytes while they fit the upload
+  // limit. Multi-image sends opt into a lighter profile so a 5–12 image batch
+  // does not make mobile upload and desktop hydration wait on tens of MB.
   const browserNative=['image/jpeg','image/jpg','image/png','image/webp'].includes(mime);
-  if(scale===1&&browserNative&&Number(file.size)<=MAX_IMAGE_UPLOAD_BYTES){
+  if(preserveNative&&scale===1&&browserNative&&Number(file.size)<=MAX_IMAGE_UPLOAD_BYTES){
     return{blob:file,width,height,compressed:false};
   }
 
@@ -5293,7 +5302,7 @@ async function optimizeImageBlob(file){
     context.drawImage(source,0,0,targetWidth,targetHeight);
 
     const outputType=mime==='image/png'?'image/webp':'image/jpeg';
-    const encoded=await new Promise(resolve=>canvas.toBlob(resolve,outputType,IMAGE_ENCODE_QUALITY));
+    const encoded=await new Promise(resolve=>canvas.toBlob(resolve,outputType,safeQuality));
     if(!(encoded instanceof Blob)||!encoded.size)return{blob:file,width,height,compressed:false};
     const mustResize=scale<1;
     const worthUsing=mustResize||encoded.size<Number(file.size)*.92;
@@ -5363,14 +5372,21 @@ async function canonicalizeImageIngressFile(file,index=0){
   if(!type.startsWith('image/'))throw new Error('invalid_image');
   const fallbackExtension=type==='image/png'?'png':type==='image/webp'?'webp':type==='image/gif'?'gif':type==='image/heic'?'heic':type==='image/heif'?'heif':type==='image/avif'?'avif':'jpg';
   const name=String(file.name||`image-${Date.now()}-${index+1}.${fallbackExtension}`);
-  const bytes=await file.arrayBuffer();
-  return new File([bytes],name,{type,lastModified:Number(file.lastModified)||Date.now()});
+  // Do not eagerly copy the complete Photos/Camera file into a new ArrayBuffer.
+  // On iPhone a multi-select can be tens of MB and that copy runs before the
+  // user sees the attachment tray. Reuse a valid File or wrap the Blob lazily.
+  if(file instanceof File&&nativeType===type&&String(file.name||'').trim())return file;
+  return new File([file],name,{type,lastModified:Number(file.lastModified)||Date.now()});
 }
 
-async function prepareImageAttachment(file,scope){
+async function prepareImageAttachment(file,scope,{batch=false}={}){
   if(!(file instanceof File)||!String(file.type||'').startsWith('image/'))throw new Error('invalid_image');
   const assetId=window.V21RuntimeId.create();
-  const optimized=await optimizeImageBlob(file);
+  const optimized=await optimizeImageBlob(file,batch?{
+    maxEdge:BATCH_IMAGE_MAX_EDGE,
+    quality:BATCH_IMAGE_ENCODE_QUALITY,
+    preserveNative:false
+  }:undefined);
   const contentHash=await sha256Blob(optimized.blob);
   const item={
     kind:'image',assetId,name:file.name||`image-${Date.now()}.jpg`,size:Number(optimized.blob.size)||0,
@@ -5391,8 +5407,11 @@ async function prepareImageAttachment(file,scope){
   });
   cacheMediaShareBlob(item,optimized.blob);
   const previewUrl=URL.createObjectURL(optimized.blob);
-  await warmLocalImagePreview(previewUrl);
   localImagePreviewUrls.set(String(assetId),previewUrl);
+  // The object URL is already usable by the attachment tray. Decoding it here
+  // used to serialize the preparation of every image in a batch; warm only in
+  // the background so the next attachment can be prepared immediately.
+  void warmLocalImagePreview(previewUrl);
   return item;
 }
 
@@ -5441,10 +5460,11 @@ async function ingestImageFiles(files,{scope=currentComposerScope()}={}){
     return{added:0,scope};
   }
   let added=0;
+  const batch=rawFiles.length>1;
   for(const [index,rawFile] of rawFiles.entries()){
     try{
       const file=await canonicalizeImageIngressFile(rawFile,index);
-      const item=await prepareImageAttachment(file,scope);
+      const item=await prepareImageAttachment(file,scope,{batch});
       if(appendPreparedAttachment(scope,item))added+=1;
     }catch(error){
       const message=String(error?.message||'');
