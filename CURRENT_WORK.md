@@ -5,6 +5,7 @@ Owner:
 - canonical debt remains `taphoa_debt_ledger`; no polling/background rescan was added.
 
 Exact auto-apply contract:
+- eligibility is strictly `v21_accounts.role='user' AND contact_group='customer'` (nhóm KH); friend/other groups never create a receipt job and therefore never enter the scan/collection path;
 - bank must be Agribank;
 - recipient name must normalize exactly to `BUI XUAN TUNG`;
 - full recipient account must be exactly `2901181999999` (never suffix-only);
