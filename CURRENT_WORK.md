@@ -1,3 +1,28 @@
+## 2026-10-06 — Zalo bridge simplified to linked-account event routing
+
+Final architecture:
+- Chat web/mobile is canonical for text + image + audio + file.
+- Admin -> Chat user always works as Chat first.
+- If that user has a current Zalo link owned by the Admin, the existing DB trigger creates exactly the Zalo outbound delivery row and signals Render immediately.
+- If there is no Zalo link, the Chat message remains Chat-only: no outbound row, no Render wake, no Zalo action.
+- Zalo -> Render text calls canonical ingress once; only a current linked Zalo ID becomes a Chat message. Unlinked text returns NULL and is ignored.
+- Zalo -> Render media checks canonical ownership before downloading bytes; unlinked media stops before download/upload/storage.
+- Render outbound periodic fallback polling was removed. It now uses the DB event signal plus one startup catch-up after login/restart.
+- No Render-side canonical link cache, no new table, no new cron, no second message owner.
+
+Production:
+- PR #156 merged as `c89311cdd70d342cb0b64dd3c31c85e12743214a`.
+- Verify V21: PASS.
+- Render `taphoa-zalo` auto-deploy `dep-db2g1ibncjis73cksajg`: LIVE.
+- Runtime log confirms: `outbound event signal enabled; startup catch-up only`.
+- Current 24h outbound queue after deploy audit: pending=0, failed=0, sent=145.
+
+Resource impact:
+- removes the old 15-minute fallback poll (~96 scheduled outbound checks/day while idle);
+- outbound work exists only for linked Chat recipients;
+- inbound unlinked media still performs only the tiny ownership preflight, never binary transfer;
+- inbound unlinked text performs only its event-triggered canonical link lookup.
+
 ## 2026-10-06 — Forwarded image to Zalo-linked contact repair
 
 Symptom:
