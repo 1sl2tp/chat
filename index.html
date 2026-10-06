@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="5c69812159e809424cd19b269e79da4af03cb32e339bf0f4de2861697394681a">
+<meta name="app-build-id" content="583739b3725f1f1b07ca4bde7c4dbfd880d396e9595068e3e4b1953acfe7119a">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -8293,6 +8293,7 @@ function restoreAnchor(anchor){
 }
 
 const mediaObjectUrls=new Map();
+const mediaShareBlobs=new Map();
 const audioHydrationPromises=new WeakMap();
 const AudioPlaybackController={
   currentAudio:null,
@@ -8762,6 +8763,7 @@ function renderImageViewerFilters(){
     const shareText=document.createElement('span');
     shareText.textContent='Chia sẻ';
     shareItem.appendChild(shareText);
+    primeMessageShareOnIntent(shareItem,()=>({media:currentImageViewerDescriptor()}));
     shareItem.addEventListener('click',event=>{
       event.stopPropagation();
       closeImageViewerTimeMenu();
@@ -9501,6 +9503,7 @@ async function hydrateImageElement(img,media){
     row=await window.V21SyncEngine?.ensureMediaRemote?.({accountId,assetId})||row;
   }
   if(!(row?.blob instanceof Blob))return false;
+  cacheMediaShareBlob({...media,accountId,assetId},row.blob);
   if(img.dataset.mediaHydrateKey!==hydrateKey||accountId!==String(currentMediaAccountId()||''))return false;
 
   let url=mediaObjectUrls.get(cacheKey);
@@ -10107,6 +10110,64 @@ function fileTypeLabel(media){
   return 'TỆP';
 }
 
+function mediaShareCacheKey(media){
+  const accountId=String(media?.accountId||currentMediaAccountId()||'');
+  const assetId=String(media?.assetId||'');
+  return accountId&&assetId?`${accountId}::${assetId}`:'';
+}
+
+function cacheMediaShareBlob(media,blob){
+  const key=mediaShareCacheKey(media);
+  if(!key||!(blob instanceof Blob))return false;
+  mediaShareBlobs.set(key,blob);
+  return true;
+}
+
+function preparedShareFilesForMessage(message){
+  if(typeof File!=='function')return null;
+  const list=mediaDescriptorsForMessage(message).filter(item=>
+    item&&(item.kind==='file'||item.type==='image'||item.kind==='image')
+  );
+  if(!list.length)return null;
+  const files=[];
+  for(const [index,item] of list.entries()){
+    const blob=mediaShareBlobs.get(mediaShareCacheKey(item));
+    if(!(blob instanceof Blob))return null;
+    const name=mediaDownloadName(item,index);
+    const type=String(item?.mimeType||item?.type||blob.type||'application/octet-stream');
+    files.push(blob instanceof File&&blob.name===name&&String(blob.type||'')===type
+      ?blob
+      :new File([blob],name,{type,lastModified:Date.now()}));
+  }
+  return files;
+}
+
+async function prepareMessageShareFiles(message){
+  try{
+    const list=mediaDescriptorsForMessage(message).filter(item=>
+      item&&(item.kind==='file'||item.type==='image'||item.kind==='image')
+    );
+    for(const item of list){
+      if(mediaShareBlobs.get(mediaShareCacheKey(item)) instanceof Blob)continue;
+      const resolved=await mediaBlobForDescriptor(item);
+      if(resolved?.blob instanceof Blob)cacheMediaShareBlob(item,resolved.blob);
+    }
+    return Boolean(preparedShareFilesForMessage(message)?.length);
+  }catch(error){
+    console.warn('[V21 media share prepare]',error);
+    return false;
+  }
+}
+
+function primeMessageShareOnIntent(node,resolveMessage){
+  if(!node||typeof resolveMessage!=='function')return node;
+  const warm=()=>{void prepareMessageShareFiles(resolveMessage());};
+  node.addEventListener('pointerenter',warm,{once:true,passive:true});
+  node.addEventListener('focus',warm,{once:true});
+  node.addEventListener('touchstart',warm,{once:true,passive:true});
+  return node;
+}
+
 async function mediaBlobForDescriptor(media){
   const accountId=String(media?.accountId||currentMediaAccountId()||'');
   const assetId=String(media?.assetId||'');
@@ -10114,6 +10175,7 @@ async function mediaBlobForDescriptor(media){
   let row=await window.V21MediaCache?.get?.({accountId,assetId});
   if(!(row?.blob instanceof Blob))row=await window.V21SyncEngine?.ensureMediaRemote?.({accountId,assetId});
   if(!(row?.blob instanceof Blob)||accountId!==String(currentMediaAccountId()||''))return null;
+  cacheMediaShareBlob({...media,accountId,assetId},row.blob);
   return{row,blob:row.blob,accountId,assetId};
 }
 
@@ -10155,27 +10217,30 @@ async function saveMessageMedia(message){
 
 async function shareMessageMedia(message){
   if(!canNativeShareFiles())return false;
-  const list=mediaDescriptorsForMessage(message).filter(item=>
-    item&&(item.kind==='file'||item.type==='image'||item.kind==='image')
-  );
-  const files=[];
-  for(const [index,item] of list.entries()){
-    const resolved=await mediaBlobForDescriptor(item);
-    if(!resolved)continue;
-    const name=mediaDownloadName(item,index);
-    const type=String(item?.mimeType||resolved.blob.type||'application/octet-stream');
-    files.push(resolved.blob instanceof File&&resolved.blob.name===name
-      ?resolved.blob
-      :new File([resolved.blob],name,{type,lastModified:Date.now()}));
+
+  // Web Share requires transient user activation at navigator.share() call time.
+  // Never await Blob/cache hydration before this point. Media hydration/upload
+  // primes mediaShareBlobs ahead of the click; intent handlers warm any miss.
+  const files=preparedShareFilesForMessage(message);
+  if(!files?.length){
+    void prepareMessageShareFiles(message);
+    return false;
   }
-  if(!files.length)return false;
   if(typeof navigator.canShare==='function'&&!navigator.canShare({files}))return false;
+
   try{
     await navigator.share({files,title:files.length===1?files[0].name:'Tệp đính kèm'});
     return true;
   }catch(error){
-    if(String(error?.name||'')==='AbortError')return false;
-    throw error;
+    const name=String(error?.name||'');
+    if(name==='AbortError'||name==='NotAllowedError'||name==='SecurityError'){
+      console.warn('[V21 media share blocked]',name,String(error?.message||''));
+      return false;
+    }
+    // Native share failures are interaction-local. They must never become an
+    // unhandled rejection that flips the whole Chat runtime into ERROR mode.
+    console.warn('[V21 media share failed]',error);
+    return false;
   }
 }
 
@@ -10212,6 +10277,7 @@ async function hydrateFileCardMeta(node,media){
   if(current&&current!=='Tệp')return false;
   const accountId=String(media?.accountId||currentMediaAccountId()||'');
   const row=await window.V21MediaCache?.get?.({accountId,assetId:String(media.assetId)});
+  if(row?.blob instanceof Blob)cacheMediaShareBlob({...media,accountId},row.blob);
   const name=String(row?.remote_meta?.file_name||'').trim();
   if(!name||!node.isConnected)return false;
   media.name=name;
@@ -10413,6 +10479,7 @@ window.addEventListener('pagehide',()=>{
   if(mediaObjectUrlSweepFrame){cancelAnimationFrame(mediaObjectUrlSweepFrame);mediaObjectUrlSweepFrame=0;}
   for(const url of mediaObjectUrls.values())URL.revokeObjectURL(url);
   mediaObjectUrls.clear();
+  mediaShareBlobs.clear();
   for(const url of localImagePreviewUrls.values())URL.revokeObjectURL(url);
   localImagePreviewUrls.clear();
   for(const url of localAudioPreviewUrls.values())URL.revokeObjectURL(url);
@@ -10576,14 +10643,16 @@ function createActionGroup(message){
       }
     }));
     if(canNativeShareFiles()){
-      actions.push(makeActionButton({
+      const shareAction=makeActionButton({
         label:'Chia sẻ',
         icon:'share',
         onClick:event=>{
           event.stopPropagation();
           void shareMessageMedia(resolveMessage()).finally(()=>closeAllTurnActions());
         }
-      }));
+      });
+      primeMessageShareOnIntent(shareAction,resolveMessage);
+      actions.push(shareAction);
     }
   }
 
@@ -12029,6 +12098,7 @@ document.addEventListener('v21-auth-state',event=>{
     revokeViewerOwnedUrls();
     for(const url of mediaObjectUrls.values())URL.revokeObjectURL(url);
     mediaObjectUrls.clear();
+    mediaShareBlobs.clear();
   }
 });
 
@@ -12044,6 +12114,10 @@ function formatBytes(bytes){
 const MAX_IMAGE_EDGE=4096;
 const MAX_IMAGE_UPLOAD_BYTES=15*1024*1024;
 const IMAGE_ENCODE_QUALITY=.92;
+// A multi-image chat send favors fast round-trip and fast receiver hydration.
+// Single images keep the full-resolution policy above for viewer/detail quality.
+const BATCH_IMAGE_MAX_EDGE=2048;
+const BATCH_IMAGE_ENCODE_QUALITY=.86;
 const localImagePreviewUrls=new Map();
 
 function releaseLocalImageAttachment(item,{removeCache=true}={}){
@@ -12055,6 +12129,7 @@ function releaseLocalImageAttachment(item,{removeCache=true}={}){
     URL.revokeObjectURL(previewUrl);
     localImagePreviewUrls.delete(assetId);
   }
+  if(ownerAccountId)mediaShareBlobs.delete(`${ownerAccountId}::${assetId}`);
   if(removeCache&&ownerAccountId){
     void window.V21MediaCache?.remove?.({accountId:ownerAccountId,assetId});
   }
@@ -12125,6 +12200,7 @@ function releaseLocalFileAttachment(item,{removeCache=true}={}){
     URL.revokeObjectURL(durableUrl);
     mediaObjectUrls.delete(cacheKey);
   }
+  if(cacheKey)mediaShareBlobs.delete(cacheKey);
   if(removeCache&&ownerAccountId)void window.V21MediaCache?.remove?.({accountId:ownerAccountId,assetId});
   return true;
 }
@@ -12176,20 +12252,25 @@ async function imageDimensions(file){
   }
 }
 
-async function optimizeImageBlob(file){
+async function optimizeImageBlob(file,{
+  maxEdge=MAX_IMAGE_EDGE,
+  quality=IMAGE_ENCODE_QUALITY,
+  preserveNative=true
+}={}){
   const original=await imageDimensions(file);
   const width=Math.max(1,Number(original.width)||1);
   const height=Math.max(1,Number(original.height)||1);
   const mime=String(file.type||'').toLowerCase();
   if(mime==='image/gif'||mime==='image/svg+xml')return{blob:file,width,height,compressed:false};
 
-  const scale=Math.min(1,MAX_IMAGE_EDGE/Math.max(width,height));
-  // Keep browser-native images byte-for-byte whenever they already fit the
-  // product upload limit. The chat bubble is only ~360px wide, so the old
-  // 1600px/.78 recompress looked fine there but became visibly soft in the
-  // full-screen viewer, especially for screenshots/text on Retina displays.
+  const safeMaxEdge=Math.max(320,Number(maxEdge)||MAX_IMAGE_EDGE);
+  const safeQuality=Math.max(.6,Math.min(.96,Number(quality)||IMAGE_ENCODE_QUALITY));
+  const scale=Math.min(1,safeMaxEdge/Math.max(width,height));
+  // Single images preserve browser-native bytes while they fit the upload
+  // limit. Multi-image sends opt into a lighter profile so a 5–12 image batch
+  // does not make mobile upload and desktop hydration wait on tens of MB.
   const browserNative=['image/jpeg','image/jpg','image/png','image/webp'].includes(mime);
-  if(scale===1&&browserNative&&Number(file.size)<=MAX_IMAGE_UPLOAD_BYTES){
+  if(preserveNative&&scale===1&&browserNative&&Number(file.size)<=MAX_IMAGE_UPLOAD_BYTES){
     return{blob:file,width,height,compressed:false};
   }
 
@@ -12218,7 +12299,7 @@ async function optimizeImageBlob(file){
     context.drawImage(source,0,0,targetWidth,targetHeight);
 
     const outputType=mime==='image/png'?'image/webp':'image/jpeg';
-    const encoded=await new Promise(resolve=>canvas.toBlob(resolve,outputType,IMAGE_ENCODE_QUALITY));
+    const encoded=await new Promise(resolve=>canvas.toBlob(resolve,outputType,safeQuality));
     if(!(encoded instanceof Blob)||!encoded.size)return{blob:file,width,height,compressed:false};
     const mustResize=scale<1;
     const worthUsing=mustResize||encoded.size<Number(file.size)*.92;
@@ -12288,14 +12369,21 @@ async function canonicalizeImageIngressFile(file,index=0){
   if(!type.startsWith('image/'))throw new Error('invalid_image');
   const fallbackExtension=type==='image/png'?'png':type==='image/webp'?'webp':type==='image/gif'?'gif':type==='image/heic'?'heic':type==='image/heif'?'heif':type==='image/avif'?'avif':'jpg';
   const name=String(file.name||`image-${Date.now()}-${index+1}.${fallbackExtension}`);
-  const bytes=await file.arrayBuffer();
-  return new File([bytes],name,{type,lastModified:Number(file.lastModified)||Date.now()});
+  // Do not eagerly copy the complete Photos/Camera file into a new ArrayBuffer.
+  // On iPhone a multi-select can be tens of MB and that copy runs before the
+  // user sees the attachment tray. Reuse a valid File or wrap the Blob lazily.
+  if(file instanceof File&&nativeType===type&&String(file.name||'').trim())return file;
+  return new File([file],name,{type,lastModified:Number(file.lastModified)||Date.now()});
 }
 
-async function prepareImageAttachment(file,scope){
+async function prepareImageAttachment(file,scope,{batch=false}={}){
   if(!(file instanceof File)||!String(file.type||'').startsWith('image/'))throw new Error('invalid_image');
   const assetId=window.V21RuntimeId.create();
-  const optimized=await optimizeImageBlob(file);
+  const optimized=await optimizeImageBlob(file,batch?{
+    maxEdge:BATCH_IMAGE_MAX_EDGE,
+    quality:BATCH_IMAGE_ENCODE_QUALITY,
+    preserveNative:false
+  }:undefined);
   const contentHash=await sha256Blob(optimized.blob);
   const item={
     kind:'image',assetId,name:file.name||`image-${Date.now()}.jpg`,size:Number(optimized.blob.size)||0,
@@ -12314,9 +12402,13 @@ async function prepareImageAttachment(file,scope){
       original_size_bytes:item.originalSize
     }
   });
+  cacheMediaShareBlob(item,optimized.blob);
   const previewUrl=URL.createObjectURL(optimized.blob);
-  await warmLocalImagePreview(previewUrl);
   localImagePreviewUrls.set(String(assetId),previewUrl);
+  // The object URL is already usable by the attachment tray. Decoding it here
+  // used to serialize the preparation of every image in a batch; warm only in
+  // the background so the next attachment can be prepared immediately.
+  void warmLocalImagePreview(previewUrl);
   return item;
 }
 
@@ -12365,10 +12457,11 @@ async function ingestImageFiles(files,{scope=currentComposerScope()}={}){
     return{added:0,scope};
   }
   let added=0;
+  const batch=rawFiles.length>1;
   for(const [index,rawFile] of rawFiles.entries()){
     try{
       const file=await canonicalizeImageIngressFile(rawFile,index);
-      const item=await prepareImageAttachment(file,scope);
+      const item=await prepareImageAttachment(file,scope,{batch});
       if(appendPreparedAttachment(scope,item))added+=1;
     }catch(error){
       const message=String(error?.message||'');
@@ -12417,6 +12510,7 @@ async function prepareFileAttachment(file,scope){
       size_bytes:item.sizeBytes,file_name:name,draft:true
     }
   });
+  cacheMediaShareBlob(item,file);
   return item;
 }
 
@@ -22692,8 +22786,13 @@ async function forwardMessage({sourceMessageId,text='',targetContactId,clientId}
       if(!sourceKey)throw new Error('forward_source_missing');
       const assetId=window.V21RuntimeId.create();
       const storageKey=`${context.accountId}/${conversationId}/${assetId}`;
-      const {error:copyError}=await context.client.storage.from('v21-media').copy(sourceKey,storageKey);
-      if(copyError)throw copyError;
+      const {data:sourceBlob,error:downloadError}=await context.client.storage.from('v21-media').download(sourceKey);
+      if(downloadError||!(sourceBlob instanceof Blob))throw downloadError||new Error('forward_source_download_failed');
+      const {error:uploadError}=await context.client.storage.from('v21-media').upload(storageKey,sourceBlob,{
+        contentType:String(source.mime_type||sourceBlob.type||'application/octet-stream'),
+        upsert:false
+      });
+      if(uploadError)throw uploadError;
       rpcAssets.push({
         id:String(assetId),
         kind,
@@ -22921,10 +23020,63 @@ function errorStatus(error){
   return Number(error?.statusCode||error?.status||error?.status_code||0)||0;
 }
 
+function isEmptyStorageUploadError(error){
+  const status=errorStatus(error);
+  const message=String(error?.message||error?.error||error||'').toLowerCase();
+  return status===400&&(
+    message.includes('no content provided')||
+    message.includes('empty content')||
+    message.includes('content is empty')
+  );
+}
+
+function preferBinaryStorageUploadBody(){
+  const ua=String(globalThis.navigator?.userAgent||'');
+  const platform=String(globalThis.navigator?.platform||'');
+  const touchPoints=Number(globalThis.navigator?.maxTouchPoints||0);
+  // All iOS browsers use WebKit. A Blob restored from IndexedDB can
+  // occasionally become an empty multipart upload even though blob.size is
+  // non-zero. A Uint8Array takes the raw-body upload path instead.
+  return /iPhone|iPad|iPod/i.test(ua)||(platform==='MacIntel'&&touchPoints>1);
+}
+
+async function rematerializeStorageUploadBody(body,asset){
+  if(!(body instanceof Blob))return body;
+  const buffer=await body.arrayBuffer();
+  if(!buffer.byteLength)throw new Error(`${String(asset?.kind||'media')}_blob_empty`);
+  return new Uint8Array(buffer);
+}
+
+async function uploadMediaStorageObject(requestClient,asset,body){
+  const options={
+    cacheControl:'3600',
+    upsert:false,
+    contentType:asset.mime_type||body?.type||undefined
+  };
+  let requestBody=body;
+  if(preferBinaryStorageUploadBody()&&body instanceof Blob){
+    requestBody=await rematerializeStorageUploadBody(body,asset);
+  }
+  let {error}=await requestClient.storage.from('v21-media').upload(
+    asset.storage_key,requestBody,options
+  );
+  if(error&&isEmptyStorageUploadError(error)){
+    // One immediate recovery for the exact iPhone failure observed in
+    // production: Storage received multipart Content-Length: 0. Rebuild the
+    // body as raw bytes and retry without making the user send the image again.
+    const retryBody=await rematerializeStorageUploadBody(body,asset);
+    ({error}=await requestClient.storage.from('v21-media').upload(
+      asset.storage_key,retryBody,options
+    ));
+  }
+  return error||null;
+}
+
 function isRetryableOutboxError(error){
   const status=errorStatus(error);
   const code=String(error?.code||'').trim();
   const message=String(error?.message||error||'').toLowerCase();
+  if(isEmptyStorageUploadError(error))return true;
   if(status===408||status===425||status===429||status>=500)return true;
   if(status>=400&&status<500)return false;
   if(/^pgrst202$/i.test(code))return true;
@@ -23023,10 +23175,7 @@ async function flushMediaItem(item,conversationId,context=captureFlushContext())
     }
 
     if(!asset.uploaded){
-      const {error:uploadError}=await requestClient.storage.from('v21-media').upload(
-        asset.storage_key,uploadBody,
-        {cacheControl:'3600',upsert:false,contentType:asset.mime_type||uploadBody.type||undefined}
-      );
+      const uploadError=await uploadMediaStorageObject(requestClient,asset,uploadBody);
       if(uploadError&&!isStorageAlreadyExistsError(uploadError))throw uploadError;
       asset.uploaded=true;item.failed=false;
       await cache()?.updateOutbox?.(ownerAccountId,item);
