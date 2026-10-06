@@ -1,3 +1,32 @@
+## 2026-10-06 — Forwarded image to Zalo-linked contact repair
+
+Symptom:
+- Admin used Chuyển tiếp on an existing Chat image toward a Zalo-linked customer, but no destination image message was created and the customer therefore received nothing on Zalo.
+
+Production evidence:
+- At 16:55 Vietnam time, `v21_message_forward_source` returned HTTP 200 for the forward attempt immediately after incoming image messages.
+- The expected next steps (`v21-media` destination write and `v21_media_assets_send`) never occurred, so no outbound media row existed for Zalo to deliver.
+- Existing text delivery to Cô Huyền and previous successful media forwards confirmed the Zalo bridge itself was healthy.
+
+Root cause / patch:
+- Browser forwarding depended on Storage server-side `copy(sourceKey,destinationKey)`.
+- Forwarding now reads the canonical source Blob and uploads a fresh destination object under the forwarding Admin's account/conversation path, then calls the existing `v21_media_assets_send`.
+- The existing media insert trigger remains the single owner that enqueues Zalo outbound media; no new polling, scheduler, retry owner, or Zalo transport path was added.
+
+Verification:
+- PR #154 merged as `7d6f271e6483cfc81eaa5feb97219e5fd594a8fe`.
+- Forward-media contract: PASS.
+- Verify V21 on main: PASS.
+- Deploy Chat Pages: PASS.
+- Canonical build id: `583739b3725f1f1b07ca4bde7c4dbfd880d396e9595068e3e4b1953acfe7119a`.
+
+Resource impact:
+- Only a manual forward of media changes traffic: one Storage download plus one Storage upload per forwarded asset instead of Storage copy.
+- Existing 15 MiB/media limit remains. No background traffic was added.
+
+Rollback:
+- Revert PR #154 / merge commit above.
+
 ## 2026-10-06 — Receipt auto-collection removed
 
 - Bill images are ordinary Chat media only.
