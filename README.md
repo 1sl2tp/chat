@@ -51,7 +51,7 @@ Keep each runtime concern with one owner:
 - **Message forward UI / destination picker** → `message-forward.js`; it calls `v21-sync-engine.js` for the actual send/copy operation.
 - **Realtime conversation delivery** → `v21-realtime-session.js`.
 - **Media cache** → `v21-media-cache.js`.
-- **Work / customer summary UI** → `work-customer-summary.js`; scanner results arrive through Admin-only Realtime, with the 60-second refresh only as fallback.
+- **Work / customer summary UI** → `work-customer-summary.js`; scanner results arrive through Admin-only Realtime. The old periodic refresh fallback is retired; do not add interval polling back.
 - **Zalo transport** → `bridge/zalo/` + Zalo Edge Functions. Do not add Zalo transport logic to `v21-sync-engine.js`.
 - **Quote data** → `v21-quote` Edge Function + `quote-client.js`. The composer `+` action is the send path; the contact profile only creates/copies a quote link.
 - **Interaction / overlay ownership** → `V21InteractionController`. Full-screen or modal surfaces must acquire/release an interaction mode instead of independently disabling the base UI.
