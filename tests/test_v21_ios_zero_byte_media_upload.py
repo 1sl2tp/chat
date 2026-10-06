@@ -8,7 +8,8 @@ assert "message.includes('no content provided')" in SYNC
 assert "function preferBinaryStorageUploadBody(){" in SYNC
 assert "/iPhone|iPad|iPod/i.test(ua)" in SYNC
 assert "function rematerializeStorageUploadBody" in SYNC
-assert "return new Uint8Array(buffer);" in SYNC
+assert "return buffer;" in SYNC
+assert "return new Uint8Array(buffer);" not in SYNC
 assert "async function uploadMediaStorageObject" in SYNC
 assert "if(error&&isEmptyStorageUploadError(error)){" in SYNC
 assert "const retryBody=await rematerializeStorageUploadBody(body,asset);" in SYNC
