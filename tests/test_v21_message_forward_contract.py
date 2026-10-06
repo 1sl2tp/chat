@@ -23,7 +23,9 @@ assert "window.V21Icons?.markup?.('close',{size:20})" in module
 
 assert "target===String(currentContactId||'')" in sync
 assert "async function forwardMessage(" in sync
-assert ".storage.from('v21-media').copy(sourceKey,storageKey)" in sync
+assert ".storage.from('v21-media').download(sourceKey)" in sync
+assert ".storage.from('v21-media').upload(storageKey,sourceBlob" in sync
+assert ".storage.from('v21-media').copy(sourceKey,storageKey)" not in sync
 assert "rpc('v21_media_assets_send'" in sync
 assert "rpc('v21_message_send'" in sync
 assert "messages()?.mergeForContact?.(messageRow" in sync
