@@ -230,3 +230,22 @@ Guardrails:
 - `needed=true` => only then download the binary and continue the existing idempotent media ingest path.
 - Text ingress remains on the existing lightweight canonical path; do not add a second text preflight just to save a sub-KB request.
 - Do not cache link ownership in Render as canonical truth. If a bounded cache is added later it must only optimize a verified canonical lookup and must tolerate stale entries safely.
+
+
+### Zalo bridge — event-driven linked-account routing
+
+Canonical rule:
+- **Chat is always the source of truth.** Web/mobile text, image, audio and file are saved/realtime in Chat first.
+- Chat -> Zalo: only an Admin message whose recipient has a current `zalo_user_links` mapping creates `zalo_message_links(outbound,pending)`. No link => no Zalo row, no Render wake, no Zalo send attempt.
+- Zalo -> Chat text: Render forwards the event to the protected ingress; `v21_zalo_ingress` resolves the canonical link. No link => returns NULL and creates no Chat message.
+- Zalo -> Chat media: Render performs only the lightweight target lookup first. No link => stop before downloading Zalo bytes, multipart upload or Storage write.
+- Do not keep a second canonical link cache in Render. `zalo_user_links` remains the single ownership source.
+- Outbound transport is event-driven by `zalo_outbound_signal_trg -> /outbound-now`. Render may do **one startup catch-up** after login/restart, but must not interval-poll outbound work.
+- A failed outbound row may be retried on the next real outbound signal or service restart; do not add a periodic poll just to retry it.
+- Storage cleanup is maintenance, not message transport, and must not be used to wake/send messages.
+
+Resource effect:
+- removed the 15-minute outbound fallback poll (~96 empty bridge checks/day when idle);
+- unlinked Chat recipients generate zero Zalo outbound work;
+- unlinked Zalo media incurs only the tiny ownership preflight and no binary transfer;
+- unlinked Zalo text incurs one event-triggered canonical lookup only, with no stored Chat/Zalo delivery row.
