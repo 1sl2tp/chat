@@ -124,6 +124,15 @@ Deno.serve(async(req:Request)=>{
   try{body=await req.json();}catch{return reply(400,{ok:false,error:"invalid_json"});}
   const action=String(body?.action??"").trim();
 
+  if(action==="linked_ids"){
+    const {data,error}=await admin.from("zalo_user_links").select("zalo_id");
+    if(error)return reply(500,{ok:false,error:"linked_ids_failed"});
+    const zaloIds=[...new Set((data??[])
+      .map((row:any)=>String(row?.zalo_id??"").trim())
+      .filter(Boolean))].sort();
+    return reply(200,{ok:true,zalo_ids:zaloIds});
+  }
+
   if(action==="media_target"){
     const zaloId=String(body.zalo_id??"").trim();
     const zaloMessageId=String(body.zalo_message_id??"").trim();
