@@ -31,7 +31,6 @@ const messageGateway=supabaseUrl&&bridgeToken
 const state=createLoginState();
 let api=null;
 let unbindIncoming=()=>{};
-let outboundTimer=0;
 let bridgeStatsTimer=0;
 const bridgeStats={outboundSent:0,inboundStored:0,inboundIgnored:0};
 function flushBridgeStats(){
@@ -172,9 +171,7 @@ server.listen(port,'0.0.0.0',()=>{
             .then(result=>{if(result.deleted)console.log('[zalo-login] storage cleanup',result);})
             .catch(error=>console.warn('[zalo-login] storage cleanup failed',String(error?.message||error)));
         },6*60*60_000).unref();
-        const fallbackPollMs=Math.max(15*60_000,Number(process.env.ZALO_FALLBACK_POLL_MS)||15*60_000);
-        outboundTimer=setInterval(()=>{void pollOutbound();},fallbackPollMs);
-        console.log(`[zalo-login] outbound event signal enabled; fallback poll ${fallbackPollMs}ms`);
+        console.log('[zalo-login] outbound event signal enabled; startup catch-up only');
       }
     })
     .catch(()=>{});
@@ -183,7 +180,6 @@ server.listen(port,'0.0.0.0',()=>{
 const shutdown=()=>{
   flushBridgeStats();
   if(bridgeStatsTimer){clearInterval(bridgeStatsTimer);bridgeStatsTimer=0;}
-  if(outboundTimer){clearInterval(outboundTimer);outboundTimer=0;}
   try{unbindIncoming();}catch{}
   try{api?.listener?.stop?.();}catch{}
   server.close(()=>process.exit(0));
