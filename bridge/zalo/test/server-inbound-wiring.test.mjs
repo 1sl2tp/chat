@@ -38,8 +38,10 @@ test('runtime coalesces an outbound signal that arrives during an active send',a
 });
 
 
-test('fallback outbound polling stays long because event wake is primary',async()=>{
+test('outbound delivery is signal-driven with one startup catch-up and no interval poll',async()=>{
   const source=await fs.readFile(new URL('../src/server.mjs',import.meta.url),'utf8');
-  assert.match(source,/Math\.max\(15\*60_000,Number\(process\.env\.ZALO_FALLBACK_POLL_MS\)\|\|15\*60_000\)/);
   assert.match(source,/outboundNow:pollOutbound/);
+  assert.match(source,/void pollOutbound\(\);/);
+  assert.doesNotMatch(source,/ZALO_FALLBACK_POLL_MS/);
+  assert.doesNotMatch(source,/outboundTimer=setInterval/);
 });
