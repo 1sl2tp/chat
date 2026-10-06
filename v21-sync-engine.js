@@ -767,8 +767,13 @@ async function forwardMessage({sourceMessageId,text='',targetContactId,clientId}
       if(!sourceKey)throw new Error('forward_source_missing');
       const assetId=window.V21RuntimeId.create();
       const storageKey=`${context.accountId}/${conversationId}/${assetId}`;
-      const {error:copyError}=await context.client.storage.from('v21-media').copy(sourceKey,storageKey);
-      if(copyError)throw copyError;
+      const {data:sourceBlob,error:downloadError}=await context.client.storage.from('v21-media').download(sourceKey);
+      if(downloadError||!(sourceBlob instanceof Blob))throw downloadError||new Error('forward_source_download_failed');
+      const {error:uploadError}=await context.client.storage.from('v21-media').upload(storageKey,sourceBlob,{
+        contentType:String(source.mime_type||sourceBlob.type||'application/octet-stream'),
+        upsert:false
+      });
+      if(uploadError)throw uploadError;
       rpcAssets.push({
         id:String(assetId),
         kind,
