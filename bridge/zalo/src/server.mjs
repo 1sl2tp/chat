@@ -31,16 +31,18 @@ const messageGateway=supabaseUrl&&bridgeToken
 const state=createLoginState();
 let api=null;
 let unbindIncoming=()=>{};
-let outboundTimer=0;
-let bridgeStatsTimer=0;
-const bridgeStats={outboundSent:0,inboundStored:0,inboundIgnored:0};
-function flushBridgeStats(){
-  const total=bridgeStats.outboundSent+bridgeStats.inboundStored+bridgeStats.inboundIgnored;
-  if(!total)return;
-  console.log('[zalo-bridge] summary',JSON.stringify({...bridgeStats}));
-  bridgeStats.outboundSent=0;
-  bridgeStats.inboundStored=0;
-  bridgeStats.inboundIgnored=0;
+let outboundRetryTimer=0;
+let linkedZaloIds=new Set();
+
+async function refreshLinkedZaloIds(){
+  if(!messageGateway){
+    linkedZaloIds=new Set();
+    return 0;
+  }
+  const ids=await messageGateway.listLinkedZaloIds();
+  linkedZaloIds=new Set(ids);
+  console.log(`[zalo-login] linked inbound routes ${linkedZaloIds.size}`);
+  return linkedZaloIds.size;
 }
 
 async function sendOutboundRow(row){
@@ -61,6 +63,7 @@ async function sendOutboundRow(row){
 async function runOutboundPass(){
   if(!api||!messageGateway)return 0;
   const rows=await messageGateway.listOutbound(20);
+  let retryDelayMs=0;
   for(const row of rows){
     try{
       const sent=await sendOutboundRow(row);
@@ -70,7 +73,6 @@ async function runOutboundPass(){
         ok:true,
         zaloMessageId,
       });
-      bridgeStats.outboundSent+=1;
     }catch(error){
       const message=String(error?.message||error);
       try{
@@ -83,12 +85,27 @@ async function runOutboundPass(){
         console.warn('[zalo-bridge] outbound result failed',String(markError?.message||markError));
       }
       console.warn('[zalo-bridge] outbound failed',row.deliveryId,message);
+      const nextAttempt=Math.max(1,(Number(row?.attemptCount)||0)+1);
+      if(nextAttempt<5){
+        const delay=Math.min(300_000,5_000*(2**nextAttempt))+1_000;
+        retryDelayMs=Math.max(retryDelayMs,delay);
+      }
     }
   }
+  if(retryDelayMs)scheduleOutboundRetry(retryDelayMs);
   return rows.length;
 }
 
 const pollOutbound=createCoalescingRunner(runOutboundPass);
+
+function scheduleOutboundRetry(delayMs=11_000){
+  if(outboundRetryTimer)return;
+  outboundRetryTimer=setTimeout(()=>{
+    outboundRetryTimer=0;
+    void pollOutbound();
+  },Math.max(1_000,Number(delayMs)||11_000));
+  outboundRetryTimer.unref?.();
+}
 
 const handler=createRequestHandler({
   state,
@@ -96,6 +113,7 @@ const handler=createRequestHandler({
   accessToken,
   signalTokenHash,
   outboundNow:pollOutbound,
+  refreshLinks:refreshLinkedZaloIds,
   listFriends:async()=>{
     if(!api||typeof api.getAllFriends!=='function')throw new Error('zalo_api_not_ready');
     return api.getAllFriends();
@@ -118,38 +136,38 @@ server.listen(port,'0.0.0.0',()=>{
   void startZaloLogin({ZaloClass:Zalo,state,qrPath,logger:console,sessionStore})
     .then(async result=>{
       api=result;
+      if(messageGateway){
+        try{await refreshLinkedZaloIds();}
+        catch(error){
+          linkedZaloIds=new Set();
+          console.warn('[zalo-login] linked route snapshot failed',String(error?.message||error));
+        }
+      }
       unbindIncoming=bindIncomingMessageListener({
         api,
         logger:console,
         onMessage:async event=>{
           if(!messageGateway)return;
+          if(!linkedZaloIds.has(String(event?.zaloId||'')))return;
           try{
             let bridged;
             if(Array.isArray(event?.media)&&event.media.length){
               // Ask canonical Chat ownership before downloading any Zalo binary.
               // Unlinked Zalo traffic must not consume Render/Supabase media bandwidth.
               const target=await messageGateway.mediaTarget(event);
-              if(!target?.needed){
-                bridgeStats.inboundIgnored+=1;
-                return;
-              }
+              if(!target?.needed)return;
               const binary=await downloadInboundMedia({api,media:event.media[0]});
               bridged=await messageGateway.ingestMedia(event,binary);
             }else{
               bridged=await messageGateway.ingestText(event);
             }
-            if(bridged?.messageId)bridgeStats.inboundStored+=1;
-            else bridgeStats.inboundIgnored+=1;
+            if(!bridged?.messageId)return;
           }catch(error){
             console.warn('[zalo-bridge] inbound failed',String(error?.message||error));
           }
         },
       });
       console.log('[zalo-login] incoming message listener enabled');
-      if(!bridgeStatsTimer){
-        bridgeStatsTimer=setInterval(flushBridgeStats,15*60_000);
-        bridgeStatsTimer.unref?.();
-      }
       if(contactSync){
         try{
           const synced=await syncApiContacts({api,sync:contactSync});
@@ -172,18 +190,14 @@ server.listen(port,'0.0.0.0',()=>{
             .then(result=>{if(result.deleted)console.log('[zalo-login] storage cleanup',result);})
             .catch(error=>console.warn('[zalo-login] storage cleanup failed',String(error?.message||error)));
         },6*60*60_000).unref();
-        const fallbackPollMs=Math.max(15*60_000,Number(process.env.ZALO_FALLBACK_POLL_MS)||15*60_000);
-        outboundTimer=setInterval(()=>{void pollOutbound();},fallbackPollMs);
-        console.log(`[zalo-login] outbound event signal enabled; fallback poll ${fallbackPollMs}ms`);
+        console.log('[zalo-login] outbound event signal enabled; no recurring message poll');
       }
     })
     .catch(()=>{});
 });
 
 const shutdown=()=>{
-  flushBridgeStats();
-  if(bridgeStatsTimer){clearInterval(bridgeStatsTimer);bridgeStatsTimer=0;}
-  if(outboundTimer){clearInterval(outboundTimer);outboundTimer=0;}
+  if(outboundRetryTimer){clearTimeout(outboundRetryTimer);outboundRetryTimer=0;}
   try{unbindIncoming();}catch{}
   try{api?.listener?.stop?.();}catch{}
   server.close(()=>process.exit(0));
