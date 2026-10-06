@@ -43,6 +43,11 @@ export function createMessageGateway({endpoint,bridgeToken,fetchImpl=fetch}={}){
   }
 
   return Object.freeze({
+    async listLinkedZaloIds(){
+      const payload=await post({action:'linked_ids'});
+      return [...new Set((Array.isArray(payload?.zalo_ids)?payload.zalo_ids:[])
+        .map(value=>String(value||'').trim()).filter(Boolean))].sort();
+    },
     async mediaTarget(event){
       const payload=await post({
         action:'media_target',

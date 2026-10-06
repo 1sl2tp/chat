@@ -113,3 +113,17 @@ test('linked avatar sync is a dedicated startup action',async()=>{
   assert.equal(result.count,1);
   assert.equal(calls[0].body.action,'sync_linked_avatars');
 });
+
+
+test('linked inbound route snapshot loads only linked Zalo ids',async()=>{
+  const calls=[];
+  const gateway=createMessageGateway({
+    endpoint:'https://example.test/functions/v1/v21-zalo-bridge',
+    bridgeToken:'secret',
+    fetchImpl:fakeFetch(calls,[{ok:true,status:200,body:{ok:true,zalo_ids:['z2','z1','z1']}}]),
+  });
+  const ids=await gateway.listLinkedZaloIds();
+  assert.deepEqual(ids,['z1','z2']);
+  assert.equal(calls.length,1);
+  assert.equal(calls[0].body.action,'linked_ids');
+});

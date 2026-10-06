@@ -197,3 +197,37 @@ test('contacts endpoint returns only id name and avatar from Zalo friends',async
     ],
   });
 });
+
+
+test('link refresh signal endpoint refreshes the local linked-Zalo cache',async()=>{
+  const state=createLoginState();
+  let calls=0;
+  const handler=createRequestHandler({
+    state,
+    qrPath:'/tmp/not-created.png',
+    signalTokenHash:'abc123',
+    refreshLinks:async()=>{calls+=1;return 7;},
+  });
+  const req={method:'POST',url:'/links-refresh',headers:{'x-bridge-token-sha256':'abc123'}};
+  const res=makeResponse();
+  await handler(req,res);
+  assert.equal(res.statusCode,200);
+  assert.equal(calls,1);
+  assert.deepEqual(JSON.parse(res.body.toString()),{ok:true,linked:7});
+});
+
+test('link refresh signal endpoint rejects a bad bridge hash',async()=>{
+  const state=createLoginState();
+  let calls=0;
+  const handler=createRequestHandler({
+    state,
+    qrPath:'/tmp/not-created.png',
+    signalTokenHash:'abc123',
+    refreshLinks:async()=>{calls+=1;return 0;},
+  });
+  const req={method:'POST',url:'/links-refresh',headers:{'x-bridge-token-sha256':'wrong'}};
+  const res=makeResponse();
+  await handler(req,res);
+  assert.equal(res.statusCode,401);
+  assert.equal(calls,0);
+});
