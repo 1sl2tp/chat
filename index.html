@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="583739b3725f1f1b07ca4bde7c4dbfd880d396e9595068e3e4b1953acfe7119a">
+<meta name="app-build-id" content="50a5538381bacaea68598f41f1da79de2451e0c1d431a65117778478bb917e76">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1317,6 +1317,83 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
 .admin-composer-stock-options button span{color:var(--theme-content-secondary,#666);font-size:12px;line-height:17px}
 .admin-composer-stock-options button:disabled{opacity:.5;cursor:default}
 .admin-composer-stock-actions{grid-template-columns:1fr}
+
+</style>
+<style data-inlined-source="ui-foundation.css">
+/*
+  TAPHOA Chat — UI Foundation V1
+  Local implementation of the system UI foundation.
+  Owner: visual tokens + lightweight primitives only.
+  No business state, routing, network, realtime, push or provider behavior lives here.
+*/
+#appShell[data-ui-foundation="v1"]{
+  --ui-font-family:var(--font-family-sans,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif);
+
+  --ui-space-4:4px;
+  --ui-space-6:6px;
+  --ui-space-8:8px;
+  --ui-space-12:12px;
+  --ui-space-16:16px;
+  --ui-space-20:20px;
+  --ui-space-24:24px;
+  --ui-space-32:32px;
+
+  --ui-gutter-mobile:12px;
+  --ui-gutter-desktop:16px;
+
+  --ui-radius-6:6px;
+  --ui-radius-8:8px;
+  --ui-radius-10:10px;
+  --ui-radius-12:12px;
+  --ui-radius-16:16px;
+  --ui-radius-20:20px;
+  --ui-radius-pill:999px;
+
+  --ui-title-compact:1.125rem;
+  --ui-line-title-compact:1.5rem;
+  --ui-body-font-size:15px;
+  --ui-input-mobile-font-size:16px;
+  --ui-meta-font-size:12px;
+
+  --ui-control-desktop:36px;
+  --ui-control-touch:44px;
+  --ui-icon-12:12px;
+  --ui-icon-14:14px;
+  --ui-icon-16:16px;
+  --ui-icon-18:18px;
+  --ui-icon-20:20px;
+  --ui-icon-24:24px;
+
+  --ui-border-color:var(--theme-border-default,#e4e7ec);
+  --ui-surface-primary:var(--theme-surface-primary,#fff);
+  --ui-surface-secondary:var(--theme-surface-secondary,#f6f7f9);
+  --ui-text-primary:var(--theme-content-primary,#111827);
+  --ui-text-secondary:var(--theme-content-secondary,#667085);
+  --ui-text-tertiary:var(--theme-content-tertiary,#98a2b3);
+
+  --ui-scroll-size:8px;
+  --ui-scroll-thumb:#c4c9d2;
+  --ui-scroll-thumb-hover:#98a2b3;
+  --ui-scroll-thumb-active:#667085;
+  --ui-scroll-track:transparent;
+
+  --ui-motion-fast:120ms;
+  --ui-motion-normal:160ms;
+  --ui-motion-slow:220ms;
+}
+
+#appShell[data-ui-foundation="v1"],
+#appShell[data-ui-foundation="v1"] button,
+#appShell[data-ui-foundation="v1"] input,
+#appShell[data-ui-foundation="v1"] textarea,
+#appShell[data-ui-foundation="v1"] select{
+  font-family:var(--ui-font-family);
+  box-sizing:border-box;
+}
+
+#appShell[data-ui-foundation="v1"] button{
+  touch-action:manipulation;
+}
 
 </style>
 <style data-inlined-source="mobile-chat-refresh.css">
@@ -5165,41 +5242,46 @@ button{
 @media (max-width:63.999rem), (pointer:coarse) {
   /* ---------- Shared mobile rhythm ---------- */
   #appShell[data-auth-state="authenticated"]{
-    --mobile-ui-gutter:16px;
-    --mobile-ui-radius:16px;
+    --mobile-ui-gutter:var(--ui-gutter-mobile,12px);
+    --mobile-ui-radius:var(--ui-radius-16,16px);
     --mobile-ui-soft:color-mix(in srgb,var(--theme-surface-secondary) 72%,var(--theme-surface-primary));
-    --mobile-ui-line:color-mix(in srgb,var(--theme-border-default) 78%,transparent);
+    --mobile-ui-line:color-mix(in srgb,var(--ui-border-color,var(--theme-border-default)) 78%,transparent);
   }
 
-  /* ---------- Directory ---------- */
+  /* ---------- Directory ----------
+     Mobile core action: Chọn người → Chat.
+     Keep the shell label compact so search + contacts own the viewport. */
   #shellNavigationLayer .wm-sidebar-header{
-    padding:10px var(--mobile-ui-gutter) 6px;
+    box-sizing:border-box;
+    min-height:44px;
+    padding:max(6px,env(safe-area-inset-top,0px)) var(--mobile-ui-gutter) 3px;
   }
 
   #shellNavigationLayer .shell-wordmark{
-    font-size:1.72rem;
-    line-height:2rem;
-    letter-spacing:-.035em;
+    font-size:var(--ui-title-compact,1.125rem);
+    line-height:var(--ui-line-title-compact,1.5rem);
+    font-weight:600;
+    letter-spacing:-.02em;
   }
 
   #shellNavigationLayer .wm-sidebar-body{
-    padding-inline:8px;
+    padding-inline:6px;
   }
 
   #shellNavigationLayer .contact-directory-tools{
-    gap:8px!important;
+    gap:6px!important;
     margin:0!important;
-    padding:6px 8px 9px!important;
+    padding:4px 6px 7px!important;
     background:var(--theme-surface-primary)!important;
   }
 
   #shellNavigationLayer .contact-directory-search{
-    height:44px!important;
+    height:var(--ui-control-touch,44px)!important;
     border:1px solid var(--mobile-ui-line)!important;
-    border-radius:14px!important;
-    padding-inline:14px!important;
+    border-radius:var(--ui-radius-12,12px)!important;
+    padding-inline:12px!important;
     background:color-mix(in srgb,var(--theme-surface-secondary) 44%,var(--theme-surface-primary))!important;
-    font-size:15px!important;
+    font-size:var(--ui-input-mobile-font-size,16px)!important;
     box-shadow:none!important;
   }
 
@@ -5209,15 +5291,15 @@ button{
   }
 
   #shellNavigationLayer .contact-directory-filters{
-    gap:6px!important;
+    gap:var(--ui-space-6,6px)!important;
     padding:0!important;
   }
 
   #shellNavigationLayer .contact-directory-filter{
     min-height:32px!important;
-    padding-inline:13px!important;
+    padding-inline:12px!important;
     border:0!important;
-    border-radius:999px!important;
+    border-radius:var(--ui-radius-pill,999px)!important;
     background:var(--mobile-ui-soft)!important;
     color:var(--theme-content-secondary)!important;
     font-size:13px!important;
@@ -5230,7 +5312,7 @@ button{
   }
 
   #shellNavigationLayer [data-v21-contact-list]{
-    padding:1px 2px 10px;
+    padding:0 2px 8px;
   }
 
   #shellNavigationLayer .shell-contact-row{
@@ -5631,7 +5713,7 @@ button{
 <div id="runtimeError" class="hidden fixed z-[9999] left-2 right-2 top-2 rounded-xl bg-red-600 text-white text-xs px-3 py-2 shadow-lg"></div>
 
 <!-- V21.69.9 unified runtime marker. Earlier V21.20/V21.64 labels below are provenance for inherited geometry/style contracts only, not separate live runtimes. -->
-<div id="appShell" data-app-shell data-chat-screen-version="V21.72.39" data-app-shell-version="V21.72.39" data-auth-state="booting" data-default-route="work" data-route="work">
+<div id="appShell" data-app-shell data-ui-foundation="v1" data-chat-screen-version="V21.72.39" data-app-shell-version="V21.72.39" data-auth-state="booting" data-default-route="work" data-route="work">
   <div id="screenHost" data-screen-host>
     <div id="activeScreenSlot" data-active-screen-slot>
       <section id="chatScreen" class="app-screen" data-screen="chat">

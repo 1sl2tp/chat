@@ -407,3 +407,12 @@ Commit production: `7e2403a5fe97f0f797c0811a403100a69facf0e4`.
 - GitHub Pages build/deployment: PASS;
 - canonical build/verify: PASS;
 - custom-domain production probe: PASS.
+
+
+## 2026-10-08 — Chat UI Foundation V1 / mobile directory compact
+- Base UI patch: `4a7585cf66613beba5ec03649d06b8eb605b5b9b`.
+- Added local `ui-foundation.css` (visual tokens only; no business/realtime/push ownership).
+- Mobile directory prioritizes `Chọn người → Chat`: compact `Danh bạ`, 12px gutter, 16px mobile search input, tighter search/filter spacing; contact row remains 60px / avatar 40px.
+- Notification routing audited only: `sw.js` carries contact/conversation IDs and `admin-push-controller.js → ChatAppShell.NavigationCommand.openContact()` forces route `chat`; no Push/DB/Realtime code changed.
+- Resource impact: 0 DB writes, 0 provider calls, 0 polling/logging/background work added; one small local CSS asset.
+- Initial Verify V21 failed only because generated `index.html/version.json` were not committed with modular source. Pages build generated + verified canonical output successfully; this commit synchronizes generated artifacts.
