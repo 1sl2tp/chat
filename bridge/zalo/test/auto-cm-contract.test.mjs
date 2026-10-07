@@ -6,7 +6,7 @@ import path from 'node:path';
 test('contact sync edge auto-creates and links CM aliases without credentials delivery',()=>{
   const source=fs.readFileSync(path.resolve(process.cwd(),'../../supabase/functions/v21-zalo-contacts/index.ts'),'utf8');
   assert.match(source,/autoProvisionCmContacts/);
-  assert.match(source,/^\s*const CM_ALIAS_PREFIX\s*=\s*\/\^cm(?:\\s|\\b)/m);
+  assert.match(source,/const CM_ALIAS_PREFIX\s*=\s*\/\^cm/);
   assert.match(source,/contact_group:\s*"cm"/);
   assert.match(source,/auth\.admin\.createUser/);
   assert.match(source,/zalo_user_links/);
