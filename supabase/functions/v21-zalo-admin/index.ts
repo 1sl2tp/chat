@@ -71,7 +71,7 @@ async function mirrorZaloAvatar(
   return storagePath;
 }
 
-const CONTACT_GROUPS = new Set(["customer", "friend", "other"]);
+const CONTACT_GROUPS = new Set(["customer", "cm", "friend", "other"]);
 
 function reply(status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), { status, headers });
