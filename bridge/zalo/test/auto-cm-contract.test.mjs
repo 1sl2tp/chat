@@ -18,3 +18,8 @@ test('contact directory exposes CM as a first-class group',()=>{
   assert.match(source,/\['cm','CM'\]/);
   assert.match(source,/data-contact-directory-filter="cm">CM</);
 });
+
+test('admin edge accepts CM when an admin manually changes a contact group',()=>{
+  const source=fs.readFileSync(path.resolve(process.cwd(),'../../supabase/functions/v21-zalo-admin/index.ts'),'utf8');
+  assert.match(source,/CONTACT_GROUPS[^\n]*"cm"/);
+});
