@@ -44,11 +44,13 @@ test('contact sync skips unchanged directory rows',()=>{
 });
 
 
-test('contact edge preserves profile name and only replaces visible name from a complete alias snapshot',()=>{
+test('contact edge preserves profile name and only clears aliases from a complete alias snapshot',()=>{
   const source=fs.readFileSync(sourcePath,'utf8');
   assert.match(source,/alias_snapshot_complete/);
   assert.match(source,/alias_name/);
   assert.match(source,/profile_name/);
   assert.match(source,/aliasSnapshotComplete/);
   assert.match(source,/existing\?\.display_name/);
+  assert.match(source,/hasIncomingAlias/);
+  assert.match(source,/aliasSnapshotComplete \|\| hasIncomingAlias/);
 });
