@@ -1,0 +1,74 @@
+/*
+  TAPHOA Chat — UI Foundation V1
+  Local implementation of the system UI foundation.
+  Owner: visual tokens + lightweight primitives only.
+  No business state, routing, network, realtime, push or provider behavior lives here.
+*/
+#appShell[data-ui-foundation="v1"]{
+  --ui-font-family:var(--font-family-sans,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif);
+
+  --ui-space-4:4px;
+  --ui-space-6:6px;
+  --ui-space-8:8px;
+  --ui-space-12:12px;
+  --ui-space-16:16px;
+  --ui-space-20:20px;
+  --ui-space-24:24px;
+  --ui-space-32:32px;
+
+  --ui-gutter-mobile:12px;
+  --ui-gutter-desktop:16px;
+
+  --ui-radius-6:6px;
+  --ui-radius-8:8px;
+  --ui-radius-10:10px;
+  --ui-radius-12:12px;
+  --ui-radius-16:16px;
+  --ui-radius-20:20px;
+  --ui-radius-pill:999px;
+
+  --ui-title-compact:1.125rem;
+  --ui-line-title-compact:1.5rem;
+  --ui-body-font-size:15px;
+  --ui-input-mobile-font-size:16px;
+  --ui-meta-font-size:12px;
+
+  --ui-control-desktop:36px;
+  --ui-control-touch:44px;
+  --ui-icon-12:12px;
+  --ui-icon-14:14px;
+  --ui-icon-16:16px;
+  --ui-icon-18:18px;
+  --ui-icon-20:20px;
+  --ui-icon-24:24px;
+
+  --ui-border-color:var(--theme-border-default,#e4e7ec);
+  --ui-surface-primary:var(--theme-surface-primary,#fff);
+  --ui-surface-secondary:var(--theme-surface-secondary,#f6f7f9);
+  --ui-text-primary:var(--theme-content-primary,#111827);
+  --ui-text-secondary:var(--theme-content-secondary,#667085);
+  --ui-text-tertiary:var(--theme-content-tertiary,#98a2b3);
+
+  --ui-scroll-size:8px;
+  --ui-scroll-thumb:#c4c9d2;
+  --ui-scroll-thumb-hover:#98a2b3;
+  --ui-scroll-thumb-active:#667085;
+  --ui-scroll-track:transparent;
+
+  --ui-motion-fast:120ms;
+  --ui-motion-normal:160ms;
+  --ui-motion-slow:220ms;
+}
+
+#appShell[data-ui-foundation="v1"],
+#appShell[data-ui-foundation="v1"] button,
+#appShell[data-ui-foundation="v1"] input,
+#appShell[data-ui-foundation="v1"] textarea,
+#appShell[data-ui-foundation="v1"] select{
+  font-family:var(--ui-font-family);
+  box-sizing:border-box;
+}
+
+#appShell[data-ui-foundation="v1"] button{
+  touch-action:manipulation;
+}

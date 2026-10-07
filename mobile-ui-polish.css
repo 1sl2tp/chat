@@ -9,41 +9,46 @@
 @media (max-width:63.999rem), (pointer:coarse) {
   /* ---------- Shared mobile rhythm ---------- */
   #appShell[data-auth-state="authenticated"]{
-    --mobile-ui-gutter:16px;
-    --mobile-ui-radius:16px;
+    --mobile-ui-gutter:var(--ui-gutter-mobile,12px);
+    --mobile-ui-radius:var(--ui-radius-16,16px);
     --mobile-ui-soft:color-mix(in srgb,var(--theme-surface-secondary) 72%,var(--theme-surface-primary));
-    --mobile-ui-line:color-mix(in srgb,var(--theme-border-default) 78%,transparent);
+    --mobile-ui-line:color-mix(in srgb,var(--ui-border-color,var(--theme-border-default)) 78%,transparent);
   }
 
-  /* ---------- Directory ---------- */
+  /* ---------- Directory ----------
+     Mobile core action: Chọn người → Chat.
+     Keep the shell label compact so search + contacts own the viewport. */
   #shellNavigationLayer .wm-sidebar-header{
-    padding:10px var(--mobile-ui-gutter) 6px;
+    box-sizing:border-box;
+    min-height:44px;
+    padding:max(6px,env(safe-area-inset-top,0px)) var(--mobile-ui-gutter) 3px;
   }
 
   #shellNavigationLayer .shell-wordmark{
-    font-size:1.72rem;
-    line-height:2rem;
-    letter-spacing:-.035em;
+    font-size:var(--ui-title-compact,1.125rem);
+    line-height:var(--ui-line-title-compact,1.5rem);
+    font-weight:600;
+    letter-spacing:-.02em;
   }
 
   #shellNavigationLayer .wm-sidebar-body{
-    padding-inline:8px;
+    padding-inline:6px;
   }
 
   #shellNavigationLayer .contact-directory-tools{
-    gap:8px!important;
+    gap:6px!important;
     margin:0!important;
-    padding:6px 8px 9px!important;
+    padding:4px 6px 7px!important;
     background:var(--theme-surface-primary)!important;
   }
 
   #shellNavigationLayer .contact-directory-search{
-    height:44px!important;
+    height:var(--ui-control-touch,44px)!important;
     border:1px solid var(--mobile-ui-line)!important;
-    border-radius:14px!important;
-    padding-inline:14px!important;
+    border-radius:var(--ui-radius-12,12px)!important;
+    padding-inline:12px!important;
     background:color-mix(in srgb,var(--theme-surface-secondary) 44%,var(--theme-surface-primary))!important;
-    font-size:15px!important;
+    font-size:var(--ui-input-mobile-font-size,16px)!important;
     box-shadow:none!important;
   }
 
@@ -53,15 +58,15 @@
   }
 
   #shellNavigationLayer .contact-directory-filters{
-    gap:6px!important;
+    gap:var(--ui-space-6,6px)!important;
     padding:0!important;
   }
 
   #shellNavigationLayer .contact-directory-filter{
     min-height:32px!important;
-    padding-inline:13px!important;
+    padding-inline:12px!important;
     border:0!important;
-    border-radius:999px!important;
+    border-radius:var(--ui-radius-pill,999px)!important;
     background:var(--mobile-ui-soft)!important;
     color:var(--theme-content-secondary)!important;
     font-size:13px!important;
@@ -74,7 +79,7 @@
   }
 
   #shellNavigationLayer [data-v21-contact-list]{
-    padding:1px 2px 10px;
+    padding:0 2px 8px;
   }
 
   #shellNavigationLayer .shell-contact-row{
