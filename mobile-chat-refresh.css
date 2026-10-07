@@ -50,26 +50,46 @@
     display:none!important;
   }
 
-  /* Conversation text keeps the sender hierarchy readable on touch:
-     remote = neutral soft surface, self = existing user surface. */
+  /* Conversation content — mobile-first, visual-only. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow{
+    padding:var(--ui-space-8,8px) var(--ui-chat-message-gutter,var(--ui-gutter-mobile,12px)) 14px;
+  }
+
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow>.message-row+.message-row{
+    margin-top:var(--ui-chat-message-gap,var(--ui-space-6,6px))!important;
+  }
+
+  #appShell[data-auth-state="authenticated"][data-route="chat"] .user-message-unit,
+  #appShell[data-auth-state="authenticated"][data-route="chat"] .assistant-message-unit{
+    max-width:min(var(--ui-chat-message-max,86%),calc(100% - 48px));
+  }
+
   #appShell[data-auth-state="authenticated"][data-route="chat"] .assistant-message-unit>.message-text{
     width:fit-content;
     max-width:100%;
-    padding:9px 12px!important;
+    padding:8px 11px!important;
     border:0!important;
-    border-radius:18px!important;
+    border-radius:var(--ui-chat-message-radius,18px)!important;
     background:color-mix(in srgb,var(--theme-surface-secondary) 94%,var(--theme-surface-primary))!important;
     box-shadow:none!important;
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] .user-message-unit>.message-text{
-    border-radius:18px;
-    padding:9px 12px;
+    border-radius:var(--ui-chat-message-radius,18px);
+    padding:8px 11px;
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] .message-body{
-    font-size:.9375rem;
-    line-height:1.42rem;
+    font-size:var(--ui-chat-message-text-size,15px);
+    line-height:var(--ui-chat-message-line-height,1.42rem);
+    overflow-wrap:anywhere;
+  }
+
+  #appShell[data-auth-state="authenticated"][data-route="chat"] .message-media-shell,
+  #appShell[data-auth-state="authenticated"][data-route="chat"] .file-message-card,
+  #appShell[data-auth-state="authenticated"][data-route="chat"] .audio-message-card{
+    max-width:100%;
+    box-sizing:border-box;
   }
 
   /* ChatGPT-like adaptive dock: reply/attachments occupy rows above one
