@@ -249,7 +249,8 @@ Deno.serve(async (req: Request) => {
   const desiredContacts: StoredContact[] = contacts.map((contact) => {
     const existing = existingById.get(contact.zalo_id);
     const profileName = contact.display_name;
-    const canReplaceAlias = aliasSnapshotComplete && contact.thread_type === "user";
+    const hasIncomingAlias = Object.prototype.hasOwnProperty.call(contact, "alias_name");
+    const canReplaceAlias = contact.thread_type === "user" && (aliasSnapshotComplete || hasIncomingAlias);
     const aliasName = canReplaceAlias
       ? (String(contact.alias_name ?? "").trim() || null)
       : (existing?.alias_name ?? null);

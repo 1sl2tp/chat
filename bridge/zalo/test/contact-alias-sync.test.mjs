@@ -61,3 +61,37 @@ test('contact sync keeps working when alias lookup fails and does not declare a 
     alias_snapshot_complete:false,
   });
 });
+
+test('partial alias pages keep aliases already fetched without clearing unknown contacts',async()=>{
+  const calls=[];
+  const sync=createContactSync({
+    endpoint:'https://example.test/functions/v1/v21-zalo-contacts',
+    bridgeToken:'secret',
+    fetchImpl:async(url,options)=>{
+      calls.push({url,options});
+      return {ok:true,status:200,json:async()=>({ok:true,count:2})};
+    },
+  });
+  const fullPage=Array.from({length:100},(_,index)=>({userId:`alias-${index}`,alias:`Alias ${index}`}));
+  fullPage[0]={userId:'z1',alias:'A Hậu Còi'};
+  const api={
+    async getAllFriends(){return [
+      {userId:'z1',displayName:'Hậu Thủy',avatar:'https://img/1.jpg'},
+      {userId:'z2',displayName:'Lã Hoàng Tiệp',avatar:'https://img/2.jpg'},
+    ];},
+    async getAliasList(_count,page){
+      if(page===1)return {items:fullPage,updateTime:'1'};
+      throw new Error('alias_page_2_failed');
+    },
+  };
+
+  await syncApiContacts({api,sync});
+
+  assert.deepEqual(JSON.parse(calls[0].options.body),{
+    contacts:[
+      {zalo_id:'z1',display_name:'Hậu Thủy',alias_name:'A Hậu Còi',avatar_url:'https://img/1.jpg',thread_type:'user'},
+      {zalo_id:'z2',display_name:'Lã Hoàng Tiệp',avatar_url:'https://img/2.jpg',thread_type:'user'},
+    ],
+    alias_snapshot_complete:false,
+  });
+});
