@@ -16,14 +16,38 @@ function normalizeContacts(rows){
     const displayName=String(row?.displayName||row?.zaloName||row?.name||row?.display_name||'').trim();
     const avatar=String(row?.avatar||row?.fullAvt||row?.avt||row?.avatar_url||'').trim();
     if(!zaloId||!displayName)continue;
-    out.push({
+    const contact={
       zalo_id:zaloId,
       display_name:displayName,
       avatar_url:avatar||null,
       thread_type:threadType,
-    });
+    };
+    if(Object.prototype.hasOwnProperty.call(row,'alias_name')){
+      contact.alias_name=String(row?.alias_name||'').trim()||null;
+    }
+    out.push(contact);
   }
   return out;
+}
+
+async function loadAliasSnapshot(api,{pageSize=100,maxPages=50}={}){
+  if(!api||typeof api.getAliasList!=='function')return{complete:false,aliases:new Map()};
+  const aliases=new Map();
+  try{
+    for(let page=1;page<=maxPages;page+=1){
+      const result=await api.getAliasList(pageSize,page);
+      const items=Array.isArray(result?.items)?result.items:[];
+      for(const item of items){
+        const zaloId=String(item?.userId||'').trim();
+        const alias=String(item?.alias||'').trim();
+        if(zaloId&&alias)aliases.set(zaloId,alias);
+      }
+      if(items.length<pageSize)return{complete:true,aliases};
+    }
+    return{complete:false,aliases:new Map()};
+  }catch(_error){
+    return{complete:false,aliases:new Map()};
+  }
 }
 
 export function createContactSync({endpoint,bridgeToken,fetchImpl=fetch}){
@@ -31,15 +55,19 @@ export function createContactSync({endpoint,bridgeToken,fetchImpl=fetch}){
   const token=String(bridgeToken||'').trim();
   if(!url||!token)return null;
 
-  return async function syncContacts(rows){
+  return async function syncContacts(rows,options={}){
     const contacts=normalizeContacts(rows);
+    const payload={contacts};
+    if(Object.prototype.hasOwnProperty.call(options,'aliasSnapshotComplete')){
+      payload.alias_snapshot_complete=Boolean(options.aliasSnapshotComplete);
+    }
     const response=await fetchImpl(url,{
       method:'POST',
       headers:{
         'content-type':'application/json',
         'x-bridge-token':token,
       },
-      body:JSON.stringify({contacts}),
+      body:JSON.stringify(payload),
     });
     const body=await response.json().catch(()=>({}));
     if(!response.ok)throw new Error(body?.error||`contact_sync_failed_${response.status}`);
@@ -50,7 +78,16 @@ export function createContactSync({endpoint,bridgeToken,fetchImpl=fetch}){
 export async function syncApiContacts({api,sync}){
   if(!api||typeof api.getAllFriends!=='function'||typeof sync!=='function')return null;
   const friends=await api.getAllFriends();
-  return sync(friends);
+  const aliasSnapshot=await loadAliasSnapshot(api);
+  const rows=(Array.isArray(friends)?friends:[]).map(friend=>{
+    if(!aliasSnapshot.complete)return friend;
+    const zaloId=String(friend?.userId||friend?.zalo_id||'').trim();
+    return{
+      ...friend,
+      alias_name:aliasSnapshot.aliases.get(zaloId)||null,
+    };
+  });
+  return sync(rows,{aliasSnapshotComplete:aliasSnapshot.complete});
 }
 
 export async function syncApiGroups({api,sync,filter}){

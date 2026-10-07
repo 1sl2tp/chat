@@ -2,6 +2,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
 SQL = (ROOT / "supabase/migrations/20260911_zalo_user_link_bridge.sql").read_text("utf-8")
+ALIAS_SQL = ROOT / "supabase/migrations/20261007_zalo_contact_alias_names.sql"
 ADMIN_API = ROOT / "supabase/functions/v21-zalo-admin/index.ts"
 SIGNAL_SQL = ROOT / "supabase/migrations/20260911_zalo_outbound_signal.sql"
 MEDIA_SQL = ROOT / "supabase/migrations/20260911_zalo_media_bridge.sql"
@@ -31,6 +32,19 @@ def test_zalo_bridge_schema_and_security_contract():
         assert token in lower, token
     assert "grant execute on function public.v21_zalo_ingress" in lower
     assert "to service_role" in lower
+
+
+def test_zalo_contact_alias_migration_preserves_profile_name_and_returns_alias_first():
+    assert ALIAS_SQL.exists(), "additive Zalo alias migration is required"
+    sql = ALIAS_SQL.read_text("utf-8").lower()
+    for token in [
+        "add column if not exists profile_name",
+        "profile_name=display_name",
+        "v21_zalo_admin_snapshot",
+        "coalesce(nullif(btrim(z.alias_name),''),z.profile_name,z.display_name)",
+        "'profile_name'",
+    ]:
+        assert token in sql, token
 
 
 def test_zalo_media_bridge_uses_canonical_v21_media_and_media_only_outbound_trigger():
