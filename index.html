@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="50a5538381bacaea68598f41f1da79de2451e0c1d431a65117778478bb917e76">
+<meta name="app-build-id" content="b171f9a45d95b07c7e1cdcf77086bf9c43b4ab2cb0737e4d6415ee149d1be79a">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1357,6 +1357,8 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
 
   --ui-control-desktop:36px;
   --ui-control-touch:44px;
+  --ui-chat-header-mobile:60px;
+  --ui-chat-composer-radius:20px;
   --ui-icon-12:12px;
   --ui-icon-14:14px;
   --ui-icon-16:16px;
@@ -1408,29 +1410,34 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
 */
 
 @media (max-width:63.999rem), (pointer:coarse) {
+  #appShell[data-auth-state="authenticated"]{
+    --header-height:var(--ui-chat-header-mobile,60px);
+  }
+
   #appShell[data-auth-state="authenticated"] .compact-top-grid{
-    min-height:var(--header-height,72px);
+    min-height:var(--header-height,60px);
     grid-template-columns:44px minmax(0,1fr) auto;
     align-items:center;
-    column-gap:8px;
-    padding-inline:10px;
+    column-gap:var(--ui-space-6,6px);
+    padding-left:max(var(--ui-gutter-mobile,12px),env(safe-area-inset-left,0px));
+    padding-right:max(var(--ui-gutter-mobile,12px),env(safe-area-inset-right,0px));
   }
 
   #appShell[data-auth-state="authenticated"] .top-mode-switch{
     width:min(100%,21rem);
     min-width:0;
     justify-self:center;
-    padding:3px;
-    border-radius:999px;
+    padding:2px;
+    border-radius:var(--ui-radius-pill,999px);
     background:color-mix(in srgb,var(--theme-surface-secondary) 92%,transparent);
   }
 
   #appShell[data-auth-state="authenticated"] .top-mode-tab{
     min-width:0;
-    min-height:42px;
-    border-radius:999px;
-    padding-inline:14px;
-    font-size:.9375rem;
+    min-height:var(--ui-control-touch,44px);
+    border-radius:var(--ui-radius-pill,999px);
+    padding-inline:12px;
+    font-size:.875rem;
     font-weight:500;
   }
 
@@ -1470,22 +1477,22 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
      compact writing row. The existing keyboard owner still moves the whole
      composer when VisualViewport opens. */
   #appShell[data-auth-state="authenticated"][data-route="chat"] .composer-source-frame{
-    width:min(calc(100% - 16px),44rem);
+    width:min(calc(100% - (2 * var(--ui-gutter-mobile,12px))),44rem);
     margin-inline:auto;
-    margin-bottom:calc(8px + env(safe-area-inset-bottom,0px));
+    margin-bottom:calc(var(--ui-space-6,6px) + env(safe-area-inset-bottom,0px));
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell{
-    grid-template-columns:36px minmax(0,1fr) 36px 36px;
-    grid-template-rows:auto auto minmax(44px,auto);
+    grid-template-columns:var(--ui-control-touch,44px) minmax(0,1fr) var(--ui-control-touch,44px) var(--ui-control-touch,44px);
+    grid-template-rows:auto auto minmax(var(--ui-control-touch,44px),auto);
     align-items:center;
     gap:0 2px;
     overflow:visible;
     border:1px solid color-mix(in srgb,var(--theme-border-default) 92%,transparent);
-    border-radius:22px;
-    padding:3px 4px;
+    border-radius:var(--ui-chat-composer-radius,var(--ui-radius-20,20px));
+    padding:2px;
     background:var(--cgpt-composer-surface-primary);
-    box-shadow:0 1px 3px rgba(0,0,0,.035);
+    box-shadow:0 1px 2px rgba(0,0,0,.03);
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell:focus-within{
@@ -1515,11 +1522,11 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #editor{
-    min-height:36px;
+    min-height:var(--ui-control-touch,44px);
     max-height:96px;
     margin:0;
-    padding:7px 4px!important;
-    font-size:16px;
+    padding:10px 4px!important;
+    font-size:var(--ui-input-mobile-font-size,16px);
     line-height:22px;
   }
 
@@ -1530,9 +1537,9 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composer-plus-btn{
     grid-column:1;
     grid-row:3;
-    width:36px;
-    height:36px;
-    min-width:36px;
+    width:var(--ui-control-touch,44px);
+    height:var(--ui-control-touch,44px);
+    min-width:var(--ui-control-touch,44px);
     align-self:center;
   }
 
@@ -1543,18 +1550,18 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composer-mic-btn{
     grid-column:3;
     grid-row:3;
-    width:36px;
-    height:36px;
-    min-width:36px;
+    width:var(--ui-control-touch,44px);
+    height:var(--ui-control-touch,44px);
+    min-width:var(--ui-control-touch,44px);
     align-self:center;
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #send{
     grid-column:4;
     grid-row:3;
-    width:36px;
-    height:36px;
-    min-width:36px;
+    width:var(--ui-control-touch,44px);
+    height:var(--ui-control-touch,44px);
+    min-width:var(--ui-control-touch,44px);
     align-self:center;
   }
 

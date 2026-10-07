@@ -71,6 +71,7 @@ Desktop contract hiện dùng capability:
 - `app.js` và `shell.js` còn lớn; feature mới ưu tiên file owner riêng, không tiếp tục nhồi vào `app.js`.
 - Visual foundation V1 của Chat nằm local trong `ui-foundation.css`; file này chỉ giữ token/primitive contract, không giữ business action.
 - Mobile directory composition/density vẫn do `mobile-ui-polish.css` sở hữu và chỉ tiêu thụ token foundation; không tạo remote shared CSS runtime.
+- Mobile RegionTop header + Composer visual density dùng token Foundation trong `mobile-chat-refresh.css`; keyboard placement vẫn do Platform owner, send/mic/plus behavior vẫn do `app.js`.
 
 ## Rule đặc biệt CHAT
 

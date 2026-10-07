@@ -416,3 +416,10 @@ Commit production: `7e2403a5fe97f0f797c0811a403100a69facf0e4`.
 - Notification routing audited only: `sw.js` carries contact/conversation IDs and `admin-push-controller.js → ChatAppShell.NavigationCommand.openContact()` forces route `chat`; no Push/DB/Realtime code changed.
 - Resource impact: 0 DB writes, 0 provider calls, 0 polling/logging/background work added; one small local CSS asset.
 - Initial Verify V21 failed only because generated `index.html/version.json` were not committed with modular source. Pages build generated + verified canonical output successfully; this commit synchronizes generated artifacts.
+
+
+## 2026-10-08 — Chat Header + Composer Foundation pass
+- Scope: visual-only, mobile-first RegionTop + Composer.
+- Header uses `--ui-chat-header-mobile:60px`, 44px mode controls, safe horizontal gutter; no Chat/Work/call route logic changed.
+- Composer uses 44px touch controls for + / mic / send, 16px input, 12px page gutter and local radius/shadow tokens; keyboard/VisualViewport/audio/send owners unchanged.
+- No DB/API/realtime/push/provider/log/background changes. Generated `index.html/version.json` are synchronized in the same commit.
