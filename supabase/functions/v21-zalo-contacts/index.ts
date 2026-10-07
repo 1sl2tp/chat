@@ -78,7 +78,21 @@ async function mirrorZaloAvatar(
 }
 
 type ThreadType = "user" | "group";
-type Contact = { zalo_id: string; display_name: string; avatar_url: string | null; thread_type: ThreadType };
+type Contact = {
+  zalo_id: string;
+  display_name: string;
+  alias_name?: string | null;
+  avatar_url: string | null;
+  thread_type: ThreadType;
+};
+type StoredContact = {
+  zalo_id: string;
+  display_name: string;
+  profile_name: string;
+  alias_name: string | null;
+  avatar_url: string | null;
+  thread_type: ThreadType;
+};
 
 function normalizeContacts(value: unknown): Contact[] | null {
   if (!Array.isArray(value) || value.length > 5000) return null;
@@ -91,12 +105,17 @@ function normalizeContacts(value: unknown): Contact[] | null {
     const avatarRaw = String(input.avatar_url ?? "").trim();
     const threadTypeRaw = String(input.thread_type ?? "user").trim().toLowerCase();
     if (!zaloId || !displayName || !["user", "group"].includes(threadTypeRaw)) return null;
-    out.push({
+    const contact: Contact = {
       zalo_id: zaloId,
       display_name: displayName,
       avatar_url: avatarRaw || null,
       thread_type: threadTypeRaw as ThreadType,
-    });
+    };
+    if (Object.prototype.hasOwnProperty.call(input, "alias_name")) {
+      const aliasName = String(input.alias_name ?? "").trim();
+      contact.alias_name = aliasName || null;
+    }
+    out.push(contact);
   }
   return out;
 }
@@ -201,35 +220,60 @@ Deno.serve(async (req: Request) => {
     return reply(400, { ok: false, error: "invalid_json" });
   }
 
+  const aliasSnapshotComplete = payload.alias_snapshot_complete === true;
   const contacts = normalizeContacts(payload.contacts);
   if (contacts === null) return reply(400, { ok: false, error: "invalid_contacts" });
   if (contacts.length === 0) return reply(200, { ok: true, count: 0 });
 
-  const existingById = new Map<string, Contact>();
+  const existingById = new Map<string, StoredContact>();
   const ids = contacts.map((contact) => contact.zalo_id);
   for (let offset = 0; offset < ids.length; offset += 200) {
     const chunk = ids.slice(offset, offset + 200);
     const { data: existing, error: existingError } = await admin
       .from("zalo_contacts")
-      .select("zalo_id,display_name,avatar_url,thread_type")
+      .select("zalo_id,display_name,profile_name,alias_name,avatar_url,thread_type")
       .in("zalo_id", chunk);
     if (existingError) return reply(500, { ok: false, error: "contact_lookup_failed" });
     for (const row of existing ?? []) {
       existingById.set(String(row.zalo_id), {
         zalo_id: String(row.zalo_id),
         display_name: String(row.display_name ?? ""),
+        profile_name: String(row.profile_name ?? row.display_name ?? ""),
+        alias_name: row.alias_name == null ? null : String(row.alias_name),
         avatar_url: row.avatar_url == null ? null : String(row.avatar_url),
         thread_type: String(row.thread_type ?? "user").toLowerCase() === "group" ? "group" : "user",
       });
     }
   }
 
+  const desiredContacts: StoredContact[] = contacts.map((contact) => {
+    const existing = existingById.get(contact.zalo_id);
+    const profileName = contact.display_name;
+    const canReplaceAlias = aliasSnapshotComplete && contact.thread_type === "user";
+    const aliasName = canReplaceAlias
+      ? (String(contact.alias_name ?? "").trim() || null)
+      : (existing?.alias_name ?? null);
+    const effectiveName = canReplaceAlias
+      ? (aliasName || profileName)
+      : (existing?.display_name || profileName);
+    return {
+      zalo_id: contact.zalo_id,
+      display_name: effectiveName,
+      profile_name: profileName,
+      alias_name: aliasName,
+      avatar_url: contact.avatar_url,
+      thread_type: contact.thread_type,
+    };
+  });
+
   const now = new Date().toISOString();
-  const rows = contacts
+  const rows = desiredContacts
     .filter((contact) => {
       const existing = existingById.get(contact.zalo_id);
       return !existing ||
         existing.display_name !== contact.display_name ||
+        existing.profile_name !== contact.profile_name ||
+        String(existing.alias_name ?? "") !== String(contact.alias_name ?? "") ||
         String(existing.avatar_url ?? "") !== String(contact.avatar_url ?? "") ||
         existing.thread_type !== contact.thread_type;
     })
