@@ -11,6 +11,10 @@ test('contact sync edge auto-creates and links CM aliases without credentials de
   assert.match(source,/auth\.admin\.createUser/);
   assert.match(source,/zalo_user_links/);
   assert.doesNotMatch(source,/sendAccountCredentials/);
+  assert.ok(
+    source.indexOf('const cm = await autoProvisionCmContacts') < source.indexOf('syncLinkedAccountAvatars(admin, contacts)'),
+    'CM links must exist before avatar mirroring runs',
+  );
 });
 
 test('contact directory exposes CM as a first-class group',()=>{
