@@ -25,6 +25,7 @@ const AVATAR_MIME_EXT: Record<string, string> = {
   "image/png": "png",
   "image/webp": "webp",
 };
+const CM_ALIAS_PREFIX = /^cm(?:\s|\b)/i;
 
 function avatarSourceIdentity(value: string) {
   const raw = String(value ?? "").trim();
@@ -118,6 +119,147 @@ function normalizeContacts(value: unknown): Contact[] | null {
     out.push(contact);
   }
   return out;
+}
+
+function randomPassword() {
+  const bytes = new Uint8Array(24);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => byte.toString(36).padStart(2, "0")).join("").slice(0, 32);
+}
+
+async function cmUsername(zaloId: string) {
+  const digest = await sha256Hex(`cm:${zaloId}`);
+  return `cm_${digest.slice(0, 12)}`;
+}
+
+async function autoProvisionCmContacts(
+  admin: ReturnType<typeof createClient>,
+  contacts: StoredContact[],
+) {
+  const candidates = contacts.filter((contact) =>
+    contact.thread_type === "user" && CM_ALIAS_PREFIX.test(String(contact.alias_name ?? "").trim())
+  );
+  if (!candidates.length) return { matched: 0, created: 0, grouped: 0, failed: 0 };
+
+  const { data: actor, error: actorError } = await admin.from("v21_accounts")
+    .select("id")
+    .eq("role", "admin")
+    .is("deleted_at", null)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (actorError || !actor?.id) {
+    return { matched: candidates.length, created: 0, grouped: 0, failed: candidates.length };
+  }
+
+  const candidateIds = candidates.map((contact) => contact.zalo_id);
+  const { data: links, error: linkLookupError } = await admin.from("zalo_user_links")
+    .select("chat_account_id,zalo_id")
+    .in("zalo_id", candidateIds);
+  if (linkLookupError) {
+    return { matched: candidates.length, created: 0, grouped: 0, failed: candidates.length };
+  }
+
+  const linkedByZalo = new Map((links ?? []).map((row) => [String(row.zalo_id), String(row.chat_account_id)]));
+  const alreadyLinkedAccountIds = [...new Set([...linkedByZalo.values()])];
+  let grouped = 0;
+  if (alreadyLinkedAccountIds.length) {
+    const { data: changedAccounts, error } = await admin.from("v21_accounts")
+      .update({ contact_group: "cm" })
+      .in("id", alreadyLinkedAccountIds)
+      .eq("role", "user")
+      .is("deleted_at", null)
+      .neq("contact_group", "cm")
+      .select("id");
+    if (!error) grouped += changedAccounts?.length ?? 0;
+  }
+
+  const pending = candidates.filter((contact) => !linkedByZalo.has(contact.zalo_id));
+  const pendingWithUsername = await Promise.all(pending.map(async (contact) => ({
+    contact,
+    username: await cmUsername(contact.zalo_id),
+  })));
+  const usernames = pendingWithUsername.map((item) => item.username);
+  const existingAccountsByUsername = new Map<string, { id: string; username: string; contact_group: string }>();
+  if (usernames.length) {
+    const { data: existingAccounts } = await admin.from("v21_accounts")
+      .select("id,username,contact_group")
+      .in("username", usernames)
+      .eq("role", "user")
+      .is("deleted_at", null);
+    for (const row of existingAccounts ?? []) {
+      existingAccountsByUsername.set(String(row.username), {
+        id: String(row.id),
+        username: String(row.username),
+        contact_group: String(row.contact_group ?? "other"),
+      });
+    }
+  }
+
+  let created = 0;
+  let failed = 0;
+  for (const { contact, username } of pendingWithUsername) {
+    let accountId = existingAccountsByUsername.get(username)?.id ?? "";
+    let authUserId = "";
+    let createdAccount = false;
+    try {
+      if (!accountId) {
+        const password = randomPassword();
+        const { data: authData, error: authError } = await admin.auth.admin.createUser({
+          email: `${username}@taphoa.chat`,
+          password,
+          email_confirm: true,
+          user_metadata: {
+            username,
+            display_name: contact.display_name,
+            app: "taphoa-chat-v21",
+            auto_cm: true,
+          },
+        });
+        if (authError || !authData.user) throw authError ?? new Error("cm_auth_create_failed");
+        authUserId = String(authData.user.id);
+
+        const { data: account, error: accountError } = await admin.from("v21_accounts")
+          .insert({
+            auth_user_id: authData.user.id,
+            username,
+            display_name: contact.display_name,
+            role: "user",
+            avatar_path: null,
+            contact_group: "cm",
+          })
+          .select("id")
+          .single();
+        if (accountError || !account?.id) {
+          await admin.auth.admin.deleteUser(authData.user.id).catch(() => null);
+          throw accountError ?? new Error("cm_account_create_failed");
+        }
+        accountId = String(account.id);
+        createdAccount = true;
+      } else {
+        await admin.from("v21_accounts")
+          .update({ contact_group: "cm" })
+          .eq("id", accountId)
+          .eq("role", "user")
+          .is("deleted_at", null);
+      }
+
+      const { error: linkError } = await admin.from("zalo_user_links").insert({
+        chat_account_id: accountId,
+        zalo_id: contact.zalo_id,
+        linked_by_account_id: String(actor.id),
+      });
+      if (linkError) throw linkError;
+      if (createdAccount) created += 1;
+      else grouped += 1;
+    } catch {
+      failed += 1;
+      if (createdAccount && accountId) await admin.from("v21_accounts").delete().eq("id", accountId).catch(() => null);
+      if (createdAccount && authUserId) await admin.auth.admin.deleteUser(authUserId).catch(() => null);
+    }
+  }
+
+  return { matched: candidates.length, created, grouped, failed };
 }
 
 async function syncLinkedAccountAvatars(
@@ -284,6 +426,8 @@ Deno.serve(async (req: Request) => {
     if (error) return reply(500, { ok: false, error: "contact_upsert_failed" });
   }
 
+  const cm = await autoProvisionCmContacts(admin, desiredContacts);
+
   let avatarsMirrored = 0;
   try {
     avatarsMirrored = await syncLinkedAccountAvatars(admin, contacts);
@@ -291,5 +435,11 @@ Deno.serve(async (req: Request) => {
     avatarsMirrored = 0;
   }
 
-  return reply(200, { ok: true, count: contacts.length, changed: rows.length, avatars_mirrored: avatarsMirrored });
+  return reply(200, {
+    ok: true,
+    count: contacts.length,
+    changed: rows.length,
+    avatars_mirrored: avatarsMirrored,
+    cm,
+  });
 });
