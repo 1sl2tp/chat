@@ -44,9 +44,12 @@ async function loadAliasSnapshot(api,{pageSize=100,maxPages=50}={}){
       }
       if(items.length<pageSize)return{complete:true,aliases};
     }
-    return{complete:false,aliases:new Map()};
-  }catch(_error){
-    return{complete:false,aliases:new Map()};
+    console.warn('[zalo-contact-sync] alias snapshot hit page cap; keeping partial aliases');
+    return{complete:false,aliases};
+  }catch(error){
+    const message=String(error?.message||error||'alias_lookup_failed').replace(/\s+/g,' ').slice(0,180);
+    console.warn(`[zalo-contact-sync] alias lookup incomplete: ${message}`);
+    return{complete:false,aliases};
   }
 }
 
@@ -80,11 +83,12 @@ export async function syncApiContacts({api,sync}){
   const friends=await api.getAllFriends();
   const aliasSnapshot=await loadAliasSnapshot(api);
   const rows=(Array.isArray(friends)?friends:[]).map(friend=>{
-    if(!aliasSnapshot.complete)return friend;
     const zaloId=String(friend?.userId||friend?.zalo_id||'').trim();
+    const hasAlias=aliasSnapshot.aliases.has(zaloId);
+    if(!aliasSnapshot.complete&&!hasAlias)return friend;
     return{
       ...friend,
-      alias_name:aliasSnapshot.aliases.get(zaloId)||null,
+      alias_name:hasAlias?aliasSnapshot.aliases.get(zaloId):null,
     };
   });
   return sync(rows,{aliasSnapshotComplete:aliasSnapshot.complete});
