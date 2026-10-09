@@ -8,6 +8,63 @@ const BASE_FAVICON_HREF=String(faviconNode?.getAttribute?.('href')||faviconNode?
 let state={admin:false,supported:false,code:'idle',enabled:false,permission:'default',platform:'web'};
 let pendingOpen=null;
 let unreadRefreshTimer=0;
+
+// Only notification clicks get a concealed, instant latest-message reveal.
+// The Chat conversation renderer remains the sole scroll writer; this owner
+// only manages the temporary visibility of the existing ScrollRoot.
+let notificationReveal=null;
+function finishNotificationReveal(){
+  const intent=notificationReveal;
+  notificationReveal=null;
+  if(!intent)return;
+  if(intent.frame)cancelAnimationFrame(intent.frame);
+  if(intent.safety)clearTimeout(intent.safety);
+  document.removeEventListener('v21-conversation-switch',intent.onSwitch);
+  intent.root.style.visibility=intent.previousVisibility;
+  window.V21MessageStore?.endNotificationTail?.();
+}
+function startNotificationReveal(contactId){
+  finishNotificationReveal();
+  const target=String(contactId||'').trim();
+  const root=document.getElementById('scrollRoot');
+  const store=window.V21MessageStore;
+  if(!target||!root||!store?.beginNotificationTail?.(target))return null;
+  const alreadyActive=String(window.ChatAppShell?.snapshot?.()?.activeContact?.id||'')===target;
+  const intent={
+    contactId:target,root,previousVisibility:root.style.visibility,
+    mounted:alreadyActive,alreadyActive,accepted:false,stable:0,frame:0,safety:0,onSwitch:null
+  };
+  intent.onSwitch=event=>{
+    const detail=event?.detail||{};
+    if(String(detail.contactId||'')!==target){
+      if(detail.phase==='mounted')finishNotificationReveal();
+      return;
+    }
+    if(detail.phase==='mounted')intent.mounted=true;
+    if(detail.phase==='abort')finishNotificationReveal();
+  };
+  notificationReveal=intent;
+  document.addEventListener('v21-conversation-switch',intent.onSwitch);
+  root.style.visibility='hidden';
+  // One bounded user-click transaction; no background timer/polling.
+  intent.safety=setTimeout(()=>{
+    if(notificationReveal===intent)finishNotificationReveal();
+  },2000);
+  return intent;
+}
+function settleNotificationReveal(intent){
+  if(!intent||notificationReveal!==intent)return;
+  intent.frame=requestAnimationFrame(()=>{
+    if(notificationReveal!==intent)return;
+    const active=String(window.V21MessageStore?.snapshot?.()?.currentContactId||'');
+    const atTail=Math.max(0,intent.root.scrollHeight-intent.root.clientHeight-intent.root.scrollTop)<=2;
+    const followTail=window.V21ConversationBridge?.snapshot?.()?.viewportMode==='FOLLOW_TAIL';
+    intent.stable=(intent.accepted&&intent.mounted&&active===intent.contactId&&
+      followTail&&atTail)?intent.stable+1:0;
+    if(intent.stable>=3)finishNotificationReveal();
+    else settleNotificationReveal(intent);
+  });
+}
 const NOTIFICATION_WANTED_KEY='taphoa.v21.adminPushWanted';
 
 function authStore(){return window.V21AuthSessionStore||null;}
@@ -336,11 +393,22 @@ async function handleOpen(payload={}){
     return false;
   }
 
+  // Arm before navigation/contact hydration so an old reading position can
+  // never paint before the notification's newest-message position.
+  const intent=kind==='message'&&contactId?startNotificationReveal(contactId):null;
   let opened=true;
   if(contactId)opened=Boolean(window.ChatAppShell?.NavigationCommand?.openContact?.(contactId));
   if(!opened){
+    if(intent)finishNotificationReveal();
     pendingOpen={kind,inviteId,contactId,conversationId};
     return false;
+  }
+  if(intent){
+    intent.accepted=true;
+    if(intent.alreadyActive){
+      window.V21MessageStore?.showNotificationTailForActive?.(contactId);
+    }
+    settleNotificationReveal(intent);
   }
 
   pendingOpen=null;
