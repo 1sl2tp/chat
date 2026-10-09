@@ -1,3 +1,34 @@
+## 2026-10-09 — Chat notification click: show newest immediately (SOURCE PATCHED)
+
+Symptom: Admin taps an incoming message notification; previous thread reading position appears for a moment and the screen visibly scrolls down, instead of opening directly at the newest message.
+
+Owner/contract:
+- Push click/open: `admin-push-controller.js` (only one-time navigation/visibility intent).
+- Session reading position: `v21-message-store.js` (one-shot override only for that contact).
+- Rendering/scrollTop remains **only** `app.js`'s `V21ConversationBridge/ScrollController`, and Shell/SyncEngine keep the canonical selection/Realtime path.
+- `README_MAINTENANCE.md §4a` and central Sheet `CHAT-01` hold the rule.
+
+Patch:
+- Before push navigation, temporarily conceal only ScrollRoot; remove the mask after contact mount, FOLLOW_TAIL and <=2px tail-distance stable for 3 frames.
+- Use old ScrollController's `replace(...,viewState:null)` when push target is currently active; for another contact, ignore saved `USER_AWAY` state only for that target.
+- Abort/failure/logout/newer push restores visibility; bounded 2-second fail-open prevents permanently hidden Chat.
+- Normal contact selection still restores its saved reading position. No new calls, cron, message renderer, scroll writer or DB writes.
+
+Commits: MessageStore `72405b65be911a6ae1eb025bd9cefa6e16f8bd6e`; PushController final `71578db5052783668e86942eaf47dd1dc43fb2a4`; regression test `a0ec54ef0f8d1cf4e3ce937330e7f8e8e7cc3be6`; rule docs `35c5710e39cf07caa634cea0c4c81bed1aaa787c`.
+
+Verification so far:
+- JavaScript syntax checks on the two changed modules: PASS.
+- Isolated MessageStore runtime: normal session restores history; notification session forces tail; same-contact explicit tail: PASS.
+- Mocked Admin Push runtime: different contact, same contact, rejected open, mask cleanup: PASS.
+- Added `tests/test_v21_admin_web_push_notification_tail.js` to automatic Verify V21 glob, covering cold-open as well.
+- **CI/Pages deploy and real Safari/PWA/desktop notification click not yet independently verified**. Do not mark PROD VERIFIED solely from tests.
+- Resource difference expected: 0 extra backend/API calls and 0 DB writes, one bounded temporary presentation intent per user notification click. Real before/after network capture outstanding.
+- Rollback: revert both runtime files to preceding commits; no database rollback required.
+
+Next: inspect existing Verify V21 / Pages result without starting a duplicate workflow; test live Admin click on existing tab/same contact/cold PWA and confirm no visible scroll. Only then close gates and update this handoff.
+
+---
+
 ## 2026-10-06 — Zalo bridge simplified to linked-account event routing
 
 Final architecture:
