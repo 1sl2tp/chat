@@ -26,7 +26,7 @@ function finishNotificationReveal(){
 function startNotificationReveal(contactId){
   finishNotificationReveal();
   const target=String(contactId||'').trim();
-  const root=document.getElementById('scrollRoot');
+  const root=document.getElementById?.('scrollRoot')||null;
   const store=window.V21MessageStore;
   if(!target||!root||!store?.beginNotificationTail?.(target))return null;
   const alreadyActive=String(window.ChatAppShell?.snapshot?.()?.activeContact?.id||'')===target;
