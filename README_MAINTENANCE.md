@@ -70,6 +70,15 @@ Các invariants:
 - Direct `v21_messages INSERT` hoặc push chỉ được làm fallback wake; không được trở thành render owner.
 - Admin mobile background dùng Web Push; user đóng app thì không chạy foreground sync.
 
+## 4a. Mở tin từ thông báo phải hiển thị NGAY tin cuối
+
+- **Chỉ** click thông báo tin nhắn Admin (cửa sổ đang mở hoặc mở PWA lạnh) mới được bỏ vị trí đọc cũ của **đúng liên hệ đích**. Chọn liên hệ thường, quay lại tab, đang đọc lịch sử và thao tác scroll tay phải giữ nguyên contract cũ.
+- Luồng owner: SW chuyển `contactId/conversationId` → `admin-push-controller.js` đặt one-shot notification intent trước Shell navigation → `v21-message-store.js` bỏ `viewState.USER_AWAY` của liên hệ đích và gọi lại `V21ConversationBridge.replace(...,viewState:null)` nếu chính liên hệ ấy đang mở → **duy nhất `app.js` ScrollController** dựng cửa sổ tin mới nhất và điều khiển ScrollRoot.
+- Che **chỉ vùng tin nhắn** trong thời gian thay vị trí; chỉ hiện khi contact đã mounted, viewport ở `FOLLOW_TAIL`, khoảng cách tới cuối ≤2px ổn định liên tiếp 3 frame. Nhằm tránh hiện cảnh chạy cuộn từ đầu/cuối vị trí đọc cũ. Bỏ che khi route lỗi, logout hoặc quá 2 giây (fail-open), không để UI bị ẩn vô thời hạn. Không dùng `scroll-behavior:smooth` hoặc viết scrollTop trong PushController/MessageStore.
+- Không thêm RPC, polling, cron, catch-up thứ hai, render owner thứ hai. Push chỉ điều hướng; SyncEngine vẫn là owner đọc canonical, mark-read chỉ khi conversation visible. Intent chỉ nằm trong bộ nhớ, không ghi localStorage/IndexedDB.
+- QA bắt buộc: click từ thông báo cửa sổ đang mở (khác liên hệ), đang ở chính liên hệ nhưng đọc tin cũ, cold-open khi contact cache chưa sẵn, contact không tồn tại, logout giữa transition. Mọi đường đều không được cuộn có hoạt ảnh, không để màn hình trống vĩnh viễn; chọn liên hệ thông thường vẫn khôi phục vị trí.
+- Đối chiếu production sau GitHub Actions Verify V21 và Deploy Chat Pages, Safari/PWA; chưa có video/ảnh production thì không đánh dấu PROD VERIFIED.
+
 ## 5. Deploy
 
 - Chỉ deploy runtime bị thay đổi.
