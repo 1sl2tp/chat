@@ -4,6 +4,30 @@ const VERSION='V21.71';
 let currentContactId=null;
 let currentConversationId=null;
 const sessions=new Map();
+// Only a notification click may discard the target contact's saved reading
+// position. Normal contact switching continues to restore that position.
+let notificationTailContactId=null;
+function beginNotificationTail(contactId){
+  const id=sessionKey(contactId);
+  if(!id)return false;
+  notificationTailContactId=id;
+  const cached=sessions.get(id);
+  if(cached)cached.viewState=null;
+  return true;
+}
+function endNotificationTail(){
+  notificationTailContactId=null;
+}
+function showNotificationTailForActive(contactId){
+  const id=sessionKey(contactId);
+  if(!id||id!==currentContactId||id!==notificationTailContactId)return false;
+  const cached=sessions.get(id);
+  if(!cached)return false;
+  cached.viewState=null;
+  // Reuse the single Conversation Root/ScrollController tail writer.
+  bridge()?.replace?.(cached.rows,{selfId:selfAccountId(),viewState:null});
+  return true;
+}
 
 function shell(){return window.ChatAppShell||null;}
 function bridge(){return window.V21ConversationBridge||null;}
@@ -170,6 +194,7 @@ function stashCurrentView(){
 }
 
 function reset(){
+  notificationTailContactId=null;
   currentContactId=null;currentConversationId=null;
   sessions.clear();
   bridge()?.clear?.();
@@ -193,7 +218,10 @@ function restoreSession(contactId){
   const session=key?sessions.get(key):null;
   if(!session)return null;
   setContext({contactId:key,conversationId:session.conversationId});
-  bridge()?.replace?.(session.rows,{selfId:selfAccountId(),viewState:session.viewState||null});
+  bridge()?.replace?.(session.rows,{
+    selfId:selfAccountId(),
+    viewState:notificationTailContactId===key?null:(session.viewState||null)
+  });
   return{
     contactId:key,
     conversationId:session.conversationId,
@@ -214,7 +242,7 @@ function replace(rows,{conversationId=currentConversationId,contactId=currentCon
     String(currentContactId||'')===String(targetContact||'')&&
     String(currentConversationId||'')===String(targetConversation||'');
   const sameVisual=sameActive&&previous?.signature===nextSignature&&bridge()?.snapshot?.().size===normalized.length;
-  const viewState=previous?.viewState||null;
+  const viewState=notificationTailContactId===targetContact?null:(previous?.viewState||null);
   rememberSession(targetContact,targetConversation,normalized,{viewState});
   setContext({contactId:targetContact,conversationId:targetConversation});
   if(sameVisual)return normalized.length;
@@ -312,6 +340,7 @@ async function reconcileCurrent(){return sync()?.wake?.({reason:'message-reconci
 window.V21MessageStore={
   version:VERSION,isReady,send,sendMedia,activate,refreshUnread,reconcileCurrent,selfAccountId,
   setContext,replace,merge,apply,remove,reset,primeSession,restoreSession,stashCurrentView,hasSession,mergeForContact,
+  beginNotificationTail,endNotificationTail,showNotificationTailForActive,
   snapshot(){return{
     currentContactId,currentConversationId,selfAccountId:selfAccountId(),ready:isReady(),sessionCount:sessions.size
   };}
