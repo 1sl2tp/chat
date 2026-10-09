@@ -438,6 +438,7 @@ function onAuthState(event){
     void reconcileWantedSubscription();
     return;
   }
+  finishNotificationReveal();
   clearClientState();
 }
 
