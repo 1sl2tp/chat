@@ -488,8 +488,12 @@ async function runAction(action){
       // customer receives only the server-generated debt message body.
       const purchaseSegment=String(data?.admin_assessment?.purchase_segment||'').trim();
       const paymentSegment=String(data?.admin_assessment?.payment_segment||'').trim();
+      // Keep mobile composer geometry stable: display a concise private
+      // assessment, not a multiline or customer-facing judgement.
+      const briefPurchase=purchaseSegment.includes('tiềm năng')?'KH tiềm năng':purchaseSegment;
+      const briefPayment=paymentSegment==='Còn nợ · có trả tiền'?'Nợ quay vòng':paymentSegment;
       setTransientHint(purchaseSegment&&paymentSegment
-        ? 'Đã gửi · '+purchaseSegment+' · '+paymentSegment
+        ? 'Đã gửi công nợ · '+briefPurchase+' / '+briefPayment
         : 'Đã gửi đối chiếu công nợ',5200);
       return true;
     }catch{
