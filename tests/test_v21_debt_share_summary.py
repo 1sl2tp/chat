@@ -39,3 +39,21 @@ assert "'debt-share:'||v_client_id" in ATOMIC_COMPACT
 assert "'message_id',v_message_id" in ATOMIC_COMPACT
 assert "'sent',v_message_idisnotnull" in ATOMIC_COMPACT
 assert "toauthenticated,service_role" in ATOMIC_COMPACT
+
+# New debt notice: FIFO explanation is customer-facing; rating stays Admin-only.
+MIG_FIFO=(ROOT/'supabase/migrations/20261010061148_chat_debt_share_fifo_breakdown.sql').read_text('utf-8')
+F=MIG_FIFO.lower()
+assert "create or replace function public.v21_admin_send_debt_summary" in F
+assert "'fifo_display_only'" in F
+assert "phân bổ tạm (trừ khoản cũ trước)" in F
+assert "ghi nợ bổ sung" in F
+assert "khoản còn lại cũ nhất" in F
+assert "'admin_assessment'" in F
+assert F.count("taphoa_chat_notify_customer(")==1
+assert "'debt-share:'||v_client_id,v_body" in ''.join(F.split())
+assert "p_customer_id=p_customer_id" in F
+UI=(ROOT/'admin-composer-actions.js').read_text('utf-8')
+assert "data?.admin_assessment?.purchase_segment" in UI
+assert "data?.admin_assessment?.payment_segment" in UI
+assert "v21_admin_send_debt_summary" in UI
+print("Chat debt FIFO customer summary/private Admin segment PASS")

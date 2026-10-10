@@ -484,7 +484,13 @@ async function runAction(action){
       if(error)throw error;
       if(!data?.ok||!data?.sent||!data?.message_id)throw new Error(data?.error||'debt_summary_send_failed');
       void window.V21SyncEngine?.wake?.({reason:'debt-summary-send'});
-      setTransientHint('Đã gửi đối chiếu công nợ');
+      // This assessment is returned only to the authenticated Admin. The
+      // customer receives only the server-generated debt message body.
+      const purchaseSegment=String(data?.admin_assessment?.purchase_segment||'').trim();
+      const paymentSegment=String(data?.admin_assessment?.payment_segment||'').trim();
+      setTransientHint(purchaseSegment&&paymentSegment
+        ? 'Đã gửi · '+purchaseSegment+' · '+paymentSegment
+        : 'Đã gửi đối chiếu công nợ',5200);
       return true;
     }catch{
       setTransientHint('Không thể gửi công nợ',2600);

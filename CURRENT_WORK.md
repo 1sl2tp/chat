@@ -1,3 +1,13 @@
+## 2026-10-10 — Công nợ gửi khách: phân bổ FIFO tham khảo + nhận xét Admin riêng
+
+- Owner: `v21_admin_send_debt_summary` (shared Supabase), existing one-click Admin composer path; không thêm RPC/cron/job/notification trigger.
+- DB migration `20261010061148_chat_debt_share_fifo_breakdown.sql` đã áp dụng qua Supabase migration `chat_debt_share_fifo_breakdown_20261010`.
+- Khi công nợ dương: gửi tổng phát sinh, đã thu, điều chỉnh, còn lại; lần thu gần nhất; khoản chưa bù trừ cũ nhất; tối đa 5 dòng còn lại theo phương pháp trừ khoản cũ trước. Có ghi chú đây chỉ là bảng đối chiếu tạm, không gán thanh toán pháp lý cho từng đơn.
+- Với số dư bằng 0 hoặc âm: giữ chính sách tin nhắn hiện hành. Không tự gửi bất kỳ tin nào khi deploy.
+- `admin_assessment` (mức mua / diễn biến thanh toán dựa trên lịch sử đơn/thu) chỉ trả cho Admin, UI chỉ hiện trong hint sau khi bấm gửi thành công; không ghép vào `body` gửi khách.
+- E1 test nguồn `tests/test_v21_debt_share_summary.py`; E2 DB tạo hàm PASS + đọc lại live function PASS; E3 Verify/Pages, E4 gửi thử với tài khoản thử nghiệm và E5 resource trace chờ xác minh. KHÔNG đánh dấu real customer send DONE.
+- Rollback: khôi phục function `v21_admin_send_debt_summary` từ `20261004203500_chat_send_debt_summary_atomic.sql`, rồi revert riêng `admin-composer-actions.js`. Không xóa ledger hoặc nhắn khách khi rollback.
+
 ## 2026-10-09 — Chat notification click: show newest immediately (SOURCE PATCHED)
 
 Symptom: Admin taps an incoming message notification; previous thread reading position appears for a moment and the screen visibly scrolls down, instead of opening directly at the newest message.
