@@ -56,7 +56,7 @@ message/read write
 → v21_sync_events
 → app đang mở: áp canonical event thẳng vào SyncEngine/cache/UI
 → MessageStore + ContactStore cùng cập nhật
-→ active thread xuống newest
+→ active thread FOLLOW_TAIL mới xuống newest; đang đọc lịch sử USER_AWAY giữ vị trí, không tự cuộn
 → mark-read chỉ khi conversation thật sự visible
 → mở lại/reconnect: delta pull catch-up phần bị lỡ
 ```
@@ -69,6 +69,14 @@ Các invariants:
 - `v21_sync_pull` là catch-up khi boot/reconnect/gap, không phải vòng bắt buộc sau mỗi event.
 - Direct `v21_messages INSERT` hoặc push chỉ được làm fallback wake; không được trở thành render owner.
 - Admin mobile background dùng Web Push; user đóng app thì không chạy foreground sync.
+
+## 4b. UI-138 — Mở/làm mới Chat hiển thị ĐÚNG VỊ TRÍ, không nhìn thấy cuộn
+
+- Chat Web, Safari, PWA dùng cùng ScrollRoot và một ScrollController (`app.js`). Mở thread chưa có viewState hợp lệ: dựng cửa sổ tin cuối, đặt scrollTop ngay trong lượt render trước frame hiển thị; có viewState USER_AWAY hợp lệ: định vị anchor đọc trước khi reveal rồi mới cho media/layout settle. Không dùng CSS smooth hay writer cuộn thứ hai.
+- Tin nhắn mới qua Realtime chỉ theo cuối nếu viewport đang `FOLLOW_TAIL`; người đọc lịch sử `USER_AWAY` giữ nguyên tin đang đọc, có chỉ báo tin mới. Gửi tin chủ động, bấm trở về cuối, bấm thông báo (theo §4a) là các ngoại lệ có intent rõ.
+- Danh bạ từ cache xuất hiện theo thứ tự hoạt động mới nhất; khi đã cuộn/chọn người, cập nhật danh sách và đọc tin không được nhảy về đầu. Danh bạ và nội dung có scroll owner độc lập, không gọi backend để sửa vị trí.
+- Làm mới toàn trang chỉ khôi phục vị trí đọc cũ **nếu có viewState hợp lệ**; không hứa đã lưu persistent scroll qua mọi reload/cold start. Khi không có snapshot, hiển thị tin mới nhất trực tiếp.
+- Tests: `tests/test_v21_138_scroll_visibility_policy.js`, kiểm source `tests/test_v21_contact_click_position_stability.py`, test click notification riêng. E4 thực tế PC+iPhone PWA còn PENDING tới khi quan sát không bị cuộn/giật. No polling, DB/RPC/Edge/cron/log increment.
 
 ## 4a. Mở tin từ thông báo phải hiển thị NGAY tin cuối
 
