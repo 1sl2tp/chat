@@ -1,3 +1,15 @@
+## 2026-10-10 — Chat starts in Trò chuyện, not Công việc (MERGED; E4 PROD PENDING)
+
+- User symptom: first open / login and cold notification sometimes showed Công việc first, then returned to Chat.
+- Root cause: `index.source.html` first-paint defaults, `shell.js` initial and restored routes, and `auth-session-store.js` guest entry all used `work`. A saved Work route could replay before pending notification selected its contact.
+- Contract: startup/guest/auth restore **always starts in `chat`**; restore the selected contact, not the previous Work route. The existing Công việc tab still navigates to Work explicitly. The existing Admin Push handler still opens its target contact and forces latest-message positioning via the current owner.
+- Scoped changes: `shell.js`, `auth-session-store.js`, `index.source.html`; regenerated canonical `index.html` and `version.json`, including older pending modular source updates. Regression: `tests/test_v21_chat_boot_defaults_to_chat.py` and the updated Work-surface contract test.
+- PR: https://github.com/1sl2tp/chat/pull/159 ; squash merge `4b943346283cced853803c6fc75503af2959844e`.
+- E0 desired behavior: specified by user; E1 source/build assertions PASS. CI Verify V21: PASS on PR head `767550dd924083166dcba14c3f2c7eaf73a422c5`, run `38065598162`. Earlier CI failure was a legacy assertion requiring Work-first; its expected boot route was updated, while Work content/action assertions remain.
+- E2 main source and version confirmed after merge; E3 GitHub Pages deployment outcome not independently confirmed from available tools; E4 actual authenticated Safari/iPhone PWA cold launch, notification tap (closed/background/open), and browser UI still **PENDING**. Do not label PROD VERIFIED yet.
+- E5 expected resource change: 0 new API/RPC/Edge/DB/polling or timers; actual network trace still PENDING.
+- Rollback: revert only PR #159 squash commit after verifying no newer dependent changes; no DB rollback. Do not modify ScrollController/Push/SyncEngine just to force the route.
+
 ## 2026-10-10 — Incoming message leaves 'Nhắn tin...' hard to tap (SOURCE PATCHED, E4 PENDING)
 
 - Symptom: user screenshot reports that after a new incoming message, tapping the text-composer placeholder 'Nhắn tin...' sometimes fails to enter edit mode.
