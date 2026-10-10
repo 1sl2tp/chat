@@ -38,6 +38,7 @@ const editor=document.getElementById('editor');
 const measure=document.getElementById('measure');
 const composerForm=document.getElementById('composerForm');
 const composerShell=document.getElementById('composerShell');
+const editorWrap=document.getElementById('editorWrap');
 const composerInteractive=document.getElementById('composerInteractive');
 const plusButton=document.getElementById('composer-plus-btn');
 const micButton=document.getElementById('composer-mic-btn');
@@ -6377,6 +6378,19 @@ document.addEventListener('v21-interaction-abort',()=>{
     InteractionController.exit(InteractionMode.AUDIO_RECORDING,{owner:'audio-recorder'});
   }
 });
+
+// Only empty Composer padding delegates focus to the existing textarea.
+// Native textarea clicks retain their own selection/caret (especially IME),
+// while buttons, attached media, and audio capture never steal editor focus.
+function focusEditorFromComposerPadding(event){
+  const target=event?.target;
+  if(target!==editorWrap&&target!==composerShell)return false;
+  if(!editor?.isConnected||editor.disabled||editor.readOnly)return false;
+  if(composerShell.dataset.audioState&&composerShell.dataset.audioState!=='IDLE')return false;
+  editor.focus({preventScroll:true});
+  return true;
+}
+composerShell.addEventListener('pointerdown',focusEditorFromComposerPadding);
 
 /* =========================================================
    IME + SEND

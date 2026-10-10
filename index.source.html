@@ -836,6 +836,24 @@ button{
   padding-bottom:0;
 }
 
+/* Chat input hit-test owner: do not let the new-message/scroll badge lane
+   or runtime utility CSS intercept taps on the composer. The scroll button
+   keeps its own 32px target; the textarea remains the native caret owner. */
+#threadScrollControlWrap{
+  z-index:0;
+  pointer-events:none;
+}
+#threadScrollControl{
+  pointer-events:auto;
+}
+#composerInteractive{
+  z-index:2;
+  pointer-events:auto;
+}
+#composerShell,#editorWrap,#editor{
+  pointer-events:auto;
+}
+
 .composer-shell-source{
   position:relative;
   display:grid;

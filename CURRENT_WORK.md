@@ -1,3 +1,13 @@
+## 2026-10-10 — Incoming message leaves 'Nhắn tin...' hard to tap (SOURCE PATCHED, E4 PENDING)
+
+- Symptom: user screenshot reports that after a new incoming message, tapping the text-composer placeholder 'Nhắn tin...' sometimes fails to enter edit mode.
+- Scoped owner: index.source.html CSS pointer hit-testing and app.js focus delegation only. No Supabase/Realtime/push/scroll mutation.
+- Source evidence: Composer footer parent uses pointer-events-none Tailwind utility; active editor layer relies on pointer-events-auto class. Unread/return-to-bottom control is a sibling lane with its own pointer target and nested motion layer. The textarea itself is not disabled; empty #editorWrap padding previously did not delegate focus.
+- Patch: explicit scoped native pointer-events rules for #composerInteractive/#composerShell/#editorWrap/#editor; keep #threadScrollControlWrap click-through except the actual #threadScrollControl button; stack editor over badge lane. Add one trusted pointerdown handler for EMPTY composer padding ONLY; native textarea clicks retain own caret, selection and Vietnamese IME; all buttons/audio/media untouched.
+- E0 SPEC-CHAT-COMPOSER-CLICK-20261010 locked in central Google Sheet; E1 focused Node VM+CSS contract test; E2 browser integration unavailable; E3 verify/deploy awaiting workflow; E4 real incoming-message click Safari/PWA/desktop PENDING; E5 resource 0 backend calls expected, actual traffic trace PENDING.
+- Rollback: revert only index.source.html CSS and app.js focus handler; test/workflow removable; no data rollback. Do not claim production DONE without a real authenticated click.
+- Independent TAPHOA CI/CD gate project remains separate and untouched by this Chat bug.
+
 ## 2026-10-10 — Công nợ gửi khách: phân bổ FIFO tham khảo + nhận xét Admin riêng
 
 - Owner: `v21_admin_send_debt_summary` (shared Supabase), existing one-click Admin composer path; không thêm RPC/cron/job/notification trigger.
