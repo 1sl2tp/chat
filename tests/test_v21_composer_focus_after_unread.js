@@ -33,7 +33,8 @@ assert(!functionBody.includes('selectionStart'));
 assert(!functionBody.includes('selectionEnd'));
 for(const piece of [
   '#threadScrollControlWrap{\n  z-index:0;\n  pointer-events:none;',
-  '#threadScrollControl{\n  pointer-events:auto;',
+  '#threadScrollControl{\n  pointer-events:none;',
+  '#stageLayout[data-scroll-from-end]:not([data-contact-switching="true"]) #threadScrollControl{\n  pointer-events:auto;',
   '#composerInteractive{\n  z-index:2;\n  pointer-events:auto;',
   '#composerShell,#editorWrap,#editor{\n  pointer-events:auto;'
 ])assert(source.includes(piece),'pointer hit-test contract missing: '+piece);
