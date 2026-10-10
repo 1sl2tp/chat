@@ -13,10 +13,11 @@ class ChatOwnedWorkSurfaceContract(unittest.TestCase):
         for path in (SOURCE, INDEX):
             text = path.read_text(encoding="utf-8")
             compact = "".join(text.split())
-            self.assertIn('data-default-route="work" data-route="work"', text, str(path))
+            self.assertIn('data-default-route="chat" data-route="chat"', text, str(path))
             self.assertIn('data-top-tab="work"', text, str(path))
             self.assertIn('data-nav-target="work"', text, str(path))
-            self.assertIn('aria-selected="true"data-top-tab="work"data-nav-target="work"', compact, str(path))
+            self.assertIn('aria-selected="false"data-top-tab="work"data-nav-target="work"', compact, str(path))
+            self.assertIn('aria-selected="true"data-top-tab="chat"data-nav-target="chat"', compact, str(path))
             self.assertIn('id="workThreadView"', text, str(path))
             self.assertIn('data-work-owner="chat"', text, str(path))
             self.assertIn('data-work-summary-root', text, str(path))
@@ -34,12 +35,13 @@ class ChatOwnedWorkSurfaceContract(unittest.TestCase):
             self.assertNotIn("type:'taphoa-chat-auth'", text, str(path))
         self.assertFalse(BRIDGE.exists(), "CHAT must not ship the GETLINK auth bridge")
 
-    def test_shell_uses_work_as_default_route_but_keeps_chat_available(self):
+    def test_shell_uses_chat_as_default_route_but_keeps_work_available(self):
         text = SHELL.read_text(encoding="utf-8")
         compact = "".join(text.split())
         self.assertIn("const ROUTES=Object.freeze(['chat','work']);", text)
-        self.assertIn("let route='work';", text)
-        self.assertIn("route=ROUTES.includes(saved?.route)?saved.route:'work';", compact)
+        self.assertIn("let route='chat';", text)
+        self.assertIn("route='chat';", compact)
+        self.assertNotIn("route=ROUTES.includes(saved?.route)?saved.route:", compact)
         self.assertIn("openWork(){return this.open('work')}", text)
         self.assertIn("openChat(){return this.open('chat')}", text)
         self.assertIn("DESKTOP_WORKSPACE_QUERY", text)
@@ -49,7 +51,7 @@ class ChatOwnedWorkSurfaceContract(unittest.TestCase):
         self.assertIn("desktopWorkspace?false:route!=='work'", compact)
         self.assertNotIn("V21GetlinkAuthBridge", text)
 
-    def test_static_work_route_can_render_before_shell_finishes_booting(self):
+    def test_work_route_remains_renderable_after_explicit_tab_selection(self):
         for path in (SOURCE, INDEX):
             text = path.read_text(encoding="utf-8")
             compact = "".join(text.split())

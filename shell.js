@@ -20,7 +20,7 @@ const desktopDirectoryMedia=window.matchMedia(DESKTOP_DIRECTORY_QUERY);
 const DESKTOP_WORKSPACE_QUERY='(min-width: 80rem) and (hover: hover) and (pointer: fine)';
 const desktopWorkspaceMedia=window.matchMedia(DESKTOP_WORKSPACE_QUERY);
 
-let route='work';
+let route='chat';
 let authState='BOOTING';
 let authAccount=null;
 let sidebarOpen=false;
@@ -71,7 +71,7 @@ function persistScreenSession(){
   const key=screenSessionKey();
   if(!key)return false;
   const payload={
-    route:ROUTES.includes(route)?route:'work',
+    route:ROUTES.includes(route)?route:'chat',
     activeContact:activeContact?.id?{id:String(activeContact.id),name:String(activeContact.name||'Liên hệ')}:null
   };
   try{sessionStorage.setItem(key,JSON.stringify(payload));return true;}catch{return false;}
@@ -137,7 +137,9 @@ const ScreenSession={
   restore(account){
     const accountId=account?.id||null;
     const saved=readScreenSession(accountId);
-    route=ROUTES.includes(saved?.route)?saved.route:'work';
+    // New app sessions always open Chat; keep only the last selected contact.
+    // Work is entered only by an explicit in-session navigation.
+    route='chat';
     const contact=saved?.activeContact;
     activeContact=contact?.id?{id:String(contact.id),name:String(contact.name||'Liên hệ')}:null;
     sidebarOpen=false;
