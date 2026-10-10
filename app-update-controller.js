@@ -36,8 +36,22 @@ function hasDraft(){
   if(reply&&!reply.hidden)return true;
   return false;
 }
+function activeUserSession(){
+  // A cached conversation/workspace may be read without a draft. A build update
+  // must never interrupt that visible authenticated UI (text, image or call).
+  const shell=window.ChatAppShell?.snapshot?.()||null;
+  return shell?.authState==='AUTHENTICATED'||
+    document.getElementById('appShell')?.dataset?.authState==='authenticated';
+}
+function editingInput(){
+  const el=document.activeElement;
+  if(!el)return false;
+  const tag=String(el.tagName||'').toLowerCase();
+  return tag==='input'||tag==='textarea'||tag==='select'||Boolean(el.isContentEditable);
+}
 function safeToReload(){
   if(document.visibilityState&&document.visibilityState!=='visible')return false;
+  if(activeUserSession()||editingInput())return false;
   const interaction=window.V21InteractionController?.snapshot?.()||null;
   if(interaction&&String(interaction.mode||'NONE')!=='NONE')return false;
   const capture=window.V21AudioCapturePolicy?.active?.()||null;
@@ -78,7 +92,10 @@ function maybeReload(){
   document.documentElement.dataset.appUpdatePending=pendingBuild;
   if(!safeToReload()){
     emit('reload-deferred');
-    scheduleDeferred();
+    // An active authenticated session can remain open for hours: do not wake
+    // a 2.5s retry timer forever or force a refresh while reading messages.
+    // The pending build will be used at the next safe launch/manual refresh.
+    if(!activeUserSession())scheduleDeferred();
     return false;
   }
   if(recentlyReloaded(pendingBuild)){
@@ -159,6 +176,8 @@ function bind(){
   window.addEventListener('focus',()=>void checkForUpdate({reason:'focus'}));
   window.addEventListener('online',()=>void checkForUpdate({reason:'online'}));
   document.addEventListener('v21-interaction-mode',()=>maybeReload());
+  document.addEventListener('v21-auth-state',()=>maybeReload());
+  document.addEventListener('navigation-change',()=>maybeReload());
   document.addEventListener('input',()=>maybeReload(),true);
   navigator.serviceWorker?.addEventListener?.('controllerchange',()=>maybeReload());
   setInterval(()=>{
