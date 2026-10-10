@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="8f5366a97cbde9e7335b2af40f29533f07c6360e0eb10605f66f4ea7de28e5d5">
+<meta name="app-build-id" content="bdf203c001a9a21d2b4e8c068e33ff4880b76f9863d06633e2870a1b269a835f">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -2478,6 +2478,27 @@ button{
      Composer placement owns only the 24px thread component gap. */
   margin-bottom:var(--thread-component-gap,24px);
   padding-bottom:0;
+}
+
+/* Chat input hit-test owner: do not let the new-message/scroll badge lane
+   or runtime utility CSS intercept taps on the composer. The scroll button
+   keeps its own 32px target; the textarea remains the native caret owner. */
+#threadScrollControlWrap{
+  z-index:0;
+  pointer-events:none;
+}
+#threadScrollControl{
+  pointer-events:none;
+}
+#stageLayout[data-scroll-from-end]:not([data-contact-switching="true"]) #threadScrollControl{
+  pointer-events:auto;
+}
+#composerInteractive{
+  z-index:2;
+  pointer-events:auto;
+}
+#composerShell,#editorWrap,#editor{
+  pointer-events:auto;
 }
 
 .composer-shell-source{
@@ -5746,7 +5767,7 @@ button{
 <div id="runtimeError" class="hidden fixed z-[9999] left-2 right-2 top-2 rounded-xl bg-red-600 text-white text-xs px-3 py-2 shadow-lg"></div>
 
 <!-- V21.69.9 unified runtime marker. Earlier V21.20/V21.64 labels below are provenance for inherited geometry/style contracts only, not separate live runtimes. -->
-<div id="appShell" data-app-shell data-ui-foundation="v1" data-chat-screen-version="V21.72.39" data-app-shell-version="V21.72.39" data-auth-state="booting" data-default-route="work" data-route="work">
+<div id="appShell" data-app-shell data-ui-foundation="v1" data-chat-screen-version="V21.72.39" data-app-shell-version="V21.72.39" data-auth-state="booting" data-default-route="chat" data-route="chat">
   <div id="screenHost" data-screen-host>
     <div id="activeScreenSlot" data-active-screen-slot>
       <section id="chatScreen" class="app-screen" data-screen="chat">
@@ -5779,8 +5800,8 @@ button{
         </button>
 
         <div class="top-mode-switch" role="tablist" aria-label="Chế độ làm việc">
-          <button type="button" class="top-mode-tab" role="tab" aria-selected="false" data-top-tab="chat" data-nav-target="chat"><span class="top-mode-contact-avatar" data-chat-tab-avatar hidden></span><span data-chat-tab-label>Trò chuyện</span></button>
-          <button type="button" class="top-mode-tab" role="tab" aria-selected="true" data-top-tab="work" data-nav-target="work">Công việc</button>
+          <button type="button" class="top-mode-tab" role="tab" aria-selected="true" data-top-tab="chat" data-nav-target="chat"><span class="top-mode-contact-avatar" data-chat-tab-avatar hidden></span><span data-chat-tab-label>Trò chuyện</span></button>
+          <button type="button" class="top-mode-tab" role="tab" aria-selected="false" data-top-tab="work" data-nav-target="work">Công việc</button>
         </div>
 
         <div class="call-focus-slot" data-call-focus-slot data-call-ui-state="idle">
@@ -7150,6 +7171,7 @@ const editor=document.getElementById('editor');
 const measure=document.getElementById('measure');
 const composerForm=document.getElementById('composerForm');
 const composerShell=document.getElementById('composerShell');
+const editorWrap=document.getElementById('editorWrap');
 const composerInteractive=document.getElementById('composerInteractive');
 const plusButton=document.getElementById('composer-plus-btn');
 const micButton=document.getElementById('composer-mic-btn');
@@ -11728,12 +11750,13 @@ function appendScrollPolicy({inserted=false,remote=false,messageIds=[]}={}){
     return{followTail:false,preserve:'VIEW'};
   }
 
-  // A new remote realtime message is an explicit "show newest" signal for
-  // the active conversation. Reveal the same event the sidebar just promoted,
-  // rather than leaving the thread parked on an older reading position.
+  // The directory may promote a newly active contact, but only the user owns
+  // the reading position inside an already-open thread. Incoming realtime
+  // content follows the tail only if we were already following it; USER_AWAY
+  // keeps its anchor (and the existing new-message cue remains available).
   if(remote){
-    viewport.returnToTail();
-    return{followTail:true,preserve:'AUTO'};
+    const followTail=viewport.mode===VIEWPORT_STATES.FOLLOW_TAIL;
+    return{followTail,preserve:followTail?'AUTO':'VIEW'};
   }
 
   // Local ACK/data merges keep the normal viewport policy. Own sends already
@@ -13489,6 +13512,19 @@ document.addEventListener('v21-interaction-abort',()=>{
   }
 });
 
+// Only empty Composer padding delegates focus to the existing textarea.
+// Native textarea clicks retain their own selection/caret (especially IME),
+// while buttons, attached media, and audio capture never steal editor focus.
+function focusEditorFromComposerPadding(event){
+  const target=event?.target;
+  if(target!==editorWrap&&target!==composerShell)return false;
+  if(!editor?.isConnected||editor.disabled||editor.readOnly)return false;
+  if(composerShell.dataset.audioState&&composerShell.dataset.audioState!=='IDLE')return false;
+  editor.focus({preventScroll:true});
+  return true;
+}
+composerShell.addEventListener('pointerdown',focusEditorFromComposerPadding);
+
 /* =========================================================
    IME + SEND
    ========================================================= */
@@ -13508,9 +13544,11 @@ editor.addEventListener('compositionend',()=>{
   ComposerDraftOwner.saveCurrent();
   syncSendButtonState();
 });
-editor.addEventListener('input',()=>{
+editor.addEventListener('input',event=>{
   autoGrow({source:'typing'});
-  ComposerDraftOwner.saveCurrent();
+  // Native Vietnamese IME can send many provisional input events. Keep the
+  // DOM/selection browser-owned and snapshot the draft on compositionend.
+  if(!composing&&!event.isComposing)ComposerDraftOwner.saveCurrent();
   syncSendButtonState();
 });
 
@@ -14141,7 +14179,7 @@ editor.addEventListener('beforeinput',event=>{
 editor.addEventListener(
   'keydown',
   e=>{
-    if(composing || e.isComposing)return;
+    if(composing || e.isComposing || e.keyCode===229)return;
     if(e.key!=='Enter')return;
 
     if(appleTouchPlatform){
@@ -14370,6 +14408,12 @@ window.V21ConversationBridge={
       const anchor=viewState.anchor||null;
       const anchorIndex=anchor?findAnchorIndex(anchor):null;
       renderWindow({preserve:'AUTO',anchorIndexOverride:anchorIndex});
+      // Position before the next browser paint, not only after an async frame.
+      // The subsequent frame may correct geometry after media/layout settles.
+      if(anchor)restoreAnchor(anchor);
+      else if(Number.isFinite(Number(viewState.distanceFromTail))){
+        setScrollTop(scrollRoot.scrollHeight-scrollRoot.clientHeight-Math.max(0,Number(viewState.distanceFromTail)||0));
+      }
       requestAnimationFrame(()=>{
         if(viewEpoch!==conversationViewEpoch)return;
         if(anchor)restoreAnchor(anchor);
@@ -14381,6 +14425,9 @@ window.V21ConversationBridge={
     }else{
       viewport.returnToTail();
       renderWindow({preserve:'AUTO'});
+      // Initial/ordinary-open latest should be at its target immediately.
+      // scrollToTail remains the sole bounded geometry-settle transaction.
+      setScrollTop(scrollRoot.scrollHeight-scrollRoot.clientHeight);
       scrollToTail('bridge-replace');
     }
     return store.size;
@@ -14738,7 +14785,7 @@ const desktopDirectoryMedia=window.matchMedia(DESKTOP_DIRECTORY_QUERY);
 const DESKTOP_WORKSPACE_QUERY='(min-width: 80rem) and (hover: hover) and (pointer: fine)';
 const desktopWorkspaceMedia=window.matchMedia(DESKTOP_WORKSPACE_QUERY);
 
-let route='work';
+let route='chat';
 let authState='BOOTING';
 let authAccount=null;
 let sidebarOpen=false;
@@ -14789,7 +14836,7 @@ function persistScreenSession(){
   const key=screenSessionKey();
   if(!key)return false;
   const payload={
-    route:ROUTES.includes(route)?route:'work',
+    route:ROUTES.includes(route)?route:'chat',
     activeContact:activeContact?.id?{id:String(activeContact.id),name:String(activeContact.name||'Liên hệ')}:null
   };
   try{sessionStorage.setItem(key,JSON.stringify(payload));return true;}catch{return false;}
@@ -14855,7 +14902,9 @@ const ScreenSession={
   restore(account){
     const accountId=account?.id||null;
     const saved=readScreenSession(accountId);
-    route=ROUTES.includes(saved?.route)?saved.route:'work';
+    // New app sessions always open Chat; keep only the last selected contact.
+    // Work is entered only by an explicit in-session navigation.
+    route='chat';
     const contact=saved?.activeContact;
     activeContact=contact?.id?{id:String(contact.id),name:String(contact.name||'Liên hệ')}:null;
     sidebarOpen=false;
@@ -16952,9 +17001,9 @@ function emitAuthState(){
 function renderGuest(){
   state='GUEST'; account=null; appSessionId=null; deviceId=null;
   authUI()?.setAuthenticated(false,null);
-  // Public preview: guest users land in Công việc without authentication.
-  // Chat/Call keeps the existing authentication gate.
-  shell()?.NavigationCommand?.openWork?.();
+  // Default guest entry is Chat's existing login surface. Public Work remains
+  // reachable only through the existing Work tab; Chat/Call still require auth.
+  shell()?.NavigationCommand?.openChat?.();
   ContactStore.clear();
   emitAuthState();
 }
@@ -21138,7 +21187,17 @@ async function runAction(action){
       if(error)throw error;
       if(!data?.ok||!data?.sent||!data?.message_id)throw new Error(data?.error||'debt_summary_send_failed');
       void window.V21SyncEngine?.wake?.({reason:'debt-summary-send'});
-      setTransientHint('Đã gửi đối chiếu công nợ');
+      // This assessment is returned only to the authenticated Admin. The
+      // customer receives only the server-generated debt message body.
+      const purchaseSegment=String(data?.admin_assessment?.purchase_segment||'').trim();
+      const paymentSegment=String(data?.admin_assessment?.payment_segment||'').trim();
+      // Keep mobile composer geometry stable: display a concise private
+      // assessment, not a multiline or customer-facing judgement.
+      const briefPurchase=purchaseSegment.includes('tiềm năng')?'KH tiềm năng':purchaseSegment;
+      const briefPayment=paymentSegment==='Còn nợ · có trả tiền'?'Nợ quay vòng':paymentSegment;
+      setTransientHint(purchaseSegment&&paymentSegment
+        ? 'Đã gửi công nợ · '+briefPurchase+' / '+briefPayment
+        : 'Đã gửi đối chiếu công nợ',5200);
       return true;
     }catch{
       setTransientHint('Không thể gửi công nợ',2600);
@@ -21816,6 +21875,30 @@ const VERSION='V21.71';
 let currentContactId=null;
 let currentConversationId=null;
 const sessions=new Map();
+// Only a notification click may discard the target contact's saved reading
+// position. Normal contact switching continues to restore that position.
+let notificationTailContactId=null;
+function beginNotificationTail(contactId){
+  const id=sessionKey(contactId);
+  if(!id)return false;
+  notificationTailContactId=id;
+  const cached=sessions.get(id);
+  if(cached)cached.viewState=null;
+  return true;
+}
+function endNotificationTail(){
+  notificationTailContactId=null;
+}
+function showNotificationTailForActive(contactId){
+  const id=sessionKey(contactId);
+  if(!id||id!==currentContactId||id!==notificationTailContactId)return false;
+  const cached=sessions.get(id);
+  if(!cached)return false;
+  cached.viewState=null;
+  // Reuse the single Conversation Root/ScrollController tail writer.
+  bridge()?.replace?.(cached.rows,{selfId:selfAccountId(),viewState:null});
+  return true;
+}
 
 function shell(){return window.ChatAppShell||null;}
 function bridge(){return window.V21ConversationBridge||null;}
@@ -21982,6 +22065,7 @@ function stashCurrentView(){
 }
 
 function reset(){
+  notificationTailContactId=null;
   currentContactId=null;currentConversationId=null;
   sessions.clear();
   bridge()?.clear?.();
@@ -22005,7 +22089,10 @@ function restoreSession(contactId){
   const session=key?sessions.get(key):null;
   if(!session)return null;
   setContext({contactId:key,conversationId:session.conversationId});
-  bridge()?.replace?.(session.rows,{selfId:selfAccountId(),viewState:session.viewState||null});
+  bridge()?.replace?.(session.rows,{
+    selfId:selfAccountId(),
+    viewState:notificationTailContactId===key?null:(session.viewState||null)
+  });
   return{
     contactId:key,
     conversationId:session.conversationId,
@@ -22026,7 +22113,7 @@ function replace(rows,{conversationId=currentConversationId,contactId=currentCon
     String(currentContactId||'')===String(targetContact||'')&&
     String(currentConversationId||'')===String(targetConversation||'');
   const sameVisual=sameActive&&previous?.signature===nextSignature&&bridge()?.snapshot?.().size===normalized.length;
-  const viewState=previous?.viewState||null;
+  const viewState=notificationTailContactId===targetContact?null:(previous?.viewState||null);
   rememberSession(targetContact,targetConversation,normalized,{viewState});
   setContext({contactId:targetContact,conversationId:targetConversation});
   if(sameVisual)return normalized.length;
@@ -22124,6 +22211,7 @@ async function reconcileCurrent(){return sync()?.wake?.({reason:'message-reconci
 window.V21MessageStore={
   version:VERSION,isReady,send,sendMedia,activate,refreshUnread,reconcileCurrent,selfAccountId,
   setContext,replace,merge,apply,remove,reset,primeSession,restoreSession,stashCurrentView,hasSession,mergeForContact,
+  beginNotificationTail,endNotificationTail,showNotificationTailForActive,
   snapshot(){return{
     currentContactId,currentConversationId,selfAccountId:selfAccountId(),ready:isReady(),sessionCount:sessions.size
   };}
@@ -22147,6 +22235,7 @@ let currentConversationId=null;
 let lastReason='idle';
 let contactEpoch=0;
 const dirtyActiveMessageIds=new Set();
+let activeDirtyNeedsFullMediaIndex=false;
 let readMarkTimer=0;
 let readMarkConversationId=null;
 const UNREAD_COOLDOWN_MS=750;
@@ -22175,12 +22264,29 @@ function contactIdForConversation(conversationId){
   return row?.id?String(row.id):null;
 }
 
-async function refreshMessageSessionFromMedia(messageId,conversationId){
+async function refreshMessageSessionFromMedia(messageId,conversationId,changedAsset=null){
   const id=String(messageId||'');
   if(!id||!accountId)return null;
   const parent=await cache()?.getMessage?.(accountId,id);
   if(!parent)return null;
-  const assets=await media()?.listForMessage?.({accountId,messageId:id})||[];
+  let assets;
+  if(changedAsset?.id){
+    // The canonical event already carries the changed metadata. Avoid scanning
+    // every IndexedDB media row (including cached Blob bytes) per media event.
+    const changed=canonicalMedia(changedAsset);
+    assets=(Array.isArray(parent._media_assets)?parent._media_assets:[])
+      .filter(item=>item&&!item.deleted_at&&String(item.id)!==String(changed.id))
+      .map(canonicalMedia).filter(Boolean);
+    if(!changed.deleted_at)assets.push(changed);
+    assets.sort((a,b)=>
+      Number(a.sort_index||0)-Number(b.sort_index||0)||
+      String(a.created_at||'').localeCompare(String(b.created_at||''))||
+      String(a.id||'').localeCompare(String(b.id||''))
+    );
+  }else{
+    // First hydration/reconciliation still uses the durable local index.
+    assets=await media()?.listForMessage?.({accountId,messageId:id})||[];
+  }
   const enriched={...parent,_media_assets:assets};
   await cache()?.putMessage?.(accountId,enriched);
   const contactId=contactIdForConversation(conversationId||parent.conversation_id);
@@ -22319,10 +22425,13 @@ function wakeMediaDownload(meta){
   void ensureMediaRemote({accountId:String(accountId||''),assetId:String(meta.id)});
 }
 
-function markActiveMessageDirty(messageId,conversationId){
+function markActiveMessageDirty(messageId,conversationId,{reconcileMedia=false}={}){
   const id=String(messageId||'');
   if(!id||String(conversationId||'')!==String(currentConversationId||''))return false;
   dirtyActiveMessageIds.add(id);
+  // Message events may arrive after media events. Only that ordering requires
+  // a disk reconciliation; media asset events have already updated the parent.
+  if(reconcileMedia)activeDirtyNeedsFullMediaIndex=true;
   return true;
 }
 
@@ -22330,7 +22439,11 @@ async function flushActiveMessageVisuals(){
   if(!dirtyActiveMessageIds.size||!accountId||!currentConversationId)return 0;
   const ids=Array.from(dirtyActiveMessageIds);
   dirtyActiveMessageIds.clear();
-  const mediaByMessage=await media()?.indexByMessage?.({accountId})||new Map();
+  const reconcileMedia=activeDirtyNeedsFullMediaIndex;
+  activeDirtyNeedsFullMediaIndex=false;
+  const mediaByMessage=reconcileMedia
+    ?await media()?.indexByMessage?.({accountId})||new Map()
+    :new Map();
   let applied=0;
   for(const id of ids){
     const cached=await cache()?.getMessage?.(accountId,id);
@@ -22425,7 +22538,7 @@ async function applyMessageEvent(event){
     ...preview,latest_at:payload.created_at,
     has_unread:own?false:!visible
   });
-  markActiveMessageDirty(payload.id,payload.conversation_id);
+  markActiveMessageDirty(payload.id,payload.conversation_id,{reconcileMedia:true});
   if(!own&&visible)scheduleMarkRead(payload.conversation_id);
   return true;
 }
@@ -22452,7 +22565,7 @@ async function applyMediaEvent(event){
       meta:{...payload,deleted_at:payload.deleted_at||new Date().toISOString()}
     });
     if(payload.message_id){
-      await refreshMessageSessionFromMedia(payload.message_id,payload.conversation_id);
+      await refreshMessageSessionFromMedia(payload.message_id,payload.conversation_id,payload);
       markActiveMessageDirty(payload.message_id,payload.conversation_id);
     }
     if(online())queueMicrotask(()=>{void syncContacts();});
@@ -22460,7 +22573,7 @@ async function applyMediaEvent(event){
     await media()?.putRemoteMeta?.({accountId,assetId:payload.id,meta:payload});
     wakeMediaDownload(payload);
     const parent=payload.message_id
-      ?await refreshMessageSessionFromMedia(payload.message_id,payload.conversation_id)
+      ?await refreshMessageSessionFromMedia(payload.message_id,payload.conversation_id,payload)
       :null;
     const parentPreview=parent?messagePreviewContract(parent):null;
     const hasParentText=Boolean(String(parent?.body||'').trim());
@@ -22771,6 +22884,7 @@ async function openContact(contactId){
 
   try{
     dirtyActiveMessageIds.clear();
+    activeDirtyNeedsFullMediaIndex=false;
     messages()?.stashCurrentView?.();
     currentContactId=target;
     currentConversationId=null;
@@ -23723,7 +23837,9 @@ async function onAuth(detail){
     clearUnreadRefreshTimer();
     unreadRefreshPromise=null;unreadRefreshQueued=false;unreadLastStartedAt=0;
     realtimeApplyChain=Promise.resolve();
-    accountId=null;appSessionId=null;currentContactId=null;currentConversationId=null;
+    dirtyActiveMessageIds.clear();
+    activeDirtyNeedsFullMediaIndex=false;
+    accountId=null;appSessionId=null;currentContactId=null;
     wakeHint=0;wakePending=false;
     messages()?.reset?.();
     return;
@@ -25375,6 +25491,63 @@ const BASE_FAVICON_HREF=String(faviconNode?.getAttribute?.('href')||faviconNode?
 let state={admin:false,supported:false,code:'idle',enabled:false,permission:'default',platform:'web'};
 let pendingOpen=null;
 let unreadRefreshTimer=0;
+
+// Only notification clicks get a concealed, instant latest-message reveal.
+// The Chat conversation renderer remains the sole scroll writer; this owner
+// only manages the temporary visibility of the existing ScrollRoot.
+let notificationReveal=null;
+function finishNotificationReveal(){
+  const intent=notificationReveal;
+  notificationReveal=null;
+  if(!intent)return;
+  if(intent.frame)cancelAnimationFrame(intent.frame);
+  if(intent.safety)clearTimeout(intent.safety);
+  document.removeEventListener('v21-conversation-switch',intent.onSwitch);
+  intent.root.style.visibility=intent.previousVisibility;
+  window.V21MessageStore?.endNotificationTail?.();
+}
+function startNotificationReveal(contactId){
+  finishNotificationReveal();
+  const target=String(contactId||'').trim();
+  const root=document.getElementById?.('scrollRoot')||null;
+  const store=window.V21MessageStore;
+  if(!target||!root||!store?.beginNotificationTail?.(target))return null;
+  const alreadyActive=String(window.ChatAppShell?.snapshot?.()?.activeContact?.id||'')===target;
+  const intent={
+    contactId:target,root,previousVisibility:root.style.visibility,
+    mounted:alreadyActive,alreadyActive,accepted:false,stable:0,frame:0,safety:0,onSwitch:null
+  };
+  intent.onSwitch=event=>{
+    const detail=event?.detail||{};
+    if(String(detail.contactId||'')!==target){
+      if(detail.phase==='mounted')finishNotificationReveal();
+      return;
+    }
+    if(detail.phase==='mounted')intent.mounted=true;
+    if(detail.phase==='abort')finishNotificationReveal();
+  };
+  notificationReveal=intent;
+  document.addEventListener('v21-conversation-switch',intent.onSwitch);
+  root.style.visibility='hidden';
+  // One bounded user-click transaction; no background timer/polling.
+  intent.safety=setTimeout(()=>{
+    if(notificationReveal===intent)finishNotificationReveal();
+  },2000);
+  return intent;
+}
+function settleNotificationReveal(intent){
+  if(!intent||notificationReveal!==intent)return;
+  intent.frame=requestAnimationFrame(()=>{
+    if(notificationReveal!==intent)return;
+    const active=String(window.V21MessageStore?.snapshot?.()?.currentContactId||'');
+    const atTail=Math.max(0,intent.root.scrollHeight-intent.root.clientHeight-intent.root.scrollTop)<=2;
+    const followTail=window.V21ConversationBridge?.snapshot?.()?.viewportMode==='FOLLOW_TAIL';
+    intent.stable=(intent.accepted&&intent.mounted&&active===intent.contactId&&
+      followTail&&atTail)?intent.stable+1:0;
+    if(intent.stable>=3)finishNotificationReveal();
+    else settleNotificationReveal(intent);
+  });
+}
 const NOTIFICATION_WANTED_KEY='taphoa.v21.adminPushWanted';
 
 function authStore(){return window.V21AuthSessionStore||null;}
@@ -25703,11 +25876,22 @@ async function handleOpen(payload={}){
     return false;
   }
 
+  // Arm before navigation/contact hydration so an old reading position can
+  // never paint before the notification's newest-message position.
+  const intent=kind==='message'&&contactId?startNotificationReveal(contactId):null;
   let opened=true;
   if(contactId)opened=Boolean(window.ChatAppShell?.NavigationCommand?.openContact?.(contactId));
   if(!opened){
+    if(intent)finishNotificationReveal();
     pendingOpen={kind,inviteId,contactId,conversationId};
     return false;
+  }
+  if(intent){
+    intent.accepted=true;
+    if(intent.alreadyActive){
+      window.V21MessageStore?.showNotificationTailForActive?.(contactId);
+    }
+    settleNotificationReveal(intent);
   }
 
   pendingOpen=null;
@@ -25737,6 +25921,7 @@ function onAuthState(event){
     void reconcileWantedSubscription();
     return;
   }
+  finishNotificationReveal();
   clearClientState();
 }
 
@@ -25804,8 +25989,22 @@ function hasDraft(){
   if(reply&&!reply.hidden)return true;
   return false;
 }
+function activeUserSession(){
+  // A cached conversation/workspace may be read without a draft. A build update
+  // must never interrupt that visible authenticated UI (text, image or call).
+  const shell=window.ChatAppShell?.snapshot?.()||null;
+  return shell?.authState==='AUTHENTICATED'||
+    document.getElementById('appShell')?.dataset?.authState==='authenticated';
+}
+function editingInput(){
+  const el=document.activeElement;
+  if(!el)return false;
+  const tag=String(el.tagName||'').toLowerCase();
+  return tag==='input'||tag==='textarea'||tag==='select'||Boolean(el.isContentEditable);
+}
 function safeToReload(){
   if(document.visibilityState&&document.visibilityState!=='visible')return false;
+  if(activeUserSession()||editingInput())return false;
   const interaction=window.V21InteractionController?.snapshot?.()||null;
   if(interaction&&String(interaction.mode||'NONE')!=='NONE')return false;
   const capture=window.V21AudioCapturePolicy?.active?.()||null;
@@ -25846,7 +26045,10 @@ function maybeReload(){
   document.documentElement.dataset.appUpdatePending=pendingBuild;
   if(!safeToReload()){
     emit('reload-deferred');
-    scheduleDeferred();
+    // An active authenticated session can remain open for hours: do not wake
+    // a 2.5s retry timer forever or force a refresh while reading messages.
+    // The pending build will be used at the next safe launch/manual refresh.
+    if(!activeUserSession())scheduleDeferred();
     return false;
   }
   if(recentlyReloaded(pendingBuild)){
@@ -25927,6 +26129,8 @@ function bind(){
   window.addEventListener('focus',()=>void checkForUpdate({reason:'focus'}));
   window.addEventListener('online',()=>void checkForUpdate({reason:'online'}));
   document.addEventListener('v21-interaction-mode',()=>maybeReload());
+  document.addEventListener('v21-auth-state',()=>maybeReload());
+  document.addEventListener('navigation-change',()=>maybeReload());
   document.addEventListener('input',()=>maybeReload(),true);
   navigator.serviceWorker?.addEventListener?.('controllerchange',()=>maybeReload());
   setInterval(()=>{
