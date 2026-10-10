@@ -104,3 +104,30 @@ assert.notStrictEqual(auth.dataset.mobileKeyboard,'true');
 assert.strictEqual(overlay.style.getPropertyValue('--shell-form-vv-height'),'700px');
 
 console.log('V21.72.39 visual viewport form keyboard runtime PASS');
+
+
+// UI-136 — Runtime simulation: do not checkpoint provisional Vietnamese IME
+// draft/input or mistake the composition Enter for a send.
+const appCode=fs.readFileSync(path.join(__dirname,'..','app.js'),'utf8');
+const imeStart=appCode.indexOf('let composing=false;');
+const imeEnd=appCode.indexOf('\nfunction canSendFromComposer()',imeStart);
+assert(imeStart>=0&&imeEnd>imeStart,'canonical composer IME owner exists');
+let draftWrites=0;
+const composerListeners={};
+const imeCtx={
+  editor:{addEventListener(type,fn){composerListeners[type]=fn}},
+  ComposerDraftOwner:{saveCurrent(){draftWrites++}},
+  autoGrow(){},syncSendButtonState(){},requestAnimationFrame(fn){return 1}
+};
+vm.createContext(imeCtx);
+vm.runInContext(appCode.slice(imeStart,imeEnd),imeCtx);
+composerListeners.compositionstart();
+composerListeners.input({isComposing:true});
+assert.strictEqual(draftWrites,0,'interim composition must not checkpoint the draft');
+composerListeners.compositionend();
+assert.strictEqual(draftWrites,1,'one finished composition saves the draft');
+composerListeners.input({isComposing:false});
+assert.strictEqual(draftWrites,2,'normal typing still saves the draft');
+assert(/if\(composing \|\| e\.isComposing \|\| e\.keyCode===229\)return;/.test(appCode),
+  'IME Enter keyCode 229 must not send');
+console.log('Chat Vietnamese IME composer interim ownership PASS');

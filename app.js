@@ -6396,9 +6396,11 @@ editor.addEventListener('compositionend',()=>{
   ComposerDraftOwner.saveCurrent();
   syncSendButtonState();
 });
-editor.addEventListener('input',()=>{
+editor.addEventListener('input',event=>{
   autoGrow({source:'typing'});
-  ComposerDraftOwner.saveCurrent();
+  // Native Vietnamese IME can send many provisional input events. Keep the
+  // DOM/selection browser-owned and snapshot the draft on compositionend.
+  if(!composing&&!event.isComposing)ComposerDraftOwner.saveCurrent();
   syncSendButtonState();
 });
 
@@ -7029,7 +7031,7 @@ editor.addEventListener('beforeinput',event=>{
 editor.addEventListener(
   'keydown',
   e=>{
-    if(composing || e.isComposing)return;
+    if(composing || e.isComposing || e.keyCode===229)return;
     if(e.key!=='Enter')return;
 
     if(appleTouchPlatform){
