@@ -51,7 +51,7 @@ assert "khoản còn lại cũ nhất" in F
 assert "'admin_assessment'" in F
 assert F.count("taphoa_chat_notify_customer(")==1
 assert "'debt-share:'||v_client_id,v_body" in ''.join(F.split())
-assert "p_customer_id=p_customer_id" in F
+assert "l.customer_account_id=p_customer_id" in F
 UI=(ROOT/'admin-composer-actions.js').read_text('utf-8')
 assert "data?.admin_assessment?.purchase_segment" in UI
 assert "data?.admin_assessment?.payment_segment" in UI
