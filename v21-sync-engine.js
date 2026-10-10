@@ -13,6 +13,7 @@ let currentConversationId=null;
 let lastReason='idle';
 let contactEpoch=0;
 const dirtyActiveMessageIds=new Set();
+let activeDirtyNeedsFullMediaIndex=false;
 let readMarkTimer=0;
 let readMarkConversationId=null;
 const UNREAD_COOLDOWN_MS=750;
@@ -41,12 +42,29 @@ function contactIdForConversation(conversationId){
   return row?.id?String(row.id):null;
 }
 
-async function refreshMessageSessionFromMedia(messageId,conversationId){
+async function refreshMessageSessionFromMedia(messageId,conversationId,changedAsset=null){
   const id=String(messageId||'');
   if(!id||!accountId)return null;
   const parent=await cache()?.getMessage?.(accountId,id);
   if(!parent)return null;
-  const assets=await media()?.listForMessage?.({accountId,messageId:id})||[];
+  let assets;
+  if(changedAsset?.id){
+    // The canonical event already carries the changed metadata. Avoid scanning
+    // every IndexedDB media row (including cached Blob bytes) per media event.
+    const changed=canonicalMedia(changedAsset);
+    assets=(Array.isArray(parent._media_assets)?parent._media_assets:[])
+      .filter(item=>item&&!item.deleted_at&&String(item.id)!==String(changed.id))
+      .map(canonicalMedia).filter(Boolean);
+    if(!changed.deleted_at)assets.push(changed);
+    assets.sort((a,b)=>
+      Number(a.sort_index||0)-Number(b.sort_index||0)||
+      String(a.created_at||'').localeCompare(String(b.created_at||''))||
+      String(a.id||'').localeCompare(String(b.id||''))
+    );
+  }else{
+    // First hydration/reconciliation still uses the durable local index.
+    assets=await media()?.listForMessage?.({accountId,messageId:id})||[];
+  }
   const enriched={...parent,_media_assets:assets};
   await cache()?.putMessage?.(accountId,enriched);
   const contactId=contactIdForConversation(conversationId||parent.conversation_id);
@@ -185,10 +203,13 @@ function wakeMediaDownload(meta){
   void ensureMediaRemote({accountId:String(accountId||''),assetId:String(meta.id)});
 }
 
-function markActiveMessageDirty(messageId,conversationId){
+function markActiveMessageDirty(messageId,conversationId,{reconcileMedia=false}={}){
   const id=String(messageId||'');
   if(!id||String(conversationId||'')!==String(currentConversationId||''))return false;
   dirtyActiveMessageIds.add(id);
+  // Message events may arrive after media events. Only that ordering requires
+  // a disk reconciliation; media asset events have already updated the parent.
+  if(reconcileMedia)activeDirtyNeedsFullMediaIndex=true;
   return true;
 }
 
@@ -196,7 +217,11 @@ async function flushActiveMessageVisuals(){
   if(!dirtyActiveMessageIds.size||!accountId||!currentConversationId)return 0;
   const ids=Array.from(dirtyActiveMessageIds);
   dirtyActiveMessageIds.clear();
-  const mediaByMessage=await media()?.indexByMessage?.({accountId})||new Map();
+  const reconcileMedia=activeDirtyNeedsFullMediaIndex;
+  activeDirtyNeedsFullMediaIndex=false;
+  const mediaByMessage=reconcileMedia
+    ?await media()?.indexByMessage?.({accountId})||new Map()
+    :new Map();
   let applied=0;
   for(const id of ids){
     const cached=await cache()?.getMessage?.(accountId,id);
@@ -291,7 +316,7 @@ async function applyMessageEvent(event){
     ...preview,latest_at:payload.created_at,
     has_unread:own?false:!visible
   });
-  markActiveMessageDirty(payload.id,payload.conversation_id);
+  markActiveMessageDirty(payload.id,payload.conversation_id,{reconcileMedia:true});
   if(!own&&visible)scheduleMarkRead(payload.conversation_id);
   return true;
 }
@@ -318,7 +343,7 @@ async function applyMediaEvent(event){
       meta:{...payload,deleted_at:payload.deleted_at||new Date().toISOString()}
     });
     if(payload.message_id){
-      await refreshMessageSessionFromMedia(payload.message_id,payload.conversation_id);
+      await refreshMessageSessionFromMedia(payload.message_id,payload.conversation_id,payload);
       markActiveMessageDirty(payload.message_id,payload.conversation_id);
     }
     if(online())queueMicrotask(()=>{void syncContacts();});
@@ -326,7 +351,7 @@ async function applyMediaEvent(event){
     await media()?.putRemoteMeta?.({accountId,assetId:payload.id,meta:payload});
     wakeMediaDownload(payload);
     const parent=payload.message_id
-      ?await refreshMessageSessionFromMedia(payload.message_id,payload.conversation_id)
+      ?await refreshMessageSessionFromMedia(payload.message_id,payload.conversation_id,payload)
       :null;
     const parentPreview=parent?messagePreviewContract(parent):null;
     const hasParentText=Boolean(String(parent?.body||'').trim());
@@ -637,6 +662,7 @@ async function openContact(contactId){
 
   try{
     dirtyActiveMessageIds.clear();
+    activeDirtyNeedsFullMediaIndex=false;
     messages()?.stashCurrentView?.();
     currentContactId=target;
     currentConversationId=null;
@@ -1589,7 +1615,9 @@ async function onAuth(detail){
     clearUnreadRefreshTimer();
     unreadRefreshPromise=null;unreadRefreshQueued=false;unreadLastStartedAt=0;
     realtimeApplyChain=Promise.resolve();
-    accountId=null;appSessionId=null;currentContactId=null;currentConversationId=null;
+    dirtyActiveMessageIds.clear();
+    activeDirtyNeedsFullMediaIndex=false;
+    accountId=null;appSessionId=null;currentContactId=null;
     wakeHint=0;wakePending=false;
     messages()?.reset?.();
     return;
