@@ -96,9 +96,9 @@ function emitAuthState(){
 function renderGuest(){
   state='GUEST'; account=null; appSessionId=null; deviceId=null;
   authUI()?.setAuthenticated(false,null);
-  // Public preview: guest users land in Công việc without authentication.
-  // Chat/Call keeps the existing authentication gate.
-  shell()?.NavigationCommand?.openWork?.();
+  // Default guest entry is Chat's existing login surface. Public Work remains
+  // reachable only through the existing Work tab; Chat/Call still require auth.
+  shell()?.NavigationCommand?.openChat?.();
   ContactStore.clear();
   emitAuthState();
 }
