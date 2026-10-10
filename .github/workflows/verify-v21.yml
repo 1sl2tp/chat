@@ -86,6 +86,8 @@ jobs:
         run: node tests/test_v21_72_17_mobile_form_keyboard_runtime.js
       - name: UI-137 Web/PWA media metadata and bounded cache runtime
         run: node tests/test_v21_137_dual_session_media_runtime.js
+      - name: UI-138 Web/PWA open-position and remote-history scroll runtime
+        run: node tests/test_v21_138_scroll_visibility_policy.js
       - name: V21.72.18 auth actions/PWA SW contract
         run: python tests/test_v21_72_18_auth_actions_row.py
       - name: V21.72.19 profile username/avatar contract

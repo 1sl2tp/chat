@@ -4616,12 +4616,13 @@ function appendScrollPolicy({inserted=false,remote=false,messageIds=[]}={}){
     return{followTail:false,preserve:'VIEW'};
   }
 
-  // A new remote realtime message is an explicit "show newest" signal for
-  // the active conversation. Reveal the same event the sidebar just promoted,
-  // rather than leaving the thread parked on an older reading position.
+  // The directory may promote a newly active contact, but only the user owns
+  // the reading position inside an already-open thread. Incoming realtime
+  // content follows the tail only if we were already following it; USER_AWAY
+  // keeps its anchor (and the existing new-message cue remains available).
   if(remote){
-    viewport.returnToTail();
-    return{followTail:true,preserve:'AUTO'};
+    const followTail=viewport.mode===VIEWPORT_STATES.FOLLOW_TAIL;
+    return{followTail,preserve:followTail?'AUTO':'VIEW'};
   }
 
   // Local ACK/data merges keep the normal viewport policy. Own sends already
@@ -7260,6 +7261,12 @@ window.V21ConversationBridge={
       const anchor=viewState.anchor||null;
       const anchorIndex=anchor?findAnchorIndex(anchor):null;
       renderWindow({preserve:'AUTO',anchorIndexOverride:anchorIndex});
+      // Position before the next browser paint, not only after an async frame.
+      // The subsequent frame may correct geometry after media/layout settles.
+      if(anchor)restoreAnchor(anchor);
+      else if(Number.isFinite(Number(viewState.distanceFromTail))){
+        setScrollTop(scrollRoot.scrollHeight-scrollRoot.clientHeight-Math.max(0,Number(viewState.distanceFromTail)||0));
+      }
       requestAnimationFrame(()=>{
         if(viewEpoch!==conversationViewEpoch)return;
         if(anchor)restoreAnchor(anchor);
@@ -7271,6 +7278,9 @@ window.V21ConversationBridge={
     }else{
       viewport.returnToTail();
       renderWindow({preserve:'AUTO'});
+      // Initial/ordinary-open latest should be at its target immediately.
+      // scrollToTail remains the sole bounded geometry-settle transaction.
+      setScrollTop(scrollRoot.scrollHeight-scrollRoot.clientHeight);
       scrollToTail('bridge-replace');
     }
     return store.size;
