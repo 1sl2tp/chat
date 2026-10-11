@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="38632c0a40292eeed346fb35972d2b657dc1b90411bb6017fae54fb1461bd96d">
+<meta name="app-build-id" content="8ecf2bfb0fe34d589a0405086f210ed4e617ab4ddc48f368794c8d657f33a76b">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -13512,9 +13512,17 @@ document.addEventListener('v21-interaction-abort',()=>{
   }
 });
 
-// Only empty Composer padding delegates focus to the existing textarea.
-// Native textarea clicks retain their own selection/caret (especially IME),
-// while buttons, attached media, and audio capture never steal editor focus.
+// Composer focus is the textarea's native responsibility. Delegate ONLY
+// deliberate taps on its blank wrapper; never change caret/IME on textarea taps.
+function composerEditorCanFocus(){
+  return Boolean(
+    editor?.isConnected && !editor.disabled && !editor.readOnly &&
+    appShell?.dataset.route==='chat' &&
+    !screenHost?.hasAttribute('inert') &&
+    InteractionController.snapshot().mode===InteractionMode.NONE &&
+    (!composerShell.dataset.audioState || composerShell.dataset.audioState==='IDLE')
+  );
+}
 function focusEditorFromComposerPadding(event){
   const target=event?.target;
   if(target!==editorWrap&&target!==composerShell)return false;
@@ -13524,6 +13532,31 @@ function focusEditorFromComposerPadding(event){
   return true;
 }
 composerShell.addEventListener('pointerdown',focusEditorFromComposerPadding);
+
+// A conversation/scroll layer can momentarily overlap the composer during
+// a message-list update. Recover a REAL user pointer press only when its
+// coordinates are INSIDE the editor hit rectangle but hit a non-actionable
+// piece of ScrollRoot instead. Do not hijack links, buttons, modals, Work,
+// audio recording, or native textarea selection. No focus on message arrival.
+function recoverComposerFocusFromScrollOverlap(event){
+  if(!event||event.button!==0||event.isPrimary===false||!composerEditorCanFocus())return false;
+  const rect=editorWrap.getBoundingClientRect();
+  const x=event.clientX,y=event.clientY;
+  if(!Number.isFinite(x)||!Number.isFinite(y)||
+     rect.width<=0||rect.height<=0||
+     x<rect.left||x>rect.right||y<rect.top||y>rect.bottom)return false;
+  const target=event.target;
+  if(!(target instanceof Element)||composerInteractive.contains(target))return false;
+  const scrollControl=document.getElementById('threadScrollControlWrap');
+  if(!scrollRoot.contains(target)&&!scrollControl?.contains(target))return false;
+  if(target.closest('button,a,input,textarea,select,[role="button"],[contenteditable="true"],[role="link"]'))return false;
+  // This pointer landed on a non-interactive overlapping scroll layer.
+  // Suppress that layer's default selection and give the tap to the editor.
+  if(event.cancelable)event.preventDefault();
+  editor.focus({preventScroll:true});
+  return true;
+}
+document.addEventListener('pointerdown',recoverComposerFocusFromScrollOverlap,true);
 
 /* =========================================================
    IME + SEND
