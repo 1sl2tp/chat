@@ -76,6 +76,41 @@ nav button[aria-current="true"]{background:#e9ebef;color:#111;font-weight:650}
 .note{margin:12px auto 0;max-width:520px;font-size:11px;color:#777;line-height:1.5}
 @media(max-width:900px){.app{grid-template-columns:160px minmax(290px,1fr) minmax(290px,1fr);min-width:760px}nav{padding:16px 8px}.compare-col{padding:12px}}
 @media(max-width:600px){body{overflow-x:auto}.app{min-width:760px}.phone{height:620px}}
+/* Demo only: match TAPHOA's Top / Middle / Bottom against the ChatGPT column.
+   Keep incoming bubble background, 9px inter-message gap, 30px side gutters. */
+/* TOP: header height, gap and icon size already share .phone-head/.hamb/.head-control.
+   Align the TAPHOA tab typography with ChatGPT's 15px navigation title. */
+#tap .tap-tabs{font-size:15px}
+#tap .tap-tabs .selected{font-weight:650}
+/* MIDDLE: both columns already share 15px body text and 30px side gutters.
+   A preserves its grey bubble, B retains the same blue bubble as ChatGPT. */
+/* BOTTOM: keep TAPHOA's existing four elements, lay them out like ChatGPT:
+   text above, existing + / mic / send controls on the lower row. */
+#tap .composer-tapho{
+  display:grid;
+  grid-template-columns:36px minmax(0,1fr) 36px 36px;
+  grid-template-rows:auto 36px;
+  align-items:center;
+  column-gap:8px;
+  row-gap:0;
+  min-height:65px;
+  padding:10px 9px 7px;
+  border-radius:28px;
+}
+#tap .composer-tapho>.composer-prompt{
+  grid-column:1/-1;
+  grid-row:1;
+  margin:1px 5px 8px;
+  color:#868686;
+  font-size:15px;
+  flex:none;
+}
+#tap .composer-tapho>.round{width:36px;min-width:36px;height:36px}
+#tap .composer-tapho>.round:nth-child(1){grid-column:1;grid-row:2}
+#tap .composer-tapho>.round:nth-child(3){grid-column:3;grid-row:2}
+#tap .composer-tapho>.round:nth-child(4){grid-column:4;grid-row:2}
+#tap .composer-tapho>.round.grey{background:#3b82f6}
+#tap .composer-tapho>.round.grey svg{transform:rotate(-90deg)}
 </style></head>
 <body>
 <main class="app">
