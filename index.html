@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="bdf203c001a9a21d2b4e8c068e33ff4880b76f9863d06633e2870a1b269a835f">
+<meta name="app-build-id" content="38632c0a40292eeed346fb35972d2b657dc1b90411bb6017fae54fb1461bd96d">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -15667,6 +15667,9 @@ function renderAvatarImage(node,url,display,fallback='TK'){
   img.className='shell-avatar-image';
   img.alt='';
   img.decoding='async';
+  // Off-screen contact avatars should not compete with first-paint data.
+  // Keep initials visible until each real image becomes visible and loads.
+  img.loading='lazy';
   img.draggable=false;
   img.style.opacity='0';
   img.src=url;
