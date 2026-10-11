@@ -6392,11 +6392,9 @@ function composerEditorCanFocus(){
 }
 function focusEditorFromComposerPadding(event){
   const target=event?.target;
-  if(!(target instanceof Element)||!composerEditorCanFocus())return false;
-  if(target!==composerShell&&target!==editorWrap&&
-     !(editorWrap.contains(target)&&target!==editor&&
-       !target.closest('button,a,input,textarea,select,[role="button"],[contenteditable="true"]'))
-  )return false;
+  if(target!==editorWrap&&target!==composerShell)return false;
+  if(!editor?.isConnected||editor.disabled||editor.readOnly)return false;
+  if(composerShell.dataset.audioState&&composerShell.dataset.audioState!=='IDLE')return false;
   editor.focus({preventScroll:true});
   return true;
 }
