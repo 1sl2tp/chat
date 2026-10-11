@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light"><title>Thư viện UI Chat — A / B / Vùng gõ</title><style>:root{color-scheme:light;--surface:#fff;--muted:#f3f3f3;--ink:#0d0d0d;--text-secondary:#676767;--blue:#e8f3fe;--blue-text:#0c274a;--border:#0000001a;--accent:#3a83f7;--lab-bg:#ffffff;--lab-side-pad:14px;--lab-row-gap:6px;--lab-a-radius:18px;--lab-b-radius:18px;--lab-a-bg:#f4f4f4;--lab-b-bg:#e8f3fe;--lab-compose-radius:20px;--lab-compose-height:44px;--lab-compose-border:#e5e5e5;--lab-compose-gap:2px;--lab-compose-padding:2px;--lab-compose-side:12px;--lab-compose-bottom:6px;font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,"Segoe UI","Helvetica",Arial,sans-serif}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:#f5f6f8;color:var(--ink)}
+button,input,textarea{font:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid #3a83f7;outline-offset:2px}
+#library{display:grid;grid-template-columns:210px minmax(300px,1fr) 290px;min-height:100vh}
+.nav{background:#fff;border-right:1px solid #e5e7eb;padding:22px 14px;display:flex;flex-direction:column;gap:5px;position:sticky;top:0;height:100vh;overflow:auto}
+.nav strong{font-size:17px;letter-spacing:-.02em;margin-bottom:3px}
+.nav p,.small{font-size:12px;line-height:1.5;color:#677180;margin:0 0 15px}
+.nav button{border:0;background:none;text-align:left;color:#374151;padding:12px 13px;border-radius:11px;display:flex;align-items:center;justify-content:space-between}
+.nav button[aria-current="true"]{background:#edf0f4;color:#111827;font-weight:650}
+.nav span{font-size:11px;color:#6b7280;font-variant-numeric:tabular-nums}
+.middle{padding:20px;min-width:0}
+.head{max-width:700px;margin:0 auto 12px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.head h1{font-size:18px;letter-spacing:-.035em;margin:0}
+.head p{margin:3px 0 0;color:#667085;font-size:12px}
+.mode{display:flex;gap:6px}
+.mode button,.secondary-button{border:1px solid #e0e3e8;border-radius:10px;background:#fff;padding:8px 11px;font-size:12px;color:#28303c}
+.mode button[aria-pressed="true"]{background:#20232b;color:#fff;border-color:#20232b}
+.mock-card{max-width:700px;margin:auto;background:#eaedf2;border:1px solid #e1e4e9;border-radius:18px;padding:15px;display:flex;justify-content:center;align-items:center;min-height:760px}
+.phone{width:min(100%,390px);height:760px;background:var(--lab-bg);border:6px solid #292d32;border-radius:34px;box-shadow:0 16px 32px #18253a1b;overflow:hidden;display:flex;flex-direction:column;position:relative}
+.statusbar{flex:none;height:31px;text-align:center;color:#171717;font-size:11px;font-weight:650;padding-top:11px}
+.headline{flex:none;display:grid;grid-template-columns:44px minmax(0,1fr) 44px;align-items:center;min-height:60px;padding:0 12px;gap:6px}
+.headline button{border:0;background:none;font-size:21px;width:36px;height:36px;display:grid;place-items:center;padding:0}
+.route-tabs{display:flex;gap:2px;border-radius:999px;padding:2px;background:#f3f3f3;align-items:center;font-size:13px;min-width:0}
+.route-tabs .active{background:#fff;border-radius:999px;box-shadow:0 1px 5px #0001;padding:9px 12px;white-space:nowrap;min-width:0;text-overflow:ellipsis;overflow:hidden}
+.route-tabs .inactive{color:#646464;padding:9px 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#thread{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:8px 16px 10px;background:var(--lab-bg);scrollbar-width:thin}
+#messageWindow{padding:8px var(--lab-side-pad) 14px}
+.message-row{width:100%;margin:0}
+.message-row+.message-row{margin-top:var(--lab-row-gap)}
+.message-turn-shell{width:100%;min-width:0}
+.message-unit{width:fit-content;max-width:100%;position:relative}
+.message-row[data-turn="assistant"] .message-unit{margin-right:auto;max-width:min(86%,calc(100% - 48px))}
+.message-row[data-turn="user"] .message-unit{margin-left:auto;max-width:min(86%,calc(100% - 48px))}
+.message-text{padding:8px 11px;border:0;box-shadow:none;overflow-wrap:anywhere}
+.message-row[data-turn="assistant"] .message-text{background:var(--lab-a-bg);border-radius:var(--lab-a-radius)}
+.message-row[data-turn="user"] .message-text{background:var(--lab-b-bg);border-radius:var(--lab-b-radius);color:var(--blue-text)}
+.message-body{font-size:15px;line-height:1.42rem;white-space:pre-wrap}
+#messageWindow [data-part]{transition:box-shadow .16s}
+.phone[data-focus="a"] .message-row[data-turn="assistant"] [data-part="a"],
+.phone[data-focus="b"] .message-row[data-turn="user"] [data-part="b"],
+.phone[data-focus="composer"] #composerShell{box-shadow:0 0 0 3px #3a83f755,0 1px 2px #00000009}
+.composer-source-frame{flex:none;margin:0 var(--lab-compose-side) var(--lab-compose-bottom);padding-bottom:env(safe-area-inset-bottom,0px)}
+#composerShell{display:grid;grid-template-columns:44px minmax(0,1fr) 44px 44px;grid-template-rows:minmax(var(--lab-compose-height),auto);align-items:center;gap:0 var(--lab-compose-gap);min-width:0;padding:var(--lab-compose-padding);border:1px solid var(--lab-compose-border);border-radius:var(--lab-compose-radius);background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+#editorWrap{grid-column:2;min-width:0;padding:0 2px}
+#editor{width:100%;height:var(--lab-compose-height);min-height:var(--lab-compose-height);max-height:96px;resize:none;border:0;outline:0;background:transparent;padding:10px 4px;font-size:16px;line-height:22px;overflow:auto;color:var(--ink)}
+#editor::placeholder{color:#777}
+#composer-plus-btn,#composer-mic-btn,#send{width:44px;height:44px;min-width:44px;display:grid;place-items:center;align-self:center;border:0;border-radius:9999px;color:#111;background:transparent;padding:0}
+#composer-plus-btn{grid-column:1;width:36px!important;height:36px!important;min-width:36px!important}
+#composer-mic-btn{grid-column:3}
+#send{grid-column:4;color:#fff;background:#b3b3b3}
+#send:not(:disabled){background:var(--accent)}
+#send svg{width:20px;height:20px}
+#composer-plus-btn svg,#composer-mic-btn svg,#send svg{display:block}
+#composerShell:focus-within{border-color:#b8cce8}
+#labStatus{flex:none;padding:0 16px 6px;font-size:10px;color:#747c8a;text-align:center;min-height:18px}
+#labStatus[hidden]{display:none}
+#plusInfo{position:absolute;bottom:79px;left:15px;right:15px;border:1px solid #e8e8e8;border-radius:16px;background:#fff;box-shadow:0 10px 40px #0002;padding:14px;font-size:13px;z-index:4}
+#plusInfo[hidden]{display:none}
+.right{background:#fff;border-left:1px solid #e5e7eb;padding:22px 17px;min-width:0}
+.right h2{margin:0 0 10px;font-size:17px}
+.right .desc{font-size:12px;color:#667085;line-height:1.55}
+.source{font-size:11px;line-height:1.6;background:#f7f8fa;border:1px solid #e7eaf0;border-radius:11px;padding:10px;margin:12px 0;overflow-wrap:anywhere}
+.source code{color:#3f4e65}
+#controls{display:flex;flex-direction:column;gap:11px}
+.control{display:flex;flex-direction:column;gap:5px}
+.control label{font-size:12px;color:#394457;font-weight:550;display:flex;justify-content:space-between}
+.control input[type=range]{width:100%;accent-color:#25272e}
+.control input[type=color]{height:32px;width:80px;cursor:pointer;border:1px solid #d5dbe4;border-radius:8px;background:white;padding:2px}
+.info{margin-top:16px;padding:11px;background:#f7f8fa;border-radius:12px;color:#596575;font-size:11px;line-height:1.5}
+.right .buttons{margin-top:15px;display:flex;gap:7px;flex-wrap:wrap}
+#exportField{width:100%;font:11px/1.45 ui-monospace,monospace;height:106px;margin-top:9px;border:1px solid #e1e5ea;border-radius:10px;padding:9px;resize:vertical}
+footer{padding:15px 6px 25px;max-width:700px;margin:auto;color:#7a8493;font-size:11px;line-height:1.6}
+@media(max-width:1060px){#library{grid-template-columns:160px minmax(320px,1fr)}.right{grid-column:1/-1;border-left:0;border-top:1px solid #e7e7e7;display:block}.nav{height:100vh}.mock-card{min-height:0}}
+@media(max-width:660px){#library{display:flex;flex-direction:column}.nav{position:relative;height:auto;display:flex;flex-direction:row;align-items:center;flex-wrap:wrap;padding:10px;gap:6px;border:0;border-bottom:1px solid #e5e7eb}.nav strong{margin:0 10px 0 0}.nav p,.nav>small{display:none}.nav button{padding:8px 9px;font-size:12px}.middle{padding:10px}.mock-card{padding:8px;border-radius:14px}.phone{width:min(100%,390px);height:min(760px,78svh);min-height:530px;border-width:4px;border-radius:27px}.right{padding:15px 13px}.head h1{font-size:16px}}
+</style></head>
+<body><div id="library">
+<aside class="nav" aria-label="Các phần giao diện"><strong>UI Chat gốc</strong><p>Tách từng thành phần của 1sl2tp/chat để thử sửa riêng, không động production.</p>
+<button type="button" data-select="all" aria-current="true">Toàn bộ <span>00</span></button>
+<button type="button" data-select="a" aria-current="false">Tin bên A <span>01</span></button>
+<button type="button" data-select="b" aria-current="false">Tin bên B <span>02</span></button>
+<button type="button" data-select="composer" aria-current="false">Vùng gõ chữ <span>03</span></button>
+</aside>
+<main class="middle"><div class="head"><div><h1>Thư viện thành phần Chat — mobile</h1><p>Gốc từ GitHub. Bản xem dùng nội dung giả, không đọc tin khách.</p></div>
+<div class="mode"><button type="button" id="original" aria-pressed="true">Gốc</button><button type="button" id="custom" aria-pressed="false">Thử sửa</button></div></div>
+<div class="mock-card"><section id="appShell" class="phone" data-ui-foundation="v1" data-auth-state="authenticated" data-route="chat" data-focus="all" aria-label="Khung Chat mobile tham khảo">
+<div class="statusbar" aria-hidden="true">9:41</div>
+<header class="headline"><button type="button" aria-label="Menu" id="demoMenu" title="Chỉ xem giao diện">☰</button>
+<div class="route-tabs" aria-label="Tab gốc"><span class="active">Trò chuyện</span><span class="inactive">Công việc</span></div>
+<button type="button" aria-label="Gọi" id="demoCall" title="Chỉ xem giao diện">♧</button></header>
+<div id="thread"><div id="conversationContentAxis"><div id="messageWindow">
+<section class="message-row message-turn" data-turn="assistant" data-content-kind="text"><div class="message-turn-shell"><div class="message-unit assistant-message-unit"><div class="message-text cgpt-source-assistant-visual" data-part="a"><div class="message-body" id="textA">Nội dung mẫu của bên A.</div></div></div></div></section>
+<section class="message-row message-turn" data-turn="user" data-content-kind="text"><div class="message-turn-shell"><div class="message-unit user-message-unit"><div class="message-text cgpt-source-user-visual" data-part="b"><div class="message-body" id="textB">Nội dung mẫu của bên B.</div></div></div></div></section>
+<section class="message-row message-turn" data-turn="assistant" data-content-kind="text"><div class="message-turn-shell"><div class="message-unit assistant-message-unit"><div class="message-text cgpt-source-assistant-visual" data-part="a"><div class="message-body">Tin nhắn mẫu tiếp theo từ A để quan sát gap giữa các dòng.</div></div></div></div></section>
+</div></div></div>
+<div id="labStatus" aria-live="polite" hidden></div>
+<div class="composer-source-frame chat-content-axis"><form id="composerForm" autocomplete="off"><div id="composerShell" class="composer-shell-source" data-composer-surface="true" data-can-send="false">
+<button type="button" id="composer-plus-btn" aria-label="Thêm tệp và nhiều nội dung khác" title="Trạng thái mô phỏng"><svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><path d="M10 3.25v13.5M3.25 10h13.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+<div id="editorWrap"><textarea id="editor" rows="1" placeholder="Nhắn tin..." enterkeyhint="enter" spellcheck="false" aria-label="Nhắn tin mẫu"></textarea></div>
+<button type="button" id="composer-mic-btn" aria-label="Bắt đầu ghi âm" title="Không thu âm trong demo"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Z" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M5.8 10.8a6.2 6.2 0 0 0 12.4 0M12 17v3M9.5 20h5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button>
+<button type="submit" id="send" aria-label="Gửi tin nhắn mẫu" disabled><svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><path d="M10 16V4m0 0L5.7 8.3M10 4l4.3 4.3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+</div></form></div>
+<div id="plusInfo" hidden>Đây là thư viện UI độc lập. Nút và biểu tượng lấy từ Chat gốc; demo không mở tệp hay truy cập dữ liệu thật.</div>
+</section></div>
+<footer>Bản gốc tham chiếu: <a href="https://github.com/1sl2tp/chat/blob/d9ec68fc36c9fd6b947c4b9e73e8f6634a858729/index.source.html" target="_blank" rel="noopener noreferrer">index.source.html</a>,
+<a href="https://github.com/1sl2tp/chat/blob/d9ec68fc36c9fd6b947c4b9e73e8f6634a858729/mobile-chat-refresh.css" target="_blank" rel="noopener noreferrer">mobile-chat-refresh.css</a>,
+<a href="https://github.com/1sl2tp/chat/blob/d9ec68fc36c9fd6b947c4b9e73e8f6634a858729/ui-foundation.css" target="_blank" rel="noopener noreferrer">ui-foundation.css</a>. Preview không chạy app.js, Supabase, kết nối realtime hoặc gửi tin thật. Đây là bản bóc tách component theo source, chưa phải xác nhận pixel-perfect Safari.</footer></main>
+<aside class="right" aria-label="Chỉnh thử thông số"><h2 id="panelTitle">Toàn bộ giao diện</h2><p class="desc" id="panelDesc">Chọn Bên A, Bên B hoặc Vùng gõ chữ để chỉ thay đúng phần đó. Mọi chỉnh sửa chỉ nằm trong trang demo.</p>
+<div class="source"><b>Owner code:</b> <code id="sourceMap">app.js · index.source.html · mobile-chat-refresh.css</code></div>
+<div id="controls"></div>
+<div class="buttons"><button type="button" class="secondary-button" id="reset">Khôi phục gốc</button><button type="button" class="secondary-button" id="exportBtn">Lấy CSS thử sửa</button></div>
+<textarea id="exportField" readonly hidden aria-label="CSS thay đổi so với source gốc"></textarea>
+<div class="info"><b>Giữ nguyên chức năng Chat:</b> không thay đăng nhập, quyền Admin/User, tin nhắn, realtime, ảnh, cuộc gọi hay bộ nhớ. Chỉ so và chỉnh CSS. Có thể gõ và bấm gửi <em>tin mẫu</em> ngay trong preview.</div>
+</aside></div><script>
+"use strict";
+const defaults=Object.freeze({
+ "lab-bg":"#ffffff","lab-side-pad":14,"lab-row-gap":6,
+ "lab-a-radius":18,"lab-b-radius":18,
+ "lab-a-bg":"#f4f4f4","lab-b-bg":"#e8f3fe",
+ "lab-compose-radius":20,"lab-compose-height":44,
+ "lab-compose-border":"#e5e5e5","lab-compose-gap":2,
+ "lab-compose-padding":2,"lab-compose-side":12,"lab-compose-bottom":6
+});
+const groups={
+ all:{title:"Toàn bộ giao diện",desc:"Chọn một vùng bên trái để thay thông số; gốc luôn có thể khôi phục.",source:"app.js · index.source.html · mobile-chat-refresh.css",fields:[["lab-bg","Nền vùng Chat","color"],["lab-side-pad","Padding vùng tin trái/phải","range",0,30],["lab-row-gap","Gap giữa các tin","range",0,30],["lab-compose-side","Lề vùng gõ trái/phải","range",0,28],["lab-compose-bottom","Khoảng cách đáy vùng gõ","range",0,32]]},
+ a:{title:"01 · Nội dung bên A",desc:"Tin nhắn bên trái (remote / assistant-message-unit). Gốc dùng message-text và message-body của app.js.",source:"app.js · message-row[data-turn=assistant] · mobile-chat-refresh.css",fields:[["lab-a-bg","Nền tin A","color"],["lab-a-radius","Bo góc tin A","range",0,36],["lab-side-pad","Padding vùng tin trái/phải","range",0,30],["lab-row-gap","Khoảng cách giữa tin","range",0,30]]},
+ b:{title:"02 · Nội dung bên B",desc:"Tin nhắn của mình ở bên phải (self / user-message-unit). Nền xanh nhạt của Chat gốc.",source:"app.js · message-row[data-turn=user] · ui-foundation.css",fields:[["lab-b-bg","Nền tin B","color"],["lab-b-radius","Bo góc tin B","range",0,36],["lab-side-pad","Padding vùng tin trái/phải","range",0,30],["lab-row-gap","Khoảng cách giữa tin","range",0,30]]},
+ composer:{title:"03 · Vùng gõ chữ",desc:"Vùng gõ thật trong source gồm #composerShell, #editor, #composer-plus-btn, #composer-mic-btn, #send. Nút và SVG giữ đúng source.",source:"index.source.html · mobile-chat-refresh.css · ui-foundation.css",fields:[["lab-compose-radius","Bo góc khung gõ","range",0,36],["lab-compose-height","Chiều cao dòng nhập","range",40,88],["lab-compose-gap","Gap giữa các nút","range",0,18],["lab-compose-side","Lề ngoài trái/phải","range",0,28],["lab-compose-bottom","Khoảng cách đáy","range",0,32],["lab-compose-border","Màu viền","color"],["lab-compose-padding","Padding khung","range",0,14]]}
+};
+let selected="all",mode="original";const edited={...defaults};
+const $=id=>document.getElementById(id);
+function apply(){for(const [k,v] of Object.entries(mode==="original"?defaults:edited))$("appShell").style.setProperty("--"+k,typeof v==="number"?v+"px":v);$("appShell").dataset.focus=selected}
+function view(){
+ const g=groups[selected];$("panelTitle").textContent=g.title;$("panelDesc").textContent=g.desc;$("sourceMap").textContent=g.source;
+ document.querySelectorAll("[data-select]").forEach(b=>b.setAttribute("aria-current",String(b.dataset.select===selected)));
+ $("original").setAttribute("aria-pressed",String(mode==="original"));$("custom").setAttribute("aria-pressed",String(mode==="custom"));
+ $("controls").replaceChildren();
+ for(const [id,label,type,min,max] of g.fields){
+  const wrap=document.createElement("div");wrap.className="control";const lbl=document.createElement("label");lbl.htmlFor="input-"+id;
+  const name=document.createElement("span");name.textContent=label;const value=document.createElement("span");value.id="value-"+id;lbl.append(name,value);
+  const input=document.createElement("input");input.id="input-"+id;input.type=type;input.dataset.key=id;
+  if(type==="range"){input.min=min;input.max=max;input.step=1}
+  input.value=String(mode==="original"?defaults[id]:edited[id]);input.disabled=mode==="original";
+  value.textContent=type==="color"?input.value:input.value+"px";
+  input.addEventListener("input",()=>{edited[id]=type==="color"?input.value:Number(input.value);value.textContent=type==="color"?input.value:input.value+"px";apply();$("exportField").hidden=true});
+  wrap.append(lbl,input);$("controls").append(wrap);
+ }
+ apply()
+}
+document.querySelectorAll("[data-select]").forEach(el=>el.addEventListener("click",()=>{selected=el.dataset.select;view()}));
+$("original").addEventListener("click",()=>{mode="original";view()});
+$("custom").addEventListener("click",()=>{mode="custom";view()});
+$("reset").addEventListener("click",()=>{Object.assign(edited,defaults);mode="original";$("exportField").hidden=true;view()});
+const map={
+ "lab-bg":"#appShell",
+ "lab-side-pad":"#messageWindow",
+ "lab-row-gap":"#messageWindow>.message-row+.message-row",
+ "lab-a-radius":".assistant-message-unit>.message-text",
+ "lab-b-radius":".user-message-unit>.message-text",
+ "lab-a-bg":".assistant-message-unit>.message-text",
+ "lab-b-bg":".user-message-unit>.message-text",
+ "lab-compose-radius":"#composerShell",
+ "lab-compose-height":"#editor",
+ "lab-compose-border":"#composerShell",
+ "lab-compose-gap":"#composerShell",
+ "lab-compose-padding":"#composerShell",
+ "lab-compose-side":".composer-source-frame",
+ "lab-compose-bottom":".composer-source-frame"
+};
+const prop={
+ "lab-bg":"background","lab-side-pad":"padding-inline","lab-row-gap":"margin-top",
+ "lab-a-radius":"border-radius","lab-b-radius":"border-radius","lab-a-bg":"background","lab-b-bg":"background",
+ "lab-compose-radius":"border-radius","lab-compose-height":"min-height","lab-compose-border":"border-color",
+ "lab-compose-gap":"column-gap","lab-compose-padding":"padding","lab-compose-side":"margin-inline","lab-compose-bottom":"margin-bottom"
+};
+$("exportBtn").addEventListener("click",()=>{
+ const diffs=Object.entries(edited).filter(([k,v])=>v!==defaults[k]);
+ let txt="/* CSS đề xuất chỉ từ UI Lab, chưa áp dụng vào production */\n";
+ for(const [k,v] of diffs){const val=typeof v==="number"?v+"px":v;txt+=map[k]+" { "+prop[k]+": "+val+"; }\n"}
+ if(!diffs.length)txt+="/* Chưa có thay đổi so với nguồn */";
+ $("exportField").value=txt;$("exportField").hidden=false;$("exportField").focus();$("exportField").select();
+});
+const editor=$("editor"),send=$("send");
+editor.addEventListener("input",()=>{const ready=editor.value.trim().length>0;send.disabled=!ready;$("composerShell").dataset.canSend=String(ready)});
+$("composerForm").addEventListener("submit",e=>{
+ e.preventDefault();const text=editor.value.trim();if(!text)return;
+ const section=document.createElement("section");section.className="message-row message-turn";section.dataset.turn="user";section.dataset.contentKind="text";
+ section.innerHTML='<div class="message-turn-shell"><div class="message-unit user-message-unit"><div class="message-text cgpt-source-user-visual" data-part="b"><div class="message-body"></div></div></div></div>';
+ section.querySelector(".message-body").textContent=text;
+ $("messageWindow").append(section);editor.value="";send.disabled=true;$("composerShell").dataset.canSend="false";editor.focus();$("thread").scrollTop=$("thread").scrollHeight;
+});
+$("composer-plus-btn").addEventListener("click",()=>{$("plusInfo").hidden=!$("plusInfo").hidden});
+$("composer-mic-btn").addEventListener("click",()=>{const z=$("labStatus");z.textContent="Demo giao diện: không truy cập microphone hoặc ghi âm.";z.hidden=false;});
+$("demoMenu").addEventListener("click",()=>{const z=$("labStatus");z.textContent="Chỉ mô phỏng khung Chat, không điều hướng thật.";z.hidden=false});
+$("demoCall").addEventListener("click",()=>{const z=$("labStatus");z.textContent="Demo không thực hiện cuộc gọi.";z.hidden=false});
+view();
+</script></body></html>
