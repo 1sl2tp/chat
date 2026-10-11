@@ -1,0 +1,358 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light"><title>Thư viện UI Chat Tạp Hóa — Component theo hình dạng và chức năng</title><link rel="stylesheet" href="../ui-foundation.css"><style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color-scheme:light}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:#f6f7f9}
+button,input,select{font:inherit}
+button{cursor:pointer}
+a{color:inherit}
+#appShell[data-ui-foundation="v1"]{
+ --ui-card-bg:#fff;--ui-page:#f6f7f9;--ui-text-primary:#111827;--ui-text-secondary:#667085;
+ --ui-line:#e4e7ec;--ui-soft:#f9fafb;--ui-accent:#3478ee;--ui-user-bubble:#e8f3fe;
+ --ui-control-touch:44px;--ui-radius-control:12px;--ui-radius-card:16px;
+ --ui-space-4:4px;--ui-space-6:6px;--ui-space-8:8px;--ui-space-12:12px;
+ --ui-space-16:16px;--ui-space-20:20px;--ui-space-24:24px
+}
+.top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:18px 24px;background:#fff;border-bottom:1px solid var(--ui-line)}
+.brand{display:flex;gap:12px;align-items:center}.brandmark{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;background:#eef3ff;color:#2356b8;font-weight:800;font-size:14px}
+.brand h1{font-size:19px;letter-spacing:-.025em;line-height:1.3;margin:0}.brand p{font-size:12px;color:var(--ui-text-secondary);margin:4px 0 0}
+.links{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.links a{text-decoration:none;border:1px solid var(--ui-line);border-radius:10px;padding:9px 12px;font-size:12px;font-weight:600;background:#fff}
+.links a:hover{background:var(--ui-soft)}
+.layout{display:grid;grid-template-columns:232px minmax(0,1fr) 295px;align-items:start;min-height:calc(100vh - 85px)}
+.side{position:sticky;top:0;height:calc(100vh - 85px);overflow-y:auto;background:#fff;border-right:1px solid var(--ui-line);padding:18px 12px}
+.side h2{font-size:14px;margin:4px 8px 11px}.side .sub{font-size:12px;color:var(--ui-text-secondary);line-height:1.45;margin:0 8px 16px}
+#search{height:44px;font-size:15px;border:1px solid #d0d5dd;border-radius:12px;padding:0 12px;width:100%;min-width:0;outline:0}
+#search:focus{border-color:#7da9ed;box-shadow:0 0 0 2px #3478ee15}
+.mode-picker{display:flex;border:1px solid var(--ui-line);border-radius:12px;padding:3px;margin:12px 0}
+.mode-picker button{border:0;background:transparent;border-radius:9px;padding:10px 6px;font-size:12px;min-height:38px;flex:1;color:var(--ui-text-secondary)}
+.mode-picker button[aria-pressed=true]{background:#eef3ff;color:#173f86;font-weight:700}
+.filter-title{font-size:11px;color:var(--ui-text-secondary);letter-spacing:.05em;margin:18px 8px 8px;text-transform:uppercase;font-weight:700}
+#categories{display:flex;flex-direction:column;gap:3px}
+#categories button{border:0;background:transparent;border-radius:10px;display:flex;align-items:center;justify-content:space-between;text-align:left;gap:9px;padding:10px 9px;font-size:13px;min-height:40px;color:var(--ui-text-primary)}
+#categories button[aria-current=true]{background:#eef0f4;font-weight:700}
+.category-count{font-size:11px;color:#7c8592;font-variant-numeric:tabular-nums}
+.center{padding:22px 24px 60px;min-width:0}
+.center-head{max-width:980px;margin:0 auto 16px}
+.center-head h2{font-size:20px;margin:0 0 7px;letter-spacing:-.025em}
+.center-head p{font-size:13px;color:var(--ui-text-secondary);line-height:1.55;margin:0}
+.status-line{display:flex;align-items:center;gap:10px;justify-content:space-between;flex-wrap:wrap;margin:16px 0 12px}
+.count{font-size:12px;color:var(--ui-text-secondary)}
+.width-controls{display:flex;align-items:center;gap:3px;border:1px solid var(--ui-line);padding:3px;border-radius:10px;background:#fff}
+.width-controls button{font-size:11px;padding:7px 9px;min-height:32px;border:0;background:transparent;border-radius:7px}
+.width-controls button[aria-pressed=true]{background:#edf1f5;font-weight:700}
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;max-width:980px;margin:auto}
+.card{min-width:0;background:#fff;border:1px solid var(--ui-line);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.card[data-selected=true]{border-color:#73a5e9;box-shadow:0 0 0 1px #73a5e9}
+.card-title{display:flex;gap:8px;justify-content:space-between;align-items:start}
+.card-title h3{font-size:14px;line-height:1.38;margin:0}.card-title .id{color:#63758b;font-size:11px;font-weight:600;flex:none;font-variant-numeric:tabular-nums}
+.meta{font-size:11px;color:var(--ui-text-secondary);line-height:1.4}
+.component-preview{border:1px solid #eef0f2;border-radius:12px;background:#fbfcfe;display:flex;align-items:center;justify-content:center;padding:14px;min-height:123px;min-width:0;overflow:hidden;position:relative}
+.component-preview[data-width=narrow] .demo-frame{max-width:250px}
+.component-preview[data-width=phone] .demo-frame{max-width:330px}
+.component-preview[data-width=wide] .demo-frame{max-width:100%}
+.demo-frame{width:100%;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+.component-preview button{border:0}
+.demo-row{display:flex;align-items:center;justify-content:center;gap:8px;max-width:100%;flex-wrap:wrap}
+.icon-btn{width:44px;height:44px;display:grid;place-items:center;padding:0;border-radius:999px;background:#fff;color:#111827}
+.icon-btn svg{width:20px;height:20px;display:block}
+.icon-btn.is-accent{color:#fff;background:#3478ee}
+.icon-btn.is-ghost{background:transparent}
+.icon-btn.is-disabled{opacity:.35}
+.avatar{display:grid;place-items:center;background:#d4ebf1;border-radius:50%;color:#355368;font-weight:700;line-height:1;flex:none;padding:0}
+.avatar.sm{width:26px;height:26px;font-size:12px}
+.avatar.md{width:40px;height:40px;font-size:15px}
+.avatar.lg{width:48px;height:48px;font-size:18px}
+.avatar-wrap{position:relative;display:inline-flex;flex:none}
+.dot{position:absolute;right:-1px;top:-1px;width:9px;height:9px;background:#3678ee;border:2px solid #fff;border-radius:50%}
+.demo-tabgroup{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:center;width:100%;max-width:294px;gap:2px;padding:2px;height:48px;background:#f3f4f6;border-radius:999px}
+.demo-tabgroup button{height:44px;min-width:0;display:flex;justify-content:center;align-items:center;gap:6px;background:transparent;padding:0 8px;border-radius:999px;font-size:13px;color:#667085;white-space:nowrap}
+.demo-tabgroup button[aria-selected=true]{background:#fff;color:#111827;box-shadow:0 1px 3px #10182812;font-weight:600}
+.truncate{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pill{display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:6px 12px;border:0;border-radius:999px;background:#f1f2f5;font-size:12px;color:#344054}
+.pill.active{background:#eaf1fe;color:#2357a1;font-weight:600}
+.demo-search,.demo-input{display:flex;align-items:center;gap:8px;border:1px solid #d0d5dd;border-radius:12px;padding:0 12px;min-height:44px;width:100%;background:#fff}
+.demo-search input,.demo-input input{border:0;outline:0;min-width:0;width:100%;height:44px;font-size:16px;background:transparent}
+.demo-input:focus-within,.demo-search:focus-within{border-color:#9bb7e6;box-shadow:0 0 0 2px #3478ee13}
+.demo-composer{display:grid;grid-template-columns:44px minmax(0,1fr) 44px 44px;align-items:center;gap:0 2px;width:100%;border:1px solid #e4e7ec;background:#fff;border-radius:20px;padding:2px}
+.demo-composer:focus-within{border-color:#a1bde9;box-shadow:0 0 0 1px #3478ee12}
+.demo-composer input{outline:0;border:0;min-width:0;width:100%;font-size:16px;background:transparent;padding:0 4px;height:44px}
+.demo-composer input:focus{outline:0}
+.bubble{max-width:86%;padding:8px 11px;border-radius:18px;font-size:15px;line-height:1.42;background:#f2f3f5;overflow-wrap:anywhere}
+.bubble.mine{margin-left:auto;background:#e8f3fe;color:#163d63}
+.bubble.other{margin-right:auto}
+.bubble-area{display:flex;flex-direction:column;align-items:stretch;gap:8px;width:100%;max-width:310px}
+.reply-preview{align-self:flex-start;border-left:3px solid #8eb9ee;padding:7px 11px;background:#eff4fc;border-radius:8px;color:#576376;font-size:12px;max-width:90%}
+.fake-image{border-radius:12px;background:linear-gradient(130deg,#b3d3d2 0%,#85b5bb 47%,#f4c892 48%,#dbc0a5 100%);position:relative;overflow:hidden}
+.fake-image::after{content:"MẪU ẢNH";position:absolute;bottom:5px;left:5px;font-size:9px;letter-spacing:.07em;color:#ffffff;background:#0005;padding:3px 5px;border-radius:4px}
+.fake-image.landscape{width:100%;max-width:240px;aspect-ratio:16/9}
+.fake-image.portrait{width:116px;aspect-ratio:3/4}
+.gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;width:100%;max-width:240px}
+.gallery .fake-image{height:88px;width:100%;aspect-ratio:auto;border-radius:6px}
+.gallery.trip .fake-image:first-child{grid-row:span 2;height:180px}
+.audio-demo{display:flex;align-items:center;gap:8px;border:1px solid #e4e7ec;padding:6px 8px;border-radius:14px;background:#fff;width:100%;max-width:270px}
+.wave{display:flex;align-items:center;gap:3px;flex:1;height:24px}.wave i{width:3px;flex:1;max-width:3px;background:#8ca1b5;border-radius:3px;height:var(--wave-height,9px)}
+.time{font-size:11px;color:#667085;white-space:nowrap}
+.file-demo{display:flex;align-items:center;gap:9px;border:1px solid #e4e7ec;border-radius:14px;background:#fff;padding:10px;width:100%;max-width:290px}
+.file-type{display:grid;place-items:center;width:38px;height:40px;flex:none;border-radius:9px;background:#fee9e8;color:#c33838;font-size:11px;font-weight:800}
+.file-name{min-width:0;font-size:12px;line-height:1.4;font-weight:600}.file-name small{display:block;color:#667085;font-weight:400;font-size:11px}
+.contact{display:flex;align-items:center;gap:10px;padding:8px;width:100%;max-width:310px;border-radius:12px;background:#fff}
+.contact.is-selected{background:#eef3fa}
+.contact-name{flex:1;min-width:0;font-size:13px}.contact-name strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.contact-name span{display:block;font-size:11px;color:#667085;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.contact time{font-size:11px;color:#98a2b3;align-self:flex-start}
+.demo-card{border:1px solid #e4e7ec;padding:12px;border-radius:12px;background:#fff;width:100%;max-width:290px}
+.demo-card h4{font-size:13px;margin:0 0 9px}.card-stat{display:flex;justify-content:space-between;gap:9px;line-height:1.5;font-size:12px;color:#667085}.card-stat strong{color:#111827}
+.demo-menu{width:100%;max-width:260px;border:1px solid #e4e7ec;background:#fff;border-radius:14px;padding:6px;display:grid;gap:2px;box-shadow:0 3px 12px #1018280a}
+.demo-menu button{display:flex;align-items:center;gap:9px;width:100%;min-height:44px;padding:6px 9px;text-align:left;background:transparent;border-radius:9px;font-size:13px}
+.demo-menu button:hover{background:#f5f6f8}
+.demo-menu svg{width:20px;height:20px;flex:none}
+.demo-status{display:flex;align-items:center;gap:9px;background:#fff;border:1px solid #e4e7ec;padding:9px 12px;border-radius:12px;font-size:12px;color:#667085;max-width:100%}
+.spinner{width:17px;height:17px;border:2px solid #d4deed;border-top-color:#3678ee;border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.dots{display:flex;gap:4px}.dots i{width:6px;height:6px;border-radius:50%;background:#8aa1bd;animation:pulse 1s ease-in-out infinite alternate}.dots i:nth-child(2){animation-delay:.2s}.dots i:nth-child(3){animation-delay:.4s}
+@keyframes pulse{to{opacity:.25;transform:translateY(-2px)}}
+.mini-shell{border:1px solid #d4dbe4;border-radius:14px;background:#fff;width:100%;height:160px;display:grid;grid-template-rows:35px minmax(0,1fr) 36px;overflow:hidden;max-width:270px}
+.mini-shell header{background:#f8fafc;border-bottom:1px solid #e4e7ec;padding:9px;display:flex;align-items:center;gap:6px;font-size:11px}
+.mini-shell main{display:flex;flex-direction:column;justify-content:center;padding:12px;gap:5px}.mini-shell main div{height:12px;border-radius:7px;width:65%;background:#eef0f3}.mini-shell main div:last-child{margin-left:auto;background:#dceaf9;width:47%}
+.mini-shell footer{border-top:1px solid #e4e7ec;padding:6px;display:flex;gap:4px}.mini-shell footer i{display:block;background:#f2f4f7;border:1px solid #e4e7ec;border-radius:9px;flex:1}
+.preview-overlay{border:1px solid #e4e7ec;border-radius:15px;background:#fff;box-shadow:0 5px 18px #11182710;padding:13px;max-width:290px;width:100%;font-size:12px;color:#475467}
+.preview-overlay h4{font-size:13px;color:#111827;margin:0 0 9px}
+.preview-overlay .fake-image{width:100%;height:95px}
+.preview-actions{display:flex;gap:6px;justify-content:space-between}
+.preview-actions button,.btn-lite{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:36px;padding:6px 10px;border:1px solid #e4e7ec;border-radius:9px;background:#fff;font-size:11px;color:#344054}
+.preview-actions button{cursor:pointer}
+.card-footer{display:flex;align-items:center;justify-content:space-between;gap:7px;padding-top:3px}
+.card-footer button{border:1px solid var(--ui-line);background:#fff;border-radius:9px;padding:7px 9px;min-height:32px;font-size:11px;color:#344054}
+.card-footer button:hover{background:#f8fafc}.card-footer .compare-on{border-color:#9cbded;background:#edf4ff;color:#25579d}
+.inspector{position:sticky;top:0;max-height:calc(100vh - 85px);overflow:auto;border-left:1px solid var(--ui-line);padding:20px 16px;background:#fff}
+.inspector h2{font-size:17px;letter-spacing:-.02em;line-height:1.35;margin:0 0 6px}
+.inspector .muted{font-size:12px;color:#667085;line-height:1.55}
+.inspector dl{margin:17px 0}.inspector dt{font-size:11px;font-weight:700;color:#667085;margin-top:13px;text-transform:uppercase;letter-spacing:.04em}
+.inspector dd{margin:5px 0 0;font-size:13px;line-height:1.5;overflow-wrap:anywhere}
+.inspector code{font-size:12px;background:#f3f5f8;border:1px solid #edf0f4;border-radius:6px;padding:3px 5px;word-break:break-word}
+.inspector .source-links{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px}.source-links a{font-size:11px;text-decoration:none;color:#235da6;border:1px solid #d5e2f3;padding:7px 8px;border-radius:8px}
+.inspector .source-links a:hover{background:#f0f7ff}
+.compare{border-top:1px solid #e4e7ec;margin-top:18px;padding-top:14px}
+.compare h3{font-size:13px;margin:0 0 10px}.compare-row{font-size:12px;padding:7px 0;line-height:1.45;color:#344054}
+.compare-row span{color:#667085}
+.empty{grid-column:1/-1;background:#fff;border:1px dashed #d0d5dd;padding:35px 18px;border-radius:16px;text-align:center;color:#667085}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#27303b;color:white;border-radius:11px;padding:11px 15px;font-size:12px;box-shadow:0 5px 16px #10182830;z-index:3;max-width:min(90vw,420px)}
+[hidden]{display:none!important}
+button:focus-visible,a:focus-visible{outline:2px solid #3478ee;outline-offset:2px}
+@media(max-width:1180px){.layout{grid-template-columns:210px minmax(0,1fr)}.inspector{position:static;max-height:none;grid-column:2;border-left:0;border-top:1px solid #e4e7ec}.side{height:calc(100vh - 85px)}}
+@media(max-width:760px){.top{padding:14px 16px}.layout{display:block}.side{position:static;height:auto;max-height:none;border-right:0;border-bottom:1px solid #e4e7ec;padding:12px 16px}.side .sub{display:none}#categories{flex-direction:row;flex-wrap:nowrap;overflow-x:auto;padding-bottom:5px}#categories button{white-space:nowrap;min-width:max-content;border:1px solid #e4e7ec}.filter-title{margin:12px 0 6px}.center{padding:17px 12px 30px}.cards{grid-template-columns:1fr}.inspector{padding:18px 16px}.top .links a{font-size:11px}}
+</style></head>
+<body id="appShell" data-ui-foundation="v1"><header class="top"><div class="brand"><div class="brandmark" aria-hidden="true">UI</div><div><h1>Thư viện UI · Chat Tạp Hóa</h1><p>Phân loại từ mã Chat hiện tại, không tạo chức năng riêng</p></div></div><div class="links"><a href="./so-sanh.html">So sánh hai giao diện ↗</a><a href="./chat-components.html">Lab tin A/B và vùng gõ ↗</a><a href="../">Mở Chat ↗</a></div></header>
+<div class="layout">
+<aside class="side"><h2>Danh mục component</h2><p class="sub">Một kiểu hình dạng có thể xuất hiện ở nhiều chỗ. Nhóm theo chức năng để tìm mọi nơi dùng lại cùng primitive.</p><label for="search" class="filter-title" style="display:block;margin:0 0 7px">Tìm component, selector, source</label><input id="search" type="search" placeholder="Ví dụ: avatar, audio, nút, menu..." autocomplete="off"><div class="mode-picker" role="group" aria-label="Cách nhóm"><button type="button" data-mode="shape" aria-pressed="true">Hình dạng</button><button type="button" data-mode="purpose" aria-pressed="false">Chức năng</button></div><div id="filterTitle" class="filter-title">Họ hình dạng</div><nav id="categories" aria-label="Lọc component"></nav></aside>
+<main class="center"><div class="center-head"><h2>Tách component trước, lắp thành màn hình sau</h2><p>Các mẫu dưới đây giữ tên component, selector và owner đã tìm thấy trong Chat. Mẫu tĩnh minh họa hình dạng và trạng thái, không phải chạy lại nghiệp vụ. Các thành phần cùng kiểu được gom chung primitive, chỉ thay dữ liệu và biến thể.</p><div class="status-line"><span class="count" id="count"></span><div class="width-controls" role="group" aria-label="Độ rộng xem mẫu"><button type="button" data-width="narrow" aria-pressed="false">Hẹp</button><button type="button" data-width="phone" aria-pressed="true">Mobile</button><button type="button" data-width="wide" aria-pressed="false">Rộng</button></div></div></div><section class="cards" id="cards" aria-label="Bộ component theo nhóm"></section></main>
+<aside class="inspector" aria-label="Nguồn và quy tắc component"><h2 id="detailName">Thành phần</h2><p class="muted" id="detailSummary"></p><dl><dt>Mã</dt><dd id="detailID"></dd><dt>Hình dạng</dt><dd id="detailShape"></dd><dt>Chức năng</dt><dd id="detailPurpose"></dd><dt>Selector / owner</dt><dd><code id="detailSelector"></code></dd><dt>Biến thể</dt><dd id="detailVariants"></dd><dt>Trạng thái</dt><dd id="detailStates"></dd><dt>Tệp nguồn trong repo</dt><dd class="source-links" id="detailSources"></dd></dl><div class="preview-actions"><button type="button" id="copyRef">Chép tham chiếu</button><a class="btn-lite" href="./so-sanh.html">Màn hình tổng ↗</a></div><section class="compare"><h3>Đối chiếu hai component · <span id="compareCount">0/2</span></h3><div id="compareItems"></div><p class="muted" id="compareHint"></p><button type="button" class="btn-lite" id="clearCompare">Xóa lựa chọn</button></section><p class="muted" style="margin-top:20px">Rule áp dụng: UI-01/02/10, F-03/04/05/15/44. Không thêm CSS global cho span, không refetch theo breakpoint, UI-only = 0 network nghiệp vụ.</p></aside>
+</div><div id="toast" role="status" aria-live="polite" hidden></div>
+<script id="ui-inventory" type="application/json">[{"id":"I01","title":"Mở danh bạ","shape":"Nút","purpose":"Điều hướng","demo":"icon-menu","selector":".shell-icon-button","sources":["index.source.html","shell.js"],"variants":"44px,icon 20px","states":"idle,active,focus","contract":"Cùng kiểu nút biểu tượng với đóng sidebar"},{"id":"I02","title":"Đóng sidebar","shape":"Nút","purpose":"Điều hướng","demo":"icon-close","selector":".wm-sidebar-utilityButton","sources":["index.source.html","shell.js"],"variants":"tròn,icon 20px","states":"idle,focus","contract":"Dùng cùng primitive IconButton của I01"},{"id":"I03","title":"Gọi / kết thúc","shape":"Nút","purpose":"Điều hướng","demo":"icon-phone","selector":".call-focus-button","sources":["index.source.html","shell.js"],"variants":"idle,ringing,connected","states":"idle,active,disabled","contract":"Biểu tượng đổi theo trạng thái cuộc gọi"},{"id":"I04","title":"Nút thêm nội dung","shape":"Nút","purpose":"Soạn và gửi","demo":"icon-plus","selector":"#composer-plus-btn","sources":["index.source.html","app.js"],"variants":"tròn 44px","states":"closed,open,focus","contract":"Mở menu ảnh máy ảnh và file"},{"id":"I05","title":"Nút micro","shape":"Nút","purpose":"Soạn và gửi","demo":"icon-mic","selector":"#composer-mic-btn","sources":["index.source.html","app.js"],"variants":"tròn 44px","states":"idle,recording,disabled","contract":"Quyền microphone thuộc Chat thật"},{"id":"I06","title":"Nút gửi","shape":"Nút","purpose":"Soạn và gửi","demo":"icon-send","selector":"#send","sources":["index.source.html","app.js"],"variants":"tròn accent","states":"disabled,enabled,loading","contract":"Gửi một intent không tạo tin trùng"},{"id":"I07","title":"Cuộn xuống cuối","shape":"Nút","purpose":"Hội thoại","demo":"icon-down","selector":"#threadScrollControl","sources":["index.source.html","mobile-chat-refresh.css"],"variants":"tròn nổi","states":"visible,hidden,unseen","contract":"Giữ nguyên vị trí đọc khi xuất hiện"},{"id":"I08","title":"Sao chép tin","shape":"Nút","purpose":"Hội thoại","demo":"icon-copy","selector":".message-action-group","sources":["app.js","ui-icons.js"],"variants":"biểu tượng trong hàng","states":"idle,feedback","contract":"Chia sẻ primitive với trả lời và chuyển tiếp"},{"id":"I09","title":"Trả lời tin","shape":"Nút","purpose":"Hội thoại","demo":"icon-reply","selector":".message-action-group","sources":["app.js","ui-icons.js"],"variants":"action nhỏ","states":"available,unavailable","contract":"Action contextual chỉ hiện nếu khả dụng"},{"id":"I10","title":"Chuyển tiếp","shape":"Nút","purpose":"Hội thoại","demo":"icon-forward","selector":".message-action-group","sources":["app.js","ui-icons.js"],"variants":"action nhỏ","states":"available,disabled","contract":"Cùng nhóm thao tác với trả lời"},{"id":"I11","title":"Lưu / chia sẻ ảnh","shape":"Nút","purpose":"Đa phương tiện","demo":"icon-share","selector":".message-action-group","sources":["app.js","ui-icons.js"],"variants":"action nhỏ","states":"available,unavailable","contract":"Kiểm tra hỗ trợ chia sẻ tệp"},{"id":"I12","title":"Hiện mật khẩu","shape":"Nút","purpose":"Tài khoản","demo":"icon-eye","selector":".shell-form-password-toggle","sources":["index.source.html"],"variants":"button trong input","states":"visible,hidden","contract":"Một primitive PasswordVisibility"},{"id":"A01","title":"Avatar trên header","shape":"Avatar","purpose":"Danh tính","demo":"avatar-small","selector":".top-mode-contact-avatar","sources":["index.source.html","shell.js","mobile-ui-polish.css"],"variants":"26px,image,initials","states":"loaded,fallback","contract":"Căn giữa chữ fallback không kế thừa padding tab"},{"id":"A02","title":"Avatar danh bạ","shape":"Avatar","purpose":"Danh bạ","demo":"avatar-medium","selector":".shell-contact-avatar","sources":["shell.js","mobile-ui-polish.css"],"variants":"40px,image,initials","states":"loaded,fallback","contract":"Cùng Avatar primitive khác size"},{"id":"A03","title":"Avatar tài khoản","shape":"Avatar","purpose":"Tài khoản","demo":"avatar-medium","selector":".shell-sidebar-account-avatar","sources":["index.source.html","shell.js"],"variants":"40px,image,initials","states":"loaded,fallback","contract":"Thông tin tài khoản từ profile owner"},{"id":"A04","title":"Fallback chữ cái","shape":"Avatar","purpose":"Danh tính","demo":"avatar-fallback","selector":"renderAvatarNode()","sources":["shell.js"],"variants":"initials,placeholder","states":"loading,failed","contract":"Ảnh lỗi hiện chữ thay vì trống"},{"id":"A05","title":"Avatar có chưa đọc","shape":"Avatar","purpose":"Danh bạ","demo":"avatar-unread","selector":".shell-contact-avatar-wrap","sources":["shell.js","mobile-ui-polish.css"],"variants":"unread dot","states":"read,unread","contract":"Chấm badge độc lập nội dung avatar"},{"id":"T01","title":"Chuyển Trò chuyện/Công việc","shape":"Tab & chip","purpose":"Điều hướng","demo":"tabs","selector":".top-mode-switch","sources":["index.source.html","shell.js","mobile-chat-refresh.css"],"variants":"2 mục,pill","states":"chat,work","contract":"Tab dùng aria-selected và vùng 44px"},{"id":"T02","title":"Lọc danh bạ","shape":"Tab & chip","purpose":"Danh bạ","demo":"chips","selector":".contact-directory-filter","sources":["mobile-ui-polish.css","shell.js"],"variants":"Tất cả,KH,CM","states":"active,idle","contract":"Cùng ChipFilter với album ảnh"},{"id":"T03","title":"Bộ lọc ảnh","shape":"Tab & chip","purpose":"Đa phương tiện","demo":"chips","selector":".image-review-chip","sources":["app.js"],"variants":"album,time,media","states":"active,idle","contract":"Chip cuộn ngang với overflow hợp lý"},{"id":"T04","title":"Tình trạng gọi","shape":"Tab & chip","purpose":"Phản hồi","demo":"status-pill","selector":".call-status-chip","sources":["index.source.html","shell.js"],"variants":"kết nối,đang gọi","states":"idle,connected","contract":"Không dùng làm badge trang trí"},{"id":"T05","title":"Nhóm lựa chọn báo giá","shape":"Tab & chip","purpose":"Nghiệp vụ","demo":"tabs","selector":"[data-quote-scope]","sources":["admin-composer-actions.js"],"variants":"nguồn,tất cả","states":"selected,unselected","contract":"Nhóm tùy chọn cùng kiểu tab nhỏ"},{"id":"F01","title":"Ô soạn tin","shape":"Nhập liệu","purpose":"Soạn và gửi","demo":"input-chat","selector":"#editor","sources":["index.source.html","app.js","mobile-chat-refresh.css"],"variants":"1 dòng,nhiều dòng","states":"empty,focused,typing","contract":"Không có viền nội bộ riêng khi focus"},{"id":"F02","title":"Khung soạn tin","shape":"Nhập liệu","purpose":"Soạn và gửi","demo":"composer","selector":"#composerShell","sources":["index.source.html","mobile-chat-refresh.css"],"variants":"+ input mic send","states":"idle,focus,media","contract":"Chỉ viền khung ngoài dùng focus-within"},{"id":"F03","title":"Tìm danh bạ","shape":"Nhập liệu","purpose":"Danh bạ","demo":"search","selector":".contact-directory-search","sources":["mobile-ui-polish.css","shell.js"],"variants":"placeholder,query","states":"idle,focused,result","contract":"Không refetch theo resize"},{"id":"F04","title":"Tài khoản đăng nhập","shape":"Nhập liệu","purpose":"Tài khoản","demo":"input-form","selector":"#guest-auth-account","sources":["index.source.html"],"variants":"text,required","states":"empty,focused,error","contract":"Label phải gắn với input bằng for"},{"id":"F05","title":"Mật khẩu","shape":"Nhập liệu","purpose":"Tài khoản","demo":"password","selector":"#guest-auth-password","sources":["index.source.html"],"variants":"hidden,shown","states":"idle,error","contract":"Nút mắt quản lý trạng thái hiển thị"},{"id":"F06","title":"Tên hiển thị","shape":"Nhập liệu","purpose":"Tài khoản","demo":"input-form","selector":"#guest-auth-name","sources":["index.source.html"],"variants":"text","states":"empty,filled","contract":"Không tự bôi đen tên dài khi focus"},{"id":"F07","title":"Tray ảnh/tệp chờ gửi","shape":"Nhập liệu","purpose":"Soạn và gửi","demo":"attachment-tray","selector":"#attachmentTray","sources":["index.source.html","app.js"],"variants":"1,nhiều đính kèm","states":"empty,ready","contract":"Nội dung đính kèm xếp trên ô nhập"},{"id":"M01","title":"Tin nhắn bên trái","shape":"Tin nhắn","purpose":"Hội thoại","demo":"bubble-left","selector":".assistant-message-unit","sources":["app.js","mobile-chat-refresh.css"],"variants":"text,multiline","states":"normal,long","contract":"Nền trung tính và max-width hợp lý"},{"id":"M02","title":"Tin nhắn bên phải","shape":"Tin nhắn","purpose":"Hội thoại","demo":"bubble-right","selector":".user-message-unit","sources":["app.js","mobile-chat-refresh.css"],"variants":"text,multiline","states":"normal,long","contract":"Nền nhạt cho tin của mình"},{"id":"M03","title":"Nội dung nhiều dòng","shape":"Tin nhắn","purpose":"Hội thoại","demo":"bubble-multiline","selector":".message-body","sources":["app.js","mobile-chat-refresh.css"],"variants":"text,links","states":"normal,wrapped","contract":"Chữ giữ line-height 1.4–1.5"},{"id":"M04","title":"Trả lời trích dẫn","shape":"Tin nhắn","purpose":"Hội thoại","demo":"reply","selector":"createReplyQuote()","sources":["app.js"],"variants":"text,media","states":"normal,collapsed","contract":"Đối tượng gốc giữ context"},{"id":"M05","title":"Hàng action tin","shape":"Tin nhắn","purpose":"Hội thoại","demo":"actions","selector":".message-action-group","sources":["app.js"],"variants":"reply,forward,copy,save,share","states":"idle,opened","contract":"Cùng primitive icon action theo nội dung"},{"id":"D01","title":"Ảnh ngang","shape":"Media","purpose":"Đa phương tiện","demo":"image-landscape","selector":".media-image-tile","sources":["app.js","index.source.html"],"variants":"landscape,contain","states":"ready,loading","contract":"Một ảnh xem nguyên tỷ lệ không cắt"},{"id":"D02","title":"Ảnh dọc","shape":"Media","purpose":"Đa phương tiện","demo":"image-portrait","selector":".media-image-tile","sources":["app.js","index.source.html"],"variants":"portrait,contain","states":"ready,loading","contract":"Chỉ thay tỷ lệ và envelope"},{"id":"D03","title":"Album 3 ảnh","shape":"Media","purpose":"Đa phương tiện","demo":"gallery3","selector":".media-gallery-grid","sources":["app.js","index.source.html"],"variants":"3 ảnh","states":"ready,loading","contract":"Tiles dùng cover để cân khung"},{"id":"D04","title":"Album 4 ảnh trở lên","shape":"Media","purpose":"Đa phương tiện","demo":"gallery4","selector":".media-gallery-grid","sources":["app.js","index.source.html"],"variants":"4+,overflow","states":"ready,loading","contract":"Giữ số lượng và mở viewer"},{"id":"D05","title":"Thẻ ghi âm","shape":"Media","purpose":"Đa phương tiện","demo":"audio","selector":".audio-message-card","sources":["app.js","index.source.html"],"variants":"play,pause,time","states":"idle,playing,loading","contract":"Audio chỉ lấy blob khi cần"},{"id":"D06","title":"Thanh tua ghi âm","shape":"Media","purpose":"Đa phương tiện","demo":"audio-progress","selector":".audio-message-progress","sources":["app.js","index.source.html"],"variants":"seek,duration","states":"idle,active","contract":"Nút điều khiển phụ thuộc audio owner"},{"id":"D07","title":"Thẻ file PDF","shape":"Media","purpose":"Đa phương tiện","demo":"file","selector":".file-message-card","sources":["app.js","index.source.html"],"variants":"pdf,doc,xlsx","states":"idle,open","contract":"Có tên tệp và dung lượng"},{"id":"D08","title":"Xem ảnh toàn màn","shape":"Media","purpose":"Đa phương tiện","demo":"viewer","selector":"openImageViewer()","sources":["app.js"],"variants":"viewer,filmstrip","states":"closed,open","contract":"Overlay phải thuộc viewer owner"},{"id":"D09","title":"Vỏ media theo tin","shape":"Media","purpose":"Hội thoại","demo":"media-shell","selector":".message-media-shell","sources":["app.js","index.source.html"],"variants":"image,gallery,audio,file","states":"ready,pending","contract":"Không gộp chung media và text input"},{"id":"L01","title":"Một liên hệ","shape":"Hàng danh sách","purpose":"Danh bạ","demo":"contact","selector":".shell-contact-row","sources":["shell.js","mobile-ui-polish.css"],"variants":"avatar,name,preview,time","states":"normal,active","contract":"Một hàng là một intent chọn liên hệ"},{"id":"L02","title":"Liên hệ chưa đọc","shape":"Hàng danh sách","purpose":"Danh bạ","demo":"contact-unread","selector":".shell-contact-unread-dot","sources":["shell.js","mobile-ui-polish.css"],"variants":"dot,name","states":"read,unread","contract":"Không đổi scroll khi danh sách cập nhật"},{"id":"L03","title":"Liên hệ đang chọn","shape":"Hàng danh sách","purpose":"Danh bạ","demo":"contact-active","selector":".shell-contact-row[data-active=true]","sources":["shell.js","mobile-ui-polish.css"],"variants":"selected","states":"active,idle","contract":"Giữ vị trí scroll khi đổi hội thoại"},{"id":"L04","title":"Thông tin tài khoản","shape":"Hàng danh sách","purpose":"Tài khoản","demo":"account-row","selector":".shell-sidebar-account-main","sources":["index.source.html","shell.js"],"variants":"avatar,name,handle","states":"guest,admin,user","contract":"Nhóm avatar và nhãn nằm cùng hàng"},{"id":"L05","title":"Quản lý liên hệ","shape":"Hàng danh sách","purpose":"Danh bạ","demo":"contact-manage","selector":".shell-contact-manage","sources":["shell.js"],"variants":"more,menu","states":"idle,open","contract":"Tùy quyền Admin/User"},{"id":"C01","title":"Tổng hợp Công việc","shape":"Thẻ nội dung","purpose":"Nghiệp vụ","demo":"work-card","selector":".work-summary-root","sources":["index.source.html","shell.js"],"variants":"summary,detail","states":"empty,ready","contract":"Chỉ là hình dung vỏ component Work"},{"id":"C02","title":"Gửi báo giá","shape":"Thẻ nội dung","purpose":"Nghiệp vụ","demo":"business-card","selector":"[data-admin-composer-quote]","sources":["admin-composer-actions.js"],"variants":"all,source","states":"closed,open","contract":"Overlay nghiệp vụ từ menu Admin"},{"id":"C03","title":"Kiểm hàng","shape":"Thẻ nội dung","purpose":"Nghiệp vụ","demo":"business-card","selector":"[data-admin-composer-stock-check]","sources":["admin-composer-actions.js"],"variants":"owner,employee","states":"closed,open","contract":"Không sửa giá trị nghiệp vụ qua UI lab"},{"id":"C04","title":"Công nợ","shape":"Thẻ nội dung","purpose":"Nghiệp vụ","demo":"business-card","selector":"[data-admin-composer-action=debt]","sources":["admin-composer-actions.js"],"variants":"customer,amount","states":"closed,open","contract":"Chỉ hiển thị vỏ demo không tính nợ"},{"id":"C05","title":"Thông tin đăng nhập","shape":"Thẻ nội dung","purpose":"Tài khoản","demo":"business-card","selector":"[data-admin-composer-credentials]","sources":["admin-composer-actions.js"],"variants":"view,share","states":"closed,open","contract":"Chỉ hiển thị nhãn không chứa mật khẩu"},{"id":"O01","title":"Menu thêm nội dung","shape":"Menu & lớp phủ","purpose":"Soạn và gửi","demo":"menu-attachment","selector":"#composerActionMenu","sources":["index.source.html","app.js"],"variants":"camera,photos,file","states":"closed,open","contract":"Native popover thuộc composer owner"},{"id":"O02","title":"Menu Admin","shape":"Menu & lớp phủ","purpose":"Nghiệp vụ","demo":"menu-admin","selector":".admin-composer-menu-item","sources":["admin-composer-actions.js"],"variants":"quote,debt,stock,link,key","states":"closed,open","contract":"Nhóm action tương đương cùng row primitive"},{"id":"O03","title":"Menu tài khoản","shape":"Menu & lớp phủ","purpose":"Tài khoản","demo":"menu-account","selector":".shell-sidebar-account-menu","sources":["index.source.html","shell.js"],"variants":"profile,logout","states":"closed,open","contract":"Menu thao tác tài khoản"},{"id":"O04","title":"Sidebar danh bạ","shape":"Menu & lớp phủ","purpose":"Điều hướng","demo":"sidebar","selector":"#shellNavigationLayer","sources":["index.source.html","shell.js"],"variants":"open,close","states":"closed,open","contract":"Lớp backdrop giữ focus"},{"id":"O05","title":"Viewer ảnh","shape":"Menu & lớp phủ","purpose":"Đa phương tiện","demo":"viewer","selector":"openImageViewer()","sources":["app.js"],"variants":"viewer,filmstrip,filters","states":"closed,open","contract":"Media owner có zoom và điều hướng ảnh"},{"id":"O06","title":"Hồ sơ liên hệ","shape":"Menu & lớp phủ","purpose":"Tài khoản","demo":"profile","selector":"openManagedProfile()","sources":["shell.js"],"variants":"view,edit","states":"closed,open","contract":"Không yêu cầu tải data khi chỉnh UI"},{"id":"S01","title":"Đang nhập","shape":"Trạng thái","purpose":"Phản hồi","demo":"typing","selector":"#remoteTypingCenter","sources":["index.source.html","app.js"],"variants":"3-dot","states":"hidden,visible","contract":"Kênh typing khác realtime tin nhắn"},{"id":"S02","title":"Chưa đọc phía dưới","shape":"Trạng thái","purpose":"Hội thoại","demo":"unseen","selector":"#threadScrollUnseenBadge","sources":["index.source.html","app.js"],"variants":"count","states":"0,1,many","contract":"Chỉ badge có dữ liệu cần chú ý"},{"id":"S03","title":"Tin đang gửi","shape":"Trạng thái","purpose":"Hội thoại","demo":"sending","selector":"message.status=sending","sources":["app.js"],"variants":"pending","states":"sending,sent","contract":"Không báo thành công trước ACK"},{"id":"S04","title":"Tin gửi lỗi","shape":"Trạng thái","purpose":"Hội thoại","demo":"error","selector":"message.status=failed","sources":["app.js"],"variants":"retry,failed","states":"failed,ready","contract":"Chỉ retry khi có chủ sở hữu action"},{"id":"S05","title":"Thông báo lỗi","shape":"Trạng thái","purpose":"Phản hồi","demo":"alert","selector":"#runtimeError","sources":["index.source.html"],"variants":"error,info","states":"hidden,visible","contract":"Thông báo có role phù hợp"},{"id":"S06","title":"Đang gọi","shape":"Trạng thái","purpose":"Phản hồi","demo":"call-status","selector":"[data-call-status-chip]","sources":["index.source.html","shell.js"],"variants":"ringing,connected","states":"idle,active","contract":"Trạng thái gọi không trộn với avatar"},{"id":"S07","title":"Tải tin cũ","shape":"Trạng thái","purpose":"Hội thoại","demo":"loading","selector":"#historyStatus","sources":["index.source.html","app.js"],"variants":"pagination","states":"idle,loading","contract":"Chỉ loading vùng tin cũ"},{"id":"P01","title":"Header Chat","shape":"Bố cục","purpose":"Bố cục","demo":"shell-header","selector":"#regionTop","sources":["index.source.html","mobile-chat-refresh.css"],"variants":"menu,tabs,call","states":"mobile,desktop","contract":"P1 shell quản lý độ rộng header"},{"id":"P02","title":"Vùng chat","shape":"Bố cục","purpose":"Bố cục","demo":"shell-thread","selector":"#scrollRoot","sources":["index.source.html","app.js"],"variants":"header,thread,composer","states":"mobile,desktop","contract":"P2 content giữ scroll và context"},{"id":"P03","title":"Dock soạn tin","shape":"Bố cục","purpose":"Soạn và gửi","demo":"composer","selector":"#thread-bottom-container","sources":["index.source.html","mobile-chat-refresh.css"],"variants":"sticky,keyboard","states":"normal,keyboard","contract":"Composer chỉ có một placement owner"},{"id":"P04","title":"Vùng danh bạ","shape":"Bố cục","purpose":"Danh bạ","demo":"sidebar","selector":"#shellNavigationLayer","sources":["index.source.html","shell.js"],"variants":"overlay,desktop","states":"closed,open","contract":"P1 sidebar là owner"},{"id":"P05","title":"Vùng Công việc","shape":"Bố cục","purpose":"Nghiệp vụ","demo":"work-card","selector":"#workThreadView","sources":["index.source.html","shell.js"],"variants":"summary,detail","states":"chat,work","contract":"Work thay khu nội dung không đổi auth"}]</script><script>
+(function(){
+'use strict';
+const data=JSON.parse(document.getElementById('ui-inventory').textContent);
+const sourceBase='https://github.com/1sl2tp/chat/blob/main/';
+const byId=new Map(data.map(item=>[item.id,item]));
+const shapeNames=['Nút','Avatar','Tab & chip','Nhập liệu','Tin nhắn','Media','Hàng danh sách','Thẻ nội dung','Menu & lớp phủ','Trạng thái','Bố cục'];
+const purposeNames=['Điều hướng','Danh tính','Soạn và gửi','Hội thoại','Đa phương tiện','Danh bạ','Nghiệp vụ','Tài khoản','Phản hồi','Bố cục'];
+let mode='shape',category='all',query='',width='phone',current=data[0].id,compare=[];
+const $=id=>document.getElementById(id);
+const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const ICONS={
+ menu:'<path d="M4 6h16M4 12h12M4 18h7"/>',
+ close:'<path d="M5 5l14 14M19 5 5 19"/>',
+ phone:'<path d="M7.2 4.5 10 8l-1.8 2.2c1.2 2.5 3.1 4.4 5.6 5.6L16 14l3.5 2.8-.9 2.7c-.3.8-1.1 1.3-2 1.2C9.4 19.8 4.2 14.6 3.3 7.4c-.1-.9.4-1.7 1.2-2l2.7-.9Z"/>',
+ plus:'<path d="M12 4v16M4 12h16"/>',
+ mic:'<rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6"/>',
+ send:'<path d="M12 20V4m0 0L6 10m6-6 6 6"/>',
+ down:'<path d="M12 4v16m0 0-6-6m6 6 6-6"/>',
+ copy:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>',
+ reply:'<path d="M9 8 4 12l5 4M4 12h9c4 0 7 2 7 6"/>',
+ forward:'<path d="m14 8 5 4-5 4M19 12h-9c-4 0-6 2-6 6"/>',
+ share:'<path d="M12 16V3m0 0-5 5m5-5 5 5M4 14v5h16v-5"/>',
+ eye:'<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>',
+ search:'<circle cx="11" cy="11" r="6.5"/><path d="m16 16 5 5"/>',
+ paper:'<path d="M6 3h8l4 4v14H6zM14 3v5h4M9 13h6M9 17h6"/>',
+ quote:'<path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5"/>',
+ debt:'<rect x="4" y="5" width="16" height="14" rx="2.5"/><path d="M7.5 9h9M7.5 13h4.5M15.5 12v4M13.5 14h4"/>',
+ stock:'<rect x="5" y="4" width="14" height="16" rx="2.5"/><path d="M9 4.5h6v3H9zM8.5 11.5h7M8.5 15.5h4"/>',
+ camera:'<path d="M8 7 9 5h6l1 2h3a2 2 0 0 1 2 2v9H3V9a2 2 0 0 1 2-2Z"/><circle cx="12" cy="12" r="3"/>',
+ photo:'<rect x="3.5" y="4" width="17" height="16" rx="2"/><circle cx="9" cy="9" r="1.8"/><path d="m5.5 18 5-5 3.5 3 2.5-2.5 2 2"/>'
+};
+const svg=name=>'<svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+(ICONS[name]||ICONS.plus)+'</svg>';
+const button=(name,label,extra='')=>'<button class="icon-btn '+extra+'" type="button" aria-label="'+esc(label)+'" data-preview-action="'+esc(label)+'">'+svg(name)+'</button>';
+function markup(item){
+ const kind=item.demo;
+ if(kind.startsWith('icon-')){
+   const n=kind.slice(5);
+   return '<div class="demo-row">'+button(n,item.title)+button(n,item.title+' đang chọn','is-accent')+button(n,item.title+' vô hiệu','is-disabled')+'</div>';
+ }
+ if(kind.startsWith('avatar-')){
+   return '<div class="demo-row"><span class="avatar-wrap"><span class="avatar sm">T</span></span><span class="avatar-wrap"><span class="avatar md">A</span><i class="dot" aria-hidden="true"></i></span><span class="avatar-wrap"><span class="avatar lg">KH</span></span></div><span class="meta">Chữ thay ảnh · 26 / 40 / 48px</span>';
+ }
+ if(kind==='tabs'){
+   return '<div class="demo-tabgroup" role="tablist"><button type="button" role="tab" aria-selected="true" data-preview-action="Chọn Trò chuyện"><span class="avatar sm" aria-hidden="true">T</span><span class="truncate">Trò chuyện</span></button><button type="button" role="tab" aria-selected="false" data-preview-action="Chọn Công việc">Công việc</button></div>';
+ }
+ if(kind==='chips'||kind==='status-pill'){
+   return '<div class="demo-row"><button type="button" class="pill active" data-preview-action="Lọc Tất cả">Tất cả</button><button type="button" class="pill" data-preview-action="Lọc KH">KH</button><button type="button" class="pill" data-preview-action="Lọc CM">CM</button></div>';
+ }
+ if(kind==='composer'){
+   return '<div class="demo-composer">'+button('plus','Thêm nội dung')+'<input aria-label="Nhắn tin mẫu" placeholder="Nhắn tin...">'+button('mic','Ghi âm')+button('send','Gửi','is-accent')+'</div>';
+ }
+ if(kind==='input-chat'){
+   return '<div class="demo-input"><input aria-label="Nội dung tin nhắn" placeholder="Nhắn tin..."></div><span class="meta">Viền focus thuộc khung ngoài</span>';
+ }
+ if(kind==='search'){
+   return '<div class="demo-search">'+svg('search')+'<input aria-label="Tìm liên hệ mẫu" placeholder="Tìm kiếm..."></div>';
+ }
+ if(kind==='password'){
+   return '<div class="demo-input"><input type="password" aria-label="Mật khẩu mẫu" value="123456789">'+button('eye','Hiện mật khẩu')+'</div>';
+ }
+ if(kind==='input-form'){
+   return '<div class="demo-input"><input aria-label="Trường thông tin mẫu" placeholder="Tên đăng nhập"></div>';
+ }
+ if(kind==='attachment-tray'){
+   return '<div class="demo-row"><span class="pill">Ảnh gửi.jpg ×</span><span class="pill">Báo giá.pdf ×</span></div>';
+ }
+ if(kind.startsWith('bubble')||kind==='reply'||kind==='actions'){
+   const both='<div class="bubble other">Chị kiểm tra giúp em đơn hàng hôm nay.</div><div class="bubble mine">Vâng, em đã nhận đơn. ✓✓</div>';
+   if(kind==='reply')return '<div class="bubble-area"><div class="reply-preview">↳ Trả lời: “Gửi lại báo giá”</div>'+both+'</div>';
+   if(kind==='actions')return '<div class="bubble-area">'+both+'<div class="demo-row">'+button('reply','Trả lời')+button('forward','Chuyển tiếp')+button('copy','Sao chép')+'</div></div>';
+   if(kind==='bubble-multiline')return '<div class="bubble-area"><div class="bubble other">Tên hàng: Sữa hộp<br>Số lượng: 2 thùng<br>Giao trong hôm nay.</div></div>';
+   return '<div class="bubble-area">'+both+'</div>';
+ }
+ if(kind==='image-landscape'||kind==='image-portrait'||kind==='media-shell'){
+   return '<div class="fake-image '+(kind==='image-portrait'?'portrait':'landscape')+'" role="img" aria-label="Minh họa khung ảnh"></div>';
+ }
+ if(kind==='gallery3'||kind==='gallery4'){
+   let imgs='';
+   for(let i=0;i<(kind==='gallery3'?3:4);i++)imgs+='<div class="fake-image"></div>';
+   return '<div class="gallery '+(kind==='gallery3'?'trip':'')+'">'+imgs+'</div>';
+ }
+ if(kind==='audio'||kind==='audio-progress'){
+   const wave=[6,13,21,9,17,6,24,16,10,19,8,17,11].map(x=>'<i style="--wave-height:'+x+'px"></i>').join('');
+   return '<div class="audio-demo">'+button('send','Mẫu phát ghi âm','is-accent')+'<div class="wave">'+wave+'</div><span class="time">0:12</span></div>';
+ }
+ if(kind==='file'){
+   return '<div class="file-demo"><span class="file-type">PDF</span><span class="file-name">Báo-gia.pdf<small>1,2 MB · File mẫu</small></span></div>';
+ }
+ if(kind==='viewer'){
+   return '<div class="preview-overlay"><h4>Xem ảnh</h4><div class="fake-image"></div><div class="preview-actions"><button type="button" data-preview-action="Ảnh trước">‹ Trước</button><button type="button" data-preview-action="Ảnh sau">Sau ›</button></div></div>';
+ }
+ if(kind==='contact'||kind==='contact-active'||kind==='contact-unread'||kind==='account-row'||kind==='contact-manage'){
+   const sel=kind==='contact-active';
+   return '<div class="contact '+(sel?'is-selected':'')+'"><span class="avatar-wrap"><span class="avatar md">Q</span>'+((kind==='contact-unread')?'<i class="dot" aria-hidden="true"></i>':'')+'</span><span class="contact-name"><strong>Cửa hàng mẫu</strong><span>Đã nhận hàng · Nội dung gần nhất</span></span><time>09:20</time>'+(kind==='contact-manage'?button('menu','Quản lý liên hệ'):'')+'</div>';
+ }
+ if(kind==='business-card'||kind==='work-card'){
+   return '<div class="demo-card"><h4>'+esc(item.title)+'</h4><div class="card-stat"><span>Trạng thái</span><strong>Đang xem</strong></div><div class="card-stat"><span>Nguồn dữ liệu</span><strong>Mẫu tĩnh</strong></div></div>';
+ }
+ if(kind.startsWith('menu-')){
+   return '<div class="demo-menu"><button data-preview-action="Máy ảnh" type="button">'+svg('camera')+'Máy ảnh</button><button data-preview-action="Thư viện ảnh" type="button">'+svg('photo')+'Thư viện ảnh</button><button data-preview-action="File" type="button">'+svg('paper')+'Tệp đính kèm</button></div>';
+ }
+ if(kind==='sidebar'){
+   return '<div class="demo-menu"><strong style="font-size:13px;margin:6px">Danh bạ</strong><button data-preview-action="Liên hệ một" type="button"><span class="avatar sm" aria-hidden="true">A</span>Liên hệ A</button><button data-preview-action="Liên hệ hai" type="button"><span class="avatar sm" aria-hidden="true">B</span>Liên hệ B</button></div>';
+ }
+ if(kind==='profile'){
+   return '<div class="preview-overlay"><h4>Thông tin liên hệ</h4><div class="contact"><span class="avatar md">Q</span><span class="contact-name"><strong>Liên hệ mẫu</strong><span>Ảnh · Tên · Vai trò</span></span></div><div class="preview-actions"><button data-preview-action="Đóng hồ sơ" type="button">Đóng</button><button data-preview-action="Sửa hồ sơ" type="button">Sửa</button></div></div>';
+ }
+ if(kind==='typing'){
+   return '<div class="demo-status"><span class="dots" aria-label="Đang nhập"><i></i><i></i><i></i></span><span>Bên kia đang nhập...</span></div>';
+ }
+ if(kind==='unseen'){
+   return '<div class="demo-row">'+button('down','Cuộn xuống')+'<span class="pill active">3 tin chưa đọc</span></div>';
+ }
+ if(kind==='sending')return '<div class="demo-status"><span class="spinner" aria-hidden="true"></span>Tin nhắn đang gửi...</div>';
+ if(kind==='error'||kind==='alert')return '<div class="demo-status" style="color:#a2352f;border-color:#f0d2cd">! Gửi không thành công · thử lại</div>';
+ if(kind==='call-status')return '<div class="demo-status">'+svg('phone')+'Đang gọi · 00:32</div>';
+ if(kind==='loading')return '<div class="demo-status"><span class="spinner" aria-hidden="true"></span>Đang tải tin cũ...</div>';
+ return '<div class="mini-shell"><header>'+svg('menu')+' Trò chuyện / Công việc '+svg('phone')+'</header><main><div></div><div></div></main><footer><i></i><i></i><i></i></footer></div>';
+}
+function listFiltered(){
+ const q=query.toLocaleLowerCase('vi');
+ return data.filter(x=>(category==='all'||x[mode]===category)&&(!q||[x.id,x.title,x.shape,x.purpose,x.selector,x.sources.join(' '),x.contract].join(' ').toLocaleLowerCase('vi').includes(q)));
+}
+function navRender(){
+ const counts={};for(const x of data){const n=x[mode];counts[n]=(counts[n]||0)+1;}
+ const keys=mode==='shape'?shapeNames:purposeNames;
+ const content=[['all','Tất cả',data.length]].concat(keys.map(k=>[k,k,counts[k]||0])).map(x=>'<button type="button" data-category="'+esc(x[0])+'" aria-current="'+String(category===x[0])+'"><span>'+esc(x[1])+'</span><span class="category-count">'+x[2]+'</span></button>').join('');
+ $('categories').innerHTML=content;
+ $('filterTitle').textContent=mode==='shape'?'Họ hình dạng':'Nhóm chức năng';
+}
+function cardRender(){
+ const shown=listFiltered();
+ $('count').textContent=shown.length+' / '+data.length+' thành phần · preview tĩnh';
+ const cards=$('cards');
+ if(!shown.length){cards.innerHTML='<div class="empty">Không tìm thấy component trong thư viện. Hãy thay từ khóa hoặc nhóm lọc.</div>';return;}
+ cards.innerHTML=shown.map(item=>'<article class="card" data-id="'+item.id+'" data-selected="'+String(item.id===current)+'"><div class="card-title"><h3>'+esc(item.title)+'</h3><span class="id">'+esc(item.id)+'</span></div><div class="meta">'+esc(item.shape)+' · '+esc(item.purpose)+'</div><div class="component-preview" data-width="'+width+'"><div class="demo-frame">'+markup(item)+'</div></div><div class="meta" title="'+esc(item.selector)+'">'+esc(item.selector)+'</div><div class="card-footer"><button type="button" data-detail="'+item.id+'">Xem nguồn</button><button type="button" data-compare="'+item.id+'" class="'+(compare.includes(item.id)?'compare-on':'')+'">'+(compare.includes(item.id)?'Đang so':'So sánh')+'</button></div></article>').join('');
+}
+function inspectorRender(){
+ const item=byId.get(current)||data[0];
+ $('detailName').textContent=item.title;
+ $('detailSummary').textContent=item.contract;
+ $('detailID').textContent=item.id;
+ $('detailShape').textContent=item.shape;
+ $('detailPurpose').textContent=item.purpose;
+ $('detailSelector').textContent=item.selector;
+ $('detailVariants').textContent=item.variants;
+ $('detailStates').textContent=item.states;
+ $('detailSources').innerHTML=item.sources.map(source=>'<a target="_blank" rel="noopener noreferrer" href="'+sourceBase+encodeURIComponent(source)+'">'+esc(source)+' ↗</a>').join('');
+ $('compareCount').textContent=compare.length+'/2';
+ const selected=compare.map(id=>byId.get(id)).filter(Boolean);
+ $('compareItems').innerHTML=selected.length?selected.map(x=>'<div class="compare-row"><strong>'+esc(x.title)+'</strong><br><span>'+esc(x.shape)+' · '+esc(x.purpose)+'</span></div>').join(''):'<p class="muted">Chọn “So sánh” ở hai component có hình dạng hoặc chức năng tương tự.</p>';
+ if(selected.length===2){
+ const sameShape=selected[0].shape===selected[1].shape;
+ const samePurpose=selected[0].purpose===selected[1].purpose;
+ $('compareHint').textContent=(sameShape?'Cùng hình dạng. ':'Khác hình dạng. ')+(samePurpose?'Cùng chức năng. ':'Khác chức năng. ')+'Dùng chung primitive nếu contract tương đương.';
+ }else $('compareHint').textContent='';
+}
+function render(){navRender();cardRender();inspectorRender();}
+function flash(message){
+ const toast=$('toast');
+ toast.textContent=message;toast.hidden=false;
+ clearTimeout(flash.timer);
+ flash.timer=setTimeout(()=>{toast.hidden=true;},1900);
+}
+document.querySelectorAll('[data-mode]').forEach(button=>button.addEventListener('click',()=>{
+ mode=button.dataset.mode;category='all';
+ for(const x of document.querySelectorAll('[data-mode]'))x.setAttribute('aria-pressed',String(x===button));
+ render();
+}));
+$('search').addEventListener('input',e=>{query=e.target.value.trim();cardRender();});
+$('categories').addEventListener('click',e=>{
+ const target=e.target.closest('button[data-category]');
+ if(!target)return;
+ category=target.dataset.category;render();
+});
+document.querySelectorAll('[data-width]').forEach(button=>button.addEventListener('click',()=>{
+ width=button.dataset.width;
+ for(const x of document.querySelectorAll('[data-width]'))x.setAttribute('aria-pressed',String(x===button));
+ cardRender();
+}));
+$('cards').addEventListener('click',event=>{
+ const action=event.target.closest('[data-detail],[data-compare],[data-preview-action]');
+ if(!action)return;
+ if(action.dataset.previewAction){
+   flash('Mẫu UI: '+action.dataset.previewAction+' · không gọi Chat thật.');
+   const parent=action.closest('.demo-tabgroup');
+   if(parent&&action.hasAttribute('role')){
+     for(const btn of parent.querySelectorAll('[role="tab"]'))btn.setAttribute('aria-selected',String(btn===action));
+   }
+   return;
+ }
+ if(action.dataset.detail){current=action.dataset.detail;render();return;}
+ const id=action.dataset.compare;
+ if(!id)return;
+ if(compare.includes(id))compare=compare.filter(x=>x!==id);
+ else compare=compare.length<2?compare.concat(id):[compare[1],id];
+ current=id;render();
+});
+$('clearCompare').addEventListener('click',()=>{compare=[];render();});
+$('copyRef').addEventListener('click',async()=>{
+ const item=byId.get(current);if(!item)return;
+ const value=item.id+' — '+item.title+'\\n'+item.selector+'\\n'+item.sources.join(', ');
+ try{await navigator.clipboard.writeText(value);flash('Đã chép tham chiếu.');}
+ catch{flash('Trình duyệt không cho phép sao chép tự động.');}
+});
+$('detailName').textContent=data[0].title;
+render();
+})();
+</script></body></html>
