@@ -459,7 +459,7 @@ function decorateTapDemoIcons(category){
   };
   const rows=rootTap.querySelectorAll('.func-row');
   for(const row of rows){
-    const label=row.textContent.trim();
+    const label=String(row.lastChild?.textContent||'').trim();
     const body=defs[label];
     if(!body)continue;
     const icon=row.querySelector('.func-icon');
