@@ -257,6 +257,16 @@ nav button[aria-current="true"]{background:#e9ebef;color:#111;font-weight:650}
 .media-lightbox img{max-width:min(96vw,1100px);max-height:calc(100vh - 94px);width:auto;height:auto;object-fit:contain;border-radius:9px}
 .media-lightbox button{position:absolute;top:16px;right:18px;background:#fff2;border:1px solid #ffffff77;color:#fff;border-radius:100%;height:38px;width:38px;font-size:22px}
 .media-lightbox .lightbox-note{position:absolute;bottom:5px;color:#fff9;font-size:11px}
+
+/* REAL CHAT MEDIA — LOCAL PRIVATE VIEWER: local object URLs; never publish assets. */
+.media-local-picker{margin:28px 4px 0;padding:12px 7px 10px;border-top:1px solid #e8e8eb}
+.media-local-picker strong{font-size:12px;display:block;margin-bottom:6px}
+.media-local-picker button{font-size:11px;line-height:1.35;padding:9px 7px;margin:4px 0;border:1px solid #e3e5ea;background:#f7f8fa;text-align:center;white-space:normal}
+.media-local-picker button:hover{background:#eaf1fb}
+.media-local-picker button[hidden]{display:none}
+.media-local-picker small{font-size:10px;line-height:1.5;display:block;color:#6b7280;overflow-wrap:anywhere}
+.media-audio audio{width:100%;height:36px;display:block}
+.media-local-picker [aria-busy="true"]{opacity:.65;cursor:progress}
 </style></head>
 <body>
 <main class="app">
@@ -266,7 +276,14 @@ nav button[aria-current="true"]{background:#e9ebef;color:#111;font-weight:650}
 <button type="button" data-category="contacts" aria-current="false">Danh bạ</button>
 <button type="button" data-category="composer" aria-current="false">Vùng gõ chữ</button>
 <button type="button" data-category="functions" aria-current="false">Chức năng</button>
-</nav>
+<div class="media-local-picker">
+<strong>Ảnh / ghi âm thật</strong>
+<button type="button" id="load-local-chat-media">Lấy từ Chat đã đăng nhập</button>
+<button type="button" id="select-own-chat-files">Chọn tệp từ máy</button>
+<button type="button" id="reset-private-media" hidden>Trở lại ảnh minh họa</button>
+<input type="file" id="local-chat-file-input" accept="image/*,audio/*" multiple hidden>
+<small id="chat-media-local-status" role="status" aria-live="polite">Media chỉ mở trên trình duyệt này, không lưu công khai.</small>
+</div></nav>
 <section class="compare-col"><header class="compare-head">ChatGPT<small>Tham chiếu từ bản lưu trên Drive</small></header><div id="gpt" class="stage"></div>
 <p class="note">Mẫu tham chiếu từ thư viện ChatGPT đã lưu; không phải giao diện live hiện tại.</p></section>
 <section class="compare-col"><header class="compare-head">Chat Tạp Hóa<small>Thành phần từ source 1sl2tp/chat và ảnh bạn gửi</small></header><div id="tap" class="stage"></div>
@@ -364,11 +381,204 @@ document.addEventListener('click',event=>{
 });
 document.addEventListener('keydown',event=>{if(event.key==='Escape')closeMediaPreview();});
 
+
+/* REAL CHAT MEDIA — LOCAL PRIVATE VIEWER
+ * Explicit click only. Authenticated Supabase session required for Chat cache access.
+ * Never write a real asset, transcript, storage key, or object URL to GitHub or backend.
+ * One cache read; only chosen blobs downloaded. No polling/background work. */
+const PrivateMediaDemo=(()=>{
+  const cfg={"url":"https://vtqhbhrkdxirqeqkgylo.supabase.co","key":"sb_publishable_3ms4nAPXQwBN18Zo2yNoIg_d4WrHu04","storageKey":"taphoa.v21.auth"};
+  let current={imageWide:null,imageTall:null,audio:null};
+  let localUrls=[];
+  function status(message){const p=document.getElementById('chat-media-local-status');if(p)p.textContent=message;}
+  function setBusy(value){
+    const btn=document.getElementById('load-local-chat-media');
+    if(btn){btn.disabled=Boolean(value);btn.setAttribute('aria-busy',String(Boolean(value)));}
+  }
+  function cleanup(){
+    for(const url of localUrls)URL.revokeObjectURL(url);
+    localUrls=[];
+    current={imageWide:null,imageTall:null,audio:null};
+  }
+  function blobUrl(blob){
+    if(!(blob instanceof Blob))return null;
+    const url=URL.createObjectURL(blob);
+    localUrls.push(url);
+    return url;
+  }
+  function useBlobs({imageWide=null,imageTall=null,audio=null}={}){
+    cleanup();
+    if(imageWide instanceof Blob)current.imageWide=blobUrl(imageWide);
+    if(imageTall instanceof Blob)current.imageTall=blobUrl(imageTall);
+    if(audio instanceof Blob)current.audio=blobUrl(audio);
+    if(!current.imageWide&&!current.imageTall&&!current.audio){
+      status('Không có ảnh/ghi âm sử dụng được.');
+      return;
+    }
+    const btn=document.getElementById('reset-private-media');
+    if(btn)btn.hidden=false;
+    if(document.querySelector('[data-category="chat"][aria-current="true"]'))render('chat');
+    const n=[current.imageWide,current.imageTall,current.audio].filter(Boolean).length;
+    status('Đang xem '+n+' media thật tại máy này; không đăng tải hoặc gửi cho người khác.');
+  }
+  function apply(){
+    if(!current.imageWide&&!current.imageTall&&!current.audio)return;
+    for(const root of [rootGpt,rootTap]){
+      const wide=root.querySelector('.media-message.out .media-photo.landscape img');
+      const tall=root.querySelector('.media-message.in .media-photo.portrait img');
+      if(current.imageWide&&wide){
+        wide.src=current.imageWide;
+        wide.alt='Ảnh ngang từ hội thoại trên thiết bị của bạn';
+        wide.closest('.media-photo').style.background='#f3f3f3';
+        wide.style.objectFit='contain';
+        wide.closest('.media-message').querySelector('.media-label').textContent='Ảnh ngang thật · riêng tư tại máy này';
+      }
+      if(current.imageTall&&tall){
+        tall.src=current.imageTall;
+        tall.alt='Ảnh dọc từ hội thoại trên thiết bị của bạn';
+        tall.closest('.media-photo').style.background='#f3f3f3';
+        tall.style.objectFit='contain';
+        tall.closest('.media-message').querySelector('.media-label').textContent='Ảnh dọc thật · riêng tư tại máy này';
+      }
+      if(current.audio){
+        const audioWrap=root.querySelector('.media-message.out .media-audio');
+        if(audioWrap){
+          audioWrap.replaceChildren();
+          const player=document.createElement('audio');
+          player.controls=true;
+          player.preload='none';
+          player.src=current.audio;
+          player.setAttribute('aria-label','Ghi âm thật từ hội thoại, chỉ trên thiết bị này');
+          audioWrap.append(player);
+          audioWrap.closest('.media-message').querySelector('.media-label').textContent='Ghi âm thật · có thể bấm nghe';
+        }
+      }
+    }
+  }
+  function importFiles(files){
+    const images=files.filter(f=>f.type.startsWith('image/')&&f.size<=8*1024*1024);
+    const audio=files.find(f=>f.type.startsWith('audio/')&&f.size<=12*1024*1024)||null;
+    if(!images.length&&!audio){status('Chọn tối đa 2 ảnh và 1 ghi âm (ảnh ≤8 MB, audio ≤12 MB).');return;}
+    // User-selected media is private. Two independently sized slots avoid zoom/crop.
+    const assign={imageWide:images[0]||null,imageTall:images[1]||null,audio};
+    useBlobs(assign);
+  }
+  function loadScript(url,ready){
+    if(ready())return Promise.resolve();
+    return new Promise((resolve,reject)=>{
+      const script=document.createElement('script');
+      script.src=url;
+      script.onload=()=>ready()?resolve():reject(new Error('script_missing'));
+      script.onerror=()=>reject(new Error('script_load_failed'));
+      document.head.append(script);
+    });
+  }
+  function bestMedia(rows,kind,sortFn){
+    return rows.filter(x=>x?.remote_meta?.kind===kind).sort(sortFn);
+  }
+  async function loadFromChat(){
+    if(document.getElementById('load-local-chat-media')?.disabled)return;
+    setBusy(true);
+    status('Đang xác minh đăng nhập và đọc danh sách media trên thiết bị…');
+    try{
+      await loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js',()=>!!window.supabase?.createClient);
+      await loadScript('../v21-cache-store.js',()=>!!window.V21CacheStore?.listMediaRecords);
+      const client=window.supabase.createClient(cfg.url,cfg.key,{
+        auth:{persistSession:true,autoRefreshToken:false,detectSessionInUrl:false,storageKey:cfg.storageKey}
+      });
+      const verified=await client.auth.getUser();
+      if(verified.error||!verified.data?.user){
+        status('Chưa có phiên Chat hợp lệ. Hãy đăng nhập Chat ở cùng trình duyệt rồi thử lại, hoặc chọn tệp từ máy.');
+        return;
+      }
+      const deviceKey=localStorage.getItem('taphoa.v21.deviceKey')||'';
+      if(!/^[a-f0-9-]{36}$/i.test(deviceKey)){
+        status('Chưa có thiết bị Chat đã đăng nhập tại trình duyệt này. Mở Chat trước hoặc chọn tệp từ máy.');
+        return;
+      }
+      // Uses the existing authenticated application's identity, never a service-role key.
+      const boot=await client.rpc('v21_auth_bootstrap',{
+        p_device_key:deviceKey,p_label:'UI media compare',p_platform:'web'
+      });
+      const accountId=String(boot.data?.account?.id||'');
+      if(boot.error||!accountId||boot.data?.device_approval_required){
+        status('Không đọc được phiên Chat đã xác thực. Có thể chọn tệp từ máy để so UI.');
+        return;
+      }
+      const [records,contacts]=await Promise.all([
+        window.V21CacheStore.listMediaRecords(accountId),
+        window.V21CacheStore.listContacts(accountId)
+      ]);
+      // Prefer the user's test/demo conversation, not other customers' content.
+      const demoConvs=new Set((contacts||[])
+        .filter(c=>/^(test\d*|demo\d*|thử nghiệm)$/i.test(String(c?.username||c?.display_name||c?.name||'').trim()))
+        .map(c=>String(c?.conversation_id||'')).filter(Boolean));
+      const usable=(records||[]).filter(r=>{
+        const m=r?.remote_meta||{};
+        return !m.deleted_at&&['image','audio'].includes(String(m.kind||''))
+          &&(r.blob instanceof Blob||m.storage_key);
+      });
+      // Never select from a real customer's conversation as an implicit fallback.
+      const candidates=usable.filter(r=>demoConvs.has(String(r.remote_meta.conversation_id||'')));
+      if(!candidates.length){
+        status('Không có media của hội thoại test/demo trong bộ nhớ Chat trên máy này. Hãy mở hội thoại test rồi quay lại, hoặc chọn tệp từ máy.');
+        return;
+      }
+      candidates.sort((a,b)=>String(b.remote_meta.created_at||'').localeCompare(String(a.remote_meta.created_at||'')));
+      const images=candidates.filter(x=>x.remote_meta.kind==='image');
+      const audio=candidates.filter(x=>x.remote_meta.kind==='audio');
+      const wide=images.find(x=>(Number(x.remote_meta.width_px)||0)>=(Number(x.remote_meta.height_px)||Infinity))||images[0]||null;
+      const tall=images.find(x=>x!==wide&&(Number(x.remote_meta.height_px)||0)>(Number(x.remote_meta.width_px)||Infinity))||images.find(x=>x!==wide)||null;
+      const chosen=[wide,tall,audio[0]||null];
+      async function getBlob(record){
+        if(!record)return null;
+        if(record.blob instanceof Blob)return record.blob;
+        const meta=record.remote_meta||{};
+        const size=Number(meta.size_bytes)||0;
+        if(!meta.storage_key||size>12*1024*1024)return null;
+        const res=await client.storage.from('v21-media').download(meta.storage_key);
+        if(res.error||!(res.data instanceof Blob))return null;
+        return res.data;
+      }
+      status('Đã tìm thấy media trong hội thoại test; đang lấy tối đa 2 ảnh và 1 ghi âm theo quyền tài khoản…');
+      const blobs=[];
+      for(const record of chosen)blobs.push(await getBlob(record));
+      if(!blobs.some(Boolean)){
+        status('Không lấy được media test theo quyền hiện tại. Bạn có thể chọn tệp từ máy để xem đúng định dạng.');
+        return;
+      }
+      useBlobs({imageWide:blobs[0],imageTall:blobs[1],audio:blobs[2]});
+    }catch(err){
+      status('Không tải được media Chat ('+String(err?.message||'không xác định').slice(0,70)+'). Có thể chọn tệp từ máy.');
+    }finally{setBusy(false);}
+  }
+  function clear(){
+    cleanup();
+    const btn=document.getElementById('reset-private-media');
+    if(btn)btn.hidden=true;
+    if(document.querySelector('[data-category="chat"][aria-current="true"]'))render('chat');
+    status('Đã trở về ảnh minh họa. Media thật không được lưu trên trang.');
+  }
+  function init(){
+    document.getElementById('load-local-chat-media')?.addEventListener('click',loadFromChat);
+    document.getElementById('select-own-chat-files')?.addEventListener('click',()=>{
+      document.getElementById('local-chat-file-input')?.click();
+    });
+    document.getElementById('local-chat-file-input')?.addEventListener('change',e=>{
+      importFiles(Array.from(e.target.files||[]));
+      e.target.value='';
+    });
+    document.getElementById('reset-private-media')?.addEventListener('click',clear);
+    window.addEventListener('pagehide',cleanup,{once:true});
+  }
+  return{init,apply};
+})();
+
 function render(category){
   if(!Object.prototype.hasOwnProperty.call(screens,category))return;
   rootGpt.innerHTML=phoneViewport(screens[category].gpt);
   rootTap.innerHTML=phoneViewport(screens[category].tap);
-  if(category==='chat')mountMediaSamples();
+  if(category==='chat'){mountMediaSamples();PrivateMediaDemo.apply();}
   for(const item of nav)item.setAttribute('aria-current',String(item.dataset.category===category));
   fitIphoneViewports();
 }
@@ -379,4 +589,5 @@ if(typeof ResizeObserver!=='undefined'){
   resizeObserver.observe(rootTap);
 }
 window.addEventListener('resize',fitIphoneViewports);
+PrivateMediaDemo.init();
 render('chat');</script></body></html>
