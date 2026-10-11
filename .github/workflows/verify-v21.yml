@@ -196,5 +196,7 @@ jobs:
         run: |
           node --check admin-push-controller.js
           node --check shell.js
+      - name: Composer focus pointer regression
+        run: node tests/test_v21_composer_pointer_recovery.js
       - name: Verify canonical source
         run: python tools/verify_current.py
