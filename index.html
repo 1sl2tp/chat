@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="fb28642b3b119f2438882098c81b05d767b8310de95ffd757c26cc0b2c067bd5">
+<meta name="app-build-id" content="8ecf2bfb0fe34d589a0405086f210ed4e617ab4ddc48f368794c8d657f33a76b">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -13525,11 +13525,9 @@ function composerEditorCanFocus(){
 }
 function focusEditorFromComposerPadding(event){
   const target=event?.target;
-  if(!(target instanceof Element)||!composerEditorCanFocus())return false;
-  if(target!==composerShell&&target!==editorWrap&&
-     !(editorWrap.contains(target)&&target!==editor&&
-       !target.closest('button,a,input,textarea,select,[role="button"],[contenteditable="true"]'))
-  )return false;
+  if(target!==editorWrap&&target!==composerShell)return false;
+  if(!editor?.isConnected||editor.disabled||editor.readOnly)return false;
+  if(composerShell.dataset.audioState&&composerShell.dataset.audioState!=='IDLE')return false;
   editor.focus({preventScroll:true});
   return true;
 }
