@@ -902,6 +902,9 @@ function renderAvatarImage(node,url,display,fallback='TK'){
   img.className='shell-avatar-image';
   img.alt='';
   img.decoding='async';
+  // Off-screen contact avatars should not compete with first-paint data.
+  // Keep initials visible until each real image becomes visible and loads.
+  img.loading='lazy';
   img.draggable=false;
   img.style.opacity='0';
   img.src=url;
