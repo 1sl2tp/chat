@@ -8,25 +8,29 @@ def read(path):
 
 
 source = read('index.source.html')
+summary_css = read('work-customer-summary.css')
 shell = read('shell.js')
 
-# Stable outer switch: default/no-contact/work stays balanced at 1/2–1/2.
+# Default, active-contact and Work use the same 260px mode switch with 2 equal tabs.
 assert 'width:min(100%,260px);' in source
 assert 'grid-template-columns:minmax(0,1fr) minmax(0,1fr);' in source
+active = source.split('.top-mode-switch[data-contact-identity="true"]{', 1)[1].split('}', 1)[0]
+assert 'grid-template-columns:repeat(2,minmax(0,1fr));' in active
+assert 'max-content' not in active
 
-# Only the active chat-contact identity gives Work intrinsic width; chat uses the remainder.
-assert '.top-mode-switch[data-contact-identity="true"]{' in source
-assert 'grid-template-columns:minmax(0,1fr) max-content;' in source
+# The late inlined Work stylesheet must not undo the equal-width source contract.
+owner = summary_css.split('#appShell .top-mode-switch[data-contact-identity="true"]{', 1)[1].split('}', 1)[0]
+assert 'width:min(100%,260px);' in owner
+assert 'grid-template-columns:repeat(2,minmax(0,1fr));' in owner
+assert 'width:max-content' not in owner
+chat = summary_css.split('.top-mode-tab[data-top-tab="chat"]{', 1)[1].split('}', 1)[0]
+assert 'width:100%;' in chat
+assert 'min-width:0;' in chat
 
-# Runtime owns that state: it is true only while chat identity is actually visible,
-# and returns to false when switching to Công việc or when no contact is selected.
+# Runtime still changes only identity content/state, without changing switch dimensions.
 assert 'switcher.dataset.contactIdentity=String(visible);' in shell
-
-# Avatar remains inside the existing tab geometry and moves closer to the inner left edge.
 assert '.top-mode-contact-avatar{position:relative;width:26px;height:26px;' in source
-assert '.top-mode-tab{\n  min-width:0;\n  min-height:38px;' in source
 assert '.top-mode-tab[data-top-tab="chat"][data-contact-identity="true"]{' in source
-assert 'padding-left:4px;' in source
-assert 'justify-content:flex-start;' in source
+assert '.top-mode-tab[data-top-tab="chat"] [data-chat-tab-label]{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' in source
 
-print('V21.72.46 top mode switch state geometry contract PASS')
+print('V21.72.46 equal-width contact/work header contract PASS')

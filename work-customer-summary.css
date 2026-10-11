@@ -3,16 +3,16 @@
   overscroll-behavior:none;
 }
 
-/* Active chat identity hugs avatar + customer name. The mode switch remains
-   centered, but no longer stretches short customer names to a fixed share. */
+/* Active customer name stays inside the default two equal-sized tabs.
+   Keep the 260px pill stable; only the label may ellipsize, never the avatar. */
 #appShell .top-mode-switch[data-contact-identity="true"]{
-  width:max-content;
-  max-width:min(100%,260px);
-  grid-template-columns:max-content max-content;
+  width:min(100%,260px);
+  max-width:260px;
+  grid-template-columns:repeat(2,minmax(0,1fr));
 }
 #appShell .top-mode-switch[data-contact-identity="true"] .top-mode-tab[data-top-tab="chat"]{
-  width:max-content;
-  max-width:170px;
+  width:100%;
+  min-width:0;
 }
 
 [data-work-summary-root]{

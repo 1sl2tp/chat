@@ -1,3 +1,11 @@
+## 2026-10-11 — Header avatar + customer name / Công việc remains 50%-50% (SOURCE FIX; E4 PENDING)
+
+- Symptom: when a customer was selected the pill shrank around its short name, breaking the default equal widths and making Công việc jump.
+- Root cause: `index.source.html` changed active-contact grid columns to `1fr max-content`, and later `work-customer-summary.css` overrode the entire switch with `width:max-content` and two intrinsic columns.
+- Patch: keep the existing 260px maximum switch and two `minmax(0,1fr)` tabs in both states; preserve 26px avatar; ellipsize only the text label; leave wide desktop three-column header overrides unchanged. No JS, DB, API, Realtime, polling or log changes.
+- Regression: `tests/test_v21_72_46_top_mode_switch_state_geometry.py` now asserts equal widths in both source and final CSS owner; generated `index.html`/`version.json` rebuilt from the same source. E4 real desktop/mobile/PWA visual click check remains pending.
+- Rollback: revert only this CSS owner change and the generated output if necessary; no data rollback.
+
 ## 2026-10-10 — Chat starts in Trò chuyện, not Công việc (MERGED; E4 PROD PENDING)
 
 - User symptom: first open / login and cold notification sometimes showed Công việc first, then returned to Chat.

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="bdf203c001a9a21d2b4e8c068e33ff4880b76f9863d06633e2870a1b269a835f">
+<meta name="app-build-id" content="22fe00ebe75a18d5c6db621ab47f5c4578363e649e71ab53b974a1fbc6aef1da">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -667,16 +667,16 @@
   overscroll-behavior:none;
 }
 
-/* Active chat identity hugs avatar + customer name. The mode switch remains
-   centered, but no longer stretches short customer names to a fixed share. */
+/* Active customer name stays inside the default two equal-sized tabs.
+   Keep the 260px pill stable; only the label may ellipsize, never the avatar. */
 #appShell .top-mode-switch[data-contact-identity="true"]{
-  width:max-content;
-  max-width:min(100%,260px);
-  grid-template-columns:max-content max-content;
+  width:min(100%,260px);
+  max-width:260px;
+  grid-template-columns:repeat(2,minmax(0,1fr));
 }
 #appShell .top-mode-switch[data-contact-identity="true"] .top-mode-tab[data-top-tab="chat"]{
-  width:max-content;
-  max-width:170px;
+  width:100%;
+  min-width:0;
 }
 
 [data-work-summary-root]{
@@ -3862,8 +3862,9 @@ button{
   border-radius:999px;
   background:var(--theme-surface-secondary);
 }
+/* Contact identity uses the same equal-width tabs as the default mode. */
 .top-mode-switch[data-contact-identity="true"]{
-  grid-template-columns:minmax(0,1fr) max-content;
+  grid-template-columns:repeat(2,minmax(0,1fr));
 }
 .top-mode-tab{
   min-width:0;
