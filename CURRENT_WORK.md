@@ -1,3 +1,13 @@
+## 2026-10-11 — Composer intermittently ignores click after incoming chat (MERGED; E4 PENDING)
+
+- Screenshot: Chrome desktop three-column active chat; composer text area visible yet intermittently cannot be focused when chatting. The existing 2026-10-10 hit-test CSS/padding-focus source is still present. Actual intercepting element was NOT observed in browser devtools, so overlay is a scoped hypothesis, not proven root cause.
+- Owner: `app.js` composer pointer hit-test; preserve original `focusEditorFromComposerPadding` exactly to keep native caret/IME, button semantics and existing regression. Add a capture-phase pointerdown recovery ONLY for a user press inside editorWrap rect when a nonactionable ScrollRoot/scroll-control target was hit; skip button/link/action, Work, inert modal, image viewer, recording and disabled editor. No focus on incoming messages, no fake input.
+- PR https://github.com/1sl2tp/chat/pull/170 ; main `6182407f02c84211b6f9f5f45c13296064b1ecac`. Final Verify V21 run `38152641373` SUCCESS (81 steps), after initial failing legacy padding-focus contract was preserved, and new test's count assertion corrected. `index.html`/`version.json` regenerated to canonical build ID `8ecf2bfb0fe34d589a0405086f210ed4e617ab4ddc48f368794c8d657f33a76b`; main readback PASS.
+- E3 Pages release run E4 actual Chrome desktop + Safari/PWA and E5 resource delta PENDING. GitHub CI PASS does not prove user's intermittent symptom is resolved; ask for recurrence and inspect exact elementFromPoint only if it persists. No API/DB/Edge/cron/network changes.
+- MUST-STAY: realtime Admin/User, contact/message scrollers, notif deep-link, Vietnamese IME/selection, media, audio, send, keyboard, modal. Rollback only PR #170 if side effect appears. Canonical Sheet SDD `SPEC-CHAT-COMPOSER-HIT-REGRESSION-20261011` row104.
+
+---
+
 ## 2026-10-11 — Chat first-open: lazy-load avatars outside viewport (MERGED; E4/E5 PENDING)
 
 - User request: improve Chat startup/mobile alongside YouTube without changing message delivery, read-state, scroll, media upload or call.
