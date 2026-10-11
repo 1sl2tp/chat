@@ -258,37 +258,93 @@ nav button[aria-current="true"]{background:#e9ebef;color:#111;font-weight:650}
 .media-lightbox button{position:absolute;top:16px;right:18px;background:#fff2;border:1px solid #ffffff77;color:#fff;border-radius:100%;height:38px;width:38px;font-size:22px}
 .media-lightbox .lightbox-note{position:absolute;bottom:5px;color:#fff9;font-size:11px}
 
-/* REAL CHAT MEDIA — LOCAL PRIVATE VIEWER: local object URLs; never publish assets. */
-.media-local-picker{margin:28px 4px 0;padding:12px 7px 10px;border-top:1px solid #e8e8eb}
-.media-local-picker strong{font-size:12px;display:block;margin-bottom:6px}
-.media-local-picker button{font-size:11px;line-height:1.35;padding:9px 7px;margin:4px 0;border:1px solid #e3e5ea;background:#f7f8fa;text-align:center;white-space:normal}
-.media-local-picker button:hover{background:#eaf1fb}
-.media-local-picker button[hidden]{display:none}
-.media-local-picker small{font-size:10px;line-height:1.5;display:block;color:#6b7280;overflow-wrap:anywhere}
-.media-audio audio{width:100%;height:36px;display:block}
-.media-local-picker [aria-busy="true"]{opacity:.65;cursor:progress}
+
+/* SOURCE-ALIGNED CHAT DEMO — UI only: borrowed geometry and tokens from
+ * ui-foundation.css, mobile-chat-refresh.css and mobile-ui-polish.css.
+ * No auth, RPC, storage, media hydration or background work is used here. */
+#tap .phone-head{
+  display:grid;
+  grid-template-columns:40px minmax(0,1fr) 40px;
+  gap:7px;align-items:center;
+  padding:0 12px;
+  min-height:60px;height:60px;
+}
+#tap .tap-head-icon{width:40px;height:44px;min-width:40px;display:grid;place-items:center;color:#171717;flex:none}
+#tap .tap-head-icon svg{width:20px;height:20px}
+#tap .tap-tabs{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  align-items:center;width:100%;max-width:320px;min-width:0;
+  height:44px;margin:auto;padding:2px;gap:2px;
+  background:#f5f5f5;border-radius:999px;overflow:hidden;flex:none;
+}
+#tap .tap-tabs>.selected,#tap .tap-tabs>.tap-work{
+  display:flex;justify-content:center;align-items:center;
+  height:40px;min-width:0;padding:0 7px;border-radius:999px;
+  overflow:hidden;white-space:nowrap;font-size:14px;color:#656565;
+}
+#tap .tap-tabs>.selected{background:#fff;color:#171717;font-weight:650;box-shadow:0 1px 5px #00000012}
+#tap .tap-contact-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tap .tap-avatar{
+  width:25px;height:25px;flex:none;margin-right:7px;
+  border-radius:50%;display:grid;place-items:center;
+  background:#d5edf1;color:#35576b;font-size:12px;font-weight:500;
+}
+#tap .composer-source-frame.chat-content-axis{
+  width:calc(100% - 24px);max-width:44rem;margin-inline:auto;padding-inline:0
+}
+#tap .composer-tapho{
+  display:grid;grid-template-columns:44px minmax(0,1fr) 44px 44px;
+  grid-template-rows:minmax(44px,auto);align-items:center;gap:0 2px;
+  min-height:50px;padding:2px;border-radius:20px;
+}
+#tap .composer-tapho>.composer-prompt{
+  grid-column:2;grid-row:1;margin:0;padding:0 2px;
+  font-size:16px;line-height:22px;min-width:0;max-width:100%;
+  overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:#8a8a8a;
+}
+#tap .composer-tapho>.round{
+  min-width:44px;width:44px;height:44px;grid-row:1;
+}
+#tap .composer-tapho>.round:nth-child(1){grid-column:1}
+#tap .composer-tapho>.round:nth-child(3){grid-column:3}
+#tap .composer-tapho>.round:nth-child(4){grid-column:4}
+#tap .media-photo.landscape img,#tap .media-photo.portrait img{object-fit:contain}
+#tap .media-photo.landscape,#tap .media-photo.portrait{
+  background:#f3f3f3;padding:4px;border-radius:14px;
+}
+#tap .media-collage{gap:4px;padding:4px;background:#f3f3f3;border-radius:14px}
+#tap .media-audio{
+  display:grid;grid-template-columns:32px minmax(0,1fr) auto;
+  width:264px;max-width:100%;gap:8px;min-height:44px;
+  border:1px solid #e2e2e2;border-radius:14px;background:#fff;
+  padding:6px 7px;box-shadow:none;
+}
+#tap .media-audio .audio-icon{background:#202020;color:white;font-size:12px}
+#tap .media-audio .media-waves i{background:#888}
+#tap .media-message.out .media-audio{background:#e8f3fe;border-color:transparent}
+.media-message .media-file{box-shadow:none}
+.media-message .media-label{font-size:11px}
+#tap .media-message{max-width:100%}
+#tap .media-message.out{align-items:flex-end}
+#tap .media-message.in{align-items:flex-start}
+.stage-cap{margin-top:9px;text-align:center;font-size:11px;color:#797979;line-height:1.4}
 </style></head>
 <body>
 <main class="app">
 <nav aria-label="Danh mục giao diện"><h1>Danh mục UI</h1>
 <button type="button" data-category="chat" aria-current="true">Trò chuyện</button>
+<button type="button" data-category="media" aria-current="false">Ảnh &amp; ghi âm</button>
 <button type="button" data-category="login" aria-current="false">Đăng nhập</button>
 <button type="button" data-category="contacts" aria-current="false">Danh bạ</button>
 <button type="button" data-category="composer" aria-current="false">Vùng gõ chữ</button>
 <button type="button" data-category="functions" aria-current="false">Chức năng</button>
-<div class="media-local-picker">
-<strong>Ảnh / ghi âm thật</strong>
-<button type="button" id="load-local-chat-media">Lấy từ Chat đã đăng nhập</button>
-<button type="button" id="select-own-chat-files">Chọn tệp từ máy</button>
-<button type="button" id="reset-private-media" hidden>Trở lại ảnh minh họa</button>
-<input type="file" id="local-chat-file-input" accept="image/*,audio/*" multiple hidden>
-<small id="chat-media-local-status" role="status" aria-live="polite">Media chỉ mở trên trình duyệt này, không lưu công khai.</small>
-</div></nav>
+</nav>
 <section class="compare-col"><header class="compare-head">ChatGPT<small>Tham chiếu từ bản lưu trên Drive</small></header><div id="gpt" class="stage"></div>
 <p class="note">Mẫu tham chiếu từ thư viện ChatGPT đã lưu; không phải giao diện live hiện tại.</p></section>
 <section class="compare-col"><header class="compare-head">Chat Tạp Hóa<small>Thành phần từ source 1sl2tp/chat và ảnh bạn gửi</small></header><div id="tap" class="stage"></div>
 <p class="note">Dữ liệu minh họa, không đăng nhập, không gửi tin, không kết nối Supabase.</p></section>
-</main><script>const screens={"chat":{"gpt":"<div class=\"phone\"><header class=\"phone-head\"><span class=\"hamb\">☰</span><span class=\"head-title\">ChatGPT <span class=\"chev\">⌄</span></span><span class=\"push-right\"></span><span class=\"head-control\">✎</span><span class=\"head-control\">···</span></header><div class=\"phone-body\"><div class=\"chat-scroll\"><div class=\"date-line\">Hôm nay</div><div class=\"gpt-user\"><div class=\"bubble-gpt\">Tin nhắn của tôi</div></div><div class=\"gpt-reply\">Nội dung trả lời trong hội thoại.</div></div></div><div class=\"phone-bottom\"><div class=\"composer-gpt\"><div class=\"composer-prompt\">Hỏi bất kỳ điều gì</div><div class=\"composer-actions\"><span class=\"round\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 3.25v13.5M3.25 10h13.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\"/></svg></span><span class=\"push-right\"></span><span class=\"round\"><svg viewBox=\"0 0 24 24\" width=\"21\" height=\"21\" aria-hidden=\"true\"><path d=\"M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\"/><path d=\"M5.8 10.8a6.2 6.2 0 0 0 12.4 0M12 17v3M9.5 20h5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\"/></svg></span><span class=\"round blue\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 16V4m0 0L5.7 8.3M10 4l4.3 4.3\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></span></div></div></div></div>","tap":"<div class=\"phone\"><header class=\"phone-head\"><span class=\"hamb\">☰</span><div class=\"tap-tabs\"><span class=\"selected\">Trò chuyện</span><span>Công việc</span></div><span class=\"head-control\">♧</span></header><div class=\"phone-body\"><div id=\"conversationContentAxis\" class=\"chat-content-axis\"><div id=\"messageWindow\" class=\"chat-scroll\"><div class=\"chat-a message-row\"><div class=\"bubble-a message-text\">Nội dung tin nhắn bên A.</div></div><div class=\"chat-b message-row\"><div class=\"bubble-b message-text\">Nội dung tin nhắn bên B.</div></div><div class=\"chat-a message-row\"><div class=\"bubble-a message-text\">Tin nhắn tiếp theo để quan sát khoảng cách.</div></div></div></div></div><div class=\"phone-bottom\"><div class=\"composer-source-frame chat-content-axis\"><div id=\"composerShell\" class=\"composer-tapho\"><span class=\"round\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 3.25v13.5M3.25 10h13.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\"/></svg></span><span class=\"composer-prompt\">Nhắn tin...</span><span class=\"round\"><svg viewBox=\"0 0 24 24\" width=\"21\" height=\"21\" aria-hidden=\"true\"><path d=\"M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\"/><path d=\"M5.8 10.8a6.2 6.2 0 0 0 12.4 0M12 17v3M9.5 20h5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\"/></svg></span><span class=\"round grey\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M4 10h12m-5-5 5 5-5 5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></span></div></div></div></div>"},"login":{"gpt":"<div class=\"source-missing\"><strong>Chưa có mẫu đăng nhập ChatGPT gốc</strong><p>Tài liệu ChatGPT trong Drive chưa có giao diện đăng nhập để đối chiếu chính xác.</p></div>","tap":"<div class=\"auth-pane\"><div class=\"auth-card\"><h3>Đăng nhập</h3><label>Tên đăng nhập</label><div class=\"auth-input\"></div><label>Mật khẩu</label><div class=\"auth-input\">••••••••</div><div class=\"auth-button\">Tiếp tục</div><div class=\"auth-sub\">đăng ký</div></div></div>"},"contacts":{"gpt":"<div class=\"phone\"><header class=\"phone-head\"><span class=\"hamb\">☰</span><span class=\"head-title\">ChatGPT <span class=\"chev\">⌄</span></span><span class=\"push-right\"></span><span class=\"head-control\">✎</span><span class=\"head-control\">···</span></header><div class=\"phone-body\"><div class=\"directory\"><div class=\"dir-heading\">Trò chuyện</div><div class=\"gpt-link\">✎ &nbsp; Trò chuyện mới</div><div class=\"gpt-link\">⌕ &nbsp; Tìm kiếm</div><div class=\"gpt-link\">▤ &nbsp; Thư viện</div><div class=\"gpt-link\">▧ &nbsp; Dự án</div></div></div></div>","tap":"<div class=\"phone\"><header class=\"phone-head\"><span class=\"hamb\">☰</span><div class=\"tap-tabs\"><span class=\"selected\">Trò chuyện</span><span>Công việc</span></div><span class=\"head-control\">♧</span></header><div class=\"phone-body\"><div class=\"directory\"><div class=\"dir-heading\">Danh bạ</div><div class=\"search-box\">Tìm kiếm</div><div class=\"chips\"><span class=\"active\">Tất cả</span><span>KH</span><span>CM</span><span>Bạn bè</span><span>Khác</span></div><div class=\"contact-row\"><span class=\"avatar\">A</span><span><b>Liên hệ A</b><small>Nội dung gần nhất</small></span><time>08:39</time></div><div class=\"contact-row\"><span class=\"avatar\">B</span><span><b>Liên hệ B</b><small>Tin nhắn gần nhất</small></span><time>07:24</time></div><div class=\"contact-row\"><span class=\"avatar\">C</span><span><b>Liên hệ C</b><small>Đã thu · Còn nợ</small></span></div></div></div></div>"},"composer":{"gpt":"<div class=\"area-demo\"><div class=\"area-legend\">Vùng gõ ChatGPT</div><div class=\"composer-gpt\"><div class=\"composer-prompt\">Hỏi bất kỳ điều gì</div><div class=\"composer-actions\"><span class=\"round\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 3.25v13.5M3.25 10h13.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\"/></svg></span><span class=\"push-right\"></span><span class=\"round\"><svg viewBox=\"0 0 24 24\" width=\"21\" height=\"21\" aria-hidden=\"true\"><path d=\"M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\"/><path d=\"M5.8 10.8a6.2 6.2 0 0 0 12.4 0M12 17v3M9.5 20h5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\"/></svg></span><span class=\"round blue\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 16V4m0 0L5.7 8.3M10 4l4.3 4.3\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></span></div></div></div>","tap":"<div class=\"area-demo\"><div class=\"area-legend\">Vùng gõ TAPHOA Chat</div><div class=\"composer-source-frame chat-content-axis\"><div id=\"composerShell\" class=\"composer-tapho\"><span class=\"round\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 3.25v13.5M3.25 10h13.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\"/></svg></span><span class=\"composer-prompt\">Nhắn tin...</span><span class=\"round\"><svg viewBox=\"0 0 24 24\" width=\"21\" height=\"21\" aria-hidden=\"true\"><path d=\"M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\"/><path d=\"M5.8 10.8a6.2 6.2 0 0 0 12.4 0M12 17v3M9.5 20h5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\"/></svg></span><span class=\"round grey\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M4 10h12m-5-5 5 5-5 5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></span></div></div></div>"},"functions":{"gpt":"<div class=\"phone\"><header class=\"phone-head\"><span class=\"hamb\">☰</span><span class=\"head-title\">ChatGPT <span class=\"chev\">⌄</span></span><span class=\"push-right\"></span><span class=\"head-control\">✎</span><span class=\"head-control\">···</span></header><div class=\"phone-body\"><div class=\"function-space\"><div class=\"func-menu\"><div class=\"func-row\"><span class=\"func-icon\">◎</span>Camera</div><div class=\"func-row\"><span class=\"func-icon\">▧</span>Ảnh</div><div class=\"func-row\"><span class=\"func-icon\">♧</span>Tệp</div><div class=\"func-row\"><span class=\"func-icon\">✦</span>Tạo ảnh</div></div></div></div><div class=\"phone-bottom\"><div class=\"composer-gpt\"><div class=\"composer-prompt\">Hỏi bất kỳ điều gì</div><div class=\"composer-actions\"><span class=\"round\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 3.25v13.5M3.25 10h13.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\"/></svg></span><span class=\"push-right\"></span><span class=\"round\"><svg viewBox=\"0 0 24 24\" width=\"21\" height=\"21\" aria-hidden=\"true\"><path d=\"M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\"/><path d=\"M5.8 10.8a6.2 6.2 0 0 0 12.4 0M12 17v3M9.5 20h5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\"/></svg></span><span class=\"round blue\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 16V4m0 0L5.7 8.3M10 4l4.3 4.3\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></span></div></div></div></div>","tap":"<div class=\"phone\"><header class=\"phone-head\"><span class=\"hamb\">☰</span><div class=\"tap-tabs\"><span class=\"selected\">Trò chuyện</span><span>Công việc</span></div><span class=\"head-control\">♧</span></header><div class=\"phone-body\"><div class=\"function-space\"><div class=\"func-menu\"><div class=\"func-row\"><span class=\"func-icon\">▤</span>Báo giá</div><div class=\"func-row\"><span class=\"func-icon\">▣</span>Công nợ</div><div class=\"func-row\"><span class=\"func-icon\">☷</span>Kiểm hàng</div><div class=\"func-row\"><span class=\"func-icon\">♧</span>Link gọi</div><div class=\"func-row\"><span class=\"func-icon\">⚿</span>Thông tin đăng nhập</div><div class=\"func-row\"><span class=\"func-icon\">▧</span>Thư viện ảnh</div><div class=\"func-row\"><span class=\"func-icon\">□</span>File</div></div></div></div><div class=\"phone-bottom\"><div class=\"composer-source-frame chat-content-axis\"><div id=\"composerShell\" class=\"composer-tapho\"><span class=\"round\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 3.25v13.5M3.25 10h13.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\"/></svg></span><span class=\"composer-prompt\">Nhắn tin...</span><span class=\"round\"><svg viewBox=\"0 0 24 24\" width=\"21\" height=\"21\" aria-hidden=\"true\"><path d=\"M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\"/><path d=\"M5.8 10.8a6.2 6.2 0 0 0 12.4 0M12 17v3M9.5 20h5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\"/></svg></span><span class=\"round grey\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M4 10h12m-5-5 5 5-5 5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></span></div></div></div></div>"}};
+</main><script>const screens={"chat":{"gpt":"<div class=\"phone\"><header class=\"phone-head\"><span class=\"hamb\">☰</span><span class=\"head-title\">ChatGPT <span class=\"chev\">⌄</span></span><span class=\"push-right\"></span><span class=\"head-control\">✎</span><span class=\"head-control\">···</span></header><div class=\"phone-body\"><div class=\"chat-scroll\"><div class=\"date-line\">Hôm nay</div><div class=\"gpt-user\"><div class=\"bubble-gpt\">Tin nhắn của tôi</div></div><div class=\"gpt-reply\">Nội dung trả lời trong hội thoại.</div></div></div><div class=\"phone-bottom\"><div class=\"composer-gpt\"><div class=\"composer-prompt\">Hỏi bất kỳ điều gì</div><div class=\"composer-actions\"><span class=\"round\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 3.25v13.5M3.25 10h13.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\"/></svg></span><span class=\"push-right\"></span><span class=\"round\"><svg viewBox=\"0 0 24 24\" width=\"21\" height=\"21\" aria-hidden=\"true\"><path d=\"M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\"/><path d=\"M5.8 10.8a6.2 6.2 0 0 0 12.4 0M12 17v3M9.5 20h5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\"/></svg></span><span class=\"round blue\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 16V4m0 0L5.7 8.3M10 4l4.3 4.3\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></span></div></div></div></div>","tap":"<div class=\"phone\"><header class=\"phone-head\">\n  <span class=\"tap-head-icon\" aria-label=\"Menu\">\n    <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" aria-hidden=\"true\"><path d=\"M4 6h16M4 12h12M4 18h7\"/></svg>\n  </span>\n  <div class=\"tap-tabs\" aria-label=\"Trò chuyện và Công việc\">\n    <span class=\"selected\"><span class=\"tap-avatar\">T</span><span class=\"tap-contact-name\">test9</span></span>\n    <span class=\"tap-work\">Công việc</span>\n  </div>\n  <span class=\"tap-head-icon\" aria-label=\"Gọi\">\n    <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7.2 4.5 10 8l-1.8 2.2c1.2 2.5 3.1 4.4 5.6 5.6L16 14l3.5 2.8-.9 2.7c-.3.8-1.1 1.3-2 1.2C9.4 19.8 4.2 14.6 3.3 7.4c-.1-.9.4-1.7 1.2-2l2.7-.9Z\"/></svg>\n  </span>\n</header><div class=\"phone-body\"><div id=\"conversationContentAxis\" class=\"chat-content-axis\"><div id=\"messageWindow\" class=\"chat-scroll\"><div class=\"chat-a message-row\"><div class=\"bubble-a message-text\">Nội dung tin nhắn bên A.</div></div><div class=\"chat-b message-row\"><div class=\"bubble-b message-text\">Nội dung tin nhắn bên B.</div></div><div class=\"chat-a message-row\"><div class=\"bubble-a message-text\">Tin nhắn tiếp theo để quan sát khoảng cách.</div></div></div></div></div><div class=\"phone-bottom\"><div class=\"composer-source-frame chat-content-axis\"><div id=\"composerShell\" class=\"composer-tapho\"><span class=\"round\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 3.25v13.5M3.25 10h13.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\"/></svg></span><span class=\"composer-prompt\">Nhắn tin...</span><span class=\"round\"><svg viewBox=\"0 0 24 24\" width=\"21\" height=\"21\" aria-hidden=\"true\"><path d=\"M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\"/><path d=\"M5.8 10.8a6.2 6.2 0 0 0 12.4 0M12 17v3M9.5 20h5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\"/></svg></span><span class=\"round grey\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M4 10h12m-5-5 5 5-5 5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></span></div></div></div></div>"},"login":{"gpt":"<div class=\"source-missing\"><strong>Chưa có mẫu đăng nhập ChatGPT gốc</strong><p>Tài liệu ChatGPT trong Drive chưa có giao diện đăng nhập để đối chiếu chính xác.</p></div>","tap":"<div class=\"auth-pane\"><div class=\"auth-card\"><h3>Đăng nhập</h3><label>Tên đăng nhập</label><div class=\"auth-input\"></div><label>Mật khẩu</label><div class=\"auth-input\">••••••••</div><div class=\"auth-button\">Tiếp tục</div><div class=\"auth-sub\">đăng ký</div></div></div>"},"contacts":{"gpt":"<div class=\"phone\"><header class=\"phone-head\"><span class=\"hamb\">☰</span><span class=\"head-title\">ChatGPT <span class=\"chev\">⌄</span></span><span class=\"push-right\"></span><span class=\"head-control\">✎</span><span class=\"head-control\">···</span></header><div class=\"phone-body\"><div class=\"directory\"><div class=\"dir-heading\">Trò chuyện</div><div class=\"gpt-link\">✎ &nbsp; Trò chuyện mới</div><div class=\"gpt-link\">⌕ &nbsp; Tìm kiếm</div><div class=\"gpt-link\">▤ &nbsp; Thư viện</div><div class=\"gpt-link\">▧ &nbsp; Dự án</div></div></div></div>","tap":"<div class=\"phone\"><header class=\"phone-head\">\n  <span class=\"tap-head-icon\" aria-label=\"Menu\">\n    <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" aria-hidden=\"true\"><path d=\"M4 6h16M4 12h12M4 18h7\"/></svg>\n  </span>\n  <div class=\"tap-tabs\" aria-label=\"Trò chuyện và Công việc\">\n    <span class=\"selected\"><span class=\"tap-avatar\">T</span><span class=\"tap-contact-name\">test9</span></span>\n    <span class=\"tap-work\">Công việc</span>\n  </div>\n  <span class=\"tap-head-icon\" aria-label=\"Gọi\">\n    <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7.2 4.5 10 8l-1.8 2.2c1.2 2.5 3.1 4.4 5.6 5.6L16 14l3.5 2.8-.9 2.7c-.3.8-1.1 1.3-2 1.2C9.4 19.8 4.2 14.6 3.3 7.4c-.1-.9.4-1.7 1.2-2l2.7-.9Z\"/></svg>\n  </span>\n</header><div class=\"phone-body\"><div class=\"directory\"><div class=\"dir-heading\">Danh bạ</div><div class=\"search-box\">Tìm kiếm</div><div class=\"chips\"><span class=\"active\">Tất cả</span><span>KH</span><span>CM</span><span>Bạn bè</span><span>Khác</span></div><div class=\"contact-row\"><span class=\"avatar\">A</span><span><b>Liên hệ A</b><small>Nội dung gần nhất</small></span><time>08:39</time></div><div class=\"contact-row\"><span class=\"avatar\">B</span><span><b>Liên hệ B</b><small>Tin nhắn gần nhất</small></span><time>07:24</time></div><div class=\"contact-row\"><span class=\"avatar\">C</span><span><b>Liên hệ C</b><small>Đã thu · Còn nợ</small></span></div></div></div></div>"},"composer":{"gpt":"<div class=\"area-demo\"><div class=\"area-legend\">Vùng gõ ChatGPT</div><div class=\"composer-gpt\"><div class=\"composer-prompt\">Hỏi bất kỳ điều gì</div><div class=\"composer-actions\"><span class=\"round\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 3.25v13.5M3.25 10h13.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\"/></svg></span><span class=\"push-right\"></span><span class=\"round\"><svg viewBox=\"0 0 24 24\" width=\"21\" height=\"21\" aria-hidden=\"true\"><path d=\"M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\"/><path d=\"M5.8 10.8a6.2 6.2 0 0 0 12.4 0M12 17v3M9.5 20h5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\"/></svg></span><span class=\"round blue\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 16V4m0 0L5.7 8.3M10 4l4.3 4.3\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></span></div></div></div>","tap":"<div class=\"area-demo\"><div class=\"area-legend\">Vùng gõ TAPHOA Chat</div><div class=\"composer-source-frame chat-content-axis\"><div id=\"composerShell\" class=\"composer-tapho\"><span class=\"round\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 3.25v13.5M3.25 10h13.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\"/></svg></span><span class=\"composer-prompt\">Nhắn tin...</span><span class=\"round\"><svg viewBox=\"0 0 24 24\" width=\"21\" height=\"21\" aria-hidden=\"true\"><path d=\"M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\"/><path d=\"M5.8 10.8a6.2 6.2 0 0 0 12.4 0M12 17v3M9.5 20h5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\"/></svg></span><span class=\"round grey\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M4 10h12m-5-5 5 5-5 5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></span></div></div></div>"},"functions":{"gpt":"<div class=\"phone\"><header class=\"phone-head\"><span class=\"hamb\">☰</span><span class=\"head-title\">ChatGPT <span class=\"chev\">⌄</span></span><span class=\"push-right\"></span><span class=\"head-control\">✎</span><span class=\"head-control\">···</span></header><div class=\"phone-body\"><div class=\"function-space\"><div class=\"func-menu\"><div class=\"func-row\"><span class=\"func-icon\">◎</span>Camera</div><div class=\"func-row\"><span class=\"func-icon\">▧</span>Ảnh</div><div class=\"func-row\"><span class=\"func-icon\">♧</span>Tệp</div><div class=\"func-row\"><span class=\"func-icon\">✦</span>Tạo ảnh</div></div></div></div><div class=\"phone-bottom\"><div class=\"composer-gpt\"><div class=\"composer-prompt\">Hỏi bất kỳ điều gì</div><div class=\"composer-actions\"><span class=\"round\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 3.25v13.5M3.25 10h13.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\"/></svg></span><span class=\"push-right\"></span><span class=\"round\"><svg viewBox=\"0 0 24 24\" width=\"21\" height=\"21\" aria-hidden=\"true\"><path d=\"M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\"/><path d=\"M5.8 10.8a6.2 6.2 0 0 0 12.4 0M12 17v3M9.5 20h5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\"/></svg></span><span class=\"round blue\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 16V4m0 0L5.7 8.3M10 4l4.3 4.3\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></span></div></div></div></div>","tap":"<div class=\"phone\"><header class=\"phone-head\">\n  <span class=\"tap-head-icon\" aria-label=\"Menu\">\n    <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" aria-hidden=\"true\"><path d=\"M4 6h16M4 12h12M4 18h7\"/></svg>\n  </span>\n  <div class=\"tap-tabs\" aria-label=\"Trò chuyện và Công việc\">\n    <span class=\"selected\"><span class=\"tap-avatar\">T</span><span class=\"tap-contact-name\">test9</span></span>\n    <span class=\"tap-work\">Công việc</span>\n  </div>\n  <span class=\"tap-head-icon\" aria-label=\"Gọi\">\n    <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7.2 4.5 10 8l-1.8 2.2c1.2 2.5 3.1 4.4 5.6 5.6L16 14l3.5 2.8-.9 2.7c-.3.8-1.1 1.3-2 1.2C9.4 19.8 4.2 14.6 3.3 7.4c-.1-.9.4-1.7 1.2-2l2.7-.9Z\"/></svg>\n  </span>\n</header><div class=\"phone-body\"><div class=\"function-space\"><div class=\"func-menu\"><div class=\"func-row\"><span class=\"func-icon\">▤</span>Báo giá</div><div class=\"func-row\"><span class=\"func-icon\">▣</span>Công nợ</div><div class=\"func-row\"><span class=\"func-icon\">☷</span>Kiểm hàng</div><div class=\"func-row\"><span class=\"func-icon\">♧</span>Link gọi</div><div class=\"func-row\"><span class=\"func-icon\">⚿</span>Thông tin đăng nhập</div><div class=\"func-row\"><span class=\"func-icon\">▧</span>Thư viện ảnh</div><div class=\"func-row\"><span class=\"func-icon\">□</span>File</div></div></div></div><div class=\"phone-bottom\"><div class=\"composer-source-frame chat-content-axis\"><div id=\"composerShell\" class=\"composer-tapho\"><span class=\"round\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 3.25v13.5M3.25 10h13.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\"/></svg></span><span class=\"composer-prompt\">Nhắn tin...</span><span class=\"round\"><svg viewBox=\"0 0 24 24\" width=\"21\" height=\"21\" aria-hidden=\"true\"><path d=\"M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\"/><path d=\"M5.8 10.8a6.2 6.2 0 0 0 12.4 0M12 17v3M9.5 20h5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\"/></svg></span><span class=\"round grey\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M4 10h12m-5-5 5 5-5 5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></span></div></div></div></div>"}};
+screens.media=screens.chat;
 const nav=document.querySelectorAll('[data-category]');
 const rootGpt=document.getElementById('gpt');
 const rootTap=document.getElementById('tap');
@@ -326,25 +382,30 @@ function photoTile(type,shape,caption){
 }
 function mediaSampleMarkup(){
   const bars=[7,15,21,10,25,18,8,14,23,12,17,27,12,20,9,18,25,14,8,19,13,24,11,7];
-  return '<div class="media-divider">Tin nhắn mẫu · ảnh và đa phương tiện</div>'+
-    '<div class="media-message out">'+photoTile('landscape','landscape','Ảnh ngang giao hàng')+
-      '<div class="media-label">Ảnh ngang 16:9 · 14:20 ✓✓</div></div>'+
-    '<div class="media-message in">'+photoTile('portrait','portrait','Ảnh dọc quầy hàng')+
-      '<div class="media-label">Ảnh dọc 3:4 · 14:21</div></div>'+
-    '<div class="media-message out"><div class="media-collage">'+
-      photoTile('product1','square','Sữa lốc bốn hộp')+photoTile('product2','square','Hàng đóng thùng')+
-      photoTile('product3','square','Phiếu giao hàng')+'</div>'+
-      '<div class="media-label">3 ảnh trong một tin · 14:22 ✓✓</div></div>'+
-    '<div class="media-message in"><div class="media-video" role="img" aria-label="Ảnh xem trước video minh họa dài 18 giây">'+
-      '<img src="'+mediaArt('landscape')+'" alt=""><span class="play-mark" aria-hidden="true">▶</span>'+
-      '<span class="duration">0:18</span></div><div class="media-label">Video ngang · bản xem trước minh họa</div></div>'+
-    '<div class="media-message out"><div class="media-audio" aria-label="Ghi âm minh họa dài 12 giây">'+
-      '<span class="audio-icon" aria-hidden="true">♫</span><span class="media-waves">'+
-      bars.map(h=>'<i style="height:'+h+'px"></i>').join('')+'</span><span class="audio-time">0:12</span>'+
-      '</div><div class="media-label">Tin nhắn thoại · minh họa</div></div>'+
-    '<div class="media-message in"><div class="media-file">'+
-      '<span class="file-mark">PDF</span><span class="file-text"><strong>Bao-gia-thang-10.pdf</strong>'+
-      '<small>1,2 MB · Tệp đính kèm minh họa</small></span></div></div>';
+  const photo=(kind,shape,label)=>photoTile(kind,shape,label);
+  return '<div class="media-divider">Ảnh / media theo luồng Chat hiện tại · dữ liệu mẫu</div>'+
+    '<div class="media-message out message-row" data-turn="user" data-content-kind="image">'+
+       photo('landscape','landscape','Ảnh ngang giao hàng')+
+       '<div class="media-label">Ảnh ngang 16:9 · 14:20 ✓✓</div></div>'+
+    '<div class="media-message in message-row" data-turn="assistant" data-content-kind="image">'+
+       photo('portrait','portrait','Ảnh dọc quầy hàng')+
+       '<div class="media-label">Ảnh dọc 3:4 · 14:21</div></div>'+
+    '<div class="media-message out message-row" data-turn="user" data-content-kind="gallery">'+
+      '<div class="media-collage media-gallery-grid">'+
+         photo('product1','square','Sữa lốc bốn hộp')+photo('product2','square','Hàng đóng thùng')+
+         photo('product3','square','Phiếu giao hàng')+'</div>'+
+      '<div class="media-label">3 ảnh cùng tin · 14:22 ✓✓</div></div>'+
+    '<div class="media-message in message-row" data-turn="assistant" data-content-kind="audio">'+
+      '<div class="media-audio audio-message-card" aria-label="Mẫu thẻ ghi âm 12 giây; không có âm thanh đính kèm">'+
+       '<span class="audio-icon" aria-hidden="true">▶</span><span class="media-waves">'+
+       bars.map(h=>'<i style="height:'+h+'px"></i>').join('')+'</span>'+
+       '<span class="audio-time">0:12</span></div>'+
+       '<div class="media-label">Ghi âm · thẻ giao diện minh họa</div></div>'+
+    '<div class="media-message out message-row" data-turn="user" data-content-kind="file">'+
+       '<div class="media-file file-message-card"><span class="file-mark">PDF</span>'+
+       '<span class="file-text"><strong>Bao-gia-thang-10.pdf</strong>'+
+       '<small>1,2 MB · tệp minh họa</small></span></div>'+
+       '<div class="media-label">Tệp đính kèm · 14:23 ✓✓</div></div>';
 }
 function mountMediaSamples(){
   for(const root of [rootGpt,rootTap]){
@@ -382,205 +443,53 @@ document.addEventListener('click',event=>{
 document.addEventListener('keydown',event=>{if(event.key==='Escape')closeMediaPreview();});
 
 
-/* REAL CHAT MEDIA — LOCAL PRIVATE VIEWER
- * Explicit click only. Authenticated Supabase session required for Chat cache access.
- * Never write a real asset, transcript, storage key, or object URL to GitHub or backend.
- * One cache read; only chosen blobs downloaded. No polling/background work. */
-const PrivateMediaDemo=(()=>{
-  const cfg={"url":"https://vtqhbhrkdxirqeqkgylo.supabase.co","key":"sb_publishable_3ms4nAPXQwBN18Zo2yNoIg_d4WrHu04","storageKey":"taphoa.v21.auth"};
-  let current={imageWide:null,imageTall:null,audio:null};
-  let localUrls=[];
-  function status(message){const p=document.getElementById('chat-media-local-status');if(p)p.textContent=message;}
-  function setBusy(value){
-    const btn=document.getElementById('load-local-chat-media');
-    if(btn){btn.disabled=Boolean(value);btn.setAttribute('aria-busy',String(Boolean(value)));}
+
+
+/* Same icon family as Chat's ui-icons.js. Static local demo: no network. */
+function decorateTapDemoIcons(category){
+  if(category!=='functions')return;
+  const defs={
+    'Báo giá':'<path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/>',
+    'Công nợ':'<rect x="4" y="5" width="16" height="14" rx="2.5"/><path d="M7.5 9h9M7.5 13h4.5M15.5 12v4M13.5 14h4"/>',
+    'Kiểm hàng':'<rect x="5" y="4" width="14" height="16" rx="2.5"/><path d="M9 4.5h6v3H9zM8.5 11.5h7M8.5 15.5h4"/>',
+    'Link gọi':'<path d="M7.2 4.5 10 8l-1.8 2.2c1.2 2.5 3.1 4.4 5.6 5.6L16 14l3.5 2.8-.9 2.7c-.3.8-1.1 1.3-2 1.2C9.4 19.8 4.2 14.6 3.3 7.4c-.1-.9.4-1.7 1.2-2l2.7-.9Z"/>',
+    'Thông tin đăng nhập':'<circle cx="8.5" cy="12" r="3.5"/><path d="M12 12h8M17 12v3M20 12v2"/>',
+    'Thư viện ảnh':'<rect x="3.5" y="4" width="17" height="16" rx="2"/><circle cx="9" cy="9" r="1.8"/><path d="m5.5 18 5-5 3.5 3 2.5-2.5 2 2"/>',
+    'File':'<path d="M6 3h8l4 4v14H6zM14 3v5h4M9 13h6M9 17h6"/>'
+  };
+  const rows=rootTap.querySelectorAll('.func-row');
+  for(const row of rows){
+    const label=row.textContent.trim();
+    const body=defs[label];
+    if(!body)continue;
+    const icon=row.querySelector('.func-icon');
+    if(!icon)continue;
+    icon.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+body+'</svg>';
   }
-  function cleanup(){
-    for(const url of localUrls)URL.revokeObjectURL(url);
-    localUrls=[];
-    current={imageWide:null,imageTall:null,audio:null};
-  }
-  function blobUrl(blob){
-    if(!(blob instanceof Blob))return null;
-    const url=URL.createObjectURL(blob);
-    localUrls.push(url);
-    return url;
-  }
-  function useBlobs({imageWide=null,imageTall=null,audio=null}={}){
-    cleanup();
-    if(imageWide instanceof Blob)current.imageWide=blobUrl(imageWide);
-    if(imageTall instanceof Blob)current.imageTall=blobUrl(imageTall);
-    if(audio instanceof Blob)current.audio=blobUrl(audio);
-    if(!current.imageWide&&!current.imageTall&&!current.audio){
-      status('Không có ảnh/ghi âm sử dụng được.');
-      return;
-    }
-    const btn=document.getElementById('reset-private-media');
-    if(btn)btn.hidden=false;
-    if(document.querySelector('[data-category="chat"][aria-current="true"]'))render('chat');
-    const n=[current.imageWide,current.imageTall,current.audio].filter(Boolean).length;
-    status('Đang xem '+n+' media thật tại máy này; không đăng tải hoặc gửi cho người khác.');
-  }
-  function apply(){
-    if(!current.imageWide&&!current.imageTall&&!current.audio)return;
-    for(const root of [rootGpt,rootTap]){
-      const wide=root.querySelector('.media-message.out .media-photo.landscape img');
-      const tall=root.querySelector('.media-message.in .media-photo.portrait img');
-      if(current.imageWide&&wide){
-        wide.src=current.imageWide;
-        wide.alt='Ảnh ngang từ hội thoại trên thiết bị của bạn';
-        wide.closest('.media-photo').style.background='#f3f3f3';
-        wide.style.objectFit='contain';
-        wide.onload=()=>{if(wide.naturalWidth&&wide.naturalHeight){const frame=wide.closest('.media-photo');frame.style.aspectRatio=wide.naturalWidth+' / '+wide.naturalHeight;frame.style.maxHeight='260px';}};
-        wide.closest('.media-message').querySelector('.media-label').textContent='Ảnh ngang thật · riêng tư tại máy này';
-      }
-      if(current.imageTall&&tall){
-        tall.src=current.imageTall;
-        tall.alt='Ảnh dọc từ hội thoại trên thiết bị của bạn';
-        tall.closest('.media-photo').style.background='#f3f3f3';
-        tall.style.objectFit='contain';
-        tall.onload=()=>{if(tall.naturalWidth&&tall.naturalHeight){const frame=tall.closest('.media-photo');frame.style.aspectRatio=tall.naturalWidth+' / '+tall.naturalHeight;frame.style.maxHeight='315px';}};
-        tall.closest('.media-message').querySelector('.media-label').textContent='Ảnh dọc thật · riêng tư tại máy này';
-      }
-      if(current.audio){
-        const audioWrap=root.querySelector('.media-message.out .media-audio');
-        if(audioWrap){
-          audioWrap.replaceChildren();
-          const player=document.createElement('audio');
-          player.controls=true;
-          player.preload='none';
-          player.src=current.audio;
-          player.setAttribute('aria-label','Ghi âm thật từ hội thoại, chỉ trên thiết bị này');
-          audioWrap.append(player);
-          audioWrap.closest('.media-message').querySelector('.media-label').textContent='Ghi âm thật · có thể bấm nghe';
-        }
-      }
-    }
-  }
-  function importFiles(files){
-    const images=files.filter(f=>f.type.startsWith('image/')&&f.size<=8*1024*1024);
-    const audio=files.find(f=>f.type.startsWith('audio/')&&f.size<=12*1024*1024)||null;
-    if(!images.length&&!audio){status('Chọn tối đa 2 ảnh và 1 ghi âm (ảnh ≤8 MB, audio ≤12 MB).');return;}
-    // User-selected media is private. Two independently sized slots avoid zoom/crop.
-    const assign={imageWide:images[0]||null,imageTall:images[1]||null,audio};
-    useBlobs(assign);
-  }
-  function loadScript(url,ready){
-    if(ready())return Promise.resolve();
-    return new Promise((resolve,reject)=>{
-      const script=document.createElement('script');
-      script.src=url;
-      script.onload=()=>ready()?resolve():reject(new Error('script_missing'));
-      script.onerror=()=>reject(new Error('script_load_failed'));
-      document.head.append(script);
-    });
-  }
-  function bestMedia(rows,kind,sortFn){
-    return rows.filter(x=>x?.remote_meta?.kind===kind).sort(sortFn);
-  }
-  async function loadFromChat(){
-    if(document.getElementById('load-local-chat-media')?.disabled)return;
-    setBusy(true);
-    status('Đang xác minh đăng nhập và đọc danh sách media trên thiết bị…');
-    try{
-      await loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js',()=>!!window.supabase?.createClient);
-      await loadScript('../v21-cache-store.js',()=>!!window.V21CacheStore?.listMediaRecords);
-      const client=window.supabase.createClient(cfg.url,cfg.key,{
-        auth:{persistSession:true,autoRefreshToken:false,detectSessionInUrl:false,storageKey:cfg.storageKey}
-      });
-      const verified=await client.auth.getUser();
-      if(verified.error||!verified.data?.user){
-        status('Chưa có phiên Chat hợp lệ. Hãy đăng nhập Chat ở cùng trình duyệt rồi thử lại, hoặc chọn tệp từ máy.');
-        return;
-      }
-      const deviceKey=localStorage.getItem('taphoa.v21.deviceKey')||'';
-      if(!/^[a-f0-9-]{36}$/i.test(deviceKey)){
-        status('Chưa có thiết bị Chat đã đăng nhập tại trình duyệt này. Mở Chat trước hoặc chọn tệp từ máy.');
-        return;
-      }
-      // Uses the existing authenticated application's identity, never a service-role key.
-      const boot=await client.rpc('v21_auth_bootstrap',{
-        p_device_key:deviceKey,p_label:'UI media compare',p_platform:'web'
-      });
-      const accountId=String(boot.data?.account?.id||'');
-      if(boot.error||!accountId||boot.data?.device_approval_required){
-        status('Không đọc được phiên Chat đã xác thực. Có thể chọn tệp từ máy để so UI.');
-        return;
-      }
-      const [records,contacts]=await Promise.all([
-        window.V21CacheStore.listMediaRecords(accountId),
-        window.V21CacheStore.listContacts(accountId)
-      ]);
-      // Prefer the user's test/demo conversation, not other customers' content.
-      const demoConvs=new Set((contacts||[])
-        .filter(c=>/^(test\d*|demo\d*|thử nghiệm)$/i.test(String(c?.username||c?.display_name||c?.name||'').trim()))
-        .map(c=>String(c?.conversation_id||'')).filter(Boolean));
-      const usable=(records||[]).filter(r=>{
-        const m=r?.remote_meta||{};
-        return !m.deleted_at&&['image','audio'].includes(String(m.kind||''))
-          &&(r.blob instanceof Blob||m.storage_key);
-      });
-      // Never select from a real customer's conversation as an implicit fallback.
-      const candidates=usable.filter(r=>demoConvs.has(String(r.remote_meta.conversation_id||'')));
-      if(!candidates.length){
-        status('Không có media của hội thoại test/demo trong bộ nhớ Chat trên máy này. Hãy mở hội thoại test rồi quay lại, hoặc chọn tệp từ máy.');
-        return;
-      }
-      candidates.sort((a,b)=>String(b.remote_meta.created_at||'').localeCompare(String(a.remote_meta.created_at||'')));
-      const images=candidates.filter(x=>x.remote_meta.kind==='image');
-      const audio=candidates.filter(x=>x.remote_meta.kind==='audio');
-      const wide=images.find(x=>(Number(x.remote_meta.width_px)||0)>=(Number(x.remote_meta.height_px)||Infinity))||images[0]||null;
-      const tall=images.find(x=>x!==wide&&(Number(x.remote_meta.height_px)||0)>(Number(x.remote_meta.width_px)||Infinity))||images.find(x=>x!==wide)||null;
-      const chosen=[wide,tall,audio[0]||null];
-      async function getBlob(record){
-        if(!record)return null;
-        if(record.blob instanceof Blob)return record.blob;
-        const meta=record.remote_meta||{};
-        const size=Number(meta.size_bytes)||0;
-        if(!meta.storage_key||size>12*1024*1024)return null;
-        const res=await client.storage.from('v21-media').download(meta.storage_key);
-        if(res.error||!(res.data instanceof Blob))return null;
-        return res.data;
-      }
-      status('Đã tìm thấy media trong hội thoại test; đang lấy tối đa 2 ảnh và 1 ghi âm theo quyền tài khoản…');
-      const blobs=[];
-      for(const record of chosen)blobs.push(await getBlob(record));
-      if(!blobs.some(Boolean)){
-        status('Không lấy được media test theo quyền hiện tại. Bạn có thể chọn tệp từ máy để xem đúng định dạng.');
-        return;
-      }
-      useBlobs({imageWide:blobs[0],imageTall:blobs[1],audio:blobs[2]});
-    }catch(err){
-      status('Không tải được media Chat ('+String(err?.message||'không xác định').slice(0,70)+'). Có thể chọn tệp từ máy.');
-    }finally{setBusy(false);}
-  }
-  function clear(){
-    cleanup();
-    const btn=document.getElementById('reset-private-media');
-    if(btn)btn.hidden=true;
-    if(document.querySelector('[data-category="chat"][aria-current="true"]'))render('chat');
-    status('Đã trở về ảnh minh họa. Media thật không được lưu trên trang.');
-  }
-  function init(){
-    document.getElementById('load-local-chat-media')?.addEventListener('click',loadFromChat);
-    document.getElementById('select-own-chat-files')?.addEventListener('click',()=>{
-      document.getElementById('local-chat-file-input')?.click();
-    });
-    document.getElementById('local-chat-file-input')?.addEventListener('change',e=>{
-      importFiles(Array.from(e.target.files||[]));
-      e.target.value='';
-    });
-    document.getElementById('reset-private-media')?.addEventListener('click',clear);
-    window.addEventListener('pagehide',cleanup,{once:true});
-  }
-  return{init,apply};
-})();
+}
 
 function render(category){
   if(!Object.prototype.hasOwnProperty.call(screens,category))return;
   rootGpt.innerHTML=phoneViewport(screens[category].gpt);
   rootTap.innerHTML=phoneViewport(screens[category].tap);
-  if(category==='chat'){mountMediaSamples();PrivateMediaDemo.apply();}
+
+  if(category==='chat'||category==='media')mountMediaSamples();
+  if(category==='media'){
+    for(const root of [rootGpt,rootTap]){
+      const list=root.querySelector('.chat-scroll');
+      const first=list?.querySelector('.media-divider');
+      if(!list||!first)continue;
+      for(const item of Array.from(list.children)){
+        if(item===first)break;
+        item.remove();
+      }
+      const name=root.querySelector('.tap-contact-name');
+      if(name)name.textContent='Cửa hàng Minh Anh – Khu phố 3';
+      const bubble=root.querySelector('.tap-avatar');
+      if(bubble)bubble.textContent='M';
+    }
+  }
+  decorateTapDemoIcons(category);
   for(const item of nav)item.setAttribute('aria-current',String(item.dataset.category===category));
   fitIphoneViewports();
 }
@@ -591,5 +500,4 @@ if(typeof ResizeObserver!=='undefined'){
   resizeObserver.observe(rootTap);
 }
 window.addEventListener('resize',fitIphoneViewports);
-PrivateMediaDemo.init();
 render('chat');</script></body></html>
