@@ -6,7 +6,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const page = fs.readFileSync(path.join(__dirname, '..', 'ui-library', 'index.html'), 'utf8');
-const inventory = page.match(/<script id="ui-inventory" type="application\/json">([\s\\S]*?)<\/script>/);
+const inventory = page.match(/<script id="ui-inventory" type="application\/json">([\s\S]*?)<\/script>/);
 assert.ok(inventory, 'UI inventory missing');
 const items = JSON.parse(inventory[1]);
 const begin = page.indexOf('function sourcePreview(item){');
