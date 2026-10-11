@@ -1,0 +1,258 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light"><title>Luồng UI Chat · A/B · Chia sẻ · Xem ảnh · Chọn nhiều</title><link rel="stylesheet" href="../ui-foundation.css"><style>
+:root{color-scheme:light;--line:#e4e7ec;--muted:#667085;--accent:#3478ee;--ink:#111827;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+*{box-sizing:border-box}body{margin:0;background:#f6f7f9;color:var(--ink)}button,input,textarea{font:inherit}button{cursor:pointer}button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}[hidden]{display:none!important}
+header.page-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 22px;background:white;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.page-head h1{margin:0;font-size:18px}.page-head p{margin:4px 0 0;font-size:12px;color:var(--muted)}.page-head a{font-size:12px;text-decoration:none;padding:9px 12px;border:1px solid var(--line);border-radius:10px;color:#255eaa}
+.layout{display:grid;grid-template-columns:210px minmax(320px,1fr) 290px;min-height:calc(100vh - 78px)}
+.side{background:#fff;border-right:1px solid var(--line);padding:18px 12px}.side h2{font-size:14px;margin:2px 8px 12px}.side p{font-size:12px;line-height:1.5;color:var(--muted);margin:0 8px 15px}
+.nav{display:flex;flex-direction:column;gap:6px}.nav button{border:0;background:transparent;padding:12px 10px;text-align:left;min-height:50px;border-radius:11px;font-size:13px;color:#344054}.nav button[aria-current=true]{background:#edf1f7;font-weight:700;color:#1b3f73}.nav small{display:block;font-size:11px;color:var(--muted);font-weight:400;margin-top:4px}
+.stage{padding:18px 12px 30px;min-width:0}.stage h2{font-size:18px;margin:0 0 6px}.stage .intro{font-size:12px;color:var(--muted);line-height:1.5;max-width:530px;margin:0 auto 15px}.stage-header{text-align:center}
+.phone{width:min(100%,390px);height:708px;background:white;border:1px solid #d5dce5;border-radius:31px;overflow:hidden;margin:0 auto;display:flex;flex-direction:column;box-shadow:0 9px 22px #22334918;position:relative;isolation:isolate}
+.status{padding:12px 16px 3px;display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:700}
+.head{height:58px;min-height:58px;display:grid;grid-template-columns:44px minmax(0,1fr) 44px;gap:5px;align-items:center;padding:0 8px;border-bottom:1px solid #edf0f4}
+.icon{border:0;background:transparent;width:44px;height:44px;display:grid;place-items:center;font-size:19px;color:#222;border-radius:50%}
+.icon.primary{background:var(--accent);color:#fff}
+.tabs{height:44px;min-width:0;border-radius:999px;padding:2px;display:grid;grid-template-columns:1fr 1fr;background:#f5f5f5;gap:2px}
+.tabs button{border:0;background:transparent;border-radius:999px;min-width:0;height:40px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px}
+.tabs button:first-child{background:white;font-weight:600;box-shadow:0 1px 3px #00000009}
+.avatar{width:25px;height:25px;flex:none;border-radius:50%;display:grid;place-items:center;background:#d5edf1;color:#35576b;font-size:12px;font-weight:700;line-height:1}
+.scroll{overflow:auto;min-height:0;flex:1;padding:10px 12px 20px}
+.day{text-align:center;font-size:11px;color:#98a2b3;margin:9px 0 15px}
+.msg{display:flex;flex-direction:column;align-items:flex-start;gap:5px;margin-bottom:13px}.msg.self{align-items:flex-end}
+.bubble{max-width:85%;font-size:14px;line-height:1.4;padding:8px 11px;border-radius:17px;background:#f1f2f4;border:0;text-align:left;color:#142238;overflow-wrap:anywhere}.msg.self .bubble{background:#e8f3fe}
+.caption{color:#98a2b3;font-size:10px}
+.gallery{width:min(268px,95%);display:grid;gap:3px;grid-template-columns:1.48fr 1fr;grid-template-rows:1fr 1fr;aspect-ratio:1.4;border-radius:14px;overflow:hidden}
+.gallery.two{grid-template-columns:1fr 1fr;grid-template-rows:1fr;aspect-ratio:1.8}.gallery.one{display:block;aspect-ratio:1.5}.gallery.three button:first-child{grid-row:span 2}
+.gallery button{border:0;padding:0;background:#c7dfe1;min-height:0;min-width:0;position:relative;overflow:hidden}
+.gallery img{width:100%;height:100%;object-fit:cover;display:block}.gallery .more{position:absolute;inset:0;background:#0007;color:white;font-size:24px;font-weight:700;display:grid;place-items:center}
+.actions{display:flex;gap:5px;max-width:100%;flex-wrap:wrap}.actions button{border:1px solid #dce3ed;background:white;padding:8px 9px;border-radius:9px;min-height:38px;font-size:11px;color:#294767}
+.composer{border-top:1px solid #ebeff2;padding:8px 10px calc(9px + env(safe-area-inset-bottom,0px))}
+.compose-line{display:grid;grid-template-columns:44px minmax(0,1fr) 44px 44px;align-items:center;border:1px solid var(--line);border-radius:20px;padding:2px;gap:2px}
+.compose-line:focus-within{border-color:#b3c9e5}.compose-line textarea{font:400 16px/22px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;border:0;outline:0;min-width:0;width:100%;height:44px;padding:11px 2px;resize:none;background:transparent}
+.demo-hint{font-size:11px;line-height:1.45;padding:9px 10px;border:1px solid #e1e6eb;border-radius:10px;background:#f9fafb;margin:0 0 9px;color:#475467}
+.draft-pick{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;margin-bottom:8px}
+.draft-pick button{border:2px solid transparent;padding:0;background:#eef3f9;height:56px;border-radius:9px;overflow:hidden;position:relative}
+.draft-pick button[aria-pressed=true]{border-color:#3478ee}.draft-pick button[aria-pressed=true]::after{content:"✓";position:absolute;right:2px;top:2px;border-radius:50%;background:#3478ee;color:#fff;width:18px;height:18px;font-size:12px;display:grid;place-items:center}
+.draft-pick img{width:100%;height:100%;object-fit:cover}
+.draft-row{display:flex;justify-content:space-between;gap:5px;align-items:center;margin:4px 0 7px;font-size:11px;color:var(--muted)}.draft-row button{border:1px solid #dce3ea;border-radius:8px;background:#fff;padding:7px;font-size:11px}
+.draft-tray{display:flex;gap:5px;overflow-x:auto;margin:0 0 8px}.draft-item{height:59px;width:59px;flex:none;position:relative}.draft-item img{height:54px;width:54px;object-fit:cover;border-radius:8px}.draft-item button{position:absolute;top:0;right:0;border:0;color:#fff;background:#192537;border-radius:50%;width:21px;height:21px}
+.draft-send{min-height:39px;width:100%;background:#3478ee;color:white;border:0;border-radius:10px;font-size:12px;font-weight:700;margin-bottom:8px}.draft-send:disabled{opacity:.4}
+.inspector{background:white;border-left:1px solid var(--line);padding:21px 16px}.inspector h2{font-size:16px;margin:0 0 10px}.inspector h3{font-size:13px;margin:18px 0 8px}.inspector p,.inspector li{font-size:12px;color:#667085;line-height:1.6}.inspector ol{padding-left:19px}.inspector a{display:block;text-decoration:none;background:#f3f7fd;border:1px solid #e2eaf8;border-radius:8px;padding:8px 10px;color:#2e64a5;font-size:11px;margin:6px 0;overflow-wrap:anywhere}
+.viewer{position:absolute;inset:0;background:#090b0f;color:#fff;z-index:5;display:grid;grid-template-rows:auto minmax(0,1fr) auto}
+.viewer-head{display:flex;align-items:center;gap:5px;padding:10px 8px}.viewer-head strong{flex:1;font-size:12px}.viewer-head small{display:block;font-size:10px;color:#adb7c4;font-weight:400;margin-top:3px}
+.viewer-head button{min-width:35px;min-height:35px;border:1px solid #ffffff33;border-radius:10px;background:#232a33;color:#fff}
+.viewer-body{min-height:0;position:relative;display:grid;place-items:center;padding:7px;overflow:hidden}.viewer-body img{max-width:100%;max-height:100%;object-fit:contain;transform:scale(var(--zoom,1));border-radius:6px}.viewer-body button{position:absolute;top:50%;transform:translateY(-50%);width:41px;height:44px;border-radius:12px;border:1px solid #ffffff2e;background:#1119;color:white}.viewer-body .prev{left:0}.viewer-body .next{right:0}
+.viewer-foot{padding:7px 8px 14px;background:#13171d;display:grid;gap:8px}
+.thumbs{display:flex;align-items:center;gap:5px;overflow-x:auto;min-height:52px}.thumbs button{width:54px;height:49px;min-width:54px;border:2px solid transparent;border-radius:8px;background:#243244;overflow:hidden;padding:0;opacity:.6;position:relative}.thumbs button[aria-current=true]{opacity:1;border-color:#2991ff}.thumbs button[aria-pressed=true]::after{content:"✓";position:absolute;top:2px;right:2px;width:19px;height:19px;border-radius:50%;background:#3478ee;display:grid;place-items:center;font-size:12px;color:#fff}
+.thumbs img{width:100%;height:100%;object-fit:cover}
+.filters{display:flex;gap:5px;overflow-x:auto;min-height:38px}.filters button{flex:none;border:1px solid #ffffff3d;border-radius:999px;background:#292f39;color:#fff;padding:6px 11px;font-size:11px}.filters button[aria-pressed=true]{background:#566071}.filters button.proposal{background:#1f5086;border-color:#3677b7}
+.viewer-status{font-size:10px;color:#b7c3cf;display:flex;align-items:center;justify-content:space-between;gap:8px}.viewer-status button{min-height:36px;background:#266fb9;border:0;color:#fff;border-radius:8px;font-size:11px;padding:7px}
+.overlay{position:absolute;inset:0;display:grid;place-items:center;background:#0008;z-index:8;padding:14px}
+.sheet{background:#fff;color:#1b2739;border-radius:19px;padding:16px;width:100%;max-height:85%;overflow-y:auto}.sheet h3{font-size:15px;margin:0 0 12px}.sheet p{font-size:12px;color:#667085;line-height:1.5}.sheet button{width:100%;border:1px solid var(--line);min-height:44px;border-radius:9px;background:#fff;text-align:left;padding:9px;font-size:12px;margin:4px 0}.sheet input{min-height:44px;border:1px solid var(--line);border-radius:9px;width:100%;font-size:16px;padding:0 10px}.sheet button.end{background:#eff3f9;text-align:center}
+#toast{position:absolute;bottom:80px;left:12px;right:12px;z-index:11;background:#273548;color:#fff;border-radius:10px;padding:11px;font-size:12px;text-align:center}
+.note{font-size:11px;color:#64748b;text-align:center;margin:12px auto;max-width:480px;line-height:1.45}
+@media(max-width:1120px){.layout{grid-template-columns:190px minmax(320px,1fr)}.inspector{grid-column:1/-1;border-top:1px solid var(--line);border-left:0}.side{padding:15px 9px}}
+@media(max-width:710px){.layout{display:block}.side{padding:11px;border-right:0;border-bottom:1px solid var(--line)}.side>p{display:none}.nav{flex-direction:row;overflow-x:auto}.nav button{min-width:128px}.stage{padding:12px 7px 25px}.phone{height:min(710px,calc(100dvh - 157px));min-height:530px}.inspector{padding:17px}}
+@media(prefers-reduced-motion:reduce){*{transition-duration:0s!important;animation-duration:0s!important}}
+</style></head><body>
+<header class="page-head"><div><h1>Luồng UI Chat · Tin A/B, chia sẻ và ảnh</h1><p>Trích các loại component của Chat đang chạy để thử riêng từng trạng thái</p></div><a href="./">← Thư viện component</a></header>
+<div class="layout">
+<aside class="side"><h2>Thao tác muốn xem</h2><p>A = mình gửi bên phải, B = khách gửi bên trái. Chia sẻ ra ngoài khác chuyển tiếp trong Chat.</p><nav class="nav" aria-label="Loại luồng">
+<button type="button" data-mode="chat" aria-current="true">01 · Tin nhắn A/B<small>Chạm để hiện hành động</small></button>
+<button type="button" data-mode="share" aria-current="false">02 · Chia sẻ / chuyển tiếp<small>Web Share và Admin</small></button>
+<button type="button" data-mode="viewer" aria-current="false">03 · Xem ảnh / album<small>Lọc A, B, album; zoom</small></button>
+<button type="button" data-mode="multi" aria-current="false">04 · Chọn nhiều ảnh<small>Đính kèm trước khi gửi</small></button></nav></aside>
+<main class="stage"><div class="stage-header"><h2 id="modeTitle">Tin nhắn A/B</h2><p class="intro" id="modeIntro">Bấm vào tin chữ, ảnh và album để xem thao tác.</p></div>
+<div class="phone" id="phone"><div class="status"><span>9:41</span><span>▂▃▅ ▰</span></div>
+<header class="head"><button class="icon" data-action="open-multi" aria-label="Chọn nhiều ảnh mẫu" type="button">☰</button><div class="tabs"><button type="button"><span class="avatar">T</span>test9</button><button type="button">Công việc</button></div><button class="icon" type="button" data-action="demo-call" aria-label="Gọi mẫu">♧</button></header>
+<div id="messageScroll" class="scroll"><div class="day">Hôm nay</div><div id="messageList"></div></div>
+<div class="composer">
+<div id="draftSection" hidden><div class="demo-hint"><b>Đang có ở Chat:</b> Chọn nhiều tệp ảnh trước khi gửi, khay xem trước, xóa từng ảnh. Nút chọn nhiều trong Viewer là đề xuất riêng.</div>
+<div id="draftExamples" class="draft-pick"></div><div class="draft-row"><span id="draftNumber">0 ảnh chờ gửi</span><button data-action="pick-files" type="button">Chọn từ máy</button><button data-action="clear-draft" type="button">Bỏ tất cả</button></div><div id="draftTray" class="draft-tray"></div><button type="button" class="draft-send" id="draftSend" data-action="send-draft" disabled>Gửi album mẫu (không gửi thật)</button></div>
+<div id="modeTip" class="demo-hint" hidden></div><div class="compose-line"><button class="icon" type="button" data-action="open-multi" aria-label="Thêm nội dung mẫu">＋</button><textarea rows="1" id="textDraft" placeholder="Nhắn tin..." aria-label="Tin nhắn demo"></textarea><button class="icon" type="button" data-action="demo-mic" aria-label="Micro mẫu">♩</button><button class="icon primary" type="button" data-action="send-text" aria-label="Gửi tin mẫu">↑</button></div><input type="file" accept="image/*" multiple hidden id="imageInput">
+</div>
+<section class="viewer" id="viewer" hidden aria-label="Viewer ảnh minh họa">
+<div class="viewer-head"><button type="button" data-action="close-viewer" aria-label="Đóng ảnh">✕</button><strong><span id="viewerCounter">Ảnh 1 / 1</span><small id="viewerSource"></small></strong><button type="button" data-action="zoom-out" aria-label="Thu nhỏ">−</button><output id="zoomValue" style="font-size:10px">100%</output><button type="button" data-action="zoom-in" aria-label="Phóng to">＋</button><button type="button" data-action="viewer-more" aria-label="Tùy chọn ảnh">⋯</button></div>
+<div class="viewer-body"><button class="prev" type="button" data-action="prev" aria-label="Ảnh trước">‹</button><img id="bigPhoto" alt="Ảnh mẫu trong viewer"><button class="next" type="button" data-action="next" aria-label="Ảnh tiếp">›</button></div>
+<div class="viewer-foot"><div id="viewerThumbs" class="thumbs" aria-label="Ảnh thu nhỏ"></div><div id="filters" class="filters"><button data-filter="all" aria-pressed="false" type="button">Tất cả</button><button data-filter="self" aria-pressed="false" type="button">A</button><button data-filter="remote" aria-pressed="false" type="button">B</button><button data-filter="album" aria-pressed="true" type="button">Album</button><button type="button" class="proposal" id="selectMulti" data-action="toggle-select" aria-pressed="false">Chọn nhiều*</button></div><div class="viewer-status"><span id="viewerSelectInfo">*Đề xuất, chưa có trong Chat thật</span><button type="button" id="shareSelected" data-action="share-selected" hidden>Chia sẻ nhóm*</button></div></div></section>
+<div id="overlay" class="overlay" hidden></div><div id="toast" role="status" aria-live="polite" hidden></div>
+</div><div class="note">Ảnh và tin nhắn ở đây là mẫu vẽ. Demo không đọc Supabase, không lấy media khách, không gọi Web Share hoặc chuyển tiếp thật.</div></main>
+<aside class="inspector"><h2 id="detailTitle">Tin A/B</h2><p id="detailText"></p><h3>Luồng nguồn chuẩn</h3><ol id="detailSteps"></ol><h3>Mã nguồn liên quan</h3><div id="detailSources"></div><p style="margin-top:22px"><b>Rule:</b> UI-03, UI-04, UI-23–25, UI-33, UI-35, UI-36, UI-37. Giữ một owner, không tải media thật trong bản demo.</p></aside>
+</div>
+<script>
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id);
+const info={
+ chat:['Tin nhắn A / B','Bên A là mình gửi (phải), B là bên kia gửi (trái).','app.js,index.source.html,mobile-chat-refresh.css',['Tin chữ và media dùng cùng MessageRow, khác ContentKind.','Nhấn một tin để thấy nhóm action theo loại nội dung.','Chỉ render vùng tin được tác động.']],
+ share:['Chia sẻ / chuyển tiếp','Chia sẻ ảnh ra ngoài và chuyển tiếp vào liên hệ trong Chat là hai luồng riêng.','app.js,message-forward.js,ui-icons.js',['Chia sẻ ảnh/tệp dùng Web Share khi nền tảng hỗ trợ.','Chia sẻ từ tin album có thể mang cả nhóm ảnh.','Chuyển tiếp tin nhắn vào liên hệ khác hiện chỉ dành cho Admin.']],
+ viewer:['Xem ảnh / album','Viewer đang có: ảnh hiện tại, ảnh trước/sau, dải ảnh, zoom và lọc Tất cả / A / B / Album.','app.js,index.source.html,v21-media-cache.js',['Mở ảnh từ tin hoặc album.','Lọc A / B / Album nhưng vẫn xem một ảnh tại một thời điểm.','Menu lưu/chia sẻ ảnh hiện tại, không chọn hàng loạt.']],
+ multi:['Chọn nhiều ảnh','Có sẵn: chọn nhiều tệp trước khi gửi. Đề xuất riêng: chọn đồng thời nhiều ảnh đã gửi trong Viewer.','index.source.html,app.js,v21-media-cache.js',['Bấm + → Thư viện ảnh → chọn nhiều file.','Các ảnh hiện trong khay chờ gửi; xóa từng ảnh nếu cần.','Khi gửi, album hiện tối đa bốn ô với +N cho phần còn lại.','Chọn nhiều trong Viewer ở đây chỉ là đề xuất.']]
+};
+const svgPhoto=(i)=>{
+ const c=[['#b3d6db','#9abbba','#d3a17e'],['#d9dbbb','#84a59b','#eac695'],['#bbd0e4','#7f9bb4','#dda58e'],['#e5c6bf','#bf8591','#c3d6af'],['#d2d7e2','#a4afc5','#f5cf89'],['#d9c9a8','#bd995f','#9cbeb5']][i%6];
+ const tall=i%3===1,w=tall?320:480,h=tall?430:310;
+ const s='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+w+' '+h+'"><rect width="'+w+'" height="'+h+'" fill="'+c[0]+'"/><rect x="30" y="33" width="'+(w-60)+'" height="'+(h-65)+'" rx="11" fill="'+c[1]+'"/><rect x="51" y="58" width="'+(w-102)+'" height="'+(h-120)+'" rx="12" fill="#fff9"/><rect x="74" y="85" width="'+(w-148)+'" height="'+(h-166)+'" rx="10" fill="'+c[2]+'"/><circle cx="'+Math.floor(w*.60)+'" cy="'+Math.floor(h*.40)+'" r="23" fill="#fff9"/><text x="'+Math.round(w/2)+'" y="'+(h-39)+'" font-family="Arial" font-size="20" fill="#fff" text-anchor="middle" font-weight="700">Ảnh sản phẩm '+(i+1)+'</text></svg>';
+ return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(s);
+};
+const photos=[
+ ['B1','remote','b',0],['B2','remote','b',1],['B3','remote','b',2],['B4','remote','b',3],['B5','remote','b',4],
+ ['A1','self','a',5],['A2','self','a',2],['A3','self','a',1]
+].map(([id,from,album,n])=>({id,from,album,src:svgPhoto(n)}));
+let mode='chat',chosenMessage='',opened=false,filter='album',album='b',focus='B1',zoom=1,select=false,checked=new Set(),sheet='',shareKind='',draft=[],localUrls=[],sentAlbum=[];
+const safe=(s)=>String(s||'').replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
+const findPhoto=id=>photos.concat(sentAlbum).find(p=>p.id===id);
+const group=(a)=>photos.concat(sentAlbum).filter(p=>p.album===a);
+const filterPhotos=()=>photos.concat(sentAlbum).filter(p=>filter==='all'||(filter==='album'?p.album===album:p.from===filter));
+const toast=(text)=>{const box=$('toast');box.textContent=text;box.hidden=false;clearTimeout(toast.timer);toast.timer=setTimeout(()=>box.hidden=true,2600);};
+function pictures(arr){
+ const visible=arr.slice(0,4),count=visible.length;
+ return '<div class="gallery '+(count===1?'one':count===2?'two':count===3?'three':'')+'">'+visible.map((p,i)=>'<button type="button" data-action="open-photo" data-id="'+safe(p.id)+'" aria-label="Mở ảnh '+safe(p.id)+'"><img src="'+p.src+'" alt="">'+((i===3&&arr.length>4)?'<span class="more">+'+(arr.length-4)+'</span>':'')+'</button>').join('')+'</div>';
+}
+function msg(id,side,text,albumCode){
+ const groupPhotos=albumCode?group(albumCode):[],hasImage=groupPhotos.length>0;
+ let act='';
+ if(chosenMessage===id){
+   act='<div class="actions" role="group" aria-label="Hành động tin nhắn"><button data-action="reply" type="button">Trả lời</button>'+
+     (hasImage?'<button data-action="save" type="button">Lưu</button><button data-action="share" type="button">Chia sẻ</button>':'<button data-action="copy" type="button">Sao chép</button>')+
+     '<button data-action="forward" type="button">Chuyển tiếp (Admin)</button></div>';
+ }
+ return '<article class="msg '+(side==='self'?'self':'')+'" data-msg="'+id+'">'+
+ (text?'<button type="button" class="bubble" data-action="choose-msg" data-id="'+id+'">'+safe(text)+'</button>':'')+
+ (hasImage?pictures(groupPhotos):'')+
+ '<div class="caption">'+(side==='self'?'A · mình gửi':'B · bên kia gửi')+' · 14:2'+(id.length%8)+'</div>'+
+ (hasImage?'<button type="button" class="bubble" data-action="choose-msg" data-id="'+id+'" style="font-size:11px;padding:5px 9px">⋯ Thao tác tin ảnh</button>':'')+act+'</article>';
+}
+function thread(){
+ const keep=$('messageScroll').scrollTop;
+ let output='';
+ output+=msg('b-text','remote','Em xem giúp đơn và hình hàng mới nhé.');
+ output+=msg('b-gallery','remote','5 ảnh cùng một tin', 'b');
+ output+=msg('a-text','self','Mình đã nhận, sẽ kiểm tra từng mã.');
+ output+=msg('a-gallery','self','Ảnh kiểm hàng đã nhận', 'a');
+ if(sentAlbum.length)output+=msg('a-new','self','Album mẫu vừa gửi','new');
+ $('messageList').innerHTML=output;$('messageScroll').scrollTop=keep;
+}
+function setMode(k){
+ mode=k;sheet='';opened=false;chosenMessage='';select=false;checked.clear();
+ const spec=info[k];$('modeTitle').textContent=spec[0];$('modeIntro').textContent=spec[1];$('detailTitle').textContent=spec[0];$('detailText').textContent=spec[1];
+ $('detailSteps').innerHTML=spec[3].map(x=>'<li>'+safe(x)+'</li>').join('');
+ $('detailSources').innerHTML=spec[2].split(',').map(x=>'<a href="https://github.com/1sl2tp/chat/blob/main/'+encodeURIComponent(x)+'" target="_blank" rel="noopener noreferrer">'+safe(x)+' ↗</a>').join('');
+ for(const el of document.querySelectorAll('[data-mode]'))el.setAttribute('aria-current',String(el.dataset.mode===k));
+ $('draftSection').hidden=k!=='multi';
+ $('modeTip').hidden=k==='multi'||k==='chat';
+ $('modeTip').textContent=k==='share'?'Chạm tin ảnh rồi chọn Chia sẻ hoặc Chuyển tiếp.':'Đang hiển thị Viewer ảnh. Nhấn vào thumbnail và bộ lọc.';
+ thread();renderDraft();renderViewer();drawSheet();
+ if(k==='viewer')openViewer('B2');
+ if(k==='share'){chosenMessage='b-gallery';thread();}
+}
+function openViewer(id){
+ const p=findPhoto(id);if(!p)return;
+ opened=true;focus=id;album=p.album;filter='album';zoom=1;select=false;checked.clear();renderViewer();
+}
+function renderViewer(){
+ $('viewer').hidden=!opened;if(!opened)return;
+ const arr=filterPhotos();
+ const index=arr.findIndex(p=>p.id===focus);if(index<0&&arr.length)focus=arr[0].id;
+ const active=findPhoto(focus);if(!active)return;
+ const i=arr.findIndex(x=>x.id===focus);
+ $('viewerCounter').textContent='Ảnh '+(i+1)+' / '+arr.length;
+ $('viewerSource').textContent=(active.from==='self'?'A':'B')+' · Album '+active.album.toUpperCase();
+ $('bigPhoto').src=active.src;$('bigPhoto').style.setProperty('--zoom',zoom);
+ $('zoomValue').textContent=Math.round(100*zoom)+'%';
+ $('viewerThumbs').innerHTML=arr.map(p=>'<button type="button" data-action="thumb" data-id="'+safe(p.id)+'" aria-label="Ảnh '+safe(p.id)+'" aria-current="'+String(focus===p.id)+'" aria-pressed="'+String(checked.has(p.id))+'"><img src="'+p.src+'" alt=""></button>').join('');
+ for(const b of $('filters').querySelectorAll('[data-filter]'))b.setAttribute('aria-pressed',String(b.dataset.filter===filter));
+ $('selectMulti').setAttribute('aria-pressed',String(select));
+ $('selectMulti').textContent=select?'Xong chọn':'Chọn nhiều*';
+ $('viewerSelectInfo').textContent=select?(checked.size+' ảnh đang chọn · UI đề xuất'):'*Đề xuất, chưa có trong Chat thật';
+ $('shareSelected').hidden=!select;$('shareSelected').disabled=!checked.size;
+ $('viewer').querySelector('[data-action=prev]').disabled=i<=0;
+ $('viewer').querySelector('[data-action=next]').disabled=i>=arr.length-1;
+}
+function selectFilter(f){
+ filter=f;let arr=filterPhotos();
+ if(!arr.some(p=>p.id===focus)&&arr.length)focus=arr[0].id;
+ zoom=1;renderViewer();
+}
+function next(delta){let arr=filterPhotos(),i=arr.findIndex(x=>x.id===focus);if(i+delta<0||i+delta>=arr.length)return;focus=arr[i+delta].id;zoom=1;renderViewer();}
+function clickThumb(id){if(!select){focus=id;zoom=1;}else{checked.has(id)?checked.delete(id):checked.add(id);}renderViewer();}
+function renderDraft(){
+ $('draftNumber').textContent=draft.length+' ảnh chờ gửi';
+ $('draftExamples').innerHTML=photos.slice(0,5).map(p=>'<button type="button" data-action="add-photo" data-id="'+p.id+'" aria-label="Chọn ảnh mẫu '+p.id+'" aria-pressed="'+String(draft.some(x=>x.src===p.src))+'"><img src="'+p.src+'" alt=""></button>').join('');
+ $('draftTray').innerHTML=draft.map(p=>'<div class="draft-item"><img src="'+p.src+'" alt=""><button type="button" data-action="remove-photo" data-id="'+p.id+'" aria-label="Bỏ ảnh">×</button></div>').join('');
+ $('draftSend').disabled=!draft.length;
+}
+function drawSheet(){
+ $('overlay').hidden=!sheet;if(!sheet){$('overlay').innerHTML='';return;}
+ let body='';
+ if(sheet==='share'){
+  const items=shareKind==='selected'?[...checked].map(findPhoto).filter(Boolean):shareKind==='viewer'?[findPhoto(focus)].filter(Boolean):group(shareKind==='a-gallery'?'a':shareKind==='a-new'?'new':'b');
+  body='<h3>Chia sẻ '+items.length+' ảnh · bản xem mẫu</h3><p>Web Share là thao tác của nền tảng. Bản này không gọi chia sẻ thật.</p>'+items.map(x=>'<button type="button" disabled>'+safe(x.id)+' · '+(x.from==='self'?'A':'B')+'</button>').join('')+
+  '<p>Tin album chia sẻ cả nhóm. Trong Viewer đang chạy chỉ chia sẻ ảnh hiện tại.</p>';
+ }else if(sheet==='forward'){
+  body='<h3>Chuyển tiếp · Admin</h3><p>Mã thật chỉ cho Admin chuyển tiếp tin đủ điều kiện. Demo chọn liên hệ mẫu, không gửi.</p><input id="searchContact" type="search" placeholder="Tìm liên hệ..." aria-label="Tìm liên hệ">'+
+  ['Cửa hàng Hà','Đại lý Quyên','Khách test9'].map(x=>'<button type="button" data-action="forward-contact" data-name="'+safe(x)+'">'+safe(x)+'</button>').join('');
+ }else if(sheet==='options'){
+  body='<h3>Menu ảnh đang xem</h3><button data-action="viewer-save" type="button">Lưu ảnh hiện tại</button><button data-action="viewer-share" type="button">Chia sẻ ảnh hiện tại</button><p>Lọc theo thời gian cũng thuộc menu ảnh hiện tại.</p>';
+ }
+ $('overlay').innerHTML='<section class="sheet" role="dialog" aria-modal="true" aria-label="Thao tác mẫu">'+body+'<button class="end" data-action="close-sheet" type="button">Đóng</button></section>';
+ $('overlay').querySelector('button')?.focus({preventScroll:true});
+}
+function handle(action,el){
+ const id=el.dataset.id;
+ if(action==='open-photo'){openViewer(id);return;}
+ if(action==='choose-msg'){chosenMessage=chosenMessage===id?'':id;thread();return;}
+ if(action==='share'){shareKind=chosenMessage;sheet='share';drawSheet();return;}
+ if(action==='forward'){sheet='forward';drawSheet();return;}
+ if(action==='copy'||action==='reply'||action==='save'){toast('Chỉ mô phỏng nút '+action+', không thao tác lên Chat thật.');return;}
+ if(action==='prev'||action==='next'){next(action==='prev'?-1:1);return;}
+ if(action==='close-viewer'){opened=false;select=false;checked.clear();sheet='';renderViewer();drawSheet();return;}
+ if(action==='zoom-in'||action==='zoom-out'){zoom=Math.max(1,Math.min(5,zoom+(action==='zoom-in'?.5:-.5)));renderViewer();return;}
+ if(action==='thumb'){clickThumb(id);return;}
+ if(action==='toggle-select'){select=!select;checked.clear();renderViewer();return;}
+ if(action==='share-selected'){shareKind='selected';sheet='share';drawSheet();return;}
+ if(action==='viewer-more'){sheet='options';drawSheet();return;}
+ if(action==='viewer-save'){sheet='';drawSheet();toast('Lưu ảnh chỉ là mẫu UI');return;}
+ if(action==='viewer-share'){shareKind='viewer';sheet='share';drawSheet();return;}
+ if(action==='close-sheet'){sheet='';drawSheet();return;}
+ if(action==='forward-contact'){sheet='';drawSheet();toast('Đã chọn '+el.dataset.name+' · không gửi tin thật.');return;}
+ if(action==='add-photo'){
+  const p=findPhoto(id);if(draft.some(x=>x.src===p.src))draft=draft.filter(x=>x.src!==p.src);else if(draft.length<12)draft.push({...p,id:'draft-'+p.id});
+  renderDraft();return;
+ }
+ if(action==='remove-photo'){draft=draft.filter(x=>x.id!==id);renderDraft();return;}
+ if(action==='pick-files'){$('imageInput').click();return;}
+ if(action==='clear-draft'){draft=[];renderDraft();return;}
+ if(action==='send-draft'){
+  if(!draft.length)return;
+  sentAlbum=draft.map((p,i)=>({...p,id:'N'+i,album:'new',from:'self'}));
+  draft=[];renderDraft();thread();$('messageScroll').scrollTop=$('messageScroll').scrollHeight;
+  toast('Đã chèn album mô phỏng. Không gửi dữ liệu lên Chat.');
+  return;
+ }
+ if(action==='open-multi'){setMode('multi');return;}
+ if(action==='demo-call'||action==='demo-mic'){toast('Nút minh họa, không dùng microphone hay tạo cuộc gọi.');return;}
+ if(action==='send-text'){
+  const v=$('textDraft').value.trim();if(!v)return;
+  const row=document.createElement('article');row.className='msg self';
+  const bubble=document.createElement('div');bubble.className='bubble';bubble.textContent=v;row.appendChild(bubble);
+  $('messageList').appendChild(row);$('textDraft').value='';toast('Chỉ hiển thị tại bản demo.');return;
+ }
+}
+document.querySelector('.nav').addEventListener('click',e=>{const b=e.target.closest('[data-mode]');if(b)setMode(b.dataset.mode);});
+$('phone').addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(b)handle(b.dataset.action,b);else if(e.target===$('overlay')){sheet='';drawSheet();}});
+$('filters').addEventListener('click',e=>{const b=e.target.closest('[data-filter]');if(b)selectFilter(b.dataset.filter);});
+$('phone').addEventListener('keydown',e=>{if(e.key==='Escape'&&sheet){sheet='';drawSheet();return;}if(e.key==='Escape'&&opened){opened=false;renderViewer();}});
+$('textDraft').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();handle('send-text',e.target);}});
+$('imageInput').addEventListener('change',e=>{
+ for(const file of [...e.target.files].filter(x=>x.type.startsWith('image/')&&x.size<12*1024*1024)){
+  if(draft.length>=12)break;
+  const src=URL.createObjectURL(file);localUrls.push(src);
+  draft.push({id:'local'+localUrls.length,from:'self',album:'new',src});
+ }
+ e.target.value='';renderDraft();
+});
+window.addEventListener('pagehide',()=>{for(const u of localUrls)URL.revokeObjectURL(u)},{once:true});
+setMode('chat');
+})();
+</script></body></html>
