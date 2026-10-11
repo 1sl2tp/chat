@@ -1201,6 +1201,15 @@ function scrollToTail(reason='explicit',{messageId=undefined}={}){
 
   if(pendingTailFrame)cancelAnimationFrame(pendingTailFrame);
 
+  // Incoming/local NEW messages already changed the DOM synchronously in
+  // renderWindow(). Commit the new tail now, before the browser can paint the
+  // old viewport then show a visible catch-up scroll on the following frame.
+  // Explicit history/USER_AWAY never calls this tail intent, and the existing
+  // bounded settle loop still corrects later media/keyboard geometry.
+  if(reason==='remote-message'||reason==='new-message'||reason==='reconcile-new-message'){
+    setScrollTop(scrollRoot.scrollHeight-scrollRoot.clientHeight);
+  }
+
   const settle=()=>{
     if(token!==pendingTailToken||viewEpoch!==conversationViewEpoch)return;
 
