@@ -54,9 +54,7 @@ nav button[aria-current="true"]{background:#e9ebef;color:#111;font-weight:650}
 .composer-tapho{min-height:50px;border-radius:20px;padding:2px;display:flex;gap:2px;align-items:center}
 .composer-tapho .round{min-width:40px;width:40px;height:40px}
 .composer-tapho .composer-prompt{font-size:15px;color:#858585;min-width:0;flex:1}
-.tap-tabs{display:grid;grid-template-columns:1fr 1fr;padding:2px;gap:3px;border-radius:50px;background:#f5f5f5;font-size:13px;flex:1;min-width:0;text-align:center;align-items:center}
-.tap-tabs span{padding:9px 4px;color:#656565;white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis}
-.tap-tabs .selected{background:#fff;border-radius:60px;color:#222;box-shadow:0 1px 4px #0001;font-weight:600}
+
 .directory{padding:14px}
 .dir-heading{font-size:17px;font-weight:700;margin:10px 0 23px}
 .search-box{background:#f8f8f8;border:1px solid #e0e2e6;border-radius:11px;color:#9ca3af;padding:14px;font-size:14px}
@@ -90,42 +88,6 @@ nav button[aria-current="true"]{background:#e9ebef;color:#111;font-weight:650}
 .note{margin:12px auto 0;max-width:520px;font-size:11px;color:#777;line-height:1.5}
 @media(max-width:900px){.app{grid-template-columns:160px minmax(290px,1fr) minmax(290px,1fr);min-width:760px}nav{padding:16px 8px}.compare-col{padding:12px}}
 @media(max-width:600px){body{overflow-x:auto}.app{min-width:760px}.phone{height:620px}}
-/* Demo only: match TAPHOA's Top / Middle / Bottom against the ChatGPT column.
-   Keep incoming bubble background, 9px inter-message gap, 30px side gutters. */
-/* TOP: header height, gap and icon size already share .phone-head/.hamb/.head-control.
-   Align the TAPHOA tab typography with ChatGPT's 15px navigation title. */
-#tap .tap-tabs{font-size:15px}
-#tap .tap-tabs .selected{font-weight:650}
-/* MIDDLE: both columns already share 15px body text and 30px side gutters.
-   A preserves its grey bubble, B retains the same blue bubble as ChatGPT. */
-/* BOTTOM: keep TAPHOA's existing four elements, lay them out like ChatGPT:
-   text above, existing + / mic / send controls on the lower row. */
-#tap .composer-tapho{
-  display:grid;
-  grid-template-columns:36px minmax(0,1fr) 36px 36px;
-  grid-template-rows:auto 36px;
-  align-items:center;
-  column-gap:8px;
-  row-gap:0;
-  min-height:65px;
-  padding:10px 9px 7px;
-  border-radius:28px;
-}
-#tap .composer-tapho>.composer-prompt{
-  grid-column:1/-1;
-  grid-row:1;
-  margin:1px 5px 8px;
-  color:#868686;
-  font-size:15px;
-  flex:none;
-}
-#tap .composer-tapho>.round{width:36px;min-width:36px;height:36px}
-#tap .composer-tapho>.round:nth-child(1){grid-column:1;grid-row:2}
-#tap .composer-tapho>.round:nth-child(3){grid-column:3;grid-row:2}
-#tap .composer-tapho>.round:nth-child(4){grid-column:4;grid-row:2}
-#tap .composer-tapho>.round.grey{background:#3b82f6}
-#tap .composer-tapho>.round.grey svg{transform:rotate(-90deg)}
-
 /* Mobile-first comparison viewport.
    iPhone 13/14 CSS viewport reference: 390 × 844.
    Both sides use identical logical coordinates and scale uniformly on desktop.
@@ -259,75 +221,108 @@ nav button[aria-current="true"]{background:#e9ebef;color:#111;font-weight:650}
 .media-lightbox .lightbox-note{position:absolute;bottom:5px;color:#fff9;font-size:11px}
 
 
-/* SOURCE-ALIGNED CHAT DEMO — UI only: borrowed geometry and tokens from
- * ui-foundation.css, mobile-chat-refresh.css and mobile-ui-polish.css.
- * No auth, RPC, storage, media hydration or background work is used here. */
+
+/* SOURCE-ALIGNED CHAT COMPONENTS — scoped selectors; no global span rules. */
+#tap{
+ --ui-control-touch:44px;--ui-avatar-size:26px;--ui-gap:8px;--ui-gutter:12px;
+ --ui-text:#111827;--ui-muted:#667085;--ui-border:#e4e7ec;
+ --ui-radius-pill:999px;
+ --ui-font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+ font-family:var(--ui-font);
+}
+#tap .phone{position:relative}
 #tap .phone-head{
-  display:grid;
-  grid-template-columns:40px minmax(0,1fr) 40px;
-  gap:7px;align-items:center;
-  padding:0 12px;
-  min-height:60px;height:60px;
+ display:grid;grid-template-columns:44px minmax(0,1fr) 44px;
+ gap:var(--ui-gap);height:60px;min-height:60px;
+ align-items:center;padding-inline:var(--ui-gutter);background:#fff;
 }
-#tap .tap-head-icon{width:40px;height:44px;min-width:40px;display:grid;place-items:center;color:#171717;flex:none}
-#tap .tap-head-icon svg{width:20px;height:20px}
+#tap .tap-head-icon{
+ display:grid;place-items:center;width:var(--ui-control-touch);height:var(--ui-control-touch);
+ min-width:var(--ui-control-touch);min-height:var(--ui-control-touch);
+ margin:0;padding:0;border:0;background:transparent;color:var(--ui-text);
+}
+#tap .tap-head-icon svg{display:block;width:20px;height:20px}
 #tap .tap-tabs{
-  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
-  align-items:center;width:100%;max-width:320px;min-width:0;
-  height:44px;margin:auto;padding:2px;gap:2px;
-  background:#f5f5f5;border-radius:999px;overflow:hidden;flex:none;
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ align-items:center;gap:2px;width:100%;max-width:320px;min-width:0;
+ height:48px;padding:2px;margin:0 auto;border-radius:var(--ui-radius-pill);
+ background:#f5f5f5;overflow:hidden;
 }
-#tap .tap-tabs>.selected,#tap .tap-tabs>.tap-work{
-  display:flex;justify-content:center;align-items:center;
-  height:40px;min-width:0;padding:0 7px;border-radius:999px;
-  overflow:hidden;white-space:nowrap;font-size:14px;color:#656565;
+#tap .tap-mode-tab{
+ display:flex;align-items:center;justify-content:center;gap:6px;
+ width:100%;height:var(--ui-control-touch);min-width:0;
+ min-height:var(--ui-control-touch);margin:0;padding:0 8px;
+ border:0;border-radius:var(--ui-radius-pill);
+ color:var(--ui-muted);background:transparent;
+ font:500 14px/1.3 var(--ui-font);overflow:hidden;
 }
-#tap .tap-tabs>.selected{background:#fff;color:#171717;font-weight:650;box-shadow:0 1px 5px #00000012}
-#tap .tap-contact-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tap .tap-mode-tab[aria-selected="true"]{
+ background:#fff;color:var(--ui-text);font-weight:600;
+ box-shadow:0 1px 2px rgba(16,24,40,.06);
+}
 #tap .tap-avatar{
-  width:25px;height:25px;flex:none;margin-right:7px;
-  border-radius:50%;display:grid;place-items:center;
-  background:#d5edf1;color:#35576b;font-size:12px;font-weight:500;
+ display:inline-flex;align-items:center;justify-content:center;
+ flex:0 0 var(--ui-avatar-size);width:var(--ui-avatar-size);height:var(--ui-avatar-size);
+ min-width:var(--ui-avatar-size);max-width:var(--ui-avatar-size);
+ min-height:var(--ui-avatar-size);max-height:var(--ui-avatar-size);
+ padding:0;margin:0;border:0;border-radius:var(--ui-radius-pill);
+ background:#d5edf1;color:#35576b;
+ font:700 12px/1 var(--ui-font);
+ white-space:nowrap;letter-spacing:0;text-overflow:clip;box-sizing:border-box;
+}
+#tap .tap-contact-name,#tap .tap-work-label{
+ display:block;flex:0 1 auto;min-width:0;max-width:100%;
+ overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+}
+#tap .tap-mode-tab:focus-visible,#tap .tap-head-icon:focus-visible,
+#tap .composer-tapho>.round:focus-visible{
+ outline:2px solid #3b82f6;outline-offset:2px;
 }
 #tap .composer-source-frame.chat-content-axis{
-  width:calc(100% - 24px);max-width:44rem;margin-inline:auto;padding-inline:0
+ box-sizing:border-box;width:calc(100% - 24px);max-width:44rem;
+ margin-inline:auto;padding-inline:0;
 }
 #tap .composer-tapho{
-  display:grid;grid-template-columns:44px minmax(0,1fr) 44px 44px;
-  grid-template-rows:minmax(44px,auto);align-items:center;gap:0 2px;
-  min-height:50px;padding:2px;border-radius:20px;
+ display:grid;grid-template-columns:44px minmax(0,1fr) 44px 44px;
+ grid-template-rows:minmax(44px,auto);gap:0 2px;
+ align-items:center;min-height:50px;padding:2px;border-radius:20px;
 }
 #tap .composer-tapho>.composer-prompt{
-  grid-column:2;grid-row:1;margin:0;padding:0 2px;
-  font-size:16px;line-height:22px;min-width:0;max-width:100%;
-  overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:#8a8a8a;
+ grid-column:2;grid-row:1;width:100%;min-width:0;max-width:100%;
+ height:44px;min-height:44px;padding:0 2px;margin:0;
+ font:400 16px/22px var(--ui-font);border:0;background:transparent;
+ color:var(--ui-text);text-overflow:ellipsis;
 }
+#tap .composer-tapho>.composer-prompt::placeholder{color:var(--ui-muted)}
 #tap .composer-tapho>.round{
-  min-width:44px;width:44px;height:44px;grid-row:1;
+ display:grid;place-items:center;grid-row:1;min-width:44px;width:44px;height:44px;
+ min-height:44px;margin:0;padding:0;border:0;background:transparent;
+ line-height:1;
 }
 #tap .composer-tapho>.round:nth-child(1){grid-column:1}
 #tap .composer-tapho>.round:nth-child(3){grid-column:3}
 #tap .composer-tapho>.round:nth-child(4){grid-column:4}
+#tap .composer-tapho>.round.grey{background:#3b82f6;border-radius:999px}
+#tap .composer-tapho>.round.grey svg{transform:rotate(-90deg)}
 #tap .media-photo.landscape img,#tap .media-photo.portrait img{object-fit:contain}
 #tap .media-photo.landscape,#tap .media-photo.portrait{
-  background:#f3f3f3;padding:4px;border-radius:14px;
+ background:#f3f3f3;padding:4px;border-radius:14px;
 }
 #tap .media-collage{gap:4px;padding:4px;background:#f3f3f3;border-radius:14px}
 #tap .media-audio{
-  display:grid;grid-template-columns:32px minmax(0,1fr) auto;
-  width:264px;max-width:100%;gap:8px;min-height:44px;
-  border:1px solid #e2e2e2;border-radius:14px;background:#fff;
-  padding:6px 7px;box-shadow:none;
+ display:grid;grid-template-columns:32px minmax(0,1fr) auto;
+ width:264px;max-width:100%;gap:8px;min-height:44px;
+ border:1px solid #e2e2e2;border-radius:14px;background:#fff;
+ padding:6px 7px;box-shadow:none;
 }
 #tap .media-audio .audio-icon{background:#202020;color:white;font-size:12px}
 #tap .media-audio .media-waves i{background:#888}
 #tap .media-message.out .media-audio{background:#e8f3fe;border-color:transparent}
-.media-message .media-file{box-shadow:none}
-.media-message .media-label{font-size:11px}
 #tap .media-message{max-width:100%}
 #tap .media-message.out{align-items:flex-end}
 #tap .media-message.in{align-items:flex-start}
-.stage-cap{margin-top:9px;text-align:center;font-size:11px;color:#797979;line-height:1.4}
+.media-message .media-file{box-shadow:none}
+.media-message .media-label{font-size:11px}
 </style></head>
 <body>
 <main class="app">
@@ -343,7 +338,7 @@ nav button[aria-current="true"]{background:#e9ebef;color:#111;font-weight:650}
 <p class="note">Mẫu tham chiếu từ thư viện ChatGPT đã lưu; không phải giao diện live hiện tại.</p></section>
 <section class="compare-col"><header class="compare-head">Chat Tạp Hóa<small>Thành phần từ source 1sl2tp/chat và ảnh bạn gửi</small></header><div id="tap" class="stage"></div>
 <p class="note">Dữ liệu minh họa, không đăng nhập, không gửi tin, không kết nối Supabase.</p></section>
-</main><script>const screens={"chat":{"gpt":"<div class=\"phone\"><header class=\"phone-head\"><span class=\"hamb\">☰</span><span class=\"head-title\">ChatGPT <span class=\"chev\">⌄</span></span><span class=\"push-right\"></span><span class=\"head-control\">✎</span><span class=\"head-control\">···</span></header><div class=\"phone-body\"><div class=\"chat-scroll\"><div class=\"date-line\">Hôm nay</div><div class=\"gpt-user\"><div class=\"bubble-gpt\">Tin nhắn của tôi</div></div><div class=\"gpt-reply\">Nội dung trả lời trong hội thoại.</div></div></div><div class=\"phone-bottom\"><div class=\"composer-gpt\"><div class=\"composer-prompt\">Hỏi bất kỳ điều gì</div><div class=\"composer-actions\"><span class=\"round\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 3.25v13.5M3.25 10h13.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\"/></svg></span><span class=\"push-right\"></span><span class=\"round\"><svg viewBox=\"0 0 24 24\" width=\"21\" height=\"21\" aria-hidden=\"true\"><path d=\"M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\"/><path d=\"M5.8 10.8a6.2 6.2 0 0 0 12.4 0M12 17v3M9.5 20h5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\"/></svg></span><span class=\"round blue\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 16V4m0 0L5.7 8.3M10 4l4.3 4.3\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></span></div></div></div></div>","tap":"<div class=\"phone\"><header class=\"phone-head\">\n  <span class=\"tap-head-icon\" aria-label=\"Menu\">\n    <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" aria-hidden=\"true\"><path d=\"M4 6h16M4 12h12M4 18h7\"/></svg>\n  </span>\n  <div class=\"tap-tabs\" aria-label=\"Trò chuyện và Công việc\">\n    <span class=\"selected\"><span class=\"tap-avatar\">T</span><span class=\"tap-contact-name\">test9</span></span>\n    <span class=\"tap-work\">Công việc</span>\n  </div>\n  <span class=\"tap-head-icon\" aria-label=\"Gọi\">\n    <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7.2 4.5 10 8l-1.8 2.2c1.2 2.5 3.1 4.4 5.6 5.6L16 14l3.5 2.8-.9 2.7c-.3.8-1.1 1.3-2 1.2C9.4 19.8 4.2 14.6 3.3 7.4c-.1-.9.4-1.7 1.2-2l2.7-.9Z\"/></svg>\n  </span>\n</header><div class=\"phone-body\"><div id=\"conversationContentAxis\" class=\"chat-content-axis\"><div id=\"messageWindow\" class=\"chat-scroll\"><div class=\"chat-a message-row\"><div class=\"bubble-a message-text\">Nội dung tin nhắn bên A.</div></div><div class=\"chat-b message-row\"><div class=\"bubble-b message-text\">Nội dung tin nhắn bên B.</div></div><div class=\"chat-a message-row\"><div class=\"bubble-a message-text\">Tin nhắn tiếp theo để quan sát khoảng cách.</div></div></div></div></div><div class=\"phone-bottom\"><div class=\"composer-source-frame chat-content-axis\"><div id=\"composerShell\" class=\"composer-tapho\"><span class=\"round\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 3.25v13.5M3.25 10h13.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\"/></svg></span><span class=\"composer-prompt\">Nhắn tin...</span><span class=\"round\"><svg viewBox=\"0 0 24 24\" width=\"21\" height=\"21\" aria-hidden=\"true\"><path d=\"M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\"/><path d=\"M5.8 10.8a6.2 6.2 0 0 0 12.4 0M12 17v3M9.5 20h5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\"/></svg></span><span class=\"round grey\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M4 10h12m-5-5 5 5-5 5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></span></div></div></div></div>"},"login":{"gpt":"<div class=\"source-missing\"><strong>Chưa có mẫu đăng nhập ChatGPT gốc</strong><p>Tài liệu ChatGPT trong Drive chưa có giao diện đăng nhập để đối chiếu chính xác.</p></div>","tap":"<div class=\"auth-pane\"><div class=\"auth-card\"><h3>Đăng nhập</h3><label>Tên đăng nhập</label><div class=\"auth-input\"></div><label>Mật khẩu</label><div class=\"auth-input\">••••••••</div><div class=\"auth-button\">Tiếp tục</div><div class=\"auth-sub\">đăng ký</div></div></div>"},"contacts":{"gpt":"<div class=\"phone\"><header class=\"phone-head\"><span class=\"hamb\">☰</span><span class=\"head-title\">ChatGPT <span class=\"chev\">⌄</span></span><span class=\"push-right\"></span><span class=\"head-control\">✎</span><span class=\"head-control\">···</span></header><div class=\"phone-body\"><div class=\"directory\"><div class=\"dir-heading\">Trò chuyện</div><div class=\"gpt-link\">✎ &nbsp; Trò chuyện mới</div><div class=\"gpt-link\">⌕ &nbsp; Tìm kiếm</div><div class=\"gpt-link\">▤ &nbsp; Thư viện</div><div class=\"gpt-link\">▧ &nbsp; Dự án</div></div></div></div>","tap":"<div class=\"phone\"><header class=\"phone-head\">\n  <span class=\"tap-head-icon\" aria-label=\"Menu\">\n    <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" aria-hidden=\"true\"><path d=\"M4 6h16M4 12h12M4 18h7\"/></svg>\n  </span>\n  <div class=\"tap-tabs\" aria-label=\"Trò chuyện và Công việc\">\n    <span class=\"selected\"><span class=\"tap-avatar\">T</span><span class=\"tap-contact-name\">test9</span></span>\n    <span class=\"tap-work\">Công việc</span>\n  </div>\n  <span class=\"tap-head-icon\" aria-label=\"Gọi\">\n    <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7.2 4.5 10 8l-1.8 2.2c1.2 2.5 3.1 4.4 5.6 5.6L16 14l3.5 2.8-.9 2.7c-.3.8-1.1 1.3-2 1.2C9.4 19.8 4.2 14.6 3.3 7.4c-.1-.9.4-1.7 1.2-2l2.7-.9Z\"/></svg>\n  </span>\n</header><div class=\"phone-body\"><div class=\"directory\"><div class=\"dir-heading\">Danh bạ</div><div class=\"search-box\">Tìm kiếm</div><div class=\"chips\"><span class=\"active\">Tất cả</span><span>KH</span><span>CM</span><span>Bạn bè</span><span>Khác</span></div><div class=\"contact-row\"><span class=\"avatar\">A</span><span><b>Liên hệ A</b><small>Nội dung gần nhất</small></span><time>08:39</time></div><div class=\"contact-row\"><span class=\"avatar\">B</span><span><b>Liên hệ B</b><small>Tin nhắn gần nhất</small></span><time>07:24</time></div><div class=\"contact-row\"><span class=\"avatar\">C</span><span><b>Liên hệ C</b><small>Đã thu · Còn nợ</small></span></div></div></div></div>"},"composer":{"gpt":"<div class=\"area-demo\"><div class=\"area-legend\">Vùng gõ ChatGPT</div><div class=\"composer-gpt\"><div class=\"composer-prompt\">Hỏi bất kỳ điều gì</div><div class=\"composer-actions\"><span class=\"round\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 3.25v13.5M3.25 10h13.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\"/></svg></span><span class=\"push-right\"></span><span class=\"round\"><svg viewBox=\"0 0 24 24\" width=\"21\" height=\"21\" aria-hidden=\"true\"><path d=\"M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\"/><path d=\"M5.8 10.8a6.2 6.2 0 0 0 12.4 0M12 17v3M9.5 20h5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\"/></svg></span><span class=\"round blue\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 16V4m0 0L5.7 8.3M10 4l4.3 4.3\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></span></div></div></div>","tap":"<div class=\"area-demo\"><div class=\"area-legend\">Vùng gõ TAPHOA Chat</div><div class=\"composer-source-frame chat-content-axis\"><div id=\"composerShell\" class=\"composer-tapho\"><span class=\"round\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 3.25v13.5M3.25 10h13.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\"/></svg></span><span class=\"composer-prompt\">Nhắn tin...</span><span class=\"round\"><svg viewBox=\"0 0 24 24\" width=\"21\" height=\"21\" aria-hidden=\"true\"><path d=\"M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\"/><path d=\"M5.8 10.8a6.2 6.2 0 0 0 12.4 0M12 17v3M9.5 20h5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\"/></svg></span><span class=\"round grey\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M4 10h12m-5-5 5 5-5 5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></span></div></div></div>"},"functions":{"gpt":"<div class=\"phone\"><header class=\"phone-head\"><span class=\"hamb\">☰</span><span class=\"head-title\">ChatGPT <span class=\"chev\">⌄</span></span><span class=\"push-right\"></span><span class=\"head-control\">✎</span><span class=\"head-control\">···</span></header><div class=\"phone-body\"><div class=\"function-space\"><div class=\"func-menu\"><div class=\"func-row\"><span class=\"func-icon\">◎</span>Camera</div><div class=\"func-row\"><span class=\"func-icon\">▧</span>Ảnh</div><div class=\"func-row\"><span class=\"func-icon\">♧</span>Tệp</div><div class=\"func-row\"><span class=\"func-icon\">✦</span>Tạo ảnh</div></div></div></div><div class=\"phone-bottom\"><div class=\"composer-gpt\"><div class=\"composer-prompt\">Hỏi bất kỳ điều gì</div><div class=\"composer-actions\"><span class=\"round\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 3.25v13.5M3.25 10h13.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\"/></svg></span><span class=\"push-right\"></span><span class=\"round\"><svg viewBox=\"0 0 24 24\" width=\"21\" height=\"21\" aria-hidden=\"true\"><path d=\"M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\"/><path d=\"M5.8 10.8a6.2 6.2 0 0 0 12.4 0M12 17v3M9.5 20h5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\"/></svg></span><span class=\"round blue\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 16V4m0 0L5.7 8.3M10 4l4.3 4.3\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></span></div></div></div></div>","tap":"<div class=\"phone\"><header class=\"phone-head\">\n  <span class=\"tap-head-icon\" aria-label=\"Menu\">\n    <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" aria-hidden=\"true\"><path d=\"M4 6h16M4 12h12M4 18h7\"/></svg>\n  </span>\n  <div class=\"tap-tabs\" aria-label=\"Trò chuyện và Công việc\">\n    <span class=\"selected\"><span class=\"tap-avatar\">T</span><span class=\"tap-contact-name\">test9</span></span>\n    <span class=\"tap-work\">Công việc</span>\n  </div>\n  <span class=\"tap-head-icon\" aria-label=\"Gọi\">\n    <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7.2 4.5 10 8l-1.8 2.2c1.2 2.5 3.1 4.4 5.6 5.6L16 14l3.5 2.8-.9 2.7c-.3.8-1.1 1.3-2 1.2C9.4 19.8 4.2 14.6 3.3 7.4c-.1-.9.4-1.7 1.2-2l2.7-.9Z\"/></svg>\n  </span>\n</header><div class=\"phone-body\"><div class=\"function-space\"><div class=\"func-menu\"><div class=\"func-row\"><span class=\"func-icon\">▤</span>Báo giá</div><div class=\"func-row\"><span class=\"func-icon\">▣</span>Công nợ</div><div class=\"func-row\"><span class=\"func-icon\">☷</span>Kiểm hàng</div><div class=\"func-row\"><span class=\"func-icon\">♧</span>Link gọi</div><div class=\"func-row\"><span class=\"func-icon\">⚿</span>Thông tin đăng nhập</div><div class=\"func-row\"><span class=\"func-icon\">▧</span>Thư viện ảnh</div><div class=\"func-row\"><span class=\"func-icon\">□</span>File</div></div></div></div><div class=\"phone-bottom\"><div class=\"composer-source-frame chat-content-axis\"><div id=\"composerShell\" class=\"composer-tapho\"><span class=\"round\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 3.25v13.5M3.25 10h13.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\"/></svg></span><span class=\"composer-prompt\">Nhắn tin...</span><span class=\"round\"><svg viewBox=\"0 0 24 24\" width=\"21\" height=\"21\" aria-hidden=\"true\"><path d=\"M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\"/><path d=\"M5.8 10.8a6.2 6.2 0 0 0 12.4 0M12 17v3M9.5 20h5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\"/></svg></span><span class=\"round grey\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M4 10h12m-5-5 5 5-5 5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></span></div></div></div></div>"}};
+</main><script>const screens={"chat":{"gpt":"<div class=\"phone\"><header class=\"phone-head\"><span class=\"hamb\">☰</span><span class=\"head-title\">ChatGPT <span class=\"chev\">⌄</span></span><span class=\"push-right\"></span><span class=\"head-control\">✎</span><span class=\"head-control\">···</span></header><div class=\"phone-body\"><div class=\"chat-scroll\"><div class=\"date-line\">Hôm nay</div><div class=\"gpt-user\"><div class=\"bubble-gpt\">Tin nhắn của tôi</div></div><div class=\"gpt-reply\">Nội dung trả lời trong hội thoại.</div></div></div><div class=\"phone-bottom\"><div class=\"composer-gpt\"><div class=\"composer-prompt\">Hỏi bất kỳ điều gì</div><div class=\"composer-actions\"><span class=\"round\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 3.25v13.5M3.25 10h13.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\"/></svg></span><span class=\"push-right\"></span><span class=\"round\"><svg viewBox=\"0 0 24 24\" width=\"21\" height=\"21\" aria-hidden=\"true\"><path d=\"M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\"/><path d=\"M5.8 10.8a6.2 6.2 0 0 0 12.4 0M12 17v3M9.5 20h5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\"/></svg></span><span class=\"round blue\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 16V4m0 0L5.7 8.3M10 4l4.3 4.3\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></span></div></div></div></div>","tap":"<div class=\"phone\"><header class=\"phone-head\" aria-label=\"Đầu hội thoại\">\n<button type=\"button\" class=\"tap-head-icon\" data-demo-action=\"menu\" aria-label=\"Mở menu mẫu\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" aria-hidden=\"true\"><path d=\"M4 6h16M4 12h12M4 18h7\"/></svg></button>\n<div class=\"tap-tabs\" role=\"tablist\" aria-label=\"Chế độ làm việc\">\n<button class=\"tap-mode-tab\" type=\"button\" data-demo-tab=\"chat\" role=\"tab\" aria-selected=\"true\"><span class=\"tap-avatar\" aria-hidden=\"true\">T</span><span class=\"tap-contact-name\">test9</span></button>\n<button class=\"tap-mode-tab\" type=\"button\" data-demo-tab=\"work\" role=\"tab\" aria-selected=\"false\"><span class=\"tap-work-label\">Công việc</span></button>\n</div>\n<button type=\"button\" class=\"tap-head-icon\" data-demo-action=\"call\" aria-label=\"Gọi mẫu\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7.2 4.5 10 8l-1.8 2.2c1.2 2.5 3.1 4.4 5.6 5.6L16 14l3.5 2.8-.9 2.7c-.3.8-1.1 1.3-2 1.2C9.4 19.8 4.2 14.6 3.3 7.4c-.1-.9.4-1.7 1.2-2l2.7-.9Z\"/></svg></button>\n</header><div class=\"phone-body\"><div id=\"conversationContentAxis\" class=\"chat-content-axis\"><div id=\"messageWindow\" class=\"chat-scroll\"><div class=\"chat-a message-row\"><div class=\"bubble-a message-text\">Nội dung tin nhắn bên A.</div></div><div class=\"chat-b message-row\"><div class=\"bubble-b message-text\">Nội dung tin nhắn bên B.</div></div><div class=\"chat-a message-row\"><div class=\"bubble-a message-text\">Tin nhắn tiếp theo để quan sát khoảng cách.</div></div></div></div></div><div class=\"phone-bottom\"><div class=\"composer-source-frame chat-content-axis\"><div id=\"composerShell\" class=\"composer-tapho\"><button type=\"button\" class=\"round\" data-demo-action=\"attach\" aria-label=\"Thêm ảnh/tệp mẫu\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 3.25v13.5M3.25 10h13.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\"/></svg></button><input class=\"composer-prompt\" type=\"text\" placeholder=\"Nhắn tin...\" aria-label=\"Nhắn tin mẫu\" autocomplete=\"off\"><button type=\"button\" class=\"round\" data-demo-action=\"mic\" aria-label=\"Ghi âm mẫu\"><svg viewBox=\"0 0 24 24\" width=\"21\" height=\"21\" aria-hidden=\"true\"><path d=\"M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\"/><path d=\"M5.8 10.8a6.2 6.2 0 0 0 12.4 0M12 17v3M9.5 20h5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\"/></svg></button><button type=\"button\" class=\"round grey\" data-demo-action=\"send\" aria-label=\"Gửi tin mẫu\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M4 10h12m-5-5 5 5-5 5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></button></div></div></div></div>"},"login":{"gpt":"<div class=\"source-missing\"><strong>Chưa có mẫu đăng nhập ChatGPT gốc</strong><p>Tài liệu ChatGPT trong Drive chưa có giao diện đăng nhập để đối chiếu chính xác.</p></div>","tap":"<div class=\"auth-pane\"><div class=\"auth-card\"><h3>Đăng nhập</h3><label>Tên đăng nhập</label><div class=\"auth-input\"></div><label>Mật khẩu</label><div class=\"auth-input\">••••••••</div><div class=\"auth-button\">Tiếp tục</div><div class=\"auth-sub\">đăng ký</div></div></div>"},"contacts":{"gpt":"<div class=\"phone\"><header class=\"phone-head\"><span class=\"hamb\">☰</span><span class=\"head-title\">ChatGPT <span class=\"chev\">⌄</span></span><span class=\"push-right\"></span><span class=\"head-control\">✎</span><span class=\"head-control\">···</span></header><div class=\"phone-body\"><div class=\"directory\"><div class=\"dir-heading\">Trò chuyện</div><div class=\"gpt-link\">✎ &nbsp; Trò chuyện mới</div><div class=\"gpt-link\">⌕ &nbsp; Tìm kiếm</div><div class=\"gpt-link\">▤ &nbsp; Thư viện</div><div class=\"gpt-link\">▧ &nbsp; Dự án</div></div></div></div>","tap":"<div class=\"phone\"><header class=\"phone-head\" aria-label=\"Đầu hội thoại\">\n<button type=\"button\" class=\"tap-head-icon\" data-demo-action=\"menu\" aria-label=\"Mở menu mẫu\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" aria-hidden=\"true\"><path d=\"M4 6h16M4 12h12M4 18h7\"/></svg></button>\n<div class=\"tap-tabs\" role=\"tablist\" aria-label=\"Chế độ làm việc\">\n<button class=\"tap-mode-tab\" type=\"button\" data-demo-tab=\"chat\" role=\"tab\" aria-selected=\"true\"><span class=\"tap-avatar\" aria-hidden=\"true\">T</span><span class=\"tap-contact-name\">test9</span></button>\n<button class=\"tap-mode-tab\" type=\"button\" data-demo-tab=\"work\" role=\"tab\" aria-selected=\"false\"><span class=\"tap-work-label\">Công việc</span></button>\n</div>\n<button type=\"button\" class=\"tap-head-icon\" data-demo-action=\"call\" aria-label=\"Gọi mẫu\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7.2 4.5 10 8l-1.8 2.2c1.2 2.5 3.1 4.4 5.6 5.6L16 14l3.5 2.8-.9 2.7c-.3.8-1.1 1.3-2 1.2C9.4 19.8 4.2 14.6 3.3 7.4c-.1-.9.4-1.7 1.2-2l2.7-.9Z\"/></svg></button>\n</header><div class=\"phone-body\"><div class=\"directory\"><div class=\"dir-heading\">Danh bạ</div><div class=\"search-box\">Tìm kiếm</div><div class=\"chips\"><span class=\"active\">Tất cả</span><span>KH</span><span>CM</span><span>Bạn bè</span><span>Khác</span></div><div class=\"contact-row\"><span class=\"avatar\">A</span><span><b>Liên hệ A</b><small>Nội dung gần nhất</small></span><time>08:39</time></div><div class=\"contact-row\"><span class=\"avatar\">B</span><span><b>Liên hệ B</b><small>Tin nhắn gần nhất</small></span><time>07:24</time></div><div class=\"contact-row\"><span class=\"avatar\">C</span><span><b>Liên hệ C</b><small>Đã thu · Còn nợ</small></span></div></div></div></div>"},"composer":{"gpt":"<div class=\"area-demo\"><div class=\"area-legend\">Vùng gõ ChatGPT</div><div class=\"composer-gpt\"><div class=\"composer-prompt\">Hỏi bất kỳ điều gì</div><div class=\"composer-actions\"><span class=\"round\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 3.25v13.5M3.25 10h13.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\"/></svg></span><span class=\"push-right\"></span><span class=\"round\"><svg viewBox=\"0 0 24 24\" width=\"21\" height=\"21\" aria-hidden=\"true\"><path d=\"M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\"/><path d=\"M5.8 10.8a6.2 6.2 0 0 0 12.4 0M12 17v3M9.5 20h5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\"/></svg></span><span class=\"round blue\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 16V4m0 0L5.7 8.3M10 4l4.3 4.3\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></span></div></div></div>","tap":"<div class=\"area-demo\"><div class=\"area-legend\">Vùng gõ TAPHOA Chat</div><div class=\"composer-source-frame chat-content-axis\"><div id=\"composerShell\" class=\"composer-tapho\"><button type=\"button\" class=\"round\" data-demo-action=\"attach\" aria-label=\"Thêm ảnh/tệp mẫu\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 3.25v13.5M3.25 10h13.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\"/></svg></button><input class=\"composer-prompt\" type=\"text\" placeholder=\"Nhắn tin...\" aria-label=\"Nhắn tin mẫu\" autocomplete=\"off\"><button type=\"button\" class=\"round\" data-demo-action=\"mic\" aria-label=\"Ghi âm mẫu\"><svg viewBox=\"0 0 24 24\" width=\"21\" height=\"21\" aria-hidden=\"true\"><path d=\"M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\"/><path d=\"M5.8 10.8a6.2 6.2 0 0 0 12.4 0M12 17v3M9.5 20h5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\"/></svg></button><button type=\"button\" class=\"round grey\" data-demo-action=\"send\" aria-label=\"Gửi tin mẫu\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M4 10h12m-5-5 5 5-5 5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></button></div></div></div>"},"functions":{"gpt":"<div class=\"phone\"><header class=\"phone-head\"><span class=\"hamb\">☰</span><span class=\"head-title\">ChatGPT <span class=\"chev\">⌄</span></span><span class=\"push-right\"></span><span class=\"head-control\">✎</span><span class=\"head-control\">···</span></header><div class=\"phone-body\"><div class=\"function-space\"><div class=\"func-menu\"><div class=\"func-row\"><span class=\"func-icon\">◎</span>Camera</div><div class=\"func-row\"><span class=\"func-icon\">▧</span>Ảnh</div><div class=\"func-row\"><span class=\"func-icon\">♧</span>Tệp</div><div class=\"func-row\"><span class=\"func-icon\">✦</span>Tạo ảnh</div></div></div></div><div class=\"phone-bottom\"><div class=\"composer-gpt\"><div class=\"composer-prompt\">Hỏi bất kỳ điều gì</div><div class=\"composer-actions\"><span class=\"round\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 3.25v13.5M3.25 10h13.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\"/></svg></span><span class=\"push-right\"></span><span class=\"round\"><svg viewBox=\"0 0 24 24\" width=\"21\" height=\"21\" aria-hidden=\"true\"><path d=\"M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\"/><path d=\"M5.8 10.8a6.2 6.2 0 0 0 12.4 0M12 17v3M9.5 20h5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\"/></svg></span><span class=\"round blue\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 16V4m0 0L5.7 8.3M10 4l4.3 4.3\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></span></div></div></div></div>","tap":"<div class=\"phone\"><header class=\"phone-head\" aria-label=\"Đầu hội thoại\">\n<button type=\"button\" class=\"tap-head-icon\" data-demo-action=\"menu\" aria-label=\"Mở menu mẫu\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" aria-hidden=\"true\"><path d=\"M4 6h16M4 12h12M4 18h7\"/></svg></button>\n<div class=\"tap-tabs\" role=\"tablist\" aria-label=\"Chế độ làm việc\">\n<button class=\"tap-mode-tab\" type=\"button\" data-demo-tab=\"chat\" role=\"tab\" aria-selected=\"true\"><span class=\"tap-avatar\" aria-hidden=\"true\">T</span><span class=\"tap-contact-name\">test9</span></button>\n<button class=\"tap-mode-tab\" type=\"button\" data-demo-tab=\"work\" role=\"tab\" aria-selected=\"false\"><span class=\"tap-work-label\">Công việc</span></button>\n</div>\n<button type=\"button\" class=\"tap-head-icon\" data-demo-action=\"call\" aria-label=\"Gọi mẫu\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7.2 4.5 10 8l-1.8 2.2c1.2 2.5 3.1 4.4 5.6 5.6L16 14l3.5 2.8-.9 2.7c-.3.8-1.1 1.3-2 1.2C9.4 19.8 4.2 14.6 3.3 7.4c-.1-.9.4-1.7 1.2-2l2.7-.9Z\"/></svg></button>\n</header><div class=\"phone-body\"><div class=\"function-space\"><div class=\"func-menu\"><div class=\"func-row\"><span class=\"func-icon\">▤</span>Báo giá</div><div class=\"func-row\"><span class=\"func-icon\">▣</span>Công nợ</div><div class=\"func-row\"><span class=\"func-icon\">☷</span>Kiểm hàng</div><div class=\"func-row\"><span class=\"func-icon\">♧</span>Link gọi</div><div class=\"func-row\"><span class=\"func-icon\">⚿</span>Thông tin đăng nhập</div><div class=\"func-row\"><span class=\"func-icon\">▧</span>Thư viện ảnh</div><div class=\"func-row\"><span class=\"func-icon\">□</span>File</div></div></div></div><div class=\"phone-bottom\"><div class=\"composer-source-frame chat-content-axis\"><div id=\"composerShell\" class=\"composer-tapho\"><button type=\"button\" class=\"round\" data-demo-action=\"attach\" aria-label=\"Thêm ảnh/tệp mẫu\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 3.25v13.5M3.25 10h13.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\"/></svg></button><input class=\"composer-prompt\" type=\"text\" placeholder=\"Nhắn tin...\" aria-label=\"Nhắn tin mẫu\" autocomplete=\"off\"><button type=\"button\" class=\"round\" data-demo-action=\"mic\" aria-label=\"Ghi âm mẫu\"><svg viewBox=\"0 0 24 24\" width=\"21\" height=\"21\" aria-hidden=\"true\"><path d=\"M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\"/><path d=\"M5.8 10.8a6.2 6.2 0 0 0 12.4 0M12 17v3M9.5 20h5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\"/></svg></button><button type=\"button\" class=\"round grey\" data-demo-action=\"send\" aria-label=\"Gửi tin mẫu\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M4 10h12m-5-5 5 5-5 5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></button></div></div></div></div>"}};
 screens.media=screens.chat;
 const nav=document.querySelectorAll('[data-category]');
 const rootGpt=document.getElementById('gpt');
