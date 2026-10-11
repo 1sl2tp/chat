@@ -51,7 +51,7 @@ assert.equal(overlapped.prevented,true,'blocked text-region hit must not select 
 const outside=ev(message,20,20);doc.listeners.pointerdown(outside);
 assert.equal(editor.focusCalls,2,'outside text region keeps original scroll/tap behavior');
 action.actionable=true;const btn=ev(action);
-doc.listeners.pointerdown(btn);assert.equal(editor.focusCalls,3);
+doc.listeners.pointerdown(btn);assert.equal(editor.focusCalls,2,'button target cannot focus editor');
 assert.equal(btn.prevented,false,'clickable content is never hijacked');
 doc.listeners.pointerdown(ev(miscOverlay));
 assert.equal(editor.focusCalls,2,'unrelated overlay is not hijacked');
