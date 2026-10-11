@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="8ecf2bfb0fe34d589a0405086f210ed4e617ab4ddc48f368794c8d657f33a76b">
+<meta name="app-build-id" content="a06e1bf7e52968a770f8c4e9a72e46129deed59f0b7cc996b56cfc9225c3b1af">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -3796,6 +3796,10 @@ button{
   min-height:0;
   overflow-y:auto;
   overscroll-behavior:contain;
+  /* Browser scroll anchoring fights activity-based contact row reordering. */
+  /* Keep explicit existing scrollTop owner; never animate refresh to new order. */
+  overflow-anchor:none;
+  scroll-behavior:auto;
   scrollbar-width:thin;
   scrollbar-color:rgba(0,0,0,.28) transparent;
   scrollbar-gutter:stable;
@@ -8333,6 +8337,15 @@ function scrollToTail(reason='explicit',{messageId=undefined}={}){
   const maxAttempts=30;
 
   if(pendingTailFrame)cancelAnimationFrame(pendingTailFrame);
+
+  // Incoming/local NEW messages already changed the DOM synchronously in
+  // renderWindow(). Commit the new tail now, before the browser can paint the
+  // old viewport then show a visible catch-up scroll on the following frame.
+  // Explicit history/USER_AWAY never calls this tail intent, and the existing
+  // bounded settle loop still corrects later media/keyboard geometry.
+  if(reason==='remote-message'||reason==='new-message'||reason==='reconcile-new-message'){
+    setScrollTop(scrollRoot.scrollHeight-scrollRoot.clientHeight);
+  }
 
   const settle=()=>{
     if(token!==pendingTailToken||viewEpoch!==conversationViewEpoch)return;

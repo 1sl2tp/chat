@@ -2152,6 +2152,10 @@ button{
   min-height:0;
   overflow-y:auto;
   overscroll-behavior:contain;
+  /* Browser scroll anchoring fights activity-based contact row reordering. */
+  /* Keep explicit existing scrollTop owner; never animate refresh to new order. */
+  overflow-anchor:none;
+  scroll-behavior:auto;
   scrollbar-width:thin;
   scrollbar-color:rgba(0,0,0,.28) transparent;
   scrollbar-gutter:stable;
