@@ -431,6 +431,7 @@ const PrivateMediaDemo=(()=>{
         wide.alt='Ảnh ngang từ hội thoại trên thiết bị của bạn';
         wide.closest('.media-photo').style.background='#f3f3f3';
         wide.style.objectFit='contain';
+        wide.onload=()=>{if(wide.naturalWidth&&wide.naturalHeight){const frame=wide.closest('.media-photo');frame.style.aspectRatio=wide.naturalWidth+' / '+wide.naturalHeight;frame.style.maxHeight='260px';}};
         wide.closest('.media-message').querySelector('.media-label').textContent='Ảnh ngang thật · riêng tư tại máy này';
       }
       if(current.imageTall&&tall){
@@ -438,6 +439,7 @@ const PrivateMediaDemo=(()=>{
         tall.alt='Ảnh dọc từ hội thoại trên thiết bị của bạn';
         tall.closest('.media-photo').style.background='#f3f3f3';
         tall.style.objectFit='contain';
+        tall.onload=()=>{if(tall.naturalWidth&&tall.naturalHeight){const frame=tall.closest('.media-photo');frame.style.aspectRatio=tall.naturalWidth+' / '+tall.naturalHeight;frame.style.maxHeight='315px';}};
         tall.closest('.media-message').querySelector('.media-label').textContent='Ảnh dọc thật · riêng tư tại máy này';
       }
       if(current.audio){
