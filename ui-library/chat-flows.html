@@ -71,7 +71,7 @@ header.page-head{display:flex;align-items:center;justify-content:space-between;g
 <div id="draftExamples" class="draft-pick"></div><div class="draft-row"><span id="draftNumber">0 ảnh chờ gửi</span><button data-action="pick-files" type="button">Chọn từ máy</button><button data-action="clear-draft" type="button">Bỏ tất cả</button></div><div id="draftTray" class="draft-tray"></div><button type="button" class="draft-send" id="draftSend" data-action="send-draft" disabled>Gửi album mẫu (không gửi thật)</button></div>
 <div id="modeTip" class="demo-hint" hidden></div><div class="compose-line"><button class="icon" type="button" data-action="open-multi" aria-label="Thêm nội dung mẫu">＋</button><textarea rows="1" id="textDraft" placeholder="Nhắn tin..." aria-label="Tin nhắn demo"></textarea><button class="icon" type="button" data-action="demo-mic" aria-label="Micro mẫu">♩</button><button class="icon primary" type="button" data-action="send-text" aria-label="Gửi tin mẫu">↑</button></div><input type="file" accept="image/*" multiple hidden id="imageInput">
 </div>
-<section class="viewer" id="viewer" hidden aria-label="Viewer ảnh minh họa">
+<section class="viewer" id="viewer" hidden role="dialog" aria-modal="true" aria-label="Viewer ảnh minh họa">
 <div class="viewer-head"><button type="button" data-action="close-viewer" aria-label="Đóng ảnh">✕</button><strong><span id="viewerCounter">Ảnh 1 / 1</span><small id="viewerSource"></small></strong><button type="button" data-action="zoom-out" aria-label="Thu nhỏ">−</button><output id="zoomValue" style="font-size:10px">100%</output><button type="button" data-action="zoom-in" aria-label="Phóng to">＋</button><button type="button" data-action="viewer-more" aria-label="Tùy chọn ảnh">⋯</button></div>
 <div class="viewer-body"><button class="prev" type="button" data-action="prev" aria-label="Ảnh trước">‹</button><img id="bigPhoto" alt="Ảnh mẫu trong viewer"><button class="next" type="button" data-action="next" aria-label="Ảnh tiếp">›</button></div>
 <div class="viewer-foot"><div id="viewerThumbs" class="thumbs" aria-label="Ảnh thu nhỏ"></div><div id="filters" class="filters"><button data-filter="all" aria-pressed="false" type="button">Tất cả</button><button data-filter="self" aria-pressed="false" type="button">A</button><button data-filter="remote" aria-pressed="false" type="button">B</button><button data-filter="album" aria-pressed="true" type="button">Album</button><button type="button" class="proposal" id="selectMulti" data-action="toggle-select" aria-pressed="false">Chọn nhiều*</button></div><div class="viewer-status"><span id="viewerSelectInfo">*Đề xuất, chưa có trong Chat thật</span><button type="button" id="shareSelected" data-action="share-selected" hidden>Chia sẻ nhóm*</button></div></div></section>
@@ -100,6 +100,7 @@ const photos=[
  ['A1','self','a',5],['A2','self','a',2],['A3','self','a',1]
 ].map(([id,from,album,n])=>({id,from,album,src:svgPhoto(n)}));
 let mode='chat',chosenMessage='',opened=false,filter='album',album='b',focus='B1',zoom=1,select=false,checked=new Set(),sheet='',shareKind='',draft=[],localUrls=[],sentAlbum=[];
+let viewerReturnFocus=null,overlayReturnFocus=null;
 const safe=(s)=>String(s||'').replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
 const findPhoto=id=>photos.concat(sentAlbum).find(p=>p.id===id);
 const group=(a)=>photos.concat(sentAlbum).filter(p=>p.album===a);
@@ -148,7 +149,9 @@ function setMode(k){
 }
 function openViewer(id){
  const p=findPhoto(id);if(!p)return;
+ if(!opened)viewerReturnFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;
  opened=true;focus=id;album=p.album;filter='album';zoom=1;select=false;checked.clear();renderViewer();
+ $('viewer').querySelector('[data-action="close-viewer"]')?.focus({preventScroll:true});
 }
 function renderViewer(){
  $('viewer').hidden=!opened;if(!opened)return;
@@ -183,7 +186,10 @@ function renderDraft(){
  $('draftSend').disabled=!draft.length;
 }
 function drawSheet(){
- $('overlay').hidden=!sheet;if(!sheet){$('overlay').innerHTML='';return;}
+ const wasClosed=$('overlay').hidden;
+ if(sheet&&wasClosed)overlayReturnFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;
+ $('overlay').hidden=!sheet;
+ if(!sheet){$('overlay').innerHTML='';const node=overlayReturnFocus;overlayReturnFocus=null;if(!wasClosed&&node?.isConnected)node.focus({preventScroll:true});return;}
  let body='';
  if(sheet==='share'){
   const items=shareKind==='selected'?[...checked].map(findPhoto).filter(Boolean):shareKind==='viewer'?[findPhoto(focus)].filter(Boolean):group(shareKind==='a-gallery'?'a':shareKind==='a-new'?'new':'b');
@@ -196,7 +202,7 @@ function drawSheet(){
   body='<h3>Menu ảnh đang xem</h3><button data-action="viewer-save" type="button">Lưu ảnh hiện tại</button><button data-action="viewer-share" type="button">Chia sẻ ảnh hiện tại</button><p>Lọc theo thời gian cũng thuộc menu ảnh hiện tại.</p>';
  }
  $('overlay').innerHTML='<section class="sheet" role="dialog" aria-modal="true" aria-label="Thao tác mẫu">'+body+'<button class="end" data-action="close-sheet" type="button">Đóng</button></section>';
- $('overlay').querySelector('button')?.focus({preventScroll:true});
+ $('overlay').querySelector('input,button')?.focus({preventScroll:true});
 }
 function handle(action,el){
  const id=el.dataset.id;
@@ -206,7 +212,7 @@ function handle(action,el){
  if(action==='forward'){sheet='forward';drawSheet();return;}
  if(action==='copy'||action==='reply'||action==='save'){toast('Chỉ mô phỏng nút '+action+', không thao tác lên Chat thật.');return;}
  if(action==='prev'||action==='next'){next(action==='prev'?-1:1);return;}
- if(action==='close-viewer'){opened=false;select=false;checked.clear();sheet='';renderViewer();drawSheet();return;}
+ if(action==='close-viewer'){opened=false;select=false;checked.clear();sheet='';renderViewer();drawSheet();const node=viewerReturnFocus;viewerReturnFocus=null;if(node?.isConnected)node.focus({preventScroll:true});return;}
  if(action==='zoom-in'||action==='zoom-out'){zoom=Math.max(1,Math.min(5,zoom+(action==='zoom-in'?.5:-.5)));renderViewer();return;}
  if(action==='thumb'){clickThumb(id);return;}
  if(action==='toggle-select'){select=!select;checked.clear();renderViewer();return;}
@@ -242,7 +248,7 @@ function handle(action,el){
 document.querySelector('.nav').addEventListener('click',e=>{const b=e.target.closest('[data-mode]');if(b)setMode(b.dataset.mode);});
 $('phone').addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(b)handle(b.dataset.action,b);else if(e.target===$('overlay')){sheet='';drawSheet();}});
 $('filters').addEventListener('click',e=>{const b=e.target.closest('[data-filter]');if(b)selectFilter(b.dataset.filter);});
-$('phone').addEventListener('keydown',e=>{if(e.key==='Escape'&&sheet){sheet='';drawSheet();return;}if(e.key==='Escape'&&opened){opened=false;renderViewer();}});
+$('phone').addEventListener('keydown',e=>{if(e.key==='Escape'&&sheet){e.preventDefault();sheet='';drawSheet();return;}if(e.key==='Escape'&&opened){e.preventDefault();handle('close-viewer',e.target);}});
 $('textDraft').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();handle('send-text',e.target);}});
 $('imageInput').addEventListener('change',e=>{
  for(const file of [...e.target.files].filter(x=>x.type.startsWith('image/')&&x.size<12*1024*1024)){
