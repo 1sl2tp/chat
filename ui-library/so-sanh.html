@@ -125,6 +125,103 @@ nav button[aria-current="true"]{background:#e9ebef;color:#111;font-weight:650}
 #tap .composer-tapho>.round:nth-child(4){grid-column:4;grid-row:2}
 #tap .composer-tapho>.round.grey{background:#3b82f6}
 #tap .composer-tapho>.round.grey svg{transform:rotate(-90deg)}
+
+/* Mobile-first comparison viewport.
+   iPhone 13/14 CSS viewport reference: 390 × 844.
+   Both sides use identical logical coordinates and scale uniformly on desktop.
+   The status island and home bar only simulate the device safe areas. */
+.iphone-stage{
+  position:relative;
+  width:min(100%,390px);
+  aspect-ratio:390 / 844;
+  margin-inline:auto;
+  overflow:hidden;
+  border-radius:42px;
+  outline:1px solid #cfd3da;
+  box-shadow:0 12px 24px rgba(16,24,40,.1);
+  background:#fff;
+}
+.iphone-screen{
+  position:absolute;
+  top:0;left:0;
+  width:390px;
+  height:844px;
+  transform:scale(var(--iphone-scale,1));
+  transform-origin:top left;
+  background:#fff;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+.iphone-status{
+  position:relative;
+  flex:none;
+  height:54px;
+  background:#fff;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:8px 30px 0;
+  font-size:15px;
+  font-weight:650;
+}
+.iphone-island{
+  position:absolute;
+  top:10px;
+  left:50%;
+  transform:translateX(-50%);
+  width:124px;
+  height:32px;
+  border-radius:40px;
+  background:#101113;
+}
+.iphone-system-icons{font-size:13px;letter-spacing:1px;white-space:nowrap}
+.iphone-app{
+  flex:1;
+  min-height:0;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  background:#fff;
+}
+.iphone-app>.phone{
+  display:flex;
+  flex:1;
+  min-height:0;
+  height:100%;
+  max-height:none;
+  width:100%;
+  border:0;
+  border-radius:0;
+  margin:0;
+}
+.iphone-app>.area-demo,
+.iphone-app>.auth-pane{
+  width:100%;
+  flex:1;
+  min-height:0;
+  padding-inline:18px;
+}
+.iphone-app>.source-missing{margin:auto 18px}
+.iphone-home{
+  flex:none;
+  height:30px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#fff;
+}
+.iphone-home::after{
+  content:"";
+  display:block;
+  width:134px;
+  height:5px;
+  border-radius:99px;
+  background:#151515;
+}
+@media(max-width:600px){
+  .iphone-app>.phone{height:100%;min-height:0;max-height:none}
+}
 </style></head>
 <body>
 <main class="app">
@@ -143,11 +240,34 @@ nav button[aria-current="true"]{background:#e9ebef;color:#111;font-weight:650}
 const nav=document.querySelectorAll('[data-category]');
 const rootGpt=document.getElementById('gpt');
 const rootTap=document.getElementById('tap');
+const IPHONE_WIDTH=390;
+function phoneViewport(contents){
+  return '<div class="iphone-stage"><div class="iphone-screen">'+
+    '<div class="iphone-status" aria-hidden="true">'+
+      '<span>9:41</span><span class="iphone-island"></span>'+
+      '<span class="iphone-system-icons">▂▄▆ ◉ ▰</span>'+
+    '</div><div class="iphone-app">'+contents+'</div>'+
+    '<div class="iphone-home" aria-hidden="true"></div></div></div>';
+}
+function fitIphoneViewports(){
+  for(const stage of document.querySelectorAll('.iphone-stage')){
+    // Only scale the internal 390px-wide screen. Never alter its font or gap CSS.
+    const scale=stage.clientWidth/IPHONE_WIDTH;
+    stage.style.setProperty('--iphone-scale',String(scale));
+  }
+}
 function render(category){
   if(!Object.prototype.hasOwnProperty.call(screens,category))return;
-  rootGpt.innerHTML=screens[category].gpt;
-  rootTap.innerHTML=screens[category].tap;
+  rootGpt.innerHTML=phoneViewport(screens[category].gpt);
+  rootTap.innerHTML=phoneViewport(screens[category].tap);
   for(const item of nav)item.setAttribute('aria-current',String(item.dataset.category===category));
+  fitIphoneViewports();
 }
 for(const item of nav)item.addEventListener('click',()=>render(item.dataset.category));
+if(typeof ResizeObserver!=='undefined'){
+  const resizeObserver=new ResizeObserver(fitIphoneViewports);
+  resizeObserver.observe(rootGpt);
+  resizeObserver.observe(rootTap);
+}
+window.addEventListener('resize',fitIphoneViewports);
 render('chat');</script></body></html>
