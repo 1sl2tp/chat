@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="vi">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>So sánh UI — ChatGPT và TAPHOA Chat</title><style>:root{font-family:-apple-system-body,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;color:#171717;background:#f6f7f9}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;height:100%}
+button{font:inherit;cursor:pointer}
+.app{display:grid;grid-template-columns:205px minmax(340px,1fr) minmax(340px,1fr);gap:0;min-height:100vh}
+nav{position:sticky;top:0;height:100vh;padding:20px 12px;background:#fff;border-right:1px solid #e7e8eb}
+nav h1{font-size:18px;letter-spacing:-.03em;margin:3px 10px 18px}
+nav button{border:0;display:block;width:100%;text-align:left;border-radius:11px;padding:12px 13px;margin:4px 0;background:transparent;color:#353b43}
+nav button[aria-current="true"]{background:#e9ebef;color:#111;font-weight:650}
+.compare-col{padding:18px;background:#f8f9fa;min-width:0}
+.compare-col+ .compare-col{border-left:1px solid #e7e8eb}
+.compare-head{margin-bottom:16px;font-size:17px;font-weight:700;letter-spacing:-.02em}
+.compare-head small{display:block;margin-top:5px;font-size:12px;font-weight:400;color:#777}
+.stage{max-width:520px;margin:0 auto}
+.phone{width:min(100%,420px);min-height:550px;height:68vh;max-height:780px;display:flex;flex-direction:column;background:#fff;border:1px solid #e4e4e7;border-radius:16px;overflow:hidden;margin:auto}
+.phone-head{height:60px;min-height:60px;display:flex;align-items:center;gap:10px;padding:0 14px;background:#fff}
+.hamb{font-size:21px;min-width:26px}
+.head-title{font-size:15px;font-weight:650}
+.chev{color:#858585}
+.push-right{flex:1}
+.head-control{width:27px;text-align:center;font-size:20px}
+.phone-body{flex:1;min-height:0;overflow:auto}
+.chat-scroll{padding:18px 14px;display:flex;flex-direction:column;gap:9px}
+.date-line{text-align:center;color:#8b8b8b;font-size:12px;margin:8px 0 16px}
+.gpt-user,.chat-b{display:flex;justify-content:flex-end}
+.bubble-gpt,.bubble-b{background:#e8f3fe;color:#0c274a;border-radius:19px;padding:10px 13px;max-width:85%;font-size:15px;line-height:1.46}
+.gpt-reply{padding:10px 2px;font-size:15px;line-height:1.6}
+.chat-a{display:flex;justify-content:flex-start}
+.bubble-a{background:#f2f2f2;color:#171717;border-radius:18px;padding:8px 11px;max-width:85%;font-size:15px;line-height:1.46}
+.phone-bottom{padding:5px 12px 14px}
+.composer-gpt,.composer-tapho{background:#fff;border:1px solid rgba(0,0,0,.1)}
+.composer-gpt{border-radius:28px;padding:10px 9px 7px;min-height:65px}
+.composer-gpt .composer-prompt{font-size:15px;margin:1px 5px 8px;color:#868686}
+.composer-actions{display:flex;gap:8px;align-items:center}
+.round{display:grid;place-items:center;min-width:36px;width:36px;height:36px;border-radius:999px}
+.round.blue{color:#fff;background:#3b82f6}
+.round.grey{color:#fff;background:#b4b4b4}
+.composer-tapho{min-height:50px;border-radius:20px;padding:2px;display:flex;gap:2px;align-items:center}
+.composer-tapho .round{min-width:40px;width:40px;height:40px}
+.composer-tapho .composer-prompt{font-size:15px;color:#858585;min-width:0;flex:1}
+.tap-tabs{display:grid;grid-template-columns:1fr 1fr;padding:2px;gap:3px;border-radius:50px;background:#f5f5f5;font-size:13px;flex:1;min-width:0;text-align:center;align-items:center}
+.tap-tabs span{padding:9px 4px;color:#656565;white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.tap-tabs .selected{background:#fff;border-radius:60px;color:#222;box-shadow:0 1px 4px #0001;font-weight:600}
+.directory{padding:14px}
+.dir-heading{font-size:17px;font-weight:700;margin:10px 0 23px}
+.search-box{background:#f8f8f8;border:1px solid #e0e2e6;border-radius:11px;color:#9ca3af;padding:14px;font-size:14px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:9px 0 15px}
+.chips span{font-size:12px;background:#f2f2f2;border-radius:18px;padding:8px 12px}
+.chips span.active{background:#151515;color:#fff}
+.contact-row{display:flex;gap:10px;align-items:center;padding:10px 2px;min-height:65px}
+.avatar{border-radius:50%;background:#d2edf6;display:grid;place-items:center;width:40px;height:40px;flex:none;color:#364d54}
+.contact-row>span:nth-child(2){flex:1;min-width:0}
+.contact-row b,.contact-row small{display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.contact-row b{font-size:14px}
+.contact-row small{font-size:12px;color:#777;margin-top:4px}
+.contact-row time{font-size:11px;color:#999}
+.gpt-link{font-size:14px;padding:12px 9px;border-radius:10px}
+.gpt-link:first-of-type{background:#f3f3f3}
+.auth-pane{min-height:550px;display:flex;align-items:center;justify-content:center;background:#fff;padding:20px}
+.auth-card{width:100%;max-width:320px}
+.auth-card h3{text-align:center;font-size:23px;margin:0 0 30px}
+.auth-card label{font-size:13px;display:block;margin:15px 0 6px}
+.auth-input{border:1px solid #ddd;border-radius:11px;height:46px;padding:13px;color:#777}
+.auth-button{background:#171717;color:white;text-align:center;padding:13px;border-radius:22px;margin:22px 0 18px}
+.auth-sub{text-align:center;color:#737373;font-size:13px}
+.source-missing{border:1px solid #e6e7e9;background:#fff;border-radius:16px;padding:22px;line-height:1.5;font-size:14px}
+.source-missing p{color:#6b7280;font-size:13px}
+.area-demo{min-height:390px;display:flex;flex-direction:column;justify-content:center;gap:18px}
+.area-legend{color:#8b8b8b;font-size:13px}
+.function-space{height:100%;display:flex;align-items:flex-end;padding:12px 13px 5px}
+.func-menu{width:100%;border:1px solid #ececec;border-radius:23px;padding:10px;background:#fff;box-shadow:0 5px 22px #00000008}
+.func-row{display:flex;gap:10px;align-items:center;font-size:14px;padding:9px 7px;min-height:42px}
+.func-icon{width:30px;height:30px;display:grid;place-items:center;border-radius:50%;background:#f4f4f4}
+.note{margin:12px auto 0;max-width:520px;font-size:11px;color:#777;line-height:1.5}
+@media(max-width:900px){.app{grid-template-columns:160px minmax(290px,1fr) minmax(290px,1fr);min-width:760px}nav{padding:16px 8px}.compare-col{padding:12px}}
+@media(max-width:600px){body{overflow-x:auto}.app{min-width:760px}.phone{height:620px}}
+</style></head>
+<body>
+<main class="app">
+<nav aria-label="Danh mục giao diện"><h1>Danh mục UI</h1>
+<button type="button" data-category="chat" aria-current="true">Trò chuyện</button>
+<button type="button" data-category="login" aria-current="false">Đăng nhập</button>
+<button type="button" data-category="contacts" aria-current="false">Danh bạ</button>
+<button type="button" data-category="composer" aria-current="false">Vùng gõ chữ</button>
+<button type="button" data-category="functions" aria-current="false">Chức năng</button>
+</nav>
+<section class="compare-col"><header class="compare-head">ChatGPT<small>Tham chiếu từ bản lưu trên Drive</small></header><div id="gpt" class="stage"></div>
+<p class="note">Mẫu tham chiếu từ thư viện ChatGPT đã lưu; không phải giao diện live hiện tại.</p></section>
+<section class="compare-col"><header class="compare-head">Chat Tạp Hóa<small>Thành phần từ source 1sl2tp/chat và ảnh bạn gửi</small></header><div id="tap" class="stage"></div>
+<p class="note">Dữ liệu minh họa, không đăng nhập, không gửi tin, không kết nối Supabase.</p></section>
+</main><script>const screens={"chat":{"gpt":"<div class=\"phone\"><header class=\"phone-head\"><span class=\"hamb\">☰</span><span class=\"head-title\">ChatGPT <span class=\"chev\">⌄</span></span><span class=\"push-right\"></span><span class=\"head-control\">✎</span><span class=\"head-control\">···</span></header><div class=\"phone-body\"><div class=\"chat-scroll\"><div class=\"date-line\">Hôm nay</div><div class=\"gpt-user\"><div class=\"bubble-gpt\">Tin nhắn của tôi</div></div><div class=\"gpt-reply\">Nội dung trả lời trong hội thoại.</div></div></div><div class=\"phone-bottom\"><div class=\"composer-gpt\"><div class=\"composer-prompt\">Hỏi bất kỳ điều gì</div><div class=\"composer-actions\"><span class=\"round\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 3.25v13.5M3.25 10h13.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\"/></svg></span><span class=\"push-right\"></span><span class=\"round\"><svg viewBox=\"0 0 24 24\" width=\"21\" height=\"21\" aria-hidden=\"true\"><path d=\"M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\"/><path d=\"M5.8 10.8a6.2 6.2 0 0 0 12.4 0M12 17v3M9.5 20h5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\"/></svg></span><span class=\"round blue\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 16V4m0 0L5.7 8.3M10 4l4.3 4.3\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></span></div></div></div></div>","tap":"<div class=\"phone\"><header class=\"phone-head\"><span class=\"hamb\">☰</span><div class=\"tap-tabs\"><span class=\"selected\">Trò chuyện</span><span>Công việc</span></div><span class=\"head-control\">♧</span></header><div class=\"phone-body\"><div class=\"chat-scroll\"><div class=\"chat-a\"><div class=\"bubble-a\">Nội dung tin nhắn bên A.</div></div><div class=\"chat-b\"><div class=\"bubble-b\">Nội dung tin nhắn bên B.</div></div><div class=\"chat-a\"><div class=\"bubble-a\">Tin nhắn tiếp theo để quan sát khoảng cách.</div></div></div></div><div class=\"phone-bottom\"><div class=\"composer-tapho\"><span class=\"round\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 3.25v13.5M3.25 10h13.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\"/></svg></span><span class=\"composer-prompt\">Nhắn tin...</span><span class=\"round\"><svg viewBox=\"0 0 24 24\" width=\"21\" height=\"21\" aria-hidden=\"true\"><path d=\"M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\"/><path d=\"M5.8 10.8a6.2 6.2 0 0 0 12.4 0M12 17v3M9.5 20h5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\"/></svg></span><span class=\"round grey\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M4 10h12m-5-5 5 5-5 5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></span></div></div></div>"},"login":{"gpt":"<div class=\"source-missing\"><strong>Chưa có mẫu đăng nhập ChatGPT gốc</strong><p>Tài liệu ChatGPT trong Drive chưa có giao diện đăng nhập để đối chiếu chính xác.</p></div>","tap":"<div class=\"auth-pane\"><div class=\"auth-card\"><h3>Đăng nhập</h3><label>Tên đăng nhập</label><div class=\"auth-input\"></div><label>Mật khẩu</label><div class=\"auth-input\">••••••••</div><div class=\"auth-button\">Tiếp tục</div><div class=\"auth-sub\">đăng ký</div></div></div>"},"contacts":{"gpt":"<div class=\"phone\"><header class=\"phone-head\"><span class=\"hamb\">☰</span><span class=\"head-title\">ChatGPT <span class=\"chev\">⌄</span></span><span class=\"push-right\"></span><span class=\"head-control\">✎</span><span class=\"head-control\">···</span></header><div class=\"phone-body\"><div class=\"directory\"><div class=\"dir-heading\">Trò chuyện</div><div class=\"gpt-link\">✎ &nbsp; Trò chuyện mới</div><div class=\"gpt-link\">⌕ &nbsp; Tìm kiếm</div><div class=\"gpt-link\">▤ &nbsp; Thư viện</div><div class=\"gpt-link\">▧ &nbsp; Dự án</div></div></div></div>","tap":"<div class=\"phone\"><header class=\"phone-head\"><span class=\"hamb\">☰</span><div class=\"tap-tabs\"><span class=\"selected\">Trò chuyện</span><span>Công việc</span></div><span class=\"head-control\">♧</span></header><div class=\"phone-body\"><div class=\"directory\"><div class=\"dir-heading\">Danh bạ</div><div class=\"search-box\">Tìm kiếm</div><div class=\"chips\"><span class=\"active\">Tất cả</span><span>KH</span><span>CM</span><span>Bạn bè</span><span>Khác</span></div><div class=\"contact-row\"><span class=\"avatar\">A</span><span><b>Liên hệ A</b><small>Nội dung gần nhất</small></span><time>08:39</time></div><div class=\"contact-row\"><span class=\"avatar\">B</span><span><b>Liên hệ B</b><small>Tin nhắn gần nhất</small></span><time>07:24</time></div><div class=\"contact-row\"><span class=\"avatar\">C</span><span><b>Liên hệ C</b><small>Đã thu · Còn nợ</small></span></div></div></div></div>"},"composer":{"gpt":"<div class=\"area-demo\"><div class=\"area-legend\">Vùng gõ ChatGPT</div><div class=\"composer-gpt\"><div class=\"composer-prompt\">Hỏi bất kỳ điều gì</div><div class=\"composer-actions\"><span class=\"round\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 3.25v13.5M3.25 10h13.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\"/></svg></span><span class=\"push-right\"></span><span class=\"round\"><svg viewBox=\"0 0 24 24\" width=\"21\" height=\"21\" aria-hidden=\"true\"><path d=\"M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\"/><path d=\"M5.8 10.8a6.2 6.2 0 0 0 12.4 0M12 17v3M9.5 20h5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\"/></svg></span><span class=\"round blue\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 16V4m0 0L5.7 8.3M10 4l4.3 4.3\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></span></div></div></div>","tap":"<div class=\"area-demo\"><div class=\"area-legend\">Vùng gõ TAPHOA Chat</div><div class=\"composer-tapho\"><span class=\"round\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 3.25v13.5M3.25 10h13.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\"/></svg></span><span class=\"composer-prompt\">Nhắn tin...</span><span class=\"round\"><svg viewBox=\"0 0 24 24\" width=\"21\" height=\"21\" aria-hidden=\"true\"><path d=\"M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\"/><path d=\"M5.8 10.8a6.2 6.2 0 0 0 12.4 0M12 17v3M9.5 20h5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\"/></svg></span><span class=\"round grey\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M4 10h12m-5-5 5 5-5 5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></span></div></div>"},"functions":{"gpt":"<div class=\"phone\"><header class=\"phone-head\"><span class=\"hamb\">☰</span><span class=\"head-title\">ChatGPT <span class=\"chev\">⌄</span></span><span class=\"push-right\"></span><span class=\"head-control\">✎</span><span class=\"head-control\">···</span></header><div class=\"phone-body\"><div class=\"function-space\"><div class=\"func-menu\"><div class=\"func-row\"><span class=\"func-icon\">◎</span>Camera</div><div class=\"func-row\"><span class=\"func-icon\">▧</span>Ảnh</div><div class=\"func-row\"><span class=\"func-icon\">♧</span>Tệp</div><div class=\"func-row\"><span class=\"func-icon\">✦</span>Tạo ảnh</div></div></div></div><div class=\"phone-bottom\"><div class=\"composer-gpt\"><div class=\"composer-prompt\">Hỏi bất kỳ điều gì</div><div class=\"composer-actions\"><span class=\"round\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 3.25v13.5M3.25 10h13.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\"/></svg></span><span class=\"push-right\"></span><span class=\"round\"><svg viewBox=\"0 0 24 24\" width=\"21\" height=\"21\" aria-hidden=\"true\"><path d=\"M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\"/><path d=\"M5.8 10.8a6.2 6.2 0 0 0 12.4 0M12 17v3M9.5 20h5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\"/></svg></span><span class=\"round blue\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 16V4m0 0L5.7 8.3M10 4l4.3 4.3\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></span></div></div></div></div>","tap":"<div class=\"phone\"><header class=\"phone-head\"><span class=\"hamb\">☰</span><div class=\"tap-tabs\"><span class=\"selected\">Trò chuyện</span><span>Công việc</span></div><span class=\"head-control\">♧</span></header><div class=\"phone-body\"><div class=\"function-space\"><div class=\"func-menu\"><div class=\"func-row\"><span class=\"func-icon\">▤</span>Báo giá</div><div class=\"func-row\"><span class=\"func-icon\">▣</span>Công nợ</div><div class=\"func-row\"><span class=\"func-icon\">☷</span>Kiểm hàng</div><div class=\"func-row\"><span class=\"func-icon\">♧</span>Link gọi</div><div class=\"func-row\"><span class=\"func-icon\">⚿</span>Thông tin đăng nhập</div><div class=\"func-row\"><span class=\"func-icon\">▧</span>Thư viện ảnh</div><div class=\"func-row\"><span class=\"func-icon\">□</span>File</div></div></div></div><div class=\"phone-bottom\"><div class=\"composer-tapho\"><span class=\"round\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 3.25v13.5M3.25 10h13.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\"/></svg></span><span class=\"composer-prompt\">Nhắn tin...</span><span class=\"round\"><svg viewBox=\"0 0 24 24\" width=\"21\" height=\"21\" aria-hidden=\"true\"><path d=\"M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\"/><path d=\"M5.8 10.8a6.2 6.2 0 0 0 12.4 0M12 17v3M9.5 20h5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\"/></svg></span><span class=\"round grey\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M4 10h12m-5-5 5 5-5 5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></span></div></div></div>"}};
+const nav=document.querySelectorAll('[data-category]');
+const rootGpt=document.getElementById('gpt');
+const rootTap=document.getElementById('tap');
+function render(category){
+  if(!Object.prototype.hasOwnProperty.call(screens,category))return;
+  rootGpt.innerHTML=screens[category].gpt;
+  rootTap.innerHTML=screens[category].tap;
+  for(const item of nav)item.setAttribute('aria-current',String(item.dataset.category===category));
+}
+for(const item of nav)item.addEventListener('click',()=>render(item.dataset.category));
+render('chat');</script></body></html>
