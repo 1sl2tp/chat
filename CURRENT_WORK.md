@@ -1,3 +1,17 @@
+## 2026-10-11 — Tin mới hiện ngay, danh bạ không nhìn thấy tự cuộn (MERGED; DEVICE E4 PENDING)
+
+- User screenshot Chrome desktop: contact preview 21:53/newest at top, active thread latest near composer; user reports new message still appears by visibly scrolling, especially contact directory. Screenshot is a static state only; cannot independently prove timing/motion.
+- Code evidence and scoped owners:
+  1. ContactStore `auth-session-store.js` already sorts by `latest_at` and `shell.js` restores existing `.wm-sidebar-navigation.scrollTop` across row reorder, but scrolling ancestor lacked `overflow-anchor:none`; browser scroll anchoring can fight explicit restore during DOM `insertBefore`.
+  2. `app.js` `scrollToTail` only committed `scrollTop` inside next requestAnimationFrame for new messages; latest on open already positioned synchronously.
+- Changes: `index.source.html` scroll host now has `overflow-anchor:none;scroll-behavior:auto`; `app.js` incoming remote/new/reconcile new-message tail transaction commits scroll position immediately after render in same task, then retains existing bounded frame-based geometry settling. USER_AWAY, history, selected contact, scroll owner, search/filter, notifications unchanged.
+- Test `tests/test_v21_139_immediate_message_directory.js` added to Verify V21 and canonical verifier. PR https://github.com/1sl2tp/chat/pull/171, Verify V21 `38153320773` SUCCESS, merge main `4344dbb09d9b0d599fda5e162e78dda01f419b58`; readback source/index/version PASS (build `a06e1bf7e52968a770f8c4e9a72e46129deed59f0b7cc996b56cfc9225c3b1af`).
+- MUST-STAY: Realtime/Admin/User, UI-138 USER_AWAY holds anchor, notification intent latest, message media and virtual window, read state, no new RPC/DB/Edge/log/polling. Avoid changing ContactStore order or adding additional scroll writers.
+- E3 actual Pages deploy not independently proven by connector/tool (public URL inaccessible). E4 Chrome/Safari/PWA visual motion after incoming while list at top vs middle, active thread following tail vs history USER_AWAY PENDING. E5 actual bytes/timing unmeasured. CI cannot verify actual perceived animation.
+- Rollback only scoped main commit above if new positioning causes regressions. Canonical Rule chung SDD rows 105–106.
+
+---
+
 ## 2026-10-11 — Composer intermittently ignores click after incoming chat (MERGED; E4 PENDING)
 
 - Screenshot: Chrome desktop three-column active chat; composer text area visible yet intermittently cannot be focused when chatting. The existing 2026-10-10 hit-test CSS/padding-focus source is still present. Actual intercepting element was NOT observed in browser devtools, so overlay is a scoped hypothesis, not proven root cause.
