@@ -222,6 +222,41 @@ nav button[aria-current="true"]{background:#e9ebef;color:#111;font-weight:650}
 @media(max-width:600px){
   .iphone-app>.phone{height:100%;min-height:0;max-height:none}
 }
+
+/* MEDIA DEMO — SAMPLE MESSAGES. Isolated to the comparison page; not production chat. */
+.media-message{display:flex;flex-direction:column;gap:5px;max-width:100%;min-width:0}
+.media-message.out{align-items:flex-end}
+.media-message.in{align-items:flex-start}
+.media-label{font-size:11px;font-weight:500;color:#85888e;margin:2px 3px 0;line-height:1.35}
+.media-divider{margin:10px 0 6px;text-align:center;color:#999;font-size:11px}
+.media-photo{display:block;flex:none;padding:0;border:0;background:#edf1f4;overflow:hidden;border-radius:15px;max-width:100%;box-shadow:0 0 0 1px rgba(15,23,42,.055);cursor:zoom-in}
+.media-photo img{display:block;width:100%;height:100%;object-fit:cover}
+.media-photo.landscape{width:300px;aspect-ratio:16/9}
+.media-photo.portrait{width:184px;aspect-ratio:3/4}
+.media-photo:focus-visible{outline:3px solid #2563eb;outline-offset:2px}
+.media-collage{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px;width:300px;max-width:100%;border-radius:15px;overflow:hidden}
+.media-collage .media-photo{border-radius:0;width:100%;aspect-ratio:1}
+.media-collage .media-photo:first-child{grid-row:span 2;aspect-ratio:auto;min-height:0}
+.media-collage .media-photo:nth-child(2),.media-collage .media-photo:nth-child(3){height:87px;aspect-ratio:auto}
+.media-video{position:relative;width:300px;max-width:100%;aspect-ratio:16/9;border-radius:15px;overflow:hidden;background:#425467;color:white}
+.media-video img{display:block;width:100%;height:100%;object-fit:cover;filter:brightness(.68)}
+.media-video .play-mark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:48px;height:48px;background:#0009;border:1px solid #fffc;border-radius:50%;display:grid;place-items:center;font-size:20px;padding-left:3px}
+.media-video .duration{position:absolute;bottom:9px;right:10px;padding:3px 6px;border-radius:5px;background:#0009;color:white;font-size:11px;font-variant-numeric:tabular-nums}
+.media-audio{display:flex;gap:11px;align-items:center;width:280px;max-width:100%;padding:13px 14px;border-radius:15px;background:#f1f3f5;color:#2e3946}
+.media-message.out .media-audio{background:#e8f3fe}
+.media-audio .audio-icon{width:32px;height:32px;flex:none;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:15px}
+.media-waves{display:flex;align-items:center;justify-content:space-between;gap:3px;min-width:0;flex:1;height:27px}
+.media-waves i{display:block;width:3px;flex:1;max-width:3px;background:#8ba2b9;border-radius:99px}
+.media-audio .audio-time{font-size:11px;color:#63758b;white-space:nowrap;font-variant-numeric:tabular-nums}
+.media-file{display:flex;gap:10px;align-items:center;width:290px;max-width:100%;padding:11px;border:1px solid #e2e7ec;border-radius:15px;background:#fff;color:#25303b}
+.media-file .file-mark{display:grid;place-items:center;flex:none;width:39px;height:43px;background:#fee9e8;color:#c03431;border-radius:9px;font-size:11px;font-weight:800}
+.media-file .file-text{min-width:0}
+.media-file strong{font-size:13px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.media-file small{display:block;margin-top:3px;color:#76808b;font-size:11px}
+.media-lightbox{position:fixed;z-index:9999;inset:0;background:rgba(8,12,18,.91);display:flex;align-items:center;justify-content:center;padding:58px 16px 26px}
+.media-lightbox img{max-width:min(96vw,1100px);max-height:calc(100vh - 94px);width:auto;height:auto;object-fit:contain;border-radius:9px}
+.media-lightbox button{position:absolute;top:16px;right:18px;background:#fff2;border:1px solid #ffffff77;color:#fff;border-radius:100%;height:38px;width:38px;font-size:22px}
+.media-lightbox .lightbox-note{position:absolute;bottom:5px;color:#fff9;font-size:11px}
 </style></head>
 <body>
 <main class="app">
@@ -256,10 +291,84 @@ function fitIphoneViewports(){
     stage.style.setProperty('--iphone-scale',String(scale));
   }
 }
+
+/* Comparison-only media content: sample images use self-contained SVG, no APIs or uploads. */
+function mediaArt(type){
+  const scenes={
+    landscape:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450"><defs><linearGradient id="s" x2="0" y2="1"><stop stop-color="#9dcdd8"/><stop offset="1" stop-color="#e4efe9"/></linearGradient></defs><rect width="800" height="450" fill="url(#s)"/><rect y="280" width="800" height="170" fill="#789389"/><path d="M0 290 180 155 340 280 500 138 800 290Z" fill="#658d83"/><path d="M0 315 240 210 380 310 580 205 800 315Z" fill="#a4b9a7"/><rect x="120" y="218" width="405" height="190" rx="8" fill="#d9d7bd"/><path d="M105 235 320 116 541 235Z" fill="#b26e51"/><rect x="172" y="272" width="120" height="136" fill="#8ca59c"/><rect x="320" y="272" width="152" height="104" fill="#e9ede1"/><g fill="#c2a27e" stroke="#8b715e" stroke-width="4"><rect x="330" y="320" width="65" height="55"/><rect x="400" y="303" width="63" height="72"/><rect x="251" y="351" width="68" height="58"/></g><circle cx="665" cy="117" r="49" fill="#fff5cc" opacity=".85"/><text x="30" y="418" font-size="25" fill="#fff" font-family="Arial" font-weight="700">Ảnh ngang · giao hàng</text></svg>`,
+    portrait:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 640"><defs><linearGradient id="w" x2="1" y2="1"><stop stop-color="#f0e8dc"/><stop offset="1" stop-color="#e2d5c4"/></linearGradient></defs><rect width="480" height="640" fill="url(#w)"/><rect x="40" y="52" width="400" height="535" rx="18" fill="#a88067"/><g fill="#6b5146"><rect x="56" y="188" width="370" height="16"/><rect x="56" y="354" width="370" height="16"/><rect x="56" y="518" width="370" height="16"/></g><g><rect x="69" y="88" width="78" height="96" rx="11" fill="#e9b79b"/><rect x="164" y="107" width="83" height="77" rx="7" fill="#faf1cd"/><rect x="263" y="82" width="61" height="102" rx="11" fill="#91bab0"/><rect x="340" y="95" width="69" height="89" rx="8" fill="#efba70"/><rect x="70" y="246" width="85" height="100" rx="7" fill="#c9db93"/><rect x="172" y="230" width="59" height="116" rx="14" fill="#e6a0a6"/><rect x="249" y="263" width="83" height="83" rx="8" fill="#b6bfdc"/><rect x="351" y="238" width="57" height="108" rx="10" fill="#f8d99b"/><rect x="71" y="390" width="62" height="120" rx="11" fill="#a4c6ce"/><rect x="152" y="411" width="92" height="99" rx="8" fill="#f2b9aa"/><rect x="264" y="383" width="61" height="127" rx="9" fill="#e6d59e"/><rect x="343" y="407" width="68" height="103" rx="11" fill="#afd3b0"/></g><g fill="#fff8" font-size="17" font-family="Arial" text-anchor="middle"><text x="108" y="157">SỮA</text><text x="204" y="156">HÀNG</text><text x="291" y="152">MỚI</text><text x="112" y="312">KỆ 1</text></g><rect x="0" y="579" width="480" height="61" fill="#44403c" opacity=".76"/><text x="24" y="617" font-size="26" fill="#fff" font-family="Arial" font-weight="700">Ảnh dọc · quầy hàng</text></svg>`,
+    product1:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 360"><rect width="360" height="360" fill="#e6e9d6"/><ellipse cx="183" cy="300" rx="120" ry="23" fill="#9aa68d" opacity=".4"/><rect x="84" y="64" width="192" height="227" rx="17" fill="#8bc6b6"/><rect x="111" y="114" width="140" height="115" rx="10" fill="#fff9"/><text x="180" y="178" text-anchor="middle" font-family="Arial" fill="#36796c" font-size="31" font-weight="bold">SỮA</text><text x="180" y="214" text-anchor="middle" font-family="Arial" fill="#36796c" font-size="20">LỐC 4</text></svg>`,
+    product2:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 360"><rect width="360" height="360" fill="#f2e8df"/><rect x="58" y="78" width="118" height="217" rx="16" fill="#f0b06c"/><rect x="187" y="107" width="118" height="188" rx="16" fill="#b4c7e4"/><rect x="76" y="132" width="81" height="91" rx="12" fill="#fff9"/><rect x="202" y="149" width="87" height="92" rx="12" fill="#fff9"/><text x="180" y="333" font-family="Arial" font-size="28" font-weight="bold" fill="#72625e" text-anchor="middle">HÀNG THÙNG</text></svg>`,
+    product3:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 360"><rect width="360" height="360" fill="#e0e8ed"/><rect x="60" y="46" width="240" height="268" rx="13" fill="#f8f9f8"/><g fill="#afbeca"><rect x="84" y="90" width="188" height="8" rx="4"/><rect x="84" y="115" width="152" height="8" rx="4"/><rect x="84" y="140" width="174" height="8" rx="4"/><rect x="84" y="188" width="188" height="8" rx="4"/><rect x="84" y="213" width="175" height="8" rx="4"/></g><rect x="84" y="258" width="100" height="14" rx="7" fill="#d6a29a"/><text x="180" y="338" font-family="Arial" font-size="25" fill="#556773" text-anchor="middle">PHIẾU GIAO</text></svg>`
+  };
+  return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(scenes[type]||scenes.landscape);
+}
+function photoTile(type,shape,caption){
+  return '<button type="button" class="media-photo '+shape+'" data-preview="true" aria-label="Xem '+caption+'">'+
+      '<img src="'+mediaArt(type)+'" alt="'+caption+'" loading="lazy"></button>';
+}
+function mediaSampleMarkup(){
+  const bars=[7,15,21,10,25,18,8,14,23,12,17,27,12,20,9,18,25,14,8,19,13,24,11,7];
+  return '<div class="media-divider">Tin nhắn mẫu · ảnh và đa phương tiện</div>'+
+    '<div class="media-message out">'+photoTile('landscape','landscape','Ảnh ngang giao hàng')+
+      '<div class="media-label">Ảnh ngang 16:9 · 14:20 ✓✓</div></div>'+
+    '<div class="media-message in">'+photoTile('portrait','portrait','Ảnh dọc quầy hàng')+
+      '<div class="media-label">Ảnh dọc 3:4 · 14:21</div></div>'+
+    '<div class="media-message out"><div class="media-collage">'+
+      photoTile('product1','square','Sữa lốc bốn hộp')+photoTile('product2','square','Hàng đóng thùng')+
+      photoTile('product3','square','Phiếu giao hàng')+'</div>'+
+      '<div class="media-label">3 ảnh trong một tin · 14:22 ✓✓</div></div>'+
+    '<div class="media-message in"><div class="media-video" role="img" aria-label="Ảnh xem trước video minh họa dài 18 giây">'+
+      '<img src="'+mediaArt('landscape')+'" alt=""><span class="play-mark" aria-hidden="true">▶</span>'+
+      '<span class="duration">0:18</span></div><div class="media-label">Video ngang · bản xem trước minh họa</div></div>'+
+    '<div class="media-message out"><div class="media-audio" aria-label="Ghi âm minh họa dài 12 giây">'+
+      '<span class="audio-icon" aria-hidden="true">♫</span><span class="media-waves">'+
+      bars.map(h=>'<i style="height:'+h+'px"></i>').join('')+'</span><span class="audio-time">0:12</span>'+
+      '</div><div class="media-label">Tin nhắn thoại · minh họa</div></div>'+
+    '<div class="media-message in"><div class="media-file">'+
+      '<span class="file-mark">PDF</span><span class="file-text"><strong>Bao-gia-thang-10.pdf</strong>'+
+      '<small>1,2 MB · Tệp đính kèm minh họa</small></span></div></div>';
+}
+function mountMediaSamples(){
+  for(const root of [rootGpt,rootTap]){
+    const target=root.querySelector('.chat-scroll');
+    if(target) target.insertAdjacentHTML('beforeend',mediaSampleMarkup());
+  }
+}
+let mediaPreviewRestore=null;
+function closeMediaPreview(){
+  const overlay=document.querySelector('.media-lightbox');
+  if(overlay)overlay.remove();
+  if(mediaPreviewRestore){mediaPreviewRestore.focus();mediaPreviewRestore=null;}
+}
+document.addEventListener('click',event=>{
+  const photo=event.target.closest('.media-photo[data-preview]');
+  if(photo){
+    const img=photo.querySelector('img');
+    if(!img)return;
+    closeMediaPreview();mediaPreviewRestore=photo;
+    const overlay=document.createElement('div');
+    overlay.className='media-lightbox';
+    overlay.setAttribute('role','dialog');
+    overlay.setAttribute('aria-modal','true');
+    overlay.setAttribute('aria-label','Xem ảnh gửi trong cuộc trò chuyện');
+    overlay.innerHTML='<button type="button" class="media-close" aria-label="Đóng ảnh">×</button>'+
+      '<img alt="" ><span class="lightbox-note">Mẫu ảnh demo, không phải ảnh người dùng</span>';
+    overlay.querySelector('img').src=img.src;
+    overlay.querySelector('img').alt=img.alt;
+    document.body.append(overlay);overlay.querySelector('button').focus();
+    return;
+  }
+  const overlay=document.querySelector('.media-lightbox');
+  if(overlay&&(event.target===overlay||event.target.closest('.media-close')))closeMediaPreview();
+});
+document.addEventListener('keydown',event=>{if(event.key==='Escape')closeMediaPreview();});
+
 function render(category){
   if(!Object.prototype.hasOwnProperty.call(screens,category))return;
   rootGpt.innerHTML=phoneViewport(screens[category].gpt);
   rootTap.innerHTML=phoneViewport(screens[category].tap);
+  if(category==='chat')mountMediaSamples();
   for(const item of nav)item.setAttribute('aria-current',String(item.dataset.category===category));
   fitIphoneViewports();
 }
