@@ -282,10 +282,22 @@ function sourcePreview(item){
  }
  if(kind==='rich-text'||kind==='rich-list'){
   if(kind==='rich-list')return '<div class="bubble-area"><div class="bubble other"><b>Danh sách hàng:</b><ul style="margin:7px 0 0;padding-left:18px"><li>Sữa hộp</li><li>Hàng U</li><li>Thuốc lá</li></ul></div></div>';
-  return '<div class="bubble-area"><div class="bubble other"><b>Thông tin đơn hàng</b><br><code>DG41</code><br><a href="https://chat.taphoa.xyz/" target="_blank" rel="noopener">Liên kết mẫu</a></div></div>';
+  return '<div class="bubble-area"><div class="bubble other"><b>Thông tin đơn hàng</b><br><code>DG41</code><br><span style="text-decoration:underline;color:#245da0">Liên kết mẫu</span></div></div>';
  }
  if(kind==='work-check'){
   return '<div class="surface-card"><strong>Đơn khách hàng mẫu</strong><div class="source-record"><button type="button" role="checkbox" aria-checked="false" data-preview-action="Hoàn thành việc" style="border:1px solid #cdd6e4;border-radius:7px;width:34px;height:34px">✓</button><span class="source-mini">2 thùng sữa cần giao</span></div></div>';
+ }
+
+ if(kind==='checkbox'){
+  return '<div class="surface-card"><label style="display:flex;align-items:center;gap:10px"><input type="checkbox" checked style="width:20px;height:20px;flex:none;accent-color:#3478ee"><span>Gửi tài khoản tới khách qua Chat</span></label><small class="source-mini">Checkbox phải có nhãn và không tự gửi khi thay đổi.</small></div>';
+ }
+ if(kind==='shell-header'){
+  return '<div class="surface-card" style="padding:5px 8px"><div class="source-record">'+button('menu','Menu')+
+  '<div class="demo-tabgroup" role="tablist"><button type="button" role="tab" aria-selected="true" data-preview-action="Chat"><span class="avatar sm">T</span>test9</button><button type="button" role="tab" aria-selected="false" data-preview-action="Công việc">Công việc</button></div>'+
+  button('phone','Gọi')+'</div><span class="source-mini">Header gồm menu, tab, trạng thái gọi.</span></div>';
+ }
+ if(kind==='shell-thread'){
+  return '<div class="surface-card"><div class="bubble other">Tin khách vừa gửi</div><div class="bubble mine">Đã nhận đơn ✓✓</div><span class="source-mini">Lịch sử cuộn độc lập với Header và Composer</span></div>';
  }
  if(kind==='empty-contact')return '<div class="source-empty">Không tìm thấy liên hệ phù hợp.<br><small>Không phải lỗi tải trang</small></div>';
  return null;
@@ -465,6 +477,7 @@ $('cards').addEventListener('click',event=>{
  if(!action)return;
  if(action.dataset.previewAction){
    flash('Mẫu UI: '+action.dataset.previewAction+' · không gọi Chat thật.');
+   if(action.getAttribute('role')==='checkbox')action.setAttribute('aria-checked',String(action.getAttribute('aria-checked')!=='true'));
    const parent=action.closest('.demo-tabgroup');
    if(parent&&action.hasAttribute('role')){
      for(const btn of parent.querySelectorAll('[role="tab"]'))btn.setAttribute('aria-selected',String(btn===action));
