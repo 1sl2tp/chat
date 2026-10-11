@@ -1,3 +1,15 @@
+## 2026-10-11 — Chat first-open: lazy-load avatars outside viewport (MERGED; E4/E5 PENDING)
+
+- User request: improve Chat startup/mobile alongside YouTube without changing message delivery, read-state, scroll, media upload or call.
+- Owner: `shell.js` `renderAvatarImage`; adds native `img.loading='lazy'` to contact avatar image nodes, retains initials until image's actual `load` and existing error fallback, preserves async decode. Offscreen avatar fetches can be deferred by browser; visible avatars still load as normal.
+- Canonical build: regenerated `index.html` + `version.json` using exact build hashing; original source's SHA-256 and release ID were reconstructed and verified before mutation. New build ID `38632c0a40292eeed346fb35972d2b657dc1b90411bb6017fae54fb1461bd96d`.
+- Source PR https://github.com/1sl2tp/chat/pull/169 ; Verify V21 run `38148330196` SUCCESS (80 steps passed, canonical build included); merged main commit `e0f3054494fe2e846de223ee53d8daa53353585d`. Main source and generated artifacts readback PASS.
+- E3 deploy Pages run could not be independently fetched. E4 Safari/Chrome/iOS PWA screenshots and first open visible/offscreen avatar behavior PENDING; E5 request and byte count before/after PENDING. Do not claim a measured launch improvement.
+- MUST-STAY: Admin/User Realtime, background Push, Zalo bridge, contact sort/selection, ScrollController, photo upload/forward, calls, cross-device sync; 0 new RPCs, DB writes, timers or schedulers.
+- Rollback: revert shell.js + index.html + version.json together from the PR; no database rollback. Rule chung `SPEC-CHAT-LAZY-AVATARS-20261011` row103. Next: scoped Safari/PWA test, verify avatars show when scrolling into view; measure only initial image requests/bytes and first useful contact render.
+
+---
+
 ## 2026-10-10 — Chat starts in Trò chuyện, not Công việc (MERGED; E4 PROD PENDING)
 
 - User symptom: first open / login and cold notification sometimes showed Công việc first, then returned to Chat.
