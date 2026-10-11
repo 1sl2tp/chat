@@ -2218,8 +2218,9 @@ button{
   border-radius:999px;
   background:var(--theme-surface-secondary);
 }
+/* Contact identity uses the same equal-width tabs as the default mode. */
 .top-mode-switch[data-contact-identity="true"]{
-  grid-template-columns:minmax(0,1fr) max-content;
+  grid-template-columns:repeat(2,minmax(0,1fr));
 }
 .top-mode-tab{
   min-width:0;
