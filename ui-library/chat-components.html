@@ -76,6 +76,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
 footer{padding:15px 6px 25px;max-width:700px;margin:auto;color:#7a8493;font-size:11px;line-height:1.6}
 @media(max-width:1060px){#library{grid-template-columns:160px minmax(320px,1fr)}.right{grid-column:1/-1;border-left:0;border-top:1px solid #e7e7e7;display:block}.nav{height:100vh}.mock-card{min-height:0}}
 @media(max-width:660px){#library{display:flex;flex-direction:column}.nav{position:relative;height:auto;display:flex;flex-direction:row;align-items:center;flex-wrap:wrap;padding:10px;gap:6px;border:0;border-bottom:1px solid #e5e7eb}.nav strong{margin:0 10px 0 0}.nav p,.nav>small{display:none}.nav button{padding:8px 9px;font-size:12px}.middle{padding:10px}.mock-card{padding:8px;border-radius:14px}.phone{width:min(100%,390px);height:min(760px,78svh);min-height:530px;border-width:4px;border-radius:27px}.right{padding:15px 13px}.head h1{font-size:16px}}
+.back-catalog{display:inline-flex;align-items:center;text-decoration:none;min-height:36px;padding:8px 10px;border:1px solid #dce4ef;border-radius:10px;color:#245d96;background:#f1f6fc;font-size:12px;font-weight:650}.back-catalog:hover{background:#e9f2fc}
 </style></head>
 <body><div id="library">
 <aside class="nav" aria-label="Các phần giao diện"><strong>UI Chat gốc</strong><p>Tách từng thành phần của 1sl2tp/chat để thử sửa riêng, không động production.</p>
@@ -85,6 +86,7 @@ footer{padding:15px 6px 25px;max-width:700px;margin:auto;color:#7a8493;font-size
 <button type="button" data-select="composer" aria-current="false">Vùng gõ chữ <span>03</span></button>
 </aside>
 <main class="middle"><div class="head"><div><h1>Thư viện thành phần Chat — mobile</h1><p>Gốc từ GitHub. Bản xem dùng nội dung giả, không đọc tin khách.</p></div>
+<a class="back-catalog" href="./">← Danh mục component</a>
 <div class="mode"><button type="button" id="original" aria-pressed="true">Gốc</button><button type="button" id="custom" aria-pressed="false">Thử sửa</button></div></div>
 <div class="mock-card"><section id="appShell" class="phone" data-ui-foundation="v1" data-auth-state="authenticated" data-route="chat" data-focus="all" aria-label="Khung Chat mobile tham khảo">
 <div class="statusbar" aria-hidden="true">9:41</div>
