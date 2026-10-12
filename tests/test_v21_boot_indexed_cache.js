@@ -20,7 +20,7 @@ const index={
   openCursor(range,direction){
     assert.strictEqual(direction,'prev','must read backwards from indexed timestamp');
     assert.deepStrictEqual(range.lower,['a','conv-a','']);
-    assert.deepStrictEqual(range.upper,['a','conv-a','\\uffff']);
+    assert.deepStrictEqual(range.upper,['a','conv-a',String.fromCharCode(0xffff)]);
     const reversed=sorted.slice().reverse();
     let at=0;
     const request={error:null,onerror:null,onsuccess:null};
