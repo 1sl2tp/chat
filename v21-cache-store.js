@@ -188,13 +188,23 @@ async function listMessages(accountId,conversationId,limit=100){
   const index=tx.objectStore('messages').index('by_account_conversation_created');
   const lower=[String(accountId),String(conversationId),''];
   const upper=[String(accountId),String(conversationId),'\uffff'];
-  const rows=await req(index.getAll(IDBKeyRange.bound(lower,upper)));
+  // Reverse index cursor reads only the newest visible rows. getAll() used
+  // to materialize the entire conversation before slicing to 100.
+  const wanted=Math.max(1,Math.floor(Number(limit)||100));
+  const rows=[];
+  await new Promise((resolve,reject)=>{
+    const request=index.openCursor(IDBKeyRange.bound(lower,upper),'prev');
+    request.onerror=()=>reject(request.error||new Error('messages_cursor_failed'));
+    request.onsuccess=()=>{
+      const cursor=request.result;
+      if(!cursor){resolve();return;}
+      if(!cursor.value.deleted_at)rows.push(cursor.value);
+      if(rows.length>=wanted){resolve();return;}
+      cursor.continue();
+    };
+  });
   await txDone(tx);
-  return (rows||[])
-    .filter(row=>!row.deleted_at)
-    .sort((a,b)=>String(a.created_at).localeCompare(String(b.created_at))||String(a.id).localeCompare(String(b.id)))
-    .slice(-Math.max(1,Number(limit)||100))
-    .map(({cache_key,account_id,...rest})=>rest);
+  return rows.reverse().map(({cache_key,account_id,...rest})=>rest);
 }
 
 async function removeMessage(accountId,id){
