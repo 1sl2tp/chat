@@ -19,8 +19,8 @@ const sorted=all.filter(row=>row.account_id==='a'&&row.conversation_id==='conv-a
 const index={
   openCursor(range,direction){
     assert.strictEqual(direction,'prev','must read backwards from indexed timestamp');
-    assert.deepStrictEqual(range.lower,['a','conv-a','']);
-    assert.deepStrictEqual(range.upper,['a','conv-a',String.fromCharCode(0xffff)]);
+    assert.strictEqual(JSON.stringify(range.lower),JSON.stringify(['a','conv-a','']));
+    assert.strictEqual(JSON.stringify(range.upper),JSON.stringify(['a','conv-a',String.fromCharCode(0xffff)]));
     const reversed=sorted.slice().reverse();
     let at=0;
     const request={error:null,onerror:null,onsuccess:null};
