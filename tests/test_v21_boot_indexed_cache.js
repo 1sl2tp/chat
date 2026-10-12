@@ -47,7 +47,7 @@ const listMessages=vm.runInContext('('+source.slice(from,to).trim()+')',context)
   assert.strictEqual(result.length,100);
   assert(visited<=110,'should visit only newest needed rows plus tombstones');
   const expected=sorted.filter(x=>!x.deleted_at).slice(-100);
-  assert.deepStrictEqual(result.map(x=>x.id),expected.map(x=>x.id),'ascending chronological order, same-time ID tie order');
+  assert.strictEqual(JSON.stringify(result.map(x=>x.id)),JSON.stringify(expected.map(x=>x.id)),'ascending chronological order, same-time ID tie order');
   assert(result.every(x=>!x.cache_key&&!x.account_id),'private storage envelope stripped');
   const sync=fs.readFileSync(path.join(__dirname,'..','v21-sync-engine.js'),'utf8');
   assert(!sync.includes('prewarmCachedContacts('),'boot must not hydrate inactive conversations');
