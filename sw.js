@@ -114,7 +114,18 @@ self.addEventListener('push',event=>{
         String(state.conversationId||'')===conversationId
       );
     });
-    if(readingSame)return;
+    // A visible mobile Chat already presents all incoming messages through
+    // the canonical realtime/push-dirty path, even when another contact is
+    // selected. Do not require focus() on iOS standalone PWAs.
+    const visibleMobileChat=kind!=='call_invite'&&clients.some(client=>{
+      const state=adminPushClientState.get(client.id);
+      const mobile=/^(ios|android)-(pwa|web)$/.test(String(state?.platform||''));
+      const visible=client.visibilityState
+        ?client.visibilityState==='visible'
+        :Boolean(state?.visible);
+      return Boolean(state&&mobile&&state.visible&&visible&&state.route==='chat');
+    });
+    if(readingSame||visibleMobileChat)return;
 
     await self.registration.showNotification(String(payload.title||'TAPHOA Chat'),{
       body:String(payload.body||(kind==='call_invite'?'Cuộc gọi đến':'Tin nhắn mới')),
@@ -186,6 +197,16 @@ async function networkFirst(request,{navigation=false}={}){
   }
 }
 
+// Show last-good static shell without waiting for the network on a returning
+// PWA visit. One existing network revalidation refreshes the next launch;
+// version.json still controls safe updates while preserving active drafts.
+async function navigationCachedThenNetwork(request,event){
+  const cached=await caches.match(request)||await caches.match('./');
+  if(!cached)return networkFirst(request,{navigation:true});
+  event.waitUntil(networkFirst(request,{navigation:true}).catch(()=>null));
+  return cached;
+}
+
 self.addEventListener('fetch',event=>{
   const request=event.request;
   if(request.method!=='GET')return;
@@ -200,7 +221,7 @@ self.addEventListener('fetch',event=>{
     return;
   }
   if(request.mode==='navigate'){
-    event.respondWith(networkFirst(request,{navigation:true}));
+    event.respondWith(navigationCachedThenNetwork(request,event));
     return;
   }
   event.respondWith(networkFirst(request));

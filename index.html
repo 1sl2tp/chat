@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="a06e1bf7e52968a770f8c4e9a72e46129deed59f0b7cc996b56cfc9225c3b1af">
+<meta name="app-build-id" content="269f6431fccaa82d705c9aa3f549fe575272278fb4803f29e257bb5750b5795c">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -21487,13 +21487,23 @@ async function listMessages(accountId,conversationId,limit=100){
   const index=tx.objectStore('messages').index('by_account_conversation_created');
   const lower=[String(accountId),String(conversationId),''];
   const upper=[String(accountId),String(conversationId),'\uffff'];
-  const rows=await req(index.getAll(IDBKeyRange.bound(lower,upper)));
+  // Reverse index cursor reads only the newest visible rows. getAll() used
+  // to materialize the entire conversation before slicing to 100.
+  const wanted=Math.max(1,Math.floor(Number(limit)||100));
+  const rows=[];
+  await new Promise((resolve,reject)=>{
+    const request=index.openCursor(IDBKeyRange.bound(lower,upper),'prev');
+    request.onerror=()=>reject(request.error||new Error('messages_cursor_failed'));
+    request.onsuccess=()=>{
+      const cursor=request.result;
+      if(!cursor){resolve();return;}
+      if(!cursor.value.deleted_at)rows.push(cursor.value);
+      if(rows.length>=wanted){resolve();return;}
+      cursor.continue();
+    };
+  });
   await txDone(tx);
-  return (rows||[])
-    .filter(row=>!row.deleted_at)
-    .sort((a,b)=>String(a.created_at).localeCompare(String(b.created_at))||String(a.id).localeCompare(String(b.id)))
-    .slice(-Math.max(1,Number(limit)||100))
-    .map(({cache_key,account_id,...rest})=>rest);
+  return rows.reverse().map(({cache_key,account_id,...rest})=>rest);
 }
 
 async function removeMessage(accountId,id){
@@ -22875,36 +22885,6 @@ async function hydrateContactFromCache(contactId,{renderMode='replace',epoch=con
   return{conversationId:resolvedConversationId,rows};
 }
 
-async function prewarmCachedContacts(contactRows,excludeContactId=null){
-  if(!accountId)return 0;
-  const candidates=(Array.isArray(contactRows)?contactRows:[])
-    .filter(row=>row?.id&&String(row.id)!==String(excludeContactId||''));
-  if(!candidates.length)return 0;
-  const outbox=await cache()?.listOutbox?.(accountId)||[];
-  const outboxByContact=new Map();
-  for(const item of outbox){
-    const key=String(item?.contact_id||'');
-    if(!key)continue;
-    const list=outboxByContact.get(key)||[];list.push(item);outboxByContact.set(key,list);
-  }
-  let primed=0;
-  await Promise.all(candidates.map(async contact=>{
-    const target=String(contact.id);
-    const conversationId=contact.conversation_id?String(contact.conversation_id):await cache()?.getConversationId?.(accountId,target);
-    const resolved=conversationId?String(conversationId):null;
-    const cached=resolved?await cache()?.listMessages?.(accountId,resolved,100):[];
-    const rows=[
-      ...cached.map(row=>{
-        const migrated=migrateLegacyCachedMediaBody(row);
-        const clean={...migrated};delete clean._legacy_media_body_migrated;return clean;
-      }),
-      ...(outboxByContact.get(target)||[]).map(item=>outboxAsLocal(item,resolved))
-    ];
-    if(messages()?.primeSession?.({contactId:target,conversationId:resolved,rows,ifAbsent:true}))primed+=1;
-  }));
-  return primed;
-}
-
 function isTransientSyncError(error){
   const status=Number(error?.statusCode||error?.status||error?.status_code||0)||0;
   const message=String(error?.message||error?.details||error||'').toLowerCase();
@@ -23911,7 +23891,8 @@ async function onAuth(detail){
   // offline account cannot disappear just because it has no active Chat session.
   if(online())queueMicrotask(()=>{void syncContacts();});
 
-  void prewarmCachedContacts(cachedContacts,active?.id||currentContactId||null);
+  // Do not hydrate inactive conversations during boot. The selected thread
+  // is restored by openContact; others hydrate on explicit selection.
 }
 
 async function clearAccount(id){
@@ -25885,6 +25866,7 @@ function syncState(){
     visible:document.visibilityState==='visible',
     focused:typeof document.hasFocus==='function'?Boolean(document.hasFocus()):document.visibilityState==='visible',
     route:String(shell.route||'chat'),
+    platform:platform(),
     conversationId:String(sync.currentConversationId||''),
     contactId:String(shell.activeContact?.id||sync.currentContactId||''),
   };
@@ -25985,6 +25967,9 @@ document.addEventListener('v21-contact-store-change',()=>{void consumePendingOpe
 document.addEventListener('visibilitychange',()=>{syncState();if(document.visibilityState==='visible')scheduleUnreadBadgeRefresh(0);});
 window.addEventListener('focus',()=>{syncState();scheduleUnreadBadgeRefresh(0);});
 window.addEventListener('blur',syncState);
+// New Service Workers lose the previous in-memory client-state registry.
+// Re-advertise visibility when the PWA takes control, with no polling.
+navigator.serviceWorker?.addEventListener?.('controllerchange',syncState);
 document.addEventListener('navigation-change',syncState);
 document.addEventListener('v21-active-contact-change',syncState);
 document.addEventListener('v21-conversation-context',syncState);

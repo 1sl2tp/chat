@@ -353,6 +353,7 @@ function syncState(){
     visible:document.visibilityState==='visible',
     focused:typeof document.hasFocus==='function'?Boolean(document.hasFocus()):document.visibilityState==='visible',
     route:String(shell.route||'chat'),
+    platform:platform(),
     conversationId:String(sync.currentConversationId||''),
     contactId:String(shell.activeContact?.id||sync.currentContactId||''),
   };
@@ -453,6 +454,9 @@ document.addEventListener('v21-contact-store-change',()=>{void consumePendingOpe
 document.addEventListener('visibilitychange',()=>{syncState();if(document.visibilityState==='visible')scheduleUnreadBadgeRefresh(0);});
 window.addEventListener('focus',()=>{syncState();scheduleUnreadBadgeRefresh(0);});
 window.addEventListener('blur',syncState);
+// New Service Workers lose the previous in-memory client-state registry.
+// Re-advertise visibility when the PWA takes control, with no polling.
+navigator.serviceWorker?.addEventListener?.('controllerchange',syncState);
 document.addEventListener('navigation-change',syncState);
 document.addEventListener('v21-active-contact-change',syncState);
 document.addEventListener('v21-conversation-context',syncState);

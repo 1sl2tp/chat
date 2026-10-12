@@ -77,6 +77,42 @@ function harness(){
   await other.dispatch('push',{data:{json:()=>payload}});
   assert.equal(other.notices.length,1,'different conversation must still notify');
 
+  // The mobile PWA is visibly open in Chat but currently viewing a
+  // different contact. The in-app list/thread handles the new event; no
+  // duplicate system notification should appear.
+  const mobile=harness();
+  const mobileClient=mobile.client('mobile');
+  mobileClient.visibilityState='visible';
+  mobile.setClients([mobileClient]);
+  await mobile.dispatch('message',{data:{type:'ADMIN_PUSH_STATE',visible:true,focused:false,platform:'ios-pwa',route:'chat',conversationId:'conv-2'},source:mobileClient});
+  await mobile.dispatch('push',{data:{json:()=>payload}});
+  assert.equal(mobile.notices.length,0,'visible iOS PWA Chat suppresses notification even on another contact');
+  assert(mobile.posted.some(message=>message.type==='ADMIN_PUSH_MESSAGE_DIRTY'),'foreground mobile must still receive dirty wake');
+
+  const hidden=harness();
+  const hiddenClient=hidden.client('hidden');
+  hiddenClient.visibilityState='hidden';
+  hidden.setClients([hiddenClient]);
+  await hidden.dispatch('message',{data:{type:'ADMIN_PUSH_STATE',visible:true,focused:true,platform:'ios-pwa',route:'chat',conversationId:'conv-2'},source:hiddenClient});
+  await hidden.dispatch('push',{data:{json:()=>payload}});
+  assert.equal(hidden.notices.length,1,'hidden PWA must receive a system notification even if visibility state message is stale');
+
+  const work=harness();
+  const workClient=work.client('work');
+  workClient.visibilityState='visible';
+  work.setClients([workClient]);
+  await work.dispatch('message',{data:{type:'ADMIN_PUSH_STATE',visible:true,platform:'android-pwa',route:'work',conversationId:'conv-2'},source:workClient});
+  await work.dispatch('push',{data:{json:()=>payload}});
+  assert.equal(work.notices.length,1,'mobile Work route keeps message notification enabled');
+
+  const call=harness();
+  const callClient=call.client('call');
+  callClient.visibilityState='visible';
+  call.setClients([callClient]);
+  await call.dispatch('message',{data:{type:'ADMIN_PUSH_STATE',visible:true,platform:'ios-pwa',route:'chat',conversationId:'conv-2'},source:callClient});
+  await call.dispatch('push',{data:{json:()=>({...payload,kind:'call_invite',invite_id:'invite-1'})}});
+  assert.equal(call.notices.length,1,'incoming call notification must remain available');
+
   const click=harness();
   const clickClient=click.client('c9');click.setClients([clickClient]);
   await click.dispatch('message',{data:{type:'ADMIN_PUSH_BADGE_SET',count:3},source:clickClient});

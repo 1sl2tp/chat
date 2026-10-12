@@ -198,6 +198,8 @@ jobs:
           node --check shell.js
       - name: Composer focus pointer regression
         run: node tests/test_v21_composer_pointer_recovery.js
+      - name: Chat startup IndexedDB bounded recent-message cursor
+        run: node tests/test_v21_boot_indexed_cache.js
       - name: Chat immediate message and directory scroll regression
         run: node tests/test_v21_139_immediate_message_directory.js
       - name: Verify canonical source

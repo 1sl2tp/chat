@@ -604,36 +604,6 @@ async function hydrateContactFromCache(contactId,{renderMode='replace',epoch=con
   return{conversationId:resolvedConversationId,rows};
 }
 
-async function prewarmCachedContacts(contactRows,excludeContactId=null){
-  if(!accountId)return 0;
-  const candidates=(Array.isArray(contactRows)?contactRows:[])
-    .filter(row=>row?.id&&String(row.id)!==String(excludeContactId||''));
-  if(!candidates.length)return 0;
-  const outbox=await cache()?.listOutbox?.(accountId)||[];
-  const outboxByContact=new Map();
-  for(const item of outbox){
-    const key=String(item?.contact_id||'');
-    if(!key)continue;
-    const list=outboxByContact.get(key)||[];list.push(item);outboxByContact.set(key,list);
-  }
-  let primed=0;
-  await Promise.all(candidates.map(async contact=>{
-    const target=String(contact.id);
-    const conversationId=contact.conversation_id?String(contact.conversation_id):await cache()?.getConversationId?.(accountId,target);
-    const resolved=conversationId?String(conversationId):null;
-    const cached=resolved?await cache()?.listMessages?.(accountId,resolved,100):[];
-    const rows=[
-      ...cached.map(row=>{
-        const migrated=migrateLegacyCachedMediaBody(row);
-        const clean={...migrated};delete clean._legacy_media_body_migrated;return clean;
-      }),
-      ...(outboxByContact.get(target)||[]).map(item=>outboxAsLocal(item,resolved))
-    ];
-    if(messages()?.primeSession?.({contactId:target,conversationId:resolved,rows,ifAbsent:true}))primed+=1;
-  }));
-  return primed;
-}
-
 function isTransientSyncError(error){
   const status=Number(error?.statusCode||error?.status||error?.status_code||0)||0;
   const message=String(error?.message||error?.details||error||'').toLowerCase();
@@ -1640,7 +1610,8 @@ async function onAuth(detail){
   // offline account cannot disappear just because it has no active Chat session.
   if(online())queueMicrotask(()=>{void syncContacts();});
 
-  void prewarmCachedContacts(cachedContacts,active?.id||currentContactId||null);
+  // Do not hydrate inactive conversations during boot. The selected thread
+  // is restored by openContact; others hydrate on explicit selection.
 }
 
 async function clearAccount(id){
