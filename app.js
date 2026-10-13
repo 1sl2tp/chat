@@ -1835,6 +1835,11 @@ function renderImageViewerFilters(){
 
 function applyImageViewerFilter(scope,{preferAssetId='',behavior='smooth'}={}){
   imageViewerFilter=['all','self','remote','album'].includes(scope)?scope:'all';
+  // "Album hiện tại" follows the image currently visible, not the message
+  // that happened to open the viewer before browsing nearby photos.
+  if(imageViewerFilter==='album'){
+    imageViewerAlbumId=imageViewerItems[imageViewerIndex]?.messageId||imageViewerAlbumId;
+  }
   return applyCurrentImageViewerFilters({preferAssetId,behavior});
 }
 
@@ -2471,7 +2476,11 @@ async function openImageViewer({assetId,accountId=currentMediaAccountId(),previe
   imageViewerAllItems=items;
   const clicked=items.find(item=>item.assetId===id)||null;
   imageViewerAlbumId=clicked?.messageId||null;
-  imageViewerFilter=imageViewerAlbumId?'album':'all';
+  // UI-148: an image from a single message is NOT an album-only viewer.
+  // Start with every image already loaded in this conversation so left/right,
+  // swipe, keyboard and the filmstrip can navigate adjacent messages.
+  // "Album hiện tại" stays an explicit opt-in filter.
+  imageViewerFilter='all';
   imageViewerTimeFilter='all';
   if(!imageViewerOverlay.open){
     imageViewerReturnFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;
