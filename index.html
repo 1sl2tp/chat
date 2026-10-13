@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="fa64c9c60b00b776f61c81badf3fc366b9eb536958821681f4aac84c44ca2210">
+<meta name="app-build-id" content="e71f9bd26a6d08cbeb02a6e80f43c40d56f0606e5cda7a55bae7510768cde444">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -2870,6 +2870,7 @@ button{
   overflow:hidden;
   background:var(--theme-surface-secondary);
 }
+/* F-133: viewport-derived portrait width and the 48dvh cap share one geometry owner. */
 .media-image-tile[data-image-presentation="portrait"]{
   /* Short, fully visible in the thread; tap opens the unrestricted viewer. */
   max-height:min(48dvh,460px);

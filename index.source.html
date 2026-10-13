@@ -1083,6 +1083,7 @@ button{
   overflow:hidden;
   background:var(--theme-surface-secondary);
 }
+/* F-133: viewport-derived portrait width and the 48dvh cap share one geometry owner. */
 .media-image-tile[data-image-presentation="portrait"]{
   /* Short, fully visible in the thread; tap opens the unrestricted viewer. */
   max-height:min(48dvh,460px);

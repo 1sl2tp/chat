@@ -20,7 +20,8 @@ assert '.assistant-message-unit>.media-image-tile[data-image-presentation]{margi
 app=read('app.js')
 assert 'const MESSAGE_MEDIA_WIDTH_PX=360;' in app
 assert app.count('width:MESSAGE_MEDIA_WIDTH_PX')>=2
-assert 'const inlineHeight=460;' in app  # Portrait follows height bound, unlike gallery.
+assert 'const inlineHeight=messageInlineImageHeightLimit();' in app  # Portrait follows the 48dvh layout cap, unlike gallery.
+assert 'Math.floor(viewportHeight*.48)' in app
 
 # Directory order is activity-owned only. Equal activity keeps stable store
 # order; display-name/profile edits are never a sort key.
