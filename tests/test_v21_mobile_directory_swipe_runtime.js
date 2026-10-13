@@ -49,20 +49,23 @@ function swipe(dx,dy=0,{x=175,blocked=false}={}){
 const noTransition=()=>{assert.equal(state.opens,0);assert.equal(state.returns,0);};
 // Fresh directory: no selected conversation means no navigation at all.
 swipe(85);swipe(-85);noTransition();
-// Prior valid conversation: only right swipe from directory reopens it.
+// Prior valid conversation: BOTH left and right from directory reopen it.
 state.prior={id:'contact-A',name:'A'};
-swipe(-85);noTransition();
 swipe(12,90);noTransition(); // vertical scroll
 swipe(85,0,{x:9});noTransition(); // system back zone
+swipe(-85,0,{x:380});noTransition(); // right OS edge
 swipe(85,0,{blocked:true});noTransition(); // interactive target
-swipe(90);assert.equal(state.opens,1);assert.equal(state.directory,false);
-// Conversation: left swipe returns to directory. Right swipe is a no-op.
-swipe(90);assert.equal(state.returns,0);
-swipe(-90);assert.equal(state.returns,1);assert.equal(state.directory,true);
-swipe(-90);assert.equal(state.returns,1);
-// Work route is accessible only via a tab/button, never by swipe.
+// Directory -> thread left, then thread -> directory right.
+swipe(-90);assert.equal(state.opens,1);assert.equal(state.directory,false);
+swipe(90);assert.equal(state.returns,1);assert.equal(state.directory,true);
+// Directory -> thread right, then thread -> directory left.
+swipe(90);assert.equal(state.opens,2);assert.equal(state.directory,false);
+swipe(-90);assert.equal(state.returns,2);assert.equal(state.directory,true);
+// Repeat both directions; no directional "wrap" or Work tab navigation.
+swipe(90);assert.equal(state.opens,3);
+swipe(90);assert.equal(state.returns,3);
 state.route='work';
 swipe(-95);swipe(95);
-assert.equal(state.opens,1);assert.equal(state.returns,1);
+assert.equal(state.opens,3);assert.equal(state.returns,3);
 assert.equal(state.route,'work');
-console.log('PASS: mobile directory/chat swipe matrix, no Work swipes and no-op safety');
+console.log('PASS: bidirectional mobile directory/chat toggles, no Work swipes and no-op safety');

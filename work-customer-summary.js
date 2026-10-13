@@ -410,16 +410,15 @@ function bindMobileHierarchySwipe(){
     }
     mobileSwipe={startX:touch.clientX,startY:touch.clientY,directory,claimed:false};
   };
-  const allowedDirection=dx=>Boolean(mobileSwipe&&(
-    mobileSwipe.directory?dx>0:dx<0
-  ));
+  // Both horizontal directions mean toggle between the only two Chat screens.
+  // Preserve the direction only for detecting horizontal intent, never routing.
   const onTouchMove=event=>{
     if(!mobileSwipe||event.touches?.length!==1)return;
     const touch=event.touches[0];
     const dx=touch.clientX-mobileSwipe.startX;
     const dy=touch.clientY-mobileSwipe.startY;
     if(Math.abs(dy)>Math.abs(dx)&&Math.abs(dy)>18){reset();return;}
-    if(allowedDirection(dx)&&Math.abs(dx)>14&&
+    if(Math.abs(dx)>14&&
       Math.abs(dx)>Math.abs(dy)*MOBILE_CHAT_SWIPE_DOMINANCE){
       mobileSwipe.claimed=true;
       if(event.cancelable)event.preventDefault();
@@ -438,11 +437,10 @@ function bindMobileHierarchySwipe(){
       Math.abs(dx)>Math.abs(dy)*MOBILE_CHAT_SWIPE_DOMINANCE;
     if(!horizontal)return;
     let changed=false;
-    if(state.directory&&dx>=MOBILE_CHAT_SWIPE_DISTANCE_PX&&mobileDirectoryOpen()){
-      changed=restoreLastMobileChatFromDirectory('directory-swipe-right');
-    }else if(!state.directory&&dx<=-MOBILE_CHAT_SWIPE_DISTANCE_PX&&
-      !mobileDirectoryOpen()&&activeContact()?.id){
-      changed=showMobileDirectory('chat-swipe-left');
+    if(state.directory&&mobileDirectoryOpen()){
+      changed=restoreLastMobileChatFromDirectory('directory-swipe-horizontal');
+    }else if(!state.directory&&!mobileDirectoryOpen()&&activeContact()?.id){
+      changed=showMobileDirectory('chat-swipe-horizontal');
     }
     if(!changed)return;
     if(event.cancelable)event.preventDefault();
