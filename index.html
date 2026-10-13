@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="84a4995447235ed3105e269d0ba0d3bdc944095cf6a7e8ae9fed4fe20d2503f2">
+<meta name="app-build-id" content="9327d82e7b4b157304f4d8ec06bf3996ee8c2ac9ce41e994f53667c1d2f054e0">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1339,6 +1339,9 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
   --ui-space-32:32px;
 
   --ui-gutter-mobile:12px;
+  /* UI-145: 2 semantic rails: actions/forms vs edge-anchored messages. */
+  --ui-chat-layout-rail:12px;
+  --ui-chat-message-rail:6px;
   --ui-gutter-desktop:16px;
 
   --ui-radius-6:6px;
@@ -1535,7 +1538,7 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
   #appShell[data-auth-state="authenticated"][data-route="chat"] .composer-source-frame{
     /* chat-content-axis has its own !important padding (desktop); cancel it
        here so the mobile composer does NOT pay the outer gutter twice. */
-    --ui-composer-effective-gutter:max(var(--ui-composer-gutter,12px),env(safe-area-inset-left,0px),env(safe-area-inset-right,0px));
+    --ui-composer-effective-gutter:max(var(--ui-chat-layout-rail,12px),env(safe-area-inset-left,0px),env(safe-area-inset-right,0px));
     box-sizing:border-box;
     width:min(calc(100% - var(--ui-composer-effective-gutter) - var(--ui-composer-effective-gutter)),44rem);
     padding-inline:0!important;
@@ -1779,8 +1782,8 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
     max-width:100%;
     margin-inline:0;
     padding-inline:
-      max(6px,env(safe-area-inset-left,0px))
-      max(6px,env(safe-area-inset-right,0px))!important;
+      max(var(--ui-chat-message-rail,6px),env(safe-area-inset-left,0px))
+      max(var(--ui-chat-message-rail,6px),env(safe-area-inset-right,0px))!important;
   }
   /* Safari standalone can reserve an invisible scrollbar gutter despite the
      intentionally hidden scrollbars. Reclaim it only in single-pane Chat. */
@@ -5453,7 +5456,7 @@ button{
 @media (max-width:63.999rem), (pointer:coarse) {
   /* ---------- Shared mobile rhythm ---------- */
   #appShell[data-auth-state="authenticated"]{
-    --mobile-ui-gutter:var(--ui-gutter-mobile,12px);
+    --mobile-ui-gutter:var(--ui-chat-layout-rail,12px);
     --mobile-ui-radius:var(--ui-radius-16,16px);
     --mobile-ui-soft:color-mix(in srgb,var(--theme-surface-secondary) 72%,var(--theme-surface-primary));
     --mobile-ui-line:color-mix(in srgb,var(--ui-border-color,var(--theme-border-default)) 78%,transparent);
@@ -5465,7 +5468,8 @@ button{
   #shellNavigationLayer .wm-sidebar-header{
     box-sizing:border-box;
     min-height:44px;
-    padding:max(6px,env(safe-area-inset-top,0px)) var(--mobile-ui-gutter) 3px;
+    padding:max(6px,env(safe-area-inset-top,0px)) max(var(--mobile-ui-gutter),env(safe-area-inset-left,0px)) 3px;
+    padding-right:max(var(--mobile-ui-gutter),env(safe-area-inset-right,0px));
   }
 
   #shellNavigationLayer .shell-wordmark{
@@ -5476,7 +5480,10 @@ button{
   }
 
   #shellNavigationLayer .wm-sidebar-body{
-    padding-inline:6px;
+    /* The tools add 6px and each contact avatar adds another 6px:
+       body pays only the remaining rail, including landscape safe areas. */
+    padding-left:max(6px,calc(env(safe-area-inset-left,0px) - 6px));
+    padding-right:max(6px,calc(env(safe-area-inset-right,0px) - 6px));
   }
 
   #shellNavigationLayer .contact-directory-tools{
@@ -5522,6 +5529,10 @@ button{
     color:var(--theme-surface-primary)!important;
   }
 
+  #shellNavigationLayer .wm-sidebar-navigation{
+    /* No phantom persistent scrollbar lane inside a mobile overlay. */
+    scrollbar-gutter:auto;
+  }
   #shellNavigationLayer [data-v21-contact-list]{
     padding:0 2px 8px;
   }
@@ -5537,7 +5548,8 @@ button{
     min-height:60px;
     grid-template-columns:40px minmax(0,1fr);
     column-gap:11px;
-    padding:8px 8px;
+    /* body6 + list2 + row4 = 12px, same as search/title. */
+    padding:8px 4px;
     border-radius:13px;
   }
 
@@ -5888,7 +5900,10 @@ button{
     min-height:64px;
     grid-template-columns:40px minmax(0,1fr) auto;
     column-gap:7px;
-    padding-inline:10px;
+    /* chat-content-axis has a 16px !important desktop rule. Mobile Top
+       overrides it once, matching Directory title/search and Composer. */
+    padding-left:max(var(--ui-chat-layout-rail,12px),env(safe-area-inset-left,0px))!important;
+    padding-right:max(var(--ui-chat-layout-rail,12px),env(safe-area-inset-right,0px))!important;
   }
 
   #appShell[data-auth-state="authenticated"] .top-mode-switch{
