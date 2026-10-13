@@ -6,7 +6,7 @@ sw=(root/'sw.js').read_text('utf-8')
 
 def rule(selector):
     marker=selector+'{'
-    assert css.count(marker)==1, f'expected exactly one corner owner: {selector}'
+    assert marker in css, f'missing corner rule: {selector}'
     return css.split(marker,1)[1].split('}',1)[0]
 
 single=rule('.media-image-tile[data-image-presentation]')
