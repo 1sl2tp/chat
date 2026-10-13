@@ -1,3 +1,15 @@
+## 2026-10-13 — Unified incoming/outgoing image alignment on first-render + history (CI/PAGES PASS; iPhone E4 pending)
+
+- **User screenshots:** E Linh bada / gd me yeu mobile/PWA show some portrait transfers and photos inset/centered, inconsistently across old/new messages. The sender-specific edge rule already exists; the defect was **media shell width not initialized on first render**.
+- **Root cause:** `renderMessageNode()` built a `createMessageMediaShell()` with default 360px width while `applySingleImagePresentation()` computed a narrower portrait tile; only `patchMessageNode()` later called `patchMessageMediaShell()` to match the shell. Legacy direct-media CSS also forced all photos to 360px. Some old Zalo assets have missing/inaccurate `width_px/height_px`, making centered `object-fit:contain` inside a wider fallback box.
+- **Fix:** `app.js` makes `createMessageMediaShell()` call `patchMessageMediaShell()` on the first render; any late `img.naturalWidth/naturalHeight` mismatch updates tile + shell without new network reads and survives message patch. `index.source.html` legacy direct photos use ratio-derived `--message-media-width`; galleries retain their separate 360px `cover` presentation. The existing mobile left/right edge alignment and image Viewer are unchanged.
+- **Locked invariant:** Rule `README_MAINTENANCE.md §3b UI-143` — all image/single, cached/restored/new, Admin/User, Web/PWA share sender-side gutter and first-render/reconcile intrinsic-ratio width; do not special-case age/Zalo source.
+- **Test:** `tests/test_v21_ui_library_composer_media_menu.py` and updated `tests/test_v21_chatgpt_visual_alignment.py` guard width parity, legacy media, gallery and natural-dimension fallback. CI Verify V21 **38400683185 SUCCESS**; Deploy Chat Pages **38400682986 SUCCESS**. Release `22da9d50df1d8cd711ae0f6c4eb0c12af984fab180eb60a6158fdae1c428fa20`; version commit `0a5cbf7ff1df8077b7bdfd66e6850f9dfb9b0ab2`.
+- **E4/E5 pending:** Real iPhone Safari/installed PWA screenshot side-by-side (old/new, received/sent, portrait/landscape/gallery), and user acceptance. Because active authenticated PWA defers reload, fully close and relaunch to receive the new build. No extra RPC/Storage/Edge/Realtime jobs, polling or logs; any natural-ratio calculation is local image decode.
+- **Rollback:** Revert `app.js` shell init and intrinsic ratio, `index.source.html` legacy CSS and relevant tests, regenerate `index.html/version.json` and reverify; do not change backend.
+
+---
+
 ## 2026-10-13 — Mobile composer optical balance against ChatGPT screenshot (CI + Pages PASS; device E4 PENDING)
 
 - **Observation:** In side-by-side input bars, Chat mobile/PWA plus, microphone and idle Send appear visually heavier; Send's gray circle is too prominent compared with ChatGPT reference. The right circular arrow is Send, not Search.
