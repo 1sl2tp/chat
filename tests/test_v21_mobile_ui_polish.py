@@ -103,3 +103,23 @@ def test_ui_145_one_layout_rail_for_header_directory_and_composer():
     # Don't replace source action/state or keyboard scroller ownership.
     assert 'position:fixed' not in compact(polish)
     assert '#scrollRoot{' in chat
+
+def test_ui_146_root_sidebar_padding_and_pwa_shell_invalidation():
+    # Reference CSS ships 24px around the whole sidebar; without this reset,
+    # UI-145's correctly calculated 12px child rail appeared 36px from edge.
+    reference=(ROOT/'reference/chatgpt/full-source/raw-css/app-CIyuNPp8.css').read_text('utf-8')
+    assert 'var(--size-24,1.5rem)' in reference
+    assert '#appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .wm-sidebar-sidebar{' in CSS
+    assert 'padding-inline:0!important;' in CSS
+    # Geometry remains owned by existing title/tools/list selectors, not a
+    # transform/position trick or new scroll owner.
+    assert 'padding:4px 6px 7px!important;' in CSS
+    assert 'padding:8px 4px;' in CSS
+    worker=(ROOT/'sw.js').read_text('utf-8')
+    assert "const SHELL_CACHE_EPOCH='ui146';" in worker
+    assert "const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION+'-'+SHELL_CACHE_EPOCH;" in worker
+    assert "const AVATAR_CACHE_NAME='taphoa-chat-avatars-v1';" in worker
+    assert 'navigationCachedThenNetwork(request,event)' in worker
+    assert "await self.skipWaiting();" in worker
+    assert "await self.clients.claim();" in worker
+    assert "key.startsWith('taphoa-chat-shell-')&&key!==CACHE_NAME" in worker
