@@ -1,3 +1,14 @@
+## 2026-10-13 — UI-146 PWA screenshot status / mobile directory root gutter / shell epoch
+
+- **User screenshot 21:07**: Directory rows, heading, search and first filter share an x-axis but have ~36px outer space, rather than the UI-145 12px control rail; conversation uses different deliberate rail6 for received/sent messages. Screenshot cannot reveal exact installed PWA build ID, so do not assert app was stale solely on appearance.
+- **Proven CSS cause**: `reference/chatgpt/full-source/raw-css/app-CIyuNPp8.css` imposes `.wm-sidebar-sidebar` horizontal `var(--size-24,1.5rem)` padding (24px). UI-145 nested components correctly add 12px but ancestral 24px remains. `mobile-ui-polish.css` now resets ancestor's `padding-inline:0!important` only for authenticated active mobile directory; leaves vertical padding, scroll, desktop and all actions untouched.
+- **PWA cache**: `sw.js` previously used `CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION`; `RELEASE_VERSION` held at V21.72.39 across UI-only releases, and cached navigation HTML can be displayed before existing background network revalidation. New `SHELL_CACHE_EPOCH='ui146'` forces replacement of prior shell namespace when worker activates; no deletion of IndexedDB/messages/avatars, no added network polling, no change to offline-first or authenticated safe reload.
+- **Canonical build:** UI-146 `271ffd11a918b8c4b209150247706318728929ae2d6d7ff19b3c3bc9f512d365`, index commit `cd1377d08302bd8c8608eba0ae61389c02e0cb54`, matching version commit `3acfa0726ad55ef84177f1cc2a7e06ad9a084669`. Test `tests/test_v21_mobile_ui_polish.py` extended to lock root reset/SW epoch. **Verify run 38411637081 SUCCESS; Deploy Chat Pages run 38411637777 pending as of last check (prior deployment 38411629178 in progress).** Do not mark Pages or actual iPhone PASS before confirmed.
+- **Rule/Sheet:** `README_MAINTENANCE.md §3e UI-146`; Spreadsheet `04 - UI FOUNDATION TOKENS` F-128 row188, `08 - SDD SPEC TEST ACCEPTANCE` UI-146 row118. E4 verify actual `window.V21AppUpdateController.snapshot().currentBuild` vs server `version.json.build_id` and 12px DOM edges on iPhone PWA after relaunch; E5 user acceptance.
+- **Rollback:** revert mobile-ui-polish.css and sw.js, rebuild canonical index/version, run Verify and deploy. No backend change.
+
+---
+
 ## 2026-10-13 — UI-145 2 semantic horizontal rails: Top/Directory/Thread/Composer (CI + Pages PASS, iPhone E4 pending)
 
 - **Screenshot scope:** C Thúy đông conversation and directory in iPhone standalone PWA. Prior UI-144 made Composer outer rail12 but header had inherited desktop `.chat-content-axis` 16px `!important`, Directory nested tools/list/row added separate margins. Distinguish visual bounding boxes from glyph/text internal padding.
