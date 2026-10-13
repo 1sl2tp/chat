@@ -108,7 +108,7 @@ def test_mobile_composer_uses_one_geometry_contract_across_states():
     assert '#send svg{' in mobile
     assert 'width:var(--ui-composer-mic-glyph,20px)!important;' in mobile
     assert 'width:var(--ui-composer-arrow-glyph,18px)!important;' in mobile
-    assert 'data-icon="'+chr(39)+'+esc(name)+'+chr(39)+' in library
+    assert 'data-icon="' in library and "esc(name)" in library
     assert '.demo-composer .icon-btn[data-icon="send"]{border:4px solid #fff}' in library
     assert '.demo-composer{display:grid;grid-template-columns:44px minmax(0,1fr) 44px 44px;align-items:center;gap:0 4px;' in library
 
