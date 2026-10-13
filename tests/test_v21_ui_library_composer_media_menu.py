@@ -113,6 +113,37 @@ def test_mobile_composer_uses_one_geometry_contract_across_states():
     assert '.demo-composer .icon-btn[data-icon="send"]{border:4px solid #fff}' in library
     assert '.demo-composer{display:grid;grid-template-columns:44px minmax(0,1fr) 44px 44px;align-items:center;gap:0 4px;' in library
 
+def test_ui_148_viewer_defaults_to_loaded_conversation_photos():
+    collect=app[app.index('function collectConversationImageAssets('):app.index('function revokeViewerOwnedUrls(')]
+    opened=app[app.index('async function openImageViewer('):app.index('async function hydrateImageElement(')]
+    filters=app[app.index('function applyImageViewerFilter('):app.index('function applyImageViewerTimeFilter(')]
+    assert 'for(const message of store.items)' in collect
+    assert "if(message?.media?.type==='image')" in collect
+    assert "else if(message?.media?.type==='gallery')" in collect
+    assert "seen.has(item.assetId)" in collect
+    assert "const items=collectConversationImageAssets();" in opened
+    assert "items.findIndex(item=>item.assetId===id)" in opened
+    assert "imageViewerAlbumId=clicked?.messageId||null;" in opened
+    assert "imageViewerFilter='all';" in opened
+    assert "imageViewerFilter=imageViewerAlbumId?'album':'all';" not in opened
+    assert "return applyImageViewerFilter(imageViewerFilter,{preferAssetId:id,behavior:'auto'});" in opened
+    assert "if(imageViewerFilter==='album')" in filters
+    assert "imageViewerAlbumId=imageViewerItems[imageViewerIndex]?.messageId||imageViewerAlbumId;" in filters
+    assert "next=imageViewerAllItems.filter(item=>item.messageId===imageViewerAlbumId);" in app
+    assert "if(imageViewerFilter==='self')" in app and "imageViewerFilter==='remote'" in app
+    assert "showImageViewerIndex(imageViewerIndex-1)" in app
+    assert "showImageViewerIndex(imageViewerIndex+1)" in app
+    assert 'void showImageViewerIndex(imageViewerIndex+(dx<0?1:-1));' in app
+    assert 'imageViewerCounter.textContent=' in app and 'imageViewerItems.length' in app
+    assert "imageViewerFilmstrip.hidden=imageViewerItems.length<=1;" in app
+    assert "if(imageViewerPrev)imageViewerPrev.hidden=imageViewerIndex<=0;" in app
+    assert "if(imageViewerNext)imageViewerNext.hidden=imageViewerIndex>=imageViewerItems.length-1;" in app
+    assert "document.addEventListener('v21-active-contact-change',()=>{" in app
+    assert "closeImageViewer({restoreFocus:false});" in app
+    for forbidden in ('fetch(', '.rpc(', 'setInterval(', 'listConversation', 'syncPull', 'loadHistory'):
+        assert forbidden not in collect and forbidden not in opened
+
+
 def test_patch_is_presentation_only():
     ownership=app[app.index('function singleImagePresentation('):app.index('function stableMessageDomKey(')]
     assert not any(tok in ownership for tok in ('fetch(','.rpc(','.send(', 'setInterval('))
