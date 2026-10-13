@@ -30,7 +30,8 @@ for token in [
     'width:min(22.5rem,var(--message-media-width,22.5rem))!important;',
     'max-width:100%;',
     'box-sizing:border-box;',
-    'padding:4px;',
+    'padding:0;',
+    'border:1px solid rgba(15,23,42,.08);',
     'border-radius:14px;',
     'background:var(--theme-surface-secondary);'
 ]:
@@ -43,7 +44,8 @@ for token in [
     'width:22.5rem!important;',
     'max-width:100%;',
     'box-sizing:border-box;',
-    'padding:4px;',
+    'padding:0;',
+    'border:1px solid rgba(15,23,42,.08);',
     'gap:4px!important;',
     'background:var(--theme-surface-secondary);'
 ]:
@@ -54,6 +56,7 @@ assert '.media-image-tile[data-image-presentation] > img' in source
 assert 'object-fit:contain!important' in source
 assert '.media-gallery-grid .media-image-tile > img' in source
 assert 'object-fit:cover!important' in source
+assert source.count('image-orientation:from-image;')>=3
 
 print('V21.72.75 message media surface/width owner PASS')
 

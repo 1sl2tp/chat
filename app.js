@@ -1397,6 +1397,9 @@ const IMAGE_VIEWER_TIME_FILTERS=[
 let imageViewerSessionSeq=0;
 let imageViewerNavigationSeq=0;
 let imageViewerFilmstripScrollFrame=0;
+let imageViewerWheelAccumulator=0;
+let imageViewerWheelLastEventAt=0;
+let imageViewerWheelLastStepAt=0;
 let imageViewerSwipeStartX=0;
 let imageViewerZoom=1;
 let imageViewerZoomOut=null;
@@ -1534,6 +1537,9 @@ function closeImageViewer({restoreFocus=true}={}){
   imageViewerSessionSeq+=1;
   imageViewerNavigationSeq+=1;
   if(imageViewerFilmstripScrollFrame){cancelAnimationFrame(imageViewerFilmstripScrollFrame);imageViewerFilmstripScrollFrame=0;}
+  imageViewerWheelAccumulator=0;
+  imageViewerWheelLastEventAt=0;
+  imageViewerWheelLastStepAt=0;
   revokeViewerOwnedUrls();
   if(imageViewerImage){
     imageViewerImage.removeAttribute('src');
@@ -2293,6 +2299,24 @@ function ensureImageViewer(){
 
   main.addEventListener('wheel',event=>{
     if(event.target instanceof Element&&event.target.closest('button'))return;
+    // When unzoomed, a wheel gesture browses photos instead of unexpectedly
+    // zooming the current one. Ctrl/Cmd+wheel and zoomed views still zoom.
+    const browse=imageViewerZoom<=1&&imageViewerItems.length>1&&!event.ctrlKey&&!event.metaKey;
+    if(browse){
+      event.preventDefault();
+      const now=performance.now();
+      if(now-imageViewerWheelLastEventAt>260)imageViewerWheelAccumulator=0;
+      imageViewerWheelLastEventAt=now;
+      const delta=Math.abs(event.deltaY)>=Math.abs(event.deltaX)?event.deltaY:event.deltaX;
+      imageViewerWheelAccumulator+=delta;
+      if(Math.abs(imageViewerWheelAccumulator)<70||now-imageViewerWheelLastStepAt<320)return;
+      const direction=imageViewerWheelAccumulator>0?1:-1;
+      imageViewerWheelAccumulator=0;
+      imageViewerWheelLastStepAt=now;
+      const next=Math.max(0,Math.min(imageViewerItems.length-1,imageViewerIndex+direction));
+      if(next!==imageViewerIndex)void showImageViewerIndex(next);
+      return;
+    }
     const factor=Math.exp(-event.deltaY*.0018);
     setImageViewerZoom(imageViewerZoom*factor,{clientX:event.clientX,clientY:event.clientY});
     event.preventDefault();
@@ -2304,6 +2328,14 @@ function ensureImageViewer(){
     const next=imageViewerZoom<2?2:Math.min(5,imageViewerZoom+.5);
     setImageViewerZoom(next,{clientX:event.clientX,clientY:event.clientY});
   });
+  // Wheel over the filmstrip only scrolls the thumbnails; selecting a photo
+  // still requires clicking its tile. Normal conversation scrolling is intact.
+  thumbs.addEventListener('wheel',event=>{
+    if(thumbs.scrollWidth<=thumbs.clientWidth+1)return;
+    if(Math.abs(event.deltaX)>Math.abs(event.deltaY))return;
+    thumbs.scrollLeft+=event.deltaY;
+    event.preventDefault();
+  },{passive:false});
   thumbs.addEventListener('scroll',()=>{
     if(imageViewerFilmstripScrollFrame)return;
     imageViewerFilmstripScrollFrame=requestAnimationFrame(()=>{

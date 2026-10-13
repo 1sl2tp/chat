@@ -15,6 +15,9 @@ assert 'const MESSAGE_MEDIA_WIDTH_PX=360;' in app
 assert 'width:${MESSAGE_MEDIA_WIDTH_PX}px;max-width:100%;gap:4px' in app
 assert ".media-gallery-grid{\n  width:22.5rem!important;\n  max-width:100%;" in source
 assert 'background:var(--theme-surface-secondary);' in source
+gallery_css=source[source.index('.media-gallery-grid{'):].split('}',1)[0]
+assert 'padding:0;' in gallery_css
+assert 'border:1px solid rgba(15,23,42,.08);' in gallery_css
 
 # Outgoing galleries anchor to the sender edge even if the message unit has
 # spare width after shrink-to-fit/max-width resolution.
