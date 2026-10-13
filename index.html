@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="271ffd11a918b8c4b209150247706318728929ae2d6d7ff19b3c3bc9f512d365">
+<meta name="app-build-id" content="e189f08cc4dc44b082dc683ffe4f92173c3928989e1ca5f79f2ac8919440bdc6">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1342,6 +1342,9 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
   /* UI-145: 2 semantic rails: actions/forms vs edge-anchored messages. */
   --ui-chat-layout-rail:12px;
   --ui-chat-message-rail:6px;
+  /* UI-147 — directory vertical spacing; scoped mobile CSS consumes these. */
+  --ui-directory-root-top-min:12px;
+  --ui-directory-top-trim:16px;
   --ui-gutter-desktop:16px;
 
   --ui-radius-6:6px;
@@ -5470,6 +5473,9 @@ button{
      No margin stacking, no text/avatar transform and no scroll reset. */
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .wm-sidebar-sidebar{
     padding-inline:0!important;
+    /* UI-147: keep iPhone status-area protection, but remove the redundant
+       extra top gap above "Danh bạ". On non-notched screens keep min 12px. */
+    padding-block-start:max(var(--ui-directory-root-top-min,12px),calc(env(safe-area-inset-top,0px) - var(--ui-directory-top-trim,16px)))!important;
   }
   /* Mobile core action: Chọn người → Chat.
      Keep the shell label compact so search + contacts own the viewport. */
@@ -5478,6 +5484,9 @@ button{
     min-height:44px;
     padding:max(6px,env(safe-area-inset-top,0px)) max(var(--mobile-ui-gutter),env(safe-area-inset-left,0px)) 3px;
     padding-right:max(var(--mobile-ui-gutter),env(safe-area-inset-right,0px));
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .wm-sidebar-header{
+    padding-bottom:0;
   }
 
   #shellNavigationLayer .shell-wordmark{
@@ -5492,6 +5501,11 @@ button{
        body pays only the remaining rail, including landscape safe areas. */
     padding-left:max(6px,calc(env(safe-area-inset-left,0px) - 6px));
     padding-right:max(6px,calc(env(safe-area-inset-right,0px) - 6px));
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .wm-sidebar-body{
+    /* Upstream 12px padding-block-start made title→search needlessly wide.
+       This is independent of the directory list's scroll position. */
+    padding-block-start:0!important;
   }
 
   #shellNavigationLayer .contact-directory-tools{
