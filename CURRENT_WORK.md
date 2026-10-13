@@ -1,3 +1,15 @@
+## 2026-10-13 — UI-144 Chat Composer gutter/icons/state parity (Verify + Pages PASS; real iPhone E4 pending)
+
+- **User screenshots:** danh bạ và thread trên iPhone PWA có Composer quá cách hai mép hoặc Send xát cạnh; Mic nhỏ so với nút mũi tên, trạng thái nút màu xám và xanh không cân đối.
+- **Root cause:** `composer-source-frame.chat-content-axis` đã có padding ngang `!important` (16px ở `zalo-admin-link.css`), trong khi Composer mobile còn trừ tiếp hai gutter trong `width`; legacy `#composer-plus-btn{width:36px!important}` lấn chuẩn hit44. Grid gap 2px, đĩa Send khá lớn và mic18px kém nổi bật.
+- **Fixed owner P3/P4 only:** `ui-foundation.css` adds UI-144 local tokens (outer gutter12, inner inset4, column gap4, hit target44, Send disc36 + ring4, plus18/mic20/arrow18, SVG stroke1.6). `mobile-chat-refresh.css` removes duplicate inherited horizontal padding from Composer frame, safe-area-aware single outer gutter, three real 44px hit targets override legacy Plus36, stable 44px grid/Send ring across disabled/enabled/focus; recording, keyboard, scroll, send and media owner untouched. `ui-library/index.html` demo mirrors same geometry and data-icon labels.
+- **Rule + test:** `README_MAINTENANCE.md §3c UI-144` plus canonical spreadsheet **08 row116 SPEC-CHAT-COMPOSER-ONE-OWNER-20261013** and **04 row186 F-126**. `tests/test_v21_ui_library_composer_media_menu.py` guards tokens, source, no double gutter, inactive/active geometry and demo preview.
+- **E1/E2/E3 PASS:** release `84a4995447235ed3105e269d0ba0d3bdc944095cf6a7e8ae9fed4fe20d2503f2`; matching `index.html` commit `12058fc7a3e593b6f093347bc9dfdc08d026011d` and `version.json` commit `3d5ed3af1e76de27f3c987212f16da3a38b93f87`; Verify V21 run **38404927525 SUCCESS**; Deploy Chat Pages **38404927643 SUCCESS** (includes custom-domain check).
+- **E4/E5 PENDING:** compare physically measured iPhone Safari Web/PWA closed/open keyboard, mic recording and gray/blue Send; active PWA may defer reload, so close/reopen app before checking. Pages success ≠ real device screenshot proof. 0 new API/RPC/Edge/DB/Storage/polling/log calls.
+- **Rollback:** only UI-144 source tokens/composer/demo/tests and regenerate `index.html/version.json`; no backend rollback.
+
+---
+
 ## 2026-10-13 — Unified incoming/outgoing image alignment on first-render + history (CI/PAGES PASS; iPhone E4 pending)
 
 - **User screenshots:** E Linh bada / gd me yeu mobile/PWA show some portrait transfers and photos inset/centered, inconsistently across old/new messages. The sender-specific edge rule already exists; the defect was **media shell width not initialized on first render**.
