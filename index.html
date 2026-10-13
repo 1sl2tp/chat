@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="51acb2635a32060c2f8b849dabdd5718f63f92c87f0276e31c9955660654f8a1">
+<meta name="app-build-id" content="a0ab1c153365050b16465e845002391cb114b085f62fd12f5b68bba88c9679f1">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -2386,6 +2386,74 @@ button{
   }
 }
 
+/* UI-150 touch action toolbar: visual sender axis stays unchanged.
+   Desktop keeps the original outside side rail. Mobile/PWA places the
+   44px actions inside the viewport and above/below the message without
+   changing message height, scroll position, or Composer geometry. */
+@media (max-width:700px),(hover:none),(pointer:coarse){
+  .message-action-group{
+    box-sizing:border-box;
+    top:auto;
+    bottom:calc(100% + 6px);
+    display:flex;
+    width:max-content;
+    max-width:calc(100vw - max(12px,env(safe-area-inset-left,0px)) - max(12px,env(safe-area-inset-right,0px)));
+    height:var(--ui-control-touch,44px);
+    min-height:var(--ui-control-touch,44px);
+    gap:var(--ui-space-4,4px);
+    padding:0 4px!important;
+    overflow:visible;
+    background:var(--theme-surface-primary,#fff);
+    border:1px solid var(--theme-border-default,#e5e7eb);
+    border-radius:14px;
+    box-shadow:0 8px 24px rgba(0,0,0,.16);
+    transform:scale(.96);
+    transform-origin:center;
+  }
+  .message-action-group.user-actions{
+    left:auto;
+    right:0;
+    justify-content:flex-end;
+  }
+  .message-action-group.assistant-actions{
+    left:0;
+    right:auto;
+    justify-content:flex-start;
+  }
+  .message-turn[data-actions-placement="below"] .message-action-group{
+    top:calc(100% + 6px);
+    bottom:auto;
+  }
+  .message-unit:hover .message-action-group,
+  .message-unit:focus-within .message-action-group,
+  .message-turn[data-actions-open="true"] .message-action-group{
+    transform:scale(1);
+  }
+  #scrollRoot[data-user-scrolling="true"] .message-unit:hover .message-action-group,
+  #scrollRoot[data-user-dragging="true"] .message-unit:hover .message-action-group{
+    transform:scale(.96);
+  }
+  .message-action-group .action-button{
+    box-sizing:border-box;
+    flex:0 0 var(--ui-control-touch,44px);
+    width:var(--ui-control-touch,44px);
+    min-width:var(--ui-control-touch,44px);
+    height:var(--ui-control-touch,44px);
+    min-height:var(--ui-control-touch,44px);
+    padding:0;
+    border-radius:10px;
+  }
+  .message-action-group .action-button svg{
+    width:20px;
+    height:20px;
+    pointer-events:none;
+  }
+}
+
+/* UI-150: state is visible but does not resize/shift the action button. */
+.message-action-group .action-button[data-state="copied"]{color:#1f9d68;}
+.message-action-group .action-button[data-state="failed"]{color:#bf3845;}
+
 /* Equivalent purpose to ChatGPT's threadFooterContentFade class:
    messages may pass under the sticky composer, but visually fade below it. */
 #thread-bottom-container.threadFooterContentFade::before{
@@ -3539,9 +3607,15 @@ button{
     margin-left:auto;
   }
   .image-review-more{
-    width:2.4rem;
-    height:2.4rem;
-    flex-basis:2.4rem;
+    box-sizing:border-box;
+    width:var(--ui-control-touch,44px);
+    min-width:var(--ui-control-touch,44px);
+    height:var(--ui-control-touch,44px);
+    min-height:var(--ui-control-touch,44px);
+    flex-basis:var(--ui-control-touch,44px);
+  }
+  .image-review-menu-item{
+    min-height:var(--ui-control-touch,44px);
   }
   .image-review-menu{
     right:0;
@@ -9119,7 +9193,7 @@ function renderImageViewerFilters(){
   saveItem.dataset.viewerAction='save';
   saveItem.setAttribute('role','menuitem');
   const saveText=document.createElement('span');
-  saveText.textContent='Lưu ảnh';
+  saveText.textContent='Tải ảnh';
   saveItem.appendChild(saveText);
   saveItem.addEventListener('click',event=>{
     event.stopPropagation();
@@ -10499,6 +10573,11 @@ function extensionForMime(mime=''){
   if(type==='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')return 'xlsx';
   if(type==='text/plain')return 'txt';
   if(type==='text/csv')return 'csv';
+  if(type==='audio/mp4'||type==='audio/x-m4a'||type==='audio/m4a')return 'm4a';
+  if(type==='audio/mpeg'||type==='audio/mp3')return 'mp3';
+  if(type==='audio/ogg')return 'ogg';
+  if(type==='audio/webm')return 'webm';
+  if(type==='audio/wav'||type==='audio/x-wav')return 'wav';
   if(type==='image/png')return 'png';
   if(type==='image/webp')return 'webp';
   if(type==='image/gif')return 'gif';
@@ -10526,18 +10605,20 @@ function cacheMediaShareBlob(media,blob){
   return true;
 }
 
+function isTransferableMessageMedia(item){
+  return Boolean(item&&(item.type==='file'||item.type==='image'||item.kind==='image'||item.kind==='audio'));
+}
+
 function preparedShareFilesForMessage(message){
   if(typeof File!=='function')return null;
-  const list=mediaDescriptorsForMessage(message).filter(item=>
-    item&&(item.kind==='file'||item.type==='image'||item.kind==='image')
-  );
+  const list=mediaDescriptorsForMessage(message).filter(isTransferableMessageMedia);
   if(!list.length)return null;
   const files=[];
   for(const [index,item] of list.entries()){
     const blob=mediaShareBlobs.get(mediaShareCacheKey(item));
     if(!(blob instanceof Blob))return null;
     const name=mediaDownloadName(item,index);
-    const type=String(item?.mimeType||item?.type||blob.type||'application/octet-stream');
+    const type=String(item?.mimeType||blob.type||'application/octet-stream');
     files.push(blob instanceof File&&blob.name===name&&String(blob.type||'')===type
       ?blob
       :new File([blob],name,{type,lastModified:Date.now()}));
@@ -10547,9 +10628,7 @@ function preparedShareFilesForMessage(message){
 
 async function prepareMessageShareFiles(message){
   try{
-    const list=mediaDescriptorsForMessage(message).filter(item=>
-      item&&(item.kind==='file'||item.type==='image'||item.kind==='image')
-    );
+    const list=mediaDescriptorsForMessage(message).filter(isTransferableMessageMedia);
     for(const item of list){
       if(mediaShareBlobs.get(mediaShareCacheKey(item)) instanceof Blob)continue;
       const resolved=await mediaBlobForDescriptor(item);
@@ -10583,8 +10662,10 @@ async function mediaBlobForDescriptor(media){
 }
 
 function mediaDownloadName(media,index=0){
-  if(messagePrimaryMediaKind({media})==='file'){
-    return String(media?.name||media?.displayName||`Tep-${index+1}`).trim()||`Tep-${index+1}`;
+  if(media?.type==='file'||media?.kind==='audio'){
+    const name=String(media?.name||media?.displayName||'').trim();
+    if(name&&name!=='Tệp')return name;
+    return `${media?.kind==='audio'?'Ghi-am':'Tep'}-${index+1}.${extensionForMime(media?.mimeType||'')}`;
   }
   const ext=extensionForMime(media?.mimeType||'image/jpeg');
   return `Anh-${index+1}.${ext}`;
@@ -10608,9 +10689,7 @@ async function saveMediaDescriptor(media,index=0){
 }
 
 async function saveMessageMedia(message){
-  const list=mediaDescriptorsForMessage(message).filter(item=>
-    item&&(item.kind==='file'||item.type==='image'||item.kind==='image')
-  );
+  const list=mediaDescriptorsForMessage(message).filter(isTransferableMessageMedia);
   let saved=0;
   for(const [index,item] of list.entries()){
     if(await saveMediaDescriptor(item,index))saved+=1;
@@ -10618,21 +10697,43 @@ async function saveMessageMedia(message){
   return saved;
 }
 
-async function shareMessageMedia(message){
+async function shareMessageMedia(message,button=null){
   if(!canNativeShareFiles())return false;
+  if(button?.dataset.state==='preparing')return false;
 
   // Web Share requires transient user activation at navigator.share() call time.
   // Never await Blob/cache hydration before this point. Media hydration/upload
   // primes mediaShareBlobs ahead of the click; intent handlers warm any miss.
   const files=preparedShareFilesForMessage(message);
   if(!files?.length){
-    void prepareMessageShareFiles(message);
+    if(button){
+      button.dataset.state='preparing';
+      button.setAttribute('aria-label','Đang chuẩn bị tệp để chia sẻ');
+      button.title='Đang chuẩn bị tệp để chia sẻ';
+    }
+    // A Blob read cannot be awaited before the OS share call: gesture
+    // activation would expire. Prime and let a later real tap invoke share.
+    void prepareMessageShareFiles(message).then(ready=>{
+      if(!button?.isConnected)return;
+      button.dataset.state=ready?'ready':'failed';
+      button.setAttribute('aria-label',ready?'Chạm lại để chia sẻ':'Không thể chuẩn bị tệp');
+      button.title=ready?'Chạm lại để chia sẻ':'Không thể chuẩn bị tệp';
+    });
     return false;
   }
-  if(typeof navigator.canShare==='function'&&!navigator.canShare({files}))return false;
+  if(typeof navigator.canShare==='function'&&!navigator.canShare({files})){
+    if(button)button.dataset.state='failed';
+    return false;
+  }
+  if(button)button.dataset.state='sharing';
 
   try{
-    await navigator.share({files,title:files.length===1?files[0].name:'Tệp đính kèm'});
+    const caption=String(message?.text||'').trim();
+    await navigator.share({
+      files,
+      title:files.length===1?files[0].name:'Tệp đính kèm',
+      ...(caption?{text:caption}:{})
+    });
     return true;
   }catch(error){
     const name=String(error?.name||'');
@@ -10919,28 +11020,52 @@ function makeActionButton({
 }
 
 async function copyMessageText(message,button){
+  const source=String(message?.text||'');
+  if(!source)return false;
+  let copied=false;
   try{
-    await navigator.clipboard.writeText(message.text);
-    button.dataset.state='copied';
-    button.setAttribute('aria-label','Đã sao chép');
-    setTimeout(()=>{
-      button.dataset.state='closed';
-      button.setAttribute(
-        'aria-label',
-        message.sender==='self'
-          ?'Sao chép tin nhắn'
-          :'Sao chép phản hồi'
-      );
-    },900);
+    if(typeof navigator.clipboard?.writeText==='function'){
+      await navigator.clipboard.writeText(source);
+      copied=true;
+    }
   }catch{
+    // Clipboard API may be blocked in Safari/PWA; fall back below.
+  }
+  if(!copied){
     const area=document.createElement('textarea');
-    area.value=message.text;
+    area.value=source;
+    area.setAttribute('readonly','');
     area.style.position='fixed';
     area.style.opacity='0';
     document.body.appendChild(area);
     area.select();
-    document.execCommand('copy');
+    try{copied=Boolean(document.execCommand?.('copy'));}catch{}
     area.remove();
+  }
+  button.dataset.state=copied?'copied':'failed';
+  button.setAttribute('aria-label',copied?'Đã sao chép':'Không thể sao chép');
+  button.title=copied?'Đã sao chép':'Không thể sao chép';
+  window.setTimeout(()=>{
+    if(!button.isConnected)return;
+    button.dataset.state='closed';
+    button.setAttribute('aria-label','Sao chép');
+    button.title='Sao chép';
+  },1200);
+  return copied;
+}
+
+async function shareMessageText(message){
+  const value=String(message?.text||'');
+  if(!value||typeof navigator.share!=='function')return false;
+  // Share sheet MUST be invoked in the originating user gesture.
+  try{
+    await navigator.share({text:value});
+    return true;
+  }catch(error){
+    if(!['AbortError','NotAllowedError','SecurityError'].includes(String(error?.name||''))){
+      console.warn('[V21 text share failed]',error);
+    }
+    return false;
   }
 }
 
@@ -10983,40 +11108,49 @@ function createActionGroup(message){
   const group=document.createElement('div');
   const isSelf=message.sender==='self';
   group.__message=message;
-
-  group.className=
-    `message-action-group ${
-      isSelf
-        ?'user-actions justify-end'
-        :'assistant-actions justify-start'
-    }`;
-  group.dataset.kind=
-    isSelf
-      ?'user-actions'
-      :'assistant-actions';
+  group.className=`message-action-group ${isSelf?'user-actions justify-end':'assistant-actions justify-start'}`;
+  group.dataset.kind=isSelf?'user-actions':'assistant-actions';
   group.setAttribute('aria-label','Thao tác tin nhắn');
   group.setAttribute('role','group');
 
   const resolveMessage=()=>group.__message||message;
   const actions=[];
-
   if(canReplyToMessage(message)){
     actions.push(makeActionButton({
-      label:'Trả lời',
-      icon:'reply',
-      onClick:event=>{
-        event.stopPropagation();
-        setReplyTarget(resolveMessage());
-      }
+      label:'Trả lời',icon:'reply',
+      onClick:event=>{event.stopPropagation();setReplyTarget(resolveMessage());}
     }));
   }
 
   const kind=messagePrimaryMediaKind(message);
   const canForwardInChat=Boolean(window.V21MessageForward?.canForward?.(message));
-  if(canForwardInChat&&kind!=='image'&&kind!=='file'){
+  // Text-only AND mixed text+media both retain Copy, without altering media.
+  if(String(message?.text||'').length){
+    let copy;
+    copy=makeActionButton({
+      label:'Sao chép',icon:'copy',
+      onClick:event=>{
+        event.stopPropagation();
+        void copyMessageText(resolveMessage(),copy);
+        closeAllTurnActions();
+      }
+    });
+    actions.push(copy);
+  }
+
+  if(kind==='image'||kind==='file'||kind==='audio'){
     actions.push(makeActionButton({
-      label:'Chuyển tiếp',
-      icon:'forward',
+      label:'Tải xuống',icon:'save',
+      onClick:event=>{
+        event.stopPropagation();
+        void saveMessageMedia(resolveMessage()).finally(()=>closeAllTurnActions());
+      }
+    }));
+  }
+
+  if(canForwardInChat){
+    actions.push(makeActionButton({
+      label:'Chuyển tiếp',icon:'forward',
       onClick:event=>{
         event.stopPropagation();
         closeAllTurnActions();
@@ -11026,58 +11160,38 @@ function createActionGroup(message){
   }
 
   if(kind==='text'){
-    let copy;
-    copy=makeActionButton({
-      label:'Sao chép',
-      icon:'copy',
-      onClick:event=>{
-        event.stopPropagation();
-        copyMessageText(resolveMessage(),copy);
-        closeAllTurnActions();
-      }
-    });
-    actions.push(copy);
-  }else if(kind==='image'||kind==='file'){
-    if(canForwardInChat){
+    if(typeof navigator.share==='function'&&String(message?.text||'').length){
       actions.push(makeActionButton({
-        label:'Chia sẻ',
-        icon:'share',
+        label:'Chia sẻ',icon:'share',
         onClick:event=>{
           event.stopPropagation();
           closeAllTurnActions();
-          // Reuse canonical forward without downloading or saving the asset.
-          window.V21MessageForward?.open?.(resolveMessage());
+          void shareMessageText(resolveMessage());
         }
       }));
     }
-    actions.push(makeActionButton({
-      label:'Lưu',
-      icon:'save',
+  }else if((kind==='image'||kind==='file'||kind==='audio')&&canNativeShareFiles()){
+    const shareAction=makeActionButton({
+      label:'Chia sẻ',icon:'share',
       onClick:event=>{
         event.stopPropagation();
-        void saveMessageMedia(resolveMessage()).finally(()=>closeAllTurnActions());
+        void shareMessageMedia(resolveMessage(),shareAction).then(ok=>{
+          if(ok||shareAction.dataset.state!=='preparing'&&shareAction.dataset.state!=='ready'){
+            closeAllTurnActions();
+          }
+        });
       }
-    }));
-    if(canNativeShareFiles()){
-      const shareAction=makeActionButton({
-        label:canForwardInChat?'Ứng dụng khác':'Chia sẻ',
-        icon:'share',
-        onClick:event=>{
-          event.stopPropagation();
-          void shareMessageMedia(resolveMessage()).finally(()=>closeAllTurnActions());
-        }
-      });
-      primeMessageShareOnIntent(shareAction,resolveMessage);
-      actions.push(shareAction);
-    }
+    });
+    primeMessageShareOnIntent(shareAction,resolveMessage);
+    actions.push(shareAction);
   }
 
-  // Action order is defined from the outgoing outer edge toward content.
-  // Incoming is the exact mirror so the same "near-content" action remains
-  // adjacent to the message instead of reusing one global left-to-right order.
+  // Lowest-to-highest priority toward the message edge: the last control
+  // in outgoing / first in incoming is Copy or Download, not OS Share.
+  const order=['reply','share','forward','save','copy'];
+  actions.sort((a,b)=>order.indexOf(a.dataset.messageAction)-order.indexOf(b.dataset.messageAction));
   const orderedActions=isSelf?actions:[...actions].reverse();
   group.append(...orderedActions);
-
   return group;
 }
 
@@ -11183,7 +11297,20 @@ function toggleActionsForTurn(turn,force){
       :turn.dataset.actionsOpen!=='true';
 
   closeAllTurnActions(turn);
-
+  if(next){
+    // Touch toolbar is anchored inside the viewport instead of outside a
+    // narrow bubble. Flip below only when it cannot fit above the message.
+    const unit=turn.querySelector('.message-unit');
+    if(unit&&window.matchMedia?.('(max-width:700px), (hover:none), (pointer:coarse)')?.matches){
+      const top=unit.getBoundingClientRect().top;
+      const headerBottom=document.getElementById('regionTop')?.getBoundingClientRect().bottom||0;
+      const above=top-Math.max(0,headerBottom);
+      const composerTop=document.getElementById('thread-bottom-container')?.getBoundingClientRect().top||
+        (window.visualViewport?.height||window.innerHeight);
+      const below=composerTop-unit.getBoundingClientRect().bottom;
+      turn.dataset.actionsPlacement=(above<54&&below>=54)?'below':'above';
+    }
+  }
   turn.dataset.actionsOpen=
     next?'true':'false';
 }
