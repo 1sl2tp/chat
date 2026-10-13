@@ -52,7 +52,8 @@
 
   /* Conversation content — mobile-first, visual-only. */
   #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow{
-    padding:var(--ui-space-8,8px) var(--ui-chat-message-gutter,var(--ui-gutter-mobile,12px)) 14px;
+    /* The final single-pane edge rule owns horizontal padding. */
+    padding-block:var(--ui-space-8,8px) 14px;
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow>.message-row+.message-row{
