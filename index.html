@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="9327d82e7b4b157304f4d8ec06bf3996ee8c2ac9ce41e994f53667c1d2f054e0">
+<meta name="app-build-id" content="271ffd11a918b8c4b209150247706318728929ae2d6d7ff19b3c3bc9f512d365">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -5463,7 +5463,15 @@ button{
   }
 
   /* ---------- Directory ----------
-     Mobile core action: Chọn người → Chat.
+     UI-146 root fix: upstream ChatGPT sidebar CSS adds 24px horizontal
+     padding to .wm-sidebar-sidebar. The inner UI-145 12px rail then became
+     a visible 36px inset on the iPhone. Remove only the ancestor's horizontal
+     padding in the ACTIVE mobile directory, keeping its vertical spacing.
+     No margin stacking, no text/avatar transform and no scroll reset. */
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .wm-sidebar-sidebar{
+    padding-inline:0!important;
+  }
+  /* Mobile core action: Chọn người → Chat.
      Keep the shell label compact so search + contacts own the viewport. */
   #shellNavigationLayer .wm-sidebar-header{
     box-sizing:border-box;
