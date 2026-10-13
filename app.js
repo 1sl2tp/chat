@@ -1710,6 +1710,18 @@ async function saveCurrentImageViewerImage(){
 async function shareCurrentImageViewerImage(){
   const media=currentImageViewerDescriptor();
   if(!media)return false;
+  // An in-Chat recipient picker opens synchronously on the first tap.
+  // Forward only a single-asset source; never send a whole gallery silently
+  // when the user has selected one photo in the image viewer.
+  const selected=imageViewerItems[imageViewerIndex]||null;
+  const sourceId=String(selected?.messageId||'');
+  const source=sourceId?store.items.find(item=>String(item?.id||'')===sourceId):null;
+  const assets=source?mediaDescriptorsForMessage(source):[];
+  if(source&&assets.length===1&&String(assets[0]?.assetId||'')===String(media.assetId)&&
+    window.V21MessageForward?.canForward?.(source)){
+    closeImageViewer();
+    return Boolean(window.V21MessageForward.open(source));
+  }
   return shareMessageMedia({media});
 }
 
@@ -1767,7 +1779,7 @@ function renderImageViewerFilters(){
   });
   menu.appendChild(saveItem);
 
-  if(canNativeShareFiles()){
+  if(canNativeShareFiles()||window.V21AuthSessionStore?.snapshot?.()?.account?.role==='admin'){
     const shareItem=document.createElement('button');
     shareItem.type='button';
     shareItem.className='image-review-menu-item';
@@ -3621,7 +3633,9 @@ function createActionGroup(message){
     }));
   }
 
-  if(window.V21MessageForward?.canForward?.(message)){
+  const kind=messagePrimaryMediaKind(message);
+  const canForwardInChat=Boolean(window.V21MessageForward?.canForward?.(message));
+  if(canForwardInChat&&kind!=='image'&&kind!=='file'){
     actions.push(makeActionButton({
       label:'Chuyển tiếp',
       icon:'forward',
@@ -3633,7 +3647,6 @@ function createActionGroup(message){
     }));
   }
 
-  const kind=messagePrimaryMediaKind(message);
   if(kind==='text'){
     let copy;
     copy=makeActionButton({
@@ -3647,6 +3660,18 @@ function createActionGroup(message){
     });
     actions.push(copy);
   }else if(kind==='image'||kind==='file'){
+    if(canForwardInChat){
+      actions.push(makeActionButton({
+        label:'Chia sẻ',
+        icon:'share',
+        onClick:event=>{
+          event.stopPropagation();
+          closeAllTurnActions();
+          // Reuse canonical forward without downloading or saving the asset.
+          window.V21MessageForward?.open?.(resolveMessage());
+        }
+      }));
+    }
     actions.push(makeActionButton({
       label:'Lưu',
       icon:'save',
@@ -3657,7 +3682,7 @@ function createActionGroup(message){
     }));
     if(canNativeShareFiles()){
       const shareAction=makeActionButton({
-        label:'Chia sẻ',
+        label:canForwardInChat?'Ứng dụng khác':'Chia sẻ',
         icon:'share',
         onClick:event=>{
           event.stopPropagation();
