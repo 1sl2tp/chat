@@ -599,6 +599,74 @@ button{
   }
 }
 
+/* UI-150 touch action toolbar: visual sender axis stays unchanged.
+   Desktop keeps the original outside side rail. Mobile/PWA places the
+   44px actions inside the viewport and above/below the message without
+   changing message height, scroll position, or Composer geometry. */
+@media (max-width:700px),(hover:none),(pointer:coarse){
+  .message-action-group{
+    box-sizing:border-box;
+    top:auto;
+    bottom:calc(100% + 6px);
+    display:flex;
+    width:max-content;
+    max-width:calc(100vw - max(12px,env(safe-area-inset-left,0px)) - max(12px,env(safe-area-inset-right,0px)));
+    height:var(--ui-control-touch,44px);
+    min-height:var(--ui-control-touch,44px);
+    gap:var(--ui-space-4,4px);
+    padding:0 4px!important;
+    overflow:visible;
+    background:var(--theme-surface-primary,#fff);
+    border:1px solid var(--theme-border-default,#e5e7eb);
+    border-radius:14px;
+    box-shadow:0 8px 24px rgba(0,0,0,.16);
+    transform:scale(.96);
+    transform-origin:center;
+  }
+  .message-action-group.user-actions{
+    left:auto;
+    right:0;
+    justify-content:flex-end;
+  }
+  .message-action-group.assistant-actions{
+    left:0;
+    right:auto;
+    justify-content:flex-start;
+  }
+  .message-turn[data-actions-placement="below"] .message-action-group{
+    top:calc(100% + 6px);
+    bottom:auto;
+  }
+  .message-unit:hover .message-action-group,
+  .message-unit:focus-within .message-action-group,
+  .message-turn[data-actions-open="true"] .message-action-group{
+    transform:scale(1);
+  }
+  #scrollRoot[data-user-scrolling="true"] .message-unit:hover .message-action-group,
+  #scrollRoot[data-user-dragging="true"] .message-unit:hover .message-action-group{
+    transform:scale(.96);
+  }
+  .message-action-group .action-button{
+    box-sizing:border-box;
+    flex:0 0 var(--ui-control-touch,44px);
+    width:var(--ui-control-touch,44px);
+    min-width:var(--ui-control-touch,44px);
+    height:var(--ui-control-touch,44px);
+    min-height:var(--ui-control-touch,44px);
+    padding:0;
+    border-radius:10px;
+  }
+  .message-action-group .action-button svg{
+    width:20px;
+    height:20px;
+    pointer-events:none;
+  }
+}
+
+/* UI-150: state is visible but does not resize/shift the action button. */
+.message-action-group .action-button[data-state="copied"]{color:#1f9d68;}
+.message-action-group .action-button[data-state="failed"]{color:#bf3845;}
+
 /* Equivalent purpose to ChatGPT's threadFooterContentFade class:
    messages may pass under the sticky composer, but visually fade below it. */
 #thread-bottom-container.threadFooterContentFade::before{
