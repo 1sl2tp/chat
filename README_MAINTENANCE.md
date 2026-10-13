@@ -80,6 +80,14 @@ Quy tắc:
 - **Test/acceptance:** `tests/test_v21_mobile_ui_polish.py::test_ui_145_one_layout_rail_for_header_directory_and_composer` + `tests/test_v21_140_zalo_card_narrow_axis.py`; tọa độ DOM 320/375/390/430/768/1023px; Safari/PWA portrait+landscape; top icon hit target, title/search/chips/avatar/time, remote/self chat text/images, bottom editor disabled/ready, keyboard closed/open. Các lề ngoài bằng nhau theo rail tương ứng; không overflow-x và không nhảy vị trí cuộn. **E4 real device** và **E5 người dùng chấp nhận** vẫn pending cho đến khi kiểm nghiệm.
 - **Rollback:** hoàn nguyên riêng `ui-foundation.css`, `mobile-ui-polish.css`, `mobile-chat-refresh.css` và tests; tái tạo `index.html/version.json` bằng canonical generator, không đụng backend.
 
+## 3e. UI-146 — Root sidebar padding và PWA shell update phải đúng bản (2026-10-13)
+
+- **Bằng chứng từ iPhone 21:07:** title/search/chips/avatar/time đều thẳng hàng với nhau nhưng còn cách mép màn hình khoảng 36px. UI-145 đã quy định lề danh bạ 12px nhưng `reference/chatgpt/full-source/raw-css/app-CIyuNPp8.css` còn `.wm-sidebar-sidebar{padding:... var(--size-24,1.5rem) ...}` = 24px xung quanh toàn bộ. Tổng thực tế 24+12=36px. **Không được quy kết ảnh giống bản cũ là PWA chưa nhận build nếu chưa có mã build của máy.**
+- **Owner duy nhất:** trong `mobile-ui-polish.css` khi `#appShell[data-mobile-directory="true"]` authenticated, đặt `#shellNavigationLayer .wm-sidebar-sidebar{padding-inline:0!important}` để triệt tiêu root padding 24px; giữ nguyên padding dọc, title 12, tools 6+body 6, avatar/time list2+row4+body6 và vị trí cuộn.
+- **PWA cập nhật:** `sw.js` sử dụng `SHELL_CACHE_EPOCH` khác khi shell UI thay đổi, để cache HTML cũ không bị giữ mãi vì `RELEASE_VERSION` vẫn là `V21.72.39`. Cùng thay đổi phải build lại `index.html` và `version.json` trong canonical builder; không dùng `localStorage.clear`, không xóa IndexedDB/media/chat history, không thêm polling/network để sửa CSS. Giữ cơ chế shell offline-first và auth-session safe reload. Sau khi worker kích hoạt, đóng/mở PWA để tạo trang mới; nếu cần, mở lần nữa để hoàn tất revalidate.
+- **Xác minh 2 tầng:** E3 GitHub Pages CI+Deploy thành công chứng minh server code triển khai; **không** chứng minh client PWA đã kích hoạt. E4 chỉ PASS khi quan sát build ID thiết bị qua `window.V21AppUpdateController.snapshot().currentBuild` / meta `app-build-id`, so với `version.json.build_id`, và đo `getBoundingClientRect()` các title/search/avatar trên iPhone. E5 người dùng xác nhận nhìn đúng. Nếu còn lệch, kiểm computed parent padding trước khi thêm CSS con.
+- **Rollback:** hoàn nguyên hai file `mobile-ui-polish.css`/`sw.js`, cập nhật lại canonical index/version, Verify/Pages, giữ mọi DB/Realtime/cache lịch sử.
+
 ## 4. Contract realtime không được phá
 
 Luồng chuẩn:
