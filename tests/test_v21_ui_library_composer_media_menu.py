@@ -72,6 +72,46 @@ def test_account_menu_uses_existing_icon_registry_and_44px_rows():
     assert "if(action==='directory')" in menu
     assert "if(action==='logout')" in menu
 
+def test_mobile_composer_uses_one_geometry_contract_across_states():
+    mobile=(ROOT/'mobile-chat-refresh.css').read_text('utf-8')
+    # Outer screen gutter is paid once, not once by width AND again by
+    # the inherited .chat-content-axis padding-inline:16px!important.
+    frame=mobile[mobile.index('/* ChatGPT-like adaptive dock:'):mobile.index('#composerShell{')]
+    assert '--ui-composer-effective-gutter:max(' in frame
+    assert 'width:min(calc(100% - var(--ui-composer-effective-gutter) - var(--ui-composer-effective-gutter)),44rem);' in frame
+    assert 'padding-inline:0!important;' in frame
+    assert '--ui-composer-gutter:12px;' in foundation
+    assert '--ui-composer-inner-inset:4px;' in foundation
+    assert '--ui-composer-action-gap:4px;' in foundation
+    assert '--ui-composer-send-disc:36px;' in foundation
+    assert '--ui-composer-mic-glyph:20px;' in foundation
+    assert '--ui-composer-arrow-glyph:18px;' in foundation
+    assert '--ui-composer-stroke:1.6px;' in foundation
+
+    # All three targets remain 44 CSS px despite the legacy 36px !important
+    # button source and regardless of mic/send state.
+    assert ':is(#composer-plus-btn,#composer-mic-btn,#send){' in mobile
+    assert 'width:var(--ui-control-touch,44px)!important;' in mobile
+    assert 'min-width:var(--ui-control-touch,44px)!important;' in mobile
+    assert 'height:var(--ui-control-touch,44px)!important;' in mobile
+    assert 'min-height:var(--ui-control-touch,44px)!important;' in mobile
+    assert 'gap:0 var(--ui-composer-action-gap,4px);' in mobile
+    assert 'padding:2px var(--ui-composer-inner-inset,4px);' in mobile
+
+    # The painted Send disk is 36px inside a 44px hit area. Only background
+    # color changes when data-can-send toggles; no state-specific dimensions.
+    assert 'border:calc((var(--ui-control-touch,44px) - var(--ui-composer-send-disc,36px)) / 2) solid var(--cgpt-composer-surface-primary);' in mobile
+    assert '#composerShell:not([data-can-send="true"]) #send{' in mobile
+    assert 'background:var(--theme-submit-btn-bg);' in source
+    assert 'data-arrow="up"' in source
+    assert '#composer-mic-btn svg{' in mobile
+    assert '#send svg{' in mobile
+    assert 'width:var(--ui-composer-mic-glyph,20px)!important;' in mobile
+    assert 'width:var(--ui-composer-arrow-glyph,18px)!important;' in mobile
+    assert 'data-icon="'+chr(39)+'+esc(name)+'+chr(39)+' in library
+    assert '.demo-composer .icon-btn[data-icon="send"]{border:4px solid #fff}' in library
+    assert '.demo-composer{display:grid;grid-template-columns:44px minmax(0,1fr) 44px 44px;align-items:center;gap:0 4px;' in library
+
 def test_patch_is_presentation_only():
     ownership=app[app.index('function singleImagePresentation('):app.index('function stableMessageDomKey(')]
     assert not any(tok in ownership for tok in ('fetch(','.rpc(','.send(', 'setInterval('))
