@@ -1,3 +1,14 @@
+## 2026-10-13 — Non-Admin incoming Chat content left margin on narrow one-pane UI (PR CANDIDATE)
+
+- **User observation:** Messages from someone other than Admin (including Zalo image/text/file) are positioned too far away from the left border in a narrow browser/mobile screenshot; Admin self messages should stay right.
+- **Owner:** `mobile-chat-refresh.css` existing UI-139 single-pane CSS. Root cause: the previous left-edge layout correction only applied through `639px`, while mobile/single-pane geometry lasts until `1023px` and keeps a centered max-width `48rem` conversation axis.
+- **Fix:** Scope to `@media (max-width:63.999rem)`: stretch `#conversationContentAxis` full width, remove centered margin/extra axis padding and apply one 12px message reading gutter. Add remote `#messageWindow>.message-row[data-turn="assistant"]` left-edge alignment for text/media/audio/file; leave Admin `data-turn="user"` right-aligned and desktop >=1024px center width unchanged. CSS only; no hacks/transforms, no message renderer, ScrollRoot, media decoding or data changes.
+- **Rule:** Shared Google Sheet tab 08 row114 `SPEC-CHAT-INBOUND-LEFT-EDGE-20261013`. `tests/test_v21_incoming_left_edge_contract.py` and updated `test_v21_140_zalo_card_narrow_axis.py` registered in canonical Verify and CI.
+- **E0 done; E1/E2 focused/full CI, E3 Pages and E4 Safari/PWA screenshot+E5 resources PENDING.** No new API/RPC/Edge/Realtime polling/log/egress.
+- **Rollback:** revert CSS + generated index/version together; no schema or Zalo bridge redeploy.
+
+---
+
 ## 2026-10-13 — UI Library parity: Composer icons, portrait photo, mobile account menu (CI + PAGES PASS; E4/E5 PENDING)
 
 - **User screenshots:** (1) Plus/Mic/Send trong khung Chat lệch hit-area và cỡ icon; (2) ảnh dọc sao kê chiếm gần hết viewport trên màn hẹp; (3) menu Danh bạ/Tài khoản/Cài đặt/Thoát chỉ có chữ, thiếu icon và khoảng cách chuẩn.
