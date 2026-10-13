@@ -33,6 +33,12 @@ function activeContact(){
   const rows=window.V21ContactStore?.snapshot?.()||[];
   return rows.find(row=>String(row?.id||'')===id)||null;
 }
+function activeContactGroup(){
+  const id=activeContactId();
+  // The directory is already the one authorized owner of contact groups.
+  // Unknown/stale group data must never expose customer-only business sends.
+  return id?window.V21ContactDirectoryAdmin?.groupForContact?.(id)||null:null;
+}
 function interactionController(){return window.V21InteractionController||null;}
 function lockQuoteBackground(){
   const lease=interactionController()?.enter?.(QUOTE_MODAL_MODE,{owner:QUOTE_MODAL_OWNER,lockBaseUi:true});
@@ -118,15 +124,16 @@ function ensureAdminMenu(){
 function syncVisibility(){
   const admin=Boolean(currentAdmin());
   const contact=Boolean(activeContactId());
+  const customer=admin&&contact&&activeContactGroup()==='customer';
   document.documentElement.dataset.adminComposerActions=String(admin);
   const surface=menuSurface();
   if(!surface)return admin;
   const label=surface.querySelector('[data-admin-composer-send-label]');
   const section=surface.querySelector(`[${SECTION_ATTR}]`);
-  if(label)label.hidden=!admin;
-  if(section)section.hidden=!admin;
+  if(label)label.hidden=!customer;
+  if(section)section.hidden=!customer;
   if(section){
-    for(const button of section.querySelectorAll(`[${ACTION_ATTR}]`))button.disabled=!admin||!contact;
+    for(const button of section.querySelectorAll(`[${ACTION_ATTR}]`))button.disabled=!customer;
   }
   return admin;
 }
@@ -451,7 +458,7 @@ async function openCredentials(contactId){
 async function runAction(action){
   if(!currentAdmin())return false;
   const contactId=activeContactId();
-  if(!contactId)return false;
+  if(!contactId||activeContactGroup()!=='customer')return false;
   hideMenu();
   if(action==='quote'){
     try{return await openQuote(contactId);}catch{setTransientHint('Không thể mở báo giá');return false;}
@@ -526,6 +533,8 @@ function bind(){
   document.addEventListener('v21-auth-state',()=>{ensureAdminMenu();syncVisibility();});
   document.addEventListener('v21-message-store-state',syncVisibility);
   document.addEventListener('navigation-change',syncVisibility);
+  document.addEventListener('v21-contact-groups-change',syncVisibility);
+  document.addEventListener('v21-contact-store-change',syncVisibility);
   return true;
 }
 
