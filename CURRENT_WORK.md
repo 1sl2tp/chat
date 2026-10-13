@@ -1,3 +1,15 @@
+## 2026-10-13 — TAPHOA image share → Chat KH prefilled attachment (PR CANDIDATE)
+
+- User symptom: app.taphoa.xyz order/cart Share first click only says "Ảnh đã sẵn sàng. Bấm Chia sẻ lại", forcing Save/Copy/Paste. User wants tapping once to open the linked customer's Chat with the actual PNG already attached (or auto-send).
+- **Decision:** prefills a draft; never auto-sends without explicit tap Send. TAPHOA customer id is already V21 account UUID (see existing taphoa_chat_notify_customer/taphoa_save_order). Saved order detail uses its own real row customer id, NOT an unrelated active cart selectedCustomer.
+- **Owner:** TAPHOA source capture and opener; Chat app.js ingress. Chat tab accepts only opener at `https://app.taphoa.xyz`, query-bound strong nonce and exact customer ID, authenticated Admin with valid ContactStore member and ready conversation. PostMessage File must be PNG <=15 MiB. Existing Chat `ingestImageFiles` attaches into the correct scoped draft/IDB; no new media writer or auto-send. ACK once; clear share params on success. No RPC/Edge/Storage relay, cron/polling/log.
+- **Browser contract:** target window must preserve opener; installed iOS PWA may isolate windows, so E4 iPhone/iOS installed-mode test is mandatory. If popup fails, app's native fallback remains. No claim cross-PWA direct receive until observed.
+- **Spec:** Rule chung tab 08 row111 SPEC-TAPHOA-CHAT-ORDER-IMAGE-PREFILL-20261013.
+- **E0 source review done; E1/E2 CI, E3 both Pages, E4 Safari/Android, E5 request/egress and user verification PENDING.**
+- **Rollback:** revert receiver before sender only after sender stopped; original sharing remains for unbound customers. No DB changes.
+
+---
+
 ## 2026-10-13 — User revision: vuốt cả trái và phải đều đổi Danh bạ ↔ hội thoại (MERGED; E4/E5 PENDING)
 
 - **User correction to PR #174:** Both horizontal directions should toggle the two Chat surfaces. Previously directions were asymmetric (directory-right, conversation-left) and felt less convenient.
