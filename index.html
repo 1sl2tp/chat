@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="b981aab17a33ee54187ff0c4c8db6d09bdd1567b8baf4ed4db58043d28457635">
+<meta name="app-build-id" content="0f27f983753cd81d59e1cba4b6687f28c387b023c4ea2c1c2f81aedb596d877d">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -17892,16 +17892,15 @@ function bindMobileHierarchySwipe(){
     }
     mobileSwipe={startX:touch.clientX,startY:touch.clientY,directory,claimed:false};
   };
-  const allowedDirection=dx=>Boolean(mobileSwipe&&(
-    mobileSwipe.directory?dx>0:dx<0
-  ));
+  // Both horizontal directions mean toggle between the only two Chat screens.
+  // Preserve the direction only for detecting horizontal intent, never routing.
   const onTouchMove=event=>{
     if(!mobileSwipe||event.touches?.length!==1)return;
     const touch=event.touches[0];
     const dx=touch.clientX-mobileSwipe.startX;
     const dy=touch.clientY-mobileSwipe.startY;
     if(Math.abs(dy)>Math.abs(dx)&&Math.abs(dy)>18){reset();return;}
-    if(allowedDirection(dx)&&Math.abs(dx)>14&&
+    if(Math.abs(dx)>14&&
       Math.abs(dx)>Math.abs(dy)*MOBILE_CHAT_SWIPE_DOMINANCE){
       mobileSwipe.claimed=true;
       if(event.cancelable)event.preventDefault();
@@ -17920,11 +17919,10 @@ function bindMobileHierarchySwipe(){
       Math.abs(dx)>Math.abs(dy)*MOBILE_CHAT_SWIPE_DOMINANCE;
     if(!horizontal)return;
     let changed=false;
-    if(state.directory&&dx>=MOBILE_CHAT_SWIPE_DISTANCE_PX&&mobileDirectoryOpen()){
-      changed=restoreLastMobileChatFromDirectory('directory-swipe-right');
-    }else if(!state.directory&&dx<=-MOBILE_CHAT_SWIPE_DISTANCE_PX&&
-      !mobileDirectoryOpen()&&activeContact()?.id){
-      changed=showMobileDirectory('chat-swipe-left');
+    if(state.directory&&mobileDirectoryOpen()){
+      changed=restoreLastMobileChatFromDirectory('directory-swipe-horizontal');
+    }else if(!state.directory&&!mobileDirectoryOpen()&&activeContact()?.id){
+      changed=showMobileDirectory('chat-swipe-horizontal');
     }
     if(!changed)return;
     if(event.cancelable)event.preventDefault();
