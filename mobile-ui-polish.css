@@ -474,10 +474,6 @@
     min-width:36px;
   }
 
-  #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow{
-    padding-inline:14px;
-  }
-
   #appShell[data-auth-state="authenticated"][data-route="chat"] .message-turn{
     margin-top:8px;
   }

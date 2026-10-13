@@ -1,3 +1,14 @@
+## 2026-10-13 — PWA/mobile double inset of inbound + Admin chat bubbles (PR CANDIDATE)
+
+- **User issue after PR #179:** In installed mobile/PWA Chat, both sides of messages still look inset compared with screen edges, despite previous fix for centered desktop conversation axis.
+- **Root owner:** Three horizontal padding CSS declarations competed: `mobile-chat-refresh.css` older `#messageWindow` shorthand (12px), `mobile-ui-polish.css` later 14px, and UI-139/141's `!important` axis rule (12px), while `#scrollRoot` retained `scrollbar-gutter:stable` on narrow screens. No sender/Realtime defect.
+- **Fix:** Restrict P2 message lane to one safe-area-aware horizontal gutter of max(6px, CSS safe-area inset) in `mobile-chat-refresh.css`, remove older shorthand horizontal padding and 14px polish duplicate, prevent invisible reserved scrollbar space only under single-pane authenticated Chat. Explicitly align remote/assistant unit to left boundary and self/Admin unit to right; desktop >=1024px and all bubble internal text padding, media/Viewer/scroll owner stay unchanged.
+- **Checks:** focused `test_v21_incoming_left_edge_contract.py` and `test_v21_140_zalo_card_narrow_axis.py` updated. Chromium synthetic layout with selectors/styles mirrored from owner CSS measured both 6px edges at 320/375/500/768/1023px without horizontal overflow; **not a production/device probe**. Full GitHub Verify and Pages PENDING.
+- **PWA update caveat:** `sw.js` currently uses cached-then-network navigation and `app-update-controller.js` deliberately defers reload during authenticated sessions; user may need to fully close and reopen standalone PWA after a deployment. Do not change these cache/reload owners for an edge-layout-only repair; verify displayed build before claiming E4.
+- **Rule:** Google Sheet tab 08 row115 `SPEC-CHAT-MOBILE-PWA-SINGLE-GUTTER-20261013`. No new API/Edge/DB/Realtime request, media retrieval or jobs. Rollback: revert CSS+canonical index/version PR together. **E4 real Safari/PWA screenshot and E5 acceptance PENDING.**
+
+---
+
 ## 2026-10-13 — Non-Admin incoming Chat content left margin on narrow one-pane UI (CI + PAGES PASS; E4/E5 PENDING)
 
 - **User observation:** Messages from someone other than Admin (including Zalo image/text/file) are positioned too far away from the left border in a narrow browser/mobile screenshot; Admin self messages should stay right.

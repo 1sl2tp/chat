@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="1577353a72cb2fddbce4e86bd9d9ae4c588bc7f6b32038e6dc231e4e02e35b3a">
+<meta name="app-build-id" content="5874a60dfd819d5ebf1d29988628ad4235e5bdf2b0bb774dc0824b80db260cd6">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1478,7 +1478,8 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
 
   /* Conversation content — mobile-first, visual-only. */
   #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow{
-    padding:var(--ui-space-8,8px) var(--ui-chat-message-gutter,var(--ui-gutter-mobile,12px)) 14px;
+    /* The final single-pane edge rule owns horizontal padding. */
+    padding-block:var(--ui-space-8,8px) 14px;
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow>.message-row+.message-row{
@@ -1706,12 +1707,22 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
     margin-inline:0!important;
     padding-inline:0!important;
   }
+  /* The thread, not its parents or the bubbles, owns ONE physical side
+     gutter. Preserve iPhone safe areas in landscape; portrait is 6px. The
+     old 12px rule + a later 14px mobile polish rule looked like double inset. */
   #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow{
     box-sizing:border-box;
     width:100%;
     max-width:100%;
     margin-inline:0;
-    padding-inline:var(--ui-chat-message-gutter,var(--ui-gutter-mobile,12px))!important;
+    padding-inline:
+      max(6px,env(safe-area-inset-left,0px))
+      max(6px,env(safe-area-inset-right,0px))!important;
+  }
+  /* Safari standalone can reserve an invisible scrollbar gutter despite the
+     intentionally hidden scrollbars. Reclaim it only in single-pane Chat. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #scrollRoot{
+    scrollbar-gutter:auto;
   }
 
   /* Only the non-self/remote sender uses the left reading edge.
@@ -1728,6 +1739,12 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
   #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow>.message-row[data-turn="assistant"] .assistant-message-unit{
     margin-inline-start:0!important;
     margin-inline-end:auto!important;
+  }
+  /* Self/Admin must reach the exact same physical right gutter. Do not
+     resize any bubble or change the action group / media owners. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow>.message-row[data-turn="user"] .user-message-unit{
+    margin-inline-start:auto!important;
+    margin-inline-end:0!important;
   }
 }
 
@@ -5829,10 +5846,6 @@ button{
     width:36px;
     height:36px;
     min-width:36px;
-  }
-
-  #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow{
-    padding-inline:14px;
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] .message-turn{
