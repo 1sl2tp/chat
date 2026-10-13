@@ -31,9 +31,9 @@ def test_directory_polish_contract():
 def test_quick_menu_polish_contract():
     c = compact(CSS)
     assert '[data-mobile-account-menu].mobile-account-menu-panel{' in c
-    assert 'width:196px!important;' in c
+    assert 'width:218px!important;' in c
     assert '.mobile-account-menu-row{' in c
-    assert 'min-height:43px!important;' in c
+    assert 'min-height:44px!important;' in c
 
 
 def test_account_settings_polish_contract():
