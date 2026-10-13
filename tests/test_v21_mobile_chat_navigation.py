@@ -29,21 +29,22 @@ assert 'window.innerWidth-MOBILE_CHAT_SWIPE_EDGE_INSET_PX' in compact_client, 's
 assert 'touch.clientX<MOBILE_CHAT_SWIPE_EDGE_INSET_PX' in compact_client, 'swipe start must reject the reserved left-edge zone'
 assert "button,a,[role=\"button\"]" in client or "button,a,[role='button']" in client, 'swipe must not steal gestures that start on controls'
 
-# Direction contract: in Chat, thread swipe-left -> Danh bạ and Danh bạ
-# swipe-right -> last valid opened thread. Work is reachable only by an
-# explicit tab/button; Work never owns a horizontal route swipe.
+# Direction contract: left/right in Chat both toggle Danh bạ <-> valid
+# last selected thread. Work only via explicit tab/button, not any swipe.
 assert 'mobileDirectoryOpen' in client, 'gesture owner must know whether Trò chuyện is currently at the Danh bạ parent'
 assert 'route===\'work\'' in compact_client or 'route==="work"' in compact_client, 'gesture owner must branch explicitly for Work'
-assert 'dx<=-MOBILE_CHAT_SWIPE_DISTANCE_PX' in compact_client, 'left swipe must be explicitly handled'
-assert 'dx>=MOBILE_CHAT_SWIPE_DISTANCE_PX' in compact_client, 'right swipe must be explicitly handled'
+assert 'Math.abs(dx)>=MOBILE_CHAT_SWIPE_DISTANCE_PX' in compact_client, 'either horizontal direction must pass the threshold'
+assert "state.directory&&mobileDirectoryOpen()" in compact_client, 'directory must toggle in either direction'
+assert "!state.directory&&!mobileDirectoryOpen()&&activeContact()?.id" in compact_client, 'active thread must toggle in either direction'
 assert 'showMobileDirectory' in client and 'hideMobileDirectory' in client, 'Danh bạ remains a real Trò chuyện screen'
 
 # Top tabs: single tap preserves current navigation semantics; double tap jumps to the branch root.
 assert 'MOBILE_TAB_DOUBLE_TAP_MS=250' in compact_client, 'double tap needs a short explicit timing window'
 assert 'handleMobileTopTabTap' in client, 'top tabs need one tap/double-tap arbitration owner'
 assert "showMobileDirectory('chat-tab-double')" in client, 'double tap Trò chuyện must always return to Danh bạ'
-assert "restoreLastMobileChatFromDirectory('directory-swipe-right')" in client
-assert "showMobileDirectory('chat-swipe-left')" in client
+assert "restoreLastMobileChatFromDirectory('directory-swipe-horizontal')" in client
+assert "showMobileDirectory('chat-swipe-horizontal')" in client
+assert "const allowedDirection=dx" not in client, 'do not limit a swipe by direction'
 assert "mobileLastChatContact" in client
 assert "rememberMobileChatContact" in client
 assert "route!=='chat'" in client, 'only Chat route may own horizontal swipe'
