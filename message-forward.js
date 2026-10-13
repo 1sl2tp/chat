@@ -56,7 +56,7 @@ function close({restoreFocus=true}={}){
 
 async function forwardTo(message,contact,{statusNode=null,listNode=null}={}){
   const name=contactName(contact);
-  if(statusNode)statusNode.textContent=`Đang chuyển tiếp tới ${name}…`;
+  if(statusNode)statusNode.textContent=`Đang chia sẻ tới ${name}…`;
   if(listNode)for(const button of listNode.querySelectorAll('button'))button.disabled=true;
   try{
     await window.V21SyncEngine?.forwardMessage?.({
@@ -65,7 +65,7 @@ async function forwardTo(message,contact,{statusNode=null,listNode=null}={}){
       targetContactId:String(contact?.id||''),
       clientId:window.V21RuntimeId.create()
     });
-    if(statusNode)statusNode.textContent=`Đã chuyển tiếp tới ${name}`;
+    if(statusNode)statusNode.textContent=`Đã chia sẻ tới ${name}`;
     window.setTimeout(()=>close({restoreFocus:false}),220);
     return true;
   }catch(error){
@@ -91,12 +91,12 @@ function open(message){
   node.className='message-forward-overlay';
   node.innerHTML=`
     <button type="button" class="message-forward-backdrop" data-forward-close aria-label="Đóng"></button>
-    <section class="message-forward-card" role="dialog" aria-modal="true" aria-label="Chuyển tiếp tin nhắn">
+    <section class="message-forward-card" role="dialog" aria-modal="true" aria-label="Chia sẻ nội dung trong Chat">
       <div class="message-forward-head">
-        <h2 class="message-forward-title">Chuyển tiếp</h2>
+        <h2 class="message-forward-title">Chia sẻ trong Chat</h2>
         <button type="button" class="message-forward-close" data-forward-close aria-label="Đóng"></button>
       </div>
-      <input class="message-forward-search" type="search" inputmode="search" autocomplete="off" placeholder="Tìm khách hàng…" aria-label="Tìm khách hàng">
+      <input class="message-forward-search" type="search" inputmode="search" autocomplete="off" placeholder="Tìm người nhận…" aria-label="Tìm người nhận">
       <div class="message-forward-list" role="list"></div>
       <p class="message-forward-status" aria-live="polite"></p>
     </section>`;
@@ -120,7 +120,7 @@ function open(message){
     if(!filtered.length){
       const empty=document.createElement('div');
       empty.className='message-forward-empty';
-      empty.textContent='Không tìm thấy khách hàng';
+      empty.textContent='Không tìm thấy người nhận';
       list.appendChild(empty);
       return;
     }

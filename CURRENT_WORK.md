@@ -1,3 +1,15 @@
+## 2026-10-13 — Mobile share one-tap + customer-only business menu (PR CANDIDATE, NOT PROD VERIFIED)
+
+- **Request:** mobile share a Chat photo/file by showing recipient immediately; do not require Save/Copy/Paste. Only KH group exposes business actions like Công nợ/Báo giá; CM/Bạn bè/Khác use simple image/file composer actions.
+- **Owner/baseline:** `app.js` source media actions + single-image viewer; `message-forward.js` existing recipient picker and canonical `v21-sync-engine.js.forwardMessage`; `contact-directory-admin.js` is already group-map owner through one `directory_groups` request; `admin-composer-actions.js` currently shows all Admin business actions for all recipients.
+- **Patch scope:** primary Chat media `Chia sẻ` opens existing one-tap in-app recipient picker; native OS share becomes explicit `Ứng dụng khác`; `Lưu` stays a separate optional action. Viewer uses in-app forwarding only when its current source message has exactly one media asset, so selecting one photo does not silently send a full gallery. Group editor publishes existing group load/change to customer-menu visibility; UNKNOWN or noncustomer hides all business-specific sends. `runAction` also checks group. No new RPC, media writer, job, polling, Zalo bridge or background sync.
+- **E0/E1:** Sheet Rule chung SPEC row109 recorded; new `tests/test_v21_mobile_share_group_roles.py` registered with Verify V21 and canonical verifier. PR CI pending.
+- **E2/E3/E4/E5 PENDING:** CI and Pages must succeed before merge; actual Safari/iPhone/Android one-tap, contact group matrix and canceled/cold-media cases require real device checks. Do not claim production success solely from source tests. No intentional outbound customer message test.
+- **MUST-STAY:** Chat auth/group account isolation, single canonical forward, Zalo-linked media source/destination ownership, no accidental whole-album forwarding, immediate Realtime, draft/scroll, quote/debt backend unchanged.
+- **Rollback:** revert this PR as one UI-only change set. No DB rollback needed. Group data is read-only reused from the directory owner; unknown group fails closed for business sends.
+
+---
+
 ## 2026-10-12 — Chat warm boot + mobile PWA foreground push (MERGED; E3 PASS, E4/E5 PENDING)
 
 - **User intent:** lần đầu/mở lại Chat mobile/PWA phải hiện khung và dữ liệu đang xem nhanh; khi Chat mobile hiện trước màn hình, tin mới vào Chat nhưng không tạo thêm thông báo PWA/OS. Khi ẩn/đóng Chat, thông báo nền Admin phải hoạt động; call invite luôn hiển thị cảnh báo.

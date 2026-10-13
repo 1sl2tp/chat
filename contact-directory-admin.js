@@ -28,6 +28,14 @@ function groupKey(value){
   const key=String(value||'').trim().toLowerCase();
   return GROUP_KEYS.has(key)?key:'other';
 }
+function groupForContact(contactId){
+  const admin=currentAdmin();
+  if(!admin?.id||String(loadedAdminId)!==String(admin.id))return null;
+  return groupKey(groupMap.get(String(contactId||'')));
+}
+function publishGroupsChanged(){
+  document.dispatchEvent(new CustomEvent('v21-contact-groups-change'));
+}
 function normalizeText(value){
   return String(value||'')
     .normalize('NFD')
@@ -204,6 +212,7 @@ function syncAdminGroupControls(){
         await invokeBody({action:'set_group',target_account_id:accountId,contact_group:next});
         groupMap.set(accountId,next);
         syncDirectoryRows();
+        publishGroupsChanged();
       }catch(error){
         select.value=previous;
         setPopupError(String(error?.message||'Không thể đổi nhóm'));
@@ -225,6 +234,7 @@ async function ensureGroups({force=false}={}){
     groupMap=new Map((Array.isArray(data?.groups)?data.groups:[]).map(row=>[String(row.id),groupKey(row.contact_group)]));
     loadedAdminId=adminId;
     syncDirectoryRows();
+    publishGroupsChanged();
     syncAdminGroupControls();
     return true;
   }catch{
@@ -281,5 +291,5 @@ const overlayRoot=document.querySelector('[data-global-overlay-root]')||document
 new MutationObserver(scheduleSync).observe(overlayRoot,{childList:true,subtree:true});
 scheduleSync();
 
-window.V21ContactDirectoryAdmin=Object.freeze({sortDirectoryContacts,sync:syncDirectoryRows,refreshGroups:()=>ensureGroups({force:true})});
+window.V21ContactDirectoryAdmin=Object.freeze({sortDirectoryContacts,sync:syncDirectoryRows,groupForContact,refreshGroups:()=>ensureGroups({force:true})});
 })();
