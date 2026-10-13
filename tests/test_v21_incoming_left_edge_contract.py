@@ -13,6 +13,12 @@ def test_single_pane_received_message_edge_and_medium_breakpoints():
     assert 'max-width:none!important;' in single
     assert 'margin-inline:0!important;' in single
     assert 'padding-inline:0!important;' in single
+    # Older mobile layers must not compete for the same horizontal gutter.
+    mobile_polish=(ROOT/'mobile-ui-polish.css').read_text('utf-8')
+    assert '#messageWindow{\n    padding-inline:14px;' not in mobile_polish
+    assert 'padding:var(--ui-space-8,8px) var(--ui-chat-message-gutter' not in css
+    assert 'padding-block:var(--ui-space-8,8px) 14px;' in css
+    assert single.count('padding-inline:')==2  # Axis reset plus one message-window edge rule.
     assert 'max(6px,env(safe-area-inset-left,0px))' in single
     assert 'max(6px,env(safe-area-inset-right,0px))!important;' in single
     assert 'scrollbar-gutter:auto;' in single
