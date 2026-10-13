@@ -267,3 +267,16 @@
     animation:none!important;
   }
 }
+/* UI-139 narrow conversation axis: no desktop centering/inset on either
+   mobile Web, installed PWA or a resized desktop browser. */
+@media (max-width:639px){
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #conversationContentAxis{
+    width:100%;
+    max-width:100%;
+    margin-inline:0;
+    padding-inline:0;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow{
+    padding-inline:var(--ui-chat-message-gutter,var(--ui-gutter-mobile,12px));
+  }
+}

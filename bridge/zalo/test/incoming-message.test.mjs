@@ -120,3 +120,31 @@ test('binds message listener and forwards normalized user and group events',asyn
   assert.deepEqual(seen.map(event=>event.zaloId),['z2','g2']);
   assert.equal(typeof unbind,'function');
 });
+
+test('receives a Zalo forwarded contact as a readable in-chat danh thiếp',()=>{
+  for(const [type,content] of [
+    ['chat.recommended',{title:'Thái Ngọc',description:'0912912073',params:JSON.stringify({uid:'zalo-user-card'})}],
+    ['share.contact',JSON.stringify({name:'Bùi Xuân Tùng',phone:'+84988777666',uid:'card-two'})],
+    ['chat.contact',{contact:{displayName:'Liên hệ A',phoneNumber:'0901234567',userId:'u3'}}]
+  ]){
+    const event=normalizeIncomingMessage({type:USER,isSelf:false,threadId:'linked-chat',data:{msgId:'card-'+type,msgType:type,ts:'1789105000000',content}});
+    assert.ok(event,type);
+    assert.match(event.text,/Danh thiếp Zalo/);
+    assert.match(event.text,/Số điện thoại:/);
+    assert.equal(event.media,undefined,'shared contact is text metadata, not a media binary');
+  }
+});
+
+test('recommended missed call remains a missed call and unsupported shares stay ignored',()=>{
+  const call=normalizeIncomingMessage({type:USER,isSelf:false,threadId:'z1',
+    data:{msgId:'miss-1',msgType:'chat.recommended',ts:'1789105000000',content:{action:'misscall',title:'Someone',phone:'0901234567'}}});
+  assert.equal(call.text,'Cuộc gọi nhỡ');
+  const invalid=normalizeIncomingMessage({type:USER,isSelf:false,threadId:'z1',
+    data:{msgId:'non-contact',msgType:'chat.recommended',ts:'1789105000000',content:{title:'Dịch vụ',description:'Thông tin khuyến mãi'}}});
+  assert.equal(invalid,null);
+  const malicious=normalizeIncomingMessage({type:USER,isSelf:false,threadId:'z1',
+    data:{msgId:'url-1',msgType:'share.contact',ts:'1789105000000',
+      content:{name:'Liên hệ',phone:'0901234567',href:'https://evil.example/tracker'}}});
+  assert.ok(malicious);
+  assert.doesNotMatch(malicious.text,/evil\.example/);
+});

@@ -119,6 +119,45 @@ function normalizeFile(content){
   };
 }
 
+function cleanContactField(value,maxLength=120){
+  if(typeof value!=='string'&&typeof value!=='number')return '';
+  return String(value).replace(/[\x00-\x1f\x7f]/g,' ').trim().slice(0,maxLength);
+}
+
+function normalizeContactCard(content,{explicitType=false}={}){
+  const data=objectValue(content);
+  if(!data)return null;
+  const params=paramsValue(data);
+  const candidates=[data.contact,data.profile,data.user,data.card,params.contact,params.profile,params.user,params.card]
+    .map(objectValue).filter(Boolean);
+  const profiles=[...candidates,data,params];
+  const pick=(keys)=>{
+    for(const row of profiles){
+      for(const key of keys){
+        const field=cleanContactField(row?.[key]);
+        if(field)return field;
+      }
+    }
+    return '';
+  };
+  const name=pick(['displayName','display_name','dName','fullName','fullname','contactName','title','name']);
+  const rawPhone=pick(['phoneNumber','phone_number','phone','mobile','phoneNum','contactPhone','number']);
+  const description=pick(['description','desc','subtitle']);
+  const phoneMatch=(rawPhone||description).match(/(?:\+?84|0)[\d .()-]{8,18}/);
+  const phone=phoneMatch?phoneMatch[0].replace(/[^\d+]/g,'').slice(0,16):'';
+  const uid=pick(['uid','userId','zaloId','zalo_id','recommUid','recommendUid','contactId']);
+  const href=pick(['href','profileUrl','link','url']);
+  const safeLink=/^https:\/\/(?:zalo\.me|chat\.zalo\.me|zaloapp\.com)(?:\/|$)/i.test(href)?href.slice(0,240):'';
+  // chat.recommended can also carry missed-call events and unrelated cards.
+  // Never mistake an arbitrary share event for a phone contact.
+  if(!name||(!phone&&!uid&&!safeLink))return null;
+  if(!explicitType&&!phone&&!uid)return null;
+  const lines=['📇 Danh thiếp Zalo',name];
+  if(phone)lines.push('Số điện thoại: '+phone);
+  if(safeLink)lines.push(safeLink);
+  return{text:lines.join('\n'),media:null};
+}
+
 function normalizeMissedCall(content){
   const data=objectValue(content);
   if(!data)return null;
@@ -139,7 +178,10 @@ export function normalizeIncomingMessage(message,{userThreadType=USER_THREAD_TYP
   if(msgType==='chat.photo')normalized=normalizePhoto(content);
   else if(msgType==='chat.voice')normalized=normalizeVoice(content);
   else if(msgType==='share.file')normalized=normalizeFile(content);
-  else if(msgType==='chat.recommended')normalized=normalizeMissedCall(content);
+  else if(msgType==='chat.recommended')normalized=normalizeMissedCall(content)||normalizeContactCard(content);
+  else if(['share.contact','chat.contact','chat.card','share.profile','share.user'].includes(msgType)){
+    normalized=normalizeContactCard(content,{explicitType:true});
+  }
   else if(typeof content==='string'&&(!msgType||msgType==='webchat')){
     const text=content.trim();
     if(text)normalized={text,media:null};
