@@ -1820,9 +1820,15 @@ button{
     margin-left:auto;
   }
   .image-review-more{
-    width:2.4rem;
-    height:2.4rem;
-    flex-basis:2.4rem;
+    box-sizing:border-box;
+    width:var(--ui-control-touch,44px);
+    min-width:var(--ui-control-touch,44px);
+    height:var(--ui-control-touch,44px);
+    min-height:var(--ui-control-touch,44px);
+    flex-basis:var(--ui-control-touch,44px);
+  }
+  .image-review-menu-item{
+    min-height:var(--ui-control-touch,44px);
   }
   .image-review-menu{
     right:0;
