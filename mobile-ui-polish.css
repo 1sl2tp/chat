@@ -142,7 +142,8 @@
   [data-mobile-account-menu] .mobile-account-menu-panel{
     top:calc(env(safe-area-inset-top,0px) + 56px)!important;
     left:12px!important;
-    width:196px!important;
+    width:218px!important;
+    padding:6px!important;
     border:1px solid var(--mobile-ui-line)!important;
     border-radius:15px!important;
     background:color-mix(in srgb,var(--theme-surface-primary) 99%,transparent)!important;
@@ -151,15 +152,36 @@
   }
 
   [data-mobile-account-menu] .mobile-account-menu-row{
-    min-height:43px!important;
-    padding:0 14px!important;
+    display:grid!important;
+    grid-template-columns:20px minmax(0,1fr);
+    align-items:center;
+    column-gap:10px;
+    min-height:44px!important;
+    padding:0 10px!important;
+    border-radius:10px;
     font-size:.9rem!important;
     line-height:1.15rem!important;
     font-weight:500!important;
   }
-
+  [data-mobile-account-menu] .mobile-account-menu-icon{
+    width:20px;
+    height:20px;
+    display:grid;
+    place-items:center;
+    color:var(--theme-content-secondary);
+  }
+  [data-mobile-account-menu] .mobile-account-menu-icon svg{
+    width:20px;
+    height:20px;
+    display:block;
+  }
   [data-mobile-account-menu] .mobile-account-menu-row+.mobile-account-menu-row{
+    border-top:0!important;
+  }
+  [data-mobile-account-menu] [data-mobile-account-action="logout"]{
+    margin-top:3px;
     border-top:1px solid var(--mobile-ui-line)!important;
+    border-radius:0 0 10px 10px;
   }
 
   .shell-sidebar-account-menu{

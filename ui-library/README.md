@@ -39,6 +39,7 @@
 - `ImageTile` / `ImageGallery` / `ImageViewer`: ảnh đơn contain, album thumbnail có thể cover, viewer theo một owner; xoay ảnh có module `chat-image-orientation.js`.
 - `AudioPlayer` / `RecordingSurface` / `AudioDraft`: ghi âm đang thu khác ghi âm chờ gửi và ghi âm trong tin.
 - `AttachmentTray`, `FilePicker`, `ComposerBar`: một thao tác chọn tệp, một đường gửi, không tự upload media ở preview UI.
+- **Mốc UI 13/10:** ComposerBar `+` / mic / gửi cùng hit-area `44×44px`, nét icon `20px` từ `ui-foundation.css`; single-image portrait cao tối đa khoảng `460px` (mobile thêm giới hạn `48dvh`), rộng tính theo aspect, luôn `contain`, tap mở Viewer; album và ảnh ngang giữ chuẩn media 360px. Menu mobile Account dùng 4 icon registry 20px với hàng bấm 44px, không đổi quyền/hành động.
 - `ContactRow`, `WorkRow`, `WorkTable`: giữ scroll, vị trí và alignment cột số.
 - `AuthForm`, `ProfileDialog`, `BusinessDialog`, `ForwardDialog`, `ActionMenu`: các lớp phủ khác nhau, có focus owner và chính sách quyền.
 - `CallStatus`, `CallControl`, `UnreadIndicator`, `ActionStatus`: feedback theo trạng thái của từng owner; không đồng bộ DB để đổi màu.
