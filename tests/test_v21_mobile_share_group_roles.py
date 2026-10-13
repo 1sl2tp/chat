@@ -9,10 +9,11 @@ admin = (ROOT / "admin-composer-actions.js").read_text("utf-8")
 
 def test_share_opens_chat_recipient_picker_before_any_native_file_hydration():
     assert "const canForwardInChat=Boolean(window.V21MessageForward?.canForward?.(message));" in app
-    assert "label:'Chia sẻ'," in app
+    assert "label:'Chuyển tiếp',icon:'forward'" in app
     assert "window.V21MessageForward?.open?.(resolveMessage());" in app
-    assert "label:canForwardInChat?'Ứng dụng khác':'Chia sẻ'" in app
-    assert "label:'Lưu'" in app  # Explicit secondary save remains possible
+    assert "label:'Chia sẻ',icon:'share'" in app
+    assert "label:'Tải xuống',icon:'save'" in app
+    assert "const canForwardInChat=Boolean(window.V21MessageForward?.canForward?.(message));" in app
     assert "Chia sẻ trong Chat" in forward
     assert "Tìm người nhận" in forward
     assert "await window.V21SyncEngine?.forwardMessage?.({" in forward
