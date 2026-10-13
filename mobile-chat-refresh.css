@@ -108,7 +108,7 @@
     align-items:center;
     gap:0 2px;
     overflow:visible;
-    border:1px solid color-mix(in srgb,var(--theme-border-default) 92%,transparent);
+    border:1px solid color-mix(in srgb,var(--theme-border-default) 78%,transparent);
     border-radius:var(--ui-chat-composer-radius,var(--ui-radius-20,20px));
     padding:2px;
     background:var(--cgpt-composer-surface-primary);
@@ -185,9 +185,24 @@
     align-self:center;
   }
 
-  #appShell[data-auth-state="authenticated"][data-route="chat"] #send svg{
-    width:20px;
-    height:20px;
+  /* Composer icon optical balance — 2026-10-13.
+     Reduce painted glyphs, NEVER reduce 44px touch targets.
+     SVG paths have inline stroke-width so override paths explicitly. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] :is(#composer-plus-btn,#composer-mic-btn,#send) svg{
+    width:18px!important;
+    height:18px!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] :is(#composer-plus-btn,#composer-mic-btn,#send) svg :is(path,line,rect,circle,polyline){
+    stroke-width:1.5px!important;
+  }
+  /* Preserve click size but paint a slightly smaller, quieter send circle.
+     Only the idle appearance is lightened; enabled/action states still use
+     the existing theme colors and send behavior. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #send{
+    border:2px solid var(--cgpt-composer-surface-primary);
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell:not([data-can-send="true"]) #send{
+    background:color-mix(in srgb,var(--theme-content-tertiary) 47%,var(--theme-surface-secondary));
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="REQUESTING_PERMISSION"],
