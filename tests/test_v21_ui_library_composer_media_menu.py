@@ -36,6 +36,25 @@ def test_portrait_is_fitted_but_image_source_and_gallery_unchanged():
     assert 'const MESSAGE_MEDIA_WIDTH_PX=360;' in app
     assert 'openImageViewer' in app
 
+def test_single_image_first_mount_and_existing_history_share_one_width_owner():
+    # Newly rendered remote/self photos used to get a 360px shell even when
+    # the portrait tile had already been measured at a smaller width.
+    # Old cached DOM / reconciled messages must use exactly the same rule.
+    create=app[app.index('function createMessageMediaShell('):app.index('function patchMessageMediaShell(')]
+    patch=app[app.index('function patchMessageMediaShell('):app.index('function patchMessageNode(')]
+    assert 'return patchMessageMediaShell(shell,media);' in create
+    assert "shell.style.setProperty('--message-media-width',`${singleImageDisplayWidth(media)}px`)" in patch
+    assert "shell.style.removeProperty('--message-media-width');" in patch
+    assert 'createMessageMediaShell(mediaNode,message.media)' in app
+    assert 'patchMessageMediaShell(mediaShell,message.media);' in app
+
+    # Both canonical shells and still-mounted legacy direct image nodes must
+    # size by image ratio, not force a 360px envelope with centered letterboxing.
+    image_rule=source[source.index('#messageWindow .message-unit>.media-image-tile[data-image-presentation]'):]
+    assert 'width:min(22.5rem,var(--message-media-width,22.5rem))!important;' in image_rule.split('}',1)[0]
+    assert '#messageWindow .message-unit>.media-gallery-grid{\n  width:22.5rem!important;' in image_rule
+
+
 def test_account_menu_uses_existing_icon_registry_and_44px_rows():
     assert 'width:218px!important;' in polish
     assert 'min-height:44px!important;' in polish
