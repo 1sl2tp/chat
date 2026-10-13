@@ -2546,10 +2546,14 @@ const MESSAGE_MEDIA_WIDTH_PX=360;
 function singleImagePresentation(media){
   const sourceRatio=imageAspectRatio(media);
   if(sourceRatio<.82){
+    const aspectRatio=Math.max(.36,Math.min(.82,sourceRatio));
+    // Long portrait receipts/bank slips should not occupy the full chat
+    // viewport. Preserve the whole image via contain; full size is in Viewer.
+    const inlineHeight=460;
     return{
       kind:'portrait',
-      width:MESSAGE_MEDIA_WIDTH_PX,
-      aspectRatio:Math.max(.36,Math.min(.82,sourceRatio))
+      width:Math.min(MESSAGE_MEDIA_WIDTH_PX,Math.max(160,Math.round(inlineHeight*aspectRatio))),
+      aspectRatio
     };
   }
   if(sourceRatio<=1.2){
@@ -2576,6 +2580,7 @@ function applySingleImagePresentation(wrap,media){
   wrap.dataset.imagePresentation=presentation.kind;
   wrap.dataset.sourceAspectRatio=String(imageAspectRatio(media));
   wrap.style.width=`${presentation.width}px`;
+  wrap.style.setProperty('--message-media-width',`${presentation.width}px`);
   wrap.style.maxWidth='100%';
   wrap.style.aspectRatio=String(presentation.aspectRatio);
   const img=wrap.querySelector('img');
@@ -4127,6 +4132,13 @@ function patchMessageMediaShell(shell,media){
   if(!shell)return shell;
   shell.dataset.messageMediaShell='true';
   shell.dataset.mediaShellKind=String(media?.type||media?.kind||'media');
+  // Single-image shell shares the same measured width as its contain tile.
+  // Galleries remain at the standard 360px media width.
+  if(media?.type==='image'){
+    shell.style.setProperty('--message-media-width',`${singleImageDisplayWidth(media)}px`);
+  }else{
+    shell.style.removeProperty('--message-media-width');
+  }
   return shell;
 }
 
