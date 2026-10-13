@@ -73,7 +73,12 @@ a{color:inherit}
 .demo-search input,.demo-input input,.demo-input textarea{border:0;outline:0;min-width:0;width:100%;height:44px;font-size:16px;background:transparent}
 .demo-input textarea{resize:none;line-height:22px;padding:10px 0;max-height:96px;}
 .demo-input:focus-within,.demo-search:focus-within{border-color:#9bb7e6;box-shadow:0 0 0 2px #3478ee13}
-.demo-composer{display:grid;grid-template-columns:44px minmax(0,1fr) 44px 44px;align-items:center;gap:0 2px;width:100%;border:1px solid #e4e7ec;background:#fff;border-radius:20px;padding:2px}
+.demo-composer{display:grid;grid-template-columns:44px minmax(0,1fr) 44px 44px;align-items:center;gap:0 4px;width:100%;border:1px solid #e4e7ec;background:#fff;border-radius:20px;padding:2px 4px}
+.demo-composer .icon-btn{width:44px;min-width:44px;height:44px;min-height:44px;box-sizing:border-box}
+.demo-composer .icon-btn[data-icon="plus"] svg{width:18px;height:18px}
+.demo-composer .icon-btn[data-icon="mic"] svg{width:20px;height:20px}
+.demo-composer .icon-btn[data-icon="send"]{border:4px solid #fff}
+.demo-composer .icon-btn[data-icon="send"] svg{width:18px;height:18px}
 .demo-composer:focus-within{border-color:#a1bde9;box-shadow:0 0 0 1px #3478ee12}
 .demo-composer textarea{outline:0;border:0;min-width:0;width:100%;font-size:16px;line-height:22px;background:transparent;padding:10px 4px;height:44px;max-height:96px;resize:none;overflow:auto}
 .demo-composer textarea:focus{outline:0}
