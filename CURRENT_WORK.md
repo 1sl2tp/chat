@@ -1,11 +1,11 @@
-## 2026-10-13 — UI Library parity: Composer icons, portrait photo, mobile account menu (PR CANDIDATE)
+## 2026-10-13 — UI Library parity: Composer icons, portrait photo, mobile account menu (CI + PAGES PASS; E4/E5 PENDING)
 
 - **User screenshots:** (1) Plus/Mic/Send trong khung Chat lệch hit-area và cỡ icon; (2) ảnh dọc sao kê chiếm gần hết viewport trên màn hẹp; (3) menu Danh bạ/Tài khoản/Cài đặt/Thoát chỉ có chữ, thiếu icon và khoảng cách chuẩn.
 - **Spec:** Google Rule chung tab 08 row112 `SPEC-CHAT-UI-PRIMITIVE-COMPOSER-PORTRAIT-MENU-20261013`. Baseline `ui-library/README.md`, `ui-library/index.html`, UI-10/33/35/37/40/43.
 - **P3/P4 owners only:** `ui-foundation.css` ComposerBar three tap targets 44px + glyph 20px (no behavior change); `app.js` single portrait image computed proportional width for max inline 460px and `index.source.html` width var CSS + 48dvh mobile max-height; gallery remains 360px, image `contain`, album tiles `cover`, Viewer full. `work-customer-summary.js` reuses `ui-icons.js` registry for four distinct menu 20px icons; `mobile-ui-polish.css` unifies menu 44px rows, 218px panel. UI library demo previews revised.
 - **MUST-STAY:** all four menu actions/permissions/focus, + mic/send actions, disabled send, media cache/loading, Gallery/Viewer, image click, scroll/anchor, keyboard/push/Realtime untouched. No API/RPC/Edge/DB/Storage read/write change; no new user traffic except standard static release.
 - **Tests:** updated locked image-width and mobile-polish legacy assertions, added `test_v21_ui_library_composer_media_menu.py` in Verify V21 and canonical verify. SHA-aligned index/version regenerated. CI pending.
-- **E0 recorded, E1/E2/E3/E4/E5 pending** until full Verify, Pages and Safari/Chrome/PWA screenshots. Rollback this UI PR only; no schema rollback.
+- **E0/E1/E2/E3 PASS:** Spec Sheet 08 row112, focused tests and full PR Verify V21 run 38363377808 SUCCESS; PR #177 squash-merged main `ef21ed373f89153b20279d5bc2ecdb3be1a16aab`; main Verify V21 run 38363474508 SUCCESS; Deploy Chat Pages run 38363474436 SUCCESS. Prior failed PR runs 38363025335/38363188521 were old fixed-360 assertions; updated tests now align with proportional portrait contract. **E4/E5 PENDING:** real Safari/PWA authenticated visual comparison of 3 screenshots and resource/acceptance proof. UI-only; no new request/RPC/writer.
 
 ---
 
