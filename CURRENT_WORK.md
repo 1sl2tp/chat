@@ -1,3 +1,14 @@
+## 2026-10-13 — User revision: vuốt cả trái và phải đều đổi Danh bạ ↔ hội thoại (PR CANDIDATE)
+
+- **User correction to PR #174:** Both horizontal directions should toggle the two Chat surfaces. Previously directions were asymmetric (directory-right, conversation-left) and felt less convenient.
+- **Corrected spec:** From Danh bạ, either horizontal swipe reopens last valid selected conversation; when none/invalid, no-op. From an open thread, either swipe returns to Danh bạ. Work tab cannot be opened by swipe; touch/mouse at screen edges, media/gallery, composer/input, controls, dialogs and vertical scroll must not be stolen.
+- **Owner:** only `work-customer-summary.js` `bindMobileHierarchySwipe`. Remove old per-direction gating, preserve 48px distance, 1.2 dominance and 28px system edge exclusion. Keep `shell.js` and other data owners unchanged. No new RPC/Edge/cron/polling/logs.
+- **Tests:** revised `tests/test_v21_mobile_directory_swipe_runtime.js` now asserts all four transitions (directory-left/right and conversation-left/right), plus no-prior/no-work/vertical/edge/control negatives. Revised static `tests/test_v21_mobile_chat_navigation.py` guards both-direction logic. Existing Verify/Pages pipeline validates canonical `index.html`/`version.json`.
+- **Rule:** in-place amendment of Google Rule chung sheet tab 08 row110 `SPEC-CHAT-MOBILE-SWIPE-DIRECTORY-20261013`.
+- **E0 done; CI, merge, Pages and real iPhone/Android device E4/E5 acceptance pending.** Rollback this PR only; base PR #174 remains last-good.
+
+---
+
 ## 2026-10-13 — Mobile Chat first screen Danh bạ + chat-only horizontal swipe (MERGED, E4/E5 PENDING)
 
 - **User request:** opening Chat on mobile/PWA must show Danh bạ. Horizontal swipe is only between selected chat conversation (swipe left → Danh bạ) and Danh bạ (swipe right → previously selected valid conversation). Without a prior contact, directory swipe is a no-op. Swipe must not enter/exit Work; Work remains a deliberate top-tab/button action.
