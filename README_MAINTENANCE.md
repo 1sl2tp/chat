@@ -47,6 +47,15 @@ Quy tắc:
 - Không sửa cùng lúc UI + DB + Realtime + Push chỉ để “thử”.
 - Probe 1 conversation / 1 account / 1 RPC trước khi scan rộng.
 
+## 3b. UI-143 — Một quy tắc hiển thị ảnh cho tin mới và lịch sử (2026-10-13)
+
+- **Không tách rule ảnh theo tuổi tin, nguồn Zalo, Admin/User, Web/PWA hay cache.** Dữ liệu chỉ quyết định asset + tỷ lệ nguồn; cùng một renderer tính kích thước ở lần đầu và mọi lần cập nhật/mở lại.
+- **Gốc tọa độ:** `data-turn="assistant"` (tin nhận) sát mép trái vùng tin với *một* gutter 6px/safe-area; `data-turn="user"` (tin gửi) sát mép phải tương ứng. Tin đơn, ảnh/file/audio và album cùng tuân thủ cạnh của người gửi; không thêm căn giữa vào lớp ảnh. Desktop vẫn dùng content axis desktop.
+- **Gốc kích thước ảnh đơn:** `singleImagePresentation(media)` và `patchMessageMediaShell(shell,media)`. **`createMessageMediaShell` phải gọi `patchMessageMediaShell` ngay khi tạo**, không chỉ lúc reconcile: media shell, ảnh thật và metadata phải dùng cùng `--message-media-width`. Ảnh dọc `contain` trọn ảnh theo tỷ lệ, xem ảnh lớn trong Viewer; album cố định tối đa 360px, `cover` riêng từng tile. Legacy direct-image DOM có `data-image-presentation` cũng phải lấy đúng biến width, không mặc định ép 360px.
+- **Không tác động dữ liệu:** cache/IndexedDB, lưu ảnh, Storage và Realtime không can thiệp vào vị trí CSS; không gọi thêm API/refresh dữ liệu chỉ để chữa lề.
+- **Kiểm thử bắt buộc:** remote/self × ảnh dọc/ngang/album × first-render/patch/restore, trên Web và iPhone Safari/PWA; kiểm left/right bằng tọa độ thực tế, không chỉ nhìn thumbnail; chạy `tests/test_v21_ui_library_composer_media_menu.py` và canonical Verify trước deploy. Cuộn đang đọc lịch sử giữ nguyên vị trí, hình không méo/zoom.
+- **Rollback:** hoàn nguyên riêng `createMessageMediaShell` + legacy CSS, cập nhật lại `index.html/version.json` bằng canonical build; không chạm backend.
+
 ## 4. Contract realtime không được phá
 
 Luồng chuẩn:
