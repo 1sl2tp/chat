@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="22da9d50df1d8cd711ae0f6c4eb0c12af984fab180eb60a6158fdae1c428fa20">
+<meta name="app-build-id" content="e227db2df16619976cea78542a8d24d3af0df1aecae3e30c59d5c8337755c71b">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1359,6 +1359,15 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
   --ui-control-touch:44px;
   --ui-chat-header-mobile:60px;
   --ui-chat-composer-radius:20px;
+  /* UI-144: mobile composer geometry is token-owned, not sender-state-owned. */
+  --ui-composer-gutter:12px;
+  --ui-composer-inner-inset:4px;
+  --ui-composer-action-gap:4px;
+  --ui-composer-send-disc:36px;
+  --ui-composer-mic-glyph:20px;
+  --ui-composer-arrow-glyph:18px;
+  --ui-composer-plus-glyph:18px;
+  --ui-composer-stroke:1.6px;
   --ui-chat-message-gutter:12px;
   --ui-chat-message-gap:6px;
   --ui-chat-message-max:86%;
@@ -1523,7 +1532,12 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
      compact writing row. The existing keyboard owner still moves the whole
      composer when VisualViewport opens. */
   #appShell[data-auth-state="authenticated"][data-route="chat"] .composer-source-frame{
-    width:min(calc(100% - (2 * var(--ui-gutter-mobile,12px))),44rem);
+    /* chat-content-axis has its own !important padding (desktop); cancel it
+       here so the mobile composer does NOT pay the outer gutter twice. */
+    --ui-composer-effective-gutter:max(var(--ui-composer-gutter,12px),env(safe-area-inset-left,0px),env(safe-area-inset-right,0px));
+    box-sizing:border-box;
+    width:min(calc(100% - var(--ui-composer-effective-gutter) - var(--ui-composer-effective-gutter)),44rem);
+    padding-inline:0!important;
     margin-inline:auto;
     margin-bottom:calc(var(--ui-space-6,6px) + env(safe-area-inset-bottom,0px));
   }
@@ -1532,11 +1546,11 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
     grid-template-columns:var(--ui-control-touch,44px) minmax(0,1fr) var(--ui-control-touch,44px) var(--ui-control-touch,44px);
     grid-template-rows:auto auto minmax(var(--ui-control-touch,44px),auto);
     align-items:center;
-    gap:0 2px;
+    gap:0 var(--ui-composer-action-gap,4px);
     overflow:visible;
     border:1px solid color-mix(in srgb,var(--theme-border-default) 78%,transparent);
     border-radius:var(--ui-chat-composer-radius,var(--ui-radius-20,20px));
-    padding:2px;
+    padding:2px var(--ui-composer-inner-inset,4px);
     background:var(--cgpt-composer-surface-primary);
     box-shadow:0 1px 2px rgba(0,0,0,.03);
   }
@@ -1580,52 +1594,54 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
     display:contents;
   }
 
+  /* UI-144: same physical 44px hit target on +, Mic and Send.
+     Legacy zalo-admin-link.css had #composer-plus-btn 36px !important:
+     scope this override to authenticated Chat only, including PWA. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] :is(#composer-plus-btn,#composer-mic-btn,#send){
+    box-sizing:border-box;
+    width:var(--ui-control-touch,44px)!important;
+    min-width:var(--ui-control-touch,44px)!important;
+    height:var(--ui-control-touch,44px)!important;
+    min-height:var(--ui-control-touch,44px)!important;
+    padding:0;
+    align-self:center;
+    justify-self:center;
+  }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composer-plus-btn{
     grid-column:1;
     grid-row:3;
-    width:var(--ui-control-touch,44px);
-    height:var(--ui-control-touch,44px);
-    min-width:var(--ui-control-touch,44px);
-    align-self:center;
   }
-
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composerHint{
     display:none;
   }
-
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composer-mic-btn{
     grid-column:3;
     grid-row:3;
-    width:var(--ui-control-touch,44px);
-    height:var(--ui-control-touch,44px);
-    min-width:var(--ui-control-touch,44px);
-    align-self:center;
   }
-
   #appShell[data-auth-state="authenticated"][data-route="chat"] #send{
     grid-column:4;
     grid-row:3;
-    width:var(--ui-control-touch,44px);
-    height:var(--ui-control-touch,44px);
-    min-width:var(--ui-control-touch,44px);
-    align-self:center;
+    /* 44px target with a fixed 36px painted circle in BOTH send states.
+       Never scale or shift the control between disabled / enabled. */
+    border:calc((var(--ui-control-touch,44px) - var(--ui-composer-send-disc,36px)) / 2) solid var(--cgpt-composer-surface-primary);
+    border-radius:9999px;
   }
-
-  /* Composer icon optical balance — 2026-10-13.
-     Reduce painted glyphs, NEVER reduce 44px touch targets.
-     SVG paths have inline stroke-width so override paths explicitly. */
-  #appShell[data-auth-state="authenticated"][data-route="chat"] :is(#composer-plus-btn,#composer-mic-btn,#send) svg{
-    width:18px!important;
-    height:18px!important;
+  /* Optical rather than raw SVG viewBox parity: the mic has a narrower
+     drawing than the arrow, so 20px vs 18px looks equally prominent. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composer-plus-btn svg{
+    width:var(--ui-composer-plus-glyph,18px)!important;
+    height:var(--ui-composer-plus-glyph,18px)!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composer-mic-btn svg{
+    width:var(--ui-composer-mic-glyph,20px)!important;
+    height:var(--ui-composer-mic-glyph,20px)!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #send svg{
+    width:var(--ui-composer-arrow-glyph,18px)!important;
+    height:var(--ui-composer-arrow-glyph,18px)!important;
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] :is(#composer-plus-btn,#composer-mic-btn,#send) svg :is(path,line,rect,circle,polyline){
-    stroke-width:1.5px!important;
-  }
-  /* Preserve click size but paint a slightly smaller, quieter send circle.
-     Only the idle appearance is lightened; enabled/action states still use
-     the existing theme colors and send behavior. */
-  #appShell[data-auth-state="authenticated"][data-route="chat"] #send{
-    border:2px solid var(--cgpt-composer-surface-primary);
+    stroke-width:var(--ui-composer-stroke,1.6px)!important;
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell:not([data-can-send="true"]) #send{
     background:color-mix(in srgb,var(--theme-content-tertiary) 47%,var(--theme-surface-secondary));
