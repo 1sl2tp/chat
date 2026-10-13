@@ -107,6 +107,15 @@ Quy tắc:
 - **Kiểm thử:** test first-open image đơn giữa 3 message ảnh ⇒ `Ảnh 2/3`; cả album 2+ và ảnh đơn lân cận ⇒ `N` chung, album chip thu hẹp khi người dùng bấm; filter A/B; lệnh next/prev/swipe/keyboard dùng cùng index; 1 ảnh thực ⇒ 1/1; đổi liên hệ ⇒ viewer đóng, không rò rỉ. Verify V21 và GitHub Pages trước khi xác nhận phát hành. E4 iPhone thật/E5 phản hồi người dùng tách biệt CI.
 - **Rollback:** revert riêng `app.js` logic default filter (và test); rebuild canonical `index.html/version.json` và bump PWA shell epoch để thiết bị nhận CSS/JS mới. Không chạm backend/IndexedDB.
 
+## 3h. WORK-149 — Xóa nội dung Công việc cũ khi AI chưa cấu hình (2026-10-13)
+
+- **Yêu cầu:** xóa sạch các dòng hàng gợi ý/đã gạch trong thẻ Công việc, giữ nguyên tab và điều hướng Trò chuyện/Công việc; không xóa bản ghi đơn hàng, báo giá, công nợ, danh bạ, tin nhắn hay media. Dữ liệu Công việc đến từ RPC `chat_customer_summary_work_feed`, đọc `chat_customer_summary_state.last_result` + `chat_customer_summary_completion`, **không** đọc từ `taphoa_orders` hay `v21_messages` để hiển thị trực tiếp.
+- **E0 căn cứ nguồn (Supabase chat-bh-get `vtqhbhrkdxirqeqkgylo`):** 32 state (25 từng scan), 17 có item, 215 đánh dấu hoàn thành trên 13 khách; 713 run AI cuối 2026-10-04. Config `chat_customer_summary_runtime_config()` có scan_key nhưng **Gemini key trống**; `chat_customer_summary_scan_enqueue_http()` có guard không enqueue nếu thiếu Gemini. Không báo AI hoạt động hoặc tự sinh lại nội dung khi chưa cấu hình.
+- **Phạm vi xóa transaction:** giữ 32 trạng thái/cursor và 713 run cũ làm chứng cứ/debug, *xóa nội dung* `last_result` bằng `{items:[],notes:[],totalLines:0,totals:[]}`, đặt `last_scanned_at=NULL` để RPC không trả dữ liệu cũ, xóa `last_error` và claim cũ; `processed_version=dirty_version` để bỏ hàng đợi cũ không tự dispatch. Xóa 215 dòng `chat_customer_summary_completion` để không còn dấu hoàn thành lỗi thời. **Chỉ hai table Work**; không truncate DB, xóa run log hay gọi RPC để re-scan lịch sử.
+- **UI owner:** `work-customer-summary.js::renderCurrent` khi `rowsCache=[]` phải render overview trống, không giữ detail khách đã chọn; `refresh` realtime/visible dùng luồng sẵn có, không tạo polling/subscription thêm. Work vẫn mở được; trạng thái trống rõ ràng. Dữ liệu mới nếu hệ thống AI được cấu hình lại về sau mới có thể được sinh ra từ luồng mới; không tự bật Gemini.
+- **Rule hiệu năng/bảo vệ:** Không xóa `chat_order_drafts`, `chat_ai_scan_*`, `chat_ai_message_inbox`, `chat_customer_care_daily`, `v21_*`, `taphoa_*`; không thay RLS/trigger/scheduler. Snapshot counts và rollback dựa trên 713 historical runs (không hứa khôi phục hoàn toàn 215 completion đã chủ động xóa). Thực thi một SQL transaction, xác minh `last_scanned_at`/visible items bằng read-only SQL, Verify & Deploy sau UI change, kiểm thiết bị thật E4 riêng.
+- **Không giả lập refresh:** chỉ kết luận server clean khi SQL xác nhận, UI deployed khi CI/PAGES báo success, PWA client phải nhận build mới trước nghiệm thu.
+
 ## 4. Contract realtime không được phá
 
 Luồng chuẩn:
