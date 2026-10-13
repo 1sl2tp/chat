@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="e227db2df16619976cea78542a8d24d3af0df1aecae3e30c59d5c8337755c71b">
+<meta name="app-build-id" content="84a4995447235ed3105e269d0ba0d3bdc944095cf6a7e8ae9fed4fe20d2503f2">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1364,6 +1364,7 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
   --ui-composer-inner-inset:4px;
   --ui-composer-action-gap:4px;
   --ui-composer-send-disc:36px;
+  --ui-composer-send-ring:4px;
   --ui-composer-mic-glyph:20px;
   --ui-composer-arrow-glyph:18px;
   --ui-composer-plus-glyph:18px;
@@ -1623,7 +1624,7 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
     grid-row:3;
     /* 44px target with a fixed 36px painted circle in BOTH send states.
        Never scale or shift the control between disabled / enabled. */
-    border:calc((var(--ui-control-touch,44px) - var(--ui-composer-send-disc,36px)) / 2) solid var(--cgpt-composer-surface-primary);
+    border:var(--ui-composer-send-ring,4px) solid var(--cgpt-composer-surface-primary);
     border-radius:9999px;
   }
   /* Optical rather than raw SVG viewBox parity: the mic has a narrower
