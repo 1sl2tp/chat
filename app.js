@@ -2576,13 +2576,19 @@ function singleImageDisplayWidth(media){
 
 function applySingleImagePresentation(wrap,media){
   if(!wrap||!media)return wrap;
-  const presentation=singleImagePresentation(media);
+  // Some historical/Zalo assets have no width_px/height_px. Once decoded,
+  // the real natural image ratio wins over the 1.5 metadata fallback.
+  const intrinsicRatio=Number(wrap.dataset.intrinsicAspectRatio)||0;
+  const measuredMedia=intrinsicRatio>0?{...media,aspectRatio:intrinsicRatio}:media;
+  const presentation=singleImagePresentation(measuredMedia);
   wrap.dataset.imagePresentation=presentation.kind;
-  wrap.dataset.sourceAspectRatio=String(imageAspectRatio(media));
+  wrap.dataset.sourceAspectRatio=String(imageAspectRatio(measuredMedia));
   wrap.style.width=`${presentation.width}px`;
   wrap.style.setProperty('--message-media-width',`${presentation.width}px`);
   wrap.style.maxWidth='100%';
   wrap.style.aspectRatio=String(presentation.aspectRatio);
+  const shell=wrap.closest?.('.message-media-shell[data-media-shell-kind="image"]');
+  if(shell)shell.style.setProperty('--message-media-width',`${presentation.width}px`);
   const img=wrap.querySelector('img');
   if(img){
     img.style.objectFit='contain';
@@ -2730,6 +2736,15 @@ function createImageTile(media,{className='block h-full w-full object-contain',o
   }
   wrap.appendChild(img);
   img.addEventListener('load',()=>{
+    // This is local decode information (no network/Storage read). It makes
+    // missing or inaccurate historical image metadata obey the same ratio rule.
+    if(wrap.hasAttribute('data-image-presentation')&&img.naturalWidth>0&&img.naturalHeight>0){
+      const naturalRatio=img.naturalWidth/img.naturalHeight;
+      if(Math.abs(naturalRatio-Number(wrap.dataset.sourceAspectRatio||0))>0.015){
+        wrap.dataset.intrinsicAspectRatio=String(naturalRatio);
+        applySingleImagePresentation(wrap,{aspectRatio:naturalRatio});
+      }
+    }
     img.dataset.ready='true';
     img.dataset.retryCount='0';
     wrap.dataset.ready='true';
@@ -4139,7 +4154,11 @@ function patchMessageMediaShell(shell,media){
   // Single-image shell shares the same measured width as its contain tile.
   // Galleries remain at the standard 360px media width.
   if(media?.type==='image'){
-    shell.style.setProperty('--message-media-width',`${singleImageDisplayWidth(media)}px`);
+    // Keep a decoded natural ratio if the old asset lacks dimension metadata.
+    const tile=shell.querySelector(':scope > .media-image-tile[data-image-presentation]');
+    const naturalRatio=Number(tile?.dataset.intrinsicAspectRatio)||0;
+    const width=singleImageDisplayWidth(naturalRatio>0?{...media,aspectRatio:naturalRatio}:media);
+    shell.style.setProperty('--message-media-width',`${width}px`);
   }else{
     shell.style.removeProperty('--message-media-width');
   }
