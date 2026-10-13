@@ -1,3 +1,14 @@
+## 2026-10-13 — UI-145 2 semantic horizontal rails: Top/Directory/Thread/Composer (CI + Pages PASS, iPhone E4 pending)
+
+- **Screenshot scope:** C Thúy đông conversation and directory in iPhone standalone PWA. Prior UI-144 made Composer outer rail12 but header had inherited desktop `.chat-content-axis` 16px `!important`, Directory nested tools/list/row added separate margins. Distinguish visual bounding boxes from glyph/text internal padding.
+- **Rule:** `README_MAINTENANCE.md §3d UI-145`; canonical Sheet **04 UI FOUNDATION TOKENS F-127 row187** and **08 SDD SPEC-CHAT-LAYOUT-RAILS-TOP-DIRECTORY-THREAD-COMPOSER-20261013 row117**. 12px action/form outer rail for Top, directory title/search/filter/avatar/time, Composer; **6px message edge rail** for remote-left/self-right text and media. Use safe-area at physical edges. Desktop 2/3-column unaffected.
+- **Source fix:** `ui-foundation.css` adds `--ui-chat-layout-rail:12px`, `--ui-chat-message-rail:6px`; `mobile-ui-polish.css` explicitly overrides inherited header padding important, directory body6 + tools6 / list2 + row4, mobile directory scrollbar-gutter:auto; `mobile-chat-refresh.css` threads both new tokens into Composer and messageWindow without new scroll owner; `ui-library/index.html` Composer demo uses 12px preview rail. Only presentation CSS and test literals changed.
+- **Tests:** `tests/test_v21_mobile_ui_polish.py::test_ui_145_one_layout_rail_for_header_directory_and_composer`, `tests/test_v21_140_zalo_card_narrow_axis.py`, `tests/test_v21_incoming_left_edge_contract.py` changed old hard-coded 6px string assertions to assert value + usage. E1/E2 **Verify V21 run 38407051093 SUCCESS**, E3 **Deploy Chat Pages run 38407051005 SUCCESS** at commit `a5e00042285396cc7ecad8581a60f6c9dd88d80c`. Release build `9327d82e7b4b157304f4d8ec06bf3996ee8c2ac9ce41e994f53667c1d2f054e0`; index/version commits `8da8a8a437d9deaa03033edacb9250606f861d5e`, `25105cfc08c070e0b25d0c8a5c7013fce28be02a`.
+- **Acceptance pending:** E4 real iPhone Safari/PWA after fully closing/reopening app, screenshots of directory and conversation with Top/Directory/Composer at action rail12 and messages at edge6, keyboard and landscape; E5 user's visual acceptance. No network, API, Realtime, IndexedDB, Zalo or scroll position changes. If top avatar clipped vertically due restored list scroll, treat as a separate scroll-position ownership issue, not as a left/right CSS change.
+- **Rollback:** revert UI-145 CSS, UI demo/test additions then rebuild index/version and Verify; do not edit DB.
+
+---
+
 ## 2026-10-13 — UI-144 Chat Composer gutter/icons/state parity (Verify + Pages PASS; real iPhone E4 pending)
 
 - **User screenshots:** danh bạ và thread trên iPhone PWA có Composer quá cách hai mép hoặc Send xát cạnh; Mic nhỏ so với nút mũi tên, trạng thái nút màu xám và xanh không cân đối.
