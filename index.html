@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="269f6431fccaa82d705c9aa3f549fe575272278fb4803f29e257bb5750b5795c">
+<meta name="app-build-id" content="cfde8a260fb7e0930be4436137fe3dec0ca1e82a2c2d1d4736b1d6f6b85ed096">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -8847,6 +8847,18 @@ async function saveCurrentImageViewerImage(){
 async function shareCurrentImageViewerImage(){
   const media=currentImageViewerDescriptor();
   if(!media)return false;
+  // An in-Chat recipient picker opens synchronously on the first tap.
+  // Forward only a single-asset source; never send a whole gallery silently
+  // when the user has selected one photo in the image viewer.
+  const selected=imageViewerItems[imageViewerIndex]||null;
+  const sourceId=String(selected?.messageId||'');
+  const source=sourceId?store.items.find(item=>String(item?.id||'')===sourceId):null;
+  const assets=source?mediaDescriptorsForMessage(source):[];
+  if(source&&assets.length===1&&String(assets[0]?.assetId||'')===String(media.assetId)&&
+    window.V21MessageForward?.canForward?.(source)){
+    closeImageViewer();
+    return Boolean(window.V21MessageForward.open(source));
+  }
   return shareMessageMedia({media});
 }
 
@@ -8904,7 +8916,7 @@ function renderImageViewerFilters(){
   });
   menu.appendChild(saveItem);
 
-  if(canNativeShareFiles()){
+  if(canNativeShareFiles()||window.V21AuthSessionStore?.snapshot?.()?.account?.role==='admin'){
     const shareItem=document.createElement('button');
     shareItem.type='button';
     shareItem.className='image-review-menu-item';
@@ -10758,7 +10770,9 @@ function createActionGroup(message){
     }));
   }
 
-  if(window.V21MessageForward?.canForward?.(message)){
+  const kind=messagePrimaryMediaKind(message);
+  const canForwardInChat=Boolean(window.V21MessageForward?.canForward?.(message));
+  if(canForwardInChat&&kind!=='image'&&kind!=='file'){
     actions.push(makeActionButton({
       label:'Chuyển tiếp',
       icon:'forward',
@@ -10770,7 +10784,6 @@ function createActionGroup(message){
     }));
   }
 
-  const kind=messagePrimaryMediaKind(message);
   if(kind==='text'){
     let copy;
     copy=makeActionButton({
@@ -10784,6 +10797,18 @@ function createActionGroup(message){
     });
     actions.push(copy);
   }else if(kind==='image'||kind==='file'){
+    if(canForwardInChat){
+      actions.push(makeActionButton({
+        label:'Chia sẻ',
+        icon:'share',
+        onClick:event=>{
+          event.stopPropagation();
+          closeAllTurnActions();
+          // Reuse canonical forward without downloading or saving the asset.
+          window.V21MessageForward?.open?.(resolveMessage());
+        }
+      }));
+    }
     actions.push(makeActionButton({
       label:'Lưu',
       icon:'save',
@@ -10794,7 +10819,7 @@ function createActionGroup(message){
     }));
     if(canNativeShareFiles()){
       const shareAction=makeActionButton({
-        label:'Chia sẻ',
+        label:canForwardInChat?'Ứng dụng khác':'Chia sẻ',
         icon:'share',
         onClick:event=>{
           event.stopPropagation();
@@ -20785,6 +20810,12 @@ function activeContact(){
   const rows=window.V21ContactStore?.snapshot?.()||[];
   return rows.find(row=>String(row?.id||'')===id)||null;
 }
+function activeContactGroup(){
+  const id=activeContactId();
+  // The directory is already the one authorized owner of contact groups.
+  // Unknown/stale group data must never expose customer-only business sends.
+  return id?window.V21ContactDirectoryAdmin?.groupForContact?.(id)||null:null;
+}
 function interactionController(){return window.V21InteractionController||null;}
 function lockQuoteBackground(){
   const lease=interactionController()?.enter?.(QUOTE_MODAL_MODE,{owner:QUOTE_MODAL_OWNER,lockBaseUi:true});
@@ -20870,15 +20901,16 @@ function ensureAdminMenu(){
 function syncVisibility(){
   const admin=Boolean(currentAdmin());
   const contact=Boolean(activeContactId());
+  const customer=admin&&contact&&activeContactGroup()==='customer';
   document.documentElement.dataset.adminComposerActions=String(admin);
   const surface=menuSurface();
   if(!surface)return admin;
   const label=surface.querySelector('[data-admin-composer-send-label]');
   const section=surface.querySelector(`[${SECTION_ATTR}]`);
-  if(label)label.hidden=!admin;
-  if(section)section.hidden=!admin;
+  if(label)label.hidden=!customer;
+  if(section)section.hidden=!customer;
   if(section){
-    for(const button of section.querySelectorAll(`[${ACTION_ATTR}]`))button.disabled=!admin||!contact;
+    for(const button of section.querySelectorAll(`[${ACTION_ATTR}]`))button.disabled=!customer;
   }
   return admin;
 }
@@ -21203,7 +21235,7 @@ async function openCredentials(contactId){
 async function runAction(action){
   if(!currentAdmin())return false;
   const contactId=activeContactId();
-  if(!contactId)return false;
+  if(!contactId||activeContactGroup()!=='customer')return false;
   hideMenu();
   if(action==='quote'){
     try{return await openQuote(contactId);}catch{setTransientHint('Không thể mở báo giá');return false;}
@@ -21278,6 +21310,8 @@ function bind(){
   document.addEventListener('v21-auth-state',()=>{ensureAdminMenu();syncVisibility();});
   document.addEventListener('v21-message-store-state',syncVisibility);
   document.addEventListener('navigation-change',syncVisibility);
+  document.addEventListener('v21-contact-groups-change',syncVisibility);
+  document.addEventListener('v21-contact-store-change',syncVisibility);
   return true;
 }
 
@@ -23993,7 +24027,7 @@ function close({restoreFocus=true}={}){
 
 async function forwardTo(message,contact,{statusNode=null,listNode=null}={}){
   const name=contactName(contact);
-  if(statusNode)statusNode.textContent=`Đang chuyển tiếp tới ${name}…`;
+  if(statusNode)statusNode.textContent=`Đang chia sẻ tới ${name}…`;
   if(listNode)for(const button of listNode.querySelectorAll('button'))button.disabled=true;
   try{
     await window.V21SyncEngine?.forwardMessage?.({
@@ -24002,7 +24036,7 @@ async function forwardTo(message,contact,{statusNode=null,listNode=null}={}){
       targetContactId:String(contact?.id||''),
       clientId:window.V21RuntimeId.create()
     });
-    if(statusNode)statusNode.textContent=`Đã chuyển tiếp tới ${name}`;
+    if(statusNode)statusNode.textContent=`Đã chia sẻ tới ${name}`;
     window.setTimeout(()=>close({restoreFocus:false}),220);
     return true;
   }catch(error){
@@ -24028,12 +24062,12 @@ function open(message){
   node.className='message-forward-overlay';
   node.innerHTML=`
     <button type="button" class="message-forward-backdrop" data-forward-close aria-label="Đóng"></button>
-    <section class="message-forward-card" role="dialog" aria-modal="true" aria-label="Chuyển tiếp tin nhắn">
+    <section class="message-forward-card" role="dialog" aria-modal="true" aria-label="Chia sẻ nội dung trong Chat">
       <div class="message-forward-head">
-        <h2 class="message-forward-title">Chuyển tiếp</h2>
+        <h2 class="message-forward-title">Chia sẻ trong Chat</h2>
         <button type="button" class="message-forward-close" data-forward-close aria-label="Đóng"></button>
       </div>
-      <input class="message-forward-search" type="search" inputmode="search" autocomplete="off" placeholder="Tìm khách hàng…" aria-label="Tìm khách hàng">
+      <input class="message-forward-search" type="search" inputmode="search" autocomplete="off" placeholder="Tìm người nhận…" aria-label="Tìm người nhận">
       <div class="message-forward-list" role="list"></div>
       <p class="message-forward-status" aria-live="polite"></p>
     </section>`;
@@ -24057,7 +24091,7 @@ function open(message){
     if(!filtered.length){
       const empty=document.createElement('div');
       empty.className='message-forward-empty';
-      empty.textContent='Không tìm thấy khách hàng';
+      empty.textContent='Không tìm thấy người nhận';
       list.appendChild(empty);
       return;
     }
