@@ -56,6 +56,18 @@ Quy tắc:
 - **Kiểm thử bắt buộc:** remote/self × ảnh dọc/ngang/album × first-render/patch/restore, trên Web và iPhone Safari/PWA; kiểm left/right bằng tọa độ thực tế, không chỉ nhìn thumbnail; chạy `tests/test_v21_ui_library_composer_media_menu.py` và canonical Verify trước deploy. Cuộn đang đọc lịch sử giữ nguyên vị trí, hình không méo/zoom.
 - **Rollback:** hoàn nguyên riêng `createMessageMediaShell` + legacy CSS, cập nhật lại `index.html/version.json` bằng canonical build; không chạm backend.
 
+## 3c. UI-144 — Composer Web/PWA/mobile dùng MỘT owner kích thước và lề (2026-10-13)
+
+- **Triệu chứng:** trên iPhone PWA, vùng nhập tin cách hai mép không đều, có màn quá xa/khác trạng thái quá sát; icon Mic nhỏ, vòng tròn Send lớn; CSS source cũ `zalo-admin-link.css #composer-plus-btn` ép 36px `!important` trong khi UI Foundation khai 44px.
+- **Owner:** `ui-foundation.css` là nguồn token; `mobile-chat-refresh.css` là composer mobile/single-pane owner; `ui-library/index.html` demo phải theo cùng contract. Chỉ `keyboard-inset-core.js`/`shell-form-viewport-policy.js` sở hữu vị trí bàn phím, không tạo owner mới.
+- **Một lề ngoài:** `.composer-source-frame.chat-content-axis` chỉ lấy **12px mỗi bên** trong portrait, hoặc `max(12px, safe-area-left, safe-area-right)` khi có notch/landscape; **không** vừa trừ width hai bên vừa giữ `.chat-content-axis` padding ngang `!important`. Width co giãn tới max 44rem, căn giữa.
+- **Một layout trong khung:** grid `44px minmax(0,1fr) 44px 44px` theo thứ tự + / ô nhập / Mic / Send. Nội bộ padding ngang **4px**, gap cột **4px**; editor font tối thiểu **16px** iPhone; nút +/Mic/Send đều có **hit target 44×44px** kể cả CSS legacy hay trạng thái khác.
+- **Tỷ lệ quang học:** SVG + **18px**, mic **20px** (hình mic intrinsically hẹp), mũi tên **18px**, stroke **1.6px**. Vùng bấm ≠ vùng vẽ. Send **đĩa tròn vẽ 36px** nằm giữa hit target 44px, border trong 4px dùng màu surface. Mic/Send không bị ép scale, không dịch vị trí.
+- **State invariants:** `data-can-send=true/false`, `:disabled`, focus, recording, textarea multi-line, attachment/reply, keyboard open/closed, PWA/Safari/Web **không** thay đổi toạ độ, grid, 44px targets hoặc vòng tròn 36px; Send chỉ đổi **background/text color**, không đổi geometry. Khi audio recording UI thay bằng tray thì giữ chủ sở hữu audio state sẵn có. Tắt/hiện phím ảo không thêm margin đáy khác.
+- **Cấm:** chỉnh từng tin hoặc button bằng inline style/transform; thêm padding hai tầng; nút 36px hit trên mobile; dùng `pointer:coarse` để đổi data/action; polling/RPC/Edge/DB chỉ để sửa UI; sửa shell/scroll owner để chữa icon.
+- **Test trước release:** `tests/test_v21_ui_library_composer_media_menu.py` + Verify V21; kiểm tọa độ tại width 320/375/390/430/768/1023, portrait/landscape notch, Safari iPhone Web + PWA, keyboard đóng/mở, Mic recording, Send disabled/enabled, dark theme nếu hỗ trợ. E4 ảnh thiết bị thật và E5 người dùng chấp nhận chỉ xác nhận khi quan sát; CI/Pages PASS không đồng nghĩa PWA đã nhận bản mới.
+- **Rollback:** sửa ngược duy nhất `ui-foundation.css`, `mobile-chat-refresh.css`, `ui-library/index.html` và test liên quan; build lại `index.html`/`version.json` khớp HEAD. Không chạm server/cache tin nhắn.
+
 ## 4. Contract realtime không được phá
 
 Luồng chuẩn:
