@@ -100,7 +100,8 @@ def test_mobile_composer_uses_one_geometry_contract_across_states():
 
     # The painted Send disk is 36px inside a 44px hit area. Only background
     # color changes when data-can-send toggles; no state-specific dimensions.
-    assert 'border:calc((var(--ui-control-touch,44px) - var(--ui-composer-send-disc,36px)) / 2) solid var(--cgpt-composer-surface-primary);' in mobile
+    assert '--ui-composer-send-ring:4px;' in foundation
+    assert 'border:var(--ui-composer-send-ring,4px) solid var(--cgpt-composer-surface-primary);' in mobile
     assert '#composerShell:not([data-can-send="true"]) #send{' in mobile
     assert 'background:var(--theme-submit-btn-bg);' in source
     assert 'data-arrow="up"' in source
