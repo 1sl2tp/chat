@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="f38082b3d1ab4dad51fae7d1e5549b01d499fffc1ff7d79ac155dad803616405">
+<meta name="app-build-id" content="dda83cc6f79c35b13b13eac76a9a2dcb69d22507c3367bf62ad0b8beafe50e07">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -2800,9 +2800,15 @@ button{
   overflow:hidden;
   background:var(--theme-surface-secondary);
 }
-/* Legacy direct-media selectors remain as a safe migration path for any
-   already-mounted message DOM during an app update. */
-#messageWindow .message-unit>.media-image-tile,
+/* A legacy image tile must follow the SAME per-image width contract
+   as the canonical media shell, including when old DOM survives a refresh.
+   Gallery width is deliberately fixed at 360px; never center portraits
+   in an unmeasured 360px image frame. */
+#messageWindow .message-unit>.media-image-tile[data-image-presentation]{
+  width:min(22.5rem,var(--message-media-width,22.5rem))!important;
+  max-width:100%;
+  box-sizing:border-box;
+}
 #messageWindow .message-unit>.media-gallery-grid{
   width:22.5rem!important;
   max-width:100%;
@@ -11414,7 +11420,11 @@ function createMessageMediaShell(mediaNode,media){
   shell.dataset.messageMediaShell='true';
   shell.dataset.mediaShellKind=String(media?.type||media?.kind||'media');
   if(mediaNode)shell.appendChild(mediaNode);
-  return shell;
+  // First mount and later reconciliation must share ONE width owner.
+  // Without this the new-image shell stays at the 360px default while its
+  // portrait tile uses a narrower ratio-derived width; the photo then looks
+  // centered/inset until a later message patch calls patchMessageMediaShell.
+  return patchMessageMediaShell(shell,media);
 }
 
 function patchMessageMediaShell(shell,media){
