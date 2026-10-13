@@ -3276,6 +3276,7 @@ async function saveMessageMedia(message){
 
 async function shareMessageMedia(message,button=null){
   if(!canNativeShareFiles())return false;
+  if(button?.dataset.state==='preparing')return false;
 
   // Web Share requires transient user activation at navigator.share() call time.
   // Never await Blob/cache hydration before this point. Media hydration/upload
@@ -3297,7 +3298,11 @@ async function shareMessageMedia(message,button=null){
     });
     return false;
   }
-  if(typeof navigator.canShare==='function'&&!navigator.canShare({files}))return false;
+  if(typeof navigator.canShare==='function'&&!navigator.canShare({files})){
+    if(button)button.dataset.state='failed';
+    return false;
+  }
+  if(button)button.dataset.state='sharing';
 
   try{
     await navigator.share({files,title:files.length===1?files[0].name:'Tệp đính kèm'});
