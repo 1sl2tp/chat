@@ -23,6 +23,9 @@
      No margin stacking, no text/avatar transform and no scroll reset. */
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .wm-sidebar-sidebar{
     padding-inline:0!important;
+    /* UI-147: keep iPhone status-area protection, but remove the redundant
+       extra top gap above "Danh bạ". On non-notched screens keep min 12px. */
+    padding-block-start:max(var(--ui-directory-root-top-min,12px),calc(env(safe-area-inset-top,0px) - var(--ui-directory-top-trim,16px)))!important;
   }
   /* Mobile core action: Chọn người → Chat.
      Keep the shell label compact so search + contacts own the viewport. */
@@ -31,6 +34,9 @@
     min-height:44px;
     padding:max(6px,env(safe-area-inset-top,0px)) max(var(--mobile-ui-gutter),env(safe-area-inset-left,0px)) 3px;
     padding-right:max(var(--mobile-ui-gutter),env(safe-area-inset-right,0px));
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .wm-sidebar-header{
+    padding-bottom:0;
   }
 
   #shellNavigationLayer .shell-wordmark{
@@ -45,6 +51,11 @@
        body pays only the remaining rail, including landscape safe areas. */
     padding-left:max(6px,calc(env(safe-area-inset-left,0px) - 6px));
     padding-right:max(6px,calc(env(safe-area-inset-right,0px) - 6px));
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .wm-sidebar-body{
+    /* Upstream 12px padding-block-start made title→search needlessly wide.
+       This is independent of the directory list's scroll position. */
+    padding-block-start:0!important;
   }
 
   #shellNavigationLayer .contact-directory-tools{
