@@ -48,7 +48,7 @@ assert "onStage:event.target===main" in app
 assert "function currentImageViewerDescriptor()" in app
 assert "async function saveCurrentImageViewerImage()" in app
 assert "async function shareCurrentImageViewerImage()" in app
-assert "saveText.textContent='Lưu ảnh';" in app
+assert "saveText.textContent='Tải ảnh';" in app
 assert "shareText.textContent='Chia sẻ';" in app
 assert "saveItem.dataset.viewerAction='save';" in app
 assert "shareItem.dataset.viewerAction='share';" in app
