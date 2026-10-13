@@ -3695,7 +3695,7 @@ function createActionGroup(message){
 
   if(kind==='image'||kind==='file'||kind==='audio'){
     actions.push(makeActionButton({
-      label:'Tải xuống',icon:'download',
+      label:'Tải xuống',icon:'save',
       onClick:event=>{
         event.stopPropagation();
         void saveMessageMedia(resolveMessage()).finally(()=>closeAllTurnActions());
