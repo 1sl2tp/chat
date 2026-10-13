@@ -283,6 +283,37 @@
     animation:none!important;
   }
 }
+/* UI-142 — On mobile, the message ROW owns alignment, not nested media wrappers.
+   Keep one 6px thread gutter; do not center narrow received photos. */
+@media (max-width:63.999rem){
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow>.message-row{
+    box-sizing:border-box;
+    width:100%;
+    min-width:0;
+    padding-inline:0!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow>.message-row[data-turn="assistant"] .assistant-message-unit{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    width:fit-content;
+    max-width:min(86%,calc(100% - 24px))!important;
+    margin-left:0!important;
+    margin-right:auto!important;
+    transform:none;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow>.message-row[data-turn="assistant"] .message-media-shell{
+    align-self:flex-start;
+    margin-left:0!important;
+    margin-right:0!important;
+    max-width:100%!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow>.message-row[data-turn="user"] .user-message-unit{
+    margin-left:auto!important;
+    margin-right:0!important;
+  }
+}
+
 /* UI-139/141 — Chat has ONE conversation on narrow / single-pane screens.
    The old 639px gate left the centered 48rem desktop axis active between
    640px and 1023px, which pushed received text and photos away from the
@@ -337,33 +368,3 @@
   }
 }
 
-/* UI-142 — On mobile, the message ROW owns alignment, not nested media wrappers.
-   Keep one 6px thread gutter; do not center narrow received photos. */
-@media (max-width:63.999rem){
-  #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow>.message-row{
-    box-sizing:border-box;
-    width:100%;
-    min-width:0;
-    padding-inline:0!important;
-  }
-  #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow>.message-row[data-turn="assistant"] .assistant-message-unit{
-    display:flex;
-    flex-direction:column;
-    align-items:flex-start;
-    width:fit-content;
-    max-width:min(86%,calc(100% - 24px))!important;
-    margin-left:0!important;
-    margin-right:auto!important;
-    transform:none;
-  }
-  #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow>.message-row[data-turn="assistant"] .message-media-shell{
-    align-self:flex-start;
-    margin-left:0!important;
-    margin-right:0!important;
-    max-width:100%!important;
-  }
-  #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow>.message-row[data-turn="user"] .user-message-unit{
-    margin-left:auto!important;
-    margin-right:0!important;
-  }
-}
