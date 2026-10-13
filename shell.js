@@ -36,7 +36,6 @@ let callTerminalNoticeTimer=0;
 let unreadCount=0;
 let accountMenuOpen=false;
 let mobileRouteTransitionTimer=0;
-let mobileRouteSwipePointer=null;
 
 function interactionController(){
   return window.V21InteractionController||null;
@@ -335,52 +334,8 @@ function setMobileRouteTransition(previousRoute,nextRoute){
   return true;
 }
 
-function mobileRouteSwipeTargetBlocked(target){
-  if(!(target instanceof Element))return true;
-  return Boolean(target.closest([
-    'textarea','input','select','button','a','[role="button"]','[contenteditable="true"]',
-    '.attachment-tray-media-strip','.media-gallery-grid','.media-image-tile',
-    '.thread-scroll-control-button','[data-horizontal-scroll]'
-  ].join(',')));
-}
-
-function canBeginMobileRouteSwipe(event){
-  if(!event||event.isPrimary===false)return false;
-  if(event.pointerType==='mouse')return false;
-  if(authState!=='AUTHENTICATED'||desktopDirectoryMedia.matches)return false;
-  if(sidebarOpen||callState!=='IDLE')return false;
-  if(stageLayout?.dataset.keyboardOpen==='true')return false;
-  if(globalOverlayRoot?.childElementCount)return false;
-  return !mobileRouteSwipeTargetBlocked(event.target);
-}
-
-function beginMobileRouteSwipe(event){
-  if(!canBeginMobileRouteSwipe(event))return;
-  mobileRouteSwipePointer={
-    id:event.pointerId,
-    x:Number(event.clientX)||0,
-    y:Number(event.clientY)||0,
-    at:performance.now()
-  };
-}
-
-function finishMobileRouteSwipe(event){
-  const start=mobileRouteSwipePointer;
-  mobileRouteSwipePointer=null;
-  if(!start||event.pointerId!==start.id)return false;
-  const dx=(Number(event.clientX)||0)-start.x;
-  const dy=(Number(event.clientY)||0)-start.y;
-  const elapsed=performance.now()-start.at;
-  const horizontal=Math.abs(dx);
-  if(elapsed>900||horizontal<64||horizontal<Math.abs(dy)*1.35)return false;
-  if(route==='chat'&&dx<0)return NavigationCommand.openWork();
-  if(route==='work'&&dx>0)return NavigationCommand.openChat();
-  return false;
-}
-
-function cancelMobileRouteSwipe(){
-  mobileRouteSwipePointer=null;
-}
+// Mobile navigation gestures are owned only by work-customer-summary.js.
+// Do not register a second pointer swipe owner that can open Work unexpectedly.
 
 const NavigationCommand={
   open(nextRoute){
@@ -820,7 +775,9 @@ function reconcileActiveContactFromStore(detail={}){
   // resolved automatically. Zero contacts selects nothing; multi-contact never
   // guesses. Renderer remains DOM-only and owns none of this navigation.
   if(!activeContact?.id){
-    if(!fallback)return false;
+    // Mobile boots on Danh bạ. Never auto-open a one-contact thread just
+    // because contacts hydrate after the directory has been displayed.
+    if(!fallback||!desktopDirectoryMedia.matches)return false;
     setActiveContact(fallback.id,fallback.name);
     return true;
   }
@@ -1767,9 +1724,6 @@ document.addEventListener('v21-interaction-abort',()=>{
   CallCommand.forceReset();
 });
 
-screenHost.addEventListener('pointerdown',beginMobileRouteSwipe,{passive:true});
-screenHost.addEventListener('pointerup',finishMobileRouteSwipe,{passive:true});
-screenHost.addEventListener('pointercancel',cancelMobileRouteSwipe,{passive:true});
 
 applyRoutePresentation();
 renderMenuUnread();
