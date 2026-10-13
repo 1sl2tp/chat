@@ -1,10 +1,10 @@
-## 2026-10-13 — UI-153 IMAGE MEDIA EDGE + VIEWER WHEEL + EXIF (RULE FIRST, TEST/DEPLOY PENDING)
+## 2026-10-13 — UI-153 IMAGE MEDIA EDGE + VIEWER WHEEL + EXIF (VERIFY/PAGES PASS; DEVICE E4/E5 PENDING)
 
 - Screenshot comparison: root media portrait/landscape edges visually differ ~4px. Canonical Google Sheets F-133/134/135/137 + SDD 125 updated BEFORE code. Remove outer 4px inset for both single and gallery, keep ONE shared rounded 14px border 1px subtle and 4px INTERNAL album tile gap; no sender lane/size or orientation classification changes.
 - Viewer wheel meaning: at normal 100% when more than one image, wheel navigates one previous/next with throttle; at zoom >100% and Ctrl/Cmd+wheel, wheel zooms. Filmstrip wheel moves thumbnails horizontally, click selects; message list scrolling remains normal. Preserve touch swipe, image pinch, keyboard arrows and viewer album/current-filter.
 - Browser EXIF auto orientation via image-orientation:from-image for single/gallery/viewer only, manual per-asset rotate still available when EXIF is absent or inaccurate; never infer content angle from ratio alone or mutate media bytes/DB. No extra image prefetch/network/cron/log.
 - Source: app.js viewer wheel, index.source.html media edges and EXIF, sw.js PWA epoch img153; updated existing tests plus new wheel/EXIF test, canonical index.html/version.json.
-- E1/E3 CI/Pages PENDING until workflow result. E4 logged-in actual Safari/PWA screenshot and E5 network/resource/user acceptance PENDING. Rollback only UI sources/build; no data cleanup.
+- E1/E3 PASS: runtime release commit `680ac90ae6673f65e487a47ff30989ec8fa1dda0` (initial `76071987a4da25b6edb1fb7db8bd568f5e4b4a52`), build `f03a62b4b85a70ddabbb75d34877088373e7c8285f7a10ae4f22921e0e79f4e1`, Verify V21 `38435857344` SUCCESS (UI-153 new test + canonical source), Pages `38435856962` SUCCESS (canonical build/deploy/custom domain). Preserved original sender rail after fixing one legacy test assertion conflict. E4 logged-in Safari/PWA screenshot and E5 network/resource/user acceptance PENDING. Rollback only UI sources/build; no data cleanup.
 
 ---
 
