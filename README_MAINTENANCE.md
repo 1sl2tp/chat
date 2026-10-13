@@ -88,6 +88,14 @@ Quy tắc:
 - **Xác minh 2 tầng:** E3 GitHub Pages CI+Deploy thành công chứng minh server code triển khai; **không** chứng minh client PWA đã kích hoạt. E4 chỉ PASS khi quan sát build ID thiết bị qua `window.V21AppUpdateController.snapshot().currentBuild` / meta `app-build-id`, so với `version.json.build_id`, và đo `getBoundingClientRect()` các title/search/avatar trên iPhone. E5 người dùng xác nhận nhìn đúng. Nếu còn lệch, kiểm computed parent padding trước khi thêm CSS con.
 - **Rollback:** hoàn nguyên hai file `mobile-ui-polish.css`/`sw.js`, cập nhật lại canonical index/version, Verify/Pages, giữ mọi DB/Realtime/cache lịch sử.
 
+## 3f. UI-147 — Danh bạ: nhịp dọc Top → tiêu đề → Tìm kiếm (2026-10-13)
+
+- **Nguồn yêu cầu:** ảnh mobile PWA lúc 21:35 cho thấy khoảng Top/Trò chuyện–Công việc → `Danh bạ` còn rộng (~36–40px nhìn trên ảnh) và khoảng `Danh bạ` → ô `Tìm kiếm` cũng thưa (~24–28px). Mục tiêu quang học tương ứng **20–24px** và **12–16px**; không lấy tọa độ pixel screenshot làm số CSS tuyệt đối vì ảnh mockup có tỷ lệ.
+- **Ownership một lần:** Chỉ `mobile-ui-polish.css`, lớp `#appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer` điều chỉnh **padding dọc sẵn có** của `.wm-sidebar-sidebar` (ancestor), `.wm-sidebar-header`, `.wm-sidebar-body`. Token `ui-foundation.css`: `--ui-directory-root-top-min:12px`, `--ui-directory-top-trim:16px`. Đối với notched iPhone root top = `max(12px, safe-area-top - 16px)` còn header tự giữ safe-area-top, nên không cộng khoảng đệm Top quá mức; no-notch có tối thiểu 12px. Giảm header bottom 3→0 và body top 12→0 để thu khoảng tiêu đề/tìm kiếm. **Không** dùng transform, negative margin, đè fixed top overlay hoặc JS scroll để sửa.
+- **Không đổi:** UI-145 lề ngang 12px (title/search/filter/avatar/time), mép bong bóng 6px; ô Search 44px và input font16; filter/chip–hàng liên hệ spacing, avatar40px, contact row60px, danh bạ scroll restoration, header Top/Composer, Work/desktop >=1024px, hỗ trợ safe areas portrait/landscape, keyboard/gesture và cập nhật tin realtime. Mobile directory vẫn là overlay thuộc route Trò chuyện; chỉ thay dọc khi `data-mobile-directory=true`.
+- **Kiểm tra:** source CSS test phải chứng minh scope active mobile, root top có safe-area + min12/trim16, header bottom0, body top0, không chạm fixed `#shellNavigationLayer`/scroll. Chạy Verify V21 + Pages, kiểm trực quan iPhone Safari/PWA; đo khoảng thực tế sau khi có đúng build. E4 thiết bị và E5 chấp nhận tách biệt CI.
+- **Tài nguyên/rollback:** không RPC/Edge/Realtime/DB/Cache/Storage/call tăng thêm, không xóa lịch sử hoặc ép PWA refresh đang nhập. Rollback riêng CSS/tokens/tests và build lại index/version theo canonical.
+
 ## 4. Contract realtime không được phá
 
 Luồng chuẩn:
