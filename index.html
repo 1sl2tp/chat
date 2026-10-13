@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="0f27f983753cd81d59e1cba4b6687f28c387b023c4ea2c1c2f81aedb596d877d">
+<meta name="app-build-id" content="a3e61f33fa71f4f134886c45514fa85990054e27d03ecf0f291d8d096c0d2250">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -12664,6 +12664,101 @@ async function addImagesFromInput(input){
   input.value='';
   await ingestImageFiles(files);
 }
+
+// Explicit user-initiated cross-origin receipt handoff from app.taphoa.xyz.
+// A nonce in this tab's URL binds a single opener window and one KH account.
+// It never sends automatically: the existing composer owns the final Send.
+function bindTaphoaOrderImageIngress(){
+  const query=new URLSearchParams(window.location.search);
+  const token=String(query.get('taphoa_share')||'');
+  const contactId=String(query.get('contact')||'').toLowerCase();
+  const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+  if(!/^[0-9a-f]{32}$/.test(token)||!uuid.test(contactId)||!window.opener)return false;
+
+  const sender=window.opener;
+  const senderOrigin='https://app.taphoa.xyz';
+  let opened=false;
+  let processing=false;
+  let attached=false;
+  let readySent=false;
+  let attemptQueued=false;
+
+  function clearIntentFromAddress(){
+    try{
+      const url=new URL(window.location.href);
+      url.searchParams.delete('taphoa_share');
+      url.searchParams.delete('contact');
+      history.replaceState(history.state,'',url.pathname+url.search+url.hash);
+    }catch{}
+  }
+  function currentValidScope(){
+    const auth=window.V21AuthSessionStore?.snapshot?.()||{};
+    if(auth.state!=='AUTHENTICATED'||auth.account?.role!=='admin')return null;
+    const selected=window.ChatAppShell?.ScreenSession?.snapshot?.().activeContact;
+    if(String(selected?.id||'').toLowerCase()!==contactId)return null;
+    const scope=currentComposerScope();
+    return String(scope.contactId||'').toLowerCase()===contactId&&
+      Boolean(scope.accountId&&scope.conversationId&&scope.ownerDraftKey)
+      ?scope:null;
+  }
+  function prepareDestination(){
+    if(attached||processing)return;
+    const auth=window.V21AuthSessionStore?.snapshot?.()||{};
+    if(auth.state!=='AUTHENTICATED'||auth.account?.role!=='admin')return;
+    const contacts=window.V21ContactStore?.snapshot?.()||[];
+    const contact=contacts.find(row=>String(row?.id||'').toLowerCase()===contactId&&!row.deleted_at);
+    if(!contact)return;
+    if(!opened||String(window.ChatAppShell?.ScreenSession?.snapshot?.().activeContact?.id||'').toLowerCase()!==contactId){
+      opened=Boolean(window.ChatAppShell?.NavigationCommand?.openContact?.(contactId,contact.display_name||contact.username||'Khách hàng'));
+    }
+    if(!opened||!currentValidScope()||readySent)return;
+    try{
+      sender.postMessage({type:'TAPHOA_ORDER_IMAGE_READY',token,contactId},senderOrigin);
+      readySent=true;
+    }catch{}
+  }
+  function schedulePrepare(){
+    if(attemptQueued||attached||processing)return;
+    attemptQueued=true;
+    queueMicrotask(()=>{
+      attemptQueued=false;
+      prepareDestination();
+    });
+  }
+  window.addEventListener('message',event=>{
+    if(attached||processing||!readySent||event.origin!==senderOrigin||event.source!==sender)return;
+    const data=event.data||{};
+    if(data.type!=='TAPHOA_ORDER_IMAGE_FILE'||data.token!==token||
+      String(data.contactId||'').toLowerCase()!==contactId)return;
+    const raw=data.file;
+    if(!(raw instanceof Blob)||raw.size<1||raw.size>15*1024*1024||
+      String(raw.type||'').toLowerCase()!=='image/png')return;
+    const scope=currentValidScope();
+    if(!scope)return;
+    processing=true;
+    const file=raw instanceof File ? raw : new File([raw],'donhang.png',{type:'image/png'});
+    void ingestImageFiles([file],{scope}).then(result=>{
+      if(result?.added!==1){
+        composerHint.textContent='Chưa thêm được ảnh đơn, thử lại trong bán hàng.';
+        return;
+      }
+      attached=true;
+      clearIntentFromAddress();
+      composerHint.textContent='Đã đính kèm ảnh đơn · kiểm tra rồi gửi';
+      try{sender.postMessage({type:'TAPHOA_ORDER_IMAGE_ATTACHED',token},senderOrigin);}catch{}
+    }).catch(()=>{
+      composerHint.textContent='Không thể đính kèm ảnh đơn.';
+    }).finally(()=>{processing=false;});
+  });
+  for(const type of ['v21-auth-state','v21-contact-store-change',
+    'v21-active-contact-change','v21-conversation-context']){
+    document.addEventListener(type,schedulePrepare);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedulePrepare,{once:true});
+  else schedulePrepare();
+  return true;
+}
+bindTaphoaOrderImageIngress();
 
 async function prepareFileAttachment(file,scope){
   if(!(file instanceof File)||!supportedFileAttachment(file))throw new Error('unsupported_file_type');
