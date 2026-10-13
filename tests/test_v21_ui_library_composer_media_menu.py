@@ -43,7 +43,10 @@ def test_single_image_first_mount_and_existing_history_share_one_width_owner():
     create=app[app.index('function createMessageMediaShell('):app.index('function patchMessageMediaShell(')]
     patch=app[app.index('function patchMessageMediaShell('):app.index('function patchMessageNode(')]
     assert 'return patchMessageMediaShell(shell,media);' in create
-    assert "shell.style.setProperty('--message-media-width',`${singleImageDisplayWidth(media)}px`)" in patch
+    assert "shell.style.setProperty('--message-media-width',`${width}px`)" in patch
+    assert "tile?.dataset.intrinsicAspectRatio" in patch
+    assert "const naturalRatio=img.naturalWidth/img.naturalHeight;" in app
+    assert 'applySingleImagePresentation(wrap,{aspectRatio:naturalRatio});' in app
     assert "shell.style.removeProperty('--message-media-width');" in patch
     assert 'createMessageMediaShell(mediaNode,message.media)' in app
     assert 'patchMessageMediaShell(mediaShell,message.media);' in app
