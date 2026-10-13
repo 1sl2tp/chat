@@ -8,8 +8,10 @@ source=(ROOT/'index.source.html').read_text('utf-8')
 assert 'const MESSAGE_MEDIA_WIDTH_PX=360;' in app
 single=app[app.index('function singleImagePresentation'):app.index('function singleImageDisplayWidth')]
 assert single.count('width:MESSAGE_MEDIA_WIDTH_PX')==2
-assert 'width:Math.min(MESSAGE_MEDIA_WIDTH_PX,Math.max(160,Math.round(inlineHeight*aspectRatio)))' in single
-assert 'const inlineHeight=460;' in single
+assert 'width:Math.min(MESSAGE_MEDIA_WIDTH_PX,Math.max(1,Math.round(inlineHeight*sourceRatio)))' in single
+assert 'const inlineHeight=messageInlineImageHeightLimit();' in single
+assert 'function messageInlineImageHeightLimit()' in app
+assert "window.addEventListener('resize',scheduleImagePresentationResize" in app
 assert "shell.style.setProperty('--message-media-width'" in app
 gallery=app[app.index('function applyImageGalleryGeometry'):app.index('function patchImageGalleryNode')]
 assert 'width:${MESSAGE_MEDIA_WIDTH_PX}px;max-width:100%;gap:4px' in gallery

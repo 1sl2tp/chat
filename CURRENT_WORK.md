@@ -1,3 +1,12 @@
+## 2026-10-13 — F-133..F-137 Chat image geometry / album / viewer (SOURCE PATCH; E3/E4/E5 PENDING)
+
+- User approved code fix based on canonical Google Sheet F-133…F-137. The actual issue was portrait preview width computed from constant 460px although CSS clipped portrait at min(48dvh,460px), making excess background on short iPhone viewports; thumbnail selection previously blue with -2px transform.
+- Owner: `app.js` singleImagePresentation/messageInlineImageHeightLimit, local portrait geometry on window resize/orientation; `index.source.html` viewer CSS; `sw.js` epoch img151 for PWA shell rotation. Keep image intrinsic ratio without square/landscape clamping; gallery previews only use cover, full viewer contain.
+- New/update tests: `tests/test_v21_image_geometry_f133_f137.js`, V21.72.28, V21.72.75, UI library composer media and Verify V21 workflow. Same one build `index.html` + `version.json`. The entire package must be verified before marking E3; Safari/PWA E4 and resource E5 still PENDING.
+- No Supabase/Realtime/Zalo backend, no media-fetch change, no `v21_mark_read` on image open, no cron/RPC/log writes. Preserve account cache and scroll, left-right sender 6px. Rollback this atomic source/build change if browser regression; do not delete data.
+
+---
+
 ## 2026-10-13 — UI-150 Copy / Download / Share after message rail & gap changes (RULE FIRST; CI/PAGES PASS, iPhone E4 pending)
 
 - **User request:** recheck Copy, Share and especially Download across text + media after prior left/right/gap alignments in Chat Web/PWA. The former side action rail had 32px-height hitboxes (40×32 coarse) and stayed at `left/right:100%` even on narrow screens, risking off-screen tap areas for multiple buttons.

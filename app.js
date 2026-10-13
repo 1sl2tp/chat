@@ -2552,30 +2552,36 @@ function imageAspectRatio(media){
 
 const MESSAGE_MEDIA_WIDTH_PX=360;
 
+function messageInlineImageHeightLimit(){
+  // Use the actual layout viewport for the 48dvh cap, not a fixed 460px.
+  const viewportHeight=Math.max(1,Math.min(
+    Number(document.documentElement?.clientHeight)||960,
+    Number(window.innerHeight)||960
+  ));
+  return Math.min(460,Math.floor(viewportHeight*.48));
+}
+
 function singleImagePresentation(media){
   const sourceRatio=imageAspectRatio(media);
   if(sourceRatio<.82){
-    const aspectRatio=Math.max(.36,Math.min(.82,sourceRatio));
-    // Long portrait receipts/bank slips should not occupy the full chat
-    // viewport. Preserve the whole image via contain; full size is in Viewer.
-    const inlineHeight=460;
+    const inlineHeight=messageInlineImageHeightLimit();
     return{
       kind:'portrait',
-      width:Math.min(MESSAGE_MEDIA_WIDTH_PX,Math.max(160,Math.round(inlineHeight*aspectRatio))),
-      aspectRatio
+      width:Math.min(MESSAGE_MEDIA_WIDTH_PX,Math.max(1,Math.round(inlineHeight*sourceRatio))),
+      aspectRatio:sourceRatio
     };
   }
   if(sourceRatio<=1.2){
     return{
       kind:'square',
       width:MESSAGE_MEDIA_WIDTH_PX,
-      aspectRatio:Math.max(.82,Math.min(1.2,sourceRatio))
+      aspectRatio:sourceRatio
     };
   }
   return{
     kind:'landscape',
     width:MESSAGE_MEDIA_WIDTH_PX,
-    aspectRatio:Math.max(1.2,Math.min(2.2,sourceRatio))
+    aspectRatio:sourceRatio
   };
 }
 
@@ -2605,6 +2611,26 @@ function applySingleImagePresentation(wrap,media){
   }
   return wrap;
 }
+
+// Reflow only existing portrait tile geometry after device/window resize.
+// No media reload, read receipt, or business data synchronization.
+let imagePresentationResizeFrame=0;
+function scheduleImagePresentationResize(){
+  if(imagePresentationResizeFrame)return;
+  imagePresentationResizeFrame=requestAnimationFrame(()=>{
+    imagePresentationResizeFrame=0;
+    const active=document.activeElement;
+    if(active?.matches?.('input,textarea,[contenteditable="true"]'))return;
+    const root=document.getElementById('messageWindow');
+    if(!root)return;
+    for(const tile of root.querySelectorAll('.media-image-tile[data-image-presentation="portrait"]')){
+      const aspectRatio=Number(tile.dataset.intrinsicAspectRatio)||Number(tile.dataset.sourceAspectRatio);
+      if(aspectRatio>0)applySingleImagePresentation(tile,{aspectRatio});
+    }
+  });
+}
+window.addEventListener('resize',scheduleImagePresentationResize,{passive:true});
+window.addEventListener('orientationchange',scheduleImagePresentationResize,{passive:true});
 
 function stableMessageDomKey(message){
   const identity=String(message?.clientId||message?.id||'');

@@ -24,8 +24,8 @@ def test_composer_ui_library_equal_accessible_buttons_and_glyphs():
 
 def test_portrait_is_fitted_but_image_source_and_gallery_unchanged():
     body=app[app.index('function singleImagePresentation('):app.index('function singleImageDisplayWidth(')]
-    assert 'const inlineHeight=460;' in body
-    assert 'Math.min(MESSAGE_MEDIA_WIDTH_PX,Math.max(160,Math.round(inlineHeight*aspectRatio)))' in body
+    assert 'const inlineHeight=messageInlineImageHeightLimit();' in body
+    assert 'Math.min(MESSAGE_MEDIA_WIDTH_PX,Math.max(1,Math.round(inlineHeight*sourceRatio)))' in body
     assert body.count('width:MESSAGE_MEDIA_WIDTH_PX')==2
     assert "wrap.style.setProperty('--message-media-width'" in app
     assert "shell.style.setProperty('--message-media-width'" in app

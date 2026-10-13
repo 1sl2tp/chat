@@ -148,6 +148,8 @@ jobs:
         run: python tests/test_v21_zalo_account_admin_layout.py
       - name: Non-modal image viewer shell controls contract
         run: python tests/test_v21_image_viewer_shell_controls.py
+      - name: F-133..F-137 image geometry, album and viewer border runtime
+        run: node tests/test_v21_image_geometry_f133_f137.js
       - name: Chat image quality and batch performance contract
         run: python tests/test_v21_image_quality_contract.py
       - name: iOS zero-byte media upload recovery contract
