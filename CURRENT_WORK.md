@@ -1,11 +1,11 @@
-## 2026-10-13 — TAPHOA image share → Chat KH prefilled attachment (PR CANDIDATE)
+## 2026-10-13 — TAPHOA image share → Chat KH prefilled attachment (MERGED + PAGES PASS; E4/E5 PENDING)
 
 - User symptom: app.taphoa.xyz order/cart Share first click only says "Ảnh đã sẵn sàng. Bấm Chia sẻ lại", forcing Save/Copy/Paste. User wants tapping once to open the linked customer's Chat with the actual PNG already attached (or auto-send).
 - **Decision:** prefills a draft; never auto-sends without explicit tap Send. TAPHOA customer id is already V21 account UUID (see existing taphoa_chat_notify_customer/taphoa_save_order). Saved order detail uses its own real row customer id, NOT an unrelated active cart selectedCustomer.
 - **Owner:** TAPHOA source capture and opener; Chat app.js ingress. Chat tab accepts only opener at `https://app.taphoa.xyz`, query-bound strong nonce and exact customer ID, authenticated Admin with valid ContactStore member and ready conversation. PostMessage File must be PNG <=15 MiB. Existing Chat `ingestImageFiles` attaches into the correct scoped draft/IDB; no new media writer or auto-send. ACK once; clear share params on success. No RPC/Edge/Storage relay, cron/polling/log.
 - **Browser contract:** target window must preserve opener; installed iOS PWA may isolate windows, so E4 iPhone/iOS installed-mode test is mandatory. If popup fails, app's native fallback remains. No claim cross-PWA direct receive until observed.
 - **Spec:** Rule chung tab 08 row111 SPEC-TAPHOA-CHAT-ORDER-IMAGE-PREFILL-20261013.
-- **E0 source review done; E1/E2 CI, E3 both Pages, E4 Safari/Android, E5 request/egress and user verification PENDING.**
+- **E0/E1/E2/E3 PASS:** Chat PR #176 Verify V21 run 38350636840 SUCCESS, squash merged `d32951dd050dce9b0a80c922855659a75afc371f`, Pages run 38350710488 SUCCESS. TAPHOA main code commit `220b0d3978fbf4743893765e3e4dbc7bc4bd2536`, test commit `f356f2146ad96be8dbc8c594724341d77f59f9e5`, cache-bust commit `005ac0e4d56eeddc81fcc864b79401bb2df683d8`; Verify TAPHOA 38350822745 SUCCESS and TAPHOA Pages 38350822779 SUCCESS. **E4/E5 PENDING** direct mobile/iPhone PWA opener handoff confirmation and request/egress/user acceptance. Pages success is NOT actual device QA.
 - **Rollback:** revert receiver before sender only after sender stopped; original sharing remains for unbound customers. No DB changes.
 
 ---
