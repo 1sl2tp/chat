@@ -73,3 +73,33 @@ def test_composer_menu_is_mobile_sheet():
     assert 'left:12px!important;' in c
     assert 'right:12px!important;' in c
     assert 'border-radius:24px!important;' in c
+
+def test_ui_145_one_layout_rail_for_header_directory_and_composer():
+    foundation=(ROOT/'ui-foundation.css').read_text('utf-8')
+    chat=(ROOT/'mobile-chat-refresh.css').read_text('utf-8')
+    core=(ROOT/'index.source.html').read_text('utf-8')
+    polish=CSS
+    assert '--ui-chat-layout-rail:12px;' in foundation
+    assert '--ui-chat-message-rail:6px;' in foundation
+    # Top header is already a .chat-content-axis; mobile !important must win
+    # over legacy desktop 16px !important, with no double horizontal padding.
+    assert 'padding-inline:var(--chat-content-gutter)!important;' in core
+    assert 'padding-left:max(var(--ui-chat-layout-rail,12px),env(safe-area-inset-left,0px))!important;' in polish
+    assert 'padding-right:max(var(--ui-chat-layout-rail,12px),env(safe-area-inset-right,0px))!important;' in polish
+    assert 'grid-template-columns:40px minmax(0,1fr) auto;' in polish
+    assert '--ui-composer-effective-gutter:max(var(--ui-chat-layout-rail,12px),' in chat
+    assert 'padding-inline:0!important;' in chat
+    # Directory shell: header starts at 12; search/filter = body6+tools6;
+    # avatar/right timestamp = body6+list2+contact-row4.
+    assert 'padding-left:max(6px,calc(env(safe-area-inset-left,0px) - 6px));' in polish
+    assert 'padding-right:max(6px,calc(env(safe-area-inset-right,0px) - 6px));' in polish
+    assert 'padding:4px 6px 7px!important;' in polish
+    assert 'padding:0 2px 8px;' in polish
+    assert 'padding:8px 4px;' in polish
+    assert 'scrollbar-gutter:auto;' in polish
+    # Text/media message edges intentionally use a separate 6px rail.
+    assert 'max(var(--ui-chat-message-rail,6px),env(safe-area-inset-left,0px))' in chat
+    assert 'max(var(--ui-chat-message-rail,6px),env(safe-area-inset-right,0px))!important;' in chat
+    # Don't replace source action/state or keyboard scroller ownership.
+    assert 'position:fixed' not in compact(polish)
+    assert '#scrollRoot{' in chat
