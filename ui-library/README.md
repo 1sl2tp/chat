@@ -36,6 +36,7 @@
 - `Avatar`: header, danh bạ, hồ sơ, chuyển tiếp và liên kết. Fallback chữ riêng, font-size/line-height riêng, không thừa hưởng padding tab.
 - `IconButton` / `MessageActionButton` / `ViewerControl`: hit area và trạng thái rõ; **hành động thật** phải dùng owner của Chat hiện tại.
 - `MessageBubble` / `MessageActions`: A (self) căn phải, B (remote) căn trái; nhóm action sắp đối xứng gần nội dung.
+  - Single-pane mobile/PWA (dưới 1024 CSS px): một lề đọc sát mép = `max(6px, safe-area)` cho cả hai phía. Lề của khung tin KH khác Admin ở trái; tin Admin ở phải; không được cộng thêm `padding-inline` từ các lớp UI khác. Padding bên trong bong bóng là quy tắc riêng; desktop vẫn dùng trục nội dung 48rem.
 - `ImageTile` / `ImageGallery` / `ImageViewer`: ảnh đơn contain, album thumbnail có thể cover, viewer theo một owner; xoay ảnh có module `chat-image-orientation.js`.
 - `AudioPlayer` / `RecordingSurface` / `AudioDraft`: ghi âm đang thu khác ghi âm chờ gửi và ghi âm trong tin.
 - `AttachmentTray`, `FilePicker`, `ComposerBar`: một thao tác chọn tệp, một đường gửi, không tự upload media ở preview UI.
