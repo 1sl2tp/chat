@@ -386,11 +386,11 @@ function bindMobileHierarchySwipe(){
   if(!app)return false;
   const reset=()=>{mobileSwipe=null;};
   const onTouchStart=event=>{
+    const interactionMode=window.V21InteractionController?.snapshot?.()?.mode||'NONE';
     if(!mobileDirectoryAllowed()||shellSnapshot().route!=='chat'||
       snapshot().state!=='AUTHENTICATED'||event.touches?.length!==1||
       swipeIgnoredTarget(event.target)||mobileAccountMenu?.dataset.open==='true'||
-      window.V21InteractionController?.snapshot?.().mode!=='NONE'&&
-        Boolean(window.V21InteractionController?.snapshot?.().mode)){
+      interactionMode!=='NONE'){
       reset();
       return;
     }
