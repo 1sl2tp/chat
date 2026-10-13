@@ -588,7 +588,10 @@ async function hydrateContactFromCache(contactId,{renderMode='replace',epoch=con
   const pending=await cache()?.listOutboxForContact?.(accountId,target)||[];
   const localPending=pending.map(item=>outboxAsLocal(item,resolvedConversationId));
   const rows=[...enriched,...localPending];
-  messages()?.primeSession?.({contactId:target,conversationId:resolvedConversationId,rows});
+  // Keep an already-visible in-memory history; cached rows are merged below.
+  // Re-priming on each open previously replaced the richer session with a
+  // truncated IndexedDB window (100 newest messages).
+  messages()?.primeSession?.({contactId:target,conversationId:resolvedConversationId,rows,ifAbsent:true});
 
   const stillActive=epoch===contactEpoch&&String(currentContactId||'')===target;
   if(stillActive){
