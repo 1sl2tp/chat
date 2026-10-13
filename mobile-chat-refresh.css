@@ -50,6 +50,21 @@
     display:none!important;
   }
 
+  /* Narrow Chat is a true one-column view. The message list must start at
+     the same edge as the Composer, not keep a centered desktop width/gutter
+     when the browser window is resized or PWA enters a narrow viewport. */
+  @media (max-width:639px){
+    #appShell[data-auth-state="authenticated"][data-route="chat"] #conversationContentAxis{
+      width:100%;
+      max-width:100%;
+      margin-inline:0;
+      padding-inline:0;
+    }
+    #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow{
+      padding-inline:var(--ui-chat-message-gutter,var(--ui-gutter-mobile,12px));
+    }
+  }
+
   /* Conversation content — mobile-first, visual-only. */
   #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow{
     padding:var(--ui-space-8,8px) var(--ui-chat-message-gutter,var(--ui-gutter-mobile,12px)) 14px;
