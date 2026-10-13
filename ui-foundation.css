@@ -17,6 +17,9 @@
   --ui-space-32:32px;
 
   --ui-gutter-mobile:12px;
+  /* UI-145: 2 semantic rails: actions/forms vs edge-anchored messages. */
+  --ui-chat-layout-rail:12px;
+  --ui-chat-message-rail:6px;
   --ui-gutter-desktop:16px;
 
   --ui-radius-6:6px;
