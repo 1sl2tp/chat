@@ -18,8 +18,8 @@ for r in (single,gallery):
     assert 'border:1px solid rgba(15,23,42,.08);' in r
     assert 'border-radius:14px' in r
 assert 'gap:4px!important;' in gallery
-assert '.assistant-message-unit>.message-media-shell{margin-right:auto;margin-left:0}' in css
-assert '.user-message-unit>.message-media-shell{margin-left:auto;margin-right:0}' in css
+assert '.assistant-message-unit>.message-media-shell{margin-right:auto}' in css
+assert '.user-message-unit>.message-media-shell{margin-left:auto}' in css
 
 # Browsers honor EXIF orientation without probing media or rotating by
 # screenshot content. Manual user rotation remains a fallback.
