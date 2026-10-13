@@ -18,7 +18,8 @@ assert 'const MESSAGE_MEDIA_WIDTH_PX=360;' in app
 assert app.count('width:MESSAGE_MEDIA_WIDTH_PX')>=2
 assert 'const inlineHeight=460;' in app
 assert 'Math.round(inlineHeight*aspectRatio)' in app
-assert 'aspectRatio:Math.max(.36,Math.min(.82,sourceRatio))' in app
+assert 'const aspectRatio=Math.max(.36,Math.min(.82,sourceRatio));' in app
+assert 'width:Math.min(MESSAGE_MEDIA_WIDTH_PX,Math.max(160,Math.round(inlineHeight*aspectRatio)))' in app
 assert 'aspectRatio:Math.max(1.2,Math.min(2.2,sourceRatio))' in app
 assert 'function applySingleImagePresentation(wrap,media)' in app
 assert "wrap.dataset.imagePresentation=presentation.kind" in app
