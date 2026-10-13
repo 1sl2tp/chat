@@ -15,7 +15,11 @@ const CUSTOM=Object.freeze({
   debt:Object.freeze({viewBox:'0 0 24 24',stroke:1.6,body:'<rect x="4" y="5" width="16" height="14" rx="2.5"></rect><path d="M7.5 9h9M7.5 13h4.5M15.5 12v4M13.5 14h4"></path>'}),
   call:Object.freeze({viewBox:'0 0 24 24',stroke:1.6,body:'<path d="M7.2 4.5 10 8l-1.8 2.2c1.2 2.5 3.1 4.4 5.6 5.6L16 14l3.5 2.8-.9 2.7c-.3.8-1.1 1.3-2 1.2C9.4 19.8 4.2 14.6 3.3 7.4c-.1-.9.4-1.7 1.2-2l2.7-.9Z"></path>'}),
   key:Object.freeze({viewBox:'0 0 24 24',stroke:1.7,body:'<circle cx="8.5" cy="12" r="3.5"></circle><path d="M12 12h8M17 12v3M20 12v2"></path>'}),
-  stock:Object.freeze({viewBox:'0 0 24 24',stroke:1.65,body:'<rect x="5" y="4" width="14" height="16" rx="2.5"></rect><path d="M9 4.5h6v3H9z"></path><path d="M8.5 11.5h7M8.5 15.5h4"></path>'})
+  stock:Object.freeze({viewBox:'0 0 24 24',stroke:1.65,body:'<rect x="5" y="4" width="14" height="16" rx="2.5"></rect><path d="M9 4.5h6v3H9z"></path><path d="M8.5 11.5h7M8.5 15.5h4"></path>'}),
+  contacts:Object.freeze({viewBox:'0 0 24 24',stroke:1.7,body:'<rect x="5" y="3.5" width="14" height="17" rx="2.5"></rect><circle cx="12" cy="10" r="2.5"></circle><path d="M8.5 16c.5-1.7 2-2.5 3.5-2.5s3 .8 3.5 2.5"></path>'}),
+  account:Object.freeze({viewBox:'0 0 24 24',stroke:1.7,body:'<circle cx="12" cy="8" r="3.5"></circle><path d="M5 20c.35-3.3 2.85-5.2 7-5.2s6.65 1.9 7 5.2"></path>'}),
+  settings:Object.freeze({viewBox:'0 0 24 24',stroke:1.7,body:'<path d="M10 3h4l.7 2.1 1.8.75 2-.9 2.8 2.8-.9 2 .75 1.8L23 12l-1.85.75-.75 1.8.9 2-2.8 2.8-2-.9-1.8.75L14 21h-4l-.7-1.8-1.8-.75-2 .9-2.8-2.8.9-2-.75-1.8L1 12l1.85-.75.75-1.8-.9-2 2.8-2.8 2 .9 1.8-.75L10 3Z"></path><circle cx="12" cy="12" r="3"></circle>'}),
+  logout:Object.freeze({viewBox:'0 0 24 24',stroke:1.7,body:'<path d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4"></path><path d="M13 7 18 12l-5 5M18 12H8"></path>'})
 });
 
 function customMarkup(name,{size=20}={}){
