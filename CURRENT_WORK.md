@@ -1,3 +1,12 @@
+## 2026-10-13 — F-133 REV2: PORTRAIT / SQUARE / LANDSCAPE CLASSIFICATION FIRST (SOURCE PATCH, E3/E4/E5 PENDING)
+
+- User supplied iPhone screenshots: Techcombank vertical receipt rendered too narrow; prior repair used 48dvh to derive portrait width. Clarified requirement: classify source image by intrinsic W/H before choosing both preview dimensions; no arbitrary viewport-height increase.
+- Canonical Sheet 04 F-133 rev2 and F-137: portrait H>W width=min(260,560*W/H), square=320, landscape=360; all scale to available sender lane and preserve native ratio. Gallery 2+ retains 2/3/4+ fixed preview grid; viewer always contain and only selected filmstrip thumb has neutral border.
+- Changed app.js imageAspectRatio/singleImagePresentation (no 48dvh width calculation), index.source.html portrait cap560, SW shell epoch img152; shell/tile same --message-media-width; no new image fetch/realtime, read-state, RPC/Edge, Zalo or Storage write. Historical owner assertions migrated; new F133 ratio regression includes device height invariance.
+- Verify canonical generated index/version and CI exact commit, Pages deployment and actual iPhone PWA screenshot must be checked separately. E4/E5 PENDING until observed. Rollback only these source/test/build files and PWA epoch, never delete user data.
+
+---
+
 ## 2026-10-13 — F-133..F-137 Chat image geometry / album / viewer (SOURCE / VERIFY / PAGES PASS; iPhone E4 & resource E5 PENDING)
 
 - User approved code fix based on canonical Google Sheet F-133…F-137. The actual issue was portrait preview width computed from constant 460px although CSS clipped portrait at min(48dvh,460px), making excess background on short iPhone viewports; thumbnail selection previously blue with -2px transform.

@@ -19,9 +19,10 @@ assert '.user-message-unit>.media-image-tile[data-image-presentation]{margin-lef
 assert '.assistant-message-unit>.media-image-tile[data-image-presentation]{margin-right:auto}' in source
 app=read('app.js')
 assert 'const MESSAGE_MEDIA_WIDTH_PX=360;' in app
-assert app.count('width:MESSAGE_MEDIA_WIDTH_PX')>=2
-assert 'const inlineHeight=messageInlineImageHeightLimit();' in app  # Portrait follows the 48dvh layout cap, unlike gallery.
-assert 'Math.floor(viewportHeight*.48)' in app
+assert 'const MESSAGE_PORTRAIT_WIDTH_PX=260;' in app
+assert 'const MESSAGE_PORTRAIT_MAX_HEIGHT_PX=560;' in app
+assert "if(sourceRatio<1)" in app
+assert 'messageInlineImageHeightLimit' not in app
 
 # Directory order is activity-owned only. Equal activity keeps stable store
 # order; display-name/profile edits are never a sort key.

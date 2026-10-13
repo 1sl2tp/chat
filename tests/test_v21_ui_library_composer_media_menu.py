@@ -24,12 +24,12 @@ def test_composer_ui_library_equal_accessible_buttons_and_glyphs():
 
 def test_portrait_is_fitted_but_image_source_and_gallery_unchanged():
     body=app[app.index('function singleImagePresentation('):app.index('function singleImageDisplayWidth(')]
-    assert 'const inlineHeight=messageInlineImageHeightLimit();' in body
-    assert 'Math.min(MESSAGE_MEDIA_WIDTH_PX,Math.max(1,Math.round(inlineHeight*sourceRatio)))' in body
-    assert body.count('width:MESSAGE_MEDIA_WIDTH_PX')==2
+    assert 'Math.floor(MESSAGE_PORTRAIT_MAX_HEIGHT_PX*sourceRatio)' in body
+    assert 'width:MESSAGE_SQUARE_WIDTH_PX' in body
+    assert body.count('width:MESSAGE_MEDIA_WIDTH_PX')==1
     assert "wrap.style.setProperty('--message-media-width'" in app
     assert "shell.style.setProperty('--message-media-width'" in app
-    assert 'max-height:min(48dvh,460px);' in source
+    assert 'max-height:560px;' in source
     assert 'width:min(22.5rem,var(--message-media-width,22.5rem))!important;' in source
     assert 'object-fit:contain!important' in source
     assert 'object-fit:cover!important' in source  # Albums retain same behavior.

@@ -15,12 +15,13 @@ assert "kind:'portrait'" in app
 assert "kind:'square'" in app
 assert "kind:'landscape'" in app
 assert 'const MESSAGE_MEDIA_WIDTH_PX=360;' in app
-assert app.count('width:MESSAGE_MEDIA_WIDTH_PX')>=2
-assert 'function messageInlineImageHeightLimit()' in app
-assert 'Math.floor(viewportHeight*.48)' in app
-assert 'const inlineHeight=messageInlineImageHeightLimit();' in app
-assert 'width:Math.min(MESSAGE_MEDIA_WIDTH_PX,Math.max(1,Math.round(inlineHeight*sourceRatio)))' in app
+assert 'const MESSAGE_PORTRAIT_WIDTH_PX=260;' in app
+assert 'const MESSAGE_PORTRAIT_MAX_HEIGHT_PX=560;' in app
+assert 'const MESSAGE_SQUARE_WIDTH_PX=320;' in app
+assert 'width:Math.min(MESSAGE_PORTRAIT_WIDTH_PX,Math.max(1,Math.floor(MESSAGE_PORTRAIT_MAX_HEIGHT_PX*sourceRatio)))' in app
+assert "if(sourceRatio<1)" in app and "if(sourceRatio===1)" in app
 assert 'aspectRatio:sourceRatio' in app
+assert 'messageInlineImageHeightLimit' not in app
 assert 'function applySingleImagePresentation(wrap,media)' in app
 assert "wrap.dataset.imagePresentation=presentation.kind" in app
 assert "img.style.objectFit='contain'" in app

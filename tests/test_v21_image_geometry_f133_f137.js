@@ -14,24 +14,27 @@ function present(height,ratio){
     {documentElement:{clientHeight:height}},{innerHeight:height},{aspectRatio:ratio});
 }
 for(const h of [568,667,736,844,1024]){
-  for(const ratio of [.22,.36,.5,.75,.81]){
-    const actual=present(h,ratio);
-    const cap=Math.min(460,Math.floor(h*.48));
-    assert.equal(actual.kind,'portrait');
-    assert.equal(actual.width,Math.min(360,Math.max(1,Math.round(cap*ratio))));
-    assert.equal(actual.aspectRatio,ratio);
-    assert(actual.width/ratio<=cap+3,'portrait overflows vertical cap');
+  for(const ratio of [.12,.22,.5,.75,.99]){
+    const p=present(h,ratio);
+    assert.equal(p.kind,'portrait');
+    assert.equal(p.width,Math.min(260,Math.max(1,Math.floor(560*ratio))));
+    assert.equal(p.aspectRatio,ratio);
+    assert(p.width/ratio<=561,'portrait frame must not crop');
   }
 }
-for(const ratio of [1,1.15,1.78,2.5,4.5]){
+assert.equal(present(667,1).kind,'square');
+assert.equal(present(667,1).width,320);
+for(const ratio of [1.01,1.15,1.78,2.5,4.5,9]){
   const p=present(667,ratio);
+  assert.equal(p.kind,'landscape');
   assert.equal(p.width,360);
-  assert.equal(p.aspectRatio,ratio,'landscape ratio must stay intrinsic');
+  assert.equal(p.aspectRatio,ratio,'retain full original aspect');
 }
-assert(app.includes("window.addEventListener('orientationchange',scheduleImagePresentationResize"));
-assert(app.includes("root.querySelectorAll('.media-image-tile[data-image-presentation=\"portrait\"]')"));
-assert(app.includes("if(aspectRatio>0)applySingleImagePresentation(tile,{aspectRatio});"));
-assert(css.includes('max-height:min(48dvh,460px);'));
+assert(!app.includes('messageInlineImageHeightLimit'));
+assert(!app.includes('scheduleImagePresentationResize'));
+assert(css.includes('max-height:560px;'));
+assert(!css.includes('max-height:min(48dvh,460px);'));
+assert(css.includes('width:min(22.5rem,var(--message-media-width,22.5rem))'));
 assert(css.includes('object-fit:contain!important'));
 assert(css.includes('object-fit:cover!important'));
 const activeCss=css.slice(css.lastIndexOf('.image-review-thumb[aria-current="true"]{'));

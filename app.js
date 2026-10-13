@@ -2546,35 +2546,34 @@ async function hydrateImageElement(img,media){
 }
 
 function imageAspectRatio(media){
-  const ratio=Number(media?.aspectRatio)||(Number(media?.width)>0&&Number(media?.height)>0?Number(media.width)/Number(media.height):1.5);
-  return Math.max(.22,Math.min(4.5,ratio||1.5));
+  const metadataRatio=Number(media?.aspectRatio);
+  const width=Number(media?.width);
+  const height=Number(media?.height);
+  const ratio=metadataRatio>0?metadataRatio:(width>0&&height>0?width/height:1.5);
+  // The intrinsic ratio owns the frame, including very long receipts.
+  return Number.isFinite(ratio)&&ratio>0?ratio:1.5;
 }
 
 const MESSAGE_MEDIA_WIDTH_PX=360;
-
-function messageInlineImageHeightLimit(){
-  // Use the actual layout viewport for the 48dvh cap, not a fixed 460px.
-  const viewportHeight=Math.max(1,Math.min(
-    Number(document.documentElement?.clientHeight)||960,
-    Number(window.innerHeight)||960
-  ));
-  return Math.min(460,Math.floor(viewportHeight*.48));
-}
+const MESSAGE_PORTRAIT_WIDTH_PX=260;
+const MESSAGE_PORTRAIT_MAX_HEIGHT_PX=560;
+const MESSAGE_SQUARE_WIDTH_PX=320;
 
 function singleImagePresentation(media){
+  // F-133 rev2: choose the type by W/H first, then size its frame.
+  // The viewport only constrains available space through CSS max-width.
   const sourceRatio=imageAspectRatio(media);
-  if(sourceRatio<.82){
-    const inlineHeight=messageInlineImageHeightLimit();
+  if(sourceRatio<1){
     return{
       kind:'portrait',
-      width:Math.min(MESSAGE_MEDIA_WIDTH_PX,Math.max(1,Math.round(inlineHeight*sourceRatio))),
+      width:Math.min(MESSAGE_PORTRAIT_WIDTH_PX,Math.max(1,Math.floor(MESSAGE_PORTRAIT_MAX_HEIGHT_PX*sourceRatio))),
       aspectRatio:sourceRatio
     };
   }
-  if(sourceRatio<=1.2){
+  if(sourceRatio===1){
     return{
       kind:'square',
-      width:MESSAGE_MEDIA_WIDTH_PX,
+      width:MESSAGE_SQUARE_WIDTH_PX,
       aspectRatio:sourceRatio
     };
   }
@@ -2611,26 +2610,6 @@ function applySingleImagePresentation(wrap,media){
   }
   return wrap;
 }
-
-// Reflow only existing portrait tile geometry after device/window resize.
-// No media reload, read receipt, or business data synchronization.
-let imagePresentationResizeFrame=0;
-function scheduleImagePresentationResize(){
-  if(imagePresentationResizeFrame)return;
-  imagePresentationResizeFrame=requestAnimationFrame(()=>{
-    imagePresentationResizeFrame=0;
-    const active=document.activeElement;
-    if(active?.matches?.('input,textarea,[contenteditable="true"]'))return;
-    const root=document.getElementById('messageWindow');
-    if(!root)return;
-    for(const tile of root.querySelectorAll('.media-image-tile[data-image-presentation="portrait"]')){
-      const aspectRatio=Number(tile.dataset.intrinsicAspectRatio)||Number(tile.dataset.sourceAspectRatio);
-      if(aspectRatio>0)applySingleImagePresentation(tile,{aspectRatio});
-    }
-  });
-}
-window.addEventListener('resize',scheduleImagePresentationResize,{passive:true});
-window.addEventListener('orientationchange',scheduleImagePresentationResize,{passive:true});
 
 function stableMessageDomKey(message){
   const identity=String(message?.clientId||message?.id||'');

@@ -1083,10 +1083,10 @@ button{
   overflow:hidden;
   background:var(--theme-surface-secondary);
 }
-/* F-133: viewport-derived portrait width and the 48dvh cap share one geometry owner. */
+/* F-133 rev2: portrait is chosen by image W/H, not viewport height. */
 .media-image-tile[data-image-presentation="portrait"]{
-  /* Short, fully visible in the thread; tap opens the unrestricted viewer. */
-  max-height:min(48dvh,460px);
+  /* A long receipt can occupy more than one screen; never crop the preview. */
+  max-height:560px;
 }
 .media-image-tile[data-image-presentation] > img{
   width:100%!important;
