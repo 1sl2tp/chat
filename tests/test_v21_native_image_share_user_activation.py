@@ -11,7 +11,7 @@ def section(start,end):
 
 
 def test_native_share_keeps_transient_user_activation():
-    share=section("async function shareMessageMedia(message){","async function openFileMedia")
+    share=section("async function shareMessageMedia(message,button=null){","async function openFileMedia")
     assert "const files=preparedShareFilesForMessage(message);" in share
     assert "await mediaBlobForDescriptor" not in share
     assert share.index("preparedShareFilesForMessage") < share.index("navigator.share")
