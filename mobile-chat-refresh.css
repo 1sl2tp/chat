@@ -99,7 +99,7 @@
   #appShell[data-auth-state="authenticated"][data-route="chat"] .composer-source-frame{
     /* chat-content-axis has its own !important padding (desktop); cancel it
        here so the mobile composer does NOT pay the outer gutter twice. */
-    --ui-composer-effective-gutter:max(var(--ui-composer-gutter,12px),env(safe-area-inset-left,0px),env(safe-area-inset-right,0px));
+    --ui-composer-effective-gutter:max(var(--ui-chat-layout-rail,12px),env(safe-area-inset-left,0px),env(safe-area-inset-right,0px));
     box-sizing:border-box;
     width:min(calc(100% - var(--ui-composer-effective-gutter) - var(--ui-composer-effective-gutter)),44rem);
     padding-inline:0!important;
@@ -343,8 +343,8 @@
     max-width:100%;
     margin-inline:0;
     padding-inline:
-      max(6px,env(safe-area-inset-left,0px))
-      max(6px,env(safe-area-inset-right,0px))!important;
+      max(var(--ui-chat-message-rail,6px),env(safe-area-inset-left,0px))
+      max(var(--ui-chat-message-rail,6px),env(safe-area-inset-right,0px))!important;
   }
   /* Safari standalone can reserve an invisible scrollbar gutter despite the
      intentionally hidden scrollbars. Reclaim it only in single-pane Chat. */
