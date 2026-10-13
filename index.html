@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="a3e61f33fa71f4f134886c45514fa85990054e27d03ecf0f291d8d096c0d2250">
+<meta name="app-build-id" content="f1970cf1ae3739bd9a03495ab98324993c2405d7e51c69bc47602490a6544d9c">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1403,6 +1403,25 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
   touch-action:manipulation;
 }
 
+/* P4 ComposerBar: same 44px accessible hit area and 20px glyph for +, mic
+   and send on desktop, mobile Web and installed PWA. Only visual geometry. */
+#appShell[data-ui-foundation="v1"] #composer-plus-btn,
+#appShell[data-ui-foundation="v1"] #composer-mic-btn,
+#appShell[data-ui-foundation="v1"] #send{
+  width:var(--ui-control-touch);
+  min-width:var(--ui-control-touch);
+  height:var(--ui-control-touch);
+  min-height:var(--ui-control-touch);
+  flex:0 0 var(--ui-control-touch);
+}
+#appShell[data-ui-foundation="v1"] #composer-plus-btn svg,
+#appShell[data-ui-foundation="v1"] #composer-mic-btn svg,
+#appShell[data-ui-foundation="v1"] #send svg{
+  display:block;
+  width:var(--ui-icon-20);
+  height:var(--ui-icon-20);
+}
+
 </style>
 <style data-inlined-source="mobile-chat-refresh.css">
 /*
@@ -2637,6 +2656,9 @@ button{
   width:22.5rem;
   max-width:100%;
 }
+.message-media-shell[data-media-shell-kind="image"]{
+  width:min(22.5rem,var(--message-media-width,22.5rem));
+}
 .user-message-unit>.message-media-shell{margin-left:auto}
 .assistant-message-unit>.message-media-shell{margin-right:auto}
 .message-media-shell[data-media-shell-kind="image"]>.media-image-tile,
@@ -2648,13 +2670,17 @@ button{
 }
 .media-image-tile[data-image-presentation]{
   display:block;
-  width:22.5rem!important;
+  width:min(22.5rem,var(--message-media-width,22.5rem))!important;
   max-width:100%;
   box-sizing:border-box;
   padding:4px;
   border-radius:14px;
   overflow:hidden;
   background:var(--theme-surface-secondary);
+}
+.media-image-tile[data-image-presentation="portrait"]{
+  /* Short, fully visible in the thread; tap opens the unrestricted viewer. */
+  max-height:min(48dvh,460px);
 }
 .media-image-tile[data-image-presentation] > img{
   width:100%!important;
@@ -2699,7 +2725,10 @@ button{
   object-position:center!important;
 }
 @media(max-width:520px){
-  .media-image-tile[data-image-presentation],
+  .media-image-tile[data-image-presentation]{
+    width:min(22.5rem,var(--message-media-width,22.5rem))!important;
+    max-width:100%;
+  }
   .media-gallery-grid{width:22.5rem!important;max-width:100%}
 }
 
@@ -5433,7 +5462,8 @@ button{
   [data-mobile-account-menu] .mobile-account-menu-panel{
     top:calc(env(safe-area-inset-top,0px) + 56px)!important;
     left:12px!important;
-    width:196px!important;
+    width:218px!important;
+    padding:6px!important;
     border:1px solid var(--mobile-ui-line)!important;
     border-radius:15px!important;
     background:color-mix(in srgb,var(--theme-surface-primary) 99%,transparent)!important;
@@ -5442,15 +5472,36 @@ button{
   }
 
   [data-mobile-account-menu] .mobile-account-menu-row{
-    min-height:43px!important;
-    padding:0 14px!important;
+    display:grid!important;
+    grid-template-columns:20px minmax(0,1fr);
+    align-items:center;
+    column-gap:10px;
+    min-height:44px!important;
+    padding:0 10px!important;
+    border-radius:10px;
     font-size:.9rem!important;
     line-height:1.15rem!important;
     font-weight:500!important;
   }
-
+  [data-mobile-account-menu] .mobile-account-menu-icon{
+    width:20px;
+    height:20px;
+    display:grid;
+    place-items:center;
+    color:var(--theme-content-secondary);
+  }
+  [data-mobile-account-menu] .mobile-account-menu-icon svg{
+    width:20px;
+    height:20px;
+    display:block;
+  }
   [data-mobile-account-menu] .mobile-account-menu-row+.mobile-account-menu-row{
+    border-top:0!important;
+  }
+  [data-mobile-account-menu] [data-mobile-account-action="logout"]{
+    margin-top:3px;
     border-top:1px solid var(--mobile-ui-line)!important;
+    border-radius:0 0 10px 10px;
   }
 
   .shell-sidebar-account-menu{
@@ -6218,7 +6269,11 @@ const CUSTOM=Object.freeze({
   debt:Object.freeze({viewBox:'0 0 24 24',stroke:1.6,body:'<rect x="4" y="5" width="16" height="14" rx="2.5"></rect><path d="M7.5 9h9M7.5 13h4.5M15.5 12v4M13.5 14h4"></path>'}),
   call:Object.freeze({viewBox:'0 0 24 24',stroke:1.6,body:'<path d="M7.2 4.5 10 8l-1.8 2.2c1.2 2.5 3.1 4.4 5.6 5.6L16 14l3.5 2.8-.9 2.7c-.3.8-1.1 1.3-2 1.2C9.4 19.8 4.2 14.6 3.3 7.4c-.1-.9.4-1.7 1.2-2l2.7-.9Z"></path>'}),
   key:Object.freeze({viewBox:'0 0 24 24',stroke:1.7,body:'<circle cx="8.5" cy="12" r="3.5"></circle><path d="M12 12h8M17 12v3M20 12v2"></path>'}),
-  stock:Object.freeze({viewBox:'0 0 24 24',stroke:1.65,body:'<rect x="5" y="4" width="14" height="16" rx="2.5"></rect><path d="M9 4.5h6v3H9z"></path><path d="M8.5 11.5h7M8.5 15.5h4"></path>'})
+  stock:Object.freeze({viewBox:'0 0 24 24',stroke:1.65,body:'<rect x="5" y="4" width="14" height="16" rx="2.5"></rect><path d="M9 4.5h6v3H9z"></path><path d="M8.5 11.5h7M8.5 15.5h4"></path>'}),
+  contacts:Object.freeze({viewBox:'0 0 24 24',stroke:1.7,body:'<rect x="5" y="3.5" width="14" height="17" rx="2.5"></rect><circle cx="12" cy="10" r="2.5"></circle><path d="M8.5 16c.5-1.7 2-2.5 3.5-2.5s3 .8 3.5 2.5"></path>'}),
+  account:Object.freeze({viewBox:'0 0 24 24',stroke:1.7,body:'<circle cx="12" cy="8" r="3.5"></circle><path d="M5 20c.35-3.3 2.85-5.2 7-5.2s6.65 1.9 7 5.2"></path>'}),
+  settings:Object.freeze({viewBox:'0 0 24 24',stroke:1.7,body:'<path d="M10 3h4l.7 2.1 1.8.75 2-.9 2.8 2.8-.9 2 .75 1.8L23 12l-1.85.75-.75 1.8.9 2-2.8 2.8-2-.9-1.8.75L14 21h-4l-.7-1.8-1.8-.75-2 .9-2.8-2.8.9-2-.75-1.8L1 12l1.85-.75.75-1.8-.9-2 2.8-2.8 2 .9 1.8-.75L10 3Z"></path><circle cx="12" cy="12" r="3"></circle>'}),
+  logout:Object.freeze({viewBox:'0 0 24 24',stroke:1.7,body:'<path d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4"></path><path d="M13 7 18 12l-5 5M18 12H8"></path>'})
 });
 
 function customMarkup(name,{size=20}={}){
@@ -9683,10 +9738,14 @@ const MESSAGE_MEDIA_WIDTH_PX=360;
 function singleImagePresentation(media){
   const sourceRatio=imageAspectRatio(media);
   if(sourceRatio<.82){
+    const aspectRatio=Math.max(.36,Math.min(.82,sourceRatio));
+    // Long portrait receipts/bank slips should not occupy the full chat
+    // viewport. Preserve the whole image via contain; full size is in Viewer.
+    const inlineHeight=460;
     return{
       kind:'portrait',
-      width:MESSAGE_MEDIA_WIDTH_PX,
-      aspectRatio:Math.max(.36,Math.min(.82,sourceRatio))
+      width:Math.min(MESSAGE_MEDIA_WIDTH_PX,Math.max(160,Math.round(inlineHeight*aspectRatio))),
+      aspectRatio
     };
   }
   if(sourceRatio<=1.2){
@@ -9713,6 +9772,7 @@ function applySingleImagePresentation(wrap,media){
   wrap.dataset.imagePresentation=presentation.kind;
   wrap.dataset.sourceAspectRatio=String(imageAspectRatio(media));
   wrap.style.width=`${presentation.width}px`;
+  wrap.style.setProperty('--message-media-width',`${presentation.width}px`);
   wrap.style.maxWidth='100%';
   wrap.style.aspectRatio=String(presentation.aspectRatio);
   const img=wrap.querySelector('img');
@@ -11264,6 +11324,13 @@ function patchMessageMediaShell(shell,media){
   if(!shell)return shell;
   shell.dataset.messageMediaShell='true';
   shell.dataset.mediaShellKind=String(media?.type||media?.kind||'media');
+  // Single-image shell shares the same measured width as its contain tile.
+  // Galleries remain at the standard 360px media width.
+  if(media?.type==='image'){
+    shell.style.setProperty('--message-media-width',`${singleImageDisplayWidth(media)}px`);
+  }else{
+    shell.style.removeProperty('--message-media-width');
+  }
   return shell;
 }
 
@@ -17852,10 +17919,10 @@ function ensureMobileAccountMenu(){
   wrap.innerHTML=`
     <button type="button" class="mobile-account-menu-backdrop" data-mobile-account-close aria-label="Đóng menu"></button>
     <div id="mobileAccountMenuPanel" class="mobile-account-menu-panel" role="menu" aria-label="Tài khoản">
-      <button type="button" class="mobile-account-menu-row" role="menuitem" data-mobile-account-action="directory">Danh bạ</button>
-      <button type="button" class="mobile-account-menu-row" role="menuitem" data-mobile-account-action="account">Tài khoản</button>
-      <button type="button" class="mobile-account-menu-row" role="menuitem" data-mobile-account-action="settings">Cài đặt</button>
-      <button type="button" class="mobile-account-menu-row" role="menuitem" data-mobile-account-action="logout">Thoát</button>
+      <button type="button" class="mobile-account-menu-row" role="menuitem" data-mobile-account-action="directory"><span class="mobile-account-menu-icon" aria-hidden="true">${window.V21Icons?.markup('contacts',{size:20})||''}</span><span>Danh bạ</span></button>
+      <button type="button" class="mobile-account-menu-row" role="menuitem" data-mobile-account-action="account"><span class="mobile-account-menu-icon" aria-hidden="true">${window.V21Icons?.markup('account',{size:20})||''}</span><span>Tài khoản</span></button>
+      <button type="button" class="mobile-account-menu-row" role="menuitem" data-mobile-account-action="settings"><span class="mobile-account-menu-icon" aria-hidden="true">${window.V21Icons?.markup('settings',{size:20})||''}</span><span>Cài đặt</span></button>
+      <button type="button" class="mobile-account-menu-row" role="menuitem" data-mobile-account-action="logout"><span class="mobile-account-menu-icon" aria-hidden="true">${window.V21Icons?.markup('logout',{size:20})||''}</span><span>Thoát</span></button>
     </div>`;
   wrap.addEventListener('click',event=>{
     const target=event.target instanceof Element?event.target:null;
