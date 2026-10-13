@@ -1770,7 +1770,7 @@ function renderImageViewerFilters(){
   saveItem.dataset.viewerAction='save';
   saveItem.setAttribute('role','menuitem');
   const saveText=document.createElement('span');
-  saveText.textContent='Lưu ảnh';
+  saveText.textContent='Tải ảnh';
   saveItem.appendChild(saveText);
   saveItem.addEventListener('click',event=>{
     event.stopPropagation();
@@ -3305,7 +3305,12 @@ async function shareMessageMedia(message,button=null){
   if(button)button.dataset.state='sharing';
 
   try{
-    await navigator.share({files,title:files.length===1?files[0].name:'Tệp đính kèm'});
+    const caption=String(message?.text||'').trim();
+    await navigator.share({
+      files,
+      title:files.length===1?files[0].name:'Tệp đính kèm',
+      ...(caption?{text:caption}:{})
+    });
     return true;
   }catch(error){
     const name=String(error?.name||'');
