@@ -123,3 +123,24 @@ def test_ui_146_root_sidebar_padding_and_pwa_shell_invalidation():
     assert "await self.skipWaiting();" in worker
     assert "await self.clients.claim();" in worker
     assert "key.startsWith('taphoa-chat-shell-')&&key!==CACHE_NAME" in worker
+
+def test_ui_147_mobile_directory_vertical_spacing_only():
+    # Source tokens and active overlay CSS own the two spaces, never list rows.
+    foundation=(ROOT/'ui-foundation.css').read_text('utf-8')
+    assert '--ui-directory-root-top-min:12px;' in foundation
+    assert '--ui-directory-top-trim:16px;' in foundation
+    selector='#appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer '
+    root=CSS.split(selector+'.wm-sidebar-sidebar{',1)[1].split('}',1)[0]
+    header=CSS.split(selector+'.wm-sidebar-header{',1)[1].split('}',1)[0]
+    body=CSS.split(selector+'.wm-sidebar-body{',1)[1].split('}',1)[0]
+    assert 'padding-inline:0!important;' in root  # UI-146 12px rail stays
+    assert 'padding-block-start:max(var(--ui-directory-root-top-min,12px),calc(env(safe-area-inset-top,0px) - var(--ui-directory-top-trim,16px)))!important;' in root
+    assert 'padding-bottom:0;' in header
+    assert 'padding-block-start:0!important;' in body
+    assert '.contact-directory-search{\n    height:var(--ui-control-touch,44px)!important;' in CSS
+    assert '.shell-contact-row{\n    height:60px;' in CSS
+    assert 'padding:8px 4px;' in CSS
+    # No positional hacks and no change to scroll-owner or runtime behavior.
+    vertical=''.join((root,header,body))
+    for bad in ('transform:', 'translate:', 'margin-top:', 'position:', 'scrollTop', 'overflow-y:', 'fetch(', '.rpc('):
+        assert bad not in vertical
