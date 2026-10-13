@@ -16,6 +16,9 @@ let forceOverview=false;
 let selectedWorkCustomerId='';
 let mobileSwipe=null;
 let mobileConversationReturnState={kind:'directory',contact:null};
+// Only a user-opened or restored Chat thread may be revisited by a right
+// swipe from Danh bạ. This is presentation memory, not a second message owner.
+let mobileLastChatContact=null;
 let mobileAccountMenu=null;
 let mobileTopTabTap={key:'',timer:0,lastAt:0};
 let pendingReorderKey='';
@@ -60,6 +63,24 @@ function resetWorkSelectionForDirectory(){
 function mobileDirectoryOpen(){
   const app=document.getElementById('appShell');
   return Boolean(app?.dataset?.mobileDirectory==='true');
+}
+
+function rememberMobileChatContact(contact=activeContact()){
+  const id=String(contact?.id||'').trim();
+  if(!id)return false;
+  mobileLastChatContact={id,name:String(contact.name||'Liên hệ')};
+  return true;
+}
+
+function restoreLastMobileChatFromDirectory(reason='directory-swipe-right'){
+  if(!mobileDirectoryAllowed()||shellSnapshot().route!=='chat'||!mobileDirectoryOpen())return false;
+  const contact=mobileLastChatContact;
+  if(!contact?.id)return false;
+  // Shell verifies contact membership before selecting: stale/deleted
+  // sessions must never navigate or synthesize another conversation.
+  const opened=Boolean(navigation()?.openContact?.(contact.id,contact.name));
+  if(opened)hideMobileDirectory(reason);
+  return opened;
 }
 
 function conversationStateNow(){
@@ -111,6 +132,8 @@ function showMobileDirectory(reason='directory'){
   const app=document.getElementById('appShell');
   const layer=document.getElementById('shellNavigationLayer');
   if(!app||!layer)return false;
+  const wasOpen=mobileDirectoryOpen();
+  rememberMobileChatContact();
   closeMobileAccountMenu();
   app.dataset.mobileDirectory='true';
   layer.dataset.mobileDirectory='true';
@@ -120,8 +143,9 @@ function showMobileDirectory(reason='directory'){
   resetWorkSelectionForDirectory();
   navigation()?.clearActiveContact?.();
   syncDirectoryChatTab(true);
-  void window.V21ContactStore?.refresh?.();
-  window.setTimeout(()=>focusMobileDirectory(layer),0);
+  // Reopening an already-visible directory must not trigger another RPC.
+  if(!wasOpen)void window.V21ContactStore?.refresh?.();
+  if(!wasOpen)window.setTimeout(()=>focusMobileDirectory(layer),0);
   return true;
 }
 
@@ -342,7 +366,19 @@ function moveMobileAccountMenuFocus(event){
 }
 
 function swipeIgnoredTarget(target){
-  return Boolean(target?.closest?.('textarea,input,select,button,a,[role="button"],[contenteditable="true"],#thread-bottom-container'));
+  return Boolean(target?.closest?.(
+    'textarea,input,select,button,a,[role="button"],[contenteditable="true"],#thread-bottom-container,'+
+    'dialog,[role="dialog"],.media-gallery-grid,.media-image-tile,.attachment-tray-media-strip,[data-horizontal-scroll]'
+  ));
+}
+
+function mobileChatSwipeSurface(target,directory){
+  if(!(target instanceof Element))return false;
+  // Restrict navigation to scrollable content, not header, composer, Work,
+  // overlays, tabs or system-edge gestures.
+  return Boolean(target.closest(directory
+    ? '#shellNavigationLayer .wm-sidebar-navigation'
+    : '#scrollRoot'));
 }
 
 function bindMobileHierarchySwipe(){
@@ -350,24 +386,41 @@ function bindMobileHierarchySwipe(){
   if(!app)return false;
   const reset=()=>{mobileSwipe=null;};
   const onTouchStart=event=>{
-    if(!mobileDirectoryAllowed()||event.touches?.length!==1||swipeIgnoredTarget(event.target)||mobileAccountMenu?.dataset.open==='true'){
+    const interactionMode=window.V21InteractionController?.snapshot?.()?.mode||'NONE';
+    if(!mobileDirectoryAllowed()||shellSnapshot().route!=='chat'||
+      snapshot().state!=='AUTHENTICATED'||event.touches?.length!==1||
+      swipeIgnoredTarget(event.target)||mobileAccountMenu?.dataset.open==='true'||
+      interactionMode!=='NONE'){
+      reset();
+      return;
+    }
+    const directory=mobileDirectoryOpen();
+    // Danh bạ without a previous chat has no valid swipe destination.
+    if((directory&&!mobileLastChatContact?.id)||
+      (!directory&&!activeContact()?.id)||
+      !mobileChatSwipeSurface(event.target,directory)){
       reset();
       return;
     }
     const touch=event.touches[0];
-    if(touch.clientX<MOBILE_CHAT_SWIPE_EDGE_INSET_PX||touch.clientX>window.innerWidth-MOBILE_CHAT_SWIPE_EDGE_INSET_PX){
+    if(touch.clientX<MOBILE_CHAT_SWIPE_EDGE_INSET_PX||
+      touch.clientX>window.innerWidth-MOBILE_CHAT_SWIPE_EDGE_INSET_PX){
       reset();
       return;
     }
-    mobileSwipe={startX:touch.clientX,startY:touch.clientY,claimed:false};
+    mobileSwipe={startX:touch.clientX,startY:touch.clientY,directory,claimed:false};
   };
+  const allowedDirection=dx=>Boolean(mobileSwipe&&(
+    mobileSwipe.directory?dx>0:dx<0
+  ));
   const onTouchMove=event=>{
     if(!mobileSwipe||event.touches?.length!==1)return;
     const touch=event.touches[0];
     const dx=touch.clientX-mobileSwipe.startX;
     const dy=touch.clientY-mobileSwipe.startY;
     if(Math.abs(dy)>Math.abs(dx)&&Math.abs(dy)>18){reset();return;}
-    if(Math.abs(dx)>14&&Math.abs(dx)>Math.abs(dy)*MOBILE_CHAT_SWIPE_DOMINANCE){
+    if(allowedDirection(dx)&&Math.abs(dx)>14&&
+      Math.abs(dx)>Math.abs(dy)*MOBILE_CHAT_SWIPE_DOMINANCE){
       mobileSwipe.claimed=true;
       if(event.cancelable)event.preventDefault();
       event.stopImmediatePropagation();
@@ -378,33 +431,22 @@ function bindMobileHierarchySwipe(){
     const state=mobileSwipe;
     const touch=event.changedTouches?.[0];
     reset();
-    if(!touch)return;
+    if(!touch||shellSnapshot().route!=='chat')return;
     const dx=touch.clientX-state.startX;
     const dy=touch.clientY-state.startY;
-    const horizontal=Math.abs(dx)>=MOBILE_CHAT_SWIPE_DISTANCE_PX&&Math.abs(dx)>Math.abs(dy)*MOBILE_CHAT_SWIPE_DOMINANCE;
+    const horizontal=Math.abs(dx)>=MOBILE_CHAT_SWIPE_DISTANCE_PX&&
+      Math.abs(dx)>Math.abs(dy)*MOBILE_CHAT_SWIPE_DOMINANCE;
     if(!horizontal)return;
+    let changed=false;
+    if(state.directory&&dx>=MOBILE_CHAT_SWIPE_DISTANCE_PX&&mobileDirectoryOpen()){
+      changed=restoreLastMobileChatFromDirectory('directory-swipe-right');
+    }else if(!state.directory&&dx<=-MOBILE_CHAT_SWIPE_DISTANCE_PX&&
+      !mobileDirectoryOpen()&&activeContact()?.id){
+      changed=showMobileDirectory('chat-swipe-left');
+    }
+    if(!changed)return;
     if(event.cancelable)event.preventDefault();
     event.stopImmediatePropagation();
-
-    const route=shellSnapshot().route;
-    if(route==='work'){
-      if(dx<=-MOBILE_CHAT_SWIPE_DISTANCE_PX)restoreConversationFromWork('swipe-left-chat');
-      return;
-    }
-    if(route!=='chat')return;
-    if(mobileDirectoryOpen()){
-      if(dx>=MOBILE_CHAT_SWIPE_DISTANCE_PX)openWorkFromMobileConversation('directory-swipe-right');
-      return;
-    }
-    if(activeContact()?.id){
-      if(dx<=-MOBILE_CHAT_SWIPE_DISTANCE_PX){
-        showMobileDirectory('chat-swipe-left');
-        return;
-      }
-      if(dx>=MOBILE_CHAT_SWIPE_DISTANCE_PX)openWorkFromMobileConversation('chat-swipe-right');
-      return;
-    }
-    if(dx>=MOBILE_CHAT_SWIPE_DISTANCE_PX)openWorkFromMobileConversation('directory-swipe-right');
   };
 
   app.addEventListener('touchstart',onTouchStart,{passive:true,capture:true});
@@ -978,13 +1020,16 @@ document.addEventListener('v21-auth-state',()=>{
   selectedWorkCustomerId='';
   forceOverview=false;
   mobileConversationReturnState={kind:'directory',contact:null};
+  mobileLastChatContact=null;
   closeMobileAccountMenu();
   const auth=snapshot();
   if(mobileDirectoryAllowed()&&auth.state!=='AUTHENTICATED'){
     hideMobileDirectory('guest-auth');
     navigation()?.openChat?.();
     window.ChatAppShell?.AuthUI?.openLogin?.();
-  }else if(mobileDirectoryAllowed()&&auth.state==='AUTHENTICATED'&&shellSnapshot().route==='chat'&&!activeContact()?.id){
+  }else if(mobileDirectoryAllowed()&&auth.state==='AUTHENTICATED'&&shellSnapshot().route==='chat'){
+    // Mobile always opens the directory, including when a contact was saved
+    // in ScreenSession. Remember that contact for optional right-swipe return.
     showMobileDirectory('auth-directory');
   }
   void refresh('auth-state');
@@ -992,6 +1037,7 @@ document.addEventListener('v21-auth-state',()=>{
 document.addEventListener('v21-active-contact-change',event=>{
   selectedWorkCustomerId='';
   if(event?.detail?.contact?.id){
+    rememberMobileChatContact(event.detail.contact);
     hideMobileDirectory('contact-selected');
     forceOverview=false;
   }else if(mobileDirectoryAllowed()&&mobileDirectoryOpen()){
@@ -1074,6 +1120,7 @@ window.V21WorkCustomerSummary=Object.freeze({
   renderCurrent,
   showMobileDirectory,
   hideMobileDirectory,
+  restoreLastMobileChatFromDirectory,
   openWorkFromMobileConversation,
   restoreConversationFromWork,
   openMobileAccountMenu,

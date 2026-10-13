@@ -106,6 +106,8 @@ subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_chat_boot_defaults_to_
 subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_customer_care_templates.py')],check=True,cwd=ROOT)
 subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_debt_share_summary.py')],check=True,cwd=ROOT)
 subprocess.run([sys.executable,'-m','pytest','-q',str(ROOT/'tests'/'test_v21_mobile_share_group_roles.py')],check=True,cwd=ROOT)
+subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_mobile_chat_navigation.py')],check=True,cwd=ROOT)
+subprocess.run(['node',str(ROOT/'tests'/'test_v21_mobile_directory_swipe_runtime.js')],check=True,cwd=ROOT)
 subprocess.run([sys.executable,'-m','pytest','-q',str(ROOT/'tests'/'test_v21_zalo_admin_ui_contract.py')],check=True,cwd=ROOT)
 for test in sorted((ROOT/'tests').glob('test_v21_admin_web_push*.py')):
     subprocess.run([sys.executable,'-m','pytest','-q',str(test)],check=True,cwd=ROOT)

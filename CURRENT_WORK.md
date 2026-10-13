@@ -1,3 +1,16 @@
+## 2026-10-13 — Mobile Chat first screen Danh bạ + chat-only horizontal swipe (PR CANDIDATE)
+
+- **User request:** opening Chat on mobile/PWA must show Danh bạ. Horizontal swipe is only between selected chat conversation (swipe left → Danh bạ) and Danh bạ (swipe right → previously selected valid conversation). Without a prior contact, directory swipe is a no-op. Swipe must not enter/exit Work; Work remains a deliberate top-tab/button action.
+- **Root cause:** two gesture owners: `shell.js` pointer swipe switched Chat ↔ Work; `work-customer-summary.js` touch swipe switched directory/chat ↔ Work. Auth restore could show a saved conversation or single-contact auto-select rather than directory.
+- **Patch:** remove legacy shell pointer swipe owner and single-contact mobile auto-selection; move touch owner to explicit Chat directory↔thread only, scoped to scrollable content, no overlay/input/media/horizontal gallery/touch-edge stealing. Remember last selected contact only as local UI state; Shell `openContact` validates membership before returning. Authenticated mobile boot always shows directory, with saved selected contact remembered for optional right-swipe. Avoid a second directory contacts refresh when already open. No DB/Edge/Realtime/Push changes.
+- **Safety:** normal contact taps, notification deep-link, mobile Work top-tab/double-tap, desktop directory, USER_AWAY/FOLLOW_TAIL, media, send, pending drafts, realtime and cache unchanged. No new network owner/timer/API. Works for desktop-narrow UI through same source; real gesture requires touch.
+- **E0:** canonical Rule chung sheet tab 08 row110 `SPEC-CHAT-MOBILE-SWIPE-DIRECTORY-20261013`.
+- **E1/E2:** `tests/test_v21_mobile_chat_navigation.py` updates direction locks and `tests/test_v21_mobile_directory_swipe_runtime.js` exercises gesture/no-op matrix, registered with canonical Verify + GitHub Verify V21. PR CI pending.
+- **E3/E4/E5 PENDING:** use one standard Verify → merge → Pages deploy. Real Safari/iPhone/Android PWA gestures and post-notification open remain device acceptance; no measured resource delta. Do not claim PROD VERIFIED without browser proof.
+- **Rollback:** revert this navigation-only PR. No data migration.
+
+---
+
 ## 2026-10-13 — Mobile share one-tap + customer-only business menu (MERGED, PROD E4/E5 PENDING)
 
 - **Request:** mobile share a Chat photo/file by showing recipient immediately; do not require Save/Copy/Paste. Only KH group exposes business actions like Công nợ/Báo giá; CM/Bạn bè/Khác use simple image/file composer actions.
