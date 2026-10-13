@@ -1,10 +1,10 @@
-## 2026-10-13 — Non-Admin incoming Chat content left margin on narrow one-pane UI (PR CANDIDATE)
+## 2026-10-13 — Non-Admin incoming Chat content left margin on narrow one-pane UI (CI + PAGES PASS; E4/E5 PENDING)
 
 - **User observation:** Messages from someone other than Admin (including Zalo image/text/file) are positioned too far away from the left border in a narrow browser/mobile screenshot; Admin self messages should stay right.
 - **Owner:** `mobile-chat-refresh.css` existing UI-139 single-pane CSS. Root cause: the previous left-edge layout correction only applied through `639px`, while mobile/single-pane geometry lasts until `1023px` and keeps a centered max-width `48rem` conversation axis.
 - **Fix:** Scope to `@media (max-width:63.999rem)`: stretch `#conversationContentAxis` full width, remove centered margin/extra axis padding and apply one 12px message reading gutter. Add remote `#messageWindow>.message-row[data-turn="assistant"]` left-edge alignment for text/media/audio/file; leave Admin `data-turn="user"` right-aligned and desktop >=1024px center width unchanged. CSS only; no hacks/transforms, no message renderer, ScrollRoot, media decoding or data changes.
 - **Rule:** Shared Google Sheet tab 08 row114 `SPEC-CHAT-INBOUND-LEFT-EDGE-20261013`. `tests/test_v21_incoming_left_edge_contract.py` and updated `test_v21_140_zalo_card_narrow_axis.py` registered in canonical Verify and CI.
-- **E0 done; E1/E2 focused/full CI, E3 Pages and E4 Safari/PWA screenshot+E5 resources PENDING.** No new API/RPC/Edge/Realtime polling/log/egress.
+- **E0/E1/E2/E3 PASS:** focused left-edge and legacy UI-140 tests registered; PR #179 Verify V21 run 38372345917 SUCCESS, squash merged main `2f286df54f25e327933896f0265fd58dfe3a4024`; main Verify 38372465813 SUCCESS; Deploy Chat Pages 38372465818 SUCCESS; read-back main build ID `1577353a72cb2fddbce4e86bd9d9ae4c588bc7f6b32038e6dc231e4e02e35b3a`. **E4 actual authenticated narrow Web/iPhone Safari/PWA visual measurement, E5 resource delta/user acceptance pending.** No new API/RPC/Edge/Realtime polling/log/egress.
 - **Rollback:** revert CSS + generated index/version together; no schema or Zalo bridge redeploy.
 
 ---
