@@ -20,6 +20,9 @@
   /* UI-145: 2 semantic rails: actions/forms vs edge-anchored messages. */
   --ui-chat-layout-rail:12px;
   --ui-chat-message-rail:6px;
+  /* UI-147 — directory vertical spacing; scoped mobile CSS consumes these. */
+  --ui-directory-root-top-min:12px;
+  --ui-directory-top-trim:16px;
   --ui-gutter-desktop:16px;
 
   --ui-radius-6:6px;
