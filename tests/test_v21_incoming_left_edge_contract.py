@@ -13,7 +13,15 @@ def test_single_pane_received_message_edge_and_medium_breakpoints():
     assert 'max-width:none!important;' in single
     assert 'margin-inline:0!important;' in single
     assert 'padding-inline:0!important;' in single
-    assert 'padding-inline:var(--ui-chat-message-gutter,var(--ui-gutter-mobile,12px))!important;' in single
+    assert 'max(6px,env(safe-area-inset-left,0px))' in single
+    assert 'max(6px,env(safe-area-inset-right,0px))!important;' in single
+    assert 'scrollbar-gutter:auto;' in single
+    # Prior CSS layers still mention 12/14px, but the final important
+    # single-pane rule must win; do not stack physical insets.
+    assert single.index('padding-inline:') < single.index('max(6px,env(safe-area-inset-left,0px))')
+    assert '#messageWindow>.message-row[data-turn="user"] .user-message-unit{' in single
+    assert 'margin-inline-start:auto!important;' in single
+    assert 'margin-inline-end:0!important;' in single
     # All incoming payload variants share the same remote turn container.
     assert '#messageWindow>.message-row[data-turn="assistant"] .assistant-message{' in single
     assert 'justify-content:flex-start!important;' in single
@@ -29,10 +37,16 @@ def test_source_incoming_vs_self_keeps_owner_and_direction():
     assert "message.sender==='self'\n      ?'user'\n      :'assistant';" in app
     assert "message.sender==='self'\n      ?'flex w-full justify-end'\n      :'assistant-message flex w-full justify-start';" in app
     assert "message.sender==='self'\n      ?'message-unit user-message-unit'\n      :'message-unit assistant-message-unit';" in app
-    # The new CSS touches assistant messages only, not Admin/self.
+    # Inbound aligns start, Admin aligns end against the same gutter.
     scoped=css[css.index('/* UI-139/141'):]
-    assert '[data-turn="user"]' not in scoped
-    assert '#scrollRoot' not in scoped
+    assert '[data-turn="assistant"]' in scoped
+    assert '[data-turn="user"]' in scoped
+    assert 'margin-inline-end:0!important;' in scoped
+    # The only ScrollRoot change is preventing phantom PWA scrollbar width.
+    assert '#scrollRoot{' in scoped
+    assert 'scrollbar-gutter:auto;' in scoped
+    for prohibited in ('scrollTop','scroll-behavior','scroll-padding','overflow-y','height:100vh'):
+        assert prohibited not in scoped
     assert 'transform:' not in scoped
     assert 'fetch(' not in scoped and '.rpc(' not in scoped and 'setInterval(' not in scoped
 
