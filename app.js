@@ -3274,7 +3274,7 @@ async function saveMessageMedia(message){
   return saved;
 }
 
-async function shareMessageMedia(message){
+async function shareMessageMedia(message,button=null){
   if(!canNativeShareFiles())return false;
 
   // Web Share requires transient user activation at navigator.share() call time.
@@ -3282,7 +3282,19 @@ async function shareMessageMedia(message){
   // primes mediaShareBlobs ahead of the click; intent handlers warm any miss.
   const files=preparedShareFilesForMessage(message);
   if(!files?.length){
-    void prepareMessageShareFiles(message);
+    if(button){
+      button.dataset.state='preparing';
+      button.setAttribute('aria-label','Đang chuẩn bị tệp để chia sẻ');
+      button.title='Đang chuẩn bị tệp để chia sẻ';
+    }
+    // A Blob read cannot be awaited before the OS share call: gesture
+    // activation would expire. Prime and let a later real tap invoke share.
+    void prepareMessageShareFiles(message).then(ready=>{
+      if(!button?.isConnected)return;
+      button.dataset.state=ready?'ready':'failed';
+      button.setAttribute('aria-label',ready?'Chạm lại để chia sẻ':'Không thể chuẩn bị tệp');
+      button.title=ready?'Chạm lại để chia sẻ':'Không thể chuẩn bị tệp';
+    });
     return false;
   }
   if(typeof navigator.canShare==='function'&&!navigator.canShare({files}))return false;
@@ -3730,14 +3742,21 @@ function createActionGroup(message){
       label:'Chia sẻ',icon:'share',
       onClick:event=>{
         event.stopPropagation();
-        void shareMessageMedia(resolveMessage()).finally(()=>closeAllTurnActions());
+        void shareMessageMedia(resolveMessage(),shareAction).then(ok=>{
+          if(ok||shareAction.dataset.state!=='preparing'&&shareAction.dataset.state!=='ready'){
+            closeAllTurnActions();
+          }
+        });
       }
     });
     primeMessageShareOnIntent(shareAction,resolveMessage);
     actions.push(shareAction);
   }
 
-  // Mirror by sender; icons retain semantic labels and keyboard order.
+  // Lowest-to-highest priority toward the message edge: the last control
+  // in outgoing / first in incoming is Copy or Download, not OS Share.
+  const order=['reply','share','forward','save','copy'];
+  actions.sort((a,b)=>order.indexOf(a.dataset.messageAction)-order.indexOf(b.dataset.messageAction));
   const orderedActions=isSelf?actions:[...actions].reverse();
   group.append(...orderedActions);
   return group;
