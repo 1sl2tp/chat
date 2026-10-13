@@ -275,10 +275,10 @@ function ensureMobileAccountMenu(){
   wrap.innerHTML=`
     <button type="button" class="mobile-account-menu-backdrop" data-mobile-account-close aria-label="Đóng menu"></button>
     <div id="mobileAccountMenuPanel" class="mobile-account-menu-panel" role="menu" aria-label="Tài khoản">
-      <button type="button" class="mobile-account-menu-row" role="menuitem" data-mobile-account-action="directory">Danh bạ</button>
-      <button type="button" class="mobile-account-menu-row" role="menuitem" data-mobile-account-action="account">Tài khoản</button>
-      <button type="button" class="mobile-account-menu-row" role="menuitem" data-mobile-account-action="settings">Cài đặt</button>
-      <button type="button" class="mobile-account-menu-row" role="menuitem" data-mobile-account-action="logout">Thoát</button>
+      <button type="button" class="mobile-account-menu-row" role="menuitem" data-mobile-account-action="directory"><span class="mobile-account-menu-icon" aria-hidden="true">${window.V21Icons?.markup('contacts',{size:20})||''}</span><span>Danh bạ</span></button>
+      <button type="button" class="mobile-account-menu-row" role="menuitem" data-mobile-account-action="account"><span class="mobile-account-menu-icon" aria-hidden="true">${window.V21Icons?.markup('account',{size:20})||''}</span><span>Tài khoản</span></button>
+      <button type="button" class="mobile-account-menu-row" role="menuitem" data-mobile-account-action="settings"><span class="mobile-account-menu-icon" aria-hidden="true">${window.V21Icons?.markup('settings',{size:20})||''}</span><span>Cài đặt</span></button>
+      <button type="button" class="mobile-account-menu-row" role="menuitem" data-mobile-account-action="logout"><span class="mobile-account-menu-icon" aria-hidden="true">${window.V21Icons?.markup('logout',{size:20})||''}</span><span>Thoát</span></button>
     </div>`;
   wrap.addEventListener('click',event=>{
     const target=event.target instanceof Element?event.target:null;
