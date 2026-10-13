@@ -97,6 +97,16 @@ Quy tắc:
 - **PWA shell (theo UI-146):** vì `sw.js` giữ HTML offline trong cache theo epoch, sau khi sửa CSS trong shell phải đổi riêng `SHELL_CACHE_EPOCH:ui146→ui147` để PWA không tiếp tục khởi chạy HTML cũ; **giữ nguyên cache tin nhắn/IndexedDB, Push, offline-first, Safe Reload**. Không thêm request/RPC/polling; nâng epoch chỉ xoá shell phiên bản trước theo cơ chế Service Worker sẵn có.
 - **Tài nguyên/rollback:** không tăng RPC/Edge/Realtime/DB/call, không xóa lịch sử hoặc ép PWA refresh khi đang nhập. Rollback riêng CSS/tokens/tests/SW epoch và build lại index/version theo canonical.
 
+## 3g. UI-148 — Viewer ảnh mở từ chat phải duyệt được ảnh gần đó (2026-10-13)
+
+- **Lỗi gốc:** viewer đã có tập `collectConversationImageAssets()`, nút trái/phải, vuốt ngang, bàn phím ←/→, dải thumbnail, nhưng `openImageViewer()` tự chọn `imageViewerFilter='album'` nếu ảnh thuộc một message. Khi message chỉ có 1 ảnh, mặc định `Ảnh 1 / 1` và các thao tác chuyển ảnh bị khóa; không phải vì cuộc chat chỉ có 1 ảnh.
+- **Rule mặc định:** mở BẤT KỲ ảnh đã gửi/nhận (ảnh đơn hay album), filter mặc định **`all` = tất cả ảnh đã hiện diện trong message store của đúng cuộc trò chuyện đang mở**, cùng thứ tự lịch sử message (cũ→mới, gallery theo sort_index/canonical order). Chọn đúng `assetId` đã chạm; ←/→ hoặc nút trước/sau, swipe trên mobile/PWA, dải thumbnail và `Ảnh i / N` vận hành trên cùng một danh sách. Không wrap từ ảnh cuối về ảnh đầu; hai đầu khóa đúng.
+- **Bộ lọc thủ công:** `Tất cả` / `A` (mình gửi) / `B` (người khác gửi) / `Album hiện tại` vẫn giữ nguyên; album chỉ giới hạn ảnh trong **cùng một message** sau khi người dùng tự chọn. Không để album 1 ảnh tự chiếm filter khi mở, không chuyển sang liên hệ khác. Nếu tập chỉ có một ảnh thật sự thì viewer vẫn là `1 / 1`; không dựng ảnh giả.
+- **Hiệu năng, chủ dữ liệu:** reuse `store.items` đã có và các descriptor/cache đang chạy; **không query thêm các cuộc hội thoại, không full-history fetch/scan DB, không RPC/Realtime/subscription/timer mới** chỉ để làm bộ sưu tập. Nếu lịch sử trước đó chưa tải vào message store, không giả là đã có; người dùng tải lịch sử qua luồng scroll hiện hữu, mở lại viewer sẽ thấy phần đã tải. Thumbnails hydrate lười và prefetch 2 ảnh cạnh bên theo behavior hiện có; cấm tải toàn bộ ảnh/Blob cùng lúc.
+- **Tương tác:** đóng Viewer trả về vùng đọc cũ; đổi ảnh reset zoom/pan theo owner sẵn có; viewer global overlay/safe area/PWA desktop giữ nguyên, không mở trang web ngoài, không sửa ảnh/tỷ lệ/định hướng, không tự chia sẻ album khi nhấn chia sẻ 1 ảnh; không lấy ảnh từ chat khác hoặc draft hiện hành.
+- **Kiểm thử:** test first-open image đơn giữa 3 message ảnh ⇒ `Ảnh 2/3`; cả album 2+ và ảnh đơn lân cận ⇒ `N` chung, album chip thu hẹp khi người dùng bấm; filter A/B; lệnh next/prev/swipe/keyboard dùng cùng index; 1 ảnh thực ⇒ 1/1; đổi liên hệ ⇒ viewer đóng, không rò rỉ. Verify V21 và GitHub Pages trước khi xác nhận phát hành. E4 iPhone thật/E5 phản hồi người dùng tách biệt CI.
+- **Rollback:** revert riêng `app.js` logic default filter (và test); rebuild canonical `index.html/version.json` và bump PWA shell epoch để thiết bị nhận CSS/JS mới. Không chạm backend/IndexedDB.
+
 ## 4. Contract realtime không được phá
 
 Luồng chuẩn:
