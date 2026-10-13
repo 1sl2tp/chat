@@ -188,7 +188,7 @@
     grid-row:3;
     /* 44px target with a fixed 36px painted circle in BOTH send states.
        Never scale or shift the control between disabled / enabled. */
-    border:calc((var(--ui-control-touch,44px) - var(--ui-composer-send-disc,36px)) / 2) solid var(--cgpt-composer-surface-primary);
+    border:var(--ui-composer-send-ring,4px) solid var(--cgpt-composer-surface-primary);
     border-radius:9999px;
   }
   /* Optical rather than raw SVG viewBox parity: the mic has a narrower
