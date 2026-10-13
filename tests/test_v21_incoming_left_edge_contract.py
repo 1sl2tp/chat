@@ -20,16 +20,17 @@ def test_single_pane_received_message_edge_and_medium_breakpoints():
     assert 'padding-block:var(--ui-space-8,8px) 14px;' in css
     # Three zero-padding resets (axis / remote row / remote wrapper) plus
     # exactly one non-zero edge gutter on messageWindow; resets do not stack.
+    assert '--ui-chat-message-rail:6px;' in (ROOT/'ui-foundation.css').read_text('utf-8')
     assert single.count('padding-inline:')==4
     assert single.count('padding-inline:0!important;')==2
     assert single.count('padding-inline:0;')==1
-    assert single.count('max(6px,env(safe-area-inset-left,0px))')==1
-    assert 'max(6px,env(safe-area-inset-left,0px))' in single
-    assert 'max(6px,env(safe-area-inset-right,0px))!important;' in single
+    assert single.count('max(var(--ui-chat-message-rail,6px),env(safe-area-inset-left,0px))')==1
+    assert 'max(var(--ui-chat-message-rail,6px),env(safe-area-inset-left,0px))' in single
+    assert 'max(var(--ui-chat-message-rail,6px),env(safe-area-inset-right,0px))!important;' in single
     assert 'scrollbar-gutter:auto;' in single
     # Prior CSS layers still mention 12/14px, but the final important
     # single-pane rule must win; do not stack physical insets.
-    assert single.index('padding-inline:') < single.index('max(6px,env(safe-area-inset-left,0px))')
+    assert single.index('padding-inline:') < single.index('max(var(--ui-chat-message-rail,6px),env(safe-area-inset-left,0px))')
     assert '#messageWindow>.message-row[data-turn="user"] .user-message-unit{' in single
     assert 'margin-inline-start:auto!important;' in single
     assert 'margin-inline-end:0!important;' in single
