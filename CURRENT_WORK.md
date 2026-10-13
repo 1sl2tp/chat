@@ -1,3 +1,15 @@
+## 2026-10-13 — UI-148 Image Viewer defaults to nearby photos in active conversation (RULE FIRST; Verify/Pages PASS, E4 pending)
+
+- **Screenshot/root cause:** opening a single image from `gd me yeu` showed "Ảnh 1 / 1" despite nearby image messages because `app.js::openImageViewer()` initialized `imageViewerFilter=imageViewerAlbumId?'album':'all'`. Existing collectConversationImageAssets/Prev/Next/ArrowLeft/ArrowRight/swipe/filmstrip already support chronological multi-message navigation, but the automatic album restriction hid it.
+- **Rule-first:** `README_MAINTENANCE.md §3g UI-148` committed **before source**, Google Sheet `08 - SDD SPEC TEST ACCEPTANCE` row120 and `04 - UI FOUNDATION TOKENS` F-130 row190 also recorded before source modification. Scope: within active conversation store only, keep A/B and Album hiện tại manual filters, no full-history RPC.
+- **Minimal source:** `app.js` now defaults `imageViewerFilter='all'` every time an image is opened; `imageViewerAlbumId` retained for explicit Album selection and updated to the currently displayed image's `messageId` upon manual Album filtering. Keeps selected `assetId`, chronological store order, image 1/N counter, nav keyboard/swipe, zoom/reset, viewer close, current-only save/share, and lazy hydration. If only one image truly loaded, still 1/1. No cross-contact or whole-history fetch.
+- **PWA:** Existing `sw.js` HTML shell epoch moved from ui147 to **ui148**; does not erase IndexedDB/media history or add requests. `tests/test_v21_ui_library_composer_media_menu.py` locks default/all and album/current plus existing nav controls, and `tests/test_v21_mobile_ui_polish.py` matches epoch.
+- **Release:** build `4458e008e63d2f3506482008d713fd5aa1583824f79b0c5953333c8972621dad`, canonical `index.html` commit `246636fefbcb5e34a3f04fc09aa1bc4f830caab5`, version commit `7c7c7a292d0aeb9366b1a10d0e6662276bbb0597`. Verify V21 **38418655386 SUCCESS**, Deploy Chat Pages **38418654934 SUCCESS**.
+- **E4/E5 pending:** real iPhone Web/PWA open any photo in a thread with >=2 already-loaded photos, verify previous/next / swipes / thumbnail and counter. Installed PWA may show cached shell until close/relaunch after SW activation. No E4 device verification yet.
+- **Rollback:** restore album default and manual filter source, test, SW epoch, rebuild canonical HTML/version and rerun Verify/Pages. No DB/Realtime rollback.
+
+---
+
 ## 2026-10-13 — UI-147 Danh bạ vertical rhythm (RULE FIRST; Verify / Pages PASS, E4 pending)
 
 - **User ask 21:35:** top tabs → "Danh bạ" and title → search too spacious. Approved targets: approximate visual 20–24px and 12–16px rather than screenshot's prior 36–40px and 24–28px. Mobile iPhone screenshot pixel scale is illustrative, not literal CSS measurement.
