@@ -152,6 +152,8 @@ jobs:
         run: node tests/test_v21_image_geometry_f133_f137.js
       - name: UI-153 image edge, viewer wheel and EXIF contract
         run: python tests/test_v21_ui153_media_edge_wheel_exif.py
+      - name: UI-154 image four-corner clipping contract
+        run: python tests/test_v21_ui154_image_four_corners.py
       - name: Chat image quality and batch performance contract
         run: python tests/test_v21_image_quality_contract.py
       - name: iOS zero-byte media upload recovery contract

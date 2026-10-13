@@ -15,8 +15,9 @@ single=rule('.media-image-tile[data-image-presentation]')
 gallery=rule('.media-gallery-grid')
 for r in (single,gallery):
     assert 'padding:0;' in r
-    assert 'border:1px solid rgba(15,23,42,.08);' in r
+    assert 'border:0;' in r
     assert 'border-radius:14px' in r
+    assert 'isolation:isolate;' in r
 assert 'gap:4px!important;' in gallery
 assert '.assistant-message-unit>.message-media-shell{margin-right:auto}' in css
 assert '.user-message-unit>.message-media-shell{margin-left:auto}' in css

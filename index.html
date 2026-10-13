@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="f03a62b4b85a70ddabbb75d34877088373e7c8285f7a10ae4f22921e0e79f4e1">
+<meta name="app-build-id" content="4a13b1baf3ef3383320c76993772c98d08260ac17e0c86b6f37461718a32266d">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -2865,8 +2865,10 @@ button{
   width:min(22.5rem,var(--message-media-width,22.5rem))!important;
   max-width:100%;
   box-sizing:border-box;
+  position:relative;
+  isolation:isolate;
   padding:0;
-  border:1px solid rgba(15,23,42,.08);
+  border:0;
   border-radius:14px;
   overflow:hidden;
   background:var(--theme-surface-secondary);
@@ -2888,12 +2890,27 @@ button{
   width:22.5rem!important;
   max-width:100%;
   box-sizing:border-box;
+  position:relative;
+  isolation:isolate;
   padding:0;
-  border:1px solid rgba(15,23,42,.08);
+  border:0;
   gap:4px!important;
   border-radius:14px!important;
   overflow:hidden;
   background:var(--theme-surface-secondary);
+}
+/* One inward, non-layout outline. Four corners share the outer R14 clip;
+   pseudo-element is absolute and never becomes a fifth gallery cell. */
+.media-image-tile[data-image-presentation]::after,
+.media-gallery-grid::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  box-sizing:border-box;
+  border:1px solid rgba(15,23,42,.09);
+  border-radius:inherit;
+  pointer-events:none;
+  z-index:2;
 }
 /* A legacy image tile must follow the SAME per-image width contract
    as the canonical media shell, including when old DOM survives a refresh.

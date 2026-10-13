@@ -30,8 +30,10 @@ for token in [
     'width:min(22.5rem,var(--message-media-width,22.5rem))!important;',
     'max-width:100%;',
     'box-sizing:border-box;',
+    'position:relative;',
+    'isolation:isolate;',
     'padding:0;',
-    'border:1px solid rgba(15,23,42,.08);',
+    'border:0;',
     'border-radius:14px;',
     'background:var(--theme-surface-secondary);'
 ]:
@@ -45,7 +47,7 @@ for token in [
     'max-width:100%;',
     'box-sizing:border-box;',
     'padding:0;',
-    'border:1px solid rgba(15,23,42,.08);',
+    'border:0;',
     'gap:4px!important;',
     'background:var(--theme-surface-secondary);'
 ]:

@@ -1,3 +1,12 @@
+## 2026-10-13 — UI-154 Four precise photo corners (RULE FIRST; TEST/DEPLOY PENDING)
+
+- User screenshot on desktop shows radius14 looking fuzzy at four corners, particularly light-background scanned receipt. Screenshot address included an old _build=e71f9bd... value; actual running cached shell cannot be confirmed from image alone.
+- Canonical Google Sheet F-133/134 Rev4 + SDD row126: keep a single R14 clip on outer media; remove geometry-changing 1px border and instead paint subtle 1px absolute, pointer-events:none ::after overlay with border-radius inherit. Single and album both have padding0; album tile gap4px; no per-tile round corners, no frame/ratio changes, no transform hacks.
+- Scope: index.source.html image/gallery root CSS, sw.js shell epoch img154; same generated index.html/version.json; new UI-154 static regression + updated UI-153/V21.72.43/75 tests. No changes to app.js, rotation, viewer, data, messages, Supabase, RPC or lazy media.
+- E1/E3 source Verify/Pages PENDING; E4 physical Safari/iPhone/PWA old-vs-new image PENDING; E5 bytes/writes unchanged by architecture, live resource measurement PENDING.
+
+---
+
 ## 2026-10-13 — UI-153 IMAGE MEDIA EDGE + VIEWER WHEEL + EXIF (VERIFY/PAGES PASS; DEVICE E4/E5 PENDING)
 
 - Screenshot comparison: root media portrait/landscape edges visually differ ~4px. Canonical Google Sheets F-133/134/135/137 + SDD 125 updated BEFORE code. Remove outer 4px inset for both single and gallery, keep ONE shared rounded 14px border 1px subtle and 4px INTERNAL album tile gap; no sender lane/size or orientation classification changes.
