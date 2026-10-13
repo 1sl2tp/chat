@@ -10,7 +10,9 @@ def test_narrow_chat_gutter_aligns_content_to_composer_no_responsive_duplication
     assert '#appShell[data-auth-state="authenticated"][data-route="chat"] #conversationContentAxis{' in source
     assert 'margin-inline:0!important;' in source
     assert 'padding-inline:0!important;' in source
-    assert 'padding-inline:var(--ui-chat-message-gutter,var(--ui-gutter-mobile,12px))!important;' in source
+    assert 'max(6px,env(safe-area-inset-left,0px))' in source
+    assert 'max(6px,env(safe-area-inset-right,0px))!important;' in source
+    assert 'scrollbar-gutter:auto;' in source
     assert '#scrollRoot' not in source[source.index('/* UI-139/141'):], 'do not create a second scroll owner'
 
 def test_zalo_cards_use_existing_text_ingress_only():
