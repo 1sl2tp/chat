@@ -1,9 +1,9 @@
-## 2026-10-13 — UI-154 Four precise photo corners (RULE FIRST; TEST/DEPLOY PENDING)
+## 2026-10-13 — UI-154 Four precise photo corners (VERIFY/PAGES PASS; REAL SAFARI E4 PENDING)
 
 - User screenshot on desktop shows radius14 looking fuzzy at four corners, particularly light-background scanned receipt. Screenshot address included an old _build=e71f9bd... value; actual running cached shell cannot be confirmed from image alone.
 - Canonical Google Sheet F-133/134 Rev4 + SDD row126: keep a single R14 clip on outer media; remove geometry-changing 1px border and instead paint subtle 1px absolute, pointer-events:none ::after overlay with border-radius inherit. Single and album both have padding0; album tile gap4px; no per-tile round corners, no frame/ratio changes, no transform hacks.
 - Scope: index.source.html image/gallery root CSS, sw.js shell epoch img154; same generated index.html/version.json; new UI-154 static regression + updated UI-153/V21.72.43/75 tests. No changes to app.js, rotation, viewer, data, messages, Supabase, RPC or lazy media.
-- E1/E3 source Verify/Pages PENDING; E4 physical Safari/iPhone/PWA old-vs-new image PENDING; E5 bytes/writes unchanged by architecture, live resource measurement PENDING.
+- E1/E3 PASS: UI-154 four-corner test PASS and Verify V21 `38438243951` SUCCESS, Pages `38438011675` SUCCESS including HTTPS domain. Runtime CSS/PWA/build commit `d933abcebf60ca7c7200dc6f46eec7363df77a0b`, follow-up test-only commit `0603d7c8c50ba3ae9b63274959e1efd1c07d49b5`, build `4a13b1baf3ef3383320c76993772c98d08260ac17e0c86b6f37461718a32266d`. Independent Chromium DPR2 corner smoke shows R14/border0/inset pseudo and 4 gallery children unchanged. E4 logged-in physical Safari/iPhone PWA old-vs-new screenshot PENDING; E5 real network/write measurement pending. No DB/backend changes.
 
 ---
 
