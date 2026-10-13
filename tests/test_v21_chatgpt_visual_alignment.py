@@ -39,7 +39,10 @@ def test_reference_structure_still_uses_one_shared_chat_content_axis():
 def test_wide_desktop_media_and_composer_use_stable_geometry():
     css = compact(CSS)
     source = compact(SOURCE)
-    assert '#messageWindow.message-unit>.media-image-tile,#messageWindow.message-unit>.media-gallery-grid{width:22.5rem!important;max-width:100%;box-sizing:border-box;}' in source
+    # Historical direct photos now use the same measured width as new photos;
+    # galleries retain the approved 360px desktop maximum.
+    assert '#messageWindow.message-unit>.media-image-tile[data-image-presentation]{width:min(22.5rem,var(--message-media-width,22.5rem))!important;max-width:100%;box-sizing:border-box;}' in source
+    assert '#messageWindow.message-unit>.media-gallery-grid{width:22.5rem!important;max-width:100%;box-sizing:border-box;}' in source
     owner = '#appShell[data-auth-state="authenticated"][data-desktop-workspace="true"]'
     assert f'{owner}#editorWrap{{padding-top:2px!important;}}' in css
     assert f'{owner}#editor{{padding-top:4px!important;padding-bottom:3px!important;}}' in css
