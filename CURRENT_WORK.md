@@ -1,7 +1,8 @@
-## 2026-10-13 — F-133..F-137 Chat image geometry / album / viewer (SOURCE PATCH; E3/E4/E5 PENDING)
+## 2026-10-13 — F-133..F-137 Chat image geometry / album / viewer (SOURCE / VERIFY / PAGES PASS; iPhone E4 & resource E5 PENDING)
 
 - User approved code fix based on canonical Google Sheet F-133…F-137. The actual issue was portrait preview width computed from constant 460px although CSS clipped portrait at min(48dvh,460px), making excess background on short iPhone viewports; thumbnail selection previously blue with -2px transform.
 - Owner: `app.js` singleImagePresentation/messageInlineImageHeightLimit, local portrait geometry on window resize/orientation; `index.source.html` viewer CSS; `sw.js` epoch img151 for PWA shell rotation. Keep image intrinsic ratio without square/landscape clamping; gallery previews only use cover, full viewer contain.
+- **Release and evidence:** corrective legacy test assertion updated without bypassing it; final commit `ebaa00347394f6e7d073aa6db802003a8bb38078`, build `e71f9bd26a6d08cbeb02a6e80f43c40d56f0606e5cda7a55bae7510768cde444`; Verify V21 `38429885277` SUCCESS (new F-133..137 runtime step & canonical check both PASS); Chat Pages `38429885358` SUCCESS (canonical build, deploy, custom-domain HTTP200 check). No screenshot or logged-in Safari/PWA verification was performed. Avoid claiming E4/E5 PASS.
 - New/update tests: `tests/test_v21_image_geometry_f133_f137.js`, V21.72.28, V21.72.75, UI library composer media and Verify V21 workflow. Same one build `index.html` + `version.json`. The entire package must be verified before marking E3; Safari/PWA E4 and resource E5 still PENDING.
 - No Supabase/Realtime/Zalo backend, no media-fetch change, no `v21_mark_read` on image open, no cron/RPC/log writes. Preserve account cache and scroll, left-right sender 6px. Rollback this atomic source/build change if browser regression; do not delete data.
 

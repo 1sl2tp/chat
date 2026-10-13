@@ -59,7 +59,7 @@ Quy tắc:
 - **Giữ nguyên:** text/Composer/danh bạ, account-scoped cache, Ctrl/ScrollController, avatar, media Storage, read-state, realtime/Zalo, offline, Copy/Tải/Chia sẻ F-132. UI repair **0** RPC/DB/Edge/cron/polling/eager preload mới.
 - **Nghiệm thu:** portrait dài, 4:5, square, 16:9, panorama, metadata thiếu/sai, Zalo; album 1/2/3/4/5+, caption; mới/tin cũ; gửi/nhận; viewer/zoom/rotate/swipe/đã xem; Web 320/375/390/430 và desktop, iPhone Safari/PWA. E1 source tests ≠ E3 GitHub Pages ≠ E4 iPhone thực tế ≠ E5 resource/user acceptance.
 
-**Nguồn F-133..F-137 (13/10):** đã chuẩn bị patch `app.js` (width dọc theo 48dvh + natural ratio, phản ứng resize), `index.source.html` (viền thumbnail chọn màu trung tính 2px, không nhấc tile; viewer không viền/đổ bóng giả), `sw.js` epoch `img151`, và các bài kiểm tra. Đối chiếu GitHub CI/Pages (E3) trên đúng commit; quan sát Safari/PWA thật (E4) và resource (E5) riêng trước khi kết luận nghiệm thu.
+**Trạng thái F-133..F-137 (13/10):** runtime đã sửa và phát hành từ main commit `ebaa00347394f6e7d073aa6db802003a8bb38078` (base sửa `53aba322316434f2bd74c0c3ad7b5742e15c1b5e`); `app.js` dùng height cap theo viewport/natural ratio, `index.source.html` sửa viewer/thumbnails, `sw.js` epoch `img151`, index.html và version.json khớp canonical build `e71f9bd26a6d08cbeb02a6e80f43c40d56f0606e5cda7a55bae7510768cde444`. Verify V21 run `38429885277` SUCCESS (test F-133..137 + canonical source PASS); GitHub Pages run `38429885358` SUCCESS (Build/Deploy/custom domain PASS). **E4 Safari/PWA trên iPhone và E5 network/resource & người dùng nghiệm thu vẫn PENDING**, không giả vờ đã test màn hình thật.
 
 ## 3c. UI-144 — Composer Web/PWA/mobile dùng MỘT owner kích thước và lề (2026-10-13)
 
