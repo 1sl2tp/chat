@@ -3150,6 +3150,11 @@ function extensionForMime(mime=''){
   if(type==='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')return 'xlsx';
   if(type==='text/plain')return 'txt';
   if(type==='text/csv')return 'csv';
+  if(type==='audio/mp4'||type==='audio/x-m4a'||type==='audio/m4a')return 'm4a';
+  if(type==='audio/mpeg'||type==='audio/mp3')return 'mp3';
+  if(type==='audio/ogg')return 'ogg';
+  if(type==='audio/webm')return 'webm';
+  if(type==='audio/wav'||type==='audio/x-wav')return 'wav';
   if(type==='image/png')return 'png';
   if(type==='image/webp')return 'webp';
   if(type==='image/gif')return 'gif';
@@ -3177,18 +3182,20 @@ function cacheMediaShareBlob(media,blob){
   return true;
 }
 
+function isTransferableMessageMedia(item){
+  return Boolean(item&&(item.type==='file'||item.type==='image'||item.kind==='image'||item.kind==='audio'));
+}
+
 function preparedShareFilesForMessage(message){
   if(typeof File!=='function')return null;
-  const list=mediaDescriptorsForMessage(message).filter(item=>
-    item&&(item.kind==='file'||item.type==='image'||item.kind==='image')
-  );
+  const list=mediaDescriptorsForMessage(message).filter(isTransferableMessageMedia);
   if(!list.length)return null;
   const files=[];
   for(const [index,item] of list.entries()){
     const blob=mediaShareBlobs.get(mediaShareCacheKey(item));
     if(!(blob instanceof Blob))return null;
     const name=mediaDownloadName(item,index);
-    const type=String(item?.mimeType||item?.type||blob.type||'application/octet-stream');
+    const type=String(item?.mimeType||blob.type||'application/octet-stream');
     files.push(blob instanceof File&&blob.name===name&&String(blob.type||'')===type
       ?blob
       :new File([blob],name,{type,lastModified:Date.now()}));
@@ -3198,9 +3205,7 @@ function preparedShareFilesForMessage(message){
 
 async function prepareMessageShareFiles(message){
   try{
-    const list=mediaDescriptorsForMessage(message).filter(item=>
-      item&&(item.kind==='file'||item.type==='image'||item.kind==='image')
-    );
+    const list=mediaDescriptorsForMessage(message).filter(isTransferableMessageMedia);
     for(const item of list){
       if(mediaShareBlobs.get(mediaShareCacheKey(item)) instanceof Blob)continue;
       const resolved=await mediaBlobForDescriptor(item);
@@ -3234,8 +3239,10 @@ async function mediaBlobForDescriptor(media){
 }
 
 function mediaDownloadName(media,index=0){
-  if(messagePrimaryMediaKind({media})==='file'){
-    return String(media?.name||media?.displayName||`Tep-${index+1}`).trim()||`Tep-${index+1}`;
+  if(media?.type==='file'||media?.kind==='audio'){
+    const name=String(media?.name||media?.displayName||'').trim();
+    if(name&&name!=='Tệp')return name;
+    return `${media?.kind==='audio'?'Ghi-am':'Tep'}-${index+1}.${extensionForMime(media?.mimeType||'')}`;
   }
   const ext=extensionForMime(media?.mimeType||'image/jpeg');
   return `Anh-${index+1}.${ext}`;
@@ -3259,9 +3266,7 @@ async function saveMediaDescriptor(media,index=0){
 }
 
 async function saveMessageMedia(message){
-  const list=mediaDescriptorsForMessage(message).filter(item=>
-    item&&(item.kind==='file'||item.type==='image'||item.kind==='image')
-  );
+  const list=mediaDescriptorsForMessage(message).filter(isTransferableMessageMedia);
   let saved=0;
   for(const [index,item] of list.entries()){
     if(await saveMediaDescriptor(item,index))saved+=1;
@@ -3570,28 +3575,52 @@ function makeActionButton({
 }
 
 async function copyMessageText(message,button){
+  const source=String(message?.text||'');
+  if(!source)return false;
+  let copied=false;
   try{
-    await navigator.clipboard.writeText(message.text);
-    button.dataset.state='copied';
-    button.setAttribute('aria-label','Đã sao chép');
-    setTimeout(()=>{
-      button.dataset.state='closed';
-      button.setAttribute(
-        'aria-label',
-        message.sender==='self'
-          ?'Sao chép tin nhắn'
-          :'Sao chép phản hồi'
-      );
-    },900);
+    if(typeof navigator.clipboard?.writeText==='function'){
+      await navigator.clipboard.writeText(source);
+      copied=true;
+    }
   }catch{
+    // Clipboard API may be blocked in Safari/PWA; fall back below.
+  }
+  if(!copied){
     const area=document.createElement('textarea');
-    area.value=message.text;
+    area.value=source;
+    area.setAttribute('readonly','');
     area.style.position='fixed';
     area.style.opacity='0';
     document.body.appendChild(area);
     area.select();
-    document.execCommand('copy');
+    try{copied=Boolean(document.execCommand?.('copy'));}catch{}
     area.remove();
+  }
+  button.dataset.state=copied?'copied':'failed';
+  button.setAttribute('aria-label',copied?'Đã sao chép':'Không thể sao chép');
+  button.title=copied?'Đã sao chép':'Không thể sao chép';
+  window.setTimeout(()=>{
+    if(!button.isConnected)return;
+    button.dataset.state='closed';
+    button.setAttribute('aria-label','Sao chép');
+    button.title='Sao chép';
+  },1200);
+  return copied;
+}
+
+async function shareMessageText(message){
+  const value=String(message?.text||'');
+  if(!value||typeof navigator.share!=='function')return false;
+  // Share sheet MUST be invoked in the originating user gesture.
+  try{
+    await navigator.share({text:value});
+    return true;
+  }catch(error){
+    if(!['AbortError','NotAllowedError','SecurityError'].includes(String(error?.name||''))){
+      console.warn('[V21 text share failed]',error);
+    }
+    return false;
   }
 }
 
@@ -3634,40 +3663,49 @@ function createActionGroup(message){
   const group=document.createElement('div');
   const isSelf=message.sender==='self';
   group.__message=message;
-
-  group.className=
-    `message-action-group ${
-      isSelf
-        ?'user-actions justify-end'
-        :'assistant-actions justify-start'
-    }`;
-  group.dataset.kind=
-    isSelf
-      ?'user-actions'
-      :'assistant-actions';
+  group.className=`message-action-group ${isSelf?'user-actions justify-end':'assistant-actions justify-start'}`;
+  group.dataset.kind=isSelf?'user-actions':'assistant-actions';
   group.setAttribute('aria-label','Thao tác tin nhắn');
   group.setAttribute('role','group');
 
   const resolveMessage=()=>group.__message||message;
   const actions=[];
-
   if(canReplyToMessage(message)){
     actions.push(makeActionButton({
-      label:'Trả lời',
-      icon:'reply',
-      onClick:event=>{
-        event.stopPropagation();
-        setReplyTarget(resolveMessage());
-      }
+      label:'Trả lời',icon:'reply',
+      onClick:event=>{event.stopPropagation();setReplyTarget(resolveMessage());}
     }));
   }
 
   const kind=messagePrimaryMediaKind(message);
   const canForwardInChat=Boolean(window.V21MessageForward?.canForward?.(message));
-  if(canForwardInChat&&kind!=='image'&&kind!=='file'){
+  // Text-only AND mixed text+media both retain Copy, without altering media.
+  if(String(message?.text||'').length){
+    let copy;
+    copy=makeActionButton({
+      label:'Sao chép',icon:'copy',
+      onClick:event=>{
+        event.stopPropagation();
+        void copyMessageText(resolveMessage(),copy);
+        closeAllTurnActions();
+      }
+    });
+    actions.push(copy);
+  }
+
+  if(kind==='image'||kind==='file'||kind==='audio'){
     actions.push(makeActionButton({
-      label:'Chuyển tiếp',
-      icon:'forward',
+      label:'Tải xuống',icon:'download',
+      onClick:event=>{
+        event.stopPropagation();
+        void saveMessageMedia(resolveMessage()).finally(()=>closeAllTurnActions());
+      }
+    }));
+  }
+
+  if(canForwardInChat){
+    actions.push(makeActionButton({
+      label:'Chuyển tiếp',icon:'forward',
       onClick:event=>{
         event.stopPropagation();
         closeAllTurnActions();
@@ -3677,58 +3715,31 @@ function createActionGroup(message){
   }
 
   if(kind==='text'){
-    let copy;
-    copy=makeActionButton({
-      label:'Sao chép',
-      icon:'copy',
-      onClick:event=>{
-        event.stopPropagation();
-        copyMessageText(resolveMessage(),copy);
-        closeAllTurnActions();
-      }
-    });
-    actions.push(copy);
-  }else if(kind==='image'||kind==='file'){
-    if(canForwardInChat){
+    if(typeof navigator.share==='function'&&String(message?.text||'').length){
       actions.push(makeActionButton({
-        label:'Chia sẻ',
-        icon:'share',
+        label:'Chia sẻ',icon:'share',
         onClick:event=>{
           event.stopPropagation();
           closeAllTurnActions();
-          // Reuse canonical forward without downloading or saving the asset.
-          window.V21MessageForward?.open?.(resolveMessage());
+          void shareMessageText(resolveMessage());
         }
       }));
     }
-    actions.push(makeActionButton({
-      label:'Lưu',
-      icon:'save',
+  }else if((kind==='image'||kind==='file'||kind==='audio')&&canNativeShareFiles()){
+    const shareAction=makeActionButton({
+      label:'Chia sẻ',icon:'share',
       onClick:event=>{
         event.stopPropagation();
-        void saveMessageMedia(resolveMessage()).finally(()=>closeAllTurnActions());
+        void shareMessageMedia(resolveMessage()).finally(()=>closeAllTurnActions());
       }
-    }));
-    if(canNativeShareFiles()){
-      const shareAction=makeActionButton({
-        label:canForwardInChat?'Ứng dụng khác':'Chia sẻ',
-        icon:'share',
-        onClick:event=>{
-          event.stopPropagation();
-          void shareMessageMedia(resolveMessage()).finally(()=>closeAllTurnActions());
-        }
-      });
-      primeMessageShareOnIntent(shareAction,resolveMessage);
-      actions.push(shareAction);
-    }
+    });
+    primeMessageShareOnIntent(shareAction,resolveMessage);
+    actions.push(shareAction);
   }
 
-  // Action order is defined from the outgoing outer edge toward content.
-  // Incoming is the exact mirror so the same "near-content" action remains
-  // adjacent to the message instead of reusing one global left-to-right order.
+  // Mirror by sender; icons retain semantic labels and keyboard order.
   const orderedActions=isSelf?actions:[...actions].reverse();
   group.append(...orderedActions);
-
   return group;
 }
 
@@ -3834,7 +3845,20 @@ function toggleActionsForTurn(turn,force){
       :turn.dataset.actionsOpen!=='true';
 
   closeAllTurnActions(turn);
-
+  if(next){
+    // Touch toolbar is anchored inside the viewport instead of outside a
+    // narrow bubble. Flip below only when it cannot fit above the message.
+    const unit=turn.querySelector('.message-unit');
+    if(unit&&window.matchMedia?.('(max-width:700px), (hover:none), (pointer:coarse)')?.matches){
+      const top=unit.getBoundingClientRect().top;
+      const headerBottom=document.getElementById('regionTop')?.getBoundingClientRect().bottom||0;
+      const above=top-Math.max(0,headerBottom);
+      const composerTop=document.getElementById('thread-bottom-container')?.getBoundingClientRect().top||
+        (window.visualViewport?.height||window.innerHeight);
+      const below=composerTop-unit.getBoundingClientRect().bottom;
+      turn.dataset.actionsPlacement=(above<54&&below>=54)?'below':'above';
+    }
+  }
   turn.dataset.actionsOpen=
     next?'true':'false';
 }
