@@ -188,6 +188,8 @@ jobs:
         run: |
           node --check call-invite-client.js
           python -m pytest tests/test_v21_call_invite_incoming_alert.py -q
+      - name: UI-150 Copy Download Share text and media contract
+        run: python -m pytest tests/test_v21_ui150_copy_download_share_contract.py -q
       - name: Chat message forward contract
         run: python tests/test_v21_message_forward_contract.py
       - name: Admin parallel approved devices contract
