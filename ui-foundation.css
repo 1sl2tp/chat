@@ -80,3 +80,22 @@
 #appShell[data-ui-foundation="v1"] button{
   touch-action:manipulation;
 }
+
+/* P4 ComposerBar: same 44px accessible hit area and 20px glyph for +, mic
+   and send on desktop, mobile Web and installed PWA. Only visual geometry. */
+#appShell[data-ui-foundation="v1"] #composer-plus-btn,
+#appShell[data-ui-foundation="v1"] #composer-mic-btn,
+#appShell[data-ui-foundation="v1"] #send{
+  width:var(--ui-control-touch);
+  min-width:var(--ui-control-touch);
+  height:var(--ui-control-touch);
+  min-height:var(--ui-control-touch);
+  flex:0 0 var(--ui-control-touch);
+}
+#appShell[data-ui-foundation="v1"] #composer-plus-btn svg,
+#appShell[data-ui-foundation="v1"] #composer-mic-btn svg,
+#appShell[data-ui-foundation="v1"] #send svg{
+  display:block;
+  width:var(--ui-icon-20);
+  height:var(--ui-icon-20);
+}
