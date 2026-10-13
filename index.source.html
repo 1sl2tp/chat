@@ -1036,9 +1036,15 @@ button{
   overflow:hidden;
   background:var(--theme-surface-secondary);
 }
-/* Legacy direct-media selectors remain as a safe migration path for any
-   already-mounted message DOM during an app update. */
-#messageWindow .message-unit>.media-image-tile,
+/* A legacy image tile must follow the SAME per-image width contract
+   as the canonical media shell, including when old DOM survives a refresh.
+   Gallery width is deliberately fixed at 360px; never center portraits
+   in an unmeasured 360px image frame. */
+#messageWindow .message-unit>.media-image-tile[data-image-presentation]{
+  width:min(22.5rem,var(--message-media-width,22.5rem))!important;
+  max-width:100%;
+  box-sizing:border-box;
+}
 #messageWindow .message-unit>.media-gallery-grid{
   width:22.5rem!important;
   max-width:100%;
