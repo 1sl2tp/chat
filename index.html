@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="f1970cf1ae3739bd9a03495ab98324993c2405d7e51c69bc47602490a6544d9c">
+<meta name="app-build-id" content="ae1f962b7a638e8a0daa09531c55b16f7a713986d93dee1d7d52fb5cbd6dd01f">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1691,6 +1691,19 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
 @media (prefers-reduced-motion:reduce){
   #appShell[data-mobile-route-transition] #threadContent{
     animation:none!important;
+  }
+}
+/* UI-139 narrow conversation axis: no desktop centering/inset on either
+   mobile Web, installed PWA or a resized desktop browser. */
+@media (max-width:639px){
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #conversationContentAxis{
+    width:100%;
+    max-width:100%;
+    margin-inline:0;
+    padding-inline:0;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow{
+    padding-inline:var(--ui-chat-message-gutter,var(--ui-gutter-mobile,12px));
   }
 }
 
