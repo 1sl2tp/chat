@@ -4125,7 +4125,11 @@ function createMessageMediaShell(mediaNode,media){
   shell.dataset.messageMediaShell='true';
   shell.dataset.mediaShellKind=String(media?.type||media?.kind||'media');
   if(mediaNode)shell.appendChild(mediaNode);
-  return shell;
+  // First mount and later reconciliation must share ONE width owner.
+  // Without this the new-image shell stays at the 360px default while its
+  // portrait tile uses a narrower ratio-derived width; the photo then looks
+  // centered/inset until a later message patch calls patchMessageMediaShell.
+  return patchMessageMediaShell(shell,media);
 }
 
 function patchMessageMediaShell(shell,media){
