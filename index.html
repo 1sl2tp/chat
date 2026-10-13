@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="7efe467431cdfd2e3aab281875e7ae417ab526e704ea44eb2fc3fc29d68e379a">
+<meta name="app-build-id" content="5874a60dfd819d5ebf1d29988628ad4235e5bdf2b0bb774dc0824b80db260cd6">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1478,7 +1478,8 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
 
   /* Conversation content — mobile-first, visual-only. */
   #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow{
-    padding:var(--ui-space-8,8px) var(--ui-chat-message-gutter,var(--ui-gutter-mobile,12px)) 14px;
+    /* The final single-pane edge rule owns horizontal padding. */
+    padding-block:var(--ui-space-8,8px) 14px;
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow>.message-row+.message-row{
@@ -5845,10 +5846,6 @@ button{
     width:36px;
     height:36px;
     min-width:36px;
-  }
-
-  #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow{
-    padding-inline:14px;
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] .message-turn{
