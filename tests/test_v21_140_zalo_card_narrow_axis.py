@@ -13,7 +13,8 @@ def test_narrow_chat_gutter_aligns_content_to_composer_no_responsive_duplication
     assert 'max(6px,env(safe-area-inset-left,0px))' in source
     assert 'max(6px,env(safe-area-inset-right,0px))!important;' in source
     assert 'scrollbar-gutter:auto;' in source
-    assert '#scrollRoot' not in source[source.index('/* UI-139/141'):], 'do not create a second scroll owner'
+    assert source[source.index('/* UI-139/141'):].count('#scrollRoot{')==1, 'only the old scroller owns horizontal gutter'
+    assert 'scrollbar-gutter:auto;' in source, 'PWA must not reserve phantom scrollbar width'
 
 def test_zalo_cards_use_existing_text_ingress_only():
     assert "function normalizeContactCard(content" in inbound
