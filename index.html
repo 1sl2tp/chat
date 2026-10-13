@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="4458e008e63d2f3506482008d713fd5aa1583824f79b0c5953333c8972621dad">
+<meta name="app-build-id" content="51acb2635a32060c2f8b849dabdd5718f63f92c87f0276e31c9955660654f8a1">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -18573,7 +18573,7 @@ function renderOverview(rows=[]){
   host.append(header);
 
   if(!summaries.length){
-    const empty=node('div','work-summary-state work-summary-state-muted','Chưa có khách nào có hàng chưa hoàn thành.');
+    const empty=node('div','work-summary-state work-summary-state-muted','Chưa có công việc nào.');
     empty.setAttribute('role','status');
     empty.setAttribute('aria-live','polite');
     host.append(empty);
@@ -18688,6 +18688,14 @@ function openOverviewCustomer(customerId){
 }
 
 function renderCurrent(){
+  // WORK-149: after Work-only data has been cleared, never retain a stale
+  // selected customer detail from a previous render/session.
+  // Keep Chat's selected contact and directory scroll entirely untouched.
+  if(!rowsCache.length){
+    selectedWorkCustomerId='';
+    renderOverview([]);
+    return;
+  }
   const contact=activeContact();
   if(forceOverview){
     renderOverview(rowsCache);
