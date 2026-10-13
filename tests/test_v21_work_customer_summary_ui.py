@@ -61,4 +61,14 @@ assert 'font-weight:500' in compact_s
 assert '.work-summary-item:nth-child(even)' in s, 'detail rows need alternating background rhythm'
 assert 'color-mix(' in s, 'alternating rows must use a subtle mixed surface color'
 
+# WORK-149: clearing Work result records must not leave a selected customer's
+# old detail visible; empty summaries have one honest empty-state render.
+render_current=c[c.index('function renderCurrent(){'):c.index('function setCachedCompleted(')]
+assert "if(!rowsCache.length){" in render_current
+assert "selectedWorkCustomerId='';" in render_current
+assert "renderOverview([]);" in render_current
+assert "Chưa có công việc nào." in c
+assert "rpc('chat_customer_summary_work_feed')" in c
+assert 'chat_customer_summary_state' in c
+
 print('Work customer summary UI contract PASS')
