@@ -83,6 +83,8 @@ jobs:
         run: python -m pytest -q tests/test_v21_taphoa_order_image_prefill.py
       - name: Chat library composer, portrait media and account menu
         run: python -m pytest -q tests/test_v21_ui_library_composer_media_menu.py
+      - name: Incoming sender narrow Chat edge layout
+        run: python -m pytest -q tests/test_v21_incoming_left_edge_contract.py tests/test_v21_140_zalo_card_narrow_axis.py
       - name: Zalo bridge core tests
         run: cd bridge/zalo && npm test
 

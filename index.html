@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="ae1f962b7a638e8a0daa09531c55b16f7a713986d93dee1d7d52fb5cbd6dd01f">
+<meta name="app-build-id" content="1577353a72cb2fddbce4e86bd9d9ae4c588bc7f6b32038e6dc231e4e02e35b3a">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1693,17 +1693,41 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
     animation:none!important;
   }
 }
-/* UI-139 narrow conversation axis: no desktop centering/inset on either
-   mobile Web, installed PWA or a resized desktop browser. */
-@media (max-width:639px){
+/* UI-139/141 — Chat has ONE conversation on narrow / single-pane screens.
+   The old 639px gate left the centered 48rem desktop axis active between
+   640px and 1023px, which pushed received text and photos away from the
+   left edge. No scroll owner, media width or message direction is changed. */
+@media (max-width:63.999rem){
   #appShell[data-auth-state="authenticated"][data-route="chat"] #conversationContentAxis{
+    box-sizing:border-box;
+    width:100%!important;
+    max-width:none!important;
+    align-self:stretch;
+    margin-inline:0!important;
+    padding-inline:0!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow{
+    box-sizing:border-box;
     width:100%;
     max-width:100%;
     margin-inline:0;
+    padding-inline:var(--ui-chat-message-gutter,var(--ui-gutter-mobile,12px))!important;
+  }
+
+  /* Only the non-self/remote sender uses the left reading edge.
+     The user/admin row keeps its existing justify-end and bubble styles. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow>.message-row[data-turn="assistant"]{
+    margin-inline:0;
     padding-inline:0;
   }
-  #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow{
-    padding-inline:var(--ui-chat-message-gutter,var(--ui-gutter-mobile,12px));
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow>.message-row[data-turn="assistant"] .assistant-message{
+    justify-content:flex-start!important;
+    margin-inline:0!important;
+    padding-inline:0!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow>.message-row[data-turn="assistant"] .assistant-message-unit{
+    margin-inline-start:0!important;
+    margin-inline-end:auto!important;
   }
 }
 

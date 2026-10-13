@@ -6,12 +6,12 @@ inbound=(ROOT/'bridge/zalo/src/incoming-message.mjs').read_text('utf-8')
 server=(ROOT/'bridge/zalo/src/server.mjs').read_text('utf-8')
 
 def test_narrow_chat_gutter_aligns_content_to_composer_no_responsive_duplication():
-    assert '@media (max-width:639px)' in source
+    assert '@media (max-width:63.999rem)' in source
     assert '#appShell[data-auth-state="authenticated"][data-route="chat"] #conversationContentAxis{' in source
-    assert 'margin-inline:0;' in source
-    assert 'padding-inline:0;' in source
-    assert 'padding-inline:var(--ui-chat-message-gutter,var(--ui-gutter-mobile,12px));' in source
-    assert '#scrollRoot' not in source[source.index('/* UI-139 narrow conversation axis'):], 'do not create a second scroll owner'
+    assert 'margin-inline:0!important;' in source
+    assert 'padding-inline:0!important;' in source
+    assert 'padding-inline:var(--ui-chat-message-gutter,var(--ui-gutter-mobile,12px))!important;' in source
+    assert '#scrollRoot' not in source[source.index('/* UI-139/141'):], 'do not create a second scroll owner'
 
 def test_zalo_cards_use_existing_text_ingress_only():
     assert "function normalizeContactCard(content" in inbound
