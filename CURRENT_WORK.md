@@ -1,3 +1,15 @@
+## 2026-10-13 — UI-147 Danh bạ vertical rhythm (RULE FIRST; Verify / Pages PASS, E4 pending)
+
+- **User ask 21:35:** top tabs → "Danh bạ" and title → search too spacious. Approved targets: approximate visual 20–24px and 12–16px rather than screenshot's prior 36–40px and 24–28px. Mobile iPhone screenshot pixel scale is illustrative, not literal CSS measurement.
+- **Rule before code:** `README_MAINTENANCE.md §3f UI-147`, spreadsheet Rule chung `08 - SDD SPEC TEST ACCEPTANCE` row119, `04 - UI FOUNDATION TOKENS` F-129 row189 were committed **first**, before CSS edits; UI-146 shell-only epoch requirement then added to rule before `sw.js` edit.
+- **CSS owner:** `ui-foundation.css` adds `--ui-directory-root-top-min:12px` and `--ui-directory-top-trim:16px`. `mobile-ui-polish.css` scopes to authenticated `data-mobile-directory=true`, root top padding `max(12px, safe-area-top - 16px)`, heading bottom padding 0, body top padding 0. No transforms, negative margins or changed overlay top; horizontal rails UI-145, 44px search/input, chip spacing, 60px rows, 40px avatars, directory scroll and keyboard untouched.
+- **PWA shell:** ServiceWorker `SHELL_CACHE_EPOCH='ui147'` causes old HTML shell cache to be replaced upon activation with existing offline-first behavior. IndexedDB/chat history and push unchanged. `tests/test_v21_mobile_ui_polish.py` expanded for scoped vertical geometry and SW epoch.
+- **Release:** build `e189f08cc4dc44b082dc683ffe4f92173c3928989e1ca5f79f2ac8919440bdc6`; `index.html` commit `fba401f0b8be75e529891a312aa1fdfb745fe42b`; `version.json` commit `4692ae2d499772b16817bf791fa78d3938b9b781`. E1/E2 Verify V21 **38416477490 SUCCESS**; E3 Deploy Chat Pages **38416477571 SUCCESS** (canonical verify and Pages custom domain).
+- **E4/E5 pending:** screenshots and measured spacing from actual Safari/PWA after closing/reopening and SW activation; no device screenshot instrumentation available. E4/E5 cannot be inferred from server deploy. No extra RPC/DB/Edge/Realtime/polling/log calls; no media/cache reset.
+- **Rollback:** revert UI-147 CSS tokens/mobile directory rules, `sw.js` epoch, tests; rebuild canonical HTML/version, rerun CI/Pages.
+
+---
+
 ## 2026-10-13 — UI-146 PWA screenshot status / mobile directory root gutter / shell epoch
 
 - **User screenshot 21:07**: Directory rows, heading, search and first filter share an x-axis but have ~36px outer space, rather than the UI-145 12px control rail; conversation uses different deliberate rail6 for received/sent messages. Screenshot cannot reveal exact installed PWA build ID, so do not assert app was stale solely on appearance.
