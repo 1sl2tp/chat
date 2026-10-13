@@ -740,7 +740,7 @@ function renderOverview(rows=[]){
   host.append(header);
 
   if(!summaries.length){
-    const empty=node('div','work-summary-state work-summary-state-muted','Chưa có khách nào có hàng chưa hoàn thành.');
+    const empty=node('div','work-summary-state work-summary-state-muted','Chưa có công việc nào.');
     empty.setAttribute('role','status');
     empty.setAttribute('aria-live','polite');
     host.append(empty);
@@ -855,6 +855,14 @@ function openOverviewCustomer(customerId){
 }
 
 function renderCurrent(){
+  // WORK-149: after Work-only data has been cleared, never retain a stale
+  // selected customer detail from a previous render/session.
+  // Keep Chat's selected contact and directory scroll entirely untouched.
+  if(!rowsCache.length){
+    selectedWorkCustomerId='';
+    renderOverview([]);
+    return;
+  }
   const contact=activeContact();
   if(forceOverview){
     renderOverview(rowsCache);
