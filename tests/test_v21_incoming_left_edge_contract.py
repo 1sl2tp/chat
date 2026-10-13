@@ -18,7 +18,12 @@ def test_single_pane_received_message_edge_and_medium_breakpoints():
     assert '#messageWindow{\n    padding-inline:14px;' not in mobile_polish
     assert 'padding:var(--ui-space-8,8px) var(--ui-chat-message-gutter' not in css
     assert 'padding-block:var(--ui-space-8,8px) 14px;' in css
-    assert single.count('padding-inline:')==2  # Axis reset plus one message-window edge rule.
+    # Three zero-padding resets (axis / remote row / remote wrapper) plus
+    # exactly one non-zero edge gutter on messageWindow; resets do not stack.
+    assert single.count('padding-inline:')==4
+    assert single.count('padding-inline:0!important;')==2
+    assert single.count('padding-inline:0;')==1
+    assert single.count('max(6px,env(safe-area-inset-left,0px))')==1
     assert 'max(6px,env(safe-area-inset-left,0px))' in single
     assert 'max(6px,env(safe-area-inset-right,0px))!important;' in single
     assert 'scrollbar-gutter:auto;' in single
