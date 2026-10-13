@@ -134,6 +134,8 @@ jobs:
         run: python tests/test_v21_work_customer_summary_reconcile.py
       - name: Mobile chat navigation + pinned Work header contract
         run: python tests/test_v21_mobile_chat_navigation.py
+      - name: Mobile Chat directory/thread swipe runtime
+        run: node tests/test_v21_mobile_directory_swipe_runtime.js
       - name: Admin push device persistence + compact account rows
         run: python tests/test_v21_admin_push_device_persistence.py
       - name: Zalo account pinned tools + compact group contract
