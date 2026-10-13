@@ -1,3 +1,13 @@
+## 2026-10-13 — Mobile composer optical balance against ChatGPT screenshot (CI + Pages PASS; device E4 PENDING)
+
+- **Observation:** In side-by-side input bars, Chat mobile/PWA plus, microphone and idle Send appear visually heavier; Send's gray circle is too prominent compared with ChatGPT reference. The right circular arrow is Send, not Search.
+- **Owner / fix:** `mobile-chat-refresh.css` only: mobile glyphs 20→18px, inline SVG strokes optically normalized to 1.5px, idle Send background softened with 2px surface border (40px painted disk inside unchanged 44px hit target), composer idle border softened. Desktop, call, audio state, focus, keyboard viewport, tap target, actual Send/Mic/Plus handlers untouched.
+- **Related CI repair:** Move previous inbound UI-142 CSS block before the UI-139/141 contract section so left-edge regression assertions remain scoped without changing message gutter behavior. This release also synchronizes previously committed inbox-margin and in-memory cache edits.
+- **Release:** CSS `5f477a848cf7dbdb86e6b440c719e96b3ea5cdd3`; CSS test scope `7f57895d74cd91a45614deacf7bc03c6c98b9aca`; canonical index `d1c56b2cb2ab01d91145a3a0ab51fce84a3ec750`, version `ac81597c7606d87ea59867c8589e0308992bef3a`; build `f38082b3d1ab4dad51fae7d1e5549b01d499fffc1ff7d79ac155dad803616405`. Verify V21 run **38397767445 SUCCESS**; Deploy Chat Pages run **38397767312 SUCCESS**.
+- **Validation/limits:** CI + deploy passed. User-visible iOS Safari/PWA optical comparison E4/E5 remains pending; standalone PWA may need full close/reopen to pick up updated build because active authenticated sessions defer reload. No new HTTP/RPC/Edge/Realtime/Storage/log or background work. **Rollback:** revert mobile CSS change and regenerate canonical index/version for the reverted source.
+
+---
+
 ## 2026-10-13 — PWA/mobile double inset of inbound + Admin chat bubbles (CI + PAGES PASS; E4/E5 PENDING)
 
 - **User issue after PR #179:** In installed mobile/PWA Chat, both sides of messages still look inset compared with screen edges, despite previous fix for centered desktop conversation axis.
