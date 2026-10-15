@@ -4,6 +4,15 @@
 >
 > Mục tiêu: Chat phải realtime như trước khi cutover Supabase, nhưng sửa chữa không được làm tăng request/log/egress bằng cách thêm polling, retry hoặc fallback trùng owner.
 
+## 2026-10-15 · SPEC-CHAT-PWA-BOOT-155 — Ưu tiên hiện ngay khi mở PWA
+
+- **Triệu chứng:** iPhone PWA nhiều lần mở chậm/đứng, chưa kịp hiển thị Chat/danh bạ dù đã dùng trước đó.
+- **E0 owner & nguyên nhân trong mã:** `index.source.html` tải `cdn.tailwindcss.com` đồng bộ tại `<head>`, gây chặn parser khi CDN chậm; `sw.js` chỉ cache shell cùng origin + avatar, còn hai script khởi tạo Tailwind/Supabase CDN không có đường phục hồi nhanh theo cache Service Worker.
+- **E1–E3 patch:** chỉ hai script bootstrap công khai được cho vào `BOOT_VENDOR_URLS` và trả CacheStorage trước mạng khi đã có cache; lần đầu tải qua đúng luồng `fetch` hiện hành rồi lưu nếu response OK/opaque. Tailwind tải `defer` để không chặn HTML parser. Bump `SHELL_CACHE_EPOCH='pwa-boot155'`; build lại canonical `index.html` + `version.json`.
+- **MUST-STAY:** không cache auth/RPC/private message, không thay IndexedDB account scope, không thay Supabase client, realtime/heartbeat/push, không sinh interval/poll hoặc lượt GET cố định mới; không thay thứ tự nguồn JS cần cho auth, không xóa cache tin nhắn, không ép reload lúc đang dùng.
+- **Verify:** GitHub Pages run `38705488584` SUCCESS, Verify V21 run `38705678644` SUCCESS. Bài UI-154 cũ khóa epoch `img154` được cập nhật sang `pwa-boot155` mà không đổi CSS/media. **E4/E5 vẫn PENDING:** cần thử iPhone PWA cũ được nâng version, mở lại lần đầu/lần hai, mạng chậm/offline, đăng nhập còn phiên hoặc hết hạn; đo first meaningful paint, danh bạ hiện từ cache và phản ứng với RPC chậm. Bản sửa giải quyết chặn CDN, **không chứng minh RPC xác thực cũng hết chậm**.
+- **Rollback:** revert `sw.js`, tag Tailwind ở `index.source.html`, build lại `index.html/version.json` đồng bộ; không động backend dữ liệu.
+
 ## 1. Thứ tự bắt buộc trước khi sửa
 
 1. Đọc `CURRENT_WORK.md`.
