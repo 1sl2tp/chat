@@ -4,11 +4,30 @@ const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 // UI-146: changing the shell cache namespace forces installed PWAs to
 // replace the prior V21.72.39 HTML shell after the worker activates.
 // Keep offline-first startup; do not add per-navigation network requests.
-const SHELL_CACHE_EPOCH='img154';
+const SHELL_CACHE_EPOCH='pwa-boot155';
 const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION+'-'+SHELL_CACHE_EPOCH;
 const AVATAR_CACHE_NAME='taphoa-chat-avatars-v1';
 const SUPABASE_ASSET_HOST_RE=/^[a-z0-9]+\.supabase\.co$/i;
 const AVATAR_CACHE_MAX=320;
+/* Startup-only CacheStorage path for two public vendor scripts.
+   Never cache auth, RPC, messages or other dynamic endpoints. */
+const BOOT_VENDOR_URLS=new Set([
+  'https://cdn.tailwindcss.com/',
+  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js'
+]);
+function isBootVendorScript(request,url){
+  return request.destination==='script'&&BOOT_VENDOR_URLS.has(url.href);
+}
+async function cachedBootVendorScript(request){
+  const cache=await caches.open(CACHE_NAME);
+  const cached=await cache.match(request);
+  if(cached)return cached;
+  const fresh=await fetch(request);
+  if(fresh&&(fresh.ok||fresh.type==='opaque')){
+    void cache.put(request,fresh.clone()).catch(()=>{});
+  }
+  return fresh;
+}
 const SHELL=['./','./manifest.webmanifest','./icons/chat-app-180-v3.png','./icons/chat-app-192-v3.png','./icons/chat-app-512-v3.png','./icons/chat-maskable-512-v3.png','./icons/chat-notification-icon-192-v4.png','./icons/chat-notification-badge-96-v4.png'];
 const adminPushClientState=new Map();
 let adminPushBadgeCount=0;
@@ -215,6 +234,10 @@ self.addEventListener('fetch',event=>{
   const request=event.request;
   if(request.method!=='GET')return;
   const url=new URL(request.url);
+  if(isBootVendorScript(request,url)){
+    event.respondWith(cachedBootVendorScript(request));
+    return;
+  }
   if(isSupabasePublicAvatar(request,url)){
     event.respondWith(cachedAvatarResponse(request));
     return;
