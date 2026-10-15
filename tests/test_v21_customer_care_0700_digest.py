@@ -21,7 +21,7 @@ assert "chat_customer_care_recent_sales" in LOW
 assert "v_suggestions:=public.chat_customer_care_recent_sales(p_date)" in LOW
 assert "'recent_sales_2d'" in LOW
 assert "o.status='delivered'" in LOW
-assert "group byi.product_code" in LOW
+assert "groupbyi.product_code" in LOW
 assert "chat-customer-care-afternoon" in SQL # removed from cron.
 assert "select public.chat_customer_care_refresh(now());" not in SQL
 assert "select public.chat_customer_care_send_due();" in SQL
