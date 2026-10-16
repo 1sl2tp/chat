@@ -18,3 +18,17 @@ def test_heartbeat_is_not_anonymous_rpc():
     sql = MIGRATION.read_text("utf-8").lower()
     assert "revoke execute on function public.v21_auth_heartbeat(uuid) from public, anon" in sql
     assert "grant execute on function public.v21_auth_heartbeat(uuid) to authenticated, service_role" in sql
+
+def test_pwa_transient_bootstrap_rpc_failures_preserve_saved_auth_session():
+    js = AUTH_STORE.read_text("utf-8")
+    shell = (ROOT / "shell.js").read_text("utf-8")
+    assert "confirmedBootstrapRejection" in js
+    assert "state='RECONNECTING'" in js
+    assert "MAX_BOOT_RECOVERY_ATTEMPTS=2" in js
+    assert "queueReconnect()" in js
+    assert "if(!confirmedBootstrapRejection(error)){" in js
+    assert "renderReconnecting();" in js
+    assert "session_revoked|account_locked|account_not_registered" in js
+    assert "else if(state==='RECONNECTING'&&!bootstrapInFlight)" in js
+    assert "connection_unavailable" in shell
+    assert "chưa cần nhập lại mật khẩu" in shell

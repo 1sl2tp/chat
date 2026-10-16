@@ -19,6 +19,10 @@ let heartbeatId=0;
 let busy=false;
 let handlingRevoke=false;
 let lastBootstrapError='';
+let bootstrapInFlight=false;
+let reconnectTimer=0;
+let reconnectAttempts=0;
+const MAX_BOOT_RECOVERY_ATTEMPTS=2;
 
 function normalizeUsername(value){
   return String(value??'').trim().replace(/^@/,'').toLowerCase();
@@ -119,9 +123,38 @@ function clearHeartbeat(){
   if(heartbeatId){window.clearInterval(heartbeatId);heartbeatId=0;}
 }
 
+// A temporary RPC/network failure is not proof that a browser session was revoked.
+function confirmedBootstrapRejection(error){
+  const reason=String(error?.message||error?.code||error||'').toLowerCase();
+  return /session_revoked|account_locked|account_not_registered|account_required|authentication_required|device_mismatch|session_account_mismatch|device_approval_required/.test(reason);
+}
+function stopReconnect(){
+  if(reconnectTimer){window.clearTimeout(reconnectTimer);reconnectTimer=0;}
+}
+function queueReconnect(){
+  if(reconnectTimer||reconnectAttempts>=MAX_BOOT_RECOVERY_ATTEMPTS)return;
+  const delay=8000*(reconnectAttempts+1);
+  reconnectAttempts+=1;
+  reconnectTimer=window.setTimeout(()=>{
+    reconnectTimer=0;
+    if(state!=='RECONNECTING')return;
+    if(document.visibilityState==='visible'&&navigator.onLine!==false)void bootstrap();
+  },delay);
+}
+function renderReconnecting(){
+  state='RECONNECTING';
+  authUI()?.setAuthenticated(false,null);
+  shell()?.NavigationCommand?.openChat?.();
+  authUI()?.setError?.('connection_unavailable');
+  emitAuthState();
+  queueReconnect();
+}
+
 
 async function handleRevoked(){
   if(handlingRevoke)return;
+  stopReconnect();
+  reconnectAttempts=0;
   handlingRevoke=true;
   if(account?.role==='admin'){
     try{await window.V21AdminPush?.disable?.({bestEffort:true});}catch{}
@@ -373,10 +406,20 @@ const AccountProfileStore={
 };
 
 async function bootstrap(){
-  if(!client)return false;
+  if(!client||bootstrapInFlight)return false;
+  bootstrapInFlight=true;
+  try{
   lastBootstrapError='';
-  const {data:{session}}=await client.auth.getSession();
-  if(!session){renderGuest();return false;}
+  const {data:{session},error:sessionError}=await client.auth.getSession();
+  if(!session){
+    if(sessionError&&!confirmedBootstrapRejection(sessionError)){
+      renderReconnecting();
+      return false;
+    }
+    stopReconnect();
+    renderGuest();
+    return false;
+  }
   let {data,error}=await client.rpc('v21_auth_bootstrap',{
     p_device_key:getDeviceKey(),p_label:deviceLabel(),p_platform:platformLabel()
   });
@@ -396,7 +439,14 @@ async function bootstrap(){
     }catch{}
   }
   if(error){
-    lastBootstrapError=mapError(error,'invalid_credentials');
+    if(!confirmedBootstrapRejection(error)){
+      // Keep Supabase refresh tokens intact for retry on a PWA network wake.
+      // Never convert a transient PostgREST/server error into a forced logout.
+      renderReconnecting();
+      return false;
+    }
+    lastBootstrapError=mapError(error,'session_revoked');
+    stopReconnect();
     await client.auth.signOut({scope:'local'}).catch(()=>{});
     renderGuest();
     authUI()?.setError?.(lastBootstrapError);
@@ -409,9 +459,20 @@ async function bootstrap(){
     authUI()?.setError?.(lastBootstrapError);
     return false;
   }
+  stopReconnect();
+  reconnectAttempts=0;
   renderAuthenticated(data);
   startHeartbeat();
   return true;
+  }catch(error){
+    if(!confirmedBootstrapRejection(error)){
+      renderReconnecting();
+      return false;
+    }
+    stopReconnect();
+    renderGuest();
+    return false;
+  }finally{bootstrapInFlight=false;}
 }
 
 async function login({account:username,password}){
@@ -459,6 +520,8 @@ async function register({name,account:username,password}){
 
 async function logout(){
   if(busy||!client)return false;
+  stopReconnect();
+  reconnectAttempts=0;
   setBusy(true);
   try{
     const logoutAppSessionId=appSessionId||null;
@@ -510,6 +573,8 @@ function initClient(){
 
   client.auth.onAuthStateChange((event,session)=>{
     if(event==='SIGNED_OUT'&&!handlingRevoke){
+      stopReconnect();
+      reconnectAttempts=0;
       clearHeartbeat();
       renderGuest();
     }
@@ -528,10 +593,22 @@ async function boot(){
 }
 
 document.addEventListener('visibilitychange',()=>{
-  if(document.visibilityState==='visible'&&state==='AUTHENTICATED')void heartbeat({force:true});
+  if(document.visibilityState!=='visible')return;
+  if(state==='AUTHENTICATED')void heartbeat({force:true});
+  else if(state==='RECONNECTING'&&!bootstrapInFlight){
+    stopReconnect();
+    reconnectAttempts=0;
+    void bootstrap();
+  }
 });
 window.addEventListener('online',()=>{
-  if(document.visibilityState==='visible'&&state==='AUTHENTICATED')void heartbeat({force:true});
+  if(document.visibilityState!=='visible')return;
+  if(state==='AUTHENTICATED')void heartbeat({force:true});
+  else if(state==='RECONNECTING'&&!bootstrapInFlight){
+    stopReconnect();
+    reconnectAttempts=0;
+    void bootstrap();
+  }
 });
 
 window.V21ContactStore=ContactStore;

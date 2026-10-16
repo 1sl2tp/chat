@@ -1368,6 +1368,14 @@ const AuthUI={
   },
   setError(code){
     clearAuthErrors();
+    if(code==='connection_unavailable'){
+      const status=document.querySelector('[data-auth-status]');
+      if(status){
+        status.textContent='Kết nối tạm gián đoạn. Chat đang thử khôi phục phiên đăng nhập, bạn chưa cần nhập lại mật khẩu.';
+        status.hidden=false;
+      }
+      return;
+    }
     if(code==='device_approval_required'){
       const status=document.querySelector('[data-auth-status]');
       if(status){
