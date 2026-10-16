@@ -483,7 +483,12 @@ async function login({account:username,password}){
     const {error}=await client.auth.signInWithPassword({email:`${user}@taphoa.chat`,password:String(password??'')});
     if(error)throw error;
     const ok=await bootstrap();
-    if(!ok)throw new Error(lastBootstrapError||'invalid_credentials');
+    if(!ok){
+      // Login tokens are already saved; a temporary bootstrap failure
+      // must not be relabeled as a wrong password.
+      if(state==='RECONNECTING')return false;
+      throw new Error(lastBootstrapError||'invalid_credentials');
+    }
     return true;
   }catch(error){
     authUI()?.setError(mapError(error,'invalid_credentials'));
@@ -510,7 +515,10 @@ async function register({name,account:username,password}){
     const {error}=await client.auth.signInWithPassword({email:`${user}@taphoa.chat`,password:String(password??'')});
     if(error)throw error;
     const ok=await bootstrap();
-    if(!ok)throw new Error(lastBootstrapError||'registration_failed');
+    if(!ok){
+      if(state==='RECONNECTING')return false;
+      throw new Error(lastBootstrapError||'registration_failed');
+    }
     return true;
   }catch(error){
     authUI()?.setError(mapError(error,'registration_failed'));
