@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="097e55e55adc1e03bcfa2e115eaf334890669e82b4fb581ecda91cd8f9311d81">
+<meta name="app-build-id" content="bed0480f2f7911f9aa3522f3fc289224cd4d9c263795559b31c6ee9565a668ac">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -11548,13 +11548,15 @@ function appendMessageInlineMarkup(container,value){
     const raw=String(match[0]||'');
     const start=Number(match.index||0);
     if(start>cursor){
-      let prefix=text.slice(cursor,start);
-      if(/^https?:\/\//iu.test(raw)&&taphoaCustomerLinkLabel(raw)){
-        // Legacy notifications already include "Xem đơn:" / "Xem công nợ:".
-        // Hide that redundant prefix when the link itself has a short label.
-        prefix=prefix.replace(/(?:Xem đơn|Xem công nợ):\s*$/iu,'');
+      const prefix=text.slice(cursor,start);
+      if(/^https?:\/\//iu.test(raw)&&taphoaCustomerLinkLabel(raw)
+         &&/(?:Xem đơn|Xem công nợ):\s*$/iu.test(prefix)){
+        // Only trusted customer links collapse the redundant preceding label.
+        const compactPrefix=prefix.replace(/(?:Xem đơn|Xem công nợ):\s*$/iu,'');
+        if(compactPrefix)container.appendChild(document.createTextNode(normalizeDisplayEmoticons(compactPrefix)));
+      }else{
+        container.appendChild(document.createTextNode(normalizeDisplayEmoticons(text.slice(cursor,start))));
       }
-      if(prefix)container.appendChild(document.createTextNode(normalizeDisplayEmoticons(prefix)));
     }
 
     if(/^https?:\/\//iu.test(raw)){
