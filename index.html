@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="7ed6057ef8bba6333d874775c64c70f717e07a58e3c229d9c4a6ff4874d53398">
+<meta name="app-build-id" content="0c9f94a35a0d645faa98e38e79a35b75ca887d11cf1bb0bb5061c9e2efdad70b">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -20233,7 +20233,7 @@ void import(`./contact-directory-admin.js?__build=${encodeURIComponent(document.
 (()=>{
 'use strict';
 // UI only: all sends are enforced by Supabase's customer + event allowlist.
-const types=[['order','Tạo / cập nhật đơn'],['deliver','Giao hàng'],['debt','Ghi nợ'],['collection','Thu tiền']];
+const types=[['order','Tạo đơn · ảnh + nội dung + link'],['order_edit','Sửa đơn · ảnh mới + link'],['deliver','Giao hàng · ảnh + link'],['debt','Ghi nợ · số dư + link'],['collection','Thu tiền · số dư + link']];
 let current=null;
 const style=document.createElement('style');
 style.textContent=`
@@ -20264,7 +20264,7 @@ function open(modal){
   panel.className='zalo-account-panel tp-outbound-panel';
   panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','true');
   panel.setAttribute('aria-label','Thông báo nghiệp vụ khách hàng');
-  panel.innerHTML='<div class="zalo-account-panel-head"><strong>Thông báo nghiệp vụ KH</strong><button type="button" data-tp-close>Đóng</button></div><p>Chỉ khách nhóm KH được chọn mới nhận tin. Cài đặt không gửi tin ngay.</p><div class="tp-outbound-status" role="status">Đang tải cấu hình…</div><div data-tp-content></div><p data-tp-error class="zalo-account-error" hidden></p>';
+  panel.innerHTML='<div class="zalo-account-panel-head"><strong>Thông báo nghiệp vụ KH</strong><button type="button" data-tp-close>Đóng</button></div><p>Chỉ khách nhóm KH được chọn mới nhận thông báo. Lưu cài đặt không tự tạo đơn hay công nợ.</p><div class="tp-outbound-status" role="status">Đang tải cấu hình…</div><div data-tp-content></div><p data-tp-error class="zalo-account-error" hidden></p>';
   host.appendChild(panel);
   panel.querySelector('[data-tp-close]').addEventListener('click',()=>host.replaceChildren());
   const status=panel.querySelector('.tp-outbound-status');
