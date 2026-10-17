@@ -4089,13 +4089,15 @@ function appendMessageInlineMarkup(container,value){
     const raw=String(match[0]||'');
     const start=Number(match.index||0);
     if(start>cursor){
-      let prefix=text.slice(cursor,start);
-      if(/^https?:\/\//iu.test(raw)&&taphoaCustomerLinkLabel(raw)){
-        // Legacy notifications already include "Xem đơn:" / "Xem công nợ:".
-        // Hide that redundant prefix when the link itself has a short label.
-        prefix=prefix.replace(/(?:Xem đơn|Xem công nợ):\s*$/iu,'');
+      const prefix=text.slice(cursor,start);
+      if(/^https?:\/\//iu.test(raw)&&taphoaCustomerLinkLabel(raw)
+         &&/(?:Xem đơn|Xem công nợ):\s*$/iu.test(prefix)){
+        // Only trusted customer links collapse the redundant preceding label.
+        const compactPrefix=prefix.replace(/(?:Xem đơn|Xem công nợ):\s*$/iu,'');
+        if(compactPrefix)container.appendChild(document.createTextNode(normalizeDisplayEmoticons(compactPrefix)));
+      }else{
+        container.appendChild(document.createTextNode(normalizeDisplayEmoticons(text.slice(cursor,start))));
       }
-      if(prefix)container.appendChild(document.createTextNode(normalizeDisplayEmoticons(prefix)));
     }
 
     if(/^https?:\/\//iu.test(raw)){
