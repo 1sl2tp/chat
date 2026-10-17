@@ -39,6 +39,7 @@ for token, emoji in [(":)","🙂"),(":D","😄"),(";)","😉"),(":(","🙁"),(":
     assert token in app and emoji in app
 assert "document.createTextNode(normalizeDisplayEmoticons(text.slice(cursor,start)))" in app
 assert "link.href=href;" in app
-assert "link.textContent=href;" in app
+assert "link.textContent=taphoaCustomerLinkLabel(href)||href;" in app
+assert "link.title=href;" in app
 
 print("V21.72.42 admin context/mobile footer/emoticon contract PASS")
