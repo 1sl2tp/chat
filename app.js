@@ -4039,6 +4039,21 @@ function normalizeDisplayEmoticons(value){
 const MESSAGE_LINK_RE=/https?:\/\/[^\s<]+/giu;
 const MESSAGE_INLINE_TOKEN_RE=/https?:\/\/[^\s<]+|\*\*[^*\n]+\*\*|~~[^~\n]+~~|==[^=\n]+==|`[^`\n]+`|\*[^*\n]+\*/giu;
 
+// Only label our own customer mini-app links; keep the complete href unchanged.
+function taphoaCustomerLinkLabel(value){
+  try{
+    const u=new URL(value);
+    if(u.origin!=='https://app.taphoa.xyz'||!/^\/kh\/?$/u.test(u.pathname))return '';
+    const tab=u.searchParams.get('tab');
+    if(tab==='don'){
+      const code=String(u.searchParams.get('don')||'').toUpperCase();
+      return /^(?:DG|DT)[0-9]+$/u.test(code)?'Xem đơn '+code:'';
+    }
+    if(tab==='no')return 'Xem công nợ';
+  }catch{}
+  return '';
+}
+
 function appendMessageLink(container,rawValue){
   let href=String(rawValue||'');
   let trailing='';
@@ -4055,9 +4070,9 @@ function appendMessageLink(container,rawValue){
   link.href=href;
   link.target='_blank';
   link.rel='noopener noreferrer';
-  link.textContent=href;
+  link.textContent=taphoaCustomerLinkLabel(href)||href;
   link.title=href;
-  if(href.length>72)link.dataset.linkLong='true';
+  if(link.textContent.length>72)link.dataset.linkLong='true';
   try{link.dataset.linkHost=new URL(href).hostname;}catch{}
   container.appendChild(link);
   if(trailing)container.appendChild(document.createTextNode(trailing));
@@ -4074,7 +4089,13 @@ function appendMessageInlineMarkup(container,value){
     const raw=String(match[0]||'');
     const start=Number(match.index||0);
     if(start>cursor){
-      container.appendChild(document.createTextNode(normalizeDisplayEmoticons(text.slice(cursor,start))));
+      let prefix=text.slice(cursor,start);
+      if(/^https?:\/\//iu.test(raw)&&taphoaCustomerLinkLabel(raw)){
+        // Legacy notifications already include "Xem đơn:" / "Xem công nợ:".
+        // Hide that redundant prefix when the link itself has a short label.
+        prefix=prefix.replace(/(?:Xem đơn|Xem công nợ):\s*$/iu,'');
+      }
+      if(prefix)container.appendChild(document.createTextNode(normalizeDisplayEmoticons(prefix)));
     }
 
     if(/^https?:\/\//iu.test(raw)){
