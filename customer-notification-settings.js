@@ -1,7 +1,7 @@
 (()=>{
 'use strict';
 // UI only: all sends are enforced by Supabase's customer + event allowlist.
-const types=[['order','Tạo đơn · ảnh + nội dung + link'],['order_edit','Sửa đơn · ảnh mới + link'],['deliver','Giao hàng · ảnh + link'],['debt','Ghi nợ · số dư + link'],['collection','Thu tiền · số dư + link']];
+const types=[['order','Tạo đơn · ảnh + nội dung + link'],['order_edit','Sửa đơn · ảnh mới + link'],['deliver','Giao hàng · ảnh + link'],['debt','Ghi nợ / Đã thu · ảnh công nợ + số dư + link']];
 let current=null;
 const style=document.createElement('style');
 style.textContent=`
