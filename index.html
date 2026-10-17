@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="302c1532e620032a141dfbe40f95e24d980927420fb0170320feed0f66aaea93">
+<meta name="app-build-id" content="7ed6057ef8bba6333d874775c64c70f717e07a58e3c229d9c4a6ff4874d53398">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1317,6 +1317,18 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
 .admin-composer-stock-options button span{color:var(--theme-content-secondary,#666);font-size:12px;line-height:17px}
 .admin-composer-stock-options button:disabled{opacity:.5;cursor:default}
 .admin-composer-stock-actions{grid-template-columns:1fr}
+
+/* KH recent sales + fixed catalog: single mobile-friendly preview owned by the composer + menu. */
+.admin-composer-recent-sales-card{width:min(95vw,610px);max-height:min(90dvh,790px);min-height:0;display:flex;flex-direction:column;gap:10px;overflow:hidden}
+.admin-composer-recent-sales-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.admin-composer-recent-sales-tag{flex:none;background:var(--theme-surface-secondary,#eaf4ef);border-radius:99px;padding:4px 9px;font-size:11px;font-weight:750;color:var(--theme-content-primary,#203d31)}
+.admin-composer-recent-sales-intro{font-size:13px;line-height:1.45;color:var(--theme-content-secondary,#666);margin:0}
+.admin-composer-recent-sales-label{font-size:12px;font-weight:700}
+.admin-composer-recent-sales-body{box-sizing:border-box;display:block;width:100%;min-height:170px;height:min(43dvh,355px);resize:vertical;overflow:auto;overscroll-behavior:contain;padding:12px;line-height:1.55;font:13px/1.55 -apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;border-radius:13px;border:1px solid var(--theme-border-default,#dadada);background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#171717)}
+.admin-composer-recent-sales-body:disabled{opacity:.55}
+.admin-composer-recent-sales-body:focus-visible{outline:2px solid #479f7a;outline-offset:1px}
+.admin-composer-recent-sales-footnote{font-size:11px;color:var(--theme-content-secondary,#666)}
+@media(max-width:640px){.admin-composer-recent-sales-card{width:100%;max-height:calc(100dvh - max(18px,env(safe-area-inset-top)) - max(18px,env(safe-area-inset-bottom)))}.admin-composer-recent-sales-body{height:37dvh;min-height:135px}.admin-composer-recent-sales-head{flex-wrap:wrap}}
 
 </style>
 <style data-inlined-source="ui-foundation.css">
@@ -6519,6 +6531,7 @@ const CUSTOM=Object.freeze({
   close:Object.freeze({viewBox:'0 0 24 24',stroke:2,body:'<path d="M6.5 6.5 17.5 17.5M17.5 6.5 6.5 17.5"></path>'}),
   'chevron-left':Object.freeze({viewBox:'0 0 24 24',stroke:2.1,body:'<path d="m14.5 6-6 6 6 6"></path>'}),
   'chevron-right':Object.freeze({viewBox:'0 0 24 24',stroke:2.1,body:'<path d="m9.5 6 6 6-6 6"></path>'}),
+  'recent-sales':Object.freeze({viewBox:'0 0 24 24',stroke:1.6,body:'<path d="M3.5 8.5 12 4l8.5 4.5v10L12 23l-8.5-4.5v-10Z"></path><path d="m3.5 8.5 8.5 4.5 8.5-4.5M12 13v10M17.5 2.5v4M15.5 4.5h4"></path>'}),
   quote:Object.freeze({viewBox:'0 0 24 24',stroke:1.6,body:'<path d="M5 4h14v16H5z"></path><path d="M8 8h8M8 12h8M8 16h5"></path>'}),
   debt:Object.freeze({viewBox:'0 0 24 24',stroke:1.6,body:'<rect x="4" y="5" width="16" height="14" rx="2.5"></rect><path d="M7.5 9h9M7.5 13h4.5M15.5 12v4M13.5 14h4"></path>'}),
   call:Object.freeze({viewBox:'0 0 24 24',stroke:1.6,body:'<path d="M7.2 4.5 10 8l-1.8 2.2c1.2 2.5 3.1 4.4 5.6 5.6L16 14l3.5 2.8-.9 2.7c-.3.8-1.1 1.3-2 1.2C9.4 19.8 4.2 14.6 3.3 7.4c-.1-.9.4-1.7 1.2-2l2.7-.9Z"></path>'}),
@@ -21539,6 +21552,7 @@ let quoteModulePromise=null;
 let quoteOverlay=null;
 let credentialsOverlay=null;
 let stockCheckOverlay=null;
+let recentSalesOverlay=null;
 let quoteReturnFocus=null;
 let transientHintTimer=0;
 
@@ -21640,6 +21654,7 @@ function ensureAdminMenu(){
     section.setAttribute(SECTION_ATTR,'');
     section.append(
       actionButton({action:'quote',label:'Báo giá',kind:'quote'}),
+      actionButton({action:'recent-sales',label:'Tư vấn hàng mới bán',kind:'recent-sales'}),
       actionButton({action:'debt',label:'Công nợ',kind:'debt'}),
       actionButton({action:'stock-check',label:'Kiểm hàng',kind:'stock'}),
       actionButton({action:'call-link',label:'Link gọi',kind:'call'}),
@@ -21984,6 +21999,102 @@ async function openCredentials(contactId){
   return true;
 }
 
+
+/* Explicit admin-only one-to-one preview. Never invokes the paused automated care sender. */
+function closeRecentSales({restoreFocus=true}={}){
+  const hadOverlay=Boolean(recentSalesOverlay);
+  if(recentSalesOverlay){recentSalesOverlay.remove();recentSalesOverlay=null;}
+  if(hadOverlay)unlockQuoteBackground({restoreFocus});
+  return hadOverlay;
+}
+async function openRecentSales(contactId){
+  if(!currentAdmin()||activeContactGroup()!=='customer'||String(activeContactId())!==String(contactId))throw new Error('customer_required');
+  const root=document.getElementById('globalOverlayRoot');
+  if(!root)throw new Error('preview_overlay_unavailable');
+  closeRecentSales({restoreFocus:false});
+  if(!lockQuoteBackground())throw new Error('preview_modal_busy');
+  const contact=activeContact();
+  const label=String(contact?.display_name||contact?.name||contact?.username||'Khách hàng').trim();
+  const overlay=document.createElement('section');
+  overlay.className='admin-composer-quote-overlay';
+  overlay.dataset.adminComposerRecentSales='';
+  overlay.innerHTML=`
+    <button type="button" class="admin-composer-quote-backdrop" data-recent-sales-close aria-label="Đóng tư vấn"></button>
+    <div class="admin-composer-quote-card admin-composer-recent-sales-card" role="dialog" aria-modal="true" aria-labelledby="admin-recent-sales-title">
+      <div class="admin-composer-recent-sales-head">
+        <h2 id="admin-recent-sales-title" class="admin-composer-quote-title">Tư vấn hàng mới bán</h2>
+        <span class="admin-composer-recent-sales-tag">Gửi thủ công</span>
+      </div>
+      <p class="admin-composer-recent-sales-intro"></p>
+      <p class="admin-composer-quote-status" role="status" data-recent-sales-status>Đang lấy hàng bán trong 2 ngày gần nhất…</p>
+      <label class="admin-composer-recent-sales-label" for="admin-recent-sales-body">Nội dung gửi khách · có thể chỉnh sửa</label>
+      <textarea class="admin-composer-recent-sales-body" id="admin-recent-sales-body" rows="11" maxlength="8000" aria-label="Nội dung tư vấn trước khi gửi" disabled></textarea>
+      <div class="admin-composer-recent-sales-footnote">Chỉ gửi khi bạn bấm nút bên dưới. Không bật lịch tự động.</div>
+      <div class="admin-composer-quote-actions">
+        <button type="button" class="admin-composer-quote-cancel" data-recent-sales-close>Hủy</button>
+        <button type="button" class="admin-composer-quote-send" data-recent-sales-send disabled>Gửi cho khách này</button>
+      </div>
+    </div>`;
+  root.appendChild(overlay);
+  recentSalesOverlay=overlay;
+  const intro=overlay.querySelector('.admin-composer-recent-sales-intro');
+  const status=overlay.querySelector('[data-recent-sales-status]');
+  const body=overlay.querySelector('[data-recent-sales-body],#admin-recent-sales-body');
+  const send=overlay.querySelector('[data-recent-sales-send]');
+  const cancel=overlay.querySelectorAll('[data-recent-sales-close]');
+  intro.textContent='Người nhận: '+label+' · Hàng vừa bán hôm nay và hôm qua + giới thiệu cố định.';
+  let sending=false;
+  const setBusy=busy=>{
+    sending=Boolean(busy);
+    send.disabled=busy||!body.value.trim();
+    body.disabled=busy;
+    for(const button of cancel)button.disabled=busy;
+  };
+  for(const button of cancel)button.addEventListener('click',()=>closeRecentSales());
+  body.addEventListener('input',()=>{send.disabled=sending||!body.value.trim();});
+  overlay.addEventListener('keydown',event=>{
+    if(event.key==='Escape'&&!sending){event.preventDefault();closeRecentSales();}
+  });
+  const client=authStore()?.getClient?.()||null;
+  try{
+    if(!client)throw new Error('authentication_required');
+    const {data,error}=await client.rpc('chat_admin_recent_sales_preview',{p_customer_id:String(contactId)});
+    if(overlay!==recentSalesOverlay)return false;
+    if(error)throw error;
+    if(!data?.ok||!data?.body)throw new Error('preview_unavailable');
+    body.value=String(data.body).slice(0,8000);
+    body.disabled=false;
+    send.disabled=!body.value.trim();
+    const sold=Math.max(0,Number(data.product_count)||0);
+    status.textContent=sold
+      ?'Đã tổng hợp '+sold+' mặt hàng mới bán trong 2 ngày. Xem và sửa trước khi gửi.'
+      :'Hai ngày chưa có hàng giao mới; mẫu vẫn có phần giới thiệu hàng cố định.';
+    body.focus({preventScroll:true});
+  }catch(error){
+    if(overlay!==recentSalesOverlay)return false;
+    status.textContent='Không tải được danh sách hàng mới. '+String(error?.message||'Vui lòng thử lại.');
+    body.disabled=true;send.disabled=true;
+  }
+  send.addEventListener('click',async()=>{
+    const message=String(body.value||'').trim();
+    if(sending||!message||message.length>8000)return;
+    if(String(activeContactId())!==String(contactId)||activeContactGroup()!=='customer'){
+      status.textContent='Khách đang chọn đã thay đổi. Hãy mở lại tư vấn ở đúng cuộc trò chuyện.';
+      return;
+    }
+    setBusy(true);status.textContent='Đang gửi cho '+label+'…';
+    try{
+      await sendAdminText(message,contactId,'manual-recent-sales-consultation');
+      closeRecentSales();
+      setTransientHint('Đã gửi tư vấn hàng mới bán');
+    }catch(error){
+      status.textContent=String(error?.message||error||'Không gửi được. Vui lòng thử lại.');
+      setBusy(false);
+    }
+  });
+  return true;
+}
+
 async function runAction(action){
   if(!currentAdmin())return false;
   const contactId=activeContactId();
@@ -21991,6 +22102,9 @@ async function runAction(action){
   hideMenu();
   if(action==='quote'){
     try{return await openQuote(contactId);}catch{setTransientHint('Không thể mở báo giá');return false;}
+  }
+  if(action==='recent-sales'){
+    try{return await openRecentSales(contactId);}catch{setTransientHint('Không thể mở tư vấn hàng mới');return false;}
   }
   if(action==='credentials'){
     try{return await openCredentials(contactId);}catch{setTransientHint('Không thể mở thông tin đăng nhập');return false;}
@@ -22074,6 +22188,7 @@ window.V21AdminComposerActions=Object.freeze({
   mount:ensureAdminMenu,
   run:runAction,
   openQuote,
+  openRecentSales,
   openCredentials,
   openStockCheck,
   stockCheckLinks,
