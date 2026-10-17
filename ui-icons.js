@@ -11,6 +11,7 @@ const CUSTOM=Object.freeze({
   close:Object.freeze({viewBox:'0 0 24 24',stroke:2,body:'<path d="M6.5 6.5 17.5 17.5M17.5 6.5 6.5 17.5"></path>'}),
   'chevron-left':Object.freeze({viewBox:'0 0 24 24',stroke:2.1,body:'<path d="m14.5 6-6 6 6 6"></path>'}),
   'chevron-right':Object.freeze({viewBox:'0 0 24 24',stroke:2.1,body:'<path d="m9.5 6 6 6-6 6"></path>'}),
+  'recent-sales':Object.freeze({viewBox:'0 0 24 24',stroke:1.6,body:'<path d="M3.5 8.5 12 4l8.5 4.5v10L12 23l-8.5-4.5v-10Z"></path><path d="m3.5 8.5 8.5 4.5 8.5-4.5M12 13v10M17.5 2.5v4M15.5 4.5h4"></path>'}),
   quote:Object.freeze({viewBox:'0 0 24 24',stroke:1.6,body:'<path d="M5 4h14v16H5z"></path><path d="M8 8h8M8 12h8M8 16h5"></path>'}),
   debt:Object.freeze({viewBox:'0 0 24 24',stroke:1.6,body:'<rect x="4" y="5" width="16" height="14" rx="2.5"></rect><path d="M7.5 9h9M7.5 13h4.5M15.5 12v4M13.5 14h4"></path>'}),
   call:Object.freeze({viewBox:'0 0 24 24',stroke:1.6,body:'<path d="M7.2 4.5 10 8l-1.8 2.2c1.2 2.5 3.1 4.4 5.6 5.6L16 14l3.5 2.8-.9 2.7c-.3.8-1.1 1.3-2 1.2C9.4 19.8 4.2 14.6 3.3 7.4c-.1-.9.4-1.7 1.2-2l2.7-.9Z"></path>'}),

@@ -21,13 +21,19 @@ assert "ensureAdminMenu();" in admin
 
 for action,label in [
     ("quote","Báo giá"),
+    ("recent-sales","Tư vấn hàng mới bán"),
     ("debt","Công nợ"),
     ("stock-check","Kiểm hàng"),
     ("call-link","Link gọi"),
     ("credentials","Thông tin đăng nhập"),
 ]:
     assert f"action:'{action}',label:'{label}'" in admin
-assert admin.count("actionButton({action:") == 5
+assert admin.count("actionButton({action:") == 6
+assert "async function openRecentSales(contactId)" in admin
+assert "chat_admin_recent_sales_preview" in admin
+assert "manual-recent-sales-consultation" in admin
+assert "Gửi cho khách này" in admin
+assert "await sendAdminText(message,contactId" in admin
 
 assert "if(action==='stock-check')" in admin
 assert "const links=await stockCheckLinks(contactId);" in admin

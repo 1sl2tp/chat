@@ -10,6 +10,7 @@ let quoteModulePromise=null;
 let quoteOverlay=null;
 let credentialsOverlay=null;
 let stockCheckOverlay=null;
+let recentSalesOverlay=null;
 let quoteReturnFocus=null;
 let transientHintTimer=0;
 
@@ -111,6 +112,7 @@ function ensureAdminMenu(){
     section.setAttribute(SECTION_ATTR,'');
     section.append(
       actionButton({action:'quote',label:'Báo giá',kind:'quote'}),
+      actionButton({action:'recent-sales',label:'Tư vấn hàng mới bán',kind:'recent-sales'}),
       actionButton({action:'debt',label:'Công nợ',kind:'debt'}),
       actionButton({action:'stock-check',label:'Kiểm hàng',kind:'stock'}),
       actionButton({action:'call-link',label:'Link gọi',kind:'call'}),
@@ -455,6 +457,102 @@ async function openCredentials(contactId){
   return true;
 }
 
+
+/* Explicit admin-only one-to-one preview. Never invokes the paused automated care sender. */
+function closeRecentSales({restoreFocus=true}={}){
+  const hadOverlay=Boolean(recentSalesOverlay);
+  if(recentSalesOverlay){recentSalesOverlay.remove();recentSalesOverlay=null;}
+  if(hadOverlay)unlockQuoteBackground({restoreFocus});
+  return hadOverlay;
+}
+async function openRecentSales(contactId){
+  if(!currentAdmin()||activeContactGroup()!=='customer'||String(activeContactId())!==String(contactId))throw new Error('customer_required');
+  const root=document.getElementById('globalOverlayRoot');
+  if(!root)throw new Error('preview_overlay_unavailable');
+  closeRecentSales({restoreFocus:false});
+  if(!lockQuoteBackground())throw new Error('preview_modal_busy');
+  const contact=activeContact();
+  const label=String(contact?.display_name||contact?.name||contact?.username||'Khách hàng').trim();
+  const overlay=document.createElement('section');
+  overlay.className='admin-composer-quote-overlay';
+  overlay.dataset.adminComposerRecentSales='';
+  overlay.innerHTML=`
+    <button type="button" class="admin-composer-quote-backdrop" data-recent-sales-close aria-label="Đóng tư vấn"></button>
+    <div class="admin-composer-quote-card admin-composer-recent-sales-card" role="dialog" aria-modal="true" aria-labelledby="admin-recent-sales-title">
+      <div class="admin-composer-recent-sales-head">
+        <h2 id="admin-recent-sales-title" class="admin-composer-quote-title">Tư vấn hàng mới bán</h2>
+        <span class="admin-composer-recent-sales-tag">Gửi thủ công</span>
+      </div>
+      <p class="admin-composer-recent-sales-intro"></p>
+      <p class="admin-composer-quote-status" role="status" data-recent-sales-status>Đang lấy hàng bán trong 2 ngày gần nhất…</p>
+      <label class="admin-composer-recent-sales-label" for="admin-recent-sales-body">Nội dung gửi khách · có thể chỉnh sửa</label>
+      <textarea class="admin-composer-recent-sales-body" id="admin-recent-sales-body" rows="11" maxlength="8000" aria-label="Nội dung tư vấn trước khi gửi" disabled></textarea>
+      <div class="admin-composer-recent-sales-footnote">Chỉ gửi khi bạn bấm nút bên dưới. Không bật lịch tự động.</div>
+      <div class="admin-composer-quote-actions">
+        <button type="button" class="admin-composer-quote-cancel" data-recent-sales-close>Hủy</button>
+        <button type="button" class="admin-composer-quote-send" data-recent-sales-send disabled>Gửi cho khách này</button>
+      </div>
+    </div>`;
+  root.appendChild(overlay);
+  recentSalesOverlay=overlay;
+  const intro=overlay.querySelector('.admin-composer-recent-sales-intro');
+  const status=overlay.querySelector('[data-recent-sales-status]');
+  const body=overlay.querySelector('[data-recent-sales-body],#admin-recent-sales-body');
+  const send=overlay.querySelector('[data-recent-sales-send]');
+  const cancel=overlay.querySelectorAll('[data-recent-sales-close]');
+  intro.textContent='Người nhận: '+label+' · Hàng vừa bán hôm nay và hôm qua + giới thiệu cố định.';
+  let sending=false;
+  const setBusy=busy=>{
+    sending=Boolean(busy);
+    send.disabled=busy||!body.value.trim();
+    body.disabled=busy;
+    for(const button of cancel)button.disabled=busy;
+  };
+  for(const button of cancel)button.addEventListener('click',()=>closeRecentSales());
+  body.addEventListener('input',()=>{send.disabled=sending||!body.value.trim();});
+  overlay.addEventListener('keydown',event=>{
+    if(event.key==='Escape'&&!sending){event.preventDefault();closeRecentSales();}
+  });
+  const client=authStore()?.getClient?.()||null;
+  try{
+    if(!client)throw new Error('authentication_required');
+    const {data,error}=await client.rpc('chat_admin_recent_sales_preview',{p_customer_id:String(contactId)});
+    if(overlay!==recentSalesOverlay)return false;
+    if(error)throw error;
+    if(!data?.ok||!data?.body)throw new Error('preview_unavailable');
+    body.value=String(data.body).slice(0,8000);
+    body.disabled=false;
+    send.disabled=!body.value.trim();
+    const sold=Math.max(0,Number(data.product_count)||0);
+    status.textContent=sold
+      ?'Đã tổng hợp '+sold+' mặt hàng mới bán trong 2 ngày. Xem và sửa trước khi gửi.'
+      :'Hai ngày chưa có hàng giao mới; mẫu vẫn có phần giới thiệu hàng cố định.';
+    body.focus({preventScroll:true});
+  }catch(error){
+    if(overlay!==recentSalesOverlay)return false;
+    status.textContent='Không tải được danh sách hàng mới. '+String(error?.message||'Vui lòng thử lại.');
+    body.disabled=true;send.disabled=true;
+  }
+  send.addEventListener('click',async()=>{
+    const message=String(body.value||'').trim();
+    if(sending||!message||message.length>8000)return;
+    if(String(activeContactId())!==String(contactId)||activeContactGroup()!=='customer'){
+      status.textContent='Khách đang chọn đã thay đổi. Hãy mở lại tư vấn ở đúng cuộc trò chuyện.';
+      return;
+    }
+    setBusy(true);status.textContent='Đang gửi cho '+label+'…';
+    try{
+      await sendAdminText(message,contactId,'manual-recent-sales-consultation');
+      closeRecentSales();
+      setTransientHint('Đã gửi tư vấn hàng mới bán');
+    }catch(error){
+      status.textContent=String(error?.message||error||'Không gửi được. Vui lòng thử lại.');
+      setBusy(false);
+    }
+  });
+  return true;
+}
+
 async function runAction(action){
   if(!currentAdmin())return false;
   const contactId=activeContactId();
@@ -462,6 +560,9 @@ async function runAction(action){
   hideMenu();
   if(action==='quote'){
     try{return await openQuote(contactId);}catch{setTransientHint('Không thể mở báo giá');return false;}
+  }
+  if(action==='recent-sales'){
+    try{return await openRecentSales(contactId);}catch{setTransientHint('Không thể mở tư vấn hàng mới');return false;}
   }
   if(action==='credentials'){
     try{return await openCredentials(contactId);}catch{setTransientHint('Không thể mở thông tin đăng nhập');return false;}
@@ -545,6 +646,7 @@ window.V21AdminComposerActions=Object.freeze({
   mount:ensureAdminMenu,
   run:runAction,
   openQuote,
+  openRecentSales,
   openCredentials,
   openStockCheck,
   stockCheckLinks,
