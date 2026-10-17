@@ -1,7 +1,7 @@
 (()=>{
 'use strict';
 // UI only: all sends are enforced by Supabase's customer + event allowlist.
-const types=[['order','Tạo đơn · ảnh + nội dung + link'],['order_edit','Sửa đơn · ảnh mới + link'],['deliver','Giao hàng · ảnh + link'],['debt','Ghi nợ / Đã thu · ảnh công nợ + số dư + link']];
+const types=[['order','Bán mới (đã giao) · ảnh + link'],['order_edit','Sửa đơn đã giao · ảnh mới + link'],['deliver','Chuyển đơn tạm → đã giao · ảnh + link'],['debt','Ghi nợ / Đã thu · ảnh công nợ + số dư + link']];
 let current=null;
 const style=document.createElement('style');
 style.textContent=`
@@ -32,7 +32,7 @@ function open(modal){
   panel.className='zalo-account-panel tp-outbound-panel';
   panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','true');
   panel.setAttribute('aria-label','Thông báo nghiệp vụ khách hàng');
-  panel.innerHTML='<div class="zalo-account-panel-head"><strong>Thông báo nghiệp vụ KH</strong><button type="button" data-tp-close>Đóng</button></div><p>Chỉ khách nhóm KH được chọn mới nhận thông báo. Lưu cài đặt không tự tạo đơn hay công nợ.</p><div class="tp-outbound-status" role="status">Đang tải cấu hình…</div><div data-tp-content></div><p data-tp-error class="zalo-account-error" hidden></p>';
+  panel.innerHTML='<div class="zalo-account-panel-head"><strong>Thông báo nghiệp vụ KH</strong><button type="button" data-tp-close>Đóng</button></div><p>Chỉ khách nhóm KH được chọn mới nhận thông báo. Đơn tạm: tạo, sửa, xóa đều không gửi. Chỉ đơn đã giao mới tự thông báo. Lưu cài đặt không tạo đơn hay công nợ.</p><div class="tp-outbound-status" role="status">Đang tải cấu hình…</div><div data-tp-content></div><p data-tp-error class="zalo-account-error" hidden></p>';
   host.appendChild(panel);
   panel.querySelector('[data-tp-close]').addEventListener('click',()=>host.replaceChildren());
   const status=panel.querySelector('.tp-outbound-status');
