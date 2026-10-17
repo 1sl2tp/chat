@@ -36,7 +36,9 @@ assert '.message-link[data-link-long="true"]{' in source
 assert '-webkit-line-clamp:2;' in source
 assert 'line-clamp:2;' in source
 assert "link.title=href;" in app
-assert "if(href.length>72)link.dataset.linkLong='true';" in app
+assert "if(link.textContent.length>72)link.dataset.linkLong='true';" in app
+assert "taphoaCustomerLinkLabel(href)||href" in app
+assert "if(u.origin!=='https://app.taphoa.xyz'" in app
 assert "link.href=href;" in app
 
 print('V21.72.39 chat polish lock contract PASS')
