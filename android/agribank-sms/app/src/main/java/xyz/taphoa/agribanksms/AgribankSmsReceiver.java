@@ -1,26 +1,26 @@
 package xyz.taphoa.agribanksms;
-
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
+import android.content.*;
 import android.provider.Telephony;
 import android.telephony.SmsMessage;
-
-/**
- * Watches incoming SMS locally. Does not transmit SMS, credentials,
- * account data or any other data to a server.
- */
 public final class AgribankSmsReceiver extends BroadcastReceiver {
-    @Override public void onReceive(Context context, Intent intent) {
-        if (intent == null || !Telephony.Sms.Intents.SMS_RECEIVED_ACTION.equals(intent.getAction())) return;
-        SmsMessage[] parts = Telephony.Sms.Intents.getMessagesFromIntent(intent);
-        if (parts == null || parts.length == 0 || parts[0] == null) return;
-        if (!SmsSafety.isAgribankSender(parts[0].getDisplayOriginatingAddress())) return;
-        StringBuilder body = new StringBuilder();
-        for (SmsMessage part : parts) if (part != null && part.getMessageBody() != null)
-            body.append(part.getMessageBody());
-        if (SmsSafety.appearsSensitive(body.toString())) return;
-        context.getSharedPreferences("agribank_sms_state", Context.MODE_PRIVATE)
-            .edit().putLong("last_observed_at", System.currentTimeMillis()).apply();
+    @Override public void onReceive(Context ctx,Intent intent) {
+        if(intent==null || !Telephony.Sms.Intents.SMS_RECEIVED_ACTION.equals(intent.getAction()))return;
+        SmsMessage[] parts=Telephony.Sms.Intents.getMessagesFromIntent(intent);
+        if(parts==null||parts.length==0||parts[0]==null)return;
+        String sender=parts[0].getDisplayOriginatingAddress();
+        if(!SmsSafety.isAgribankSender(sender))return;
+        StringBuilder all=new StringBuilder();
+        for(SmsMessage sms:parts)if(sms!=null && sms.getMessageBody()!=null)all.append(sms.getMessageBody());
+        String body=all.toString();
+        if(SmsSafety.appearsSensitive(body))return;
+        long at=parts[0].getTimestampMillis();
+        if(at<=0)at=System.currentTimeMillis();
+        try(SmsStore db=new SmsStore(ctx)){
+            if(db.save(sender,body,at)){
+                ctx.getSharedPreferences(SmsSyncWorker.PREFS,Context.MODE_PRIVATE)
+                    .edit().putLong("last_received",System.currentTimeMillis()).apply();
+                SmsSyncWorker.schedule(ctx);
+            }
+        }catch(Exception ignored){}
     }
 }

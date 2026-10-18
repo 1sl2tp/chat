@@ -2,164 +2,119 @@ package xyz.taphoa.agribanksms;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Color;
-import android.graphics.Typeface;
-import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.provider.Telephony;
-import android.text.TextUtils;
-import android.view.View;
-import android.widget.Button;
-import android.widget.LinearLayout;
-import android.widget.ScrollView;
-import android.widget.TextView;
+import android.text.InputType;
+import android.widget.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 
-/** Offline SMS reader. No INTERNET permission or banking ledger writes. */
 public final class MainActivity extends Activity {
-    private final int NAVY = Color.rgb(14,31,58);
-    private final int GREEN = Color.rgb(18,113,79);
-    private final int MUTED = Color.rgb(95,108,127);
-    private LinearLayout root, results;
-    private TextView summary, permissionText;
-
-    private int dp(int value) { return Math.round(value * getResources().getDisplayMetrics().density); }
-    private GradientDrawable round(int color) {
-        GradientDrawable d = new GradientDrawable();
-        d.setColor(color); d.setCornerRadius(dp(14)); return d;
+    private LinearLayout layout;
+    private TextView status,oldMessages;
+    private EditText token;
+    private SharedPreferences prefs;
+    private int ink=Color.rgb(16,39,66), green=Color.rgb(17,119,71);
+    private TextView line(String text,int sp,boolean emphasized){
+        TextView view=new TextView(this);
+        view.setText(text);view.setTextSize(sp);view.setTextColor(emphasized?green:ink);
+        view.setPadding(0,13,0,13);return view;
     }
-    private TextView text(String body, int size, int color, boolean bold) {
-        TextView t = new TextView(this);
-        t.setText(body); t.setTextSize(size); t.setTextColor(color);
-        if (bold) t.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        return t;
+    private Button action(String title,Runnable task) {
+        Button b=new Button(this);b.setText(title);b.setAllCaps(false);
+        b.setOnClickListener(v->task.run());return b;
     }
-    @Override public void onCreate(Bundle state) {
-        super.onCreate(state);
-        getWindow().setStatusBarColor(NAVY);
-        ScrollView scroll = new ScrollView(this);
+    @Override public void onCreate(Bundle saved){
+        super.onCreate(saved);
+        prefs=getSharedPreferences(SmsSyncWorker.PREFS,Context.MODE_PRIVATE);
+        ScrollView scroll=new ScrollView(this);
         scroll.setBackgroundColor(Color.rgb(245,248,251));
-        root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(18),dp(22),dp(18),dp(26));
-        scroll.addView(root);
-        setContentView(scroll);
-
-        root.addView(text("TAPHOA  /  SMS BANKING",12,GREEN,true));
-        TextView heading = text("Tin nhắn Agribank",27,NAVY,true);
-        heading.setPadding(0,dp(10),0,dp(5));
-        root.addView(heading);
-        root.addView(text("Bản thử 0.1 · Chỉ đọc tại điện thoại",14,MUTED,false));
-
-        LinearLayout notice = new LinearLayout(this);
-        notice.setOrientation(LinearLayout.VERTICAL);
-        notice.setPadding(dp(14),dp(14),dp(14),dp(14));
-        notice.setBackground(round(Color.WHITE));
-        LinearLayout.LayoutParams noticeLayout = new LinearLayout.LayoutParams(-1,-2);
-        noticeLayout.setMargins(0,dp(18),0,dp(18));
-        root.addView(notice,noticeLayout);
-        notice.addView(text("KHÔNG KẾT NỐI INTERNET",13,GREEN,true));
-        TextView desc = text("Chỉ xem SMS gửi từ AGRIBANK. Tin OTP và mật khẩu được ẩn. Chưa gửi lên TAPHOA, chưa xác nhận tiền vào, chưa ghi thu.",14,NAVY,false);
-        desc.setPadding(0,dp(8),0,0);
-        notice.addView(desc);
-
-        permissionText = text("",14,NAVY,true);
-        root.addView(permissionText);
-        Button allow = new Button(this);
-        allow.setText("Cấp quyền SMS");
-        allow.setAllCaps(false);
-        allow.setOnClickListener(v -> requestPermissions(
-                new String[]{Manifest.permission.READ_SMS,Manifest.permission.RECEIVE_SMS},41));
-        root.addView(allow);
-        Button refresh = new Button(this);
-        refresh.setText("Làm mới danh sách");
-        refresh.setAllCaps(false);
-        refresh.setOnClickListener(v -> loadMessages());
-        root.addView(refresh);
-
-        summary = text("",16,NAVY,true);
-        summary.setPadding(0,dp(16),0,dp(12));
-        root.addView(summary);
-        results = new LinearLayout(this);
-        results.setOrientation(LinearLayout.VERTICAL);
-        root.addView(results);
-        TextView footer = text("SMS có thể bị giả mạo người gửi. Ứng dụng chỉ phục vụ kiểm tra thử, không phải xác nhận ngân hàng đã nhận tiền.",12,MUTED,false);
-        footer.setPadding(0,dp(20),0,0);
-        root.addView(footer);
-    }
-    @Override protected void onResume() { super.onResume(); loadMessages(); }
-    @Override public void onRequestPermissionsResult(int requestCode,String[] permissions,int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode,permissions,grantResults);
-        if (requestCode == 41) loadMessages();
-    }
-    private boolean allowed() {
-        return checkSelfPermission(Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED
-            && checkSelfPermission(Manifest.permission.RECEIVE_SMS) == PackageManager.PERMISSION_GRANTED;
-    }
-    private void message(String s) {
-        TextView t = text(s,14,MUTED,false);
-        t.setPadding(dp(4),dp(8),dp(4),dp(8));
-        results.addView(t);
-    }
-    private void loadMessages() {
-        if (results == null) return;
-        results.removeAllViews();
-        if (!allowed()) {
-            permissionText.setText("Chưa có quyền đọc và nhận SMS");
-            summary.setText("Nhấn 'Cấp quyền SMS' để bắt đầu");
-            return;
-        }
-        permissionText.setText("✓ Đã cấp quyền SMS");
-        int count = 0;
-        try (Cursor cursor = getContentResolver().query(
-                Telephony.Sms.Inbox.CONTENT_URI,
-                new String[]{Telephony.Sms.ADDRESS,Telephony.Sms.BODY,Telephony.Sms.DATE},
-                Telephony.Sms.ADDRESS + " LIKE ?",
-                new String[]{"%AGRIBANK"},
-                Telephony.Sms.DEFAULT_SORT_ORDER)) {
-            if (cursor != null) {
-                int address = cursor.getColumnIndexOrThrow(Telephony.Sms.ADDRESS);
-                int body = cursor.getColumnIndexOrThrow(Telephony.Sms.BODY);
-                int date = cursor.getColumnIndexOrThrow(Telephony.Sms.DATE);
-                while (cursor.moveToNext() && count < 100) {
-                    String sender = cursor.getString(address);
-                    String content = cursor.getString(body);
-                    if (!SmsSafety.isAgribankSender(sender)
-                            || SmsSafety.appearsSensitive(content)) continue;
-                    addItem(sender,content,cursor.getLong(date));
-                    count++;
-                }
+        layout=new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        int dp=(int)(18*getResources().getDisplayMetrics().density);
+        layout.setPadding(dp,dp,dp,dp);
+        scroll.addView(layout);setContentView(scroll);
+        layout.addView(line("TAPHOA · SMS AGRIBANK v0.2",24,true));
+        layout.addView(line("Chỉ SMS mới gửi lên Supabase. Tin cũ hiển thị để xem; chưa ghi thu và chưa phân loại.",14,false));
+        layout.addView(action("Cấp quyền đọc / nhận SMS",()->
+           requestPermissions(new String[]{Manifest.permission.READ_SMS,Manifest.permission.RECEIVE_SMS},41)));
+        layout.addView(line("Kết nối Supabase",19,true));
+        layout.addView(line("Nhập mã thiết bị TAPHOA được cấp riêng. KHÔNG nhập OTP hoặc mật khẩu ngân hàng.",13,false));
+        token=new EditText(this);token.setHint("Mã kết nối 48 ký tự");
+        token.setSingleLine(true);
+        token.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        token.setText(prefs.getString("token",""));
+        layout.addView(token);
+        layout.addView(action("Lưu mã và đồng bộ",()->{
+            String value=token.getText().toString().trim();
+            if(!value.matches("[a-f0-9]{48,128}")) {
+                status.setText("Mã không hợp lệ; cần 48–128 ký tự HEX.");
+                return;
             }
-            summary.setText("Số tin Agribank: " + count);
-            if (count == 0) message("Chưa thấy SMS Agribank. Hãy kiểm tra SIM và dịch vụ SMS Banking.");
-        } catch (SecurityException e) {
-            summary.setText("Chưa được Android cấp quyền SMS");
-            message("Hãy vào Cài đặt > Ứng dụng > TAPHOA SMS Agribank > Quyền.");
-        } catch (RuntimeException e) {
-            summary.setText("Chưa đọc được hộp thư SMS");
-            message("Điện thoại hoặc ứng dụng SMS mặc định không cho phép truy vấn.");
-        }
+            prefs.edit().putString("token",value).putString("error","Đã lưu mã, chờ SMS mới").apply();
+            SmsSyncWorker.schedule(this);
+            refreshStatus();
+        }));
+        layout.addView(line("Trạng thái tự nhận SMS",19,true));
+        status=line("",14,false);layout.addView(status);
+        layout.addView(action("Kiểm tra trạng thái / Gửi lại",()->{
+            SmsSyncWorker.schedule(this);refreshStatus();loadOldMessages();
+        }));
+        layout.addView(line("SMS AGRIBANK cũ (chỉ xem)",17,true));
+        oldMessages=line("",13,false);layout.addView(oldMessages);
+        layout.addView(line("Ghi chú: tự nhận SMS khi màn hình khóa / vuốt đóng ứng dụng, nếu Android cho phép chạy nền. Force stop, tắt nguồn hoặc tắt quyền SMS sẽ làm ngừng nhận.",12,false));
+        refreshStatus();loadOldMessages();
     }
-    private void addItem(String sender,String body,long time) {
-        LinearLayout card = new LinearLayout(this);
-        card.setOrientation(LinearLayout.VERTICAL);
-        card.setPadding(dp(14),dp(14),dp(14),dp(14));
-        card.setBackground(round(Color.WHITE));
-        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1,-2);
-        p.setMargins(0,0,0,dp(10));
-        results.addView(card,p);
-        String when = new SimpleDateFormat("dd/MM/yyyy HH:mm",new Locale("vi","VN"))
-                .format(new Date(time));
-        card.addView(text(sender + "  •  " + when,13,GREEN,true));
-        TextView content = text(body,14,NAVY,false);
-        content.setPadding(0,dp(9),0,0);
-        content.setTextIsSelectable(true);
-        content.setMaxLines(12);
-        content.setEllipsize(TextUtils.TruncateAt.END);
-        card.addView(content);
+    private String format(long ms) {
+        if(ms<=0)return "Chưa có";
+        return new SimpleDateFormat("dd/MM/yyyy HH:mm:ss",new Locale("vi","VN")).format(new Date(ms));
+    }
+    private void refreshStatus(){
+        if(status==null)return;
+        boolean allowed=checkSelfPermission(Manifest.permission.READ_SMS)==PackageManager.PERMISSION_GRANTED
+            && checkSelfPermission(Manifest.permission.RECEIVE_SMS)==PackageManager.PERMISSION_GRANTED;
+        String tokenValue=prefs.getString("token","");
+        try(SmsStore db=new SmsStore(this)){
+            status.setText("Quyền SMS: "+(allowed?"Đã cấp":"CHƯA CẤP")
+               +"\nMã Supabase: "+(tokenValue.matches("[a-f0-9]{48,128}")?"Đã lưu":"CHƯA NHẬP")
+               +"\nSMS nền nhận gần nhất: "+format(prefs.getLong("last_received",0))
+               +"\nChưa gửi: "+db.count(0)+" tin"
+               +"\nĐã gửi thành công: "+db.count(1)+" tin"
+               +"\nĐồng bộ gần nhất: "+format(prefs.getLong("last_sync",0))
+               +"\nTrạng thái: "+prefs.getString("error","Chưa gửi lần nào"));
+        }catch(Exception ex){status.setText("Không đọc được hàng đợi SMS.");}
+    }
+    private void loadOldMessages(){
+        if(oldMessages==null)return;
+        if(checkSelfPermission(Manifest.permission.READ_SMS)!=PackageManager.PERMISSION_GRANTED){
+            oldMessages.setText("Cần cấp quyền SMS.");return;
+        }
+        StringBuilder out=new StringBuilder();
+        try(Cursor c=getContentResolver().query(Telephony.Sms.Inbox.CONTENT_URI,
+            new String[]{Telephony.Sms.ADDRESS,Telephony.Sms.BODY,Telephony.Sms.DATE},
+            Telephony.Sms.ADDRESS+" LIKE ?",new String[]{"%AGRIBANK"},
+            Telephony.Sms.DEFAULT_SORT_ORDER)){
+            if(c!=null)while(c.moveToNext()&&out.length()<16000){
+                String sender=c.getString(0),body=c.getString(1);
+                if(!SmsSafety.isAgribankSender(sender)||SmsSafety.appearsSensitive(body))continue;
+                out.append(sender).append(" · ").append(format(c.getLong(2)))
+                    .append("\n").append(body).append("\n\n");
+            }
+        }catch(Exception e){out.append("Không đọc được hộp thư SMS.");}
+        oldMessages.setText(out.length()==0?"Chưa có tin Agribank phù hợp.":out.toString());
+        oldMessages.setTextIsSelectable(true);
+    }
+    @Override protected void onResume(){
+        super.onResume();refreshStatus();loadOldMessages();SmsSyncWorker.schedule(this);
+    }
+    @Override public void onRequestPermissionsResult(int code,String[] names,int[] results){
+        super.onRequestPermissionsResult(code,names,results);
+        if(code==41){refreshStatus();loadOldMessages();}
     }
 }
