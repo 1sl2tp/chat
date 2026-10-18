@@ -8,6 +8,8 @@
   'use strict';
   const MAX_AMOUNT_VND = 1000000000000;
   const FINAL_STATES = new Set(['received', 'historical_reference']);
+  // Only these states count as an already-recognized transaction for dedup.
+  // Duplicate submissions themselves remain in an immutable audit trail.
   function plain(value) { return String(value == null ? '' : value).trim(); }
   function canonicalName(value) {
     return plain(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -60,8 +62,10 @@
   function vietnamSentDate(iso) {
     const d = new Date(plain(iso));
     if (!Number.isFinite(d.getTime())) return null;
-    return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'})
-      .format(d).replace(/\//g,'-');
+    const fields = Object.fromEntries(new Intl.DateTimeFormat('en-US',{
+      timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'
+    }).formatToParts(d).filter(p => ['year','month','day'].includes(p.type)).map(p => [p.type,p.value]));
+    return fields.year + '-' + fields.month + '-' + fields.day;
   }
   function bankAccountAllowed(account, receivingBank) {
     const code = bankCode(receivingBank);
@@ -113,15 +117,20 @@
     const b = normalize(raw,meta);
     const match = findPrior(b,registry);
     if (match && match.kind.startsWith('duplicate')) return verdict('duplicate',match.kind,b,match.source);
-    if (!b.is_bank_receipt) return verdict('review','not_a_bank_receipt',b);
+    if (!b.is_bank_receipt) return verdict('ignored','not_a_successful_transfer_receipt',b);
     if (!b.success) return verdict('review','transfer_success_not_verified',b);
+    // Recipient errors outrank an unreadable amount or time: notify promptly
+    // after one scoped image read without accidentally booking anything.
+    if (b.receiving_name && b.receiving_name !== 'BUI XUAN TUNG') return verdict('hold','wrong_receiving_name',b);
+    if (b.receiving_account && b.receiving_account !== '2901181999999' && b.receiving_account !== '197981999999' && b.receiving_account.length >= 12) return verdict('hold','wrong_receiving_account',b);
+    if (b.receiving_account && b.receiving_bank &&
+       (b.receiving_account === '2901181999999' || b.receiving_account === '197981999999') &&
+       !bankAccountAllowed(b.receiving_account,b.receiving_bank)) return verdict('hold','wrong_receiving_bank',b);
     if (b.amount_vnd === null || b.amount_vnd <= 0 || b.amount_vnd >= MAX_AMOUNT_VND || b.amount_vnd % 1000 !== 0)
       return verdict('review','invalid_or_non_thousand_amount',b);
     if (!b.receiving_name || !b.receiving_account || !b.receiving_bank) return verdict('review','recipient_unreadable',b);
-    if (b.receiving_name !== 'BUI XUAN TUNG') return verdict('hold','wrong_receiving_name',b);
     if (b.receiving_account !== '2901181999999' && b.receiving_account !== '197981999999') {
-      return verdict(b.receiving_account.length < 12 ? 'review' : 'hold',
-        b.receiving_account.length < 12 ? 'recipient_account_unreadable' : 'wrong_receiving_account',b);
+      return verdict('review','recipient_account_unreadable',b);
     }
     if (!bankAccountAllowed(b.receiving_account,b.receiving_bank)) return verdict('hold','wrong_receiving_bank',b);
     if (!b.transfer_at || !vietnamSentDate(b.sent_at)) return verdict('review','datetime_missing_or_invalid',b);
@@ -130,6 +139,21 @@
     if (b.transfer_reference && !b.sending_bank) return verdict('review','sending_bank_missing_for_reference_dedup',b);
     if (match) return verdict('review',match.kind,b,match.source);
     return verdict('received','valid_new_bill',b);
+  }
+  // The UI must only show "Đã thu" after a canonical collection commit.
+  // OCR/evaluate status alone is not proof of a successful ledger write.
+  function notification(status, reason, amountThousands, ledgerCommitted) {
+    if (status === 'received') {
+      return ledgerCommitted
+        ? {kind:'collected',text:'Đã thu ' + Number(amountThousands).toLocaleString('vi-VN')}
+        : {kind:'internal_only',text:'Bill hợp lệ; chờ bút toán ghi thu thành công'};
+    }
+    if (status === 'duplicate') return {kind:'duplicate',text:'Bill đã được ghi nhận trước đó, không ghi thu thêm. Vui lòng không chuyển khoản lại để thử.'};
+    if (status === 'hold') return {kind:'stop_transfer',text:reason === 'transfer_day_differs_from_sent_day_vn'
+      ? 'Bill thuộc ngày cũ, chưa ghi thu. Vui lòng tạm dừng chuyển thêm và liên hệ quản trị.'
+      : 'Thông tin người nhận hoặc tài khoản không đúng, chưa ghi thu. Vui lòng dừng chuyển thêm và liên hệ quản trị.'};
+    if (status === 'review') return {kind:'review',text:'Ảnh bill chưa đủ rõ hoặc nghi trùng; chưa ghi thu. Vui lòng đợi kiểm tra.'};
+    return {kind:'none',text:''};
   }
   function verdict(status, reason, bill, prior) {
     return {
@@ -144,5 +168,5 @@
     };
   }
   return Object.freeze({canonicalName,bankCode,recipientAccount,normalizedReference,exactAmount,
-    parseTransactionVietnam,vietnamSentDate,bankAccountAllowed,normalize,findPrior,evaluate});
+    parseTransactionVietnam,vietnamSentDate,bankAccountAllowed,normalize,findPrior,evaluate,notification});
 });
