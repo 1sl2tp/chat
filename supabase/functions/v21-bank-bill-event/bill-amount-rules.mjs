@@ -23,7 +23,7 @@ export function parseAmountText(value){
  // Accept decimal zero cents only if the remaining integer uses valid groups.
  if(/[.,]00$/.test(v)){
    const base=v.slice(0,-3);
-   if(/^\d{1,12}$/.test(base)||/^\d{1,3}([., ])\d{3}(?:\1\d{3})*$/.test(base))v=base;
+   if(/^\d{1,3}([., ])\d{3}(?:\1\d{3})*$/.test(base))v=base;
  }
  if(!/^\d{1,12}$/.test(v)&&!/^\d{1,3}([., ])\d{3}(?:\1\d{3})*$/.test(v))return null;
  const digits=v.replace(/[., ]/g,"");
