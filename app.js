@@ -27,6 +27,8 @@ const MESSAGE_FEATURES=Object.freeze({
 const stageLayout=document.getElementById('stageLayout');
 const scrollRoot=document.getElementById('scrollRoot');
 const messageWindow=document.getElementById('messageWindow');
+const messageDayFloating=document.getElementById('messageDayFloating');
+const messageDayFloatingLabel=messageDayFloating?.querySelector('.message-day-floating-label')||null;
 const topSpacer=document.getElementById('topSpacer');
 const bottomSpacer=document.getElementById('bottomSpacer');
 const historyStatus=document.getElementById('historyStatus');
@@ -2643,6 +2645,58 @@ function applySingleImagePresentation(wrap,media){
   return wrap;
 }
 
+function messageTimestampMs(message){
+  const raw=message?.createdAt??message?.created_at??message?.timestamp??0;
+  if(typeof raw==='number'&&Number.isFinite(raw)){
+    if(raw<=0)return 0;
+    return raw<1000000000000?Math.round(raw*1000):Math.round(raw);
+  }
+  const parsed=Date.parse(String(raw||''));
+  return Number.isFinite(parsed)&&parsed>0?parsed:0;
+}
+
+function messageDateKey(timestamp){
+  const stamp=typeof timestamp==='number'?timestamp:Date.parse(timestamp);
+  if(!Number.isFinite(stamp)||stamp<=0)return '';
+  const date=new Date(stamp);
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+}
+
+function formatMessageDayLabel(timestamp,{includeDate=false,now=new Date()}={}){
+  const stamp=typeof timestamp==='number'?timestamp:Date.parse(timestamp);
+  if(!Number.isFinite(stamp)||stamp<=0)return '';
+  const date=new Date(stamp);
+  const nowDate=now instanceof Date?now:new Date(now);
+  if(Number.isNaN(nowDate.getTime()))return '';
+  const dayOrdinal=value=>Math.floor(Date.UTC(value.getFullYear(),value.getMonth(),value.getDate())/86400000);
+  const dayDiff=dayOrdinal(nowDate)-dayOrdinal(date);
+  const exactDate=date.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric'});
+  if(dayDiff===0)return includeDate?`Hôm nay · ${exactDate}`:'Hôm nay';
+  if(dayDiff===1)return includeDate?`Hôm qua · ${exactDate}`:'Hôm qua';
+  return date.toLocaleDateString('vi-VN',{weekday:'long',day:'numeric',month:'numeric',year:'numeric'});
+}
+
+function messageDaySeparatorLabel(message,{now}={}){
+  const stamp=messageTimestampMs(message);
+  if(!stamp)return '';
+  const dayKey=messageDateKey(stamp);
+  const items=Array.isArray(store?.items)?store.items:[];
+  let index=items.indexOf(message);
+  if(index<0&&message?.id&&typeof store?.indexOfId==='function'){
+    const found=store.indexOfId(message.id);
+    if(Number.isInteger(found)&&found>=0)index=found;
+  }
+  if(index<0){
+    const key=stableMessageDomKey(message);
+    index=items.findIndex(item=>stableMessageDomKey(item)===key);
+  }
+  if(index>0){
+    const previousStamp=messageTimestampMs(items[index-1]);
+    if(previousStamp&&messageDateKey(previousStamp)===dayKey)return '';
+  }
+  return formatMessageDayLabel(stamp,{now});
+}
+
 function stableMessageDomKey(message){
   const identity=String(message?.clientId||message?.id||'');
   return `${message?.sender==='self'?'self':'remote'}:${identity}`;
@@ -2691,7 +2745,9 @@ function messageVisualSignature(message){
     String(message?.text||''),
     message?.important?'1':'0',
     reply,
-    mediaVisualSignature(message?.media)
+    mediaVisualSignature(message?.media),
+    messageDateKey(messageTimestampMs(message)),
+    messageDaySeparatorLabel(message)
   ]);
 }
 
@@ -4014,12 +4070,80 @@ messageWindow.addEventListener('keydown',event=>{
   }
 });
 
+let messageDayFloatingFrame=0;
+let messageDayFloatingTimer=0;
+
+function hideMessageDayFloating({immediate=false}={}){
+  if(messageDayFloatingTimer)clearTimeout(messageDayFloatingTimer);
+  messageDayFloatingTimer=0;
+  if(messageDayFloatingFrame)cancelAnimationFrame(messageDayFloatingFrame);
+  messageDayFloatingFrame=0;
+  if(!messageDayFloating)return;
+  messageDayFloating.dataset.visible='false';
+  if(immediate){
+    messageDayFloating.hidden=true;
+    messageDayFloating.setAttribute('aria-hidden','true');
+  }
+}
+
+function updateMessageDayFloating(){
+  if(!messageDayFloating||!messageDayFloatingLabel||!chatRouteVisible()||!store.size){
+    hideMessageDayFloating({immediate:true});
+    return false;
+  }
+  const rootRect=scrollRoot.getBoundingClientRect();
+  const headerRect=regionTop.getBoundingClientRect();
+  const cutoff=Math.max(rootRect.top,headerRect.bottom)+6;
+  let visibleNode=null;
+  for(const node of messageWindow.children){
+    const rect=node.getBoundingClientRect();
+    if(rect.bottom>cutoff&&rect.top<rootRect.bottom&&node.dataset.messageCreatedAt){
+      visibleNode=node;
+      break;
+    }
+  }
+  let stamp=Number(visibleNode?.dataset.messageCreatedAt)||0;
+  if(!stamp&&!visibleNode){
+    const index=logicalIndexAtViewport();
+    stamp=messageTimestampMs(store.items[index]);
+  }
+  if(!stamp){
+    hideMessageDayFloating({immediate:true});
+    return false;
+  }
+  const label=formatMessageDayLabel(stamp,{includeDate:true});
+  if(!label){
+    hideMessageDayFloating({immediate:true});
+    return false;
+  }
+  if(messageDayFloatingLabel.textContent!==label)messageDayFloatingLabel.textContent=label;
+  messageDayFloating.hidden=false;
+  messageDayFloating.setAttribute('aria-hidden','false');
+  messageDayFloating.dataset.visible='true';
+  return true;
+}
+
+function scheduleMessageDayFloatingUpdate(){
+  if(!messageDayFloating||messageDayFloatingFrame)return;
+  messageDayFloatingFrame=requestAnimationFrame(()=>{
+    messageDayFloatingFrame=0;
+    if(!updateMessageDayFloating())return;
+    if(messageDayFloatingTimer)clearTimeout(messageDayFloatingTimer);
+    messageDayFloatingTimer=setTimeout(()=>{
+      messageDayFloatingTimer=0;
+      if(messageDayFloating)messageDayFloating.dataset.visible='false';
+    },900);
+  });
+}
+
 scrollRoot.addEventListener('scroll',()=>{
   closeAllTurnActions();
+  scheduleMessageDayFloatingUpdate();
 },{passive:true});
 
 document.addEventListener('v21-active-contact-change',()=>{
   closeAllTurnActions();
+  hideMessageDayFloating({immediate:true});
 });
 
 const DISPLAY_EMOTICONS=Object.freeze({
@@ -4229,6 +4353,34 @@ function messageContentKind(message){
   return 'media';
 }
 
+function syncMessageDayPresentation(node,message){
+  if(!node||!message)return '';
+  const stamp=messageTimestampMs(message);
+  const dayKey=messageDateKey(stamp);
+  const label=messageDaySeparatorLabel(message);
+  node.dataset.messageCreatedAt=stamp?String(stamp):'';
+  node.dataset.messageDayKey=dayKey;
+  node.dataset.daySeparator=label?'true':'false';
+
+  let separator=node.querySelector(':scope > .message-day-separator');
+  if(!label){
+    separator?.remove();
+    return '';
+  }
+  if(!separator){
+    separator=document.createElement('div');
+    separator.className='message-day-separator';
+    separator.setAttribute('aria-hidden','true');
+    const labelNode=document.createElement('span');
+    labelNode.className='message-day-separator-label';
+    separator.appendChild(labelNode);
+    node.insertBefore(separator,node.firstElementChild);
+  }
+  const labelNode=separator.querySelector('.message-day-separator-label')||separator;
+  if(labelNode.textContent!==label)labelNode.textContent=label;
+  return label;
+}
+
 function patchMessageIdentity(node,message){
   if(!node||!message)return node;
   const previousId=String(node.dataset.id||'');
@@ -4239,6 +4391,7 @@ function patchMessageIdentity(node,message){
   node.dataset.turn=message.sender==='self'?'user':'assistant';
   node.dataset.hasMedia=message.media?'true':'false';
   node.dataset.contentKind=messageContentKind(message);
+  syncMessageDayPresentation(node,message);
 
   if(previousId&&nextId&&previousId!==nextId&&heightCache.has(previousId)){
     if(!heightCache.has(nextId))heightCache.set(nextId,heightCache.get(previousId));
@@ -4290,7 +4443,7 @@ function patchMessageMediaShell(shell,media){
 function patchMessageNode(node,message){
   patchMessageIdentity(node,message);
 
-  const outer=node.firstElementChild;
+  const outer=node.querySelector(':scope > .message-turn-shell');
   const stack=outer?.firstElementChild;
   const messageWrap=stack?.firstElementChild;
   const unit=messageWrap?.firstElementChild;
@@ -4398,6 +4551,7 @@ function renderMessageNode(message){
   turn.dataset.hasMedia=message.media?'true':'false';
   turn.dataset.contentKind=messageContentKind(message);
   turn.__message=message;
+  syncMessageDayPresentation(turn,message);
 
   const outer=document.createElement('div');
   outer.className='message-turn-shell';

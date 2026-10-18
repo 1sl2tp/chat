@@ -13,6 +13,7 @@
 - **MUST-STAY:** giữ nguyên ScrollController/anchor/virtualization; tin realtime đến chỉ theo chính sách follow-tail hiện hữu; không kéo người đang đọc lịch sử xuống cuối. Không đổi DB, Supabase, Realtime, polling, RPC, message/media cache hoặc quyền đọc.
 - **Kiểm thử:** ngày địa phương, chuyển ngày, hôm nay/hôm qua/thứ + ngày; UI contract cho separator/floating chip; giữ nguyên kiểm thử contact-time và scroll policy hiện có.
 - **PWA:** chỉ bump shell cache epoch để shell đang cài nhận HTML/CSS/JS mới; không xóa IndexedDB hay cache dữ liệu riêng tư.
+- **Build chuẩn:** Verify V21 dựng lại `index.html`/`version.json` và đồng bộ chúng lên `main` khi có khác biệt; Pages cũng dựng lại từ cùng nguồn trước khi triển khai.
 
 ---
 

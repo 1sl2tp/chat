@@ -37,6 +37,6 @@ assert 'object-fit:contain!important;' in css
 assert 'object-fit:cover!important;' in css
 assert '.user-message-unit>.message-media-shell{margin-left:auto}' in css
 assert '.assistant-message-unit>.message-media-shell{margin-right:auto}' in css
-# UI-154 corners remain unchanged; PWA boot has since advanced the cache epoch.
-assert "const SHELL_CACHE_EPOCH='pwa-boot155';" in sw
+# UI-154 corners remain unchanged; UI-156 advances only the shell namespace.
+assert "const SHELL_CACHE_EPOCH='chat-day156';" in sw
 print('UI-154 four-corner clip / inset outline / no layout drift PASS')

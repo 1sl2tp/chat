@@ -1,3 +1,17 @@
+## 2026-10-18 — UI-156 Chat date dividers + floating date while scrolling (SOURCE/TESTS COMMITTED; VERIFY/PAGES PENDING)
+
+- **User request:** distinguish today/yesterday/weekday + date in conversation history; show the latest message time in the conversation list; when scrolling, keep a temporary date marker visible without moving the message list.
+- **Root cause:** `shell.js::formatContactTime` showed yesterday as a weekday, while `app.js` had no per-day separators or scroll-date marker.
+- **Patch:** list time is now `HH:mm` today, `Hôm qua` yesterday, weekday for 2–6 days, and compact date for older messages. In the thread, one date divider is inserted inside the corresponding virtualized message row only at date boundaries. A zero-height sticky chip displays the first visible message's date while scrolling and fades after 900ms idle.
+- **Scroll safety:** marker only reads geometry and timestamps; it never writes `scrollTop`. Existing `appendScrollPolicy`, ScrollController, anchor restoration, virtualization, and remote follow-tail rules remain owners. No DB/Supabase/Realtime/polling/RPC/cache changes.
+- **Tests:** new runtime + UI-contract tests; existing contact-time assertions and UI-154/mobile-shell epoch assertions updated; Verify V21 workflow includes both new tests.
+- **Canonical build:** Verify V21 rebuilds and syncs `index.html`/`version.json` on `main`; Pages rebuilds and deploys the same source. Exact build ID and run IDs will be recorded after CI.
+- **E1:** source/test changes committed. **E2 Verify V21 and E3 Pages deployment are pending** at this entry; update with exact run IDs/results after CI.
+- **E4/E5 pending:** still requires checking a logged-in Safari/iPhone PWA after the service worker activates, including reading older messages and receiving a new message while away from the tail. CI/deploy does not prove the user's installed PWA has switched shell.
+- **Rollback:** revert UI-156 source/test/workflow changes and shell epoch, regenerate canonical `index.html/version.json`, rerun Verify/Pages. No data rollback.
+
+---
+
 ## 2026-10-13 — UI-154 Four precise photo corners (VERIFY/PAGES PASS; REAL SAFARI E4 PENDING)
 
 - User screenshot on desktop shows radius14 looking fuzzy at four corners, particularly light-background scanned receipt. Screenshot address included an old _build=e71f9bd... value; actual running cached shell cannot be confirmed from image alone.

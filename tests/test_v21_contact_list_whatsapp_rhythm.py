@@ -9,10 +9,12 @@ def compact(text: str) -> str:
     return "".join(text.split())
 
 
-def test_contact_time_uses_clock_then_weekday_then_compact_date():
+def test_contact_time_uses_clock_then_yesterday_then_weekday_then_compact_date():
     shell = compact(SHELL)
     assert "constdayDiff=Math.floor((startOfToday-startOfDate)/86400000);" in shell
-    assert "if(dayDiff>=1&&dayDiff<=6)returndate.toLocaleDateString('vi-VN',{weekday:'long'});" in shell
+    assert "if(dayDiff===0)returndate.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false});" in shell
+    assert "if(dayDiff===1)return'Hômqua';" in shell
+    assert "if(dayDiff>=2&&dayDiff<=6)returndate.toLocaleDateString('vi-VN',{weekday:'long'});" in shell
     assert "returndate.toLocaleDateString('vi-VN',{day:'numeric',month:'numeric',year:'2-digit'});" in shell
 
 
