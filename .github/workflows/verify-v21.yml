@@ -110,6 +110,8 @@ jobs:
         run: node tests/test_v21_72_17_mobile_form_keyboard_runtime.js
       - name: UI-137 Web/PWA media metadata and bounded cache runtime
         run: node tests/test_v21_137_dual_session_media_runtime.js
+      - name: Scoped admin/test deleted-history IndexedDB reset
+        run: node tests/test_v21_admin_test_deleted_history_cache.js
       - name: UI-138 Web/PWA open-position and remote-history scroll runtime
         run: node tests/test_v21_138_scroll_visibility_policy.js
       - name: UI-156 message day labels runtime
