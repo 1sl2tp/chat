@@ -23,7 +23,7 @@ def test_disabled_default_and_hard_readiness_gate():
 def test_admin_ui_is_server_backed_and_initially_off():
     js = UI.read_text(encoding="utf-8")
     assert 'data-admin-auto-collect-setting' in js
-    assert 'data-admin-auto-collect-action data-mode="enable" data-unavailable="true" disabled' in js
+    assert 'data-admin-auto-collect-action data-mode="enable" data-unavailable="false" disabled' in js
     assert "client.rpc('chat_auto_collect_admin_settings',{p_enabled:null})" in js
     assert "client.rpc('chat_auto_collect_admin_settings',{p_enabled:enable})" in js
     assert "if(!root||!currentAdmin())return;" in js
@@ -51,3 +51,16 @@ def test_name_and_both_evidence_required_in_admin_contract():
     assert "Thu/Ghi nợ thủ công không đổi" in js
     assert "Thiếu một nguồn = tuyệt đối không thu" in spec
     assert "bill-only" in spec and "SMS-only" in spec
+
+
+def test_admin_can_arm_without_sms_but_financial_execution_still_blocked():
+    sql=(ROOT / "supabase/migrations/20261018181000_chat_auto_collect_arm_without_sms.sql").read_text(encoding="utf-8").lower()
+    assert "current_active_account_id()" in sql
+    assert "a.role='admin'" in sql
+    assert "v_config.enabled is distinct from p_enabled" in sql
+    assert "'can_enable',true" in sql
+    assert "'execution_active',(v_config.enabled and v_config.ready)" in sql
+    assert "auto_collect_not_ready" not in sql
+    assert "insert into public.taphoa_debt_ledger" not in sql
+    assert "taphoa_debt_transaction" not in sql
+    assert "grant execute on function public.chat_auto_collect_admin_settings(boolean) to authenticated;" in sql
