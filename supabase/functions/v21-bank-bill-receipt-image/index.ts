@@ -72,7 +72,7 @@ function pngReceipt({amount,bank,ref,customer,at,before,after}:{amount:number;ba
  txt("TAP HOA / PHIEU THU",36,24,2,[170,204,223],40);
  txt("THU CHUYEN KHOAN",36,64,4,WHITE,32);
  paint(30,151,660,139,PALE);
- txt("SO TIEN DA THU - NGHIN DONG",49,174,2,MUTED,38);
+ txt("SO TIEN DA THU",49,174,2,MUTED,38);
  txt(money(amount),49,217,6,GREEN,15);
  txt("KHACH HANG",36,324,2,MUTED,30);
  txt(customer||"KHACH HANG",245,324,2,INK,29);
