@@ -1,15 +1,15 @@
-## 2026-10-18 — UI-156 Chat date dividers + floating date while scrolling (SOURCE/TESTS COMMITTED; VERIFY/PAGES PENDING)
+## 2026-10-18 — UI-156 Chat date dividers + floating date while scrolling (SOURCE / VERIFY / PAGES PASS; E4/E5 PENDING)
 
 - **User request:** distinguish today/yesterday/weekday + date in conversation history; show the latest message time in the conversation list; when scrolling, keep a temporary date marker visible without moving the message list.
 - **Root cause:** `shell.js::formatContactTime` showed yesterday as a weekday, while `app.js` had no per-day separators or scroll-date marker.
 - **Patch:** list time is now `HH:mm` today, `Hôm qua` yesterday, weekday for 2–6 days, and compact date for older messages. In the thread, one date divider is inserted inside the corresponding virtualized message row only at date boundaries. A zero-height sticky chip displays the first visible message's date while scrolling and fades after 900ms idle.
 - **Scroll safety:** marker only reads geometry and timestamps; it never writes `scrollTop`. Existing `appendScrollPolicy`, ScrollController, anchor restoration, virtualization, and remote follow-tail rules remain owners. No DB/Supabase/Realtime/polling/RPC/cache changes.
-- **Tests:** new runtime + UI-contract tests; existing contact-time assertions and UI-154/mobile-shell epoch assertions updated; Verify V21 workflow includes both new tests.
-- **Canonical build:** Verify V21 rebuilds and syncs `index.html`/`version.json` on `main`; Pages rebuilds and deploys the same source. Exact build ID and run IDs will be recorded after CI.
-- **E1:** source/test changes committed. **E2 Verify V21 and E3 Pages deployment are pending** at this entry; update with exact run IDs/results after CI.
+- **Tests:** UI-156 date-label runtime and UI contract PASS. The first run caught an old UI-72.50 test asserting the exact old scroll listener; updated that assertion in follow-up test commit `3b5ce1121b25e96f200cfe98e89bddc84a5ea681`, then reran successfully.
+- **E1 source:** `8444a5549922df7d0185da59aa1d810a1232ac1d`; follow-up test contract `3b5ce1121b25e96f200cfe98e89bddc84a5ea681`. Verify V21 also synced canonical generated artifacts in `ddd70a3d8dcc78f6d12e9901d53c11bd03f03920`.
+- **E2 Verify V21:** PASS — [run 39086614098](https://github.com/1sl2tp/chat/actions/runs/39086614098), including canonical source verification and both UI-156 tests.
+- **E3 Pages:** PASS — [run 39086614085](https://github.com/1sl2tp/chat/actions/runs/39086614085), deployment and custom-domain verification succeeded. Canonical build ID `db28addacf056743dcdfde51b2ab485e19681b2b5c9da30a563cc999f96f2014`; `index.html` SHA-256 `3d016ae3da1b28d27dcf0422d185619e3ffe2807f7f96558e4579253814dd8ae`.
 - **E4/E5 pending:** still requires checking a logged-in Safari/iPhone PWA after the service worker activates, including reading older messages and receiving a new message while away from the tail. CI/deploy does not prove the user's installed PWA has switched shell.
 - **Rollback:** revert UI-156 source/test/workflow changes and shell epoch, regenerate canonical `index.html/version.json`, rerun Verify/Pages. No data rollback.
-
 ---
 
 ## 2026-10-13 — UI-154 Four precise photo corners (VERIFY/PAGES PASS; REAL SAFARI E4 PENDING)
