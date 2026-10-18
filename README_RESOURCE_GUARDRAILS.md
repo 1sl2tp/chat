@@ -249,3 +249,13 @@ Resource effect:
 - unlinked Chat recipients generate zero Zalo outbound work;
 - unlinked Zalo media incurs only the tiny ownership preflight and no binary transfer;
 - unlinked Zalo text incurs one event-triggered canonical lookup only, with no stored Chat/Zalo delivery row.
+
+
+### BANK-159 — Bank-bill AI only when both evidence sources can exist
+
+- Trigger owner 1: real customer image INSERT queues bill metadata. If no plausible recent Agribank positive SMS exists, **no Edge HTTP, no image download, no Gemini call**. A queued bill is not proof of payment.
+- Trigger owner 2: one *new unique* raw Agribank SMS INSERT wakes at most 6 newest queued bill images within a 24-hour transaction window, allowing up to 10-minute arrival skew. SMS ingest uses existing raw inbox + fingerprint. No update trigger, no cron, no periodic rescans.
+- Edge is mandatory independent cost guard: verify SMS sender, incoming amount sign, bank transaction date with year inferred from APK time, and receipt window before media bytes or AI. No eligible SMS ⇒ HTTP 202 `waiting_sms`, unchanged queued state, zero AI. A scan claim is atomic per asset and duplicate hashes are reused.
+- SMS gate is **not** bank confirmation or debt permission. Automatic collection remains disabled; eventual ledger writer must enforce *both* verified SMS and unique customer bill atomically and independently of UI.
+- Max image AI fan-out from new SMS is 6 per insert; bill-after-SMS arrivals are bounded by chat image event rate, existing per-day receipt scan caps and 24-hour SMS eligibility. This limit may leave a receipt queued for manual review, and a plausible SMS still can trigger AI for non-bill photos: AI costs are reduced, not provably zero.
+- Read-back 2026-10-18: inbox=0, bill receipts=16, ledger-linked=0, enabled=false,ready=false. Edge V14 + database migration applied; actual API utilization and E4 real-SMS delivery remain unverified. Never infer quota/cost savings from mocks alone.
