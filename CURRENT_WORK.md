@@ -9,7 +9,7 @@
 - **MUST-STAY:** manual Thu tiền/Ghi nợ completely independent; automatic collection requires **BOTH** uniquely matched real bank SMS and customer Chat bill and Admin toggle ON. This patch **does not implement nor enable ledger auto-collection**. No Chat message/sync/push/Zalo/Storage cleanup changes.
 - **Rollback:** restore original image queue dispatch function and drop only `chat_bank_bill_wake_on_sms_insert_trg` if needed, revert Edge to V13 previous source. Avoid any data cleanup; auto-collection remains OFF.
 - **NEXT E4:** inject nothing synthetic into production. Observe first real incoming bank SMS from approved Android APK and customer bill both directions; compare Gemini requests, time parsing, duplicate handling and output statuses; only then plan separate atomic ledger/ready gate. 
-- **Release verification:** main Verify after merge and device/real SMS proof still need to be added when available.
+- **Release verification:** [main Verify 39145952490](https://github.com/1sl2tp/chat/actions/runs/39145952490) SUCCESS for merge commit; no Chat Pages deployment required (no changed Chat frontend source). Device/real-SMS proof E4 remains PENDING.
 
 ---
 
