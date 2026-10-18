@@ -388,7 +388,10 @@ async function pruneResetConversationRows(storeName,indexName,accountId,shouldRe
   const index=tx.objectStore(storeName).index(indexName);
   const finished=txDone(tx);
   await new Promise((resolve,reject)=>{
-    const cursor=index.openCursor(IDBKeyRange.only(String(accountId)));
+    const range=indexName==='by_account_created'
+      ?IDBKeyRange.bound([String(accountId),''],[String(accountId),'\uffff'])
+      :IDBKeyRange.only(String(accountId));
+    const cursor=index.openCursor(range);
     cursor.onerror=()=>reject(cursor.error||new Error('test_chat_cache_prune_failed'));
     cursor.onsuccess=()=>{
       const current=cursor.result;
