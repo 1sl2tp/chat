@@ -88,7 +88,7 @@ begin
   then return jsonb_build_object('ok',false,'status','bank_sms_rejected','ledger_written',false); end if;
   -- Parse ONLY signed positive amount adjacent to recipient account; never SD/balance.
   v_match:=regexp_match(upper(v_s.body),
-     'TK[[:space:]]*([0-9]{9,20})[[:space:]]*:[[:space:]]*\\+[[:space:]]*([0-9][0-9.,]*)[[:space:]]*VND');
+     'TK[[:space:]]*([0-9]{9,20})[[:space:]]*:[[:space:]]*\+[[:space:]]*([0-9][0-9.,]*)[[:space:]]*VND');
   if v_match is null or v_match[2] !~ '(^[0-9]{1,12}$|^[0-9]{1,3}([.,][0-9]{3})+$)'
   then return jsonb_build_object('ok',false,'status','bank_amount_unreadable','ledger_written',false); end if;
   v_account:=v_match[1];
@@ -105,7 +105,7 @@ begin
      or (v_r.receiving_account is not null and v_r.receiving_account ~ '^[0-9]{9,20}$'
          and v_r.receiving_account<>v_account)
   then return jsonb_build_object('ok',false,'status','recipient_not_verified','ledger_written',false); end if;
-  v_time:=substring(v_s.body from '[0-2][0-9]:[0-5][0-9][[:space:]]+[0-3][0-9]/[0-1][0-9]');
+  v_time:=regexp_replace(substring(v_s.body from '[0-2][0-9]:[0-5][0-9][[:space:]]+[0-3][0-9]/[0-1][0-9]'),'[[:space:]]+',' ','g');
   if v_time is null then return jsonb_build_object('ok',false,'status','sms_time_missing','ledger_written',false); end if;
   v_h:=split_part(split_part(v_time,' ',1),':',1)::integer;
   v_min:=split_part(split_part(v_time,' ',1),':',2)::integer;
@@ -155,7 +155,7 @@ begin
                            and v_s.received_at+interval '5 minutes'
     and s2.body ~ 'TK[[:space:]]*2901181999999[[:space:]]*:'
     and regexp_replace(coalesce((regexp_match(upper(s2.body),
-     'TK[[:space:]]*([0-9]{9,20})[[:space:]]*:[[:space:]]*\\+[[:space:]]*([0-9][0-9.,]*)[[:space:]]*VND'))[2],''),'[.,]','','g')=v_amount::bigint::text;
+     'TK[[:space:]]*([0-9]{9,20})[[:space:]]*:[[:space:]]*\+[[:space:]]*([0-9][0-9.,]*)[[:space:]]*VND'))[2],''),'[.,]','','g')=v_amount::bigint::text;
   if v_conflicts>0 then
     return jsonb_build_object('ok',false,'status','ambiguous_bank_sms','ledger_written',false);
   end if;
