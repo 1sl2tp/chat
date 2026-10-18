@@ -122,7 +122,9 @@
     // Recipient errors outrank an unreadable amount or time: notify promptly
     // after one scoped image read without accidentally booking anything.
     if (b.receiving_name && b.receiving_name !== 'BUI XUAN TUNG') return verdict('hold','wrong_receiving_name',b);
-    if (b.receiving_account && b.receiving_account !== '2901181999999' && b.receiving_account !== '197981999999' && b.receiving_account.length >= 12) return verdict('hold','wrong_receiving_account',b);
+    if (b.receiving_account && b.receiving_account !== '2901181999999' && b.receiving_account !== '197981999999' && b.receiving_account.length >= 12 &&
+        !['2901181999999','197981999999'].some(allowed => allowed.includes(b.receiving_account)))
+      return verdict('hold','wrong_receiving_account',b);
     if (b.receiving_account && b.receiving_bank &&
        (b.receiving_account === '2901181999999' || b.receiving_account === '197981999999') &&
        !bankAccountAllowed(b.receiving_account,b.receiving_bank)) return verdict('hold','wrong_receiving_bank',b);
