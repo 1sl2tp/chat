@@ -22,8 +22,8 @@ assert "constopenTurn=messageWindow.querySelector('.message-turn[data-actions-op
 assert "closeAllTurnActions();" in app
 
 # Scroll/contact/interaction changes cannot leave a stale action rail behind.
-assert "scrollRoot.addEventListener('scroll',()=>{closeAllTurnActions();},{passive:true});" in c
-assert "document.addEventListener('v21-active-contact-change',()=>{closeAllTurnActions();});" in c
+assert "scrollRoot.addEventListener('scroll',()=>{closeAllTurnActions();scheduleMessageDayFloatingUpdate();},{passive:true});" in c
+assert "document.addEventListener('v21-active-contact-change',()=>{closeAllTurnActions();hideMessageDayFloating({immediate:true});});" in c
 abort=app[app.index("document.addEventListener('v21-interaction-abort'"):][:500]
 assert "closeAllTurnActions();" in abort
 
