@@ -57,7 +57,7 @@ export function previewBillSmsMatch(bill,smsRows,otherBills=[],now=Date.now()){
   return {status:"review",reason:"bill_or_chat_time_missing"};
  if(billTime>chatTime+2*60000||chatTime-billTime>20*60000)
   return {status:"review",reason:"bill_chat_time_out_of_range"};
- if(Date.now()-chatTime>36*3600000)
+ if(now-chatTime>36*3600000)
   return {status:"review",reason:"old_chat_bill"};
  const qualified=(smsRows||[]).map(readIncomingAgribankSms).filter(Boolean)
    .filter(s=>s.amount_vnd===bill.amount_vnd)
