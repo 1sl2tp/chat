@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="be6f6033bf5a82b7305075559a66019dc839332c7bc2f58ce724ade28067a63d">
+<meta name="app-build-id" content="f6065ca7ea810e24072850c9818964c785696ccda3a28376b0bb808355324407">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -22822,7 +22822,10 @@ async function pruneResetConversationRows(storeName,indexName,accountId,shouldRe
   const index=tx.objectStore(storeName).index(indexName);
   const finished=txDone(tx);
   await new Promise((resolve,reject)=>{
-    const cursor=index.openCursor(IDBKeyRange.only(String(accountId)));
+    const range=indexName==='by_account_created'
+      ?IDBKeyRange.bound([String(accountId),''],[String(accountId),'\uffff'])
+      :IDBKeyRange.only(String(accountId));
+    const cursor=index.openCursor(range);
     cursor.onerror=()=>reject(cursor.error||new Error('test_chat_cache_prune_failed'));
     cursor.onsuccess=()=>{
       const current=cursor.result;
