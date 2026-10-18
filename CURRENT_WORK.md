@@ -1,3 +1,13 @@
+## 2026-10-18 — BANK-160 ADMIN AUTO COLLECTION ARMED MODE (PAGES+VERIFY PASS; FINANCIAL WRITER STILL NOT READY)
+
+- **User clarified** that a disabled "Chưa sẵn sàng" button for missing SMS is incorrect: Admin can **BẬT/TẮT** automatic collection at any time; ON without SMS just waits, zero AI/zero collection.
+- **Admin toggle:** [PR #185](https://github.com/1sl2tp/chat/pull/185) merged squash `425852507207e3cac073ea00f3e000d90c1968ab`. In `zalo-admin-link.js`, no disabled not-ready branch; Admin sees Bật/Tắt labels. PWA shell bumped to `bank-arm160` for new UI. [Verify 39148162763](https://github.com/1sl2tp/chat/actions/runs/39148162763) SUCCESS; [Deploy Chat Pages 39148162707](https://github.com/1sl2tp/chat/actions/runs/39148162707) SUCCESS. Real authenticated Safari/PWA visual smoke E4 PENDING until device refresh.
+- **Backend:** migration `20261018181000_chat_auto_collect_arm_without_sms` applied Supabase prod. `chat_auto_collect_admin_settings(p_enabled)` checks current active Admin role, may set enabled regardless of SMS readiness; `execution_active=enabled AND ready`. It cannot execute a financial ledger collection. Direct table privilege remains denied. Readback after deployment: `enabled=false,ready=false,execution_active=false`, SMS rows=0. No automatic revenue capture; no manual debt mutation.
+- **Business rule:** User's SMS+bill requirement is strict AND; bank amounts in VND divide once by 1000 before calling the existing TAPHOA collection accounting pathway; no rounding. This repo release implements toggle arming only; finance auto-writer and exact PNG upload parity are **not yet implemented**. Do not set ready=true before real SMS and one-to-one bill match + idempotent debt/notification pipeline tests.
+- **Rollback:** Admin sets enabled=false; revert PR #185 UI and RPC migration only if regression. Never delete SMS, bills, customer debt or messages.
+
+---
+
 ## 2026-10-18 — BANK-159 SMS-GATED AI RECEIPT SCAN (EDGE+DB LIVE; PR/BRANCH VERIFY PASS; REAL SMS E4 PENDING)
 
 - **User request:** Gemini must not scan every customer Chat image. Scan candidate bill images *only* when a recent incoming Agribank SMS exists; SMS first or image first must both work. Required TWO-source matched SMS+bill rule for auto-collection remains unchanged.
