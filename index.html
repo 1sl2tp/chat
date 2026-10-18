@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="db28addacf056743dcdfde51b2ab485e19681b2b5c9da30a563cc999f96f2014">
+<meta name="app-build-id" content="be6f6033bf5a82b7305075559a66019dc839332c7bc2f58ce724ade28067a63d">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -22806,6 +22806,65 @@ async function clearAccount(accountId){
   return true;
 }
 
+// One-time targeted reset for the two admin↔test conversations deleted
+// from the canonical server on 18/10/2026. Do not erase other Admin contacts.
+const RESET_TEST_ACCOUNT='8c4ac6ec-3178-4661-8696-04e345bf443e';
+const RESET_ADMIN_ACCOUNT='b88e5d98-0032-46fc-9741-01722c99252d';
+const RESET_OLD_CONVERSATIONS=new Set([
+  '1c2bc6f5-b2c7-4eca-a5ce-61c11306e1ab',
+  'e34e4bb8-7a3f-4ca4-af60-91b33f9b510b'
+]);
+const RESET_TEST_CACHE_MARK='admin_test_chat_reset_20261018_server_deleted_v1';
+
+async function pruneResetConversationRows(storeName,indexName,accountId,shouldRemove){
+  const db=await open();
+  const tx=db.transaction(storeName,'readwrite');
+  const index=tx.objectStore(storeName).index(indexName);
+  const finished=txDone(tx);
+  await new Promise((resolve,reject)=>{
+    const cursor=index.openCursor(IDBKeyRange.only(String(accountId)));
+    cursor.onerror=()=>reject(cursor.error||new Error('test_chat_cache_prune_failed'));
+    cursor.onsuccess=()=>{
+      const current=cursor.result;
+      if(!current){resolve();return;}
+      try{if(shouldRemove(current.value))current.delete();}
+      catch(error){reject(error);return;}
+      current.continue();
+    };
+  });
+  await finished;
+}
+
+async function pruneAdminTestConversationCache(accountId){
+  const id=String(accountId||'');
+  if(id!==RESET_ADMIN_ACCOUNT&&id!==RESET_TEST_ACCOUNT)return false;
+  if(await getMeta(id,RESET_TEST_CACHE_MARK,false))return false;
+  if(id===RESET_TEST_ACCOUNT){
+    // This customer had no other server-side conversations at reset time.
+    await clearAccount(id);
+  }else{
+    const belongsToOldConversation=row=>
+      RESET_OLD_CONVERSATIONS.has(String(row?.conversation_id||''));
+    await pruneResetConversationRows('messages','by_account',id,belongsToOldConversation);
+    await pruneResetConversationRows('media','by_account',id,row=>
+      RESET_OLD_CONVERSATIONS.has(String(row?.remote_meta?.conversation_id||row?.conversation_id||'')));
+    await pruneResetConversationRows('read_states','by_account',id,belongsToOldConversation);
+    await pruneResetConversationRows('contacts','by_account',id,row=>
+      String(row?.id||'')===RESET_TEST_ACCOUNT||belongsToOldConversation(row));
+    await pruneResetConversationRows('outbox','by_account_created',id,row=>
+      String(row?.contact_id||'')===RESET_TEST_ACCOUNT||belongsToOldConversation(row));
+    await pruneResetConversationRows('meta','by_account',id,row=>{
+      const name=String(row?.name||'');
+      return name==='conversation:'+RESET_TEST_ACCOUNT||
+        [...RESET_OLD_CONVERSATIONS].some(conversation=>
+          name==='conversation_hydrated:'+conversation||
+          name==='conversation:'+conversation);
+    });
+  }
+  await setMeta(id,RESET_TEST_CACHE_MARK,true);
+  return true;
+}
+
 window.V21CacheStore={
   version:VERSION,open,
   getMeta,setMeta,
@@ -22820,7 +22879,7 @@ window.V21CacheStore={
   putReadState,
   putOutbox,listOutbox,listOutboxForContact,removeOutbox,updateOutbox,
   putMediaRecord,getMediaRecord,removeMediaRecord,listMediaRecords,
-  clearAccount
+  clearAccount,pruneAdminTestConversationCache
 };
 })();
 
