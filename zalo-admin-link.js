@@ -861,15 +861,11 @@ function paintAutoCollectSetting(root,data,error=''){
     action.textContent='Không khả dụng';
     action.dataset.unavailable='true';
   }else if(enabled){
-    label.textContent='ĐANG BẬT · Chỉ ghi thu khi ảnh bill và SMS tiền vào khớp duy nhất';
+    label.textContent=ready?'ĐANG BẬT · Chỉ thu khi SMS và bill khớp duy nhất':'ĐANG BẬT · Chờ hệ thống kiểm chứng SMS và bill';
     action.textContent='Tắt tự động thu';
     action.dataset.unavailable='false';
-  }else if(!ready){
-    label.textContent='ĐANG TẮT · Chưa kiểm chứng khớp ảnh bill + SMS Banking';
-    action.textContent='Chưa sẵn sàng';
-    action.dataset.unavailable='true';
   }else{
-    label.textContent='ĐANG TẮT · Vẫn đọc bill/SMS; không tự ghi thu';
+    label.textContent='ĐANG TẮT · Vẫn nhận ảnh và SMS, không tự thu';
     action.textContent='Bật tự động thu';
     action.dataset.unavailable='false';
   }
@@ -934,8 +930,8 @@ async function openAccountAdmin(){
         <button type="button" class="zalo-account-notification-action" data-admin-device-open>Quản lý</button>
       </div>
       <div class="zalo-account-notification" data-admin-auto-collect-setting>
-        <span class="zalo-account-notification-copy"><strong>Tự động thu tiền</strong><small data-admin-auto-collect-status>Đang kiểm tra trạng thái…</small><small>Chỉ thu khi bill + SMS khớp. Thu/Ghi nợ thủ công không đổi.</small></span>
-        <button type="button" class="zalo-account-notification-action" data-admin-auto-collect-action data-mode="enable" data-unavailable="true" disabled>Chưa sẵn sàng</button>
+        <span class="zalo-account-notification-copy"><strong>Tự động thu tiền</strong><small data-admin-auto-collect-status>Đang kiểm tra trạng thái…</small><small>Bật chỉ là chờ tự động. Chưa có SMS thì không đọc AI, không thu. Thu/Ghi nợ thủ công không đổi.</small></span>
+        <button type="button" class="zalo-account-notification-action" data-admin-auto-collect-action data-mode="enable" data-unavailable="false" disabled>Bật tự động thu</button>
       </div>
       <label class="zalo-account-search"><span class="sr-only">Tìm tài khoản</span><input type="search" autocomplete="off" inputmode="search" placeholder="Tìm Chat, @username, Zalo hoặc nhóm" data-zalo-account-search></label>
       <p class="zalo-account-error" data-zalo-account-error hidden></p>
