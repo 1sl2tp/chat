@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "npm:@supabase/supabase-js@2.57.4";
+import {RULE_VERSION,SYSTEM_PROMPT,validateVisionRead} from "./bill-amount-rules.mjs";
 
 const db=createClient(Deno.env.get("SUPABASE_URL")||"",Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"",{auth:{persistSession:false,autoRefreshToken:false}});
 const response=(body:any,status=200)=>new Response(JSON.stringify(body),{status,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store"}});
@@ -120,13 +121,13 @@ Deno.serve(async req=>{
    if(!geminiKey)throw new Error("gemini_key_missing");
    let b64="";
    for(let n=0;n<bytes.length;n+=16000)b64+=String.fromCharCode(...bytes.subarray(n,Math.min(bytes.length,n+16000)));
-   const prompt="Chỉ đọc SỐ TIỀN chuyển khoản từ ảnh biên lai ngân hàng Việt Nam, không xử lý người nhận, STK, thời gian hay mã giao dịch. Ảnh có thể chụp màn hình điện thoại đặt trên bàn hoặc bị lóa. Xác định vùng màn hình điện thoại và phần BIÊN LAI CHUYỂN TIỀN THÀNH CÔNG, bỏ qua nền, tay, vỏ ốp. Tìm SỐ TIỀN CHUYỂN THÀNH CÔNG thường in lớn và nổi bật nhất trong vùng xác nhận, KHÔNG lấy số dư, số tài khoản, mã giao dịch hoặc số khác. Trả duy nhất JSON object {is_transfer_receipt:boolean,amount_vnd:integer|null,amount_text:string|null,amount_clear:boolean,uncertainty:string|null}. Nếu QR nhận tiền, ảnh không phải bill thành công, hoặc số tiền mờ/mâu thuẫn thì amount_vnd=null; không tự đoán. amount_vnd phải là số tiền gốc bằng VND, KHÔNG chia 1000.";
+   const prompt=SYSTEM_PROMPT;
    const ctl=new AbortController();const timeout=setTimeout(()=>ctl.abort(),24000);
    let gr:Response;
    try{gr=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent",{
      method:"POST",headers:{"x-goog-api-key":geminiKey,"content-type":"application/json"},
      body:JSON.stringify({contents:[{role:"user",parts:[{text:prompt},{inlineData:{mimeType:media.mime_type||"image/jpeg",data:btoa(b64)}}]}],
-       generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:340}}),
+       generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:560}}),
      signal:ctl.signal
    });}finally{clearTimeout(timeout);}
    if(!gr.ok)throw new Error("gemini_http_"+gr.status);
