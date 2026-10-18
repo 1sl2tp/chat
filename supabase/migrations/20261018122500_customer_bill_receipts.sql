@@ -69,7 +69,7 @@ declare
   v_bank text := nullif(btrim(coalesce(p_sending_bank,'')),'');
   v_ref text := nullif(btrim(coalesce(p_transfer_reference,'')),'');
   v_acct text := regexp_replace(coalesce(p_receiving_account,''),'[^0-9]','','g');
-  v_name text := upper(regexp_replace(btrim(coalesce(p_receiving_name,'')),'\\s+',' ','g'));
+  v_name text := upper(regexp_replace(btrim(coalesce(p_receiving_name,'')),'[[:space:]]+',' ','g'));
   v_destination text := lower(btrim(coalesce(p_receiving_bank,'')));
   v_status text := 'received';
   v_reason text := '';
