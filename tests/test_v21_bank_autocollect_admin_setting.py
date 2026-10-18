@@ -39,3 +39,15 @@ def test_setting_only_does_not_enable_bank_work_or_write_ledger():
     assert "net.http_post" not in sql
     assert "create trigger" not in sql
     assert "cron" not in sql.lower().split("begin;")[1]
+
+
+def test_name_and_both_evidence_required_in_admin_contract():
+    js = UI.read_text(encoding="utf-8")
+    spec = (ROOT / "docs/specs/SPEC-CHAT-BANK-AUTOCOLLECT-157.md").read_text(encoding="utf-8")
+    assert "<strong>Tự động thu tiền</strong>" in js
+    assert "Tự thu SMS Banking" not in js
+    assert "ảnh bill và SMS tiền vào khớp duy nhất" in js
+    assert "đồng thời ảnh bill của khách trong Chat và SMS tiền vào ngân hàng khớp duy nhất" in js
+    assert "Thu/Ghi nợ thủ công không đổi" in js
+    assert "Thiếu một nguồn = tuyệt đối không thu" in spec
+    assert "bill-only" in spec and "SMS-only" in spec
