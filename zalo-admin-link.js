@@ -846,6 +846,69 @@ async function runAdminPushAction(button){
   }
 }
 
+// BANK-157: Admin-only server flag, fail-closed until SMS/bill E2 pilot.
+let autoCollectRequestBusy=false;
+function paintAutoCollectSetting(root,data,error=''){
+  if(!root?.isConnected)return;
+  const label=root.querySelector('[data-admin-auto-collect-status]');
+  const action=root.querySelector('[data-admin-auto-collect-action]');
+  if(!label||!action)return;
+  const enabled=data?.enabled===true;
+  const ready=data?.ready===true;
+  action.dataset.mode=enabled?'disable':'enable';
+  if(error||!data?.ok){
+    label.textContent='Không kiểm tra được trạng thái; vui lòng thử lại';
+    action.textContent='Không khả dụng';
+    action.dataset.unavailable='true';
+  }else if(enabled){
+    label.textContent='ĐANG BẬT · Chỉ tự thu khi kiểm chứng hợp lệ';
+    action.textContent='Tắt tự thu';
+    action.dataset.unavailable='false';
+  }else if(!ready){
+    label.textContent='ĐANG TẮT · Đợi SMS thực và kiểm thử đối chiếu';
+    action.textContent='Chưa sẵn sàng';
+    action.dataset.unavailable='true';
+  }else{
+    label.textContent='ĐANG TẮT · Vẫn nhận SMS và đọc bill, không tự ghi thu';
+    action.textContent='Bật tự thu';
+    action.dataset.unavailable='false';
+  }
+  action.disabled=accountBusy||autoCollectRequestBusy||action.dataset.unavailable==='true';
+}
+async function refreshAutoCollectSetting(){
+  const root=accountModal?.querySelector('[data-admin-auto-collect-setting]');
+  if(!root||!currentAdmin())return;
+  const button=root.querySelector('[data-admin-auto-collect-action]');
+  if(button)button.disabled=true;
+  const client=authStore()?.getClient?.();
+  if(!client){paintAutoCollectSetting(root,null,'unavailable');return;}
+  try{
+    const {data,error}=await client.rpc('chat_auto_collect_admin_settings',{p_enabled:null});
+    if(error)throw error;
+    paintAutoCollectSetting(root,data);
+  }catch{paintAutoCollectSetting(root,null,'fetch_failed');}
+}
+async function runAutoCollectAction(button){
+  const root=button?.closest('[data-admin-auto-collect-setting]');
+  if(!root||!currentAdmin()||autoCollectRequestBusy||button.dataset.unavailable==='true')return;
+  const enable=button.dataset.mode==='enable';
+  if(enable&&!window.confirm('Bật tự thu? Khi điều kiện xác minh đã đạt, hệ thống có thể tự cập nhật công nợ cho giao dịch khớp duy nhất.'))return;
+  const client=authStore()?.getClient?.();
+  if(!client)return paintAutoCollectSetting(root,null,'client_missing');
+  autoCollectRequestBusy=true;button.disabled=true;
+  try{
+    const {data,error}=await client.rpc('chat_auto_collect_admin_settings',{p_enabled:enable});
+    if(error)throw error;
+    paintAutoCollectSetting(root,data);
+  }catch{
+    paintAutoCollectSetting(root,null,'write_failed');
+  }finally{
+    autoCollectRequestBusy=false;
+    // Always re-read canonical flag after a failed or successful request.
+    if(root.isConnected&&currentAdmin())void refreshAutoCollectSetting();
+  }
+}
+
 async function openAccountAdmin(){
   if(!currentAdmin())return null;
   const returnFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;
@@ -861,7 +924,7 @@ async function openAccountAdmin(){
   accountModal.innerHTML=`
     <button type="button" class="zalo-account-backdrop" aria-label="Đóng"></button>
     <section class="zalo-account-card" role="dialog" aria-modal="true" aria-labelledby="zalo-account-title">
-      <header class="zalo-account-modal-head"><div><h2 id="zalo-account-title">Cài đặt tài khoản</h2><p>Zalo · Thông báo · Thiết bị</p></div><button type="button" class="zalo-account-close" aria-label="Đóng"></button></header>
+      <header class="zalo-account-modal-head"><div><h2 id="zalo-account-title">Cài đặt tài khoản</h2><p>Zalo · Thông báo · Thiết bị · Tự thu</p></div><button type="button" class="zalo-account-close" aria-label="Đóng"></button></header>
       <div class="zalo-account-notification" data-admin-push-setting>
         <span class="zalo-account-notification-copy"><strong>Thông báo</strong><small data-admin-push-status>Bật thông báo</small></span>
         <button type="button" class="zalo-account-notification-action" data-admin-push-action data-mode="enable">Bật thông báo</button>
@@ -869,6 +932,10 @@ async function openAccountAdmin(){
       <div class="zalo-account-notification" data-admin-device-setting>
         <span class="zalo-account-notification-copy"><strong>Thiết bị</strong><small data-admin-device-status>Đang tải thiết bị…</small></span>
         <button type="button" class="zalo-account-notification-action" data-admin-device-open>Quản lý</button>
+      </div>
+      <div class="zalo-account-notification" data-admin-auto-collect-setting>
+        <span class="zalo-account-notification-copy"><strong>Tự thu SMS Banking</strong><small data-admin-auto-collect-status>Đang kiểm tra trạng thái…</small></span>
+        <button type="button" class="zalo-account-notification-action" data-admin-auto-collect-action data-mode="enable" data-unavailable="true" disabled>Chưa sẵn sàng</button>
       </div>
       <label class="zalo-account-search"><span class="sr-only">Tìm tài khoản</span><input type="search" autocomplete="off" inputmode="search" placeholder="Tìm Chat, @username, Zalo hoặc nhóm" data-zalo-account-search></label>
       <p class="zalo-account-error" data-zalo-account-error hidden></p>
@@ -884,12 +951,15 @@ async function openAccountAdmin(){
   pushAction?.addEventListener('click',()=>void runAdminPushAction(pushAction));
   const deviceAction=accountModal.querySelector('[data-admin-device-open]');
   deviceAction?.addEventListener('click',openDevicePanel);
+  const autoCollectAction=accountModal.querySelector('[data-admin-auto-collect-action]');
+  autoCollectAction?.addEventListener('click',()=>void runAutoCollectAction(autoCollectAction));
   const search=accountModal.querySelector('[data-zalo-account-search]');
   search?.addEventListener('input',()=>{
     renderAccountRows();
     const list=accountModal?.querySelector?.('[data-zalo-account-list]');
     if(list)list.scrollTop=0;
   });
+  void refreshAutoCollectSetting();
   void refreshAdminPushSetting();
   void refreshAdminDevices().catch(()=>{paintAdminDeviceSetting();});
   const submodal=accountModal.querySelector('[data-zalo-account-panel]');
