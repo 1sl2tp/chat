@@ -40,7 +40,7 @@ def test_floating_date_is_sticky_zero_height_and_hides_after_scroll_idle():
 
 
 def test_ui156_only_advances_shell_cache_namespace():
-    assert "const SHELL_CACHE_EPOCH='chat-day156';" in SW
+    assert "const SHELL_CACHE_EPOCH='bank-admin157';" in SW
     assert "const AVATAR_CACHE_NAME='taphoa-chat-avatars-v1';" in SW
     assert "await self.skipWaiting();" in SW
     assert "await self.clients.claim();" in SW
