@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import {RULE_VERSION,SYSTEM_PROMPT,parseAmountText,validateVisionRead} from "../supabase/functions/v21-bank-bill-event/bill-amount-rules.mjs";
-assert.equal(RULE_VERSION,"bank_bill_amount_v3_20261018");
-for(const token of ["-648,000đ","Người thụ hưởng nhận","bank_credit_transaction","bank_credit_notification","ghi có","nứt","lóa"]){
+assert.equal(RULE_VERSION,"bank_bill_amount_v4_20261018");
+for(const token of ["-406.000đ","Người thụ hưởng nhận","bank_credit_transaction","bank_credit_notification","99999","latest_top_row"]){
  assert(SYSTEM_PROMPT.includes(token),"missing prompt acceptance: "+token);
 }
 const money=[
@@ -15,7 +15,7 @@ const money=[
 ];
 for(const [txt,num] of money)assert.equal(parseAmountText(txt),num,"parse amount: "+txt);
 function v(image_type,amount_role,amount_text,amount_vnd,extra={}){
- return {image_type,amount_role,amount_text,amount_vnd,amount_clear:true,transfer_success_visible:true,uncertainty:null,...extra};
+ return {image_type,amount_role,amount_text,amount_vnd,amount_clear:true,transfer_success_visible:true,transaction_nature:image_type==="successful_transfer_receipt"?"transfer":"incoming_transfer",transaction_selection:"single_detail",uncertainty:null,...extra};
 }
 function accept(image_type,role,text,amount){
  assert.deepEqual(validateVisionRead(v(image_type,role,text,amount)),{status:"amount_read",reason:"bank_image_amount_only_no_collection",amount_vnd:amount});

@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "npm:@supabase/supabase-js@2.57.4";
-import {RULE_VERSION,SYSTEM_PROMPT,validateVisionRead} from "./bill-amount-rules.mjs";
+import {RULE_VERSION,SYSTEM_PROMPT,validateVisionRead,readV4Fields} from "./bill-amount-rules.mjs";
+import {previewBillSmsMatch} from "./bill-sms-preview.mjs";
 
 const db=createClient(Deno.env.get("SUPABASE_URL")||"",Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"",{auth:{persistSession:false,autoRefreshToken:false}});
 const response=(body:any,status=200)=>new Response(JSON.stringify(body),{status,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store"}});
@@ -130,22 +131,59 @@ Deno.serve(async req=>{
    try{gr=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent",{
      method:"POST",headers:{"x-goog-api-key":geminiKey,"content-type":"application/json"},
      body:JSON.stringify({contents:[{role:"user",parts:[{text:prompt},{inlineData:{mimeType:media.mime_type||"image/jpeg",data:btoa(b64)}}]}],
-       generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:560}}),
+       generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:1100}}),
      signal:ctl.signal
    });}finally{clearTimeout(timeout);}
    if(!gr.ok)throw new Error("gemini_http_"+gr.status);
    const modelResult=await gr.json();
    const resultString=(modelResult.candidates?.[0]?.content?.parts||[]).map((x:any)=>String(x.text||"")).join("");
    let parsed:any;try{parsed=JSON.parse(resultString)}catch{throw new Error("gemini_invalid_json")}
+   const fields=readV4Fields(parsed);
    const verdict=validateVisionRead(parsed);
    const {status,reason,amount_vnd:amount}=verdict;
+   // Prior SMS are candidates only, NEVER authorization to debit debts.
+   let matchPreview:any={status:"review",reason:"sms_bill_not_evaluated"};
+   if(status==="amount_read"&&amount&&Number.isFinite(Date.parse(job.sent_at))){
+     try{
+       const sentMillis=Date.parse(job.sent_at);
+       const [smsRes,otherRes]=await Promise.all([
+         db.from("taphoa_sms_inbox")
+           .select("id,sender,body,sms_timestamp_ms,received_at,created_at")
+           .gte("created_at",new Date(sentMillis-30*60000).toISOString())
+           .lte("created_at",new Date(sentMillis+5*60000).toISOString())
+           .order("created_at",{ascending:false}).limit(100),
+         db.from("chat_bank_bill_receipts")
+           .select("media_asset_id,status,amount_vnd,transfer_at_vn,sent_at")
+           .eq("amount_vnd",amount)
+           .gte("sent_at",new Date(sentMillis-20*60000).toISOString())
+           .lte("sent_at",new Date(sentMillis+20*60000).toISOString())
+           .neq("media_asset_id",asset).limit(100)
+       ]);
+       if(smsRes.error||otherRes.error||smsRes.data?.length===100||otherRes.data?.length===100)
+         matchPreview={status:"review",reason:"matching_data_incomplete"};
+       else matchPreview=previewBillSmsMatch({
+         media_asset_id:asset,status,amount_vnd:amount,sent_at:job.sent_at,...fields
+       },smsRes.data||[],otherRes.data||[]);
+     }catch(_e){matchPreview={status:"review",reason:"matching_preview_unavailable"};}
+   }
    await finish(asset,{status,reason,image_sha256:digest,amount_vnd:amount,model_name:model,
+     receiving_name:fields.receiving_name,receiving_account:fields.receiving_account,
+     receiving_bank:fields.receiving_bank,sending_bank:fields.sending_bank,
+     transfer_reference:fields.transfer_reference,transfer_at_vn:fields.transfer_at_vn,
      raw_read:{read_mode:"amount_hash_only",rule_version:RULE_VERSION,
       image_type:String(parsed?.image_type||"").slice(0,48),
       amount_role:String(parsed?.amount_role||"").slice(0,40),
       transfer_success_visible:parsed?.transfer_success_visible===true,
       amount_vnd:amount,amount_text:String(parsed?.amount_text||"").slice(0,80),
-      amount_clear:parsed?.amount_clear===true,uncertainty:String(parsed?.uncertainty||"").slice(0,160)}});
+      amount_clear:parsed?.amount_clear===true,uncertainty:String(parsed?.uncertainty||"").slice(0,160),
+      recipient_account_last5:fields.receiving_account_last5,
+      recipient_account_visible:fields.receiving_account_visible,
+      transaction_selection:fields.transaction_selection,
+      transaction_nature:fields.transaction_nature,
+      transaction_datetime_vn:fields.transfer_at_vn,
+      transaction_time_precision:fields.transaction_time_precision,
+      recipient_name:fields.receiving_name,receiving_bank:fields.receiving_bank,
+      match_preview:matchPreview}});
    await db.from("chat_bank_bill_image_hashes").update({amount_vnd:amount,scan_status:amount===null?"unreadable":"amount_read"})
      .eq("image_sha256",digest).eq("first_asset_id",asset);
    try{await notifyTestScan(asset,job.customer_account_id,status,amount);}catch(e){console.warn("bill_scan_feedback_failed",String(e).slice(0,80));}
