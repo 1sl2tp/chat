@@ -38,3 +38,11 @@
 - **Toggle decision:** An Admin may set **enabled=true** *even with no new SMS*, because enabled means "armed, waiting". Separate **ready=false** remains until audited financial auto-writer + real SMS and bill have been verified. `execution_active=enabled AND ready`. This release removes the "Chưa sẵn sàng" disabled UI state, but DOES NOT activate ledger auto-collection, which is a separate gate.
 - **Evidence requirement:** zero SMS => zero bill AI => zero auto-collection. New authentic SMS queues candidate comparison; bill-only/SMS-only never writes ledger. A unique valid SMS/bill pair is necessary but not sufficient to bypass the readiness gate.
 - **Pilot requirements:** implement atomic payment with same ledger/balance/notice format; uniqueness of consumed SMS and bill across retries; dedupe against manual collection; recover from notification/PNG delivery failures without financial double posting. Production auto writer stays not ready until these tests pass.
+
+## BANK-161 — Kế hoạch nối thu tiền TAPHOA
+
+Khi có một SMS ngân hàng hợp lệ và một ảnh bill khách hàng khớp duy nhất, dịch vụ có thể thực hiện cùng nghiệp vụ Thu tiền đang sử dụng trong TAPHOA. Giá trị kế toán = số tiền VND chia 1000, không làm tròn. Chỉ tài khoản quản trị điều khiển chế độ tự động.
+
+Cần giới hạn nguồn gọi ở backend, xác minh lại từ dữ liệu Supabase, và bảo đảm một SMS hay một bill chỉ được ghi thu một lần. Nếu thiếu nguồn dữ liệu, có nhiều ứng viên hoặc hệ thống chưa qua kiểm thử, giữ trạng thái chờ và không ghi thu. Công tắc quản trị độc lập với trạng thái sẵn sàng của bộ ghi sổ. Chức năng Thu tiền và Ghi nợ thủ công giữ nguyên.
+
+Phiếu PNG hiện được tạo ở trình duyệt TAPHOA. Cần kiểm chứng cách gửi phiếu từ backend trước khi xác nhận tương đương hoàn toàn.
