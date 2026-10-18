@@ -23,12 +23,12 @@ async function finish(asset:string,change:Record<string,unknown>){
 // Uses existing collection-message opt-in enforcement, but never changes debt.
 const TEST_ACCOUNT="8c4ac6ec-3178-4661-8696-04e345bf443e";
 async function notifyTestScan(asset:string,customer:string,status:string,amount:number|null){
- if(customer!==TEST_ACCOUNT||!["amount_read","review","duplicate"].includes(status))return false;
+ if(customer!==TEST_ACCOUNT||!["amount_read","review","duplicate","non_bill"].includes(status))return false;
  const {data:receipt}=await db.from("chat_bank_bill_receipts")
    .select("customer_notified_at,ledger_id,status,amount_vnd").eq("media_asset_id",asset).maybeSingle();
  if(!receipt||receipt.customer_notified_at||receipt.ledger_id)return false;
  const canonicalStatus=String(receipt.status||"");
- if(!["amount_read","review","duplicate"].includes(canonicalStatus))return false;
+ if(!["amount_read","review","duplicate","non_bill"].includes(canonicalStatus))return false;
  const {data:media}=await db.from("v21_media_assets").select("conversation_id").eq("id",asset).maybeSingle();
  if(!media?.conversation_id)return false;
  const {data:conversation}=await db.from("v21_conversations")
@@ -45,6 +45,9 @@ async function notifyTestScan(asset:string,customer:string,status:string,amount:
    ?"🔁 Ảnh trùng: tệp ảnh này đã được gửi trước đó."+
     (money?"\nSố tiền ảnh gốc: "+fmt(money):"")+
     "\nChỉ kiểm tra ảnh, CHƯA GHI THU."
+   :canonicalStatus==="non_bill"
+   ?"🖼️ AI không nhận diện đây là bill chuyển khoản thành công."+
+    "\nKhông đọc số tiền, CHƯA GHI THU."
    :canonicalStatus==="amount_read"&&money
    ?"🔎 AI đọc số tiền: "+fmt(money)+
     "\nTrạng thái: Đã đọc ảnh · CHƯA GHI THU."+
@@ -70,7 +73,7 @@ Deno.serve(async req=>{
  const {data:job,error:jobError}=await db.from("chat_bank_bill_receipts").select("id,status,customer_account_id,sent_at,attempt_count").eq("media_asset_id",asset).maybeSingle();
  if(jobError||!job)return response({error:"not_queued"},404);
  if(job.status!=="queued"){
-   if(job.customer_account_id===TEST_ACCOUNT&&["amount_read","review","duplicate"].includes(job.status)){
+   if(job.customer_account_id===TEST_ACCOUNT&&["amount_read","review","duplicate","non_bill"].includes(job.status)){
      try{await notifyTestScan(asset,job.customer_account_id,job.status,null);}catch(e){console.warn("bill_scan_feedback_retry_failed",String(e).slice(0,80));}
    }
    return response({ok:true,existing:true,status:job.status,mode:"amount_hash_only"},202);
