@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="fe97306c511368382cd6a3b791685a3fd01f276933616e72c856e9fcdf293e14">
+<meta name="app-build-id" content="4ae45a95aef1521137553e94dd9f51eb8d85361f0a4544f14bdbc52d58c3ffea">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -20361,16 +20361,16 @@ function paintAutoCollectSetting(root,data,error=''){
     action.textContent='Không khả dụng';
     action.dataset.unavailable='true';
   }else if(enabled){
-    label.textContent='ĐANG BẬT · Chỉ tự thu khi kiểm chứng hợp lệ';
-    action.textContent='Tắt tự thu';
+    label.textContent='ĐANG BẬT · Chỉ ghi thu khi ảnh bill và SMS tiền vào khớp duy nhất';
+    action.textContent='Tắt tự động thu';
     action.dataset.unavailable='false';
   }else if(!ready){
-    label.textContent='ĐANG TẮT · Đợi SMS thực và kiểm thử đối chiếu';
+    label.textContent='ĐANG TẮT · Chưa kiểm chứng khớp ảnh bill + SMS Banking';
     action.textContent='Chưa sẵn sàng';
     action.dataset.unavailable='true';
   }else{
-    label.textContent='ĐANG TẮT · Vẫn nhận SMS và đọc bill, không tự ghi thu';
-    action.textContent='Bật tự thu';
+    label.textContent='ĐANG TẮT · Vẫn đọc bill/SMS; không tự ghi thu';
+    action.textContent='Bật tự động thu';
     action.dataset.unavailable='false';
   }
   action.disabled=accountBusy||autoCollectRequestBusy||action.dataset.unavailable==='true';
@@ -20392,7 +20392,7 @@ async function runAutoCollectAction(button){
   const root=button?.closest('[data-admin-auto-collect-setting]');
   if(!root||!currentAdmin()||autoCollectRequestBusy||button.dataset.unavailable==='true')return;
   const enable=button.dataset.mode==='enable';
-  if(enable&&!window.confirm('Bật tự thu? Khi điều kiện xác minh đã đạt, hệ thống có thể tự cập nhật công nợ cho giao dịch khớp duy nhất.'))return;
+  if(enable&&!window.confirm('Bật tự động thu tiền? Chỉ ghi thu khi có đồng thời ảnh bill của khách trong Chat và SMS tiền vào ngân hàng khớp duy nhất, đã kiểm tra trùng.'))return;
   const client=authStore()?.getClient?.();
   if(!client)return paintAutoCollectSetting(root,null,'client_missing');
   autoCollectRequestBusy=true;button.disabled=true;
@@ -20424,7 +20424,7 @@ async function openAccountAdmin(){
   accountModal.innerHTML=`
     <button type="button" class="zalo-account-backdrop" aria-label="Đóng"></button>
     <section class="zalo-account-card" role="dialog" aria-modal="true" aria-labelledby="zalo-account-title">
-      <header class="zalo-account-modal-head"><div><h2 id="zalo-account-title">Cài đặt tài khoản</h2><p>Zalo · Thông báo · Thiết bị · Tự thu</p></div><button type="button" class="zalo-account-close" aria-label="Đóng"></button></header>
+      <header class="zalo-account-modal-head"><div><h2 id="zalo-account-title">Cài đặt tài khoản</h2><p>Zalo · Thông báo · Thiết bị · Tự động thu</p></div><button type="button" class="zalo-account-close" aria-label="Đóng"></button></header>
       <div class="zalo-account-notification" data-admin-push-setting>
         <span class="zalo-account-notification-copy"><strong>Thông báo</strong><small data-admin-push-status>Bật thông báo</small></span>
         <button type="button" class="zalo-account-notification-action" data-admin-push-action data-mode="enable">Bật thông báo</button>
@@ -20434,7 +20434,7 @@ async function openAccountAdmin(){
         <button type="button" class="zalo-account-notification-action" data-admin-device-open>Quản lý</button>
       </div>
       <div class="zalo-account-notification" data-admin-auto-collect-setting>
-        <span class="zalo-account-notification-copy"><strong>Tự thu SMS Banking</strong><small data-admin-auto-collect-status>Đang kiểm tra trạng thái…</small></span>
+        <span class="zalo-account-notification-copy"><strong>Tự động thu tiền</strong><small data-admin-auto-collect-status>Đang kiểm tra trạng thái…</small><small>Chỉ thu khi bill + SMS khớp. Thu/Ghi nợ thủ công không đổi.</small></span>
         <button type="button" class="zalo-account-notification-action" data-admin-auto-collect-action data-mode="enable" data-unavailable="true" disabled>Chưa sẵn sàng</button>
       </div>
       <label class="zalo-account-search"><span class="sr-only">Tìm tài khoản</span><input type="search" autocomplete="off" inputmode="search" placeholder="Tìm Chat, @username, Zalo hoặc nhóm" data-zalo-account-search></label>
