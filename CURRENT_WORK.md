@@ -1,3 +1,17 @@
+## 2026-10-18 — BANK-157 Auto-collection ADMIN switch foundation (DEFAULT OFF / CI+PAGES PASS; SMS PILOT & E4 PENDING)
+
+- **User intent:** prepare SMS Banking + bill automatic collection, but keep it OFF until the Admin explicitly controls it in Chat. Only Admin can control the system-wide flag.
+- **E0 spec:** `docs/specs/SPEC-CHAT-BANK-AUTOCOLLECT-157.md`. SMS inbox and bill OCR already exist, but on this date SMS rows=0 (one active ingest device); bill reader had 16 rows, 9 amount_read in 24h, and zero linked ledgers. Readiness MUST NOT be inferred from mocked SMS or bill text.
+- **E1 UI:** Chat > Cài đặt tài khoản (existing Admin-only Zalo-account settings) now shows `Tự thu SMS Banking` with server-derived OFF / ON / not-ready. `zalo-admin-link.js` queries the secure RPC on explicit Settings open and writes only on explicit click; no browser-only toggle, interval, new message transport, or chat read-state changes. `sw.js` epoch `bank-admin157` plus regression tests updated.
+- **E2 DB:** Applied migration `20261018160348_chat_auto_collect_admin_settings_disabled_foundation` to Supabase project `vtqhbhrkdxirqeqkgylo`; DB setting verified `enabled=false,ready=false`. Anon cannot call/read/write; authenticated cannot write table; server checks active Admin role via `v21_private.current_active_account_id()`. Enabling while `ready=false` is rejected at database level. No ledger writer/cron added by BANK-157.
+- **E3:** [PR #182](https://github.com/1sl2tp/chat/pull/182) merged squash `137c6a89e4cc8dade49d828bc3d0671c3733764d`; [Verify V21 39143839890](https://github.com/1sl2tp/chat/actions/runs/39143839890) SUCCESS and [Deploy Chat Pages 39143839900](https://github.com/1sl2tp/chat/actions/runs/39143839900) SUCCESS. Canonical build sync commit `2eec35188c3b0fbe148e14757c828c34e6793e90`.
+- **E4/E5 PENDING:** No authenticated Admin browser/PWA screenshot yet; cannot state physical Safari/iPhone sees the new setting. No real bank SMS or end-to-end bank-confirmed pilot tested; AUTO COLLECTION IS NOT ACTIVE. Do not set `ready=true` or offer ON until text parser for `HH:MM DD/MM` Agribank format, client timestamps, duplicate cases, unique SMS↔bill mapping, role/account controls and idempotent ledger writer pass integration/pilot and user approves activation.
+- **Resources/data:** one admin RPC GET per explicit Settings open, one RPC mutation per explicit Admin click; zero steady-state polls/cron, no changes to existing Chat Realtime/push/media/Zalo, no new ledger writes.
+- **Rollback:** Set `enabled=false` in secure config first if ever activated, then revert UI change or prior commit and rebuild canonical files; do not delete SMS, images, messages or debt history.
+- **NEXT ACTION:** verify one real AGRIBANK SMS arrives from approved APK; read-only parse and match against a unique test bill, then implement a separately gated atomic ledger writer with failure/duplicate tests. Keep `ready=false` until the entire path is proven.
+
+---
+
 ## 2026-10-18 — UI-156 Chat date dividers + floating date while scrolling (SOURCE / VERIFY / PAGES PASS; E4/E5 PENDING)
 
 - **User request:** distinguish today/yesterday/weekday + date in conversation history; show the latest message time in the conversation list; when scrolling, keep a temporary date marker visible without moving the message list.
