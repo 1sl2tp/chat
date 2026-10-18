@@ -48,3 +48,7 @@ Dedupe 3 cấp: (a) asset_id replay / cùng SHA256 tệp => trùng tệp; (b) c�
 ## Điều kiện nghiệm thu
 
 Thử riêng KH test: 10 ảnh liên tục, ảnh trùng hash, ảnh crop cùng mã giao dịch, ảnh có/mất mã, QR, sai DO THI THOA, ảnh phản sáng/che STK, bill ngày cũ, cùng số tiền khác GD, 2 Admin đồng thời, ngắt mạng, AI 429/503. Đo thời gian gửi đến kết quả P50/P95 và số lần gọi AI; xác minh 0 double collection, 0 AI call lại cho ảnh terminal. Không bật tính năng thu tự động cho toàn bộ KH cho đến khi migration, worker, outbox, test end-to-end và rollback hoàn tất.
+
+## Bảo vệ các khoản "Thu tiền mặt" đã ghi thủ công
+
+Giao dịch Chat đã có thẻ "Đã thu X · Thu tiền mặt" là bút toán riêng do người vận hành tạo, không phải kết quả của AI. Khi triển khai quét bill mới, nếu asset/bill đã được đối chiếu thủ công và có liên kết với ledger cũ, gắn receipt vào ledger đó thay vì tạo bút toán mới. Trường hợp chưa có liên kết chứng minh nhưng số tiền/khách và thời điểm gần khớp bút toán thủ công, xếp REVIEW để Admin xác nhận, không tự tính lần hai và không tự hoàn tác khoản cũ. Bật tính năng mới không được tự ghi thu cho ảnh tồn kho lịch sử.
