@@ -134,12 +134,12 @@ Deno.serve(async req=>{
    const modelResult=await gr.json();
    const resultString=(modelResult.candidates?.[0]?.content?.parts||[]).map((x:any)=>String(x.text||"")).join("");
    let parsed:any;try{parsed=JSON.parse(resultString)}catch{throw new Error("gemini_invalid_json")}
-   const valid=parsed?.is_transfer_receipt===true&&parsed?.amount_clear===true;
-   const amount=valid?amountInVnd(parsed.amount_vnd):null;
-   const status=amount===null?"review":"amount_read";
-   const reason=amount===null?"amount_unclear_or_not_receipt_no_collection":"amount_read_only_no_collection";
+   const verdict=validateVisionRead(parsed);
+   const {status,reason,amount_vnd:amount}=verdict;
    await finish(asset,{status,reason,image_sha256:digest,amount_vnd:amount,model_name:model,
-     raw_read:{read_mode:"amount_hash_only",is_transfer_receipt:parsed?.is_transfer_receipt===true,
+     raw_read:{read_mode:"amount_hash_only",rule_version:RULE_VERSION,
+      image_type:String(parsed?.image_type||"").slice(0,48),
+      transfer_success_visible:parsed?.transfer_success_visible===true,
       amount_vnd:amount,amount_text:String(parsed?.amount_text||"").slice(0,80),
       amount_clear:parsed?.amount_clear===true,uncertainty:String(parsed?.uncertainty||"").slice(0,160)}});
    await db.from("chat_bank_bill_image_hashes").update({amount_vnd:amount,scan_status:amount===null?"unreadable":"amount_read"})
