@@ -1,7 +1,7 @@
--- Chat bill OCR beta. Only new, user-sent images processed by Admin in an active Chat session.
--- A bill is NOT an authoritative bank statement. This explicitly follows the owner's
--- opt-in policy of recording a fully validated bill as a collection without bank reconciliation.
--- No cron, Storage trigger, provider API or scan of old messages.
+-- Draft DDL only: NOT applied in production and NOT a live autonomous reader.
+-- AI extracts; deterministic code verifies; DB is the single canonical collection owner.
+-- A bill is not an authoritative bank statement (owner chose no reconciliation).
+-- The production event-driven worker, outbox and E2E tests are still required.
 begin;
 
 create table if not exists public.chat_bank_bill_receipts (
@@ -13,6 +13,16 @@ create table if not exists public.chat_bank_bill_receipts (
   image_size_bytes bigint,
   image_width_px integer,
   image_height_px integer,
+  source_sent_at timestamptz,
+  source_sent_day_vn date,
+  scan_state text not null default 'queued' check (scan_state in ('queued','scanning','retry_wait','done','failed')),
+  scan_attempts integer not null default 0 check (scan_attempts between 0 and 3),
+  scanned_at timestamptz,
+  model_name text,
+  ai_extracted_fields jsonb not null default '{}'::jsonb,
+  ai_uncertainties jsonb not null default '[]'::jsonb,
+  notification_sent_at timestamptz,
+  transaction_time_precision text check (transaction_time_precision in ('minute','second')),
   sending_bank text,
   receiving_bank text,
   receiving_account text,
@@ -23,7 +33,7 @@ create table if not exists public.chat_bank_bill_receipts (
   transfer_at timestamptz,
   amount_vnd bigint,
   ledger_id bigint unique references public.taphoa_debt_ledger(id),
-  status text not null check (status in ('received','duplicate','review','hold')),
+  status text not null check (status in ('received','duplicate','review','hold','ignored_non_receipt','historical_reference')),
   reason text not null default '',
   duplicate_of bigint references public.chat_bank_bill_receipts(id),
   created_by_account_id uuid not null references public.v21_accounts(id),
@@ -32,12 +42,14 @@ create table if not exists public.chat_bank_bill_receipts (
   constraint bank_bill_hash_valid check (image_sha256 is null or image_sha256 ~ '^[0-9a-f]{64}$')
 );
 create index if not exists chat_bank_bill_customer_idx on public.chat_bank_bill_receipts(customer_account_id,created_at desc);
+create index if not exists chat_bank_bill_scan_state_idx on public.chat_bank_bill_receipts(scan_state,created_at) where scan_state in ('queued','retry_wait');
+create index if not exists chat_bank_bill_global_amount_time_idx on public.chat_bank_bill_receipts(amount_vnd,transfer_at,receiving_account) where status in ('received','historical_reference');
 create unique index if not exists chat_bank_bill_received_ref_unique
   on public.chat_bank_bill_receipts(lower(btrim(sending_bank)), upper(btrim(transfer_reference)))
-  where status='received' and transfer_reference is not null;
+  where status in ('received','historical_reference') and transfer_reference is not null;
 create unique index if not exists chat_bank_bill_received_sha_unique
   on public.chat_bank_bill_receipts(image_sha256)
-  where status='received' and image_sha256 is not null;
+  where status in ('received','historical_reference') and image_sha256 is not null;
 
 alter table public.chat_bank_bill_receipts enable row level security;
 revoke all on public.chat_bank_bill_receipts from public,anon,authenticated;
@@ -141,19 +153,19 @@ begin
   -- Image dimensions and byte size are informational only (never a unique key).
   if v_hash is not null then
     select id into v_duplicate_id from public.chat_bank_bill_receipts
-    where image_sha256=v_hash and status='received' order by id limit 1;
+    where image_sha256=v_hash and status in ('received','historical_reference') order by id limit 1;
   end if;
   if v_duplicate_id is null and v_bank is not null and v_ref is not null then
     select id into v_duplicate_id from public.chat_bank_bill_receipts
     where lower(btrim(sending_bank))=lower(v_bank)
       and upper(btrim(transfer_reference))=upper(v_ref)
-      and status='received' order by id limit 1;
+      and status in ('received','historical_reference') order by id limit 1;
   end if;
   if v_duplicate_id is not null then
     v_status:='duplicate'; v_reason:='duplicate_bank_reference_or_image';
   elsif v_status='received' and exists (
     select 1 from public.chat_bank_bill_receipts r
-    where r.status='received' and r.amount_vnd=p_amount_vnd
+    where r.status in ('received','historical_reference') and r.amount_vnd=p_amount_vnd
       and date_trunc('minute',r.transfer_at)=date_trunc('minute',p_transfer_at)
       and r.receiving_account=v_acct and r.receiving_name=v_name
       and (v_ref is null or r.transfer_reference is null
@@ -164,12 +176,15 @@ begin
 
   insert into public.chat_bank_bill_receipts(
     customer_account_id,media_asset_id,message_id,image_sha256,
-    image_size_bytes,image_width_px,image_height_px,sending_bank,
+    image_size_bytes,image_width_px,image_height_px,source_sent_at,source_sent_day_vn,
+    scan_state,scan_attempts,scanned_at,sending_bank,
     receiving_bank,receiving_account,receiving_name,payer_name,transfer_memo,
     transfer_reference,transfer_at,amount_vnd,status,reason,duplicate_of,created_by_account_id
   ) values (
     v_source.sender_account_id,p_asset_id,v_source.message_id,v_hash,
-    v_source.size_bytes,v_source.width_px,v_source.height_px,left(v_bank,100),left(btrim(coalesce(p_receiving_bank,'')),100),v_acct,
+    v_source.size_bytes,v_source.width_px,v_source.height_px,v_source.sent_at,
+    (v_source.sent_at at time zone 'Asia/Ho_Chi_Minh')::date,
+    'done',1,now(),left(v_bank,100),left(btrim(coalesce(p_receiving_bank,'')),100),v_acct,
     left(v_name,120),left(btrim(coalesce(p_payer_name,'')),160),
     left(btrim(coalesce(p_transfer_memo,'')),500),left(v_ref,160),
     p_transfer_at,p_amount_vnd,v_status,v_reason,v_duplicate_id,v_actor
