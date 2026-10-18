@@ -10,6 +10,9 @@ create table if not exists public.chat_bank_bill_receipts (
   media_asset_id uuid not null unique references public.v21_media_assets(id),
   message_id uuid not null references public.v21_messages(id),
   image_sha256 text,
+  image_size_bytes bigint,
+  image_width_px integer,
+  image_height_px integer,
   sending_bank text,
   receiving_bank text,
   receiving_account text,
@@ -88,7 +91,8 @@ begin
   -- create two ledger rows for one transfer.
   perform pg_advisory_xact_lock(hashtext('chat_bank_bill_receipt_v1'));
 
-  select a.id as asset_id, a.message_id, m.sender_account_id, m.created_at as sent_at
+  select a.id as asset_id, a.message_id, m.sender_account_id, m.created_at as sent_at,
+         a.size_bytes, a.width_px, a.height_px
   into v_source
   from public.v21_media_assets a
   join public.v21_messages m on m.id=a.message_id and m.deleted_at is null
@@ -113,9 +117,12 @@ begin
   if p_amount_vnd is null or p_amount_vnd<=0 or p_amount_vnd>1000000000000
      or p_amount_vnd % 1000 <> 0 then
     v_status:='review'; v_reason:='amount_missing_or_not_exact_thousands';
-  elsif p_transfer_at is null or v_ref is null or length(v_ref)<6
-     or v_bank is null or not coalesce(p_success,false) then
-    v_status:='review'; v_reason:='bill_fields_or_success_missing';
+  elsif p_transfer_at is null or not coalesce(p_success,false) then
+    v_status:='review'; v_reason:='transaction_time_or_success_missing';
+  elsif v_ref is not null and length(v_ref)<5 then
+    v_status:='review'; v_reason:='reference_unclear';
+  elsif v_ref is null and v_hash is null then
+    v_status:='review'; v_reason:='no_reference_and_no_verified_image_hash';
   elsif v_name<>'BUI XUAN TUNG'
      or not (
        (v_acct='2901181999999' and (v_destination like '%agribank%' or v_destination like '%nong nghiep%'))
@@ -123,12 +130,15 @@ begin
      ) then
     v_status:='hold'; v_reason:='wrong_or_masked_recipient';
   elsif (p_transfer_at at time zone 'Asia/Ho_Chi_Minh')::date
-        <> (v_source.sent_at at time zone 'Asia/Ho_Chi_Minh')::date then
+        <> (v_source.sent_at at time zone 'Asia/Ho_Chi_Minh')::date
+     or p_transfer_at > v_source.sent_at + interval '5 minutes' then
     v_status:='hold'; v_reason:='transfer_date_not_image_sent_date_vn';
   end if;
 
-  -- Repeated identical bytes or bank+transaction reference are duplicates
-  -- across ALL customers, not only within the current conversation.
+  -- Identical bytes or bank+transaction reference are duplicate indicators
+  -- across ALL customers. With no reference, amount+time+recipient can only
+  -- trigger REVIEW: unrelated payments may have the same amount/time.
+  -- Image dimensions and byte size are informational only (never a unique key).
   if v_hash is not null then
     select id into v_duplicate_id from public.chat_bank_bill_receipts
     where image_sha256=v_hash and status='received' order by id limit 1;
@@ -144,18 +154,22 @@ begin
   elsif v_status='received' and exists (
     select 1 from public.chat_bank_bill_receipts r
     where r.status='received' and r.amount_vnd=p_amount_vnd
-      and r.transfer_at=p_transfer_at and r.receiving_account=v_acct
+      and date_trunc('minute',r.transfer_at)=date_trunc('minute',p_transfer_at)
+      and r.receiving_account=v_acct and r.receiving_name=v_name
+      and (v_ref is null or r.transfer_reference is null
+           or upper(btrim(r.transfer_reference))=upper(btrim(v_ref)))
   ) then
-    v_status:='review'; v_reason:='same_amount_time_recipient_check_reference';
+    v_status:='review'; v_reason:='suspected_duplicate_same_amount_time_recipient';
   end if;
 
   insert into public.chat_bank_bill_receipts(
-    customer_account_id,media_asset_id,message_id,image_sha256,sending_bank,
+    customer_account_id,media_asset_id,message_id,image_sha256,
+    image_size_bytes,image_width_px,image_height_px,sending_bank,
     receiving_bank,receiving_account,receiving_name,payer_name,transfer_memo,
     transfer_reference,transfer_at,amount_vnd,status,reason,duplicate_of,created_by_account_id
   ) values (
     v_source.sender_account_id,p_asset_id,v_source.message_id,v_hash,
-    left(v_bank,100),left(btrim(coalesce(p_receiving_bank,'')),100),v_acct,
+    v_source.size_bytes,v_source.width_px,v_source.height_px,left(v_bank,100),left(btrim(coalesce(p_receiving_bank,'')),100),v_acct,
     left(v_name,120),left(btrim(coalesce(p_payer_name,'')),160),
     left(btrim(coalesce(p_transfer_memo,'')),500),left(v_ref,160),
     p_transfer_at,p_amount_vnd,v_status,v_reason,v_duplicate_id,v_actor
@@ -166,14 +180,14 @@ begin
       customer_account_id,order_id,entry_type,amount_vnd,note,created_by_account_id
     ) values (
       v_source.sender_account_id,null,'collection',-(p_amount_vnd/1000),
-      'Đã thu bill CK ' || left(v_bank,40) || ' · ' || left(v_ref,95),
+      'Đã thu bill CK ' || coalesce(left(v_bank,40),'không rõ bank gửi') || ' · ' || coalesce(left(v_ref,95),'không có mã GD'),
       v_actor
     ) returning id into v_ledger;
     update public.chat_bank_bill_receipts set ledger_id=v_ledger where id=v_id;
   end if;
   return jsonb_build_object('id',v_id,'status',v_status,'reason',v_reason,
     'ledger_id',v_ledger,'amount_thousands',case when v_status='received' then p_amount_vnd/1000 else null end,
-    'replayed',false);
+    'replayed',false,'duplicate_of',v_duplicate_id);
 end
 $f$;
 
