@@ -80,3 +80,41 @@ test('preserves leading zeros, validates calendar dates',()=>{
  assert.equal(rules.parseTransactionVietnam('2026-10-18 10:07:01').keyMinute,'2026-10-18T10:07');
  assert.equal(rules.parseTransactionVietnam('31/02/2026 10:07'),null);
 });
+
+test('QR payment request is not a successful receipt',()=>{
+ const qr={is_bank_receipt:false,transfer_success:false,receiving_name:'BUI XUAN TUNG',
+  receiving_bank:'VietinBank',receiving_account:'197981999999'};
+ const r=rules.evaluate(qr,meta,[]);
+ assert.equal(r.status,'ignored');
+ assert.equal(r.ledger_amount_thousands,null);
+ assert.equal(rules.notification(r.status,r.reason,null,false).kind,'none');
+});
+test('wrong recipient DO THI THOA is immediately HOLD even when other fields unreadable',()=>{
+ const r=rules.evaluate({is_bank_receipt:true,transfer_success:true,amount_vnd:3000000,
+  receiving_name:'DO THI THOA',receiving_account:'MS00T06217365102867',
+  receiving_bank:'Techcombank',transaction_datetime_vn:'18/10/2026 09:41'},
+  {...meta,asset_id:'wrong-bank-destination'},[]);
+ assert.equal(r.status,'hold');
+ assert.equal(r.reason,'wrong_receiving_name');
+ assert.equal(r.ledger_amount_thousands,null);
+ assert.equal(rules.notification(r.status,r.reason,null,false).kind,'stop_transfer');
+});
+test('AI success alone must never produce customer-facing collected notice',()=>{
+ const verdict=rules.evaluate(raw,meta,[]);
+ assert.equal(verdict.status,'received');
+ assert.equal(rules.notification(verdict.status,verdict.reason,verdict.collection_thousands,false).kind,'internal_only');
+ const notice=rules.notification(verdict.status,verdict.reason,verdict.collection_thousands,true);
+ assert.equal(notice.kind,'collected');
+ assert.equal(notice.text,'Đã thu 9.270');
+});
+test('wrong bank-account pair and partial account do not pass',()=>{
+ const wrongPair=rules.evaluate({...raw,receiving_account:'197981999999'},meta,[]);
+ assert.equal(wrongPair.status,'hold');
+ const cropped=rules.evaluate({...raw,receiving_account:'901 1819 9999 9'},meta,[]);
+ assert.equal(cropped.status,'review');
+});
+test('UTC sent time is normalized to Vietnam date correctly across midnight',()=>{
+ assert.equal(rules.vietnamSentDate('2026-10-17T17:03:00.000Z'),'2026-10-18');
+ assert.equal(rules.vietnamSentDate('2026-10-18T16:59:59.000Z'),'2026-10-18');
+ assert.equal(rules.vietnamSentDate('2026-10-18T17:00:00.000Z'),'2026-10-19');
+});
