@@ -1,3 +1,18 @@
+## 2026-10-18 — BANK-159 SMS-GATED AI RECEIPT SCAN (EDGE+DB LIVE; PR/BRANCH VERIFY PASS; REAL SMS E4 PENDING)
+
+- **User request:** Gemini must not scan every customer Chat image. Scan candidate bill images *only* when a recent incoming Agribank SMS exists; SMS first or image first must both work. Required TWO-source matched SMS+bill rule for auto-collection remains unchanged.
+- **E0 SPEC:** `docs/specs/SPEC-CHAT-BANK-AUTOCOLLECT-157.md §BANK-159` locks 24h candidate window (+10-minute arrival tolerance), at most 6 pre-existing queued images woken by each new unique SMS, no cron/poll, no collection writes.
+- **E1 source:** [PR #184](https://github.com/1sl2tp/chat/pull/184) merged as `b552a2ff3bb75e215f6bcc2eb4d484d64222e3c7`; new canonical versioned Edge code `supabase/functions/v21-bank-bill-event/index.ts`, `bill-sms-preview.mjs` and unchanged source snapshot of `bill-amount-rules.mjs`, plus `supabase/migrations/20261018172000_chat_bank_bill_sms_gated_ai.sql`.
+- **E2 implementation:** `v21-bank-bill-event` Edge V14 deploy applied FIRST, guarded preflight queries received Agribank SMS and parses incoming transfer text (handles HH:mm DD/MM with trusted APK timestamp and year rollover), reject no valid SMS **before** any Storage bytes/hash/Gemini. If missing, return `waiting_sms`, keep receipt queued for later; no ledger updates. SQL migration `chat_bank_bill_sms_gated_ai` applied AFTER Edge: existing customer image trigger queues metadata and dispatches only when plausible recent SMS exists; new unique SMS insert wakes at most six recent queued image assets. No new periodic scanning or full chat-history reads. Existing hashed/scanned images not re-read. The SMS ingest API is unchanged.
+- **E2 tests:** [branch Verify 39145870496](https://github.com/1sl2tp/chat/actions/runs/39145870496) SUCCESS, bank date/amount unit tests PASS and SQL/Edge no-AI/no-ledger guard contract PASS. Production DB after deploy: 1 SMS wake trigger; new image queue owner contains `waiting_for_banking_sms`; Edge active V14 has mandatory SMS preflight.
+- **Production read-back:** `taphoa_sms_inbox` 0 rows, `chat_bank_bill_receipts` 16 rows, 0 receipts linked ledger, `chat_auto_collect_settings.enabled=false,ready=false`. SMS real delivery/AI-call savings E4/E5 NOT YET measured or confirmed, as no live SMS was present. Old 16 receipt results are preserved and are not retroactively cleared. Do not claim future matches/automatic ledger work before real pilot.
+- **MUST-STAY:** manual Thu tiền/Ghi nợ completely independent; automatic collection requires **BOTH** uniquely matched real bank SMS and customer Chat bill and Admin toggle ON. This patch **does not implement nor enable ledger auto-collection**. No Chat message/sync/push/Zalo/Storage cleanup changes.
+- **Rollback:** restore original image queue dispatch function and drop only `chat_bank_bill_wake_on_sms_insert_trg` if needed, revert Edge to V13 previous source. Avoid any data cleanup; auto-collection remains OFF.
+- **NEXT E4:** inject nothing synthetic into production. Observe first real incoming bank SMS from approved Android APK and customer bill both directions; compare Gemini requests, time parsing, duplicate handling and output statuses; only then plan separate atomic ledger/ready gate. 
+- **Release verification:** main Verify after merge and device/real SMS proof still need to be added when available.
+
+---
+
 ## 2026-10-18 — BANK-157 Auto-collection ADMIN switch foundation (DEFAULT OFF / CI+PAGES PASS; SMS PILOT & E4 PENDING)
 
 - **User intent:** prepare SMS Banking + bill automatic collection, but keep it OFF until the Admin explicitly controls it in Chat. Only Admin can control the system-wide flag.
