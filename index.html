@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="f6065ca7ea810e24072850c9818964c785696ccda3a28376b0bb808355324407">
+<meta name="app-build-id" content="d218906a15bb3a4a9d78f41a857f1f34fa58330139420ee074a6e0b50a2c50c2">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -25078,6 +25078,11 @@ async function onAuth(detail){
   accountId=String(snap.account?.id||'');
   appSessionId=String(snap.appSessionId||'');
   if(!accountId||!appSessionId)return;
+  // One-time server-deletion reconciliation: remove only the old admin↔test
+  // IndexedDB rows before any cached conversation is mounted. Other customer
+  // histories in the Admin account remain untouched.
+  try{await cache()?.pruneAdminTestConversationCache?.(accountId);}
+  catch(error){console.warn('v21_deleted_test_cache_reconcile_failed',String(error?.message||error||'').slice(0,90));}
   const cachedContacts=await hydrateAccount();
   const active=shell()?.snapshot?.().activeContact;
   if(active?.id){
