@@ -1600,6 +1600,11 @@ async function onAuth(detail){
   accountId=String(snap.account?.id||'');
   appSessionId=String(snap.appSessionId||'');
   if(!accountId||!appSessionId)return;
+  // One-time server-deletion reconciliation: remove only the old admin↔test
+  // IndexedDB rows before any cached conversation is mounted. Other customer
+  // histories in the Admin account remain untouched.
+  try{await cache()?.pruneAdminTestConversationCache?.(accountId);}
+  catch(error){console.warn('v21_deleted_test_cache_reconcile_failed',String(error?.message||error||'').slice(0,90));}
   const cachedContacts=await hydrateAccount();
   const active=shell()?.snapshot?.().activeContact;
   if(active?.id){
