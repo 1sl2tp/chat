@@ -1,0 +1,25 @@
+name: Test bill/SMS reconciliation V4
+on:
+  push:
+    branches:
+      - feat/chat-customer-bill-ocr-20261018
+    paths:
+      - 'supabase/functions/v21-bank-bill-event/**'
+      - 'tests/test_bill_sms_preview_v4.mjs'
+      - 'tests/test_bank_bill_amount_rules_v3.mjs'
+      - '.github/workflows/test-bill-sms-v4.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  rules:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate receipt amount & safety rules
+        run: node tests/test_bank_bill_amount_rules_v3.mjs
+      - name: Validate SMS-first matching previews
+        run: node tests/test_bill_sms_preview_v4.mjs
