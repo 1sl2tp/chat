@@ -116,7 +116,7 @@ def test_ui_146_root_sidebar_padding_and_pwa_shell_invalidation():
     assert 'padding:4px 6px 7px!important;' in CSS
     assert 'padding:8px 4px;' in CSS
     worker=(ROOT/'sw.js').read_text('utf-8')
-    assert "const SHELL_CACHE_EPOCH='bank-both158';" in worker
+    assert "const SHELL_CACHE_EPOCH='bank-arm160';" in worker
     assert "const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION+'-'+SHELL_CACHE_EPOCH;" in worker
     assert "const AVATAR_CACHE_NAME='taphoa-chat-avatars-v1';" in worker
     assert 'navigationCachedThenNetwork(request,event)' in worker
