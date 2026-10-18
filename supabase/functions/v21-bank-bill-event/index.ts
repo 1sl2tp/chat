@@ -18,6 +18,47 @@ async function finish(asset:string,change:Record<string,unknown>){
  const {error}=await db.from("chat_bank_bill_receipts").update({...change,scanned_at:new Date().toISOString()}).eq("media_asset_id",asset).eq("status","scanning");
  if(error)throw new Error("receipt_save_failed");
 }
+// Visible scan feedback is PILOT-ONLY for test; never notify real customers.
+// Uses existing collection-message opt-in enforcement, but never changes debt.
+const TEST_ACCOUNT="8c4ac6ec-3178-4661-8696-04e345bf443e";
+async function notifyTestScan(asset:string,customer:string,status:string,amount:number|null){
+ if(customer!==TEST_ACCOUNT||!["amount_read","review","duplicate"].includes(status))return false;
+ const {data:receipt}=await db.from("chat_bank_bill_receipts")
+   .select("customer_notified_at,ledger_id,status,amount_vnd").eq("media_asset_id",asset).maybeSingle();
+ if(!receipt||receipt.customer_notified_at||receipt.ledger_id)return false;
+ const canonicalStatus=String(receipt.status||"");
+ if(!["amount_read","review","duplicate"].includes(canonicalStatus))return false;
+ const {data:media}=await db.from("v21_media_assets").select("conversation_id").eq("id",asset).maybeSingle();
+ if(!media?.conversation_id)return false;
+ const {data:conversation}=await db.from("v21_conversations")
+   .select("member_a,member_b").eq("id",media.conversation_id).maybeSingle();
+ if(!conversation)return false;
+ const adminId=conversation.member_a===customer?conversation.member_b:
+               conversation.member_b===customer?conversation.member_a:null;
+ if(!adminId)return false;
+ const {data:admin}=await db.from("v21_accounts").select("role,deleted_at,locked_at").eq("id",adminId).maybeSingle();
+ if(admin?.role!=="admin"||admin.deleted_at||admin.locked_at)return false;
+ const fmt=(n:number)=>n.toLocaleString("vi-VN")+"đ";
+ const money=amountInVnd(amount??receipt.amount_vnd);
+ const msg=canonicalStatus==="duplicate"
+   ?"🔁 Ảnh trùng: tệp ảnh này đã được gửi trước đó."+
+    (money?"\nSố tiền ảnh gốc: "+fmt(money):"")+
+    "\nChỉ kiểm tra ảnh, CHƯA GHI THU."
+   :canonicalStatus==="amount_read"&&money
+   ?"🔎 AI đọc số tiền: "+fmt(money)+
+    "\nTrạng thái: Đã đọc ảnh · CHƯA GHI THU."+
+    "\nChưa xác minh giao dịch."
+   :"🔎 AI chưa đọc chắc chắn số tiền trong ảnh."+
+    "\nTrạng thái: Cần kiểm tra · CHƯA GHI THU.";
+ const {data:messageId,error}=await db.rpc("taphoa_chat_notify_customer",{
+   p_customer_id:customer,p_sender_account_id:adminId,
+   p_client_id:"taphoa:bill:amount:"+asset+":collection",p_body:msg
+ });
+ if(error||!messageId){console.warn("bill_amount_test_chat_feedback_skipped",String(error?.message||"opt_in_blocked").slice(0,80));return false;}
+ await db.from("chat_bank_bill_receipts").update({customer_notified_at:new Date().toISOString()})
+   .eq("media_asset_id",asset).is("customer_notified_at",null);
+ return true;
+}
 Deno.serve(async req=>{
  if(req.method!=="POST")return response({error:"method_not_allowed"},405);
  const {data:cfgRaw,error:cfgError}=await db.rpc("chat_customer_summary_runtime_config");
@@ -27,7 +68,12 @@ Deno.serve(async req=>{
  if(!HEX.test(asset))return response({error:"asset_id_invalid"},400);
  const {data:job,error:jobError}=await db.from("chat_bank_bill_receipts").select("id,status,customer_account_id,sent_at,attempt_count").eq("media_asset_id",asset).maybeSingle();
  if(jobError||!job)return response({error:"not_queued"},404);
- if(job.status!=="queued")return response({ok:true,existing:true,status:job.status,mode:"amount_hash_only"},202);
+ if(job.status!=="queued"){
+   if(job.customer_account_id===TEST_ACCOUNT&&["amount_read","review","duplicate"].includes(job.status)){
+     try{await notifyTestScan(asset,job.customer_account_id,job.status,null);}catch(e){console.warn("bill_scan_feedback_retry_failed",String(e).slice(0,80));}
+   }
+   return response({ok:true,existing:true,status:job.status,mode:"amount_hash_only"},202);
+ }
  const {data:media,error:mediaError}=await db.from("v21_media_assets").select("id,message_id,owner_account_id,storage_key,mime_type,kind,size_bytes,deleted_at").eq("id",asset).is("deleted_at",null).maybeSingle();
  if(mediaError||!media||media.kind!=="image"||media.owner_account_id!==job.customer_account_id)return response({error:"not_a_customer_image"},403);
  const {data:message}=await db.from("v21_messages").select("sender_account_id,created_at,deleted_at").eq("id",media.message_id).maybeSingle();
@@ -66,6 +112,7 @@ Deno.serve(async req=>{
        const {data:firstReceipt}=await db.from("chat_bank_bill_receipts").select("id").eq("media_asset_id",existing.first_asset_id).maybeSingle();
        await finish(asset,{status:"duplicate",reason:"duplicate_exact_image_sha256_no_ai",image_sha256:digest,duplicate_of:firstReceipt?.id||null,
          amount_vnd:existing.amount_vnd||null,raw_read:{read_mode:"amount_hash_only",same_image_sha256:true,first_scan_state:existing.scan_status}});
+       try{await notifyTestScan(asset,job.customer_account_id,"duplicate",existing.amount_vnd||null);}catch(e){console.warn("bill_scan_duplicate_feedback_failed",String(e).slice(0,80));}
        return response({ok:true,status:"duplicate",reason:"same_exact_image",amount_vnd:existing.amount_vnd||null,ai_called:false});
      }
    }
@@ -96,6 +143,7 @@ Deno.serve(async req=>{
       amount_clear:parsed?.amount_clear===true,uncertainty:String(parsed?.uncertainty||"").slice(0,160)}});
    await db.from("chat_bank_bill_image_hashes").update({amount_vnd:amount,scan_status:amount===null?"unreadable":"amount_read"})
      .eq("image_sha256",digest).eq("first_asset_id",asset);
+   try{await notifyTestScan(asset,job.customer_account_id,status,amount);}catch(e){console.warn("bill_scan_feedback_failed",String(e).slice(0,80));}
    return response({ok:true,status,amount_vnd:amount,duplicate:false,ai_called:true,ledger_written:false});
  }catch(error){
    const reason=String(error instanceof Error?error.message:error).slice(0,90);
