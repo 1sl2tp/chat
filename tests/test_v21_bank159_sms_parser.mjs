@@ -21,6 +21,6 @@ const bad=readIncomingAgribankSms({...base,body:"Agribank: 14:32 18/10 TK 123456
 assert.ok(bad&&bad.transaction_at_ms===Date.parse("2026-10-18T07:32:00Z"),"nearby previous day accepted");
 const old=readIncomingAgribankSms({...base,body:"Agribank: 14:32 09/10 TK 1234567899999: +406.000 VND",sms_timestamp_ms:timestamp});
 assert.ok(old&&old.transaction_at_ms===null,"stale ambiguous SMS date must not pass preflight");
-const rollover=Date.parse("2026-12-31T17:03:00Z");
-assert.equal(readIncomingAgribankSms({...base,body:"Agribank: 23:59 31/12 TK 1234567899999: +100.000 VND",sms_timestamp_ms:rollover,received_at:new Date(rollover).toISOString()})?.transaction_at_ms,Date.parse("2026-12-31T16:59:00Z"),"31 Dec / 1 Jan rollover");
+const rollover=Date.parse("2025-12-31T17:03:00Z");
+assert.equal(readIncomingAgribankSms({...base,body:"Agribank: 23:59 31/12 TK 1234567899999: +100.000 VND",sms_timestamp_ms:rollover,received_at:new Date(rollover).toISOString()})?.transaction_at_ms,Date.parse("2025-12-31T16:59:00Z"),"31 Dec / 1 Jan rollover");
 console.log("BANK-159 SMS transaction-only text parsing and no-year dates PASS");
