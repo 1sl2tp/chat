@@ -142,6 +142,7 @@ Deno.serve(async req=>{
    await finish(asset,{status,reason,image_sha256:digest,amount_vnd:amount,model_name:model,
      raw_read:{read_mode:"amount_hash_only",rule_version:RULE_VERSION,
       image_type:String(parsed?.image_type||"").slice(0,48),
+      amount_role:String(parsed?.amount_role||"").slice(0,40),
       transfer_success_visible:parsed?.transfer_success_visible===true,
       amount_vnd:amount,amount_text:String(parsed?.amount_text||"").slice(0,80),
       amount_clear:parsed?.amount_clear===true,uncertainty:String(parsed?.uncertainty||"").slice(0,160)}});
