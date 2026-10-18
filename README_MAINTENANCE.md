@@ -4,6 +4,18 @@
 >
 > Mục tiêu: Chat phải realtime như trước khi cutover Supabase, nhưng sửa chữa không được làm tăng request/log/egress bằng cách thêm polling, retry hoặc fallback trùng owner.
 
+## 2026-10-18 · UI-156 — Phân ngày trong chat + nhãn ngày khi cuộn
+
+- **Mục tiêu:** giúp nhận biết ranh giới ngày khi đọc lịch sử và nhìn nhanh thời gian tin gần nhất trong danh sách cuộc trò chuyện, không làm dày giao diện.
+- **Danh sách cuộc trò chuyện:** tin mới hôm nay hiển thị giờ `HH:mm`; hôm qua hiển thị `Hôm qua`; 2–6 ngày trước hiển thị thứ; cũ hơn hiển thị ngày/tháng/năm rút gọn.
+- **Trong cuộc trò chuyện:** mỗi ranh giới ngày có đúng một mốc `Hôm nay`, `Hôm qua`, hoặc thứ + ngày đầy đủ. Mốc là con của message row để virtual window tính chiều cao đúng; không tạo sibling row riêng và không lặp mốc trước mọi tin.
+- **Khi cuộn:** nhãn nổi lấy ngày của tin đầu tiên đang nhìn thấy, hiển thị ngày cụ thể cùng `Hôm nay`/`Hôm qua` khi phù hợp, rồi mờ đi sau 900ms không cuộn. Nhãn không chiếm chiều cao, không ghi `scrollTop`, không gọi mạng.
+- **MUST-STAY:** giữ nguyên ScrollController/anchor/virtualization; tin realtime đến chỉ theo chính sách follow-tail hiện hữu; không kéo người đang đọc lịch sử xuống cuối. Không đổi DB, Supabase, Realtime, polling, RPC, message/media cache hoặc quyền đọc.
+- **Kiểm thử:** ngày địa phương, chuyển ngày, hôm nay/hôm qua/thứ + ngày; UI contract cho separator/floating chip; giữ nguyên kiểm thử contact-time và scroll policy hiện có.
+- **PWA:** chỉ bump shell cache epoch để shell đang cài nhận HTML/CSS/JS mới; không xóa IndexedDB hay cache dữ liệu riêng tư.
+
+---
+
 ## 2026-10-15 · SPEC-CHAT-PWA-BOOT-155 — Ưu tiên hiện ngay khi mở PWA
 
 - **Triệu chứng:** iPhone PWA nhiều lần mở chậm/đứng, chưa kịp hiển thị Chat/danh bạ dù đã dùng trước đó.
