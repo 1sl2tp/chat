@@ -25,7 +25,7 @@ def test_match_by_transaction_not_Android_or_chat_arrival():
  assert EDGE.count('.gte("transfer_at",lo.toISOString())')==2
  assert EDGE.count('.lte("transfer_at",hi.toISOString())')==2
  assert 'eq("is_own_transfer",false)' in EDGE
- assert "n.posted_at>r.sent_at" not in WRITER
+ assert "def:=replace(def,from_text,to_text)" in WRITER
  assert "o.transfer_at between n.transfer_at" in WRITER
  assert "n.is_own_transfer=true" in WRITER
  assert "r.sent_at<now()" in WRITER
@@ -34,12 +34,12 @@ def test_match_by_transaction_not_Android_or_chat_arrival():
  assert "r.transfer_at_vn between" in WAKE
  assert "r.sent_at between v_transaction_at" not in WAKE
  assert "and r.created_at>=now()" not in WAKE
- assert "and o.posted_at between" not in WRITER
+ assert "to_text:='and o.transfer_at between n.transfer_at" in WRITER
  assert "now-sent>36*" not in PREVIEW
  assert "when(e.posted_at)<=sent+" not in PREVIEW
  assert "!ownTransferNotice(e)" in PREVIEW
 def test_preserve_atomic_idempotent_accounting():
  assert 'db.rpc("chat_bank_app_collect"' in EDGE
  assert 'matchPreview?.status==="candidate_unique"' in EDGE
- assert "not(config.enabled and config.ready)" not in WRITER or True
+ assert "n.is_own_transfer=true or n.transfer_at is null" in WRITER
  assert "taphoa_chat_notify_customer" not in EDGE
