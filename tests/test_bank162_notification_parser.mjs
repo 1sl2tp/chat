@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import {parseCredit} from '../supabase/functions/v21-agribank-notification-ingest/credit-parser.mjs';
+assert.equal(parseCredit('Biến động số dư','TK 123456: +406.000 VND; SD: 5.000.000 VND'),406000);
+assert.equal(parseCredit('Agribank Plus','Ghi có 1.500.000đ'),1500000);
+assert.equal(parseCredit('Agribank Plus','Nhận tiền 9,270,000 VND'),9270000);
+assert.equal(parseCredit('Agribank Plus','TK 123 -406.000 VND'),null);
+assert.equal(parseCredit('Agribank Plus','Mã OTP +406.000 VND'),null);
+assert.equal(parseCredit('Agribank Plus','Trả lãi +406.000 VND'),null);
+assert.equal(parseCredit('Agribank Plus','Biến động số dư'),null);
+console.log('BANK-162 Agribank notification parser PASS');

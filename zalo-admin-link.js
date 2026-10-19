@@ -905,6 +905,20 @@ async function runAutoCollectAction(button){
   }
 }
 
+async function issueAgribankDeviceToken(button){
+  if(!currentAdmin()||!button||accountBusy)return;
+  const client=authStore()?.getClient?.();
+  if(!client)return;
+  if(!window.confirm('Tạo mã kết nối riêng cho APK Agribank Plus? Mã chỉ được hiển thị một lần.'))return;
+  button.disabled=true;
+  try{
+    const {data,error}=await client.rpc('chat_agribank_issue_device_token',{p_label:'Agribank Plus Android'});
+    if(error||!data?.ok||!data?.device_token)throw Error('issue_failed');
+    window.prompt('Mã kết nối Agribank (sao chép vào APK, không chia sẻ với người khác):',data.device_token);
+  }catch{
+    window.alert('Chưa cấp được mã Agribank. Vui lòng thử lại.');
+  }finally{if(button.isConnected)button.disabled=false;}
+}
 async function openAccountAdmin(){
   if(!currentAdmin())return null;
   const returnFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;
@@ -933,6 +947,10 @@ async function openAccountAdmin(){
         <span class="zalo-account-notification-copy"><strong>Tự động thu tiền</strong><small data-admin-auto-collect-status>Đang kiểm tra trạng thái…</small><small>Bật chỉ là chờ tự động. Chưa có SMS thì không đọc AI, không thu. Thu/Ghi nợ thủ công không đổi.</small></span>
         <button type="button" class="zalo-account-notification-action" data-admin-auto-collect-action data-mode="enable" data-unavailable="false" disabled>Bật tự động thu</button>
       </div>
+      <div class="zalo-account-notification" data-admin-agribank-pair>
+        <span class="zalo-account-notification-copy"><strong>Máy Agribank Plus</strong><small>Chỉ Admin cấp mã một lần để ghép APK đọc thông báo tiền vào.</small></span>
+        <button type="button" class="zalo-account-notification-action" data-admin-agribank-issue>Tạo mã Agribank</button>
+      </div>
       <label class="zalo-account-search"><span class="sr-only">Tìm tài khoản</span><input type="search" autocomplete="off" inputmode="search" placeholder="Tìm Chat, @username, Zalo hoặc nhóm" data-zalo-account-search></label>
       <p class="zalo-account-error" data-zalo-account-error hidden></p>
       <div class="zalo-account-list" data-zalo-account-list></div>
@@ -947,6 +965,8 @@ async function openAccountAdmin(){
   pushAction?.addEventListener('click',()=>void runAdminPushAction(pushAction));
   const deviceAction=accountModal.querySelector('[data-admin-device-open]');
   deviceAction?.addEventListener('click',openDevicePanel);
+  const bankIssueAction=accountModal.querySelector('[data-admin-agribank-issue]');
+  bankIssueAction?.addEventListener('click',()=>void issueAgribankDeviceToken(bankIssueAction));
   const autoCollectAction=accountModal.querySelector('[data-admin-auto-collect-action]');
   autoCollectAction?.addEventListener('click',()=>void runAutoCollectAction(autoCollectAction));
   const search=accountModal.querySelector('[data-zalo-account-search]');
