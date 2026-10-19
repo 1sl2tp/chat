@@ -314,7 +314,18 @@ Deno.serve(async req=>{
        }
      }catch(_e){matchPreview={status:"review",reason:"matching_preview_unavailable"};}
    }
-   await finish(asset,{status,reason,image_sha256:digest,amount_vnd:amount,model_name:model,
+   const prior= status==="amount_read"&&amount
+      ?await findAlreadyCollectedTransfer(job.customer_account_id,amount,
+        fields.transfer_at_vn,fields.transfer_reference,matchPreview):null;
+   const settledDuplicate=!!prior?.same_customer;
+   const classification=settledDuplicate?"duplicate":prior?"review":status;
+   const classificationReason=settledDuplicate?"duplicate_transfer_already_collected":
+     prior?"bank_transfer_already_used_by_other_customer":reason;
+   const storedPreview=prior?{status:"review",reason:classificationReason,
+      prior_receipt_id:prior.receipt_id}:matchPreview;
+   await finish(asset,{status:classification,reason:classificationReason,
+     duplicate_of:settledDuplicate?prior.receipt_id:null,
+     image_sha256:digest,amount_vnd:amount,model_name:model,
      receiving_name:fields.receiving_name,receiving_account:fields.receiving_account,
      receiving_bank:fields.receiving_bank,sending_bank:fields.sending_bank,
      transfer_reference:fields.transfer_reference,transfer_at_vn:fields.transfer_at_vn,
@@ -331,9 +342,15 @@ Deno.serve(async req=>{
       transaction_datetime_vn:fields.transfer_at_vn,
       transaction_time_precision:fields.transaction_time_precision,
       recipient_name:fields.receiving_name,receiving_bank:fields.receiving_bank,
-      match_preview:matchPreview}});
+      match_preview:storedPreview}});
    await db.from("chat_bank_bill_image_hashes").update({amount_vnd:amount,scan_status:amount===null?"unreadable":"amount_read"})
      .eq("image_sha256",digest).eq("first_asset_id",asset);
+   if(prior){
+     if(settledDuplicate)
+       try{await notifyTestScan(asset,job.customer_account_id,"duplicate",amount);}catch(e){console.warn("transfer_duplicate_feedback_failed",String(e).slice(0,80));}
+     return response({ok:true,status:classification,reason:classificationReason,
+       ai_called:true,ledger_written:false,duplicate_of:prior.receipt_id});
+   }
    // BANK-164: only the service-role RPC may authorize a TAPHOA collection.
    // DB independently verifies the Agribank notification, bill and Admin state.
    let receiptPosted:any=null;
