@@ -30,6 +30,7 @@
 <link rel="stylesheet" href="./message-forward.css" data-build-source="message-forward.css">
 <link rel="stylesheet" href="./quote-client.css" data-build-source="quote-client.css">
 <link rel="stylesheet" href="./admin-composer-actions.css" data-build-source="admin-composer-actions.css">
+<link rel="stylesheet" href="./bank-report-dashboard.css" data-build-source="bank-report-dashboard.css">
 <link rel="stylesheet" href="./ui-foundation.css" data-build-source="ui-foundation.css">
 <link rel="stylesheet" href="./mobile-chat-refresh.css" data-build-source="mobile-chat-refresh.css">
 <style>
@@ -3924,6 +3925,21 @@ button{
                 </form>
               </div>
             </section>
+            <section id="bankReportDashboard" class="bank-report-dashboard" aria-label="Bảng đối soát chuyển khoản" hidden>
+              <div class="bank-report-header">
+                <div><h2 class="bank-report-heading">Đối soát chuyển khoản</h2>
+                <p class="bank-report-subtitle" data-bank-updated>Đang lấy dữ liệu…</p></div>
+                <div class="bank-report-controls">
+                  <input data-bank-date type="date" min="2026-10-19" aria-label="Ngày đối soát">
+                  <button data-bank-refresh type="button">Làm mới</button>
+                </div>
+              </div>
+              <div class="bank-report-summary" data-bank-summary></div>
+              <div class="bank-report-table-wrap" data-bank-table></div>
+              <nav class="bank-report-filters" data-bank-filters aria-label="Lọc giao dịch"></nav>
+              <div class="bank-report-groups" data-bank-groups></div>
+              <div data-bank-viewer hidden></div>
+            </section>
             <div id="conversationContentAxis" data-conversation-content-owner="true">
               <div id="messageDayFloating" class="message-day-floating" hidden aria-hidden="true" data-visible="false">
                 <span class="message-day-floating-label"></span>
@@ -4185,6 +4201,7 @@ button{
 <script src="./v21-media-cache.js" data-build-source="v21-media-cache.js"></script>
 <script src="./v21-message-store.js" data-build-source="v21-message-store.js"></script>
 <script src="./v21-sync-engine.js" data-build-source="v21-sync-engine.js"></script>
+<script src="./bank-report-dashboard.js" data-build-source="bank-report-dashboard.js"></script>
 <script src="./message-forward.js" data-build-source="message-forward.js"></script>
 <script src="./v21-call-engine.js" data-build-source="v21-call-engine.js"></script>
 <script src="./v21-livekit-session.js" data-build-source="v21-livekit-session.js"></script>

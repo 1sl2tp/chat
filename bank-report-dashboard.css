@@ -1,0 +1,78 @@
+/* BANK-177: one live smart reconciliation table in the system report contact.
+   Does not disturb normal chat, its ScrollRoot, composer, or Work mode. */
+#bankReportDashboard[hidden]{display:none!important}
+#appShell[data-route="chat"] #stageLayout[data-bank-report-active="true"] #conversationContentAxis,
+#appShell[data-route="chat"] #stageLayout[data-bank-report-active="true"] #workThreadView,
+#appShell[data-route="chat"] #stageLayout[data-bank-report-active="true"] #tailSentinel,
+#appShell[data-route="chat"] #stageLayout[data-bank-report-active="true"] #tailRunway,
+#appShell[data-route="chat"] #stageLayout[data-bank-report-active="true"] #thread-bottom-container,
+#appShell[data-route="chat"] #stageLayout[data-bank-report-active="true"] #composerPlacementSpacer,
+#appShell[data-route="chat"] #stageLayout[data-bank-report-active="true"] .call-focus-slot{display:none!important}
+#appShell[data-route="chat"] #stageLayout[data-bank-report-active="true"] #bankReportDashboard{display:block!important}
+.bank-report-dashboard{width:min(100%,1080px);margin:0 auto;padding:18px 18px 72px;color:var(--text-primary,#23272a);font-family:inherit;box-sizing:border-box}
+.bank-report-dashboard *{box-sizing:border-box}
+.bank-report-header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:4px 0 18px}
+.bank-report-heading{font-size:20px;font-weight:750;line-height:1.4;letter-spacing:-.025em;margin:0}
+.bank-report-subtitle{font-size:12px;color:var(--text-secondary,#777);margin:4px 0 0}
+.bank-report-controls{display:flex;align-items:center;gap:8px}
+.bank-report-controls input,.bank-report-controls button{border:1px solid var(--border-default,#d8dce0);border-radius:10px;padding:8px 10px;color:inherit;background:var(--surface-primary,#fff);font-size:13px}
+.bank-report-controls button{cursor:pointer}
+.bank-report-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-bottom:16px}
+.bank-report-stat{border:1px solid var(--border-default,#e5e7eb);border-radius:12px;background:var(--surface-primary,#fff);padding:12px;min-width:0}
+.bank-report-stat-primary{background:var(--surface-secondary,#f5f8fa)}
+.bank-report-stat-name{font-size:12px;color:var(--text-secondary,#687380)}
+.bank-report-stat-number{display:block;font-weight:730;font-size:19px;margin-top:5px;font-variant-numeric:tabular-nums}
+.bank-report-filters{display:flex;gap:6px;overflow-x:auto;padding:2px 0 10px;margin-bottom:12px;scrollbar-width:thin}
+.bank-report-filter{background:var(--surface-primary,#fff);border:1px solid var(--border-default,#ddd);padding:7px 11px;white-space:nowrap;border-radius:999px;font-size:12px;cursor:pointer}
+.bank-report-filter.is-selected{background:var(--text-primary,#242424);color:var(--surface-primary,#fff)}
+.bank-report-customer{border:1px solid var(--border-default,#e2e6ea);border-radius:13px;margin-bottom:13px;overflow:hidden;background:var(--surface-primary,#fff)}
+.bank-report-customer-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:var(--surface-secondary,#f7f8fa);padding:12px 14px;border-bottom:1px solid var(--border-default,#e5e5e5)}
+.bank-report-customer-name{font-weight:700;font-size:14px}
+.bank-report-customer-count{font-size:12px;font-variant-numeric:tabular-nums}
+.bank-report-detail{border-bottom:1px solid var(--border-default,#ececec)}
+.bank-report-detail:last-child{border-bottom:0}
+.bank-report-detail-top{cursor:pointer;display:grid;grid-template-columns:76px minmax(100px,1fr) minmax(114px,auto);gap:10px;align-items:center;padding:11px 14px;list-style:none;font-size:13px}
+.bank-report-detail-top::-webkit-details-marker{display:none}
+.bank-report-detail-top:before{content:'▸';color:var(--text-secondary,#777);position:absolute;left:4px}
+.bank-report-detail{position:relative}
+.bank-report-detail[open] .bank-report-detail-top:before{content:'▾'}
+.bank-report-detail-time{padding-left:6px;font-variant-numeric:tabular-nums}
+.bank-report-detail-amount{font-variant-numeric:tabular-nums}
+.bank-report-detail-status{font-size:11px;text-align:center;border-radius:7px;padding:4px 6px;background:var(--surface-secondary,#efefef)}
+.bank-status-matched{color:#107647;background:#e6f6eb}
+.bank-status-waiting_bank,.bank-status-bank_only,.bank-status-reading{color:#875d06;background:#fff3d6}
+.bank-status-wrong_day,.bank-status-review,.bank-status-duplicate{color:#a13c22;background:#fff0e9}
+.bank-report-detail-content{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:12px 15px 14px;background:var(--surface-secondary,#fafbfb)}
+.bank-report-field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.bank-report-field-label{font-size:11px;color:var(--text-secondary,#666)}
+.bank-report-field-value{font-size:12px;font-weight:550;overflow-wrap:anywhere}
+.bank-report-detail-reason{grid-column:1/-1;margin:2px 0;font-size:12px}
+.bank-report-detail-actions{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
+.bank-report-action{font-size:12px;border-radius:9px;padding:7px 11px;border:1px solid var(--border-default,#ccc);background:var(--surface-primary,#fff);cursor:pointer;color:inherit}
+.bank-report-empty{text-align:center;padding:26px 12px;font-size:13px;color:var(--text-secondary,#777)}
+.bank-report-image-overlay{position:fixed;inset:0;z-index:250;background:#000b;display:flex;align-items:center;justify-content:center;padding:20px}
+.bank-report-image-pane{background:var(--surface-primary,#fff);border-radius:12px;max-width:min(92vw,820px);max-height:90vh;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:8px;align-items:center}
+.bank-report-image-close{align-self:flex-end;border:0;border-radius:8px;padding:8px 12px;background:var(--surface-secondary,#eee);color:inherit;cursor:pointer}
+.bank-report-image{display:block;max-width:100%;max-height:76vh;object-fit:contain}
+.bank-report-image-status{color:var(--text-secondary,#777);padding:20px}
+@media(max-width:650px){
+.bank-report-dashboard{padding:12px 11px 60px}
+.bank-report-header{align-items:flex-start}
+.bank-report-heading{font-size:17px}
+.bank-report-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.bank-report-stat{padding:10px}
+.bank-report-stat-number{font-size:16px}
+.bank-report-detail-top{grid-template-columns:57px minmax(74px,1fr) minmax(100px,auto);gap:4px;padding:11px 10px;font-size:12px}
+.bank-report-customer-head{padding:10px;gap:4px}
+}
+.bank-report-table-wrap{overflow-x:auto;margin-bottom:18px;border:1px solid var(--border-default,#e5e5e5);border-radius:13px}
+.bank-report-table{border-collapse:collapse;width:100%;min-width:490px;font-size:13px;font-variant-numeric:tabular-nums}
+.bank-report-table th,.bank-report-table td{padding:11px 10px;border-bottom:1px solid var(--border-default,#e9edf0);text-align:right}
+.bank-report-table th:first-child,.bank-report-table td:first-child{text-align:left;font-weight:600}
+.bank-report-table th{background:var(--surface-secondary,#f5f6f7);font-size:12px;color:var(--text-secondary,#6a6a6a)}
+.bank-report-table tr:last-child td{border-bottom:none}
+.bank-report-table-item{cursor:pointer}
+.bank-report-table-item:hover,.bank-report-table-item:focus-visible{background:var(--surface-secondary,#f4f6f7)}
+
+/* Work mode retains the regular Work view; never float this dashboard there. */
+#appShell[data-route="work"] #bankReportDashboard{display:none!important}
