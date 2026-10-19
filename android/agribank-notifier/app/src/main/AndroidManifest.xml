@@ -2,6 +2,8 @@
  <uses-permission android:name="android.permission.INTERNET"/>
  <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+ <!-- Only granted from Android Settings after an explicit tap; permits opt-in screen timeout setting. -->
+ <uses-permission android:name="android.permission.WRITE_SETTINGS"/>
  <application android:label="TAPHOA · Agribank" android:allowBackup="false"
   android:usesCleartextTraffic="false" android:theme="@android:style/Theme.Material.Light.NoActionBar">
   <activity android:name=".MainActivity" android:exported="true">
