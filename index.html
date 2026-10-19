@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="959af0413fe450def75f926d842e94b50bed9935d29a36ab93210a61ba1a1419">
+<meta name="app-build-id" content="ab8104d5a695cc0c1ef5a797ff2deab64b6e0765e4ff4700b69e57ec9fe55d99">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1465,6 +1465,79 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
   .bank-report-table td:first-child{font-size:10px}
   .bank-report-table td:last-child{font-size:9.8px;letter-spacing:-.2px}
   .bank-report-filter{font-size:10px;padding:5px 7px}
+}
+
+/* BANK-179: mobile-first hierarchy. Keep every monetary value visible.
+   Summary → customers → exceptions → on-demand bill details. */
+.bank-report-dashboard{padding-top:14px}
+.bank-report-header{margin:0 0 12px;gap:8px}
+.bank-report-heading{font-size:19px;letter-spacing:-.025em}
+.bank-report-subtitle{font-size:11px;line-height:1.4}
+.bank-report-controls{gap:5px}
+.bank-report-controls input,.bank-report-controls button{border-radius:9px;padding:7px 9px}
+.bank-report-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-bottom:7px}
+.bank-report-stat{min-width:0;padding:12px 13px;border-radius:12px}
+.bank-report-stat-name{display:block;font-size:11px;line-height:1.3}
+.bank-report-stat-number{display:block;margin-top:5px;font-size:21px;letter-spacing:-.035em;line-height:1.2;font-variant-numeric:tabular-nums}
+.bank-report-stat-primary{background:var(--surface-secondary,#f5f7f8);border-color:var(--border-default,#e3e7e9)}
+.bank-report-status-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-bottom:19px}
+.bank-report-stat-compact{padding:8px 9px;background:var(--surface-secondary,#f8f9fa);border-color:transparent;border-radius:10px}
+.bank-report-stat-compact .bank-report-stat-name{font-size:10px;line-height:1.25;min-height:2.5em}
+.bank-report-stat-compact .bank-report-stat-number{font-size:17px;line-height:1.15;margin-top:3px;letter-spacing:0}
+.bank-report-table-caption{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:9px}
+.bank-report-table-caption strong{font-size:14px;font-weight:720}
+.bank-report-table-caption span{font-size:11px;color:var(--text-secondary,#707780)}
+.bank-report-table-wrap{margin-bottom:14px;border-radius:11px}
+.bank-report-table th{background:var(--surface-secondary,#f7f8f9);font-weight:550;color:var(--text-secondary,#606870)}
+.bank-report-table-item:hover,.bank-report-table-item:focus-visible,.bank-report-table-item.is-selected{background:var(--surface-secondary,#eef4f6)}
+.bank-report-filter-more{position:relative;flex:0 0 auto}
+.bank-report-filter-more-trigger{display:block;list-style:none;cursor:pointer;user-select:none;border:1px solid var(--border-default,#ddd);border-radius:999px;padding:7px 11px;font-size:12px;text-align:center;background:var(--surface-primary,#fff)}
+.bank-report-filter-more-trigger::-webkit-details-marker{display:none}
+.bank-report-filter-more-trigger::after{content:'⌄';margin-left:5px}
+.bank-report-filter-more.is-selected .bank-report-filter-more-trigger{background:var(--text-primary,#242424);color:var(--surface-primary,#fff)}
+.bank-report-filter-more-menu{position:absolute;right:0;top:calc(100% + 4px);z-index:20;min-width:160px;display:flex;flex-direction:column;gap:4px;padding:6px;border-radius:12px;background:var(--surface-primary,#fff);border:1px solid var(--border-default,#ddd);box-shadow:0 8px 24px #0002}
+.bank-report-filter-more-menu .bank-report-filter{border:0;border-radius:7px;text-align:left;white-space:nowrap}
+.bank-report-detail-hint{margin:4px 0 24px;padding:12px;border:1px dashed var(--border-default,#dde2e6);border-radius:11px;text-align:center;color:var(--text-secondary,#717980);font-size:12px}
+.bank-report-detail-section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:13px 0 9px}
+.bank-report-detail-section-head strong{font-size:14px}
+.bank-report-dismiss{border:1px solid var(--border-default,#ddd);background:var(--surface-primary,#fff);border-radius:8px;padding:6px 9px;color:inherit;cursor:pointer;font-size:11px}
+.bank-report-customer{border-radius:11px}
+.bank-report-customer-head{padding:10px 12px}
+.bank-report-customer-count{color:var(--text-secondary,#626a72)}
+.bank-report-detail-top{padding-block:10px}
+.bank-report-detail-status{border-radius:7px}
+@media (max-width:650px){
+ .bank-report-dashboard{padding:10px 9px 42px}
+ .bank-report-heading{font-size:17px}
+ .bank-report-summary{gap:7px;margin-bottom:6px}
+ .bank-report-stat{padding:10px 11px}
+ .bank-report-stat-number{font-size:20px}
+ .bank-report-status-strip{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin-bottom:14px}
+ .bank-report-stat-compact{padding:7px 6px}
+ .bank-report-stat-compact .bank-report-stat-name{font-size:10px}
+ .bank-report-stat-compact .bank-report-stat-number{font-size:16px}
+ .bank-report-table-wrap{margin-bottom:12px}
+ .bank-report-table{min-width:0;font-size:11px}
+ .bank-report-table th,.bank-report-table td{padding:8px 2px}
+ .bank-report-table th{font-size:10px}
+ .bank-report-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;overflow:visible;margin-bottom:12px;padding:0}
+ .bank-report-filter,.bank-report-filter-more-trigger{width:100%;height:34px;display:flex;justify-content:center;align-items:center;padding:5px 4px;font-size:11px;white-space:normal;text-align:center;line-height:1.2;border-radius:9px}
+ .bank-report-filter-more-trigger::after{margin-left:3px}
+ .bank-report-filter-more-menu{min-width:155px}
+ .bank-report-filter-more-menu .bank-report-filter{height:34px;justify-content:flex-start;padding-inline:10px}
+ .bank-report-customer-head{gap:4px}
+ .bank-report-customer-count{font-size:11px}
+}
+@media (max-width:360px){
+ .bank-report-dashboard{padding-inline:6px}
+ .bank-report-summary{gap:5px}
+ .bank-report-stat{padding:9px 8px}
+ .bank-report-stat-number{font-size:18px}
+ .bank-report-stat-compact{padding:6px 4px}
+ .bank-report-stat-compact .bank-report-stat-name{font-size:9px}
+ .bank-report-stat-compact .bank-report-stat-number{font-size:15px}
+ .bank-report-table-caption span{font-size:10px}
+ .bank-report-filter,.bank-report-filter-more-trigger{font-size:10px}
 }
 
 </style>
@@ -6394,6 +6467,10 @@ button{
                 </div>
               </div>
               <div class="bank-report-summary" data-bank-summary></div>
+              <div class="bank-report-status-strip" data-bank-status></div>
+              <div class="bank-report-table-caption">
+                <strong>Theo khách hàng</strong><span>Chạm dòng để xem chi tiết</span>
+              </div>
               <div class="bank-report-table-wrap" data-bank-table></div>
               <nav class="bank-report-filters" data-bank-filters aria-label="Lọc giao dịch"></nav>
               <div class="bank-report-groups" data-bank-groups></div>
@@ -25394,6 +25471,7 @@ const ui={
  date:root.querySelector('[data-bank-date]'),
  refresh:root.querySelector('[data-bank-refresh]'),
  summary:root.querySelector('[data-bank-summary]'),
+ status:root.querySelector('[data-bank-status]'),
  table:root.querySelector('[data-bank-table]'),
  tabs:root.querySelector('[data-bank-filters]'),
  groups:root.querySelector('[data-bank-groups]'),
@@ -25405,7 +25483,7 @@ const filters=[
  ['bank_only','Agribank chờ bill'],['review','Cần xem'],['wrong_day','Sai ngày'],
  ['duplicate','Trùng'],['non_bill','Không phải bill'],['test_excluded','Test (loại)']
 ];
-const money=x=>Number.isFinite(Number(x))?new Intl.NumberFormat('vi-VN').format(Number(x))+'đ':'—';
+const money=x=>x===null||x===undefined||x===''||!Number.isFinite(Number(x))?'—':new Intl.NumberFormat('vi-VN').format(Number(x))+'đ';
 const localDate=()=>{const parts=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const part=t=>parts.find(x=>x.type===t)?.value||'';return part('year')+'-'+part('month')+'-'+part('day');};
 const localTime=x=>{
  if(!x)return'—';
@@ -25417,7 +25495,7 @@ const statusText={
  review:'Cần kiểm tra',wrong_day:'Sai ngày',duplicate:'Bill trùng',
  non_bill:'Không phải bill',reading:'Đang đọc ảnh',test_excluded:'Tiền test (loại)'
 };
-let active=false,filter='all',current=null,requestId=0,loading=false,queued=false;
+let active=false,filter='all',selectedCustomer=null,current=null,requestId=0,loading=false,queued=false;
 let imageObjectUrl=null;
 const el=(tag,className='',value='')=>{
  const node=document.createElement(tag);if(className)node.className=className;
@@ -25459,25 +25537,43 @@ async function reload(){
   if(id===requestId&&active){ui.stamp.textContent='Chưa lấy được dữ liệu. Bấm Làm mới.';ui.groups.replaceChildren(el('p','bank-report-empty','Không tải được bảng đối soát.'));}
  }finally{loading=false;if(queued){queued=false;void reload();}}
 }
-function cardValue(name,value,highlight=false){
- return append(el('div','bank-report-stat'+(highlight?' bank-report-stat-primary':'')),el('div','bank-report-stat-name',name),el('strong','bank-report-stat-number',value));
+function cardValue(name,value,highlight=false,compact=false){
+ return append(el('div','bank-report-stat'+(highlight?' bank-report-stat-primary':'')+(compact?' bank-report-stat-compact':'')),
+  el('span','bank-report-stat-name',name),el('strong','bank-report-stat-number',value));
 }
 function paint(data){
- const s=data?.summary||{};ui.summary.replaceChildren(
-  cardValue('Đã khớp',String(s.matched_count||0)+' giao dịch',true),
-  cardValue('Tiền xác nhận',money(s.matched_amount)),
-  cardValue('Bill chờ ngân hàng',String(s.bill_only_count||0)),
-  cardValue('Ngân hàng chờ bill',String(s.bank_only_count||0)),
-  cardValue('Bill sai ngày',String(s.old_date_count||0)),
-  cardValue('Ảnh trùng',String(s.duplicate_count||0))
+ const s=data?.summary||{};
+ ui.summary.replaceChildren(
+  cardValue('Giao dịch đã khớp',String(s.matched_count||0)),
+  cardValue('Tiền đã xác nhận',money(s.matched_amount),true)
+ );
+ ui.status.replaceChildren(
+  cardValue('Bill chờ ngân hàng',String(s.bill_only_count||0),false,true),
+  cardValue('Ngân hàng chờ bill',String(s.bank_only_count||0),false,true),
+  cardValue('Bill sai ngày',String(s.old_date_count||0),false,true),
+  cardValue('Ảnh trùng',String(s.duplicate_count||0),false,true)
  );
  renderTable(data);
- ui.tabs.replaceChildren(...filters.map(([key,label])=>{
-  const button=el('button','bank-report-filter'+(filter===key?' is-selected':''),label);
-  button.type='button';button.dataset.filter=key;button.setAttribute('aria-pressed',String(filter===key));
-  button.addEventListener('click',()=>{filter=key;paint(data);});
-  return button;
- }));
+ const mainKeys=new Set(['all','matched','waiting_bank','bank_only','review']);
+ const makeFilter=([key,label])=>{
+   const b=el('button','bank-report-filter'+(filter===key?' is-selected':''),label);
+   b.type='button';b.dataset.filter=key;b.setAttribute('aria-pressed',String(filter===key));
+   b.addEventListener('click',()=>{filter=key;selectedCustomer=null;paint(data);});
+   return b;
+ };
+ const primary=filters.filter(([key])=>mainKeys.has(key)).map(makeFilter);
+ const secondary=filters.filter(([key])=>!mainKeys.has(key));
+ const more=el('details','bank-report-filter-more'+(!mainKeys.has(filter)?' is-selected':''));
+ const summary=el('summary','bank-report-filter-more-trigger',!mainKeys.has(filter)?'Khác · đang lọc':'Khác');
+ summary.setAttribute('aria-label','Các trạng thái đối soát khác');
+ const menu=el('div','bank-report-filter-more-menu');
+ for(const item of secondary){
+  const b=makeFilter(item);
+  b.addEventListener('click',()=>{more.open=false;});
+  menu.appendChild(b);
+ }
+ append(more,summary,menu);
+ ui.tabs.replaceChildren(...primary,more);
  renderGroups(data);
 }
 function renderTable(data){
@@ -25498,9 +25594,9 @@ function renderTable(data){
  head.appendChild(thead);table.appendChild(head);
  const tbody=el('tbody');
  for(const g of [...byCustomer.values()].sort((a,b)=>b.money-a.money||a.name.localeCompare(b.name,'vi'))){
-  const tr=el('tr','bank-report-table-item');tr.tabIndex=0;tr.setAttribute('role','button');tr.setAttribute('aria-label','Xem chi tiết '+g.name);
+  const tr=el('tr','bank-report-table-item'+(selectedCustomer===g.id?' is-selected':''));tr.tabIndex=0;tr.setAttribute('role','button');tr.setAttribute('aria-label','Xem chi tiết '+g.name);tr.setAttribute('aria-expanded',String(selectedCustomer===g.id));
   for(const v of [g.name,g.matched,g.waiting,g.duplicate,g.old,money(g.money)])tr.appendChild(el('td','',v));
-  const jump=()=>{filter='all';paint(data);root.querySelector('[data-bank-customer="'+g.id+'"]')?.scrollIntoView?.({block:'start',behavior:'smooth'});};
+  const jump=()=>{selectedCustomer=selectedCustomer===g.id?null:g.id;filter='all';paint(data);if(selectedCustomer)root.querySelector('[data-bank-customer="'+g.id+'"]')?.scrollIntoView?.({block:'nearest',behavior:'smooth'});};
   tr.addEventListener('click',jump);tr.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();jump();}});
   tbody.appendChild(tr);
  }
@@ -25538,32 +25634,50 @@ function detailLine(row,isBank=false){
 function renderGroups(data){
  const allBills=Array.isArray(data?.bills)?data.bills:[];
  const bankOnly=Array.isArray(data?.bank_only)?data.bank_only:[];
- let rows=allBills.filter(r=>filter==='all'||r.report_status===filter||(filter==='review'&&r.report_status==='reading'));
+ const selected=filter==='all' ? (selectedCustomer?allBills.filter(r=>String(r.customer_id)===selectedCustomer):[])
+   :allBills.filter(r=>r.report_status===filter||(filter==='review'&&r.report_status==='reading'));
  const banks=(filter==='all'||filter==='bank_only')?bankOnly:[];
  const grouped=new Map();
- for(const row of rows){
+ for(const row of selected){
   const key=String(row.customer_id||'none'),g=grouped.get(key)||{id:key,name:row.customer_name||'Khách chưa rõ',rows:[],amount:0,matched:0};
   g.rows.push(row);
   if(row.report_status==='matched'){g.matched++;g.amount+=Number(row.amount_vnd)||0;}
   grouped.set(key,g);
  }
  ui.groups.replaceChildren();
+ if(filter==='all'&&!selectedCustomer&&!banks.length){
+  ui.groups.appendChild(el('div','bank-report-detail-hint','Chạm một khách hàng trong bảng để xem từng bill và giờ đối soát.'));
+  return;
+ }
+ const title=el('div','bank-report-detail-section-head');
+ title.appendChild(el('strong','','Chi tiết giao dịch'));
+ if(selectedCustomer){
+  const close=el('button','bank-report-dismiss','Đóng chi tiết');close.type='button';
+  close.addEventListener('click',()=>{selectedCustomer=null;paint(data);});
+  title.appendChild(close);
+ }
+ ui.groups.appendChild(title);
+ if(banks.length){
+  const block=el('section','bank-report-customer bank-report-bank-only');
+  block.appendChild(append(el('div','bank-report-customer-head'),
+   el('strong','bank-report-customer-name','Agribank có tiền · chưa có bill'),
+   el('span','bank-report-customer-count',banks.length+' giao dịch · '+money(banks.reduce((s,x)=>s+Number(x.amount_vnd||0),0)))));
+  banks.forEach(row=>block.appendChild(detailLine(row,true)));
+  ui.groups.appendChild(block);
+ }
  const sorted=[...grouped.values()].sort((a,b)=>b.amount-a.amount||a.name.localeCompare(b.name,'vi'));
  for(const group of sorted){
   const block=el('section','bank-report-customer');block.dataset.bankCustomer=group.id;
-  const header=append(el('div','bank-report-customer-head'),
+  const different=group.rows.length-group.matched;
+  const info=group.matched+' giao dịch khớp · '+money(group.amount)+(different?' · '+different+' ảnh khác':'');
+  block.appendChild(append(el('div','bank-report-customer-head'),
    el('strong','bank-report-customer-name',group.name),
-   el('span','bank-report-customer-count',group.matched+'/'+group.rows.length+' bill khớp · '+money(group.amount)));
-  block.appendChild(header);
+   el('span','bank-report-customer-count',info)));
+  const entry=el('div','bank-report-customer-entries');
   group.rows.sort((a,b)=>String(a.bill_time||a.sent_at).localeCompare(String(b.bill_time||b.sent_at)));
-  group.rows.forEach(row=>block.appendChild(detailLine(row)));
+  group.rows.forEach(row=>entry.appendChild(detailLine(row)));
+  block.appendChild(entry);
   ui.groups.appendChild(block);
- }
- if(banks.length){
-  const block=el('section','bank-report-customer');
-  block.appendChild(append(el('div','bank-report-customer-head'),el('strong','bank-report-customer-name','Agribank có tiền · chưa biết khách'),el('span','bank-report-customer-count',banks.length+' giao dịch · '+money(banks.reduce((s,x)=>s+Number(x.amount_vnd||0),0)))));
-  banks.forEach(row=>block.appendChild(detailLine(row,true)));
-  ui.groups.prepend(block);
  }
  if(!sorted.length&&!banks.length)ui.groups.appendChild(el('p','bank-report-empty','Không có giao dịch thuộc bộ lọc này.'));
 }
@@ -25602,10 +25716,10 @@ function synchronize(){
  active=should;
  stage.dataset.bankReportActive=should?'true':'false';
  root.hidden=!should;
- if(should){dateReady();void reload();}else{requestId++;closeViewer();current=null;}
+ if(should){dateReady();void reload();}else{requestId++;selectedCustomer=null;closeViewer();current=null;}
 }
 ui.refresh.addEventListener('click',()=>void reload());
-ui.date.addEventListener('change',()=>{filter='all';current=null;void reload();});
+ui.date.addEventListener('change',()=>{filter='all';selectedCustomer=null;current=null;void reload();});
 document.addEventListener('v21-active-contact-change',synchronize);
 document.addEventListener('v21-contact-store-change',synchronize);
 document.addEventListener('v21-auth-state',synchronize);
