@@ -46,8 +46,8 @@ def test_name_and_both_evidence_required_in_admin_contract():
     spec = (ROOT / "docs/specs/SPEC-CHAT-BANK-AUTOCOLLECT-157.md").read_text(encoding="utf-8")
     assert "<strong>Tự động thu tiền</strong>" in js
     assert "Tự thu SMS Banking" not in js
-    assert "SMS và bill khớp duy nhất" in js
-    assert "đồng thời ảnh bill của khách trong Chat và SMS tiền vào ngân hàng khớp duy nhất" in js
+    assert "Agribank Plus và bill khớp duy nhất" in js
+    assert "đồng thời ảnh bill của khách và thông báo tiền vào Agribank Plus khớp duy nhất" in js
     assert "Thu/Ghi nợ thủ công không đổi" in js
     assert "Thiếu một nguồn = tuyệt đối không thu" in spec
     assert "bill-only" in spec and "SMS-only" in spec

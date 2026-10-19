@@ -19,7 +19,9 @@ export function previewBillAppMatch(bill,events,otherBills=[],now=Date.now()){
  if((otherBills||[]).some(b=>b.media_asset_id!==bill.media_asset_id&&b.status==="amount_read"&&
     b.amount_vnd===bill.amount_vnd&&Math.abs(bankTime(b.transfer_at_vn)-date)<=5*60000))
    return{status:"review",reason:"another_bill_same_time_amount"};
- if(now-sent<2*60000)return{status:"waiting_settlement",reason:"checking_other_bills"};
+ // BANK-164: no scheduler is required; uniqueness is rechecked transactionally by
+ // the database before any collection. Do not leave this bill permanently waiting.
+ if(sent>now+2*60000)return{status:"review",reason:"future_bill_time"};
  return{status:"candidate_unique",source:"agribank_plus_notification",notification_id:qualified[0].id,
    matched_amount_vnd:bill.amount_vnd,bank_confirmed:false,ledger_written:false};
 }
