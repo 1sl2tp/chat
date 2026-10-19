@@ -318,6 +318,11 @@ async function applyMessageEvent(event){
   });
   markActiveMessageDirty(payload.id,payload.conversation_id,{reconcileMedia:true});
   if(!own&&visible)scheduleMarkRead(payload.conversation_id);
+  // BANK-177: an UPDATE to the existing system report signal requests exactly
+  // one read-only table refresh, never another report Chat bubble or poll.
+  if(String(payload.client_id||'').startsWith('taphoa:bank-report:2026-10-19:initial')){
+    document.dispatchEvent(new CustomEvent('v21-bank-report-dirty',{detail:{messageId:payload.id}}));
+  }
   return true;
 }
 
