@@ -28,5 +28,5 @@ def test_only_customer_bill_may_be_partly_masked():
 def test_bank_credit_and_financial_safety_unchanged():
     assert ".eq(\"is_own_transfer\",false)" in EDGE
     assert "duplicate_or_ambiguous" not in WRITER or "original" in WRITER
-    assert "function public.chat_bank_app_collect" in WRITER
+    assert "pg_get_functiondef('public.chat_bank_app_collect(uuid,bigint)'::regprocedure)" in WRITER
     assert 'db.rpc("chat_bank_app_collect"' in EDGE
