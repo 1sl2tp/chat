@@ -40,7 +40,11 @@ def test_floating_date_is_sticky_zero_height_and_hides_after_scroll_idle():
 
 
 def test_ui156_only_advances_shell_cache_namespace():
-    assert "const SHELL_CACHE_EPOCH='bank-collect164';" in SW
+    # Release-specific cache epochs advance as the PWA shell changes.
+    # Test the namespace contract, not an obsolete exact release token.
+    import re
+    assert re.search(r"const SHELL_CACHE_EPOCH='[a-z0-9-]+';", SW)
+    assert "const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION+'-'+SHELL_CACHE_EPOCH;" in SW
     assert "const AVATAR_CACHE_NAME='taphoa-chat-avatars-v1';" in SW
     assert "await self.skipWaiting();" in SW
     assert "await self.clients.claim();" in SW
