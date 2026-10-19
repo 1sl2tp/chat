@@ -41,5 +41,5 @@ assert.equal(previewBillAppMatch(tier1,[app],[{...bill,media_asset_id:"another-a
 // Bank arrival time is not the transaction time, even hours late.
 assert.equal(previewBillAppMatch(tier1,[{...app,posted_at:"2026-10-20T03:03:00Z"}],[],Date.parse("2026-10-20T03:04:00Z")).status,"candidate_unique");
 assert.equal(previewBillAppMatch(tier1,[{...app,is_own_transfer:true}],[],now).status,"waiting_bank_event");
-assert.equal(previewBillAppMatch(tier1,[{...app,body:app.body+" Nội dung giao dịch: BUI XUAN TUNG chuyen tien."}],[],now).status,"waiting_bank_event");
+assert.equal(previewBillAppMatch(tier1,[{...app,body:app.body.replace("Nội dung giao dịch: chuyen tien.","Nội dung giao dịch: BUI XUAN TUNG chuyen tien.")}],[],now).status,"waiting_bank_event");
 console.log("BANK-162 bank app + bill preview PASS");
