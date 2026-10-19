@@ -5,7 +5,7 @@ const bankTime=x=>when(String(x||"").replace(" ","T")+"+07:00");
 function bankEventTime(event){
  const text=String(event?.body||"");
  const m=/Agribank:\s*([01]\d|2[0-3]):([0-5]\d)\s+([0-3]\d)\/([01]\d)\/(20\d\d)/i.exec(text);
- if(!m)return when(event?.posted_at);
+ if(!m)return null; // No printed bank time: cannot authorize money using push arrival alone.
  const t=bankTime(`${m[5]}-${m[4]}-${m[3]} ${m[1]}:${m[2]}`);
  const posted=when(event?.posted_at);
  return t!==null&&posted!==null&&Math.abs(posted-t)<=15*60000?t:null;

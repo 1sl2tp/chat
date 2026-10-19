@@ -17,6 +17,53 @@ function amountInVnd(v:unknown):number|null{
  }
  return null;
 }
+// Different JPEG/WebP crops of one transfer can have different SHA-256 hashes.
+// Classify by already-CONSUMED bank notification or confirmed unique transfer
+// reference; never create a second collection for the same bank transfer.
+async function findAlreadyCollectedTransfer(
+  customerId:string, amount:number, transferAt:string|null,
+  reference:string|null, appMatch:any
+){
+ const ref=String(reference||"").trim();
+ const validRef=/^[A-Za-z0-9][A-Za-z0-9._-]{7,79}$/.test(ref);
+ let previous:any=null;
+ if(appMatch?.source==="agribank_plus_notification" &&
+    appMatch?.status==="candidate_unique" &&
+    Number.isSafeInteger(appMatch.notification_id)){
+   const linked=await db.from("chat_bank_app_collection_links")
+     .select("receipt_id").eq("notification_id",appMatch.notification_id).maybeSingle();
+   if(linked.error)throw new Error("collection_duplicate_check_unavailable");
+   if(linked.data?.receipt_id){
+     const earlier=await db.from("chat_bank_bill_receipts")
+       .select("id,customer_account_id,status,amount_vnd,transfer_at_vn,ledger_id")
+       .eq("id",linked.data.receipt_id).maybeSingle();
+     if(earlier.error||!earlier.data)throw new Error("collection_duplicate_link_unavailable");
+     previous=earlier.data;
+   }
+ }
+ if(!previous && validRef && transferAt){
+   const scan=await db.from("chat_bank_bill_receipts")
+     .select("id,customer_account_id,status,amount_vnd,transfer_at_vn,ledger_id")
+     .eq("transfer_reference",ref).eq("amount_vnd",amount)
+     .eq("status","received").limit(5);
+   if(scan.error||!scan.data||scan.data.length>=5)
+     throw new Error("collection_reference_check_unavailable");
+   const tx=Date.parse(transferAt.replace(" ","T")+"+07:00");
+   const times=scan.data.filter(x=>{
+     const old=Date.parse(String(x.transfer_at_vn||"").replace(" ","T")+"+07:00");
+     return Number.isFinite(tx)&&Number.isFinite(old)&&Math.abs(old-tx)<=5*60000;
+   });
+   if(times.length>1)throw new Error("collection_reference_ambiguous");
+   if(times.length===1)previous=times[0];
+ }
+ if(!previous)return null;
+ if(previous.status!=="received"||!previous.ledger_id||previous.amount_vnd!==amount)
+   throw new Error("collection_duplicate_inconsistent");
+ return {
+   receipt_id:previous.id,
+   same_customer:previous.customer_account_id===customerId
+ };
+}
 async function finish(asset:string,change:Record<string,unknown>){
  const {error}=await db.from("chat_bank_bill_receipts").update({...change,scanned_at:new Date().toISOString()}).eq("media_asset_id",asset).eq("status","scanning");
  if(error)throw new Error("receipt_save_failed");
@@ -27,7 +74,7 @@ const TEST_ACCOUNT="8c4ac6ec-3178-4661-8696-04e345bf443e";
 async function notifyTestScan(asset:string,customer:string,status:string,amount:number|null){
  if(customer!==TEST_ACCOUNT||!["amount_read","review","duplicate","non_bill"].includes(status))return false;
  const {data:receipt}=await db.from("chat_bank_bill_receipts")
-   .select("customer_notified_at,ledger_id,status,amount_vnd").eq("media_asset_id",asset).maybeSingle();
+   .select("customer_notified_at,ledger_id,status,amount_vnd,duplicate_of,customer_account_id").eq("media_asset_id",asset).maybeSingle();
  if(!receipt||receipt.customer_notified_at||receipt.ledger_id)return false;
  const canonicalStatus=String(receipt.status||"");
  if(!["amount_read","review","duplicate","non_bill"].includes(canonicalStatus))return false;
@@ -43,10 +90,18 @@ async function notifyTestScan(asset:string,customer:string,status:string,amount:
  if(admin?.role!=="admin"||admin.deleted_at||admin.locked_at)return false;
  const fmt=(n:number)=>n.toLocaleString("vi-VN")+"đ";
  const money=amountInVnd(amount??receipt.amount_vnd);
+ let alreadyCollectedForCustomer=false;
+ if(canonicalStatus==="duplicate"&&receipt.duplicate_of){
+   const {data:original,error:originalError}=await db.from("chat_bank_bill_receipts")
+     .select("status,ledger_id,customer_account_id").eq("id",receipt.duplicate_of).maybeSingle();
+   if(originalError)return false;
+   alreadyCollectedForCustomer=original?.status==="received"&&
+     original?.ledger_id!=null&&original?.customer_account_id===customer;
+ }
  const msg=canonicalStatus==="duplicate"
-   ?"🔁 Ảnh trùng: tệp ảnh này đã được gửi trước đó."+
-    (money?"\nSố tiền ảnh gốc: "+fmt(money):"")+
-    "\nChỉ kiểm tra ảnh, CHƯA GHI THU."
+   ?(alreadyCollectedForCustomer
+     ?"🔁 Giao dịch "+(money?fmt(money):"này")+" đã được ghi thu trước đó. Không thu thêm."
+     :"🔁 Ảnh đã được gửi trước đó. Không ghi thu lần hai; kiểm tra ảnh gốc.")
    :canonicalStatus==="non_bill"
    ?"🖼️ AI không nhận diện đây là bill chuyển khoản thành công."+
     "\nKhông đọc số tiền, CHƯA GHI THU."
@@ -267,7 +322,18 @@ Deno.serve(async req=>{
        }
      }catch(_e){matchPreview={status:"review",reason:"matching_preview_unavailable"};}
    }
-   await finish(asset,{status,reason,image_sha256:digest,amount_vnd:amount,model_name:model,
+   const prior= status==="amount_read"&&amount
+      ?await findAlreadyCollectedTransfer(job.customer_account_id,amount,
+        fields.transfer_at_vn,fields.transfer_reference,matchPreview):null;
+   const settledDuplicate=!!prior?.same_customer;
+   const classification=settledDuplicate?"duplicate":prior?"review":status;
+   const classificationReason=settledDuplicate?"duplicate_transfer_already_collected":
+     prior?"bank_transfer_already_used_by_other_customer":reason;
+   const storedPreview=prior?{status:"review",reason:classificationReason,
+      prior_receipt_id:prior.receipt_id}:matchPreview;
+   await finish(asset,{status:classification,reason:classificationReason,
+     duplicate_of:settledDuplicate?prior.receipt_id:null,
+     image_sha256:digest,amount_vnd:amount,model_name:model,
      receiving_name:fields.receiving_name,receiving_account:fields.receiving_account,
      receiving_bank:fields.receiving_bank,sending_bank:fields.sending_bank,
      transfer_reference:fields.transfer_reference,transfer_at_vn:fields.transfer_at_vn,
@@ -284,9 +350,15 @@ Deno.serve(async req=>{
       transaction_datetime_vn:fields.transfer_at_vn,
       transaction_time_precision:fields.transaction_time_precision,
       recipient_name:fields.receiving_name,receiving_bank:fields.receiving_bank,
-      match_preview:matchPreview}});
+      match_preview:storedPreview}});
    await db.from("chat_bank_bill_image_hashes").update({amount_vnd:amount,scan_status:amount===null?"unreadable":"amount_read"})
      .eq("image_sha256",digest).eq("first_asset_id",asset);
+   if(prior){
+     if(settledDuplicate)
+       try{await notifyTestScan(asset,job.customer_account_id,"duplicate",amount);}catch(e){console.warn("transfer_duplicate_feedback_failed",String(e).slice(0,80));}
+     return response({ok:true,status:classification,reason:classificationReason,
+       ai_called:true,ledger_written:false,duplicate_of:prior.receipt_id});
+   }
    // BANK-164: only the service-role RPC may authorize a TAPHOA collection.
    // DB independently verifies the Agribank notification, bill and Admin state.
    let receiptPosted:any=null;
