@@ -1,3 +1,13 @@
+## 2026-10-19 — BANK-163 Agribank Admin Pairing Token Fix (LIVE BACKEND)
+
+- Admin reported browser alert `Chưa cấp được mã Agribank. Vui lòng thử lại.` after clicking **Tạo mã Agribank**. Verified real cause: Supabase pgcrypto extension is in schema `extensions` but `public.chat_agribank_issue_device_token(text)` used unqualified `gen_random_bytes(32)` and `digest(secret,'sha256')` while SECURITY DEFINER function search_path omitted extensions.
+- Applied migration `fix_agribank_issue_token_pgcrypto_schema` to production using `extensions.gen_random_bytes(32)` and `extensions.digest(secret,'sha256')`. Restricted search path, active Admin validation, authenticated-only execution, anon denial and no plaintext token persistence all unchanged.
+- [PR #188](https://github.com/1sl2tp/chat/pull/188) merged at `62fe603f0527bbfbbf0c9e1fd88f6390283b774c`. Branch Verify [39185071415](https://github.com/1sl2tp/chat/actions/runs/39185071415) SUCCESS. Main Verify 39185131233 running when recorded.
+- Read-only DB validation of pgcrypto functions, deployed function source and grants succeeded. Did **not** call the pairing function using user's session, so an authenticated end-to-end pairing attempt by Admin is still the last acceptance test. No new actual device token, SMS, Agribank app notification, customer ledger or PNG changed by this fix.
+- User can retry Chat Admin → Cài đặt tài khoản → Máy Agribank Plus → **Tạo mã Agribank** without reinstalling the Android APK. If still errors, capture backend RPC error code without leaking the secret token.
+
+---
+
 ## 2026-10-19 — BANK-162 Agribank Plus OTT Notifications (CODE / DB / EDGE / CHAT PAGES / APK BUILD PASS; REAL EVENT E4 PENDING)
 
 - **User changed bank source:** SMS Banking unavailable; use Android app **Agribank Plus** notification instead. Official Play package is `com.vnpay.Agribank3g`. APK listener `android/agribank-notifier` is new; existing SMS forwarder not modified or required. Native Android `NotificationListenerService` permission is opt-in in system settings. No SMS permission or bank login/credentials.
