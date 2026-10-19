@@ -1,3 +1,14 @@
+## 2026-10-20 — UI-180 LIVE · Mobile/PWA image viewer thumbnail strip
+
+- User screenshots: desktop narrow viewer showed 18 photo thumbnails, but smallest-width/mobile view degraded into tiny dot indicators, without tappable photo previews. Requirement: genuine swipeable thumbnails visible at narrow desktop/mobile web/mobile PWA, active image highlighted, no media/data-model change.
+- Scoped repair exclusively to `index.source.html` viewer CSS, `app.js` filmstrip hydration, PWA shell epoch and one regression test. `@media(max-width:700px)` explicitly reserves a protected bottom 3.2rem filmstrip with 3rem photo tiles, horizontal swipe, safe-area bottom, and a short-height branch; the main image reserves room above it, not hidden or overlapped. Single-image viewer still hides the strip; multi-image viewer displays it.
+- Resize/visualViewport wake already existed: now queues exactly one animation-frame hydration pass after layout; filmstrip rebuild does the same. `hydrateViewerThumb` marks each tile loading so overlapping resize, scroll and selected-image wake cannot fetch same tile twice. Preserves in-view plus 72px bounded image hydration; no polling or whole-gallery downloads, existing selection/gesture/rotation unchanged.
+- F-133–F-137 `aria-current` selected-thumb contract retains `border-color:rgba(255,255,255,.92)` and `transform:none`. PWA cache epoch `viewer-thumbs180` advances only public shell, not private media cache/IndexedDB.
+- **Verify V21 run [39334892917](https://github.com/1sl2tp/chat/actions/runs/39334892917) SUCCESS**, including new explicit UI-180 mobile/PWA viewer thumbnail step. **Deploy Chat Pages run [39334893051](https://github.com/1sl2tp/chat/actions/runs/39334893051) SUCCESS**, including the custom-domain HTTPS verify. No Supabase/financial data edits. Actual user's device viewport is still a separate visual acceptance step.
+- Rollback: revert commit `d17aae2ede4bf57de93ff21ff39b9d9b621dbc56` (CSS test contract) plus UI-180 source commit `3d1ad3a2fef93327bd88f0003fd81df26561403e` if necessary; rebuild canonical source + new shell epoch.
+
+---
+
 ## 2026-10-19 — BANK-177 Pages recovery, release now live
 
 - User reported persistent old report-bubble UI and GitHub Pages stuck in `Waiting`; #208 was not cancellable in GitHub UI. Verified that existing Pages workflow already had `cancel-in-progress:true`, so toggling that same setting was **not** the fix. A stranded `github-pages` deployment #208 and earlier old concurrency group blocked deployment.
