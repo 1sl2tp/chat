@@ -11,6 +11,11 @@ function bankEventTime(event){
  // The bank-printed transaction time is the matching clock, never posted_at.
  return t;
 }
+function creditAccountFromEvent(e){
+ const text=String(e?.body||"");
+ const m=/Tài khoản\s+([0-9]{9,20})\s*:\s*\+/i.exec(text);
+ return m?.[1]||null;
+}
 function ownTransferNotice(e){
  const m=/Nội dung giao dịch:\s*([^\r\n.]+)/i.exec(String(e?.body||""));
  return !!(e?.is_own_transfer===true || (m&&/BUI\s+XUAN\s+TUNG/i.test(m[1])));
@@ -34,7 +39,7 @@ export function previewBillAppMatch(bill,events,otherBills=[],now=Date.now()){
  const matchLevel=acct&&bank?3:name?2:1;
  const date=bankTime(bill.transfer_at_vn), sent=when(bill.sent_at);
  if(date===null||sent===null)return{status:"review",reason:"bill_time_unreadable"};
- const qualified=(events||[]).filter(e=>!ownTransferNotice(e)&&e.package_name==="com.vnpay.Agribank3g"&&e.status==="credit_candidate"
+ const qualified=(events||[]).filter(e=>!ownTransferNotice(e)&&creditAccountFromEvent(e)===destination&&e.package_name==="com.vnpay.Agribank3g"&&e.status==="credit_candidate"
    &&e.amount_vnd===bill.amount_vnd&&bankEventTime(e)!==null&&Math.abs(bankEventTime(e)-date)<=5*60000);
  if(!qualified.length)return{status:"waiting_bank_event",reason:"no_matching_agribank_notification"};
  if(qualified.length>1)return{status:"review",reason:"multiple_matching_agribank_notifications"};
