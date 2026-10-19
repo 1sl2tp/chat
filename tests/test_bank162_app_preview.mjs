@@ -32,10 +32,14 @@ assert.equal(previewBillAppMatch({...tier1,receiving_account:"2901181999998"},[a
 const late={...app,posted_at:"2026-10-19T03:10:00Z",
  body:"Agribank: 10:02 19/10/2026 Tài khoản 2901181999999: +406,000VND. Nội dung giao dịch: nhan tien."};
 assert.equal(previewBillAppMatch(tier1,[late],[],Date.parse("2026-10-19T03:13:00Z")).status,"candidate_unique");
-assert.equal(previewBillAppMatch(tier1,[{...late,posted_at:"2026-10-19T03:22:00Z"}],[],Date.parse("2026-10-19T03:23:00Z")).status,"waiting_bank_event");
+assert.equal(previewBillAppMatch(tier1,[{...late,posted_at:"2026-10-19T03:22:00Z"}],[],Date.parse("2026-10-19T03:23:00Z")).status,"candidate_unique");
 // A credit event needs the bank's own printed transaction time; pushed-at alone is not proof.
 assert.equal(previewBillAppMatch(tier1,[{...app,body:""}],[],now).status,"waiting_bank_event");
 assert.equal(previewBillAppMatch(tier1,[{...app,body:"Agribank: 10:55 19/10/2026 +406,000VND"}],[],now).status,"waiting_bank_event");
 assert.equal(previewBillAppMatch(tier1,[{...app,amount_vnd:10000}],[],now).status,"waiting_bank_event");
 assert.equal(previewBillAppMatch(tier1,[app],[{...bill,media_asset_id:"another-asset"}],now).status,"review");
+// Bank arrival time is not the transaction time, even hours late.
+assert.equal(previewBillAppMatch(tier1,[{...app,posted_at:"2026-10-20T03:03:00Z"}],[],Date.parse("2026-10-20T03:04:00Z")).status,"candidate_unique");
+assert.equal(previewBillAppMatch(tier1,[{...app,is_own_transfer:true}],[],now).status,"waiting_bank_event");
+assert.equal(previewBillAppMatch(tier1,[{...app,body:app.body.replace("Nội dung giao dịch: chuyen tien.","Nội dung giao dịch: BUI XUAN TUNG chuyen tien.")}],[],now).status,"waiting_bank_event");
 console.log("BANK-162 bank app + bill preview PASS");

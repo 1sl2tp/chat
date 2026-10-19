@@ -265,5 +265,9 @@ jobs:
         run: node tests/test_bank162_app_preview.mjs
       - name: BANK-167 photo quality and transfer replay contract
         run: python -m pytest tests/test_bank167_photo_and_transfer_duplicate.py -q
+      - name: BANK-169 transaction-date reconciliation contract
+        run: python -m pytest tests/test_bank169_transaction_day_contract.py -q
+      - name: BANK-169 delayed app push matching examples
+        run: node tests/test_bank169_transaction_clocks.mjs
       - name: Verify canonical source
         run: python tools/verify_current.py

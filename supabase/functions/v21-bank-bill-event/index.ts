@@ -137,21 +137,20 @@ Deno.serve(async req=>{
      .eq("media_asset_id",asset).eq("status","amount_read").maybeSingle();
    if(r?.raw_read?.rule_version==="bank_bill_amount_v4_20261018" &&
       Number.isSafeInteger(r.amount_vnd)&&r.amount_vnd>0){
-     const sent=Date.parse(r.sent_at);
-     if(Number.isFinite(sent)){
+     const tx=r.transfer_at_vn?Date.parse(String(r.transfer_at_vn).replace(" ","T")+"+07:00"):NaN;
+     if(Number.isFinite(tx)){
+       const lo=new Date(tx-5*60000),hi=new Date(tx+5*60000);
+       const vn=x=>new Date(x.getTime()+7*3600000).toISOString().slice(0,19).replace("T"," ");
        const [app,others]=await Promise.all([
          db.from("taphoa_agribank_notifications")
-           .select("id,package_name,posted_at,status,amount_vnd,body")
+           .select("id,package_name,posted_at,status,amount_vnd,body,is_own_transfer")
            .eq("package_name","com.vnpay.Agribank3g").eq("status","credit_candidate")
-           .eq("amount_vnd",r.amount_vnd)
-           .gte("posted_at",new Date(sent-20*60000).toISOString())
-           .lte("posted_at",new Date(sent+15*60000).toISOString())
-           .order("posted_at",{ascending:false}).limit(100),
+           .eq("is_own_transfer",false).eq("amount_vnd",r.amount_vnd)
+           .gte("transfer_at",lo.toISOString()).lte("transfer_at",hi.toISOString()).limit(100),
          db.from("chat_bank_bill_receipts")
            .select("media_asset_id,status,amount_vnd,transfer_at_vn,sent_at")
            .eq("amount_vnd",r.amount_vnd).neq("media_asset_id",asset)
-           .gte("sent_at",new Date(sent-20*60000).toISOString())
-           .lte("sent_at",new Date(sent+20*60000).toISOString()).limit(100)
+           .gte("transfer_at_vn",vn(lo)).lte("transfer_at_vn",vn(hi)).limit(100)
        ]);
        if(!app.error&&!others.error&&app.data&&others.data&&
           app.data.length<100&&others.data.length<100){
@@ -188,45 +187,16 @@ Deno.serve(async req=>{
  }
  // BANK-159: no SMS => no binary download/hash and no Gemini request.
  // Both SMS-first and bill-first wake the same queued job; never interval-poll.
+ // Classify bill from its pixels even when the bank notification arrives later.
  const billSentMs=Date.parse(job.sent_at);
  if(!Number.isFinite(billSentMs))return response({ok:false,error:"invalid_bill_timestamp",ai_called:false},409);
- const {data:bankSmsRows,error:bankSmsError}=await db.from("taphoa_sms_inbox")
-   .select("id,sender,body,sms_timestamp_ms,received_at,created_at")
-   .gte("received_at",new Date(billSentMs-24*3600000).toISOString())
-   .lte("received_at",new Date(billSentMs+15*60000).toISOString())
-   .order("received_at",{ascending:false}).limit(120);
- if(bankSmsError||!bankSmsRows||bankSmsRows.length>=120)
-   return response({ok:false,error:"bank_sms_preflight_unavailable",ai_called:false,ledger_written:false},503);
- const eligibleSms=bankSmsRows.map(readIncomingAgribankSms).filter(s=>
-   s&&s.receiving_account_last5&&Number.isFinite(s.transaction_at_ms)
-    &&Number.isFinite(s.sms_received_at_ms)
-    &&Math.abs(s.transaction_at_ms-s.sms_received_at_ms)<=24*3600000
-    &&s.transaction_at_ms<=billSentMs+10*60000
-    &&billSentMs-s.transaction_at_ms<=24*3600000);
- // BANK-162: SMS is optional. Genuine Agribank Plus app credit notifications
- // can wake the same bill AI reader, with no changes to ledger authorization.
- let eligibleAppEvents:any[]=[];
- if(eligibleSms.length===0){
-   const {data:appRows,error:appError}=await db.from("taphoa_agribank_notifications")
-     .select("id,package_name,posted_at,status,amount_vnd,body")
-     .eq("package_name","com.vnpay.Agribank3g").eq("status","credit_candidate")
-     .gte("posted_at",new Date(billSentMs-24*3600000).toISOString())
-     .lte("posted_at",new Date(billSentMs+15*60000).toISOString())
-     .order("posted_at",{ascending:false}).limit(120);
-   if(appError||!appRows||appRows.length>=120)
-     return response({ok:false,error:"bank_app_preflight_unavailable",ai_called:false,ledger_written:false},503);
-   eligibleAppEvents=appRows.filter(e=>Number.isSafeInteger(e.amount_vnd)&&e.amount_vnd>0);
- }
- if(eligibleSms.length===0&&eligibleAppEvents.length===0)
-   return response({ok:true,status:"waiting_bank_event",reason:"no_recent_credit_sms_or_agribank_app_notification",
-     ai_called:false,ledger_written:false},202);
  const {data:media,error:mediaError}=await db.from("v21_media_assets").select("id,message_id,owner_account_id,storage_key,mime_type,kind,size_bytes,deleted_at").eq("id",asset).is("deleted_at",null).maybeSingle();
  if(mediaError||!media||media.kind!=="image"||media.owner_account_id!==job.customer_account_id)return response({error:"not_a_customer_image"},403);
  const {data:message}=await db.from("v21_messages").select("sender_account_id,created_at,deleted_at").eq("id",media.message_id).maybeSingle();
  const {data:account}=await db.from("v21_accounts").select("id,role,contact_group,deleted_at,locked_at").eq("id",job.customer_account_id).maybeSingle();
  if(!message||message.deleted_at||message.sender_account_id!==job.customer_account_id||
     !account||account.role!=="user"||account.contact_group!=="customer"||account.deleted_at||account.locked_at)return response({error:"not_customer_submitted"},403);
- if(!Number.isFinite(Date.parse(job.sent_at))||Math.abs(Date.now()-new Date(job.sent_at).getTime())>36*3600000)return response({error:"historical_asset_not_auto_processed"},409);
+ if(!Number.isFinite(Date.parse(job.sent_at))||Date.parse(job.sent_at)>Date.now()+2*60000)return response({error:"historical_asset_not_auto_processed"},409);
  const now=new Date(),todayUTC=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate())).toISOString();
  const {count:perCustomer}=await db.from("chat_bank_bill_receipts").select("*",{head:true,count:"exact"}).eq("customer_account_id",job.customer_account_id).gte("created_at",todayUTC);
  const {count:allCustomers}=await db.from("chat_bank_bill_receipts").select("*",{head:true,count:"exact"}).gte("created_at",todayUTC);
@@ -282,44 +252,28 @@ Deno.serve(async req=>{
    const fields=readV4Fields(parsed);
    const verdict=validateVisionRead(parsed);
    const {status,reason,amount_vnd:amount}=verdict;
-   // Prior SMS are candidates only, NEVER authorization to debit debts.
-   let matchPreview:any={status:"review",reason:"sms_bill_not_evaluated"};
-   if(status==="amount_read"&&amount&&Number.isFinite(Date.parse(job.sent_at))){
+   let matchPreview:any={status:"review",reason:"bill_time_unreadable"};
+   const tx=fields.transfer_at_vn?Date.parse(String(fields.transfer_at_vn).replace(" ","T")+"+07:00"):NaN;
+   if(status==="amount_read"&&amount&&Number.isFinite(tx)){
      try{
-       const sentMillis=Date.parse(job.sent_at);
-       const [smsRes,otherRes,appRes]=await Promise.all([
-         db.from("taphoa_sms_inbox")
-           .select("id,sender,body,sms_timestamp_ms,received_at,created_at")
-           .gte("received_at",new Date(sentMillis-24*3600000).toISOString())
-           .lte("received_at",new Date(sentMillis+15*60000).toISOString())
-           .order("received_at",{ascending:false}).limit(100),
+       const lo=new Date(tx-5*60000),hi=new Date(tx+5*60000);
+       const vn=x=>new Date(x.getTime()+7*3600000).toISOString().slice(0,19).replace("T"," ");
+       const [otherRes,appRes]=await Promise.all([
          db.from("chat_bank_bill_receipts")
            .select("media_asset_id,status,amount_vnd,transfer_at_vn,sent_at")
-           .eq("amount_vnd",amount)
-           .gte("sent_at",new Date(sentMillis-20*60000).toISOString())
-           .lte("sent_at",new Date(sentMillis+20*60000).toISOString())
-           .neq("media_asset_id",asset).limit(100),
+           .eq("amount_vnd",amount).neq("media_asset_id",asset)
+           .gte("transfer_at_vn",vn(lo)).lte("transfer_at_vn",vn(hi)).limit(100),
          db.from("taphoa_agribank_notifications")
-           .select("id,package_name,posted_at,status,amount_vnd,body")
+           .select("id,package_name,posted_at,status,amount_vnd,body,is_own_transfer")
            .eq("package_name","com.vnpay.Agribank3g").eq("status","credit_candidate")
-           .eq("amount_vnd",amount)
-           .gte("posted_at",new Date(sentMillis-20*60000).toISOString())
-           .lte("posted_at",new Date(sentMillis+15*60000).toISOString())
-           .order("posted_at",{ascending:false}).limit(100)
+           .eq("is_own_transfer",false).eq("amount_vnd",amount)
+           .gte("transfer_at",lo.toISOString()).lte("transfer_at",hi.toISOString()).limit(100)
        ]);
-       if(smsRes.error||otherRes.error||appRes.error||
-          smsRes.data?.length===100||otherRes.data?.length===100||appRes.data?.length===100)
+       if(otherRes.error||appRes.error||otherRes.data?.length===100||appRes.data?.length===100)
          matchPreview={status:"review",reason:"matching_data_incomplete"};
-       else {
-         const bill={media_asset_id:asset,status,amount_vnd:amount,sent_at:job.sent_at,...fields};
-         const smsMatch=previewBillSmsMatch(bill,smsRes.data||[],otherRes.data||[]);
-         const appMatch=previewBillAppMatch(bill,appRes.data||[],otherRes.data||[]);
-         matchPreview=smsMatch.status==="candidate_unique"&&appMatch.status==="candidate_unique"
-           ?{status:"review",reason:"two_sources_same_amount_review"}
-           :smsMatch.status==="candidate_unique"?smsMatch
-           :appMatch.status==="candidate_unique"?appMatch
-           :appMatch.status==="review"?appMatch:smsMatch;
-       }
+       else matchPreview=previewBillAppMatch({
+         media_asset_id:asset,status,amount_vnd:amount,sent_at:job.sent_at,...fields
+       },appRes.data||[],otherRes.data||[]);
      }catch(_e){matchPreview={status:"review",reason:"matching_preview_unavailable"};}
    }
    const prior= status==="amount_read"&&amount

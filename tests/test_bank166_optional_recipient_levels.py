@@ -36,9 +36,9 @@ def test_use_printed_bank_transaction_time_in_all_preview_paths():
  assert "recipient_name_conflict" in PREVIEW
  assert "recipient_bank_conflict" in PREVIEW
  assert "recipient_account_conflict" in PREVIEW
- assert EDGE.count('.select("id,package_name,posted_at,status,amount_vnd,body")')==3
- assert 'new Date(sent+15*60000)' in EDGE
- assert 'new Date(sentMillis+15*60000)' in EDGE
- assert 'new Date(billSentMs+15*60000)' in EDGE
+ assert EDGE.count('.select("id,package_name,posted_at,status,amount_vnd,body,is_own_transfer")')==2
+ assert '.gte("transfer_at",lo.toISOString())' in EDGE
+ assert '.lte("transfer_at",hi.toISOString())' in EDGE
+ assert 'const billSentMs=Date.parse(job.sent_at)' in EDGE
  assert "new.posted_at-interval '15 minutes'" in WAKE
  assert "or n.posted_at>r.sent_at+interval '15 minutes'" in M
