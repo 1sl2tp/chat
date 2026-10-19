@@ -74,6 +74,57 @@ Deno.serve(async req=>{
  if(!HEX.test(asset))return response({error:"asset_id_invalid"},400);
  const {data:job,error:jobError}=await db.from("chat_bank_bill_receipts").select("id,status,customer_account_id,sent_at,attempt_count").eq("media_asset_id",asset).maybeSingle();
  if(jobError||!job)return response({error:"not_queued"},404);
+ // A real Agribank Plus credit may arrive after AI already read this bill.
+ // Compare the persisted bill without redownloading the image or calling Gemini.
+ if(job.status==="amount_read"){
+   const {data:r}=await db.from("chat_bank_bill_receipts")
+     .select("id,raw_read,amount_vnd,receiving_name,receiving_bank,receiving_account,transfer_at_vn,sent_at")
+     .eq("media_asset_id",asset).eq("status","amount_read").maybeSingle();
+   if(r?.raw_read?.rule_version==="bank_bill_amount_v4_20261018" &&
+      Number.isSafeInteger(r.amount_vnd)&&r.amount_vnd>0){
+     const sent=Date.parse(r.sent_at);
+     if(Number.isFinite(sent)){
+       const [app,others]=await Promise.all([
+         db.from("taphoa_agribank_notifications")
+           .select("id,package_name,posted_at,status,amount_vnd")
+           .eq("package_name","com.vnpay.Agribank3g").eq("status","credit_candidate")
+           .eq("amount_vnd",r.amount_vnd)
+           .gte("posted_at",new Date(sent-20*60000).toISOString())
+           .lte("posted_at",new Date(sent+10*60000).toISOString())
+           .order("posted_at",{ascending:false}).limit(100),
+         db.from("chat_bank_bill_receipts")
+           .select("media_asset_id,status,amount_vnd,transfer_at_vn,sent_at")
+           .eq("amount_vnd",r.amount_vnd).neq("media_asset_id",asset)
+           .gte("sent_at",new Date(sent-20*60000).toISOString())
+           .lte("sent_at",new Date(sent+20*60000).toISOString()).limit(100)
+       ]);
+       if(!app.error&&!others.error&&app.data&&others.data&&
+          app.data.length<100&&others.data.length<100){
+         const match=previewBillAppMatch({
+           media_asset_id:asset,status:"amount_read",amount_vnd:r.amount_vnd,sent_at:r.sent_at,
+           receiving_name:r.receiving_name,receiving_bank:r.receiving_bank,
+           receiving_account:r.receiving_account,
+           receiving_account_last5:r.raw_read?.recipient_account_last5,
+           transfer_at_vn:r.transfer_at_vn,
+           transaction_nature:r.raw_read?.transaction_nature
+         },app.data,others.data);
+         if(match?.status==="candidate_unique"&&Number.isSafeInteger(match.notification_id)){
+           const {error:saveError}=await db.from("chat_bank_bill_receipts")
+             .update({raw_read:{...r.raw_read,match_preview:match}})
+             .eq("id",r.id).eq("status","amount_read");
+           if(!saveError){
+             const {data:posted,error:postError}=await db.rpc("chat_bank_app_collect",{
+               p_asset_id:asset,p_notification_id:match.notification_id
+             });
+             if(!postError&&posted?.ok===true&&posted?.status==="received")
+               return response({ok:true,status:"received",ai_called:false,
+                 ledger_written:true,ledger_id:posted.ledger_id});
+           }
+         }
+       }
+     }
+   }
+ }
  if(job.status!=="queued"){
    if(job.customer_account_id===TEST_ACCOUNT&&["amount_read","review","duplicate","non_bill"].includes(job.status)){
      try{await notifyTestScan(asset,job.customer_account_id,job.status,null);}catch(e){console.warn("bill_scan_feedback_retry_failed",String(e).slice(0,80));}
