@@ -861,11 +861,11 @@ function paintAutoCollectSetting(root,data,error=''){
     action.textContent='Không khả dụng';
     action.dataset.unavailable='true';
   }else if(enabled){
-    label.textContent=ready?'ĐANG BẬT · Chỉ thu khi SMS và bill khớp duy nhất':'ĐANG BẬT · Chờ hệ thống kiểm chứng SMS và bill';
+    label.textContent=ready?'ĐANG BẬT · Chỉ ghi thu khi Agribank Plus và bill khớp duy nhất':'ĐANG BẬT · Đã chờ Agribank Plus, ghi thu tự động chưa sẵn sàng';
     action.textContent='Tắt tự động thu';
     action.dataset.unavailable='false';
   }else{
-    label.textContent='ĐANG TẮT · Vẫn nhận ảnh và SMS, không tự thu';
+    label.textContent='ĐANG TẮT · Vẫn lưu bill và thông báo Agribank Plus, không tự thu';
     action.textContent='Bật tự động thu';
     action.dataset.unavailable='false';
   }
@@ -888,7 +888,7 @@ async function runAutoCollectAction(button){
   const root=button?.closest('[data-admin-auto-collect-setting]');
   if(!root||!currentAdmin()||autoCollectRequestBusy||button.dataset.unavailable==='true')return;
   const enable=button.dataset.mode==='enable';
-  if(enable&&!window.confirm('Bật tự động thu tiền? Chỉ ghi thu khi có đồng thời ảnh bill của khách trong Chat và SMS tiền vào ngân hàng khớp duy nhất, đã kiểm tra trùng.'))return;
+  if(enable&&!window.confirm('Bật tự động thu tiền qua Agribank Plus? Chỉ ghi thu khi có đồng thời ảnh bill của khách và thông báo tiền vào Agribank Plus khớp duy nhất, đã kiểm tra trùng. Nếu hệ thống chưa sẵn sàng, nút chỉ bật chế độ chờ.'))return;
   const client=authStore()?.getClient?.();
   if(!client)return paintAutoCollectSetting(root,null,'client_missing');
   autoCollectRequestBusy=true;button.disabled=true;
@@ -944,7 +944,7 @@ async function openAccountAdmin(){
         <button type="button" class="zalo-account-notification-action" data-admin-device-open>Quản lý</button>
       </div>
       <div class="zalo-account-notification" data-admin-auto-collect-setting>
-        <span class="zalo-account-notification-copy"><strong>Tự động thu tiền</strong><small data-admin-auto-collect-status>Đang kiểm tra trạng thái…</small><small>Bật chỉ là chờ tự động. Chưa có SMS thì không đọc AI, không thu. Thu/Ghi nợ thủ công không đổi.</small></span>
+        <span class="zalo-account-notification-copy"><strong>Tự động thu tiền</strong><small data-admin-auto-collect-status>Đang kiểm tra trạng thái…</small><small>Không có thông báo tiền vào Agribank Plus thì không đọc AI, không thu. Thu/Ghi nợ thủ công không đổi.</small></span>
         <button type="button" class="zalo-account-notification-action" data-admin-auto-collect-action data-mode="enable" data-unavailable="false" disabled>Bật tự động thu</button>
       </div>
       <div class="zalo-account-notification" data-admin-agribank-pair>
