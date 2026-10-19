@@ -12,29 +12,25 @@ declare
 begin
   if new.package_name<>'com.vnpay.Agribank3g'
     or new.status<>'credit_candidate' or new.amount_vnd is null
-    or new.amount_vnd<=0 or new.created_at<now()-interval '36 hours'
+    or new.amount_vnd<=0 or new.is_own_transfer=true
   then return new; end if;
   v_transaction_at:=public.chat_agribank_transfer_at(new.body);
   if v_transaction_at is null or v_transaction_at>now()+interval '2 minutes'
-     or v_transaction_at<now()-interval '36 hours'
   then return new; end if;
   select scan_key into v_dispatch_key from public.chat_customer_summary_runtime_config();
   if nullif(v_dispatch_key,'') is null then return new; end if;
   for v_asset in
     select r.media_asset_id from public.chat_bank_bill_receipts r
     where r.ledger_id is null and (
-      (r.status='queued'
-        and r.sent_at between v_transaction_at-interval '2 minutes'
-                          and v_transaction_at+interval '36 hours')
+      r.status='queued'
       or (r.status='amount_read' and r.amount_vnd=new.amount_vnd
         and r.transfer_at_vn between
               (v_transaction_at at time zone 'Asia/Ho_Chi_Minh')-interval '5 minutes'
           and (v_transaction_at at time zone 'Asia/Ho_Chi_Minh')+interval '5 minutes')
     )
-      and r.created_at>=now()-interval '36 hours'
     order by case when r.status='amount_read' then 0 else 1 end,
        abs(extract(epoch from(r.sent_at-v_transaction_at))) asc
-    limit 25
+    limit 200
   loop
     perform net.http_post(
       url:='https://vtqhbhrkdxirqeqkgylo.supabase.co/functions/v1/v21-bank-bill-event',
