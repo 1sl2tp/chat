@@ -6,17 +6,16 @@ import java.net.*;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
 /** Durable network upload, no direct bank or ledger access. */
 public final class UploadJobService extends JobService {
  static final String URL="https://vtqhbhrkdxirqeqkgylo.supabase.co/functions/v1/v21-agribank-notification-ingest";
  static final java.util.concurrent.ExecutorService EXEC=Executors.newSingleThreadExecutor();
- static final AtomicInteger NEXT=new AtomicInteger(30500);
  static void queue(Context ctx,String pkg,String title,String body,long millis){
   PersistableBundle b=new PersistableBundle();
   b.putString("package_name",pkg);b.putString("title",title);b.putString("body",body);
   b.putLong("posted_at_ms",millis);
-  int id=NEXT.getAndIncrement();if(id>900000)NEXT.compareAndSet(id+1,30500);
+  // Stable per-event id avoids overwriting queued notifications after process restart.
+  int id=50000+Math.floorMod((pkg+"\n"+title+"\n"+body+"\n"+millis).hashCode(),900000000);
   JobInfo job=new JobInfo.Builder(id,new ComponentName(ctx,UploadJobService.class))
    .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY).setPersisted(true)
    .setBackoffCriteria(30000,JobInfo.BACKOFF_POLICY_EXPONENTIAL)
