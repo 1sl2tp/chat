@@ -1514,7 +1514,11 @@ function positionImageViewerBelowHeader(){
 }
 
 function syncOpenImageViewerRegion(){
-  if(imageViewerOverlay?.open)positionImageViewerBelowHeader();
+  if(!imageViewerOverlay?.open)return;
+  positionImageViewerBelowHeader();
+  // UI-180: mobile address-bar/PWA resize changes visible thumb geometry.
+  // Re-hydrate only the newly visible slice, once after layout.
+  requestAnimationFrame(()=>hydrateVisibleViewerThumbs());
 }
 
 window.addEventListener('resize',syncOpenImageViewerRegion,{passive:true});
@@ -2404,29 +2408,43 @@ function renderImageViewerFilmstrip(){
     thumb.addEventListener('click',event=>{event.stopPropagation();void showImageViewerIndex(index);});
     imageViewerFilmstrip.appendChild(thumb);
   });
+  // UI-180: measure visible thumbs after the mobile filmstrip receives layout.
+  // No interval, full-gallery fetch, or extra scroll owner.
+  if(!imageViewerFilmstrip.hidden){
+    requestAnimationFrame(()=>{
+      if(imageViewerOverlay?.open&&!imageViewerFilmstrip?.hidden)hydrateVisibleViewerThumbs();
+    });
+  }
 }
 
 async function hydrateViewerThumb(index){
   const item=imageViewerItems[index];
   const thumb=imageViewerFilmstrip?.children?.[index];
   const img=thumb?.querySelector?.('.image-review-thumb-image');
-  if(!item||!img||img.dataset.ready==='true')return false;
+  if(!item||!img||img.dataset.ready==='true'||img.dataset.loading==='true')return false;
+  img.dataset.loading='true';
   const sessionId=imageViewerSessionSeq;
-  const source=await loadViewerAssetSource(item);
-  if(sessionId!==imageViewerSessionSeq||!imageViewerOverlay?.open){
-    if(source.owned&&source.src)URL.revokeObjectURL(source.src);
-    return false;
+  try{
+    const source=await loadViewerAssetSource(item);
+    if(sessionId!==imageViewerSessionSeq||!imageViewerOverlay?.open||
+       thumb!==imageViewerFilmstrip?.children?.[index]||
+       img.dataset.assetId!==String(item.assetId||'')){
+      if(source.owned&&source.src)URL.revokeObjectURL(source.src);
+      return false;
+    }
+    if(!source.src)return false;
+    if(source.owned){
+      const key=`thumb:${item.assetId}`;
+      const previous=imageViewerOwnedUrls.get(key);
+      if(previous&&previous!==source.src)URL.revokeObjectURL(previous);
+      imageViewerOwnedUrls.set(key,source.src);
+    }
+    img.src=source.src;
+    img.dataset.ready='true';
+    return true;
+  }finally{
+    img.dataset.loading='false';
   }
-  if(!source.src)return false;
-  if(source.owned){
-    const key=`thumb:${item.assetId}`;
-    const previous=imageViewerOwnedUrls.get(key);
-    if(previous&&previous!==source.src)URL.revokeObjectURL(previous);
-    imageViewerOwnedUrls.set(key,source.src);
-  }
-  img.src=source.src;
-  img.dataset.ready='true';
-  return true;
 }
 
 function hydrateVisibleViewerThumbs(){
