@@ -17,19 +17,18 @@ def test_only_sms_opens_bill_scan_dispatch():
     assert "interval '10 minutes'" in SQL
     assert "net.http_post" in SQL
 
-def test_ai_is_impossible_without_valid_sms_or_app_credit():
-    assert "bank_sms_preflight_unavailable" in EDGE
-    assert "eligibleSms.length===0" in EDGE
-    assert "no_recent_credit_sms_or_agribank_app_notification" in EDGE
+def test_bill_is_classified_before_bank_notification_but_never_posts_without_match():
+    # BANK-169: user requested bill-by-date cataloguing independent of OTT delivery.
+    assert "Process and classify every recent customer image independently" in EDGE or "Classify bill from its pixels even when the bank notification arrives later" in EDGE
+    assert "eligibleSms.length===0" not in EDGE
+    assert "bank_sms_preflight_unavailable" not in EDGE
+    assert "waiting_bank_event" not in EDGE
+    assert "previewBillAppMatch" in EDGE
+    assert 'db.rpc("chat_bank_app_collect"' in EDGE
+    assert 'matchPreview?.status==="candidate_unique"' in EDGE
     assert "ledger_written:false" in EDGE
-    # Gate MUST be before binary downloads, hash reservation and Gemini call.
-    gate=EDGE.index("const eligibleSms=bankSmsRows.map")
-    no_sms=EDGE.index("if(eligibleSms.length===0&&eligibleAppEvents.length===0)")
-    download=EDGE.index('db.storage.from("v21-media").download')
-    ai=EDGE.index('generativelanguage.googleapis.com')
-    assert gate < no_sms < download < ai
-    assert "readIncomingAgribankSms" in EDGE
-    assert "return response({ok:true,status:\"waiting_bank_event\"" in EDGE
+    assert EDGE.index('db.storage.from("v21-media").download')<EDGE.index('generativelanguage.googleapis.com')
+
 
 def test_no_db_debt_mutations_or_background_polling():
     text=SQL.lower()+EDGE.lower()
@@ -37,7 +36,7 @@ def test_no_db_debt_mutations_or_background_polling():
     assert "update public.taphoa_debt_ledger" not in text
     assert "cron.schedule" not in text
     assert "setinterval" not in text
-    assert "24*3600000" in EDGE
+    assert "daily_scan_limit_no_collection" in EDGE
 
 def test_sms_parser_accepts_vietnamese_yearless_time_without_ai():
     assert "bankSmsTimeWithoutYear" in PREVIEW
