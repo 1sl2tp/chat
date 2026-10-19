@@ -145,7 +145,7 @@ Deno.serve(async req=>{
          db.from("taphoa_agribank_notifications")
            .select("id,package_name,posted_at,status,amount_vnd,body,is_own_transfer")
            .eq("package_name","com.vnpay.Agribank3g").eq("status","credit_candidate")
-           .eq("is_own_transfer",false).eq("amount_vnd",r.amount_vnd)
+           .eq("is_own_transfer",false).eq("bank_credit_account","2901181999999").eq("amount_vnd",r.amount_vnd)
            .gte("transfer_at",lo.toISOString()).lte("transfer_at",hi.toISOString()).limit(100),
          db.from("chat_bank_bill_receipts")
            .select("media_asset_id,status,amount_vnd,transfer_at_vn,sent_at")
@@ -266,7 +266,7 @@ Deno.serve(async req=>{
          db.from("taphoa_agribank_notifications")
            .select("id,package_name,posted_at,status,amount_vnd,body,is_own_transfer")
            .eq("package_name","com.vnpay.Agribank3g").eq("status","credit_candidate")
-           .eq("is_own_transfer",false).eq("amount_vnd",amount)
+           .eq("is_own_transfer",false).eq("bank_credit_account","2901181999999").eq("amount_vnd",amount)
            .gte("transfer_at",lo.toISOString()).lte("transfer_at",hi.toISOString()).limit(100)
        ]);
        if(otherRes.error||appRes.error||otherRes.data?.length===100||appRes.data?.length===100)
