@@ -42,4 +42,4 @@ def test_preserve_atomic_idempotent_accounting():
  assert 'db.rpc("chat_bank_app_collect"' in EDGE
  assert 'matchPreview?.status==="candidate_unique"' in EDGE
  assert "n.is_own_transfer=true or n.transfer_at is null" in WRITER
- assert "taphoa_chat_notify_customer" not in EDGE
+ assert "insert into public.taphoa_debt_ledger" not in EDGE
