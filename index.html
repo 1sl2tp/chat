@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="545c0291606df5bf45d7f4647065b4f7001754ee64d7fc817c763e1721cbefb9">
+<meta name="app-build-id" content="5182e1b148ab678e49fbed6e8f1b6e1c2425054d4cb040d73538e156eae7171b">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1410,6 +1410,10 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
 
 /* Work mode retains the regular Work view; never float this dashboard there. */
 #appShell[data-route="work"] #bankReportDashboard{display:none!important}
+
+/* The composer footer is a sibling of #stageLayout, not its descendant.
+   Hide it only for the Admin's live bank dashboard. */
+#appShell[data-route="chat"]:has(#stageLayout[data-bank-report-active="true"]) #thread-bottom-container{display:none!important}
 
 </style>
 <style data-inlined-source="ui-foundation.css">
