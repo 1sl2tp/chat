@@ -40,3 +40,11 @@ def test_ui_is_about_bank_app_not_sms():
  assert "thông báo tiền vào Agribank Plus" in UI
  assert "Chưa có SMS thì" not in UI
  assert "Chỉ thu khi SMS và bill" not in UI
+
+def test_late_app_credit_rechecks_stored_bill_without_ai():
+ trigger=(ROOT/"supabase/migrations/20261019095000_bank164_app_wake_read_receipts.sql").read_text(encoding="utf-8")
+ assert "status='amount_read' and amount_vnd=new.amount_vnd" in trigger
+ assert 'if(job.status==="amount_read")' in EDGE
+ assert 'eq("status","amount_read")' in EDGE
+ assert 'previewBillAppMatch({' in EDGE
+ assert 'ai_called:false' in EDGE
