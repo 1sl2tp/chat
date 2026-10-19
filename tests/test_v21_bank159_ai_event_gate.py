@@ -17,19 +17,19 @@ def test_only_sms_opens_bill_scan_dispatch():
     assert "interval '10 minutes'" in SQL
     assert "net.http_post" in SQL
 
-def test_ai_is_impossible_without_valid_sms():
+def test_ai_is_impossible_without_valid_sms_or_app_credit():
     assert "bank_sms_preflight_unavailable" in EDGE
     assert "eligibleSms.length===0" in EDGE
-    assert "no_valid_recent_incoming_bank_sms" in EDGE
+    assert "no_recent_credit_sms_or_agribank_app_notification" in EDGE
     assert "ledger_written:false" in EDGE
     # Gate MUST be before binary downloads, hash reservation and Gemini call.
     gate=EDGE.index("const eligibleSms=bankSmsRows.map")
-    no_sms=EDGE.index("if(eligibleSms.length===0)")
+    no_sms=EDGE.index("if(eligibleSms.length===0&&eligibleAppEvents.length===0)")
     download=EDGE.index('db.storage.from("v21-media").download')
     ai=EDGE.index('generativelanguage.googleapis.com')
     assert gate < no_sms < download < ai
     assert "readIncomingAgribankSms" in EDGE
-    assert "return response({ok:true,status:\"waiting_sms\"" in EDGE
+    assert "return response({ok:true,status:\"waiting_bank_event\"" in EDGE
 
 def test_no_db_debt_mutations_or_background_polling():
     text=SQL.lower()+EDGE.lower()
