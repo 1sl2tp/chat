@@ -38,5 +38,9 @@ assert 'object-fit:cover!important;' in css
 assert '.user-message-unit>.message-media-shell{margin-left:auto}' in css
 assert '.assistant-message-unit>.message-media-shell{margin-right:auto}' in css
 # UI-154 corners remain unchanged; UI-156 advances only the shell namespace.
-assert "const SHELL_CACHE_EPOCH='bank-collect164';" in sw
+# PWA shell epochs intentionally advance with independent feature releases.
+# Verify the stable cache naming contract instead of pinning an old epoch.
+import re
+assert re.search(r"const SHELL_CACHE_EPOCH='[a-z0-9-]+';", sw)
+assert "const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION+'-'+SHELL_CACHE_EPOCH;" in sw
 print('UI-154 four-corner clip / inset outline / no layout drift PASS')
