@@ -54,7 +54,7 @@ begin
  return new;
 exception when others then return new;
 end
-$function$
+$function$;
 
 create or replace function public.chat_bank_bill_wake_on_agribank_notification()
 returns trigger language plpgsql security definer set search_path to 'public','pg_temp'
