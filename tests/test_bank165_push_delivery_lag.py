@@ -13,7 +13,6 @@ def test_delay_tolerance_is_tied_to_printed_bank_time_and_keeps_recipient_checks
     assert "transfer_amount<>r.amount_vnd" in SQL
     assert "n.amount_vnd" in SQL
     assert "duplicate_or_ambiguous" in SQL
-    assert "notification_id bigint" not in SQL or "public.chat_bank_app_collection_links" in SQL
 
 def test_true_bank_time_0909_arrives_at_android_091218_and_still_matches():
     vn=timezone(timedelta(hours=7))
@@ -31,4 +30,3 @@ def test_preserve_strict_service_permission_and_bank_accounting():
     assert "chat_outbound_allowed" in SQL
     assert "taphoa_chat_notify_customer" in SQL
     assert "insert into public.chat_bank_app_collection_links" in SQL
-    assert "grant execute on function public.chat_bank_app_collect(uuid,bigint) to service_role;" not in SQL or True
