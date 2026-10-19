@@ -17,7 +17,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: '17' }
-      - uses: android-actions/setup-android@v3
+      - name: Use hosted Android SDK
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          test -d "$ANDROID_HOME/platforms/android-35" || "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-35'
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.10.2' }
       - name: Build installer
