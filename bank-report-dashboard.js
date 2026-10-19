@@ -9,6 +9,7 @@ const ui={
  date:root.querySelector('[data-bank-date]'),
  refresh:root.querySelector('[data-bank-refresh]'),
  summary:root.querySelector('[data-bank-summary]'),
+ table:root.querySelector('[data-bank-table]'),
  tabs:root.querySelector('[data-bank-filters]'),
  groups:root.querySelector('[data-bank-groups]'),
  stamp:root.querySelector('[data-bank-updated]'),
@@ -20,7 +21,7 @@ const filters=[
  ['duplicate','Trùng'],['non_bill','Không phải bill'],['test_excluded','Test (loại)']
 ];
 const money=x=>Number.isFinite(Number(x))?new Intl.NumberFormat('vi-VN').format(Number(x))+'đ':'—';
-const localDate=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+const localDate=()=>{const parts=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const part=t=>parts.find(x=>x.type===t)?.value||'';return part('year')+'-'+part('month')+'-'+part('day');};
 const localTime=x=>{
  if(!x)return'—';
  const s=String(x).replace('T',' ');
@@ -85,6 +86,7 @@ function paint(data){
   cardValue('Bill sai ngày',String(s.old_date_count||0)),
   cardValue('Ảnh trùng',String(s.duplicate_count||0))
  );
+ renderTable(data);
  ui.tabs.replaceChildren(...filters.map(([key,label])=>{
   const button=el('button','bank-report-filter'+(filter===key?' is-selected':''),label);
   button.type='button';button.dataset.filter=key;button.setAttribute('aria-pressed',String(filter===key));
@@ -92,6 +94,33 @@ function paint(data){
   return button;
  }));
  renderGroups(data);
+}
+function renderTable(data){
+ const bills=Array.isArray(data?.bills)?data.bills:[],byCustomer=new Map();
+ for(const r of bills){
+  if(r.report_status==='non_bill'||r.report_status==='test_excluded')continue;
+  const key=String(r.customer_id||'unknown');
+  const g=byCustomer.get(key)||{id:key,name:r.customer_name||'Khách chưa rõ',matched:0,waiting:0,duplicate:0,old:0,money:0};
+  if(r.report_status==='matched'){g.matched++;g.money+=Number(r.amount_vnd)||0;}
+  if(['waiting_bank','reading','review'].includes(r.report_status))g.waiting++;
+  if(r.report_status==='duplicate')g.duplicate++;
+  if(r.report_status==='wrong_day')g.old++;
+  byCustomer.set(key,g);
+ }
+ const table=el('table','bank-report-table');
+ const head=el('thead'),thead=el('tr');
+ for(const name of ['Khách hàng','Khớp','Chờ','Trùng','Sai ngày','Đã thu'])thead.appendChild(el('th','',name));
+ head.appendChild(thead);table.appendChild(head);
+ const tbody=el('tbody');
+ for(const g of [...byCustomer.values()].sort((a,b)=>b.money-a.money||a.name.localeCompare(b.name,'vi'))){
+  const tr=el('tr','bank-report-table-item');tr.tabIndex=0;tr.setAttribute('role','button');tr.setAttribute('aria-label','Xem chi tiết '+g.name);
+  for(const v of [g.name,g.matched,g.waiting,g.duplicate,g.old,money(g.money)])tr.appendChild(el('td','',v));
+  const jump=()=>{filter='all';paint(data);root.querySelector('[data-bank-customer="'+g.id+'"]')?.scrollIntoView?.({block:'start',behavior:'smooth'});};
+  tr.addEventListener('click',jump);tr.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();jump();}});
+  tbody.appendChild(tr);
+ }
+ if(!tbody.children.length){const tr=el('tr');const td=el('td','','Chưa có bill của khách ngày này');td.colSpan=6;tr.appendChild(td);tbody.appendChild(tr);}
+ table.appendChild(tbody);ui.table.replaceChildren(table);
 }
 function detailLine(row,isBank=false){
  const type=isBank?'bank_only':row.report_status;
@@ -128,7 +157,7 @@ function renderGroups(data){
  const banks=(filter==='all'||filter==='bank_only')?bankOnly:[];
  const grouped=new Map();
  for(const row of rows){
-  const key=String(row.customer_id||'none'),g=grouped.get(key)||{name:row.customer_name||'Khách chưa rõ',rows:[],amount:0,matched:0};
+  const key=String(row.customer_id||'none'),g=grouped.get(key)||{id:key,name:row.customer_name||'Khách chưa rõ',rows:[],amount:0,matched:0};
   g.rows.push(row);
   if(row.report_status==='matched'){g.matched++;g.amount+=Number(row.amount_vnd)||0;}
   grouped.set(key,g);
@@ -136,7 +165,7 @@ function renderGroups(data){
  ui.groups.replaceChildren();
  const sorted=[...grouped.values()].sort((a,b)=>b.amount-a.amount||a.name.localeCompare(b.name,'vi'));
  for(const group of sorted){
-  const block=el('section','bank-report-customer');
+  const block=el('section','bank-report-customer');block.dataset.bankCustomer=group.id;
   const header=append(el('div','bank-report-customer-head'),
    el('strong','bank-report-customer-name',group.name),
    el('span','bank-report-customer-count',group.matched+'/'+group.rows.length+' bill khớp · '+money(group.amount)));
