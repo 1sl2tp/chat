@@ -11,6 +11,10 @@ function bankEventTime(event){
  // The bank-printed transaction time is the matching clock, never posted_at.
  return t;
 }
+function ownTransferNotice(e){
+ const m=/Nội dung giao dịch:\s*([^\r\n.]+)/i.exec(String(e?.body||""));
+ return !!(e?.is_own_transfer===true || (m&&/BUI\s+XUAN\s+TUNG/i.test(m[1])));
+}
 export function previewBillAppMatch(bill,events,otherBills=[],now=Date.now()){
  if(bill?.status!=="amount_read"||!Number.isSafeInteger(bill.amount_vnd)||bill.amount_vnd<=0)return{status:"review",reason:"bill_unreadable"};
  if(!["transfer","incoming_transfer"].includes(bill.transaction_nature))return{status:"review",reason:"transaction_unclear"};
@@ -30,8 +34,7 @@ export function previewBillAppMatch(bill,events,otherBills=[],now=Date.now()){
  const matchLevel=acct&&bank?3:name?2:1;
  const date=bankTime(bill.transfer_at_vn), sent=when(bill.sent_at);
  if(date===null||sent===null)return{status:"review",reason:"bill_time_unreadable"};
- if(now-sent>36*3600000)return{status:"review",reason:"stale_bill"};
- const qualified=(events||[]).filter(e=>e.package_name==="com.vnpay.Agribank3g"&&e.status==="credit_candidate"
+ const qualified=(events||[]).filter(e=>!ownTransferNotice(e)&&e.package_name==="com.vnpay.Agribank3g"&&e.status==="credit_candidate"
    &&e.amount_vnd===bill.amount_vnd&&bankEventTime(e)!==null&&Math.abs(bankEventTime(e)-date)<=5*60000);
  if(!qualified.length)return{status:"waiting_bank_event",reason:"no_matching_agribank_notification"};
  if(qualified.length>1)return{status:"review",reason:"multiple_matching_agribank_notifications"};
@@ -40,7 +43,7 @@ export function previewBillAppMatch(bill,events,otherBills=[],now=Date.now()){
    return{status:"review",reason:"another_bill_same_time_amount"};
  // BANK-164: no scheduler is required; uniqueness is rechecked transactionally by
  // the database before any collection. Do not leave this bill permanently waiting.
- if(sent>now+2*60000)return{status:"review",reason:"future_bill_time"};
+ if(sent>now+2*60000)return{status:"review",reason:"future_upload_metadata"};
  return{status:"candidate_unique",source:"agribank_plus_notification",notification_id:qualified[0].id,
    matched_amount_vnd:bill.amount_vnd,match_level:matchLevel,bank_confirmed:false,ledger_written:false};
 }
