@@ -1,3 +1,14 @@
+## 2026-10-19 — BANK-166 LIVE FINANCIAL RELEASE: M1 AMOUNT+TIME AUTO COLLECTION ON
+
+- Owner expressly authorized full live **automatic Thu tiền for all customers** at level 1: unique matched bank credited amount and actual transfer time + customer-posted successful bill, optional level 2 recipient name and level 3 destination account/bank (only conflicts block). Branch PR #191 merged; Edge v18 ACTIVE and migrations deployed.
+- Production `public.chat_auto_collect_settings`: `enabled=true, ready=true` as of **2026-10-19 09:42:06 Vietnam** via transactional config update. Latest confirmation at 09:43:09: `execution_active=true`. This is NOW ALWAYS-ON; do NOT call it disabled in future. Owner can switch OFF with existing Chat Admin “Tắt tự động thu” (`enabled=false`). M1 requires both a valid unique bank event and a unique bill; transfer alone without customer bill never auto-collects. All authenticity/uniqueness, read-positive-only, message permission and authorization guards maintained.
+- Prior waiting bill **10,000 VND**, Chat receipt `7e19fada-9267-4265-af77-020166512e25`, Agribank notification id 7, was collected ONCE explicitly through same service-only RPC on release: ledger **401**, debit `-10` (thousand VND), balance before -60 after -70, exactly one bank→bill link, one Chat “✅ Đã thu” notice.
+- A subsequent **NEW 20,000 VND** bill auto-collected WITHOUT any manual financial intervention: receipt `fe8f6ece-a982-4bb3-b33a-59734716752f`, Agribank notification amount 20,000 posted 09:41:59, ledger **402** at 09:42:48 VN, debit `-20` thousand VND, customer before -70 after -90. Confirmed one message `taphoa:<receipt-id>:collection`, no duplicate. Total production app auto-collection links **3** including earlier 60k ledger 399. Last verified 09:43.
+- **LIMITATION:** automatic PNG receipt image still not implemented; only standard text “✅ Đã thu” Chat notification, old/new balance, and ledger link. This MUST be presented transparently. PNG manual UI unchanged. In emergencies, Admin can turn OFF via Chat or set `ready=false` to hard-stop automation.
+- Avoid replaying or backfilling previously processed notifications id 6/7/20k new event. Idempotent DB return `replayed=true` for used bank+bill.
+  
+---
+
 ## 2026-10-19 — BANK-166 Owner-approved three-tier bill matching (M1 money+time, M2 name, M3 account+bank)
 
 - Owner clarified business rule: **LEVEL 1 is mandatory bank credit amount plus actual transaction time; LEVEL 2 recipient name if visible; LEVEL 3 bank account and receiving bank if visible**. Optional missing or slightly truncated details should not prevent auto collection. Clearly contradictory optional fields or multiple candidate bills/events still fail closed.
