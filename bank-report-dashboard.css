@@ -65,3 +65,11 @@
 .bank-report-detail-top{grid-template-columns:57px minmax(74px,1fr) minmax(100px,auto);gap:4px;padding:11px 10px;font-size:12px}
 .bank-report-customer-head{padding:10px;gap:4px}
 }
+.bank-report-table-wrap{overflow-x:auto;margin-bottom:18px;border:1px solid var(--border-default,#e5e5e5);border-radius:13px}
+.bank-report-table{border-collapse:collapse;width:100%;min-width:490px;font-size:13px;font-variant-numeric:tabular-nums}
+.bank-report-table th,.bank-report-table td{padding:11px 10px;border-bottom:1px solid var(--border-default,#e9edf0);text-align:right}
+.bank-report-table th:first-child,.bank-report-table td:first-child{text-align:left;font-weight:600}
+.bank-report-table th{background:var(--surface-secondary,#f5f6f7);font-size:12px;color:var(--text-secondary,#6a6a6a)}
+.bank-report-table tr:last-child td{border-bottom:none}
+.bank-report-table-item{cursor:pointer}
+.bank-report-table-item:hover,.bank-report-table-item:focus-visible{background:var(--surface-secondary,#f4f6f7)}
