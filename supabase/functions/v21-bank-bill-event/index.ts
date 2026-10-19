@@ -74,7 +74,7 @@ const TEST_ACCOUNT="8c4ac6ec-3178-4661-8696-04e345bf443e";
 async function notifyTestScan(asset:string,customer:string,status:string,amount:number|null){
  if(customer!==TEST_ACCOUNT||!["amount_read","review","duplicate","non_bill"].includes(status))return false;
  const {data:receipt}=await db.from("chat_bank_bill_receipts")
-   .select("customer_notified_at,ledger_id,status,amount_vnd").eq("media_asset_id",asset).maybeSingle();
+   .select("customer_notified_at,ledger_id,status,amount_vnd,duplicate_of,customer_account_id").eq("media_asset_id",asset).maybeSingle();
  if(!receipt||receipt.customer_notified_at||receipt.ledger_id)return false;
  const canonicalStatus=String(receipt.status||"");
  if(!["amount_read","review","duplicate","non_bill"].includes(canonicalStatus))return false;
@@ -90,10 +90,18 @@ async function notifyTestScan(asset:string,customer:string,status:string,amount:
  if(admin?.role!=="admin"||admin.deleted_at||admin.locked_at)return false;
  const fmt=(n:number)=>n.toLocaleString("vi-VN")+"đ";
  const money=amountInVnd(amount??receipt.amount_vnd);
+ let alreadyCollectedForCustomer=false;
+ if(canonicalStatus==="duplicate"&&receipt.duplicate_of){
+   const {data:original,error:originalError}=await db.from("chat_bank_bill_receipts")
+     .select("status,ledger_id,customer_account_id").eq("id",receipt.duplicate_of).maybeSingle();
+   if(originalError)return false;
+   alreadyCollectedForCustomer=original?.status==="received"&&
+     original?.ledger_id!=null&&original?.customer_account_id===customer;
+ }
  const msg=canonicalStatus==="duplicate"
-   ?"🔁 Ảnh trùng: tệp ảnh này đã được gửi trước đó."+
-    (money?"\nSố tiền ảnh gốc: "+fmt(money):"")+
-    "\nChỉ kiểm tra ảnh, CHƯA GHI THU."
+   ?(alreadyCollectedForCustomer
+     ?"🔁 Giao dịch "+(money?fmt(money):"này")+" đã được ghi thu trước đó. Không thu thêm."
+     :"🔁 Ảnh đã được gửi trước đó. Không ghi thu lần hai; kiểm tra ảnh gốc.")
    :canonicalStatus==="non_bill"
    ?"🖼️ AI không nhận diện đây là bill chuyển khoản thành công."+
     "\nKhông đọc số tiền, CHƯA GHI THU."
