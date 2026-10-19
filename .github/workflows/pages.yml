@@ -18,8 +18,11 @@ permissions:
   pages: write
   id-token: write
 
+# Recovery group isolates the stuck old Pages workflow #208, whose GitHub
+# runner coordinator rejects cancellation while it stays in Waiting.
+# It does NOT bypass or change the protected github-pages environment.
 concurrency:
-  group: chat-pages-production
+  group: chat-pages-production-recovery-20261019
   cancel-in-progress: true
 
 jobs:
