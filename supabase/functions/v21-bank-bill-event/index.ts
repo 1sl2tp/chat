@@ -2,6 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "npm:@supabase/supabase-js@2.57.4";
 import {RULE_VERSION,SYSTEM_PROMPT,validateVisionRead,readV4Fields} from "./bill-amount-rules.mjs";
 import {previewBillSmsMatch,readIncomingAgribankSms} from "./bill-sms-preview.mjs";
+import {previewBillAppMatch} from "./bill-app-preview.mjs";
 
 const db=createClient(Deno.env.get("SUPABASE_URL")||"",Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"",{auth:{persistSession:false,autoRefreshToken:false}});
 const response=(body:any,status=200)=>new Response(JSON.stringify(body),{status,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store"}});
@@ -96,8 +97,22 @@ Deno.serve(async req=>{
     &&Math.abs(s.transaction_at_ms-s.sms_received_at_ms)<=24*3600000
     &&s.transaction_at_ms<=billSentMs+10*60000
     &&billSentMs-s.transaction_at_ms<=24*3600000);
- if(eligibleSms.length===0)
-   return response({ok:true,status:"waiting_sms",reason:"no_valid_recent_incoming_bank_sms",
+ // BANK-162: SMS is optional. Genuine Agribank Plus app credit notifications
+ // can wake the same bill AI reader, with no changes to ledger authorization.
+ let eligibleAppEvents:any[]=[];
+ if(eligibleSms.length===0){
+   const {data:appRows,error:appError}=await db.from("taphoa_agribank_notifications")
+     .select("id,package_name,posted_at,status,amount_vnd")
+     .eq("package_name","com.vnpay.Agribank3g").eq("status","credit_candidate")
+     .gte("posted_at",new Date(billSentMs-24*3600000).toISOString())
+     .lte("posted_at",new Date(billSentMs+10*60000).toISOString())
+     .order("posted_at",{ascending:false}).limit(120);
+   if(appError||!appRows||appRows.length>=120)
+     return response({ok:false,error:"bank_app_preflight_unavailable",ai_called:false,ledger_written:false},503);
+   eligibleAppEvents=appRows.filter(e=>Number.isSafeInteger(e.amount_vnd)&&e.amount_vnd>0);
+ }
+ if(eligibleSms.length===0&&eligibleAppEvents.length===0)
+   return response({ok:true,status:"waiting_bank_event",reason:"no_recent_credit_sms_or_agribank_app_notification",
      ai_called:false,ledger_written:false},202);
  const {data:media,error:mediaError}=await db.from("v21_media_assets").select("id,message_id,owner_account_id,storage_key,mime_type,kind,size_bytes,deleted_at").eq("id",asset).is("deleted_at",null).maybeSingle();
  if(mediaError||!media||media.kind!=="image"||media.owner_account_id!==job.customer_account_id)return response({error:"not_a_customer_image"},403);
@@ -166,7 +181,7 @@ Deno.serve(async req=>{
    if(status==="amount_read"&&amount&&Number.isFinite(Date.parse(job.sent_at))){
      try{
        const sentMillis=Date.parse(job.sent_at);
-       const [smsRes,otherRes]=await Promise.all([
+       const [smsRes,otherRes,appRes]=await Promise.all([
          db.from("taphoa_sms_inbox")
            .select("id,sender,body,sms_timestamp_ms,received_at,created_at")
            .gte("received_at",new Date(sentMillis-24*3600000).toISOString())
@@ -177,13 +192,28 @@ Deno.serve(async req=>{
            .eq("amount_vnd",amount)
            .gte("sent_at",new Date(sentMillis-20*60000).toISOString())
            .lte("sent_at",new Date(sentMillis+20*60000).toISOString())
-           .neq("media_asset_id",asset).limit(100)
+           .neq("media_asset_id",asset).limit(100),
+         db.from("taphoa_agribank_notifications")
+           .select("id,package_name,posted_at,status,amount_vnd")
+           .eq("package_name","com.vnpay.Agribank3g").eq("status","credit_candidate")
+           .eq("amount_vnd",amount)
+           .gte("posted_at",new Date(sentMillis-20*60000).toISOString())
+           .lte("posted_at",new Date(sentMillis+10*60000).toISOString())
+           .order("posted_at",{ascending:false}).limit(100)
        ]);
-       if(smsRes.error||otherRes.error||smsRes.data?.length===100||otherRes.data?.length===100)
+       if(smsRes.error||otherRes.error||appRes.error||
+          smsRes.data?.length===100||otherRes.data?.length===100||appRes.data?.length===100)
          matchPreview={status:"review",reason:"matching_data_incomplete"};
-       else matchPreview=previewBillSmsMatch({
-         media_asset_id:asset,status,amount_vnd:amount,sent_at:job.sent_at,...fields
-       },smsRes.data||[],otherRes.data||[]);
+       else {
+         const bill={media_asset_id:asset,status,amount_vnd:amount,sent_at:job.sent_at,...fields};
+         const smsMatch=previewBillSmsMatch(bill,smsRes.data||[],otherRes.data||[]);
+         const appMatch=previewBillAppMatch(bill,appRes.data||[],otherRes.data||[]);
+         matchPreview=smsMatch.status==="candidate_unique"&&appMatch.status==="candidate_unique"
+           ?{status:"review",reason:"two_sources_same_amount_review"}
+           :smsMatch.status==="candidate_unique"?smsMatch
+           :appMatch.status==="candidate_unique"?appMatch
+           :appMatch.status==="review"?appMatch:smsMatch;
+       }
      }catch(_e){matchPreview={status:"review",reason:"matching_preview_unavailable"};}
    }
    await finish(asset,{status,reason,image_sha256:digest,amount_vnd:amount,model_name:model,
