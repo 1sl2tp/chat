@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="df493280e88302fa6bcea83d0c5a7ad152cc562b9be2a4f8466e0b5fa18e7764">
+<meta name="app-build-id" content="959af0413fe450def75f926d842e94b50bed9935d29a36ab93210a61ba1a1419">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1414,6 +1414,58 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
 /* The composer footer is a sibling of #stageLayout, not its descendant.
    Hide it only for the Admin's live bank dashboard. */
 #appShell[data-route="chat"]:has(#stageLayout[data-bank-report-active="true"]) #thread-bottom-container{display:none!important}
+
+/* BANK-178: fit all six customer columns, especially "Đã thu", on the
+   narrowest mobile/PWA viewports without a horizontal scrollbar.
+   Only this Admin-only dashboard is affected; normal Chat layout is untouched. */
+@media (max-width:650px){
+  .bank-report-dashboard{padding:10px 7px 48px}
+  .bank-report-table-wrap{overflow-x:hidden;margin-bottom:12px;border-radius:10px}
+  .bank-report-table{
+    width:100%;
+    min-width:0;
+    table-layout:fixed;
+    font-size:11px;
+    line-height:1.25;
+  }
+  .bank-report-table th,.bank-report-table td{
+    padding:7px 2px;
+    white-space:normal;
+    overflow-wrap:normal;
+    word-break:normal;
+  }
+  .bank-report-table th{font-size:10px;font-weight:600}
+  .bank-report-table th:nth-child(1){width:27%}
+  .bank-report-table th:nth-child(2){width:10%}
+  .bank-report-table th:nth-child(3){width:9%}
+  .bank-report-table th:nth-child(4){width:11%}
+  .bank-report-table th:nth-child(5){width:13%}
+  .bank-report-table th:nth-child(6){width:30%}
+  .bank-report-table td:first-child{font-size:11px;overflow-wrap:anywhere}
+  .bank-report-table th:last-child,.bank-report-table td:last-child{
+    white-space:nowrap;
+    text-align:right;
+    letter-spacing:-.15px;
+  }
+  .bank-report-table td:last-child{font-size:10.5px;font-weight:650}
+  .bank-report-filters{
+    flex-wrap:wrap;
+    gap:5px;
+    overflow-x:visible;
+    padding:0 0 8px;
+    margin-bottom:10px;
+  }
+  .bank-report-filter{font-size:11px;padding:6px 9px}
+}
+@media (max-width:360px){
+  .bank-report-dashboard{padding-inline:6px}
+  .bank-report-table{font-size:10px}
+  .bank-report-table th,.bank-report-table td{padding:7px 1px}
+  .bank-report-table th{font-size:9.2px}
+  .bank-report-table td:first-child{font-size:10px}
+  .bank-report-table td:last-child{font-size:9.8px;letter-spacing:-.2px}
+  .bank-report-filter{font-size:10px;padding:5px 7px}
+}
 
 </style>
 <style data-inlined-source="ui-foundation.css">
