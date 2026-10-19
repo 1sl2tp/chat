@@ -196,7 +196,7 @@ Deno.serve(async req=>{
  const {data:account}=await db.from("v21_accounts").select("id,role,contact_group,deleted_at,locked_at").eq("id",job.customer_account_id).maybeSingle();
  if(!message||message.deleted_at||message.sender_account_id!==job.customer_account_id||
     !account||account.role!=="user"||account.contact_group!=="customer"||account.deleted_at||account.locked_at)return response({error:"not_customer_submitted"},403);
- if(!Number.isFinite(Date.parse(job.sent_at))||Math.abs(Date.now()-new Date(job.sent_at).getTime())>36*3600000)return response({error:"historical_asset_not_auto_processed"},409);
+ if(!Number.isFinite(Date.parse(job.sent_at))||Date.parse(job.sent_at)>Date.now()+2*60000)return response({error:"historical_asset_not_auto_processed"},409);
  const now=new Date(),todayUTC=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate())).toISOString();
  const {count:perCustomer}=await db.from("chat_bank_bill_receipts").select("*",{head:true,count:"exact"}).eq("customer_account_id",job.customer_account_id).gte("created_at",todayUTC);
  const {count:allCustomers}=await db.from("chat_bank_bill_receipts").select("*",{head:true,count:"exact"}).gte("created_at",todayUTC);
