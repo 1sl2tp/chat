@@ -269,5 +269,7 @@ jobs:
         run: python -m pytest tests/test_bank169_transaction_day_contract.py -q
       - name: BANK-169 delayed app push matching examples
         run: node tests/test_bank169_transaction_clocks.mjs
+      - name: BANK-170/171 multi-account and bill suffix policy
+        run: python -m pytest tests/test_bank171_account_suffix_contract.py -q
       - name: Verify canonical source
         run: python tools/verify_current.py
