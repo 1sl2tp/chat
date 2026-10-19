@@ -7,8 +7,9 @@ function bankEventTime(event){
  const m=/Agribank:\s*([01]\d|2[0-3]):([0-5]\d)\s+([0-3]\d)\/([01]\d)\/(20\d\d)/i.exec(text);
  if(!m)return null; // No printed bank time: cannot authorize money using push arrival alone.
  const t=bankTime(`${m[5]}-${m[4]}-${m[3]} ${m[1]}:${m[2]}`);
- const posted=when(event?.posted_at);
- return t!==null&&posted!==null&&Math.abs(posted-t)<=15*60000?t:null;
+ // Android may deliver the OTT notice after the phone is unlocked.
+ // The bank-printed transaction time is the matching clock, never posted_at.
+ return t;
 }
 export function previewBillAppMatch(bill,events,otherBills=[],now=Date.now()){
  if(bill?.status!=="amount_read"||!Number.isSafeInteger(bill.amount_vnd)||bill.amount_vnd<=0)return{status:"review",reason:"bill_unreadable"};
@@ -28,11 +29,10 @@ export function previewBillAppMatch(bill,events,otherBills=[],now=Date.now()){
   return{status:"review",reason:"recipient_account_conflict"};
  const matchLevel=acct&&bank?3:name?2:1;
  const date=bankTime(bill.transfer_at_vn), sent=when(bill.sent_at);
- if(date===null||sent===null||date>sent+2*60000||sent-date>20*60000)return{status:"review",reason:"bill_time_invalid"};
+ if(date===null||sent===null)return{status:"review",reason:"bill_time_unreadable"};
  if(now-sent>36*3600000)return{status:"review",reason:"stale_bill"};
  const qualified=(events||[]).filter(e=>e.package_name==="com.vnpay.Agribank3g"&&e.status==="credit_candidate"
-   &&e.amount_vnd===bill.amount_vnd&&bankEventTime(e)!==null&&Math.abs(bankEventTime(e)-date)<=5*60000
-   &&when(e.posted_at)!==null&&when(e.posted_at)<=sent+15*60000);
+   &&e.amount_vnd===bill.amount_vnd&&bankEventTime(e)!==null&&Math.abs(bankEventTime(e)-date)<=5*60000);
  if(!qualified.length)return{status:"waiting_bank_event",reason:"no_matching_agribank_notification"};
  if(qualified.length>1)return{status:"review",reason:"multiple_matching_agribank_notifications"};
  if((otherBills||[]).some(b=>b.media_asset_id!==bill.media_asset_id&&b.status==="amount_read"&&
