@@ -253,5 +253,7 @@ jobs:
           node tests/test_bank162_notification_parser.mjs
           node tests/test_bank162_app_preview.mjs
           node --check zalo-admin-link.js
+      - name: BANK-163 Agribank pairing pgcrypto schema
+        run: python tests/test_bank163_agribank_pairing_token_schema.py
       - name: Verify canonical source
         run: python tools/verify_current.py
