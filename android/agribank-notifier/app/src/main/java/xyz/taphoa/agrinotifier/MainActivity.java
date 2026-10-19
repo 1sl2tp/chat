@@ -9,7 +9,7 @@ import android.widget.*;
 import java.util.Arrays;
 import java.util.Locale;
 public final class MainActivity extends Activity {
- EditText token; TextView state;
+ EditText token; TextView state; ScreenAwakeControls screenControls;
  @Override public void onCreate(Bundle b){
   super.onCreate(b);
   LinearLayout page=new LinearLayout(this);page.setOrientation(1);page.setPadding(28,45,28,20);
@@ -30,9 +30,11 @@ public final class MainActivity extends Activity {
   enable.setOnClickListener(v->startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)));
   Button verify=new Button(this);verify.setText("Kiểm tra quyền");page.addView(verify);
   verify.setOnClickListener(v->refresh());
-  state=new TextView(this);page.addView(state);setContentView(page);refresh();
+  state=new TextView(this);page.addView(state);
+  screenControls=ScreenAwakeControls.install(this,page);
+  setContentView(page);refresh();
  }
- @Override public void onResume(){super.onResume();if(state!=null)refresh();}
+ @Override public void onResume(){super.onResume();if(state!=null)refresh();if(screenControls!=null)screenControls.refresh();}
  void refresh(){
   String allowed=Settings.Secure.getString(getContentResolver(),"enabled_notification_listeners");
   String component=new ComponentName(this,AgribankNotificationListener.class).flattenToString();
