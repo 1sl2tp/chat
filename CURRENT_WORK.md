@@ -1,3 +1,13 @@
+## 2026-10-19 — BANK-177 Pages recovery, release now live
+
+- User reported persistent old report-bubble UI and GitHub Pages stuck in `Waiting`; #208 was not cancellable in GitHub UI. Verified that existing Pages workflow already had `cancel-in-progress:true`, so toggling that same setting was **not** the fix. A stranded `github-pages` deployment #208 and earlier old concurrency group blocked deployment.
+- Applied guarded recovery by changing only the workflow concurrency group to `chat-pages-production-recovery-20261019`, **not** the `github-pages` protected environment or permissions, and triggering one up-to-date Pages deploy with revised dashboard heading. #208 subsequently became `cancelled`.
+- **Deploy Chat Pages #210 run 39286160982 SUCCESS** at 2026-10-19 16:35–16:39 UTC; production job's own canonical verification passed and `Verify Pages custom domain` checked `https://chat.taphoa.xyz/` DNS/HTTPS HTTP 200. The deployed code contains the BANK-177 inline live dashboard, Admin-only structured RPC and correct PWA shell epoch.
+- Separate full Verify CI discovered two more stale static tests tied to `bank-collect164`: `test_v21_ui154_image_four_corners.py` and `test_v21_mobile_ui_polish.py`; both changed to verify the release-independent `SHELL_CACHE_EPOCH` naming contract. The earlier `test_v21_chat_message_day_dividers.py` contract already got the same fix. Last commit `b79927b1...` includes accessible live-update status text and mobile test; latest test/deploy runs queued at last check. Do **not** claim final latest full Verify PASS before those runs complete.
+- No bank ledger, receipt matching, Agribank notice, or customer data was changed as part of deployment recovery. Older report messages remain in database as history, but the live report contact view replaces the thread with the reconciliation table for Admin.
+
+---
+
 ## 2026-10-19 — BANK-177: live reconciliation smart TABLE replaces repeated Chat reports
 
 - Owner clarified the report contact is **not a stream of report chat bubbles**. Its chat slot becomes an Admin-only live table grouped by customer: today/date selector; customer, matched bill count, pending count, duplicates, wrong-date count, confirmed VND; click customer to inspect bill rows; click row for bank timestamp vs AI bill timestamp, bank notice ID, transfer reference, image view (or go to customer's conversation). Bank-only credits displayed separately, with no guessed customer.
