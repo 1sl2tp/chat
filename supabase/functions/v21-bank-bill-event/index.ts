@@ -17,6 +17,53 @@ function amountInVnd(v:unknown):number|null{
  }
  return null;
 }
+// Different JPEG/WebP crops of one transfer can have different SHA-256 hashes.
+// Classify by already-CONSUMED bank notification or confirmed unique transfer
+// reference; never create a second collection for the same bank transfer.
+async function findAlreadyCollectedTransfer(
+  customerId:string, amount:number, transferAt:string|null,
+  reference:string|null, appMatch:any
+){
+ const ref=String(reference||"").trim();
+ const validRef=/^[A-Za-z0-9][A-Za-z0-9._-]{7,79}$/.test(ref);
+ let previous:any=null;
+ if(appMatch?.source==="agribank_plus_notification" &&
+    appMatch?.status==="candidate_unique" &&
+    Number.isSafeInteger(appMatch.notification_id)){
+   const linked=await db.from("chat_bank_app_collection_links")
+     .select("receipt_id").eq("notification_id",appMatch.notification_id).maybeSingle();
+   if(linked.error)throw new Error("collection_duplicate_check_unavailable");
+   if(linked.data?.receipt_id){
+     const earlier=await db.from("chat_bank_bill_receipts")
+       .select("id,customer_account_id,status,amount_vnd,transfer_at_vn,ledger_id")
+       .eq("id",linked.data.receipt_id).maybeSingle();
+     if(earlier.error||!earlier.data)throw new Error("collection_duplicate_link_unavailable");
+     previous=earlier.data;
+   }
+ }
+ if(!previous && validRef && transferAt){
+   const scan=await db.from("chat_bank_bill_receipts")
+     .select("id,customer_account_id,status,amount_vnd,transfer_at_vn,ledger_id")
+     .eq("transfer_reference",ref).eq("amount_vnd",amount)
+     .eq("status","received").limit(5);
+   if(scan.error||!scan.data||scan.data.length>=5)
+     throw new Error("collection_reference_check_unavailable");
+   const tx=Date.parse(transferAt.replace(" ","T")+"+07:00");
+   const times=scan.data.filter(x=>{
+     const old=Date.parse(String(x.transfer_at_vn||"").replace(" ","T")+"+07:00");
+     return Number.isFinite(tx)&&Number.isFinite(old)&&Math.abs(old-tx)<=5*60000;
+   });
+   if(times.length>1)throw new Error("collection_reference_ambiguous");
+   if(times.length===1)previous=times[0];
+ }
+ if(!previous)return null;
+ if(previous.status!=="received"||!previous.ledger_id||previous.amount_vnd!==amount)
+   throw new Error("collection_duplicate_inconsistent");
+ return {
+   receipt_id:previous.id,
+   same_customer:previous.customer_account_id===customerId
+ };
+}
 async function finish(asset:string,change:Record<string,unknown>){
  const {error}=await db.from("chat_bank_bill_receipts").update({...change,scanned_at:new Date().toISOString()}).eq("media_asset_id",asset).eq("status","scanning");
  if(error)throw new Error("receipt_save_failed");
