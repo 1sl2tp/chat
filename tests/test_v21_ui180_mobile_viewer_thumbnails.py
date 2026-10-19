@@ -20,6 +20,8 @@ def test_mobile_viewer_has_real_thumbnails_and_safe_area():
     assert "width:3rem!important;" in css
     assert "height:3rem!important;" in css
     assert "object-fit:cover!important;" in css
+    assert "border-color:rgba(255,255,255,.92);" in css
+    assert "transform:none;" in css
 
 def test_existing_gallery_hydration_is_bounded_and_mobile_resizes_recover():
     assert "function renderImageViewerFilmstrip()" in APP
