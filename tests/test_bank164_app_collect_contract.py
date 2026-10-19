@@ -48,3 +48,9 @@ def test_late_app_credit_rechecks_stored_bill_without_ai():
  assert 'eq("status","amount_read")' in EDGE
  assert 'previewBillAppMatch({' in EDGE
  assert 'ai_called:false' in EDGE
+
+def test_collection_cannot_post_silently_without_chat_permission():
+ live=(ROOT/"supabase/migrations/20261019095500_bank164_respect_collection_notification.sql").read_text(encoding="utf-8")
+ assert "v21_private.chat_outbound_allowed(customer" in live
+ assert "collection_notification_disabled" in live
+ assert live.index("collection_notification_disabled")<live.index("insert into public.taphoa_debt_ledger")
