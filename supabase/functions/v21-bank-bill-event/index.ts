@@ -3,6 +3,7 @@ import {createClient} from "npm:@supabase/supabase-js@2.57.4";
 import {RULE_VERSION,SYSTEM_PROMPT,validateVisionRead,readV4Fields} from "./bill-amount-rules.mjs";
 import {previewBillSmsMatch,readIncomingAgribankSms} from "./bill-sms-preview.mjs";
 import {previewBillAppMatch} from "./bill-app-preview.mjs";
+import {chooseAgribankHint,shouldAssistBankImage,bankAssistedReadPrompt} from "./bill-bank-hints.mjs";
 
 const db=createClient(Deno.env.get("SUPABASE_URL")||"",Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"",{auth:{persistSession:false,autoRefreshToken:false}});
 const response=(body:any,status=200)=>new Response(JSON.stringify(body),{status,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store"}});
