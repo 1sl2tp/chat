@@ -259,5 +259,9 @@ jobs:
         run: python -m pytest tests/test_bank164_app_collect_contract.py -q
       - name: BANK-165 Agribank push-delay regression
         run: python -m pytest tests/test_bank165_push_delivery_lag.py -q
+      - name: BANK-166 optional recipient matching tier contract
+        run: python -m pytest tests/test_bank166_optional_recipient_levels.py -q
+      - name: BANK-166 optional recipient matching behavior
+        run: node tests/test_bank162_app_preview.mjs
       - name: Verify canonical source
         run: python tools/verify_current.py
