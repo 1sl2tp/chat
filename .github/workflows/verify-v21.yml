@@ -255,5 +255,7 @@ jobs:
           node --check zalo-admin-link.js
       - name: BANK-163 Agribank pairing pgcrypto schema
         run: python tests/test_bank163_agribank_pairing_token_schema.py
+      - name: BANK-164 Agribank Plus atomic collection guard
+        run: python -m pytest tests/test_bank164_app_collect_contract.py -q
       - name: Verify canonical source
         run: python tools/verify_current.py
