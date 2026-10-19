@@ -263,5 +263,7 @@ jobs:
         run: python -m pytest tests/test_bank166_optional_recipient_levels.py -q
       - name: BANK-166 optional recipient matching behavior
         run: node tests/test_bank162_app_preview.mjs
+      - name: BANK-167 photo quality and transfer replay contract
+        run: python -m pytest tests/test_bank167_photo_and_transfer_duplicate.py -q
       - name: Verify canonical source
         run: python tools/verify_current.py
