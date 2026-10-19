@@ -36,7 +36,7 @@ def test_internal_rpc_exclusive_and_response_truthful():
  assert 'ledger_written:true' in EDGE
  assert "if(now-sent<2*60000)" not in PREVIEW
 def test_ui_is_about_bank_app_not_sms():
- assert "Tự động thu tiền qua Agribank Plus" in UI
+ assert "Bật tự động thu tiền qua Agribank Plus" in UI
  assert "thông báo tiền vào Agribank Plus" in UI
  assert "Chưa có SMS thì" not in UI
  assert "Chỉ thu khi SMS và bill" not in UI
