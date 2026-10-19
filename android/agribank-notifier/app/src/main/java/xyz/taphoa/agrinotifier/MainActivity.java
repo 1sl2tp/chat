@@ -32,7 +32,8 @@ public final class MainActivity extends Activity {
   verify.setOnClickListener(v->refresh());
   state=new TextView(this);page.addView(state);
   screenControls=ScreenAwakeControls.install(this,page);
-  setContentView(page);refresh();
+  ScrollView scroll=new ScrollView(this);scroll.addView(page);
+  setContentView(scroll);refresh();
  }
  @Override public void onResume(){super.onResume();if(state!=null)refresh();if(screenControls!=null)screenControls.refresh();}
  void refresh(){
