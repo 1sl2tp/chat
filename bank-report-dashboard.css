@@ -73,3 +73,6 @@
 .bank-report-table tr:last-child td{border-bottom:none}
 .bank-report-table-item{cursor:pointer}
 .bank-report-table-item:hover,.bank-report-table-item:focus-visible{background:var(--surface-secondary,#f4f6f7)}
+
+/* Work mode retains the regular Work view; never float this dashboard there. */
+#appShell[data-route="work"] #bankReportDashboard{display:none!important}
