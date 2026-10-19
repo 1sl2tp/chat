@@ -9,6 +9,7 @@ const ui={
  date:root.querySelector('[data-bank-date]'),
  refresh:root.querySelector('[data-bank-refresh]'),
  summary:root.querySelector('[data-bank-summary]'),
+ status:root.querySelector('[data-bank-status]'),
  table:root.querySelector('[data-bank-table]'),
  tabs:root.querySelector('[data-bank-filters]'),
  groups:root.querySelector('[data-bank-groups]'),
@@ -20,7 +21,7 @@ const filters=[
  ['bank_only','Agribank chờ bill'],['review','Cần xem'],['wrong_day','Sai ngày'],
  ['duplicate','Trùng'],['non_bill','Không phải bill'],['test_excluded','Test (loại)']
 ];
-const money=x=>Number.isFinite(Number(x))?new Intl.NumberFormat('vi-VN').format(Number(x))+'đ':'—';
+const money=x=>x===null||x===undefined||x===''||!Number.isFinite(Number(x))?'—':new Intl.NumberFormat('vi-VN').format(Number(x))+'đ';
 const localDate=()=>{const parts=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const part=t=>parts.find(x=>x.type===t)?.value||'';return part('year')+'-'+part('month')+'-'+part('day');};
 const localTime=x=>{
  if(!x)return'—';
@@ -32,7 +33,7 @@ const statusText={
  review:'Cần kiểm tra',wrong_day:'Sai ngày',duplicate:'Bill trùng',
  non_bill:'Không phải bill',reading:'Đang đọc ảnh',test_excluded:'Tiền test (loại)'
 };
-let active=false,filter='all',current=null,requestId=0,loading=false,queued=false;
+let active=false,filter='all',selectedCustomer=null,current=null,requestId=0,loading=false,queued=false;
 let imageObjectUrl=null;
 const el=(tag,className='',value='')=>{
  const node=document.createElement(tag);if(className)node.className=className;
@@ -74,25 +75,43 @@ async function reload(){
   if(id===requestId&&active){ui.stamp.textContent='Chưa lấy được dữ liệu. Bấm Làm mới.';ui.groups.replaceChildren(el('p','bank-report-empty','Không tải được bảng đối soát.'));}
  }finally{loading=false;if(queued){queued=false;void reload();}}
 }
-function cardValue(name,value,highlight=false){
- return append(el('div','bank-report-stat'+(highlight?' bank-report-stat-primary':'')),el('div','bank-report-stat-name',name),el('strong','bank-report-stat-number',value));
+function cardValue(name,value,highlight=false,compact=false){
+ return append(el('div','bank-report-stat'+(highlight?' bank-report-stat-primary':'')+(compact?' bank-report-stat-compact':'')),
+  el('span','bank-report-stat-name',name),el('strong','bank-report-stat-number',value));
 }
 function paint(data){
- const s=data?.summary||{};ui.summary.replaceChildren(
-  cardValue('Đã khớp',String(s.matched_count||0)+' giao dịch',true),
-  cardValue('Tiền xác nhận',money(s.matched_amount)),
-  cardValue('Bill chờ ngân hàng',String(s.bill_only_count||0)),
-  cardValue('Ngân hàng chờ bill',String(s.bank_only_count||0)),
-  cardValue('Bill sai ngày',String(s.old_date_count||0)),
-  cardValue('Ảnh trùng',String(s.duplicate_count||0))
+ const s=data?.summary||{};
+ ui.summary.replaceChildren(
+  cardValue('Giao dịch đã khớp',String(s.matched_count||0)),
+  cardValue('Tiền đã xác nhận',money(s.matched_amount),true)
+ );
+ ui.status.replaceChildren(
+  cardValue('Bill chờ ngân hàng',String(s.bill_only_count||0),false,true),
+  cardValue('Ngân hàng chờ bill',String(s.bank_only_count||0),false,true),
+  cardValue('Bill sai ngày',String(s.old_date_count||0),false,true),
+  cardValue('Ảnh trùng',String(s.duplicate_count||0),false,true)
  );
  renderTable(data);
- ui.tabs.replaceChildren(...filters.map(([key,label])=>{
-  const button=el('button','bank-report-filter'+(filter===key?' is-selected':''),label);
-  button.type='button';button.dataset.filter=key;button.setAttribute('aria-pressed',String(filter===key));
-  button.addEventListener('click',()=>{filter=key;paint(data);});
-  return button;
- }));
+ const mainKeys=new Set(['all','matched','waiting_bank','bank_only','review']);
+ const makeFilter=([key,label])=>{
+   const b=el('button','bank-report-filter'+(filter===key?' is-selected':''),label);
+   b.type='button';b.dataset.filter=key;b.setAttribute('aria-pressed',String(filter===key));
+   b.addEventListener('click',()=>{filter=key;selectedCustomer=null;paint(data);});
+   return b;
+ };
+ const primary=filters.filter(([key])=>mainKeys.has(key)).map(makeFilter);
+ const secondary=filters.filter(([key])=>!mainKeys.has(key));
+ const more=el('details','bank-report-filter-more'+(!mainKeys.has(filter)?' is-selected':''));
+ const summary=el('summary','bank-report-filter-more-trigger',!mainKeys.has(filter)?'Khác · đang lọc':'Khác');
+ summary.setAttribute('aria-label','Các trạng thái đối soát khác');
+ const menu=el('div','bank-report-filter-more-menu');
+ for(const item of secondary){
+  const b=makeFilter(item);
+  b.addEventListener('click',()=>{more.open=false;});
+  menu.appendChild(b);
+ }
+ append(more,summary,menu);
+ ui.tabs.replaceChildren(...primary,more);
  renderGroups(data);
 }
 function renderTable(data){
@@ -113,9 +132,9 @@ function renderTable(data){
  head.appendChild(thead);table.appendChild(head);
  const tbody=el('tbody');
  for(const g of [...byCustomer.values()].sort((a,b)=>b.money-a.money||a.name.localeCompare(b.name,'vi'))){
-  const tr=el('tr','bank-report-table-item');tr.tabIndex=0;tr.setAttribute('role','button');tr.setAttribute('aria-label','Xem chi tiết '+g.name);
+  const tr=el('tr','bank-report-table-item'+(selectedCustomer===g.id?' is-selected':''));tr.tabIndex=0;tr.setAttribute('role','button');tr.setAttribute('aria-label','Xem chi tiết '+g.name);tr.setAttribute('aria-expanded',String(selectedCustomer===g.id));
   for(const v of [g.name,g.matched,g.waiting,g.duplicate,g.old,money(g.money)])tr.appendChild(el('td','',v));
-  const jump=()=>{filter='all';paint(data);root.querySelector('[data-bank-customer="'+g.id+'"]')?.scrollIntoView?.({block:'start',behavior:'smooth'});};
+  const jump=()=>{selectedCustomer=selectedCustomer===g.id?null:g.id;filter='all';paint(data);if(selectedCustomer)root.querySelector('[data-bank-customer="'+g.id+'"]')?.scrollIntoView?.({block:'nearest',behavior:'smooth'});};
   tr.addEventListener('click',jump);tr.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();jump();}});
   tbody.appendChild(tr);
  }
@@ -153,32 +172,50 @@ function detailLine(row,isBank=false){
 function renderGroups(data){
  const allBills=Array.isArray(data?.bills)?data.bills:[];
  const bankOnly=Array.isArray(data?.bank_only)?data.bank_only:[];
- let rows=allBills.filter(r=>filter==='all'||r.report_status===filter||(filter==='review'&&r.report_status==='reading'));
+ const selected=filter==='all' ? (selectedCustomer?allBills.filter(r=>String(r.customer_id)===selectedCustomer):[])
+   :allBills.filter(r=>r.report_status===filter||(filter==='review'&&r.report_status==='reading'));
  const banks=(filter==='all'||filter==='bank_only')?bankOnly:[];
  const grouped=new Map();
- for(const row of rows){
+ for(const row of selected){
   const key=String(row.customer_id||'none'),g=grouped.get(key)||{id:key,name:row.customer_name||'Khách chưa rõ',rows:[],amount:0,matched:0};
   g.rows.push(row);
   if(row.report_status==='matched'){g.matched++;g.amount+=Number(row.amount_vnd)||0;}
   grouped.set(key,g);
  }
  ui.groups.replaceChildren();
+ if(filter==='all'&&!selectedCustomer&&!banks.length){
+  ui.groups.appendChild(el('div','bank-report-detail-hint','Chạm một khách hàng trong bảng để xem từng bill và giờ đối soát.'));
+  return;
+ }
+ const title=el('div','bank-report-detail-section-head');
+ title.appendChild(el('strong','','Chi tiết giao dịch'));
+ if(selectedCustomer){
+  const close=el('button','bank-report-dismiss','Đóng chi tiết');close.type='button';
+  close.addEventListener('click',()=>{selectedCustomer=null;paint(data);});
+  title.appendChild(close);
+ }
+ ui.groups.appendChild(title);
+ if(banks.length){
+  const block=el('section','bank-report-customer bank-report-bank-only');
+  block.appendChild(append(el('div','bank-report-customer-head'),
+   el('strong','bank-report-customer-name','Agribank có tiền · chưa có bill'),
+   el('span','bank-report-customer-count',banks.length+' giao dịch · '+money(banks.reduce((s,x)=>s+Number(x.amount_vnd||0),0)))));
+  banks.forEach(row=>block.appendChild(detailLine(row,true)));
+  ui.groups.appendChild(block);
+ }
  const sorted=[...grouped.values()].sort((a,b)=>b.amount-a.amount||a.name.localeCompare(b.name,'vi'));
  for(const group of sorted){
   const block=el('section','bank-report-customer');block.dataset.bankCustomer=group.id;
-  const header=append(el('div','bank-report-customer-head'),
+  const different=group.rows.length-group.matched;
+  const info=group.matched+' giao dịch khớp · '+money(group.amount)+(different?' · '+different+' ảnh khác':'');
+  block.appendChild(append(el('div','bank-report-customer-head'),
    el('strong','bank-report-customer-name',group.name),
-   el('span','bank-report-customer-count',group.matched+'/'+group.rows.length+' bill khớp · '+money(group.amount)));
-  block.appendChild(header);
+   el('span','bank-report-customer-count',info)));
+  const entry=el('div','bank-report-customer-entries');
   group.rows.sort((a,b)=>String(a.bill_time||a.sent_at).localeCompare(String(b.bill_time||b.sent_at)));
-  group.rows.forEach(row=>block.appendChild(detailLine(row)));
+  group.rows.forEach(row=>entry.appendChild(detailLine(row)));
+  block.appendChild(entry);
   ui.groups.appendChild(block);
- }
- if(banks.length){
-  const block=el('section','bank-report-customer');
-  block.appendChild(append(el('div','bank-report-customer-head'),el('strong','bank-report-customer-name','Agribank có tiền · chưa biết khách'),el('span','bank-report-customer-count',banks.length+' giao dịch · '+money(banks.reduce((s,x)=>s+Number(x.amount_vnd||0),0)))));
-  banks.forEach(row=>block.appendChild(detailLine(row,true)));
-  ui.groups.prepend(block);
  }
  if(!sorted.length&&!banks.length)ui.groups.appendChild(el('p','bank-report-empty','Không có giao dịch thuộc bộ lọc này.'));
 }
@@ -217,10 +254,10 @@ function synchronize(){
  active=should;
  stage.dataset.bankReportActive=should?'true':'false';
  root.hidden=!should;
- if(should){dateReady();void reload();}else{requestId++;closeViewer();current=null;}
+ if(should){dateReady();void reload();}else{requestId++;selectedCustomer=null;closeViewer();current=null;}
 }
 ui.refresh.addEventListener('click',()=>void reload());
-ui.date.addEventListener('change',()=>{filter='all';current=null;void reload();});
+ui.date.addEventListener('change',()=>{filter='all';selectedCustomer=null;current=null;void reload();});
 document.addEventListener('v21-active-contact-change',synchronize);
 document.addEventListener('v21-contact-store-change',synchronize);
 document.addEventListener('v21-auth-state',synchronize);
