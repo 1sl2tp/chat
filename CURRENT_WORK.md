@@ -1,3 +1,13 @@
+## 2026-10-19 — BANK-170/171 LIVE: multiple Agribank accounts, strict credit account and relaxed bill suffix
+
+- Completed owner's last requirement: Agribank Plus can receive credits for multiple accounts, but TAPHOA **automatically collects only when bank notice full credited account is `2901181999999`**. All other bank account notifications still stored for audit, but do not wake or match a Chat bill. The customer photographed bill **may only reveal final 5 digits `99999`**; missing optional bank info remains eligible under M1 unique amount + bank/bill printed transaction time. Explicitly conflicting last-five digits block. Keep self-transfer description `BUI XUAN TUNG` exclusion, replay safeguards, and manual ledger unaffected.
+- GitHub [PR #195](https://github.com/1sl2tp/chat/pull/195) merged as `5ba59b3bd6cc2ad1eded56de52a0d6be5c7a918e`. Main [Verify V21](https://github.com/1sl2tp/chat/actions/runs/39207850367) SUCCESS. Supabase `v21-bank-bill-event` **v21 ACTIVE** deployed from merged main; both lookup queries filter `bank_credit_account`, preview parses exact full account from app body and permits bill account suffix only.
+- Migrations applied to production: `bank170_index_agribank_credit_account`, `bank171_accept_cropped_customer_receipt_suffix`, `bank170_restrict_wake_to_target_bank_credit_account`. Generated `bank_credit_account` column provides indexed source-account verification.
+- Verified live 2026-10-19 13:05:55 VN: `enabled=true,ready=true`, 12 stored bank notifications / 12 exact allowed-account / 0 unknown, 4 existing auto collection links, no new ledger from deployment. DB writer full bank-account guard and bill last-five guard both present, wake filter enabled, `authenticated` role cannot call financial RPC. No new actual customer transfer yet tested with a second account; Node regressions include multiple-account simulation.
+- Separate BANK-168 [draft PR #193](https://github.com/1sl2tp/chat/pull/193) bank-assisted second AI pass is NOT deployed. Auto PNG receipt also still incomplete.
+  
+---
+
 ## 2026-10-19 — BANK-169 LIVE: bank transaction-time/day reconciliation + exclude owner's own transfers
 
 - **Owner's rule:** catalog every customer bill by customer + **transaction time printed on the bill** even if no Agribank OTT exists yet. Store every official Agribank Plus credit and its **bank-printed transaction timestamp/date**, Android `posted_at`, and server `received_at` separately. Match exact amount + bank-vs-bill transaction time within 5min and unique bill/event. Neither OTT push delay (sometimes >15min) nor customer's photo upload time is the pairing clock. Reconcile after both sources arrive in either order, without earlier 15-minute/36-hour delivery cutoffs.
