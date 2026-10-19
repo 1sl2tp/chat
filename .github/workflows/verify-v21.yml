@@ -248,5 +248,10 @@ jobs:
         run: node tests/test_v21_boot_indexed_cache.js
       - name: Chat immediate message and directory scroll regression
         run: node tests/test_v21_139_immediate_message_directory.js
+      - name: BANK-162 Agribank Plus notification contract
+        run: |
+          node tests/test_bank162_notification_parser.mjs
+          node tests/test_bank162_app_preview.mjs
+          node --check zalo-admin-link.js
       - name: Verify canonical source
         run: python tools/verify_current.py
