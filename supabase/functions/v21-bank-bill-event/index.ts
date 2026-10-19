@@ -86,11 +86,11 @@ Deno.serve(async req=>{
      if(Number.isFinite(sent)){
        const [app,others]=await Promise.all([
          db.from("taphoa_agribank_notifications")
-           .select("id,package_name,posted_at,status,amount_vnd")
+           .select("id,package_name,posted_at,status,amount_vnd,body")
            .eq("package_name","com.vnpay.Agribank3g").eq("status","credit_candidate")
            .eq("amount_vnd",r.amount_vnd)
            .gte("posted_at",new Date(sent-20*60000).toISOString())
-           .lte("posted_at",new Date(sent+10*60000).toISOString())
+           .lte("posted_at",new Date(sent+15*60000).toISOString())
            .order("posted_at",{ascending:false}).limit(100),
          db.from("chat_bank_bill_receipts")
            .select("media_asset_id,status,amount_vnd,transfer_at_vn,sent_at")
@@ -138,7 +138,7 @@ Deno.serve(async req=>{
  const {data:bankSmsRows,error:bankSmsError}=await db.from("taphoa_sms_inbox")
    .select("id,sender,body,sms_timestamp_ms,received_at,created_at")
    .gte("received_at",new Date(billSentMs-24*3600000).toISOString())
-   .lte("received_at",new Date(billSentMs+10*60000).toISOString())
+   .lte("received_at",new Date(billSentMs+15*60000).toISOString())
    .order("received_at",{ascending:false}).limit(120);
  if(bankSmsError||!bankSmsRows||bankSmsRows.length>=120)
    return response({ok:false,error:"bank_sms_preflight_unavailable",ai_called:false,ledger_written:false},503);
@@ -153,10 +153,10 @@ Deno.serve(async req=>{
  let eligibleAppEvents:any[]=[];
  if(eligibleSms.length===0){
    const {data:appRows,error:appError}=await db.from("taphoa_agribank_notifications")
-     .select("id,package_name,posted_at,status,amount_vnd")
+     .select("id,package_name,posted_at,status,amount_vnd,body")
      .eq("package_name","com.vnpay.Agribank3g").eq("status","credit_candidate")
      .gte("posted_at",new Date(billSentMs-24*3600000).toISOString())
-     .lte("posted_at",new Date(billSentMs+10*60000).toISOString())
+     .lte("posted_at",new Date(billSentMs+15*60000).toISOString())
      .order("posted_at",{ascending:false}).limit(120);
    if(appError||!appRows||appRows.length>=120)
      return response({ok:false,error:"bank_app_preflight_unavailable",ai_called:false,ledger_written:false},503);
@@ -236,7 +236,7 @@ Deno.serve(async req=>{
          db.from("taphoa_sms_inbox")
            .select("id,sender,body,sms_timestamp_ms,received_at,created_at")
            .gte("received_at",new Date(sentMillis-24*3600000).toISOString())
-           .lte("received_at",new Date(sentMillis+10*60000).toISOString())
+           .lte("received_at",new Date(sentMillis+15*60000).toISOString())
            .order("received_at",{ascending:false}).limit(100),
          db.from("chat_bank_bill_receipts")
            .select("media_asset_id,status,amount_vnd,transfer_at_vn,sent_at")
@@ -245,11 +245,11 @@ Deno.serve(async req=>{
            .lte("sent_at",new Date(sentMillis+20*60000).toISOString())
            .neq("media_asset_id",asset).limit(100),
          db.from("taphoa_agribank_notifications")
-           .select("id,package_name,posted_at,status,amount_vnd")
+           .select("id,package_name,posted_at,status,amount_vnd,body")
            .eq("package_name","com.vnpay.Agribank3g").eq("status","credit_candidate")
            .eq("amount_vnd",amount)
            .gte("posted_at",new Date(sentMillis-20*60000).toISOString())
-           .lte("posted_at",new Date(sentMillis+10*60000).toISOString())
+           .lte("posted_at",new Date(sentMillis+15*60000).toISOString())
            .order("posted_at",{ascending:false}).limit(100)
        ]);
        if(smsRes.error||otherRes.error||appRes.error||
