@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="ab8104d5a695cc0c1ef5a797ff2deab64b6e0765e4ff4700b69e57ec9fe55d99">
+<meta name="app-build-id" content="469deec703bc965488dccf4a8d3abaa8096ae070c7b8ecfaa9976cb7f4330306">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -3920,6 +3920,104 @@ button{
     bottom:calc(100% + .45rem);
     max-width:min(15rem,calc(100vw - 1.4rem));
   }
+}
+
+
+/* UI-180 — Narrow/mobile/PWA image viewer: actual photo thumbnails, not dots.
+   Keep the existing filmstrip's single hydration owner and album navigation. */
+@media (max-width:700px){
+  .image-viewer-overlay[open] .image-review-main{
+    padding-bottom:calc(8.35rem + env(safe-area-inset-bottom,0px));
+  }
+  .image-viewer-overlay[open] .image-review-bottom{
+    display:flex!important;
+    flex-direction:column!important;
+    justify-content:flex-end;
+    position:absolute;
+    left:0;right:0;bottom:0;
+    min-height:calc(7.35rem + env(safe-area-inset-bottom,0px));
+    padding:.4rem .7rem calc(.65rem + env(safe-area-inset-bottom,0px));
+    gap:.4rem;
+    z-index:9;
+    background:linear-gradient(0deg,rgba(5,5,7,.96),rgba(5,5,7,.78) 65%,transparent);
+    pointer-events:none;
+  }
+  .image-viewer-overlay[open] .image-review-thumbs:not([hidden]){
+    display:flex!important;
+    visibility:visible!important;
+    position:relative;
+    order:1;
+    flex:0 0 3.2rem!important;
+    width:100%!important;
+    max-width:100%!important;
+    min-height:3.2rem!important;
+    margin:0!important;
+    padding:.05rem .15rem!important;
+    justify-content:flex-start!important;
+    align-items:center;
+    gap:.4rem!important;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+    scroll-snap-type:x proximity;
+    touch-action:pan-x;
+    -webkit-overflow-scrolling:touch;
+    pointer-events:auto;
+  }
+  .image-viewer-overlay[open] .image-review-thumb{
+    display:block!important;
+    visibility:visible!important;
+    flex:0 0 3rem!important;
+    width:3rem!important;
+    min-width:3rem!important;
+    height:3rem!important;
+    min-height:3rem!important;
+    border-radius:.48rem!important;
+    opacity:.7;
+    overflow:hidden;
+    scroll-snap-align:center;
+  }
+  .image-viewer-overlay[open] .image-review-thumb[aria-current="true"]{
+    opacity:1;
+    border-color:#fff;
+  }
+  .image-viewer-overlay[open] .image-review-thumb-image{
+    display:block!important;
+    visibility:visible!important;
+    width:100%!important;
+    height:100%!important;
+    object-fit:cover!important;
+    border-radius:inherit;
+  }
+  .image-viewer-overlay[open] .image-review-filters{
+    display:flex!important;
+    order:2;
+    flex:0 0 auto;
+    min-height:2.25rem;
+    pointer-events:auto;
+  }
+}
+@media (max-width:700px) and (max-height:480px){
+  .image-viewer-overlay[open] .image-review-main{
+    padding-bottom:calc(6.65rem + env(safe-area-inset-bottom,0px));
+  }
+  .image-viewer-overlay[open] .image-review-bottom{
+    min-height:calc(5.9rem + env(safe-area-inset-bottom,0px));
+    padding-top:.2rem;
+    padding-bottom:calc(.3rem + env(safe-area-inset-bottom,0px));
+    gap:.2rem;
+  }
+  .image-viewer-overlay[open] .image-review-thumbs:not([hidden]){
+    flex-basis:2.45rem!important;
+    min-height:2.45rem!important;
+  }
+  .image-viewer-overlay[open] .image-review-thumb{
+    flex-basis:2.3rem!important;
+    width:2.3rem!important;
+    min-width:2.3rem!important;
+    height:2.3rem!important;
+    min-height:2.3rem!important;
+  }
+  .image-viewer-overlay[open] .image-review-filters{min-height:2.1rem}
 }
 
 .composer-icon-button{
@@ -9258,7 +9356,11 @@ function positionImageViewerBelowHeader(){
 }
 
 function syncOpenImageViewerRegion(){
-  if(imageViewerOverlay?.open)positionImageViewerBelowHeader();
+  if(!imageViewerOverlay?.open)return;
+  positionImageViewerBelowHeader();
+  // UI-180: mobile address-bar/PWA resize changes visible thumb geometry.
+  // Re-hydrate only the newly visible slice, once after layout.
+  requestAnimationFrame(()=>hydrateVisibleViewerThumbs());
 }
 
 window.addEventListener('resize',syncOpenImageViewerRegion,{passive:true});
@@ -10148,29 +10250,43 @@ function renderImageViewerFilmstrip(){
     thumb.addEventListener('click',event=>{event.stopPropagation();void showImageViewerIndex(index);});
     imageViewerFilmstrip.appendChild(thumb);
   });
+  // UI-180: measure visible thumbs after the mobile filmstrip receives layout.
+  // No interval, full-gallery fetch, or extra scroll owner.
+  if(!imageViewerFilmstrip.hidden){
+    requestAnimationFrame(()=>{
+      if(imageViewerOverlay?.open&&!imageViewerFilmstrip?.hidden)hydrateVisibleViewerThumbs();
+    });
+  }
 }
 
 async function hydrateViewerThumb(index){
   const item=imageViewerItems[index];
   const thumb=imageViewerFilmstrip?.children?.[index];
   const img=thumb?.querySelector?.('.image-review-thumb-image');
-  if(!item||!img||img.dataset.ready==='true')return false;
+  if(!item||!img||img.dataset.ready==='true'||img.dataset.loading==='true')return false;
+  img.dataset.loading='true';
   const sessionId=imageViewerSessionSeq;
-  const source=await loadViewerAssetSource(item);
-  if(sessionId!==imageViewerSessionSeq||!imageViewerOverlay?.open){
-    if(source.owned&&source.src)URL.revokeObjectURL(source.src);
-    return false;
+  try{
+    const source=await loadViewerAssetSource(item);
+    if(sessionId!==imageViewerSessionSeq||!imageViewerOverlay?.open||
+       thumb!==imageViewerFilmstrip?.children?.[index]||
+       img.dataset.assetId!==String(item.assetId||'')){
+      if(source.owned&&source.src)URL.revokeObjectURL(source.src);
+      return false;
+    }
+    if(!source.src)return false;
+    if(source.owned){
+      const key=`thumb:${item.assetId}`;
+      const previous=imageViewerOwnedUrls.get(key);
+      if(previous&&previous!==source.src)URL.revokeObjectURL(previous);
+      imageViewerOwnedUrls.set(key,source.src);
+    }
+    img.src=source.src;
+    img.dataset.ready='true';
+    return true;
+  }finally{
+    img.dataset.loading='false';
   }
-  if(!source.src)return false;
-  if(source.owned){
-    const key=`thumb:${item.assetId}`;
-    const previous=imageViewerOwnedUrls.get(key);
-    if(previous&&previous!==source.src)URL.revokeObjectURL(previous);
-    imageViewerOwnedUrls.set(key,source.src);
-  }
-  img.src=source.src;
-  img.dataset.ready='true';
-  return true;
 }
 
 function hydrateVisibleViewerThumbs(){
