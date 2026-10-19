@@ -50,7 +50,7 @@ begin
   where media_asset_id=p_asset_id for update;
   if not found then return jsonb_build_object('ok',false,'status','bill_not_found'); end if;
   if r.status='received' and r.ledger_id is not null then
-    select l.notification_id, c.result into prior
+    select c.result into prior
       from public.chat_bank_app_collection_links l
       join public.taphoa_command_log c on c.command_id=l.receipt_id
       where l.receipt_id=r.id and l.notification_id=p_notification_id;
