@@ -38,6 +38,6 @@ def test_test_chat_duplicate_status_distinguishes_already_collected_bill():
 def test_credit_event_uses_true_printed_bank_transaction_datetime():
     assert "if(!m)return null;" in PREVIEW
     assert "bankEventTime(e)" in PREVIEW
-    assert "when(e.posted_at)" in PREVIEW
+    assert "when(e.posted_at)" not in PREVIEW
     assert 'another_bill_same_time_amount' in PREVIEW
     assert 'recipient_account_conflict' in PREVIEW
