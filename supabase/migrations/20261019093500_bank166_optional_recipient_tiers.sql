@@ -103,7 +103,7 @@ begin
      or abs(extract(epoch from(image_at-transaction_at)))>300
      or r.sent_at<image_at-interval '2 minutes'
      or r.sent_at>image_at+interval '20 minutes'
-     or n.posted_at>r.sent_at+interval '10 minutes'
+     or n.posted_at>r.sent_at+interval '15 minutes'
      or r.sent_at<n.posted_at-interval '15 minutes'
   then return jsonb_build_object('ok',false,'status','time_mismatch'); end if;
 
