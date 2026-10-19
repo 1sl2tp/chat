@@ -42,6 +42,11 @@ assert.equal(previewBillAppMatch(tier1,[app],[{...bill,media_asset_id:"another-a
 assert.equal(previewBillAppMatch(tier1,[{...app,posted_at:"2026-10-20T03:03:00Z"}],[],Date.parse("2026-10-20T03:04:00Z")).status,"candidate_unique");
 assert.equal(previewBillAppMatch(tier1,[{...app,is_own_transfer:true}],[],now).status,"waiting_bank_event");
 assert.equal(previewBillAppMatch(tier1,[{...app,body:app.body.replace("Nội dung giao dịch: chuyen tien.","Nội dung giao dịch: BUI XUAN TUNG chuyen tien.")}],[],now).status,"waiting_bank_event");
+// BANK-171: cropped receipts need only the correct visible last five digits.
+assert.equal(previewBillAppMatch({...tier1,receiving_account:"*****99999",receiving_account_last5:"99999"},[app],[],now).status,"candidate_unique");
+assert.equal(previewBillAppMatch({...tier1,receiving_account:"99999"},[app],[],now).status,"candidate_unique");
+assert.equal(previewBillAppMatch({...tier1,receiving_account:"12345678999999",receiving_account_last5:"99999"},[app],[],now).status,"candidate_unique");
+assert.equal(previewBillAppMatch({...tier1,receiving_account:"*****99998"},[app],[],now).status,"review");
 // BANK-170: multiple Agribank accounts in one Android app must never cross-credit TAPHOA.
 const wrongAccount={...app,body:app.body.replace("Tài khoản 2901181999999:","Tài khoản 1234567890123:")};
 assert.equal(previewBillAppMatch(tier1,[wrongAccount],[],now).status,"waiting_bank_event");
