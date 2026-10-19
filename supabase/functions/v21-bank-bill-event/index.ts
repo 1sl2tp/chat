@@ -236,6 +236,22 @@ Deno.serve(async req=>{
       match_preview:matchPreview}});
    await db.from("chat_bank_bill_image_hashes").update({amount_vnd:amount,scan_status:amount===null?"unreadable":"amount_read"})
      .eq("image_sha256",digest).eq("first_asset_id",asset);
+   // BANK-164: only the service-role RPC may authorize a TAPHOA collection.
+   // DB independently verifies the Agribank notification, bill and Admin state.
+   let receiptPosted:any=null;
+   if(status==="amount_read"&&matchPreview?.source==="agribank_plus_notification"
+      &&matchPreview?.status==="candidate_unique"
+      &&Number.isSafeInteger(matchPreview.notification_id)){
+     const {data:posted,error:postError}=await db.rpc("chat_bank_app_collect",{
+       p_asset_id:asset,p_notification_id:matchPreview.notification_id
+     });
+     if(!postError&&posted?.ok===true&&posted?.status==="received")
+       receiptPosted=posted;
+   }
+   if(receiptPosted){
+     return response({ok:true,status:"received",amount_vnd:amount,
+       ai_called:true,ledger_written:true,ledger_id:receiptPosted.ledger_id});
+   }
    try{await notifyTestScan(asset,job.customer_account_id,status,amount);}catch(e){console.warn("bill_scan_feedback_failed",String(e).slice(0,80));}
    return response({ok:true,status,amount_vnd:amount,duplicate:false,ai_called:true,ledger_written:false});
  }catch(error){
