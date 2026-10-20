@@ -249,7 +249,7 @@ Deno.serve(async(req:Request)=>{
         const [recipientR,noticeR,receiptR,subscriptionR,reportR]=await Promise.all([
           admin.from("v21_accounts").select("id,role,locked_at,deleted_at").eq("id",recipientId).maybeSingle(),
           noticeId?admin.from("taphoa_agribank_notifications")
-            .select("id,amount_vnd,transfer_at,bank_credit_account,is_own_transfer,package_name,status")
+            .select("id,amount_vnd,transfer_at,bank_credit_account,is_own_transfer,package_name,status,body")
             .eq("id",noticeId).maybeSingle():Promise.resolve({data:null,error:null}),
           receiptId?admin.from("chat_bank_bill_receipts")
             .select("id,amount_vnd,transfer_at_vn,sent_at,customer_account_id,reason,status")
@@ -267,7 +267,8 @@ Deno.serve(async(req:Request)=>{
         const reportContactId=String(reportR.data?.id||"");
         const validNotice=Boolean(notice&&notice.status==="credit_candidate"&&
           notice.is_own_transfer===false&&notice.bank_credit_account==="2901181999999"&&
-          notice.package_name==="com.vnpay.Agribank3g"&&Number(notice.amount_vnd)>0);
+          notice.package_name==="com.vnpay.Agribank3g"&&Number(notice.amount_vnd)>0&&
+          !/BUI XUAN TUNG/i.test(String(notice.body||"")));
         let customerName="";
         let isTestCustomer=false;
         if(receipt?.customer_account_id){
