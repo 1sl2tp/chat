@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
-import { buildNotificationPayload, buildCallInviteNotificationPayload, isGoneStatus, retryDelaySeconds } from "./push-core.mjs";
+import { buildNotificationPayload, buildCallInviteNotificationPayload, buildBankNotificationPayload, isGoneStatus, retryDelaySeconds } from "./push-core.mjs";
 
 const headers={
   "Access-Control-Allow-Origin":"*",
@@ -104,18 +104,21 @@ Deno.serve(async(req:Request)=>{
     if(!vapid)return reply(503,{ok:false,code:"push_not_configured"});
 
     webpush.setVapidDetails(vapid.subject,vapid.publicKey,vapid.privateKey);
-    const [{data:claimed,error:claimError},{data:callClaimed,error:callClaimError}]=await Promise.all([
+    const [{data:claimed,error:claimError},{data:callClaimed,error:callClaimError},{data:bankClaimed,error:bankClaimError}]=await Promise.all([
       admin.rpc("v21_admin_push_claim",{p_limit:20}),
       admin.rpc("v21_call_invite_push_claim",{p_limit:20}),
+      admin.rpc("chat_bank_admin_push_claim",{p_limit:15}),
     ]);
     if(claimError)return reply(500,{ok:false,code:"claim_failed"});
     if(callClaimError)return reply(500,{ok:false,code:"call_claim_failed"});
+    if(bankClaimError)return reply(500,{ok:false,code:"bank_claim_failed"});
 
     let delivered=0;
     let disabled=0;
     let retried=0;
     const rows=Array.isArray(claimed)?claimed:[];
     const callRows=Array.isArray(callClaimed)?callClaimed:[];
+    const bankRows=Array.isArray(bankClaimed)?bankClaimed:[];
 
     for(const claim of rows){
       const outboxId=String(claim?.outbox_id??"");
@@ -226,7 +229,115 @@ Deno.serve(async(req:Request)=>{
       }
     }
 
-    return reply(200,{ok:true,claimed:rows.length,call_claimed:callRows.length,delivered,disabled,retried});
+
+    // BANK-181: dedicated event outbox; never manufactures Chat messages.
+    // Recheck canonical receipt/credit/link at delivery time. A near-simultaneous
+    // match cancels obsolete "awaiting" pushes before they leave the server.
+    for(const claim of bankRows){
+      const outboxId=String(claim?.id||"");
+      const recipientId=String(claim?.recipient_account_id||"");
+      const kind=String(claim?.kind||"");
+      const noticeId=String(claim?.notification_id||"");
+      const receiptId=String(claim?.receipt_id||"");
+      if(!outboxId)continue;
+      let transientError="";
+      let terminal=false;
+      try{
+        const [recipientR,noticeR,receiptR,subscriptionR,reportR]=await Promise.all([
+          admin.from("v21_accounts").select("id,role,locked_at,deleted_at").eq("id",recipientId).maybeSingle(),
+          noticeId?admin.from("taphoa_agribank_notifications")
+            .select("id,amount_vnd,transfer_at,bank_credit_account,is_own_transfer,package_name,status")
+            .eq("id",noticeId).maybeSingle():Promise.resolve({data:null,error:null}),
+          receiptId?admin.from("chat_bank_bill_receipts")
+            .select("id,amount_vnd,transfer_at_vn,sent_at,customer_account_id,reason,status")
+            .eq("id",receiptId).maybeSingle():Promise.resolve({data:null,error:null}),
+          admin.from("v21_push_subscriptions").select("id,endpoint,p256dh,auth,enabled,failure_count")
+            .eq("account_id",recipientId).eq("enabled",true),
+          admin.from("v21_accounts").select("id").eq("username","taphoa_bao_cao")
+            .is("deleted_at",null).maybeSingle(),
+        ]);
+        const err=recipientR.error||noticeR.error||receiptR.error||subscriptionR.error||reportR.error;
+        if(err)throw err;
+        const recipient=recipientR.data;
+        const notice=noticeR.data;
+        const receipt=receiptR.data;
+        const reportContactId=String(reportR.data?.id||"");
+        const validNotice=Boolean(notice&&notice.status==="credit_candidate"&&
+          notice.is_own_transfer===false&&notice.bank_credit_account==="2901181999999"&&
+          notice.package_name==="com.vnpay.Agribank3g"&&Number(notice.amount_vnd)>0);
+        let customerName="";
+        let isTestCustomer=false;
+        if(receipt?.customer_account_id){
+          const {data:customer,error:customerError}=await admin.from("v21_accounts")
+            .select("display_name,username,role,deleted_at").eq("id",receipt.customer_account_id).maybeSingle();
+          if(customerError)throw customerError;
+          customerName=String(customer?.display_name||"Khách hàng");
+          isTestCustomer=String(customer?.username||"").toLowerCase()==="test"||
+            customer?.role!=="user"||Boolean(customer?.deleted_at);
+        }
+        const needsLink=kind==="matched"||kind==="bank_only"||kind==="bill_waiting"||kind==="review";
+        let alreadyLinked=false;
+        let validLink=false;
+        if(needsLink){
+          let links=admin.from("chat_bank_app_collection_links").select("receipt_id,notification_id,ledger_id").limit(2);
+          if(kind==="bank_only"||kind==="matched")links=links.eq("notification_id",noticeId);
+          else links=links.eq("receipt_id",receiptId);
+          const {data:linked,error:linkError}=await links;
+          if(linkError)throw linkError;
+          alreadyLinked=Array.isArray(linked)&&linked.length>0;
+          validLink=Boolean(linked?.some((l:any)=>String(l.receipt_id)===receiptId&&
+            String(l.notification_id)===noticeId&&l.ledger_id!==null));
+        }
+        const billDay=String(receipt?.transfer_at_vn||"").slice(0,10);
+        const sentDay=receipt?.sent_at?new Intl.DateTimeFormat("en-CA",{
+          timeZone:"Asia/Ho_Chi_Minh",year:"numeric",month:"2-digit",day:"2-digit"
+        }).format(new Date(receipt.sent_at)):"";
+        const validBill=Boolean(receipt&&!isTestCustomer&&Number(receipt.amount_vnd)>0&&
+          billDay===sentDay&&billDay===String(claim.business_date));
+        if(!recipient||recipient.role!=="admin"||recipient.locked_at||recipient.deleted_at||
+          !reportContactId||isTestCustomer)terminal=true;
+        if(kind==="bank_only"&&(!validNotice||alreadyLinked))terminal=true;
+        if(kind==="matched"&&(!validNotice||!validBill||!validLink||
+          Number(notice?.amount_vnd)!==Number(receipt?.amount_vnd)))terminal=true;
+        if(kind==="bill_waiting"&&(!validBill||receipt?.status!=="amount_read"||alreadyLinked))terminal=true;
+        if(kind==="review"&&(!receipt||alreadyLinked||!["review","duplicate","amount_read"].includes(receipt.status)||
+          (receipt.status==="amount_read"&&validBill)))terminal=true;
+        if(!["bank_only","matched","bill_waiting","review"].includes(kind))terminal=true;
+        if(!terminal){
+          const when=kind==="bank_only"||kind==="matched"
+            ?String(notice?.transfer_at||""):String(receipt?.transfer_at_vn||"");
+          let localTime=when.slice(11,16);
+          if(notice?.transfer_at){
+            localTime=new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Ho_Chi_Minh",
+              hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).format(new Date(notice.transfer_at));
+          }
+          const why=receipt?.status==="duplicate"?"Bill trùng"
+            :billDay&&billDay!==sentDay?"Bill sai ngày"
+            :receipt?.reason||"Bill chưa đủ điều kiện đối soát";
+          const payload=buildBankNotificationPayload({
+            outbox_id:outboxId,kind,amount_vnd:kind==="bank_only"?notice?.amount_vnd:receipt?.amount_vnd,
+            business_date:claim.business_date,transfer_time:localTime,
+            notification_id:noticeId,receipt_id:receiptId,customer_name:customerName,
+            reason:why,report_contact_id:reportContactId,
+          });
+          const outcome=await deliverToSubscriptions(
+            admin,Array.isArray(subscriptionR.data)?subscriptionR.data:[],payload,"normal");
+          delivered+=outcome.delivered;
+          disabled+=outcome.disabled;
+          transientError=outcome.transientError;
+        }
+      }catch(error){
+        transientError=clean((error as {message?:unknown})?.message||error,300)||"bank_push_delivery_failed";
+      }
+      const {error:finishError}=await admin.rpc("chat_bank_admin_push_result",{
+        p_outbox_id:outboxId,p_ok:terminal||!transientError,
+        p_error:terminal?"obsolete_event":transientError||null
+      });
+      if(finishError)console.warn("bank_push_ack_failed",clean(finishError.code,80));
+      if(transientError&&!terminal)retried++;
+    }
+
+    return reply(200,{ok:true,claimed:rows.length,call_claimed:callRows.length,bank_claimed:bankRows.length,delivered,disabled,retried});
   }
 
   const authHeader=req.headers.get("Authorization")??"";
