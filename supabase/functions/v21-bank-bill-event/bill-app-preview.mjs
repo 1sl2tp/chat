@@ -53,3 +53,68 @@ export function previewBillAppMatch(bill,events,otherBills=[],now=Date.now()){
  return{status:"candidate_unique",source:"agribank_plus_notification",notification_id:qualified[0].id,
    matched_amount_vnd:bill.amount_vnd,match_level:matchLevel,bank_confirmed:false,ledger_written:false};
 }
+
+// BANK-182: Alternative proof when the printed bill has a clear DATE but no
+// time. Both sides must carry the same exact transfer memo AND a common,
+// distinctive transaction reference. Chat upload timestamp is not evidence.
+const tidy=x=>String(x||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+  .toUpperCase().replace(/[^A-Z0-9]/g,"");
+const BANK_REF=/^[A-Za-z0-9][A-Za-z0-9._-]{9,79}$/;
+function bankMemo(body){
+ const s=String(body||"");
+ const m=/Nội dung giao dịch:\s*([\s\S]*?)(?:\s*Số dư cuối:|$)/i.exec(s);
+ return m?.[1]?.trim()||"";
+}
+function sharedBankReference(reference,memo){
+ const ref=String(reference||"").trim();
+ if(!BANK_REF.test(ref)||!/\d{6,}/.test(ref)||!/[A-Za-z]/.test(ref))return false;
+ const flat=tidy(memo),target=tidy(ref);
+ const at=flat.indexOf(target);
+ if(at<0)return false;
+ // Never match a short reference embedded inside a larger transaction code.
+ return target.length>=10 && (at===0||!/[\dA-Z]/.test(flat[at-1])) &&
+   (at+target.length===flat.length||!/[\dA-Z]/.test(flat[at+target.length]));
+}
+export function previewBillReferenceMatch(bill,events,otherBills=[],now=Date.now()){
+ if(bill?.status!=="amount_read"||!Number.isSafeInteger(bill.amount_vnd)||bill.amount_vnd<=0
+   ||!["transfer","incoming_transfer"].includes(bill.transaction_nature)
+   ||bill.transfer_at_vn)return{status:"review",reason:"reference_path_not_applicable"};
+ const sent=when(bill.sent_at);
+ const billDay=String(bill.transfer_date_vn||"");
+ const ref=String(bill.transfer_reference||"").trim();
+ const memo=String(bill.transfer_content||"").trim();
+ const destination="2901181999999";
+ if(sent===null||sent>now+120000||!/^\d{4}-\d{2}-\d{2}$/.test(billDay)
+   ||billDay!==new Date(sent+7*3600000).toISOString().slice(0,10)
+   ||billDay!==new Date(now+7*3600000).toISOString().slice(0,10))
+   return{status:"review",reason:"bill_date_missing_or_not_current"};
+ const account=String(bill.receiving_account||"").replace(/\D/g,"");
+ const suffix=String(bill.receiving_account_last5||"");
+ const name=tidy(bill.receiving_name),bank=tidy(bill.receiving_bank);
+ if((name&&name!=="BUIXUANTUNG")||(bank&&bank!=="AGRIBANK")||
+   (suffix&&suffix!=="99999")||(account.length>=5&&!account.endsWith("99999")))
+   return{status:"review",reason:"recipient_conflict"};
+ if(memo.length<12||tidy(memo).length<12||!sharedBankReference(ref,memo))
+   return{status:"review",reason:"reference_or_memo_unreadable"};
+ const eligible=(events||[]).filter(e=>{
+   const stamp=bankEventTime(e);
+   const bankDay=stamp===null?"":new Date(stamp+7*3600000).toISOString().slice(0,10);
+   return e.package_name==="com.vnpay.Agribank3g"&&e.status==="credit_candidate"
+     &&!ownTransferNotice(e)&&creditAccountFromEvent(e)===destination
+     &&e.amount_vnd===bill.amount_vnd&&bankDay===billDay
+     &&tidy(bankMemo(e.body))===tidy(memo)
+     &&sharedBankReference(ref,bankMemo(e.body));
+ });
+ if(eligible.length!==1)return{status:"review",
+   reason:eligible.length?"multiple_matching_reference_events":"no_matching_shared_reference"};
+ if((otherBills||[]).some(b=>b.media_asset_id!==bill.media_asset_id
+   &&["amount_read","review","received"].includes(b.status)
+   &&b.amount_vnd===bill.amount_vnd
+   &&(tidy(b.transfer_reference)===tidy(ref) ||
+      (b.raw_read?.transfer_content&&tidy(b.raw_read.transfer_content)===tidy(memo)))))
+   return{status:"review",reason:"multiple_bills_share_reference"};
+ return{status:"candidate_unique",source:"agribank_plus_notification",
+   notification_id:eligible[0].id,matched_amount_vnd:bill.amount_vnd,
+   match_level:4,match_method:"reference_and_memo_no_time",
+   bank_confirmed:false,ledger_written:false};
+}
