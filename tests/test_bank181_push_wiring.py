@@ -41,5 +41,5 @@ def test_push_navigation_targets_exact_business_day_and_row():
         "bankReceiptId","V21BankReportDashboard?.openPush"):
         assert token in CONTROLLER, token
     for token in ("function openPush(","function focusPushRecord(",
-        "data-bank-receipt-id","bankReceiptId","bankNoticeId","row.open=true"):
+        "dataset.bankReceiptId","bankReceiptId","bankNoticeId","row.open=true"):
         assert token in DASH, token
