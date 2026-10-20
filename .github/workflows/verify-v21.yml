@@ -70,6 +70,10 @@ jobs:
         run: python -m pytest -q tests/test_v21_admin_web_push_schema.py
       - name: Admin push core contract
         run: node tests/test_v21_admin_web_push_core.mjs
+      - name: CALL-186 iOS customer phone and missed Chat call Push
+        run: |
+          node tests/test_call186_ios_missed_push.mjs
+          python -m pytest -q tests/test_call186_phone_privacy.py
       - name: BANK-181 Admin bank PWA push payload
         run: node tests/test_bank181_push_payload.mjs
       - name: BANK-181 reconciliation push security and deep-link contract
