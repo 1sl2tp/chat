@@ -3,7 +3,7 @@ const RELEASE_VERSION='V21.72.39';
 const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 // BANK-177: reload one-time cached shell for the live bank reconciliation table.
 // Keep offline-first startup; do not add per-navigation network requests.
-const SHELL_CACHE_EPOCH='bank-audit184';
+const SHELL_CACHE_EPOCH='ios-call186';
 const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION+'-'+SHELL_CACHE_EPOCH;
 const AVATAR_CACHE_NAME='taphoa-chat-avatars-v1';
 const SUPABASE_ASSET_HOST_RE=/^[a-z0-9]+\.supabase\.co$/i;
@@ -128,6 +128,8 @@ self.addEventListener('push',event=>{
     const conversationId=String(payload.conversation_id||'');
     const inviteId=String(payload.invite_id||'');
     const bankPush=kind==='bank_reconciliation';
+    const missedPush=kind==='missed_chat_call';
+    const missedCallId=String(payload.call_id||'');
     const bankDay=String(payload.bank_day||'');
     const bankNoticeId=String(payload.bank_notice_id||'');
     const bankReceiptId=String(payload.bank_receipt_id||'');
@@ -135,8 +137,8 @@ self.addEventListener('push',event=>{
     const clients=await self.clients.matchAll({type:'window',includeUncontrolled:true});
     // Financial events are not message events. Do not trigger a Chat sync pull
     // or unread recount just to display a bank notification.
-    if(!bankPush&&kind!=='call_invite')notifyMessageDirty(clients,payload);
-    const readingSame=kind!=='call_invite'&&clients.some(client=>{
+    if(!bankPush&&!missedPush&&kind!=='call_invite')notifyMessageDirty(clients,payload);
+    const readingSame=kind!=='call_invite'&&!missedPush&&clients.some(client=>{
       const state=adminPushClientState.get(client.id);
       return Boolean(
         state&&state.visible&&state.focused&&state.route==='chat'&&
@@ -147,7 +149,7 @@ self.addEventListener('push',event=>{
     // A visible mobile Chat already presents all incoming messages through
     // the canonical realtime/push-dirty path, even when another contact is
     // selected. Do not require focus() on iOS standalone PWAs.
-    const visibleMobileChat=kind!=='call_invite'&&clients.some(client=>{
+    const visibleMobileChat=kind!=='call_invite'&&!missedPush&&clients.some(client=>{
       const state=adminPushClientState.get(client.id);
       const mobile=/^(ios|android)-(pwa|web)$/.test(String(state?.platform||''));
       const visible=client.visibilityState
@@ -173,10 +175,10 @@ self.addEventListener('push',event=>{
         inviteId,
         conversationId,
         contactId:String(payload.contact_id||''),
-        bankDay,bankNoticeId,bankReceiptId,bankStatus,
+        bankDay,bankNoticeId,bankReceiptId,bankStatus,missedCallId,
       }
     });
-    if(!bankPush&&kind!=='call_invite'){
+    if(!bankPush&&!missedPush&&kind!=='call_invite'){
       await bumpAdminPushBadge();
       notifyBadgeDirty(clients);
     }
@@ -195,6 +197,7 @@ self.addEventListener('notificationclick',event=>{
     const bankNoticeId=String(data.bankNoticeId||'');
     const bankReceiptId=String(data.bankReceiptId||'');
     const bankStatus=String(data.bankStatus||'');
+    const missedCallId=String(data.missedCallId||'');
     const clients=await self.clients.matchAll({type:'window',includeUncontrolled:true});
     if(clients.length){
       const client=clients[0];
@@ -205,6 +208,8 @@ self.addEventListener('notificationclick',event=>{
         }else if(kind==='bank_reconciliation'){
           client.postMessage?.({type:'ADMIN_PUSH_OPEN',kind,contactId,
             bankDay,bankNoticeId,bankReceiptId,bankStatus});
+        }else if(kind==='missed_chat_call'){
+          client.postMessage?.({type:'ADMIN_PUSH_OPEN',kind,contactId,missedCallId});
         }else{
           client.postMessage?.({type:'ADMIN_PUSH_OPEN',conversationId,contactId});
         }
@@ -215,6 +220,7 @@ self.addEventListener('notificationclick',event=>{
     if(contactId)target.searchParams.set('push_contact',contactId);
     if(conversationId)target.searchParams.set('push_conversation',conversationId);
     if(kind==='call_invite'&&inviteId)target.searchParams.set('push_call_invite',inviteId);
+    if(kind==='missed_chat_call'&&missedCallId)target.searchParams.set('push_missed_chat_call',missedCallId);
     if(kind==='bank_reconciliation'){
       if(bankDay)target.searchParams.set('push_bank_day',bankDay);
       if(bankNoticeId)target.searchParams.set('push_bank_notice',bankNoticeId);
