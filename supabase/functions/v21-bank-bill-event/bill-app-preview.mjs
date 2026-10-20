@@ -114,8 +114,11 @@ export function previewBillReferenceMatch(bill,events,otherBills=[],now=Date.now
    &&(tidy(b.transfer_reference)===tidy(ref) ||
       (b.raw_read?.transfer_content&&tidy(b.raw_read.transfer_content)===tidy(memo)))))
    return{status:"review",reason:"multiple_bills_share_reference"};
- return{status:"candidate_unique",source:"agribank_plus_notification",
-   notification_id:eligible[0].id,matched_amount_vnd:bill.amount_vnd,
-   match_level:4,match_method:"reference_and_memo_no_time",
-   bank_confirmed:false,ledger_written:false};
+ // Financial writer does not yet authorize a missing printed clock.
+ // Keep unique proof for Admin review rather than claiming "received".
+ return{status:"review",reason:"reference_and_memo_verified_waiting_financial_guard",
+   source:"agribank_plus_notification",notification_id:eligible[0].id,
+   matched_amount_vnd:bill.amount_vnd,match_level:4,
+   match_method:"reference_and_memo_no_time",
+   bank_confirmed:true,ledger_written:false};
 }
