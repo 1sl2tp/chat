@@ -3,7 +3,7 @@ const RELEASE_VERSION='V21.72.39';
 const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 // BANK-177: reload one-time cached shell for the live bank reconciliation table.
 // Keep offline-first startup; do not add per-navigation network requests.
-const SHELL_CACHE_EPOCH='viewer-thumbs180';
+const SHELL_CACHE_EPOCH='bank-push181';
 const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION+'-'+SHELL_CACHE_EPOCH;
 const AVATAR_CACHE_NAME='taphoa-chat-avatars-v1';
 const SUPABASE_ASSET_HOST_RE=/^[a-z0-9]+\.supabase\.co$/i;
@@ -127,13 +127,21 @@ self.addEventListener('push',event=>{
     const kind=String(payload.kind||'message');
     const conversationId=String(payload.conversation_id||'');
     const inviteId=String(payload.invite_id||'');
+    const bankPush=kind==='bank_reconciliation';
+    const bankDay=String(payload.bank_day||'');
+    const bankNoticeId=String(payload.bank_notice_id||'');
+    const bankReceiptId=String(payload.bank_receipt_id||'');
+    const bankStatus=String(payload.bank_event_kind||'');
     const clients=await self.clients.matchAll({type:'window',includeUncontrolled:true});
-    if(kind!=='call_invite')notifyMessageDirty(clients,payload);
+    // Financial events are not message events. Do not trigger a Chat sync pull
+    // or unread recount just to display a bank notification.
+    if(!bankPush&&kind!=='call_invite')notifyMessageDirty(clients,payload);
     const readingSame=kind!=='call_invite'&&clients.some(client=>{
       const state=adminPushClientState.get(client.id);
       return Boolean(
         state&&state.visible&&state.focused&&state.route==='chat'&&
-        String(state.conversationId||'')===conversationId
+        (bankPush?String(state.contactId||'')===String(payload.contact_id||'')
+          :String(state.conversationId||'')===conversationId)
       );
     });
     // A visible mobile Chat already presents all incoming messages through
@@ -148,6 +156,11 @@ self.addEventListener('push',event=>{
       return Boolean(state&&mobile&&state.visible&&visible&&state.route==='chat');
     });
     if(readingSame||visibleMobileChat)return;
+    if(bankPush&&bankStatus==='matched'&&bankReceiptId){
+      // Success supersedes the earlier awaiting-bill notification.
+      const old=await self.registration.getNotifications({tag:'bank:receipt:'+bankReceiptId});
+      for(const note of old)note.close();
+    }
 
     await self.registration.showNotification(String(payload.title||'TAPHOA Chat'),{
       body:String(payload.body||(kind==='call_invite'?'Cuộc gọi đến':'Tin nhắn mới')),
@@ -160,9 +173,10 @@ self.addEventListener('push',event=>{
         inviteId,
         conversationId,
         contactId:String(payload.contact_id||''),
+        bankDay,bankNoticeId,bankReceiptId,bankStatus,
       }
     });
-    if(kind!=='call_invite'){
+    if(!bankPush&&kind!=='call_invite'){
       await bumpAdminPushBadge();
       notifyBadgeDirty(clients);
     }
@@ -177,6 +191,10 @@ self.addEventListener('notificationclick',event=>{
     const inviteId=String(data.inviteId||'');
     const conversationId=String(data.conversationId||'');
     const contactId=String(data.contactId||'');
+    const bankDay=String(data.bankDay||'');
+    const bankNoticeId=String(data.bankNoticeId||'');
+    const bankReceiptId=String(data.bankReceiptId||'');
+    const bankStatus=String(data.bankStatus||'');
     const clients=await self.clients.matchAll({type:'window',includeUncontrolled:true});
     if(clients.length){
       const client=clients[0];
@@ -184,6 +202,9 @@ self.addEventListener('notificationclick',event=>{
       try{
         if(kind==='call_invite'){
           client.postMessage?.({type:'ADMIN_PUSH_OPEN',kind:'call_invite',inviteId,conversationId,contactId});
+        }else if(kind==='bank_reconciliation'){
+          client.postMessage?.({type:'ADMIN_PUSH_OPEN',kind,contactId,
+            bankDay,bankNoticeId,bankReceiptId,bankStatus});
         }else{
           client.postMessage?.({type:'ADMIN_PUSH_OPEN',conversationId,contactId});
         }
@@ -194,6 +215,12 @@ self.addEventListener('notificationclick',event=>{
     if(contactId)target.searchParams.set('push_contact',contactId);
     if(conversationId)target.searchParams.set('push_conversation',conversationId);
     if(kind==='call_invite'&&inviteId)target.searchParams.set('push_call_invite',inviteId);
+    if(kind==='bank_reconciliation'){
+      if(bankDay)target.searchParams.set('push_bank_day',bankDay);
+      if(bankNoticeId)target.searchParams.set('push_bank_notice',bankNoticeId);
+      if(bankReceiptId)target.searchParams.set('push_bank_receipt',bankReceiptId);
+      if(bankStatus)target.searchParams.set('push_bank_status',bankStatus);
+    }
     await self.clients.openWindow(target.toString());
   })());
 });
