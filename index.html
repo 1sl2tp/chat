@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="7e4e19c6a8631854ab6310a1451849cb5e31ee5dccbd622a7272662fe556d40a">
+<meta name="app-build-id" content="d4753086e50b01db92c5fb2a9e115267cb698fe5c023d3a85c63aad59a85fdda">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1538,6 +1538,62 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
  .bank-report-stat-compact .bank-report-stat-number{font-size:15px}
  .bank-report-table-caption span{font-size:10px}
  .bank-report-filter,.bank-report-filter-more-trigger{font-size:10px}
+}
+
+/* BANK-184: evidence-based, Admin-only reconciliation exception record.
+   These controls never imply ledger collection/approval. */
+.bank-review-overlay{position:fixed;inset:0;z-index:240;background:rgba(0,0,0,.60);
+ display:flex;align-items:center;justify-content:center;padding:16px}
+.bank-review-form{width:min(100%,620px);max-height:min(90dvh,900px);overflow-y:auto;
+ background:var(--surface-primary,#fff);color:var(--text-primary,#242424);
+ border-radius:15px;border:1px solid var(--border-default,#ddd);
+ padding:16px;display:flex;flex-direction:column;gap:12px;
+ box-shadow:0 24px 75px #0004}
+.bank-review-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.bank-review-heading>div{display:flex;flex-direction:column;gap:4px}
+.bank-review-heading strong{font-size:17px}
+.bank-review-heading small{font-size:12px;color:var(--text-secondary,#666)}
+.bank-review-bank{display:flex;flex-wrap:wrap;gap:7px;justify-content:space-between;
+ border-radius:10px;background:var(--surface-secondary,#f7f8fa);padding:12px}
+.bank-review-bank strong{font-size:17px}
+.bank-review-bank span{font-size:12px}
+.bank-review-instruction{font-size:12px;margin:0;line-height:1.5}
+.bank-review-picks{display:flex;flex-direction:column;gap:6px;min-width:0;
+ border:1px solid var(--border-default,#ddd);padding:10px;border-radius:10px}
+.bank-review-picks legend{font-weight:700;padding-inline:4px;font-size:13px}
+.bank-review-choice{display:flex;gap:9px;align-items:center;padding:8px;
+ border:1px solid var(--border-default,#e5e5e5);border-radius:9px;min-width:0;
+ font-size:12px}
+.bank-review-choice span{flex:1;min-width:0;overflow-wrap:anywhere}
+.bank-review-choice input{flex-shrink:0;accent-color:#129e50}
+.bank-review-support{display:flex;flex-direction:column;gap:6px;font-size:12px}
+.bank-review-support-option{display:flex;align-items:center;gap:8px;padding:5px 6px}
+.bank-review-label{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:650}
+.bank-review-select,.bank-review-explanation{width:100%;box-sizing:border-box;
+ padding:10px;border:1px solid var(--border-default,#d5dce0);border-radius:9px;
+ background:var(--surface-primary,#fff);color:inherit;font-size:14px;font-weight:400}
+.bank-review-explanation{resize:vertical;min-height:90px;line-height:1.5}
+.bank-review-consent{display:flex;align-items:flex-start;gap:9px;font-size:12px;
+ line-height:1.5;font-weight:550}
+.bank-review-consent input{margin-top:3px;accent-color:#129e50}
+.bank-review-warning{font-size:12px;color:#875d06;background:#fff5dd;padding:10px;
+ border-radius:10px;margin:0}
+.bank-review-feedback{font-size:12px;font-weight:650;overflow-wrap:anywhere}
+.bank-review-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.bank-review-save{border:0;border-radius:9px;background:#138b47;color:white;
+ cursor:pointer;padding:11px 15px;font-size:13px;font-weight:700}
+.bank-review-save:disabled{opacity:.55;cursor:wait}
+.bank-review-history{border-top:1px solid var(--border-default,#ddd);padding-top:8px;
+ font-size:12px;display:flex;flex-direction:column;gap:7px}
+.bank-review-history:empty{display:none}
+.bank-review-history p{margin:0;line-height:1.5;overflow-wrap:anywhere}
+@media(max-width:650px){
+ .bank-review-overlay{padding:0;align-items:flex-end}
+ .bank-review-form{padding:14px 12px calc(14px + env(safe-area-inset-bottom,0px));
+  max-height:94dvh;border-radius:15px 15px 0 0}
+ .bank-review-choice{gap:6px}
+ .bank-review-choice .bank-report-action{padding:6px 7px;white-space:nowrap}
+ .bank-review-save{flex:1}
 }
 
 </style>
