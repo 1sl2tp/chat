@@ -33,7 +33,7 @@ const statusText={
  review:'Cần kiểm tra',wrong_day:'Sai ngày',duplicate:'Bill trùng',
  non_bill:'Không phải bill',reading:'Đang đọc ảnh',test_excluded:'Tiền test (loại)'
 };
-let active=false,filter='all',selectedCustomer=null,current=null,requestId=0,loading=false,queued=false;
+let active=false,filter='all',selectedCustomer=null,current=null,requestId=0,loading=false,queued=false,pendingPush=null;
 let imageObjectUrl=null;
 const el=(tag,className='',value='')=>{
  const node=document.createElement(tag);if(className)node.className=className;
@@ -68,7 +68,7 @@ async function reload(){
   const {data,error}=await client.rpc('chat_bank_dashboard',{p_app_session_id:auth.appSessionId,p_day:day});
   if(error)throw error;
   if(id!==requestId||!active||ui.date.value!==day)return;
-  current=data;paint(data);
+  current=data;paint(data);focusPushRecord(data);
   const when=new Date(data.updated_at);
   ui.stamp.textContent='Dữ liệu '+(Number.isFinite(when.getTime())?new Intl.DateTimeFormat('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(when):'mới nhất')+(data.closed?' · Đã khóa sổ':' · Đang mở sổ');
  }catch(error){
@@ -144,6 +144,8 @@ function renderTable(data){
 function detailLine(row,isBank=false){
  const type=isBank?'bank_only':row.report_status;
  const wrap=el('details','bank-report-detail');
+ if(row.receipt_id)wrap.dataset.bankReceiptId=String(row.receipt_id);
+ if(row.notice_id)wrap.dataset.bankNoticeId=String(row.notice_id);
  const top=el('summary','bank-report-detail-top');
  const label=el('span','bank-report-detail-status bank-status-'+type,statusText[type]||'Cần kiểm tra');
  const left=el('span','bank-report-detail-time',isBank?localTime(row.bank_time):localTime(row.bill_time||row.sent_at));
@@ -219,6 +221,58 @@ function renderGroups(data){
  }
  if(!sorted.length&&!banks.length)ui.groups.appendChild(el('p','bank-report-empty','Không có giao dịch thuộc bộ lọc này.'));
 }
+function openPush(intent={}){
+  // A push click is user-driven. The table opens the day and transaction
+  // even when it was already on another day, or the report contact is loading.
+  const date=String(intent.bankDay||'');
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return false;
+  if(date<'2026-10-19'||date>localDate())return false;
+  pendingPush={bankDay:date,bankNoticeId:String(intent.bankNoticeId||''),
+    bankReceiptId:String(intent.bankReceiptId||''),bankStatus:String(intent.bankStatus||'')};
+  const previous=ui.date.value;
+  ui.date.value=date;
+  selectedCustomer=null;
+  filter='all';
+  if(active){
+    if(current&&previous===date&&String(current.date)===date)focusPushRecord(current);
+    else void reload();
+  }
+  return true;
+}
+function focusPushRecord(data){
+  if(!pendingPush||!active||ui.date.value!==pendingPush.bankDay)return;
+  const target=pendingPush;
+  const rows=Array.isArray(data?.bills)?data.bills:[];
+  const bankRows=Array.isArray(data?.bank_only)?data.bank_only:[];
+  const bill=rows.find(row=>
+    (target.bankReceiptId&&String(row.receipt_id)===target.bankReceiptId)||
+    (target.bankNoticeId&&String(row.notice_id)===target.bankNoticeId));
+  const bank=bankRows.find(row=>target.bankNoticeId&&String(row.notice_id)===target.bankNoticeId);
+  if(bill){
+    selectedCustomer=String(bill.customer_id||'');
+    filter='all';
+    paint(data);
+  }else if(bank){
+    selectedCustomer=null;
+    filter='bank_only';
+    paint(data);
+  }else{
+    // The record may have been resolved since the push was sent.
+    filter=target.bankStatus==='review'?'review':target.bankStatus==='matched'?'matched':'all';
+    paint(data);
+  }
+  pendingPush=null;
+  requestAnimationFrame(()=>{
+    let row=null;
+    for(const node of ui.groups.querySelectorAll('.bank-report-detail')){
+      if(target.bankReceiptId&&node.dataset.bankReceiptId===target.bankReceiptId){row=node;break;}
+      if(target.bankNoticeId&&node.dataset.bankNoticeId===target.bankNoticeId){row=node;break;}
+    }
+    if(row){row.open=true;row.scrollIntoView?.({block:'center',behavior:'smooth'});}
+    else ui.groups.scrollIntoView?.({block:'start',behavior:'smooth'});
+  });
+}
+
 function closeViewer(){
  if(imageObjectUrl){URL.revokeObjectURL(imageObjectUrl);imageObjectUrl=null;}
  ui.viewer.hidden=true;ui.viewer.replaceChildren();
@@ -264,6 +318,6 @@ document.addEventListener('v21-auth-state',synchronize);
 document.addEventListener('v21-conversation-context',synchronize);
 document.addEventListener('v21-bank-report-dirty',()=>{if(active)void reload();});
 document.addEventListener('visibilitychange',()=>{if(active&&!document.hidden)void reload();});
-window.V21BankReportDashboard={refresh:()=>void reload(),snapshot:()=>({active,day:ui.date.value,matched:current?.summary?.matched_count||0})};
+window.V21BankReportDashboard={refresh:()=>void reload(),openPush,snapshot:()=>({active,day:ui.date.value,matched:current?.summary?.matched_count||0})};
 synchronize();
 })();
