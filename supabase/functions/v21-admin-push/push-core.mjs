@@ -83,3 +83,17 @@ export function buildBankNotificationPayload(row={}){
     icon:'./icons/chat-notification-icon-192-v4.png'
   };
 }
+
+export function buildMissedChatCallPayload(row={}){
+ const name=String(row.contact_name||'Khách hàng').trim().slice(0,70)||'Khách hàng';
+ const id=String(row.source_id||'');
+ return {
+   kind:'missed_chat_call',notification_id:String(row.outbox_id||''),
+   source_kind:String(row.source_kind||''),call_id:id,
+   contact_id:String(row.contact_id||''),
+   title:'TAPHOA · Cuộc gọi nhỡ',
+   body:name+' vừa gọi trên TAPHOA Chat · Chạm để gọi lại',
+   tag:'missed-chat-call:'+id,
+   icon:'./icons/chat-notification-icon-192-v4.png'
+ };
+}
