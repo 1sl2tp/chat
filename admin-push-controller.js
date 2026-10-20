@@ -366,8 +366,13 @@ function coldOpenFromLocation(){
     const contactId=String(params.get('push_contact')||'').trim();
     const conversationId=String(params.get('push_conversation')||'').trim();
     const inviteId=String(params.get('push_call_invite')||'').trim();
+    const bankDay=String(params.get('push_bank_day')||'').trim();
+    const bankNoticeId=String(params.get('push_bank_notice')||'').trim();
+    const bankReceiptId=String(params.get('push_bank_receipt')||'').trim();
+    const bankStatus=String(params.get('push_bank_status')||'').trim();
     if(!contactId&&!conversationId&&!inviteId)return null;
-    return{kind:inviteId?'call_invite':'message',contactId,conversationId,inviteId};
+    return{kind:bankDay?'bank_reconciliation':inviteId?'call_invite':'message',
+      contactId,conversationId,inviteId,bankDay,bankNoticeId,bankReceiptId,bankStatus};
   }catch{return null;}
 }
 
@@ -377,6 +382,8 @@ function clearColdOpenQuery(){
     url.searchParams.delete('push_contact');
     url.searchParams.delete('push_conversation');
     url.searchParams.delete('push_call_invite');
+    for(const key of ['push_bank_day','push_bank_notice','push_bank_receipt','push_bank_status'])
+      url.searchParams.delete(key);
     const next=`${url.pathname}${url.search}${url.hash}`||'./';
     history.replaceState(history.state??null,'',next);
     return true;
@@ -388,9 +395,13 @@ async function handleOpen(payload={}){
   const inviteId=String(payload?.inviteId??payload?.invite_id??'').trim();
   const contactId=String(payload?.contactId??payload?.contact_id??'').trim();
   const conversationId=String(payload?.conversationId??payload?.conversation_id??'').trim();
+  const bankDay=String(payload?.bankDay??payload?.bank_day??'').trim();
+  const bankNoticeId=String(payload?.bankNoticeId??payload?.bank_notice_id??'').trim();
+  const bankReceiptId=String(payload?.bankReceiptId??payload?.bank_receipt_id??'').trim();
+  const bankStatus=String(payload?.bankStatus??payload?.bank_event_kind??'').trim();
   if(!contactId&&!conversationId&&!inviteId)return false;
   if(!isAdmin()||(!contactId&&!inviteId)){
-    pendingOpen={kind,inviteId,contactId,conversationId};
+    pendingOpen={kind,inviteId,contactId,conversationId,bankDay,bankNoticeId,bankReceiptId,bankStatus};
     return false;
   }
 
@@ -401,7 +412,7 @@ async function handleOpen(payload={}){
   if(contactId)opened=Boolean(window.ChatAppShell?.NavigationCommand?.openContact?.(contactId));
   if(!opened){
     if(intent)finishNotificationReveal();
-    pendingOpen={kind,inviteId,contactId,conversationId};
+    pendingOpen={kind,inviteId,contactId,conversationId,bankDay,bankNoticeId,bankReceiptId,bankStatus};
     return false;
   }
   if(intent){
@@ -419,6 +430,9 @@ async function handleOpen(payload={}){
     document.dispatchEvent(new CustomEvent('v21-call-invite-push-open',{
       detail:{inviteId,contactId,conversationId}
     }));
+  }else if(kind==='bank_reconciliation'){
+    // A bank Push targets the live reconciliation table, not the Chat thread.
+    window.V21BankReportDashboard?.openPush?.({bankDay,bankNoticeId,bankReceiptId,bankStatus});
   }else{
     scheduleUnreadBadgeRefresh(0);
   }
