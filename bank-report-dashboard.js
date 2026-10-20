@@ -18,7 +18,7 @@ const ui={
 };
 const filters=[
  ['all','Tất cả'],['matched','Đã khớp'],['waiting_bank','Bill chờ Agribank'],
- ['bank_only','Agribank chờ bill'],['review','Cần xem'],['wrong_day','Sai ngày'],
+ ['bank_only','Agribank chưa khớp'],['review','Cần xem'],['wrong_day','Sai ngày'],
  ['duplicate','Trùng'],['non_bill','Không phải bill'],['test_excluded','Test (loại)']
 ];
 const money=x=>x===null||x===undefined||x===''||!Number.isFinite(Number(x))?'—':new Intl.NumberFormat('vi-VN').format(Number(x))+'đ';
@@ -87,7 +87,7 @@ function paint(data){
  );
  ui.status.replaceChildren(
   cardValue('Bill chờ ngân hàng',String(s.bill_only_count||0),false,true),
-  cardValue('Ngân hàng chờ bill',String(s.bank_only_count||0),false,true),
+  cardValue('Ngân hàng chưa khớp',String(s.bank_only_count||0),false,true),
   cardValue('Bill sai ngày',String(s.old_date_count||0),false,true),
   cardValue('Ảnh trùng',String(s.duplicate_count||0),false,true)
  );
@@ -141,23 +141,55 @@ function renderTable(data){
  if(!tbody.children.length){const tr=el('tr');const td=el('td','','Chưa có bill của khách ngày này');td.colSpan=6;tr.appendChild(td);tbody.appendChild(tr);}
  table.appendChild(tbody);ui.table.replaceChildren(table);
 }
-function detailLine(row,isBank=false){
+// BANK-183: show unlinked same-amount customer images as review candidates.
+// Chat send time is only a *hint*, never a substitute for the bill's bank time.
+function possibleUnlinkedBills(bank,allBills){
+ const bankTs=Date.parse(String(bank.transfer_at||''));
+ if(!Number.isFinite(bankTs)||!Number.isSafeInteger(Number(bank.amount_vnd)))return [];
+ return (allBills||[]).filter(b=>{
+  if(!b||!['amount_read','review'].includes(String(b.status||''))||
+     Number(b.amount_vnd)!==Number(bank.amount_vnd)||b.notice_id||
+     !b.receipt_id||!b.asset_id)return false;
+  const sent=Date.parse(String(b.sent_at||''));
+  return Number.isFinite(sent)&&Math.abs(sent-bankTs)<=20*60000;
+ });
+}
+function detailLine(row,isBank=false,candidates=[]){
  const type=isBank?'bank_only':row.report_status;
  const wrap=el('details','bank-report-detail');
  if(row.receipt_id)wrap.dataset.bankReceiptId=String(row.receipt_id);
  if(row.notice_id)wrap.dataset.bankNoticeId=String(row.notice_id);
  const top=el('summary','bank-report-detail-top');
- const label=el('span','bank-report-detail-status bank-status-'+type,statusText[type]||'Cần kiểm tra');
+ const label=el('span','bank-report-detail-status bank-status-'+
+  (isBank&&candidates.length?'review':type),
+  isBank&&candidates.length?'Có bill cần kiểm tra':statusText[type]||'Cần kiểm tra');
  const left=el('span','bank-report-detail-time',isBank?localTime(row.bank_time):localTime(row.bill_time||row.sent_at));
  const amt=el('strong','bank-report-detail-amount',money(isBank?row.amount_vnd:row.amount_vnd));
  append(top,left,amt,label);wrap.appendChild(top);
  const content=el('div','bank-report-detail-content');
- append(content,cell('Giờ bill',isBank?'Chưa có bill':(row.bill_time||'Không đọc được')),
+ append(content,cell('Giờ bill',isBank?(candidates.length?'Có ảnh cần kiểm tra':'Chưa xác định bill'):(row.bill_time||'Không đọc được')),
   cell('Giờ Agribank',isBank?(row.bank_time||'—'):(row.bank_time||'Chưa có thông báo')),
   cell('Giờ khách gửi ảnh',isBank?'—':(row.sent_at?new Intl.DateTimeFormat('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date(row.sent_at)):'—')),
   cell('Mã giao dịch',row.transfer_reference||'—'),
   cell('Thông báo ngân hàng',isBank?'#'+row.notice_id:(row.notice_id?'#'+row.notice_id:'Chưa có')),
-  cell('Tình trạng',statusText[type]||row.status||'Chưa rõ'));
+  cell('Tình trạng',isBank&&candidates.length?'Chưa đối soát · Chưa ghi thu':
+  statusText[type]||row.status||'Chưa rõ'));
+ if(isBank&&candidates.length){
+  content.appendChild(el('p','bank-report-detail-reason',
+    'Tìm thấy '+candidates.length+' bill cùng số tiền, gửi gần giờ Agribank. '
+    +'Đây chỉ là gợi ý đối chiếu, chưa xác minh ngày/giờ hoặc mã trên bill, chưa ghi thu.'));
+  const matches=el('div','bank-report-candidate-list');
+  for(const candidate of candidates.slice(0,10)){
+   const name=String(candidate.customer_name||'Khách chưa rõ');
+   const hour=candidate.sent_at?new Intl.DateTimeFormat('vi-VN',{
+      timeZone:'Asia/Ho_Chi_Minh',hour:'2-digit',minute:'2-digit'
+    }).format(new Date(candidate.sent_at)):'—';
+   const btn=el('button','bank-report-action','Xem bill '+name+' · gửi '+hour);
+   btn.type='button';btn.addEventListener('click',()=>{void showBill(candidate);});
+   matches.appendChild(btn);
+  }
+  content.appendChild(matches);
+ }
  if(row.reason&&!isBank)content.appendChild(el('p','bank-report-detail-reason','Ghi chú: '+row.reason));
  const actions=el('div','bank-report-detail-actions');
  if(!isBank&&row.asset_id){
@@ -200,9 +232,9 @@ function renderGroups(data){
  if(banks.length){
   const block=el('section','bank-report-customer bank-report-bank-only');
   block.appendChild(append(el('div','bank-report-customer-head'),
-   el('strong','bank-report-customer-name','Agribank có tiền · chưa có bill'),
+   el('strong','bank-report-customer-name','Agribank có tiền · chưa đối soát'),
    el('span','bank-report-customer-count',banks.length+' giao dịch · '+money(banks.reduce((s,x)=>s+Number(x.amount_vnd||0),0)))));
-  banks.forEach(row=>block.appendChild(detailLine(row,true)));
+  banks.forEach(row=>block.appendChild(detailLine(row,true,possibleUnlinkedBills(row,allBills))));
   ui.groups.appendChild(block);
  }
  const sorted=[...grouped.values()].sort((a,b)=>b.amount-a.amount||a.name.localeCompare(b.name,'vi'));
