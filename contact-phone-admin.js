@@ -12,7 +12,7 @@ function style(){
  if(document.getElementById('v21-contact-phone-css'))return;
  const st=el('style');st.id='v21-contact-phone-css';
  st.textContent=[
- '.v21-phone-header-button{width:34px;height:34px;flex:0 0 34px;display:grid;place-items:center;cursor:pointer;background:var(--theme-surface-secondary,#f4f4f4);color:inherit;border:0;border-radius:50%}',
+ '.v21-phone-header-button{width:34px;height:34px;flex:0 0 34px;display:grid;place-items:center;cursor:pointer;background:transparent;color:inherit;border:0;border-radius:50%}',
  '.v21-phone-header-button[hidden]{display:none!important}',
  '.v21-phone-overlay{position:fixed;inset:0;z-index:9500;background:#0009;display:grid;place-items:center;padding:12px}',
  '.v21-phone-panel{box-sizing:border-box;width:min(100%,430px);max-height:92dvh;overflow:auto;background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#222);border-radius:17px;padding:16px}',
@@ -34,7 +34,8 @@ function attach(){
  const host=document.querySelector('.call-focus-slot');if(!host)return;
  let btn=host.querySelector('[data-v21-phone-open]');
  if(!btn){
-  btn=el('button','v21-phone-header-button','☎');
+  btn=el('button','v21-phone-header-button');
+  btn.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.91.69 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.26a2 2 0 0 1 2.11-.45c.9.33 1.85.56 2.81.69A2 2 0 0 1 22 16.92z"/></svg>';
   btn.type='button';btn.dataset.v21PhoneOpen='';
   btn.setAttribute('aria-label','Số điện thoại và gọi lại');
   btn.title='Số điện thoại · Gọi lại';
