@@ -101,6 +101,8 @@ jobs:
           node tests/test_v21_bank159_sms_parser.mjs
       - name: BANK-182 missing-time memo-reference strict review
         run: node tests/test_bank182_missing_time_reference.mjs
+      - name: BANK-183 unlinked bill candidate in Admin reconciliation table
+        run: node tests/test_bank183_unlinked_bill_candidate.mjs
       - name: Zalo Admin UI contract
         run: python -m pytest -q tests/test_v21_zalo_admin_ui_contract.py
       - name: Contact directory module syntax
