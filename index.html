@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="d4753086e50b01db92c5fb2a9e115267cb698fe5c023d3a85c63aad59a85fdda">
+<meta name="app-build-id" content="f2a852a6efcf81735dc13a4793a5b912d6839c55e6f369e5b481f280130c8218">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -26066,6 +26066,8 @@ async function openReviewDialog(bank,candidates){
  }
  const histories=existing.data?.reviews||[];
  if(histories.length){
+  save.disabled=true;
+  feedback.textContent='Khoản Agribank này đã có biên bản; không lập thêm để tránh trùng. Chưa ghi thu.';
   previous.appendChild(el('strong','','Biên bản đã ghi trước đây'));
   for(const h of histories){
    const at=new Date(h.recorded_at);
@@ -26077,6 +26079,7 @@ async function openReviewDialog(bank,candidates){
  }
  form.addEventListener('submit',async event=>{
   event.preventDefault();
+  if(histories.length){feedback.textContent='Đã có biên bản cho khoản này.';return;}
   const picked=radios.find(x=>x.checked);
   if(!picked||!reason.value||!verified.checked||explanation.value.trim().length<30){
    feedback.textContent='Chưa đủ ảnh chính, nguyên nhân, giải trình hoặc xác nhận đã xem chứng cứ.';
