@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "npm:@supabase/supabase-js@2.57.4";
 import {RULE_VERSION,SYSTEM_PROMPT,validateVisionRead,readV4Fields} from "./bill-amount-rules.mjs";
 import {previewBillSmsMatch,readIncomingAgribankSms} from "./bill-sms-preview.mjs";
-import {previewBillAppMatch} from "./bill-app-preview.mjs";
+import {previewBillAppMatch,previewBillReferenceMatch} from "./bill-app-preview.mjs";
 
 const db=createClient(Deno.env.get("SUPABASE_URL")||"",Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"",{auth:{persistSession:false,autoRefreshToken:false}});
 const response=(body:any,status=200)=>new Response(JSON.stringify(body),{status,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store"}});
@@ -133,13 +133,18 @@ Deno.serve(async req=>{
  // Compare the persisted bill without redownloading the image or calling Gemini.
  if(job.status==="amount_read"){
    const {data:r}=await db.from("chat_bank_bill_receipts")
-     .select("id,raw_read,amount_vnd,receiving_name,receiving_bank,receiving_account,transfer_at_vn,sent_at")
+     .select("id,raw_read,amount_vnd,receiving_name,receiving_bank,receiving_account,transfer_reference,transfer_at_vn,sent_at")
      .eq("media_asset_id",asset).eq("status","amount_read").maybeSingle();
    if(r?.raw_read?.rule_version==="bank_bill_amount_v4_20261018" &&
       Number.isSafeInteger(r.amount_vnd)&&r.amount_vnd>0){
      const tx=r.transfer_at_vn?Date.parse(String(r.transfer_at_vn).replace(" ","T")+"+07:00"):NaN;
-     if(Number.isFinite(tx)){
-       const lo=new Date(tx-5*60000),hi=new Date(tx+5*60000);
+     const refDay=String(r.raw_read?.transfer_date_vn||"");
+     const hasReference=!Number.isFinite(tx)&&/^\d{4}-\d{2}-\d{2}$/.test(refDay)
+       &&Boolean(r.transfer_reference&&r.raw_read?.transfer_content);
+     if(Number.isFinite(tx)||hasReference){
+       const center=Number.isFinite(tx)?tx:Date.parse(refDay+"T00:00:00+07:00");
+       const lo=new Date(Number.isFinite(tx)?center-5*60000:center);
+       const hi=new Date(Number.isFinite(tx)?center+5*60000:center+24*3600000-1);
        const vn=x=>new Date(x.getTime()+7*3600000).toISOString().slice(0,19).replace("T"," ");
        const [app,others]=await Promise.all([
          db.from("taphoa_agribank_notifications")
@@ -148,20 +153,25 @@ Deno.serve(async req=>{
            .eq("is_own_transfer",false).eq("bank_credit_account","2901181999999").eq("amount_vnd",r.amount_vnd)
            .gte("transfer_at",lo.toISOString()).lte("transfer_at",hi.toISOString()).limit(100),
          db.from("chat_bank_bill_receipts")
-           .select("media_asset_id,status,amount_vnd,transfer_at_vn,sent_at")
+           .select("media_asset_id,status,amount_vnd,transfer_at_vn,transfer_reference,raw_read,sent_at")
            .eq("amount_vnd",r.amount_vnd).neq("media_asset_id",asset)
-           .gte("transfer_at_vn",vn(lo)).lte("transfer_at_vn",vn(hi)).limit(100)
+           .gte(hasReference?"sent_at":"transfer_at_vn",hasReference?lo.toISOString():vn(lo))
+           .lte(hasReference?"sent_at":"transfer_at_vn",hasReference?hi.toISOString():vn(hi)).limit(100)
        ]);
        if(!app.error&&!others.error&&app.data&&others.data&&
           app.data.length<100&&others.data.length<100){
-         const match=previewBillAppMatch({
+         const candidate={
            media_asset_id:asset,status:"amount_read",amount_vnd:r.amount_vnd,sent_at:r.sent_at,
            receiving_name:r.receiving_name,receiving_bank:r.receiving_bank,
            receiving_account:r.receiving_account,
            receiving_account_last5:r.raw_read?.recipient_account_last5,
-           transfer_at_vn:r.transfer_at_vn,
+           transfer_at_vn:r.transfer_at_vn,transfer_date_vn:r.raw_read?.transfer_date_vn,
+           transfer_content:r.raw_read?.transfer_content,transfer_reference:r.transfer_reference,
            transaction_nature:r.raw_read?.transaction_nature
-         },app.data,others.data);
+         };
+         const match=hasReference
+           ?previewBillReferenceMatch(candidate,app.data,others.data)
+           :previewBillAppMatch(candidate,app.data,others.data);
          if(match?.status==="candidate_unique"&&Number.isSafeInteger(match.notification_id)){
            const {error:saveError}=await db.from("chat_bank_bill_receipts")
              .update({raw_read:{...r.raw_read,match_preview:match}})
@@ -254,15 +264,21 @@ Deno.serve(async req=>{
    const {status,reason,amount_vnd:amount}=verdict;
    let matchPreview:any={status:"review",reason:"bill_time_unreadable"};
    const tx=fields.transfer_at_vn?Date.parse(String(fields.transfer_at_vn).replace(" ","T")+"+07:00"):NaN;
-   if(status==="amount_read"&&amount&&Number.isFinite(tx)){
+   const hasReference=status==="amount_read"&&amount&&!Number.isFinite(tx)
+     &&Boolean(fields.transfer_date_vn&&fields.transfer_reference&&fields.transfer_content);
+   if(status==="amount_read"&&amount&&(Number.isFinite(tx)||hasReference)){
      try{
-       const lo=new Date(tx-5*60000),hi=new Date(tx+5*60000);
+       const center=Number.isFinite(tx)?tx:Date.parse(fields.transfer_date_vn+"T00:00:00+07:00");
+       if(!Number.isFinite(center))throw Error("invalid_bill_reference_day");
+       const lo=new Date(Number.isFinite(tx)?center-5*60000:center);
+       const hi=new Date(Number.isFinite(tx)?center+5*60000:center+24*3600000-1);
        const vn=x=>new Date(x.getTime()+7*3600000).toISOString().slice(0,19).replace("T"," ");
        const [otherRes,appRes]=await Promise.all([
          db.from("chat_bank_bill_receipts")
-           .select("media_asset_id,status,amount_vnd,transfer_at_vn,sent_at")
+           .select("media_asset_id,status,amount_vnd,transfer_at_vn,transfer_reference,raw_read,sent_at")
            .eq("amount_vnd",amount).neq("media_asset_id",asset)
-           .gte("transfer_at_vn",vn(lo)).lte("transfer_at_vn",vn(hi)).limit(100),
+           .gte(hasReference?"sent_at":"transfer_at_vn",hasReference?lo.toISOString():vn(lo))
+           .lte(hasReference?"sent_at":"transfer_at_vn",hasReference?hi.toISOString():vn(hi)).limit(100),
          db.from("taphoa_agribank_notifications")
            .select("id,package_name,posted_at,status,amount_vnd,body,is_own_transfer")
            .eq("package_name","com.vnpay.Agribank3g").eq("status","credit_candidate")
@@ -271,9 +287,13 @@ Deno.serve(async req=>{
        ]);
        if(otherRes.error||appRes.error||otherRes.data?.length===100||appRes.data?.length===100)
          matchPreview={status:"review",reason:"matching_data_incomplete"};
-       else matchPreview=previewBillAppMatch({
-         media_asset_id:asset,status,amount_vnd:amount,sent_at:job.sent_at,...fields
-       },appRes.data||[],otherRes.data||[]);
+       else matchPreview=hasReference
+         ?previewBillReferenceMatch({
+            media_asset_id:asset,status,amount_vnd:amount,sent_at:job.sent_at,...fields
+           },appRes.data||[],otherRes.data||[])
+         :previewBillAppMatch({
+            media_asset_id:asset,status,amount_vnd:amount,sent_at:job.sent_at,...fields
+           },appRes.data||[],otherRes.data||[]);
      }catch(_e){matchPreview={status:"review",reason:"matching_preview_unavailable"};}
    }
    const prior= status==="amount_read"&&amount
@@ -302,6 +322,8 @@ Deno.serve(async req=>{
       transaction_selection:fields.transaction_selection,
       transaction_nature:fields.transaction_nature,
       transaction_datetime_vn:fields.transfer_at_vn,
+      transfer_date_vn:fields.transfer_date_vn,
+      transfer_content:fields.transfer_content,
       transaction_time_precision:fields.transaction_time_precision,
       recipient_name:fields.receiving_name,receiving_bank:fields.receiving_bank,
       match_preview:storedPreview}});
