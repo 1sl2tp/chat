@@ -430,6 +430,8 @@ async function openReviewDialog(bank,candidates){
  }
  const histories=existing.data?.reviews||[];
  if(histories.length){
+  save.disabled=true;
+  feedback.textContent='Khoản Agribank này đã có biên bản; không lập thêm để tránh trùng. Chưa ghi thu.';
   previous.appendChild(el('strong','','Biên bản đã ghi trước đây'));
   for(const h of histories){
    const at=new Date(h.recorded_at);
@@ -441,6 +443,7 @@ async function openReviewDialog(bank,candidates){
  }
  form.addEventListener('submit',async event=>{
   event.preventDefault();
+  if(histories.length){feedback.textContent='Đã có biên bản cho khoản này.';return;}
   const picked=radios.find(x=>x.checked);
   if(!picked||!reason.value||!verified.checked||explanation.value.trim().length<30){
    feedback.textContent='Chưa đủ ảnh chính, nguyên nhân, giải trình hoặc xác nhận đã xem chứng cứ.';
