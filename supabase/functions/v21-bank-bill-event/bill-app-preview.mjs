@@ -68,12 +68,13 @@ function bankMemo(body){
 function sharedBankReference(reference,memo){
  const ref=String(reference||"").trim();
  if(!BANK_REF.test(ref)||!/\d{6,}/.test(ref)||!/[A-Za-z]/.test(ref))return false;
- const flat=tidy(memo),target=tidy(ref);
- const at=flat.indexOf(target);
+ const raw=String(memo||"").toUpperCase(),target=ref.toUpperCase();
+ const at=raw.indexOf(target);
  if(at<0)return false;
- // Never match a short reference embedded inside a larger transaction code.
- return target.length>=10 && (at===0||!/[\dA-Z]/.test(flat[at-1])) &&
-   (at+target.length===flat.length||!/[\dA-Z]/.test(flat[at+target.length]));
+ // The exact OCR reference must be delimited in the transfer memo.
+ return at===0||!/[\dA-Z]/.test(raw[at-1])
+   ?(at+target.length===raw.length||!/[\dA-Z]/.test(raw[at+target.length]))
+   :false;
 }
 export function previewBillReferenceMatch(bill,events,otherBills=[],now=Date.now()){
  if(bill?.status!=="amount_read"||!Number.isSafeInteger(bill.amount_vnd)||bill.amount_vnd<=0
