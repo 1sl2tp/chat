@@ -16,7 +16,13 @@ assert.equal(lookup(credit,[receipt]).length,1,'same amount, nearby image should
 assert.equal(lookup(credit,[{...receipt,amount_vnd:1586000}]).length,0);
 assert.equal(lookup(credit,[{...receipt,notice_id:'35',status:'received'}]).length,0);
 assert.equal(lookup(credit,[{...receipt,status:'duplicate'}]).length,0);
-assert.equal(lookup(credit,[{...receipt,sent_at:'2026-10-20T04:25:00Z'}]).length,0);
+assert.equal(lookup(credit,[{...receipt,sent_at:'2026-10-20T04:25:00Z'}]).length,1,
+ 'a later same-day second screenshot may be shown as supporting evidence, not counted as a new transfer');
+assert.equal(lookup(credit,[{...receipt,sent_at:'2026-10-21T04:25:00Z'}]).length,0,
+ 'different-day upload must not be suggested as the same-day proof');
+assert.equal(lookup(credit,[{...receipt,status:'review',amount_vnd:null,
+ reason:'multiple_transactions_ambiguous',sent_at:'2026-10-20T02:27:22Z'}]).length,1,
+ 'multi-row statement near bank credit is review evidence only, not a bill');
 assert.equal(lookup(credit,[{...receipt,asset_id:''}]).length,0);
 assert.equal(lookup(credit,[receipt,{...receipt,receipt_id:'bill-2',asset_id:'asset-2'}]).length,2,
  'two ambiguous bills must remain separate, never auto-assign a customer');
