@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
-import { buildNotificationPayload, buildCallInviteNotificationPayload, buildBankNotificationPayload, isGoneStatus, retryDelaySeconds } from "./push-core.mjs";
+import { buildNotificationPayload, buildCallInviteNotificationPayload, buildBankNotificationPayload, buildMissedChatCallPayload, isGoneStatus, retryDelaySeconds } from "./push-core.mjs";
 
 const headers={
   "Access-Control-Allow-Origin":"*",
@@ -104,10 +104,11 @@ Deno.serve(async(req:Request)=>{
     if(!vapid)return reply(503,{ok:false,code:"push_not_configured"});
 
     webpush.setVapidDetails(vapid.subject,vapid.publicKey,vapid.privateKey);
-    const [{data:claimed,error:claimError},{data:callClaimed,error:callClaimError},{data:bankClaimed,error:bankClaimError}]=await Promise.all([
+    const [{data:claimed,error:claimError},{data:callClaimed,error:callClaimError},{data:bankClaimed,error:bankClaimError},{data:missedClaimed,error:missedClaimError}]=await Promise.all([
       admin.rpc("v21_admin_push_claim",{p_limit:20}),
       admin.rpc("v21_call_invite_push_claim",{p_limit:20}),
       admin.rpc("chat_bank_admin_push_claim",{p_limit:15}),
+      admin.rpc("v21_missed_call_push_claim",{p_limit:12}),
     ]);
     if(claimError)return reply(500,{ok:false,code:"claim_failed"});
     if(callClaimError)return reply(500,{ok:false,code:"call_claim_failed"});
@@ -115,6 +116,8 @@ Deno.serve(async(req:Request)=>{
     // ordinary Chat Push while only the bank queue migration is pending.
     if(bankClaimError&&String(bankClaimError.code||'')!=='PGRST202')
       return reply(500,{ok:false,code:"bank_claim_failed"});
+    if(missedClaimError&&String(missedClaimError.code||'')!=='PGRST202')
+      return reply(500,{ok:false,code:"missed_claim_failed"});
 
     let delivered=0;
     let disabled=0;
@@ -122,6 +125,7 @@ Deno.serve(async(req:Request)=>{
     const rows=Array.isArray(claimed)?claimed:[];
     const callRows=Array.isArray(callClaimed)?callClaimed:[];
     const bankRows=Array.isArray(bankClaimed)?bankClaimed:[];
+    const missedRows=Array.isArray(missedClaimed)?missedClaimed:[];
 
     for(const claim of rows){
       const outboxId=String(claim?.outbox_id??"");
@@ -341,7 +345,71 @@ Deno.serve(async(req:Request)=>{
       if(transientError&&!terminal)retried++;
     }
 
-    return reply(200,{ok:true,claimed:rows.length,call_claimed:callRows.length,bank_claimed:bankRows.length,delivered,disabled,retried});
+
+    // CALL-186: distinct missed CHAT calls, not native iOS SIM calls.
+    // Revalidate every candidate before exposing a contact name in Web Push.
+    for(const claim of missedRows){
+      const id=String(claim?.id||"");
+      if(!id)continue;
+      const recipientId=String(claim?.recipient_account_id||"");
+      const contactId=String(claim?.contact_id||"");
+      const sourceId=String(claim?.source_id||"");
+      const kind=String(claim?.source_kind||"");
+      let terminal=false,transientError="";
+      try{
+        const [recipientR,contactR,subsR,sourceR]=await Promise.all([
+          admin.from("v21_accounts").select("id,role,deleted_at,locked_at").eq("id",recipientId).maybeSingle(),
+          admin.from("v21_accounts").select("id,display_name,username,role,deleted_at,locked_at").eq("id",contactId).maybeSingle(),
+          admin.from("v21_push_subscriptions").select("id,endpoint,p256dh,auth,enabled,failure_count")
+            .eq("account_id",recipientId).eq("enabled",true),
+          kind==="v21_call"
+            ?admin.from("v21_calls").select("id,status,accepted_at,caller_account_id,callee_account_id")
+              .eq("id",sourceId).maybeSingle()
+            :kind==="guest_invite"
+            ?admin.from("chat_call_invites")
+              .select("id,guest_joined_at,admin_joined_at,ended_at,revoked_at,contact_id,created_by_account_id")
+              .eq("id",sourceId).maybeSingle()
+            :Promise.resolve({data:null,error:null})
+        ]);
+        const err=recipientR.error||contactR.error||subsR.error||sourceR.error;
+        if(err)throw err;
+        const recipient=recipientR.data,contact=contactR.data,source=sourceR.data;
+        if(!recipient||recipient.role!=="admin"||recipient.deleted_at||recipient.locked_at||
+           !contact||contact.role!=="user"||contact.deleted_at||contact.locked_at||!source)
+          terminal=true;
+        if(kind==="v21_call"&&
+           (!["MISSED","CANCELLED"].includes(source?.status)||
+             source?.accepted_at||String(source?.caller_account_id)!==contactId||
+             String(source?.callee_account_id)!==recipientId))
+          terminal=true;
+        if(kind==="guest_invite"&&
+           (!source?.guest_joined_at||source?.admin_joined_at||
+            (!source?.ended_at&&!source?.revoked_at)||
+            String(source?.contact_id)!==contactId))
+          terminal=true;
+        if(!["v21_call","guest_invite"].includes(kind))terminal=true;
+        if(!terminal){
+          const payload=buildMissedChatCallPayload({
+            outbox_id:id,source_kind:kind,source_id:sourceId,contact_id:contactId,
+            contact_name:contact?.display_name||contact?.username
+          });
+          const outcome=await deliverToSubscriptions(admin,subsR.data||[],payload,"high");
+          delivered+=outcome.delivered;
+          disabled+=outcome.disabled;
+          transientError=outcome.transientError;
+        }
+      }catch(error){
+        transientError=clean((error as {message?:unknown})?.message||error,300)||"missed_call_push_failed";
+      }
+      const {error:ackError}=await admin.rpc("v21_missed_call_push_result",{
+        p_id:id,p_ok:terminal||!transientError,
+        p_error:terminal?"obsolete_or_forbidden":transientError||null
+      });
+      if(ackError)console.warn("missed_call_push_ack",clean(ackError.code,80));
+      if(transientError&&!terminal)retried++;
+    }
+
+    return reply(200,{ok:true,claimed:rows.length,call_claimed:callRows.length,bank_claimed:bankRows.length,missed_claimed:missedRows.length,delivered,disabled,retried});
   }
 
   const authHeader=req.headers.get("Authorization")??"";
