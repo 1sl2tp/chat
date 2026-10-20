@@ -18,7 +18,7 @@ def test_admin_only_review_audit_and_no_ledger_side_effects():
     assert "m.sender_account_id=a.id" in SQL
     assert "other.customer_account_id=v_receipt.customer_account_id" in SQL
     assert "l.notification_id=p_notice_id OR l.receipt_id=p_primary_receipt_id" in SQL
-    assert "'BUI XUAN TUNG chuyen tien'" in SQL
+    assert "BUI XUAN TUNG chuyen tien" in SQL
     assert "v_notice.is_own_transfer IS DISTINCT FROM FALSE" in SQL
     assert "v_notice.bank_credit_account IS DISTINCT FROM '2901181999999'" in SQL
     assert "'requires_additional_proof'" in SQL
@@ -46,7 +46,7 @@ def test_user_sees_exact_receipts_and_mandatory_explanation():
                      "chat_bank_manual_exception_record",
                      "p_original_checked:true","ledger_written!==false",
                      "Chưa ghi thu công nợ","requires_additional_proof",
-                     "selected.customer_id","p_supporting_receipt_ids:support"):
+                     "other.customer_id!==candidate.customer_id","p_supporting_receipt_ids:support"):
         assert fragment in JS,fragment
     assert 'bank-review-overlay' in CSS
     assert 'env(safe-area-inset-bottom,0px)' in CSS
