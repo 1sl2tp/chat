@@ -111,7 +111,10 @@ Deno.serve(async(req:Request)=>{
     ]);
     if(claimError)return reply(500,{ok:false,code:"claim_failed"});
     if(callClaimError)return reply(500,{ok:false,code:"call_claim_failed"});
-    if(bankClaimError)return reply(500,{ok:false,code:"bank_claim_failed"});
+    // During staged rollout the new RPC may not exist yet. Never block
+    // ordinary Chat Push while only the bank queue migration is pending.
+    if(bankClaimError&&String(bankClaimError.code||'')!=='PGRST202')
+      return reply(500,{ok:false,code:"bank_claim_failed"});
 
     let delivered=0;
     let disabled=0;
@@ -289,7 +292,7 @@ Deno.serve(async(req:Request)=>{
             String(l.notification_id)===noticeId&&l.ledger_id!==null));
         }
         const billDay=String(receipt?.transfer_at_vn||"").slice(0,10);
-        const sentDay=receipt?.sent_at?new Intl.DateTimeFormat("en-CA",{
+        const sentDay=receipt?.sent_at?new Intl.DateTimeFormat("sv-SE",{
           timeZone:"Asia/Ho_Chi_Minh",year:"numeric",month:"2-digit",day:"2-digit"
         }).format(new Date(receipt.sent_at)):"";
         const validBill=Boolean(receipt&&!isTestCustomer&&Number(receipt.amount_vnd)>0&&
