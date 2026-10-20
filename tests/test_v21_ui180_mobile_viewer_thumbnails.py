@@ -33,4 +33,7 @@ def test_existing_gallery_hydration_is_bounded_and_mobile_resizes_recover():
     assert "thumbs.addEventListener('scroll',()=>{" in APP
     assert "const margin=72;" in APP
     assert "scrollIntoView" in APP
-    assert "const SHELL_CACHE_EPOCH='viewer-thumbs180';" in SW
+    # Feature-specific shell epochs must advance without breaking UI-180.
+    import re
+    assert re.search(r"const SHELL_CACHE_EPOCH='[a-z0-9-]+';",SW)
+    assert "const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION+'-'+SHELL_CACHE_EPOCH;" in SW
