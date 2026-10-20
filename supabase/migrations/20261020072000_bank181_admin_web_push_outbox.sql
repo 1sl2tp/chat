@@ -56,6 +56,7 @@ BEGIN
     AND new.bank_credit_account='2901181999999' AND new.amount_vnd>0
     AND new.transfer_at IS NOT NULL
     AND new.package_name='com.vnpay.Agribank3g'
+    AND new.body NOT ILIKE '%BUI XUAN TUNG%'
  THEN
   PERFORM v21_private.chat_bank_admin_push_enqueue(
    'bank_only','bank:'||new.id::text,new.id,NULL,
@@ -104,6 +105,7 @@ BEGIN
     OR n.bank_credit_account<>'2901181999999'
     OR n.status<>'credit_candidate'
     OR n.package_name<>'com.vnpay.Agribank3g'
+    OR coalesce(n.body,'') ILIKE '%BUI XUAN TUNG%'
     OR lower(coalesce(v_username,''))='test'
     OR n.amount_vnd IS DISTINCT FROM r.amount_vnd
     OR r.transfer_at_vn IS NULL
