@@ -45,3 +45,41 @@ export function buildCallInviteNotificationPayload(row={}){
     icon:'./icons/chat-notification-icon-192-v4.png'
   };
 }
+
+/* BANK-181: transactional reconciliation events, not Chat message bubbles.
+   Stable tags replace stale credit/awaiting states when the match arrives. */
+export function buildBankNotificationPayload(row={}){
+  const kind=String(row.kind||'');
+  const amount=Number(row.amount_vnd||0);
+  const money=Number.isFinite(amount)&&amount>=0
+    ?new Intl.NumberFormat('vi-VN').format(amount)+'đ':'Chưa rõ số tiền';
+  const person=String(row.customer_name||'Khách hàng').trim().slice(0,64)||'Khách hàng';
+  const time=String(row.transfer_time||'').slice(0,5);
+  const date=String(row.business_date||'');
+  const bankId=String(row.notification_id||'');
+  const receiptId=String(row.receipt_id||'');
+  const title=kind==='matched'?'TAPHOA · Đối soát thành công'
+    :kind==='bank_only'?'TAPHOA · Tiền về'
+    :kind==='bill_waiting'?'TAPHOA · Có bill mới'
+    :'TAPHOA · Cần kiểm tra';
+  const body=kind==='matched'
+    ?person+' · '+money+' · Đã ghi thu chính xác'
+    :kind==='bank_only'
+    ?'+'+money+(time?' · '+time:'')+' · Chưa có bill, chưa ghi thu'
+    :kind==='bill_waiting'
+    ?person+' · '+money+' · Chờ Agribank xác nhận'
+    :person+' · '+(String(row.reason||'Bill cần tra soát').trim().slice(0,60))+' · Chưa ghi thu';
+  return {
+    kind:'bank_reconciliation',
+    notification_id:String(row.outbox_id||''),
+    bank_event_kind:kind,
+    bank_day:date,
+    bank_notice_id:bankId,
+    bank_receipt_id:receiptId,
+    conversation_id:'',
+    contact_id:String(row.report_contact_id||''),
+    title,body,
+    tag:bankId?'bank:notice:'+bankId:receiptId?'bank:receipt:'+receiptId:'bank:review:'+String(row.outbox_id||''),
+    icon:'./icons/chat-notification-icon-192-v4.png'
+  };
+}
