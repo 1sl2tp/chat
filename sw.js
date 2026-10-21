@@ -195,7 +195,7 @@ function preferredNotificationClient(clients,contactId,conversationId){
   const score=client=>{
     const state=adminPushClientState.get(client.id)||{};
     const pwa=String(state.platform||'').endsWith('-pwa')||state.platform==='pwa';
-    return (pwa?40:0)+
+    return (pwa?100:0)+
       (contactId&&String(state.contactId||'')===contactId?30:0)+
       (conversationId&&String(state.conversationId||'')===conversationId?25:0)+
       (client.visibilityState==='visible'?8:0)+
