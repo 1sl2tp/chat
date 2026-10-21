@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="7f4a4ddcee5ad71e841c6116bfc884504bc9ef02505b12f6306fa318df154c28">
+<meta name="app-build-id" content="8322c9f7673e4f1b18aee418d63693181ab3713fe76b422f0c94733aed6df88e">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -2095,6 +2095,68 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
   }
 }
 
+
+</style>
+<style data-inlined-source="customer-photo-library.css">
+/* On-demand customer media gallery. No new storage or background scans. */
+#customerPhotoLibrary[hidden]{display:none!important}
+#customerPhotoLibrary{
+  position:fixed;z-index:35;box-sizing:border-box;
+  overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+  background:var(--theme-surface-primary,#fff);
+  color:var(--theme-content-primary,#181818);
+  padding:0 14px max(22px,env(safe-area-inset-bottom,0px));
+}
+.customer-photo-header{
+  position:sticky;top:0;z-index:2;
+  display:flex;align-items:center;justify-content:space-between;gap:14px;
+  padding:16px 2px 12px;background:var(--theme-surface-primary,#fff);
+  border-bottom:1px solid var(--theme-border-default,#e5e7eb);
+}
+.customer-photo-title{min-width:0;display:flex;flex-direction:column;gap:4px}
+.customer-photo-title strong{font-size:17px;font-weight:680;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.customer-photo-caption{font-size:12px;color:var(--theme-content-secondary,#777)}
+.customer-photo-back,.customer-photo-more{
+  flex:0 0 auto;appearance:none;border:1px solid var(--theme-border-default,#dedede);
+  background:var(--theme-surface-secondary,#f5f5f5);color:inherit;
+  border-radius:10px;min-height:38px;padding:7px 12px;font-size:13px;cursor:pointer;
+}
+.customer-photo-empty{
+  margin:36px auto;padding:0 18px;max-width:360px;
+  text-align:center;color:var(--theme-content-secondary,#777);font-size:14px;line-height:1.55;
+}
+.customer-photo-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));
+  align-content:start;gap:5px;padding:16px 0;
+}
+.customer-photo-day{
+  grid-column:1/-1;margin:12px 2px 4px;
+  font-size:13px;font-weight:650;color:var(--theme-content-secondary,#666);
+}
+.customer-photo-tile{
+  display:block;position:relative;aspect-ratio:1;
+  min-width:0;min-height:0;overflow:hidden;border:0;border-radius:6px;padding:0;
+  background:var(--theme-surface-secondary,#f0f0f0);cursor:pointer;
+}
+.customer-photo-tile img{display:block;width:100%;height:100%;object-fit:cover}
+.customer-photo-tile:not([data-ready="true"]):after{
+  content:"";position:absolute;inset:35%;border:2px solid #b4b4b4;
+  border-top-color:transparent;border-radius:50%;animation:photo-loading 1s linear infinite;
+}
+.customer-photo-tile[data-failed="true"]:after{display:none}
+.customer-photo-tile[data-failed="true"]:before{
+  content:"Ảnh chưa tải";position:absolute;inset:0;display:grid;place-items:center;
+  color:var(--theme-content-secondary,#777);font-size:11px;
+}
+.customer-photo-tile:focus-visible{outline:3px solid #3b82f6;outline-offset:1px}
+.customer-photo-more{display:block;margin:3px auto 20px}
+@keyframes photo-loading{to{transform:rotate(360deg)}}
+@media(max-width:640px){
+ #customerPhotoLibrary{padding-inline:9px}
+ .customer-photo-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:3px}
+ .customer-photo-header{padding-top:10px}
+}
 
 </style>
 <style>
@@ -4534,7 +4596,7 @@ button{
 .top-mode-contact-avatar[hidden]{display:none!important}
 .top-mode-contact-avatar>img{width:100%;height:100%;display:block;object-fit:cover}
 .top-mode-tab[data-top-tab="chat"] [data-chat-tab-label]{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.top-mode-tab[data-top-tab="work"]{min-width:max-content;padding-inline:12px}
+.top-mode-tab[data-top-tab="work"],.top-mode-tab[data-top-tab="photos"]{min-width:max-content;padding-inline:12px}
 .compact-top-grid > .shell-icon-button{
   grid-column:1;
   justify-self:start;
@@ -6538,9 +6600,9 @@ button{
           <span class="shell-menu-unread-dot" data-menu-unread-dot hidden aria-hidden="true"></span>
         </button>
 
-        <div class="top-mode-switch" role="tablist" aria-label="Chế độ làm việc">
+        <div class="top-mode-switch" role="tablist" aria-label="Trò chuyện và ảnh">
           <button type="button" class="top-mode-tab" role="tab" aria-selected="true" data-top-tab="chat" data-nav-target="chat"><span class="top-mode-contact-avatar" data-chat-tab-avatar hidden></span><span data-chat-tab-label>Trò chuyện</span></button>
-          <button type="button" class="top-mode-tab" role="tab" aria-selected="false" data-top-tab="work" data-nav-target="work">Công việc</button>
+          <button type="button" class="top-mode-tab" role="tab" aria-selected="false" data-top-tab="photos" data-nav-target="photos">Ảnh</button>
         </div>
 
         <div class="call-focus-slot" data-call-focus-slot data-call-ui-state="idle">
@@ -6641,6 +6703,7 @@ button{
               <div id="messageWindow" data-chat-thread-node></div>
               <div id="bottomSpacer" data-chat-thread-node aria-hidden="true"></div>
             </div>
+            <section id="customerPhotoLibrary" role="region" aria-label="Thư viện ảnh của khách hàng" hidden></section>
             <div id="workThreadView" class="thread-mode-view" data-thread-view="work" hidden>
               <div class="work-thread-frame" data-work-owner="chat">
                 <div class="work-summary-root" data-work-summary-root role="region" aria-label="Tổng hợp hàng hóa" aria-live="polite"></div>
@@ -10406,10 +10469,13 @@ async function showImageViewerIndex(index,{behavior='smooth'}={}){
   return true;
 }
 
-async function openImageViewer({assetId,accountId=currentMediaAccountId(),previewUrl='',messageId=''}={}){
+async function openImageViewer({assetId,accountId=currentMediaAccountId(),previewUrl='',messageId='',items:externalItems=null}={}){
   ensureImageViewer();
   const id=String(assetId||'');
-  const items=collectConversationImageAssets();
+  const items=Array.isArray(externalItems)&&externalItems.length
+    ?externalItems.filter(item=>item?.assetId&&String(item.accountId||'')===String(currentMediaAccountId()||''))
+      .map(item=>({...item}))
+    :collectConversationImageAssets();
   const existingIndex=items.findIndex(item=>item.assetId===id);
   if(existingIndex>=0&&previewUrl)items[existingIndex]={...items[existingIndex],previewUrl:String(previewUrl)};
   else if(id&&existingIndex<0){
@@ -15736,6 +15802,9 @@ window.V21ConversationBridge={
   },
   snapshot(){return{size:store.size,viewportMode:viewport.mode};}
 };
+
+// The customer photo library opens the same verified full-screen viewer.
+window.V21ChatImageViewer=Object.freeze({open:openImageViewer});
 
 window.ChatScreenModule={
   version:'V21.72.39',
@@ -25667,6 +25736,214 @@ window.V21PushSyncBridge={
 };
 
 queueMicrotask(()=>{void onAuth(authSnapshot());});
+})();
+
+</script>
+<script data-inlined-source="customer-photo-library.js">
+(()=>{
+'use strict';
+// Customer Photos is an on-demand view of already synchronized Chat media.
+// Work's implementation and database are deliberately left untouched.
+const host=document.getElementById('customerPhotoLibrary');
+if(!host)return;
+let generation=0,moreCount=60,records=[],observer=null,refreshTimer=0;
+const objectUrls=new Map();
+const el=(tag,cls,text)=>{
+  const node=document.createElement(tag);
+  if(cls)node.className=cls;
+  if(text!==undefined)node.textContent=text;
+  return node;
+};
+const auth=()=>window.V21AuthSessionStore?.snapshot?.()||{};
+const current=()=>window.ChatAppShell?.snapshot?.()||{};
+function release(){
+  observer?.disconnect();observer=null;
+  for(const src of objectUrls.values())URL.revokeObjectURL(src);
+  objectUrls.clear();
+}
+function layout(){
+  if(host.hidden)return;
+  const header=document.getElementById('regionTop')?.getBoundingClientRect();
+  const pane=document.getElementById('scrollRoot')?.getBoundingClientRect();
+  if(!pane)return;
+  const top=Math.max(pane.top,header?.bottom||pane.top);
+  host.style.top=top+'px';
+  host.style.left=pane.left+'px';
+  host.style.width=pane.width+'px';
+  host.style.height=Math.max(0,pane.bottom-top)+'px';
+}
+function imageMeta(row,conversationId){
+  const meta=row?.remote_meta||{};
+  const kind=String(meta.kind||'');
+  const mime=String(meta.mime_type||row?.mime_type||'');
+  return !meta.deleted_at&&String(meta.conversation_id||'')===conversationId&&
+    (kind==='image'||mime.startsWith('image/'))&&Boolean(meta.id||row.asset_id);
+}
+function photoItems(rows,conversationId,accountId){
+  return (Array.isArray(rows)?rows:[])
+    .filter(row=>imageMeta(row,conversationId))
+    .map(row=>({
+      id:String(row.remote_meta?.id||row.asset_id),
+      accountId:String(accountId),
+      messageId:String(row.remote_meta?.message_id||''),
+      createdAt:Date.parse(row.remote_meta?.created_at||'')||0,
+      senderKey:String(row.remote_meta?.owner_account_id||'')===String(accountId)?'self':'remote',
+      width:Number(row.remote_meta?.width_px)||null,
+      height:Number(row.remote_meta?.height_px)||null
+    }))
+    .sort((a,b)=>b.createdAt-a.createdAt||a.id.localeCompare(b.id));
+}
+function dateLabel(ms){
+  if(!ms)return 'Không rõ ngày';
+  try{return new Intl.DateTimeFormat('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(ms));}
+  catch{return 'Không rõ ngày';}
+}
+function allViewerItems(){
+  return records.map(item=>({
+    assetId:item.id,accountId:item.accountId,messageId:item.messageId,
+    senderKey:item.senderKey,createdAt:item.createdAt,width:item.width,height:item.height
+  }));
+}
+async function hydrate(button,item,token){
+  const img=button.querySelector('img');
+  if(!img||token!==generation||host.hidden)return;
+  try{
+    let media=await window.V21MediaCache?.get?.({accountId:item.accountId,assetId:item.id});
+    if(!(media?.blob instanceof Blob)){
+      media=await window.V21SyncEngine?.ensureMediaRemote?.({
+        accountId:item.accountId,assetId:item.id
+      })||media;
+    }
+    if(token!==generation||host.hidden||!button.isConnected)return;
+    if(!(media?.blob instanceof Blob)){button.dataset.failed='true';return;}
+    const src=URL.createObjectURL(media.blob);
+    const prior=objectUrls.get(item.id);
+    if(prior&&prior!==src)URL.revokeObjectURL(prior);
+    objectUrls.set(item.id,src);
+    img.src=src;
+    button.dataset.ready='true';
+  }catch{if(button.isConnected)button.dataset.failed='true';}
+}
+function appendTiles(grid,items,token){
+  if(typeof IntersectionObserver!=='undefined'&&!observer){
+    observer=new IntersectionObserver(entries=>{
+      for(const entry of entries){
+        if(!entry.isIntersecting)continue;
+        observer.unobserve(entry.target);
+        const item=entry.target._photoItem;
+        if(item)void hydrate(entry.target,item,token);
+      }
+    },{root:host,rootMargin:'150px'});
+  }
+  let label='';
+  for(const item of items){
+    const day=dateLabel(item.createdAt);
+    if(day!==label){
+      label=day;
+      grid.appendChild(el('h3','customer-photo-day',day));
+    }
+    const button=el('button','customer-photo-tile');
+    button.type='button';
+    button.setAttribute('aria-label','Xem ảnh ngày '+day);
+    button._photoItem=item;
+    const img=el('img');
+    img.alt='';
+    img.loading='lazy';img.decoding='async';
+    button.appendChild(img);
+    button.addEventListener('click',()=>window.V21ChatImageViewer?.open?.({
+      assetId:item.id,accountId:item.accountId,messageId:item.messageId,
+      items:allViewerItems()
+    }));
+    grid.appendChild(button);
+    if(observer)observer.observe(button);
+    else if(grid.childElementCount<=15)void hydrate(button,item,token);
+  }
+}
+async function render(){
+  const token=++generation;
+  release();
+  host.replaceChildren();
+  if(current().route!=='photos'){host.hidden=true;return;}
+  host.hidden=false;
+  layout();
+  const acct=auth();
+  const accountId=String(acct.account?.id||'');
+  const contact=current().activeContact;
+  const heading=el('header','customer-photo-header');
+  const title=el('div','customer-photo-title');
+  title.appendChild(el('strong','', 'Ảnh của '+String(contact?.name||'khách hàng')));
+  const caption=el('span','customer-photo-caption','Ảnh đã đồng bộ trong Chat');
+  title.appendChild(caption);
+  const close=el('button','customer-photo-back','Trò chuyện');
+  close.type='button';
+  close.addEventListener('click',()=>window.ChatAppShell?.NavigationCommand?.openChat?.());
+  heading.append(title,close);
+  host.appendChild(heading);
+  if(acct.state!=='AUTHENTICATED'||!accountId||!contact?.id){
+    host.appendChild(el('p','customer-photo-empty','Chọn một khách hàng trong Danh bạ để xem ảnh.'));
+    return;
+  }
+  const contactRow=(window.V21ContactStore?.snapshot?.()||[])
+    .find(row=>String(row?.id||'')===String(contact.id));
+  const conversationId=String(contactRow?.conversation_id||'');
+  if(!conversationId){
+    host.appendChild(el('p','customer-photo-empty','Đang chờ hội thoại được đồng bộ. Hãy mở tin nhắn của khách hàng trước.'));
+    return;
+  }
+  const loading=el('p','customer-photo-empty','Đang đọc thư viện ảnh…');
+  host.appendChild(loading);
+  try{
+    const rows=await window.V21CacheStore?.listMediaRecords?.(accountId)||[];
+    if(token!==generation||host.hidden||
+      String(current().activeContact?.id||'')!==String(contact.id))return;
+    records=photoItems(rows,conversationId,accountId);
+    loading.remove();
+    caption.textContent=records.length+' ảnh đã đồng bộ';
+    if(!records.length){
+      host.appendChild(el('p','customer-photo-empty','Chưa tìm thấy ảnh đã đồng bộ của khách hàng này. Ảnh cũ sẽ xuất hiện khi lịch sử hội thoại được tải.'));
+      return;
+    }
+    const grid=el('div','customer-photo-grid');
+    host.appendChild(grid);
+    appendTiles(grid,records.slice(0,moreCount),token);
+    if(moreCount<records.length){
+      const more=el('button','customer-photo-more','Xem thêm ảnh');
+      more.type='button';
+      more.addEventListener('click',()=>{
+        moreCount+=60;
+        void render();
+      });
+      host.appendChild(more);
+    }
+  }catch{
+    loading.textContent='Không đọc được ảnh đã lưu trên thiết bị. Vui lòng mở lại Chat.';
+  }
+}
+function switchView(){
+  const show=current().route==='photos';
+  if(!show){generation++;release();host.hidden=true;host.replaceChildren();return;}
+  moreCount=60;
+  void render();
+}
+document.addEventListener('navigation-change',switchView);
+document.addEventListener('v21-active-contact-change',()=>{
+  if(current().route==='photos'){moreCount=60;void render();}
+});
+document.addEventListener('v21-auth-state',()=>{
+  if(current().route==='photos')void render();
+  else {generation++;release();}
+});
+document.addEventListener('v21-media-ready',()=>{
+  if(current().route!=='photos'||refreshTimer)return;
+  refreshTimer=setTimeout(()=>{refreshTimer=0;if(current().route==='photos')void render();},600);
+});
+document.addEventListener('v21-media-removed',()=>{
+  if(current().route==='photos')void render();
+});
+window.addEventListener('resize',layout,{passive:true});
+window.visualViewport?.addEventListener('resize',layout,{passive:true});
+window.V21CustomerPhotos=Object.freeze({open:()=>window.ChatAppShell?.NavigationCommand?.openPhotos?.(),refresh:render,photoItems});
+switchView();
 })();
 
 </script>
