@@ -1249,6 +1249,36 @@ function findRenderedContactRow(id){
   return [...document.querySelectorAll('[data-contact-row]')].find(row=>String(row.dataset.contactId)===String(id))||null;
 }
 
+// Preserve the contact the user is looking at when live activity reorders
+// the directory. A numeric scrollTop alone can make the visible list jump.
+function captureDirectoryViewport(scrollHost,host){
+  if(!scrollHost||!host)return null;
+  const top=Number(scrollHost.scrollTop)||0;
+  if(top<=2)return {top:0,atStart:true};
+  const bounds=scrollHost.getBoundingClientRect?.();
+  if(!bounds)return {top};
+  const row=[...host.querySelectorAll('[data-contact-row]')].find(item=>
+    !item.hidden&&item.getBoundingClientRect?.().bottom>bounds.top+1
+  );
+  return row?{top,id:String(row.dataset.contactId||''),
+    offset:row.getBoundingClientRect().top-bounds.top}:{top};
+}
+function restoreDirectoryViewport(scrollHost,host,anchor){
+  if(!scrollHost||!anchor)return;
+  if(anchor.atStart){scrollHost.scrollTop=0;return;}
+  const row=anchor.id?[...host.querySelectorAll('[data-contact-row]')].find(item=>
+    !item.hidden&&String(item.dataset.contactId||'')===anchor.id
+  ):null;
+  const bounds=scrollHost.getBoundingClientRect?.();
+  if(row&&bounds&&row.getBoundingClientRect){
+    const delta=row.getBoundingClientRect().top-bounds.top-anchor.offset;
+    scrollHost.scrollTop=anchor.top+delta;
+  }else scrollHost.scrollTop=anchor.top;
+}
+window.V21DirectoryViewport=Object.freeze({
+  capture:captureDirectoryViewport,restore:restoreDirectoryViewport
+});
+
 function createRenderedContactRow(item){
   const row=document.createElement('div');
   row.className='shell-contact-row';
@@ -1450,7 +1480,8 @@ const AuthUI={
     const host=document.querySelector('[data-v21-contact-list]');
     if(!host)return;
     const scrollHost=host.closest('.wm-sidebar-navigation');
-    const previousScrollTop=scrollHost?.scrollTop||0;
+    const viewport=window.V21DirectoryViewport;
+    const scrollAnchor=viewport.capture(scrollHost,host);
     const items=Array.isArray(contacts)?contacts.filter(item=>item&&item.id&&!item.deleted_at):[];
     const existingById=new Map(
       [...host.querySelectorAll('[data-contact-row]')].map(row=>[String(row.dataset.contactId||''),row])
@@ -1465,7 +1496,7 @@ const AuthUI={
       host.appendChild(empty);
       // Renderer owns DOM only. Navigation/session owner decides whether the
       // active contact should change when the list becomes empty.
-      if(scrollHost)scrollHost.scrollTop=previousScrollTop;
+      viewport.restore(scrollHost,host,scrollAnchor);
       return;
     }
 
@@ -1492,7 +1523,7 @@ const AuthUI={
     // Rendering contacts must never select, clear or rename the active
     // conversation. User navigation / explicit session restore owns that.
     syncContactActiveState();
-    if(scrollHost)scrollHost.scrollTop=previousScrollTop;
+    viewport.restore(scrollHost,host,scrollAnchor);
   },
   patchContact(item){
     if(patchRenderedContact(item)){syncContactActiveState();return true;}
