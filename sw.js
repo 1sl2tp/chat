@@ -3,7 +3,7 @@ const RELEASE_VERSION='V21.72.39';
 const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 // BANK-177: reload one-time cached shell for the live bank reconciliation table.
 // Keep offline-first startup; do not add per-navigation network requests.
-const SHELL_CACHE_EPOCH='ios-call186';
+const SHELL_CACHE_EPOCH='call-icon-refresh-20261021';
 const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION+'-'+SHELL_CACHE_EPOCH;
 const AVATAR_CACHE_NAME='taphoa-chat-avatars-v1';
 const SUPABASE_ASSET_HOST_RE=/^[a-z0-9]+\.supabase\.co$/i;
@@ -280,7 +280,13 @@ self.addEventListener('fetch',event=>{
     return;
   }
   if(request.mode==='navigate'){
-    event.respondWith(navigationCachedThenNetwork(request,event));
+    // Explicit app-build reloads must bypass the old offline shell. Normal
+    // launches remain cache-first; network failures still use the saved shell.
+    if(url.searchParams.has('__build')||request.cache==='reload'||request.cache==='no-cache'){
+      event.respondWith(networkFirst(request,{navigation:true}));
+    }else{
+      event.respondWith(navigationCachedThenNetwork(request,event));
+    }
     return;
   }
   event.respondWith(networkFirst(request));
