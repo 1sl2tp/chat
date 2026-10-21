@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="0a3ba446198a0fac8964959c76492a8b66d803ed5444d89e9ee5ef381db2f6f4">
+<meta name="app-build-id" content="bdffd67a4a77df0c1dd37ea5b8927efb5859998cda11473a69afed14f1897d8c">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -2427,10 +2427,20 @@ button{
 /* UI-156 — compact day dividers and a non-layout floating scroll date. */
 .message-day-separator{
   display:flex;
+  align-items:center;
   justify-content:center;
+  gap:10px;
   width:100%;
-  margin:14px 0 12px;
+  margin:18px 0 16px;
   pointer-events:none;
+}
+.message-day-separator::before,.message-day-separator::after{
+  content:"";
+  flex:1 1 0;
+  max-width:96px;
+  height:1px;
+  background:var(--theme-border-default);
+  opacity:.65;
 }
 #messageWindow>.message-row:first-child .message-day-separator{margin-top:0}
 .message-day-separator-label,
@@ -2473,7 +2483,10 @@ button{
   transform:translateX(-50%);
   overflow:hidden;
   text-overflow:ellipsis;
-  box-shadow:0 2px 8px rgba(15,23,42,.10);
+  background:var(--theme-surface-primary);
+  box-shadow:0 3px 12px rgba(15,23,42,.12);
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
 }
 @media(prefers-reduced-motion:reduce){.message-day-floating{transition:none}}
 
