@@ -185,6 +185,26 @@ self.addEventListener('push',event=>{
   })());
 });
 
+// Notification clicks must target the active Chat/PWA client, not the first
+// arbitrary tab returned by matchAll (which may belong to another window).
+function preferredNotificationClient(clients,contactId,conversationId){
+  const origin=self.location.origin;
+  const candidates=(clients||[]).filter(client=>{
+    try{return new URL(client.url).origin===origin;}catch{return false;}
+  });
+  const score=client=>{
+    const state=adminPushClientState.get(client.id)||{};
+    const pwa=String(state.platform||'').endsWith('-pwa')||state.platform==='pwa';
+    return (pwa?40:0)+
+      (contactId&&String(state.contactId||'')===contactId?30:0)+
+      (conversationId&&String(state.conversationId||'')===conversationId?25:0)+
+      (client.visibilityState==='visible'?8:0)+
+      (state.focused?4:0)+(state.route==='chat'?2:0);
+  };
+  candidates.sort((a,b)=>score(b)-score(a));
+  return candidates[0]||null;
+}
+
 self.addEventListener('notificationclick',event=>{
   event.notification?.close?.();
   event.waitUntil((async()=>{
@@ -199,8 +219,8 @@ self.addEventListener('notificationclick',event=>{
     const bankStatus=String(data.bankStatus||'');
     const missedCallId=String(data.missedCallId||'');
     const clients=await self.clients.matchAll({type:'window',includeUncontrolled:true});
-    if(clients.length){
-      const client=clients[0];
+    const client=preferredNotificationClient(clients,contactId,conversationId);
+    if(client){
       try{await client.focus?.();}catch{}
       try{
         if(kind==='call_invite'){
