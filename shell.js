@@ -2,7 +2,9 @@
 (()=>{
 'use strict';
 
-const ROUTES=Object.freeze(['chat','work']);
+const ROUTES=Object.freeze(['chat','work','photos']);
+// Work is temporarily hidden; preserve its code and data for later reactivation.
+const WORK_ENABLED=false;
 const screenHost=document.getElementById('screenHost');
 const activeScreenSlot=document.getElementById('activeScreenSlot');
 const chatScreen=document.getElementById('chatScreen');
@@ -88,7 +90,7 @@ function readScreenSession(accountId){
 }
 
 function desktopWorkspaceEnabled(){
-  return authState==='AUTHENTICATED'&&desktopWorkspaceMedia.matches;
+  return WORK_ENABLED&&authState==='AUTHENTICATED'&&desktopWorkspaceMedia.matches;
 }
 
 function syncDesktopWorkOwner(desktopWorkspace){
@@ -116,9 +118,9 @@ function applyRoutePresentation(){
   syncDesktopWorkOwner(desktopWorkspace);
   const chatNodes=document.querySelectorAll('[data-chat-thread-node]');
   for(const node of chatNodes)node.hidden=desktopWorkspace?false:route!=='chat';
-  const hideWork=!desktopWorkspace&&route==='work';
+  const hideWork=!desktopWorkspace&&(route==='work'||route==='photos');
   if(workView){
-    workView.hidden=desktopWorkspace?false:route!=='work';
+    workView.hidden=WORK_ENABLED&&(desktopWorkspace||route==='work')?false:true;
     workView.style.height=hideWork?'calc(100svh - var(--header-height,72px))':'';
   }
   const composer=document.getElementById('thread-bottom-container');
@@ -126,6 +128,8 @@ function applyRoutePresentation(){
     composer.hidden=hideWork;
     composer.style.display=hideWork?'none':'';
   }
+  const photoView=document.getElementById('customerPhotoLibrary');
+  if(photoView)photoView.hidden=route!=='photos';
   renderTopTabs();
   renderChatTabIdentity();
   renderCallFocus();
@@ -340,6 +344,7 @@ function setMobileRouteTransition(previousRoute,nextRoute){
 const NavigationCommand={
   open(nextRoute){
     if(!ROUTES.includes(nextRoute))return false;
+    if(nextRoute==='work'&&!WORK_ENABLED)nextRoute='photos';
     const previousRoute=route;
     if(previousRoute!==nextRoute){
       document.dispatchEvent(new CustomEvent('navigation-will-change',{
@@ -355,7 +360,8 @@ const NavigationCommand={
     return true;
   },
   openChat(){return this.open('chat')},
-  openWork(){return this.open('work')},
+  openWork(){return this.open(WORK_ENABLED?'work':'photos')},
+  openPhotos(){return this.open('photos')},
   clearActiveContact(){
     if(authState!=='AUTHENTICATED')return false;
     setActiveContact(null,null);
