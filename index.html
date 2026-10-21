@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="a658edcbec64b85682d9f82b6f064b9b24be1cfd72cd3de98be4d3429b465fec">
+<meta name="app-build-id" content="0a3ba446198a0fac8964959c76492a8b66d803ed5444d89e9ee5ef381db2f6f4">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -10284,27 +10284,15 @@ function ensureImageViewer(){
 
   main.addEventListener('wheel',event=>{
     if(event.target instanceof Element&&event.target.closest('button'))return;
-    // When unzoomed, a wheel gesture browses photos instead of unexpectedly
-    // zooming the current one. Ctrl/Cmd+wheel and zoomed views still zoom.
-    const browse=imageViewerZoom<=1&&imageViewerItems.length>1&&!event.ctrlKey&&!event.metaKey;
-    if(browse){
-      event.preventDefault();
-      const now=performance.now();
-      if(now-imageViewerWheelLastEventAt>260)imageViewerWheelAccumulator=0;
-      imageViewerWheelLastEventAt=now;
-      const delta=Math.abs(event.deltaY)>=Math.abs(event.deltaX)?event.deltaY:event.deltaX;
-      imageViewerWheelAccumulator+=delta;
-      if(Math.abs(imageViewerWheelAccumulator)<70||now-imageViewerWheelLastStepAt<320)return;
-      const direction=imageViewerWheelAccumulator>0?1:-1;
-      imageViewerWheelAccumulator=0;
-      imageViewerWheelLastStepAt=now;
-      const next=Math.max(0,Math.min(imageViewerItems.length-1,imageViewerIndex+direction));
-      if(next!==imageViewerIndex)void showImageViewerIndex(next);
-      return;
-    }
-    const factor=Math.exp(-event.deltaY*.0018);
-    setImageViewerZoom(imageViewerZoom*factor,{clientX:event.clientX,clientY:event.clientY});
+    // Wheel/trackpad vertical movement always zooms the selected photo,
+    // including at 100%. Left/right photo navigation has its own arrows,
+    // thumbnail strip and swipe gestures; never hijack the zoom wheel.
+    const units=event.deltaMode===1?16:event.deltaMode===2?main.clientHeight:1;
+    const delta=Number(event.deltaY)*units;
+    if(!Number.isFinite(delta)||Math.abs(delta)<.01)return;
     event.preventDefault();
+    const factor=Math.exp(-delta*.0018);
+    setImageViewerZoom(imageViewerZoom*factor,{clientX:event.clientX,clientY:event.clientY});
   },{passive:false});
 
   image.addEventListener('dblclick',event=>{
@@ -10661,8 +10649,11 @@ function messageTimestampMs(message){
 function messageDateKey(timestamp){
   const stamp=typeof timestamp==='number'?timestamp:Date.parse(timestamp);
   if(!Number.isFinite(stamp)||stamp<=0)return '';
-  const date=new Date(stamp);
-  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+  // All Chat day boundaries follow Vietnam time, independent of the host
+  // browser timezone. Otherwise admin and iOS PWA split days differently.
+  return new Intl.DateTimeFormat('en-CA',{
+    timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'
+  }).format(new Date(stamp));
 }
 
 function formatMessageDayLabel(timestamp,{includeDate=false,now=new Date()}={}){
@@ -10671,12 +10662,17 @@ function formatMessageDayLabel(timestamp,{includeDate=false,now=new Date()}={}){
   const date=new Date(stamp);
   const nowDate=now instanceof Date?now:new Date(now);
   if(Number.isNaN(nowDate.getTime()))return '';
-  const dayOrdinal=value=>Math.floor(Date.UTC(value.getFullYear(),value.getMonth(),value.getDate())/86400000);
-  const dayDiff=dayOrdinal(nowDate)-dayOrdinal(date);
-  const exactDate=date.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const vnDayOrdinal=value=>{
+    const key=messageDateKey(value.getTime());
+    if(!key)return NaN;
+    const [year,month,day]=key.split('-').map(Number);
+    return Math.floor(Date.UTC(year,month-1,day)/86400000);
+  };
+  const dayDiff=vnDayOrdinal(nowDate)-vnDayOrdinal(date);
+  const exactDate=date.toLocaleDateString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',day:'2-digit',month:'2-digit',year:'numeric'});
   if(dayDiff===0)return includeDate?`Hôm nay · ${exactDate}`:'Hôm nay';
   if(dayDiff===1)return includeDate?`Hôm qua · ${exactDate}`:'Hôm qua';
-  return date.toLocaleDateString('vi-VN',{weekday:'long',day:'numeric',month:'numeric',year:'numeric'});
+  return date.toLocaleDateString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',weekday:'long',day:'numeric',month:'numeric',year:'numeric'});
 }
 
 function messageDaySeparatorLabel(message,{now}={}){
@@ -12089,6 +12085,16 @@ function hideMessageDayFloating({immediate=false}={}){
   }
 }
 
+function inlineDaySeparatorVisible(cutoff,viewBottom){
+  // The in-flow day marker is the single owner when any actual day boundary
+  // is visible. Avoid showing a second floating date above another divider.
+  for(const separator of messageWindow.querySelectorAll('.message-day-separator')){
+    const rect=separator.getBoundingClientRect();
+    if(rect.bottom>cutoff&&rect.top<viewBottom)return true;
+  }
+  return false;
+}
+
 function updateMessageDayFloating(){
   if(!messageDayFloating||!messageDayFloatingLabel||!chatRouteVisible()||!store.size){
     hideMessageDayFloating({immediate:true});
@@ -12097,6 +12103,10 @@ function updateMessageDayFloating(){
   const rootRect=scrollRoot.getBoundingClientRect();
   const headerRect=regionTop.getBoundingClientRect();
   const cutoff=Math.max(rootRect.top,headerRect.bottom)+6;
+  if(inlineDaySeparatorVisible(cutoff,rootRect.bottom)){
+    hideMessageDayFloating({immediate:true});
+    return false;
+  }
   let visibleNode=null;
   for(const node of messageWindow.children){
     const rect=node.getBoundingClientRect();
