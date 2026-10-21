@@ -2506,10 +2506,13 @@ async function showImageViewerIndex(index,{behavior='smooth'}={}){
   return true;
 }
 
-async function openImageViewer({assetId,accountId=currentMediaAccountId(),previewUrl='',messageId=''}={}){
+async function openImageViewer({assetId,accountId=currentMediaAccountId(),previewUrl='',messageId='',items:externalItems=null}={}){
   ensureImageViewer();
   const id=String(assetId||'');
-  const items=collectConversationImageAssets();
+  const items=Array.isArray(externalItems)&&externalItems.length
+    ?externalItems.filter(item=>item?.assetId&&String(item.accountId||'')===String(currentMediaAccountId()||''))
+      .map(item=>({...item}))
+    :collectConversationImageAssets();
   const existingIndex=items.findIndex(item=>item.assetId===id);
   if(existingIndex>=0&&previewUrl)items[existingIndex]={...items[existingIndex],previewUrl:String(previewUrl)};
   else if(id&&existingIndex<0){
@@ -7836,6 +7839,9 @@ window.V21ConversationBridge={
   },
   snapshot(){return{size:store.size,viewportMode:viewport.mode};}
 };
+
+// The customer photo library opens the same verified full-screen viewer.
+window.V21ChatImageViewer=Object.freeze({open:openImageViewer});
 
 window.ChatScreenModule={
   version:'V21.72.39',
