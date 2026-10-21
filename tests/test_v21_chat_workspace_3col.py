@@ -66,6 +66,7 @@ assert '#appShell[data-auth-state="authenticated"][data-desktop-workspace="true"
 # Mobile/narrow layout keeps the existing one-view-at-a-time route model.
 assert "const ROUTES=Object.freeze(['chat','work','photos']);" in SHELL
 assert "route!=='chat'" in SHELL
-assert "route!=='work'" in SHELL
+assert "const WORK_ENABLED=false;" in SHELL
+assert "route==='photos'" in SHELL
 
 print("desktop chat workspace responsive 2/3-column + identity fit contract PASS")
