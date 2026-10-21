@@ -31,7 +31,8 @@ def test_directory_activity_refresh_preserves_viewport_and_manual_filter_keeps_p
     # viewport belongs to the user. Opening/marking a conversation read must
     # never force the sidebar back to row 1.
     assert "function syncDirectoryRows({scrollToTop=false}={})" in module
-    assert "scrollHost.scrollTop=scrollToTop?0:previousScrollTop" in module
+    assert "if(scrollToTop)scrollHost.scrollTop=0" in module
+    assert "else if(scrollAnchor)viewport.restore(scrollHost,host,scrollAnchor)" in module
     assert "function scheduleSync({scrollToTop=false}={})" in module
     assert "syncDirectoryRows({scrollToTop})" in module
     assert "document.addEventListener('v21-contact-store-change',()=>scheduleSync())" in module
