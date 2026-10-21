@@ -302,10 +302,20 @@ button{
 /* UI-156 — compact day dividers and a non-layout floating scroll date. */
 .message-day-separator{
   display:flex;
+  align-items:center;
   justify-content:center;
+  gap:10px;
   width:100%;
-  margin:14px 0 12px;
+  margin:18px 0 16px;
   pointer-events:none;
+}
+.message-day-separator::before,.message-day-separator::after{
+  content:"";
+  flex:1 1 0;
+  max-width:96px;
+  height:1px;
+  background:var(--theme-border-default);
+  opacity:.65;
 }
 #messageWindow>.message-row:first-child .message-day-separator{margin-top:0}
 .message-day-separator-label,
@@ -348,7 +358,10 @@ button{
   transform:translateX(-50%);
   overflow:hidden;
   text-overflow:ellipsis;
-  box-shadow:0 2px 8px rgba(15,23,42,.10);
+  background:var(--theme-surface-primary);
+  box-shadow:0 3px 12px rgba(15,23,42,.12);
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
 }
 @media(prefers-reduced-motion:reduce){.message-day-floating{transition:none}}
 
