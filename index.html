@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="05f05e2547bd87796223b2397b24bc3cc2ab1bcf9df2b79393a0eaf26aeee62a">
+<meta name="app-build-id" content="3722223289d39984f23bca3d745dd7d7f400492504185c0f743f088fb560f98f">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -28301,8 +28301,19 @@ async function handleOpen(payload={}){
   const kind=String(payload?.kind||'message');
   const inviteId=String(payload?.inviteId??payload?.invite_id??'').trim();
   const missedCallId=String(payload?.missedCallId??payload?.call_id??'').trim();
-  const contactId=String(payload?.contactId??payload?.contact_id??'').trim();
+  let contactId=String(payload?.contactId??payload?.contact_id??'').trim();
   const conversationId=String(payload?.conversationId??payload?.conversation_id??'').trim();
+  // Older/mobile pushes may contain only conversation_id, or a stale contact
+  // hint. Resolve against the canonical directory after auth/contact hydration.
+  if(conversationId){
+    const directory=window.V21ContactStore?.snapshot?.()||[];
+    if(!contactId||!directory.some(row=>String(row?.id||'')===contactId)){
+      const linked=directory.find(row=>
+        !row.deleted_at&&String(row.conversation_id||'')===conversationId
+      );
+      if(linked?.id)contactId=String(linked.id);
+    }
+  }
   const bankDay=String(payload?.bankDay??payload?.bank_day??'').trim();
   const bankNoticeId=String(payload?.bankNoticeId??payload?.bank_notice_id??'').trim();
   const bankReceiptId=String(payload?.bankReceiptId??payload?.bank_receipt_id??'').trim();
