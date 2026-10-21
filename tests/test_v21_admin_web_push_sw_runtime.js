@@ -5,6 +5,7 @@ function harness(){
   const handlers={};
   const notices=[];
   const posted=[];
+  const targeted=[];
   const opened=[];
   let clientsList=[];
   let badge=0;
@@ -27,7 +28,7 @@ function harness(){
   const ctx={self,navigator,caches,Request:class{},URL,fetch:async()=>({ok:true,clone(){return this}}),Date,Map,Promise,JSON,String,Number,Boolean,Object,Array,console};
   vm.createContext(ctx);vm.runInContext(code,ctx);
   function client(id='c1'){
-    return {id,url:'https://chat.taphoa.xyz/',focus:async()=>true,postMessage:data=>posted.push(data)};
+    return {id,url:'https://chat.taphoa.xyz/',focus:async()=>true,postMessage:data=>{posted.push(data);targeted.push({id,data})}};
   }
   async function dispatch(type,event){
     const waits=[];
@@ -35,7 +36,7 @@ function harness(){
     handlers[type](event);
     await Promise.all(waits);
   }
-  return {handlers,notices,posted,opened,getBadge:()=>badge,setClients:v=>{clientsList=v},client,dispatch};
+  return {handlers,notices,posted,targeted,opened,getBadge:()=>badge,setClients:v=>{clientsList=v},client,dispatch};
 }
 
 (async()=>{
@@ -122,6 +123,24 @@ function harness(){
   assert.deepEqual(click.posted[0],{type:'ADMIN_PUSH_OPEN',conversationId:'conv-1',contactId:'user-1'});
   assert.equal(click.opened.length,0);
   assert.equal(click.getBadge(),3,'notification click must not clear unread from other messages');
+
+  // A notification on an installed PWA must not wake an arbitrary older web
+  // tab. Matching Chat clients are selected by platform and activity.
+  const multi=harness();
+  const regularTab=multi.client('ordinary-browser-tab');
+  const installedPwa=multi.client('installed-pwa');
+  regularTab.visibilityState='visible';
+  installedPwa.visibilityState='hidden';
+  multi.setClients([regularTab,installedPwa]);
+  await multi.dispatch('message',{data:{type:'ADMIN_PUSH_STATE',platform:'web',visible:true,
+    focused:true,route:'chat',contactId:'other'},source:regularTab});
+  await multi.dispatch('message',{data:{type:'ADMIN_PUSH_STATE',platform:'ios-pwa',visible:false,
+    focused:false,route:'chat',contactId:'user-1'},source:installedPwa});
+  await multi.dispatch('notificationclick',{notification:{data:{kind:'message',
+    conversationId:'conv-1',contactId:'user-1'},close(){}}});
+  assert.equal(multi.targeted.at(-1).id,'installed-pwa',
+    'notification must focus matching installed PWA rather than the first web tab');
+  assert.equal(multi.targeted.at(-1).data.contactId,'user-1');
 
   const cold=harness();cold.setClients([]);
   await cold.dispatch('notificationclick',{notification:{data:{conversationId:'conv-1',contactId:'user-1'},close(){}}});
