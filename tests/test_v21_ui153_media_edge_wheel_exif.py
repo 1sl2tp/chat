@@ -29,11 +29,12 @@ assert 'function rotateAsset(assetId,delta)' in orientation
 assert 'localStorage' in orientation
 
 wheel=app[app.index("  main.addEventListener('wheel',event=>{"):app.index("  },{passive:false});",app.index("  main.addEventListener('wheel',event=>{"))]
-assert "imageViewerZoom<=1&&imageViewerItems.length>1&&!event.ctrlKey&&!event.metaKey" in wheel
-assert 'Math.abs(imageViewerWheelAccumulator)<70' in wheel
-assert 'now-imageViewerWheelLastStepAt<320' in wheel
-assert 'showImageViewerIndex(next)' in wheel
+assert "event.deltaMode===1?16:event.deltaMode===2?main.clientHeight:1" in wheel
+assert "const factor=Math.exp(-delta*.0018);" in wheel
 assert 'setImageViewerZoom(imageViewerZoom*factor' in wheel
+assert 'event.preventDefault();' in wheel
+assert 'showImageViewerIndex(next)' not in wheel
+assert 'const browse=' not in wheel
 thumbs=app[app.index("  thumbs.addEventListener('wheel',event=>{"):app.index("  thumbs.addEventListener('scroll',()=>{")]
 assert 'thumbs.scrollLeft+=event.deltaY;' in thumbs
 assert 'thumbs.scrollWidth<=thumbs.clientWidth+1' in thumbs
@@ -41,4 +42,4 @@ assert 'showImageViewerIndex' not in thumbs
 assert "window.addEventListener('resize',syncOpenImageViewerRegion" in app
 assert 'function collectConversationImageAssets()' in app
 assert "imageViewerFilter='all';" in app
-print('UI-153 media aligned / wheel navigation / EXIF auto + manual fallback PASS')
+print('UI-153 media aligned / wheel zoom / EXIF auto + manual fallback PASS')
