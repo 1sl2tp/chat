@@ -40,7 +40,8 @@ function attach(){
   btn.setAttribute('aria-label','Số điện thoại và gọi lại');
   btn.title='Số điện thoại · Gọi lại';
   btn.addEventListener('click',()=>void open());
-  host.insertBefore(btn,host.firstChild);
+  // Keep the LiveKit action first, followed by the iPhone callback action.
+  host.appendChild(btn);
  }
  btn.hidden=!admin()||!current()?.id;
 }
