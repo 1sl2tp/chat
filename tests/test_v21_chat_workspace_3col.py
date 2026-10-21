@@ -7,12 +7,13 @@ SHELL_CSS = (ROOT / "zalo-admin-link.css").read_text(encoding="utf-8")
 WORK_JS = (ROOT / "work-customer-summary.js").read_text(encoding="utf-8")
 WORK_CSS = (ROOT / "work-customer-summary.css").read_text(encoding="utf-8")
 
-# Desktop becomes one working surface: persistent directory | chat | work.
+# Legacy Work stays dormant while customer Photos replaces the third column.
 assert "DESKTOP_WORKSPACE_QUERY" in SHELL
 assert "desktopWorkspaceMedia" in SHELL
+assert "const WORK_ENABLED=false;" in SHELL
 assert "data.desktopWorkspace" in SHELL or "dataset.desktopWorkspace" in SHELL
 assert "desktopWorkspace?false:route!=='chat'" in "".join(SHELL.split())
-assert "desktopWorkspace?false:route!=='work'" in "".join(SHELL.split())
+assert "workView.hidden=WORK_ENABLED" in "".join(SHELL.split())
 
 compact_shell = "".join(SHELL.split())
 
@@ -31,7 +32,7 @@ assert "--desktop-work-width" in SOURCE
 assert 'data-desktop-workspace="true"' in SOURCE
 assert '#workThreadView' in SOURCE
 assert '#thread-bottom-container' in SOURCE
-assert 'data-top-tab="work"' in SOURCE
+assert 'data-top-tab="photos"' in SOURCE
 assert '#appShell[data-auth-state="authenticated"][data-desktop-workspace="true"]#workThreadView' in compact
 assert '#appShell[data-auth-state="authenticated"][data-desktop-workspace="true"]#thread-bottom-container' in compact
 assert '#appShell[data-auth-state="authenticated"][data-desktop-workspace="true"][data-route="chat"]' not in compact
@@ -63,7 +64,7 @@ compact_css = "".join(SHELL_CSS.split())
 assert '#appShell[data-auth-state="authenticated"][data-desktop-workspace="true"]#stageLayout{width:100%;}' in compact_css
 
 # Mobile/narrow layout keeps the existing one-view-at-a-time route model.
-assert "const ROUTES=Object.freeze(['chat','work']);" in SHELL
+assert "const ROUTES=Object.freeze(['chat','work','photos']);" in SHELL
 assert "route!=='chat'" in SHELL
 assert "route!=='work'" in SHELL
 
