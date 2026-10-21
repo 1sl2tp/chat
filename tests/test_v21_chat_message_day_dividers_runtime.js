@@ -42,4 +42,33 @@ assert(context.messageDaySeparatorLabel(messages[0],{now}).includes('16/10/2026'
 assert.equal(context.messageDaySeparatorLabel(messages[1],{now}),'Hôm qua');
 assert.equal(context.messageDaySeparatorLabel(messages[2],{now}),'Hôm nay');
 assert.equal(context.messageDaySeparatorLabel(messages[3],{now}),'','no repeated divider within the same local day');
-console.log('UI-156 message day labels, local date boundaries, and duplicate suppression PASS');
+// Vietnam calendar ownership: the same UTC day can contain two different
+// local days, and both desktop Chat and iOS PWA must group them identically.
+const beforeVietnamMidnight=Date.parse('2026-10-21T16:50:00Z'); // 23:50
+const afterVietnamMidnight=Date.parse('2026-10-21T17:10:00Z');  // 00:10 next day
+assert.equal(context.messageDateKey(beforeVietnamMidnight),'2026-10-21');
+assert.equal(context.messageDateKey(afterVietnamMidnight),'2026-10-22');
+const crossMidnight=[
+  {id:'vn-before',sender:'remote',createdAt:beforeVietnamMidnight},
+  {id:'vn-after',sender:'remote',createdAt:afterVietnamMidnight}
+];
+context.store.items=crossMidnight;
+assert(context.messageDaySeparatorLabel(crossMidnight[0],{now:afterVietnamMidnight}));
+assert(context.messageDaySeparatorLabel(crossMidnight[1],{now:afterVietnamMidnight}));
+
+// A floating date must disappear whenever a real inline day separator is
+// within the conversation viewport, even if it belongs to another day.
+const begin=code.indexOf('function inlineDaySeparatorVisible(');
+const finish=code.indexOf('function updateMessageDayFloating()',begin);
+assert(begin>=0&&finish>begin,'single-owner inline/floating date policy missing');
+let markers=[];
+context.messageWindow={querySelectorAll:()=>markers};
+vm.runInContext(code.slice(begin,finish),context);
+markers=[{getBoundingClientRect:()=>({top:210,bottom:239})}];
+assert.equal(context.inlineDaySeparatorVisible(180,800),true,
+  'inline marker owns day label when it enters the viewport');
+markers=[{getBoundingClientRect:()=>({top:20,bottom:48})}];
+assert.equal(context.inlineDaySeparatorVisible(180,800),false,
+  'floating marker is allowed once the inline separator has scrolled away');
+
+console.log('UI-156 message day labels, Vietnam date boundaries, and duplicate suppression PASS');
