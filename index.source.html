@@ -33,6 +33,7 @@
 <link rel="stylesheet" href="./bank-report-dashboard.css" data-build-source="bank-report-dashboard.css">
 <link rel="stylesheet" href="./ui-foundation.css" data-build-source="ui-foundation.css">
 <link rel="stylesheet" href="./mobile-chat-refresh.css" data-build-source="mobile-chat-refresh.css">
+<link rel="stylesheet" href="./customer-photo-library.css" data-build-source="customer-photo-library.css">
 <style>
 html,body{
   width:100%;
@@ -2470,7 +2471,7 @@ button{
 .top-mode-contact-avatar[hidden]{display:none!important}
 .top-mode-contact-avatar>img{width:100%;height:100%;display:block;object-fit:cover}
 .top-mode-tab[data-top-tab="chat"] [data-chat-tab-label]{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.top-mode-tab[data-top-tab="work"]{min-width:max-content;padding-inline:12px}
+.top-mode-tab[data-top-tab="work"],.top-mode-tab[data-top-tab="photos"]{min-width:max-content;padding-inline:12px}
 .compact-top-grid > .shell-icon-button{
   grid-column:1;
   justify-self:start;
@@ -3950,9 +3951,9 @@ button{
           <span class="shell-menu-unread-dot" data-menu-unread-dot hidden aria-hidden="true"></span>
         </button>
 
-        <div class="top-mode-switch" role="tablist" aria-label="Chế độ làm việc">
+        <div class="top-mode-switch" role="tablist" aria-label="Trò chuyện và ảnh">
           <button type="button" class="top-mode-tab" role="tab" aria-selected="true" data-top-tab="chat" data-nav-target="chat"><span class="top-mode-contact-avatar" data-chat-tab-avatar hidden></span><span data-chat-tab-label>Trò chuyện</span></button>
-          <button type="button" class="top-mode-tab" role="tab" aria-selected="false" data-top-tab="work" data-nav-target="work">Công việc</button>
+          <button type="button" class="top-mode-tab" role="tab" aria-selected="false" data-top-tab="photos" data-nav-target="photos">Ảnh</button>
         </div>
 
         <div class="call-focus-slot" data-call-focus-slot data-call-ui-state="idle">
@@ -4053,6 +4054,7 @@ button{
               <div id="messageWindow" data-chat-thread-node></div>
               <div id="bottomSpacer" data-chat-thread-node aria-hidden="true"></div>
             </div>
+            <section id="customerPhotoLibrary" role="region" aria-label="Thư viện ảnh của khách hàng" hidden></section>
             <div id="workThreadView" class="thread-mode-view" data-thread-view="work" hidden>
               <div class="work-thread-frame" data-work-owner="chat">
                 <div class="work-summary-root" data-work-summary-root role="region" aria-label="Tổng hợp hàng hóa" aria-live="polite"></div>
@@ -4305,6 +4307,7 @@ button{
 <script src="./v21-media-cache.js" data-build-source="v21-media-cache.js"></script>
 <script src="./v21-message-store.js" data-build-source="v21-message-store.js"></script>
 <script src="./v21-sync-engine.js" data-build-source="v21-sync-engine.js"></script>
+<script src="./customer-photo-library.js" data-build-source="customer-photo-library.js"></script>
 <script src="./bank-report-dashboard.js" data-build-source="bank-report-dashboard.js"></script>
 <script src="./message-forward.js" data-build-source="message-forward.js"></script>
 <script src="./v21-call-engine.js" data-build-source="v21-call-engine.js"></script>
