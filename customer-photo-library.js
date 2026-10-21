@@ -51,9 +51,30 @@ function photoItems(rows,conversationId,accountId){
     }))
     .sort((a,b)=>b.createdAt-a.createdAt||a.id.localeCompare(b.id));
 }
+// Media creation time is only a fallback. Prefer the original Chat message
+// timestamp from local IndexedDB, with no network pull or new photo storage.
+async function resolveMessageTimes(items,accountId){
+  const getMessage=window.V21CacheStore?.getMessage;
+  if(typeof getMessage!=='function')return items;
+  const ids=[...new Set(items.map(item=>item.messageId).filter(Boolean))];
+  const timestamps=new Map();
+  for(let i=0;i<ids.length;i+=24){
+    await Promise.all(ids.slice(i,i+24).map(async messageId=>{
+      try{
+        const message=await getMessage(accountId,messageId);
+        const sentAt=Date.parse(String(message?.created_at||''));
+        if(Number.isFinite(sentAt)&&sentAt>0)timestamps.set(messageId,sentAt);
+      }catch{} // Archived media may outlive its locally cached message.
+    }));
+  }
+  for(const item of items){
+    if(timestamps.has(item.messageId))item.createdAt=timestamps.get(item.messageId);
+  }
+  return items.sort((a,b)=>b.createdAt-a.createdAt||a.id.localeCompare(b.id));
+}
 function dateLabel(ms){
   if(!ms)return 'Không rõ ngày';
-  try{return new Intl.DateTimeFormat('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(ms));}
+  try{return new Intl.DateTimeFormat('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(ms));}
   catch{return 'Không rõ ngày';}
 }
 function allViewerItems(){
@@ -154,7 +175,9 @@ async function render(){
     const rows=await window.V21CacheStore?.listMediaRecords?.(accountId)||[];
     if(token!==generation||host.hidden||
       String(current().activeContact?.id||'')!==String(contact.id))return;
-    records=photoItems(rows,conversationId,accountId);
+    const sorted=await resolveMessageTimes(photoItems(rows,conversationId,accountId),accountId);
+    if(token!==generation||host.hidden||String(current().activeContact?.id||'')!==String(contact.id))return;
+    records=sorted;
     loading.remove();
     caption.textContent=records.length+' ảnh đã đồng bộ';
     if(!records.length){
