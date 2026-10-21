@@ -7,7 +7,7 @@ def test_boot_and_first_paint_chat():
     shell = (ROOT / "shell.js").read_text(encoding="utf-8")
     assert 'data-default-route="chat" data-route="chat"' in html
     assert 'aria-selected="true" data-top-tab="chat"' in html
-    assert 'aria-selected="false" data-top-tab="work"' in html
+    assert 'aria-selected="false" data-top-tab="photos"' in html
     assert "let route='chat';" in shell
     assert "route='chat';" in shell.split("const ScreenSession=", 1)[1].split("clear(accountId=", 1)[0]
 
@@ -18,7 +18,7 @@ def test_restore_keeps_contact_not_work_route():
     assert "readScreenSession(accountId)" in block
     assert "activeContact=contact?.id?" in block
     assert "saved?.route" not in block
-    assert "openWork(){return this.open('work')}" in shell
+    assert "openWork(){return this.open(WORK_ENABLED?'work':'photos')}" in shell
 
 def test_guest_and_notification_open_chat():
     auth = (ROOT / "auth-session-store.js").read_text(encoding="utf-8")
