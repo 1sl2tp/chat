@@ -197,7 +197,9 @@ jobs:
       - name: F-133..F-137 image geometry, album and viewer border runtime
         run: node tests/test_v21_image_geometry_f133_f137.js
       - name: UI-153 image edge, viewer wheel and EXIF contract
-        run: python tests/test_v21_ui153_media_edge_wheel_exif.py
+        run: |
+          python tests/test_v21_ui153_media_edge_wheel_exif.py
+          node tests/test_v21_image_viewer_wheel_zoom_runtime.js
       - name: UI-154 image four-corner clipping contract
         run: python tests/test_v21_ui154_image_four_corners.py
       - name: UI-180 mobile/PWA viewer thumbnail contract
