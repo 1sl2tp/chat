@@ -21,8 +21,9 @@ assert "await patchContactSummary(payload.conversation_id,{has_unread:false});" 
 # Full list renders still preserve the actual sidebar scroll owner when a real
 # message changes activity order.
 assert "const scrollHost=host.closest('.wm-sidebar-navigation');" in SHELL
-assert "const previousScrollTop=scrollHost?.scrollTop||0;" in SHELL
-assert "if(scrollHost)scrollHost.scrollTop=previousScrollTop;" in SHELL
+assert "const scrollAnchor=viewport.capture(scrollHost,host);" in SHELL
+assert "viewport.restore(scrollHost,host,scrollAnchor);" in SHELL
+assert "function captureDirectoryViewport(scrollHost,host)" in SHELL
 
 
 
