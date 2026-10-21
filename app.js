@@ -2509,10 +2509,12 @@ async function showImageViewerIndex(index,{behavior='smooth'}={}){
 async function openImageViewer({assetId,accountId=currentMediaAccountId(),previewUrl='',messageId='',items:externalItems=null}={}){
   ensureImageViewer();
   const id=String(assetId||'');
-  const items=Array.isArray(externalItems)&&externalItems.length
-    ?externalItems.filter(item=>item?.assetId&&String(item.accountId||'')===String(currentMediaAccountId()||''))
-      .map(item=>({...item}))
-    :collectConversationImageAssets();
+  const items=collectConversationImageAssets();
+  if(Array.isArray(externalItems)&&externalItems.length){
+    items.splice(0,items.length,...externalItems
+      .filter(item=>item?.assetId&&String(item.accountId||'')===String(currentMediaAccountId()||''))
+      .map(item=>({...item})));
+  }
   const existingIndex=items.findIndex(item=>item.assetId===id);
   if(existingIndex>=0&&previewUrl)items[existingIndex]={...items[existingIndex],previewUrl:String(previewUrl)};
   else if(id&&existingIndex<0){
