@@ -14,13 +14,14 @@ class ChatOwnedWorkSurfaceContract(unittest.TestCase):
             text = path.read_text(encoding="utf-8")
             compact = "".join(text.split())
             self.assertIn('data-default-route="chat" data-route="chat"', text, str(path))
-            self.assertIn('data-top-tab="work"', text, str(path))
-            self.assertIn('data-nav-target="work"', text, str(path))
-            self.assertIn('aria-selected="false"data-top-tab="work"data-nav-target="work"', compact, str(path))
+            self.assertIn('data-top-tab="photos"', text, str(path))
+            self.assertIn('data-nav-target="photos"', text, str(path))
+            self.assertIn('aria-selected="false"data-top-tab="photos"data-nav-target="photos"', compact, str(path))
             self.assertIn('aria-selected="true"data-top-tab="chat"data-nav-target="chat"', compact, str(path))
             self.assertIn('id="workThreadView"', text, str(path))
             self.assertIn('data-work-owner="chat"', text, str(path))
             self.assertIn('data-work-summary-root', text, str(path))
+            self.assertIn('id="customerPhotoLibrary"', text, str(path))
             self.assertNotIn('Khu vực này để phát triển sau.', text, str(path))
 
     def test_getlink_is_not_embedded_or_owned_by_chat(self):
@@ -38,17 +39,18 @@ class ChatOwnedWorkSurfaceContract(unittest.TestCase):
     def test_shell_uses_chat_as_default_route_but_keeps_work_available(self):
         text = SHELL.read_text(encoding="utf-8")
         compact = "".join(text.split())
-        self.assertIn("const ROUTES=Object.freeze(['chat','work']);", text)
+        self.assertIn("const ROUTES=Object.freeze(['chat','work','photos']);", text)
         self.assertIn("let route='chat';", text)
         self.assertIn("route='chat';", compact)
         self.assertNotIn("route=ROUTES.includes(saved?.route)?saved.route:", compact)
-        self.assertIn("openWork(){return this.open('work')}", text)
+        self.assertIn("openWork(){return this.open(WORK_ENABLED?'work':'photos')}", text)
         self.assertIn("openChat(){return this.open('chat')}", text)
         self.assertIn("DESKTOP_WORKSPACE_QUERY", text)
         self.assertIn("desktopWorkspaceMedia", text)
+        self.assertIn("const WORK_ENABLED=false;", text)
         self.assertIn("dataset.desktopWorkspace", text)
         self.assertIn("desktopWorkspace?false:route!=='chat'", compact)
-        self.assertIn("desktopWorkspace?false:route!=='work'", compact)
+        self.assertIn("workView.hidden=WORK_ENABLED", compact)
         self.assertNotIn("V21GetlinkAuthBridge", text)
 
     def test_work_route_remains_renderable_after_explicit_tab_selection(self):
@@ -66,7 +68,7 @@ class ChatOwnedWorkSurfaceContract(unittest.TestCase):
             self.assertIn('data-desktop-workspace="true"', text, str(path))
             self.assertIn('#appShell[data-auth-state="authenticated"][data-desktop-workspace="true"]#workThreadView', compact, str(path))
             self.assertIn('#appShell[data-auth-state="authenticated"][data-desktop-workspace="true"]#thread-bottom-container', compact, str(path))
-            self.assertIn('[data-top-tab="work"]', text, str(path))
+            self.assertIn('[data-top-tab="photos"]', text, str(path))
 
 
 if __name__ == "__main__":
