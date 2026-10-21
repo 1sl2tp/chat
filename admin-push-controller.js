@@ -396,8 +396,19 @@ async function handleOpen(payload={}){
   const kind=String(payload?.kind||'message');
   const inviteId=String(payload?.inviteId??payload?.invite_id??'').trim();
   const missedCallId=String(payload?.missedCallId??payload?.call_id??'').trim();
-  const contactId=String(payload?.contactId??payload?.contact_id??'').trim();
+  let contactId=String(payload?.contactId??payload?.contact_id??'').trim();
   const conversationId=String(payload?.conversationId??payload?.conversation_id??'').trim();
+  // Older/mobile pushes may contain only conversation_id, or a stale contact
+  // hint. Resolve against the canonical directory after auth/contact hydration.
+  if(conversationId){
+    const directory=window.V21ContactStore?.snapshot?.()||[];
+    if(!contactId||!directory.some(row=>String(row?.id||'')===contactId)){
+      const linked=directory.find(row=>
+        !row.deleted_at&&String(row.conversation_id||'')===conversationId
+      );
+      if(linked?.id)contactId=String(linked.id);
+    }
+  }
   const bankDay=String(payload?.bankDay??payload?.bank_day??'').trim();
   const bankNoticeId=String(payload?.bankNoticeId??payload?.bank_notice_id??'').trim();
   const bankReceiptId=String(payload?.bankReceiptId??payload?.bank_receipt_id??'').trim();
