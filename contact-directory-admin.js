@@ -146,6 +146,8 @@ function syncDirectoryRows({scrollToTop=false}={}){
   const host=document.querySelector('[data-v21-contact-list]');
   if(!host)return;
   const scrollHost=host.closest('.wm-sidebar-navigation');
+  const viewport=window.V21DirectoryViewport;
+  const scrollAnchor=viewport?.capture?.(scrollHost,host)||null;
   const previousScrollTop=scrollHost?.scrollTop||0;
   const contacts=sortDirectoryContacts(contactStore()?.snapshot?.()||[]);
   const rowsById=new Map([...host.querySelectorAll('[data-contact-row]')].map(row=>[String(row.dataset.contactId||''),row]));
@@ -167,7 +169,11 @@ function syncDirectoryRows({scrollToTop=false}={}){
     empty.textContent='Không tìm thấy';
     host.appendChild(empty);
   }
-  if(scrollHost)scrollHost.scrollTop=scrollToTop?0:previousScrollTop;
+  if(scrollHost){
+    if(scrollToTop)scrollHost.scrollTop=0;
+    else if(scrollAnchor)viewport.restore(scrollHost,host,scrollAnchor);
+    else scrollHost.scrollTop=previousScrollTop;
+  }
 }
 function setPopupError(message=''){
   const node=document.querySelector('[data-zalo-account-admin-modal] [data-zalo-account-error]');
