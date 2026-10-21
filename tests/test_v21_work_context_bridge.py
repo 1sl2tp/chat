@@ -6,8 +6,8 @@ SHELL = (ROOT / 'shell.js').read_text(encoding='utf-8')
 SOURCE = (ROOT / 'index.source.html').read_text(encoding='utf-8')
 
 # CHAT keeps its own work route, but must not authenticate or message GETLINK.
-assert "const ROUTES=Object.freeze(['chat','work']);" in SHELL
-assert "openWork(){return this.open('work')}" in SHELL
+assert "const ROUTES=Object.freeze(['chat','work','photos']);" in SHELL
+assert "openWork(){return this.open(WORK_ENABLED?'work':'photos')}" in SHELL
 assert 'id="workThreadView"' in SOURCE
 assert 'data-work-owner="chat"' in SOURCE
 
