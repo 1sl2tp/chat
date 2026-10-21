@@ -10,6 +10,7 @@ function harness(){
   const openCalls=[];
   const historyCalls=[];
   let contactReady=false;
+  let directory=[];
   const authStore={
     snapshot(){return{state:'AUTHENTICATED',account:{id:'admin-1',role:'admin'},deviceId:'device-1'}},
     getClient(){return{functions:{async invoke(){return{data:{ok:true,enabled:false},error:null}}}}}
@@ -35,6 +36,7 @@ function harness(){
     V21AuthSessionStore:authStore,
     ChatAppShell:shell,
     V21SyncEngine:sync,
+    V21ContactStore:{snapshot:()=>directory},
     addEventListener(type,fn){windowListeners[type]=fn},
     matchMedia:()=>({matches:false}),
   };
@@ -47,7 +49,8 @@ function harness(){
   vm.createContext(ctx);vm.runInContext(code,ctx);
   return{
     api:ctx.window.V21AdminPush,documentListeners,windowListeners,swListeners,swMessages,openCalls,historyCalls,
-    setContactReady(value){contactReady=Boolean(value)}
+    setContactReady(value){contactReady=Boolean(value)},
+    setDirectory(rows){directory=rows}
   };
 }
 
@@ -68,6 +71,21 @@ function harness(){
   h.swListeners.message({data:{type:'ADMIN_PUSH_OPEN',contactId:'live-3',conversationId:'conv-3'}});
   await Promise.resolve();
   assert.equal(h.openCalls.at(-1),'live-3','existing-window SW click must use same open handler');
+
+  // Some iOS/Android payloads contain conversation_id but no contact_id.
+  // Resolve the canonical customer after directory hydration, without
+  // switching to another or the previously viewed conversation.
+  h.setDirectory([{id:'customer-from-conv',conversation_id:'conv-only'}]);
+  const resolved=await h.api.handleOpen({conversationId:'conv-only'});
+  assert.equal(resolved,true,'conversation-only PWA notification must open');
+  assert.equal(h.openCalls.at(-1),'customer-from-conv');
+  h.setDirectory([]);
+  const pending=await h.api.handleOpen({conversationId:'conv-late'});
+  assert.equal(pending,false,'missing customer remains pending during cold hydration');
+  h.setDirectory([{id:'customer-late',conversation_id:'conv-late'}]);
+  h.documentListeners['v21-contact-store-change']({detail:{reason:'replace'}});
+  await Promise.resolve();
+  assert.equal(h.openCalls.at(-1),'customer-late','deferred push resolves when contacts load');
 
   h.documentListeners['v21-auth-state']({detail:{state:'GUEST',account:null}});
   assert.equal(h.swMessages.at(-1).type,'ADMIN_PUSH_CLEAR','logout must clear SW foreground suppression state');
