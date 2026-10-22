@@ -1285,11 +1285,18 @@ window.V21DirectoryViewport=Object.freeze({
   capture:captureDirectoryViewport,restore:restoreDirectoryViewport
 });
 
+// Contact rows may render before the Admin directory extension is loaded.
+// Apply the same bank-report pin priority on the initial AuthUI render.
+const PINNED_BANK_REPORT_CONTACT_ID='fc3ec480-60d2-4749-b7af-5f4ae71eb14e';
+function isPinnedBankReportContact(item){
+  return String(item?.id||'')===PINNED_BANK_REPORT_CONTACT_ID;
+}
 function createRenderedContactRow(item){
   const row=document.createElement('div');
   row.className='shell-contact-row';
   row.dataset.contactRow='';
   row.dataset.contactId=String(item.id);
+  row.dataset.contactPinned=authAccount?.role==='admin'&&isPinnedBankReportContact(item)?'report':'';
   row.dataset.active=String(Boolean(activeContact?.id)&&String(activeContact.id)===String(item.id));
   row.dataset.locked=String(Boolean(item.locked_at));
 
@@ -1330,6 +1337,7 @@ function patchRenderedContact(item){
   const row=findRenderedContactRow(item.id);
   if(!row)return false;
   row.dataset.locked=String(Boolean(item.locked_at));
+  row.dataset.contactPinned=authAccount?.role==='admin'&&isPinnedBankReportContact(item)?'report':'';
   const button=row.querySelector('[data-contact-select]');
   if(button){button.dataset.contactName=String(item.display_name||item.username||'Liên hệ');}
   const avatar=row.querySelector('.shell-contact-avatar');
@@ -1489,6 +1497,10 @@ const AuthUI={
     const viewport=window.V21DirectoryViewport;
     const scrollAnchor=viewport.capture(scrollHost,host);
     const items=Array.isArray(contacts)?contacts.filter(item=>item&&item.id&&!item.deleted_at):[];
+    if(authAccount?.role==='admin'){
+      // No changes to customer activity order; promote only the one report.
+      items.sort((a,b)=>Number(isPinnedBankReportContact(b))-Number(isPinnedBankReportContact(a)));
+    }
     const existingById=new Map(
       [...host.querySelectorAll('[data-contact-row]')].map(row=>[String(row.dataset.contactId||''),row])
     );
