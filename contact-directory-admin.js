@@ -8,6 +8,11 @@ const GROUPS=Object.freeze([
   ['other','Khác'],
 ]);
 const GROUP_KEYS=new Set(GROUPS.map(([key])=>key));
+const PINNED_REPORT_ID='fc3ec480-60d2-4749-b7af-5f4ae71eb14e';
+function isPinnedReportContact(item){
+  // Pin only the canonical bank report contact; never pin a matching name.
+  return String(item?.id||'')===PINNED_REPORT_ID;
+}
 let query='';
 let filter='all';
 let groupMap=new Map();
@@ -52,6 +57,8 @@ function sortDirectoryContacts(items=[]){
   return [...(Array.isArray(items)?items:[])]
     .filter(item=>item?.id&&!item?.deleted_at)
     .sort((a,b)=>{
+      const pinned=Number(isPinnedReportContact(b))-Number(isPinnedReportContact(a));
+      if(pinned)return pinned;
       const activity=activityTime(b)-activityTime(a);
       if(activity)return activity;
       return 0;
@@ -158,6 +165,7 @@ function syncDirectoryRows({scrollToTop=false}={}){
     const row=rowsById.get(String(item.id));
     if(!row)continue;
     const show=matchesDirectory(item);
+    row.dataset.contactPinned=isPinnedReportContact(item)?'report':'';
     row.hidden=!show;
     if(show)visible+=1;
     if(row===cursor)cursor=cursor.nextElementSibling;
@@ -297,5 +305,5 @@ const overlayRoot=document.querySelector('[data-global-overlay-root]')||document
 new MutationObserver(scheduleSync).observe(overlayRoot,{childList:true,subtree:true});
 scheduleSync();
 
-window.V21ContactDirectoryAdmin=Object.freeze({sortDirectoryContacts,sync:syncDirectoryRows,groupForContact,refreshGroups:()=>ensureGroups({force:true})});
+window.V21ContactDirectoryAdmin=Object.freeze({sortDirectoryContacts,isPinnedReportContact,sync:syncDirectoryRows,groupForContact,refreshGroups:()=>ensureGroups({force:true})});
 })();
