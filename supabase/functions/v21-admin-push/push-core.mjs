@@ -50,7 +50,7 @@ export function buildCallInviteNotificationPayload(row={}){
    Stable tags replace stale credit/awaiting states when the match arrives. */
 export function bankScanReasonLabel(raw){
   const reason=String(raw||'');
-  if(/gemini_key_missing|gemini_http_(?:401|403)|api.key|permission_denied/i.test(reason))
+  if(/gemini_key_missing|gemini_http_(?:400|401|403)|api.key|permission_denied/i.test(reason))
     return 'Khóa/API Gemini không hợp lệ hoặc hết quyền · Cần Admin kiểm tra';
   if(/gemini_http_429/i.test(reason))
     return 'Gemini hết hạn mức · Đang chờ quét lại';
