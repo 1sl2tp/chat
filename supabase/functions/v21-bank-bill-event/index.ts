@@ -65,7 +65,7 @@ async function findAlreadyCollectedTransfer(
  };
 }
 async function finish(asset:string,change:Record<string,unknown>){
- const {error}=await db.from("chat_bank_bill_receipts").update({...change,scanned_at:new Date().toISOString()}).eq("media_asset_id",asset).eq("status","scanning");
+ const {error}=await db.from("chat_bank_bill_receipts").update({...change,scanned_at:new Date().toISOString(),scan_started_at:null}).eq("media_asset_id",asset).eq("status","scanning");
  if(error)throw new Error("receipt_save_failed");
 }
 // Visible scan feedback is PILOT-ONLY for test; never notify real customers.
@@ -191,14 +191,17 @@ Deno.serve(async req=>{
  }
  // BANK-185: bounded retry only for transient Gemini failures on today's
  // original customer image. This never bypasses the bank matching RPC.
- const transientError=/^amount_scan_(?:gemini_http_(?:429|5\d\d)|The signal has been aborted|AbortError|failed to fetch|Load failed)$/i.test(String(job.reason||""));
+ const transientError=/^amount_scan_(?:gemini_http_(?:408|429|5\d\d)|The signal has been aborted|AbortError|failed to fetch|Load failed|gemini_invalid_json|storage_download_failed|hash_registry_unavailable|worker_interrupted)$/i.test(String(job.reason||""));
  const sent=Date.parse(String(job.sent_at||""));
  const inspected=Date.parse(String(job.scanned_at||""));
  const vnDate=stamp=>new Date(stamp+7*3600000).toISOString().slice(0,10);
+ const tries=Number(job.attempt_count||0);
+ const retryMinutes=tries<=1?3:tries===2?10:tries===3?30:tries===4?60:120;
+ // Historic scans may be classified, but no prior-day money is auto-collected.
  const retryFailed=job.status==="failed"&&transientError
-   &&Number(job.attempt_count||0)>=1&&Number(job.attempt_count||0)<3
-   &&Number.isFinite(sent)&&vnDate(sent)===vnDate(Date.now())
-   &&Number.isFinite(inspected)&&Date.now()-inspected>=2*60000
+   &&tries>=1&&tries<6
+   &&Number.isFinite(sent)&&sent>=Date.now()-7*86400000
+   &&Number.isFinite(inspected)&&Date.now()-inspected>=retryMinutes*60000
    &&sent<=Date.now()+2*60000;
  if(job.status!=="queued"&&!retryFailed){
    if(job.customer_account_id===TEST_ACCOUNT&&["amount_read","review","duplicate","non_bill"].includes(job.status)){
@@ -225,7 +228,7 @@ Deno.serve(async req=>{
    await db.from("chat_bank_bill_receipts").update({status:"review",reason:"daily_scan_limit_no_collection"}).eq("media_asset_id",asset).eq("status","queued");
    return response({ok:true,status:"review",reason:"daily_scan_limit"},200);
  }
- const {data:claimed,error:claimError}=await db.from("chat_bank_bill_receipts").update({status:"scanning",reason:"reading_amount_and_hash",attempt_count:(job.attempt_count||0)+1}).eq("media_asset_id",asset).eq("status",retryFailed?"failed":"queued").eq("attempt_count",job.attempt_count||0).select("id");
+ const {data:claimed,error:claimError}=await db.from("chat_bank_bill_receipts").update({status:"scanning",reason:"reading_amount_and_hash",scan_started_at:new Date().toISOString(),attempt_count:(job.attempt_count||0)+1}).eq("media_asset_id",asset).eq("status",retryFailed?"failed":"queued").eq("attempt_count",job.attempt_count||0).select("id");
  if(claimError)return response({error:"claim_failed"},500);
  if(!claimed?.length)return response({ok:true,status:"already_claimed"},202);
  let digest="";
@@ -366,7 +369,9 @@ Deno.serve(async req=>{
    return response({ok:true,status,amount_vnd:amount,duplicate:false,ai_called:true,ledger_written:false});
  }catch(error){
    const reason=String(error instanceof Error?error.message:error).slice(0,90);
-   await finish(asset,{status:"failed",reason:"amount_scan_"+reason,image_sha256:digest||null}).catch(()=>{});
+   const retryable=/^(?:gemini_http_(?:408|429|5\d\d)|The signal has been aborted|AbortError|failed to fetch|Load failed|gemini_invalid_json|storage_download_failed|hash_registry_unavailable|worker_interrupted)$/i.test(reason);
+   // Key expiry/configuration problems are never classified as "non-bills".
+   await finish(asset,{status:retryable?"failed":"review",reason:"amount_scan_"+reason,image_sha256:digest||null}).catch(()=>{});
    if(digest)await db.from("chat_bank_bill_image_hashes").update({scan_status:"failed"})
      .eq("image_sha256",digest).eq("first_asset_id",asset).then(()=>{});
    return response({ok:false,error:"amount_scan_failed",reason},502);
