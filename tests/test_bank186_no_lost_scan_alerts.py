@@ -31,7 +31,11 @@ assert "r.ledger_id is null" in retry
 assert "m.deleted_at is null and m.kind='image'" in retry
 assert "msg.deleted_at is null and msg.sender_account_id=r.customer_account_id" in retry
 assert "'x-internal-dispatch-key',v_key" in retry
-assert "chat_bank_app_collect" not in retry and "taphoa_debt_ledger" not in retry
+# A read-only lookup for existing receipt links is allowed in Admin alerts.
+# Neither the retry queue nor its notifications may write collection links/ledger.
+assert "insert into public.chat_bank_app_collection_links" not in retry.lower()
+assert "insert into public.taphoa_debt_ledger" not in retry.lower()
+assert "chat_bank_app_collect(" not in retry
 assert "new.status not in ('amount_read','review','duplicate','failed')" in alerts
 assert "'review:ai-retrying:'" in alerts and "'review:ai-attention:'" in alerts
 assert "p_kind='review' and p_day<v_today-7" in retry
