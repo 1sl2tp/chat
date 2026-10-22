@@ -37,7 +37,7 @@ const statusText={
 const isAiScanIssue=row=>/^(?:amount_scan_|ai_scan_)/i.test(String(row?.reason||''));
 function scanIssueLabel(raw){
  const reason=String(raw||'');
- if(/gemini_key_missing|gemini_http_(?:401|403)/i.test(reason))return 'Khóa/API Gemini không hợp lệ — cần kiểm tra';
+ if(/gemini_key_missing|gemini_http_(?:400|401|403)/i.test(reason))return 'Khóa/API Gemini không hợp lệ — cần kiểm tra';
  if(/gemini_http_429/i.test(reason))return 'Gemini hết hạn mức — sẽ thử lại';
  if(/gemini_http_5[0-9][0-9]|aborted|aborterror|worker_interrupted/i.test(reason))return 'AI quét lỗi hoặc quá thời gian — đang chờ thử lại';
  if(/retry_exhausted|old_unresolved|queue_expired/i.test(reason))return 'Đã hết lượt thử — cần Admin xem chứng từ';
