@@ -308,7 +308,7 @@ Deno.serve(async(req:Request)=>{
         if(kind==="matched"&&(!validNotice||!validBill||!validLink||
           Number(notice?.amount_vnd)!==Number(receipt?.amount_vnd)))terminal=true;
         if(kind==="bill_waiting"&&(!validBill||receipt?.status!=="amount_read"||alreadyLinked))terminal=true;
-        if(kind==="review"&&(!receipt||alreadyLinked||!["review","duplicate","amount_read"].includes(receipt.status)||
+        if(kind==="review"&&(!receipt||alreadyLinked||!["review","duplicate","amount_read","failed"].includes(receipt.status)||
           (receipt.status==="amount_read"&&validBill)))terminal=true;
         if(!["bank_only","matched","bill_waiting","review"].includes(kind))terminal=true;
         if(!terminal){
