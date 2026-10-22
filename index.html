@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="05dab3fe9741e4dfa81ce95504758465e11475a971c2ad883ad526022beeb564">
+<meta name="app-build-id" content="0f645f9099218a6419258fbdf7895d8debe421ea41f46582188dc392837eabd4">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -17544,11 +17544,18 @@ window.V21DirectoryViewport=Object.freeze({
   capture:captureDirectoryViewport,restore:restoreDirectoryViewport
 });
 
+// Contact rows may render before the Admin directory extension is loaded.
+// Apply the same bank-report pin priority on the initial AuthUI render.
+const PINNED_BANK_REPORT_CONTACT_ID='fc3ec480-60d2-4749-b7af-5f4ae71eb14e';
+function isPinnedBankReportContact(item){
+  return String(item?.id||'')===PINNED_BANK_REPORT_CONTACT_ID;
+}
 function createRenderedContactRow(item){
   const row=document.createElement('div');
   row.className='shell-contact-row';
   row.dataset.contactRow='';
   row.dataset.contactId=String(item.id);
+  row.dataset.contactPinned=authAccount?.role==='admin'&&isPinnedBankReportContact(item)?'report':'';
   row.dataset.active=String(Boolean(activeContact?.id)&&String(activeContact.id)===String(item.id));
   row.dataset.locked=String(Boolean(item.locked_at));
 
@@ -17589,6 +17596,7 @@ function patchRenderedContact(item){
   const row=findRenderedContactRow(item.id);
   if(!row)return false;
   row.dataset.locked=String(Boolean(item.locked_at));
+  row.dataset.contactPinned=authAccount?.role==='admin'&&isPinnedBankReportContact(item)?'report':'';
   const button=row.querySelector('[data-contact-select]');
   if(button){button.dataset.contactName=String(item.display_name||item.username||'Liên hệ');}
   const avatar=row.querySelector('.shell-contact-avatar');
@@ -17748,6 +17756,10 @@ const AuthUI={
     const viewport=window.V21DirectoryViewport;
     const scrollAnchor=viewport.capture(scrollHost,host);
     const items=Array.isArray(contacts)?contacts.filter(item=>item&&item.id&&!item.deleted_at):[];
+    if(authAccount?.role==='admin'){
+      // No changes to customer activity order; promote only the one report.
+      items.sort((a,b)=>Number(isPinnedBankReportContact(b))-Number(isPinnedBankReportContact(a)));
+    }
     const existingById=new Map(
       [...host.querySelectorAll('[data-contact-row]')].map(row=>[String(row.dataset.contactId||''),row])
     );
