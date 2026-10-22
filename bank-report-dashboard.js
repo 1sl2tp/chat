@@ -34,6 +34,15 @@ const statusText={
  review:'Cần kiểm tra',wrong_day:'Sai ngày',duplicate:'Bill trùng',
  non_bill:'Không phải bill',reading:'Đang đọc ảnh',test_excluded:'Tiền test (loại)'
 };
+const isAiScanIssue=row=>/^(?:amount_scan_|ai_scan_)/i.test(String(row?.reason||''));
+function scanIssueLabel(raw){
+ const reason=String(raw||'');
+ if(/gemini_key_missing|gemini_http_(?:401|403)/i.test(reason))return 'Khóa/API Gemini không hợp lệ — cần kiểm tra';
+ if(/gemini_http_429/i.test(reason))return 'Gemini hết hạn mức — sẽ thử lại';
+ if(/gemini_http_5[0-9][0-9]|aborted|aborterror|worker_interrupted/i.test(reason))return 'AI quét lỗi hoặc quá thời gian — đang chờ thử lại';
+ if(/retry_exhausted|old_unresolved|queue_expired/i.test(reason))return 'Đã hết lượt thử — cần Admin xem chứng từ';
+ return 'AI chưa phân loại được ảnh — cần kiểm tra thủ công';
+}
 let active=false,filter='all',selectedCustomer=null,current=null,requestId=0,loading=false,queued=false,pendingPush=null;
 let imageObjectUrl=null;
 const el=(tag,className='',value='')=>{
@@ -90,7 +99,8 @@ function paint(data){
   cardValue('Bill chờ ngân hàng',String(s.bill_only_count||0),false,true),
   cardValue('Ngân hàng chưa khớp',String(s.bank_only_count||0),false,true),
   cardValue('Bill sai ngày',String(s.old_date_count||0),false,true),
-  cardValue('Ảnh trùng',String(s.duplicate_count||0),false,true)
+  cardValue('Ảnh trùng',String(s.duplicate_count||0),false,true),
+  cardValue('Ảnh AI chưa kết luận',String((data?.bills||[]).filter(isAiScanIssue).length),false,true)
  );
  renderTable(data);
  const mainKeys=new Set(['all','matched','waiting_bank','bank_only','review']);
@@ -168,7 +178,7 @@ function detailLine(row,isBank=false,candidates=[]){
  const top=el('summary','bank-report-detail-top');
  const label=el('span','bank-report-detail-status bank-status-'+
   (isBank&&candidates.length?'review':type),
-  isBank&&candidates.length?'Có bill cần kiểm tra':statusText[type]||'Cần kiểm tra');
+  isBank&&candidates.length?'Có bill cần kiểm tra':!isBank&&isAiScanIssue(row)?'AI chưa kết luận':statusText[type]||'Cần kiểm tra');
  const left=el('span','bank-report-detail-time',isBank?localTime(row.bank_time):localTime(row.bill_time||row.sent_at));
  const amt=el('strong','bank-report-detail-amount',money(isBank?row.amount_vnd:row.amount_vnd));
  append(top,left,amt,label);wrap.appendChild(top);
@@ -201,7 +211,7 @@ function detailLine(row,isBank=false,candidates=[]){
   const act=el('div','bank-report-detail-actions');act.appendChild(audit);
   content.appendChild(act);
  }
- if(row.reason&&!isBank)content.appendChild(el('p','bank-report-detail-reason','Ghi chú: '+row.reason));
+ if(row.reason&&!isBank)content.appendChild(el('p','bank-report-detail-reason',isAiScanIssue(row)?'Lỗi quét ảnh: '+scanIssueLabel(row.reason):'Ghi chú: '+row.reason));
  const actions=el('div','bank-report-detail-actions');
  if(!isBank&&row.asset_id){
   const b=el('button','bank-report-action','Xem ảnh bill');b.type='button';
