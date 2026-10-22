@@ -54,7 +54,7 @@ export function bankScanReasonLabel(raw){
     return 'Khóa/API Gemini không hợp lệ hoặc hết quyền · Cần Admin kiểm tra';
   if(/gemini_http_429/i.test(reason))
     return 'Gemini hết hạn mức · Đang chờ quét lại';
-  if(/gemini_http_5\\d\\d|gemini_http_408|aborted|aborterror|failed to fetch|load failed|worker_interrupted/i.test(reason))
+  if(/gemini_http_5\d\d|gemini_http_408|aborted|aborterror|failed to fetch|load failed|worker_interrupted/i.test(reason))
     return 'AI quét ảnh lỗi hoặc quá thời gian · Sẽ tự thử lại';
   if(/ai_scan_retry_exhausted|ai_scan_old_unresolved|ai_scan_queue_expired/i.test(reason))
     return 'AI vẫn chưa kết luận được ảnh · Cần Admin xử lý';
