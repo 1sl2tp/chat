@@ -191,7 +191,7 @@ Deno.serve(async req=>{
  }
  // BANK-185: bounded retry only for transient Gemini failures on today's
  // original customer image. This never bypasses the bank matching RPC.
- const transientError=/^amount_scan_(?:gemini_http_(?:429|5\\d\\d)|The signal has been aborted|AbortError|failed to fetch|Load failed)$/i.test(String(job.reason||""));
+ const transientError=/^amount_scan_(?:gemini_http_(?:429|5\d\d)|The signal has been aborted|AbortError|failed to fetch|Load failed)$/i.test(String(job.reason||""));
  const sent=Date.parse(String(job.sent_at||""));
  const inspected=Date.parse(String(job.scanned_at||""));
  const vnDate=stamp=>new Date(stamp+7*3600000).toISOString().slice(0,10);
