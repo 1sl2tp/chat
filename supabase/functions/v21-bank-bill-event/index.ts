@@ -127,7 +127,7 @@ Deno.serve(async req=>{
  if(cfgError||!cfg?.scan_key||req.headers.get("x-internal-dispatch-key")!==cfg.scan_key)return response({error:"not_authorized"},403);
  const body=await req.json().catch(()=>({}));const asset=String(body.asset_id||"").toLowerCase();
  if(!HEX.test(asset))return response({error:"asset_id_invalid"},400);
- const {data:job,error:jobError}=await db.from("chat_bank_bill_receipts").select("id,status,customer_account_id,sent_at,attempt_count").eq("media_asset_id",asset).maybeSingle();
+ const {data:job,error:jobError}=await db.from("chat_bank_bill_receipts").select("id,status,reason,scanned_at,customer_account_id,sent_at,attempt_count").eq("media_asset_id",asset).maybeSingle();
  if(jobError||!job)return response({error:"not_queued"},404);
  // A real Agribank Plus credit may arrive after AI already read this bill.
  // Compare the persisted bill without redownloading the image or calling Gemini.
@@ -189,7 +189,18 @@ Deno.serve(async req=>{
      }
    }
  }
- if(job.status!=="queued"){
+ // BANK-185: bounded retry only for transient Gemini failures on today's
+ // original customer image. This never bypasses the bank matching RPC.
+ const transientError=/^amount_scan_(?:gemini_http_(?:429|5\\d\\d)|The signal has been aborted|AbortError|failed to fetch|Load failed)$/i.test(String(job.reason||""));
+ const sent=Date.parse(String(job.sent_at||""));
+ const inspected=Date.parse(String(job.scanned_at||""));
+ const vnDate=stamp=>new Date(stamp+7*3600000).toISOString().slice(0,10);
+ const retryFailed=job.status==="failed"&&transientError
+   &&Number(job.attempt_count||0)>=1&&Number(job.attempt_count||0)<3
+   &&Number.isFinite(sent)&&vnDate(sent)===vnDate(Date.now())
+   &&Number.isFinite(inspected)&&Date.now()-inspected>=2*60000
+   &&sent<=Date.now()+2*60000;
+ if(job.status!=="queued"&&!retryFailed){
    if(job.customer_account_id===TEST_ACCOUNT&&["amount_read","review","duplicate","non_bill"].includes(job.status)){
      try{await notifyTestScan(asset,job.customer_account_id,job.status,null);}catch(e){console.warn("bill_scan_feedback_retry_failed",String(e).slice(0,80));}
    }
@@ -214,7 +225,7 @@ Deno.serve(async req=>{
    await db.from("chat_bank_bill_receipts").update({status:"review",reason:"daily_scan_limit_no_collection"}).eq("media_asset_id",asset).eq("status","queued");
    return response({ok:true,status:"review",reason:"daily_scan_limit"},200);
  }
- const {data:claimed,error:claimError}=await db.from("chat_bank_bill_receipts").update({status:"scanning",reason:"reading_amount_and_hash",attempt_count:(job.attempt_count||0)+1}).eq("media_asset_id",asset).eq("status","queued").select("id");
+ const {data:claimed,error:claimError}=await db.from("chat_bank_bill_receipts").update({status:"scanning",reason:"reading_amount_and_hash",attempt_count:(job.attempt_count||0)+1}).eq("media_asset_id",asset).eq("status",retryFailed?"failed":"queued").eq("attempt_count",job.attempt_count||0).select("id");
  if(claimError)return response({error:"claim_failed"},500);
  if(!claimed?.length)return response({ok:true,status:"already_claimed"},202);
  let digest="";
