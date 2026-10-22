@@ -258,7 +258,7 @@ Deno.serve(async req=>{
    let b64="";
    for(let n=0;n<bytes.length;n+=16000)b64+=String.fromCharCode(...bytes.subarray(n,Math.min(bytes.length,n+16000)));
    const prompt=SYSTEM_PROMPT;
-   const ctl=new AbortController();const timeout=setTimeout(()=>ctl.abort(),24000);
+   const ctl=new AbortController();const timeout=setTimeout(()=>ctl.abort(),30000);
    let gr:Response;
    try{gr=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent",{
      method:"POST",headers:{"x-goog-api-key":geminiKey,"content-type":"application/json"},
