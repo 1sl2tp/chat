@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="6f49fd97611c84a2df2677d398154ae120efe04cfe3f3f411350b8040731507f">
+<meta name="app-build-id" content="05dab3fe9741e4dfa81ce95504758465e11475a971c2ad883ad526022beeb564">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -26177,7 +26177,7 @@ const statusText={
 const isAiScanIssue=row=>/^(?:amount_scan_|ai_scan_)/i.test(String(row?.reason||''));
 function scanIssueLabel(raw){
  const reason=String(raw||'');
- if(/gemini_key_missing|gemini_http_(?:401|403)/i.test(reason))return 'Khóa/API Gemini không hợp lệ — cần kiểm tra';
+ if(/gemini_key_missing|gemini_http_(?:400|401|403)/i.test(reason))return 'Khóa/API Gemini không hợp lệ — cần kiểm tra';
  if(/gemini_http_429/i.test(reason))return 'Gemini hết hạn mức — sẽ thử lại';
  if(/gemini_http_5[0-9][0-9]|aborted|aborterror|worker_interrupted/i.test(reason))return 'AI quét lỗi hoặc quá thời gian — đang chờ thử lại';
  if(/retry_exhausted|old_unresolved|queue_expired/i.test(reason))return 'Đã hết lượt thử — cần Admin xem chứng từ';
