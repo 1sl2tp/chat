@@ -123,6 +123,8 @@ jobs:
         run: |
           node --check customer-photo-library.js
           node tests/test_customer_photo_library.cjs
+      - name: Zalo-shared contact phone tap and copy
+        run: node tests/test_zalo_shared_phone_card.cjs
       - name: Incoming sender narrow Chat edge layout
         run: python -m pytest -q tests/test_v21_incoming_left_edge_contract.py tests/test_v21_140_zalo_card_narrow_axis.py
       - name: Zalo bridge core tests
