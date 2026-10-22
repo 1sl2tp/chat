@@ -4,9 +4,9 @@ edge=(ROOT/'supabase/functions/v21-bank-bill-event/index.ts').read_text('utf-8')
 sql=(ROOT/'supabase/migrations/20261022210500_bank185_transient_bill_scan_retry.sql').read_text('utf-8')
 assert 'select("id,status,reason,scanned_at,customer_account_id,sent_at,attempt_count")' in edge
 assert 'job.status==="failed"&&transientError' in edge
-assert 'Number(job.attempt_count||0)<3' in edge
-assert 'Date.now()-inspected>=2*60000' in edge
-assert 'vnDate(sent)===vnDate(Date.now())' in edge
+assert 'tries>=1&&tries<6' in edge
+assert 'Date.now()-inspected>=retryMinutes*60000' in edge
+assert 'sent>=Date.now()-7*86400000' in edge
 assert '.eq("status",retryFailed?"failed":"queued").eq("attempt_count",job.attempt_count||0)' in edge
 assert 'const timeout=setTimeout(()=>ctl.abort(),30000);' in edge
 assert 'chat_bank_app_collect' in edge
