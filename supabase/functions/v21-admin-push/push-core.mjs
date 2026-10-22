@@ -48,6 +48,22 @@ export function buildCallInviteNotificationPayload(row={}){
 
 /* BANK-181: transactional reconciliation events, not Chat message bubbles.
    Stable tags replace stale credit/awaiting states when the match arrives. */
+export function bankScanReasonLabel(raw){
+  const reason=String(raw||'');
+  if(/gemini_key_missing|gemini_http_(?:401|403)|api.key|permission_denied/i.test(reason))
+    return 'Khóa/API Gemini không hợp lệ hoặc hết quyền · Cần Admin kiểm tra';
+  if(/gemini_http_429/i.test(reason))
+    return 'Gemini hết hạn mức · Đang chờ quét lại';
+  if(/gemini_http_5\\d\\d|gemini_http_408|aborted|aborterror|failed to fetch|load failed|worker_interrupted/i.test(reason))
+    return 'AI quét ảnh lỗi hoặc quá thời gian · Sẽ tự thử lại';
+  if(/ai_scan_retry_exhausted|ai_scan_old_unresolved|ai_scan_queue_expired/i.test(reason))
+    return 'AI vẫn chưa kết luận được ảnh · Cần Admin xử lý';
+  if(/gemini_invalid_json/i.test(reason))
+    return 'AI trả kết quả không đọc được · Sẽ thử lại';
+  if(/amount_scan_/i.test(reason))
+    return 'Không đọc được ảnh · Admin cần kiểm tra';
+  return reason.slice(0,100)||'Ảnh cần đối soát thủ công';
+}
 export function buildBankNotificationPayload(row={}){
   const kind=String(row.kind||'');
   const amount=Number(row.amount_vnd||0);
@@ -58,9 +74,11 @@ export function buildBankNotificationPayload(row={}){
   const date=String(row.business_date||'');
   const bankId=String(row.notification_id||'');
   const receiptId=String(row.receipt_id||'');
+  const scanProblem=/^(?:amount_scan_|ai_scan_)/i.test(String(row.reason||''));
   const title=kind==='matched'?'TAPHOA · Đối soát thành công'
     :kind==='bank_only'?'TAPHOA · Tiền về'
     :kind==='bill_waiting'?'TAPHOA · Có bill mới'
+    :scanProblem?'TAPHOA · AI quét bill gặp lỗi'
     :'TAPHOA · Cần kiểm tra';
   const body=kind==='matched'
     ?person+' · '+money+' · Đã ghi thu chính xác'
@@ -68,7 +86,7 @@ export function buildBankNotificationPayload(row={}){
     ?'+'+money+(time?' · '+time:'')+' · Chưa có bill, chưa ghi thu'
     :kind==='bill_waiting'
     ?person+' · '+money+' · Chờ Agribank xác nhận'
-    :person+' · '+(String(row.reason||'Bill cần tra soát').trim().slice(0,60))+' · Chưa ghi thu';
+    :person+' · '+bankScanReasonLabel(row.reason)+' · Chưa ghi thu';
   return {
     kind:'bank_reconciliation',
     notification_id:String(row.outbox_id||''),
