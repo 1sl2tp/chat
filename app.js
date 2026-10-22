@@ -4313,11 +4313,92 @@ function messageRichLine(tagName,className,text){
   return {node,hasLink};
 }
 
+// A shared Zalo business/contact card is stored as plain text by the bridge.
+// Keep that original message unchanged; only compact its visual presentation.
+function parseZaloSharedPhoneCard(value){
+  const lines=String(value??'').replace(/\r\n?/gu,'\n')
+    .split('\n').map(line=>line.trim()).filter(Boolean);
+  if(lines.length<3||lines.length>4)return null;
+  if(!/^(?:📇\uFE0F?\s*)?Danh thiếp Zalo$/iu.test(lines[0]))return null;
+  if(!lines[1]||/^Số điện thoại\s*:/iu.test(lines[1]))return null;
+  const phoneLine=lines[2].match(/^Số điện thoại\s*:\s*(\+?[\d\s().-]+)$/iu);
+  if(!phoneLine)return null;
+  const number=phoneLine[1].replace(/[\s().-]/gu,'');
+  if(!/^\+?\d{9,15}$/u.test(number))return null;
+  if(lines[3]){
+    try{
+      const url=new URL(lines[3]);
+      if(url.protocol!=='https:'||!['zalo.me','chat.zalo.me','zaloapp.com'].includes(url.hostname.toLowerCase()))return null;
+    }catch{return null;}
+  }
+  return{number};
+}
+
+async function copyZaloSharedPhone(number,button){
+  let copied=false;
+  try{
+    if(typeof navigator.clipboard?.writeText==='function'){
+      await navigator.clipboard.writeText(number);
+      copied=true;
+    }
+  }catch{}
+  if(!copied){
+    const field=document.createElement('textarea');
+    field.value=number;
+    field.readOnly=true;
+    field.style.position='fixed';
+    field.style.opacity='0';
+    document.body.appendChild(field);
+    field.select();
+    try{copied=Boolean(document.execCommand?.('copy'));}catch{}
+    field.remove();
+  }
+  const original='Sao chép';
+  button.textContent=copied?'Đã sao chép':'Không thể sao chép';
+  button.dataset.state=copied?'copied':'failed';
+  window.setTimeout(()=>{
+    if(!button.isConnected)return;
+    button.textContent=original;
+    button.dataset.state='';
+  },1400);
+  return copied;
+}
+
+function renderZaloSharedPhoneCard(container,card){
+  const row=document.createElement('div');
+  row.className='message-zalo-phone';
+  const call=document.createElement('a');
+  call.className='message-zalo-phone-number';
+  call.href='tel:'+card.number;
+  call.textContent=card.number;
+  call.title='Bấm để gọi '+card.number;
+  call.setAttribute('aria-label','Gọi số '+card.number);
+  call.addEventListener('click',event=>event.stopPropagation());
+  const copy=document.createElement('button');
+  copy.type='button';
+  copy.className='message-zalo-phone-copy';
+  copy.textContent='Sao chép';
+  copy.setAttribute('aria-label','Sao chép số '+card.number);
+  copy.addEventListener('click',event=>{
+    event.stopPropagation();
+    void copyZaloSharedPhone(card.number,copy);
+  });
+  row.append(call,copy);
+  container.replaceChildren(row);
+  container.dataset.hasLink='true';
+  container.dataset.richText='true';
+  container.dataset.contactCard='zalo-phone';
+  return container;
+}
+
 function renderMessageBody(container,value){
   if(!container)return container;
   container.replaceChildren();
 
   const source=String(value??'').replace(/\r\n?/gu,'\n');
+  const phoneCard=parseZaloSharedPhoneCard(source);
+  if(phoneCard)return renderZaloSharedPhoneCard(container,phoneCard);
+  delete container.dataset.contactCard;
   const lines=source.split('\n');
   let hasLink=false;
   let rich=false;
