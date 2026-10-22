@@ -430,6 +430,47 @@ button{
   min-height:1.5rem;
   white-space:pre-wrap;
 }
+/* Zalo-shared contact: display only the number, never the Zalo tracking link. */
+.message-zalo-phone{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  max-width:100%;
+  min-height:34px;
+}
+.message-zalo-phone-number{
+  color:#3479ce;
+  font-weight:650;
+  letter-spacing:.015em;
+  font-variant-numeric:tabular-nums;
+  text-decoration:underline;
+  text-underline-offset:3px;
+  overflow-wrap:anywhere;
+  -webkit-touch-callout:default;
+  -webkit-user-select:text;
+  user-select:text;
+}
+.message-zalo-phone-copy{
+  appearance:none;
+  border:1px solid var(--theme-border-default,#dedede);
+  border-radius:9px;
+  padding:6px 10px;
+  min-height:32px;
+  background:var(--theme-surface-primary,#fff);
+  color:var(--theme-content-primary,#222);
+  font:500 12px/18px inherit;
+  cursor:pointer;
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+}
+.message-zalo-phone-copy[data-state="copied"]{color:#16814c}
+.message-zalo-phone-number:focus-visible,
+.message-zalo-phone-copy:focus-visible{
+  outline:2px solid #4584dd;
+  outline-offset:2px;
+}
+
 .message-rich-gap{height:.55rem}
 .message-rich-heading{
   margin:.35rem 0 .2rem;
