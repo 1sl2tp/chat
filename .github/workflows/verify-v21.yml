@@ -109,6 +109,10 @@ jobs:
         run: node tests/test_bank183_unlinked_bill_candidate.mjs
       - name: BANK-184 Admin explanation audit without ledger writes
         run: python -m pytest -q tests/test_bank184_manual_exception_audit.py
+      - name: BANK-191 Agribank manual collection and no duplicate debit
+        run: |
+          node --check bank-report-dashboard.js
+          python -m pytest -q tests/test_bank191_admin_manual_collect.py
       - name: BANK-185 transient bill scan retries keep bank evidence strict
         run: python tests/test_bank185_transient_retry_contract.py
       - name: BANK-186 no lost scans and BANK-187 Admin outage notifications
