@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="4a0176c391ebd613ca988f3e7c170112aa39c1efee79af3a127b7d7bebe472d9">
+<meta name="app-build-id" content="2eede59f7d8dc97ed23b7e97ba929345215b3e0e12485ac058dc40e6b84fe359">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -26186,9 +26186,10 @@ const statusText={
  review:'Cần kiểm tra',wrong_day:'Sai ngày',duplicate:'Bill trùng',
  non_bill:'Không phải bill',reading:'Đang đọc ảnh',test_excluded:'Tiền test (loại)'
 };
-const isAiScanIssue=row=>/^(?:amount_scan_|ai_scan_)/i.test(String(row?.reason||''));
+const isAiScanIssue=row=>/^(?:amount_scan_|ai_scan_|ai_year_error_)/i.test(String(row?.reason||''));
 function scanIssueLabel(raw){
  const reason=String(raw||'');
+ if(/ai_year_error_bank_verified_prior_day_review/i.test(reason))return 'Agribank đã xác nhận · AI đọc sai năm · Cần xử lý ghi thu ngày cũ';
  if(/gemini_key_missing|gemini_http_(?:400|401|403)/i.test(reason))return 'Khóa/API Gemini không hợp lệ — cần kiểm tra';
  if(/gemini_http_429/i.test(reason))return 'Gemini hết hạn mức — sẽ thử lại';
  if(/gemini_http_5[0-9][0-9]|aborted|aborterror|worker_interrupted/i.test(reason))return 'AI quét lỗi hoặc quá thời gian — đang chờ thử lại';
