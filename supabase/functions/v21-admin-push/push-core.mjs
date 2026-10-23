@@ -74,7 +74,7 @@ export function buildBankNotificationPayload(row={}){
   const date=String(row.business_date||'');
   const bankId=String(row.notification_id||'');
   const receiptId=String(row.receipt_id||'');
-  const scanProblem=/^(?:amount_scan_|ai_scan_)/i.test(String(row.reason||''));
+  const scanProblem=/^(?:amount_scan_|ai_scan_|ai_year_error_)/i.test(String(row.reason||''));
   const title=kind==='matched'?'TAPHOA · Đối soát thành công'
     :kind==='bank_only'?'TAPHOA · Tiền về'
     :kind==='bill_waiting'?'TAPHOA · Có bill mới'
