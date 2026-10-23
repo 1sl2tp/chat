@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="fb09828116c7ce5d894d87fec7976a887589c8a99858f5ed1c718be8e3f22e95">
+<meta name="app-build-id" content="de696409e4ec77c82807266cf6ea9b8cc1d27616e41dc1dbddfc7e4ca82a24a3">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -26648,6 +26648,122 @@ async function openReviewDialog(bank,candidates){
    previous.appendChild(el('p','bank-review-saved','Mã biên bản: '+data.review_id));
   }catch(error){
    feedback.textContent='Chưa lưu được biên bản: '+String(error?.message||error).slice(0,150);
+   save.disabled=false;
+  }finally{cancel.disabled=false;}
+ });
+}
+// BANK-191: explicit real collection, or link a previously entered manual receipt.
+async function openCollectionDialog(bank){
+ if(!active||!isReportContact()||!ui.review)return;
+ closeReviewDialog();
+ const noticeId=Number(bank.notice_id);
+ if(!Number.isSafeInteger(noticeId)||noticeId<=0)return;
+ const overlay=el('div','bank-review-overlay'),form=el('form','bank-review-form');
+ form.setAttribute('role','dialog');form.setAttribute('aria-modal','true');
+ form.setAttribute('aria-label','Thu tiền từ Agribank');
+ const heading=append(el('div','bank-review-heading'),
+  append(el('div',''),el('strong','','Thu tiền Agribank'),
+   el('small','','Ghi thu công nợ ngay · Có nội dung thu')),
+  el('button','bank-report-image-close','Đóng'));
+ heading.querySelector('button').type='button';
+ heading.querySelector('button').addEventListener('click',closeReviewDialog);
+ form.appendChild(heading);
+ form.appendChild(append(el('div','bank-review-bank'),
+  el('strong','',money(bank.amount_vnd)+' · Agribank #'+noticeId),
+  el('span','','Giờ ngân hàng: '+(bank.bank_time||'—'))));
+ const info=el('p','bank-review-instruction','Đang kiểm tra khoản thu nhập tay…');form.appendChild(info);
+ const customerLabel=el('label','bank-review-label','Thu cho khách hàng');
+ const customer=el('select','bank-review-select');customer.required=true;customer.disabled=true;
+ customerLabel.appendChild(customer);form.appendChild(customerLabel);
+ const previous=el('div','bank-review-existing');form.appendChild(previous);
+ const noteLabel=el('label','bank-review-label','Nội dung thu (bắt buộc)');
+ const note=el('textarea','bank-review-explanation');
+ note.rows=3;note.minLength=5;note.maxLength=1000;note.required=true;
+ note.value='Thu chuyển khoản Agribank ngày '+ui.date.value+' lúc '+(bank.bank_time||'');
+ noteLabel.appendChild(note);form.appendChild(noteLabel);
+ const consent=el('label','bank-review-consent');
+ const verified=el('input');verified.type='checkbox';verified.required=true;
+ append(consent,verified,el('span','','Tôi đã kiểm tra tiền Agribank và chọn đúng khách. Khoản đã nhập tay phải liên kết, không thu hai lần.'));
+ form.appendChild(consent);
+ const feedback=el('div','bank-review-feedback');feedback.setAttribute('role','status');form.appendChild(feedback);
+ const actions=el('div','bank-review-actions');
+ const cancel=el('button','bank-report-action','Hủy');cancel.type='button';cancel.addEventListener('click',closeReviewDialog);
+ const save=el('button','bank-review-save','Thu tiền');save.type='submit';save.disabled=true;
+ append(actions,cancel,save);form.appendChild(actions);overlay.appendChild(form);
+ ui.review.hidden=false;ui.review.appendChild(overlay);
+ overlay.addEventListener('click',e=>{if(e.target===overlay)closeReviewDialog();});
+ const auth=window.V21AuthSessionStore?.snapshot?.()||{};
+ const client=window.V21AuthSessionStore?.getClient?.();
+ if(!auth.appSessionId||!client){info.textContent='Phiên Admin hết hạn.';return;}
+ let prepared=null,candidates=[],priorSelector=null;
+ try{
+  const {data,error}=await client.rpc('chat_bank_manual_collection_prepare',{
+   p_app_session_id:auth.appSessionId,p_notice_id:noticeId});
+  if(ui.review.hidden)return;
+  if(error)throw error;
+  if(!data?.ok)throw Error(data?.status||'Giao dịch chưa đủ điều kiện thu');
+  prepared=data;
+  if(data.already_recorded){
+   info.textContent='Khoản Agribank này đã được xử lý.';
+   feedback.textContent='Sổ thu #'+data.already_recorded.ledger_id+' · Không thu lần hai.';
+   return;
+  }
+  const first=el('option','','Chọn khách hàng…');first.value='';customer.appendChild(first);
+  for(const a of data.customers||[]){
+   const op=el('option','',a.name||'Khách hàng');op.value=a.id;customer.appendChild(op);
+  }
+  candidates=Array.isArray(data.possible_existing)?data.possible_existing:[];
+  customer.disabled=false;save.disabled=false;
+  info.textContent='Chọn khách, nhập nội dung và bấm Thu tiền.';
+  customer.addEventListener('change',()=>{
+   previous.replaceChildren();priorSelector=null;
+   const matches=candidates.filter(m=>m.customer_id===customer.value);
+   if(matches.length){
+    previous.appendChild(el('p','bank-review-warning',
+     'Đã nhập tay '+matches.length+' khoản cùng số tiền. Chọn sổ thu để liên kết, không trừ công nợ lần hai.'));
+    const label=el('label','bank-review-label','Khoản thu đã nhập');
+    priorSelector=el('select','bank-review-select');priorSelector.required=true;
+    const first=el('option','','Chọn khoản thu đã ghi…');first.value='';priorSelector.appendChild(first);
+    for(const m of matches){
+     const at=new Date(m.created_at).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'});
+     const op=el('option','','#'+m.ledger_id+' · '+at+' · '+(m.note||'Thu tay'));
+     op.value=String(m.ledger_id);priorSelector.appendChild(op);
+    }
+    label.appendChild(priorSelector);previous.appendChild(label);
+    save.textContent='Liên kết khoản đã thu';
+   }else{
+    previous.appendChild(el('p','bank-review-instruction',
+     'Chưa có khoản thu cùng số tiền. Bấm Thu tiền sẽ trừ công nợ ngay.'));
+    save.textContent='Thu '+money(bank.amount_vnd);
+   }
+  });
+ }catch(error){
+  info.textContent='Không mở được giao dịch để thu.';
+  feedback.textContent=String(error?.message||error).slice(0,180);return;
+ }
+ form.addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(!prepared||!customer.value||!verified.checked||note.value.trim().length<5)return;
+  if(priorSelector&&!priorSelector.value){
+   feedback.textContent='Chọn khoản đã nhập tay để liên kết, tránh ghi thu trùng.';return;
+  }
+  save.disabled=true;cancel.disabled=true;feedback.textContent='Đang ghi nhận…';
+  try{
+   const {data,error}=await client.rpc('chat_bank_manual_collect',{
+    p_app_session_id:auth.appSessionId,p_notice_id:noticeId,
+    p_customer_id:customer.value,p_note:note.value.trim(),
+    p_existing_ledger_id:priorSelector?Number(priorSelector.value):null
+   });
+   if(error)throw error;
+   if(!data?.ok)throw Error(data?.status==='possible_manual_collection'
+    ?'Phát hiện khoản thu tay mới. Đóng và mở lại để liên kết.'
+    :data?.status||'Không ghi thu được');
+   feedback.textContent=data.debt_changed
+    ?'Đã thu công nợ · Sổ #'+data.ledger_id
+    :'Đã liên kết khoản đã thu · Sổ #'+data.ledger_id+' · Không thu lần hai';
+   save.hidden=true;cancel.textContent='Đóng';await reload();
+  }catch(error){
+   feedback.textContent='Chưa thu: '+String(error?.message||error).slice(0,180);
    save.disabled=false;
   }finally{cancel.disabled=false;}
  });
