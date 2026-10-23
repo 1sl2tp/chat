@@ -275,3 +275,15 @@
  .bank-report-collect{min-height:40px;padding:10px 16px}
  .bank-review-existing .bank-review-select{font-size:16px}
 }
+
+/* UX-192: action lives in the bank row; the confirmation dialog still owns the actual debit. */
+.bank-report-quick-collect{
+ justify-self:end;align-self:center;min-width:84px;min-height:34px;
+ padding:6px 8px;border:1px solid #108547;border-radius:9px;
+ background:#128948;color:#fff;font-size:12px;font-weight:750;
+ cursor:pointer;white-space:nowrap;touch-action:manipulation
+}
+.bank-report-quick-collect:focus-visible{outline:2px solid var(--theme-content-primary,#222);outline-offset:2px}
+@media(max-width:650px){
+ .bank-report-quick-collect{min-width:76px;min-height:36px;font-size:11px;padding:6px 5px}
+}
