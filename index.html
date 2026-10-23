@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="2eede59f7d8dc97ed23b7e97ba929345215b3e0e12485ac058dc40e6b84fe359">
+<meta name="app-build-id" content="fb09828116c7ce5d894d87fec7976a887589c8a99858f5ed1c718be8e3f22e95">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -26151,7 +26151,7 @@ switchView();
 </script>
 <script data-inlined-source="bank-report-dashboard.js">
 (()=>{'use strict';
-// BANK-177: a live, read-only reconciliation TABLE inside the existing report contact.
+// BANK-191: Admin reconciliation with explicit Agribank collection.
 // Canonical message/read-state Realtime remains the only wake owner, no polling.
 const REPORT_ID='fc3ec480-60d2-4749-b7af-5f4ae71eb14e';
 const stage=document.getElementById('stageLayout');
@@ -26172,7 +26172,7 @@ const ui={
 const filters=[
  ['all','Tất cả'],['matched','Đã khớp'],['waiting_bank','Bill chờ Agribank'],
  ['bank_only','Agribank chưa khớp'],['review','Cần xem'],['wrong_day','Sai ngày'],
- ['duplicate','Trùng'],['non_bill','Không phải bill'],['test_excluded','Test (loại)']
+ ['manual_bank','Đã thu thủ công Agribank'],['duplicate','Trùng'],['non_bill','Không phải bill'],['test_excluded','Test (loại)']
 ];
 const money=x=>x===null||x===undefined||x===''||!Number.isFinite(Number(x))?'—':new Intl.NumberFormat('vi-VN').format(Number(x))+'đ';
 const localDate=()=>{const parts=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const part=t=>parts.find(x=>x.type===t)?.value||'';return part('year')+'-'+part('month')+'-'+part('day');};
@@ -26231,7 +26231,10 @@ async function reload(){
   const {data,error}=await client.rpc('chat_bank_dashboard',{p_app_session_id:auth.appSessionId,p_day:day});
   if(error)throw error;
   if(id!==requestId||!active||ui.date.value!==day)return;
-  current=data;paint(data);focusPushRecord(data);
+  const states=await client.rpc('chat_bank_manual_collection_statuses',{p_app_session_id:auth.appSessionId,p_day:day});
+  if(states.error)throw states.error;
+  current={...data,manual_collections:Array.isArray(states.data)?states.data:[]};
+  paint(current);focusPushRecord(current);
   const when=new Date(data.updated_at);
   ui.stamp.textContent='Dữ liệu '+(Number.isFinite(when.getTime())?new Intl.DateTimeFormat('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(when):'mới nhất')+(data.closed?' · Đã khóa sổ':' · Đang mở sổ');
  }catch(error){
@@ -26251,6 +26254,7 @@ function paint(data){
  ui.status.replaceChildren(
   cardValue('Bill chờ ngân hàng',String(s.bill_only_count||0),false,true),
   cardValue('Ngân hàng chưa khớp',String(s.bank_only_count||0),false,true),
+   cardValue('Đã thu thủ công Agribank',String((data?.manual_collections||[]).length),false,true),
   cardValue('Bill sai ngày',String(s.old_date_count||0),false,true),
   cardValue('Ảnh trùng',String(s.duplicate_count||0),false,true),
   cardValue('Ảnh AI chưa kết luận',String((data?.bills||[]).filter(isAiScanIssue).length),false,true)
@@ -26325,13 +26329,14 @@ function possibleUnlinkedBills(bank,allBills){
 }
 function detailLine(row,isBank=false,candidates=[]){
  const type=isBank?'bank_only':row.report_status;
+ const manualRecord=isBank?(current?.manual_collections||[]).find(m=>String(m.notice_id)===String(row.notice_id)):null;
  const wrap=el('details','bank-report-detail');
  if(row.receipt_id)wrap.dataset.bankReceiptId=String(row.receipt_id);
  if(row.notice_id)wrap.dataset.bankNoticeId=String(row.notice_id);
  const top=el('summary','bank-report-detail-top');
  const label=el('span','bank-report-detail-status bank-status-'+
-  (isBank&&candidates.length?'review':type),
-  isBank&&candidates.length?'Có bill cần kiểm tra':!isBank&&isAiScanIssue(row)?'AI chưa kết luận':statusText[type]||'Cần kiểm tra');
+  (manualRecord?'bank_manual':isBank&&candidates.length?'review':type),
+  manualRecord?'Đã thu thủ công':isBank&&candidates.length?'Có bill cần kiểm tra':!isBank&&isAiScanIssue(row)?'AI chưa kết luận':statusText[type]||'Cần kiểm tra');
  const left=el('span','bank-report-detail-time',isBank?localTime(row.bank_time):localTime(row.bill_time||row.sent_at));
  const amt=el('strong','bank-report-detail-amount',money(isBank?row.amount_vnd:row.amount_vnd));
  append(top,left,amt,label);wrap.appendChild(top);
@@ -26341,9 +26346,15 @@ function detailLine(row,isBank=false,candidates=[]){
   cell('Giờ khách gửi ảnh',isBank?'—':(row.sent_at?new Intl.DateTimeFormat('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date(row.sent_at)):'—')),
   cell('Mã giao dịch',row.transfer_reference||'—'),
   cell('Thông báo ngân hàng',isBank?'#'+row.notice_id:(row.notice_id?'#'+row.notice_id:'Chưa có')),
-  cell('Tình trạng',isBank&&candidates.length?'Chưa đối soát · Chưa ghi thu':
-  statusText[type]||row.status||'Chưa rõ'));
- if(isBank&&candidates.length){
+  cell('Tình trạng',manualRecord?(manualRecord.mode==='linked_existing'
+   ?'Đã liên kết khoản nhập tay':'Đã thu thủ công từ Agribank')
+  :isBank&&candidates.length?'Chưa đối soát · Chưa ghi thu':statusText[type]||row.status||'Chưa rõ'));
+ if(manualRecord){
+  content.appendChild(cell('Khách đã thu',manualRecord.customer_name||'—'));
+  content.appendChild(cell('Sổ công nợ','#'+manualRecord.ledger_id));
+  content.appendChild(cell('Nội dung thu',manualRecord.note||'—'));
+ }
+ if(isBank&&candidates.length&&!manualRecord){
   content.appendChild(el('p','bank-report-detail-reason',
     'Có '+candidates.length+' ảnh khách gửi có khả năng liên quan (cùng tiền hoặc gần giờ ngân hàng). '
     +'Ảnh lịch sử nhiều dòng và ảnh gửi lại phải được xác minh thủ công; chưa ghi thu.'));
@@ -26366,6 +26377,10 @@ function detailLine(row,isBank=false,candidates=[]){
  }
  if(row.reason&&!isBank)content.appendChild(el('p','bank-report-detail-reason',isAiScanIssue(row)?'Lỗi quét ảnh: '+scanIssueLabel(row.reason):'Ghi chú: '+row.reason));
  const actions=el('div','bank-report-detail-actions');
+ if(isBank&&!manualRecord){
+  const btn=el('button','bank-report-action bank-report-collect','Thu tiền');
+  btn.type='button';btn.addEventListener('click',()=>void openCollectionDialog(row));actions.appendChild(btn);
+ }
  if(!isBank&&row.asset_id){
   const b=el('button','bank-report-action','Xem ảnh bill');b.type='button';
   b.addEventListener('click',()=>{void showBill(row);});actions.appendChild(b);
@@ -26382,7 +26397,8 @@ function renderGroups(data){
  const bankOnly=Array.isArray(data?.bank_only)?data.bank_only:[];
  const selected=filter==='all' ? (selectedCustomer?allBills.filter(r=>String(r.customer_id)===selectedCustomer):[])
    :allBills.filter(r=>r.report_status===filter||(filter==='review'&&r.report_status==='reading'));
- const banks=(filter==='all'||filter==='bank_only')?bankOnly:[];
+ const banks=(filter==='all'||filter==='bank_only')?bankOnly:
+  filter==='manual_bank'?bankOnly.filter(r=>(data?.manual_collections||[]).some(m=>String(m.notice_id)===String(r.notice_id))):[];
  const grouped=new Map();
  for(const row of selected){
   const key=String(row.customer_id||'none'),g=grouped.get(key)||{id:key,name:row.customer_name||'Khách chưa rõ',rows:[],amount:0,matched:0};
@@ -26406,7 +26422,7 @@ function renderGroups(data){
  if(banks.length){
   const block=el('section','bank-report-customer bank-report-bank-only');
   block.appendChild(append(el('div','bank-report-customer-head'),
-   el('strong','bank-report-customer-name','Agribank có tiền · chưa đối soát'),
+   el('strong','bank-report-customer-name','Agribank có tiền · theo trạng thái'),
    el('span','bank-report-customer-count',banks.length+' giao dịch · '+money(banks.reduce((s,x)=>s+Number(x.amount_vnd||0),0)))));
   banks.forEach(row=>block.appendChild(detailLine(row,true,possibleUnlinkedBills(row,allBills))));
   ui.groups.appendChild(block);
