@@ -42,7 +42,7 @@ def test_ui_is_true_collection_action_not_just_a_status_toggle():
                   "chat_bank_manual_collect", "chat_bank_manual_collection_prepare",
                   "chat_bank_manual_collection_statuses", "p_existing_ledger_id",
                   "Đã thu thủ công", "Đã liên kết khoản đã thu", "Không thu lần hai",
-                  "bank-report-collect", "manual_bank"):
+                  "bank-report-quick-collect", "manual_bank"):
         assert token in JS, token
     assert "bank-status-bank_manual" in CSS
     assert "if(isBank&&!manualRecord)" in JS
