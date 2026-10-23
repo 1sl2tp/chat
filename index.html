@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="de696409e4ec77c82807266cf6ea9b8cc1d27616e41dc1dbddfc7e4ca82a24a3">
+<meta name="app-build-id" content="fd76a5cbcf90cc545c0d60b5c7e1490ab2536b342487c18d72f9109f53324feb">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1594,6 +1594,20 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
  .bank-review-choice{gap:6px}
  .bank-review-choice .bank-report-action{padding:6px 7px;white-space:nowrap}
  .bank-review-save{flex:1}
+}
+
+/* BANK-191: clear source-specific collection status and safe Admin modal. */
+.bank-status-bank_manual{background:#e5f7eb;color:#10683d;font-weight:700}
+.bank-report-collect{background:#138b47;border-color:#138b47;color:#fff;font-weight:700}
+.bank-report-collect:hover,.bank-report-collect:focus-visible{background:#0c753a;color:#fff}
+.bank-review-existing{display:flex;flex-direction:column;gap:9px;min-width:0}
+.bank-review-existing:empty{display:none}
+.bank-review-existing .bank-review-warning{margin:0}
+.bank-review-existing .bank-review-label{width:100%}
+.bank-review-form .bank-review-actions button{min-height:38px}
+@media(max-width:650px){
+ .bank-report-collect{min-height:40px;padding:10px 16px}
+ .bank-review-existing .bank-review-select{font-size:16px}
 }
 
 </style>
