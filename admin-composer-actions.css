@@ -52,7 +52,7 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
  padding:7px 13px;border:1px solid var(--theme-border-default,#d9dee3);
  border-radius:10px;background:var(--theme-surface-secondary,#f5f7f7);
  color:var(--theme-content-primary,#242424);
- font:600 12px/1.2 inherit;white-space:nowrap;
+ font-family:inherit;font-size:12px;font-weight:600;line-height:1.2;white-space:nowrap;
  cursor:pointer;touch-action:manipulation;
  display:inline-flex;align-items:center;justify-content:center;gap:5px;
 }
