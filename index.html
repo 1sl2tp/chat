@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="2dbd3103d80516048d5c99cfbdc3302c5483b4834165bb39fd0423137cb1049e">
+<meta name="app-build-id" content="e7f5b61b30fe460c74d1f002ede4317ab582fff4c33f42b1f8edf4893cede481">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1608,6 +1608,18 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
 @media(max-width:650px){
  .bank-report-collect{min-height:40px;padding:10px 16px}
  .bank-review-existing .bank-review-select{font-size:16px}
+}
+
+/* UX-192: action lives in the bank row; the confirmation dialog still owns the actual debit. */
+.bank-report-quick-collect{
+ justify-self:end;align-self:center;min-width:84px;min-height:34px;
+ padding:6px 8px;border:1px solid #108547;border-radius:9px;
+ background:#128948;color:#fff;font-size:12px;font-weight:750;
+ cursor:pointer;white-space:nowrap;touch-action:manipulation
+}
+.bank-report-quick-collect:focus-visible{outline:2px solid var(--theme-content-primary,#222);outline-offset:2px}
+@media(max-width:650px){
+ .bank-report-quick-collect{min-width:76px;min-height:36px;font-size:11px;padding:6px 5px}
 }
 
 </style>
