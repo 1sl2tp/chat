@@ -76,12 +76,14 @@ async function reload(){
  ui.stamp.textContent='Đang cập nhật…';
  try{
   if(!auth.appSessionId||!client)throw Error('Chưa có phiên Admin');
-  const {data,error}=await client.rpc('chat_bank_dashboard',{p_app_session_id:auth.appSessionId,p_day:day});
-  if(error)throw error;
-  if(id!==requestId||!active||ui.date.value!==day)return;
-  const states=await client.rpc('chat_bank_manual_collection_statuses',{p_app_session_id:auth.appSessionId,p_day:day});
+  const [report,states]=await Promise.all([
+   client.rpc('chat_bank_dashboard',{p_app_session_id:auth.appSessionId,p_day:day}),
+   client.rpc('chat_bank_manual_collection_statuses',{p_app_session_id:auth.appSessionId,p_day:day})
+  ]);
+  if(report.error)throw report.error;
   if(states.error)throw states.error;
   if(id!==requestId||!active||ui.date.value!==day)return;
+  const data=report.data;
   current={...data,manual_collections:Array.isArray(states.data)?states.data:[]};
   paint(current);focusPushRecord(current);
   const when=new Date(data.updated_at);
@@ -96,13 +98,20 @@ function cardValue(name,value,highlight=false,compact=false){
 }
 function paint(data){
  const s=data?.summary||{};
+ const expanded=new Set([...ui.groups.querySelectorAll('.bank-report-detail[open]')]
+  .map(node=>node.dataset.bankNoticeId?'notice:'+node.dataset.bankNoticeId:
+   node.dataset.bankReceiptId?'receipt:'+node.dataset.bankReceiptId:'').filter(Boolean));
+ const scrollOwner=document.getElementById('scrollRoot');
+ const scrollTop=scrollOwner?.scrollTop??null;
+ const handled=new Set((data?.manual_collections||[]).map(x=>String(x.notice_id)));
+ const outstanding=(data?.bank_only||[]).filter(x=>!handled.has(String(x.notice_id))).length;
  ui.summary.replaceChildren(
   cardValue('Giao dịch đã khớp',String(s.matched_count||0)),
   cardValue('Tiền đã xác nhận',money(s.matched_amount),true)
  );
  ui.status.replaceChildren(
   cardValue('Bill chờ ngân hàng',String(s.bill_only_count||0),false,true),
-  cardValue('Ngân hàng chưa khớp',String(s.bank_only_count||0),false,true),
+  cardValue('Agribank cần xử lý',String(outstanding),false,true),
    cardValue('Đã thu thủ công Agribank',String((data?.manual_collections||[]).length),false,true),
   cardValue('Bill sai ngày',String(s.old_date_count||0),false,true),
   cardValue('Ảnh trùng',String(s.duplicate_count||0),false,true),
@@ -130,6 +139,12 @@ function paint(data){
  append(more,summary,menu);
  ui.tabs.replaceChildren(...primary,more);
  renderGroups(data);
+ for(const node of ui.groups.querySelectorAll('.bank-report-detail')){
+  const key=node.dataset.bankNoticeId?'notice:'+node.dataset.bankNoticeId:
+   node.dataset.bankReceiptId?'receipt:'+node.dataset.bankReceiptId:'';
+  if(expanded.has(key))node.open=true;
+ }
+ if(scrollOwner&&scrollTop!==null)scrollOwner.scrollTop=scrollTop;
 }
 function renderTable(data){
  const bills=Array.isArray(data?.bills)?data.bills:[],byCustomer=new Map();
@@ -183,9 +198,20 @@ function detailLine(row,isBank=false,candidates=[]){
  if(row.receipt_id)wrap.dataset.bankReceiptId=String(row.receipt_id);
  if(row.notice_id)wrap.dataset.bankNoticeId=String(row.notice_id);
  const top=el('summary','bank-report-detail-top');
- const label=el('span','bank-report-detail-status bank-status-'+
-  (manualRecord?'bank_manual':isBank&&candidates.length?'review':type),
-  manualRecord?'Đã thu thủ công':isBank&&candidates.length?'Có bill cần kiểm tra':!isBank&&isAiScanIssue(row)?'AI chưa kết luận':statusText[type]||'Cần kiểm tra');
+ const label=isBank&&!manualRecord
+  ?el('button','bank-report-quick-collect','Thu tiền')
+  :el('span','bank-report-detail-status bank-status-'+
+    (manualRecord?'bank_manual':isBank&&candidates.length?'review':type),
+    manualRecord?'Đã thu thủ công':isBank&&candidates.length?'Có bill cần kiểm tra':
+      !isBank&&isAiScanIssue(row)?'AI chưa kết luận':statusText[type]||'Cần kiểm tra');
+ if(isBank&&!manualRecord){
+  label.type='button';
+  label.setAttribute('aria-label','Thu '+money(row.amount_vnd)+' từ Agribank');
+  label.addEventListener('click',event=>{
+   event.preventDefault();event.stopPropagation();
+   void openCollectionDialog(row);
+  });
+ }
  const left=el('span','bank-report-detail-time',isBank?localTime(row.bank_time):localTime(row.bill_time||row.sent_at));
  const amt=el('strong','bank-report-detail-amount',money(isBank?row.amount_vnd:row.amount_vnd));
  append(top,left,amt,label);wrap.appendChild(top);
@@ -226,10 +252,6 @@ function detailLine(row,isBank=false,candidates=[]){
  }
  if(row.reason&&!isBank)content.appendChild(el('p','bank-report-detail-reason',isAiScanIssue(row)?'Lỗi quét ảnh: '+scanIssueLabel(row.reason):'Ghi chú: '+row.reason));
  const actions=el('div','bank-report-detail-actions');
- if(isBank&&!manualRecord){
-  const btn=el('button','bank-report-action bank-report-collect','Thu tiền');
-  btn.type='button';btn.addEventListener('click',()=>void openCollectionDialog(row));actions.appendChild(btn);
- }
  if(!isBank&&row.asset_id){
   const b=el('button','bank-report-action','Xem ảnh bill');b.type='button';
   b.addEventListener('click',()=>{void showBill(row);});actions.appendChild(b);
