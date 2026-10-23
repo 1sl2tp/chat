@@ -81,6 +81,7 @@ async function reload(){
   if(id!==requestId||!active||ui.date.value!==day)return;
   const states=await client.rpc('chat_bank_manual_collection_statuses',{p_app_session_id:auth.appSessionId,p_day:day});
   if(states.error)throw states.error;
+  if(id!==requestId||!active||ui.date.value!==day)return;
   current={...data,manual_collections:Array.isArray(states.data)?states.data:[]};
   paint(current);focusPushRecord(current);
   const when=new Date(data.updated_at);
