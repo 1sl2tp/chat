@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="fd76a5cbcf90cc545c0d60b5c7e1490ab2536b342487c18d72f9109f53324feb">
+<meta name="app-build-id" content="5663070533e9607ba6b6e604b5b05b8c7a528b893a7fd2c04c4b3ed7ca46369c">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -26247,6 +26247,7 @@ async function reload(){
   if(id!==requestId||!active||ui.date.value!==day)return;
   const states=await client.rpc('chat_bank_manual_collection_statuses',{p_app_session_id:auth.appSessionId,p_day:day});
   if(states.error)throw states.error;
+  if(id!==requestId||!active||ui.date.value!==day)return;
   current={...data,manual_collections:Array.isArray(states.data)?states.data:[]};
   paint(current);focusPushRecord(current);
   const when=new Date(data.updated_at);
