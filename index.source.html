@@ -4055,6 +4055,15 @@ button{
       </div>
     </header>
 
+    <!-- UX-192: visible only for Admin + an active customer; not a second Composer. -->
+    <nav id="chatQuickActions" class="chat-quick-actions" aria-label="Thao tác nhanh cho khách hàng" hidden>
+      <button type="button" data-chat-quick="cash"><span aria-hidden="true">₫</span>Thu tiền</button>
+      <button type="button" data-chat-quick="debt"><span aria-hidden="true">▤</span>Công nợ</button>
+      <button type="button" data-chat-quick="photos"><span aria-hidden="true">▧</span>Ảnh</button>
+      <button type="button" data-chat-quick="recent" aria-expanded="false"><span aria-hidden="true">↺</span>Gần đây</button>
+      <div class="chat-quick-recent" data-chat-quick-recent hidden></div>
+    </nav>
+
     <main id="main" class="min-h-0 flex-1">
       <div id="thread" class="group/thread flex min-h-full flex-col">
         <div class="composer-parent flex flex-1 flex-col focus-visible:outline-0">
