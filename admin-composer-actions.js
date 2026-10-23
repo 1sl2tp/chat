@@ -124,6 +124,7 @@ function ensureAdminMenu(){
   return section;
 }
 function syncVisibility(){
+  syncQuickActions();
   const admin=Boolean(currentAdmin());
   const contact=Boolean(activeContactId());
   const customer=admin&&contact&&activeContactGroup()==='customer';
@@ -553,6 +554,191 @@ async function openRecentSales(contactId){
   return true;
 }
 
+
+// UX-192: one-tap entrypoints for Admin's common customer tasks.
+// Cash is an independent manual entry, NEVER a substitute for Agribank matching.
+const QUICK_RECENT_PREFIX='taphoa.chat.admin.recent.customers.';
+let cashOverlay=null;
+function recentKey(){
+ const id=String(currentAdmin()?.id||'');
+ return id?QUICK_RECENT_PREFIX+id:'';
+}
+function readRecent(){
+ const key=recentKey();if(!key)return[];
+ try{
+  const items=JSON.parse(localStorage.getItem(key)||'[]');
+  return Array.isArray(items)?items.filter(x=>x&&typeof x.id==='string'&&typeof x.name==='string').slice(0,6):[];
+ }catch{return[];}
+}
+function rememberCurrentCustomer(){
+ if(!currentAdmin()||activeContactGroup()!=='customer')return;
+ const id=activeContactId(),contact=activeContact();
+ if(!id||!contact)return;
+ const key=recentKey();if(!key)return;
+ const name=String(contact.display_name||contact.name||contact.username||'Khách hàng').trim().slice(0,100);
+ try{
+  const next=[{id,name},...readRecent().filter(x=>x.id!==id)].slice(0,6);
+  localStorage.setItem(key,JSON.stringify(next));
+ }catch{}
+}
+function closeQuickRecent(){
+ const menu=document.querySelector('[data-chat-quick-recent]');
+ const button=document.querySelector('[data-chat-quick="recent"]');
+ if(menu)menu.hidden=true;
+ button?.setAttribute('aria-expanded','false');
+}
+function showQuickRecent(){
+ const menu=document.querySelector('[data-chat-quick-recent]');
+ const button=document.querySelector('[data-chat-quick="recent"]');
+ if(!menu||!button)return false;
+ if(!menu.hidden){closeQuickRecent();return false;}
+ menu.replaceChildren();
+ const rows=window.V21ContactStore?.snapshot?.()||[];
+ const recent=readRecent().filter(c=>rows.some(x=>String(x.id)===c.id && !x.deleted_at));
+ if(!recent.length){
+  const empty=document.createElement('p');empty.textContent='Chưa có khách gần đây.';menu.appendChild(empty);
+ }
+ for(const item of recent){
+  const row=document.createElement('button');
+  row.type='button';row.textContent=item.name;
+  row.addEventListener('click',()=>{
+   closeQuickRecent();
+   window.ChatAppShell?.NavigationCommand?.openContact?.(item.id,item.name);
+  });
+  menu.appendChild(row);
+ }
+ menu.hidden=false;button.setAttribute('aria-expanded','true');
+ return true;
+}
+function syncQuickActions(){
+ const bar=document.getElementById('chatQuickActions');
+ if(!bar)return;
+ const route=window.ChatAppShell?.ScreenSession?.snapshot?.()?.route;
+ const visible=Boolean(currentAdmin()&&activeContactId()&&activeContactGroup()==='customer'
+  &&route==='chat');
+ bar.hidden=!visible;
+ if(!visible)closeQuickRecent();
+}
+function closeQuickCash({restoreFocus=true}={}){
+ if(!cashOverlay)return false;
+ cashOverlay.remove();cashOverlay=null;
+ unlockQuoteBackground({restoreFocus});
+ return true;
+}
+async function openQuickCash(contactId){
+ if(!currentAdmin()||activeContactGroup()!=='customer'||String(activeContactId())!==String(contactId))
+  throw Error('customer_required');
+ const host=document.getElementById('globalOverlayRoot');
+ if(!host)throw Error('overlay_unavailable');
+ closeQuickCash({restoreFocus:false});
+ if(!lockQuoteBackground())throw Error('another_dialog_open');
+ const account=activeContact();
+ const customerName=String(account?.display_name||account?.name||'Khách hàng');
+ const overlay=document.createElement('section');
+ overlay.className='admin-composer-quote-overlay';overlay.dataset.quickCashModal='';
+ overlay.innerHTML=`
+  <button type="button" class="admin-composer-quote-backdrop" data-cash-close aria-label="Đóng phiếu thu"></button>
+  <form class="admin-composer-quote-card admin-composer-cash-card" role="dialog" aria-modal="true" aria-label="Thu tiền mặt nhập tay">
+   <h2 class="admin-composer-quote-title">Thu tiền mặt</h2>
+   <p class="admin-composer-cash-hint" data-cash-customer></p>
+   <label class="admin-composer-cash-label">Số tiền (đồng)
+    <input class="admin-composer-cash-input" data-cash-amount type="text" inputmode="numeric" autocomplete="off" placeholder="Ví dụ: 500.000" required maxlength="15">
+   </label>
+   <label class="admin-composer-cash-label">Nội dung thu
+    <input class="admin-composer-cash-input" data-cash-note maxlength="240" minlength="5" value="Thu tiền mặt" required>
+   </label>
+   <p class="admin-composer-cash-hint">Đây là khoản nhập tay từ tiền mặt. Nếu tiền vào Agribank, hãy thu ngay tại giao dịch Agribank để tránh trùng.</p>
+   <label class="admin-composer-cash-consent"><input type="checkbox" data-cash-confirm required><span>Xác nhận đã nhận tiền của đúng khách hàng; ghi thu sẽ trừ công nợ và gửi thông báo cho khách.</span></label>
+   <p class="admin-composer-cash-status" data-cash-status role="status" aria-live="polite"></p>
+   <div class="admin-composer-quote-actions">
+    <button type="button" class="admin-composer-quote-cancel" data-cash-close>Hủy</button>
+    <button type="submit" class="admin-composer-quote-send" data-cash-submit>Thu tiền</button>
+   </div>
+  </form>`;
+ host.appendChild(overlay);cashOverlay=overlay;
+ overlay.querySelector('[data-cash-customer]').textContent='Khách hàng: '+customerName;
+ const form=overlay.querySelector('form'),amount=overlay.querySelector('[data-cash-amount]');
+ const note=overlay.querySelector('[data-cash-note]'),check=overlay.querySelector('[data-cash-confirm]');
+ const feedback=overlay.querySelector('[data-cash-status]'),submit=overlay.querySelector('[data-cash-submit]');
+ const closeButtons=[...overlay.querySelectorAll('[data-cash-close]')];
+ let busy=false,done=false;
+ for(const button of closeButtons)button.addEventListener('click',()=>{if(!busy)closeQuickCash();});
+ const parseAmount=()=>{
+  const raw=String(amount.value||'').trim().replace(/\s+/g,'');
+  if(!/^(?:[0-9]+|[0-9]{1,3}(?:[.,][0-9]{3})+)$/.test(raw))return NaN;
+  const value=Number(raw.replace(/[.,]/g,''));
+  return Number.isSafeInteger(value)&&value>=1000&&value<=999999999000&&value%1000===0?value:NaN;
+ };
+ form.addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(busy||done||cashOverlay!==overlay)return;
+  if(String(activeContactId())!==String(contactId)||activeContactGroup()!=='customer'){
+   feedback.textContent='Khách hàng đã thay đổi. Hãy mở phiếu thu ở đúng hội thoại.';return;
+  }
+  const vnd=parseAmount();
+  if(!Number.isFinite(vnd)){feedback.textContent='Nhập số tiền hợp lệ, tối thiểu 1.000đ và chia hết cho 1.000đ.';amount.focus();return;}
+  if(note.value.trim().length<5||!check.checked){feedback.textContent='Cần nội dung thu và xác nhận đã nhận tiền.';return;}
+  const auth=authStore()?.snapshot?.()||{},client=authStore()?.getClient?.();
+  if(!auth.appSessionId||!client){feedback.textContent='Phiên Admin không còn hợp lệ.';return;}
+  const commandId=globalThis.crypto?.randomUUID?.()||window.V21RuntimeId?.create?.();
+  if(!/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(String(commandId||''))){
+   feedback.textContent='Không tạo được mã giao dịch an toàn.';return;
+  }
+  busy=true;submit.disabled=true;amount.disabled=true;note.disabled=true;check.disabled=true;
+  closeButtons.forEach(x=>x.disabled=true);
+  feedback.textContent='Đang ghi sổ thu…';
+  try{
+   const {data,error}=await client.rpc('chat_admin_quick_cash_collect',{
+    p_app_session_id:auth.appSessionId,p_customer_id:String(contactId),
+    p_amount_vnd:vnd,p_note:note.value.trim(),p_command_id:commandId
+   });
+   if(error)throw error;
+   if(!data?.ok||data.source!=='manual_cash')throw Error('Ghi thu chưa được xác nhận');
+   done=true;
+   feedback.textContent='Đã thu '+new Intl.NumberFormat('vi-VN').format(vnd)+'đ · Sổ #'+data.ledger_id;
+   submit.hidden=true;
+   closeButtons.forEach(x=>{x.disabled=false;if(x!==overlay.querySelector('.admin-composer-quote-backdrop'))x.textContent='Đóng';});
+   void window.V21SyncEngine?.wake?.({reason:'quick-cash-collection'});
+   setTransientHint('Đã ghi thu tiền mặt',3500);
+  }catch(error){
+   feedback.textContent='Chưa ghi thu: '+String(error?.message||error).slice(0,150);
+   amount.disabled=false;note.disabled=false;check.disabled=false;submit.disabled=false;
+   closeButtons.forEach(x=>x.disabled=false);
+  }finally{busy=false;}
+ });
+ amount.focus({preventScroll:true});
+ return true;
+}
+function mountQuickActions(){
+ const bar=document.getElementById('chatQuickActions');
+ if(!bar||bar.dataset.bound==='true')return false;
+ bar.dataset.bound='true';
+ bar.addEventListener('click',event=>{
+  const button=event.target instanceof Element?event.target.closest('[data-chat-quick]'):null;
+  if(!button||button.disabled)return;
+  event.preventDefault();
+  const action=button.dataset.chatQuick;
+  if(action==='cash'){
+   closeQuickRecent();
+   const id=activeContactId();
+   if(id)void openQuickCash(id).catch(()=>setTransientHint('Không mở được phiếu thu tiền',2600));
+  }else if(action==='debt'){
+   closeQuickRecent();void runAction('debt');
+  }else if(action==='photos'){
+   closeQuickRecent();window.ChatAppShell?.NavigationCommand?.openPhotos?.();
+  }else if(action==='recent')showQuickRecent();
+ });
+ document.addEventListener('click',event=>{
+  if(!bar.contains(event.target))closeQuickRecent();
+ });
+ document.addEventListener('keydown',event=>{
+  if(event.key==='Escape')closeQuickRecent();
+ });
+ rememberCurrentCustomer();
+ syncQuickActions();
+ return true;
+}
+
 async function runAction(action){
   if(!currentAdmin())return false;
   const contactId=activeContactId();
@@ -623,6 +809,9 @@ function bind(){
   const plus=document.getElementById('composer-plus-btn');
   if(!plus)return false;
   ensureAdminMenu();
+  mountQuickActions();
+  document.addEventListener('v21-active-contact-change',()=>{rememberCurrentCustomer();syncQuickActions();});
+  document.addEventListener('v21-contact-groups-change',()=>{rememberCurrentCustomer();syncQuickActions();});
   document.addEventListener('click',event=>{
     const target=event.target instanceof Element?event.target:null;
     const button=target?.closest?.(`[${ACTION_ATTR}]`);
