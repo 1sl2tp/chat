@@ -5,7 +5,7 @@ JS = (ROOT / 'admin-composer-actions.js').read_text()
 HTML = (ROOT / 'index.source.html').read_text()
 CSS = (ROOT / 'admin-composer-actions.css').read_text()
 BANK = (ROOT / 'bank-report-dashboard.js').read_text()
-SQL = (ROOT / 'supabase/migrations/20261024060000_ux192_admin_quick_cash_collect.sql').read_text()
+SQL = (ROOT / 'supabase/migrations/20261024061500_ux192_quick_cash_command_units.sql').read_text()
 
 def test_customer_shortcuts_are_contextual_and_do_not_replace_composer():
     for action in ('cash', 'debt', 'photos', 'recent'):
@@ -40,6 +40,7 @@ def test_cash_has_explicit_confirmation_stable_retry_and_role_guard():
     assert "command_id_conflict" in SQL
     assert "INSERT INTO public.taphoa_debt_ledger" in SQL
     assert "'collection',-v_amount" in SQL
+    assert "'amount_vnd',v_amount,'source_amount_vnd',p_amount_vnd" in SQL
     assert "taphoa_chat_notify_customer" in SQL
     assert "REVOKE ALL ON FUNCTION public.chat_admin_quick_cash_collect" in SQL
 
