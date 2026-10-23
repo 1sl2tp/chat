@@ -34,9 +34,10 @@ const statusText={
  review:'Cần kiểm tra',wrong_day:'Sai ngày',duplicate:'Bill trùng',
  non_bill:'Không phải bill',reading:'Đang đọc ảnh',test_excluded:'Tiền test (loại)'
 };
-const isAiScanIssue=row=>/^(?:amount_scan_|ai_scan_)/i.test(String(row?.reason||''));
+const isAiScanIssue=row=>/^(?:amount_scan_|ai_scan_|ai_year_error_)/i.test(String(row?.reason||''));
 function scanIssueLabel(raw){
  const reason=String(raw||'');
+ if(/ai_year_error_bank_verified_prior_day_review/i.test(reason))return 'Agribank đã xác nhận · AI đọc sai năm · Cần xử lý ghi thu ngày cũ';
  if(/gemini_key_missing|gemini_http_(?:400|401|403)/i.test(reason))return 'Khóa/API Gemini không hợp lệ — cần kiểm tra';
  if(/gemini_http_429/i.test(reason))return 'Gemini hết hạn mức — sẽ thử lại';
  if(/gemini_http_5[0-9][0-9]|aborted|aborterror|worker_interrupted/i.test(reason))return 'AI quét lỗi hoặc quá thời gian — đang chờ thử lại';
