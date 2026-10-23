@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="e7f5b61b30fe460c74d1f002ede4317ab582fff4c33f42b1f8edf4893cede481">
+<meta name="app-build-id" content="9b261908958c523ee62066c51ba96491c236cc35f44043846387feff0002fce9">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -6729,6 +6729,15 @@ button{
         <button id="remote" tabindex="-1" type="button" class="sr-only" aria-hidden="true">B+</button>
       </div>
     </header>
+
+    <!-- UX-192: visible only for Admin + an active customer; not a second Composer. -->
+    <nav id="chatQuickActions" class="chat-quick-actions" aria-label="Thao tác nhanh cho khách hàng" hidden>
+      <button type="button" data-chat-quick="cash"><span aria-hidden="true">₫</span>Thu tiền</button>
+      <button type="button" data-chat-quick="debt"><span aria-hidden="true">▤</span>Công nợ</button>
+      <button type="button" data-chat-quick="photos"><span aria-hidden="true">▧</span>Ảnh</button>
+      <button type="button" data-chat-quick="recent" aria-expanded="false"><span aria-hidden="true">↺</span>Gần đây</button>
+      <div class="chat-quick-recent" data-chat-quick-recent hidden></div>
+    </nav>
 
     <main id="main" class="min-h-0 flex-1">
       <div id="thread" class="group/thread flex min-h-full flex-col">
