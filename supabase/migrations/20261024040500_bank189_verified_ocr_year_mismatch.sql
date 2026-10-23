@@ -89,7 +89,7 @@ begin
  print_date:=regexp_match(n.body,
     '([0-2][0-9]):([0-5][0-9])[[:space:]]+([0-3][0-9])/([0-1][0-9])/([0-9]{4})');
  print_amount:=regexp_match(n.body,
-    '([0-9]{9,20})[[:space:]]*:[[:space:]]*\\+[[:space:]]*([0-9][0-9.,]*)[[:space:]]*(VND|VNĐ|Đ)','i');
+    '([0-9]{9,20})[[:space:]]*:[[:space:]]*\+[[:space:]]*([0-9][0-9.,]*)[[:space:]]*(VND|VNĐ|Đ)','i');
  if print_date is null or print_amount is null
     or print_amount[1]<>'2901181999999'
     or replace(replace(print_amount[2],'.',''),',','')<>n.amount_vnd::text
