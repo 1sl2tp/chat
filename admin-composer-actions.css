@@ -36,3 +36,59 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
 .admin-composer-recent-sales-body:focus-visible{outline:2px solid #479f7a;outline-offset:1px}
 .admin-composer-recent-sales-footnote{font-size:11px;color:var(--theme-content-secondary,#666)}
 @media(max-width:640px){.admin-composer-recent-sales-card{width:100%;max-height:calc(100dvh - max(18px,env(safe-area-inset-top)) - max(18px,env(safe-area-inset-bottom)))}.admin-composer-recent-sales-body{height:37dvh;min-height:135px}.admin-composer-recent-sales-head{flex-wrap:wrap}}
+
+/* UX-192: one-tap customer actions; no Composer/header size ownership changes. */
+#chatQuickActions[hidden],.chat-quick-recent[hidden]{display:none!important}
+.chat-quick-actions{
+ position:sticky;top:var(--header-height,72px);z-index:19;
+ box-sizing:border-box;flex:0 0 auto;display:flex;align-items:center;
+ justify-content:center;gap:6px;min-height:44px;min-width:0;
+ padding:4px max(10px,env(safe-area-inset-left,0px));
+ border-bottom:1px solid var(--theme-border-default,#e7e7e7);
+ background:var(--theme-surface-primary,#fff);
+}
+.chat-quick-actions>button{
+ box-sizing:border-box;min-width:0;min-height:36px;
+ padding:7px 13px;border:1px solid var(--theme-border-default,#d9dee3);
+ border-radius:10px;background:var(--theme-surface-secondary,#f5f7f7);
+ color:var(--theme-content-primary,#242424);
+ font:600 12px/1.2 inherit;white-space:nowrap;
+ cursor:pointer;touch-action:manipulation;
+ display:inline-flex;align-items:center;justify-content:center;gap:5px;
+}
+.chat-quick-actions>button:first-child{background:#e9f6ee;border-color:#b6dcc3;color:#13723e}
+.chat-quick-actions>button>span{font-size:16px;line-height:1;font-weight:750}
+.chat-quick-actions>button:focus-visible{outline:2px solid #278d5b;outline-offset:2px}
+.chat-quick-actions>button:disabled{opacity:.5}
+.chat-quick-recent{
+ position:absolute;right:max(8px,env(safe-area-inset-right,0px));top:calc(100% + 4px);
+ box-sizing:border-box;display:grid;gap:3px;width:min(88vw,300px);
+ max-height:45dvh;overflow:auto;padding:8px;
+ border:1px solid var(--theme-border-default,#ddd);border-radius:13px;
+ background:var(--theme-surface-primary,#fff);
+ box-shadow:0 14px 30px #0003;z-index:50;
+}
+.chat-quick-recent>button{padding:10px 12px;border:0;border-radius:9px;
+ background:transparent;text-align:left;color:inherit;font:inherit;font-size:13px;cursor:pointer}
+.chat-quick-recent>button:hover,.chat-quick-recent>button:focus-visible{background:var(--theme-surface-secondary,#f3f6f6)}
+.chat-quick-recent>p{margin:5px;font-size:12px;color:var(--theme-content-secondary,#666)}
+#scrollRoot[data-keyboard-open="true"] #chatQuickActions,
+#stageLayout[data-bank-report-active="true"] #chatQuickActions,
+#appShell[data-route="photos"] #chatQuickActions{display:none!important}
+@media(max-width:650px){
+ .chat-quick-actions{gap:4px;padding-inline:6px}
+ .chat-quick-actions>button{flex:1 1 0;padding:7px 3px;min-height:38px;font-size:11px;gap:3px}
+ .chat-quick-actions>button>span{font-size:13px}
+}
+.admin-composer-cash-card{width:min(94vw,420px);max-height:90dvh;overflow:auto}
+.admin-composer-cash-label{display:grid;gap:6px;font-size:13px;font-weight:650}
+.admin-composer-cash-input{box-sizing:border-box;width:100%;min-height:45px;border:1px solid var(--theme-border-default,#d7dce0);
+ border-radius:12px;padding:10px 12px;background:var(--theme-surface-primary,#fff);
+ color:var(--theme-content-primary,#222);font:inherit;font-size:16px}
+.admin-composer-cash-hint{font-size:12px;line-height:1.5;color:var(--theme-content-secondary,#666);margin:0}
+.admin-composer-cash-consent{display:flex;gap:9px;align-items:start;font-size:12px;line-height:1.5}
+.admin-composer-cash-consent input{width:17px;height:17px;flex:none;margin-top:0}
+.admin-composer-cash-status{font-size:12px;font-weight:600;line-height:1.5;min-height:16px}
+@media(max-width:650px){
+ .admin-composer-cash-card{width:100%;max-height:calc(100dvh - max(16px,env(safe-area-inset-top)) - max(16px,env(safe-area-inset-bottom)))}
+}
