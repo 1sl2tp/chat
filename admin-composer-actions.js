@@ -559,6 +559,16 @@ async function openRecentSales(contactId){
 // Cash is an independent manual entry, NEVER a substitute for Agribank matching.
 const QUICK_RECENT_PREFIX='taphoa.chat.admin.recent.customers.';
 let cashOverlay=null;
+function quickCustomerId(){
+ const shellId=String(window.ChatAppShell?.ScreenSession?.snapshot?.()?.activeContact?.id||'');
+ const messageId=String(window.V21MessageStore?.snapshot?.()?.currentContactId||'');
+ // On a fast customer switch, wait until Shell and MessageStore agree.
+ return shellId&&(!messageId||messageId===shellId)?shellId:'';
+}
+function quickCustomerGroup(){
+ const id=quickCustomerId();
+ return id?window.V21ContactDirectoryAdmin?.groupForContact?.(id)||null:null;
+}
 function recentKey(){
  const id=String(currentAdmin()?.id||'');
  return id?QUICK_RECENT_PREFIX+id:'';
@@ -571,8 +581,9 @@ function readRecent(){
  }catch{return[];}
 }
 function rememberCurrentCustomer(){
- if(!currentAdmin()||activeContactGroup()!=='customer')return;
- const id=activeContactId(),contact=activeContact();
+ if(!currentAdmin()||quickCustomerGroup()!=='customer')return;
+ const id=quickCustomerId(),contact=(window.V21ContactStore?.snapshot?.()||[])
+  .find(row=>String(row?.id)===id)||null;
  if(!id||!contact)return;
  const key=recentKey();if(!key)return;
  const name=String(contact.display_name||contact.name||contact.username||'Khách hàng').trim().slice(0,100);
@@ -614,7 +625,7 @@ function syncQuickActions(){
  const bar=document.getElementById('chatQuickActions');
  if(!bar)return;
  const route=window.ChatAppShell?.ScreenSession?.snapshot?.()?.route;
- const visible=Boolean(currentAdmin()&&activeContactId()&&activeContactGroup()==='customer'
+ const visible=Boolean(currentAdmin()&&quickCustomerId()&&quickCustomerGroup()==='customer'
   &&route==='chat');
  bar.hidden=!visible;
  if(!visible)closeQuickRecent();
@@ -626,13 +637,13 @@ function closeQuickCash({restoreFocus=true}={}){
  return true;
 }
 async function openQuickCash(contactId){
- if(!currentAdmin()||activeContactGroup()!=='customer'||String(activeContactId())!==String(contactId))
+ if(!currentAdmin()||quickCustomerGroup()!=='customer'||quickCustomerId()!==String(contactId))
   throw Error('customer_required');
  const host=document.getElementById('globalOverlayRoot');
  if(!host)throw Error('overlay_unavailable');
  closeQuickCash({restoreFocus:false});
  if(!lockQuoteBackground())throw Error('another_dialog_open');
- const account=activeContact();
+ const account=(window.V21ContactStore?.snapshot?.()||[]).find(x=>String(x.id)===String(contactId));
  const customerName=String(account?.display_name||account?.name||'Khách hàng');
  const overlay=document.createElement('section');
  overlay.className='admin-composer-quote-overlay';overlay.dataset.quickCashModal='';
@@ -662,6 +673,8 @@ async function openQuickCash(contactId){
  const feedback=overlay.querySelector('[data-cash-status]'),submit=overlay.querySelector('[data-cash-submit]');
  const closeButtons=[...overlay.querySelectorAll('[data-cash-close]')];
  let busy=false,done=false;
+ // One stable idempotency key for the lifetime of this form (including retries).
+ const commandId=globalThis.crypto?.randomUUID?.()||window.V21RuntimeId?.create?.();
  for(const button of closeButtons)button.addEventListener('click',()=>{if(!busy)closeQuickCash();});
  const parseAmount=()=>{
   const raw=String(amount.value||'').trim().replace(/\s+/g,'');
@@ -672,7 +685,7 @@ async function openQuickCash(contactId){
  form.addEventListener('submit',async event=>{
   event.preventDefault();
   if(busy||done||cashOverlay!==overlay)return;
-  if(String(activeContactId())!==String(contactId)||activeContactGroup()!=='customer'){
+  if(quickCustomerId()!==String(contactId)||quickCustomerGroup()!=='customer'){
    feedback.textContent='Khách hàng đã thay đổi. Hãy mở phiếu thu ở đúng hội thoại.';return;
   }
   const vnd=parseAmount();
@@ -680,7 +693,6 @@ async function openQuickCash(contactId){
   if(note.value.trim().length<5||!check.checked){feedback.textContent='Cần nội dung thu và xác nhận đã nhận tiền.';return;}
   const auth=authStore()?.snapshot?.()||{},client=authStore()?.getClient?.();
   if(!auth.appSessionId||!client){feedback.textContent='Phiên Admin không còn hợp lệ.';return;}
-  const commandId=globalThis.crypto?.randomUUID?.()||window.V21RuntimeId?.create?.();
   if(!/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(String(commandId||''))){
    feedback.textContent='Không tạo được mã giao dịch an toàn.';return;
   }
@@ -720,7 +732,7 @@ function mountQuickActions(){
   const action=button.dataset.chatQuick;
   if(action==='cash'){
    closeQuickRecent();
-   const id=activeContactId();
+   const id=quickCustomerId();
    if(id)void openQuickCash(id).catch(()=>setTransientHint('Không mở được phiếu thu tiền',2600));
   }else if(action==='debt'){
    closeQuickRecent();void runAction('debt');
