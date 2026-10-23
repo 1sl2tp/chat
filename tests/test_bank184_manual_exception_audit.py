@@ -50,7 +50,8 @@ def test_user_sees_exact_receipts_and_mandatory_explanation():
         assert fragment in JS,fragment
     assert 'bank-review-overlay' in CSS
     assert 'env(safe-area-inset-bottom,0px)' in CSS
-    assert "current=data;paint(data)" in JS
+    assert "paint(current);focusPushRecord(current)" in JS
+    assert "chat_bank_manual_collection_statuses" in JS
 
 def test_ambiguous_multi_transaction_photo_stays_review_not_collection():
     assert "b.amount_vnd==null&&b.status==='review'" in JS
