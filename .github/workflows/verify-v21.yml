@@ -121,6 +121,10 @@ jobs:
         run: |
           node --check bank-report-dashboard.js
           node tests/test_bank193_customer_search.mjs
+      - name: BANK-194 native Agribank date and time
+        run: |
+          node --check bank-report-dashboard.js
+          node tests/test_bank194_agribank_time.mjs
       - name: BANK-185 transient bill scan retries keep bank evidence strict
         run: python tests/test_bank185_transient_retry_contract.py
       - name: BANK-186 no lost scans and BANK-187 Admin outage notifications
