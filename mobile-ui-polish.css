@@ -520,3 +520,48 @@
     overscroll-behavior:contain;
   }
 }
+
+
+/* UI-208: A user-controlled release update for authenticated Web/PWA sessions.
+   Only mounted when a new build is available; never obscures the Composer. */
+#chatUpdateNotice{
+  position:fixed;
+  z-index:150;
+  top:calc(env(safe-area-inset-top,0px) + 78px);
+  right:max(12px,env(safe-area-inset-right,0px));
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  max-width:min(380px,calc(100vw - 24px));
+  padding:8px 9px 8px 13px;
+  border:1px solid #d9e2df;
+  border-radius:13px;
+  background:#fff;
+  color:#26332d;
+  box-shadow:0 7px 24px rgba(0,0,0,.13);
+  font-size:13px;
+  line-height:1.3;
+}
+#chatUpdateNotice span{flex:1;min-width:0}
+#chatUpdateNotice button{
+  flex:0 0 auto;
+  min-height:35px;
+  padding:7px 12px;
+  border:0;
+  border-radius:9px;
+  background:#09864d;
+  color:#fff;
+  font:inherit;
+  font-weight:650;
+  cursor:pointer;
+}
+#chatUpdateNotice button:focus-visible{outline:2px solid #145e38;outline-offset:2px}
+@media(max-width:520px){
+  #chatUpdateNotice{
+    left:max(10px,env(safe-area-inset-left,0px));
+    right:max(10px,env(safe-area-inset-right,0px));
+    max-width:none;
+    top:calc(env(safe-area-inset-top,0px) + 124px);
+  }
+}
