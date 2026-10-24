@@ -2377,18 +2377,35 @@ function ensureImageViewer(){
   return overlay;
 }
 
-async function loadViewerAssetSource(item){
-  if(!item)return{src:'',owned:false};
-  if(item.previewUrl)return{src:item.previewUrl,owned:false};
+// Viewer main must prefer the STORED full-resolution asset, not the image-tile
+// preview URL. Preview-only is still desirable for tiny filmstrip thumbnails.
+async function loadViewerAssetSource(item,{thumbnail=false}={}){
+  if(!item)return{src:'',owned:false,quality:'missing'};
+  const preview=String(item.previewUrl||'');
+  if(thumbnail&&preview)return{src:preview,owned:false,quality:'preview'};
   const accountId=String(item.accountId||currentMediaAccountId()||'');
   const assetId=String(item.assetId||'');
-  if(!accountId||!assetId||accountId!==String(currentMediaAccountId()||''))return{src:'',owned:false};
-  let row=await window.V21MediaCache?.get?.({accountId,assetId});
-  if(!(row?.blob instanceof Blob)){
-    row=await window.V21SyncEngine?.ensureMediaRemote?.({accountId,assetId})||row;
+  if(!accountId||!assetId||accountId!==String(currentMediaAccountId()||'')){
+    return{src:'',owned:false,quality:'missing'};
   }
-  if(accountId!==String(currentMediaAccountId()||'')||!(row?.blob instanceof Blob))return{src:'',owned:false};
-  return{src:URL.createObjectURL(row.blob),owned:true};
+  try{
+    let row=await window.V21MediaCache?.get?.({accountId,assetId});
+    if(!(row?.blob instanceof Blob)){
+      row=await window.V21SyncEngine?.ensureMediaRemote?.({accountId,assetId})||row;
+    }
+    if(accountId!==String(currentMediaAccountId()||'')){
+      return{src:'',owned:false,quality:'missing'};
+    }
+    if(row?.blob instanceof Blob){
+      return{src:URL.createObjectURL(row.blob),owned:true,quality:'stored'};
+    }
+  }catch(error){
+    // A local optimistic or historical preview remains usable offline.
+    if(!preview)throw error;
+  }
+  return preview
+    ?{src:preview,owned:false,quality:'preview'}
+    :{src:'',owned:false,quality:'missing'};
 }
 
 function renderImageViewerFilmstrip(){
@@ -2427,7 +2444,7 @@ async function hydrateViewerThumb(index){
   img.dataset.loading='true';
   const sessionId=imageViewerSessionSeq;
   try{
-    const source=await loadViewerAssetSource(item);
+    const source=await loadViewerAssetSource(item,{thumbnail:true});
     if(sessionId!==imageViewerSessionSeq||!imageViewerOverlay?.open||
        thumb!==imageViewerFilmstrip?.children?.[index]||
        img.dataset.assetId!==String(item.assetId||'')){
@@ -2462,7 +2479,8 @@ function hydrateVisibleViewerThumbs(){
 async function primeViewerNeighbor(index){
   if(index<0||index>=imageViewerItems.length)return false;
   const item=imageViewerItems[index];
-  if(!item||item.previewUrl)return true;
+  if(!item)return false;
+  // Even when a lightweight preview exists, warm the stored asset for zoom.
   const accountId=String(item.accountId||currentMediaAccountId()||'');
   const assetId=String(item.assetId||'');
   if(!accountId||!assetId||accountId!==String(currentMediaAccountId()||''))return false;
@@ -2485,7 +2503,23 @@ async function showImageViewerIndex(index,{behavior='smooth'}={}){
   imageViewerIndex=nextIndex;
   updateImageViewerChrome();
   const item=imageViewerItems[nextIndex];
-  const source=await loadViewerAssetSource(item);
+  // Render instantly from the clicked tile while the stored full-quality
+  // source is resolved. A late reply must never overwrite a newer image.
+  if(item.previewUrl){
+    imageViewerImage.src=item.previewUrl;
+    imageViewerImage.dataset.ready='true';
+    imageViewerImage.dataset.qualitySource='preview';
+  }else{
+    imageViewerImage.removeAttribute('src');
+    imageViewerImage.dataset.ready='false';
+  }
+  let source;
+  try{
+    source=await loadViewerAssetSource(item);
+  }catch(error){
+    if(navId!==imageViewerNavigationSeq||!imageViewerOverlay?.open)return false;
+    source={src:String(item.previewUrl||''),owned:false,quality:'preview'};
+  }
   if(navId!==imageViewerNavigationSeq||!imageViewerOverlay?.open){
     if(source.owned&&source.src)URL.revokeObjectURL(source.src);
     return false;
@@ -2502,6 +2536,13 @@ async function showImageViewerIndex(index,{behavior='smooth'}={}){
   if(source.owned)imageViewerOwnedUrls.set('active',source.src);
   imageViewerImage.src=source.src;
   imageViewerImage.dataset.ready='true';
+  imageViewerImage.dataset.qualitySource=source.quality||'missing';
+  const resolution=Number(item.width)>0&&Number(item.height)>0
+    ?' · Tệp lưu '+item.width+'×'+item.height+' px':'';
+  if(imageViewerMeta){
+    imageViewerMeta.textContent=viewerMetaLabel(item)+resolution+
+      (source.quality==='preview'?' · Chỉ có bản xem trước':'');
+  }
   preloadViewerNeighbors();
   updateImageViewerFilmstrip({behavior});
   hydrateVisibleViewerThumbs();
