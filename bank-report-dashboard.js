@@ -227,13 +227,13 @@ function detailLine(row,isBank=false,candidates=[]){
  if(row.receipt_id)wrap.dataset.bankReceiptId=String(row.receipt_id);
  if(row.notice_id)wrap.dataset.bankNoticeId=String(row.notice_id);
  const top=el('summary','bank-report-detail-top');
- const label=isBank&&!manualRecord
+ const label=isBank&&!manualRecord&&!candidates.length
   ?el('button','bank-report-quick-collect','Thu tiền')
   :el('span','bank-report-detail-status bank-status-'+
     (manualRecord?'bank_manual':isBank&&candidates.length?'review':type),
     manualRecord?'Đã thu thủ công':isBank&&candidates.length?'Có bill cần kiểm tra':
       !isBank&&isAiScanIssue(row)?'AI chưa kết luận':statusText[type]||'Cần kiểm tra');
- if(isBank&&!manualRecord){
+ if(isBank&&!manualRecord&&!candidates.length){
   label.type='button';
   label.setAttribute('aria-label','Thu '+money(row.amount_vnd)+' từ Agribank');
   label.addEventListener('click',event=>{
@@ -284,6 +284,10 @@ function detailLine(row,isBank=false,candidates=[]){
   const audit=el('button','bank-report-action bank-review-open','Lập biên bản ngoại lệ');
   audit.type='button';audit.addEventListener('click',()=>void openReviewDialog(row,candidates));
   const act=el('div','bank-report-detail-actions');act.appendChild(audit);
+  const manual=el('button','bank-report-action','Thu sau khi xác minh');
+  manual.type='button';
+  manual.addEventListener('click',()=>{void openCollectionDialog(row);});
+  act.appendChild(manual);
   content.appendChild(act);
  }
  if(row.reason&&!isBank){
