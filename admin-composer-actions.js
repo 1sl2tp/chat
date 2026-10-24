@@ -636,6 +636,19 @@ function closeQuickCash({restoreFocus=true}={}){
  unlockQuoteBackground({restoreFocus});
  return true;
 }
+// UX-215: UI takes whole THOUSANDS (500 = 500.000đ); RPC takes exact VND.
+// Never infer currencies or strip punctuation: an entered "500.000" must not
+// accidentally turn into a 500-million-VND collection.
+function cashThousandsToVnd(value){
+ const raw=String(value??'').trim();
+ if(!/^[0-9]{1,9}$/.test(raw))return null;
+ const thousands=Number(raw);
+ return Number.isSafeInteger(thousands)&&thousands>=1&&thousands<=999999999
+  ?thousands*1000:null;
+}
+function cashFormatVnd(value){
+ return new Intl.NumberFormat('vi-VN',{maximumFractionDigits:0}).format(Number(value)||0)+'đ';
+}
 async function openQuickCash(contactId){
  if(!currentAdmin()||quickCustomerGroup()!=='customer'||quickCustomerId()!==String(contactId))
   throw Error('customer_required');
@@ -652,9 +665,16 @@ async function openQuickCash(contactId){
   <form class="admin-composer-quote-card admin-composer-cash-card" role="dialog" aria-modal="true" aria-label="Thu tiền mặt nhập tay">
    <h2 class="admin-composer-quote-title">Thu tiền mặt</h2>
    <p class="admin-composer-cash-hint" data-cash-customer></p>
-   <label class="admin-composer-cash-label">Số tiền (đồng)
-    <input class="admin-composer-cash-input" data-cash-amount type="text" inputmode="numeric" autocomplete="off" placeholder="Ví dụ: 500.000" required maxlength="15">
+   <div class="admin-composer-cash-balance" aria-live="polite">
+    <span>Dư nợ hiện tại</span>
+    <strong data-cash-debt>Đang tải công nợ…</strong>
+    <button type="button" data-cash-refresh-debt title="Đọc lại công nợ từ sổ" aria-label="Cập nhật công nợ hiện tại">↻</button>
+   </div>
+   <label class="admin-composer-cash-label">Số tiền thu (nghìn đồng)
+    <input class="admin-composer-cash-input" data-cash-amount type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Ví dụ: 500" required maxlength="9">
    </label>
+   <p class="admin-composer-cash-hint" data-cash-amount-preview>Nhập 500 = 500.000đ (chỉ nhập số nghìn, không nhập đồng).</p>
+   <p class="admin-composer-cash-after" data-cash-after></p>
    <label class="admin-composer-cash-label">Nội dung thu
     <input class="admin-composer-cash-input" data-cash-note maxlength="240" minlength="5" value="Thu tiền mặt" required>
    </label>
@@ -663,7 +683,7 @@ async function openQuickCash(contactId){
    <p class="admin-composer-cash-status" data-cash-status role="status" aria-live="polite"></p>
    <div class="admin-composer-quote-actions">
     <button type="button" class="admin-composer-quote-cancel" data-cash-close>Hủy</button>
-    <button type="submit" class="admin-composer-quote-send" data-cash-submit>Thu tiền</button>
+    <button type="submit" class="admin-composer-quote-send" data-cash-submit disabled>Thu tiền</button>
    </div>
   </form>`;
  host.appendChild(overlay);cashOverlay=overlay;
@@ -671,17 +691,75 @@ async function openQuickCash(contactId){
  const form=overlay.querySelector('form'),amount=overlay.querySelector('[data-cash-amount]');
  const note=overlay.querySelector('[data-cash-note]'),check=overlay.querySelector('[data-cash-confirm]');
  const feedback=overlay.querySelector('[data-cash-status]'),submit=overlay.querySelector('[data-cash-submit]');
+ const debt=overlay.querySelector('[data-cash-debt]');
+ const refreshButton=overlay.querySelector('[data-cash-refresh-debt]');
+ const amountPreview=overlay.querySelector('[data-cash-amount-preview]');
+ const after=overlay.querySelector('[data-cash-after]');
  const closeButtons=[...overlay.querySelectorAll('[data-cash-close]')];
- let busy=false,done=false;
+ let busy=false,done=false,debtVnd=null,debtLoading=false;
  // One stable idempotency key for the lifetime of this form (including retries).
  const commandId=globalThis.crypto?.randomUUID?.()||window.V21RuntimeId?.create?.();
  for(const button of closeButtons)button.addEventListener('click',()=>{if(!busy)closeQuickCash();});
- const parseAmount=()=>{
-  const raw=String(amount.value||'').trim().replace(/\s+/g,'');
-  if(!/^(?:[0-9]+|[0-9]{1,3}(?:[.,][0-9]{3})+)$/.test(raw))return NaN;
-  const value=Number(raw.replace(/[.,]/g,''));
-  return Number.isSafeInteger(value)&&value>=1000&&value<=999999999000&&value%1000===0?value:NaN;
+ const parseAmount=()=>cashThousandsToVnd(amount.value);
+ const paintBalance=()=>{
+  if(debtVnd!==null){
+   debt.textContent=debtVnd>0?cashFormatVnd(debtVnd):
+     debtVnd<0?'Dư '+cashFormatVnd(Math.abs(debtVnd)):'0đ (đã tất toán)';
+  }
+  const vnd=parseAmount();
+  if(vnd===null){
+   amountPreview.textContent=amount.value.trim()?
+     'Chỉ nhập số nghìn, không có dấu chấm, dấu phẩy hay chữ đ.':
+     'Nhập 500 = 500.000đ (chỉ nhập số nghìn, không nhập đồng).';
+   after.textContent='';submit.disabled=busy||done||debtLoading||debtVnd===null;
+   return;
+  }
+  amountPreview.textContent='Sẽ thu: '+cashFormatVnd(vnd)+' (từ '+amount.value.trim()+' nghìn)';
+  if(debtVnd!==null){
+   const balanceAfter=debtVnd-vnd;
+   after.textContent=balanceAfter>0?'Nợ sau thu dự kiến: '+cashFormatVnd(balanceAfter):
+     balanceAfter<0?'Dư tiền sau thu dự kiến: '+cashFormatVnd(Math.abs(balanceAfter)):
+       'Dự kiến tất toán hết công nợ.';
+  }else after.textContent='';
+  submit.disabled=busy||done||debtLoading||debtVnd===null;
  };
+ const readCurrentDebt=async()=>{
+  const auth=authStore()?.snapshot?.()||{},client=authStore()?.getClient?.();
+  if(!auth.appSessionId||!client||auth.state!=='AUTHENTICATED')throw Error('Phiên Admin không còn hợp lệ');
+  const {data,error}=await client.rpc('v21_admin_debt_share_summary',{p_customer_id:String(contactId)});
+  if(error||!data?.ok||String(data.customer_id)!==String(contactId))
+   throw Error('Không đọc được công nợ hiện tại');
+  // Authoritative read-only summary uses THOUSANDS internally, just like ledger.
+  const thousands=Number(data.balance);
+  const exactVnd=thousands*1000;
+  if(!Number.isFinite(exactVnd)||Math.abs(exactVnd)>Number.MAX_SAFE_INTEGER)
+   throw Error('Dữ liệu công nợ không hợp lệ');
+  return exactVnd;
+ };
+ const refreshDebt=async()=>{
+  if(busy||done||debtLoading||cashOverlay!==overlay)return;
+  debtLoading=true;debtVnd=null;debt.textContent='Đang tải công nợ…';
+  refreshButton.disabled=true;submit.disabled=true;paintBalance();
+  try{
+   const value=await readCurrentDebt();
+   if(cashOverlay!==overlay)return;
+   debtVnd=value;feedback.textContent='';paintBalance();
+  }catch(error){
+   if(cashOverlay!==overlay)return;
+   debt.textContent='Không tải được';
+   feedback.textContent='Chưa đọc được dư nợ. Bấm ↻ để tải lại trước khi thu.';
+  }finally{
+   debtLoading=false;refreshButton.disabled=false;
+   if(cashOverlay===overlay)paintBalance();
+  }
+ };
+ amount.addEventListener('input',()=>{
+  // Never auto-strip separators; "500.000" is ambiguous in thousands.
+  if(amount.value!==''&&!/^[0-9]*$/.test(amount.value))amount.setAttribute('aria-invalid','true');
+  else amount.removeAttribute('aria-invalid');
+  paintBalance();
+ });
+ refreshButton.addEventListener('click',()=>void refreshDebt());
  form.addEventListener('submit',async event=>{
   event.preventDefault();
   if(busy||done||cashOverlay!==overlay)return;
@@ -689,7 +767,8 @@ async function openQuickCash(contactId){
    feedback.textContent='Khách hàng đã thay đổi. Hãy mở phiếu thu ở đúng hội thoại.';return;
   }
   const vnd=parseAmount();
-  if(!Number.isFinite(vnd)){feedback.textContent='Nhập số tiền hợp lệ, tối thiểu 1.000đ và chia hết cho 1.000đ.';amount.focus();return;}
+  if(vnd===null){feedback.textContent='Chỉ nhập số nghìn nguyên. Ví dụ nhập 500 để thu 500.000đ.';amount.focus();return;}
+  if(debtLoading||debtVnd===null){feedback.textContent='Cần tải dư nợ hiện tại trước khi thu.';return;}
   if(note.value.trim().length<5||!check.checked){feedback.textContent='Cần nội dung thu và xác nhận đã nhận tiền.';return;}
   const auth=authStore()?.snapshot?.()||{},client=authStore()?.getClient?.();
   if(!auth.appSessionId||!client){feedback.textContent='Phiên Admin không còn hợp lệ.';return;}
@@ -697,27 +776,46 @@ async function openQuickCash(contactId){
    feedback.textContent='Không tạo được mã giao dịch an toàn.';return;
   }
   busy=true;submit.disabled=true;amount.disabled=true;note.disabled=true;check.disabled=true;
-  closeButtons.forEach(x=>x.disabled=true);
-  feedback.textContent='Đang ghi sổ thu…';
+  refreshButton.disabled=true;closeButtons.forEach(x=>x.disabled=true);
+  feedback.textContent='Đang kiểm tra công nợ…';
   try{
+   const latestDebtVnd=await readCurrentDebt();
+   if(cashOverlay!==overlay)return;
+   if(latestDebtVnd!==debtVnd){
+    debtVnd=latestDebtVnd;paintBalance();
+    check.checked=false;
+    feedback.textContent='Công nợ vừa thay đổi. Hãy kiểm tra số nợ mới và xác nhận lại trước khi thu.';
+    return;
+   }
+   feedback.textContent='Đang ghi sổ thu…';
    const {data,error}=await client.rpc('chat_admin_quick_cash_collect',{
     p_app_session_id:auth.appSessionId,p_customer_id:String(contactId),
     p_amount_vnd:vnd,p_note:note.value.trim(),p_command_id:commandId
    });
    if(error)throw error;
-   if(!data?.ok||data.source!=='manual_cash')throw Error('Ghi thu chưa được xác nhận');
+   if(!data?.ok||data.source!=='manual_cash'||Number(data.amount_vnd)!==vnd)
+    throw Error('Ghi thu chưa được xác nhận');
    done=true;
-   feedback.textContent='Đã thu '+new Intl.NumberFormat('vi-VN').format(vnd)+'đ · Sổ #'+data.ledger_id;
-   submit.hidden=true;
+   const resultAfter=Number(data.balance_after_vnd);
+   if(Number.isFinite(resultAfter))debtVnd=resultAfter*1000;
+   paintBalance();
+   feedback.textContent='Đã thu '+cashFormatVnd(vnd)+' · Sổ #'+data.ledger_id;
+   submit.hidden=true;refreshButton.hidden=true;
    closeButtons.forEach(x=>{x.disabled=false;if(x!==overlay.querySelector('.admin-composer-quote-backdrop'))x.textContent='Đóng';});
    void window.V21SyncEngine?.wake?.({reason:'quick-cash-collection'});
    setTransientHint('Đã ghi thu tiền mặt',3500);
   }catch(error){
-   feedback.textContent='Chưa ghi thu: '+String(error?.message||error).slice(0,150);
-   amount.disabled=false;note.disabled=false;check.disabled=false;submit.disabled=false;
-   closeButtons.forEach(x=>x.disabled=false);
-  }finally{busy=false;}
+   feedback.textContent='Chưa xác nhận ghi thu: '+String(error?.message||error).slice(0,150);
+  }finally{
+   busy=false;
+   if(!done){
+    amount.disabled=false;note.disabled=false;check.disabled=false;
+    closeButtons.forEach(x=>x.disabled=false);refreshButton.disabled=false;
+    paintBalance();
+   }
+  }
  });
+ paintBalance();void refreshDebt();
  amount.focus({preventScroll:true});
  return true;
 }
