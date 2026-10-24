@@ -7,6 +7,7 @@ import {startZaloLogin} from './login-runtime.mjs';
 import {createSupabaseSessionStore} from './session-store.mjs';
 import {createContactSync,syncApiContacts,syncApiGroups} from './contact-sync.mjs';
 import {syncIncomingFriendRequests} from './friend-requests-sync.mjs';
+import {createZaloFriendActionWorker} from './friend-action-worker.mjs';
 import {bindIncomingMessageListener} from './incoming-message.mjs';
 import {createMessageGateway} from './message-gateway.mjs';
 import {downloadInboundMedia,buildOutboundMessage} from './media-transfer.mjs';
@@ -34,6 +35,8 @@ let api=null;
 let unbindIncoming=()=>{};
 let bridgeStatsTimer=0;
 let friendSyncTimer=0;let friendSyncBusy=false;
+let friendActionTimer=0;
+let runFriendActions=null;
 async function refreshIncomingFriendRequests(){
  if(friendSyncBusy||!api||!contactSync||!bridgeToken)return;
  friendSyncBusy=true;
@@ -176,6 +179,17 @@ server.listen(port,'0.0.0.0',()=>{
           console.warn('[zalo-login] contacts sync failed',String(error?.message||error));
         }
       }
+      // Only the authenticated bridge executes Admin-queued add-friend requests.
+      // A claimed job is NEVER retried automatically if a Zalo POST timed out.
+      if(contactSync&&bridgeToken){
+        runFriendActions=createZaloFriendActionWorker({
+          api,endpoint:`${supabaseUrl.replace(/\/$/,'')}/functions/v1/v21-zalo-contacts`,
+          bridgeToken,logger:console,
+        });
+        void runFriendActions();
+        friendActionTimer=setInterval(()=>void runFriendActions?.(),10_000);
+        friendActionTimer.unref?.();
+      }
       // Use the same authenticated bridge connection; refresh the inbox on
       // startup and every 5 minutes. No Zalo accept/reject is performed here.
       void refreshIncomingFriendRequests();
@@ -201,6 +215,7 @@ const shutdown=()=>{
   flushBridgeStats();
   if(bridgeStatsTimer){clearInterval(bridgeStatsTimer);bridgeStatsTimer=0;}
   if(friendSyncTimer){clearInterval(friendSyncTimer);friendSyncTimer=0;}
+  if(friendActionTimer){clearInterval(friendActionTimer);friendActionTimer=0;}
   try{unbindIncoming();}catch{}
   try{api?.listener?.stop?.();}catch{}
   server.close(()=>process.exit(0));
