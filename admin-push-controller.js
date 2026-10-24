@@ -367,12 +367,13 @@ function coldOpenFromLocation(){
     const conversationId=String(params.get('push_conversation')||'').trim();
     const inviteId=String(params.get('push_call_invite')||'').trim();
     const missedCallId=String(params.get('push_missed_chat_call')||'').trim();
+    const friendPush=params.get('push_friend')==='1';
     const bankDay=String(params.get('push_bank_day')||'').trim();
     const bankNoticeId=String(params.get('push_bank_notice')||'').trim();
     const bankReceiptId=String(params.get('push_bank_receipt')||'').trim();
     const bankStatus=String(params.get('push_bank_status')||'').trim();
-    if(!contactId&&!conversationId&&!inviteId)return null;
-    return{kind:bankDay?'bank_reconciliation':missedCallId?'missed_chat_call':inviteId?'call_invite':'message',
+    if(!contactId&&!conversationId&&!inviteId&&!friendPush)return null;
+    return{kind:friendPush?'zalo_friend_accepted':bankDay?'bank_reconciliation':missedCallId?'missed_chat_call':inviteId?'call_invite':'message',
       contactId,conversationId,inviteId,missedCallId,bankDay,bankNoticeId,bankReceiptId,bankStatus};
   }catch{return null;}
 }
@@ -384,6 +385,7 @@ function clearColdOpenQuery(){
     url.searchParams.delete('push_conversation');
     url.searchParams.delete('push_call_invite');
     url.searchParams.delete('push_missed_chat_call');
+    url.searchParams.delete('push_friend');
     for(const key of ['push_bank_day','push_bank_notice','push_bank_receipt','push_bank_status'])
       url.searchParams.delete(key);
     const next=`${url.pathname}${url.search}${url.hash}`||'./';
@@ -394,6 +396,19 @@ function clearColdOpenQuery(){
 
 async function handleOpen(payload={}){
   const kind=String(payload?.kind||'message');
+  if(kind==='zalo_friend_accepted'){
+    if(!isAdmin()){
+      pendingOpen={kind};return false;
+    }
+    const openFriends=window.V21ZaloAccountAdmin?.openFriends;
+    if(typeof openFriends!=='function'){
+      pendingOpen={kind};return false;
+    }
+    const opened=await openFriends();
+    if(opened){pendingOpen=null;clearColdOpenQuery();}
+    else pendingOpen={kind};
+    return Boolean(opened);
+  }
   const inviteId=String(payload?.inviteId??payload?.invite_id??'').trim();
   const missedCallId=String(payload?.missedCallId??payload?.call_id??'').trim();
   let contactId=String(payload?.contactId??payload?.contact_id??'').trim();
