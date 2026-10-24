@@ -16,9 +16,9 @@ for(const [input,expected] of [
  ['000500',500000],['999999999',999999999000],['1000000000',null],
  ['-500',null],['',null],
 ])assert.equal(convert(input),expected,JSON.stringify(input));
-assert(source.includes("client.rpc('v21_admin_debt_share_summary'"));
-assert(source.includes("Number(data.balance)"));
-assert(source.includes("const exactVnd=thousands*1000"));
+assert(source.includes("client.rpc('chat_admin_quick_cash_balance'"));
+assert(source.includes("Number(data.balance_vnd)"));
+assert(source.includes("if(!Number.isSafeInteger(exactVnd))"));
 assert(source.includes("p_amount_vnd:vnd"));
 assert(source.includes("Number(data.source_amount_vnd)!==vnd"),
  'RPC responds with source_amount_vnd in dong; amount_vnd is thousands');
@@ -26,4 +26,4 @@ assert(source.includes("if(latestDebtVnd!==debtVnd)"));
 assert(source.includes("check.checked=false"));
 assert(source.includes("if(vnd===null)"));
 assert(source.includes("after.textContent=balanceAfter>0?"));
-console.log('UX-215 debt cash thousands -> VND, stale balance & RPC ack PASS');
+console.log('UX-215/216 debt cash thousands -> VND, secure read-only RPC & ack PASS');
