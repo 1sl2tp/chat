@@ -287,3 +287,42 @@
 @media(max-width:650px){
  .bank-report-quick-collect{min-width:76px;min-height:36px;font-size:11px;padding:6px 5px}
 }
+
+/* BANK-193: iPhone-safe searchable customer list (replaces native SELECT wheel). */
+.bank-review-customer-search{
+ display:block;min-height:44px;line-height:1.35;
+ font-size:16px!important;appearance:none;-webkit-appearance:none;
+}
+.bank-review-customer-search[aria-invalid="true"]{
+ border-color:#c83d38;box-shadow:0 0 0 2px #c83d3822;
+}
+.bank-review-customer-help{font-size:11px;line-height:1.4;font-weight:400;
+ color:var(--text-secondary,#69717b)}
+.bank-review-customer-results{
+ box-sizing:border-box;min-width:0;max-height:min(220px,32dvh);
+ overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+ border:1px solid var(--border-default,#d5dce0);border-radius:10px;
+ background:var(--surface-primary,#fff);padding:4px;
+ box-shadow:0 6px 16px #00000012;
+}
+.bank-review-customer-results[hidden]{display:none!important}
+.bank-review-customer-option{
+ width:100%;min-height:44px;display:block;padding:11px 12px;
+ border:0;border-radius:8px;background:transparent;
+ color:var(--text-primary,#242424);font:inherit;font-size:14px;
+ font-weight:550;text-align:left;cursor:pointer;touch-action:manipulation;
+ overflow-wrap:anywhere;
+}
+.bank-review-customer-option[data-active="true"],
+.bank-review-customer-option:hover,
+.bank-review-customer-option:focus-visible{
+ background:var(--surface-secondary,#eaf4ed);outline:none;
+}
+.bank-review-customer-option:focus-visible{box-shadow:inset 0 0 0 2px #138b47}
+.bank-review-customer-empty{padding:12px;font-size:12px;font-weight:400;
+ color:var(--text-secondary,#6a7280)}
+@media(max-width:650px){
+ .bank-review-form:has(.bank-review-customer-search){max-height:calc(100dvh - max(10px,env(safe-area-inset-top)))}
+ .bank-review-customer-results{max-height:min(208px,30dvh)}
+ .bank-review-customer-option{min-height:44px}
+}
