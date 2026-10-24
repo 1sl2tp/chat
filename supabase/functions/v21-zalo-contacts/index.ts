@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import webpush from "npm:web-push@3.6.7";
 
 const headers = {
   "content-type": "application/json; charset=utf-8",
@@ -360,6 +361,89 @@ Deno.serve(async (req: Request) => {
     payload = await req.json();
   } catch {
     return reply(400, { ok: false, error: "invalid_json" });
+  }
+
+  // ZFR-204: No browser polling necessary: the logged-in Zalo bridge
+  // periodically verifies real friend status while Chat is closed.
+  if(payload.kind==="friend_watch_list"){
+    const {data,error}=await admin.rpc("chat_zalo_friend_watch_list");
+    if(error)return reply(500,{ok:false,error:"friend_watch_lookup_failed"});
+    return reply(200,{ok:true,rows:Array.isArray(data)?data:[]});
+  }
+  if(payload.kind==="friend_watch_result"){
+    const id=String(payload.id??"");
+    if(!/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(id)
+       ||typeof payload.is_friend!=="boolean")
+      return reply(400,{ok:false,error:"invalid_friend_watch"});
+    const {data,error}=await admin.rpc("chat_zalo_friend_watch_result",{
+      p_id:id,p_is_friend:payload.is_friend,
+    });
+    if(error)return reply(500,{ok:false,error:"friend_watch_record_failed"});
+    return reply(200,{ok:Boolean(data?.ok),verified:Boolean(data?.verified)});
+  }
+  if(payload.kind==="friend_notify_drain"){
+    const {data,error}=await admin.rpc("chat_zalo_friend_push_claim");
+    if(error)return reply(500,{ok:false,error:"friend_push_claim_failed"});
+    const job=data?.job;
+    if(!job?.id)return reply(200,{ok:true,processed:0});
+    let delivered=0;
+    let failure="";
+    try{
+      const [{data:vapid,error:vapidErr},{data:subs,error:subsErr},
+        {data:recipient,error:recipientErr}]=await Promise.all([
+        admin.rpc("chat_service_get_call_push_vapid"),
+        admin.from("v21_push_subscriptions").select("id,endpoint,p256dh,auth,failure_count")
+          .eq("account_id",String(job.recipient)).eq("enabled",true),
+        admin.from("v21_accounts").select("id,role,locked_at,deleted_at")
+          .eq("id",String(job.recipient)).maybeSingle(),
+      ]);
+      if(vapidErr||subsErr||recipientErr)throw Error("friend_push_config_lookup_failed");
+      if(!recipient||recipient.role!=="admin"||recipient.deleted_at||recipient.locked_at)
+        throw Error("friend_push_admin_inactive");
+      const v=vapid&&typeof vapid==="object"?vapid:{};
+      if(!v.public_key||!v.private_key)throw Error("friend_push_vapid_missing");
+      const destinations=Array.isArray(subs)?subs:[];
+      if(!destinations.length)throw Error("friend_push_not_enabled");
+      webpush.setVapidDetails(String(v.subject||"mailto:admin@taphoa.xyz"),
+        String(v.public_key),String(v.private_key));
+      const name=String(job.zalo_name||"Người dùng Zalo").slice(0,70);
+      const notification={
+        kind:"zalo_friend_accepted",
+        title:"Zalo · Kết bạn thành công",
+        body:name+" đã đồng ý kết bạn trên Zalo.",
+        tag:"zalo:friend:"+String(job.id),
+        friend_request_id:String(job.id),
+        conversation_id:"",contact_id:"",
+      };
+      for(const sub of destinations){
+        try{
+          await webpush.sendNotification({
+            endpoint:String(sub.endpoint),
+            keys:{p256dh:String(sub.p256dh),auth:String(sub.auth)},
+          },JSON.stringify(notification),{TTL:86400,urgency:"normal"});
+          delivered++;
+          await admin.from("v21_push_subscriptions").update({
+            failure_count:0,last_success_at:new Date().toISOString(),
+            last_failure_at:null,updated_at:new Date().toISOString()
+          }).eq("id",String(sub.id));
+        }catch(sendError){
+          const status=Number((sendError as {statusCode?:unknown})?.statusCode||0);
+          if(status===404||status===410){
+            await admin.from("v21_push_subscriptions").update({
+              enabled:false,last_failure_at:new Date().toISOString(),updated_at:new Date().toISOString()
+            }).eq("id",String(sub.id));
+          }else failure="friend_push_send_failed";
+        }
+      }
+      if(delivered===0)throw Error(failure||"friend_push_delivery_failed");
+    }catch(pushErr){
+      failure=String((pushErr as {message?:unknown})?.message||"friend_push_failed").slice(0,160);
+    }
+    const {error:finishError}=await admin.rpc("chat_zalo_friend_push_result",{
+      p_id:String(job.id),p_ok:delivered>0,p_error:delivered>0?null:failure,
+    });
+    if(finishError)return reply(500,{ok:false,error:"friend_push_result_failed"});
+    return reply(200,{ok:true,processed:1,delivered});
   }
 
   // ZFR-203: Authenticated bridge pulls a single Admin-approved add-friend
