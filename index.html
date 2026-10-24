@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="1e3c7de80919b40289b3b0d0fd7bfc24dd4e32aebf71533bee3059e5bccaf6e7">
+<meta name="app-build-id" content="eb4fd351935b7d6e3524ae5e2383bd354385066516f3b45989bdcbe0b5bd5a8c">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -27065,6 +27065,7 @@ function possibleUnlinkedBills(bank,allBills){
 }
 function detailLine(row,isBank=false,candidates=[]){
  const type=isBank?'bank_only':row.report_status;
+ const recorded=!isBank&&type==='matched'&&Boolean(row.ledger_id);
  const manualRecord=isBank?(current?.manual_collections||[]).find(m=>String(m.notice_id)===String(row.notice_id)):null;
  const wrap=el('details','bank-report-detail');
  if(row.receipt_id)wrap.dataset.bankReceiptId=String(row.receipt_id);
@@ -27096,6 +27097,13 @@ function detailLine(row,isBank=false,candidates=[]){
   cell('Tình trạng',manualRecord?(manualRecord.mode==='linked_existing'
    ?'Đã liên kết khoản nhập tay':'Đã thu thủ công từ Agribank')
   :isBank&&candidates.length?'Chưa đối soát · Chưa ghi thu':statusText[type]||row.status||'Chưa rõ'));
+ if(!isBank){
+  content.appendChild(cell('Ghi thu công nợ',
+    recorded?'Đã ghi thu · Sổ #'+row.ledger_id:'Chưa ghi thu'));
+  content.appendChild(cell('Tin xác nhận thu',
+    recorded?(row.collection_ack_sent?'Đã gửi cho khách':'Đang chờ gửi'):
+      'Chưa gửi vì chưa ghi thu'));
+ }
  if(manualRecord){
   content.appendChild(cell('Khách đã thu',manualRecord.customer_name||'—'));
   content.appendChild(cell('Sổ công nợ','#'+manualRecord.ledger_id));
