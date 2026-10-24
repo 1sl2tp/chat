@@ -999,6 +999,7 @@ async function openFriendPanel(){
   if(!historyList?.isConnected)return;
   try{
    const data=await invokeBody({action:'zalo_friend_history'});
+   await refreshAccountAdmin();
    historyList.replaceChildren();
    const rows=Array.isArray(data?.rows)?data.rows:[];
    if(!rows.length){
@@ -1008,7 +1009,9 @@ async function openFriendPanel(){
    for(const item of rows){
     const row=document.createElement('div');row.className='friend-admin-invite-row';
     const title=document.createElement('strong');
-    title.textContent=String(item.zalo_name||item.phone||'Số điện thoại').trim();
+    const contact=accountModel().contactsById.get(String(item.zalo_id||''))||null;
+    title.textContent=contact?zaloName(contact):
+      String(item.zalo_name||item.phone||'Số điện thoại').trim();
     const status=String(item.status||'unknown');
     const verified=Boolean(item.confirmed_at);
     const descriptions={
@@ -1027,7 +1030,8 @@ async function openFriendPanel(){
       (descriptions[status]||'Chưa xác nhận');
     if(item.notified_at)detail.textContent+=' · Đã thông báo cho Admin';
     const hint=document.createElement('small');
-    hint.textContent=String(item.phone||'');
+    hint.textContent=[contact?zaloProfileName(contact):'',
+      String(item.phone||'')].filter(Boolean).join(' · ');
     row.append(title,detail,hint);historyList.appendChild(row);
    }
   }catch(error){historyList.textContent='Chưa tải được trạng thái: '+String(error?.message||error);}
