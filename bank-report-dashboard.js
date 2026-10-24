@@ -256,9 +256,13 @@ function detailLine(row,isBank=false,candidates=[]){
  if(!isBank){
   content.appendChild(cell('Ghi thu công nợ',
     recorded?'Đã ghi thu · Sổ #'+row.ledger_id:'Chưa ghi thu'));
+  const noticeState=row.collection_notice_state||'pending';
+  const noticeText=row.collection_ack_sent?'Đã gửi cho khách':
+    noticeState==='muted'?'Đã tắt theo cài đặt thông báo':
+    noticeState==='retry'?'Gửi lỗi · Hệ thống sẽ thử lại':
+    'Đang chờ gửi xác nhận';
   content.appendChild(cell('Tin xác nhận thu',
-    recorded?(row.collection_ack_sent?'Đã gửi cho khách':'Đang chờ gửi'):
-      'Chưa gửi vì chưa ghi thu'));
+    recorded?noticeText:'Chưa gửi vì chưa ghi thu'));
  }
  if(manualRecord){
   content.appendChild(cell('Khách đã thu',manualRecord.customer_name||'—'));
