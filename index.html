@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="a16562ce7a91d05589cd2245f1c57ae532da524b4db0c89cf7f5bc5155c1877b">
+<meta name="app-build-id" content="a6ae69346204acbe8f44be3c712746a0e33613cdf0198618f5037983861080d7">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1432,6 +1432,13 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
  .chat-quick-actions>button{flex:1 1 0;padding:7px 3px;min-height:38px;font-size:11px;gap:3px}
  .chat-quick-actions>button>span{font-size:13px}
 }
+.admin-composer-cash-balance{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 8px;align-items:center;padding:11px 12px;border:1px solid var(--theme-border-default,#d7dce0);border-radius:13px;background:var(--theme-surface-secondary,#f5f7f7)}
+.admin-composer-cash-balance>span{grid-column:1;color:var(--theme-content-secondary,#667);font-size:12px;font-weight:600}
+.admin-composer-cash-balance>strong{grid-column:1;overflow-wrap:anywhere;font-size:18px;line-height:1.25;font-variant-numeric:tabular-nums}
+.admin-composer-cash-balance>button{grid-column:2;grid-row:1 / span 2;width:35px;height:35px;border:1px solid var(--theme-border-default,#d7dce0);border-radius:9px;background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#222);font-size:19px;cursor:pointer}
+.admin-composer-cash-balance>button:disabled{opacity:.5}
+.admin-composer-cash-after{margin:-4px 0 0;color:var(--theme-content-primary,#202020);font-size:12px;line-height:1.4;font-weight:650}
+.admin-composer-cash-input[aria-invalid="true"]{border-color:#cb4c4c;outline-color:#cb4c4c}
 .admin-composer-cash-card{width:min(94vw,420px);max-height:90dvh;overflow:auto}
 .admin-composer-cash-label{display:grid;gap:6px;font-size:13px;font-weight:650}
 .admin-composer-cash-input{box-sizing:border-box;width:100%;min-height:45px;border:1px solid var(--theme-border-default,#d7dce0);
@@ -23824,7 +23831,7 @@ async function openQuickCash(contactId){
    amountPreview.textContent=amount.value.trim()?
      'Chỉ nhập số nghìn, không có dấu chấm, dấu phẩy hay chữ đ.':
      'Nhập 500 = 500.000đ (chỉ nhập số nghìn, không nhập đồng).';
-   after.textContent='';submit.disabled=busy||done||debtLoading||debtVnd===null;
+   after.textContent='';submit.disabled=true;
    return;
   }
   amountPreview.textContent='Sẽ thu: '+cashFormatVnd(vnd)+' (từ '+amount.value.trim()+' nghìn)';
