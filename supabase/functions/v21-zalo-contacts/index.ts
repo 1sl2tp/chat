@@ -362,6 +362,48 @@ Deno.serve(async (req: Request) => {
     return reply(400, { ok: false, error: "invalid_json" });
   }
 
+  // ZFR-200: Bridge-only complete snapshot of VERIFIED received invitations.
+  // This branch cannot change Zalo relationships or create Chat accounts.
+  if (payload.kind === "incoming_friend_requests_snapshot") {
+    const incoming = payload.requests;
+    if (!Array.isArray(incoming) || incoming.length > 500) {
+      return reply(400, { ok:false,error:"invalid_friend_requests" });
+    }
+    const uniq=new Map<string,{zalo_id:string;display_name:string;avatar_url:string|null;
+      message:string|null;request_at:string|null;checked_at:string}>();
+    for(const raw of incoming){
+      if(!raw||typeof raw!=="object")return reply(400,{ok:false,error:"invalid_friend_request"});
+      const r=raw as Record<string,unknown>;
+      const id=String(r.zalo_id??"").trim();
+      const name=String(r.display_name??"").trim().slice(0,120);
+      if(!/^[0-9]{5,32}$/.test(id)||!name)return reply(400,{ok:false,error:"invalid_friend_request"});
+      const time=Number(r.request_ts)||0;
+      const at=time>1_000_000_000&&time<4_000_000_000
+        ?new Date(time*1000).toISOString():null;
+      uniq.set(id,{zalo_id:id,display_name:name,
+        avatar_url:String(r.avatar_url??"").trim().slice(0,2000)||null,
+        message:String(r.message??"").trim().slice(0,500)||null,
+        request_at:at,checked_at:new Date().toISOString()});
+    }
+    const rows=[...uniq.values()];
+    if(rows.length){
+      const {error}=await admin.from("v21_zalo_friend_requests")
+        .upsert(rows,{onConflict:"zalo_id"});
+      if(error)return reply(500,{ok:false,error:"friend_requests_upsert_failed"});
+    }
+    // A successful Zalo API read represents the *whole* current inbox.
+    const {error:deleteError}=rows.length
+      ?await admin.from("v21_zalo_friend_requests").delete()
+        .not("zalo_id","in",`(${rows.map(r=>r.zalo_id).join(",")})`)
+      :await admin.from("v21_zalo_friend_requests").delete().neq("zalo_id","");
+    if(deleteError)return reply(500,{ok:false,error:"friend_requests_prune_failed"});
+    const {error:stateError}=await admin.from("v21_zalo_friend_sync_state")
+      .upsert({id:"primary",last_success_at:new Date().toISOString(),
+        pending_count:rows.length,updated_at:new Date().toISOString()},{onConflict:"id"});
+    if(stateError)return reply(500,{ok:false,error:"friend_requests_status_failed"});
+    return reply(200,{ok:true,count:rows.length});
+  }
+
   const aliasSnapshotComplete = payload.alias_snapshot_complete === true;
   const contacts = normalizeContacts(payload.contacts);
   if (contacts === null) return reply(400, { ok: false, error: "invalid_contacts" });
