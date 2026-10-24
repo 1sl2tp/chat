@@ -24,7 +24,7 @@ def test_auto_notice_requires_bank_bill_and_actual_debt_posting():
       "WHERE public.chat_bank_auto_collection_ack.status='retry'",
     ):
       if token=="msg.client_id":
-        assert "m.client_id='taphoa:'||r.id::text||':collection'" in ACK
+        assert "m.client_id='taphoa:'||x.receipt_id::text||':collection'" in ACK
       else: assert token in ACK,token
     assert 'INSERT INTO public.taphoa_debt_ledger' not in ACK
     assert 'UPDATE public.taphoa_debt_ledger' not in ACK
