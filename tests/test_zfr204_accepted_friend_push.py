@@ -47,7 +47,7 @@ def test_notifications_do_not_pollute_chat_and_have_history():
     assert "friendPush=kind==='zalo_friend_accepted'" in SW
     assert "if(!bankPush&&!missedPush&&!friendPush" in SW
     assert "if(kind==='zalo_friend_accepted')target.searchParams.set('push_friend','1');" in SW
-    assert "kind:'zalo_friend_accepted'" in SW
+    assert "client.postMessage?.({type:'ADMIN_PUSH_OPEN',kind});" in SW
     assert "push_friend" in PUSH
     assert "kind==='zalo_friend_accepted'" in PUSH
     assert "openFriends" in PUSH
