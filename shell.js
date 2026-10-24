@@ -1467,10 +1467,12 @@ const AuthUI={
     const selfButtons=[...footer.querySelectorAll('[data-account-self-edit]')];
     const profileItem=footer.querySelector('[data-account-menu-profile]');
     const settingsItem=footer.querySelector('[data-account-menu-settings]');
+    const friendInviteItem=footer.querySelector('[data-account-menu-friend-request]');
     const logoutItem=footer.querySelector('[data-account-menu-logout]');
     const authenticated=authState==='AUTHENTICATED'&&authAccount;
     footer.dataset.state=authenticated?'authenticated':'guest';
     if(settingsItem)settingsItem.hidden=!(authenticated&&authAccount?.role==='admin');
+    if(friendInviteItem)friendInviteItem.hidden=!(authenticated&&authAccount?.role==='user');
     if(profileItem)profileItem.hidden=!authenticated;
     if(logoutItem)logoutItem.hidden=!authenticated;
     if(!authenticated)closeAccountMenu();
@@ -1660,6 +1662,29 @@ document.addEventListener('click',event=>{
   if(accountProfile){
     closeAccountMenu();
     openSelfProfile();
+    return;
+  }
+
+  const friendRequest=target.closest('[data-account-menu-friend-request]');
+  if(friendRequest){
+    closeAccountMenu();
+    if(authState!=='AUTHENTICATED'||authAccount?.role!=='user')return;
+    if(!window.confirm('Gửi lời mời kết bạn đến Admin TAPHOA CHAT? Admin sẽ quyết định chấp nhận hoặc từ chối.'))return;
+    const store=window.V21AuthSessionStore;
+    const snap=store?.snapshot?.()||{};
+    const client=store?.getClient?.();
+    if(!snap.appSessionId||!client)return;
+    friendRequest.disabled=true;
+    void client.rpc('v21_friend_invitation_send',{p_app_session_id:snap.appSessionId})
+      .then(({data,error})=>{
+        if(error)throw error;
+        const status=String(data?.status||'');
+        window.alert(status==='accepted'?'Bạn đã được thêm vào nhóm Bạn bè.':
+          status==='pending'?'Đã gửi lời mời; đang chờ Admin duyệt.':
+          'Lời mời trước đó bị từ chối. Bạn có thể gửi lại sau 7 ngày.');
+      })
+      .catch(error=>window.alert('Không gửi được lời mời: '+String(error?.message||error)))
+      .finally(()=>{friendRequest.disabled=false;});
     return;
   }
 
