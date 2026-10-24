@@ -19,6 +19,38 @@
 <meta name="chat-v21-session-runtime" content="v21-only">
 <meta name="chat-v21-contact-runtime" content="v21-only">
 <title>TAPHOA Chat</title>
+<!-- UI-213: first-paint protection. This rule is deliberately BEFORE every
+     deferred/vendor script and linked stylesheet. The document contains a real
+     Chat, Composer, auth form and navigation before the session is restored;
+     never paint those stale frames while data-auth-state="booting". -->
+<style id="v21-first-paint-guard">
+  #appShell[data-auth-state="booting"] > #screenHost,
+  #appShell[data-auth-state="booting"] > #sessionHost {
+    visibility:hidden!important;
+    pointer-events:none!important;
+  }
+  #appShell[data-auth-state="booting"]::before {
+    content:"Đang mở TAPHOA Chat…";
+    position:fixed;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    box-sizing:border-box;
+    background:#f7f7f8;
+    color:#555d69;
+    font:500 14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    z-index:999;
+    pointer-events:none;
+    -webkit-font-smoothing:antialiased;
+  }
+  /* Do not allow author display rules to resurrect elements with the actual
+     hidden attribute (including before Tailwind runtime utilities load). */
+  #appShell [hidden], #globalOverlayRoot [hidden] {
+    display:none!important;
+  }
+</style>
 <script defer src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="./reference/chatgpt/full-source/chatgpt-core-exact.css" data-build-source="reference/chatgpt/full-source/chatgpt-core-exact.css">
 <link rel="stylesheet" href="./reference/chatgpt/chatgpt-token-aliases.css" data-build-source="reference/chatgpt/chatgpt-token-aliases.css">
