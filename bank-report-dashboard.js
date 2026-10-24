@@ -39,6 +39,19 @@ function bankCustomerSearchMatches(customers,query){
 }
 const money=x=>x===null||x===undefined||x===''||!Number.isFinite(Number(x))?'—':new Intl.NumberFormat('vi-VN').format(Number(x))+'đ';
 const localDate=()=>{const parts=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const part=t=>parts.find(x=>x.type===t)?.value||'';return part('year')+'-'+part('month')+'-'+part('day');};
+// Agribank notification bodies use "20:58 23/10/2026" (local Vietnam time).
+// Dashboard data arrives as "2026-10-23 20:58:00"; format only the view.
+function agribankDisplayTime(raw,fallbackDay=''){
+ const value=String(raw||'').trim();
+ const iso=value.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::\d{2})?/);
+ if(iso)return iso[4]+':'+iso[5]+' '+iso[3]+'/'+iso[2]+'/'+iso[1];
+ const bank=value.match(/^(\d{2}):(\d{2})\s+(\d{2})\/(\d{2})\/(\d{4})/);
+ if(bank)return bank[1]+':'+bank[2]+' '+bank[3]+'/'+bank[4]+'/'+bank[5];
+ const time=value.match(/^(\d{2}):(\d{2})(?::\d{2})?$/);
+ const day=String(fallbackDay||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+ if(time&&day)return time[1]+':'+time[2]+' '+day[3]+'/'+day[2]+'/'+day[1];
+ return '—';
+}
 const localTime=x=>{
  if(!x)return'—';
  const s=String(x).replace('T',' ');
@@ -232,7 +245,7 @@ function detailLine(row,isBank=false,candidates=[]){
  append(top,left,amt,label);wrap.appendChild(top);
  const content=el('div','bank-report-detail-content');
  append(content,cell('Giờ bill',isBank?(candidates.length?'Có ảnh cần kiểm tra':'Chưa xác định bill'):(row.bill_time||'Không đọc được')),
-  cell('Giờ Agribank',isBank?(row.bank_time||'—'):(row.bank_time||'Chưa có thông báo')),
+  cell('Giờ Agribank',row.bank_time?agribankDisplayTime(row.bank_time,ui.date.value):'Chưa có thông báo'),
   cell('Giờ khách gửi ảnh',isBank?'—':(row.sent_at?new Intl.DateTimeFormat('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date(row.sent_at)):'—')),
   cell('Mã giao dịch',row.transfer_reference||'—'),
   cell('Thông báo ngân hàng',isBank?'#'+row.notice_id:(row.notice_id?'#'+row.notice_id:'Chưa có')),
@@ -412,7 +425,7 @@ async function openReviewDialog(bank,candidates){
  form.appendChild(headline);
  form.appendChild(append(el('div','bank-review-bank'),
    el('strong','',money(bank.amount_vnd)+' · Agribank #'+noticeId),
-   el('span','', 'Giờ ngân hàng: '+(bank.bank_time||'—')+
+   el('span','', 'Giờ ngân hàng: '+agribankDisplayTime(bank.bank_time,ui.date.value)+
      ' · Đã có tiền, chưa xác nhận thu cho khách')));
  const guidance=el('p','bank-review-instruction',
    'Chọn đúng MỘT ảnh chứng cứ chính. Có thể đính kèm thêm ảnh cùng khách để giải trình. '
@@ -556,7 +569,7 @@ async function openCollectionDialog(bank){
  form.appendChild(heading);
  form.appendChild(append(el('div','bank-review-bank'),
   el('strong','',money(bank.amount_vnd)+' · Agribank #'+noticeId),
-  el('span','','Giờ ngân hàng: '+(bank.bank_time||'—'))));
+  el('span','','Giờ ngân hàng: '+agribankDisplayTime(bank.bank_time,ui.date.value))));
  const info=el('p','bank-review-instruction','Đang kiểm tra khoản thu nhập tay…');form.appendChild(info);
  const customerLabel=el('div','bank-review-label');
  const customerCaption=el('label','','Thu cho khách hàng');
@@ -580,7 +593,7 @@ async function openCollectionDialog(bank){
  const noteLabel=el('label','bank-review-label','Nội dung thu (bắt buộc)');
  const note=el('textarea','bank-review-explanation');
  note.rows=3;note.minLength=5;note.maxLength=1000;note.required=true;
- note.value='Thu chuyển khoản Agribank ngày '+ui.date.value+' lúc '+(bank.bank_time||'');
+ note.value='Thu chuyển khoản Agribank · '+agribankDisplayTime(bank.bank_time,ui.date.value);
  noteLabel.appendChild(note);form.appendChild(noteLabel);
  const consent=el('label','bank-review-consent');
  const verified=el('input');verified.type='checkbox';verified.required=true;
