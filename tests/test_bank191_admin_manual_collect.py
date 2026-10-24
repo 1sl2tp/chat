@@ -45,4 +45,6 @@ def test_ui_is_true_collection_action_not_just_a_status_toggle():
                   "bank-report-quick-collect", "manual_bank"):
         assert token in JS, token
     assert "bank-status-bank_manual" in CSS
-    assert "if(isBank&&!manualRecord)" in JS
+    # BANK-210 guards a candidate bill against accidental one-tap collection.
+    assert "if(isBank&&!manualRecord&&!candidates.length)" in JS
+    assert "Thu sau khi xác minh" in JS
