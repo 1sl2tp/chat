@@ -80,8 +80,11 @@ function installStyle(){
     .contact-directory-tools{position:static;z-index:4;box-sizing:border-box;flex:0 0 auto;display:grid;gap:7px;padding:8px 8px 7px;background:var(--theme-surface-primary,#fff)}
     .contact-directory-search{box-sizing:border-box;width:100%;height:38px;border:1px solid var(--theme-border-default,#dedede);border-radius:12px;padding:0 11px;background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#171717);font:inherit;font-size:14px;outline:none}
     .contact-directory-search:focus{border-color:#9ab7e6;box-shadow:0 0 0 2px rgba(78,132,216,.1)}
-    .contact-directory-filters{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none}
+    .contact-directory-filter-line{display:flex;align-items:center;gap:4px;min-width:0}
+    .contact-directory-filters{display:flex;gap:5px;flex:1;min-width:0;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none}
     .contact-directory-filters::-webkit-scrollbar{display:none}
+    .contact-directory-filter-more{appearance:none;display:grid;place-items:center;flex:0 0 27px;width:27px;height:29px;padding:0;border:1px solid var(--theme-border-default,#dedede);border-radius:10px;background:var(--theme-surface-secondary,#f3f3f3);color:var(--theme-content-primary,#171717);font-size:20px;cursor:pointer}
+    .contact-directory-filter-more[hidden]{display:none!important}
     .contact-directory-filter{appearance:none;min-height:30px;flex:0 0 auto;border:0;border-radius:999px;padding:0 10px;background:var(--theme-surface-secondary,#f3f3f3);color:var(--theme-content-secondary,#666);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
     .contact-directory-filter[data-active="true"]{background:var(--theme-content-primary,#171717);color:var(--theme-surface-primary,#fff)}
     .contact-directory-empty{padding:18px 10px;text-align:center;color:var(--theme-content-secondary,#777);font-size:13px}
@@ -114,14 +117,35 @@ function ensureDirectoryTools(){
   tools.dataset.contactDirectoryTools='';
   tools.innerHTML=`
     <input class="contact-directory-search" type="search" autocomplete="off" placeholder="Tìm kiếm" aria-label="Tìm danh bạ" data-contact-directory-search>
-    <div class="contact-directory-filters" role="group" aria-label="Lọc danh bạ">
-      <button type="button" class="contact-directory-filter" data-contact-directory-filter="all">Tất cả</button>
-      <button type="button" class="contact-directory-filter" data-contact-directory-filter="customer">KH</button>
-      <button type="button" class="contact-directory-filter" data-contact-directory-filter="cm">CM</button>
-      <button type="button" class="contact-directory-filter" data-contact-directory-filter="friend">Bạn bè</button>
-      <button type="button" class="contact-directory-filter" data-contact-directory-filter="other">Khác</button>
+    <div class="contact-directory-filter-line">
+      <div class="contact-directory-filters" role="group" aria-label="Lọc danh bạ, cuộn ngang để xem thêm">
+        <button type="button" class="contact-directory-filter" data-contact-directory-filter="all">Tất cả</button>
+        <button type="button" class="contact-directory-filter" data-contact-directory-filter="customer">KH</button>
+        <button type="button" class="contact-directory-filter" data-contact-directory-filter="cm">CM</button>
+        <button type="button" class="contact-directory-filter" data-contact-directory-filter="friend">Bạn bè</button>
+        <button type="button" class="contact-directory-filter" data-contact-directory-filter="other">Khác</button>
+      </div>
+      <button type="button" class="contact-directory-filter-more" data-contact-directory-filter-more aria-label="Xem thêm nhóm">›</button>
     </div>`;
   body.insertBefore(tools,nav);
+  const rail=tools.querySelector('.contact-directory-filters');
+  const more=tools.querySelector('[data-contact-directory-filter-more]');
+  function syncFilterArrow(){
+    if(!rail||!more)return;
+    const scrollable=rail.scrollWidth>rail.clientWidth+3;
+    more.hidden=!scrollable;
+    const atEnd=rail.scrollLeft+rail.clientWidth>=rail.scrollWidth-3;
+    more.textContent=atEnd?'‹':'›';
+    more.setAttribute('aria-label',atEnd?'Xem các nhóm trước':'Xem thêm nhóm');
+  }
+  rail?.addEventListener('scroll',syncFilterArrow,{passive:true});
+  more?.addEventListener('click',()=>{
+    if(!rail)return;
+    const atEnd=rail.scrollLeft+rail.clientWidth>=rail.scrollWidth-3;
+    rail.scrollBy({left:atEnd?-rail.scrollWidth:Math.max(100,rail.clientWidth*.7),behavior:'smooth'});
+  });
+  window.addEventListener('resize',()=>{if(tools.isConnected)syncFilterArrow();},{passive:true});
+  requestAnimationFrame(syncFilterArrow);
   const input=tools.querySelector('[data-contact-directory-search]');
   input.value=query;
   input.addEventListener('input',()=>{query=String(input.value||'');syncDirectoryRows();});
