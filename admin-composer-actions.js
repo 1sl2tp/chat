@@ -636,7 +636,8 @@ function closeQuickCash({restoreFocus=true}={}){
  unlockQuoteBackground({restoreFocus});
  return true;
 }
-// UX-215: UI takes whole THOUSANDS (500 = 500.000đ); RPC takes exact VND.
+// UX-217: Cash amounts follow the Agribank /1000 display convention (no currency suffix).
+// UI receives and shows amounts in thousands; the collector RPC still expects full VND.
 // Never infer currencies or strip punctuation: an entered "500.000" must not
 // accidentally turn into a 500-million-VND collection.
 function cashThousandsToVnd(value){
@@ -646,8 +647,12 @@ function cashThousandsToVnd(value){
  return Number.isSafeInteger(thousands)&&thousands>=1&&thousands<=999999999
   ?thousands*1000:null;
 }
-function cashFormatVnd(value){
- return new Intl.NumberFormat('vi-VN',{maximumFractionDigits:0}).format(Number(value)||0)+'đ';
+function cashFormatThousands(vnd){
+ const amount=Number(vnd);
+ if(!Number.isFinite(amount))return '—';
+ // Bank amount / 1000. Preserve fractional thousands up to one dong;
+ // never round the financial ledger amount or append a currency symbol.
+ return new Intl.NumberFormat('vi-VN',{minimumFractionDigits:0,maximumFractionDigits:3}).format(amount/1000);
 }
 async function openQuickCash(contactId){
  if(!currentAdmin()||quickCustomerGroup()!=='customer'||quickCustomerId()!==String(contactId))
@@ -666,14 +671,14 @@ async function openQuickCash(contactId){
    <h2 class="admin-composer-quote-title">Thu tiền mặt</h2>
    <p class="admin-composer-cash-hint" data-cash-customer></p>
    <div class="admin-composer-cash-balance" aria-live="polite">
-    <span>Dư nợ hiện tại</span>
+    <span>Dư nợ hiện tại (÷1.000)</span>
     <strong data-cash-debt>Đang tải công nợ…</strong>
     <button type="button" data-cash-refresh-debt title="Đọc lại công nợ từ sổ" aria-label="Cập nhật công nợ hiện tại">↻</button>
    </div>
-   <label class="admin-composer-cash-label">Số tiền thu (nghìn đồng)
+   <label class="admin-composer-cash-label">Số tiền thu (÷1.000)
     <input class="admin-composer-cash-input" data-cash-amount type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Ví dụ: 500" required maxlength="9">
    </label>
-   <p class="admin-composer-cash-hint" data-cash-amount-preview>Nhập 500 = 500.000đ (chỉ nhập số nghìn, không nhập đồng).</p>
+   <p class="admin-composer-cash-hint" data-cash-amount-preview>Giống Agribank: 500.000 ÷ 1.000 = 500. Chỉ nhập 500.</p>
    <p class="admin-composer-cash-after" data-cash-after></p>
    <label class="admin-composer-cash-label">Nội dung thu
     <input class="admin-composer-cash-input" data-cash-note maxlength="240" minlength="5" value="Thu tiền mặt" required>
@@ -703,22 +708,22 @@ async function openQuickCash(contactId){
  const parseAmount=()=>cashThousandsToVnd(amount.value);
  const paintBalance=()=>{
   if(debtVnd!==null){
-   debt.textContent=debtVnd>0?cashFormatVnd(debtVnd):
-     debtVnd<0?'Dư '+cashFormatVnd(Math.abs(debtVnd)):'0đ (đã tất toán)';
+   debt.textContent=debtVnd>0?cashFormatThousands(debtVnd):
+     debtVnd<0?'Dư '+cashFormatThousands(Math.abs(debtVnd)):'0 (đã tất toán)';
   }
   const vnd=parseAmount();
   if(vnd===null){
    amountPreview.textContent=amount.value.trim()?
-     'Chỉ nhập số nghìn, không có dấu chấm, dấu phẩy hay chữ đ.':
-     'Nhập 500 = 500.000đ (chỉ nhập số nghìn, không nhập đồng).';
+     'Chỉ nhập số nguyên theo đơn vị ÷1.000, không nhập dấu hoặc ký hiệu.':
+     'Giống Agribank: 500.000 ÷ 1.000 = 500. Chỉ nhập 500.';
    after.textContent='';submit.disabled=true;
    return;
   }
-  amountPreview.textContent='Sẽ thu: '+cashFormatVnd(vnd)+' (từ '+amount.value.trim()+' nghìn)';
+  amountPreview.textContent='Sẽ thu: '+cashFormatThousands(vnd);
   if(debtVnd!==null){
    const balanceAfter=debtVnd-vnd;
-   after.textContent=balanceAfter>0?'Nợ sau thu dự kiến: '+cashFormatVnd(balanceAfter):
-     balanceAfter<0?'Dư tiền sau thu dự kiến: '+cashFormatVnd(Math.abs(balanceAfter)):
+   after.textContent=balanceAfter>0?'Nợ sau thu dự kiến (÷1.000): '+cashFormatThousands(balanceAfter):
+     balanceAfter<0?'Dư tiền sau thu dự kiến (÷1.000): '+cashFormatThousands(Math.abs(balanceAfter)):
        'Dự kiến tất toán hết công nợ.';
   }else after.textContent='';
   submit.disabled=busy||done||debtLoading||debtVnd===null;
@@ -774,7 +779,7 @@ async function openQuickCash(contactId){
    feedback.textContent='Khách hàng đã thay đổi. Hãy mở phiếu thu ở đúng hội thoại.';return;
   }
   const vnd=parseAmount();
-  if(vnd===null){feedback.textContent='Chỉ nhập số nghìn nguyên. Ví dụ nhập 500 để thu 500.000đ.';amount.focus();return;}
+  if(vnd===null){feedback.textContent='Nhập số nguyên theo đơn vị ÷1.000; ví dụ 500.000 ÷ 1.000 = 500.';amount.focus();return;}
   if(debtLoading||debtVnd===null){feedback.textContent='Cần tải dư nợ hiện tại trước khi thu.';return;}
   if(note.value.trim().length<5||!check.checked){feedback.textContent='Cần nội dung thu và xác nhận đã nhận tiền.';return;}
   const auth=authStore()?.snapshot?.()||{},client=authStore()?.getClient?.();
@@ -806,7 +811,7 @@ async function openQuickCash(contactId){
    const resultAfter=Number(data.balance_after_vnd);
    if(Number.isFinite(resultAfter))debtVnd=resultAfter*1000;
    paintBalance();
-   feedback.textContent='Đã thu '+cashFormatVnd(vnd)+' · Sổ #'+data.ledger_id;
+   feedback.textContent='Đã thu '+cashFormatThousands(vnd)+' (÷1.000) · Sổ #'+data.ledger_id;
    submit.hidden=true;refreshButton.hidden=true;
    closeButtons.forEach(x=>{x.disabled=false;if(x!==overlay.querySelector('.admin-composer-quote-backdrop'))x.textContent='Đóng';});
    void window.V21SyncEngine?.wake?.({reason:'quick-cash-collection'});
