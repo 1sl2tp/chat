@@ -230,6 +230,10 @@ jobs:
         run: python -m pytest -q tests/test_v21_ui180_mobile_viewer_thumbnails.py
       - name: Chat image quality and batch performance contract
         run: python tests/test_v21_image_quality_contract.py
+      - name: IMG-196 stored-resolution zoom viewer and thumbnail fallback
+        run: |
+          node --check app.js
+          node tests/test_img196_viewer_original.mjs
       - name: iOS zero-byte media upload recovery contract
         run: python tests/test_v21_ios_zero_byte_media_upload.py
       - name: Chat image orientation + column-2 viewer contract
