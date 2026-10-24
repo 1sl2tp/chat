@@ -362,6 +362,32 @@ Deno.serve(async (req: Request) => {
     return reply(400, { ok: false, error: "invalid_json" });
   }
 
+  // ZFR-203: Authenticated bridge pulls a single Admin-approved add-friend
+  // command and writes back the actual Zalo API outcome. The Edge function
+  // never sends an invitation or exposes bridge credentials to the browser.
+  if(payload.kind==="friend_action_next"){
+    const {data,error}=await admin.rpc("chat_zalo_friend_claim");
+    if(error)return reply(500,{ok:false,error:"friend_action_claim_failed"});
+    return reply(200,{ok:true,job:data?.job??null});
+  }
+  if(payload.kind==="friend_action_complete"){
+    const id=String(payload.id??"").trim();
+    const status=String(payload.status??"").trim();
+    if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))
+      return reply(400,{ok:false,error:"invalid_friend_job_id"});
+    if(!["sent","already_sent","already_friends","accepted","not_found",
+         "blocked","failed","unknown"].includes(status))
+      return reply(400,{ok:false,error:"invalid_friend_job_status"});
+    const {data,error}=await admin.rpc("chat_zalo_friend_complete",{
+      p_id:id,p_status:status,
+      p_zalo_id:String(payload.zalo_id??"").slice(0,64),
+      p_zalo_name:String(payload.zalo_name??"").slice(0,120),
+      p_error:String(payload.error_code??"").slice(0,160),
+    });
+    if(error)return reply(500,{ok:false,error:"friend_action_result_failed"});
+    return reply(200,{ok:Boolean(data?.ok)});
+  }
+
   // ZFR-200: Bridge-only complete snapshot of VERIFIED received invitations.
   // This branch cannot change Zalo relationships or create Chat accounts.
   if (payload.kind === "incoming_friend_requests_snapshot") {
