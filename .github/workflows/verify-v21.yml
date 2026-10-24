@@ -158,6 +158,14 @@ jobs:
         run: node tests/test_zalo_shared_phone_card.cjs
       - name: Incoming sender narrow Chat edge layout
         run: python -m pytest -q tests/test_v21_incoming_left_edge_contract.py tests/test_v21_140_zalo_card_narrow_axis.py
+      - name: ZFR-204 verified Zalo acceptance and one-time Admin Push
+        run: |
+          node --check sw.js
+          node --check admin-push-controller.js
+          node --check bridge/zalo/src/server.mjs
+          node --check bridge/zalo/src/friend-acceptance-monitor.mjs
+          node --test bridge/zalo/test/friend-acceptance-monitor.test.mjs
+          python -m pytest -q tests/test_zfr204_accepted_friend_push.py
       - name: ZFR-203 one-tap Zalo friendship by phone
         run: |
           node --check zalo-admin-link.js
