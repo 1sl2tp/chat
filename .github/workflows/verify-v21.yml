@@ -133,6 +133,10 @@ jobs:
         run: |
           node --check admin-composer-actions.js
           python -m pytest -q tests/test_ux192_one_tap_chat.py
+      - name: BANK-209/210 verified collected, awaiting, review and receipt notices
+        run: |
+          node --check bank-report-dashboard.js
+          python -m pytest -q tests/test_bank209_210_collection_ack_status.py
       - name: BANK-202 automatic collection does not flood Chat
         run: python -m pytest -q tests/test_bank202_quiet_auto_collection.py
       - name: BANK-193 searchable iPhone customer picker
