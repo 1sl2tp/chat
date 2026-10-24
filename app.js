@@ -34,7 +34,6 @@ const bottomSpacer=document.getElementById('bottomSpacer');
 const historyStatus=document.getElementById('historyStatus');
 const threadScrollControl=document.getElementById('threadScrollControl');
 const threadScrollUnseenBadge=document.getElementById('threadScrollUnseenBadge');
-const remoteTypingCenter=document.getElementById('remoteTypingCenter');
 const modeLabel=document.getElementById('modeLabel');
 const editor=document.getElementById('editor');
 const measure=document.getElementById('measure');
@@ -247,7 +246,6 @@ const regionTop=document.getElementById('regionTop');
 const threadContent=document.getElementById('threadContent');
 const tailRunway=document.getElementById('tailRunway');
 const tailRunwaySpace=document.getElementById('tailRunwaySpace');
-const remote=document.getElementById('remote');
 const svhProbe=document.getElementById('svhProbe');
 const runtimeError=document.getElementById('runtimeError');
 const vv=window.visualViewport;
@@ -5275,67 +5273,6 @@ threadScrollControl.addEventListener('click',()=>{
 });
 
 /* =========================================================
-   REMOTE TYPING
-   Real app: drive this from the realtime typing/presence event.
-   Demo B+: typing → remote message.
-   ========================================================= */
-let remoteTyping=false;
-let remoteTypingTimer=0;
-
-function setRemoteTyping(active){
-  remoteTyping=Boolean(active);
-  scrollRoot.toggleAttribute('data-stream-active',remoteTyping);
-  stageLayout.toggleAttribute('data-stream-active',remoteTyping);
-  remoteTypingCenter.hidden=!remoteTyping;
-}
-
-function scheduleRemoteMessageFromDemo(){
-  clearTimeout(remoteTypingTimer);
-  setRemoteTyping(true);
-
-  remoteTypingTimer=setTimeout(()=>{
-    setRemoteTyping(false);
-    appendRemote();
-  },900);
-}
-
-/* =========================================================
-   REMOTE / REALTIME DEMO
-   ========================================================= */
-function appendRemote(){
-  const message=createMessage({
-    id:`remote-${Date.now()}-${++seq}`,
-    text:`B gửi tin mới ${seq}`,
-    sender:'remote',
-    createdAt:Date.now()+seq
-  });
-  const before=store.size;
-  store.appendBatch([message]);
-  const inserted=store.size>before;
-  const policy=appendScrollPolicy({
-    inserted,remote:true,messageIds:[message.id]
-  });
-
-  renderWindow({preserve:policy.preserve});
-
-  if(policy.followTail){
-    scrollToTail('remote-message');
-  }else{
-    updateScrollFromEndControl();
-  }
-}
-
-remote.addEventListener(
-  'pointerdown',
-  e=>{
-    if(document.activeElement===editor){
-      e.preventDefault();
-    }
-  }
-);
-remote.addEventListener('click',scheduleRemoteMessageFromDemo);
-
-/* =========================================================
    COMPOSER MULTILINE
    ========================================================= */
 const COMPOSER_MEASURE_STYLE_PROPS=[
@@ -8035,7 +7972,6 @@ window.ChatScreenModule={
       composerDraftKey:ComposerDraftOwner.currentKey(),
       composerDraftCount:ComposerDraftOwner.drafts.size,
       editorFocused:document.activeElement===editor,
-      remoteTyping,
       scrollFromEnd:scrollRoot.hasAttribute('data-scroll-from-end')
     };
   }
