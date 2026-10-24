@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="07dd4c8949da85bab060543cc7f659e93fa70019b556c95c89222081db0f3961">
+<meta name="app-build-id" content="9660e10289f72b82e62c82d78e06ae320a03a22548970e0155703be4a01873c2">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -21439,6 +21439,7 @@ async function openFriendPanel(){
   if(!historyList?.isConnected)return;
   try{
    const data=await invokeBody({action:'zalo_friend_history'});
+   await refreshAccountAdmin();
    historyList.replaceChildren();
    const rows=Array.isArray(data?.rows)?data.rows:[];
    if(!rows.length){
@@ -21448,7 +21449,9 @@ async function openFriendPanel(){
    for(const item of rows){
     const row=document.createElement('div');row.className='friend-admin-invite-row';
     const title=document.createElement('strong');
-    title.textContent=String(item.zalo_name||item.phone||'Số điện thoại').trim();
+    const contact=accountModel().contactsById.get(String(item.zalo_id||''))||null;
+    title.textContent=contact?zaloName(contact):
+      String(item.zalo_name||item.phone||'Số điện thoại').trim();
     const status=String(item.status||'unknown');
     const verified=Boolean(item.confirmed_at);
     const descriptions={
@@ -21467,7 +21470,8 @@ async function openFriendPanel(){
       (descriptions[status]||'Chưa xác nhận');
     if(item.notified_at)detail.textContent+=' · Đã thông báo cho Admin';
     const hint=document.createElement('small');
-    hint.textContent=String(item.phone||'');
+    hint.textContent=[contact?zaloProfileName(contact):'',
+      String(item.phone||'')].filter(Boolean).join(' · ');
     row.append(title,detail,hint);historyList.appendChild(row);
    }
   }catch(error){historyList.textContent='Chưa tải được trạng thái: '+String(error?.message||error);}
