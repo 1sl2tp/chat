@@ -19,6 +19,7 @@ let pendingVersion='';
 let pendingBuild='';
 let checkPromise=null;
 let deferredTimer=0;
+let updateNotice=null;
 
 function emit(reason,detail={}){
   try{
@@ -49,9 +50,12 @@ function editingInput(){
   const tag=String(el.tagName||'').toLowerCase();
   return tag==='input'||tag==='textarea'||tag==='select'||Boolean(el.isContentEditable);
 }
-function safeToReload(){
+function safeToReload({userRequested=false}={}){
   if(document.visibilityState&&document.visibilityState!=='visible')return false;
-  if(activeUserSession()||editingInput())return false;
+  // Never interrupt a logged-in reader automatically. A deliberate tap on
+  // the update prompt is permitted, but only if all draft/call guards pass.
+  if((activeUserSession()&&!userRequested)||editingInput())return false;
+  if(document.querySelector?.('[data-call-ui-state]:not([data-call-ui-state="idle"])'))return false;
   const interaction=window.V21InteractionController?.snapshot?.()||null;
   if(interaction&&String(interaction.mode||'NONE')!=='NONE')return false;
   const capture=window.V21AudioCapturePolicy?.active?.()||null;
@@ -87,10 +91,38 @@ function reloadUrl(build){
     return location.href;
   }
 }
+function showUpdateNotice(){
+  if(!pendingBuild||typeof document.createElement!=='function'||!document.body)return;
+  if(updateNotice?.isConnected)return;
+  const host=document.createElement('div');
+  host.id='chatUpdateNotice';
+  host.setAttribute('role','status');
+  host.setAttribute('aria-live','polite');
+  const label=document.createElement('span');
+  label.textContent='Đã có bản Chat mới';
+  const button=document.createElement('button');
+  button.type='button';
+  button.textContent='Cập nhật';
+  button.setAttribute('aria-label','Tải phiên bản TAPHOA Chat mới');
+  button.addEventListener('click',()=>{
+    if(!pendingBuild)return;
+    if(!safeToReload({userRequested:true})){
+      label.textContent='Hãy gửi tin nháp hoặc kết thúc cuộc gọi trước khi cập nhật';
+      return;
+    }
+    rememberReload(pendingBuild);
+    emit('reloading',{trigger:'user'});
+    location.replace(reloadUrl(pendingBuild));
+  });
+  host.append(label,button);
+  document.body.appendChild(host);
+  updateNotice=host;
+}
 function maybeReload(){
   if(!pendingBuild)return false;
   document.documentElement.dataset.appUpdatePending=pendingBuild;
   if(!safeToReload()){
+    showUpdateNotice();
     emit('reload-deferred');
     // An active authenticated session can remain open for hours: do not wake
     // a 2.5s retry timer forever or force a refresh while reading messages.
@@ -103,6 +135,7 @@ function maybeReload(){
     scheduleDeferred();
     return false;
   }
+  updateNotice?.remove?.();
   rememberReload(pendingBuild);
   emit('reloading');
   const next=reloadUrl(pendingBuild);
