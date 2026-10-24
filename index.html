@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="0a7d9a463aa9867bf38de3844ef57b891913062f0747d1ca7f3b0ac49c96d364">
+<meta name="app-build-id" content="c578b750ec3809e8f07c14af3791bc60db716c92bb2ac2b5a30c1cd84bb56698">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -4517,61 +4517,6 @@ button{
 
 
 
-/* V21.18 remote typing: centered compact indicator.
-   Scroll remains centered too, but stacks above when both are visible. */
-.remote-typing-center-wrap{
-  position:absolute;
-  inset-inline:0;
-  top:-32px;
-  z-index:7;
-  pointer-events:none;
-}
-.remote-typing-center{
-  position:absolute;
-  left:50%;
-  width:48px;
-  height:32px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:4px;
-  border:1px solid var(--theme-border-default);
-  border-radius:12px;
-  background:var(--theme-surface-primary);
-  color:var(--theme-content-secondary);
-  box-shadow:
-    0 1px 2px rgba(0,0,0,.08),
-    0 2px 8px rgba(0,0,0,.06);
-  transform:translateX(-50%);
-}
-.remote-typing-center[hidden]{
-  display:none;
-}
-.typing-dot{
-  width:5px;
-  height:5px;
-  flex:0 0 5px;
-  border-radius:999px;
-  background:currentColor;
-  opacity:.78;
-  animation:remote-typing-dot 1s ease-in-out infinite;
-}
-.typing-dot:nth-child(2){animation-delay:.12s}
-.typing-dot:nth-child(3){animation-delay:.24s}
-@keyframes remote-typing-dot{
-  0%,60%,100%{transform:translateY(0);opacity:.42}
-  30%{transform:translateY(-2px);opacity:1}
-}
-
-/* When scroll + typing are both visible, keep typing closest to Composer and
-   move the scroll button one level upward. */
-#stageLayout[data-scroll-from-end][data-stream-active] #threadScrollControlMotion{
-  top:6px;
-  bottom:auto;
-}
-
-
-
 /* ChatGPT auth source shell uses the saved bottom-sheet/auth CSS bundles.
    The saved package does not contain the inline Google symbol sprite, so only
    that icon has an explicitly-labelled fallback; layout/structure stays source-derived. */
@@ -6850,7 +6795,6 @@ button{
           </button>
         </div>
         <div id="modeLabel" class="sr-only">BOOT</div>
-        <button id="remote" tabindex="-1" type="button" class="sr-only" aria-hidden="true">B+</button>
       </div>
     </header>
 
@@ -6998,15 +6942,7 @@ button{
               id="composerInteractive"
               data-composer-interaction-owner="true"
               class="pointer-events-auto relative z-[1] flex w-full flex-col"
-            >              <div class="remote-typing-center-wrap" aria-live="polite" aria-label="Bên kia đang nhập">
-                <div id="remoteTypingCenter" class="remote-typing-center" hidden aria-hidden="true">
-                  <span class="typing-dot"></span>
-                  <span class="typing-dot"></span>
-                  <span class="typing-dot"></span>
-                </div>
-              </div>
-
-              <div class="composer-source-frame chat-content-axis">
+            >              <div class="composer-source-frame chat-content-axis">
                 <form id="composerForm" class="group/composer w-full" data-type="unified-composer">
                   <div
                     id="composerShell"
