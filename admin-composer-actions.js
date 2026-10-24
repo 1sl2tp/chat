@@ -793,7 +793,7 @@ async function openQuickCash(contactId){
     p_amount_vnd:vnd,p_note:note.value.trim(),p_command_id:commandId
    });
    if(error)throw error;
-   if(!data?.ok||data.source!=='manual_cash'||Number(data.amount_vnd)!==vnd)
+   if(!data?.ok||data.source!=='manual_cash'||Number(data.source_amount_vnd)!==vnd)
     throw Error('Ghi thu chưa được xác nhận');
    done=true;
    const resultAfter=Number(data.balance_after_vnd);
