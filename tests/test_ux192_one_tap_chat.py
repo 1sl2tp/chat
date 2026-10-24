@@ -26,7 +26,7 @@ def test_customer_shortcuts_are_contextual_and_do_not_replace_composer():
 def test_cash_has_explicit_confirmation_stable_retry_and_role_guard():
     for fragment in ("Thu tiền mặt", "Thu tiền mặt nhập tay", "Nội dung thu", "data-cash-confirm",
                      "chat_admin_quick_cash_collect", "p_command_id:commandId",
-                     "One stable idempotency key", "amount.value", "value%1000",
+                     "One stable idempotency key", "amount.value", "cashThousandsToVnd",
                      "quickCustomerId()!==String(contactId)", "another_dialog_open",
                      "notice_sent", "Đã ghi thu tiền mặt"):
         assert fragment in JS or fragment in SQL, fragment
