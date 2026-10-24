@@ -6,6 +6,7 @@ import {createLoginState,createRequestHandler} from './login-server-core.mjs';
 import {startZaloLogin} from './login-runtime.mjs';
 import {createSupabaseSessionStore} from './session-store.mjs';
 import {createContactSync,syncApiContacts,syncApiGroups} from './contact-sync.mjs';
+import {syncIncomingFriendRequests} from './friend-requests-sync.mjs';
 import {bindIncomingMessageListener} from './incoming-message.mjs';
 import {createMessageGateway} from './message-gateway.mjs';
 import {downloadInboundMedia,buildOutboundMessage} from './media-transfer.mjs';
@@ -32,6 +33,20 @@ const state=createLoginState();
 let api=null;
 let unbindIncoming=()=>{};
 let bridgeStatsTimer=0;
+let friendSyncTimer=0;let friendSyncBusy=false;
+async function refreshIncomingFriendRequests(){
+ if(friendSyncBusy||!api||!contactSync||!bridgeToken)return;
+ friendSyncBusy=true;
+ try{
+  const result=await syncIncomingFriendRequests({
+   api,endpoint:`${supabaseUrl.replace(/\/$/,'')}/functions/v1/v21-zalo-contacts`,
+   bridgeToken
+  });
+  console.log('[zalo-bridge] incoming friend requests verified',result.count);
+ }catch(error){
+  console.warn('[zalo-bridge] friend request inbox unavailable',String(error?.message||error));
+ }finally{friendSyncBusy=false;}
+}
 const bridgeStats={outboundSent:0,inboundStored:0,inboundIgnored:0};
 function flushBridgeStats(){
   const total=bridgeStats.outboundSent+bridgeStats.inboundStored+bridgeStats.inboundIgnored;
@@ -161,6 +176,11 @@ server.listen(port,'0.0.0.0',()=>{
           console.warn('[zalo-login] contacts sync failed',String(error?.message||error));
         }
       }
+      // Use the same authenticated bridge connection; refresh the inbox on
+      // startup and every 5 minutes. No Zalo accept/reject is performed here.
+      void refreshIncomingFriendRequests();
+      friendSyncTimer=setInterval(()=>void refreshIncomingFriendRequests(),5*60_000);
+      friendSyncTimer.unref?.();
       if(messageGateway){
         void pollOutbound();
         void messageGateway.cleanupStorage()
@@ -180,6 +200,7 @@ server.listen(port,'0.0.0.0',()=>{
 const shutdown=()=>{
   flushBridgeStats();
   if(bridgeStatsTimer){clearInterval(bridgeStatsTimer);bridgeStatsTimer=0;}
+  if(friendSyncTimer){clearInterval(friendSyncTimer);friendSyncTimer=0;}
   try{unbindIncoming();}catch{}
   try{api?.listener?.stop?.();}catch{}
   server.close(()=>process.exit(0));
