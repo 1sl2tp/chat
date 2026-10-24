@@ -66,6 +66,8 @@ jobs:
       - name: Install test dependency
         run: python -m pip install pytest
 
+      - name: SEC-201 API execution grants and Node patch baseline
+        run: python -m pytest -q tests/test_sec201_privilege_hardening.py
       - name: FRIEND-199 Admin friend approval and phone-created Chat accounts
         run: |
           node --check shell.js
