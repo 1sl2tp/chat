@@ -117,6 +117,10 @@ jobs:
         run: |
           node --check admin-composer-actions.js
           python -m pytest -q tests/test_ux192_one_tap_chat.py
+      - name: BANK-193 searchable iPhone customer picker
+        run: |
+          node --check bank-report-dashboard.js
+          node tests/test_bank193_customer_search.mjs
       - name: BANK-185 transient bill scan retries keep bank evidence strict
         run: python tests/test_bank185_transient_retry_contract.py
       - name: BANK-186 no lost scans and BANK-187 Admin outage notifications
