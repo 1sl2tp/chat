@@ -35,7 +35,7 @@ def _lookup_token(selector: str) -> str:
 
 def test_component_inventory_source_trace():
     _html, rows = _catalog()
-    assert len(rows) >= 247, "re-audit Chat root before reducing coverage"
+    assert len(rows) >= 246, "B+ demo/typing indicator deliberately retired (UI-207)"
     assert len({r["id"] for r in rows}) == len(rows)
     loaded = {}
     for row in rows:
