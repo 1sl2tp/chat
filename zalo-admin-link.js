@@ -953,6 +953,12 @@ async function openFriendPanel(){
    <button type="button" class="friend-admin-refresh" data-zalo-friend-refresh>Kiểm tra lại Zalo</button>
   </div>
   <div class="friend-admin-invitations"><strong>Lời mời từ tài khoản Chat</strong><div data-friend-list>Đang tải lời mời…</div></div>
+  <div class="friend-admin-invitations" data-friend-history-section>
+   <strong>Trạng thái kết bạn Zalo đã gửi</strong>
+   <p class="friend-admin-hint">Tự cập nhật trên máy chủ dù bạn đã đóng Chat. Khi thành bạn bè, TAPHOA thông báo tới thiết bị đã bật thông báo.</p>
+   <div data-friend-history>Đang tải lịch sử…</div>
+   <button type="button" class="friend-admin-refresh" data-friend-history-refresh>Kiểm tra trạng thái</button>
+  </div>
   <form data-friend-create>
    <strong>Thêm người bằng số điện thoại</strong>
    <label>Tên hiển thị<input name="display_name" maxlength="50" autocomplete="off" placeholder="Tên người muốn thêm" required></label>
@@ -976,6 +982,46 @@ async function openFriendPanel(){
  const feedback=box.querySelector('[data-friend-feedback]');
  const form=box.querySelector('[data-friend-create]');
  const find=box.querySelector('[data-friend-find-zalo]');
+ const historyList=box.querySelector('[data-friend-history]');
+ const loadHistory=async()=>{
+  if(!historyList?.isConnected)return;
+  try{
+   const data=await invokeBody({action:'zalo_friend_history'});
+   historyList.replaceChildren();
+   const rows=Array.isArray(data?.rows)?data.rows:[];
+   if(!rows.length){
+    const p=document.createElement('p');p.textContent='Chưa có yêu cầu kết bạn Zalo đã gửi.';
+    historyList.appendChild(p);return;
+   }
+   for(const item of rows){
+    const row=document.createElement('div');row.className='friend-admin-invite-row';
+    const title=document.createElement('strong');
+    title.textContent=String(item.zalo_name||item.phone||'Số điện thoại').trim();
+    const status=String(item.status||'unknown');
+    const verified=Boolean(item.confirmed_at);
+    const descriptions={
+      queued:'Đang chờ cầu nối Zalo tiếp nhận',
+      processing:'Đang gửi yêu cầu qua Zalo',
+      sent:'Đã gửi lời mời · Chờ đồng ý',
+      already_sent:'Lời mời đã gửi trước đó · Chờ đồng ý',
+      already_friends:'Đã là bạn từ trước',
+      accepted:'Đã chấp nhận lời mời · Đang xác minh trên Zalo',
+      unknown:'Kết quả gửi/chấp nhận chưa rõ · Đang kiểm tra trên Zalo',
+      blocked:'Zalo từ chối kết bạn',not_found:'Không tìm thấy trên Zalo',
+      failed:'Có lỗi khi gửi · Chưa xác nhận kết quả',
+    };
+    const detail=document.createElement('small');
+    detail.textContent=verified?'✅ Kết bạn thành công · Zalo đã xác nhận':
+      (descriptions[status]||'Chưa xác nhận');
+    if(item.notified_at)detail.textContent+=' · Đã thông báo cho Admin';
+    const hint=document.createElement('small');
+    hint.textContent=String(item.phone||'');
+    row.append(title,detail,hint);historyList.appendChild(row);
+   }
+  }catch(error){historyList.textContent='Chưa tải được trạng thái: '+String(error?.message||error);}
+ };
+ box.querySelector('[data-friend-history-refresh]')?.addEventListener('click',()=>void loadHistory());
+ void loadHistory();
  const zaloList=box.querySelector('[data-zalo-friend-list]');
  const zaloStatus=box.querySelector('[data-zalo-friend-status]');
  let busy=false,credentials='';
@@ -1097,6 +1143,7 @@ async function openFriendPanel(){
    try{
     const state=await invokeBody({action:'zalo_friend_status',phone});
     const status=showFriendStatus(state);
+    void loadHistory();
     if(status==='queued'||status==='processing')watchFriendStatus(phone,remaining-1);
    }catch(error){
     zaloResult.textContent='Chưa đọc được trạng thái Zalo; thử kiểm tra lại.';
@@ -1117,6 +1164,7 @@ async function openFriendPanel(){
   try{
    const result=await invokeBody({action:'zalo_friend_request',phone});
    const status=showFriendStatus(result);
+   void loadHistory();
    if(status==='queued'||status==='processing')watchFriendStatus(phone);
   }catch(error){
    zaloResult.textContent='Không thể yêu cầu kết bạn: '+errorText(error?.message||error);
@@ -1291,7 +1339,15 @@ document.addEventListener('v21-contact-store-change',scan);
 document.addEventListener('v21-auth-state',scan);
 scan();
 
-window.V21ZaloAccountAdmin=Object.freeze({version:MODULE_VERSION,open:openAccountAdmin,close:closeAccountAdmin,refresh:refreshAccountAdmin});
+async function openFriendsFromNotification(){
+ if(!currentAdmin())return false;
+ if(!accountModal)await openAccountAdmin();
+ if(!accountModal)return false;
+ await openFriendPanel();
+ return true;
+}
+window.V21ZaloAccountAdmin=Object.freeze({version:MODULE_VERSION,open:openAccountAdmin,
+ openFriends:openFriendsFromNotification,close:closeAccountAdmin,refresh:refreshAccountAdmin});
 window.V21ZaloAdminLink=Object.freeze({version:MODULE_VERSION,mount,scan});
 })();
 
