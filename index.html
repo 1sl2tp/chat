@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="a6ae69346204acbe8f44be3c712746a0e33613cdf0198618f5037983861080d7">
+<meta name="app-build-id" content="8020f6da969eebb673d3f68693e4025bcd54f38e54be070f3dff8ff13448b366">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -23913,7 +23913,7 @@ async function openQuickCash(contactId){
     p_amount_vnd:vnd,p_note:note.value.trim(),p_command_id:commandId
    });
    if(error)throw error;
-   if(!data?.ok||data.source!=='manual_cash'||Number(data.amount_vnd)!==vnd)
+   if(!data?.ok||data.source!=='manual_cash'||Number(data.source_amount_vnd)!==vnd)
     throw Error('Ghi thu chưa được xác nhận');
    done=true;
    const resultAfter=Number(data.balance_after_vnd);
