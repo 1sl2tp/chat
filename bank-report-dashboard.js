@@ -558,8 +558,11 @@ async function openCollectionDialog(bank){
   el('strong','',money(bank.amount_vnd)+' · Agribank #'+noticeId),
   el('span','','Giờ ngân hàng: '+(bank.bank_time||'—'))));
  const info=el('p','bank-review-instruction','Đang kiểm tra khoản thu nhập tay…');form.appendChild(info);
- const customerLabel=el('label','bank-review-label','Thu cho khách hàng');
+ const customerLabel=el('div','bank-review-label');
+ const customerCaption=el('label','','Thu cho khách hàng');
  const customerSearch=el('input','bank-review-select bank-review-customer-search');
+ customerSearch.id='bank-review-search-'+noticeId;
+ customerCaption.htmlFor=customerSearch.id;
  customerSearch.type='search';customerSearch.placeholder='Gõ tên khách hàng…';
  customerSearch.autocomplete='off';customerSearch.spellcheck=false;
  customerSearch.disabled=true;
@@ -571,7 +574,7 @@ async function openCollectionDialog(bank){
  customerList.setAttribute('role','listbox');
  customerSearch.setAttribute('aria-controls',customerList.id);
  const customerHelp=el('small','bank-review-customer-help','Gõ tên không dấu cũng tìm được. Chạm vào đúng khách để chọn.');
- customerLabel.append(customerSearch,customerHelp,customerList);
+ customerLabel.append(customerCaption,customerSearch,customerHelp,customerList);
  form.appendChild(customerLabel);
  const previous=el('div','bank-review-existing');form.appendChild(previous);
  const noteLabel=el('label','bank-review-label','Nội dung thu (bắt buộc)');
