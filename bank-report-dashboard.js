@@ -221,6 +221,7 @@ function possibleUnlinkedBills(bank,allBills){
 }
 function detailLine(row,isBank=false,candidates=[]){
  const type=isBank?'bank_only':row.report_status;
+ const recorded=!isBank&&type==='matched'&&Boolean(row.ledger_id);
  const manualRecord=isBank?(current?.manual_collections||[]).find(m=>String(m.notice_id)===String(row.notice_id)):null;
  const wrap=el('details','bank-report-detail');
  if(row.receipt_id)wrap.dataset.bankReceiptId=String(row.receipt_id);
@@ -252,6 +253,13 @@ function detailLine(row,isBank=false,candidates=[]){
   cell('Tình trạng',manualRecord?(manualRecord.mode==='linked_existing'
    ?'Đã liên kết khoản nhập tay':'Đã thu thủ công từ Agribank')
   :isBank&&candidates.length?'Chưa đối soát · Chưa ghi thu':statusText[type]||row.status||'Chưa rõ'));
+ if(!isBank){
+  content.appendChild(cell('Ghi thu công nợ',
+    recorded?'Đã ghi thu · Sổ #'+row.ledger_id:'Chưa ghi thu'));
+  content.appendChild(cell('Tin xác nhận thu',
+    recorded?(row.collection_ack_sent?'Đã gửi cho khách':'Đang chờ gửi'):
+      'Chưa gửi vì chưa ghi thu'));
+ }
  if(manualRecord){
   content.appendChild(cell('Khách đã thu',manualRecord.customer_name||'—'));
   content.appendChild(cell('Sổ công nợ','#'+manualRecord.ledger_id));
