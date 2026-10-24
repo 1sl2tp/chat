@@ -336,7 +336,9 @@ button{
 }
 .message-day-floating{
   position:sticky;
-  top:calc(var(--header-height,72px) + 8px);
+  /* Live boundary = bottom of Header or Admin shortcuts only if visible.
+     Groups and non-customer chats retain the header-only offset. */
+  top:var(--message-day-floating-sticky-top,calc(var(--header-height,72px) + 8px));
   z-index:25;
   display:flex;
   justify-content:center;
