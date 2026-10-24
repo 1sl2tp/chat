@@ -419,3 +419,30 @@
     right:max(.5rem,env(safe-area-inset-right,0px))!important;
   }
 }
+
+/* FRIEND-199: Admin-controlled friends, compact on iOS PWA. */
+.friend-admin-panel{display:grid;gap:12px;max-height:min(86dvh,690px);overflow:auto}
+.friend-admin-hint{margin:0;color:var(--theme-content-secondary,#68717b);font-size:12px;line-height:1.5}
+.friend-admin-invitations{display:grid;gap:8px;min-width:0}
+.friend-admin-invitations>strong,.friend-admin-panel form>strong{font-size:14px}
+.friend-admin-invite-row{display:grid;gap:7px;padding:10px;border:1px solid var(--theme-border-default,#ddd);border-radius:10px}
+.friend-admin-invite-row>span:first-child{font-size:13px;overflow-wrap:anywhere}
+.friend-admin-actions{display:flex;gap:7px;flex-wrap:wrap}
+.friend-admin-actions button,.friend-admin-panel [data-friend-copy]{
+ flex:1 1 auto;min-height:40px;padding:8px 12px;
+ border:1px solid var(--theme-border-default,#d0d4d8);
+ background:var(--theme-surface-secondary,#f5f5f5);
+ color:var(--theme-content-primary,#202020);border-radius:10px;
+ font-family:inherit;font-weight:600;cursor:pointer
+}
+.friend-admin-actions button:last-child{background:#118849;color:#fff;border-color:#118849}
+.friend-admin-actions button:disabled{opacity:.55}
+.friend-admin-panel form{display:grid;gap:10px;padding-top:12px;border-top:1px solid var(--theme-border-default,#dedede)}
+.friend-admin-panel form label{display:grid;gap:6px;font-size:13px;font-weight:600}
+.friend-admin-panel form input{width:100%;box-sizing:border-box;min-height:44px;border:1px solid #cbd1d6;
+ border-radius:10px;padding:10px;font-size:16px;background:var(--theme-surface-primary,#fff);color:inherit}
+.friend-admin-panel [data-friend-credentials]{display:grid;gap:8px;padding:10px;border:1px solid #9ccdb0;border-radius:10px}
+.friend-admin-panel [data-friend-credentials][hidden]{display:none!important}
+.friend-admin-panel [data-friend-login]{overflow-wrap:anywhere;font-size:14px}
+.friend-admin-panel [data-friend-feedback]{white-space:normal;overflow-wrap:anywhere}
+@media(max-width:650px){.friend-admin-panel{width:100%;max-height:calc(100dvh - 28px)}}
