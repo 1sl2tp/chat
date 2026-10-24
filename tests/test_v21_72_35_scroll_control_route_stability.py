@@ -23,7 +23,7 @@ assert "opacity 120ms ease" in motion
 
 # The arrow is a viewport command only. Data reconciliation belongs to Sync/MessageStore.
 arrow_start=app.index("threadScrollControl.addEventListener('click'")
-arrow_end=app.index("/* =========================================================\n   REMOTE TYPING",arrow_start)
+arrow_end=app.index("/* =========================================================\n   COMPOSER MULTILINE",arrow_start)
 arrow=app[arrow_start:arrow_end]
 assert "scrollToTail('user-arrow')" in arrow
 assert "reconcileCurrent" not in arrow
