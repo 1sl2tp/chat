@@ -60,7 +60,7 @@ assert "updateScrollFromEndControl();" in scroll
 
 # Arrow button remains viewport-only.
 click_start=app.index("threadScrollControl.addEventListener('click'")
-click_end=app.index("/* =========================================================\n   REMOTE TYPING",click_start)
+click_end=app.index("/* =========================================================\n   COMPOSER MULTILINE",click_start)
 click=app[click_start:click_end]
 assert "scrollToTail('user-arrow')" in click
 assert "reconcileCurrent" not in click
