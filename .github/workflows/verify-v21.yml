@@ -149,6 +149,8 @@ jobs:
         run: |
           node --check bank-report-dashboard.js
           python -m pytest -q tests/test_bank209_210_collection_ack_status.py
+      - name: BANK-213 legacy thousands for Agribank/Bill, manual cash entry unchanged
+        run: python -m pytest -q tests/test_bank213_thousands_collection_notices.py
       - name: BANK-202 automatic collection does not flood Chat
         run: python -m pytest -q tests/test_bank202_quiet_auto_collection.py
       - name: BANK-193 searchable iPhone customer picker
