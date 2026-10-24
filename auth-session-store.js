@@ -596,7 +596,12 @@ function initClient(){
 
 async function boot(){
   state='BOOTING';
-  if(!initClient())return false;
+  if(!initClient()){
+    // UI-213: do not leave the first-paint loading cover forever if a CDN fails.
+    renderGuest();
+    authUI()?.setError?.('auth_unavailable');
+    return false;
+  }
   return bootstrap();
 }
 
