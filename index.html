@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="f82e81673de9ea728b95a8dd06b71cff8a2798dc4df0e5e0a01644f71fa2e43e">
+<meta name="app-build-id" content="6bb81ce3c7e7b8d68619aaf14edd3b425bbb7171f9a279c9792186bc60d5d6f3">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -6010,6 +6010,7 @@ button{
 }
 .shell-profile-close:hover{background:var(--theme-surface-secondary)}
 .shell-profile-form{display:grid;gap:16px}
+.shell-profile-hint{margin:-9px 0 0;color:var(--theme-content-secondary);font-size:.8rem;line-height:1.4}
 .shell-profile-avatar-picker{
   display:flex;
   flex-direction:column;
@@ -16739,6 +16740,7 @@ function renderChatTabIdentity(){
   const switcher=tab?.closest?.('.top-mode-switch')||document.querySelector('.top-mode-switch');
   const avatar=tab?.querySelector('[data-chat-tab-avatar]');
   const label=tab?.querySelector('[data-chat-tab-label]');
+  const profileButton=document.querySelector('[data-active-contact-profile]');
   const visible=Boolean(
     authState==='AUTHENTICATED' &&
     authAccount?.role==='admin' &&
@@ -16749,6 +16751,7 @@ function renderChatTabIdentity(){
   if(tab)tab.dataset.contactIdentity=String(visible);
   if(!tab||!avatar||!label)return visible;
   if(!visible){
+    if(profileButton)profileButton.hidden=true;
     avatar.hidden=true;
     label.textContent='Trò chuyện';
     tab.removeAttribute('title');
@@ -16757,6 +16760,10 @@ function renderChatTabIdentity(){
   const item=window.V21ContactStore?.snapshot?.().find(row=>
     row?.id&&!row.deleted_at&&String(row.id)===String(activeContact.id)
   )||null;
+  if(profileButton){
+    profileButton.hidden=!(item?.role==='user'&&!isPinnedBankReportContact(item));
+    profileButton.setAttribute('aria-label','Sửa tên hiển thị và thông tin '+String(item?.display_name||item?.username||'liên hệ'));
+  }
   const name=String(item?.display_name||item?.username||activeContact?.name||'Liên hệ');
   label.textContent=name;
   tab.title=name;
@@ -17482,6 +17489,7 @@ function buildProfileEditor({mode='self',account:target}={}){
           <input type="file" accept="image/png,image/jpeg,image/webp" data-profile-avatar-file hidden>
         </label>
         <div class="shell-profile-field"><label for="shell-profile-name">Tên hiển thị</label><input id="shell-profile-name" type="text" maxlength="50" autocomplete="name" data-profile-name></div>
+        <p class="shell-profile-hint" data-profile-name-hint></p>
         <div class="shell-profile-field"><label for="shell-profile-username">Tên đăng nhập</label><input id="shell-profile-username" type="text" maxlength="24" autocomplete="username" autocapitalize="none" spellcheck="false" inputmode="text" data-profile-username></div>
         <div class="shell-profile-field"><label for="shell-profile-password">Mật khẩu mới</label><input id="shell-profile-password" type="password" minlength="6" maxlength="128" autocomplete="new-password" data-profile-password placeholder="Để trống nếu không đổi"><button class="shell-form-password-toggle" type="button" data-password-toggle aria-controls="shell-profile-password" aria-label="Hiện mật khẩu" aria-pressed="false"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M2.75 12s3.35-5.25 9.25-5.25S21.25 12 21.25 12 17.9 17.25 12 17.25 2.75 12 2.75 12Z" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linejoin="round"/><circle cx="12" cy="12" r="2.6" fill="none" stroke="currentColor" stroke-width="1.65"/></svg></button></div>
         <p class="shell-profile-error" data-profile-error hidden></p>
@@ -17519,6 +17527,9 @@ function buildProfileEditor({mode='self',account:target}={}){
   const saveButton=wrap.querySelector('.shell-profile-save');
 
   title.textContent=selfMode?'Thông tin cá nhân':'Thông tin liên hệ';
+  wrap.querySelector('[data-profile-name-hint]').textContent=selfMode
+    ?'Tên này được hiển thị với những người trò chuyện cùng bạn.'
+    :'Đây là tên tài khoản dùng chung trong Chat, không phải tên gợi nhớ riêng. Đổi tên sẽ cập nhật trên các thiết bị.';
   nameInput.value=String(model.display_name||'');
   usernameInput.value=String(model.username||'');
   renderAvatarNode(avatar,model,'TK');
@@ -18156,6 +18167,16 @@ document.addEventListener('click',event=>{
   }
 
   if(accountMenuOpen&&!target.closest('[data-sidebar-account-footer]'))closeAccountMenu();
+
+  const activeProfile=target.closest('[data-active-contact-profile]');
+  if(activeProfile){
+    event.preventDefault();
+    if(authState==='AUTHENTICATED'&&authAccount?.role==='admin'&&activeContact?.id){
+      const item=window.V21ContactStore?.snapshot?.().find(row=>String(row?.id||'')===String(activeContact.id));
+      if(item?.role==='user'&&!isPinnedBankReportContact(item))openManagedProfile(item);
+    }
+    return;
+  }
 
   const manage=target.closest('[data-contact-manage]');
   if(manage){
