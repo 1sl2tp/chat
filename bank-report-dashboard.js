@@ -286,7 +286,18 @@ function detailLine(row,isBank=false,candidates=[]){
   const act=el('div','bank-report-detail-actions');act.appendChild(audit);
   content.appendChild(act);
  }
- if(row.reason&&!isBank)content.appendChild(el('p','bank-report-detail-reason',isAiScanIssue(row)?'Lỗi quét ảnh: '+scanIssueLabel(row.reason):'Ghi chú: '+row.reason));
+ if(row.reason&&!isBank){
+  let reason='Ghi chú: '+row.reason;
+  if(isAiScanIssue(row))reason='Lỗi quét ảnh: '+scanIssueLabel(row.reason);
+  else if(row.reason==='bank_image_amount_only_no_collection'){
+    if(row.report_status==='review'&&row.bill_time)
+      reason='Có thông báo Agribank cùng tiền và gần giờ, nhưng ảnh chỉ đủ dữ liệu số tiền. Cần kiểm tra trước khi ghi thu.';
+    else if(!row.bill_time)
+      reason='Ảnh chỉ đọc được số tiền, chưa xác định được thời gian giao dịch. Chưa ghi thu.';
+    else reason='Đã đọc được số tiền và giờ từ ảnh, nhưng chưa đủ xác nhận Agribank. Chưa ghi thu.';
+  }else if(row.report_status==='matched')reason='Đã kiểm chứng Agribank và hạch toán vào sổ công nợ.';
+  content.appendChild(el('p','bank-report-detail-reason',reason));
+}
  const actions=el('div','bank-report-detail-actions');
  if(!isBank&&row.asset_id){
   const b=el('button','bank-report-action','Xem ảnh bill');b.type='button';
