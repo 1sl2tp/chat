@@ -120,6 +120,8 @@ jobs:
         run: |
           node --check bank-report-dashboard.js
           python -m pytest -q tests/test_bank191_admin_manual_collect.py
+      - name: UI-207 no B+ demo controls in production Chat
+        run: python -m pytest -q tests/test_ui207_no_old_demo_controls.py
       - name: UX-192 Admin one-tap Chat actions and cash safety
         run: |
           node --check admin-composer-actions.js
