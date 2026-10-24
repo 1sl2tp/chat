@@ -38,6 +38,20 @@ let bridgeStatsTimer=0;
 let friendSyncTimer=0;let friendSyncBusy=false;
 let friendActionTimer=0;
 let friendAcceptanceTimer=0;
+let contactAliasTimer=0;let contactDirectoryBusy=false;
+async function refreshContactDirectory(){
+  if(contactDirectoryBusy||!api||!contactSync)return null;
+  contactDirectoryBusy=true;
+  try{
+    const result=await syncApiContacts({api,sync:contactSync});
+    console.log('[zalo-bridge] contact aliases synced',Number(result?.count)||0);
+    return result;
+  }catch(error){
+    console.warn('[zalo-bridge] contact alias sync unavailable',String(error?.message||error));
+    return null;
+  }finally{contactDirectoryBusy=false;}
+}
+
 let runFriendActions=null;
 async function refreshIncomingFriendRequests(){
  if(friendSyncBusy||!api||!contactSync||!bridgeToken)return;
@@ -171,8 +185,7 @@ server.listen(port,'0.0.0.0',()=>{
       }
       if(contactSync){
         try{
-          const synced=await syncApiContacts({api,sync:contactSync});
-          console.log(`[zalo-login] contacts synced ${Number(synced?.count)||0}`);
+          await refreshContactDirectory();
           if(targetGroupName){
             const groups=await syncApiGroups({api,sync:contactSync,filter:targetGroupName});
             console.log(`[zalo-login] group directory ${Number(groups?.total)||0}; target groups synced ${Number(groups?.matched)||0}: ${(groups?.names||[]).join(' | ')}`);
@@ -194,10 +207,18 @@ server.listen(port,'0.0.0.0',()=>{
         const runAcceptMonitor=createZaloFriendAcceptanceMonitor({
           api,endpoint:`${supabaseUrl.replace(/\/$/,'')}/functions/v1/v21-zalo-contacts`,
           bridgeToken,logger:console,
+          onConfirmed:()=>refreshContactDirectory(),
         });
         void runAcceptMonitor();
         friendAcceptanceTimer=setInterval(()=>void runAcceptMonitor(),2*60_000);
         friendAcceptanceTimer.unref?.();
+      }
+      // New Zalo friends and their personal aliases change between logins.
+      // Sync both profiles and getAliasList regularly; failed alias reads keep
+      // the last known nicknames instead of overwriting them with profiles.
+      if(contactSync){
+        contactAliasTimer=setInterval(()=>void refreshContactDirectory(),5*60_000);
+        contactAliasTimer.unref?.();
       }
       // Use the same authenticated bridge connection; refresh the inbox on
       // startup and every 5 minutes. No Zalo accept/reject is performed here.
@@ -226,6 +247,7 @@ const shutdown=()=>{
   if(friendSyncTimer){clearInterval(friendSyncTimer);friendSyncTimer=0;}
   if(friendActionTimer){clearInterval(friendActionTimer);friendActionTimer=0;}
   if(friendAcceptanceTimer){clearInterval(friendAcceptanceTimer);friendAcceptanceTimer=0;}
+  if(contactAliasTimer){clearInterval(contactAliasTimer);contactAliasTimer=0;}
   try{unbindIncoming();}catch{}
   try{api?.listener?.stop?.();}catch{}
   server.close(()=>process.exit(0));
