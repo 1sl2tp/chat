@@ -129,6 +129,8 @@ jobs:
           node tests/test_v21_72_16_update_runtime.js
       - name: UI-213 no stale first-paint frames on Web, iOS PWA, Android PWA
         run: python -m pytest -q tests/test_ui213_first_paint_guard.py
+      - name: UI-214 profile editing and directory category navigation
+        run: python -m pytest -q tests/test_ui214_chat_profile_directory.py
       - name: UI-207 no B+ demo controls in production Chat
         run: python -m pytest -q tests/test_ui207_no_old_demo_controls.py
       - name: UX-192 Admin one-tap Chat actions and cash safety
