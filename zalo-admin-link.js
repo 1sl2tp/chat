@@ -946,6 +946,12 @@ async function openFriendPanel(){
  box.innerHTML=`
   <div class="zalo-account-panel-head"><strong>Lời mời kết bạn</strong><button type="button" data-friend-close>Đóng</button></div>
   <p class="friend-admin-hint">Bạn quyết định ai được thêm vào danh bạ Chat. Liên kết Zalo là tùy chọn.</p>
+  <div class="friend-admin-invitations" data-zalo-friend-inbox>
+   <strong>Lời mời kết bạn từ Zalo</strong>
+   <p class="friend-admin-hint" data-zalo-friend-status>Đang kiểm tra cầu nối Zalo…</p>
+   <div data-zalo-friend-list></div>
+   <button type="button" class="friend-admin-refresh" data-zalo-friend-refresh>Kiểm tra lại Zalo</button>
+  </div>
   <div class="friend-admin-invitations"><strong>Lời mời từ tài khoản Chat</strong><div data-friend-list>Đang tải lời mời…</div></div>
   <form data-friend-create>
    <strong>Thêm người bằng số điện thoại</strong>
@@ -969,7 +975,55 @@ async function openFriendPanel(){
  const feedback=box.querySelector('[data-friend-feedback]');
  const form=box.querySelector('[data-friend-create]');
  const find=box.querySelector('[data-friend-find-zalo]');
+ const zaloList=box.querySelector('[data-zalo-friend-list]');
+ const zaloStatus=box.querySelector('[data-zalo-friend-status]');
  let busy=false,credentials='';
+ const loadZalo=async()=>{
+  zaloStatus.textContent='Đang kiểm tra dữ liệu lời mời từ cầu nối Zalo…';
+  zaloList.replaceChildren();
+  try{
+   const data=await friendRpc('v21_zalo_friend_requests_admin');
+   const received=Array.isArray(data?.requests)?data.requests:[];
+   const stamp=data?.last_sync_at?new Date(data.last_sync_at):null;
+   const readable=stamp&&!Number.isNaN(stamp.getTime())
+     ?stamp.toLocaleString('vi-VN',{day:'2-digit',month:'2-digit',
+       hour:'2-digit',minute:'2-digit'}):'chưa có';
+   const freshness=data?.fresh===true;
+   zaloStatus.textContent=(freshness?'Đã đối chiếu Zalo · ':'Chưa có dữ liệu mới từ Zalo · ')+
+      'Lần đồng bộ: '+readable+
+      (!freshness?' · Không thể xác nhận hiện có bao nhiêu lời mời.':'');
+   if(!freshness)return;
+   if(!received.length){
+    const line=document.createElement('p');line.textContent='Zalo hiện không có lời mời đến đang chờ.';
+    zaloList.appendChild(line);return;
+   }
+   for(const request of received){
+    const row=document.createElement('div');row.className='friend-admin-invite-row';
+    const name=document.createElement('strong');
+    name.textContent=String(request.display_name||'Người dùng Zalo');
+    const info=document.createElement('small');
+    info.textContent=request.linked_chat_account_id
+      ?'Đã có tài khoản Chat liên kết':'Lời mời đến · Chưa liên kết Chat';
+    const msg=document.createElement('span');
+    msg.textContent=String(request.message||'');
+    const copy=document.createElement('button');copy.type='button';
+    copy.textContent='Sao chép ID Zalo';
+    copy.addEventListener('click',async()=>{
+     try{await navigator.clipboard.writeText(String(request.zalo_id||''));
+       zaloStatus.textContent='Đã sao chép ID Zalo để tìm đối chiếu.';}
+     catch{window.prompt('ID Zalo:',String(request.zalo_id||''));}
+    });
+    row.append(name,info);
+    if(msg.textContent)row.appendChild(msg);
+    row.appendChild(copy);zaloList.appendChild(row);
+   }
+  }catch(error){
+   zaloStatus.textContent='Không truy vấn được danh sách Zalo: '+
+      String(error?.message||error);
+  }
+ };
+ box.querySelector('[data-zalo-friend-refresh]')?.addEventListener('click',()=>void loadZalo());
+ void loadZalo();
  box.querySelector('[data-friend-close]').addEventListener('click',closeAccountPanel);
  const load=async()=>{
   list.replaceChildren();
