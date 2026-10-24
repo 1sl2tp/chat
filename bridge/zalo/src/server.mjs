@@ -8,6 +8,7 @@ import {createSupabaseSessionStore} from './session-store.mjs';
 import {createContactSync,syncApiContacts,syncApiGroups} from './contact-sync.mjs';
 import {syncIncomingFriendRequests} from './friend-requests-sync.mjs';
 import {createZaloFriendActionWorker} from './friend-action-worker.mjs';
+import {createZaloFriendAcceptanceMonitor} from './friend-acceptance-monitor.mjs';
 import {bindIncomingMessageListener} from './incoming-message.mjs';
 import {createMessageGateway} from './message-gateway.mjs';
 import {downloadInboundMedia,buildOutboundMessage} from './media-transfer.mjs';
@@ -36,6 +37,7 @@ let unbindIncoming=()=>{};
 let bridgeStatsTimer=0;
 let friendSyncTimer=0;let friendSyncBusy=false;
 let friendActionTimer=0;
+let friendAcceptanceTimer=0;
 let runFriendActions=null;
 async function refreshIncomingFriendRequests(){
  if(friendSyncBusy||!api||!contactSync||!bridgeToken)return;
@@ -189,6 +191,13 @@ server.listen(port,'0.0.0.0',()=>{
         void runFriendActions();
         friendActionTimer=setInterval(()=>void runFriendActions?.(),10_000);
         friendActionTimer.unref?.();
+        const runAcceptMonitor=createZaloFriendAcceptanceMonitor({
+          api,endpoint:`${supabaseUrl.replace(/\/$/,'')}/functions/v1/v21-zalo-contacts`,
+          bridgeToken,logger:console,
+        });
+        void runAcceptMonitor();
+        friendAcceptanceTimer=setInterval(()=>void runAcceptMonitor(),2*60_000);
+        friendAcceptanceTimer.unref?.();
       }
       // Use the same authenticated bridge connection; refresh the inbox on
       // startup and every 5 minutes. No Zalo accept/reject is performed here.
@@ -216,6 +225,7 @@ const shutdown=()=>{
   if(bridgeStatsTimer){clearInterval(bridgeStatsTimer);bridgeStatsTimer=0;}
   if(friendSyncTimer){clearInterval(friendSyncTimer);friendSyncTimer=0;}
   if(friendActionTimer){clearInterval(friendActionTimer);friendActionTimer=0;}
+  if(friendAcceptanceTimer){clearInterval(friendAcceptanceTimer);friendAcceptanceTimer=0;}
   try{unbindIncoming();}catch{}
   try{api?.listener?.stop?.();}catch{}
   server.close(()=>process.exit(0));
