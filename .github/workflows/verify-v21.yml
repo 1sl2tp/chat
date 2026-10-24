@@ -141,6 +141,8 @@ jobs:
         run: |
           node --check admin-composer-actions.js
           node tests/test_ux215_cash_thousands.cjs
+      - name: UX-217 Agribank divided-by-1000 display with no currency suffix
+        run: node tests/test_ux217_cash_agribank_thousands.cjs
       - name: UX-216 read-only Admin cash balance does not create public links
         run: python -m pytest -q tests/test_ux216_cash_balance_rpc.py
       - name: BANK-209/210 verified collected, awaiting, review and receipt notices
