@@ -726,13 +726,20 @@ async function openQuickCash(contactId){
  const readCurrentDebt=async()=>{
   const auth=authStore()?.snapshot?.()||{},client=authStore()?.getClient?.();
   if(!auth.appSessionId||!client||auth.state!=='AUTHENTICATED')throw Error('Phiên Admin không còn hợp lệ');
-  const {data,error}=await client.rpc('v21_admin_debt_share_summary',{p_customer_id:String(contactId)});
-  if(error||!data?.ok||String(data.customer_id)!==String(contactId))
+  // UX-216: read the *ledger only*. The legacy debt-share summary also
+  // generates customer public links and fails with HTTP 405 inside STABLE RPC.
+  const {data,error}=await client.rpc('chat_admin_quick_cash_balance',{
+    p_app_session_id:auth.appSessionId,p_customer_id:String(contactId)
+  });
+  if(error){
+   console.warn('[quick-cash-balance]',String(error.code||error.message||'rpc_failed').slice(0,120));
    throw Error('Không đọc được công nợ hiện tại');
-  // Authoritative read-only summary uses THOUSANDS internally, just like ledger.
-  const thousands=Number(data.balance);
-  const exactVnd=thousands*1000;
-  if(!Number.isFinite(exactVnd)||Math.abs(exactVnd)>Number.MAX_SAFE_INTEGER)
+  }
+  if(!data?.ok||String(data.customer_id)!==String(contactId)||data.unit!=='VND')
+   throw Error('Không đọc được công nợ hiện tại');
+  // The API has already converted ledger thousands to VND exactly once.
+  const exactVnd=Number(data.balance_vnd);
+  if(!Number.isSafeInteger(exactVnd))
    throw Error('Dữ liệu công nợ không hợp lệ');
   return exactVnd;
  };
