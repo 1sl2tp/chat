@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="2ce88c342ca1bcb996ecbaa51bb627612eab160a1b475cfe7ed9439587fca62d">
+<meta name="app-build-id" content="720bc9ef725328a0780bab79f42354aa53ed2a6f04ba2fa5ecc6fc858c4467eb">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -29803,12 +29803,13 @@ function coldOpenFromLocation(){
     const conversationId=String(params.get('push_conversation')||'').trim();
     const inviteId=String(params.get('push_call_invite')||'').trim();
     const missedCallId=String(params.get('push_missed_chat_call')||'').trim();
+    const friendPush=params.get('push_friend')==='1';
     const bankDay=String(params.get('push_bank_day')||'').trim();
     const bankNoticeId=String(params.get('push_bank_notice')||'').trim();
     const bankReceiptId=String(params.get('push_bank_receipt')||'').trim();
     const bankStatus=String(params.get('push_bank_status')||'').trim();
-    if(!contactId&&!conversationId&&!inviteId)return null;
-    return{kind:bankDay?'bank_reconciliation':missedCallId?'missed_chat_call':inviteId?'call_invite':'message',
+    if(!contactId&&!conversationId&&!inviteId&&!friendPush)return null;
+    return{kind:friendPush?'zalo_friend_accepted':bankDay?'bank_reconciliation':missedCallId?'missed_chat_call':inviteId?'call_invite':'message',
       contactId,conversationId,inviteId,missedCallId,bankDay,bankNoticeId,bankReceiptId,bankStatus};
   }catch{return null;}
 }
@@ -29820,6 +29821,7 @@ function clearColdOpenQuery(){
     url.searchParams.delete('push_conversation');
     url.searchParams.delete('push_call_invite');
     url.searchParams.delete('push_missed_chat_call');
+    url.searchParams.delete('push_friend');
     for(const key of ['push_bank_day','push_bank_notice','push_bank_receipt','push_bank_status'])
       url.searchParams.delete(key);
     const next=`${url.pathname}${url.search}${url.hash}`||'./';
@@ -29830,6 +29832,19 @@ function clearColdOpenQuery(){
 
 async function handleOpen(payload={}){
   const kind=String(payload?.kind||'message');
+  if(kind==='zalo_friend_accepted'){
+    if(!isAdmin()){
+      pendingOpen={kind};return false;
+    }
+    const openFriends=window.V21ZaloAccountAdmin?.openFriends;
+    if(typeof openFriends!=='function'){
+      pendingOpen={kind};return false;
+    }
+    const opened=await openFriends();
+    if(opened){pendingOpen=null;clearColdOpenQuery();}
+    else pendingOpen={kind};
+    return Boolean(opened);
+  }
   const inviteId=String(payload?.inviteId??payload?.invite_id??'').trim();
   const missedCallId=String(payload?.missedCallId??payload?.call_id??'').trim();
   let contactId=String(payload?.contactId??payload?.contact_id??'').trim();
