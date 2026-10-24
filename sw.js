@@ -264,24 +264,30 @@ self.addEventListener('notificationclick',event=>{
 // Cached HTML is *only* an offline recovery option, never an online priority.
 async function networkFirst(request,{navigation=false,event=null}={}){
   const networkRequest=new Request(request,{cache:'no-store'});
-  const cache=await caches.open(CACHE_NAME);
   try{
     const response=await fetch(networkRequest);
     if(response&&response.ok&&new URL(request.url).origin===self.location.origin){
-      const saves=[cache.put(request,response.clone())];
-      if(navigation)saves.push(cache.put('./',response.clone()));
-      const saving=Promise.all(saves).catch(()=>{});
+      // CacheStorage may be unavailable in private Safari. Never hold back an
+      // otherwise successful network navigation because storage failed.
+      const saving=(async()=>{
+        const cache=await caches.open(CACHE_NAME);
+        await cache.put(request,response.clone());
+        if(navigation)await cache.put('./',response.clone());
+      })().catch(()=>{});
       if(event?.waitUntil)event.waitUntil(saving);
       else await saving;
     }
     return response;
   }catch(error){
-    const cached=await cache.match(request);
-    if(cached)return cached;
-    if(navigation){
-      const shell=await cache.match('./');
-      if(shell)return shell;
-    }
+    try{
+      const cache=await caches.open(CACHE_NAME);
+      const cached=await cache.match(request);
+      if(cached)return cached;
+      if(navigation){
+        const shell=await cache.match('./');
+        if(shell)return shell;
+      }
+    }catch{}
     throw error;
   }
 }
