@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="59436310be824e315913c6776a3c531db01ad932cc9ba7087f3f7ca3673f80a6">
+<meta name="app-build-id" content="7365bf7a5735367821fdfd35e2c96f00b68a02fd25424ec6d3c6e47ea3874693">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -19,6 +19,38 @@
 <meta name="chat-v21-session-runtime" content="v21-only">
 <meta name="chat-v21-contact-runtime" content="v21-only">
 <title>TAPHOA Chat</title>
+<!-- UI-213: first-paint protection. This rule is deliberately BEFORE every
+     deferred/vendor script and linked stylesheet. The document contains a real
+     Chat, Composer, auth form and navigation before the session is restored;
+     never paint those stale frames while data-auth-state="booting". -->
+<style id="v21-first-paint-guard">
+  #appShell[data-auth-state="booting"] > #screenHost,
+  #appShell[data-auth-state="booting"] > #sessionHost {
+    visibility:hidden!important;
+    pointer-events:none!important;
+  }
+  #appShell[data-auth-state="booting"]::before {
+    content:"Đang mở TAPHOA Chat…";
+    position:fixed;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    box-sizing:border-box;
+    background:#f7f7f8;
+    color:#555d69;
+    font:500 14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    z-index:999;
+    pointer-events:none;
+    -webkit-font-smoothing:antialiased;
+  }
+  /* Do not allow author display rules to resurrect elements with the actual
+     hidden attribute (including before Tailwind runtime utilities load). */
+  #appShell [hidden], #globalOverlayRoot [hidden] {
+    display:none!important;
+  }
+</style>
 <script defer src="https://cdn.tailwindcss.com"></script>
 <style data-inlined-source="reference/chatgpt/full-source/chatgpt-core-exact.css">
 /* ChatGPT exact core extraction.
