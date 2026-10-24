@@ -1,7 +1,7 @@
 // ZFR-204: Independent of browser visibility. Only GET Zalo relationship state,
 // never re-sends the friendship request. One verified acceptance triggers Push.
 export function createZaloFriendAcceptanceMonitor({
- api,endpoint,bridgeToken,fetchImpl=fetch,logger=console,
+ api,endpoint,bridgeToken,fetchImpl=fetch,logger=console,onConfirmed=null,
 }={}){
  if(!endpoint||!bridgeToken)throw Error("zalo_friend_monitor_config_missing");
  let running=false;
@@ -19,6 +19,7 @@ export function createZaloFriendAcceptanceMonitor({
   running=true;
   try{
    const result=await post({kind:"friend_watch_list"});
+   let newlyConfirmed=false;
    for(const job of Array.isArray(result.rows)?result.rows:[]){
     const id=String(job.id||"");
     const zaloId=String(job.zalo_id||"");
@@ -30,11 +31,14 @@ export function createZaloFriendAcceptanceMonitor({
      if(!flags||![0,1].includes(Number(flags.is_friend)))continue;
      const verified=Number(flags.is_friend)===1;
      await post({kind:"friend_watch_result",id,is_friend:verified});
-     if(verified)logger.info?.("[zalo-bridge] friendship confirmed");
+     if(verified){newlyConfirmed=true;logger.info?.("[zalo-bridge] friendship confirmed");}
     }catch(error){
      logger.warn?.("[zalo-bridge] friendship check incomplete",
       String(error?.message||error).slice(0,130));
     }
+   }
+   if(newlyConfirmed&&typeof onConfirmed==='function'){
+     try{await onConfirmed();}catch(error){logger.warn?.('alias refresh failed',String(error?.message||error));}
    }
    // Handles queued notifications even when no new friend changed today.
    await post({kind:"friend_notify_drain"});
