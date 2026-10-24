@@ -22,6 +22,21 @@ const filters=[
  ['bank_only','Agribank chưa khớp'],['review','Cần xem'],['wrong_day','Sai ngày'],
  ['manual_bank','Đã thu thủ công Agribank'],['duplicate','Trùng'],['non_bill','Không phải bill'],['test_excluded','Test (loại)']
 ];
+// Match customer names with or without Vietnamese accents and flexible spaces.
+function bankCustomerSearchKey(value){
+ return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+  .replace(/đ/g,'d').replace(/Đ/g,'D').toLocaleLowerCase('vi-VN')
+  .replace(/\s+/g,' ').trim();
+}
+function bankCustomerSearchMatches(customers,query){
+ const key=bankCustomerSearchKey(query);
+ if(!key)return customers.slice(0,8);
+ const terms=key.split(' ').filter(Boolean);
+ return customers.filter(a=>{
+  const name=bankCustomerSearchKey(a.name);
+  return terms.every(term=>name.includes(term));
+ }).slice(0,12);
+}
 const money=x=>x===null||x===undefined||x===''||!Number.isFinite(Number(x))?'—':new Intl.NumberFormat('vi-VN').format(Number(x))+'đ';
 const localDate=()=>{const parts=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const part=t=>parts.find(x=>x.type===t)?.value||'';return part('year')+'-'+part('month')+'-'+part('day');};
 const localTime=x=>{
@@ -544,8 +559,20 @@ async function openCollectionDialog(bank){
   el('span','','Giờ ngân hàng: '+(bank.bank_time||'—'))));
  const info=el('p','bank-review-instruction','Đang kiểm tra khoản thu nhập tay…');form.appendChild(info);
  const customerLabel=el('label','bank-review-label','Thu cho khách hàng');
- const customer=el('select','bank-review-select');customer.required=true;customer.disabled=true;
- customerLabel.appendChild(customer);form.appendChild(customerLabel);
+ const customerSearch=el('input','bank-review-select bank-review-customer-search');
+ customerSearch.type='search';customerSearch.placeholder='Gõ tên khách hàng…';
+ customerSearch.autocomplete='off';customerSearch.spellcheck=false;
+ customerSearch.disabled=true;
+ customerSearch.setAttribute('role','combobox');
+ customerSearch.setAttribute('aria-autocomplete','list');
+ customerSearch.setAttribute('aria-expanded','false');
+ const customerList=el('div','bank-review-customer-results');
+ customerList.id='bank-review-customers-'+noticeId;customerList.hidden=true;
+ customerList.setAttribute('role','listbox');
+ customerSearch.setAttribute('aria-controls',customerList.id);
+ const customerHelp=el('small','bank-review-customer-help','Gõ tên không dấu cũng tìm được. Chạm vào đúng khách để chọn.');
+ customerLabel.append(customerSearch,customerHelp,customerList);
+ form.appendChild(customerLabel);
  const previous=el('div','bank-review-existing');form.appendChild(previous);
  const noteLabel=el('label','bank-review-label','Nội dung thu (bắt buộc)');
  const note=el('textarea','bank-review-explanation');
@@ -567,6 +594,7 @@ async function openCollectionDialog(bank){
  const client=window.V21AuthSessionStore?.getClient?.();
  if(!auth.appSessionId||!client){info.textContent='Phiên Admin hết hạn.';return;}
  let prepared=null,candidates=[],priorSelector=null;
+ let selectedCustomerId='',customers=[],displayed=[],activeIndex=0;
  try{
   const {data,error}=await client.rpc('chat_bank_manual_collection_prepare',{
    p_app_session_id:auth.appSessionId,p_notice_id:noticeId});
@@ -579,16 +607,17 @@ async function openCollectionDialog(bank){
    feedback.textContent='Sổ thu #'+data.already_recorded.ledger_id+' · Không thu lần hai.';
    return;
   }
-  const first=el('option','','Chọn khách hàng…');first.value='';customer.appendChild(first);
-  for(const a of data.customers||[]){
-   const op=el('option','',a.name||'Khách hàng');op.value=a.id;customer.appendChild(op);
-  }
+  customers=Array.isArray(data.customers)?data.customers.filter(a=>a.id&&a.name):[];
   candidates=Array.isArray(data.possible_existing)?data.possible_existing:[];
-  customer.disabled=false;save.disabled=false;
-  info.textContent='Chọn khách, nhập nội dung và bấm Thu tiền.';
-  customer.addEventListener('change',()=>{
+  customerSearch.disabled=false;
+  info.textContent='Gõ tên khách để tìm, chạm chọn rồi nhập nội dung thu.';
+  const closeCustomerList=()=>{
+   customerList.hidden=true;customerSearch.setAttribute('aria-expanded','false');
+   customerSearch.removeAttribute('aria-activedescendant');
+  };
+  const refreshExisting=()=>{
    previous.replaceChildren();priorSelector=null;
-   const matches=candidates.filter(m=>m.customer_id===customer.value);
+   const matches=candidates.filter(m=>m.customer_id===selectedCustomerId);
    if(matches.length){
     previous.appendChild(el('p','bank-review-warning',
      'Đã nhập tay '+matches.length+' khoản cùng số tiền. Chọn sổ thu để liên kết, không trừ công nợ lần hai.'));
@@ -607,6 +636,78 @@ async function openCollectionDialog(bank){
      'Chưa có khoản thu cùng số tiền. Bấm Thu tiền sẽ trừ công nợ ngay.'));
     save.textContent='Thu '+money(bank.amount_vnd);
    }
+  };
+  const chooseCustomer=(item)=>{
+   if(!item)return;
+   selectedCustomerId=String(item.id);
+   customerSearch.value=String(item.name);
+   customerSearch.setAttribute('aria-label','Đã chọn: '+item.name);
+   customerSearch.setAttribute('aria-invalid','false');
+   closeCustomerList();
+   refreshExisting();
+   save.disabled=false;
+   customerSearch.blur();
+  };
+  const paintCustomers=()=>{
+   displayed=bankCustomerSearchMatches(customers,customerSearch.value);
+   activeIndex=0;customerList.replaceChildren();
+   if(!displayed.length){
+    customerList.appendChild(el('div','bank-review-customer-empty','Không thấy khách hàng. Thử tên khác.'));
+   }else{
+    displayed.forEach((item,index)=>{
+     const button=el('button','bank-review-customer-option',item.name);
+     button.type='button';button.id=customerList.id+'-'+index;
+     button.setAttribute('role','option');
+     button.setAttribute('aria-selected','false');
+     button.addEventListener('click',()=>chooseCustomer(item));
+     customerList.appendChild(button);
+    });
+   }
+   customerList.hidden=false;customerSearch.setAttribute('aria-expanded','true');
+   highlightCustomer();
+  };
+  const highlightCustomer=()=>{
+   const buttons=[...customerList.querySelectorAll('.bank-review-customer-option')];
+   buttons.forEach((btn,i)=>{
+    btn.dataset.active=String(i===activeIndex);
+    btn.setAttribute('aria-selected',String(i===activeIndex));
+   });
+   if(buttons[activeIndex]){
+    customerSearch.setAttribute('aria-activedescendant',buttons[activeIndex].id);
+   }else customerSearch.removeAttribute('aria-activedescendant');
+  };
+  customerSearch.addEventListener('focus',()=>{
+   if(!customerSearch.disabled)paintCustomers();
+  });
+  customerSearch.addEventListener('input',()=>{
+   // Typing is NOT a customer selection; force a deliberate choice.
+   selectedCustomerId='';priorSelector=null;
+   customerSearch.removeAttribute('aria-label');
+   customerSearch.setAttribute('aria-invalid','false');
+   previous.replaceChildren();
+   save.disabled=true;save.textContent='Thu tiền';
+   paintCustomers();
+  });
+  customerSearch.addEventListener('keydown',event=>{
+   if(event.key==='Escape'&& !customerList.hidden){
+    event.preventDefault();closeCustomerList();return;
+   }
+   if(event.key==='ArrowDown'||event.key==='ArrowUp'){
+    event.preventDefault();
+    if(customerList.hidden){paintCustomers();return;}
+    if(displayed.length){
+     activeIndex=(activeIndex+(event.key==='ArrowDown'?1:-1)+displayed.length)%displayed.length;
+     highlightCustomer();
+    }
+   }else if(event.key==='Enter'){
+    event.preventDefault();
+    if(!customerList.hidden && displayed[activeIndex])chooseCustomer(displayed[activeIndex]);
+   }
+  });
+  // List is an in-form scrollable panel, not an iOS native select picker.
+  customerList.addEventListener('pointerdown',event=>event.stopPropagation());
+  form.addEventListener('click',event=>{
+   if(!customerLabel.contains(event.target))closeCustomerList();
   });
  }catch(error){
   info.textContent='Không mở được giao dịch để thu.';
@@ -614,7 +715,12 @@ async function openCollectionDialog(bank){
  }
  form.addEventListener('submit',async event=>{
   event.preventDefault();
-  if(!prepared||!customer.value||!verified.checked||note.value.trim().length<5)return;
+  if(!prepared||!verified.checked||note.value.trim().length<5)return;
+  if(!selectedCustomerId){
+   customerSearch.setAttribute('aria-invalid','true');
+   feedback.textContent='Bạn cần gõ và chọn đúng khách hàng trong danh sách.';
+   customerSearch.focus({preventScroll:true});return;
+  }
   if(priorSelector&&!priorSelector.value){
    feedback.textContent='Chọn khoản đã nhập tay để liên kết, tránh ghi thu trùng.';return;
   }
@@ -622,7 +728,7 @@ async function openCollectionDialog(bank){
   try{
    const {data,error}=await client.rpc('chat_bank_manual_collect',{
     p_app_session_id:auth.appSessionId,p_notice_id:noticeId,
-    p_customer_id:customer.value,p_note:note.value.trim(),
+    p_customer_id:selectedCustomerId,p_note:note.value.trim(),
     p_existing_ledger_id:priorSelector?Number(priorSelector.value):null
    });
    if(error)throw error;
