@@ -18,8 +18,8 @@ const ui={
  review:root.querySelector('[data-bank-review-modal]')
 };
 const filters=[
- ['all','Tất cả'],['matched','Đã khớp'],['waiting_bank','Bill chờ Agribank'],
- ['bank_only','Agribank chưa khớp'],['review','Cần xem'],['wrong_day','Sai ngày'],
+ ['all','Tất cả'],['matched','Đã thu · Khớp'],['waiting_bank','Bill chờ Agribank'],
+ ['bank_only','Agribank chưa khớp'],['review','Cần kiểm tra'],['wrong_day','Sai ngày'],
  ['manual_bank','Đã thu thủ công Agribank'],['duplicate','Trùng'],['non_bill','Không phải bill'],['test_excluded','Test (loại)']
 ];
 // Match customer names with or without Vietnamese accents and flexible spaces.
@@ -58,8 +58,8 @@ const localTime=x=>{
  return s.length>=16?s.slice(11,16):s;
 };
 const statusText={
- matched:'Đã đối soát',waiting_bank:'Chờ Agribank',bank_only:'Chờ bill',
- review:'Cần kiểm tra',wrong_day:'Sai ngày',duplicate:'Bill trùng',
+ matched:'Đã thu · Đối soát',waiting_bank:'Chờ Agribank · Chưa thu',bank_only:'Chờ bill · Chưa thu',
+ review:'Cần kiểm tra · Chưa thu',wrong_day:'Sai ngày',duplicate:'Bill trùng',
  non_bill:'Không phải bill',reading:'Đang đọc ảnh',test_excluded:'Tiền test (loại)'
 };
 const isAiScanIssue=row=>/^(?:amount_scan_|ai_scan_|ai_year_error_)/i.test(String(row?.reason||''));
@@ -134,11 +134,11 @@ function paint(data){
  const handled=new Set((data?.manual_collections||[]).map(x=>String(x.notice_id)));
  const outstanding=(data?.bank_only||[]).filter(x=>!handled.has(String(x.notice_id))).length;
  ui.summary.replaceChildren(
-  cardValue('Giao dịch đã khớp',String(s.matched_count||0)),
-  cardValue('Tiền đã xác nhận',money(s.matched_amount),true)
+  cardValue('Giao dịch đã thu · đối soát',String(s.matched_count||0)),
+  cardValue('Đã thu có chứng từ',money(s.matched_amount),true)
  );
  ui.status.replaceChildren(
-  cardValue('Bill chờ ngân hàng',String(s.bill_only_count||0),false,true),
+  cardValue('Bill chưa ghi thu',String(s.bill_only_count||0),false,true),
   cardValue('Agribank cần xử lý',String(outstanding),false,true),
    cardValue('Đã thu thủ công Agribank',String((data?.manual_collections||[]).length),false,true),
   cardValue('Bill sai ngày',String(s.old_date_count||0),false,true),
@@ -188,7 +188,7 @@ function renderTable(data){
  }
  const table=el('table','bank-report-table');
  const head=el('thead'),thead=el('tr');
- for(const name of ['Khách hàng','Khớp','Chờ','Trùng','Sai ngày','Đã thu'])thead.appendChild(el('th','',name));
+ for(const name of ['Khách hàng','Đã thu','Chưa thu','Trùng','Sai ngày','Tiền đã thu'])thead.appendChild(el('th','',name));
  head.appendChild(thead);table.appendChild(head);
  const tbody=el('tbody');
  for(const g of [...byCustomer.values()].sort((a,b)=>b.money-a.money||a.name.localeCompare(b.name,'vi'))){
