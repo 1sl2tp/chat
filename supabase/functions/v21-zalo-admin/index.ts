@@ -196,7 +196,7 @@ Deno.serve(async (req: Request) => {
     // ZFR-204: A persistent status inbox; opening Settings never resends Zalo.
     if(action==="zalo_friend_history"){
       const {data,error}=await admin.from("v21_zalo_friend_actions")
-        .select("id,phone,status,zalo_name,error_code,created_at,updated_at,confirmed_at,notified_at,notify_state")
+        .select("id,phone,status,zalo_id,zalo_name,error_code,created_at,updated_at,confirmed_at,notified_at,notify_state")
         .eq("requested_by",caller.id)
         .order("created_at",{ascending:false}).limit(30);
       if(error)return reply(500,{ok:false,code:"zalo_friend_history_failed"});
