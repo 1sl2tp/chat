@@ -125,7 +125,7 @@ function ensureDirectoryTools(){
         <button type="button" class="contact-directory-filter" data-contact-directory-filter="friend">Bạn bè</button>
         <button type="button" class="contact-directory-filter" data-contact-directory-filter="other">Khác</button>
       </div>
-      <button type="button" class="contact-directory-filter-more" data-contact-directory-filter-more aria-label="Xem thêm nhóm">›</button>
+      <button type="button" class="contact-directory-filter-more" data-contact-directory-filter-more aria-label="Xem thêm nhóm" hidden>›</button>
     </div>`;
   body.insertBefore(tools,nav);
   const rail=tools.querySelector('.contact-directory-filters');
@@ -145,7 +145,7 @@ function ensureDirectoryTools(){
     rail.scrollBy({left:atEnd?-rail.scrollWidth:Math.max(100,rail.clientWidth*.7),behavior:'smooth'});
   });
   window.addEventListener('resize',()=>{if(tools.isConnected)syncFilterArrow();},{passive:true});
-  requestAnimationFrame(syncFilterArrow);
+  queueMicrotask(syncFilterArrow);
   const input=tools.querySelector('[data-contact-directory-search]');
   input.value=query;
   input.addEventListener('input',()=>{query=String(input.value||'');syncDirectoryRows();});
