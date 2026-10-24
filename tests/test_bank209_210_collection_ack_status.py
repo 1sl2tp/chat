@@ -44,6 +44,8 @@ def test_matched_requires_verified_posting_and_49k_is_review():
     assert "d.entry_type=''collection''" in STATUS
 
 def test_dashboard_labels_no_false_paid_message():
+    notice=(ROOT/'supabase/migrations/20261024165000_bank211_receipt_notice_state.sql').read_text('utf-8')
+    assert "collection_notice_state" in notice
     for token in (
        "matched:'Đã thu · Đối soát'",
        "waiting_bank:'Chờ Agribank · Chưa thu'",
@@ -51,7 +53,9 @@ def test_dashboard_labels_no_false_paid_message():
        "cardValue('Bill chưa ghi thu'",
        "cardValue('Đã thu có chứng từ'",
        "recorded?'Đã ghi thu · Sổ #'+row.ledger_id:'Chưa ghi thu'",
-       "row.collection_ack_sent?'Đã gửi cho khách':'Đang chờ gửi'",
+       "row.collection_ack_sent?'Đã gửi cho khách'",
+       "noticeState==='muted'?'Đã tắt theo cài đặt thông báo'",
+       "noticeState==='retry'?'Gửi lỗi · Hệ thống sẽ thử lại'",
        "row.reason==='bank_image_amount_only_no_collection'",
        "Chưa ghi thu.",
     ): assert token in UI,token
