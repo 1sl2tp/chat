@@ -919,6 +919,141 @@ async function issueAgribankDeviceToken(button){
     window.alert('Chưa cấp được mã Agribank. Vui lòng thử lại.');
   }finally{if(button.isConnected)button.disabled=false;}
 }
+// FRIEND-199: Admin-owned Chat address book; Chat creation never requires Zalo.
+function friendPhone(value){
+ const clean=String(value||'').replace(/[\s.()-]/g,'');
+ const local=clean.startsWith('+84')?'0'+clean.slice(3):
+   clean.startsWith('84')?'0'+clean.slice(2):clean;
+ return /^0[0-9]{9}$/.test(local)?local:'';
+}
+async function friendRpc(name,params={}){
+ const session=authStore()?.snapshot?.()||{};
+ const client=authStore()?.getClient?.();
+ if(!client||!session.appSessionId||!currentAdmin())throw Error('admin_required');
+ const {data,error}=await client.rpc(name,{p_app_session_id:session.appSessionId,...params});
+ if(error)throw error;
+ return data;
+}
+async function openFriendPanel(){
+ if(!accountModal||!currentAdmin())return;
+ const panel=accountModal.querySelector('[data-zalo-account-panel]');
+ accountPanelReturnFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;
+ panel.replaceChildren();
+ const box=document.createElement('section');
+ box.className='zalo-account-panel friend-admin-panel';
+ box.setAttribute('role','dialog');box.setAttribute('aria-modal','true');
+ box.setAttribute('aria-label','Lời mời kết bạn và tạo Chat');
+ box.innerHTML=`
+  <div class="zalo-account-panel-head"><strong>Lời mời kết bạn</strong><button type="button" data-friend-close>Đóng</button></div>
+  <p class="friend-admin-hint">Bạn quyết định ai được thêm vào danh bạ Chat. Liên kết Zalo là tùy chọn.</p>
+  <div class="friend-admin-invitations"><strong>Lời mời từ tài khoản Chat</strong><div data-friend-list>Đang tải lời mời…</div></div>
+  <form data-friend-create>
+   <strong>Thêm người bằng số điện thoại</strong>
+   <label>Tên hiển thị<input name="display_name" maxlength="50" autocomplete="off" placeholder="Tên người muốn thêm" required></label>
+   <label>Số điện thoại<input name="phone" type="tel" inputmode="tel" maxlength="17" autocomplete="off" placeholder="09xxxxxxxx" required></label>
+   <p class="friend-admin-hint">Có thể tạo tài khoản Chat ngay, không cần liên kết Zalo. Tìm trên Zalo là một thao tác riêng.</p>
+   <div class="friend-admin-actions">
+    <button type="button" data-friend-find-zalo>Mở tìm trên Zalo</button>
+    <button type="submit" data-friend-submit>Tạo tài khoản Chat</button>
+   </div>
+  </form>
+  <div data-friend-credentials hidden>
+   <strong>Đã tạo tài khoản Chat</strong>
+   <p>Thông tin đăng nhập được hiển thị một lần để bạn chuyển cho người đó nếu muốn.</p>
+   <code data-friend-login></code>
+   <button type="button" data-friend-copy> Sao chép thông tin đăng nhập</button>
+  </div>
+  <p class="zalo-account-error" data-friend-feedback role="status" aria-live="polite"></p>`;
+ panel.appendChild(box);
+ const list=box.querySelector('[data-friend-list]');
+ const feedback=box.querySelector('[data-friend-feedback]');
+ const form=box.querySelector('[data-friend-create]');
+ const find=box.querySelector('[data-friend-find-zalo]');
+ let busy=false,credentials='';
+ box.querySelector('[data-friend-close]').addEventListener('click',closeAccountPanel);
+ const load=async()=>{
+  list.replaceChildren();
+  try{
+   const items=await friendRpc('v21_friend_invitations_admin');
+   if(!Array.isArray(items)||!items.length){
+    const empty=document.createElement('p');empty.textContent='Chưa có lời mời Chat nào cần duyệt.';
+    list.appendChild(empty);return;
+   }
+   for(const item of items){
+    const row=document.createElement('div');row.className='friend-admin-invite-row';
+    const title=document.createElement('span');
+    title.textContent=String(item.name||'Người dùng')+' · @'+String(item.username||'');
+    const actions=document.createElement('span');actions.className='friend-admin-actions';
+    for(const accept of [true,false]){
+     const btn=document.createElement('button');btn.type='button';
+     btn.textContent=accept?'Chấp nhận':'Từ chối';
+     btn.addEventListener('click',async()=>{
+      if(busy)return;busy=true;btn.disabled=true;feedback.textContent='';
+      try{
+       const result=await friendRpc('v21_friend_invitation_respond',{
+        p_invitation_id:item.id,p_accept:accept});
+       if(!result?.ok)throw Error(result?.status||'Không thể xử lý lời mời');
+       feedback.textContent=accept
+        ?'Đã chấp nhận và đưa tài khoản vào nhóm Bạn bè.'
+        :'Đã từ chối lời mời.';
+       await load();
+       window.V21SyncEngine?.wake?.({reason:'friend-request-reviewed'});
+      }catch(error){feedback.textContent=String(error?.message||error);}
+      finally{busy=false;btn.disabled=false;}
+     });
+     actions.appendChild(btn);
+    }
+    row.append(title,actions);list.appendChild(row);
+   }
+  }catch(error){list.textContent='Chưa tải được lời mời: '+String(error?.message||error);}
+ };
+ void load();
+ find.addEventListener('click',()=>{
+  const phone=friendPhone(form.elements.namedItem('phone')?.value);
+  if(!phone){feedback.textContent='Nhập số điện thoại hợp lệ trước khi tìm Zalo.';return;}
+  // This opens Zalo's public phone profile; it is not a verified identity lookup.
+  window.open('https://zalo.me/'+encodeURIComponent(phone),'_blank','noopener,noreferrer');
+  feedback.textContent='Đã mở Zalo. Nếu tìm được đúng người, bạn có thể liên kết sau.';
+ });
+ form.addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(busy)return;
+  const phone=friendPhone(form.elements.namedItem('phone')?.value);
+  const name=String(form.elements.namedItem('display_name')?.value||'').trim();
+  if(!phone||!name||name.length>50){
+   feedback.textContent='Cần tên và số điện thoại Việt Nam hợp lệ.';return;
+  }
+  busy=true;feedback.textContent='Đang tạo tài khoản Chat…';
+  const submit=box.querySelector('[data-friend-submit]');submit.disabled=true;
+  try{
+   const result=await invokeBody({action:'create_phone_account',
+     phone,display_name:name});
+   if(!result?.ok||!result.account||!result.password)throw Error('Không có xác nhận tạo tài khoản');
+   credentials='Chat: https://chat.taphoa.xyz/\nTài khoản: '+result.account.username+
+     '\nMật khẩu tạm: '+result.password;
+   box.querySelector('[data-friend-login]').textContent='@'+result.account.username;
+   box.querySelector('[data-friend-credentials]').hidden=false;
+   feedback.textContent='Đã tạo Chat: '+result.account.display_name+
+     '. Zalo chưa liên kết. Bạn có thể ghép trong danh sách tài khoản.';
+   await refreshAccountAdmin();
+   window.V21SyncEngine?.wake?.({reason:'friend-phone-created'});
+  }catch(error){
+   const raw=String(error?.message||error);
+   feedback.textContent=/phone_already_registered/.test(raw)
+    ?'Số này đã có trong danh bạ hoặc Chat; không tạo tài khoản trùng.'
+    :'Chưa tạo được Chat: '+errorText(raw);
+  }finally{busy=false;submit.disabled=false;}
+ });
+ box.querySelector('[data-friend-copy]').addEventListener('click',async()=>{
+  if(!credentials)return;
+  try{
+   await navigator.clipboard.writeText(credentials);
+   feedback.textContent='Đã sao chép thông tin đăng nhập.';
+  }catch{
+   window.prompt('Sao chép thông tin đăng nhập:',credentials);
+  }
+ });
+}
 async function openAccountAdmin(){
   if(!currentAdmin())return null;
   const returnFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;
@@ -938,6 +1073,10 @@ async function openAccountAdmin(){
       <div class="zalo-account-notification" data-admin-push-setting>
         <span class="zalo-account-notification-copy"><strong>Thông báo</strong><small data-admin-push-status>Bật thông báo</small></span>
         <button type="button" class="zalo-account-notification-action" data-admin-push-action data-mode="enable">Bật thông báo</button>
+      </div>
+      <div class="zalo-account-notification" data-admin-friend-setting>
+        <span class="zalo-account-notification-copy"><strong>Lời mời kết bạn</strong><small>Duyệt lời mời · thêm số điện thoại · Zalo tùy chọn</small></span>
+        <button type="button" class="zalo-account-notification-action" data-admin-friend-open>Quản lý</button>
       </div>
       <div class="zalo-account-notification" data-admin-device-setting>
         <span class="zalo-account-notification-copy"><strong>Thiết bị</strong><small data-admin-device-status>Đang tải thiết bị…</small></span>
@@ -963,6 +1102,7 @@ async function openAccountAdmin(){
   accountModal.querySelector('.zalo-account-close').addEventListener('click',closeAccountAdmin);
   const pushAction=accountModal.querySelector('[data-admin-push-action]');
   pushAction?.addEventListener('click',()=>void runAdminPushAction(pushAction));
+  accountModal.querySelector('[data-admin-friend-open]')?.addEventListener('click',()=>void openFriendPanel());
   const deviceAction=accountModal.querySelector('[data-admin-device-open]');
   deviceAction?.addEventListener('click',openDevicePanel);
   const bankIssueAction=accountModal.querySelector('[data-admin-agribank-issue]');
