@@ -711,7 +711,7 @@ async function openQuickCash(contactId){
    amountPreview.textContent=amount.value.trim()?
      'Chỉ nhập số nghìn, không có dấu chấm, dấu phẩy hay chữ đ.':
      'Nhập 500 = 500.000đ (chỉ nhập số nghìn, không nhập đồng).';
-   after.textContent='';submit.disabled=busy||done||debtLoading||debtVnd===null;
+   after.textContent='';submit.disabled=true;
    return;
   }
   amountPreview.textContent='Sẽ thu: '+cashFormatVnd(vnd)+' (từ '+amount.value.trim()+' nghìn)';
