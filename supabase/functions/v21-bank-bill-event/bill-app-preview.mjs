@@ -40,10 +40,13 @@ export function previewBillAppMatch(bill,events,otherBills=[],now=Date.now()){
  const matchLevel=acct&&bank?3:name?2:1;
  const date=bankTime(bill.transfer_at_vn), sent=when(bill.sent_at);
  if(date===null||sent===null)return{status:"review",reason:"bill_time_unreadable"};
- const qualified=(events||[]).filter(e=>!ownTransferNotice(e)&&creditAccountFromEvent(e)===destination&&e.package_name==="com.vnpay.Agribank3g"&&e.status==="credit_candidate"
+ // BANK-212: broaden only the ambiguity search; require <= 60 seconds to auto-match.
+ const nearby=(events||[]).filter(e=>!ownTransferNotice(e)&&creditAccountFromEvent(e)===destination&&e.package_name==="com.vnpay.Agribank3g"&&e.status==="credit_candidate"
    &&e.amount_vnd===bill.amount_vnd&&bankEventTime(e)!==null&&Math.abs(bankEventTime(e)-date)<=5*60000);
+ if(nearby.length>1)return{status:"review",reason:"multiple_matching_agribank_notifications"};
+ const qualified=nearby.filter(e=>Math.abs(bankEventTime(e)-date)<=60000);
+ if(!qualified.length&&nearby.length)return{status:"review",reason:"bank_time_outside_one_minute"};
  if(!qualified.length)return{status:"waiting_bank_event",reason:"no_matching_agribank_notification"};
- if(qualified.length>1)return{status:"review",reason:"multiple_matching_agribank_notifications"};
  if((otherBills||[]).some(b=>b.media_asset_id!==bill.media_asset_id&&b.status==="amount_read"&&
     b.amount_vnd===bill.amount_vnd&&Math.abs(bankTime(b.transfer_at_vn)-date)<=5*60000))
    return{status:"review",reason:"another_bill_same_time_amount"};
