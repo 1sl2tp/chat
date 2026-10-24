@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="7bbfda319e64e48625b9ebcbcab212e0788c29a859d1fad8ef40b72e132b1d1b">
+<meta name="app-build-id" content="d1d53a1075251b73a9189ce2627266fd505d350ca8945d418760bfce73e24007">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -21397,11 +21397,12 @@ async function openFriendPanel(){
    <strong>Thêm người bằng số điện thoại</strong>
    <label>Tên hiển thị<input name="display_name" maxlength="50" autocomplete="off" placeholder="Tên người muốn thêm" required></label>
    <label>Số điện thoại<input name="phone" type="tel" inputmode="tel" maxlength="17" autocomplete="off" placeholder="09xxxxxxxx" required></label>
-   <p class="friend-admin-hint">Có thể tạo tài khoản Chat ngay, không cần liên kết Zalo. Tìm trên Zalo là một thao tác riêng.</p>
+   <p class="friend-admin-hint">Nhập số rồi bấm Kết bạn Zalo: TAPHOA tự tìm tài khoản và gửi lời mời từ Zalo đang kết nối. Tạo tài khoản Chat là lựa chọn riêng.</p>
    <div class="friend-admin-actions">
-    <button type="button" data-friend-find-zalo>Mở tìm trên Zalo</button>
+    <button type="button" data-friend-find-zalo>Kết bạn Zalo</button>
     <button type="submit" data-friend-submit>Tạo tài khoản Chat</button>
    </div>
+   <p class="friend-admin-hint" data-friend-zalo-result role="status" aria-live="polite"></p>
   </form>
   <div data-friend-credentials hidden>
    <strong>Đã tạo tài khoản Chat</strong>
@@ -21502,12 +21503,66 @@ async function openFriendPanel(){
   }catch(error){list.textContent='Chưa tải được lời mời: '+String(error?.message||error);}
  };
  void load();
- find.addEventListener('click',()=>{
+ const zaloResult=box.querySelector('[data-friend-zalo-result]');
+ const friendStatusLabels={
+  not_requested:'Chưa gửi lời mời kết bạn cho số này.',
+  queued:'Đã nhận yêu cầu. Đang chờ cầu nối Zalo xử lý…',
+  processing:'Đang tìm số trên Zalo và gửi lời mời…',
+  sent:'Đã gửi lời mời kết bạn trên Zalo. Đang chờ người đó đồng ý.',
+  already_sent:'Lời mời đã được gửi trước đó; không gửi lặp.',
+  already_friends:'Hai người đã là bạn bè Zalo.',
+  accepted:'Đã chấp nhận lời mời kết bạn mà người này gửi trước đó.',
+  not_found:'Zalo kết nối không tìm được tài khoản bằng số này.',
+  blocked:'Zalo từ chối lời mời hoặc tài khoản đã chặn kết bạn.',
+  failed:'Không thực hiện được yêu cầu; hãy kiểm tra cầu nối Zalo.',
+  unknown:'Chưa xác định được kết quả. Kiểm tra trên Zalo trước khi thử lại.',
+ };
+ let friendStatusTimer=0;
+ const showFriendStatus=(result)=>{
+  const status=String(result?.status||'unknown');
+  const name=String(result?.display_name||'').trim();
+  zaloResult.textContent=(name?name+' · ':'')+
+    (friendStatusLabels[status]||friendStatusLabels.unknown);
+  zaloResult.dataset.zaloStatus=status;
+  return status;
+ };
+ const stopFriendPoll=()=>{
+  if(friendStatusTimer){clearTimeout(friendStatusTimer);friendStatusTimer=0;}
+ };
+ const watchFriendStatus=(phone,remaining=20)=>{
+  stopFriendPoll();
+  if(remaining<=0||!box.isConnected)return;
+  friendStatusTimer=window.setTimeout(async()=>{
+   if(!box.isConnected||friendPhone(form.elements.namedItem('phone')?.value)!==phone)return;
+   try{
+    const state=await invokeBody({action:'zalo_friend_status',phone});
+    const status=showFriendStatus(state);
+    if(status==='queued'||status==='processing')watchFriendStatus(phone,remaining-1);
+   }catch(error){
+    zaloResult.textContent='Chưa đọc được trạng thái Zalo; thử kiểm tra lại.';
+   }
+  },3000);
+ };
+ form.elements.namedItem('phone')?.addEventListener('input',()=>{
+  stopFriendPoll();zaloResult.textContent='';zaloResult.removeAttribute('data-zalo-status');
+ });
+ find.addEventListener('click',async()=>{
   const phone=friendPhone(form.elements.namedItem('phone')?.value);
-  if(!phone){feedback.textContent='Nhập số điện thoại hợp lệ trước khi tìm Zalo.';return;}
-  // This opens Zalo's public phone profile; it is not a verified identity lookup.
-  window.open('https://zalo.me/'+encodeURIComponent(phone),'_blank','noopener,noreferrer');
-  feedback.textContent='Đã mở Zalo. Nếu tìm được đúng người, bạn có thể liên kết sau.';
+  if(!phone){
+   zaloResult.textContent='Nhập số điện thoại Việt Nam hợp lệ trước khi kết bạn Zalo.';return;
+  }
+  if(busy)return;
+  busy=true;find.disabled=true;
+  zaloResult.textContent='Đang gửi yêu cầu kết bạn đến cầu nối Zalo…';
+  try{
+   const result=await invokeBody({action:'zalo_friend_request',phone});
+   const status=showFriendStatus(result);
+   if(status==='queued'||status==='processing')watchFriendStatus(phone);
+  }catch(error){
+   zaloResult.textContent='Không thể yêu cầu kết bạn: '+errorText(error?.message||error);
+  }finally{
+   busy=false;find.disabled=false;
+  }
  });
  form.addEventListener('submit',async event=>{
   event.preventDefault();
