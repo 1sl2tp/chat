@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="1d079e03e425a58bae767fb7bda082ed400ff9e0b8468a63005d1d7ee9f47969">
+<meta name="app-build-id" content="21b55d330f1d03555dd1f1e81b4202d34f855b6f428e41adc70102926c463f87">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -2582,7 +2582,9 @@ button{
 }
 .message-day-floating{
   position:sticky;
-  top:calc(var(--header-height,72px) + 8px);
+  /* Live boundary = bottom of Header or Admin shortcuts only if visible.
+     Groups and non-customer chats retain the header-only offset. */
+  top:var(--message-day-floating-sticky-top,calc(var(--header-height,72px) + 8px));
   z-index:25;
   display:flex;
   justify-content:center;
