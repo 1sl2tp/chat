@@ -319,5 +319,9 @@ jobs:
         run: python -m pytest tests/test_bank171_account_suffix_contract.py -q
       - name: BANK-172 distinct same-amount bank transfers
         run: python -m pytest tests/test_bank172_independent_equal_amount.py -q
+      - name: UI-195 floating date below quick actions and group headers
+        run: |
+          node --check app.js
+          node tests/test_ui195_floating_day_quick_actions.mjs
       - name: Verify canonical source
         run: python tools/verify_current.py
