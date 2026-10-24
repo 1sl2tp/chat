@@ -89,7 +89,7 @@ function makeHarness(){
   origin,requested,caches,cacheSets,FakeRequest,FakeResponse,dispatch,
   setOnline:v=>online=v,setStorageWorks:v=>storageWorks=v,
   setCurrentHtml:v=>activeHtml=v,
-  cacheName:[...sw.matchAll(/pwa-fresh-online-navigation-20261024/g)].length===1
+  cacheName:[...sw.matchAll(/pwa-first-paint-guard-20261024/g)].length===1
  };
 }
 (async()=>{
@@ -101,7 +101,7 @@ function makeHarness(){
  await h.dispatch('activate');
  assert(!(await h.caches.keys()).some(k=>k.includes('pinned-bank-report-contact')),
   'old offline shell cache must be deleted at activation');
- const installedCache=(await h.caches.keys()).find(k=>k.includes('pwa-fresh-online-navigation'));
+ const installedCache=(await h.caches.keys()).find(k=>k.includes('pwa-first-paint-guard'));
  assert(installedCache,'new cache epoch must exist');
 
  // Simulate a *stale cache with B+* even in a newly activated worker.
