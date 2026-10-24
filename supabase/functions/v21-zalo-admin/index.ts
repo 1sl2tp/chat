@@ -193,6 +193,38 @@ Deno.serve(async (req: Request) => {
       return reply(200, { ok: true, snapshot });
     }
 
+    // ZFR-203: A dedicated one-tap Zalo friend request, NOT Chat signup.
+    // Admin has explicitly pressed "Kết bạn Zalo"; bridge sends at most once.
+    if (action === "zalo_friend_request" || action === "zalo_friend_status") {
+      const rawPhone = String(body?.phone ?? "").replace(/[\s.()-]/g, "");
+      const phone = rawPhone.startsWith("+84") ? "0" + rawPhone.slice(3)
+        : rawPhone.startsWith("84") ? "0" + rawPhone.slice(2) : rawPhone;
+      if (!/^0[0-9]{9}$/.test(phone)) return reply(400,{ok:false,code:"invalid_phone"});
+      const current=await admin.from("v21_zalo_friend_actions")
+        .select("id,status,zalo_name,error_code,created_at,updated_at")
+        .eq("phone",phone).maybeSingle();
+      if(current.error)return reply(500,{ok:false,code:"friend_status_unavailable"});
+      let record=current.data;
+      if(!record && action==="zalo_friend_request"){
+        const insert=await admin.from("v21_zalo_friend_actions")
+          .insert({phone,requested_by:caller.id,status:"queued"})
+          .select("id,status,zalo_name,error_code,created_at,updated_at").single();
+        if(insert.error){
+          // Two admin clicks can race; the phone UNIQUE constraint wins.
+          if(insert.error.code!=="23505")return reply(500,{ok:false,code:"friend_queue_failed"});
+          const repeated=await admin.from("v21_zalo_friend_actions")
+            .select("id,status,zalo_name,error_code,created_at,updated_at")
+            .eq("phone",phone).maybeSingle();
+          if(repeated.error)return reply(500,{ok:false,code:"friend_status_unavailable"});
+          record=repeated.data;
+        }else record=insert.data;
+      }
+      if(!record)return reply(200,{ok:true,status:"not_requested"});
+      return reply(200,{ok:true,id:record.id,status:record.status,
+        display_name:record.zalo_name,error_code:record.error_code,
+        created_at:record.created_at,updated_at:record.updated_at});
+    }
+
     // FRIEND-199: Admin can create a standalone Chat account from a phone.
     // No Zalo linkage or Zalo-account impersonation is implied.
     if (action === "create_phone_account") {
