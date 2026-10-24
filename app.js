@@ -4129,6 +4129,20 @@ function inlineDaySeparatorVisible(cutoff,viewBottom){
   return false;
 }
 
+// Resolve the real top edge of the visible message viewport, rather than
+// assuming a fixed header height. Customer chats may show the Admin quick
+// action row; other contacts/groups do not. Both must use the same geometry.
+function messageDayFloatingViewportTop(rootTop,headerBottom,quickActionBottom=null){
+ const edges=[rootTop,headerBottom];
+ if(Number.isFinite(quickActionBottom))edges.push(quickActionBottom);
+ return Math.max(...edges);
+}
+function messageDayFloatingQuickActionsBottom(){
+ const actions=document.getElementById('chatQuickActions');
+ // Hidden via [hidden], route, or keyboard CSS must not reserve any space.
+ if(!actions||actions.hidden||!actions.getClientRects().length)return null;
+ return actions.getBoundingClientRect().bottom;
+}
 function updateMessageDayFloating(){
   if(!messageDayFloating||!messageDayFloatingLabel||!chatRouteVisible()||!store.size){
     hideMessageDayFloating({immediate:true});
@@ -4136,7 +4150,14 @@ function updateMessageDayFloating(){
   }
   const rootRect=scrollRoot.getBoundingClientRect();
   const headerRect=regionTop.getBoundingClientRect();
-  const cutoff=Math.max(rootRect.top,headerRect.bottom)+6;
+  const messageTop=messageDayFloatingViewportTop(
+    rootRect.top,headerRect.bottom,messageDayFloatingQuickActionsBottom()
+  );
+  const stickyTop=Math.max(0,Math.ceil(messageTop-rootRect.top));
+  messageDayFloating.style.setProperty('--message-day-floating-sticky-top',stickyTop+'px');
+  // Shared boundary for the floating badge AND inline day markers. Date never
+  // overlays the customer actions or duplicates a day marker below them.
+  const cutoff=messageTop+6;
   if(inlineDaySeparatorVisible(cutoff,rootRect.bottom)){
     hideMessageDayFloating({immediate:true});
     return false;
@@ -4192,6 +4213,11 @@ document.addEventListener('v21-active-contact-change',()=>{
   closeAllTurnActions();
   hideMessageDayFloating({immediate:true});
 });
+// Geometry can change without a scroll gesture (customer/group switch,
+// screen rotation, or shortcut row appearing/disappearing).
+document.addEventListener('v21-contact-groups-change',scheduleMessageDayFloatingUpdate);
+document.addEventListener('navigation-change',scheduleMessageDayFloatingUpdate);
+window.addEventListener('resize',scheduleMessageDayFloatingUpdate,{passive:true});
 
 const DISPLAY_EMOTICONS=Object.freeze({
   ':)':'🙂',':-)':'🙂',
