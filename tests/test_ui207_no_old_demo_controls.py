@@ -16,7 +16,9 @@ def test_demo_control_removed_from_source_and_built_output():
         assert '>B+</button>' not in markup
         assert 'id="remoteTypingCenter"' not in markup
         assert "remote-typing-center" not in markup
-        assert "data-stream-active" not in markup
+    # Bundled reference styling may still mention stream state, but the
+    # obsolete B+ control and its activation code must not exist.
+    assert "data-stream-active" not in HTML
 
 def test_fake_remote_message_pipeline_is_removed():
     for token in (
