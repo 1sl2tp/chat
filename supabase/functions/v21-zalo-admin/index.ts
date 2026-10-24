@@ -193,6 +193,59 @@ Deno.serve(async (req: Request) => {
       return reply(200, { ok: true, snapshot });
     }
 
+    // FRIEND-199: Admin can create a standalone Chat account from a phone.
+    // No Zalo linkage or Zalo-account impersonation is implied.
+    if (action === "create_phone_account") {
+      const rawPhone = String(body?.phone ?? "").replace(/[\s.()-]/g, "");
+      const phone = rawPhone.startsWith("+84") ? "0" + rawPhone.slice(3)
+        : rawPhone.startsWith("84") ? "0" + rawPhone.slice(2) : rawPhone;
+      const displayName = String(body?.display_name ?? "").trim();
+      const username = "sdt_" + phone;
+      if (!/^0[0-9]{9}$/.test(phone)) return reply(400,{ok:false,code:"invalid_phone"});
+      if (!displayName || displayName.length > 50) return reply(400,{ok:false,code:"invalid_display_name"});
+
+      // A phone is an Admin-side private contact field, not a verified Zalo identity.
+      const {data:alreadyPhone,error:phoneError}=await admin.from("v21_contact_private_phones")
+        .select("contact_account_id")
+        .or(`phone_primary.eq.${phone},phone_secondary.eq.${phone}`).limit(1);
+      if(phoneError) return reply(400,{ok:false,code:"phone_lookup_failed"});
+      if(alreadyPhone?.length) return reply(409,{ok:false,code:"phone_already_registered",account_id:alreadyPhone[0].contact_account_id});
+      const {data:alreadyUser,error:existingError}=await admin.from("v21_accounts")
+        .select("id").eq("username",username).is("deleted_at",null).maybeSingle();
+      if(existingError) return reply(400,{ok:false,code:"account_lookup_failed"});
+      if(alreadyUser) return reply(409,{ok:false,code:"phone_already_registered",account_id:alreadyUser.id});
+
+      // Temporary secret displayed to Admin ONLY once; do not send via Zalo unrequested.
+      const bytes=crypto.getRandomValues(new Uint8Array(24));
+      const password=Array.from(bytes,b=>b.toString(16).padStart(2,"0")).join("");
+      const {data:createdAuth,error:authError}=await admin.auth.admin.createUser({
+        email:`${username}@taphoa.chat`, password, email_confirm:true,
+        user_metadata:{username,display_name:displayName,app:"taphoa-chat-v21",admin_created:true},
+      });
+      if(authError||!createdAuth.user){
+        if(usernameError(authError?.message))return reply(409,{ok:false,code:"phone_already_registered"});
+        return reply(400,{ok:false,code:"account_create_failed"});
+      }
+      const authId=createdAuth.user.id;
+      let accountId="";
+      try{
+        const {data:account,error:accountError}=await admin.from("v21_accounts")
+          .insert({auth_user_id:authId,username,display_name:displayName,role:"user",contact_group:"friend"})
+          .select("id,username,display_name,contact_group").single();
+        if(accountError||!account)throw accountError??new Error("chat_account_create_failed");
+        accountId=String(account.id);
+        const {error:phoneWriteError}=await admin.from("v21_contact_private_phones")
+          .insert({contact_account_id:accountId,phone_primary:phone,edited_by_account_id:caller.id});
+        if(phoneWriteError)throw phoneWriteError;
+        return reply(200,{ok:true,account,phone,password,linked_zalo:false});
+      }catch(error){
+        if(accountId)await admin.from("v21_contact_private_phones").delete().eq("contact_account_id",accountId);
+        if(accountId)await admin.from("v21_accounts").delete().eq("id",accountId);
+        await admin.auth.admin.deleteUser(authId);
+        return reply(400,{ok:false,code:"account_create_failed"});
+      }
+    }
+
     if (action === "create_and_link") {
       const zaloId = String(body?.zalo_id ?? "").trim();
       const username = normalizeUsername(body?.username);
