@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="aabe00ad38e0c814368e10252cd47d974813b32b5e1e0971b3025a93595e85ad">
+<meta name="app-build-id" content="5639e4f0269ede72912dd9034b17a62a0462b2da767a12b237dd0016684dd840">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1676,6 +1676,45 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
 .bank-report-quick-collect:focus-visible{outline:2px solid var(--theme-content-primary,#222);outline-offset:2px}
 @media(max-width:650px){
  .bank-report-quick-collect{min-width:76px;min-height:36px;font-size:11px;padding:6px 5px}
+}
+
+/* BANK-193: iPhone-safe searchable customer list (replaces native SELECT wheel). */
+.bank-review-customer-search{
+ display:block;min-height:44px;line-height:1.35;
+ font-size:16px!important;appearance:none;-webkit-appearance:none;
+}
+.bank-review-customer-search[aria-invalid="true"]{
+ border-color:#c83d38;box-shadow:0 0 0 2px #c83d3822;
+}
+.bank-review-customer-help{font-size:11px;line-height:1.4;font-weight:400;
+ color:var(--text-secondary,#69717b)}
+.bank-review-customer-results{
+ box-sizing:border-box;min-width:0;max-height:min(220px,32dvh);
+ overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+ border:1px solid var(--border-default,#d5dce0);border-radius:10px;
+ background:var(--surface-primary,#fff);padding:4px;
+ box-shadow:0 6px 16px #00000012;
+}
+.bank-review-customer-results[hidden]{display:none!important}
+.bank-review-customer-option{
+ width:100%;min-height:44px;display:block;padding:11px 12px;
+ border:0;border-radius:8px;background:transparent;
+ color:var(--text-primary,#242424);font:inherit;font-size:14px;
+ font-weight:550;text-align:left;cursor:pointer;touch-action:manipulation;
+ overflow-wrap:anywhere;
+}
+.bank-review-customer-option[data-active="true"],
+.bank-review-customer-option:hover,
+.bank-review-customer-option:focus-visible{
+ background:var(--surface-secondary,#eaf4ed);outline:none;
+}
+.bank-review-customer-option:focus-visible{box-shadow:inset 0 0 0 2px #138b47}
+.bank-review-customer-empty{padding:12px;font-size:12px;font-weight:400;
+ color:var(--text-secondary,#6a7280)}
+@media(max-width:650px){
+ .bank-review-form:has(.bank-review-customer-search){max-height:calc(100dvh - max(10px,env(safe-area-inset-top)))}
+ .bank-review-customer-results{max-height:min(208px,30dvh)}
+ .bank-review-customer-option{min-height:44px}
 }
 
 </style>
@@ -27002,8 +27041,11 @@ async function openCollectionDialog(bank){
   el('strong','',money(bank.amount_vnd)+' · Agribank #'+noticeId),
   el('span','','Giờ ngân hàng: '+(bank.bank_time||'—'))));
  const info=el('p','bank-review-instruction','Đang kiểm tra khoản thu nhập tay…');form.appendChild(info);
- const customerLabel=el('label','bank-review-label','Thu cho khách hàng');
+ const customerLabel=el('div','bank-review-label');
+ const customerCaption=el('label','','Thu cho khách hàng');
  const customerSearch=el('input','bank-review-select bank-review-customer-search');
+ customerSearch.id='bank-review-search-'+noticeId;
+ customerCaption.htmlFor=customerSearch.id;
  customerSearch.type='search';customerSearch.placeholder='Gõ tên khách hàng…';
  customerSearch.autocomplete='off';customerSearch.spellcheck=false;
  customerSearch.disabled=true;
@@ -27015,7 +27057,7 @@ async function openCollectionDialog(bank){
  customerList.setAttribute('role','listbox');
  customerSearch.setAttribute('aria-controls',customerList.id);
  const customerHelp=el('small','bank-review-customer-help','Gõ tên không dấu cũng tìm được. Chạm vào đúng khách để chọn.');
- customerLabel.append(customerSearch,customerHelp,customerList);
+ customerLabel.append(customerCaption,customerSearch,customerHelp,customerList);
  form.appendChild(customerLabel);
  const previous=el('div','bank-review-existing');form.appendChild(previous);
  const noteLabel=el('label','bank-review-label','Nội dung thu (bắt buộc)');
