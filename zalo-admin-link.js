@@ -19,6 +19,18 @@ function zaloEndpointKind(contact){
 function zaloEndpointShort(contact){
   return String(contact?.thread_type||'user').toLowerCase()==='group'?'Nhóm':'Cá nhân';
 }
+function zaloName(contact){
+  return String(contact?.alias_name||contact?.display_name||contact?.profile_name||'Zalo').trim();
+}
+function zaloProfileName(contact){
+  const original=String(contact?.profile_name||'').trim();
+  return original&&original!==zaloName(contact)?'Tên hồ sơ: '+original:'';
+}
+function zaloMatch(contact,query){
+  const q=normalizeAccountSearch(query);
+  return !q||normalizeAccountSearch([contact?.alias_name,contact?.display_name,
+    contact?.profile_name,contact?.zalo_id].filter(Boolean).join(' ')).includes(q);
+}
 
 function authStore(){return window.V21AuthSessionStore||null;}
 function contactStore(){return window.V21ContactStore||null;}
@@ -107,7 +119,7 @@ function avatarNode(contact){
   const avatar=document.createElement('span');
   avatar.className='zalo-admin-avatar';
   const raw=String(contact?.avatar_url||contact?.avatar_path||'').trim();
-  const label=String(contact?.display_name||contact?.username||'Z').trim();
+  const label=String(contact?.zalo_id?zaloName(contact):contact?.display_name||contact?.username||'Z').trim();
   const fallback=avatarInitials(label,'Z');
   const url=contact?.avatar_url
     ? raw
@@ -199,7 +211,7 @@ function mount({root,targetAccount}={}){
     const link=snapshot?.link||null;
     if(link){
       label.textContent=zaloEndpointKind(link);
-      value.textContent=String(link.display_name||'Đã liên kết');
+      value.textContent=zaloName(link);
       change.textContent='Đổi';
       unlink.hidden=false;
     }else{
@@ -212,10 +224,10 @@ function mount({root,targetAccount}={}){
   }
 
   function renderContacts(){
-    const query=String(search.value||'').trim().toLocaleLowerCase('vi');
+    const query=String(search.value||'').trim();
     list.replaceChildren();
     const contacts=(Array.isArray(snapshot?.contacts)?snapshot.contacts:[])
-      .filter(contact=>!query||String(contact?.display_name||'').toLocaleLowerCase('vi').includes(query));
+      .filter(contact=>zaloMatch(contact,query));
 
     if(!contacts.length){
       const empty=document.createElement('p');
@@ -239,10 +251,10 @@ function mount({root,targetAccount}={}){
       const text=document.createElement('span');
       text.className='zalo-admin-contact-copy';
       const name=document.createElement('strong');
-      name.textContent=String(contact?.display_name||'Zalo');
+      name.textContent=zaloName(contact);
       text.appendChild(name);
       const state=document.createElement('small');
-      state.textContent=`${zaloEndpointShort(contact)} · ${linkedElsewhere?'Đã gán':linkedHere?'Đang gán':'Có thể chọn'}`;
+      state.textContent=[zaloProfileName(contact),zaloEndpointShort(contact),linkedElsewhere?'Đã gán':linkedHere?'Đang gán':'Có thể chọn'].filter(Boolean).join(' · ');
       text.appendChild(state);
       button.appendChild(text);
 
@@ -371,7 +383,7 @@ function normalizeAccountSearch(value){
 
 function accountMatchesSearch(account,contact,query){
   if(!query)return true;
-  const haystack=normalizeAccountSearch(`${account?.display_name||''} ${account?.username||''} ${contact?.display_name||''}`);
+  const haystack=normalizeAccountSearch([account?.display_name,account?.username,contact?.alias_name,contact?.display_name,contact?.profile_name].filter(Boolean).join(' '));
   return haystack.includes(query);
 }
 
@@ -407,8 +419,8 @@ function renderAccountRows(){
       const copy=document.createElement('span');
       copy.className='zalo-account-person-copy';
       copy.innerHTML='<strong></strong><small></small>';
-      copy.querySelector('strong').textContent=String(contact.display_name||'Zalo');
-      copy.querySelector('small').textContent=`${zaloEndpointKind(contact)} · Đã kết nối`;
+      copy.querySelector('strong').textContent=zaloName(contact);
+      copy.querySelector('small').textContent=[zaloProfileName(contact),zaloEndpointKind(contact),'Đã kết nối'].filter(Boolean).join(' · ');
       relation.appendChild(copy);
     }else{
       const copy=document.createElement('span');
@@ -461,8 +473,8 @@ function renderAccountRows(){
     const copy=document.createElement('span');
     copy.className='zalo-account-person-copy';
     copy.innerHTML='<strong></strong><small></small>';
-    copy.querySelector('strong').textContent=String(contact.display_name||'Zalo');
-    copy.querySelector('small').textContent=`${zaloEndpointKind(contact)} · Chưa được gán`;
+    copy.querySelector('strong').textContent=zaloName(contact);
+    copy.querySelector('small').textContent=[zaloProfileName(contact),zaloEndpointKind(contact),'Chưa được gán'].filter(Boolean).join(' · ');
     relation.appendChild(copy);
 
     const actions=document.createElement('div');
@@ -504,9 +516,9 @@ function openAccountPicker(account){
   const list=box.querySelector('[data-list]');
   const paint=()=>{
     list.replaceChildren();
-    const query=String(search.value||'').trim().toLocaleLowerCase('vi');
+    const query=String(search.value||'').trim();
     for(const contact of model.contacts){
-      if(query&&!String(contact.display_name||'').toLocaleLowerCase('vi').includes(query))continue;
+      if(!zaloMatch(contact,query))continue;
       const owner=model.linksByZalo.get(String(contact.zalo_id))||null;
       const linkedHere=Boolean(owner&&String(owner.chat_account_id)===String(account.id));
       const unavailable=Boolean(owner&&!linkedHere);
@@ -519,8 +531,8 @@ function openAccountPicker(account){
       const copy=document.createElement('span');
       copy.className='zalo-account-person-copy';
       copy.innerHTML='<strong></strong><small></small>';
-      copy.querySelector('strong').textContent=String(contact.display_name||'Zalo');
-      copy.querySelector('small').textContent=`${zaloEndpointShort(contact)} · ${unavailable?'Đã được gán':linkedHere?'Đã kết nối với User này':'Có thể chọn'}`;
+      copy.querySelector('strong').textContent=zaloName(contact);
+      copy.querySelector('small').textContent=[zaloProfileName(contact),zaloEndpointShort(contact),unavailable?'Đã được gán':linkedHere?'Đã kết nối với User này':'Có thể chọn'].filter(Boolean).join(' · ');
       button.appendChild(copy);
       if(!unavailable&&!linkedHere){
         button.addEventListener('click',async()=>{
