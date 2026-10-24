@@ -154,6 +154,12 @@ jobs:
         run: node tests/test_zalo_shared_phone_card.cjs
       - name: Incoming sender narrow Chat edge layout
         run: python -m pytest -q tests/test_v21_incoming_left_edge_contract.py tests/test_v21_140_zalo_card_narrow_axis.py
+      - name: ZFR-200 verified incoming Zalo requests and admin privacy
+        run: |
+          node --check bridge/zalo/src/server.mjs
+          node --check bridge/zalo/src/friend-requests-sync.mjs
+          node --check zalo-admin-link.js
+          python -m pytest -q tests/test_zfr200_zalo_incoming_friend_requests.py
       - name: Zalo bridge core tests
         run: cd bridge/zalo && npm test
 
