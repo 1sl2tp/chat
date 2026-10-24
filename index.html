@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="39c0c0d8af250737e909eb3923d738535368a01470e598d1525ea117e56bbc49">
+<meta name="app-build-id" content="eb16003f1c04adf7f0e0b228823528d20293b059f118d0a489a2382e6973001e">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -19212,7 +19212,12 @@ function initClient(){
 
 async function boot(){
   state='BOOTING';
-  if(!initClient())return false;
+  if(!initClient()){
+    // UI-213: do not leave the first-paint loading cover forever if a CDN fails.
+    renderGuest();
+    authUI()?.setError?.('auth_unavailable');
+    return false;
+  }
   return bootstrap();
 }
 
