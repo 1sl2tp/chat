@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="812c7ff9a27d015ad79208a2bea9a6b7cb58e5266512ad004491ec266bca4f05">
+<meta name="app-build-id" content="1d079e03e425a58bae767fb7bda082ed400ff9e0b8468a63005d1d7ee9f47969">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -12282,6 +12282,20 @@ function inlineDaySeparatorVisible(cutoff,viewBottom){
   return false;
 }
 
+// Resolve the real top edge of the visible message viewport, rather than
+// assuming a fixed header height. Customer chats may show the Admin quick
+// action row; other contacts/groups do not. Both must use the same geometry.
+function messageDayFloatingViewportTop(rootTop,headerBottom,quickActionBottom=null){
+ const edges=[rootTop,headerBottom];
+ if(Number.isFinite(quickActionBottom))edges.push(quickActionBottom);
+ return Math.max(...edges);
+}
+function messageDayFloatingQuickActionsBottom(){
+ const actions=document.getElementById('chatQuickActions');
+ // Hidden via [hidden], route, or keyboard CSS must not reserve any space.
+ if(!actions||actions.hidden||!actions.getClientRects().length)return null;
+ return actions.getBoundingClientRect().bottom;
+}
 function updateMessageDayFloating(){
   if(!messageDayFloating||!messageDayFloatingLabel||!chatRouteVisible()||!store.size){
     hideMessageDayFloating({immediate:true});
@@ -12289,7 +12303,14 @@ function updateMessageDayFloating(){
   }
   const rootRect=scrollRoot.getBoundingClientRect();
   const headerRect=regionTop.getBoundingClientRect();
-  const cutoff=Math.max(rootRect.top,headerRect.bottom)+6;
+  const messageTop=messageDayFloatingViewportTop(
+    rootRect.top,headerRect.bottom,messageDayFloatingQuickActionsBottom()
+  );
+  const stickyTop=Math.max(0,Math.ceil(messageTop-rootRect.top));
+  messageDayFloating.style.setProperty('--message-day-floating-sticky-top',stickyTop+'px');
+  // Shared boundary for the floating badge AND inline day markers. Date never
+  // overlays the customer actions or duplicates a day marker below them.
+  const cutoff=messageTop+6;
   if(inlineDaySeparatorVisible(cutoff,rootRect.bottom)){
     hideMessageDayFloating({immediate:true});
     return false;
@@ -12345,6 +12366,11 @@ document.addEventListener('v21-active-contact-change',()=>{
   closeAllTurnActions();
   hideMessageDayFloating({immediate:true});
 });
+// Geometry can change without a scroll gesture (customer/group switch,
+// screen rotation, or shortcut row appearing/disappearing).
+document.addEventListener('v21-contact-groups-change',scheduleMessageDayFloatingUpdate);
+document.addEventListener('navigation-change',scheduleMessageDayFloatingUpdate);
+window.addEventListener('resize',scheduleMessageDayFloatingUpdate,{passive:true});
 
 const DISPLAY_EMOTICONS=Object.freeze({
   ':)':'🙂',':-)':'🙂',
