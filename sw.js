@@ -3,7 +3,7 @@ const RELEASE_VERSION='V21.72.39';
 const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 // BANK-177: reload one-time cached shell for the live bank reconciliation table.
 // Keep offline-first startup; do not add per-navigation network requests.
-const SHELL_CACHE_EPOCH='pinned-bank-report-contact-20261023';
+const SHELL_CACHE_EPOCH='pwa-fresh-online-navigation-20261024';
 const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION+'-'+SHELL_CACHE_EPOCH;
 const AVATAR_CACHE_NAME='taphoa-chat-avatars-v1';
 const SUPABASE_ASSET_HOST_RE=/^[a-z0-9]+\.supabase\.co$/i;
@@ -60,7 +60,9 @@ self.addEventListener('install',event=>{
   event.waitUntil((async()=>{
     try{
       const cache=await caches.open(CACHE_NAME);
-      await cache.addAll(SHELL);
+      // Never seed a newly activated worker with a browser-HTTP-cached old
+      // index.html. iOS installed PWAs must install the currently published build.
+      await cache.addAll(SHELL.map(path=>new Request(path,{cache:'reload'})));
     }catch{}
     await self.skipWaiting();
   })());
@@ -255,35 +257,33 @@ self.addEventListener('notificationclick',event=>{
   })());
 });
 
-async function networkFirst(request,{navigation=false}={}){
-  const networkRequest=new Request(request,{cache: 'no-store'});
+// UI-208: On every online Web, mobile and installed PWA navigation, the
+// published document is authoritative. The previous cache-first strategy
+// returned old HTML even on manual reload, while active accounts deliberately
+// deferred automatic reloads; that stranded B+ demo controls in PWA installs.
+// Cached HTML is *only* an offline recovery option, never an online priority.
+async function networkFirst(request,{navigation=false,event=null}={}){
+  const networkRequest=new Request(request,{cache:'no-store'});
+  const cache=await caches.open(CACHE_NAME);
   try{
     const response=await fetch(networkRequest);
     if(response&&response.ok&&new URL(request.url).origin===self.location.origin){
-      const cache=await caches.open(CACHE_NAME);
-      void cache.put(request,response.clone()).catch(()=>{});
-      if(navigation)void cache.put('./',response.clone()).catch(()=>{});
+      const saves=[cache.put(request,response.clone())];
+      if(navigation)saves.push(cache.put('./',response.clone()));
+      const saving=Promise.all(saves).catch(()=>{});
+      if(event?.waitUntil)event.waitUntil(saving);
+      else await saving;
     }
     return response;
   }catch(error){
-    const cached=await caches.match(request);
+    const cached=await cache.match(request);
     if(cached)return cached;
     if(navigation){
-      const shell=await caches.match('./');
+      const shell=await cache.match('./');
       if(shell)return shell;
     }
     throw error;
   }
-}
-
-// Show last-good static shell without waiting for the network on a returning
-// PWA visit. One existing network revalidation refreshes the next launch;
-// version.json still controls safe updates while preserving active drafts.
-async function navigationCachedThenNetwork(request,event){
-  const cached=await caches.match(request)||await caches.match('./');
-  if(!cached)return networkFirst(request,{navigation:true});
-  event.waitUntil(networkFirst(request,{navigation:true}).catch(()=>null));
-  return cached;
 }
 
 self.addEventListener('fetch',event=>{
@@ -304,14 +304,10 @@ self.addEventListener('fetch',event=>{
     return;
   }
   if(request.mode==='navigate'){
-    // Explicit app-build reloads must bypass the old offline shell. Normal
-    // launches remain cache-first; network failures still use the saved shell.
-    if(url.searchParams.has('__build')||request.cache==='reload'||request.cache==='no-cache'){
-      event.respondWith(networkFirst(request,{navigation:true}));
-    }else{
-      event.respondWith(navigationCachedThenNetwork(request,event));
-    }
+    // Same freshness policy for iOS standalone, Android PWA and browser tabs.
+    // Preserve deep-link query arguments, retain the last good offline shell.
+    event.respondWith(networkFirst(request,{navigation:true,event}));
     return;
   }
-  event.respondWith(networkFirst(request));
+  event.respondWith(networkFirst(request,{event}));
 });
