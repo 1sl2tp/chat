@@ -30,5 +30,5 @@ for (const item of items) {
   if (rendered.includes('class="mini-shell"')) unknown.push(item.id + ':' + item.demo);
 }
 assert.deepEqual(unknown, [], 'components with generic fallback instead of a matching preview');
-assert.ok(items.length >= 247, 'catalog coverage unexpectedly reduced');
+assert.ok(items.length >= 246, 'B+ fake typing control was removed from Chat (UI-207)');
 console.log('PASS: ' + items.length + ' mapped Chat components have specific UI previews');
