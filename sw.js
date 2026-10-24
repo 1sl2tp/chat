@@ -129,6 +129,7 @@ self.addEventListener('push',event=>{
     const inviteId=String(payload.invite_id||'');
     const bankPush=kind==='bank_reconciliation';
     const missedPush=kind==='missed_chat_call';
+    const friendPush=kind==='zalo_friend_accepted';
     const missedCallId=String(payload.call_id||'');
     const bankDay=String(payload.bank_day||'');
     const bankNoticeId=String(payload.bank_notice_id||'');
@@ -137,8 +138,8 @@ self.addEventListener('push',event=>{
     const clients=await self.clients.matchAll({type:'window',includeUncontrolled:true});
     // Financial events are not message events. Do not trigger a Chat sync pull
     // or unread recount just to display a bank notification.
-    if(!bankPush&&!missedPush&&kind!=='call_invite')notifyMessageDirty(clients,payload);
-    const readingSame=kind!=='call_invite'&&!missedPush&&clients.some(client=>{
+    if(!bankPush&&!missedPush&&!friendPush&&kind!=='call_invite')notifyMessageDirty(clients,payload);
+    const readingSame=kind!=='call_invite'&&!missedPush&&!friendPush&&clients.some(client=>{
       const state=adminPushClientState.get(client.id);
       return Boolean(
         state&&state.visible&&state.focused&&state.route==='chat'&&
@@ -149,7 +150,7 @@ self.addEventListener('push',event=>{
     // A visible mobile Chat already presents all incoming messages through
     // the canonical realtime/push-dirty path, even when another contact is
     // selected. Do not require focus() on iOS standalone PWAs.
-    const visibleMobileChat=kind!=='call_invite'&&!missedPush&&clients.some(client=>{
+    const visibleMobileChat=kind!=='call_invite'&&!missedPush&&!friendPush&&clients.some(client=>{
       const state=adminPushClientState.get(client.id);
       const mobile=/^(ios|android)-(pwa|web)$/.test(String(state?.platform||''));
       const visible=client.visibilityState
@@ -178,7 +179,7 @@ self.addEventListener('push',event=>{
         bankDay,bankNoticeId,bankReceiptId,bankStatus,missedCallId,
       }
     });
-    if(!bankPush&&!missedPush&&kind!=='call_invite'){
+    if(!bankPush&&!missedPush&&!friendPush&&kind!=='call_invite'){
       await bumpAdminPushBadge();
       notifyBadgeDirty(clients);
     }
@@ -230,6 +231,8 @@ self.addEventListener('notificationclick',event=>{
             bankDay,bankNoticeId,bankReceiptId,bankStatus});
         }else if(kind==='missed_chat_call'){
           client.postMessage?.({type:'ADMIN_PUSH_OPEN',kind,contactId,missedCallId});
+        }else if(kind==='zalo_friend_accepted'){
+          client.postMessage?.({type:'ADMIN_PUSH_OPEN',kind});
         }else{
           client.postMessage?.({type:'ADMIN_PUSH_OPEN',conversationId,contactId});
         }
@@ -240,6 +243,7 @@ self.addEventListener('notificationclick',event=>{
     if(contactId)target.searchParams.set('push_contact',contactId);
     if(conversationId)target.searchParams.set('push_conversation',conversationId);
     if(kind==='call_invite'&&inviteId)target.searchParams.set('push_call_invite',inviteId);
+    if(kind==='zalo_friend_accepted')target.searchParams.set('push_friend','1');
     if(kind==='missed_chat_call'&&missedCallId)target.searchParams.set('push_missed_chat_call',missedCallId);
     if(kind==='bank_reconciliation'){
       if(bankDay)target.searchParams.set('push_bank_day',bankDay);
