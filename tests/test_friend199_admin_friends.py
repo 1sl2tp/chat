@@ -39,7 +39,10 @@ def test_settings_have_admin_friend_ui_phone_zalo_optional_and_user_invite():
                   "v21_friend_invitation_respond","create_phone_account",
                   "Tạo tài khoản Chat","linked_zalo:false" ):
         assert token in (UI+EDGE),token
-    assert "'https://zalo.me/'" in UI
+    # ZFR-203: replace the former external zalo.me page with a real send request.
+    assert "Kết bạn Zalo" in UI
+    assert "action:'zalo_friend_request'" in UI
+    assert "action:'zalo_friend_status'" in UI
     assert "phone_already_registered" in UI
     assert "navigator.clipboard.writeText(credentials)" in UI
     assert "data-account-menu-friend-request" in HTML
