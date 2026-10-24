@@ -20,7 +20,13 @@ motion=source[source.index('#threadScrollControlMotion{'):source.index('.thread-
 assert 'top:6px;' in motion
 assert 'bottom:auto;' in motion
 assert '100% +' not in motion
-assert '#stageLayout[data-scroll-from-end][data-stream-active] #threadScrollControlMotion{' in source
+# Production must not contain the old B+ simulation or typing overlay.
+assert 'id="remote"' not in source
+assert 'B+' not in source
+assert 'remoteTypingCenter' not in source
+assert 'data-stream-active' not in source
+assert 'scheduleRemoteMessageFromDemo' not in app
+assert 'B gửi tin mới' not in app
 
 # Non-idle call state remains secondary and compact.
 assert '.call-focus-slot:not([data-call-ui-state="idle"]){' in source
