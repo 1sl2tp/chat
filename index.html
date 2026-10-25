@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="6ce70910e82b3a934b0e39ca29ae59e3d83883fd21aa2c94cbd13c2ab2f3594b">
+<meta name="app-build-id" content="f12f3a999a511a479330001385ef1387b8fd1da45cd56457192ff4a7eb074894">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -3124,6 +3124,12 @@ button{
   background:color-mix(in srgb, var(--theme-surface-primary) 95%, transparent);
 }
 .presence-source,
+/* HIST-219: visible manual older-day navigation, never hijacks scroll. */
+.chat-history-more{display:flex;justify-content:center;padding:10px 12px 5px}
+.chat-history-more[hidden]{display:none!important}
+.chat-history-more-button{border:1px solid var(--theme-border-default,#dce0e5);border-radius:999px;background:var(--theme-surface-secondary,#f5f6f7);color:var(--theme-content-primary,#202830);padding:9px 16px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;min-height:40px}
+.chat-history-more-button:disabled{opacity:.55;cursor:default}
+.chat-history-more-button:hover:not(:disabled){background:var(--theme-action-ghost-surface-hover,#eaecef)}
 .history-status-source{
   color:var(--theme-content-tertiary);
 }
@@ -6961,7 +6967,10 @@ button{
               <div id="messageDayFloating" class="message-day-floating" hidden aria-hidden="true" data-visible="false">
                 <span class="message-day-floating-label"></span>
               </div>
-              <div id="historyStatus" data-chat-thread-node class="hidden text-center history-status-source py-2">Đang tải tin cũ…</div>
+              <div id="historyMoreWrap" data-chat-thread-node class="chat-history-more" hidden>
+                <button type="button" id="historyMoreButton" class="chat-history-more-button" aria-label="Xem thêm ngày cũ hơn">Xem tin / ngày cũ hơn</button>
+              </div>
+              <div id="historyStatus" data-chat-thread-node class="hidden text-center history-status-source py-2" role="status" aria-live="polite">Đang tải tin cũ…</div>
               <div id="topSpacer" data-chat-thread-node aria-hidden="true"></div>
               <div id="messageWindow" data-chat-thread-node></div>
               <div id="bottomSpacer" data-chat-thread-node aria-hidden="true"></div>
@@ -26689,6 +26698,56 @@ async function wake({reason='signal',hintSeq=0}={}){
   return succeeded;
 }
 
+// HIST-219: secure keyset pagination, scoped to the active account,
+// conversation and switch epoch. It never replaces newer messages or scrolls.
+const olderExhausted=new Map();
+let olderHistoryBusy=false;
+function hasMoreOlder(conversationId){
+ return olderExhausted.get(String(conversationId||''))!==true;
+}
+async function loadOlderHistory(){
+ if(olderHistoryBusy)return {ok:false,reason:'busy'};
+ const cursor=messages()?.historyCursor?.();
+ if(!cursor||!client||!appSessionId||!accountId||!online())return {ok:false,reason:'offline_or_no_context'};
+ if(cursor.conversationId!==String(currentConversationId||'')||
+    cursor.contactId!==String(currentContactId||''))return {ok:false,reason:'contact_changed'};
+ if(!hasMoreOlder(cursor.conversationId))return {ok:true,count:0,has_more:false};
+ const requestEpoch=contactEpoch,originalAccount=String(accountId),
+   originalContact=String(currentContactId),originalConversation=String(currentConversationId),
+   originalSession=String(appSessionId);
+ olderHistoryBusy=true;
+ try{
+   const {data,error}=await client.rpc('v21_conversation_messages_older',{
+     p_app_session_id:originalSession,p_conversation_id:originalConversation,
+     p_before_at:cursor.createdAt,p_before_id:cursor.id,p_limit:50
+   });
+   if(error)throw error;
+   if(!data?.ok||String(data.conversation_id)!==originalConversation)throw Error('invalid_older_page');
+   if(requestEpoch!==contactEpoch||String(accountId)!==originalAccount||
+     String(appSessionId)!==originalSession||String(currentContactId)!==originalContact||
+     String(currentConversationId)!==originalConversation)return {ok:false,reason:'contact_changed'};
+   const byMessage=new Map();
+   for(const item of (Array.isArray(data.media_assets)?data.media_assets:[])){
+     const meta=canonicalMedia(item);
+     if(!meta||meta.deleted_at)continue;
+     const list=byMessage.get(String(meta.message_id))||[];list.push(meta);
+     byMessage.set(String(meta.message_id),list);
+     await media()?.putRemoteMeta?.({accountId:originalAccount,assetId:meta.id,meta});
+   }
+   const rows=(Array.isArray(data.messages)?data.messages:[])
+      .map(canonicalMessage).filter(row=>row?.id&&String(row.conversation_id)===originalConversation)
+      .map(row=>({...row,_media_assets:byMessage.get(String(row.id))||[]}));
+   if(rows.length)await cache()?.putMessages?.(originalAccount,rows);
+   // Switching during a media cache write must not inject an old contact's page.
+   if(requestEpoch!==contactEpoch||String(currentConversationId)!==originalConversation)
+     return {ok:false,reason:'contact_changed'};
+   const count=messages()?.prependHistory?.(rows,{contactId:originalContact,
+     conversationId:originalConversation})||0;
+   if(data.has_more!==true)olderExhausted.set(originalConversation,true);
+   return {ok:true,count,has_more:data.has_more===true};
+ }finally{olderHistoryBusy=false;}
+}
+
 async function ensureMediaRemote(request){
   const id=String(typeof request==='object'?request?.assetId:request||'');
   const requestedAccountId=String(
@@ -26807,7 +26866,7 @@ document.addEventListener('navigation-change',event=>{
 });
 
 window.V21SyncEngine={
-  version:VERSION,wake,consumeRealtimeEvent,openContact,queueText,queueMediaFiles,forwardMessage,flushOutbox,refreshUnread,markRead,syncContacts,clearAccount,ensureMediaRemote,
+  version:VERSION,wake,consumeRealtimeEvent,openContact,queueText,queueMediaFiles,forwardMessage,flushOutbox,refreshUnread,markRead,syncContacts,clearAccount,ensureMediaRemote,loadOlderHistory,hasMoreOlder,
   recoverActiveFromSnapshot:canonicalReconcileActive,
   snapshot(){return{accountId,appSessionId,currentContactId,currentConversationId,syncing,wakePending,wakeHint,lastReason,online:online()};}
 };
