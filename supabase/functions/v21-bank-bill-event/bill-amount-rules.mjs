@@ -82,7 +82,8 @@ export function readV4Fields(data){
        billTime=rawTime.replace("T"," ");precision=t[6]?"second":"minute";
    }
  }
- const senderBank=plain(data?.sending_bank);\n const senderName=plain(data?.sender_name).normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/đ/g,"d").replace(/Đ/g,"D").replace(/\\s+/g," ").toUpperCase();
+ const senderBank=plain(data?.sending_bank);
+ const senderName=plain(data?.sender_name).normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d").replace(/Đ/g,"D").replace(/\s+/g," ").toUpperCase();
  const reference=plain(data?.transfer_reference).replace(/\s+/g,"");
  const transferContent=plain(data?.transfer_content);
  const visualDate=plain(data?.transfer_date_vn);
@@ -100,7 +101,8 @@ export function readV4Fields(data){
     receiving_account_last5:last5,
     receiving_account_visible:visible.length<=48?visible:null,
     receiving_bank:bank,
-    sending_bank:senderBank?senderBank.slice(0,100):null,\n    sender_name:senderName&&senderName.length<=120?senderName:null,
+    sending_bank:senderBank?senderBank.slice(0,100):null,
+    sender_name:senderName&&senderName.length<=120?senderName:null,
     transfer_at_vn:billTime,
     transaction_time_precision:precision,
     transfer_reference:reference&&reference.length<=120?reference:null,
