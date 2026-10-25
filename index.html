@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="913345d15e8e378cc3792256c7ef2d3f085c230f8f3b1025a35dbef5f6753194">
+<meta name="app-build-id" content="03d4460473e322e98a440a83c44362f7912541e6a1cb31b08b37593427dd7814">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -23986,7 +23986,8 @@ async function openQuickCash(contactId){
    const resultAfter=Number(data.balance_after_vnd);
    if(Number.isFinite(resultAfter))debtVnd=resultAfter*1000;
    paintBalance();
-   feedback.textContent='Đã thu '+cashFormatThousands(vnd)+' (÷1.000) · Sổ #'+data.ledger_id;
+   feedback.textContent='Đã thu '+cashFormatThousands(vnd)+' (÷1.000) · Sổ #'+data.ledger_id
+     +(data.notice_sent===true?' · Đã gửi tin xác nhận':' · Chưa gửi tin: kiểm tra cài đặt thông báo');
    submit.hidden=true;refreshButton.hidden=true;
    closeButtons.forEach(x=>{x.disabled=false;if(x!==overlay.querySelector('.admin-composer-quote-backdrop'))x.textContent='Đóng';});
    void window.V21SyncEngine?.wake?.({reason:'quick-cash-collection'});
