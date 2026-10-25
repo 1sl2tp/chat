@@ -296,6 +296,31 @@ function remove(id){
   return bridge()?.remove?.(id)||false;
 }
 
+// HIST-219: stable pagination cursor from oldest verified server message.
+function historyCursor(){
+ const session=currentContactId?sessions.get(sessionKey(currentContactId)):null;
+ const rows=(session?.rows||[]).filter(row=>row?.id
+  &&/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(String(row.id))
+  &&!row._local_state&&row.created_at);
+ if(!rows.length||!session?.conversationId)return null;
+ const first=rows[0];
+ return{conversationId:String(session.conversationId),contactId:String(currentContactId),
+   createdAt:String(first.created_at),id:String(first.id),loaded:rows.length};
+}
+function prependHistory(rows,{contactId=currentContactId,conversationId=currentConversationId}={}){
+ const target=String(contactId||''),conv=String(conversationId||'');
+ if(!target||!conv||target!==currentContactId||conv!==currentConversationId)return 0;
+ const list=(Array.isArray(rows)?rows:[]).filter(row=>row&&String(row.conversation_id)===conv);
+ if(!list.length)return 0;
+ let session=sessions.get(target);
+ if(!session)session=rememberSession(target,conv,[]);
+ const known=new Set((session.rows||[]).map(row=>String(row.id||'')));
+ mergeSessionRows(session,list);
+ const fresh=list.filter(row=>!known.has(String(row.id)));
+ if(fresh.length)bridge()?.prependHistory?.(fresh,{selfId:selfAccountId()});
+ return fresh.length;
+}
+
 function isReady(){return authenticated()&&Boolean(currentContactId);}
 
 async function activate(contactId){
@@ -339,7 +364,7 @@ async function reconcileCurrent(){return sync()?.wake?.({reason:'message-reconci
 
 window.V21MessageStore={
   version:VERSION,isReady,send,sendMedia,activate,refreshUnread,reconcileCurrent,selfAccountId,
-  setContext,replace,merge,apply,remove,reset,primeSession,restoreSession,stashCurrentView,hasSession,mergeForContact,
+  setContext,replace,merge,prependHistory,historyCursor,apply,remove,reset,primeSession,restoreSession,stashCurrentView,hasSession,mergeForContact,
   beginNotificationTail,endNotificationTail,showNotificationTailForActive,
   snapshot(){return{
     currentContactId,currentConversationId,selfAccountId:selfAccountId(),ready:isReady(),sessionCount:sessions.size
