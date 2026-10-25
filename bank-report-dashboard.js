@@ -313,11 +313,16 @@ function detailLine(row,isBank=false,candidates=[]){
   let reason='Ghi chú: '+row.reason;
   if(isAiScanIssue(row))reason='Lỗi quét ảnh: '+scanIssueLabel(row.reason);
   else if(row.reason==='bank_image_amount_only_no_collection'){
-    if(row.report_status==='review'&&row.bill_time)
-      reason='Có thông báo Agribank cùng tiền và gần giờ, nhưng ảnh chỉ đủ dữ liệu số tiền. Cần kiểm tra trước khi ghi thu.';
+    const recipient=String(row.receiving_account||'').replace(/[^0-9]/g,'');
+    if(recipient&&recipient!=='2901181999999')
+      reason='Ảnh ghi tài khoản nhận đuôi '+recipient.slice(-5)+
+        ', không phải tài khoản Agribank nhận tiền đuôi 99999. '+
+        'Không được gán tiền Agribank trùng số ở giờ khác cho bill này. Cần xác minh riêng.';
+    else if(row.report_status==='review'&&row.bill_time)
+      reason='Ảnh có số tiền và giờ nhưng chưa xác nhận được nguồn tiền Agribank của giao dịch này.';
     else if(!row.bill_time)
-      reason='Ảnh chỉ đọc được số tiền, chưa xác định được thời gian giao dịch. Chưa ghi thu.';
-    else reason='Đã đọc được số tiền và giờ từ ảnh, nhưng chưa đủ xác nhận Agribank. Chưa ghi thu.';
+      reason='Ảnh chưa đọc được giờ giao dịch. Chưa đủ bằng chứng tự thu.';
+    else reason='Đã đọc số tiền và giờ, nhưng chưa có Agribank tiền vào tương ứng. Chưa thu.';
   }else if(row.report_status==='matched')reason='Đã kiểm chứng Agribank và hạch toán vào sổ công nợ.';
   content.appendChild(el('p','bank-report-detail-reason',reason));
 }
