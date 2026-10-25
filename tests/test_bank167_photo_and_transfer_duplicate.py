@@ -22,10 +22,12 @@ def test_same_bank_credit_or_transaction_reference_is_seen_as_duplicate_even_if_
     assert '.eq("transfer_reference",ref).eq("amount_vnd",amount)' in EDGE
     assert 'Math.abs(old-tx)<=5*60000' in EDGE
     assert '"duplicate_transfer_already_collected"' in EDGE
-    assert 'duplicate_of:settledDuplicate?prior.receipt_id:null' in EDGE
+    assert 'duplicate_of:settledDuplicate?repeatedReceiptId:null' in EDGE
+    assert 'earlierMatchingReceipt(' in EDGE
+    assert 'compareBillTransferIdentity(current,x)==="same"' in EDGE
     assert 'status:classification,reason:classificationReason' in EDGE
-    assert 'if(prior){' in EDGE
-    assert "ledger_written:false,duplicate_of:prior.receipt_id" in EDGE
+    assert 'if(prior||earlier){' in EDGE
+    assert "ledger_written:false,duplicate_of:repeatedReceiptId||prior?.receipt_id" in EDGE
     assert '"bank_transfer_already_used_by_other_customer"' in EDGE
 
 def test_test_chat_duplicate_status_distinguishes_already_collected_bill():
@@ -39,5 +41,7 @@ def test_credit_event_uses_true_printed_bank_transaction_datetime():
     assert "if(!m)return null;" in PREVIEW
     assert "bankEventTime(e)" in PREVIEW
     assert "when(e.posted_at)" not in PREVIEW
-    assert 'another_bill_same_time_amount' in PREVIEW
+    assert 'same_transfer_reference_other_image' in PREVIEW
+    assert 'competing_bills_one_bank_credit_unverified' in PREVIEW
+    assert 'Math.abs(bankEventTime(e)-date)<=60000' in PREVIEW
     assert 'recipient_account_conflict' in PREVIEW
