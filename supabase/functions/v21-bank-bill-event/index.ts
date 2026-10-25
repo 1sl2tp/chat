@@ -23,7 +23,7 @@ function amountInVnd(v:unknown):number|null{
 // reference; never create a second collection for the same bank transfer.
 async function findAlreadyCollectedTransfer(
   customerId:string, amount:number, transferAt:string|null,
-  reference:string|null, appMatch:any
+  reference:string|null, appMatch:any, fields:any={}
 ){
  const ref=String(reference||"").trim();
  const validRef=/^[A-Za-z0-9][A-Za-z0-9._-]{7,79}$/.test(ref);
@@ -44,7 +44,7 @@ async function findAlreadyCollectedTransfer(
  }
  if(!previous && validRef && transferAt){
    const scan=await db.from("chat_bank_bill_receipts")
-     .select("id,customer_account_id,status,amount_vnd,transfer_at_vn,ledger_id")
+     .select("id,customer_account_id,status,amount_vnd,transfer_at_vn,transfer_reference,sending_bank,raw_read,image_sha256,ledger_id")
      .eq("transfer_reference",ref).eq("amount_vnd",amount)
      .eq("status","received").limit(5);
    if(scan.error||!scan.data||scan.data.length>=5)
@@ -52,7 +52,9 @@ async function findAlreadyCollectedTransfer(
    const tx=Date.parse(transferAt.replace(" ","T")+"+07:00");
    const times=scan.data.filter(x=>{
      const old=Date.parse(String(x.transfer_at_vn||"").replace(" ","T")+"+07:00");
-     return Number.isFinite(tx)&&Number.isFinite(old)&&Math.abs(old-tx)<=5*60000;
+     return Number.isFinite(tx)&&Number.isFinite(old)&&Math.abs(old-tx)<=5*60000
+       &&compareBillTransferIdentity({...fields,amount_vnd:amount,transfer_at_vn:transferAt,
+         transfer_reference:ref},x)==="same";
    });
    if(times.length>1)throw new Error("collection_reference_ambiguous");
    if(times.length===1)previous=times[0];
@@ -336,7 +338,7 @@ Deno.serve(async req=>{
    }
    const prior= status==="amount_read"&&amount
       ?await findAlreadyCollectedTransfer(job.customer_account_id,amount,
-        fields.transfer_at_vn,fields.transfer_reference,matchPreview):null;
+        fields.transfer_at_vn,fields.transfer_reference,matchPreview,fields):null;
    const earlier=status==="amount_read"&&amount
       ?await earlierMatchingReceipt(job.customer_account_id,job.id,amount,fields,job.sent_at):null;
    const settledDuplicate=!!prior?.same_customer||!!earlier;
