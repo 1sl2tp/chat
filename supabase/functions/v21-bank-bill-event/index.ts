@@ -205,6 +205,8 @@ Deno.serve(async req=>{
              if(!postError&&posted?.ok===true&&posted?.status==="received")
                return response({ok:true,status:"received",ai_called:false,
                  ledger_written:true,ledger_id:posted.ledger_id});
+             // A verified pair that did not post is retried by the DB job.
+             console.warn("bank_auto_collect_deferred",String(posted?.status||postError?.code||"rpc_unavailable").slice(0,80));
            }
          }
        }
@@ -389,6 +391,7 @@ Deno.serve(async req=>{
      });
      if(!postError&&posted?.ok===true&&posted?.status==="received")
        receiptPosted=posted;
+     else console.warn("bank_auto_collect_deferred",String(posted?.status||postError?.code||"rpc_unavailable").slice(0,80));
    }
    if(receiptPosted){
      return response({ok:true,status:"received",amount_vnd:amount,
