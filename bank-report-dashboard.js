@@ -19,7 +19,7 @@ const ui={
 };
 const filters=[
  ['all','Tất cả'],['matched','Đã thu · Khớp'],['waiting_bank','Bill chờ Agribank'],
- ['bank_only','Agribank chưa khớp'],['review','Cần kiểm tra'],['wrong_day','Sai ngày'],
+ ['bank_only','Agribank chưa khớp'],['bank_all','Tất cả tiền vào Agribank'],['review','Cần kiểm tra'],['wrong_day','Sai ngày'],
  ['manual_bank','Đã thu thủ công Agribank'],['duplicate','Trùng'],['non_bill','Không phải bill'],['test_excluded','Test (loại)']
 ];
 // Match customer names with or without Vietnamese accents and flexible spaces.
@@ -37,7 +37,7 @@ function bankCustomerSearchMatches(customers,query){
   return terms.every(term=>name.includes(term));
  }).slice(0,12);
 }
-const money=x=>x===null||x===undefined||x===''||!Number.isFinite(Number(x))?'—':new Intl.NumberFormat('vi-VN').format(Number(x))+'đ';
+const money=x=>x===null||x===undefined||x===''||!Number.isFinite(Number(x))?'—':new Intl.NumberFormat('vi-VN',{maximumFractionDigits:3}).format(Number(x)/1000);
 const localDate=()=>{const parts=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const part=t=>parts.find(x=>x.type===t)?.value||'';return part('year')+'-'+part('month')+'-'+part('day');};
 // Agribank notification bodies use "20:58 23/10/2026" (local Vietnam time).
 // Dashboard data arrives as "2026-10-23 20:58:00"; format only the view.
@@ -113,15 +113,18 @@ async function reload(){
  ui.stamp.textContent='Đang cập nhật…';
  try{
   if(!auth.appSessionId||!client)throw Error('Chưa có phiên Admin');
-  const [report,states]=await Promise.all([
+  const [report,states,credits]=await Promise.all([
    client.rpc('chat_bank_dashboard',{p_app_session_id:auth.appSessionId,p_day:day}),
-   client.rpc('chat_bank_manual_collection_statuses',{p_app_session_id:auth.appSessionId,p_day:day})
+   client.rpc('chat_bank_manual_collection_statuses',{p_app_session_id:auth.appSessionId,p_day:day}),
+   client.rpc('chat_bank_all_credit_statuses',{p_app_session_id:auth.appSessionId,p_day:day})
   ]);
   if(report.error)throw report.error;
   if(states.error)throw states.error;
+  if(credits.error)throw credits.error;
   if(id!==requestId||!active||ui.date.value!==day)return;
   const data=report.data;
-  current={...data,manual_collections:Array.isArray(states.data)?states.data:[]};
+  current={...data,manual_collections:Array.isArray(states.data)?states.data:[],
+    bank_credits:Array.isArray(credits.data)?credits.data:[]};
   paint(current);focusPushRecord(current);
   const when=new Date(data.updated_at);
   ui.stamp.textContent='Dữ liệu '+(Number.isFinite(when.getTime())?new Intl.DateTimeFormat('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(when):'mới nhất')+(data.closed?' · Đã khóa sổ':' · Đang mở sổ');
@@ -142,14 +145,17 @@ function paint(data){
  const scrollTop=scrollOwner?.scrollTop??null;
  const handled=new Set((data?.manual_collections||[]).map(x=>String(x.notice_id)));
  const outstanding=(data?.bank_only||[]).filter(x=>!handled.has(String(x.notice_id))).length;
+ const incoming=Array.isArray(data?.bank_credits)?data.bank_credits:[];
  ui.summary.replaceChildren(
   cardValue('Giao dịch đã thu · đối soát',String(s.matched_count||0)),
-  cardValue('Đã thu có chứng từ',money(s.matched_amount),true)
+  cardValue('Đã thu có chứng từ (÷1.000)',money(s.matched_amount),true)
  );
  ui.status.replaceChildren(
   cardValue('Bill chưa ghi thu',String(s.bill_only_count||0),false,true),
   cardValue('Agribank cần xử lý',String(outstanding),false,true),
    cardValue('Đã thu thủ công Agribank',String((data?.manual_collections||[]).length),false,true),
+   cardValue('Agribank tiền vào · đủ nguồn',String(incoming.length),false,true),
+   cardValue('Tổng tiền vào Agribank (÷1.000)',money(incoming.reduce((sum,x)=>sum+(Number(x.amount_vnd)||0),0)),false,true),
   cardValue('Bill sai ngày',String(s.old_date_count||0),false,true),
   cardValue('Ảnh trùng',String(s.duplicate_count||0),false,true),
   cardValue('Ảnh AI chưa kết luận',String((data?.bills||[]).filter(isAiScanIssue).length),false,true)
