@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="f12f3a999a511a479330001385ef1387b8fd1da45cd56457192ff4a7eb074894">
+<meta name="app-build-id" content="913345d15e8e378cc3792256c7ef2d3f085c230f8f3b1025a35dbef5f6753194">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -8260,6 +8260,8 @@ const messageDayFloatingLabel=messageDayFloating?.querySelector('.message-day-fl
 const topSpacer=document.getElementById('topSpacer');
 const bottomSpacer=document.getElementById('bottomSpacer');
 const historyStatus=document.getElementById('historyStatus');
+const historyMoreWrap=document.getElementById('historyMoreWrap');
+const historyMoreButton=document.getElementById('historyMoreButton');
 const threadScrollControl=document.getElementById('threadScrollControl');
 const threadScrollUnseenBadge=document.getElementById('threadScrollUnseenBadge');
 const modeLabel=document.getElementById('modeLabel');
@@ -13219,6 +13221,34 @@ async function loadOlder(){
   });
 }
 
+// HIST-219: server-backed pagination, never the empty demo historyItems.
+async function loadMoreServerHistory(){
+ if(!historyMoreButton||historyMoreButton.disabled)return;
+ historyMoreButton.disabled=true;
+ historyMoreButton.textContent='Đang tải ngày cũ…';
+ historyStatus.classList.add('hidden');
+ try{
+   const result=await window.V21SyncEngine?.loadOlderHistory?.();
+   if(!result?.ok){
+     if(result?.reason==='contact_changed')return;
+     historyStatus.textContent=result?.reason==='offline_or_no_context'
+       ?'Chưa có mạng để tải tin cũ. Hãy thử lại.'
+       :'Chưa tải được tin cũ. Hãy thử lại.';
+     historyStatus.classList.remove('hidden');
+     return;
+   }
+   if(historyMoreWrap)historyMoreWrap.hidden=!result.has_more;
+   historyStatus.classList.add('hidden');
+ }catch(error){
+   historyStatus.textContent='Không tải được ngày cũ. Hãy nhấn lại.';
+   historyStatus.classList.remove('hidden');
+ }finally{
+   historyMoreButton.disabled=false;
+   historyMoreButton.textContent='Xem tin / ngày cũ hơn';
+ }
+}
+historyMoreButton?.addEventListener('click',()=>void loadMoreServerHistory());
+
 /* =========================================================
    MOVING DATA WINDOW
    Rebase before a virtual spacer can enter the visible viewport.
@@ -16083,6 +16113,7 @@ window.V21ConversationBridge={
     store.clear();
     heightCache.clear();
     olderCursor=0;
+    if(historyMoreWrap)historyMoreWrap.hidden=true;
     viewport.returnToTail();
     renderWindow({preserve:'AUTO'});
     scrollToTail('bridge-clear');
@@ -16102,6 +16133,11 @@ window.V21ConversationBridge={
     olderCursor=0;
     const mapped=(Array.isArray(rows)?rows:[]).map(row=>mapV21ServerMessage(row,selfId));
     store.appendBatch(mapped);
+    if(historyMoreWrap){
+      const cid=String((Array.isArray(rows)?rows:[]).find(row=>row?.conversation_id)?.conversation_id||'');
+      historyMoreWrap.hidden=!(cid&&mapped.length>=50&&
+        window.V21SyncEngine?.hasMoreOlder?.(cid)!==false);
+    }
     const restoreHistory=Boolean(viewState&&viewState.mode===VIEWPORT_STATES.USER_AWAY&&mapped.length);
     if(restoreHistory){
       viewport.restoreState(viewState);
@@ -16131,6 +16167,16 @@ window.V21ConversationBridge={
       scrollToTail('bridge-replace');
     }
     return store.size;
+  },
+  prependHistory(rows,{selfId}={}){
+    const mapped=(Array.isArray(rows)?rows:[]).filter(row=>row?.id).map(row=>mapV21ServerMessage(row,selfId));
+    if(!mapped.length)return 0;
+    const known=new Set(store.items.map(item=>String(item.id||'')));
+    const fresh=mapped.filter(item=>!known.has(String(item.id||'')));
+    if(!fresh.length)return 0;
+    store.prependBatch(fresh);
+    renderWindow({preserve:'ANCHOR',historyRestore:true});
+    return fresh.length;
   },
   reconcile(rows,{selfId}={}){
     const mapped=(Array.isArray(rows)?rows:[]).filter(row=>row?.id).map(row=>mapV21ServerMessage(row,selfId));
