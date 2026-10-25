@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="1ccf3773d00f06ca08a02c01af86c52f5934a2733c77b7bcc6182870c8ef6e97">
+<meta name="app-build-id" content="d725185b83b494667ae2e1bf172789e079e77197c3db30a99cd91bd2f6cbe578">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -27497,13 +27497,76 @@ function detailLine(row,isBank=false,candidates=[]){
  content.appendChild(actions);wrap.appendChild(content);
  return wrap;
 }
+// BANK-222: full bank money-in is distinct from an uploaded transfer bill.
+// A posted bank credit never offers another collection action.
+function bankCreditLine(row,allBills){
+ const kind=String(row.collection_kind||'unmatched');
+ const valid=kind==='auto_collected'||kind==='manual_collected';
+ const wrap=el('details','bank-report-detail');
+ wrap.dataset.bankNoticeId=String(row.notice_id);
+ const top=el('summary','bank-report-detail-top');
+ const state=kind==='auto_collected'?'Đã thu · Đối soát':
+   kind==='manual_collected'?'Đã thu thủ công':
+   kind==='review_inconsistent'?'Liên kết cần kiểm tra':'Chưa thu · Cần xử lý';
+ const badge=el('span','bank-report-detail-status bank-status-'+
+   (kind==='auto_collected'?'matched':kind==='manual_collected'?'bank_manual':'review'),state);
+ append(top,el('span','bank-report-detail-time',localTime(row.bank_time)),
+    el('strong','bank-report-detail-amount',money(row.amount_vnd)),badge);
+ wrap.appendChild(top);
+ const content=el('div','bank-report-detail-content');
+ append(content,cell('Giờ Agribank',agribankDisplayTime(row.bank_time,ui.date.value)),
+   cell('Tiền vào Agribank (÷1.000)',money(row.amount_vnd)),
+   cell('Thông báo Agribank','#'+row.notice_id),
+   cell('Khách đã liên kết',row.customer_name||'Chưa xác định'),
+   cell('Sổ công nợ',valid&&row.ledger_id?'#'+row.ledger_id:'Chưa có bút toán xác minh'),
+   cell('Trạng thái',state));
+ const actions=el('div','bank-report-detail-actions');
+ if(kind==='auto_collected'&&row.asset_id){
+  const match=(allBills||[]).find(x=>String(x.receipt_id||'')===String(row.receipt_id));
+  const btn=el('button','bank-report-action','Xem ảnh bill đã khớp');
+  btn.type='button';btn.addEventListener('click',()=>void showBill(match||row));
+  actions.appendChild(btn);
+ }
+ if(row.customer_id){
+  const btn=el('button','bank-report-action','Mở hội thoại khách');
+  btn.type='button';
+  btn.addEventListener('click',()=>window.ChatAppShell?.NavigationCommand
+    ?.openContact?.(row.customer_id,row.customer_name||'Khách hàng'));
+  actions.appendChild(btn);
+ }
+ if(kind==='unmatched'){
+  const candidates=possibleUnlinkedBills(row,allBills);
+  if(candidates.length){
+   content.appendChild(el('p','bank-report-detail-reason',
+     'Có '+candidates.length+' ảnh khả nghi: cùng tiền không đủ xác nhận đã thu.'));
+   candidates.slice(0,8).forEach(b=>{
+    const btn=el('button','bank-report-action','Xem ảnh '+(b.customer_name||'khách'));
+    btn.type='button';btn.addEventListener('click',()=>void showBill(b));
+    actions.appendChild(btn);
+   });
+  }
+  const btn=el('button','bank-report-action','Thu sau khi xác minh');
+  btn.type='button';btn.addEventListener('click',()=>void openCollectionDialog(row));
+  actions.appendChild(btn);
+ }
+ if(kind==='review_inconsistent'){
+  content.appendChild(el('p','bank-report-detail-reason',
+   'Liên kết ngân hàng/sổ chưa hợp lệ. Không xác nhận thu hoặc thu lại trước khi kiểm tra.'));
+ }
+ content.appendChild(actions);wrap.appendChild(content);
+ return wrap;
+}
 function renderGroups(data){
  const allBills=Array.isArray(data?.bills)?data.bills:[];
  const bankOnly=Array.isArray(data?.bank_only)?data.bank_only:[];
+ const credits=Array.isArray(data?.bank_credits)?data.bank_credits:[];
  const selected=filter==='all' ? (selectedCustomer?allBills.filter(r=>String(r.customer_id)===selectedCustomer):[])
    :allBills.filter(r=>r.report_status===filter||(filter==='review'&&r.report_status==='reading'));
- const banks=(filter==='all'||filter==='bank_only')?bankOnly:
-  filter==='manual_bank'?bankOnly.filter(r=>(data?.manual_collections||[]).some(m=>String(m.notice_id)===String(r.notice_id))):[];
+ const fullCredits=filter==='all'||filter==='bank_all'||filter==='manual_bank';
+ const banks=(filter==='all'||filter==='bank_all')?
+    (selectedCustomer?credits.filter(r=>String(r.customer_id)===selectedCustomer):credits):
+   filter==='manual_bank'?credits.filter(r=>r.collection_kind==='manual_collected'):
+   filter==='bank_only'?bankOnly:[];
  const grouped=new Map();
  for(const row of selected){
   const key=String(row.customer_id||'none'),g=grouped.get(key)||{id:key,name:row.customer_name||'Khách chưa rõ',rows:[],amount:0,matched:0};
@@ -27527,9 +27590,10 @@ function renderGroups(data){
  if(banks.length){
   const block=el('section','bank-report-customer bank-report-bank-only');
   block.appendChild(append(el('div','bank-report-customer-head'),
-   el('strong','bank-report-customer-name','Agribank có tiền · theo trạng thái'),
-   el('span','bank-report-customer-count',banks.length+' giao dịch · '+money(banks.reduce((s,x)=>s+Number(x.amount_vnd||0),0)))));
-  banks.forEach(row=>block.appendChild(detailLine(row,true,possibleUnlinkedBills(row,allBills))));
+   el('strong','bank-report-customer-name',fullCredits?'Toàn bộ tiền vào Agribank · theo trạng thái':'Agribank chưa khớp'),
+   el('span','bank-report-customer-count',banks.length+' giao dịch · '+money(banks.reduce((sum,x)=>sum+Number(x.amount_vnd||0),0))+' (÷1.000)')));
+  banks.forEach(row=>block.appendChild(fullCredits?
+    bankCreditLine(row,allBills):detailLine(row,true,possibleUnlinkedBills(row,allBills))));
   ui.groups.appendChild(block);
  }
  const sorted=[...grouped.values()].sort((a,b)=>b.amount-a.amount||a.name.localeCompare(b.name,'vi'));
