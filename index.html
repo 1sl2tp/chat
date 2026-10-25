@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="d725185b83b494667ae2e1bf172789e079e77197c3db30a99cd91bd2f6cbe578">
+<meta name="app-build-id" content="9177c01f9ca5dab2c6759b659995505c694ca5347091329c7240c31e4e3d4eec">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -27312,7 +27312,7 @@ function paint(data){
  const incoming=Array.isArray(data?.bank_credits)?data.bank_credits:[];
  ui.summary.replaceChildren(
   cardValue('Giao dịch đã thu · đối soát',String(s.matched_count||0)),
-  cardValue('Đã thu có chứng từ (÷1.000)',money(s.matched_amount),true)
+  cardValue('Đã thu có chứng từ',money(s.matched_amount),true)
  );
  ui.status.replaceChildren(
   cardValue('Bill chưa ghi thu',String(s.bill_only_count||0),false,true),
