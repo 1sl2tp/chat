@@ -29,7 +29,7 @@ def test_minute_match_and_manual_review_for_ambiguous_evidence():
     assert "abs(extract(epoch from(image_at-transaction_at)))>60" in MIGRATION
     assert "Math.abs(bankEventTime(e)-date)<=60000" in PREVIEW
     assert "bank_time_outside_one_minute" in PREVIEW
-    assert 'multiple_matching_agribank_notifications' in PREVIEW
+    assert 'multiple_credits_same_amount_same_minute' in PREVIEW
     assert "reference_and_memo_verified_waiting_financial_guard" in PREVIEW
     assert "Financial writer does not yet authorize a missing printed clock." in PREVIEW
 
