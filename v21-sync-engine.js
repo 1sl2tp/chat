@@ -1531,6 +1531,56 @@ async function wake({reason='signal',hintSeq=0}={}){
   return succeeded;
 }
 
+// HIST-219: secure keyset pagination, scoped to the active account,
+// conversation and switch epoch. It never replaces newer messages or scrolls.
+const olderExhausted=new Map();
+let olderHistoryBusy=false;
+function hasMoreOlder(conversationId){
+ return olderExhausted.get(String(conversationId||''))!==true;
+}
+async function loadOlderHistory(){
+ if(olderHistoryBusy)return {ok:false,reason:'busy'};
+ const cursor=messages()?.historyCursor?.();
+ if(!cursor||!client||!appSessionId||!accountId||!online())return {ok:false,reason:'offline_or_no_context'};
+ if(cursor.conversationId!==String(currentConversationId||'')||
+    cursor.contactId!==String(currentContactId||''))return {ok:false,reason:'contact_changed'};
+ if(!hasMoreOlder(cursor.conversationId))return {ok:true,count:0,has_more:false};
+ const requestEpoch=contactEpoch,originalAccount=String(accountId),
+   originalContact=String(currentContactId),originalConversation=String(currentConversationId),
+   originalSession=String(appSessionId);
+ olderHistoryBusy=true;
+ try{
+   const {data,error}=await client.rpc('v21_conversation_messages_older',{
+     p_app_session_id:originalSession,p_conversation_id:originalConversation,
+     p_before_at:cursor.createdAt,p_before_id:cursor.id,p_limit:50
+   });
+   if(error)throw error;
+   if(!data?.ok||String(data.conversation_id)!==originalConversation)throw Error('invalid_older_page');
+   if(requestEpoch!==contactEpoch||String(accountId)!==originalAccount||
+     String(appSessionId)!==originalSession||String(currentContactId)!==originalContact||
+     String(currentConversationId)!==originalConversation)return {ok:false,reason:'contact_changed'};
+   const byMessage=new Map();
+   for(const item of (Array.isArray(data.media_assets)?data.media_assets:[])){
+     const meta=canonicalMedia(item);
+     if(!meta||meta.deleted_at)continue;
+     const list=byMessage.get(String(meta.message_id))||[];list.push(meta);
+     byMessage.set(String(meta.message_id),list);
+     await media()?.putRemoteMeta?.({accountId:originalAccount,assetId:meta.id,meta});
+   }
+   const rows=(Array.isArray(data.messages)?data.messages:[])
+      .map(canonicalMessage).filter(row=>row?.id&&String(row.conversation_id)===originalConversation)
+      .map(row=>({...row,_media_assets:byMessage.get(String(row.id))||[]}));
+   if(rows.length)await cache()?.putMessages?.(originalAccount,rows);
+   // Switching during a media cache write must not inject an old contact's page.
+   if(requestEpoch!==contactEpoch||String(currentConversationId)!==originalConversation)
+     return {ok:false,reason:'contact_changed'};
+   const count=messages()?.prependHistory?.(rows,{contactId:originalContact,
+     conversationId:originalConversation})||0;
+   if(data.has_more!==true)olderExhausted.set(originalConversation,true);
+   return {ok:true,count,has_more:data.has_more===true};
+ }finally{olderHistoryBusy=false;}
+}
+
 async function ensureMediaRemote(request){
   const id=String(typeof request==='object'?request?.assetId:request||'');
   const requestedAccountId=String(
@@ -1649,7 +1699,7 @@ document.addEventListener('navigation-change',event=>{
 });
 
 window.V21SyncEngine={
-  version:VERSION,wake,consumeRealtimeEvent,openContact,queueText,queueMediaFiles,forwardMessage,flushOutbox,refreshUnread,markRead,syncContacts,clearAccount,ensureMediaRemote,
+  version:VERSION,wake,consumeRealtimeEvent,openContact,queueText,queueMediaFiles,forwardMessage,flushOutbox,refreshUnread,markRead,syncContacts,clearAccount,ensureMediaRemote,loadOlderHistory,hasMoreOlder,
   recoverActiveFromSnapshot:canonicalReconcileActive,
   snapshot(){return{accountId,appSessionId,currentContactId,currentConversationId,syncing,wakePending,wakeHint,lastReason,online:online()};}
 };
