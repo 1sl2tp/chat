@@ -41,7 +41,7 @@ def test_bank_event_replay_and_ambiguous_matches_still_block():
     assert "n.is_own_transfer=true" in SQL
     assert "account_number<>''2901181999999''" in SQL
     assert "candidate_unique" in PREVIEW
-    assert "multiple_matching_agribank_notifications" in PREVIEW
+    assert "multiple_credits_same_amount_same_minute" in PREVIEW
     assert "competing_bills_one_bank_credit_unverified" in PREVIEW
     assert "same_transfer_reference_other_image" in PREVIEW
     assert 'Math.abs(bankEventTime(e)-date)<=60000' in PREVIEW
