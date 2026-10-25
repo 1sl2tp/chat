@@ -844,6 +844,12 @@ button{
   background:color-mix(in srgb, var(--theme-surface-primary) 95%, transparent);
 }
 .presence-source,
+/* HIST-219: visible manual older-day navigation, never hijacks scroll. */
+.chat-history-more{display:flex;justify-content:center;padding:10px 12px 5px}
+.chat-history-more[hidden]{display:none!important}
+.chat-history-more-button{border:1px solid var(--theme-border-default,#dce0e5);border-radius:999px;background:var(--theme-surface-secondary,#f5f6f7);color:var(--theme-content-primary,#202830);padding:9px 16px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;min-height:40px}
+.chat-history-more-button:disabled{opacity:.55;cursor:default}
+.chat-history-more-button:hover:not(:disabled){background:var(--theme-action-ghost-surface-hover,#eaecef)}
 .history-status-source{
   color:var(--theme-content-tertiary);
 }
@@ -4112,7 +4118,10 @@ button{
               <div id="messageDayFloating" class="message-day-floating" hidden aria-hidden="true" data-visible="false">
                 <span class="message-day-floating-label"></span>
               </div>
-              <div id="historyStatus" data-chat-thread-node class="hidden text-center history-status-source py-2">Đang tải tin cũ…</div>
+              <div id="historyMoreWrap" data-chat-thread-node class="chat-history-more" hidden>
+                <button type="button" id="historyMoreButton" class="chat-history-more-button" aria-label="Xem thêm ngày cũ hơn">Xem tin / ngày cũ hơn</button>
+              </div>
+              <div id="historyStatus" data-chat-thread-node class="hidden text-center history-status-source py-2" role="status" aria-live="polite">Đang tải tin cũ…</div>
               <div id="topSpacer" data-chat-thread-node aria-hidden="true"></div>
               <div id="messageWindow" data-chat-thread-node></div>
               <div id="bottomSpacer" data-chat-thread-node aria-hidden="true"></div>
