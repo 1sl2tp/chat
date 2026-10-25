@@ -148,6 +148,12 @@ jobs:
         run: node tests/test_ux217_cash_agribank_thousands.cjs
       - name: UX-216 read-only Admin cash balance does not create public links
         run: python -m pytest -q tests/test_ux216_cash_balance_rpc.py
+      - name: CASH-218 and HIST-219 manual notice + old chat pagination
+        run: |
+          node --check app.js
+          node --check v21-message-store.js
+          node --check v21-sync-engine.js
+          python -m pytest -q tests/test_hist219_cash218_history.py
       - name: BANK-209/210 verified collected, awaiting, review and receipt notices
         run: |
           node --check bank-report-dashboard.js
