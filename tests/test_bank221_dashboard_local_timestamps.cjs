@@ -1,0 +1,16 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const vm=require('node:vm');
+const path=require('node:path');
+const source=fs.readFileSync(path.join(__dirname,'..','bank-report-dashboard.js'),'utf8');
+const start=source.indexOf('const localTime=x=>{');
+const end=source.indexOf('\nconst statusText=',start);
+assert(start>=0&&end>start,'production localTime helper missing');
+const localTime=vm.runInNewContext(source.slice(start,end)+'\nlocalTime;', {Intl,Date,Number,String});
+assert.equal(localTime('2026-10-24 07:15:00'),'07:15','bank transfer clock is already Vietnam local');
+assert.equal(localTime('2026-10-24T07:15:00'),'07:15','naive OCR bill time is local');
+assert.equal(localTime('2026-10-24T16:04:40.222Z'),'23:04','uploaded duplicate bill was shown 7 hours early');
+assert.equal(localTime('2026-10-24T00:15:00+00:00'),'07:15','UTC offset is converted to VN');
+assert.equal(localTime(null),'—');
+console.log('BANK-221 bank time, OCR time and UTC chat upload time displayed consistently PASS');
