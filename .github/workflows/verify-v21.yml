@@ -172,6 +172,10 @@ jobs:
           node tests/test_bank194_agribank_time.mjs
       - name: BANK-221 bank timestamp vs UTC upload clock in dashboard
         run: node tests/test_bank221_dashboard_local_timestamps.cjs
+      - name: BANK-222 full incoming Agribank credits and safe auto/manual receipts
+        run: |
+          node --check bank-report-dashboard.js
+          node tests/test_bank222_all_agribank_credits.cjs
       - name: BANK-185 transient bill scan retries keep bank evidence strict
         run: python tests/test_bank185_transient_retry_contract.py
       - name: BANK-186 no lost scans and BANK-187 Admin outage notifications
