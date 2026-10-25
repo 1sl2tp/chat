@@ -14,7 +14,7 @@ CASH_SQL=(ROOT/"supabase/migrations/20261025081000_cash218_manual_collection_not
 def test_older_chat_requires_authenticated_membership_and_stable_cursor():
     for phrase in (
         "v21_private.require_active_account(p_app_session_id)",
-        "v_me IN (c.member_a, c.member_b)",
+        "v_me IN(c.member_a,c.member_b)",
         "m.deleted_at IS NULL",
         "p_before_at",
         "p_before_id",
@@ -48,12 +48,14 @@ def test_older_load_is_scoped_and_not_a_new_message_or_tail_jump():
 
 
 def test_manual_collection_notice_uses_existing_outbound_collection_kind():
-    assert "taphoa:'||p_command_id::text||':collection" in CASH_SQL
+    assert "fn:=replace(fn" in CASH_SQL
+    assert "''taphoa:''||p_command_id::text||'':collection''" in CASH_SQL
     assert "taphoa_chat_notify_customer" in CASH_SQL
     assert "chat_outbound_allowed" in CASH_SQL
     assert "notice_repaired_at" in CASH_SQL
     assert "notice_sent',true" in CASH_SQL
-    assert "INSERT INTO public.taphoa_debt_ledger" not in CASH_SQL
+    assert "VALUES (p_customer_id,'collection'" not in CASH_SQL
+    assert "INSERT INTO public.taphoa_debt_ledger(" not in CASH_SQL
     assert "UPDATE public.taphoa_debt_ledger" not in CASH_SQL
     assert "data.notice_sent===true" in CASH
     assert "Chưa gửi tin" in CASH
