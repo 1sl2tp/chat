@@ -148,7 +148,7 @@ function paint(data){
  const incoming=Array.isArray(data?.bank_credits)?data.bank_credits:[];
  ui.summary.replaceChildren(
   cardValue('Giao dịch đã thu · đối soát',String(s.matched_count||0)),
-  cardValue('Đã thu có chứng từ (÷1.000)',money(s.matched_amount),true)
+  cardValue('Đã thu có chứng từ',money(s.matched_amount),true)
  );
  ui.status.replaceChildren(
   cardValue('Bill chưa ghi thu',String(s.bill_only_count||0),false,true),
