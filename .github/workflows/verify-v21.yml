@@ -112,6 +112,9 @@ jobs:
           node tests/test_v21_bank159_sms_parser.mjs
       - name: BANK-182 missing-time memo-reference strict review
         run: node tests/test_bank182_missing_time_reference.mjs
+      - name: BANK-214 same amount but different sender, bank reference or time
+        run: |
+          node tests/test_bank214_distinct_sender_reference.mjs
       - name: BANK-183 unlinked bill candidate in Admin reconciliation table
         run: node tests/test_bank183_unlinked_bill_candidate.mjs
       - name: BANK-184 Admin explanation audit without ledger writes
