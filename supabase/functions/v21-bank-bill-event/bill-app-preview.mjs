@@ -1,4 +1,5 @@
 // Read-only pairing of customer bill with stored official Agribank Plus credit notification.
+import {compareBillTransferIdentity,competesForBankCredit} from "./bill-transfer-identity.mjs";
 const when=x=>{const n=Date.parse(x||"");return Number.isFinite(n)?n:null;};
 const bankTime=x=>when(String(x||"").replace(" ","T")+"+07:00");
 // Prefer Agribank's own transaction time, not Android's potentially delayed push time.
@@ -43,13 +44,22 @@ export function previewBillAppMatch(bill,events,otherBills=[],now=Date.now()){
  // BANK-212: broaden only the ambiguity search; require <= 60 seconds to auto-match.
  const nearby=(events||[]).filter(e=>!ownTransferNotice(e)&&creditAccountFromEvent(e)===destination&&e.package_name==="com.vnpay.Agribank3g"&&e.status==="credit_candidate"
    &&e.amount_vnd===bill.amount_vnd&&bankEventTime(e)!==null&&Math.abs(bankEventTime(e)-date)<=5*60000);
- if(nearby.length>1)return{status:"review",reason:"multiple_matching_agribank_notifications"};
+ // Different transfers of equal amount may occur minutes apart. Look at the
+ // bank-printed 60-second clock window, not every same-amount notice within 5m.
  const qualified=nearby.filter(e=>Math.abs(bankEventTime(e)-date)<=60000);
+ if(qualified.length>1)return{status:"review",reason:"multiple_credits_same_amount_same_minute"};
  if(!qualified.length&&nearby.length)return{status:"review",reason:"bank_time_outside_one_minute"};
  if(!qualified.length)return{status:"waiting_bank_event",reason:"no_matching_agribank_notification"};
- if((otherBills||[]).some(b=>b.media_asset_id!==bill.media_asset_id&&b.status==="amount_read"&&
-    b.amount_vnd===bill.amount_vnd&&Math.abs(bankTime(b.transfer_at_vn)-date)<=5*60000))
-   return{status:"review",reason:"another_bill_same_time_amount"};
+ // Same reliable bank reference is the same transfer across cropped/reuploaded
+ // images. Distinct sender names / references remain distinct bills, but with
+ // just one bank credit and a shared minute, their bank proof still competes.
+ const closeBills=(otherBills||[]).filter(b=>b.media_asset_id!==bill.media_asset_id
+   &&["amount_read","review","received","historical_reference"].includes(b.status)
+   &&b.amount_vnd===bill.amount_vnd);
+ if(closeBills.some(b=>compareBillTransferIdentity(bill,b)==="same"))
+   return{status:"review",reason:"same_transfer_reference_other_image"};
+ if(closeBills.some(b=>competesForBankCredit(bill,b)))
+   return{status:"review",reason:"competing_bills_one_bank_credit_unverified"};
  // BANK-164: no scheduler is required; uniqueness is rechecked transactionally by
  // the database before any collection. Do not leave this bill permanently waiting.
  if(sent>now+2*60000)return{status:"review",reason:"future_upload_metadata"};
