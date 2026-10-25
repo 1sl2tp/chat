@@ -116,3 +116,21 @@ assert '.work-summary-body{' in style and 'overflow:auto' in compact_style, 'wor
 assert 'scrollbar-gutter:stable' in compact_style, 'work scroll owner should reserve stable scrollbar space'
 
 print('Mobile directory/chat-only swipe + explicit Work tab + pinned Work header contract PASS')
+
+
+# AI-57: explicit URL wins over session snapshot after user reload, and the
+# existing notification handler retains higher priority for push intents.
+def test_ai57_chat_deeplink_reload_and_account_isolation():
+    shell=(ROOT / 'shell.js').read_text('utf-8')
+    assert 'function explicitScreenRoute()' in shell
+    assert "key.startsWith('push_')" in shell
+    assert 'function syncScreenRouteUrl(' in shell
+    assert 'function restoreExplicitScreenRoute()' in shell
+    assert 'window.addEventListener(\'popstate\'' in shell
+    assert 'window.addEventListener(\'hashchange\'' in shell
+    assert 'syncScreenRouteUrl();' in shell
+    assert "const saved=readScreenSession(authAccount?.id)?.activeContact" in shell
+    assert "String(item?.id||'')===intent.contactId&&!item.deleted_at" in shell
+    assert 'v21-active-contact-change' in shell
+    assert 'history[replace?' in shell
+    assert 'setActiveContact(contactId,contactName)' in shell

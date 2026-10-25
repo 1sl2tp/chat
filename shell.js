@@ -89,6 +89,58 @@ function readScreenSession(accountId){
   }catch{return null;}
 }
 
+// AI-57: the hash is an explicit, shareable screen target. A saved
+// account-scoped contact is only a fallback when there is no hash target.
+function explicitScreenRoute(){
+  const search=new URLSearchParams(location.search||'');
+  // Notification intent is handled by the existing push controller and wins.
+  if([...search.keys()].some(key=>key.startsWith('push_')))return null;
+  const match=String(location.hash||'').match(/^#\/(chat|photos)(?:\/([0-9a-fA-F-]{36}))?$/);
+  if(!match)return null;
+  if(match[2]&&!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(match[2]))return null;
+  return{route:match[1],contactId:match[1]==='chat'?match[2]||null:null};
+}
+
+function syncScreenRouteUrl({replace=false}={}){
+  if(authState!=='AUTHENTICATED')return false;
+  if([...new URLSearchParams(location.search||'').keys()].some(key=>key.startsWith('push_')))return false;
+  if(location.hash&&!/^#\/(chat|photos)(?:\/|$)/.test(location.hash))return false;
+  const id=route==='chat'?String(activeContact?.id||''):'';
+  const hash='#/'+(route==='photos'?'photos':'chat')+
+    (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)?'/'+id:'');
+  if(location.hash===hash)return true;
+  history[replace?'replaceState':'pushState'](history.state,'',location.pathname+location.search+hash);
+  return true;
+}
+
+function restoreExplicitScreenRoute(){
+  if(authState!=='AUTHENTICATED')return false;
+  const intent=explicitScreenRoute();
+  if(!intent)return false;
+  const previousId=activeContact?.id||null;
+  route=intent.route;
+  if(intent.contactId){
+    const known=window.V21ContactStore?.snapshot?.()?.find(item=>
+      String(item?.id||'')===intent.contactId&&!item.deleted_at
+    );
+    // Never display a contact from another account's session snapshot.
+    const saved=readScreenSession(authAccount?.id)?.activeContact;
+    activeContact=known
+      ?{id:intent.contactId,name:String(known.display_name||known.username||'Liên hệ')}
+      :saved?.id===intent.contactId?{id:intent.contactId,name:String(saved.name||'Liên hệ')}:null;
+  }else{
+    activeContact=null;
+  }
+  applyRoutePresentation();
+  persistScreenSession();
+  if(previousId!==(activeContact?.id||null)){
+    document.dispatchEvent(new CustomEvent('v21-active-contact-change',{
+      detail:{contact:activeContact?{...activeContact}:null}
+    }));
+  }
+  return true;
+}
+
 function desktopWorkspaceEnabled(){
   return WORK_ENABLED&&authState==='AUTHENTICATED'&&desktopWorkspaceMedia.matches;
 }
@@ -140,11 +192,17 @@ const ScreenSession={
   restore(account){
     const accountId=account?.id||null;
     const saved=readScreenSession(accountId);
-    // New app sessions always open Chat; keep only the last selected contact.
-    // Work is entered only by an explicit in-session navigation.
+    // Root cold open remains Chat; a user-requested hash takes precedence.
     route='chat';
     const contact=saved?.activeContact;
-    activeContact=contact?.id?{id:String(contact.id),name:String(contact.name||'Liên hệ')}:null;
+    const explicit=explicitScreenRoute();
+    if(explicit?.route==='photos')route='photos';
+    activeContact=explicit?.contactId
+      ?(contact?.id===explicit.contactId
+        ?{id:String(contact.id),name:String(contact.name||'Liên hệ')}
+        :null)
+      :explicit?null:
+        contact?.id?{id:String(contact.id),name:String(contact.name||'Liên hệ')}:null;
     sidebarOpen=false;
     syncDesktopSidebarMode();
     syncSidebarPresentation();
@@ -362,6 +420,7 @@ const NavigationCommand={
     setSidebar(false);
     applyRoutePresentation();
     persistScreenSession();
+    syncScreenRouteUrl();
     document.dispatchEvent(new CustomEvent('navigation-change',{detail:{route,from:previousRoute}}));
     return true;
   },
@@ -587,6 +646,7 @@ function setActiveContact(contactId,contactName){
   renderChatTabIdentity();
   syncContactActiveState();
   persistScreenSession();
+  if(previousId!==(activeContact?.id||null))syncScreenRouteUrl();
   const nextId=activeContact?.id||null;
   if(previousId!==nextId){
     document.dispatchEvent(new CustomEvent('v21-active-contact-change',{detail:{contact:activeContact?{...activeContact}:null}}));
@@ -1609,6 +1669,15 @@ document.addEventListener('keydown',event=>{
 
 document.addEventListener('v21-contact-store-change',event=>{
   reconcileActiveContactFromStore(event.detail||{});
+  // A pasted deep link may be resolved only after auth/contact hydration.
+  // Wait for a verified same-account contact; do not show guessed accounts.
+  const wanted=explicitScreenRoute()?.contactId;
+  if(wanted&&String(activeContact?.id||'')!==wanted&&
+    window.V21ContactStore?.snapshot?.()?.some(row=>
+      String(row?.id||'')===wanted&&!row.deleted_at
+    )){
+    restoreExplicitScreenRoute();
+  }
   renderChatTabIdentity();
 });
 
@@ -1832,6 +1901,13 @@ applyRoutePresentation();
 renderMenuUnread();
 AuthUI.renderAccountFooter();
 syncDesktopSidebarMode();
+
+window.addEventListener('popstate',()=>{
+  // Back/Forward may change the selected contact; never push a new entry
+  // while replaying an existing browser history entry.
+  restoreExplicitScreenRoute();
+});
+window.addEventListener('hashchange',()=>restoreExplicitScreenRoute());
 
 window.ChatAppShell={
   version:'V21.72.39',

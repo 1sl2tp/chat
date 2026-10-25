@@ -16,7 +16,8 @@ def test_restore_keeps_contact_not_work_route():
     block = shell.split("restore(account){", 1)[1].split("clear(accountId=", 1)[0]
     assert "route='chat';" in block
     assert "readScreenSession(accountId)" in block
-    assert "activeContact=contact?.id?" in block
+    assert "const explicit=explicitScreenRoute();" in block
+    assert "activeContact=explicit?.contactId" in block
     assert "saved?.route" not in block
     assert "openWork(){return this.open(WORK_ENABLED?'work':'photos')}" in shell
 
