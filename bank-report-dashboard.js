@@ -54,7 +54,16 @@ function agribankDisplayTime(raw,fallbackDay=''){
 }
 const localTime=x=>{
  if(!x)return'—';
- const s=String(x).replace('T',' ');
+ const s=String(x).trim();
+ // Bank/bill transfer_at_vn is a local wall-clock timestamp (no timezone).
+ if(/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/.test(s)&&
+    !/(Z|[+-]\d{2}:?\d{2})$/i.test(s))return s.slice(11,16);
+ // sent_at is timestamptz, often ISO UTC; slicing it showed 16:04 instead
+ // of 23:04 Vietnam time for C Sâm's repeated 235 bill.
+ const parsed=new Date(s);
+ if(Number.isFinite(parsed.getTime()))
+   return new Intl.DateTimeFormat('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',
+     hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(parsed);
  return s.length>=16?s.slice(11,16):s;
 };
 const statusText={
