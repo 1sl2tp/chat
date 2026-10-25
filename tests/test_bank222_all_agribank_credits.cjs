@@ -1,0 +1,31 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const vm=require('node:vm');
+const path=require('node:path');
+const src=fs.readFileSync(path.join(__dirname,'..','bank-report-dashboard.js'),'utf8');
+const i=src.indexOf('const money=x=>'),end=src.indexOf('\nconst localDate=',i);
+assert(i>=0&&end>i,'money helper');
+const money=vm.runInNewContext(src.slice(i,end)+'\nmoney;',{Intl,Number,String});
+for(const [input,expected] of [[570000,'570'],[4305000,'4.305'],[4217000,'4.217'],[26000,'26'],[62000,'62'],[570050,'570,05']]){
+ assert.equal(money(input),expected,`Expected thousands only for ${input}`);
+}
+assert(src.includes("client.rpc('chat_bank_all_credit_statuses'"),'all credits are fetched independently');
+assert(src.includes("bank_credits:Array.isArray(credits.data)?credits.data:[]"));
+assert(src.includes("incoming.reduce((sum,x)=>sum+(Number(x.amount_vnd)||0),0)"));
+assert(src.includes("'bank_all','Tất cả tiền vào Agribank'"));
+assert(src.includes("kind==='auto_collected'?'Đã thu · Đối soát'"));
+assert(src.includes("kind==='manual_collected'?'Đã thu thủ công'"));
+assert(src.includes("kind==='unmatched'"),'manual collection button only for unmatched');
+const section=src.slice(src.indexOf('function bankCreditLine('),src.indexOf('function renderGroups('));
+assert(section.includes("if(kind==='unmatched'){"),'only bank-only receipts are actionable');
+assert(section.includes("openCollectionDialog(row)"),'bank-only action preserved');
+assert(section.includes("if(kind==='auto_collected'&&row.asset_id)"),'auto links show underlying bill');
+assert(section.includes("cell('Sổ công nợ'"),'display the real ledger proof');
+assert(section.includes("cell('Thông báo Agribank'"),'display bank-side evidence id');
+assert(section.includes("kind==='review_inconsistent'"),'broken link must be held');
+const grouping=src.slice(src.indexOf('function renderGroups('),src.indexOf('function openPush('));
+assert(grouping.includes("const fullCredits=filter==='all'||filter==='bank_all'||filter==='manual_bank'"));
+assert(grouping.includes("filter==='bank_only'?bankOnly:[]"),'unlinked workflow unchanged');
+assert(grouping.includes("bankCreditLine(row,allBills):detailLine(row,true"),'all and unlinked views distinct');
+console.log('BANK-222: 10-source bank register, safe statuses, ledger links, thousand units PASS');
