@@ -811,7 +811,8 @@ async function openQuickCash(contactId){
    const resultAfter=Number(data.balance_after_vnd);
    if(Number.isFinite(resultAfter))debtVnd=resultAfter*1000;
    paintBalance();
-   feedback.textContent='Đã thu '+cashFormatThousands(vnd)+' (÷1.000) · Sổ #'+data.ledger_id;
+   feedback.textContent='Đã thu '+cashFormatThousands(vnd)+' (÷1.000) · Sổ #'+data.ledger_id
+     +(data.notice_sent===true?' · Đã gửi tin xác nhận':' · Chưa gửi tin: kiểm tra cài đặt thông báo');
    submit.hidden=true;refreshButton.hidden=true;
    closeButtons.forEach(x=>{x.disabled=false;if(x!==overlay.querySelector('.admin-composer-quote-backdrop'))x.textContent='Đóng';});
    void window.V21SyncEngine?.wake?.({reason:'quick-cash-collection'});
