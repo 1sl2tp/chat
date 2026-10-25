@@ -3,6 +3,7 @@ import {createClient} from "npm:@supabase/supabase-js@2.57.4";
 import {RULE_VERSION,SYSTEM_PROMPT,validateVisionRead,readV4Fields} from "./bill-amount-rules.mjs";
 import {previewBillSmsMatch,readIncomingAgribankSms} from "./bill-sms-preview.mjs";
 import {previewBillAppMatch,previewBillReferenceMatch} from "./bill-app-preview.mjs";
+import {compareBillTransferIdentity} from "./bill-transfer-identity.mjs";
 
 const db=createClient(Deno.env.get("SUPABASE_URL")||"",Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"",{auth:{persistSession:false,autoRefreshToken:false}});
 const response=(body:any,status=200)=>new Response(JSON.stringify(body),{status,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store"}});
@@ -153,7 +154,7 @@ Deno.serve(async req=>{
            .eq("is_own_transfer",false).eq("bank_credit_account","2901181999999").eq("amount_vnd",r.amount_vnd)
            .gte("transfer_at",lo.toISOString()).lte("transfer_at",hi.toISOString()).limit(100),
          db.from("chat_bank_bill_receipts")
-           .select("media_asset_id,status,amount_vnd,transfer_at_vn,transfer_reference,raw_read,sent_at")
+           .select("media_asset_id,status,amount_vnd,transfer_at_vn,transfer_reference,sending_bank,image_sha256,raw_read,sent_at")
            .eq("amount_vnd",r.amount_vnd).neq("media_asset_id",asset)
            .gte(hasReference?"sent_at":"transfer_at_vn",hasReference?lo.toISOString():vn(lo))
            .lte(hasReference?"sent_at":"transfer_at_vn",hasReference?hi.toISOString():vn(hi)).limit(100)
@@ -163,6 +164,7 @@ Deno.serve(async req=>{
          const candidate={
            media_asset_id:asset,status:"amount_read",amount_vnd:r.amount_vnd,sent_at:r.sent_at,
            receiving_name:r.receiving_name,receiving_bank:r.receiving_bank,
+           sender_name:r.raw_read?.sender_name,sending_bank:r.sending_bank,
            receiving_account:r.receiving_account,
            receiving_account_last5:r.raw_read?.recipient_account_last5,
            transfer_at_vn:r.transfer_at_vn,transfer_date_vn:r.raw_read?.transfer_date_vn,
@@ -289,7 +291,7 @@ Deno.serve(async req=>{
        const vn=x=>new Date(x.getTime()+7*3600000).toISOString().slice(0,19).replace("T"," ");
        const [otherRes,appRes]=await Promise.all([
          db.from("chat_bank_bill_receipts")
-           .select("media_asset_id,status,amount_vnd,transfer_at_vn,transfer_reference,raw_read,sent_at")
+           .select("media_asset_id,status,amount_vnd,transfer_at_vn,transfer_reference,sending_bank,image_sha256,raw_read,sent_at")
            .eq("amount_vnd",amount).neq("media_asset_id",asset)
            .gte(hasReference?"sent_at":"transfer_at_vn",hasReference?lo.toISOString():vn(lo))
            .lte(hasReference?"sent_at":"transfer_at_vn",hasReference?hi.toISOString():vn(hi)).limit(100),
@@ -332,6 +334,7 @@ Deno.serve(async req=>{
       amount_vnd:amount,amount_text:String(parsed?.amount_text||"").slice(0,80),
       amount_clear:parsed?.amount_clear===true,uncertainty:String(parsed?.uncertainty||"").slice(0,160),
       recipient_account_last5:fields.receiving_account_last5,
+      sender_name:fields.sender_name,sending_bank:fields.sending_bank,
       recipient_account_visible:fields.receiving_account_visible,
       transaction_selection:fields.transaction_selection,
       transaction_nature:fields.transaction_nature,
@@ -340,6 +343,7 @@ Deno.serve(async req=>{
       transfer_content:fields.transfer_content,
       transaction_time_precision:fields.transaction_time_precision,
       recipient_name:fields.receiving_name,receiving_bank:fields.receiving_bank,
+      sender_name:fields.sender_name,sending_bank:fields.sending_bank,
       match_preview:storedPreview}});
    await db.from("chat_bank_bill_image_hashes").update({amount_vnd:amount,scan_status:amount===null?"unreadable":"amount_read"})
      .eq("image_sha256",digest).eq("first_asset_id",asset);
