@@ -18,6 +18,9 @@ const nguyenClone={...ngan,media_asset_id:'bill-cropped',
   sent_at:'2026-10-25T03:03:00Z'};
 
 assert.equal(compareBillTransferIdentity(ngan,binh),'distinct');
+assert.equal(compareBillTransferIdentity(ngan,{...ngan,media_asset_id:'same-ref-other-sender',
+  sender_name:'Nguyễn Ngọc Bình'}),'distinct',
+  'a common-looking reference cannot override a clearly different account owner');
 assert.equal(compareBillTransferIdentity(binh,binh2),'distinct');
 assert.equal(compareBillTransferIdentity(ngan,nguyenClone),'same',
   'identical bank reference+sender+origin+date is the same transfer despite another image');
