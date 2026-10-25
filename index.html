@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="03d4460473e322e98a440a83c44362f7912541e6a1cb31b08b37593427dd7814">
+<meta name="app-build-id" content="087321c87904b3a72d766aff61c8a0730e683b61f9e7a14e2ba8594a8b8f8b64">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -27218,7 +27218,16 @@ function agribankDisplayTime(raw,fallbackDay=''){
 }
 const localTime=x=>{
  if(!x)return'—';
- const s=String(x).replace('T',' ');
+ const s=String(x).trim();
+ // Bank/bill transfer_at_vn is a local wall-clock timestamp (no timezone).
+ if(/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/.test(s)&&
+    !/(Z|[+-]\d{2}:?\d{2})$/i.test(s))return s.slice(11,16);
+ // sent_at is timestamptz, often ISO UTC; slicing it showed 16:04 instead
+ // of 23:04 Vietnam time for C Sâm's repeated 235 bill.
+ const parsed=new Date(s);
+ if(Number.isFinite(parsed.getTime()))
+   return new Intl.DateTimeFormat('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',
+     hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(parsed);
  return s.length>=16?s.slice(11,16):s;
 };
 const statusText={
