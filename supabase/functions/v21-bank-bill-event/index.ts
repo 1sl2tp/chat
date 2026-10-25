@@ -65,6 +65,26 @@ async function findAlreadyCollectedTransfer(
    same_customer:previous.customer_account_id===customerId
  };
 }
+// BANK-214: reliable reference + same origin + business date identifies
+// reuploaded/cropped bills; never infer duplicate from amount alone.
+async function earlierMatchingReceipt(customerId:string,currentId:string,amount:number,fields:any,sentAt:string){
+ const reference=String(fields?.transfer_reference||"").trim();
+ if(!/^[A-Za-z0-9][A-Za-z0-9._-]{7,79}$/.test(reference)||!fields?.transfer_at_vn)return null;
+ const {data,error}=await db.from("chat_bank_bill_receipts")
+  .select("id,status,amount_vnd,transfer_at_vn,transfer_reference,sending_bank,raw_read,sent_at")
+  .eq("customer_account_id",customerId).eq("amount_vnd",amount)
+  .eq("transfer_reference",reference).neq("id",currentId)
+  .in("status",["amount_read","review","received","historical_reference","duplicate"])
+  .order("sent_at",{ascending:true}).limit(100);
+ if(error||!data||data.length>=100)throw Error("transfer_reference_check_unavailable");
+ const current={amount_vnd:amount,...fields};
+ return data.find(x=>{
+  const earlier=Date.parse(x.sent_at||""),nowSent=Date.parse(sentAt||"");
+  return Number.isFinite(earlier)&&Number.isFinite(nowSent)
+   &&(earlier<nowSent||(earlier===nowSent&&x.id<currentId))
+   &&compareBillTransferIdentity(current,x)==="same";
+ })||null;
+}
 async function finish(asset:string,change:Record<string,unknown>){
  const {error}=await db.from("chat_bank_bill_receipts").update({...change,scanned_at:new Date().toISOString(),scan_started_at:null}).eq("media_asset_id",asset).eq("status","scanning");
  if(error)throw new Error("receipt_save_failed");
@@ -315,14 +335,19 @@ Deno.serve(async req=>{
    const prior= status==="amount_read"&&amount
       ?await findAlreadyCollectedTransfer(job.customer_account_id,amount,
         fields.transfer_at_vn,fields.transfer_reference,matchPreview):null;
-   const settledDuplicate=!!prior?.same_customer;
+   const earlier=status==="amount_read"&&amount
+      ?await earlierMatchingReceipt(job.customer_account_id,job.id,amount,fields,job.sent_at):null;
+   const settledDuplicate=!!prior?.same_customer||!!earlier;
+   const repeatedReceiptId=prior?.same_customer?prior.receipt_id:earlier?.id;
    const classification=settledDuplicate?"duplicate":prior?"review":status;
-   const classificationReason=settledDuplicate?"duplicate_transfer_already_collected":
+   const classificationReason=prior?.same_customer?"duplicate_transfer_already_collected":
+     earlier?"duplicate_verified_transfer_reference":
      prior?"bank_transfer_already_used_by_other_customer":reason;
-   const storedPreview=prior?{status:"review",reason:classificationReason,
+   const storedPreview=settledDuplicate?{status:"review",reason:classificationReason,
+      prior_receipt_id:repeatedReceiptId}:prior?{status:"review",reason:classificationReason,
       prior_receipt_id:prior.receipt_id}:matchPreview;
    await finish(asset,{status:classification,reason:classificationReason,
-     duplicate_of:settledDuplicate?prior.receipt_id:null,
+     duplicate_of:settledDuplicate?repeatedReceiptId:null,
      image_sha256:digest,amount_vnd:amount,model_name:model,
      receiving_name:fields.receiving_name,receiving_account:fields.receiving_account,
      receiving_bank:fields.receiving_bank,sending_bank:fields.sending_bank,
@@ -347,11 +372,11 @@ Deno.serve(async req=>{
       match_preview:storedPreview}});
    await db.from("chat_bank_bill_image_hashes").update({amount_vnd:amount,scan_status:amount===null?"unreadable":"amount_read"})
      .eq("image_sha256",digest).eq("first_asset_id",asset);
-   if(prior){
+   if(prior||earlier){
      if(settledDuplicate)
        try{await notifyTestScan(asset,job.customer_account_id,"duplicate",amount);}catch(e){console.warn("transfer_duplicate_feedback_failed",String(e).slice(0,80));}
      return response({ok:true,status:classification,reason:classificationReason,
-       ai_called:true,ledger_written:false,duplicate_of:prior.receipt_id});
+       ai_called:true,ledger_written:false,duplicate_of:repeatedReceiptId||prior?.receipt_id});
    }
    // BANK-164: only the service-role RPC may authorize a TAPHOA collection.
    // DB independently verifies the Agribank notification, bill and Admin state.
