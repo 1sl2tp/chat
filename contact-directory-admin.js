@@ -53,16 +53,17 @@ function activityTime(item){
   const parsed=Date.parse(String(item?.latest_at||''));
   return Number.isFinite(parsed)?parsed:0;
 }
-function sortDirectoryContacts(items=[]){
-  return [...(Array.isArray(items)?items:[])]
-    .filter(item=>item?.id&&!item?.deleted_at)
-    .sort((a,b)=>{
-      const pinned=Number(isPinnedReportContact(b))-Number(isPinnedReportContact(a));
-      if(pinned)return pinned;
-      const activity=activityTime(b)-activityTime(a);
-      if(activity)return activity;
-      return 0;
-    });
+function sortDirectoryContacts(items=[],{reorder=true}={}){
+  // Normalize once for both paths; search/filter must not bypass deleted-row guards.
+  const active=[...(Array.isArray(items)?items:[])].filter(item=>item?.id&&!item?.deleted_at);
+  if(!reorder)return active;
+  return active.sort((a,b)=>{
+    const pinned=Number(isPinnedReportContact(b))-Number(isPinnedReportContact(a));
+    if(pinned)return pinned;
+    const activity=activityTime(b)-activityTime(a);
+    if(activity)return activity;
+    return 0;
+  });
 }
 async function invokeBody(body){
   const client=authStore()?.getClient?.();
@@ -180,7 +181,7 @@ function syncDirectoryRows({scrollToTop=false,reorder=true}={}){
   const viewport=window.V21DirectoryViewport;
   const scrollAnchor=viewport?.capture?.(scrollHost,host)||null;
   const previousScrollTop=scrollHost?.scrollTop||0;
-  const contacts=reorder ? sortDirectoryContacts(contactStore()?.snapshot?.()||[]) : contactStore()?.snapshot?.()||[];
+  const contacts=sortDirectoryContacts(contactStore()?.snapshot?.()||[],{reorder});
   const rowsById=new Map([...host.querySelectorAll('[data-contact-row]')].map(row=>[String(row.dataset.contactId||''),row]));
   host.querySelector('.contact-directory-empty')?.remove();
   let visible=0;
