@@ -59,48 +59,48 @@ const context=vm.createContext({
   }
 });
 vm.runInContext(shell.slice(start,end)+'\nthis.dispatch=handleShellOverlayKeydown;',context);
-function key(keyName,other={}){
+function makeKey(keyName,other={}){
   return {
     key:keyName,defaultPrevented:false,blocked:0,shiftKey:false,...other,
     preventDefault(){this.defaultPrevented=true;},
     stopImmediatePropagation(){this.blocked++;}
   };
 }
-let event=key('Escape');
+let event=makeKey('Escape');
 context.dispatch(event);
 assert.equal(state.confirmVisible,false,'first Escape only closes delete confirmation');
 assert.equal(state.closeProfileCount,0);
 assert.equal(event.blocked,1);
-event=key('Escape');
+event=makeKey('Escape');
 context.dispatch(event);
 assert.equal(state.closeProfileCount,1,'second Escape closes profile');
 assert.equal(context.profileOverlay,null);
 context.profileOverlay={};
 context.document.activeElement=first;
-event=key('Tab',{shiftKey:true});
+event=makeKey('Tab',{shiftKey:true});
 context.dispatch(event);
 assert.equal(state.focused,'last','Shift+Tab wraps within profile');
 assert.equal(event.defaultPrevented,true);
 context.document.activeElement=last;
-event=key('Tab');
+event=makeKey('Tab');
 context.dispatch(event);
 assert.equal(state.focused,'first','Tab wraps within profile');
 context.profileOverlay=null;
 context.accountMenuOpen=true;
 context.activeMode='ACCOUNT_SETTINGS';
-event=key('Escape');
+event=makeKey('Escape');
 context.dispatch(event);
 assert.equal(state.accountCloseCount,0,'other overlay owner must take precedence');
 context.activeMode='NONE';
-event=key('Escape');
+event=makeKey('Escape');
 context.dispatch(event);
 assert.equal(state.accountCloseCount,1);
 assert.equal(event.blocked,1);
 context.sidebarOpen=true;
-event=key('Escape',{defaultPrevented:true});
+event=makeKey('Escape',{defaultPrevented:true});
 context.dispatch(event);
 assert.equal(state.sidebarCloseCount,0,'consumed Escape must not cascade');
-event=key('Escape');
+event=makeKey('Escape');
 context.dispatch(event);
 assert.equal(state.sidebarCloseCount,1);
 assert.equal(context.sidebarOpen,false);
