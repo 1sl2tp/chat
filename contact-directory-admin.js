@@ -148,13 +148,13 @@ function ensureDirectoryTools(){
   queueMicrotask(syncFilterArrow);
   const input=tools.querySelector('[data-contact-directory-search]');
   input.value=query;
-  input.addEventListener('input',()=>{query=String(input.value||'');syncDirectoryRows();});
+  input.addEventListener('input',()=>{query=String(input.value||'');syncDirectoryRows({reorder:false});});
   for(const button of tools.querySelectorAll('[data-contact-directory-filter]')){
     button.dataset.active=String(button.dataset.contactDirectoryFilter===filter);
     button.addEventListener('click',()=>{
       filter=String(button.dataset.contactDirectoryFilter||'all');
       for(const peer of tools.querySelectorAll('[data-contact-directory-filter]'))peer.dataset.active=String(peer===button);
-      syncDirectoryRows();
+      syncDirectoryRows({reorder:false});
     });
   }
   return tools;
@@ -168,7 +168,7 @@ function matchesDirectory(item){
   if(filter==='all')return true;
   return groupKey(groupMap.get(String(item?.id||'')))===filter;
 }
-function syncDirectoryRows({scrollToTop=false}={}){
+function syncDirectoryRows({scrollToTop=false,reorder=true}={}){
   if(!currentAdmin()){
     removeDirectoryTools();
     return;
@@ -180,7 +180,7 @@ function syncDirectoryRows({scrollToTop=false}={}){
   const viewport=window.V21DirectoryViewport;
   const scrollAnchor=viewport?.capture?.(scrollHost,host)||null;
   const previousScrollTop=scrollHost?.scrollTop||0;
-  const contacts=sortDirectoryContacts(contactStore()?.snapshot?.()||[]);
+  const contacts=reorder ? sortDirectoryContacts(contactStore()?.snapshot?.()||[]) : contactStore()?.snapshot?.()||[];
   const rowsById=new Map([...host.querySelectorAll('[data-contact-row]')].map(row=>[String(row.dataset.contactId||''),row]));
   host.querySelector('.contact-directory-empty')?.remove();
   let visible=0;
@@ -192,8 +192,10 @@ function syncDirectoryRows({scrollToTop=false}={}){
     row.dataset.contactPinned=isPinnedReportContact(item)?'report':'';
     row.hidden=!show;
     if(show)visible+=1;
-    if(row===cursor)cursor=cursor.nextElementSibling;
-    else host.insertBefore(row,cursor);
+    if(reorder){
+      if(row===cursor)cursor=cursor.nextElementSibling;
+      else host.insertBefore(row,cursor);
+    }
   }
   if(!visible&&contacts.length){
     const empty=document.createElement('div');
@@ -316,7 +318,7 @@ document.addEventListener('click',event=>{
       if(query||String(input?.value||'')){
         query='';
         if(input)input.value='';
-        syncDirectoryRows();
+        syncDirectoryRows({reorder:false});
       }
     }
   }
@@ -326,7 +328,9 @@ document.addEventListener('click',event=>{
   }
 });
 const overlayRoot=document.querySelector('[data-global-overlay-root]')||document.body;
-new MutationObserver(scheduleSync).observe(overlayRoot,{childList:true,subtree:true});
+// Dialog-internal DOM changes belong to the dialog; only direct overlay
+// additions/removals need directory reconciliation.
+new MutationObserver(scheduleSync).observe(overlayRoot,{childList:true});
 scheduleSync();
 
 window.V21ContactDirectoryAdmin=Object.freeze({sortDirectoryContacts,isPinnedReportContact,sync:syncDirectoryRows,groupForContact,refreshGroups:()=>ensureGroups({force:true})});
