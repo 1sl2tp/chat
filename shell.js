@@ -1055,22 +1055,7 @@ function profileFocusable(){
     .filter(node=>!node.hidden&&node.getClientRects().length>0);
 }
 
-document.addEventListener('keydown',event=>{
-  if(!profileOverlay)return;
-  if(event.key==='Escape'){
-    event.preventDefault();
-    if(closeProfileDeleteConfirmation({restoreFocus:true}))return;
-    closeProfileEditor();
-    return;
-  }
-  if(event.key==='Tab'){
-    const nodes=profileFocusable();
-    if(!nodes.length){event.preventDefault();return;}
-    const first=nodes[0],last=nodes[nodes.length-1];
-    if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
-    else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
-  }
-});
+
 
 function buildProfileEditor({mode='self',account:target}={}){
   closeProfileEditor();
@@ -1884,12 +1869,48 @@ document.addEventListener('input',event=>{
   if(['name','account','password'].includes(key))clearFieldInvalid(key);
 });
 
-document.addEventListener('keydown',event=>{
+// One shell-owned dispatcher: higher interaction overlays keep their own key handler.
+// A single Escape always dismisses only the topmost shell layer.
+function handleShellOverlayKeydown(event){
+  if(event.defaultPrevented)return;
+  if(profileOverlay){
+    if(event.key==='Escape'){
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if(closeProfileDeleteConfirmation({restoreFocus:true}))return;
+      closeProfileEditor();
+      return;
+    }
+    if(event.key==='Tab'){
+      const nodes=profileFocusable();
+      if(!nodes.length){event.preventDefault();return;}
+      const first=nodes[0],last=nodes[nodes.length-1];
+      if(event.shiftKey&&document.activeElement===first){
+        event.preventDefault();last.focus({preventScroll:true});
+      }else if(!event.shiftKey&&document.activeElement===last){
+        event.preventDefault();first.focus({preventScroll:true});
+      }
+    }
+    return;
+  }
   if(event.key!=='Escape')return;
-  if(profileOverlay){closeProfileEditor();return;}
-  if(accountMenuOpen){event.preventDefault();closeAccountMenu({restoreFocus:true});return;}
-  if(sidebarOpen)setSidebar(false);
-});
+  // Settings, viewer, forward and call controls are owned by InteractionController,
+  // not by the shell sidebar/account-menu Escape fallback.
+  const activeMode=String(interactionController()?.snapshot?.()?.mode||'NONE');
+  if(activeMode!=='NONE')return;
+  if(accountMenuOpen){
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    closeAccountMenu({restoreFocus:true});
+    return;
+  }
+  if(sidebarOpen){
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    setSidebar(false);
+  }
+}
+document.addEventListener('keydown',handleShellOverlayKeydown);
 
 document.addEventListener('v21-interaction-abort',()=>{
   if(profileOverlay)closeProfileEditor({restoreFocus:false});
