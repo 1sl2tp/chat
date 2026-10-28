@@ -30,7 +30,7 @@ def test_directory_activity_refresh_preserves_viewport_and_manual_filter_keeps_p
     # Contact-store activity may reorder rows, but the current directory
     # viewport belongs to the user. Opening/marking a conversation read must
     # never force the sidebar back to row 1.
-    assert "function syncDirectoryRows({scrollToTop=false}={})" in module
+    assert "function syncDirectoryRows({scrollToTop=false,reorder=true}={})" in module
     assert "if(scrollToTop)scrollHost.scrollTop=0" in module
     assert "else if(scrollAnchor)viewport.restore(scrollHost,host,scrollAnchor)" in module
     assert "function scheduleSync({scrollToTop=false}={})" in module
@@ -40,7 +40,10 @@ def test_directory_activity_refresh_preserves_viewport_and_manual_filter_keeps_p
 
     # Search/filter changes are user-owned navigation inside the directory and
     # must not force a jump to the top.
-    assert "input.addEventListener('input',()=>{query=String(input.value||'');syncDirectoryRows();})" in module
+    assert "input.addEventListener('input',()=>{query=String(input.value||'');syncDirectoryRows({reorder:false});})" in module
+    assert "if(reorder){" in module
+    assert "new MutationObserver(scheduleSync).observe(overlayRoot,{childList:true});" in module
+    assert "subtree:true" not in module
     assert "syncDirectoryRows();" in module
 
 
