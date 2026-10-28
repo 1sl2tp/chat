@@ -105,3 +105,54 @@ context.dispatch(event);
 assert.equal(state.sidebarCloseCount,1);
 assert.equal(context.sidebarOpen,false);
 console.log('Chat UI keyboard dispatcher behavioral modal stack PASS');
+
+
+// Verify the actual directory function: typing changes visibility but never
+// reorders DOM; realtime activity can reorder through its separate owner.
+const directoryBegin=directory.indexOf('function syncDirectoryRows({scrollToTop=false,reorder=true}={}){');
+const directoryEnd=directory.indexOf('function setPopupError(',directoryBegin);
+assert(directoryBegin>=0&&directoryEnd>directoryBegin);
+const contactA={id:'A'},contactB={id:'B'};
+const directoryRows=[{dataset:{contactId:'A'},hidden:false},{dataset:{contactId:'B'},hidden:false}];
+let directoryMoves=0;
+const directoryScroll={scrollTop:112};
+const directoryHost={
+  children:directoryRows,
+  closest(){return directoryScroll;},
+  querySelector(){return null;},
+  querySelectorAll(){return this.children;},
+  get firstElementChild(){return this.children[0];},
+  insertBefore(row,cursor){
+    directoryMoves++;
+    this.children.splice(this.children.indexOf(row),1);
+    const at=cursor?this.children.indexOf(cursor):this.children.length;
+    this.children.splice(at<0?this.children.length:at,0,row);
+  }
+};
+for(const row of directoryRows){
+  Object.defineProperty(row,'nextElementSibling',{
+    get(){return directoryHost.children[directoryHost.children.indexOf(row)+1]||null;}
+  });
+}
+const dContext=vm.createContext({
+  window:{V21DirectoryViewport:{capture:()=>null}},
+  document:{querySelector:()=>directoryHost,createElement:()=>({})},
+  currentAdmin:()=>({id:'admin'}),
+  ensureDirectoryTools:()=>{},
+  contactStore:()=>({snapshot:()=>[contactA,contactB]}),
+  sortDirectoryContacts:()=>[contactB,contactA],
+  isPinnedReportContact:()=>false,
+  matchesDirectory:item=>item.id==='B',
+  removeDirectoryTools:()=>{}
+});
+vm.runInContext(directory.slice(directoryBegin,directoryEnd)+String.fromCharCode(10)+'this.sync=syncDirectoryRows;',dContext);
+dContext.sync({reorder:false});
+assert.equal(directoryMoves,0,'typing must not move contact DOM');
+assert.equal(directoryRows[0].hidden,true);
+assert.equal(directoryRows[1].hidden,false);
+assert.equal(directoryScroll.scrollTop,112,'filter does not force scroll top');
+dContext.matchesDirectory=()=>true;
+dContext.sync({reorder:true});
+assert.equal(directoryMoves,1,'contact-store activity can reorder once');
+assert.deepEqual(directoryHost.children.map(row=>row.dataset.contactId),['B','A']);
+console.log('Chat UI directory filtering versus realtime reorder behavioral PASS');
