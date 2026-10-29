@@ -93,8 +93,12 @@ function fixture(){
       account:{id:account},client:clientFor(account,session)
     };
     currentContact={id:'contact-'+account,conversation_id:'SAME-CONV',has_unread:true,latest_at:'2026-10-29T00:00:00Z'};
+    // Only gate unrelated auth-bootstrap network in this deterministic VM.
+    // The real read-ACK and read-state scenarios run online below.
+    ctx.navigator.onLine=false;
     document.dispatchEvent({type:'v21-auth-state',detail:{state:'AUTHENTICATED'}});
     await drain();
+    ctx.navigator.onLine=true;
     assert.equal(ctx.V21SyncEngine.snapshot().accountId,account);
   }
   const counts=name=>rpcs.filter(x=>x.name===name).length;
