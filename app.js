@@ -2755,6 +2755,29 @@ function messageTimestampMs(message){
   return Number.isFinite(parsed)&&parsed>0?parsed:0;
 }
 
+function syncMessageTimeNode(unit,message){
+  if(!unit)return;
+  const stamp=messageTimestampMs(message);
+  let time=unit.querySelector(':scope > .message-sent-time');
+  if(!stamp){time?.remove();return;}
+  if(!time){
+    time=document.createElement('time');
+    time.className='message-sent-time';
+    unit.appendChild(time);
+  }
+  const date=new Date(stamp);
+  time.dateTime=date.toISOString();
+  time.textContent=date.toLocaleTimeString('vi-VN',{
+    timeZone:'Asia/Ho_Chi_Minh',hour:'2-digit',minute:'2-digit',hour12:false
+  });
+  const full=date.toLocaleString('vi-VN',{
+    timeZone:'Asia/Ho_Chi_Minh',day:'2-digit',month:'2-digit',year:'numeric',
+    hour:'2-digit',minute:'2-digit',hour12:false
+  });
+  time.title='Gửi lúc '+full;
+  time.setAttribute('aria-label','Gửi lúc '+full);
+}
+
 function messageDateKey(timestamp){
   const stamp=typeof timestamp==='number'?timestamp:Date.parse(timestamp);
   if(!Number.isFinite(stamp)||stamp<=0)return '';
@@ -2855,7 +2878,8 @@ function messageVisualSignature(message){
     reply,
     mediaVisualSignature(message?.media),
     messageDateKey(messageTimestampMs(message)),
-    messageDaySeparatorLabel(message)
+    messageDaySeparatorLabel(message),
+    messageTimestampMs(message)
   ]);
 }
 
@@ -3050,7 +3074,7 @@ function patchImageGalleryNode(grid,media,{message=null}={}){
         viewerContext:{
           messageId:message?.id||'',
           senderKey:message?.sender||'remote',
-          createdAt:message?.createdAt||Date.now()
+          createdAt:messageTimestampMs(message)
         }
       });
     }else{
@@ -3060,7 +3084,7 @@ function patchImageGalleryNode(grid,media,{message=null}={}){
         viewerContext:{
           messageId:message?.id||'',
           senderKey:message?.sender||'remote',
-          createdAt:message?.createdAt||Date.now()
+          createdAt:messageTimestampMs(message)
         }
       });
       tile.dataset.galleryTile='true';
@@ -3105,7 +3129,7 @@ function createImageGalleryNode(media,{message=null}={}){
       viewerContext:{
         messageId:message?.id||'',
         senderKey:message?.sender||'remote',
-        createdAt:message?.createdAt||Date.now()
+        createdAt:messageTimestampMs(message)
       }
     });
     tile.dataset.galleryTile='true';
@@ -3636,7 +3660,7 @@ function patchMediaNode(node,media,{message=null}={}){
       viewerContext:{
         messageId:message?.id||'',
         senderKey:message?.sender||'remote',
-        createdAt:message?.createdAt||Date.now()
+        createdAt:messageTimestampMs(message)
       }
     });
     node.classList.toggle('mt-2',Boolean(message?.text||message?.replyTo));
@@ -3671,7 +3695,7 @@ function createMediaNode(media,{message=null}={}){
   }else if(media.type==='image'){
     const wrap=createImageTile(media,{
       className:'block h-full w-full object-contain',
-      viewerContext:{messageId:message?.id||'',senderKey:message?.sender||'remote',createdAt:message?.createdAt||Date.now()}
+      viewerContext:{messageId:message?.id||'',senderKey:message?.sender||'remote',createdAt:messageTimestampMs(message)}
     });
     wrap.className+=' max-w-full rounded-xl';
     if(message?.text||message?.replyTo)wrap.classList.add('mt-2');
@@ -4763,6 +4787,7 @@ function patchMessageNode(node,message){
     }
   }
 
+  syncMessageTimeNode(unit,message);
   node.__visualSignature=messageVisualSignature(message);
   return node;
 }
@@ -4829,6 +4854,7 @@ function renderMessageNode(message){
   }
 
   unit.appendChild(createActionGroup(message));
+  syncMessageTimeNode(unit,message);
   messageWrap.appendChild(unit);
   stack.appendChild(messageWrap);
   outer.appendChild(stack);

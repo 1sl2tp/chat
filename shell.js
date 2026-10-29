@@ -973,18 +973,48 @@ function compactPreview(value){
   return String(value||'').replace(/\s+/g,' ').trim();
 }
 
-function formatContactTime(value){
+function formatContactTime(value,{now=new Date()}={}){
   if(!value)return'';
   const date=new Date(value);
   if(Number.isNaN(date.getTime()))return'';
-  const now=new Date();
-  const startOfToday=new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime();
-  const startOfDate=new Date(date.getFullYear(),date.getMonth(),date.getDate()).getTime();
-  const dayDiff=Math.floor((startOfToday-startOfDate)/86400000);
-  if(dayDiff===0)return date.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false});
-  if(dayDiff===1)return'Hôm qua';
-  if(dayDiff>=2&&dayDiff<=6)return date.toLocaleDateString('vi-VN',{weekday:'long'});
-  return date.toLocaleDateString('vi-VN',{day:'numeric',month:'numeric',year:'2-digit'});
+  // Directory, message-day separators and media viewer use one VN calendar,
+  // independent of the phone or browser's own timezone.
+  const key=value=>new Intl.DateTimeFormat('en-CA',{
+    timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'
+  }).format(value);
+  const ordinal=value=>{
+    const [year,month,day]=key(value).split('-').map(Number);
+    return Math.floor(Date.UTC(year,month-1,day)/86400000);
+  };
+  const diff=ordinal(new Date(now))-ordinal(date);
+  if(diff===0)return date.toLocaleTimeString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',hour:'2-digit',minute:'2-digit',hour12:false});
+  if(diff===1)return'Hôm qua';
+  if(diff>=2&&diff<=6)return date.toLocaleDateString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',weekday:'short'});
+  return date.toLocaleDateString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',day:'numeric',month:'numeric',year:'2-digit'});
+}
+function setContactTimeNode(node,item){
+  if(!node)return;
+  const reportView=bankReportContactView(item);
+  const instant=reportView?reportView.instant:item?.latest_at;
+  // Report's long 'Đã xem dd/mm HH:mm' belongs in the accessible detail,
+  // while the narrow directory rail displays only the exact HH:mm.
+  node.textContent=reportView
+    ?(instant?formatContactTime(instant):reportView.time)
+    :formatContactTime(instant);
+  if(instant&&!Number.isNaN(new Date(instant).getTime())){
+    node.dateTime=String(instant);
+    const full=new Date(instant).toLocaleString('vi-VN',{
+      timeZone:'Asia/Ho_Chi_Minh',day:'2-digit',month:'2-digit',year:'numeric',
+      hour:'2-digit',minute:'2-digit',hour12:false
+    });
+    node.title=reportView?reportView.time:full;
+    node.setAttribute('aria-label',reportView?reportView.time:'Tin gần nhất '+full);
+  }else{
+    node.removeAttribute('datetime');
+    node.title=reportView?.time||'';
+    if(reportView)node.setAttribute('aria-label',reportView.time);
+    else node.removeAttribute('aria-label');
+  }
 }
 
 function contactPreview(item){
@@ -1406,10 +1436,7 @@ function createRenderedContactRow(item){
   const previewText=contactPreview(item);
   preview.textContent=item.locked_at?(previewText==='Chưa có tin nhắn'?'Đã khóa':`Đã khóa · ${previewText}`):previewText;
   const time=document.createElement('time');time.className='shell-contact-time';
-  const reportView=bankReportContactView(item);
-  time.textContent=reportView?reportView.time:formatContactTime(item.latest_at);
-  const timeInstant=reportView?reportView.instant:item.latest_at;
-  if(timeInstant)time.dateTime=String(timeInstant);
+  setContactTimeNode(time,item);
   copy.append(title,preview,time);
 
   button.append(avatarWrap,copy);
@@ -1443,12 +1470,7 @@ function patchRenderedContact(item){
     preview.textContent=item.locked_at?(previewText==='Chưa có tin nhắn'?'Đã khóa':`Đã khóa · ${previewText}`):previewText;
   }
   const time=row.querySelector('.shell-contact-time');
-  if(time){
-    const reportView=bankReportContactView(item);
-    time.textContent=reportView?reportView.time:formatContactTime(item.latest_at);
-    const timeInstant=reportView?reportView.instant:item.latest_at;
-    if(timeInstant)time.dateTime=String(timeInstant);else time.removeAttribute('datetime');
-  }
+  setContactTimeNode(time,item);
   const manage=row.querySelector('[data-contact-manage]');
   if(manage)manage.setAttribute('aria-label',`Mở thông tin liên hệ ${String(item.display_name||item.username||'Liên hệ')}`);
   return true;

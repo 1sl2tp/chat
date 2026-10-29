@@ -11,11 +11,13 @@ def compact(text: str) -> str:
 
 def test_contact_time_uses_clock_then_yesterday_then_weekday_then_compact_date():
     shell = compact(SHELL)
-    assert "constdayDiff=Math.floor((startOfToday-startOfDate)/86400000);" in shell
-    assert "if(dayDiff===0)returndate.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false});" in shell
-    assert "if(dayDiff===1)return'Hômqua';" in shell
-    assert "if(dayDiff>=2&&dayDiff<=6)returndate.toLocaleDateString('vi-VN',{weekday:'long'});" in shell
-    assert "returndate.toLocaleDateString('vi-VN',{day:'numeric',month:'numeric',year:'2-digit'});" in shell
+    # Day boundaries and display must follow Vietnam time even when browser TZ differs.
+    assert "timeZone:'Asia/Ho_Chi_Minh'" in shell
+    assert "constdiff=ordinal(newDate(now))-ordinal(date);" in shell
+    assert "if(diff===0)returndate.toLocaleTimeString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'" in shell
+    assert "if(diff===1)return'Hômqua';" in shell
+    assert "if(diff>=2&&diff<=6)returndate.toLocaleDateString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',weekday:'short'});" in shell
+    assert "returndate.toLocaleDateString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',day:'numeric',month:'numeric',year:'2-digit'});" in shell
 
 
 def test_contact_manage_action_only_appears_on_hover_or_keyboard_focus_desktop():
@@ -38,10 +40,11 @@ def test_contact_rows_follow_chatgpt_compact_surface_rhythm():
     assert "background:var(--theme-action-ghost-surface-hover)" in source
 
 
-def test_contact_context_action_replaces_time_on_hover_without_shifting_row():
+def test_contact_context_action_uses_second_row_without_hiding_time():
     source = compact(SOURCE)
-    assert ".shell-contact-manage{position:absolute;right:6px;top:50%;" in source
+    assert ".shell-contact-manage{position:absolute;right:6px;top:auto;bottom:3px;" in source
     assert "width:30px;height:30px;" in source
-    assert "transform:translateY(-50%)" in source
-    assert ".shell-contact-row:hover.shell-contact-time,.shell-contact-row:focus-within.shell-contact-time{opacity:0}" in source
+    assert "transform:none" in source
+    assert ".shell-contact-row:hover.shell-contact-time,.shell-contact-row:focus-within.shell-contact-time{opacity:0}" not in source
+    assert '.shell-contact-row[data-active="true"].shell-contact-time{opacity:0}' not in source
     assert ".shell-contact-row:hover.shell-contact-manage,.shell-contact-row:focus-within.shell-contact-manage{opacity:1;pointer-events:auto}" in source

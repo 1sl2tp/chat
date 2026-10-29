@@ -248,6 +248,23 @@ button{
   width:fit-content;
   max-width:100%;
 }
+/* Exact sent time sits below existing text/media without altering the
+   message bubble itself. Only already-virtualized messages own this node. */
+.message-sent-time{
+  display:block;
+  box-sizing:border-box;
+  min-width:2.5rem;
+  max-width:100%;
+  margin-top:3px;
+  color:var(--theme-content-tertiary);
+  font-size:11px;
+  line-height:14px;
+  font-weight:400;
+  white-space:nowrap;
+  font-variant-numeric:tabular-nums;
+}
+.user-message-unit>.message-sent-time{text-align:right}
+.assistant-message-unit>.message-sent-time{text-align:left}
 .user-message-unit{
   margin-left:auto;
   max-width:70%;
@@ -3635,11 +3652,12 @@ button{
 .shell-contact-name{grid-column:1;grid-row:1;min-width:0;font-size:.875rem;line-height:1.15rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .shell-contact-preview{grid-column:1;grid-row:2;min-width:0;color:var(--theme-content-secondary);font-size:.75rem;line-height:1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .shell-contact-preview:empty{display:none}
-.shell-contact-time{grid-column:2;grid-row:1;align-self:center;justify-self:end;width:52px;margin:0;color:var(--theme-content-tertiary);font-size:.6875rem;line-height:1rem;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.shell-contact-time{grid-column:2;grid-row:1;align-self:center;justify-self:end;min-width:0;max-width:100%;width:52px;margin:0;color:var(--theme-content-tertiary);font-size:.6875rem;line-height:1rem;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
 .shell-contact-manage{
   position:absolute;
   right:6px;
-  top:50%;
+  top:auto;
+  bottom:3px;
   z-index:2;
   width:30px;
   height:30px;
@@ -3653,22 +3671,20 @@ button{
   place-items:center;
   cursor:pointer;
   padding:0;
-  transform:translateY(-50%);
+  transform:none;
 }
 .shell-contact-manage:hover{background:var(--theme-action-ghost-surface-hover);color:var(--theme-content-primary)}
 .shell-contact-row:not(:last-child)::after{display:none}
+/* The first row's time is permanent metadata, never a hover/action slot.
+   The manage control uses the right rail of the second row, so neither a
+   long group name nor active/hover/focus can hide the latest-message time. */
 @media (hover:hover) and (pointer:fine){
-  .shell-contact-time{transition:opacity 120ms ease}
   .shell-contact-manage{opacity:0;pointer-events:none;transition:opacity 120ms ease,background-color 120ms ease,color 120ms ease}
-  .shell-contact-row:hover .shell-contact-time,
-  .shell-contact-row:focus-within .shell-contact-time{opacity:0}
   .shell-contact-row:hover .shell-contact-manage,
   .shell-contact-row:focus-within .shell-contact-manage{opacity:1;pointer-events:auto}
 }
-/* UI-214: keep the selected contact's profile action discoverable.
-   On touch the former display:none made renaming impossible from Chat. */
+/* On touch, selected conversations still expose their manage action. */
 .shell-contact-row[data-active="true"] .shell-contact-manage{opacity:1;pointer-events:auto}
-.shell-contact-row[data-active="true"] .shell-contact-time{opacity:0}
 @media (hover:none), (pointer:coarse){
   .shell-contact-manage{display:none!important}
   .shell-contact-row[data-active="true"] .shell-contact-manage{display:grid!important}
