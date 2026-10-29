@@ -100,4 +100,8 @@ assert.equal(s.time,'all');
 assert.equal(s.items.length,2);
 assert.equal(networkLoads,4);
 assert(revoked.length===1,'empty filter release is bounded and idempotent');
+// menuitemradio must publish its selected state even for an empty result set.
+const ownerSource=source.slice(source.indexOf('function updateImageViewerTimeMenu(){'),source.indexOf('function closeImageViewerTimeMenu(){'));
+assert(ownerSource.includes("button.setAttribute('aria-checked',active?'true':'false')"));
+assert(source.includes("item.setAttribute('role','menuitemradio')"));
 console.log('CHAT filtered photo viewer: empty state, no silent fallback, stale load cancellation and recovery PASS');
