@@ -98,7 +98,14 @@ vm.runInContext(source.slice(start,end),ctx);
  assert.equal(await vm.runInContext('pruneAdminTestConversationCache',ctx)(admin),false,'rerun should be idempotent');
  assert.equal(await vm.runInContext('pruneAdminTestConversationCache',ctx)(test),true);
  assert.equal(fullTestClear,1);
- assert(sync.indexOf('pruneAdminTestConversationCache?.(accountId)')<sync.indexOf('const cachedContacts=await hydrateAccount()'),
-  'purge must run before any persisted media/message hydration');
+ const authStart=sync.indexOf('async function onAuth(');
+ const authEnd=sync.indexOf('async function clearAccount(',authStart);
+ const authBody=sync.slice(authStart,authEnd);
+ const owner=authBody.indexOf('const context=captureSyncOwnerContext();');
+ const purge=authBody.indexOf('pruneAdminTestConversationCache?.(context.accountId)');
+ const fence=authBody.indexOf('if(!syncOwnerContextCurrent(context))return;',purge);
+ const hydration=authBody.indexOf('await hydrateAccount(context)');
+ assert(owner>=0&&purge>owner&&fence>purge&&hydration>fence,
+  'purge must run under the initiating owner and finish before cache hydration');
  console.log('Admin/test scoped deleted-chat cache purge: PASS');
 })().catch(error=>{console.error(error);process.exitCode=1;});
