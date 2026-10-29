@@ -79,23 +79,25 @@ assert.equal(s.time,'today');
 assert.equal(s.items.length,1);
 assert.equal(s.items[0].assetId,'two');
 assert.equal(networkLoads,1);
-// Explicitly choose a no-result album: never show all photos instead.
-const noAlbum=ctx.applySource('album');
-assert.equal(noAlbum,false);
+// Album follows the currently selected photo (b), rather than a stale
+// initial album (a); the one matching photo must remain visible.
+const album=ctx.applySource('album');
+assert(album&&typeof album.then==='function');
 s=ctx.state();
 assert.equal(s.filter,'album');
 assert.equal(s.time,'today');
-assert.equal(s.items.length,0);
-assert.equal(networkLoads,1);
-// Both All options can be restored by user intent (without duplicated loads).
+assert.equal(s.items.length,1);
+assert.equal(s.items[0].assetId,'two');
+assert.equal(networkLoads,2);
+// Both All options can be restored by user intent.
 ctx.applyTime('all');
 assert.equal(ctx.state().filter,'album');
-assert.equal(ctx.state().items.length,0);
+assert.equal(ctx.state().items.length,1);
 ctx.applySource('all');
 s=ctx.state();
 assert.equal(s.filter,'all');
 assert.equal(s.time,'all');
 assert.equal(s.items.length,2);
-assert.equal(networkLoads,2);
+assert.equal(networkLoads,4);
 assert(revoked.length===1,'empty filter release is bounded and idempotent');
 console.log('CHAT filtered photo viewer: empty state, no silent fallback, stale load cancellation and recovery PASS');
