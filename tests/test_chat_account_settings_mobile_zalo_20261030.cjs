@@ -79,7 +79,7 @@ vm.createContext(vmctx);
 vm.runInContext(
  getSection('function accountModel(){','function setAccountError(')+
  getSection('function normalizeAccountSearch(value){','function openAccountPicker(account){')+
- '\nglobalThis.paint=renderAccountRows;globalThis.matches=accountMatchesSearch;',vmctx);
+ '\nglobalThis.paint=renderAccountRows;globalThis.matches=accountMatchesSearch;globalThis.normalize=normalizeAccountSearch;',vmctx);
 vmctx.paint();
 assert.equal(body.childElementCount,4,'All mode: two Chat rows and two unassigned Zalo rows');
 assert.equal(toggle.textContent,'Thêm từ Zalo');
@@ -88,7 +88,7 @@ assert.equal(summary.textContent,'2 Chat · 2 Zalo chưa gán');
 // Accents, @username, and canonical Zalo identifiers all search locally.
 assert(vmctx.matches({display_name:'Hạ Thư'},null,'ha thu'));
 assert(vmctx.matches({username:'chua'},null,'@chua'));
-assert(vmctx.matches(null,{zalo_id:'z-3'},'Z-3'));
+assert(vmctx.matches(null,{zalo_id:'z-3'},vmctx.normalize('Z-3')));
 search.value='nhom ban hang';
 vmctx.paint();
 assert.equal(body.childElementCount,1);
