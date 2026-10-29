@@ -9,6 +9,7 @@ let accountPanelReturnFocus=null;
 let accountSnapshot={accounts:[],contacts:[],links:[]};
 let deviceSnapshot=[];
 let accountBusy=false;
+let accountDirectoryMode='all';
 const ACCOUNT_SETTINGS_OWNER='zalo-account-settings';
 
 function interactionController(){return window.V21InteractionController||null;}
@@ -383,7 +384,7 @@ function normalizeAccountSearch(value){
 
 function accountMatchesSearch(account,contact,query){
   if(!query)return true;
-  const haystack=normalizeAccountSearch([account?.display_name,account?.username,contact?.alias_name,contact?.display_name,contact?.profile_name].filter(Boolean).join(' '));
+  const haystack=normalizeAccountSearch([account?.display_name,account?.username,contact?.alias_name,contact?.display_name,contact?.profile_name,contact?.zalo_id,contact?.phone].filter(Boolean).join(' '));
   return haystack.includes(query);
 }
 
@@ -393,11 +394,15 @@ function renderAccountRows(){
   body.replaceChildren();
   const model=accountModel();
   const query=normalizeAccountSearch(accountModal?.querySelector?.('[data-zalo-account-search]')?.value||'');
+  const unassignedOnly=accountDirectoryMode==='unassigned-zalo';
+  let matchingChat=0;
+  let matchingUnassigned=0;
 
-  for(const account of model.accounts){
+  for(const account of (unassignedOnly?[]:model.accounts)){
     const link=model.linksByAccount.get(String(account.id))||null;
     const contact=link?model.contactsById.get(String(link.zalo_id))||null:null;
     if(!accountMatchesSearch(account,contact,query))continue;
+    matchingChat+=1;
     const row=document.createElement('div');
     row.className='zalo-account-row';
     row.dataset.accountId=String(account.id||'');
@@ -461,6 +466,7 @@ function renderAccountRows(){
   for(const contact of model.contacts){
     if(model.linksByZalo.has(String(contact.zalo_id)))continue;
     if(!accountMatchesSearch(null,contact,query))continue;
+    matchingUnassigned+=1;
     const row=document.createElement('div');
     row.className='zalo-account-row zalo-account-row-zalo-only';
     const chat=document.createElement('div');
@@ -489,10 +495,23 @@ function renderAccountRows(){
     body.appendChild(row);
   }
 
+  const toggle=accountModal?.querySelector?.('[data-zalo-account-unassigned]');
+  if(toggle){
+    toggle.textContent=unassignedOnly?'Tất cả':'Thêm từ Zalo';
+    toggle.setAttribute('aria-pressed',String(unassignedOnly));
+    toggle.setAttribute('aria-label',unassignedOnly?'Xem tất cả liên kết Chat và Zalo':'Hiển thị Zalo chưa gán để tạo tài khoản Chat');
+  }
+  const summary=accountModal?.querySelector?.('[data-zalo-account-directory-status]');
+  if(summary)summary.textContent=unassignedOnly
+    ?matchingUnassigned+' Zalo chưa gán'
+    :matchingChat+' Chat · '+matchingUnassigned+' Zalo chưa gán';
+
   if(!body.childElementCount){
     const empty=document.createElement('p');
     empty.className='zalo-account-empty';
-    empty.textContent='Chưa có dữ liệu tài khoản hoặc Zalo';
+    empty.textContent=query?'Không tìm thấy tài khoản hoặc Zalo phù hợp':
+      unassignedOnly?'Chưa có Zalo chưa gán. Hãy kết nối danh bạ Zalo trước.':
+      'Chưa có dữ liệu tài khoản hoặc Zalo';
     body.appendChild(empty);
   }
 }
@@ -662,6 +681,7 @@ function closeAccountAdmin({restoreFocus=true}={}){
   accountSnapshot={accounts:[],contacts:[],links:[]};
   deviceSnapshot=[];
   accountBusy=false;
+  accountDirectoryMode='all';
   interactionController()?.exit?.(accountSettingsMode(),{owner:ACCOUNT_SETTINGS_OWNER});
   const returnFocus=accountModalReturnFocus;
   accountModalReturnFocus=null;
@@ -1243,6 +1263,7 @@ async function openAccountAdmin(){
     <button type="button" class="zalo-account-backdrop" aria-label="Đóng"></button>
     <section class="zalo-account-card" role="dialog" aria-modal="true" aria-labelledby="zalo-account-title">
       <header class="zalo-account-modal-head"><div><h2 id="zalo-account-title">Cài đặt tài khoản</h2><p>Zalo · Thông báo · Thiết bị · Tự động thu</p></div><button type="button" class="zalo-account-close" aria-label="Đóng"></button></header>
+      <div class="zalo-account-preferences" data-zalo-account-preferences role="region" aria-label="Tùy chọn tài khoản">
       <div class="zalo-account-notification" data-admin-push-setting>
         <span class="zalo-account-notification-copy"><strong>Thông báo</strong><small data-admin-push-status>Bật thông báo</small></span>
         <button type="button" class="zalo-account-notification-action" data-admin-push-action data-mode="enable">Bật thông báo</button>
@@ -1263,7 +1284,12 @@ async function openAccountAdmin(){
         <span class="zalo-account-notification-copy"><strong>Máy Agribank Plus</strong><small>Chỉ Admin cấp mã một lần để ghép APK đọc thông báo tiền vào.</small></span>
         <button type="button" class="zalo-account-notification-action" data-admin-agribank-issue>Tạo mã Agribank</button>
       </div>
-      <label class="zalo-account-search"><span class="sr-only">Tìm tài khoản</span><input type="search" autocomplete="off" inputmode="search" placeholder="Tìm Chat, @username, Zalo hoặc nhóm" data-zalo-account-search></label>
+      </div>
+      <div class="zalo-account-directory-head">
+        <div class="zalo-account-directory-heading"><strong>Liên kết Chat – Zalo</strong><small data-zalo-account-directory-status aria-live="polite">Đang tải…</small></div>
+        <button type="button" class="zalo-account-unassigned" data-zalo-account-unassigned aria-pressed="false">Thêm từ Zalo</button>
+      </div>
+      <label class="zalo-account-search"><span class="sr-only">Tìm tài khoản Chat, tên Zalo hoặc nhóm</span><input type="search" autocomplete="off" inputmode="search" enterkeyhint="search" placeholder="Tìm Chat, @username, Zalo hoặc nhóm" data-zalo-account-search></label>
       <p class="zalo-account-error" data-zalo-account-error hidden></p>
       <div class="zalo-account-list" data-zalo-account-list></div>
       <div class="zalo-account-submodal" data-zalo-account-panel></div>
@@ -1282,6 +1308,13 @@ async function openAccountAdmin(){
   bankIssueAction?.addEventListener('click',()=>void issueAgribankDeviceToken(bankIssueAction));
   const autoCollectAction=accountModal.querySelector('[data-admin-auto-collect-action]');
   autoCollectAction?.addEventListener('click',()=>void runAutoCollectAction(autoCollectAction));
+  const unassignedButton=accountModal.querySelector('[data-zalo-account-unassigned]');
+  unassignedButton?.addEventListener('click',()=>{
+    accountDirectoryMode=accountDirectoryMode==='all'?'unassigned-zalo':'all';
+    renderAccountRows();
+    const list=accountModal?.querySelector?.('[data-zalo-account-list]');
+    if(list)list.scrollTop=0;
+  });
   const search=accountModal.querySelector('[data-zalo-account-search]');
   search?.addEventListener('input',()=>{
     renderAccountRows();
