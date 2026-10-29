@@ -15,7 +15,7 @@ assert(js.includes('data-zalo-account-list'));
 assert(js.includes("accountDirectoryMode=accountDirectoryMode==='all'?'unassigned-zalo':'all';"));
 assert(js.includes("accountDirectoryMode='all';"),'open/close reset to canonical All mode');
 assert(css.includes('.zalo-account-preferences{'));
-assert(css.includes('flex:0 1 auto;min-height:0;max-height:min(34svh,300px)'));
+assert(css.includes('flex:0 0 auto;min-height:0;max-height:min(34svh,300px)'));
 assert(css.includes('overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain'));
 assert(css.includes('.zalo-account-preferences .zalo-account-notification{'));
 assert(css.includes('flex:none;display:grid;grid-template-columns:minmax(0,1fr) auto;'));
