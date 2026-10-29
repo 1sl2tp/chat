@@ -384,7 +384,7 @@ function normalizeAccountSearch(value){
 
 function accountMatchesSearch(account,contact,query){
   if(!query)return true;
-  const haystack=normalizeAccountSearch([account?.display_name,account?.username,contact?.alias_name,contact?.display_name,contact?.profile_name,contact?.zalo_id,contact?.phone].filter(Boolean).join(' '));
+  const haystack=normalizeAccountSearch([account?.display_name,account?.username,account?.username?'@'+account.username:null,contact?.alias_name,contact?.display_name,contact?.profile_name,contact?.zalo_id,contact?.phone].filter(Boolean).join(' '));
   return haystack.includes(query);
 }
 
