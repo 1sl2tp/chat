@@ -44,11 +44,11 @@ function contactIdForConversation(conversationId){
   return row?.id?String(row.id):null;
 }
 
-async function refreshMessageSessionFromMedia(messageId,conversationId,changedAsset=null){
+async function refreshMessageSessionFromMedia(messageId,conversationId,changedAsset=null,context=captureSyncOwnerContext()){
   const id=String(messageId||'');
-  if(!id||!accountId)return null;
-  const parent=await cache()?.getMessage?.(accountId,id);
-  if(!parent)return null;
+  if(!id||!syncOwnerContextCurrent(context))return null;
+  const parent=await cache()?.getMessage?.(context.accountId,id);
+  if(!syncOwnerContextCurrent(context)||!parent)return null;
   let assets;
   if(changedAsset?.id){
     // The canonical event already carries the changed metadata. Avoid scanning
@@ -65,10 +65,12 @@ async function refreshMessageSessionFromMedia(messageId,conversationId,changedAs
     );
   }else{
     // First hydration/reconciliation still uses the durable local index.
-    assets=await media()?.listForMessage?.({accountId,messageId:id})||[];
+    assets=await media()?.listForMessage?.({accountId:context.accountId,messageId:id})||[];
+    if(!syncOwnerContextCurrent(context))return null;
   }
   const enriched={...parent,_media_assets:assets};
-  await cache()?.putMessage?.(accountId,enriched);
+  await cache()?.putMessage?.(context.accountId,enriched);
+  if(!syncOwnerContextCurrent(context))return null;
   const contactId=contactIdForConversation(conversationId||parent.conversation_id);
   if(contactId)messages()?.mergeForContact?.(enriched,{contactId,conversationId:conversationId||parent.conversation_id});
   return enriched;
@@ -215,18 +217,24 @@ function markActiveMessageDirty(messageId,conversationId,{reconcileMedia=false}=
   return true;
 }
 
-async function flushActiveMessageVisuals(){
-  if(!dirtyActiveMessageIds.size||!accountId||!currentConversationId)return 0;
+async function flushActiveMessageVisuals(context=captureSyncOwnerContext()){
+  if(!dirtyActiveMessageIds.size||!syncOwnerContextCurrent(context)||!currentConversationId)return 0;
+  const conversationId=String(currentConversationId);
+  const currentVisualOwner=()=>
+    syncOwnerContextCurrent(context)&&String(currentConversationId||'')===conversationId;
   const ids=Array.from(dirtyActiveMessageIds);
   dirtyActiveMessageIds.clear();
   const reconcileMedia=activeDirtyNeedsFullMediaIndex;
   activeDirtyNeedsFullMediaIndex=false;
   const mediaByMessage=reconcileMedia
-    ?await media()?.indexByMessage?.({accountId})||new Map()
+    ?await media()?.indexByMessage?.({accountId:context.accountId})||new Map()
     :new Map();
+  if(!currentVisualOwner())return 0;
   let applied=0;
   for(const id of ids){
-    const cached=await cache()?.getMessage?.(accountId,id);
+    if(!currentVisualOwner())return applied;
+    const cached=await cache()?.getMessage?.(context.accountId,id);
+    if(!currentVisualOwner())return applied;
     if(!cached||cached.deleted_at)continue;
     const indexedAssets=mediaByMessage.get(String(id))||[];
     const cachedAssets=Array.isArray(cached?._media_assets)?cached._media_assets.filter(item=>item&&!item.deleted_at):[];
@@ -239,8 +247,9 @@ async function flushActiveMessageVisuals(){
       dirtyActiveMessageIds.add(id);
       continue;
     }
-    await cache()?.putMessage?.(accountId,enriched);
-    const own=String(enriched.sender_account_id)===String(accountId);
+    await cache()?.putMessage?.(context.accountId,enriched);
+    if(!currentVisualOwner())return applied;
+    const own=String(enriched.sender_account_id)===context.accountId;
     messages()?.apply?.(enriched,{remote:!own});
     applied+=1;
   }
@@ -357,25 +366,31 @@ async function applyReadEvent(event){
   return true;
 }
 
-async function applyMediaEvent(event){
+async function applyMediaEvent(event,context=captureSyncOwnerContext()){
   const payload=canonicalMedia(event?.payload);
-  if(!payload?.id)return false;
+  if(!payload?.id||!syncOwnerContextCurrent(context))return false;
   if(event.op==='delete'||payload.deleted_at){
     await media()?.markDeleted?.({
-      accountId,assetId:payload.id,
+      accountId:context.accountId,assetId:payload.id,
       meta:{...payload,deleted_at:payload.deleted_at||new Date().toISOString()}
     });
+    if(!syncOwnerContextCurrent(context))return false;
     if(payload.message_id){
-      await refreshMessageSessionFromMedia(payload.message_id,payload.conversation_id,payload);
+      await refreshMessageSessionFromMedia(payload.message_id,payload.conversation_id,payload,context);
+      if(!syncOwnerContextCurrent(context))return false;
       markActiveMessageDirty(payload.message_id,payload.conversation_id);
     }
-    if(online())queueMicrotask(()=>{void syncContacts();});
+    if(online())queueMicrotask(()=>{
+      if(syncOwnerContextCurrent(context))void syncContacts();
+    });
   }else{
-    await media()?.putRemoteMeta?.({accountId,assetId:payload.id,meta:payload});
+    await media()?.putRemoteMeta?.({accountId:context.accountId,assetId:payload.id,meta:payload});
+    if(!syncOwnerContextCurrent(context))return false;
     wakeMediaDownload(payload);
     const parent=payload.message_id
-      ?await refreshMessageSessionFromMedia(payload.message_id,payload.conversation_id,payload)
+      ?await refreshMessageSessionFromMedia(payload.message_id,payload.conversation_id,payload,context)
       :null;
+    if(!syncOwnerContextCurrent(context))return false;
     const parentPreview=parent?messagePreviewContract(parent):null;
     const hasParentText=Boolean(String(parent?.body||'').trim());
     const preview=hasParentText
@@ -384,7 +399,8 @@ async function applyMediaEvent(event){
     await patchContactSummary(payload.conversation_id,{
       ...preview,
       latest_at:parent?.created_at||payload.created_at||new Date().toISOString()
-    });
+    },context);
+    if(!syncOwnerContextCurrent(context))return false;
     if(payload.message_id)markActiveMessageDirty(payload.message_id,payload.conversation_id);
   }
   return true;
@@ -395,7 +411,7 @@ async function applyEvent(event,context=captureSyncOwnerContext()){
   if(event.entity_type==='account')return applyContactEvent(event,context);
   if(event.entity_type==='message')return applyMessageEvent(event,context);
   if(event.entity_type==='read_state')return applyReadEvent(event);
-  if(event.entity_type==='media')return applyMediaEvent(event);
+  if(event.entity_type==='media')return applyMediaEvent(event,context);
   return false;
 }
 
@@ -409,7 +425,7 @@ function consumeRealtimeEvent(event={}){
     if(!syncOwnerContextCurrent(context))return false;
     const applied=await applyEvent(event,context);
     if(!syncOwnerContextCurrent(context)||!applied)return false;
-    await flushActiveMessageVisuals();
+    await flushActiveMessageVisuals(context);
     if(!syncOwnerContextCurrent(context))return false;
     // The current owner's message event may refresh the global unread badge.
     if(event.entity_type==='message'&&!chatVisible())void refreshUnread();
@@ -451,7 +467,7 @@ async function pullAll(){
     total+=events.length;
     if(!data?.has_more)break;
   }
-  await flushActiveMessageVisuals();
+  await flushActiveMessageVisuals(context);
   if(!syncOwnerContextCurrent(context))return total;
   return total;
 }

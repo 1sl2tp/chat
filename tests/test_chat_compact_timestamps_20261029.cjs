@@ -26,9 +26,15 @@ assert(mobile.includes('grid-template-columns:minmax(0,1fr) 56px'),
 const localStart=shell.indexOf('function formatContactTime(value,');
 const localEnd=shell.indexOf('function contactPreview(',localStart);
 assert(localStart>=0&&localEnd>localStart);
+// Freeze the VM's implicit "now" as well as explicit formatter calls.
+const FIXED_NOW='2026-10-28T20:10:00Z';
+class FixedDate extends Date {
+  constructor(...args){super(...(args.length?args:[FIXED_NOW]));}
+  static now(){return Date.parse(FIXED_NOW);}
+}
 let report=null;
 const context=vm.createContext({
-  Date,Intl,window:{ChatConversationCore:require('../conversation-core.js')},
+  Date:FixedDate,Intl,window:{ChatConversationCore:require('../conversation-core.js')},
   bankReportContactView:()=>report
 });
 vm.runInContext(shell.slice(localStart,localEnd)+
