@@ -305,9 +305,17 @@
       }
     }
 
-    // Self turns own 12px top spacing; remote turns own 8px bottom spacing.
-    // 12px is a safe common estimate and avoids the old +16 cache inflation.
-    return Math.max(40,Math.ceil(height+12));
+    // The renderer now appends one timestamp below each known-timed
+    // message unit: 14px line height + 3px top margin (PR205). Include that
+    // real block in *uncached* virtual spacers; the measured heightCache
+    // remains authoritative whenever the DOM row was already materialized.
+    const rawTime=message?.createdAt??message?.created_at??message?.timestamp??0;
+    const sentTime=typeof rawTime==='number'
+      ?rawTime
+      :Date.parse(String(rawTime||''));
+    const sentTimeHeight=Number.isFinite(sentTime)&&sentTime>0?17:0;
+    // Existing outer spacing is independent of the new sent-time metadata.
+    return Math.max(40,Math.ceil(height+12+sentTimeHeight));
   }
 
   class DataWindowModel{
