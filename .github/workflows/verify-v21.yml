@@ -250,6 +250,9 @@ jobs:
         run: node tests/test_v21_72_17_mobile_form_keyboard_runtime.js
       - name: UI-137 Web/PWA media metadata and bounded cache runtime
         run: node tests/test_v21_137_dual_session_media_runtime.js
+      - name: CHAT Settings mobile cascade and preferences non-shrink
+        run: |
+          node tests/test_chat_account_settings_css_cascade_round2_20261030.cjs
       - name: CHAT account settings mobile Zalo search and spacing
         run: |
           node --check zalo-admin-link.js

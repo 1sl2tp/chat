@@ -81,7 +81,7 @@
 /* The settings are an independently scrollable region. Never shrink action
    rows to make room for the directory; their text and buttons must stay aligned. */
 .zalo-account-preferences{
-  box-sizing:border-box;flex:0 1 auto;min-height:0;max-height:min(34svh,300px);
+  box-sizing:border-box;flex:0 0 auto;min-height:0;max-height:min(34svh,300px);
   overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;
   padding:2px 4px 8px 1px;margin-bottom:10px;scrollbar-width:thin;
 }
