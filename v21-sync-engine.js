@@ -217,18 +217,24 @@ function markActiveMessageDirty(messageId,conversationId,{reconcileMedia=false}=
   return true;
 }
 
-async function flushActiveMessageVisuals(){
-  if(!dirtyActiveMessageIds.size||!accountId||!currentConversationId)return 0;
+async function flushActiveMessageVisuals(context=captureSyncOwnerContext()){
+  if(!dirtyActiveMessageIds.size||!syncOwnerContextCurrent(context)||!currentConversationId)return 0;
+  const conversationId=String(currentConversationId);
+  const currentVisualOwner=()=>
+    syncOwnerContextCurrent(context)&&String(currentConversationId||'')===conversationId;
   const ids=Array.from(dirtyActiveMessageIds);
   dirtyActiveMessageIds.clear();
   const reconcileMedia=activeDirtyNeedsFullMediaIndex;
   activeDirtyNeedsFullMediaIndex=false;
   const mediaByMessage=reconcileMedia
-    ?await media()?.indexByMessage?.({accountId})||new Map()
+    ?await media()?.indexByMessage?.({accountId:context.accountId})||new Map()
     :new Map();
+  if(!currentVisualOwner())return 0;
   let applied=0;
   for(const id of ids){
-    const cached=await cache()?.getMessage?.(accountId,id);
+    if(!currentVisualOwner())return applied;
+    const cached=await cache()?.getMessage?.(context.accountId,id);
+    if(!currentVisualOwner())return applied;
     if(!cached||cached.deleted_at)continue;
     const indexedAssets=mediaByMessage.get(String(id))||[];
     const cachedAssets=Array.isArray(cached?._media_assets)?cached._media_assets.filter(item=>item&&!item.deleted_at):[];
@@ -241,8 +247,9 @@ async function flushActiveMessageVisuals(){
       dirtyActiveMessageIds.add(id);
       continue;
     }
-    await cache()?.putMessage?.(accountId,enriched);
-    const own=String(enriched.sender_account_id)===String(accountId);
+    await cache()?.putMessage?.(context.accountId,enriched);
+    if(!currentVisualOwner())return applied;
+    const own=String(enriched.sender_account_id)===context.accountId;
     messages()?.apply?.(enriched,{remote:!own});
     applied+=1;
   }
@@ -418,7 +425,7 @@ function consumeRealtimeEvent(event={}){
     if(!syncOwnerContextCurrent(context))return false;
     const applied=await applyEvent(event,context);
     if(!syncOwnerContextCurrent(context)||!applied)return false;
-    await flushActiveMessageVisuals();
+    await flushActiveMessageVisuals(context);
     if(!syncOwnerContextCurrent(context))return false;
     // The current owner's message event may refresh the global unread badge.
     if(event.entity_type==='message'&&!chatVisible())void refreshUnread();
@@ -460,7 +467,7 @@ async function pullAll(){
     total+=events.length;
     if(!data?.has_more)break;
   }
-  await flushActiveMessageVisuals();
+  await flushActiveMessageVisuals(context);
   if(!syncOwnerContextCurrent(context))return total;
   return total;
 }
