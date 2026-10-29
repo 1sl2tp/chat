@@ -988,6 +988,8 @@ function formatContactTime(value){
 }
 
 function contactPreview(item){
+  const reportView=bankReportContactView(item);
+  if(reportView)return reportView.preview;
   const kind=String(item?.preview_kind||'text');
   if(kind==='image')return'Ảnh';
   if(kind==='audio')return'Ghi âm';
@@ -1346,6 +1348,36 @@ const PINNED_BANK_REPORT_CONTACT_ID='fc3ec480-60d2-4749-b7af-5f4ae71eb14e';
 function isPinnedBankReportContact(item){
   return String(item?.id||'')===PINNED_BANK_REPORT_CONTACT_ID;
 }
+
+// A bank dashboard is not a chat message. Its sidebar preview must never
+// inherit the original system-signal message's old preview/created timestamp.
+let bankReportLastView=null;
+function bankReportTodayVN(){
+  const parts=new Intl.DateTimeFormat('en-GB',{
+    timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'
+  }).formatToParts(new Date());
+  const date=Object.fromEntries(parts.map(({type,value})=>[type,value]));
+  return date.year+'-'+date.month+'-'+date.day;
+}
+function bankReportContactView(item){
+  if(authAccount?.role!=='admin'||!isPinnedBankReportContact(item))return null;
+  const view=bankReportLastView;
+  if(!view||String(view.accountId)!==String(authAccount.id)||view.day!==bankReportTodayVN()){
+    return{preview:'Báo cáo trực tiếp · Mở để xem mới nhất',time:'Trực tiếp',instant:''};
+  }
+  const instant=Date.parse(view.viewedAt);
+  if(!Number.isFinite(instant)){
+    return{preview:'Báo cáo trực tiếp · Mở để xem mới nhất',time:'Trực tiếp',instant:''};
+  }
+  const viewed=new Intl.DateTimeFormat('vi-VN',{
+    timeZone:'Asia/Ho_Chi_Minh',day:'2-digit',month:'2-digit',
+    hour:'2-digit',minute:'2-digit',hour12:false
+  }).format(new Date(instant));
+  return{
+    preview:'Báo cáo trực tiếp · '+(view.closed?'Đã khóa sổ':'Đang mở sổ'),
+    time:'Đã xem '+viewed,instant:view.viewedAt
+  };
+}
 function createRenderedContactRow(item){
   const row=document.createElement('div');
   row.className='shell-contact-row';
@@ -1373,7 +1405,11 @@ function createRenderedContactRow(item){
   const preview=document.createElement('span');preview.className='shell-contact-preview';
   const previewText=contactPreview(item);
   preview.textContent=item.locked_at?(previewText==='Chưa có tin nhắn'?'Đã khóa':`Đã khóa · ${previewText}`):previewText;
-  const time=document.createElement('time');time.className='shell-contact-time';time.textContent=formatContactTime(item.latest_at);if(item.latest_at)time.dateTime=String(item.latest_at);
+  const time=document.createElement('time');time.className='shell-contact-time';
+  const reportView=bankReportContactView(item);
+  time.textContent=reportView?reportView.time:formatContactTime(item.latest_at);
+  const timeInstant=reportView?reportView.instant:item.latest_at;
+  if(timeInstant)time.dateTime=String(timeInstant);
   copy.append(title,preview,time);
 
   button.append(avatarWrap,copy);
@@ -1407,11 +1443,30 @@ function patchRenderedContact(item){
     preview.textContent=item.locked_at?(previewText==='Chưa có tin nhắn'?'Đã khóa':`Đã khóa · ${previewText}`):previewText;
   }
   const time=row.querySelector('.shell-contact-time');
-  if(time){time.textContent=formatContactTime(item.latest_at);if(item.latest_at)time.dateTime=String(item.latest_at);else time.removeAttribute('datetime');}
+  if(time){
+    const reportView=bankReportContactView(item);
+    time.textContent=reportView?reportView.time:formatContactTime(item.latest_at);
+    const timeInstant=reportView?reportView.instant:item.latest_at;
+    if(timeInstant)time.dateTime=String(timeInstant);else time.removeAttribute('datetime');
+  }
   const manage=row.querySelector('[data-contact-manage]');
   if(manage)manage.setAttribute('aria-label',`Mở thông tin liên hệ ${String(item.display_name||item.username||'Liên hệ')}`);
   return true;
 }
+// A dashboard refresh is the only owner that can supply this read proof.
+// No sidebar polling, synthetic latest_at, or bank ledger write.
+document.addEventListener('v21-bank-report-viewed',event=>{
+  const info=event?.detail||{};
+  if(authState!=='AUTHENTICATED'||authAccount?.role!=='admin'||!authAccount?.id||
+    String(info.accountId||'')!==String(authAccount.id))return;
+  const day=String(info.day||''),viewedAt=String(info.viewedAt||'');
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(day)||!Number.isFinite(Date.parse(viewedAt)))return;
+  bankReportLastView={accountId:String(info.accountId),day,viewedAt,closed:Boolean(info.closed)};
+  const item=(window.V21ContactStore?.snapshot?.()||[]).find(contact=>
+    isPinnedBankReportContact(contact)&&!contact.deleted_at
+  );
+  if(item)patchRenderedContact(item);
+});
 
 function shouldAutoFocusShellForm(){
   const runtimeMobile=window.V21RuntimeAdapter?.isMobile?.();
