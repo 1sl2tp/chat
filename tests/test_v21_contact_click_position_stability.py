@@ -53,7 +53,9 @@ directory_click=DIRECTORY[click_start:click_end]
 assert "const contact=target?.closest?.('[data-contact-select]');" in directory_click
 assert "query='';" in directory_click
 assert "if(input)input.value='';" in directory_click
-assert "syncDirectoryRows();" in directory_click
+# Clearing search after selecting a contact must not trigger a second activity sort.
+assert "syncDirectoryRows({reorder:false});" in directory_click
+assert "syncDirectoryRows();" not in directory_click
 
 # contact-directory-admin.js is dynamically imported rather than inlined, so
 # tie its URL to the canonical build id to avoid serving a stale cached module.
