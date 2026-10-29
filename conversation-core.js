@@ -23,7 +23,7 @@
       else if(part.type==='month')month=part.value;
       else if(part.type==='day')day=part.value;
     }
-    return /^\\d{4}$/.test(year)&&/^\\d{2}$/.test(month)&&/^\\d{2}$/.test(day)
+    return /^\d{4}$/.test(year)&&/^\d{2}$/.test(month)&&/^\d{2}$/.test(day)
       ?year+'-'+month+'-'+day:'';
   }
 
