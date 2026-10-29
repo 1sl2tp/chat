@@ -353,8 +353,11 @@ function isOwnedRuntimeRejectionEvent(event){
 
 window.addEventListener('error',e=>{
   if(!isOwnedRuntimeErrorEvent(e))return;
+  // A synchronous first-party error before READY can invalidate startup.
+  // Do not erase it merely because the message window later renders.
   AppBootController.fail(
-    e.error || new Error(e.message || 'Unknown runtime error')
+    e.error || new Error(e.message || 'Unknown runtime error'),
+    {fatal:!AppBootController.bootFinished}
   );
 });
 window.addEventListener('unhandledrejection',e=>{
