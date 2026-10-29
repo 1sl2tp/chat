@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="a4ffeababa2556a2dce81cd6100649e131074c4093172668574f0749caa70b3c">
+<meta name="app-build-id" content="05f11bd45368049829c7bcd8ffded158152efd3d0990375b5b558e249dfe32f1">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -25243,7 +25243,10 @@ function mergeLogicalRow(existing,incoming){
   if(isCanonicalRow(preferred))delete next._local_state;
   const preferredMedia=Array.isArray(preferred?._media_assets)?preferred._media_assets.filter(Boolean):[];
   const fallbackMedia=Array.isArray(fallback?._media_assets)?fallback._media_assets.filter(Boolean):[];
-  if(!preferredMedia.length&&fallbackMedia.length){
+  // A missing media projection means "not fetched", so keep the last-good
+  // list. An explicit [] is a real state transition (e.g. final asset deleted)
+  // and must never be replaced with stale cached attachments.
+  if(!Array.isArray(preferred?._media_assets)&&fallbackMedia.length){
     next._media_assets=fallbackMedia.map(asset=>({...asset}));
   }
   return next;
