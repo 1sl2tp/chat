@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="af459842f42c6027cd765f3cd3ad330806e209216ffb722408d2f6d105e7cf59">
+<meta name="app-build-id" content="3d62b2b6eaa36a672348696f9a7dbbd0c27426710caa605c9b6db2fd19d86734">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -7519,6 +7519,27 @@ window.V21InteractionController=InteractionController;
 
   const MESSAGE_KINDS=Object.freeze(['text','image','file','audio','mixed']);
 
+  // One civil-day owner for contacts, message separators, and photo filters.
+  // Intl.format() has locale-dependent order/punctuation (notably on Safari).
+  // Reading typed date parts avoids guessing that en-CA means YYYY-MM-DD.
+  const vnDayFormatter=new Intl.DateTimeFormat('en-GB',{
+    timeZone:'Asia/Ho_Chi_Minh',calendar:'gregory',numberingSystem:'latn',
+    year:'numeric',month:'2-digit',day:'2-digit'
+  });
+  function vnCalendarDayKey(instant){
+    if(instant===null||instant===undefined||instant===''||instant===0)return '';
+    const date=instant instanceof Date?instant:new Date(instant);
+    if(!Number.isFinite(date.getTime()))return '';
+    let year='',month='',day='';
+    for(const part of vnDayFormatter.formatToParts(date)){
+      if(part.type==='year')year=part.value;
+      else if(part.type==='month')month=part.value;
+      else if(part.type==='day')day=part.value;
+    }
+    return /^\d{4}$/.test(year)&&/^\d{2}$/.test(month)&&/^\d{2}$/.test(day)
+      ?year+'-'+month+'-'+day:'';
+  }
+
   function deriveMessageKind({text='',media=null}={}){
     const hasText=String(text??'').trim().length>0;
     if(!media)return 'text';
@@ -7910,6 +7931,7 @@ window.V21InteractionController=InteractionController;
 
   return{
     MESSAGE_KINDS,
+    vnCalendarDayKey,
     VIEWPORT_STATES,
     deriveMessageKind,
     createMessage,
@@ -11043,11 +11065,9 @@ function syncMessageTimeNode(unit,message){
 function messageDateKey(timestamp){
   const stamp=typeof timestamp==='number'?timestamp:Date.parse(timestamp);
   if(!Number.isFinite(stamp)||stamp<=0)return '';
-  // All Chat day boundaries follow Vietnam time, independent of the host
-  // browser timezone. Otherwise admin and iOS PWA split days differently.
-  return new Intl.DateTimeFormat('en-CA',{
-    timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'
-  }).format(new Date(stamp));
+  // Shared typed calendar owner makes date separators and photo filters
+  // independent of locale-specific string order in Safari/Chrome.
+  return window.ChatConversationCore.vnCalendarDayKey(stamp);
 }
 
 function formatMessageDayLabel(timestamp,{includeDate=false,now=new Date()}={}){
@@ -17587,9 +17607,7 @@ function formatContactTime(value,{now=new Date()}={}){
   if(Number.isNaN(date.getTime()))return'';
   // Directory, message-day separators and media viewer use one VN calendar,
   // independent of the phone or browser's own timezone.
-  const key=value=>new Intl.DateTimeFormat('en-CA',{
-    timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'
-  }).format(value);
+  const key=value=>window.ChatConversationCore.vnCalendarDayKey(value);
   const ordinal=value=>{
     const [year,month,day]=key(value).split('-').map(Number);
     return Math.floor(Date.UTC(year,month-1,day)/86400000);
