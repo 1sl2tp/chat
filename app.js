@@ -341,7 +341,7 @@ function isOwnedRuntimeRejectionEvent(event){
   // The same injected Zalo WebView bridge error can surface as an unhandled
   // Promise rejection instead of ErrorEvent; it is not Chat-owned.
   if(
-    /\\bzalojsv2\\b/i.test(message) &&
+    /\bzalojsv2\b/i.test(message) &&
     /(?:can't find variable|is not defined|referenceerror)/i.test(message)
   ){
     console.warn('[ChatScreenModule] ignored Zalo WebView bridge rejection.');
