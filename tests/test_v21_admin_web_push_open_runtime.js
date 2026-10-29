@@ -58,12 +58,14 @@ function harness(){
   const h=harness();
   assert.equal(h.openCalls.length,0,'cold-open must wait until canonical contact store is ready');
   assert(h.api.snapshot().pendingOpen,'cold-open target must remain pending');
+  h.setDirectory([{id:'cold-1',conversation_id:'conv-cold'}]);
   h.setContactReady(true);
   h.documentListeners['v21-contact-store-change']({detail:{reason:'replace'}});
   await Promise.resolve();
   assert.equal(h.openCalls[0],'cold-1','contact-store ready event must retry canonical route');
   assert(h.historyCalls.length>=1,'cold-open query must be removed after routing');
 
+  h.setDirectory([{id:'live-2',conversation_id:'conv-2'},{id:'live-3',conversation_id:'conv-3'}]);
   const opened=await h.api.handleOpen({contactId:'live-2',conversationId:'conv-2'});
   assert.equal(opened,true);
   assert.equal(h.openCalls.at(-1),'live-2');
@@ -79,6 +81,35 @@ function harness(){
   const resolved=await h.api.handleOpen({conversationId:'conv-only'});
   assert.equal(resolved,true,'conversation-only PWA notification must open');
   assert.equal(h.openCalls.at(-1),'customer-from-conv');
+
+  // A stale contact hint can still exist, but it must never override the
+  // conversation's canonical owner (or the user's previous open thread).
+  h.setDirectory([
+    {id:'existing-but-wrong',conversation_id:'conv-other'},
+    {id:'actual-owner',conversation_id:'conv-target'}
+  ]);
+  const corrected=await h.api.handleOpen({
+    contactId:'existing-but-wrong',conversationId:'conv-target'
+  });
+  assert.equal(corrected,true);
+  assert.equal(h.openCalls.at(-1),'actual-owner','canonical conversation overrides stale existing hint');
+
+  h.setDirectory([{id:'existing-but-wrong',conversation_id:'conv-other'}]);
+  const held=await h.api.handleOpen({contactId:'existing-but-wrong',conversationId:'conv-not-loaded'});
+  assert.equal(held,false,'unknown canonical conversation must stay pending, not open a wrong contact');
+  assert.equal(h.openCalls.at(-1),'actual-owner');
+  assert.equal(h.api.snapshot().pendingOpen.conversationId,'conv-not-loaded');
+  h.setDirectory([
+    {id:'existing-but-wrong',conversation_id:'conv-other'},
+    {id:'deleted-owner',conversation_id:'conv-not-loaded',deleted_at:'2026-01-01'}
+  ]);
+  h.documentListeners['v21-contact-store-change']({detail:{reason:'replace'}});
+  await Promise.resolve();
+  assert.equal(h.openCalls.at(-1),'actual-owner','deleted contact cannot satisfy push route');
+  h.setDirectory([{id:'loaded-owner',conversation_id:'conv-not-loaded'}]);
+  h.documentListeners['v21-contact-store-change']({detail:{reason:'replace'}});
+  await Promise.resolve();
+  assert.equal(h.openCalls.at(-1),'loaded-owner','pending route opens only after valid contact hydration');
   h.setDirectory([]);
   const pending=await h.api.handleOpen({conversationId:'conv-late'});
   assert.equal(pending,false,'missing customer remains pending during cold hydration');
