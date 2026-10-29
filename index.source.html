@@ -248,6 +248,23 @@ button{
   width:fit-content;
   max-width:100%;
 }
+/* Exact sent time sits below existing text/media without altering the
+   message bubble itself. Only already-virtualized messages own this node. */
+.message-sent-time{
+  display:block;
+  box-sizing:border-box;
+  min-width:2.5rem;
+  max-width:100%;
+  margin-top:3px;
+  color:var(--theme-content-tertiary);
+  font-size:11px;
+  line-height:14px;
+  font-weight:400;
+  white-space:nowrap;
+  font-variant-numeric:tabular-nums;
+}
+.user-message-unit>.message-sent-time{text-align:right}
+.assistant-message-unit>.message-sent-time{text-align:left}
 .user-message-unit{
   margin-left:auto;
   max-width:70%;
