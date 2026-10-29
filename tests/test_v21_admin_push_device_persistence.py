@@ -22,15 +22,19 @@ def test_notification_intent_is_persistent_per_device_and_reconciled():
     assert "reconcileWantedSubscription" in PUSH.split("function onAuthState", 1)[1], 'authenticated boot/auth transition must reconcile wanted push state'
 
 
-def test_mobile_account_rows_keep_people_side_by_side_and_actions_below():
+def test_mobile_account_rows_separate_chat_zalo_and_actions():
     css = compact(CSS)
     assert '@media(max-width:640px)' in css
-    assert '.zalo-account-row{grid-template-columns:minmax(0,1fr)minmax(0,1fr)auto;' in css, 'mobile account row should keep Chat and Zalo side by side with the compact group control'
-    assert '.zalo-account-row-actions{grid-column:1/-1;' in css, 'mobile actions should occupy a compact second row'
-    assert '.zalo-account-person-copystrong' in css and 'text-overflow:ellipsis' in css, 'long names must ellipsize instead of breaking layout'
+    assert '.zalo-account-row{grid-template-columns:minmax(0,1fr);align-items:stretch;' in css, 'narrow Settings rows must stack instead of squeezing Chat and Zalo names'
+    assert '.zalo-account-person::before{content:"Chat"}' in css
+    assert '.zalo-account-relation::before{content:"Zalo"}' in css
+    assert '.zalo-account-row-actions{grid-column:1;justify-content:flex-start;' in css, 'actions must have their own line'
+    assert '.zalo-account-relation{padding-top:9px;border-top:' in css, 'relation must remain visually separated'
+    assert '.zalo-account-person-copystrong{white-space:normal;overflow-wrap:anywhere;' in css, 'long names must wrap without overlapping other accounts'
+    assert '.zalo-account-preferences.zalo-account-notification{flex:none;display:grid;' in css, 'preferences must not shrink rows into one another'
 
 
 if __name__ == '__main__':
     test_notification_intent_is_persistent_per_device_and_reconciled()
-    test_mobile_account_rows_keep_people_side_by_side_and_actions_below()
-    print('PASS: admin push device persistence + compact mobile account rows')
+    test_mobile_account_rows_separate_chat_zalo_and_actions()
+    print('PASS: admin push device persistence + non-overlapping mobile account settings')
