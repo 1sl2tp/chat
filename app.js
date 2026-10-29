@@ -3050,7 +3050,7 @@ function patchImageGalleryNode(grid,media,{message=null}={}){
         viewerContext:{
           messageId:message?.id||'',
           senderKey:message?.sender||'remote',
-          createdAt:message?.createdAt||Date.now()
+          createdAt:messageTimestampMs(message)
         }
       });
     }else{
@@ -3060,7 +3060,7 @@ function patchImageGalleryNode(grid,media,{message=null}={}){
         viewerContext:{
           messageId:message?.id||'',
           senderKey:message?.sender||'remote',
-          createdAt:message?.createdAt||Date.now()
+          createdAt:messageTimestampMs(message)
         }
       });
       tile.dataset.galleryTile='true';
@@ -3105,7 +3105,7 @@ function createImageGalleryNode(media,{message=null}={}){
       viewerContext:{
         messageId:message?.id||'',
         senderKey:message?.sender||'remote',
-        createdAt:message?.createdAt||Date.now()
+        createdAt:messageTimestampMs(message)
       }
     });
     tile.dataset.galleryTile='true';
@@ -3636,7 +3636,7 @@ function patchMediaNode(node,media,{message=null}={}){
       viewerContext:{
         messageId:message?.id||'',
         senderKey:message?.sender||'remote',
-        createdAt:message?.createdAt||Date.now()
+        createdAt:messageTimestampMs(message)
       }
     });
     node.classList.toggle('mt-2',Boolean(message?.text||message?.replyTo));
@@ -3671,7 +3671,7 @@ function createMediaNode(media,{message=null}={}){
   }else if(media.type==='image'){
     const wrap=createImageTile(media,{
       className:'block h-full w-full object-contain',
-      viewerContext:{messageId:message?.id||'',senderKey:message?.sender||'remote',createdAt:message?.createdAt||Date.now()}
+      viewerContext:{messageId:message?.id||'',senderKey:message?.sender||'remote',createdAt:messageTimestampMs(message)}
     });
     wrap.className+=' max-w-full rounded-xl';
     if(message?.text||message?.replyTo)wrap.classList.add('mt-2');
