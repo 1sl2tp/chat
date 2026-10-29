@@ -52,32 +52,72 @@
 }
 .zalo-account-backdrop{position:absolute;inset:0;border:0;background:rgba(0,0,0,.3);backdrop-filter:blur(2px)}
 .zalo-account-card{
-  position:relative;display:flex;flex-direction:column;width:min(100%,760px);height:min(86svh,760px);max-height:min(86svh,760px);overflow:hidden;overscroll-behavior:contain;background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#171717);border-radius:26px;box-shadow:0 18px 60px rgba(0,0,0,.2);padding:20px
+  box-sizing:border-box;position:relative;display:flex;flex-direction:column;min-width:0;width:min(100%,760px);height:min(86svh,760px);max-height:min(86svh,760px);overflow:hidden;overscroll-behavior:contain;background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#171717);border-radius:26px;box-shadow:0 18px 60px rgba(0,0,0,.2);padding:20px
 }
-.zalo-account-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:12px}
+.zalo-account-modal-head{display:flex;flex:0 0 auto;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:12px}
 .zalo-account-modal-head h2{margin:0;font-size:1.35rem;line-height:1.7rem;font-weight:650}
 .zalo-account-modal-head p{margin:3px 0 0;color:var(--theme-content-secondary,#777);font-size:.85rem}
 .zalo-account-close{
   appearance:none;width:38px;height:38px;flex:0 0 38px;border:0;border-radius:999px;background:transparent;color:inherit;font:inherit;font-size:1.55rem;line-height:1;cursor:pointer
 }
 .zalo-account-close:hover{background:var(--theme-surface-secondary,#f3f3f3)}
-.zalo-account-search{display:block;flex:0 0 auto;margin:0 0 10px}
+.zalo-account-search{display:block;flex:0 0 auto;min-width:0;margin:0 0 10px}
 .zalo-account-search input{box-sizing:border-box;width:100%;height:40px;border:1px solid var(--theme-border-default,#d9d9d9);border-radius:12px;padding:0 12px;background:var(--theme-surface-primary,#fff);color:inherit;font:inherit;font-size:14px;outline:none}
 .zalo-account-search input:focus{border-color:#9ab7e6;box-shadow:0 0 0 2px rgba(78,132,216,.1)}
-.zalo-account-list{min-height:0;flex:1 1 auto;display:grid;align-content:start;gap:8px;overflow:auto;overscroll-behavior:contain;padding-right:3px}
+.zalo-account-list{min-height:0;min-width:0;flex:1 1 auto;display:grid;align-content:start;gap:10px;overflow:auto;overscroll-behavior:contain;padding:1px 4px 3px 1px}
 .zalo-account-row{
-  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto auto;align-items:center;gap:12px;min-width:0;border:1px solid var(--theme-border-default,#e1e1e1);border-radius:16px;padding:10px 12px;background:var(--theme-surface-primary,#fff)
+  box-sizing:border-box;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;align-items:center;gap:12px;min-width:0;border:1px solid var(--theme-border-default,#e1e1e1);border-radius:16px;padding:12px;background:var(--theme-surface-primary,#fff)
 }
 .zalo-account-row-group{display:flex;align-items:center;justify-content:flex-end;min-width:0}
 .zalo-account-row-zalo-only{background:color-mix(in srgb,var(--theme-surface-secondary,#f3f3f3) 55%,var(--theme-surface-primary,#fff))}
-.zalo-account-person,.zalo-account-relation{display:flex;align-items:center;gap:9px;min-width:0}
+.zalo-account-person,.zalo-account-relation{display:flex;align-items:center;gap:9px;min-width:0;overflow-wrap:anywhere}
 .zalo-account-missing{color:var(--theme-content-secondary,#777)}
-.zalo-account-row-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}
+.zalo-account-row-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;min-width:0}
 .zalo-account-action,.zalo-account-panel button,.zalo-account-create-submit{
   min-height:36px;border:0;border-radius:10px;padding:0 10px;background:var(--theme-surface-secondary,#f3f3f3);color:var(--theme-content-primary,#171717);font:inherit;font-size:13px;font-weight:600;cursor:pointer
 }
 .zalo-account-action-danger{background:transparent;color:#b42318}
 .zalo-account-modal[data-busy="true"] button:disabled{opacity:.55;cursor:default}
+/* The settings are an independently scrollable region. Never shrink action
+   rows to make room for the directory; their text and buttons must stay aligned. */
+.zalo-account-preferences{
+  box-sizing:border-box;flex:0 1 auto;min-height:0;max-height:min(34svh,300px);
+  overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;
+  padding:2px 4px 8px 1px;margin-bottom:10px;scrollbar-width:thin;
+}
+.zalo-account-preferences .zalo-account-notification{
+  flex:none;display:grid;grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;gap:12px;margin:0 0 8px;
+}
+.zalo-account-preferences .zalo-account-notification:last-child{margin-bottom:0}
+.zalo-account-preferences .zalo-account-notification-copy small{
+  white-space:normal;overflow-wrap:anywhere;line-height:1.45
+}
+.zalo-account-preferences .zalo-account-notification-action{
+  max-width:168px;min-width:0;white-space:normal;line-height:1.25;
+  padding-block:8px;text-align:center
+}
+.zalo-account-directory-head{
+  display:flex;flex:0 0 auto;align-items:center;justify-content:space-between;
+  gap:12px;min-width:0;padding:2px 0 10px
+}
+.zalo-account-directory-heading{display:grid;gap:3px;min-width:0}
+.zalo-account-directory-heading strong{font-size:14px;font-weight:650;line-height:20px}
+.zalo-account-directory-heading small{font-size:12px;color:var(--theme-content-secondary,#777);line-height:17px}
+.zalo-account-unassigned{
+  flex:0 0 auto;min-height:40px;padding:8px 12px;
+  border:1px solid var(--theme-border-default,#d9d9d9);
+  border-radius:11px;background:var(--theme-surface-secondary,#f3f3f3);
+  color:var(--theme-content-primary,#171717);font:inherit;font-size:13px;
+  font-weight:600;cursor:pointer
+}
+.zalo-account-unassigned[aria-pressed="true"]{
+  background:var(--theme-content-primary,#171717);color:var(--theme-surface-primary,#fff)
+}
+.zalo-account-search input:focus-visible,.zalo-account-unassigned:focus-visible,
+.zalo-account-action:focus-visible,.zalo-account-picker-option:focus-visible{
+  outline:2px solid #9ab7e6;outline-offset:2px
+}
 .zalo-account-panel{
   display:grid;gap:10px;margin-top:12px;padding:12px;border:1px solid var(--theme-border-default,#ddd);border-radius:16px;background:var(--theme-surface-secondary,#f7f7f7)
 }
@@ -99,11 +139,35 @@
 @media(max-width:640px){
   .zalo-account-modal{place-items:end center;padding:8px}
   .zalo-account-card{width:100%;height:calc(100svh - 16px);max-height:calc(100svh - 16px);border-radius:24px;padding:16px 12px}
-  .zalo-account-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:8px 8px;padding:10px}
+  .zalo-account-row{grid-template-columns:minmax(0,1fr);align-items:stretch;gap:9px;padding:12px}
   .zalo-account-row-group{align-self:start;justify-content:flex-end}
-  .zalo-account-row-actions{grid-column:1/-1;justify-content:flex-start}
-  .zalo-account-person,.zalo-account-relation{align-items:flex-start}
+  .zalo-account-person,.zalo-account-relation{align-items:center;gap:10px}
+  .zalo-account-person::before,.zalo-account-relation::before{
+    flex:0 0 34px;color:var(--theme-content-secondary,#777);
+    font-size:11px;font-weight:600
+  }
+  .zalo-account-person::before{content:"Chat"}
+  .zalo-account-relation::before{content:"Zalo"}
+  .zalo-account-relation{padding-top:9px;border-top:1px solid var(--theme-border-default,#e1e1e1)}
+  .zalo-account-row-actions{
+    grid-column:1;justify-content:flex-start;gap:8px;
+    padding-top:9px;border-top:1px solid var(--theme-border-default,#e1e1e1)
+  }
+  .zalo-account-action{min-height:40px}
+  .zalo-account-person-copy strong{white-space:normal;overflow-wrap:anywhere;line-height:20px}
+  .zalo-account-person-copy small{white-space:normal;overflow-wrap:anywhere;line-height:18px}
+  .zalo-account-search input,.zalo-account-panel input[type="search"],
+  .zalo-account-create-form input:not([type="checkbox"]){font-size:16px}
+  .zalo-account-preferences{max-height:min(34svh,280px)}
   .zalo-account-modal-head{padding-inline:2px}
+}
+@media(max-width:420px){
+  .zalo-account-preferences .zalo-account-notification{
+    grid-template-columns:minmax(0,1fr);gap:8px
+  }
+  .zalo-account-preferences .zalo-account-notification-action{justify-self:start}
+  .zalo-account-directory-head{gap:8px}
+  .zalo-account-unassigned{padding-inline:10px}
 }
 /* Settings modal viewport owner: preserve svh as fallback, prefer dvh so
    mobile browser chrome changes cannot clip the bottom controls. */
@@ -112,6 +176,7 @@
     height:min(86dvh,760px);
     max-height:min(86dvh,760px);
   }
+  .zalo-account-preferences{max-height:min(34dvh,300px)}
   .zalo-account-submodal>.zalo-account-panel{
     max-height:min(82dvh,640px);
   }
@@ -120,6 +185,7 @@
       height:calc(100dvh - 16px);
       max-height:calc(100dvh - 16px);
     }
+    .zalo-account-preferences{max-height:min(34dvh,280px)}
     .zalo-account-submodal>.zalo-account-panel{
       max-height:calc(100dvh - 16px);
     }
