@@ -16,6 +16,7 @@ class FixedDate extends Date {
 }
 const context=vm.createContext({
  Date:FixedDate,Intl,URL,
+ window:{ChatConversationCore:require('../conversation-core.js')},
  currentMediaAccountId:()=> 'account-1',
  localImagePreviewUrls:new Map(),
  store:{items:[]},
