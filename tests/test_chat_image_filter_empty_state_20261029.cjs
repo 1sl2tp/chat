@@ -26,6 +26,7 @@ const ctx=vm.createContext({
   imageViewerIndex:0,
   imageViewerFilter:'self',
   imageViewerTimeFilter:'all',
+  IMAGE_VIEWER_TIME_FILTERS:[{key:'all'},{key:'today'},{key:'yesterday'},{key:'week'},{key:'month'}],
   imageViewerAlbumId:'a',
   imageViewerNavigationSeq:10,
   imageViewerImage:image,
