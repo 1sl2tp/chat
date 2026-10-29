@@ -223,24 +223,8 @@ self.addEventListener('notificationclick',event=>{
     const missedCallId=String(data.missedCallId||'');
     const clients=await self.clients.matchAll({type:'window',includeUncontrolled:true});
     const client=preferredNotificationClient(clients,contactId,conversationId);
-    if(client){
-      try{await client.focus?.();}catch{}
-      try{
-        if(kind==='call_invite'){
-          client.postMessage?.({type:'ADMIN_PUSH_OPEN',kind:'call_invite',inviteId,conversationId,contactId});
-        }else if(kind==='bank_reconciliation'){
-          client.postMessage?.({type:'ADMIN_PUSH_OPEN',kind,contactId,
-            bankDay,bankNoticeId,bankReceiptId,bankStatus});
-        }else if(kind==='missed_chat_call'){
-          client.postMessage?.({type:'ADMIN_PUSH_OPEN',kind,contactId,missedCallId});
-        }else if(kind==='zalo_friend_accepted'){
-          client.postMessage?.({type:'ADMIN_PUSH_OPEN',kind});
-        }else{
-          client.postMessage?.({type:'ADMIN_PUSH_OPEN',conversationId,contactId});
-        }
-      }catch{}
-      return;
-    }
+    // One canonical deep link for both cold open and failed existing-client
+    // delivery. Keep message, call, bank and friend intent fields intact.
     const target=new URL('./',self.location.origin);
     if(contactId)target.searchParams.set('push_contact',contactId);
     if(conversationId)target.searchParams.set('push_conversation',conversationId);
@@ -253,6 +237,42 @@ self.addEventListener('notificationclick',event=>{
       if(bankReceiptId)target.searchParams.set('push_bank_receipt',bankReceiptId);
       if(bankStatus)target.searchParams.set('push_bank_status',bankStatus);
     }
+    if(client){
+      let focused=false;
+      try{
+        if(typeof client.focus!=='function'||typeof client.postMessage!=='function')
+          throw new Error('notification_client_unavailable');
+        await client.focus();
+        focused=true;
+        if(kind==='call_invite'){
+          client.postMessage({type:'ADMIN_PUSH_OPEN',kind:'call_invite',inviteId,conversationId,contactId});
+        }else if(kind==='bank_reconciliation'){
+          client.postMessage({type:'ADMIN_PUSH_OPEN',kind,contactId,
+            bankDay,bankNoticeId,bankReceiptId,bankStatus});
+        }else if(kind==='missed_chat_call'){
+          client.postMessage({type:'ADMIN_PUSH_OPEN',kind,contactId,missedCallId});
+        }else if(kind==='zalo_friend_accepted'){
+          client.postMessage({type:'ADMIN_PUSH_OPEN',kind});
+        }else{
+          client.postMessage({type:'ADMIN_PUSH_OPEN',conversationId,contactId});
+        }
+        return;
+      }catch{
+        // Focus succeeded but messaging failed: reuse that same window first.
+        // A rejected focus must instead use a visible cold-open target.
+        if(focused&&typeof client.navigate==='function'){
+          try{
+            const navigated=await client.navigate(target.toString());
+            if(navigated){
+              try{await navigated.focus?.();}catch{}
+              return;
+            }
+          }catch{}
+        }
+      }
+    }
+    // Single sequential fallback; never open a second window when the
+    // existing client accepted the click or navigated successfully.
     await self.clients.openWindow(target.toString());
   })());
 });
