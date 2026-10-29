@@ -56,6 +56,7 @@ registered.unhandledrejection({reason:{message:'ReferenceError: ownedChatVar is 
 assert.equal(errorLogs,currentLogs+1);
 assert.equal(node.textContent,'V21.72.39 runtime: ReferenceError: ownedChatVar is not defined');
 // A truly fatal BOOT invariant keeps the banner even if ready is invoked.
+const fatalEvents={};
 const fatalContext=vm.createContext({
   runtimeError:{textContent:'',classList:{
     hidden:false,
@@ -64,12 +65,13 @@ const fatalContext=vm.createContext({
     remove(name){this.hidden=false;}
   }},
   modeLabel:{textContent:''},viewport:{mode:'FOLLOW_TAIL'},
-  console:{error(){},warn(){}},window:{addEventListener(){}},
+  console:{error(){},warn(){}},window:{addEventListener(type,callback){fatalEvents[type]=callback;}},
   location:{href:'https://chat.taphoa.xyz/',origin:'https://chat.taphoa.xyz',protocol:'https:'},URL
 });
 vm.runInContext(source.slice(start,end)+
   String.fromCharCode(10)+'globalThis.__ctrl=AppBootController;',fatalContext);
-fatalContext.__ctrl.fail({message:'BOOT invariant: empty DOM'},{fatal:true});
+fatalEvents.error({message:'ReferenceError: first-party boot crash',error:{message:'first-party boot crash'},filename:'https://chat.taphoa.xyz/app.js'});
+assert.equal(fatalContext.__ctrl.fatalBootError,true,'first-party synchronous startup errors are fatal');
 assert.equal(fatalContext.__ctrl.ready(),false);
 assert.equal(fatalContext.__ctrl.phase,'ERROR');
 assert.equal(fatalContext.runtimeError.classList.hidden,false);
