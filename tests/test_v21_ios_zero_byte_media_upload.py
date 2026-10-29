@@ -18,7 +18,7 @@ assert "const uploadError=await uploadMediaStorageObject(requestClient,asset,upl
 # Direct media upload must go through the recovery owner. Keep only the helper's
 # upload calls, not a second bypass inside flushMediaItem.
 flush_start=SYNC.index("async function flushMediaItem")
-flush_end=SYNC.index("async function flushOutbox",flush_start)
+flush_end=SYNC.index("function flushOutbox()",flush_start)
 flush=SYNC[flush_start:flush_end]
 assert ".storage.from('v21-media').upload(" not in flush
 assert "uploadMediaStorageObject(requestClient,asset,uploadBody)" in flush
