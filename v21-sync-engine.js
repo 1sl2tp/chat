@@ -1279,11 +1279,14 @@ async function flushOutbox(){
         await cache()?.updateOutbox?.(ownerAccountId,item);
         continue;
       }
-      conversationId=await ensureConversation(item.contact_id);
+      // Resolve this A-owned outbox entry only with the captured A session.
+      // Bare ensureConversation() would read mutable globals after an await.
+      conversationId=await ensureConversation(item.contact_id,{context});
       if(!flushContextCurrent(context))break;
       if(!conversationId)break;
       item.conversation_id=conversationId;
       await cache()?.updateOutbox?.(ownerAccountId,item);
+      if(!flushContextCurrent(context))break;
     }
     try{
       if(item.kind==='media'||item.kind==='images'||item.kind==='image'||item.kind==='audio'){
@@ -1338,7 +1341,9 @@ async function flushOutbox(){
       sent+=1;
       if(!flushContextCurrent(context))break;
     }catch(error){
-      if(String(error?.code||error?.message||'')==='sync_context_changed')return sent;
+      // The failed RPC may have finished after account/client handoff.
+      // Never mark the retired outbox failed or emit its UI error in B.
+      if(!flushContextCurrent(context)||String(error?.code||error?.message||'')==='sync_context_changed')return sent;
       item.attempts=(Number(item.attempts)||0)+1;
       item.failed=true;
       item.retryable=isRetryableOutboxError(error);
