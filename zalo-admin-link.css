@@ -140,7 +140,16 @@
   .zalo-account-modal{place-items:end center;padding:8px}
   .zalo-account-card{width:100%;height:calc(100svh - 16px);max-height:calc(100svh - 16px);border-radius:24px;padding:16px 12px}
   .zalo-account-row{grid-template-columns:minmax(0,1fr);align-items:stretch;gap:9px;padding:12px}
-  .zalo-account-row-group{align-self:start;justify-content:flex-end}
+  .zalo-account-row-group{
+    grid-column:1;align-self:center;justify-content:flex-start;gap:10px;min-height:40px
+  }
+  .zalo-account-row-group::before{
+    content:"Phân loại";color:var(--theme-content-secondary,#777);
+    font-size:12px;font-weight:600
+  }
+  .zalo-account-row-group .zalo-account-group-select{
+    box-sizing:border-box;max-width:100%;min-height:40px
+  }
   .zalo-account-person,.zalo-account-relation{align-items:center;gap:10px}
   .zalo-account-person::before,.zalo-account-relation::before{
     flex:0 0 34px;color:var(--theme-content-secondary,#777);
