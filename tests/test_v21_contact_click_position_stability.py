@@ -16,7 +16,14 @@ assert "}else if(!authUI()?.patchContact?.(next)){" in upsert
 
 # Read-state patches only has_unread; they must not change latest_at and therefore
 # must use patchContact instead of a full reorder/render.
-assert "await patchContactSummary(payload.conversation_id,{has_unread:false});" in (ROOT/'v21-sync-engine.js').read_text('utf-8')
+sync=(ROOT/'v21-sync-engine.js').read_text('utf-8')
+read_event=sync.split("async function applyReadEvent(event){",1)[1].split("async function applyMediaEvent(",1)[0]
+assert "await patchContactSummary(payload.conversation_id,{has_unread:false},context);" in read_event
+assert "if(!syncOwnerContextCurrent(context))return false;" in read_event
+# The scoped summary still performs a patch, never a list replacement or sort.
+summary=sync.split("async function patchContactSummary(",1)[1].split("async function applyContactEvent(",1)[0]
+assert "contacts()?.upsert?.(next);" in summary
+assert "contacts()?.replace?.(" not in summary
 
 # Full list renders still preserve the actual sidebar scroll owner when a real
 # message changes activity order.
