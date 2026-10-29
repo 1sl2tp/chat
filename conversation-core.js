@@ -7,6 +7,26 @@
 
   const MESSAGE_KINDS=Object.freeze(['text','image','file','audio','mixed']);
 
+  // One civil-day owner for contacts, message separators, and photo filters.
+  // Intl.format() has locale-dependent order/punctuation (notably on Safari).
+  // Reading typed date parts avoids guessing that en-CA means YYYY-MM-DD.
+  const vnDayFormatter=new Intl.DateTimeFormat('en-GB',{
+    timeZone:'Asia/Ho_Chi_Minh',calendar:'gregory',numberingSystem:'latn',
+    year:'numeric',month:'2-digit',day:'2-digit'
+  });
+  function vnCalendarDayKey(instant){
+    const date=instant instanceof Date?instant:new Date(instant);
+    if(!Number.isFinite(date.getTime()))return '';
+    let year='',month='',day='';
+    for(const part of vnDayFormatter.formatToParts(date)){
+      if(part.type==='year')year=part.value;
+      else if(part.type==='month')month=part.value;
+      else if(part.type==='day')day=part.value;
+    }
+    return /^\\d{4}$/.test(year)&&/^\\d{2}$/.test(month)&&/^\\d{2}$/.test(day)
+      ?year+'-'+month+'-'+day:'';
+  }
+
   function deriveMessageKind({text='',media=null}={}){
     const hasText=String(text??'').trim().length>0;
     if(!media)return 'text';
@@ -398,6 +418,7 @@
 
   return{
     MESSAGE_KINDS,
+    vnCalendarDayKey,
     VIEWPORT_STATES,
     deriveMessageKind,
     createMessage,
