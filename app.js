@@ -1633,23 +1633,21 @@ function viewerTimeFilterLabel(key){
 function isViewerItemInTimeScope(item,scope){
   if(!item)return false;
   if(scope==='all')return true;
-  const stamp=Number(item.createdAt)||0;
-  if(!stamp)return true;
-  const date=new Date(stamp);
-  const now=new Date();
-  const startToday=new Date(now.getFullYear(),now.getMonth(),now.getDate());
-  if(scope==='today')return date>=startToday;
-  if(scope==='yesterday'){
-    const startYesterday=new Date(startToday);
-    startYesterday.setDate(startYesterday.getDate()-1);
-    return date>=startYesterday&&date<startToday;
-  }
-  if(scope==='week'){
-    const startWeek=new Date(startToday);
-    startWeek.setDate(startWeek.getDate()-6);
-    return date>=startWeek;
-  }
-  if(scope==='month')return date.getFullYear()===now.getFullYear()&&date.getMonth()===now.getMonth();
+  const stamp=messageTimestampMs({createdAt:item.createdAt});
+  // Unknown sent-at must never masquerade as an image from today/week/month.
+  if(!stamp)return false;
+  const imageDay=messageDateKey(stamp);
+  const today=messageDateKey(Date.now());
+  if(!imageDay||!today)return false;
+  const ordinal=key=>{
+    const [year,month,day]=key.split('-').map(Number);
+    return Math.floor(Date.UTC(year,month-1,day)/86400000);
+  };
+  const dayDiff=ordinal(today)-ordinal(imageDay);
+  if(scope==='today')return dayDiff===0;
+  if(scope==='yesterday')return dayDiff===1;
+  if(scope==='week')return dayDiff>=0&&dayDiff<=6;
+  if(scope==='month')return imageDay.slice(0,7)===today.slice(0,7);
   return true;
 }
 
