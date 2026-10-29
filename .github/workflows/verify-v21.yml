@@ -250,6 +250,10 @@ jobs:
         run: node tests/test_v21_72_17_mobile_form_keyboard_runtime.js
       - name: UI-137 Web/PWA media metadata and bounded cache runtime
         run: node tests/test_v21_137_dual_session_media_runtime.js
+      - name: CHAT outbox conversation and retries stay with original account
+        run: |
+          node --check v21-sync-engine.js
+          node tests/test_chat_outbox_conversation_owner_20261029.cjs
       - name: CHAT unread badge belongs to active client and single-flight
         run: |
           node --check v21-sync-engine.js
