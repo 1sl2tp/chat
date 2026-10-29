@@ -22,6 +22,8 @@ let unreadRefreshTimer=0;
 let unreadRefreshQueued=false;
 let unreadLastStartedAt=0;
 let realtimeApplyChain=Promise.resolve();
+// Only one in-flight outbox drain for the current authenticated client.
+let outboxFlushFlight=null;
 
 function authStore(){return window.V21AuthSessionStore||null;}
 function cache(){return window.V21CacheStore||null;}
@@ -1248,9 +1250,22 @@ async function flushMediaItem(item,conversationId,context=captureFlushContext())
   return true;
 }
 
-async function flushOutbox(){
-  if(!client||!accountId||!appSessionId||!online())return 0;
+function flushOutbox(){
   const context=captureFlushContext();
+  if(!context.client||!context.accountId||!context.appSessionId||!online())return Promise.resolve(0);
+  // Join an existing flush only for the exact account/session/client owner.
+  // A login rotation may drain B even while an obsolete A RPC is unresolved.
+  if(outboxFlushFlight&&syncOwnerContextCurrent(outboxFlushFlight.context)){
+    return outboxFlushFlight.promise;
+  }
+  const promise=drainOutbox(context);
+  outboxFlushFlight={context,promise};
+  const clear=()=>{if(outboxFlushFlight?.promise===promise)outboxFlushFlight=null;};
+  void promise.then(clear,clear);
+  return promise;
+}
+
+async function drainOutbox(context){
   const ownerAccountId=context.accountId;
   const rows=await cache()?.listOutbox?.(ownerAccountId)||[];
   if(!flushContextCurrent(context))return 0;
