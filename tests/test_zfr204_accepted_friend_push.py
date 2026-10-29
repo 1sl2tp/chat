@@ -47,7 +47,10 @@ def test_notifications_do_not_pollute_chat_and_have_history():
     assert "friendPush=kind==='zalo_friend_accepted'" in SW
     assert "if(!bankPush&&!missedPush&&!friendPush" in SW
     assert "if(kind==='zalo_friend_accepted')target.searchParams.set('push_friend','1');" in SW
-    assert "client.postMessage?.({type:'ADMIN_PUSH_OPEN',kind});" in SW
+    # SW checks the delivery function once, then calls it directly. Do not
+    # require obsolete optional-chaining syntax instead of the delivery contract.
+    assert "typeof client.postMessage!=='function'" in SW
+    assert "client.postMessage({type:'ADMIN_PUSH_OPEN',kind});" in SW
     assert "push_friend" in PUSH
     assert "kind==='zalo_friend_accepted'" in PUSH
     assert "openFriends" in PUSH
