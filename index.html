@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="e846b40b10b41d398a01916b1f9f9e8e3e3b980d07875896b3de084c8d4ec745">
+<meta name="app-build-id" content="f2ffc78533908fc871fe757d4093419cbf8386ef42832bde232ace505185bbcc">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -8492,18 +8492,33 @@ function runtimeErrorMessage(error){
 
 const AppBootController={
   phase:'BOOT',
-  fail(error){
+  bootFinished:false,
+  fatalBootError:false,
+  lastErrorMessage:'',
+  fail(error,{fatal=false}={}){
     const message=runtimeErrorMessage(error);
-
+    if(fatal)this.fatalBootError=true;
     this.phase='ERROR';
     modeLabel.textContent='ERROR';
+    // Repeated global faults must not repaint the banner or multiply logs.
+    if(this.lastErrorMessage===message&&!runtimeError.classList.contains('hidden'))return;
+    this.lastErrorMessage=message;
     runtimeError.textContent='V21.72.39 runtime: '+message;
     runtimeError.classList.remove('hidden');
     console.error('[ChatScreenModule V21.72.39]',error);
   },
   ready(){
+    // A successful render invariant proves recovery only for errors seen
+    // during BOOT. It must never conceal a fatal boot invariant or a later
+    // first-party runtime failure after the UI was already READY.
+    if(this.bootFinished||this.fatalBootError)return false;
+    this.bootFinished=true;
     this.phase='READY';
     modeLabel.textContent=viewport.mode;
+    this.lastErrorMessage='';
+    runtimeError.textContent='';
+    runtimeError.classList.add('hidden');
+    return true;
   }
 };
 
@@ -8549,15 +8564,34 @@ function isOwnedRuntimeErrorEvent(event){
   return true;
 }
 
+function isOwnedRuntimeRejectionEvent(event){
+  const message=runtimeErrorMessage(event?.reason);
+  // The same injected Zalo WebView bridge error can surface as an unhandled
+  // Promise rejection instead of ErrorEvent; it is not Chat-owned.
+  if(
+    /\bzalojsv2\b/i.test(message) &&
+    /(?:can't find variable|is not defined|referenceerror)/i.test(message)
+  ){
+    console.warn('[ChatScreenModule] ignored Zalo WebView bridge rejection.');
+    return false;
+  }
+  // Unknown or first-party rejected promises remain visible for diagnosis.
+  return true;
+}
+
 window.addEventListener('error',e=>{
   if(!isOwnedRuntimeErrorEvent(e))return;
+  // A synchronous first-party error before READY can invalidate startup.
+  // Do not erase it merely because the message window later renders.
   AppBootController.fail(
-    e.error || new Error(e.message || 'Unknown runtime error')
+    e.error || new Error(e.message || 'Unknown runtime error'),
+    {fatal:!AppBootController.bootFinished}
   );
 });
 window.addEventListener('unhandledrejection',e=>{
+  if(!isOwnedRuntimeRejectionEvent(e))return;
   AppBootController.fail(
-    e.reason || new Error('Unhandled promise rejection')
+    e.reason ?? new Error('Unhandled promise rejection')
   );
 });
 
@@ -16030,7 +16064,8 @@ function boot(){
       AppBootController.fail(
         new Error(
           'BOOT invariant: store has messages but DOM window is empty'
-        )
+        ),
+        {fatal:true}
       );
       return;
     }
