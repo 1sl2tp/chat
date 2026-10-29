@@ -2755,6 +2755,29 @@ function messageTimestampMs(message){
   return Number.isFinite(parsed)&&parsed>0?parsed:0;
 }
 
+function syncMessageTimeNode(unit,message){
+  if(!unit)return;
+  const stamp=messageTimestampMs(message);
+  let time=unit.querySelector(':scope > .message-sent-time');
+  if(!stamp){time?.remove();return;}
+  if(!time){
+    time=document.createElement('time');
+    time.className='message-sent-time';
+    unit.appendChild(time);
+  }
+  const date=new Date(stamp);
+  time.dateTime=date.toISOString();
+  time.textContent=date.toLocaleTimeString('vi-VN',{
+    timeZone:'Asia/Ho_Chi_Minh',hour:'2-digit',minute:'2-digit',hour12:false
+  });
+  const full=date.toLocaleString('vi-VN',{
+    timeZone:'Asia/Ho_Chi_Minh',day:'2-digit',month:'2-digit',year:'numeric',
+    hour:'2-digit',minute:'2-digit',hour12:false
+  });
+  time.title='Gửi lúc '+full;
+  time.setAttribute('aria-label','Gửi lúc '+full);
+}
+
 function messageDateKey(timestamp){
   const stamp=typeof timestamp==='number'?timestamp:Date.parse(timestamp);
   if(!Number.isFinite(stamp)||stamp<=0)return '';
@@ -2854,7 +2877,7 @@ function messageVisualSignature(message){
     message?.important?'1':'0',
     reply,
     mediaVisualSignature(message?.media),
-    messageDateKey(messageTimestampMs(message)),
+    messageTimestampMs(message),
     messageDaySeparatorLabel(message)
   ]);
 }
@@ -4763,6 +4786,7 @@ function patchMessageNode(node,message){
     }
   }
 
+  syncMessageTimeNode(unit,message);
   node.__visualSignature=messageVisualSignature(message);
   return node;
 }
@@ -4829,6 +4853,7 @@ function renderMessageNode(message){
   }
 
   unit.appendChild(createActionGroup(message));
+  syncMessageTimeNode(unit,message);
   messageWrap.appendChild(unit);
   stack.appendChild(messageWrap);
   outer.appendChild(stack);
