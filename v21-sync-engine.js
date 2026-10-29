@@ -1294,11 +1294,14 @@ async function drainOutbox(context){
         await cache()?.updateOutbox?.(ownerAccountId,item);
         continue;
       }
-      conversationId=await ensureConversation(item.contact_id);
+      // Keep the queued A message's conversation resolution under its
+      // initiating auth client, even when a new B session takes over.
+      conversationId=await ensureConversation(item.contact_id,{context});
       if(!flushContextCurrent(context))break;
       if(!conversationId)break;
       item.conversation_id=conversationId;
       await cache()?.updateOutbox?.(ownerAccountId,item);
+      if(!flushContextCurrent(context))break;
     }
     try{
       if(item.kind==='media'||item.kind==='images'||item.kind==='image'||item.kind==='audio'){
@@ -1353,7 +1356,9 @@ async function drainOutbox(context){
       sent+=1;
       if(!flushContextCurrent(context))break;
     }catch(error){
-      if(String(error?.code||error?.message||'')==='sync_context_changed')return sent;
+      // An A send failure completed after account rotation is not a new B
+      // error or retry mutation. Leave A's durable pending item intact.
+      if(!flushContextCurrent(context)||String(error?.code||error?.message||'')==='sync_context_changed')return sent;
       item.attempts=(Number(item.attempts)||0)+1;
       item.failed=true;
       item.retryable=isRetryableOutboxError(error);
