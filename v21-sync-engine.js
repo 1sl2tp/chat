@@ -245,7 +245,8 @@ async function flushActiveMessageVisuals(){
   return applied;
 }
 
-async function patchContactSummary(conversationId,patch={}){
+async function patchContactSummary(conversationId,patch={},context=null){
+  if(context&&!syncOwnerContextCurrent(context))return false;
   if(!conversationId||!accountId)return false;
   const current=contacts()?.snapshot?.().find(row=>String(row.conversation_id||'')===String(conversationId));
   if(!current)return false;
@@ -262,7 +263,9 @@ async function patchContactSummary(conversationId,patch={}){
   }
 
   const next={...current,...safePatch};
-  await cache()?.upsertContact?.(accountId,next);
+  await cache()?.upsertContact?.(context?.accountId||accountId,next);
+  // A completed IndexedDB write must not repaint another login's directory.
+  if(context&&!syncOwnerContextCurrent(context))return false;
   contacts()?.upsert?.(next);
   return true;
 }
@@ -329,9 +332,13 @@ async function applyMessageEvent(event){
 async function applyReadEvent(event){
   const payload=event?.payload||null;
   if(!payload?.conversation_id||!payload?.account_id)return false;
-  await cache()?.putReadState?.(accountId,payload);
-  if(String(payload.account_id)===String(accountId)){
-    await patchContactSummary(payload.conversation_id,{has_unread:false});
+  const context=captureSyncOwnerContext();
+  if(!context.accountId||!context.appSessionId||!context.client)return false;
+  await cache()?.putReadState?.(context.accountId,payload);
+  if(!syncOwnerContextCurrent(context))return false;
+  if(String(payload.account_id)===context.accountId){
+    await patchContactSummary(payload.conversation_id,{has_unread:false},context);
+    if(!syncOwnerContextCurrent(context))return false;
     // Reading on one open device must immediately reconcile unread state on
     // the other open sessions of the same account.
     void refreshUnread();
@@ -1429,10 +1436,17 @@ async function refreshUnread({force=false}={}){
 
 async function markRead(conversationId=currentConversationId){
   const target=String(conversationId||'');
-  if(!client||!appSessionId||!target||!online())return false;
-  const {error}=await client.rpc('v21_mark_read',{p_app_session_id:appSessionId,p_conversation_id:target});
+  const context=captureSyncOwnerContext();
+  if(!context.client||!context.appSessionId||!context.accountId||!target||!online())return false;
+  const {error}=await context.client.rpc('v21_mark_read',{
+    p_app_session_id:context.appSessionId,p_conversation_id:target
+  });
+  // The server may have accepted A's read command; its late ACK must never
+  // clear the sidebar/unread state of a different login or rotated session.
+  if(!syncOwnerContextCurrent(context))return false;
   if(!error){
-    await patchContactSummary(target,{has_unread:false});
+    await patchContactSummary(target,{has_unread:false},context);
+    if(!syncOwnerContextCurrent(context))return false;
     await refreshUnread({force:true});
   }
   return !error;
