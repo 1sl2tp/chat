@@ -18,8 +18,12 @@ function session(){
     getMessage:async(_,id)=>id===parent.id?{...parent}:null,
     putMessage:async(_,item)=>{Object.assign(parent,item);return true}
   };
+  const scopedClient={};
   const ctx={
-    accountId:'admin',currentConversationId:'thread-1',
+    accountId:'admin',appSessionId:'session-1',client:scopedClient,
+    captureSyncOwnerContext:()=>({accountId:'admin',appSessionId:'session-1',client:scopedClient}),
+    syncOwnerContextCurrent:owner=>Boolean(owner&&owner.accountId==='admin'&&owner.appSessionId==='session-1'&&owner.client===scopedClient),
+    currentConversationId:'thread-1',
     dirtyActiveMessageIds:new Set(),activeDirtyNeedsFullMediaIndex:false,
     cache:()=>store,
     media:()=>({
