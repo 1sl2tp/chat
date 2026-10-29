@@ -128,6 +128,12 @@ async function reload(){
   paint(current);focusPushRecord(current);
   const when=new Date(data.updated_at);
   ui.stamp.textContent='Dữ liệu '+(Number.isFinite(when.getTime())?new Intl.DateTimeFormat('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(when):'mới nhất')+(data.closed?' · Đã khóa sổ':' · Đang mở sổ');
+  // Publish proof of this successful existing read; never claim that the
+  // original report signal message's created_at is today's bank data.
+  document.dispatchEvent(new CustomEvent('v21-bank-report-viewed',{detail:{
+    accountId:String(auth.account?.id||''),day,viewedAt:new Date().toISOString(),
+    closed:Boolean(data.closed)
+  }}));
  }catch(error){
   if(id===requestId&&active){ui.stamp.textContent='Chưa lấy được dữ liệu. Bấm Làm mới.';ui.groups.replaceChildren(el('p','bank-report-empty','Không tải được bảng đối soát.'));}
  }finally{loading=false;if(queued){queued=false;void reload();}}

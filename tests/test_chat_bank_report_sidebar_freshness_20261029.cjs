@@ -1,0 +1,46 @@
+'use strict';
+const fs=require('node:fs');
+const vm=require('node:vm');
+const assert=require('node:assert/strict');
+const shell=fs.readFileSync('shell.js','utf8');
+const dashboard=fs.readFileSync('bank-report-dashboard.js','utf8');
+const id='fc3ec480-60d2-4749-b7af-5f4ae71eb14e';
+const start=shell.indexOf("const PINNED_BANK_REPORT_CONTACT_ID=");
+const end=shell.indexOf('function createRenderedContactRow(',start);
+assert(start>0&&end>start,'report view helper exists under the pinned report owner');
+const env=vm.createContext({authAccount:{id:'admin-A',role:'admin'},Date,Intl,console});
+vm.runInContext(shell.slice(start,end)+
+  "\nglobalThis.check=bankReportContactView;globalThis.today=bankReportTodayVN;"+
+  "globalThis.setLast=x=>{bankReportLastView=x;};",env);
+const old={id,latest_at:'2026-10-19T00:00:00Z',preview_text:'Tin báo cáo cũ'};
+let view=env.check(old);
+assert.equal(view.preview,'Báo cáo trực tiếp · Mở để xem mới nhất');
+assert.equal(view.time,'Trực tiếp');
+assert.equal(view.instant,'','no stale historical message timestamp');
+assert.equal(env.check({...old,id:'other'}),null);
+const now='2026-10-29T01:00:00.000Z';
+env.setLast({accountId:'admin-A',day:env.today(),viewedAt:now,closed:false});
+view=env.check(old);
+assert(view.preview.includes('Đang mở sổ'));
+assert(view.time.startsWith('Đã xem '));
+assert.equal(view.instant,now,'last successful view instant is distinct from message timestamp');
+env.setLast({accountId:'admin-A',day:'2026-10-19',viewedAt:now,closed:false});
+assert.equal(env.check(old).instant,'','historical report day cannot masquerade as live today');
+env.setLast({accountId:'other-admin',day:env.today(),viewedAt:now,closed:false});
+assert.equal(env.check(old).instant,'','another admin session must not leak viewed state');
+env.setLast({accountId:'admin-A',day:env.today(),viewedAt:'invalid',closed:false});
+assert.equal(env.check(old).instant,'','invalid time is not shown');
+env.setLast({accountId:'admin-A',day:env.today(),viewedAt:now,closed:true});
+assert(env.check(old).preview.includes('Đã khóa sổ'));
+assert(shell.includes("document.addEventListener('v21-bank-report-viewed'"));
+assert(shell.includes("if(item)patchRenderedContact(item);"));
+assert(shell.includes("const reportView=bankReportContactView(item);"));
+assert(dashboard.includes("document.dispatchEvent(new CustomEvent('v21-bank-report-viewed'"));
+const startReload=dashboard.indexOf('async function reload(){');
+const failReload=dashboard.indexOf('}catch(error){',startReload);
+const dispatch=dashboard.indexOf("document.dispatchEvent(new CustomEvent('v21-bank-report-viewed'",startReload);
+assert(dispatch>startReload&&dispatch<failReload,
+  'only the complete successful existing report read emits a local view event');
+assert(dashboard.includes("const [report,states,credits]=await Promise.all(["));
+assert(!dashboard.includes("setInterval("),'no new dashboard polling');
+console.log('CHAT bank sidebar live-view proof/negative cases PASS');
