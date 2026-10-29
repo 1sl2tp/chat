@@ -2877,8 +2877,9 @@ function messageVisualSignature(message){
     message?.important?'1':'0',
     reply,
     mediaVisualSignature(message?.media),
-    messageTimestampMs(message),
-    messageDaySeparatorLabel(message)
+    messageDateKey(messageTimestampMs(message)),
+    messageDaySeparatorLabel(message),
+    messageTimestampMs(message)
   ]);
 }
 
