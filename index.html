@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="18d39925a87ee2ce235bf31431feaed150eac80d5c4a635f4a4bdbd8c61fe29c">
+<meta name="app-build-id" content="982d5d6cc70664d5fe6ac5c6f62c553244942c0bb8904d8812b682f67c8f5873">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -24902,9 +24902,16 @@ const MEDIA_BUCKET='v21-media';
 const inflight=new Map();
 // Local hydration is cancellable when the same asset is deleted/removed.
 // Inflight entries are temporary, never a second canonical media state.
-function cancelInflight(accountId,assetId){
+async function cancelInflight(accountId,assetId){
   const pending=inflight.get(key(accountId,assetId));
-  if(pending)pending.cancelled=true;
+  if(!pending)return;
+  pending.cancelled=true;
+  // A local IndexedDB write may already be queued. Delete must commit
+  // AFTER that write, otherwise its late transaction could revive the Blob.
+  // Never wait for the network download itself.
+  if(pending.writePromise){
+    try{await pending.writePromise;}catch{}
+  }
 }
 let evictionTimer=0;
 let evictionAccountId=null;
@@ -24962,13 +24969,13 @@ async function get({accountId,assetId}){
 
 async function remove({accountId,assetId}){
   if(!accountId||!assetId)return false;
-  cancelInflight(accountId,assetId);
+  await cancelInflight(accountId,assetId);
   return cache()?.removeMediaRecord?.(accountId,assetId)||false;
 }
 
 async function markDeleted({accountId,assetId,meta={}}={}){
   if(!accountId||!assetId)return false;
-  cancelInflight(accountId,assetId);
+  await cancelInflight(accountId,assetId);
   const existing=await get({accountId,assetId});
   const remoteMeta={
     ...((existing&&existing.remote_meta)||{}),
@@ -25065,7 +25072,7 @@ async function ensureRemote({accountId,assetId,client}={}){
   const cacheKey=key(accountId,assetId);
   if(inflight.has(cacheKey))return inflight.get(cacheKey).promise;
 
-  const ticket={cancelled:false,promise:null};
+  const ticket={cancelled:false,promise:null,writePromise:null};
   let fallback=null;
   const promise=(async()=>{
     const existing=await get({accountId,assetId});
@@ -25085,7 +25092,7 @@ async function ensureRemote({accountId,assetId,client}={}){
     }
     if(!(data instanceof Blob))return existing||null;
 
-    await cache()?.putMediaRecord?.(accountId,assetId,{
+    ticket.writePromise=cache()?.putMediaRecord?.(accountId,assetId,{
       blob:data,
       local:false,
       pinned:false,
@@ -25094,6 +25101,7 @@ async function ensureRemote({accountId,assetId,client}={}){
       mime_type:data.type||meta?.mime_type||'application/octet-stream',
       last_accessed_at:Date.now()
     });
+    await ticket.writePromise;
     const row=await get({accountId,assetId});
     if(ticket.cancelled||row?.remote_meta?.deleted_at)return row||null;
     scheduleEviction(accountId);
@@ -25102,6 +25110,9 @@ async function ensureRemote({accountId,assetId,client}={}){
     }));
     return row;
   })().catch(error=>{
+    // A cancelled hydration is no longer a user-visible media error.
+    // Preserve asset-scoped error reporting for genuine, active failures.
+    if(ticket.cancelled)return null;
     emitMediaHydrationError(error,{accountId,assetId,meta:fallback?.remote_meta||null});
     return fallback;
   }).finally(()=>{
