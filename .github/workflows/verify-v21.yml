@@ -254,6 +254,7 @@ jobs:
         run: |
           node --check v21-media-cache.js
           node tests/test_chat_media_deleted_hydration_race_20261029.cjs
+          node tests/test_chat_media_write_delete_order_20261029.cjs
           node tests/test_v21_72_15_media_hydration_error_scope.js
       - name: Scoped admin/test deleted-history IndexedDB reset
         run: node tests/test_v21_admin_test_deleted_history_cache.js
