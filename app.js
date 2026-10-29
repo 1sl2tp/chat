@@ -1657,7 +1657,11 @@ function updateImageViewerTimeMenu(){
   imageViewerTimeMenuButton.setAttribute('aria-label',`Tùy chọn ảnh · ${timeLabel}`);
   imageViewerTimeMenuButton.setAttribute('title',`Tùy chọn ảnh · ${timeLabel}`);
   for(const button of Array.from(imageViewerTimeMenuPanel.querySelectorAll('.image-review-menu-item'))){
+    if(!button.dataset.timeFilter)continue;
     const active=button.dataset.timeFilter===imageViewerTimeFilter;
+    // These controls have role=menuitemradio: expose checked state to
+    // keyboard/screen-reader users, including when the result set is empty.
+    button.setAttribute('aria-checked',active?'true':'false');
     button.toggleAttribute('aria-current',active);
     if(active)button.setAttribute('aria-current','true');
   }
