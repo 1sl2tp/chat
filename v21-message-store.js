@@ -83,7 +83,10 @@ function mergeLogicalRow(existing,incoming){
   if(isCanonicalRow(preferred))delete next._local_state;
   const preferredMedia=Array.isArray(preferred?._media_assets)?preferred._media_assets.filter(Boolean):[];
   const fallbackMedia=Array.isArray(fallback?._media_assets)?fallback._media_assets.filter(Boolean):[];
-  if(!preferredMedia.length&&fallbackMedia.length){
+  // A missing media projection means "not fetched", so keep the last-good
+  // list. An explicit [] is a real state transition (e.g. final asset deleted)
+  // and must never be replaced with stale cached attachments.
+  if(!Array.isArray(preferred?._media_assets)&&fallbackMedia.length){
     next._media_assets=fallbackMedia.map(asset=>({...asset}));
   }
   return next;

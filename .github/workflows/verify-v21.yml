@@ -255,6 +255,7 @@ jobs:
           node --check v21-message-store.js
           node tests/test_v21_72_14_message_scope_runtime.js
           node tests/test_chat_conversation_session_affinity_20261029.cjs
+          node tests/test_chat_media_explicit_empty_merge_20261029.cjs
       - name: CHAT media hydration cannot revive deleted or removed files
         run: |
           node --check v21-media-cache.js
