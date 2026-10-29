@@ -2799,11 +2799,9 @@ function syncMessageTimeNode(unit,message){
 function messageDateKey(timestamp){
   const stamp=typeof timestamp==='number'?timestamp:Date.parse(timestamp);
   if(!Number.isFinite(stamp)||stamp<=0)return '';
-  // All Chat day boundaries follow Vietnam time, independent of the host
-  // browser timezone. Otherwise admin and iOS PWA split days differently.
-  return new Intl.DateTimeFormat('en-CA',{
-    timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'
-  }).format(new Date(stamp));
+  // Shared typed calendar owner makes date separators and photo filters
+  // independent of locale-specific string order in Safari/Chrome.
+  return window.ChatConversationCore.vnCalendarDayKey(stamp);
 }
 
 function formatMessageDayLabel(timestamp,{includeDate=false,now=new Date()}={}){

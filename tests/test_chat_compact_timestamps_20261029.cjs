@@ -28,7 +28,8 @@ const localEnd=shell.indexOf('function contactPreview(',localStart);
 assert(localStart>=0&&localEnd>localStart);
 let report=null;
 const context=vm.createContext({
-  Date,Intl,bankReportContactView:()=>report
+  Date,Intl,window:{ChatConversationCore:require('../conversation-core.js')},
+  bankReportContactView:()=>report
 });
 vm.runInContext(shell.slice(localStart,localEnd)+
   '\nglobalThis.fmt=formatContactTime;globalThis.setTime=setContactTimeNode;',context);
