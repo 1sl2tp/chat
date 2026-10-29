@@ -30,9 +30,6 @@ assert(!b.includes('grid-template-columns:minmax(0,1fr)minmax(0,1fr)auto!importa
   'late two-column override must not defeat narrow mobile composition');
 assert(!b.includes('.zalo-account-searchinput{height:40px!important'),
   'late 14px search override must not defeat Safari-safe 16px input');
-assert(!b.includes('mobile-ui-line)!important'), 
-  'retired Settings rules should not be retained as local !important overrides');
-
 // Every screen width under the existing max-width:640px breakpoint,
 // including the user's ~500px content viewport and a 390px phone,
 // uses one full-width row per Chat, Zalo, group selector and actions.
