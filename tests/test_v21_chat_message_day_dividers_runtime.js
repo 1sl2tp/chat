@@ -5,6 +5,7 @@ const end=code.indexOf('\nfunction stableMessageDomKey(',start);
 assert(start>=0&&end>start,'missing canonical message-day helpers');
 const helperCode=code.slice(start,end);
 const context={
+  window:{ChatConversationCore:require('../conversation-core.js')},
   store:{
     items:[],
     indexOfId(id){return this.items.findIndex(item=>String(item.id)===String(id));}
