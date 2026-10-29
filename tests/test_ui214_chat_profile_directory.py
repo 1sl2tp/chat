@@ -25,7 +25,11 @@ def test_active_customer_has_accessible_profile_button():
 
 def test_touch_can_edit_selected_contact_without_covering_all_contact_times():
     assert '.shell-contact-row[data-active="true"] .shell-contact-manage{display:grid!important}' in HTML
-    assert '.shell-contact-row[data-active="true"] .shell-contact-time{opacity:0}' in HTML
+    # The profile action occupies the second row, never hides the first-row timestamp.
+    assert '.shell-contact-row[data-active="true"] .shell-contact-time{opacity:0}' not in HTML
+    assert '.shell-contact-row:hover .shell-contact-time' not in HTML
+    assert '.shell-contact-manage{' in HTML
+    assert 'top:auto;' in HTML and 'bottom:3px;' in HTML
     assert '.shell-contact-manage{display:none!important}' in HTML
     assert "if(item)openManagedProfile(item)" in SHELL
 
