@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="b78918334f84f37921504e684bce586466fb72dea8ce513a8056f206ab237566">
+<meta name="app-build-id" content="02aab0b4a581a0c027f366dc8462b07ecdfbaa6a6cea27817a369d061050176b">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -2528,6 +2528,23 @@ button{
   width:fit-content;
   max-width:100%;
 }
+/* Exact sent time sits below existing text/media without altering the
+   message bubble itself. Only already-virtualized messages own this node. */
+.message-sent-time{
+  display:block;
+  box-sizing:border-box;
+  min-width:2.5rem;
+  max-width:100%;
+  margin-top:3px;
+  color:var(--theme-content-tertiary);
+  font-size:11px;
+  line-height:14px;
+  font-weight:400;
+  white-space:nowrap;
+  font-variant-numeric:tabular-nums;
+}
+.user-message-unit>.message-sent-time{text-align:right}
+.assistant-message-unit>.message-sent-time{text-align:left}
 .user-message-unit{
   margin-left:auto;
   max-width:70%;
@@ -5915,11 +5932,12 @@ button{
 .shell-contact-name{grid-column:1;grid-row:1;min-width:0;font-size:.875rem;line-height:1.15rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .shell-contact-preview{grid-column:1;grid-row:2;min-width:0;color:var(--theme-content-secondary);font-size:.75rem;line-height:1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .shell-contact-preview:empty{display:none}
-.shell-contact-time{grid-column:2;grid-row:1;align-self:center;justify-self:end;width:52px;margin:0;color:var(--theme-content-tertiary);font-size:.6875rem;line-height:1rem;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.shell-contact-time{grid-column:2;grid-row:1;align-self:center;justify-self:end;min-width:0;max-width:100%;width:52px;margin:0;color:var(--theme-content-tertiary);font-size:.6875rem;line-height:1rem;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
 .shell-contact-manage{
   position:absolute;
   right:6px;
-  top:50%;
+  top:auto;
+  bottom:3px;
   z-index:2;
   width:30px;
   height:30px;
@@ -5933,22 +5951,20 @@ button{
   place-items:center;
   cursor:pointer;
   padding:0;
-  transform:translateY(-50%);
+  transform:none;
 }
 .shell-contact-manage:hover{background:var(--theme-action-ghost-surface-hover);color:var(--theme-content-primary)}
 .shell-contact-row:not(:last-child)::after{display:none}
+/* The first row's time is permanent metadata, never a hover/action slot.
+   The manage control uses the right rail of the second row, so neither a
+   long group name nor active/hover/focus can hide the latest-message time. */
 @media (hover:hover) and (pointer:fine){
-  .shell-contact-time{transition:opacity 120ms ease}
   .shell-contact-manage{opacity:0;pointer-events:none;transition:opacity 120ms ease,background-color 120ms ease,color 120ms ease}
-  .shell-contact-row:hover .shell-contact-time,
-  .shell-contact-row:focus-within .shell-contact-time{opacity:0}
   .shell-contact-row:hover .shell-contact-manage,
   .shell-contact-row:focus-within .shell-contact-manage{opacity:1;pointer-events:auto}
 }
-/* UI-214: keep the selected contact's profile action discoverable.
-   On touch the former display:none made renaming impossible from Chat. */
+/* On touch, selected conversations still expose their manage action. */
 .shell-contact-row[data-active="true"] .shell-contact-manage{opacity:1;pointer-events:auto}
-.shell-contact-row[data-active="true"] .shell-contact-time{opacity:0}
 @media (hover:none), (pointer:coarse){
   .shell-contact-manage{display:none!important}
   .shell-contact-row[data-active="true"] .shell-contact-manage{display:grid!important}
@@ -10983,6 +10999,29 @@ function messageTimestampMs(message){
   return Number.isFinite(parsed)&&parsed>0?parsed:0;
 }
 
+function syncMessageTimeNode(unit,message){
+  if(!unit)return;
+  const stamp=messageTimestampMs(message);
+  let time=unit.querySelector(':scope > .message-sent-time');
+  if(!stamp){time?.remove();return;}
+  if(!time){
+    time=document.createElement('time');
+    time.className='message-sent-time';
+    unit.appendChild(time);
+  }
+  const date=new Date(stamp);
+  time.dateTime=date.toISOString();
+  time.textContent=date.toLocaleTimeString('vi-VN',{
+    timeZone:'Asia/Ho_Chi_Minh',hour:'2-digit',minute:'2-digit',hour12:false
+  });
+  const full=date.toLocaleString('vi-VN',{
+    timeZone:'Asia/Ho_Chi_Minh',day:'2-digit',month:'2-digit',year:'numeric',
+    hour:'2-digit',minute:'2-digit',hour12:false
+  });
+  time.title='Gửi lúc '+full;
+  time.setAttribute('aria-label','Gửi lúc '+full);
+}
+
 function messageDateKey(timestamp){
   const stamp=typeof timestamp==='number'?timestamp:Date.parse(timestamp);
   if(!Number.isFinite(stamp)||stamp<=0)return '';
@@ -11083,7 +11122,8 @@ function messageVisualSignature(message){
     reply,
     mediaVisualSignature(message?.media),
     messageDateKey(messageTimestampMs(message)),
-    messageDaySeparatorLabel(message)
+    messageDaySeparatorLabel(message),
+    messageTimestampMs(message)
   ]);
 }
 
@@ -11278,7 +11318,7 @@ function patchImageGalleryNode(grid,media,{message=null}={}){
         viewerContext:{
           messageId:message?.id||'',
           senderKey:message?.sender||'remote',
-          createdAt:message?.createdAt||Date.now()
+          createdAt:messageTimestampMs(message)
         }
       });
     }else{
@@ -11288,7 +11328,7 @@ function patchImageGalleryNode(grid,media,{message=null}={}){
         viewerContext:{
           messageId:message?.id||'',
           senderKey:message?.sender||'remote',
-          createdAt:message?.createdAt||Date.now()
+          createdAt:messageTimestampMs(message)
         }
       });
       tile.dataset.galleryTile='true';
@@ -11333,7 +11373,7 @@ function createImageGalleryNode(media,{message=null}={}){
       viewerContext:{
         messageId:message?.id||'',
         senderKey:message?.sender||'remote',
-        createdAt:message?.createdAt||Date.now()
+        createdAt:messageTimestampMs(message)
       }
     });
     tile.dataset.galleryTile='true';
@@ -11864,7 +11904,7 @@ function patchMediaNode(node,media,{message=null}={}){
       viewerContext:{
         messageId:message?.id||'',
         senderKey:message?.sender||'remote',
-        createdAt:message?.createdAt||Date.now()
+        createdAt:messageTimestampMs(message)
       }
     });
     node.classList.toggle('mt-2',Boolean(message?.text||message?.replyTo));
@@ -11899,7 +11939,7 @@ function createMediaNode(media,{message=null}={}){
   }else if(media.type==='image'){
     const wrap=createImageTile(media,{
       className:'block h-full w-full object-contain',
-      viewerContext:{messageId:message?.id||'',senderKey:message?.sender||'remote',createdAt:message?.createdAt||Date.now()}
+      viewerContext:{messageId:message?.id||'',senderKey:message?.sender||'remote',createdAt:messageTimestampMs(message)}
     });
     wrap.className+=' max-w-full rounded-xl';
     if(message?.text||message?.replyTo)wrap.classList.add('mt-2');
@@ -12991,6 +13031,7 @@ function patchMessageNode(node,message){
     }
   }
 
+  syncMessageTimeNode(unit,message);
   node.__visualSignature=messageVisualSignature(message);
   return node;
 }
@@ -13057,6 +13098,7 @@ function renderMessageNode(message){
   }
 
   unit.appendChild(createActionGroup(message));
+  syncMessageTimeNode(unit,message);
   messageWrap.appendChild(unit);
   stack.appendChild(messageWrap);
   outer.appendChild(stack);
@@ -17521,18 +17563,48 @@ function compactPreview(value){
   return String(value||'').replace(/\s+/g,' ').trim();
 }
 
-function formatContactTime(value){
+function formatContactTime(value,{now=new Date()}={}){
   if(!value)return'';
   const date=new Date(value);
   if(Number.isNaN(date.getTime()))return'';
-  const now=new Date();
-  const startOfToday=new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime();
-  const startOfDate=new Date(date.getFullYear(),date.getMonth(),date.getDate()).getTime();
-  const dayDiff=Math.floor((startOfToday-startOfDate)/86400000);
-  if(dayDiff===0)return date.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false});
-  if(dayDiff===1)return'Hôm qua';
-  if(dayDiff>=2&&dayDiff<=6)return date.toLocaleDateString('vi-VN',{weekday:'long'});
-  return date.toLocaleDateString('vi-VN',{day:'numeric',month:'numeric',year:'2-digit'});
+  // Directory, message-day separators and media viewer use one VN calendar,
+  // independent of the phone or browser's own timezone.
+  const key=value=>new Intl.DateTimeFormat('en-CA',{
+    timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'
+  }).format(value);
+  const ordinal=value=>{
+    const [year,month,day]=key(value).split('-').map(Number);
+    return Math.floor(Date.UTC(year,month-1,day)/86400000);
+  };
+  const diff=ordinal(new Date(now))-ordinal(date);
+  if(diff===0)return date.toLocaleTimeString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',hour:'2-digit',minute:'2-digit',hour12:false});
+  if(diff===1)return'Hôm qua';
+  if(diff>=2&&diff<=6)return date.toLocaleDateString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',weekday:'short'});
+  return date.toLocaleDateString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',day:'numeric',month:'numeric',year:'2-digit'});
+}
+function setContactTimeNode(node,item){
+  if(!node)return;
+  const reportView=bankReportContactView(item);
+  const instant=reportView?reportView.instant:item?.latest_at;
+  // Report's long 'Đã xem dd/mm HH:mm' belongs in the accessible detail,
+  // while the narrow directory rail displays only the exact HH:mm.
+  node.textContent=reportView
+    ?(instant?formatContactTime(instant):reportView.time)
+    :formatContactTime(instant);
+  if(instant&&!Number.isNaN(new Date(instant).getTime())){
+    node.dateTime=String(instant);
+    const full=new Date(instant).toLocaleString('vi-VN',{
+      timeZone:'Asia/Ho_Chi_Minh',day:'2-digit',month:'2-digit',year:'numeric',
+      hour:'2-digit',minute:'2-digit',hour12:false
+    });
+    node.title=reportView?reportView.time:full;
+    node.setAttribute('aria-label',reportView?reportView.time:'Tin gần nhất '+full);
+  }else{
+    node.removeAttribute('datetime');
+    node.title=reportView?.time||'';
+    if(reportView)node.setAttribute('aria-label',reportView.time);
+    else node.removeAttribute('aria-label');
+  }
 }
 
 function contactPreview(item){
@@ -17954,10 +18026,7 @@ function createRenderedContactRow(item){
   const previewText=contactPreview(item);
   preview.textContent=item.locked_at?(previewText==='Chưa có tin nhắn'?'Đã khóa':`Đã khóa · ${previewText}`):previewText;
   const time=document.createElement('time');time.className='shell-contact-time';
-  const reportView=bankReportContactView(item);
-  time.textContent=reportView?reportView.time:formatContactTime(item.latest_at);
-  const timeInstant=reportView?reportView.instant:item.latest_at;
-  if(timeInstant)time.dateTime=String(timeInstant);
+  setContactTimeNode(time,item);
   copy.append(title,preview,time);
 
   button.append(avatarWrap,copy);
@@ -17991,12 +18060,7 @@ function patchRenderedContact(item){
     preview.textContent=item.locked_at?(previewText==='Chưa có tin nhắn'?'Đã khóa':`Đã khóa · ${previewText}`):previewText;
   }
   const time=row.querySelector('.shell-contact-time');
-  if(time){
-    const reportView=bankReportContactView(item);
-    time.textContent=reportView?reportView.time:formatContactTime(item.latest_at);
-    const timeInstant=reportView?reportView.instant:item.latest_at;
-    if(timeInstant)time.dateTime=String(timeInstant);else time.removeAttribute('datetime');
-  }
+  setContactTimeNode(time,item);
   const manage=row.querySelector('[data-contact-manage]');
   if(manage)manage.setAttribute('aria-label',`Mở thông tin liên hệ ${String(item.display_name||item.username||'Liên hệ')}`);
   return true;
