@@ -26,7 +26,13 @@ assert 'messageInlineImageHeightLimit' not in app
 
 # Directory order is activity-owned only. Equal activity keeps stable store
 # order; display-name/profile edits are never a sort key.
-assert 'if(activity)return activity;\n      return 0;' in directory
+sort_start=directory.index('function sortDirectoryContacts(')
+sort_end=directory.index('async function invokeBody(',sort_start)
+sorter=directory[sort_start:sort_end]
+assert 'if(activity)return activity;' in sorter
+assert 'return 0;' in sorter
+assert sorter.index('if(activity)return activity;') < sorter.index('return 0;')
+assert 'if(!reorder)return active;' in sorter  # Search keeps normalized store order
 assert "localeCompare(bn,'vi'" not in directory
 
 # Account/profile events must not erase conversation activity/preview fields

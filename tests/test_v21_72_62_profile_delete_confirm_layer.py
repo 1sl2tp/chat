@@ -13,11 +13,18 @@ assert 'functionprofileDeleteConfirmation()' in c
 assert 'functioncloseProfileDeleteConfirmation({restoreFocus=true}={})' in c
 assert 'if(closeProfileDeleteConfirmation({restoreFocus:true}))return;' in c
 
-# Escape closes confirmation first; only the next Escape closes the outer profile.
-key=shell[shell.index("document.addEventListener('keydown',event=>{"):][:900]
+# One shell-owned key dispatcher closes confirmation before the outer profile.
+# Do not reintroduce a second document Escape listener just to satisfy this test.
+start=shell.index('function handleShellOverlayKeydown(event){')
+end=shell.index("document.addEventListener('keydown',handleShellOverlayKeydown);",start)
+key=shell[start:end]
 assert "if(event.key==='Escape')" in key
-assert 'closeProfileDeleteConfirmation({restoreFocus:true})' in key
+assert 'if(closeProfileDeleteConfirmation({restoreFocus:true}))return;' in key
 assert 'closeProfileEditor();' in key
+assert key.index('closeProfileDeleteConfirmation({restoreFocus:true})')<key.index('closeProfileEditor();')
+assert 'event.stopImmediatePropagation();' in key
+assert "if(event.defaultPrevented)return;" in key
+assert shell.count("document.addEventListener('keydown',handleShellOverlayKeydown);")==1
 
 # Focus trap scopes itself to the alertdialog while confirmation is visible.
 assert 'constscope=profileDeleteConfirmation()||profileOverlay;' in c
