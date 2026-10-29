@@ -77,6 +77,8 @@ async function scenario(action,failPendingWrite=false){
     assert.equal(row,undefined,'removed local cache record must stay removed');
   }
   assert.equal(h.events.filter(x=>x.type==='v21-media-ready').length,0);
+  assert.equal(h.events.filter(x=>x.type==='v21-media-hydration-error').length,0,
+    'cancelled local write must not create a user-visible hydration error');
   assert.deepEqual(h.downloads,['A/C/mid-write'],'no new provider download or fallback');
 }
 
