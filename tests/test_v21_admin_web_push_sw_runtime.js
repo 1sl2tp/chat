@@ -148,5 +148,73 @@ function harness(){
   assert(cold.opened[0].includes('push_contact=user-1'));
   assert(cold.opened[0].includes('push_conversation=conv-1'));
 
+  // Failed focus must not silently consume the click. One cold deep link is
+  // opened instead, with exact conversation/contact identities intact.
+  const focusFail=harness();
+  const refused=focusFail.client('focus-rejected');
+  refused.focus=async()=>{throw new Error('focus denied')};
+  focusFail.setClients([refused]);
+  await focusFail.dispatch('notificationclick',{notification:{data:{
+    kind:'message',conversationId:'conv-focus',contactId:'hint-focus'
+  },close(){}}});
+  assert.equal(focusFail.posted.length,0,'never message a window that failed focus');
+  assert.equal(focusFail.opened.length,1,'focus rejection must open exactly one deep link');
+  assert.equal(new URL(focusFail.opened[0]).searchParams.get('push_conversation'),'conv-focus');
+  assert.equal(new URL(focusFail.opened[0]).searchParams.get('push_contact'),'hint-focus');
+
+  // If focus works but postMessage fails, navigate the same client instead of
+  // creating a duplicate tab or losing the click.
+  const messageFail=harness();
+  const existing=messageFail.client('message-rejected');
+  const navigations=[];
+  existing.postMessage=()=>{throw new Error('message port unavailable')};
+  existing.navigate=async url=>{navigations.push(url);return existing};
+  messageFail.setClients([existing]);
+  await messageFail.dispatch('notificationclick',{notification:{data:{
+    kind:'message',conversationId:'conv-nav',contactId:'hint-nav'
+  },close(){}}});
+  assert.equal(navigations.length,1,'one bounded same-client navigation');
+  assert.equal(new URL(navigations[0]).searchParams.get('push_conversation'),'conv-nav');
+  assert.equal(messageFail.opened.length,0,'successful same-client navigation must not open another window');
+
+  // Without navigate(), failed postMessage must use exactly one openWindow.
+  const noNavigate=harness();
+  const stranded=noNavigate.client('no-navigate');
+  stranded.postMessage=()=>{throw new Error('port closed')};
+  noNavigate.setClients([stranded]);
+  await noNavigate.dispatch('notificationclick',{notification:{data:{
+    conversationId:'conv-port',contactId:'hint-port'
+  },close(){}}});
+  assert.equal(noNavigate.opened.length,1);
+  assert.equal(new URL(noNavigate.opened[0]).searchParams.get('push_conversation'),'conv-port');
+
+  // A failed bank click remains a bank dashboard intent, never a Chat thread.
+  const bankFallback=harness();
+  const bankClient=bankFallback.client('bank-failed');
+  bankClient.focus=async()=>{throw new Error('cannot activate')};
+  bankFallback.setClients([bankClient]);
+  await bankFallback.dispatch('notificationclick',{notification:{data:{
+    kind:'bank_reconciliation',contactId:'report-contact',
+    bankDay:'2026-10-28',bankNoticeId:'notice-id',bankStatus:'matched'
+  },close(){}}});
+  assert.equal(bankFallback.opened.length,1);
+  const bankUrl=new URL(bankFallback.opened[0]);
+  assert.equal(bankUrl.searchParams.get('push_bank_day'),'2026-10-28');
+  assert.equal(bankUrl.searchParams.get('push_bank_notice'),'notice-id');
+  assert.equal(bankUrl.searchParams.get('push_bank_status'),'matched');
+
+  // Friend and call intents retain their own cold-open identity.
+  const special=harness();
+  special.setClients([]);
+  await special.dispatch('notificationclick',{notification:{data:{
+    kind:'zalo_friend_accepted'
+  },close(){}}});
+  await special.dispatch('notificationclick',{notification:{data:{
+    kind:'call_invite',inviteId:'invite-1',contactId:'caller-1'
+  },close(){}}});
+  assert.equal(new URL(special.opened[0]).searchParams.get('push_friend'),'1');
+  assert.equal(new URL(special.opened[1]).searchParams.get('push_call_invite'),'invite-1');
+  assert.equal(new URL(special.opened[1]).searchParams.get('push_contact'),'caller-1');
+
   console.log('admin web push service worker runtime PASS');
 })().catch(error=>{console.error(error);process.exit(1)});

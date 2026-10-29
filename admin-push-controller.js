@@ -413,16 +413,15 @@ async function handleOpen(payload={}){
   const missedCallId=String(payload?.missedCallId??payload?.call_id??'').trim();
   let contactId=String(payload?.contactId??payload?.contact_id??'').trim();
   const conversationId=String(payload?.conversationId??payload?.conversation_id??'').trim();
-  // Older/mobile pushes may contain only conversation_id, or a stale contact
-  // hint. Resolve against the canonical directory after auth/contact hydration.
-  if(conversationId){
+  // For Chat messages, conversation_id is authoritative: a contact hint
+  // can still exist but refer to a different conversation. Never navigate
+  // from that stale hint while the canonical directory is hydrating.
+  if(kind==='message'&&conversationId){
     const directory=window.V21ContactStore?.snapshot?.()||[];
-    if(!contactId||!directory.some(row=>String(row?.id||'')===contactId)){
-      const linked=directory.find(row=>
-        !row.deleted_at&&String(row.conversation_id||'')===conversationId
-      );
-      if(linked?.id)contactId=String(linked.id);
-    }
+    const linked=directory.find(row=>
+      row?.id&&!row.deleted_at&&String(row.conversation_id||'')===conversationId
+    );
+    contactId=linked?.id?String(linked.id):'';
   }
   const bankDay=String(payload?.bankDay??payload?.bank_day??'').trim();
   const bankNoticeId=String(payload?.bankNoticeId??payload?.bank_notice_id??'').trim();

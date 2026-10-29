@@ -34,6 +34,9 @@ function harness({cold=false}={}){
   const windowObj={
     V21AuthSessionStore:{snapshot:()=>({state:'AUTHENTICATED',account:{id:'admin',role:'admin'}}),getClient:()=>({functions})},
     ChatAppShell:shell,V21MessageStore:messageStore,
+    V21ContactStore:{snapshot:()=>[
+      {id:'B',conversation_id:'c-B'},{id:'X',conversation_id:'c-X'}
+    ]},
     V21ConversationBridge:{snapshot:()=>({viewportMode:'FOLLOW_TAIL'})},
     V21SyncEngine:{snapshot:()=>({currentContactId:messageContact,currentConversationId:'conv'})},
     addEventListener(type,cb){listeners.set('w:'+type,[cb])},
