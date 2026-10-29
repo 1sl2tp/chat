@@ -250,6 +250,11 @@ jobs:
         run: node tests/test_v21_72_17_mobile_form_keyboard_runtime.js
       - name: UI-137 Web/PWA media metadata and bounded cache runtime
         run: node tests/test_v21_137_dual_session_media_runtime.js
+      - name: CHAT media hydration cannot revive deleted or removed files
+        run: |
+          node --check v21-media-cache.js
+          node tests/test_chat_media_deleted_hydration_race_20261029.cjs
+          node tests/test_v21_72_15_media_hydration_error_scope.js
       - name: Scoped admin/test deleted-history IndexedDB reset
         run: node tests/test_v21_admin_test_deleted_history_cache.js
       - name: UI-138 Web/PWA open-position and remote-history scroll runtime

@@ -4,6 +4,12 @@ const VERSION='V21.72.15';
 const DEFAULT_SOFT_LIMIT=128*1024*1024;
 const MEDIA_BUCKET='v21-media';
 const inflight=new Map();
+// Local hydration is cancellable when the same asset is deleted/removed.
+// Inflight entries are temporary, never a second canonical media state.
+function cancelInflight(accountId,assetId){
+  const pending=inflight.get(key(accountId,assetId));
+  if(pending)pending.cancelled=true;
+}
 let evictionTimer=0;
 let evictionAccountId=null;
 
@@ -60,11 +66,13 @@ async function get({accountId,assetId}){
 
 async function remove({accountId,assetId}){
   if(!accountId||!assetId)return false;
+  cancelInflight(accountId,assetId);
   return cache()?.removeMediaRecord?.(accountId,assetId)||false;
 }
 
 async function markDeleted({accountId,assetId,meta={}}={}){
   if(!accountId||!assetId)return false;
+  cancelInflight(accountId,assetId);
   const existing=await get({accountId,assetId});
   const remoteMeta={
     ...((existing&&existing.remote_meta)||{}),
@@ -159,18 +167,22 @@ function emitMediaHydrationError(error,{accountId,assetId,meta=null}={}){
 async function ensureRemote({accountId,assetId,client}={}){
   if(!accountId||!assetId||!client)return null;
   const cacheKey=key(accountId,assetId);
-  if(inflight.has(cacheKey))return inflight.get(cacheKey);
+  if(inflight.has(cacheKey))return inflight.get(cacheKey).promise;
 
+  const ticket={cancelled:false,promise:null};
   let fallback=null;
   const promise=(async()=>{
     const existing=await get({accountId,assetId});
     fallback=existing||null;
+    if(ticket.cancelled)return await get({accountId,assetId})||null;
     if(existing?.blob instanceof Blob)return existing;
     const meta=existing?.remote_meta||null;
     const storageKey=String(meta?.storage_key||'');
     if(!storageKey||meta?.deleted_at)return existing||null;
 
     const {data,error}=await client.storage.from(MEDIA_BUCKET).download(storageKey);
+    // Never revive an old Blob after a delete/remove arrived mid-download.
+    if(ticket.cancelled)return await get({accountId,assetId})||null;
     if(error){
       emitMediaHydrationError(error,{accountId,assetId,meta});
       return existing||null;
@@ -187,6 +199,7 @@ async function ensureRemote({accountId,assetId,client}={}){
       last_accessed_at:Date.now()
     });
     const row=await get({accountId,assetId});
+    if(ticket.cancelled||row?.remote_meta?.deleted_at)return row||null;
     scheduleEviction(accountId);
     document.dispatchEvent(new CustomEvent('v21-media-ready',{
       detail:{accountId:String(accountId),assetId:String(assetId)}
@@ -195,9 +208,12 @@ async function ensureRemote({accountId,assetId,client}={}){
   })().catch(error=>{
     emitMediaHydrationError(error,{accountId,assetId,meta:fallback?.remote_meta||null});
     return fallback;
-  }).finally(()=>inflight.delete(cacheKey));
+  }).finally(()=>{
+    if(inflight.get(cacheKey)===ticket)inflight.delete(cacheKey);
+  });
 
-  inflight.set(cacheKey,promise);
+  ticket.promise=promise;
+  inflight.set(cacheKey,ticket);
   return promise;
 }
 
