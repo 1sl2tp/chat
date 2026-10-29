@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="3d62b2b6eaa36a672348696f9a7dbbd0c27426710caa605c9b6db2fd19d86734">
+<meta name="app-build-id" content="68411e1460cbfb3cbe68621c6927f4a2a4ab99257e378b7ada17c020379e5454">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -7817,9 +7817,17 @@ window.V21InteractionController=InteractionController;
       }
     }
 
-    // Self turns own 12px top spacing; remote turns own 8px bottom spacing.
-    // 12px is a safe common estimate and avoids the old +16 cache inflation.
-    return Math.max(40,Math.ceil(height+12));
+    // The renderer now appends one timestamp below each known-timed
+    // message unit: 14px line height + 3px top margin (PR205). Include that
+    // real block in *uncached* virtual spacers; the measured heightCache
+    // remains authoritative whenever the DOM row was already materialized.
+    const rawTime=message?.createdAt??message?.created_at??message?.timestamp??0;
+    const sentTime=typeof rawTime==='number'
+      ?rawTime
+      :Date.parse(String(rawTime||''));
+    const sentTimeHeight=Number.isFinite(sentTime)&&sentTime>0?17:0;
+    // Existing outer spacing is independent of the new sent-time metadata.
+    return Math.max(40,Math.ceil(height+12+sentTimeHeight));
   }
 
   class DataWindowModel{
