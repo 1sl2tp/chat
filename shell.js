@@ -979,9 +979,7 @@ function formatContactTime(value,{now=new Date()}={}){
   if(Number.isNaN(date.getTime()))return'';
   // Directory, message-day separators and media viewer use one VN calendar,
   // independent of the phone or browser's own timezone.
-  const key=value=>new Intl.DateTimeFormat('en-CA',{
-    timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'
-  }).format(value);
+  const key=value=>window.ChatConversationCore.vnCalendarDayKey(value);
   const ordinal=value=>{
     const [year,month,day]=key(value).split('-').map(Number);
     return Math.floor(Date.UTC(year,month-1,day)/86400000);
