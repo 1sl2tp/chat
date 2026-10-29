@@ -1410,13 +1410,15 @@ async function refreshUnread({force=false}={}){
   unreadRefreshQueued=false;
   unreadLastStartedAt=Date.now();
 
-  const ownerAccountId=String(accountId||'');
-  const ownerAppSessionId=String(appSessionId||'');
-  const ownerClient=client;
+  const context=captureSyncOwnerContext();
   const promise=(async()=>{
-    const {data,error}=await ownerClient.rpc('v21_unread_count',{p_app_session_id:ownerAppSessionId});
+    const {data,error}=await context.client.rpc('v21_unread_count',{
+      p_app_session_id:context.appSessionId
+    });
     if(error)return unreadSnapshot();
-    if(ownerAccountId!==String(accountId||'')||ownerAppSessionId!==String(appSessionId||''))return unreadSnapshot();
+    // Account/session IDs may be unchanged while auth replaces its client.
+    // A reply from that old client cannot own the current unread badge.
+    if(!syncOwnerContextCurrent(context))return unreadSnapshot();
     const count=Math.max(0,Number(data)||0);
     shell()?.UnreadIndicator?.set?.(count);
     return count;
@@ -1426,8 +1428,10 @@ async function refreshUnread({force=false}={}){
   try{
     return await promise;
   }finally{
-    if(unreadRefreshPromise===promise)unreadRefreshPromise=null;
-    if(unreadRefreshQueued&&accountId&&appSessionId&&online()){
+    const ownsCurrentFlight=unreadRefreshPromise===promise;
+    if(ownsCurrentFlight)unreadRefreshPromise=null;
+    // A retired flight must not consume a newer login's queued refresh.
+    if(ownsCurrentFlight&&syncOwnerContextCurrent(context)&&unreadRefreshQueued&&online()){
       unreadRefreshQueued=false;
       scheduleUnreadRefresh(UNREAD_COOLDOWN_MS);
     }
