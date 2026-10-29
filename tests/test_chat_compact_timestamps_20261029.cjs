@@ -86,7 +86,7 @@ assert.equal(child.textContent,'08:12');
 stampScope.set(unit,{});
 assert.equal(child.removed,true,'unknown time is removed, not falsely rendered');
 assert.equal(stampScope.parse({}),0);
-assert(html.includes('.message-sent-time{')&&html.includes('font-size:11px'));
+assert(html.includes('.message-sent-time{')&&html.includes('font-size:12px'));
 assert(app.includes('syncMessageTimeNode(unit,message);'));
 assert.equal((app.match(/syncMessageTimeNode\(unit,message\);/g)||[]).length,2,
   'both initial render and message patch share one timestamp owner');

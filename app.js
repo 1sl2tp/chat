@@ -1461,7 +1461,7 @@ function viewerIconSvg(name){
   return Icons?.node?.(name,{size:24})||document.createElement('span');
 }
 
-function mediaViewerItem(media,previewUrl='',createdAt=Date.now(),context={}){
+function mediaViewerItem(media,previewUrl='',createdAt=0,context={}){
   if(!media?.assetId)return null;
   return{
     assetId:String(media.assetId),
@@ -1469,7 +1469,7 @@ function mediaViewerItem(media,previewUrl='',createdAt=Date.now(),context={}){
     previewUrl:String(previewUrl||media.previewUrl||''),
     width:Number(media.width)||null,
     height:Number(media.height)||null,
-    createdAt:Number(createdAt)||Date.now(),
+    createdAt:messageTimestampMs({createdAt}),
     messageId:String(context.messageId||''),
     senderKey:context.senderKey==='self'?'self':'remote'
   };
@@ -1478,7 +1478,7 @@ function mediaViewerItem(media,previewUrl='',createdAt=Date.now(),context={}){
 function collectConversationImageAssets(){
   const items=[];
   const seen=new Set();
-  const add=(media,previewUrl='',createdAt=Date.now(),context={})=>{
+  const add=(media,previewUrl='',createdAt=0,context={})=>{
     const item=mediaViewerItem(media,previewUrl,createdAt,context);
     if(!item||seen.has(item.assetId))return;
     seen.add(item.assetId);items.push(item);
@@ -1633,23 +1633,21 @@ function viewerTimeFilterLabel(key){
 function isViewerItemInTimeScope(item,scope){
   if(!item)return false;
   if(scope==='all')return true;
-  const stamp=Number(item.createdAt)||0;
-  if(!stamp)return true;
-  const date=new Date(stamp);
-  const now=new Date();
-  const startToday=new Date(now.getFullYear(),now.getMonth(),now.getDate());
-  if(scope==='today')return date>=startToday;
-  if(scope==='yesterday'){
-    const startYesterday=new Date(startToday);
-    startYesterday.setDate(startYesterday.getDate()-1);
-    return date>=startYesterday&&date<startToday;
-  }
-  if(scope==='week'){
-    const startWeek=new Date(startToday);
-    startWeek.setDate(startWeek.getDate()-6);
-    return date>=startWeek;
-  }
-  if(scope==='month')return date.getFullYear()===now.getFullYear()&&date.getMonth()===now.getMonth();
+  const stamp=messageTimestampMs({createdAt:item.createdAt});
+  // Unknown sent-at must never masquerade as an image from today/week/month.
+  if(!stamp)return false;
+  const imageDay=messageDateKey(stamp);
+  const today=messageDateKey(Date.now());
+  if(!imageDay||!today)return false;
+  const ordinal=key=>{
+    const [year,month,day]=key.split('-').map(Number);
+    return Math.floor(Date.UTC(year,month-1,day)/86400000);
+  };
+  const dayDiff=ordinal(today)-ordinal(imageDay);
+  if(scope==='today')return dayDiff===0;
+  if(scope==='yesterday')return dayDiff===1;
+  if(scope==='week')return dayDiff>=0&&dayDiff<=6;
+  if(scope==='month')return imageDay.slice(0,7)===today.slice(0,7);
   return true;
 }
 
@@ -7931,7 +7929,7 @@ function mapV21ServerMessage(row,selfId){
     kind:deriveMessageKind({text,media}),
     sender:String(row.sender_account_id)===String(selfId)?'self':'remote',
     status:row._local_state==='pending'?'sending':(row._local_state==='failed'?'failed':'sent'),
-    createdAt:Date.parse(row.created_at)||Date.now(),
+    createdAt:messageTimestampMs({created_at:row?.created_at}),
     cached:Boolean(row._cached),
     replyTo,
     media
