@@ -83,9 +83,9 @@ async function isConversationHydrated(conversationId){
   return Boolean(await cache()?.getMeta?.(accountId,conversationHydrationKey(conversationId),false));
 }
 
-async function setConversationHydrated(conversationId,value=true){
-  if(!accountId||!conversationId)return false;
-  await cache()?.setMeta?.(accountId,conversationHydrationKey(conversationId),Boolean(value));
+async function setConversationHydrated(conversationId,value=true,ownerAccountId=accountId){
+  if(!ownerAccountId||!conversationId)return false;
+  await cache()?.setMeta?.(ownerAccountId,conversationHydrationKey(conversationId),Boolean(value));
   return Boolean(value);
 }
 
@@ -425,7 +425,7 @@ async function pullAll(){
     if(!syncOwnerContextCurrent(context))return total;
     if(error)throw error;
     if(data?.reset_required===true){
-      await initializeFromServer();
+      await initializeFromServer(context);
       return total;
     }
     const events=Array.isArray(data?.events)?data.events:[];
@@ -446,16 +446,21 @@ async function pullAll(){
   return total;
 }
 
-async function applySnapshot(data,{requestedConversationId=null,requestedContactId=null}={}){
-  if(!data||!accountId)return false;
+async function applySnapshot(data,{requestedConversationId=null,requestedContactId=null,context=captureSyncOwnerContext()}={}){
+  if(!data||!context.accountId||!syncOwnerContextCurrent(context))return false;
+  const ownerAccountId=context.accountId;
   const contactRows=Array.isArray(data.contacts)?data.contacts.map(canonicalContact).filter(Boolean):[];
-  await cache()?.replaceContacts?.(accountId,contactRows);
+  await cache()?.replaceContacts?.(ownerAccountId,contactRows);
+  // A completed write stays under A, but its result must not repaint B.
+  if(!syncOwnerContextCurrent(context))return false;
   contacts()?.replace?.(contactRows);
 
   const mediaRows=(Array.isArray(data.media_assets)?data.media_assets:[]).map(canonicalMedia).filter(Boolean);
   const mediaByMessage=new Map();
   for(const asset of mediaRows){
-    await media()?.putRemoteMeta?.({accountId,assetId:asset.id,meta:asset});
+    if(!syncOwnerContextCurrent(context))return false;
+    await media()?.putRemoteMeta?.({accountId:ownerAccountId,assetId:asset.id,meta:asset});
+    if(!syncOwnerContextCurrent(context))return false;
     if(asset.message_id){
       const list=mediaByMessage.get(String(asset.message_id))||[];
       list.push(asset);mediaByMessage.set(String(asset.message_id),list);
@@ -469,7 +474,8 @@ async function applySnapshot(data,{requestedConversationId=null,requestedContact
     if(migrated?._legacy_media_body_migrated){const clean={...migrated};delete clean._legacy_media_body_migrated;return clean;}
     return migrated;
   }):[];
-  if(rows.length)await cache()?.putMessages?.(accountId,rows);
+  if(rows.length)await cache()?.putMessages?.(ownerAccountId,rows);
+  if(!syncOwnerContextCurrent(context))return false;
 
   const stillActive=
     requestedConversationId&&
@@ -479,39 +485,56 @@ async function applySnapshot(data,{requestedConversationId=null,requestedContact
     messages()?.merge?.(rows,{conversationId:String(requestedConversationId),contactId:String(requestedContactId||currentContactId||'')});
   }
 
-  for(const row of (Array.isArray(data.read_states)?data.read_states:[]))await cache()?.putReadState?.(accountId,row);
+  for(const row of (Array.isArray(data.read_states)?data.read_states:[])){
+    if(!syncOwnerContextCurrent(context))return false;
+    await cache()?.putReadState?.(ownerAccountId,row);
+    if(!syncOwnerContextCurrent(context))return false;
+  }
   return true;
 }
 
-async function initializeFromServer(){
-  if(!client||!appSessionId||!accountId||!online())return false;
+async function initializeFromServer(context=captureSyncOwnerContext()){
+  if(!context.client||!context.appSessionId||!context.accountId||!online()||!syncOwnerContextCurrent(context))return false;
   const requestedConversationId=currentConversationId?String(currentConversationId):null;
   const requestedContactId=currentContactId?String(currentContactId):null;
-  const {data,error}=await client.rpc('v21_sync_snapshot',{
-    p_app_session_id:appSessionId,
+  const {data,error}=await context.client.rpc('v21_sync_snapshot',{
+    p_app_session_id:context.appSessionId,
     p_conversation_id:requestedConversationId,
     p_message_limit:100
   });
+  if(!syncOwnerContextCurrent(context))return false;
   if(error)throw error;
-  await applySnapshot(data,{requestedConversationId,requestedContactId});
-  await cache()?.setCursor?.(accountId,Number(data?.server_cursor)||0);
-  await cache()?.setInitialized?.(accountId,true);
-  if(requestedConversationId)await setConversationHydrated(requestedConversationId,true);
+  if(!await applySnapshot(data,{requestedConversationId,requestedContactId,context}))return false;
+  if(!syncOwnerContextCurrent(context))return false;
+  await cache()?.setCursor?.(context.accountId,Number(data?.server_cursor)||0);
+  if(!syncOwnerContextCurrent(context))return false;
+  await cache()?.setInitialized?.(context.accountId,true);
+  if(!syncOwnerContextCurrent(context))return false;
+  if(requestedConversationId){
+    await setConversationHydrated(requestedConversationId,true,context.accountId);
+    if(!syncOwnerContextCurrent(context))return false;
+  }
   return true;
 }
 
 async function canonicalReconcileActive(){
-  if(!client||!appSessionId||!accountId||!online())return false;
+  const context=captureSyncOwnerContext();
+  if(!context.client||!context.appSessionId||!context.accountId||!online())return false;
   const requestedConversationId=currentConversationId?String(currentConversationId):null;
   const requestedContactId=currentContactId?String(currentContactId):null;
-  const {data,error}=await client.rpc('v21_sync_snapshot',{
-    p_app_session_id:appSessionId,
+  const {data,error}=await context.client.rpc('v21_sync_snapshot',{
+    p_app_session_id:context.appSessionId,
     p_conversation_id:requestedConversationId,
     p_message_limit:100
   });
+  if(!syncOwnerContextCurrent(context))return false;
   if(error)throw error;
-  await applySnapshot(data,{requestedConversationId,requestedContactId});
-  if(requestedConversationId)await setConversationHydrated(requestedConversationId,true);
+  if(!await applySnapshot(data,{requestedConversationId,requestedContactId,context}))return false;
+  if(!syncOwnerContextCurrent(context))return false;
+  if(requestedConversationId){
+    await setConversationHydrated(requestedConversationId,true,context.accountId);
+    if(!syncOwnerContextCurrent(context))return false;
+  }
   return true;
 }
 
@@ -1502,12 +1525,17 @@ async function doSync(reason){
 
   // Generic wake/realtime is delta-only. Conversation snapshot hydration is
   // owned by openContact so network refresh can never replace UI context.
-  const accountInitialized=Boolean(await cache()?.isInitialized?.(accountId));
-  if(!accountInitialized)await initializeFromServer();
+  const context=captureSyncOwnerContext();
+  const accountInitialized=Boolean(await cache()?.isInitialized?.(context.accountId));
+  if(!syncOwnerContextCurrent(context))return false;
+  if(!accountInitialized)await initializeFromServer(context);
   else await pullAll();
+  if(!syncOwnerContextCurrent(context))return false;
 
   const sent=await flushOutbox();
+  if(!syncOwnerContextCurrent(context))return false;
   if(sent>0)await pullAll();
+  if(!syncOwnerContextCurrent(context))return false;
   // Read state is a UI lifecycle action, not a generic sync side effect.
   // Calling markRead() from every realtime wake creates a feedback loop:
   // markRead -> read_state event -> realtime wake -> markRead.

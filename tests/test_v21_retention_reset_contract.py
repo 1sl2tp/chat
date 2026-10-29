@@ -6,7 +6,8 @@ MIG=(ROOT/'supabase'/'migrations'/'20261004193000_chat_operational_retention_gua
 
 pull=SYNC[SYNC.index("async function pullAll()"):SYNC.index("async function applySnapshot")]
 assert "if(data?.reset_required===true){" in pull
-assert "await initializeFromServer();" in pull
+assert "await initializeFromServer(context);" in pull
+assert "if(!syncOwnerContextCurrent(context))return total;" in pull
 assert "return total;" in pull
 
 # Canonical chat data must never be part of the retention DELETE set.
