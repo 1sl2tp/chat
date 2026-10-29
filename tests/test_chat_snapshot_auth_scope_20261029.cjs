@@ -93,8 +93,11 @@ async function staleSnapshotRpc(){
  await f.login('B','SB');
  g.release({data:snapshot('A'),error:null});
  await old;
- assert.equal(f.writes.length,0,'late A snapshot must never write B or mark initialized');
- assert.equal(f.ui.length,0,'late A snapshot must never render B directory');
+ assert.equal(f.writes.some(w=>w.account==='A'),false,'old A RPC must not start a cache write');
+ assert.equal(f.writes.some(w=>w.account==='B'&&w.ids?.some(id=>id.endsWith('-A'))),false,
+  'A snapshot rows must never enter B cache');
+ assert.equal(f.ui.some(u=>u.account==='B'&&u.ids.includes('contact-A')),false,
+  'A snapshot must never render as B; a genuine B auth wake may sync B');
  assert.equal(f.calls.filter(c=>c.name==='v21_sync_snapshot'&&c.account==='A').length,1);
  await f.engine.wake({reason:'test-startup-B'});
  assert.deepEqual(f.ui.at(-1),{account:'B',ids:['contact-B']});
@@ -107,18 +110,21 @@ async function midWriteRotation(){
  const old=f.engine.wake({reason:'test-cache-race'});
  await g.started.promise;await f.login('B','SB');
  g.release();await old;
- assert.deepEqual(f.writes,[{type:'contacts',account:'A',ids:['contact-A']}],
-  'in-progress A-only IDB put may finish but no further A or B snapshot writes');
- assert.equal(f.ui.length,0);
+ assert.deepEqual(f.writes.filter(w=>w.account==='A'),[{type:'contacts',account:'A',ids:['contact-A']}],
+  'in-progress A-only IDB put may finish but no further A mutations');
+ assert.equal(f.writes.some(w=>w.account==='B'&&w.ids?.includes('contact-A')),false);
+ assert.equal(f.ui.some(u=>u.account==='B'&&u.ids.includes('contact-A')),false);
 }
 async function sameAccountNewSession(){
  const f=fixture();await f.login('A','SA');
  const g=f.gates.rpc=f.hold('A','SA');
  const old=f.engine.wake({reason:'test-session-A'});await g.started.promise;
  await f.login('A','NEW');
- g.release({data:snapshot('A'),error:null});
+ g.release({data:snapshot('A-STALE'),error:null});
  await old;
- assert.equal(f.writes.length,0,'rotated session must drop old snapshot');
+ assert.equal(f.writes.some(w=>w.ids?.includes('contact-A-STALE')),false,
+  'rotated session must drop old response even if its new session can sync legitimately');
+ assert.equal(f.ui.some(u=>u.ids.includes('contact-A-STALE')),false);
  await f.engine.wake({reason:'test-session-new'});
  assert.equal(f.writes.some(w=>w.type==='initialized'),true);
 }
@@ -150,8 +156,10 @@ async function staleInitializedRead(){
  const g=f.gates.initialized=f.hold('A');
  const old=f.engine.wake({reason:'initialization-guard'});await g.started.promise;
  await f.login('B','SB');g.release();await old;
- assert.equal(f.calls.some(x=>x.name==='v21_sync_snapshot'),false,
-  'obsolete doSync must not launch B snapshot from old A initialized lookup');
+ assert.equal(f.calls.some(x=>x.name==='v21_sync_snapshot'&&x.account==='A'),false,
+  'obsolete doSync must not start A snapshot after its awaited initialized lookup');
+ assert.equal(f.writes.some(w=>w.account==='B'&&w.ids?.includes('contact-A')),false,
+  'a real B auth wake may run but must not receive A projection');
 }
 (async()=>{
  await staleSnapshotRpc();
