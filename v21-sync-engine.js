@@ -272,59 +272,68 @@ async function patchContactSummary(conversationId,patch={},context=null){
   return true;
 }
 
-async function applyContactEvent(event){
+async function applyContactEvent(event,context=captureSyncOwnerContext()){
   const payload=canonicalContact(event?.payload);
-  if(!payload?.id)return false;
-  const cached=(await cache()?.listContacts?.(accountId)||[]).find(item=>String(item.id)===String(payload.id));
+  if(!payload?.id||!syncOwnerContextCurrent(context))return false;
+  const cached=(await cache()?.listContacts?.(context.accountId)||[]).find(item=>String(item.id)===String(payload.id));
+  if(!syncOwnerContextCurrent(context))return false;
   if(cached&&Number(cached.version||0)>=Number(payload.version||event.entity_version||0))return false;
   if(event.op==='delete'||payload.deleted_at){
-    await cache()?.removeContact?.(accountId,payload.id);
+    await cache()?.removeContact?.(context.accountId,payload.id);
+    if(!syncOwnerContextCurrent(context))return false;
     contacts()?.remove?.(payload.id);
   }else{
     const next=mergeContactEventPreservingActivity(cached,payload,event?.payload);
-    await cache()?.upsertContact?.(accountId,next);
+    await cache()?.upsertContact?.(context.accountId,next);
+    if(!syncOwnerContextCurrent(context))return false;
     contacts()?.upsert?.(next);
   }
   return true;
 }
 
-async function applyMessageEvent(event){
+async function applyMessageEvent(event,context=captureSyncOwnerContext()){
   let payload=canonicalMessage(event?.payload);
-  if(!payload?.id)return false;
-  const cached=await cache()?.getMessage?.(accountId,payload.id);
+  if(!payload?.id||!syncOwnerContextCurrent(context))return false;
+  const cached=await cache()?.getMessage?.(context.accountId,payload.id);
+  if(!syncOwnerContextCurrent(context))return false;
   const nextVersion=Number(payload.version||event.entity_version||0);
   if(cached&&Number(cached.version||0)>=nextVersion)return false;
   if(event.op==='delete'||payload.deleted_at){
-    await cache()?.removeMessage?.(accountId,payload.id);
+    await cache()?.removeMessage?.(context.accountId,payload.id);
+    if(!syncOwnerContextCurrent(context))return false;
     if(String(payload.conversation_id)===String(currentConversationId))messages()?.remove?.(payload.id);
-    if(online())queueMicrotask(()=>{void syncContacts();});
+    if(online())queueMicrotask(()=>{
+      if(syncOwnerContextCurrent(context))void syncContacts();
+    });
     return true;
   }
   payload=migrateLegacyCachedMediaBody(payload);
-  if(payload.client_id&&String(payload.id)!==String(payload.client_id))await cache()?.removeMessage?.(accountId,payload.client_id);
+  if(payload.client_id&&String(payload.id)!==String(payload.client_id)){
+    await cache()?.removeMessage?.(context.accountId,payload.client_id);
+    if(!syncOwnerContextCurrent(context))return false;
+  }
   const cleanPayload=payload?._legacy_media_body_migrated?(()=>{const next={...payload};delete next._legacy_media_body_migrated;return next;})():payload;
-  await cache()?.putMessage?.(accountId,cleanPayload);
+  await cache()?.putMessage?.(context.accountId,cleanPayload);
+  if(!syncOwnerContextCurrent(context))return false;
   payload=cleanPayload;
   const contactId=contactIdForConversation(payload.conversation_id);
   if(contactId)messages()?.mergeForContact?.(payload,{contactId,conversationId:payload.conversation_id});
-  const own=String(payload.sender_account_id)===String(accountId);
+  const own=String(payload.sender_account_id)===context.accountId;
   const visible=String(payload.conversation_id)===String(currentConversationId)&&chatVisible();
   const renderableNow=Boolean(String(payload.body||'').trim());
   if(visible&&renderableNow){
-    // The same canonical message event updates the open thread immediately.
-    // Media-only parents still wait for their asset event so we never flash
-    // an empty bubble before the media metadata exists.
+    // Canonical message event can update the open thread immediately.
+    // Media-only parents wait for their asset event to avoid an empty bubble.
     messages()?.apply?.(payload,{remote:!own});
   }
   const preview=messagePreviewContract(payload);
   await patchContactSummary(payload.conversation_id,{
     ...preview,latest_at:payload.created_at,
     has_unread:own?false:!visible
-  });
+  },context);
+  if(!syncOwnerContextCurrent(context))return false;
   markActiveMessageDirty(payload.id,payload.conversation_id,{reconcileMedia:true});
   if(!own&&visible)scheduleMarkRead(payload.conversation_id);
-  // BANK-177: an UPDATE to the existing system report signal requests exactly
-  // one read-only table refresh, never another report Chat bubble or poll.
   if(String(payload.client_id||'').startsWith('taphoa:bank-report:2026-10-19:initial')){
     document.dispatchEvent(new CustomEvent('v21-bank-report-dirty',{detail:{messageId:payload.id}}));
   }
@@ -381,27 +390,28 @@ async function applyMediaEvent(event){
   return true;
 }
 
-async function applyEvent(event){
-  if(!event?.entity_type)return false;
-  if(event.entity_type==='account')return applyContactEvent(event);
-  if(event.entity_type==='message')return applyMessageEvent(event);
+async function applyEvent(event,context=captureSyncOwnerContext()){
+  if(!event?.entity_type||!syncOwnerContextCurrent(context))return false;
+  if(event.entity_type==='account')return applyContactEvent(event,context);
+  if(event.entity_type==='message')return applyMessageEvent(event,context);
   if(event.entity_type==='read_state')return applyReadEvent(event);
   if(event.entity_type==='media')return applyMediaEvent(event);
   return false;
 }
 
 function consumeRealtimeEvent(event={}){
-  const ownerAccountId=String(accountId||'');
+  const context=captureSyncOwnerContext();
   const targetAccountId=String(event?.target_account_id||'');
-  if(!ownerAccountId||!appSessionId||!client||!event?.entity_type)return Promise.resolve(false);
-  if(targetAccountId&&targetAccountId!==ownerAccountId)return Promise.resolve(false);
+  if(!context.accountId||!context.appSessionId||!context.client||!event?.entity_type)return Promise.resolve(false);
+  if(targetAccountId&&targetAccountId!==context.accountId)return Promise.resolve(false);
 
   const run=async()=>{
-    if(ownerAccountId!==String(accountId||'')||!appSessionId||!client)return false;
-    await applyEvent(event);
+    if(!syncOwnerContextCurrent(context))return false;
+    const applied=await applyEvent(event,context);
+    if(!syncOwnerContextCurrent(context)||!applied)return false;
     await flushActiveMessageVisuals();
-    // The contact/thread renders from the realtime payload itself. Server
-    // recount is only needed for the global unread badge when chat is not open.
+    if(!syncOwnerContextCurrent(context))return false;
+    // The current owner's message event may refresh the global unread badge.
     if(event.entity_type==='message'&&!chatVisible())void refreshUnread();
     return true;
   };
@@ -431,7 +441,7 @@ async function pullAll(){
     const events=Array.isArray(data?.events)?data.events:[];
     for(const event of events){
       if(!syncOwnerContextCurrent(context))return total;
-      await applyEvent(event);
+      await applyEvent(event,context);
       if(!syncOwnerContextCurrent(context))return total;
     }
     const next=Math.max(cursor,Number(data?.next_cursor)||cursor);
