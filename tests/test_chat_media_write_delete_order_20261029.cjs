@@ -50,7 +50,7 @@ function fixture({failPendingWrite=false}={}){
       return {data:new Blob(['picture'],{type:'image/png'}),error:null};
     }};
   }}};
-  return{api:context.V21MediaCache,rows,events,downloads,writeStarted,releaseWrite,accountId,assetId};
+  return{api:context.V21MediaCache,rows,events,downloads,writeStarted,releaseWrite,accountId,assetId,client};
 }
 async function drainMicrotasks(){
   for(let i=0;i<16;i++)await Promise.resolve();
