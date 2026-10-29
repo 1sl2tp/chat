@@ -1610,25 +1610,37 @@ async function ensureMediaRemote(request){
 }
 
 async function syncContacts(){
-  if(!accountId)return[];
-  if(!online()||!client||!appSessionId){
-    const cached=await cache()?.listContacts?.(accountId)||[];
+  const context=captureSyncOwnerContext();
+  if(!context.accountId)return[];
+  if(!online()||!context.client||!context.appSessionId){
+    const cached=await cache()?.listContacts?.(context.accountId)||[];
+    if(!syncOwnerContextCurrent(context))return[];
     contacts()?.replace?.(cached);
     return cached;
   }
-  const {data,error}=await client.rpc('v21_contacts_sidebar',{p_app_session_id:appSessionId});
+  const {data,error}=await context.client.rpc('v21_contacts_sidebar',{p_app_session_id:context.appSessionId});
+  // The request belongs to its original login, never to whoever owns the
+  // globals when the response arrives after logout/account rotation.
+  if(!syncOwnerContextCurrent(context))return[];
   if(error){await wake({reason:'contacts'});return contacts()?.snapshot?.()||[];}
   const rows=(Array.isArray(data)?data:[]).map(canonicalContact).filter(Boolean);
-  await cache()?.replaceContacts?.(accountId,rows);
-  for(const row of rows){if(row.conversation_id)await cache()?.setConversationId?.(accountId,row.id,row.conversation_id);}
+  await cache()?.replaceContacts?.(context.accountId,rows);
+  if(!syncOwnerContextCurrent(context))return[];
+  for(const row of rows){
+    if(!syncOwnerContextCurrent(context))return[];
+    if(row.conversation_id)await cache()?.setConversationId?.(context.accountId,row.id,row.conversation_id);
+  }
+  if(!syncOwnerContextCurrent(context))return[];
   contacts()?.replace?.(rows);
   return rows;
 }
 
-async function hydrateAccount(){
-  if(!accountId)return[];
+async function hydrateAccount(context=captureSyncOwnerContext()){
+  if(!context.accountId||!syncOwnerContextCurrent(context))return[];
   await cache()?.open?.();
-  const cachedContacts=await cache()?.listContacts?.(accountId)||[];
+  if(!syncOwnerContextCurrent(context))return[];
+  const cachedContacts=await cache()?.listContacts?.(context.accountId)||[];
+  if(!syncOwnerContextCurrent(context))return[];
   if(cachedContacts.length)contacts()?.replace?.(cachedContacts);
   return cachedContacts;
 }
@@ -1655,23 +1667,29 @@ async function onAuth(detail){
   accountId=String(snap.account?.id||'');
   appSessionId=String(snap.appSessionId||'');
   if(!accountId||!appSessionId)return;
+  const context=captureSyncOwnerContext();
   // One-time server-deletion reconciliation: remove only the old admin↔test
   // IndexedDB rows before any cached conversation is mounted. Other customer
   // histories in the Admin account remain untouched.
-  try{await cache()?.pruneAdminTestConversationCache?.(accountId);}
+  try{await cache()?.pruneAdminTestConversationCache?.(context.accountId);}
   catch(error){console.warn('v21_deleted_test_cache_reconcile_failed',String(error?.message||error||'').slice(0,90));}
-  const cachedContacts=await hydrateAccount();
+  if(!syncOwnerContextCurrent(context))return;
+  await hydrateAccount(context);
+  if(!syncOwnerContextCurrent(context))return;
   const active=shell()?.snapshot?.().activeContact;
   if(active?.id){
     if(String(currentContactId||'')!==String(active.id))await openContact(active.id);
   }else{
     void wake({reason:'auth'});
   }
+  if(!syncOwnerContextCurrent(context))return;
 
   // Directory membership is canonical account data, never Presence/session state.
   // Repair a stale local contact cache once per authenticated bootstrap so an
   // offline account cannot disappear just because it has no active Chat session.
-  if(online())queueMicrotask(()=>{void syncContacts();});
+  if(online())queueMicrotask(()=>{
+    if(syncOwnerContextCurrent(context))void syncContacts();
+  });
 
   // Do not hydrate inactive conversations during boot. The selected thread
   // is restored by openContact; others hydrate on explicit selection.
