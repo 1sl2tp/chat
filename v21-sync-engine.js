@@ -357,9 +357,9 @@ async function applyReadEvent(event){
   return true;
 }
 
-async function applyMediaEvent(event){
+async function applyMediaEvent(event,context=captureSyncOwnerContext()){
   const payload=canonicalMedia(event?.payload);
-  if(!payload?.id)return false;
+  if(!payload?.id||!syncOwnerContextCurrent(context))return false;
   if(event.op==='delete'||payload.deleted_at){
     await media()?.markDeleted?.({
       accountId,assetId:payload.id,
