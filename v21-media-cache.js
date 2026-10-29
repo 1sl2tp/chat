@@ -6,9 +6,16 @@ const MEDIA_BUCKET='v21-media';
 const inflight=new Map();
 // Local hydration is cancellable when the same asset is deleted/removed.
 // Inflight entries are temporary, never a second canonical media state.
-function cancelInflight(accountId,assetId){
+async function cancelInflight(accountId,assetId){
   const pending=inflight.get(key(accountId,assetId));
-  if(pending)pending.cancelled=true;
+  if(!pending)return;
+  pending.cancelled=true;
+  // A local IndexedDB write may already be queued. Delete must commit
+  // AFTER that write, otherwise its late transaction could revive the Blob.
+  // Never wait for the network download itself.
+  if(pending.writePromise){
+    try{await pending.writePromise;}catch{}
+  }
 }
 let evictionTimer=0;
 let evictionAccountId=null;
@@ -66,13 +73,13 @@ async function get({accountId,assetId}){
 
 async function remove({accountId,assetId}){
   if(!accountId||!assetId)return false;
-  cancelInflight(accountId,assetId);
+  await cancelInflight(accountId,assetId);
   return cache()?.removeMediaRecord?.(accountId,assetId)||false;
 }
 
 async function markDeleted({accountId,assetId,meta={}}={}){
   if(!accountId||!assetId)return false;
-  cancelInflight(accountId,assetId);
+  await cancelInflight(accountId,assetId);
   const existing=await get({accountId,assetId});
   const remoteMeta={
     ...((existing&&existing.remote_meta)||{}),
@@ -169,7 +176,7 @@ async function ensureRemote({accountId,assetId,client}={}){
   const cacheKey=key(accountId,assetId);
   if(inflight.has(cacheKey))return inflight.get(cacheKey).promise;
 
-  const ticket={cancelled:false,promise:null};
+  const ticket={cancelled:false,promise:null,writePromise:null};
   let fallback=null;
   const promise=(async()=>{
     const existing=await get({accountId,assetId});
@@ -189,7 +196,7 @@ async function ensureRemote({accountId,assetId,client}={}){
     }
     if(!(data instanceof Blob))return existing||null;
 
-    await cache()?.putMediaRecord?.(accountId,assetId,{
+    ticket.writePromise=cache()?.putMediaRecord?.(accountId,assetId,{
       blob:data,
       local:false,
       pinned:false,
@@ -198,6 +205,7 @@ async function ensureRemote({accountId,assetId,client}={}){
       mime_type:data.type||meta?.mime_type||'application/octet-stream',
       last_accessed_at:Date.now()
     });
+    await ticket.writePromise;
     const row=await get({accountId,assetId});
     if(ticket.cancelled||row?.remote_meta?.deleted_at)return row||null;
     scheduleEviction(accountId);
