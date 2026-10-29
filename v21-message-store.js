@@ -118,12 +118,16 @@ function rememberSession(contactId,conversationId,rows,{viewState=null}={}){
   if(!key)return null;
   const previous=sessions.get(key)||null;
   const normalized=normalizeRows(rows);
+  const resolvedConversationId=normalizeConversationId(conversationId);
+  const sameConversation=Boolean(previous)&&
+    normalizeConversationId(previous.conversationId)===resolvedConversationId;
   const next={
     contactId:key,
-    conversationId:conversationId?String(conversationId):null,
+    conversationId:resolvedConversationId,
     rows:normalized,
     signature:rowsSignature(normalized),
-    viewState:viewState??previous?.viewState??null,
+    // A new canonical conversation cannot inherit an old thread's scroll.
+    viewState:viewState??(sameConversation?previous?.viewState:null)??null,
     updatedAt:Date.now()
   };
   sessions.set(key,next);
@@ -147,7 +151,10 @@ function mergeForContact(row,{contactId,conversationId}={}){
   if(!row?.id)return false;
   const target=sessionKey(contactId);
   if(!target)return false;
-  const targetConversation=normalizeConversationId(conversationId||row.conversation_id);
+  const rowConversation=normalizeConversationId(row.conversation_id);
+  const explicitConversation=normalizeConversationId(conversationId);
+  if(rowConversation&&explicitConversation&&rowConversation!==explicitConversation)return false;
+  const targetConversation=explicitConversation||rowConversation;
   let session=sessions.get(target)||null;
   if(session?.conversationId&&targetConversation&&String(session.conversationId)!==String(targetConversation))return false;
   if(!session)session=rememberSession(target,targetConversation,[]);
@@ -208,8 +215,15 @@ function hasSession(contactId){
 function primeSession({contactId,conversationId,rows,ifAbsent=false}={}){
   const key=sessionKey(contactId);
   if(!key)return false;
-  if(ifAbsent&&sessions.has(key))return false;
-  rememberSession(key,conversationId,rows);
+  const boundary=resolveRowsConversation(rows,conversationId);
+  if(!boundary.valid)return false;
+  const nextConversation=boundary.conversationId;
+  const existing=sessions.get(key);
+  // Preserve long same-thread history; canonical conversation replacement is
+  // different and must retire old rows and their saved viewport together.
+  if(ifAbsent&&existing&&(!nextConversation||
+      normalizeConversationId(existing.conversationId)===nextConversation))return false;
+  rememberSession(key,nextConversation,rows);
   return true;
 }
 
@@ -242,7 +256,10 @@ function replace(rows,{conversationId=currentConversationId,contactId=currentCon
     String(currentContactId||'')===String(targetContact||'')&&
     String(currentConversationId||'')===String(targetConversation||'');
   const sameVisual=sameActive&&previous?.signature===nextSignature&&bridge()?.snapshot?.().size===normalized.length;
-  const viewState=notificationTailContactId===targetContact?null:(previous?.viewState||null);
+  const sameConversation=Boolean(previous)&&
+    normalizeConversationId(previous.conversationId)===targetConversation;
+  const viewState=notificationTailContactId===targetContact||!sameConversation
+    ?null:(previous?.viewState||null);
   rememberSession(targetContact,targetConversation,normalized,{viewState});
   setContext({contactId:targetContact,conversationId:targetConversation});
   if(sameVisual)return normalized.length;
@@ -255,6 +272,9 @@ function merge(rows,{conversationId=currentConversationId,contactId=currentConta
   if(!targetContact||!boundary.valid)return 0;
   const targetConversation=boundary.conversationId;
   let session=sessions.get(sessionKey(targetContact));
+  // An old async hydrate may arrive for a contact whose conversation rotated.
+  // Do not mix two canonical conversation IDs in the same saved session.
+  if(session?.conversationId&&session.conversationId!==targetConversation)return 0;
   if(!session){
     session=rememberSession(targetContact,targetConversation,[]);
   }else if(targetConversation&&!session.conversationId){
