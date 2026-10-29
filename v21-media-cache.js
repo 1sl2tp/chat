@@ -214,6 +214,9 @@ async function ensureRemote({accountId,assetId,client}={}){
     }));
     return row;
   })().catch(error=>{
+    // A cancelled hydration is no longer a user-visible media error.
+    // Preserve asset-scoped error reporting for genuine, active failures.
+    if(ticket.cancelled)return null;
     emitMediaHydrationError(error,{accountId,assetId,meta:fallback?.remote_meta||null});
     return fallback;
   }).finally(()=>{
