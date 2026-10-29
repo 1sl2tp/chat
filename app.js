@@ -1657,7 +1657,11 @@ function updateImageViewerTimeMenu(){
   imageViewerTimeMenuButton.setAttribute('aria-label',`Tùy chọn ảnh · ${timeLabel}`);
   imageViewerTimeMenuButton.setAttribute('title',`Tùy chọn ảnh · ${timeLabel}`);
   for(const button of Array.from(imageViewerTimeMenuPanel.querySelectorAll('.image-review-menu-item'))){
+    if(!button.dataset.timeFilter)continue;
     const active=button.dataset.timeFilter===imageViewerTimeFilter;
+    // These controls have role=menuitemradio: expose checked state to
+    // keyboard/screen-reader users, including when the result set is empty.
+    button.setAttribute('aria-checked',active?'true':'false');
     button.toggleAttribute('aria-current',active);
     if(active)button.setAttribute('aria-current','true');
   }
@@ -1692,13 +1696,25 @@ function applyCurrentImageViewerFilters({preferAssetId='',behavior='smooth'}={})
   else if(imageViewerFilter==='album')next=imageViewerAllItems.filter(item=>item.messageId===imageViewerAlbumId);
   else next=[...imageViewerAllItems];
   next=next.filter(item=>isViewerItemInTimeScope(item,imageViewerTimeFilter));
-  if(!next.length&&imageViewerTimeFilter!=='all'){
-    imageViewerTimeFilter='all';
-    return applyCurrentImageViewerFilters({preferAssetId:currentAssetId,behavior});
-  }
-  if(!next.length&&imageViewerFilter!=='all'){
-    imageViewerFilter='all';
-    return applyCurrentImageViewerFilters({preferAssetId:currentAssetId,behavior});
+  if(!next.length){
+    // A zero-result filter is not permission to show unrelated photos.
+    // Invalidate an in-flight asset request and release only the active
+    // object URL; the other cached media and conversation stay untouched.
+    imageViewerNavigationSeq+=1;
+    imageViewerItems=[];
+    imageViewerIndex=-1;
+    resetImageViewerZoom();
+    if(imageViewerImage){
+      imageViewerImage.removeAttribute('src');
+      imageViewerImage.dataset.ready='false';
+    }
+    const previous=imageViewerOwnedUrls.get('active');
+    if(previous)URL.revokeObjectURL(previous);
+    imageViewerOwnedUrls.delete('active');
+    renderImageViewerFilmstrip();
+    renderImageViewerFilters();
+    updateImageViewerChrome();
+    return false;
   }
   imageViewerItems=next;
   imageViewerIndex=Math.max(0,next.findIndex(item=>item.assetId===currentAssetId));
@@ -1902,9 +1918,13 @@ function applyImageViewerTimeFilter(scope,{preferAssetId='',behavior='smooth'}={
 
 function updateImageViewerChrome(){
   if(!imageViewerItems.length){
-    if(imageViewerCounter)imageViewerCounter.textContent='';
-    if(imageViewerTimestamp)imageViewerTimestamp.textContent='';
+    if(imageViewerCounter)imageViewerCounter.textContent='0 ảnh';
+    if(imageViewerTimestamp)imageViewerTimestamp.textContent='Không có ảnh phù hợp bộ lọc';
     if(imageViewerMeta)imageViewerMeta.textContent='';
+    if(imageViewerPrev)imageViewerPrev.hidden=true;
+    if(imageViewerNext)imageViewerNext.hidden=true;
+    updateImageViewerFilterChips();
+    updateImageViewerTimeMenu();
     return;
   }
   if(imageViewerCounter)imageViewerCounter.textContent=`Ảnh ${imageViewerIndex+1} / ${imageViewerItems.length}`;
