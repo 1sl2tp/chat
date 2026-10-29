@@ -40,7 +40,7 @@ function fixture(){
         gates.replace.started.resolve();
         await gates.replace.promise;
       }
-      disk.push({account,ids:rows.map(row=>row.id)});
+      disk.push({account,ids:Array.from(rows,row=>row.id)});
       return true;
     },
     async setConversationId(account,contact,conversation){
@@ -76,7 +76,7 @@ function fixture(){
     },
     V21CacheStore:cache,
     V21ContactStore:{
-      replace(rows){ui.push({account:auth.account?.id||'GUEST',ids:rows.map(row=>row.id)});},
+      replace(rows){ui.push({account:auth.account?.id||'GUEST',ids:Array.from(rows,row=>row.id)});},
       snapshot(){return [];},clear(){}
     },
     V21MessageStore:{reset(){},setContext(){},replace(){},stashCurrentView(){},restoreSession(){return null;}},
@@ -145,7 +145,7 @@ async function staleDiskWrite(){
   await gate.started.promise;
   await h.login('B','SB');
   gate.release();
-  assert.deepEqual(await request,[]);
+  assert.equal((await request).length,0);
   assert.deepEqual(h.disk,[{account:'A',ids:['A-CURRENT']}],
     'already-started write must remain account A scoped');
   assert.equal(h.ui.some(row=>row.ids.includes('A-CURRENT')),false,
@@ -162,7 +162,7 @@ async function staleOfflineRead(){
   await gate.started.promise;
   await h.login('B','SB');
   gate.release([{id:'A-OFFLINE'}]);
-  assert.deepEqual(await request,[]);
+  assert.equal((await request).length,0);
   assert.equal(h.ui.some(row=>row.ids.includes('A-OFFLINE')),false);
   h.cached.B=[{id:'B-OFFLINE'}];
   const valid=await h.engine.syncContacts();
@@ -178,7 +178,7 @@ async function sameAccountNewSession(){
   await gate.started.promise;
   await h.login('A','NEWSESSION');
   gate.release({data:[{id:'A-OLDSESSION'}],error:null});
-  assert.deepEqual(await request,[]);
+  assert.equal((await request).length,0);
   assert.equal(h.disk.length,0);
   assert.equal(h.ui.some(row=>row.ids.includes('A-OLDSESSION')),false);
   const valid=await h.engine.syncContacts();
