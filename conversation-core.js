@@ -15,6 +15,7 @@
     year:'numeric',month:'2-digit',day:'2-digit'
   });
   function vnCalendarDayKey(instant){
+    if(instant===null||instant===undefined||instant===''||instant===0)return '';
     const date=instant instanceof Date?instant:new Date(instant);
     if(!Number.isFinite(date.getTime()))return '';
     let year='',month='',day='';
