@@ -562,6 +562,24 @@
     margin-bottom:6px;
     padding-bottom:3px;
   }
+  /* SPEC-CHAT-MOBILE-SEARCH-KEYBOARD-20261101:
+     Search sits BELOW preferences but OUTSIDE the independently scrolling
+     account list. Collapse that header pane only while searching, so
+     the search field and actual results remain above the iPhone keyboard.
+     Blur restores the original settings without losing their state. */
+  .zalo-account-modal[data-mobile-keyboard="true"]:has([data-zalo-account-search]:focus) .zalo-account-preferences{
+    flex:0 0 0;
+    max-height:0;
+    padding:0;
+    margin:0;
+    overflow:hidden;
+  }
+  .zalo-account-modal[data-mobile-keyboard="true"]:has([data-zalo-account-search]:focus) .zalo-account-modal-head{
+    margin-bottom:4px;
+  }
+  .zalo-account-modal[data-mobile-keyboard="true"]:has([data-zalo-account-search]:focus) .zalo-account-directory-head{
+    padding-bottom:3px;
+  }
   .zalo-account-modal[data-mobile-keyboard="true"] .zalo-account-directory-head{
     padding-bottom:5px;
   }
