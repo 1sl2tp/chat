@@ -443,6 +443,13 @@ const RuntimeDocumentViewportGuard=Object.freeze({
   enabled:Boolean(RuntimeProfile.lockDocumentViewport),
   normalize(){
     if(!this.enabled)return false;
+    // SPEC-CHAT-KEYBOARD-SCROLL-STABILITY-20261101:
+    // iOS's native pan to expose Settings/Directory/Profile search fields
+    // must not fight a global scrollTo(0,0) on every VisualViewport scroll.
+    // Only the Chat composer has its own explicit visual-bottom owner.
+    const focused=document.activeElement;
+    if(focused?.matches?.('input,textarea,select,[contenteditable="true"]') &&
+       focused!==editor)return false;
     const root=document.scrollingElement;
     const x=Math.round(window.scrollX||root?.scrollLeft||0);
     const y=Math.round(window.scrollY||root?.scrollTop||0);
@@ -672,6 +679,7 @@ const KeyboardInsetAdapter={
   ),
   current:0,
   open:false,
+  composerPlacementFrame:0,
 
   read(){
     const focused=document.activeElement===editor;
@@ -732,10 +740,10 @@ const KeyboardInsetAdapter={
       )
     );
 
-    scrollRoot.style.setProperty(
-      '--composer-flow-reserve',
-      `${firstHeight}px`
-    );
+    // SPEC-CHAT-KEYBOARD-SCROLL-STABILITY-20261101:
+    // publishComposerHeight is the SOLE writer of composer-flow-reserve.
+    // Writing bare firstHeight here and (height+keyboard) in the
+    // ResizeObserver alternated two values and re-entered tail geometry.
     stageLayout.style.setProperty(
       '--composer-visual-top',
       `${Math.max(
@@ -748,9 +756,15 @@ const KeyboardInsetAdapter={
     scrollRoot.dataset.composerPlacement='visual-viewport';
     stageLayout.dataset.composerPlacement='visual-viewport';
 
-    requestAnimationFrame(()=>{
+    // Only one geometry correction may be pending. A keyboard animation
+    // sends both resize and scroll events, often several before next paint.
+    if(this.composerPlacementFrame)return;
+    this.composerPlacementFrame=requestAnimationFrame(()=>{
+      this.composerPlacementFrame=0;
       if(
         stageLayout.dataset.composerPlacement!=='visual-viewport' ||
+        !this.open ||
+        document.activeElement!==editor ||
         !vv
       )return;
 
@@ -768,10 +782,6 @@ const KeyboardInsetAdapter={
         visualTop+
         Math.max(1,Math.round(vv.height));
 
-      scrollRoot.style.setProperty(
-        '--composer-flow-reserve',
-        `${actualHeight}px`
-      );
       stageLayout.style.setProperty(
         '--composer-visual-top',
         `${Math.max(
@@ -787,6 +797,10 @@ const KeyboardInsetAdapter={
   },
 
   restoreStickyPlacement(){
+    if(this.composerPlacementFrame){
+      cancelAnimationFrame(this.composerPlacementFrame);
+      this.composerPlacementFrame=0;
+    }
     scrollRoot.dataset.composerPlacement='sticky';
     stageLayout.dataset.composerPlacement='sticky';
     stageLayout.style.removeProperty('--composer-visual-top');
@@ -819,6 +833,9 @@ const KeyboardInsetAdapter={
     }else{
       this.restoreStickyPlacement();
     }
+    // One reserve formula on both keyboard transitions and composer resize.
+    // No direct ScrollRoot writes are allowed in placement correction.
+    publishComposerHeight();
   },
 
   onOrientation(){
