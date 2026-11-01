@@ -80,22 +80,35 @@
 .zalo-account-modal[data-busy="true"] button:disabled{opacity:.55;cursor:default}
 /* The settings are an independently scrollable region. Never shrink action
    rows to make room for the directory; their text and buttons must stay aligned. */
+/* SPEC-CHAT-ACCOUNT-SETTING-CARD-GRID-20261102:
+   Show all five account preferences as compact independent cards rather
+   than one tall stack above the Chat-Zalo directory. Keep the preferences
+   and directory as separate scroll owners, all original action controls,
+   and one-column mobile/keyboard behavior. */
 .zalo-account-preferences{
   box-sizing:border-box;flex:0 0 auto;min-height:0;max-height:min(34svh,300px);
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  align-content:start;align-items:stretch;gap:8px;
   overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;
   padding:2px 4px 8px 1px;margin-bottom:10px;scrollbar-width:thin;
 }
 .zalo-account-preferences .zalo-account-notification{
   flex:none;display:grid;grid-template-columns:minmax(0,1fr) auto;
-  align-items:center;gap:12px;margin:0 0 8px;
+  align-items:center;gap:10px;min-width:0;min-height:66px;
+  margin:0;padding:10px;
 }
-.zalo-account-preferences .zalo-account-notification:last-child{margin-bottom:0}
+.zalo-account-preferences .zalo-account-notification:last-child{
+  grid-column:1 / -1;
+}
+.zalo-account-preferences .zalo-account-notification-copy{
+  min-width:0;
+}
 .zalo-account-preferences .zalo-account-notification-copy small{
-  white-space:normal;overflow-wrap:anywhere;line-height:1.45
+  white-space:normal;overflow-wrap:anywhere;line-height:1.4
 }
 .zalo-account-preferences .zalo-account-notification-action{
-  max-width:168px;min-width:0;white-space:normal;line-height:1.25;
-  padding-block:8px;text-align:center
+  max-width:156px;min-width:0;min-height:40px;white-space:normal;line-height:1.25;
+  padding:7px 10px;text-align:center
 }
 .zalo-account-directory-head{
   display:flex;flex:0 0 auto;align-items:center;justify-content:space-between;
@@ -170,7 +183,13 @@
   .zalo-admin-search-wrap input,
   .zalo-account-search input,.zalo-account-panel input[type="search"],
   .zalo-account-create-form input:not([type="checkbox"]){font-size:16px}
-  .zalo-account-preferences{max-height:min(34svh,280px)}
+  .zalo-account-preferences{
+    max-height:min(34svh,280px);
+    grid-template-columns:minmax(0,1fr);
+    gap:7px;
+  }
+  .zalo-account-preferences .zalo-account-notification:last-child{grid-column:1}
+  .zalo-account-preferences .zalo-account-notification{min-height:60px}
   .zalo-account-modal-head{padding-inline:2px}
 }
 @media(max-width:420px){
