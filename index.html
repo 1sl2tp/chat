@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="fec50bb339ad3e7775e0c0b36bfbe569fd13cac11fbc3c64ef9b9106b641661d">
+<meta name="app-build-id" content="514a3b8c5c79e0f51630ed5512a99c913e5682d9bed9a936454cd8783158176f">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -2824,52 +2824,15 @@ button{
   justify-content:flex-start;
 }
 
-/* SPEC-CHAT-TEXT-SELECTION-VS-FORWARD-20261101
-   iPhone text long-press remains browser-owned for Bôi đen / Copy. Chat
-   actions (including Chuyển tiếp) have their own 44px tap target beside
-   the bubble, so they do not compete with native selection handles.
-   Desktop continues to use the existing hover and keyboard action rail. */
-.message-actions-trigger{display:none}
-@media (max-width:700px),(hover:none),(pointer:coarse){
-  .message-actions-trigger{
-    position:absolute;
-    z-index:5;
-    top:0;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    width:44px;
-    height:44px;
-    padding:0;
-    border:0;
-    border-radius:50%;
-    background:var(--theme-surface-secondary,#f3f4f6);
-    color:var(--theme-content-secondary,#667085);
-    font:inherit;
-    font-size:25px;
-    line-height:1;
-    touch-action:manipulation;
-    -webkit-user-select:none;
-    user-select:none;
-    cursor:pointer;
-  }
-  .user-message-unit>.message-actions-trigger{right:calc(100% + 2px)}
-  .assistant-message-unit>.message-actions-trigger{left:calc(100% + 2px)}
-  .message-turn[data-actions-open="true"] .message-actions-trigger{
-    background:var(--theme-surface-tertiary,#e5e7eb);
-    color:var(--theme-content-primary,#171717);
-  }
-  #scrollRoot[data-user-scrolling="true"] .message-actions-trigger,
-  #scrollRoot[data-user-dragging="true"] .message-actions-trigger{
-    opacity:0;
-    pointer-events:none;
-  }
-  .message-actions-trigger:focus-visible{
-    outline:2px solid #3479ce;
-    outline-offset:2px;
-  }
+/* CHAT-HEADER-MESSAGE-POLISH-20261102
+   Touch text is the discreet action entry; do not render a floating
+   ellipsis beside every message. Native long-press selection is untouched.
+   The toolbar itself still uses the UI-150 44px action targets. */
+.message-actions-trigger{display:none!important}
+.message-text:focus-visible{
+  outline:2px solid var(--theme-content-accent,#3479ce);
+  outline-offset:3px;
 }
-
 /* Sender surfaces are intentionally asymmetric:
    outgoing text/link/reply uses a soft bubble; incoming stays on canvas.
    File/audio/image keep their own media containers and receive no outer bubble. */
@@ -6867,40 +6830,77 @@ button{
 
   /* ---------- Conversation/header cohesion ---------- */
   #appShell[data-auth-state="authenticated"] .compact-top-grid{
-    min-height:64px;
-    grid-template-columns:40px minmax(0,1fr) auto;
-    column-gap:7px;
+    min-height:var(--header-height,60px);
+    grid-template-columns:44px minmax(0,1fr) auto;
+    align-items:center;
+    column-gap:6px;
     /* chat-content-axis has a 16px !important desktop rule. Mobile Top
        overrides it once, matching Directory title/search and Composer. */
     padding-left:max(var(--ui-chat-layout-rail,12px),env(safe-area-inset-left,0px))!important;
     padding-right:max(var(--ui-chat-layout-rail,12px),env(safe-area-inset-right,0px))!important;
   }
 
+  /* CHAT-HEADER-MESSAGE-POLISH-20261102:
+     one centered vertical axis, no 36/38/44px mix in the idle header.
+     Keep call-status/live-call states under their existing owners. */
   #appShell[data-auth-state="authenticated"] .top-mode-switch{
+    box-sizing:border-box;
     width:min(100%,20rem);
-    padding:3px;
+    min-width:0;
+    min-height:44px;
+    justify-self:center;
+    align-items:center;
+    gap:2px;
+    padding:2px;
   }
-
+  #appShell[data-auth-state="authenticated"] .top-mode-switch[data-contact-identity="true"]{
+    grid-template-columns:minmax(0,1fr) 52px;
+  }
   #appShell[data-auth-state="authenticated"] .top-mode-tab{
-    min-height:38px;
-    padding-inline:12px;
-    font-size:.9rem;
+    box-sizing:border-box;
+    min-width:0;
+    min-height:40px;
+    height:40px;
+    padding-inline:8px;
+    font-size:13px;
+    line-height:20px;
   }
-
+  #appShell[data-auth-state="authenticated"] .top-mode-tab[data-top-tab="chat"][data-contact-identity="true"]{
+    justify-content:flex-start;
+    gap:7px;
+    padding-inline:5px 4px;
+  }
+  #appShell[data-auth-state="authenticated"] .top-mode-tab[data-top-tab="chat"] [data-chat-tab-label]{
+    min-width:0;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    font-weight:600;
+  }
+  #appShell[data-auth-state="authenticated"] .top-mode-tab[data-top-tab="photos"]{
+    padding-inline:5px;
+    font-size:12.5px;
+  }
   #appShell[data-auth-state="authenticated"] .top-mode-contact-avatar{
-    width:25px;
-    height:25px;
-    min-width:25px;
-    min-height:25px;
-    max-width:25px;
-    max-height:25px;
-    flex-basis:25px;
+    width:26px;height:26px;min-width:26px;min-height:26px;
+    max-width:26px;max-height:26px;flex-basis:26px;
   }
-
-  #appShell[data-auth-state="authenticated"] .call-focus-slot[data-call-ui-state="idle"] .call-focus-button{
-    width:36px;
-    height:36px;
-    min-width:36px;
+  #appShell[data-auth-state="authenticated"] .call-focus-slot[data-call-ui-state="idle"]{
+    min-width:44px;
+    align-items:center;
+    justify-content:flex-end;
+    gap:2px;
+  }
+  #appShell[data-auth-state="authenticated"] .call-focus-slot[data-call-ui-state="idle"] .call-focus-button,
+  #appShell[data-auth-state="authenticated"] .call-focus-slot[data-call-ui-state="idle"] .call-secondary-button{
+    box-sizing:border-box;
+    flex:0 0 44px;
+    width:44px;height:44px;min-width:44px;min-height:44px;
+    padding:0;
+    display:inline-flex;align-items:center;justify-content:center;
+  }
+  #appShell[data-auth-state="authenticated"] .call-focus-slot[data-call-ui-state="idle"] .call-focus-icon{
+    width:20px;height:20px;flex-basis:20px;
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] .message-turn{
@@ -12558,7 +12558,6 @@ function closeAllTurnActions(except=null){
   )){
     if(turn!==except){
       turn.dataset.actionsOpen='false';
-      turn.querySelector('.message-actions-trigger')?.setAttribute('aria-expanded','false');
     }
   }
 }
@@ -12599,33 +12598,43 @@ function toggleActionsForTurn(turn,force){
   }
   turn.dataset.actionsOpen=
     next?'true':'false';
-  const trigger=turn.querySelector('.message-actions-trigger');
-  if(trigger)trigger.setAttribute('aria-expanded',next?'true':'false');
 }
 
-// SPEC-CHAT-TEXT-SELECTION-VS-FORWARD-20261101:
- // Native long press on text must select text, not open a competing
- // message-forward toolbar. A separate accessible tap target owns Chat
- // actions (Reply / Copy / Forward) without changing the message bubble.
-function ensureTurnActionsTrigger(turn,unit){
-  if(!turn||!unit)return null;
-  let button=unit.querySelector(':scope > .message-actions-trigger');
-  if(button)return button;
-  button=document.createElement('button');
-  button.type='button';
-  button.className='message-actions-trigger';
-  button.textContent='⋯';
-  button.setAttribute('aria-label','Mở thao tác tin nhắn');
-  button.setAttribute('aria-expanded','false');
-  button.title='Thao tác tin nhắn';
-  button.addEventListener('pointerdown',event=>event.stopPropagation());
-  button.addEventListener('click',event=>{
-    event.preventDefault();
-    event.stopPropagation();
+// CHAT-HEADER-MESSAGE-POLISH-20261102
+// No floating ellipsis: a short tap on selectable text opens message actions.
+// A long press stays native selection; links, quoted replies and scroll-drag
+// never open the Chat toolbar. Media retains its existing long-press handler.
+function bindTextActionTap(turn,text){
+  if(!turn||!text||text.dataset.textActionBound==='true')return;
+  text.dataset.textActionBound='true';
+  text.tabIndex=0;
+  let downAt=0;
+  let startX=0,startY=0,moved=false;
+  text.addEventListener('pointerdown',event=>{
+    downAt=event.pointerType==='mouse'?0:Date.now();
+    startX=event.clientX;
+    startY=event.clientY;
+    moved=false;
+  },{passive:true});
+  text.addEventListener('pointermove',event=>{
+    if(!downAt)return;
+    const dx=event.clientX-startX,dy=event.clientY-startY;
+    if(dx*dx+dy*dy>100)moved=true;
+  },{passive:true});
+  text.addEventListener('pointercancel',()=>{downAt=0;moved=true;},{passive:true});
+  text.addEventListener('click',event=>{
+    if(!window.matchMedia?.('(max-width:700px), (hover:none), (pointer:coarse)')?.matches)return;
+    if(event.target?.closest?.('a,button,input,textarea,select,[contenteditable="true"],[role="button"]'))return;
+    if(window.getSelection?.()?.isCollapsed===false)return;
+    if(moved||(downAt&&Date.now()-downAt>380))return;
+    if(turn.dataset.suppressNextClick==='true')return;
     toggleActionsForTurn(turn);
   });
-  unit.appendChild(button);
-  return button;
+  text.addEventListener('keydown',event=>{
+    if(event.target!==text||!['Enter',' '].includes(event.key))return;
+    event.preventDefault();
+    toggleActionsForTurn(turn);
+  });
 }
 
 function bindTurnActionTap(turn,target){
@@ -13298,7 +13307,7 @@ function patchMessageNode(node,message){
     }
   }
 
-  ensureTurnActionsTrigger(node,unit);
+  bindTextActionTap(node,text);
   syncMessageTimeNode(unit,message);
   node.__visualSignature=messageVisualSignature(message);
   return node;
@@ -13354,7 +13363,8 @@ function renderMessageNode(message){
   const textVisible=Boolean(message.replyTo||message.kind==='text'||message.kind==='mixed');
   text.hidden=!textVisible;
   unit.appendChild(text);
-  // Do not attach the Chat long-press opener to selectable message text.
+  // Native text selection remains browser-owned; only short taps show actions.
+  bindTextActionTap(turn,text);
 
   if(message.media){
     const mediaNode=createMediaNode(message.media,{message});
@@ -13366,7 +13376,6 @@ function renderMessageNode(message){
   }
 
   unit.appendChild(createActionGroup(message));
-  ensureTurnActionsTrigger(turn,unit);
   syncMessageTimeNode(unit,message);
   messageWrap.appendChild(unit);
   stack.appendChild(messageWrap);
