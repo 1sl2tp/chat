@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="a141eb863cef3ba22b9e169f1c1a0e5388f3bd64e0c4b6b506b86d221f5b40df">
+<meta name="app-build-id" content="4755657235ffe1e9efb4dbc981ae248c8630d9ea8bac74c80c6f6482420965de">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -437,6 +437,9 @@
   .zalo-account-action{min-height:40px}
   .zalo-account-person-copy strong{white-space:normal;overflow-wrap:anywhere;line-height:20px}
   .zalo-account-person-copy small{white-space:normal;overflow-wrap:anywhere;line-height:18px}
+  /* Search in Profile's Zalo picker is also a native iOS text input:
+     14px triggers Safari page zoom and can push it under the keyboard. */
+  .zalo-admin-search-wrap input,
   .zalo-account-search input,.zalo-account-panel input[type="search"],
   .zalo-account-create-form input:not([type="checkbox"]){font-size:16px}
   .zalo-account-preferences{max-height:min(34svh,280px)}
