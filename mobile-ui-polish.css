@@ -413,3 +413,37 @@
     top:calc(env(safe-area-inset-top,0px) + 124px);
   }
 }
+
+
+/* SPEC-CHAT-MOBILE-DIRECTORY-VV-20261101
+   Directory search is a pinned sibling above the scrolling contacts.
+   On iPhone the fixed 100dvh sidebar can extend underneath the software
+   keyboard; VisualViewport (platform owner) supplies its visible height.
+   Keep header, search and filters fixed, with only contact results scrolling.
+   Do not change conversation/composer scrolling or desktop workspace. */
+@media(max-width:63.999rem){
+  #shellNavigationLayer[data-mobile-keyboard="true"]{
+    top:var(--shell-form-vv-top,0px);
+    bottom:auto;
+    height:var(--shell-form-vv-height,100svh);
+    max-height:var(--shell-form-vv-height,100svh);
+    overflow:hidden;
+  }
+  #shellNavigationLayer[data-mobile-keyboard="true"] .shell-navigation-panel{
+    height:100% !important;
+    max-height:100% !important;
+    min-height:0;
+    overflow:hidden;
+  }
+  #shellNavigationLayer[data-mobile-keyboard="true"] .wm-sidebar-sidebar{
+    height:100%;
+    min-height:0;
+  }
+  #shellNavigationLayer[data-mobile-keyboard="true"] .wm-sidebar-body,
+  #shellNavigationLayer[data-mobile-keyboard="true"] .wm-sidebar-navigation{
+    min-height:0;
+  }
+  #shellNavigationLayer[data-mobile-keyboard="true"] .contact-directory-tools{
+    flex:0 0 auto;
+  }
+}
