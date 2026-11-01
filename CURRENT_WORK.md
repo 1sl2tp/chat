@@ -1,3 +1,22 @@
+## 2026-11-02 — MULTI-PASS CHAT UI QA · 5 passes completed, actual-device check OPEN
+
+**Progress rule:** fix what is confirmed in source; continue into the next pass even if a previous pass still awaits CI or device proof. Mark PASS only with evidence. This record describes completed work in this chat turn, not a scheduled/background job.
+
+| Pass | Scope and outcome | Verification |
+| --- | --- | --- |
+| **Vòng 1 — PASS** | Root-cause audit: CALL-186 private callback button was 34×34 while video Chat call was 44×44; corrected 44×44, aligned icon and hid callback button during live-call states. Also fixed stale private phone RPC results after changing contact/admin. | Scoped contract; full Verify V21 success |
+| **Vòng 2 — PASS** | Phone modal accessibility: 44×44 close target and 44px action buttons; Escape and backdrop close, focus restored only if the opener remains available; labelled dialog. New VM runtime regression exercises both focus cleanup and admin/contact privacy checks. | `tests/test_call186_phone_header_modal_20261102.cjs` in CALL-186 CI step |
+| **Vòng 3 — PASS** | Four Admin customer shortcuts now retain 44px touch targets and 12px safe-area rails on touch tablets as well as narrow phones, without changing desktop fine-pointer layout. PWA cache epoch rotated to `pwa-chat-ui-audit-round4-20261102`, with corresponding UI-208/UI-213 tests. | UX-192, UI-208 and UI-213 CI steps success |
+| **Vòng 4 — PASS** | Full regression/build/deployment. GitHub Actions Verify V21: **158 successful checked steps, 0 failed**, including chats, calls, keyboard, account settings, banking guards, PWA, and canonical source. GitHub Pages deployment succeeded. | [Verify V21 41362811045](https://github.com/1sl2tp/chat/actions/runs/41362811045); [Deploy Chat Pages 41362811118](https://github.com/1sl2tp/chat/actions/runs/41362811118) |
+| **Vòng 5 — PASS** | Ten independent source invariants: no floating message ellipses; native text selection; media long press; four customer action buttons; narrow header widths; private phone context guard; modal Escape/focus; live-call phone hide; settings tab visibility; PWA shell epoch. | 10/10 grounded in latest GitHub main files, read-only cross-component check |
+| **Vòng 6 — OPEN (E4/E5)** | Actual desktop/Chrome narrow screen and iOS/Android PWA user-device geometry/gesture acceptance: measure button hitboxes and bounding rectangles, latest build ID, keyboard open/close, scroll and long-press selection. Not marked PASS without a real-device observation. | Device proof unavailable in code-only access; do not misstate CI as device verification |
+
+**Modified source:** `contact-phone-admin.js` (header alignment, privacy lifecycle, accessible modal), `admin-composer-actions.css` (touch-tablet shortcuts), `sw.js` (offline-shell epoch), scoped tests and Verify workflow. No backend RPC/SQL, authorization, call engine, message cache, customer ledger, banking reconciliation or Realtime operations changed.
+
+**Rollback:** revert only these scoped UI/client patches and PWA shell epoch, maintain the canonical `index.source.html` → `index.html`/`version.json` build and its tests. Never reset customer data or IndexedDB to force a style change.
+
+---
+
 ## 2026-11-02 — CHAT UI ROUND 3 · Desktop + narrow-browser screenshot audit
 
 - Two owner screenshots: desktop contact sidebar + chat, and a narrow ~500px Chrome window. Header profile pencil was 34×36 while call control was 44px; mobile contact switch inherited a max-content width rule from Work CSS; Admin customer shortcuts had only 38px mobile targets with a 6px side rail while header used 12px. Desktop active contact showed a persistent decorative “⋯” beneath the preview.
