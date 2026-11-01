@@ -87,6 +87,16 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
  }
  .chat-quick-actions>button>span{font-size:13px}
 }
+/* CHAT-UI-AUDIT-ROUND3-20261102: tablet touch and hybrid pointer width
+   use the same accessible target as mobile, without changing desktop fine
+   pointer sizing or the underlying cash/debt/photos/recent commands. */
+@media(hover:none),(pointer:coarse){
+ .chat-quick-actions{
+  min-height:52px;
+  padding-inline:max(var(--ui-chat-layout-rail,12px),env(safe-area-inset-left,0px),env(safe-area-inset-right,0px));
+ }
+ .chat-quick-actions>button{min-height:44px}
+}
 .admin-composer-cash-balance{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 8px;align-items:center;padding:11px 12px;border:1px solid var(--theme-border-default,#d7dce0);border-radius:13px;background:var(--theme-surface-secondary,#f5f7f7)}
 .admin-composer-cash-balance>span{grid-column:1;color:var(--theme-content-secondary,#667);font-size:12px;font-weight:600}
 .admin-composer-cash-balance>strong{grid-column:1;overflow-wrap:anywhere;font-size:18px;line-height:1.25;font-variant-numeric:tabular-nums}

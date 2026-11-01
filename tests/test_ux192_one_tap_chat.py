@@ -64,3 +64,15 @@ def test_customer_quick_actions_have_44px_mobile_targets():
     assert 'min-height:44px;' in narrow[1]
     assert 'max(var(--ui-chat-layout-rail,12px)' in narrow[0]
     assert 'flex:1 1 0;' in narrow[1]
+
+
+def test_tablet_touch_business_shortcuts_keep_minimum_hit_area():
+    css=(ROOT/'admin-composer-actions.css').read_text('utf-8')
+    touch=css.split('/* CHAT-UI-AUDIT-ROUND3-20261102',1)[1]
+    assert '@media(hover:none),(pointer:coarse)' in touch
+    assert '.chat-quick-actions>button{min-height:44px}' in touch
+    assert 'min-height:52px;' in touch
+    assert 'safe-area-inset-left' in touch and 'safe-area-inset-right' in touch
+    # Desktop fine pointer still retains original compact command controls.
+    assert 'position:sticky;top:var(--header-height,72px);' in css
+    assert 'data-keyboard-open="true"' in css
