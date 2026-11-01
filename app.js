@@ -4119,6 +4119,7 @@ function closeAllTurnActions(except=null){
   )){
     if(turn!==except){
       turn.dataset.actionsOpen='false';
+      turn.querySelector('.message-actions-trigger')?.setAttribute('aria-expanded','false');
     }
   }
 }
@@ -4148,6 +4149,33 @@ function toggleActionsForTurn(turn,force){
   }
   turn.dataset.actionsOpen=
     next?'true':'false';
+  const trigger=turn.querySelector('.message-actions-trigger');
+  if(trigger)trigger.setAttribute('aria-expanded',next?'true':'false');
+}
+
+// SPEC-CHAT-TEXT-SELECTION-VS-FORWARD-20261101:
+ // Native long press on text must select text, not open a competing
+ // message-forward toolbar. A separate accessible tap target owns Chat
+ // actions (Reply / Copy / Forward) without changing the message bubble.
+function ensureTurnActionsTrigger(turn,unit){
+  if(!turn||!unit)return null;
+  let button=unit.querySelector(':scope > .message-actions-trigger');
+  if(button)return button;
+  button=document.createElement('button');
+  button.type='button';
+  button.className='message-actions-trigger';
+  button.textContent='⋯';
+  button.setAttribute('aria-label','Mở thao tác tin nhắn');
+  button.setAttribute('aria-expanded','false');
+  button.title='Thao tác tin nhắn';
+  button.addEventListener('pointerdown',event=>event.stopPropagation());
+  button.addEventListener('click',event=>{
+    event.preventDefault();
+    event.stopPropagation();
+    toggleActionsForTurn(turn);
+  });
+  unit.appendChild(button);
+  return button;
 }
 
 function bindTurnActionTap(turn,target){
@@ -4750,7 +4778,7 @@ function patchMessageNode(node,message){
   if(!text){
     text=document.createElement('div');
     unit.insertBefore(text,unit.firstChild);
-    bindTurnActionTap(node,text);
+    // Text long-press belongs to native iOS/Android selection, not Chat actions.
   }
   text.className='message-text whitespace-pre-wrap break-words'+(
     message.sender==='self'
@@ -4820,6 +4848,7 @@ function patchMessageNode(node,message){
     }
   }
 
+  ensureTurnActionsTrigger(node,unit);
   syncMessageTimeNode(unit,message);
   node.__visualSignature=messageVisualSignature(message);
   return node;
@@ -4875,7 +4904,7 @@ function renderMessageNode(message){
   const textVisible=Boolean(message.replyTo||message.kind==='text'||message.kind==='mixed');
   text.hidden=!textVisible;
   unit.appendChild(text);
-  bindTurnActionTap(turn,text);
+  // Do not attach the Chat long-press opener to selectable message text.
 
   if(message.media){
     const mediaNode=createMediaNode(message.media,{message});
@@ -4887,6 +4916,7 @@ function renderMessageNode(message){
   }
 
   unit.appendChild(createActionGroup(message));
+  ensureTurnActionsTrigger(turn,unit);
   syncMessageTimeNode(unit,message);
   messageWrap.appendChild(unit);
   stack.appendChild(messageWrap);
