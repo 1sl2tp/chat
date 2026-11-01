@@ -420,8 +420,10 @@ jobs:
           python -m pytest tests/test_v21_call_invite_incoming_alert.py -q
       - name: UI-150 Copy Download Share text and media contract
         run: python -m pytest tests/test_v21_ui150_copy_download_share_contract.py -q
-      - name: Chat message forward contract
-        run: python tests/test_v21_message_forward_contract.py
+      - name: Chat message forwarding vs native text selection (iPhone)
+        run: |
+          python tests/test_v21_message_forward_contract.py
+          node tests/test_chat_text_selection_forward_separation_20261101.cjs
       - name: Admin parallel approved devices contract
         run: python tests/test_v21_admin_parallel_devices.py
       - name: UI style ownership contract
