@@ -17,6 +17,14 @@ assert(shell.includes("openPhotos(){return this.open('photos')}"));
 assert(shell.includes("workView.hidden=WORK_ENABLED"));
 assert(viewer.includes('window.V21ChatImageViewer=Object.freeze({open:openImageViewer})'));
 assert(css.includes('#customerPhotoLibrary[hidden]'));
+assert(gallery.includes("button.dataset.fit='contain';"),
+  'portrait receipts should be readable rather than center-cropped in square tiles');
+assert(gallery.includes("Number(item.height)>Number(item.width)*1.65"),
+  'only very tall attachments use full-photo thumbnails');
+assert(css.includes('.customer-photo-tile[data-fit="contain"] img{'));
+assert(css.includes('object-fit:contain;'));
+assert(css.includes('.customer-photo-tile img{display:block;width:100%;height:100%;object-fit:cover}'),
+  'normal image thumbnails must keep the original crop presentation');
 assert(gallery.includes('IntersectionObserver'));
 assert(!gallery.includes("v21_media_assets"));
 const start=gallery.indexOf('function imageMeta(');
