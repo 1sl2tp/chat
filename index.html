@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="f5d44cb55273ed6d43e7478443b5d9b33808487652a537f5c08171718bbb2982">
+<meta name="app-build-id" content="960f1d92d1868353b7f90dda4e64905fda1b47e09ca36cc6892bb73c248695d2">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -30527,7 +30527,9 @@ function style(){
  if(document.getElementById('v21-contact-phone-css'))return;
  const st=el('style');st.id='v21-contact-phone-css';
  st.textContent=[
- '.v21-phone-header-button{width:34px;height:34px;flex:0 0 34px;display:grid;place-items:center;cursor:pointer;background:transparent;color:inherit;border:0;border-radius:50%}',
+ '.v21-phone-header-button{box-sizing:border-box;width:44px;height:44px;min-width:44px;min-height:44px;flex:0 0 44px;display:grid;place-items:center;cursor:pointer;background:transparent;color:inherit;border:0;border-radius:50%;padding:0;touch-action:manipulation}',
+ '.v21-phone-header-button:hover,.v21-phone-header-button:focus-visible{background:var(--theme-action-ghost-surface-hover,#eee)}',
+ '.call-focus-slot:not([data-call-ui-state="idle"]) .v21-phone-header-button{display:none!important}',
  '.v21-phone-header-button[hidden]{display:none!important}',
  '.v21-phone-overlay{position:fixed;inset:0;z-index:9500;background:#0009;display:grid;place-items:center;padding:12px}',
  '.v21-phone-panel{box-sizing:border-box;width:min(100%,430px);max-height:92dvh;overflow:auto;background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#222);border-radius:17px;padding:16px}',
@@ -30572,6 +30574,10 @@ async function rpc(id,action='get',primary=null,secondary=null){
  return data;
 }
 function dismiss(){document.querySelector('[data-v21-phone-overlay]')?.remove();}
+function phoneContextActive(id,account){
+ return admin()&&String(au().account?.id||'')===String(account)&&
+  String(current()?.id||'')===String(id);
+}
 async function open({contactId=current()?.id,missed=false}={}){
  if(!admin()||!contactId)return false;
  const id=String(contactId),account=String(au().account?.id||'');
@@ -30608,7 +30614,11 @@ async function open({contactId=current()?.id,missed=false}={}){
  const key=account+':'+id;
  try{
   const data=cache.has(key)?cache.get(key):await rpc(id);
-  if(!overlay.isConnected)return false;
+  // CALL-186 audit round 2: a pending private-phone RPC must not paint
+  // customer A's numbers after the Admin switches to customer B/logs out.
+  if(!overlay.isConnected||!phoneContextActive(id,account)){
+   dismiss();return false;
+  }
   cache.set(key,data);
   primary.value=data.phone_primary||'';secondary.value=data.phone_secondary||'';
   dial.disabled=!valid(normalize(primary.value));
@@ -30638,7 +30648,7 @@ async function open({contactId=current()?.id,missed=false}={}){
  close.focus();
  return true;
 }
-document.addEventListener('v21-active-contact-change',attach);
+document.addEventListener('v21-active-contact-change',()=>{dismiss();attach()});
 document.addEventListener('v21-auth-state',()=>{cache.clear();dismiss();attach()});
 document.addEventListener('v21-missed-call-push-open',e=>{
  const contactId=String(e.detail?.contactId||'');
