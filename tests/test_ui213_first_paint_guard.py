@@ -46,6 +46,6 @@ def test_boot_auth_transitions_remove_guard_without_fake_demo_or_legacy_frames()
 
 
 def test_pwa_rotates_offline_shell_and_keeps_online_network_first():
-    assert "pwa-first-paint-guard-20261024" in SW
+    assert "pwa-selection-forward-20261101" in SW
     assert "event.respondWith(networkFirst(request,{navigation:true,event}));" in SW
     assert "const networkRequest=new Request(request,{cache:'no-store'});" in SW
