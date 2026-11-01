@@ -165,6 +165,9 @@
   .zalo-account-action{min-height:40px}
   .zalo-account-person-copy strong{white-space:normal;overflow-wrap:anywhere;line-height:20px}
   .zalo-account-person-copy small{white-space:normal;overflow-wrap:anywhere;line-height:18px}
+  /* Search in Profile's Zalo picker is also a native iOS text input:
+     14px triggers Safari page zoom and can push it under the keyboard. */
+  .zalo-admin-search-wrap input,
   .zalo-account-search input,.zalo-account-panel input[type="search"],
   .zalo-account-create-form input:not([type="checkbox"]){font-size:16px}
   .zalo-account-preferences{max-height:min(34svh,280px)}
