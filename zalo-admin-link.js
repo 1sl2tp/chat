@@ -1268,7 +1268,7 @@ async function openAccountAdmin(){
         <button type="button" class="zalo-account-tab" id="zalo-account-tab-settings" role="tab" aria-controls="zalo-account-panel-settings" aria-selected="true" tabindex="0" data-zalo-account-tab="settings">Thiết lập</button>
         <button type="button" class="zalo-account-tab" id="zalo-account-tab-links" role="tab" aria-controls="zalo-account-panel-links" aria-selected="false" tabindex="-1" data-zalo-account-tab="links">Chat – Zalo</button>
       </div>
-      <div class="zalo-account-preferences" id="zalo-account-panel-settings" data-zalo-account-preferences role="tabpanel" aria-labelledby="zalo-account-tab-settings" tabindex="0">
+      <div class="zalo-account-preferences" data-zalo-account-preferences id="zalo-account-panel-settings" role="tabpanel" aria-labelledby="zalo-account-tab-settings" tabindex="0">
       <div class="zalo-account-notification" data-admin-push-setting>
         <span class="zalo-account-notification-copy"><strong>Thông báo</strong><small data-admin-push-status>Bật thông báo</small></span>
         <button type="button" class="zalo-account-notification-action" data-admin-push-action data-mode="enable">Bật thông báo</button>
