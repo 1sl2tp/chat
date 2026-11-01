@@ -1,3 +1,15 @@
+## 2026-11-02 — CHAT MOBILE HEADER + MESSAGE ACTION POLISH
+
+- Screenshot showed uneven avatar/name/Ảnh/call control alignment plus noisy floating ellipsis next to each incoming message.
+- One mobile visual owner: mobile-ui-polish.css aligns the header using a 44px menu rail and consistent 44px idle call target; 26px avatar, compact 52px Photos tab, ellipsized contact name. Existing active-call layouts, routes and permissions unchanged.
+- app.js and index.source.html remove the visible per-message ellipsis. Short tap on text shows existing Reply/Copy/Forward actions; long press remains native selection, drag/links/reply quote/highlight never hijack selection. Keyboard Enter/Space opens same actions; media long-press unchanged. No backend changes, RPC, polling, push or financial writes.
+- PWA shell epoch pwa-mobile-header-message-polish-20261102; only offline shell rotates, not private caches. UI-208/UI-213 PWA tests updated.
+- Source d8dec7457c42dc884fac5034f7b324712089f2c3, tests 50d07ec79ffd10cda863b229be4949ba506151e1. Verify V21 SUCCESS https://github.com/1sl2tp/chat/actions/runs/41361008328; Deploy Chat Pages SUCCESS https://github.com/1sl2tp/chat/actions/runs/41360932135.
+- E4 actual PWA/browser device visual and gesture acceptance pending. Check narrow 320/375/390/430 widths, header, long names, short-tap actions, long-press text selection, media and keyboard. CI/Pages cannot attest to client activation.
+- Rollback: revert only mobile CSS, text-action JS, relevant tests and shell epoch; build canonical source output. Keep user data.
+
+---
+
 ## 2026-11-02 — CHAT ACCOUNT SETTINGS ROUND 2 · two-tab layout, mobile no clipped controls
 
 - User-provided screenshots showed the five Admin setting cards constrained inside a 34svh/34dvh independent scroller: Auto Collection button cut at the scroll boundary, Agribank card directly beneath and Chat–Zalo directory competing for vertical space on ~500px browser widths.
