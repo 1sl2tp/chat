@@ -4119,7 +4119,6 @@ function closeAllTurnActions(except=null){
   )){
     if(turn!==except){
       turn.dataset.actionsOpen='false';
-      turn.querySelector('.message-actions-trigger')?.setAttribute('aria-expanded','false');
     }
   }
 }
@@ -4160,33 +4159,43 @@ function toggleActionsForTurn(turn,force){
   }
   turn.dataset.actionsOpen=
     next?'true':'false';
-  const trigger=turn.querySelector('.message-actions-trigger');
-  if(trigger)trigger.setAttribute('aria-expanded',next?'true':'false');
 }
 
-// SPEC-CHAT-TEXT-SELECTION-VS-FORWARD-20261101:
- // Native long press on text must select text, not open a competing
- // message-forward toolbar. A separate accessible tap target owns Chat
- // actions (Reply / Copy / Forward) without changing the message bubble.
-function ensureTurnActionsTrigger(turn,unit){
-  if(!turn||!unit)return null;
-  let button=unit.querySelector(':scope > .message-actions-trigger');
-  if(button)return button;
-  button=document.createElement('button');
-  button.type='button';
-  button.className='message-actions-trigger';
-  button.textContent='⋯';
-  button.setAttribute('aria-label','Mở thao tác tin nhắn');
-  button.setAttribute('aria-expanded','false');
-  button.title='Thao tác tin nhắn';
-  button.addEventListener('pointerdown',event=>event.stopPropagation());
-  button.addEventListener('click',event=>{
-    event.preventDefault();
-    event.stopPropagation();
+// CHAT-HEADER-MESSAGE-POLISH-20261102
+// No floating ellipsis: a short tap on selectable text opens message actions.
+// A long press stays native selection; links, quoted replies and scroll-drag
+// never open the Chat toolbar. Media retains its existing long-press handler.
+function bindTextActionTap(turn,text){
+  if(!turn||!text||text.dataset.textActionBound==='true')return;
+  text.dataset.textActionBound='true';
+  text.tabIndex=0;
+  let downAt=0;
+  let startX=0,startY=0,moved=false;
+  text.addEventListener('pointerdown',event=>{
+    downAt=event.pointerType==='mouse'?0:Date.now();
+    startX=event.clientX;
+    startY=event.clientY;
+    moved=false;
+  },{passive:true});
+  text.addEventListener('pointermove',event=>{
+    if(!downAt)return;
+    const dx=event.clientX-startX,dy=event.clientY-startY;
+    if(dx*dx+dy*dy>100)moved=true;
+  },{passive:true});
+  text.addEventListener('pointercancel',()=>{downAt=0;moved=true;},{passive:true});
+  text.addEventListener('click',event=>{
+    if(!window.matchMedia?.('(max-width:700px), (hover:none), (pointer:coarse)')?.matches)return;
+    if(event.target?.closest?.('a,button,input,textarea,select,[contenteditable="true"],[role="button"]'))return;
+    if(window.getSelection?.()?.isCollapsed===false)return;
+    if(moved||(downAt&&Date.now()-downAt>380))return;
+    if(turn.dataset.suppressNextClick==='true')return;
     toggleActionsForTurn(turn);
   });
-  unit.appendChild(button);
-  return button;
+  text.addEventListener('keydown',event=>{
+    if(event.target!==text||!['Enter',' '].includes(event.key))return;
+    event.preventDefault();
+    toggleActionsForTurn(turn);
+  });
 }
 
 function bindTurnActionTap(turn,target){
@@ -4859,7 +4868,7 @@ function patchMessageNode(node,message){
     }
   }
 
-  ensureTurnActionsTrigger(node,unit);
+  bindTextActionTap(node,text);
   syncMessageTimeNode(unit,message);
   node.__visualSignature=messageVisualSignature(message);
   return node;
@@ -4915,7 +4924,8 @@ function renderMessageNode(message){
   const textVisible=Boolean(message.replyTo||message.kind==='text'||message.kind==='mixed');
   text.hidden=!textVisible;
   unit.appendChild(text);
-  // Do not attach the Chat long-press opener to selectable message text.
+  // Native text selection remains browser-owned; only short taps show actions.
+  bindTextActionTap(turn,text);
 
   if(message.media){
     const mediaNode=createMediaNode(message.media,{message});
@@ -4927,7 +4937,6 @@ function renderMessageNode(message){
   }
 
   unit.appendChild(createActionGroup(message));
-  ensureTurnActionsTrigger(turn,unit);
   syncMessageTimeNode(unit,message);
   messageWrap.appendChild(unit);
   stack.appendChild(messageWrap);

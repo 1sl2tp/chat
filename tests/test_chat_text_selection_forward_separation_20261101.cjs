@@ -6,81 +6,64 @@ const vm=require('node:vm');
 // SPEC-CHAT-TEXT-SELECTION-VS-FORWARD-20261101
 // GIVEN a mobile text message, WHEN holding and dragging native text
 // selection, THEN the Chat action/Forward toolbar must not open.
-// WHEN tapping the distinct 44px more-actions control, THEN the Chat
-// actions open, toggle and include the existing Copy/Forward capabilities.
+// WHEN tapping the text bubble briefly, THEN the Chat actions open.
+// No decorative ellipsis is shown; Copy/Forward remains available.
 // MUST-STAY: message identity, reply, media longpress, forwarding rules,
 // and desktop hover/keyboard action rail.
 const app=fs.readFileSync('app.js','utf8');
 const css=fs.readFileSync('index.source.html','utf8');
 
 assert(!app.includes('bindTurnActionTap(turn,text);'),
-  'text longpress must never claim native selection');
-assert(!app.includes('bindTurnActionTap(node,text);'),
-  'rerendered text must not re-enable conflicting longpress');
-assert(app.includes('bindTurnActionTap(turn,mediaShell);'),
-  'media longpress remains available');
-assert(app.includes('bindTurnActionTap(node,mediaShell);'),
-  'reconciled media retains existing longpress');
-assert(app.includes('ensureTurnActionsTrigger(turn,unit);'));
-assert(app.includes('ensureTurnActionsTrigger(node,unit);'));
+  'native mobile text selection must not use the Chat longpress timer');
+assert(!app.includes('bindTurnActionTap(node,text);'));
+assert(app.includes('bindTurnActionTap(turn,mediaShell);'));
+assert(app.includes('bindTurnActionTap(node,mediaShell);'));
+assert(app.includes('bindTextActionTap(turn,text);'));
+assert(app.includes('bindTextActionTap(node,text);'));
+assert(!app.includes('ensureTurnActionsTrigger('));
+assert(!app.includes("button.textContent='⋯'"));
 assert(app.includes("label:'Chuyển tiếp',icon:'forward'"));
 assert(app.includes("window.V21MessageForward?.open?.(resolveMessage())"));
 assert(app.includes("label:'Sao chép',icon:'copy'"));
 assert(css.includes('.message-text{\n  -webkit-user-select:text;\n  user-select:text;'));
-assert(css.includes('.message-actions-trigger{display:none}'),
-  'desktop must retain hover/keyboard controls without duplicate button');
-assert(css.includes('.message-actions-trigger{\n    position:absolute;'));
-assert(css.includes('width:44px;\n    height:44px;'));
-assert(css.includes('user-select:none;'));
-assert(css.includes('.user-message-unit>.message-actions-trigger{right:calc(100% + 2px)}'));
-assert(css.includes('.assistant-message-unit>.message-actions-trigger{left:calc(100% + 2px)}'));
-
-const start=app.indexOf('function ensureTurnActionsTrigger(turn,unit){');
+assert(css.includes('.message-actions-trigger{display:none!important}'));
+assert(!css.includes('.message-actions-trigger{\n    position:absolute;'),
+  'no floating 44px ellipsis in touch layout');
+const start=app.indexOf('function bindTextActionTap(turn,text){');
 const end=app.indexOf('\nfunction bindTurnActionTap(turn,target){',start);
-assert(start>0 && end>start);
+assert(start>0&&end>start);
 const implementation=app.slice(start,end);
-const button={
-  type:'',className:'',textContent:'',attributes:{},listeners:{},
-  setAttribute(k,v){this.attributes[k]=v},
-  addEventListener(name,callback){this.listeners[name]=callback}
-};
-const turn={};
-const unit={
-  attached:[],
-  querySelector(selector){
-    assert.equal(selector,':scope > .message-actions-trigger');
-    return this.attached[0]||null;
-  },
-  appendChild(node){this.attached.push(node)}
-};
+const listeners={};
+const textNode={dataset:{},tabIndex:-1,addEventListener:(type,fn)=>{listeners[type]=fn}};
+const turn={dataset:{}};
 let toggles=0;
 const ctx={
-  document:{createElement(tag){assert.equal(tag,'button');return button}},
-  toggleActionsForTurn(turnArg){assert.equal(turnArg,turn);toggles++}
+  Date:{now:()=>1000},
+  window:{matchMedia:()=>({matches:true}),getSelection:()=>({isCollapsed:true})},
+  toggleActionsForTurn:(arg)=>{assert.equal(arg,turn);toggles++}
 };
 vm.runInNewContext(implementation,ctx);
-const trigger=ctx.ensureTurnActionsTrigger(turn,unit);
-assert.equal(trigger,button);
-assert.equal(trigger.className,'message-actions-trigger');
-assert.equal(trigger.attributes['aria-label'],'Mở thao tác tin nhắn');
-assert.equal(trigger.attributes['aria-expanded'],'false');
-assert.equal(ctx.ensureTurnActionsTrigger(turn,unit),trigger);
-assert.equal(unit.attached.length,1,'reuse trigger when a message is patched');
-
-let prevented=0,stopped=0;
-const interaction={preventDefault(){prevented++},stopPropagation(){stopped++}};
-trigger.listeners.pointerdown(interaction);
-assert.equal(stopped,1);
-assert.equal(toggles,0,'touch start alone must not open forwarding');
-trigger.listeners.click(interaction);
-assert.equal(toggles,1,'explicit tap opens the action menu');
-assert.equal(prevented,1);
-
-const open=app.slice(app.indexOf('function toggleActionsForTurn(turn,force){'),app.indexOf('\nfunction bindTurnActionTap(turn,target){'));
-assert(open.includes("trigger.setAttribute('aria-expanded',next?'true':'false')"));
-assert(app.includes("turn.querySelector('.message-actions-trigger')?.setAttribute('aria-expanded','false')"));
-// When a native highlight begins while the explicit menu is already open,
-// dismiss the Chat rail rather than covering the copy/lookup handles.
+ctx.bindTextActionTap(turn,textNode);
+assert.equal(textNode.tabIndex,0);
+ctx.bindTextActionTap(turn,textNode);
+assert.equal(Object.keys(listeners).filter(v=>v==='click').length,1);
+const evt={target:{closest:()=>null},pointerType:'touch',clientX:2,clientY:2};
+listeners.pointerdown(evt);
+listeners.click(evt);
+assert.equal(toggles,1,'a short tap opens the existing action group');
+listeners.pointerdown(evt);
+listeners.pointermove({...evt,clientX:80});
+listeners.click(evt);
+assert.equal(toggles,1,'dragging must not open actions');
+listeners.pointerdown(evt);
+listeners.click({...evt,target:{closest:()=>({})}});
+assert.equal(toggles,1,'links and reply controls keep their own action');
+ctx.window.getSelection=()=>({isCollapsed:false});
+listeners.click(evt);
+assert.equal(toggles,1,'highlighted text retains browser selection');
+listeners.keydown({target:textNode,key:'Enter',preventDefault(){}});
+assert.equal(toggles,2,'keyboard can open the same toolbar');
+assert(app.includes("turn.dataset.actionsPlacement=(above<54&&below>=54)?'below':'above';"));
 const selectionStart=app.indexOf("document.addEventListener('selectionchange',()=>{");
 const selectionEnd=app.indexOf('\nfunction toggleActionsForTurn(turn,force){',selectionStart);
 assert(selectionStart>0&&selectionEnd>selectionStart);
