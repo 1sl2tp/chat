@@ -4124,6 +4124,17 @@ function closeAllTurnActions(except=null){
   }
 }
 
+// The native selection menu owns the screen while a user highlights text.
+ // Dismiss any previously opened Chat rail on that SAME message without
+ // cancelling the browser selection or intercepting copy/lookup actions.
+document.addEventListener('selectionchange',()=>{
+  const selected=window.getSelection?.();
+  if(!selected||selected.isCollapsed)return;
+  const node=selected.anchorNode;
+  const element=node?.nodeType===1?node:node?.parentElement;
+  if(element?.closest?.('.message-text'))closeAllTurnActions();
+});
+
 function toggleActionsForTurn(turn,force){
   if(!turn)return;
 
