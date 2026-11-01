@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="3ccd7b1deb29bcfa70c41f333b06feb54cf8912ca79230742906d08911112063">
+<meta name="app-build-id" content="5d38ed5f8955971c30669e06620ba1dfbd24259d55d3d307fc180d152ceab03a">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1987,10 +1987,12 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
   --ui-composer-gutter:12px;
   --ui-composer-inner-inset:4px;
   --ui-composer-action-gap:4px;
-  --ui-composer-send-disc:36px;
-  --ui-composer-send-ring:4px;
-  --ui-composer-mic-glyph:20px;
-  --ui-composer-arrow-glyph:18px;
+  /* SPEC-CHAT-COMPOSER-MIC-SEND-20261102: ChatGPT-style optical
+     parity inside unchanged 44px accessible iPhone touch targets. */
+  --ui-composer-send-disc:38px;
+  --ui-composer-send-ring:3px;
+  --ui-composer-mic-glyph:24px;
+  --ui-composer-arrow-glyph:22px;
   --ui-composer-plus-glyph:18px;
   --ui-composer-stroke:1.6px;
   --ui-chat-message-gutter:12px;
