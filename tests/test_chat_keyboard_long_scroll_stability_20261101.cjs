@@ -69,7 +69,8 @@ const env={
 };
 vm.createContext(env);
 vm.runInContext(adapter,env);
-const adapterRuntime=vm.runInContext('KeyboardInsetAdapter',env);\nenv.KeyboardInsetAdapter=adapterRuntime;
+const adapterRuntime=vm.runInContext('KeyboardInsetAdapter',env);
+env.KeyboardInsetAdapter=adapterRuntime;
 adapterRuntime.restingVisualHeight=720;
 adapterRuntime.layoutBottom=720;
 adapterRuntime.update();
