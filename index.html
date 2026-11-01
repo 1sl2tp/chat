@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="97a49c6478868dba3a000e4838168d3f6b9320f6f61340465e68ce33b43f08e1">
+<meta name="app-build-id" content="a141eb863cef3ba22b9e169f1c1a0e5388f3bd64e0c4b6b506b86d221f5b40df">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -832,6 +832,24 @@
   .zalo-account-modal[data-mobile-keyboard="true"] .zalo-account-preferences{
     max-height:min(22svh,136px);
     margin-bottom:6px;
+    padding-bottom:3px;
+  }
+  /* SPEC-CHAT-MOBILE-SEARCH-KEYBOARD-20261101:
+     Search sits BELOW preferences but OUTSIDE the independently scrolling
+     account list. Collapse that header pane only while searching, so
+     the search field and actual results remain above the iPhone keyboard.
+     Blur restores the original settings without losing their state. */
+  .zalo-account-modal[data-mobile-keyboard="true"]:has([data-zalo-account-search]:focus) .zalo-account-preferences{
+    flex:0 0 0;
+    max-height:0;
+    padding:0;
+    margin:0;
+    overflow:hidden;
+  }
+  .zalo-account-modal[data-mobile-keyboard="true"]:has([data-zalo-account-search]:focus) .zalo-account-modal-head{
+    margin-bottom:4px;
+  }
+  .zalo-account-modal[data-mobile-keyboard="true"]:has([data-zalo-account-search]:focus) .zalo-account-directory-head{
     padding-bottom:3px;
   }
   .zalo-account-modal[data-mobile-keyboard="true"] .zalo-account-directory-head{
@@ -6818,6 +6836,40 @@ button{
     right:max(10px,env(safe-area-inset-right,0px));
     max-width:none;
     top:calc(env(safe-area-inset-top,0px) + 124px);
+  }
+}
+
+
+/* SPEC-CHAT-MOBILE-DIRECTORY-VV-20261101
+   Directory search is a pinned sibling above the scrolling contacts.
+   On iPhone the fixed 100dvh sidebar can extend underneath the software
+   keyboard; VisualViewport (platform owner) supplies its visible height.
+   Keep header, search and filters fixed, with only contact results scrolling.
+   Do not change conversation/composer scrolling or desktop workspace. */
+@media(max-width:63.999rem){
+  #shellNavigationLayer[data-mobile-keyboard="true"]{
+    top:var(--shell-form-vv-top,0px);
+    bottom:auto;
+    height:var(--shell-form-vv-height,100svh);
+    max-height:var(--shell-form-vv-height,100svh);
+    overflow:hidden;
+  }
+  #shellNavigationLayer[data-mobile-keyboard="true"] .shell-navigation-panel{
+    height:100% !important;
+    max-height:100% !important;
+    min-height:0;
+    overflow:hidden;
+  }
+  #shellNavigationLayer[data-mobile-keyboard="true"] .wm-sidebar-sidebar{
+    height:100%;
+    min-height:0;
+  }
+  #shellNavigationLayer[data-mobile-keyboard="true"] .wm-sidebar-body,
+  #shellNavigationLayer[data-mobile-keyboard="true"] .wm-sidebar-navigation{
+    min-height:0;
+  }
+  #shellNavigationLayer[data-mobile-keyboard="true"] .contact-directory-tools{
+    flex:0 0 auto;
   }
 }
 
