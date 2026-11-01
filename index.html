@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="5d38ed5f8955971c30669e06620ba1dfbd24259d55d3d307fc180d152ceab03a">
+<meta name="app-build-id" content="12f8801b1c9b20b9fa3d82876e6a6003ee07f3bc92c1ea4f18256e99b9a71064">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -2248,13 +2248,14 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
   #appShell[data-auth-state="authenticated"][data-route="chat"] #send{
     grid-column:4;
     grid-row:3;
-    /* 44px target with a fixed 36px painted circle in BOTH send states.
-       Never scale or shift the control between disabled / enabled. */
+    /* SPEC-CHAT-COMPOSER-MIC-SEND-20261102: 44px hit target with
+       a 38px painted disc (3px surrounding composer-colored ring).
+       Keep exactly the same disc in active/idle/keyboard modes. */
     border:var(--ui-composer-send-ring,4px) solid var(--cgpt-composer-surface-primary);
     border-radius:9999px;
   }
-  /* Optical rather than raw SVG viewBox parity: the mic has a narrower
-     drawing than the arrow, so 20px vs 18px looks equally prominent. */
+  /* ChatGPT-like optical balance: an open mic silhouette needs 24px,
+     while the compact up/right send arrow reads equally at 22px. */
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composer-plus-btn svg{
     width:var(--ui-composer-plus-glyph,18px)!important;
     height:var(--ui-composer-plus-glyph,18px)!important;
@@ -2269,6 +2270,12 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] :is(#composer-plus-btn,#composer-mic-btn,#send) svg :is(path,line,rect,circle,polyline){
     stroke-width:var(--ui-composer-stroke,1.6px)!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composer-mic-btn svg :is(path,line,rect,circle,polyline){
+    stroke-width:1.8px!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #send svg :is(path,line,rect,circle,polyline){
+    stroke-width:2px!important;
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell:not([data-can-send="true"]) #send{
     background:color-mix(in srgb,var(--theme-content-tertiary) 47%,var(--theme-surface-secondary));
