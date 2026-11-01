@@ -79,4 +79,27 @@ assert.equal(prevented,1);
 const open=app.slice(app.indexOf('function toggleActionsForTurn(turn,force){'),app.indexOf('\nfunction bindTurnActionTap(turn,target){'));
 assert(open.includes("trigger.setAttribute('aria-expanded',next?'true':'false')"));
 assert(app.includes("turn.querySelector('.message-actions-trigger')?.setAttribute('aria-expanded','false')"));
+// When a native highlight begins while the explicit menu is already open,
+// dismiss the Chat rail rather than covering the copy/lookup handles.
+const selectionStart=app.indexOf("document.addEventListener('selectionchange',()=>{");
+const selectionEnd=app.indexOf('\nfunction toggleActionsForTurn(turn,force){',selectionStart);
+assert(selectionStart>0&&selectionEnd>selectionStart);
+let selectionHandler=null,railCloses=0;
+let selection={isCollapsed:true,anchorNode:null};
+vm.runInNewContext(app.slice(selectionStart,selectionEnd),{
+  window:{getSelection:()=>selection},
+  document:{addEventListener:(type,handler)=>{
+    assert.equal(type,'selectionchange');
+    selectionHandler=handler;
+  }},
+  closeAllTurnActions:()=>{railCloses++}
+});
+selectionHandler();
+assert.equal(railCloses,0,'no highlighted text must leave actions unchanged');
+selection={isCollapsed:false,anchorNode:{nodeType:3,parentElement:{
+  closest:selector=>selector==='.message-text'?{}:null
+}}};
+selectionHandler();
+assert.equal(railCloses,1,'native text highlight closes an overlapping Chat action menu');
+
 console.log('CHAT native text selection and explicit Forward/Copy actions are separate PASS');
