@@ -1,3 +1,14 @@
+## 2026-11-02 — CHAT ACCOUNT SETTINGS ROUND 2 · two-tab layout, mobile no clipped controls
+
+- User-provided screenshots showed the five Admin setting cards constrained inside a 34svh/34dvh independent scroller: Auto Collection button cut at the scroll boundary, Agribank card directly beneath and Chat–Zalo directory competing for vertical space on ~500px browser widths.
+- UI owner: `zalo-admin-link.js` and `zalo-admin-link.css`. Separated account settings into **Thiết lập** and **Chat – Zalo** tabs with ARIA tablist, keyboard arrows and focus restoration. Exactly one content-scrolling panel is visible at a time; desktop remains a compact two-column preference grid, mobile uses full-width cards; Auto Collection is a full-width last row. Removed automatic focus on the hidden Zalo search input when opening Settings so iOS keyboard is not summoned unexpectedly.
+- Existing actions and backend untouched: notification permissions, friend invites, device management, Agribank token issuance, guarded auto-collection RPC, Chat–Zalo search/filter/create/link/unlink; no change to customer data, Supabase/RPC permissions, messages, Realtime, cache/database or financial ledger. PWA shell epoch moved to `pwa-settings-tabs-round2-20261102`, preserving offline-first and message caches.
+- Regression contracts updated in `test_chat_account_settings_compact_cards_20261102.cjs`, `test_ui208_pwa_fresh_navigation.cjs`, `test_ui213_first_paint_guard.py`. Kept the historical mobile settings selector stable in the markup. `Verify V21` **SUCCESS** [41360290263](https://github.com/1sl2tp/chat/actions/runs/41360290263). `Deploy Chat Pages` **SUCCESS** [41360290286](https://github.com/1sl2tp/chat/actions/runs/41360290286), including Pages custom-domain verification.
+- E4 PWA/browser device-side visual acceptance still pending: reopen Settings, switch both tabs, scroll long Zalo list, open search with iPhone keyboard, confirm 5 actions remain tappable and no bank action overlaps. Do not treat CI/Pages success as a screenshot from the user's actual device.
+- Rollback: revert the scoped UI/CSS changes and shell epoch; rebuild canonical `index.source.html` → `index.html`/`version.json`; do not reverse financial or Zalo data.
+
+---
+
 ## 2026-10-20 — BANK-184 LIVE (AUDIT ONLY) · Admin exception explanation for pending bank credits
 
 - Owner approved an explainable Admin review workflow for ambiguous/missing-time bank receipt evidence, including 461,000 VND multi-row statement and 1,568,000 VND two image captures. Does NOT approve auto ledger mutation until a separately approved secure financial writer exists. Never label `review` as `received`.
