@@ -307,6 +307,52 @@ button{
   justify-content:flex-start;
 }
 
+/* SPEC-CHAT-TEXT-SELECTION-VS-FORWARD-20261101
+   iPhone text long-press remains browser-owned for Bôi đen / Copy. Chat
+   actions (including Chuyển tiếp) have their own 44px tap target beside
+   the bubble, so they do not compete with native selection handles.
+   Desktop continues to use the existing hover and keyboard action rail. */
+.message-actions-trigger{display:none}
+@media (max-width:700px),(hover:none),(pointer:coarse){
+  .message-actions-trigger{
+    position:absolute;
+    z-index:5;
+    top:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:44px;
+    height:44px;
+    padding:0;
+    border:0;
+    border-radius:50%;
+    background:var(--theme-surface-secondary,#f3f4f6);
+    color:var(--theme-content-secondary,#667085);
+    font:inherit;
+    font-size:25px;
+    line-height:1;
+    touch-action:manipulation;
+    -webkit-user-select:none;
+    user-select:none;
+    cursor:pointer;
+  }
+  .user-message-unit>.message-actions-trigger{right:calc(100% + 2px)}
+  .assistant-message-unit>.message-actions-trigger{left:calc(100% + 2px)}
+  .message-turn[data-actions-open="true"] .message-actions-trigger{
+    background:var(--theme-surface-tertiary,#e5e7eb);
+    color:var(--theme-content-primary,#171717);
+  }
+  #scrollRoot[data-user-scrolling="true"] .message-actions-trigger,
+  #scrollRoot[data-user-dragging="true"] .message-actions-trigger{
+    opacity:0;
+    pointer-events:none;
+  }
+  .message-actions-trigger:focus-visible{
+    outline:2px solid #3479ce;
+    outline-offset:2px;
+  }
+}
+
 /* Sender surfaces are intentionally asymmetric:
    outgoing text/link/reply uses a soft bubble; incoming stays on canvas.
    File/audio/image keep their own media containers and receive no outer bubble. */
