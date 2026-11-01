@@ -440,6 +440,8 @@ jobs:
         run: |
           node --check admin-push-controller.js
           node --check shell.js
+      - name: ChatGPT style mobile microphone and send-size regression
+        run: node tests/test_chat_composer_mic_send_optical_20261102.cjs
       - name: Composer focus pointer regression
         run: node tests/test_v21_composer_pointer_recovery.js
       - name: Chat startup IndexedDB bounded recent-message cursor
