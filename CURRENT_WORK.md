@@ -1,3 +1,14 @@
+## 2026-11-02 — CHAT UI ROUND 3 · Desktop + narrow-browser screenshot audit
+
+- Two owner screenshots: desktop contact sidebar + chat, and a narrow ~500px Chrome window. Header profile pencil was 34×36 while call control was 44px; mobile contact switch inherited a max-content width rule from Work CSS; Admin customer shortcuts had only 38px mobile targets with a 6px side rail while header used 12px. Desktop active contact showed a persistent decorative “⋯” beneath the preview.
+- Scoped UI changes: `index.source.html` makes desktop profile edit a 44×44 hit area, keeps desktop contact manage visible on hover/focus but removes the persistent selected-row “⋯”; touch selected-row management remains accessible. `mobile-ui-polish.css` keeps the contact chip within its grid track (max 280px, minmax name + 52px Ảnh tab), preventing long names from competing with call controls. `admin-composer-actions.css` gives all four mobile customer shortcuts minimum 44px hit targets, 52px row and consistent 12px safe-area rails. No changes to routes, search, message rendering, long-press selection, Composer, call state logic or financial/RPC business actions.
+- `sw.js` offline shell epoch rotated to `pwa-chat-ui-round3-20261102`; no private cache, IndexedDB, chat history or financial data deleted. PWA cache regression tests updated. Existing Verify steps extended in `test_ui214_chat_profile_directory.py`, `test_ux192_one_tap_chat.py`, `test_v21_mobile_ui_polish.py`.
+- Source commit [3c99aaac63b8](https://github.com/1sl2tp/chat/commit/3c99aaac63b89adfd6cca1d5f3b900f343394aad). `Verify V21` **SUCCESS** [41361903514](https://github.com/1sl2tp/chat/actions/runs/41361903514). `Deploy Chat Pages` **SUCCESS** [41361903516](https://github.com/1sl2tp/chat/actions/runs/41361903516), with deployment custom-domain verification.
+- E4/E5 device-side visual acceptance still pending. Web/PWA user should reopen after worker activation and check header with long names, narrow four quick actions, desktop selected contact more-menu hover/focus, and iPhone text selection/Composer. CI/Pages PASS does not assert their currently open browser/PWA tab is already running this build.
+- Rollback: revert these scoped CSS/HTML and tests, rotate shell epoch, rebuild canonical `index.html`/`version.json`. Do not touch backend, auth, calls, money, chat messages or Realtime.
+
+---
+
 ## 2026-11-02 — CHAT MOBILE HEADER + MESSAGE ACTION POLISH
 
 - Screenshot showed uneven avatar/name/Ảnh/call control alignment plus noisy floating ellipsis next to each incoming message.
