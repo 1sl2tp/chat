@@ -47,10 +47,12 @@
   --ui-composer-gutter:12px;
   --ui-composer-inner-inset:4px;
   --ui-composer-action-gap:4px;
-  --ui-composer-send-disc:36px;
-  --ui-composer-send-ring:4px;
-  --ui-composer-mic-glyph:20px;
-  --ui-composer-arrow-glyph:18px;
+  /* SPEC-CHAT-COMPOSER-MIC-SEND-20261102: ChatGPT-style optical
+     parity inside unchanged 44px accessible iPhone touch targets. */
+  --ui-composer-send-disc:38px;
+  --ui-composer-send-ring:3px;
+  --ui-composer-mic-glyph:24px;
+  --ui-composer-arrow-glyph:22px;
   --ui-composer-plus-glyph:18px;
   --ui-composer-stroke:1.6px;
   --ui-chat-message-gutter:12px;
