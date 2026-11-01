@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="514a3b8c5c79e0f51630ed5512a99c913e5682d9bed9a936454cd8783158176f">
+<meta name="app-build-id" content="f5d44cb55273ed6d43e7478443b5d9b33808487652a537f5c08171718bbb2982">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1648,8 +1648,15 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
 #stageLayout[data-bank-report-active="true"] #chatQuickActions,
 #appShell[data-route="photos"] #chatQuickActions{display:none!important}
 @media(max-width:650px){
- .chat-quick-actions{gap:4px;padding-inline:6px}
- .chat-quick-actions>button{flex:1 1 0;padding:7px 3px;min-height:38px;font-size:11px;gap:3px}
+ /* CHAT-UI-ROUND3-20261102: header-aligned safe-area rail and 44px touch targets. */
+ .chat-quick-actions{
+  gap:4px;min-height:52px;
+  padding-inline:max(var(--ui-chat-layout-rail,12px),env(safe-area-inset-left,0px),env(safe-area-inset-right,0px));
+ }
+ .chat-quick-actions>button{
+  flex:1 1 0;padding:7px 3px;min-height:44px;
+  font-size:11px;gap:3px;border-radius:11px;
+ }
  .chat-quick-actions>button>span{font-size:13px}
 }
 .admin-composer-cash-balance{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 8px;align-items:center;padding:11px 12px;border:1px solid var(--theme-border-default,#d7dce0);border-radius:13px;background:var(--theme-surface-secondary,#f5f7f7)}
@@ -5102,7 +5109,7 @@ button{
   box-shadow:0 1px 5px rgba(0,0,0,.08);
 }
 /* UI-214: one non-destructive shortcut to the existing Admin profile editor. */
-.contact-profile-header-button{display:grid;place-items:center;flex:0 0 34px;width:34px;height:36px;padding:0;border:0;border-radius:10px;background:transparent;color:var(--theme-content-secondary);cursor:pointer}
+.contact-profile-header-button{display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;padding:0;border:0;border-radius:11px;background:transparent;color:var(--theme-content-secondary);cursor:pointer;touch-action:manipulation}
 .contact-profile-header-button:hover,.contact-profile-header-button:focus-visible{background:var(--theme-action-ghost-surface-hover);color:var(--theme-content-primary)}
 .contact-profile-header-button[hidden]{display:none!important}
 .call-focus-slot:not([data-call-ui-state="idle"]) .contact-profile-header-button{display:none!important}
@@ -6209,11 +6216,12 @@ button{
   .shell-contact-row:hover .shell-contact-manage,
   .shell-contact-row:focus-within .shell-contact-manage{opacity:1;pointer-events:auto}
 }
-/* On touch, selected conversations still expose their manage action. */
-.shell-contact-row[data-active="true"] .shell-contact-manage{opacity:1;pointer-events:auto}
+/* Desktop: even the active row stays clean until hover/keyboard focus.
+   Touch keeps the selected-row management affordance. */
 @media (hover:none), (pointer:coarse){
   .shell-contact-manage{display:none!important}
   .shell-contact-row[data-active="true"] .shell-contact-manage{display:grid!important}
+  .shell-contact-row[data-active="true"] .shell-contact-manage{opacity:1;pointer-events:auto}
 }
 
 .shell-profile-overlay{
@@ -6854,6 +6862,9 @@ button{
     padding:2px;
   }
   #appShell[data-auth-state="authenticated"] .top-mode-switch[data-contact-identity="true"]{
+    /* Override Work CSS's max-content grid, retaining room for Call icons. */
+    width:100%;
+    max-width:min(100%,280px);
     grid-template-columns:minmax(0,1fr) 52px;
   }
   #appShell[data-auth-state="authenticated"] .top-mode-tab{
