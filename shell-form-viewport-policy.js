@@ -33,6 +33,20 @@ function ownerFor(node){
     if(overlay)return{kind:'profile',surface:profileCard,host:overlay};
   }
 
+  // SPEC-CHAT-SETTINGS-IOS-KEYBOARD-20261101:
+  // Settings and nested account picker use the existing platform
+  // VisualViewport owner rather than ad-hoc feature resize listeners.
+  const accountPanel=node.closest?.('.zalo-account-submodal > .zalo-account-panel')||null;
+  if(accountPanel){
+    const host=accountPanel.closest?.('.zalo-account-submodal')||null;
+    if(host)return{kind:'account-settings-panel',surface:accountPanel,host};
+  }
+  const accountCard=node.closest?.('.zalo-account-card')||null;
+  if(accountCard){
+    const host=accountCard.closest?.('.zalo-account-modal')||null;
+    if(host)return{kind:'account-settings',surface:accountCard,host};
+  }
+
   const auth=node.closest?.('#guestAuthThread')||null;
   if(auth)return{kind:'auth',surface:auth,host:auth};
 
@@ -134,7 +148,12 @@ function revealWithinOwner(owner,field,state){
   else if(revealTop<visibleTop)delta=revealTop-visibleTop;
   if(!delta)return false;
 
-  surface.scrollTop=Math.max(0,Number(surface.scrollTop||0)+delta);
+  // Settings content is split into scrollable preferences/directory/picker.
+  // Scrolling the outer clipped card does not reveal a field in those panes.
+  const scrollOwner=owner.kind.startsWith('account-settings')
+    ?field.closest?.('.zalo-account-list,.zalo-account-preferences,.zalo-account-panel')||surface
+    :surface;
+  scrollOwner.scrollTop=Math.max(0,Number(scrollOwner.scrollTop||0)+delta);
   return true;
 }
 
