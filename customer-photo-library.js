@@ -123,6 +123,12 @@ function appendTiles(grid,items,token){
     }
     const button=el('button','customer-photo-tile');
     button.type='button';
+    // SPEC-CHAT-PHOTO-RECEIPT-PREVIEW-20261101: a tall receipt/portrait
+    // is unreadable when cropped to a square thumbnail. Prefer a full
+    // bounded preview without changing original media or viewer actions.
+    if(Number(item.width)>0 && Number(item.height)>Number(item.width)*1.65){
+      button.dataset.fit='contain';
+    }
     button.setAttribute('aria-label','Xem ảnh ngày '+day);
     button._photoItem=item;
     const img=el('img');
