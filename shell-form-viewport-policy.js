@@ -47,6 +47,16 @@ function ownerFor(node){
     if(host)return{kind:'account-settings',surface:accountCard,host};
   }
 
+  // SPEC-CHAT-MOBILE-SEARCH-KEYBOARD-20261101: the Directory is a
+  // fixed-height scroll shell; its contact search cannot inherit a
+  // layout viewport height after the iOS software keyboard opens.
+  const directorySearch=node.closest?.('.contact-directory-tools')||null;
+  if(directorySearch){
+    const host=directorySearch.closest?.('#shellNavigationLayer')||null;
+    const panel=directorySearch.closest?.('.shell-navigation-panel')||null;
+    if(host&&panel)return{kind:'directory',surface:panel,host};
+  }
+
   const auth=node.closest?.('#guestAuthThread')||null;
   if(auth)return{kind:'auth',surface:auth,host:auth};
 
@@ -150,10 +160,23 @@ function revealWithinOwner(owner,field,state){
 
   // Settings content is split into scrollable preferences/directory/picker.
   // Scrolling the outer clipped card does not reveal a field in those panes.
-  const scrollOwner=owner.kind.startsWith('account-settings')
-    ?field.closest?.('.zalo-account-list,.zalo-account-preferences,.zalo-account-panel')||surface
-    :surface;
-  scrollOwner.scrollTop=Math.max(0,Number(scrollOwner.scrollTop||0)+delta);
+  // Account search is a pinned sibling above the list, not a child of
+  // the scrolling list. The keyboard CSS collapses the preferences while
+  // that search is focused. Trying to scroll the clipped outer card did
+  // nothing and could leave the search beneath the keyboard.
+  if(owner.kind==='account-settings'){
+    if(field.closest?.('.zalo-account-search'))return false;
+    const pane=field.closest?.('.zalo-account-preferences,.zalo-account-list');
+    if(!pane)return false;
+    pane.scrollTop=Math.max(0,Number(pane.scrollTop||0)+delta);
+    return true;
+  }
+  if(owner.kind==='account-settings-panel'){
+    surface.scrollTop=Math.max(0,Number(surface.scrollTop||0)+delta);
+    return true;
+  }
+  if(owner.kind==='directory')return false;
+  surface.scrollTop=Math.max(0,Number(surface.scrollTop||0)+delta);
   return true;
 }
 
@@ -180,9 +203,13 @@ function publish(){
     `${Math.max(0,Math.round(state.occlusion))}px`
   );
 
+  const revealOwner=activeOwner;
+  const revealField=activeField;
   requestAnimationFrame(()=>{
-    if(!activeOwner||!activeField)return;
-    revealWithinOwner(activeOwner,activeField,state);
+    // iOS can emit multiple VisualViewport resize/scroll events while
+    // switching searches. Never scroll a stale field after focus moved.
+    if(!sameOwner(revealOwner,activeOwner)||activeField!==revealField)return;
+    revealWithinOwner(revealOwner,revealField,state);
   });
   return true;
 }
