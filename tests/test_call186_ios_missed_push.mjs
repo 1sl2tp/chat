@@ -14,6 +14,15 @@ const sw=readFileSync('sw.js','utf8');
 const control=readFileSync('admin-push-controller.js','utf8');
 const page=readFileSync('index.source.html','utf8');
 for(const token of ['v21_admin_contact_phone',"input.type='tel'","window.location.href='tel:'",'v21-missed-call-push-open'])assert.ok(client.includes(token),token);
+assert.ok(client.includes('box-sizing:border-box;width:44px;height:44px;min-width:44px;min-height:44px;flex:0 0 44px'),
+  'phone callback icon shares a 44px hitbox with video call');
+assert.ok(client.includes('.call-focus-slot:not([data-call-ui-state="idle"]) .v21-phone-header-button{display:none!important}'),
+  'private callback control cannot crowd active call controls');
+assert.ok(client.includes('function phoneContextActive(id,account){'));
+assert.ok(client.includes("String(current()?.id||'')===String(id)"));
+assert.ok(client.includes('if(!overlay.isConnected||!phoneContextActive(id,account))'),
+  'late phone replies must not expose a previous customer');
+assert.ok(client.includes("document.addEventListener('v21-active-contact-change',()=>{dismiss();attach()});"));
 assert.ok(page.includes('contact-phone-admin.js'));
 assert.ok(page.indexOf('contact-phone-admin.js')<page.indexOf('admin-push-controller.js'));
 assert.ok(sw.includes("kind==='missed_chat_call'"));
