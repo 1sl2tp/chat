@@ -83,9 +83,9 @@ def test_mobile_composer_uses_one_geometry_contract_across_states():
     assert '--ui-composer-gutter:12px;' in foundation
     assert '--ui-composer-inner-inset:4px;' in foundation
     assert '--ui-composer-action-gap:4px;' in foundation
-    assert '--ui-composer-send-disc:36px;' in foundation
-    assert '--ui-composer-mic-glyph:20px;' in foundation
-    assert '--ui-composer-arrow-glyph:18px;' in foundation
+    assert '--ui-composer-send-disc:38px;' in foundation
+    assert '--ui-composer-mic-glyph:24px;' in foundation
+    assert '--ui-composer-arrow-glyph:22px;' in foundation
     assert '--ui-composer-stroke:1.6px;' in foundation
 
     # All three targets remain 44 CSS px despite the legacy 36px !important
@@ -98,9 +98,9 @@ def test_mobile_composer_uses_one_geometry_contract_across_states():
     assert 'gap:0 var(--ui-composer-action-gap,4px);' in mobile
     assert 'padding:2px var(--ui-composer-inner-inset,4px);' in mobile
 
-    # The painted Send disk is 36px inside a 44px hit area. Only background
+    # The painted Send disk is 38px inside a 44px hit area. Only background
     # color changes when data-can-send toggles; no state-specific dimensions.
-    assert '--ui-composer-send-ring:4px;' in foundation
+    assert '--ui-composer-send-ring:3px;' in foundation
     assert 'border:var(--ui-composer-send-ring,4px) solid var(--cgpt-composer-surface-primary);' in mobile
     assert '#composerShell:not([data-can-send="true"]) #send{' in mobile
     assert 'background:var(--theme-submit-btn-bg);' in source
