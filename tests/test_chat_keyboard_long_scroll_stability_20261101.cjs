@@ -13,9 +13,9 @@ const policy=fs.readFileSync('shell-form-viewport-policy.js','utf8');
 const html=fs.readFileSync('index.source.html','utf8');
 
 const adapterStart=app.indexOf('const KeyboardInsetAdapter={');
-const adapterEnd=app.indexOf('};',adapterStart);
+const adapterEnd=app.indexOf('\n};\n\n\nif(vv)',adapterStart);
 assert(adapterStart>0&&adapterEnd>adapterStart);
-const adapter=app.slice(adapterStart,adapterEnd+2);
+const adapter=app.slice(adapterStart,adapterEnd+3);
 assert.match(adapter,/composerPlacementFrame:0/);
 assert.match(adapter,/if\(this\.composerPlacementFrame\)return/);
 assert.match(adapter,/cancelAnimationFrame\(this\.composerPlacementFrame\)/);
@@ -69,7 +69,7 @@ const env={
 };
 vm.createContext(env);
 vm.runInContext(adapter,env);
-const adapterRuntime=env.KeyboardInsetAdapter;
+const adapterRuntime=vm.runInContext('KeyboardInsetAdapter',env);\nenv.KeyboardInsetAdapter=adapterRuntime;
 adapterRuntime.restingVisualHeight=720;
 adapterRuntime.layoutBottom=720;
 adapterRuntime.update();
