@@ -19,12 +19,13 @@ function style(){
  '.v21-phone-overlay{position:fixed;inset:0;z-index:9500;background:#0009;display:grid;place-items:center;padding:12px}',
  '.v21-phone-panel{box-sizing:border-box;width:min(100%,430px);max-height:92dvh;overflow:auto;background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#222);border-radius:17px;padding:16px}',
  '.v21-phone-head{display:flex;justify-content:space-between;align-items:center;gap:10px;font-weight:700}',
- '.v21-phone-close{background:transparent;border:0;font-size:24px;cursor:pointer}',
+ '.v21-phone-close{box-sizing:border-box;width:44px;height:44px;flex:0 0 44px;display:grid;place-items:center;padding:0;background:transparent;border:0;border-radius:11px;font-size:24px;cursor:pointer}',
+ '.v21-phone-close:hover,.v21-phone-close:focus-visible{background:var(--theme-action-ghost-surface-hover,#eee)}',
  '.v21-phone-hint,.v21-phone-feedback{font-size:12px;line-height:1.5;color:var(--theme-content-secondary,#666)}',
  '.v21-phone-field{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;margin:13px 0}',
  '.v21-phone-field input{box-sizing:border-box;width:100%;padding:12px;font-size:16px;border:1px solid #cbd0d5;background:var(--theme-surface-primary,#fff);color:inherit;border-radius:10px}',
  '.v21-phone-actions{display:flex;gap:7px;flex-wrap:wrap}',
- '.v21-phone-action{flex:1;min-width:108px;padding:11px 9px;border-radius:10px;border:1px solid #cbd0d5;background:var(--theme-surface-secondary,#f5f5f5);color:inherit;font-weight:650;font-size:12px;cursor:pointer}',
+ '.v21-phone-action{box-sizing:border-box;flex:1;min-width:108px;min-height:44px;padding:11px 9px;border-radius:10px;border:1px solid #cbd0d5;background:var(--theme-surface-secondary,#f5f5f5);color:inherit;font-weight:650;font-size:12px;cursor:pointer}',
  '.v21-phone-action[data-main=true]{background:#139e53;border-color:#139e53;color:white}',
  '.v21-phone-action:disabled{opacity:.5}',
  '@media(max-width:640px){.v21-phone-overlay{padding:0;align-items:end}.v21-phone-panel{max-height:92dvh;width:100%;border-radius:17px 17px 0 0;padding-bottom:calc(15px + env(safe-area-inset-bottom,0px))}}'
@@ -58,7 +59,15 @@ async function rpc(id,action='get',primary=null,secondary=null){
  if(!data?.ok)throw new Error('Không thể đọc số');
  return data;
 }
-function dismiss(){document.querySelector('[data-v21-phone-overlay]')?.remove();}
+function dismiss({restoreFocus=false}={}){
+ const overlay=document.querySelector('[data-v21-phone-overlay]');
+ if(!overlay)return;
+ overlay.remove();
+ if(restoreFocus){
+  const opener=document.querySelector('[data-v21-phone-open]');
+  if(opener&&!opener.hidden&&opener.isConnected)opener.focus?.({preventScroll:true});
+ }
+}
 function phoneContextActive(id,account){
  return admin()&&String(au().account?.id||'')===String(account)&&
   String(current()?.id||'')===String(id);
@@ -73,9 +82,12 @@ async function open({contactId=current()?.id,missed=false}={}){
  const overlay=el('div','v21-phone-overlay');overlay.dataset.v21PhoneOverlay='';
  const panel=el('section','v21-phone-panel');
  panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','true');
+ panel.setAttribute('aria-labelledby','v21-phone-dialog-title');
  const head=el('div','v21-phone-head');
- head.appendChild(el('strong','',missed?'Cuộc gọi nhỡ · Gọi lại':'Số điện thoại khách hàng'));
- const close=el('button','v21-phone-close','×');close.type='button';close.addEventListener('click',dismiss);
+ const heading=el('strong','',missed?'Cuộc gọi nhỡ · Gọi lại':'Số điện thoại khách hàng');
+ heading.id='v21-phone-dialog-title';head.appendChild(heading);
+ const close=el('button','v21-phone-close','×');close.type='button';
+ close.addEventListener('click',()=>dismiss({restoreFocus:true}));
  close.setAttribute('aria-label','Đóng');head.appendChild(close);panel.appendChild(head);
  const name=String(current()?.name||'Khách hàng');
  panel.appendChild(el('p','v21-phone-hint',name+
@@ -95,7 +107,11 @@ async function open({contactId=current()?.id,missed=false}={}){
  actions.append(save,dial,chat);panel.appendChild(actions);
  const status=el('p','v21-phone-feedback','Đang tải số điện thoại…');status.setAttribute('role','status');
  panel.appendChild(status);overlay.appendChild(panel);document.body.appendChild(overlay);
- overlay.addEventListener('click',e=>{if(e.target===overlay)dismiss()});
+ overlay.addEventListener('click',e=>{if(e.target===overlay)dismiss({restoreFocus:true})});
+ overlay.addEventListener('keydown',event=>{
+  if(event.key!=='Escape')return;
+  event.preventDefault();event.stopPropagation();dismiss({restoreFocus:true});
+ });
  const key=account+':'+id;
  try{
   const data=cache.has(key)?cache.get(key):await rpc(id);
