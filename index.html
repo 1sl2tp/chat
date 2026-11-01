@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="bdaaba6e5ed87774aa6372147321390a0cd24f4e18742df34241bffd7d0b25d5">
+<meta name="app-build-id" content="033b12c3361fa235f2b54dabfc561f59a910e865d02ffe67691dd2b46d62d77e">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -2459,6 +2459,14 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
   background:var(--theme-surface-secondary,#f0f0f0);cursor:pointer;
 }
 .customer-photo-tile img{display:block;width:100%;height:100%;object-fit:cover}
+/* SPEC-CHAT-PHOTO-RECEIPT-PREVIEW-20261101: avoid cropping long, narrow
+   transaction/receipt images; ordinary photos remain center-cropped. */
+.customer-photo-tile[data-fit="contain"]{
+  background:#f8fafc;
+}
+.customer-photo-tile[data-fit="contain"] img{
+  object-fit:contain;
+}
 .customer-photo-tile:not([data-ready="true"]):after{
   content:"";position:absolute;inset:35%;border:2px solid #b4b4b4;
   border-top-color:transparent;border-radius:50%;animation:photo-loading 1s linear infinite;
@@ -27543,6 +27551,12 @@ function appendTiles(grid,items,token){
     }
     const button=el('button','customer-photo-tile');
     button.type='button';
+    // SPEC-CHAT-PHOTO-RECEIPT-PREVIEW-20261101: a tall receipt/portrait
+    // is unreadable when cropped to a square thumbnail. Prefer a full
+    // bounded preview without changing original media or viewer actions.
+    if(Number(item.width)>0 && Number(item.height)>Number(item.width)*1.65){
+      button.dataset.fit='contain';
+    }
     button.setAttribute('aria-label','Xem ảnh ngày '+day);
     button._photoItem=item;
     const img=el('img');
