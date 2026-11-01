@@ -35,7 +35,17 @@ for(const name of [
   'data-admin-push-action','data-admin-friend-open','data-admin-device-open',
   'data-admin-auto-collect-action','data-admin-agribank-issue'
 ])assert.equal(modal.split(name).length-1,1,'single admin control '+name);
-assert(modal.indexOf('data-admin-agribank-pair')>modal.indexOf('data-admin-auto-collect-setting'));
+assert(modal.indexOf('data-admin-agribank-pair')<modal.indexOf('data-admin-auto-collect-setting'));
+for(const tab of ['settings','links'])assert(modal.includes('data-zalo-account-tab="'+tab+'"'));
+assert(modal.includes('id="zalo-account-panel-links"'));
+assert(modal.includes('id="zalo-account-panel-settings"'));
+assert(css.includes('UI-SETTINGS-ROUND2-20261102'));
+assert(css.includes('.zalo-account-preferences[hidden],.zalo-account-directory-panel[hidden]{display:none!important}'));
+assert(css.includes('.zalo-account-directory-panel .zalo-account-list{flex:1 1 auto;min-height:0}'));
+assert(js.includes("accountModal.dataset.activeTab=name"));
+assert(js.includes("settings.hidden=name!=='settings'"));
+assert(js.includes("links.hidden=name!=='links'"));
+assert(js.includes('activateAccountTab(tab.dataset.zaloAccountTab,{focus:true})'));
 for(const selector of ['data-zalo-account-directory-status','data-zalo-account-unassigned',
   'data-zalo-account-search','data-zalo-account-list']){
   assert(modal.includes(selector),'retained linked accounts directory '+selector);

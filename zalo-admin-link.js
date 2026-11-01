@@ -1259,11 +1259,16 @@ async function openAccountAdmin(){
   accountModal=document.createElement('div');
   accountModal.className='zalo-account-modal';
   accountModal.dataset.zaloAccountAdminModal='';
+  accountModal.dataset.activeTab='settings';
   accountModal.innerHTML=`
     <button type="button" class="zalo-account-backdrop" aria-label="Đóng"></button>
     <section class="zalo-account-card" role="dialog" aria-modal="true" aria-labelledby="zalo-account-title">
-      <header class="zalo-account-modal-head"><div><h2 id="zalo-account-title">Cài đặt tài khoản</h2><p>Zalo · Thông báo · Thiết bị · Tự động thu</p></div><button type="button" class="zalo-account-close" aria-label="Đóng"></button></header>
-      <div class="zalo-account-preferences" data-zalo-account-preferences role="region" aria-label="Tùy chọn tài khoản">
+      <header class="zalo-account-modal-head"><div><h2 id="zalo-account-title">Cài đặt tài khoản</h2><p>Thiết lập hệ thống và liên kết Zalo</p></div><button type="button" class="zalo-account-close" aria-label="Đóng"></button></header>
+      <div class="zalo-account-tabs" role="tablist" aria-label="Nhóm cài đặt">
+        <button type="button" class="zalo-account-tab" id="zalo-account-tab-settings" role="tab" aria-controls="zalo-account-panel-settings" aria-selected="true" tabindex="0" data-zalo-account-tab="settings">Thiết lập</button>
+        <button type="button" class="zalo-account-tab" id="zalo-account-tab-links" role="tab" aria-controls="zalo-account-panel-links" aria-selected="false" tabindex="-1" data-zalo-account-tab="links">Chat – Zalo</button>
+      </div>
+      <div class="zalo-account-preferences" id="zalo-account-panel-settings" data-zalo-account-preferences role="tabpanel" aria-labelledby="zalo-account-tab-settings" tabindex="0">
       <div class="zalo-account-notification" data-admin-push-setting>
         <span class="zalo-account-notification-copy"><strong>Thông báo</strong><small data-admin-push-status>Bật thông báo</small></span>
         <button type="button" class="zalo-account-notification-action" data-admin-push-action data-mode="enable">Bật thông báo</button>
@@ -1276,15 +1281,16 @@ async function openAccountAdmin(){
         <span class="zalo-account-notification-copy"><strong>Thiết bị</strong><small data-admin-device-status>Đang tải thiết bị…</small></span>
         <button type="button" class="zalo-account-notification-action" data-admin-device-open>Quản lý</button>
       </div>
-      <div class="zalo-account-notification" data-admin-auto-collect-setting>
-        <span class="zalo-account-notification-copy"><strong>Tự động thu tiền</strong><small data-admin-auto-collect-status>Đang kiểm tra trạng thái…</small><small>Không có thông báo tiền vào Agribank Plus thì không đọc AI, không thu. Thu/Ghi nợ thủ công không đổi.</small></span>
-        <button type="button" class="zalo-account-notification-action" data-admin-auto-collect-action data-mode="enable" data-unavailable="false" disabled>Bật tự động thu</button>
-      </div>
       <div class="zalo-account-notification" data-admin-agribank-pair>
         <span class="zalo-account-notification-copy"><strong>Máy Agribank Plus</strong><small>Chỉ Admin cấp mã một lần để ghép APK đọc thông báo tiền vào.</small></span>
         <button type="button" class="zalo-account-notification-action" data-admin-agribank-issue>Tạo mã Agribank</button>
       </div>
+      <div class="zalo-account-notification" data-admin-auto-collect-setting>
+        <span class="zalo-account-notification-copy"><strong>Tự động thu tiền</strong><small data-admin-auto-collect-status>Đang kiểm tra trạng thái…</small><small>Chỉ tự thu khi có bill và thông báo Agribank Plus khớp. Thu/Ghi nợ thủ công không đổi.</small></span>
+        <button type="button" class="zalo-account-notification-action" data-admin-auto-collect-action data-mode="enable" data-unavailable="false" disabled>Bật tự động thu</button>
       </div>
+      </div>
+      <div class="zalo-account-directory-panel" id="zalo-account-panel-links" role="tabpanel" aria-labelledby="zalo-account-tab-links" tabindex="0" hidden>
       <div class="zalo-account-directory-head">
         <div class="zalo-account-directory-heading"><strong>Liên kết Chat – Zalo</strong><small data-zalo-account-directory-status aria-live="polite">Đang tải…</small></div>
         <button type="button" class="zalo-account-unassigned" data-zalo-account-unassigned aria-pressed="false">Thêm từ Zalo</button>
@@ -1292,9 +1298,38 @@ async function openAccountAdmin(){
       <label class="zalo-account-search"><span class="sr-only">Tìm tài khoản Chat, tên Zalo hoặc nhóm</span><input type="search" autocomplete="off" inputmode="search" enterkeyhint="search" placeholder="Tìm Chat, @username, Zalo hoặc nhóm" data-zalo-account-search></label>
       <p class="zalo-account-error" data-zalo-account-error hidden></p>
       <div class="zalo-account-list" data-zalo-account-list></div>
+      </div>
       <div class="zalo-account-submodal" data-zalo-account-panel></div>
     </section>`;
   host.appendChild(accountModal);
+  // UI-SETTINGS-ROUND2-20261102: one visible content scroller per tab.
+  // Keep controls mounted so their canonical Admin permissions and RPC flows
+  // do not change when switching between settings and Zalo links.
+  function activateAccountTab(next,{focus=false}={}){
+    if(!accountModal)return;
+    const name=next==='links'?'links':'settings';
+    accountModal.dataset.activeTab=name;
+    const settings=accountModal.querySelector('#zalo-account-panel-settings');
+    const links=accountModal.querySelector('#zalo-account-panel-links');
+    if(settings)settings.hidden=name!=='settings';
+    if(links)links.hidden=name!=='links';
+    for(const button of accountModal.querySelectorAll('[data-zalo-account-tab]')){
+      const selected=button.dataset.zaloAccountTab===name;
+      button.setAttribute('aria-selected',String(selected));
+      button.tabIndex=selected?0:-1;
+      if(selected&&focus)button.focus({preventScroll:true});
+    }
+  }
+  for(const tab of accountModal.querySelectorAll('[data-zalo-account-tab]')){
+    tab.addEventListener('click',()=>activateAccountTab(tab.dataset.zaloAccountTab,{focus:true}));
+    tab.addEventListener('keydown',event=>{
+      if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+      event.preventDefault();
+      const to=event.key==='Home'?'settings':event.key==='End'?'links'
+        :tab.dataset.zaloAccountTab==='settings'?'links':'settings';
+      activateAccountTab(to,{focus:true});
+    });
+  }
   const modalClose=accountModal.querySelector('.zalo-account-close');
   if(modalClose)modalClose.innerHTML=window.V21Icons?.markup?.('close',{size:20})||'×';
   accountModal.querySelector('.zalo-account-backdrop').addEventListener('click',closeAccountAdmin);
@@ -1330,7 +1365,7 @@ async function openAccountAdmin(){
   try{await refreshAccountAdmin();}
   catch(error){setAccountError(errorText(error?.message||error));}
   finally{setAccountBusy(false);}
-  window.setTimeout(()=>accountModal?.querySelector?.('[data-zalo-account-search]')?.focus?.({preventScroll:true}),0);
+  window.setTimeout(()=>accountModal?.querySelector?.('[data-zalo-account-tab="settings"]')?.focus?.({preventScroll:true}),0);
   return accountModal;
 }
 
