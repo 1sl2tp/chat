@@ -246,8 +246,10 @@ jobs:
 
       - name: V21.72.17 mobile form keyboard contract
         run: python tests/test_v21_72_17_mobile_form_keyboard_contract.py
-      - name: V21.72.17 mobile form keyboard runtime
-        run: node tests/test_v21_72_17_mobile_form_keyboard_runtime.js
+      - name: V21.72.17 mobile form keyboard runtime + CHAT iOS settings regression
+        run: |
+          node tests/test_v21_72_17_mobile_form_keyboard_runtime.js
+          node tests/test_chat_settings_keyboard_visible_viewport_20261101.cjs
       - name: UI-137 Web/PWA media metadata and bounded cache runtime
         run: node tests/test_v21_137_dual_session_media_runtime.js
       - name: CHAT Settings mobile cascade and preferences non-shrink
