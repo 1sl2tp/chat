@@ -11,6 +11,7 @@ let restingVisualHeight=Math.max(1,Math.round(vv?.height||window.innerHeight||1)
 let activeField=null;
 let activeOwner=null;
 let frame=0;
+let lastReveal=null;
 
 function mobileRuntime(){
   return Boolean(
@@ -80,6 +81,7 @@ function clearKeyboardState(owner){
 
 function clearOwner(owner){
   if(!owner)return;
+  if(lastReveal&&sameOwner(lastReveal.owner,owner))lastReveal=null;
   clearKeyboardState(owner);
   for(const node of nodesFor(owner)){
     node.style?.removeProperty?.('--shell-form-vv-top');
@@ -115,8 +117,13 @@ function readViewport(){
 function publishViewport(owner,state){
   if(!owner||!state)return;
   for(const node of nodesFor(owner)){
-    node.style.setProperty('--shell-form-vv-top',`${state.visualTop}px`);
-    node.style.setProperty('--shell-form-vv-height',`${state.visualHeight}px`);
+    const top=`${state.visualTop}px`;
+    const height=`${state.visualHeight}px`;
+    // Repeated iOS viewport events must not invalidate identical layouts.
+    if(node.style.getPropertyValue('--shell-form-vv-top')!==top)
+      node.style.setProperty('--shell-form-vv-top',top);
+    if(node.style.getPropertyValue('--shell-form-vv-height')!==height)
+      node.style.setProperty('--shell-form-vv-height',height);
   }
 }
 
@@ -124,6 +131,20 @@ function actionFor(owner){
   if(owner?.kind==='profile')return owner.surface.querySelector?.('.shell-profile-save')||null;
   if(owner?.kind==='auth')return owner.surface.querySelector?.('.guest-auth-primary')||null;
   return null;
+}
+
+// One bounded scroll owner; never keep pushing beyond the available list.
+function scrollPane(pane,delta){
+  if(!pane)return false;
+  const current=Math.max(0,Number(pane.scrollTop)||0);
+  let next=Math.max(0,Math.round(current+delta));
+  const extent=Number(pane.scrollHeight);
+  const viewport=Number(pane.clientHeight);
+  if(Number.isFinite(extent)&&Number.isFinite(viewport)&&extent>0&&viewport>0)
+    next=Math.min(next,Math.max(0,extent-viewport));
+  if(Math.abs(next-current)<2)return false;
+  pane.scrollTop=next;
+  return true;
 }
 
 function revealWithinOwner(owner,field,state){
@@ -168,16 +189,13 @@ function revealWithinOwner(owner,field,state){
     if(field.closest?.('.zalo-account-search'))return false;
     const pane=field.closest?.('.zalo-account-preferences,.zalo-account-list');
     if(!pane)return false;
-    pane.scrollTop=Math.max(0,Number(pane.scrollTop||0)+delta);
-    return true;
+    return scrollPane(pane,delta);
   }
   if(owner.kind==='account-settings-panel'){
-    surface.scrollTop=Math.max(0,Number(surface.scrollTop||0)+delta);
-    return true;
+    return scrollPane(surface,delta);
   }
   if(owner.kind==='directory')return false;
-  surface.scrollTop=Math.max(0,Number(surface.scrollTop||0)+delta);
-  return true;
+  return scrollPane(surface,delta);
 }
 
 function publish(){
@@ -205,12 +223,21 @@ function publish(){
 
   const revealOwner=activeOwner;
   const revealField=activeField;
-  requestAnimationFrame(()=>{
-    // iOS can emit multiple VisualViewport resize/scroll events while
-    // switching searches. Never scroll a stale field after focus moved.
-    if(!sameOwner(revealOwner,activeOwner)||activeField!==revealField)return;
-    revealWithinOwner(revealOwner,revealField,state);
-  });
+  // SPEC-CHAT-KEYBOARD-SCROLL-STABILITY-20261101:
+  // Repeated viewport scroll events while the caret/list is stable are not
+  // permission to scroll the list back to the focused item.
+  const prior=lastReveal;
+  const needsReveal=!prior||!sameOwner(prior.owner,revealOwner)||
+    prior.field!==revealField||prior.top!==state.visualTop||
+    prior.height!==state.visualHeight;
+  if(needsReveal){
+    lastReveal={owner:revealOwner,field:revealField,
+      top:state.visualTop,height:state.visualHeight};
+    requestAnimationFrame(()=>{
+      if(!sameOwner(revealOwner,activeOwner)||activeField!==revealField)return;
+      revealWithinOwner(revealOwner,revealField,state);
+    });
+  }
   return true;
 }
 
