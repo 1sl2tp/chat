@@ -119,7 +119,7 @@ prefs.rect={top:50,bottom:340};prefs.scrollHeight=880;prefs.clientHeight=290;
 const field=node('',prefs,true);field.rect={top:350,bottom:410};
 const listeners={};const vvEvents={};
 let focused=field;
-const visual={height:360,offsetTop:0,addEventListener:(name,fn)=>vvEvents[name]=fn};
+const visual={height:720,offsetTop:0,addEventListener:(name,fn)=>vvEvents[name]=fn};
 const frames=[];
 const clientWindow={
   innerHeight:720,visualViewport:visual,navigator:{maxTouchPoints:5,userAgent:'iPhone'},
