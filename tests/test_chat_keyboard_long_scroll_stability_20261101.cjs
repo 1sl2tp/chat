@@ -132,6 +132,8 @@ const client={window:clientWindow,document:{
 vm.runInNewContext(policy,client);
 const flush=()=>{let attempts=0;while(frames.length){assert(++attempts<12,'animation frames must settle');frames.splice(0).forEach(fn=>fn());}};
 listeners.focusin({target:field});flush();
+// The real keyboard shrinks the visual viewport AFTER the input is focused.
+visual.height=360;vvEvents.resize();flush();
 assert(prefs.scrollTop>0,'initial obscured preference field must become visible');
 const first=prefs.scrollTop;
 for(let i=0;i<20;i++){vvEvents.scroll();flush();}
