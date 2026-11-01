@@ -76,8 +76,15 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
 #stageLayout[data-bank-report-active="true"] #chatQuickActions,
 #appShell[data-route="photos"] #chatQuickActions{display:none!important}
 @media(max-width:650px){
- .chat-quick-actions{gap:4px;padding-inline:6px}
- .chat-quick-actions>button{flex:1 1 0;padding:7px 3px;min-height:38px;font-size:11px;gap:3px}
+ /* CHAT-UI-ROUND3-20261102: header-aligned safe-area rail and 44px touch targets. */
+ .chat-quick-actions{
+  gap:4px;min-height:52px;
+  padding-inline:max(var(--ui-chat-layout-rail,12px),env(safe-area-inset-left,0px),env(safe-area-inset-right,0px));
+ }
+ .chat-quick-actions>button{
+  flex:1 1 0;padding:7px 3px;min-height:44px;
+  font-size:11px;gap:3px;border-radius:11px;
+ }
  .chat-quick-actions>button>span{font-size:13px}
 }
 .admin-composer-cash-balance{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 8px;align-items:center;padding:11px 12px;border:1px solid var(--theme-border-default,#d7dce0);border-radius:13px;background:var(--theme-surface-secondary,#f5f7f7)}

@@ -54,3 +54,13 @@ def test_bank_direct_action_still_requires_server_confirmation():
     assert "if(expanded.has(key))node.open=true" in BANK
     assert "Agribank cần xử lý" in BANK
     assert "Đã thu thủ công" in BANK
+
+
+def test_customer_quick_actions_have_44px_mobile_targets():
+    css=(ROOT/'admin-composer-actions.css').read_text('utf-8')
+    assert 'CHAT-UI-ROUND3-20261102' in css
+    narrow=css.split('/* CHAT-UI-ROUND3-20261102',1)[1].split('}',2)
+    assert 'min-height:52px;' in narrow[0]
+    assert 'min-height:44px;' in narrow[1]
+    assert 'max(var(--ui-chat-layout-rail,12px)' in narrow[0]
+    assert 'flex:1 1 0;' in narrow[1]

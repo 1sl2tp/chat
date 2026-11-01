@@ -341,6 +341,9 @@
     padding:2px;
   }
   #appShell[data-auth-state="authenticated"] .top-mode-switch[data-contact-identity="true"]{
+    /* Override Work CSS's max-content grid, retaining room for Call icons. */
+    width:100%;
+    max-width:min(100%,280px);
     grid-template-columns:minmax(0,1fr) 52px;
   }
   #appShell[data-auth-state="authenticated"] .top-mode-tab{

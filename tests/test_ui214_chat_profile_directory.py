@@ -50,3 +50,16 @@ def test_filters_reveal_clipped_categories_by_touch_or_button():
     assert "more.hidden=!scrollable" in DIRECTORY
     assert 'aria-label="Lọc danh bạ, cuộn ngang để xem thêm"' in DIRECTORY
     assert "if(scrollToTop)scrollHost.scrollTop=0" in DIRECTORY
+
+
+def test_contact_more_hidden_until_hover_on_desktop():
+    html=(ROOT/'index.source.html').read_text('utf-8')
+    block=html[html.index('/* Desktop: even the active row stays clean'):]
+    assert '.shell-contact-row[data-active="true"] .shell-contact-manage{display:grid!important}' in block
+    assert '.shell-contact-row[data-active="true"] .shell-contact-manage{opacity:1;pointer-events:auto}' in block
+    fine=html[html.index('@media (hover:hover) and (pointer:fine){\n  .shell-contact-manage{'):
+              html.index('/* Desktop: even the active row stays clean')]
+    assert '.shell-contact-manage{opacity:0;pointer-events:none;' in fine
+    assert '.shell-contact-row:hover .shell-contact-manage' in fine
+    assert '.shell-contact-row:focus-within .shell-contact-manage' in fine
+    assert 'flex:0 0 44px;width:44px;height:44px;' in html
