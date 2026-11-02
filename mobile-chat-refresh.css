@@ -113,19 +113,19 @@
     align-items:center;
     gap:0 var(--ui-composer-action-gap,4px);
     overflow:visible;
-    border:1px solid color-mix(in srgb,var(--theme-border-default) 78%,transparent);
-    border-radius:var(--ui-chat-composer-radius,var(--ui-radius-20,20px));
+    border:1px solid var(--composer-border,var(--theme-border-strong));
+    border-radius:var(--ui-chat-composer-radius,var(--radius-2xl,28px));
     padding:2px var(--ui-composer-inner-inset,4px);
     background:var(--cgpt-composer-surface-primary);
-    box-shadow:0 2px 9px rgba(0,0,0,.045),0 1px 2px rgba(0,0,0,.025);
-    transition:border-color .16s ease,box-shadow .16s ease;
+    box-shadow:var(--composer-shadow,0 1px 1px #00000008),0 4px 14px rgba(0,0,0,.035);
+    transition:border-color .14s ease,box-shadow .14s ease;
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell:focus-within{
-    border-color:color-mix(in srgb,var(--theme-border-default) 82%,var(--theme-content-accent));
+    border-color:var(--theme-border-strong,var(--composer-border));
     box-shadow:
-      0 0 0 1px color-mix(in srgb,var(--theme-content-accent) 3%,transparent),
-      0 2px 9px rgba(0,0,0,.05);
+      0 0 0 1px color-mix(in srgb,var(--theme-content-primary) 8%,transparent),
+      0 3px 14px rgba(0,0,0,.05);
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #replyContext{
@@ -176,23 +176,23 @@
   /* Unified tap feedback; visual icon size never changes hitbox or grid. */
   #appShell[data-auth-state="authenticated"][data-route="chat"] :is(#composer-plus-btn,#composer-mic-btn){
     border-radius:999px;
-    transition:background-color .15s ease,color .15s ease;
+    transition:background-color .12s ease,color .12s ease,transform .12s ease;
     -webkit-tap-highlight-color:transparent;
   }
-  @media(hover:hover){
-    #appShell[data-auth-state="authenticated"][data-route="chat"] :is(#composer-plus-btn,#composer-mic-btn):hover{
-      background:var(--theme-surface-secondary,#f3f3f3);
+  @media(hover:hover) and (pointer:fine){
+    #appShell[data-auth-state="authenticated"][data-route="chat"] :is(#composer-plus-btn,#composer-mic-btn:not([data-recording="true"])):hover{
+      background:var(--theme-action-ghost-surface-hover);
     }
   }
-  #appShell[data-auth-state="authenticated"][data-route="chat"] :is(#composer-plus-btn,#composer-mic-btn):active{
-    background:var(--theme-surface-secondary,#f3f3f3);
+  #appShell[data-auth-state="authenticated"][data-route="chat"] :is(#composer-plus-btn,#composer-mic-btn:not([data-recording="true"])):active:not(:disabled){
+    background:var(--theme-action-ghost-surface-pressed);
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] :is(#composer-plus-btn,#composer-mic-btn,#send):focus-visible{
-    outline:2px solid var(--theme-content-accent,#2563eb);
+    outline:2px solid var(--theme-content-primary);
     outline-offset:1px;
   }
   @media(prefers-reduced-motion:reduce){
-    #appShell[data-auth-state="authenticated"][data-route="chat"] :is(#composerShell,#composer-plus-btn,#composer-mic-btn){
+    #appShell[data-auth-state="authenticated"][data-route="chat"] :is(#composerShell,#composer-plus-btn,#composer-mic-btn,#send){
       transition:none;
     }
   }

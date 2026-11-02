@@ -30,6 +30,23 @@ assert.equal(disc,38);
 assert.equal(ring,3);
 assert.equal(disc+2*ring,touch,'ring must fit inside the original hit box');
 
+// SPEC-CHAT-COMPOSER-SURFACE-20261102 — subtle theme-aware surface,
+// no blue focus glow or hardcoded white footer, and one shared button press
+// path. Input geometry, send/record/IME and keyboard placement stay intact.
+const source=markup;
+assert(token.includes('--ui-chat-composer-radius:28px;'));
+assert(source.includes('border:1px solid var(--composer-border,var(--theme-border-strong));'));
+assert(source.includes('box-shadow:var(--composer-shadow,0 1px 1px #00000008),0 4px 14px rgba(0,0,0,.035);'));
+assert(source.includes('var(--theme-surface-primary,#fff) 76%'));
+assert(source.includes('#composerShell :is(#composer-plus-btn,#composer-mic-btn,#send):active:not(:disabled)'));
+assert(source.includes('#composerShell[data-can-send="true"] #send:hover:not(:disabled)'));
+assert(source.includes('@media (prefers-reduced-motion:reduce)'));
+assert(mobile.includes('border-radius:var(--ui-chat-composer-radius,var(--radius-2xl,28px));'));
+assert(mobile.includes('transition:background-color .12s ease,color .12s ease,transform .12s ease;'));
+assert(mobile.includes('#composer-mic-btn:not([data-recording="true"])'));
+assert(!source.includes('rgba(255,255,255,.94) 54%'));
+
+
 assert(mobile.includes('width:var(--ui-control-touch,44px)!important;'));
 assert(mobile.includes('height:var(--ui-control-touch,44px)!important;'));
 assert(mobile.includes('border:var(--ui-composer-send-ring,4px) solid var(--cgpt-composer-surface-primary)'));
