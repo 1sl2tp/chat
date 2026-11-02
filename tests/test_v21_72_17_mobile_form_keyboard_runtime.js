@@ -120,6 +120,23 @@ vvListeners.scroll?.();
 flushRaf();
 assert.equal(profile.scrollTop,0,'unchanged keyboard geometry preserves manual scroll');
 
+// An already-queued reveal callback can run after Safari closes its keyboard
+// but before the queued viewport publish has updated owner state. It must
+// never scroll using the stale 380px viewport geometry.
+vv.offsetTop=12;
+vvListeners.scroll();
+assert(rafQueue.length>0);
+rafQueue.shift()(); // publish open keyboard; queues its reveal
+assert(rafQueue.length>0);
+vv.height=700;
+vv.offsetTop=0;
+vvListeners.resize(); // close has been signaled, publish not yet delivered
+rafQueue.shift()(); // old reveal, executed before close publish
+assert.equal(profile.scrollTop,0,
+  'stale keyboard reveal must not scroll after keyboard closes');
+flushRaf();
+assert.notEqual(overlay.dataset.mobileKeyboard,'true');
+
 console.log('V21.72.39 visual viewport form keyboard runtime PASS');
 
 

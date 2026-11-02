@@ -263,10 +263,18 @@ function publish(){
     prior.field!==revealField||prior.top!==state.visualTop||
     prior.height!==state.visualHeight;
   if(needsReveal){
-    lastReveal={owner:revealOwner,field:revealField,
+    // SPEC-CHAT-STALE-KEYBOARD-REVEAL-20261102
+    // An older animation frame must not scroll a panel after iOS has
+    // dismissed/resized the keyboard, even before the next publish runs.
+    const checkpoint={owner:revealOwner,field:revealField,
       top:state.visualTop,height:state.visualHeight};
+    lastReveal=checkpoint;
     requestAnimationFrame(()=>{
-      if(!sameOwner(revealOwner,activeOwner)||activeField!==revealField)return;
+      if(lastReveal!==checkpoint||
+         !sameOwner(revealOwner,activeOwner)||activeField!==revealField)return;
+      const current=readViewport();
+      if(!current.keyboardOpen||current.visualTop!==state.visualTop||
+         current.visualHeight!==state.visualHeight)return;
       revealWithinOwner(revealOwner,revealField,state);
     });
   }
