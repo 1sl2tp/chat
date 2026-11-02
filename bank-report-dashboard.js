@@ -583,6 +583,13 @@ const REVIEW_REASONS=[
 ];
 // BANK-224-REVIEW-KEYBOARD-20261102: the existing dialog owns keyboard focus.
 // No RPC, timer, money state or dialog geometry changes.
+// BANK-226: scope asynchronous bank operations to mounted dialog
+// and the authenticated Admin session; never infer financial approval.
+function bankDialogIsCurrent(overlay,owner){
+ return Boolean(owner&&overlay&&active&&isReportContact()&&
+  owner===reportSessionOwner&&owner===bankReportSessionOwner()&&
+  !ui.review.hidden&&ui.review.contains(overlay));
+}
 let reviewFocusOwner=null;
 function closeReviewDialog(){
  if(!ui.review)return;
@@ -707,12 +714,22 @@ async function openReviewDialog(bank,candidates){
  overlay.addEventListener('click',e=>{if(e.target===overlay)closeReviewDialog();});
  const auth=window.V21AuthSessionStore?.snapshot?.()||{};
  const client=window.V21AuthSessionStore?.getClient?.();
- if(!auth.appSessionId||!client){
+ const owner=bankReportSessionOwner();
+ if(!bankDialogIsCurrent(overlay,owner)||!auth.appSessionId||!client){
   feedback.textContent='Phiên Admin hết hạn. Vui lòng đăng nhập lại.';save.disabled=true;return;
  }
- const existing=await client.rpc('chat_bank_manual_exception_get',
-   {p_app_session_id:auth.appSessionId,p_notice_id:noticeId});
- if(ui.review.hidden)return;
+ let existing;
+ try{
+  existing=await client.rpc('chat_bank_manual_exception_get',
+    {p_app_session_id:auth.appSessionId,p_notice_id:noticeId});
+ }catch{
+  if(bankDialogIsCurrent(overlay,owner)){
+   feedback.textContent='Không thể đọc lịch sử giải trình. Chưa thể lưu biên bản.';
+   save.disabled=true;
+  }
+  return;
+ }
+ if(!bankDialogIsCurrent(overlay,owner))return;
  if(existing.error){
   feedback.textContent='Không thể đọc lịch sử giải trình. Chưa thể lưu biên bản.';
   save.disabled=true;return;
@@ -732,6 +749,7 @@ async function openReviewDialog(bank,candidates){
  }
  form.addEventListener('submit',async event=>{
   event.preventDefault();
+  if(!bankDialogIsCurrent(overlay,owner)||save.disabled)return;
   if(histories.length){feedback.textContent='Đã có biên bản cho khoản này.';return;}
   const picked=radios.find(x=>x.checked);
   if(!picked||!reason.value||!verified.checked||explanation.value.trim().length<30){
@@ -749,6 +767,7 @@ async function openReviewDialog(bank,candidates){
     p_supporting_receipt_ids:support,p_reason_code:reason.value,
     p_explanation:explanation.value.trim(),p_original_checked:true
    });
+   if(!bankDialogIsCurrent(overlay,owner))return;
    if(error)throw error;
    if(!data?.ok||data.ledger_written!==false)throw Error('Phản hồi xác nhận chưa hợp lệ');
    feedback.textContent=(data.state==='requires_additional_proof'
@@ -757,9 +776,11 @@ async function openReviewDialog(bank,candidates){
    save.hidden=true;cancel.textContent='Đóng';
    previous.appendChild(el('p','bank-review-saved','Mã biên bản: '+data.review_id));
   }catch(error){
-   feedback.textContent='Chưa lưu được biên bản: '+String(error?.message||error).slice(0,150);
-   save.disabled=false;
-  }finally{cancel.disabled=false;}
+   if(bankDialogIsCurrent(overlay,owner)){
+    feedback.textContent='Chưa lưu được biên bản: '+String(error?.message||error).slice(0,150);
+    save.disabled=false;
+   }
+  }finally{if(bankDialogIsCurrent(overlay,owner))cancel.disabled=false;}
  });
 }
 // BANK-191: explicit real collection, or link a previously entered manual receipt.
@@ -820,14 +841,16 @@ async function openCollectionDialog(bank){
  overlay.addEventListener('click',e=>{if(e.target===overlay)closeReviewDialog();});
  const auth=window.V21AuthSessionStore?.snapshot?.()||{};
  const client=window.V21AuthSessionStore?.getClient?.();
- if(!auth.appSessionId||!client){info.textContent='Phiên Admin hết hạn.';return;}
+ const owner=bankReportSessionOwner();
+ if(!bankDialogIsCurrent(overlay,owner)||!auth.appSessionId||!client){info.textContent='Phiên Admin hết hạn.';return;}
  let prepared=null,candidates=[],priorSelector=null;
  let selectedCustomerId='',customers=[],displayed=[],activeIndex=0;
  try{
   const {data,error}=await client.rpc('chat_bank_manual_collection_prepare',{
    p_app_session_id:auth.appSessionId,p_notice_id:noticeId});
-  if(ui.review.hidden)return;
-  if(error)throw error;
+  if(!bankDialogIsCurrent(overlay,owner))return;
+  if(!bankDialogIsCurrent(overlay,owner))return;
+   if(error)throw error;
   if(!data?.ok)throw Error(data?.status||'Giao dịch chưa đủ điều kiện thu');
   prepared=data;
   if(data.already_recorded){
@@ -938,11 +961,15 @@ async function openCollectionDialog(bank){
    if(!customerLabel.contains(event.target))closeCustomerList();
   });
  }catch(error){
-  info.textContent='Không mở được giao dịch để thu.';
-  feedback.textContent=String(error?.message||error).slice(0,180);return;
+  if(bankDialogIsCurrent(overlay,owner)){
+   info.textContent='Không mở được giao dịch để thu.';
+   feedback.textContent=String(error?.message||error).slice(0,180);
+  }
+  return;
  }
  form.addEventListener('submit',async event=>{
   event.preventDefault();
+  if(!bankDialogIsCurrent(overlay,owner)||save.disabled)return;
   if(!prepared||!verified.checked||note.value.trim().length<5)return;
   if(!selectedCustomerId){
    customerSearch.setAttribute('aria-invalid','true');
@@ -959,6 +986,7 @@ async function openCollectionDialog(bank){
     p_customer_id:selectedCustomerId,p_note:note.value.trim(),
     p_existing_ledger_id:priorSelector?Number(priorSelector.value):null
    });
+   if(!bankDialogIsCurrent(overlay,owner))return;
    if(error)throw error;
    if(!data?.ok)throw Error(data?.status==='possible_manual_collection'
     ?'Phát hiện khoản thu tay mới. Đóng và mở lại để liên kết.'
@@ -968,9 +996,11 @@ async function openCollectionDialog(bank){
     :'Đã liên kết khoản đã thu · Sổ #'+data.ledger_id+' · Không thu lần hai';
    save.hidden=true;cancel.textContent='Đóng';await reload();
   }catch(error){
-   feedback.textContent='Chưa thu: '+String(error?.message||error).slice(0,180);
-   save.disabled=false;
-  }finally{cancel.disabled=false;}
+   if(bankDialogIsCurrent(overlay,owner)){
+    feedback.textContent='Chưa thu: '+String(error?.message||error).slice(0,180);
+    save.disabled=false;
+   }
+  }finally{if(bankDialogIsCurrent(overlay,owner))cancel.disabled=false;}
  });
 }
 function closeViewer(){
