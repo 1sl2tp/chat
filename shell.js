@@ -37,6 +37,7 @@ let callTerminalNotice=null;
 let callTerminalNoticeTimer=0;
 let unreadCount=0;
 let accountMenuOpen=false;
+let accountMenuFocusGeneration=0;
 let mobileRouteTransitionTimer=0;
 
 function interactionController(){
@@ -293,6 +294,8 @@ function closeAccountMenu({restoreFocus=false}={}){
   if(!accountMenuOpen)return false;
   const {footer,menu,trigger}=accountMenuElements();
   accountMenuOpen=false;
+  // Invalidate any focus callback queued by an earlier opening.
+  accountMenuFocusGeneration+=1;
   if(footer)footer.dataset.menuOpen='false';
   if(menu)menu.hidden=true;
   if(trigger)trigger.setAttribute('aria-expanded','false');
@@ -305,10 +308,18 @@ function openAccountMenu(){
   const {footer,menu,trigger}=accountMenuElements();
   if(!footer||!menu||!trigger)return false;
   accountMenuOpen=true;
+  const focusGeneration=++accountMenuFocusGeneration;
   footer.dataset.menuOpen='true';
   menu.hidden=false;
   trigger.setAttribute('aria-expanded','true');
-  window.setTimeout(()=>menu.querySelector('button:not([hidden])')?.focus?.({preventScroll:true}),0);
+  // SPEC-CHAT-ACCOUNT-MENU-FOCUS-20261102: closing, reopening or
+  // unmounting this menu before the deferred callback must not steal focus
+  // from a newer route or a modal behind it.
+  window.setTimeout(()=>{
+    if(!accountMenuOpen||focusGeneration!==accountMenuFocusGeneration||
+       menu.hidden||!menu.isConnected)return;
+    menu.querySelector('button:not([hidden])')?.focus?.({preventScroll:true});
+  },0);
   return true;
 }
 
