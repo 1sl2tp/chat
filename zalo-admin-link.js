@@ -10,6 +10,7 @@ let accountSnapshot={accounts:[],contacts:[],links:[]};
 let deviceSnapshot=[];
 let accountBusy=false;
 let accountDirectoryMode='all';
+let accountSnapshotRequest=0;
 const ACCOUNT_SETTINGS_OWNER='zalo-account-settings';
 
 function interactionController(){return window.V21InteractionController||null;}
@@ -667,7 +668,16 @@ function renderAccountRowsPreservingScroll(){
 }
 
 async function refreshAccountAdmin(){
+  // SPEC-CHAT-SETTINGS-SNAPSHOT-SCOPE-20261102: async results belong to
+  // the modal and admin account that requested them. Never paint a new
+  // settings session from a previous modal's pending response.
+  const modal=accountModal;
+  const adminId=String(currentAdmin()?.id||'');
+  const request=++accountSnapshotRequest;
   const data=await invokeBody({action:'admin_snapshot'});
+  if(!modal||accountModal!==modal||!modal.isConnected||
+     !adminId||String(currentAdmin()?.id||'')!==adminId||
+     request!==accountSnapshotRequest)return accountSnapshot;
   accountSnapshot=data?.snapshot||{accounts:[],contacts:[],links:[]};
   renderAccountRowsPreservingScroll();
   return accountSnapshot;
@@ -678,6 +688,7 @@ function closeAccountAdmin({restoreFocus=true}={}){
   closeAccountPanel({restoreFocus:false});
   accountModal?.remove?.();
   accountModal=null;
+  accountSnapshotRequest++;
   accountSnapshot={accounts:[],contacts:[],links:[]};
   deviceSnapshot=[];
   accountBusy=false;
@@ -1361,12 +1372,21 @@ async function openAccountAdmin(){
   void refreshAdminDevices().catch(()=>{paintAdminDeviceSetting();});
   const submodal=accountModal.querySelector('[data-zalo-account-panel]');
   submodal.addEventListener('click',event=>{if(event.target===submodal)closeAccountPanel({restoreFocus:true});});
+  const openingModal=accountModal;
   setAccountBusy(true);
   try{await refreshAccountAdmin();}
-  catch(error){setAccountError(errorText(error?.message||error));}
-  finally{setAccountBusy(false);}
-  window.setTimeout(()=>accountModal?.querySelector?.('[data-zalo-account-tab="settings"]')?.focus?.({preventScroll:true}),0);
-  return accountModal;
+  catch(error){
+    if(accountModal===openingModal)setAccountError(errorText(error?.message||error));
+  }
+  finally{
+    if(accountModal===openingModal)setAccountBusy(false);
+  }
+  if(accountModal!==openingModal)return null;
+  window.setTimeout(()=>{
+    if(accountModal===openingModal&&openingModal.isConnected)
+      openingModal.querySelector?.('[data-zalo-account-tab="settings"]')?.focus?.({preventScroll:true});
+  },0);
+  return openingModal;
 }
 
 document.addEventListener('keydown',event=>{
