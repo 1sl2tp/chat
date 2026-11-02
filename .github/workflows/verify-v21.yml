@@ -189,6 +189,8 @@ jobs:
           node tests/test_bank225_bill_viewer_race_20261102.cjs
       - name: BANK-226 Admin review and collection dialog session ownership
         run: node tests/test_bank226_dialog_session_owner_20261103.cjs
+      - name: BANK-227 bank push deep-link scroll follows active Admin context
+        run: node tests/test_bank227_push_focus_owner_20261103.cjs
       - name: BANK-185 transient bill scan retries keep bank evidence strict
         run: python tests/test_bank185_transient_retry_contract.py
       - name: BANK-186 no lost scans and BANK-187 Admin outage notifications

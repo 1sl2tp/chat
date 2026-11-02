@@ -562,7 +562,13 @@ function focusPushRecord(data){
     paint(data);
   }
   pendingPush=null;
+  const focusOwner=bankReportSessionOwner(),focusRequest=requestId,focusFilter=filter;
   requestAnimationFrame(()=>{
+    // BANK-227-PUSH-FOCUS-20261103: never scroll another Admin, date,
+    // filter or route after a deferred push deep-link.
+    if(!active||!isReportContact()||focusOwner!==reportSessionOwner||
+       focusOwner!==bankReportSessionOwner()||ui.date.value!==target.bankDay||
+       requestId!==focusRequest||filter!==focusFilter)return;
     let row=null;
     for(const node of ui.groups.querySelectorAll('.bank-report-detail')){
       if(target.bankReceiptId&&node.dataset.bankReceiptId===target.bankReceiptId){row=node;break;}
