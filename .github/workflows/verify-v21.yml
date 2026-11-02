@@ -182,6 +182,10 @@ jobs:
         run: node tests/test_bank223_manual_collected_bill_review_20261102.cjs
       - name: BANK-224 accessible keyboard ownership for both bank reconciliation dialogs
         run: node tests/test_bank224_review_dialog_keyboard_20261102.cjs
+      - name: BANK-225 bank report session identity and stale media privacy
+        run: |
+          node --check bank-report-dashboard.js
+          node tests/test_bank225_report_auth_owner_20261102.cjs
       - name: BANK-185 transient bill scan retries keep bank evidence strict
         run: python tests/test_bank185_transient_retry_contract.py
       - name: BANK-186 no lost scans and BANK-187 Admin outage notifications
