@@ -56,7 +56,10 @@ def test_user_sees_exact_receipts_and_mandatory_explanation():
 def test_ambiguous_multi_transaction_photo_stays_review_not_collection():
     assert "b.amount_vnd==null&&b.status==='review'" in JS
     assert "b.reason==='multiple_transactions_ambiguous'" in JS
-    assert "String(b.sent_at||'').slice(0,10)" in JS
+    # BANK-183-VN-DAY-20261102: UTC day prefixes are NOT Vietnam banking days.
+    # Behavioral midnight boundary cases are covered by the BANK-183 Node test.
+    assert "function vietnamBusinessDay(raw)" in JS
+    assert "vietnamBusinessDay(b.sent_at)===vietnamBusinessDay(bank.transfer_at)" in JS
     assert "v_receipt.amount_vnd=v_notice.amount_vnd" in SQL
     assert "v_receipt.raw_read->>'image_type'='successful_transfer_receipt'" in SQL
     assert "v_receipt.status='amount_read'" in SQL
