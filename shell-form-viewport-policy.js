@@ -22,6 +22,10 @@ function preventStandaloneShellPinch(event){
 }
 if(standaloneShellRuntime()){
   if(document.documentElement?.dataset)document.documentElement.dataset.chatStandalone='true';
+  // Only installed app mode requests a fixed native page scale. In normal
+  // Safari/Chrome tabs users retain browser zoom for accessibility.
+  const viewport=document.querySelector?.('meta[name="viewport"]');
+  if(viewport)viewport.content='width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover';
   for(const eventType of ['gesturestart','gesturechange']){
     document.addEventListener(eventType,preventStandaloneShellPinch,{
       capture:true,passive:false
