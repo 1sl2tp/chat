@@ -98,6 +98,12 @@ body{
   -webkit-user-select:none;
   user-select:none;
 }
+/* Native pinch/double-tap must not rescale the installed app shell.
+   Preserve both pan axes and the separate image viewer's custom pinch.
+   Platform owner sets this data flag for iOS navigator.standalone as well. */
+:root[data-chat-standalone="true"] #appShell{
+  touch-action:pan-x pan-y;
+}
 button,textarea{font-size:16px}
 .native-file-input{
   position:fixed;

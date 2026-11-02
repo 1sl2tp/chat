@@ -6,6 +6,29 @@ const MODULE_CONTRACT_VERSION='shell-form-viewport-v3';
 const KEYBOARD_THRESHOLD_PX=80;
 const EDGE_PX=12;
 
+/* SPEC-CHAT-PWA-VIEWPORT-ZOOM-20261102 · P0 platform owner.
+   Installed PWA shell keeps its scale while scroll, native text selection and
+   Composer focus remain owned by their existing controls. The image viewer
+   mounts in #globalOverlayRoot OUTSIDE #appShell; its own pinch zoom survives.
+   Ordinary Safari/Chrome tabs keep their native accessibility zoom. */
+function standaloneShellRuntime(){
+  return navigator.standalone===true ||
+    Boolean(window.matchMedia?.('(display-mode: standalone)')?.matches);
+}
+function preventStandaloneShellPinch(event){
+  if(!event.cancelable)return;
+  const shell=document.getElementById('appShell');
+  if(shell?.contains(event.target))event.preventDefault();
+}
+if(standaloneShellRuntime()){
+  document.documentElement.dataset.chatStandalone='true';
+  for(const eventType of ['gesturestart','gesturechange']){
+    document.addEventListener(eventType,preventStandaloneShellPinch,{
+      capture:true,passive:false
+    });
+  }
+}
+
 const vv=window.visualViewport||null;
 let restingVisualHeight=Math.max(1,Math.round(vv?.height||window.innerHeight||1));
 let activeField=null;
