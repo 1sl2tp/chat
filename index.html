@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="19760f0381b55cf6be4540dc44b78787d282e3694470643b553d7c99763393e9">
+<meta name="app-build-id" content="179d8ea1bf782a33f4586f8eb6418194ae76834b9fd312e3c248d232861cfdc5">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -28246,7 +28246,7 @@ function scanIssueLabel(raw){
  return 'AI chưa phân loại được ảnh — cần kiểm tra thủ công';
 }
 let active=false,filter='all',selectedCustomer=null,current=null,requestId=0,loading=false,queued=false,pendingPush=null;
-let imageObjectUrl=null;
+let imageObjectUrl=null,viewerSequence=0,reportSessionOwner='';
 const el=(tag,className='',value='')=>{
  const node=document.createElement(tag);if(className)node.className=className;
  if(value!==undefined&&value!==null)node.textContent=String(value);
@@ -28262,6 +28262,13 @@ function isReportContact(){
  return auth.state==='AUTHENTICATED'&&auth.account?.role==='admin'&&Boolean(contact?.id)&&
    (String(contact.id)===REPORT_ID||actual?.username==='taphoa_bao_cao');
 }
+// BANK-225-AUTH-OWNER-20261102: bank dashboard/media is scoped to
+// the full authenticated Admin session, including account and session ID.
+function bankReportSessionOwner(){
+ const auth=window.V21AuthSessionStore?.snapshot?.()||{};
+ return auth.state==='AUTHENTICATED'&&auth.account?.role==='admin'&&auth.account?.id&&auth.appSessionId
+  ?String(auth.account.id)+'|'+String(auth.appSessionId):'';
+}
 function dateReady(){
  const today=localDate();ui.date.max=today;
  if(!ui.date.value||ui.date.value>today||ui.date.value<'2026-10-19')ui.date.value=today;
@@ -28271,12 +28278,13 @@ async function reload(){
  if(!active||document.hidden)return;
  if(loading){queued=true;return;}
  loading=true;const id=++requestId;
+ const owner=bankReportSessionOwner();
  const auth=window.V21AuthSessionStore?.snapshot?.()||{};
  const client=window.V21AuthSessionStore?.getClient?.();
  const day=dateReady();
  ui.stamp.textContent='Đang cập nhật…';
  try{
-  if(!auth.appSessionId||!client)throw Error('Chưa có phiên Admin');
+  if(!owner||owner!==reportSessionOwner||!auth.appSessionId||!client)throw Error('Chưa có phiên Admin');
   const [report,states,credits]=await Promise.all([
    client.rpc('chat_bank_dashboard',{p_app_session_id:auth.appSessionId,p_day:day}),
    client.rpc('chat_bank_manual_collection_statuses',{p_app_session_id:auth.appSessionId,p_day:day}),
@@ -28285,7 +28293,8 @@ async function reload(){
   if(report.error)throw report.error;
   if(states.error)throw states.error;
   if(credits.error)throw credits.error;
-  if(id!==requestId||!active||ui.date.value!==day)return;
+  if(id!==requestId||!active||ui.date.value!==day||
+      owner!==reportSessionOwner||owner!==bankReportSessionOwner())return;
   const data=report.data;
   current={...data,manual_collections:Array.isArray(states.data)?states.data:[],
     bank_credits:Array.isArray(credits.data)?credits.data:[]};
@@ -28299,7 +28308,8 @@ async function reload(){
     closed:Boolean(data.closed)
   }}));
  }catch(error){
-  if(id===requestId&&active){ui.stamp.textContent='Chưa lấy được dữ liệu. Bấm Làm mới.';ui.groups.replaceChildren(el('p','bank-report-empty','Không tải được bảng đối soát.'));}
+  if(id===requestId&&active&&owner===reportSessionOwner&&
+       owner===bankReportSessionOwner()){ui.stamp.textContent='Chưa lấy được dữ liệu. Bấm Làm mới.';ui.groups.replaceChildren(el('p','bank-report-empty','Không tải được bảng đối soát.'));}
  }finally{loading=false;if(queued){queued=false;void reload();}}
 }
 function cardValue(name,value,highlight=false,compact=false){
@@ -29128,28 +29138,36 @@ async function openCollectionDialog(bank){
  });
 }
 function closeViewer(){
+ viewerSequence++;
  if(imageObjectUrl){URL.revokeObjectURL(imageObjectUrl);imageObjectUrl=null;}
  ui.viewer.hidden=true;ui.viewer.replaceChildren();
 }
 async function showBill(row){
  closeViewer();ui.viewer.hidden=false;
+ const seq=viewerSequence,owner=bankReportSessionOwner();
  const overlay=el('div','bank-report-image-overlay');
  const pane=el('div','bank-report-image-pane');
  const exit=el('button','bank-report-image-close','Đóng');exit.type='button';exit.addEventListener('click',closeViewer);
  const status=el('p','bank-report-image-status','Đang mở ảnh bill…');
  append(pane,exit,status);overlay.appendChild(pane);ui.viewer.appendChild(overlay);
  overlay.addEventListener('click',event=>{if(event.target===overlay)closeViewer();});
+ const stillOwned=()=>Boolean(owner)&&seq===viewerSequence&&active&&
+  !ui.viewer.hidden&&pane.isConnected&&isReportContact()&&
+  owner===reportSessionOwner&&owner===bankReportSessionOwner();
  try{
+  if(!stillOwned())return;
   const accountId=window.V21AuthSessionStore?.snapshot?.()?.account?.id;
   let cached=await window.V21MediaCache?.get?.({accountId,assetId:row.asset_id});
+  if(!stillOwned())return;
   if(!(cached?.blob instanceof Blob))cached=await window.V21SyncEngine?.ensureMediaRemote?.({accountId,assetId:row.asset_id});
-  if(ui.viewer.hidden)return;
+  if(!stillOwned())return;
   if(!(cached?.blob instanceof Blob))throw Error('Không mở được ảnh');
   imageObjectUrl=URL.createObjectURL(cached.blob);
   const img=el('img','bank-report-image');
   img.src=imageObjectUrl;img.alt='Bill gốc của '+(row.customer_name||'khách');
   pane.replaceChild(img,status);
  }catch{
+  if(!stillOwned())return;
   status.textContent='Không tải được ảnh ở đây. Bạn có thể mở hội thoại khách để xem bản gốc.';
   const b=el('button','bank-report-action','Mở hội thoại khách');b.type='button';
   b.addEventListener('click',()=>{closeViewer();window.ChatAppShell?.NavigationCommand?.openContact?.(row.customer_id,row.customer_name||'Khách');});
@@ -29158,11 +29176,23 @@ async function showBill(row){
 }
 function synchronize(){
  const should=isReportContact();
- if(should===active)return;
- active=should;
+ const nextOwner=should?bankReportSessionOwner():'';
+ const ownerChanged=should&&active&&nextOwner!==reportSessionOwner;
+ if(should===active&&!ownerChanged)return;
+ active=should;reportSessionOwner=nextOwner;
  stage.dataset.bankReportActive=should?'true':'false';
  root.hidden=!should;
- if(should){dateReady();void reload();}else{requestId++;selectedCustomer=null;closeViewer();closeReviewDialog();current=null;}
+ if(ownerChanged){
+  // Reject in-flight responses and erase old bank details immediately.
+  requestId++;selectedCustomer=null;filter='all';current=null;
+  ui.summary.replaceChildren();ui.status.replaceChildren();
+  ui.table.replaceChildren();ui.groups.replaceChildren();
+  ui.stamp.textContent='Đang cập nhật phiên Admin…';
+  closeViewer();closeReviewDialog();
+ }
+ if(should){dateReady();void reload();}else{
+  requestId++;selectedCustomer=null;closeViewer();closeReviewDialog();current=null;
+ }
 }
 ui.refresh.addEventListener('click',()=>void reload());
 ui.date.addEventListener('change',()=>{filter='all';selectedCustomer=null;current=null;void reload();});
