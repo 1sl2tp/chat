@@ -301,6 +301,14 @@ function resetForAuth(){
   const id=String(admin?.id||'');
   if(id!==loadedAdminId){groupMap=new Map();loadedAdminId='';}
   query='';filter='all';
+  // SPEC-CHAT-DIRECTORY-AUTH-FILTER-20261102: keep the mounted search
+  // and category pills consistent with the cleared account-scoped model.
+  const tools=directoryTools();
+  const input=tools?.querySelector('[data-contact-directory-search]');
+  if(input)input.value='';
+  for(const button of tools?.querySelectorAll('[data-contact-directory-filter]')||[]){
+    button.dataset.active=String(button.dataset.contactDirectoryFilter==='all');
+  }
   scheduleSync();
 }
 
