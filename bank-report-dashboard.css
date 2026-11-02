@@ -270,7 +270,8 @@
 .bank-review-existing:empty{display:none}
 .bank-review-existing .bank-review-warning{margin:0}
 .bank-review-existing .bank-review-label{width:100%}
-.bank-review-form .bank-review-actions button{min-height:38px}
+.bank-review-form .bank-review-actions button{min-height:44px}
+.bank-review-heading .bank-report-image-close{min-width:44px;min-height:44px}
 @media(max-width:650px){
  .bank-report-collect{min-height:40px;padding:10px 16px}
  .bank-review-existing .bank-review-select{font-size:16px}

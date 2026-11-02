@@ -571,9 +571,40 @@ const REVIEW_REASONS=[
  ['same_transaction_multiple_images','Nhiều ảnh có nội dung trùng nhau'],
  ['other','Khác (phải giải trình cụ thể)']
 ];
+// BANK-224-REVIEW-KEYBOARD-20261102: the existing dialog owns keyboard focus.
+// No RPC, timer, money state or dialog geometry changes.
+let reviewFocusOwner=null;
 function closeReviewDialog(){
  if(!ui.review)return;
+ const opener=reviewFocusOwner;reviewFocusOwner=null;
  ui.review.hidden=true;ui.review.replaceChildren();
+ if(active&&!root.hidden&&isReportContact()&&opener?.isConnected&&!opener.hidden){
+  opener.focus?.({preventScroll:true});
+ }
+}
+function attachReviewDialogKeyboard(overlay,form){
+ const opener=document.activeElement;
+ reviewFocusOwner=opener&&root.contains(opener)?opener:null;
+ overlay.addEventListener('keydown',event=>{
+  if(ui.review.hidden||!overlay.isConnected)return;
+  if(event.key==='Escape'){
+   event.preventDefault();event.stopPropagation();
+   if(!ui.viewer.hidden)closeViewer();else closeReviewDialog();
+   return;
+  }
+  if(event.key!=='Tab'||!ui.viewer.hidden)return;
+  const focusable=[...form.querySelectorAll('a[href],button,input,select,textarea,[tabindex]')]
+   .filter(node=>!node.disabled&&!node.hidden&&
+    node.getAttribute?.('tabindex')!=='-1'&&node.getClientRects().length>0);
+  if(!focusable.length){event.preventDefault();return;}
+  const first=focusable[0],last=focusable[focusable.length-1];
+  if(event.shiftKey&&(document.activeElement===first||!form.contains(document.activeElement))){
+   event.preventDefault();last.focus({preventScroll:true});
+  }else if(!event.shiftKey&&(document.activeElement===last||!form.contains(document.activeElement))){
+   event.preventDefault();first.focus({preventScroll:true});
+  }
+ });
+ form.querySelector('.bank-report-image-close')?.focus?.({preventScroll:true});
 }
 async function openReviewDialog(bank,candidates){
  if(!active||!isReportContact()||!ui.review||!Array.isArray(candidates)||!candidates.length)return;
@@ -662,6 +693,7 @@ async function openReviewDialog(bank,candidates){
  const previous=el('div','bank-review-history');
  form.appendChild(previous);
  append(overlay,form);ui.review.hidden=false;ui.review.appendChild(overlay);
+ attachReviewDialogKeyboard(overlay,form);
  overlay.addEventListener('click',e=>{if(e.target===overlay)closeReviewDialog();});
  const auth=window.V21AuthSessionStore?.snapshot?.()||{};
  const client=window.V21AuthSessionStore?.getClient?.();
@@ -774,6 +806,7 @@ async function openCollectionDialog(bank){
  const save=el('button','bank-review-save','Thu tiền');save.type='submit';save.disabled=true;
  append(actions,cancel,save);form.appendChild(actions);overlay.appendChild(form);
  ui.review.hidden=false;ui.review.appendChild(overlay);
+ attachReviewDialogKeyboard(overlay,form);
  overlay.addEventListener('click',e=>{if(e.target===overlay)closeReviewDialog();});
  const auth=window.V21AuthSessionStore?.snapshot?.()||{};
  const client=window.V21AuthSessionStore?.getClient?.();
