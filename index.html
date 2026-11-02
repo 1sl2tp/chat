@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="8d62ff9ad65d222c92c97c21b70b0baba24863f9424a7e6d64a35d110d292950">
+<meta name="app-build-id" content="72da769bbd9dd646892f8965c7eeb3c07d76b4769469fc3d83286ef1e96165eb">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -19126,7 +19126,7 @@ function preventStandaloneShellPinch(event){
   if(shell?.contains(event.target))event.preventDefault();
 }
 if(standaloneShellRuntime()){
-  document.documentElement.dataset.chatStandalone='true';
+  if(document.documentElement?.dataset)document.documentElement.dataset.chatStandalone='true';
   for(const eventType of ['gesturestart','gesturechange']){
     document.addEventListener(eventType,preventStandaloneShellPinch,{
       capture:true,passive:false
