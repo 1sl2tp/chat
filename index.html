@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="1b303d74cfd83b4a4d98a15127ae6ffa70fe22d985c384b6652e5a67d657ff83">
+<meta name="app-build-id" content="04c7b2ebf9f96521f698372c67fb0dd31d4f5840682d9d0d2c3323a6c9bd60dd">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -28231,7 +28231,7 @@ const localTime=x=>{
 };
 const statusText={
  matched:'Đã thu · Đối soát',waiting_bank:'Chờ Agribank · Chưa thu',bank_only:'Chờ bill · Chưa thu',
- review:'Cần kiểm tra · Chưa thu',wrong_day:'Sai ngày',duplicate:'Bill trùng',
+ review:'Cần kiểm tra · Chưa đối soát',wrong_day:'Sai ngày',duplicate:'Bill trùng',
  non_bill:'Không phải bill',reading:'Đang đọc ảnh',test_excluded:'Tiền test (loại)'
 };
 const isAiScanIssue=row=>/^(?:amount_scan_|ai_scan_|ai_year_error_)/i.test(String(row?.reason||''));
@@ -28320,7 +28320,7 @@ function paint(data){
   cardValue('Đã thu có chứng từ',money(s.matched_amount),true)
  );
  ui.status.replaceChildren(
-  cardValue('Bill chưa ghi thu',String(s.bill_only_count||0),false,true),
+  cardValue('Bill chưa đối soát',String(s.bill_only_count||0),false,true),
   cardValue('Agribank cần xử lý',String(outstanding),false,true),
    cardValue('Đã thu thủ công Agribank',String((data?.manual_collections||[]).length),false,true),
    cardValue('Agribank tiền vào · đủ nguồn',String(incoming.length),false,true),
@@ -28372,7 +28372,7 @@ function renderTable(data){
  }
  const table=el('table','bank-report-table');
  const head=el('thead'),thead=el('tr');
- for(const name of ['Khách hàng','Đã thu','Chưa thu','Trùng','Sai ngày','Tiền đã thu'])thead.appendChild(el('th','',name));
+ for(const name of ['Khách hàng','Tự thu','Chờ soát','Trùng','Sai ngày','Tiền tự thu'])thead.appendChild(el('th','',name));
  head.appendChild(thead);table.appendChild(head);
  const tbody=el('tbody');
  for(const g of [...byCustomer.values()].sort((a,b)=>b.money-a.money||a.name.localeCompare(b.name,'vi'))){
@@ -28412,9 +28412,32 @@ function possibleUnlinkedBills(bank,allBills){
     b.reason==='multiple_transactions_ambiguous';
  });
 }
+// BANK-223-MANUAL-REVIEW-20261102: Evidence display only. A manual bank
+// collection is not proof that one OCR bill belongs to that transfer.
+function matchingManualCollectionForBill(bill,data){
+ if(!bill||!['amount_read','review'].includes(String(bill.status||''))||
+    bill.notice_id||bill.ledger_id||!bill.receipt_id||!bill.customer_id||
+    !Number.isSafeInteger(Number(bill.amount_vnd))||Number(bill.amount_vnd)<=0)return null;
+ const day=vietnamBusinessDay(bill.sent_at);
+ if(!day)return null;
+ const account=String(bill.receiving_account||'').replace(/[^0-9]/g,'');
+ if(account.length>=5&&!account.endsWith('99999'))return null;
+ const bills=(data?.bills||[]).filter(b=>b?.receipt_id&&
+   !b.notice_id&&!b.ledger_id&&['amount_read','review'].includes(String(b.status||''))&&
+   String(b.customer_id)===String(bill.customer_id)&&
+   Number(b.amount_vnd)===Number(bill.amount_vnd)&&
+   vietnamBusinessDay(b.sent_at)===day);
+ if(bills.length!==1||String(bills[0].receipt_id)!==String(bill.receipt_id))return null;
+ const credits=(data?.bank_credits||[]).filter(b=>b?.collection_kind==='manual_collected'&&
+   b.notice_id&&b.ledger_id&&String(b.customer_id)===String(bill.customer_id)&&
+   Number(b.amount_vnd)===Number(bill.amount_vnd)&&
+   vietnamBusinessDay(b.transfer_at)===day);
+ return credits.length===1?credits[0]:null;
+}
 function detailLine(row,isBank=false,candidates=[]){
  const type=isBank?'bank_only':row.report_status;
  const recorded=!isBank&&type==='matched'&&Boolean(row.ledger_id);
+ const manualEvidence=!isBank?matchingManualCollectionForBill(row,current):null;
  const manualRecord=isBank?(current?.manual_collections||[]).find(m=>String(m.notice_id)===String(row.notice_id)):null;
  const wrap=el('details','bank-report-detail');
  if(row.receipt_id)wrap.dataset.bankReceiptId=String(row.receipt_id);
@@ -28423,8 +28446,9 @@ function detailLine(row,isBank=false,candidates=[]){
  const label=isBank&&!manualRecord&&!candidates.length
   ?el('button','bank-report-quick-collect','Thu tiền')
   :el('span','bank-report-detail-status bank-status-'+
-    (manualRecord?'bank_manual':isBank&&candidates.length?'review':type),
-    manualRecord?'Đã thu thủ công':isBank&&candidates.length?'Có bill cần kiểm tra':
+    (manualRecord?'bank_manual':manualEvidence?'review':isBank&&candidates.length?'review':type),
+    manualRecord?'Đã thu thủ công':manualEvidence?'Có thu tay · Chờ xác minh bill':
+      isBank&&candidates.length?'Có bill cần kiểm tra':
       !isBank&&isAiScanIssue(row)?'AI chưa kết luận':statusText[type]||'Cần kiểm tra');
  if(isBank&&!manualRecord&&!candidates.length){
   label.type='button';
@@ -28445,17 +28469,25 @@ function detailLine(row,isBank=false,candidates=[]){
   cell('Thông báo ngân hàng',isBank?'#'+row.notice_id:(row.notice_id?'#'+row.notice_id:'Chưa có')),
   cell('Tình trạng',manualRecord?(manualRecord.mode==='linked_existing'
    ?'Đã liên kết khoản nhập tay':'Đã thu thủ công từ Agribank')
-  :isBank&&candidates.length?'Chưa đối soát · Chưa ghi thu':statusText[type]||row.status||'Chưa rõ'));
+  :manualEvidence?'Có thu tay cùng khách/số tiền/ngày; bill chưa xác minh':
+  isBank&&candidates.length?'Chưa đối soát · Chưa ghi thu':statusText[type]||row.status||'Chưa rõ'));
  if(!isBank){
   content.appendChild(cell('Ghi thu công nợ',
-    recorded?'Đã ghi thu · Sổ #'+row.ledger_id:'Chưa ghi thu'));
+    recorded?'Đã ghi thu · Sổ #'+row.ledger_id:
+    manualEvidence?'Thu tay · Agribank #'+manualEvidence.notice_id+' · Sổ #'+manualEvidence.ledger_id+' · Bill chưa liên kết':'Chưa ghi thu'));
   const noticeState=row.collection_notice_state||'pending';
   const noticeText=row.collection_ack_sent?'Đã gửi cho khách':
     noticeState==='muted'?'Đã tắt theo cài đặt thông báo':
     noticeState==='retry'?'Gửi lỗi · Hệ thống sẽ thử lại':
     'Đang chờ gửi xác nhận';
   content.appendChild(cell('Tin xác nhận thu',
-    recorded?noticeText:'Chưa gửi vì chưa ghi thu'));
+    recorded?noticeText:manualEvidence?'Thu tay có xác nhận riêng; chưa xác minh ảnh bill':'Chưa gửi vì chưa ghi thu'));
+ }
+ if(manualEvidence){
+  content.appendChild(el('p','bank-report-detail-reason',
+    'Đã có khoản thu thủ công cùng khách, số tiền và ngày. '+
+    'Bill ảnh chưa được xác minh liên kết với giao dịch gốc. '+
+    'Không thu tiền lần hai.'));
  }
  if(manualRecord){
   content.appendChild(cell('Khách đã thu',manualRecord.customer_name||'—'));
@@ -28552,6 +28584,17 @@ function bankCreditLine(row,allBills){
   btn.addEventListener('click',()=>window.ChatAppShell?.NavigationCommand
     ?.openContact?.(row.customer_id,row.customer_name||'Khách hàng'));
   actions.appendChild(btn);
+ }
+ if(kind==='manual_collected'){
+  const related=(allBills||[]).filter(b=>
+    String(matchingManualCollectionForBill(b,current)?.notice_id||'')===String(row.notice_id));
+  if(related.length===1){
+   content.appendChild(el('p','bank-report-detail-reason',
+     'Khoản tiền đã thu thủ công. Có bill cùng khách, số tiền và ngày chờ xác minh; không thu lần hai.'));
+   const btn=el('button','bank-report-action','Xem bill chờ xác minh');
+   btn.type='button';btn.addEventListener('click',()=>void showBill(related[0]));
+   actions.appendChild(btn);
+  }
  }
  if(kind==='unmatched'){
   const candidates=possibleUnlinkedBills(row,allBills);
