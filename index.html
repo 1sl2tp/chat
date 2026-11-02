@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="8715f30177603a628679791270c6f6b4b8f6856578a63019241b6d36d970526b">
+<meta name="app-build-id" content="13ee1178027ac9c8e9c4f893d4a8d80e47377b275ac23326a1451a3587f2c520">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -16999,6 +16999,7 @@ let callTerminalNotice=null;
 let callTerminalNoticeTimer=0;
 let unreadCount=0;
 let accountMenuOpen=false;
+let accountMenuFocusGeneration=0;
 let mobileRouteTransitionTimer=0;
 
 function interactionController(){
@@ -17255,6 +17256,8 @@ function closeAccountMenu({restoreFocus=false}={}){
   if(!accountMenuOpen)return false;
   const {footer,menu,trigger}=accountMenuElements();
   accountMenuOpen=false;
+  // Invalidate any focus callback queued by an earlier opening.
+  accountMenuFocusGeneration+=1;
   if(footer)footer.dataset.menuOpen='false';
   if(menu)menu.hidden=true;
   if(trigger)trigger.setAttribute('aria-expanded','false');
@@ -17267,10 +17270,18 @@ function openAccountMenu(){
   const {footer,menu,trigger}=accountMenuElements();
   if(!footer||!menu||!trigger)return false;
   accountMenuOpen=true;
+  const focusGeneration=++accountMenuFocusGeneration;
   footer.dataset.menuOpen='true';
   menu.hidden=false;
   trigger.setAttribute('aria-expanded','true');
-  window.setTimeout(()=>menu.querySelector('button:not([hidden])')?.focus?.({preventScroll:true}),0);
+  // SPEC-CHAT-ACCOUNT-MENU-FOCUS-20261102: closing, reopening or
+  // unmounting this menu before the deferred callback must not steal focus
+  // from a newer route or a modal behind it.
+  window.setTimeout(()=>{
+    if(!accountMenuOpen||focusGeneration!==accountMenuFocusGeneration||
+       menu.hidden||!menu.isConnected)return;
+    menu.querySelector('button:not([hidden])')?.focus?.({preventScroll:true});
+  },0);
   return true;
 }
 
