@@ -23,3 +23,5 @@ jobs:
           cargo --version
       - name: Test isolated read-only Rust guard (no external crates)
         run: cargo test --manifest-path rust/bank-review-guard/Cargo.toml --offline
+      - name: Cross-check identical Rust and production JavaScript fixtures
+        run: node tests/test_rust_bank_review_parity_20261103.cjs

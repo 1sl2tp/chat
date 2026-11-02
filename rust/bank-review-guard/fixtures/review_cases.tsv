@@ -1,0 +1,19 @@
+# case|receipt_status|receiving_account|receipt_day_vn|bank_kind|extra_bill_kind|expected
+already_collected|amount_read|290118199999|2026-11-02|collected|none|hint
+needs_review_state|review|290118199999|2026-11-02|collected|none|hint
+masked_account|amount_read|*****99999|2026-11-02|collected|none|hint
+empty_account|amount_read|EMPTY|2026-11-02|collected|none|hint
+few_digits_ocr|amount_read|A1234|2026-11-02|collected|none|hint
+wrong_account|amount_read|0000012345|2026-11-02|collected|none|review
+wrong_bank_customer|amount_read|290118199999|2026-11-02|wrong_customer|none|review
+wrong_bank_amount|amount_read|290118199999|2026-11-02|wrong_amount|none|review
+wrong_bank_date|amount_read|290118199999|2026-11-02|wrong_day|none|review
+wrong_upload_date|amount_read|290118199999|2026-11-01|collected|none|review
+not_collected|amount_read|290118199999|2026-11-02|uncollected|none|review
+no_existing_ledger|amount_read|290118199999|2026-11-02|no_ledger|none|review
+no_bank_credit|amount_read|290118199999|2026-11-02|none|none|review
+competing_credit|amount_read|290118199999|2026-11-02|duplicate|none|review
+competing_bill|amount_read|290118199999|2026-11-02|collected|same|review
+competing_bill_wrong_account|amount_read|290118199999|2026-11-02|collected|wrong_account|review
+other_bill_already_linked|amount_read|290118199999|2026-11-02|collected|linked|hint
+bill_already_received|received|290118199999|2026-11-02|collected|none|review

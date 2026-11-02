@@ -40,3 +40,14 @@ costs, and complete CI + PWA device acceptance.
 
 Future phases must be separately scoped and must not rewrite authentication,
 realtime, financial RPCs or the UI in one migration.
+
+## Cross-language parity gate (2026-11-03)
+
+The fixture set `fixtures/review_cases.tsv` is consumed by both Rust unit
+Tests and `tests/test_rust_bank_review_parity_20261103.cjs`, which extracts
+the exact production JavaScript helper for read-only comparison. Cases include
+same-customer duplicate images even if one image has a contradicting account,
+multiple bank credits, an already-linked other bill, short OCR account digits,
+and manual collection without a ledger. The earlier pilot diverged on the
+competing wrong-account bill; the shared fixture now locks fail-closed parity.
+No financial writer uses this Rust crate. Production PWA unchanged.

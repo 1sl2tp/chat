@@ -82,8 +82,14 @@ fn reviewable(receipt: &Receipt<'_>) -> bool {
         && receipt.linked_notice_id.is_none()
         && receipt.ledger_id.is_none()
         && valid_day(receipt.upload_day_vn)
-        && (receipt.receiving_account.len() < 5
-            || receipt.receiving_account.ends_with("99999"))
+        && {
+            // JS canonical strips non-digits before checking the account
+            // suffix. Keep this Rust prototype compatible with its exact
+            // display-only behavior (not bank account verification).
+            let digits: String = receipt.receiving_account.chars()
+                .filter(|c| c.is_ascii_digit()).collect();
+            digits.len() < 5 || digits.ends_with("99999")
+        }
 }
 
 /// Returns only a review hint for an existing manual collection. It never
@@ -99,7 +105,13 @@ pub fn manual_collection_review_hint(
     }
 
     let mut related = bills.iter().filter(|bill| {
-        reviewable(bill)
+        // JS deliberately includes a conflicting image even when its own
+        // account field is wrong; do not hide competing evidence here.
+        !bill.id.is_empty()
+            && bill.state.can_be_reviewed()
+            && bill.linked_notice_id.is_none()
+            && bill.ledger_id.is_none()
+            && valid_day(bill.upload_day_vn)
             && bill.customer_id == target.customer_id
             && bill.amount_vnd == target.amount_vnd
             && bill.upload_day_vn == target.upload_day_vn
@@ -249,6 +261,64 @@ mod tests {
             check(Receipt { state: ReceiptState::Review, ..bill() }, credit()),
             ReviewHint::PossibleManualCollection { .. }
         ));
+    }
+
+
+    // Shared fixture contract with tests/test_rust_bank_review_parity_20261103.cjs.
+    // Review hint NEVER authorizes a bill link or a ledger entry.
+    #[test]
+    fn cross_language_read_only_review_fixtures() {
+        for line in include_str!("../fixtures/review_cases.tsv").lines() {
+            if line.is_empty() || line.starts_with('#') { continue; }
+            let parts: Vec<&str> = line.split('|').collect();
+            assert_eq!(parts.len(), 7, "fixture columns: {line}");
+            let [name, state, account, day, bank_kind, extra_kind, expected] =
+                <[&str; 7]>::try_from(parts).expect("exactly 7 fields");
+            let bill = Receipt {
+                receiving_account: if account == "EMPTY" { "" } else { account },
+                upload_day_vn: day,
+                state: match state {
+                    "amount_read" => ReceiptState::AmountRead,
+                    "review" => ReceiptState::Review,
+                    "received" => ReceiptState::Received,
+                    _ => panic!("unknown bill state {state}"),
+                },
+                ..bill()
+            };
+            let mut credits = Vec::new();
+            let mut credit = credit();
+            match bank_kind {
+                "collected" | "duplicate" => {},
+                "uncollected" => credit.already_collected = false,
+                "wrong_customer" => credit.customer_id = "other-customer",
+                "wrong_amount" => credit.amount_vnd += 1,
+                "wrong_day" => credit.bank_day_vn = "2026-11-03",
+                "no_ledger" => credit.ledger_id = 0,
+                "none" => {},
+                _ => panic!("unknown bank kind {bank_kind}"),
+            };
+            if bank_kind != "none" { credits.push(credit); }
+            if bank_kind == "duplicate" {
+                credits.push(ManualCredit { notice_id: 181, ledger_id: 662, ..credit });
+            }
+            let mut bills = vec![bill];
+            match extra_kind {
+                "none" => {},
+                "same" => bills.push(Receipt { id: "second-bill", ..bill }),
+                "wrong_account" => bills.push(Receipt {
+                    id: "second-bill", receiving_account: "0000012345", ..bill
+                }),
+                "linked" => bills.push(Receipt {
+                    id: "second-bill", linked_notice_id: Some(777), ..bill
+                }),
+                _ => panic!("unknown bill kind {extra_kind}"),
+            }
+            let actual = manual_collection_review_hint(&bill, &bills, &credits);
+            let got = if matches!(actual, ReviewHint::PossibleManualCollection { .. }) {
+                "hint"
+            } else { "review" };
+            assert_eq!(got, expected, "shared fixture failed: {name}");
+        }
     }
 
     #[test]
