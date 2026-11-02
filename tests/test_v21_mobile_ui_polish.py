@@ -88,9 +88,9 @@ def test_ui_145_one_layout_rail_for_header_directory_and_composer():
     assert 'padding-right:max(var(--ui-chat-layout-rail,12px),env(safe-area-inset-right,0px))!important;' in polish
     assert 'grid-template-columns:44px minmax(0,1fr) auto;' in polish
     assert 'min-height:var(--header-height,60px);' in polish
-    assert 'grid-template-columns:minmax(0,1fr) 52px;' in polish
+    assert 'grid-template-columns:repeat(2,minmax(0,1fr));' in polish
     assert 'max-width:min(100%,280px);' in polish
-    assert 'width:100%;' in polish
+    assert 'width:max-content;' in polish
     assert '--ui-composer-effective-gutter:max(var(--ui-chat-layout-rail,12px),' in chat
     assert 'padding-inline:0!important;' in chat
     # Directory shell: header starts at 12; search/filter = body6+tools6;

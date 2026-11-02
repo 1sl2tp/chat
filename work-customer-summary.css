@@ -3,16 +3,24 @@
   overscroll-behavior:none;
 }
 
-/* Active chat identity hugs avatar + customer name. The mode switch remains
-   centered, but no longer stretches short customer names to a fixed share. */
+/* CHAT-HEADER-EQUAL-TABS-20261102
+   Intrinsic max-content size of 2 equal 1fr tracks is 2 × the larger tab.
+   Both user/avatar and Photos receive that SAME width; the parent grid and
+   cap shrink the pair together when calls take priority on a narrow screen.
+   CSS-only: no measuring JS / ResizeObserver / frame-loop / layout jitter. */
 #appShell .top-mode-switch[data-contact-identity="true"]{
   width:max-content;
   max-width:min(100%,260px);
-  grid-template-columns:max-content max-content;
+  grid-template-columns:repeat(2,minmax(0,1fr));
 }
 #appShell .top-mode-switch[data-contact-identity="true"] .top-mode-tab[data-top-tab="chat"]{
-  width:max-content;
-  max-width:170px;
+  width:100%;
+  max-width:none;
+  min-width:0;
+}
+#appShell .top-mode-switch[data-contact-identity="true"] .top-mode-tab[data-top-tab="photos"]{
+  min-width:0;
+  width:100%;
 }
 
 [data-work-summary-root]{
