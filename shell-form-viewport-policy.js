@@ -21,7 +21,7 @@ function preventStandaloneShellPinch(event){
   if(shell?.contains(event.target))event.preventDefault();
 }
 if(standaloneShellRuntime()){
-  document.documentElement.dataset.chatStandalone='true';
+  if(document.documentElement?.dataset)document.documentElement.dataset.chatStandalone='true';
   for(const eventType of ['gesturestart','gesturechange']){
     document.addEventListener(eventType,preventStandaloneShellPinch,{
       capture:true,passive:false
