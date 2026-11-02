@@ -237,6 +237,11 @@ function publish(){
   publishViewport(activeOwner,state);
 
   if(!state.keyboardOpen){
+    // SPEC-CHAT-KEYBOARD-REOPEN-20261102: the reveal checkpoint is valid
+    // only for ONE keyboard-open session. If the same field remains focused
+    // when the keyboard closes, reopening at identical viewport geometry
+    // must re-reveal it instead of incorrectly skipping the scroll.
+    lastReveal=null;
     clearKeyboardState(activeOwner);
     return false;
   }

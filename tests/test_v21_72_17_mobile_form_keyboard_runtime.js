@@ -103,6 +103,23 @@ assert.notStrictEqual(overlay.dataset.mobileKeyboard,'true');
 assert.notStrictEqual(auth.dataset.mobileKeyboard,'true');
 assert.strictEqual(overlay.style.getPropertyValue('--shell-form-vv-height'),'700px');
 
+// A user may dismiss/reopen the soft keyboard without blurring the field.
+// The last reveal checkpoint from the prior keyboard session must expire.
+profile.scrollTop=0;
+vv.height=380;
+vvListeners.resize();
+flushRaf();
+assert.strictEqual(overlay.dataset.mobileKeyboard,'true');
+assert(profile.scrollTop>0,
+  'reopening the keyboard on the same focused field must reveal it again');
+
+// Stable visual geometry must never repeatedly re-scroll a manually
+// adjusted list while the same keyboard session is still open.
+profile.scrollTop=0;
+vvListeners.scroll?.();
+flushRaf();
+assert.equal(profile.scrollTop,0,'unchanged keyboard geometry preserves manual scroll');
+
 console.log('V21.72.39 visual viewport form keyboard runtime PASS');
 
 
