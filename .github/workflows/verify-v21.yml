@@ -186,6 +186,7 @@ jobs:
         run: |
           node --check bank-report-dashboard.js
           node tests/test_bank225_report_auth_owner_20261102.cjs
+          node tests/test_bank225_bill_viewer_race_20261102.cjs
       - name: BANK-185 transient bill scan retries keep bank evidence strict
         run: python tests/test_bank185_transient_retry_contract.py
       - name: BANK-186 no lost scans and BANK-187 Admin outage notifications
