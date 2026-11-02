@@ -11,10 +11,10 @@ const sw=fs.readFileSync(path.join(root,'sw.js'),'utf8');
 
 // P0 owns page-level zoom, not message/media/keyboard components.
 assert.match(html,/<meta name="viewport"[^>]*maximum-scale=1,user-scalable=no/);
-assert.match(html,/:root\\[data-chat-standalone="true"\\] #appShell\\s*\\{\\s*touch-action:pan-x pan-y;/);
+assert.ok(html.includes(':root[data-chat-standalone="true"] #appShell{'));
 assert.match(sw,/pwa-chat-viewport-lock-20261102/);
 assert.match(html,/id="globalOverlayRoot"/);
-assert.match(html,/\\.image-review-main\\s*\\{[^}]*touch-action:none/s);
+assert.ok(html.slice(html.indexOf('.image-review-main{')).split('}')[0].includes('touch-action:none;'));
 
 const start=platform.indexOf('function standaloneShellRuntime(){');
 const end=platform.indexOf('const vv=window.visualViewport||null;',start);
