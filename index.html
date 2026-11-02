@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="b048eba05ab8bbd009176ae482aad982cfee8b4589d7bcf291dc377f31773aa8">
+<meta name="app-build-id" content="7d389adec0e8ec7430dff624cb9a6e97f7664b11a726e4fbed9e309c453e113b">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -28726,7 +28726,13 @@ function focusPushRecord(data){
     paint(data);
   }
   pendingPush=null;
+  const focusOwner=bankReportSessionOwner(),focusRequest=requestId,focusFilter=filter;
   requestAnimationFrame(()=>{
+    // BANK-227-PUSH-FOCUS-20261103: never scroll another Admin, date,
+    // filter or route after a deferred push deep-link.
+    if(!active||!isReportContact()||focusOwner!==reportSessionOwner||
+       focusOwner!==bankReportSessionOwner()||ui.date.value!==target.bankDay||
+       requestId!==focusRequest||filter!==focusFilter)return;
     let row=null;
     for(const node of ui.groups.querySelectorAll('.bank-report-detail')){
       if(target.bankReceiptId&&node.dataset.bankReceiptId===target.bankReceiptId){row=node;break;}
