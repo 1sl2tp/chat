@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="f957901c50e059db8ee97d91abd717df6db10cd22f72c8ce862603efe0a9df23">
+<meta name="app-build-id" content="4b67c8f07def9f8d38668e4c21d89e68f00b3e9a904873c9c6ad5e522258bbbd">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -2074,7 +2074,8 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
   --ui-control-desktop:36px;
   --ui-control-touch:44px;
   --ui-chat-header-mobile:60px;
-  --ui-chat-composer-radius:20px;
+  /* Same 1.75rem rounded composer surface as the local ChatGPT reference. */
+  --ui-chat-composer-radius:28px;
   /* UI-144: mobile composer geometry is token-owned, not sender-state-owned. */
   --ui-composer-gutter:12px;
   --ui-composer-inner-inset:4px;
@@ -2267,19 +2268,19 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
     align-items:center;
     gap:0 var(--ui-composer-action-gap,4px);
     overflow:visible;
-    border:1px solid color-mix(in srgb,var(--theme-border-default) 78%,transparent);
-    border-radius:var(--ui-chat-composer-radius,var(--ui-radius-20,20px));
+    border:1px solid var(--composer-border,var(--theme-border-strong));
+    border-radius:var(--ui-chat-composer-radius,var(--radius-2xl,28px));
     padding:2px var(--ui-composer-inner-inset,4px);
     background:var(--cgpt-composer-surface-primary);
-    box-shadow:0 2px 9px rgba(0,0,0,.045),0 1px 2px rgba(0,0,0,.025);
-    transition:border-color .16s ease,box-shadow .16s ease;
+    box-shadow:var(--composer-shadow,0 1px 1px #00000008),0 4px 14px rgba(0,0,0,.035);
+    transition:border-color .14s ease,box-shadow .14s ease;
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell:focus-within{
-    border-color:color-mix(in srgb,var(--theme-border-default) 82%,var(--theme-content-accent));
+    border-color:var(--theme-border-strong,var(--composer-border));
     box-shadow:
-      0 0 0 1px color-mix(in srgb,var(--theme-content-accent) 3%,transparent),
-      0 2px 9px rgba(0,0,0,.05);
+      0 0 0 1px color-mix(in srgb,var(--theme-content-primary) 8%,transparent),
+      0 3px 14px rgba(0,0,0,.05);
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #replyContext{
@@ -2330,23 +2331,23 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
   /* Unified tap feedback; visual icon size never changes hitbox or grid. */
   #appShell[data-auth-state="authenticated"][data-route="chat"] :is(#composer-plus-btn,#composer-mic-btn){
     border-radius:999px;
-    transition:background-color .15s ease,color .15s ease;
+    transition:background-color .12s ease,color .12s ease,transform .12s ease;
     -webkit-tap-highlight-color:transparent;
   }
-  @media(hover:hover){
-    #appShell[data-auth-state="authenticated"][data-route="chat"] :is(#composer-plus-btn,#composer-mic-btn):hover{
-      background:var(--theme-surface-secondary,#f3f3f3);
+  @media(hover:hover) and (pointer:fine){
+    #appShell[data-auth-state="authenticated"][data-route="chat"] :is(#composer-plus-btn,#composer-mic-btn:not([data-recording="true"])):hover{
+      background:var(--theme-action-ghost-surface-hover);
     }
   }
-  #appShell[data-auth-state="authenticated"][data-route="chat"] :is(#composer-plus-btn,#composer-mic-btn):active{
-    background:var(--theme-surface-secondary,#f3f3f3);
+  #appShell[data-auth-state="authenticated"][data-route="chat"] :is(#composer-plus-btn,#composer-mic-btn:not([data-recording="true"])):active:not(:disabled){
+    background:var(--theme-action-ghost-surface-pressed);
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] :is(#composer-plus-btn,#composer-mic-btn,#send):focus-visible{
-    outline:2px solid var(--theme-content-accent,#2563eb);
+    outline:2px solid var(--theme-content-primary);
     outline-offset:1px;
   }
   @media(prefers-reduced-motion:reduce){
-    #appShell[data-auth-state="authenticated"][data-route="chat"] :is(#composerShell,#composer-plus-btn,#composer-mic-btn){
+    #appShell[data-auth-state="authenticated"][data-route="chat"] :is(#composerShell,#composer-plus-btn,#composer-mic-btn,#send){
       transition:none;
     }
   }
@@ -3416,12 +3417,14 @@ button{
   right:0;
   bottom:0;
   height:calc(100% + 56px);
+  /* The footer fades into the active ChatGPT surface rather than a hardcoded
+     white band (also correct when the theme surface changes). */
   background:linear-gradient(
     to bottom,
-    rgba(255,255,255,0) 0%,
-    rgba(255,255,255,.72) 30%,
-    rgba(255,255,255,.94) 54%,
-    #fff 76%
+    transparent 0%,
+    color-mix(in srgb,var(--theme-surface-primary,#fff) 72%,transparent) 30%,
+    color-mix(in srgb,var(--theme-surface-primary,#fff) 94%,transparent) 54%,
+    var(--theme-surface-primary,#fff) 76%
   );
 }
 
@@ -3482,8 +3485,10 @@ button{
   background:color-mix(in srgb,var(--theme-content-tertiary) 58%,var(--theme-surface-secondary));
   color:#fff;
   transition:
-    background 120ms ease-out,
-    opacity 120ms ease-out;
+    background-color 120ms ease-out,
+    opacity 120ms ease-out,
+    filter 120ms ease-out,
+    transform 120ms ease-out;
 }
 #composerShell[data-can-send="true"] .send-button-source{
   background:var(--theme-submit-btn-bg);
@@ -3518,10 +3523,14 @@ button{
   transition:background 120ms ease-out;
   anchor-name:--composer-add-action-anchor;
 }
-.composer-plus-source:hover,
-#composer-plus-btn[data-state="open"],
-.composer-icon-button:hover{
-  background:color-mix(in srgb,var(--blue-50) 68%,var(--theme-action-ghost-surface-hover));
+#composer-plus-btn[data-state="open"]{
+  background:var(--theme-action-ghost-surface-pressed);
+}
+@media (hover:hover) and (pointer:fine){
+  .composer-plus-source:hover,
+  .composer-icon-button:not([data-recording="true"]):hover{
+    background:var(--theme-action-ghost-surface-hover);
+  }
 }
 .composer-plus-source:focus-visible{
   outline:2px solid var(--focus-ring);
@@ -3675,18 +3684,16 @@ button{
   cursor:text;
   overflow:clip;
   border-radius:var(--component-conversation-composer-radius,var(--radius-2xl));
-  border:1px solid color-mix(in srgb,var(--theme-border-default) 86%,var(--blue-75));
+  border:1px solid var(--composer-border,var(--theme-border-strong));
   background:var(--cgpt-composer-surface-primary);
-  box-shadow:
-    0 0 0 1px rgba(0,0,0,.025),
-    0 2px 8px rgba(0,0,0,.035);
-  transition:border-color 140ms ease,box-shadow 140ms ease,background-color 140ms ease;
+  box-shadow:var(--composer-shadow,0 1px 1px #00000008),0 4px 14px rgba(0,0,0,.035);
+  transition:border-color 140ms ease,box-shadow 140ms ease;
 }
 .composer-shell-source:focus-within{
-  border-color:color-mix(in srgb,var(--blue-400) 42%,var(--theme-border-default));
+  border-color:var(--theme-border-strong,var(--composer-border));
   box-shadow:
-    0 0 0 1px color-mix(in srgb,var(--blue-400) 9%,transparent),
-    0 2px 10px rgba(0,0,0,.04);
+    0 0 0 1px color-mix(in srgb,var(--theme-content-primary) 8%,transparent),
+    0 3px 14px rgba(0,0,0,.05);
 }
 .composer-hint-source{
   min-width:0;
@@ -4717,13 +4724,38 @@ button{
   background:transparent;
   border:0;
 }
-.composer-icon-button:hover{
-  background:var(--theme-action-ghost-surface-hover);
+.composer-icon-button{
+  cursor:pointer;
 }
 .composer-icon-button[data-recording="true"]{
   color:#dc2626;
   background:#fee2e2;
   box-shadow:inset 0 0 0 1px rgba(220,38,38,.10);
+}
+/* One control-feedback rule for Chat composer buttons. Layout and 44px
+   touch targets do not change between send, mic, plus, PWA and desktop. */
+#composerShell :is(#composer-plus-btn,#composer-mic-btn,#send){
+  -webkit-tap-highlight-color:transparent;
+  transition:background-color 120ms ease,color 120ms ease,filter 120ms ease,transform 120ms ease;
+}
+#composerShell :is(#composer-plus-btn,#composer-mic-btn,#send):active:not(:disabled){
+  transform:scale(.96);
+}
+#composerShell :is(#composer-plus-btn,#composer-mic-btn,#send):focus-visible{
+  outline:2px solid var(--theme-content-primary);
+  outline-offset:1px;
+}
+@media (hover:hover) and (pointer:fine){
+  #composerShell[data-can-send="true"] #send:hover:not(:disabled){
+    filter:brightness(.93);
+  }
+}
+@media (prefers-reduced-motion:reduce){
+  .composer-shell-source,
+  #composerShell :is(#composer-plus-btn,#composer-mic-btn,#send),
+  .send-button-source svg{
+    transition:none!important;
+  }
 }
 /* Virtualized message turns know the sticky safe bottom. */
 .message-row{
