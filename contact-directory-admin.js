@@ -280,7 +280,17 @@ async function ensureGroups({force=false}={}){
     return true;
   }catch{
     return false;
-  }finally{loadingGroups=false;}
+  }finally{
+    loadingGroups=false;
+    // SPEC-CHAT-DIRECTORY-GROUPS-AUTH-RACE-20261102: if account B
+    // authenticated while A's directory_groups request was in flight,
+    // B's first refresh was skipped by loadingGroups. Retry once under
+    // the new account after A settles, without publishing A's groups to B.
+    const nextAdminId=String(currentAdmin()?.id||'');
+    if(nextAdminId&&nextAdminId!==adminId&&nextAdminId!==String(loadedAdminId||'')){
+      scheduleSync();
+    }
+  }
 }
 function scheduleSync({scrollToTop=false}={}){
   if(scrollToTop)syncScrollToTop=true;
