@@ -2,10 +2,10 @@
 <html lang="vi" data-theme="light" data-contrast="default" data-chat-theme="blue" data-ds-colored-user-message-bubbles="true">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="72da769bbd9dd646892f8965c7eeb3c07d76b4769469fc3d83286ef1e96165eb">
+<meta name="app-build-id" content="32be5bc3d9adacf2a55ae25f6d225c68ff6c18476e98e515658ce745358d7b64">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -19127,6 +19127,10 @@ function preventStandaloneShellPinch(event){
 }
 if(standaloneShellRuntime()){
   if(document.documentElement?.dataset)document.documentElement.dataset.chatStandalone='true';
+  // Only installed app mode requests a fixed native page scale. In normal
+  // Safari/Chrome tabs users retain browser zoom for accessibility.
+  const viewport=document.querySelector?.('meta[name="viewport"]');
+  if(viewport)viewport.content='width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover';
   for(const eventType of ['gesturestart','gesturechange']){
     document.addEventListener(eventType,preventStandaloneShellPinch,{
       capture:true,passive:false
