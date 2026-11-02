@@ -178,6 +178,8 @@ jobs:
         run: |
           node --check bank-report-dashboard.js
           node tests/test_bank222_all_agribank_credits.cjs
+      - name: BANK-223 manually collected credits remain separate from unlinked customer bill
+        run: node tests/test_bank223_manual_collected_bill_review_20261102.cjs
       - name: BANK-185 transient bill scan retries keep bank evidence strict
         run: python tests/test_bank185_transient_retry_contract.py
       - name: BANK-186 no lost scans and BANK-187 Admin outage notifications

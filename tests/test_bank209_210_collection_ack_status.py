@@ -49,10 +49,10 @@ def test_dashboard_labels_no_false_paid_message():
     for token in (
        "matched:'Đã thu · Đối soát'",
        "waiting_bank:'Chờ Agribank · Chưa thu'",
-       "review:'Cần kiểm tra · Chưa thu'",
-       "cardValue('Bill chưa ghi thu'",
+       "review:'Cần kiểm tra · Chưa đối soát'",
+       "cardValue('Bill chưa đối soát'",
        "cardValue('Đã thu có chứng từ'",
-       "recorded?'Đã ghi thu · Sổ #'+row.ledger_id:'Chưa ghi thu'",
+       "recorded?'Đã ghi thu · Sổ #'+row.ledger_id:",
        "row.collection_ack_sent?'Đã gửi cho khách'",
        "noticeState==='muted'?'Đã tắt theo cài đặt thông báo'",
        "noticeState==='retry'?'Gửi lỗi · Hệ thống sẽ thử lại'",
