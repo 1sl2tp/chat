@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 const source=fs.readFileSync('bank-report-dashboard.js','utf8');
-const first=source.indexOf('function possibleUnlinkedBills(');
+const first=source.indexOf('function vietnamBusinessDay(');
 const last=source.indexOf('function detailLine(',first);
 assert.ok(first>=0 && last>first);
 const ctx=vm.createContext({Date,Number,String});
@@ -26,6 +26,17 @@ assert.equal(lookup(credit,[{...receipt,status:'review',amount_vnd:null,
 assert.equal(lookup(credit,[{...receipt,asset_id:''}]).length,0);
 assert.equal(lookup(credit,[receipt,{...receipt,receipt_id:'bill-2',asset_id:'asset-2'}]).length,2,
  'two ambiguous bills must remain separate, never auto-assign a customer');
+// BANK-183-VN-DAY-20261102: UTC dates may disagree across a single VN day.
+const afterMidnight={...credit,transfer_at:'2026-11-01T17:30:00Z'}; // 00:30 Nov 2 VN.
+assert.equal(lookup(afterMidnight,[{...receipt,sent_at:'2026-11-02T16:00:00Z'}]).length,1,
+ 'late same-Vietnam-day bill must remain visible across the UTC date boundary');
+assert.equal(lookup(afterMidnight,[{...receipt,sent_at:'2026-11-02T17:10:00Z'}]).length,0,
+ 'next Vietnam day must not count as same-day evidence even if UTC day changed');
+const beforeMidnight={...credit,transfer_at:'2026-11-02T16:30:00Z'}; // 23:30 Nov 2 VN.
+assert.equal(lookup(beforeMidnight,[{...receipt,sent_at:'2026-11-02T17:30:00Z'}]).length,0,
+ 'same UTC date prefixes must not falsely match after Vietnam midnight');
+assert.equal(lookup(beforeMidnight,[{...receipt,sent_at:'2026-11-02T16:35:00Z'}]).length,1,
+ 'real uploads within 20 minutes remain review candidates');
 assert.ok(source.includes('Có bill cần kiểm tra'));
 assert.ok(source.includes('Chưa đối soát · Chưa ghi thu'));
 assert.ok(source.includes('void showBill(candidate)'));

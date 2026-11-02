@@ -222,6 +222,15 @@ function renderTable(data){
  if(!tbody.children.length){const tr=el('tr');const td=el('td','','Chưa có bill của khách ngày này');td.colSpan=6;tr.appendChild(td);tbody.appendChild(tr);}
  table.appendChild(tbody);ui.table.replaceChildren(table);
 }
+// BANK-183-VN-DAY-20261102: Bank transactions and customer uploads are
+// compared by the Vietnam business date, not UTC date-string prefixes.
+// This only lists evidence for Admin review; it cannot authorize money.
+function vietnamBusinessDay(raw){
+ const ms=Date.parse(String(raw||''));
+ if(!Number.isFinite(ms))return '';
+ const time=new Date(ms+7*3600000); // Asia/Ho_Chi_Minh: UTC+07, no DST.
+ return Number.isFinite(time.getTime())?time.toISOString().slice(0,10):'';
+}
 // BANK-183: show unlinked same-amount customer images as review candidates.
 // Chat send time is only a *hint*, never a substitute for the bill's bank time.
 // Read-only suggestions. Neither a nearby upload nor matching money is proof.
@@ -235,7 +244,7 @@ function possibleUnlinkedBills(bank,allBills){
   if(!Number.isFinite(sent))return false;
   const nearby=Math.abs(sent-bankTs)<=20*60000;
   return Number(b.amount_vnd)===Number(bank.amount_vnd)&&
-    (nearby||String(b.sent_at||'').slice(0,10)===String(bank.transfer_at||'').slice(0,10))
+    (nearby||vietnamBusinessDay(b.sent_at)===vietnamBusinessDay(bank.transfer_at))
     || nearby&&b.amount_vnd==null&&b.status==='review'&&
     b.reason==='multiple_transactions_ambiguous';
  });
