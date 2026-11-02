@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="4b67c8f07def9f8d38668e4c21d89e68f00b3e9a904873c9c6ad5e522258bbbd">
+<meta name="app-build-id" content="8d62ff9ad65d222c92c97c21b70b0baba24863f9424a7e6d64a35d110d292950">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -2664,6 +2664,12 @@ body{
   -webkit-tap-highlight-color:transparent;
   -webkit-user-select:none;
   user-select:none;
+}
+/* Native pinch/double-tap must not rescale the installed app shell.
+   Preserve both pan axes and the separate image viewer's custom pinch.
+   Platform owner sets this data flag for iOS navigator.standalone as well. */
+:root[data-chat-standalone="true"] #appShell{
+  touch-action:pan-x pan-y;
 }
 button,textarea{font-size:16px}
 .native-file-input{
@@ -19104,6 +19110,29 @@ const RELEASE_VERSION='V21.72.39';
 const MODULE_CONTRACT_VERSION='shell-form-viewport-v3';
 const KEYBOARD_THRESHOLD_PX=80;
 const EDGE_PX=12;
+
+/* SPEC-CHAT-PWA-VIEWPORT-ZOOM-20261102 · P0 platform owner.
+   Installed PWA shell keeps its scale while scroll, native text selection and
+   Composer focus remain owned by their existing controls. The image viewer
+   mounts in #globalOverlayRoot OUTSIDE #appShell; its own pinch zoom survives.
+   Ordinary Safari/Chrome tabs keep their native accessibility zoom. */
+function standaloneShellRuntime(){
+  return navigator.standalone===true ||
+    Boolean(window.matchMedia?.('(display-mode: standalone)')?.matches);
+}
+function preventStandaloneShellPinch(event){
+  if(!event.cancelable)return;
+  const shell=document.getElementById('appShell');
+  if(shell?.contains(event.target))event.preventDefault();
+}
+if(standaloneShellRuntime()){
+  document.documentElement.dataset.chatStandalone='true';
+  for(const eventType of ['gesturestart','gesturechange']){
+    document.addEventListener(eventType,preventStandaloneShellPinch,{
+      capture:true,passive:false
+    });
+  }
+}
 
 const vv=window.visualViewport||null;
 let restingVisualHeight=Math.max(1,Math.round(vv?.height||window.innerHeight||1));
