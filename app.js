@@ -7138,8 +7138,10 @@ function composerEditorCanFocus(){
 function focusEditorFromComposerPadding(event){
   const target=event?.target;
   if(target!==editorWrap&&target!==composerShell)return false;
-  if(!editor?.isConnected||editor.disabled||editor.readOnly)return false;
-  if(composerShell.dataset.audioState&&composerShell.dataset.audioState!=='IDLE')return false;
+  // SPEC-CHAT-COMPOSER-FOCUS-LEASE-20261102: blank padding taps and
+  // ScrollRoot overlap recovery must obey the SAME route/interaction lease.
+  // Otherwise a call or modal can summon the keyboard behind its overlay.
+  if(!composerEditorCanFocus())return false;
   editor.focus({preventScroll:true});
   return true;
 }
