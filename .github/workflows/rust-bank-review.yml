@@ -1,0 +1,25 @@
+name: Rust read-only bank review pilot
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "rust/bank-review-guard/**"
+      - ".github/workflows/rust-bank-review.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rust-review-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Confirm Rust toolchain
+        run: |
+          rustc --version
+          cargo --version
+      - name: Test isolated read-only Rust guard (no external crates)
+        run: cargo test --manifest-path rust/bank-review-guard/Cargo.toml --offline
