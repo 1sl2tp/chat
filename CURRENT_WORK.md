@@ -1,3 +1,14 @@
+## 2026-11-02 — CHAT HEADER · Equal-width User / Ảnh tabs
+
+- Requirement: two equal horizontal tabs, each naturally sized to the wider intrinsic tab, never overlapping video/phone buttons. Prior desktop CSS used unequal max-content tracks and mobile used a fixed 52px Photos track.
+- UI owner: `work-customer-summary.css` uses `width:max-content` and `grid-template-columns:repeat(2,minmax(0,1fr))` with user/Photos full track width; desktop cap 260px. `mobile-ui-polish.css` uses the same equal-track rule with 280px cap. Names still ellipsize if calls constrain the middle track.
+- No JS measurements, ResizeObserver, scrolling, keyboard, backend, data, auth, media or call-state behavior changed.
+- Chromium geometry model widths 320/375/390/500/700px and short/long names: two equal-width tabs, no horizontal overflow. CI: [Verify PASS](https://github.com/1sl2tp/chat/actions/runs/41375862960), [Deploy PASS](https://github.com/1sl2tp/chat/actions/runs/41375862897), [source commit](https://github.com/1sl2tp/chat/commit/1d865ac8d300ce71f5f0f2bf899280fc97372b1e). New contract `test_chat_header_equal_tabs_20261102.py`; PWA shell epoch `pwa-chat-equal-tabs-20261102`.
+- E4 iPhone/PWA actual-device visual acceptance remains OPEN; CI does not establish that an installed PWA activated the newest build.
+- Rollback: restore the scoped CSS, tests and shell epoch, rebuild canonical artifacts; do not touch customer data.
+
+---
+
 ## 2026-11-02 — MULTI-PASS CHAT UI QA · 5 passes completed, actual-device check OPEN
 
 **Progress rule:** fix what is confirmed in source; continue into the next pass even if a previous pass still awaits CI or device proof. Mark PASS only with evidence. This record describes completed work in this chat turn, not a scheduled/background job.
