@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="38d8279a71241e052dd7a8d8167db227fd6de3266dd67a3fce24b8c8b0f33f90">
+<meta name="app-build-id" content="ac724169d94aa44a8d440e269713744d27fc0c6edd47119dd0a9df5cdd0e40e6">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -19344,6 +19344,11 @@ function publish(){
   publishViewport(activeOwner,state);
 
   if(!state.keyboardOpen){
+    // SPEC-CHAT-KEYBOARD-REOPEN-20261102: the reveal checkpoint is valid
+    // only for ONE keyboard-open session. If the same field remains focused
+    // when the keyboard closes, reopening at identical viewport geometry
+    // must re-reveal it instead of incorrectly skipping the scroll.
+    lastReveal=null;
     clearKeyboardState(activeOwner);
     return false;
   }
