@@ -117,14 +117,15 @@
     border-radius:var(--ui-chat-composer-radius,var(--ui-radius-20,20px));
     padding:2px var(--ui-composer-inner-inset,4px);
     background:var(--cgpt-composer-surface-primary);
-    box-shadow:0 1px 2px rgba(0,0,0,.03);
+    box-shadow:0 2px 9px rgba(0,0,0,.045),0 1px 2px rgba(0,0,0,.025);
+    transition:border-color .16s ease,box-shadow .16s ease;
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell:focus-within{
     border-color:color-mix(in srgb,var(--theme-border-default) 82%,var(--theme-content-accent));
     box-shadow:
-      0 0 0 1px color-mix(in srgb,var(--theme-content-accent) 4%,transparent),
-      0 1px 3px rgba(0,0,0,.035);
+      0 0 0 1px color-mix(in srgb,var(--theme-content-accent) 3%,transparent),
+      0 2px 9px rgba(0,0,0,.05);
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #replyContext{
@@ -171,6 +172,29 @@
     padding:0;
     align-self:center;
     justify-self:center;
+  }
+  /* Unified tap feedback; visual icon size never changes hitbox or grid. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] :is(#composer-plus-btn,#composer-mic-btn){
+    border-radius:999px;
+    transition:background-color .15s ease,color .15s ease;
+    -webkit-tap-highlight-color:transparent;
+  }
+  @media(hover:hover){
+    #appShell[data-auth-state="authenticated"][data-route="chat"] :is(#composer-plus-btn,#composer-mic-btn):hover{
+      background:var(--theme-surface-secondary,#f3f3f3);
+    }
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] :is(#composer-plus-btn,#composer-mic-btn):active{
+    background:var(--theme-surface-secondary,#f3f3f3);
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] :is(#composer-plus-btn,#composer-mic-btn,#send):focus-visible{
+    outline:2px solid var(--theme-content-accent,#2563eb);
+    outline-offset:1px;
+  }
+  @media(prefers-reduced-motion:reduce){
+    #appShell[data-auth-state="authenticated"][data-route="chat"] :is(#composerShell,#composer-plus-btn,#composer-mic-btn){
+      transition:none;
+    }
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composer-plus-btn{
     grid-column:1;
