@@ -12,7 +12,8 @@ let observer=null;
 function clean(value){return String(value??'').trim();}
 /** @param {unknown} value @returns {number} Normalized clockwise quarter-turn degrees. */
 function normalizeRotation(value){
-  const n=Number(value)||0;
+  const parsed=Number(value);
+  const n=Number.isFinite(parsed)?parsed:0;
   return ((Math.round(n/90)*90)%360+360)%360;
 }
 /** @param {string} assetId @returns {string} */
