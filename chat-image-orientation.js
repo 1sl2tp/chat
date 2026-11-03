@@ -119,7 +119,7 @@ function activeViewerAssetId(overlay){
 function applyTileRotation(tile){
   if(!tile)return;
   const assetId=tileAssetId(tile);
-  const img=tile.querySelector('img');
+  const img=/** @type {HTMLImageElement | null} */ (tile.querySelector('img'));
   if(!assetId||!img)return;
   const rotation=readRotation(assetId);
   const quarter=rotation===90||rotation===270;
@@ -184,7 +184,7 @@ function applyViewerRotation(){
   if(!/** @type {HTMLDialogElement | null} */ (overlay)?.open)return;
   ensureViewerRotateControls(overlay);
   const assetId=activeViewerAssetId(overlay);
-  const img=overlay.querySelector('.image-review-image');
+  const img=/** @type {HTMLImageElement | null} */ (overlay.querySelector('.image-review-image'));
   const stage=overlay.querySelector('.image-review-main');
   if(!img||!assetId)return;
   const rotation=readRotation(assetId);
