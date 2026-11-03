@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="bc1ac25eac2198cee110422f9f38da6fddea819adba8a36a55dee4e5471a0d66">
+<meta name="app-build-id" content="397f6fd41fac1bd758ff9027a101440d886c13e22a10b078c5045600ffe90b0a">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -16857,7 +16857,7 @@ function applyTileRotation(tile){
     img.style.maxHeight='';
     img.style.transform=`rotate(${rotation}deg)`;
   }
-  let button=tile.querySelector('[data-chat-image-rotate]');
+  let button=/** @type {HTMLButtonElement | null} */ (tile.querySelector('[data-chat-image-rotate]'));
   if(!button){
     button=document.createElement('button');
     button.type='button';
