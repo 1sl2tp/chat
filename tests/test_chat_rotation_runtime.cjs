@@ -7,7 +7,7 @@ const source=fs.readFileSync(path.join(__dirname,'..','chat-image-orientation.js
 const match=source.match(/function normalizeRotation\(value\)\s*\{[\s\S]*?\n\}/);
 assert.ok(match,'normalizeRotation implementation must exist');
 const normalize=vm.runInNewContext(`(${match[0]})`);
-for(const [input,expected] of [[0,0],[90,90],[180,180],[270,270],[360,0],[-90,270],[450,90],[45,90],[44,0],[null,0],['90',90],['bad',0],[Infinity,0],[-Infinity,0],['Infinity',0],['1e309',0]]){
+for(const [input,expected] of [[0,0],[90,90],[180,180],[270,270],[360,0],[-90,270],[450,90],[45,90],[44,0],[null,0],['90',90],['bad',0],[Infinity,0],[-Infinity,0],['Infinity',0],['1e309',0],[1e308,270],[-1e308,90],[Number.MAX_VALUE,90]]){
   assert.equal(normalize(input),expected,`rotation for ${String(input)}`);
 }
 const assetMatch=source.match(/function tileAssetId\(tile\)\{[^\n]*\}/);
