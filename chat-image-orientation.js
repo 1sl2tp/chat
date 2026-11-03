@@ -111,7 +111,7 @@ function installStyle(){
 }
 /** @param {Element | null | undefined} tile @returns {string} */
 function tileAssetId(tile){return clean(tile?.getAttribute('data-media-asset-id'));}
-/** @param {HTMLElement | null | undefined} overlay @returns {string} */
+/** @param {Element | null | undefined} overlay @returns {string} */
 function activeViewerAssetId(overlay){
   const activeThumb=/** @type {HTMLImageElement | null | undefined} */ (overlay?.querySelector?.('.image-review-thumbs [aria-current="true"] img[data-asset-id], .image-review-thumb[aria-current="true"] img[data-asset-id]'));
   return clean(activeThumb?.dataset?.assetId)||lastOpenedAssetId;
@@ -181,7 +181,7 @@ function ensureViewerRotateControls(overlay){
 }
 function applyViewerRotation(){
   const overlay=document.querySelector('.image-viewer-overlay');
-  if(!/** @type {HTMLDialogElement | null} */ (overlay)?.open)return;
+  if(!overlay?.hasAttribute('open'))return;
   ensureViewerRotateControls(overlay);
   const assetId=activeViewerAssetId(overlay);
   const img=/** @type {HTMLImageElement | null} */ (overlay.querySelector('.image-review-image'));
