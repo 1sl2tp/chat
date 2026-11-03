@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="1649c2b16f8effded671ec1ac78cbbff31f8817f9b8bdb160ea7875281cf1377">
+<meta name="app-build-id" content="182e43f155aa912f96ef0a70e842e763f350146d7557464f30eb47820ccd2586">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -16818,7 +16818,9 @@ function installStyle(){
   `;
   document.head.appendChild(style);
 }
+/** @param {HTMLElement | null | undefined} tile @returns {string} */
 function tileAssetId(tile){return clean(tile?.dataset?.mediaAssetId);}
+/** @param {HTMLElement | null | undefined} overlay @returns {string} */
 function activeViewerAssetId(overlay){
   const activeThumb=overlay?.querySelector?.('.image-review-thumbs [aria-current="true"] img[data-asset-id], .image-review-thumb[aria-current="true"] img[data-asset-id]');
   return clean(activeThumb?.dataset?.assetId)||lastOpenedAssetId;
@@ -16908,6 +16910,7 @@ function applyViewerRotation(){
   }
   window.V21ImageViewerVisual?.applyTransform?.();
 }
+/** @param {string} assetId @param {number} delta @returns {boolean} */
 function rotateAsset(assetId,delta){
   const id=clean(assetId);
   if(!id)return false;
