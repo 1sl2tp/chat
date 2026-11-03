@@ -17,5 +17,5 @@ for(const [input,output,name] of contracts){
 assert.match(source,/\/\*\* @param \{string\} assetId @param \{number\} value @returns \{number\} \*\/\nfunction writeRotation\(assetId,value\)/);
 assert.match(source,/\/\*\* @param \{string\} assetId @param \{number\} delta @returns \{boolean\} \*\/\nfunction rotateAsset\(assetId,delta\)/);
 assert.match(source,/\/\*\* @param \{Element \| null \| undefined\} tile @returns \{string\} \*\/\nfunction tileAssetId\(tile\)/);
-assert.match(source,/\/\*\* @param \{HTMLElement \| null \| undefined\} overlay @returns \{string\} \*\/\nfunction activeViewerAssetId\(overlay\)/);
+assert.match(source,/\/\*\* @param \{Element \| null \| undefined\} overlay @returns \{string\} \*\/\nfunction activeViewerAssetId\(overlay\)/);
 console.log('Chat image rotation JSDoc migration contracts PASS');
