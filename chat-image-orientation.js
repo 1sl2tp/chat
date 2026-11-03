@@ -5,6 +5,7 @@ const STYLE_ID='v21-chat-image-orientation-style';
 const STORAGE_PREFIX='v21-chat-image-rotation:';
 let scheduled=0;
 let lastOpenedAssetId='';
+/** @type {MutationObserver | null} */
 let observer=null;
 
 /** @param {unknown} value @returns {string} */
@@ -112,7 +113,7 @@ function installStyle(){
 function tileAssetId(tile){return clean(tile?.dataset?.mediaAssetId);}
 /** @param {HTMLElement | null | undefined} overlay @returns {string} */
 function activeViewerAssetId(overlay){
-  const activeThumb=overlay?.querySelector?.('.image-review-thumbs [aria-current="true"] img[data-asset-id], .image-review-thumb[aria-current="true"] img[data-asset-id]');
+  const activeThumb=/** @type {HTMLImageElement | null | undefined} */ (overlay?.querySelector?.('.image-review-thumbs [aria-current="true"] img[data-asset-id], .image-review-thumb[aria-current="true"] img[data-asset-id]'));
   return clean(activeThumb?.dataset?.assetId)||lastOpenedAssetId;
 }
 function applyTileRotation(tile){
@@ -180,7 +181,7 @@ function ensureViewerRotateControls(overlay){
 }
 function applyViewerRotation(){
   const overlay=document.querySelector('.image-viewer-overlay');
-  if(!overlay?.open)return;
+  if(!/** @type {HTMLDialogElement | null} */ (overlay)?.open)return;
   ensureViewerRotateControls(overlay);
   const assetId=activeViewerAssetId(overlay);
   const img=overlay.querySelector('.image-review-image');
@@ -198,7 +199,7 @@ function applyViewerRotation(){
     img.style.maxWidth='100%';
     img.style.maxHeight='100%';
   }
-  window.V21ImageViewerVisual?.applyTransform?.();
+  /** @type {Window & {V21ImageViewerVisual?: {applyTransform?: () => void}}} */ (window).V21ImageViewerVisual?.applyTransform?.();
 }
 /** @param {string} assetId @param {number} delta @returns {boolean} */
 function rotateAsset(assetId,delta){
