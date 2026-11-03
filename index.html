@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="00af4ef1202ec85a1e5be3515c7ad22db22a25e6763acee501f296325518181a">
+<meta name="app-build-id" content="699da33045c083f1bebb5a5a8fb203e8811281d7f4671b3d6aea50fd27bd86e3">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -14572,6 +14572,8 @@ async function prepareImageAttachment(file,scope,{batch=false}={}){
     quality:BATCH_IMAGE_ENCODE_QUALITY,
     preserveNative:true
   }:undefined);
+  // Reject an oversized encoded result before persisting a draft that cannot upload.
+  if(Number(optimized.blob.size)>MAX_IMAGE_UPLOAD_BYTES)throw new Error('image_too_large');
   const contentHash=await sha256Blob(optimized.blob);
   const item={
     kind:'image',assetId,name:file.name||`image-${Date.now()}.jpg`,size:Number(optimized.blob.size)||0,
