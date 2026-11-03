@@ -147,7 +147,7 @@ function applyTileRotation(tile){
     img.style.maxHeight='';
     img.style.transform=`rotate(${rotation}deg)`;
   }
-  let button=tile.querySelector('[data-chat-image-rotate]');
+  let button=/** @type {HTMLButtonElement | null} */ (tile.querySelector('[data-chat-image-rotate]'));
   if(!button){
     button=document.createElement('button');
     button.type='button';
