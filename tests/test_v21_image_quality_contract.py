@@ -31,6 +31,8 @@ prepare=APP[prepare_start:prepare_end]
 assert "maxEdge:BATCH_IMAGE_MAX_EDGE" in prepare
 assert "quality:BATCH_IMAGE_ENCODE_QUALITY" in prepare
 assert "preserveNative:true" in prepare
+assert "if(Number(optimized.blob.size)>MAX_IMAGE_UPLOAD_BYTES)throw new Error('image_too_large');" in prepare
+assert prepare.index("if(Number(optimized.blob.size)>MAX_IMAGE_UPLOAD_BYTES)") < prepare.index("await sha256Blob(optimized.blob)") < prepare.index("await window.V21MediaCache?.putLocal?.(")
 assert "localImagePreviewUrls.set(String(assetId),previewUrl);" in prepare
 assert "void warmLocalImagePreview(previewUrl);" in prepare
 assert "await warmLocalImagePreview(previewUrl);" not in prepare
