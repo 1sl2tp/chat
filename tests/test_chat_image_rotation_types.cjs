@@ -18,4 +18,5 @@ assert.match(source,/\/\*\* @param \{string\} assetId @param \{number\} value @r
 assert.match(source,/\/\*\* @param \{string\} assetId @param \{number\} delta @returns \{boolean\} \*\/\nfunction rotateAsset\(assetId,delta\)/);
 assert.match(source,/\/\*\* @param \{Element \| null \| undefined\} tile @returns \{string\} \*\/\nfunction tileAssetId\(tile\)/);
 assert.match(source,/\/\*\* @param \{Element \| null \| undefined\} overlay @returns \{string\} \*\/\nfunction activeViewerAssetId\(overlay\)/);
+assert.match(source,/let button=\/\*\* @type \{HTMLButtonElement \| null\} \*\/ \(tile\.querySelector\('\[data-chat-image-rotate\]'\)\);/);
 console.log('Chat image rotation JSDoc migration contracts PASS');
