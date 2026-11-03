@@ -7,17 +7,22 @@ let scheduled=0;
 let lastOpenedAssetId='';
 let observer=null;
 
+/** @param {unknown} value @returns {string} */
 function clean(value){return String(value??'').trim();}
+/** @param {unknown} value @returns {number} Normalized clockwise quarter-turn degrees. */
 function normalizeRotation(value){
   const n=Number(value)||0;
   return ((Math.round(n/90)*90)%360+360)%360;
 }
+/** @param {string} assetId @returns {string} */
 function rotationKey(assetId){return `${STORAGE_PREFIX}${clean(assetId)}`;}
+/** @param {string} assetId @returns {number} */
 function readRotation(assetId){
   const id=clean(assetId);
   if(!id)return 0;
   try{return normalizeRotation(localStorage.getItem(rotationKey(id)));}catch{return 0;}
 }
+/** @param {string} assetId @param {number} value @returns {number} */
 function writeRotation(assetId,value){
   const id=clean(assetId);
   const next=normalizeRotation(value);
