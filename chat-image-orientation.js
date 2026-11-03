@@ -109,8 +109,8 @@ function installStyle(){
   `;
   document.head.appendChild(style);
 }
-/** @param {HTMLElement | null | undefined} tile @returns {string} */
-function tileAssetId(tile){return clean(tile?.dataset?.mediaAssetId);}
+/** @param {Element | null | undefined} tile @returns {string} */
+function tileAssetId(tile){return clean(tile?.getAttribute('data-media-asset-id'));}
 /** @param {HTMLElement | null | undefined} overlay @returns {string} */
 function activeViewerAssetId(overlay){
   const activeThumb=/** @type {HTMLImageElement | null | undefined} */ (overlay?.querySelector?.('.image-review-thumbs [aria-current="true"] img[data-asset-id], .image-review-thumb[aria-current="true"] img[data-asset-id]'));
