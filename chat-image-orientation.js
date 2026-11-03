@@ -14,7 +14,9 @@ function clean(value){return String(value??'').trim();}
 function normalizeRotation(value){
   const parsed=Number(value);
   const n=Number.isFinite(parsed)?parsed:0;
-  return ((Math.round(n/90)*90)%360+360)%360;
+  // Reduce first: rounding huge finite values loses quarter-turn precision.
+  const reduced=n%360;
+  return ((Math.round(reduced/90)*90)%360+360)%360;
 }
 /** @param {string} assetId @returns {string} */
 function rotationKey(assetId){return `${STORAGE_PREFIX}${clean(assetId)}`;}
