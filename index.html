@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="78ce83bccf59b8ff1cf224bafa9ab6ded24deeda337dc2888f55ca2f42ac71b6">
+<meta name="app-build-id" content="60e30d74a6c3980fd6caedd6f732e9166fb761effcdcf5809b5b31c854c28ea4">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -16819,8 +16819,8 @@ function installStyle(){
   `;
   document.head.appendChild(style);
 }
-/** @param {HTMLElement | null | undefined} tile @returns {string} */
-function tileAssetId(tile){return clean(tile?.dataset?.mediaAssetId);}
+/** @param {Element | null | undefined} tile @returns {string} */
+function tileAssetId(tile){return clean(tile?.getAttribute('data-media-asset-id'));}
 /** @param {HTMLElement | null | undefined} overlay @returns {string} */
 function activeViewerAssetId(overlay){
   const activeThumb=/** @type {HTMLImageElement | null | undefined} */ (overlay?.querySelector?.('.image-review-thumbs [aria-current="true"] img[data-asset-id], .image-review-thumb[aria-current="true"] img[data-asset-id]'));
