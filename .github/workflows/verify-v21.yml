@@ -499,5 +499,9 @@ jobs:
         run: |
           node --check app.js
           node tests/test_ui195_floating_day_quick_actions.mjs
+      - name: Image rotation TypeScript migration contract
+        run: |
+          node --check chat-image-orientation.js
+          node tests/test_chat_image_rotation_types.cjs
       - name: Verify canonical source
         run: python tools/verify_current.py
