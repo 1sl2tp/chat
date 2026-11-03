@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="397f6fd41fac1bd758ff9027a101440d886c13e22a10b078c5045600ffe90b0a">
+<meta name="app-build-id" content="97f208ea2f885bb8c67bf1d0e485f09630ce6167e42aa15fab0bd848dcc64854">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -16722,7 +16722,8 @@ let observer=null;
 function clean(value){return String(value??'').trim();}
 /** @param {unknown} value @returns {number} Normalized clockwise quarter-turn degrees. */
 function normalizeRotation(value){
-  const n=Number(value)||0;
+  const parsed=Number(value);
+  const n=Number.isFinite(parsed)?parsed:0;
   return ((Math.round(n/90)*90)%360+360)%360;
 }
 /** @param {string} assetId @returns {string} */
