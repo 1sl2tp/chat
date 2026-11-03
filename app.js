@@ -6040,6 +6040,8 @@ async function prepareImageAttachment(file,scope,{batch=false}={}){
     quality:BATCH_IMAGE_ENCODE_QUALITY,
     preserveNative:true
   }:undefined);
+  // Reject an oversized encoded result before persisting a draft that cannot upload.
+  if(Number(optimized.blob.size)>MAX_IMAGE_UPLOAD_BYTES)throw new Error('image_too_large');
   const contentHash=await sha256Blob(optimized.blob);
   const item={
     kind:'image',assetId,name:file.name||`image-${Date.now()}.jpg`,size:Number(optimized.blob.size)||0,
