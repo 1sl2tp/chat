@@ -5769,10 +5769,11 @@ function formatBytes(bytes){
 const MAX_IMAGE_EDGE=4096;
 const MAX_IMAGE_UPLOAD_BYTES=15*1024*1024;
 const IMAGE_ENCODE_QUALITY=.92;
-// A multi-image chat send favors fast round-trip and fast receiver hydration.
-// Single images keep the full-resolution policy above for viewer/detail quality.
-const BATCH_IMAGE_MAX_EDGE=2048;
-const BATCH_IMAGE_ENCODE_QUALITY=.86;
+// Batch and single-image sends share the same resolution/quality ceiling.
+// Preserve native image bytes within the upload limit: reducing batch photos
+// to 2048px/.86 permanently blurred details in the recipient's full viewer.
+const BATCH_IMAGE_MAX_EDGE=MAX_IMAGE_EDGE;
+const BATCH_IMAGE_ENCODE_QUALITY=IMAGE_ENCODE_QUALITY;
 const localImagePreviewUrls=new Map();
 
 function releaseLocalImageAttachment(item,{removeCache=true}={}){
@@ -6037,7 +6038,7 @@ async function prepareImageAttachment(file,scope,{batch=false}={}){
   const optimized=await optimizeImageBlob(file,batch?{
     maxEdge:BATCH_IMAGE_MAX_EDGE,
     quality:BATCH_IMAGE_ENCODE_QUALITY,
-    preserveNative:false
+    preserveNative:true
   }:undefined);
   const contentHash=await sha256Blob(optimized.blob);
   const item={
