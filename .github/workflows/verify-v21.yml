@@ -503,5 +503,6 @@ jobs:
         run: |
           node --check chat-image-orientation.js
           node tests/test_chat_image_rotation_types.cjs
+          node tests/test_chat_rotation_runtime.cjs
       - name: Verify canonical source
         run: python tools/verify_current.py
