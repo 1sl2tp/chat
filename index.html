@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="699da33045c083f1bebb5a5a8fb203e8811281d7f4671b3d6aea50fd27bd86e3">
+<meta name="app-build-id" content="1649c2b16f8effded671ec1ac78cbbff31f8817f9b8bdb160ea7875281cf1377">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -16717,17 +16717,22 @@ let scheduled=0;
 let lastOpenedAssetId='';
 let observer=null;
 
+/** @param {unknown} value @returns {string} */
 function clean(value){return String(value??'').trim();}
+/** @param {unknown} value @returns {number} Normalized clockwise quarter-turn degrees. */
 function normalizeRotation(value){
   const n=Number(value)||0;
   return ((Math.round(n/90)*90)%360+360)%360;
 }
+/** @param {string} assetId @returns {string} */
 function rotationKey(assetId){return `${STORAGE_PREFIX}${clean(assetId)}`;}
+/** @param {string} assetId @returns {number} */
 function readRotation(assetId){
   const id=clean(assetId);
   if(!id)return 0;
   try{return normalizeRotation(localStorage.getItem(rotationKey(id)));}catch{return 0;}
 }
+/** @param {string} assetId @param {number} value @returns {number} */
 function writeRotation(assetId,value){
   const id=clean(assetId);
   const next=normalizeRotation(value);
