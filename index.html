@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="83bac6bf9760094fe414454f93db23417bf72f68eeab01b6b95d3c36222fe02a">
+<meta name="app-build-id" content="78ce83bccf59b8ff1cf224bafa9ab6ded24deeda337dc2888f55ca2f42ac71b6">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -16829,7 +16829,7 @@ function activeViewerAssetId(overlay){
 function applyTileRotation(tile){
   if(!tile)return;
   const assetId=tileAssetId(tile);
-  const img=tile.querySelector('img');
+  const img=/** @type {HTMLImageElement | null} */ (tile.querySelector('img'));
   if(!assetId||!img)return;
   const rotation=readRotation(assetId);
   const quarter=rotation===90||rotation===270;
@@ -16894,7 +16894,7 @@ function applyViewerRotation(){
   if(!/** @type {HTMLDialogElement | null} */ (overlay)?.open)return;
   ensureViewerRotateControls(overlay);
   const assetId=activeViewerAssetId(overlay);
-  const img=overlay.querySelector('.image-review-image');
+  const img=/** @type {HTMLImageElement | null} */ (overlay.querySelector('.image-review-image'));
   const stage=overlay.querySelector('.image-review-main');
   if(!img||!assetId)return;
   const rotation=readRotation(assetId);
