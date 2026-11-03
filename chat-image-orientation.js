@@ -108,7 +108,9 @@ function installStyle(){
   `;
   document.head.appendChild(style);
 }
+/** @param {HTMLElement | null | undefined} tile @returns {string} */
 function tileAssetId(tile){return clean(tile?.dataset?.mediaAssetId);}
+/** @param {HTMLElement | null | undefined} overlay @returns {string} */
 function activeViewerAssetId(overlay){
   const activeThumb=overlay?.querySelector?.('.image-review-thumbs [aria-current="true"] img[data-asset-id], .image-review-thumb[aria-current="true"] img[data-asset-id]');
   return clean(activeThumb?.dataset?.assetId)||lastOpenedAssetId;
@@ -198,6 +200,7 @@ function applyViewerRotation(){
   }
   window.V21ImageViewerVisual?.applyTransform?.();
 }
+/** @param {string} assetId @param {number} delta @returns {boolean} */
 function rotateAsset(assetId,delta){
   const id=clean(assetId);
   if(!id)return false;
