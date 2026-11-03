@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="97f208ea2f885bb8c67bf1d0e485f09630ce6167e42aa15fab0bd848dcc64854">
+<meta name="app-build-id" content="76866daf99d1eba9f2d8fca5c70999d516daa3c6c91dc686f32b45ad721d7383">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -16724,7 +16724,9 @@ function clean(value){return String(value??'').trim();}
 function normalizeRotation(value){
   const parsed=Number(value);
   const n=Number.isFinite(parsed)?parsed:0;
-  return ((Math.round(n/90)*90)%360+360)%360;
+  // Reduce first: rounding huge finite values loses quarter-turn precision.
+  const reduced=n%360;
+  return ((Math.round(reduced/90)*90)%360+360)%360;
 }
 /** @param {string} assetId @returns {string} */
 function rotationKey(assetId){return `${STORAGE_PREFIX}${clean(assetId)}`;}
