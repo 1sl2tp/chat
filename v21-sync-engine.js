@@ -150,10 +150,12 @@ function mediaPreviewLabel(kind){
 }
 
 function messagePreviewContract(row){
+  // Last-message direction belongs in the preview only; never modify its UTC timestamp.
+  const outgoing=accountId&&String(row?.sender_account_id||'')===String(accountId)?'Bạn: ':'';
   const body=String(row?.body||'').replace(/\s+/g,' ').trim();
   const firstMedia=(Array.isArray(row?._media_assets)?row._media_assets:[]).find(item=>item&&!item.deleted_at)||null;
-  if(body)return{preview_text:body,preview_kind:firstMedia?'mixed':'text'};
-  if(firstMedia)return{preview_text:mediaPreviewLabel(firstMedia.kind),preview_kind:firstMedia.kind||'file'};
+  if(body)return{preview_text:outgoing+body,preview_kind:firstMedia?'mixed':'text'};
+  if(firstMedia)return{preview_text:outgoing+mediaPreviewLabel(firstMedia.kind),preview_kind:firstMedia.kind||'file'};
   return{preview_text:'',preview_kind:'text'};
 }
 
@@ -399,9 +401,10 @@ async function applyMediaEvent(event,context=captureSyncOwnerContext()){
     if(!syncOwnerContextCurrent(context))return false;
     const parentPreview=parent?messagePreviewContract(parent):null;
     const hasParentText=Boolean(String(parent?.body||'').trim());
+    const ownMedia=String(parent?.sender_account_id||payload.owner_account_id||'')===context.accountId;
     const preview=hasParentText
       ?{...parentPreview,preview_kind:'mixed'}
-      :{preview_text:mediaPreviewLabel(payload.kind),preview_kind:payload.kind||'file'};
+      :{preview_text:(ownMedia?'Bạn: ':'')+mediaPreviewLabel(payload.kind),preview_kind:payload.kind||'file'};
     await patchContactSummary(payload.conversation_id,{
       ...preview,
       latest_at:parent?.created_at||payload.created_at||new Date().toISOString()
@@ -466,7 +469,7 @@ function paintRealtimeWithoutCache(event,context){
     if(nextAt&&nextAt>=previousAt){
       contacts()?.upsert?.({
         ...current,
-        preview_text:mediaPreviewLabel(mediaRow.kind),
+        preview_text:(String(mediaRow.owner_account_id||'')===context.accountId?'Bạn: ':'')+mediaPreviewLabel(mediaRow.kind),
         preview_kind:mediaRow.kind,
         latest_at:mediaRow.created_at
       });

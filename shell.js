@@ -1026,7 +1026,7 @@ function setContactTimeNode(node,item){
       hour:'2-digit',minute:'2-digit',hour12:false
     });
     node.title=reportView?reportView.time:full;
-    node.setAttribute('aria-label',reportView?reportView.time:'Tin gần nhất '+full);
+    node.setAttribute('aria-label',reportView?reportView.time:'Tin gần nhất '+full+' · giờ Việt Nam');
   }else{
     node.removeAttribute('datetime');
     node.title=reportView?.time||'';
@@ -1039,9 +1039,11 @@ function contactPreview(item){
   const reportView=bankReportContactView(item);
   if(reportView)return reportView.preview;
   const kind=String(item?.preview_kind||'text');
-  if(kind==='image')return'Ảnh';
-  if(kind==='audio')return'Ghi âm';
-  if(kind==='file')return'Tệp';
+  // Canonical sidebar and Realtime use one direction marker for the sender.
+  const outgoing=String(item?.preview_text||'').startsWith('Bạn: ')?'Bạn: ':'';
+  if(kind==='image')return outgoing+'Ảnh';
+  if(kind==='audio')return outgoing+'Ghi âm';
+  if(kind==='file')return outgoing+'Tệp';
   return compactPreview(item?.preview_text)||'Chưa có tin nhắn';
 }
 

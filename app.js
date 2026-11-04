@@ -2809,8 +2809,8 @@ function syncMessageTimeNode(unit,message){
     timeZone:'Asia/Ho_Chi_Minh',day:'2-digit',month:'2-digit',year:'numeric',
     hour:'2-digit',minute:'2-digit',hour12:false
   });
-  time.title='Gửi lúc '+full;
-  time.setAttribute('aria-label','Gửi lúc '+full);
+  time.title='Gửi lúc '+full+' · giờ Việt Nam';
+  time.setAttribute('aria-label','Gửi lúc '+full+' · giờ Việt Nam');
 }
 
 function messageDateKey(timestamp){
