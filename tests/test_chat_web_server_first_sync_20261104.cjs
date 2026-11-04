@@ -30,7 +30,7 @@ function fixture({prune=async()=>false,write=async()=>true}={}){
   window:null,console,Map,Set,Array,Object,String,Number,Boolean,Date,Math,JSON,Promise,Blob,
   navigator:{onLine:true},
   document:{addEventListener:on,dispatchEvent(e){emit(e.type,e.detail);return true;}},
-  queueMicrotask(){},setTimeout(){return 1;},clearTimeout(){},
+  queueMicrotask(fn){Promise.resolve().then(fn);},setTimeout(){return 1;},clearTimeout(){},
   CustomEvent:class{constructor(type,{detail}={}){this.type=type;this.detail=detail;}},
   V21CacheStore:cache,
   V21AuthSessionStore:{
