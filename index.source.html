@@ -881,6 +881,27 @@ button{
 /* HIST-219: visible manual older-day navigation, never hijacks scroll. */
 .chat-history-more{display:flex;justify-content:center;padding:10px 12px 5px}
 .chat-history-more[hidden]{display:none!important}
+/* CHAT-WEB-ROOT-RESTORE-20261104: a route-only browser tab must explain
+   why the thread is empty instead of showing a stale history action. */
+.chat-no-contact-hint{
+  display:none;
+  max-width:360px;
+  margin:clamp(64px,15vh,160px) auto 18px;
+  padding:14px 18px;
+  border:1px solid var(--theme-border-default,#dce0e5);
+  border-radius:16px;
+  background:var(--theme-surface-secondary,#f5f6f7);
+  color:var(--theme-content-secondary,#52606d);
+  font-size:14px;
+  text-align:center;
+  line-height:1.6;
+}
+#appShell[data-auth-state="authenticated"][data-route="chat"][data-chat-contact="false"] .chat-no-contact-hint{
+  display:block;
+}
+#appShell[data-route="chat"][data-chat-contact="false"] #historyMoreWrap{
+  display:none!important;
+}
 .chat-history-more-button{border:1px solid var(--theme-border-default,#dce0e5);border-radius:999px;background:var(--theme-surface-secondary,#f5f6f7);color:var(--theme-content-primary,#202830);padding:9px 16px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;min-height:40px}
 .chat-history-more-button:disabled{opacity:.55;cursor:default}
 .chat-history-more-button:hover:not(:disabled){background:var(--theme-action-ghost-surface-hover,#eaecef)}
@@ -4181,6 +4202,7 @@ button{
               <div id="messageDayFloating" class="message-day-floating" hidden aria-hidden="true" data-visible="false">
                 <span class="message-day-floating-label"></span>
               </div>
+              <div id="chatNoContactHint" class="chat-no-contact-hint" role="status">Chọn một liên hệ trong Danh bạ để xem tin nhắn mới nhất.</div>
               <div id="historyMoreWrap" data-chat-thread-node class="chat-history-more" hidden>
                 <button type="button" id="historyMoreButton" class="chat-history-more-button" aria-label="Xem thêm ngày cũ hơn">Xem tin / ngày cũ hơn</button>
               </div>
