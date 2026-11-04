@@ -22,6 +22,9 @@ let unreadRefreshTimer=0;
 let unreadRefreshQueued=false;
 let unreadLastStartedAt=0;
 let realtimeApplyChain=Promise.resolve();
+// A successful canonical sidebar response must never be overwritten by a late
+// IndexedDB bootstrap from the same account/session.
+let canonicalSidebarOwner='';
 // Only one in-flight outbox drain for the current authenticated client.
 let outboxFlushFlight=null;
 
@@ -1701,6 +1704,10 @@ async function ensureMediaRemote(request){
   return row;
 }
 
+function sidebarOwnerKey(context){
+  return String(context?.accountId||'')+':'+String(context?.appSessionId||'');
+}
+
 async function syncContacts(){
   const context=captureSyncOwnerContext();
   if(!context.accountId)return[];
@@ -1716,15 +1723,24 @@ async function syncContacts(){
   if(!syncOwnerContextCurrent(context))return[];
   if(error){await wake({reason:'contacts'});return contacts()?.snapshot?.()||[];}
   const rows=(Array.isArray(data)?data:[]).map(canonicalContact).filter(Boolean);
-  await cache()?.replaceContacts?.(context.accountId,rows);
-  if(!syncOwnerContextCurrent(context))return[];
-  for(const row of rows){
-    if(!syncOwnerContextCurrent(context))return[];
-    if(row.conversation_id)await cache()?.setConversationId?.(context.accountId,row.id,row.conversation_id);
-  }
-  if(!syncOwnerContextCurrent(context))return[];
+  // CHAT-WEB-SERVER-FIRST-20261104: the server response is authoritative.
+  // Persisting to IndexedDB may hang/throw on a particular desktop browser.
+  // Render fresh contacts immediately instead of putting an unbounded storage
+  // await between the successful RPC and the visible directory.
+  canonicalSidebarOwner=sidebarOwnerKey(context);
   contacts()?.replace?.(rows);
-  return rows;
+  try{
+    await cache()?.replaceContacts?.(context.accountId,rows);
+    if(!syncOwnerContextCurrent(context))return[];
+    for(const row of rows){
+      if(!syncOwnerContextCurrent(context))return[];
+      if(row.conversation_id)await cache()?.setConversationId?.(context.accountId,row.id,row.conversation_id);
+    }
+  }catch(error){
+    // Read-only, in-memory directory remains usable if local persistence fails.
+    console.warn('[V21SyncEngine] sidebar cache unavailable; using server contacts');
+  }
+  return syncOwnerContextCurrent(context)?rows:[];
 }
 
 async function hydrateAccount(context=captureSyncOwnerContext()){
@@ -1733,7 +1749,10 @@ async function hydrateAccount(context=captureSyncOwnerContext()){
   if(!syncOwnerContextCurrent(context))return[];
   const cachedContacts=await cache()?.listContacts?.(context.accountId)||[];
   if(!syncOwnerContextCurrent(context))return[];
-  if(cachedContacts.length)contacts()?.replace?.(cachedContacts);
+  // A slower cache read must not reverse newer canonical server activity.
+  if(cachedContacts.length&&canonicalSidebarOwner!==sidebarOwnerKey(context)){
+    contacts()?.replace?.(cachedContacts);
+  }
   return cachedContacts;
 }
 
@@ -1750,6 +1769,7 @@ async function onAuth(detail){
     dirtyActiveMessageIds.clear();
     activeDirtyNeedsFullMediaIndex=false;
     accountId=null;appSessionId=null;currentContactId=null;
+    canonicalSidebarOwner='';
     wakeHint=0;wakePending=false;
     messages()?.reset?.();
     return;
@@ -1760,6 +1780,13 @@ async function onAuth(detail){
   appSessionId=String(snap.appSessionId||'');
   if(!accountId||!appSessionId)return;
   const context=captureSyncOwnerContext();
+  // Fetch the canonical sidebar immediately, independently of local storage.
+  // Desktop IndexedDB can be blocked/corrupt while Auth and Call RPCs still
+  // succeed. The old boot sequence awaited cache pruning/opening first and
+  // could go for hours without ever issuing v21_contacts_sidebar/sync_pull.
+  if(online())void syncContacts().catch(error=>
+    console.warn('[V21SyncEngine] initial sidebar fetch failed',String(error?.message||error||'').slice(0,100))
+  );
   // One-time server-deletion reconciliation: remove only the old admin↔test
   // IndexedDB rows before any cached conversation is mounted. Other customer
   // histories in the Admin account remain untouched.
@@ -1776,12 +1803,8 @@ async function onAuth(detail){
   }
   if(!syncOwnerContextCurrent(context))return;
 
-  // Directory membership is canonical account data, never Presence/session state.
-  // Repair a stale local contact cache once per authenticated bootstrap so an
-  // offline account cannot disappear just because it has no active Chat session.
-  if(online())queueMicrotask(()=>{
-    if(syncOwnerContextCurrent(context))void syncContacts();
-  });
+  // Initial canonical directory fetch was started above before IndexedDB work.
+  // Do not launch a duplicate sidebar RPC just because local hydration finished.
 
   // Do not hydrate inactive conversations during boot. The selected thread
   // is restored by openContact; others hydrate on explicit selection.
