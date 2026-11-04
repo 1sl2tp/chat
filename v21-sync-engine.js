@@ -638,7 +638,7 @@ function outboxAsLocal(item,conversationId){
 function serverFirstThreadKey(context,conversationId){
   return sidebarOwnerKey(context)+':'+String(conversationId||'');
 }
-function serverFirstActiveThread(context,contact){
+function serverFirstActiveThread(context,contact,{force=false}={}){
   const target=String(contact?.id||'');
   const conversationId=String(contact?.conversation_id||'');
   const selected=shell()?.snapshot?.().activeContact;
@@ -647,7 +647,7 @@ function serverFirstActiveThread(context,contact){
      String(selected?.id||'')!==target||
      String(shell()?.snapshot?.().route||'')!=='chat')return Promise.resolve(false);
   const key=serverFirstThreadKey(context,conversationId);
-  if(serverFirstThreadHydrated.has(key))return Promise.resolve(true);
+  if(!force&&serverFirstThreadHydrated.has(key))return Promise.resolve(true);
   if(serverFirstThreadFlight?.key===key)return serverFirstThreadFlight.promise;
   const promise=(async()=>{
     const {data,error}=await context.client.rpc('v21_sync_snapshot',{
@@ -1808,7 +1808,7 @@ function sidebarOwnerKey(context){
   return String(context?.accountId||'')+':'+String(context?.appSessionId||'');
 }
 
-async function syncContacts({recoverActive=false}={}){
+async function syncContacts({recoverActive=false,forceActive=false}={}){
   const context=captureSyncOwnerContext();
   if(!context.accountId)return[];
   if(!online()||!context.client||!context.appSessionId){
@@ -1832,7 +1832,7 @@ async function syncContacts({recoverActive=false}={}){
   if(recoverActive){
     const active=String(shell()?.snapshot?.().activeContact?.id||'');
     const contact=rows.find(row=>String(row?.id||'')===active&&row?.conversation_id);
-    if(contact)void serverFirstActiveThread(context,contact).catch(error=>
+    if(contact)void serverFirstActiveThread(context,contact,{force:forceActive}).catch(error=>
       console.warn('[V21SyncEngine] canonical active thread unavailable',
         String(error?.message||error||'').slice(0,90))
     );
