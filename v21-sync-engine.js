@@ -1942,10 +1942,16 @@ async function onAuth(detail){
     return;
   }
   const snap=authSnapshot();
-  client=authStore()?.getClient?.()||client;
-  accountId=String(snap.account?.id||'');
-  appSessionId=String(snap.appSessionId||'');
-  if(!accountId||!appSessionId)return;
+  const nextClient=authStore()?.getClient?.()||client;
+  const nextAccountId=String(snap.account?.id||'');
+  const nextAppSessionId=String(snap.appSessionId||'');
+  if(!nextAccountId||!nextAppSessionId)return;
+  // Both the module's initial microtask and the authenticated event can run
+  // for one session. Only one owner may bootstrap the canonical sidebar.
+  if(accountId===nextAccountId&&appSessionId===nextAppSessionId&&client===nextClient)return;
+  client=nextClient;
+  accountId=nextAccountId;
+  appSessionId=nextAppSessionId;
   const context=captureSyncOwnerContext();
   // Fetch the canonical sidebar immediately, independently of local storage.
   // Desktop IndexedDB can be blocked/corrupt while Auth and Call RPCs still
