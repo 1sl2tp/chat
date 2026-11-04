@@ -421,12 +421,69 @@ async function applyEvent(event,context=captureSyncOwnerContext()){
   return false;
 }
 
+// Canonical Realtime is already authenticated and account-scoped. Paint the
+// visible text/preview synchronously before IndexedDB. A blocked getMessage/
+// putMessage used to stall realtimeApplyChain and leave desktop at 05:44 while
+// Auth/Heartbeat continued succeeding. Durable writes still run below.
+function paintRealtimeWithoutCache(event,context){
+  if(!syncOwnerContextCurrent(context)||!event?.payload)return false;
+  const kind=String(event.entity_type||'');
+  if(kind==='message'){
+    const row=canonicalMessage(event.payload);
+    if(!row?.id||!row.conversation_id||event.op==='delete'||row.deleted_at)return false;
+    const contactId=contactIdForConversation(row.conversation_id);
+    if(contactId)messages()?.mergeForContact?.(row,{contactId,conversationId:row.conversation_id});
+    const own=String(row.sender_account_id)===context.accountId;
+    const visible=String(row.conversation_id)===String(currentConversationId)&&chatVisible();
+    if(visible&&String(row.body||'').trim()){
+      messages()?.apply?.(row,{remote:!own});
+    }
+    const current=contacts()?.snapshot?.().find(item=>
+      String(item?.conversation_id||'')===String(row.conversation_id)
+    )||null;
+    if(!current)return true;
+    const previousAt=Date.parse(current.latest_at||'')||0;
+    const nextAt=Date.parse(row.created_at||'')||0;
+    if(nextAt&&nextAt>=previousAt){
+      contacts()?.upsert?.({
+        ...current,...messagePreviewContract(row),latest_at:row.created_at,
+        has_unread:own?false:!visible
+      });
+    }
+    return true;
+  }
+  if(kind==='media'){
+    const mediaRow=canonicalMedia(event.payload);
+    if(!mediaRow||event.op==='delete'||mediaRow.deleted_at)return false;
+    const current=contacts()?.snapshot?.().find(item=>
+      String(item?.conversation_id||'')===String(mediaRow.conversation_id)
+    )||null;
+    if(!current)return false;
+    const previousAt=Date.parse(current.latest_at||'')||0;
+    const nextAt=Date.parse(mediaRow.created_at||'')||0;
+    // A media event's canonical preview is usable even if its binary is not
+    // cached yet. Do not roll the sidebar back for older assets.
+    if(nextAt&&nextAt>=previousAt){
+      contacts()?.upsert?.({
+        ...current,
+        preview_text:mediaPreviewLabel(mediaRow.kind),
+        preview_kind:mediaRow.kind,
+        latest_at:mediaRow.created_at
+      });
+    }
+    return true;
+  }
+  return false;
+}
+
 function consumeRealtimeEvent(event={}){
   const context=captureSyncOwnerContext();
   const targetAccountId=String(event?.target_account_id||'');
   if(!context.accountId||!context.appSessionId||!context.client||!event?.entity_type)return Promise.resolve(false);
   if(targetAccountId&&targetAccountId!==context.accountId)return Promise.resolve(false);
 
+  // UI is event-driven and must not be gated by optional local persistence.
+  paintRealtimeWithoutCache(event,context);
   const run=async()=>{
     if(!syncOwnerContextCurrent(context))return false;
     const applied=await applyEvent(event,context);
