@@ -191,6 +191,8 @@ jobs:
         run: node tests/test_bank231_manual_collection_failure_message_20261104.cjs
       - name: BANK-232 show exact bank credit and separately rounded manual debt
         run: node tests/test_bank232_manual_round_down_ui_20261104.cjs
+      - name: BANK-233 rounded ledger status check
+        run: node tests/test_bank233_manual_round_down_status_20261104.cjs
       - name: BANK-224 accessible keyboard ownership for both bank reconciliation dialogs
         run: node tests/test_bank224_review_dialog_keyboard_20261102.cjs
       - name: BANK-225 bank report session identity and stale media privacy
