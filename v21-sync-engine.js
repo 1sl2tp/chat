@@ -1784,9 +1784,11 @@ async function onAuth(detail){
   // Desktop IndexedDB can be blocked/corrupt while Auth and Call RPCs still
   // succeed. The old boot sequence awaited cache pruning/opening first and
   // could go for hours without ever issuing v21_contacts_sidebar/sync_pull.
-  if(online())void syncContacts().catch(error=>
-    console.warn('[V21SyncEngine] initial sidebar fetch failed',String(error?.message||error||'').slice(0,100))
-  );
+  if(online())queueMicrotask(()=>{
+    if(syncOwnerContextCurrent(context))void syncContacts().catch(error=>
+      console.warn('[V21SyncEngine] initial sidebar fetch failed',String(error?.message||error||'').slice(0,100))
+    );
+  });
   // One-time server-deletion reconciliation: remove only the old admin↔test
   // IndexedDB rows before any cached conversation is mounted. Other customer
   // histories in the Admin account remain untouched.
