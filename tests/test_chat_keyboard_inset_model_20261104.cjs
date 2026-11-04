@@ -1,0 +1,12 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {KeyboardInsetModel}=require('../keyboard-inset-core.js');
+const model=new KeyboardInsetModel({thresholdPx:80});
+assert.equal(model.compute({focused:false,layoutBottom:800,visualTop:0,visualHeight:500}),0);
+assert.equal(model.compute({focused:true,layoutBottom:800,visualTop:0,visualHeight:800}),0);
+assert.equal(model.compute({focused:true,layoutBottom:800,visualTop:0,visualHeight:750}),0);
+assert.equal(model.compute({focused:true,layoutBottom:800,visualTop:0,visualHeight:720}),80);
+assert.equal(model.compute({focused:true,layoutBottom:800,visualTop:20,visualHeight:480}),300);
+assert.equal(model.compute({focused:true,layoutBottom:800,visualTop:-20,visualHeight:480}),320);
+assert.equal(model.compute({focused:true,layoutBottom:800,visualTop:0,visualHeight:900}),0);
+console.log('keyboard inset model regression tests passed');
