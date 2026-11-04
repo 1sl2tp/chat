@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="76866daf99d1eba9f2d8fca5c70999d516daa3c6c91dc686f32b45ad721d7383">
+<meta name="app-build-id" content="66c244205d38365fb4d36f3a15e638e8fe247c14e3cadc4243fc8f17870355c2">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -28217,6 +28217,21 @@ function bankCustomerSearchMatches(customers,query){
  }).slice(0,12);
 }
 const money=x=>x===null||x===undefined||x===''||!Number.isFinite(Number(x))?'—':new Intl.NumberFormat('vi-VN',{maximumFractionDigits:3}).format(Number(x)/1000);
+// BANK-231: Backend status codes are evidence, not copy for finance operators.
+// A rejected collection never implies that the customer's ledger changed.
+function bankManualCollectionFailureMessage(status){
+ const labels={
+  invalid_bank_notice:'Máy chủ chưa chấp nhận thông báo Agribank này. Chưa thay đổi công nợ; kiểm tra trạng thái và số tiền (kể cả số lẻ) trước khi thử lại.',
+  unverified_bank_credit:'Số tiền hoặc tài khoản không khớp thông báo ngân hàng. Chưa ghi thu.',
+  already_collected:'Thông báo này đã được thu thủ công. Không thu lần hai; đóng và mở lại để xem sổ.',
+  already_auto_collected:'Thông báo này đã được thu tự động. Không thu lần hai.',
+  possible_manual_collection:'Phát hiện khoản thu tay mới. Đóng và mở lại để liên kết, không trừ công nợ lần hai.',
+  existing_collection_invalid:'Khoản thu được chọn không khớp; chưa liên kết hoặc ghi thu mới.',
+  customer_invalid:'Khách hàng chưa hợp lệ hoặc đã bị khóa; chưa ghi thu.',
+  note_required:'Nội dung thu chưa hợp lệ; cần nhập ít nhất 5 ký tự.'
+ };
+ return labels[String(status||'')]||'Máy chủ chưa xác nhận khoản thu. Chưa thay đổi công nợ; vui lòng đối chiếu lại trước khi thử.';
+}
 const localDate=()=>{const parts=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const part=t=>parts.find(x=>x.type===t)?.value||'';return part('year')+'-'+part('month')+'-'+part('day');};
 // Agribank notification bodies use "20:58 23/10/2026" (local Vietnam time).
 // Dashboard data arrives as "2026-10-23 20:58:00"; format only the view.
@@ -29173,9 +29188,7 @@ async function openCollectionDialog(bank){
    });
    if(!bankDialogIsCurrent(overlay,owner))return;
    if(error)throw error;
-   if(!data?.ok)throw Error(data?.status==='possible_manual_collection'
-    ?'Phát hiện khoản thu tay mới. Đóng và mở lại để liên kết.'
-    :data?.status||'Không ghi thu được');
+   if(!data?.ok)throw Error(bankManualCollectionFailureMessage(data?.status));
    feedback.textContent=data.debt_changed
     ?'Đã thu công nợ · Sổ #'+data.ledger_id
     :'Đã liên kết khoản đã thu · Sổ #'+data.ledger_id+' · Không thu lần hai';
