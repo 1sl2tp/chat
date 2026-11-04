@@ -17,6 +17,13 @@ let lastInteractionAt=Date.now();
 let remotePresence=[];
 const RECOVERY_BACKOFF_MS=[5000,10000,20000,30000];
 const MESSAGE_FALLBACK_DELAY_MS=250;
+// Desktop windows can remain visible for hours without a visibilitychange.
+// Reconcile on actual focus regain; the timer below only checks local socket
+// health and never polls the message database.
+const FOCUS_RECOVERY_COOLDOWN_MS=45000;
+const SOCKET_HEALTH_CHECK_MS=45000;
+let lastFocusRecoveryAt=0;
+let lastFocusRecoveryOwner='';
 
 function authStore(){return window.V21AuthSessionStore||null;}
 function sync(){return window.V21SyncEngine||null;}
@@ -266,6 +273,34 @@ function start(){
   });
 }
 
+function recoverWindowFocus(){
+  if(!foregroundActive())return false;
+  const current=snapshot();
+  const owner=String(current.account?.id||'')+':'+String(current.appSessionId||'');
+  const now=Date.now();
+  if(owner===lastFocusRecoveryOwner&&now-lastFocusRecoveryAt<FOCUS_RECOVERY_COOLDOWN_MS)return false;
+  lastFocusRecoveryOwner=owner;
+  lastFocusRecoveryAt=now;
+
+  // A still-visible desktop tab does not emit visibilitychange when the user
+  // returns from another application. Do not reset a healthy subscription.
+  const healthy=channelState==='SUBSCRIBED'&&client?.realtime?.isConnected?.()!==false;
+  if(!healthy)void start();
+  // Reconcile a missed canonical event and the server-owned directory order
+  // without a page reload. SyncEngine fences these calls to the login owner.
+  if(healthy)void sync()?.wake?.({reason:'window-focus'});
+  void sync()?.syncContacts?.();
+  return true;
+}
+
+function checkForegroundTransport(){
+  if(!foregroundActive()||channelState!=='SUBSCRIBED')return false;
+  if(client?.realtime?.isConnected?.()!==false)return false;
+  // Health probe is local-only; subscribe triggers one existing delta catch-up.
+  void start();
+  return true;
+}
+
 document.addEventListener('v21-auth-state',event=>{
   if(event.detail?.state==='AUTHENTICATED'&&!document.hidden)void start();
   else void stop();
@@ -273,6 +308,7 @@ document.addEventListener('v21-auth-state',event=>{
 document.addEventListener('v21-auth-token-refreshed',()=>{
   if(foregroundActive())void start();
 });
+window.addEventListener('focus',recoverWindowFocus);
 window.addEventListener('online',()=>{
   if(!foregroundActive())return;
   recoveryAttempt=0;
@@ -299,6 +335,9 @@ document.addEventListener('v21-active-contact-change',()=>schedulePresencePublis
 document.addEventListener('pointerdown',markInteraction,{passive:true,capture:true});
 document.addEventListener('keydown',markInteraction,{passive:true,capture:true});
 document.addEventListener('input',markInteraction,{passive:true,capture:true});
+
+// This is NOT message polling: no RPC is made while the socket is healthy.
+if(typeof window.setInterval==='function')window.setInterval(checkForegroundTransport,SOCKET_HEALTH_CHECK_MS);
 
 window.V21RealtimeSession={
   version:VERSION,start,stop,publishPresence,
