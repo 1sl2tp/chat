@@ -289,7 +289,9 @@ function recoverWindowFocus(){
   // Reconcile a missed canonical event and the server-owned directory order
   // without a page reload. SyncEngine fences these calls to the login owner.
   if(healthy)void sync()?.wake?.({reason:'window-focus'});
-  void sync()?.syncContacts?.();
+  // One foreground reconciliation can repair an active thread whose local
+  // storage never completed (including media-only messages).
+  void sync()?.syncContacts?.({recoverActive:true,forceActive:true});
   return true;
 }
 

@@ -25,6 +25,9 @@ let realtimeApplyChain=Promise.resolve();
 // A successful canonical sidebar response must never be overwritten by a late
 // IndexedDB bootstrap from the same account/session.
 let canonicalSidebarOwner='';
+// A canonical first paint for an open thread must not depend on IndexedDB.
+const serverFirstThreadHydrated=new Set();
+let serverFirstThreadFlight=null;
 // Only one in-flight outbox drain for the current authenticated client.
 let outboxFlushFlight=null;
 
@@ -418,12 +421,69 @@ async function applyEvent(event,context=captureSyncOwnerContext()){
   return false;
 }
 
+// Canonical Realtime is already authenticated and account-scoped. Paint the
+// visible text/preview synchronously before IndexedDB. A blocked getMessage/
+// putMessage used to stall realtimeApplyChain and leave desktop at 05:44 while
+// Auth/Heartbeat continued succeeding. Durable writes still run below.
+function paintRealtimeWithoutCache(event,context){
+  if(!syncOwnerContextCurrent(context)||!event?.payload)return false;
+  const kind=String(event.entity_type||'');
+  if(kind==='message'){
+    const row=canonicalMessage(event.payload);
+    if(!row?.id||!row.conversation_id||event.op==='delete'||row.deleted_at)return false;
+    const contactId=contactIdForConversation(row.conversation_id);
+    if(contactId)messages()?.mergeForContact?.(row,{contactId,conversationId:row.conversation_id});
+    const own=String(row.sender_account_id)===context.accountId;
+    const visible=String(row.conversation_id)===String(currentConversationId)&&chatVisible();
+    if(visible&&String(row.body||'').trim()){
+      messages()?.apply?.(row,{remote:!own});
+    }
+    const current=contacts()?.snapshot?.().find(item=>
+      String(item?.conversation_id||'')===String(row.conversation_id)
+    )||null;
+    if(!current)return true;
+    const previousAt=Date.parse(current.latest_at||'')||0;
+    const nextAt=Date.parse(row.created_at||'')||0;
+    if(nextAt&&nextAt>=previousAt){
+      contacts()?.upsert?.({
+        ...current,...messagePreviewContract(row),latest_at:row.created_at,
+        has_unread:own?false:!visible
+      });
+    }
+    return true;
+  }
+  if(kind==='media'){
+    const mediaRow=canonicalMedia(event.payload);
+    if(!mediaRow||event.op==='delete'||mediaRow.deleted_at)return false;
+    const current=contacts()?.snapshot?.().find(item=>
+      String(item?.conversation_id||'')===String(mediaRow.conversation_id)
+    )||null;
+    if(!current)return false;
+    const previousAt=Date.parse(current.latest_at||'')||0;
+    const nextAt=Date.parse(mediaRow.created_at||'')||0;
+    // A media event's canonical preview is usable even if its binary is not
+    // cached yet. Do not roll the sidebar back for older assets.
+    if(nextAt&&nextAt>=previousAt){
+      contacts()?.upsert?.({
+        ...current,
+        preview_text:mediaPreviewLabel(mediaRow.kind),
+        preview_kind:mediaRow.kind,
+        latest_at:mediaRow.created_at
+      });
+    }
+    return true;
+  }
+  return false;
+}
+
 function consumeRealtimeEvent(event={}){
   const context=captureSyncOwnerContext();
   const targetAccountId=String(event?.target_account_id||'');
   if(!context.accountId||!context.appSessionId||!context.client||!event?.entity_type)return Promise.resolve(false);
   if(targetAccountId&&targetAccountId!==context.accountId)return Promise.resolve(false);
 
+  // UI is event-driven and must not be gated by optional local persistence.
+  paintRealtimeWithoutCache(event,context);
   const run=async()=>{
     if(!syncOwnerContextCurrent(context))return false;
     const applied=await applyEvent(event,context);
@@ -629,6 +689,79 @@ function outboxAsLocal(item,conversationId){
   };
 }
 
+// One-demand canonical hydration for the selected thread. A desktop cache that
+// never resolves must not strand an already-authenticated web view at 05:44.
+// Keep this fetch independent of IndexedDB and scoped to its login/contact.
+function serverFirstThreadKey(context,conversationId){
+  return sidebarOwnerKey(context)+':'+String(conversationId||'');
+}
+function serverFirstActiveThread(context,contact,{force=false}={}){
+  const target=String(contact?.id||'');
+  const conversationId=String(contact?.conversation_id||'');
+  const selected=shell()?.snapshot?.().activeContact;
+  if(!context.client||!context.appSessionId||!target||!conversationId||
+     !online()||!syncOwnerContextCurrent(context)||
+     String(selected?.id||'')!==target||
+     String(shell()?.snapshot?.().route||'')!=='chat')return Promise.resolve(false);
+  const key=serverFirstThreadKey(context,conversationId);
+  if(!force&&serverFirstThreadHydrated.has(key))return Promise.resolve(true);
+  if(serverFirstThreadFlight?.key===key)return serverFirstThreadFlight.promise;
+  const promise=(async()=>{
+    const {data,error}=await context.client.rpc('v21_sync_snapshot',{
+      p_app_session_id:context.appSessionId,
+      p_conversation_id:conversationId,
+      p_message_limit:100
+    });
+    if(error)throw error;
+    if(!syncOwnerContextCurrent(context)||
+       String(shell()?.snapshot?.().activeContact?.id||'')!==target||
+       String(shell()?.snapshot?.().route||'')!=='chat')return false;
+
+    const mediaByMessage=new Map();
+    for(const row of (Array.isArray(data?.media_assets)?data.media_assets:[])){
+      const asset=canonicalMedia(row);
+      if(!asset||asset.deleted_at||!asset.message_id)continue;
+      const list=mediaByMessage.get(asset.message_id)||[];
+      list.push(asset);
+      mediaByMessage.set(asset.message_id,list);
+    }
+    const rows=(Array.isArray(data?.messages)?data.messages:[])
+      .map(canonicalMessage).filter(row=>
+        row?.id&&!row.deleted_at&&String(row.conversation_id||'')===conversationId
+      ).map(row=>({
+        ...row,
+        _media_assets:(mediaByMessage.get(String(row.id))||[]).sort((a,b)=>
+          Number(a.sort_index||0)-Number(b.sort_index||0)
+        )
+      }));
+    const previous=messages()?.snapshot?.()||{};
+    const sameThread=String(previous.currentContactId||'')===target&&
+      (!previous.currentConversationId||
+       String(previous.currentConversationId)===conversationId);
+
+    currentContactId=target;
+    currentConversationId=conversationId;
+    messages()?.setContext?.({contactId:target,conversationId});
+    if(sameThread){
+      // Merge preserves older history and the user's reading position.
+      messages()?.merge?.(rows,{contactId:target,conversationId});
+    }else{
+      messages()?.replace?.(rows,{contactId:target,conversationId});
+    }
+    serverFirstThreadHydrated.add(key);
+    document.dispatchEvent(new CustomEvent('v21-conversation-context',{
+      detail:{accountId:context.accountId,currentContactId:target,currentConversationId:conversationId}
+    }));
+    return true;
+  })();
+  serverFirstThreadFlight={key,promise};
+  void promise.then(
+    ()=>{if(serverFirstThreadFlight?.promise===promise)serverFirstThreadFlight=null;},
+    ()=>{if(serverFirstThreadFlight?.promise===promise)serverFirstThreadFlight=null;}
+  );
+  return promise;
+}
+
 async function hydrateCurrentFromCache(){
   return hydrateContactFromCache(currentContactId,{renderMode:'replace',epoch:contactEpoch});
 }
@@ -661,16 +794,26 @@ async function hydrateContactFromCache(contactId,{renderMode='replace',epoch=con
 
   const stillActive=epoch===contactEpoch&&String(currentContactId||'')===target;
   if(stillActive){
-    currentConversationId=resolvedConversationId;
-    messages()?.setContext?.({contactId:target,conversationId:resolvedConversationId});
-    if(renderMode==='merge'&&rows.length){
-      messages()?.merge?.(rows,{conversationId:resolvedConversationId,contactId:target});
-    }else if(renderMode==='replace'){
-      messages()?.replace?.(rows,{conversationId:resolvedConversationId,contactId:target});
+    const canonicalConversationId=currentConversationId&&
+      serverFirstThreadHydrated.has(serverFirstThreadKey(captureSyncOwnerContext(),currentConversationId))
+        ?String(currentConversationId):null;
+    // Never let an old IndexedDB conversation pointer override a newer server
+    // response, even if a blocked cache read eventually finishes.
+    if(canonicalConversationId&&resolvedConversationId&&
+       canonicalConversationId!==resolvedConversationId){
+      return{conversationId:canonicalConversationId,rows:[]};
     }
-    document.dispatchEvent(new CustomEvent('v21-conversation-context',{detail:{accountId,currentContactId:target,currentConversationId:resolvedConversationId}}));
+    const effectiveConversationId=canonicalConversationId||resolvedConversationId;
+    currentConversationId=effectiveConversationId;
+    messages()?.setContext?.({contactId:target,conversationId:effectiveConversationId});
+    if((renderMode==='merge'||canonicalConversationId)&&rows.length){
+      messages()?.merge?.(rows,{conversationId:effectiveConversationId,contactId:target});
+    }else if(renderMode==='replace'&&!canonicalConversationId){
+      messages()?.replace?.(rows,{conversationId:effectiveConversationId,contactId:target});
+    }
+    document.dispatchEvent(new CustomEvent('v21-conversation-context',{detail:{accountId,currentContactId:target,currentConversationId:effectiveConversationId}}));
   }
-  return{conversationId:resolvedConversationId,rows};
+  return{conversationId:resolvedConversationId||currentConversationId,rows};
 }
 
 function isTransientSyncError(error){
@@ -714,6 +857,18 @@ async function openContact(contactId){
       return false;
     }
 
+    // Fetch a canonical thread snapshot now, not after any local IndexedDB
+    // read. One fetch per conversation/login; the normal delta cursor owns
+    // subsequent realtime activity.
+    const serverContact=contacts()?.snapshot?.().find(row=>
+      String(row?.id||'')===target&&row?.conversation_id
+    );
+    if(online()&&serverContact){
+      void serverFirstActiveThread(captureSyncOwnerContext(),serverContact).catch(error=>
+        console.warn('[V21SyncEngine] active server-first hydration failed',
+          String(error?.message||error||'').slice(0,90))
+      );
+    }
     const restored=messages()?.restoreSession?.(target)||null;
     if(restored){
       currentConversationId=restored.conversationId?String(restored.conversationId):null;
@@ -745,7 +900,9 @@ async function openContact(contactId){
     // First canonical hydration belongs to Conversation Root/openContact, not
     // to generic realtime/manual sync. Cache/UI is already visible; snapshot
     // only merges canonical data for this context and is generation-guarded.
-    if(online()&&!await isConversationHydrated(currentConversationId)){
+    if(online()&&
+       !serverFirstThreadHydrated.has(serverFirstThreadKey(captureSyncOwnerContext(),currentConversationId))&&
+       !await isConversationHydrated(currentConversationId)){
       try{
         await canonicalReconcileActive();
       }catch(error){
@@ -1708,7 +1865,7 @@ function sidebarOwnerKey(context){
   return String(context?.accountId||'')+':'+String(context?.appSessionId||'');
 }
 
-async function syncContacts(){
+async function syncContacts({recoverActive=false,forceActive=false}={}){
   const context=captureSyncOwnerContext();
   if(!context.accountId)return[];
   if(!online()||!context.client||!context.appSessionId){
@@ -1729,6 +1886,14 @@ async function syncContacts(){
   // await between the successful RPC and the visible directory.
   canonicalSidebarOwner=sidebarOwnerKey(context);
   contacts()?.replace?.(rows);
+  if(recoverActive){
+    const active=String(shell()?.snapshot?.().activeContact?.id||'');
+    const contact=rows.find(row=>String(row?.id||'')===active&&row?.conversation_id);
+    if(contact)void serverFirstActiveThread(context,contact,{force:forceActive}).catch(error=>
+      console.warn('[V21SyncEngine] canonical active thread unavailable',
+        String(error?.message||error||'').slice(0,90))
+    );
+  }
   try{
     await cache()?.replaceContacts?.(context.accountId,rows);
     if(!syncOwnerContextCurrent(context))return[];
@@ -1770,6 +1935,8 @@ async function onAuth(detail){
     activeDirtyNeedsFullMediaIndex=false;
     accountId=null;appSessionId=null;currentContactId=null;
     canonicalSidebarOwner='';
+    serverFirstThreadHydrated.clear();
+    serverFirstThreadFlight=null;
     wakeHint=0;wakePending=false;
     messages()?.reset?.();
     return;
@@ -1785,7 +1952,7 @@ async function onAuth(detail){
   // succeed. The old boot sequence awaited cache pruning/opening first and
   // could go for hours without ever issuing v21_contacts_sidebar/sync_pull.
   if(online())queueMicrotask(()=>{
-    if(syncOwnerContextCurrent(context))void syncContacts().catch(error=>
+    if(syncOwnerContextCurrent(context))void syncContacts({recoverActive:true}).catch(error=>
       console.warn('[V21SyncEngine] initial sidebar fetch failed',String(error?.message||error||'').slice(0,100))
     );
   });
