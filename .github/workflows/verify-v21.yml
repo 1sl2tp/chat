@@ -101,6 +101,8 @@ jobs:
 
       - name: Zalo schema contract
         run: python -m pytest -q tests/test_v21_zalo_schema_contract.py
+      - name: TAPHOA debt PNG and Zalo delivery ACK (mock only)
+        run: node tests/test_chat_debt_png_zalo_ack_20261104.cjs
       - name: Zalo audio contract
         run: python -m pytest -q tests/test_v21_zalo_audio_contract.py
       - name: Zalo account admin contract
