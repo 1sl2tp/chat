@@ -143,13 +143,18 @@ async function staleDiskWrite(){
   const gate=h.gates.replace=hold('A');
   const request=h.engine.syncContacts();
   await gate.started.promise;
+  // The canonical A response is allowed to paint while A still owns the UI.
+  // Only a late IndexedDB completion after switching to B is forbidden.
+  const handoffUiCount=h.ui.length;
+  assert.equal(h.ui.some(row=>row.ids.includes('A-CURRENT')),true,
+    'server-first A response renders without waiting for its disk write');
   await h.login('B','SB');
   gate.release();
   assert.equal((await request).length,0);
   assert.deepEqual(h.disk,[{account:'A',ids:['A-CURRENT']}],
     'already-started write must remain account A scoped');
-  assert.equal(h.ui.some(row=>row.ids.includes('A-CURRENT')),false,
-    'delayed disk completion must not publish stale contacts');
+  assert.equal(h.ui.slice(handoffUiCount).some(row=>row.ids.includes('A-CURRENT')),false,
+    'delayed disk completion must not publish stale contacts into B');
   assert.equal(h.conversationWrites.some(row=>row.account==='A'),false,
     'follow-up conversation writes stop after account handoff');
 }
