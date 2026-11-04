@@ -37,7 +37,21 @@ function bankCustomerSearchMatches(customers,query){
   return terms.every(term=>name.includes(term));
  }).slice(0,12);
 }
-const money=x=>x===null||x===undefined||x===''||!Number.isFinite(Number(x))?'—':new Intl.NumberFormat('vi-VN',{maximumFractionDigits:3}).format(Number(x)/1000);
+// BANK-234: Keep the report's primary numbers in 1,000 VND units.
+// Exact sub-thousand bank evidence remains visible as a separate dong note,
+// never as a misleading decimal fraction of a thousand (16.000,008).
+function bankMoneyThousands(amountVnd){
+ if(amountVnd===null||amountVnd===undefined||amountVnd==='')return '—';
+ const amount=Number(amountVnd);
+ if(!Number.isSafeInteger(amount))return '—';
+ const abs=Math.abs(amount);
+ const thousands=Math.floor(abs/1000);
+ const remainder=abs%1000;
+ const group=x=>new Intl.NumberFormat('vi-VN',{maximumFractionDigits:0}).format(x);
+ return (amount<0?'-':'')+group(thousands)+
+  (remainder?' (lẻ '+group(remainder)+'₫)':'');
+}
+const money=bankMoneyThousands;
 // BANK-231: Backend status codes are evidence, not copy for finance operators.
 // A rejected collection never implies that the customer's ledger changed.
 function bankManualCollectionFailureMessage(status){

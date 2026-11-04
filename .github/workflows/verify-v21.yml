@@ -193,6 +193,8 @@ jobs:
         run: node tests/test_bank232_manual_round_down_ui_20261104.cjs
       - name: BANK-233 rounded ledger status check
         run: node tests/test_bank233_manual_round_down_status_20261104.cjs
+      - name: BANK-234 exact dong remainder shown separately in thousands report
+        run: node tests/test_bank234_thousands_with_remainder_20261104.cjs
       - name: BANK-224 accessible keyboard ownership for both bank reconciliation dialogs
         run: node tests/test_bank224_review_dialog_keyboard_20261102.cjs
       - name: BANK-225 bank report session identity and stale media privacy
