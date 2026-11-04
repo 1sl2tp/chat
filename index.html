@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="a2e96a9f807efa7d35d01137c09330d60e99948d7ba12924af1cb91012a37659">
+<meta name="app-build-id" content="4a26bb57125d96cc33587b99a1a1d8a663d896a9c306a740c0bfd100a172d537">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -28086,10 +28086,16 @@ async function onAuth(detail){
     return;
   }
   const snap=authSnapshot();
-  client=authStore()?.getClient?.()||client;
-  accountId=String(snap.account?.id||'');
-  appSessionId=String(snap.appSessionId||'');
-  if(!accountId||!appSessionId)return;
+  const nextClient=authStore()?.getClient?.()||client;
+  const nextAccountId=String(snap.account?.id||'');
+  const nextAppSessionId=String(snap.appSessionId||'');
+  if(!nextAccountId||!nextAppSessionId)return;
+  // Both the module's initial microtask and the authenticated event can run
+  // for one session. Only one owner may bootstrap the canonical sidebar.
+  if(accountId===nextAccountId&&appSessionId===nextAppSessionId&&client===nextClient)return;
+  client=nextClient;
+  accountId=nextAccountId;
+  appSessionId=nextAppSessionId;
   const context=captureSyncOwnerContext();
   // Fetch the canonical sidebar immediately, independently of local storage.
   // Desktop IndexedDB can be blocked/corrupt while Auth and Call RPCs still
