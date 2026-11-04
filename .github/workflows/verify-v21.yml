@@ -187,6 +187,8 @@ jobs:
           node tests/test_rust_bank_review_parity_20261103.cjs
       - name: BANK-223 manually collected credits remain separate from unlinked customer bill
         run: node tests/test_bank223_manual_collected_bill_review_20261102.cjs
+      - name: BANK-231 friendly, fail-closed manual Agribank collection errors
+        run: node tests/test_bank231_manual_collection_failure_message_20261104.cjs
       - name: BANK-224 accessible keyboard ownership for both bank reconciliation dialogs
         run: node tests/test_bank224_review_dialog_keyboard_20261102.cjs
       - name: BANK-225 bank report session identity and stale media privacy
