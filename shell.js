@@ -167,6 +167,8 @@ function applyRoutePresentation(){
   if(desktopWorkspace&&route==='work')route='chat';
   screenHost.dataset.route=route;
   appShell.dataset.route=route;
+  // Single DOM-only indicator; never starts a conversation or marks it read.
+  appShell.dataset.chatContact=String(Boolean(activeContact?.id));
   appShell.dataset.desktopWorkspace=String(desktopWorkspace);
   syncDesktopWorkOwner(desktopWorkspace);
   const chatNodes=document.querySelectorAll('[data-chat-thread-node]');
@@ -198,12 +200,19 @@ const ScreenSession={
     const contact=saved?.activeContact;
     const explicit=explicitScreenRoute();
     if(explicit?.route==='photos')route='photos';
+    // CHAT-WEB-ROOT-RESTORE-20261104: #/chat is a route-only URL, not an
+    // explicit instruction to discard this account's selected conversation.
+    // Desktop browser tabs commonly arrive at #/chat; installed PWAs often
+    // enter with an empty hash and used to restore the same session correctly.
+    // A deep link to another contact still requires a matching saved owner
+    // (or later verified directory hydration); /photos stays a distinct route.
     activeContact=explicit?.contactId
       ?(contact?.id===explicit.contactId
         ?{id:String(contact.id),name:String(contact.name||'Liên hệ')}
         :null)
-      :explicit?null:
-        contact?.id?{id:String(contact.id),name:String(contact.name||'Liên hệ')}:null;
+      :(!explicit||explicit.route==='chat')&&contact?.id
+        ?{id:String(contact.id),name:String(contact.name||'Liên hệ')}
+        :null;
     sidebarOpen=false;
     syncDesktopSidebarMode();
     syncSidebarPresentation();
