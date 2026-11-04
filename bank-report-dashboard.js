@@ -53,6 +53,15 @@ function bankManualCollectionFailureMessage(status){
  };
  return labels[String(status||'')]||'Máy chủ chưa xác nhận khoản thu. Chưa thay đổi công nợ; vui lòng đối chiếu lại trước khi thử.';
 }
+// BANK-232: Keep incoming bank VND exact, book only whole-thousand VND
+// for manual debt collection; the ignored remainder stays visible.
+function bankManualBookedPreview(amountVnd){
+ const bankVnd=Number(amountVnd);
+ if(!Number.isSafeInteger(bankVnd)||bankVnd<1000)return null;
+ const bookedVnd=Math.trunc(bankVnd/1000)*1000;
+ return {bankVnd,bookedVnd,ignoredVnd:bankVnd-bookedVnd};
+}
+const bankManualVnd=x=>new Intl.NumberFormat('vi-VN',{maximumFractionDigits:0}).format(x);
 const localDate=()=>{const parts=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const part=t=>parts.find(x=>x.type===t)?.value||'';return part('year')+'-'+part('month')+'-'+part('day');};
 // Agribank notification bodies use "20:58 23/10/2026" (local Vietnam time).
 // Dashboard data arrives as "2026-10-23 20:58:00"; format only the view.
@@ -810,6 +819,8 @@ async function openCollectionDialog(bank){
  closeReviewDialog();
  const noticeId=Number(bank.notice_id);
  if(!Number.isSafeInteger(noticeId)||noticeId<=0)return;
+ const accounting=bankManualBookedPreview(bank.amount_vnd);
+ if(!accounting)return;
  const overlay=el('div','bank-review-overlay'),form=el('form','bank-review-form');
  form.setAttribute('role','dialog');form.setAttribute('aria-modal','true');
  form.setAttribute('aria-label','Thu tiền từ Agribank');
@@ -821,8 +832,12 @@ async function openCollectionDialog(bank){
  heading.querySelector('button').addEventListener('click',closeReviewDialog);
  form.appendChild(heading);
  form.appendChild(append(el('div','bank-review-bank'),
-  el('strong','',money(bank.amount_vnd)+' · Agribank #'+noticeId),
-  el('span','','Giờ ngân hàng: '+agribankDisplayTime(bank.bank_time,ui.date.value))));
+  el('strong','',money(accounting.bookedVnd)+' · Agribank #'+noticeId),
+  el('span','','Giờ ngân hàng: '+agribankDisplayTime(bank.bank_time,ui.date.value)),
+  el('span','',
+   'Ngân hàng thực nhận: '+bankManualVnd(accounting.bankVnd)+' đ · '+
+   'Ghi thu công nợ: '+bankManualVnd(accounting.bookedVnd)+' đ'+
+   (accounting.ignoredVnd?' · Bỏ '+accounting.ignoredVnd+' đ lẻ (vẫn lưu chứng từ)':''))));
  const info=el('p','bank-review-instruction','Đang kiểm tra khoản thu nhập tay…');form.appendChild(info);
  const customerLabel=el('div','bank-review-label');
  const customerCaption=el('label','','Thu cho khách hàng');
@@ -874,6 +889,11 @@ async function openCollectionDialog(bank){
    if(error)throw error;
   if(!data?.ok)throw Error(data?.status||'Giao dịch chưa đủ điều kiện thu');
   prepared=data;
+  if(Number(data.amount_vnd)!==accounting.bankVnd){
+   info.textContent='Số tiền ngân hàng đã thay đổi. Hãy đóng và mở lại để đối chiếu.';
+   feedback.textContent='Chưa ghi thu; không dùng dữ liệu cũ.';
+   return;
+  }
   if(data.already_recorded){
    info.textContent='Khoản Agribank này đã được xử lý.';
    feedback.textContent='Sổ thu #'+data.already_recorded.ledger_id+' · Không thu lần hai.';
@@ -906,7 +926,7 @@ async function openCollectionDialog(bank){
    }else{
     previous.appendChild(el('p','bank-review-instruction',
      'Chưa có khoản thu cùng số tiền. Bấm Thu tiền sẽ trừ công nợ ngay.'));
-    save.textContent='Thu '+money(bank.amount_vnd);
+    save.textContent='Thu '+money(accounting.bookedVnd);
    }
   };
   const chooseCustomer=(item)=>{
@@ -1011,7 +1031,8 @@ async function openCollectionDialog(bank){
    if(error)throw error;
    if(!data?.ok)throw Error(bankManualCollectionFailureMessage(data?.status));
    feedback.textContent=data.debt_changed
-    ?'Đã thu công nợ · Sổ #'+data.ledger_id
+    ?'Đã thu công nợ '+bankManualVnd(accounting.bookedVnd)+' đ · Sổ #'+data.ledger_id+
+      (accounting.ignoredVnd?' · Bỏ '+accounting.ignoredVnd+' đ lẻ (đã lưu dấu đối soát)':'')
     :'Đã liên kết khoản đã thu · Sổ #'+data.ledger_id+' · Không thu lần hai';
    save.hidden=true;cancel.textContent='Đóng';await reload();
   }catch(error){
