@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="fbc33eb67107ac9382ff56f251d51281094132bdf60fd03ccdeb75b60d06e529">
+<meta name="app-build-id" content="1c81a399413ab36b6e1495c6906c6aa6d555e5d124b700ba754945f26867f5c8">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -11363,8 +11363,8 @@ function syncMessageTimeNode(unit,message){
     timeZone:'Asia/Ho_Chi_Minh',day:'2-digit',month:'2-digit',year:'numeric',
     hour:'2-digit',minute:'2-digit',hour12:false
   });
-  time.title='Gửi lúc '+full;
-  time.setAttribute('aria-label','Gửi lúc '+full);
+  time.title='Gửi lúc '+full+' · giờ Việt Nam';
+  time.setAttribute('aria-label','Gửi lúc '+full+' · giờ Việt Nam');
 }
 
 function messageDateKey(timestamp){
@@ -18026,7 +18026,7 @@ function setContactTimeNode(node,item){
       hour:'2-digit',minute:'2-digit',hour12:false
     });
     node.title=reportView?reportView.time:full;
-    node.setAttribute('aria-label',reportView?reportView.time:'Tin gần nhất '+full);
+    node.setAttribute('aria-label',reportView?reportView.time:'Tin gần nhất '+full+' · giờ Việt Nam');
   }else{
     node.removeAttribute('datetime');
     node.title=reportView?.time||'';
@@ -18039,9 +18039,11 @@ function contactPreview(item){
   const reportView=bankReportContactView(item);
   if(reportView)return reportView.preview;
   const kind=String(item?.preview_kind||'text');
-  if(kind==='image')return'Ảnh';
-  if(kind==='audio')return'Ghi âm';
-  if(kind==='file')return'Tệp';
+  // Canonical sidebar and Realtime use one direction marker for the sender.
+  const outgoing=String(item?.preview_text||'').startsWith('Bạn: ')?'Bạn: ':'';
+  if(kind==='image')return outgoing+'Ảnh';
+  if(kind==='audio')return outgoing+'Ghi âm';
+  if(kind==='file')return outgoing+'Tệp';
   return compactPreview(item?.preview_text)||'Chưa có tin nhắn';
 }
 
@@ -26294,10 +26296,12 @@ function mediaPreviewLabel(kind){
 }
 
 function messagePreviewContract(row){
+  // Last-message direction belongs in the preview only; never modify its UTC timestamp.
+  const outgoing=accountId&&String(row?.sender_account_id||'')===String(accountId)?'Bạn: ':'';
   const body=String(row?.body||'').replace(/\s+/g,' ').trim();
   const firstMedia=(Array.isArray(row?._media_assets)?row._media_assets:[]).find(item=>item&&!item.deleted_at)||null;
-  if(body)return{preview_text:body,preview_kind:firstMedia?'mixed':'text'};
-  if(firstMedia)return{preview_text:mediaPreviewLabel(firstMedia.kind),preview_kind:firstMedia.kind||'file'};
+  if(body)return{preview_text:outgoing+body,preview_kind:firstMedia?'mixed':'text'};
+  if(firstMedia)return{preview_text:outgoing+mediaPreviewLabel(firstMedia.kind),preview_kind:firstMedia.kind||'file'};
   return{preview_text:'',preview_kind:'text'};
 }
 
@@ -26543,9 +26547,10 @@ async function applyMediaEvent(event,context=captureSyncOwnerContext()){
     if(!syncOwnerContextCurrent(context))return false;
     const parentPreview=parent?messagePreviewContract(parent):null;
     const hasParentText=Boolean(String(parent?.body||'').trim());
+    const ownMedia=String(parent?.sender_account_id||payload.owner_account_id||'')===context.accountId;
     const preview=hasParentText
       ?{...parentPreview,preview_kind:'mixed'}
-      :{preview_text:mediaPreviewLabel(payload.kind),preview_kind:payload.kind||'file'};
+      :{preview_text:(ownMedia?'Bạn: ':'')+mediaPreviewLabel(payload.kind),preview_kind:payload.kind||'file'};
     await patchContactSummary(payload.conversation_id,{
       ...preview,
       latest_at:parent?.created_at||payload.created_at||new Date().toISOString()
@@ -26610,7 +26615,7 @@ function paintRealtimeWithoutCache(event,context){
     if(nextAt&&nextAt>=previousAt){
       contacts()?.upsert?.({
         ...current,
-        preview_text:mediaPreviewLabel(mediaRow.kind),
+        preview_text:(String(mediaRow.owner_account_id||'')===context.accountId?'Bạn: ':'')+mediaPreviewLabel(mediaRow.kind),
         preview_kind:mediaRow.kind,
         latest_at:mediaRow.created_at
       });
