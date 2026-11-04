@@ -32,6 +32,12 @@ assert(dialog.includes("'Ghi thu công nợ: '+bankManualVnd(accounting.bookedVn
 assert(dialog.includes("' · Bỏ '+accounting.ignoredVnd+' đ lẻ"),'visible bank discrepancy');
 assert(dialog.includes("save.textContent='Thu '+money(accounting.bookedVnd)"),'submit amount consistent');
 assert(dialog.includes('Number(data.amount_vnd)!==accounting.bankVnd'),'stale credit must fail closed');
+assert(dialog.includes('Number(data.recorded_amount_vnd)!==accounting.bookedVnd'),
+ 'server accounting must match the rounded preview before the button is enabled');
+assert(dialog.includes('Number(data.ignored_remainder_vnd)!==accounting.ignoredVnd'),
+ 'server-verified ignored dong must match the UI preview');
+assert(dialog.includes('Chưa ghi thu; số tiền sổ nợ chưa được xác nhận.'),
+ 'a version mismatch must not issue a money write');
 assert(dialog.includes("client.rpc('chat_bank_manual_collect',{"),'single existing finance RPC owner');
 assert(dialog.includes("if(!data?.ok)throw Error(bankManualCollectionFailureMessage(data?.status))"));
 assert(!dialog.includes("client.rpc('taphoa_debt_transaction'"),'do not create a second receipt from Chat');
