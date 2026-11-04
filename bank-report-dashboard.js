@@ -894,6 +894,14 @@ async function openCollectionDialog(bank){
    feedback.textContent='Chưa ghi thu; không dùng dữ liệu cũ.';
    return;
   }
+  if(Number(data.recorded_amount_vnd)!==accounting.bookedVnd
+    || Number(data.ignored_remainder_vnd)!==accounting.ignoredVnd){
+   // The UI must never post money when its rounded preview differs from
+   // the exact, current server accounting rule (e.g. a stale migration).
+   info.textContent='Quy tắc thu tiền trên máy chủ chưa đồng bộ. Hãy đóng và mở lại.';
+   feedback.textContent='Chưa ghi thu; số tiền sổ nợ chưa được xác nhận.';
+   return;
+  }
   if(data.already_recorded){
    info.textContent='Khoản Agribank này đã được xử lý.';
    feedback.textContent='Sổ thu #'+data.already_recorded.ledger_id+' · Không thu lần hai.';
