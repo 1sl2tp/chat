@@ -129,6 +129,7 @@ jobs:
           node --check sw.js
           node tests/test_ui208_pwa_fresh_navigation.cjs
           node tests/test_chat_pwa_viewport_zoom_20261102.cjs
+          node tests/test_chat_keyboard_inset_model_20261104.cjs
           node tests/test_ui208_authenticated_update_prompt.cjs
           node tests/test_v21_admin_web_push_sw_runtime.js
           node tests/test_v21_72_16_update_runtime.js
