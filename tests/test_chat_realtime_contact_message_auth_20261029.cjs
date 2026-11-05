@@ -125,20 +125,26 @@ async function staleMessageRead(){
  const f=fixture();await f.login('A','SA');
  const g=f.gates.messageRead=hold('A');
  const pending=f.engine.consumeRealtimeEvent(messageEvent('A'));await g.start.promise;
+ const paintedBeforeSwitch=f.ui.length;
+ assert.ok(paintedBeforeSwitch>0,'active A receives the immediate canonical message');
  await f.login('B','SB');g.release();
  assert.equal(await pending,false);
  assert.equal(f.writes.length,0);
- assert.equal(f.ui.length,0);
+ assert.equal(f.ui.length,paintedBeforeSwitch,'A message read must not paint after B login');
+ assert.equal(f.ui.some(row=>row.account==='B'),false,'A message cannot paint B');
  assert.equal(f.rpc.filter(x=>x.name==='v21_unread_count').length,0);
 }
 async function staleMessageWrite(){
  const f=fixture();await f.login('A','SA');
  const g=f.gates.messageWrite=hold('A');
  const pending=f.engine.consumeRealtimeEvent(messageEvent('A'));await g.start.promise;
+ const paintedBeforeSwitch=f.ui.length;
+ assert.ok(paintedBeforeSwitch>0,'active A receives the immediate canonical message');
  await f.login('B','SB');g.release();
  assert.equal(await pending,false);
  assert.deepEqual(f.writes,[{type:'message',account:'A',id:'msg-A'}]);
- assert.equal(f.ui.length,0);
+ assert.equal(f.ui.length,paintedBeforeSwitch,'A message write must not paint after B login');
+ assert.equal(f.ui.some(row=>row.account==='B'),false,'A message cannot paint B');
  assert.equal(f.rpc.filter(x=>x.name==='v21_unread_count').length,0);
 }
 async function currentMessage(){
