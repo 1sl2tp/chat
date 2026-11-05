@@ -5,7 +5,7 @@ const {readFileSync}=require('node:fs');
 const {join}=require('node:path');
 const source=readFileSync(join(__dirname,'..','v21-realtime-session.js'),'utf8');
 const instrumented=source.replace('window.V21RealtimeSession={',
-  "window.__presenceTest={setChannel(next){channel=next;channelState='SUBSCRIBED';}};\\nwindow.V21RealtimeSession={");
+  "window.__presenceTest={setChannel(next){channel=next;channelState='SUBSCRIBED';}};\nwindow.V21RealtimeSession={");
 assert.notEqual(source,instrumented,'test requires actual Realtime session source');
 let route='chat',conversationId='conv-one';
 const ctx={
