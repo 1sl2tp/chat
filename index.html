@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="dbba1270ffb218cdb76ae2637e168690e34ef9817c4d49bec68b41acd0397a8d">
+<meta name="app-build-id" content="e6b8c12ebfb54c3b015285d039d902ca3a1f6b8c51db8b2765a8486079f889a4">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -937,6 +937,78 @@
     min-height:64px;
   }
   .zalo-account-modal[data-mobile-keyboard="true"] .zalo-account-directory-panel{min-height:0}
+}
+
+/* SPEC-CHAT-ACCOUNT-IOS-DENSITY-20261105
+   iPhone account settings: compact cards, no action overflow, and readable
+   Chat/Zalo links. CSS only; preserve data, actions and independent scroll. */
+@media(max-width:640px){
+  .zalo-account-modal .zalo-account-card{
+    padding:14px 12px 12px;
+  }
+  .zalo-account-modal .zalo-account-modal-head{margin-bottom:10px;gap:10px}
+  .zalo-account-modal .zalo-account-modal-head h2{font-size:21px;line-height:27px}
+  .zalo-account-modal .zalo-account-modal-head p{font-size:13px;line-height:18px}
+  .zalo-account-modal .zalo-account-tabs{margin-bottom:10px}
+  .zalo-account-modal .zalo-account-tab{min-height:42px;padding:7px 10px}
+  .zalo-account-modal[data-active-tab="settings"] .zalo-account-preferences{
+    gap:8px;padding:2px 3px 14px 1px;
+    align-content:start;
+  }
+  .zalo-account-modal[data-active-tab="settings"] .zalo-account-preferences .zalo-account-notification{
+    box-sizing:border-box;display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    align-items:center;gap:8px;min-height:0;
+    margin:0;padding:11px 12px;border-radius:14px;
+  }
+  .zalo-account-modal[data-active-tab="settings"] .zalo-account-notification-copy{
+    min-width:0;align-self:center;
+  }
+  .zalo-account-modal[data-active-tab="settings"] .zalo-account-notification-copy strong{
+    font-size:14px;line-height:19px;
+  }
+  .zalo-account-modal[data-active-tab="settings"] .zalo-account-notification-copy small{
+    font-size:12px;line-height:17px;overflow-wrap:anywhere;
+  }
+  .zalo-account-modal[data-active-tab="settings"] .zalo-account-notification-action{
+    box-sizing:border-box;max-width:145px;min-height:36px;
+    padding:7px 11px;border-radius:10px;
+    font-size:12px;line-height:17px;
+  }
+  .zalo-account-modal[data-active-tab="settings"] .zalo-account-preferences [data-admin-agribank-pair],
+  .zalo-account-modal[data-active-tab="settings"] .zalo-account-preferences [data-admin-auto-collect-setting]{
+    grid-template-columns:minmax(0,1fr);
+  }
+  .zalo-account-modal[data-active-tab="settings"] .zalo-account-preferences [data-admin-agribank-pair] .zalo-account-notification-action,
+  .zalo-account-modal[data-active-tab="settings"] .zalo-account-preferences [data-admin-auto-collect-setting] .zalo-account-notification-action{
+    justify-self:start;max-width:100%;
+  }
+  .zalo-account-modal .zalo-account-directory-head{gap:8px;padding:1px 0 8px}
+  .zalo-account-modal .zalo-account-directory-heading strong{font-size:14px;line-height:19px}
+  .zalo-account-modal .zalo-account-directory-heading small{font-size:12px;line-height:17px}
+  .zalo-account-modal .zalo-account-unassigned{min-height:38px;padding:7px 10px;font-size:12px}
+  .zalo-account-modal .zalo-account-search{margin-bottom:8px}
+  .zalo-account-modal .zalo-account-list{gap:8px;padding:1px 3px 8px 1px}
+  .zalo-account-modal .zalo-account-row{
+    gap:7px;padding:10px 11px;border-radius:14px;
+  }
+  .zalo-account-modal .zalo-account-person,
+  .zalo-account-modal .zalo-account-relation{gap:8px;min-width:0}
+  .zalo-account-modal .zalo-account-relation{padding-top:7px}
+  .zalo-account-modal .zalo-account-person-copy strong{font-size:13px;line-height:18px}
+  .zalo-account-modal .zalo-account-person-copy small{font-size:12px;line-height:17px}
+  .zalo-account-modal .zalo-account-row-actions{
+    gap:7px;padding-top:7px;
+  }
+  .zalo-account-modal .zalo-account-action{
+    min-height:36px;padding:6px 10px;font-size:12px;
+  }
+}
+@media(max-width:380px){
+  .zalo-account-modal[data-active-tab="settings"] .zalo-account-preferences .zalo-account-notification{
+    grid-template-columns:minmax(0,1fr);
+  }
+  .zalo-account-modal[data-active-tab="settings"] .zalo-account-notification-action{justify-self:start}
 }
 
 </style>
