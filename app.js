@@ -5074,6 +5074,9 @@ function renderWindow({
   const dirtyNodes=reconcileMessageWindow(win.items);
 
   requestAnimationFrame(()=>{
+    // A contact switch invalidates this render transaction. Do not let an
+    // obsolete frame write height measurements into the new conversation.
+    if(viewEpoch!==conversationViewEpoch)return;
     for(const node of dirtyNodes){
       if(!node.isConnected)continue;
       const id=node.dataset.id;
@@ -5084,8 +5087,6 @@ function renderWindow({
         );
       }
     }
-
-    if(viewEpoch!==conversationViewEpoch)return;
 
     if(preserve==='ANCHOR'){
       if(anchor){
