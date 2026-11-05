@@ -8,6 +8,7 @@ const SUPABASE_URL='https://vtqhbhrkdxirqeqkgylo.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_3ms4nAPXQwBN18Zo2yNoIg_d4WrHu04';
 const AUTH_STORAGE_KEY='taphoa.v21.auth';
 const DEVICE_STORAGE_KEY='taphoa.v21.deviceKey';
+const DEVICE_BACKUP_COOKIE='taphoa_v21_device_key';
 const HEARTBEAT_MS=60000;
 
 let client=null;
@@ -34,14 +35,44 @@ function normalizeProfileUsername(value){
   return normalizeUsername(value);
 }
 
-function getDeviceKey(){
-  let value='';
-  try{ value=localStorage.getItem(DEVICE_STORAGE_KEY)||''; }catch{}
-  if(!/^[0-9a-f-]{36}$/i.test(value)){
-    value=window.V21RuntimeId.create();
-    try{ localStorage.setItem(DEVICE_STORAGE_KEY,value); }catch{}
+// Admin approvals are bound to this durable device UUID. A PWA restart may
+// lose one storage surface without being a newly enrolled physical device.
+// This cookie is an identity backup, NOT an authentication credential.
+function validDeviceKey(value){
+  return /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(String(value||''));
+}
+function cookieDeviceKey(){
+  try{
+    const item=document.cookie.split(';').map(part=>part.trim())
+      .find(part=>part.startsWith(DEVICE_BACKUP_COOKIE+'='));
+    const value=item?decodeURIComponent(item.slice(DEVICE_BACKUP_COOKIE.length+1)):'';
+    return validDeviceKey(value)?value:'';
+  }catch{return '';}
+}
+function persistDeviceKey(value){
+  let persisted=false;
+  try{
+    localStorage.setItem(DEVICE_STORAGE_KEY,value);
+    persisted=localStorage.getItem(DEVICE_STORAGE_KEY)===value;
+  }catch{}
+  // A first-party Secure/SameSite cookie can survive a localStorage-only reset.
+  // Never send this identifier to any origin other than Chat itself.
+  if(location.protocol==='https:'){
+    try{
+      document.cookie=DEVICE_BACKUP_COOKIE+'='+encodeURIComponent(value)+
+        '; Max-Age=31536000; Path=/; SameSite=Strict; Secure';
+      persisted=cookieDeviceKey()===value||persisted;
+    }catch{}
   }
-  return value;
+  return persisted;
+}
+function getDeviceKey(){
+  let local='';
+  try{local=localStorage.getItem(DEVICE_STORAGE_KEY)||'';}catch{}
+  const value=validDeviceKey(local)?local:(cookieDeviceKey()||window.V21RuntimeId.create());
+  // Fail closed instead of creating a new, *ephemeral* pending Admin device
+  // every time an iOS browser refuses storage writes.
+  return persistDeviceKey(value)?value:null;
 }
 
 function deviceLabel(){
@@ -98,12 +129,25 @@ function emitAuthState(){
 }
 
 function renderGuest(){
+  const wasPending=state==='APPROVAL_PENDING';
   state='GUEST'; account=null; appSessionId=null; deviceId=null;
   authUI()?.setAuthenticated(false,null);
+  if(wasPending)authUI()?.setMode?.('login');
   // Default guest entry is Chat's existing login surface. Public Work remains
   // reachable only through the existing Work tab; Chat/Call still require auth.
   shell()?.NavigationCommand?.openChat?.();
   ContactStore.clear();
+  emitAuthState();
+}
+
+function renderApprovalPending(){
+  state='APPROVAL_PENDING'; account=null; appSessionId=null; deviceId=null;
+  stopReconnect();
+  clearHeartbeat();
+  authUI()?.setAuthenticated(false,null);
+  shell()?.NavigationCommand?.openChat?.();
+  ContactStore.clear();
+  authUI()?.setError?.('device_approval_required');
   emitAuthState();
 }
 
@@ -420,8 +464,15 @@ async function bootstrap(){
     renderGuest();
     return false;
   }
+  const bootDeviceKey=getDeviceKey();
+  if(!bootDeviceKey){
+    lastBootstrapError='device_storage_unavailable';
+    renderGuest();
+    authUI()?.setError?.(lastBootstrapError);
+    return false;
+  }
   let {data,error}=await client.rpc('v21_auth_bootstrap',{
-    p_device_key:getDeviceKey(),p_label:deviceLabel(),p_platform:platformLabel()
+    p_device_key:bootDeviceKey,p_label:deviceLabel(),p_platform:platformLabel()
   });
   // Supabase migration continuity: the browser may still hold a valid refresh
   // token issued by the previous project while its access JWT was signed by
@@ -433,7 +484,7 @@ async function bootstrap(){
       if(!refreshed?.error&&refreshed?.data?.session){
         await syncRealtimeAuth();
         ({data,error}=await client.rpc('v21_auth_bootstrap',{
-          p_device_key:getDeviceKey(),p_label:deviceLabel(),p_platform:platformLabel()
+          p_device_key:bootDeviceKey,p_label:deviceLabel(),p_platform:platformLabel()
         }));
       }
     }catch{}
@@ -454,9 +505,10 @@ async function bootstrap(){
   }
   if(data?.device_approval_required||String(data?.session?.status||'')==='approval_required'){
     lastBootstrapError='device_approval_required';
-    await client.auth.signOut({scope:'local'}).catch(()=>{});
-    renderGuest();
-    authUI()?.setError?.(lastBootstrapError);
+    // A pending device has no app session and therefore no Chat privileges.
+    // Keep the Supabase Auth session so approval can be checked without
+    // signing in again, creating another auth session, or losing the token.
+    renderApprovalPending();
     return false;
   }
   stopReconnect();
@@ -475,7 +527,15 @@ async function bootstrap(){
   }finally{bootstrapInFlight=false;}
 }
 
+async function retryApproval(){
+  if(busy||!client||state!=='APPROVAL_PENDING')return false;
+  setBusy(true);
+  try{return await bootstrap();}
+  finally{setBusy(false);}
+}
+
 async function login({account:username,password}){
+  if(state==='APPROVAL_PENDING')return retryApproval();
   if(busy||!client)return false;
   setBusy(true);
   try{
@@ -628,7 +688,7 @@ window.V21ContactStore=ContactStore;
 window.V21AccountProfileStore=AccountProfileStore;
 window.V21AuthSessionStore={
   version:RELEASE_VERSION,moduleContractVersion:MODULE_CONTRACT_VERSION,
-  boot,login,register,logout,heartbeat,syncRealtimeAuth,handleRevoked,
+  boot,login,register,logout,retryApproval,heartbeat,syncRealtimeAuth,handleRevoked,
   getClient(){return client;},
   snapshot(){return{state,account:account?{...account}:null,appSessionId,deviceId,busy,deviceKey:getDeviceKey()};}
 };
