@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="5f814f9a41cc88213a3224d508a35b9dd8c48771744d55e3be62b6cf5fc63faf">
+<meta name="app-build-id" content="48e47afb27ab9ca6c4219c88126681a7e25b47ba7f9aa2bd13598945a3794948">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -9569,7 +9569,7 @@ function markUserScrollIntent(duration=700){
   clearTimeout(userScrollIntentTimer);
   userScrollIntentTimer=setTimeout(()=>{
     if(Date.now()>=userScrollIntentUntil)scrollRoot.removeAttribute('data-user-scroll-intent');
-  },Math.max(140,Number(duration)||700)+20);
+  },Math.max(140,userScrollIntentUntil-Date.now())+20);
 }
 
 function hasUserScrollIntent(){
