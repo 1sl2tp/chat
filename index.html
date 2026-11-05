@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="fad177a5536add99b56c3aa31c58e0a50bab486dc8f3e083bc01a63f906fc3f4">
+<meta name="app-build-id" content="5f814f9a41cc88213a3224d508a35b9dd8c48771744d55e3be62b6cf5fc63faf">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -13593,6 +13593,8 @@ function renderWindow({
   if(historyRestore)viewport.beginHistoryRestore();
 
   let anchorIndex=
+    anchorIndexOverride!==null &&
+    anchorIndexOverride!==undefined &&
     Number.isFinite(Number(anchorIndexOverride))
       ?Number(anchorIndexOverride)
       :null;
