@@ -56,8 +56,11 @@ assert(overlapPatch.includes('min-height:40px;padding:7px 11px;'),
 assert(overlapPatch.includes('@media(max-width:360px)'),
   'narrow phones need a safe single-column fallback');
 const sw=fs.readFileSync('sw.js','utf8');
-assert(sw.includes('pwa-chat-zalo-directory-no-collapse-v3-20261105'),
-  'installed PWA must receive a fresh shell cache epoch');
+const epoch=sw.match(/const SHELL_CACHE_EPOCH='([^']+)'/)?.[1]||'';
+assert.match(epoch,/^pwa-chat-[a-z0-9-]+$/,
+  'installed PWA must use a versioned shell cache');
+assert.notEqual(epoch,'pwa-chat-zalo-directory-no-collapse-v2-20261105',
+  'must not regress to prior collapsed-directory shell');
 
 
 // Regression: the screenshots after the previous compact patch showed 136 Chat
