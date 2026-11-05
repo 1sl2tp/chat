@@ -36,3 +36,25 @@ assert(overlapPatch.includes('>.zalo-account-notification{'));
 assert(overlapPatch.includes('height:auto;min-height:0;max-height:none;'));
 assert(overlapPatch.includes('position:static;display:inline-flex;'));
 assert(overlapPatch.includes('padding:3px 3px 16px;'));
+
+
+// Latest override must actually restore compact two-column actions on short
+// cards, not silently let the older narrow-screen column layout win.
+assert(overlapPatch.includes('grid-template-columns:minmax(0,1fr) auto;'),
+  'short setting cards must keep their action in the same row');
+assert(overlapPatch.includes('>[data-admin-agribank-pair]')&&
+  overlapPatch.includes('>[data-admin-auto-collect-setting]'),
+  'long financial setting cards must retain full-width descriptions');
+assert(overlapPatch.includes('padding:8px 3px calc(20px + env(safe-area-inset-bottom,0px))'),
+  'scrollable preferences must expose first card and last safe-area action');
+assert(overlapPatch.includes('max-width:138px;min-height:40px'),
+  'compact actions must be touch-sized and bounded in width');
+assert(overlapPatch.includes('.zalo-account-modal[data-active-tab="links"] .zalo-account-row{'),
+  'the Chat–Zalo card density must be scoped to the links tab');
+assert(overlapPatch.includes('min-height:40px;padding:7px 11px;'),
+  'Zalo link actions must preserve comfortable touch targets');
+assert(overlapPatch.includes('@media(max-width:360px)'),
+  'narrow phones need a safe single-column fallback');
+const sw=fs.readFileSync('sw.js','utf8');
+assert(sw.includes('pwa-chat-account-settings-compact-v2-20261105'),
+  'installed PWA must receive a fresh shell cache epoch');
