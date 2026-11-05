@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="b886f1510512aee570d8e8061cb3d37cd4714156049b3cbb091b939d795873c5">
+<meta name="app-build-id" content="5d6ddb75d10d08981878689f824a75a7bbb1c441d675ba2837c66bcfa33b3a0f">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -13715,11 +13715,14 @@ async function loadOlder(){
 // HIST-219: server-backed pagination, never the empty demo historyItems.
 async function loadMoreServerHistory(){
  if(!historyMoreButton||historyMoreButton.disabled)return;
- historyMoreButton.disabled=true;
+ const viewEpoch=conversationViewEpoch;
+ const button=historyMoreButton;
+ button.disabled=true;
  historyMoreButton.textContent='Đang tải ngày cũ…';
  historyStatus.classList.add('hidden');
  try{
    const result=await window.V21SyncEngine?.loadOlderHistory?.();
+   if(viewEpoch!==conversationViewEpoch)return;
    if(!result?.ok){
      if(result?.reason==='contact_changed')return;
      historyStatus.textContent=result?.reason==='offline_or_no_context'
@@ -13731,11 +13734,14 @@ async function loadMoreServerHistory(){
    if(historyMoreWrap)historyMoreWrap.hidden=!result.has_more;
    historyStatus.classList.add('hidden');
  }catch(error){
+   if(viewEpoch!==conversationViewEpoch)return;
    historyStatus.textContent='Không tải được ngày cũ. Hãy nhấn lại.';
    historyStatus.classList.remove('hidden');
  }finally{
-   historyMoreButton.disabled=false;
-   historyMoreButton.textContent='Xem tin / ngày cũ hơn';
+   if(viewEpoch===conversationViewEpoch){
+     button.disabled=false;
+     button.textContent='Xem tin / ngày cũ hơn';
+   }
  }
 }
 historyMoreButton?.addEventListener('click',()=>void loadMoreServerHistory());
