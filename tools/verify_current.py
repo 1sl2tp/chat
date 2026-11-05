@@ -25,6 +25,7 @@ for n in [
     'v21-realtime-session.js','v21-sync-engine.js','app-update-controller.js','shell-form-viewport-policy.js','sw.js'
 ]:
     subprocess.run(['node','--check',str(ROOT/n)],check=True,cwd=ROOT)
+subprocess.run(['node',str(ROOT/'tests'/'test_chat_forward_search_ios_keyboard_20261105.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_ios_pwa_device_session_20261105.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_account_settings_ios_density_20261105.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_v21_composer_pointer_recovery.js')],check=True,cwd=ROOT)
