@@ -5152,11 +5152,14 @@ async function loadOlder(){
 // HIST-219: server-backed pagination, never the empty demo historyItems.
 async function loadMoreServerHistory(){
  if(!historyMoreButton||historyMoreButton.disabled)return;
- historyMoreButton.disabled=true;
+ const viewEpoch=conversationViewEpoch;
+ const button=historyMoreButton;
+ button.disabled=true;
  historyMoreButton.textContent='Đang tải ngày cũ…';
  historyStatus.classList.add('hidden');
  try{
    const result=await window.V21SyncEngine?.loadOlderHistory?.();
+   if(viewEpoch!==conversationViewEpoch)return;
    if(!result?.ok){
      if(result?.reason==='contact_changed')return;
      historyStatus.textContent=result?.reason==='offline_or_no_context'
@@ -5168,11 +5171,14 @@ async function loadMoreServerHistory(){
    if(historyMoreWrap)historyMoreWrap.hidden=!result.has_more;
    historyStatus.classList.add('hidden');
  }catch(error){
+   if(viewEpoch!==conversationViewEpoch)return;
    historyStatus.textContent='Không tải được ngày cũ. Hãy nhấn lại.';
    historyStatus.classList.remove('hidden');
  }finally{
-   historyMoreButton.disabled=false;
-   historyMoreButton.textContent='Xem tin / ngày cũ hơn';
+   if(viewEpoch===conversationViewEpoch){
+     button.disabled=false;
+     button.textContent='Xem tin / ngày cũ hơn';
+   }
  }
 }
 historyMoreButton?.addEventListener('click',()=>void loadMoreServerHistory());
