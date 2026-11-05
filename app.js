@@ -5234,9 +5234,22 @@ function scheduleWindowRebase(direction){
     windowRebaseFrame=0;
     if(viewEpoch!==conversationViewEpoch)return;
 
+    // The user may keep scrolling before this frame runs. Re-evaluate the
+    // viewport instead of rebasing around a stale index from the last event.
+    const currentIndex=logicalIndexAtViewport();
+    const stillApproachingStart=
+      direction==='up' &&
+      renderedRange.start>0 &&
+      currentIndex<=renderedRange.start+WINDOW_REBASE_MARGIN;
+    const stillApproachingEnd=
+      direction==='down' &&
+      renderedRange.end<store.size &&
+      currentIndex>=renderedRange.end-WINDOW_REBASE_MARGIN;
+    if(!stillApproachingStart&&!stillApproachingEnd)return;
+
     renderWindow({
       preserve:'ANCHOR',
-      anchorIndexOverride:index
+      anchorIndexOverride:currentIndex
     });
   });
 }
