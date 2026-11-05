@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="b23e24d054cf44b4d62495ff25b95527dafc05fcc86e8c103411d2a6df41b1d9">
+<meta name="app-build-id" content="dbba1270ffb218cdb76ae2637e168690e34ef9817c4d49bec68b41acd0397a8d">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -32151,7 +32151,9 @@ async function registerServiceWorker(){
         }
       });
     });
-    await registration.update().catch(()=>{});
+    // Registration is ready even if the browser's SW update promise stalls.
+    // Do not keep the registration lifecycle pending indefinitely on iOS PWA.
+    try{void Promise.resolve(registration.update?.()).catch(()=>{});}catch{}
     return registration;
   }catch(error){
     emit('service-worker-failed',{message:String(error?.message||error||'service_worker_failed')});
