@@ -399,7 +399,8 @@
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] .message-body{
-    letter-spacing:-.006em;
+    letter-spacing:normal;
+    overflow-wrap:anywhere;
   }
 
     /* Keyboard contract stays owned elsewhere; this only keeps surfaces tight. */
