@@ -59,7 +59,11 @@ function normalizePhoto(content){
   const data=objectValue(content);
   if(!data)return null;
   const params=paramsValue(data);
-  const sourceUrl=String(data.href||data.hdUrl||data.normalUrl||data.oriUrl||data.rawUrl||data.url||'').trim();
+  // Prefer the explicitly original/HD asset over Zalo's ordinary preview link.
+  // Keep href/normalUrl/url as backward-compatible fallbacks for older events.
+  const sourceUrl=[data.oriUrl,data.rawUrl,data.hdUrl,data.href,data.normalUrl,data.url]
+    .map(value=>String(value||'').trim())
+    .find(value=>/^https?:\/\//i.test(value))||'';
   if(!/^https?:\/\//i.test(sourceUrl))return null;
   return{
     text:String(data.description||data.desc||data.caption||'').trim(),
