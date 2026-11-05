@@ -1324,6 +1324,14 @@ async function openAccountAdmin(){
     const links=accountModal.querySelector('#zalo-account-panel-links');
     if(settings)settings.hidden=name!=='settings';
     if(links)links.hidden=name!=='links';
+    // Switching tabs must never reopen an independently scrolling pane
+    // halfway through its content (first settings card appears clipped).
+    const activePane=name==='settings'?settings:links;
+    if(activePane){
+      activePane.scrollTop=0;
+      const inner=activePane.querySelector('.zalo-account-list');
+      if(inner)inner.scrollTop=0;
+    }
     for(const button of accountModal.querySelectorAll('[data-zalo-account-tab]')){
       const selected=button.dataset.zaloAccountTab===name;
       button.setAttribute('aria-selected',String(selected));
