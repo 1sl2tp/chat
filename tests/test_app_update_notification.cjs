@@ -56,3 +56,17 @@ test('startup checks manifest without waiting for stalled iOS service worker reg
  assert.equal(h.controller.snapshot().pendingBuild,'new-build');
  assert.equal(h.appended.length,1,'visible update notice must be mounted');
 });
+
+test('foreground version check is not blocked by a stalled registered worker update',async()=>{
+ const h=setup(()=>({ok:true,json:async()=>({build_id:'new-build'})}));
+ h.context.navigator.serviceWorker={
+   register:async()=>({update:()=>new Promise(()=>{}),addEventListener(){},waiting:null}),
+   addEventListener(){}
+ };
+ h.listeners.DOMContentLoaded();
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(h.calls,1,'manifest fetch should start without waiting for worker');
+ assert.equal(h.controller.snapshot().pendingBuild,'new-build');
+ assert.equal(h.appended.length,1);
+ assert.equal(await h.controller.check({reason:'focus'}),true,'subsequent checks should not hang');
+});
