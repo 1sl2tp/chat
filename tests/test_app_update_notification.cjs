@@ -77,3 +77,17 @@ test('foreground version check is not blocked by a stalled registered worker upd
  assert.equal(h.appended.length,1);
  assert.equal(await h.controller.check({reason:'focus'}),true,'subsequent checks should not hang');
 });
+
+test('service worker registration completes even when update promise never settles',async()=>{
+ const h=setup(()=>({ok:true,json:async()=>({build_id:'new-build'})}));
+ let registrationCalls=0;
+ h.context.navigator.serviceWorker={
+   register:async()=>{registrationCalls++;return {update:()=>new Promise(()=>{}),addEventListener(){},waiting:null};},
+   addEventListener(){}
+ };
+ h.listeners.DOMContentLoaded();
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(registrationCalls,1);
+ assert.equal(h.controller.snapshot().serviceWorker,true,'registration must not wait for update() to settle');
+ assert.equal(h.controller.snapshot().pendingBuild,'new-build');
+});
