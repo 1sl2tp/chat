@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="c8b90a0aa7a2c8bfac3eeba245f5da5b6afe4387ff615a99670e81d05751028e">
+<meta name="app-build-id" content="2689cf80e4b8108c1c39a40fc0fad05ef9d73578751b3c251709fb3d4805eaab">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -6785,6 +6785,48 @@ button{
 
   #shellNavigationLayer .shell-contact-row[data-active="true"]{
     background:color-mix(in srgb,var(--theme-surface-secondary) 70%,var(--theme-surface-primary));
+  }
+
+  /* UI-20261105: iPhone directory density and hierarchy. Keep 44px touch
+     targets and a fixed tools region; only the contact list scrolls. */
+  #appShell[data-mobile-directory="true"] #shellNavigationLayer .wm-sidebar-header{
+    min-height:36px;
+    padding-block:2px 0;
+  }
+  #appShell[data-mobile-directory="true"] #shellNavigationLayer .wm-sidebar-body{
+    padding-block-start:0!important;
+  }
+  #appShell[data-mobile-directory="true"] #shellNavigationLayer .contact-directory-tools{
+    gap:8px!important;
+    padding:0 6px 10px!important;
+    border-bottom:1px solid var(--mobile-ui-line);
+  }
+  #appShell[data-mobile-directory="true"] #shellNavigationLayer .contact-directory-search{
+    height:44px!important;
+    min-height:44px!important;
+  }
+  #appShell[data-mobile-directory="true"] #shellNavigationLayer .contact-directory-filter{
+    min-height:36px!important;
+  }
+  #appShell[data-mobile-directory="true"] #shellNavigationLayer [data-v21-contact-list]{
+    padding:6px 2px 12px;
+  }
+  #appShell[data-mobile-directory="true"] #shellNavigationLayer .shell-contact-row,
+  #appShell[data-mobile-directory="true"] #shellNavigationLayer .shell-contact-chat{
+    height:68px;
+    min-height:68px;
+  }
+  #appShell[data-mobile-directory="true"] #shellNavigationLayer .shell-contact-chat{
+    padding-block:12px;
+  }
+  #appShell[data-mobile-directory="true"] #shellNavigationLayer .shell-contact-copy{
+    grid-template-columns:minmax(0,1fr) 58px;
+    column-gap:8px;
+  }
+  #appShell[data-mobile-directory="true"] #shellNavigationLayer .shell-contact-time{
+    width:58px;
+    text-align:right;
+    white-space:nowrap;
   }
 
   /* ---------- Quick/account menu ---------- */
