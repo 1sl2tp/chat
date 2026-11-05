@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="48e47afb27ab9ca6c4219c88126681a7e25b47ba7f9aa2bd13598945a3794948">
+<meta name="app-build-id" content="862b62b327ccd82aca72ecf2e2cd2c4204191466993b75ef3fb3afdc4014ba3c">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -13637,6 +13637,9 @@ function renderWindow({
   const dirtyNodes=reconcileMessageWindow(win.items);
 
   requestAnimationFrame(()=>{
+    // A contact switch invalidates this render transaction. Do not let an
+    // obsolete frame write height measurements into the new conversation.
+    if(viewEpoch!==conversationViewEpoch)return;
     for(const node of dirtyNodes){
       if(!node.isConnected)continue;
       const id=node.dataset.id;
@@ -13647,8 +13650,6 @@ function renderWindow({
         );
       }
     }
-
-    if(viewEpoch!==conversationViewEpoch)return;
 
     if(preserve==='ANCHOR'){
       if(anchor){
