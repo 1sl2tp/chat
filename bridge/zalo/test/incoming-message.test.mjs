@@ -70,6 +70,34 @@ test('normalizes inbound Zalo photo into canonical media metadata',()=>{
   });
 });
 
+
+test('Zalo incoming photo preserves explicit original/HD over preview href on download',()=>{
+  const incoming=content=>normalizeIncomingMessage({
+    type:USER,isSelf:false,threadId:'photo-quality-test',
+    data:{msgId:'photo-quality',msgType:'chat.photo',ts:'1789105000000',content}
+  });
+  const original=incoming({
+    href:'https://cdn.example.test/preview.jpg',
+    hdUrl:'https://cdn.example.test/hd.jpg',
+    oriUrl:'https://cdn.example.test/original.jpg',
+    thumb:'https://cdn.example.test/thumb.jpg'
+  });
+  assert.equal(original.media[0].sourceUrl,'https://cdn.example.test/original.jpg',
+    'incoming bridge must not permanently store preview bytes when original exists');
+  assert.equal(original.media[0].thumbUrl,'https://cdn.example.test/thumb.jpg');
+
+  const hd=incoming({href:'https://cdn.example.test/preview.jpg',
+    oriUrl:'invalid://bad',hdUrl:'https://cdn.example.test/hd.jpg'});
+  assert.equal(hd.media[0].sourceUrl,'https://cdn.example.test/hd.jpg',
+    'invalid original link must not shadow valid HD image');
+
+  const legacy=incoming({href:'https://cdn.example.test/legacy.jpg'});
+  assert.equal(legacy.media[0].sourceUrl,'https://cdn.example.test/legacy.jpg',
+    'legacy href-only Zalo images remain supported');
+  assert.equal(incoming({thumb:'https://cdn.example.test/only-thumb.jpg'}),null,
+    'do not ingest a thumbnail-only message as a canonical full photo');
+});
+
 test('normalizes JSON-string share.file and prefers fileUrl for download',()=>{
   const event=normalizeIncomingMessage({
     type:USER,
