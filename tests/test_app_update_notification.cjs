@@ -38,6 +38,13 @@ test('missing build id emits diagnostic',async()=>{
  assert.equal(await h.controller.check(),false);
  assert.ok(h.events.some(e=>e.reason==='check-failed'&&e.message==='version_missing_build_id'));
 });
+test('version-only manifest cannot falsely announce an update',async()=>{
+ const h=setup(()=>({ok:true,json:async()=>({version:'V21.72.99'})}));
+ assert.equal(await h.controller.check(),false);
+ assert.equal(h.controller.snapshot().pendingBuild,'');
+ assert.equal(h.appended.length,0);
+ assert.ok(h.events.some(e=>e.reason==='check-failed'&&e.message==='version_missing_build_id'));
+});
 test('superseded pending update clears its prompt',async()=>{
  let next='new-build';const h=setup(()=>({ok:true,json:async()=>({build_id:next})}));
  assert.equal(await h.controller.check(),true);
