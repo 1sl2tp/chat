@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="8ef8b0efdd8a5e5466703bb93805fc8a957470ae0058bdd1db9d4b23c0f28b8e">
+<meta name="app-build-id" content="9a85caecff4d357f7cce71aaae95f9e8d0448afeed0bf5ab059f65630b7b3880">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -32175,8 +32175,11 @@ function bind(){
 }
 async function boot(){
   bind();
-  await registerServiceWorker();
+  // Check the uncached release manifest immediately. On iOS standalone PWA,
+  // Service Worker registration/update can stall while the app is foregrounded;
+  // never let that delay the visible "Cập nhật" notice.
   void checkForUpdate({reason:'boot'});
+  void registerServiceWorker();
 }
 if(document.readyState==='loading'){
   document.addEventListener('DOMContentLoaded',()=>void boot(),{once:true});
