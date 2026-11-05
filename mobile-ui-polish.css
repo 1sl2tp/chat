@@ -395,7 +395,7 @@
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] .message-turn{
-    margin-top:8px;
+    margin-top:6px;
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] .message-body{
