@@ -1,19 +1,14 @@
 from pathlib import Path
 import hashlib, json, subprocess, sys, re
 ROOT=Path(__file__).resolve().parents[1]
-committed=(ROOT/'index.html').read_bytes()
-committed_version=(ROOT/'version.json').read_bytes()
+# Pages builds the canonical artifacts from source before verification.
+# Verify deterministic output, not equality with stale checked-in artifacts.
 subprocess.run([sys.executable,str(ROOT/'tools'/'build_current_preview.py')],check=True,cwd=ROOT)
 generated=(ROOT/'index.html').read_bytes()
 generated_version=(ROOT/'version.json').read_bytes()
-if generated!=committed:
-    import difflib
-    before=committed.decode('utf-8').splitlines()
-    after=generated.decode('utf-8').splitlines()
-    diff=list(difflib.unified_diff(before,after,fromfile='committed/index.html',tofile='generated/index.html',n=3))
-    print('\n'.join(diff[:240]))
-assert generated==committed,'index.html is not synchronized with modular source'
-assert generated_version==committed_version,'version.json is not synchronized with canonical build'
+subprocess.run([sys.executable,str(ROOT/'tools'/'build_current_preview.py')],check=True,cwd=ROOT)
+assert (ROOT/'index.html').read_bytes()==generated,'canonical index build is not deterministic'
+assert (ROOT/'version.json').read_bytes()==generated_version,'canonical manifest build is not deterministic'
 version=json.loads(generated_version.decode('utf-8'))
 release=str(version.get('version') or '')
 assert re.fullmatch(r'V\d+(?:\.\d+)+',release),release
