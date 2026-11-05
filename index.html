@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="c495028717b5da9272ae693ea89c04b213dd8cd42534ece1e446e8a22d8d727e">
+<meta name="app-build-id" content="112a8dd2d63f57a0a6eaadc3ad1676de3f3b821c9c6aa3f5ebd14c76c61cc795">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -6659,6 +6659,8 @@ button{
     padding-right:max(var(--mobile-ui-gutter),env(safe-area-inset-right,0px));
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .wm-sidebar-header{
+    /* The directory layer already starts below the app header/safe area. */
+    padding-top:6px;
     padding-bottom:0;
   }
 
