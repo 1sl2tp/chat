@@ -2594,6 +2594,7 @@ async function showImageViewerIndex(index,{behavior='smooth'}={}){
   }else{
     imageViewerImage.removeAttribute('src');
     imageViewerImage.dataset.ready='false';
+    imageViewerImage.dataset.qualitySource='missing';
   }
   let source;
   try{
@@ -2609,6 +2610,7 @@ async function showImageViewerIndex(index,{behavior='smooth'}={}){
   if(!source.src){
     imageViewerImage.removeAttribute('src');
     imageViewerImage.dataset.ready='false';
+    imageViewerImage.dataset.qualitySource='missing';
     if(imageViewerMeta)imageViewerMeta.textContent='Không tải được ảnh';
     return false;
   }

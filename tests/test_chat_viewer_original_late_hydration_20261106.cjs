@@ -60,5 +60,28 @@ function fixture(){
  assert.equal(recovery.downloads(),1,'online fetch is limited to visible viewer asset');
  assert.equal(recovery.ctx.imageViewerImage.dataset.qualitySource,'stored');
  assert.equal(recovery.ctx.imageViewerZoom,1.91);
+
+ // When selecting a photo with no preview, an old "stored" marker must not
+ // block the new photo's online original recovery.
+ const selectionStart=app.indexOf("  if(item.previewUrl){",app.indexOf('async function showImageViewerIndex('));
+ const selectionEnd=app.indexOf('  let source;',selectionStart);
+ assert(selectionStart>0&&selectionEnd>selectionStart,'real selection branch exists');
+ const setSelection=new Function('item','imageViewerImage',app.slice(selectionStart,selectionEnd));
+ const state={src:'blob:previous',dataset:{ready:'true',qualitySource:'stored'},
+   removeAttribute(name){if(name==='src')this.src='';}};
+ setSelection({previewUrl:''},state);
+ assert.equal(state.dataset.ready,'false');
+ assert.equal(state.dataset.qualitySource,'missing',
+   'switch to an unloaded photo must reset stale stored marker');
+ const missingStart=app.indexOf('  if(!source.src){',selectionEnd);
+ const missingEnd=app.indexOf("  const previous=imageViewerOwnedUrls.get('active');",missingStart);
+ assert(missingStart>0&&missingEnd>missingStart,'real missing-image branch exists');
+ const missingImage=new Function('source','imageViewerImage','imageViewerMeta',
+   app.slice(missingStart,missingEnd));
+ state.dataset.qualitySource='stored';
+ assert.equal(missingImage({src:''},state,{textContent:''}),false);
+ assert.equal(state.dataset.qualitySource,'missing',
+   'original lookup failure must not inherit a previous stored marker');
+
  console.log('Late full-resolution viewer, offline reconnect and session fencing PASS');
 })().catch(error=>{console.error(error);process.exitCode=1;});
