@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="9ce036d35f161ef58bb2274ebf855535360a63737843f908fbf62424d5f52e84">
+<meta name="app-build-id" content="a5329c823a4007dcd977e025f95ac1fb10616f31796bae9d16f488b7a03490af">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -11428,6 +11428,7 @@ async function showImageViewerIndex(index,{behavior='smooth'}={}){
   }else{
     imageViewerImage.removeAttribute('src');
     imageViewerImage.dataset.ready='false';
+    imageViewerImage.dataset.qualitySource='missing';
   }
   let source;
   try{
@@ -11443,6 +11444,7 @@ async function showImageViewerIndex(index,{behavior='smooth'}={}){
   if(!source.src){
     imageViewerImage.removeAttribute('src');
     imageViewerImage.dataset.ready='false';
+    imageViewerImage.dataset.qualitySource='missing';
     if(imageViewerMeta)imageViewerMeta.textContent='Không tải được ảnh';
     return false;
   }
