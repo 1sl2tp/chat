@@ -5030,6 +5030,8 @@ function renderWindow({
   if(historyRestore)viewport.beginHistoryRestore();
 
   let anchorIndex=
+    anchorIndexOverride!==null &&
+    anchorIndexOverride!==undefined &&
     Number.isFinite(Number(anchorIndexOverride))
       ?Number(anchorIndexOverride)
       :null;
