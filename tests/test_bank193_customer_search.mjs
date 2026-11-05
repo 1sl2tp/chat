@@ -5,7 +5,7 @@ import vm from 'node:vm';
 const js=readFileSync(new URL('../bank-report-dashboard.js',import.meta.url),'utf8');
 const css=readFileSync(new URL('../bank-report-dashboard.css',import.meta.url),'utf8');
 const start=js.indexOf('function bankCustomerSearchKey(value){');
-const end=js.indexOf('const money=x=>',start);
+const end=js.indexOf('function bankMoneyThousands(amountVnd){',start);
 assert(start>=0&&end>start,'search helper functions must exist');
 const {bankCustomerSearchKey,bankCustomerSearchMatches}=vm.runInNewContext(
  js.slice(start,end)+';({bankCustomerSearchKey,bankCustomerSearchMatches})'
