@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="4d0a593da4e1653a4f8fcfedf51ad0185d30b5cabacc10ea0bfe897438709c69">
+<meta name="app-build-id" content="fad177a5536add99b56c3aa31c58e0a50bab486dc8f3e083bc01a63f906fc3f4">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -9559,6 +9559,9 @@ function setScrollTop(value){
 }
 
 function markUserScrollIntent(duration=700){
+  // A real touch/wheel gesture takes ownership immediately: cancel any
+  // in-flight tail settle frames before Safari advances the native scroller.
+  cancelTailRevealOnly();
   clearInteractionGeometryAnchor();
   tailRevealTargetMessageId='';
   userScrollIntentUntil=Math.max(userScrollIntentUntil,Date.now()+Math.max(120,Number(duration)||700));
