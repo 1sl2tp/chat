@@ -4,11 +4,12 @@ const fs=require('node:fs');
 const vm=require('node:vm');
 const path=require('node:path');
 const src=fs.readFileSync(path.join(__dirname,'..','bank-report-dashboard.js'),'utf8');
-const i=src.indexOf('const money=x=>'),end=src.indexOf('\nconst localDate=',i);
-assert(i>=0&&end>i,'money helper');
-const money=vm.runInNewContext(src.slice(i,end)+'\nmoney;',{Intl,Number,String});
-for(const [input,expected] of [[570000,'570'],[4305000,'4.305'],[4217000,'4.217'],[26000,'26'],[62000,'62'],[570050,'570,05']]){
- assert.equal(money(input),expected,`Expected thousands only for ${input}`);
+const i=src.indexOf('function bankMoneyThousands('),end=src.indexOf('\nconst localDate=',i);
+assert(i>=0&&end>i,'canonical bankMoneyThousands helper');
+assert(src.slice(i,end).includes('const money=bankMoneyThousands;'),'dashboard uses canonical money helper');
+const money=vm.runInNewContext(src.slice(i,end)+'\nmoney;',{Intl,Number,String,Math});
+for(const [input,expected] of [[570000,'570'],[4305000,'4.305'],[4217000,'4.217'],[26000,'26'],[62000,'62'],[570050,'570 (lẻ 50₫)']]){
+ assert.equal(money(input),expected,`Expected exact thousand-unit display for ${input}`);
 }
 assert(src.includes("client.rpc('chat_bank_all_credit_statuses'"),'all credits are fetched independently');
 assert(src.includes("bank_credits:Array.isArray(credits.data)?credits.data:[]"));
@@ -28,4 +29,4 @@ const grouping=src.slice(src.indexOf('function renderGroups('),src.indexOf('func
 assert(grouping.includes("const fullCredits=filter==='all'||filter==='bank_all'||filter==='manual_bank'"));
 assert(grouping.includes("filter==='bank_only'?bankOnly:[]"),'unlinked workflow unchanged');
 assert(grouping.includes("bankCreditLine(row,allBills):detailLine(row,true"),'all and unlinked views distinct');
-console.log('BANK-222: 10-source bank register, safe statuses, ledger links, thousand units PASS');
+console.log('BANK-222: canonical money formatting, bank register, safe statuses and ledger links PASS');
