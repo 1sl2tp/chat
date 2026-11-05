@@ -400,6 +400,12 @@
     margin-top:6px;
   }
 
+  /* Keep the message scroller from propagating rubber-band motion to the page. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #chatScreen{
+    overscroll-behavior-y:contain;
+    -webkit-overflow-scrolling:touch;
+  }
+
   #appShell[data-auth-state="authenticated"][data-route="chat"] .message-body{
     letter-spacing:normal;
     overflow-wrap:anywhere;
