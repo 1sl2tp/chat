@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="9a85caecff4d357f7cce71aaae95f9e8d0448afeed0bf5ab059f65630b7b3880">
+<meta name="app-build-id" content="30b9eb327ad41a8817fec6f430f0f59093a3c76abf6ad3125732edda3b1ec395">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -32096,7 +32096,8 @@ async function checkForUpdate({reason='interval'}={}){
   if(checkPromise)return checkPromise;
   checkPromise=(async()=>{
     try{
-      try{await registration?.update?.();}catch{}
+      // SW update may hang on iOS; never block the uncached version check.
+      try{void Promise.resolve(registration?.update?.()).catch(()=>{});}catch{}
       const response=await fetch(
         VERSION_URL+'?t='+Date.now(),
         {cache:'no-store',credentials:'same-origin'}
@@ -32124,7 +32125,7 @@ async function checkForUpdate({reason='interval'}={}){
       pendingVersion=nextVersion||currentVersion;
       pendingBuild=nextBuild;
       emit('update-found',{trigger:String(reason||'check'),remote});
-      await activateWaitingWorker();
+      void activateWaitingWorker();
       maybeReload();
       return true;
     }catch(error){
