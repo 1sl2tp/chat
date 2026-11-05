@@ -1,3 +1,16 @@
+## 2026-11-05 — Chat Account Settings · compact iOS cards and Chat–Zalo
+
+- User evidence: iPhone PWA Settings tab had oversized stacked action buttons and visually clipped first/last rows; Chat–Zalo link cards used unnecessary vertical space.
+- UI owner: `zalo-admin-link.css`. Compact mobile settings keep short-card actions beside status text, with full-width explanatory banking cards; linked-account rows have smaller gaps and consistent 40px actions. The settings tab and links tab each retain their own scroll owner; header, tabs and search remain outside the list scroller. Narrow phones <=360px still stack actions safely.
+- Business controls untouched: Admin push, friend requests, devices, Agribank pairing, auto-collection status/actions, Chat–Zalo link/unlink/create and Zalo individual/group labels. No new API, Realtime, polling, database or banking write logic.
+- PWA shell epoch: `pwa-chat-account-settings-compact-v2-20261105`; generated `index.html` and `version.json` follow the canonical build pipeline.
+- Checks: extended `test_chat_account_settings_ios_density_20261105.cjs`; fixed outdated fixed-epoch checks in UI-208, PWA standalone and UI-213 tests without changing runtime behavior. Updated a stale mobile timestamp test rail expectation from 56px to the actual 58px directory CSS.
+- PRs: [#229](https://github.com/1sl2tp/chat/pull/229) and [#230](https://github.com/1sl2tp/chat/pull/230). **Pages build / canonical verify / deploy: PASS** [workflow 41959986839](https://github.com/1sl2tp/chat/actions/runs/41959986839).
+- Release limitation: the Pages workflow verifies the GitHub Pages target and custom-domain binding. An installed iOS PWA visual measurement / user-device activation is **not independently proven** here; leave E4 device acceptance OPEN. Separate `Verify V21` checks may still fail in BANK-193 customer-search tests unrelated to this UI patch; do not conflate this with successful Pages canonical verification.
+- Rollback: revert the scoped CSS, SW epoch and aligned regression test changes; preserve customer data and caches containing messages.
+
+---
+
 ## 2026-11-02 — CHAT HEADER · Equal-width User / Ảnh tabs
 
 - Requirement: two equal horizontal tabs, each naturally sized to the wider intrinsic tab, never overlapping video/phone buttons. Prior desktop CSS used unequal max-content tracks and mobile used a fixed 52px Photos track.
