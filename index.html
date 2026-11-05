@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="a78b566fd0356330854dd0897d1018a410ce15bcc274fd3714e1ac3d0873f4a5">
+<meta name="app-build-id" content="337f477971db0a5e7394ca10688a5f2b79dd40868acf19df58b1a9bd3836c6f8">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -7480,6 +7480,73 @@ button{
     grid-column:1 / -1;
     grid-row:2;
     line-height:18px;
+  }
+}
+
+/* UI-240-MOBILE-DIRECTORY-RHYTHM-20261106
+   Compact narrow Chat directory: one vertical rhythm and aligned contact rows.
+   Keep the existing keyboard/scroll owner, desktop panel and safe area. */
+@media(max-width:63.999rem){
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .wm-sidebar-sidebar{
+    padding-inline:0!important;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-tools{
+    gap:8px!important;
+    margin:0!important;
+    padding:6px 6px 8px!important;
+    border-bottom:1px solid var(--mobile-ui-line);
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-search{
+    min-height:44px!important;
+    height:44px!important;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-filter-line{
+    min-height:36px;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-filters{
+    gap:8px!important;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-filter{
+    min-height:36px!important;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer [data-v21-contact-list]{
+    padding:4px 2px max(8px,env(safe-area-inset-bottom,0px))!important;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-row{
+    height:68px!important;
+    min-height:68px!important;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-chat{
+    height:68px!important;
+    min-height:68px!important;
+    grid-template-columns:40px minmax(0,1fr);
+    column-gap:10px;
+    padding:10px 4px!important;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-copy{
+    grid-template-columns:minmax(0,1fr) 64px;
+    grid-template-rows:20px 18px;
+    column-gap:8px;
+    row-gap:2px;
+    align-self:center;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-name{
+    line-height:20px;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-preview{
+    grid-column:1 / -1;
+    line-height:18px;
+    padding-inline-end:36px;
+    min-width:0;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-time{
+    grid-column:2;
+    grid-row:1;
+    align-self:center;
+    justify-self:end;
+    width:64px;
+    line-height:16px;
+    text-align:right;
   }
 }
 
