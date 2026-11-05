@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="6ea2f9bb8f133339dbd0ff212de237864938e9021fef854955e20fb7fce5c2fe">
+<meta name="app-build-id" content="591ada824f377d64b10f770a25c5d6fc360030faa84a4dc997442009e5bc5262">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1011,48 +1011,118 @@
   .zalo-account-modal[data-active-tab="settings"] .zalo-account-notification-action{justify-self:start}
 }
 
-/* FIX-ACCOUNT-MOBILE-NO-OVERLAP-20261105 */
+/* FIX-ACCOUNT-MOBILE-NO-OVERLAP-20261105
+   Compact iOS account settings: each preference remains a complete card, with
+   the action next to short copy rather than under every row. Long banking
+   descriptions keep full width. The active pane alone scrolls, including
+   first/last cards and the Chat–Zalo directory; no business flow changes. */
 @media (max-width:640px){
-  /* The settings pane is the only scroll owner. Never clip its first/last card. */
+  .zalo-account-modal .zalo-account-card{
+    padding:12px 12px max(12px,env(safe-area-inset-bottom,0px));
+  }
+  .zalo-account-modal .zalo-account-modal-head{
+    margin-bottom:8px;
+  }
+  .zalo-account-modal .zalo-account-tabs{
+    margin-bottom:8px;
+  }
+  /* A single vertical scroll owner, independent from the fixed header/tabs.
+     Positive start/end padding keeps scroll position 0 and the last action
+     clear of rounded corners and the iOS home indicator. */
   .zalo-account-modal[data-active-tab="settings"] .zalo-account-preferences{
     display:flex;flex:1 1 auto;flex-direction:column;align-items:stretch;
     min-height:0;max-height:none;overflow-x:hidden;overflow-y:auto;
-    gap:9px;padding:5px 3px 20px;margin:0;
+    gap:8px;padding:8px 3px calc(20px + env(safe-area-inset-bottom,0px));margin:0;
     scroll-padding-top:8px;scroll-padding-bottom:20px;
-    -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
   }
   .zalo-account-modal[data-active-tab="settings"] .zalo-account-preferences>.zalo-account-notification{
-    box-sizing:border-box;display:flex;flex:0 0 auto;flex-direction:column;
-    align-items:stretch;justify-content:flex-start;
+    box-sizing:border-box;display:grid;flex:0 0 auto;
+    grid-template-columns:minmax(0,1fr) auto;
+    align-items:center;justify-items:stretch;
     width:100%;height:auto;min-height:0;max-height:none;
-    margin:0;padding:12px 13px;gap:9px;
+    margin:0;padding:10px 11px;gap:6px 10px;
     overflow:visible;border-radius:14px;
   }
   .zalo-account-modal[data-active-tab="settings"] .zalo-account-preferences>.zalo-account-notification>.zalo-account-notification-copy{
-    display:flex;flex:0 0 auto;flex-direction:column;align-items:flex-start;
-    min-width:0;width:100%;gap:3px;margin:0;
+    display:grid;flex:0 1 auto;min-width:0;width:100%;
+    align-self:center;gap:2px;margin:0;
+  }
+  .zalo-account-modal[data-active-tab="settings"] .zalo-account-notification-copy strong{
+    line-height:19px;
+  }
+  .zalo-account-modal[data-active-tab="settings"] .zalo-account-notification-copy small{
+    line-height:17px;overflow-wrap:anywhere;
   }
   .zalo-account-modal[data-active-tab="settings"] .zalo-account-preferences>.zalo-account-notification>.zalo-account-notification-action{
-    position:static;display:inline-flex;flex:0 0 auto;align-self:flex-start;
-    justify-content:center;align-items:center;box-sizing:border-box;
-    width:auto;max-width:100%;min-height:36px;margin:0;
-    padding:8px 12px;white-space:normal;line-height:18px;
+    position:static;display:inline-flex;flex:0 0 auto;align-self:center;
+    justify-self:end;justify-content:center;align-items:center;box-sizing:border-box;
+    width:auto;max-width:138px;min-height:40px;margin:0;
+    padding:7px 10px;white-space:normal;line-height:18px;text-align:center;
+    border:1px solid var(--theme-border-default,#dedede);
+    background:var(--theme-surface-secondary,#f3f3f3);
+    color:var(--theme-content-primary,#171717);
+  }
+  /* Preserve details for the two longer financial settings. These are
+     intentionally two-row cards rather than squeezing paragraphs beside CTAs. */
+  .zalo-account-modal[data-active-tab="settings"] .zalo-account-preferences>[data-admin-agribank-pair],
+  .zalo-account-modal[data-active-tab="settings"] .zalo-account-preferences>[data-admin-auto-collect-setting]{
+    grid-template-columns:minmax(0,1fr);
+  }
+  .zalo-account-modal[data-active-tab="settings"] .zalo-account-preferences>[data-admin-agribank-pair]>.zalo-account-notification-action,
+  .zalo-account-modal[data-active-tab="settings"] .zalo-account-preferences>[data-admin-auto-collect-setting]>.zalo-account-notification-action{
+    justify-self:start;max-width:100%;
   }
   .zalo-account-modal[data-active-tab="links"] .zalo-account-directory-panel{
     min-height:0;overflow:hidden;
   }
+  .zalo-account-modal[data-active-tab="links"] .zalo-account-directory-head{
+    padding-bottom:7px;
+  }
+  .zalo-account-modal[data-active-tab="links"] .zalo-account-search{
+    margin-bottom:7px;
+  }
   .zalo-account-modal[data-active-tab="links"] .zalo-account-list{
     min-height:0;overflow-y:auto;align-content:start;
-    gap:8px;padding:3px 3px 16px;
+    gap:7px;padding:3px 3px 16px;
+    overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
   }
   .zalo-account-modal[data-active-tab="links"] .zalo-account-row{
     box-sizing:border-box;grid-template-columns:minmax(0,1fr);
-    align-content:start;align-items:stretch;gap:7px;
-    height:auto;min-height:0;padding:10px 11px;
+    align-content:start;align-items:stretch;gap:5px;
+    height:auto;min-height:0;padding:9px 10px;border-radius:13px;
+  }
+  .zalo-account-modal[data-active-tab="links"] .zalo-account-person,
+  .zalo-account-modal[data-active-tab="links"] .zalo-account-relation{
+    gap:8px;min-width:0;min-height:39px;
+  }
+  .zalo-account-modal[data-active-tab="links"] .zalo-account-relation{
+    padding-top:6px;
+  }
+  .zalo-account-modal[data-active-tab="links"] .zalo-account-person-copy{
+    min-width:0;overflow-wrap:anywhere;
+  }
+  .zalo-account-modal[data-active-tab="links"] .zalo-account-person-copy strong{
+    font-size:13px;line-height:18px;
+  }
+  .zalo-account-modal[data-active-tab="links"] .zalo-account-person-copy small{
+    line-height:17px;overflow-wrap:anywhere;
   }
   .zalo-account-modal[data-active-tab="links"] .zalo-account-row-actions{
     grid-column:1;display:flex;flex-wrap:wrap;align-items:center;
-    padding-top:8px;margin:0;gap:8px;
+    padding-top:6px;margin:0;gap:7px;
+  }
+  .zalo-account-modal[data-active-tab="links"] .zalo-account-action{
+    min-height:40px;padding:7px 11px;
+  }
+}
+@media(max-width:360px){
+  /* Very narrow devices cannot fit descriptive text beside 120px actions. */
+  .zalo-account-modal[data-active-tab="settings"] .zalo-account-preferences>.zalo-account-notification{
+    grid-template-columns:minmax(0,1fr);
+  }
+  .zalo-account-modal[data-active-tab="settings"] .zalo-account-preferences>.zalo-account-notification>.zalo-account-notification-action{
+    justify-self:start;max-width:100%;
   }
 }
 
