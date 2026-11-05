@@ -6,6 +6,7 @@ const fs=require('node:fs');
 const vm=require('node:vm');
 const path=require('node:path');
 const sw=fs.readFileSync(path.join(__dirname,'..','sw.js'),'utf8');
+const epoch=sw.match(/const SHELL_CACHE_EPOCH='([^']+)'/)?.[1]||'';
 
 function makeHarness(){
  const origin='https://chat.taphoa.xyz';
@@ -89,7 +90,8 @@ function makeHarness(){
   origin,requested,caches,cacheSets,FakeRequest,FakeResponse,dispatch,
   setOnline:v=>online=v,setStorageWorks:v=>storageWorks=v,
   setCurrentHtml:v=>activeHtml=v,
-  cacheName:/const SHELL_CACHE_EPOCH='pwa-chat-sender-vn-20261105'/.test(sw)
+  cacheName:epoch.startsWith('pwa-chat-')&&epoch!=='pinned-bank-report-contact-20261023',
+  epoch
  };
 }
 (async()=>{
@@ -101,7 +103,7 @@ function makeHarness(){
  await h.dispatch('activate');
  assert(!(await h.caches.keys()).some(k=>k.includes('pinned-bank-report-contact')),
   'old offline shell cache must be deleted at activation');
- const installedCache=(await h.caches.keys()).find(k=>k.includes('pwa-chat-sender-vn-20261105'));
+ const installedCache=(await h.caches.keys()).find(k=>k.includes(h.epoch));
  assert(installedCache,'new cache epoch must exist');
 
  // Simulate a *stale cache with B+* even in a newly activated worker.
