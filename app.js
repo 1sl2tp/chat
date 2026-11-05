@@ -1006,7 +1006,7 @@ function markUserScrollIntent(duration=700){
   clearTimeout(userScrollIntentTimer);
   userScrollIntentTimer=setTimeout(()=>{
     if(Date.now()>=userScrollIntentUntil)scrollRoot.removeAttribute('data-user-scroll-intent');
-  },Math.max(140,Number(duration)||700)+20);
+  },Math.max(140,userScrollIntentUntil-Date.now())+20);
 }
 
 function hasUserScrollIntent(){
