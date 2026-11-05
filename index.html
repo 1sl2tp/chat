@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="5d6ddb75d10d08981878689f824a75a7bbb1c441d675ba2837c66bcfa33b3a0f">
+<meta name="app-build-id" content="c8b90a0aa7a2c8bfac3eeba245f5da5b6afe4387ff615a99670e81d05751028e">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -9615,6 +9615,12 @@ function beginConversationViewContext(){
   windowRebaseFrame=0;
   loadingOlder=false;
   historyStatus.classList.add('hidden');
+  // The previous contact's server-history request can no longer finish this
+  // button after its epoch changes. Reset it here for the new contact.
+  if(historyMoreButton){
+    historyMoreButton.disabled=false;
+    historyMoreButton.textContent='Xem tin / ngày cũ hơn';
+  }
   clearUserScrollIntentForExplicitTail();
   programmaticScrollGeneration+=1;
   programmaticScroll=false;
