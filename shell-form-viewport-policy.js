@@ -75,6 +75,15 @@ function ownerFor(node){
     if(host)return{kind:'account-settings',surface:accountCard,host};
   }
 
+  // SPEC-CHAT-FORWARD-IOS-KEYBOARD-20261105:
+  // The message forward recipient picker is a global bottom sheet. It must
+  // follow the same VisualViewport owner as Settings and Directory search.
+  const forwardCard=node.closest?.('.message-forward-card')||null;
+  if(forwardCard){
+    const host=forwardCard.closest?.('.message-forward-overlay')||null;
+    if(host)return{kind:'message-forward',surface:forwardCard,host};
+  }
+
   // SPEC-CHAT-MOBILE-SEARCH-KEYBOARD-20261101: the Directory is a
   // fixed-height scroll shell; its contact search cannot inherit a
   // layout viewport height after the iOS software keyboard opens.
@@ -221,7 +230,10 @@ function revealWithinOwner(owner,field,state){
   if(owner.kind==='account-settings-panel'){
     return scrollPane(surface,delta);
   }
-  if(owner.kind==='directory')return false;
+  // Forward search is pinned above a separately scrollable result list.
+  // Shrink its host to the visible viewport; scrolling the card would
+  // displace the input again behind the native iOS keyboard accessory.
+  if(owner.kind==='directory'||owner.kind==='message-forward')return false;
   return scrollPane(surface,delta);
 }
 
