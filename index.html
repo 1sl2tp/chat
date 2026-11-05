@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="4088ce1e8aaf196e14f9aad2676f9cea94cdff778a2d3780d8cb3092b7180ca7">
+<meta name="app-build-id" content="d8d16b2a5d55d72a8d2a97fd9a01a3b3135bf1d900828c5ba2baf20a201849a9">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1749,6 +1749,42 @@
 .message-forward-empty{padding:24px 8px;text-align:center;color:var(--theme-content-secondary,#777);font-size:13px}
 .message-forward-status{min-height:18px;margin:0;color:var(--theme-content-secondary,#666);font-size:12px;line-height:18px}
 @media(max-width:639px){.message-forward-overlay{align-items:end;padding:0}.message-forward-card{width:100%;max-height:78dvh;border-radius:22px 22px 0 0;padding:14px 14px calc(14px + env(safe-area-inset-bottom))}}
+
+/* SPEC-CHAT-FORWARD-IOS-KEYBOARD-20261105
+   iOS standalone keeps fixed overlays sized to the layout viewport even
+   when the software keyboard covers its bottom edge. The single platform
+   viewport owner publishes the measured visible top/height on focus.
+   Keep the search above the keyboard; only recipient results may scroll. */
+@media(max-width:639px), (pointer:coarse){
+  .message-forward-overlay[data-mobile-keyboard="true"]{
+    box-sizing:border-box;
+    top:var(--shell-form-vv-top,0px);
+    bottom:auto;
+    height:var(--shell-form-vv-height,100svh);
+    max-height:var(--shell-form-vv-height,100svh);
+    overflow:hidden;
+    align-items:end;
+    padding:6px 0 0;
+  }
+  .message-forward-overlay[data-mobile-keyboard="true"] .message-forward-card{
+    box-sizing:border-box;
+    width:100%;
+    min-height:0;
+    max-height:100%;
+    overflow:hidden;
+    padding:12px 14px 10px;
+    grid-template-rows:auto auto minmax(0,1fr) auto;
+  }
+  .message-forward-overlay[data-mobile-keyboard="true"] .message-forward-search{
+    min-height:44px;
+    font-size:16px;
+  }
+  .message-forward-overlay[data-mobile-keyboard="true"] .message-forward-list{
+    min-height:0;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+  }
+}
 
 </style>
 <style data-inlined-source="quote-client.css">
@@ -19539,6 +19575,15 @@ function ownerFor(node){
     if(host)return{kind:'account-settings',surface:accountCard,host};
   }
 
+  // SPEC-CHAT-FORWARD-IOS-KEYBOARD-20261105:
+  // The message forward recipient picker is a global bottom sheet. It must
+  // follow the same VisualViewport owner as Settings and Directory search.
+  const forwardCard=node.closest?.('.message-forward-card')||null;
+  if(forwardCard){
+    const host=forwardCard.closest?.('.message-forward-overlay')||null;
+    if(host)return{kind:'message-forward',surface:forwardCard,host};
+  }
+
   // SPEC-CHAT-MOBILE-SEARCH-KEYBOARD-20261101: the Directory is a
   // fixed-height scroll shell; its contact search cannot inherit a
   // layout viewport height after the iOS software keyboard opens.
@@ -19685,7 +19730,10 @@ function revealWithinOwner(owner,field,state){
   if(owner.kind==='account-settings-panel'){
     return scrollPane(surface,delta);
   }
-  if(owner.kind==='directory')return false;
+  // Forward search is pinned above a separately scrollable result list.
+  // Shrink its host to the visible viewport; scrolling the card would
+  // displace the input again behind the native iOS keyboard accessory.
+  if(owner.kind==='directory'||owner.kind==='message-forward')return false;
   return scrollPane(surface,delta);
 }
 
