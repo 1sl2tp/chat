@@ -235,8 +235,11 @@ function bind(){
 }
 async function boot(){
   bind();
-  await registerServiceWorker();
+  // Check the uncached release manifest immediately. On iOS standalone PWA,
+  // Service Worker registration/update can stall while the app is foregrounded;
+  // never let that delay the visible "Cập nhật" notice.
   void checkForUpdate({reason:'boot'});
+  void registerServiceWorker();
 }
 if(document.readyState==='loading'){
   document.addEventListener('DOMContentLoaded',()=>void boot(),{once:true});
