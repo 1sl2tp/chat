@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="15356ada861928102f7dd77f796b032b244bbd17f8f3f51050615fadbf753d05">
+<meta name="app-build-id" content="4305854170044446d621d2101775031b1c1d80fcfe32a3a294a5f6b7cad9ff6d">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -22771,6 +22771,14 @@ async function openAccountAdmin(){
     const links=accountModal.querySelector('#zalo-account-panel-links');
     if(settings)settings.hidden=name!=='settings';
     if(links)links.hidden=name!=='links';
+    // Switching tabs must never reopen an independently scrolling pane
+    // halfway through its content (first settings card appears clipped).
+    const activePane=name==='settings'?settings:links;
+    if(activePane){
+      activePane.scrollTop=0;
+      const inner=activePane.querySelector('.zalo-account-list');
+      if(inner)inner.scrollTop=0;
+    }
     for(const button of accountModal.querySelectorAll('[data-zalo-account-tab]')){
       const selected=button.dataset.zaloAccountTab===name;
       button.setAttribute('aria-selected',String(selected));
