@@ -996,6 +996,9 @@ function setScrollTop(value){
 }
 
 function markUserScrollIntent(duration=700){
+  // A real touch/wheel gesture takes ownership immediately: cancel any
+  // in-flight tail settle frames before Safari advances the native scroller.
+  cancelTailRevealOnly();
   clearInteractionGeometryAnchor();
   tailRevealTargetMessageId='';
   userScrollIntentUntil=Math.max(userScrollIntentUntil,Date.now()+Math.max(120,Number(duration)||700));
