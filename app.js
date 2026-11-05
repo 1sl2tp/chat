@@ -5123,8 +5123,8 @@ async function loadOlder(){
 
   await new Promise(r=>setTimeout(r,100));
   if(viewEpoch!==conversationViewEpoch){
-    historyStatus.classList.add('hidden');
-    loadingOlder=false;
+    // beginConversationViewContext already reset the old load. A new contact
+    // may have started its own load while this timeout was pending.
     return;
   }
 
