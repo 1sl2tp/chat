@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="5d08821cc4525f7e3bda6acd0fcb914cd64273b32e6ed161d453d8d1410a209a">
+<meta name="app-build-id" content="99941e12f1c98b064c25aa247cd339441f17d254ff9380625c7099742ef0428e">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1082,16 +1082,21 @@
   .zalo-account-modal[data-active-tab="links"] .zalo-account-search{
     margin-bottom:7px;
   }
+  /* 136 Chat + hundreds of unassigned Zalo must grow in the scroll
+     container, NEVER shrink each implicit CSS Grid row to the remaining
+     viewport height (the former 20px rails leaked avatars/text/actions). */
   .zalo-account-modal[data-active-tab="links"] .zalo-account-list{
-    min-height:0;overflow-y:auto;align-content:start;
+    display:flex;flex-direction:column;align-items:stretch;
+    min-height:0;overflow-x:hidden;overflow-y:auto;
     gap:7px;padding:3px 3px 16px;
     scroll-padding-block:8px 16px;
     overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
   }
   .zalo-account-modal[data-active-tab="links"] .zalo-account-row{
-    box-sizing:border-box;grid-template-columns:minmax(0,1fr);
+    box-sizing:border-box;display:grid;flex:0 0 auto;
+    grid-template-columns:minmax(0,1fr);
     align-content:start;align-items:stretch;gap:5px;
-    height:auto;min-height:0;padding:9px 10px;border-radius:13px;
+    height:auto;min-height:max-content;padding:9px 10px;border-radius:13px;
   }
   .zalo-account-modal[data-active-tab="links"] .zalo-account-person,
   .zalo-account-modal[data-active-tab="links"] .zalo-account-relation{
