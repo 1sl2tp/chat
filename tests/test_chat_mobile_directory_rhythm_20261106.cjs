@@ -1,0 +1,61 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const root=path.join(__dirname,'..');
+const css=fs.readFileSync(path.join(root,'mobile-ui-polish.css'),'utf8');
+const html=fs.readFileSync(path.join(root,'index.source.html'),'utf8');
+const shell=fs.readFileSync(path.join(root,'shell.js'),'utf8');
+const directory=fs.readFileSync(path.join(root,'contact-directory-admin.js'),'utf8');
+const sw=fs.readFileSync(path.join(root,'sw.js'),'utf8');
+const marker='UI-240-MOBILE-DIRECTORY-RHYTHM-20261106';
+assert.equal(css.split(marker).length-1,1,'one CSS rhythm owner');
+const patch=css.slice(css.indexOf(marker));
+assert.match(patch,/@media\(max-width:63\.999rem\)\s*\{/);
+assert(!patch.includes('[data-mobile-directory='),'do not use inactive attribute');
+assert(patch.trim().endsWith('}'),'rhythm rules must be last CSS override');
+const base='#appShell[data-auth-state="authenticated"] #shellNavigationLayer ';
+function declaration(selector){
+  const start=patch.indexOf(base+selector+'{');
+  assert(start>=0,'missing selector '+selector);
+  const a=start+base.length+selector.length+1;
+  const b=patch.indexOf('}',a);
+  assert(b>a);
+  return patch.slice(a,b).replace(/\s+/g,'');
+}
+const search=declaration('.contact-directory-search');
+const tools=declaration('.contact-directory-tools');
+const filters=declaration('.contact-directory-filters');
+const chip=declaration('.contact-directory-filter');
+const list=declaration('[data-v21-contact-list]');
+const row=declaration('.shell-contact-row');
+const button=declaration('.shell-contact-chat');
+const copy=declaration('.shell-contact-copy');
+const preview=declaration('.shell-contact-preview');
+const time=declaration('.shell-contact-time');
+assert(tools.includes('gap:8px!important;'));
+assert(tools.includes('padding:6px6px8px!important;'));
+assert(search.includes('min-height:44px!important;'));
+assert(declaration('.contact-directory-filter-line').includes('min-height:36px;'));
+assert(filters.includes('gap:8px!important;'));
+assert(chip.includes('min-height:36px!important;'));
+assert(list.includes('padding:4px2pxmax(8px,env(safe-area-inset-bottom,0px))!important;'));
+assert(row.includes('height:68px!important;')&&button.includes('height:68px!important;'));
+assert(button.includes('grid-template-columns:40pxminmax(0,1fr);'));
+assert(button.includes('column-gap:10px;'));
+assert(copy.includes('grid-template-columns:minmax(0,1fr)64px;'));
+assert(copy.includes('grid-template-rows:20px18px;')&&copy.includes('row-gap:2px;'));
+assert(preview.includes('grid-column:1/-1;'),'preview spans time rail on second line');
+assert(preview.includes('padding-inline-end:36px;'),'do not cover the manage button');
+assert(time.includes('grid-column:2;')&&time.includes('grid-row:1;'));
+assert(time.includes('text-align:right;'));
+assert(html.includes('<nav aria-label="Danh bạ" class="wm-sidebar-navigation">'));
+assert(shell.includes("copy.append(title,preview,time);"));
+assert(directory.includes('body.insertBefore(tools,nav);'),'search stays pinned above one list');
+assert(directory.includes("const scrollHost=host.closest('.wm-sidebar-navigation');"),
+ 'only the contact list owns vertical scrolling');
+assert(css.includes('SPEC-CHAT-MOBILE-DIRECTORY-VV-20261101'),
+ 'retain VisualViewport keyboard safety');
+assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-directory-rhythm-ui240-20261106';"),
+ 'installed PWA must not keep old CSS cache');
+console.log('UI-240 narrow directory rhythm, avatar/name/preview/time and PWA cache PASS');
