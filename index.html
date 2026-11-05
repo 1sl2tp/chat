@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="a5329c823a4007dcd977e025f95ac1fb10616f31796bae9d16f488b7a03490af">
+<meta name="app-build-id" content="66972909f9ff44f5ffcefb06d1bec7e84227bceea1c15fd47a000dadca025afe">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -7389,6 +7389,28 @@ button{
   }
   #shellNavigationLayer[data-mobile-keyboard="true"] .contact-directory-tools{
     flex:0 0 auto;
+  }
+}
+
+/* UI-239-MOBILE-DIRECTORY-SEARCH-TOP-20261106
+   In narrow web/PWA directory view the app already exposes "Danh bạ"
+   through the aside/nav aria-labels. Drop the redundant visual title row
+   and its 36-44px grid track; the search should sit 8px under top tabs.
+   Do not depend on data-mobile-directory: the current shell does not set it.
+   Wide desktop and unauthenticated drawer retain their header/close control.
+   No absolute offsets, viewport timers or second scrolling owner. */
+@media(max-width:63.999rem){
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .wm-sidebar-sidebar{
+    padding-block-start:0!important;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .wm-sidebar-header{
+    display:none!important;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .wm-sidebar-body{
+    padding-block-start:0!important;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-tools{
+    padding-top:8px!important;
   }
 }
 
