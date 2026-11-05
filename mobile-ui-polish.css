@@ -36,6 +36,8 @@
     padding-right:max(var(--mobile-ui-gutter),env(safe-area-inset-right,0px));
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .wm-sidebar-header{
+    /* The directory layer already starts below the app header/safe area. */
+    padding-top:6px;
     padding-bottom:0;
   }
 
