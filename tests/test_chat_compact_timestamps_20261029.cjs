@@ -18,7 +18,7 @@ assert(!/\.shell-contact-(?:row[^\n]* )?time[^\n]*opacity:0/.test(styles),
   'contact time may never disappear on active, hover, focus');
 assert(styles.includes('top:auto;')&&styles.includes('bottom:3px;')&&styles.includes('transform:none;'),
   'manage control must move to the second row instead of the time');
-assert(mobile.includes('grid-template-columns:minmax(0,1fr) 56px'),
+assert(mobile.includes('grid-template-columns:minmax(0,1fr) 58px'),
   'mobile keeps an independent time column');
 
 // Execute the exact directory formatter even if the browser's local TZ
