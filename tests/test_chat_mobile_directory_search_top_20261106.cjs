@@ -53,6 +53,9 @@ assert(css.includes('#shellNavigationLayer[data-mobile-keyboard="true"]'),
   'VisualViewport/keyboard scroll owner must be retained');
 
 // Rotate only the public shell. Never clear message IndexedDB or private media.
-assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-directory-search-top-ui239-20261106';"));
+const shellEpoch=sw.match(/const SHELL_CACHE_EPOCH='(pwa-chat-[a-z0-9-]+)';/)?.[1]||'';
+assert(shellEpoch,'Chat Web/PWA must still use a versioned shell cache');
+assert.notEqual(shellEpoch,'pwa-chat-zalo-directory-no-collapse-v3-20261105',
+  'UI-239 must not silently reuse the pre-search-top cached shell');
 assert(sw.includes("const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION+'-'+SHELL_CACHE_EPOCH;"));
 console.log('UI-239 narrow directory search-up/header-gap and PWA cache contract PASS');
