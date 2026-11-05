@@ -29,3 +29,10 @@ console.log('iPhone account settings density CSS contract OK');
 assert(js.includes("const activePane=name==='settings'?settings:links;"));
 assert(js.includes('activePane.scrollTop=0;'));
 assert(js.includes('if(inner)inner.scrollTop=0;'));
+
+const overlapPatch=css.slice(css.indexOf('FIX-ACCOUNT-MOBILE-NO-OVERLAP-20261105'));
+assert(overlapPatch.includes('display:flex;flex:1 1 auto;flex-direction:column'));
+assert(overlapPatch.includes('>.zalo-account-notification{'));
+assert(overlapPatch.includes('height:auto;min-height:0;max-height:none;'));
+assert(overlapPatch.includes('position:static;display:inline-flex;'));
+assert(overlapPatch.includes('padding:3px 3px 16px;'));
