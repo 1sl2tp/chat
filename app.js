@@ -1052,6 +1052,12 @@ function beginConversationViewContext(){
   windowRebaseFrame=0;
   loadingOlder=false;
   historyStatus.classList.add('hidden');
+  // The previous contact's server-history request can no longer finish this
+  // button after its epoch changes. Reset it here for the new contact.
+  if(historyMoreButton){
+    historyMoreButton.disabled=false;
+    historyMoreButton.textContent='Xem tin / ngày cũ hơn';
+  }
   clearUserScrollIntentForExplicitTail();
   programmaticScrollGeneration+=1;
   programmaticScroll=false;
