@@ -813,6 +813,7 @@
   .zalo-account-modal[data-active-tab="links"] .zalo-account-list{
     min-height:0;overflow-y:auto;align-content:start;
     gap:7px;padding:3px 3px 16px;
+    scroll-padding-block:8px 16px;
     overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
   }
   .zalo-account-modal[data-active-tab="links"] .zalo-account-row{
