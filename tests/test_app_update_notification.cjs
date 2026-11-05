@@ -9,7 +9,7 @@ function setup(responder){
  const elements={appShell:{dataset:{authState:'authenticated'}}};
  const document={readyState:'loading',body:{appendChild(el){el.isConnected=true;appended.push(el);}},documentElement:{dataset:{}},visibilityState:'visible',hidden:false,
   querySelector(sel){if(sel==='meta[name="app-release-version"]')return {content:'V21.72.39'};if(sel==='meta[name="app-build-id"]')return {content:'old-build'};return null;},
-  getElementById(id){return elements[id]||null;},createElement(tag){return {tagName:tag,isConnected:false,setAttribute(){},addEventListener(){},append(){},remove(){this.isConnected=false;}};},
+  getElementById(id){return elements[id]||null;},createElement(tag){return {tagName:tag,isConnected:false,style:{cssText:''},setAttribute(){},addEventListener(){},append(){},remove(){this.isConnected=false;}};},
   addEventListener(name,callback){listeners[name]=callback;},dispatchEvent(event){events.push(event.detail);}};
  const context={document,window:{ChatAppShell:{snapshot(){return {authState:'AUTHENTICATED'};}},addEventListener(){}},
   navigator:{},location:{protocol:'https:',hostname:'chat.taphoa.xyz',href:'https://chat.taphoa.xyz/',replace(){}},
