@@ -561,3 +561,72 @@
     padding-top:8px!important;
   }
 }
+
+/* UI-240-COMPACT-DIRECTORY-RHYTHM-20261106
+   One visual rhythm for the authenticated narrow directory (browser + PWA).
+   The top tabs are owned by regionTop, search/filter by the directory tools,
+   and only the navigation list scrolls. Never change keyboard/viewport owners. */
+@media (max-width:63.999rem){
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .wm-sidebar-sidebar{
+    padding-inline:0!important;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .wm-sidebar-body{
+    padding-inline:6px!important;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-tools{
+    box-sizing:border-box;
+    margin:0!important;
+    gap:8px!important;
+    padding:8px 6px 10px!important;
+    border-bottom:1px solid var(--mobile-ui-line,var(--theme-border-default));
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-search{
+    box-sizing:border-box;
+    height:44px!important;
+    min-height:44px!important;
+    margin:0!important;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-filter-line{
+    min-height:36px;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-filter{
+    min-height:36px!important;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer [data-v21-contact-list]{
+    padding:6px 2px max(12px,env(safe-area-inset-bottom,0px));
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-row,
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-chat{
+    height:68px;
+    min-height:68px;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-chat{
+    padding:10px 6px;
+    column-gap:10px;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-copy{
+    grid-template-columns:minmax(0,1fr) 64px;
+    grid-template-rows:auto auto;
+    column-gap:8px;
+    row-gap:3px;
+    align-content:center;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-name{
+    grid-column:1;
+    grid-row:1;
+    line-height:20px;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-time{
+    grid-column:2;
+    grid-row:1;
+    width:64px;
+    line-height:20px;
+    align-self:center;
+    justify-self:end;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-preview{
+    grid-column:1 / -1;
+    grid-row:2;
+    line-height:18px;
+  }
+}
