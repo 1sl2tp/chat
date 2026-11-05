@@ -161,11 +161,26 @@ async function checkForUpdate({reason='interval'}={}){
         VERSION_URL+'?t='+Date.now(),
         {cache:'no-store',credentials:'same-origin'}
       );
-      if(!response.ok)return false;
+      if(!response.ok){
+        emit('check-failed',{message:'version_http_'+response.status});
+        return false;
+      }
       const remote=await response.json();
       const nextVersion=String(remote?.version||'');
       const nextBuild=String(remote?.build_id||remote?.index_sha256||nextVersion||'');
-      if(!nextBuild||nextBuild===currentBuild)return false;
+      if(!nextBuild){
+        emit('check-failed',{message:'version_missing_build_id'});
+        return false;
+      }
+      if(nextBuild===currentBuild){
+        // Clear a superseded pending update instead of showing a stale button.
+        pendingVersion='';
+        pendingBuild='';
+        updateNotice?.remove?.();
+        updateNotice=null;
+        delete document.documentElement.dataset.appUpdatePending;
+        return false;
+      }
       pendingVersion=nextVersion||currentVersion;
       pendingBuild=nextBuild;
       emit('update-found',{trigger:String(reason||'check'),remote});
