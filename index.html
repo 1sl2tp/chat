@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="7291e1b8556400e078b79c72ff52ec88e24a61cdffa7604801ecdc9388c5cf92">
+<meta name="app-build-id" content="b886f1510512aee570d8e8061cb3d37cd4714156049b3cbb091b939d795873c5">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -13686,8 +13686,8 @@ async function loadOlder(){
 
   await new Promise(r=>setTimeout(r,100));
   if(viewEpoch!==conversationViewEpoch){
-    historyStatus.classList.add('hidden');
-    loadingOlder=false;
+    // beginConversationViewContext already reset the old load. A new contact
+    // may have started its own load while this timeout was pending.
     return;
   }
 
