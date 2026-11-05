@@ -125,4 +125,5 @@ for test in sorted((ROOT/'tests').glob('test_v21_admin_web_push*.py')):
 for test in sorted(list((ROOT/'tests').glob('test_v21_admin_web_push*.js'))+list((ROOT/'tests').glob('test_v21_admin_web_push*.mjs'))):
     subprocess.run(['node',str(test)],check=True,cwd=ROOT)
 subprocess.run(['node','--test',str(ROOT/'tests'/'test_history_pagination_contact_switch.cjs')],check=True,cwd=ROOT)
+subprocess.run(['node','--test',str(ROOT/'tests'/'test_app_update_notification.cjs')],check=True,cwd=ROOT)
 print(f'{release} canonical source verify PASS build_id={build_id} sha256={sha}')
