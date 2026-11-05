@@ -96,6 +96,10 @@ function showUpdateNotice(){
   if(updateNotice?.isConnected)return;
   const host=document.createElement('div');
   host.id='chatUpdateNotice';
+  // Self-contained UI: the updater must remain visible even when an old
+  // PWA shell has stale/missing stylesheets or a full-screen settings modal.
+  host.style.cssText='position:fixed;z-index:2147483647;left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));bottom:max(16px,env(safe-area-inset-bottom));display:flex;align-items:center;justify-content:space-between;gap:12px;box-sizing:border-box;padding:12px 14px;border-radius:14px;background:#171717;color:#fff;box-shadow:0 8px 32px rgba(0,0,0,.28);font:600 14px/1.4 system-ui,-apple-system,sans-serif;pointer-events:auto';
+
   host.setAttribute('role','status');
   host.setAttribute('aria-live','polite');
   const label=document.createElement('span');
@@ -103,6 +107,8 @@ function showUpdateNotice(){
   const button=document.createElement('button');
   button.type='button';
   button.textContent='Cập nhật';
+  button.style.cssText='flex:0 0 auto;min-height:40px;padding:8px 14px;border:0;border-radius:10px;background:#fff;color:#111;font:700 14px system-ui,-apple-system,sans-serif;cursor:pointer;touch-action:manipulation';
+
   button.setAttribute('aria-label','Tải phiên bản TAPHOA Chat mới');
   button.addEventListener('click',()=>{
     if(!pendingBuild)return;
