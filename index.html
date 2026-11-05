@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="112a8dd2d63f57a0a6eaadc3ad1676de3f3b821c9c6aa3f5ebd14c76c61cc795">
+<meta name="app-build-id" content="4d0a593da4e1653a4f8fcfedf51ad0185d30b5cabacc10ea0bfe897438709c69">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -7021,6 +7021,12 @@ button{
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] .message-turn{
     margin-top:6px;
+  }
+
+  /* Keep the message scroller from propagating rubber-band motion to the page. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #chatScreen{
+    overscroll-behavior-y:contain;
+    -webkit-overflow-scrolling:touch;
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] .message-body{
