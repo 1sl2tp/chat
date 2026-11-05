@@ -156,7 +156,8 @@ async function checkForUpdate({reason='interval'}={}){
   if(checkPromise)return checkPromise;
   checkPromise=(async()=>{
     try{
-      try{await registration?.update?.();}catch{}
+      // SW update may hang on iOS; never block the uncached version check.
+      try{void Promise.resolve(registration?.update?.()).catch(()=>{});}catch{}
       const response=await fetch(
         VERSION_URL+'?t='+Date.now(),
         {cache:'no-store',credentials:'same-origin'}
@@ -184,7 +185,7 @@ async function checkForUpdate({reason='interval'}={}){
       pendingVersion=nextVersion||currentVersion;
       pendingBuild=nextBuild;
       emit('update-found',{trigger:String(reason||'check'),remote});
-      await activateWaitingWorker();
+      void activateWaitingWorker();
       maybeReload();
       return true;
     }catch(error){
