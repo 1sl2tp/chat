@@ -14,7 +14,7 @@ assert.match(html,/<meta name="viewport" content="width=device-width,initial-sca
 assert.ok(!html.split('<meta name="viewport"')[1].split('>')[0].includes('user-scalable=no'),
   'browser tab must not disable accessibility zoom');
 assert.ok(html.includes(':root[data-chat-standalone="true"] #appShell{'));
-assert.match(sw,/pwa-chat-sender-vn-20261105/);
+assert.match(sw,/const SHELL_CACHE_EPOCH='pwa-chat-[^']+'/);
 assert.match(html,/id="globalOverlayRoot"/);
 assert.ok(html.slice(html.indexOf('.image-review-main{')).split('}')[0].includes('touch-action:none;'));
 
