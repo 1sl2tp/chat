@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="d8d16b2a5d55d72a8d2a97fd9a01a3b3135bf1d900828c5ba2baf20a201849a9">
+<meta name="app-build-id" content="def2610ab3ec7b807dd65eb92af01b40725dbda8254e5f0382e402098fab9ed4">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -31232,6 +31232,8 @@ let reconnectAttempt=0;
 let recoveryTimer=0;
 let recoveryAttempt=0;
 let presencePublishTimer=0;
+let lastPresenceTrackChannel=null;
+let lastPresenceTrackSignature='';
 let messageFallbackTimer=0;
 const pendingMessageFallbackIds=new Set();
 let generation=0;
@@ -31336,11 +31338,31 @@ function refreshRemotePresence(source=channel){
 async function publishPresence(){
   clearPresenceTimer();
   emitPresence();
-  if(!channel||channelState!=='SUBSCRIBED'||!authenticated()||!online())return false;
+  if(!channel||channelState!=='SUBSCRIBED'||!authenticated()||!online()||typeof channel.track!=='function')return false;
+  const target=channel;
+  const payload=localPresencePayload();
+  // Advisory Presence should track semantic changes, not every new timestamp.
+  // This avoids duplicate sends and ClientPresenceRateLimitReached; messages
+  // still use the separate canonical Realtime event channel unchanged.
+  const signature=JSON.stringify([
+    payload.accountId,payload.appSessionId,payload.state,payload.online,
+    payload.visible,payload.route,payload.conversationId
+  ]);
+  if(target===lastPresenceTrackChannel&&signature===lastPresenceTrackSignature)return false;
+  // Reserve before awaiting track(), so concurrent UI events cannot duplicate it.
+  lastPresenceTrackChannel=target;
+  lastPresenceTrackSignature=signature;
   try{
-    await channel.track?.(localPresencePayload());
+    const status=await target.track(payload);
+    if(status==='error'||status==='timed out')throw new Error('presence_track_failed');
     return true;
-  }catch{return false;}
+  }catch{
+    if(lastPresenceTrackChannel===target&&lastPresenceTrackSignature===signature){
+      lastPresenceTrackChannel=null;
+      lastPresenceTrackSignature='';
+    }
+    return false;
+  }
 }
 
 function schedulePresencePublish(delay=120,{replace=false}={}){
