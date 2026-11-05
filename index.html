@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="be94fa9749a20a294511201d1592cdfc1301945ed4a137794a2ec0cdcbd2f29b">
+<meta name="app-build-id" content="26f63a969c50ea920da1d39719f02454b8fe6b85e313a4d8e32413c0d2cefc00">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -9548,11 +9548,14 @@ function messageLayoutWidthPx(){
   return Math.max(180,Math.round(rect.width-padding));
 }
 
+let programmaticScrollGeneration=0;
 function setScrollTop(value){
+  const generation=++programmaticScrollGeneration;
   programmaticScroll=true;
   scrollRoot.scrollTop=Math.max(0,value);
 
   requestAnimationFrame(()=>{
+    if(generation!==programmaticScrollGeneration)return;
     programmaticScroll=false;
     lastUserScrollTop=scrollRoot.scrollTop;
   });
@@ -9613,6 +9616,7 @@ function beginConversationViewContext(){
   loadingOlder=false;
   historyStatus.classList.add('hidden');
   clearUserScrollIntentForExplicitTail();
+  programmaticScrollGeneration+=1;
   programmaticScroll=false;
   lastUserScrollTop=scrollRoot.scrollTop;
   return conversationViewEpoch;
