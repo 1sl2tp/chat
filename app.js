@@ -3784,11 +3784,53 @@ function retryMountedImageHydration({accountId=currentMediaAccountId(),assetId='
   return requested;
 }
 
+async function upgradeVisibleImageViewerToOriginal({accountId='',assetId='',allowFetch=false}={}){
+  const ownerAccountId=String(accountId||'');
+  const targetAssetId=String(assetId||'');
+  const selected=imageViewerItems[imageViewerIndex];
+  if(!imageViewerOverlay?.open||!imageViewerImage||!selected||
+     imageViewerImage.dataset.qualitySource==='stored'||
+     !ownerAccountId||ownerAccountId!==String(currentMediaAccountId()||'')||
+     ownerAccountId!==String(selected.accountId||'')||
+     targetAssetId!==String(selected.assetId||''))return false;
+  const navigationId=imageViewerNavigationSeq;
+  const sessionId=imageViewerSessionSeq;
+  const stillSelected=()=>imageViewerOverlay?.open&&imageViewerImage&&
+    imageViewerImage.dataset.qualitySource!=='stored'&&
+    imageViewerNavigationSeq===navigationId&&imageViewerSessionSeq===sessionId&&
+    ownerAccountId===String(currentMediaAccountId()||'')&&
+    String(imageViewerItems[imageViewerIndex]?.assetId||'')===targetAssetId&&
+    String(imageViewerItems[imageViewerIndex]?.accountId||'')===ownerAccountId;
+  // Media-ready means the Blob is in the account cache. Online recovery may
+  // download only the visible asset, never the rest of the gallery.
+  let row=await window.V21MediaCache?.get?.({accountId:ownerAccountId,assetId:targetAssetId});
+  if(!stillSelected())return false;
+  if(!(row?.blob instanceof Blob)&&allowFetch){
+    row=await window.V21SyncEngine?.ensureMediaRemote?.({
+      accountId:ownerAccountId,assetId:targetAssetId
+    })||row;
+  }
+  if(!stillSelected()||!(row?.blob instanceof Blob))return false;
+  const src=URL.createObjectURL(row.blob);
+  const previous=imageViewerOwnedUrls.get('active');
+  if(previous&&previous!==src)URL.revokeObjectURL(previous);
+  imageViewerOwnedUrls.set('active',src);
+  imageViewerImage.src=src;
+  imageViewerImage.dataset.ready='true';
+  imageViewerImage.dataset.qualitySource='stored';
+  const resolution=Number(selected.width)>0&&Number(selected.height)>0
+    ?' · Tệp lưu '+selected.width+'×'+selected.height+' px':'';
+  if(imageViewerMeta)imageViewerMeta.textContent=viewerMetaLabel(selected)+resolution;
+  // Preserve zoom, pan, selected photo and filmstrip position.
+  return true;
+}
+
 document.addEventListener('v21-media-ready',event=>{
   const accountId=String(event.detail?.accountId||'');
   const assetId=String(event.detail?.assetId||'');
   if(!accountId||!assetId)return;
   retryMountedImageHydration({accountId,assetId});
+  void upgradeVisibleImageViewerToOriginal({accountId,assetId}).catch(()=>{});
   for(const wrap of document.querySelectorAll('[data-media-audio-asset-id]')){
     if(String(wrap.dataset.mediaAudioAssetId||'')!==assetId)continue;
     const audio=wrap.querySelector('audio');
@@ -3823,7 +3865,15 @@ window.addEventListener('online',()=>{
   // An image may have mounted while offline with metadata but no Blob. Once
   // connectivity returns, retry only the currently mounted/current-account
   // tiles. This is a UI demand signal; SyncEngine still owns the download.
-  requestAnimationFrame(()=>retryMountedImageHydration());
+  requestAnimationFrame(()=>{
+    retryMountedImageHydration();
+    const selected=imageViewerItems[imageViewerIndex];
+    if(imageViewerOverlay?.open&&selected){
+      void upgradeVisibleImageViewerToOriginal({
+        accountId:selected.accountId,assetId:selected.assetId,allowFetch:true
+      }).catch(()=>{});
+    }
+  });
 });
 
 window.addEventListener('pagehide',()=>{

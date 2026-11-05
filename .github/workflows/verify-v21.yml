@@ -430,6 +430,7 @@ jobs:
         run: |
           node --check app.js
           node tests/test_img196_viewer_original.mjs
+          node tests/test_chat_viewer_original_late_hydration_20261106.cjs
       - name: iOS zero-byte media upload recovery contract
         run: python tests/test_v21_ios_zero_byte_media_upload.py
       - name: Chat image orientation + column-2 viewer contract
