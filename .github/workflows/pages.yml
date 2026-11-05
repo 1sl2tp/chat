@@ -112,11 +112,12 @@ jobs:
           for attempt in 1 2 3 4 5 6; do
             CODE="$(curl -L -sS -o /tmp/pages-domain.html -w '%{http_code}' --max-time 20 "https://$DOMAIN/" || true)"
             LIVE_BUILD_ID="$(curl -L -fsS --max-time 20 -H 'Cache-Control: no-cache' "https://$DOMAIN/version.json?verify=${GITHUB_SHA}-${attempt}" | python -c 'import json,sys; print(json.load(sys.stdin).get("build_id",""))' 2>/dev/null || true)"
-            if [ "$CODE" = "200" ] && [ "$LIVE_BUILD_ID" = "$EXPECTED_BUILD_ID" ]; then
-              echo "HTTPS and build_id verified: $EXPECTED_BUILD_ID"
+            LIVE_INDEX_BUILD_ID="$(python -c 'import re; h=open("/tmp/pages-domain.html",encoding="utf-8",errors="replace").read(); m=re.search(r\x27<meta\\s+name="app-build-id"\\s+content="([^"]+)"\x27,h); print(m.group(1) if m else "")' 2>/dev/null || true)"
+            if [ "$CODE" = "200" ] && [ "$LIVE_BUILD_ID" = "$EXPECTED_BUILD_ID" ] && [ "$LIVE_INDEX_BUILD_ID" = "$EXPECTED_BUILD_ID" ]; then
+              echo "HTTPS, index.html and version.json build_id verified: $EXPECTED_BUILD_ID"
               exit 0
             fi
-            echo "Attempt $attempt: HTTP $CODE; live build_id=${LIVE_BUILD_ID:-missing}; expected=$EXPECTED_BUILD_ID; retrying..."
+            echo "Attempt $attempt: HTTP $CODE; manifest build_id=${LIVE_BUILD_ID:-missing}; index build_id=${LIVE_INDEX_BUILD_ID:-missing}; expected=$EXPECTED_BUILD_ID; retrying..."
             sleep 10
           done
 
