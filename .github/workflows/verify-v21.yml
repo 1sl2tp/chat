@@ -312,6 +312,8 @@ jobs:
         run: |
           node --check v21-sync-engine.js
           node tests/test_chat_realtime_media_session_fence_20261030.cjs
+      - name: CHAT Presence semantic dedup and Realtime rate-limit regression
+        run: node tests/test_chat_presence_track_dedup_20261106.cjs
       - name: CHAT realtime contact and message deltas retain initiating owner
         run: |
           node --check v21-sync-engine.js

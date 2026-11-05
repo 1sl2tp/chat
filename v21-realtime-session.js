@@ -9,6 +9,8 @@ let reconnectAttempt=0;
 let recoveryTimer=0;
 let recoveryAttempt=0;
 let presencePublishTimer=0;
+let lastPresenceTrackChannel=null;
+let lastPresenceTrackSignature='';
 let messageFallbackTimer=0;
 const pendingMessageFallbackIds=new Set();
 let generation=0;
@@ -113,11 +115,31 @@ function refreshRemotePresence(source=channel){
 async function publishPresence(){
   clearPresenceTimer();
   emitPresence();
-  if(!channel||channelState!=='SUBSCRIBED'||!authenticated()||!online())return false;
+  if(!channel||channelState!=='SUBSCRIBED'||!authenticated()||!online()||typeof channel.track!=='function')return false;
+  const target=channel;
+  const payload=localPresencePayload();
+  // Advisory Presence should track semantic changes, not every new timestamp.
+  // This avoids duplicate sends and ClientPresenceRateLimitReached; messages
+  // still use the separate canonical Realtime event channel unchanged.
+  const signature=JSON.stringify([
+    payload.accountId,payload.appSessionId,payload.state,payload.online,
+    payload.visible,payload.route,payload.conversationId
+  ]);
+  if(target===lastPresenceTrackChannel&&signature===lastPresenceTrackSignature)return false;
+  // Reserve before awaiting track(), so concurrent UI events cannot duplicate it.
+  lastPresenceTrackChannel=target;
+  lastPresenceTrackSignature=signature;
   try{
-    await channel.track?.(localPresencePayload());
+    const status=await target.track(payload);
+    if(status==='error'||status==='timed out')throw new Error('presence_track_failed');
     return true;
-  }catch{return false;}
+  }catch{
+    if(lastPresenceTrackChannel===target&&lastPresenceTrackSignature===signature){
+      lastPresenceTrackChannel=null;
+      lastPresenceTrackSignature='';
+    }
+    return false;
+  }
 }
 
 function schedulePresencePublish(delay=120,{replace=false}={}){
