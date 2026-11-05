@@ -24,3 +24,8 @@ for(const control of [
  'data-admin-agribank-issue','data-admin-auto-collect-action'
 ])assert(js.includes(control),'must retain original admin control '+control);
 console.log('iPhone account settings density CSS contract OK');
+
+// Both tab panes own independent scroll state; reopening must start at top.
+assert(js.includes("const activePane=name==='settings'?settings:links;"));
+assert(js.includes('activePane.scrollTop=0;'));
+assert(js.includes('if(inner)inner.scrollTop=0;'));
