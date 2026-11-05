@@ -14,3 +14,39 @@
 .message-forward-empty{padding:24px 8px;text-align:center;color:var(--theme-content-secondary,#777);font-size:13px}
 .message-forward-status{min-height:18px;margin:0;color:var(--theme-content-secondary,#666);font-size:12px;line-height:18px}
 @media(max-width:639px){.message-forward-overlay{align-items:end;padding:0}.message-forward-card{width:100%;max-height:78dvh;border-radius:22px 22px 0 0;padding:14px 14px calc(14px + env(safe-area-inset-bottom))}}
+
+/* SPEC-CHAT-FORWARD-IOS-KEYBOARD-20261105
+   iOS standalone keeps fixed overlays sized to the layout viewport even
+   when the software keyboard covers its bottom edge. The single platform
+   viewport owner publishes the measured visible top/height on focus.
+   Keep the search above the keyboard; only recipient results may scroll. */
+@media(max-width:639px), (pointer:coarse){
+  .message-forward-overlay[data-mobile-keyboard="true"]{
+    box-sizing:border-box;
+    top:var(--shell-form-vv-top,0px);
+    bottom:auto;
+    height:var(--shell-form-vv-height,100svh);
+    max-height:var(--shell-form-vv-height,100svh);
+    overflow:hidden;
+    align-items:end;
+    padding:6px 0 0;
+  }
+  .message-forward-overlay[data-mobile-keyboard="true"] .message-forward-card{
+    box-sizing:border-box;
+    width:100%;
+    min-height:0;
+    max-height:100%;
+    overflow:hidden;
+    padding:12px 14px 10px;
+    grid-template-rows:auto auto minmax(0,1fr) auto;
+  }
+  .message-forward-overlay[data-mobile-keyboard="true"] .message-forward-search{
+    min-height:44px;
+    font-size:16px;
+  }
+  .message-forward-overlay[data-mobile-keyboard="true"] .message-forward-list{
+    min-height:0;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+  }
+}
