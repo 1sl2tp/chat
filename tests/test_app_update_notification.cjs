@@ -27,6 +27,8 @@ test('new build shows update notice for authenticated web/PWA session',async()=>
  assert.equal(h.appended.length,1,'authenticated session must receive a visible update notice');
  assert.equal(h.appended[0].id,'chatUpdateNotice');
  assert.equal(h.appended[0].isConnected,true);
+ assert.match(h.appended[0].style.cssText,/z-index:2147483647/);
+ assert.match(h.appended[0].style.cssText,/position:fixed/);
 });
 test('HTTP errors emit diagnostics instead of silently claiming current',async()=>{
  const h=setup(()=>({ok:false,status:503}));
