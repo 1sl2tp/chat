@@ -44,6 +44,28 @@ jobs:
       - name: Install verify dependency
         run: python -m pip install pytest
 
+      - name: Diagnose Pages publishing source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          echo "Deploy commit: $GITHUB_SHA"
+          PAGE_CONFIG="$(curl -fsS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$GITHUB_REPOSITORY/pages" || true)"
+          if [ -n "$PAGE_CONFIG" ]; then
+            PAGE_CONFIG="$PAGE_CONFIG" python - <<'PY'
+          import json,os
+          data=json.loads(os.environ['PAGE_CONFIG'])
+          build_type=data.get('build_type','unknown')
+          source=data.get('source') or {}
+          print('Pages build_type:',build_type,'source:',source,'url:',data.get('html_url'))
+          if build_type!='workflow':
+              print('::error::Pages is not configured for GitHub Actions publishing. Set Pages source to GitHub Actions; workflow artifacts will not be the active site.')
+              raise SystemExit(1)
+          PY
+          else
+            echo "::warning::Could not inspect GitHub Pages publishing source; deployment will still be attempted."
+          fi
+
       - name: Build canonical chat
         run: python tools/build_current_preview.py
 
