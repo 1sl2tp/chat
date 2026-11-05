@@ -168,7 +168,7 @@ async function checkForUpdate({reason='interval'}={}){
       }
       const remote=await response.json();
       const nextVersion=String(remote?.version||'');
-      const nextBuild=String(remote?.build_id||remote?.index_sha256||nextVersion||'');
+      const nextBuild=String(remote?.build_id||remote?.index_sha256||'');
       if(!nextBuild){
         emit('check-failed',{message:'version_missing_build_id'});
         return false;
