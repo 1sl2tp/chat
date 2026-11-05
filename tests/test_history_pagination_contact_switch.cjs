@@ -53,7 +53,7 @@ for(const oldOutcome of ['success','failure','throw']){
    clearUserScrollIntentForExplicitTail(){},programmaticScrollGeneration:0,
    programmaticScroll:false,lastUserScrollTop:0,scrollRoot:{scrollTop:0}};
   vm.createContext(context);
-  vm.runInContext(loader+'\\n'+reset,context);
+  vm.runInContext(loader+'\n'+reset,context);
   const oldRequest=vm.runInContext('loadMoreServerHistory()',context);
   vm.runInContext('beginConversationViewContext()',context);
   active=newPending;
