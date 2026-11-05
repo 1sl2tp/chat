@@ -1576,7 +1576,17 @@ const AuthUI={
     if(code==='device_approval_required'){
       const status=document.querySelector('[data-auth-status]');
       if(status){
-        status.textContent='Thiết bị này đang chờ Admin duyệt. Sau khi được duyệt, hãy đăng nhập lại.';
+        status.textContent='Thiết bị này đang chờ Admin duyệt. Sau khi được duyệt, bấm Kiểm tra duyệt để vào Chat mà không cần nhập lại mật khẩu.';
+        status.hidden=false;
+      }
+      const primary=document.querySelector('[data-auth-primary-label]');
+      if(primary)primary.textContent='Kiểm tra duyệt';
+      return;
+    }
+    if(code==='device_storage_unavailable'){
+      const status=document.querySelector('[data-auth-status]');
+      if(status){
+        status.textContent='Không thể lưu mã nhận diện thiết bị trên trình duyệt. Chat chưa đăng ký thiết bị mới để tránh lặp yêu cầu duyệt.';
         status.hidden=false;
       }
       return;
@@ -1943,6 +1953,12 @@ document.addEventListener('submit',event=>{
   const form=event.target instanceof HTMLFormElement?event.target:null;
   if(!form?.matches('[data-guest-auth-form]'))return;
   event.preventDefault();
+  const store=window.V21AuthSessionStore;
+  if(authMode==='login'&&store?.snapshot?.().state==='APPROVAL_PENDING'){
+    clearAuthErrors();
+    void store.retryApproval?.();
+    return;
+  }
   clearAuthErrors();
   const name=(authField('name')?.value??'').trim();
   const account=(authField('account')?.value??'').trim();
@@ -1953,7 +1969,6 @@ document.addEventListener('submit',event=>{
   if(!password){setFieldInvalid('password');invalid=true;}
   else if(authMode==='register'&&password.length<6){setFieldInvalid('password');invalid=true;}
   if(invalid){form.querySelector('[aria-invalid="true"]')?.focus({preventScroll:true});return;}
-  const store=window.V21AuthSessionStore;
   if(!store){AuthUI.setError('auth_unavailable');return;}
   if(authMode==='register')store.register({name,account,password});
   else store.login({account,password});
