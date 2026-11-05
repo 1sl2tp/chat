@@ -56,5 +56,26 @@ assert(overlapPatch.includes('min-height:40px;padding:7px 11px;'),
 assert(overlapPatch.includes('@media(max-width:360px)'),
   'narrow phones need a safe single-column fallback');
 const sw=fs.readFileSync('sw.js','utf8');
-assert(sw.includes('pwa-chat-account-settings-compact-v2-20261105'),
+assert(sw.includes('pwa-chat-zalo-directory-no-collapse-v3-20261105'),
   'installed PWA must receive a fresh shell cache epoch');
+
+
+// Regression: the screenshots after the previous compact patch showed 136 Chat
+// rows crushed into ~20px grid tracks. A CSS Grid list can shrink implicit
+// tracks when children have min-height:0; scrolling must instead retain each
+// row's intrinsic block height independently of total directory size.
+const noCollapse=css.slice(css.indexOf('FIX-ACCOUNT-MOBILE-NO-OVERLAP-20261105'));
+const listRule=noCollapse.match(/\.zalo-account-modal\[data-active-tab="links"\] \.zalo-account-list\{([^}]*)\}/)?.[1]||'';
+const rowRule=noCollapse.match(/\.zalo-account-modal\[data-active-tab="links"\] \.zalo-account-row\{([^}]*)\}/)?.[1]||'';
+assert(listRule.includes('display:flex;flex-direction:column;align-items:stretch;'),
+  'Chat–Zalo scroll list must be a vertical flex column, not shrinkable grid rows');
+assert(listRule.includes('overflow-y:auto'),
+  'Chat–Zalo keeps one vertical scrolling owner');
+assert(rowRule.includes('flex:0 0 auto;')&&rowRule.includes('min-height:max-content'),
+  'each Chat–Zalo row must retain its own measured content height');
+assert(rowRule.includes('display:grid')&&rowRule.includes('grid-template-columns:minmax(0,1fr)'),
+  'inside a directory row still uses the accessible single-column grid');
+for(const action of ['action:\'unlink\'','openAccountPicker(account)','openCreateAccount(contact)']){
+  assert(js.includes(action),'existing Chat/Zalo action lost: '+action);
+}
+console.log('Chat–Zalo 136+ rows no-collapse scroll contract PASS');

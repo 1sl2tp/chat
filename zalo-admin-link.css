@@ -810,16 +810,21 @@
   .zalo-account-modal[data-active-tab="links"] .zalo-account-search{
     margin-bottom:7px;
   }
+  /* 136 Chat + hundreds of unassigned Zalo must grow in the scroll
+     container, NEVER shrink each implicit CSS Grid row to the remaining
+     viewport height (the former 20px rails leaked avatars/text/actions). */
   .zalo-account-modal[data-active-tab="links"] .zalo-account-list{
-    min-height:0;overflow-y:auto;align-content:start;
+    display:flex;flex-direction:column;align-items:stretch;
+    min-height:0;overflow-x:hidden;overflow-y:auto;
     gap:7px;padding:3px 3px 16px;
     scroll-padding-block:8px 16px;
     overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
   }
   .zalo-account-modal[data-active-tab="links"] .zalo-account-row{
-    box-sizing:border-box;grid-template-columns:minmax(0,1fr);
+    box-sizing:border-box;display:grid;flex:0 0 auto;
+    grid-template-columns:minmax(0,1fr);
     align-content:start;align-items:stretch;gap:5px;
-    height:auto;min-height:0;padding:9px 10px;border-radius:13px;
+    height:auto;min-height:max-content;padding:9px 10px;border-radius:13px;
   }
   .zalo-account-modal[data-active-tab="links"] .zalo-account-person,
   .zalo-account-modal[data-active-tab="links"] .zalo-account-relation{
