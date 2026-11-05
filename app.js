@@ -985,11 +985,14 @@ function messageLayoutWidthPx(){
   return Math.max(180,Math.round(rect.width-padding));
 }
 
+let programmaticScrollGeneration=0;
 function setScrollTop(value){
+  const generation=++programmaticScrollGeneration;
   programmaticScroll=true;
   scrollRoot.scrollTop=Math.max(0,value);
 
   requestAnimationFrame(()=>{
+    if(generation!==programmaticScrollGeneration)return;
     programmaticScroll=false;
     lastUserScrollTop=scrollRoot.scrollTop;
   });
@@ -1050,6 +1053,7 @@ function beginConversationViewContext(){
   loadingOlder=false;
   historyStatus.classList.add('hidden');
   clearUserScrollIntentForExplicitTail();
+  programmaticScrollGeneration+=1;
   programmaticScroll=false;
   lastUserScrollTop=scrollRoot.scrollTop;
   return conversationViewEpoch;
