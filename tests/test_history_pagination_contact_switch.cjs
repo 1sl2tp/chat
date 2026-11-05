@@ -25,7 +25,7 @@ for(const outcome of ['success','failure','throw']){
    clearUserScrollIntentForExplicitTail(){},programmaticScrollGeneration:0,
    programmaticScroll:false,lastUserScrollTop:0,scrollRoot:{scrollTop:0}};
   vm.createContext(context);
-  vm.runInContext(loader+'\\n'+reset,context);
+  vm.runInContext(loader+'\n'+reset,context);
   const request=vm.runInContext('loadMoreServerHistory()',context);
   assert.equal(button.disabled,true);
   vm.runInContext('beginConversationViewContext()',context);
