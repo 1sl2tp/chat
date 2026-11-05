@@ -1,3 +1,16 @@
+## 2026-11-05 — CHAT–ZALO iOS DIRECTORY ROW COLLAPSE · screenshot regression fix
+
+- **Actual device evidence:** user iPhone PWA screenshot at 10:14 showed multiple account cards reduced to thin outlined strips; avatars, Chat/Zalo labels and linked-account actions overlapped through subsequent rows. Settings tab itself remained readable with extra unused bottom space.
+- **Confirmed root cause:** the outer `.zalo-account-list` remained a CSS Grid scroll container with many implicit auto tracks and each `.zalo-account-row` explicitly had `min-height:0`. Under a long 136 Chat / 225 unassigned Zalo directory, grid tracks were allowed to shrink below contents. Chromium 390×844 synthetic fixture with 150 rows reproduced first card **20px** tall while its actions extended outside the card.
+- **Single UI owner fix:** scoped `zalo-admin-link.css` mobile `[data-active-tab="links"]` list to `display:flex; flex-direction:column; align-items:stretch` with one `overflow-y:auto` owner; each row is `flex:0 0 auto; min-height:max-content`, retains its own internal single-column grid. No row can be compressed by the total number of items. Synthetic Chromium after fix: first card **160px**, all actions contained, `scrollHeight` expands normally. Desktop layout, Settings pane and keyboard viewport policies untouched.
+- **Regression:** `tests/test_chat_account_settings_ios_density_20261105.cjs` now asserts the actual no-shrink list/row CSS rather than only testing card gaps/selector presence. PWA shell cache epoch advanced to `pwa-chat-zalo-directory-no-collapse-v3-20261105`.
+- **Safety:** no changes to Admin auth, backend, Chat/Zalo linking data, search algorithms, group classification, Agribank, financial collection or Realtime owner. No new calls, timers or retention mechanisms.
+- **PR:** [#231](https://github.com/1sl2tp/chat/pull/231) merged at `c1383d215836aa2903665b19001415713803404d`. **Canonical build + Verify in Pages + custom-domain deploy: PASS** [workflow 41961010830](https://github.com/1sl2tp/chat/actions/runs/41961010830). Broader separate Verify V21 is known to be blocked at a BANK-193 test unrelated to this patch.
+- **Acceptance boundary:** CI + local headless Chromium provide reproducible technical evidence. Actual installed iOS PWA pixel geometry after device activates the new build remains **OPEN E4**; do not mark phone verification complete without seeing that state.
+- **Rollback:** revert the scoped directory CSS, PWA cache epoch and regression contract together. No customer data reset or IndexedDB clearing.
+
+---
+
 ## 2026-11-05 — Chat Account Settings · compact iOS cards and Chat–Zalo
 
 - User evidence: iPhone PWA Settings tab had oversized stacked action buttons and visually clipped first/last rows; Chat–Zalo link cards used unnecessary vertical space.
