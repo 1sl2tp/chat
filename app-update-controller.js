@@ -211,7 +211,9 @@ async function registerServiceWorker(){
         }
       });
     });
-    await registration.update().catch(()=>{});
+    // Registration is ready even if the browser's SW update promise stalls.
+    // Do not keep the registration lifecycle pending indefinitely on iOS PWA.
+    try{void Promise.resolve(registration.update?.()).catch(()=>{});}catch{}
     return registration;
   }catch(error){
     emit('service-worker-failed',{message:String(error?.message||error||'service_worker_failed')});
