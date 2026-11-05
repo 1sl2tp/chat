@@ -5138,6 +5138,9 @@ async function loadOlder(){
   renderWindow({preserve:'ANCHOR',historyRestore:true});
 
   requestAnimationFrame(()=>{
+    // A contact switch invalidates this history load. Never let its stale
+    // completion clear the next conversation's loading state.
+    if(viewEpoch!==conversationViewEpoch)return;
     // renderWindow owns anchor restoration. HistoryLoader only owns its
     // loading state; a second restoreAnchor here would be a duplicate scroll
     // command from a child.
