@@ -112,10 +112,13 @@ async function staleMediaMetadata(){
  const f=fixture();await f.login('A','SA',{visible:true});
  const g=f.gates.meta=gate('A');
  const pending=f.engine.consumeRealtimeEvent(event('A'));await g.started;
+ const paintedBeforeSwitch=f.ui.length;
+ assert.equal(paintedBeforeSwitch,1,'active A may receive its immediate canonical media preview');
  await f.login('B','SB',{visible:true});g.release();
  assert.equal(await pending,false);
  assert.deepEqual(f.writes,[{type:'media-add',account:'A',id:'asset-A'}]);
- assert.equal(f.ui.length,0,'A media event cannot paint B');
+ assert.equal(f.ui.length,paintedBeforeSwitch,'stale A media must not paint after B login');
+ assert.equal(f.ui.some(row=>row.account==='B'),false,'A media event cannot paint B');
  assert.equal(f.wakes.length,0,'stale media must not start B asset prewarm');
 }
 async function staleDeleteMetadata(){
@@ -131,21 +134,24 @@ async function staleParentReadSameAccountNewClient(){
  const f=fixture();await f.login('A','OLD',{visible:true});
  const g=f.gates.parentRead=gate('A');
  const pending=f.engine.consumeRealtimeEvent(event('A'));await g.started;
+ const paintedBeforeSwitch=f.ui.length;
  await f.login('A','NEW',{visible:true});g.release();
  assert.equal(await pending,false);
  assert.equal(f.writes.filter(x=>x.type==='media-add').length,1);
  assert.equal(f.writes.some(x=>x.type==='parent'),false);
- assert.equal(f.ui.length,0,'old client cannot paint new client');
+ assert.equal(f.ui.length,paintedBeforeSwitch,'old client cannot paint after new session takes ownership');
 }
 async function staleParentWrite(){
  const f=fixture();await f.login('A','SA',{visible:true});
  const g=f.gates.parentWrite=gate('A');
  const pending=f.engine.consumeRealtimeEvent(event('A'));await g.started;
+ const paintedBeforeSwitch=f.ui.length;
  await f.login('B','SB',{visible:true});g.release();
  assert.equal(await pending,false);
  assert.equal(f.writes.some(x=>x.type==='parent'&&x.account==='A'),true);
  assert.equal(f.writes.some(x=>x.account==='B'),false);
- assert.equal(f.ui.length,0);
+ assert.equal(f.ui.length,paintedBeforeSwitch,'late parent writes must not render into B');
+ assert.equal(f.ui.some(row=>row.account==='B'),false);
 }
 async function currentCreateDelete(){
  const f=fixture();await f.login('A','SA',{visible:true});
