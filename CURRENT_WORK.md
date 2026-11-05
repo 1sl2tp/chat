@@ -1,3 +1,14 @@
+## 2026-11-06 — UI-240 · Narrow directory spacing, preview and timestamps (CI + Pages PASS; device visual PENDING)
+
+- **User evidence:** desktop Chrome at narrow ~704px width showed uneven spacing between Chat/Ảnh top switch, search, filter chips, first contact row and bottom, with contact avatar/name/preview/time needing a consistent axis. The prior UI-239 removal of the redundant visible “Danh bạ” heading remains in place.
+- **E0 failure reproduced:** the effective narrow CSS had inconsistent 5px/7px/8px tool rhythm and 64px contact rows; message previews occupied only the first grid column even though the timestamp occupied the second column on the **first** line only. UI-240 CSS/source contract reported FAIL before patch.
+- **Minimal correction:** `mobile-ui-polish.css` adds one last, authenticated <=63.999rem rhythm owner. Search 44px; search-to-filters and chip gap 8px; filter 36px; list starts with 4px inset; contact row 68px; avatar 40px, gap to name 10px; name 20px/preview 18px separated 2px; 64px timestamp stays on name row. Preview uses the second line across both columns but reserves 36px for the existing contact manage affordance. Bottom list inset respects `safe-area-inset-bottom`. No changes to scroll/keyboard owner, Realtime, database or message data.
+- **Release/test:** source + SW + regression + Verify workflow commit [9975171](https://github.com/1sl2tp/chat/commit/99751717340d3fa65e717c08a8532bbc8f422344). Legacy UI-239 test hardcoded the previous shell epoch and initially failed; corrected by test-only commit [bcb9a47](https://github.com/1sl2tp/chat/commit/bcb9a477f78c7ec20f264b6d6eae571b0f64c8e6). UI-239, UI-240 and complete Verify V21 **PASS** [run 42121281757](https://github.com/1sl2tp/chat/actions/runs/42121281757).
+- **Canonical deploy:** [Chat Pages 42121106647](https://github.com/1sl2tp/chat/actions/runs/42121106647) **SUCCESS**; workflow checked HTTPS custom-domain `index.html` and uncached `version.json` `build_id` both equal `337f477971db0a5e7394ca10688a5f2b79dd40868acf19df58b1a9bd3836c6f8`. CSS cache epoch `pwa-chat-directory-rhythm-ui240-20261106`. CI PWA update tests PASS; installed-device real visual geometry / button **Cập nhật** interaction is **PENDING**, not inferred from successful deployment.
+- **Rollback:** revert scoped UI-240 CSS block + SW epoch + UI-240 test/workflow, without clearing private cache or data. Keep UI-239 forward-compatible epoch assertion.
+
+---
+
 ## 2026-11-05 — UI-238 · Forward recipient search hidden under iOS PWA keyboard
 
 - **Screenshot evidence (14:36 Asia/Ho_Chi_Minh):** installed iOS Chat PWA showed blurred conversation, native keyboard/accessory and a message-sharing recipient bottom sheet mostly below the keyboard edge; user reported the same while sharing and searching. No proof that other unrelated search surfaces are affected.
