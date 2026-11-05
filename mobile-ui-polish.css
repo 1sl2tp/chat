@@ -164,6 +164,48 @@
     background:color-mix(in srgb,var(--theme-surface-secondary) 70%,var(--theme-surface-primary));
   }
 
+  /* UI-20261105: iPhone directory density and hierarchy. Keep 44px touch
+     targets and a fixed tools region; only the contact list scrolls. */
+  #appShell[data-mobile-directory="true"] #shellNavigationLayer .wm-sidebar-header{
+    min-height:36px;
+    padding-block:2px 0;
+  }
+  #appShell[data-mobile-directory="true"] #shellNavigationLayer .wm-sidebar-body{
+    padding-block-start:0!important;
+  }
+  #appShell[data-mobile-directory="true"] #shellNavigationLayer .contact-directory-tools{
+    gap:8px!important;
+    padding:0 6px 10px!important;
+    border-bottom:1px solid var(--mobile-ui-line);
+  }
+  #appShell[data-mobile-directory="true"] #shellNavigationLayer .contact-directory-search{
+    height:44px!important;
+    min-height:44px!important;
+  }
+  #appShell[data-mobile-directory="true"] #shellNavigationLayer .contact-directory-filter{
+    min-height:36px!important;
+  }
+  #appShell[data-mobile-directory="true"] #shellNavigationLayer [data-v21-contact-list]{
+    padding:6px 2px 12px;
+  }
+  #appShell[data-mobile-directory="true"] #shellNavigationLayer .shell-contact-row,
+  #appShell[data-mobile-directory="true"] #shellNavigationLayer .shell-contact-chat{
+    height:68px;
+    min-height:68px;
+  }
+  #appShell[data-mobile-directory="true"] #shellNavigationLayer .shell-contact-chat{
+    padding-block:12px;
+  }
+  #appShell[data-mobile-directory="true"] #shellNavigationLayer .shell-contact-copy{
+    grid-template-columns:minmax(0,1fr) 58px;
+    column-gap:8px;
+  }
+  #appShell[data-mobile-directory="true"] #shellNavigationLayer .shell-contact-time{
+    width:58px;
+    text-align:right;
+    white-space:nowrap;
+  }
+
   /* ---------- Quick/account menu ---------- */
   [data-mobile-account-menu] .mobile-account-menu-backdrop{
     background:rgba(0,0,0,.06)!important;
