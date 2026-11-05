@@ -108,15 +108,17 @@ jobs:
               ;;
           esac
 
+          EXPECTED_BUILD_ID="$(python -c 'import json; print(json.load(open("version.json"))["build_id"])')"
           for attempt in 1 2 3 4 5 6; do
             CODE="$(curl -L -sS -o /tmp/pages-domain.html -w '%{http_code}' --max-time 20 "https://$DOMAIN/" || true)"
-            if [ "$CODE" = "200" ]; then
-              echo "HTTPS OK: https://$DOMAIN/"
+            LIVE_BUILD_ID="$(curl -L -fsS --max-time 20 -H 'Cache-Control: no-cache' "https://$DOMAIN/version.json?verify=${GITHUB_SHA}-${attempt}" | python -c 'import json,sys; print(json.load(sys.stdin).get("build_id",""))' 2>/dev/null || true)"
+            if [ "$CODE" = "200" ] && [ "$LIVE_BUILD_ID" = "$EXPECTED_BUILD_ID" ]; then
+              echo "HTTPS and build_id verified: $EXPECTED_BUILD_ID"
               exit 0
             fi
-            echo "Attempt $attempt: HTTP $CODE; retrying..."
+            echo "Attempt $attempt: HTTP $CODE; live build_id=${LIVE_BUILD_ID:-missing}; expected=$EXPECTED_BUILD_ID; retrying..."
             sleep 10
           done
 
-          echo "::error::https://$DOMAIN/ did not return HTTP 200 after deployment."
+          echo "::error::Pages custom domain did not serve the expected build_id after deployment."
           exit 1
