@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="30b9eb327ad41a8817fec6f430f0f59093a3c76abf6ad3125732edda3b1ec395">
+<meta name="app-build-id" content="b23e24d054cf44b4d62495ff25b95527dafc05fcc86e8c103411d2a6df41b1d9">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -32108,7 +32108,7 @@ async function checkForUpdate({reason='interval'}={}){
       }
       const remote=await response.json();
       const nextVersion=String(remote?.version||'');
-      const nextBuild=String(remote?.build_id||remote?.index_sha256||nextVersion||'');
+      const nextBuild=String(remote?.build_id||remote?.index_sha256||'');
       if(!nextBuild){
         emit('check-failed',{message:'version_missing_build_id'});
         return false;
