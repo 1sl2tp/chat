@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="12fd7b91d0615a7496805d20fd2f37a8ad24594b4da53c63efad83885749885b">
+<meta name="app-build-id" content="d25220c9a784663038ff7204bed036782cb346bf78719bee75f0c7fc9e151b59">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -3129,7 +3129,8 @@ button{
   max-width:100%;
 }
 /* Exact sent time sits below existing text/media without altering the
-   message bubble itself. Only already-virtualized messages own this node. */
+   message bubble itself. UI-245 uses a sender-aligned flex column so each
+   time label ends on its bubble/photo edge on Web and installed PWA. */
 /* UI-244: sent time remains plain secondary metadata beneath each bubble;
    boxing every time would add clutter and make quick scanning slower. */
 .message-sent-time{
