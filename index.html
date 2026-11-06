@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="fbf3bf2ea13744169f4a00bde81f249b1159fa1a2ca7bd06c0aedb8d5b50d7a7">
+<meta name="app-build-id" content="0e73b0d7ad7564ff205942291369e46db7a7b77a0e8282a3152250af5063a5c9">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -29389,10 +29389,12 @@ function renderTable(data){
  }
  const table=el('table','bank-report-table');
  const head=el('thead'),thead=el('tr');
- for(const [name,short] of [
-  ['Khách hàng','Khách'],['Tự thu','Tự thu'],['Chờ soát','Chờ'],
-  ['Trùng','Trùng'],['Sai ngày','Sai'],['Tiền tự thu','Tiền thu']
- ]){
+ // Keep the canonical reconciliation column contract intact; only
+ // its narrow-screen presentation uses shorter, more readable headings.
+ const columns=['Khách hàng','Tự thu','Chờ soát','Trùng','Sai ngày','Tiền tự thu'];
+ const shortColumns=['Khách','Tự thu','Chờ','Trùng','Sai','Tiền thu'];
+ for(const [index,name] of columns.entries()){
+  const short=shortColumns[index];
   const th=el('th');
   th.title=name;th.setAttribute('aria-label',name);
   append(th,bankResponsiveLabel(name,short));
