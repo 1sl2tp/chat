@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="4a0b6d675034ed4da615f69b4cd74f042180c4337c0b16062440cd4412067e26">
+<meta name="app-build-id" content="c4e21eebba1bb29be7b77de4ad3b43e071f9a19a27782c2a34ed9a39b945568e">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -16362,8 +16362,11 @@ editor.addEventListener('input',event=>{
 });
 
 function canSendFromComposer(){
+  // UI-248: send affordance must agree with sendNow(), which trims text.
+  // A whitespace-only draft is not a message, but any attached media is.
+  // Never rewrite the native editor value/selection (Vietnamese IME owner).
   return Boolean(
-    editor.value.length>0 ||
+    editor.value.trim().length>0 ||
     pendingAttachments.length
   );
 }
