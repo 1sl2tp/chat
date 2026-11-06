@@ -194,7 +194,9 @@ async function sendAdminText(value,contactId,reason='admin-chat-send'){
   return true;
 }
 
-/* UI-250: manual advisory is preview-only until an explicit Admin confirmation.
+/* UI-250: this group-only path never schedules, dispatches on menu open,
+   or bypasses the canonical Chat→Zalo outbound owner.
+   Manual advisory is preview-only until an explicit Admin confirmation.
    The server validates the exact linked Báo Giá group and deduplicates commands. */
 function closeManualAdvisory({restoreFocus=true}={}){
   if(!manualAdvisoryOverlay)return false;

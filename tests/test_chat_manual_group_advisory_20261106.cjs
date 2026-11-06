@@ -14,7 +14,7 @@ let admin={role:'admin'};
 let contact={name:'Báo Giá - 0911479555'};
 const sandbox={currentAdmin:()=>admin,activeContact:()=>contact};
 vm.createContext(sandbox);
-vm.runInContext(js.slice(start,end)+'\nglobalThis.isGroup=isManualAdvisoryGroup;',sandbox);
+vm.runInContext("const ADVISORY_TARGET_NAME='Báo Giá - 0911479555';\n"+js.slice(start,end)+'\nglobalThis.isGroup=isManualAdvisoryGroup;',sandbox);
 assert.equal(sandbox.isGroup(),true);
 contact={name:'Khách hàng khác'};
 assert.equal(sandbox.isGroup(),false,'not a generic blast action');
