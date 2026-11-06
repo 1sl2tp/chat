@@ -6,9 +6,10 @@ const source=fs.readFileSync('bank-report-dashboard.js','utf8');
 const start=source.indexOf('function bankReportSessionOwner(){');
 const end=source.indexOf('function cardValue(',start);
 const modalStart=source.indexOf('function closeViewer(){');
-const modalEnd=source.indexOf('function synchronize(){',modalStart);
+const resetStart=source.indexOf('function resetBankReportEntryScroll(){',modalStart);
+const modalEnd=source.indexOf('function synchronize(){',resetStart);
 const syncEnd=source.indexOf('ui.refresh.addEventListener(',modalEnd);
-assert(start>0&&end>start&&modalStart>0&&modalEnd>modalStart&&syncEnd>modalEnd);
+assert(start>0&&end>start&&modalStart>0&&resetStart>modalStart&&modalEnd>resetStart&&syncEnd>modalEnd);
 const deferred=()=>{let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b});return {promise,resolve,reject}};
 const makeOwner=(id,session)=>({state:'AUTHENTICATED',account:{role:'admin',id},appSessionId:session});
 const identity={value:makeOwner('adminA','sessionA')};
@@ -44,7 +45,7 @@ Promise.resolve(a).then(async()=>{
   requestId:4,selectedCustomer:'oldCustomer',filter:'review',current:{private:'A'},
   closeViewer(){clears++},closeReviewDialog(){clears++},dateReady(){},reload(){reloads++}};
  vm.createContext(sync);
- vm.runInContext(source.slice(modalEnd,syncEnd),sync);
+ vm.runInContext(source.slice(resetStart,syncEnd),sync);
  sync.synchronize();
  assert.equal(sync.reportSessionOwner,'adminB|sessionB');
  assert.equal(sync.current,null);
