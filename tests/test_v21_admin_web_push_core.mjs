@@ -6,7 +6,7 @@ assert.equal(summarizeNotification({body:'',media:[{kind:'image'}]}), 'Ảnh');
 assert.equal(summarizeNotification({body:'',media:[{kind:'audio'}]}), 'Ghi âm');
 assert.equal(summarizeNotification({body:'',media:[{kind:'file',file_name:'bao-gia.pdf'}]}), 'bao-gia.pdf');
 assert.equal(summarizeNotification({body:'Cuộc gọi nhỡ',media:[]}), 'Cuộc gọi nhỡ');
-assert.equal(summarizeNotification({body:'  Hai  dòng\\n  tin ',media:[]}), 'Hai dòng tin',
+assert.equal(summarizeNotification({body:'  Hai  dòng\n  tin ',media:[]}), 'Hai dòng tin',
   'notification preview normalizes whitespace');
 const long='x'.repeat(160);
 const clipped=summarizeNotification({body:long,media:[]});
