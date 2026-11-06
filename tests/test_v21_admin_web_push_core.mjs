@@ -6,6 +6,15 @@ assert.equal(summarizeNotification({body:'',media:[{kind:'image'}]}), 'Ảnh');
 assert.equal(summarizeNotification({body:'',media:[{kind:'audio'}]}), 'Ghi âm');
 assert.equal(summarizeNotification({body:'',media:[{kind:'file',file_name:'bao-gia.pdf'}]}), 'bao-gia.pdf');
 assert.equal(summarizeNotification({body:'Cuộc gọi nhỡ',media:[]}), 'Cuộc gọi nhỡ');
+assert.equal(summarizeNotification({body:'  Hai  dòng\\n  tin ',media:[]}), 'Hai dòng tin',
+  'notification preview normalizes whitespace');
+const long='x'.repeat(160);
+const clipped=summarizeNotification({body:long,media:[]});
+assert.equal(clipped.length,140,'Push preview stays bounded on lock screens');
+assert.equal(clipped.at(-1),'…','truncated preview must disclose missing text');
+assert.equal(summarizeNotification({body:'Tôi gửi ảnh',media:[{kind:'image'}]}),'Ảnh · Tôi gửi ảnh');
+assert.equal(summarizeNotification({body:'Gửi ghi âm',media:[{kind:'audio'}]}),'Ghi âm · Gửi ghi âm');
+assert.equal(summarizeNotification({body:'Xem tài liệu',media:[{kind:'file'}]}),'Tệp · Xem tài liệu');
 assert.equal(isGoneStatus(404),true);
 assert.equal(isGoneStatus(410),true);
 assert.equal(isGoneStatus(500),false);
