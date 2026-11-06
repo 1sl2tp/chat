@@ -41,4 +41,26 @@ const cached=view.estimateSpacer(olderKnown,0,120,350,cache);
 assert.equal(cached,updated-estimateMessageHeight(olderKnown[0],350)+88,
   'actual measured row remains the sole height-cache authority');
 assert.equal(view.indexAtOffset(olderKnown,0,350,new Map()),0);
+
+// UI-245: timestamps share the visible content edge, including narrow text
+// beside wider images; mixed message gaps must target the real media shell.
+const mobileCss=fs.readFileSync('mobile-chat-refresh.css','utf8');
+const tokensCss=fs.readFileSync('ui-foundation.css','utf8');
+const appJs=fs.readFileSync('app.js','utf8');
+const unitCss=html.slice(html.indexOf('.message-unit{'),html.indexOf('.message-action-group{'));
+assert.match(unitCss,/display:flex;[\s\S]*?flex-direction:column;/);
+assert.match(unitCss,/\.user-message-unit>\.message-sent-time\{align-self:flex-end;text-align:right\}/);
+assert.match(unitCss,/\.assistant-message-unit>\.message-sent-time\{align-self:flex-start;text-align:left\}/);
+assert.match(unitCss,/\.user-message-unit\{\s*align-items:flex-end;/);
+assert.match(unitCss,/\.assistant-message-unit\{\s*align-items:flex-start;/);
+assert.match(html,/\.user-message-unit>\.message-text\{\s*box-sizing:border-box;\s*width:fit-content;/);
+assert.match(html,/\.assistant-message-unit>\.message-text\{\s*box-sizing:border-box;\s*width:fit-content;/);
+assert(appJs.includes("shell.dataset.messageMediaShell='true'"));
+assert(html.includes('.message-unit>.message-text:not([hidden]) + .message-media-shell[data-message-media-shell="true"]{\n  margin-top:8px!important;'));
+assert(!html.includes('.message-unit>.message-text:not([hidden]) + [data-message-media-root="true"]'));
+assert(html.includes('/* UI-245: one text/photo/audio/file rhythm'));
+assert(tokensCss.includes('--ui-chat-message-gap:8px;'));
+assert(mobileCss.includes('margin-top:var(--ui-chat-message-gap,var(--ui-space-8,8px))!important;'));
+assert(mobileCss.includes('margin-top:14px!important;'));
+console.log('UI-245 sent-time edge and text/image spacing contract PASS');
 console.log('CHAT virtual spacer accounts for one true sent-time block, unknown time and cache precedence PASS');

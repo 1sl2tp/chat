@@ -57,7 +57,11 @@
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow>.message-row+.message-row{
-    margin-top:var(--ui-chat-message-gap,var(--ui-space-6,6px))!important;
+    margin-top:var(--ui-chat-message-gap,var(--ui-space-8,8px))!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow>.message-row[data-turn="user"]+.message-row[data-turn="assistant"],
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow>.message-row[data-turn="assistant"]+.message-row[data-turn="user"]{
+    margin-top:14px!important;
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] .user-message-unit,

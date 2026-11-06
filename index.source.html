@@ -251,6 +251,9 @@ button{
    The rail is outside normal flow. Hover/tap only changes visibility. */
 .message-unit{
   position:relative;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
   width:fit-content;
   max-width:100%;
 }
@@ -263,6 +266,7 @@ button{
   box-sizing:border-box;
   min-width:2.5rem;
   max-width:100%;
+  width:max-content;
   margin-top:3px;
   color:var(--theme-content-secondary);
   font-size:12px;
@@ -271,13 +275,15 @@ button{
   white-space:nowrap;
   font-variant-numeric:tabular-nums;
 }
-.user-message-unit>.message-sent-time{text-align:right}
-.assistant-message-unit>.message-sent-time{text-align:left}
+.user-message-unit>.message-sent-time{align-self:flex-end;text-align:right}
+.assistant-message-unit>.message-sent-time{align-self:flex-start;text-align:left}
 .user-message-unit{
+  align-items:flex-end;
   margin-left:auto;
   max-width:70%;
 }
 .assistant-message-unit{
+  align-items:flex-start;
   margin-right:auto;
   max-width:min(70%,calc(100% - 46px));
 }
@@ -328,6 +334,9 @@ button{
    outgoing text/link/reply uses a soft bubble; incoming stays on canvas.
    File/audio/image keep their own media containers and receive no outer bubble. */
 .user-message-unit>.message-text{
+  box-sizing:border-box;
+  width:fit-content;
+  max-width:100%;
   background:var(--theme-user-msg-bg);
   color:var(--theme-user-msg-text);
   border:0;
@@ -336,6 +345,9 @@ button{
   padding:9px 13px;
 }
 .assistant-message-unit>.message-text{
+  box-sizing:border-box;
+  width:fit-content;
+  max-width:100%;
   background:transparent!important;
   border:0!important;
   border-radius:0!important;
@@ -443,48 +455,15 @@ button{
 #messageWindow>.message-row+.message-row{
   margin-top:8px;
 }
-/* Conversation Content owns the rhythm between sibling messages.
-   Same-sender text stays compact; media gets more breathing room by type. */
+/* UI-245: one text/photo/audio/file rhythm for the same sender on Web/PWA.
+   A sender change gets extra separation; no media-type-specific gaps. */
 #messageWindow>.message-row[data-turn="user"]+.message-row[data-turn="user"],
 #messageWindow>.message-row[data-turn="assistant"]+.message-row[data-turn="assistant"]{
   margin-top:8px;
 }
-#messageWindow>.message-row[data-turn="user"][data-content-kind="audio"]+.message-row[data-turn="user"][data-content-kind="audio"],
-#messageWindow>.message-row[data-turn="assistant"][data-content-kind="audio"]+.message-row[data-turn="assistant"][data-content-kind="audio"]{
-  margin-top:7px;
-}
-#messageWindow>.message-row[data-turn="user"][data-content-kind="text"]+.message-row[data-turn="user"][data-content-kind="audio"],
-#messageWindow>.message-row[data-turn="assistant"][data-content-kind="text"]+.message-row[data-turn="assistant"][data-content-kind="audio"],
-#messageWindow>.message-row[data-turn="user"][data-content-kind="audio"]+.message-row[data-turn="user"][data-content-kind="text"],
-#messageWindow>.message-row[data-turn="assistant"][data-content-kind="audio"]+.message-row[data-turn="assistant"][data-content-kind="text"],
-#messageWindow>.message-row[data-turn="user"][data-content-kind="text"]+.message-row[data-turn="user"][data-content-kind="file"],
-#messageWindow>.message-row[data-turn="assistant"][data-content-kind="text"]+.message-row[data-turn="assistant"][data-content-kind="file"],
-#messageWindow>.message-row[data-turn="user"][data-content-kind="file"]+.message-row[data-turn="user"][data-content-kind="text"],
-#messageWindow>.message-row[data-turn="assistant"][data-content-kind="file"]+.message-row[data-turn="assistant"][data-content-kind="text"]{
-  margin-top:9px;
-}
-#messageWindow>.message-row[data-turn="user"][data-content-kind="text"]+.message-row[data-turn="user"][data-content-kind="image"],
-#messageWindow>.message-row[data-turn="assistant"][data-content-kind="text"]+.message-row[data-turn="assistant"][data-content-kind="image"],
-#messageWindow>.message-row[data-turn="user"][data-content-kind="text"]+.message-row[data-turn="user"][data-content-kind="gallery"],
-#messageWindow>.message-row[data-turn="assistant"][data-content-kind="text"]+.message-row[data-turn="assistant"][data-content-kind="gallery"],
-#messageWindow>.message-row[data-turn="user"][data-content-kind="image"]+.message-row[data-turn="user"][data-content-kind="text"],
-#messageWindow>.message-row[data-turn="assistant"][data-content-kind="image"]+.message-row[data-turn="assistant"][data-content-kind="text"],
-#messageWindow>.message-row[data-turn="user"][data-content-kind="gallery"]+.message-row[data-turn="user"][data-content-kind="text"],
-#messageWindow>.message-row[data-turn="assistant"][data-content-kind="gallery"]+.message-row[data-turn="assistant"][data-content-kind="text"],
-#messageWindow>.message-row[data-turn="user"][data-content-kind="audio"]+.message-row[data-turn="user"][data-content-kind="image"],
-#messageWindow>.message-row[data-turn="assistant"][data-content-kind="audio"]+.message-row[data-turn="assistant"][data-content-kind="image"],
-#messageWindow>.message-row[data-turn="user"][data-content-kind="audio"]+.message-row[data-turn="user"][data-content-kind="gallery"],
-#messageWindow>.message-row[data-turn="assistant"][data-content-kind="audio"]+.message-row[data-turn="assistant"][data-content-kind="gallery"],
-#messageWindow>.message-row[data-turn="user"][data-content-kind="image"]+.message-row[data-turn="user"][data-content-kind="audio"],
-#messageWindow>.message-row[data-turn="assistant"][data-content-kind="image"]+.message-row[data-turn="assistant"][data-content-kind="audio"],
-#messageWindow>.message-row[data-turn="user"][data-content-kind="gallery"]+.message-row[data-turn="user"][data-content-kind="audio"],
-#messageWindow>.message-row[data-turn="assistant"][data-content-kind="gallery"]+.message-row[data-turn="assistant"][data-content-kind="audio"]{
-  margin-top:11px;
-}
-/* Sender change is the strongest separator regardless of content kind. */
 #messageWindow>.message-row[data-turn="user"]+.message-row[data-turn="assistant"],
 #messageWindow>.message-row[data-turn="assistant"]+.message-row[data-turn="user"]{
-  margin-top:15px;
+  margin-top:14px;
 }
 .message-body{
   font-size:1rem;
@@ -623,29 +602,16 @@ button{
 .assistant-message-unit>.message-text{
   min-height:0;
 }
-/* Text + media inside one message uses the same rhythm family. */
-.message-unit>.message-text:not([hidden]) + [data-message-media-root="true"]{
-  margin-top:9px!important;
-}
-.message-unit>.message-text:not([hidden]) + [data-message-media-root="true"][data-media-root-kind="image"],
-.message-unit>.message-text:not([hidden]) + [data-message-media-root="true"][data-media-root-kind="gallery"]{
-  margin-top:11px!important;
+/* UI-245: the real direct sibling is the media SHELL, not its nested
+   [data-message-media-root]. Match the virtual estimator's 8px mixed gap. */
+.message-unit>.message-text:not([hidden]) + .message-media-shell[data-message-media-shell="true"]{
+  margin-top:8px!important;
 }
 @media(max-width:520px){
   #messageWindow{padding-block:10px 14px}
-  #messageWindow>.message-row+.message-row{margin-top:7px}
-  #messageWindow>.message-row[data-turn="user"][data-content-kind="audio"]+.message-row[data-turn="user"][data-content-kind="audio"],
-  #messageWindow>.message-row[data-turn="assistant"][data-content-kind="audio"]+.message-row[data-turn="assistant"][data-content-kind="audio"]{margin-top:7px}
-  #messageWindow>.message-row[data-turn="user"][data-content-kind="text"]+.message-row[data-turn="user"][data-content-kind="audio"],
-  #messageWindow>.message-row[data-turn="assistant"][data-content-kind="text"]+.message-row[data-turn="assistant"][data-content-kind="audio"],
-  #messageWindow>.message-row[data-turn="user"][data-content-kind="audio"]+.message-row[data-turn="user"][data-content-kind="text"],
-  #messageWindow>.message-row[data-turn="assistant"][data-content-kind="audio"]+.message-row[data-turn="assistant"][data-content-kind="text"]{margin-top:8px}
-  #messageWindow>.message-row[data-turn="user"][data-content-kind="text"]+.message-row[data-turn="user"]:is([data-content-kind="image"],[data-content-kind="gallery"]),
-  #messageWindow>.message-row[data-turn="assistant"][data-content-kind="text"]+.message-row[data-turn="assistant"]:is([data-content-kind="image"],[data-content-kind="gallery"]),
-  #messageWindow>.message-row[data-turn="user"]:is([data-content-kind="image"],[data-content-kind="gallery"])+.message-row[data-turn="user"][data-content-kind="text"],
-  #messageWindow>.message-row[data-turn="assistant"]:is([data-content-kind="image"],[data-content-kind="gallery"])+.message-row[data-turn="assistant"][data-content-kind="text"]{margin-top:10px}
+  #messageWindow>.message-row+.message-row{margin-top:8px}
   #messageWindow>.message-row[data-turn="user"]+.message-row[data-turn="assistant"],
-  #messageWindow>.message-row[data-turn="assistant"]+.message-row[data-turn="user"]{margin-top:13px}
+  #messageWindow>.message-row[data-turn="assistant"]+.message-row[data-turn="user"]{margin-top:14px}
 }
 
 @media (hover:none),(pointer:coarse){
