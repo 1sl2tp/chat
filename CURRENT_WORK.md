@@ -1,3 +1,15 @@
+## 2026-11-06 — UI-246 · Contact sidebar emoticon preview
+
+- **User screenshot / E0:** contact row for “E Anh đạt” showed raw `Bạn: a cảm ơn em :)`, despite the conversation body already rendering `🙂`. The original preview string is correct stored content; only its presentation was inconsistent.
+- **Owner:** `shell.js::contactPreview` displayed `preview_text` via `compactPreview` but never called the canonical display-only emoticon normalizer in `app.js`. The latter already mapped `:) / :D / ;) / :( / :P / :~` without changing message data or links.
+- **Minimal correction:** expose `window.V21NormalizeDisplayEmoticons` from `app.js` (loaded before `shell.js`) and reuse it in `contactPreview` for text previews only, preserving media kind labels, outgoing `Bạn:`, bank preview and textContent security. Fallback to original text when the helper is absent (including VM fixtures). Both initial directory render and Realtime row patches already call the same preview function. Advance only Chat PWA SW shell epoch to `pwa-chat-sidebar-emoticons-ui246-20261106`.
+- **Regression:** `tests/test_chat_directory_emoticon_preview_20261106.cjs` checks exact screenshot content, all supported markers, raw-text immutability, URL preservation, media labels, missing helper, initial and patch call paths, source ordering and PWA cache epoch. Wired to `tools/verify_current.py` and Verify V21. Implementation [6b0a0ca](https://github.com/1sl2tp/chat/commit/6b0a0ca138de50d8972a3cc23f5d45df51660201); guarded fallback [6464475](https://github.com/1sl2tp/chat/commit/64644752f6a19d2019e0bd658eb52bec6d30854b). Initial Verify caught missing `window` in historical VM fixture; corrected before final passing release.
+- **E2/E3:** [Verify V21 run 42149423376](https://github.com/1sl2tp/chat/actions/runs/42149423376) **SUCCESS** and [Pages run 42149423264](https://github.com/1sl2tp/chat/actions/runs/42149423264) **SUCCESS**. Pages HTTPS custom-domain check confirmed `index.html` and uncached `version.json` build ID `4be88e4da5caa41487b73379f093c81c332f8ee662ccc0afa08da6eebedf6997` at `chat.taphoa.xyz`.
+- **E4/E5:** actual installed iOS/Android PWA rendering and the specific device's update-banner activation **PENDING**; CI/source and custom-domain build verification are not proof of pixels on that device. No new polling, notifications, DB writes, auth changes, message text rewrites or storage clears.
+- **Rollback:** revert the scoped `app.js` exposure + `shell.js` formatting and SW epoch with regression test; canonical rebuild before redeploy. No user cache/data deletion.
+
+---
+
 ## 2026-11-06 — UI-245 · Align sent-time with chat bubbles, unify text/media spacing
 
 - **Reported issue:** user screenshot shows sent times not reliably aligned with their visible message/photo edge; gaps between text, image and adjacent messages do not follow one consistent rhythm.
