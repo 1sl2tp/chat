@@ -1,3 +1,14 @@
+## 2026-11-06 — UI-245 · Align sent-time with chat bubbles, unify text/media spacing
+
+- **Reported issue:** user screenshot shows sent times not reliably aligned with their visible message/photo edge; gaps between text, image and adjacent messages do not follow one consistent rhythm.
+- **Root source:** `index.source.html` used an old mixed-media selector targeting `[data-message-media-root]` as a direct child, but `app.js` now wraps it in `.message-media-shell`. Separate media-type gaps (7–11px) and a mobile 6px important override conflicted. Message units did not own both the bubble and timestamp as one sender-aligned flex column.
+- **Fix:** sender-aligned `.message-unit` and intrinsic text/time widths; timestamps align right for outgoing and left for incoming messages, including image/gallery. Mixed text+media gap is 8px using the actual media shell. Same-sender rows use 8px regardless of text/image/audio/file; sender changes use 14px. Mobile/PWA foundation token and shell cache epoch advanced without touching app message data or scroll owner.
+- **Regression:** extended virtual sent-time contract and updated outdated conversation-axis/UI-240 epoch tests to check the new semantics. Fix commits: [UI change 8ca82de](https://github.com/1sl2tp/chat/commit/8ca82deb9310f254170703740c4de76fe86806b0), [aligned tests fc7d7b2](https://github.com/1sl2tp/chat/commit/fc7d7b2632d5a6fe04929ac6869ecd9b22bf0c65). An initial CI/Pages attempt failed stale assertions; the corrected [Verify V21 42148077688](https://github.com/1sl2tp/chat/actions/runs/42148077688) and [Pages deploy 42148077640](https://github.com/1sl2tp/chat/actions/runs/42148077640) **PASS**.
+- **Production proof:** Pages custom-domain step confirmed HTTPS `chat.taphoa.xyz` and matching `index.html`/`version.json` `build_id=d25220c9a784663038ff7204bed036782cb346bf78719bee75f0c7fc9e151b59`. Actual installed iOS/Android PWA device screenshot and update notice activation remain **E4/E5 PENDING**; do not infer physical pixel alignment solely from CI.
+- **Scope/rollback:** no auth, Realtime, Push, DB, media bytes or business logic changed. Roll back UI-245 CSS/source + SW epoch and synchronized tests together if physical regression is observed. No customer storage or message cache clearing.
+
+---
+
 ## 2026-11-06 — UI-240 · Narrow directory spacing, preview and timestamps (CI + Pages PASS; device visual PENDING)
 
 - **User evidence:** desktop Chrome at narrow ~704px width showed uneven spacing between Chat/Ảnh top switch, search, filter chips, first contact row and bottom, with contact avatar/name/preview/time needing a consistent axis. The prior UI-239 removal of the redundant visible “Danh bạ” heading remains in place.
