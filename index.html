@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="337f477971db0a5e7394ca10688a5f2b79dd40868acf19df58b1a9bd3836c6f8">
+<meta name="app-build-id" content="694098a5f89060af4000a69277c33011edf921d74290a0506f6ea9b8cf607bb1">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -30138,8 +30138,20 @@ async function showBill(row){
   pane.appendChild(b);
  }
 }
+// BANK-241: #scrollRoot is shared between chats. Reset only on opening the
+// Admin bank dashboard so a prior conversation's scroll offset cannot hide
+// its heading under the fixed Chat header. Never reset on data refresh.
+function resetBankReportEntryScroll(){
+ const scrollOwner=document.getElementById('scrollRoot');
+ if(!scrollOwner)return;
+ scrollOwner.scrollTop=0;
+ requestAnimationFrame(()=>{
+  if(active&&isReportContact()&&scrollOwner.isConnected)scrollOwner.scrollTop=0;
+ });
+}
 function synchronize(){
  const should=isReportContact();
+ const entering=should&&!active;
  const nextOwner=should?bankReportSessionOwner():'';
  const ownerChanged=should&&active&&nextOwner!==reportSessionOwner;
  if(should===active&&!ownerChanged)return;
@@ -30154,7 +30166,7 @@ function synchronize(){
   ui.stamp.textContent='Đang cập nhật phiên Admin…';
   closeViewer();closeReviewDialog();
  }
- if(should){dateReady();void reload();}else{
+ if(should){if(entering||ownerChanged)resetBankReportEntryScroll();dateReady();void reload();}else{
   requestId++;selectedCustomer=null;closeViewer();closeReviewDialog();current=null;
  }
 }
