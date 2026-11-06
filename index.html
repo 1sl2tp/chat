@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="1821352203b6146e499b5a8aaeef347d8f11b0def8bcd7aba37d00b3c0df0259">
+<meta name="app-build-id" content="fbf3bf2ea13744169f4a00bde81f249b1159fa1a2ca7bd06c0aedb8d5b50d7a7">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -2280,6 +2280,52 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
  .bank-review-form:has(.bank-review-customer-search){max-height:calc(100dvh - max(10px,env(safe-area-inset-top)))}
  .bank-review-customer-results{max-height:min(208px,30dvh)}
  .bank-review-customer-option{min-height:44px}
+}
+
+/* BANK-243: compact titles only on narrow Chat/PWA screens.
+   Keep the complete label in the DOM/title for accessibility and desktop.
+   No value/column is hidden, so reconciliation totals remain unchanged. */
+.bank-report-responsive-label .bank-report-label-full{display:inline}
+.bank-report-responsive-label .bank-report-label-short{display:none}
+@media (max-width:540px){
+  #bankReportDashboard .bank-report-responsive-label .bank-report-label-full{display:none}
+  #bankReportDashboard .bank-report-responsive-label .bank-report-label-short{display:inline}
+  #bankReportDashboard .bank-report-stat-name{
+    overflow-wrap:normal;
+    word-break:normal;
+    text-wrap:pretty;
+    line-height:1.25;
+  }
+  #bankReportDashboard .bank-report-stat-compact .bank-report-stat-name{
+    min-height:2.5em;
+  }
+  #bankReportDashboard .bank-report-table th{
+    overflow-wrap:normal;
+    white-space:nowrap;
+    font-size:10px;
+    letter-spacing:-.1px;
+  }
+  #bankReportDashboard .bank-report-table th:nth-child(1){width:27%}
+  #bankReportDashboard .bank-report-table th:nth-child(2){width:10%}
+  #bankReportDashboard .bank-report-table th:nth-child(3){width:10%}
+  #bankReportDashboard .bank-report-table th:nth-child(4){width:10%}
+  #bankReportDashboard .bank-report-table th:nth-child(5){width:13%}
+  #bankReportDashboard .bank-report-table th:nth-child(6){width:30%}
+  #bankReportDashboard .bank-report-filter,
+  #bankReportDashboard .bank-report-filter-more-trigger{
+    min-width:0;
+    line-height:1.2;
+    overflow-wrap:normal;
+    word-break:normal;
+  }
+  #bankReportDashboard .bank-report-filter-more-menu .bank-report-filter{
+    justify-content:flex-start;
+    text-align:left;
+  }
+}
+@media (max-width:360px){
+  #bankReportDashboard .bank-report-table th{font-size:9.2px;letter-spacing:-.2px}
+  #bankReportDashboard .bank-report-stat-compact .bank-report-stat-name{font-size:9px}
 }
 
 </style>
