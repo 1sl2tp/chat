@@ -210,6 +210,10 @@ jobs:
           node --check bank-report-dashboard.js
           node tests/test_bank225_report_auth_owner_20261102.cjs
           node tests/test_bank225_bill_viewer_race_20261102.cjs
+      - name: BANK-242 dashboard header stays visible after switching chats
+        run: |
+          node --check bank-report-dashboard.js
+          node tests/test_bank242_report_header_scroll_owner_20261106.cjs
       - name: BANK-226 Admin review and collection dialog session ownership
         run: node tests/test_bank226_dialog_session_owner_20261103.cjs
       - name: BANK-227 bank push deep-link scroll follows active Admin context
