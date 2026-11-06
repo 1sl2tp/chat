@@ -283,10 +283,12 @@ function renderTable(data){
  }
  const table=el('table','bank-report-table');
  const head=el('thead'),thead=el('tr');
- for(const [name,short] of [
-  ['Khách hàng','Khách'],['Tự thu','Tự thu'],['Chờ soát','Chờ'],
-  ['Trùng','Trùng'],['Sai ngày','Sai'],['Tiền tự thu','Tiền thu']
- ]){
+ // Keep the canonical reconciliation column contract intact; only
+ // its narrow-screen presentation uses shorter, more readable headings.
+ const columns=['Khách hàng','Tự thu','Chờ soát','Trùng','Sai ngày','Tiền tự thu'];
+ const shortColumns=['Khách','Tự thu','Chờ','Trùng','Sai','Tiền thu'];
+ for(const [index,name] of columns.entries()){
+  const short=shortColumns[index];
   const th=el('th');
   th.title=name;th.setAttribute('aria-label',name);
   append(th,bankResponsiveLabel(name,short));
