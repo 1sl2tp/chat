@@ -4769,14 +4769,20 @@ function syncMessageDayPresentation(node,message){
   if(!separator){
     separator=document.createElement('div');
     separator.className='message-day-separator';
-    separator.setAttribute('aria-hidden','true');
+    separator.setAttribute('role','separator');
     const labelNode=document.createElement('span');
     labelNode.className='message-day-separator-label';
+    labelNode.setAttribute('aria-hidden','true');
     separator.appendChild(labelNode);
     node.insertBefore(separator,node.firstElementChild);
   }
   const labelNode=separator.querySelector('.message-day-separator-label')||separator;
   if(labelNode.textContent!==label)labelNode.textContent=label;
+  // The visually compact chip says "Hôm nay/Hôm qua"; assistive readers
+  // and the tooltip get the exact business date in Vietnam.
+  const fullLabel=formatMessageDayLabel(stamp,{includeDate:true})||label;
+  separator.setAttribute('aria-label','Bắt đầu tin nhắn ngày '+fullLabel);
+  separator.title=fullLabel+' · giờ Việt Nam';
   return label;
 }
 
