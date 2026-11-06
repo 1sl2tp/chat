@@ -1048,7 +1048,8 @@ function contactPreview(item){
   if(!text)return 'Chưa có tin nhắn';
   // UI-246: directory preview uses the same display-only emoticons as Chat.
   // app.js defines this before shell.js, while stored text remains unchanged.
-  return window.V21NormalizeDisplayEmoticons?.(text)??text;
+  const normalize=typeof window==='undefined'?null:window.V21NormalizeDisplayEmoticons;
+  return typeof normalize==='function'?normalize(text):text;
 }
 
 function syncContactActiveState(){
