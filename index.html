@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="758ffb4b340ad563a7e0510480f3a133c46497392d3597eab28477395dbc6438">
+<meta name="app-build-id" content="ee54e61055d8a0bfa52507fc003f4880924a92335d06de38964c71a3e912f9e7">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1938,7 +1938,31 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
 #appShell[data-route="chat"] #stageLayout[data-bank-report-active="true"] #thread-bottom-container,
 #appShell[data-route="chat"] #stageLayout[data-bank-report-active="true"] #composerPlacementSpacer,
 #appShell[data-route="chat"] #stageLayout[data-bank-report-active="true"] .call-focus-slot{display:none!important}
-#appShell[data-route="chat"] #stageLayout[data-bank-report-active="true"] #bankReportDashboard{display:block!important}
+/* BANK-242: the Chat header is sticky in #scrollRoot, but this Admin-only
+   dashboard is a sibling of that scroller. Its viewport starts BELOW the
+   header and never inherits conversation scrollTop/tail restoration. */
+#appShell[data-route="chat"] #stageLayout[data-bank-report-active="true"] #bankReportDashboard{
+  display:block!important;
+  position:absolute;
+  z-index:21;
+  top:calc(var(--header-height,72px) + env(safe-area-inset-top,0px));
+  right:0;
+  bottom:0;
+  left:0;
+  min-height:0;
+  overflow-x:hidden;
+  overflow-y:auto;
+  overscroll-behavior-y:contain;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-gutter:stable;
+  background:var(--theme-surface-primary,#fff);
+}
+/* This also protects the normal order-notification chat from header flex
+   compression in a short or empty thread. Do not change the chat scroll owner. */
+#appShell[data-route="chat"] #regionTop{
+  flex:0 0 var(--header-height,72px);
+  min-height:var(--header-height,72px);
+}
 .bank-report-dashboard{width:min(100%,1080px);margin:0 auto;padding:18px 18px 72px;color:var(--text-primary,#23272a);font-family:inherit;box-sizing:border-box}
 .bank-report-dashboard *{box-sizing:border-box}
 .bank-report-header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:4px 0 18px}
