@@ -31,7 +31,7 @@ const photos=rule('#appShell[data-auth-state="authenticated"] .top-mode-tab[data
 assert(photos.includes('font-size:13px;'),'Chat and Photos label sizes match');
 const common=rule('#appShell[data-auth-state="authenticated"] .top-mode-tab');
 assert(common.includes('font-size:13px;')&&common.includes('min-height:40px;'));
-assert(source.includes('class="compact-top-grid chat-content-axis"'));
+assert(source.includes('compact-top-grid chat-content-axis"'),'header keeps shared content axis');
 assert(source.includes('class="call-focus-slot" data-call-focus-slot data-call-ui-state="idle"'));
 assert(source.includes('aria-label="Mở menu"'));
 assert(source.includes('role="tablist" aria-label="Trò chuyện và ảnh"'));
