@@ -190,9 +190,29 @@ async function reload(){
        owner===bankReportSessionOwner()){ui.stamp.textContent='Chưa lấy được dữ liệu. Bấm Làm mới.';ui.groups.replaceChildren(el('p','bank-report-empty','Không tải được bảng đối soát.'));}
  }finally{loading=false;if(queued){queued=false;void reload();}}
 }
-function cardValue(name,value,highlight=false,compact=false){
+// BANK-243: desktop keeps full wording, phones use shorter labels.
+// The full meaning remains available to assistive tech and via tooltip.
+function bankResponsiveLabel(full,short=full){
+ const label=el('span','bank-report-responsive-label');
+ label.setAttribute('aria-label',full);label.title=full;
+ const regular=el('span','bank-report-label-full',full);
+ const narrow=el('span','bank-report-label-short',short);
+ regular.setAttribute('aria-hidden','true');
+ narrow.setAttribute('aria-hidden','true');
+ return append(label,regular,narrow);
+}
+const bankFilterMobileLabels={
+ all:'Tất cả',matched:'Đã khớp',waiting_bank:'Bill chờ NH',
+ bank_only:'NH chưa khớp',bank_all:'Tiền vào NH',review:'Cần soát',
+ wrong_day:'Sai ngày',manual_bank:'Thu tay NH',duplicate:'Trùng',
+ non_bill:'Không phải bill',test_excluded:'Test (loại)'
+};
+function cardValue(name,value,highlight=false,compact=false,mobileName=name){
+ const caption=el('span','bank-report-stat-name');
+ caption.title=name;
+ append(caption,bankResponsiveLabel(name,mobileName));
  return append(el('div','bank-report-stat'+(highlight?' bank-report-stat-primary':'')+(compact?' bank-report-stat-compact':'')),
-  el('span','bank-report-stat-name',name),el('strong','bank-report-stat-number',value));
+  caption,el('strong','bank-report-stat-number',value));
 }
 function paint(data){
  const s=data?.summary||{};
@@ -205,23 +225,25 @@ function paint(data){
  const outstanding=(data?.bank_only||[]).filter(x=>!handled.has(String(x.notice_id))).length;
  const incoming=Array.isArray(data?.bank_credits)?data.bank_credits:[];
  ui.summary.replaceChildren(
-  cardValue('Giao dịch đã thu · đối soát',String(s.matched_count||0)),
-  cardValue('Đã thu có chứng từ',money(s.matched_amount),true)
+  cardValue('Giao dịch đã thu · đối soát',String(s.matched_count||0),false,false,'GD đã thu · khớp'),
+  cardValue('Đã thu có chứng từ',money(s.matched_amount),true,false,'Đã thu có CT')
  );
  ui.status.replaceChildren(
-  cardValue('Bill chưa đối soát',String(s.bill_only_count||0),false,true),
-  cardValue('Agribank cần xử lý',String(outstanding),false,true),
-   cardValue('Đã thu thủ công Agribank',String((data?.manual_collections||[]).length),false,true),
-   cardValue('Agribank tiền vào · đủ nguồn',String(incoming.length),false,true),
-   cardValue('Tổng tiền vào Agribank (÷1.000)',money(incoming.reduce((sum,x)=>sum+(Number(x.amount_vnd)||0),0)),false,true),
-  cardValue('Bill sai ngày',String(s.old_date_count||0),false,true),
-  cardValue('Ảnh trùng',String(s.duplicate_count||0),false,true),
-  cardValue('Ảnh AI chưa kết luận',String((data?.bills||[]).filter(isAiScanIssue).length),false,true)
+  cardValue('Bill chưa đối soát',String(s.bill_only_count||0),false,true,'Bill chờ soát'),
+  cardValue('Agribank cần xử lý',String(outstanding),false,true,'NH cần xử lý'),
+   cardValue('Đã thu thủ công Agribank',String((data?.manual_collections||[]).length),false,true,'Thu tay NH'),
+   cardValue('Agribank tiền vào · đủ nguồn',String(incoming.length),false,true,'Tiền NH đủ nguồn'),
+   cardValue('Tổng tiền vào Agribank (÷1.000)',money(incoming.reduce((sum,x)=>sum+(Number(x.amount_vnd)||0),0)),false,true,'Tổng tiền NH (nghìn)'),
+  cardValue('Bill sai ngày',String(s.old_date_count||0),false,true,'Bill sai ngày'),
+  cardValue('Ảnh trùng',String(s.duplicate_count||0),false,true,'Ảnh trùng'),
+  cardValue('Ảnh AI chưa kết luận',String((data?.bills||[]).filter(isAiScanIssue).length),false,true,'AI chưa rõ')
  );
  renderTable(data);
  const mainKeys=new Set(['all','matched','waiting_bank','bank_only','review']);
  const makeFilter=([key,label])=>{
-   const b=el('button','bank-report-filter'+(filter===key?' is-selected':''),label);
+   const b=el('button','bank-report-filter'+(filter===key?' is-selected':''));
+   append(b,bankResponsiveLabel(label,bankFilterMobileLabels[key]||label));
+   b.title=label;b.setAttribute('aria-label',label);
    b.type='button';b.dataset.filter=key;b.setAttribute('aria-pressed',String(filter===key));
    b.addEventListener('click',()=>{filter=key;selectedCustomer=null;paint(data);});
    return b;
@@ -261,7 +283,15 @@ function renderTable(data){
  }
  const table=el('table','bank-report-table');
  const head=el('thead'),thead=el('tr');
- for(const name of ['Khách hàng','Tự thu','Chờ soát','Trùng','Sai ngày','Tiền tự thu'])thead.appendChild(el('th','',name));
+ for(const [name,short] of [
+  ['Khách hàng','Khách'],['Tự thu','Tự thu'],['Chờ soát','Chờ'],
+  ['Trùng','Trùng'],['Sai ngày','Sai'],['Tiền tự thu','Tiền thu']
+ ]){
+  const th=el('th');
+  th.title=name;th.setAttribute('aria-label',name);
+  append(th,bankResponsiveLabel(name,short));
+  thead.appendChild(th);
+ }
  head.appendChild(thead);table.appendChild(head);
  const tbody=el('tbody');
  for(const g of [...byCustomer.values()].sort((a,b)=>b.money-a.money||a.name.localeCompare(b.name,'vi'))){
