@@ -230,6 +230,8 @@ jobs:
         run: node --check contact-directory-admin.js
       - name: UI-246 directory emoticon display parity on Web and PWA
         run: node tests/test_chat_directory_emoticon_preview_20261106.cjs
+      - name: UI-247 ChatGPT mobile header/search and fuller previews
+        run: node tests/test_chat_mobile_reference_polish_20261106.cjs
       - name: UI-240 narrow directory vertical rhythm and contact preview
         run: node tests/test_chat_mobile_directory_rhythm_20261106.cjs
       - name: UI-239 compact directory search directly below top tabs

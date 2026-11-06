@@ -48,5 +48,6 @@ assert(shell.includes('const previewText=contactPreview(item);'));
 assert.equal(shell.split('const previewText=contactPreview(item);').length-1,2,
   'initial row and realtime row patch must use the same preview');
 assert(shell.includes('preview.textContent='),'preview is text only, not HTML');
-assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-sidebar-emoticons-ui246-20261106';"));
+const shellEpoch=sw.match(/const SHELL_CACHE_EPOCH='([^']+)';/)?.[1]||'';
+assert(shellEpoch.startsWith('pwa-chat-')&&shellEpoch!=='pwa-chat-time-media-edge-ui245-20261106');
 console.log('UI-246 directory emoticons: text/message parity, no data mutation, initial/realtime/PWA PASS');

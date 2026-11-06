@@ -99,6 +99,7 @@ subprocess.run(['node',str(ROOT/'tests'/'test_chat_runtime_error_lifecycle_20261
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_bank_report_sidebar_freshness_20261029.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_compact_timestamps_20261029.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_directory_emoticon_preview_20261106.cjs')],check=True,cwd=ROOT)
+subprocess.run(['node',str(ROOT/'tests'/'test_chat_mobile_reference_polish_20261106.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_vn_daykey_cross_browser_20261029.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_virtual_senttime_height_20261029.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_image_timestamp_calendar_round2_20261029.cjs')],check=True,cwd=ROOT)

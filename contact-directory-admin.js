@@ -79,7 +79,11 @@ function installStyle(){
   style.id='contact-directory-admin-style';
   style.textContent=`
     .contact-directory-tools{position:static;z-index:4;box-sizing:border-box;flex:0 0 auto;display:grid;gap:7px;padding:8px 8px 7px;background:var(--theme-surface-primary,#fff)}
-    .contact-directory-search{box-sizing:border-box;width:100%;height:38px;border:1px solid var(--theme-border-default,#dedede);border-radius:12px;padding:0 11px;background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#171717);font:inherit;font-size:14px;outline:none}
+    /* UI-247: reusable ChatGPT-like search surface, without altering focus/scroll owners. */
+    .contact-directory-search-field{position:relative;width:100%;min-width:0}
+    .contact-directory-search-icon{position:absolute;z-index:1;inset-inline-start:14px;top:50%;width:18px;height:18px;transform:translateY(-50%);color:var(--theme-content-tertiary,#999);pointer-events:none}
+    .contact-directory-search-field:focus-within .contact-directory-search-icon{color:var(--theme-content-secondary,#666)}
+    .contact-directory-search{box-sizing:border-box;width:100%;height:38px;border:1px solid var(--theme-border-default,#dedede);border-radius:16px;padding:0 12px 0 42px;background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#171717);font:inherit;font-size:16px;outline:none}
     .contact-directory-search:focus{border-color:#9ab7e6;box-shadow:0 0 0 2px rgba(78,132,216,.1)}
     .contact-directory-filter-line{display:flex;align-items:center;gap:4px;min-width:0}
     .contact-directory-filters{display:flex;gap:5px;flex:1;min-width:0;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none}
@@ -117,7 +121,10 @@ function ensureDirectoryTools(){
   tools.className='contact-directory-tools';
   tools.dataset.contactDirectoryTools='';
   tools.innerHTML=`
-    <input class="contact-directory-search" type="search" autocomplete="off" placeholder="Tìm kiếm" aria-label="Tìm danh bạ" data-contact-directory-search>
+    <div class="contact-directory-search-field">
+      <svg class="contact-directory-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true"><circle cx="10.75" cy="10.75" r="6.75"></circle><path d="m16 16 4.5 4.5"></path></svg>
+      <input class="contact-directory-search" type="search" autocomplete="off" placeholder="Tìm kiếm" aria-label="Tìm danh bạ" data-contact-directory-search>
+    </div>
     <div class="contact-directory-filter-line">
       <div class="contact-directory-filters" role="group" aria-label="Lọc danh bạ, cuộn ngang để xem thêm">
         <button type="button" class="contact-directory-filter" data-contact-directory-filter="all">Tất cả</button>
