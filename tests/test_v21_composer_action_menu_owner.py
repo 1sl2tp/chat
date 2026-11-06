@@ -28,7 +28,18 @@ for action,label in [
     ("credentials","Thông tin đăng nhập"),
 ]:
     assert f"action:'{action}',label:'{label}'" in admin
-assert admin.count("actionButton({action:") == 6
+# Six customer actions remain untouched; the three new actions are only for
+# the verified Báo Giá group (not for arbitrary contacts).
+assert admin.count("actionButton({action:") == 9
+for action,label in [
+    ("advice-milk","🥛 Tư vấn sữa"),
+    ("advice-hang-thuong","🛒 Tư vấn hàng thường"),
+    ("advice-hang-u","🧺 Tư vấn hàng U"),
+]:
+    assert f"action:'{action}',label:'{label}'" in admin
+assert "const advisory=admin&&contact&&isManualAdvisoryGroup();" in admin
+assert "if(!contactId||activeContactGroup()!=='customer')return false;" in admin
+assert "const advisorySection=surface.querySelector" in admin
 assert "async function openRecentSales(contactId)" in admin
 assert "chat_admin_recent_sales_preview" in admin
 assert "manual-recent-sales-consultation" in admin
