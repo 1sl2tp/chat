@@ -21,6 +21,17 @@ def test_day_separator_is_part_of_the_virtualized_message_row():
     assert 'id="messageDayFloating"' in source
     assert ".message-day-separator{" in source
     assert "message-day-separator{margin-top:0}" in source
+    # UI-244: visual day marker remains compact but fully accessible.
+    assert "separator.setAttribute('role','separator')" in APP
+    assert "separator.setAttribute('aria-label','Bắt đầu tin nhắn ngày '+fullLabel)" in APP
+    assert "formatMessageDayLabel(stamp,{includeDate:true})" in APP
+    assert 'max-width:136px;' in SOURCE
+    assert 'margin:16px 0 12px;' in SOURCE
+    assert 'opacity:.9;' in SOURCE
+    assert 'color:var(--theme-content-secondary);' in SOURCE
+    assert "time.title='Gửi lúc '+full+' · giờ Việt Nam';" in APP
+    assert "time.setAttribute('aria-label','Gửi lúc '+full+' · giờ Việt Nam');" in APP
+
 
 
 def test_floating_date_is_sticky_zero_height_and_hides_after_scroll_idle():
