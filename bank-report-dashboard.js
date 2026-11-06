@@ -1102,8 +1102,20 @@ async function showBill(row){
   pane.appendChild(b);
  }
 }
+// BANK-241: #scrollRoot is shared between chats. Reset only on opening the
+// Admin bank dashboard so a prior conversation's scroll offset cannot hide
+// its heading under the fixed Chat header. Never reset on data refresh.
+function resetBankReportEntryScroll(){
+ const scrollOwner=document.getElementById('scrollRoot');
+ if(!scrollOwner)return;
+ scrollOwner.scrollTop=0;
+ requestAnimationFrame(()=>{
+  if(active&&isReportContact()&&scrollOwner.isConnected)scrollOwner.scrollTop=0;
+ });
+}
 function synchronize(){
  const should=isReportContact();
+ const entering=should&&!active;
  const nextOwner=should?bankReportSessionOwner():'';
  const ownerChanged=should&&active&&nextOwner!==reportSessionOwner;
  if(should===active&&!ownerChanged)return;
@@ -1118,7 +1130,7 @@ function synchronize(){
   ui.stamp.textContent='Đang cập nhật phiên Admin…';
   closeViewer();closeReviewDialog();
  }
- if(should){dateReady();void reload();}else{
+ if(should){if(entering||ownerChanged)resetBankReportEntryScroll();dateReady();void reload();}else{
   requestId++;selectedCustomer=null;closeViewer();closeReviewDialog();current=null;
  }
 }
