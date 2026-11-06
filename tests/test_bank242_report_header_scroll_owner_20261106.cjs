@@ -17,7 +17,7 @@ const stage={children:[],appendChild(node){this.children.push(node);node.parentE
 const root={parentElement:{},scrollTop:180};
 const doc={getElementById:id=>id==='stageLayout'?stage:id==='bankReportDashboard'?root:null};
 const boot=vm.createContext({document:doc});
-vm.runInContext(js.slice(bootStart,bootEnd),boot,{timeout:1000});
+vm.runInContext('(function(){\\n'+js.slice(bootStart,bootEnd)+'\\n})();',boot,{timeout:1000});
 assert.equal(root.parentElement,stage,'report must be moved out of the chat scroll container');
 assert.equal(stage.children.length,1);
 
