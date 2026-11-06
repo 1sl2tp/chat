@@ -1,7 +1,7 @@
 // PWA lock-screen content is a preview, not the full private message.
 // Disclose attached media and make truncation explicit.
 export function summarizeNotification({body='',media=[]}={}){
-  const text=String(body||'').trim().replace(/\\s+/g,' ');
+  const text=String(body||'').trim().replace(/\s+/g,' ');
   const first=Array.isArray(media)?media[0]:null;
   if(!text){
     if(first?.kind==='image')return 'Ảnh';
