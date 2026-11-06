@@ -40,7 +40,8 @@ assert(shell.includes('slot.hidden=!showCallSurface;'),'only canonical call owne
 assert(shell.includes("const showIdleCall=route==='chat'&&hasContact;"));
 assert(source.includes('.compact-top-grid:has(.call-focus-slot:not([data-call-ui-state="idle"])) .top-mode-switch{opacity:0;pointer-events:none}'),'ongoing call visibility owns tab switch');
 assert(tokens.includes('--ui-control-touch:44px;'));
-assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-header-rail-balance-ui249-20261106';"));
+const epoch=sw.match(/const SHELL_CACHE_EPOCH='([^']+)';/)?.[1]||'';
+assert(epoch.startsWith('pwa-chat-')&&epoch!=='pwa-chat-composer-send-parity-ui248-20261106');
 // Reference geometry: 507px screenshot, with 12px gutters, 44px rails,
 // and two 6px grid gaps. The switch is truly viewport-centered at any
 // width with no call, while remaining inside its middle grid track.

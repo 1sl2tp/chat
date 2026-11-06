@@ -4,6 +4,8 @@
 const MENU_ID='composerActionMenu';
 const SECTION_ATTR='data-admin-composer-section';
 const ACTION_ATTR='data-admin-composer-action';
+const ADVISORY_ATTR='data-manual-advisory-section';
+const ADVISORY_TARGET_NAME='Báo Giá - 0911479555';
 const QUOTE_MODAL_MODE='QUOTE_MODAL';
 const QUOTE_MODAL_OWNER='admin-quote-modal';
 let quoteModulePromise=null;
@@ -11,6 +13,7 @@ let quoteOverlay=null;
 let credentialsOverlay=null;
 let stockCheckOverlay=null;
 let recentSalesOverlay=null;
+let manualAdvisoryOverlay=null;
 let quoteReturnFocus=null;
 let transientHintTimer=0;
 
@@ -39,6 +42,11 @@ function activeContactGroup(){
   // The directory is already the one authorized owner of contact groups.
   // Unknown/stale group data must never expose customer-only business sends.
   return id?window.V21ContactDirectoryAdmin?.groupForContact?.(id)||null:null;
+}
+function isManualAdvisoryGroup(){
+  const contact=activeContact();
+  return Boolean(currentAdmin()&&contact&&[contact.name,contact.display_name]
+    .some(name=>String(name||'').trim()===ADVISORY_TARGET_NAME));
 }
 function interactionController(){return window.V21InteractionController||null;}
 function lockQuoteBackground(){
@@ -120,6 +128,20 @@ function ensureAdminMenu(){
     );
     surface.insertBefore(section,sendLabel.nextSibling);
   }
+  let advisory=surface.querySelector(`[${ADVISORY_ATTR}]`);
+  if(!advisory){
+    const label=makeLabel('Tư vấn nhóm Báo Giá');
+    label.dataset.manualAdvisoryLabel='';
+    advisory=document.createElement('div');
+    advisory.setAttribute(ADVISORY_ATTR,'');
+    advisory.append(
+      actionButton({action:'advice-milk',label:'🥛 Tư vấn sữa',kind:'recent-sales'}),
+      actionButton({action:'advice-hang-thuong',label:'🛒 Tư vấn hàng thường',kind:'quote'}),
+      actionButton({action:'advice-hang-u',label:'🧺 Tư vấn hàng U',kind:'stock'}),
+    );
+    surface.insertBefore(label,surface.firstChild);
+    surface.insertBefore(advisory,label.nextSibling);
+  }
   syncVisibility();
   return section;
 }
@@ -128,6 +150,7 @@ function syncVisibility(){
   const admin=Boolean(currentAdmin());
   const contact=Boolean(activeContactId());
   const customer=admin&&contact&&activeContactGroup()==='customer';
+  const advisory=admin&&contact&&isManualAdvisoryGroup();
   document.documentElement.dataset.adminComposerActions=String(admin);
   const surface=menuSurface();
   if(!surface)return admin;
@@ -137,6 +160,13 @@ function syncVisibility(){
   if(section)section.hidden=!customer;
   if(section){
     for(const button of section.querySelectorAll(`[${ACTION_ATTR}]`))button.disabled=!customer;
+  }
+  const advisorySection=surface.querySelector(`[${ADVISORY_ATTR}]`);
+  const advisoryLabel=surface.querySelector('[data-manual-advisory-label]');
+  if(advisoryLabel)advisoryLabel.hidden=!advisory;
+  if(advisorySection){
+    advisorySection.hidden=!advisory;
+    for(const button of advisorySection.querySelectorAll(`[${ACTION_ATTR}]`))button.disabled=!advisory;
   }
   return admin;
 }
@@ -163,6 +193,110 @@ async function sendAdminText(value,contactId,reason='admin-chat-send'){
   void sync?.wake?.({reason});
   return true;
 }
+
+/* UI-250: manual advisory is preview-only until an explicit Admin confirmation.
+   The server validates the exact linked Báo Giá group and deduplicates commands. */
+function closeManualAdvisory({restoreFocus=true}={}){
+  if(!manualAdvisoryOverlay)return false;
+  manualAdvisoryOverlay.remove();
+  manualAdvisoryOverlay=null;
+  unlockQuoteBackground({restoreFocus});
+  return true;
+}
+async function openManualAdvisory(contactId,kind){
+  if(!isManualAdvisoryGroup()||String(activeContactId())!==String(contactId))
+    throw new Error('advisory_target_invalid');
+  if(!['milk','hang-thuong','hang-u'].includes(kind))
+    throw new Error('advisory_kind_invalid');
+  const client=authStore()?.getClient?.()||null;
+  const root=document.getElementById('globalOverlayRoot');
+  if(!client||!root)throw new Error('advisory_unavailable');
+  if(manualAdvisoryOverlay)return false;
+  if(!lockQuoteBackground())throw new Error('another_dialog_open');
+  const title={'milk':'Tư vấn sữa','hang-thuong':'Tư vấn hàng thường','hang-u':'Tư vấn hàng U'}[kind];
+  const overlay=document.createElement('section');
+  overlay.className='admin-composer-quote-overlay';
+  overlay.dataset.manualAdvisoryOverlay='';
+  overlay.innerHTML=`
+    <button type="button" class="admin-composer-quote-backdrop" data-manual-advisory-close aria-label="Hủy tư vấn"></button>
+    <div class="admin-composer-quote-card admin-manual-advisory-card" role="dialog" aria-modal="true" aria-label="Xem trước tư vấn">
+      <h2 class="admin-composer-quote-title"></h2>
+      <p class="admin-manual-advisory-destination">Chỉ gửi tới nhóm Báo Giá sau khi xác nhận. Không có lịch tự động.</p>
+      <pre class="admin-manual-advisory-body" data-manual-advisory-preview>Đang chuẩn bị nội dung…</pre>
+      <p class="admin-composer-quote-status" data-manual-advisory-status role="status" aria-live="polite"></p>
+      <div class="admin-composer-quote-actions">
+        <button type="button" class="admin-composer-quote-cancel" data-manual-advisory-close>Hủy</button>
+        <button type="button" class="admin-composer-quote-send" data-manual-advisory-confirm disabled>Gửi tư vấn</button>
+      </div>
+    </div>`;
+  overlay.querySelector('.admin-composer-quote-title').textContent=title;
+  root.appendChild(overlay);
+  manualAdvisoryOverlay=overlay;
+  const body=overlay.querySelector('[data-manual-advisory-preview]');
+  const status=overlay.querySelector('[data-manual-advisory-status]');
+  const send=overlay.querySelector('[data-manual-advisory-confirm]');
+  const closers=[...overlay.querySelectorAll('[data-manual-advisory-close]')];
+  let busy=false;
+  let completed=false;
+  let commandId='';
+  const rpc=async(sendNow)=>{
+    const {data,error}=await client.rpc('chat_admin_manual_advisory',{
+      p_contact_id:String(contactId),p_kind:kind,
+      p_command_id:sendNow?commandId:null,p_send:Boolean(sendNow)
+    });
+    if(error)throw error;
+    if(!data?.ok||String(data.contact_id)!==String(contactId)||data.kind!==kind)
+      throw new Error('advisory_response_mismatch');
+    return data;
+  };
+  closers.forEach(button=>button.addEventListener('click',()=>{
+    if(!busy)closeManualAdvisory();
+  }));
+  send.addEventListener('click',async()=>{
+    if(busy||completed||!commandId)return;
+    if(!isManualAdvisoryGroup()||String(activeContactId())!==String(contactId)){
+      status.textContent='Nhóm chat đã thay đổi; vui lòng mở lại tư vấn.';
+      send.disabled=true;
+      return;
+    }
+    busy=true;send.disabled=true;closers.forEach(button=>button.disabled=true);
+    status.textContent='Đang chuyển tin vào Chat và hàng gửi Zalo…';
+    try{
+      const data=await rpc(true);
+      completed=true;
+      status.textContent=data.status==='sent'
+        ?'Đã gửi tư vấn tới nhóm Báo Giá.'
+        :'Đã lưu tin trong Chat và xếp hàng gửi Zalo. Có thể kiểm tra trạng thái trong hội thoại.';
+      send.hidden=true;
+      const cancel=overlay.querySelector('.admin-composer-quote-cancel');
+      if(cancel)cancel.textContent='Đóng';
+      void window.V21SyncEngine?.wake?.({reason:'manual-advisory-confirmed'});
+      setTransientHint('Đã tạo tin tư vấn theo yêu cầu',2800);
+    }catch(error){
+      status.textContent='Chưa xác nhận gửi thành công: '+String(error?.message||error||'Lỗi gửi').slice(0,160)
+        +'. Có thể thử lại cùng lệnh để tránh gửi trùng.';
+    }finally{
+      busy=false;
+      closers.forEach(button=>button.disabled=false);
+      send.disabled=completed;
+    }
+  });
+  try{
+    const data=await rpc(false);
+    if(manualAdvisoryOverlay!==overlay)return false;
+    const text=String(data.body||'');
+    if(!text||text.length>1400)throw new Error('advisory_preview_invalid');
+    body.textContent=text;
+    status.textContent='Xem kỹ nội dung, sau đó chọn “Gửi tư vấn” nếu đồng ý.';
+    commandId=window.crypto?.randomUUID?.()||'';
+    if(!commandId)throw new Error('browser_secure_id_unavailable');
+    send.disabled=false;
+  }catch(error){
+    status.textContent='Không tải được nội dung tư vấn: '+String(error?.message||error||'').slice(0,150);
+  }
+  return true;
+}
+
 function closeQuote({restoreFocus=true}={}){
   const hadOverlay=Boolean(quoteOverlay);
   if(quoteOverlay){quoteOverlay.remove();quoteOverlay=null;}
@@ -865,6 +999,17 @@ function mountQuickActions(){
 async function runAction(action){
   if(!currentAdmin())return false;
   const contactId=activeContactId();
+  const advisoryKind={
+    'advice-milk':'milk',
+    'advice-hang-thuong':'hang-thuong',
+    'advice-hang-u':'hang-u'
+  }[action]||null;
+  if(advisoryKind){
+    if(!contactId||!isManualAdvisoryGroup())return false;
+    hideMenu();
+    try{return await openManualAdvisory(contactId,advisoryKind);}
+    catch{setTransientHint('Không mở được tư vấn nhóm',2600);return false;}
+  }
   if(!contactId||activeContactGroup()!=='customer')return false;
   hideMenu();
   if(action==='quote'){
@@ -961,6 +1106,7 @@ window.V21AdminComposerActions=Object.freeze({
   openRecentSales,
   openCredentials,
   openStockCheck,
+  openManualAdvisory,
   stockCheckLinks,
   activeContactId,
 });
