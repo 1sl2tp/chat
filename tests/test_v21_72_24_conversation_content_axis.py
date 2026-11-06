@@ -36,13 +36,18 @@ assert "turn.dataset.hasMedia=message.media" in app
 assert 'function messageContentKind(message)' in app
 assert "node.dataset.contentKind=messageContentKind(message)" in app
 assert "turn.dataset.contentKind=messageContentKind(message)" in app
-assert 'data-content-kind="audio"' in source
-assert 'data-content-kind="image"' in source
-assert 'data-content-kind="gallery"' in source
-assert 'margin-top:15px' in source
+# UI-245 uses one sender-based gap for text, image, gallery, audio and file.
+# Media kinds remain in app.js data, no separate gap selectors in CSS.
+assert '/* UI-245: one text/photo/audio/file rhythm' in source
+assert '#messageWindow>.message-row[data-turn="user"]+.message-row[data-turn="user"]' in source
+assert '#messageWindow>.message-row[data-turn="assistant"]+.message-row[data-turn="assistant"]' in source
+assert 'margin-top:8px' in source
+assert 'margin-top:14px' in source
 assert 'width:min(16.5rem,100%)' in source
 assert 'width:min(16rem,100%)' in source
-assert '.message-unit>.message-text:not([hidden]) + [data-message-media-root="true"]' in source
+assert '.message-unit>.message-text:not([hidden]) + .message-media-shell[data-message-media-shell="true"]' in source
+assert '.message-unit>.message-text:not([hidden]) + [data-message-media-root="true"]' not in source
+assert "shell.dataset.messageMediaShell='true'" in app
 assert 'cgpt-source-assistant-visual min-h-8 py-1' not in app
 
 assert app.count("outer.className='message-turn-shell';")==2

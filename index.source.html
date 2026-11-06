@@ -258,7 +258,8 @@ button{
   max-width:100%;
 }
 /* Exact sent time sits below existing text/media without altering the
-   message bubble itself. Only already-virtualized messages own this node. */
+   message bubble itself. UI-245 uses a sender-aligned flex column so each
+   time label ends on its bubble/photo edge on Web and installed PWA. */
 /* UI-244: sent time remains plain secondary metadata beneath each bubble;
    boxing every time would add clutter and make quick scanning slower. */
 .message-sent-time{
