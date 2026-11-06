@@ -214,6 +214,8 @@ jobs:
         run: |
           node --check bank-report-dashboard.js
           node tests/test_bank242_report_header_scroll_owner_20261106.cjs
+      - name: BANK-243 compact report labels fit phone widths without losing full meaning
+        run: node tests/test_bank243_compact_report_labels_20261106.cjs
       - name: BANK-226 Admin review and collection dialog session ownership
         run: node tests/test_bank226_dialog_session_owner_20261103.cjs
       - name: BANK-227 bank push deep-link scroll follows active Admin context
