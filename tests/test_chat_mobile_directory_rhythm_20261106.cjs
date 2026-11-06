@@ -40,7 +40,9 @@ assert(declaration('.contact-directory-filter-line').includes('min-height:36px;'
 assert(filters.includes('gap:8px!important;'));
 assert(chip.includes('min-height:36px!important;'));
 assert(list.includes('padding:4px2pxmax(8px,env(safe-area-inset-bottom,0px))!important;'));
-assert(row.includes('height:68px!important;')&&button.includes('height:68px!important;'));
+assert(row.includes('height:60px!important;')&&button.includes('height:60px!important;'));
+assert(list.includes('row-gap:2px!important;'),'mobile conversation list gap must stay compact');
+assert(button.includes('padding:8px4px!important;'),'60px touch target keeps a readable 40px avatar');
 assert(button.includes('grid-template-columns:40pxminmax(0,1fr);'));
 assert(button.includes('column-gap:10px;'));
 assert(copy.includes('grid-template-columns:minmax(0,1fr)64px;'));
@@ -56,6 +58,6 @@ assert(directory.includes("const scrollHost=host.closest('.wm-sidebar-navigation
  'only the contact list owns vertical scrolling');
 assert(css.includes('SPEC-CHAT-MOBILE-DIRECTORY-VV-20261101'),
  'retain VisualViewport keyboard safety');
-assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-directory-rhythm-ui240-20261106';"),
+assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-directory-compact-ui241-20261106';"),
  'installed PWA must not keep old CSS cache');
 console.log('UI-240 narrow directory rhythm, avatar/name/preview/time and PWA cache PASS');
