@@ -59,5 +59,8 @@ assert(app.includes('if((!text&&pendingAttachments.length===0)||sendLocked||comp
 assert(app.includes("composerForm.addEventListener(\n  'submit'"));
 assert(app.includes('if(!canSendFromComposer()){'));
 assert(html.includes('id="editor"')&&html.includes('id="send" type="submit"'));
-assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-composer-send-parity-ui248-20261106';"));
+const shellEpoch=sw.match(/const SHELL_CACHE_EPOCH='([^']+)';/)?.[1]||'';
+assert(shellEpoch.startsWith('pwa-chat-')&&
+  !['pwa-chat-directory-chatgpt-polish-ui247-20261106','pwa-chat-composer-send-parity-ui248-20261106'].includes(shellEpoch),
+  'later PWA releases must advance the shell epoch without breaking UI-248 send parity');
 console.log('UI-248 composer whitespace/IME/media send-state Web/PWA parity PASS');
