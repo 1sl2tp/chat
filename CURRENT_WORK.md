@@ -1,3 +1,15 @@
+## 2026-11-06 — UI-248 · Composer eligibility parity with actual send, Web/PWA
+
+- **Context:** continuation of UI-247 ChatGPT-inspired iPhone chat refinement, focusing on Composer behavior rather than changing the keyboard layout or reworking the media/send pipeline.
+- **E0 code-confirmed mismatch:** `app.js::canSendFromComposer` previously used `editor.value.length>0`, but `sendNow` trims `rawText` and rejects whitespace-only text when no media is attached. An input containing only spaces/newlines therefore painted the Send control as eligible while pressing it silently did nothing. This is a visual/interaction truth bug rather than a transport failure.
+- **Scoped owner/fix:** `canSendFromComposer` now checks `editor.value.trim().length>0 || pendingAttachments.length`. `syncSendButtonState`, the existing `submit` handler and `sendNow` all reuse that same eligibility contract. The text is never re-written; native IME selection/composition, smart Return modes, 44px touch hitbox, colors, mic audio workflow and media-only sends are unchanged.
+- **Proof/tests:** new `tests/test_chat_composer_whitespace_send_parity_20261106.cjs` executes the real `canSendFromComposer` + `syncSendButtonState` in a VM for blank/whitespace/Unicode NBSP, normal text, mixed/newline, media-only, IME composing, in-flight lock, keyboard Enter mode and ARIA-state parity. Wired into canonical `tools/verify_current.py` and dedicated Verify V21 workflow step. The older UI-247 test now checks PWA shell epoch forward compatibility rather than pinning the historical exact string. Commit [2f736cf](https://github.com/1sl2tp/chat/commit/2f736cfb5813e1ca855bcf55597d4969f9e5ba91).
+- **E2/E3:** [Verify V21 42153041861](https://github.com/1sl2tp/chat/actions/runs/42153041861) **SUCCESS**; [Pages 42153041728](https://github.com/1sl2tp/chat/actions/runs/42153041728) **SUCCESS**. Production workflow verified `chat.taphoa.xyz` custom HTTPS and matching `index.html`/`version.json` build_id `c4e21eebba1bb29be7b77de4ad3b43e071f9a19a27782c2a34ed9a39b945568e`. PWA public shell epoch is `pwa-chat-composer-send-parity-ui248-20261106`.
+- **Scope:** no changes to Supabase, Push, Realtime, read receipts, message/media ownership, attachment bytes, keydown listeners, keyboard geometry or private cache. No extra network/background calls and no data clear.
+- **E4/E5:** on-device iPhone/Android PWA update notice activation, true pixel geometry and IME behavior remain unverified on a physical install; do not claim UI parity solely from source/CI. Rollback by reverting `app.js` eligibility, SW epoch and scoped tests, then rebuilding canonical shell; keep all private data intact.
+
+---
+
 ## 2026-11-06 — UI-247 · ChatGPT-inspired mobile Chat directory polish
 
 - **Evidence:** user supplied three iPhone images: two ChatGPT conversation/loading references and one TAPHOA Chat directory. Chat's directory needs search, category filters, contact status and sorting, so do not copy ChatGPT's single-conversation screen or blank loading spinner. Keep directory rows at 60px, section order and current single scroll/keyboard owners.
