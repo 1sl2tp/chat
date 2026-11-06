@@ -5,6 +5,10 @@ const REPORT_ID='fc3ec480-60d2-4749-b7af-5f4ae71eb14e';
 const stage=document.getElementById('stageLayout');
 const root=document.getElementById('bankReportDashboard');
 if(!stage||!root)return;
+// BANK-242: the report must have its OWN scroll owner below the Chat header.
+// Remaining inside #threadContent let conversation tail restoration scroll the
+// heading underneath the sticky menu, even after scrollTop=0 on entry.
+if(root.parentElement!==stage)stage.appendChild(root);
 const ui={
  date:root.querySelector('[data-bank-date]'),
  refresh:root.querySelector('[data-bank-refresh]'),
@@ -195,8 +199,8 @@ function paint(data){
  const expanded=new Set([...ui.groups.querySelectorAll('.bank-report-detail[open]')]
   .map(node=>node.dataset.bankNoticeId?'notice:'+node.dataset.bankNoticeId:
    node.dataset.bankReceiptId?'receipt:'+node.dataset.bankReceiptId:'').filter(Boolean));
- const scrollOwner=document.getElementById('scrollRoot');
- const scrollTop=scrollOwner?.scrollTop??null;
+ const scrollOwner=root;
+ const scrollTop=scrollOwner.scrollTop;
  const handled=new Set((data?.manual_collections||[]).map(x=>String(x.notice_id)));
  const outstanding=(data?.bank_only||[]).filter(x=>!handled.has(String(x.notice_id))).length;
  const incoming=Array.isArray(data?.bank_credits)?data.bank_credits:[];
@@ -1106,12 +1110,17 @@ async function showBill(row){
 // Admin bank dashboard so a prior conversation's scroll offset cannot hide
 // its heading under the fixed Chat header. Never reset on data refresh.
 function resetBankReportEntryScroll(){
- const scrollOwner=document.getElementById('scrollRoot');
- if(!scrollOwner)return;
- scrollOwner.scrollTop=0;
- requestAnimationFrame(()=>{
-  if(active&&isReportContact()&&scrollOwner.isConnected)scrollOwner.scrollTop=0;
- });
+ // The report scroll position is independent from #scrollRoot, which chat
+ // owns and may restore asynchronously after a contact is switched.
+ root.scrollTop=0;
+ if(typeof document==='undefined')return;
+ const shared=document.getElementById?.('scrollRoot');
+ if(shared)shared.scrollTop=0;
+ if(typeof requestAnimationFrame==='function'){
+  requestAnimationFrame(()=>{
+   if(active&&isReportContact()&&root.isConnected)root.scrollTop=0;
+  });
+ }
 }
 function synchronize(){
  const should=isReportContact();
