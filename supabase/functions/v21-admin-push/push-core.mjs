@@ -1,11 +1,19 @@
+// PWA lock-screen content is a preview, not the full private message.
+// Disclose attached media and make truncation explicit.
 export function summarizeNotification({body='',media=[]}={}){
-  const text=String(body||'').trim().replace(/\s+/g,' ');
-  if(text)return text.slice(0,140);
+  const text=String(body||'').trim().replace(/\\s+/g,' ');
   const first=Array.isArray(media)?media[0]:null;
-  if(first?.kind==='image')return 'Ảnh';
-  if(first?.kind==='audio')return 'Ghi âm';
-  if(first?.kind==='file')return String(first.file_name||'Tệp').slice(0,80);
-  return 'Tin nhắn mới';
+  if(!text){
+    if(first?.kind==='image')return 'Ảnh';
+    if(first?.kind==='audio')return 'Ghi âm';
+    if(first?.kind==='file')return String(first.file_name||'Tệp').slice(0,80);
+    return 'Tin nhắn mới';
+  }
+  const prefix=first?.kind==='image'?'Ảnh · '
+    :first?.kind==='audio'?'Ghi âm · '
+    :first?.kind==='file'?'Tệp · ':'';
+  const budget=Math.max(1,140-prefix.length);
+  return prefix+(text.length>budget?text.slice(0,budget-1).trimEnd()+'…':text);
 }
 
 export const isGoneStatus=status=>Number(status)===404||Number(status)===410;
