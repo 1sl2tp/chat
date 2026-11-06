@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="9e27e68b243e04e4cb03524a14575a3ca4f2139bdf7a41f98201bc4938fc0a6f">
+<meta name="app-build-id" content="15755474c53315947971bc2585a611a05fec9fa9daa270f34c612c9786b9fbed">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -7267,7 +7267,9 @@ button{
     padding-right:max(var(--ui-chat-layout-rail,12px),env(safe-area-inset-right,0px))!important;
   }
 
-  /* UI-249: the no-contact call slot is genuinely [hidden]. Without a
+  /* UI-249: screenshot 507px: equal 44px rails, 6px gaps, and a 280px
+     capped tab switch put its center on the viewport center (253.5px).
+     The no-contact call slot is genuinely [hidden]. Without a
      matching trailing rail, the middle track shifts the two tabs right.
      Reserve a virtual 44px rail ONLY while that slot is hidden; a visible
      call keeps the existing auto-width right track and action geometry. */
