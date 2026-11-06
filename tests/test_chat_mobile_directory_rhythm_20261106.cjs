@@ -58,6 +58,6 @@ assert(directory.includes("const scrollHost=host.closest('.wm-sidebar-navigation
  'only the contact list owns vertical scrolling');
 assert(css.includes('SPEC-CHAT-MOBILE-DIRECTORY-VV-20261101'),
  'retain VisualViewport keyboard safety');
-assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-directory-compact-ui241-20261106';"),
+assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-time-divider-ui244-20261106';"),
  'installed PWA must not keep old CSS cache');
 console.log('UI-240 narrow directory rhythm, avatar/name/preview/time and PWA cache PASS');
