@@ -4477,6 +4477,9 @@ const DISPLAY_EMOTICON_RE=/(^|[\s([{])(:-\)|:\)|:-D|:D|;-\)|;\)|:-\(|:\(|:-P|:P|
 function normalizeDisplayEmoticons(value){
   return String(value??'').replace(DISPLAY_EMOTICON_RE,(_match,prefix,token)=>`${prefix}${DISPLAY_EMOTICONS[token]||token}`);
 }
+// UI-246: the directory preview reuses the exact same display-only mapping.
+// Keep original message bodies, links and persisted previews untouched.
+window.V21NormalizeDisplayEmoticons=normalizeDisplayEmoticons;
 
 const MESSAGE_LINK_RE=/https?:\/\/[^\s<]+/giu;
 const MESSAGE_INLINE_TOKEN_RE=/https?:\/\/[^\s<]+|\*\*[^*\n]+\*\*|~~[^~\n]+~~|==[^=\n]+==|`[^`\n]+`|\*[^*\n]+\*/giu;

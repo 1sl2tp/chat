@@ -1044,7 +1044,11 @@ function contactPreview(item){
   if(kind==='image')return outgoing+'Ảnh';
   if(kind==='audio')return outgoing+'Ghi âm';
   if(kind==='file')return outgoing+'Tệp';
-  return compactPreview(item?.preview_text)||'Chưa có tin nhắn';
+  const text=compactPreview(item?.preview_text);
+  if(!text)return 'Chưa có tin nhắn';
+  // UI-246: directory preview uses the same display-only emoticons as Chat.
+  // app.js defines this before shell.js, while stored text remains unchanged.
+  return window.V21NormalizeDisplayEmoticons?.(text)??text;
 }
 
 function syncContactActiveState(){
