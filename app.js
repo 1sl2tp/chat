@@ -7302,8 +7302,11 @@ editor.addEventListener('input',event=>{
 });
 
 function canSendFromComposer(){
+  // UI-248: send affordance must agree with sendNow(), which trims text.
+  // A whitespace-only draft is not a message, but any attached media is.
+  // Never rewrite the native editor value/selection (Vietnamese IME owner).
   return Boolean(
-    editor.value.length>0 ||
+    editor.value.trim().length>0 ||
     pendingAttachments.length
   );
 }

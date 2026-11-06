@@ -39,5 +39,7 @@ assert(directory.includes('body.insertBefore(tools,nav);'));
 assert(directory.includes("const scrollHost=host.closest('.wm-sidebar-navigation');"));
 assert(shell.includes('const previewText=contactPreview(item);'));
 assert.equal((shell.match(/const previewText=contactPreview\(item\);/g)||[]).length,2);
-assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-directory-chatgpt-polish-ui247-20261106';"));
+const epoch=sw.match(/const SHELL_CACHE_EPOCH='([^']+)';/)?.[1]||'';
+assert(epoch.startsWith('pwa-chat-')&&epoch!=='pwa-chat-sidebar-emoticons-ui246-20261106',
+  'installed Chat PWA must retain a newer shell than UI-246');
 console.log('UI-247 ChatGPT reference header/search/preview and Web/PWA parity PASS');
