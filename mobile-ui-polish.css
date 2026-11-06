@@ -371,12 +371,22 @@
     padding-right:max(var(--ui-chat-layout-rail,12px),env(safe-area-inset-right,0px))!important;
   }
 
+  /* UI-249: the no-contact call slot is genuinely [hidden]. Without a
+     matching trailing rail, the middle track shifts the two tabs right.
+     Reserve a virtual 44px rail ONLY while that slot is hidden; a visible
+     call keeps the existing auto-width right track and action geometry. */
+  #appShell[data-auth-state="authenticated"] .compact-top-grid:has(> .call-focus-slot[hidden]){
+    grid-template-columns:44px minmax(0,1fr) 44px;
+  }
+
   /* CHAT-HEADER-MESSAGE-POLISH-20261102:
      one centered vertical axis, no 36/38/44px mix in the idle header.
      Keep call-status/live-call states under their existing owners. */
   #appShell[data-auth-state="authenticated"] .top-mode-switch{
     box-sizing:border-box;
-    width:min(100%,20rem);
+    /* UI-249: 280px matches the contact-identity tab cap; 320px made the
+       empty conversation tabs oversized compared with 44px menu/search. */
+    width:min(100%,17.5rem);
     min-width:0;
     min-height:44px;
     justify-self:center;
@@ -414,7 +424,7 @@
   }
   #appShell[data-auth-state="authenticated"] .top-mode-tab[data-top-tab="photos"]{
     padding-inline:5px;
-    font-size:12.5px;
+    font-size:13px;
   }
   #appShell[data-auth-state="authenticated"] .top-mode-contact-avatar{
     width:26px;height:26px;min-width:26px;min-height:26px;
