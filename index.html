@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="e26361752b0c7bc0f7f00d4a5b92ae77ecc40a53e5254c996cce4331c822fa40">
+<meta name="app-build-id" content="56f999296474cc8bf9ff6c8dc5a8581fde582131dbb052e4332f3d51933949bb">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -3123,13 +3123,15 @@ button{
 }
 /* Exact sent time sits below existing text/media without altering the
    message bubble itself. Only already-virtualized messages own this node. */
+/* UI-244: sent time remains plain secondary metadata beneath each bubble;
+   boxing every time would add clutter and make quick scanning slower. */
 .message-sent-time{
   display:block;
   box-sizing:border-box;
   min-width:2.5rem;
   max-width:100%;
-  margin-top:3px;
-  color:var(--theme-content-tertiary);
+  margin-top:2px;
+  color:var(--theme-content-secondary);
   font-size:12px;
   line-height:14px;
   font-weight:400;
@@ -3235,18 +3237,19 @@ button{
   display:flex;
   align-items:center;
   justify-content:center;
-  gap:10px;
+  gap:8px;
   width:100%;
-  margin:18px 0 16px;
+  margin:16px 0 12px;
   pointer-events:none;
 }
 .message-day-separator::before,.message-day-separator::after{
   content:"";
   flex:1 1 0;
-  max-width:96px;
+  max-width:136px;
+  min-width:0;
   height:1px;
   background:var(--theme-border-default);
-  opacity:.65;
+  opacity:.9;
 }
 #messageWindow>.message-row:first-child .message-day-separator{margin-top:0}
 .message-day-separator-label,
@@ -3255,10 +3258,10 @@ button{
   display:inline-flex;
   align-items:center;
   max-width:calc(100vw - 32px);
-  padding:4px 10px;
-  border:1px solid color-mix(in srgb,var(--theme-border-default) 82%,transparent);
+  padding:4px 12px;
+  border:1px solid var(--theme-border-default);
   border-radius:999px;
-  background:var(--theme-surface-secondary);
+  background:var(--theme-surface-primary);
   color:var(--theme-content-secondary);
   font-size:12px;
   line-height:16px;
