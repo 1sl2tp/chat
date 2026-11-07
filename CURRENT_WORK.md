@@ -1,3 +1,13 @@
+## 2026-11-07 — UI-257 · Restore ChatGPT-style segmented top navigation
+
+- **User evidence:** iPhone comparison: ChatGPT shows a centered two-option pill between circular header controls; Chat displayed a large standalone “Trò chuyện” title with an overlapping/right-side “Ảnh” button. The latter is owned by the UI-251 list-header CSS, not broken navigation or user data.
+- **Change:** In the canonical mobile header presentation owner `mobile-ui-polish.css`, replace UI-251's full-width title/absolute Photos control in the **no-active-contact** state with one centered, 48px ChatGPT-style outlined pill and two equal 40px hit targets. The existing real routes are **Trò chuyện / Ảnh** because `shell.js` intentionally has `WORK_ENABLED=false`; do not show or silently enable a fake “Công việc” route. Retain left circular menu with unread indicator, selected-contact avatar/name, conditional duplicate Photos suppression, call controls and desktop layout. No HTML, JS navigation or business/backend changes.
+- **Tests:** update UI-255/UI-256 PWA and header assertions; add `tests/test_chatgpt_header_pill_20261107.cjs` to the canonical Verify V21 to cover the 320–507px symmetric header, functional tabs, active-contact/call isolation and no disabled route activation.
+- **PWA:** public shell epoch `pwa-chat-header-pill-ui257-20261107`, without clearing message, auth or media storage. GitHub Actions verification/deployment and authenticated iPhone visual confirmation **not yet established in this source entry**; do not claim those until independently observed.
+- **Rollback:** revert this focused CSS/test/SW change and generate a new public shell epoch. Do not alter Supabase, data, message caches or calls.
+
+---
+
 ## 2026-11-07 — UI-256 · Restore ChatGPT-first mobile design identity
 
 - **User evidence:** six authenticated iPhone screenshots compare ChatGPT's centered, quiet header, neutral controls, airy typography and two-tier Composer with TAPHOA Chat's left-heavy "Trò chuyện" title, strong separators/type, WhatsApp green/paired bubbles and single-line writing bar. User asks to restore ChatGPT design spirit, not to drop WhatsApp-like functional messaging or business actions.

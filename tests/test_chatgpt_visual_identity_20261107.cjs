@@ -19,13 +19,18 @@ function rule(source,selector) {
  return source.slice(from,end).replace(/\s+/g,'');
 }
 const root='#appShell[data-auth-state="authenticated"][data-route="chat"]';
-const idle=root+' .top-mode-switch[data-contact-identity="false"]';
-for(const token of ['display:flex;','position:relative;','justify-content:center;'])
- assert(rule(mobile,idle).includes(token),'centered title: '+token);
-assert(rule(mobile,idle+' .top-mode-tab[data-top-tab="chat"]').includes('font-weight:650;'));
-const photos=rule(mobile,idle+' .top-mode-tab[data-top-tab="photos"]');
-for(const token of ['position:absolute;','inset-inline-end:0;','width:44px;','min-height:44px;'])
- assert(photos.includes(token),'Photos touch target: '+token);
+const idle='#appShell[data-auth-state="authenticated"] #regionTop .top-mode-switch[data-contact-identity="false"]';
+const switchRule=rule(mobile,idle);
+for(const token of ['display:grid;','grid-template-columns:repeat(2,minmax(0,1fr));','width:min(100%,17.5rem);',
+                    'min-height:48px;','justify-self:center;','border-radius:999px;'])
+ assert(switchRule.includes(token),'centered ChatGPT-like pill: '+token);
+const tabRule=rule(mobile,idle+' .top-mode-tab');
+for(const token of ['position:static;','min-height:40px;','font-size:15px;','width:100%;'])
+ assert(tabRule.includes(token),'both tabs stay in the segmented switch: '+token);
+assert(!tabRule.includes('position:absolute;'),'Photos must not float into the right header rail');
+const activeTab=rule(mobile,idle+' .top-mode-tab[aria-selected="true"]');
+assert(activeTab.includes('background:var(--theme-surface-secondary)!important;'),
+ 'active tab uses the ChatGPT-like neutral capsule');
 const search=rule(css.slice(css.indexOf('/* UI-240-MOBILE-DIRECTORY-RHYTHM-20261106')),'#appShell[data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-search');
 assert(search.includes('border-radius:999px!important;'),'directory search should be a calm pill');
 const selected=rule(css,'#shellNavigationLayer .contact-directory-filter[data-active="true"]');
@@ -51,6 +56,6 @@ assert(composer.includes('#stageLayout[data-keyboard-open="true"]'),'VisualViewp
 for(const item of ['data-chat-quick="cash"','data-chat-quick="debt"','data-chat-quick="photos"','data-chat-quick="recent"',
                    'id="composer-mic-btn"','id="send" type="submit"','id="attachmentTray"'])
  assert(html.includes(item),'functional control preserved: '+item);
-assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-gpt-identity-ui256-20261107';"),
+assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-header-pill-ui257-20261107';"),
  'new public PWA epoch without deleting private caches');
 console.log('UI-256 ChatGPT identity, directory, neutral bubbles, two-row composer and preserved keyboard/voice/business controls PASS');
