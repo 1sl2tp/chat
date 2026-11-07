@@ -1080,3 +1080,64 @@
     min-height:32px;
   }
 }
+
+
+/* UI-253 — suppress duplicated Photos shortcut and enforce square header avatar, 2026-11-07.
+   The existing Admin quick action owns Photos whenever it is actually visible.
+   The header tab remains available for other users, hidden quick actions and
+   the Photos route. This is visual-only; no route or business handler changes. */
+@media(max-width:63.999rem){
+  #appShell[data-auth-state="authenticated"][data-route="chat"]:has(#chatQuickActions:not([hidden])) #regionTop .top-mode-switch[data-contact-identity="true"]{
+    grid-template-columns:minmax(0,1fr)!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"]:has(#chatQuickActions:not([hidden])) #regionTop .top-mode-switch[data-contact-identity="true"] .top-mode-tab[data-top-tab="photos"]{
+    display:none!important;
+  }
+
+  /* UI-252 used 36px width/height but older mobile styles still specified
+     max-width/max-height:26px. The mismatch compressed the header portrait.
+     One exact square applies to the container AND the loaded image. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .top-mode-switch[data-contact-identity="true"] .top-mode-contact-avatar{
+    box-sizing:border-box;
+    position:relative;
+    display:inline-flex;
+    flex:0 0 36px;
+    width:36px;
+    height:36px;
+    min-width:36px;
+    min-height:36px;
+    max-width:36px;
+    max-height:36px;
+    aspect-ratio:1 / 1;
+    border-radius:50%;
+    overflow:hidden;
+    align-self:center;
+    padding:0;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .top-mode-switch[data-contact-identity="true"] .top-mode-contact-avatar>img{
+    position:absolute;
+    inset:0;
+    display:block;
+    width:100%;
+    height:100%;
+    min-width:100%;
+    min-height:100%;
+    max-width:100%;
+    max-height:100%;
+    aspect-ratio:1 / 1;
+    object-fit:cover;
+    object-position:center;
+    border-radius:50%;
+  }
+}
+@media(max-width:360px){
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .top-mode-switch[data-contact-identity="true"] .top-mode-contact-avatar{
+    flex-basis:32px;
+    width:32px;
+    height:32px;
+    min-width:32px;
+    min-height:32px;
+    max-width:32px;
+    max-height:32px;
+  }
+}
