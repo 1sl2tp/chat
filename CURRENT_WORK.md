@@ -1,3 +1,13 @@
+## 2026-11-07 — UI-252 · Header balance and in-bubble time
+
+- **User evidence:** iPhone screenshots at 15:18 comparing current Chat selected-contact header + separately placed timestamps against WhatsApp. Request: balance back/avatar/name/Ảnh/call areas and move message time inside conversations.
+- **Scope & implementation:** visual-only rules in the existing owner `mobile-ui-polish.css`, narrow widths (<1024px). Header is 44px back track / flexible identity+44px Photos / content-sized idle call cluster; avatar 36px (32px on <=360px) and 44px action targets. Name is ellipsized before call controls become crowded. Active-call status remains under existing owner. On timestamped **text-only** bubbles, one existing accessible `time.message-sent-time` is visually anchored at the inner lower-right and bubble bottom padding grows from 8px to 25px (+17px), replacing the original 14px timestamp line + 3px margin. Therefore the virtualization height estimate and scroll anchoring remain unchanged. Hidden/empty text bubbles and image, invoice, gallery, audio, file formats preserve external timestamps so critical media content is unobscured. VN locale/dateTime/ARIA unchanged; no duplicated time node, DOM reparenting, JS or read-state update.
+- **Tests:** added `tests/test_chat_mobile_header_timestamp_20261107.cjs` and wired into canonical `tools/verify_current.py`: header track geometry at 320/360/375/390/393/430px, minimum touch targets, active call unaffected, one timestamp, unchanged 17px virtual-height accounting, image safety and VN timezone. `sw.js` cache epoch advanced to `pwa-chat-header-time-ui252-20261107` (shell only, no private data clear, no new polling).
+- **Deployment:** [Deploy Chat Pages #42355318579](https://github.com/1sl2tp/chat/actions/runs/42355318579) **SUCCESS**, including canonical Verify and custom-domain probe; live `index.html` and `version.json` matched build ID `8687393e9ec3e329d04e102bab889ee06c1d53f52d1347d87f200c45a366bc28`. New UI-252 contract was **PASS** during deploy verification. Physical installed iPhone PWA rendering not independently observed; do not equate CI with visual screenshot validation.
+- **Rollback:** revert only UI-252 CSS/test, rotate PWA shell epoch again; do not touch realtime, messages, contacts, calls, composer, image geometry or cache of account-scoped data.
+
+---
+
 ## 2026-11-07 — UI-251 · WhatsApp-inspired mobile Chat hierarchy
 
 - **Reference / user request:** Four iPhone screenshots comparing the existing Chat list/detail/operations with WhatsApp-style chat. Goal: more coherent hierarchy and compact, readable mobile layout without changing retail actions.
