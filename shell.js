@@ -376,6 +376,14 @@ function renderChatTabIdentity(){
   );
   if(switcher)switcher.dataset.contactIdentity=String(visible);
   if(tab)tab.dataset.contactIdentity=String(visible);
+  // UI-251: the left header control opens the conversation list when viewing
+  // a customer; keep the action, focus behavior and keyboard owner unchanged.
+  const listButton=document.querySelector('#regionTop [data-shell-command="sidebar.open"]');
+  if(listButton){
+    listButton.setAttribute('aria-label',visible&&!desktopDirectoryMedia.matches
+      ?'Quay lại danh sách trò chuyện'
+      :'Mở danh sách trò chuyện');
+  }
   if(!tab||!avatar||!label)return visible;
   if(!visible){
     if(profileButton)profileButton.hidden=true;
