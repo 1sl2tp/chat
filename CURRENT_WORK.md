@@ -1,3 +1,15 @@
+## 2026-11-07 — UI-253 · De-duplicate Photos and repair mobile header avatar
+
+- **User screenshot:** authenticated iPhone PWA selected conversation displayed both top-header `Ảnh` tab and Admin `Ảnh` quick-action below, while the avatar appeared distorted rather than circular. The mobile header remained crowded.
+- **Root cause:** UI-251/252 set top avatar to 36×36px but an earlier `mobile-ui-polish.css` rule kept `max-width:26px`/`max-height:26px`. Conflicting constraints squeezed the image. The redundant header `Ảnh` and business shortcut led to two entry points for the same function.
+- **Scoped fix:** UI-253 in the existing mobile CSS owner applies only below 1024px, `data-route="chat"`, selected-contact header, and when `#chatQuickActions` is actually visible. In that exact state, only the top `Ảnh` tab is visually hidden and the identity track reclaims its width. The original Admin quick `Ảnh` handler, photo route and all other users/no-shortcuts states retain access to Photos. No tab click handler or route was removed.
+- **Avatar fix:** enforce the same square width/height/min/max/flex basis (36px, or 32px at <=360px) with `aspect-ratio:1/1`, `border-radius:50%`, `overflow:hidden`, `isolation:isolate`, and loaded image `object-fit:cover;object-position:center`. The original user photo bytes/asset handling are unchanged.
+- **Tests:** `tests/test_chat_mobile_header_avatar_20261107.cjs` checks conditional duplicate hiding, retained Photos navigation, 320–430px title space, image crop/shape and exact size rules. Registered in `tools/verify_current.py`. The UI-252 cache epoch test was made forward-compatible. First Verify failed only due a test string whitespace comparison, which was corrected; canonical Verify within the successful deployment passed.
+- **PWA/deploy:** `sw.js` shell epoch bumped to `pwa-chat-header-avatar-ui253-20261107`, leaving account-scoped message/avatar data untouched. [Deploy Chat Pages #42356932674](https://github.com/1sl2tp/chat/actions/runs/42356932674) **SUCCESS**, including `Verify canonical chat`, the UI-253 test and custom-domain HTTPS index/version probe. Verified production build ID `6bc0aea8866e04f574bb9d2d8c33c438162205b7eb9b33562436457d6102107d`.
+- **Limitations / rollback:** installed iPhone PWA pixel rendering was not separately screen-tested after deployment; the screenshot above predates the latest build. To roll back, revert this scoped CSS/test and rotate the PWA shell epoch; do not change Realtime, conversation messages, Zalo, call, payment or media storage.
+
+---
+
 ## 2026-11-07 — UI-252 · Header balance and in-bubble time
 
 - **User evidence:** iPhone screenshots at 15:18 comparing current Chat selected-contact header + separately placed timestamps against WhatsApp. Request: balance back/avatar/name/Ảnh/call areas and move message time inside conversations.
