@@ -30,17 +30,17 @@ assert "group.append(...orderedActions);" in action
 # Sender surfaces are deliberately asymmetric.
 assert ".user-message-unit>.message-text{" in source
 user=source[source.index(".user-message-unit>.message-text{"):source.index(".assistant-message-unit>.message-text{")]
-assert "background:var(--theme-user-msg-bg);" in user
-assert "color:var(--theme-user-msg-text);" in user
+assert "background:var(--chat-message-sent-bg);" in user
+assert "color:var(--theme-content-primary);" in user
 assert "border-radius:22px;" in user
 assert "padding:9px 13px;" in user
 
 assistant=source[source.index(".assistant-message-unit>.message-text{"):source.index("/* Desktop hover owner",source.index(".assistant-message-unit>.message-text{"))]
-assert "background:transparent!important;" in assistant
+assert "background:var(--chat-message-received-bg)!important;" in assistant
 assert "border:0!important;" in assistant
-assert "border-radius:0!important;" in assistant
+assert "border-radius:20px!important;" in assistant
 assert "box-shadow:none!important;" in assistant
-assert "padding:0!important;" in assistant
+assert "padding:9px 13px!important;" in assistant
 
 # Media stays outside message-text, but now has one geometry shell owner before
 # the existing file/audio/image media root so image/gallery sizing is stable.
@@ -50,7 +50,7 @@ assert "const mediaShell=createMessageMediaShell(mediaNode,message.media);" in a
 assert "unit.appendChild(mediaShell);" in app
 assert "shell.appendChild(mediaNode);" in app
 
-# Reply quote stays inside the text surface: outgoing inherits bubble; incoming stays canvas-native.
+# Reply quote stays inside the text surface; each side inherits its own bubble color.
 assert "const replyQuote=createReplyQuote(message.replyTo);" in app
 assert "if(replyQuote)text.appendChild(replyQuote);" in app
 
