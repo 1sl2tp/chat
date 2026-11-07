@@ -1,3 +1,16 @@
+## 2026-11-07 — UI-251 · WhatsApp-inspired mobile Chat hierarchy
+
+- **Reference / user request:** Four iPhone screenshots comparing the existing Chat list/detail/operations with WhatsApp-style chat. Goal: more coherent hierarchy and compact, readable mobile layout without changing retail actions.
+- **Root observation:** in the selected conversation, a two-tab pill reduced the available identity/name space; four large business buttons looked like a form rather than contextual shortcuts. The contact list needed stronger name/preview/time hierarchy; message/date treatment could be calmer.
+- **UI-only correction (owner `mobile-ui-polish.css`):** narrow (under 1024px) list header treats Trò chuyện as primary title and Ảnh as secondary shortcut; selected header prioritizes existing avatar and ellipsized contact name, with a visual back chevron on the unchanged sidebar-opening button; call controls remain in their original slot. Quick admin actions keep all four existing handlers with 44px touch targets in quieter rounded chips; Recent popup is not clipped. Directory remains 60px/2-line with a subdued divider, clearer name and metadata. Text-only outgoing/received bubbles get paired WhatsApp-like surfaces and compact day chips, while photos, galleries, audio, files and sent-time geometry stay owned by previous features. Composer stays on existing keyboard/VisualViewport owner.
+- **Accessibility:** `shell.js::renderChatTabIdentity()` now labels the same left header button as “Quay lại danh sách trò chuyện” on narrow selected admin chat, otherwise “Mở danh sách trò chuyện”; no routing/role/read-state changes. Photo controls retain minimum 44px touch areas.
+- **PWA:** `sw.js` shell epoch advanced to `pwa-chat-whatsapp-mobile-ui251-20261107`. No private message/avatar cache clear, no new polling or network owner. The old UI-250 advisory regression assertion was made forward-compatible with later safe PWA epochs.
+- **Verification:** [Verify V21 run 42354354250](https://github.com/1sl2tp/chat/actions/runs/42354354250) **SUCCESS**. [Deploy Chat Pages run 42354354240](https://github.com/1sl2tp/chat/actions/runs/42354354240) **SUCCESS**, including canonical build/verify and production custom-domain probe. Production HTTPS, `index.html` and `version.json` matched build ID `873e423ae52ab96312fe5306e98cb9476b73e57d5daba72483a822d1d6bb0a09`. Earlier deploy run 42354116586 failed because a UI-250 test pinned the old cache epoch; the test was fixed before the successful run.
+- **E4/E5 limitation:** no authenticated interactive or physical iPhone-installed PWA visual walkthrough in this run; CI and production build proof do not establish exact pixel placement on-device. The user should receive the new shell through the existing update policy without a manual cache reset.
+- **Rollback:** revert scoped CSS and shell label changes, then use a *new* PWA epoch on rollback. Leave backend, Supabase/Realtime, Zalo, payment flows, read-state and data intact. Desktop three-pane layout remains untouched.
+
+---
+
 ## 2026-11-06 — UI-250 · Manual Báo Giá advisories, no 06:00/09:00 automation
 
 - **User request:** Screenshot of Zalo-linked group Báo Giá; stop automatic group advisories at 06:00 milk and 09:00 general, replace with three optional `+` menu actions: `Tư vấn sữa`, `Tư vấn hàng thường`, `Tư vấn hàng U`.
