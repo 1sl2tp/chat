@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="3d70d8f427020d328e0693142c317af9b8d312848937f880fd9214f8e0ee98f9">
+<meta name="app-build-id" content="a929354c851f42762f74fda278457702b9a0e9b37761757fd3ded6bdbd4fa819">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -8043,7 +8043,8 @@ button{
     content:"";
     display:block;
     position:absolute;
-    inset-inline-start:54px;
+    /* Follow the existing 40px avatar + 10px text gap + 4px row inset. */
+    inset-inline-start:calc(40px + 10px + 4px);
     inset-inline-end:4px;
     bottom:0;
     height:1px;
