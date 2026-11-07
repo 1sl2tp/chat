@@ -1,3 +1,14 @@
+## 2026-11-07 — UI-260 · Compact message action toolbar beside selected bubble
+
+- **User screenshot:** in the iPhone PWA conversation with `b a duyệt`, reply/share/forward/copy appears as an unnecessarily broad, heavily shadowed floating toolbar, visually detached from the selected outgoing bubble. The user requests a more compact position.
+- **Owner/root:** `index.source.html` UI-150 mobile toolbar was using four 44px touch targets **plus 4px gap between buttons, 4px side padding and 8px/24px shadow**. `app.js::toggleActionsForTurn` already correctly anchors action rails above/below message content and mirrors edge alignment by sender. Do not add an independent placement owner.
+- **Fix:** remove inter-button gap, reduce side padding to 2px, use a full capsule radius and lighter shadow, keep icons at 18px artwork while **retaining all four separate 44×44px accessible targets**. Dock toolbar 2px above/below the chosen bubble instead of 6px. Four-button width drops to about 182px, aligned right for sent and left for received; remains safely within 320px portrait.
+- **Preserve:** reply/share/forward/copy functionality, accessibility labels, native text selection, media long press, keyboard safety, dynamic above/below placement, scrollbar and virtualization/scroll anchoring, 44px touch-target minimum, PWA and desktop behaviors, account/data/auth/Realtime/Zalo.
+- **Test & release:** UI-150 CSS contract adjusted; new `tests/test_chat_action_toolbar_compact_20261107.cjs` added to canonical Verify V21. Public PWA shell epoch `pwa-chat-actions-compact-ui260-20261107`, with no private cache/storage clear. CI/Pages and on-device visual evidence must be established independently.
+- **Rollback:** revert this focused CSS/test/PWA epoch and rebuild/deploy; no business data modified.
+
+---
+
 ## 2026-11-07 — UI-259 · Soften sent-bubble blue to match ChatGPT reference screenshot
 
 - **User reference:** new iPhone ChatGPT screenshot shows a much lighter blue message bubble than current Chat. Screenshot's flat bubble surface is approximately RGB(238,243,254), near #EEF3FE on an off-white background.

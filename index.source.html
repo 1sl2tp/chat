@@ -751,27 +751,26 @@ button{
   }
 }
 
-/* UI-150 touch action toolbar: visual sender axis stays unchanged.
-   Desktop keeps the original outside side rail. Mobile/PWA places the
-   44px actions inside the viewport and above/below the message without
-   changing message height, scroll position, or Composer geometry. */
+/* UI-150 / UI-260 touch toolbar: retain the full 44px action targets.
+   Mobile/PWA docks a quiet capsule 2px from the selected message, aligned
+   right for sent / left for received. Scroll, selection, Composer unchanged. */
 @media (max-width:700px),(hover:none),(pointer:coarse){
   .message-action-group{
     box-sizing:border-box;
     top:auto;
-    bottom:calc(100% + 6px);
+    bottom:calc(100% + 2px);
     display:flex;
     width:max-content;
     max-width:calc(100vw - max(12px,env(safe-area-inset-left,0px)) - max(12px,env(safe-area-inset-right,0px)));
     height:var(--ui-control-touch,44px);
     min-height:var(--ui-control-touch,44px);
-    gap:var(--ui-space-4,4px);
-    padding:0 4px!important;
+    gap:0;
+    padding:0 2px!important;
     overflow:visible;
     background:var(--theme-surface-primary,#fff);
     border:1px solid var(--theme-border-default,#e5e7eb);
-    border-radius:14px;
-    box-shadow:0 8px 24px rgba(0,0,0,.16);
+    border-radius:999px;
+    box-shadow:0 3px 10px rgba(0,0,0,.085);
     transform:scale(.96);
     transform-origin:center;
   }
@@ -786,7 +785,7 @@ button{
     justify-content:flex-start;
   }
   .message-turn[data-actions-placement="below"] .message-action-group{
-    top:calc(100% + 6px);
+    top:calc(100% + 2px);
     bottom:auto;
   }
   .message-unit:hover .message-action-group,
@@ -806,11 +805,11 @@ button{
     height:var(--ui-control-touch,44px);
     min-height:var(--ui-control-touch,44px);
     padding:0;
-    border-radius:10px;
+    border-radius:999px;
   }
   .message-action-group .action-button svg{
-    width:20px;
-    height:20px;
+    width:18px;
+    height:18px;
     pointer-events:none;
   }
 }

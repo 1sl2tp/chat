@@ -75,7 +75,10 @@ def test_ui150_touch_action_toolbar_stays_in_bounds_and_has_44px_targets():
     assert "width:max-content;" in touch
     assert "max-width:calc(100vw - max(12px,env(safe-area-inset-left,0px)) - max(12px,env(safe-area-inset-right,0px)))" in touch
     assert "height:var(--ui-control-touch,44px);" in touch
-    assert "gap:var(--ui-space-4,4px);" in touch
+    assert "gap:0;" in touch
+    assert "padding:0 2px!important;" in touch
+    assert "bottom:calc(100% + 2px);" in touch
+    assert "top:calc(100% + 2px);" in touch
     assert ".message-action-group.user-actions" in touch
     assert ".message-action-group.assistant-actions" in touch
     assert '.message-turn[data-actions-placement="below"]' in touch
