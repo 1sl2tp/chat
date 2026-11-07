@@ -21,8 +21,8 @@ for(const selector of ['.shell-contact-name{','.shell-contact-preview{','.shell-
   assert(!older.includes(selector),'UI-251 should not override UI-254: '+selector);
   assert(latest.includes(selector),'UI-254 should own directory typography: '+selector);
 }
-assert(!older.includes('border-bottom:1px solid color-mix('),
-  'UI-251 full-bleed row border must not fight the inset separator');
+assert(!older.includes('.shell-contact-row:not([data-active="true"])'),
+  'UI-251 must not define an independent full-bleed row separator');
 // Header name must NOT sit in the center of a flex-grow label beside the avatar.
 const tabLabel='#appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .top-mode-switch[data-contact-identity="true"] [data-chat-tab-label]{';
 const labelAt=header.indexOf(tabLabel);
