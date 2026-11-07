@@ -68,7 +68,7 @@ def test_ui150_media_filename_scope_and_share_gesture():
 
 
 def test_ui150_touch_action_toolbar_stays_in_bounds_and_has_44px_targets():
-    start=css.index("/* UI-150 touch action toolbar")
+    start=css.index("/* UI-150 / UI-260 touch toolbar")
     end=css.index("/* Equivalent purpose",start)
     touch=css[start:end]
     assert "@media (max-width:700px),(hover:none),(pointer:coarse)" in touch
