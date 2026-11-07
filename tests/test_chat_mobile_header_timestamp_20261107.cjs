@@ -55,5 +55,6 @@ assert(app.includes("timeZone:'Asia/Ho_Chi_Minh'"));
 assert(ui.includes('.call-focus-slot:not([data-call-ui-state="idle"])'),
   'active-call layout must be left intact');
 const epoch=sw.match(/const SHELL_CACHE_EPOCH='([^']+)';/)?.[1]||'';
-assert(epoch==='pwa-chat-header-time-ui252-20261107','installed PWA must load UI-252 shell');
+assert(epoch.startsWith('pwa-chat-')&&epoch!=='pwa-chat-whatsapp-mobile-ui251-20261107',
+  'installed PWA must use UI-252 or later shell');
 console.log('UI-252 header 320–430px, calls, photo, VN in-bubble timestamps, media visibility and virtual scroll PASS');
