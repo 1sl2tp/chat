@@ -1045,7 +1045,7 @@
     min-width:70px;
     padding-bottom:25px!important;
   }
-  #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow>.message-row[data-content-kind="text"] .message-unit>.message-sent-time{
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow>.message-row[data-content-kind="text"] .message-unit:has(>.message-text:not([hidden]))>.message-sent-time{
     position:absolute;
     inset:auto 10px 7px auto;
     width:max-content;
