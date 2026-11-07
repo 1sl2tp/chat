@@ -895,16 +895,21 @@
   /* Directory type and separators have one visual owner: UI-254 below.
      Do not add a second name/preview/time cascade in this header section. */
 
-  /* Messaging: soft WhatsApp-like paired surfaces; incoming and outgoing
-     remain at the same 6px edges. Images/files are intentionally untouched. */
+  /* UI-258: each conversation side has one theme-aware color owner:
+     own sends (right) are muted blue; remote sends (left) are neutral gray.
+     Media, receipts, audio, image viewer and timestamp geometry stay intact. */
   #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow>.message-row[data-content-kind="text"] .user-message-unit>.message-text{
-    background:color-mix(in srgb,var(--theme-surface-secondary) 90%,var(--theme-surface-primary))!important;
+    background:var(--chat-message-sent-bg)!important;
     color:var(--theme-content-primary)!important;
     border-radius:20px!important;
     padding:9px 13px!important;
     box-shadow:none!important;
   }
-  /* Incoming text uses the upstream ChatGPT-reference transparent canvas. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow>.message-row[data-content-kind="text"] .assistant-message-unit>.message-text{
+    background:var(--chat-message-received-bg)!important;
+    color:var(--theme-content-primary)!important;
+    box-shadow:none!important;
+  }
   /* Respect the existing 17px timestamp-flow contract and virtual spacer.
      Only its typography changes; never position it over text or media. */
   #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow .message-sent-time{
@@ -931,7 +936,7 @@
     box-shadow:0 2px 9px rgba(0,0,0,.035);
   }
 }
-/* UI-256: neutral conversation colors inherit light/dark theme tokens. */
+/* UI-256/258: sender/receiver surfaces inherit light/dark theme tokens. */
 
 
 /* UI-252 — mobile header geometry and in-bubble sent-time, 2026-11-07.
@@ -1054,7 +1059,7 @@
     z-index:1;
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow>.message-row[data-content-kind="text"][data-turn="user"] .message-unit>.message-sent-time{
-    color:color-mix(in srgb,#2e6855 70%,var(--theme-content-secondary));
+    color:var(--theme-content-secondary);
   }
   /* Images, receipts, albums and audio retain their own exact width and
      keep time below the asset, avoiding obstruction of fine print. */

@@ -1,3 +1,15 @@
+## 2026-11-07 — UI-258 · Different colors for the two conversation sides
+
+- **User intent:** sender (A) and receiver (B) should have distinct message colors.
+- **Root:** `index.source.html` made received text transparent, `mobile-chat-refresh.css` added a gray background for received text, and `mobile-ui-polish.css` used virtually the same gray for sent text. The CSS cascade and mobile style ownership obscured the difference.
+- **Fix:** one semantic, theme-aware color pair for Web/PWA: own sent messages (right) use a subdued blue `--chat-message-sent-bg`, remote received text (left) uses gray `--chat-message-received-bg`. The two tokens are defined at the canonical HTML source, and both mobile styling owners use them consistently. Typography uses primary theme text; the colors adapt naturally to dark theme.
+- **Preserve:** sender alignment, mobile in-bubble timestamps and virtual-scroll height contract, 6px gutters, media/album/audio/file/invoices, message text content, read-state, Realtime, Zalo, keyboard and account-scoped storage. No messages were sent during this change.
+- **Tests:** new `tests/test_chat_sender_receiver_colors_20261107.cjs`; adjusted UI-256/mobile-refresh color contracts and PWA epoch contract tests; wired into Verify V21. Public shell epoch `pwa-chat-message-colors-ui258-20261107`, no private cache clear.
+- **Verification:** source patch; GitHub Actions checks/deploy and physical iPhone/PWA render require separate validation before claiming success.
+- **Rollback:** revert style and test changes, issue a new public PWA shell epoch; leave customer data and backend unchanged.
+
+---
+
 ## 2026-11-07 — UI-257 · Restore ChatGPT-style segmented top navigation
 
 - **User evidence:** iPhone comparison: ChatGPT shows a centered two-option pill between circular header controls; Chat displayed a large standalone “Trò chuyện” title with an overlapping/right-side “Ảnh” button. The latter is owned by the UI-251 list-header CSS, not broken navigation or user data.

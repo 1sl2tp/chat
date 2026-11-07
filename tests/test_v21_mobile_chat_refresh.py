@@ -65,7 +65,7 @@ def test_mobile_message_surfaces_keep_sender_hierarchy():
     c = compact(CSS)
     assert '.assistant-message-unit>.message-text{' in c
     assert '.user-message-unit>.message-text{' in c
-    assert 'background:color-mix(insrgb,var(--theme-surface-secondary)94%,var(--theme-surface-primary))!important;' in c
+    assert 'background:var(--chat-message-received-bg)!important;' in c
 
 
 def test_keyboard_gap_has_one_owner():

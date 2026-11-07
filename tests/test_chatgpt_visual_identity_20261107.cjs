@@ -41,9 +41,10 @@ assert(name.includes('font-size:15px;')&&name.includes('font-weight:600;'));
 assert(rule(directory,'#appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-row:not(:last-child)::after').includes('24%,transparent'));
 assert(!mobile.includes('#d9f7df')&&!mobile.includes('#244b3a')&&!mobile.includes('#15372a'),
  'no WhatsApp green surfaces after the ChatGPT visual reset');
-assert(!mobile.includes('.assistant-message-unit>.message-text{'),'incoming text stays on the reference canvas');
 const outgoing=rule(mobile,root+' #messageWindow>.message-row[data-content-kind="text"] .user-message-unit>.message-text');
-assert(outgoing.includes('var(--theme-surface-secondary)')&&outgoing.includes('color:var(--theme-content-primary)!important;'));
+const incoming=rule(mobile,root+' #messageWindow>.message-row[data-content-kind="text"] .assistant-message-unit>.message-text');
+assert(outgoing.includes('var(--chat-message-sent-bg)!important;')&&outgoing.includes('color:var(--theme-content-primary)!important;'));
+assert(incoming.includes('var(--chat-message-received-bg)!important;')&&incoming.includes('color:var(--theme-content-primary)!important;'));
 const compose=rule(composer,root+' #composerShell');
 assert(compose.includes('grid-template-rows:autoautominmax(var(--ui-control-touch,44px),auto)var(--ui-control-touch,44px);'),
  'composer should have a full-width writing line above the action row');
@@ -56,6 +57,6 @@ assert(composer.includes('#stageLayout[data-keyboard-open="true"]'),'VisualViewp
 for(const item of ['data-chat-quick="cash"','data-chat-quick="debt"','data-chat-quick="photos"','data-chat-quick="recent"',
                    'id="composer-mic-btn"','id="send" type="submit"','id="attachmentTray"'])
  assert(html.includes(item),'functional control preserved: '+item);
-assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-header-pill-ui257-20261107';"),
+assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-message-colors-ui258-20261107';"),
  'new public PWA epoch without deleting private caches');
 console.log('UI-256 ChatGPT identity, directory, neutral bubbles, two-row composer and preserved keyboard/voice/business controls PASS');

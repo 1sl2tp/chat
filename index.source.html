@@ -124,6 +124,9 @@ button,textarea{font-size:16px}
   --surface-hover:var(--cgpt-surface-hover);
   --composer-surface-primary:var(--cgpt-composer-surface-primary);
   --border-heavy:var(--composer-border);
+  /* UI-258: two distinct theme-aware text bubbles across Web and PWA. */
+  --chat-message-sent-bg:color-mix(in srgb,#5b8def 24%,var(--theme-surface-primary));
+  --chat-message-received-bg:var(--theme-surface-secondary);
 }
 
 .text-token-text-primary{
@@ -332,14 +335,14 @@ button{
   outline-offset:3px;
 }
 /* Sender surfaces are intentionally asymmetric:
-   outgoing text/link/reply uses a soft bubble; incoming stays on canvas.
+   outgoing text/link/reply uses soft blue; incoming text uses neutral gray.
    File/audio/image keep their own media containers and receive no outer bubble. */
 .user-message-unit>.message-text{
   box-sizing:border-box;
   width:fit-content;
   max-width:100%;
-  background:var(--theme-user-msg-bg);
-  color:var(--theme-user-msg-text);
+  background:var(--chat-message-sent-bg);
+  color:var(--theme-content-primary);
   border:0;
   border-radius:22px;
   box-shadow:none;
@@ -349,11 +352,12 @@ button{
   box-sizing:border-box;
   width:fit-content;
   max-width:100%;
-  background:transparent!important;
+  background:var(--chat-message-received-bg)!important;
+  color:var(--theme-content-primary);
   border:0!important;
-  border-radius:0!important;
+  border-radius:20px!important;
   box-shadow:none!important;
-  padding:0!important;
+  padding:9px 13px!important;
 }
 
 /* Desktop hover owner is the actual message unit, not the full-width row. */

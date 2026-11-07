@@ -75,7 +75,7 @@
     padding:8px 11px!important;
     border:0!important;
     border-radius:var(--ui-chat-message-radius,18px)!important;
-    background:color-mix(in srgb,var(--theme-surface-secondary) 94%,var(--theme-surface-primary))!important;
+    background:var(--chat-message-received-bg)!important;
     box-shadow:none!important;
   }
 
