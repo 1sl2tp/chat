@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="49f4f5c845c9ed15c3137bbc009e4bfee703bb518aa8e14e7f7fa2b439b3de8d">
+<meta name="app-build-id" content="a463edade43ee58941524a6ebf00b8dfb939808ede996629fed9bdd43d71a1d6">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -8013,6 +8013,7 @@ button{
     aspect-ratio:1 / 1;
     border-radius:50%;
     overflow:hidden;
+    isolation:isolate; /* iOS: keep the absolutely positioned photo clipped to its circle. */
     align-self:center;
     padding:0;
   }
@@ -8041,6 +8042,47 @@ button{
     min-height:32px;
     max-width:32px;
     max-height:32px;
+  }
+}
+
+
+/* UI-254 — WhatsApp-aligned directory dividers and typography, 2026-11-07.
+   Keep the compact 60px row and 40px avatar. Inset the divider to the
+   content column (4px padding + 40px portrait + 10px gap = 54px).
+   Visual-only: existing search, roles, dates, scroll and links untouched. */
+@media(max-width:63.999rem){
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-row:not([data-active="true"]){
+    border-bottom:0!important;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-row:not(:last-child)::after{
+    content:"";
+    display:block;
+    position:absolute;
+    inset-inline-start:54px;
+    inset-inline-end:4px;
+    bottom:0;
+    height:1px;
+    background:color-mix(in srgb,var(--theme-border-default) 75%,transparent);
+    pointer-events:none;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-name{
+    font-size:15px;
+    font-weight:700;
+    line-height:20px;
+    letter-spacing:-.012em;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-preview{
+    font-size:13px;
+    font-weight:400;
+    line-height:18px;
+    color:var(--theme-content-secondary);
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-time{
+    font-size:11.5px;
+    font-weight:400;
+    line-height:16px;
+    font-variant-numeric:tabular-nums;
+    color:var(--theme-content-tertiary);
   }
 }
 
