@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="089d14baa4dc4de0d6867f51ec067527803c98b58983912fcaa0a13d6d16d9a1">
+<meta name="app-build-id" content="a8ed052030e2701ba7142657475e8280b1736c0d36b7490db621f08c6efbbeef">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -2536,7 +2536,7 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
     padding:8px 11px!important;
     border:0!important;
     border-radius:var(--ui-chat-message-radius,18px)!important;
-    background:color-mix(in srgb,var(--theme-surface-secondary) 94%,var(--theme-surface-primary))!important;
+    background:var(--chat-message-received-bg)!important;
     box-shadow:none!important;
   }
 
@@ -3001,6 +3001,9 @@ button,textarea{font-size:16px}
   --surface-hover:var(--cgpt-surface-hover);
   --composer-surface-primary:var(--cgpt-composer-surface-primary);
   --border-heavy:var(--composer-border);
+  /* UI-258: two distinct theme-aware text bubbles across Web and PWA. */
+  --chat-message-sent-bg:color-mix(in srgb,#5b8def 24%,var(--theme-surface-primary));
+  --chat-message-received-bg:var(--theme-surface-secondary);
 }
 
 .text-token-text-primary{
@@ -3209,14 +3212,14 @@ button{
   outline-offset:3px;
 }
 /* Sender surfaces are intentionally asymmetric:
-   outgoing text/link/reply uses a soft bubble; incoming stays on canvas.
+   outgoing text/link/reply uses soft blue; incoming text uses neutral gray.
    File/audio/image keep their own media containers and receive no outer bubble. */
 .user-message-unit>.message-text{
   box-sizing:border-box;
   width:fit-content;
   max-width:100%;
-  background:var(--theme-user-msg-bg);
-  color:var(--theme-user-msg-text);
+  background:var(--chat-message-sent-bg);
+  color:var(--theme-content-primary);
   border:0;
   border-radius:22px;
   box-shadow:none;
@@ -3226,11 +3229,12 @@ button{
   box-sizing:border-box;
   width:fit-content;
   max-width:100%;
-  background:transparent!important;
+  background:var(--chat-message-received-bg)!important;
+  color:var(--theme-content-primary);
   border:0!important;
-  border-radius:0!important;
+  border-radius:20px!important;
   box-shadow:none!important;
-  padding:0!important;
+  padding:9px 13px!important;
 }
 
 /* Desktop hover owner is the actual message unit, not the full-width row. */
@@ -7797,16 +7801,21 @@ button{
   /* Directory type and separators have one visual owner: UI-254 below.
      Do not add a second name/preview/time cascade in this header section. */
 
-  /* Messaging: soft WhatsApp-like paired surfaces; incoming and outgoing
-     remain at the same 6px edges. Images/files are intentionally untouched. */
+  /* UI-258: each conversation side has one theme-aware color owner:
+     own sends (right) are muted blue; remote sends (left) are neutral gray.
+     Media, receipts, audio, image viewer and timestamp geometry stay intact. */
   #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow>.message-row[data-content-kind="text"] .user-message-unit>.message-text{
-    background:color-mix(in srgb,var(--theme-surface-secondary) 90%,var(--theme-surface-primary))!important;
+    background:var(--chat-message-sent-bg)!important;
     color:var(--theme-content-primary)!important;
     border-radius:20px!important;
     padding:9px 13px!important;
     box-shadow:none!important;
   }
-  /* Incoming text uses the upstream ChatGPT-reference transparent canvas. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow>.message-row[data-content-kind="text"] .assistant-message-unit>.message-text{
+    background:var(--chat-message-received-bg)!important;
+    color:var(--theme-content-primary)!important;
+    box-shadow:none!important;
+  }
   /* Respect the existing 17px timestamp-flow contract and virtual spacer.
      Only its typography changes; never position it over text or media. */
   #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow .message-sent-time{
@@ -7833,7 +7842,7 @@ button{
     box-shadow:0 2px 9px rgba(0,0,0,.035);
   }
 }
-/* UI-256: neutral conversation colors inherit light/dark theme tokens. */
+/* UI-256/258: sender/receiver surfaces inherit light/dark theme tokens. */
 
 
 /* UI-252 — mobile header geometry and in-bubble sent-time, 2026-11-07.
@@ -7956,7 +7965,7 @@ button{
     z-index:1;
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow>.message-row[data-content-kind="text"][data-turn="user"] .message-unit>.message-sent-time{
-    color:color-mix(in srgb,#2e6855 70%,var(--theme-content-secondary));
+    color:var(--theme-content-secondary);
   }
   /* Images, receipts, albums and audio retain their own exact width and
      keep time below the asset, avoiding obstruction of fine print. */
