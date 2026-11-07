@@ -49,5 +49,10 @@ assert(sql.includes('on conflict on constraint v21_messages_sender_account_id_cl
 assert(sql.includes("v_outbox is null"));
 assert(sql.includes('active := false'),'the two old schedules remain disabled');
 assert(!sql.includes('cron.schedule('),'no new scheduler');
-assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-manual-advisory-ui250-20261106';"));
+// The advisory UI remains available across later safe PWA releases. The
+// shell cache must advance past UI-250; never pin this business test to an
+// obsolete epoch and block unrelated UI-only deployments.
+const epoch=sw.match(/const SHELL_CACHE_EPOCH='([^']+)';/)?.[1]||'';
+assert(epoch.startsWith('pwa-chat-')&&epoch!=='pwa-chat-manual-advisory-ui250-20261106',
+  'installed PWA shell must be newer than the initial manual-advisory UI');
 console.log('UI-250 manual group advisory menu, admin auth, preview/confirm/dedup, no auto cron PASS');
