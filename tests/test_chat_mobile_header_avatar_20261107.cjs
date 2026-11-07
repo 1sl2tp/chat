@@ -37,7 +37,7 @@ for(const v of ['flex:0 0 36px;','width:36px;','height:36px;',
                 'min-width:36px;','min-height:36px;',
                 'max-width:36px;','max-height:36px;',
                 'aspect-ratio:1/1;','border-radius:50%;','overflow:hidden;']){
-  assert(normal.includes(v),'normal avatar square constraint: '+v);
+  assert(normal.includes(v.replace(/\s+/g,'')),'normal avatar square constraint: '+v);
 }
 const small=patch.slice(patch.indexOf('@media(max-width:360px)'));
 for(const v of ['flex-basis:32px;','width:32px;','height:32px;',
