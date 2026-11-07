@@ -1111,6 +1111,7 @@
     aspect-ratio:1 / 1;
     border-radius:50%;
     overflow:hidden;
+    isolation:isolate; /* iOS: keep the absolutely positioned photo clipped to its circle. */
     align-self:center;
     padding:0;
   }
