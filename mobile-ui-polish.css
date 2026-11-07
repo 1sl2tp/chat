@@ -1141,7 +1141,8 @@
     content:"";
     display:block;
     position:absolute;
-    inset-inline-start:54px;
+    /* Follow the existing 40px avatar + 10px text gap + 4px row inset. */
+    inset-inline-start:calc(40px + 10px + 4px);
     inset-inline-end:4px;
     bottom:0;
     height:1px;

@@ -20,7 +20,7 @@ const inactive=rule('.shell-contact-row:not([data-active="true"])');
 assert(inactive.includes('border-bottom:0;')&&inactive.includes('border-radius:0;'));
 const line=rule('.shell-contact-row:not(:last-child)::after');
 for(const token of ['content:"";','display:block;','position:absolute;',
-  'inset-inline-start:54px;','inset-inline-end:4px;','bottom:0;',
+  'inset-inline-start:calc(40px+10px+4px);','inset-inline-end:4px;','bottom:0;',
   'height:1px;','pointer-events:none;'])assert(line.includes(token),token);
 const style=[
   ['.shell-contact-name',['font-size:16px;','font-weight:650;','line-height:20px;']],
