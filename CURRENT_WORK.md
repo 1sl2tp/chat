@@ -1,3 +1,14 @@
+## 2026-11-07 — UI-255 · Audit of existing mobile Chat layout owners
+
+- **Purpose:** The user asked for another scientifically coherent review rather than stacking random CSS. Audited the existing owner chain: `index.source.html` owns header/menu/call slots and contact-row structure, `shell.js` owns account/contact/avatar/timestamp navigation state, `contact-directory-admin.js` owns search/filter/category and pinned report order, `mobile-chat-refresh.css` owns message/composer sizing, `mobile-ui-polish.css` owns final mobile presentation, and `sw.js` owns public PWA shell versioning. Preserve payment/debt/photo/recent controls, Realtime, VN date, calling, keyboard safety, Zalo and scroll anchoring.
+- **Root issues fixed:** (1) active-contact title was a flex-growing child inheriting the button's centered text, visually distancing the name from the avatar; `text-align:start` on the real label (with ellipsis) resolves that without moving any buttons; (2) UI-251 independently supplied name/preview/time and a full-bleed row border while UI-254 restyled them and cancelled the border via `!important`. Retired the duplicated UI-251 list selectors and left one late owner in UI-254.
+- **Visual rhythm:** 44px header controls, 36px square selected avatar, 40px list avatar, 60px contact row, 64px time rail, 16px/20px 650-weight name, 13px/18px preview and 12px/16px time. Divider remains after the avatar (54px from list-row start), softened to 60% border contrast; last row has no line. Search, category filters, active state and scroll geometry are unchanged. The list Photos chip uses the same neutral surface as the menu button.
+- **Regression:** UI-254 test updated for the single owner and forward-compatible newer PWA shell; `tests/test_chat_mobile_layout_coherence_20261107.cjs` verifies no duplicated UI-251 row typography/border, adjacent avatar/name, retained Photos navigation, four business actions, five filters, call owner and VisualViewport contract. `sw.js` cache epoch `pwa-chat-layout-coherence-ui255-20261107` updates only public shell assets.
+- **Production evidence:** To be completed from the matching Verify V21 / Deploy Chat Pages runs for this commit; do not claim authenticated iPhone screenshot validation from static tests.
+- **Rollback:** revert the CSS/test/docs changes with a fresh PWA shell epoch; never touch customer data, private media/cache, keyboard owners, database or Realtime delivery.
+
+---
+
 ## 2026-11-07 — UI-254 · WhatsApp contact list typography and inset separators
 
 - **Screenshot reference:** WhatsApp mobile Chat list at 15:51 compared to the user's current Chat directory. WhatsApp separators begin at the start of the contact text column, not beneath the avatar; name, preview and timestamps use an obvious three-level visual hierarchy. The business app intentionally retains its denser list instead of expanding to WhatsApp's taller rows.

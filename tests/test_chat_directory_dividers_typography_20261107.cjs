@@ -16,15 +16,16 @@ function rule(s){
   const from=at+(prefix+s+'{').length;
   return ui.slice(from,ui.indexOf('}',from)).replace(/\s+/g,'');
 }
-assert(rule('.shell-contact-row:not([data-active="true"])').includes('border-bottom:0!important;'));
+const inactive=rule('.shell-contact-row:not([data-active="true"])');
+assert(inactive.includes('border-bottom:0;')&&inactive.includes('border-radius:0;'));
 const line=rule('.shell-contact-row:not(:last-child)::after');
 for(const token of ['content:"";','display:block;','position:absolute;',
   'inset-inline-start:54px;','inset-inline-end:4px;','bottom:0;',
   'height:1px;','pointer-events:none;'])assert(line.includes(token),token);
 const style=[
-  ['.shell-contact-name',['font-size:15px;','font-weight:700;','line-height:20px;']],
+  ['.shell-contact-name',['font-size:16px;','font-weight:650;','line-height:20px;']],
   ['.shell-contact-preview',['font-size:13px;','font-weight:400;','line-height:18px;']],
-  ['.shell-contact-time',['font-size:11.5px;','font-weight:400;','line-height:16px;','font-variant-numeric:tabular-nums;']]
+  ['.shell-contact-time',['font-size:12px;','font-weight:400;','line-height:16px;','font-variant-numeric:tabular-nums;']]
 ];
 for(const [sel,tokens] of style)for(const token of tokens)assert(rule(sel).includes(token),sel+' '+token);
 const baseline=css.slice(css.indexOf('UI-240-MOBILE-DIRECTORY-RHYTHM-20261106'));
@@ -33,5 +34,7 @@ for(const t of ['height:60px!important;','grid-template-columns:40px minmax(0,1f
   assert(baseline.includes(t),'compact rhythm '+t);
 assert(html.includes('.shell-contact-avatar-wrap{position:relative;width:40px;height:40px;'));
 assert(shell.includes('copy.append(title,preview,time);'),'single metadata owner');
-assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-directory-type-ui254-20261107';"));
+assert(/^pwa-chat-/.test(sw.match(/const SHELL_CACHE_EPOCH='([^']+)';/)?.[1]||'') &&
+  !sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-directory-type-ui254-20261107';"),
+  'a newer public shell is required for post-UI254 visual changes');
 console.log('UI-254 inset separators, 60px list and type hierarchy PASS');

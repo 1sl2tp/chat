@@ -770,7 +770,7 @@
     padding-inline:12px;
     border:1px solid var(--theme-border-default);
     border-radius:999px;
-    background:var(--theme-surface-secondary);
+    background:var(--theme-surface-primary);
     box-shadow:none;
     font-size:12px;
   }
@@ -874,25 +874,8 @@
     font-size:14px;
   }
 
-  /* List: keep existing compact/fast 60px rows, strengthen two-line
-     hierarchy and use faint row dividers instead of disconnected cards. */
-  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-row:not([data-active="true"]){
-    border-radius:0;
-    border-bottom:1px solid color-mix(in srgb,var(--theme-border-default) 45%,transparent);
-  }
-  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-name{
-    font-size:14px;
-    font-weight:680;
-    letter-spacing:-.01em;
-  }
-  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-preview{
-    font-size:12.5px;
-    color:var(--theme-content-secondary);
-  }
-  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-time{
-    font-size:11px;
-    font-variant-numeric:tabular-nums;
-  }
+  /* Directory type and separators have one visual owner: UI-254 below.
+     Do not add a second name/preview/time cascade in this header section. */
 
   /* Messaging: soft WhatsApp-like paired surfaces; incoming and outgoing
      remain at the same 6px edges. Images/files are intentionally untouched. */
@@ -983,8 +966,9 @@
   #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .top-mode-switch[data-contact-identity="true"] [data-chat-tab-label]{
     min-width:0;
     flex:1 1 auto;
-    font-size:15px;
+    font-size:16px;
     line-height:20px;
+    text-align:start;
     text-overflow:ellipsis;
     white-space:nowrap;
     overflow:hidden;
@@ -1150,7 +1134,8 @@
    Visual-only: existing search, roles, dates, scroll and links untouched. */
 @media(max-width:63.999rem){
   #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-row:not([data-active="true"]){
-    border-bottom:0!important;
+    border-radius:0;
+    border-bottom:0;
   }
   #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-row:not(:last-child)::after{
     content:"";
@@ -1160,12 +1145,12 @@
     inset-inline-end:4px;
     bottom:0;
     height:1px;
-    background:color-mix(in srgb,var(--theme-border-default) 75%,transparent);
+    background:color-mix(in srgb,var(--theme-border-default) 60%,transparent);
     pointer-events:none;
   }
   #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-name{
-    font-size:15px;
-    font-weight:700;
+    font-size:16px;
+    font-weight:650;
     line-height:20px;
     letter-spacing:-.012em;
   }
@@ -1176,7 +1161,7 @@
     color:var(--theme-content-secondary);
   }
   #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-time{
-    font-size:11.5px;
+    font-size:12px;
     font-weight:400;
     line-height:16px;
     font-variant-numeric:tabular-nums;
