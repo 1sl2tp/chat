@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="895705f3a08bdac4f76a37ccd634b1686d442f41e24ebc6a49614682638b52f8">
+<meta name="app-build-id" content="c3d7d844373d52b11471f8b734f478324d473ab91c0c22775f0e817e6786dd0e">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -7634,6 +7634,214 @@ button{
     outline-offset:2px;
   }
 
+}
+
+
+/* UI-251 — WhatsApp-inspired mobile conversation hierarchy, 2026-11-07.
+   Visual layer ONLY: one identity-first header, clear compact business actions,
+   legible conversation previews, quiet day chips and paired message bubbles.
+   Preserve the 60px directory row, 44px controls, message time flow and the
+   existing keyboard/scroll/virtualization/read-state/voice/call owners. */
+@media(max-width:63.999rem){
+  /* Main list: "Trò chuyện" reads like a page title, not a two-column form. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] .top-mode-switch[data-contact-identity="false"]{
+    box-sizing:border-box;
+    width:100%;
+    max-width:100%;
+    grid-template-columns:minmax(0,1fr) auto;
+    justify-self:stretch;
+    gap:6px;
+    padding:0;
+    border-radius:0;
+    background:transparent;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] .top-mode-switch[data-contact-identity="false"] .top-mode-tab[data-top-tab="chat"]{
+    min-width:0;
+    justify-content:flex-start;
+    padding-inline:6px;
+    background:transparent!important;
+    box-shadow:none!important;
+    color:var(--theme-content-primary);
+    font-size:18px;
+    font-weight:750;
+    letter-spacing:-.025em;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] .top-mode-switch[data-contact-identity="false"] .top-mode-tab[data-top-tab="photos"]{
+    min-height:36px;
+    height:36px;
+    padding-inline:12px;
+    border:1px solid var(--theme-border-default);
+    border-radius:999px;
+    background:var(--theme-surface-secondary);
+    box-shadow:none;
+    font-size:12px;
+  }
+
+  /* Active chat: avatar + person's name are primary; Photos is a compact
+     secondary path. Calls keep their own untouched right-hand slot. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] .top-mode-switch[data-contact-identity="true"]{
+    box-sizing:border-box;
+    display:grid;
+    width:100%;
+    max-width:100%;
+    min-width:0;
+    grid-template-columns:minmax(0,1fr) auto;
+    gap:2px;
+    padding:0;
+    justify-self:stretch;
+    background:transparent;
+    border-radius:0;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] .top-mode-switch[data-contact-identity="true"] .top-mode-tab[data-top-tab="chat"]{
+    min-width:0;
+    height:44px;
+    padding:0 4px 0 0;
+    gap:9px;
+    justify-content:flex-start;
+    background:transparent!important;
+    box-shadow:none!important;
+    color:var(--theme-content-primary);
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] .top-mode-switch[data-contact-identity="true"] .top-mode-contact-avatar{
+    flex:0 0 36px;
+    width:36px;
+    height:36px;
+    min-width:36px;
+    min-height:36px;
+    max-width:36px;
+    max-height:36px;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] .top-mode-switch[data-contact-identity="true"] [data-chat-tab-label]{
+    font-size:15px;
+    line-height:20px;
+    font-weight:700;
+    letter-spacing:-.015em;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] .top-mode-switch[data-contact-identity="true"] .top-mode-tab[data-top-tab="photos"]{
+    min-width:40px;
+    min-height:36px;
+    height:36px;
+    padding-inline:7px;
+    border-radius:12px;
+    font-size:12px;
+    background:var(--theme-surface-secondary);
+    box-shadow:none;
+  }
+  /* The existing left control opens the conversation list. Draw a back
+     chevron ONLY for the active chat, without changing its hit target. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .compact-top-grid:has(.top-mode-switch[data-contact-identity="true"])>.shell-icon-button svg{
+    display:none;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .compact-top-grid:has(.top-mode-switch[data-contact-identity="true"])>.shell-icon-button::before{
+    content:"";
+    box-sizing:border-box;
+    width:13px;
+    height:13px;
+    border-left:2px solid currentColor;
+    border-bottom:2px solid currentColor;
+    transform:translateX(3px) rotate(45deg);
+  }
+
+  /* Admin shortcuts remain one tap away, but no longer look like four
+     full-width form fields above every message. Never clip Recent's popup. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #chatQuickActions:not([hidden]){
+    box-sizing:border-box;
+    gap:5px;
+    min-height:49px;
+    padding:3px max(10px,env(safe-area-inset-left,0px)) 5px;
+    justify-content:space-between;
+    border-bottom:1px solid color-mix(in srgb,var(--theme-border-default) 66%,transparent);
+    background:var(--theme-surface-primary);
+    overflow:visible;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #chatQuickActions>button{
+    flex:1 1 0;
+    min-width:0;
+    min-height:40px;
+    padding:0 3px;
+    gap:3px;
+    border:1px solid var(--theme-border-default);
+    border-radius:999px;
+    background:var(--theme-surface-primary);
+    font-size:11px;
+    font-weight:650;
+    box-shadow:none;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #chatQuickActions>button:first-child{
+    background:color-mix(in srgb,#c9ead6 36%,var(--theme-surface-primary));
+    border-color:color-mix(in srgb,#438e62 31%,var(--theme-border-default));
+    color:var(--theme-content-primary);
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #chatQuickActions>button>span{
+    font-size:14px;
+  }
+
+  /* List: keep existing compact/fast 60px rows, strengthen two-line
+     hierarchy and use faint row dividers instead of disconnected cards. */
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-row:not([data-active="true"]){
+    border-radius:0;
+    border-bottom:1px solid color-mix(in srgb,var(--theme-border-default) 45%,transparent);
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-name{
+    font-size:14px;
+    font-weight:680;
+    letter-spacing:-.01em;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-preview{
+    font-size:12.5px;
+    color:var(--theme-content-secondary);
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-time{
+    font-size:11px;
+    font-variant-numeric:tabular-nums;
+  }
+
+  /* Messaging: soft WhatsApp-like paired surfaces; incoming and outgoing
+     remain at the same 6px edges. Images/files are intentionally untouched. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow>.message-row[data-content-kind="text"] .user-message-unit>.message-text{
+    background:color-mix(in srgb,#d9f7df 88%,var(--theme-surface-primary))!important;
+    color:#15372a!important;
+    border-radius:17px 17px 5px 17px!important;
+    padding:8px 11px!important;
+    box-shadow:none!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow>.message-row[data-content-kind="text"] .assistant-message-unit>.message-text{
+    background:var(--theme-surface-secondary)!important;
+    border-radius:17px 17px 17px 5px!important;
+    padding:8px 11px!important;
+    box-shadow:none!important;
+  }
+  /* Respect the existing 17px timestamp-flow contract and virtual spacer.
+     Only its typography changes; never position it over text or media. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow .message-sent-time{
+    font-variant-numeric:tabular-nums;
+    color:var(--theme-content-tertiary);
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] .message-day-separator{
+    margin-block:13px 10px;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] .message-day-separator::before,
+  #appShell[data-auth-state="authenticated"][data-route="chat"] .message-day-separator::after{
+    opacity:0;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] .message-day-separator-label{
+    padding:4px 12px;
+    border-color:color-mix(in srgb,var(--theme-border-default) 67%,transparent);
+    border-radius:9px;
+    background:var(--theme-surface-secondary);
+    font-size:11px;
+    font-weight:650;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell{
+    border-color:color-mix(in srgb,var(--theme-border-strong) 70%,transparent);
+    box-shadow:0 2px 9px rgba(0,0,0,.045);
+  }
+}
+@media(max-width:63.999rem){
+  html[data-theme="dark"] #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow>.message-row[data-content-kind="text"] .user-message-unit>.message-text{
+    background:#244b3a!important;
+    color:#eefbf0!important;
+  }
 }
 
 </style>
