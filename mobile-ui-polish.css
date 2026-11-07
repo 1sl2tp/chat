@@ -908,6 +908,7 @@
   #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow>.message-row[data-content-kind="text"] .assistant-message-unit>.message-text{
     background:var(--chat-message-received-bg)!important;
     color:var(--theme-content-primary)!important;
+    border-radius:20px!important;
     box-shadow:none!important;
   }
   /* Respect the existing 17px timestamp-flow contract and virtual spacer.
