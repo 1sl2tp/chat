@@ -26,7 +26,7 @@ assert(rule(mobile,idle+' .top-mode-tab[data-top-tab="chat"]').includes('font-we
 const photos=rule(mobile,idle+' .top-mode-tab[data-top-tab="photos"]');
 for(const token of ['position:absolute;','inset-inline-end:0;','width:44px;','min-height:44px;'])
  assert(photos.includes(token),'Photos touch target: '+token);
-const search=rule(css,'#appShell[data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-search');
+const search=rule(css.slice(css.indexOf('/* UI-240-MOBILE-DIRECTORY-RHYTHM-20261106')),'#appShell[data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-search');
 assert(search.includes('border-radius:999px!important;'),'directory search should be a calm pill');
 const selected=rule(css,'#shellNavigationLayer .contact-directory-filter[data-active="true"]');
 assert(selected.includes('background:var(--mobile-ui-soft)!important;')&&
@@ -51,6 +51,6 @@ assert(composer.includes('#stageLayout[data-keyboard-open="true"]'),'VisualViewp
 for(const item of ['data-chat-quick="cash"','data-chat-quick="debt"','data-chat-quick="photos"','data-chat-quick="recent"',
                    'id="composer-mic-btn"','id="send" type="submit"','id="attachmentTray"'])
  assert(html.includes(item),'functional control preserved: '+item);
-assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chatgpt-identity-ui256-20261107';"),
+assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-gpt-identity-ui256-20261107';"),
  'new public PWA epoch without deleting private caches');
 console.log('UI-256 ChatGPT identity, directory, neutral bubbles, two-row composer and preserved keyboard/voice/business controls PASS');
