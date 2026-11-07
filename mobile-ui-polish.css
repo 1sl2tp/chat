@@ -855,7 +855,7 @@
   #appShell[data-auth-state="authenticated"][data-route="chat"] #chatQuickActions>button{
     flex:1 1 0;
     min-width:0;
-    min-height:40px;
+    min-height:44px;
     padding:0 3px;
     gap:3px;
     border:1px solid var(--theme-border-default);
