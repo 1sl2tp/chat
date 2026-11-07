@@ -1,3 +1,14 @@
+## 2026-11-07 — UI-254 · WhatsApp contact list typography and inset separators
+
+- **Screenshot reference:** WhatsApp mobile Chat list at 15:51 compared to the user's current Chat directory. WhatsApp separators begin at the start of the contact text column, not beneath the avatar; name, preview and timestamps use an obvious three-level visual hierarchy. The business app intentionally retains its denser list instead of expanding to WhatsApp's taller rows.
+- **Change scope:** Authenticated mobile (less than 1024px) only, owner `mobile-ui-polish.css`. Supersedes UI-251 full-width row borders for inactive rows. A single non-interactive `::after` hairline appears on all but the last conversation row, inset **54px** from the row's left (4px button padding + 40px avatar + 10px gap), 4px from the right; it does not cover the avatar or intercept taps. The row remains a 60px contact target with the canonical two-line grid; no padding, scrolling, keyboard, avatar dimensions or list DOM changed.
+- **Type hierarchy:** Name **15px/20px, 700 weight**, preview **13px/18px, 400 weight**, time **11.5px/16px, 400 weight** aligned right with tabular numerals. Text truncation and the existing 64px time rail remain intact, including long customer names and report conversations. Search/filter layouts and message view remain unchanged.
+- **Regression:** `tests/test_chat_directory_dividers_typography_20261107.cjs` added to `tools/verify_current.py`, checks divider inset, source metadata order, three-level type scale, 60px row, 40px avatar and shell epoch. `sw.js` uses `pwa-chat-directory-type-ui254-20261107` to update public shell CSS without clearing message storage.
+- **Deployment/probe:** [Deploy Chat Pages #42357551303](https://github.com/1sl2tp/chat/actions/runs/42357551303) **SUCCESS**, including canonical Verify and UI-254 contract PASS, Pages deploy, and custom domain HTTPS `index.html`/`version.json` matching production build ID `a463edade43ee58941524a6ebf00b8dfb939808ede996629fed9bdd43d71a1d6`. This validates the deployed source, not an authenticated physical iPhone screenshot.
+- **Rollback:** revert the scoped UI-254 CSS/test/verify and rotate the public shell epoch. Do not change contact data, presence, Realtime, Zalo, payment, calls or message history.
+
+---
+
 ## 2026-11-07 — UI-253 · De-duplicate Photos and repair mobile header avatar
 
 - **User screenshot:** authenticated iPhone PWA selected conversation displayed both top-header `Ảnh` tab and Admin `Ảnh` quick-action below, while the avatar appeared distorted rather than circular. The mobile header remained crowded.
