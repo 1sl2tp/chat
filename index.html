@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="873e423ae52ab96312fe5306e98cb9476b73e57d5daba72483a822d1d6bb0a09">
+<meta name="app-build-id" content="c73c3db0862541917f87aa57b54d718a3fab7cb0ea1c63583f121bc55ca4cfc7">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -7841,6 +7841,145 @@ button{
   html[data-theme="dark"] #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow>.message-row[data-content-kind="text"] .user-message-unit>.message-text{
     background:#244b3a!important;
     color:#eefbf0!important;
+  }
+}
+
+
+/* UI-252 — mobile header geometry and in-bubble sent-time, 2026-11-07.
+   Keep the canonical Header, CallFocus and message time DOM ownership.
+   Time on text is positioned inside a reserved 17px bubble footer; this
+   replaces the exact 14px line + 3px margin already used by virtualization.
+   Photos/files retain the readable external time (never cover an invoice). */
+@media(max-width:63.999rem){
+  /* One 44px back target, one flexible identity region and a call group.
+     On a narrow iPhone the contact name yields before any action shrinks. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .compact-top-grid:has(.top-mode-switch[data-contact-identity="true"]){
+    grid-template-columns:44px minmax(0,1fr) auto;
+    column-gap:6px;
+    padding-inline:max(10px,env(safe-area-inset-left,0px)) max(10px,env(safe-area-inset-right,0px));
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .top-mode-switch[data-contact-identity="true"]{
+    min-width:0;
+    width:100%;
+    max-width:none;
+    grid-template-columns:minmax(0,1fr) 44px;
+    column-gap:2px;
+    align-items:center;
+    border:0;
+    background:transparent!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .top-mode-switch[data-contact-identity="true"] .top-mode-tab[data-top-tab="chat"]{
+    min-width:0;
+    width:100%;
+    gap:8px;
+    border:0;
+    border-radius:0;
+    background:transparent!important;
+    box-shadow:none!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .top-mode-switch[data-contact-identity="true"] .top-mode-contact-avatar{
+    flex:0 0 36px;
+    width:36px;
+    height:36px;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .top-mode-switch[data-contact-identity="true"] [data-chat-tab-label]{
+    min-width:0;
+    flex:1 1 auto;
+    font-size:15px;
+    line-height:20px;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    overflow:hidden;
+  }
+  /* Photos stays a fully tappable but quiet secondary control.
+     In the absence of a selected chat, preserve the list tab design. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .top-mode-switch[data-contact-identity="true"] .top-mode-tab[data-top-tab="photos"]{
+    box-sizing:border-box;
+    width:44px;
+    min-width:44px;
+    height:44px;
+    min-height:44px;
+    padding:0;
+    border:0;
+    border-radius:999px;
+    background:transparent;
+    box-shadow:none!important;
+    font-size:12px;
+    font-weight:600;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .top-mode-switch[data-contact-identity="true"] .top-mode-tab[data-top-tab="photos"][aria-selected="true"]{
+    background:var(--theme-surface-secondary)!important;
+  }
+
+  /* Call actions appear as one balanced cluster instead of detached glyphs.
+     It sizes to its actual visible children, including future call modes. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .call-focus-slot[data-call-ui-state="idle"]:not([hidden]){
+    box-sizing:border-box;
+    width:max-content;
+    min-width:48px;
+    max-width:min(50vw,104px);
+    gap:0;
+    padding:0 2px;
+    border:1px solid var(--theme-border-default);
+    border-radius:999px;
+    background:var(--theme-surface-primary);
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .call-focus-slot[data-call-ui-state="idle"]:not([hidden]) :is(.call-focus-button,.call-secondary-button){
+    flex:0 0 44px;
+    width:44px;
+    min-width:44px;
+    height:44px;
+    min-height:44px;
+    border-radius:999px;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .call-focus-slot:not([data-call-ui-state="idle"]){
+    border:0;
+    background:transparent;
+  }
+
+  /* Text-only messages: keep exactly one real timestamp/ARIA node, but
+     place it inside the bubble instead of on a separate outside line.
+     Padding: 8px original + 17px former time block = 25px. This retains
+     the virtual scroll estimate and does not intercept text selection. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow>.message-row[data-content-kind="text"] .message-unit:has(>.message-sent-time)>.message-text:not([hidden]){
+    box-sizing:border-box;
+    position:relative;
+    min-width:70px;
+    padding-bottom:25px!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow>.message-row[data-content-kind="text"] .message-unit>.message-sent-time{
+    position:absolute;
+    inset:auto 10px 7px auto;
+    width:max-content;
+    min-width:0;
+    max-width:calc(100% - 20px);
+    margin:0!important;
+    padding:0;
+    font-size:11px;
+    line-height:14px;
+    color:var(--theme-content-secondary);
+    text-align:right;
+    pointer-events:none;
+    white-space:nowrap;
+    z-index:1;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow>.message-row[data-content-kind="text"][data-turn="user"] .message-unit>.message-sent-time{
+    color:color-mix(in srgb,#2e6855 70%,var(--theme-content-secondary));
+  }
+  /* Images, receipts, albums and audio retain their own exact width and
+     keep time below the asset, avoiding obstruction of fine print. */
+}
+@media(max-width:360px){
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .compact-top-grid:has(.top-mode-switch[data-contact-identity="true"]){
+    column-gap:4px;
+    padding-inline:max(6px,env(safe-area-inset-left,0px)) max(6px,env(safe-area-inset-right,0px));
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .top-mode-switch[data-contact-identity="true"] .top-mode-contact-avatar{
+    flex-basis:32px;
+    width:32px;
+    height:32px;
+    min-width:32px;
+    min-height:32px;
   }
 }
 
