@@ -101,6 +101,7 @@ subprocess.run(['node',str(ROOT/'tests'/'test_chat_compact_timestamps_20261029.c
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_directory_emoticon_preview_20261106.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_composer_whitespace_send_parity_20261106.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_mobile_reference_polish_20261106.cjs')],check=True,cwd=ROOT)
+subprocess.run(['node',str(ROOT/'tests'/'test_chat_directory_dividers_typography_20261107.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_mobile_header_ratio_20261106.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_mobile_header_timestamp_20261107.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_mobile_header_avatar_20261107.cjs')],check=True,cwd=ROOT)
