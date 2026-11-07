@@ -27,7 +27,7 @@ assert(directory.includes('aria-label="Tìm danh bạ"'));
 assert(directory.includes('font-size:16px;outline:none'));
 assert(last.includes('padding-inline-start:42px!important;'),'icon needs a dedicated text inset');
 assert(last.includes('font-size:16px!important;'),'iOS keyboard focus must not zoom the PWA');
-assert(last.includes('border-radius:16px!important;'));
+assert(last.includes('border-radius:999px!important;'));
 assert(last.includes('border-bottom:1px solid color-mix('),'soft divider avoids a hard band');
 assert(last.includes('padding-inline-end:0;'),'inactive preview must use the full second line');
 assert(last.includes('.shell-contact-row[data-active="true"]:has(.shell-contact-manage) .shell-contact-preview{'));

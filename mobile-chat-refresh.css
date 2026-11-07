@@ -113,7 +113,7 @@
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell{
     grid-template-columns:var(--ui-control-touch,44px) minmax(0,1fr) var(--ui-control-touch,44px) var(--ui-control-touch,44px);
-    grid-template-rows:auto auto minmax(var(--ui-control-touch,44px),auto);
+    grid-template-rows:auto auto minmax(var(--ui-control-touch,44px),auto) var(--ui-control-touch,44px);
     align-items:center;
     gap:0 var(--ui-composer-action-gap,4px);
     overflow:visible;
@@ -145,10 +145,10 @@
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #editorWrap{
-    grid-column:2;
+    grid-column:1 / -1;
     grid-row:3;
     min-width:0;
-    padding:0 2px!important;
+    padding:0 10px!important;
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #editor{
@@ -202,18 +202,18 @@
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composer-plus-btn{
     grid-column:1;
-    grid-row:3;
+    grid-row:4;
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composerHint{
     display:none;
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composer-mic-btn{
     grid-column:3;
-    grid-row:3;
+    grid-row:4;
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #send{
     grid-column:4;
-    grid-row:3;
+    grid-row:4;
     /* SPEC-CHAT-COMPOSER-MIC-SEND-20261102: 44px hit target with
        a 38px painted disc (3px surrounding composer-colored ring).
        Keep exactly the same disc in active/idle/keyboard modes. */

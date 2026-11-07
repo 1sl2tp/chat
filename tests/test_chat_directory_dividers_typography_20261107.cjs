@@ -23,7 +23,7 @@ for(const token of ['content:"";','display:block;','position:absolute;',
   'inset-inline-start:calc(40px+10px+4px);','inset-inline-end:4px;','bottom:0;',
   'height:1px;','pointer-events:none;'])assert(line.includes(token),token);
 const style=[
-  ['.shell-contact-name',['font-size:16px;','font-weight:650;','line-height:20px;']],
+  ['.shell-contact-name',['font-size:15px;','font-weight:600;','line-height:20px;']],
   ['.shell-contact-preview',['font-size:13px;','font-weight:400;','line-height:18px;']],
   ['.shell-contact-time',['font-size:12px;','font-weight:400;','line-height:16px;','font-variant-numeric:tabular-nums;']]
 ];

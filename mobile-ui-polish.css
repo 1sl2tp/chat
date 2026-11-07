@@ -92,15 +92,16 @@
     padding-inline:11px!important;
     border:0!important;
     border-radius:var(--ui-radius-pill,999px)!important;
-    background:var(--mobile-ui-soft)!important;
+    background:transparent!important;
     color:var(--theme-content-secondary)!important;
     font-size:13px!important;
-    font-weight:600!important;
+    font-weight:500!important;
   }
 
   #shellNavigationLayer .contact-directory-filter[data-active="true"]{
-    background:var(--theme-content-primary)!important;
-    color:var(--theme-surface-primary)!important;
+    background:var(--mobile-ui-soft)!important;
+    color:var(--theme-content-primary)!important;
+    font-weight:600!important;
   }
 
   #shellNavigationLayer .wm-sidebar-navigation{
@@ -659,7 +660,7 @@
   #appShell[data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-search{
     min-height:44px!important;
     height:44px!important;
-    border-radius:16px!important;
+    border-radius:999px!important;
     padding-inline-start:42px!important;
     font-size:16px!important;
   }
@@ -746,29 +747,38 @@
     box-sizing:border-box;
     width:100%;
     max-width:100%;
-    grid-template-columns:minmax(0,1fr) auto;
+    display:flex;
+    position:relative;
+    align-items:center;
+    justify-content:center;
     justify-self:stretch;
-    gap:6px;
+    gap:0;
     padding:0;
     border-radius:0;
     background:transparent;
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] .top-mode-switch[data-contact-identity="false"] .top-mode-tab[data-top-tab="chat"]{
     min-width:0;
-    justify-content:flex-start;
-    padding-inline:6px;
+    width:100%;
+    justify-content:center;
+    padding-inline:45px;
     background:transparent!important;
     box-shadow:none!important;
     color:var(--theme-content-primary);
-    font-size:18px;
-    font-weight:750;
+    font-size:17px;
+    font-weight:650;
     letter-spacing:-.025em;
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] .top-mode-switch[data-contact-identity="false"] .top-mode-tab[data-top-tab="photos"]{
+    position:absolute;
+    inset-inline-end:0;
+    top:0;
+    width:44px;
+    min-width:44px;
     min-height:44px;
     height:44px;
-    padding-inline:12px;
-    border:1px solid var(--theme-border-default);
+    padding:0;
+    border:1px solid color-mix(in srgb,var(--theme-border-default) 78%,transparent);
     border-radius:999px;
     background:var(--theme-surface-primary);
     box-shadow:none;
@@ -812,7 +822,7 @@
   #appShell[data-auth-state="authenticated"][data-route="chat"] .top-mode-switch[data-contact-identity="true"] [data-chat-tab-label]{
     font-size:15px;
     line-height:20px;
-    font-weight:700;
+    font-weight:650;
     letter-spacing:-.015em;
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] .top-mode-switch[data-contact-identity="true"] .top-mode-tab[data-top-tab="photos"]{
@@ -858,16 +868,16 @@
     min-height:44px;
     padding:0 3px;
     gap:3px;
-    border:1px solid var(--theme-border-default);
+    border:1px solid color-mix(in srgb,var(--theme-border-default) 58%,transparent);
     border-radius:999px;
     background:var(--theme-surface-primary);
     font-size:11px;
-    font-weight:650;
+    font-weight:550;
     box-shadow:none;
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #chatQuickActions>button:first-child{
-    background:color-mix(in srgb,#c9ead6 36%,var(--theme-surface-primary));
-    border-color:color-mix(in srgb,#438e62 31%,var(--theme-border-default));
+    background:var(--theme-surface-secondary);
+    border-color:color-mix(in srgb,var(--theme-border-default) 58%,transparent);
     color:var(--theme-content-primary);
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #chatQuickActions>button>span{
@@ -880,18 +890,13 @@
   /* Messaging: soft WhatsApp-like paired surfaces; incoming and outgoing
      remain at the same 6px edges. Images/files are intentionally untouched. */
   #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow>.message-row[data-content-kind="text"] .user-message-unit>.message-text{
-    background:color-mix(in srgb,#d9f7df 88%,var(--theme-surface-primary))!important;
-    color:#15372a!important;
-    border-radius:17px 17px 5px 17px!important;
-    padding:8px 11px!important;
+    background:color-mix(in srgb,var(--theme-surface-secondary) 90%,var(--theme-surface-primary))!important;
+    color:var(--theme-content-primary)!important;
+    border-radius:20px!important;
+    padding:9px 13px!important;
     box-shadow:none!important;
   }
-  #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow>.message-row[data-content-kind="text"] .assistant-message-unit>.message-text{
-    background:var(--theme-surface-secondary)!important;
-    border-radius:17px 17px 17px 5px!important;
-    padding:8px 11px!important;
-    box-shadow:none!important;
-  }
+  /* Incoming text uses the upstream ChatGPT-reference transparent canvas. */
   /* Respect the existing 17px timestamp-flow contract and virtual spacer.
      Only its typography changes; never position it over text or media. */
   #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow .message-sent-time{
@@ -907,23 +912,18 @@
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] .message-day-separator-label{
     padding:4px 12px;
-    border-color:color-mix(in srgb,var(--theme-border-default) 67%,transparent);
+    border-color:transparent;
     border-radius:9px;
-    background:var(--theme-surface-secondary);
+    background:transparent;
     font-size:11px;
-    font-weight:650;
+    font-weight:500;
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell{
-    border-color:color-mix(in srgb,var(--theme-border-strong) 70%,transparent);
-    box-shadow:0 2px 9px rgba(0,0,0,.045);
+    border-color:color-mix(in srgb,var(--theme-border-strong) 55%,transparent);
+    box-shadow:0 2px 9px rgba(0,0,0,.035);
   }
 }
-@media(max-width:63.999rem){
-  html[data-theme="dark"] #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow>.message-row[data-content-kind="text"] .user-message-unit>.message-text{
-    background:#244b3a!important;
-    color:#eefbf0!important;
-  }
-}
+/* UI-256: neutral conversation colors inherit light/dark theme tokens. */
 
 
 /* UI-252 — mobile header geometry and in-bubble sent-time, 2026-11-07.
@@ -1002,7 +1002,7 @@
     max-width:min(50vw,104px);
     gap:0;
     padding:0 2px;
-    border:1px solid var(--theme-border-default);
+    border:1px solid color-mix(in srgb,var(--theme-border-default) 75%,transparent);
     border-radius:999px;
     background:var(--theme-surface-primary);
   }
@@ -1146,12 +1146,12 @@
     inset-inline-end:4px;
     bottom:0;
     height:1px;
-    background:color-mix(in srgb,var(--theme-border-default) 60%,transparent);
+    background:color-mix(in srgb,var(--theme-border-default) 24%,transparent);
     pointer-events:none;
   }
   #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-name{
-    font-size:16px;
-    font-weight:650;
+    font-size:15px;
+    font-weight:600;
     line-height:20px;
     letter-spacing:-.012em;
   }
