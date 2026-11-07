@@ -103,6 +103,7 @@ subprocess.run(['node',str(ROOT/'tests'/'test_chat_composer_whitespace_send_pari
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_mobile_reference_polish_20261106.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_mobile_header_ratio_20261106.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_mobile_header_timestamp_20261107.cjs')],check=True,cwd=ROOT)
+subprocess.run(['node',str(ROOT/'tests'/'test_chat_mobile_header_avatar_20261107.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_manual_group_advisory_20261106.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_approved_bank_receipt_251.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_vn_daykey_cross_browser_20261029.cjs')],check=True,cwd=ROOT)
