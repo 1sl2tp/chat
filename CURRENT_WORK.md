@@ -1,3 +1,13 @@
+## 2026-11-07 — UI-259 · Soften sent-bubble blue to match ChatGPT reference screenshot
+
+- **User reference:** new iPhone ChatGPT screenshot shows a much lighter blue message bubble than current Chat. Screenshot's flat bubble surface is approximately RGB(238,243,254), near #EEF3FE on an off-white background.
+- **Fix:** change only the canonical `--chat-message-sent-bg` token in `index.source.html` from 24% of #5b8def to 10% of #78aef8 blended into the theme primary surface. This yields about RGB(239,244,252) on a #FCFCFC canvas, within three 8-bit channel points of the screenshot sample. Keep received messages neutral gray and text primary. Dark theme still uses the same theme-relative mix.
+- **Scope:** existing semantic sender/receiver CSS remains unchanged; no button, header, composer, message geometry, timestamp, media, file, invoice, scroll, backend, Realtime or data modifications.
+- **Verification:** update UI-258 visual-color test with a screenshot-relative RGB tolerance, rotate only the public PWA shell epoch to `pwa-chat-soft-blue-ui259-20261107` and update dependent header/test assertions. GitHub Actions source verification and Pages deploy must pass before calling the release complete; authenticated iPhone rendering remains unverified without an on-device capture.
+- **Rollback:** restore prior color token and rotate a fresh shell epoch, do not clear private caches.
+
+---
+
 ## 2026-11-07 — UI-258 · Different colors for the two conversation sides
 
 - **User intent:** sender (A) and receiver (B) should have distinct message colors.

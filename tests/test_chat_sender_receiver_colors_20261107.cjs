@@ -18,8 +18,14 @@ assert(sent.includes('background:var(--chat-message-sent-bg)!important;'));
 assert(received.includes('background:var(--chat-message-received-bg)!important;'));
 assert(sent.includes('color:var(--theme-content-primary)!important;'));
 assert(received.includes('color:var(--theme-content-primary)!important;'));
-assert(html.includes('--chat-message-sent-bg:color-mix(in srgb,#5b8def 24%,var(--theme-surface-primary));'));
+assert(html.includes('--chat-message-sent-bg:color-mix(in srgb,#78aef8 10%,var(--theme-surface-primary));'));
 assert(html.includes('--chat-message-received-bg:var(--theme-surface-secondary);'));
+// Reference screenshot: muted pastel around #EEF3FE on a #FCFCFC canvas.
+// Ten percent #78aef8 mixed into the canvas keeps all RGB channels within 3.
+const base=[252,252,252],blue=[120,174,248],expected=[238,243,254];
+const mixed=base.map((value,i)=>Math.round(value*.9+blue[i]*.1));
+assert(mixed.every((value,i)=>Math.abs(value-expected[i])<=3),
+  'sent bubble should match ChatGPT-like pale blue, not saturated UI-258 blue');
 assert(rule(html,'.user-message-unit>.message-text').includes('background:var(--chat-message-sent-bg);'));
 assert(rule(html,'.assistant-message-unit>.message-text').includes('background:var(--chat-message-received-bg)!important;'));
 assert(rule(refresh,'#appShell[data-auth-state="authenticated"][data-route="chat"] .assistant-message-unit>.message-text').includes('background:var(--chat-message-received-bg)!important;'));
@@ -30,5 +36,5 @@ assert(!section.includes('.message-media-shell'),'do not recolor media cards');
 assert(mobile.includes('padding-bottom:25px!important;'),'preserve timestamp footer');
 assert(html.includes('.user-message-unit .file-message-card{'));
 assert(html.includes('.assistant-message-unit .audio-message-card{'));
-assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-message-colors-ui258-20261107';"));
+assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-soft-blue-ui259-20261107';"));
 console.log('UI-258 blue sent / gray received bubbles for Web/PWA and preserved media/time PASS');
