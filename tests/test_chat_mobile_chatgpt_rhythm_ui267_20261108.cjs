@@ -51,9 +51,9 @@ assert(css.includes('padding-bottom:25px!important;'),'in-bubble time and virtua
 assert(app.includes("time.className='message-sent-time'"),'no duplicate time nodes');
 assert(shell.includes("const showIdleCall=route==='chat'&&hasContact;"),'live call owner untouched');
 const mobileComposer=rule(composer,chat+' #composerShell');
-assert(mobileComposer.includes('grid-template-rows:autoautominmax(40px,auto)var(--ui-control-touch,44px);'));
+assert(mobileComposer.includes('grid-template-rows:autoautominmax(var(--ui-control-touch,44px),auto);'));
 const editor=rule(composer,chat+' #editor');
-assert(editor.includes('min-height:40px;')&&editor.includes('padding:7px4px!important;'));
+assert(editor.includes('min-height:40px;')&&editor.includes('padding:9px2px!important;'));
 for(const id of ['composer-plus-btn','composer-mic-btn','send']){
  assert(composer.includes('#'+id),'no missing composer control');
 }
@@ -62,6 +62,6 @@ assert(composer.includes('width:var(--ui-control-touch,44px)!important;'),
 assert(composer.includes('#stageLayout[data-keyboard-open="true"]'),
  'VisualViewport soft keyboard geometry stays owned elsewhere');
 assert(html.includes('id="chatCallFocus"')&&html.includes('id="chatQuickActions"'));
-assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-mobile-chatgpt-rhythm-ui267-20261108';"),
+assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-responsive-composer-ui268-20261109';"),
  'public PWA shell release, not account IndexedDB caches');
 console.log('UI-267 screenshot-driven ChatGPT mobile contact, conversation, business controls and keyboard PASS');

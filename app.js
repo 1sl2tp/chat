@@ -5582,22 +5582,26 @@ function ensureComposerMeasureReady(){
   syncMeasureStyle({force:true,widthPx:editor.getBoundingClientRect().width});
 }
 
+// UI-268: Mobile keeps one *visible* text line while a longer native draft
+// scrolls inside the textarea; desktop reveals a second line and no more.
+// Never truncate the value, collapse selections or rewrite Vietnamese IME.
+const composerMobileBreakpoint=window.matchMedia?.('(max-width:63.999rem)')||null;
 let lastEditorHeightPx=40;
 let lastEditorInternalScroll=false;
 
 function autoGrow({source='layout'}={}){
   ensureComposerMeasureReady();
 
+  // A zero-width sentinel measures an intentional trailing newline without
+  // inventing an extra blank line for short drafts or the placeholder.
   measure.textContent=
-    (editor.value || editor.placeholder || ' ')+'\n';
+    (editor.value || editor.placeholder || ' ')+'\u200b';
 
   const natural=Math.ceil(measure.scrollHeight);
-
-  const next=Math.max(
-    40,
-    Math.min(112,natural)
-  );
-  const internalScroll=natural>112;
+  const mobile=Boolean(composerMobileBreakpoint?.matches);
+  const maxHeight=mobile?40:64;
+  const next=mobile?40:Math.max(40,Math.min(maxHeight,natural));
+  const internalScroll=natural>maxHeight;
   const heightChanged=next!==lastEditorHeightPx;
   const scrollModeChanged=internalScroll!==lastEditorInternalScroll;
 
@@ -5632,6 +5636,14 @@ const composerMeasureObserver=
       })
     :null;
 composerMeasureObserver?.observe(editor);
+// A desktop/mobile breakpoint switch can leave the same editor width while
+// changing the allowed line count. Recompute once, not on every viewport tick.
+composerMobileBreakpoint?.addEventListener?.('change',()=>{
+  // Desktop and mobile use different line heights and horizontal gutters.
+  // Re-measure once after the breakpoint changes, without rewriting the text.
+  syncMeasureStyle({force:true,widthPx:editor.getBoundingClientRect().width});
+  autoGrow({source:'breakpoint'});
+});
 
 /* =========================================================
    ATTACHMENTS / RECORDING

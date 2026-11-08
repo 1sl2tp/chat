@@ -38,5 +38,5 @@ assert(js.includes('window.getSelection?.()?.isCollapsed===false'));
 assert(js.includes('unit.appendChild(createActionGroup(message));'));
 for(const action of ["label:'Trả lời'","label:'Chia sẻ'","label:'Chuyển tiếp'","label:'Sao chép'"])
  assert(js.includes(action),'keep action '+action);
-assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-mobile-chatgpt-rhythm-ui267-20261108';"));
+assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-responsive-composer-ui268-20261109';"));
 console.log('UI-260 compact contextual toolbar, 182px visual width, 44px targets, 320–430px safety PASS');
