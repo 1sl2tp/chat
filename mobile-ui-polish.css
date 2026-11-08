@@ -1183,3 +1183,107 @@
     color:var(--theme-content-tertiary);
   }
 }
+
+
+/* UI-261 — Consistent directory and account-menu surfaces, 2026-11-08.
+   Mobile visual-only owner: preserve contact search/filters, 60px rows,
+   40px portraits, 64px time, keyboard viewport, and real Chat/Photos routes. */
+@media(max-width:63.999rem){
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-tools{
+    gap:6px!important;
+    padding:7px 6px 8px!important;
+    border-bottom:1px solid color-mix(in srgb,var(--theme-border-default) 40%,transparent)!important;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-search{
+    box-sizing:border-box;
+    height:44px!important;
+    min-height:44px!important;
+    padding-inline-start:42px!important;
+    border:1px solid color-mix(in srgb,var(--theme-border-default) 58%,transparent)!important;
+    border-radius:999px!important;
+    background:color-mix(in srgb,var(--theme-surface-secondary) 72%,var(--theme-surface-primary))!important;
+    box-shadow:none!important;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-search:focus{
+    border-color:color-mix(in srgb,var(--theme-content-accent) 45%,var(--theme-border-default))!important;
+    box-shadow:0 0 0 2px color-mix(in srgb,var(--theme-content-accent) 12%,transparent)!important;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-filter-line{
+    min-width:0;
+    min-height:44px;
+    gap:6px;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-filters{
+    min-width:0;
+    gap:6px!important;
+    scroll-padding-inline:6px;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-filter{
+    box-sizing:border-box;
+    min-height:44px!important;
+    padding-inline:12px!important;
+    border:1px solid transparent!important;
+    border-radius:999px!important;
+    background:transparent!important;
+    color:var(--theme-content-secondary)!important;
+    font-size:13px!important;
+    font-weight:550!important;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-filter[data-active="true"]{
+    background:var(--theme-surface-secondary)!important;
+    border-color:color-mix(in srgb,var(--theme-border-default) 45%,transparent)!important;
+    color:var(--theme-content-primary)!important;
+    font-weight:650!important;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-filter-more{
+    box-sizing:border-box;
+    flex:0 0 44px;
+    width:44px;
+    height:44px;
+    min-height:44px;
+    padding:0;
+    border-radius:999px;
+    background:var(--theme-surface-secondary);
+    color:var(--theme-content-primary);
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-filter:focus-visible,
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-filter-more:focus-visible,
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-chat:focus-visible{
+    outline:2px solid var(--theme-content-accent);
+    outline-offset:-2px;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-row[data-active="true"]{
+    border-radius:12px;
+    background:color-mix(in srgb,var(--theme-surface-secondary) 82%,var(--theme-surface-primary));
+    box-shadow:inset 3px 0 0 color-mix(in srgb,var(--theme-content-accent) 45%,transparent);
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-empty{
+    margin:12px 6px;
+    padding:20px 12px;
+    border:1px dashed color-mix(in srgb,var(--theme-border-default) 60%,transparent);
+    border-radius:16px;
+    background:var(--theme-surface-secondary);
+    color:var(--theme-content-secondary);
+  }
+  [data-mobile-account-menu] .mobile-account-menu-panel{
+    box-sizing:border-box;
+    width:min(248px,calc(100vw - 24px))!important;
+    padding:8px!important;
+    border-radius:18px!important;
+    border-color:color-mix(in srgb,var(--theme-border-default) 65%,transparent)!important;
+    background:var(--theme-surface-primary)!important;
+    box-shadow:0 12px 28px color-mix(in srgb,#000 12%,transparent)!important;
+  }
+  [data-mobile-account-menu] .mobile-account-menu-row{
+    min-height:44px!important;
+    gap:10px;
+    border-radius:11px;
+    color:var(--theme-content-primary);
+    font-size:14px!important;
+  }
+  [data-mobile-account-menu] .mobile-account-menu-row:focus-visible,
+  .shell-sidebar-account-menu>button:focus-visible{
+    outline:2px solid var(--theme-content-accent);
+    outline-offset:-2px;
+  }
+}

@@ -1,3 +1,13 @@
+## 2026-11-08 — UI-261 · Directory and account-menu consistency (first implementation)
+
+- **Purpose:** translate the design illustration into the actual app's existing contacts and account controls without fictitious Groups/Discover routes. Existing one-column mobile and three-column desktop architecture remains unchanged.
+- **Change owner:** only `mobile-ui-polish.css` controls this mobile visual pass: consistent 44px search/filter/overflow targets, selected state, keyboard focus, neutral empty state, responsive account menu. Keep row density at 60px, avatar 40px and time rail 64px.
+- **Preserve:** the real KH/CM/Bạn bè/Khác filters, contact actions, group integration, Chat/Ảnh tabs, account settings own CSS, VisualViewport keyboard/scroll, auth, Realtime, calls, unread, Zalo, business data and message delivery.
+- **Tests:** `tests/test_chat_directory_menu_ui261_20261108.cjs` registered in Verify V21; old exact shell-epoch assertions advance to `pwa-chat-directory-menu-ui261-20261108` in a single patch; no private CacheStorage invalidation. Canonical build artifacts are rebuilt by the existing GitHub workflow. CI, deployment and on-device results are to be checked independently.
+- **Next:** profile/settings, remaining message surfaces and desktop only after this first coherent region passes verification.
+
+---
+
 ## 2026-11-07 — UI-260 · Compact message action toolbar beside selected bubble
 
 - **User screenshot:** in the iPhone PWA conversation with `b a duyệt`, reply/share/forward/copy appears as an unnecessarily broad, heavily shadowed floating toolbar, visually detached from the selected outgoing bubble. The user requests a more compact position.
