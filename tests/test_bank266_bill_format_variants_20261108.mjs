@@ -64,7 +64,7 @@ assert.equal(readV4Fields({receiving_bank:"VPBank"}).receiving_bank,"VPBANK",
 assert.equal(readV4Fields({sending_bank:"VPBank",receiving_bank:null}).receiving_bank,null);
 assert.equal(readV4Fields({sender_name:null,recipient_name:"BÙI XUÂN TÙNG"}).sender_name,null);
 const normalized=readV4Fields({
- recipient_name:"BÙI XUÂN TÙNG",sending_bank:"VPBANK",
+ recipient_name:"BÙI XUÂN TÙNG",sending_bank:"VPBANK",transaction_nature:"transfer",
  receiving_bank:"NH NN&PTNT Việt Nam",
  recipient_account_visible:"*****99999",recipient_account_last5:"99999",
  transaction_datetime_vn:"11:45 08/11/2026"
