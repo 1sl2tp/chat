@@ -113,8 +113,10 @@
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell{
     grid-template-columns:var(--ui-control-touch,44px) minmax(0,1fr) var(--ui-control-touch,44px) var(--ui-control-touch,44px);
-    /* ChatGPT-like compact writing line above unchanged 44px action targets. */
-    grid-template-rows:auto auto minmax(40px,auto) var(--ui-control-touch,44px);
+    /* UI-268: one row on iPhone: +, editor, mic, send. Optional
+       reply/attachment content stays in the tracks above, not a second
+       persistent button rail. Native textarea remains the caret owner. */
+    grid-template-rows:auto auto minmax(var(--ui-control-touch,44px),auto);
     align-items:center;
     gap:0 var(--ui-composer-action-gap,4px);
     overflow:visible;
@@ -146,17 +148,19 @@
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #editorWrap{
-    grid-column:1 / -1;
+    grid-column:2;
     grid-row:3;
+    align-self:center;
     min-width:0;
-    padding:0 10px!important;
+    padding:0 2px!important;
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #editor{
+    height:40px;
     min-height:40px;
-    max-height:112px;
+    max-height:40px;
     margin:0;
-    padding:7px 4px!important;
+    padding:9px 2px!important;
     font-size:var(--ui-input-mobile-font-size,16px);
     line-height:22px;
   }
@@ -203,18 +207,18 @@
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composer-plus-btn{
     grid-column:1;
-    grid-row:4;
+    grid-row:3;
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composerHint{
     display:none;
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composer-mic-btn{
     grid-column:3;
-    grid-row:4;
+    grid-row:3;
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #send{
     grid-column:4;
-    grid-row:4;
+    grid-row:3;
     /* SPEC-CHAT-COMPOSER-MIC-SEND-20261102: 44px hit target with
        a 38px painted disc (3px surrounding composer-colored ring).
        Keep exactly the same disc in active/idle/keyboard modes. */
@@ -411,3 +415,85 @@
   }
 }
 
+
+
+/* UI-268 desktop: ChatGPT-size single writing row with textarea auto-growing
+   from one to two visible text lines (40px -> 64px). Do not add a second
+   persistent action row; media/reply preview still occupies rows above.
+   All three controls retain 44px pointer/keyboard hitboxes. */
+@media(min-width:64rem){
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell{
+    grid-template-columns:44px minmax(0,1fr) 44px 44px;
+    grid-template-rows:auto auto minmax(44px,auto);
+    align-items:center;
+    gap:0 3px;
+    padding:4px 6px;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #replyContext{
+    grid-column:1 / -1;
+    grid-row:1;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #attachmentTray{
+    grid-column:1 / -1;
+    grid-row:2;
+    min-width:0;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerFooter{
+    display:contents;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #editorWrap{
+    grid-column:2;
+    grid-row:3;
+    min-width:0;
+    align-self:center;
+    padding:0 3px!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #editor{
+    min-height:40px;
+    max-height:64px;
+    margin:0;
+    padding:8px 2px!important;
+    line-height:24px;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerHint{display:none;}
+  #appShell[data-auth-state="authenticated"][data-route="chat"] :is(#composer-plus-btn,#composer-mic-btn,#send){
+    box-sizing:border-box;
+    width:44px;
+    min-width:44px;
+    height:44px;
+    min-height:44px;
+    padding:0;
+    align-self:center;
+    justify-self:center;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composer-plus-btn{
+    grid-column:1;
+    grid-row:3;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composer-mic-btn{
+    grid-column:3;
+    grid-row:3;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #send{
+    grid-column:4;
+    grid-row:3;
+    border:var(--ui-composer-send-ring,4px) solid var(--cgpt-composer-surface-primary);
+    border-radius:9999px;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="REQUESTING_PERMISSION"],
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="RECORDING"],
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="STOPPING"],
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="PREVIEW"],
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="SENDING"]{
+    grid-template-columns:minmax(0,1fr);
+    grid-template-rows:auto;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="REQUESTING_PERMISSION"] #attachmentTray,
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="RECORDING"] #attachmentTray,
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="STOPPING"] #attachmentTray,
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="PREVIEW"] #attachmentTray,
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="SENDING"] #attachmentTray{
+    grid-column:1;
+    grid-row:1;
+  }
+}
