@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="f6171108857119d034ac8197de746fa608267d640ce50729d48e374abd207157">
+<meta name="app-build-id" content="0aea2fbe3b62a7f287ddf5e39e3d779f866e4d15bd8c518b19a967af14f9d73e">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -27987,6 +27987,15 @@ async function applyContactEvent(event,context=captureSyncOwnerContext()){
   return true;
 }
 
+// UI-263: refresh the already-open report when a canonical Admin financial
+// confirmation enters the existing message stream. No extra subscription or
+// polling; report's own reload() remains the only data reader.
+function isBankReportDirtyMessage(clientId){
+  const id=String(clientId||'');
+  return id==='taphoa:bank-report:2026-10-19:initial'||
+    /^taphoa:(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|bank-manual:\d+):collection$/i.test(id);
+}
+
 async function applyMessageEvent(event,context=captureSyncOwnerContext()){
   let payload=canonicalMessage(event?.payload);
   if(!payload?.id||!syncOwnerContextCurrent(context))return false;
@@ -28030,7 +28039,7 @@ async function applyMessageEvent(event,context=captureSyncOwnerContext()){
   if(!syncOwnerContextCurrent(context))return false;
   markActiveMessageDirty(payload.id,payload.conversation_id,{reconcileMedia:true});
   if(!own&&visible)scheduleMarkRead(payload.conversation_id);
-  if(String(payload.client_id||'').startsWith('taphoa:bank-report:2026-10-19:initial')){
+  if(own&&authSnapshot()?.account?.role==='admin'&&isBankReportDirtyMessage(payload.client_id)){
     document.dispatchEvent(new CustomEvent('v21-bank-report-dirty',{detail:{messageId:payload.id}}));
   }
   return true;
