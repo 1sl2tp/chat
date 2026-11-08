@@ -1186,6 +1186,7 @@
 
 
 /* UI-261 — Consistent directory and account-menu surfaces, 2026-11-08.
+   CI repair: align whitespace-normalized CSS assertions with actual tokens.
    Mobile visual-only owner: preserve contact search/filters, 60px rows,
    40px portraits, 64px time, keyboard viewport, and real Chat/Photos routes. */
 @media(max-width:63.999rem){

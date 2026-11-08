@@ -23,9 +23,9 @@ for(const selector of ['.contact-directory-tools','.contact-directory-search',
  '.contact-directory-empty'])rule(selector);
 assert(rule('.contact-directory-search').includes('min-height:44px!important;'));
 assert(rule('.contact-directory-filter').includes('min-height:44px!important;'));
-for(const token of ['flex:0 0 44px;','width:44px;','height:44px;'])
+for(const token of ['flex:0044px;','width:44px;','height:44px;'])
  assert(rule('.contact-directory-filter-more').includes(token),token);
-assert(rule('.shell-contact-row[data-active="true"]').includes('inset 3px 0 0'));
+assert(rule('.shell-contact-row[data-active="true"]').includes('inset3px00'));
 assert(ui.includes('.shell-contact-chat:focus-visible'));
 assert(ui.includes('[data-mobile-account-menu] .mobile-account-menu-panel{'));
 assert(ui.includes('width:min(248px,calc(100vw - 24px))!important;'));
