@@ -36,7 +36,7 @@ for(const action of ['cash','debt','photos','recent']){
 const item=rule(owned,root+' #shellNavigationLayer .contact-directory-tools');
 assert(item.includes('padding:3px6px5px!important;'),'directory tools need less dead top space');
 const filters=rule(owned,root+' #shellNavigationLayer .contact-directory-filter');
-assert(filters.includes('min-height:40px!important;'),'filters retain readable tap width');
+assert(filters.includes('min-height:44px!important;'),'filters retain 44px accessible touch targets');
 assert(rule(owned,root+' #shellNavigationLayer .contact-directory-filter-more').includes('min-height:44px;'),
  'extra filters toggle remains at least 44px');
 assert(css.includes('height:60px!important;')&&css.includes('grid-template-columns:40px minmax(0,1fr);'),
