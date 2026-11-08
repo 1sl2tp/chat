@@ -39,8 +39,8 @@ const filters=rule(owned,root+' #shellNavigationLayer .contact-directory-filter'
 assert(filters.includes('min-height:40px!important;'),'filters retain readable tap width');
 assert(rule(owned,root+' #shellNavigationLayer .contact-directory-filter-more').includes('min-height:44px;'),
  'extra filters toggle remains at least 44px');
-assert(css.includes('.shell-contact-chat{\n    height:60px!important;'),
- 'existing stable contact list rows are not rewritten');
+assert(css.includes('height:60px!important;')&&css.includes('grid-template-columns:40px minmax(0,1fr);'),
+ 'stable 60px rows and 40px avatars are not rewritten');
 assert(css.includes('data-mobile-directory')||css.includes('data-mobile-keyboard'),
  'directory keyboard owner must remain');
 assert(owned.includes('margin-top:5px!important;')&&owned.includes('margin-top:13px!important;'),
