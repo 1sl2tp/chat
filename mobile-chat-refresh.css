@@ -120,7 +120,7 @@
     overflow:visible;
     border:1px solid var(--composer-border,var(--theme-border-strong));
     border-radius:var(--ui-chat-composer-radius,var(--radius-2xl,28px));
-    padding:1px var(--ui-composer-inner-inset,4px);
+    padding:2px var(--ui-composer-inner-inset,4px);
     background:var(--cgpt-composer-surface-primary);
     box-shadow:var(--composer-shadow,0 1px 1px #00000008),0 4px 14px rgba(0,0,0,.035);
     transition:border-color .14s ease,box-shadow .14s ease;
