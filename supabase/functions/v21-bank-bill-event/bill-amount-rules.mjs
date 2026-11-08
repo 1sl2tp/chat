@@ -20,10 +20,16 @@ export function parseAmountText(value){
  else if(v.startsWith("+")){v=v.slice(1).trim();}
  v=v.replace(/^(?:VND|VNĐ|ĐỒNG|₫|Đ)\s*/i,"").trim();
  v=v.replace(/\s*(?:VNĐ|VND|ĐỒNG|Đ|₫)$/i,"").trim();
- // Accept decimal zero cents only if the remaining integer uses valid groups.
+ // Accept exact zero decimals only with an unambiguous integer.
+ // "1.170.000,00" / "1,170,000.00" are valid; "1.170.00" is
+ // not (same punctuation ambiguously acts as both group and decimal).
  if(/[.,]00$/.test(v)){
+   const decimalSeparator=v.slice(-3,-2);
    const base=v.slice(0,-3);
-   if(/^\d{1,3}([., ])\d{3}(?:\1\d{3})*$/.test(base))v=base;
+   const grouping=/^\d{1,3}([., ])\d{3}(?:\1\d{3})*$/.exec(base);
+   if(/^\d{1,12}$/.test(base) || (grouping&&grouping[1]!==decimalSeparator))
+     v=base;
+   else return null;
  }
  if(!/^\d{1,12}$/.test(v)&&!/^\d{1,3}([., ])\d{3}(?:\1\d{3})*$/.test(v))return null;
  const digits=v.replace(/[., ]/g,"");
