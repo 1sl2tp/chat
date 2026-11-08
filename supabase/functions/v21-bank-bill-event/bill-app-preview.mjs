@@ -19,7 +19,9 @@ function creditAccountFromEvent(e){
 }
 function ownTransferNotice(e){
  const m=/Nội dung giao dịch:\s*([^\r\n.]+)/i.exec(String(e?.body||""));
- return !!(e?.is_own_transfer===true || (m&&/BUI\s+XUAN\s+TUNG/i.test(m[1])));
+ // BANK-265: the beneficiary may appear AFTER "chuyen tien den".
+ // Exclude only a sender beginning with the account-holder name.
+ return !!(e?.is_own_transfer===true || (m&&/^\s*BUI\s+XUAN\s+TUNG(?:\s|[^\w]|$)/i.test(m[1])));
 }
 export function previewBillAppMatch(bill,events,otherBills=[],now=Date.now()){
  if(bill?.status!=="amount_read"||!Number.isSafeInteger(bill.amount_vnd)||bill.amount_vnd<=0)return{status:"review",reason:"bill_unreadable"};
