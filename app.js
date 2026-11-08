@@ -5639,6 +5639,9 @@ composerMeasureObserver?.observe(editor);
 // A desktop/mobile breakpoint switch can leave the same editor width while
 // changing the allowed line count. Recompute once, not on every viewport tick.
 composerMobileBreakpoint?.addEventListener?.('change',()=>{
+  // Desktop and mobile use different line heights and horizontal gutters.
+  // Re-measure once after the breakpoint changes, without rewriting the text.
+  syncMeasureStyle({force:true,widthPx:editor.getBoundingClientRect().width});
   autoGrow({source:'breakpoint'});
 });
 
