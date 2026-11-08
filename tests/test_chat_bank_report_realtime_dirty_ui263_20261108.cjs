@@ -23,5 +23,5 @@ assert(report.includes("document.addEventListener('v21-bank-report-dirty',()=>{i
  'only the currently open dashboard reads after a message signal');
 assert(report.includes('if(loading){queued=true;return;}'),'coalesce overlapping report reads');
 assert(!sync.includes('setInterval(()=>void reload('),'no report polling');
-assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-mobile-chatgpt-rhythm-ui267-20261108';"));
+assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-responsive-composer-ui268-20261109';"));
 console.log('UI-263 bank report reacts to verified Admin finance messages, no polling PASS');
