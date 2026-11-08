@@ -10,12 +10,12 @@ const shellSource=fs.readFileSync(path.join(__dirname,'..','shell.js'),'utf8');
 const APPROVED='11111111-1111-4111-8111-111111111111';
 const GENERATED='22222222-2222-4222-8222-222222222222';
 
-async function launch({localKey='',cookieKey='',localWritable=true,cookieWritable=true,status='active'}={}){
+async function launch({localKey='',cookieKey='',localWritable=true,cookieWritable=true,status='active',rpcFailure=null}={}){
   const storage=new Map();
   if(localKey)storage.set('taphoa.v21.deviceKey',localKey);
   const cookies=new Map();
   if(cookieKey)cookies.set('taphoa_v21_device_key',cookieKey);
-  const observed={generated:0,signOuts:0,boots:[],errors:[],authenticated:[],currentStatus:status};
+  const observed={generated:0,signOuts:0,refreshes:0,boots:[],errors:[],authenticated:[],currentStatus:status};
   const document={
     get cookie(){return [...cookies].map(([k,v])=>k+'='+v).join('; ');},
     set cookie(input){
@@ -39,6 +39,7 @@ async function launch({localKey='',cookieKey='',localWritable=true,cookieWritabl
   const client={
     auth:{
       getSession:async()=>({data:{session:authSession},error:null}),
+      refreshSession:async()=>{observed.refreshes++;return{data:{session:authSession},error:null};},
       signOut:async()=>{observed.signOuts++;return{error:null};},
       signInWithPassword:async()=>({error:null}),
       onAuthStateChange(){return{data:{subscription:{unsubscribe(){}}}};}
@@ -46,6 +47,7 @@ async function launch({localKey='',cookieKey='',localWritable=true,cookieWritabl
     rpc:async(name,params)=>{
       if(name!=='v21_auth_bootstrap')throw new Error('unexpected RPC: '+name);
       observed.boots.push(params.p_device_key);
+      if(rpcFailure&&observed.boots.length===1)return{data:null,error:rpcFailure};
       return{data:{
         account,
         device_approval_required:observed.currentStatus==='approval_required',
@@ -119,8 +121,27 @@ async function launch({localKey='',cookieKey='',localWritable=true,cookieWritabl
   assert.equal(denied.observed.boots.length,0,'never register an ephemeral device');
   assert(denied.observed.errors.includes('device_storage_unavailable'));
 
+  // AUTH-264: a temporary bootstrap error must not rotate a one-time token.
+  const transient=await launch({
+    localKey:APPROVED,
+    rpcFailure:{status:503,code:'PGRST002',message:'Network/REST temporarily unavailable'}
+  });
+  assert.equal(transient.store.snapshot().state,'RECONNECTING');
+  assert.equal(transient.observed.refreshes,0,'transient RPC failure must not refresh token');
+  assert.equal(transient.observed.signOuts,0,'transient RPC failure must not sign out');
+  assert.equal(transient.observed.boots.length,1,'transient RPC failure must not duplicate bootstrap');
+
+  const invalidJwt=await launch({
+    localKey:APPROVED,
+    rpcFailure:{status:401,code:'PGRST301',message:'JWT expired'}
+  });
+  assert.equal(invalidJwt.store.snapshot().state,'AUTHENTICATED');
+  assert.equal(invalidJwt.observed.refreshes,1,'explicit JWT failure warrants exactly one refresh');
+  assert.deepEqual(invalidJwt.observed.boots,[APPROVED,APPROVED]);
+  assert.equal(invalidJwt.observed.signOuts,0,'recovered JWT must not force logout');
+
   assert(shellSource.includes("store?.snapshot?.().state==='APPROVAL_PENDING'"),
     'guest form must bypass password validation for pending-session retry');
   assert(shellSource.includes("void store.retryApproval?.()"));
-  console.log('iOS PWA approved device backup, pending-session retry and fail-closed storage PASS');
+  console.log('iOS PWA approved device, pending retry, safe JWT refresh and fail-closed storage PASS');
 })().catch(error=>{console.error(error);process.exitCode=1;});
