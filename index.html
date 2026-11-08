@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="5ba556222fcec01d690aff359327bbd9c784cfe849262ff4bd5fef36f3b8060c">
+<meta name="app-build-id" content="8e0bdcc0646f5cc66c2be9e4ca50dff91ac21a6e902d17153c36dab9ae1c984a">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -2668,8 +2668,10 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell{
     grid-template-columns:var(--ui-control-touch,44px) minmax(0,1fr) var(--ui-control-touch,44px) var(--ui-control-touch,44px);
-    /* ChatGPT-like compact writing line above unchanged 44px action targets. */
-    grid-template-rows:auto auto minmax(40px,auto) var(--ui-control-touch,44px);
+    /* UI-268: one row on iPhone: +, editor, mic, send. Optional
+       reply/attachment content stays in the tracks above, not a second
+       persistent button rail. Native textarea remains the caret owner. */
+    grid-template-rows:auto auto minmax(var(--ui-control-touch,44px),auto);
     align-items:center;
     gap:0 var(--ui-composer-action-gap,4px);
     overflow:visible;
@@ -2701,17 +2703,19 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #editorWrap{
-    grid-column:1 / -1;
+    grid-column:2;
     grid-row:3;
+    align-self:center;
     min-width:0;
-    padding:0 10px!important;
+    padding:0 2px!important;
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #editor{
+    height:40px;
     min-height:40px;
-    max-height:112px;
+    max-height:40px;
     margin:0;
-    padding:7px 4px!important;
+    padding:9px 2px!important;
     font-size:var(--ui-input-mobile-font-size,16px);
     line-height:22px;
   }
@@ -2758,18 +2762,18 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composer-plus-btn{
     grid-column:1;
-    grid-row:4;
+    grid-row:3;
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composerHint{
     display:none;
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composer-mic-btn{
     grid-column:3;
-    grid-row:4;
+    grid-row:3;
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #send{
     grid-column:4;
-    grid-row:4;
+    grid-row:3;
     /* SPEC-CHAT-COMPOSER-MIC-SEND-20261102: 44px hit target with
        a 38px painted disc (3px surrounding composer-colored ring).
        Keep exactly the same disc in active/idle/keyboard modes. */
@@ -2966,6 +2970,88 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
   }
 }
 
+
+
+/* UI-268 desktop: ChatGPT-size single writing row with textarea auto-growing
+   from one to two visible text lines (40px -> 64px). Do not add a second
+   persistent action row; media/reply preview still occupies rows above.
+   All three controls retain 44px pointer/keyboard hitboxes. */
+@media(min-width:64rem){
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell{
+    grid-template-columns:44px minmax(0,1fr) 44px 44px;
+    grid-template-rows:auto auto minmax(44px,auto);
+    align-items:center;
+    gap:0 3px;
+    padding:4px 6px;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #replyContext{
+    grid-column:1 / -1;
+    grid-row:1;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #attachmentTray{
+    grid-column:1 / -1;
+    grid-row:2;
+    min-width:0;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerFooter{
+    display:contents;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #editorWrap{
+    grid-column:2;
+    grid-row:3;
+    min-width:0;
+    align-self:center;
+    padding:0 3px!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #editor{
+    min-height:40px;
+    max-height:64px;
+    margin:0;
+    padding:8px 2px!important;
+    line-height:24px;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerHint{display:none;}
+  #appShell[data-auth-state="authenticated"][data-route="chat"] :is(#composer-plus-btn,#composer-mic-btn,#send){
+    box-sizing:border-box;
+    width:44px;
+    min-width:44px;
+    height:44px;
+    min-height:44px;
+    padding:0;
+    align-self:center;
+    justify-self:center;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composer-plus-btn{
+    grid-column:1;
+    grid-row:3;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composer-mic-btn{
+    grid-column:3;
+    grid-row:3;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #send{
+    grid-column:4;
+    grid-row:3;
+    border:var(--ui-composer-send-ring,4px) solid var(--cgpt-composer-surface-primary);
+    border-radius:9999px;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="REQUESTING_PERMISSION"],
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="RECORDING"],
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="STOPPING"],
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="PREVIEW"],
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="SENDING"]{
+    grid-template-columns:minmax(0,1fr);
+    grid-template-rows:auto;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="REQUESTING_PERMISSION"] #attachmentTray,
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="RECORDING"] #attachmentTray,
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="STOPPING"] #attachmentTray,
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="PREVIEW"] #attachmentTray,
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-audio-state="SENDING"] #attachmentTray{
+    grid-column:1;
+    grid-row:1;
+  }
+}
 
 </style>
 <style data-inlined-source="customer-photo-library.css">
@@ -15452,22 +15538,26 @@ function ensureComposerMeasureReady(){
   syncMeasureStyle({force:true,widthPx:editor.getBoundingClientRect().width});
 }
 
+// UI-268: Mobile keeps one *visible* text line while a longer native draft
+// scrolls inside the textarea; desktop reveals a second line and no more.
+// Never truncate the value, collapse selections or rewrite Vietnamese IME.
+const composerMobileBreakpoint=window.matchMedia?.('(max-width:63.999rem)')||null;
 let lastEditorHeightPx=40;
 let lastEditorInternalScroll=false;
 
 function autoGrow({source='layout'}={}){
   ensureComposerMeasureReady();
 
+  // A zero-width sentinel measures an intentional trailing newline without
+  // inventing an extra blank line for short drafts or the placeholder.
   measure.textContent=
-    (editor.value || editor.placeholder || ' ')+'\n';
+    (editor.value || editor.placeholder || ' ')+'\u200b';
 
   const natural=Math.ceil(measure.scrollHeight);
-
-  const next=Math.max(
-    40,
-    Math.min(112,natural)
-  );
-  const internalScroll=natural>112;
+  const mobile=Boolean(composerMobileBreakpoint?.matches);
+  const maxHeight=mobile?40:64;
+  const next=mobile?40:Math.max(40,Math.min(maxHeight,natural));
+  const internalScroll=natural>maxHeight;
   const heightChanged=next!==lastEditorHeightPx;
   const scrollModeChanged=internalScroll!==lastEditorInternalScroll;
 
@@ -15502,6 +15592,14 @@ const composerMeasureObserver=
       })
     :null;
 composerMeasureObserver?.observe(editor);
+// A desktop/mobile breakpoint switch can leave the same editor width while
+// changing the allowed line count. Recompute once, not on every viewport tick.
+composerMobileBreakpoint?.addEventListener?.('change',()=>{
+  // Desktop and mobile use different line heights and horizontal gutters.
+  // Re-measure once after the breakpoint changes, without rewriting the text.
+  syncMeasureStyle({force:true,widthPx:editor.getBoundingClientRect().width});
+  autoGrow({source:'breakpoint'});
+});
 
 /* =========================================================
    ATTACHMENTS / RECORDING
