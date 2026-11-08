@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="84b7dd82d2eb7cc6bbece2dd63b78f72a0327a1b78cc03bc2e3ff6e509f67f84">
+<meta name="app-build-id" content="f6171108857119d034ac8197de746fa608267d640ce50729d48e374abd207157">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1130,6 +1130,100 @@
   .zalo-account-modal[data-active-tab="settings"] .zalo-account-preferences>.zalo-account-notification>.zalo-account-notification-action{
     justify-self:start;max-width:100%;
   }
+}
+
+</style>
+<style data-inlined-source="customer-notification-settings.css">
+
+.tp-outbound-panel{display:flex;flex-direction:column;gap:9px;min-width:0;max-height:min(83dvh,750px);overflow-y:auto}
+.tp-outbound-panel h3{margin:14px 0 3px;font-size:14px;font-weight:750}
+.tp-outbound-panel p{margin:4px 0;font-size:12px;line-height:1.55;color:var(--theme-content-secondary,#667)}
+.tp-outbound-panel .tp-outbound-status{border-radius:10px;padding:10px;background:var(--theme-surface-secondary,#f3f5f4);font-size:12px;font-weight:650}
+.tp-outbound-line{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px;border:1px solid var(--theme-border-default,#ddd);border-radius:10px;margin:4px 0;min-width:0;cursor:pointer}
+.tp-outbound-line>span{display:grid;gap:2px;min-width:0}
+.tp-outbound-line strong{font-size:13px;line-height:1.35;overflow-wrap:anywhere}
+.tp-outbound-line small{font-size:11px;line-height:1.4;color:var(--theme-content-secondary,#777)}
+.tp-outbound-line input{appearance:auto!important;accent-color:#187b54;flex:0 0 18px;width:18px;height:18px;margin:0}
+.tp-outbound-filter{display:flex;gap:8px;align-items:end;margin:9px 0}
+.tp-outbound-filter label{min-width:0;flex:1;display:grid;gap:4px;font-size:11px;font-weight:650}
+.tp-outbound-filter input,.tp-outbound-filter select{box-sizing:border-box;width:100%;height:38px;border:1px solid var(--theme-border-default,#ccc);border-radius:9px;padding:6px;background:var(--theme-surface-primary,#fff);color:inherit;font-size:13px}
+.tp-outbound-list{max-height:285px;overflow-y:auto;overscroll-behavior:contain}
+@media(max-width:420px){.tp-outbound-panel{max-height:86dvh}.tp-outbound-list{max-height:27dvh}}
+
+
+/* UI-262: compact, keyboard-safe customer notification settings.
+   This sheet does not own the parent modal viewport or account session. */
+.tp-outbound-panel{
+  box-sizing:border-box;gap:6px;
+  max-height:min(84dvh,760px);
+  padding:0 2px max(12px,env(safe-area-inset-bottom,0px));
+  overscroll-behavior:contain;
+}
+.tp-outbound-panel .zalo-account-panel-head{
+  position:sticky;top:0;z-index:2;
+  margin:0;padding:8px 2px 10px;
+  background:var(--theme-surface-primary,#fff);
+}
+.tp-outbound-panel h3{
+  margin:10px 0 2px;font-size:14px;line-height:20px;letter-spacing:-.01em;
+}
+.tp-outbound-panel p{margin:2px 0 6px;line-height:1.4}
+.tp-outbound-panel .tp-outbound-intro{font-size:12px}
+.tp-outbound-panel .tp-outbound-quiet{font-size:11px}
+.tp-outbound-panel .tp-outbound-status{
+  position:sticky;top:52px;z-index:1;
+  padding:9px 12px;border:1px solid var(--theme-border-default,#dedede);
+  background:var(--theme-surface-secondary,#f5f5f5);
+  font-size:12px;line-height:18px;
+}
+.tp-outbound-panel .tp-outbound-line{
+  box-sizing:border-box;
+  min-height:44px;
+  padding:7px 10px;
+  margin:3px 0;
+  border-radius:12px;
+  background:var(--theme-surface-primary,#fff);
+}
+.tp-outbound-panel .tp-outbound-line>span{gap:2px}
+.tp-outbound-panel .tp-outbound-line strong{font-size:13px;line-height:18px}
+.tp-outbound-panel .tp-outbound-line small{font-size:11px;line-height:15px}
+.tp-outbound-panel .tp-outbound-line input{
+  flex:0 0 22px;width:22px;height:22px;
+  accent-color:#187b54;cursor:pointer;
+}
+.tp-outbound-panel .tp-outbound-line:has(input:checked){
+  border-color:color-mix(in srgb,#187b54 24%,var(--theme-border-default,#ddd));
+}
+.tp-outbound-panel .tp-outbound-line:focus-within{
+  outline:2px solid color-mix(in srgb,var(--theme-content-accent,#2473cb) 50%,transparent);
+  outline-offset:1px;
+}
+.tp-outbound-panel .tp-outbound-line--event{min-height:44px}
+.tp-outbound-panel .tp-outbound-line--customer{min-height:50px}
+.tp-outbound-panel .tp-outbound-filter{
+  align-items:end;gap:8px;
+  margin:4px 0 5px;
+}
+.tp-outbound-panel .tp-outbound-filter label{font-size:12px;gap:4px}
+.tp-outbound-panel .tp-outbound-filter label:first-child{flex:1 1 auto}
+.tp-outbound-panel .tp-outbound-filter label:last-child{flex:0 1 36%}
+.tp-outbound-panel .tp-outbound-filter input,
+.tp-outbound-panel .tp-outbound-filter select{
+  height:44px;min-height:44px;padding-inline:10px;font-size:16px;
+}
+.tp-outbound-panel .tp-outbound-list{
+  min-height:0;max-height:min(36dvh,330px);
+  padding:0 2px 8px;
+  overflow-y:auto;overscroll-behavior:contain;
+}
+.tp-outbound-panel .tp-outbound-results{
+  font-size:11px;line-height:16px;color:var(--theme-content-secondary,#777);
+}
+.tp-outbound-panel .tp-outbound-line input:disabled{cursor:progress}
+@media(max-width:420px){
+  .tp-outbound-panel{max-height:var(--shell-form-vv-height,86dvh)}
+  .tp-outbound-panel .tp-outbound-list{max-height:30dvh}
+  .tp-outbound-panel .tp-outbound-filter label:last-child{flex-basis:36%}
 }
 
 </style>
@@ -24042,24 +24136,6 @@ void import(`./contact-directory-admin.js?__build=${encodeURIComponent(document.
 // UI only: all sends are enforced by Supabase's customer + event allowlist.
 const types=[['order','Bán mới (đã giao) · ảnh + link'],['order_edit','Sửa đơn đã giao · ảnh mới + link'],['deliver','Chuyển đơn tạm → đã giao · ảnh + link'],['debt','Ghi nợ / Đã thu · ảnh công nợ + số dư + link']];
 let current=null;
-const style=document.createElement('style');
-style.textContent=`
-.tp-outbound-panel{display:flex;flex-direction:column;gap:9px;min-width:0;max-height:min(83dvh,750px);overflow-y:auto}
-.tp-outbound-panel h3{margin:14px 0 3px;font-size:14px;font-weight:750}
-.tp-outbound-panel p{margin:4px 0;font-size:12px;line-height:1.55;color:var(--theme-content-secondary,#667)}
-.tp-outbound-panel .tp-outbound-status{border-radius:10px;padding:10px;background:var(--theme-surface-secondary,#f3f5f4);font-size:12px;font-weight:650}
-.tp-outbound-line{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px;border:1px solid var(--theme-border-default,#ddd);border-radius:10px;margin:4px 0;min-width:0;cursor:pointer}
-.tp-outbound-line>span{display:grid;gap:2px;min-width:0}
-.tp-outbound-line strong{font-size:13px;line-height:1.35;overflow-wrap:anywhere}
-.tp-outbound-line small{font-size:11px;line-height:1.4;color:var(--theme-content-secondary,#777)}
-.tp-outbound-line input{appearance:auto!important;accent-color:#187b54;flex:0 0 18px;width:18px;height:18px;margin:0}
-.tp-outbound-filter{display:flex;gap:8px;align-items:end;margin:9px 0}
-.tp-outbound-filter label{min-width:0;flex:1;display:grid;gap:4px;font-size:11px;font-weight:650}
-.tp-outbound-filter input,.tp-outbound-filter select{box-sizing:border-box;width:100%;height:38px;border:1px solid var(--theme-border-default,#ccc);border-radius:9px;padding:6px;background:var(--theme-surface-primary,#fff);color:inherit;font-size:13px}
-.tp-outbound-list{max-height:285px;overflow-y:auto;overscroll-behavior:contain}
-@media(max-width:420px){.tp-outbound-panel{max-height:86dvh}.tp-outbound-list{max-height:27dvh}}
-`;
-document.head.appendChild(style);
 const auth=()=>window.V21AuthSessionStore;
 function client(){const s=auth()?.snapshot?.();if(s?.account?.role!=='admin'||s?.state!=='AUTHENTICATED')throw Error('admin_required');return auth().getClient();}
 async function rpc(name,args){const {data,error}=await client().rpc(name,args);if(error)throw error;return data;}
@@ -24071,7 +24147,7 @@ function open(modal){
   panel.className='zalo-account-panel tp-outbound-panel';
   panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','true');
   panel.setAttribute('aria-label','Thông báo nghiệp vụ khách hàng');
-  panel.innerHTML='<div class="zalo-account-panel-head"><strong>Thông báo nghiệp vụ KH</strong><button type="button" data-tp-close>Đóng</button></div><p>Chỉ khách nhóm KH được chọn mới nhận thông báo. Đơn tạm: tạo, sửa, xóa đều không gửi. Chỉ đơn đã giao mới tự thông báo. Lưu cài đặt không tạo đơn hay công nợ.</p><div class="tp-outbound-status" role="status">Đang tải cấu hình…</div><div data-tp-content></div><p data-tp-error class="zalo-account-error" hidden></p>';
+  panel.innerHTML='<div class="zalo-account-panel-head"><strong>Thông báo nghiệp vụ KH</strong><button type="button" data-tp-close>Đóng</button></div><p class="tp-outbound-intro">Chỉ gửi cho khách KH được chọn. Đơn tạm chưa giao không gửi thông báo.</p><div class="tp-outbound-status" role="status">Đang tải cấu hình…</div><div data-tp-content></div><p data-tp-error class="zalo-account-error" hidden></p>';
   host.appendChild(panel);
   panel.querySelector('[data-tp-close]').addEventListener('click',()=>host.replaceChildren());
   const status=panel.querySelector('.tp-outbound-status');
@@ -24079,10 +24155,11 @@ function open(modal){
   const err=panel.querySelector('[data-tp-error]');
   let data=null,filter='all',searchText='',saving=false;
   function line(label,help,checked,key,id=null){
-    const row=document.createElement('label');row.className='tp-outbound-line';
+    const row=document.createElement('label');row.className='tp-outbound-line';row.classList.add(key==='customer'?'tp-outbound-line--customer':key==='master'?'tp-outbound-line--master':'tp-outbound-line--event');
     const wrap=document.createElement('span'),title=document.createElement('strong'),small=document.createElement('small'),input=document.createElement('input');
-    title.textContent=label;small.textContent=help||'';wrap.append(title,small);
+    title.textContent=label;wrap.appendChild(title);if(help){small.textContent=help;wrap.appendChild(small);}
     input.type='checkbox';input.checked=Boolean(checked);input.setAttribute('aria-label',label);
+    input.dataset.outboundKey=key;if(id!==null)input.dataset.outboundId=String(id);
     input.addEventListener('change',()=>void save(key,input.checked,id));
     row.append(wrap,input);return row;
   }
@@ -24091,12 +24168,14 @@ function open(modal){
     if(!panel.isConnected||!data)return;
     const arr=Array.isArray(data.customers)?data.customers:[];
     const num=arr.filter(x=>x.enabled).length;
+    const panelTop=panel.scrollTop;
+    const listTop=panel.querySelector('.tp-outbound-list')?.scrollTop||0;
     status.textContent=(data.master?'Đang bật':'Đang tắt')+' · '+num+'/'+arr.length+' khách được chọn';
     content.replaceChildren();
     content.appendChild(line('Cho phép gửi tự động','Tắt tổng = không gửi bất kỳ loại tin nghiệp vụ nào.',data.master,'master'));
     heading('Loại tin');
-    for(const [key,label] of types)content.appendChild(line(label,'Chỉ gửi cho khách được chọn.',data.events?.[key],key));
-    const care=document.createElement('p');care.textContent='Chăm sóc / nhắc nhập hàng: lịch vẫn tạm dừng, không kích hoạt ở đây.';content.appendChild(care);
+    for(const [key,label] of types)content.appendChild(line(label,'',data.events?.[key],key));
+    const care=document.createElement('p');care.className='tp-outbound-quiet';care.textContent='Chăm sóc / nhắc nhập hàng vẫn tạm dừng.';content.appendChild(care);
     heading('Kênh nhận');
     content.appendChild(line('KH có liên kết Zalo','Tin lưu trong Chat; Zalo chuyển tiếp nếu đang liên kết.',data.audience?.linked,'linked'));
     content.appendChild(line('KH chưa liên kết Zalo','Chỉ gửi trong Chat; không thể chuyển sang Zalo.',data.audience?.unlinked,'unlinked'));
@@ -24107,28 +24186,42 @@ function open(modal){
     for(const [value,label] of [['all','Tất cả'],['linked','Có Zalo'],['unlinked','Chưa có Zalo']]){
       const o=document.createElement('option');o.value=value;o.textContent=label;select.appendChild(o);
     }select.value=filter;b.appendChild(select);f.append(a,b);content.appendChild(f);
+    const results=document.createElement('span');results.className='tp-outbound-results';results.setAttribute('aria-live','polite');content.appendChild(results);
     const list=document.createElement('div');list.className='tp-outbound-list';content.appendChild(list);
     function paint(){
       list.replaceChildren();let count=0;
       for(const c of arr){
         if(filter!=='all'&&Boolean(c.linked)!==(filter==='linked'))continue;
         if(!normalize(c.name+' '+c.username).includes(normalize(searchText)))continue;
-        count++;list.appendChild(line(c.name||c.username,(c.linked?'Có liên kết Zalo':'Chưa liên kết Zalo')+' · '+c.username,c.enabled,'customer',c.id));
+        count++;list.appendChild(line(c.name||c.username,(c.linked?'Có Zalo':'Chưa liên kết Zalo')+(c.linked&&c.username?' · '+c.username:''),c.enabled,'customer',c.id));
       }
+      results.textContent=count+'/'+arr.length+' khách phù hợp';
       if(!count){const p=document.createElement('p');p.textContent='Không có khách phù hợp';list.appendChild(p);}
     }
     input.addEventListener('input',()=>{searchText=input.value;paint();});
     select.addEventListener('change',()=>{filter=select.value;paint();});
     paint();
+    list.scrollTop=listTop;panel.scrollTop=panelTop;
   }
   async function save(key,enabled,id=null){
-    if(saving)return;saving=true;status.textContent='Đang lưu…';
-    panel.querySelectorAll('input,select').forEach(x=>x.disabled=true);
+    if(saving||!panel.isConnected)return;
+    saving=true;status.textContent='Đang lưu…';
+    // Preserve search input and scroll while a single RPC commits.
+    // Do not optimistically claim the server accepted notification changes.
+    const controls=[...panel.querySelectorAll('.tp-outbound-line input[type="checkbox"]')];
+    controls.forEach(x=>x.disabled=true);
     try{
-      data=await rpc('chat_admin_outbound_settings_set',{p_key:key,p_enabled:enabled,p_customer_id:id});
-      err.hidden=true;
-    }catch(e){err.textContent='Lưu thất bại: '+String(e.message||e);err.hidden=false;}
-    finally{saving=false;render();}
+      const fresh=await rpc('chat_admin_outbound_settings_set',{p_key:key,p_enabled:enabled,p_customer_id:id});
+      if(!panel.isConnected)return;
+      data=fresh;err.hidden=true;
+    }catch(e){
+      if(!panel.isConnected)return;
+      err.textContent='Lưu thất bại: '+String(e.message||e);
+      err.hidden=false;
+    }finally{
+      saving=false;
+      if(panel.isConnected)render();
+    }
   }
   void rpc('chat_admin_outbound_settings_get',{}).then(result=>{data=result;render();}).catch(e=>{status.textContent='Không tải được cấu hình';err.textContent=String(e.message||e);err.hidden=false;});
   setTimeout(()=>panel.querySelector('[data-tp-close]')?.focus?.({preventScroll:true}),0);
