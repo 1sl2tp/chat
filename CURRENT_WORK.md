@@ -1,3 +1,12 @@
+## 2026-11-08 — UI-263 · Bank report refresh on canonical finance confirmation
+
+- **Evidence:** existing `v21-sync-engine.js::applyMessageEvent` emitted `v21-bank-report-dirty` only for one obsolete `taphoa:bank-report:2026-10-19:initial` client ID. The existing dashboard listener was therefore never awakened by current verified collection ACK messages, even when an Admin was viewing the report.
+- **Patch:** one pure matcher for canonical `taphoa:<receipt UUID>:collection` or `taphoa:bank-manual:<notice id>:collection` plus the historical initial signal. Dispatch only from a confirmed own Admin message, after normal sync/message ownership. The existing report listener performs one coalesced refresh only if visible/active. No new RPC, notification, cron, Realtime channel, read permission, database view, or polling owner. Never infer financial success from a client-side signal.
+- **Measured upstream delay (read-only, n=8, last 48h):** median scan-to-verified ledger ~307s was predominantly Agribank notification arriving ~306s after scan; phone notice-to-server ~3s; ledger post ~0.7s after both verified sources; ACK message ~80s after ledger due existing 2min server drain cadence. No shortcut around bank confirmation, ledger checks, idempotency or opt-in. UI change improves report update **after** the canonical finance message, not bank-signal timing.
+- **Test:** `tests/test_chat_bank_report_realtime_dirty_ui263_20261108.cjs` verifies accepted/rejected IDs, Admin ownership, existing active-only dashboard reload and no report polling. Public PWA shell epoch `pwa-chat-bank-report-signal-ui263-20261108`. CI, Pages/custom-domain and actual iPhone event delivery must be confirmed separately.
+
+---
+
 ## 2026-11-08 — UI-262 · Compact customer notification settings
 
 - **Evidence:** authenticated iPhone settings screenshot has repetitive event help rows, long customer list and no stable scroll after a checkbox save; current JS rebuilt the whole modal content after each RPC.

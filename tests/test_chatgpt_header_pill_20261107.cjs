@@ -41,5 +41,5 @@ for(const width of [320,360,375,390,430,507]){
   const right=width-left-pill;
   assert(pill>0&&Math.abs(left-right)<1,'balanced capsule at '+width+'px');
 }
-assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-notice-settings-ui262-20261108';"));
+assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-bank-report-signal-ui263-20261108';"));
 console.log('UI-257 ChatGPT-style centered header, live Chat/Photos tabs, 320–507px symmetry and state safety PASS');

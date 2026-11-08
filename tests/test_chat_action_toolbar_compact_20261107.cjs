@@ -38,5 +38,5 @@ assert(js.includes('window.getSelection?.()?.isCollapsed===false'));
 assert(js.includes('unit.appendChild(createActionGroup(message));'));
 for(const action of ["label:'Trả lời'","label:'Chia sẻ'","label:'Chuyển tiếp'","label:'Sao chép'"])
  assert(js.includes(action),'keep action '+action);
-assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-notice-settings-ui262-20261108';"));
+assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-bank-report-signal-ui263-20261108';"));
 console.log('UI-260 compact contextual toolbar, 182px visual width, 44px targets, 320–430px safety PASS');

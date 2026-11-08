@@ -308,6 +308,15 @@ async function applyContactEvent(event,context=captureSyncOwnerContext()){
   return true;
 }
 
+// UI-263: refresh the already-open report when a canonical Admin financial
+// confirmation enters the existing message stream. No extra subscription or
+// polling; report's own reload() remains the only data reader.
+function isBankReportDirtyMessage(clientId){
+  const id=String(clientId||'');
+  return id==='taphoa:bank-report:2026-10-19:initial'||
+    /^taphoa:(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|bank-manual:\d+):collection$/i.test(id);
+}
+
 async function applyMessageEvent(event,context=captureSyncOwnerContext()){
   let payload=canonicalMessage(event?.payload);
   if(!payload?.id||!syncOwnerContextCurrent(context))return false;
@@ -351,7 +360,7 @@ async function applyMessageEvent(event,context=captureSyncOwnerContext()){
   if(!syncOwnerContextCurrent(context))return false;
   markActiveMessageDirty(payload.id,payload.conversation_id,{reconcileMedia:true});
   if(!own&&visible)scheduleMarkRead(payload.conversation_id);
-  if(String(payload.client_id||'').startsWith('taphoa:bank-report:2026-10-19:initial')){
+  if(own&&authSnapshot()?.account?.role==='admin'&&isBankReportDirtyMessage(payload.client_id)){
     document.dispatchEvent(new CustomEvent('v21-bank-report-dirty',{detail:{messageId:payload.id}}));
   }
   return true;
