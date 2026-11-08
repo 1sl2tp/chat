@@ -46,7 +46,7 @@ const incoming=rule(mobile,root+' #messageWindow>.message-row[data-content-kind=
 assert(outgoing.includes('var(--chat-message-sent-bg)!important;')&&outgoing.includes('color:var(--theme-content-primary)!important;'));
 assert(incoming.includes('var(--chat-message-received-bg)!important;')&&incoming.includes('color:var(--theme-content-primary)!important;'));
 const compose=rule(composer,root+' #composerShell');
-assert(compose.includes('grid-template-rows:autoautominmax(var(--ui-control-touch,44px),auto)var(--ui-control-touch,44px);'),
+assert(compose.includes('grid-template-rows:autoautominmax(40px,auto)var(--ui-control-touch,44px);'),
  'composer should have a full-width writing line above the action row');
 const editor=rule(composer,root+' #editorWrap');
 assert(editor.includes('grid-column:1/-1;')&&editor.includes('grid-row:3;'));
@@ -57,6 +57,6 @@ assert(composer.includes('#stageLayout[data-keyboard-open="true"]'),'VisualViewp
 for(const item of ['data-chat-quick="cash"','data-chat-quick="debt"','data-chat-quick="photos"','data-chat-quick="recent"',
                    'id="composer-mic-btn"','id="send" type="submit"','id="attachmentTray"'])
  assert(html.includes(item),'functional control preserved: '+item);
-assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-auth-refresh-guard-auth264-20261108';"),
+assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-mobile-chatgpt-rhythm-ui267-20261108';"),
  'new public PWA epoch without deleting private caches');
 console.log('UI-256 ChatGPT identity, directory, neutral bubbles, two-row composer and preserved keyboard/voice/business controls PASS');
