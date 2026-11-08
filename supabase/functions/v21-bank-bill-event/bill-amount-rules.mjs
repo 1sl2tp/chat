@@ -20,10 +20,16 @@ export function parseAmountText(value){
  else if(v.startsWith("+")){v=v.slice(1).trim();}
  v=v.replace(/^(?:VND|VNĐ|ĐỒNG|₫|Đ)\s*/i,"").trim();
  v=v.replace(/\s*(?:VNĐ|VND|ĐỒNG|Đ|₫)$/i,"").trim();
- // Accept decimal zero cents only if the remaining integer uses valid groups.
+ // Accept exact zero decimals only with an unambiguous integer.
+ // "1.170.000,00" / "1,170,000.00" are valid; "1.170.00" is
+ // not (same punctuation ambiguously acts as both group and decimal).
  if(/[.,]00$/.test(v)){
+   const decimalSeparator=v.slice(-3,-2);
    const base=v.slice(0,-3);
-   if(/^\d{1,3}([., ])\d{3}(?:\1\d{3})*$/.test(base))v=base;
+   const grouping=/^\d{1,3}([., ])\d{3}(?:\1\d{3})*$/.exec(base);
+   if(/^\d{1,12}$/.test(base) || (grouping&&grouping[1]!==decimalSeparator))
+     v=base;
+   else return null;
  }
  if(!/^\d{1,12}$/.test(v)&&!/^\d{1,3}([., ])\d{3}(?:\1\d{3})*$/.test(v))return null;
  const digits=v.replace(/[., ]/g,"");
@@ -56,6 +62,53 @@ export function validateVisionRead(data){
 }
 
 
+// BANK-266: Normalize only full, explicitly printed Vietnamese dates.
+// A clock without a printed calendar year remains unknown; never borrow
+// the date from Chat upload time or from Android's notification clock.
+const billPad=(n,size=2)=>String(n).padStart(size,"0");
+function verifiedBillDate(year,month,day){
+ const y=Number(year),m=Number(month),d=Number(day);
+ if(!Number.isInteger(y)||y<2020||y>2100||!Number.isInteger(m)
+   ||m<1||m>12||!Number.isInteger(d)||d<1||d>31)return null;
+ const check=new Date(Date.UTC(y,m-1,d));
+ if(check.getUTCFullYear()!==y||check.getUTCMonth()!==m-1||check.getUTCDate()!==d)return null;
+ return billPad(y,4)+"-"+billPad(m)+"-"+billPad(d);
+}
+function parsePrintedBillDate(source){
+ const s=String(source||"").trim();
+ let m=/^(20\d{2})[-/](\d{1,2})[-/](\d{1,2})$/.exec(s);
+ if(m)return verifiedBillDate(m[1],m[2],m[3]);
+ m=/^(\d{1,2})[\/.-](\d{1,2})[\/.-](20\d{2})$/.exec(s);
+ return m?verifiedBillDate(m[3],m[2],m[1]):null;
+}
+function parsePrintedBillTime(source){
+ const s=String(source||"").trim();
+ let m=/^(20\d{2})[-/](\d{1,2})[-/](\d{1,2})[ T](\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(s);
+ let day,h,minute,second;
+ if(m){
+   day=verifiedBillDate(m[1],m[2],m[3]);
+   h=Number(m[4]);minute=Number(m[5]);second=m[6];
+ }else{
+   // Both common layouts: "08/11/2026 11:45" and "11:45 08/11/2026".
+   m=/^(\d{1,2})[\/.-](\d{1,2})[\/.-](20\d{2})[,\sT]+(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(s);
+   if(m){
+     day=verifiedBillDate(m[3],m[2],m[1]);
+     h=Number(m[4]);minute=Number(m[5]);second=m[6];
+   }else{
+     m=/^(\d{1,2}):(\d{2})(?::(\d{2}))?[,\sT]+(\d{1,2})[\/.-](\d{1,2})[\/.-](20\d{2})$/.exec(s);
+     if(!m)return null;
+     day=verifiedBillDate(m[6],m[5],m[4]);
+     h=Number(m[1]);minute=Number(m[2]);second=m[3];
+   }
+ }
+ const sec=second===undefined?null:Number(second);
+ if(!day||!Number.isInteger(h)||h<0||h>23
+   ||!Number.isInteger(minute)||minute<0||minute>59
+   ||(sec!==null&&(!Number.isInteger(sec)||sec<0||sec>59)))return null;
+ return {date:day,time:day+" "+billPad(h)+":"+billPad(minute)
+   +(sec!==null?":"+billPad(sec):""),precision:sec!==null?"second":"minute"};
+}
+
 /**
  * Normalize V4 supplemental fields without ever guessing obscured characters.
  * Time is wall-clock Vietnam time, never parsed as the server timezone.
@@ -69,32 +122,26 @@ export function readV4Fields(data){
  const suffix=plain(data?.recipient_account_last5);
  const suffixFromVisible=clean.match(/(\d{5})$/)?.[1]||null;
  const last5=fullAccount?fullAccount.slice(-5):/^\d{5}$/.test(suffix)&&suffix===suffixFromVisible?suffix:null;
- const bankRaw=plain(data?.receiving_bank).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase();
- const bank=/AGRIBANK|NONG NGHIEP/.test(bankRaw)?"AGRIBANK":/VIETINBANK|CONG THUONG/.test(bankRaw)?"VIETINBANK":bankRaw?bankRaw.slice(0,80):null;
- const rawTime=plain(data?.transaction_datetime_vn);
- const t=/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/.exec(rawTime);
- let billTime=null,precision=null;
- if(t){
-   const [year,month,day,hour,minute,second]=t.slice(1).map(v=>v===undefined?0:Number(v));
-   const check=new Date(Date.UTC(year,month-1,day));
-   if(year>=2020&&year<=2100&&check.getUTCFullYear()===year&&check.getUTCMonth()===month-1
-      &&check.getUTCDate()===day&&hour<=23&&minute<=59&&second<=59){
-       billTime=rawTime.replace("T"," ");precision=t[6]?"second":"minute";
-   }
- }
+ const bankRaw=plain(data?.receiving_bank).normalize("NFD")
+   .replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d").replace(/Đ/g,"D").toUpperCase();
+ // Only explicit beneficiary-bank aliases are normalized. The sender-app
+ // logo must never fill missing receiving_bank.
+ const bank=/\bAGRI\s*BANK\b|\bNONG NGHIEP\b|\bNN\s*&\s*PTNT\b|\bNHNN\s*&\s*PTNT\b|\bNH\s+NN\s+(?:VA\s+)?PTNT\b/.test(bankRaw)
+   ?"AGRIBANK":/VIETINBANK|CONG THUONG/.test(bankRaw)?"VIETINBANK"
+   :bankRaw?bankRaw.slice(0,80):null;
+ const printedClock=parsePrintedBillTime(plain(data?.transaction_datetime_vn));
+ let billTime=printedClock?.time||null,precision=printedClock?.precision||null;
  const senderBank=plain(data?.sending_bank);
  const senderName=plain(data?.sender_name).normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d").replace(/Đ/g,"D").replace(/\s+/g," ").toUpperCase();
  const reference=plain(data?.transfer_reference).replace(/\s+/g,"");
  const transferContent=plain(data?.transfer_content);
  const visualDate=plain(data?.transfer_date_vn);
- const rawBillDay=/^\d{4}-\d{2}-\d{2}$/.test(visualDate)?visualDate:null;
- let billDay=billTime?billTime.slice(0,10):null;
- if(!billDay&&rawBillDay){
-   const [y,m,d]=rawBillDay.split("-").map(Number);
-   const exact=new Date(Date.UTC(y,m-1,d));
-   if(y>=2020&&y<=2100&&exact.getUTCFullYear()===y&&exact.getUTCMonth()===m-1&&exact.getUTCDate()===d)
-     billDay=rawBillDay;
- }
+ const rawBillDay=parsePrintedBillDate(visualDate);
+ // Conflicting independently provided calendar dates are never treated
+ // as a verified transaction clock, even when the amount is readable.
+ const timeDateConflict=Boolean(billTime&&rawBillDay&&billTime.slice(0,10)!==rawBillDay);
+ if(timeDateConflict){billTime=null;precision=null;}
+ const billDay=timeDateConflict?null:billTime?billTime.slice(0,10):rawBillDay;
  return {
     receiving_name:name && name.length<=120?name:null,
     receiving_account:fullAccount,
@@ -105,6 +152,7 @@ export function readV4Fields(data){
     sender_name:senderName&&senderName.length<=120?senderName:null,
     transfer_at_vn:billTime,
     transaction_time_precision:precision,
+    time_date_conflict:timeDateConflict,
     transfer_reference:reference&&reference.length<=120?reference:null,
     transfer_date_vn:billDay,
     transfer_content:transferContent&&transferContent.length<=220?transferContent:null,
