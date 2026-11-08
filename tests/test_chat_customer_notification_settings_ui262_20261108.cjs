@@ -1,0 +1,23 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const js=fs.readFileSync('customer-notification-settings.js','utf8');
+const css=fs.readFileSync('customer-notification-settings.css','utf8');
+const html=fs.readFileSync('index.source.html','utf8');
+const sw=fs.readFileSync('sw.js','utf8');
+assert(html.includes('href="./customer-notification-settings.css" data-build-source="customer-notification-settings.css"'),'CSS must use existing build owner');
+assert(!js.includes("document.createElement('style')"),'no injected feature stylesheet');
+for(const id of ['order','order_edit','deliver','debt','linked','unlinked','master','customer'])
+  assert(js.includes("'"+id+"'"),'preserve RPC setting '+id);
+assert(js.includes("p_key:key,p_enabled:enabled,p_customer_id:id"),'no changed RPC contract');
+assert(js.includes("if(saving||!panel.isConnected)return;"),'single-flight and disposed modal guard');
+assert(js.includes("if(panel.isConnected)render();"),'server-only reconcile');
+assert(js.includes("const listTop=panel.querySelector('.tp-outbound-list')?.scrollTop||0;"),'preserve customer position when saving');
+assert(js.includes('list.scrollTop=listTop;panel.scrollTop=panelTop;'),'restore list + panel scroll');
+assert(js.includes("input.addEventListener('input',()=>{searchText=input.value;paint();});"),'local immediate search');
+assert(js.includes("results.textContent=count+'/'+arr.length+' khách phù hợp'"),'show filter count');
+assert(js.includes("status.textContent='Đang lưu…'"),'no premature confirmation');
+assert(js.includes('if(!panel.isConnected)return;'),'do not use disposed modal');
+assert(!js.includes('setInterval('),'no extra polling');
+for(const value of ['.tp-outbound-line--event','.tp-outbound-line--customer','.tp-outbound-list','min-height:44px','font-size:16px','overscroll-behavior:contain','position:sticky'])assert(css.includes(value),value);
+assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-notice-settings-ui262-20261108';"),'PWA public shell invalidation');
+console.log('UI-262 compact notifications, scroll retention, no extra RPC or duplicate sends PASS');

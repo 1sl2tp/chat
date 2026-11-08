@@ -1,3 +1,12 @@
+## 2026-11-08 — UI-262 · Compact customer notification settings
+
+- **Evidence:** authenticated iPhone settings screenshot has repetitive event help rows, long customer list and no stable scroll after a checkbox save; current JS rebuilt the whole modal content after each RPC.
+- **UI owner:** `customer-notification-settings.js` retains all authorized `chat_admin_outbound_settings_get/set` RPCs, admin check and every existing event/audience/customer key. Dedicated `customer-notification-settings.css` owns compact 44px interactions, readable two-line rows, sticky title/status, search/filter and customer results scroller. Save no longer disables search and restores both scroll positions after server-confirmed response. No changes to actual send/eligibility.
+- **Financial latency audit (read-only Supabase):** 8 sent automatic collection ACKs in the preceding 48h showed median ~364s from completed bill scan to ACK; approximately 307s elapsed before the bank notification arrived, verified ledger posted ~0.7s after both sources were present, and ACK was inserted ~80s after ledger. Cron ACK 2min, while bank notification source delay is external; never show received before verified ledger or bypass idempotency and approval. Report UI remains read-only; live delivery needs separate event-driven proof before tuning.
+- **Verify/release:** UI-262 static regression wired to canonical Verify V21, epoch `pwa-chat-notice-settings-ui262-20261108` updates only public shell. CI, deploy and authenticated device validation must be observed independently. Rollback CSS+JS+test+epoch; don't touch customer settings/business data.
+
+---
+
 ## 2026-11-08 — UI-261 · Directory and account-menu consistency (first implementation)
 
 - **Purpose:** translate the design illustration into the actual app's existing contacts and account controls without fictitious Groups/Discover routes. Existing one-column mobile and three-column desktop architecture remains unchanged.
