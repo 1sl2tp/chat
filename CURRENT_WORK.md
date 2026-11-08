@@ -1,3 +1,15 @@
+## 2026-11-08 — AUTH-264 · iPhone PWA unexpectedly returns to login
+
+- **User evidence:** iPhone PWA screenshot at 13:56 ICT shows the guest login card with an empty account/password form while the Chat composer remains mounted. This indicates the browser fell out of the authenticated shell; it does **not** by itself prove a new-device approval or a specific cause for the lost session.
+- **Read-only Supabase evidence:** one Auth refresh endpoint HTTP 400 with `refresh_token_already_used` at about 13:45 ICT (06:45Z), in the same general time period. No reliable client/device correlation was available, so this is a related risk signal, not definitive attribution.
+- **Code risk / owner:** `auth-session-store.js::bootstrap` used to invoke `auth.refreshSession()` on **every** RPC error after `getSession()` had already handled normal refresh. Unrelated network/PostgREST errors could therefore cause unnecessary single-use refresh-token rotation.
+- **Fix (PR #234, merge `22bf9b0197fb839869b2109c35816d7ed9c1732e`):** only retry manual token refresh for explicit invalid/expired JWT errors; on transient RPC failure retain tokens and display RECONNECTING. Preserve existing device-approval rules, real revocation handling and normal Supabase automatic refresh. Rotate the *public* PWA shell epoch; do not clear account data or add polling/retries.
+- **Verification:** PR Verify V21 **PASS**; GitHub Pages deployment `42457562802` **SUCCESS**, including `Verify Pages custom domain`. The iOS PWA VM regression covers transient RPC failure (zero manual refresh, zero signOut) and explicit expired JWT (one refresh, restored authenticated state).
+- **Limitations:** this is a **mitigation of unnecessary refresh**, not proof that the one production `refresh_token_already_used` was caused by that path. If Supabase already invalidated/lost the refresh token, a device cookie is not a login credential and secure reauthentication may still be required. Live iPhone PWA token restoration remains **unverified on-device**.
+- **Rollback:** revert PR #234 or its squash merge, restore preceding shell cache epoch via a new shell revision; preserve all private storage. **Resource impact:** no new RPCs, database operations, background polling, timers, Edge Functions or Realtime channels.
+
+---
+
 ## 2026-11-08 — UI-263 · Bank report refresh on canonical finance confirmation
 
 - **Evidence:** existing `v21-sync-engine.js::applyMessageEvent` emitted `v21-bank-report-dirty` only for one obsolete `taphoa:bank-report:2026-10-19:initial` client ID. The existing dashboard listener was therefore never awakened by current verified collection ACK messages, even when an Admin was viewing the report.
