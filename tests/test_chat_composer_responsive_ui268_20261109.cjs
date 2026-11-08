@@ -17,7 +17,7 @@ function rule(source,selector){
  assert(end>begin);
  return source.slice(begin,end).replace(/\s+/g,'');
 }
-const mobile=css.slice(css.indexOf('@media(max-width:63.999rem)'));
+const mobile=css.slice(css.indexOf('@media (max-width:63.999rem), (pointer:coarse) {'));
 const narrow=rule(mobile,root+' #composerShell');
 assert(narrow.includes('grid-template-columns:var(--ui-control-touch,44px)minmax(0,1fr)var(--ui-control-touch,44px)var(--ui-control-touch,44px);'));
 assert(narrow.includes('grid-template-rows:autoautominmax(var(--ui-control-touch,44px),auto);'));
