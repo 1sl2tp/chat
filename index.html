@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="0aea2fbe3b62a7f287ddf5e39e3d779f866e4d15bd8c518b19a967af14f9d73e">
+<meta name="app-build-id" content="5724168160798b9631be2453cbb9eb82905ffb9c425043cb18d276a0368c05e2">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -20992,6 +20992,20 @@ function clearHeartbeat(){
   if(heartbeatId){window.clearInterval(heartbeatId);heartbeatId=0;}
 }
 
+// Never rotate a single-use Supabase refresh token merely because an RPC
+// failed (network, timeout, quota, permission, or temporary PostgREST errors).
+// getSession() already refreshes expired sessions; this fallback is reserved
+// for an explicit invalid/expired JWT after the project migration.
+function bootstrapRequiresJwtRefresh(error){
+  const code=String(error?.code||'').toLowerCase();
+  const message=String(error?.message||'').toLowerCase();
+  const status=Number(error?.status||error?.context?.status||0);
+  return code==='pgrst301'||code==='invalid_jwt'||
+    ((status===401||status===403)&&
+      /jwt|access token|bearer token/.test(message)&&
+      /expired|invalid|signature|malformed/.test(message));
+}
+
 // A temporary RPC/network failure is not proof that a browser session was revoked.
 function confirmedBootstrapRejection(error){
   const reason=String(error?.message||error?.code||error||'').toLowerCase();
@@ -21299,11 +21313,9 @@ async function bootstrap(){
   let {data,error}=await client.rpc('v21_auth_bootstrap',{
     p_device_key:bootDeviceKey,p_label:deviceLabel(),p_platform:platformLabel()
   });
-  // Supabase migration continuity: the browser may still hold a valid refresh
-  // token issued by the previous project while its access JWT was signed by
-  // the previous project. Refresh once against the new project before forcing
-  // a logout. Auth sessions/refresh tokens are migrated during cutover.
-  if(error){
+  // Only a server-confirmed JWT mismatch can justify one explicit
+  // refresh. General RPC failures must preserve the current token unchanged.
+  if(error&&bootstrapRequiresJwtRefresh(error)){
     try{
       const refreshed=await client.auth.refreshSession();
       if(!refreshed?.error&&refreshed?.data?.session){
