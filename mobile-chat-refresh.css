@@ -108,18 +108,19 @@
     width:min(calc(100% - var(--ui-composer-effective-gutter) - var(--ui-composer-effective-gutter)),44rem);
     padding-inline:0!important;
     margin-inline:auto;
-    margin-bottom:calc(var(--ui-space-6,6px) + env(safe-area-inset-bottom,0px));
+    margin-bottom:calc(4px + env(safe-area-inset-bottom,0px));
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell{
     grid-template-columns:var(--ui-control-touch,44px) minmax(0,1fr) var(--ui-control-touch,44px) var(--ui-control-touch,44px);
-    grid-template-rows:auto auto minmax(var(--ui-control-touch,44px),auto) var(--ui-control-touch,44px);
+    /* ChatGPT-like compact writing line above unchanged 44px action targets. */
+    grid-template-rows:auto auto minmax(40px,auto) var(--ui-control-touch,44px);
     align-items:center;
     gap:0 var(--ui-composer-action-gap,4px);
     overflow:visible;
     border:1px solid var(--composer-border,var(--theme-border-strong));
     border-radius:var(--ui-chat-composer-radius,var(--radius-2xl,28px));
-    padding:2px var(--ui-composer-inner-inset,4px);
+    padding:1px var(--ui-composer-inner-inset,4px);
     background:var(--cgpt-composer-surface-primary);
     box-shadow:var(--composer-shadow,0 1px 1px #00000008),0 4px 14px rgba(0,0,0,.035);
     transition:border-color .14s ease,box-shadow .14s ease;
@@ -152,10 +153,10 @@
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #editor{
-    min-height:var(--ui-control-touch,44px);
-    max-height:96px;
+    min-height:40px;
+    max-height:112px;
     margin:0;
-    padding:10px 4px!important;
+    padding:7px 4px!important;
     font-size:var(--ui-input-mobile-font-size,16px);
     line-height:22px;
   }
