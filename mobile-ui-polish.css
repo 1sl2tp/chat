@@ -1393,14 +1393,14 @@
     padding:3px 6px 5px!important;
   }
   #appShell[data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-filter-line{
-    min-height:40px;
+    min-height:44px;
     gap:4px;
   }
   #appShell[data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-filters{
     gap:4px!important;
   }
   #appShell[data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-filter{
-    min-height:40px!important;
+    min-height:44px!important;
     padding-inline:11px!important;
     font-weight:500!important;
   }
