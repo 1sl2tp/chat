@@ -1,0 +1,23 @@
+plugins { id 'com.android.application' version '8.9.2' }
+
+android {
+  namespace 'xyz.taphoa.webshell'
+  compileSdk 35
+  defaultConfig {
+    applicationId 'xyz.taphoa.chat'
+    minSdk 26
+    targetSdk 34
+    versionCode 1
+    versionName '0.1.0-test'
+    buildConfigField 'String', 'START_URL', '"https://chat.taphoa.xyz/"'
+    buildConfigField 'String', 'APP_HOST', '"chat.taphoa.xyz"'
+    buildConfigField 'String', 'BAR_COLOR', '"#2563EB"'
+    buildConfigField 'boolean', 'IS_DARK', 'false'
+    buildConfigField 'boolean', 'VIDEO_APP', 'false'
+  }
+  buildFeatures { buildConfig true }
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_17
+    targetCompatibility JavaVersion.VERSION_17
+  }
+}

@@ -1,0 +1,42 @@
+name: Build TAPHOA Chat Android APK (test)
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'android/webshell/**'
+      - '.github/workflows/build-android-webshell.yml'
+permissions:
+  contents: read
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - name: Install Android SDK 35
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - name: Compile test APK
+        run: gradle -p android/webshell --no-daemon :app:assembleDebug
+      - name: Verify package and signing
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=android/webshell/app/build/outputs/apk/debug/app-debug.apk
+          test -s "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "name='xyz.taphoa.chat'"
+          sha256sum "$APK"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chat-android-apk-test-0.1.0
+          path: android/webshell/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14
