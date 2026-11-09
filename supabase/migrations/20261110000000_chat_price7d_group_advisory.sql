@@ -60,6 +60,8 @@ BEGIN
     LEFT JOIN first_price h ON h.product_code=p.product_code
     WHERE p.is_active=true AND p.deleted_at IS NULL
       AND p.input_price_vnd > 0 AND p.sale_price_vnd > 0
+      AND p.source_key <> 'thuoc-la'
+      AND lower(extensions.unaccent(p.product_name)) !~ '^(bia|ruou|thuoc la|thuoc|cigar|vape|pod|nicotine)( |$)'
       AND nullif(btrim(p.product_name),'') IS NOT NULL
   ),
   merged AS (
