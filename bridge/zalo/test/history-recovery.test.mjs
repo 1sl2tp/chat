@@ -80,3 +80,28 @@ test('arms once on cipher key and can be cancelled before starting',async()=>{
   api.listener.emit('cipher_key','key');
   assert.equal(api.listener.calls.length,0);
 });
+
+
+test('falls back to Zalo HD photo if historical original link expired',async()=>{
+  const photo=event('expired-original','2026-11-09T01:00:00.000Z',{photo:true});
+  photo.data.content={
+    oriUrl:'https://img.example.test/expired.jpg',
+    hdUrl:'https://img.example.test/hd.jpg',
+    href:'https://img.example.test/preview.jpg',
+  };
+  const api=fakeApi([[photo],[],[]]);
+  const g=gateway();
+  const attempted=[];
+  const stats=await recoverZaloHistory({api,gateway:g,since,until,logger,delayMs:0,
+    download:async({media})=>{
+      attempted.push(media.sourceUrl);
+      if(media.sourceUrl.includes('expired'))throw new Error('zalo_media_http_403');
+      return{data:Buffer.from('hd'),mimeType:'image/jpeg',filename:'hd.jpg',sizeBytes:2};
+    }});
+  assert.deepEqual(attempted,[
+    'https://img.example.test/expired.jpg',
+    'https://img.example.test/hd.jpg',
+  ]);
+  assert.equal(stats.acceptedMedia,1);
+  assert.equal(stats.failures,0);
+});
