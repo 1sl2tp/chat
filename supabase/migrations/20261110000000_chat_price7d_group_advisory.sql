@@ -21,13 +21,13 @@ DECLARE
   v_lines text;
   v_body text;
 BEGIN
-  WITH window AS (
+  WITH bounds AS (
     SELECT p_at - interval '7 days' AS starts_at, p_at AS ends_at
   ),
   history AS (
     SELECT h.product_code, h.old_sale,
            row_number() OVER (PARTITION BY h.product_code ORDER BY h.changed_at, h.id) AS first_row
-    FROM public.taphoa_product_price_history h, window w
+    FROM public.taphoa_product_price_history h, bounds w
     WHERE h.changed_at >= w.starts_at AND h.changed_at <= w.ends_at
   ),
   first_price AS (
@@ -38,12 +38,12 @@ BEGIN
     SELECT product_code FROM history
     UNION
     SELECT i.product_code FROM public.taphoa_orders o
-      JOIN public.taphoa_order_items i ON i.order_id=o.id, window w
+      JOIN public.taphoa_order_items i ON i.order_id=o.id, bounds w
     WHERE o.status='delivered'
       AND o.delivered_at >= w.starts_at AND o.delivered_at <= w.ends_at
     UNION
     SELECT i.product_code FROM public.taphoa_orders o
-      JOIN public.taphoa_order_items i ON i.order_id=o.id, window w
+      JOIN public.taphoa_order_items i ON i.order_id=o.id, bounds w
     WHERE o.status='pending'
       AND o.created_at >= w.starts_at AND o.created_at <= w.ends_at
   ),
