@@ -10,7 +10,7 @@ function credentialsFromContext(context){
   return validCredentials(value)?value:null;
 }
 
-export async function startZaloLogin({ZaloClass,state,qrPath,logger=console,sessionStore=null}){
+export async function startZaloLogin({ZaloClass,state,qrPath,logger=console,sessionStore=null,beforeListenerStart=null}){
   try{
     const zalo=new ZaloClass({selfListen:true});
     let api=null;
@@ -41,6 +41,7 @@ export async function startZaloLogin({ZaloClass,state,qrPath,logger=console,sess
 
     const context=typeof api?.getContext==='function'?api.getContext():null;
     state.setLoggedIn({userId:context?.uid||context?.userId||null});
+    if(typeof beforeListenerStart==='function')beforeListenerStart(api);
     if(typeof api?.listener?.start==='function')superviseZaloListener(api.listener,{logger});
     logger?.info?.('[zalo-login] logged in');
     return api;
