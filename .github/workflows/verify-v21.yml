@@ -238,6 +238,8 @@ jobs:
         run: node tests/test_chat_mobile_header_ratio_20261106.cjs
       - name: UI-250 manual advisory only after admin confirmation
         run: node tests/test_chat_manual_group_advisory_20261106.cjs
+      - name: PRICE-271 06:00 VN seven-day group quote ordered Zalo delivery
+        run: node tests/test_chat_price7d_advisory_20261110.cjs
       - name: UI-248 composer text/IME/media send-state parity
         run: node tests/test_chat_composer_whitespace_send_parity_20261106.cjs
       - name: UI-240 narrow directory vertical rhythm and contact preview
