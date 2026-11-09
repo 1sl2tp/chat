@@ -113,3 +113,16 @@ test('linked avatar sync is a dedicated startup action',async()=>{
   assert.equal(result.count,1);
   assert.equal(calls[0].body.action,'sync_linked_avatars');
 });
+
+
+test('history recovery resolves only linked Zalo ids through authenticated bridge',async()=>{
+  const calls=[];
+  const gateway=createMessageGateway({
+    endpoint:'https://example.test/functions/v1/v21-zalo-bridge',
+    bridgeToken:'secret',
+    fetchImpl:fakeFetch(calls,[{ok:true,status:200,body:{ok:true,zalo_ids:['z1','z2']}}]),
+  });
+  assert.deepEqual(await gateway.listLinkedZaloIds(),['z1','z2']);
+  assert.equal(calls[0].body.action,'linked_ids');
+  assert.equal(calls[0].options.headers['x-bridge-token'],'secret');
+});
