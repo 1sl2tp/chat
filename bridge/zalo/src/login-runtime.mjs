@@ -1,3 +1,4 @@
+import {superviseZaloListener} from './listener-recovery.mjs';
 function validCredentials(value){
   return !!value&&Array.isArray(value.cookie)&&value.cookie.length>0&&!!value.imei&&!!value.userAgent;
 }
@@ -40,7 +41,7 @@ export async function startZaloLogin({ZaloClass,state,qrPath,logger=console,sess
 
     const context=typeof api?.getContext==='function'?api.getContext():null;
     state.setLoggedIn({userId:context?.uid||context?.userId||null});
-    if(typeof api?.listener?.start==='function')api.listener.start();
+    if(typeof api?.listener?.start==='function')superviseZaloListener(api.listener,{logger});
     logger?.info?.('[zalo-login] logged in');
     return api;
   }catch(error){
