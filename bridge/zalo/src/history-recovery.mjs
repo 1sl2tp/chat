@@ -33,6 +33,24 @@ function requestPage(listener,threadType,lastId,timeoutMs){
   });
 }
 
+async function downloadHistoricalMedia({api,media,raw,download}){
+  let content=raw?.data?.content;
+  if(typeof content==='string'&&content.trim().startsWith('{')){
+    try{content=JSON.parse(content);}catch{content=null;}
+  }
+  const urls=media?.kind==='image'&&content&&typeof content==='object'
+    ? [media.sourceUrl,content.oriUrl,content.rawUrl,content.hdUrl,
+        content.href,content.normalUrl,content.url]
+    : [media?.sourceUrl];
+  let lastError=null;
+  for(const url of [...new Set(urls.map(x=>String(x||'').trim()))]){
+    if(!/^https?:\/\//i.test(url))continue;
+    try{return await download({api,media:{...media,sourceUrl:url}});}
+    catch(error){lastError=error;}
+  }
+  throw lastError||new Error('zalo_history_media_url_unavailable');
+}
+
 export async function recoverZaloHistory({
   api,gateway,since,until=new Date().toISOString(),logger=console,
   maxPagesPerType=160,maxScanned=8000,timeoutMs=15000,
@@ -88,7 +106,7 @@ export async function recoverZaloHistory({
             const target=await gateway.mediaTarget(event);
             if(target?.existing){stats.existingMedia++;continue;}
             if(!target?.needed){stats.skipped++;continue;}
-            const binary=await download({api,media:event.media[0]});
+            const binary=await downloadHistoricalMedia({api,media:event.media[0],raw,download});
             if((await gateway.ingestMedia(event,binary))?.messageId)stats.acceptedMedia++;
             else stats.skipped++;
           }else{
