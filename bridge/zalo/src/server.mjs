@@ -13,6 +13,7 @@ import {bindIncomingMessageListener} from './incoming-message.mjs';
 import {createMessageGateway} from './message-gateway.mjs';
 import {downloadInboundMedia,buildOutboundMessage} from './media-transfer.mjs';
 import {createCoalescingRunner} from './bridge-core.mjs';
+import {armZaloHistoryRecovery} from './history-recovery.mjs';
 
 const port=Math.max(1,Number(process.env.PORT)||8787);
 const qrPath=process.env.ZALO_QR_PATH||path.resolve(process.cwd(),'qr.png');
@@ -21,6 +22,7 @@ const supabaseUrl=String(process.env.SUPABASE_URL||'').trim();
 const publishableKey=String(process.env.SUPABASE_PUBLISHABLE_KEY||'').trim();
 const bridgeToken=String(process.env.ZALO_BRIDGE_TOKEN||'').trim();
 const targetGroupName=String(process.env.ZALO_GROUP_FILTER||'').trim();
+const recoverySince=String(process.env.ZALO_RECOVERY_SINCE||'').trim();
 const signalTokenHash=bridgeToken?createHash('sha256').update(bridgeToken).digest('hex'):'';
 const sessionStore=supabaseUrl&&publishableKey&&bridgeToken
   ?createSupabaseSessionStore({supabaseUrl,publishableKey,bridgeToken})
@@ -148,7 +150,16 @@ server.listen(port,'0.0.0.0',()=>{
   console.log(`[zalo-login] persistent session ${sessionStore?'enabled':'disabled'}`);
   console.log(`[zalo-login] contacts sync ${contactSync?'enabled':'disabled'}`);
   console.log(`[zalo-login] message bridge ${messageGateway?'enabled':'disabled'}`);
-  void startZaloLogin({ZaloClass:Zalo,state,qrPath,logger:console,sessionStore})
+  void startZaloLogin({
+    ZaloClass:Zalo,state,qrPath,logger:console,sessionStore,
+    beforeListenerStart:activeApi=>{
+      if(recoverySince&&messageGateway){
+        armZaloHistoryRecovery({
+          api:activeApi,gateway:messageGateway,since:recoverySince,logger:console,
+        });
+      }
+    },
+  })
     .then(async result=>{
       api=result;
       unbindIncoming=bindIncomingMessageListener({
