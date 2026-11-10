@@ -52,6 +52,16 @@ export function previewBillAppMatch(bill,events,otherBills=[],now=Date.now()){
  if(qualified.length>1)return{status:"review",reason:"multiple_credits_same_amount_same_minute"};
  if(!qualified.length&&nearby.length)return{status:"review",reason:"bank_time_outside_one_minute"};
  if(!qualified.length)return{status:"waiting_bank_event",reason:"no_matching_agribank_notification"};
+ // BANK-270: When the AI's ISO date was corrected from literal printed
+ // DD/MM + HH:mm, additionally require the unique bank credit to carry the
+ // EXACT same normalized transfer memo. This protects against fabricated
+ // literal OCR values and two equal amounts in the same bank minute.
+ if(bill.ocr_date_normalization_corrected){
+   const printedMemo=tidy(bill.transfer_content);
+   const bankText=tidy(bankMemo(qualified[0].body));
+   if(printedMemo.length<12||!bankText||printedMemo!==bankText)
+     return{status:"review",reason:"ocr_date_corrected_bank_memo_unverified"};
+ }
  // Same reliable bank reference is the same transfer across cropped/reuploaded
  // images. Distinct sender names / references remain distinct bills, but with
  // just one bank credit and a shared minute, their bank proof still competes.
