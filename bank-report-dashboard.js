@@ -114,7 +114,7 @@ const localTime=x=>{
 function billHasSuspectSwappedDay(row){
  if(!row||!['amount_read','review'].includes(String(row.status||''))||
     row.ledger_id||row.notice_id)return false;
- const m=/^(20\\d{2})-(\\d{2})-(\\d{2})[ T](\\d{2}):(\\d{2})/.exec(String(row.bill_time||''));
+ const m=/^(20\d{2})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/.exec(String(row.bill_time||''));
  if(!m)return false;
  const year=Number(m[1]),month=Number(m[2]),day=Number(m[3]);
  if(month<1||month>12||day<1||day>12||month===day)return false;
