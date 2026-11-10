@@ -98,7 +98,7 @@ const draft=editorFake.value;
 mm.matches=false;
 editorFake.value='Một dòng';
 grow();
-assert.equal(editorFake.style['--editor-height'],undefined,'single web line remains 40px');
+assert.equal(editorFake.style['--editor-height'],'40px','single web line returns to 40px');
 assert.equal(editorFake.dataset.internalScroll,'false');
 editorFake.value='Dòng thứ nhất\nDòng thứ hai';
 grow();
