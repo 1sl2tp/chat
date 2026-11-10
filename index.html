@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="d8ea8b0f9c704843c5dc5c9b6af9dabd38d83de6e9be64c62a59a88a3fd91717">
+<meta name="app-build-id" content="aa34aeb24e7ea9a48db1736654ffc84ce9589aacf2deb64b85b8dfb4d7f28507">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -12851,6 +12851,10 @@ function applySingleImagePresentation(wrap,media){
     img.style.objectFit='contain';
     img.style.objectPosition='center';
   }
+  // IMG-281: after every image ratio/DOM patch, restore its per-asset
+  // rotation AND the corresponding portrait/landscape frame together.
+  // The rotation module itself owns the geometry, not this media renderer.
+  if(wrap.isConnected)window.V21ImageOrientation?.applyTileRotation?.(wrap);
   return wrap;
 }
 
@@ -14899,7 +14903,9 @@ function patchMessageMediaShell(shell,media){
     // Keep a decoded natural ratio if the old asset lacks dimension metadata.
     const tile=shell.querySelector(':scope > .media-image-tile[data-image-presentation]');
     const naturalRatio=Number(tile?.dataset.intrinsicAspectRatio)||0;
-    const width=singleImageDisplayWidth(naturalRatio>0?{...media,aspectRatio:naturalRatio}:media);
+    const rotatedWidth=Number(tile?.dataset.rotatedMediaWidth)||0;
+    const width=rotatedWidth>0?rotatedWidth
+      :singleImageDisplayWidth(naturalRatio>0?{...media,aspectRatio:naturalRatio}:media);
     shell.style.setProperty('--message-media-width',`${width}px`);
   }else{
     shell.style.removeProperty('--message-media-width');
