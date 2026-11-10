@@ -5634,7 +5634,8 @@ threadScrollControl.addEventListener('click',()=>{
 const COMPOSER_MEASURE_STYLE_PROPS=[
   'font-family','font-size','font-weight','font-style','letter-spacing','line-height',
   'padding-left','padding-right','padding-top','padding-bottom',
-  'border-left-width','border-right-width','box-sizing'
+  'border-left-width','border-right-width','box-sizing',
+  'overflow-wrap','word-break','white-space','tab-size'
 ];
 let composerMeasureStyleReady=false;
 let composerMeasureWidthPx=0;
@@ -5674,16 +5675,27 @@ function ensureComposerMeasureReady(){
 const composerMobileBreakpoint=window.matchMedia?.('(max-width:63.999rem)')||null;
 let lastEditorHeightPx=40;
 let lastEditorInternalScroll=false;
+let lastComposerMeasuredValue='';
 
 function autoGrow({source='layout'}={}){
   ensureComposerMeasureReady();
 
-  // A zero-width sentinel measures an intentional trailing newline without
-  // inventing an extra blank line for short drafts or the placeholder.
-  measure.textContent=
-    (editor.value || editor.placeholder || ' ')+'\u200b';
+  // iOS auto punctuation / Vietnamese IME may deliver several text updates
+  // for one tap. A sentinel after EVERY character can itself create a phantom
+  // soft-wrap at the line boundary. Only a real trailing newline needs one.
+  const text=editor.value || editor.placeholder || ' ';
+  measure.textContent=text.endsWith('\n')?text+'\u200b':text;
 
-  const natural=Math.ceil(measure.scrollHeight);
+  const previousValue=lastComposerMeasuredValue;
+  const isForwardTyping=source==='typing'&&editor.value.length>=previousValue.length&&
+    (editor.value.startsWith(previousValue)||
+      // Safari may replace the last punctuation/word during Vietnamese IME;
+      // do not collapse the textarea just because its predictive suffix changed.
+      (previousValue.length>=12&&
+       editor.value.slice(0,previousValue.length-8)===previousValue.slice(0,-8)));
+  lastComposerMeasuredValue=editor.value;
+
+  let natural=Math.ceil(measure.scrollHeight);
   const mobile=Boolean(composerMobileBreakpoint?.matches);
   // Limit by the visible keyboard viewport (not the document height), keeping
   // some conversation visible in short/landscape iPhone windows.
@@ -5696,13 +5708,30 @@ function autoGrow({source='layout'}={}){
     (composerShell.dataset.editorExpanded==='true'&&Boolean(editor.value.trim()))
   );
   const expandedChanged=(composerShell.dataset.editorExpanded==='true')!==expanded;
-  const next=Math.max(40,Math.min(maxHeight,natural));
+  if(expandedChanged){
+    composerShell.dataset.editorExpanded=expanded?'true':'false';
+    if(expanded){
+      // UI-285: expansion changes the textarea from a narrow middle column
+      // to the full row. Measure that ACTUAL new width before painting its
+      // first expanded height, rather than correcting one frame later in RO.
+      syncMeasureStyle({force:true,widthPx:editor.getBoundingClientRect().width});
+      natural=Math.ceil(measure.scrollHeight);
+    }
+  }
+  let next=Math.max(40,Math.min(maxHeight,natural));
+  // Appending punctuation or a word can alter Safari's wrap opportunities
+  // without deleting any text. Never jump down/up a row in the same draft;
+  // shrinking remains permitted on deletion, replacement, breakpoints or
+  // genuine viewport cap changes.
+  if(mobile&&expanded&&isForwardTyping&&next<lastEditorHeightPx&&
+     lastEditorHeightPx<=maxHeight){
+    next=lastEditorHeightPx;
+  }
   const internalScroll=natural>maxHeight;
   const heightChanged=next!==lastEditorHeightPx;
   const scrollModeChanged=internalScroll!==lastEditorInternalScroll;
 
   if(!heightChanged&&!scrollModeChanged&&!expandedChanged)return false;
-  if(expandedChanged)composerShell.dataset.editorExpanded=expanded?'true':'false';
 
   if(heightChanged){
     editor.style.setProperty(
