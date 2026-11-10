@@ -2238,7 +2238,10 @@ button{
   visibility:hidden;
   pointer-events:none;
   white-space:pre-wrap;
-  overflow-wrap:break-word;
+  /* UI-285: mirror the real #editor's overflow-wrap:anywhere. A different
+     wrapping mode changes line count around punctuation/long Vietnamese
+     words and triggers two competing height updates on iOS. */
+  overflow-wrap:anywhere;
   box-sizing:border-box;
 }
 #threadScrollControlWrap{
