@@ -1922,9 +1922,18 @@ async function syncContacts({recoverActive=false,forceActive=false}={}){
 
 async function hydrateAccount(context=captureSyncOwnerContext()){
   if(!context.accountId||!syncOwnerContextCurrent(context))return[];
-  await cache()?.open?.();
-  if(!syncOwnerContextCurrent(context))return[];
-  const cachedContacts=await cache()?.listContacts?.(context.accountId)||[];
+  let cachedContacts=[];
+  try{
+    await cache()?.open?.();
+    if(!syncOwnerContextCurrent(context))return[];
+    cachedContacts=await cache()?.listContacts?.(context.accountId)||[];
+  }catch(error){
+    // A disposable local read must never block canonical server-first contacts
+    // or generate a fatal PWA banner while the authenticated shell is healthy.
+    console.warn('[V21SyncEngine] local directory cache unavailable; using server-first contacts',
+      String(error?.name||error?.message||error||'').slice(0,80));
+    return[];
+  }
   if(!syncOwnerContextCurrent(context))return[];
   // A slower cache read must not reverse newer canonical server activity.
   if(cachedContacts.length&&canonicalSidebarOwner!==sidebarOwnerKey(context)){
