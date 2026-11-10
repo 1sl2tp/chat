@@ -299,6 +299,18 @@ function isOwnedRuntimeErrorEvent(event){
   const filename=String(event?.filename||'').trim();
   const externalMessage=`${message} ${String(event?.error?.message||'')}`.trim();
 
+  // Browser ResizeObserver delivery warnings are diagnostic events with no
+  // application source. They are not fatal runtime exceptions. Keep real
+  // first-party errors (which carry a filename/stack) visible as before.
+  // Layout owners below defer all ResizeObserver writes to the next frame.
+  if(
+    /^ResizeObserver loop (?:limit exceeded|completed with undelivered notifications)\.?$/i.test(message) &&
+    !filename && !event?.error?.stack
+  ){
+    console.warn('[ChatScreenModule] browser ResizeObserver delivery deferred:',message);
+    return false;
+  }
+
   // Zalo's in-app WebView can inject a bridge reference into the page and
   // then report the missing bridge as a page-level ReferenceError with no
   // trustworthy filename. It is outside Chat ownership; ignore only this
@@ -930,21 +942,38 @@ function publishComposerHeight(){
 }
 
 
+// ResizeObserver callbacks run before paint. Mutating layout synchronously
+// inside them can cause Safari/Chromium to report "loop completed with
+// undelivered notifications" while an iOS keyboard or Composer is resizing.
+// Queue at most one write per geometry owner for the next animation frame.
+let composerObserverFrame=0;
 const composerObserver=
   typeof ResizeObserver!=='undefined'
-    ?new ResizeObserver(()=>publishComposerHeight())
+    ?new ResizeObserver(()=>{
+      if(composerObserverFrame)return;
+      composerObserverFrame=requestAnimationFrame(()=>{
+        composerObserverFrame=0;
+        if(bottomContainer.isConnected===false)return;
+        publishComposerHeight();
+      });
+    })
     :null;
 
 composerObserver?.observe(bottomContainer);
 
-// Async media/file hydration can change a mounted message height after the
-// original render transaction has already settled. Observe only the message
-// window's geometry; this observer never writes scrollTop. It emits one
-// coalesced geometry intent back to ScrollRoot, which remains the sole writer.
+// Async media/file hydration can change the mounted message window height.
+// The resize observer publishes only a deferred geometry intent; ScrollRoot
+// retains sole ownership of actual scrolling and USER_AWAY anchoring.
+let messageWindowGeometryFrame=0;
 const messageWindowGeometryObserver=
   typeof ResizeObserver!=='undefined'
     ?new ResizeObserver(()=>{
-      publishViewportGeometryChange('message-window-reflow');
+      if(messageWindowGeometryFrame)return;
+      messageWindowGeometryFrame=requestAnimationFrame(()=>{
+        messageWindowGeometryFrame=0;
+        if(messageWindow.isConnected===false)return;
+        publishViewportGeometryChange('message-window-reflow');
+      });
     })
     :null;
 
@@ -5637,6 +5666,10 @@ function autoGrow({source='layout'}={}){
   return true;
 }
 
+// Capture the latest width during observer delivery, but never mutate the
+// editor height or mirror styles until a subsequent animation frame.
+let composerMeasureFrame=0;
+let composerObservedWidthPx=0;
 const composerMeasureObserver=
   typeof ResizeObserver!=='undefined'
     ?new ResizeObserver(entries=>{
@@ -5645,7 +5678,16 @@ const composerMeasureObserver=
           ?entry.borderBoxSize[0]
           :entry?.borderBoxSize;
         const width=Number(borderBox?.inlineSize)||editor.getBoundingClientRect().width||0;
-        if(syncMeasureStyle({widthPx:width}))autoGrow();
+        if(!(width>0))return;
+        composerObservedWidthPx=width;
+        if(composerMeasureFrame)return;
+        composerMeasureFrame=requestAnimationFrame(()=>{
+          composerMeasureFrame=0;
+          if(editor.isConnected===false)return;
+          if(syncMeasureStyle({widthPx:composerObservedWidthPx})){
+            autoGrow({source:'resize-observer'});
+          }
+        });
       })
     :null;
 composerMeasureObserver?.observe(editor);
