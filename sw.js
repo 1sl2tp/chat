@@ -3,9 +3,10 @@ const RELEASE_VERSION='V21.72.39';
 const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 // BANK-177: reload one-time cached shell for the live bank reconciliation table.
 // Keep offline-first startup; do not add per-navigation network requests.
-// RO-20261110: refresh only the public shell after deferred observer geometry fix;
-// preserve IndexedDB, accounts, message history and other private caches.
-const SHELL_CACHE_EPOCH='pwa-chat-resizeobserver-loop-fix-20261110';
+// UI-285: refresh only the public PWA shell after native iPhone composer
+// punctuation/soft-wrap stabilization. Preserve IndexedDB, messages, auth
+// session, avatars, and other private data without a forced logout/reload.
+const SHELL_CACHE_EPOCH='pwa-chat-composer-punctuation-ui285-20261111';
 const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION+'-'+SHELL_CACHE_EPOCH;
 const AVATAR_CACHE_NAME='taphoa-chat-avatars-v1';
 const SUPABASE_ASSET_HOST_RE=/^[a-z0-9]+\.supabase\.co$/i;
