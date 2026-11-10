@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="f7cc7c04924722824ec2b345495490d8465f8b524f45bfc2b837067d9a688b3a">
+<meta name="app-build-id" content="c760fd1394ebd6b605723efdb433be36d2b950817cc8a784c830472e0c5aaa81">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -5338,7 +5338,10 @@ button{
   visibility:hidden;
   pointer-events:none;
   white-space:pre-wrap;
-  overflow-wrap:break-word;
+  /* UI-285: mirror the real #editor's overflow-wrap:anywhere. A different
+     wrapping mode changes line count around punctuation/long Vietnamese
+     words and triggers two competing height updates on iOS. */
+  overflow-wrap:anywhere;
   box-sizing:border-box;
 }
 #threadScrollControlWrap{
