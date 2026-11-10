@@ -99,7 +99,8 @@ assert.equal(gallery.tile.dataset.imagePresentation,'portrait',
 assert.equal(gallery.tile.dataset.rotatedMediaWidth,undefined);
 assert.match(app,/if\(wrap\.isConnected\)window\.V21ImageOrientation\?\.applyTileRotation\?\.\(wrap\)/);
 assert.match(app,/const rotatedWidth=Number\(tile\?\.dataset\.rotatedMediaWidth\)\|\|0/);
-assert.match(orientation,/window\.V21ImageOrientation=Object\.freeze\(\{applyTileRotation\}\)/);
+assert.match(orientation,/orientationWindow\.V21ImageOrientation=Object\.freeze\(\{applyTileRotation\}\)/);
+assert.match(orientation,/@type \{Window & typeof globalThis & \{V21ImageOrientation\?:/);
 assert.match(orientation,/img\.dataset\.layoutZoomed==='true'/);
 assert.match(css,/\.media-image-tile\[data-image-presentation\] > img\{[\s\S]*?width:100%!important/);
 assert.match(scope,/setProperty\('width',[^\n]+,'important'\)/,
