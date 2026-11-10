@@ -23,7 +23,7 @@ const ui={
 };
 const filters=[
  ['all','Tất cả'],['matched','Đã thu · Khớp'],['waiting_bank','Bill chờ Agribank'],
- ['bank_only','Agribank chưa khớp'],['bank_all','Tất cả tiền vào Agribank'],['review','Cần kiểm tra'],['wrong_day','Sai ngày'],
+ ['bank_only','Agribank chưa khớp'],['bank_all','Tất cả tiền vào Agribank'],['review','Cần kiểm tra'],['wrong_day','AI sai ngày'],
  ['manual_bank','Đã thu thủ công Agribank'],['duplicate','Trùng'],['non_bill','Không phải bill'],['test_excluded','Test (loại)']
 ];
 // Match customer names with or without Vietnamese accents and flexible spaces.
@@ -134,7 +134,7 @@ function billHasSuspectSwappedDay(row){
 }
 const statusText={
  matched:'Đã thu · Đối soát',waiting_bank:'Chờ Agribank · Chưa thu',bank_only:'Chờ bill · Chưa thu',
- review:'Cần kiểm tra · Chưa đối soát',wrong_day:'Sai ngày',duplicate:'Bill trùng',
+ review:'Cần kiểm tra · Chưa đối soát',wrong_day:'AI nghi sai ngày',duplicate:'Bill trùng',
  non_bill:'Không phải bill',reading:'Đang đọc ảnh',test_excluded:'Tiền test (loại)'
 };
 const isAiScanIssue=row=>/^(?:amount_scan_|ai_scan_|ai_year_error_)/i.test(String(row?.reason||''));
@@ -228,7 +228,7 @@ function bankResponsiveLabel(full,short=full){
 const bankFilterMobileLabels={
  all:'Tất cả',matched:'Đã khớp',waiting_bank:'Bill chờ NH',
  bank_only:'NH chưa khớp',bank_all:'Tiền vào NH',review:'Cần soát',
- wrong_day:'Sai ngày',manual_bank:'Thu tay NH',duplicate:'Trùng',
+ wrong_day:'AI sai ngày',manual_bank:'Thu tay NH',duplicate:'Trùng',
  non_bill:'Không phải bill',test_excluded:'Test (loại)'
 };
 function cardValue(name,value,highlight=false,compact=false,mobileName=name){
@@ -258,7 +258,7 @@ function paint(data){
    cardValue('Đã thu thủ công Agribank',String((data?.manual_collections||[]).length),false,true,'Thu tay NH'),
    cardValue('Agribank tiền vào · đủ nguồn',String(incoming.length),false,true,'Tiền NH đủ nguồn'),
    cardValue('Tổng tiền vào Agribank (÷1.000)',money(incoming.reduce((sum,x)=>sum+(Number(x.amount_vnd)||0),0)),false,true,'Tổng tiền NH (nghìn)'),
-  cardValue('Bill sai ngày',String(s.old_date_count||0),false,true,'Bill sai ngày'),
+  cardValue('AI nghi sai ngày',String(s.old_date_count||0),false,true,'AI sai ngày'),
   cardValue('Ảnh trùng',String(s.duplicate_count||0),false,true,'Ảnh trùng'),
   cardValue('Ảnh AI chưa kết luận',String((data?.bills||[]).filter(isAiScanIssue).length),false,true,'AI chưa rõ')
  );
@@ -309,7 +309,7 @@ function renderTable(data){
  const head=el('thead'),thead=el('tr');
  // Keep the canonical reconciliation column contract intact; only
  // its narrow-screen presentation uses shorter, more readable headings.
- const columns=['Khách hàng','Tự thu','Chờ soát','Trùng','Sai ngày','Tiền tự thu'];
+ const columns=['Khách hàng','Tự thu','Chờ soát','Trùng','AI lỗi ngày','Tiền tự thu'];
  const shortColumns=['Khách','Tự thu','Chờ','Trùng','Sai','Tiền thu'];
  for(const [index,name] of columns.entries()){
   const short=shortColumns[index];
@@ -396,7 +396,7 @@ function detailLine(row,isBank=false,candidates=[]){
     manualRecord?'Đã thu thủ công':manualEvidence?'Có thu tay · Chờ xác minh bill':
       isBank&&candidates.length?'Có bill cần kiểm tra':
       !isBank&&isAiScanIssue(row)?'AI chưa kết luận':
-      dateSwapSuspect?'Nghi sai ngày OCR · Chưa thu':statusText[type]||'Cần kiểm tra');
+      dateSwapSuspect?'AI nghi đọc nhầm ngày · Chưa thu':statusText[type]||'Cần kiểm tra');
  if(isBank&&!manualRecord&&!candidates.length){
   label.type='button';
   label.setAttribute('aria-label','Thu '+money(row.amount_vnd)+' từ Agribank');
@@ -410,7 +410,7 @@ function detailLine(row,isBank=false,candidates=[]){
  append(top,left,amt,label);wrap.appendChild(top);
  const content=el('div','bank-report-detail-content');
  append(content,cell('Giờ bill',isBank?(candidates.length?'Có ảnh cần kiểm tra':'Chưa xác định bill'):
-   dateSwapSuspect?'OCR nghi đảo ngày/tháng: '+String(row.bill_time||'Không đọc được'):(row.bill_time||'Không đọc được')),
+   dateSwapSuspect?'Ngày AI đọc (nghi nhầm): '+String(row.bill_time||'Không đọc được'):(row.bill_time||'Không đọc được')),
   cell('Giờ Agribank',row.bank_time?agribankDisplayTime(row.bank_time,ui.date.value):'Chưa có thông báo'),
   cell('Giờ khách gửi ảnh',isBank?'—':(row.sent_at?new Intl.DateTimeFormat('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date(row.sent_at)):'—')),
   cell('Mã giao dịch',row.transfer_reference||'—'),
@@ -470,7 +470,7 @@ function detailLine(row,isBank=false,candidates=[]){
  }
  if(row.reason&&!isBank){
   let reason='Ghi chú: '+row.reason;
-  if(dateSwapSuspect)reason='Ngày OCR có khả năng bị đảo ngày/tháng. Giờ gửi ảnh không xác nhận ngày chuyển khoản. Cần đối chiếu ảnh gốc và Agribank, không tự ghi thu.';
+  if(dateSwapSuspect)reason='AI có thể đã đọc đảo ngày/tháng so với ảnh bill. Giờ gửi ảnh không chứng minh ngày chuyển khoản. Cần đối chiếu ảnh gốc với Agribank, không tự ghi thu.';
   else if(isAiScanIssue(row))reason='Lỗi quét ảnh: '+scanIssueLabel(row.reason);
   else if(row.reason==='bank_image_amount_only_no_collection'){
     const recipient=String(row.receiving_account||'').replace(/[^0-9]/g,'');
@@ -504,7 +504,7 @@ function bankUnmatchedIssue(row,allBills){
  const bills=possibleUnlinkedBills(row,allBills);
  if(!bills.length)return {label:'Chưa thu · Thiếu bill',
    detail:'Đã có Agribank báo tiền vào nhưng chưa tìm thấy ảnh bill khách gửi tương ứng. Không tự gán khách.'};
- if(bills.some(b=>billHasSuspectSwappedDay(b)))return {label:'Chưa thu · Nghi sai ngày',
+ if(bills.some(b=>billHasSuspectSwappedDay(b)))return {label:'Chưa thu · AI nghi sai ngày',
    detail:'Đã có ảnh bill nhưng AI nghi đảo ngày/tháng. Cần đối chiếu ngày trên ảnh gốc và thông báo Agribank trước khi ghi thu.'};
  if(bills.every(b=>!b.bill_time))return {label:'Chưa thu · Bill thiếu giờ',
    detail:'Đã có ảnh bill cùng số tiền/gần giờ nhận, nhưng AI chưa đọc được thời điểm chuyển khoản đủ tin cậy. Chưa ghi thu.'};
