@@ -62,7 +62,7 @@ assert(css.includes('#composerShell[data-audio-state="RECORDING"]'),
  'voice recording retains its dedicated surface');
 assert(css.includes('#stageLayout[data-keyboard-open="true"]'),
  'VisualViewport input docking remains active');
-assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-idb272-transaction-safety-20261110';"),
+assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-multiline-editor-ui273-20261110';"),
  'new public PWA cache only');
 
 const mm={matches:true};
