@@ -119,6 +119,21 @@ function activeViewerAssetId(overlay){
   const activeThumb=/** @type {HTMLImageElement | null | undefined} */ (overlay?.querySelector?.('.image-review-thumbs [aria-current="true"] img[data-asset-id], .image-review-thumb[aria-current="true"] img[data-asset-id]'));
   return clean(activeThumb?.dataset?.assetId)||lastOpenedAssetId;
 }
+// IMG-281: a 90°/270° correction must rotate the frame geometry as well
+// as its pixels. A portrait source displayed sideways becomes a LANDSCAPE
+// bubble; otherwise the existing portrait 560px frame clips/letterboxes it.
+function rotatedImagePresentation(sourceRatio,rotation){
+  const ratio=Number(sourceRatio);
+  if(!Number.isFinite(ratio)||ratio<=0)return null;
+  const effectiveRatio=(rotation===90||rotation===270)?1/ratio:ratio;
+  return{
+    aspectRatio:effectiveRatio,
+    kind:effectiveRatio<1?'portrait':effectiveRatio>1?'landscape':'square',
+    width:effectiveRatio<1
+      ?Math.min(260,Math.max(1,Math.floor(560*effectiveRatio)))
+      :effectiveRatio===1?320:360
+  };
+}
 function applyTileRotation(tile){
   if(!tile)return;
   const assetId=tileAssetId(tile);
@@ -127,28 +142,53 @@ function applyTileRotation(tile){
   const rotation=readRotation(assetId);
   const quarter=rotation===90||rotation===270;
   img.dataset.chatImageRotation=String(rotation);
+  tile.dataset.chatImageRotation=String(rotation);
+  const isSingle=tile.hasAttribute('data-image-presentation')
+    &&tile.dataset.galleryTile!=='true';
+  if(isSingle){
+    const ratio=Number(tile.dataset.intrinsicAspectRatio)
+      ||Number(tile.dataset.sourceAspectRatio)
+      ||(img.naturalWidth>0&&img.naturalHeight>0?img.naturalWidth/img.naturalHeight:0);
+    const geometry=rotatedImagePresentation(ratio,rotation);
+    if(geometry){
+      tile.dataset.imagePresentation=geometry.kind;
+      tile.dataset.rotatedMediaWidth=String(geometry.width);
+      tile.style.aspectRatio=String(geometry.aspectRatio);
+      tile.style.setProperty('--message-media-width',`${geometry.width}px`);
+      const shell=tile.closest('.message-media-shell[data-media-shell-kind="image"]');
+      if(shell)shell.style.setProperty('--message-media-width',`${geometry.width}px`);
+    }
+  }
   img.style.transformOrigin='center center';
   if(quarter){
+    // CSS has width:100%!important on message images; an ordinary inline
+    // img.style.width=... cannot override it. Use important width/height
+    // once for the rotated SOURCE dimensions, and clear them on reset.
     const rect=tile.getBoundingClientRect();
-    const width=Math.max(1,Math.round(rect.width));
-    const height=Math.max(1,Math.round(rect.height));
-    img.style.position='absolute';
-    img.style.left='50%';
-    img.style.top='50%';
-    img.style.width=`${height}px`;
-    img.style.height=`${width}px`;
-    img.style.maxWidth='none';
-    img.style.maxHeight='none';
-    img.style.transform=`translate(-50%,-50%) rotate(${rotation}deg)`;
+    if(rect.width>0&&rect.height>0){
+      const width=Math.max(1,Math.round(rect.width));
+      const height=Math.max(1,Math.round(rect.height));
+      img.style.position='absolute';
+      img.style.left='50%';
+      img.style.top='50%';
+      img.style.setProperty('width',`${height}px`,'important');
+      img.style.setProperty('height',`${width}px`,'important');
+      img.style.setProperty('max-width','none','important');
+      img.style.setProperty('max-height','none','important');
+      img.style.transform=`translate(-50%,-50%) rotate(${rotation}deg)`;
+    }else{
+      // Not mounted yet; a later mutation/layout sync will measure it.
+      scheduleSync();
+    }
   }else{
     img.style.position='';
     img.style.left='';
     img.style.top='';
-    img.style.width='';
-    img.style.height='';
-    img.style.maxWidth='';
-    img.style.maxHeight='';
-    img.style.transform=`rotate(${rotation}deg)`;
+    img.style.removeProperty('width');
+    img.style.removeProperty('height');
+    img.style.removeProperty('max-width');
+    img.style.removeProperty('max-height');
+    img.style.transform=rotation?`rotate(${rotation}deg)`:'';
   }
   let button=/** @type {HTMLButtonElement | null} */ (tile.querySelector('[data-chat-image-rotate]'));
   if(!button){
@@ -194,7 +234,11 @@ function applyViewerRotation(){
   const quarter=rotation===90||rotation===270;
   img.dataset.chatImageRotation=String(rotation);
   img.style.transformOrigin='center center';
-  if(stage&&quarter){
+  if(img.dataset.layoutZoomed==='true'){
+    // IMG-275 zoom lays out native pixels: never cap the actual expanded IMG.
+    img.style.maxWidth='none';
+    img.style.maxHeight='none';
+  }else if(stage&&quarter){
     const rect=stage.getBoundingClientRect();
     img.style.maxWidth=`${Math.max(1,Math.round(rect.height))}px`;
     img.style.maxHeight=`${Math.max(1,Math.round(rect.width))}px`;
@@ -255,6 +299,10 @@ function scheduleSync(){
   if(scheduled)return;
   scheduled=requestAnimationFrame(sync);
 }
+
+// One geometry owner. app.js invokes this after a single-image DOM patch;
+// layout rotation is not a separate network/media owner.
+window.V21ImageOrientation=Object.freeze({applyTileRotation});
 
 installStyle();
 document.addEventListener('click',handleClick,true);
