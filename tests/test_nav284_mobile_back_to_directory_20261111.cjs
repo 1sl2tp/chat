@@ -10,7 +10,9 @@ const css=fs.readFileSync('mobile-ui-polish.css','utf8');
 function fn(name){
  const start=js.indexOf('function '+name+'(');
  assert(start>=0,'missing runtime owner '+name);
- const open=js.indexOf('{',start);
+ // Skip default parameter object patterns (e.g. {restoreFocus=false}={}).
+ const open=js.indexOf('){',start)+1;
+ assert(open>start,'missing function body '+name);
  let depth=0,end=-1;
  for(let i=open;i<js.length;i++){
   if(js[i]==='{')depth++;
