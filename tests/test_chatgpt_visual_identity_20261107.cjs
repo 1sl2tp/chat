@@ -57,6 +57,6 @@ assert(composer.includes('#stageLayout[data-keyboard-open="true"]'),'VisualViewp
 for(const item of ['data-chat-quick="cash"','data-chat-quick="debt"','data-chat-quick="photos"','data-chat-quick="recent"',
                    'id="composer-mic-btn"','id="send" type="submit"','id="attachmentTray"'])
  assert(html.includes(item),'functional control preserved: '+item);
-assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-responsive-composer-ui268-20261109';"),
+assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-idb272-transaction-safety-20261110';"),
  'new public PWA epoch without deleting private caches');
 console.log('UI-256 ChatGPT identity, directory, neutral bubbles, single-row mobile composer and preserved keyboard/voice/business controls PASS');
