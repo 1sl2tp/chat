@@ -127,6 +127,7 @@ subprocess.run(['node',str(ROOT/'tests'/'test_bank267_bill_ocr_swap_report_20261
 subprocess.run(['node',str(ROOT/'tests'/'test_bank268_unmatched_receipt_reasons_20261110.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_bank269_bill_literal_date_clock_20261110.mjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_bank270_printed_date_ocr_correction_20261110.mjs')],check=True,cwd=ROOT)
+subprocess.run(['node',str(ROOT/'tests'/'test_bank273_financial_rpc_ocr_v5_20261110.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_vn_daykey_cross_browser_20261029.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_virtual_senttime_height_20261029.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_image_timestamp_calendar_round2_20261029.cjs')],check=True,cwd=ROOT)
