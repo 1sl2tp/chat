@@ -397,3 +397,23 @@
   #bankReportDashboard .bank-report-table th{font-size:9.2px;letter-spacing:-.2px}
   #bankReportDashboard .bank-report-stat-compact .bank-report-stat-name{font-size:9px}
 }
+
+
+/* BANK-282 · daily verified-bank summary; modal uses existing Admin focus trap. */
+.bank-report-controls [data-bank-daily-summary]{white-space:nowrap;font-weight:650}
+.bank-daily-form{width:min(100%,580px)}
+.bank-daily-customers{display:flex;flex-direction:column;gap:10px;min-width:0}
+.bank-daily-customer{display:grid;gap:8px;border:1px solid var(--border-default,#d7dee0);border-radius:12px;padding:12px;min-width:0}
+.bank-daily-customer-info{display:flex;flex-direction:column;gap:4px;min-width:0}
+.bank-daily-customer-info strong{font-size:14px;overflow-wrap:anywhere}
+.bank-daily-customer-info small{font-size:12px;color:var(--text-secondary,#64707b)}
+.bank-daily-preview summary{cursor:pointer;font-size:12px;color:var(--text-primary,#242424)}
+.bank-daily-preview pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;line-height:1.5;
+ border:1px solid var(--border-default,#dce0e2);border-radius:8px;background:var(--surface-secondary,#f4f6f7);
+ padding:10px;margin:7px 0 0;max-height:240px;overflow:auto}
+.bank-daily-customer .bank-review-save{justify-self:end;min-width:130px;min-height:40px;padding:9px 14px}
+@media(max-width:540px){
+ .bank-report-controls{flex-wrap:wrap;justify-content:flex-end}
+ .bank-report-controls [data-bank-daily-summary]{font-size:12px}
+ .bank-daily-customer .bank-review-save{justify-self:stretch}
+}
