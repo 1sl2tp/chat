@@ -108,6 +108,30 @@ const localTime=x=>{
      hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(parsed);
  return s.length>=16?s.slice(11,16):s;
 };
+// BANK-267: Presentation-only warning for a likely DD/MM OCR inversion.
+// Upload time is a risk signal, NEVER proof of the real transfer date.
+// Keep the report row, bank credit, collection state and ledger untouched.
+function billHasSuspectSwappedDay(row){
+ if(!row||!['amount_read','review'].includes(String(row.status||''))||
+    row.ledger_id||row.notice_id)return false;
+ const m=/^(20\\d{2})-(\\d{2})-(\\d{2})[ T](\\d{2}):(\\d{2})/.exec(String(row.bill_time||''));
+ if(!m)return false;
+ const year=Number(m[1]),month=Number(m[2]),day=Number(m[3]);
+ if(month<1||month>12||day<1||day>12||month===day)return false;
+ const swapped=new Date(Date.UTC(year,day-1,month));
+ if(swapped.getUTCFullYear()!==year||swapped.getUTCMonth()!==day-1||
+    swapped.getUTCDate()!==month)return false;
+ const sentMs=Date.parse(String(row.sent_at||''));
+ if(!Number.isFinite(sentMs))return false;
+ const vn=new Date(sentMs+7*3600000);
+ const swapDay=swapped.toISOString().slice(0,10);
+ const sentDay=vn.toISOString().slice(0,10);
+ if(swapDay!==sentDay||String(row.bill_time).slice(0,10)===sentDay)return false;
+ const billClock=Number(m[4])*60+Number(m[5]);
+ const sentClock=vn.getUTCHours()*60+vn.getUTCMinutes();
+ const gap=Math.abs(billClock-sentClock);
+ return Math.min(gap,1440-gap)<=10;
+}
 const statusText={
  matched:'Đã thu · Đối soát',waiting_bank:'Chờ Agribank · Chưa thu',bank_only:'Chờ bill · Chưa thu',
  review:'Cần kiểm tra · Chưa đối soát',wrong_day:'Sai ngày',duplicate:'Bill trùng',
@@ -358,6 +382,7 @@ function matchingManualCollectionForBill(bill,data){
 function detailLine(row,isBank=false,candidates=[]){
  const type=isBank?'bank_only':row.report_status;
  const recorded=!isBank&&type==='matched'&&Boolean(row.ledger_id);
+ const dateSwapSuspect=!isBank&&billHasSuspectSwappedDay(row);
  const manualEvidence=!isBank?matchingManualCollectionForBill(row,current):null;
  const manualRecord=isBank?(current?.manual_collections||[]).find(m=>String(m.notice_id)===String(row.notice_id)):null;
  const wrap=el('details','bank-report-detail');
@@ -370,7 +395,8 @@ function detailLine(row,isBank=false,candidates=[]){
     (manualRecord?'bank_manual':manualEvidence?'review':isBank&&candidates.length?'review':type),
     manualRecord?'Đã thu thủ công':manualEvidence?'Có thu tay · Chờ xác minh bill':
       isBank&&candidates.length?'Có bill cần kiểm tra':
-      !isBank&&isAiScanIssue(row)?'AI chưa kết luận':statusText[type]||'Cần kiểm tra');
+      !isBank&&isAiScanIssue(row)?'AI chưa kết luận':
+      dateSwapSuspect?'Nghi sai ngày OCR · Chưa thu':statusText[type]||'Cần kiểm tra');
  if(isBank&&!manualRecord&&!candidates.length){
   label.type='button';
   label.setAttribute('aria-label','Thu '+money(row.amount_vnd)+' từ Agribank');
@@ -383,7 +409,8 @@ function detailLine(row,isBank=false,candidates=[]){
  const amt=el('strong','bank-report-detail-amount',money(isBank?row.amount_vnd:row.amount_vnd));
  append(top,left,amt,label);wrap.appendChild(top);
  const content=el('div','bank-report-detail-content');
- append(content,cell('Giờ bill',isBank?(candidates.length?'Có ảnh cần kiểm tra':'Chưa xác định bill'):(row.bill_time||'Không đọc được')),
+ append(content,cell('Giờ bill',isBank?(candidates.length?'Có ảnh cần kiểm tra':'Chưa xác định bill'):
+   dateSwapSuspect?'OCR nghi đảo ngày/tháng: '+String(row.bill_time||'Không đọc được'):(row.bill_time||'Không đọc được')),
   cell('Giờ Agribank',row.bank_time?agribankDisplayTime(row.bank_time,ui.date.value):'Chưa có thông báo'),
   cell('Giờ khách gửi ảnh',isBank?'—':(row.sent_at?new Intl.DateTimeFormat('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date(row.sent_at)):'—')),
   cell('Mã giao dịch',row.transfer_reference||'—'),
@@ -391,7 +418,8 @@ function detailLine(row,isBank=false,candidates=[]){
   cell('Tình trạng',manualRecord?(manualRecord.mode==='linked_existing'
    ?'Đã liên kết khoản nhập tay':'Đã thu thủ công từ Agribank')
   :manualEvidence?'Có thu tay cùng khách/số tiền/ngày; bill chưa xác minh':
-  isBank&&candidates.length?'Chưa đối soát · Chưa ghi thu':statusText[type]||row.status||'Chưa rõ'));
+  isBank&&candidates.length?'Chưa đối soát · Chưa ghi thu':
+  dateSwapSuspect?'Ngày OCR nghi sai · Chờ đối chiếu ảnh và Agribank':statusText[type]||row.status||'Chưa rõ'));
  if(!isBank){
   content.appendChild(cell('Ghi thu công nợ',
     recorded?'Đã ghi thu · Sổ #'+row.ledger_id:
@@ -442,7 +470,8 @@ function detailLine(row,isBank=false,candidates=[]){
  }
  if(row.reason&&!isBank){
   let reason='Ghi chú: '+row.reason;
-  if(isAiScanIssue(row))reason='Lỗi quét ảnh: '+scanIssueLabel(row.reason);
+  if(dateSwapSuspect)reason='Ngày OCR có khả năng bị đảo ngày/tháng. Giờ gửi ảnh không xác nhận ngày chuyển khoản. Cần đối chiếu ảnh gốc và Agribank, không tự ghi thu.';
+  else if(isAiScanIssue(row))reason='Lỗi quét ảnh: '+scanIssueLabel(row.reason);
   else if(row.reason==='bank_image_amount_only_no_collection'){
     const recipient=String(row.receiving_account||'').replace(/[^0-9]/g,'');
     if(recipient&&recipient!=='2901181999999')
