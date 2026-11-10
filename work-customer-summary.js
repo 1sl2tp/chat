@@ -146,6 +146,7 @@ function showMobileDirectory(reason='directory'){
   // Reopening an already-visible directory must not trigger another RPC.
   if(!wasOpen)void window.V21ContactStore?.refresh?.();
   if(!wasOpen)window.setTimeout(()=>focusMobileDirectory(layer),0);
+  syncMobileAccountMenuTrigger(false);
   return true;
 }
 
@@ -161,6 +162,7 @@ function hideMobileDirectory(reason='chat',{restoreFocus=false}={}){
     layer.dataset.open='false';
     layer.setAttribute('aria-hidden','true');
   }
+  syncMobileAccountMenuTrigger(false);
   if(restoreFocus&&wasOpen)restoreMobileDirectoryTriggerFocus();
   return wasOpen;
 }
@@ -207,6 +209,15 @@ function mobileAccountMenuTrigger(){
   return document.querySelector('[data-shell-command="sidebar.open"]');
 }
 
+// NAV-284: this same left header control is drawn as a back chevron while a
+// customer thread is selected. Its action MUST follow the visible icon,
+// instead of opening the account menu behind the conversation.
+function mobileHeaderReturnsToDirectory(){
+  return mobileDirectoryAllowed()&&snapshot().state==='AUTHENTICATED'&&
+    shellSnapshot().route==='chat'&&!mobileDirectoryOpen()&&
+    Boolean(activeContact()?.id);
+}
+
 function mobileAccountMenuOwnedByTrigger(){
   return mobileDirectoryAllowed()&&snapshot().state==='AUTHENTICATED';
 }
@@ -223,6 +234,17 @@ function syncMobileAccountMenuTrigger(open){
   const trigger=mobileAccountMenuTrigger();
   if(!trigger)return false;
   const authenticated=snapshot().state==='AUTHENTICATED';
+  if(mobileHeaderReturnsToDirectory()){
+    trigger.dataset.mobileBack='true';
+    trigger.removeAttribute('aria-haspopup');
+    trigger.removeAttribute('aria-controls');
+    trigger.removeAttribute('aria-expanded');
+    trigger.setAttribute('aria-label','Quay lại Danh bạ');
+    trigger.setAttribute('title','Quay lại Danh bạ');
+    return true;
+  }
+  delete trigger.dataset.mobileBack;
+  trigger.removeAttribute('title');
   if(mobileAccountMenuOwnedByTrigger()){
     if(!mobileAccountMenu?.isConnected)ensureMobileAccountMenu();
     syncMobileAccountMenuItems();
@@ -564,7 +586,13 @@ function bindMobileNavigationClicks(){
     if(hamburger){
       event.preventDefault();
       event.stopImmediatePropagation();
-      toggleMobileAccountMenu();
+      // A visible back chevron has exactly one action: return to Danh bạ.
+      // The same control remains the account menu on the directory root.
+      if(mobileHeaderReturnsToDirectory()){
+        showMobileDirectory('header-back');
+      }else{
+        toggleMobileAccountMenu();
+      }
       return;
     }
 
