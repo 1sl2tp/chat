@@ -10,7 +10,7 @@ for(const marker of [
  "transfer_date_printed_vn",
  "transfer_time_printed_vn",
  "NGÀY/THÁNG/NĂM (DD/MM/YYYY)",
- "KHÔNG PHẢI ngày 11 tháng 10",
+ "KHÔNG tráo vị trí ngày-tháng",
  "thanh trạng thái điện thoại",
  "KHÔNG nhắn khách",
  "KHÔNG ghi thu"
