@@ -48,6 +48,6 @@ assert(css.includes('SPEC-CHAT-MOBILE-DIRECTORY-VV-20261101'),
 assert(css.includes('UI-253 — suppress duplicated Photos shortcut'),
   'do not reintroduce the duplicate Photos header');
 const status=sw.match(/const SHELL_CACHE_EPOCH='([^']+)';/)?.[1];
-assert.equal(status,'pwa-chat-responsive-composer-ui268-20261109',
+assert.equal(status,'pwa-chat-idb272-transaction-safety-20261110',
   'ship one new PWA shell without clearing private caches');
 console.log('UI-255 header title/album, directory owner uniqueness, filters, business actions and keyboard continuity PASS');

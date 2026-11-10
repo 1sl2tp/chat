@@ -31,6 +31,7 @@ subprocess.run(['node',str(ROOT/'tests'/'test_chat_account_settings_ios_density_
 subprocess.run(['node',str(ROOT/'tests'/'test_v21_composer_pointer_recovery.js')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_v21_139_immediate_message_directory.js')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_v21_boot_indexed_cache.js')],check=True,cwd=ROOT)
+subprocess.run(['node',str(ROOT/'tests'/'test_chat_idb_tx_abort_recovery_20261110.cjs')],check=True,cwd=ROOT)
 subprocess.run([sys.executable,'-m','pytest','-q',str(ROOT/'tests'/'test_v21_72_14_viewport_scope_lifecycle.py')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_v21_72_14_message_scope_runtime.js')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_v21_72_15_media_hydration_error_scope.js')],check=True,cwd=ROOT)

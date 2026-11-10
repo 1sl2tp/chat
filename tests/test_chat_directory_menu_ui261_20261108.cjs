@@ -36,6 +36,6 @@ assert(directory.includes('body.insertBefore(tools,nav);'),'keep pinned search a
 assert(shell.includes('copy.append(title,preview,time);'),'preserve contact metadata');
 for(const key of ['UI-254 — WhatsApp-aligned directory dividers','SPEC-CHAT-MOBILE-DIRECTORY-VV-20261101'])
  assert(css.includes(key),'preserve visual/keyboard contract '+key);
-assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-responsive-composer-ui268-20261109';"));
+assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-idb272-transaction-safety-20261110';"));
 assert(sw.includes("const AVATAR_CACHE_NAME='taphoa-chat-avatars-v1';"));
 console.log('UI-261 directory and mobile account-menu design contracts PASS');

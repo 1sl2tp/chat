@@ -14,11 +14,17 @@ function req(request){
 }
 
 function txDone(tx){
-  return new Promise((resolve,reject)=>{
+  // Register listeners before submitting requests. Safari can commit a short
+  // readonly transaction before a later await resumes its caller.
+  const finished=new Promise((resolve,reject)=>{
     tx.oncomplete=()=>resolve(true);
     tx.onabort=()=>reject(tx.error||new Error('idb_tx_aborted'));
     tx.onerror=()=>reject(tx.error||new Error('idb_tx_failed'));
   });
+  // A request may fail before its caller awaits finished. Keep the rejection
+  // observable to that caller without creating a second unhandled rejection.
+  void finished.catch(()=>{});
+  return finished;
 }
 
 function open(){
@@ -59,8 +65,20 @@ function open(){
         store.createIndex('by_account_access',['account_id','last_accessed_at'],{unique:false});
       }
     };
-    request.onsuccess=()=>resolve(request.result);
+    request.onsuccess=()=>{
+      const db=request.result;
+      db.onversionchange=()=>{
+        db.close();
+        dbPromise=null;
+      };
+      resolve(db);
+    };
     request.onerror=()=>reject(request.error||new Error('indexeddb_open_failed'));
+  }).catch(error=>{
+    // Private mode / a transient Safari storage failure must not poison every
+    // later attempt to hydrate the same session.
+    dbPromise=null;
+    throw error;
   });
   return dbPromise;
 }
@@ -75,22 +93,25 @@ function metaKey(accountId,name){return `${accountId}:meta:${name}`;}
 async function getMeta(accountId,name,fallback=null){
   const db=await open();
   const tx=db.transaction('meta','readonly');
+  const finished=txDone(tx);
   const row=await req(tx.objectStore('meta').get(metaKey(accountId,name)));
-  await txDone(tx);
+  await finished;
   return row?.value ?? fallback;
 }
 
 async function setMeta(accountId,name,value){
   const db=await open();
   const tx=db.transaction('meta','readwrite');
+  const finished=txDone(tx);
   tx.objectStore('meta').put({key:metaKey(accountId,name),account_id:String(accountId),name,value,updated_at:Date.now()});
-  await txDone(tx);
+  await finished;
   return value;
 }
 
 async function replaceContacts(accountId,contacts=[]){
   const db=await open();
   const tx=db.transaction('contacts','readwrite');
+  const finished=txDone(tx);
   const store=tx.objectStore('contacts');
   const index=store.index('by_account');
   await new Promise((resolve,reject)=>{
@@ -98,24 +119,35 @@ async function replaceContacts(accountId,contacts=[]){
     cursor.onerror=()=>reject(cursor.error||new Error('contacts_cursor_failed'));
     cursor.onsuccess=()=>{
       const c=cursor.result;
-      if(!c){resolve();return;}
+      if(!c){
+        // Safari may auto-commit as soon as this cursor callback returns.
+        // Queue replacements while the original transaction is still active.
+        try{
+          for(const item of (Array.isArray(contacts)?contacts:[])){
+            if(!item?.id)continue;
+            store.put({...item,cache_key:contactKey(accountId,item.id),account_id:String(accountId)});
+          }
+          resolve();
+        }catch(error){
+          try{tx.abort();}catch{}
+          reject(error);
+        }
+        return;
+      }
       c.delete();
       c.continue();
     };
   });
-  for(const item of (Array.isArray(contacts)?contacts:[])){
-    if(!item?.id)continue;
-    store.put({...item,cache_key:contactKey(accountId,item.id),account_id:String(accountId)});
-  }
-  await txDone(tx);
+  await finished;
   return true;
 }
 
 async function listContacts(accountId){
   const db=await open();
   const tx=db.transaction('contacts','readonly');
+  const finished=txDone(tx);
   const rows=await req(tx.objectStore('contacts').index('by_account').getAll(IDBKeyRange.only(String(accountId))));
-  await txDone(tx);
+  await finished;
   return (rows||[]).map(({cache_key,account_id,...rest})=>rest).sort((a,b)=>String(a.display_name||a.username||'').localeCompare(String(b.display_name||b.username||'')));
 }
 
@@ -123,16 +155,18 @@ async function upsertContact(accountId,item){
   if(!item?.id)return false;
   const db=await open();
   const tx=db.transaction('contacts','readwrite');
+  const finished=txDone(tx);
   tx.objectStore('contacts').put({...item,cache_key:contactKey(accountId,item.id),account_id:String(accountId)});
-  await txDone(tx);
+  await finished;
   return true;
 }
 
 async function removeContact(accountId,id){
   const db=await open();
   const tx=db.transaction('contacts','readwrite');
+  const finished=txDone(tx);
   tx.objectStore('contacts').delete(contactKey(accountId,id));
-  await txDone(tx);
+  await finished;
   return true;
 }
 
@@ -140,6 +174,7 @@ async function putMessage(accountId,row){
   if(!row?.id)return false;
   const db=await open();
   const tx=db.transaction('messages','readwrite');
+  const finished=txDone(tx);
   const normalized={
     ...row,
     cache_key:messageKey(accountId,row.id),
@@ -149,13 +184,14 @@ async function putMessage(accountId,row){
     version:Number(row.version)||0
   };
   tx.objectStore('messages').put(normalized);
-  await txDone(tx);
+  await finished;
   return true;
 }
 
 async function putMessages(accountId,rows=[]){
   const db=await open();
   const tx=db.transaction('messages','readwrite');
+  const finished=txDone(tx);
   const store=tx.objectStore('messages');
   for(const row of (Array.isArray(rows)?rows:[])){
     if(!row?.id)continue;
@@ -168,15 +204,16 @@ async function putMessages(accountId,rows=[]){
       version:Number(row.version)||0
     });
   }
-  await txDone(tx);
+  await finished;
   return true;
 }
 
 async function getMessage(accountId,id){
   const db=await open();
   const tx=db.transaction('messages','readonly');
+  const finished=txDone(tx);
   const row=await req(tx.objectStore('messages').get(messageKey(accountId,id)));
-  await txDone(tx);
+  await finished;
   if(!row)return null;
   const {cache_key,account_id,...rest}=row;
   return rest;
@@ -185,6 +222,7 @@ async function getMessage(accountId,id){
 async function listMessages(accountId,conversationId,limit=100){
   const db=await open();
   const tx=db.transaction('messages','readonly');
+  const finished=txDone(tx);
   const index=tx.objectStore('messages').index('by_account_conversation_created');
   const lower=[String(accountId),String(conversationId),''];
   const upper=[String(accountId),String(conversationId),'\uffff'];
@@ -203,15 +241,16 @@ async function listMessages(accountId,conversationId,limit=100){
       cursor.continue();
     };
   });
-  await txDone(tx);
+  await finished;
   return rows.reverse().map(({cache_key,account_id,...rest})=>rest);
 }
 
 async function removeMessage(accountId,id){
   const db=await open();
   const tx=db.transaction('messages','readwrite');
+  const finished=txDone(tx);
   tx.objectStore('messages').delete(messageKey(accountId,id));
-  await txDone(tx);
+  await finished;
   return true;
 }
 
@@ -219,13 +258,14 @@ async function putReadState(ownerAccountId,row){
   if(!row?.conversation_id||!row?.account_id)return false;
   const db=await open();
   const tx=db.transaction('read_states','readwrite');
+  const finished=txDone(tx);
   tx.objectStore('read_states').put({
     ...row,
     cache_key:readKey(ownerAccountId,row.conversation_id,row.account_id),
     owner_account_id:String(ownerAccountId),
     version:Number(row.version)||0
   });
-  await txDone(tx);
+  await finished;
   return true;
 }
 
@@ -233,6 +273,7 @@ async function putOutbox(accountId,item){
   if(!item?.client_id)return false;
   const db=await open();
   const tx=db.transaction('outbox','readwrite');
+  const finished=txDone(tx);
   tx.objectStore('outbox').put({
     ...item,
     cache_key:outboxKey(accountId,item.client_id),
@@ -241,33 +282,36 @@ async function putOutbox(accountId,item){
     created_at:String(item.created_at||new Date().toISOString()),
     attempts:Number(item.attempts)||0
   });
-  await txDone(tx);
+  await finished;
   return true;
 }
 
 async function listOutbox(accountId){
   const db=await open();
   const tx=db.transaction('outbox','readonly');
+  const finished=txDone(tx);
   const lower=[String(accountId),''];
   const upper=[String(accountId),'\uffff'];
   const rows=await req(tx.objectStore('outbox').index('by_account_created').getAll(IDBKeyRange.bound(lower,upper)));
-  await txDone(tx);
+  await finished;
   return (rows||[]).sort((a,b)=>String(a.created_at).localeCompare(String(b.created_at))).map(({cache_key,account_id,...rest})=>rest);
 }
 
 async function listOutboxForContact(accountId,contactId){
   const db=await open();
   const tx=db.transaction('outbox','readonly');
+  const finished=txDone(tx);
   const rows=await req(tx.objectStore('outbox').index('by_account_contact').getAll(IDBKeyRange.only([String(accountId),String(contactId)])));
-  await txDone(tx);
+  await finished;
   return (rows||[]).sort((a,b)=>String(a.created_at).localeCompare(String(b.created_at))).map(({cache_key,account_id,...rest})=>rest);
 }
 
 async function removeOutbox(accountId,clientId){
   const db=await open();
   const tx=db.transaction('outbox','readwrite');
+  const finished=txDone(tx);
   tx.objectStore('outbox').delete(outboxKey(accountId,clientId));
-  await txDone(tx);
+  await finished;
   return true;
 }
 
@@ -320,22 +364,25 @@ async function getMediaRecord(accountId,assetId){
 async function removeMediaRecord(accountId,assetId){
   const db=await open();
   const tx=db.transaction('media','readwrite');
+  const finished=txDone(tx);
   tx.objectStore('media').delete(mediaKey(accountId,assetId));
-  await txDone(tx);
+  await finished;
   return true;
 }
 
 async function listMediaRecords(accountId){
   const db=await open();
   const tx=db.transaction('media','readonly');
+  const finished=txDone(tx);
   const rows=await req(tx.objectStore('media').index('by_account').getAll(IDBKeyRange.only(String(accountId))));
-  await txDone(tx);
+  await finished;
   return rows||[];
 }
 
 async function deleteByAccount(storeName,indexName,accountId){
   const db=await open();
   const tx=db.transaction(storeName,'readwrite');
+  const finished=txDone(tx);
   const index=tx.objectStore(storeName).index(indexName);
   await new Promise((resolve,reject)=>{
     const cursor=index.openCursor(IDBKeyRange.only(String(accountId)));
@@ -347,7 +394,7 @@ async function deleteByAccount(storeName,indexName,accountId){
       c.continue();
     };
   });
-  await txDone(tx);
+  await finished;
 }
 
 async function clearAccount(accountId){
@@ -362,13 +409,14 @@ async function clearAccount(accountId){
   ]);
   const db=await open();
   const tx=db.transaction('outbox','readwrite');
+  const finished=txDone(tx);
   const index=tx.objectStore('outbox').index('by_account_created');
   await new Promise((resolve,reject)=>{
     const cursor=index.openCursor(IDBKeyRange.bound([id,''],[id,'\uffff']));
     cursor.onerror=()=>reject(cursor.error||new Error('outbox_clear_failed'));
     cursor.onsuccess=()=>{const c=cursor.result;if(!c){resolve();return;}c.delete();c.continue();};
   });
-  await txDone(tx);
+  await finished;
   return true;
 }
 
