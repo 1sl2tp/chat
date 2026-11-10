@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="25610ce9282188f88dd571e773f68eb74736af0f10397172cdb7a52b91ea81fe">
+<meta name="app-build-id" content="0f90f0a5e11f384a49fcebfe9948658d4d28a8c4a09bcd80748fa84bc7fbc4af">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -2711,13 +2711,15 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #editor{
-    height:40px;
+    height:var(--editor-height,40px);
     min-height:40px;
-    max-height:40px;
+    max-height:168px;
     margin:0;
     padding:9px 2px!important;
     font-size:var(--ui-input-mobile-font-size,16px);
     line-height:22px;
+    white-space:pre-wrap;
+    overflow-wrap:anywhere;
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composerFooter{
@@ -2803,6 +2805,27 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
   #appShell[data-auth-state="authenticated"][data-route="chat"] #send svg :is(path,line,rect,circle,polyline){
     stroke-width:2px!important;
   }
+  /* UI-273: a short draft keeps the original compact row. Once its natural
+     text reaches a second line, place the editor above the 44px action rail.
+     Width stays expanded until the draft clears, preventing Safari oscillation. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-editor-expanded="true"]{
+    grid-template-rows:auto auto minmax(40px,auto) 44px;
+    align-items:end;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-editor-expanded="true"] #editorWrap{
+    grid-column:1 / -1;
+    grid-row:3;
+    align-self:stretch;
+    padding:1px 12px 0!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-editor-expanded="true"] #editor{
+    padding:8px 2px!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-editor-expanded="true"] :is(#composer-plus-btn,#composer-mic-btn,#send){
+    grid-row:4;
+    align-self:center;
+  }
+
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell:not([data-can-send="true"]) #send{
     background:color-mix(in srgb,var(--theme-content-tertiary) 47%,var(--theme-surface-secondary));
   }
@@ -15538,9 +15561,11 @@ function ensureComposerMeasureReady(){
   syncMeasureStyle({force:true,widthPx:editor.getBoundingClientRect().width});
 }
 
-// UI-268: Mobile keeps one *visible* text line while a longer native draft
-// scrolls inside the textarea; desktop reveals a second line and no more.
-// Never truncate the value, collapse selections or rewrite Vietnamese IME.
+// UI-273: Mobile stays compact for a short draft, then moves actions below
+// the native textarea so wrapped text grows to several visible lines.
+// Keep the expanded layout until the draft is cleared to prevent width
+// feedback (wide textarea -> fewer wraps -> compact -> more wraps) on Safari.
+// Desktop retains its existing two-line policy. Never rewrite the IME/caret.
 const composerMobileBreakpoint=window.matchMedia?.('(max-width:63.999rem)')||null;
 let lastEditorHeightPx=40;
 let lastEditorInternalScroll=false;
@@ -15555,13 +15580,24 @@ function autoGrow({source='layout'}={}){
 
   const natural=Math.ceil(measure.scrollHeight);
   const mobile=Boolean(composerMobileBreakpoint?.matches);
-  const maxHeight=mobile?40:64;
-  const next=mobile?40:Math.max(40,Math.min(maxHeight,natural));
+  // Limit by the visible keyboard viewport (not the document height), keeping
+  // some conversation visible in short/landscape iPhone windows.
+  const visibleHeight=Number(window.visualViewport?.height||window.innerHeight)||640;
+  const maxHeight=mobile
+    ?Math.max(80,Math.min(168,Math.floor(visibleHeight*.35)))
+    :64;
+  const expanded=mobile&&(
+    natural>43 ||
+    (composerShell.dataset.editorExpanded==='true'&&Boolean(editor.value.trim()))
+  );
+  const expandedChanged=(composerShell.dataset.editorExpanded==='true')!==expanded;
+  const next=Math.max(40,Math.min(maxHeight,natural));
   const internalScroll=natural>maxHeight;
   const heightChanged=next!==lastEditorHeightPx;
   const scrollModeChanged=internalScroll!==lastEditorInternalScroll;
 
-  if(!heightChanged&&!scrollModeChanged)return false;
+  if(!heightChanged&&!scrollModeChanged&&!expandedChanged)return false;
+  if(expandedChanged)composerShell.dataset.editorExpanded=expanded?'true':'false';
 
   if(heightChanged){
     editor.style.setProperty(
@@ -15600,6 +15636,11 @@ composerMobileBreakpoint?.addEventListener?.('change',()=>{
   syncMeasureStyle({force:true,widthPx:editor.getBoundingClientRect().width});
   autoGrow({source:'breakpoint'});
 });
+// Keyboard opening/rotation changes the available visible height. Recompute
+// the input cap only on that existing lifecycle signal, not on each frame.
+window.visualViewport?.addEventListener?.('resize',()=>{
+  autoGrow({source:'visual-viewport'});
+},{passive:true});
 
 /* =========================================================
    ATTACHMENTS / RECORDING
