@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="f4de1f1e6d820c23f529d95bceae6a98ec4389ad5d7499b264ce85b91c07f153">
+<meta name="app-build-id" content="43625ca3e33817b9fa5cda5da7ca96f55096ea2bbda68b2253b51216e71ffeb4">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -22129,6 +22129,7 @@ function showMobileDirectory(reason='directory'){
   // Reopening an already-visible directory must not trigger another RPC.
   if(!wasOpen)void window.V21ContactStore?.refresh?.();
   if(!wasOpen)window.setTimeout(()=>focusMobileDirectory(layer),0);
+  syncMobileAccountMenuTrigger(false);
   return true;
 }
 
@@ -22144,6 +22145,7 @@ function hideMobileDirectory(reason='chat',{restoreFocus=false}={}){
     layer.dataset.open='false';
     layer.setAttribute('aria-hidden','true');
   }
+  syncMobileAccountMenuTrigger(false);
   if(restoreFocus&&wasOpen)restoreMobileDirectoryTriggerFocus();
   return wasOpen;
 }
@@ -22190,6 +22192,15 @@ function mobileAccountMenuTrigger(){
   return document.querySelector('[data-shell-command="sidebar.open"]');
 }
 
+// NAV-284: this same left header control is drawn as a back chevron while a
+// customer thread is selected. Its action MUST follow the visible icon,
+// instead of opening the account menu behind the conversation.
+function mobileHeaderReturnsToDirectory(){
+  return mobileDirectoryAllowed()&&snapshot().state==='AUTHENTICATED'&&
+    shellSnapshot().route==='chat'&&!mobileDirectoryOpen()&&
+    Boolean(activeContact()?.id);
+}
+
 function mobileAccountMenuOwnedByTrigger(){
   return mobileDirectoryAllowed()&&snapshot().state==='AUTHENTICATED';
 }
@@ -22206,6 +22217,17 @@ function syncMobileAccountMenuTrigger(open){
   const trigger=mobileAccountMenuTrigger();
   if(!trigger)return false;
   const authenticated=snapshot().state==='AUTHENTICATED';
+  if(mobileHeaderReturnsToDirectory()){
+    trigger.dataset.mobileBack='true';
+    trigger.removeAttribute('aria-haspopup');
+    trigger.removeAttribute('aria-controls');
+    trigger.removeAttribute('aria-expanded');
+    trigger.setAttribute('aria-label','Quay lại Danh bạ');
+    trigger.setAttribute('title','Quay lại Danh bạ');
+    return true;
+  }
+  delete trigger.dataset.mobileBack;
+  trigger.removeAttribute('title');
   if(mobileAccountMenuOwnedByTrigger()){
     if(!mobileAccountMenu?.isConnected)ensureMobileAccountMenu();
     syncMobileAccountMenuItems();
@@ -22547,7 +22569,13 @@ function bindMobileNavigationClicks(){
     if(hamburger){
       event.preventDefault();
       event.stopImmediatePropagation();
-      toggleMobileAccountMenu();
+      // A visible back chevron has exactly one action: return to Danh bạ.
+      // The same control remains the account menu on the directory root.
+      if(mobileHeaderReturnsToDirectory()){
+        showMobileDirectory('header-back');
+      }else{
+        toggleMobileAccountMenu();
+      }
       return;
     }
 
