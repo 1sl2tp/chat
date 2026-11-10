@@ -48,6 +48,8 @@ assert(css.includes('SPEC-CHAT-MOBILE-DIRECTORY-VV-20261101'),
 assert(css.includes('UI-253 — suppress duplicated Photos shortcut'),
   'do not reintroduce the duplicate Photos header');
 const status=sw.match(/const SHELL_CACHE_EPOCH='([^']+)';/)?.[1];
-assert.equal(status,'pwa-chat-multiline-editor-ui273-20261110',
-  'ship one new PWA shell without clearing private caches');
+assert.match(status||'',/^pwa-chat-[a-z0-9-]+$/,
+  'ship a versioned Chat PWA shell without clearing private caches');
+assert.notEqual(status,'pwa-chat-multiline-editor-ui273-20261110',
+  'a runtime fix must invalidate the previously installed UI-273 shell');
 console.log('UI-255 header title/album, directory owner uniqueness, filters, business actions and keyboard continuity PASS');
