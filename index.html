@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="7ac834c4e9fccb54dd843bbeb3faf360d8aeb043ea1f1701f6e8c769b6b4e629">
+<meta name="app-build-id" content="0ef12af208d822cdf83eaac77af7102535ea637ef5eae0f11bbaab69d8919bee">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -30459,7 +30459,7 @@ const localTime=x=>{
 function billHasSuspectSwappedDay(row){
  if(!row||!['amount_read','review'].includes(String(row.status||''))||
     row.ledger_id||row.notice_id)return false;
- const m=/^(20\\d{2})-(\\d{2})-(\\d{2})[ T](\\d{2}):(\\d{2})/.exec(String(row.bill_time||''));
+ const m=/^(20\d{2})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/.exec(String(row.bill_time||''));
  if(!m)return false;
  const year=Number(m[1]),month=Number(m[2]),day=Number(m[3]);
  if(month<1||month>12||day<1||day>12||month===day)return false;
