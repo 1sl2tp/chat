@@ -523,6 +523,8 @@ jobs:
         run: node tests/test_v21_composer_pointer_recovery.js
       - name: Chat startup IndexedDB bounded recent-message cursor
         run: node tests/test_v21_boot_indexed_cache.js
+      - name: IDB-272 Safari aborted transaction recovery
+        run: node tests/test_chat_idb_tx_abort_recovery_20261110.cjs
       - name: Chat immediate message and directory scroll regression
         run: node tests/test_v21_139_immediate_message_directory.js
       - name: BANK-162 Agribank Plus notification contract
