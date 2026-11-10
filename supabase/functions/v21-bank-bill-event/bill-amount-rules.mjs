@@ -154,7 +154,15 @@ export function readV4Fields(data,context={}){
  // Reconstruct only from BOTH date and time explicitly transcribed off the
  // same bill. Neither Chat sent_at nor an Agribank credit supplies missing OCR.
  const clockTextConflict=Boolean(billTime&&printedBillClock
-   &&billTime.slice(11,16)!==printedBillClock.clock.slice(0,5));
+   &&(billTime.slice(11,16)!==printedBillClock.clock.slice(0,5)
+      ||(precision==="second"&&printedBillClock.precision==="second"
+        &&billTime.slice(11,19)!==printedBillClock.clock)));
+ // The model sometimes appends ":00" even if the photo shows HH:mm only.
+ // The literal receipt clock controls precision, never fabricated seconds.
+ if(billTime&&printedBillClock&&!clockTextConflict
+   &&printedBillClock.precision==="minute"&&precision==="second"){
+   billTime=billTime.slice(0,16);precision="minute";
+ }
  if(!billTime&&printedBillDay&&printedBillClock
    &&(!rawBillDay||rawBillDay===printedBillDay)){
    billTime=printedBillDay+" "+printedBillClock.clock;
