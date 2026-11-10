@@ -106,6 +106,26 @@ assert.equal(withoutPrinted.transfer_at_vn,null);
 assert.equal(withoutPrinted.transfer_date_vn,null,
  "upload date is a warning, NOT a replacement for the real bank date");
 
+// A date-only OCR result cannot be implicitly promoted to today's transfer.
+const dateOnlySwap=readV4Fields({
+ transfer_date_vn:"2026-10-11",transaction_datetime_vn:null
+},{sentAt});
+assert.equal(dateOnlySwap.date_swap_suspected,true);
+assert.equal(dateOnlySwap.time_date_conflict,true);
+assert.equal(dateOnlySwap.transfer_at_vn,null);
+assert.equal(dateOnlySwap.transfer_date_vn,null);
+const dateOnlyOldBill=readV4Fields({
+ transfer_date_vn:"2026-10-11",transfer_date_printed_vn:"11/10/2026",
+ transaction_datetime_vn:null
+},{sentAt});
+assert.equal(dateOnlyOldBill.date_swap_suspected,false,
+ "old date transcribed consistently from bill stays in review flow");
+assert.equal(dateOnlyOldBill.transfer_date_vn,"2026-10-11");
+const dateOnlyPrintedMismatch=readV4Fields({
+ transfer_date_vn:"2026-10-11",transfer_date_printed_vn:"10/11/2026"
+},{sentAt});
+assert.equal(dateOnlyPrintedMismatch.time_date_conflict,true);
+assert.equal(dateOnlyPrintedMismatch.transfer_date_vn,"2026-11-10");
 const correctToday=readV4Fields({
  transaction_datetime_vn:"2026-11-10 18:06:00",
  transfer_date_vn:"2026-11-10",transfer_date_printed_vn:"10/11/2026"
