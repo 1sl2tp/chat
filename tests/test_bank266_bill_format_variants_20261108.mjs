@@ -87,3 +87,60 @@ assert.equal(previewBillAppMatch(candidate,[{...credit,amount_vnd:1160000}],[],n
 assert.equal(previewBillAppMatch(candidate,[credit,credit],[],now).status,"review");
 
 console.log("BANK-266: multi-format bill recognition (amount, explicit VN time, beneficiary bank) PASS");
+
+
+ // BANK-267: Vietnamese date/month OCR swaps are unsafe for bank settlement.
+ // Bank notification / credit proofs are not replaceable with Chat upload time.
+const sentAt="2026-11-10T11:06:39Z"; // 18:06:39 Vietnam
+const wrongIso={transaction_datetime_vn:"2026-10-11 18:06:00",
+ transfer_date_vn:"2026-10-11"};
+const printed=readV4Fields({...wrongIso,transfer_date_printed_vn:"10/11/2026"},{sentAt});
+assert.equal(printed.date_swap_suspected,true);
+assert.equal(printed.time_date_conflict,true);
+assert.equal(printed.transfer_at_vn,null,"OCR date/month mismatch must not match bank credits");
+assert.equal(printed.transfer_date_vn,"2026-11-10","retain the date explicitly transcribed from bill for review");
+assert.equal(printed.transaction_time_precision,null);
+const withoutPrinted=readV4Fields(wrongIso,{sentAt});
+assert.equal(withoutPrinted.date_swap_suspected,true);
+assert.equal(withoutPrinted.transfer_at_vn,null);
+assert.equal(withoutPrinted.transfer_date_vn,null,
+ "upload date is a warning, NOT a replacement for the real bank date");
+
+const correctToday=readV4Fields({
+ transaction_datetime_vn:"2026-11-10 18:06:00",
+ transfer_date_vn:"2026-11-10",transfer_date_printed_vn:"10/11/2026"
+},{sentAt});
+assert.equal(correctToday.time_date_conflict,false);
+assert.equal(correctToday.date_swap_suspected,false);
+assert.equal(correctToday.transfer_at_vn,"2026-11-10 18:06:00");
+
+const genuineOlder=readV4Fields({
+ transaction_datetime_vn:"2026-10-11 10:25",
+ transfer_date_vn:"2026-10-11",transfer_date_printed_vn:"11/10/2026"
+},{sentAt});
+assert.equal(genuineOlder.time_date_conflict,false,
+ "an old bill can be forwarded weeks later");
+assert.equal(genuineOlder.transfer_at_vn,"2026-10-11 10:25");
+
+const midnight=readV4Fields({
+ transaction_datetime_vn:"2026-10-11 00:04",
+ transfer_date_vn:"2026-10-11"
+},{sentAt:"2026-11-09T17:05:00Z"}); // 00:05 10/11 ICT
+assert.equal(midnight.date_swap_suspected,true);
+assert.equal(midnight.transfer_at_vn,null);
+
+const independentMismatch=readV4Fields({
+ transaction_datetime_vn:"2026-10-11 10:25",
+ transfer_date_vn:"2026-10-11",transfer_date_printed_vn:"10/11/2026"
+},{sentAt});
+assert.equal(independentMismatch.time_date_conflict,true);
+assert.equal(independentMismatch.transfer_at_vn,null);
+assert.equal(validateVisionRead(modelBill("1.170.000 đ")).status,"amount_read",
+ "date mismatch cannot mutate the valid amount read");
+
+const source=await import("node:fs").then(fs=>fs.readFileSync(
+ new URL("../supabase/functions/v21-bank-bill-event/index.ts",import.meta.url),"utf8"));
+assert.match(source,/readV4Fields\(parsed,\{sentAt:job\.sent_at\}\)/);
+assert.match(source,/&&!fields\.time_date_conflict\s*&&Boolean\(fields\.transfer_date_vn/);
+assert.match(source,/time_date_conflict:fields\.time_date_conflict/);
+console.log("BANK-267: wrong day-month quarantined, old bill preserved, no unsafe auto-collect PASS");
