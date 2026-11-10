@@ -24,10 +24,10 @@ assert.equal(issue(n(242,10000000,'2026-11-10T03:45:00Z'),[]).label,
  'Chưa thu · Thiếu bill');
 assert.equal(issue(n(249,364000,'2026-11-10T11:06:00Z'),[
  b(364000,'2026-11-10T11:06:08Z','2026-10-11 18:06')
-]).label,'Chưa thu · Nghi sai ngày');
+]).label,'Chưa thu · AI nghi sai ngày');
 assert.equal(issue(n(250,91000,'2026-11-10T11:06:00Z'),[
  b(91000,'2026-11-10T11:06:39Z','2026-10-11 18:06')
-]).label,'Chưa thu · Nghi sai ngày');
+]).label,'Chưa thu · AI nghi sai ngày');
 assert.equal(issue(n(243,377000,'2026-11-10T07:38:00Z'),[
  b(377000,'2026-11-10T07:39:00Z',null)
 ]).label,'Chưa thu · Bill thiếu giờ');
