@@ -31,7 +31,7 @@ for(const row of [
  bill('2026-13-11 18:06',sent),
  bill('',sent)
 ])assert.equal(flag(row),false,'do not turn verified/historical/invalid rows into false alerts');
-assert.match(source,/dateSwapSuspect\?'Nghi sai ngày OCR · Chưa thu'/);
+assert.match(source,/dateSwapSuspect\?'AI nghi đọc nhầm ngày · Chưa thu'/);
 assert.match(source,/dateSwapSuspect\?'OCR nghi đảo ngày\/tháng:/);
 assert.match(source,/dateSwapSuspect\?'Ngày OCR nghi sai · Chờ đối chiếu ảnh và Agribank'/);
 assert.match(source,/Ngày OCR có khả năng bị đảo ngày\/tháng/);
