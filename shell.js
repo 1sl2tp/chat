@@ -234,7 +234,11 @@ function renderMenuUnread(){
     button.dataset.hasUnread=String(hasUnread);
     const dot=button.querySelector('[data-menu-unread-dot]');
     if(dot)dot.hidden=!hasUnread;
-    button.setAttribute('aria-label',hasUnread?`Mở menu, ${count} tin mới`:'Mở menu');
+    // NAV-284: unread refresh cannot relabel an active Chat back chevron
+    // as the account menu while the user is viewing a conversation.
+    button.setAttribute('aria-label',button.dataset.mobileBack==='true'
+      ?'Quay lại Danh bạ'
+      :hasUnread?`Mở menu, ${count} tin mới`:'Mở menu');
   }
 }
 
