@@ -37,7 +37,7 @@ assert.equal(match(midnight,{bills:[midnight],bank_credits:[bankMidnight]})?.not
 for(const token of [
  'Có thu tay · Chờ xác minh bill','Bill chưa liên kết',
  'Không thu tiền lần hai.','Xem bill chờ xác minh',
- "cardValue('Bill chưa đối soát'","['Khách hàng','Tự thu','Chờ soát','Trùng','Sai ngày','Tiền tự thu']"
+ "cardValue('Bill chưa đối soát'","['Khách hàng','Tự thu','Chờ soát','Trùng','AI lỗi ngày','Tiền tự thu']"
 ])assert(source.includes(token),token);
 assert(!source.includes("rpc('chat_bank_app_collect'"),'no client auto money write');
 console.log('BANK-223: manual paid versus unlinked bill report, fail-closed review PASS');
