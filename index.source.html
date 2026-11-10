@@ -1643,7 +1643,9 @@ button{
   -webkit-user-select:none;
   -webkit-user-drag:none;
   transform-origin:center center;
-  will-change:transform;
+  /* IMG-275: avoid pinning a low-resolution 100% raster layer on desktop.
+     At zoom the element itself is laid out at full displayed pixel size. */
+  will-change:auto;
   touch-action:none;
 }
 .image-review-nav{
