@@ -299,12 +299,13 @@ Deno.serve(async req=>{
    const modelResult=await gr.json();
    const resultString=(modelResult.candidates?.[0]?.content?.parts||[]).map((x:any)=>String(x.text||"")).join("");
    let parsed:any;try{parsed=JSON.parse(resultString)}catch{throw new Error("gemini_invalid_json")}
-   const fields=readV4Fields(parsed);
+   const fields=readV4Fields(parsed,{sentAt:job.sent_at});
    const verdict=validateVisionRead(parsed);
    const {status,reason,amount_vnd:amount}=verdict;
    let matchPreview:any={status:"review",reason:"bill_time_unreadable"};
    const tx=fields.transfer_at_vn?Date.parse(String(fields.transfer_at_vn).replace(" ","T")+"+07:00"):NaN;
    const hasReference=status==="amount_read"&&amount&&!Number.isFinite(tx)
+     &&!fields.time_date_conflict
      &&Boolean(fields.transfer_date_vn&&fields.transfer_reference&&fields.transfer_content);
    if(status==="amount_read"&&amount&&(Number.isFinite(tx)||hasReference)){
      try{
@@ -369,6 +370,9 @@ Deno.serve(async req=>{
       transaction_nature:fields.transaction_nature,
       transaction_datetime_vn:fields.transfer_at_vn,
       transfer_date_vn:fields.transfer_date_vn,
+      transfer_date_printed_vn:fields.transfer_date_printed_vn,
+      time_date_conflict:fields.time_date_conflict,
+      date_swap_suspected:fields.date_swap_suspected,
       transfer_content:fields.transfer_content,
       transaction_time_precision:fields.transaction_time_precision,
       recipient_name:fields.receiving_name,receiving_bank:fields.receiving_bank,
