@@ -36,5 +36,5 @@ assert(!section.includes('.message-media-shell'),'do not recolor media cards');
 assert(mobile.includes('padding-bottom:25px!important;'),'preserve timestamp footer');
 assert(html.includes('.user-message-unit .file-message-card{'));
 assert(html.includes('.assistant-message-unit .audio-message-card{'));
-assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-idb272-transaction-safety-20261110';"));
+assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-multiline-editor-ui273-20261110';"));
 console.log('UI-258 blue sent / gray received bubbles for Web/PWA and preserved media/time PASS');

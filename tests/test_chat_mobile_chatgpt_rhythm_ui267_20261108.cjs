@@ -62,6 +62,6 @@ assert(composer.includes('width:var(--ui-control-touch,44px)!important;'),
 assert(composer.includes('#stageLayout[data-keyboard-open="true"]'),
  'VisualViewport soft keyboard geometry stays owned elsewhere');
 assert(html.includes('id="chatCallFocus"')&&html.includes('id="chatQuickActions"'));
-assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-idb272-transaction-safety-20261110';"),
+assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-multiline-editor-ui273-20261110';"),
  'public PWA shell release, not account IndexedDB caches');
 console.log('UI-267 screenshot-driven ChatGPT mobile contact, conversation, business controls and keyboard PASS');

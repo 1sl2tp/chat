@@ -1,3 +1,14 @@
+## 2026-11-10 — UI-273 · Composer expands to show long drafts on iPhone (candidate, device verification pending)
+
+- **E0 screenshot:** in iOS Chat PWA with the keyboard open, a long unsent text wraps but only the final 40px strip is visible; the ChatGPT reference shows the writing area expanded with controls at the bottom. Previous UI-268 intentionally capped mobile textarea at 40px, causing the clipping/hidden-lines behavior.
+- **GIVEN/WHEN/THEN:** authenticated iPhone Web/PWA composing a message; on soft wrapping or explicit newline, keep the native textarea and expand the editor above the +/mic/send row, with up to 168px of visible content and native internal scroll only after a viewport-aware limit. A cleared draft restores the compact one-row composer. Desktop retains its two-line cap.
+- **Owner:** `app.js::autoGrow` (measurement/draft/caret and keyboard viewport cap) and `mobile-chat-refresh.css` (existing mobile composer layout). No second editor or duplicate resize loop; expanded state stays stable until draft clears to avoid Safari width-measurement oscillation.
+- **MUST-STAY:** account-scoped draft, Vietnamese IME composition, send/Return mode, +/mic/voice, 44px hit areas, existing VisualViewport/ScrollController, server sync, read state, privacy and all business content unchanged. No new requests, timers, cron, backend changes or IndexedDB resets.
+- **Tests:** existing UI-268 contract upgraded; `tests/test_chat_composer_multiline_ui273_20261110.cjs` covers soft wrap, explicit line breaks, native scroll after cap, keyboard viewport shrinking, preservation of caret/value, short-row restoration, width feedback and desktop behavior. Wired to canonical `Verify V21`. Branch CI, Pages, live build and iPhone PWA end-to-end verification remain **PENDING**.
+- **Rollback:** revert composer CSS+runtime+test and restore previous shell cache epoch through canonical build; do not touch private storage.
+
+---
+
 ## 2026-11-10 — IDB-272 · iOS Chat PWA `idb_tx_aborted` banner (released; iPhone device validation pending)
 
 - **E0 report:** iPhone Chat `V21.72.39 runtime: Error: idb_tx_aborted` red banner while the sidebar continues to render; screenshot alone does not prove whether the abort was storage-pressure, Safari lifecycle or transaction timing.

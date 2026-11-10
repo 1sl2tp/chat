@@ -1,7 +1,7 @@
 'use strict';
-// UI-268: requested ChatGPT-like composer. iPhone has one visible writing
-// row (+ | text | mic | send). Web grows from 1 to 2 visible text lines.
-// Preserve IME, native textarea scrolling, keyboard and audio state owners.
+// UI-268 compact default, UI-273 expand-on-wrap: mobile keeps one action
+// row for short drafts, then grows the textarea above the same action rail.
+// Preserve IME, native textarea scrolling, keyboard and audio owners.
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
@@ -28,7 +28,7 @@ for(const [part,column] of [['#composer-plus-btn',1],['#editorWrap',2],['#compos
  assert(p.includes('grid-row:3;'),part+' shares one visual row');
 }
 const editor=rule(mobile,root+' #editor');
-for(const value of ['height:40px;','min-height:40px;','max-height:40px;','padding:9px2px!important;'])
+for(const value of ['height:var(--editor-height,40px);','min-height:40px;','max-height:168px;','padding:9px2px!important;'])
  assert(editor.includes(value),'mobile textarea geometry '+value);
 assert(!editor.includes('white-space:nowrap'),'keep multiline draft content intact');
 const touch=rule(mobile,root+' :is(#composer-plus-btn,#composer-mic-btn,#send)');
@@ -49,7 +49,7 @@ const end=js.indexOf('const composerMeasureObserver=',start);
 assert(start>0&&end>start,'canonical measurement + autoGrow owner');
 const runtime=js.slice(start,end);
 assert(runtime.includes("+'\\u200b'"),'measure real last line without extra forced newline');
-assert(runtime.includes('const maxHeight=mobile?40:64;'),'mobile 40px, web 64px');
+assert(runtime.includes('Math.max(80,Math.min(168,Math.floor(visibleHeight*.35)))'),'mobile cap bounded to keyboard viewport');
 assert(runtime.includes('const internalScroll=natural>maxHeight;'),'native overflow after cap');
 assert(js.includes("composerMobileBreakpoint?.addEventListener?.('change'"),'recompute on breakpoint');
 assert(js.includes('syncMeasureStyle({force:true,widthPx:editor.getBoundingClientRect().width});'),
@@ -62,7 +62,7 @@ assert(css.includes('#composerShell[data-audio-state="RECORDING"]'),
  'voice recording retains its dedicated surface');
 assert(css.includes('#stageLayout[data-keyboard-open="true"]'),
  'VisualViewport input docking remains active');
-assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-idb272-transaction-safety-20261110';"),
+assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-multiline-editor-ui273-20261110';"),
  'new public PWA cache only');
 
 const mm={matches:true};
@@ -79,8 +79,9 @@ const measure={
    return 16+24*chars.reduce((sum,line)=>sum+Math.max(1,Math.ceil(line.length/18)),0);
  }
 };
+const composerShell={dataset:{}};
 const context=vm.createContext({
- editor:editorFake,measure,window:{matchMedia:()=>mm},
+ editor:editorFake,composerShell,measure,window:{matchMedia:()=>mm,innerHeight:700},
  getComputedStyle:()=>({getPropertyValue:()=>''}),
  composerObserver:{},
  requestAnimationFrame:()=>{throw Error('no RAF expected')}
@@ -91,13 +92,13 @@ grow();
 assert.equal(editorFake.style['--editor-height'],undefined,'blank mobile remains 40px');
 editorFake.value='tin dài '.repeat(20);
 grow();
-assert.equal(editorFake.dataset.internalScroll,'true','mobile preserves long drafts by internal scroll');
-assert.equal(editorFake.style['--editor-height'],undefined,'mobile never grows taller than one row');
+assert.equal(editorFake.dataset.internalScroll,'true','very long mobile draft uses native internal scrolling');
+assert.equal(editorFake.style['--editor-height'],'168px','mobile grows up to 168px before internal scroll');
 const draft=editorFake.value;
 mm.matches=false;
 editorFake.value='Một dòng';
 grow();
-assert.equal(editorFake.style['--editor-height'],undefined,'single web line remains 40px');
+assert.equal(editorFake.style['--editor-height'],'40px','single web line returns to 40px');
 assert.equal(editorFake.dataset.internalScroll,'false');
 editorFake.value='Dòng thứ nhất\nDòng thứ hai';
 grow();
@@ -108,7 +109,7 @@ assert.equal(editorFake.style['--editor-height'],'64px','web never becomes a thi
 assert.equal(editorFake.dataset.internalScroll,'true','third line remains reachable inside textarea');
 mm.matches=true;
 grow();
-assert.equal(editorFake.style['--editor-height'],'40px','return to mobile restores one row');
+assert.equal(editorFake.style['--editor-height'],'88px','return to mobile reveals three visible lines');
 editorFake.value=draft;
 grow();
 assert.equal(editorFake.value,draft,'mode switch keeps original draft and caret owner');
