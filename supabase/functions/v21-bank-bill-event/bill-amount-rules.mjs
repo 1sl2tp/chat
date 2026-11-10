@@ -81,6 +81,15 @@ function parsePrintedBillDate(source){
  m=/^(\d{1,2})[\/.-](\d{1,2})[\/.-](20\d{2})$/.exec(s);
  return m?verifiedBillDate(m[3],m[2],m[1]):null;
 }
+// Read the visible receipt clock independently from the model's combined ISO date.
+// A phone status-bar time must never be used: the vision prompt explicitly forbids it.
+function parsePrintedBillClock(source){
+ const s=String(source||"").trim();
+ const m=/^(\d{1,2}):([0-5]\d)(?::([0-5]\d))?$/.exec(s);
+ if(!m||Number(m[1])>23)return null;
+ return {clock:billPad(Number(m[1]))+":"+m[2]+(m[3]!==undefined?":"+m[3]:""),
+   precision:m[3]===undefined?"minute":"second"};
+}
 function parsePrintedBillTime(source){
  const s=String(source||"").trim();
  let m=/^(20\d{2})[-/](\d{1,2})[-/](\d{1,2})[ T](\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(s);
@@ -140,6 +149,17 @@ export function readV4Fields(data,context={}){
  // Read the date as printed on the receipt before trusting the model's ISO conversion.
  const printedDateText=plain(data?.transfer_date_printed_vn).slice(0,32);
  const printedBillDay=parsePrintedBillDate(printedDateText);
+ const printedClockText=plain(data?.transfer_time_printed_vn).slice(0,16);
+ const printedBillClock=parsePrintedBillClock(printedClockText);
+ // Reconstruct only from BOTH date and time explicitly transcribed off the
+ // same bill. Neither Chat sent_at nor an Agribank credit supplies missing OCR.
+ const clockTextConflict=Boolean(billTime&&printedBillClock
+   &&billTime.slice(11,16)!==printedBillClock.clock.slice(0,5));
+ if(!billTime&&printedBillDay&&printedBillClock
+   &&(!rawBillDay||rawBillDay===printedBillDay)){
+   billTime=printedBillDay+" "+printedBillClock.clock;
+   precision=printedBillClock.precision;
+ }
  // An old bill may genuinely be uploaded today. Treat an apparent day/month
  // swap as a safety warning, never as permission to auto-correct a payment.
  const sentMs=Date.parse(String(context?.sentAt||""));
@@ -169,7 +189,7 @@ export function readV4Fields(data,context={}){
    (billTime&&rawBillDay&&billTime.slice(0,10)!==rawBillDay)||
    (billTime&&printedBillDay&&billTime.slice(0,10)!==printedBillDay)||
    (rawBillDay&&printedBillDay&&rawBillDay!==printedBillDay)||
-   dateSwapSuspected);
+   clockTextConflict||dateSwapSuspected);
  if(timeDateConflict){billTime=null;precision=null;}
  const billDay=timeDateConflict?printedBillDay:
    billTime?billTime.slice(0,10):printedBillDay||rawBillDay;
@@ -185,6 +205,8 @@ export function readV4Fields(data,context={}){
     transaction_time_precision:precision,
     time_date_conflict:timeDateConflict,
     date_swap_suspected:dateSwapSuspected,
+    clock_text_conflict:clockTextConflict,
+    transfer_time_printed_vn:printedBillClock?printedClockText:null,
     transfer_date_printed_vn:printedBillDay?printedDateText:null,
     transfer_reference:reference&&reference.length<=120?reference:null,
     transfer_date_vn:billDay,
