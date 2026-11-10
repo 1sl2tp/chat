@@ -138,42 +138,49 @@ export function readV4Fields(data,context={}){
  const bank=/\bAGRI\s*BANK\b|\bNONG NGHIEP\b|\bNN\s*&\s*PTNT\b|\bNHNN\s*&\s*PTNT\b|\bNH\s+NN\s+(?:VA\s+)?PTNT\b/.test(bankRaw)
    ?"AGRIBANK":/VIETINBANK|CONG THUONG/.test(bankRaw)?"VIETINBANK"
    :bankRaw?bankRaw.slice(0,80):null;
- const printedClock=parsePrintedBillTime(plain(data?.transaction_datetime_vn));
- let billTime=printedClock?.time||null,precision=printedClock?.precision||null;
+ const modelTime=parsePrintedBillTime(plain(data?.transaction_datetime_vn));
+ let billTime=modelTime?.time||null,precision=modelTime?.precision||null;
  const senderBank=plain(data?.sending_bank);
  const senderName=plain(data?.sender_name).normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d").replace(/Đ/g,"D").replace(/\s+/g," ").toUpperCase();
  const reference=plain(data?.transfer_reference).replace(/\s+/g,"");
  const transferContent=plain(data?.transfer_content);
  const visualDate=plain(data?.transfer_date_vn);
  const rawBillDay=parsePrintedBillDate(visualDate);
- // Read the date as printed on the receipt before trusting the model's ISO conversion.
+ // A literal transcription is the primary receipt source. The AI-converted
+ // ISO date is only a proposal and must not override printed DD/MM/YYYY.
  const printedDateText=plain(data?.transfer_date_printed_vn).slice(0,32);
  const printedBillDay=parsePrintedBillDate(printedDateText);
  const printedClockText=plain(data?.transfer_time_printed_vn).slice(0,16);
  const printedBillClock=parsePrintedBillClock(printedClockText);
- // Reconstruct only from BOTH date and time explicitly transcribed off the
- // same bill. Neither Chat sent_at nor an Agribank credit supplies missing OCR.
- const clockTextConflict=Boolean(billTime&&printedBillClock
-   &&(billTime.slice(11,16)!==printedBillClock.clock.slice(0,5)
-      ||(precision==="second"&&printedBillClock.precision==="second"
-        &&billTime.slice(11,19)!==printedBillClock.clock)));
- // The model sometimes appends ":00" even if the photo shows HH:mm only.
- // The literal receipt clock controls precision, never fabricated seconds.
- if(billTime&&printedBillClock&&!clockTextConflict
-   &&printedBillClock.precision==="minute"&&precision==="second"){
-   billTime=billTime.slice(0,16);precision="minute";
- }
- if(!billTime&&printedBillDay&&printedBillClock
-   &&(!rawBillDay||rawBillDay===printedBillDay)){
+ const clockTextConflict=Boolean(billTime&&printedBillClock&&
+   (billTime.slice(11,16)!==printedBillClock.clock.slice(0,5)||
+    (precision==="second"&&printedBillClock.precision==="second"&&
+     billTime.slice(11,19)!==printedBillClock.clock)));
+ const modelDateConflict=Boolean(billTime&&rawBillDay&&
+   billTime.slice(0,10)!==rawBillDay);
+ const printedDateConflict=Boolean(printedBillDay&&
+   ((billTime&&billTime.slice(0,10)!==printedBillDay)||
+    (rawBillDay&&rawBillDay!==printedBillDay)));
+ // Fix AI date conversion deterministically only when independent literal
+ // date AND time are present and agree on the visible clock. Never guess
+ // from Chat's upload day, even if the bank event was received that day.
+ const hasLiteralDateClock=Boolean(printedBillDay&&printedBillClock&&!clockTextConflict);
+ const ocrDateCorrected=Boolean(hasLiteralDateClock&&
+   (printedDateConflict||modelDateConflict));
+ if(hasLiteralDateClock){
    billTime=printedBillDay+" "+printedBillClock.clock;
    precision=printedBillClock.precision;
+ }else if(billTime&&printedBillClock&&!clockTextConflict&&
+   printedBillClock.precision==="minute"&&precision==="second"){
+   // Model-added ":00" is not a visible second on the receipt.
+   billTime=billTime.slice(0,16);precision="minute";
  }
- // An old bill may genuinely be uploaded today. Treat an apparent day/month
- // swap as a safety warning, never as permission to auto-correct a payment.
+ // Explicit old bills may be re-sent weeks later: Chat upload time alone
+ // must NOT re-date them. Only missing literal evidence can be suspicious.
  const sentMs=Date.parse(String(context?.sentAt||""));
  const localSent=Number.isFinite(sentMs)?new Date(sentMs+7*3600000).toISOString():"";
- const candidateDay=billTime?.slice(0,10)||rawBillDay;
- const clockParts=candidateDay?.split("-")||[];
+ const modelDay=modelTime?.date||rawBillDay;
+ const clockParts=modelDay?.split("-")||[];
  const swappedDay=clockParts.length===3
    ?verifiedBillDate(clockParts[0],clockParts[2],clockParts[1]):null;
  const asMinutes=value=>{
@@ -182,22 +189,19 @@ export function readV4Fields(data,context={}){
      ?Number(parts[0])*60+Number(parts[1]):null;
  };
  const sentMinutes=asMinutes(localSent.slice(11,16));
- const billMinutes=asMinutes(billTime?.slice(11,16));
+ const billMinutes=asMinutes(modelTime?.time.slice(11,16));
  const clockGap=sentMinutes===null||billMinutes===null?Infinity:
    Math.min(Math.abs(sentMinutes-billMinutes),1440-Math.abs(sentMinutes-billMinutes));
- const dateSwapSuspected=Boolean(candidateDay&&swappedDay
-   &&swappedDay===localSent.slice(0,10)
-   &&swappedDay!==candidateDay
-   // A printed, consistent historical date permits date-only reference review.
-   // Without an independently transcribed bill date, quarantine the day-only
-   // inversion rather than matching on the Chat upload calendar.
-   &&(billTime?clockGap<=10:!printedBillDay));
- // Neither two AI output fields nor the Chat upload time prove settlement.
- const timeDateConflict=Boolean(
-   (billTime&&rawBillDay&&billTime.slice(0,10)!==rawBillDay)||
-   (billTime&&printedBillDay&&billTime.slice(0,10)!==printedBillDay)||
-   (rawBillDay&&printedBillDay&&rawBillDay!==printedBillDay)||
-   clockTextConflict||dateSwapSuspected);
+ const dateSwapSuspected=Boolean(
+   (printedBillDay&&swappedDay===printedBillDay&&modelDay!==printedBillDay)||
+   (!printedBillDay&&modelDay&&swappedDay&&
+     swappedDay===localSent.slice(0,10)&&swappedDay!==modelDay&&
+     (modelTime?clockGap<=10:true)));
+ // Contradictory raw evidence is a review state, not an excuse to rewrite
+ // customer data. A proven AI ISO/date conversion error is separately audited.
+ const timeDateConflict=Boolean(clockTextConflict||
+   (!hasLiteralDateClock&&(printedDateConflict||modelDateConflict))||
+   (!hasLiteralDateClock&&dateSwapSuspected));
  if(timeDateConflict){billTime=null;precision=null;}
  const billDay=timeDateConflict?printedBillDay:
    billTime?billTime.slice(0,10):printedBillDay||rawBillDay;
@@ -213,6 +217,8 @@ export function readV4Fields(data,context={}){
     transaction_time_precision:precision,
     time_date_conflict:timeDateConflict,
     date_swap_suspected:dateSwapSuspected,
+    ocr_date_normalization_corrected:ocrDateCorrected,
+    ocr_iso_date_conflict:printedDateConflict||modelDateConflict,
     clock_text_conflict:clockTextConflict,
     transfer_time_printed_vn:printedBillClock?printedClockText:null,
     transfer_date_printed_vn:printedBillDay?printedDateText:null,
