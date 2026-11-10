@@ -1610,6 +1610,9 @@ function positionImageViewerBelowHeader(){
 function syncOpenImageViewerRegion(){
   if(!imageViewerOverlay?.open)return;
   positionImageViewerBelowHeader();
+  // Re-fit the decoded full-resolution image after the viewer viewport changes.
+  // This is layout-only: no extra image downloads or album hydration.
+  if(imageViewerZoom>1)applyImageViewerTransform();
   // UI-180: mobile address-bar/PWA resize changes visible thumb geometry.
   // Re-hydrate only the newly visible slice, once after layout.
   requestAnimationFrame(()=>hydrateVisibleViewerThumbs());
@@ -2026,8 +2029,11 @@ function clampImageViewerPan(){
   const quarter=rotation===90||rotation===270;
   const baseWidth=quarter?imageViewerImage.offsetHeight:imageViewerImage.offsetWidth;
   const baseHeight=quarter?imageViewerImage.offsetWidth:imageViewerImage.offsetHeight;
-  const scaledWidth=Math.max(0,baseWidth*imageViewerZoom);
-  const scaledHeight=Math.max(0,baseHeight*imageViewerZoom);
+  // Image pixels are laid out at zoomed CSS dimensions when the full decode
+  // is available. Do not multiply by zoom a second time for the pan limits.
+  const layoutZoomed=imageViewerImage.dataset.layoutZoomed==='true';
+  const scaledWidth=Math.max(0,baseWidth*(layoutZoomed?1:imageViewerZoom));
+  const scaledHeight=Math.max(0,baseHeight*(layoutZoomed?1:imageViewerZoom));
   const maxX=Math.max(0,(scaledWidth-viewport.width)/2);
   const maxY=Math.max(0,(scaledHeight-viewport.height)/2);
   imageViewerPanX=Math.max(-maxX,Math.min(maxX,imageViewerPanX));
@@ -2041,16 +2047,52 @@ function updateImageViewerZoomControls(){
   if(imageViewerZoomIn)imageViewerZoomIn.disabled=imageViewerZoom>=4.999;
 }
 
+// IMG-275: CSS transform scale rasterizes the already-fit on-screen bitmap,
+// making original handwriting blurry at 250–500% despite a sharp downloaded
+// asset. Re-layout the *same original Blob* at the zoomed dimensions so the
+// browser decodes/rasterizes available source pixels at the requested size.
+// Do not touch the thumbnail, network, MediaCache or original upload bytes.
+function imageViewerFittedOriginalSize(){
+  if(!imageViewerImage||!imageViewerMain)return null;
+  const naturalWidth=Number(imageViewerImage.naturalWidth)||0;
+  const naturalHeight=Number(imageViewerImage.naturalHeight)||0;
+  if(naturalWidth<=0||naturalHeight<=0)return null;
+  const viewport=imageViewerContentViewport();
+  const fit=Math.min(1,viewport.width/naturalWidth,viewport.height/naturalHeight);
+  if(!Number.isFinite(fit)||fit<=0)return null;
+  return{width:naturalWidth*fit,height:naturalHeight*fit};
+}
+
 function applyImageViewerTransform(){
   if(!imageViewerImage||!imageViewerMain)return;
-  clampImageViewerPan();
   const zoom=Math.round(imageViewerZoom*1000)/1000;
+  const fitted=zoom>1?imageViewerFittedOriginalSize():null;
+  const layoutZoomed=Boolean(fitted);
+  if(layoutZoomed){
+    // Expand the actual image element, not a GPU texture rendered at 100%.
+    // max-* and flex shrink would otherwise force it back into the viewport.
+    imageViewerImage.style.width=`${Math.round(fitted.width*zoom*100)/100}px`;
+    imageViewerImage.style.height=`${Math.round(fitted.height*zoom*100)/100}px`;
+    imageViewerImage.style.maxWidth='none';
+    imageViewerImage.style.maxHeight='none';
+    imageViewerImage.style.flexShrink='0';
+  }else{
+    imageViewerImage.style.width='';
+    imageViewerImage.style.height='';
+    imageViewerImage.style.maxWidth='';
+    imageViewerImage.style.maxHeight='';
+    imageViewerImage.style.flexShrink='';
+  }
+  imageViewerImage.dataset.layoutZoomed=layoutZoomed?'true':'false';
+  clampImageViewerPan();
   const rotation=imageViewerRotation();
   const parts=[];
   if(zoom!==1||imageViewerPanX||imageViewerPanY){
     parts.push(`translate3d(${Math.round(imageViewerPanX*10)/10}px,${Math.round(imageViewerPanY*10)/10}px,0)`);
   }
-  if(zoom!==1)parts.push(`scale(${zoom})`);
+  // While a new image is still decoding, keep the old lightweight fallback.
+  // The load event below re-renders at native pixel density immediately.
+  if(zoom!==1&&!layoutZoomed)parts.push(`scale(${zoom})`);
   if(rotation)parts.push(`rotate(${rotation}deg)`);
   imageViewerImage.style.transform=parts.join(' ');
   imageViewerImage.dataset.zoom=String(zoom);
@@ -2474,6 +2516,13 @@ function ensureImageViewer(){
   imageViewerOverlay=overlay;
   imageViewerImage=image;
   imageViewerMain=main;
+  // A preview can arrive first and the original Blob later. Re-fit only the
+  // selected image after its decoder completes, preserving zoom and pan.
+  image.addEventListener('load',()=>{
+    if(imageViewerOverlay?.open&&imageViewerImage===image&&imageViewerZoom>1){
+      applyImageViewerTransform();
+    }
+  });
   imageViewerFilmstrip=thumbs;
   imageViewerFilters=filters;
   imageViewerCounter=counter;
