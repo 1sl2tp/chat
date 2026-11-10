@@ -156,13 +156,15 @@
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #editor{
-    height:40px;
+    height:var(--editor-height,40px);
     min-height:40px;
-    max-height:40px;
+    max-height:168px;
     margin:0;
     padding:9px 2px!important;
     font-size:var(--ui-input-mobile-font-size,16px);
     line-height:22px;
+    white-space:pre-wrap;
+    overflow-wrap:anywhere;
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composerFooter{
@@ -248,6 +250,27 @@
   #appShell[data-auth-state="authenticated"][data-route="chat"] #send svg :is(path,line,rect,circle,polyline){
     stroke-width:2px!important;
   }
+  /* UI-273: a short draft keeps the original compact row. Once its natural
+     text reaches a second line, place the editor above the 44px action rail.
+     Width stays expanded until the draft clears, preventing Safari oscillation. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-editor-expanded="true"]{
+    grid-template-rows:auto auto minmax(40px,auto) 44px;
+    align-items:end;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-editor-expanded="true"] #editorWrap{
+    grid-column:1 / -1;
+    grid-row:3;
+    align-self:stretch;
+    padding:1px 12px 0!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-editor-expanded="true"] #editor{
+    padding:8px 2px!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-editor-expanded="true"] :is(#composer-plus-btn,#composer-mic-btn,#send){
+    grid-row:4;
+    align-self:center;
+  }
+
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell:not([data-can-send="true"]) #send{
     background:color-mix(in srgb,var(--theme-content-tertiary) 47%,var(--theme-surface-secondary));
   }
