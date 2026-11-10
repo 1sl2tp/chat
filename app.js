@@ -2870,6 +2870,10 @@ function applySingleImagePresentation(wrap,media){
     img.style.objectFit='contain';
     img.style.objectPosition='center';
   }
+  // IMG-281: after every image ratio/DOM patch, restore its per-asset
+  // rotation AND the corresponding portrait/landscape frame together.
+  // The rotation module itself owns the geometry, not this media renderer.
+  if(wrap.isConnected)window.V21ImageOrientation?.applyTileRotation?.(wrap);
   return wrap;
 }
 
@@ -4918,7 +4922,9 @@ function patchMessageMediaShell(shell,media){
     // Keep a decoded natural ratio if the old asset lacks dimension metadata.
     const tile=shell.querySelector(':scope > .media-image-tile[data-image-presentation]');
     const naturalRatio=Number(tile?.dataset.intrinsicAspectRatio)||0;
-    const width=singleImageDisplayWidth(naturalRatio>0?{...media,aspectRatio:naturalRatio}:media);
+    const rotatedWidth=Number(tile?.dataset.rotatedMediaWidth)||0;
+    const width=rotatedWidth>0?rotatedWidth
+      :singleImageDisplayWidth(naturalRatio>0?{...media,aspectRatio:naturalRatio}:media);
     shell.style.setProperty('--message-media-width',`${width}px`);
   }else{
     shell.style.removeProperty('--message-media-width');
