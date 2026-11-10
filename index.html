@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="f652e1648073d523112826b045ad2daaf42340cd39ce47828414bfca857e53d6">
+<meta name="app-build-id" content="53effe189b5f3d5c8eed7bf334b535155492d3bc37cb7bf2355fb25291bf3b4d">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -30463,6 +30463,7 @@ if(root.parentElement!==stage)stage.appendChild(root);
 const ui={
  date:root.querySelector('[data-bank-date]'),
  refresh:root.querySelector('[data-bank-refresh]'),
+ daily:root.querySelector('[data-bank-daily-summary]'),
  summary:root.querySelector('[data-bank-summary]'),
  status:root.querySelector('[data-bank-status]'),
  table:root.querySelector('[data-bank-table]'),
@@ -31198,6 +31199,101 @@ function attachReviewDialogKeyboard(overlay,form){
  });
  form.querySelector('.bank-report-image-close')?.focus?.({preventScroll:true});
 }
+// BANK-282: manually preview only verified transfers, with explicit per-client
+// confirmation. Never send when merely opening the report or changing dates.
+async function openDailyBankSummary(){
+ if(!active||!isReportContact()||!ui.review)return;
+ closeReviewDialog();
+ const owner=bankReportSessionOwner();
+ const auth=window.V21AuthSessionStore?.snapshot?.()||{};
+ const client=window.V21AuthSessionStore?.getClient?.();
+ const yesterday=()=>{
+  const d=new Date(localDate()+'T12:00:00Z');d.setUTCDate(d.getUTCDate()-1);
+  return d.toISOString().slice(0,10);
+ };
+ const overlay=el('div','bank-review-overlay');
+ const pane=el('div','bank-review-form bank-daily-form');
+ pane.setAttribute('role','dialog');pane.setAttribute('aria-modal','true');
+ pane.setAttribute('aria-label','Thông báo đối soát chuyển khoản');
+ const title=append(el('div','bank-review-heading'),
+   append(el('div',''),el('strong','','Đối soát chuyển khoản'),
+     el('small','','Chỉ gửi khách có tiền Agribank đã ghi thu · Đơn vị 1.000 đồng')),
+   el('button','bank-report-image-close','Đóng'));
+ title.querySelector('button').type='button';
+ title.querySelector('button').addEventListener('click',closeReviewDialog);
+ pane.appendChild(title);
+ const label=el('label','bank-review-label','Ngày chuyển khoản');
+ const date=el('input','bank-review-select');date.type='date';
+ date.min='2026-10-19';date.max=yesterday();
+ date.value=dateReady()<localDate()?dateReady():yesterday();
+ label.appendChild(date);pane.appendChild(label);
+ const feedback=el('p','bank-review-feedback');feedback.setAttribute('role','status');
+ const list=el('div','bank-daily-customers');
+ append(pane,feedback,list);append(overlay,pane);
+ ui.review.hidden=false;ui.review.appendChild(overlay);
+ attachReviewDialogKeyboard(overlay,pane);
+ overlay.addEventListener('click',e=>{if(e.target===overlay)closeReviewDialog();});
+ if(!bankDialogIsCurrent(overlay,owner)||!auth.appSessionId||!client){
+  feedback.textContent='Cần phiên Admin hợp lệ.';return;
+ }
+ let serial=0;
+ async function refresh(){
+  const seq=++serial,day=date.value;
+  list.replaceChildren();feedback.textContent='Đang kiểm tra chuyển khoản đã ghi thu…';
+  if(!day||day>=localDate()||day<'2026-10-19'){
+   feedback.textContent='Chọn ngày đã kết thúc (không gửi cho ngày hôm nay).';return;
+  }
+  try{
+   const {data,error}=await client.rpc('chat_bank_daily_transfer_preview',
+      {p_app_session_id:auth.appSessionId,p_day:day});
+   if(!bankDialogIsCurrent(overlay,owner)||serial!==seq)return;
+   if(error)throw error;
+   const recipients=Array.isArray(data?.customers)?data.customers:[];
+   feedback.textContent=recipients.length?
+     recipients.length+' khách có chuyển khoản đã ghi thu. Chỉ gửi đúng khách này.':
+     'Không có khách chuyển khoản đã ghi thu ngày này. Không cần gửi.';
+   for(const recipient of recipients){
+    const row=el('div','bank-daily-customer');
+    const detail=append(el('div','bank-daily-customer-info'),
+      el('strong','',recipient.customer_name||'Khách hàng'),
+      el('small','',recipient.transfer_count+' lượt · Tổng '+recipient.amount_thousands+
+        ' (nghìn đồng)'));
+    const preview=el('details','bank-daily-preview');
+    preview.appendChild(el('summary','','Xem trước nội dung'));
+    preview.appendChild(el('pre','',recipient.body||''));
+    const send=el('button','bank-review-save',recipient.sent?'Đã gửi':
+      !recipient.eligible?'Không bật nhận':'Gửi thủ công');
+    send.type='button';send.disabled=Boolean(recipient.sent||!recipient.eligible);
+    send.addEventListener('click',async()=>{
+     if(send.disabled||!bankDialogIsCurrent(overlay,owner)||serial!==seq)return;
+     if(!window.confirm('Gửi thông báo đối soát ngày '+day+
+       ' cho '+recipient.customer_name+'?\nChỉ gồm chuyển khoản đã ghi thu; không trừ công nợ lần hai.'))return;
+     send.disabled=true;send.textContent='Đang gửi…';
+     try{
+      const result=await client.rpc('chat_bank_daily_transfer_send_manual',{
+       p_app_session_id:auth.appSessionId,p_day:day,p_customer_id:recipient.customer_id
+      });
+      if(!bankDialogIsCurrent(overlay,owner)||serial!==seq)return;
+      if(result.error||!result.data?.ok)throw Error(result.error?.message||result.data?.status||'Chưa gửi');
+      send.textContent=result.data.status==='already_sent'?'Đã gửi trước đó':'Đã gửi';
+      feedback.textContent='Đã ghi nhận thông báo. Không gửi trùng cùng khách/ngày.';
+     }catch(error){
+      if(bankDialogIsCurrent(overlay,owner)&&serial===seq){
+       send.disabled=false;send.textContent='Gửi thủ công';
+       feedback.textContent='Chưa gửi: '+String(error?.message||error).slice(0,160);
+      }
+     }
+    });
+    append(row,detail,preview,send);list.appendChild(row);
+   }
+  }catch(error){
+   if(bankDialogIsCurrent(overlay,owner)&&serial===seq)
+    feedback.textContent='Không đọc được đối soát: '+String(error?.message||error).slice(0,160);
+  }
+ }
+ date.addEventListener('change',()=>void refresh());
+ void refresh();
+}
 async function openReviewDialog(bank,candidates){
  if(!active||!isReportContact()||!ui.review||!Array.isArray(candidates)||!candidates.length)return;
  closeReviewDialog();
@@ -31671,6 +31767,7 @@ function synchronize(){
  }
 }
 ui.refresh.addEventListener('click',()=>void reload());
+ui.daily?.addEventListener('click',()=>void openDailyBankSummary());
 ui.date.addEventListener('change',()=>{filter='all';selectedCustomer=null;current=null;void reload();});
 document.addEventListener('v21-active-contact-change',synchronize);
 document.addEventListener('v21-contact-store-change',synchronize);
