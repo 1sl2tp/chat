@@ -1,3 +1,14 @@
+## 2026-11-10 — IDB-272 · iOS Chat PWA `idb_tx_aborted` banner (candidate; production pending)
+
+- **E0 report:** iPhone Chat `V21.72.39 runtime: Error: idb_tx_aborted` red banner while the sidebar continues to render; screenshot alone does not prove whether the abort was storage-pressure, Safari lifecycle or transaction timing.
+- **Code evidence/root risk:** `v21-cache-store.js::txDone` was often attached only after awaiting a request/cursor; some Safari transactions may finish before the handler is installed. `replaceContacts` enqueued `put()` writes only after awaiting the end-of-cursor callback, outside a live transaction on Safari. `v21-sync-engine.js::hydrateAccount` allowed optional cache read failure to escape its fire-and-forget auth bootstrap, triggering the global runtime banner.
+- **Patch:** attach one completion/abort handler immediately after transaction creation, preserve rejected result for explicit callers without an unhandled parallel rejection, enqueue contact replacement within the active cursor callback (atomic delete+insert), release stale connections on version change and retry a future IndexedDB open after transient failure. A failed optional contact cache read now leaves authenticated server-first directory intact. Do not downgrade outbox/send durability failures to success.
+- **MUST-STAY:** no IndexedDB delete/clear/recreate; no canonical data edits; no login/session reset; no new RPC/poll, push or cron; error handling outside disposable local contact hydration remains unchanged; PWA shell cache epoch only (private storage untouched).
+- **Test:** `tests/test_chat_idb_tx_abort_recovery_20261110.cjs` simulates synchronous transaction completion before a caller's await, Safari cursor auto-commit, and local cache rejection during authenticated sidebar hydration; wired to Verify V21 + canonical verify. CI/Pages/live build/on-device screenshot remain **PENDING** until confirmed.
+- **Rollback:** revert `v21-cache-store.js`, `v21-sync-engine.js`, test wiring and `sw.js` shell epoch; preserve all customer messages, outbox and storage.
+
+---
+
 ## 2026-11-10 — PRICE-271 · App Chat 06:00 VN seven-day price advisory (deployed, production Zalo verified)
 
 - **Requirement:** Daily 06:00 Viet Nam, owner is Chat app Supabase pg_cron, NOT ChatGPT Tasks. Advice is Vietnamese with accents; product names unaccented. Combined products from price changes, delivered orders, pending drafts over trailing 7 days, de-duplicating same names with same sales price. Reliable old price shown as `old -> current (+/- delta)`, unexpected/unknown comparison current price only. Customer-specific support pricing is not disclosed in the public group.
