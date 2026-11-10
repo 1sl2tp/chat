@@ -19,5 +19,5 @@ assert(js.includes("status.textContent='Đang lưu…'"),'no premature confirmat
 assert(js.includes('if(!panel.isConnected)return;'),'do not use disposed modal');
 assert(!js.includes('setInterval('),'no extra polling');
 for(const value of ['.tp-outbound-line--event','.tp-outbound-line--customer','.tp-outbound-list','min-height:44px','font-size:16px','overscroll-behavior:contain','position:sticky'])assert(css.includes(value),value);
-assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-multiline-editor-ui273-20261110';"),'PWA public shell invalidation');
+assert((/const SHELL_CACHE_EPOCH='pwa-chat-[a-z0-9-]+';/.test(sw) && !sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-multiline-editor-ui273-20261110';")),'PWA public shell invalidation');
 console.log('UI-262 compact notifications, scroll retention, no extra RPC or duplicate sends PASS');

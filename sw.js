@@ -3,6 +3,8 @@ const RELEASE_VERSION='V21.72.39';
 const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 // BANK-177: reload one-time cached shell for the live bank reconciliation table.
 // Keep offline-first startup; do not add per-navigation network requests.
+// RO-20261110: refresh only the public shell after deferred observer geometry fix;
+// preserve IndexedDB, accounts, message history and other private caches.
 const SHELL_CACHE_EPOCH='pwa-chat-resizeobserver-loop-fix-20261110';
 const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION+'-'+SHELL_CACHE_EPOCH;
 const AVATAR_CACHE_NAME='taphoa-chat-avatars-v1';
