@@ -375,6 +375,8 @@ Deno.serve(async req=>{
       time_date_conflict:fields.time_date_conflict,
       clock_text_conflict:fields.clock_text_conflict,
       date_swap_suspected:fields.date_swap_suspected,
+      ocr_date_normalization_corrected:fields.ocr_date_normalization_corrected,
+      ocr_iso_date_conflict:fields.ocr_iso_date_conflict,
       transfer_content:fields.transfer_content,
       transaction_time_precision:fields.transaction_time_precision,
       recipient_name:fields.receiving_name,receiving_bank:fields.receiving_bank,
