@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="43625ca3e33817b9fa5cda5da7ca96f55096ea2bbda68b2253b51216e71ffeb4">
+<meta name="app-build-id" content="c2939e59ffc0b8f2570ee69b9651f1687d2213cc6373022ad8421ceb9c705fd8">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -18959,7 +18959,11 @@ function renderMenuUnread(){
     button.dataset.hasUnread=String(hasUnread);
     const dot=button.querySelector('[data-menu-unread-dot]');
     if(dot)dot.hidden=!hasUnread;
-    button.setAttribute('aria-label',hasUnread?`Mở menu, ${count} tin mới`:'Mở menu');
+    // NAV-284: unread refresh cannot relabel an active Chat back chevron
+    // as the account menu while the user is viewing a conversation.
+    button.setAttribute('aria-label',button.dataset.mobileBack==='true'
+      ?'Quay lại Danh bạ'
+      :hasUnread?`Mở menu, ${count} tin mới`:'Mở menu');
   }
 }
 
