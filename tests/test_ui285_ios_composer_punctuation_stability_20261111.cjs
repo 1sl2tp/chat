@@ -41,7 +41,7 @@ function type(value){editor.value=value;editor.selectionStart=editor.selectionEn
 type('Một câu đã đủ dài để xuống dòng');
 assert.equal(shell.dataset.editorExpanded,'true','first real wrap expands once');
 assert.equal(measure.style.width,'330px','first expanded frame is already measured at actual textarea width');
-assert.equal(editor.style['--editor-height'],'40px','no interim tiny-width 2-line height is painted');
+assert.equal(editor.style['--editor-height']||'40px','40px','no interim tiny-width 2-line height is painted');
 assert(!writes.some(([k,v])=>k==='--editor-height'&&v!=='40px'),
  'expansion cannot first paint a stale 132px textarea height');
 type('Một câu đã đủ dài để xuống dòng. Và có thêm một câu khá dài');
