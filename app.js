@@ -5582,9 +5582,11 @@ function ensureComposerMeasureReady(){
   syncMeasureStyle({force:true,widthPx:editor.getBoundingClientRect().width});
 }
 
-// UI-268: Mobile keeps one *visible* text line while a longer native draft
-// scrolls inside the textarea; desktop reveals a second line and no more.
-// Never truncate the value, collapse selections or rewrite Vietnamese IME.
+// UI-273: Mobile stays compact for a short draft, then moves actions below
+// the native textarea so wrapped text grows to several visible lines.
+// Keep the expanded layout until the draft is cleared to prevent width
+// feedback (wide textarea -> fewer wraps -> compact -> more wraps) on Safari.
+// Desktop retains its existing two-line policy. Never rewrite the IME/caret.
 const composerMobileBreakpoint=window.matchMedia?.('(max-width:63.999rem)')||null;
 let lastEditorHeightPx=40;
 let lastEditorInternalScroll=false;
@@ -5599,13 +5601,24 @@ function autoGrow({source='layout'}={}){
 
   const natural=Math.ceil(measure.scrollHeight);
   const mobile=Boolean(composerMobileBreakpoint?.matches);
-  const maxHeight=mobile?40:64;
-  const next=mobile?40:Math.max(40,Math.min(maxHeight,natural));
+  // Limit by the visible keyboard viewport (not the document height), keeping
+  // some conversation visible in short/landscape iPhone windows.
+  const visibleHeight=Number(window.visualViewport?.height||window.innerHeight)||640;
+  const maxHeight=mobile
+    ?Math.max(80,Math.min(168,Math.floor(visibleHeight*.35)))
+    :64;
+  const expanded=mobile&&(
+    natural>43 ||
+    (composerShell.dataset.editorExpanded==='true'&&Boolean(editor.value.trim()))
+  );
+  const expandedChanged=(composerShell.dataset.editorExpanded==='true')!==expanded;
+  const next=Math.max(40,Math.min(maxHeight,natural));
   const internalScroll=natural>maxHeight;
   const heightChanged=next!==lastEditorHeightPx;
   const scrollModeChanged=internalScroll!==lastEditorInternalScroll;
 
-  if(!heightChanged&&!scrollModeChanged)return false;
+  if(!heightChanged&&!scrollModeChanged&&!expandedChanged)return false;
+  if(expandedChanged)composerShell.dataset.editorExpanded=expanded?'true':'false';
 
   if(heightChanged){
     editor.style.setProperty(
@@ -5644,6 +5657,11 @@ composerMobileBreakpoint?.addEventListener?.('change',()=>{
   syncMeasureStyle({force:true,widthPx:editor.getBoundingClientRect().width});
   autoGrow({source:'breakpoint'});
 });
+// Keyboard opening/rotation changes the available visible height. Recompute
+// the input cap only on that existing lifecycle signal, not on each frame.
+window.visualViewport?.addEventListener?.('resize',()=>{
+  autoGrow({source:'visual-viewport'});
+},{passive:true});
 
 /* =========================================================
    ATTACHMENTS / RECORDING
