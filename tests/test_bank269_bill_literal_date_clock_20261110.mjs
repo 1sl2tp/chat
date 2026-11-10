@@ -47,6 +47,14 @@ assert.equal(onlyDay.transfer_at_vn,null);
 assert.equal(onlyDay.transfer_date_vn,"2026-11-10");
 
 // Printed clock/date contradictions must fail closed without changing the amount.
+const falseSeconds=read({...printed,transaction_datetime_vn:"2026-11-10 18:06:00"});
+assert.equal(falseSeconds.transfer_at_vn,"2026-11-10 18:06",
+ "literal HH:mm on bill must not inherit fabricated :00 seconds");
+assert.equal(falseSeconds.transaction_time_precision,"minute");
+const contradictorySeconds=read({...printed,transfer_time_printed_vn:"18:06:29",
+ transaction_datetime_vn:"2026-11-10 18:06:00"});
+assert.equal(contradictorySeconds.clock_text_conflict,true);
+assert.equal(contradictorySeconds.transfer_at_vn,null);
 const wrongMinute=read({...printed,transfer_time_printed_vn:"18:07",
  transaction_datetime_vn:"2026-11-10 18:06"});
 assert.equal(wrongMinute.clock_text_conflict,true);
