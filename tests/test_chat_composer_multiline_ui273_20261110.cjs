@@ -42,7 +42,8 @@ const measure={textContent:'',style:{width:'',setProperty(k,v){this[k]=v;}},
     const width=parseFloat(this.style.width)||170;
     const capacity=Math.max(1,Math.floor((width-8)/8));
     const lines=String(this.textContent||'').split('\n');
-    return 18+22*lines.reduce((sum,line)=>sum+Math.max(1,Math.ceil(line.length/capacity)),0);
+    const count=lines.reduce((sum,line)=>sum+Math.max(1,Math.ceil(line.length/capacity)),0);
+    return mm.matches?18+22*count:16+24*count;
   }
 };
 const shell={dataset:{}};
