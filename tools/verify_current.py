@@ -108,6 +108,7 @@ subprocess.run(['node',str(ROOT/'tests'/'test_chat_mobile_layout_coherence_20261
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_mobile_chatgpt_rhythm_ui267_20261108.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_composer_responsive_ui268_20261109.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_composer_multiline_ui273_20261110.cjs')],check=True,cwd=ROOT)
+subprocess.run(['node',str(ROOT/'tests'/'test_ui285_ios_composer_punctuation_stability_20261111.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_directory_menu_ui261_20261108.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_customer_notification_settings_ui262_20261108.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_bank_report_realtime_dirty_ui263_20261108.cjs')],check=True,cwd=ROOT)
