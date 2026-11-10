@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="c6138cc6e66985d36db0bb7861f09e241f35da0d06cf159dcd27f6ec432c7446">
+<meta name="app-build-id" content="f025002ed4cc9e80489ae633ec3fcb95242404c34dc7d8f9a63cc71071dd8bc2">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -4723,7 +4723,9 @@ button{
   -webkit-user-select:none;
   -webkit-user-drag:none;
   transform-origin:center center;
-  will-change:transform;
+  /* IMG-275: avoid pinning a low-resolution 100% raster layer on desktop.
+     At zoom the element itself is laid out at full displayed pixel size. */
+  will-change:auto;
   touch-action:none;
 }
 .image-review-nav{
