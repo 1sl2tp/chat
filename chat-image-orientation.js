@@ -302,7 +302,11 @@ function scheduleSync(){
 
 // One geometry owner. app.js invokes this after a single-image DOM patch;
 // layout rotation is not a separate network/media owner.
-window.V21ImageOrientation=Object.freeze({applyTileRotation});
+// A typed optional Window extension keeps the existing bridge without
+// TypeScript TS2339 errors in Verify V21 (no extra global runtime owner).
+/** @type {Window & typeof globalThis & {V21ImageOrientation?: Readonly<{applyTileRotation: typeof applyTileRotation}>}} */
+const orientationWindow=window;
+orientationWindow.V21ImageOrientation=Object.freeze({applyTileRotation});
 
 installStyle();
 document.addEventListener('click',handleClick,true);
