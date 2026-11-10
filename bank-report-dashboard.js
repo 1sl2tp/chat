@@ -419,7 +419,7 @@ function detailLine(row,isBank=false,candidates=[]){
    ?'Đã liên kết khoản nhập tay':'Đã thu thủ công từ Agribank')
   :manualEvidence?'Có thu tay cùng khách/số tiền/ngày; bill chưa xác minh':
   isBank&&candidates.length?'Chưa đối soát · Chưa ghi thu':
-  dateSwapSuspect?'Ngày OCR nghi sai · Chờ đối chiếu ảnh và Agribank':statusText[type]||row.status||'Chưa rõ'));
+  dateSwapSuspect?'AI nghi đọc nhầm ngày · Chờ soát Agribank':statusText[type]||row.status||'Chưa rõ'));
  if(!isBank){
   content.appendChild(cell('Ghi thu công nợ',
     recorded?'Đã ghi thu · Sổ #'+row.ledger_id:
