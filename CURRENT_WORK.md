@@ -1,3 +1,15 @@
+## 2026-11-10 — CHAT-RO-274 · ResizeObserver red runtime warning (released; iPhone confirmation pending)
+
+- **E0 evidence:** iPhone Chat V21.72.39 screenshot shows `Error: ResizeObserver loop completed with undelivered notifications.` while the keyboard and Composer are open. This browser delivery warning does not by itself prove a fatal app crash.
+- **Root cause:** `app.js` Composer-height, message-window and editor-width `ResizeObserver` callbacks could mutate layout during observer delivery. The global error handler also treated source-less browser delivery diagnostics as fatal first-party runtime exceptions.
+- **E1 repair:** `app.js` defers each observer's layout update to one coalesced `requestAnimationFrame`, uses the latest editor width, preserves ScrollRoot ownership and keeps real first-party errors visible. `tests/test_chat_resize_observer_runtime_20261110.cjs` covers browser warning vs real error, three observers and coalescing. New `pwa-chat-resizeobserver-loop-fix-20261110` cache epoch updates only the public shell; no private IndexedDB/message/auth cache is wiped. Old exact-epoch UI test locks were replaced with versioned-cache contracts.
+- **E2:** Verify V21 [42789308302](https://github.com/1sl2tp/chat/actions/runs/42789308302) **SUCCESS**. **E3:** Deploy Chat Pages [42789308484](https://github.com/1sl2tp/chat/actions/runs/42789308484) **SUCCESS**, including custom-domain build-id confirmation.
+- **Source provenance:** repair `6c4d323ed651d23daf5d680e733a8bf181ac275a`; final tests/PWA release `afdd3279c4be0cff78384dedc80f531d2e203cc4`; canonical sync `3a87ab2f971cf87df1f91dd1624cf8aaacfbd1dc`, build `3a97f96c43a376f7348860dc54e20b8b2e171c4ca78e276fb6fb0648447ec617`.
+- **E4/E5:** Installed iPhone Safari/PWA activation, keyboard open/close and long-draft no-warning acceptance are **PENDING** because device-side runtime was not observed. CI+Pages does not prove that an already-open PWA tab activated this release.
+- **Safety/rollback:** no RPC, DB writes, customer sends, cron, new polling or data deletions. Revert observer deferral and shell epoch together through canonical build if a device regression is proven.
+
+---
+
 ## 2026-11-10 — UI-273 · Composer expands to show long drafts on iPhone (released, iPhone verification pending)
 
 - **E0 screenshot:** in iOS Chat PWA with the keyboard open, a long unsent text wraps but only the final 40px strip is visible; the ChatGPT reference shows the writing area expanded with controls at the bottom. Previous UI-268 intentionally capped mobile textarea at 40px, causing the clipping/hidden-lines behavior.
