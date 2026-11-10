@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="db2c739305f3e8031455d0827c28027b2634539f655e956cefa60d7c63a6bbe3">
+<meta name="app-build-id" content="7b40fb7f078da067f3b95f50527cd845dc31b498fb793518321449c11198c84d">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -30764,7 +30764,7 @@ function detailLine(row,isBank=false,candidates=[]){
    ?'Đã liên kết khoản nhập tay':'Đã thu thủ công từ Agribank')
   :manualEvidence?'Có thu tay cùng khách/số tiền/ngày; bill chưa xác minh':
   isBank&&candidates.length?'Chưa đối soát · Chưa ghi thu':
-  dateSwapSuspect?'Ngày OCR nghi sai · Chờ đối chiếu ảnh và Agribank':statusText[type]||row.status||'Chưa rõ'));
+  dateSwapSuspect?'AI nghi đọc nhầm ngày · Chờ soát Agribank':statusText[type]||row.status||'Chưa rõ'));
  if(!isBank){
   content.appendChild(cell('Ghi thu công nợ',
     recorded?'Đã ghi thu · Sổ #'+row.ledger_id:
