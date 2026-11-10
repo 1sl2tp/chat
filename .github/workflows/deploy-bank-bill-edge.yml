@@ -6,6 +6,7 @@ on:
       - "supabase/functions/v21-bank-bill-event/**"
       - "tests/test_bank266_bill_format_variants_20261108.mjs"
       - "tests/test_bank267_bill_ocr_swap_report_20261110.cjs"
+      - "tests/test_bank269_bill_literal_date_clock_20261110.mjs"
       - ".github/workflows/deploy-bank-bill-edge.yml"
   workflow_dispatch:
 permissions:
@@ -31,6 +32,7 @@ jobs:
         run: |
           node tests/test_bank266_bill_format_variants_20261108.mjs
           node tests/test_bank267_bill_ocr_swap_report_20261110.cjs
+          node tests/test_bank269_bill_literal_date_clock_20261110.mjs
       - name: Require configured Supabase deployment credential
         shell: bash
         run: |
