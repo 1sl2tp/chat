@@ -144,7 +144,8 @@ export function readV4Fields(data,context={}){
  // swap as a safety warning, never as permission to auto-correct a payment.
  const sentMs=Date.parse(String(context?.sentAt||""));
  const localSent=Number.isFinite(sentMs)?new Date(sentMs+7*3600000).toISOString():"";
- const clockParts=billTime?.slice(0,10).split("-")||[];
+ const candidateDay=billTime?.slice(0,10)||rawBillDay;
+ const clockParts=candidateDay?.split("-")||[];
  const swappedDay=clockParts.length===3
    ?verifiedBillDate(clockParts[0],clockParts[2],clockParts[1]):null;
  const asMinutes=value=>{
@@ -156,9 +157,13 @@ export function readV4Fields(data,context={}){
  const billMinutes=asMinutes(billTime?.slice(11,16));
  const clockGap=sentMinutes===null||billMinutes===null?Infinity:
    Math.min(Math.abs(sentMinutes-billMinutes),1440-Math.abs(sentMinutes-billMinutes));
- const dateSwapSuspected=Boolean(billTime&&swappedDay
+ const dateSwapSuspected=Boolean(candidateDay&&swappedDay
    &&swappedDay===localSent.slice(0,10)
-   &&swappedDay!==billTime.slice(0,10)&&clockGap<=10);
+   &&swappedDay!==candidateDay
+   // A printed, consistent historical date permits date-only reference review.
+   // Without an independently transcribed bill date, quarantine the day-only
+   // inversion rather than matching on the Chat upload calendar.
+   &&(billTime?clockGap<=10:!printedBillDay));
  // Neither two AI output fields nor the Chat upload time prove settlement.
  const timeDateConflict=Boolean(
    (billTime&&rawBillDay&&billTime.slice(0,10)!==rawBillDay)||
