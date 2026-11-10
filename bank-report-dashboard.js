@@ -498,17 +498,31 @@ function detailLine(row,isBank=false,candidates=[]){
  content.appendChild(actions);wrap.appendChild(content);
  return wrap;
 }
+// BANK-268: Give an honest, precise reason for every unmatched Agribank row.
+// A nearby bill is evidence for review, never a customer/payment authorization.
+function bankUnmatchedIssue(row,allBills){
+ const bills=possibleUnlinkedBills(row,allBills);
+ if(!bills.length)return {label:'Chưa thu · Thiếu bill',
+   detail:'Đã có Agribank báo tiền vào nhưng chưa tìm thấy ảnh bill khách gửi tương ứng. Không tự gán khách.'};
+ if(bills.some(b=>billHasSuspectSwappedDay(b)))return {label:'Chưa thu · Nghi sai ngày',
+   detail:'Đã có ảnh bill nhưng AI nghi đảo ngày/tháng. Cần đối chiếu ngày trên ảnh gốc và thông báo Agribank trước khi ghi thu.'};
+ if(bills.every(b=>!b.bill_time))return {label:'Chưa thu · Bill thiếu giờ',
+   detail:'Đã có ảnh bill cùng số tiền/gần giờ nhận, nhưng AI chưa đọc được thời điểm chuyển khoản đủ tin cậy. Chưa ghi thu.'};
+ return {label:'Chưa thu · Chờ xác minh bill',
+   detail:'Đã tìm thấy ảnh có khả năng liên quan nhưng chưa chứng minh chắc chắn đây là cùng một giao dịch Agribank.'};
+}
 // BANK-222: full bank money-in is distinct from an uploaded transfer bill.
 // A posted bank credit never offers another collection action.
 function bankCreditLine(row,allBills){
  const kind=String(row.collection_kind||'unmatched');
  const valid=kind==='auto_collected'||kind==='manual_collected';
+ const issue=kind==='unmatched'?bankUnmatchedIssue(row,allBills):null;
  const wrap=el('details','bank-report-detail');
  wrap.dataset.bankNoticeId=String(row.notice_id);
  const top=el('summary','bank-report-detail-top');
  const state=kind==='auto_collected'?'Đã thu · Đối soát':
    kind==='manual_collected'?'Đã thu thủ công':
-   kind==='review_inconsistent'?'Liên kết cần kiểm tra':'Chưa thu · Cần xử lý';
+   kind==='review_inconsistent'?'Liên kết cần kiểm tra':issue?.label||'Chưa thu · Cần xử lý';
  const badge=el('span','bank-report-detail-status bank-status-'+
    (kind==='auto_collected'?'matched':kind==='manual_collected'?'bank_manual':'review'),state);
  append(top,el('span','bank-report-detail-time',localTime(row.bank_time)),
@@ -547,6 +561,7 @@ function bankCreditLine(row,allBills){
   }
  }
  if(kind==='unmatched'){
+  if(issue)content.appendChild(el('p','bank-report-detail-reason',issue.detail));
   const candidates=possibleUnlinkedBills(row,allBills);
   if(candidates.length){
    content.appendChild(el('p','bank-report-detail-reason',
