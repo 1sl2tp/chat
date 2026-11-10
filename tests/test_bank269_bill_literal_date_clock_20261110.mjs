@@ -61,9 +61,34 @@ assert.equal(wrongMinute.clock_text_conflict,true);
 assert.equal(wrongMinute.time_date_conflict,true);
 assert.equal(wrongMinute.transfer_at_vn,null);
 const dayMonthSwap=read({...printed,transaction_datetime_vn:"2026-10-11 18:06"});
-assert.equal(dayMonthSwap.time_date_conflict,true);
-assert.equal(dayMonthSwap.transfer_at_vn,null);
+assert.equal(dayMonthSwap.time_date_conflict,false,
+ "AI ISO conversion is not stronger evidence than literal DD/MM and HH:mm");
+assert.equal(dayMonthSwap.transfer_at_vn,"2026-11-10 18:06");
 assert.equal(dayMonthSwap.transfer_date_vn,"2026-11-10");
+assert.equal(dayMonthSwap.ocr_date_normalization_corrected,true);
+assert.equal(dayMonthSwap.date_swap_suspected,true,
+ "retain audit signal of AI inversion without accusing the customer bill");
+
+// Actual 10/11 printed date/time with BOTH ISO fields incorrectly 11/10.
+const ocrDoubleSwap=read({
+ transfer_date_printed_vn:"10/11/2026",
+ transfer_time_printed_vn:"17:42:38",
+ transaction_datetime_vn:"2026-10-11 17:42:38",
+ transfer_date_vn:"2026-10-11"
+},"2026-11-10T10:43:21Z");
+assert.equal(ocrDoubleSwap.transfer_at_vn,"2026-11-10 17:42:38");
+assert.equal(ocrDoubleSwap.time_date_conflict,false);
+assert.equal(ocrDoubleSwap.ocr_date_normalization_corrected,true);
+assert.equal(ocrDoubleSwap.ocr_iso_date_conflict,true);
+
+// Inconsistent visible time or missing date text still refuses an unsafe repair.
+const missingLiteralClock=read({
+ transaction_datetime_vn:"2026-10-11 17:42:38",
+ transfer_date_vn:"2026-10-11",
+ transfer_date_printed_vn:"10/11/2026"
+},"2026-11-10T10:43:21Z");
+assert.equal(missingLiteralClock.transfer_at_vn,null);
+assert.equal(missingLiteralClock.time_date_conflict,true);
 
 // Genuine old transfer stays old when printed text independently agrees.
 const old=read({transaction_datetime_vn:null,
@@ -81,6 +106,7 @@ const source=readFileSync(new URL(
  "../supabase/functions/v21-bank-bill-event/index.ts",import.meta.url),"utf8");
 assert.match(source,/transfer_time_printed_vn:fields\.transfer_time_printed_vn/);
 assert.match(source,/clock_text_conflict:fields\.clock_text_conflict/);
+assert.match(source,/ocr_date_normalization_corrected:fields\.ocr_date_normalization_corrected/);
 assert.match(source,/readV4Fields\(parsed,\{sentAt:job\.sent_at\}\)/);
 assert.match(source,/&&!fields\.time_date_conflict/);
 
