@@ -123,6 +123,7 @@ subprocess.run(['node',str(ROOT/'tests'/'test_chat_price7d_advisory_20261110.cjs
 subprocess.run(['node',str(ROOT/'tests'/'test_approved_bank_receipt_251.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_bank265_sender_only_internal_transfer_20261108.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_bank266_bill_format_variants_20261108.mjs')],check=True,cwd=ROOT)
+subprocess.run(['node',str(ROOT/'tests'/'test_bank267_bill_ocr_swap_report_20261110.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_vn_daykey_cross_browser_20261029.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_virtual_senttime_height_20261029.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_image_timestamp_calendar_round2_20261029.cjs')],check=True,cwd=ROOT)
