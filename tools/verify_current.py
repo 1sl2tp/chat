@@ -150,6 +150,7 @@ subprocess.run([sys.executable,'-m','pytest','-q',str(ROOT/'tests'/'test_v21_ui_
 subprocess.run([sys.executable,'-m','pytest','-q',str(ROOT/'tests'/'test_v21_incoming_left_edge_contract.py')],check=True,cwd=ROOT)
 subprocess.run([sys.executable,'-m','pytest','-q',str(ROOT/'tests'/'test_v21_140_zalo_card_narrow_axis.py')],check=True,cwd=ROOT)
 subprocess.run([sys.executable,str(ROOT/'tests'/'test_v21_mobile_chat_navigation.py')],check=True,cwd=ROOT)
+subprocess.run(['node',str(ROOT/'tests'/'test_nav284_mobile_back_to_directory_20261111.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_v21_mobile_directory_swipe_runtime.js')],check=True,cwd=ROOT)
 subprocess.run([sys.executable,'-m','pytest','-q',str(ROOT/'tests'/'test_v21_zalo_admin_ui_contract.py')],check=True,cwd=ROOT)
 for test in sorted((ROOT/'tests').glob('test_v21_admin_web_push*.py')):
