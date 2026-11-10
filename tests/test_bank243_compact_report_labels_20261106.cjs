@@ -39,7 +39,7 @@ assert.equal(bankFilterMobileLabels.manual_bank,'Thu tay NH');
 assert.equal(bankFilterMobileLabels.matched,'Đã khớp');
 
 const h=source.slice(source.indexOf('function renderTable(data){'),source.indexOf('// BANK-183-',source.indexOf('function renderTable(data){')));
-assert(h.includes("const columns=['Khách hàng','Tự thu','Chờ soát','Trùng','Sai ngày','Tiền tự thu'];"));
+assert(h.includes("const columns=['Khách hàng','Tự thu','Chờ soát','Trùng','AI lỗi ngày','Tiền tự thu'];"));
 assert(h.includes("const shortColumns=['Khách','Tự thu','Chờ','Trùng','Sai','Tiền thu'];"));
 assert(h.includes('for(const [index,name] of columns.entries())'));
 assert(h.includes('th.setAttribute(\'aria-label\',name);'),'column titles preserve full meaning');
