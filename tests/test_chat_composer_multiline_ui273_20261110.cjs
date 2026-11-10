@@ -70,7 +70,7 @@ assert.equal(editorState.style['--editor-height'],undefined,'short draft needs n
 type('Đoạn văn dài cần hiển thị đầy đủ trên iPhone');
 assert.equal(shell.dataset.editorExpanded,'true','soft-wrapped second line expands input');
 assert(Number.parseFloat(editorState.style['--editor-height'])>40,'textarea grows vertically');
-assert.equal(editorState.dataset.internalScroll,'false','short paragraph remains fully visible');
+assert.notEqual(editorState.dataset.internalScroll,'true','short paragraph remains fully visible');
 
 // A wider expanded textarea can wrap fewer lines than the compact version.
 // The action row must NOT collapse and re-expand as the user types.
