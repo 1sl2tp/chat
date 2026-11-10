@@ -32,8 +32,8 @@ for(const row of [
  bill('',sent)
 ])assert.equal(flag(row),false,'do not turn verified/historical/invalid rows into false alerts');
 assert.match(source,/dateSwapSuspect\?'AI nghi đọc nhầm ngày · Chưa thu'/);
-assert.match(source,/dateSwapSuspect\?'OCR nghi đảo ngày\/tháng:/);
+assert.match(source,/dateSwapSuspect\?'Ngày AI đọc \(nghi nhầm\):/);
 assert.match(source,/dateSwapSuspect\?'Ngày OCR nghi sai · Chờ đối chiếu ảnh và Agribank'/);
-assert.match(source,/Ngày OCR có khả năng bị đảo ngày\/tháng/);
+assert.match(source,/AI có thể đã đọc đảo ngày\/tháng so với ảnh bill/);
 assert.doesNotMatch(source,/rpc\('chat_bank_app_collect'/,'report must not authorize bank money');
 console.log('BANK-267: report marks suspected swapped bill dates without auto-collect or ledger writes PASS');
