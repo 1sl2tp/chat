@@ -2931,6 +2931,52 @@ function syncMessageDeliveryState(unit,message){
   const label=state==='failed'?'Chưa gửi thành công':'Đang chờ xác nhận gửi';
   if(node.textContent!==label)node.textContent=label;
   node.setAttribute('aria-label',label);
+  if(state==='failed'&&message?.media){
+    // Existing outbox is the ONLY send owner. A retry uses the same durable
+    // client_id, media assets and server idempotency key, never a new send.
+    const retry=document.createElement('button');
+    retry.type='button';
+    retry.className='message-retry-media';
+    retry.textContent='Thử gửi lại';
+    retry.setAttribute('aria-label','Thử gửi lại ảnh hoặc tệp chưa gửi thành công');
+    retry.addEventListener('click',async event=>{
+      event.preventDefault();event.stopPropagation();
+      if(retry.disabled)return;
+      retry.disabled=true;
+      retry.textContent='Đang kiểm tra…';
+      const auth=window.V21AuthSessionStore?.snapshot?.()||{};
+      const context=window.V21MessageStore?.snapshot?.()||{};
+      let result;
+      try{
+        result=await window.V21SyncEngine?.retryFailedMedia?.({
+          clientId:String(message.clientId||message.id||''),
+          accountId:String(auth.account?.id||''),
+          appSessionId:String(auth.appSessionId||''),
+          contactId:String(context.currentContactId||''),
+          conversationId:String(context.currentConversationId||'')
+        });
+      }catch(_error){result={ok:false,reason:'error'};}
+      if(node.isConnected===false)return;
+      if(result?.ok){
+        node.textContent='Đang chờ xác nhận gửi lại';
+        node.dataset.state='sending';
+        node.setAttribute('aria-label','Đang chờ xác nhận gửi lại');
+      }else{
+        const reason=String(result?.reason||'error');
+        const explanation=reason==='offline'?'Thiết bị chưa có mạng. Hãy thử lại khi kết nối.':
+          reason==='not_retryable'||reason==='asset_unavailable'||reason==='assets_invalid'?
+          'Tệp không thể khôi phục tự động. Chọn lại tệp bằng dấu +.':
+          reason==='busy'?'Đang xử lý hàng đợi. Hãy thử lại sau.':
+          reason==='context_changed'?'Đã đổi hội thoại. Hãy mở đúng đoạn chat.':
+          'Chưa thể gửi lại. Hãy thử lại.';
+        node.textContent=explanation;
+        node.setAttribute('aria-label',explanation);
+        node.appendChild(retry);
+        retry.disabled=false;retry.textContent='Thử lại';
+      }
+    });
+    node.appendChild(retry);
+  }
 }
 
 function messageDateKey(timestamp){

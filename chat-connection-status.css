@@ -1,0 +1,65 @@
+/* P1-NET-288: zero-height status layer under the sticky chat header.
+   Do not modify the ScrollRoot, Chat composer or floating day geometry. */
+#chatConnectionStatus[hidden]{display:none!important}
+.chat-network-holder{
+  position:sticky;
+  top:var(--header-height,72px);
+  z-index:18;
+  height:0;
+  min-height:0;
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+  pointer-events:none;
+}
+.chat-network-pill{
+  box-sizing:border-box;
+  display:block;
+  width:max-content;
+  max-width:min(92vw,440px);
+  margin:6px 8px 0;
+  padding:6px 12px;
+  border:1px solid var(--theme-border-default,#d9dee3);
+  border-radius:999px;
+  background:var(--theme-surface-primary,#fff);
+  color:var(--theme-content-primary,#242424);
+  box-shadow:0 3px 12px #0001;
+  font-size:12px;
+  font-weight:600;
+  line-height:1.35;
+  text-align:center;
+  overflow-wrap:anywhere;
+}
+.chat-network-holder[data-state="offline"] .chat-network-pill{
+  background:#fff8ed;
+  border-color:#e9c994;
+  color:#865200;
+}
+.chat-network-holder[data-state="unstable"] .chat-network-pill{
+  background:#fff5f1;
+  border-color:#e2b9a9;
+  color:#943d28;
+}
+.message-delivery-state .message-retry-media{
+  min-height:44px;
+  min-width:88px;
+  margin-left:8px;
+  padding:7px 10px;
+  border:1px solid var(--theme-border-default,#cbd5de);
+  border-radius:9px;
+  background:var(--theme-surface-primary,#fff);
+  color:var(--theme-content-primary,#222);
+  font:inherit;
+  font-weight:700;
+  font-size:12px;
+  cursor:pointer;
+  pointer-events:auto;
+  touch-action:manipulation;
+}
+.message-delivery-state .message-retry-media:disabled{opacity:.55;cursor:default}
+.message-delivery-state .message-retry-media:focus-visible{
+  outline:2px solid var(--theme-content-accent,#377ad6);outline-offset:2px
+}
+@media(max-width:360px){
+  .chat-network-pill{font-size:11px;max-width:calc(100vw - 16px)}
+}

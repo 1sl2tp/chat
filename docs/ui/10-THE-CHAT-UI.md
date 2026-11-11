@@ -20,6 +20,7 @@
 - `audio-capture-policy.js`
 - `call-screen-wake-lock.js`
 - `app-update-controller.js`
+- `chat-connection-status.js/.css` — chỉ hiển thị tín hiệu mạng + kết quả sync hiện có; không thêm polling/RPC.
 - `sw.js`
 - `manifest.webmanifest`
 
@@ -48,6 +49,7 @@ Desktop contract hiện dùng capability:
 
 ### P3 Component
 - message bubble/media/gallery;
+- Nút gửi lại ảnh/tệp lỗi trong `app.js::syncMessageDeliveryState` gọi duy nhất `V21SyncEngine.retryFailedMedia`; giữ client_id của IndexedDB outbox và không tự retry lỗi xác minh không thể khôi phục.
 - composer;
 - image viewer;
 - forward picker;

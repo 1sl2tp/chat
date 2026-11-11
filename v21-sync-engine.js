@@ -1614,6 +1614,63 @@ async function drainOutbox(context){
   return sent;
 }
 
+// P1-MEDIA-288: explicit retry keeps the existing durable client_id and the
+// existing single-flight outbox owner. Never enqueue a second message, invent
+// an upload success, override validation failures or cross account/session.
+async function retryFailedMedia({clientId,contactId,conversationId,accountId:expectedAccountId,appSessionId:expectedSessionId}={}){
+  const context=captureFlushContext();
+  const id=String(clientId||'');
+  const target=String(contactId||'');
+  const thread=String(conversationId||'');
+  if(!id||!target||!thread||!expectedAccountId||!expectedSessionId)return{ok:false,reason:'invalid_scope'};
+  if(!context.accountId||!context.appSessionId||!context.client||
+     !syncOwnerContextCurrent(context)||
+     String(expectedAccountId)!==String(context.accountId)||
+     String(expectedSessionId)!==String(context.appSessionId)||
+     target!==String(currentContactId||'')||
+     thread!==String(currentConversationId||''))return{ok:false,reason:'context_changed'};
+  if(!online())return{ok:false,reason:'offline'};
+  if(outboxFlushFlight&&syncOwnerContextCurrent(outboxFlushFlight.context))return{ok:false,reason:'busy'};
+  const rows=await cache()?.listOutboxForContact?.(context.accountId,target)||[];
+  if(!syncOwnerContextCurrent(context)||target!==String(currentContactId||'')||
+     thread!==String(currentConversationId||''))return{ok:false,reason:'context_changed'};
+  const item=rows.find(row=>String(row?.client_id||'')===id);
+  if(!item)return{ok:false,reason:'not_found'};
+  if(!['media','images','image','audio'].includes(String(item.kind||''))||
+     String(item.contact_id||'')!==target||
+     String(item.conversation_id||'')!==thread)return{ok:false,reason:'not_media'};
+  if(item.failed!==true)return{ok:false,reason:'not_failed'};
+  if(item.retryable===false)return{ok:false,reason:'not_retryable'};
+  const assets=mediaAssetsFromOutbox(item);
+  if(!assets.length||assets.length>12)return{ok:false,reason:'assets_invalid'};
+  for(const asset of assets){
+    if(!asset?.asset_id)return{ok:false,reason:'assets_invalid'};
+    const record=await media()?.get?.({accountId:context.accountId,assetId:asset.asset_id});
+    if(!syncOwnerContextCurrent(context)||target!==String(currentContactId||'')||
+       thread!==String(currentConversationId||''))return{ok:false,reason:'context_changed'};
+    if(!(record?.blob instanceof Blob)||Number(record.blob.size)<1)return{ok:false,reason:'asset_unavailable'};
+  }
+  // Recheck after async media reads: a real ACK might have removed the item,
+  // and a different flush must never race our explicit retry.
+  if(outboxFlushFlight&&syncOwnerContextCurrent(outboxFlushFlight.context))return{ok:false,reason:'busy'};
+  const fresh=await cache()?.listOutboxForContact?.(context.accountId,target)||[];
+  if(!syncOwnerContextCurrent(context)||target!==String(currentContactId||'')||
+     thread!==String(currentConversationId||''))return{ok:false,reason:'context_changed'};
+  const pending=fresh.find(row=>String(row?.client_id||'')===id);
+  if(!pending||pending.failed!==true||pending.retryable===false||
+     String(pending.conversation_id||'')!==thread)return{ok:false,reason:'changed'};
+  pending.failed=false;
+  pending.next_retry_at=0;
+  // Preserve client_id, attempt count, asset IDs, storage keys and any
+  // successfully-uploaded parts for server idempotency and resumability.
+  await cache()?.updateOutbox?.(context.accountId,pending);
+  if(!syncOwnerContextCurrent(context)||target!==String(currentContactId||'')||
+     thread!==String(currentConversationId||''))return{ok:false,reason:'context_changed'};
+  messages()?.apply?.(outboxAsLocal(pending,thread),{remote:false});
+  void wake({reason:'manual-media-retry'});
+  return{ok:true,reason:'queued'};
+}
+
 function unreadSnapshot(){
   return Math.max(0,Number(shell()?.UnreadIndicator?.snapshot?.()||0));
 }
@@ -1752,6 +1809,7 @@ async function wake({reason='signal',hintSeq=0}={}){
   syncing=true;
   let fenceAttempt=0;
   let succeeded=true;
+  const lifecycleContext=captureSyncOwnerContext();
   try{
     while(wakePending){
       wakePending=false;
@@ -1791,6 +1849,11 @@ async function wake({reason='signal',hintSeq=0}={}){
         if(wakePending&&!syncing)void wake({reason:'coalesced-handoff',hintSeq:wakeHint});
       });
     }
+  }
+  if(syncOwnerContextCurrent(lifecycleContext)){
+    document.dispatchEvent(new CustomEvent('v21-sync-lifecycle',{
+      detail:{state:succeeded?'completed':'failed'}
+    }));
   }
   return succeeded;
 }
@@ -2028,7 +2091,7 @@ document.addEventListener('navigation-change',event=>{
 });
 
 window.V21SyncEngine={
-  version:VERSION,wake,consumeRealtimeEvent,openContact,queueText,queueMediaFiles,forwardMessage,flushOutbox,refreshUnread,markRead,syncContacts,clearAccount,ensureMediaRemote,loadOlderHistory,hasMoreOlder,
+  version:VERSION,wake,consumeRealtimeEvent,openContact,queueText,queueMediaFiles,retryFailedMedia,forwardMessage,flushOutbox,refreshUnread,markRead,syncContacts,clearAccount,ensureMediaRemote,loadOlderHistory,hasMoreOlder,
   recoverActiveFromSnapshot:canonicalReconcileActive,
   snapshot(){return{accountId,appSessionId,currentContactId,currentConversationId,syncing,wakePending,wakeHint,lastReason,online:online()};}
 };
