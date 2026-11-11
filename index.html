@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="967d40fa3f87c411e4d55b274422d5cc5aa3a52a24a5c2d7f8d3a1c1f4e2efad">
+<meta name="app-build-id" content="d0edd5b397e2df69c9594be53606b445167ee0e839afe29b6126578e97e59e86">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -8797,7 +8797,10 @@ button{
             <section id="bankReportDashboard" class="bank-report-dashboard" aria-label="Bảng đối soát chuyển khoản" hidden>
               <div class="bank-report-header">
                 <div><h2 class="bank-report-heading">Bảng đối soát trực tiếp</h2>
-                <p class="bank-report-subtitle" data-bank-updated role="status" aria-live="polite">Đang đồng bộ dữ liệu đối soát…</p></div>
+                <div class="bank-report-status-line">
+                  <p class="bank-report-subtitle" data-bank-updated role="status" aria-live="polite">Đang đồng bộ dữ liệu đối soát…</p>
+                  <span class="bank-report-unit-note">Đơn vị: 1.000đ</span>
+                </div></div>
                 <div class="bank-report-controls">
                   <input data-bank-date type="date" min="2026-10-19" aria-label="Ngày đối soát">
                   <button data-bank-daily-summary type="button" title="Đối soát chuyển khoản cho khách có tiền vào ngày trước">Gửi đối soát CK</button>
