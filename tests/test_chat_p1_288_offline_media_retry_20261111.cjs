@@ -15,7 +15,7 @@ const end=sync.indexOf('function unreadSnapshot(',begin);
 assert(begin>0&&end>begin);
 let accountId='A',appSessionId='SA',contactId='CONTACT',conversationId='CONV',connected=true;
 const client={};
-const asset={kind:'image',asset_id:'asset-1',storage_key:'A/CONV/asset-1',uploaded:true};
+const asset={kind:'image',asset_id:'asset-1',storage_key:'A/CONV/asset-1',mime_type:'image/png',size_bytes:10,uploaded:true};
 let row={
  kind:'media',client_id:'media-client-1',account_id:'A',
  contact_id:'CONTACT',conversation_id:'CONV',body:'ảnh bill',
