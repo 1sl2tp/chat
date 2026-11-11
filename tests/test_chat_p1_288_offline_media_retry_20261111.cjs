@@ -12,10 +12,12 @@ const statusSource=fs.readFileSync('chat-connection-status.js','utf8');
 
 const begin=sync.indexOf('async function retryFailedMedia(');
 const end=sync.indexOf('function unreadSnapshot(',begin);
-assert(begin>0&&end>begin);
+const validStart=sync.indexOf('function uploadedMediaMetadataValid(');
+const validEnd=sync.indexOf('async function flushMediaItem(',validStart);
+assert(begin>0&&end>begin&&validStart>0&&validEnd>validStart);
 let accountId='A',appSessionId='SA',contactId='CONTACT',conversationId='CONV',connected=true;
 const client={};
-const asset={kind:'image',asset_id:'asset-1',storage_key:'A/CONV/asset-1',uploaded:true};
+const asset={kind:'image',asset_id:'asset-1',storage_key:'A/CONV/asset-1',mime_type:'image/png',size_bytes:10,uploaded:true};
 let row={
  kind:'media',client_id:'media-client-1',account_id:'A',
  contact_id:'CONTACT',conversation_id:'CONV',body:'ảnh bill',
@@ -45,11 +47,12 @@ const context=vm.createContext({
  media:()=>({get:async()=>hasBlob?{blob:new Blob(['image-data'],{type:'image/png'})}:null}),
  Blob,
  mediaAssetsFromOutbox:x=>x.assets||[],
+ baseMimeType:value=>String(value||'').split(';',1)[0].trim().toLowerCase(),
  messages:()=>({apply:(...args)=>applyCalls.push(args)}),
  outboxAsLocal:x=>({...x,_local_state:x.failed?'failed':'pending'}),
  wake:async info=>{wakeReasons.push(info.reason);return true}
 });
-vm.runInContext(sync.slice(begin,end)+'\nglobalThis.retry=retryFailedMedia;',context);
+vm.runInContext(sync.slice(validStart,validEnd)+sync.slice(begin,end)+'\nglobalThis.retry=retryFailedMedia;',context);
 const scope=()=>({
  clientId:'media-client-1',contactId:'CONTACT',conversationId:'CONV',
  accountId:'A',appSessionId:'SA'
@@ -65,8 +68,11 @@ async function test(){
  assert.equal((await context.retry(scope())).reason,'not_retryable');
  row.retryable=true;
  hasBlob=false;
- assert.equal((await context.retry(scope())).reason,'asset_unavailable');
+ row.assets[0].uploaded=false;
+ assert.equal((await context.retry(scope())).reason,'asset_unavailable',
+   'missing unuploaded bytes must never be treated as a successful upload');
  assert.equal(updateCalls.length,0);
+ row.assets[0].uploaded=true;
  hasBlob=true;
  context.outboxFlushFlight={context:{accountId:'A',appSessionId:'SA',client}};
  assert.equal((await context.retry(scope())).reason,'busy');

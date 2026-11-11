@@ -50,6 +50,7 @@ Desktop contract hiện dùng capability:
 ### P3 Component
 - message bubble/media/gallery;
 - Nút gửi lại ảnh/tệp lỗi trong `app.js::syncMessageDeliveryState` gọi duy nhất `V21SyncEngine.retryFailedMedia`; giữ client_id của IndexedDB outbox và không tự retry lỗi xác minh không thể khôi phục.
+- P1-289: nếu Storage ACK đã được lưu (`asset.uploaded===true`) và key/MIME/size/filename được xác minh, `flushMediaItem` có thể hoàn tất RPC mà không đọc lại Blob bị iOS xóa. Nếu chưa upload, bắt buộc có Blob thực. `wake` chỉ gửi lifecycle `completed` khi `doSync` thực sự hoàn tất; không coi `navigator.onLine` là ACK.
 - composer;
 - image viewer;
 - forward picker;

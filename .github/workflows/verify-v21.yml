@@ -254,6 +254,10 @@ jobs:
           node --check v21-sync-engine.js
           node --check chat-connection-status.js
           node tests/test_chat_p1_288_offline_media_retry_20261111.cjs
+      - name: P1-289 resume persisted Storage ACK after local eviction and truthful sync lifecycle
+        run: |
+          node --check v21-sync-engine.js
+          node tests/test_chat_p1_289_uploaded_media_resume_sync_truth_20261111.cjs
       - name: BANK-226 Admin review and collection dialog session ownership
         run: node tests/test_bank226_dialog_session_owner_20261103.cjs
       - name: BANK-227 bank push deep-link scroll follows active Admin context
