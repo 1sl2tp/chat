@@ -29,8 +29,11 @@ def test_day_separator_is_part_of_the_virtualized_message_row():
     assert 'margin:16px 0 12px;' in SOURCE
     assert 'opacity:.9;' in SOURCE
     assert 'color:var(--theme-content-secondary);' in SOURCE
-    assert "time.title='Gửi lúc '+full+' · giờ Việt Nam';" in APP
-    assert "time.setAttribute('aria-label','Gửi lúc '+full+' · giờ Việt Nam');" in APP
+    # Outbox attempt time must not be announced as a confirmed send time.
+    assert "const timeMeaning=message?.status==='sending'?'Tạo lúc ':" in APP
+    assert "message?.status==='failed'?'Thử gửi lúc ':'Gửi lúc ';" in APP
+    assert "time.title=timeMeaning+full+' · giờ Việt Nam';" in APP
+    assert "time.setAttribute('aria-label',timeMeaning+full+' · giờ Việt Nam');" in APP
 
 
 
