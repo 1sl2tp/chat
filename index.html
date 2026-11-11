@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="f0cb1b2edb58ef8ef8ceba35e6d2501948e66e45b948d2fdd0ba535f9c99e14e">
+<meta name="app-build-id" content="f36817d3a3cc9b40be318fd05de1beeca0869800d5248c0f24c10d2425e0a8fb">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -30558,6 +30558,7 @@ const ui={
  daily:root.querySelector('[data-bank-daily-summary]'),
  summary:root.querySelector('[data-bank-summary]'),
  status:root.querySelector('[data-bank-status]'),
+ extraStatus:root.querySelector('[data-bank-extra-status]'),
  table:root.querySelector('[data-bank-table]'),
  tabs:root.querySelector('[data-bank-filters]'),
  groups:root.querySelector('[data-bank-groups]'),
@@ -30799,7 +30800,12 @@ function paint(data){
  );
  ui.status.replaceChildren(
   cardValue('Bill chưa đối soát',String(s.bill_only_count||0),false,true,'Bill chờ soát'),
-  cardValue('Agribank cần xử lý',String(outstanding),false,true,'NH cần xử lý'),
+  cardValue('Agribank cần xử lý',String(outstanding),false,true,'NH cần xử lý')
+ );
+ // Secondary accounting diagnostics stay accessible, but no longer crowd
+ // the primary four indicators on iPhone. The native <details> preserves
+ // expanded state across refresh and exposes correct keyboard semantics.
+ ui.extraStatus.replaceChildren(
    cardValue('Đã thu thủ công Agribank',String((data?.manual_collections||[]).length),false,true,'Thu tay NH'),
    cardValue('Thông báo tiền vào Agribank đã nhận',String(incoming.length),false,true,'Giao dịch NH'),
    cardValue('Tổng tiền vào Agribank (nghìn đồng)',money(incoming.reduce((sum,x)=>sum+(Number(x.amount_vnd)||0),0)),false,true,'Tiền vào (nghìn ₫)'),
@@ -30868,6 +30874,12 @@ function renderTable(data){
  for(const g of [...byCustomer.values()].sort((a,b)=>b.money-a.money||a.name.localeCompare(b.name,'vi'))){
   const tr=el('tr','bank-report-table-item'+(selectedCustomer===g.id?' is-selected':''));tr.tabIndex=0;tr.setAttribute('role','button');tr.setAttribute('aria-label','Xem chi tiết '+g.name);tr.setAttribute('aria-expanded',String(selectedCustomer===g.id));
   for(const v of [g.name,g.matched,g.waiting,g.duplicate,g.old,money(g.money)])tr.appendChild(el('td','',v));
+  // Desktop keeps the six-column semantic table; mobile adds explicit inline
+  // labels without hiding a financial figure or changing row selection.
+  [...tr.children].forEach((td,i)=>{
+   td.dataset.mobileLabel=i===5?'Thu (nghìn ₫)':shortColumns[i];
+   td.title=columns[i];
+  });
   const jump=()=>{selectedCustomer=selectedCustomer===g.id?null:g.id;filter='all';paint(data);if(selectedCustomer)root.querySelector('[data-bank-customer="'+g.id+'"]')?.scrollIntoView?.({block:'nearest',behavior:'smooth'});};
   tr.addEventListener('click',jump);tr.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();jump();}});
   tbody.appendChild(tr);
@@ -31855,7 +31867,7 @@ function synchronize(){
  if(ownerChanged){
   // Reject in-flight responses and erase old bank details immediately.
   requestId++;selectedCustomer=null;filter='all';current=null;
-  ui.summary.replaceChildren();ui.status.replaceChildren();
+  ui.summary.replaceChildren();ui.status.replaceChildren();ui.extraStatus.replaceChildren();
   ui.table.replaceChildren();ui.groups.replaceChildren();
   ui.stamp.textContent='Đang cập nhật phiên Admin…';
   closeViewer();closeReviewDialog();
