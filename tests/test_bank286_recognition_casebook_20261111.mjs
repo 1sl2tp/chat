@@ -56,6 +56,8 @@ assert.equal(requiredAutoCollectEvidence(missingClock).complete,false);
 assert.equal(requiredAutoCollectEvidence(missingClock).reason,"bill_printed_time_missing");
 assert.equal(classifyBillRecognition(base,missingClock,v).recognition_case,"no_printed_clock");
 const missingDate=read({...base,transfer_date_printed_vn:null});
+assert.equal(classifyBillRecognition(base,missingDate,v).recognition_case,"unverified_printed_date");
+assert.ok(classifyBillRecognition(base,missingDate,v).missing_fields.includes("literal_date"));
 assert.equal(requiredAutoCollectEvidence(missingDate).requires_bank_memo,true,
  "missing literal date can only be reconciled by unique official credit + exact memo");
 const cropped=read({...base,recipient_account_visible:"290118199999"});
