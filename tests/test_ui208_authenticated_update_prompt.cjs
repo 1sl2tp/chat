@@ -9,6 +9,7 @@ const editor={value:'',tagName:'TEXTAREA'};
 const tray={childElementCount:0};
 const reply={hidden:true};
 let activeCall=false;
+const mediaElements=[];
 const body={children:[],appendChild(node){node.isConnected=true;this.children.push(node)}};
 function node(tag){
  return{tagName:tag.toUpperCase(),children:[],handlers:{},style:{},isConnected:false,
@@ -28,6 +29,7 @@ const document={
   if(sel.includes('data-call-ui-state'))return activeCall?{}:null;
   return null;
  },
+ querySelectorAll(selector){assert.equal(selector,'audio,video');return mediaElements;},
  getElementById(id){return id==='editor'?editor:id==='attachmentTray'?tray:
   id==='replyContext'?reply:id==='appShell'?{dataset:{authState:'authenticated'}}:null},
  addEventListener(type,fn){listeners['doc:'+type]=fn},dispatchEvent(){return true}
@@ -72,6 +74,21 @@ vm.createContext(ctx);vm.runInContext(code,ctx);
  activeCall=true;button.click();
  assert.equal(reloadCount,0,'button must preserve an active call');
  activeCall=false;
+ for(const kind of ['audio','video']){
+  const media={tagName:kind.toUpperCase(),paused:false,ended:false,readyState:2};
+  mediaElements.push(media);
+  assert.equal(api.safeToReload({userRequested:true}),false,kind+' playback must block reload');
+  button.click();
+  assert.equal(reloadCount,0,'update click must not interrupt '+kind);
+  assert.match(banner.children[0].textContent,/tạm dừng.*âm thanh|tạm dừng.*video/);
+  media.readyState=0;
+  assert.equal(api.safeToReload({userRequested:true}),false,'buffering playback must remain protected');
+  media.paused=true;
+  assert.equal(api.safeToReload({userRequested:true}),true,'paused media permits explicit update');
+  media.paused=false;media.ended=true;
+  assert.equal(api.safeToReload({userRequested:true}),true,'ended media does not block update');
+  mediaElements.pop();
+ }
  button.click();
  assert.equal(reloadCount,1,'explicit tap with no draft/call should update');
  assert(replaced.includes('__build=new-build'),'update must bypass stale old-SW cached navigation');
