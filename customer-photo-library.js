@@ -83,6 +83,24 @@ function allViewerItems(){
     senderKey:item.senderKey,createdAt:item.createdAt,width:item.width,height:item.height
   }));
 }
+// IMG-286: Photo gallery previews must show the same corrected orientation
+// as the full-screen viewer and conversation. Rotate the presentation only,
+// never rewrite the stored Blob or change photo-grid sizing.
+function applyPhotoTileRotation(button,item){
+  const img=button?.querySelector?.('img');
+  if(!img||!item)return;
+  const rotation=Number(window.V21ImageOrientation?.readRotation?.(item.id))||0;
+  const quarterTurn=rotation===90||rotation===270;
+  img.style.transform=rotation?`rotate(${rotation}deg)`:'';
+  img.style.transformOrigin='center center';
+  img.dataset.chatImageRotation=String(rotation);
+  button.dataset.rotated=quarterTurn?'true':'false';
+  if(quarterTurn||(Number(item.width)>0&&Number(item.height)>Number(item.width)*1.65)){
+    button.dataset.fit='contain';
+  }else{
+    delete button.dataset.fit;
+  }
+}
 async function hydrate(button,item,token){
   const img=button.querySelector('img');
   if(!img||token!==generation||host.hidden)return;
@@ -135,6 +153,7 @@ function appendTiles(grid,items,token){
     img.alt='';
     img.loading='lazy';img.decoding='async';
     button.appendChild(img);
+    applyPhotoTileRotation(button,item);
     button.addEventListener('click',()=>window.V21ChatImageViewer?.open?.({
       assetId:item.id,accountId:item.accountId,messageId:item.messageId,
       items:allViewerItems()
@@ -226,6 +245,16 @@ document.addEventListener('v21-media-ready',()=>{
 });
 document.addEventListener('v21-media-removed',()=>{
   if(current().route==='photos')void render();
+});
+// Rotate only the matching already-mounted photo tile on a user's manual
+// correction; avoid network fetches, gallery rerenders or contact changes.
+document.addEventListener('v21-image-rotation-changed',event=>{
+  const assetId=String(event?.detail?.assetId||'');
+  if(!assetId||host.hidden)return;
+  for(const button of host.querySelectorAll('.customer-photo-tile')){
+    const item=button._photoItem;
+    if(item?.id===assetId)applyPhotoTileRotation(button,item);
+  }
 });
 window.addEventListener('resize',layout,{passive:true});
 window.visualViewport?.addEventListener('resize',layout,{passive:true});
