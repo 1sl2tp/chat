@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="f36817d3a3cc9b40be318fd05de1beeca0869800d5248c0f24c10d2425e0a8fb">
+<meta name="app-build-id" content="b8dccd22880bf38f69d527c9c682cb6b3e0fe7b0066d77e20edcf0aece0b1e7a">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -2203,6 +2203,34 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
 .bank-report-status-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-bottom:19px}
 .bank-report-stat-compact{padding:8px 9px;background:var(--surface-secondary,#f8f9fa);border-color:transparent;border-radius:10px}
 .bank-report-stat-compact .bank-report-stat-name{font-size:10px;line-height:1.25;min-height:2.5em}
+/* UI-270: keep the four decision KPIs above the fold. No figures are lost:
+   secondary diagnostic counters live in a native details disclosure. */
+.bank-report-status-strip.bank-report-status-main{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  margin-bottom:4px;
+}
+.bank-report-status-strip.bank-report-status-extra{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  margin:7px 0 0;
+}
+.bank-report-extra-metrics{min-width:0;margin:0 0 14px}
+.bank-report-extra-metrics-trigger{
+  box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;
+  min-height:44px;padding:8px 12px;border-radius:10px;
+  color:var(--text-secondary,#667085);background:var(--surface-secondary,#f7f8fa);
+  font-size:12px;font-weight:650;cursor:pointer;list-style:none;touch-action:manipulation;
+}
+.bank-report-extra-metrics-trigger::-webkit-details-marker{display:none}
+.bank-report-extra-metrics-trigger::after{
+  content:'⌄';font-size:15px;line-height:1;transition:transform 160ms ease;
+}
+.bank-report-extra-metrics[open] .bank-report-extra-metrics-trigger::after{transform:rotate(180deg)}
+.bank-report-extra-metrics-trigger:focus-visible{
+  outline:2px solid var(--theme-content-accent,#377ad6);outline-offset:2px;
+}
+@media(prefers-reduced-motion:reduce){
+ .bank-report-extra-metrics-trigger::after{transition:none}
+}
 .bank-report-stat-compact .bank-report-stat-number{font-size:17px;line-height:1.15;margin-top:3px;letter-spacing:0}
 .bank-report-table-caption{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:9px}
 .bank-report-table-caption strong{font-size:14px;font-weight:720}
@@ -2421,6 +2449,53 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
   #bankReportDashboard .bank-report-filter-more-menu .bank-report-filter{
     justify-content:flex-start;
     text-align:left;
+  }
+
+  /* UI-270: two-line mobile customer entries preserve all six source cells.
+     First line: customer + collected thousands; second: four diagnostics.
+     Desktop still uses the unchanged, accessible six-column table. */
+  #bankReportDashboard .bank-report-table{display:block;table-layout:auto}
+  #bankReportDashboard .bank-report-table thead{
+    position:absolute;inline-size:1px;block-size:1px;overflow:hidden;
+    clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;
+  }
+  #bankReportDashboard .bank-report-table tbody{display:block}
+  #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item{
+    display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:4px 6px;align-items:center;min-height:72px;padding:8px 10px;
+    border-bottom:1px solid var(--border-default,#e9edf0);
+  }
+  #bankReportDashboard .bank-report-table tbody tr:last-child{border-bottom:0}
+  #bankReportDashboard .bank-report-table tbody td{
+    display:block;min-width:0;min-height:16px;padding:0;border:0;
+    text-align:left;font-size:11px;line-height:1.3;
+    overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+  }
+  #bankReportDashboard .bank-report-table tbody td:first-child{
+    grid-column:1/4;grid-row:1;font-size:14px;font-weight:700;
+  }
+  #bankReportDashboard .bank-report-table tbody td:nth-child(6){
+    grid-column:4;grid-row:1;text-align:right;
+    font-size:15px;font-weight:750;font-variant-numeric:tabular-nums;
+    white-space:nowrap;
+  }
+  #bankReportDashboard .bank-report-table tbody td:nth-child(6)::before{
+    content:attr(data-mobile-label);display:block;
+    font-size:10px;font-weight:500;color:var(--text-secondary,#667085);
+  }
+  #bankReportDashboard .bank-report-table tbody td:nth-child(2){grid-column:1;grid-row:2}
+  #bankReportDashboard .bank-report-table tbody td:nth-child(3){grid-column:2;grid-row:2}
+  #bankReportDashboard .bank-report-table tbody td:nth-child(4){grid-column:3;grid-row:2}
+  #bankReportDashboard .bank-report-table tbody td:nth-child(5){grid-column:4;grid-row:2}
+  #bankReportDashboard .bank-report-table tbody td:nth-child(n+2):nth-child(-n+5)::before{
+    content:attr(data-mobile-label) ' ';font-size:10px;
+    color:var(--text-secondary,#667085);font-weight:450;
+  }
+  #bankReportDashboard .bank-report-table tbody td[colspan]{
+    grid-column:1/-1;grid-row:1;white-space:normal;font-size:12px;
+  }
+  #bankReportDashboard .bank-report-table tbody tr[role="button"]:focus-visible{
+    outline:2px solid var(--theme-content-accent,#377ad6);outline-offset:-2px;
   }
 }
 @media (max-width:360px){
