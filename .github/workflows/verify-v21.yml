@@ -231,6 +231,10 @@ jobs:
         run: |
           node --check bank-report-dashboard.js
           node tests/test_ui272_bank_compact_units_20261111.cjs
+      - name: UI-273 complete responsive reconciliation report and VoiceOver meaning
+        run: |
+          node --check bank-report-dashboard.js
+          node tests/test_ui273_reconcile_complete_design_20261111.cjs
       - name: BANK-226 Admin review and collection dialog session ownership
         run: node tests/test_bank226_dialog_session_owner_20261103.cjs
       - name: BANK-227 bank push deep-link scroll follows active Admin context
