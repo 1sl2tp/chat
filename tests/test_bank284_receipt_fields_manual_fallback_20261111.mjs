@@ -5,9 +5,9 @@ import {readV4Fields,validateVisionRead,requiredAutoCollectEvidence}
 import {previewBillAppMatch}
   from "../supabase/functions/v21-bank-bill-event/bill-app-preview.mjs";
 
-// SPEC BANK-284: Given a customer transfer image, when any one of the
-// amount / recipient account / printed date / printed clock is uncertain,
-// then leave it for Admin verification. No customer ledger is written.
+// SPEC BANK-285: Missing beneficiary or printed CLOCK stays Admin-only.
+ // Cropped account / absent literal DAY may match only with an exact bank memo,
+ // unique official credit and full account verified at the financial writer.
 const raw={
  image_type:"successful_transfer_receipt",transaction_nature:"transfer",
  transaction_selection:"single_detail",transfer_success_visible:true,
@@ -22,7 +22,7 @@ const raw={
 const parse=x=>readV4Fields(x,{sentAt:"2026-11-11T01:27:00Z"});
 const good=parse(raw);
 assert.equal(validateVisionRead(raw).status,"amount_read");
-assert.deepEqual(requiredAutoCollectEvidence(good),{complete:true,reason:null});
+assert.deepEqual(requiredAutoCollectEvidence(good),{complete:true,reason:null,requires_bank_memo:false});
 assert.equal(good.transfer_at_vn,"2026-11-11 08:25");
 assert.equal(good.receiving_account,"2901181999999");
 
@@ -31,6 +31,7 @@ const masked=parse({...raw,recipient_account_visible:"*****99999"});
 assert.equal(masked.receiving_account,null);
 assert.equal(masked.receiving_account_last5,"99999");
 assert.equal(requiredAutoCollectEvidence(masked).complete,true);
+assert.equal(requiredAutoCollectEvidence(masked).requires_bank_memo,true);
 
 const missingAccount=parse({...raw,recipient_account_visible:null,recipient_account_last5:null});
 assert.equal(requiredAutoCollectEvidence(missingAccount).reason,"bill_recipient_account_missing");
@@ -43,14 +44,16 @@ const falseFull=parse({...raw,recipient_account_visible:"7777777999999"});
 assert.equal(requiredAutoCollectEvidence(falseFull).reason,"bill_recipient_account_conflict",
  "sharing the last five digits is insufficient when full account is visible");
 
-assert.equal(requiredAutoCollectEvidence(parse({...raw,transfer_date_printed_vn:null}))
- .reason,"bill_printed_date_missing");
+const missingLiteralDay=parse({...raw,transfer_date_printed_vn:null});
+assert.equal(requiredAutoCollectEvidence(missingLiteralDay).complete,true);
+assert.equal(requiredAutoCollectEvidence(missingLiteralDay).requires_bank_memo,true,
+ "ISO date+clock is only provisional until exact independent bank memo");
 assert.equal(requiredAutoCollectEvidence(parse({...raw,transfer_time_printed_vn:null}))
  .reason,"bill_printed_time_missing");
 assert.equal(requiredAutoCollectEvidence(parse({...raw,transfer_time_printed_vn:"08:26"}))
  .reason,"bill_printed_datetime_conflict");
 assert.equal(requiredAutoCollectEvidence(parse({...raw,transfer_date_printed_vn:"31/02/2026"}))
- .reason,"bill_printed_date_missing");
+ .reason,"bill_printed_datetime_conflict");
 assert.equal(requiredAutoCollectEvidence(parse({...raw,transfer_time_printed_vn:"24:25"}))
  .reason,"bill_printed_time_missing");
 
@@ -75,6 +78,26 @@ const worker=readFileSync(new URL("../supabase/functions/v21-bank-bill-event/ind
  import.meta.url),"utf8");
 assert.match(worker,/requiredAutoCollectEvidence\(fields\)/);
 assert.match(worker,/verdict\.status==="amount_read"&&!evidence\.complete\?"review"/);
-assert.match(worker,/bill_evidence_policy:"manual_on_missing_v1"/);
+assert.match(worker,/bill_evidence_policy:"safe_memo_tier_v2"/);
+assert.match(worker,/\["bank_bill_amount_v4_20261018","bank_bill_amount_v5_20261110"\]/);
+assert.match(worker,/requires_bank_memo:evidence\.requires_bank_memo===true/);
 assert.match(worker,/if\(status==="amount_read"&&matchPreview\?\.source/);
-console.log("BANK-284: amount, beneficiary account, printed day/clock, manual-only fallback PASS");
+const evidence=requiredAutoCollectEvidence(parse({...raw,recipient_account_visible:"290118199999"}));
+assert.equal(evidence.complete,true,"prefix+suffix cropped but bank memo required");
+assert.equal(evidence.requires_bank_memo,true);
+const known={...parse({...raw,recipient_account_visible:"290118199999"}),
+ media_asset_id:"asset-850",status:"amount_read",amount_vnd:850000,
+ sent_at:"2026-11-11T01:27:00Z",requires_bank_memo:true,
+ transfer_content:"NGUYEN THI MY chuyen tien",transaction_nature:"transfer"};
+const notice={...bankNotice,body:"Agribank: 08:25 11/11/2026 Tài khoản 2901181999999: +850,000VND. Nội dung giao dịch: NGUYEN THI MY chuyen tien. Số dư cuối: ..."};
+assert.equal(previewBillAppMatch(known,[notice],[],Date.parse("2026-11-11T02:00:00Z")).status,"candidate_unique");
+assert.equal(previewBillAppMatch({...known,transfer_content:"KHAC TEN chuyen tien"},[notice],[],Date.parse("2026-11-11T02:00:00Z")).status,"review");
+const verifiedDateOnly={...parse({...raw,transfer_date_printed_vn:null}),
+ status:"amount_read",media_asset_id:"asset-461",amount_vnd:850000,
+ sent_at:"2026-11-11T01:27:00Z",requires_bank_memo:true,
+ transfer_content:"NGUYEN THI MY chuyen tien",transaction_nature:"transfer"};
+assert.equal(previewBillAppMatch(verifiedDateOnly,[notice],[],Date.parse("2026-11-11T02:00:00Z")).status,"candidate_unique");
+const noClock=parse({...raw,transaction_datetime_vn:null,transfer_time_printed_vn:null});
+assert.equal(requiredAutoCollectEvidence(noClock).complete,false);
+assert.equal(requiredAutoCollectEvidence(noClock).reason,"bill_printed_time_missing");
+console.log("BANK-285: delayed v5 bills, exact bank memo and manual missing-clock fallback PASS");
