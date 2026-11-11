@@ -826,8 +826,7 @@ async function openDailyBankSummary(){
     const row=el('div','bank-daily-customer');
     const detail=append(el('div','bank-daily-customer-info'),
       el('strong','',recipient.customer_name||'Khách hàng'),
-      el('small','',recipient.transfer_count+' lượt · Tổng '+recipient.amount_thousands+
-        '));
+      el('small','',recipient.transfer_count+' lượt · Tổng '+recipient.amount_thousands));
     const preview=el('details','bank-daily-preview');
     preview.appendChild(el('summary','','Xem trước nội dung'));
     preview.appendChild(el('pre','',recipient.body||''));
