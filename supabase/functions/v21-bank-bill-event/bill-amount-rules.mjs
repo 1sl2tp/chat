@@ -284,6 +284,7 @@ export function classifyBillRecognition(data,fields,verdict){
  if(!verdict||!Number.isSafeInteger(verdict.amount_vnd)||verdict.amount_vnd<=0)missing.push("amount");
  if(!fields?.receiving_account&&!fields?.receiving_account_last5)missing.push("recipient_account");
  if(!fields?.transfer_date_vn)missing.push("transaction_date");
+ if(!fields?.transfer_date_printed_vn)missing.push("literal_date");
  if(!fields?.transfer_time_printed_vn)missing.push("transaction_clock");
  if(fields?.time_date_conflict||fields?.printed_date_invalid)missing.push("date_time_conflict");
  if(fields?.clock_text_conflict&&!missing.includes("date_time_conflict"))missing.push("date_time_conflict");
@@ -294,6 +295,7 @@ export function classifyBillRecognition(data,fields,verdict){
   missing.includes("date_time_conflict")?"date_time_conflict":
   missing.includes("recipient_account")?"recipient_unreadable":
   missing.includes("transaction_date")?"date_unreadable":
+  missing.includes("literal_date")?"unverified_printed_date":
   String(fields?.receiving_account||"").length<13?"cropped_recipient":"complete_receipt";
  return {image_layout:layout,recognition_case:code,missing_fields:missing};
 }
