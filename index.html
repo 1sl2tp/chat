@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="010bec2fd9143e84a32f006128f83b9df58993510f56d86c4bd266ad08f70067">
+<meta name="app-build-id" content="5661d4cbe45896165e98a230b9f3631f5f62f762d20aabfb2da40b218a3734c7">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -2209,6 +2209,12 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
   grid-template-columns:repeat(2,minmax(0,1fr));
   margin-bottom:4px;
 }
+/* UI-271: all four primary KPI cards share a stable optical height despite
+   one-line/two-line labels; do not alter their values or responsive order. */
+#bankReportDashboard :is(.bank-report-summary,.bank-report-status-main)>.bank-report-stat{
+  display:flex;flex-direction:column;justify-content:space-between;
+  min-height:92px;
+}
 .bank-report-status-strip.bank-report-status-extra{
   grid-template-columns:repeat(3,minmax(0,1fr));
   margin:7px 0 0;
@@ -2481,12 +2487,19 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
   }
   #bankReportDashboard .bank-report-table tbody td:nth-child(6)::before{
     content:attr(data-mobile-label);display:block;
-    font-size:10px;font-weight:500;color:var(--text-secondary,#667085);
+    font-size:10px;font-weight:500;line-height:1.2;
+    white-space:normal;text-wrap:balance;
+    color:var(--text-secondary,#667085);
   }
   #bankReportDashboard .bank-report-table tbody td:nth-child(2){grid-column:1;grid-row:2}
   #bankReportDashboard .bank-report-table tbody td:nth-child(3){grid-column:2;grid-row:2}
   #bankReportDashboard .bank-report-table tbody td:nth-child(4){grid-column:3;grid-row:2}
   #bankReportDashboard .bank-report-table tbody td:nth-child(5){grid-column:4;grid-row:2}
+  /* Four diagnostics take identical tracks; center their own label/value
+     pair without changing the desktop six-column semantic table. */
+  #bankReportDashboard .bank-report-table tbody td:nth-child(n+2):nth-child(-n+5){
+    text-align:center;font-variant-numeric:tabular-nums;
+  }
   #bankReportDashboard .bank-report-table tbody td:nth-child(n+2):nth-child(-n+5)::before{
     content:attr(data-mobile-label) ' ';font-size:10px;
     color:var(--text-secondary,#667085);font-weight:450;
