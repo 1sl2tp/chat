@@ -21,7 +21,7 @@ assert(css.includes('#bankReportDashboard .bank-report-table tbody tr.bank-repor
 assert(css.includes('content:attr(data-mobile-label)'),"mobile headers remain meaningful");
 assert(js.includes("for(const v of [g.name,g.matched,g.waiting,g.duplicate,g.old,money(g.money)])"),
   "all six original values remain in the table");
-assert(js.includes("td.dataset.mobileLabel=i===5?'Thu (nghìn ₫)':shortColumns[i]"));
+assert(js.includes("td.dataset.mobileLabel=i===5?'Thu ngày chọn (nghìn ₫)':shortColumns[i]"));
 assert(css.includes('td:nth-child(6)::before'),"collected amount shows its unit");
 
 // Execute the paint owner with a minimal local fake DOM to check the actual
