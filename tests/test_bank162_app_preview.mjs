@@ -24,8 +24,8 @@ assert.equal(previewBillAppMatch(tier1,[app],[],now).match_level,1);
 const tier2={...tier1,receiving_name:"Bùi Xuân Tùng"};
 assert.equal(previewBillAppMatch(tier2,[app],[],now).match_level,2);
 const partialAccount={...bill,receiving_account:"290118199999"};
-assert.equal(previewBillAppMatch(partialAccount,[app],[],now).status,"review",
- "partly misread full account is not proof of the intended beneficiary");
+assert.equal(previewBillAppMatch({...partialAccount,requires_bank_memo:true},[app],[],now).status,"review",
+ "cropped full account without an independently matching bank memo must not authorize collection");
 assert.equal(previewBillAppMatch({...tier1,receiving_name:"OTHER PERSON"},[app],[],now).status,"review");
 assert.equal(previewBillAppMatch({...tier1,receiving_bank:"OTHERBANK"},[app],[],now).status,"review");
 assert.equal(previewBillAppMatch({...tier1,receiving_account:"2901181999998"},[app],[],now).status,"review");
