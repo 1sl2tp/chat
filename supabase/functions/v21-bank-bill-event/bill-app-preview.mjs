@@ -66,7 +66,7 @@ export function previewBillAppMatch(bill,events,otherBills=[],now=Date.now()){
    // but the payer's receipt contains only the original transfer message.
    // Strip only this anchored bank-side routing marker, never an arbitrary
    // substring, and still require the full remainder to match exactly.
-   const qrMarker=/^QR[ \\t]*[-–:][ \\t]+/i;
+   const qrMarker=/^QR *[-–:] +/i;
    const bankMemoWithoutQr=qrMarker.test(rawBankMemo)
      ?tidy(rawBankMemo.replace(qrMarker,"")):null;
    if(printedMemo.length<12||!bankText||
