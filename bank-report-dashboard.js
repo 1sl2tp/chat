@@ -258,16 +258,16 @@ function paint(data){
  // Keep every bank diagnostic even if a cached PWA shell has not loaded
  // the new disclosure yet; it can still render the legacy complete strip.
  const additionalCards=[
+   cardValue('Agribank cần xử lý',String(outstanding),false,true,'NH cần xử lý'),
    cardValue('Đã thu thủ công Agribank',String((data?.manual_collections||[]).length),false,true,'Thu tay NH'),
    cardValue('Thông báo tiền vào Agribank đã nhận',String(incoming.length),false,true,'Giao dịch NH'),
-   cardValue('Tổng tiền vào Agribank (nghìn đồng)',money(incoming.reduce((sum,x)=>sum+(Number(x.amount_vnd)||0),0)),false,true,'Tiền vào (nghìn ₫)'),
    cardValue('AI nghi sai ngày',String(s.old_date_count||0),false,true,'AI sai ngày'),
    cardValue('Ảnh trùng',String(s.duplicate_count||0),false,true,'Ảnh trùng'),
    cardValue('Ảnh AI chưa kết luận',String((data?.bills||[]).filter(isAiScanIssue).length),false,true,'AI chưa rõ')
  ];
  ui.status.replaceChildren(
   cardValue('Bill chưa đối soát',String(s.bill_only_count||0),false,true,'Bill chờ soát'),
-  cardValue('Agribank cần xử lý',String(outstanding),false,true,'NH cần xử lý'),
+  cardValue('Tổng tiền vào Agribank (nghìn đồng)',money(incoming.reduce((sum,x)=>sum+(Number(x.amount_vnd)||0),0)),false,true,'Tiền vào (nghìn ₫)'),
   ...(!ui.extraStatus?additionalCards:[])
  );
  // New shell: only 4 critical KPIs show first. Secondary figures are
