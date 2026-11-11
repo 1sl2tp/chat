@@ -52,6 +52,7 @@ function verifyLayout(hasExtra){
  const ui=baseUi();if(!hasExtra)delete ui.extraStatus;
  const context={ui,root:{scrollTop:22},
    filter:'all',selectedCustomer:null,filters:[['all','Tất cả'],['matched','Đã khớp']],
+   bankFilterMobileLabels:{all:'Tất cả',matched:'Đã khớp'},
    money:x=>String(x),isAiScanIssue:()=>false,
    bankResponsiveLabel:x=>({textContent:x}),
    cardValue:(name,value)=>({name,value}),
