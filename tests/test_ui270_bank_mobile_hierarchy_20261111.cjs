@@ -22,7 +22,7 @@ assert(css.includes('content:attr(data-mobile-label)'),"mobile headers remain me
 assert(js.includes("for(const v of [g.name,g.matched,g.waiting,g.duplicate,g.old,money(g.money)])"),
   "all six original values remain in the table");
 assert(js.includes("td.dataset.mobileLabel=i===5?'Đã thu':shortColumns[i]"));
-assert(css.includes('td:nth-child(6)::before'),"collected amount shows its unit");
+assert(css.includes('td:nth-child(6)::after'),"mobile customer amount has a clear collected label below");
 
 // Execute the paint owner with a minimal local fake DOM to check the actual
 // 2+2+6 split, repeated refresh, and a cached shell without the disclosure.
@@ -66,8 +66,10 @@ function verifyLayout(hasExtra){
  assert.equal(ui.summary.children.length,2);
  assert.equal(ui.status.children.length,hasExtra?2:8);
  if(hasExtra)assert.equal(ui.extraStatus.children.length,6);
- assert.equal(ui.status.children[0].value,'1');
- assert.equal(ui.status.children[1].value,'2793000',"total bank credits should not be hidden behind diagnostics");
+ assert.equal(ui.status.children[0].value,'2');
+ assert.equal(ui.status.children[1].value,'1',"bill count stays distinct from a bank-money amount");
+ assert.equal(ui.summary.children[0].value,'2793000',"total bank credits remain the first financial KPI");
+ assert.equal(ui.summary.children[1].value,'1311000',"collected amount remains visible as the second KPI");
  context.paint(record);
  assert.equal(ui.status.children.length,hasExtra?2:8,"refresh cannot drop bank totals");
  if(hasExtra)assert.equal(ui.extraStatus.children.length,6);
