@@ -255,21 +255,24 @@ function paint(data){
   cardValue('Giao dịch đã thu · đối soát',String(s.matched_count||0),false,false,'GD đã thu · khớp'),
   cardValue('Đã thu có chứng từ',money(s.matched_amount),true,false,'Đã thu (nghìn ₫)')
  );
- ui.status.replaceChildren(
-  cardValue('Bill chưa đối soát',String(s.bill_only_count||0),false,true,'Bill chờ soát'),
-  cardValue('Agribank cần xử lý',String(outstanding),false,true,'NH cần xử lý')
- );
- // Secondary accounting diagnostics stay accessible, but no longer crowd
- // the primary four indicators on iPhone. The native <details> preserves
- // expanded state across refresh and exposes correct keyboard semantics.
- ui.extraStatus.replaceChildren(
+ // Keep every bank diagnostic even if a cached PWA shell has not loaded
+ // the new disclosure yet; it can still render the legacy complete strip.
+ const additionalCards=[
    cardValue('Đã thu thủ công Agribank',String((data?.manual_collections||[]).length),false,true,'Thu tay NH'),
    cardValue('Thông báo tiền vào Agribank đã nhận',String(incoming.length),false,true,'Giao dịch NH'),
    cardValue('Tổng tiền vào Agribank (nghìn đồng)',money(incoming.reduce((sum,x)=>sum+(Number(x.amount_vnd)||0),0)),false,true,'Tiền vào (nghìn ₫)'),
-  cardValue('AI nghi sai ngày',String(s.old_date_count||0),false,true,'AI sai ngày'),
-  cardValue('Ảnh trùng',String(s.duplicate_count||0),false,true,'Ảnh trùng'),
-  cardValue('Ảnh AI chưa kết luận',String((data?.bills||[]).filter(isAiScanIssue).length),false,true,'AI chưa rõ')
+   cardValue('AI nghi sai ngày',String(s.old_date_count||0),false,true,'AI sai ngày'),
+   cardValue('Ảnh trùng',String(s.duplicate_count||0),false,true,'Ảnh trùng'),
+   cardValue('Ảnh AI chưa kết luận',String((data?.bills||[]).filter(isAiScanIssue).length),false,true,'AI chưa rõ')
+ ];
+ ui.status.replaceChildren(
+  cardValue('Bill chưa đối soát',String(s.bill_only_count||0),false,true,'Bill chờ soát'),
+  cardValue('Agribank cần xử lý',String(outstanding),false,true,'NH cần xử lý'),
+  ...(!ui.extraStatus?additionalCards:[])
  );
+ // New shell: only 4 critical KPIs show first. Secondary figures are
+ // retained inside the native details panel and refresh without closing it.
+ ui.extraStatus?.replaceChildren(...additionalCards);
  renderTable(data);
  const mainKeys=new Set(['all','matched','waiting_bank','bank_only','review']);
  const makeFilter=([key,label])=>{
@@ -1324,7 +1327,7 @@ function synchronize(){
  if(ownerChanged){
   // Reject in-flight responses and erase old bank details immediately.
   requestId++;selectedCustomer=null;filter='all';current=null;
-  ui.summary.replaceChildren();ui.status.replaceChildren();ui.extraStatus.replaceChildren();
+  ui.summary.replaceChildren();ui.status.replaceChildren();ui.extraStatus?.replaceChildren();
   ui.table.replaceChildren();ui.groups.replaceChildren();
   ui.stamp.textContent='Đang cập nhật phiên Admin…';
   closeViewer();closeReviewDialog();
