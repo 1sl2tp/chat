@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="a1806e6e3a86892e308e221d698b63fc3b509f5929355f00f03a574c100e7da7">
+<meta name="app-build-id" content="8bc00cd875e5d3cb7ef3648165f6714ea63f0a93008c94be886ef52e4a5791c0">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -30797,7 +30797,7 @@ function paint(data){
   cardValue('Bill chưa đối soát',String(s.bill_only_count||0),false,true,'Bill chờ soát'),
   cardValue('Agribank cần xử lý',String(outstanding),false,true,'NH cần xử lý'),
    cardValue('Đã thu thủ công Agribank',String((data?.manual_collections||[]).length),false,true,'Thu tay NH'),
-   cardValue('Agribank tiền vào · đủ nguồn',String(incoming.length),false,true,'Tiền NH đủ nguồn'),
+   cardValue('Thông báo tiền vào Agribank đã nhận',String(incoming.length),false,true,'Giao dịch NH'),
    cardValue('Tổng tiền vào Agribank (nghìn đồng)',money(incoming.reduce((sum,x)=>sum+(Number(x.amount_vnd)||0),0)),false,true,'Tiền vào (nghìn ₫)'),
   cardValue('AI nghi sai ngày',String(s.old_date_count||0),false,true,'AI sai ngày'),
   cardValue('Ảnh trùng',String(s.duplicate_count||0),false,true,'Ảnh trùng'),
@@ -31076,7 +31076,7 @@ function bankCreditLine(row,allBills){
  wrap.appendChild(top);
  const content=el('div','bank-report-detail-content');
  append(content,cell('Giờ Agribank',agribankDisplayTime(row.bank_time,ui.date.value)),
-   cell('Tiền vào Agribank (÷1.000)',money(row.amount_vnd)),
+   cell('Tiền vào Agribank (nghìn ₫)',money(row.amount_vnd)),
    cell('Thông báo Agribank','#'+row.notice_id),
    cell('Khách đã liên kết',row.customer_name||'Chưa xác định'),
    cell('Sổ công nợ',valid&&row.ledger_id?'#'+row.ledger_id:'Chưa có bút toán xác minh'),
@@ -31164,7 +31164,7 @@ function renderGroups(data){
   const block=el('section','bank-report-customer bank-report-bank-only');
   block.appendChild(append(el('div','bank-report-customer-head'),
    el('strong','bank-report-customer-name',fullCredits?'Toàn bộ tiền vào Agribank · theo trạng thái':'Agribank chưa khớp'),
-   el('span','bank-report-customer-count',banks.length+' giao dịch · '+money(banks.reduce((sum,x)=>sum+Number(x.amount_vnd||0),0))+' (÷1.000)')));
+   el('span','bank-report-customer-count',banks.length+' giao dịch · '+money(banks.reduce((sum,x)=>sum+Number(x.amount_vnd||0),0))+' nghìn ₫')));
   banks.forEach(row=>block.appendChild(fullCredits?
     bankCreditLine(row,allBills):detailLine(row,true,possibleUnlinkedBills(row,allBills))));
   ui.groups.appendChild(block);
