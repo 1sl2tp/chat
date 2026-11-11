@@ -167,6 +167,7 @@ Deno.serve(async req=>{
          receiving_account_last5:r.raw_read?.recipient_account_last5,
          time_date_conflict:r.raw_read?.time_date_conflict,
          clock_text_conflict:r.raw_read?.clock_text_conflict,
+         printed_date_invalid:r.raw_read?.printed_date_invalid,
          transfer_date_printed_vn:r.raw_read?.transfer_date_printed_vn,
          transfer_time_printed_vn:r.raw_read?.transfer_time_printed_vn,
          transfer_at_vn:r.transfer_at_vn
@@ -398,6 +399,7 @@ Deno.serve(async req=>{
       transfer_time_printed_vn:fields.transfer_time_printed_vn,
       time_date_conflict:fields.time_date_conflict,
       clock_text_conflict:fields.clock_text_conflict,
+      printed_date_invalid:fields.printed_date_invalid,
       date_swap_suspected:fields.date_swap_suspected,
       ocr_date_normalization_corrected:fields.ocr_date_normalization_corrected,
       ocr_iso_date_conflict:fields.ocr_iso_date_conflict,
