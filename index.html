@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="d9cac50c2db30a8434889dd7c0f3cd3a21a470f886ad7faf62499d2089faa9a6">
+<meta name="app-build-id" content="986c0bbc66d75c63fe82247d751599f8839778275290a2b6c9e0adad6674f840">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1983,6 +1983,74 @@
     grid-template-rows:auto auto auto minmax(0,1fr) auto;
     padding-block-end:10px;
   }
+}
+
+</style>
+<style data-inlined-source="chat-connection-status.css">
+/* P1-NET-288: zero-height status layer under the sticky chat header.
+   Do not modify the ScrollRoot, Chat composer or floating day geometry. */
+#chatConnectionStatus[hidden]{display:none!important}
+.chat-network-holder{
+  position:sticky;
+  top:var(--header-height,72px);
+  z-index:18;
+  height:0;
+  min-height:0;
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+  pointer-events:none;
+}
+.chat-network-pill{
+  box-sizing:border-box;
+  display:block;
+  width:max-content;
+  max-width:min(92vw,440px);
+  margin:6px 8px 0;
+  padding:6px 12px;
+  border:1px solid var(--theme-border-default,#d9dee3);
+  border-radius:999px;
+  background:var(--theme-surface-primary,#fff);
+  color:var(--theme-content-primary,#242424);
+  box-shadow:0 3px 12px #0001;
+  font-size:12px;
+  font-weight:600;
+  line-height:1.35;
+  text-align:center;
+  overflow-wrap:anywhere;
+}
+.chat-network-holder[data-state="offline"] .chat-network-pill{
+  background:#fff8ed;
+  border-color:#e9c994;
+  color:#865200;
+}
+.chat-network-holder[data-state="unstable"] .chat-network-pill{
+  background:#fff5f1;
+  border-color:#e2b9a9;
+  color:#943d28;
+}
+.message-delivery-state .message-retry-media{
+  min-height:44px;
+  min-width:88px;
+  margin-left:8px;
+  padding:7px 10px;
+  border:1px solid var(--theme-border-default,#cbd5de);
+  border-radius:9px;
+  background:var(--theme-surface-primary,#fff);
+  color:var(--theme-content-primary,#222);
+  font:inherit;
+  font-weight:700;
+  font-size:12px;
+  cursor:pointer;
+  pointer-events:auto;
+  touch-action:manipulation;
+}
+.message-delivery-state .message-retry-media:disabled{opacity:.55;cursor:default}
+.message-delivery-state .message-retry-media:focus-visible{
+  outline:2px solid var(--theme-content-accent,#377ad6);outline-offset:2px
+}
+@media(max-width:360px){
+  .chat-network-pill{font-size:11px;max-width:calc(100vw - 16px)}
 }
 
 </style>
@@ -8995,6 +9063,8 @@ button{
       <div class="chat-quick-recent" data-chat-quick-recent hidden></div>
     </nav>
 
+    <div id="chatConnectionStatus" class="chat-network-holder" role="status" aria-live="polite" data-state="idle" hidden><span class="chat-network-pill" data-chat-network-label></span></div>
+
     <main id="main" class="min-h-0 flex-1">
       <div id="thread" class="group/thread flex min-h-full flex-col">
         <div class="composer-parent flex flex-1 flex-col focus-visible:outline-0">
@@ -13295,6 +13365,52 @@ function syncMessageDeliveryState(unit,message){
   const label=state==='failed'?'Chưa gửi thành công':'Đang chờ xác nhận gửi';
   if(node.textContent!==label)node.textContent=label;
   node.setAttribute('aria-label',label);
+  if(state==='failed'&&message?.media){
+    // Existing outbox is the ONLY send owner. A retry uses the same durable
+    // client_id, media assets and server idempotency key, never a new send.
+    const retry=document.createElement('button');
+    retry.type='button';
+    retry.className='message-retry-media';
+    retry.textContent='Thử gửi lại';
+    retry.setAttribute('aria-label','Thử gửi lại ảnh hoặc tệp chưa gửi thành công');
+    retry.addEventListener('click',async event=>{
+      event.preventDefault();event.stopPropagation();
+      if(retry.disabled)return;
+      retry.disabled=true;
+      retry.textContent='Đang kiểm tra…';
+      const auth=window.V21AuthSessionStore?.snapshot?.()||{};
+      const context=window.V21MessageStore?.snapshot?.()||{};
+      let result;
+      try{
+        result=await window.V21SyncEngine?.retryFailedMedia?.({
+          clientId:String(message.clientId||message.id||''),
+          accountId:String(auth.account?.id||''),
+          appSessionId:String(auth.appSessionId||''),
+          contactId:String(context.currentContactId||''),
+          conversationId:String(context.currentConversationId||'')
+        });
+      }catch(_error){result={ok:false,reason:'error'};}
+      if(node.isConnected===false)return;
+      if(result?.ok){
+        node.textContent='Đang chờ xác nhận gửi lại';
+        node.dataset.state='sending';
+        node.setAttribute('aria-label','Đang chờ xác nhận gửi lại');
+      }else{
+        const reason=String(result?.reason||'error');
+        const explanation=reason==='offline'?'Thiết bị chưa có mạng. Hãy thử lại khi kết nối.':
+          reason==='not_retryable'||reason==='asset_unavailable'||reason==='assets_invalid'?
+          'Tệp không thể khôi phục tự động. Chọn lại tệp bằng dấu +.':
+          reason==='busy'?'Đang xử lý hàng đợi. Hãy thử lại sau.':
+          reason==='context_changed'?'Đã đổi hội thoại. Hãy mở đúng đoạn chat.':
+          'Chưa thể gửi lại. Hãy thử lại.';
+        node.textContent=explanation;
+        node.setAttribute('aria-label',explanation);
+        node.appendChild(retry);
+        retry.disabled=false;retry.textContent='Thử lại';
+      }
+    });
+    node.appendChild(retry);
+  }
 }
 
 function messageDateKey(timestamp){
@@ -30351,6 +30467,63 @@ async function drainOutbox(context){
   return sent;
 }
 
+// P1-MEDIA-288: explicit retry keeps the existing durable client_id and the
+// existing single-flight outbox owner. Never enqueue a second message, invent
+// an upload success, override validation failures or cross account/session.
+async function retryFailedMedia({clientId,contactId,conversationId,accountId:expectedAccountId,appSessionId:expectedSessionId}={}){
+  const context=captureFlushContext();
+  const id=String(clientId||'');
+  const target=String(contactId||'');
+  const thread=String(conversationId||'');
+  if(!id||!target||!thread||!expectedAccountId||!expectedSessionId)return{ok:false,reason:'invalid_scope'};
+  if(!context.accountId||!context.appSessionId||!context.client||
+     !syncOwnerContextCurrent(context)||
+     String(expectedAccountId)!==String(context.accountId)||
+     String(expectedSessionId)!==String(context.appSessionId)||
+     target!==String(currentContactId||'')||
+     thread!==String(currentConversationId||''))return{ok:false,reason:'context_changed'};
+  if(!online())return{ok:false,reason:'offline'};
+  if(outboxFlushFlight&&syncOwnerContextCurrent(outboxFlushFlight.context))return{ok:false,reason:'busy'};
+  const rows=await cache()?.listOutboxForContact?.(context.accountId,target)||[];
+  if(!syncOwnerContextCurrent(context)||target!==String(currentContactId||'')||
+     thread!==String(currentConversationId||''))return{ok:false,reason:'context_changed'};
+  const item=rows.find(row=>String(row?.client_id||'')===id);
+  if(!item)return{ok:false,reason:'not_found'};
+  if(!['media','images','image','audio'].includes(String(item.kind||''))||
+     String(item.contact_id||'')!==target||
+     String(item.conversation_id||'')!==thread)return{ok:false,reason:'not_media'};
+  if(item.failed!==true)return{ok:false,reason:'not_failed'};
+  if(item.retryable===false)return{ok:false,reason:'not_retryable'};
+  const assets=mediaAssetsFromOutbox(item);
+  if(!assets.length||assets.length>12)return{ok:false,reason:'assets_invalid'};
+  for(const asset of assets){
+    if(!asset?.asset_id)return{ok:false,reason:'assets_invalid'};
+    const record=await media()?.get?.({accountId:context.accountId,assetId:asset.asset_id});
+    if(!syncOwnerContextCurrent(context)||target!==String(currentContactId||'')||
+       thread!==String(currentConversationId||''))return{ok:false,reason:'context_changed'};
+    if(!(record?.blob instanceof Blob)||Number(record.blob.size)<1)return{ok:false,reason:'asset_unavailable'};
+  }
+  // Recheck after async media reads: a real ACK might have removed the item,
+  // and a different flush must never race our explicit retry.
+  if(outboxFlushFlight&&syncOwnerContextCurrent(outboxFlushFlight.context))return{ok:false,reason:'busy'};
+  const fresh=await cache()?.listOutboxForContact?.(context.accountId,target)||[];
+  if(!syncOwnerContextCurrent(context)||target!==String(currentContactId||'')||
+     thread!==String(currentConversationId||''))return{ok:false,reason:'context_changed'};
+  const pending=fresh.find(row=>String(row?.client_id||'')===id);
+  if(!pending||pending.failed!==true||pending.retryable===false||
+     String(pending.conversation_id||'')!==thread)return{ok:false,reason:'changed'};
+  pending.failed=false;
+  pending.next_retry_at=0;
+  // Preserve client_id, attempt count, asset IDs, storage keys and any
+  // successfully-uploaded parts for server idempotency and resumability.
+  await cache()?.updateOutbox?.(context.accountId,pending);
+  if(!syncOwnerContextCurrent(context)||target!==String(currentContactId||'')||
+     thread!==String(currentConversationId||''))return{ok:false,reason:'context_changed'};
+  messages()?.apply?.(outboxAsLocal(pending,thread),{remote:false});
+  void wake({reason:'manual-media-retry'});
+  return{ok:true,reason:'queued'};
+}
+
 function unreadSnapshot(){
   return Math.max(0,Number(shell()?.UnreadIndicator?.snapshot?.()||0));
 }
@@ -30489,6 +30662,7 @@ async function wake({reason='signal',hintSeq=0}={}){
   syncing=true;
   let fenceAttempt=0;
   let succeeded=true;
+  const lifecycleContext=captureSyncOwnerContext();
   try{
     while(wakePending){
       wakePending=false;
@@ -30528,6 +30702,11 @@ async function wake({reason='signal',hintSeq=0}={}){
         if(wakePending&&!syncing)void wake({reason:'coalesced-handoff',hintSeq:wakeHint});
       });
     }
+  }
+  if(syncOwnerContextCurrent(lifecycleContext)){
+    document.dispatchEvent(new CustomEvent('v21-sync-lifecycle',{
+      detail:{state:succeeded?'completed':'failed'}
+    }));
   }
   return succeeded;
 }
@@ -30765,7 +30944,7 @@ document.addEventListener('navigation-change',event=>{
 });
 
 window.V21SyncEngine={
-  version:VERSION,wake,consumeRealtimeEvent,openContact,queueText,queueMediaFiles,forwardMessage,flushOutbox,refreshUnread,markRead,syncContacts,clearAccount,ensureMediaRemote,loadOlderHistory,hasMoreOlder,
+  version:VERSION,wake,consumeRealtimeEvent,openContact,queueText,queueMediaFiles,retryFailedMedia,forwardMessage,flushOutbox,refreshUnread,markRead,syncContacts,clearAccount,ensureMediaRemote,loadOlderHistory,hasMoreOlder,
   recoverActiveFromSnapshot:canonicalReconcileActive,
   snapshot(){return{accountId,appSessionId,currentContactId,currentConversationId,syncing,wakePending,wakeHint,lastReason,online:online()};}
 };
@@ -34256,6 +34435,66 @@ window.V21RealtimeSession={
 };
 
 queueMicrotask(()=>{if(foregroundActive())void start();else emitPresence();});
+})();
+
+</script>
+<script data-inlined-source="chat-connection-status.js">
+(()=>{
+'use strict';
+// P1-NET-288: advisory device connectivity only. A browser "online" event is
+// not a message-delivery receipt. Realtime/SyncEngine remains the only sync
+// and reconnect owner. No polling, RPC, fetch, timer, or log in this module.
+const holder=document.getElementById('chatConnectionStatus');
+if(!holder)return;
+const label=holder.querySelector('[data-chat-network-label]');
+if(!label)return;
+let phase=navigator.onLine===false?'offline':'idle';
+
+function visible(){
+ const auth=window.V21AuthSessionStore?.snapshot?.()||{};
+ const shell=window.ChatAppShell?.snapshot?.()||{};
+ return auth.state==='AUTHENTICATED'&&shell.route==='chat';
+}
+function render(){
+ if(!visible()||phase==='idle'){
+  holder.hidden=true;
+  holder.dataset.state='idle';
+  label.textContent='';
+  return;
+ }
+ const offline=navigator.onLine===false||phase==='offline';
+ const effective=offline?'offline':phase;
+ const copy={
+  offline:'Thiết bị đang ngoại tuyến · tin chưa xác nhận vẫn chờ gửi',
+  reconnecting:'Đã có mạng · đang kiểm tra đồng bộ',
+  unstable:'Chưa thể đồng bộ · tin chưa xác nhận vẫn chờ gửi'
+ };
+ holder.dataset.state=effective;
+ label.textContent=copy[effective]||'';
+ holder.hidden=!copy[effective];
+}
+window.addEventListener('offline',()=>{
+ phase='offline';render();
+},{passive:true});
+window.addEventListener('online',()=>{
+ phase='reconnecting';render();
+},{passive:true});
+document.addEventListener('v21-sync-lifecycle',event=>{
+ if(navigator.onLine===false){
+  phase='offline';
+ }else if(phase==='reconnecting'||phase==='unstable'){
+  phase=event?.detail?.state==='completed'?'idle':'unstable';
+ }
+ render();
+});
+document.addEventListener('v21-auth-state',()=>{
+ if(navigator.onLine===false)phase='offline';
+ else if(!visible())phase='idle';
+ render();
+});
+document.addEventListener('navigation-change',render);
+document.addEventListener('visibilitychange',render);
+render();
 })();
 
 </script>
