@@ -15,8 +15,8 @@ assert.equal(previewBillAppMatch(bill,[{...app,amount_vnd:405000}],[],now).statu
 assert.equal(previewBillAppMatch({...bill,receiving_account_last5:"11111"},[app],[],now).status,"review");
 assert.equal(previewBillAppMatch({...bill,amount_vnd:406000},[app],[{...bill,media_asset_id:"asset2"}],now).status,"review");
 
-// BANK-166: customer bill 10k in Chat, Agribank confirms amount/time;
-// recipient details may be absent or partially cropped without blocking.
+// BANK-166 legacy preview tiers: missing text stays a candidate for old scans.
+// BANK-284 newly scanned receipts must independently pass requiredAutoCollectEvidence.
 const tier1={...bill,receiving_name:null,receiving_bank:null,receiving_account:null,
  receiving_account_last5:null};
 assert.equal(previewBillAppMatch(tier1,[app],[],now).status,"candidate_unique");
@@ -24,8 +24,8 @@ assert.equal(previewBillAppMatch(tier1,[app],[],now).match_level,1);
 const tier2={...tier1,receiving_name:"Bùi Xuân Tùng"};
 assert.equal(previewBillAppMatch(tier2,[app],[],now).match_level,2);
 const partialAccount={...bill,receiving_account:"290118199999"};
-assert.equal(previewBillAppMatch(partialAccount,[app],[],now).status,"candidate_unique");
-assert.equal(previewBillAppMatch(partialAccount,[app],[],now).match_level,3);
+assert.equal(previewBillAppMatch(partialAccount,[app],[],now).status,"review",
+ "partly misread full account is not proof of the intended beneficiary");
 assert.equal(previewBillAppMatch({...tier1,receiving_name:"OTHER PERSON"},[app],[],now).status,"review");
 assert.equal(previewBillAppMatch({...tier1,receiving_bank:"OTHERBANK"},[app],[],now).status,"review");
 assert.equal(previewBillAppMatch({...tier1,receiving_account:"2901181999998"},[app],[],now).status,"review");
@@ -45,7 +45,8 @@ assert.equal(previewBillAppMatch(tier1,[{...app,body:app.body.replace("Nội dun
 // BANK-171: cropped receipts need only the correct visible last five digits.
 assert.equal(previewBillAppMatch({...tier1,receiving_account:"*****99999",receiving_account_last5:"99999"},[app],[],now).status,"candidate_unique");
 assert.equal(previewBillAppMatch({...tier1,receiving_account:"99999"},[app],[],now).status,"candidate_unique");
-assert.equal(previewBillAppMatch({...tier1,receiving_account:"12345678999999",receiving_account_last5:"99999"},[app],[],now).status,"candidate_unique");
+assert.equal(previewBillAppMatch({...tier1,receiving_account:"12345678999999",receiving_account_last5:"99999"},[app],[],now).status,"review",
+ "a complete different account cannot pass on its suffix alone");
 assert.equal(previewBillAppMatch({...tier1,receiving_account:"*****99998"},[app],[],now).status,"review");
 // BANK-170: multiple Agribank accounts in one Android app must never cross-credit TAPHOA.
 const wrongAccount={...app,body:app.body.replace("Tài khoản 2901181999999:","Tài khoản 1234567890123:")};
