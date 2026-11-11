@@ -3,9 +3,10 @@ const RELEASE_VERSION='V21.72.39';
 const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 // BANK-177: reload one-time cached shell for the live bank reconciliation table.
 // Keep offline-first startup; do not add per-navigation network requests.
-// P1-289: refresh the public PWA code for recoverable media sends and truthful
-// sync status; never delete account-scoped IndexedDB, outbox, or media records.
-const SHELL_CACHE_EPOCH='pwa-chat-media-ack-resume-289-20261111';
+// IMG-286: refresh only the public Web/PWA shell for two verified image
+// orientation defaults and corrected album thumbnails. Keep account-scoped
+// IndexedDB, outbox, private media and auth sessions unchanged.
+const SHELL_CACHE_EPOCH='pwa-chat-two-photo-rotation-img286-20261111';
 const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION+'-'+SHELL_CACHE_EPOCH;
 const AVATAR_CACHE_NAME='taphoa-chat-avatars-v1';
 const SUPABASE_ASSET_HOST_RE=/^[a-z0-9]+\.supabase\.co$/i;
