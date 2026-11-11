@@ -258,7 +258,7 @@ function paint(data){
   cardValue('Bill chưa đối soát',String(s.bill_only_count||0),false,true,'Bill chờ soát'),
   cardValue('Agribank cần xử lý',String(outstanding),false,true,'NH cần xử lý'),
    cardValue('Đã thu thủ công Agribank',String((data?.manual_collections||[]).length),false,true,'Thu tay NH'),
-   cardValue('Agribank tiền vào · đủ nguồn',String(incoming.length),false,true,'Tiền NH đủ nguồn'),
+   cardValue('Thông báo tiền vào Agribank đã nhận',String(incoming.length),false,true,'Giao dịch NH'),
    cardValue('Tổng tiền vào Agribank (nghìn đồng)',money(incoming.reduce((sum,x)=>sum+(Number(x.amount_vnd)||0),0)),false,true,'Tiền vào (nghìn ₫)'),
   cardValue('AI nghi sai ngày',String(s.old_date_count||0),false,true,'AI sai ngày'),
   cardValue('Ảnh trùng',String(s.duplicate_count||0),false,true,'Ảnh trùng'),
@@ -537,7 +537,7 @@ function bankCreditLine(row,allBills){
  wrap.appendChild(top);
  const content=el('div','bank-report-detail-content');
  append(content,cell('Giờ Agribank',agribankDisplayTime(row.bank_time,ui.date.value)),
-   cell('Tiền vào Agribank (÷1.000)',money(row.amount_vnd)),
+   cell('Tiền vào Agribank (nghìn ₫)',money(row.amount_vnd)),
    cell('Thông báo Agribank','#'+row.notice_id),
    cell('Khách đã liên kết',row.customer_name||'Chưa xác định'),
    cell('Sổ công nợ',valid&&row.ledger_id?'#'+row.ledger_id:'Chưa có bút toán xác minh'),
@@ -625,7 +625,7 @@ function renderGroups(data){
   const block=el('section','bank-report-customer bank-report-bank-only');
   block.appendChild(append(el('div','bank-report-customer-head'),
    el('strong','bank-report-customer-name',fullCredits?'Toàn bộ tiền vào Agribank · theo trạng thái':'Agribank chưa khớp'),
-   el('span','bank-report-customer-count',banks.length+' giao dịch · '+money(banks.reduce((sum,x)=>sum+Number(x.amount_vnd||0),0))+' (÷1.000)')));
+   el('span','bank-report-customer-count',banks.length+' giao dịch · '+money(banks.reduce((sum,x)=>sum+Number(x.amount_vnd||0),0))+' nghìn ₫')));
   banks.forEach(row=>block.appendChild(fullCredits?
     bankCreditLine(row,allBills):detailLine(row,true,possibleUnlinkedBills(row,allBills))));
   ui.groups.appendChild(block);
