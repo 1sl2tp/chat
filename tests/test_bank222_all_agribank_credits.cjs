@@ -14,7 +14,7 @@ for(const [input,expected] of [[570000,'570'],[4305000,'4.305'],[4217000,'4.217'
 assert(src.includes("client.rpc('chat_bank_all_credit_statuses'"),'all credits are fetched independently');
 assert(src.includes("bank_credits:Array.isArray(credits.data)?credits.data:[]"));
 assert(src.includes("incoming.reduce((sum,x)=>sum+(Number(x.amount_vnd)||0),0)"));
-assert(src.includes("'bank_all','Tất cả tiền vào Agribank'"));
+assert(src.includes("'bank_all','Tiền vào NH'"),'shorter label must preserve the full bank register filter');
 assert(src.includes("kind==='auto_collected'?'Đã thu · Đối soát'"));
 assert(src.includes("kind==='manual_collected'?'Đã thu thủ công'"));
 assert(src.includes("kind==='unmatched'"),'manual collection button only for unmatched');
