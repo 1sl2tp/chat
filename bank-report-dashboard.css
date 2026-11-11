@@ -211,10 +211,10 @@
  .bank-report-table th,.bank-report-table td{padding:8px 2px}
  .bank-report-table th{font-size:10px}
  .bank-report-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;overflow:visible;margin-bottom:12px;padding:0}
- .bank-report-filter,.bank-report-filter-more-trigger{width:100%;height:34px;display:flex;justify-content:center;align-items:center;padding:5px 4px;font-size:11px;white-space:normal;text-align:center;line-height:1.2;border-radius:9px}
+ .bank-report-filter,.bank-report-filter-more-trigger{width:100%;height:44px;min-height:44px;display:flex;justify-content:center;align-items:center;padding:5px 4px;font-size:11px;white-space:normal;text-align:center;line-height:1.2;border-radius:9px}
  .bank-report-filter-more-trigger::after{margin-left:3px}
  .bank-report-filter-more-menu{min-width:155px}
- .bank-report-filter-more-menu .bank-report-filter{height:34px;justify-content:flex-start;padding-inline:10px}
+ .bank-report-filter-more-menu .bank-report-filter{height:44px;min-height:44px;justify-content:flex-start;padding-inline:10px}
  .bank-report-customer-head{gap:4px}
  .bank-report-customer-count{font-size:11px}
 }
