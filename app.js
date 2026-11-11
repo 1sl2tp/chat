@@ -2910,6 +2910,26 @@ function syncMessageTimeNode(unit,message){
   time.setAttribute('aria-label','Gửi lúc '+full+' · giờ Việt Nam');
 }
 
+// P0-MSG-286: present only the two real local outbox states. "Sent",
+// "delivered" and "read" must never be inferred from a network hint.
+function syncMessageDeliveryState(unit,message){
+  if(!unit)return;
+  const state=message?.sender==='self'&&message?.status==='failed'?'failed':
+    message?.sender==='self'&&message?.status==='sending'?'sending':'';
+  let node=unit.querySelector(':scope > .message-delivery-state');
+  if(!state){node?.remove();return;}
+  if(!node){
+    node=document.createElement('span');
+    node.className='message-delivery-state';
+    node.setAttribute('role','status');
+    unit.appendChild(node);
+  }
+  node.dataset.state=state;
+  const label=state==='failed'?'Chưa gửi thành công':'Đang chờ xác nhận gửi';
+  if(node.textContent!==label)node.textContent=label;
+  node.setAttribute('aria-label',label);
+}
+
 function messageDateKey(timestamp){
   const stamp=typeof timestamp==='number'?timestamp:Date.parse(timestamp);
   if(!Number.isFinite(stamp)||stamp<=0)return '';
@@ -3004,6 +3024,7 @@ function messageVisualSignature(message){
     String(message?.sender||'remote'),
     String(message?.kind||'text'),
     String(message?.text||''),
+    String(message?.status||'sent'),
     message?.important?'1':'0',
     reply,
     mediaVisualSignature(message?.media),
@@ -5028,6 +5049,7 @@ function patchMessageNode(node,message){
 
   bindTextActionTap(node,text);
   syncMessageTimeNode(unit,message);
+  syncMessageDeliveryState(unit,message);
   node.__visualSignature=messageVisualSignature(message);
   return node;
 }
@@ -5096,6 +5118,7 @@ function renderMessageNode(message){
 
   unit.appendChild(createActionGroup(message));
   syncMessageTimeNode(unit,message);
+  syncMessageDeliveryState(unit,message);
   messageWrap.appendChild(unit);
   stack.appendChild(messageWrap);
   outer.appendChild(stack);
