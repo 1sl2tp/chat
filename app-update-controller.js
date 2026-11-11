@@ -64,6 +64,11 @@ function safeToReload({userRequested=false}={}){
   const sync=window.V21SyncEngine?.snapshot?.()||null;
   if(sync&&(sync.syncing||sync.wakePending))return false;
   if(hasDraft())return false;
+  // Media messages play outside the call/recording interaction modes.
+  // Protect playback even while buffering; paused/finished media is safe.
+  for(const media of document.querySelectorAll?.('audio,video')||[]){
+    if(media.paused===false&&!media.ended)return false;
+  }
   return true;
 }
 function guardKey(build){return 'taphoa.v21.reload.'+String(build||'unknown');}
@@ -114,7 +119,7 @@ function showUpdateNotice(){
   button.addEventListener('click',()=>{
     if(!pendingBuild)return;
     if(!safeToReload({userRequested:true})){
-      label.textContent='Hãy gửi tin nháp hoặc kết thúc cuộc gọi trước khi cập nhật';
+      label.textContent='Hãy hoàn tất tin nháp, tác vụ đang chạy hoặc tạm dừng âm thanh/video trước khi cập nhật';
       return;
     }
     rememberReload(pendingBuild);

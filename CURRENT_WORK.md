@@ -1,3 +1,13 @@
+## 2026-11-11 — CHAT-UPDATE-MEDIA · Preserve active playback during updates
+
+- **E0 SPEC:** Given a playing/buffering audio or video message, when the user taps Cập nhật, do not navigate or interrupt playback. Once paused or ended, allow explicit update if all other guards pass. Owner: `app-update-controller.js::safeToReload`. `app.js` renders message audio outside call/recording interaction modes; the updater previously allowed it. Reproduced with a failing actual-updater VM test before patch.
+- **Patch:** Read native media paused/ended state before allowing reload; do not change playback or fetch media. Explain that ongoing tasks/media must finish or pause. Include existing manual-update regression in canonical verifier as well as CI.
+- **MUST-STAY:** Draft, attachment, reply, recording, call, sync, interaction and authenticated automatic-reload guards unchanged; same release identity and polling cadence. No messages, DB writes, new network requests or cache purge.
+- **Tests / release:** Pending final verification and canonical Pages pipeline. Runtime tests cover audio/video playing, buffering, paused, ended and update click; physical iPhone/PWA playback verification remains pending.
+- **Rollback:** Revert this guard/test change and regenerate canonical artifacts via existing workflow. Self-review only; no independent review claimed.
+
+---
+
 ## 2026-11-11 — CHAT-UPDATE-TIMEOUT · Recover stalled release checks
 
 - **E0 / SPEC:** Given a Web/PWA version request whose headers or JSON body never settle, when the 10-second deadline expires, release the single-flight check and allow the next existing foreground/online/interval event to check again. Owner: `app-update-controller.js`. Reproduced with two failing runtime tests before patch.
