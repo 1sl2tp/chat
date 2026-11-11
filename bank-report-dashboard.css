@@ -179,6 +179,12 @@
   grid-template-columns:repeat(2,minmax(0,1fr));
   margin-bottom:4px;
 }
+/* UI-271: all four primary KPI cards share a stable optical height despite
+   one-line/two-line labels; do not alter their values or responsive order. */
+#bankReportDashboard :is(.bank-report-summary,.bank-report-status-main)>.bank-report-stat{
+  display:flex;flex-direction:column;justify-content:space-between;
+  min-height:92px;
+}
 .bank-report-status-strip.bank-report-status-extra{
   grid-template-columns:repeat(3,minmax(0,1fr));
   margin:7px 0 0;
@@ -451,12 +457,19 @@
   }
   #bankReportDashboard .bank-report-table tbody td:nth-child(6)::before{
     content:attr(data-mobile-label);display:block;
-    font-size:10px;font-weight:500;color:var(--text-secondary,#667085);
+    font-size:10px;font-weight:500;line-height:1.2;
+    white-space:normal;text-wrap:balance;
+    color:var(--text-secondary,#667085);
   }
   #bankReportDashboard .bank-report-table tbody td:nth-child(2){grid-column:1;grid-row:2}
   #bankReportDashboard .bank-report-table tbody td:nth-child(3){grid-column:2;grid-row:2}
   #bankReportDashboard .bank-report-table tbody td:nth-child(4){grid-column:3;grid-row:2}
   #bankReportDashboard .bank-report-table tbody td:nth-child(5){grid-column:4;grid-row:2}
+  /* Four diagnostics take identical tracks; center their own label/value
+     pair without changing the desktop six-column semantic table. */
+  #bankReportDashboard .bank-report-table tbody td:nth-child(n+2):nth-child(-n+5){
+    text-align:center;font-variant-numeric:tabular-nums;
+  }
   #bankReportDashboard .bank-report-table tbody td:nth-child(n+2):nth-child(-n+5)::before{
     content:attr(data-mobile-label) ' ';font-size:10px;
     color:var(--text-secondary,#667085);font-weight:450;
