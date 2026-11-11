@@ -182,8 +182,18 @@
 /* UI-271: all four primary KPI cards share a stable optical height despite
    one-line/two-line labels; do not alter their values or responsive order. */
 #bankReportDashboard :is(.bank-report-summary,.bank-report-status-main)>.bank-report-stat{
-  display:flex;flex-direction:column;justify-content:space-between;
-  min-height:92px;
+  box-sizing:border-box;display:flex;flex-direction:column;
+  justify-content:space-between;min-height:76px;padding:10px 12px;
+}
+/* UI-272: one quiet unit note for the entire selected day's monetary values;
+   do not repeat units in metrics, customer rows, filters or credit captions. */
+.bank-report-status-line{
+  display:flex;align-items:baseline;flex-wrap:wrap;gap:3px 12px;
+}
+.bank-report-status-line .bank-report-subtitle{margin:4px 0 0}
+.bank-report-unit-note{
+  font-size:11px;line-height:1.4;color:var(--text-secondary,#667085);
+  white-space:nowrap;
 }
 .bank-report-status-strip.bank-report-status-extra{
   grid-template-columns:repeat(3,minmax(0,1fr));
@@ -458,7 +468,7 @@
   #bankReportDashboard .bank-report-table tbody td:nth-child(6)::before{
     content:attr(data-mobile-label);display:block;
     font-size:10px;font-weight:500;line-height:1.2;
-    white-space:normal;text-wrap:balance;
+    white-space:nowrap;
     color:var(--text-secondary,#667085);
   }
   #bankReportDashboard .bank-report-table tbody td:nth-child(2){grid-column:1;grid-row:2}
