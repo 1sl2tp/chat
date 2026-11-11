@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="a8902eae20d41304783e6e80d2ecaac401fa8c45ea2f6d51a12437101b7735d4">
+<meta name="app-build-id" content="c1554d5164993f4d4af1128c46efd2d8f7f83a48a35a0d5bfdd6ca42d28dd4d4">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -8806,7 +8806,20 @@ button{
             </section>
             <section id="bankReportDashboard" class="bank-report-dashboard" aria-label="Bảng đối soát chuyển khoản" hidden>
               <div class="bank-report-header">
-                <div><h2 class="bank-report-heading">Bảng đối soát trực tiếp</h2>
+                <div><div class="bank-report-title-row">
+                  <h2 class="bank-report-heading">Bảng đối soát trực tiếp</h2>
+                  <details class="bank-report-help">
+                    <summary class="bank-report-help-trigger" title="Giải thích các chỉ số" aria-label="Giải thích các chỉ số đối soát">ⓘ</summary>
+                    <div class="bank-report-help-content">
+                      <strong>Hiểu đúng các số liệu</strong>
+                      <p><b>Tiền vào NH:</b> toàn bộ tiền Agribank ghi nhận trong ngày đang xem; chưa chắc đã ghi thu.</p>
+                      <p><b>Đã thu:</b> số tiền đã xác nhận vào công nợ từ các bill khớp.</p>
+                      <p><b>Đã khớp bill:</b> số giao dịch bill đã đối soát và ghi thu thành công.</p>
+                      <p><b>Bill chưa khớp:</b> số bill khách gửi nhưng còn chờ đối soát.</p>
+                      <p><b>Chưa gắn bill:</b> tiền ngân hàng ghi nhận nhưng chưa gắn chứng từ khách.</p>
+                    </div>
+                  </details>
+                </div>
                 <div class="bank-report-status-line">
                   <p class="bank-report-subtitle" data-bank-updated role="status" aria-live="polite">Đang đồng bộ dữ liệu đối soát…</p>
                   <span class="bank-report-unit-note">Đơn vị: 1.000đ</span>
@@ -8820,7 +8833,7 @@ button{
               <div class="bank-report-summary" data-bank-summary></div>
               <div class="bank-report-status-strip bank-report-status-main" data-bank-status></div>
               <details class="bank-report-extra-metrics" data-bank-extra-metrics>
-                <summary class="bank-report-extra-metrics-trigger">Xem thêm thống kê <span class="bank-report-extra-metrics-chevron" aria-hidden="true"></span></summary>
+                <summary class="bank-report-extra-metrics-trigger">Chỉ số khác <span class="bank-report-extra-metrics-chevron" aria-hidden="true"></span></summary>
                 <div class="bank-report-status-strip bank-report-status-extra" data-bank-extra-status></div>
               </details>
               <div class="bank-report-table-caption">
