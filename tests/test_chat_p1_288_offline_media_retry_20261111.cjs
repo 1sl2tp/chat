@@ -65,8 +65,11 @@ async function test(){
  assert.equal((await context.retry(scope())).reason,'not_retryable');
  row.retryable=true;
  hasBlob=false;
- assert.equal((await context.retry(scope())).reason,'asset_unavailable');
+ row.assets[0].uploaded=false;
+ assert.equal((await context.retry(scope())).reason,'asset_unavailable',
+   'missing unuploaded bytes must never be treated as a successful upload');
  assert.equal(updateCalls.length,0);
+ row.assets[0].uploaded=true;
  hasBlob=true;
  context.outboxFlushFlight={context:{accountId:'A',appSessionId:'SA',client}};
  assert.equal((await context.retry(scope())).reason,'busy');
