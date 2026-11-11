@@ -38,7 +38,9 @@ export function previewBillAppMatch(bill,events,otherBills=[],now=Date.now()){
  if(suffix&&suffix!==destination.slice(-5))return{status:"review",reason:"recipient_account_conflict"};
  // Customer receipts may show only *****99999 or have OCR errors in preceding digits.
  // Agribank's own credit notice remains responsible for verifying the FULL target account.
- if((acct.length>=9 && acct!==destination) || (acct.length>=5 && !acct.endsWith(destination.slice(-5))))
+ if((acct.length>=destination.length && acct!==destination) ||
+    (acct.length>=9 && acct.length<destination.length && !destination.startsWith(acct.slice(0,6))) ||
+    (acct.length>=5 && !acct.endsWith(destination.slice(-5))))
   return{status:"review",reason:"recipient_account_conflict"};
  const matchLevel=acct&&bank?3:name?2:1;
  const date=bankTime(bill.transfer_at_vn), sent=when(bill.sent_at);
@@ -56,7 +58,7 @@ export function previewBillAppMatch(bill,events,otherBills=[],now=Date.now()){
  // DD/MM + HH:mm, additionally require the unique bank credit to carry the
  // EXACT same normalized transfer memo. This protects against fabricated
  // literal OCR values and two equal amounts in the same bank minute.
- if(bill.ocr_date_normalization_corrected){
+ if(bill.ocr_date_normalization_corrected||bill.requires_bank_memo){
    const printedMemo=tidy(bill.transfer_content);
    const bankText=tidy(bankMemo(qualified[0].body));
    if(printedMemo.length<12||!bankText||printedMemo!==bankText)
