@@ -16,20 +16,20 @@ assert(start>0&&end>start);
 const ctx=vm.createContext({});
 vm.runInContext(bank.slice(start,end)+'\nglobalThis.labels=bankFilterMobileLabels;',ctx);
 const labels=ctx.labels;
-assert.equal(labels.waiting_bank,'Bill chờ đối soát');
-assert.equal(labels.bank_only,'Tiền NH chưa gắn bill');
+assert.equal(labels.waiting_bank,'Chờ đối soát');
+assert.equal(labels.bank_only,'Chưa gắn bill');
 assert.equal(labels.review,'Cần xác minh');
 assert.notEqual(labels.waiting_bank,labels.bank_only,'bill and bank credit are distinct');
-assert(bank.includes("'Đã ghi thu (nghìn ₫)'"),'ledger amount is different from raw incoming');
-assert(bank.includes("'Tiền vào NH (nghìn ₫)'"),'bank incoming total has an explicit source');
-assert(bank.includes("'Bill chưa khớp'"),'pending bill title does not suggest cash posted');
-assert(bank.includes("'Thu ngày chọn (nghìn ₫)'"),
- 'customer total is for the selected report date, not lifetime');
+assert(bank.includes("'Đã thu'"),'ledger amount remains distinct from raw incoming');
+assert(bank.includes("'Tiền vào NH'"),'bank incoming total has an explicit source');
+assert(bank.includes("'Chưa khớp'"),'pending bill title does not suggest cash posted');
+assert(bank.includes("td.dataset.mobileLabel=i===5?'Đã thu':shortColumns[i]"),
+ 'mobile customer total is a clean single-line label');
 assert(bank.includes("const columns=['Khách hàng','Tự thu','Chờ soát','Trùng','AI lỗi ngày','Tiền tự thu'];"),
  'original accessible desktop six-column table is preserved');
 
 assert(bankCss.includes('#bankReportDashboard :is(.bank-report-summary,.bank-report-status-main)>.bank-report-stat{'));
-assert(bankCss.includes('min-height:92px;'),'four priority metrics equal height');
+assert(bankCss.includes('min-height:76px;'),'four priority metrics are compact and equal height');
 assert(bankCss.includes('display:grid;grid-template-columns:repeat(4,minmax(0,1fr));'));
 assert(bankCss.includes('#bankReportDashboard .bank-report-table tbody td:nth-child(n+2):nth-child(-n+5){'),
  'four customer diagnostics share equal tracks');
