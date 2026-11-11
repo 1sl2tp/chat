@@ -1472,6 +1472,8 @@ function createRenderedContactRow(item){
   const preview=document.createElement('span');preview.className='shell-contact-preview';
   const previewText=contactPreview(item);
   preview.textContent=item.locked_at?(previewText==='Chưa có tin nhắn'?'Đã khóa':`Đã khóa · ${previewText}`):previewText;
+  if(row.dataset.contactPinned==='report')preview.setAttribute('aria-label','Báo cáo hệ thống. '+preview.textContent);
+  else preview.removeAttribute('aria-label');
   const time=document.createElement('time');time.className='shell-contact-time';
   setContactTimeNode(time,item);
   copy.append(title,preview,time);
@@ -1505,6 +1507,8 @@ function patchRenderedContact(item){
   if(preview){
     const previewText=contactPreview(item);
     preview.textContent=item.locked_at?(previewText==='Chưa có tin nhắn'?'Đã khóa':`Đã khóa · ${previewText}`):previewText;
+  if(row.dataset.contactPinned==='report')preview.setAttribute('aria-label','Báo cáo hệ thống. '+preview.textContent);
+  else preview.removeAttribute('aria-label');
   }
   const time=row.querySelector('.shell-contact-time');
   setContactTimeNode(time,item);
