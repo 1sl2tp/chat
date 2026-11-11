@@ -83,15 +83,18 @@ function installStyle(){
     .contact-directory-search-field{position:relative;width:100%;min-width:0}
     .contact-directory-search-icon{position:absolute;z-index:1;inset-inline-start:14px;top:50%;width:18px;height:18px;transform:translateY(-50%);color:var(--theme-content-tertiary,#999);pointer-events:none}
     .contact-directory-search-field:focus-within .contact-directory-search-icon{color:var(--theme-content-secondary,#666)}
-    .contact-directory-search{box-sizing:border-box;width:100%;height:38px;border:1px solid var(--theme-border-default,#dedede);border-radius:16px;padding:0 12px 0 42px;background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#171717);font:inherit;font-size:16px;outline:none}
+    .contact-directory-search{box-sizing:border-box;width:100%;height:44px;border:1px solid var(--theme-border-default,#dedede);border-radius:16px;padding:0 12px 0 42px;background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#171717);font:inherit;font-size:16px;outline:none}
     .contact-directory-search:focus{border-color:#9ab7e6;box-shadow:0 0 0 2px rgba(78,132,216,.1)}
     .contact-directory-filter-line{display:flex;align-items:center;gap:4px;min-width:0}
     .contact-directory-filters{display:flex;gap:5px;flex:1;min-width:0;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none}
     .contact-directory-filters::-webkit-scrollbar{display:none}
-    .contact-directory-filter-more{appearance:none;display:grid;place-items:center;flex:0 0 27px;width:27px;height:29px;padding:0;border:1px solid var(--theme-border-default,#dedede);border-radius:10px;background:var(--theme-surface-secondary,#f3f3f3);color:var(--theme-content-primary,#171717);font-size:20px;cursor:pointer}
+    .contact-directory-filter-more{appearance:none;display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;padding:0;border:1px solid var(--theme-border-default,#dedede);border-radius:10px;background:var(--theme-surface-secondary,#f3f3f3);color:var(--theme-content-primary,#171717);font-size:20px;cursor:pointer}
     .contact-directory-filter-more[hidden]{display:none!important}
-    .contact-directory-filter{appearance:none;min-height:30px;flex:0 0 auto;border:0;border-radius:999px;padding:0 10px;background:var(--theme-surface-secondary,#f3f3f3);color:var(--theme-content-secondary,#666);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+    .contact-directory-filter{appearance:none;min-height:44px;flex:0 0 auto;border:0;border-radius:999px;padding:0 10px;background:var(--theme-surface-secondary,#f3f3f3);color:var(--theme-content-secondary,#666);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
     .contact-directory-filter[data-active="true"]{background:var(--theme-content-primary,#171717);color:var(--theme-surface-primary,#fff)}
+    .contact-directory-filter:focus-visible,.contact-directory-filter-more:focus-visible{
+      outline:2px solid var(--theme-content-accent,#377ad6);outline-offset:2px
+    }
     .contact-directory-empty{padding:18px 10px;text-align:center;color:var(--theme-content-secondary,#777);font-size:13px}
     .zalo-account-group-select{box-sizing:border-box;min-height:32px;border:1px solid var(--theme-border-default,#ddd);border-radius:999px;padding:0 24px 0 9px;background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#171717);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
     .zalo-account-group-select:disabled{opacity:.55;cursor:default}
@@ -123,11 +126,12 @@ function ensureDirectoryTools(){
   tools.innerHTML=`
     <div class="contact-directory-search-field">
       <svg class="contact-directory-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true"><circle cx="10.75" cy="10.75" r="6.75"></circle><path d="m16 16 4.5 4.5"></path></svg>
-      <input class="contact-directory-search" type="search" autocomplete="off" placeholder="Tìm kiếm" aria-label="Tìm danh bạ" data-contact-directory-search>
+      <input class="contact-directory-search" type="search" autocomplete="off" placeholder="Tìm tên hoặc tài khoản" aria-label="Tìm tên khách hàng hoặc tài khoản" data-contact-directory-search>
     </div>
     <div class="contact-directory-filter-line">
       <div class="contact-directory-filters" role="group" aria-label="Lọc danh bạ, cuộn ngang để xem thêm">
         <button type="button" class="contact-directory-filter" data-contact-directory-filter="all">Tất cả</button>
+        <button type="button" class="contact-directory-filter" data-contact-directory-filter="unread">Chưa đọc</button>
         <button type="button" class="contact-directory-filter" data-contact-directory-filter="customer">KH</button>
         <button type="button" class="contact-directory-filter" data-contact-directory-filter="cm">CM</button>
         <button type="button" class="contact-directory-filter" data-contact-directory-filter="friend">Bạn bè</button>
@@ -158,10 +162,16 @@ function ensureDirectoryTools(){
   input.value=query;
   input.addEventListener('input',()=>{query=String(input.value||'');syncDirectoryRows({reorder:false});});
   for(const button of tools.querySelectorAll('[data-contact-directory-filter]')){
-    button.dataset.active=String(button.dataset.contactDirectoryFilter===filter);
+    const selected=button.dataset.contactDirectoryFilter===filter;
+    button.dataset.active=String(selected);
+    button.setAttribute('aria-pressed',String(selected));
     button.addEventListener('click',()=>{
       filter=String(button.dataset.contactDirectoryFilter||'all');
-      for(const peer of tools.querySelectorAll('[data-contact-directory-filter]'))peer.dataset.active=String(peer===button);
+      for(const peer of tools.querySelectorAll('[data-contact-directory-filter]')){
+        const active=peer===button;
+        peer.dataset.active=String(active);
+        peer.setAttribute('aria-pressed',String(active));
+      }
       syncDirectoryRows({reorder:false});
     });
   }
@@ -174,6 +184,9 @@ function matchesDirectory(item){
     if(!haystack.includes(wanted))return false;
   }
   if(filter==='all')return true;
+  // The canonical contact summary already owns unread state. Never guess
+  // urgency from a financial keyword, a Zalo preview or the pinned report.
+  if(filter==='unread')return item?.has_unread===true||Number(item?.unread_count||0)>0;
   return groupKey(groupMap.get(String(item?.id||'')))===filter;
 }
 function syncDirectoryRows({scrollToTop=false,reorder=true}={}){
@@ -208,7 +221,7 @@ function syncDirectoryRows({scrollToTop=false,reorder=true}={}){
   if(!visible&&contacts.length){
     const empty=document.createElement('div');
     empty.className='contact-directory-empty';
-    empty.textContent='Không tìm thấy';
+    empty.textContent=filter==='unread'&&!query?'Không có cuộc trò chuyện chưa đọc':'Không tìm thấy';
     host.appendChild(empty);
   }
   if(scrollHost){
@@ -325,6 +338,7 @@ function resetForAuth(){
   if(input)input.value='';
   for(const button of tools?.querySelectorAll('[data-contact-directory-filter]')||[]){
     button.dataset.active=String(button.dataset.contactDirectoryFilter==='all');
+    button.setAttribute('aria-pressed',String(button.dataset.contactDirectoryFilter==='all'));
   }
   scheduleSync();
 }
