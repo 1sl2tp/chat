@@ -3,6 +3,14 @@
 
 const STYLE_ID='v21-chat-image-orientation-style';
 const STORAGE_PREFIX='v21-chat-image-rotation:';
+// IMG-286: two verified sideways historical photo assets. Their original
+// JPEG bytes/EXIF stay untouched. This baseline applies on every Web/PWA
+// device; a user's per-device explicit rotate choice always takes priority.
+// Opaque asset IDs only: do not publish customer identity or storage paths.
+const VERIFIED_PHOTO_ROTATION_DEFAULTS=Object.freeze({
+  '46b15aa8-d687-481d-be95-a97893e87eba':270,
+  'd821a746-002a-48e1-a1da-3706cdca8295':270
+});
 let scheduled=0;
 let lastOpenedAssetId='';
 /** @type {MutationObserver | null} */
@@ -24,7 +32,14 @@ function rotationKey(assetId){return `${STORAGE_PREFIX}${clean(assetId)}`;}
 function readRotation(assetId){
   const id=clean(assetId);
   if(!id)return 0;
-  try{return normalizeRotation(localStorage.getItem(rotationKey(id)));}catch{return 0;}
+  // The previous rotation control was localStorage-only. When no explicit
+  // choice is present, use the verified source-level orientation for exactly
+  // these two photos so desktop and installed iPhone PWA agree.
+  const verified=VERIFIED_PHOTO_ROTATION_DEFAULTS[id]??0;
+  try{
+    const stored=localStorage.getItem(rotationKey(id));
+    return stored===null?verified:normalizeRotation(stored);
+  }catch{return verified;}
 }
 /** @param {string} assetId @param {number} value @returns {number} */
 function writeRotation(assetId,value){
@@ -257,6 +272,11 @@ function rotateAsset(assetId,delta){
     if(tileAssetId(tile)===id)applyTileRotation(tile);
   }
   applyViewerRotation();
+  // Photo library tiles are not the regular .media-image-tile owner.
+  // Update only the selected thumbnail after a manual viewer adjustment.
+  document.dispatchEvent(new CustomEvent('v21-image-rotation-changed',{
+    detail:{assetId:id,rotation:readRotation(id)}
+  }));
   return true;
 }
 function handleClick(event){
@@ -304,9 +324,9 @@ function scheduleSync(){
 // layout rotation is not a separate network/media owner.
 // A typed optional Window extension keeps the existing bridge without
 // TypeScript TS2339 errors in Verify V21 (no extra global runtime owner).
-/** @type {Window & typeof globalThis & {V21ImageOrientation?: Readonly<{applyTileRotation: typeof applyTileRotation}>}} */
+/** @type {Window & typeof globalThis & {V21ImageOrientation?: Readonly<{applyTileRotation: typeof applyTileRotation,readRotation: typeof readRotation}>}} */
 const orientationWindow=window;
-orientationWindow.V21ImageOrientation=Object.freeze({applyTileRotation});
+orientationWindow.V21ImageOrientation=Object.freeze({applyTileRotation,readRotation});
 
 installStyle();
 document.addEventListener('click',handleClick,true);
