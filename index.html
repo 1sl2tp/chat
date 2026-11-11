@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="986c0bbc66d75c63fe82247d751599f8839778275290a2b6c9e0adad6674f840">
+<meta name="app-build-id" content="48ed7d5bda90fbd985a3d29452688c0e002c16bd415bb1cf0dc5d674d47c811d">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -30190,6 +30190,27 @@ function flushContextChangedError(){
   return error;
 }
 
+// P1-289: once Storage ACK has been persisted, its canonical metadata is
+// sufficient for the existing message RPC even if Safari evicted the local
+// copy of the Blob. Never treat unuploaded/malformed assets as recoverable.
+function uploadedMediaMetadataValid(asset,kind,account,conversation){
+  if(asset?.uploaded!==true||!asset?.asset_id)return false;
+  const expectedKey=`${String(account||'')}/${String(conversation||'')}/${String(asset.asset_id)}`;
+  if(String(asset.storage_key||'')!==expectedKey)return false;
+  const bytes=Number(asset.size_bytes);
+  if(!Number.isSafeInteger(bytes)||bytes<1||bytes>15728640)return false;
+  const mime=baseMimeType(asset.mime_type);
+  if(!mime)return false;
+  if(kind==='image')return mime.startsWith('image/');
+  if(kind==='audio')return mime.startsWith('audio/');
+  if(kind==='file'){
+    const name=String(asset.file_name||'').trim();
+    return !mime.startsWith('image/')&&!mime.startsWith('audio/')&&
+      name.length>0&&name.length<=255;
+  }
+  return false;
+}
+
 async function flushMediaItem(item,conversationId,context=captureFlushContext()){
   const ownerAccountId=String(context?.accountId||'');
   const ownerAppSessionId=String(context?.appSessionId||'');
@@ -30214,39 +30235,49 @@ async function flushMediaItem(item,conversationId,context=captureFlushContext())
       asset.storage_key=`${ownerAccountId}/${conversationId}/${String(asset.asset_id)}`;
       await cache()?.updateOutbox?.(ownerAccountId,item);
     }
-    const record=await media()?.get?.({accountId:ownerAccountId,assetId:asset.asset_id});
-    if(!(record?.blob instanceof Blob))throw new Error(`${kind}_blob_missing`);
-
-    let uploadBody=record.blob;
-    if(kind==='image')uploadBody=imageUploadBody(record,asset);
-    else if(kind==='file')uploadBody=fileUploadBody(record,asset);
-    asset.mime_type=baseMimeType(uploadBody.type||asset.mime_type||record.blob.type||(kind==='audio'?'audio/webm':kind==='image'?'image/jpeg':'application/octet-stream'));
-    asset.size_bytes=Number(uploadBody.size)||0;
-    asset.sort_index=Number(asset.sort_index??index)||0;
-    if(!asset.size_bytes)throw new Error(`${kind}_blob_empty`);
-    if(asset.size_bytes>15728640)throw new Error('media_size_out_of_range');
-    if(kind==='image'){
-      if(!asset.mime_type.startsWith('image/'))throw new Error('image_type_required');
-      asset.duration_ms=null;asset.file_name=null;
-    }else if(kind==='audio'){
-      if(!asset.mime_type.startsWith('audio/'))throw new Error('audio_type_required');
-      {
-      const rawDuration=Number(asset.duration_ms);
-      asset.duration_ms=Number.isFinite(rawDuration)&&rawDuration>0?Math.round(rawDuration):null;
-    }
-      asset.file_name=null;asset.content_hash=null;asset.width_px=null;asset.height_px=null;
+    // A persisted Storage ACK is the only reason we may skip reading bytes.
+    // Reading IndexedDB again can itself fail after iOS eviction/quota errors.
+    if(asset.uploaded===true){
+      if(!uploadedMediaMetadataValid(asset,kind,ownerAccountId,conversationId)){
+        throw new Error('uploaded_media_metadata_invalid');
+      }
+      asset.mime_type=baseMimeType(asset.mime_type);
+      asset.size_bytes=Number(asset.size_bytes);
+      asset.sort_index=Number(asset.sort_index??index)||0;
     }else{
-      if(asset.mime_type.startsWith('image/')||asset.mime_type.startsWith('audio/'))throw new Error('file_type_required');
-      asset.file_name=String(asset.file_name||'').trim().slice(0,255);
-      if(!asset.file_name)throw new Error('file_name_required');
-      asset.duration_ms=null;asset.content_hash=null;asset.width_px=null;asset.height_px=null;
-    }
+      const record=await media()?.get?.({accountId:ownerAccountId,assetId:asset.asset_id});
+      if(!(record?.blob instanceof Blob))throw new Error(`${kind}_blob_missing`);
+      let uploadBody=record.blob;
+      if(kind==='image')uploadBody=imageUploadBody(record,asset);
+      else if(kind==='file')uploadBody=fileUploadBody(record,asset);
+      asset.mime_type=baseMimeType(uploadBody.type||asset.mime_type||record.blob.type||(kind==='audio'?'audio/webm':kind==='image'?'image/jpeg':'application/octet-stream'));
+      asset.size_bytes=Number(uploadBody.size)||0;
+      asset.sort_index=Number(asset.sort_index??index)||0;
+      if(!asset.size_bytes)throw new Error(`${kind}_blob_empty`);
+      if(asset.size_bytes>15728640)throw new Error('media_size_out_of_range');
+      if(kind==='image'){
+        if(!asset.mime_type.startsWith('image/'))throw new Error('image_type_required');
+        asset.duration_ms=null;asset.file_name=null;
+      }else if(kind==='audio'){
+        if(!asset.mime_type.startsWith('audio/'))throw new Error('audio_type_required');
+        {
+        const rawDuration=Number(asset.duration_ms);
+        asset.duration_ms=Number.isFinite(rawDuration)&&rawDuration>0?Math.round(rawDuration):null;
+      }
+        asset.file_name=null;asset.content_hash=null;asset.width_px=null;asset.height_px=null;
+      }else{
+        if(asset.mime_type.startsWith('image/')||asset.mime_type.startsWith('audio/'))throw new Error('file_type_required');
+        asset.file_name=String(asset.file_name||'').trim().slice(0,255);
+        if(!asset.file_name)throw new Error('file_name_required');
+        asset.duration_ms=null;asset.content_hash=null;asset.width_px=null;asset.height_px=null;
+      }
 
-    if(!asset.uploaded){
-      const uploadError=await uploadMediaStorageObject(requestClient,asset,uploadBody);
-      if(uploadError&&!isStorageAlreadyExistsError(uploadError))throw uploadError;
-      asset.uploaded=true;item.failed=false;
-      await cache()?.updateOutbox?.(ownerAccountId,item);
+      if(!asset.uploaded){
+        const uploadError=await uploadMediaStorageObject(requestClient,asset,uploadBody);
+        if(uploadError&&!isStorageAlreadyExistsError(uploadError))throw uploadError;
+        asset.uploaded=true;item.failed=false;
+        await cache()?.updateOutbox?.(ownerAccountId,item);
+      }
     }
     if(!flushContextCurrent(context))throw flushContextChangedError();
   }
@@ -30498,6 +30529,12 @@ async function retryFailedMedia({clientId,contactId,conversationId,accountId:exp
   if(!assets.length||assets.length>12)return{ok:false,reason:'assets_invalid'};
   for(const asset of assets){
     if(!asset?.asset_id)return{ok:false,reason:'assets_invalid'};
+    if(asset.uploaded===true){
+      if(!uploadedMediaMetadataValid(asset,String(asset.kind||''),context.accountId,thread)){
+        return{ok:false,reason:'assets_invalid'};
+      }
+      continue;
+    }
     const record=await media()?.get?.({accountId:context.accountId,assetId:asset.asset_id});
     if(!syncOwnerContextCurrent(context)||target!==String(currentContactId||'')||
        thread!==String(currentConversationId||''))return{ok:false,reason:'context_changed'};
@@ -30636,8 +30673,10 @@ async function doSync(reason){
   const context=captureSyncOwnerContext();
   const accountInitialized=Boolean(await cache()?.isInitialized?.(context.accountId));
   if(!syncOwnerContextCurrent(context))return false;
-  if(!accountInitialized)await initializeFromServer(context);
-  else await pullAll();
+  if(!accountInitialized){
+    const initialized=await initializeFromServer(context);
+    if(initialized!==true)return false;
+  }else await pullAll();
   if(!syncOwnerContextCurrent(context))return false;
 
   const sent=await flushOutbox();
@@ -30662,12 +30701,15 @@ async function wake({reason='signal',hintSeq=0}={}){
   syncing=true;
   let fenceAttempt=0;
   let succeeded=true;
+  let observedSuccessfulSync=false;
   const lifecycleContext=captureSyncOwnerContext();
   try{
     while(wakePending){
       wakePending=false;
       const ownerAccountId=String(accountId||'');
-      await doSync(reason);
+      const result=await doSync(reason);
+      if(result===true)observedSuccessfulSync=true;
+      else succeeded=false;
       if(!ownerAccountId||ownerAccountId!==String(accountId||'')){
         wakeHint=0;
         fenceAttempt=0;
@@ -30705,7 +30747,7 @@ async function wake({reason='signal',hintSeq=0}={}){
   }
   if(syncOwnerContextCurrent(lifecycleContext)){
     document.dispatchEvent(new CustomEvent('v21-sync-lifecycle',{
-      detail:{state:succeeded?'completed':'failed'}
+      detail:{state:succeeded&&observedSuccessfulSync?'completed':'failed'}
     }));
   }
   return succeeded;
