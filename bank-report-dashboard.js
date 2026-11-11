@@ -14,6 +14,7 @@ const ui={
  refresh:root.querySelector('[data-bank-refresh]'),
  daily:root.querySelector('[data-bank-daily-summary]'),
  summary:root.querySelector('[data-bank-summary]'),
+ queue:root.querySelector('[data-bank-work-queue]'),
  status:root.querySelector('[data-bank-status]'),
  extraStatus:root.querySelector('[data-bank-extra-status]'),
  table:root.querySelector('[data-bank-table]'),
@@ -254,6 +255,46 @@ function cardValue(name,value,highlight=false,compact=false,mobileName=name,meta
  card.dataset.metricKind=meta?.countUnit?'count':meta?.amountVnd!==undefined?'money':'other';
  return append(card,caption,number);
 }
+// P0-BANK-286: a READ-ONLY priority view of statuses already returned by
+// the existing three bank RPCs. These buttons only select existing filters;
+// they never classify or approve a receipt, trigger a sender or write a ledger.
+function renderBankWorkQueue(data,outstanding){
+ const holder=ui.queue;
+ if(!holder)return; // Older cached PWA HTML still uses its existing filters.
+ const bills=Array.isArray(data?.bills)?data.bills:[];
+ const tasks=[
+  {key:'bank_only',label:'Tiền NH chưa gắn bill',count:outstanding},
+  {key:'waiting_bank',label:'Bill chờ NH',count:bills.filter(b=>b.report_status==='waiting_bank').length},
+  {key:'review',label:'Cần xác minh',count:bills.filter(b=>b.report_status==='review'||b.report_status==='reading').length}
+ ];
+ const waiting=tasks.filter(task=>task.count>0);
+ const title=el('strong','bank-report-work-title','Cần kiểm tra');
+ const head=el('div','bank-report-work-heading');
+ head.appendChild(title);
+ holder.replaceChildren(head);
+ if(!waiting.length){
+  holder.appendChild(el('span','bank-report-work-empty','Chưa có mục chờ trong dữ liệu ngày đang xem'));
+  holder.hidden=false;
+  return;
+ }
+ const actions=el('div','bank-report-work-actions');
+ for(const item of waiting){
+  const button=el('button','bank-report-work-button'+(filter===item.key?' is-selected':''));
+  button.type='button';
+  button.dataset.filter=item.key;
+  button.setAttribute('aria-pressed',String(filter===item.key));
+  button.setAttribute('aria-label',item.count+' '+item.label+' · xem chi tiết');
+  append(button,el('span','bank-report-work-count',String(item.count)),
+    el('span','bank-report-work-label',item.label));
+  button.addEventListener('click',()=>{
+   filter=item.key;selectedCustomer=null;paint(data);
+   ui.groups?.scrollIntoView?.({block:'start',behavior:'auto'});
+  });
+  actions.appendChild(button);
+ }
+ holder.appendChild(actions);
+ holder.hidden=false;
+}
 function paint(data){
  const s=data?.summary||{};
  const expanded=new Set([...ui.groups.querySelectorAll('.bank-report-detail[open]')]
@@ -265,6 +306,7 @@ function paint(data){
  const outstanding=(data?.bank_only||[]).filter(x=>!handled.has(String(x.notice_id))).length;
  const incoming=Array.isArray(data?.bank_credits)?data.bank_credits:[];
  const incomingAmountVnd=incoming.reduce((sum,x)=>sum+(Number(x.amount_vnd)||0),0);
+ if(ui.queue)renderBankWorkQueue(data,outstanding);
  // Bank credit → verified ledger. The second row is a COUNT of matched
  // receipts and pending bills, not another amount of money.
  ui.summary.replaceChildren(
@@ -1352,6 +1394,7 @@ function synchronize(){
   // Reject in-flight responses and erase old bank details immediately.
   requestId++;selectedCustomer=null;filter='all';current=null;
   ui.summary.replaceChildren();ui.status.replaceChildren();ui.extraStatus?.replaceChildren();
+  ui.queue?.replaceChildren();if(ui.queue)ui.queue.hidden=true;
   ui.table.replaceChildren();ui.groups.replaceChildren();
   ui.stamp.textContent='Đang cập nhật phiên Admin…';
   closeViewer();closeReviewDialog();

@@ -9,8 +9,10 @@ assert(start>=0&&end>start,'canonical auth reset owner missing');
 const piece=src.slice(start,end);
 
 const input={value:'Nguyễn Văn'};
-const buttons=['all','customer','cm','friend','other'].map(key=>({
-  dataset:{contactDirectoryFilter:key,active:String(key==='friend')}
+const buttons=['all','unread','customer','cm','friend','other'].map(key=>({
+  dataset:{contactDirectoryFilter:key,active:String(key==='friend')},
+  attributes:{},
+  setAttribute(name,value){this.attributes[name]=String(value);}
 }));
 const tools={
   querySelector(s){assert.equal(s,'[data-contact-directory-search]');return input;},
@@ -32,8 +34,9 @@ assert.equal(context.filter,'all');
 assert.equal(context.loadedAdminId,'');
 assert.equal(context.groupMap.size,0,'old admin group map cleared');
 assert.equal(input.value,'','visible input must match cleared filter model');
-assert.deepEqual(buttons.map(b=>b.dataset.active),['true','false','false','false','false'],
+assert.deepEqual(buttons.map(b=>b.dataset.active),['true','false','false','false','false','false'],
   'active pill must match all-category filter');
+assert.deepEqual(buttons.map(b=>b.attributes['aria-pressed']),['true','false','false','false','false','false']);
 assert.equal(scheduled,1);
 
 context.directoryTools=()=>null;

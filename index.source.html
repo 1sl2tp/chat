@@ -282,6 +282,18 @@ button{
 }
 .user-message-unit>.message-sent-time{align-self:flex-end;text-align:right}
 .assistant-message-unit>.message-sent-time{align-self:flex-start;text-align:left}
+/* P0-MSG-286: only local pending/failure states are labelled here.
+   A server ACK clears the label; no delivered/read indicators are inferred. */
+.message-delivery-state{
+  display:block;align-self:flex-end;max-width:100%;
+  margin-top:2px;font-size:11px;line-height:1.35;
+  font-weight:500;color:var(--theme-content-secondary,#667085);
+  text-align:right;overflow-wrap:anywhere;
+}
+.message-delivery-state[data-state="failed"]{
+  color:var(--theme-content-danger,#a63c32);
+  font-weight:650;
+}
 .user-message-unit{
   align-items:flex-end;
   margin-left:auto;
@@ -4183,6 +4195,7 @@ button{
                   <button data-bank-refresh type="button">Làm mới</button>
                 </div>
               </div>
+              <section class="bank-report-work-queue" data-bank-work-queue aria-label="Hàng đợi đối soát" hidden></section>
               <div class="bank-report-summary" data-bank-summary></div>
               <div class="bank-report-status-strip bank-report-status-main" data-bank-status></div>
               <details class="bank-report-extra-metrics" data-bank-extra-metrics>
