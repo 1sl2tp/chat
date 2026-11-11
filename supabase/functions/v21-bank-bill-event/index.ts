@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "npm:@supabase/supabase-js@2.57.4";
-import {RULE_VERSION,SYSTEM_PROMPT,validateVisionRead,readV4Fields,requiredAutoCollectEvidence} from "./bill-amount-rules.mjs";
+import {RULE_VERSION,SYSTEM_PROMPT,validateVisionRead,readV4Fields,requiredAutoCollectEvidence,classifyBillRecognition} from "./bill-amount-rules.mjs";
 import {previewBillSmsMatch,readIncomingAgribankSms} from "./bill-sms-preview.mjs";
 import {previewBillAppMatch,previewBillReferenceMatch} from "./bill-app-preview.mjs";
 import {compareBillTransferIdentity} from "./bill-transfer-identity.mjs";
@@ -315,6 +315,7 @@ Deno.serve(async req=>{
    let parsed:any;try{parsed=JSON.parse(resultString)}catch{throw new Error("gemini_invalid_json")}
    const fields=readV4Fields(parsed,{sentAt:job.sent_at});
    const verdict=validateVisionRead(parsed);
+   const recognition=classifyBillRecognition(parsed,fields,verdict);
    // BANK-284: missing account/printed date/printed time is manual-only,
    // even when the model reads the amount and a bank credit later appears.
    const evidence=requiredAutoCollectEvidence(fields);
@@ -380,6 +381,9 @@ Deno.serve(async req=>{
      transfer_reference:fields.transfer_reference,transfer_at_vn:fields.transfer_at_vn,
      raw_read:{read_mode:"amount_hash_only",rule_version:RULE_VERSION,
       bill_evidence_policy:"safe_memo_tier_v2",
+      image_layout:recognition.image_layout,
+      recognition_case:recognition.recognition_case,
+      missing_fields:recognition.missing_fields,
       requires_bank_memo:evidence.requires_bank_memo===true,
       required_fields_complete:evidence.complete,
       manual_review_reason:!evidence.complete?evidence.reason:null,
