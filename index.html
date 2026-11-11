@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="b419cc60d7531ce87aa088c0e858d52cea2a579e14796427ee255b01abb08df2">
+<meta name="app-build-id" content="cfde09151cc5acb5b9656267567ae9289aa0b151aac5fe30d33f677bbf9ad242">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -31492,8 +31492,7 @@ async function openDailyBankSummary(){
     const row=el('div','bank-daily-customer');
     const detail=append(el('div','bank-daily-customer-info'),
       el('strong','',recipient.customer_name||'Khách hàng'),
-      el('small','',recipient.transfer_count+' lượt · Tổng '+recipient.amount_thousands+
-        '));
+      el('small','',recipient.transfer_count+' lượt · Tổng '+recipient.amount_thousands));
     const preview=el('details','bank-daily-preview');
     preview.appendChild(el('summary','','Xem trước nội dung'));
     preview.appendChild(el('pre','',recipient.body||''));
