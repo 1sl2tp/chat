@@ -252,7 +252,7 @@ function paint(data){
  const incoming=Array.isArray(data?.bank_credits)?data.bank_credits:[];
  ui.summary.replaceChildren(
   cardValue('Giao dịch đã thu · đối soát',String(s.matched_count||0),false,false,'GD đã thu · khớp'),
-  cardValue('Đã thu có chứng từ (nghìn đồng)',money(s.matched_amount),true,false,'Đã thu (nghìn ₫)')
+  cardValue('Đã thu có chứng từ',money(s.matched_amount),true,false,'Đã thu (nghìn ₫)')
  );
  ui.status.replaceChildren(
   cardValue('Bill chưa đối soát',String(s.bill_only_count||0),false,true,'Bill chờ soát'),
