@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="934adb33644b4e183fd2772441b89d66ddac403b33255a9c9f1383277bcba2fb">
+<meta name="app-build-id" content="d9cac50c2db30a8434889dd7c0f3cd3a21a470f886ad7faf62499d2089faa9a6">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1881,6 +1881,111 @@
 }
 
 </style>
+<style data-inlined-source="conversation-search.css">
+/* P1-SEARCH-287: reuse message-forward's global sheet and platform
+   keyboard/VisualViewport ownership, never add a second viewport writer. */
+.conversation-search-overlay .conversation-search-card{
+  grid-template-rows:auto auto auto minmax(0,1fr) auto;
+  min-height:0;
+  gap:8px;
+}
+.conversation-search-close{
+  display:grid;
+  place-items:center;
+  width:44px;
+  height:44px;
+  flex:0 0 44px;
+}
+.conversation-search-input{
+  box-sizing:border-box;
+  width:100%;
+  min-height:44px;
+  font-size:16px;
+}
+.conversation-search-status{
+  margin:0;
+  min-height:18px;
+  color:var(--theme-content-secondary,#667085);
+  font-size:12px;
+  line-height:1.45;
+}
+.conversation-search-note{
+  margin:0;
+  font-size:11px;
+  line-height:1.45;
+  color:var(--theme-content-secondary,#667085);
+}
+.conversation-search-results{
+  min-height:0;
+  overflow:auto;
+  overscroll-behavior:contain;
+}
+.conversation-search-hit{
+  box-sizing:border-box;
+  width:100%;
+  min-height:58px;
+  padding:10px 8px;
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  gap:4px;
+  border:0;
+  border-bottom:1px solid var(--theme-border-subtle,#e8ebef);
+  background:transparent;
+  color:var(--theme-content-primary,#171717);
+  text-align:left;
+  font:inherit;
+  cursor:pointer;
+  touch-action:manipulation;
+}
+.conversation-search-hit:hover,.conversation-search-hit:focus-visible{
+  background:var(--theme-surface-secondary,#f5f7f8);
+}
+.conversation-search-hit:focus-visible,
+.conversation-search-close:focus-visible,
+.conversation-search-input:focus-visible{
+  outline:2px solid var(--theme-content-accent,#377ad6);
+  outline-offset:-2px;
+}
+.conversation-search-hit-meta{
+  display:block;
+  font-size:11px;
+  line-height:1.35;
+  font-weight:600;
+  color:var(--theme-content-secondary,#667085);
+}
+.conversation-search-hit-preview{
+  display:-webkit-box;
+  -webkit-line-clamp:3;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+  white-space:normal;
+  overflow-wrap:anywhere;
+  font-size:13px;
+  line-height:1.45;
+}
+#messageWindow .message-row[data-search-target="true"] .message-unit{
+  outline:2px solid var(--theme-content-accent,#377ad6);
+  outline-offset:3px;
+  border-radius:15px;
+}
+@media(max-width:639px),(pointer:coarse){
+  .conversation-search-overlay .conversation-search-card{
+    box-sizing:border-box;
+    width:100%;
+    max-height:min(76dvh,620px);
+    min-height:0;
+    grid-template-rows:auto auto auto minmax(0,1fr) auto;
+    padding-block-end:max(12px,env(safe-area-inset-bottom,0px));
+  }
+  .conversation-search-overlay[data-mobile-keyboard="true"] .conversation-search-card{
+    max-height:100%;
+    grid-template-rows:auto auto auto minmax(0,1fr) auto;
+    padding-block-end:10px;
+  }
+}
+
+</style>
 <style data-inlined-source="quote-client.css">
 .quote-admin-block{display:grid;gap:10px;margin-top:16px;padding-top:16px;border-top:1px solid var(--theme-border-default,#dedede)}
 .quote-admin-open,.quote-admin-create,.quote-admin-action{appearance:none;min-height:46px;border:1px solid var(--theme-border-default,#dedede);border-radius:16px;background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#171717);font:inherit;font-weight:600;cursor:pointer}
@@ -1974,6 +2079,8 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
 .chat-quick-recent>button{padding:10px 12px;border:0;border-radius:9px;
  background:transparent;text-align:left;color:inherit;font:inherit;font-size:13px;cursor:pointer}
 .chat-quick-recent>button:hover,.chat-quick-recent>button:focus-visible{background:var(--theme-surface-secondary,#f3f6f6)}
+.chat-quick-recent>.chat-quick-search-entry{min-height:44px;font-weight:700;border:1px solid var(--theme-border-default,#e4e8ec);background:var(--theme-surface-secondary,#f7f8f9)}
+.chat-quick-recent>.chat-quick-recent-heading{margin:6px 6px 1px;font-weight:700;font-size:11px}
 .chat-quick-recent>p{margin:5px;font-size:12px;color:var(--theme-content-secondary,#666)}
 #scrollRoot[data-keyboard-open="true"] #chatQuickActions,
 #stageLayout[data-bank-report-active="true"] #chatQuickActions,
@@ -8884,7 +8991,7 @@ button{
       <button type="button" data-chat-quick="cash"><span aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="12" cy="12" r="3"/><path d="M7 12h.01M17 12h.01"/></svg></span>Thu tiền</button>
       <button type="button" data-chat-quick="debt"><span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 3.5h8l3 3V21l-3-2-4 2-4-2-3 2V3.5h3Z"/><path d="M9 9h7M9 13h7"/></svg></span>Công nợ</button>
       <button type="button" data-chat-quick="photos"><span aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.5" cy="9" r="1.5"/><path d="m4.5 17 5-5 3.5 3.5 2.5-2.5 4 4"/></svg></span>Ảnh</button>
-      <button type="button" data-chat-quick="recent" aria-expanded="false"><span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.65L4 8.5"/><path d="M4 3.8v4.7h4.7"/><path d="M12 7.5V12l3 2"/></svg></span>Gần đây</button>
+      <button type="button" data-chat-quick="recent" aria-label="Tìm tin nhắn hoặc mở khách gần đây" aria-expanded="false"><span aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.7"/><path d="m15.6 15.6 4.4 4.4"/></svg></span>Tìm / Gần</button>
       <div class="chat-quick-recent" data-chat-quick-recent hidden></div>
     </nav>
 
@@ -9350,6 +9457,7 @@ const InteractionMode=Object.freeze({
   PROFILE_MODAL:'PROFILE_MODAL',
   ACCOUNT_SETTINGS:'ACCOUNT_SETTINGS',
   MESSAGE_FORWARD:'MESSAGE_FORWARD',
+  MESSAGE_SEARCH:'MESSAGE_SEARCH',
   DUPLICATE_WARNING:'DUPLICATE_WARNING',
   AUDIO_RECORDING:'AUDIO_RECORDING',
   VIDEO_RECORDING:'VIDEO_RECORDING',
@@ -18568,6 +18676,82 @@ function mapV21ServerMessage(row,selfId){
 
 
 
+// P1-SEARCH-287: normalize Vietnamese accents only for local comparisons.
+// Never persist queries or send private message bodies to a search endpoint.
+function conversationSearchKey(value){
+  return String(value||'').normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .replace(/[đĐ]/g,'d')
+    .toLocaleLowerCase('vi')
+    .replace(/\s+/g,' ').trim();
+}
+function searchLoadedConversation({query='',limit=60}={}){
+  const auth=window.V21AuthSessionStore?.snapshot?.()||{};
+  const session=window.V21MessageStore?.snapshot?.()||{};
+  if(auth.state!=='AUTHENTICATED'||!session.ready||!chatRouteVisible()){
+    return{loaded:0,total:0,hits:[],partial:true};
+  }
+  const needle=conversationSearchKey(query).slice(0,120);
+  const loaded=store.size;
+  if(needle.length<2)return{loaded,total:0,hits:[],partial:true};
+  const max=Math.min(80,Math.max(1,Number(limit)||60));
+  const hits=[];let total=0;
+  for(let i=store.items.length-1;i>=0;i--){
+    const row=store.items[i];
+    const content=String(row?.text||'').replace(/\s+/g,' ').trim();
+    if(!content||!conversationSearchKey(content).includes(needle))continue;
+    total++;
+    if(hits.length>=max)continue;
+    // Display at most a short preview; text nodes render as textContent only.
+    const start=Math.max(0,conversationSearchKey(content).indexOf(needle)-52);
+    const preview=content.slice(start,start+180);
+    hits.push({
+      id:String(row.clientId||row.id||''),
+      sender:row.sender==='self'?'self':'remote',
+      createdAt:Number(row.createdAt)||0,
+      preview:(start>0?'…':'')+preview+(start+180<content.length?'…':'')
+    });
+  }
+  return{loaded,total,hits,partial:true};
+}
+function revealLoadedConversationMessage(identity){
+  const auth=window.V21AuthSessionStore?.snapshot?.()||{};
+  const session=window.V21MessageStore?.snapshot?.()||{};
+  if(auth.state!=='AUTHENTICATED'||!session.ready||!chatRouteVisible()||scrollGeometrySuspended())return false;
+  const target=String(identity||'');
+  if(!target)return false;
+  const index=store.items.findIndex(row=>String(row?.clientId||row?.id||'')===target);
+  if(index<0)return false;
+  const message=store.items[index];
+  const viewEpoch=conversationViewEpoch;
+  // A search is explicit navigation. Move virtual-window ownership from
+  // FOLLOW_TAIL to USER_AWAY before rendering around a historical index.
+  cancelPendingTailTransaction();
+  viewport.setMode(VIEWPORT_STATES.USER_AWAY);
+  modeLabel.textContent=viewport.mode;
+  renderWindow({preserve:'AUTO',anchorIndexOverride:index});
+  const estimatedOffset=dataWindow.estimateSpacer(store.items,0,index,messageLayoutWidthPx(),heightCache);
+  const headerHeight=Math.max(0,regionTop.getBoundingClientRect().height);
+  setScrollTop(threadContent.offsetTop+estimatedOffset-headerHeight-12);
+  requestAnimationFrame(()=>{
+    if(viewEpoch!==conversationViewEpoch||!chatRouteVisible())return;
+    const node=messageTurnById(message.id);
+    if(!node)return;
+    for(const old of messageWindow.querySelectorAll('[data-search-target="true"]')){
+      old.removeAttribute('data-search-target');
+    }
+    node.dataset.searchTarget='true';
+    const visibleTop=Math.max(
+      scrollRoot.getBoundingClientRect().top,
+      regionTop.getBoundingClientRect().bottom
+    )+12;
+    setScrollTop(scrollRoot.scrollTop+node.getBoundingClientRect().top-visibleTop);
+    updateScrollFromEndControl();
+  });
+  updateScrollFromEndControl();
+  return true;
+}
+
 window.V21ConversationBridge={
   clear(){
     beginConversationViewContext();
@@ -18683,6 +18867,8 @@ window.V21ConversationBridge={
     updateScrollFromEndControl();
     return true;
   },
+  searchLoaded:searchLoadedConversation,
+  revealLoadedMessage:revealLoadedConversationMessage,
   snapshot(){return{size:store.size,viewportMode:viewport.mode};}
 };
 
@@ -26990,6 +27176,22 @@ function showQuickRecent(){
  if(!menu||!button)return false;
  if(!menu.hidden){closeQuickRecent();return false;}
  menu.replaceChildren();
+ // P1-SEARCH-287: reuse the existing "recent" menu instead of shrinking
+ // all four one-tap customer actions with a fifth mobile header control.
+ const find=document.createElement('button');
+ find.type='button';
+ find.className='chat-quick-search-entry';
+ find.textContent='Tìm tin trong hội thoại';
+ find.setAttribute('aria-label','Tìm trong các tin nhắn đã tải của hội thoại này');
+ find.addEventListener('click',()=>{
+  closeQuickRecent();
+  window.V21ConversationSearch?.open?.();
+ });
+ menu.appendChild(find);
+ const heading=document.createElement('p');
+ heading.className='chat-quick-recent-heading';
+ heading.textContent='Khách gần đây';
+ menu.appendChild(heading);
  const rows=window.V21ContactStore?.snapshot?.()||[];
  const recent=readRecent().filter(c=>rows.some(x=>String(x.id)===c.id && !x.deleted_at));
  if(!recent.length){
@@ -32404,6 +32606,188 @@ window.V21MessageForward=Object.freeze({
   close,
   contacts
 });
+})();
+
+</script>
+<script data-inlined-source="conversation-search.js">
+(()=>{
+'use strict';
+// P1-SEARCH-287. Only search the already-loaded active conversation. A search
+// must not call Supabase, reveal another account, change read state or scroll
+// outside the canonical Conversation Bridge owner.
+const OWNER='conversation-search';
+const MODE='MESSAGE_SEARCH';
+let overlay=null;
+let returnFocus=null;
+let searchScope=null;
+let scheduledFrame=0;
+
+function scope(){
+ const auth=window.V21AuthSessionStore?.snapshot?.()||{};
+ const message=window.V21MessageStore?.snapshot?.()||{};
+ const shell=window.ChatAppShell?.snapshot?.()||{};
+ return{
+  accountId:String(auth.account?.id||''),
+  appSessionId:String(auth.appSessionId||''),
+  contactId:String(message.currentContactId||''),
+  conversationId:String(message.currentConversationId||''),
+  authenticated:auth.state==='AUTHENTICATED'&&message.ready===true,
+  route:String(shell.route||'')
+ };
+}
+function sameScope(a,b){
+ return Boolean(a&&b&&a.authenticated&&b.authenticated&&
+  a.accountId===b.accountId&&a.appSessionId===b.appSessionId&&
+  a.contactId===b.contactId&&a.conversationId===b.conversationId&&
+  a.route==='chat'&&b.route==='chat');
+}
+function close({restoreFocus=true}={}){
+ if(!overlay)return false;
+ const node=overlay;
+ overlay=null;
+ searchScope=null;
+ if(scheduledFrame){cancelAnimationFrame(scheduledFrame);scheduledFrame=0;}
+ node.remove();
+ if(window.V21InteractionController?.snapshot?.().owner===OWNER){
+  window.V21InteractionController.exit(MODE,{owner:OWNER});
+ }
+ const focus=returnFocus;returnFocus=null;
+ if(restoreFocus&&focus?.isConnected){
+  window.setTimeout(()=>{try{focus.focus({preventScroll:true});}catch{}},0);
+ }
+ return true;
+}
+function formatTime(timestamp){
+ const ms=Number(timestamp);
+ if(!(ms>0))return 'Không có giờ';
+ const date=new Date(ms);
+ if(Number.isNaN(date.getTime()))return 'Không có giờ';
+ return date.toLocaleString('vi-VN',{
+  timeZone:'Asia/Ho_Chi_Minh',day:'2-digit',month:'2-digit',year:'numeric',
+  hour:'2-digit',minute:'2-digit',hour12:false
+ });
+}
+function open(){
+ const initial=scope();
+ if(!initial.authenticated||!initial.contactId||initial.route!=='chat')return false;
+ close({restoreFocus:false});
+ const lease=window.V21InteractionController?.enter?.(
+  MODE,{owner:OWNER,lockBaseUi:true}
+ );
+ if(!lease)return false;
+ const root=document.querySelector('[data-global-overlay-root]');
+ if(!root){
+  window.V21InteractionController?.exit?.(MODE,{owner:OWNER});
+  return false;
+ }
+ const active=document.activeElement instanceof HTMLElement?document.activeElement:null;
+ returnFocus=active?.closest?.('[data-chat-quick-recent]')
+  ?document.querySelector('[data-chat-quick="recent"]')
+  :active;
+ searchScope=initial;
+ const node=document.createElement('div');
+ // Reuse the single platform-owned viewport/keyboard rules for the existing
+ // message-forward sheet, rather than registering a competing iOS listener.
+ node.className='message-forward-overlay conversation-search-overlay';
+ node.innerHTML=`
+  <button type="button" class="message-forward-backdrop" data-search-close aria-label="Đóng tìm kiếm"></button>
+  <section class="message-forward-card conversation-search-card" role="dialog" aria-modal="true" aria-label="Tìm tin trong hội thoại">
+   <div class="message-forward-head">
+    <h2 class="message-forward-title">Tìm tin nhắn</h2>
+    <button type="button" class="message-forward-close conversation-search-close" data-search-close aria-label="Đóng">×</button>
+   </div>
+   <input class="message-forward-search conversation-search-input" type="search" inputmode="search" autocomplete="off" maxlength="120" placeholder="Tìm nội dung tin nhắn…" aria-label="Tìm trong tin đã tải">
+   <p class="conversation-search-status" role="status" aria-live="polite">Nhập ít nhất 2 ký tự để tìm.</p>
+   <div class="message-forward-list conversation-search-results" role="list" aria-label="Kết quả tìm kiếm"></div>
+   <p class="conversation-search-note">Chỉ tìm trong tin đã tải của hội thoại này. Để tìm tin cũ hơn, mở “Xem tin / ngày cũ hơn” rồi tìm lại.</p>
+  </section>`;
+ root.appendChild(node);
+ overlay=node;
+ const input=node.querySelector('.conversation-search-input');
+ const results=node.querySelector('.conversation-search-results');
+ const status=node.querySelector('.conversation-search-status');
+ const render=()=>{
+  if(overlay!==node)return;
+  if(!sameScope(searchScope,scope())){close({restoreFocus:false});return;}
+  const value=String(input?.value||'').trim();
+  results.replaceChildren();
+  if(value.length<2){
+   status.textContent='Nhập ít nhất 2 ký tự để tìm.';
+   return;
+  }
+  const found=window.V21ConversationBridge?.searchLoaded?.({query:value,limit:60});
+  if(!found){
+   status.textContent='Chưa thể tìm trong hội thoại này.';
+   return;
+  }
+  status.textContent=found.total
+   ?`Có ${found.total} tin phù hợp trong ${found.loaded} tin đã tải`+
+     (found.total>found.hits.length?` · hiển thị ${found.hits.length} tin mới nhất`:'')
+   :`Không tìm thấy trong ${found.loaded} tin đã tải.`;
+  for(const hit of found.hits){
+   const button=document.createElement('button');
+   button.type='button';
+   button.className='conversation-search-hit';
+   button.setAttribute('role','listitem');
+   button.setAttribute('aria-label','Xem tin nhắn '+formatTime(hit.createdAt));
+   const meta=document.createElement('span');
+   meta.className='conversation-search-hit-meta';
+   meta.textContent=(hit.sender==='self'?'Bạn':'Khách')+' · '+formatTime(hit.createdAt);
+   const preview=document.createElement('span');
+   preview.className='conversation-search-hit-preview';
+   preview.textContent=hit.preview;
+   button.append(meta,preview);
+   button.addEventListener('click',()=>{
+    if(!sameScope(searchScope,scope())){close({restoreFocus:false});return;}
+    const opened=window.V21ConversationBridge?.revealLoadedMessage?.(hit.id)===true;
+    if(opened)close({restoreFocus:false});
+    else status.textContent='Tin này đã thay đổi. Hãy tìm lại.';
+   });
+   results.appendChild(button);
+  }
+ };
+ const schedule=()=>{
+  if(scheduledFrame)cancelAnimationFrame(scheduledFrame);
+  scheduledFrame=requestAnimationFrame(()=>{scheduledFrame=0;render();});
+ };
+ input?.addEventListener('input',schedule);
+ for(const button of node.querySelectorAll('[data-search-close]')){
+  button.addEventListener('click',()=>close());
+ }
+ node.addEventListener('keydown',event=>{
+  if(event.key==='Escape'){
+   event.preventDefault();event.stopPropagation();close();return;
+  }
+  if(event.key!=='Tab')return;
+  const focusable=[...node.querySelectorAll('input,button')].filter(element=>
+   !element.disabled&&element.getClientRects().length);
+  if(!focusable.length)return;
+  const first=focusable[0],last=focusable[focusable.length-1];
+  if(event.shiftKey&&document.activeElement===first){
+   event.preventDefault();last.focus({preventScroll:true});
+  }else if(!event.shiftKey&&document.activeElement===last){
+   event.preventDefault();first.focus({preventScroll:true});
+  }
+ });
+ render();
+ window.setTimeout(()=>{if(overlay===node)input?.focus({preventScroll:true});},0);
+ return true;
+}
+
+// Every account/contact/route transition invalidates cached result identity.
+// In-flight UI frames cannot revive private results after a scope change.
+document.addEventListener('v21-active-contact-change',()=>close({restoreFocus:false}));
+document.addEventListener('v21-conversation-switch',event=>{
+ if(event?.detail?.phase==='start')close({restoreFocus:false});
+});
+document.addEventListener('v21-auth-state',()=>{
+ if(overlay&&!sameScope(searchScope,scope()))close({restoreFocus:false});
+});
+document.addEventListener('navigation-change',event=>{
+ if(event?.detail?.route!=='chat')close({restoreFocus:false});
+});
+document.addEventListener('v21-interaction-abort',()=>close({restoreFocus:false}));
+window.V21ConversationSearch=Object.freeze({open,close,isOpen:()=>Boolean(overlay)});
 })();
 
 </script>
