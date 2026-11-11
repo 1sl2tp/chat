@@ -231,28 +231,34 @@ export function readV4Fields(data,context={}){
 }
 
 /**
- * BANK-284: A receipt with missing beneficiary account, literal printed day,
- * or literal printed clock stays for Admin manual review. Independent Agribank
- * credit remains the source of truth; this is only a scan-time safety gate.
- * For a masked beneficiary account, a proven last-five suffix is acceptable,
- * but a fully printed account must match exactly, not merely end in 99999.
+ * BANK-285. Verify the beneficiary's visible account and actual bill
+ * transaction clock. A partial/masked account or missing literal DATE must
+ * carry an exact, distinctive bank memo on a UNIQUE verified Agribank credit.
+ * Missing transfer clock is never reconstructed from a push or Chat upload.
  */
 export function requiredAutoCollectEvidence(fields){
  const expected="2901181999999";
  const full=String(fields?.receiving_account||"").replace(/\D/g,"");
  const visible=String(fields?.receiving_account_visible||"").replace(/[\s.:-]/g,"");
  const suffix=String(fields?.receiving_account_last5||"").trim();
- if(full&&full!==expected)
-   return {complete:false,reason:"bill_recipient_account_conflict"};
- if(!full&&!(suffix===expected.slice(-5)&&visible.endsWith(suffix)))
-   return {complete:false,reason:"bill_recipient_account_missing"};
+ const exact=full===expected;
+ if(full.length>=expected.length&&!exact)
+   return {complete:false,reason:"bill_recipient_account_conflict",requires_bank_memo:false};
+ // A cropped full account may have lost one or more digits. Preserve only
+ // its confirmed prefix/suffix and require an independent bank memo as proof.
+ if(full&&full.length<expected.length&&!expected.startsWith(full.slice(0,Math.min(6,full.length))))
+   return {complete:false,reason:"bill_recipient_account_conflict",requires_bank_memo:false};
+ if(!exact&&!(suffix===expected.slice(-5)&&visible.endsWith(suffix)))
+   return {complete:false,reason:"bill_recipient_account_missing",requires_bank_memo:false};
  if(fields?.time_date_conflict||fields?.clock_text_conflict)
-   return {complete:false,reason:"bill_printed_datetime_conflict"};
- if(!fields?.transfer_date_printed_vn)
-   return {complete:false,reason:"bill_printed_date_missing"};
+   return {complete:false,reason:"bill_printed_datetime_conflict",requires_bank_memo:false};
  if(!fields?.transfer_time_printed_vn)
-   return {complete:false,reason:"bill_printed_time_missing"};
+   return {complete:false,reason:"bill_printed_time_missing",requires_bank_memo:false};
  if(!fields?.transfer_at_vn)
-   return {complete:false,reason:"bill_printed_datetime_invalid"};
- return {complete:true,reason:null};
+   return {complete:false,reason:"bill_printed_datetime_invalid",requires_bank_memo:false};
+ // An independently confirmed bank transfer can verify the precise day
+ // when the image model captured a complete transaction datetime but omitted
+ // its separate literal-date transcription. Never derive date from Chat time.
+ const requires_bank_memo=!exact||!fields?.transfer_date_printed_vn;
+ return {complete:true,reason:null,requires_bank_memo};
 }
