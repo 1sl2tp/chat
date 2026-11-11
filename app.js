@@ -8312,6 +8312,82 @@ function mapV21ServerMessage(row,selfId){
 
 
 
+// P1-SEARCH-287: normalize Vietnamese accents only for local comparisons.
+// Never persist queries or send private message bodies to a search endpoint.
+function conversationSearchKey(value){
+  return String(value||'').normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .replace(/[đĐ]/g,'d')
+    .toLocaleLowerCase('vi')
+    .replace(/\s+/g,' ').trim();
+}
+function searchLoadedConversation({query='',limit=60}={}){
+  const auth=window.V21AuthSessionStore?.snapshot?.()||{};
+  const session=window.V21MessageStore?.snapshot?.()||{};
+  if(auth.state!=='AUTHENTICATED'||!session.ready||!chatRouteVisible()){
+    return{loaded:0,total:0,hits:[],partial:true};
+  }
+  const needle=conversationSearchKey(query).slice(0,120);
+  const loaded=store.size;
+  if(needle.length<2)return{loaded,total:0,hits:[],partial:true};
+  const max=Math.min(80,Math.max(1,Number(limit)||60));
+  const hits=[];let total=0;
+  for(let i=store.items.length-1;i>=0;i--){
+    const row=store.items[i];
+    const content=String(row?.text||'').replace(/\s+/g,' ').trim();
+    if(!content||!conversationSearchKey(content).includes(needle))continue;
+    total++;
+    if(hits.length>=max)continue;
+    // Display at most a short preview; text nodes render as textContent only.
+    const start=Math.max(0,conversationSearchKey(content).indexOf(needle)-52);
+    const preview=content.slice(start,start+180);
+    hits.push({
+      id:String(row.clientId||row.id||''),
+      sender:row.sender==='self'?'self':'remote',
+      createdAt:Number(row.createdAt)||0,
+      preview:(start>0?'…':'')+preview+(start+180<content.length?'…':'')
+    });
+  }
+  return{loaded,total,hits,partial:true};
+}
+function revealLoadedConversationMessage(identity){
+  const auth=window.V21AuthSessionStore?.snapshot?.()||{};
+  const session=window.V21MessageStore?.snapshot?.()||{};
+  if(auth.state!=='AUTHENTICATED'||!session.ready||!chatRouteVisible()||scrollGeometrySuspended())return false;
+  const target=String(identity||'');
+  if(!target)return false;
+  const index=store.items.findIndex(row=>String(row?.clientId||row?.id||'')===target);
+  if(index<0)return false;
+  const message=store.items[index];
+  const viewEpoch=conversationViewEpoch;
+  // A search is explicit navigation. Move virtual-window ownership from
+  // FOLLOW_TAIL to USER_AWAY before rendering around a historical index.
+  cancelPendingTailTransaction();
+  viewport.setMode(VIEWPORT_STATES.USER_AWAY);
+  modeLabel.textContent=viewport.mode;
+  renderWindow({preserve:'AUTO',anchorIndexOverride:index});
+  const estimatedOffset=dataWindow.estimateSpacer(store.items,0,index,messageLayoutWidthPx(),heightCache);
+  const headerHeight=Math.max(0,regionTop.getBoundingClientRect().height);
+  setScrollTop(threadContent.offsetTop+estimatedOffset-headerHeight-12);
+  requestAnimationFrame(()=>{
+    if(viewEpoch!==conversationViewEpoch||!chatRouteVisible())return;
+    const node=messageTurnById(message.id);
+    if(!node)return;
+    for(const old of messageWindow.querySelectorAll('[data-search-target="true"]')){
+      old.removeAttribute('data-search-target');
+    }
+    node.dataset.searchTarget='true';
+    const visibleTop=Math.max(
+      scrollRoot.getBoundingClientRect().top,
+      regionTop.getBoundingClientRect().bottom
+    )+12;
+    setScrollTop(scrollRoot.scrollTop+node.getBoundingClientRect().top-visibleTop);
+    updateScrollFromEndControl();
+  });
+  updateScrollFromEndControl();
+  return true;
+}
+
 window.V21ConversationBridge={
   clear(){
     beginConversationViewContext();
@@ -8427,6 +8503,8 @@ window.V21ConversationBridge={
     updateScrollFromEndControl();
     return true;
   },
+  searchLoaded:searchLoadedConversation,
+  revealLoadedMessage:revealLoadedConversationMessage,
   snapshot(){return{size:store.size,viewportMode:viewport.mode};}
 };
 

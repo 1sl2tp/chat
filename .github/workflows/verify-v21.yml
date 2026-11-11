@@ -242,6 +242,12 @@ jobs:
           node --check bank-report-dashboard.js
           node tests/test_chat_p0_286_inbox_bank_delivery_20261111.cjs
           node tests/test_chat_directory_auth_filter_reset_20261102.cjs
+      - name: P1-SEARCH-287 local Vietnamese message search and safe virtual jump
+        run: |
+          node --check app.js
+          node --check conversation-search.js
+          node --check admin-composer-actions.js
+          node tests/test_chat_p1_287_local_search_20261111.cjs
       - name: BANK-226 Admin review and collection dialog session ownership
         run: node tests/test_bank226_dialog_session_owner_20261103.cjs
       - name: BANK-227 bank push deep-link scroll follows active Admin context

@@ -740,6 +740,22 @@ function showQuickRecent(){
  if(!menu||!button)return false;
  if(!menu.hidden){closeQuickRecent();return false;}
  menu.replaceChildren();
+ // P1-SEARCH-287: reuse the existing "recent" menu instead of shrinking
+ // all four one-tap customer actions with a fifth mobile header control.
+ const find=document.createElement('button');
+ find.type='button';
+ find.className='chat-quick-search-entry';
+ find.textContent='Tìm tin trong hội thoại';
+ find.setAttribute('aria-label','Tìm trong các tin nhắn đã tải của hội thoại này');
+ find.addEventListener('click',()=>{
+  closeQuickRecent();
+  window.V21ConversationSearch?.open?.();
+ });
+ menu.appendChild(find);
+ const heading=document.createElement('p');
+ heading.className='chat-quick-recent-heading';
+ heading.textContent='Khách gần đây';
+ menu.appendChild(heading);
  const rows=window.V21ContactStore?.snapshot?.()||[];
  const recent=readRecent().filter(c=>rows.some(x=>String(x.id)===c.id && !x.deleted_at));
  if(!recent.length){
