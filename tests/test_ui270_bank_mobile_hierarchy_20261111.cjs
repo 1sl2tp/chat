@@ -45,7 +45,7 @@ const record={
   old_date_count:0,duplicate_count:4},
  bank_only:[{notice_id:99}],
  manual_collections:[],
- bank_credits:[{amount_vnd:850000},{amount_vnd:461000}],
+ bank_credits:[{amount_vnd:850000},{amount_vnd:461000},{amount_vnd:1482000}],
  bills:[{status:'amount_read'},{status:'review'}]
 };
 function verifyLayout(hasExtra){
@@ -66,7 +66,7 @@ function verifyLayout(hasExtra){
  assert.equal(ui.status.children.length,hasExtra?2:8);
  if(hasExtra)assert.equal(ui.extraStatus.children.length,6);
  assert.equal(ui.status.children[0].value,'1');
- assert.equal(ui.status.children[1].value,'1');
+ assert.equal(ui.status.children[1].value,'2793000',"total bank credits should not be hidden behind diagnostics");
  context.paint(record);
  assert.equal(ui.status.children.length,hasExtra?2:8,"refresh cannot drop bank totals");
  if(hasExtra)assert.equal(ui.extraStatus.children.length,6);
