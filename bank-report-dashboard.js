@@ -185,7 +185,7 @@ async function reload(){
  const auth=window.V21AuthSessionStore?.snapshot?.()||{};
  const client=window.V21AuthSessionStore?.getClient?.();
  const day=dateReady();
- ui.stamp.textContent=current?'Đang làm mới · đang hiển thị số liệu gần nhất…':'Đang tải dữ liệu…';
+ ui.stamp.textContent=(typeof current!=='undefined'&&current)?'Đang làm mới · đang hiển thị số liệu gần nhất…':'Đang tải dữ liệu…';
  try{
   if(!owner||owner!==reportSessionOwner||!auth.appSessionId||!client)throw Error('Chưa có phiên Admin');
   const [report,states,credits]=await Promise.all([
@@ -212,8 +212,8 @@ async function reload(){
   }}));
  }catch(error){
   if(id===requestId&&active&&owner===reportSessionOwner&&
-       owner===bankReportSessionOwner()){ui.stamp.textContent=current?'Làm mới chưa thành công · vẫn hiển thị số liệu lần trước.':'Không tải được đối soát. Chọn Làm mới.';
-    if(!current)ui.groups.replaceChildren(el('p','bank-report-empty','Không tải được bảng đối soát.'));}
+       owner===bankReportSessionOwner()){ui.stamp.textContent=(typeof current!=='undefined'&&current)?'Làm mới chưa thành công · vẫn hiển thị số liệu lần trước.':'Không tải được đối soát. Chọn Làm mới.';
+    if(typeof current==='undefined'||!current)ui.groups.replaceChildren(el('p','bank-report-empty','Không tải được bảng đối soát.'));}
  }finally{loading=false;if(queued){queued=false;void reload();}}
 }
 // BANK-243: desktop keeps full wording, phones use shorter labels.
