@@ -320,7 +320,7 @@ function renderTable(data){
  const head=el('thead'),thead=el('tr');
  // Keep the canonical reconciliation column contract intact; only
  // its narrow-screen presentation uses shorter, more readable headings.
- const columns=['Khách hàng','Tự thu','Chờ soát','Trùng','AI lỗi ngày','Tiền tự thu trong ngày chọn'];
+ const columns=['Khách hàng','Tự thu','Chờ soát','Trùng','AI lỗi ngày','Tiền tự thu'];
  const shortColumns=['Khách','Tự thu','Chờ','Trùng','Sai','Tiền thu'];
  for(const [index,name] of columns.entries()){
   const short=shortColumns[index];
