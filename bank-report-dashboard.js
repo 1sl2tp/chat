@@ -472,6 +472,11 @@ function detailLine(row,isBank=false,candidates=[]){
  if(row.reason&&!isBank){
   let reason='Ghi chú: '+row.reason;
   if(dateSwapSuspect)reason='AI có thể đã đọc đảo ngày/tháng so với ảnh bill. Giờ gửi ảnh không chứng minh ngày chuyển khoản. Cần đối chiếu ảnh gốc với Agribank, không tự ghi thu.';
+  else if(row.reason==='bill_recipient_account_missing')reason='Ảnh chưa đọc rõ số tài khoản NGƯỜI NHẬN. Chờ bạn đối chiếu chứng từ và thu thủ công, chưa ghi công nợ.';
+  else if(row.reason==='bill_recipient_account_conflict')reason='Số tài khoản người nhận trên ảnh không khớp tài khoản Agribank cần thu. Không tự khớp; bạn xác minh thủ công.';
+  else if(row.reason==='bill_printed_date_missing')reason='Ảnh chưa đọc được ngày giao dịch in trên bill. Không dùng ngày gửi ảnh thay thế; chờ bạn xác minh/thu thủ công.';
+  else if(row.reason==='bill_printed_time_missing')reason='Ảnh chưa đọc được giờ giao dịch in trên bill. Không dùng đồng hồ điện thoại; chờ bạn xác minh/thu thủ công.';
+  else if(row.reason==='bill_printed_datetime_conflict'||row.reason==='bill_printed_datetime_invalid')reason='Ngày/giờ trên ảnh bị mâu thuẫn hoặc không hợp lệ. Không tự thu; cần bạn đối chiếu bằng chứng Agribank.';
   else if(isAiScanIssue(row))reason='Lỗi quét ảnh: '+scanIssueLabel(row.reason);
   else if(row.reason==='bank_image_amount_only_no_collection'){
     const recipient=String(row.receiving_account||'').replace(/[^0-9]/g,'');
