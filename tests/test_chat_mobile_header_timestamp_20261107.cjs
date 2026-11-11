@@ -50,7 +50,9 @@ assert(source.includes('margin-top:3px;')&&source.includes('line-height:14px;'))
 assert(core.includes('sentTimeHeight=Number.isFinite(sentTime)&&sentTime>0?17:0'));
 assert(app.includes("time.className='message-sent-time'"));
 assert(app.includes("time.dateTime=date.toISOString();"));
-assert(app.includes("time.setAttribute('aria-label','Gửi lúc '+full+' · giờ Việt Nam');"));
+assert(app.includes("time.setAttribute('aria-label',timeMeaning+full+' · giờ Việt Nam');"));
+assert(app.includes("message?.status==='failed'?'Thử gửi lúc ':'Gửi lúc '"),
+  'only server-confirmed messages may be announced as sent');
 assert(app.includes("timeZone:'Asia/Ho_Chi_Minh'"));
 assert(ui.includes('.call-focus-slot:not([data-call-ui-state="idle"])'),
   'active-call layout must be left intact');
