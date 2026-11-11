@@ -222,6 +222,7 @@ export function readV4Fields(data,context={}){
     clock_text_conflict:clockTextConflict,
     transfer_time_printed_vn:printedBillClock?printedClockText:null,
     transfer_date_printed_vn:printedBillDay?printedDateText:null,
+    printed_date_invalid:Boolean(printedDateText&&!printedBillDay),
     transfer_reference:reference&&reference.length<=120?reference:null,
     transfer_date_vn:billDay,
     transfer_content:transferContent&&transferContent.length<=220?transferContent:null,
@@ -250,7 +251,7 @@ export function requiredAutoCollectEvidence(fields){
    return {complete:false,reason:"bill_recipient_account_conflict",requires_bank_memo:false};
  if(!exact&&!(suffix===expected.slice(-5)&&visible.endsWith(suffix)))
    return {complete:false,reason:"bill_recipient_account_missing",requires_bank_memo:false};
- if(fields?.time_date_conflict||fields?.clock_text_conflict)
+ if(fields?.time_date_conflict||fields?.clock_text_conflict||fields?.printed_date_invalid)
    return {complete:false,reason:"bill_printed_datetime_conflict",requires_bank_memo:false};
  if(!fields?.transfer_time_printed_vn)
    return {complete:false,reason:"bill_printed_time_missing",requires_bank_memo:false};
