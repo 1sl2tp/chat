@@ -51,6 +51,7 @@ Desktop contract hiện dùng capability:
 - composer;
 - image viewer;
 - forward picker;
+- conversation search panel: `conversation-search.js/.css` (current loaded text only);
 - quote;
 - customer summary;
 - Zalo/account link UI;
@@ -76,6 +77,7 @@ Desktop contract hiện dùng capability:
 ## Rule đặc biệt CHAT
 
 - Message scroller là scroll owner của conversation; composer không được làm body trở thành scroll owner.
+- Tìm kiếm nội dung đã tải: `conversation-search.js` chỉ quản lý modal, focus và kết quả; `app.js::V21ConversationBridge.searchLoaded/revealLoadedMessage` sở hữu bộ tin hiện tại và cuộn ảo. Không RPC/DB/copy dữ liệu giữa phiên; tìm cũ hơn phải tải qua nút lịch sử hiện có.
 - Keyboard/focus do Platform + composer owner phối hợp, không chữa bằng margin/padding cục bộ.
 - Realtime render không được làm message list jump nếu không có lý do.
 - Image viewer là overlay owner riêng; click/zoom/swipe không lọt xuống conversation.
