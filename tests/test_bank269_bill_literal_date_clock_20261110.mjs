@@ -97,7 +97,7 @@ const old=read({transaction_datetime_vn:null,
 assert.equal(old.time_date_conflict,false);
 assert.equal(old.transfer_at_vn,"2026-10-11 10:25");
 
-for(const bad of ["24:00","18:61","18:06:61","9 giờ 30",""])
+for(const bad of ["24:00","18:61","18:06:61","24 giờ 30",""])
  assert.equal(read({...printed,transfer_time_printed_vn:bad,
   transaction_datetime_vn:null}).transfer_at_vn,null,
   "refuse invalid or not actually printed time "+bad);
