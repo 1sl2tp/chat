@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="cd1e48cb3f041000baea261265b505603a34fdca2bd4ca7b1811bdee1f3242bd">
+<meta name="app-build-id" content="5aa70d908f54627814025bf58f07a84ed0d7f3e330a29ca143ec2a5d41e07cf2">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -35291,6 +35291,11 @@ function safeToReload({userRequested=false}={}){
   const sync=window.V21SyncEngine?.snapshot?.()||null;
   if(sync&&(sync.syncing||sync.wakePending))return false;
   if(hasDraft())return false;
+  // Media messages play outside the call/recording interaction modes.
+  // Protect playback even while buffering; paused/finished media is safe.
+  for(const media of document.querySelectorAll?.('audio,video')||[]){
+    if(media.paused===false&&!media.ended)return false;
+  }
   return true;
 }
 function guardKey(build){return 'taphoa.v21.reload.'+String(build||'unknown');}
@@ -35341,7 +35346,7 @@ function showUpdateNotice(){
   button.addEventListener('click',()=>{
     if(!pendingBuild)return;
     if(!safeToReload({userRequested:true})){
-      label.textContent='Hãy gửi tin nháp hoặc kết thúc cuộc gọi trước khi cập nhật';
+      label.textContent='Hãy hoàn tất tin nháp, tác vụ đang chạy hoặc tạm dừng âm thanh/video trước khi cập nhật';
       return;
     }
     rememberReload(pendingBuild);
