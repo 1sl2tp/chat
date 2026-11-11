@@ -227,6 +227,10 @@ jobs:
           node --check shell.js
           node --check bank-report-dashboard.js
           node tests/test_ui271_ambiguity_and_ratio_20261111.cjs
+      - name: UI-272 compact money labels and one unit per bank report
+        run: |
+          node --check bank-report-dashboard.js
+          node tests/test_ui272_bank_compact_units_20261111.cjs
       - name: BANK-226 Admin review and collection dialog session ownership
         run: node tests/test_bank226_dialog_session_owner_20261103.cjs
       - name: BANK-227 bank push deep-link scroll follows active Admin context
