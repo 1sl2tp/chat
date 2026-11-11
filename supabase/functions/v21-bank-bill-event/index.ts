@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "npm:@supabase/supabase-js@2.57.4";
-import {RULE_VERSION,SYSTEM_PROMPT,validateVisionRead,readV4Fields} from "./bill-amount-rules.mjs";
+import {RULE_VERSION,SYSTEM_PROMPT,validateVisionRead,readV4Fields,requiredAutoCollectEvidence} from "./bill-amount-rules.mjs";
 import {previewBillSmsMatch,readIncomingAgribankSms} from "./bill-sms-preview.mjs";
 import {previewBillAppMatch,previewBillReferenceMatch} from "./bill-app-preview.mjs";
 import {compareBillTransferIdentity} from "./bill-transfer-identity.mjs";
@@ -301,8 +301,13 @@ Deno.serve(async req=>{
    let parsed:any;try{parsed=JSON.parse(resultString)}catch{throw new Error("gemini_invalid_json")}
    const fields=readV4Fields(parsed,{sentAt:job.sent_at});
    const verdict=validateVisionRead(parsed);
-   const {status,reason,amount_vnd:amount}=verdict;
-   let matchPreview:any={status:"review",reason:"bill_time_unreadable"};
+   // BANK-284: missing account/printed date/printed time is manual-only,
+   // even when the model reads the amount and a bank credit later appears.
+   const evidence=requiredAutoCollectEvidence(fields);
+   const status=verdict.status==="amount_read"&&!evidence.complete?"review":verdict.status;
+   const reason=verdict.status==="amount_read"&&!evidence.complete?evidence.reason:verdict.reason;
+   const amount=verdict.amount_vnd;
+   let matchPreview:any={status:"review",reason:evidence.complete?"bill_time_unreadable":evidence.reason};
    const tx=fields.transfer_at_vn?Date.parse(String(fields.transfer_at_vn).replace(" ","T")+"+07:00"):NaN;
    const hasReference=status==="amount_read"&&amount&&!Number.isFinite(tx)
      &&!fields.time_date_conflict
@@ -358,6 +363,9 @@ Deno.serve(async req=>{
      receiving_bank:fields.receiving_bank,sending_bank:fields.sending_bank,
      transfer_reference:fields.transfer_reference,transfer_at_vn:fields.transfer_at_vn,
      raw_read:{read_mode:"amount_hash_only",rule_version:RULE_VERSION,
+      bill_evidence_policy:"manual_on_missing_v1",
+      required_fields_complete:evidence.complete,
+      manual_review_reason:!evidence.complete?evidence.reason:null,
       image_type:String(parsed?.image_type||"").slice(0,48),
       amount_role:String(parsed?.amount_role||"").slice(0,40),
       transfer_success_visible:parsed?.transfer_success_visible===true,
