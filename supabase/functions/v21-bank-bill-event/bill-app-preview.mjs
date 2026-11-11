@@ -60,8 +60,17 @@ export function previewBillAppMatch(bill,events,otherBills=[],now=Date.now()){
  // literal OCR values and two equal amounts in the same bank minute.
  if(bill.ocr_date_normalization_corrected||bill.requires_bank_memo){
    const printedMemo=tidy(bill.transfer_content);
-   const bankText=tidy(bankMemo(qualified[0].body));
-   if(printedMemo.length<12||!bankText||printedMemo!==bankText)
+   const rawBankMemo=bankMemo(qualified[0].body);
+   const bankText=tidy(rawBankMemo);
+   // BANK-287: Agribank QR credits prepend "QR - " to the routing memo,
+   // but the payer's receipt contains only the original transfer message.
+   // Strip only this anchored bank-side routing marker, never an arbitrary
+   // substring, and still require the full remainder to match exactly.
+   const qrMarker=/^QR[ \\t]*[-–:][ \\t]+/i;
+   const bankMemoWithoutQr=qrMarker.test(rawBankMemo)
+     ?tidy(rawBankMemo.replace(qrMarker,"")):null;
+   if(printedMemo.length<12||!bankText||
+      (printedMemo!==bankText&&printedMemo!==bankMemoWithoutQr))
      return{status:"review",reason:"ocr_date_corrected_bank_memo_unverified"};
  }
  // Same reliable bank reference is the same transfer across cropped/reuploaded
