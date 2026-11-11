@@ -12,7 +12,9 @@ const statusSource=fs.readFileSync('chat-connection-status.js','utf8');
 
 const begin=sync.indexOf('async function retryFailedMedia(');
 const end=sync.indexOf('function unreadSnapshot(',begin);
-assert(begin>0&&end>begin);
+const validStart=sync.indexOf('function uploadedMediaMetadataValid(');
+const validEnd=sync.indexOf('async function flushMediaItem(',validStart);
+assert(begin>0&&end>begin&&validStart>0&&validEnd>validStart);
 let accountId='A',appSessionId='SA',contactId='CONTACT',conversationId='CONV',connected=true;
 const client={};
 const asset={kind:'image',asset_id:'asset-1',storage_key:'A/CONV/asset-1',mime_type:'image/png',size_bytes:10,uploaded:true};
@@ -45,11 +47,12 @@ const context=vm.createContext({
  media:()=>({get:async()=>hasBlob?{blob:new Blob(['image-data'],{type:'image/png'})}:null}),
  Blob,
  mediaAssetsFromOutbox:x=>x.assets||[],
+ baseMimeType:value=>String(value||'').split(';',1)[0].trim().toLowerCase(),
  messages:()=>({apply:(...args)=>applyCalls.push(args)}),
  outboxAsLocal:x=>({...x,_local_state:x.failed?'failed':'pending'}),
  wake:async info=>{wakeReasons.push(info.reason);return true}
 });
-vm.runInContext(sync.slice(begin,end)+'\nglobalThis.retry=retryFailedMedia;',context);
+vm.runInContext(sync.slice(validStart,validEnd)+sync.slice(begin,end)+'\nglobalThis.retry=retryFailedMedia;',context);
 const scope=()=>({
  clientId:'media-client-1',contactId:'CONTACT',conversationId:'CONV',
  accountId:'A',appSessionId:'SA'
