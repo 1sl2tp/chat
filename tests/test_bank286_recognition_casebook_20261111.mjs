@@ -47,7 +47,7 @@ for(const c of variants){
 for(const amount of ["850.000 ₫","850,000 VND","850 000 đ",
  "850.000,00 VNĐ","850,000.00 VND"])
  assert.equal(parseAmountText(amount),850000,amount);
-for(const bad of ["850.00","850.000,50","số dư 850.000","2901181999999"])
+for(const bad of ["850.0","850.000,50","số dư 850.000","2901181999999"])
  assert.equal(parseAmountText(bad),null,bad);
 
 const missingClock=read({...base,image_layout:"paper_photo",transfer_time_printed_vn:null,
