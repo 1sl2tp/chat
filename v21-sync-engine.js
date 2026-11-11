@@ -1382,13 +1382,18 @@ async function flushMediaItem(item,conversationId,context=captureFlushContext())
       asset.storage_key=`${ownerAccountId}/${conversationId}/${String(asset.asset_id)}`;
       await cache()?.updateOutbox?.(ownerAccountId,item);
     }
-    const record=await media()?.get?.({accountId:ownerAccountId,assetId:asset.asset_id});
-    const hasLocalBlob=record?.blob instanceof Blob;
-    if(!hasLocalBlob&&!uploadedMediaMetadataValid(asset,kind,ownerAccountId,conversationId)){
-      throw new Error(`${kind}_blob_missing`);
-    }
-
-    if(hasLocalBlob){
+    // A persisted Storage ACK is the only reason we may skip reading bytes.
+    // Reading IndexedDB again can itself fail after iOS eviction/quota errors.
+    if(asset.uploaded===true){
+      if(!uploadedMediaMetadataValid(asset,kind,ownerAccountId,conversationId)){
+        throw new Error('uploaded_media_metadata_invalid');
+      }
+      asset.mime_type=baseMimeType(asset.mime_type);
+      asset.size_bytes=Number(asset.size_bytes);
+      asset.sort_index=Number(asset.sort_index??index)||0;
+    }else{
+      const record=await media()?.get?.({accountId:ownerAccountId,assetId:asset.asset_id});
+      if(!(record?.blob instanceof Blob))throw new Error(`${kind}_blob_missing`);
       let uploadBody=record.blob;
       if(kind==='image')uploadBody=imageUploadBody(record,asset);
       else if(kind==='file')uploadBody=fileUploadBody(record,asset);
@@ -1420,12 +1425,6 @@ async function flushMediaItem(item,conversationId,context=captureFlushContext())
         asset.uploaded=true;item.failed=false;
         await cache()?.updateOutbox?.(ownerAccountId,item);
       }
-    }else{
-      // Bytes were uploaded and acknowledged earlier. Do not re-upload and
-      // do not infer a fresh Storage ACK from navigator.onLine.
-      asset.mime_type=baseMimeType(asset.mime_type);
-      asset.size_bytes=Number(asset.size_bytes);
-      asset.sort_index=Number(asset.sort_index??index)||0;
     }
     if(!flushContextCurrent(context))throw flushContextChangedError();
   }
