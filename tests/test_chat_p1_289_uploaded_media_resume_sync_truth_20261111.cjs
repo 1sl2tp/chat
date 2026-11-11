@@ -79,7 +79,7 @@ async function transportCases(){
   'message idempotency key never changes');
  assert.equal(rpcCalls[0].args.p_assets[0].storage_key,'A/CONV/asset-1');
  assert.equal(uploaded,0,'no new Storage upload');
- assert.equal(mediaReads,1);
+ assert.equal(mediaReads,0,'persisted Storage ACK must not re-read evicted IndexedDB Blob');
  assert.equal(metaWrites,1);
  const priorRpc=rpcCalls.length;
  const bad={...outbox,assets:[{...image,storage_key:'OTHER/CONV/asset-1'}]};
