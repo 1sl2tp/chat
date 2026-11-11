@@ -2906,8 +2906,11 @@ function syncMessageTimeNode(unit,message){
     timeZone:'Asia/Ho_Chi_Minh',day:'2-digit',month:'2-digit',year:'numeric',
     hour:'2-digit',minute:'2-digit',hour12:false
   });
-  time.title='Gửi lúc '+full+' · giờ Việt Nam';
-  time.setAttribute('aria-label','Gửi lúc '+full+' · giờ Việt Nam');
+  // A local outbox attempt has a creation timestamp, not a server send ACK.
+  const timeMeaning=message?.status==='sending'?'Tạo lúc ':
+    message?.status==='failed'?'Thử gửi lúc ':'Gửi lúc ';
+  time.title=timeMeaning+full+' · giờ Việt Nam';
+  time.setAttribute('aria-label',timeMeaning+full+' · giờ Việt Nam');
 }
 
 // P0-MSG-286: present only the two real local outbox states. "Sent",
