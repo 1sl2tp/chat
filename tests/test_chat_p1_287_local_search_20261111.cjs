@@ -80,7 +80,7 @@ assert.equal(view.reveal('client-one'),true);
 assert.equal(cancelled,1);
 assert.equal(view.viewport.mode,'USER_AWAY');
 assert.equal(renderCalls.length,1);
-assert.equal(renderCalls[0].anchorIndex,0);
+assert.equal(renderCalls[0].anchorIndexOverride,0);
 assert.equal(renderCalls[0].preserve,'AUTO');
 assert.equal(scrolls[0],130+500-72-12);
 frames.shift()();
