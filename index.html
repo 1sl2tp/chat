@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="9065d061891d64b3b1532d8550f04245b1d0b73896f7caba12881e45985f927c">
+<meta name="app-build-id" content="c95f85b59dbfd0a14f81488341bdcf9314ecff488284a17b2814e075ca9cd655">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -30724,7 +30724,7 @@ async function reload(){
  const auth=window.V21AuthSessionStore?.snapshot?.()||{};
  const client=window.V21AuthSessionStore?.getClient?.();
  const day=dateReady();
- ui.stamp.textContent=current?'Đang làm mới · đang hiển thị số liệu gần nhất…':'Đang tải dữ liệu…';
+ ui.stamp.textContent=(typeof current!=='undefined'&&current)?'Đang làm mới · đang hiển thị số liệu gần nhất…':'Đang tải dữ liệu…';
  try{
   if(!owner||owner!==reportSessionOwner||!auth.appSessionId||!client)throw Error('Chưa có phiên Admin');
   const [report,states,credits]=await Promise.all([
@@ -30751,8 +30751,8 @@ async function reload(){
   }}));
  }catch(error){
   if(id===requestId&&active&&owner===reportSessionOwner&&
-       owner===bankReportSessionOwner()){ui.stamp.textContent=current?'Làm mới chưa thành công · vẫn hiển thị số liệu lần trước.':'Không tải được đối soát. Chọn Làm mới.';
-    if(!current)ui.groups.replaceChildren(el('p','bank-report-empty','Không tải được bảng đối soát.'));}
+       owner===bankReportSessionOwner()){ui.stamp.textContent=(typeof current!=='undefined'&&current)?'Làm mới chưa thành công · vẫn hiển thị số liệu lần trước.':'Không tải được đối soát. Chọn Làm mới.';
+    if(typeof current==='undefined'||!current)ui.groups.replaceChildren(el('p','bank-report-empty','Không tải được bảng đối soát.'));}
  }finally{loading=false;if(queued){queued=false;void reload();}}
 }
 // BANK-243: desktop keeps full wording, phones use shorter labels.
