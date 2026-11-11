@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="323559bdfaae56501310a46b2fcbc36d81fd2aa2982a2582150b8db7be525adc">
+<meta name="app-build-id" content="010bec2fd9143e84a32f006128f83b9df58993510f56d86c4bd266ad08f70067">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -20312,6 +20312,8 @@ function createRenderedContactRow(item){
   const preview=document.createElement('span');preview.className='shell-contact-preview';
   const previewText=contactPreview(item);
   preview.textContent=item.locked_at?(previewText==='Chưa có tin nhắn'?'Đã khóa':`Đã khóa · ${previewText}`):previewText;
+  if(row.dataset.contactPinned==='report')preview.setAttribute('aria-label','Báo cáo hệ thống. '+preview.textContent);
+  else preview.removeAttribute('aria-label');
   const time=document.createElement('time');time.className='shell-contact-time';
   setContactTimeNode(time,item);
   copy.append(title,preview,time);
@@ -20345,6 +20347,8 @@ function patchRenderedContact(item){
   if(preview){
     const previewText=contactPreview(item);
     preview.textContent=item.locked_at?(previewText==='Chưa có tin nhắn'?'Đã khóa':`Đã khóa · ${previewText}`):previewText;
+  if(row.dataset.contactPinned==='report')preview.setAttribute('aria-label','Báo cáo hệ thống. '+preview.textContent);
+  else preview.removeAttribute('aria-label');
   }
   const time=row.querySelector('.shell-contact-time');
   setContactTimeNode(time,item);
