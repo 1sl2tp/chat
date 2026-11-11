@@ -115,6 +115,7 @@ subprocess.run(['node',str(ROOT/'tests'/'test_chat_bank_report_realtime_dirty_ui
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_p0_286_inbox_bank_delivery_20261111.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_p1_287_local_search_20261111.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_p1_288_offline_media_retry_20261111.cjs')],check=True,cwd=ROOT)
+subprocess.run(['node',str(ROOT/'tests'/'test_chat_p1_289_uploaded_media_resume_sync_truth_20261111.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_directory_auth_filter_reset_20261102.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chatgpt_visual_identity_20261107.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chatgpt_header_pill_20261107.cjs')],check=True,cwd=ROOT)
