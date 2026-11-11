@@ -1330,8 +1330,11 @@
     font-weight:550;
     white-space:nowrap;
   }
-  #appShell[data-auth-state="authenticated"][data-route="chat"] #chatQuickActions>button:first-child{
+  /* Cash/debt are paired primary operations. Photos/recent remain neutral
+     lookup actions; all four retain identical 44px targets and 25% tracks. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #chatQuickActions>button:nth-child(-n+2){
     background:var(--theme-surface-secondary);
+    font-weight:600;
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #chatQuickActions>button>span{
     display:inline-flex;
@@ -1418,6 +1421,21 @@
   }
   #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-row[data-active="true"]{
     box-shadow:none;
+  }
+
+  /* The bank report is a system screen, never a normal customer chat.
+     Preserve contact name, pinning, timestamps, and search/filter semantics. */
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-row[data-contact-pinned="report"]{
+    border-radius:11px;
+    background:color-mix(in srgb,var(--theme-surface-secondary) 52%,var(--theme-surface-primary));
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-row[data-contact-pinned="report"] .shell-contact-preview::before{
+    content:"Hệ thống · ";
+    font-weight:650;
+    color:var(--theme-content-secondary);
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-row[data-contact-pinned="report"] .shell-contact-avatar{
+    border:1px solid color-mix(in srgb,var(--theme-border-default) 65%,transparent);
   }
 }
 @media(max-width:360px){
