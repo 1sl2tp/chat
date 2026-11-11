@@ -9,7 +9,7 @@ const begin=source.indexOf('function bankResponsiveLabel(');
 const end=source.indexOf('function paint(data){',begin);
 assert(begin>0&&end>begin,'responsive labels must live beside bank report card renderer');
 function element(tag,className='',value=''){
- return {tag,className,textContent:String(value),children:[],attributes:{},title:'',
+ return {tag,className,textContent:String(value),children:[],attributes:{},dataset:{},title:'',
   setAttribute(key,value){this.attributes[key]=String(value);},
   appendChild(child){this.children.push(child);return child;}};
 }
@@ -33,10 +33,10 @@ assert.equal(responsive.children[1].textContent,'Tổng tiền NH (nghìn)');
 assert.equal(responsive.children[1].attributes['aria-hidden'],'true');
 assert.equal(responsive.title,'Tổng tiền vào Agribank (÷1.000)');
 
-assert.equal(bankFilterMobileLabels.waiting_bank,'Chờ đối soát');
+assert.equal(bankFilterMobileLabels.waiting_bank,'Bill chưa khớp');
 assert.equal(bankFilterMobileLabels.bank_only,'Chưa gắn bill');
 assert.equal(bankFilterMobileLabels.manual_bank,'Thu tay NH');
-assert.equal(bankFilterMobileLabels.matched,'Đã khớp');
+assert.equal(bankFilterMobileLabels.matched,'Đã khớp bill');
 
 const h=source.slice(source.indexOf('function renderTable(data){'),source.indexOf('// BANK-183-',source.indexOf('function renderTable(data){')));
 assert(h.includes("const columns=['Khách hàng','Tự thu','Chờ soát','Trùng','AI lỗi ngày','Tiền tự thu'];"));
