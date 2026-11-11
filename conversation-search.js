@@ -68,7 +68,10 @@ function open(){
   window.V21InteractionController?.exit?.(MODE,{owner:OWNER});
   return false;
  }
- returnFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;
+ const active=document.activeElement instanceof HTMLElement?document.activeElement:null;
+ returnFocus=active?.closest?.('[data-chat-quick-recent]')
+  ?document.querySelector('[data-chat-quick="recent"]')
+  :active;
  searchScope=initial;
  const node=document.createElement('div');
  // Reuse the single platform-owned viewport/keyboard rules for the existing
