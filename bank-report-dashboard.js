@@ -24,7 +24,7 @@ const ui={
  review:root.querySelector('[data-bank-review-modal]')
 };
 const filters=[
- ['all','Tất cả'],['matched','Đã khớp'],['waiting_bank','Chờ đối soát'],
+ ['all','Tất cả'],['matched','Đã khớp bill'],['waiting_bank','Bill chưa khớp'],
  ['bank_only','Chưa gắn bill'],['bank_all','Tiền vào NH'],['review','Cần xác minh'],['wrong_day','AI sai ngày'],
  ['manual_bank','Đã thu thủ công Agribank'],['duplicate','Trùng'],['non_bill','Không phải bill'],['test_excluded','Test (loại)']
 ];
@@ -229,17 +229,30 @@ function bankResponsiveLabel(full,short=full){
  return append(label,regular,narrow);
 }
 const bankFilterMobileLabels={
- all:'Tất cả',matched:'Đã khớp',waiting_bank:'Chờ đối soát',
+ all:'Tất cả',matched:'Đã khớp bill',waiting_bank:'Bill chưa khớp',
  bank_only:'Chưa gắn bill',bank_all:'Tiền vào NH',review:'Cần xác minh',
  wrong_day:'AI sai ngày',manual_bank:'Thu tay NH',duplicate:'Trùng',
  non_bill:'Không phải bill',test_excluded:'Test (loại)'
 };
-function cardValue(name,value,highlight=false,compact=false,mobileName=name){
+// Full-denomination a11y value; the visual dashboard keeps its single
+// "1.000đ" legend. Never ask a screen reader to infer 1.311 as a fraction.
+function bankMoneySpoken(amountVnd){
+ const n=Number(amountVnd);
+ return Number.isSafeInteger(n)?new Intl.NumberFormat('vi-VN',{maximumFractionDigits:0}).format(n)+' đồng':'Số tiền chưa rõ';
+}
+function cardValue(name,value,highlight=false,compact=false,mobileName=name,meta=null){
  const caption=el('span','bank-report-stat-name');
  caption.title=name;
  append(caption,bankResponsiveLabel(name,mobileName));
- return append(el('div','bank-report-stat'+(highlight?' bank-report-stat-primary':'')+(compact?' bank-report-stat-compact':'')),
-  caption,el('strong','bank-report-stat-number',value));
+ const number=el('strong','bank-report-stat-number',value);
+ if(meta?.countUnit){
+  number.appendChild(el('small','bank-report-stat-unit',meta.countUnit));
+  number.setAttribute('aria-label',String(value)+' '+meta.countUnit);
+ }
+ if(meta?.amountVnd!==undefined)number.setAttribute('aria-label',bankMoneySpoken(meta.amountVnd));
+ const card=el('div','bank-report-stat'+(highlight?' bank-report-stat-primary':'')+(compact?' bank-report-stat-compact':''));
+ card.dataset.metricKind=meta?.countUnit?'count':meta?.amountVnd!==undefined?'money':'other';
+ return append(card,caption,number);
 }
 function paint(data){
  const s=data?.summary||{};
@@ -251,9 +264,12 @@ function paint(data){
  const handled=new Set((data?.manual_collections||[]).map(x=>String(x.notice_id)));
  const outstanding=(data?.bank_only||[]).filter(x=>!handled.has(String(x.notice_id))).length;
  const incoming=Array.isArray(data?.bank_credits)?data.bank_credits:[];
+ const incomingAmountVnd=incoming.reduce((sum,x)=>sum+(Number(x.amount_vnd)||0),0);
+ // Bank credit → verified ledger. The second row is a COUNT of matched
+ // receipts and pending bills, not another amount of money.
  ui.summary.replaceChildren(
-  cardValue('Giao dịch đã thu · đối soát',String(s.matched_count||0),false,false,'Đã khớp'),
-  cardValue('Đã thu có chứng từ',money(s.matched_amount),true,false,'Đã thu')
+  cardValue('Tổng tiền vào Agribank',money(incomingAmountVnd),false,false,'Tiền vào NH',{amountVnd:incomingAmountVnd}),
+  cardValue('Đã thu có chứng từ',money(s.matched_amount),true,false,'Đã thu',{amountVnd:s.matched_amount})
  );
  // Keep every bank diagnostic even if a cached PWA shell has not loaded
  // the new disclosure yet; it can still render the legacy complete strip.
@@ -266,8 +282,8 @@ function paint(data){
    cardValue('Ảnh AI chưa kết luận',String((data?.bills||[]).filter(isAiScanIssue).length),false,true,'AI chưa rõ')
  ];
  ui.status.replaceChildren(
-  cardValue('Bill chưa đối soát',String(s.bill_only_count||0),false,true,'Chưa khớp'),
-  cardValue('Tổng tiền vào Agribank',money(incoming.reduce((sum,x)=>sum+(Number(x.amount_vnd)||0),0)),false,true,'Tiền vào NH'),
+  cardValue('Giao dịch đã thu · đối soát',String(s.matched_count||0),false,true,'Đã khớp bill',{countUnit:'giao dịch'}),
+  cardValue('Bill chưa đối soát',String(s.bill_only_count||0),false,true,'Bill chưa khớp',{countUnit:'bill'}),
   ...(!ui.extraStatus?additionalCards:[])
  );
  // New shell: only 4 critical KPIs show first. Secondary figures are
@@ -278,7 +294,9 @@ function paint(data){
  const makeFilter=([key,label])=>{
    const b=el('button','bank-report-filter'+(filter===key?' is-selected':''));
    append(b,bankResponsiveLabel(label,bankFilterMobileLabels[key]||label));
-   b.title=label;b.setAttribute('aria-label',label);
+   b.title=label;
+   b.setAttribute('aria-label',key==='bank_only'?'Tiền vào ngân hàng chưa gắn với bill':
+     key==='waiting_bank'?'Bill khách gửi chưa khớp với ngân hàng':label);
    b.type='button';b.dataset.filter=key;b.setAttribute('aria-pressed',String(filter===key));
    b.addEventListener('click',()=>{filter=key;selectedCustomer=null;paint(data);});
    return b;
@@ -332,13 +350,19 @@ function renderTable(data){
  head.appendChild(thead);table.appendChild(head);
  const tbody=el('tbody');
  for(const g of [...byCustomer.values()].sort((a,b)=>b.money-a.money||a.name.localeCompare(b.name,'vi'))){
-  const tr=el('tr','bank-report-table-item'+(selectedCustomer===g.id?' is-selected':''));tr.tabIndex=0;tr.setAttribute('role','button');tr.setAttribute('aria-label','Xem chi tiết '+g.name);tr.setAttribute('aria-expanded',String(selectedCustomer===g.id));
+  const tr=el('tr','bank-report-table-item'+(selectedCustomer===g.id?' is-selected':''));tr.tabIndex=0;
+  tr.setAttribute('role','button');
+  tr.setAttribute('aria-label',(selectedCustomer===g.id?'Đang xem chi tiết ':'Xem chi tiết ')+g.name+
+   ', đã thu '+bankMoneySpoken(g.money)+', tự thu '+g.matched+', chờ '+g.waiting+
+   ', trùng '+g.duplicate+', sai ngày '+g.old);
+  tr.setAttribute('aria-expanded',String(selectedCustomer===g.id));
   for(const v of [g.name,g.matched,g.waiting,g.duplicate,g.old,money(g.money)])tr.appendChild(el('td','',v));
   // Desktop keeps the six-column semantic table; mobile adds explicit inline
   // labels without hiding a financial figure or changing row selection.
   [...tr.children].forEach((td,i)=>{
    td.dataset.mobileLabel=i===5?'Đã thu':shortColumns[i];
    td.title=columns[i];
+   if(i===5)td.setAttribute('aria-label','Đã thu '+bankMoneySpoken(g.money));
   });
   const jump=()=>{selectedCustomer=selectedCustomer===g.id?null:g.id;filter='all';paint(data);if(selectedCustomer)root.querySelector('[data-bank-customer="'+g.id+'"]')?.scrollIntoView?.({block:'nearest',behavior:'smooth'});};
   tr.addEventListener('click',jump);tr.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();jump();}});
@@ -546,7 +570,8 @@ function bankCreditLine(row,allBills){
    kind==='manual_collected'?'Đã thu thủ công':
    kind==='review_inconsistent'?'Liên kết cần kiểm tra':issue?.label||'Chưa thu · Cần xử lý';
  const badge=el('span','bank-report-detail-status bank-status-'+
-   (kind==='auto_collected'?'matched':kind==='manual_collected'?'bank_manual':'review'),state);
+   (kind==='auto_collected'?'matched':kind==='manual_collected'?'bank_manual':
+    kind==='unmatched'?'bank_unlinked':'review'),state);
  append(top,el('span','bank-report-detail-time',localTime(row.bank_time)),
     el('strong','bank-report-detail-amount',money(row.amount_vnd)),badge);
  wrap.appendChild(top);
