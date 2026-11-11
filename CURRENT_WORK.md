@@ -1,3 +1,14 @@
+## 2026-11-11 — CHAT-UPDATE-TIMEOUT · Recover stalled release checks
+
+- **E0 / SPEC:** Given a Web/PWA version request whose headers or JSON body never settle, when the 10-second deadline expires, release the single-flight check and allow the next existing foreground/online/interval event to check again. Owner: `app-update-controller.js`. Reproduced with two failing runtime tests before patch.
+- **Patch:** Bound manifest fetch and JSON parsing together; abort obsolete network work, emit `version_timeout`, clear the deadline on all outcomes, ignore late responses. No immediate retry and no new polling owner.
+- **MUST-STAY:** Draft/call/authenticated-session reload guards, visible update prompt, release identity and existing 45-second cadence unchanged. No business RPC, DB writes, message send or private cache deletion.
+- **Tests:** Existing canonical suite passed before patch. Added hanging headers/body, concurrent-check coalescing, abort, next-trigger recovery, timer cleanup and late-response isolation. Full `python tools/verify_current.py` PASS after patch; updater suite 10/10 PASS. Self-review and `git diff --check` PASS. Build ID: `cd1e48cb3f041000baea261265b505603a34fdca2bd4ca7b1811bdee1f3242bd`.
+- **Release / E3–E5:** Pending; no manual production deploy. Physical iOS PWA and production network behavior not yet verified.
+- **Rollback:** Revert this updater change and its regression tests; rebuild canonical HTML/manifest through the existing workflow.
+
+---
+
 ## 2026-11-11 — UI-285 · iPhone punctuation/soft-wrap Composer jitter (SOURCE / CI / PWA PUBLISH VERIFIED)
 
 - **E0 screenshot:** iPhone PWA conversation E Quyên dv (06:13 VN) shows software keyboard and the normal native input accessory; user reports the Composer already wraps naturally but appears to shake/reposition after a period during long text entry. Screenshot alone cannot prove exact timing/frame jitter.

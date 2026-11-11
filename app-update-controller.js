@@ -4,6 +4,7 @@
 const RELEASE_VERSION='V21.72.39';
 const MODULE_CONTRACT_VERSION='app-update-v2';
 const CHECK_INTERVAL_MS=45000;
+const VERSION_TIMEOUT_MS=10000;
 const DEFER_RECHECK_MS=2500;
 const RELOAD_GUARD_MS=20000;
 const VERSION_URL='./version.json';
@@ -158,21 +159,40 @@ async function activateWaitingWorker(){
   }catch{}
   return false;
 }
+// Bound both response headers and body decoding. A stalled request must not
+// hold the shared checkPromise forever or publish an obsolete build later.
+async function fetchVersionManifest(){
+  const controller=typeof AbortController==='function'?new AbortController():null;
+  let timer;
+  const timeout=new Promise((_,reject)=>{
+    timer=setTimeout(()=>{
+      reject(new Error('version_timeout'));
+      controller?.abort();
+    },VERSION_TIMEOUT_MS);
+  });
+  try{
+    return await Promise.race([
+      (async()=>{
+        const response=await fetch(
+          VERSION_URL+'?t='+Date.now(),
+          {cache:'no-store',credentials:'same-origin',signal:controller?.signal}
+        );
+        if(!response.ok)throw new Error('version_http_'+response.status);
+        return await response.json();
+      })(),
+      timeout
+    ]);
+  }finally{
+    clearTimeout(timer);
+  }
+}
 async function checkForUpdate({reason='interval'}={}){
   if(checkPromise)return checkPromise;
   checkPromise=(async()=>{
     try{
       // SW update may hang on iOS; never block the uncached version check.
       try{void Promise.resolve(registration?.update?.()).catch(()=>{});}catch{}
-      const response=await fetch(
-        VERSION_URL+'?t='+Date.now(),
-        {cache:'no-store',credentials:'same-origin'}
-      );
-      if(!response.ok){
-        emit('check-failed',{message:'version_http_'+response.status});
-        return false;
-      }
-      const remote=await response.json();
+      const remote=await fetchVersionManifest();
       const nextVersion=String(remote?.version||'');
       const nextBuild=String(remote?.build_id||remote?.index_sha256||'');
       if(!nextBuild){
