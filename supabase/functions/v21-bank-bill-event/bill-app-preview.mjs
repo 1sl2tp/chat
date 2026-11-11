@@ -38,7 +38,7 @@ export function previewBillAppMatch(bill,events,otherBills=[],now=Date.now()){
  if(suffix&&suffix!==destination.slice(-5))return{status:"review",reason:"recipient_account_conflict"};
  // Customer receipts may show only *****99999 or have OCR errors in preceding digits.
  // Agribank's own credit notice remains responsible for verifying the FULL target account.
- if(acct.length>=5 && !acct.endsWith(destination.slice(-5)))
+ if((acct.length>=9 && acct!==destination) || (acct.length>=5 && !acct.endsWith(destination.slice(-5))))
   return{status:"review",reason:"recipient_account_conflict"};
  const matchLevel=acct&&bank?3:name?2:1;
  const date=bankTime(bill.transfer_at_vn), sent=when(bill.sent_at);
