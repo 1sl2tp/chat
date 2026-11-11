@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="c1554d5164993f4d4af1128c46efd2d8f7f83a48a35a0d5bfdd6ca42d28dd4d4">
+<meta name="app-build-id" content="741c2c979229045f691b781fa42668816d47109ffaf051073ea021532cd98727">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -2213,7 +2213,7 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
    one-line/two-line labels; do not alter their values or responsive order. */
 #bankReportDashboard :is(.bank-report-summary,.bank-report-status-main)>.bank-report-stat{
   box-sizing:border-box;display:flex;flex-direction:column;
-  justify-content:space-between;min-height:76px;padding:10px 12px;
+  justify-content:space-between;min-height:84px;padding:11px 12px;
 }
 /* UI-272: one quiet unit note for the entire selected day's monetary values;
    do not repeat units in metrics, customer rows, filters or credit captions. */
@@ -2224,6 +2224,46 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
 .bank-report-unit-note{
   font-size:11px;line-height:1.4;color:var(--text-secondary,#667085);
   white-space:nowrap;
+}
+/* UI-273: one screen-level unit plus separate money/count treatment. All
+   totals remain unchanged; only labels, spacing and spoken units differ. */
+.bank-report-title-row{display:flex;align-items:center;gap:4px;min-width:0}
+.bank-report-title-row .bank-report-heading{min-width:0}
+.bank-report-help{position:relative;flex:none}
+.bank-report-help-trigger{
+ display:flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;
+ border-radius:50%;cursor:pointer;list-style:none;font-weight:650;font-size:17px;
+ color:var(--text-secondary,#606a74);touch-action:manipulation
+}
+.bank-report-help-trigger::-webkit-details-marker{display:none}
+.bank-report-help-trigger:focus-visible{
+ outline:2px solid var(--theme-content-accent,#377ad6);outline-offset:2px
+}
+.bank-report-help-content{
+ position:absolute;z-index:20;right:0;top:100%;
+ width:min(315px,calc(100vw - 36px));max-height:min(50dvh,460px);
+ overflow-y:auto;overscroll-behavior:contain;
+ padding:12px 14px;border-radius:12px;
+ background:var(--surface-primary,#fff);border:1px solid var(--border-default,#dce2e7);
+ box-shadow:0 8px 28px #0002;font-size:12px;line-height:1.5
+}
+.bank-report-help-content strong{font-size:13px}
+.bank-report-help-content p{margin:8px 0 0}
+.bank-report-help-content b{font-weight:700}
+.bank-report-stat-unit{
+ display:inline-block;margin-left:6px;font-size:11px;
+ font-weight:550;letter-spacing:0;color:var(--text-secondary,#606a74);
+ vertical-align:baseline
+}
+#bankReportDashboard .bank-report-stat[data-metric-kind="count"]{
+ background:var(--surface-secondary,#f7f8f9);
+ border-color:var(--border-default,#e5e8ec);
+}
+#bankReportDashboard .bank-report-stat[data-metric-kind="money"]{
+ background:var(--surface-primary,#fff)
+}
+#bankReportDashboard .bank-report-stat-primary[data-metric-kind="money"]{
+ background:var(--surface-secondary,#f5f7f8)
 }
 .bank-report-status-strip.bank-report-status-extra{
   grid-template-columns:repeat(3,minmax(0,1fr));
@@ -2285,10 +2325,10 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
  .bank-report-table th,.bank-report-table td{padding:8px 2px}
  .bank-report-table th{font-size:10px}
  .bank-report-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;overflow:visible;margin-bottom:12px;padding:0}
- .bank-report-filter,.bank-report-filter-more-trigger{width:100%;height:44px;min-height:44px;display:flex;justify-content:center;align-items:center;padding:5px 4px;font-size:11px;white-space:normal;text-align:center;line-height:1.2;border-radius:9px}
+ .bank-report-filter,.bank-report-filter-more-trigger{width:100%;min-height:48px;display:flex;justify-content:center;align-items:center;padding:8px 6px;font-size:12px;white-space:normal;text-align:center;line-height:1.25;border-radius:9px}
  .bank-report-filter-more-trigger::after{margin-left:3px}
  .bank-report-filter-more-menu{min-width:155px}
- .bank-report-filter-more-menu .bank-report-filter{height:44px;min-height:44px;justify-content:flex-start;padding-inline:10px}
+ .bank-report-filter-more-menu .bank-report-filter{min-height:48px;justify-content:flex-start;padding-inline:10px}
  .bank-report-customer-head{gap:4px}
  .bank-report-customer-count{font-size:11px}
 }
@@ -2477,9 +2517,12 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
   }
   #bankReportDashboard .bank-report-table tbody{display:block}
   #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item{
-    display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
-    gap:4px 6px;align-items:center;min-height:72px;padding:8px 10px;
+    display:grid;grid-template-columns:repeat(20,minmax(0,1fr));
+    gap:8px 0;align-items:center;min-height:82px;padding:10px 12px;
     border-bottom:1px solid var(--border-default,#e9edf0);
+  }
+  #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item.is-selected{
+    box-shadow:inset 3px 0 0 var(--theme-content-accent,#377ad6)
   }
   #bankReportDashboard .bank-report-table tbody tr:last-child{border-bottom:0}
   #bankReportDashboard .bank-report-table tbody td{
@@ -2488,23 +2531,28 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
     overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
   }
   #bankReportDashboard .bank-report-table tbody td:first-child{
-    grid-column:1/4;grid-row:1;font-size:14px;font-weight:700;
+    grid-column:1/15;grid-row:1;font-size:14px;font-weight:700;
+    white-space:normal;overflow-wrap:anywhere;
   }
   #bankReportDashboard .bank-report-table tbody td:nth-child(6){
-    grid-column:4;grid-row:1;text-align:right;
-    font-size:15px;font-weight:750;font-variant-numeric:tabular-nums;
+    grid-column:15/21;grid-row:1;text-align:right;
+    font-size:16px;font-weight:750;font-variant-numeric:tabular-nums;
     white-space:nowrap;
   }
-  #bankReportDashboard .bank-report-table tbody td:nth-child(6)::before{
+  #bankReportDashboard .bank-report-table tbody td:nth-child(6)::after{
     content:attr(data-mobile-label);display:block;
     font-size:10px;font-weight:500;line-height:1.2;
     white-space:nowrap;
     color:var(--text-secondary,#667085);
   }
-  #bankReportDashboard .bank-report-table tbody td:nth-child(2){grid-column:1;grid-row:2}
-  #bankReportDashboard .bank-report-table tbody td:nth-child(3){grid-column:2;grid-row:2}
-  #bankReportDashboard .bank-report-table tbody td:nth-child(4){grid-column:3;grid-row:2}
-  #bankReportDashboard .bank-report-table tbody td:nth-child(5){grid-column:4;grid-row:2}
+  #bankReportDashboard .bank-report-table tbody td:nth-child(2){grid-column:1/6;grid-row:2}
+  #bankReportDashboard .bank-report-table tbody td:nth-child(3){grid-column:6/11;grid-row:2}
+  #bankReportDashboard .bank-report-table tbody td:nth-child(4){grid-column:11/16;grid-row:2}
+  #bankReportDashboard .bank-report-table tbody td:nth-child(5){grid-column:16/21;grid-row:2}
+  #bankReportDashboard .bank-report-table tbody tr.is-selected td:first-child::after{
+    content:'Đang xem';display:inline-block;font-size:10px;font-weight:650;
+    color:var(--theme-content-accent,#377ad6);margin-left:8px
+  }
   /* Four diagnostics take identical tracks; center their own label/value
      pair without changing the desktop six-column semantic table. */
   #bankReportDashboard .bank-report-table tbody td:nth-child(n+2):nth-child(-n+5){
@@ -2523,9 +2571,27 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
 }
 @media (max-width:360px){
   #bankReportDashboard .bank-report-table th{font-size:9.2px;letter-spacing:-.2px}
-  #bankReportDashboard .bank-report-stat-compact .bank-report-stat-name{font-size:9px}
+  #bankReportDashboard .bank-report-stat-compact .bank-report-stat-name{font-size:10px}
+  #bankReportDashboard .bank-report-filters{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #bankReportDashboard .bank-report-filter,
+  #bankReportDashboard .bank-report-filter-more-trigger{font-size:12px;min-height:48px}
 }
 
+
+/* UI-273: focus, press and non-error bank states use explicit text plus color. */
+#bankReportDashboard .bank-report-filter:focus-visible,
+#bankReportDashboard .bank-report-filter-more-trigger:focus-visible,
+#bankReportDashboard .bank-report-detail-top:focus-visible{
+ outline:2px solid var(--theme-content-accent,#377ad6);outline-offset:2px
+}
+#bankReportDashboard .bank-report-filter:active,
+#bankReportDashboard .bank-report-filter-more-trigger:active{transform:scale(.985)}
+#bankReportDashboard .bank-report-detail-top{min-height:48px}
+#bankReportDashboard .bank-status-bank_unlinked{color:#505c66;background:#eef1f3}
+@media(prefers-reduced-motion:reduce){
+ #bankReportDashboard .bank-report-filter:active,
+ #bankReportDashboard .bank-report-filter-more-trigger:active{transform:none}
+}
 
 /* BANK-282 · daily verified-bank summary; modal uses existing Admin focus trap. */
 .bank-report-controls [data-bank-daily-summary]{white-space:nowrap;font-weight:650}
