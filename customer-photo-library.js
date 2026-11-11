@@ -89,7 +89,8 @@ function allViewerItems(){
 function applyPhotoTileRotation(button,item){
   const img=button?.querySelector?.('img');
   if(!img||!item)return;
-  const rotation=Number(window.V21ImageOrientation?.readRotation?.(item.id))||0;
+  const orientation=/** @type {Window & {V21ImageOrientation?: {readRotation?: (assetId:string)=>number}}} */ (window).V21ImageOrientation;
+  const rotation=Number(orientation?.readRotation?.(item.id))||0;
   const quarterTurn=rotation===90||rotation===270;
   img.style.transform=rotation?`rotate(${rotation}deg)`:'';
   img.style.transformOrigin='center center';
