@@ -112,6 +112,8 @@ subprocess.run(['node',str(ROOT/'tests'/'test_ui285_ios_composer_punctuation_sta
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_directory_menu_ui261_20261108.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_customer_notification_settings_ui262_20261108.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_bank_report_realtime_dirty_ui263_20261108.cjs')],check=True,cwd=ROOT)
+subprocess.run(['node',str(ROOT/'tests'/'test_chat_p0_286_inbox_bank_delivery_20261111.cjs')],check=True,cwd=ROOT)
+subprocess.run(['node',str(ROOT/'tests'/'test_chat_directory_auth_filter_reset_20261102.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chatgpt_visual_identity_20261107.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chatgpt_header_pill_20261107.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_sender_receiver_colors_20261107.cjs')],check=True,cwd=ROOT)
