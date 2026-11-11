@@ -185,7 +185,7 @@ async function reload(){
  const auth=window.V21AuthSessionStore?.snapshot?.()||{};
  const client=window.V21AuthSessionStore?.getClient?.();
  const day=dateReady();
- ui.stamp.textContent='Đang cập nhật…';
+ ui.stamp.textContent=current?'Đang làm mới · đang hiển thị số liệu gần nhất…':'Đang tải dữ liệu…';
  try{
   if(!owner||owner!==reportSessionOwner||!auth.appSessionId||!client)throw Error('Chưa có phiên Admin');
   const [report,states,credits]=await Promise.all([
@@ -212,7 +212,8 @@ async function reload(){
   }}));
  }catch(error){
   if(id===requestId&&active&&owner===reportSessionOwner&&
-       owner===bankReportSessionOwner()){ui.stamp.textContent='Chưa lấy được dữ liệu. Bấm Làm mới.';ui.groups.replaceChildren(el('p','bank-report-empty','Không tải được bảng đối soát.'));}
+       owner===bankReportSessionOwner()){ui.stamp.textContent=current?'Làm mới chưa thành công · vẫn hiển thị số liệu lần trước.':'Không tải được đối soát. Chọn Làm mới.';
+    if(!current)ui.groups.replaceChildren(el('p','bank-report-empty','Không tải được bảng đối soát.'));}
  }finally{loading=false;if(queued){queued=false;void reload();}}
 }
 // BANK-243: desktop keeps full wording, phones use shorter labels.
@@ -251,14 +252,14 @@ function paint(data){
  const incoming=Array.isArray(data?.bank_credits)?data.bank_credits:[];
  ui.summary.replaceChildren(
   cardValue('Giao dịch đã thu · đối soát',String(s.matched_count||0),false,false,'GD đã thu · khớp'),
-  cardValue('Đã thu có chứng từ',money(s.matched_amount),true,false,'Đã thu có CT')
+  cardValue('Đã thu có chứng từ (nghìn đồng)',money(s.matched_amount),true,false,'Đã thu (nghìn ₫)')
  );
  ui.status.replaceChildren(
   cardValue('Bill chưa đối soát',String(s.bill_only_count||0),false,true,'Bill chờ soát'),
   cardValue('Agribank cần xử lý',String(outstanding),false,true,'NH cần xử lý'),
    cardValue('Đã thu thủ công Agribank',String((data?.manual_collections||[]).length),false,true,'Thu tay NH'),
    cardValue('Agribank tiền vào · đủ nguồn',String(incoming.length),false,true,'Tiền NH đủ nguồn'),
-   cardValue('Tổng tiền vào Agribank (÷1.000)',money(incoming.reduce((sum,x)=>sum+(Number(x.amount_vnd)||0),0)),false,true,'Tổng tiền NH (nghìn)'),
+   cardValue('Tổng tiền vào Agribank (nghìn đồng)',money(incoming.reduce((sum,x)=>sum+(Number(x.amount_vnd)||0),0)),false,true,'Tiền vào (nghìn ₫)'),
   cardValue('AI nghi sai ngày',String(s.old_date_count||0),false,true,'AI sai ngày'),
   cardValue('Ảnh trùng',String(s.duplicate_count||0),false,true,'Ảnh trùng'),
   cardValue('Ảnh AI chưa kết luận',String((data?.bills||[]).filter(isAiScanIssue).length),false,true,'AI chưa rõ')
@@ -311,7 +312,7 @@ function renderTable(data){
  // Keep the canonical reconciliation column contract intact; only
  // its narrow-screen presentation uses shorter, more readable headings.
  const columns=['Khách hàng','Tự thu','Chờ soát','Trùng','AI lỗi ngày','Tiền tự thu'];
- const shortColumns=['Khách','Tự thu','Chờ','Trùng','Sai','Tiền thu'];
+ const shortColumns=['Khách','Tự thu','Chờ','Trùng','Sai','Thu (nghìn)'];
  for(const [index,name] of columns.entries()){
   const short=shortColumns[index];
   const th=el('th');
