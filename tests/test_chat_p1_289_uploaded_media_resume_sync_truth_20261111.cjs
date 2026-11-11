@@ -83,7 +83,7 @@ async function transportCases(){
  assert.equal(metaWrites,1);
  const priorRpc=rpcCalls.length;
  const bad={...outbox,assets:[{...image,storage_key:'OTHER/CONV/asset-1'}]};
- await assert.rejects(()=>ctx.flush(bad,conversationId),/image_blob_missing/);
+ await assert.rejects(()=>ctx.flush(bad,conversationId),/uploaded_media_metadata_invalid/);
  assert.equal(rpcCalls.length,priorRpc,'bad key cannot trigger canonical message RPC');
  const unuploaded={...outbox,assets:[{...image,uploaded:false}]};
  await assert.rejects(()=>ctx.flush(unuploaded,conversationId),/image_blob_missing/);
