@@ -33,8 +33,8 @@ assert.equal(responsive.children[1].textContent,'Tổng tiền NH (nghìn)');
 assert.equal(responsive.children[1].attributes['aria-hidden'],'true');
 assert.equal(responsive.title,'Tổng tiền vào Agribank (÷1.000)');
 
-assert.equal(bankFilterMobileLabels.waiting_bank,'Bill chờ đối soát');
-assert.equal(bankFilterMobileLabels.bank_only,'Tiền NH chưa gắn bill');
+assert.equal(bankFilterMobileLabels.waiting_bank,'Chờ đối soát');
+assert.equal(bankFilterMobileLabels.bank_only,'Chưa gắn bill');
 assert.equal(bankFilterMobileLabels.manual_bank,'Thu tay NH');
 assert.equal(bankFilterMobileLabels.matched,'Đã khớp');
 
