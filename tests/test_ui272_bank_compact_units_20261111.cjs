@@ -13,8 +13,8 @@ assert(report.length>0);
 assert.equal((report.match(/Đơn vị: 1\.000đ/g)||[]).length,1,'show money unit exactly once');
 assert(report.includes('class="bank-report-status-line"'));
 assert(report.includes('data-bank-updated role="status" aria-live="polite"'));
-assert(css.includes('min-height:76px;padding:10px 12px;'),
- 'compact equal-size KPIs with 76px total height (box-sizing border-box)');
+assert(css.includes('min-height:84px;padding:11px 12px;'),
+ 'compact equal-size KPIs can grow for font scaling without clipping');
 assert(css.includes('box-sizing:border-box;display:flex;flex-direction:column;'));
 assert(css.includes('white-space:nowrap;')&&css.includes('content:attr(data-mobile-label)'),
  'mobile customer total stays a single label line');
@@ -34,7 +34,7 @@ const end=js.indexOf('function cardValue(',start);
 assert(start>0&&end>start);
 const ctx=vm.createContext({});
 vm.runInContext(js.slice(start,end)+'\nglobalThis.labels=bankFilterMobileLabels;',ctx);
-assert.equal(ctx.labels.waiting_bank,'Chờ đối soát');
+assert.equal(ctx.labels.waiting_bank,'Bill chưa khớp');
 assert.equal(ctx.labels.bank_only,'Chưa gắn bill');
 assert.equal(ctx.labels.review,'Cần xác minh');
 assert.notEqual(ctx.labels.waiting_bank,ctx.labels.bank_only,'cash and bill distinctions remain');
@@ -42,7 +42,7 @@ const filterStart=js.indexOf('const filters=[');
 const filterEnd=js.indexOf('];',filterStart)+2;
 const scope=vm.createContext({});
 vm.runInContext(js.slice(filterStart,filterEnd)+'\nglobalThis.filtersView=filters;',scope);
-const expected=['Tất cả','Đã khớp','Chờ đối soát','Chưa gắn bill','Cần xác minh'];
+const expected=['Tất cả','Đã khớp bill','Bill chưa khớp','Chưa gắn bill','Cần xác minh'];
 for(const name of expected)assert(scope.filtersView.some(x=>x[1]===name),name);
 assert(js.includes('const money=bankMoneyThousands;'),'keep old amounts and rounding');
 assert(js.includes("client.rpc('chat_bank_dashboard'"),'keep the existing read-only report source');
