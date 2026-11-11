@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="741c2c979229045f691b781fa42668816d47109ffaf051073ea021532cd98727">
+<meta name="app-build-id" content="934adb33644b4e183fd2772441b89d66ddac403b33255a9c9f1383277bcba2fb">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -2265,6 +2265,42 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
 #bankReportDashboard .bank-report-stat-primary[data-metric-kind="money"]{
  background:var(--surface-secondary,#f5f7f8)
 }
+/* P0-BANK-286: a shallow exception queue, not another dashboard. It does
+   not own bank data, navigation, refresh, or a financial action. */
+.bank-report-work-queue{
+  display:grid;gap:8px;min-width:0;margin:0 0 12px;
+  padding:11px 12px;border:1px solid var(--border-default,#e2e7eb);
+  border-radius:12px;background:var(--surface-secondary,#f8f9fa);
+}
+.bank-report-work-queue[hidden]{display:none!important}
+.bank-report-work-title{font-size:13px;font-weight:700;line-height:1.3}
+.bank-report-work-actions{display:flex;flex-wrap:wrap;gap:7px;min-width:0}
+.bank-report-work-button{
+  min-height:44px;display:inline-flex;align-items:center;gap:7px;
+  max-width:100%;padding:7px 10px;cursor:pointer;
+  border:1px solid var(--border-default,#d5dce2);border-radius:10px;
+  background:var(--surface-primary,#fff);color:var(--text-primary,#242424);
+  font:inherit;font-size:12px;line-height:1.3;text-align:left;
+}
+.bank-report-work-button.is-selected{
+  border-color:var(--theme-content-accent,#377ad6);
+  box-shadow:inset 0 0 0 1px var(--theme-content-accent,#377ad6)
+}
+.bank-report-work-count{
+  display:inline-flex;justify-content:center;align-items:center;
+  min-width:22px;min-height:23px;border-radius:6px;padding:2px 5px;
+  background:var(--surface-secondary,#eef1f4);
+  font-variant-numeric:tabular-nums;font-weight:750
+}
+.bank-report-work-button:focus-visible{
+  outline:2px solid var(--theme-content-accent,#377ad6);outline-offset:2px
+}
+.bank-report-work-empty{font-size:12px;color:var(--text-secondary,#667085)}
+@media (max-width:650px){
+  .bank-report-work-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .bank-report-work-button{justify-content:flex-start;min-width:0}
+  .bank-report-work-label{min-width:0;overflow-wrap:anywhere}
+}
 .bank-report-status-strip.bank-report-status-extra{
   grid-template-columns:repeat(3,minmax(0,1fr));
   margin:7px 0 0;
@@ -3546,6 +3582,18 @@ button{
 }
 .user-message-unit>.message-sent-time{align-self:flex-end;text-align:right}
 .assistant-message-unit>.message-sent-time{align-self:flex-start;text-align:left}
+/* P0-MSG-286: only local pending/failure states are labelled here.
+   A server ACK clears the label; no delivered/read indicators are inferred. */
+.message-delivery-state{
+  display:block;align-self:flex-end;max-width:100%;
+  margin-top:2px;font-size:11px;line-height:1.35;
+  font-weight:500;color:var(--theme-content-secondary,#667085);
+  text-align:right;overflow-wrap:anywhere;
+}
+.message-delivery-state[data-state="failed"]{
+  color:var(--theme-content-danger,#a63c32);
+  font-weight:650;
+}
 .user-message-unit{
   align-items:flex-end;
   margin-left:auto;
@@ -8896,6 +8944,7 @@ button{
                   <button data-bank-refresh type="button">Làm mới</button>
                 </div>
               </div>
+              <section class="bank-report-work-queue" data-bank-work-queue aria-label="Hàng đợi đối soát" hidden></section>
               <div class="bank-report-summary" data-bank-summary></div>
               <div class="bank-report-status-strip bank-report-status-main" data-bank-status></div>
               <details class="bank-report-extra-metrics" data-bank-extra-metrics>
@@ -13113,8 +13162,31 @@ function syncMessageTimeNode(unit,message){
     timeZone:'Asia/Ho_Chi_Minh',day:'2-digit',month:'2-digit',year:'numeric',
     hour:'2-digit',minute:'2-digit',hour12:false
   });
-  time.title='Gửi lúc '+full+' · giờ Việt Nam';
-  time.setAttribute('aria-label','Gửi lúc '+full+' · giờ Việt Nam');
+  // A local outbox attempt has a creation timestamp, not a server send ACK.
+  const timeMeaning=message?.status==='sending'?'Tạo lúc ':
+    message?.status==='failed'?'Thử gửi lúc ':'Gửi lúc ';
+  time.title=timeMeaning+full+' · giờ Việt Nam';
+  time.setAttribute('aria-label',timeMeaning+full+' · giờ Việt Nam');
+}
+
+// P0-MSG-286: present only the two real local outbox states. "Sent",
+// "delivered" and "read" must never be inferred from a network hint.
+function syncMessageDeliveryState(unit,message){
+  if(!unit)return;
+  const state=message?.sender==='self'&&message?.status==='failed'?'failed':
+    message?.sender==='self'&&message?.status==='sending'?'sending':'';
+  let node=unit.querySelector(':scope > .message-delivery-state');
+  if(!state){node?.remove();return;}
+  if(!node){
+    node=document.createElement('span');
+    node.className='message-delivery-state';
+    node.setAttribute('role','status');
+    unit.appendChild(node);
+  }
+  node.dataset.state=state;
+  const label=state==='failed'?'Chưa gửi thành công':'Đang chờ xác nhận gửi';
+  if(node.textContent!==label)node.textContent=label;
+  node.setAttribute('aria-label',label);
 }
 
 function messageDateKey(timestamp){
@@ -13211,6 +13283,7 @@ function messageVisualSignature(message){
     String(message?.sender||'remote'),
     String(message?.kind||'text'),
     String(message?.text||''),
+    String(message?.status||'sent'),
     message?.important?'1':'0',
     reply,
     mediaVisualSignature(message?.media),
@@ -15235,6 +15308,7 @@ function patchMessageNode(node,message){
 
   bindTextActionTap(node,text);
   syncMessageTimeNode(unit,message);
+  syncMessageDeliveryState(unit,message);
   node.__visualSignature=messageVisualSignature(message);
   return node;
 }
@@ -15303,6 +15377,7 @@ function renderMessageNode(message){
 
   unit.appendChild(createActionGroup(message));
   syncMessageTimeNode(unit,message);
+  syncMessageDeliveryState(unit,message);
   messageWrap.appendChild(unit);
   stack.appendChild(messageWrap);
   outer.appendChild(stack);
@@ -30759,6 +30834,7 @@ const ui={
  refresh:root.querySelector('[data-bank-refresh]'),
  daily:root.querySelector('[data-bank-daily-summary]'),
  summary:root.querySelector('[data-bank-summary]'),
+ queue:root.querySelector('[data-bank-work-queue]'),
  status:root.querySelector('[data-bank-status]'),
  extraStatus:root.querySelector('[data-bank-extra-status]'),
  table:root.querySelector('[data-bank-table]'),
@@ -30999,6 +31075,46 @@ function cardValue(name,value,highlight=false,compact=false,mobileName=name,meta
  card.dataset.metricKind=meta?.countUnit?'count':meta?.amountVnd!==undefined?'money':'other';
  return append(card,caption,number);
 }
+// P0-BANK-286: a READ-ONLY priority view of statuses already returned by
+// the existing three bank RPCs. These buttons only select existing filters;
+// they never classify or approve a receipt, trigger a sender or write a ledger.
+function renderBankWorkQueue(data,outstanding){
+ const holder=ui.queue;
+ if(!holder)return; // Older cached PWA HTML still uses its existing filters.
+ const bills=Array.isArray(data?.bills)?data.bills:[];
+ const tasks=[
+  {key:'bank_only',label:'Tiền NH chưa gắn bill',count:outstanding},
+  {key:'waiting_bank',label:'Bill chờ NH',count:bills.filter(b=>b.report_status==='waiting_bank').length},
+  {key:'review',label:'Cần xác minh',count:bills.filter(b=>b.report_status==='review'||b.report_status==='reading').length}
+ ];
+ const waiting=tasks.filter(task=>task.count>0);
+ const title=el('strong','bank-report-work-title','Cần kiểm tra');
+ const head=el('div','bank-report-work-heading');
+ head.appendChild(title);
+ holder.replaceChildren(head);
+ if(!waiting.length){
+  holder.appendChild(el('span','bank-report-work-empty','Chưa có mục chờ trong dữ liệu ngày đang xem'));
+  holder.hidden=false;
+  return;
+ }
+ const actions=el('div','bank-report-work-actions');
+ for(const item of waiting){
+  const button=el('button','bank-report-work-button'+(filter===item.key?' is-selected':''));
+  button.type='button';
+  button.dataset.filter=item.key;
+  button.setAttribute('aria-pressed',String(filter===item.key));
+  button.setAttribute('aria-label',item.count+' '+item.label+' · xem chi tiết');
+  append(button,el('span','bank-report-work-count',String(item.count)),
+    el('span','bank-report-work-label',item.label));
+  button.addEventListener('click',()=>{
+   filter=item.key;selectedCustomer=null;paint(data);
+   ui.groups?.scrollIntoView?.({block:'start',behavior:'auto'});
+  });
+  actions.appendChild(button);
+ }
+ holder.appendChild(actions);
+ holder.hidden=false;
+}
 function paint(data){
  const s=data?.summary||{};
  const expanded=new Set([...ui.groups.querySelectorAll('.bank-report-detail[open]')]
@@ -31010,6 +31126,7 @@ function paint(data){
  const outstanding=(data?.bank_only||[]).filter(x=>!handled.has(String(x.notice_id))).length;
  const incoming=Array.isArray(data?.bank_credits)?data.bank_credits:[];
  const incomingAmountVnd=incoming.reduce((sum,x)=>sum+(Number(x.amount_vnd)||0),0);
+ if(ui.queue)renderBankWorkQueue(data,outstanding);
  // Bank credit → verified ledger. The second row is a COUNT of matched
  // receipts and pending bills, not another amount of money.
  ui.summary.replaceChildren(
@@ -32097,6 +32214,7 @@ function synchronize(){
   // Reject in-flight responses and erase old bank details immediately.
   requestId++;selectedCustomer=null;filter='all';current=null;
   ui.summary.replaceChildren();ui.status.replaceChildren();ui.extraStatus?.replaceChildren();
+  ui.queue?.replaceChildren();if(ui.queue)ui.queue.hidden=true;
   ui.table.replaceChildren();ui.groups.replaceChildren();
   ui.stamp.textContent='Đang cập nhật phiên Admin…';
   closeViewer();closeReviewDialog();
