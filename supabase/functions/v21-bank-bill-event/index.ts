@@ -158,13 +158,24 @@ Deno.serve(async req=>{
    const {data:r}=await db.from("chat_bank_bill_receipts")
      .select("id,raw_read,amount_vnd,receiving_name,receiving_bank,receiving_account,transfer_reference,transfer_at_vn,sent_at")
      .eq("media_asset_id",asset).eq("status","amount_read").maybeSingle();
-   if(r?.raw_read?.rule_version==="bank_bill_amount_v4_20261018" &&
+   if(["bank_bill_amount_v4_20261018","bank_bill_amount_v5_20261110"].includes(String(r?.raw_read?.rule_version||"")) &&
       Number.isSafeInteger(r.amount_vnd)&&r.amount_vnd>0){
+     const evidence=r.raw_read?.rule_version==="bank_bill_amount_v5_20261110"
+       ?requiredAutoCollectEvidence({
+         receiving_account:r.receiving_account,
+         receiving_account_visible:r.raw_read?.recipient_account_visible,
+         receiving_account_last5:r.raw_read?.recipient_account_last5,
+         time_date_conflict:r.raw_read?.time_date_conflict,
+         clock_text_conflict:r.raw_read?.clock_text_conflict,
+         transfer_date_printed_vn:r.raw_read?.transfer_date_printed_vn,
+         transfer_time_printed_vn:r.raw_read?.transfer_time_printed_vn,
+         transfer_at_vn:r.transfer_at_vn
+       }):{complete:true,requires_bank_memo:false};
      const tx=r.transfer_at_vn?Date.parse(String(r.transfer_at_vn).replace(" ","T")+"+07:00"):NaN;
      const refDay=String(r.raw_read?.transfer_date_vn||"");
      const hasReference=!Number.isFinite(tx)&&/^\d{4}-\d{2}-\d{2}$/.test(refDay)
        &&Boolean(r.transfer_reference&&r.raw_read?.transfer_content);
-     if(Number.isFinite(tx)||hasReference){
+     if(evidence.complete && !r.raw_read?.time_date_conflict && (Number.isFinite(tx)||hasReference)){
        const center=Number.isFinite(tx)?tx:Date.parse(refDay+"T00:00:00+07:00");
        const lo=new Date(Number.isFinite(tx)?center-5*60000:center);
        const hi=new Date(Number.isFinite(tx)?center+5*60000:center+24*3600000-1);
@@ -191,7 +202,9 @@ Deno.serve(async req=>{
            receiving_account_last5:r.raw_read?.recipient_account_last5,
            transfer_at_vn:r.transfer_at_vn,transfer_date_vn:r.raw_read?.transfer_date_vn,
            transfer_content:r.raw_read?.transfer_content,transfer_reference:r.transfer_reference,
-           transaction_nature:r.raw_read?.transaction_nature
+           transaction_nature:r.raw_read?.transaction_nature,
+           ocr_date_normalization_corrected:r.raw_read?.ocr_date_normalization_corrected===true,
+           requires_bank_memo:evidence.requires_bank_memo===true
          };
          const match=hasReference
            ?previewBillReferenceMatch(candidate,app.data,others.data)
@@ -335,10 +348,12 @@ Deno.serve(async req=>{
          matchPreview={status:"review",reason:"matching_data_incomplete"};
        else matchPreview=hasReference
          ?previewBillReferenceMatch({
-            media_asset_id:asset,status,amount_vnd:amount,sent_at:job.sent_at,...fields
+            media_asset_id:asset,status,amount_vnd:amount,sent_at:job.sent_at,...fields,
+            requires_bank_memo:evidence.requires_bank_memo===true
            },appRes.data||[],otherRes.data||[])
          :previewBillAppMatch({
-            media_asset_id:asset,status,amount_vnd:amount,sent_at:job.sent_at,...fields
+            media_asset_id:asset,status,amount_vnd:amount,sent_at:job.sent_at,...fields,
+            requires_bank_memo:evidence.requires_bank_memo===true
            },appRes.data||[],otherRes.data||[]);
      }catch(_e){matchPreview={status:"review",reason:"matching_preview_unavailable"};}
    }
@@ -363,7 +378,8 @@ Deno.serve(async req=>{
      receiving_bank:fields.receiving_bank,sending_bank:fields.sending_bank,
      transfer_reference:fields.transfer_reference,transfer_at_vn:fields.transfer_at_vn,
      raw_read:{read_mode:"amount_hash_only",rule_version:RULE_VERSION,
-      bill_evidence_policy:"manual_on_missing_v1",
+      bill_evidence_policy:"safe_memo_tier_v2",
+      requires_bank_memo:evidence.requires_bank_memo===true,
       required_fields_complete:evidence.complete,
       manual_review_reason:!evidence.complete?evidence.reason:null,
       image_type:String(parsed?.image_type||"").slice(0,48),
