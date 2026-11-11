@@ -24,8 +24,8 @@ const ui={
  review:root.querySelector('[data-bank-review-modal]')
 };
 const filters=[
- ['all','Tất cả'],['matched','Đã thu · Khớp'],['waiting_bank','Bill chờ Agribank'],
- ['bank_only','Agribank chưa khớp'],['bank_all','Tất cả tiền vào Agribank'],['review','Cần kiểm tra'],['wrong_day','AI sai ngày'],
+ ['all','Tất cả'],['matched','Đã thu · Đã khớp'],['waiting_bank','Bill chờ đối chiếu với Agribank'],
+ ['bank_only','Tiền Agribank chưa gắn bill'],['bank_all','Tất cả tiền vào Agribank'],['review','Cần xác minh thủ công'],['wrong_day','AI sai ngày'],
  ['manual_bank','Đã thu thủ công Agribank'],['duplicate','Trùng'],['non_bill','Không phải bill'],['test_excluded','Test (loại)']
 ];
 // Match customer names with or without Vietnamese accents and flexible spaces.
@@ -229,8 +229,8 @@ function bankResponsiveLabel(full,short=full){
  return append(label,regular,narrow);
 }
 const bankFilterMobileLabels={
- all:'Tất cả',matched:'Đã khớp',waiting_bank:'Bill chờ NH',
- bank_only:'NH chưa khớp',bank_all:'Tiền vào NH',review:'Cần soát',
+ all:'Tất cả',matched:'Đã khớp',waiting_bank:'Bill chờ đối soát',
+ bank_only:'Tiền NH chưa gắn bill',bank_all:'Tiền vào NH',review:'Cần xác minh',
  wrong_day:'AI sai ngày',manual_bank:'Thu tay NH',duplicate:'Trùng',
  non_bill:'Không phải bill',test_excluded:'Test (loại)'
 };
@@ -253,7 +253,7 @@ function paint(data){
  const incoming=Array.isArray(data?.bank_credits)?data.bank_credits:[];
  ui.summary.replaceChildren(
   cardValue('Giao dịch đã thu · đối soát',String(s.matched_count||0),false,false,'GD đã thu · khớp'),
-  cardValue('Đã thu có chứng từ',money(s.matched_amount),true,false,'Đã thu (nghìn ₫)')
+  cardValue('Đã thu có chứng từ',money(s.matched_amount),true,false,'Đã ghi thu (nghìn ₫)')
  );
  // Keep every bank diagnostic even if a cached PWA shell has not loaded
  // the new disclosure yet; it can still render the legacy complete strip.
@@ -266,8 +266,8 @@ function paint(data){
    cardValue('Ảnh AI chưa kết luận',String((data?.bills||[]).filter(isAiScanIssue).length),false,true,'AI chưa rõ')
  ];
  ui.status.replaceChildren(
-  cardValue('Bill chưa đối soát',String(s.bill_only_count||0),false,true,'Bill chờ soát'),
-  cardValue('Tổng tiền vào Agribank (nghìn đồng)',money(incoming.reduce((sum,x)=>sum+(Number(x.amount_vnd)||0),0)),false,true,'Tiền vào (nghìn ₫)'),
+  cardValue('Bill chưa đối soát',String(s.bill_only_count||0),false,true,'Bill chưa khớp'),
+  cardValue('Tổng tiền vào Agribank (nghìn đồng)',money(incoming.reduce((sum,x)=>sum+(Number(x.amount_vnd)||0),0)),false,true,'Tiền vào NH (nghìn ₫)'),
   ...(!ui.extraStatus?additionalCards:[])
  );
  // New shell: only 4 critical KPIs show first. Secondary figures are
@@ -320,7 +320,7 @@ function renderTable(data){
  const head=el('thead'),thead=el('tr');
  // Keep the canonical reconciliation column contract intact; only
  // its narrow-screen presentation uses shorter, more readable headings.
- const columns=['Khách hàng','Tự thu','Chờ soát','Trùng','AI lỗi ngày','Tiền tự thu'];
+ const columns=['Khách hàng','Tự thu','Chờ soát','Trùng','AI lỗi ngày','Tiền tự thu trong ngày chọn'];
  const shortColumns=['Khách','Tự thu','Chờ','Trùng','Sai','Tiền thu'];
  for(const [index,name] of columns.entries()){
   const short=shortColumns[index];
@@ -337,7 +337,7 @@ function renderTable(data){
   // Desktop keeps the six-column semantic table; mobile adds explicit inline
   // labels without hiding a financial figure or changing row selection.
   [...tr.children].forEach((td,i)=>{
-   td.dataset.mobileLabel=i===5?'Thu (nghìn ₫)':shortColumns[i];
+   td.dataset.mobileLabel=i===5?'Thu ngày chọn (nghìn ₫)':shortColumns[i];
    td.title=columns[i];
   });
   const jump=()=>{selectedCustomer=selectedCustomer===g.id?null:g.id;filter='all';paint(data);if(selectedCustomer)root.querySelector('[data-bank-customer="'+g.id+'"]')?.scrollIntoView?.({block:'nearest',behavior:'smooth'});};
