@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="27d8c061dbaa336d7e2ff7ab5403cf4fe6c287b69d6a57ffe25d45d6bba8de6d">
+<meta name="app-build-id" content="a084b71eba8fb5638183f0e63bd06f50d0b7618b6728c79779812419af913307">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -31109,6 +31109,25 @@ function allViewerItems(){
     senderKey:item.senderKey,createdAt:item.createdAt,width:item.width,height:item.height
   }));
 }
+// IMG-286: Photo gallery previews must show the same corrected orientation
+// as the full-screen viewer and conversation. Rotate the presentation only,
+// never rewrite the stored Blob or change photo-grid sizing.
+function applyPhotoTileRotation(button,item){
+  const img=button?.querySelector?.('img');
+  if(!img||!item)return;
+  const orientation=/** @type {Window & {V21ImageOrientation?: {readRotation?: (assetId:string)=>number}}} */ (window).V21ImageOrientation;
+  const rotation=Number(orientation?.readRotation?.(item.id))||0;
+  const quarterTurn=rotation===90||rotation===270;
+  img.style.transform=rotation?`rotate(${rotation}deg)`:'';
+  img.style.transformOrigin='center center';
+  img.dataset.chatImageRotation=String(rotation);
+  button.dataset.rotated=quarterTurn?'true':'false';
+  if(quarterTurn||(Number(item.width)>0&&Number(item.height)>Number(item.width)*1.65)){
+    button.dataset.fit='contain';
+  }else{
+    delete button.dataset.fit;
+  }
+}
 async function hydrate(button,item,token){
   const img=button.querySelector('img');
   if(!img||token!==generation||host.hidden)return;
@@ -31161,6 +31180,7 @@ function appendTiles(grid,items,token){
     img.alt='';
     img.loading='lazy';img.decoding='async';
     button.appendChild(img);
+    applyPhotoTileRotation(button,item);
     button.addEventListener('click',()=>window.V21ChatImageViewer?.open?.({
       assetId:item.id,accountId:item.accountId,messageId:item.messageId,
       items:allViewerItems()
@@ -31252,6 +31272,16 @@ document.addEventListener('v21-media-ready',()=>{
 });
 document.addEventListener('v21-media-removed',()=>{
   if(current().route==='photos')void render();
+});
+// Rotate only the matching already-mounted photo tile on a user's manual
+// correction; avoid network fetches, gallery rerenders or contact changes.
+document.addEventListener('v21-image-rotation-changed',event=>{
+  const assetId=String(event?.detail?.assetId||'');
+  if(!assetId||host.hidden)return;
+  for(const button of host.querySelectorAll('.customer-photo-tile')){
+    const item=button._photoItem;
+    if(item?.id===assetId)applyPhotoTileRotation(button,item);
+  }
 });
 window.addEventListener('resize',layout,{passive:true});
 window.visualViewport?.addEventListener('resize',layout,{passive:true});
