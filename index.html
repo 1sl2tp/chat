@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="675431c440efa9cc9b6574ee549a10801d3ea1dfd2208091de902fb07102da2d">
+<meta name="app-build-id" content="c849abdbb4b7f880b13794fd5585842baf78cd10f2403b170f64d671cd9d38cf">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -3103,6 +3103,193 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
   font-size:10px;min-height:34px;padding:6px 7px;
  }
  #bankReportDashboard .bank-report-table tbody td:nth-child(6){font-size:12px}
+}
+
+
+/* BANK-312: finance UI uses /1,000 figures with no per-item currency suffix.
+   Balanced action grids on BOTH phone and desktop. No finance math changes.
+   The primary action widths follow stable grid tracks, not text length. */
+#bankReportDashboard.bank-report-dashboard{
+  width:min(100%,1000px);
+  padding:10px 12px calc(22px + env(safe-area-inset-bottom,0px));
+}
+#bankReportDashboard .bank-report-header{
+  gap:6px;margin-bottom:9px;
+}
+#bankReportDashboard .bank-report-title-row{
+  gap:5px;align-items:center;
+}
+#bankReportDashboard .bank-report-status-line{
+  display:flex;align-items:baseline;flex-wrap:wrap;
+  gap:2px 9px;margin-top:3px;
+}
+#bankReportDashboard .bank-report-subtitle,
+#bankReportDashboard .bank-report-unit-note{
+  font-size:10px;line-height:1.3;
+}
+#bankReportDashboard .bank-report-controls{
+  display:grid;
+  grid-template-columns:minmax(0,1.15fr) minmax(0,1.25fr) minmax(0,.8fr);
+  width:min(100%,490px);max-width:100%;
+  gap:6px;margin:0;align-items:stretch;
+}
+#bankReportDashboard .bank-report-controls > input,
+#bankReportDashboard .bank-report-controls > button{
+  display:flex;align-items:center;justify-content:center;
+  width:100%;min-width:0;max-width:100%;min-height:39px;
+  padding:7px 6px;box-sizing:border-box;
+  border-radius:9px;font-size:11px;
+  text-overflow:ellipsis;white-space:nowrap;overflow:hidden;
+}
+#bankReportDashboard .bank-report-controls > input{
+  text-align:center;appearance:auto;
+  padding-inline:5px;
+}
+#bankReportDashboard .bank-report-controls [data-bank-daily-summary]{
+  font-size:11px;letter-spacing:-.01em;
+}
+#bankReportDashboard .bank-report-kpi-grid{
+  gap:6px;margin:7px 0 8px;
+}
+#bankReportDashboard .bank-report-kpi-grid .bank-report-stat{
+  min-height:69px!important;padding:9px 11px!important;
+}
+#bankReportDashboard .bank-report-kpi-grid .bank-report-stat-name{
+  font-size:11px;line-height:1.25;
+}
+#bankReportDashboard .bank-report-kpi-grid .bank-report-stat-number{
+  margin-top:3px;font-size:18px;line-height:1.18;
+  font-variant-numeric:tabular-nums;letter-spacing:-.025em;
+  overflow-wrap:anywhere;
+}
+#bankReportDashboard .bank-report-work-queue{
+  margin:0 0 7px;padding:6px 0 8px;gap:6px;
+}
+#bankReportDashboard .bank-report-work-title{font-size:12px}
+#bankReportDashboard .bank-report-work-actions{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:6px;max-width:700px;
+}
+#bankReportDashboard .bank-report-work-actions[data-task-count="2"]{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+#bankReportDashboard .bank-report-work-actions[data-task-count="1"]{
+  grid-template-columns:minmax(0,1fr);
+  max-width:220px;
+}
+#bankReportDashboard .bank-report-work-button{
+  display:flex;align-items:center;justify-content:center;
+  flex:none;width:100%;min-width:0;min-height:40px;
+  gap:5px;padding:5px 7px;box-sizing:border-box;
+  font-size:11px;line-height:1.25;text-align:center;
+  white-space:normal;overflow-wrap:anywhere;
+  border-radius:9px;
+}
+#bankReportDashboard .bank-report-work-count{
+  flex:0 0 auto;padding-inline:4px;
+}
+#bankReportDashboard .bank-report-extra-metrics{
+  margin:0 0 8px;
+}
+#bankReportDashboard .bank-report-extra-metrics-trigger{
+  min-height:33px;padding:6px 9px;
+}
+#bankReportDashboard .bank-report-table-caption{margin:7px 0 6px}
+#bankReportDashboard .bank-report-table-wrap{margin-bottom:8px}
+#bankReportDashboard .bank-report-filters{
+  display:grid;grid-template-columns:repeat(6,minmax(0,1fr));
+  align-items:stretch;gap:6px;
+  margin:6px 0 9px;padding:0;max-width:100%;
+  overflow:visible;
+}
+#bankReportDashboard .bank-report-filters > .bank-report-filter,
+#bankReportDashboard .bank-report-filters > .bank-report-filter-more,
+#bankReportDashboard .bank-report-filters > .bank-report-filter-more > summary{
+  width:100%;max-width:100%;min-width:0;box-sizing:border-box;
+}
+#bankReportDashboard .bank-report-filters > .bank-report-filter,
+#bankReportDashboard .bank-report-filters > .bank-report-filter-more > summary{
+  display:flex;align-items:center;justify-content:center;
+  text-align:center;white-space:normal;overflow-wrap:break-word;
+  min-height:39px;padding:6px 5px;
+  font-size:11px;line-height:1.25;border-radius:9px;
+}
+#bankReportDashboard .bank-report-filters > .bank-report-filter-more{
+  position:relative;
+}
+#bankReportDashboard .bank-report-filter-more-menu{
+  z-index:45;box-sizing:border-box;
+}
+#bankReportDashboard .bank-report-detail-section-head{margin:7px 0}
+#bankReportDashboard .bank-report-customer{
+  margin-bottom:7px;
+}
+#bankReportDashboard .bank-report-customer-head{
+  padding:8px 10px;
+}
+#bankReportDashboard .bank-report-detail-top{
+  min-height:45px;padding:7px 10px;
+}
+#bankReportDashboard .bank-report-detail-content{
+  padding:8px 10px 9px;gap:7px;
+}
+@media(max-width:760px){
+  #bankReportDashboard .bank-report-filters{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:5px;
+  }
+}
+@media(max-width:540px){
+  #bankReportDashboard.bank-report-dashboard{
+    padding:8px 9px calc(21px + env(safe-area-inset-bottom,0px));
+  }
+  #bankReportDashboard .bank-report-controls{
+    grid-template-columns:minmax(0,1.16fr) minmax(0,1.15fr) minmax(0,.82fr);
+    width:100%;gap:5px;
+  }
+  #bankReportDashboard .bank-report-controls > input,
+  #bankReportDashboard .bank-report-controls > button{
+    min-height:37px;padding:6px 4px;font-size:11px;
+  }
+  #bankReportDashboard .bank-report-kpi-grid .bank-report-stat{
+    min-height:67px!important;padding:8px 10px!important;
+  }
+  #bankReportDashboard .bank-report-kpi-grid .bank-report-stat-number{
+    font-size:clamp(15px,3.8vw,18px);margin-top:3px;
+  }
+  #bankReportDashboard .bank-report-work-actions{gap:5px}
+  #bankReportDashboard .bank-report-work-button{
+    min-height:41px;font-size:10px;padding:4px;
+    flex-direction:row;
+  }
+  #bankReportDashboard .bank-report-work-count{min-width:17px;min-height:19px;font-size:10px}
+  #bankReportDashboard .bank-report-filters{gap:5px}
+  #bankReportDashboard .bank-report-filters > .bank-report-filter,
+  #bankReportDashboard .bank-report-filters > .bank-report-filter-more > summary{
+    min-height:37px;padding:5px 4px;font-size:11px;
+  }
+  #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item{
+    min-height:55px;padding:7px 10px;gap:3px 9px;
+  }
+  #bankReportDashboard .bank-report-table tbody td:nth-child(6){
+    font-size:15px;letter-spacing:-.03em;
+  }
+  #bankReportDashboard .bank-report-detail-top{
+    min-height:42px;padding:6px 9px;
+  }
+  #bankReportDashboard .bank-report-detail-content{
+    padding:8px 9px;gap:6px;
+  }
+}
+@media(max-width:360px){
+  #bankReportDashboard .bank-report-controls > input,
+  #bankReportDashboard .bank-report-controls > button{font-size:10px}
+  #bankReportDashboard .bank-report-filters > .bank-report-filter,
+  #bankReportDashboard .bank-report-filters > .bank-report-filter-more > summary{
+    min-height:38px;font-size:10px;padding:4px 2px;
+  }
+  #bankReportDashboard .bank-report-work-button{font-size:9.5px}
 }
 
 </style>
@@ -9385,7 +9572,7 @@ button{
                     <summary class="bank-report-help-trigger" title="Giải thích các chỉ số" aria-label="Giải thích các chỉ số đối soát">ⓘ</summary>
                     <div class="bank-report-help-content">
                       <strong>Hiểu đúng các số liệu</strong>
-                      <p><b>Tiền vào NH:</b> các giao dịch ghi có Agribank đã loại bản thông báo phát lại; không đồng nghĩa đã thu công nợ.</p>
+                      <p><b>Quy ước hiển thị:</b> số tiền chia 1.000, không thêm ký hiệu tiền vào từng dòng; ví dụ 26.446 là 26.446.000 VND. Phép tính và bút toán vẫn dùng giá trị gốc.</p><p><b>Tiền vào NH:</b> các giao dịch ghi có Agribank đã loại bản thông báo phát lại; không đồng nghĩa đã thu công nợ.</p>
                       <p><b>Đã thu:</b> số tiền từ bill có bút toán thu đã xác minh trong sổ; không gồm bill chỉ có ảnh.</p>
                       <p><b>Đã khớp bill:</b> số bill có chứng từ và bút toán thu thành công.</p>
                       <p><b>Bill chưa khớp:</b> các bill khách gửi chưa chứng minh được khoản thu, kể cả bill chờ thông báo ngân hàng.</p>
@@ -9395,11 +9582,11 @@ button{
                 </div>
                 <div class="bank-report-status-line">
                   <p class="bank-report-subtitle" data-bank-updated role="status" aria-live="polite">Đang đồng bộ dữ liệu đối soát…</p>
-                  <span class="bank-report-unit-note">VND · Giờ Việt Nam</span>
+                  <span class="bank-report-unit-note">Số tiền ÷ 1.000 · Giờ VN 24h</span>
                 </div></div>
                 <div class="bank-report-controls">
                   <input data-bank-date type="date" min="2026-10-19" aria-label="Ngày đối soát">
-                  <button data-bank-daily-summary type="button" title="Đối soát chuyển khoản cho khách có tiền vào ngày trước">Gửi đối soát CK</button>
+                  <button data-bank-daily-summary type="button" title="Đối soát chuyển khoản cho khách có tiền vào ngày trước">Gửi đối soát</button>
                   <button data-bank-refresh type="button">Làm mới</button>
                 </div>
               </div>
@@ -31633,7 +31820,7 @@ function bankMoneyThousands(amountVnd){
  const remainder=abs%1000;
  const group=x=>new Intl.NumberFormat('vi-VN',{maximumFractionDigits:0}).format(x);
  return (amount<0?'-':'')+group(thousands)+
-  (remainder?' (lẻ '+group(remainder)+'₫)':'');
+  (remainder?' (lẻ '+group(remainder)+')':'');
 }
 const money=bankMoneyThousands;
 // BANK-231: Backend status codes are evidence, not copy for finance operators.
@@ -31660,11 +31847,10 @@ function bankManualBookedPreview(amountVnd){
  return {bankVnd,bookedVnd,ignoredVnd:bankVnd-bookedVnd};
 }
 const bankManualVnd=x=>new Intl.NumberFormat('vi-VN',{maximumFractionDigits:0}).format(x);
-const bankDisplayVnd=x=>{
- const n=Number(x);
- return x===null||x===undefined||x===''||!Number.isSafeInteger(n)?'—':
-   bankManualVnd(n)+'đ';
-};
+// BANK-312: report units are thousands (amount_vnd / 1000), WITHOUT
+// a currency suffix. Retain the historical helper name for dependent
+// dialog/test modules; never feed its output back to accounting.
+const bankDisplayVnd=x=>bankMoneyThousands(x);
 const localDate=()=>{const parts=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const part=t=>parts.find(x=>x.type===t)?.value||'';return part('year')+'-'+part('month')+'-'+part('day');};
 // Agribank notification bodies use "20:58 23/10/2026" (local Vietnam time).
 // Dashboard data arrives as "2026-10-23 20:58:00"; format only the view.
@@ -31935,9 +32121,9 @@ function renderBankWorkQueue(data,outstanding){
  if(!holder)return; // Older cached PWA HTML still uses its existing filters.
  const bills=Array.isArray(data?.bills)?data.bills:[];
  const tasks=[
-  {key:'bank_only',label:'Tiền NH cần đối soát',count:outstanding},
+  {key:'bank_only',label:'NH chưa gắn bill',count:outstanding},
   {key:'waiting_bank',label:'Bill chờ NH',count:bills.filter(b=>b.report_status==='waiting_bank').length},
-  {key:'review',label:'Bill cần xác minh',count:bills.filter(b=>b.report_status==='review'||b.report_status==='reading').length}
+  {key:'review',label:'Cần xác minh',count:bills.filter(b=>b.report_status==='review'||b.report_status==='reading').length}
  ];
  const waiting=tasks.filter(task=>task.count>0);
  const title=el('strong','bank-report-work-title','Cần xử lý');
@@ -31946,6 +32132,7 @@ function renderBankWorkQueue(data,outstanding){
  holder.replaceChildren(head);
  if(!waiting.length){holder.hidden=true;return;}
  const actions=el('div','bank-report-work-actions');
+ actions.dataset.taskCount=String(waiting.length);
  for(const item of waiting){
   const button=el('button','bank-report-work-button'+(filter===item.key?' is-selected':''));
   button.type='button';
@@ -31976,7 +32163,7 @@ function renderBankGapWarnings(data){
  const box=el('div','bank-report-gap-list');
  box.appendChild(el('strong','bank-report-gap-title','Có chênh lệch số dư Agribank cần kiểm tra'));
  for(const gap of candidates.slice(0,10)){
-  const amount=new Intl.NumberFormat('vi-VN',{maximumFractionDigits:0}).format(Number(gap.gap_vnd))+'đ';
+  const amount=bankMoneyThousands(gap.gap_vnd);
   const from=String(gap.previous_bank_time||'').slice(11,16);
   const to=String(gap.next_bank_time||'').slice(11,16);
   const customer=gap.customer_name?' · Có bill chờ của '+gap.customer_name:'';
@@ -32111,7 +32298,7 @@ function renderTable(data){
   tr.addEventListener('click',jump);tr.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();jump();}});
   tbody.appendChild(tr);
  }
- if(!tbody.children.length){const tr=el('tr');const td=el('td','','Chưa có bill của khách ngày này');td.colSpan=6;tr.appendChild(td);tbody.appendChild(tr);}
+ if(!tbody.children.length){const tr=el('tr');const td=el('td','','Không có bill trong ngày');td.colSpan=6;tr.appendChild(td);tbody.appendChild(tr);}
  table.appendChild(tbody);ui.table.replaceChildren(table);
 }
 // BANK-183-VN-DAY-20261102: Bank transactions and customer uploads are
@@ -32487,7 +32674,7 @@ function renderGroups(data){
  const pendingBills=filter==='all'&&!selectedCustomer?
    allBills.filter(r=>r.report_status==='waiting_bank'&&!r.ledger_id):[];
  if(filter==='all'&&!selectedCustomer&&!banks.length&&!pendingBills.length){
-  ui.groups.appendChild(el('div','bank-report-detail-hint','Chạm một khách hàng trong bảng để xem từng bill và giờ đối soát.'));
+  // The table already provides the day-empty state. No second hint box.
   return;
  }
  const title=el('div','bank-report-detail-section-head');
