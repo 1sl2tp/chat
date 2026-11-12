@@ -69,8 +69,15 @@ export function previewBillAppMatch(bill,events,otherBills=[],now=Date.now()){
    const qrMarker=/^QR *[-–:] +/i;
    const bankMemoWithoutQr=qrMarker.test(rawBankMemo)
      ?tidy(rawBankMemo.replace(qrMarker,"")):null;
+   // BANK-296: An official Agribank mobile notice may wrap the sender's
+   // literal note in MB(6-digit routing code)(EXACT payer note).
+   // Only unwrap this complete, anchored bank-side envelope. Never strip
+   // arbitrary prefixes, partial text, nested brackets or OCR-side tokens.
+   const mbRoutingEnvelope=/^MB\\([0-9]{6}\\)\\(([^()]*)\\)\\.?\\s*$/i;
+   const mbFields=mbRoutingEnvelope.exec(rawBankMemo);
+   const bankMemoWithoutMb=mbFields?tidy(mbFields[1]):null;
    if(printedMemo.length<12||!bankText||
-      (printedMemo!==bankText&&printedMemo!==bankMemoWithoutQr))
+      (printedMemo!==bankText&&printedMemo!==bankMemoWithoutQr&&printedMemo!==bankMemoWithoutMb))
      return{status:"review",reason:"ocr_date_corrected_bank_memo_unverified"};
  }
  // Same reliable bank reference is the same transfer across cropped/reuploaded
