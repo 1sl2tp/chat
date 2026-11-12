@@ -60,6 +60,18 @@ Deno.serve(async req=>{
   const device=await auth.json();
   if(!Array.isArray(device)||device.length!==1)return reply({error:"unauthorized"},401);
   const data=await req.json();
+  // BANK-304: owner-initiated transport test. No synthetic bank credit,
+  // no notification payload and no financial ledger write. Authentication
+  // is the SAME device token as real ingestion, with no new public role.
+  if(data?.kind==="health_probe"){
+   const checkedAt=new Date().toISOString();
+   const ping=await fetch(URL+"/rest/v1/taphoa_sms_ingest_devices?id=eq."+device[0].id,{
+     method:"PATCH",headers:headers({prefer:"return=minimal"}),
+     body:JSON.stringify({last_seen_at:checkedAt})
+   });
+   if(!ping.ok)return reply({error:"health_probe_store_failed"},503);
+   return reply({ok:true,device_authorized:true,checked_at:checkedAt,ledger_written:false});
+  }
   const {package_name,title,body,posted_at_ms}=data||{};
   if(package_name!==PACKAGE||typeof title!=="string"||title.length>250||typeof body!=="string"||body.length<3||body.length>2200
      ||!Number.isSafeInteger(posted_at_ms)||posted_at_ms<Date.now()-48*3600000||posted_at_ms>Date.now()+10*60000)
