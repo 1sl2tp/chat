@@ -3,6 +3,16 @@
 > **Đọc trước mỗi lần phát hành OCR/đối soát/thu tự động. Không đoán nhánh, repo, project hoặc tạo token mới chỉ vì một workflow báo thiếu secret.**
 
 
+## BANK-298 · Kiểm toán nhất quán logic, chưa phát hành
+- 9 giai đoạn và lỗi kỹ thuật / OCR / bank mismatch / SQL guard: `docs/BANK_298_EVIDENCE_PIPELINE.md`.
+- Source duy nhất `1sl2tp/chat:main` **sau Verify V21 PASS**; `v21-bank-bill-event` trong project `vtqhbhrkdxirqeqkgylo`, `verify_jwt=false`; giữ nguyên ingest v2.
+- Chỉnh: bank own-transfer memo `Bùi Xuân Tùng` có dấu, QR/MB prefix; thời gian bank là lịch thật; 30s timeout bao gồm parse JSON, HTTP 200 JSON lỗi là sự cố kỹ thuật retryable; quota reset 00:00 VN chứ không phải 07:00 VN.
+- Không đổi status tài chính, rule_version, SQL RPC, khớp STK, số tiền, biên 60 giây, memo, khóa & chống trùng. Không gõ lại bất kỳ khoản đã `received`.
+- Bài test `test_bank298_evidence_clock_retry_quota_20261112.mjs` trong Verify V21 và Edge workflow. Deploy chỉ từ commit main đã kiểm thử, connector Supabase hiện có; GitHub Actions secret riêng có thể vắng, không tạo token mới.
+
+
+
+
 ## BANK-297 — Thống nhất tên người thụ hưởng, Edge v40 ACTIVE (12/11/2026)
 
 - Source exact: `1sl2tp/chat:main`, BANK-297 PR #262 merged at `2a5e81e1e85895521647c9051163bb5cf37f2fb8`, Verify PR run `43193785600` PASS, Verify main run `43194022382` PASS.
