@@ -382,7 +382,7 @@ DECLARE
  anchor text := 'v_summary:=coalesce(v_closed,v21_private.chat_bank_report_snapshot(p_day));';
  extra text := $bank310_summary_body$
  v_summary:=coalesce(v_closed,v21_private.chat_bank_report_snapshot(p_day));
- SELECT jsonb_set(
+ v_summary:=jsonb_set(
   jsonb_set(
    jsonb_set(v_summary,'{matched_count}',to_jsonb(
      coalesce((v_summary->>'matched_count')::integer,0)
