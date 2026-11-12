@@ -281,16 +281,20 @@ function bankCreditViewModel(credits){
  const groups=new Map(),other=[];
  const stamp=/^20\d{2}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}$/;
  const bankBalance=x=>{
-  const s=String(x.bank_balance_text??'').trim().replace(/,/g,'');
+  const body=String(x.bank_body||x.body||'');
+  const fromBody=/Số dư cuối:s*([+-]?[0-9.,]+)s*VND/i.exec(body);
+  const s=String(x.bank_balance_text??fromBody?.[1]??'').trim().replace(/,/g,'');
   return /^[+-]?\d{1,15}$/.test(s)?String(Number(s)):'';
  };
- const bankMemo=x=>String(x.bank_memo||'').normalize('NFD')
+ const bankMemo=x=>String(x.bank_memo||
+   /Nội dung giao dịch:s*(.+?)(?:(?:.s*)?Số dư cuối:|$)/i.exec(
+    String(x.bank_body||x.body||''))?.[1]||'').normalize('NFD')
    .replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D')
    .trim().replace(/\s+/g,' ').toUpperCase();
  for(const entry of rows){
   const amount=Number(entry?.amount_vnd);
   if(!entry||!Number.isSafeInteger(amount)||amount<=0){if(entry)other.push(entry);continue;}
-  const fp=String(entry.fingerprint||'').trim().toLowerCase();
+  const fp=String(entry.fingerprint||entry.bank_fingerprint||'').trim().toLowerCase();
   const account=String(entry.bank_credit_account||'').trim();
   const bankTime=String(entry.bank_time||'').trim().replace('T',' ');
   const balance=bankBalance(entry),memo=bankMemo(entry);
@@ -1358,98 +1362,172 @@ async function openReviewDialog(bank,candidates){
 // BANK-314: explicit evidence comparison for a bill without a confirmed
 // Agribank event. A match against our RECIPIENT CONFIG is not money received.
 // A same-amount bank credit is NEVER linked without its bank notice ID.
-function bankManualBillEvidenceRows(bill,notice=null,prepared=null,serverState='checking'){
- const value=x=>String(x??'').trim();
- const show=x=>value(x)||'Chưa đọc được';
- const norm=x=>value(x).normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-  .replace(/đ/gi,'d').replace(/\s+/g,' ').toUpperCase();
- const digits=x=>value(x).replace(/\D/g,'');
- const billMoney=Number(bill?.amount_vnd);
- const presentNotice=Boolean(notice&&bill?.notice_id&&
-   String(notice.notice_id)===String(bill.notice_id));
- const noticeValue=(x)=>presentNotice?show(x):'Chưa có thông báo Agribank đã liên kết';
- const isServerReady=serverState==='ready'&&Boolean(prepared?.ok);
- const result=[];
- const add=(label,billValue,bankValue,tone,resultText)=>result.push({
-  label,bill:billValue,bank:bankValue,tone,result:resultText
+// BANK-315: Existing Agribank credits are independent evidence, even when
+// the bill does not have a notice_id. Candidate comparison is READ-ONLY and
+// can never create a bill↔notice match or authorize a financial entry.
+function bankManualNoticeFields(notice){
+ const s=String(notice?.bank_body||notice?.body||'');
+ const clock=String(notice?.bank_time||notice?.transfer_at||'');
+ const dateMatch=/\b(\d{1,2}):(\d{2})\s+(\d{1,2})\/(\d{1,2})\/(20\d{2})\b/.exec(s);
+ const isoMatch=/^(20\d{2})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/.exec(clock);
+ const memoMatch=/Nội dung giao dịch:\s*(.+?)(?:(?:\.\s*)?Số dư cuối:|$)/i.exec(s);
+ const balanceMatch=/Số dư cuối:\s*([+-]?[0-9.,]+)\s*VND\b/i.exec(s);
+ const memo=String(notice?.bank_memo||memoMatch?.[1]||'').trim().replace(/\.\s*$/,'');
+ const balance=String(notice?.bank_balance_text||balanceMatch?.[1]||'').trim();
+ const date=dateMatch?dateMatch[3].padStart(2,'0')+'/'+dateMatch[4].padStart(2,'0')+'/'+dateMatch[5]:
+  isoMatch?isoMatch[3]+'/'+isoMatch[2]+'/'+isoMatch[1]:'';
+ const hour=dateMatch?dateMatch[1].padStart(2,'0')+':'+dateMatch[2]:
+  isoMatch?isoMatch[4]+':'+isoMatch[5]:'';
+ return {date,hour,memo,balance,
+  account:String(notice?.bank_credit_account||'').trim(),
+  amount:Number(notice?.amount_vnd),
+  fingerprint:String(notice?.fingerprint||notice?.bank_fingerprint||''),
+  noticeId:String(notice?.notice_id||''),
+  ledgerId:String(notice?.ledger_id||''),
+  collectionKind:String(notice?.collection_kind||'')};
+}
+function bankManualBillPrintedDate(bill){
+ const raw=bill?.bill_ocr&&typeof bill.bill_ocr==='object'?bill.bill_ocr:
+  bill?.raw_read&&typeof bill.raw_read==='object'?bill.raw_read:{};
+ const first=String(raw.transfer_date_printed_vn||'').trim();
+ if(/^\d{2}\/\d{2}\/20\d{2}$/.test(first))return first;
+ const iso=String(raw.transfer_date_vn||bill?.bill_time||'');
+ const m=/^(20\d{2})-(\d{2})-(\d{2})/.exec(iso);
+ return m?m[3]+'/'+m[2]+'/'+m[1]:'';
+}
+function bankManualBillCandidateCredits(bill,credits,reportDay=''){
+ const amount=Number(bill?.amount_vnd);
+ if(!Number.isSafeInteger(amount)||amount<=0)return [];
+ const account=String(bill?.receiving_account||'').replace(/\D/g,'');
+ const receiptDay=bankManualBillPrintedDate(bill);
+ const day=/^\d{2}\/\d{2}\/20\d{2}$/.test(receiptDay)?
+  receiptDay.slice(6)+'-'+receiptDay.slice(3,5)+'-'+receiptDay.slice(0,2):
+  /^\d{4}-\d{2}-\d{2}$/.test(reportDay)?reportDay:'';
+ const candidates=(Array.isArray(credits)?credits:[]).filter(n=>{
+  const source=bankManualNoticeFields(n);
+  const d=source.date?source.date.slice(6)+'-'+source.date.slice(3,5)+'-'+source.date.slice(0,2):
+    String(n?.bank_time||'').slice(0,10);
+  return source.amount===amount &&
+   (!account||!source.account||source.account===account) && (!day||d===day);
  });
- const provider=value(bill?.bank_name||bill?.receiving_bank||bill?.bank_provider);
- add('Ngân hàng',provider||'Chưa đọc tên ngân hàng',
-  'Agribank · tài khoản nhận cấu hình',
-  !provider?'pending':/AGRIBANK|NONG NGHIEP|NÔNG NGHIỆP/i.test(norm(provider))?'matched':'review',
-  !provider?'Thiếu trên bill':/AGRIBANK|NONG NGHIEP/i.test(norm(provider))?'Đúng ngân hàng đích':'Khác ngân hàng đích');
- const recipient=digits(bill?.receiving_account);
- add('Số tài khoản nhận',recipient||'Chưa đọc STK',
-   '2901181999999 · STK nhận cấu hình',
-   !recipient?'pending':recipient==='2901181999999'?'matched':
-    recipient.length<13&&'2901181999999'.endsWith(recipient)?'pending':'review',
-   !recipient?'Thiếu STK':recipient==='2901181999999'?'Khớp STK nhận':
-    recipient.length<13&&'2901181999999'.endsWith(recipient)?'Chỉ khớp đuôi':'Sai STK nhận');
- const owner=value(bill?.receiving_name);
- add('Tên chủ tài khoản nhận',owner||'Chưa đọc tên',
-   'BUI XUAN TUNG · tên cấu hình',
-   !owner?'pending':norm(owner)==='BUI XUAN TUNG'?'matched':'review',
-   !owner?'Thiếu tên':norm(owner)==='BUI XUAN TUNG'?'Khớp tên TK nhận':'Sai tên TK nhận');
+ return bankCreditViewModel(candidates);
+}
+function bankManualBillEvidenceRows(bill,notice=null,prepared=null,serverState='checking',options={}){
+ const raw=bill?.bill_ocr&&typeof bill.bill_ocr==='object'?bill.bill_ocr:
+  bill?.raw_read&&typeof bill.raw_read==='object'?bill.raw_read:{};
+ const value=x=>String(x??'').trim();
+ const show=x=>value(x)||'Chưa có dữ liệu';
+ const norm=x=>value(x).normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+  .replace(/đ/gi,'d').replace(/[^a-zA-Z0-9]+/g,'').toUpperCase();
+ const bank=notice?bankManualNoticeFields(notice):null;
+ const bankLabel=bank?'Thông báo Agribank':'Chưa có ứng viên trong dữ liệu';
+ const isLinked=Boolean(notice&&bill?.notice_id&&
+  String(bill.notice_id)===String(notice.notice_id));
+ const pending=bank&&!isLinked?'Ứng viên NH · chưa liên kết':'';
+ const serverReady=serverState==='ready'&&Boolean(prepared?.ok);
+ const result=[];
+ const add=(label,billValue,bankValue,tone,message)=>result.push({
+  label,bill:billValue,bank:bankValue,tone,result:message});
+ const missingBill='Dữ liệu AI chưa trả về';
+ const sending=value(raw.sending_bank||bill?.sending_bank||bill?.bank_name);
+ add('Ngân hàng gửi',sending||missingBill,
+   bank?'Agribank (ngân hàng nhận)':'Chưa có dữ liệu thông báo',
+   sending?'matched':'pending',sending?'Đã đọc nguồn gửi':'Chưa có dữ liệu bill');
+ const recipientBank=value(raw.receiving_bank||bill?.receiving_bank);
+ add('Ngân hàng nhận',recipientBank||'Chưa trích xuất riêng',
+   bank?'Agribank · thông báo ghi có':'Agribank · cấu hình tài khoản',
+   recipientBank?(norm(recipientBank)==='AGRIBANK'?'matched':'review'):'pending',
+   !recipientBank?'Chưa rõ trên bill':norm(recipientBank)==='AGRIBANK'?'Đúng NH nhận':'Cần kiểm tra NH nhận');
+ const account=value(raw.recipient_account_visible||bill?.receiving_account);
+ add('Số tài khoản nhận',account||missingBill,bank?.account||'2901181999999 · cấu hình',
+   !account?'pending':bank?.account?(norm(account)===norm(bank.account)?'matched':'review'):
+    norm(account)==='2901181999999'?'matched':'pending',
+   !account?'Chưa có STK bill':bank?.account?
+    norm(account)===norm(bank.account)?'Khớp STK thông báo':'Khác STK':
+    norm(account)==='2901181999999'?'Khớp cấu hình':'Chưa xác minh STK');
+ const owner=value(raw.recipient_name_printed||raw.recipient_name||bill?.receiving_name);
+ add('Tên chủ TK nhận',owner||missingBill,
+   'BUI XUAN TUNG · tên TK cấu hình',
+   !owner?'pending':norm(owner)==='BUIXUANTUNG'?'matched':'review',
+   !owner?'Chưa có tên bill':norm(owner)==='BUIXUANTUNG'?'Khớp tên cấu hình':'Khác tên TK');
  const customer=value(bill?.customer_name);
  add('Khách hàng liên kết',customer||'Chưa xác định',
-   isServerReady?show(prepared.customer_name):'Chưa xác minh máy chủ',
-   isServerReady?(String(prepared.customer_id)===String(bill.customer_id)?'matched':'review'):'pending',
-   isServerReady?(String(prepared.customer_id)===String(bill.customer_id)?'Đúng khách':'Sai khách'):'Chờ xác minh');
- add('Số tiền (÷1.000)',Number.isSafeInteger(billMoney)?bankDisplayVnd(billMoney):'Chưa đọc số tiền',
-   noticeValue(presentNotice?bankDisplayVnd(notice.amount_vnd):null),
-   !presentNotice?'pending':Number(notice.amount_vnd)===billMoney?'matched':'review',
-   !presentNotice?'Chưa có tiền NH':'Số tiền '+(Number(notice.amount_vnd)===billMoney?'khớp':'không khớp'));
- const printedTime=value(bill?.bill_time);
- const timeHasClock=/^20\d{2}-\d{2}-\d{2}[ T]\d{2}:\d{2}/.test(printedTime);
- const bankTime=value(notice?.bank_time||notice?.transfer_at);
- const comparable=presentNotice&&timeHasClock&&
-  /^20\d{2}-\d{2}-\d{2}[ T]\d{2}:\d{2}/.test(bankTime);
- const sameMinute=comparable&&printedTime.replace('T',' ').slice(0,16)===
-  bankTime.replace('T',' ').slice(0,16);
- add('Ngày và giờ giao dịch',timeHasClock?bankBillDisplayTime(printedTime):'Bill thiếu ngày/giờ giao dịch',
-   noticeValue(presentNotice?agribankDisplayTime(bankTime,ui.date.value):null),
-   !timeHasClock?'review':!comparable?'pending':sameMinute?'matched':'review',
-   !timeHasClock?'Thiếu giờ · xác minh':!comparable?'Chưa đối chiếu giờ NH':
-     sameMinute?'Khớp phút':'Không trùng phút');
- const sender=value(bill?.sender_name||bill?.sending_name||bill?.payer_name);
- const bankSender=value(notice?.bank_sender_name||notice?.sender_name);
- add('Người chuyển tiền',sender||'Chưa đọc tên người chuyển',
-   noticeValue(presentNotice?bankSender:null),
-   !sender||!bankSender||!presentNotice?'pending':norm(sender)===norm(bankSender)?'matched':'review',
-   !sender?'Thiếu người chuyển':!presentNotice||!bankSender?'Chưa có dữ liệu NH':
-    norm(sender)===norm(bankSender)?'Khớp tên':'Khác tên người chuyển');
- const memo=value(bill?.transfer_content||bill?.transfer_memo||
-  bill?.transfer_note||bill?.transaction_content||bill?.content);
- const bankMemo=value(notice?.bank_memo);
- add('Nội dung chuyển khoản',memo||'Chưa trích xuất nội dung',
-   noticeValue(presentNotice?bankMemo:null),
-   !memo||!presentNotice||!bankMemo?'pending':norm(memo)===norm(bankMemo)?'matched':'review',
-   !memo?'Thiếu nội dung trên bill':!presentNotice||!bankMemo?'Chưa có nội dung NH':
-    norm(memo)===norm(bankMemo)?'Khớp nội dung':'Khác nội dung');
+   serverReady?show(prepared.customer_name):'Agribank không ghi tên khách trong tin',
+   !customer?'pending':serverReady&&String(prepared.customer_id)!==String(bill.customer_id)?'review':'pending',
+   serverReady&&String(prepared.customer_id)===String(bill.customer_id)?'Đúng khách trong sổ':
+    serverReady?'Sai khách':'Chỉ biết từ Chat');
+ const amount=Number(bill?.amount_vnd);
+ add('Số tiền (÷1.000)',Number.isSafeInteger(amount)?bankDisplayVnd(amount):missingBill,
+   bank&&Number.isSafeInteger(bank.amount)?bankDisplayVnd(bank.amount):'Chưa có tiền NH cùng điều kiện',
+   !bank?'pending':bank.amount===amount?'matched':'review',
+   !bank?'Chưa thấy ứng viên NH':bank.amount===amount?
+    (pending?'Cùng số tiền · chưa liên kết':'Khớp tiền đã liên kết'):'Lệch số tiền');
+ const billDate=bankManualBillPrintedDate(bill);
+ add('Ngày giao dịch',billDate||'Ngày AI chưa trả về',
+   bank?.date||'Chưa có ngày NH',
+   !billDate||!bank?.date?'pending':billDate===bank.date?'matched':'review',
+   !billDate?'Chưa có ngày bill':!bank?.date?'Chưa có ngày NH':
+    billDate===bank.date?(pending?'Cùng ngày · chưa liên kết':'Khớp ngày'):'Khác ngày');
+ const printedTime=value(raw.transfer_time_printed_vn)||
+  (/^20\d{2}-\d{2}-\d{2}[ T]\d{2}:\d{2}/.test(String(bill?.bill_time||''))?
+   String(bill.bill_time).slice(11,16):'');
+ const noPrintedClock=bill?.reason==='bill_printed_time_missing'||
+  raw.recognition_case==='no_printed_clock'||(billDate&&!printedTime);
+ add('Giờ giao dịch',printedTime||'Bill không in giờ giao dịch',
+   bank?.hour||'Chưa có giờ thông báo',
+   !printedTime&&noPrintedClock?'review':!printedTime||!bank?.hour?'pending':
+    printedTime.slice(0,5)===bank.hour?'matched':'review',
+   !printedTime&&noPrintedClock?'Thiếu giờ trên bill':!printedTime?'Chưa đọc giờ bill':
+   !bank?.hour?'Chưa có giờ NH':
+   printedTime.slice(0,5)===bank.hour?(pending?'Cùng giờ · chưa liên kết':'Khớp giờ'):'Giờ khác nhau');
+ const sender=value(raw.sender_name||bill?.sender_name||bill?.payer_name);
+ add('Người chuyển tiền',sender||'Chưa đọc người chuyển',
+  bank?.memo?'Thông báo chỉ có nội dung: '+bank.memo:'Thông báo không xác thực tên người gửi',
+  sender?'pending':'pending',
+  sender?'AI suy tên · chưa xác thực NH':'Chưa có tên người gửi');
+ const memo=value(raw.transfer_content||bill?.transfer_content||bill?.transfer_memo);
+ add('Nội dung chuyển khoản',memo||missingBill,
+  bank?.memo||'API chưa trả nội dung thông báo',
+  !memo||!bank?.memo?'pending':norm(memo)===norm(bank.memo)?'matched':'review',
+  !memo?'Chưa có nội dung bill':!bank?.memo?'Chưa có nội dung NH':
+  norm(memo)===norm(bank.memo)?(pending?'Cùng nội dung · chưa liên kết':'Khớp nội dung'):
+  'Nội dung khác');
  const reference=value(bill?.transfer_reference);
- add('Mã giao dịch / mã bill',reference||'Chưa đọc mã giao dịch',
-   presentNotice&&value(notice?.transfer_reference)?value(notice.transfer_reference):
-    'Mã NH chưa có để đối chiếu',
-   reference&&presentNotice&&value(notice?.transfer_reference)?
-     norm(reference)===norm(notice.transfer_reference)?'matched':'review':'pending',
-   !reference?'Thiếu mã giao dịch':!presentNotice?'Chưa có mã NH':'Chưa so được mã');
- const ledger=bill?.ledger_id||prepared?.ledger_id||prepared?.recorded?.ledger_id;
- add('Sổ đã ghi thu',bill?.ledger_id?'#'+bill.ledger_id:'Bill chưa có sổ thu',
-   isServerReady?(ledger?'Sổ #'+ledger:'Chưa ghi thu theo bill'):
-    'Chưa kiểm tra được máy chủ',
-   !isServerReady?'pending':ledger?'matched':'pending',
-   !isServerReady?'Chưa xác minh sổ':ledger?'Đã ghi sổ':'Chưa ghi thu');
- const duplicate=Boolean(bill?.duplicate_of||bill?.report_status==='duplicate');
- const possible=isServerReady&&Array.isArray(prepared.possible_existing)?
-  prepared.possible_existing:[];
+ add('Mã tham chiếu',reference||'Chưa lưu tham chiếu',
+   'Thông báo Agribank không kèm mã NAPAS',
+   reference?'pending':'pending',
+   reference?'Có mã trên bill · NH không có mã đối chiếu':'Thiếu mã bill');
+ add('Số dư cuối Agribank','Bill chuyển tiền không có số dư nhận',
+   bank?.balance||'API chưa trả số dư cuối',
+   bank?.balance?'pending':'pending',
+   bank?.balance?'Có số dư để nhận diện thông báo':'Chưa có số dư NH');
+ const ledger=String(bill?.ledger_id||prepared?.ledger_id||prepared?.recorded?.ledger_id||'');
+ const bankLedger=bank?.ledgerId||'';
+ add('Sổ đã ghi thu',ledger?'Sổ #'+ledger:'Bill chưa có sổ thu',
+   bankLedger?'NH gắn sổ #'+bankLedger:
+    serverReady?'Máy chủ chưa thấy sổ gắn bill':'Máy chủ chưa xác minh sổ thu',
+   bankLedger&&ledger&&bankLedger===ledger?'matched':bankLedger||ledger?'review':'pending',
+   bankLedger?'Cần kiểm tra sổ đã thu':ledger?'Bill có sổ · cần soát NH':'Chưa ghi thu theo bill');
+ const billDuplicate=Boolean(bill?.duplicate_of||bill?.report_status==='duplicate');
+ const possible=serverReady&&Array.isArray(prepared?.possible_existing)?prepared.possible_existing:[];
+ const notices=Array.isArray(notice?.bank_group_notice_ids)?notice.bank_group_notice_ids:[];
+ const exact=Boolean(notice?.bank_group_exact);
+ const uncertain=Boolean(notice?.bank_group_tentative);
+ add('Thông báo Agribank phát lại','Ảnh bill không phải thông báo Agribank',
+   notices.length>1?notices.length+' bản thông báo cùng giờ/số tiền':
+   bank?'Có một thông báo ứng viên':'Chưa có thông báo ứng viên',
+   uncertain?'review':exact?'matched':'pending',
+   uncertain?'Cần xác minh bản phát lại':exact?'Đã nhận diện phát lại · một giao dịch':
+    'Chưa có kết luận phát lại');
  add('Trùng bill / trùng khoản thu',
-   duplicate?'Bill bị đánh dấu trùng':'Chưa có kết luận trùng',
-   isServerReady?possible.length?possible.length+' khoản thu cùng số tiền cần kiểm tra':
+   billDuplicate?'Bill được đánh dấu trùng':'Bill chưa bị đánh dấu trùng',
+   serverReady?possible.length?possible.length+' khoản thu cũ cần kiểm tra':
     'Chưa thấy khoản thu trùng trong phạm vi kiểm tra':
-    'Chưa kiểm tra được chống trùng máy chủ',
-   duplicate||possible.length?'duplicate':'pending',
-   duplicate?'Bill bị đánh dấu trùng':possible.length?
-    'Nghi trùng · không thu lần hai':'Chưa đủ căn cứ kết luận không trùng');
+    'Chưa kiểm tra được sổ thu máy chủ',
+   billDuplicate||possible.length?'duplicate':'pending',
+   billDuplicate?'Bill trùng · không thu lại':possible.length?
+    'Nghi thu trùng · phải liên kết sổ':
+    'Chưa thể kết luận không thu trùng');
  return result;
 }
 function bankManualBillPrepareErrorMessage(error){
@@ -1480,31 +1558,39 @@ async function openManualBillDialog(bill){
  const noticeId=String(bill.notice_id||'');
  const linkedNotice=noticeId?(current?.bank_credits||[]).find(n=>
   String(n.notice_id)===noticeId):null;
+ const bankCandidates=bankManualBillCandidateCredits(bill,current?.bank_credits,ui.date.value);
+ // A single candidate GROUP is still not a financial attribution. Multiple
+ // distinct candidates remain unselected until the Admin verifies them.
+ const comparisonNotice=linkedNotice||(bankCandidates.length===1?bankCandidates[0]:null);
+ const candidatesLabel=linkedNotice?'Đã có mã thông báo Agribank liên kết':
+  bankCandidates.length===1?'Đã có giao dịch Agribank cùng số tiền, tài khoản và ngày · CHƯA liên kết bill':
+  bankCandidates.length>1?'Có '+bankCandidates.length+' nhóm giao dịch NH cùng số tiền · chưa phân biệt được':
+  'Chưa tìm được thông báo Agribank phù hợp trong dữ liệu ngày đang xem';
  form.appendChild(append(el('div','bank-review-bank'),
   el('strong','',bankDisplayVnd(bill.amount_vnd)+' · Bill '+String(bill.receipt_id).slice(0,8)),
   el('span','','Khách hàng: '+String(bill.customer_name||'Chưa rõ')),
-  el('span','',linkedNotice?'Có thông báo Agribank được liên kết':
-   'Chưa có thông báo Agribank được liên kết; ảnh bill không chứng minh đã thu.')));
+  el('span','',candidatesLabel)));
  const compare=el('section','bank-bill-compare');
  compare.setAttribute('aria-label','Bảng so sánh chứng cứ bill, Agribank và sổ thu');
  const compareTitle=el('div','bank-bill-compare-title');
  append(compareTitle,el('strong','','Đối chiếu thông tin'),
-  el('small','','Bill ↔ Agribank / sổ thu'));
+  el('small','','Bill ↔ Thông báo Agribank'));
  const comparison=el('div','bank-bill-compare-table');
  comparison.setAttribute('role','table');
  comparison.setAttribute('aria-label','So sánh chứng từ và tiền ngân hàng');
  const compareSummary=el('p','bank-bill-compare-summary');
  const compareHint=el('p','bank-bill-compare-hint',
-  'Khớp tài khoản nhận chỉ xác nhận thông tin đích, KHÔNG chứng minh tiền đã về. '+
-  'Không có thông báo hoặc sổ thu xác minh thì không được tự ghi thu.');
+  'Trùng số tiền, tài khoản, ngày hoặc nội dung chỉ là các tiêu chí đối chiếu. '+
+  'Chưa liên kết chứng từ và sổ thu thì KHÔNG được tự ghi thu.');
  append(compare,compareTitle,comparison,compareSummary,compareHint);
  form.appendChild(compare);
  const refreshEvidence=(prepared=null,state='checking')=>{
-  const rows=bankManualBillEvidenceRows(bill,linkedNotice,prepared,state);
+  const rows=bankManualBillEvidenceRows(bill,comparisonNotice,prepared,state,
+   {candidateCount:bankCandidates.length});
   comparison.replaceChildren();
   const header=el('div','bank-bill-compare-row bank-bill-compare-header');
   header.setAttribute('role','row');
-  for(const text of ['Tiêu chí','Trên bill','NH / sổ thu','Kết quả']){
+  for(const text of ['Thông tin','Bill','Agribank (thông báo)','Đánh giá bill']){
    const th=el('strong','',text);th.setAttribute('role','columnheader');header.appendChild(th);
   }
   comparison.appendChild(header);
@@ -1516,7 +1602,7 @@ async function openManualBillDialog(bill){
    const billCell=el('span','bank-bill-compare-value',row.bill);
    billCell.setAttribute('role','cell');billCell.dataset.source='Bill';
    const bankCell=el('span','bank-bill-compare-value',row.bank);
-   bankCell.setAttribute('role','cell');bankCell.dataset.source='Agribank / sổ';
+   bankCell.setAttribute('role','cell');bankCell.dataset.source='Agribank';
    const status=el('span','bank-bill-compare-status',row.result);
    status.setAttribute('role','cell');
    append(item,label,billCell,bankCell,status);
@@ -1525,8 +1611,9 @@ async function openManualBillDialog(bill){
   const matched=rows.filter(x=>x.tone==='matched').length;
   const pending=rows.filter(x=>x.tone==='pending').length;
   const review=rows.filter(x=>x.tone==='review'||x.tone==='duplicate').length;
-  compareSummary.textContent='Tiêu chí khớp thông tin: '+matched+
-   ' · Chưa đủ dữ liệu: '+pending+' · Cần kiểm tra/trùng: '+review+
+  compareSummary.textContent='Đối chiếu '+(comparisonNotice?'có thông báo Agribank ứng viên':'chưa có ứng viên NH')+
+   ' · Tiêu chí khớp: '+matched+
+   ' · Chờ thông tin: '+pending+' · Cần kiểm tra: '+review+
    ' · '+(state==='ready'?'Máy chủ đã trả kết quả đối soát.':
     state==='error'?'Chưa thể kiểm tra trên máy chủ.':
      'Đang chờ máy chủ kiểm tra.');
