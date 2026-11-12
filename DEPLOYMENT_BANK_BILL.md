@@ -2,6 +2,13 @@
 
 > **Đọc trước mỗi lần phát hành OCR/đối soát/thu tự động. Không đoán nhánh, repo, project hoặc tạo token mới chỉ vì một workflow báo thiếu secret.**
 
+## E4 BANK-294 — Bộ đọc cấu trúc ngày/ký tự/tháng đã chạy trên production v37
+
+- **Release source:** `1sl2tp/chat:main` commit `b6305ba3d501bffd799e5b151c9b9476fc14e817`, PR #257, cả Verify V21 trên PR và `main` PASS. Deploy riêng `v21-bank-bill-event v36→v37 ACTIVE` tại project `vtqhbhrkdxirqeqkgylo`, `verify_jwt=false`; 6/6 tệp đọc ngược khớp byte-for-byte với commit nguồn. `v21-agribank-notification-ingest v2` không đổi 3/3.
+- **Provenance:** Workflow GitHub Actions vẫn không truy cập `SUPABASE_ACCESS_TOKEN` trong job (thiếu secret trong runner), nhưng kết nối Supabase có sẵn đã được dùng làm **ngoại lệ triển khai trực tiếp, có xác minh từ main**; không tạo token hoặc đọc secret ra ngoài, không triển khai từ nhánh fix, không thay database production.
+- **Quy tắc bảo vệ:** Chữ/dấu giữa hai số ngày/tháng là ký tự nối đã biết, không được coi như số; giờ phút chỉ đọc khi ảnh có in, kể cả cùng dòng ngày. Thiếu năm/ngày vô lý/chữ lạ → review; thiếu giờ không gán `00:00` hoặc giờ Chat. Vẫn yêu cầu bằng chứng Agribank duy nhất và RPC chống trùng để thu. Đã có ledger Ngọc #849 và Hà Trang #848, **không chạy lại**.
+- **Giới hạn:** CI + 6/6 source parity E4 VERIFIED, nhưng chưa có trường hợp bank bill mới sau release hoặc tương tác iPhone/PWA E5 được quan sát. Không cần redeploy v37 nếu không có mã thay đổi.
+
 ## BANK-294 — Quy tắc ngày / tháng và thời gian (bill có hoặc không in giờ)
 
 - Nguyên tắc chung: **[ngày] [ký tự/chữ phân cách] [tháng] [phân cách] [năm]**, tuyệt đối không đảo ngày–tháng theo kiểu Mỹ. Dấu nối có thể là `/`, `.`, `-`, `tháng`, `thg`, `th.`, `th`, `t`; chữ lạ hoặc năm không nhìn thấy **không** đủ bằng chứng tự thu. Bộ parser kiểm tra đúng ngày trong lịch, tháng 1–12, năm hợp lệ. Luôn đọc từ dòng thời gian GIAO DỊCH trên bill, không dùng đồng hồ điện thoại hay thời điểm gửi Chat.
