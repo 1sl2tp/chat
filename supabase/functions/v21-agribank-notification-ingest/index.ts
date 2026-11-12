@@ -21,7 +21,7 @@ async function recheckNewCredit(body:string,amount:number){
  const config=Array.isArray(configRaw)?configRaw[0]:configRaw;
  const scanKey=String(config?.scan_key||"");
  if(!scanKey)return;
- const query=new URL(URL+"/rest/v1/chat_bank_bill_receipts");
+ const query=new globalThis.URL(URL+"/rest/v1/chat_bank_bill_receipts");
  query.searchParams.set("select","media_asset_id,status,reason,attempt_count");
  query.searchParams.set("amount_vnd","eq."+amount);
  query.searchParams.set("status","in.(amount_read,review)");
@@ -74,7 +74,7 @@ Deno.serve(async req=>{
     {method:"POST",headers:headers({prefer:"resolution=ignore-duplicates,return=representation"}),body:JSON.stringify(row)});
   if(!res.ok)return reply({error:"inbox_write_failed"},503);
   const saved=await res.json();
-  if(row.status==="credit_candidate"&&Array.isArray(saved)&&saved.length===1){
+  if(amount!==null&&row.status==="credit_candidate"&&Array.isArray(saved)&&saved.length===1){
    EdgeRuntime.waitUntil(recheckNewCredit(body,amount).catch(e=>{
      console.warn("bank291_event_recheck_unavailable",String(e?.name||"error").slice(0,40));
    }));
