@@ -752,7 +752,13 @@ function bankCreditLine(row,allBills){
     el('strong','bank-report-detail-amount',money(row.amount_vnd)),badge);
  wrap.appendChild(top);
  const content=el('div','bank-report-detail-content');
- append(content,cell('Giờ Agribank',agribankDisplayTime(row.bank_time,ui.date.value)),
+ append(content,cell('Giờ Agribank (đến phút)',agribankDisplayTime(row.bank_time,ui.date.value)),
+   cell('Giờ máy chủ nhận thông báo',
+     row.received_at&&Number.isFinite(Date.parse(String(row.received_at)))?
+       new Intl.DateTimeFormat('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',
+        day:'2-digit',month:'2-digit',year:'numeric',
+        hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'})
+       .format(new Date(row.received_at)):'Chưa có dữ liệu từ API hiện tại'),
    cell('Tiền vào Agribank',money(row.amount_vnd)),
    cell('Thông báo Agribank','#'+row.notice_id),
    cell('Khách đã liên kết',row.customer_name||'Chưa xác định'),
