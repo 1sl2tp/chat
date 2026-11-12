@@ -7,7 +7,9 @@ assert 'job.status==="failed"&&transientError' in edge
 assert 'tries>=1&&tries<6' in edge
 assert 'Date.now()-inspected>=retryMinutes*60000' in edge
 assert 'sent>=Date.now()-7*86400000' in edge
-assert '.eq("status",retryFailed?"failed":"queued").eq("attempt_count",job.attempt_count||0)' in edge
+assert '.eq("status",retryPrintedDate?"review":retryFailed?"failed":"queued").eq("attempt_count",job.attempt_count||0)' in edge
+assert 'eligibleForPrintedDateRescan(job,r)' in edge
+assert 'if(job.status!=="queued"&&!retryFailed&&!retryPrintedDate)' in edge
 assert 'const timeout=setTimeout(()=>ctl.abort(),30000);' in edge
 assert 'chat_bank_app_collect' in edge
 assert 'status==="amount_read"&&matchPreview?.source==="agribank_plus_notification"' in edge
