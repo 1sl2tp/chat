@@ -207,6 +207,10 @@ jobs:
         run: node tests/test_bank234_thousands_with_remainder_20261104.cjs
       - name: BANK-224 accessible keyboard ownership for both bank reconciliation dialogs
         run: node tests/test_bank224_review_dialog_keyboard_20261102.cjs
+      - name: BANK-311 compact mobile reconciliation hierarchy
+        run: |
+          node --check bank-report-dashboard.js
+          node tests/test_bank311_mobile_reconcile_information_architecture_20261112.cjs
       - name: BANK-310 explicit manual bill collection and late bank notice lock
         run: |
           node tests/test_bank310_manual_bill_lock_late_notice_20261112.cjs
