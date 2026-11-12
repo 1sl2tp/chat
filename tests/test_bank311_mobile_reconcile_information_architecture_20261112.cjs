@@ -9,7 +9,7 @@ const marker=html.indexOf('id="bankReportDashboard"');
 const report=html.slice(marker,html.indexOf('id="conversationContentAxis"',marker));
 assert(marker>0);
 assert(report.includes('<h2 class="bank-report-heading">Đối soát chuyển khoản</h2>'));
-assert(report.includes('VND · Giờ Việt Nam'));
+assert(report.includes('Số tiền ÷ 1.000 · Giờ VN 24h'));
 assert(report.includes('class="bank-report-kpi-grid"'));
 assert(report.indexOf('data-bank-summary')<report.indexOf('data-bank-status'));
 assert(report.indexOf('data-bank-status')<report.indexOf('data-bank-work-queue'),
@@ -48,15 +48,15 @@ assert.equal(bankBillDisplayTime('2026-11-12 18:52:08'),'18:52:08 12/11/2026');
 assert.equal(bankBillDisplayTime('2026-11-12 18:52'),'18:52 12/11/2026');
 assert.equal(bankBillDisplayTime(null),'Không đọc được giờ trên bill');
 
-const currencyStart=js.indexOf('const bankManualVnd=');
+const currencyStart=js.indexOf('function bankMoneyThousands(');
 const currencyEnd=js.indexOf('const localDate=',currencyStart);
 assert(currencyStart>0&&currencyEnd>currencyStart);
 const {bankDisplayVnd}=vm.runInNewContext(js.slice(currencyStart,currencyEnd)+
- '\n({bankDisplayVnd})',{Number,Intl});
-assert.equal(bankDisplayVnd(26446000),'26.446.000đ');
-assert.equal(bankDisplayVnd(25716000),'25.716.000đ');
-assert.equal(bankDisplayVnd(730000),'730.000đ');
-assert.equal(bankDisplayVnd(8000000),'8.000.000đ');
+ '\n({bankDisplayVnd})',{Number,Intl,Math});
+assert.equal(bankDisplayVnd(26446000),'26.446');
+assert.equal(bankDisplayVnd(25716000),'25.716');
+assert.equal(bankDisplayVnd(730000),'730');
+assert.equal(bankDisplayVnd(8000000),'8.000');
 assert.equal(bankDisplayVnd(null),'—');
 
 // No duplicate explanations or low-value missing-API fields in the regular UI.
@@ -86,4 +86,4 @@ assert(css.includes('td[data-zero="true"]'));
 assert(css.includes('display:flex;flex-wrap:wrap;gap:5px 11px'));
 assert(css.includes('.bank-report-audit'));
 assert(!js.slice(creditStart,creditEnd).includes("client.rpc("),'rendering cannot collect');
-console.log('BANK-311: 8 distinct real credits, 4 VND KPIs, compact accessible mobile and quiet replay handling PASS');
+console.log('BANK-311: 8 distinct real credits, 4 scaled KPIs, compact accessible mobile and quiet replay handling PASS');

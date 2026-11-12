@@ -56,7 +56,7 @@ function bankMoneyThousands(amountVnd){
  const remainder=abs%1000;
  const group=x=>new Intl.NumberFormat('vi-VN',{maximumFractionDigits:0}).format(x);
  return (amount<0?'-':'')+group(thousands)+
-  (remainder?' (lẻ '+group(remainder)+'₫)':'');
+  (remainder?' (lẻ '+group(remainder)+')':'');
 }
 const money=bankMoneyThousands;
 // BANK-231: Backend status codes are evidence, not copy for finance operators.
@@ -83,11 +83,10 @@ function bankManualBookedPreview(amountVnd){
  return {bankVnd,bookedVnd,ignoredVnd:bankVnd-bookedVnd};
 }
 const bankManualVnd=x=>new Intl.NumberFormat('vi-VN',{maximumFractionDigits:0}).format(x);
-const bankDisplayVnd=x=>{
- const n=Number(x);
- return x===null||x===undefined||x===''||!Number.isSafeInteger(n)?'—':
-   bankManualVnd(n)+'đ';
-};
+// BANK-312: report units are thousands (amount_vnd / 1000), WITHOUT
+// a currency suffix. Retain the historical helper name for dependent
+// dialog/test modules; never feed its output back to accounting.
+const bankDisplayVnd=x=>bankMoneyThousands(x);
 const localDate=()=>{const parts=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const part=t=>parts.find(x=>x.type===t)?.value||'';return part('year')+'-'+part('month')+'-'+part('day');};
 // Agribank notification bodies use "20:58 23/10/2026" (local Vietnam time).
 // Dashboard data arrives as "2026-10-23 20:58:00"; format only the view.
@@ -358,9 +357,9 @@ function renderBankWorkQueue(data,outstanding){
  if(!holder)return; // Older cached PWA HTML still uses its existing filters.
  const bills=Array.isArray(data?.bills)?data.bills:[];
  const tasks=[
-  {key:'bank_only',label:'Tiền NH cần đối soát',count:outstanding},
+  {key:'bank_only',label:'NH chưa gắn bill',count:outstanding},
   {key:'waiting_bank',label:'Bill chờ NH',count:bills.filter(b=>b.report_status==='waiting_bank').length},
-  {key:'review',label:'Bill cần xác minh',count:bills.filter(b=>b.report_status==='review'||b.report_status==='reading').length}
+  {key:'review',label:'Cần xác minh',count:bills.filter(b=>b.report_status==='review'||b.report_status==='reading').length}
  ];
  const waiting=tasks.filter(task=>task.count>0);
  const title=el('strong','bank-report-work-title','Cần xử lý');
@@ -369,6 +368,7 @@ function renderBankWorkQueue(data,outstanding){
  holder.replaceChildren(head);
  if(!waiting.length){holder.hidden=true;return;}
  const actions=el('div','bank-report-work-actions');
+ actions.dataset.taskCount=String(waiting.length);
  for(const item of waiting){
   const button=el('button','bank-report-work-button'+(filter===item.key?' is-selected':''));
   button.type='button';
@@ -399,7 +399,7 @@ function renderBankGapWarnings(data){
  const box=el('div','bank-report-gap-list');
  box.appendChild(el('strong','bank-report-gap-title','Có chênh lệch số dư Agribank cần kiểm tra'));
  for(const gap of candidates.slice(0,10)){
-  const amount=new Intl.NumberFormat('vi-VN',{maximumFractionDigits:0}).format(Number(gap.gap_vnd))+'đ';
+  const amount=bankMoneyThousands(gap.gap_vnd);
   const from=String(gap.previous_bank_time||'').slice(11,16);
   const to=String(gap.next_bank_time||'').slice(11,16);
   const customer=gap.customer_name?' · Có bill chờ của '+gap.customer_name:'';
@@ -534,7 +534,7 @@ function renderTable(data){
   tr.addEventListener('click',jump);tr.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();jump();}});
   tbody.appendChild(tr);
  }
- if(!tbody.children.length){const tr=el('tr');const td=el('td','','Chưa có bill của khách ngày này');td.colSpan=6;tr.appendChild(td);tbody.appendChild(tr);}
+ if(!tbody.children.length){const tr=el('tr');const td=el('td','','Không có bill trong ngày');td.colSpan=6;tr.appendChild(td);tbody.appendChild(tr);}
  table.appendChild(tbody);ui.table.replaceChildren(table);
 }
 // BANK-183-VN-DAY-20261102: Bank transactions and customer uploads are
@@ -910,7 +910,7 @@ function renderGroups(data){
  const pendingBills=filter==='all'&&!selectedCustomer?
    allBills.filter(r=>r.report_status==='waiting_bank'&&!r.ledger_id):[];
  if(filter==='all'&&!selectedCustomer&&!banks.length&&!pendingBills.length){
-  ui.groups.appendChild(el('div','bank-report-detail-hint','Chạm một khách hàng trong bảng để xem từng bill và giờ đối soát.'));
+  // The table already provides the day-empty state. No second hint box.
   return;
  }
  const title=el('div','bank-report-detail-section-head');
