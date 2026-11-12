@@ -769,6 +769,12 @@ function bankCreditLine(row,allBills){
         hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'})
        .format(new Date(row.received_at)):'Chưa có dữ liệu từ API hiện tại'),
    cell('Tiền vào Agribank',money(row.amount_vnd)),
+   cell('Số dư cuối Agribank',
+     row.bank_balance_text&&/^[+-]?[0-9,]{1,20}$/.test(String(row.bank_balance_text).trim())?
+       new Intl.NumberFormat('vi-VN',{maximumFractionDigits:0})
+        .format(Number(String(row.bank_balance_text).replace(/,/g,'')))+'đ':
+       'Chưa có dữ liệu từ API hiện tại'),
+   cell('Nội dung Agribank',row.bank_memo||'Chưa có dữ liệu từ API hiện tại'),
    cell('Thông báo Agribank','#'+row.notice_id),
    cell('Khách đã liên kết',row.customer_name||'Chưa xác định'),
    cell('Sổ công nợ',valid&&row.ledger_id?'#'+row.ledger_id:'Chưa có bút toán xác minh'),
