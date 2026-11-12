@@ -2,6 +2,14 @@
 
 > **Đọc trước mỗi lần phát hành OCR/đối soát/thu tự động. Không đoán nhánh, repo, project hoặc tạo token mới chỉ vì một workflow báo thiếu secret.**
 
+## BANK-294 — Quy tắc ngày / tháng và thời gian (bill có hoặc không in giờ)
+
+- Nguyên tắc chung: **[ngày] [ký tự/chữ phân cách] [tháng] [phân cách] [năm]**, tuyệt đối không đảo ngày–tháng theo kiểu Mỹ. Dấu nối có thể là `/`, `.`, `-`, `tháng`, `thg`, `th.`, `th`, `t`; chữ lạ hoặc năm không nhìn thấy **không** đủ bằng chứng tự thu. Bộ parser kiểm tra đúng ngày trong lịch, tháng 1–12, năm hợp lệ. Luôn đọc từ dòng thời gian GIAO DỊCH trên bill, không dùng đồng hồ điện thoại hay thời điểm gửi Chat.
+- Giờ/phút **chỉ có nếu ảnh in**: tách `09:17`, `9h17`, `9 giờ 17 phút`, hoặc `09:17:32` (giây chỉ khi in). Giờ trong cùng dòng `Ngày thực hiện: 12 thg 11, 2026 lúc 9:17` có thể phục hồi khi AI không tách được `transfer_time_printed_vn`. Nếu riêng giờ và giờ cùng dòng khác nhau, hoặc khác giờ chuẩn hóa model, **review**, không thu. Nếu chỉ in ngày không có giờ, không gán `00:00` hoặc giờ Chat; bill giữ `bill_printed_time_missing` cho tự động.
+- Các từ/ký tự ở giữa **chỉ là dấu phân cách, không phải giá trị tháng/ngày**. Không dùng regex tràn lan khớp mọi chữ trên ảnh; unknown token vẫn là `printed_date_invalid`, yêu cầu kiểm tra thủ công. Không nới điều kiện đối chiếu số tiền, account, unique Agribank notification, phút giao dịch và exact bank memo, giữ RPC chống trùng.
+- Chỉ cập nhật `supabase/functions/v21-bank-bill-event/bill-amount-rules.mjs` và bài kiểm thử; **không** redeploy `v21-agribank-notification-ingest` nếu source không đổi. Nguồn duy nhất `1sl2tp/chat:main` → project `vtqhbhrkdxirqeqkgylo`. Merge sau Verify V21 PASS; đọc lại 6/6 Edge files. Không chạy lại bill Cô Ngọc tt #269/ledger #849 hoặc C Hà Trang #268/ledger #848 đã thu.
+- Khi Actions thiếu secret trong ngữ cảnh runner, đã có Supabase connector được cấp quyền nhưng không tự động coi nó là Actions secret. Nếu phải triển khai qua connector theo ngoại lệ đã ghi, chỉ dùng đúng mã `main`, kiểm chứng phiên bản và ghi rõ cách triển khai, không tạo token mới, không thay DB production.
+
 ## E5 BANK-293 — Hoàn tất ghi thu 2.000.000đ Cô Ngọc tt, 12/11/2026
 
 - Mã nguồn nguồn duy nhất `1sl2tp/chat:main` commit `764be518ddcefec5e6cd71ba93ba8b36d22b5558` sau PR #255 + Verify V21 PASS. Bản deploy connector Supabase có kiểm chứng **`v21-bank-bill-event v36 ACTIVE`**, mã tệp **6/6 khớp main**; `v21-agribank-notification-ingest v2` vẫn đúng **3/3** và không được deploy lại chỉ để tăng phiên bản. Không dùng token mới hoặc nguồn nhánh feature.
