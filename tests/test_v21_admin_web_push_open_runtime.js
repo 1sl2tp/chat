@@ -124,6 +124,7 @@ function harness(){
   // BANK-302: a bank push marks the reconciliation report dirty, without
   // routing to an unrelated Chat thread or incrementing message unread.
   const beforeBankPushOpens=h.openCalls.length;
+  const badgeBeforeBankPush=h.swMessages.filter(m=>m.type==='ADMIN_PUSH_BADGE_SET').length;
   h.swListeners.message({data:{
     type:'ADMIN_PUSH_BANK_DIRTY',bankDay:'2026-11-12',
     bankReceiptId:'receipt-852',bankStatus:'matched'
@@ -133,8 +134,8 @@ function harness(){
   assert.equal(bankDirty.type,'v21-bank-report-dirty');
   assert.equal(bankDirty.detail.bankReceiptId,'receipt-852');
   assert.equal(bankDirty.detail.bankStatus,'matched');
-  assert.equal(h.swMessages.some(m=>m.type==='ADMIN_PUSH_BADGE_SET'&&m.count>0),false,
-    'bank reconciliation must not change Chat unread badge');
+  assert.equal(h.swMessages.filter(m=>m.type==='ADMIN_PUSH_BADGE_SET').length,
+    badgeBeforeBankPush,'bank reconciliation must not change Chat unread badge');
 
   h.documentListeners['v21-auth-state']({detail:{state:'GUEST',account:null}});
   assert.equal(h.swMessages.at(-1).type,'ADMIN_PUSH_CLEAR','logout must clear SW foreground suppression state');
