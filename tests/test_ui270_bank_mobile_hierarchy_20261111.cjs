@@ -53,7 +53,7 @@ function verifyLayout(hasExtra){
  const context={ui,root:{scrollTop:22},
    filter:'all',selectedCustomer:null,filters:[['all','Tất cả'],['matched','Đã khớp']],
    bankFilterMobileLabels:{all:'Tất cả',matched:'Đã khớp'},
-   money:x=>String(x),bankDisplayVnd:x=>new Intl.NumberFormat('vi-VN').format(x)+'đ',
+   money:x=>String(x),bankDisplayVnd:x=>new Intl.NumberFormat('vi-VN').format(x/1000),
    isAiScanIssue:()=>false,
    // UI-only layout fixture: inject the verified view-model boundary.
    // BANK-307's real transaction collision behavior has independent tests.
@@ -77,8 +77,8 @@ function verifyLayout(hasExtra){
  if(hasExtra)assert.equal(ui.extraStatus.children.length,6);
  assert.equal(ui.status.children[0].value,'2');
  assert.equal(ui.status.children[1].value,'1',"bill count stays distinct from a bank-money amount");
- assert.equal(ui.summary.children[0].value,'2.793.000đ',"total bank credits remain the first financial KPI");
- assert.equal(ui.summary.children[1].value,'1.311.000đ',"collected amount remains visible as the second KPI");
+ assert.equal(ui.summary.children[0].value,'2.793',"total bank credits remain the first financial KPI");
+ assert.equal(ui.summary.children[1].value,'1.311',"collected amount remains visible as the second KPI");
  context.paint(record);
  assert.equal(ui.status.children.length,hasExtra?2:8,"refresh cannot drop bank totals");
  if(hasExtra)assert.equal(ui.extraStatus.children.length,6);
