@@ -7,6 +7,7 @@ import {compareBillTransferIdentity} from "./bill-transfer-identity.mjs";
 import {eligibleForPrintedDateRescan} from "./bill-review-recheck.mjs";
 import {requestBillGemini} from "./bill-gemini-failover.mjs";
 import {vietnamBusinessDayStartUtc} from "./bill-vietnam-day.mjs";
+import {isRetryableBillScanReason,describeBillDecision} from "./bill-decision-policy.mjs";
 
 const db=createClient(Deno.env.get("SUPABASE_URL")||"",Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"",{auth:{persistSession:false,autoRefreshToken:false}});
 const response=(body:any,status=200)=>new Response(JSON.stringify(body),{status,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store"}});
@@ -289,7 +290,7 @@ Deno.serve(async req=>{
  }
  // BANK-185: bounded retry only for transient Gemini failures on today's
  // original customer image. This never bypasses the bank matching RPC.
- const transientError=/^amount_scan_(?:gemini_http_(?:408|429|5\d\d)|The signal has been aborted|AbortError|failed to fetch|Load failed|gemini_invalid_json|storage_download_failed|hash_registry_unavailable|worker_interrupted)$/i.test(String(job.reason||""));
+ const transientError=isRetryableBillScanReason(job.reason);
  const sent=Date.parse(String(job.sent_at||""));
  const inspected=Date.parse(String(job.scanned_at||""));
  const vnDate=stamp=>new Date(stamp+7*3600000).toISOString().slice(0,10);
@@ -498,7 +499,8 @@ Deno.serve(async req=>{
      if(settledDuplicate)
        try{await notifyTestScan(asset,job.customer_account_id,"duplicate",amount);}catch(e){console.warn("transfer_duplicate_feedback_failed",String(e).slice(0,80));}
      return response({ok:true,status:classification,reason:classificationReason,
-       ai_called:true,ledger_written:false,duplicate_of:repeatedReceiptId||prior?.receipt_id});
+       ai_called:true,ledger_written:false,duplicate_of:repeatedReceiptId||prior?.receipt_id,
+       decision:describeBillDecision({status:classification,reason:classificationReason,match_preview:storedPreview})});
    }
    // BANK-164: only the service-role RPC may authorize a TAPHOA collection.
    // DB independently verifies the Agribank notification, bill and Admin state.
@@ -515,13 +517,15 @@ Deno.serve(async req=>{
    }
    if(receiptPosted){
      return response({ok:true,status:"received",amount_vnd:amount,
-       ai_called:true,ledger_written:true,ledger_id:receiptPosted.ledger_id});
+       ai_called:true,ledger_written:true,ledger_id:receiptPosted.ledger_id,
+       decision:describeBillDecision({status:"received",ledger_id:receiptPosted.ledger_id})});
    }
    try{await notifyTestScan(asset,job.customer_account_id,status,amount);}catch(e){console.warn("bill_scan_feedback_failed",String(e).slice(0,80));}
-   return response({ok:true,status,amount_vnd:amount,duplicate:false,ai_called:true,ledger_written:false});
+   return response({ok:true,status,amount_vnd:amount,duplicate:false,ai_called:true,ledger_written:false,
+     decision:describeBillDecision({status,reason,match_preview:storedPreview})});
  }catch(error){
    const reason=String(error instanceof Error?error.message:error).slice(0,90);
-   const retryable=/^(?:gemini_http_(?:408|429|5\d\d)|The signal has been aborted|AbortError|failed to fetch|Load failed|gemini_invalid_json|storage_download_failed|hash_registry_unavailable|worker_interrupted)$/i.test(reason);
+   const retryable=isRetryableBillScanReason(reason);
    // Key expiry/configuration problems are never classified as "non-bills".
    await finish(asset,{status:retryable?"failed":"review",reason:"amount_scan_"+reason,image_sha256:digest||null}).catch(()=>{});
    if(digest)await db.from("chat_bank_bill_image_hashes").update({scan_status:"failed"})
