@@ -380,10 +380,16 @@ Deno.serve(async req=>{
      // An HTTP 200 with a broken body is a retryable model/service problem,
      // not evidence that the customer's photo is an invalid bill.
      try{modelResult=await vision.response.json();}
-     catch{throw new Error("gemini_invalid_json");}
+     catch{
+       // Keep timeout distinct from a malformed Gemini response body.
+       if(ctl.signal.aborted)throw new Error("AbortError");
+       throw new Error("gemini_invalid_json");
+     }
      if(!modelResult||typeof modelResult!=="object")throw new Error("gemini_invalid_json");
    }finally{clearTimeout(timeout);}
-   const resultString=(modelResult.candidates?.[0]?.content?.parts||[]).map((x:any)=>String(x.text||"")).join("");
+   const parts=modelResult.candidates?.[0]?.content?.parts;
+   if(!Array.isArray(parts))throw new Error("gemini_invalid_json");
+   const resultString=parts.map((x:any)=>String(x?.text||"")).join("");
    let parsed:any;try{parsed=JSON.parse(resultString)}catch{throw new Error("gemini_invalid_json")}
    const fields=readV4Fields(parsed,{sentAt:job.sent_at});
    const verdict=validateVisionRead(parsed);
