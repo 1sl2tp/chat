@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="27f3fd785c07a1c8f5737d1feb912d6f700347c7c4ea24f032cd9c5ef9272bb9">
+<meta name="app-build-id" content="21ccc252fc44bb5bd8925ef2d1ac9c2f99fa49b49bb8624b1a89a92f99cdb67b">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -31438,8 +31438,13 @@ function scanIssueLabel(raw){
  const reason=String(raw||'');
  if(/ai_year_error_bank_verified_prior_day_review/i.test(reason))return 'Agribank đã xác nhận · AI đọc sai năm · Cần xử lý ghi thu ngày cũ';
  if(/gemini_key_missing|gemini_http_(?:400|401|403)/i.test(reason))return 'Khóa/API Gemini không hợp lệ — cần kiểm tra';
- if(/gemini_http_429/i.test(reason))return 'Gemini hết hạn mức — sẽ thử lại';
- if(/gemini_http_5[0-9][0-9]|aborted|aborterror|worker_interrupted/i.test(reason))return 'AI quét lỗi hoặc quá thời gian — đang chờ thử lại';
+ if(/gemini_http_429/i.test(reason))return 'Gemini hết hạn mức — sẽ thử lại có giới hạn';
+ if(/gemini_invalid_json/i.test(reason))return 'Dịch vụ AI trả dữ liệu lỗi — sẽ thử lại có giới hạn, không kết luận ảnh sai';
+ if(/storage_download_failed/i.test(reason))return 'Lỗi tải ảnh từ hệ thống — chờ thử lại, không kết luận ảnh không phải bill';
+ if(/hash_registry_lookup_failed/i.test(reason))return 'Lỗi truy vấn ảnh trùng — cần Admin xác minh; lịch tự thử lại hiện không hỗ trợ lỗi này';
+ if(/hash_registry_unavailable/i.test(reason))return 'Lỗi lưu hash ảnh — sẽ thử lại có giới hạn';
+ if(/gemini_http_(?:408|5[0-9][0-9])|aborted|aborterror|worker_interrupted|failed to fetch|Load failed/i.test(reason))
+   return 'AI hoặc kết nối quá thời gian — chờ thử lại có giới hạn';
  if(/retry_exhausted|old_unresolved|queue_expired/i.test(reason))return 'Đã hết lượt thử — cần Admin xem chứng từ';
  return 'AI chưa phân loại được ảnh — cần kiểm tra thủ công';
 }
