@@ -5,7 +5,7 @@ export const BILL_DECISION_RULE_VERSION="bank_bill_decision_v1_20261112";
 
 // The same predicate is used at scan-failure classification and at
 // cron-triggered failed-job reentry. Keep both paths in sync.
-const TECHNICAL_RETRY= /^(?:gemini_http_(?:408|429|5\d\d)|The signal has been aborted|AbortError|failed to fetch|Load failed|gemini_invalid_json|storage_download_failed|hash_registry_unavailable|hash_registry_lookup_failed|worker_interrupted)$/i;
+const TECHNICAL_RETRY= /^(?:gemini_http_(?:408|429|5\d\d)|The signal has been aborted|AbortError|failed to fetch|Load failed|gemini_invalid_json|storage_download_failed|hash_registry_unavailable|worker_interrupted)$/i;
 
 export function isRetryableBillScanReason(reason){
  const text=String(reason||"").trim().replace(/^amount_scan_/i,"");
