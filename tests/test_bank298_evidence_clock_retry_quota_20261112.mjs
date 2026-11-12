@@ -74,12 +74,14 @@ assert.ok(worker.includes("todayUTC=vietnamBusinessDayStartUtc(now)"));
 assert.ok(worker.includes('error:"scan_budget_unavailable"'));
 assert.ok(worker.includes("customerBudgetError||globalBudgetError"));
 const begin=worker.indexOf("const ctl=new AbortController()");
-const read=worker.indexOf("await vision.response.json()",begin);
+const read=worker.indexOf("await requestParsedBillGemini({",begin);
 const cleanup=worker.indexOf("}finally{clearTimeout(timeout);}",begin);
 assert.ok(begin>=0&&read>begin&&cleanup>read,
- "Gemini response body MUST be read before 30-second timeout is cleared");
-assert.ok(worker.includes('if(ctl.signal.aborted)throw new Error("AbortError")'));
-assert.ok(worker.includes('if(!Array.isArray(parts))throw new Error("gemini_invalid_json")'));
+ "Gemini response and full JSON parse MUST happen before the 30-second deadline is cleared");
+const parser=readFileSync(new URL("../supabase/functions/v21-bank-bill-event/bill-gemini-failover.mjs",import.meta.url),"utf8");
+assert.ok(parser.includes("await response.json()"));
+assert.ok(parser.includes('if(signal?.aborted)throw new Error("AbortError")'));
+assert.ok(parser.includes("if(!Array.isArray(parts)||!parts.length)throw new Error"));
 const retryPolicy=readFileSync(new URL("../supabase/functions/v21-bank-bill-event/bill-decision-policy.mjs",import.meta.url),"utf8");
 assert.ok(retryPolicy.includes("gemini_invalid_json|storage_download_failed"),
  "Malformed Gemini transport JSON stays a retryable technical issue in the shared policy");
