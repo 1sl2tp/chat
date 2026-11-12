@@ -39,11 +39,11 @@ assert.equal(bankFilterMobileLabels.manual_bank,'Thu tay NH');
 assert.equal(bankFilterMobileLabels.matched,'Đã khớp bill');
 
 const h=source.slice(source.indexOf('function renderTable(data){'),source.indexOf('// BANK-183-',source.indexOf('function renderTable(data){')));
-assert(h.includes("const columns=['Khách hàng','Tự thu','Chờ soát','Trùng','AI lỗi ngày','Tiền tự thu'];"));
-assert(h.includes("const shortColumns=['Khách','Tự thu','Chờ','Trùng','Sai','Tiền thu'];"));
+assert(h.includes("const columns=['Khách hàng','Đã ghi thu','Bill chờ','Bill trùng','AI nghi ngày','Tiền đã thu'];"));
+assert(h.includes("const shortColumns=['Khách','Đã thu','Chờ','Trùng','Sai ngày','Tiền thu'];"));
 assert(h.includes('for(const [index,name] of columns.entries())'));
 assert(h.includes('th.setAttribute(\'aria-label\',name);'),'column titles preserve full meaning');
-assert(h.includes("for(const v of [g.name,g.matched,g.waiting,g.duplicate,g.old,money(g.money)])"),
+assert(h.includes("for(const v of [g.name,g.matched,g.waiting,g.duplicate,g.old,bankDisplayVnd(g.money)])"),
  'all six original numerical columns must stay in place');
 
 assert(css.includes('.bank-report-responsive-label .bank-report-label-full{display:inline}'));
