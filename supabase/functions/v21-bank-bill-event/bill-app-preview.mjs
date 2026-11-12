@@ -7,7 +7,7 @@ const when=x=>{const n=Date.parse(x||"");return Number.isFinite(n)?n:null;};
 // The financial SQL RPC independently verifies the same date/time.
 function bankTime(value){
  const text=String(value||"").trim().replace("T"," ");
- const m=/^(20\\d{2})-([01]\\d)-([0-3]\\d) ([01]\\d|2[0-3]):([0-5]\\d)(?::([0-5]\\d))?$/.exec(text);
+ const m=/^(20\d{2})-([01]\d)-([0-3]\d) ([01]\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/.exec(text);
  if(!m)return null;
  const y=Number(m[1]),mon=Number(m[2]),day=Number(m[3]);
  const calendar=new Date(Date.UTC(y,mon-1,day));
