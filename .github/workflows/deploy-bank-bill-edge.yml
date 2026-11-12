@@ -27,6 +27,12 @@ on:
       - "tests/test_bank288_edge_deploy_main_only_20261112.cjs"
       - ".github/workflows/deploy-bank-bill-edge.yml"
   workflow_dispatch:
+    inputs:
+      deploy_ingest:
+        description: "Also deploy reviewed Agribank notification ingestion"
+        required: false
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -114,6 +120,11 @@ jobs:
             git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA" > /tmp/bank-edge-changes.txt
           fi
           if grep -q '^supabase/functions/v21-agribank-notification-ingest/' /tmp/bank-edge-changes.txt; then
+            echo "ingest_changed=true" >> "$GITHUB_OUTPUT"
+          elif [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] && [ "${{ inputs.deploy_ingest }}" = "true" ]; then
+            # Explicit recovery after the original push was blocked by an
+            # unavailable deployment credential. Always use the checked-out
+            # latest reviewed main SHA; never re-run a stale release commit.
             echo "ingest_changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "ingest_changed=false" >> "$GITHUB_OUTPUT"
