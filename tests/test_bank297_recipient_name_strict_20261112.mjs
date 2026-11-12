@@ -73,6 +73,17 @@ const senderOnly=readV4Fields({...raw,recipient_name:null,
 assert.equal(senderOnly.receiving_name,null);
 assert.equal(readV4Fields({...raw,recipient_name:null},{}).receiving_name,null);
 assert.match(SYSTEM_PROMPT,/Chữ BUI XUAN TUNG ở Người gửi/);
+assert.match(SYSTEM_PROMPT,/chuẩn thực tế của tài khoản Agribank 2901181999999 là BUI XUAN TUNG \(KHÔNG CÓ DẤU\)/);
+assert.match(SYSTEM_PROMPT,/KHÔNG tự thêm dấu tiếng Việt vào tên tài khoản/);
+assert.equal(isExpectedBillRecipientName("Bui Xuan Tung"),true,
+  "bank account holder is written without accents");
+const bank308Policy=readFileSync(
+ new URL("../docs/specs/SPEC-BANK308-VN-TIME-SIX-FACTOR-20261112.md",import.meta.url),"utf8");
+assert.match(bank308Policy,/\*\*Tên chủ tài khoản nhận thật và chuẩn máy:\*\* `BUI XUAN TUNG`/);
+assert.match(bank308Policy,/timestamptz/);
+assert.match(bank308Policy,/Asia\/Ho_Chi_Minh/);
+assert.match(bank308Policy,/không tự thu chỉ vì trùng tên và memo phổ thông/);
+
 assert.match(SYSTEM_PROMPT,/recipient_name=null/);
 const index=readFileSync(new URL("../supabase/functions/v21-bank-bill-event/index.ts",import.meta.url),"utf8");
 assert.match(index,/recipient_name_printed:typeof parsed\?\.recipient_name/);
