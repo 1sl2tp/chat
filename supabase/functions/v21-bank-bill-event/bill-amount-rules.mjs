@@ -176,8 +176,11 @@ export function readV4Fields(data,context={}){
  const {inlineClock,inlineClockText}=splitPrintedBillDateClock(printedDateText);
  // Optional clock on the same printed date line is *literal image evidence*.
  // Use it only when Gemini did not split the clock into its own field.
- const effectiveClock=printedBillClock||inlineClock;
- const effectiveClockText=printedBillClock?printedClockText:inlineClockText;
+ const inlineHasMorePrecision=printedBillClock&&inlineClock&&
+   printedBillClock.precision==="minute"&&inlineClock.precision==="second";
+ const effectiveClock=inlineHasMorePrecision?inlineClock:printedBillClock||inlineClock;
+ const effectiveClockText=inlineHasMorePrecision?inlineClockText:
+   printedBillClock?printedClockText:inlineClockText;
  const modelClock=billTime?{clock:billTime.slice(11),precision}:null;
  const clockDisagrees=(x,y)=>Boolean(x&&y&&(
    x.clock.slice(0,5)!==y.clock.slice(0,5)||
