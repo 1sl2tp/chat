@@ -15,6 +15,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
   pages: write
   id-token: write
 
@@ -97,6 +98,28 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: _site
+
+      # BANK-309: artifact upload can finish before GitHub's artifact-list API
+      # indexes it. The deploy-pages step otherwise incorrectly sees zero.
+      - name: Wait until uploaded Pages artifact is discoverable
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          sleep 5
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            ARTIFACT_ID="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?per_page=100" --jq '.artifacts[] | select(.name == "github-pages" and .expired == false) | .id' 2>/dev/null | head -1 || true)"
+            if [[ "$ARTIFACT_ID" =~ ^[0-9]+$ ]]; then
+              echo "Pages artifact indexed: $ARTIFACT_ID"
+              sleep 5
+              break
+            fi
+            if [ "$attempt" -eq 10 ]; then
+              echo "::error::Uploaded Pages artifact not indexed after polling."
+              exit 1
+            fi
+            sleep 3
+          done
 
       - name: Deploy
         id: deployment
