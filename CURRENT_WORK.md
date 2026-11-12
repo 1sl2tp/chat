@@ -1,3 +1,14 @@
+## 2026-11-12 — BANK-302 E4 VERIFIED · Giải quyết thông báo cũ khi bill đã ghi thu
+
+- **Đúng repo và nguồn:** [PR #266](https://github.com/1sl2tp/chat/pull/266) squash merged vào `1sl2tp/chat:main` commit `1d18adef559bd274b5d643217b6c102a26eeb30f`. Verify V21 PR run [43212109978](https://github.com/1sl2tp/chat/actions/runs/43212109978) **SUCCESS**, Verify main [43212412477](https://github.com/1sl2tp/chat/actions/runs/43212412477) **SUCCESS**; [Deploy Chat Pages #43212412485](https://github.com/1sl2tp/chat/actions/runs/43212412485) **SUCCESS**. Build auto commit `678e6f40f31ca54c868bcadadbfbdd6ef7ef0894` chỉ đổi `index.html` và `version.json`, không thay `sw.js`/`admin-push-controller.js`; kiểm tra source main sau Pages có marker BANK-302 đầy đủ.
+- **Bug đã sửa:** trong `sw.js`, cleanup thông báo lỗi/chờ theo tag `bank:receipt:<id>` trước đó đứng **sau** điều kiện `readingSame||visibleMobileChat`, nên iPhone PWA foreground có thể không dọn. Nay matched push do backend đã kiểm chứng sẽ cố đóng **đúng** `bank:receipt:<receipt-id>` và `bank:notice:<notification-id>` trước foreground suppression; nếu API `getNotifications` không hỗ trợ, không chặn thông báo `matched` mới. Không xóa notification Chat hoặc giao dịch khác.
+- **Báo cáo realtime:** `sw.js` gửi `ADMIN_PUSH_BANK_DIRTY` đến controlled clients cho mỗi reconciliation event, `admin-push-controller.js` phát `v21-bank-report-dirty` (admin only); `bank-report-dashboard.js` có listener từ trước chỉ reload khi active. Không sửa Chat unread badge, không tạo thêm tin thật.
+- **Mock proof:** test `test_v21_admin_web_push_sw_runtime.js` assert background review+bank-only→matched chỉ 1 notification confirmed, foreground iOS PWA dù suppress matched vẫn dọn lỗi cũ, getNotifications lỗi vẫn hiện matched, Chat badge được bảo toàn. Test `test_v21_admin_web_push_open_runtime.js` assert bank report dirty không mở Chat hay thay badge.
+- **An toàn production read-only lúc 18:51:56 VN:** `v21-bank-bill-event v43 ACTIVE` 9 tệp, `v21-agribank-notification-ingest v2 ACTIVE` 3 tệp không đổi; notification #269/#270/#271 ↔ ledger #849/#850/#852 đều received, mỗi cái đúng 1 bank link, **0** manual duplicate. Không sửa SQL/RPC, không ghi thu thử, không tạo token.
+- **Rule §9:** `docs/BANK_298_EVIDENCE_PIPELINE.md`. **E4 PASS**, Pages đã deploy. **E5 chưa đo trực tiếp iPhone Notification Center**: việc đóng notification đã được hệ điều hành trình bày là best-effort tùy Safari/iOS; không tuyên bố có thể thu hồi mọi cảnh báo đã gửi.
+
+---
+
 ## 2026-11-12 — BANK-302 · Đóng cảnh báo AI/đang chờ cũ sau ghi thu (E1 source)
 
 - **Nguồn:** `1sl2tp/chat`, branch `fix/bank-302-pwa-bank-push-finality-20261112`, base `7ea30e97d684b68aeb73535d86dc5891d8ea1f04`. Không sửa repo `taphoaxyz`/`1988`, không tạo token hoặc sửa database production.
