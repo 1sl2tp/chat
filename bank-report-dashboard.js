@@ -1445,11 +1445,19 @@ function bankManualBillEvidenceRows(bill,notice=null,prepared=null,serverState='
    !account?'Chưa có STK bill':bank?.account?
     norm(account)===norm(bank.account)?'Khớp STK thông báo':'Khác STK':
     norm(account)==='2901181999999'?'Khớp cấu hình':'Chưa xác minh STK');
+ // The Admin RPC in BANK-315 must project r.receiving_name and r.raw_read.
+ // Until that release, a missing field in the API is NOT an unreadable bill.
+ // The configured receiver name is comparison evidence, never an OCR fallback.
+ const hasBillRecipientSource=Boolean(value(bill?.receiving_name))||
+  Object.prototype.hasOwnProperty.call(raw,'recipient_name_printed')||
+  Object.prototype.hasOwnProperty.call(raw,'recipient_name');
  const owner=value(raw.recipient_name_printed||raw.recipient_name||bill?.receiving_name);
- add('Tên chủ TK nhận',owner||missingBill,
+ const ownerMissing=hasBillRecipientSource?'AI chưa nhận diện được tên':'API chưa trả tên người nhận từ bill';
+ add('Tên chủ TK nhận',owner||ownerMissing,
    'BUI XUAN TUNG · tên TK cấu hình',
    !owner?'pending':norm(owner)==='BUIXUANTUNG'?'matched':'review',
-   !owner?'Chưa có tên bill':norm(owner)==='BUIXUANTUNG'?'Khớp tên cấu hình':'Khác tên TK');
+   !owner?(hasBillRecipientSource?'Chưa đọc được tên':'Chờ API trả OCR'):
+    norm(owner)==='BUIXUANTUNG'?'Khớp tên trên bill':'Tên bill khác cấu hình');
  const customer=value(bill?.customer_name);
  add('Khách hàng liên kết',customer||'Chưa xác định',
    serverReady?show(prepared.customer_name):'Agribank không ghi tên khách trong tin',
@@ -1580,8 +1588,9 @@ async function openManualBillDialog(bill){
  comparison.setAttribute('aria-label','So sánh chứng từ và tiền ngân hàng');
  const compareSummary=el('p','bank-bill-compare-summary');
  const compareHint=el('p','bank-bill-compare-hint',
-  'Trùng số tiền, tài khoản, ngày hoặc nội dung chỉ là các tiêu chí đối chiếu. '+
-  'Chưa liên kết chứng từ và sổ thu thì KHÔNG được tự ghi thu.');
+  'Nếu API chưa trả OCR, không được coi đó là lỗi AI đọc ảnh. '+
+  'Tên trong cấu hình Agribank không thay thế tên người nhận trích từ bill. '+
+  'Cùng số tiền, ngày hay nội dung chưa cho phép tự ghi thu.');
  append(compare,compareTitle,comparison,compareSummary,compareHint);
  form.appendChild(compare);
  const refreshEvidence=(prepared=null,state='checking')=>{
