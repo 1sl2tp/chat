@@ -26,7 +26,7 @@ const bill={
  }
 };
 const blank=bankManualBillEvidenceRows(bill,null,null,'checking');
-assert.equal(blank.length,14,'evidence contains separate date, clock, memo, ledger and replay');
+assert.equal(blank.length,15,'separate date/clock and independent notification-replay vs ledger-duplicate evidence');
 assert.equal(row(blank,'Ngân hàng gửi').bill,'VPBank');
 assert.equal(row(blank,'Ngân hàng nhận').tone,'pending','bill does not explicitly name receiving bank');
 assert.equal(row(blank,'Số tài khoản nhận').tone,'matched','config match ≠ received money');
@@ -58,7 +58,7 @@ assert.equal(row(candidate,'Giờ giao dịch').tone,'review');
 assert.equal(row(candidate,'Giờ giao dịch').bank,'19:31');
 assert.equal(row(candidate,'Nội dung chuyển khoản').tone,'matched');
 assert.equal(row(candidate,'Số dư cuối Agribank').bank,'-114,899,730');
-assert.equal(row(candidate,'Trùng bill / thông báo').tone,'matched',
+assert.equal(row(candidate,'Thông báo Agribank phát lại').tone,'matched',
  'two exact-replay notifications are one transfer, not a duplicate collection');
 assert.equal(row(candidate,'Sổ đã ghi thu').tone,'pending');
 assert.equal(row(bankManualBillEvidenceRows(bill,{...notice,bank_body:body.replace(
@@ -68,11 +68,11 @@ assert.equal(row(bankManualBillEvidenceRows(bill,{...notice,amount_vnd:123000},n
 assert.equal(row(bankManualBillEvidenceRows({...bill,receiving_account:'2901181999988'},notice,null,'checking'),
  'Số tài khoản nhận').tone,'review');
 assert.equal(row(bankManualBillEvidenceRows({...bill,duplicate_of:'duplicate'},null,null,'checking'),
- 'Trùng bill / thông báo').tone,'duplicate');
+ 'Trùng bill / trùng khoản thu').tone,'duplicate');
 const prev={ok:true,customer_id:'sam-123',customer_name:'C Sâm pl',
  possible_existing:[{ledger_id:853}]};
 assert.equal(row(bankManualBillEvidenceRows(bill,notice,prev,'ready'),
- 'Trùng bill / thông báo').tone,'duplicate');
+ 'Trùng bill / trùng khoản thu').tone,'duplicate');
 assert.equal(row(bankManualBillEvidenceRows(bill,notice,{...prev,customer_id:'different'},'ready'),
  'Khách hàng liên kết').tone,'review');
 assert.match(bankManualBillPrepareErrorMessage({code:'PGRST202'}),/chưa triển khai hàm đối chiếu/);
