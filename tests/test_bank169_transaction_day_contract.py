@@ -22,8 +22,9 @@ def test_bill_ocr_happens_on_upload_even_if_no_bank_notification():
  assert "waiting_for_bank_transaction_match" in QUEUE
  assert "chat_bank_bill_queue_amount_image()" in QUEUE
 def test_match_by_transaction_not_Android_or_chat_arrival():
- assert EDGE.count('.gte("transfer_at",lo.toISOString())')==2
- assert EDGE.count('.lte("transfer_at",hi.toISOString())')==2
+ assert EDGE.count('.gte("transfer_at",lo.toISOString())')>=2
+ assert 'eligibleForPrintedDateRescan(job,r)' in EDGE  # BANK-291: new bank-time read-only review
+ assert EDGE.count('.lte("transfer_at",hi.toISOString())')>=2
  assert 'eq("is_own_transfer",false)' in EDGE
  assert "def:=replace(def,from_text,to_text)" in WRITER
  assert "o.transfer_at between n.transfer_at" in WRITER

@@ -12,7 +12,8 @@ def test_each_notification_keeps_full_credited_account():
     assert "bank_credit_account" in ACCOUNT
     assert "Tài khoản" in ACCOUNT
     assert "generated always as" in ACCOUNT
-    assert EDGE.count('eq("bank_credit_account","2901181999999")')==2
+    assert EDGE.count('eq("bank_credit_account","2901181999999")')>=2
+    assert 'eligibleForPrintedDateRescan(job,r)' in EDGE  # Extra bank account guard on reviewed receipt
     assert "creditAccountFromEvent(e)===destination" in PREVIEW
     assert "new.bank_credit_account is distinct from '2901181999999'" in WAKE
 

@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - "supabase/functions/v21-bank-bill-event/**"
+      - "supabase/functions/v21-agribank-notification-ingest/**"
       - "tests/test_bank266_bill_format_variants_20261108.mjs"
       - "tests/test_bank267_bill_ocr_swap_report_20261110.cjs"
       - "tests/test_bank269_bill_literal_date_clock_20261110.mjs"
@@ -12,6 +13,8 @@ on:
       - "tests/test_bank286_recognition_casebook_20261111.mjs"
 
       - "tests/test_bank287_agribank_qr_memo_20261112.mjs"
+      - "tests/test_bank291_techcombank_comma_date_20261112.mjs"
+      - "tests/test_bank292_delayed_bank_credit_recheck_20261112.mjs"
       - "tests/test_bank288_edge_deploy_main_only_20261112.cjs"
       - ".github/workflows/deploy-bank-bill-edge.yml"
   workflow_dispatch:
@@ -66,6 +69,8 @@ jobs:
           node tests/test_bank284_receipt_fields_manual_fallback_20261111.mjs
           node tests/test_bank286_recognition_casebook_20261111.mjs
           node tests/test_bank287_agribank_qr_memo_20261112.mjs
+          node tests/test_bank291_techcombank_comma_date_20261112.mjs
+          node tests/test_bank292_delayed_bank_credit_recheck_20261112.mjs
           node tests/test_bank288_edge_deploy_main_only_20261112.cjs
       - name: Require configured Supabase deployment credential
         shell: bash
@@ -81,4 +86,6 @@ jobs:
         shell: bash
         run: |
           supabase functions deploy v21-bank-bill-event \
+            --project-ref "$PROJECT_REF" --no-verify-jwt
+          supabase functions deploy v21-agribank-notification-ingest \
             --project-ref "$PROJECT_REF" --no-verify-jwt

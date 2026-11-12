@@ -2,6 +2,14 @@
 
 > **Đọc trước mỗi lần phát hành OCR/đối soát/thu tự động. Không đoán nhánh, repo, project hoặc tạo token mới chỉ vì một workflow báo thiếu secret.**
 
+## BANK-291/292 — Techcombank comma date và Agribank đến sau
+
+- Source duy nhất `1sl2tp/chat:main` và project `vtqhbhrkdxirqeqkgylo`; code của **hai** Edge function `v21-bank-bill-event` và `v21-agribank-notification-ingest` phải cùng release BANK-291/292, `verify_jwt=false`. Không lấy từ repo TAPHOA hoặc 1988, không thay token/secret và không deploy branch fix trực tiếp.
+- Chữ bill Techcombank `12 tháng 11, 2026` là ngày **DD tháng MM, YYYY** đầy đủ; parser không được gọi đây là `printed_date_invalid` khi ngày hợp lệ. Luồng ngân hàng có thể đến chậm vài phút: event mới phải đánh thức đúng worker, không thêm cron/polling.
+- Retry một lần cho `review/bill_printed_datetime_conflict` chỉ để **đọc lại ảnh gốc** sau khi kiểm chứng **một** Agribank credit đúng số tiền/phút/tài khoản/nội dung, trong ngày VN và trước khi có bất kỳ link thu nào. Không dùng trạng thái OCR cũ để tự ghi tiền. Bill `amount_read` có thể khớp lại bằng OCR đã lưu và không gọi Gemini.
+- Chỉ đánh dấu `ĐÃ THU` sau khi kiểm tra RPC ngân hàng chuẩn đã tạo đúng một ledger/link, không tự sửa `raw_read`, số dư, `status` bằng SQL hoặc gửi thông báo khách trong tests. Giao dịch BANK-290 #268 đã thu: tuyệt đối không lặp.
+- Chạy BANK-291/292 và Verify V21, phát hành qua workflow có khóa `main` sau khi CI PASS; đọc lại cả hai Edge versions/hashes. Nếu Actions không có secret trong ngữ cảnh runner, chỉ dùng ngoại lệ deploy trực tiếp có đối chiếu nguồn `main` và phải ghi nhật ký, không khởi tạo token mới.
+
 ## BANK-290 — Giao dịch C Hà Trang #268 đã thu, CẤM ghi thu trùng
 
 - Xác minh trực tiếp ngày **12/11/2026 lúc khoảng 07:45 VN**: khách C Hà Trang, ngân hàng Agribank **#268** (10.157.000đ, 21:53 ngày 11/11) có **một** `chat_bank_manual_collections` mode `collected`, ledger **#848** lúc **07:43:27 ngày 12/11**, amount `-10157` (đơn vị 1.000đ) và **một** tin xác nhận trong Chat với client ID `taphoa:bank-manual:268:collection`. Tin xác nhận báo nợ sau thu **0**.
@@ -17,7 +25,7 @@
 | Source branch được phép triển khai | `main` (sau PR và Verify V21 PASS) |
 | Source Edge Function | `supabase/functions/v21-bank-bill-event/` từ **chính commit main đã kiểm thử** |
 | Supabase project ref | `vtqhbhrkdxirqeqkgylo` (`chat-bh-get`) |
-| Supabase function | `v21-bank-bill-event` |
+| Supabase functions | `v21-bank-bill-event` và `v21-agribank-notification-ingest` (BANK-291 event wake) |
 | GitHub release workflow | `.github/workflows/deploy-bank-bill-edge.yml` (`Deploy Bank Bill OCR Edge`) |
 | Runtime JWT mode | `verify_jwt=false` (giữ nguyên xác thực riêng bằng `x-internal-dispatch-key`) |
 | Backend SQL ghi thu | `public.chat_bank_app_collect` — giữ các điều kiện chống thu trùng/ngày hiện tại |
