@@ -117,3 +117,17 @@ Chỉ dùng bằng chứng ngân hàng đã xác minh để phát sinh tiền. A
 - Giới hạn: không thể ngăn hoàn toàn Google Gemini quá tải; việc thử lại giúp giảm số lần ảnh vào hàng đợi. Không tuyên bố kết quả lỗi 503 giảm bao nhiêu phần trăm khi chưa có dữ liệu production sau phát hành; không bật OCR nhiều lượt tự động *để so sánh số liệu tài chính*.
 
 **Vận hành:** với ảnh lỗi 503 mà sau đó đã `received`, thông báo iOS cũ vẫn có thể nằm trong Notification Center; phải kiểm tra receipt+ledger hiện tại, không nhập thu lại. Nếu lỗi 503 vẫn nhiều sau phát hành, dùng log mỗi `stage` xác minh primary hay backup quá tải trước khi đổi model; không tự tăng chi phí hoặc tự tạo token.
+
+
+## 9. BANK-302 — Thông báo AI lỗi/chờ ngân hàng không được hiểu là trạng thái cuối
+
+**Trường hợp kiểm chứng:** 12/11/2026 bill 10 triệu của Cô Ngọc tt nhận `review:ai-retrying` lúc 17:42, `bill_waiting` 17:47, `matched:271` 17:49; cả ba đã được gửi qua Admin Push outbox `sent`, nhưng cùng receipt đã `received` và ledger #852. Trên iOS, thông báo lỗi cũ có thể vẫn tồn tại tại thời điểm xem sau đó. **Push là ảnh chụp trạng thái khi gửi, không phải nguồn xác nhận công nợ.**
+
+- **Nguồn chuẩn** chỉ là receipt hiện tại + bank link + ledger do `chat_bank_app_collect` tạo. Không dùng push cũ để quyết định thu, không gửi bill lại hay thu thủ công khi chỉ thấy cảnh báo cũ.
+- **Service Worker** khi nhận `kind=bank_reconciliation`, `bank_event_kind=matched` từ **event đã được backend kiểm chứng**, ưu tiên đóng các thông báo đang hiển thị với tag **chính xác** `bank:receipt:<receipt id>` và `bank:notice:<notification id>` trước khi xét liệu PWA đang hiển thị và có cần banner hay không. Không tìm/đóng mọi thông báo, không đụng Chat/missed call hoặc giao dịch khác.
+- Nếu browser hỗ trợ `ServiceWorkerRegistration.getNotifications`, sử dụng API này để đóng các notification cũ của **cùng giao dịch**; API có thể không được hỗ trợ hoặc trả lỗi tùy iOS/Safari, nên xử lý **best-effort**, không ngăn thông báo `matched` mới. Không hứa có thể xóa mọi thông báo đã được hệ điều hành lưu/trình bày.
+- **Foreground**: ngay cả khi iPhone PWA đang mở và banner hệ thống bị ẩn, SW gửi `ADMIN_PUSH_BANK_DIRTY` cho các client thuộc cùng SW. Admin Push Controller chuyển thành event `v21-bank-report-dirty`, và báo cáo ngân hàng **chỉ reload khi đang active**. Không trigger Chat sync, không thay số lượng tin chưa đọc, không tự mở Chat hay tăng badge.
+- **Background**: matched notification được hiển thị bình thường và dùng tag `bank:notice:<id>` theo contract BANK-181, có thể thay bank-only note cũ. Không thay nội dung push/secret, không thêm thông báo mới hoặc giao dịch thật để kiểm thử.
+- **Kiểm thử hồi quy mô phỏng**: review→bank-only→matched phải chỉ còn một thông báo đã thu; foreground matched dọn cảnh báo cũ dù không show banner; khi `getNotifications` lỗi vẫn show matched; Chat badge và Chat notification không mất; controller báo bank report dirty đúng một lần, không tự navigate contact.
+- **Không thay đổi**: model Gemini, OCR/amount, ngày/giờ/STK, bank Plus ingest, SQL/RPC tài chính, RLS, quyền Push, cron. Chỉ sửa `sw.js` và `admin-push-controller.js`, là cập nhật Web/PWA qua Pages. E4 code/CI/Pages có thể kiểm chứng; E5 việc hệ điều hành iOS thực sự loại notification cũ cần ảnh hoặc thiết bị thực tế.
+
