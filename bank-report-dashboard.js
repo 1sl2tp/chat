@@ -195,10 +195,12 @@ async function reload(){
  ui.stamp.textContent=(typeof current!=='undefined'&&current)?'Đang làm mới · đang hiển thị số liệu gần nhất…':'Đang tải dữ liệu…';
  try{
   if(!owner||owner!==reportSessionOwner||!auth.appSessionId||!client)throw Error('Chưa có phiên Admin');
-  const [report,states,credits]=await Promise.all([
+  const [report,states,credits,gapReview]=await Promise.all([
    client.rpc('chat_bank_dashboard',{p_app_session_id:auth.appSessionId,p_day:day}),
    client.rpc('chat_bank_manual_collection_statuses',{p_app_session_id:auth.appSessionId,p_day:day}),
-   client.rpc('chat_bank_all_credit_statuses',{p_app_session_id:auth.appSessionId,p_day:day})
+   client.rpc('chat_bank_all_credit_statuses',{p_app_session_id:auth.appSessionId,p_day:day}),
+   // Read-only diagnostic. An unavailable RPC must never break normal bank reporting.
+   client.rpc('chat_bank_missing_credit_candidates',{p_app_session_id:auth.appSessionId,p_day:day})
   ]);
   if(report.error)throw report.error;
   if(states.error)throw states.error;
@@ -207,7 +209,9 @@ async function reload(){
       owner!==reportSessionOwner||owner!==bankReportSessionOwner())return;
   const data=report.data;
   current={...data,manual_collections:Array.isArray(states.data)?states.data:[],
-    bank_credits:Array.isArray(credits.data)?credits.data:[]};
+    bank_credits:Array.isArray(credits.data)?credits.data:[],
+    bank_balance_gaps:!gapReview.error&&Array.isArray(gapReview.data)?gapReview.data:[],
+    bank_balance_gap_status:gapReview.error?'unavailable':'ok'};
   paint(current);focusPushRecord(current);
   const when=new Date(data.updated_at);
   ui.stamp.textContent='Dữ liệu '+(Number.isFinite(when.getTime())?new Intl.DateTimeFormat('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(when):'mới nhất')+(data.closed?' · Đã khóa sổ':' · Đang mở sổ');
@@ -300,6 +304,28 @@ function renderBankWorkQueue(data,outstanding){
  holder.appendChild(actions);
  holder.hidden=false;
 }
+// BANK-306: a balance discontinuity is a review cue only, NEVER authority
+// to create a bank notification or to change any customer debt ledger.
+function renderBankGapWarnings(data){
+ const holder=ui.queue;
+ if(!holder)return;
+ const rows=Array.isArray(data?.bank_balance_gaps)?data.bank_balance_gaps:[];
+ const candidates=rows.filter(g=>g&&g.evidence_status==='balance_gap_needs_review'&&
+   g.financial_authorized===false&&Number.isSafeInteger(Number(g.gap_vnd))&&Number(g.gap_vnd)>0);
+ if(!candidates.length)return;
+ const box=el('div','bank-report-gap-list');
+ box.appendChild(el('strong','bank-report-gap-title','Có chênh lệch số dư Agribank cần kiểm tra'));
+ for(const gap of candidates.slice(0,10)){
+  const amount=new Intl.NumberFormat('vi-VN',{maximumFractionDigits:0}).format(Number(gap.gap_vnd))+'đ';
+  const from=String(gap.previous_bank_time||'').slice(11,16);
+  const to=String(gap.next_bank_time||'').slice(11,16);
+  const customer=gap.customer_name?' · Có bill chờ của '+gap.customer_name:'';
+  box.appendChild(el('div','bank-report-gap-item',
+    'Số dư chưa giải thích '+amount+' trong khoảng '+from+'–'+to+customer+
+    '. Đây là dấu hiệu thiếu thông báo ngân hàng; chưa đủ căn cứ để tự thu.'));
+ }
+ holder.appendChild(box);
+}
 function paint(data){
  const s=data?.summary||{};
  const expanded=new Set([...ui.groups.querySelectorAll('.bank-report-detail[open]')]
@@ -311,7 +337,10 @@ function paint(data){
  const outstanding=(data?.bank_only||[]).filter(x=>!handled.has(String(x.notice_id))).length;
  const incoming=Array.isArray(data?.bank_credits)?data.bank_credits:[];
  const incomingAmountVnd=incoming.reduce((sum,x)=>sum+(Number(x.amount_vnd)||0),0);
- if(ui.queue)renderBankWorkQueue(data,outstanding);
+ if(ui.queue){
+  renderBankWorkQueue(data,outstanding);
+  renderBankGapWarnings(data);
+ }
  // Bank credit → verified ledger. The second row is a COUNT of matched
  // receipts and pending bills, not another amount of money.
  ui.summary.replaceChildren(
