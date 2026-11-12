@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="c849abdbb4b7f880b13794fd5585842baf78cd10f2403b170f64d671cd9d38cf">
+<meta name="app-build-id" content="1dd3b60e581906c1e516a1299a718ec46f249c26c2016a056a4efa51b544e59e">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -3290,6 +3290,183 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
     min-height:38px;font-size:10px;padding:4px 2px;
   }
   #bankReportDashboard .bank-report-work-button{font-size:9.5px}
+}
+
+
+/* BANK-313: evidence-state traffic lights. Never equate a screenshot with a
+   posted ledger. The text remains the primary accessible status indicator. */
+#bankReportDashboard .bank-report-detail[data-bank-tone="success"]{
+  --bank-tone-color:#137344;
+  --bank-tone-bg:#e5f5eb;
+  --bank-tone-border:#b7e4c8;
+}
+#bankReportDashboard .bank-report-detail[data-bank-tone="pending"]{
+  --bank-tone-color:#8b5d08;
+  --bank-tone-bg:#fff2d5;
+  --bank-tone-border:#f2d58d;
+}
+#bankReportDashboard .bank-report-detail[data-bank-tone="danger"]{
+  --bank-tone-color:#a52d29;
+  --bank-tone-bg:#ffe9e8;
+  --bank-tone-border:#efb7b4;
+}
+#bankReportDashboard .bank-report-detail[data-bank-tone="neutral"]{
+  --bank-tone-color:#5d6772;
+  --bank-tone-bg:#eef1f3;
+  --bank-tone-border:#d7dfe6;
+}
+#bankReportDashboard .bank-report-detail[data-bank-tone] > .bank-report-detail-top{
+  box-shadow:inset 3px 0 0 var(--bank-tone-color);
+  border-radius:0;
+}
+#bankReportDashboard .bank-report-detail[data-bank-tone] .bank-report-detail-status:not(button){
+  color:var(--bank-tone-color);
+  background:var(--bank-tone-bg);
+  border:1px solid var(--bank-tone-border);
+  box-sizing:border-box;
+  padding:4px 7px;
+  min-width:0;max-width:130px;
+  font-weight:700;line-height:1.2;
+  border-radius:7px;text-align:center;
+  overflow-wrap:normal;white-space:normal;
+}
+#bankReportDashboard .bank-report-detail[data-bank-tone="pending"] > .bank-report-detail-top,
+#bankReportDashboard .bank-report-detail[data-bank-tone="danger"] > .bank-report-detail-top{
+  background:color-mix(in srgb,var(--bank-tone-bg) 26%,transparent);
+}
+#bankReportDashboard .bank-report-work-button[data-bank-tone="pending"]{
+  background:#fff9e9;border-color:#e8d39f;color:#78530b;
+}
+#bankReportDashboard .bank-report-work-button[data-bank-tone="danger"]{
+  background:#fff1ef;border-color:#efc3bd;color:#9d3029;
+}
+#bankReportDashboard .bank-report-work-button[data-bank-tone] .bank-report-work-count{
+  background:color-mix(in srgb,currentColor 10%,white);
+  color:inherit;
+}
+#bankReportDashboard .bank-report-work-button[data-bank-tone].is-selected{
+  box-shadow:inset 0 0 0 1px currentColor;
+}
+#bankReportDashboard .bank-report-detail-top{
+  display:grid;
+  grid-template-columns:56px minmax(0,1fr) minmax(0,max-content);
+  align-items:center;column-gap:9px;
+  padding:8px 10px;min-height:45px;
+}
+#bankReportDashboard .bank-report-detail-time{
+  padding-left:5px;min-width:0;
+  font-size:11px;white-space:nowrap;
+  font-variant-numeric:tabular-nums;
+}
+#bankReportDashboard .bank-report-detail-amount{
+  min-width:0;justify-self:start;
+  font-size:14px;font-weight:750;
+  line-height:1.2;white-space:nowrap;
+  font-variant-numeric:tabular-nums;
+}
+#bankReportDashboard .bank-report-detail-status{
+  justify-self:end;max-width:130px;
+  font-size:10px;text-align:center;
+}
+#bankReportDashboard .bank-report-quick-collect{
+  justify-self:end;max-width:130px;
+  min-height:34px;white-space:normal;
+}
+#bankReportDashboard .bank-report-table tbody td:nth-child(2){
+  font-variant-numeric:tabular-nums;
+}
+@media(max-width:760px){
+  /* Desktop keeps the six accessible table columns. The phone uses two
+     separate visual rows: [name | monetary total] then four diagnostics.
+     Fixed tracks prevent "15.000 Đã ghi thu Đã thu 3 Chờ 1" collisions. */
+  #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item{
+    display:grid;grid-template-columns:repeat(12,minmax(0,1fr));
+    grid-auto-rows:min-content;grid-auto-flow:row;
+    gap:5px 0;align-content:center;align-items:center;
+    min-height:64px;padding:9px 12px;
+  }
+  #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item > td{
+    min-width:0;min-height:0;
+    flex:none;order:initial;margin:0;
+    padding:0;display:block;grid-row:auto;
+  }
+  #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item > td:first-child{
+    grid-column:1/8;grid-row:1;
+    font-size:13px;font-weight:700;
+    text-align:left;line-height:1.25;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item > td:nth-child(6){
+    grid-column:8/13;grid-row:1;
+    justify-self:end;text-align:right;
+    font-size:16px;line-height:1.15;
+    font-weight:750;white-space:nowrap;
+    letter-spacing:-.025em;
+  }
+  #bankReportDashboard .bank-report-table tbody td:nth-child(6)::after{
+    content:'Đã ghi thu';display:block;
+    margin-top:2px;font-size:10px;
+    font-weight:500;letter-spacing:0;
+    color:var(--text-secondary,#667085);
+  }
+  #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item > td:nth-child(n+2):nth-child(-n+5){
+    grid-row:2;align-self:start;
+    display:inline-flex;gap:3px;
+    font-size:10px;line-height:1.3;
+    text-align:left;white-space:nowrap;
+    overflow:visible;text-overflow:clip;
+    color:var(--text-secondary,#5e6873);
+  }
+  #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item > td:nth-child(2){
+    grid-column:1/4;color:#167648;
+  }
+  #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item > td:nth-child(3){
+    grid-column:4/7;color:#99620c;
+  }
+  #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item > td:nth-child(4){
+    grid-column:7/10;color:#a52d29;
+  }
+  #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item > td:nth-child(5){
+    grid-column:10/13;color:#a52d29;
+  }
+  #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item > td[data-zero="true"]:nth-child(n+2):nth-child(-n+5){
+    display:none;
+  }
+  #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item > td:nth-child(n+2):nth-child(-n+5)::before{
+    content:attr(data-mobile-label);
+    font-size:10px;color:inherit;
+    font-weight:500;white-space:nowrap;
+  }
+  #bankReportDashboard .bank-report-table tbody tr > td[colspan]{
+    grid-column:1/-1;grid-row:1;
+    white-space:normal;
+  }
+}
+@media(max-width:540px){
+  #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item{
+    min-height:61px;padding:8px 10px;gap:4px 0;
+  }
+  #bankReportDashboard .bank-report-detail-top{
+    grid-template-columns:49px minmax(0,1fr) minmax(0,max-content);
+    gap:7px;padding:7px 9px;min-height:43px;
+  }
+  #bankReportDashboard .bank-report-detail-amount{font-size:14px}
+  #bankReportDashboard .bank-report-detail[data-bank-tone] .bank-report-detail-status:not(button){
+    max-width:117px;padding:4px 6px;font-size:10px;
+  }
+}
+@media(max-width:360px){
+  #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item > td:nth-child(n+2):nth-child(-n+5),
+  #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item > td:nth-child(n+2):nth-child(-n+5)::before{
+    font-size:9px;gap:2px;
+  }
+  #bankReportDashboard .bank-report-detail-top{
+    grid-template-columns:45px minmax(0,1fr) minmax(0,max-content);
+    gap:5px;
+  }
+  #bankReportDashboard .bank-report-detail[data-bank-tone] .bank-report-detail-status:not(button){
+    max-width:104px;font-size:9px;padding:3px 5px;
+  }
 }
 
 </style>
@@ -31905,7 +32082,7 @@ function billHasSuspectSwappedDay(row){
 }
 const statusText={
  matched:'Đã thu',waiting_bank:'Chờ ngân hàng',bank_only:'Chờ bill',
- review:'Cần kiểm tra · Chưa đối soát',wrong_day:'AI nghi sai ngày',duplicate:'Bill trùng',
+ review:'Cần xác minh',wrong_day:'Sai ngày · Xác minh',duplicate:'Ảnh trùng',
  non_bill:'Không phải bill',reading:'Đang đọc ảnh',test_excluded:'Tiền test (loại)'
 };
 const isAiScanIssue=row=>/^(?:amount_scan_|ai_scan_|ai_year_error_)/i.test(String(row?.reason||''));
@@ -32137,6 +32314,7 @@ function renderBankWorkQueue(data,outstanding){
   const button=el('button','bank-report-work-button'+(filter===item.key?' is-selected':''));
   button.type='button';
   button.dataset.filter=item.key;
+  button.dataset.bankTone=item.key==='review'?'danger':'pending';
   button.setAttribute('aria-pressed',String(filter===item.key));
   button.setAttribute('aria-label',item.count+' '+item.label+' · xem chi tiết');
   append(button,el('span','bank-report-work-count',String(item.count)),
@@ -32279,6 +32457,9 @@ function renderTable(data){
  const tbody=el('tbody');
  for(const g of [...byCustomer.values()].sort((a,b)=>b.money-a.money||a.name.localeCompare(b.name,'vi'))){
   const tr=el('tr','bank-report-table-item'+(selectedCustomer===g.id?' is-selected':''));tr.tabIndex=0;
+  // Presentation only: ledger proof stays separate from pending/duplicate bill
+  // counters; mobile displays these below the full amount, never beside it.
+  tr.dataset.bankTone=g.old||g.duplicate?'danger':g.waiting?'pending':g.matched?'success':'neutral';
   tr.setAttribute('role','button');
   tr.setAttribute('aria-label',(selectedCustomer===g.id?'Đang xem chi tiết ':'Xem chi tiết ')+g.name+
    ', đã thu '+bankMoneySpoken(g.money)+', tự thu '+g.matched+', chờ '+g.waiting+
@@ -32375,6 +32556,28 @@ function bankBillDisplayTime(raw){
  return m?m[4]+':'+m[5]+(m[6]?':'+m[6]:'')+' '+m[3]+'/'+m[2]+'/'+m[1]:
   'Không đọc được giờ trên bill';
 }
+// BANK-313: risk-oriented *visual* statuses; NOT authorization to debit.
+// Green requires a recorded ledger; yellow is waiting for evidence; red means
+// explicit operator verification is necessary. Source statuses remain intact.
+function bankReportBillTone(row,isBank=false,manualRecord=null,manualEvidence=null,dateSwapSuspect=false,candidates=[]){
+ if(manualRecord)return 'success';
+ if(manualEvidence||dateSwapSuspect)return 'danger';
+ if(isBank)return candidates.length?'danger':'pending';
+ const type=String(row?.report_status||'');
+ if(type==='matched')return row?.ledger_id?'success':'danger';
+ if(type==='waiting_bank'||type==='reading'||type==='bank_only')return 'pending';
+ if(type==='review'||type==='wrong_day'||type==='duplicate'||isAiScanIssue(row))return 'danger';
+ return 'neutral';
+}
+function bankReportCreditTone(row,issue=null){
+ const kind=String(row?.collection_kind||'unmatched');
+ if(kind==='auto_collected'||kind==='manual_collected')
+  return row?.ledger_id?'success':'danger';
+ if(kind==='review_inconsistent'||row?.bank_group_tentative)return 'danger';
+ if(kind==='unmatched')
+  return issue?.label?.includes('Thiếu bill')||!issue?'pending':'danger';
+ return 'neutral';
+}
 function detailLine(row,isBank=false,candidates=[]){
  const type=isBank?'bank_only':row.report_status;
  const recorded=!isBank&&type==='matched'&&Boolean(row.ledger_id);
@@ -32382,6 +32585,7 @@ function detailLine(row,isBank=false,candidates=[]){
  const manualEvidence=!isBank?matchingManualCollectionForBill(row,current):null;
  const manualRecord=isBank?(current?.manual_collections||[]).find(m=>String(m.notice_id)===String(row.notice_id)):null;
  const wrap=el('details','bank-report-detail');
+ wrap.dataset.bankTone=bankReportBillTone(row,isBank,manualRecord,manualEvidence,dateSwapSuspect,candidates);
  if(row.receipt_id)wrap.dataset.bankReceiptId=String(row.receipt_id);
  if(row.notice_id)wrap.dataset.bankNoticeId=String(row.notice_id);
  const top=el('summary','bank-report-detail-top');
@@ -32389,10 +32593,11 @@ function detailLine(row,isBank=false,candidates=[]){
   ?el('button','bank-report-quick-collect','Xác minh thu')
   :el('span','bank-report-detail-status bank-status-'+
     (manualRecord?'bank_manual':manualEvidence?'review':isBank&&candidates.length?'review':type),
-    manualRecord?'Đã thu thủ công':manualEvidence?'Có thu tay · Chờ xác minh bill':
-      isBank&&candidates.length?'Có bill cần kiểm tra':
-      !isBank&&isAiScanIssue(row)?'AI chưa kết luận':
-      dateSwapSuspect?'AI nghi đọc nhầm ngày · Chưa thu':statusText[type]||'Cần kiểm tra');
+    manualRecord?'Đã thu thủ công':manualEvidence?'Có thu tay · Cần soát bill':
+      isBank&&candidates.length?'Cần xác minh bill':
+      !isBank&&type==='matched'&&!recorded?'Lệch sổ · Xác minh':
+      !isBank&&isAiScanIssue(row)?'AI cần xác minh':
+      dateSwapSuspect?'Nghi sai ngày':statusText[type]||'Cần xác minh');
  if(isBank&&!manualRecord&&!candidates.length){
   label.type='button';
   label.setAttribute('aria-label','Xác minh thu '+bankDisplayVnd(row.amount_vnd)+' từ Agribank');
@@ -32555,12 +32760,16 @@ function bankCreditLine(row,allBills){
  const suggestion=kind==='unmatched'?bankBillCustomerSuggestion(row,allBills):null;
  const candidate=Boolean(row.bank_group_tentative);
  const wrap=el('details','bank-report-detail bank-report-credit');
+ wrap.dataset.bankTone=bankReportCreditTone(row,issue);
  wrap.dataset.bankNoticeId=String(row.notice_id);
  const top=el('summary','bank-report-detail-top');
  const status=kind==='auto_collected'?'Đã thu':
    kind==='manual_collected'?'Đã thu thủ công':
-   kind==='review_inconsistent'?'Cần kiểm tra sổ':
-   issue?.label?.includes('Bill thiếu giờ')?'Bill thiếu giờ':
+   kind==='review_inconsistent'?'Lệch sổ · Xác minh':
+   candidate?'Cần xác minh':
+   issue?.label?.includes('AI nghi sai ngày')?'Nghi sai ngày':
+   issue?.label?.includes('Bill thiếu giờ')?'Thiếu giờ · Xác minh':
+   issue?.label?.includes('Chờ xác minh bill')?'Cần xác minh bill':
    issue?.label?.includes('Thiếu bill')?'Chưa có bill':'Chờ đối soát';
  const clock=bankLineClock(row.bank_time,ui.date.value);
  const time=el('span','bank-report-detail-time',clock.split(' · ')[0]);
