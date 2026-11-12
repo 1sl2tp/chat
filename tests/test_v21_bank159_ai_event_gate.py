@@ -29,7 +29,7 @@ def test_bill_is_classified_before_bank_notification_but_never_posts_without_mat
     assert 'matchPreview?.status==="candidate_unique"' in EDGE
     assert "ledger_written:false" in EDGE
     # BANK-295: image validation + binary download remain before the Gemini module call.
-    assert EDGE.index('db.storage.from("v21-media").download')<EDGE.index("await requestBillGemini({")
+    assert EDGE.index('db.storage.from("v21-media").download')<EDGE.index("await requestParsedBillGemini({")
     assert "generativelanguage.googleapis.com" in VISION
     # BANK-301: bounded Gemini overload recovery moved the hardcoded 503
     # guard to a declared 502/503/504 capacity whitelist. No 429 fallback.
