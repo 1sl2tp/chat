@@ -44,8 +44,8 @@ context.attachReviewDialogKeyboard(overlay,form);
 root.hidden=true;context.closeReviewDialog();
 assert.notEqual(focusName,'opener','route close must not restore focus behind hidden report');
 assert(src.includes('attachReviewDialogKeyboard(overlay,form);'));
-assert.equal(src.split('attachReviewDialogKeyboard(overlay,form);').length-1,2,
- 'review and manual-collection dialogs share one keyboard owner');
+assert.equal(src.split('attachReviewDialogKeyboard(overlay,form);').length-1,3,
+ 'review, Agribank notice collection and manual bill collection share one keyboard owner');
 const css=fs.readFileSync('bank-report-dashboard.css','utf8');
 assert(css.includes('.bank-review-form .bank-review-actions button{min-height:44px}'));
 assert(css.includes('.bank-review-heading .bank-report-image-close{min-width:44px;min-height:44px}'));
