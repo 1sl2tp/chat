@@ -3,6 +3,15 @@
 > **Đọc trước mỗi lần phát hành OCR/đối soát/thu tự động. Không đoán nhánh, repo, project hoặc tạo token mới chỉ vì một workflow báo thiếu secret.**
 
 
+## BANK-298 E4 — VN calendar, own transfer, Gemini technical failures, production v41 ACTIVE
+- Source strictly `1sl2tp/chat:main` commit `5437e7bb8a859c482647c616fe0a2049cfb1aef1`, PR #263; Verify V21 PR run 43197457928 + main 43197698578 both PASS.
+- Correct project `vtqhbhrkdxirqeqkgylo`; existing Supabase connector deployed only `v21-bank-bill-event v41 ACTIVE` with `verify_jwt=false`, 8/8 byte-for-byte source parity. Agribank ingest v2 unchanged; GitHub Actions runner secret separate, not evidence of missing user token.
+- Guards: strict calendar date for bank evidence, accented QR/MB own transfer, 30s OCR response JSON deadline, malformed HTTP200 JSON retried as technical not OCR review, quota uses VN midnight and fails closed on DB query failure. Financial SQL RPC, amount/clock/recipient account/memo anti-dup remain unchanged.
+- Retained #269/ledger #849 and #270/ledger #850 with one auto link each, zero manual duplicate (read-only). 9-stage decisions and future two-pass/gold-set plan: `docs/BANK_298_EVIDENCE_PIPELINE.md`; no actual new customer picture or device E5 proof in this release.
+
+
+
+
 ## BANK-298 · Kiểm toán nhất quán logic, chưa phát hành
 - 9 giai đoạn và lỗi kỹ thuật / OCR / bank mismatch / SQL guard: `docs/BANK_298_EVIDENCE_PIPELINE.md`.
 - Source duy nhất `1sl2tp/chat:main` **sau Verify V21 PASS**; `v21-bank-bill-event` trong project `vtqhbhrkdxirqeqkgylo`, `verify_jwt=false`; giữ nguyên ingest v2.
