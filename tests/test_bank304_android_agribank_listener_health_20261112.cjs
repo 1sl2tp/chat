@@ -63,7 +63,7 @@ assert.match(activity,/last_sent_at/);
 assert.match(activity,/getAllPendingJobs\(\)/);
 assert.match(activity,/Lần máy chủ xác nhận HTTP thành công/);
 assert.match(activity,/Mã kết nối/);
-assert.match(gradle,/versionCode 3; versionName '1\.2\.0'/);
+assert.match(gradle,/versionCode 4; versionName '1\.2\.1'/);
 assert.doesNotMatch(manifest,/READ_SMS|RECEIVE_SMS|READ_CONTACTS|BIND_ACCESSIBILITY_SERVICE/);
 assert.match(manifest,/BIND_NOTIFICATION_LISTENER_SERVICE/);
 assert.match(manifest,/BIND_JOB_SERVICE/);
