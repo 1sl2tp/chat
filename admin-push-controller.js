@@ -494,6 +494,15 @@ pendingOpen=coldOpenFromLocation();
 navigator.serviceWorker?.addEventListener('message',event=>{
   if(event.data?.type==='ADMIN_PUSH_OPEN')void handleOpen(event.data);
   if(event.data?.type==='ADMIN_PUSH_MESSAGE_DIRTY')void reconcilePushMessage(event.data);
+  if(event.data?.type==='ADMIN_PUSH_BANK_DIRTY'&&isAdmin()){
+    // BANK-302: refresh only an active reconciliation report. The listener
+    // in bank-report-dashboard.js handles visibility and never posts money.
+    document.dispatchEvent(new CustomEvent('v21-bank-report-dirty',{detail:{
+      source:'verified_bank_push',bankDay:String(event.data.bankDay||''),
+      bankReceiptId:String(event.data.bankReceiptId||''),
+      bankStatus:String(event.data.bankStatus||'')
+    }}));
+  }
   if(event.data?.type==='ADMIN_PUSH_BADGE_DIRTY')scheduleUnreadBadgeRefresh(0);
 });
 document.addEventListener('v21-auth-state',onAuthState);

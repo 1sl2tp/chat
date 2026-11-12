@@ -1,3 +1,13 @@
+## 2026-11-12 — BANK-302 · Đóng cảnh báo AI/đang chờ cũ sau ghi thu (E1 source)
+
+- **Nguồn:** `1sl2tp/chat`, branch `fix/bank-302-pwa-bank-push-finality-20261112`, base `7ea30e97d684b68aeb73535d86dc5891d8ea1f04`. Không sửa repo `taphoaxyz`/`1988`, không tạo token hoặc sửa database production.
+- **Vấn đề xác minh read-only:** receipt 10 triệu Cô Ngọc tt `ee2ddbdb-...` có outbox `review:ai-retrying` 17:42 (sent), `bill_waiting` 17:47 (sent) và `matched:271` 17:49 (sent). Receipt hiện tại `received`, ledger #852. Service Worker cũ chỉ dọn `bank:receipt` **sau** khi kiểm tra foreground suppression, khiến iOS PWA đang mở có thể bỏ qua cleanup. Admin report khi nhận bank push không có hint refresh tương ứng.
+- **Sửa:** `sw.js` dọn chính xác 2 tag cùng giao dịch (`bank:receipt:<id>`, `bank:notice:<id>`) trước foreground suppression; best-effort, lỗi `getNotifications` không ngăn hiển thị `matched`. Gửi `ADMIN_PUSH_BANK_DIRTY` tới client, không thay Chat unread. `admin-push-controller.js` chỉ phát `v21-bank-report-dirty` nếu Admin; Dashboard đang active mới tải lại.
+- **Tests:** mở rộng runtime `test_v21_admin_web_push_sw_runtime.js` và `test_v21_admin_web_push_open_runtime.js`: foreground/background, cleanup unsupported, OS tag isolation, Chat badge unchanged, bank report dirty. CI `Verify V21` đã có hai test này. **Rule §9:** `docs/BANK_298_EVIDENCE_PIPELINE.md`.
+- **Phát hành:** chỉ Web/PWA Pages khi Verify PASS, không deploy lại bill OCR v43 hay Agribank ingest v2; không gọi lại giao dịch #271 hoặc tạo thu thử. E5 iOS Notification Center thực tế chưa chứng minh.
+
+---
+
 ## 2026-11-12 18:09 VN — BANK-301 E4 VERIFIED · Giảm lỗi Gemini 503 khi đọc bill
 
 - **Nguồn đúng:** `1sl2tp/chat:main`, PR [#265](https://github.com/1sl2tp/chat/pull/265) squash merged commit `d5f05f344ed36c7a60f16d8cdef7fa02383f0955`. Verify V21 PR run [43205958414](https://github.com/1sl2tp/chat/actions/runs/43205958414) SUCCESS và main [43206212684](https://github.com/1sl2tp/chat/actions/runs/43206212684) SUCCESS.
