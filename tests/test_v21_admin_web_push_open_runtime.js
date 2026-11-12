@@ -9,6 +9,7 @@ function harness(){
   const swMessages=[];
   const openCalls=[];
   const historyCalls=[];
+  const documentEvents=[];
   let contactReady=false;
   let directory=[];
   const authStore={
@@ -19,6 +20,7 @@ function harness(){
     visibilityState:'visible',
     hasFocus:()=>true,
     addEventListener(type,fn){documentListeners[type]=fn},
+    dispatchEvent(event){documentEvents.push(event);return true},
   };
   const serviceWorker={
     controller:{postMessage(message){swMessages.push(message)}},
@@ -45,10 +47,11 @@ function harness(){
     search:'?push_contact=cold-1&push_conversation=conv-cold',
   };
   const history={state:null,replaceState(...args){historyCalls.push(args)}};
-  const ctx={window:windowObj,document,navigator,Notification,location,history,URL,URLSearchParams,Uint8Array,atob:s=>Buffer.from(s,'base64').toString('binary'),String,Number,Boolean,Object,Array,Promise,console};
+  class CustomEvent{constructor(type,options={}){this.type=type;this.detail=options.detail;}}
+  const ctx={window:windowObj,document,navigator,Notification,CustomEvent,location,history,URL,URLSearchParams,Uint8Array,atob:s=>Buffer.from(s,'base64').toString('binary'),String,Number,Boolean,Object,Array,Promise,console};
   vm.createContext(ctx);vm.runInContext(code,ctx);
   return{
-    api:ctx.window.V21AdminPush,documentListeners,windowListeners,swListeners,swMessages,openCalls,historyCalls,
+    api:ctx.window.V21AdminPush,documentListeners,documentEvents,windowListeners,swListeners,swMessages,openCalls,historyCalls,
     setContactReady(value){contactReady=Boolean(value)},
     setDirectory(rows){directory=rows}
   };
@@ -117,6 +120,21 @@ function harness(){
   h.documentListeners['v21-contact-store-change']({detail:{reason:'replace'}});
   await Promise.resolve();
   assert.equal(h.openCalls.at(-1),'customer-late','deferred push resolves when contacts load');
+
+  // BANK-302: a bank push marks the reconciliation report dirty, without
+  // routing to an unrelated Chat thread or incrementing message unread.
+  const beforeBankPushOpens=h.openCalls.length;
+  h.swListeners.message({data:{
+    type:'ADMIN_PUSH_BANK_DIRTY',bankDay:'2026-11-12',
+    bankReceiptId:'receipt-852',bankStatus:'matched'
+  }});
+  assert.equal(h.openCalls.length,beforeBankPushOpens);
+  const bankDirty=h.documentEvents.at(-1);
+  assert.equal(bankDirty.type,'v21-bank-report-dirty');
+  assert.equal(bankDirty.detail.bankReceiptId,'receipt-852');
+  assert.equal(bankDirty.detail.bankStatus,'matched');
+  assert.equal(h.swMessages.some(m=>m.type==='ADMIN_PUSH_BADGE_SET'&&m.count>0),false,
+    'bank reconciliation must not change Chat unread badge');
 
   h.documentListeners['v21-auth-state']({detail:{state:'GUEST',account:null}});
   assert.equal(h.swMessages.at(-1).type,'ADMIN_PUSH_CLEAR','logout must clear SW foreground suppression state');
