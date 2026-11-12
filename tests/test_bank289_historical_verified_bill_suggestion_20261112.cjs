@@ -65,6 +65,7 @@ assert.match(body,/client\.rpc\('chat_bank_manual_collection_prepare'/);
 assert.match(body,/client\.rpc\('chat_bank_manual_collect'/);
 assert.match(body,/p_app_session_id:auth\.appSessionId/);
 assert.match(body,/if\(priorSelector&&!priorSelector\.value\)/);
-assert.match(src,/openCollectionDialog\(row,suggestion\)/);
+assert.match(src,/reviewBillSuggestion:suggestion/);
+assert.match(src,/async function openCollectionDialog\(bank\)\{/);
 assert.doesNotMatch(pure,/\.rpc\(|db\.from\(/);
 console.log('BANK-289 historical credit: single exact-minute suggestion; human Admin confirmation and duplicate guards PASS');
