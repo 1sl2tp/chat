@@ -75,7 +75,7 @@ assert.equal(previewBillAppMatch(candidate,[credit],[],now).status,"candidate_un
 assert.equal(previewBillAppMatch({...candidate,transfer_content:"OTHER PAYER chuyen tien"},[credit],[],now).status,"review");
 assert.equal(previewBillAppMatch(candidate,[credit,{...credit,id:270}],[],now).status,"review");
 assert.equal(previewBillAppMatch(candidate,[{...credit,
- body:body.replace("09:17","09:21")}],[],now).status,"waiting_bank_event");
+ body:body.replace("09:17","09:21")}],[],now).status,"review");
 
 const index=readFileSync(new URL("../supabase/functions/v21-bank-bill-event/index.ts",import.meta.url),"utf8");
 const ingest=readFileSync(new URL("../supabase/functions/v21-agribank-notification-ingest/index.ts",import.meta.url),"utf8");
