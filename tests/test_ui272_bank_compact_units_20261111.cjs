@@ -10,7 +10,7 @@ const html=fs.readFileSync('index.source.html','utf8');
 const report=html.slice(html.indexOf('id="bankReportDashboard"'),
  html.indexOf('id="conversationContentAxis"'));
 assert(report.length>0);
-assert.equal((report.match(/VND · Giờ Việt Nam/g)||[]).length,1,
+assert.equal((report.match(/Số tiền ÷ 1\.000 · Giờ VN 24h/g)||[]).length,1,
  'one consistent timezone/denomination description across the dashboard');
 assert(report.includes('class="bank-report-status-line"'));
 assert(report.includes('data-bank-updated role="status" aria-live="polite"'));
@@ -21,7 +21,7 @@ assert(css.includes('white-space:nowrap;')&&css.includes('content:attr(data-mobi
  'mobile customer total stays a single label line');
 assert(js.includes("td.dataset.mobileLabel=i===5?'Đã ghi thu':shortColumns[i]"));
 assert(js.includes("bankDisplayVnd(row.amount_vnd)"),
- 'show the actual bank amount in full VND, including its original dong remainder');
+ 'show bank amount scaled /1,000 while preserving sub-thousand remainder separately');
 assert(js.includes("cardValue('Bill chưa đối soát'"));
 assert(js.includes("cardValue('Đã thu có chứng từ'"));
 assert(js.includes("'Tiền vào NH'"));
@@ -47,6 +47,7 @@ vm.runInContext(js.slice(filterStart,filterEnd)+'\nglobalThis.filtersView=filter
 const expected=['Tất cả','Đã khớp bill','Bill chưa khớp','Chưa gắn bill','Cần xác minh'];
 for(const name of expected)assert(scope.filtersView.some(x=>x[1]===name),name);
 assert(js.includes('const money=bankMoneyThousands;'),'retain legacy formatter for backward compatibility');
-assert(js.includes("const bankDisplayVnd=x=>"),'new report uses full VND instead of ambiguous thousands');
+assert(js.includes("const bankDisplayVnd=x=>bankMoneyThousands(x);"),
+ 'the bank report uses exactly one thousands formatter, no suffix');
 assert(js.includes("client.rpc('chat_bank_dashboard'"),'keep the existing read-only report source');
 console.log('UI-272: compact four KPIs, one unit note, concise filters and customer labels PASS');
