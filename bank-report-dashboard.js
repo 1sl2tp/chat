@@ -267,46 +267,62 @@ function cardValue(name,value,highlight=false,compact=false,mobileName=name,meta
 // P0-BANK-286: a READ-ONLY priority view of statuses already returned by
 // the existing three bank RPCs. These buttons only select existing filters;
 // they never classify or approve a receipt, trigger a sender or write a ledger.
-// BANK-307: presentation fallback while BANK-306 canonical SQL rollout is pending.
-// Fingerprint is authoritative when supplied by the Admin RPC. Legacy RPCs omit
-// it: exact same account + whole bank timestamp + amount are ONLY a collision
-// candidate, not proof of the same transaction (two real credits can coincide).
-// Show one expandable review cluster with ALL source IDs, never change ledgers.
+// BANK-309: deduplicate notifications BEFORE any reporting/counting/UI.
+// Prefer independent bank proof: account + bank clock + amount + bank balance
+// + full transfer memo; otherwise exact push fingerprint. Without either,
+// legacy RPC can only cluster same-second rows for display, not authorize money.
+// Do not delete original messages/ledger; leave finance RPC fully independent.
 function bankCreditViewModel(credits){
  const rows=Array.isArray(credits)?credits:[];
  const groups=new Map(),other=[];
  const stamp=/^20\d{2}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}$/;
+ const bankBalance=x=>{
+  const s=String(x.bank_balance_text??'').trim().replace(/,/g,'');
+  return /^[+-]?\d{1,15}$/.test(s)?String(Number(s)):'';
+ };
+ const bankMemo=x=>String(x.bank_memo||'').normalize('NFD')
+   .replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D')
+   .trim().replace(/\s+/g,' ').toUpperCase();
  for(const entry of rows){
-  if(!entry||!Number.isSafeInteger(Number(entry.amount_vnd))||Number(entry.amount_vnd)<=0){
-   other.push(entry);continue;
-  }
-  const fp=String(entry.fingerprint||'').trim();
+  const amount=Number(entry?.amount_vnd);
+  if(!entry||!Number.isSafeInteger(amount)||amount<=0){if(entry)other.push(entry);continue;}
+  const fp=String(entry.fingerprint||'').trim().toLowerCase();
   const account=String(entry.bank_credit_account||'').trim();
   const bankTime=String(entry.bank_time||'').trim().replace('T',' ');
-  const key=/^[a-f0-9]{64}$/.test(fp)?'verified:'+fp:
-   account&&stamp.test(bankTime)?'candidate:'+account+'|'+bankTime+'|'+entry.amount_vnd:'';
+  const balance=bankBalance(entry),memo=bankMemo(entry);
+  // Same exact bank transaction evidence, even if Android reposted at a
+  // different instant and therefore its push fingerprint changed.
+  const proof=account&&stamp.test(bankTime)&&balance&&memo;
+  const key=proof?'bank-proof:'+JSON.stringify([account,bankTime,amount,balance,memo]):
+   /^[a-f0-9]{64}$/.test(fp)?'push-fingerprint:'+fp:
+   account&&stamp.test(bankTime)?'legacy-display:'+JSON.stringify([account,bankTime,amount]):'';
   if(!key){other.push(entry);continue;}
   const matching=groups.get(key)||[];
-  // Two independently booked ledger entries must never be merged in UI,
-  // even when they have the same minute and monetary amount.
+  // Do not combine two independent booked collections even if their bank
+  // metadata collide. A finance conflict is always kept separately visible.
   if(entry.ledger_id&&matching.some(r=>r.ledger_id&&
-      String(r.ledger_id)!==String(entry.ledger_id))){
-   other.push(entry);continue;
+       String(r.ledger_id)!==String(entry.ledger_id))){
+    other.push(entry);continue;
   }
-  matching.push(entry);groups.set(key,matching);
+  matching.push(entry);
+  groups.set(key,matching);
  }
  const rank=r=>r.collection_kind==='auto_collected'||r.collection_kind==='manual_collected'?4:
-  r.collection_kind==='review_inconsistent'?3:r.ledger_id?2:1;
- const result=[...other.filter(Boolean)];
+   r.collection_kind==='review_inconsistent'?3:r.ledger_id?2:1;
+ const result=[...other];
  for(const [key,group] of groups){
   const records=[...group].sort((a,b)=>rank(b)-rank(a)||
     Number(a.notice_id)-Number(b.notice_id));
   const top=records[0];
+  const repeated=records.length>1;
+  const verified=key.startsWith('bank-proof:')||key.startsWith('push-fingerprint:');
   result.push({...top,
-   bank_group_notice_ids:records.map(r=>String(r.notice_id||'')).filter(Boolean),
-   bank_group_count:records.length,
-   bank_group_tentative:key.startsWith('candidate:')&&records.length>1,
-   bank_group_exact:key.startsWith('verified:')&&records.length>1
+    bank_group_notice_ids:records.map(r=>String(r.notice_id||'')).filter(Boolean),
+    bank_group_count:records.length,
+    // Legacy-only grouping is a display convenience; user financial actions
+    // remain locked until the bank proof RPC is deployed.
+    bank_group_tentative:repeated&&!verified,
+    bank_group_exact:repeated&&verified,
   });
  }
  return result.sort((a,b)=>{
@@ -325,8 +341,8 @@ function bankCreditGroupingStatus(groups,raw){
   extraSignals:source.length-grouped.length
  };
 }
-// These are official bank hours to MINUTE precision, not the APK receive time.
-// A pending customer bill is labeled separately; never present its clock as NH.
+// Dedup info belongs to internal detail/audit, not the customer-facing queue.
+// A legitimate bill needing review is distinct from duplicated bank push.
 function bankLineClock(raw,day=''){
  const full=agribankDisplayTime(raw,day);
  return full==='—'?'Chưa có giờ NH':full.replace(/ (\d{2}\/\d{2})\/\d{4}$/,' · $1');
@@ -408,19 +424,12 @@ function paint(data){
  if(ui.queue){
   renderBankWorkQueue(data,outstanding);
   renderBankGapWarnings(data);
-  if(incomingStats.candidateGroups>0){
-   const notice=el('div','bank-report-collision-note',
-    'Có '+incomingStats.extraSignals+' thông báo Agribank cùng tài khoản, số tiền và giờ; có thể là bản gửi lại hoặc giao dịch riêng. '+
-    'Đang hiển thị '+groups.length+' nhóm để tránh hiểu nhầm. Tổng tiền trong các nhóm là '+
-    bankManualVnd(incomingStats.minVnd)+'đ; nếu đều là giao dịch riêng có thể tới '+
-    bankManualVnd(incomingStats.maxVnd)+'đ. Chỉ dấu vân tay ngân hàng mới xác nhận trùng; không tự ghi thu.');
-   ui.queue.appendChild(notice);
-  }
+
  }
  // Bank credit → verified ledger. The second row is a COUNT of matched
  // receipts and pending bills, not another amount of money.
  ui.summary.replaceChildren(
-  cardValue(incomingStats.candidateGroups?'Tiền NH theo nhóm · cần soát trùng':'Tổng tiền vào Agribank',money(incomingAmountVnd),false,false,'Tiền vào NH',{amountVnd:incomingAmountVnd}),
+  cardValue('Tổng tiền vào Agribank',money(incomingAmountVnd),false,false,'Tiền vào NH',{amountVnd:incomingAmountVnd}),
   cardValue('Đã thu có chứng từ',money(s.matched_amount),true,false,'Đã thu',{amountVnd:s.matched_amount})
  );
  // Keep every bank diagnostic even if a cached PWA shell has not loaded
@@ -428,7 +437,7 @@ function paint(data){
  const additionalCards=[
    cardValue('Agribank cần xử lý',String(outstanding),false,true,'NH cần xử lý'),
    cardValue('Đã thu thủ công Agribank',String((data?.manual_collections||[]).length),false,true,'Thu tay NH'),
-   cardValue(incomingStats.candidateGroups?'Nhóm giao dịch NH · cần rà soát':'Thông báo tiền vào Agribank đã nhận',
+   cardValue('Giao dịch Agribank (đã lọc trùng)',
      String(groups.length),false,true,'Giao dịch NH'),
    cardValue('AI nghi sai ngày',String(s.old_date_count||0),false,true,'AI sai ngày'),
    cardValue('Ảnh trùng',String(s.duplicate_count||0),false,true,'Ảnh trùng'),
@@ -744,7 +753,7 @@ function bankCreditLine(row,allBills){
  const state=kind==='auto_collected'?'Đã thu · Đối soát':
    kind==='manual_collected'?'Đã thu thủ công':
    kind==='review_inconsistent'?'Liên kết cần kiểm tra':
-   candidate?'Chờ soát thông báo':issue?.label||'Chưa thu · Cần xử lý';
+   issue?.label||'Chưa thu · Cần xử lý';
  const badge=el('span','bank-report-detail-status bank-status-'+
    (kind==='auto_collected'?'matched':kind==='manual_collected'?'bank_manual':
     kind==='unmatched'?'bank_unlinked':'review'),state);
@@ -760,6 +769,12 @@ function bankCreditLine(row,allBills){
         hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'})
        .format(new Date(row.received_at)):'Chưa có dữ liệu từ API hiện tại'),
    cell('Tiền vào Agribank',money(row.amount_vnd)),
+   cell('Số dư cuối Agribank',
+     row.bank_balance_text&&/^[+-]?[0-9,]{1,20}$/.test(String(row.bank_balance_text).trim())?
+       new Intl.NumberFormat('vi-VN',{maximumFractionDigits:0})
+        .format(Number(String(row.bank_balance_text).replace(/,/g,'')))+'đ':
+       'Chưa có dữ liệu từ API hiện tại'),
+   cell('Nội dung Agribank',row.bank_memo||'Chưa có dữ liệu từ API hiện tại'),
    cell('Thông báo Agribank','#'+row.notice_id),
    cell('Khách đã liên kết',row.customer_name||'Chưa xác định'),
    cell('Sổ công nợ',valid&&row.ledger_id?'#'+row.ledger_id:'Chưa có bút toán xác minh'),
@@ -767,10 +782,9 @@ function bankCreditLine(row,allBills){
  if(count>1){
   const ids=Array.isArray(row.bank_group_notice_ids)?row.bank_group_notice_ids:[];
   content.appendChild(el('p','bank-report-detail-reason',
-    candidate?'Có '+count+' thông báo cùng tài khoản, số tiền và thời điểm Agribank (mã '+ids.join(', ')+
-    '). Chưa có fingerprint từ RPC để xác nhận tất cả là một giao dịch. '+
-    'Trạng thái đã thu chỉ áp dụng cho bút toán có chứng từ; các tín hiệu còn lại cần xác minh.':
-    'Đã nhận '+count+' bản sao có cùng dấu vân tay giao dịch ngân hàng (mã '+ids.join(', ')+').'));
+    candidate?'Đã gom '+count+' dòng giống nhau theo giờ, tài khoản và số tiền để tránh hiển thị lặp (mã '+ids.join(', ')+
+    '). API chưa trả đủ số dư và nội dung để kết luận giao dịch trùng; chưa cho thu từ nhóm này.':
+    'Đã lọc '+(count-1)+' bản thông báo Agribank phát lại dựa trên bằng chứng ngân hàng (mã '+ids.join(', ')+').'));
  }
  const actions=el('div','bank-report-detail-actions');
  if(kind==='auto_collected'&&row.asset_id){
