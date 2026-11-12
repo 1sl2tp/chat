@@ -2,6 +2,13 @@
 
 > **Đọc trước mỗi lần phát hành OCR/đối soát/thu tự động. Không đoán nhánh, repo, project hoặc tạo token mới chỉ vì một workflow báo thiếu secret.**
 
+## BANK-290 — Giao dịch C Hà Trang #268 đã thu, CẤM ghi thu trùng
+
+- Xác minh trực tiếp ngày **12/11/2026 lúc khoảng 07:45 VN**: khách C Hà Trang, ngân hàng Agribank **#268** (10.157.000đ, 21:53 ngày 11/11) có **một** `chat_bank_manual_collections` mode `collected`, ledger **#848** lúc **07:43:27 ngày 12/11**, amount `-10157` (đơn vị 1.000đ) và **một** tin xác nhận trong Chat với client ID `taphoa:bank-manual:268:collection`. Tin xác nhận báo nợ sau thu **0**.
+- Bill ảnh `88706591-590e-4acb-8911-338ac1cd0ef7` vẫn `amount_read`, `ledger_id=NULL` vì đã ghi thu theo **manual bank link**, không phải auto receipt link. **Không được tự thu lần hai, gọi lại RPC thu, ép chuyển trạng thái receipt thành `received`, backfill auto link, gửi lại tin Chat/Zalo hoặc chỉnh ledger #848.**
+- Các đoạn phía dưới mô tả khoản “chưa thu” là lịch sử **trước 07:43 ngày 12/11**, đã được mục BANK-290 và đầu `CURRENT_WORK.md` thay thế. Nếu hiển thị UI khác ledger, điều tra ở chế độ read-only; bút toán tài chính và thông báo khách đã có thật.
+- E4 ledger và tin xác nhận Chat đã xác minh; E5 iPhone/PWA và Zalo **chưa được xác minh** trong đợt rà soát này. Không triển khai lại v34 chỉ vì đối soát giao dịch cũ.
+
 ## Đích triển khai cố định
 
 | Thành phần | Giá trị chuẩn |
@@ -22,7 +29,7 @@
 - Function `v21-bank-bill-event` tại đúng project `vtqhbhrkdxirqeqkgylo` đã nâng **v33 → v34 ACTIVE** từ mã nguồn đã merge của `1sl2tp/chat:main`; độc lập xác minh mọi file **5/5 khớp byte-for-byte** với GitHub main, JWT mode giữ `false`, BANK-287 có trong runtime `bill-app-preview.mjs`.
 - Bản v34 được phát hành **trực tiếp qua kết nối Supabase đã được cấp quyền** theo yêu cầu tiếp tục sửa của chủ sở hữu, **không phải** job deploy GitHub Actions. Phải nêu rõ ngoại lệ này trong báo cáo; không xem đây là cơ chế tự động thường xuyên, không dùng việc này để che giấu thiếu secret Actions.
 - Trong các lần sửa kế tiếp, **không redeploy v34 nếu không có mã thay đổi**. Ưu tiên phát hành qua workflow trên `main`; khi GitHub job không nhận `SUPABASE_ACCESS_TOKEN`, chỉ rà soát secret/permission tại đúng repo và không tự tạo/chép token.
-- Khoản C Hà Trang 10.157.000đ 11/11 vẫn ở `amount_read`, chưa được ghi thu. Không ép thành `received` hoặc ghi nợ trực tiếp; Admin xác minh thủ công trên notification #268 bằng luồng hiện có.
+- **Cập nhật BANK-290 lúc 07:43 ngày 12/11:** Khoản C Hà Trang **ĐÃ THU THỦ CÔNG** tại Agribank #268, ledger #848, đã có một tin xác nhận Chat. Ảnh bill vẫn `amount_read` là do liên kết receipt chưa xác minh, **không phải còn nợ**. Không thu hoặc gửi xác nhận lần hai.
 
 ## Ghi chú về token/credential (12/11/2026)
 
@@ -44,7 +51,7 @@
 
 Ảnh bill C Hà Trang chuyển **21:53 11/11/2026** và thông báo Agribank #268 đã nhận đúng tiền, nhưng OCR memo thiếu tiền tố `QR - ` mà Agribank tự thêm. PR [#248](https://github.com/1sl2tp/chat/pull/248) đã merge vào `main` và Verify PASS. Không dựa vào 08:00 để kích hoạt ghi thu. `public.chat_bank_app_collect` chỉ tự thu trong ngày giao dịch (giờ Việt Nam), nên đợt sửa mã hôm sau **không tự động ghi thu lại** khoản cũ.
 
-Để xử lý khoản cũ, Admin sử dụng hộp thoại `Thu sau khi xác minh` trên thông báo Agribank #268, chọn đúng C Hà Trang, kiểm tra bút toán có sẵn và ký xác nhận. Hệ thống dùng `chat_bank_manual_collect` có kiểm tra quyền/khóa và chống thu trùng. Không gọi SQL `INSERT`/ `UPDATE` trực tiếp lên sổ nợ, không tự thu bằng service role hoặc sửa trạng thái bill thành `received` để giả vờ đã thu.
+**ĐÃ XỬ LÝ NGÀY 12/11:** Admin đã xác nhận thu thủ công qua luồng chuẩn; thông báo Agribank #268 đã liên kết ledger #848 và tạo đúng một tin xác nhận Chat. Đoạn hướng dẫn thu ở trạng thái cũ không còn áp dụng cho #268. Giữ nguyên `chat_bank_manual_collect` với kiểm tra quyền/khóa/chống thu trùng cho các giao dịch khác; không ghi thu lại khoản này, không gọi SQL `INSERT`/`UPDATE` lên sổ nợ và không sửa bill thành `received` để giả lập xác minh ảnh.
 
 ## Hoàn tác
 
