@@ -4,6 +4,8 @@ const code=fs.readFileSync(path.join(__dirname,'..','sw.js'),'utf8');
 function harness(){
   const handlers={};
   const notices=[];
+  const activeNotices=[];
+  let cleanupApiBroken=false;
   const posted=[];
   const targeted=[];
   const opened=[];
@@ -18,7 +20,19 @@ function harness(){
       matchAll:async()=>clientsList,
       openWindow:async url=>{opened.push(String(url));return null;}
     },
-    registration:{showNotification:async(title,options)=>{notices.push({title,options})}}
+    registration:{
+      getNotifications:async({tag}={})=>{
+        if(cleanupApiBroken)throw new Error('notification_cleanup_api_unavailable');
+        return activeNotices.filter(n=>!n.closed&&(!tag||n.options.tag===tag));
+      },
+      showNotification:async(title,options)=>{
+        for(const prev of activeNotices){
+          if(!prev.closed&&prev.options.tag===options.tag)prev.close();
+        }
+        const note={title,options,closed:false,close(){this.closed=true}};
+        notices.push(note);activeNotices.push(note);
+      }
+    }
   };
   const navigator={
     setAppBadge:async value=>{badge=Number(value)||0},
@@ -36,7 +50,8 @@ function harness(){
     handlers[type](event);
     await Promise.all(waits);
   }
-  return {handlers,notices,posted,targeted,opened,getBadge:()=>badge,setClients:v=>{clientsList=v},client,dispatch};
+  return {handlers,notices,activeNotices,posted,targeted,opened,getBadge:()=>badge,
+    setClients:v=>{clientsList=v},setCleanupApiBroken:v=>{cleanupApiBroken=Boolean(v)},client,dispatch};
 }
 
 (async()=>{
@@ -202,6 +217,65 @@ function harness(){
   assert.equal(bankUrl.searchParams.get('push_bank_day'),'2026-10-28');
   assert.equal(bankUrl.searchParams.get('push_bank_notice'),'notice-id');
   assert.equal(bankUrl.searchParams.get('push_bank_status'),'matched');
+
+  // BANK-302: A verified bank collection must supersede BOTH old
+  // "AI failed / waiting" and "unmatched bank credit" OS notifications.
+  // It does not affect ordinary Chat notifications or its unread badge.
+  const bankPush=(eventKind,tag)=>({
+    kind:'bank_reconciliation',bank_event_kind:eventKind,bank_day:'2026-11-12',
+    bank_receipt_id:'receipt-852',bank_notice_id:eventKind==='review'?'':'271',
+    tag,title:'TAPHOA',body:eventKind==='matched'?'Đã ghi thu 10.000.000đ':'Chưa ghi thu',
+    contact_id:'bank-report-contact'
+  });
+  const bankBg=harness();bankBg.setClients([]);
+  await bankBg.dispatch('push',{data:{json:()=>bankPush('review','bank:receipt:receipt-852')}});
+  await bankBg.dispatch('push',{data:{json:()=>bankPush('bank_only','bank:notice:271')}});
+  assert.equal(bankBg.activeNotices.filter(n=>!n.closed).length,2);
+  await bankBg.dispatch('push',{data:{json:()=>bankPush('matched','bank:notice:271')}});
+  assert.equal(bankBg.activeNotices.filter(n=>!n.closed).length,1,
+    'verified matched push must close BOTH outdated bank notifications');
+  assert.equal(bankBg.activeNotices.find(n=>n.options.tag==='bank:receipt:receipt-852').closed,true);
+  const finalBank=bankBg.activeNotices.filter(n=>!n.closed)[0];
+  assert.equal(finalBank.options.tag,'bank:notice:271');
+  assert.match(finalBank.options.body,/Đã ghi thu/);
+  assert.equal(bankBg.getBadge(),0,'bank pushes cannot increment unread Chat badge');
+
+  // Even when a visible iOS PWA suppresses the matched banner, old "AI lỗi"
+  // must be closed and the bank report must receive a refresh hint.
+  const bankForeground=harness();
+  const bankClient=bankForeground.client('pwa-bank');
+  bankClient.visibilityState='visible';
+  bankForeground.setClients([bankClient]);
+  await bankForeground.dispatch('push',{data:{json:()=>bankPush('review','bank:receipt:receipt-852')}});
+  assert.equal(bankForeground.activeNotices.filter(n=>!n.closed).length,1);
+  await bankForeground.dispatch('message',{data:{
+    type:'ADMIN_PUSH_STATE',platform:'ios-pwa',visible:true,focused:true,
+    route:'chat',contactId:'another-customer'
+  },source:bankClient});
+  await bankForeground.dispatch('push',{data:{json:()=>bankPush('matched','bank:notice:271')}});
+  assert.equal(bankForeground.activeNotices.filter(n=>!n.closed).length,0,
+    'old failed/awaiting OS notification must clear BEFORE foreground suppression');
+  assert.equal(bankForeground.notices.length,1,'visible PWA must not add a redundant matched banner');
+  assert(bankForeground.posted.some(m=>m.type==='ADMIN_PUSH_BANK_DIRTY'&&m.bankStatus==='matched'&&m.bankReceiptId==='receipt-852'),
+    'visible PWA bank report should refresh even when OS notification was suppressed');
+  assert.equal(bankForeground.getBadge(),0);
+
+  // Safari/iOS variations: no Notification.getNotifications support must not
+  // prevent delivery of a verified collection to the lock screen.
+  const bankApiError=harness();bankApiError.setClients([]);
+  bankApiError.setCleanupApiBroken(true);
+  await bankApiError.dispatch('push',{data:{json:()=>bankPush('matched','bank:notice:271')}});
+  assert.equal(bankApiError.notices.length,1,
+    'a failed optional cleanup may not drop a financially verified matched push');
+
+  // Chat messages must not be closed or grouped with reconciliation events.
+  const mixed=harness();
+  await mixed.dispatch('push',{data:{json:()=>payload}});
+  await mixed.dispatch('push',{data:{json:()=>bankPush('review','bank:receipt:receipt-852')}});
+  await mixed.dispatch('push',{data:{json:()=>bankPush('matched','bank:notice:271')}});
+  assert.equal(mixed.activeNotices.filter(n=>!n.closed&&n.options.tag==='chat:conv-1').length,1);
+  assert.equal(mixed.activeNotices.filter(n=>!n.closed).length,2);
+  assert.equal(mixed.getBadge(),1,'bank cleanup preserves unread Chat badge');
 
   // Friend and call intents retain their own cold-open identity.
   const special=harness();
