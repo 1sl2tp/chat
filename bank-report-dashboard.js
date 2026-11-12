@@ -1549,31 +1549,39 @@ async function openManualBillDialog(bill){
  const noticeId=String(bill.notice_id||'');
  const linkedNotice=noticeId?(current?.bank_credits||[]).find(n=>
   String(n.notice_id)===noticeId):null;
+ const bankCandidates=bankManualBillCandidateCredits(bill,current?.bank_credits,ui.date.value);
+ // A single candidate GROUP is still not a financial attribution. Multiple
+ // distinct candidates remain unselected until the Admin verifies them.
+ const comparisonNotice=linkedNotice||(bankCandidates.length===1?bankCandidates[0]:null);
+ const candidatesLabel=linkedNotice?'Đã có mã thông báo Agribank liên kết':
+  bankCandidates.length===1?'Đã có giao dịch Agribank cùng số tiền, tài khoản và ngày · CHƯA liên kết bill':
+  bankCandidates.length>1?'Có '+bankCandidates.length+' nhóm giao dịch NH cùng số tiền · chưa phân biệt được':
+  'Chưa tìm được thông báo Agribank phù hợp trong dữ liệu ngày đang xem';
  form.appendChild(append(el('div','bank-review-bank'),
   el('strong','',bankDisplayVnd(bill.amount_vnd)+' · Bill '+String(bill.receipt_id).slice(0,8)),
   el('span','','Khách hàng: '+String(bill.customer_name||'Chưa rõ')),
-  el('span','',linkedNotice?'Có thông báo Agribank được liên kết':
-   'Chưa có thông báo Agribank được liên kết; ảnh bill không chứng minh đã thu.')));
+  el('span','',candidatesLabel)));
  const compare=el('section','bank-bill-compare');
  compare.setAttribute('aria-label','Bảng so sánh chứng cứ bill, Agribank và sổ thu');
  const compareTitle=el('div','bank-bill-compare-title');
  append(compareTitle,el('strong','','Đối chiếu thông tin'),
-  el('small','','Bill ↔ Agribank / sổ thu'));
+  el('small','','Bill ↔ Thông báo Agribank'));
  const comparison=el('div','bank-bill-compare-table');
  comparison.setAttribute('role','table');
  comparison.setAttribute('aria-label','So sánh chứng từ và tiền ngân hàng');
  const compareSummary=el('p','bank-bill-compare-summary');
  const compareHint=el('p','bank-bill-compare-hint',
-  'Khớp tài khoản nhận chỉ xác nhận thông tin đích, KHÔNG chứng minh tiền đã về. '+
-  'Không có thông báo hoặc sổ thu xác minh thì không được tự ghi thu.');
+  'Trùng số tiền, tài khoản, ngày hoặc nội dung chỉ là các tiêu chí đối chiếu. '+
+  'Chưa liên kết chứng từ và sổ thu thì KHÔNG được tự ghi thu.');
  append(compare,compareTitle,comparison,compareSummary,compareHint);
  form.appendChild(compare);
  const refreshEvidence=(prepared=null,state='checking')=>{
-  const rows=bankManualBillEvidenceRows(bill,linkedNotice,prepared,state);
+  const rows=bankManualBillEvidenceRows(bill,comparisonNotice,prepared,state,
+   {candidateCount:bankCandidates.length});
   comparison.replaceChildren();
   const header=el('div','bank-bill-compare-row bank-bill-compare-header');
   header.setAttribute('role','row');
-  for(const text of ['Tiêu chí','Trên bill','NH / sổ thu','Kết quả']){
+  for(const text of ['Thông tin','Bill','Agribank (thông báo)','Đánh giá bill']){
    const th=el('strong','',text);th.setAttribute('role','columnheader');header.appendChild(th);
   }
   comparison.appendChild(header);
@@ -1585,7 +1593,7 @@ async function openManualBillDialog(bill){
    const billCell=el('span','bank-bill-compare-value',row.bill);
    billCell.setAttribute('role','cell');billCell.dataset.source='Bill';
    const bankCell=el('span','bank-bill-compare-value',row.bank);
-   bankCell.setAttribute('role','cell');bankCell.dataset.source='Agribank / sổ';
+   bankCell.setAttribute('role','cell');bankCell.dataset.source='Agribank';
    const status=el('span','bank-bill-compare-status',row.result);
    status.setAttribute('role','cell');
    append(item,label,billCell,bankCell,status);
@@ -1594,8 +1602,9 @@ async function openManualBillDialog(bill){
   const matched=rows.filter(x=>x.tone==='matched').length;
   const pending=rows.filter(x=>x.tone==='pending').length;
   const review=rows.filter(x=>x.tone==='review'||x.tone==='duplicate').length;
-  compareSummary.textContent='Tiêu chí khớp thông tin: '+matched+
-   ' · Chưa đủ dữ liệu: '+pending+' · Cần kiểm tra/trùng: '+review+
+  compareSummary.textContent='Đối chiếu '+(comparisonNotice?'có thông báo Agribank ứng viên':'chưa có ứng viên NH')+
+   ' · Tiêu chí khớp: '+matched+
+   ' · Chờ thông tin: '+pending+' · Cần kiểm tra: '+review+
    ' · '+(state==='ready'?'Máy chủ đã trả kết quả đối soát.':
     state==='error'?'Chưa thể kiểm tra trên máy chủ.':
      'Đang chờ máy chủ kiểm tra.');
