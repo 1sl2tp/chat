@@ -2,6 +2,16 @@
 
 > **Đọc trước mỗi lần phát hành OCR/đối soát/thu tự động. Không đoán nhánh, repo, project hoặc tạo token mới chỉ vì một workflow báo thiếu secret.**
 
+## BANK-302 E4 — Đóng cảnh báo AI/chờ ngân hàng cũ khi bill đã `received` (12/11/2026)
+
+- Source `1sl2tp/chat:main`: PR #266 merged at `1d18adef559bd274b5d643217b6c102a26eeb30f`. Verify PR run 43212109978 PASS; main run 43212412477 PASS; Chat Pages run 43212412485 PASS. Auto-build commit `678e6f40f31ca54c868bcadadbfbdd6ef7ef0894` chỉ cập nhật `index.html/version.json`.
+- Chỉ có thay đổi Web/PWA: `sw.js` dọn đúng 2 tag `bank:receipt:<id>` và `bank:notice:<id>` khi matched push đến, TRƯỚC điều kiện foreground suppress, kể cả PWA đang mở. Có hỗ trợ graceful fallback nếu `getNotifications` không hoạt động. `admin-push-controller.js` chuyển `ADMIN_PUSH_BANK_DIRTY` thành `v21-bank-report-dirty` để báo cáo đang active reload kịp thời.
+- Không tác động Gemini, bank OCR source, SQL RPC, nhật ký thu, chat unread/badge hoặc customer notifications. Edge `v21-bank-bill-event v43`, ingest `v21-agribank-notification-ingest v2` giữ nguyên; không deploy thêm, không tạo token, không replay bill.
+- Test mocks: Web/PWA background/foreground, dọn đúng notification, thiếu Notification API, preserved Chat unread badge. Đã PASS CI; E4 Pages source verified, E5 tình trạng Notification Center iOS thực tế cần bằng chứng thiết bị, vì browser không được đảm bảo xóa mọi lịch sử notification của iOS.
+- Rule gốc: `docs/BANK_298_EVIDENCE_PIPELINE.md §9`. Nếu thấy cảnh báo "Chưa ghi thu" cũ, luôn kiểm tra `receipt.status` và liên kết `ledger_id` hiện tại, không tự thu lại.
+
+
+
 ## BANK-301 · Gemini 503 mitigation v43 ACTIVE (12/11/2026)
 
 - Source verified: `1sl2tp/chat:main` PR #265, commit `d5f05f344ed36c7a60f16d8cdef7fa02383f0955`, Verify V21 PR run `43205958414` PASS + main `43206212684` PASS.
