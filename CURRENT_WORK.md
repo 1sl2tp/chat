@@ -1,3 +1,13 @@
+## 2026-11-12 — BANK-299 · Chẩn đoán logic và retry thống nhất (E1 source)
+
+- **Nguồn:** `1sl2tp/chat`, `fix/bank-299-decision-retry-diagnostics-20261112`, base `de1701d26569cae62352d640f8a3f9db0168a7e6`. Khóa bảng quyết định tại `docs/BANK_298_EVIDENCE_PIPELINE.md §6`, không tạo thêm hệ thống tự học/tự chỉnh dữ liệu.
+- **Lỗi xác nhận bằng SQL read-only:** 4 bill `amount_read` còn nguyên reason chung nhưng preview có 4 loại nguyên nhân (memo 10.157.000đ; cạnh tranh 10.000.000đ; thiếu reference/memo 1.482.000đ; thiếu giờ 718.000đ). Không kết luận cả 4 là lỗi AI, không tự thu lại.
+- **Mã sửa:** `bill-decision-policy.mjs` có hàm `describeBillDecision` với thứ tự ưu tiên ledger→duplicate/non-bill→technical→bank/required review/candidate, không có quyền ghi thu, và `isRetryableBillScanReason` dùng chung lúc scan fail + lúc retry. `index.ts` dùng predicate chung và trả chẩn đoán trong HTTP response, không lưu một derived `raw_read` có thể trở thành stale sau khi thu. `bank-report-dashboard.js` phân biệt lỗi Gemini JSON, storage, hash, HTTP/timeout với ảnh không phải bill.
+- **Bảo vệ:** không thay đổi `status`, `match_preview`, `rule_version`, RPC `chat_bank_app_collect`, SQL production hoặc thông báo thật. Không thử tạo giao dịch/bút toán. `tests/test_bank299_decision_retry_matrix_20261112.mjs` đặt trong Verify V21 và Edge deploy workflow.
+- **E2/E3 chưa có:** chỉ merge khi PR Verify PASS, chỉ deploy worker từ `chat:main` sau main Verify PASS, giữ ingest v2; token Supabase connector có sẵn, không tạo mới.
+
+---
+
 ## 2026-11-12 — BANK-298 E4 VERIFIED · 9-stage evidence pipeline consistency
 
 - **Root fix and provenance:** [PR #263](https://github.com/1sl2tp/chat/pull/263) merged into `1sl2tp/chat:main` at `5437e7bb8a859c482647c616fe0a2049cfb1aef1`. Verify V21 PR [43197457928](https://github.com/1sl2tp/chat/actions/runs/43197457928) SUCCESS; main [43197698578](https://github.com/1sl2tp/chat/actions/runs/43197698578) SUCCESS. First test error was an incorrect expectation: 3-minute bank mismatch must be `review/bank_time_outside_one_minute`, not `waiting_bank_event`; fixed before green CI.

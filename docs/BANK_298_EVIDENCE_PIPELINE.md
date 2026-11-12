@@ -53,3 +53,37 @@ Chỉ dùng bằng chứng ngân hàng đã xác minh để phát sinh tiền. A
 - `tests/test_bank298_evidence_clock_retry_quota_20261112.mjs`: các ca ranh giới 00:00 VN, bank date vô lý, bank leap day, chuyển tiền nội bộ có dấu/QR/MB, tiền đến từ người khác, khác giờ/tiền, timeout bao phủ HTTP body và lỗi Gemini malformed.
 - Verify V21 và guarded Edge workflow phải PASS trước merge main; đọc ngược 8/8 tệp nguồn từ `chat:main` vào đúng project.
 - Không deploy lại `v21-agribank-notification-ingest` khi source không đổi; không tạo token mới, không sửa database production, không replay ledger #849/#850.
+
+
+## 6. BANK-299 — Một bảng quyết định thống nhất, không suy đoán trạng thái từ số tiền
+
+**Bất biến mới: trạng thái tài chính (`received` + ledger hợp lệ) có thẩm quyền cao hơn lời diễn giải từ AI hoặc `match_preview` cũ.** `amount_read` chỉ nói OCR đã nhận số tiền, KHÔNG nói tiền đã khớp ngân hàng. Mỗi lần hiển thị phải **tính lại** kết luận từ trạng thái/bút toán hiện tại, không ghi riêng một trạng thái dẫn xuất có thể trở nên lỗi thời sau khi RPC thu.
+
+| Trạng thái receipt | Bằng chứng so ngân hàng | Nhóm chẩn đoán | Hành động |
+|---|---|---|---|
+| `received` + ledger | bất kể `match_preview` cũ | `collected` | Không thu thêm; hiển thị bút toán thật |
+| `received` không ledger; hoặc ledger với trạng thái khác | bất kỳ | `integrity_alert` | Admin kiểm tra tính toàn vẹn; không suy đoán |
+| `duplicate` | bất kỳ | `duplicate` | Không quét/thu trùng |
+| `non_bill` | bất kỳ | `not_bill` | Không thu |
+| `queued/scanning` | bất kỳ | `processing` | Chờ worker |
+| `failed` lỗi có thể thử lại | Gemini 408/429/5xx, timeout, HTTP body/JSON lỗi, tải ảnh, hash store tạm thời | `technical_failure` | Retry có giới hạn và backoff |
+| `failed` lỗi cấu hình/không thuộc retry | ví dụ Gemini key missing, 400/401/403 | `technical_failure` | Admin kiểm tra; không lặp API mù |
+| `review` | thiếu/sai/mâu thuẫn | `requires_review` | Không thu; kiểm chứng riêng |
+| `amount_read` | `waiting_bank_event` | `waiting_bank` | Chờ thông báo độc lập, khi tới so lại không tốn AI |
+| `amount_read` | `review`: thiếu mã, thiếu giờ, thiếu bằng chứng | `missing_evidence` | Admin xác minh; không tự tạo chữ/số |
+| `amount_read` | `review`: trùng/khác tiền, sai nội dung, sai giờ | `evidence_conflict` | Admin xác minh; không auto match |
+| `amount_read` | Query dữ liệu đối chiếu thất bại | `technical_block` | Thử truy vấn lại có kiểm soát; không gọi AI nếu ảnh đã đọc |
+| `amount_read` | `candidate_unique` | `pending_financial_rpc` | Chỉ RPC có quyền quyết định đã thu |
+| `amount_read` | không có preview | `unverified` | Không ghi thu; điều tra |
+
+**Phân loại không phải quyền ghi thu.** Mọi kết quả của `describeBillDecision` đều phải có `financial_authorized=false`. Không tạo ledger hoặc sửa `status` theo nhãn dẫn xuất. Rule OCR v5 vẫn giữ nguyên để tương thích RPC; phiên bản diễn giải riêng là `bank_bill_decision_v1_20261112`.
+
+**Một hàm xác nhận lỗi thử lại:** `isRetryableBillScanReason` được gọi tại cả hai điểm: (1) khi scan thất bại và (2) khi job `failed` được đánh thức. Không cho 503 được đánh dấu tạm thời ở bước 1 nhưng không được retry ở bước 2; không biến 401/key missing thành retry vô hạn. Tất cả retry luôn đi qua hạn mức cron và cơ chế chống trùng; thay đổi chẩn đoán không mở quyền ghi sổ.
+
+**Dữ liệu kiểm chứng đọc-only 12/11/2026:** bốn bill `amount_read` gồm 10.157.000đ (memo chưa xác minh), 10.000.000đ (cạnh tranh bank credit), 1.482.000đ (reference/memo không rõ), 718.000đ (không rõ giờ). Cùng `reason=bank_image_amount_only_no_collection` không có nghĩa bốn ảnh lỗi giống nhau; phải xem `raw_read.match_preview.reason`. Không tự ghi thu lại bốn bill này, không giả định tất cả vẫn còn nợ vì có thể đã thu thủ công ở nơi khác.
+
+**Giao diện:** `bank-report-dashboard.js` gọi đúng nguyên nhân đối với Gemini JSON lỗi, HTTP 408/429/5xx, timeout, lỗi tải ảnh và hash. Khi API chỉ cung cấp `reason` chung nhưng không có chi tiết preview, phải hiển thị kết luận thận trọng, không tự bịa nguyên nhân. Muốn hiển thị đủ preview trong bảng cần nâng cấp contract dữ liệu qua review riêng, không âm thầm nới RLS hay cấp quyền truy vấn bảng tài chính.
+
+**Về tối ưu OCR:** không bật 2 lượt AI tự động đại trà; ưu tiên một lượt, phân tích tất định, nếu thiếu/không thống nhất mới cân nhắc OCR bổ sung cùng ảnh trong một nhánh thử nghiệm riêng. Chỉ nâng thành auto khi có bộ test ảnh gốc khử nhạy cảm được người kiểm chứng, đo false positive và chi phí. Bất kỳ bất đồng giữa AI1, AI2 hoặc ngân hàng phải review, không chọn kết quả thuận lợi để thu.
+
+**Đối chiếu cron production (bổ sung BANK-299):** cron job #21 `chat-bank-transient-bill-retry-5m` vẫn chạy mỗi 5 phút và gọi `v21_private.chat_bank_retry_transient_scan_failures()`. Filter SQL chỉ chấp nhận HTTP Gemini 408/429/5xx, abort/network, JSON invalid, `storage_download_failed`, `hash_registry_unavailable`, `worker_interrupted`; **không nhận** `hash_registry_lookup_failed`. Vì vậy lỗi tra cứu hash phải báo `technical_failure/admin_check`, KHÔNG báo đang tự retry hoặc thêm vào predicate Edge trước khi có thay đổi cron được kiểm thử/duyệt riêng. Không tự thay đổi SQL production để đồng bộ vội.

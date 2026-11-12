@@ -80,8 +80,11 @@ assert.ok(begin>=0&&read>begin&&cleanup>read,
  "Gemini response body MUST be read before 30-second timeout is cleared");
 assert.ok(worker.includes('if(ctl.signal.aborted)throw new Error("AbortError")'));
 assert.ok(worker.includes('if(!Array.isArray(parts))throw new Error("gemini_invalid_json")'));
-assert.ok(worker.includes("gemini_invalid_json|storage_download_failed"),
- "Malformed Gemini transport JSON stays a retryable technical issue");
+const retryPolicy=readFileSync(new URL("../supabase/functions/v21-bank-bill-event/bill-decision-policy.mjs",import.meta.url),"utf8");
+assert.ok(retryPolicy.includes("gemini_invalid_json|storage_download_failed"),
+ "Malformed Gemini transport JSON stays a retryable technical issue in the shared policy");
+assert.ok(worker.includes("isRetryableBillScanReason(reason)"),
+ "Worker must consume the exact same technical reason predicate as cron-driven retries");
 assert.ok(worker.includes('db.rpc("chat_bank_app_collect"'),
  "Only protected financial RPC can post a collection");
 console.log("BANK-298: VN midnight, accented own-transfer, calendar, Gemini HTTP body deadline PASS");
