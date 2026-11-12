@@ -4176,22 +4176,22 @@ button{
             <section id="bankReportDashboard" class="bank-report-dashboard" aria-label="Bảng đối soát chuyển khoản" hidden>
               <div class="bank-report-header">
                 <div><div class="bank-report-title-row">
-                  <h2 class="bank-report-heading">Bảng đối soát trực tiếp</h2>
+                  <h2 class="bank-report-heading">Đối soát chuyển khoản</h2>
                   <details class="bank-report-help">
                     <summary class="bank-report-help-trigger" title="Giải thích các chỉ số" aria-label="Giải thích các chỉ số đối soát">ⓘ</summary>
                     <div class="bank-report-help-content">
                       <strong>Hiểu đúng các số liệu</strong>
-                      <p><b>Tiền vào NH:</b> toàn bộ tiền Agribank ghi nhận trong ngày đang xem; chưa chắc đã ghi thu.</p>
-                      <p><b>Đã thu:</b> số tiền đã xác nhận vào công nợ từ các bill khớp.</p>
-                      <p><b>Đã khớp bill:</b> số giao dịch bill đã đối soát và ghi thu thành công.</p>
-                      <p><b>Bill chưa khớp:</b> số bill khách gửi nhưng còn chờ đối soát.</p>
-                      <p><b>Chưa gắn bill:</b> tiền ngân hàng ghi nhận nhưng chưa gắn chứng từ khách.</p>
+                      <p><b>Tiền vào NH:</b> các giao dịch ghi có Agribank đã loại bản thông báo phát lại; không đồng nghĩa đã thu công nợ.</p>
+                      <p><b>Đã thu:</b> số tiền từ bill có bút toán thu đã xác minh trong sổ; không gồm bill chỉ có ảnh.</p>
+                      <p><b>Đã khớp bill:</b> số bill có chứng từ và bút toán thu thành công.</p>
+                      <p><b>Bill chưa khớp:</b> các bill khách gửi chưa chứng minh được khoản thu, kể cả bill chờ thông báo ngân hàng.</p>
+                      <p><b>Chưa gắn bill:</b> có thông báo Agribank thật nhưng chưa đủ bằng chứng để xác định bill/khách; không tự ghi thu.</p><p><b>Ngày/giờ:</b> giờ Việt Nam 24h; nội dung ngân hàng đến phút. Số tiền là đồng Việt Nam.</p>
                     </div>
                   </details>
                 </div>
                 <div class="bank-report-status-line">
                   <p class="bank-report-subtitle" data-bank-updated role="status" aria-live="polite">Đang đồng bộ dữ liệu đối soát…</p>
-                  <span class="bank-report-unit-note">Đơn vị: 1.000đ</span>
+                  <span class="bank-report-unit-note">VND · Giờ Việt Nam</span>
                 </div></div>
                 <div class="bank-report-controls">
                   <input data-bank-date type="date" min="2026-10-19" aria-label="Ngày đối soát">
@@ -4199,15 +4199,17 @@ button{
                   <button data-bank-refresh type="button">Làm mới</button>
                 </div>
               </div>
-              <section class="bank-report-work-queue" data-bank-work-queue aria-label="Hàng đợi đối soát" hidden></section>
-              <div class="bank-report-summary" data-bank-summary></div>
-              <div class="bank-report-status-strip bank-report-status-main" data-bank-status></div>
+              <div class="bank-report-kpi-grid" aria-label="Tổng quan chuyển khoản">
+                <div class="bank-report-summary" data-bank-summary></div>
+                <div class="bank-report-status-strip bank-report-status-main" data-bank-status></div>
+              </div>
+              <section class="bank-report-work-queue" data-bank-work-queue aria-label="Hàng đợi cần xử lý" hidden></section>
               <details class="bank-report-extra-metrics" data-bank-extra-metrics>
                 <summary class="bank-report-extra-metrics-trigger">Chỉ số khác <span class="bank-report-extra-metrics-chevron" aria-hidden="true"></span></summary>
                 <div class="bank-report-status-strip bank-report-status-extra" data-bank-extra-status></div>
               </details>
               <div class="bank-report-table-caption">
-                <strong>Theo khách hàng</strong><span>Chạm dòng để xem chi tiết</span>
+                <strong>Khách hàng</strong><span>Chọn khách để xem các bill</span>
               </div>
               <div class="bank-report-table-wrap" data-bank-table></div>
               <nav class="bank-report-filters" data-bank-filters aria-label="Lọc giao dịch"></nav>
