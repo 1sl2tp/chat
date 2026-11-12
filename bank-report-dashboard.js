@@ -604,6 +604,12 @@ function matchingManualCollectionForBill(bill,data){
    vietnamBusinessDay(b.transfer_at)===day);
  return credits.length===1?credits[0]:null;
 }
+// Bills are local Vietnam wall-clock dates, not UTC milliseconds.
+function bankBillDisplayTime(raw){
+ const m=/^(20\d{2})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/.exec(String(raw||''));
+ return m?m[4]+':'+m[5]+(m[6]?':'+m[6]:'')+' '+m[3]+'/'+m[2]+'/'+m[1]:
+  'Không đọc được giờ trên bill';
+}
 function detailLine(row,isBank=false,candidates=[]){
  const type=isBank?'bank_only':row.report_status;
  const recorded=!isBank&&type==='matched'&&Boolean(row.ledger_id);
@@ -634,30 +640,47 @@ function detailLine(row,isBank=false,candidates=[]){
  const amt=el('strong','bank-report-detail-amount',bankDisplayVnd(row.amount_vnd));
  append(top,left,amt,label);wrap.appendChild(top);
  const content=el('div','bank-report-detail-content');
- append(content,cell('Giờ bill',isBank?(candidates.length?'Có ảnh cần kiểm tra':'Chưa xác định bill'):
-   dateSwapSuspect?'Ngày AI đọc (nghi nhầm): '+String(row.bill_time||'Không đọc được'):(row.bill_time||'Không đọc được')),
-  cell('Giờ Agribank',row.bank_time?agribankDisplayTime(row.bank_time,ui.date.value):'Chưa có thông báo'),
-  cell('Giờ khách gửi ảnh',isBank?'—':(row.sent_at?new Intl.DateTimeFormat('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date(row.sent_at)):'—')),
-  cell('Mã giao dịch',row.transfer_reference||'—'),
-  cell('Thông báo ngân hàng',isBank?'#'+row.notice_id:(row.notice_id?'#'+row.notice_id:'Chưa có')),
-  cell('Tình trạng',manualRecord?(manualRecord.mode==='linked_existing'
-   ?'Đã liên kết khoản nhập tay':'Đã thu thủ công từ Agribank')
-  :manualEvidence?'Có thu tay cùng khách/số tiền/ngày; bill chưa xác minh':
-  isBank&&candidates.length?'Chưa đối soát · Chưa ghi thu':
-  dateSwapSuspect?'AI nghi đọc nhầm ngày · Chờ soát Agribank':statusText[type]||row.status||'Chưa rõ'));
- if(!isBank){
+ // A scanned bill is evidence, not the official bank notice. Only show
+ // fields relevant to the current decision; keep the full trace collapsible.
+ if(isBank){
+  content.appendChild(cell('Giờ Agribank',row.bank_time?
+   agribankDisplayTime(row.bank_time,ui.date.value):'Chưa rõ'));
+  content.appendChild(cell('Ghi thu công nợ',manualRecord?
+   'Đã thu thủ công · Sổ #'+manualRecord.ledger_id:'Chưa ghi thu'));
+ }else{
+  content.appendChild(cell('Khách hàng',row.customer_name||'Chưa xác định'));
+  content.appendChild(cell('Giờ trên bill',bankBillDisplayTime(row.bill_time)));
+  if(row.bank_time)content.appendChild(cell('Giờ Agribank',
+   agribankDisplayTime(row.bank_time,ui.date.value)));
+  else if(type==='waiting_bank')content.appendChild(cell('Giờ Agribank',
+   'Chưa nhận được thông báo'));
   content.appendChild(cell('Ghi thu công nợ',
-    recorded?'Đã ghi thu · Sổ #'+row.ledger_id:
-    manualEvidence?'Thu tay · Agribank #'+manualEvidence.notice_id+' · Sổ #'+manualEvidence.ledger_id+' · Bill chưa liên kết':'Chưa ghi thu'));
-  const noticeState=row.collection_notice_state||'pending';
-  const noticeText=row.collection_ack_sent?
+   recorded?'Đã ghi thu · Sổ #'+row.ledger_id:
+   manualEvidence?'Đã có thu tay cùng khách, chưa liên kết bill':
+   'Chưa ghi thu'));
+  if(recorded){
+   const noticeState=row.collection_notice_state||'pending';
+   const noticeText=row.collection_ack_sent?
     (row.reason==='manual_agribank_bill_confirmed'?'Đã gửi xác nhận thu thủ công':'Đã gửi cho khách'):
     (row.reason==='manual_agribank_bill_confirmed'?'Đã liên kết sổ thu · Không gửi thêm nếu đã nhập tay':
      noticeState==='muted'?'Đã tắt theo cài đặt thông báo':
-    noticeState==='retry'?'Gửi lỗi · Hệ thống sẽ thử lại':
-    'Đang chờ gửi xác nhận');
-  content.appendChild(cell('Tin xác nhận thu',
-    recorded?noticeText:manualEvidence?'Thu tay có xác nhận riêng; chưa xác minh ảnh bill':'Chưa gửi vì chưa ghi thu'));
+     noticeState==='retry'?'Gửi lỗi · Hệ thống sẽ thử lại':
+     'Đang chờ gửi xác nhận');
+   content.appendChild(cell('Tin xác nhận thu',noticeText));
+  }
+  const audit=el('details','bank-report-audit');
+  const auditBody=el('div','bank-report-audit-body');
+  if(row.sent_at&&Number.isFinite(Date.parse(String(row.sent_at))))
+   auditBody.appendChild(cell('Giờ khách gửi ảnh',
+    new Intl.DateTimeFormat('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',
+     day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',
+     minute:'2-digit',second:'2-digit',hourCycle:'h23'}).format(new Date(row.sent_at))));
+  if(row.transfer_reference)auditBody.appendChild(cell('Mã giao dịch',row.transfer_reference));
+  auditBody.appendChild(cell('Thông báo ngân hàng',row.notice_id?'#'+row.notice_id:'Chưa có'));
+  if(dateSwapSuspect)auditBody.appendChild(cell('Ngày AI nghi nhầm',String(row.bill_time||'')));
+  auditBody.appendChild(cell('Tình trạng',statusText[type]||row.status||'Chưa rõ'));
+  append(audit,el('summary','','Thông tin chứng từ'),auditBody);
+  content.appendChild(audit);
  }
  if(manualEvidence){
   content.appendChild(el('p','bank-report-detail-reason',
