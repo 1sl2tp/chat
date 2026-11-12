@@ -2,6 +2,18 @@
 
 > **Đọc trước mỗi lần phát hành OCR/đối soát/thu tự động. Không đoán nhánh, repo, project hoặc tạo token mới chỉ vì một workflow báo thiếu secret.**
 
+
+## BANK-297 — Thống nhất tên người thụ hưởng, Edge v40 ACTIVE (12/11/2026)
+
+- Source exact: `1sl2tp/chat:main`, BANK-297 PR #262 merged at `2a5e81e1e85895521647c9051163bb5cf37f2fb8`, Verify PR run `43193785600` PASS, Verify main run `43194022382` PASS.
+- Release: existing Supabase connector → `vtqhbhrkdxirqeqkgylo` → **only** `v21-bank-bill-event v39→v40 ACTIVE` (`verify_jwt=false`), all 7/7 source files read back byte-for-byte. `v21-agribank-notification-ingest v2` unchanged. GitHub Actions runner still separately lacks `SUPABASE_ACCESS_TOKEN`; no new token or cross-repo deployment.
+- Rule: read payee name only from beneficiary field of the SAME transfer, not from sender, transfer memo or Chat nickname. Exact normalized `Bùi Xuân Tùng`, `BÙI XUÂN TÙNG`, `BUI XUAN TUNG` all become `BUI XUAN TUNG` after accent/case/whitespace normalization. Extra/missing/misordered names cause review; do not infer if unreadable. Raw OCR payee field preserved in `raw_read.recipient_name_printed`; canonical `receiving_name` is written by Edge before current financial RPC. All bank amount/clock/account/memo/uniqueness/duplicate guards unchanged.
+- DB **not modified**. Production `chat_bank_app_collect` continues its strict uppercase/whitespace predicate and remains callable only by `service_role`; Edge canonicalization keeps new OCR bills aligned with it. A fuller unaccent SQL correction for previously stored accented payees is staged **outside** executable migrations at `docs/proposed-sql/BANK_297_strict_unaccent_beneficiary_name_NOT_APPLIED.sql`. Apply only with separately authorized DB change review; never silently via an OCR release.
+- Existing valid #269→ledger #849 and #270→ledger #850 remain `received`, one link each and no manual duplicate. Do not replay for testing. E4 runtime parity verified; E5 new accented customer photo and iPhone/PWA user interaction not yet tested.
+- Full rulebook: `docs/BANK_297_RECIPIENT_NAME_RULES.md`.
+
+
+
 ## BANK-297 — Chuẩn hóa tên người nhận có dấu (source pending)
 - Quy tắc: tên chỉ lấy từ trường Người nhận/Người thụ hưởng của chính bill; tên khác rõ ràng phải review. Canonical `BÙI XUÂN TÙNG`/ `Bùi Xuân Tùng`/ `BUI XUAN TUNG` → `BUI XUAN TUNG` sau bỏ dấu, gộp whitespace, uppercase **đúng toàn chuỗi**. Không fuzzy/substring, không lấy người gửi hoặc nội dung chuyển khoản để gán tên.
 - Edge JS đọc ảnh và bộ match dùng chung helper. Tên in nguyên văn lưu riêng để audit; tên đúng không thay cho STK, bank confirmation, clock, memo, RPC.
