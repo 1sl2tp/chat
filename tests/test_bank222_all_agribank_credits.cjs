@@ -15,14 +15,14 @@ assert(src.includes("client.rpc('chat_bank_all_credit_statuses'"),'all credits a
 assert(src.includes("bank_credits:Array.isArray(credits.data)?credits.data:[]"));
 assert(src.includes("const incomingStats=bankCreditGroupingStatus(groups,incoming);"),'bank credit display groups are accounted with disclosed ambiguity');
 assert(src.includes("'bank_all','Tiền vào NH'"),'shorter label must preserve the full bank register filter');
-assert(src.includes("kind==='auto_collected'?'Đã thu · Đối soát'"));
+assert(src.includes("kind==='auto_collected'?'Đã thu'"));
 assert(src.includes("kind==='manual_collected'?'Đã thu thủ công'"));
 assert(src.includes("kind==='unmatched'"),'manual collection button only for unmatched');
 const section=src.slice(src.indexOf('function bankCreditLine('),src.indexOf('function renderGroups('));
 assert(section.includes("if(kind==='unmatched'){"),'only bank-only receipts are actionable');
 assert(section.includes("openCollectionDialog(row)"),'bank-only action preserved');
-assert(section.includes("if(kind==='auto_collected'&&row.asset_id)"),'auto links show underlying bill');
-assert(section.includes("cell('Sổ công nợ'"),'display the real ledger proof');
+assert(section.includes("if(valid&&row.asset_id)"),'collected bank credits show the underlying bill');
+assert(section.includes("cell('Ghi thu công nợ'"),'display the verified ledger state');
 assert(section.includes("cell('Thông báo Agribank'"),'display bank-side evidence id');
 assert(section.includes("kind==='review_inconsistent'"),'broken link must be held');
 const grouping=src.slice(src.indexOf('function renderGroups('),src.indexOf('function openPush('));
