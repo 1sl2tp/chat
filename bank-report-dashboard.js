@@ -141,7 +141,7 @@ function billHasSuspectSwappedDay(row){
 }
 const statusText={
  matched:'Đã thu',waiting_bank:'Chờ ngân hàng',bank_only:'Chờ bill',
- review:'Cần kiểm tra · Chưa đối soát',wrong_day:'AI nghi sai ngày',duplicate:'Bill trùng',
+ review:'Cần xác minh',wrong_day:'Sai ngày · Xác minh',duplicate:'Ảnh trùng',
  non_bill:'Không phải bill',reading:'Đang đọc ảnh',test_excluded:'Tiền test (loại)'
 };
 const isAiScanIssue=row=>/^(?:amount_scan_|ai_scan_|ai_year_error_)/i.test(String(row?.reason||''));
@@ -373,6 +373,7 @@ function renderBankWorkQueue(data,outstanding){
   const button=el('button','bank-report-work-button'+(filter===item.key?' is-selected':''));
   button.type='button';
   button.dataset.filter=item.key;
+  button.dataset.bankTone=item.key==='review'?'danger':'pending';
   button.setAttribute('aria-pressed',String(filter===item.key));
   button.setAttribute('aria-label',item.count+' '+item.label+' · xem chi tiết');
   append(button,el('span','bank-report-work-count',String(item.count)),
@@ -515,6 +516,9 @@ function renderTable(data){
  const tbody=el('tbody');
  for(const g of [...byCustomer.values()].sort((a,b)=>b.money-a.money||a.name.localeCompare(b.name,'vi'))){
   const tr=el('tr','bank-report-table-item'+(selectedCustomer===g.id?' is-selected':''));tr.tabIndex=0;
+  // Presentation only: ledger proof stays separate from pending/duplicate bill
+  // counters; mobile displays these below the full amount, never beside it.
+  tr.dataset.bankTone=g.old||g.duplicate?'danger':g.waiting?'pending':g.matched?'success':'neutral';
   tr.setAttribute('role','button');
   tr.setAttribute('aria-label',(selectedCustomer===g.id?'Đang xem chi tiết ':'Xem chi tiết ')+g.name+
    ', đã thu '+bankMoneySpoken(g.money)+', tự thu '+g.matched+', chờ '+g.waiting+
@@ -611,6 +615,28 @@ function bankBillDisplayTime(raw){
  return m?m[4]+':'+m[5]+(m[6]?':'+m[6]:'')+' '+m[3]+'/'+m[2]+'/'+m[1]:
   'Không đọc được giờ trên bill';
 }
+// BANK-313: risk-oriented *visual* statuses; NOT authorization to debit.
+// Green requires a recorded ledger; yellow is waiting for evidence; red means
+// explicit operator verification is necessary. Source statuses remain intact.
+function bankReportBillTone(row,isBank=false,manualRecord=null,manualEvidence=null,dateSwapSuspect=false,candidates=[]){
+ if(manualRecord)return 'success';
+ if(manualEvidence||dateSwapSuspect)return 'danger';
+ if(isBank)return candidates.length?'danger':'pending';
+ const type=String(row?.report_status||'');
+ if(type==='matched')return row?.ledger_id?'success':'danger';
+ if(type==='waiting_bank'||type==='reading'||type==='bank_only')return 'pending';
+ if(type==='review'||type==='wrong_day'||type==='duplicate'||isAiScanIssue(row))return 'danger';
+ return 'neutral';
+}
+function bankReportCreditTone(row,issue=null){
+ const kind=String(row?.collection_kind||'unmatched');
+ if(kind==='auto_collected'||kind==='manual_collected')
+  return row?.ledger_id?'success':'danger';
+ if(kind==='review_inconsistent'||row?.bank_group_tentative)return 'danger';
+ if(kind==='unmatched')
+  return issue?.label?.includes('Thiếu bill')||!issue?'pending':'danger';
+ return 'neutral';
+}
 function detailLine(row,isBank=false,candidates=[]){
  const type=isBank?'bank_only':row.report_status;
  const recorded=!isBank&&type==='matched'&&Boolean(row.ledger_id);
@@ -618,6 +644,7 @@ function detailLine(row,isBank=false,candidates=[]){
  const manualEvidence=!isBank?matchingManualCollectionForBill(row,current):null;
  const manualRecord=isBank?(current?.manual_collections||[]).find(m=>String(m.notice_id)===String(row.notice_id)):null;
  const wrap=el('details','bank-report-detail');
+ wrap.dataset.bankTone=bankReportBillTone(row,isBank,manualRecord,manualEvidence,dateSwapSuspect,candidates);
  if(row.receipt_id)wrap.dataset.bankReceiptId=String(row.receipt_id);
  if(row.notice_id)wrap.dataset.bankNoticeId=String(row.notice_id);
  const top=el('summary','bank-report-detail-top');
@@ -625,10 +652,11 @@ function detailLine(row,isBank=false,candidates=[]){
   ?el('button','bank-report-quick-collect','Xác minh thu')
   :el('span','bank-report-detail-status bank-status-'+
     (manualRecord?'bank_manual':manualEvidence?'review':isBank&&candidates.length?'review':type),
-    manualRecord?'Đã thu thủ công':manualEvidence?'Có thu tay · Chờ xác minh bill':
-      isBank&&candidates.length?'Có bill cần kiểm tra':
-      !isBank&&isAiScanIssue(row)?'AI chưa kết luận':
-      dateSwapSuspect?'AI nghi đọc nhầm ngày · Chưa thu':statusText[type]||'Cần kiểm tra');
+    manualRecord?'Đã thu thủ công':manualEvidence?'Có thu tay · Cần soát bill':
+      isBank&&candidates.length?'Cần xác minh bill':
+      !isBank&&type==='matched'&&!recorded?'Lệch sổ · Xác minh':
+      !isBank&&isAiScanIssue(row)?'AI cần xác minh':
+      dateSwapSuspect?'Nghi sai ngày':statusText[type]||'Cần xác minh');
  if(isBank&&!manualRecord&&!candidates.length){
   label.type='button';
   label.setAttribute('aria-label','Xác minh thu '+bankDisplayVnd(row.amount_vnd)+' từ Agribank');
@@ -791,12 +819,16 @@ function bankCreditLine(row,allBills){
  const suggestion=kind==='unmatched'?bankBillCustomerSuggestion(row,allBills):null;
  const candidate=Boolean(row.bank_group_tentative);
  const wrap=el('details','bank-report-detail bank-report-credit');
+ wrap.dataset.bankTone=bankReportCreditTone(row,issue);
  wrap.dataset.bankNoticeId=String(row.notice_id);
  const top=el('summary','bank-report-detail-top');
  const status=kind==='auto_collected'?'Đã thu':
    kind==='manual_collected'?'Đã thu thủ công':
-   kind==='review_inconsistent'?'Cần kiểm tra sổ':
-   issue?.label?.includes('Bill thiếu giờ')?'Bill thiếu giờ':
+   kind==='review_inconsistent'?'Lệch sổ · Xác minh':
+   candidate?'Cần xác minh':
+   issue?.label?.includes('AI nghi sai ngày')?'Nghi sai ngày':
+   issue?.label?.includes('Bill thiếu giờ')?'Thiếu giờ · Xác minh':
+   issue?.label?.includes('Chờ xác minh bill')?'Cần xác minh bill':
    issue?.label?.includes('Thiếu bill')?'Chưa có bill':'Chờ đối soát';
  const clock=bankLineClock(row.bank_time,ui.date.value);
  const time=el('span','bank-report-detail-time',clock.split(' · ')[0]);

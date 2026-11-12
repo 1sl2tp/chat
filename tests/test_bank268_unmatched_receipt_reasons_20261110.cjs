@@ -41,7 +41,7 @@ assert.equal(issue(n(249,364000,'2026-11-10T11:06:00Z'),[
  {...b(364000,'2026-11-10T11:06:08Z','2026-10-11 18:06'),status:'received'}
 ]).label,'Chưa thu · Thiếu bill','received bill never becomes an unlinked collection candidate');
 assert.match(source,/const issue=kind==='unmatched'\?bankUnmatchedIssue\(row,allBills\):null/);
-assert.match(source,/kind==='review_inconsistent'\?'Cần kiểm tra sổ':/,
+assert.match(source,/kind==='review_inconsistent'\?'Lệch sổ · Xác minh':/,
  'invalid bank-to-ledger link remains a hard review state');
 assert.match(source,/issue\?\.label\?\.includes\('Bill thiếu giờ'\)/,
  'bill missing its printed hour is distinguished from missing money');

@@ -37,7 +37,7 @@ assert.equal(lookup(beforeMidnight,[{...receipt,sent_at:'2026-11-02T17:30:00Z'}]
  'same UTC date prefixes must not falsely match after Vietnam midnight');
 assert.equal(lookup(beforeMidnight,[{...receipt,sent_at:'2026-11-02T16:35:00Z'}]).length,1,
  'real uploads within 20 minutes remain review candidates');
-assert.ok(source.includes('Có bill cần kiểm tra'));
+assert.ok(source.includes('Cần xác minh bill'), 'candidate bills must explicitly require verification');
 assert.ok(source.includes('Chưa ghi thu'), 'the ambiguous bank credit remains uncollected');
 assert.ok(source.includes('void showBill(candidate)'));
 assert.ok(!source.includes('rpc(\'chat_bank_app_collect\''));

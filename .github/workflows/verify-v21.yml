@@ -207,6 +207,10 @@ jobs:
         run: node tests/test_bank234_thousands_with_remainder_20261104.cjs
       - name: BANK-224 accessible keyboard ownership for both bank reconciliation dialogs
         run: node tests/test_bank224_review_dialog_keyboard_20261102.cjs
+      - name: BANK-313 traffic light and responsive row alignment
+        run: |
+          node --check bank-report-dashboard.js
+          node tests/test_bank313_traffic_light_responsive_customer_rows_20261113.cjs
       - name: BANK-312 /1000 no suffix and aligned responsive actions
         run: |
           node --check bank-report-dashboard.js
