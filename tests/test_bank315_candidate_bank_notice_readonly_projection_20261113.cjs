@@ -22,6 +22,27 @@ const bill={receipt_id:'77f71f34',reason:'bill_printed_time_missing',
  bill_ocr:{transfer_date_vn:'2026-11-12',
  sending_bank:'VPBank',transfer_content:'LAI VAN TAN chuyen tien',
  recipient_name_printed:'BUI XUAN TUNG',transfer_time_printed_vn:null}};
+// BANK-316: real 77f71f34 OCR contains BUI XUAN TUNG, while the
+// pre-BANK315 Admin dashboard RPC omits BOTH receiving_name and raw_read.
+// Do not misreport omitted API fields as an OCR/image failure.
+const nameRow=rows=>rows.find(x=>x.label==='Tên chủ TK nhận');
+const proofFromOcr=helpers.bankManualBillEvidenceRows(bill,null);
+assert.equal(nameRow(proofFromOcr).bill,'BUI XUAN TUNG');
+assert.equal(nameRow(proofFromOcr).tone,'matched');
+assert.equal(nameRow(proofFromOcr).result,'Khớp tên trên bill');
+const dashboardWithoutProjection={...bill,bill_ocr:undefined,receiving_name:undefined};
+const missingApi=helpers.bankManualBillEvidenceRows(dashboardWithoutProjection,null);
+assert.equal(nameRow(missingApi).bill,'API chưa trả tên người nhận từ bill');
+assert.equal(nameRow(missingApi).result,'Chờ API trả OCR');
+assert.equal(nameRow(missingApi).tone,'pending');
+const flattened=helpers.bankManualBillEvidenceRows({...dashboardWithoutProjection,receiving_name:'BUI XUAN TUNG'},null);
+assert.equal(nameRow(flattened).bill,'BUI XUAN TUNG');
+assert.equal(nameRow(flattened).tone,'matched');
+const trulyMissing=helpers.bankManualBillEvidenceRows({
+ ...dashboardWithoutProjection,bill_ocr:{recipient_name_printed:null}
+},null);
+assert.equal(nameRow(trulyMissing).result,'Chưa đọc được tên');
+assert.equal(nameRow(trulyMissing).tone,'pending');
 const exact=helpers.bankManualBillCandidateCredits(bill,[a,b],'2026-11-12');
 assert.equal(exact.length,1,'same fingerprint 274+280 is ONE actual credit candidate');
 assert.equal(exact[0].bank_group_count,2);
