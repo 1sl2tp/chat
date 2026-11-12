@@ -647,10 +647,12 @@ function detailLine(row,isBank=false,candidates=[]){
     recorded?'Đã ghi thu · Sổ #'+row.ledger_id:
     manualEvidence?'Thu tay · Agribank #'+manualEvidence.notice_id+' · Sổ #'+manualEvidence.ledger_id+' · Bill chưa liên kết':'Chưa ghi thu'));
   const noticeState=row.collection_notice_state||'pending';
-  const noticeText=row.collection_ack_sent?'Đã gửi cho khách':
-    noticeState==='muted'?'Đã tắt theo cài đặt thông báo':
+  const noticeText=row.collection_ack_sent?
+    (row.reason==='manual_agribank_bill_confirmed'?'Đã gửi xác nhận thu thủ công':'Đã gửi cho khách'):
+    (row.reason==='manual_agribank_bill_confirmed'?'Đã liên kết sổ thu · Không gửi thêm nếu đã nhập tay':
+     noticeState==='muted'?'Đã tắt theo cài đặt thông báo':
     noticeState==='retry'?'Gửi lỗi · Hệ thống sẽ thử lại':
-    'Đang chờ gửi xác nhận';
+    'Đang chờ gửi xác nhận');
   content.appendChild(cell('Tin xác nhận thu',
     recorded?noticeText:manualEvidence?'Thu tay có xác nhận riêng; chưa xác minh ảnh bill':'Chưa gửi vì chưa ghi thu'));
  }
@@ -717,7 +719,7 @@ function detailLine(row,isBank=false,candidates=[]){
  // BANK-310: manual collection belongs to the BILL + exact customer, not only
  // to a previously ingested Agribank notification. Clicking opens a guarded
  // Admin verification dialog; there is NEVER a financial write on first click.
- if(!isBank&&!row.ledger_id&&row.receipt_id&&row.customer_id&&
+ if(!isBank&&!row.ledger_id&&!manualEvidence&&row.receipt_id&&row.customer_id&&
     ['amount_read','review'].includes(String(row.status||''))&&
     Number.isSafeInteger(Number(row.amount_vnd))&&Number(row.amount_vnd)>0){
   const b=el('button','bank-report-action bank-report-action-manual-bill',
