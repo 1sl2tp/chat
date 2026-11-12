@@ -47,9 +47,9 @@ def test_dashboard_labels_no_false_paid_message():
     notice=(ROOT/'supabase/migrations/20261024165000_bank211_receipt_notice_state.sql').read_text('utf-8')
     assert "collection_notice_state" in notice
     for token in (
-       "matched:'Đã thu · Đối soát'",
-       "waiting_bank:'Chờ Agribank · Chưa thu'",
-       "review:'Cần kiểm tra · Chưa đối soát'",
+       "matched:'Đã thu'",
+       "waiting_bank:'Chờ ngân hàng'",
+       "review:'Cần xác minh'",
        "cardValue('Bill chưa đối soát'",
        "cardValue('Đã thu có chứng từ'",
        "recorded?'Đã ghi thu · Sổ #'+row.ledger_id:",
