@@ -4,6 +4,7 @@ import {RULE_VERSION,SYSTEM_PROMPT,validateVisionRead,readV4Fields,requiredAutoC
 import {previewBillSmsMatch,readIncomingAgribankSms} from "./bill-sms-preview.mjs";
 import {previewBillAppMatch,previewBillReferenceMatch} from "./bill-app-preview.mjs";
 import {compareBillTransferIdentity} from "./bill-transfer-identity.mjs";
+import {eligibleForPrintedDateRescan} from "./bill-review-recheck.mjs";
 
 const db=createClient(Deno.env.get("SUPABASE_URL")||"",Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"",{auth:{persistSession:false,autoRefreshToken:false}});
 const response=(body:any,status=200)=>new Response(JSON.stringify(body),{status,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store"}});
@@ -149,9 +150,64 @@ Deno.serve(async req=>{
  const cfg=Array.isArray(cfgRaw)?cfgRaw[0]:cfgRaw;
  if(cfgError||!cfg?.scan_key||req.headers.get("x-internal-dispatch-key")!==cfg.scan_key)return response({error:"not_authorized"},403);
  const body=await req.json().catch(()=>({}));const asset=String(body.asset_id||"").toLowerCase();
+ const recheckBankCredit=body.recheck_bank_credit===true;
  if(!HEX.test(asset))return response({error:"asset_id_invalid"},400);
  const {data:job,error:jobError}=await db.from("chat_bank_bill_receipts").select("id,status,reason,scanned_at,customer_account_id,sent_at,attempt_count").eq("media_asset_id",asset).maybeSingle();
  if(jobError||!job)return response({error:"not_queued"},404);
+ // BANK-291: a NEW verified bank event may arrive after AI scanned an
+ // otherwise clear Techcombank receipt whose literal comma date was rejected.
+ // Permit just one additional pixel OCR read, only on independent bank
+ // amount/minute/account/EXACT memo proof. This never posts money by itself.
+ let retryPrintedDate=false;
+ if(recheckBankCredit&&job.status==="review"&&job.reason==="bill_printed_datetime_conflict"){
+  try{
+   const {data:r,error:readError}=await db.from("chat_bank_bill_receipts")
+     .select("id,raw_read,ledger_id,amount_vnd,receiving_name,receiving_bank,receiving_account,transfer_reference,transfer_at_vn,sent_at,sending_bank")
+     .eq("media_asset_id",asset).eq("status","review").maybeSingle();
+   if(!readError&&r&&eligibleForPrintedDateRescan(job,r)){
+    const transferMs=Date.parse(String(r.transfer_at_vn).replace(" ","T")+"+07:00");
+    const lo=new Date(transferMs-5*60000),hi=new Date(transferMs+5*60000);
+    const vn=x=>new Date(x.getTime()+7*3600000).toISOString().slice(0,19).replace("T"," ");
+    const [credits,others]=await Promise.all([
+     db.from("taphoa_agribank_notifications")
+       .select("id,package_name,posted_at,status,amount_vnd,body,is_own_transfer")
+       .eq("package_name","com.vnpay.Agribank3g").eq("status","credit_candidate")
+       .eq("is_own_transfer",false).eq("bank_credit_account","2901181999999")
+       .eq("amount_vnd",r.amount_vnd)
+       .gte("transfer_at",lo.toISOString()).lte("transfer_at",hi.toISOString()).limit(100),
+     db.from("chat_bank_bill_receipts")
+       .select("media_asset_id,status,amount_vnd,transfer_at_vn,transfer_reference,sending_bank,image_sha256,raw_read,sent_at")
+       .eq("amount_vnd",r.amount_vnd).neq("media_asset_id",asset)
+       .gte("transfer_at_vn",vn(lo)).lte("transfer_at_vn",vn(hi)).limit(100)
+    ]);
+    if(!credits.error&&!others.error&&credits.data&&others.data&&
+       credits.data.length<100&&others.data.length<100){
+     const candidate={
+      media_asset_id:asset,status:"amount_read",amount_vnd:r.amount_vnd,
+      sent_at:r.sent_at,receiving_name:r.receiving_name,
+      receiving_bank:r.receiving_bank,receiving_account:r.receiving_account,
+      receiving_account_last5:r.raw_read?.recipient_account_last5,
+      sending_bank:r.sending_bank,transfer_at_vn:r.transfer_at_vn,
+      transfer_reference:r.transfer_reference,
+      transfer_content:r.raw_read?.transfer_content,
+      transaction_nature:r.raw_read?.transaction_nature,
+      requires_bank_memo:true,ocr_date_normalization_corrected:true
+     };
+     const match=previewBillAppMatch(candidate,credits.data,others.data);
+     if(match?.status==="candidate_unique"&&Number.isSafeInteger(match.notification_id)){
+      const [manual,auto]=await Promise.all([
+       db.from("chat_bank_manual_collections").select("notification_id")
+         .eq("notification_id",match.notification_id).limit(1),
+       db.from("chat_bank_app_collection_links").select("notification_id")
+         .eq("notification_id",match.notification_id).limit(1)
+      ]);
+      if(!manual.error&&!auto.error&&!manual.data?.length&&!auto.data?.length)
+       retryPrintedDate=true;
+     }
+    }
+   }
+  }catch(_e){console.warn("bank291_review_rescan_check_unavailable");}
+ }
  // A real Agribank Plus credit may arrive after AI already read this bill.
  // Compare the persisted bill without redownloading the image or calling Gemini.
  if(job.status==="amount_read"){
@@ -243,7 +299,7 @@ Deno.serve(async req=>{
    &&Number.isFinite(sent)&&sent>=Date.now()-7*86400000
    &&Number.isFinite(inspected)&&Date.now()-inspected>=retryMinutes*60000
    &&sent<=Date.now()+2*60000;
- if(job.status!=="queued"&&!retryFailed){
+ if(job.status!=="queued"&&!retryFailed&&!retryPrintedDate){
    if(job.customer_account_id===TEST_ACCOUNT&&["amount_read","review","duplicate","non_bill"].includes(job.status)){
      try{await notifyTestScan(asset,job.customer_account_id,job.status,null);}catch(e){console.warn("bill_scan_feedback_retry_failed",String(e).slice(0,80));}
    }
@@ -268,7 +324,7 @@ Deno.serve(async req=>{
    await db.from("chat_bank_bill_receipts").update({status:"review",reason:"daily_scan_limit_no_collection"}).eq("media_asset_id",asset).eq("status","queued");
    return response({ok:true,status:"review",reason:"daily_scan_limit"},200);
  }
- const {data:claimed,error:claimError}=await db.from("chat_bank_bill_receipts").update({status:"scanning",reason:"reading_amount_and_hash",scan_started_at:new Date().toISOString(),attempt_count:(job.attempt_count||0)+1}).eq("media_asset_id",asset).eq("status",retryFailed?"failed":"queued").eq("attempt_count",job.attempt_count||0).select("id");
+ const {data:claimed,error:claimError}=await db.from("chat_bank_bill_receipts").update({status:"scanning",reason:"reading_amount_and_hash",scan_started_at:new Date().toISOString(),attempt_count:(job.attempt_count||0)+1}).eq("media_asset_id",asset).eq("status",retryPrintedDate?"review":retryFailed?"failed":"queued").eq("attempt_count",job.attempt_count||0).select("id");
  if(claimError)return response({error:"claim_failed"},500);
  if(!claimed?.length)return response({ok:true,status:"already_claimed"},202);
  let digest="";
