@@ -23,6 +23,10 @@ jobs:
           test -d "$ANDROID_HOME/platforms/android-35" || "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-35'
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.10.2' }
+      - name: Validate notification health and replay safeguards
+        run: |
+          node tests/test_bank304_android_agribank_listener_health_20261112.cjs
+          node tests/test_bank305_recover_active_agribank_20261112.cjs
       - name: Build installer
         working-directory: android/agribank-notifier
         run: gradle :app:assembleDebug --no-daemon --stacktrace
