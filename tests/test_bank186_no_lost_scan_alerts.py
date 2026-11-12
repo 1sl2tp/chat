@@ -12,7 +12,13 @@ assert "tries>=1&&tries<6" in edge
 assert "retryMinutes*60000" in edge
 assert "sent>=Date.now()-7*86400000" in edge
 assert 'retryable?"failed":"review"' in edge
-assert 'amount_scan_' in edge and 'gemini_http_' in edge
+# BANK-299: the retry predicate moved into a shared pure module.
+# Both failed scan classification and retry entry MUST use the same rules.
+policy=(ROOT/'supabase/functions/v21-bank-bill-event/bill-decision-policy.mjs').read_text('utf-8')
+assert 'amount_scan_' in edge and 'gemini_http_' in policy
+assert 'const transientError=isRetryableBillScanReason(job.reason)' in edge
+assert 'const retryable=isRetryableBillScanReason(reason)' in edge
+assert 'hash_registry_lookup_failed' in policy
 assert 'chat_bank_app_collect' in edge
 assert 'status==="amount_read"&&matchPreview?.source==="agribank_plus_notification"' in edge
 assert "scan_started_at timestamptz" in retry
