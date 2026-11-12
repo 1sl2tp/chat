@@ -207,6 +207,11 @@ jobs:
         run: node tests/test_bank234_thousands_with_remainder_20261104.cjs
       - name: BANK-224 accessible keyboard ownership for both bank reconciliation dialogs
         run: node tests/test_bank224_review_dialog_keyboard_20261102.cjs
+      - name: BANK-307 replayed bank notifications and visible bank clocks
+        run: |
+          node tests/test_bank307_replayed_push_report_view_20261112.cjs
+          node tests/test_bank222_all_agribank_credits.cjs
+          node --check bank-report-dashboard.js
       - name: BANK-306 cross-device dedupe and missing bank-credit review
         run: |
           node tests/test_bank306_agribank_global_dedupe_gap_20261112.cjs
