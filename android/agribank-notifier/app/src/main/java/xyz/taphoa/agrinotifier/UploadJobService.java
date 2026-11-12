@@ -55,7 +55,7 @@ public final class UploadJobService extends JobService {
   prefs.edit().putLong("last_attempt_at",System.currentTimeMillis()).apply();
   if(!token.matches("[a-f0-9]{48,128}")){
    prefs.edit().putString("last_upload_error","missing_pairing_token").apply();
-   return true; // Without valid token, infinite retries cannot recover.
+   return false; // Keep durable event pending until pairing is restored.
   }
   PersistableBundle x=p.getExtras();HttpURLConnection c=null;
   try{
@@ -76,11 +76,16 @@ public final class UploadJobService extends JobService {
       .putString("last_upload_error","").apply();
     return true;
    }
-   if(status==400||status==401||status==403||status==422){
-    // Bad configuration or disallowed notification is terminal. Surface it
-    // locally rather than looping silently or treating a 422 as delivered.
+   if(status==400||status==422){
+    // Invalid/sensitive notification is terminal, but NEVER claim delivery.
     prefs.edit().putString("last_upload_error","server_rejected_"+status).apply();
     return true;
+   }
+   if(status==401||status==403){
+    // Token may be re-paired while this persisted job is waiting: preserve
+    // the original event for bounded Android backoff rather than drop it.
+    prefs.edit().putString("last_upload_error","pairing_rejected_"+status).apply();
+    return false;
    }
    prefs.edit().putString("last_upload_error","retry_http_"+status).apply();
    return false;
