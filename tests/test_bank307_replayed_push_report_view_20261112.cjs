@@ -5,7 +5,7 @@ const vm=require('node:vm');
 const path=require('node:path');
 const root=path.resolve(__dirname,'..');
 const src=fs.readFileSync(path.join(root,'bank-report-dashboard.js'),'utf8');
-const start=src.indexOf('// BANK-307: presentation fallback while BANK-306 canonical SQL rollout is pending.');
+const start=src.indexOf('// BANK-309: deduplicate notifications BEFORE any reporting/counting/UI.');
 const end=src.indexOf('function renderBankWorkQueue(',start);
 assert(start>0&&end>start,'BANK-307 pure view model precedes admin dashboard rendering');
 const helpers=vm.runInNewContext(src.slice(start,end)+
@@ -72,7 +72,7 @@ assert.equal(exact.length,1);
 assert.equal(exact[0].bank_group_exact,true);
 assert.equal(exact[0].bank_group_tentative,false);
 assert(src.includes("if(!candidate){"),'no direct collection from tentative duplicate cluster');
-assert(src.includes("Có '+count+' thông báo cùng tài khoản"),'review all underlying notices');
+assert(src.includes("Đã gom '+count+' dòng giống nhau"),'legacy API only groups for display without a false bank-duplicate banner');
 assert(src.includes("allBills.filter(r=>r.report_status==='waiting_bank'&&!r.ledger_id)"),
  'show outstanding customer bill even without bank notification');
 assert(src.includes("giờ trên bill, không phải giờ Agribank"),'never mislabel upload/bill time as confirmed bank hour');
