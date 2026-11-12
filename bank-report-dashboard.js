@@ -1355,6 +1355,112 @@ async function openReviewDialog(bank,candidates){
 }
 // BANK-310: manual collection requires independent Admin bank verification.
 // Never call the old notification_id-based manual collector for a missing push.
+// BANK-314: explicit evidence comparison for a bill without a confirmed
+// Agribank event. A match against our RECIPIENT CONFIG is not money received.
+// A same-amount bank credit is NEVER linked without its bank notice ID.
+function bankManualBillEvidenceRows(bill,notice=null,prepared=null,serverState='checking'){
+ const value=x=>String(x??'').trim();
+ const show=x=>value(x)||'Chưa đọc được';
+ const norm=x=>value(x).normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+  .replace(/đ/gi,'d').replace(/\s+/g,' ').toUpperCase();
+ const digits=x=>value(x).replace(/\D/g,'');
+ const billMoney=Number(bill?.amount_vnd);
+ const presentNotice=Boolean(notice&&bill?.notice_id&&
+   String(notice.notice_id)===String(bill.notice_id));
+ const noticeValue=(x)=>presentNotice?show(x):'Chưa có thông báo Agribank đã liên kết';
+ const isServerReady=serverState==='ready'&&Boolean(prepared?.ok);
+ const result=[];
+ const add=(label,billValue,bankValue,tone,resultText)=>result.push({
+  label,bill:billValue,bank:bankValue,tone,result:resultText
+ });
+ const provider=value(bill?.bank_name||bill?.receiving_bank||bill?.bank_provider);
+ add('Ngân hàng',provider||'Chưa đọc tên ngân hàng',
+  'Agribank · tài khoản nhận cấu hình',
+  !provider?'pending':/AGRIBANK|NONG NGHIEP|NÔNG NGHIỆP/i.test(norm(provider))?'matched':'review',
+  !provider?'Thiếu trên bill':/AGRIBANK|NONG NGHIEP/i.test(norm(provider))?'Đúng ngân hàng đích':'Khác ngân hàng đích');
+ const recipient=digits(bill?.receiving_account);
+ add('Số tài khoản nhận',recipient||'Chưa đọc STK',
+   '2901181999999 · STK nhận cấu hình',
+   !recipient?'pending':recipient==='2901181999999'?'matched':
+    recipient.length<13&&'2901181999999'.endsWith(recipient)?'pending':'review',
+   !recipient?'Thiếu STK':recipient==='2901181999999'?'Trùng STK nhận':
+    recipient.length<13&&'2901181999999'.endsWith(recipient)?'Chỉ khớp đuôi':'Sai STK nhận');
+ const owner=value(bill?.receiving_name);
+ add('Tên chủ tài khoản nhận',owner||'Chưa đọc tên',
+   'BUI XUAN TUNG · tên cấu hình',
+   !owner?'pending':norm(owner)==='BUI XUAN TUNG'?'matched':'review',
+   !owner?'Thiếu tên':norm(owner)==='BUI XUAN TUNG'?'Trùng tên TK nhận':'Sai tên TK nhận');
+ const customer=value(bill?.customer_name);
+ add('Khách hàng liên kết',customer||'Chưa xác định',
+   isServerReady?show(prepared.customer_name):'Chưa xác minh máy chủ',
+   isServerReady?(String(prepared.customer_id)===String(bill.customer_id)?'matched':'review'):'pending',
+   isServerReady?(String(prepared.customer_id)===String(bill.customer_id)?'Đúng khách':'Sai khách'):'Chờ xác minh');
+ add('Số tiền (÷1.000)',Number.isSafeInteger(billMoney)?bankDisplayVnd(billMoney):'Chưa đọc số tiền',
+   noticeValue(presentNotice?bankDisplayVnd(notice.amount_vnd):null),
+   !presentNotice?'pending':Number(notice.amount_vnd)===billMoney?'matched':'review',
+   !presentNotice?'Chưa có tiền NH':'Số tiền '+(Number(notice.amount_vnd)===billMoney?'khớp':'không khớp'));
+ const printedTime=value(bill?.bill_time);
+ const timeHasClock=/^20\d{2}-\d{2}-\d{2}[ T]\d{2}:\d{2}/.test(printedTime);
+ const bankTime=value(notice?.bank_time||notice?.transfer_at);
+ const comparable=presentNotice&&timeHasClock&&
+  /^20\d{2}-\d{2}-\d{2}[ T]\d{2}:\d{2}/.test(bankTime);
+ const sameMinute=comparable&&printedTime.replace('T',' ').slice(0,16)===
+  bankTime.replace('T',' ').slice(0,16);
+ add('Ngày và giờ giao dịch',timeHasClock?bankBillDisplayTime(printedTime):'Bill thiếu ngày/giờ giao dịch',
+   noticeValue(presentNotice?agribankDisplayTime(bankTime,ui.date.value):null),
+   !timeHasClock?'review':!comparable?'pending':sameMinute?'matched':'review',
+   !timeHasClock?'Thiếu giờ · xác minh':!comparable?'Chưa đối chiếu giờ NH':
+     sameMinute?'Trùng phút':'Không trùng phút');
+ const sender=value(bill?.sender_name||bill?.sending_name||bill?.payer_name);
+ const bankSender=value(notice?.bank_sender_name||notice?.sender_name);
+ add('Người chuyển tiền',sender||'Chưa đọc tên người chuyển',
+   noticeValue(presentNotice?bankSender:null),
+   !sender||!bankSender||!presentNotice?'pending':norm(sender)===norm(bankSender)?'matched':'review',
+   !sender?'Thiếu người chuyển':!presentNotice||!bankSender?'Chưa có dữ liệu NH':
+    norm(sender)===norm(bankSender)?'Trùng tên':'Khác tên người chuyển');
+ const memo=value(bill?.transfer_content||bill?.transfer_memo||
+  bill?.transfer_note||bill?.transaction_content||bill?.content);
+ const bankMemo=value(notice?.bank_memo);
+ add('Nội dung chuyển khoản',memo||'Chưa trích xuất nội dung',
+   noticeValue(presentNotice?bankMemo:null),
+   !memo||!presentNotice||!bankMemo?'pending':norm(memo)===norm(bankMemo)?'matched':'review',
+   !memo?'Thiếu nội dung trên bill':!presentNotice||!bankMemo?'Chưa có nội dung NH':
+    norm(memo)===norm(bankMemo)?'Trùng nội dung':'Khác nội dung');
+ const reference=value(bill?.transfer_reference);
+ add('Mã giao dịch / mã bill',reference||'Chưa đọc mã giao dịch',
+   presentNotice&&value(notice?.transfer_reference)?value(notice.transfer_reference):
+    'Mã NH chưa có để đối chiếu',
+   reference&&presentNotice&&value(notice?.transfer_reference)?
+     norm(reference)===norm(notice.transfer_reference)?'matched':'review':'pending',
+   !reference?'Thiếu mã giao dịch':!presentNotice?'Chưa có mã NH':'Chưa so được mã');
+ const ledger=bill?.ledger_id||prepared?.ledger_id||prepared?.recorded?.ledger_id;
+ add('Sổ đã ghi thu',bill?.ledger_id?'#'+bill.ledger_id:'Bill chưa có sổ thu',
+   isServerReady?(ledger?'Sổ #'+ledger:'Chưa ghi thu theo bill'):
+    'Chưa kiểm tra được máy chủ',
+   !isServerReady?'pending':ledger?'matched':'pending',
+   !isServerReady?'Chưa xác minh sổ':ledger?'Đã ghi sổ':'Chưa ghi thu');
+ const duplicate=Boolean(bill?.duplicate_of||bill?.report_status==='duplicate');
+ const possible=isServerReady&&Array.isArray(prepared.possible_existing)?
+  prepared.possible_existing:[];
+ add('Trùng bill / trùng khoản thu',
+   duplicate?'Bill bị đánh dấu trùng':'Chưa có kết luận trùng',
+   isServerReady?possible.length?possible.length+' khoản thu cùng số tiền cần kiểm tra':
+    'Chưa thấy khoản thu trùng trong phạm vi kiểm tra':
+    'Chưa kiểm tra được chống trùng máy chủ',
+   duplicate||possible.length?'duplicate':'pending',
+   duplicate?'Bill bị đánh dấu trùng':possible.length?
+    'Nghi trùng · không thu lần hai':'Chưa đủ căn cứ kết luận không trùng');
+ return result;
+}
+function bankManualBillPrepareErrorMessage(error){
+ const code=String(error?.code||'');
+ const message=String(error?.message||error||'');
+ if(code==='PGRST202'||/could not find the function|schema cache/i.test(message))
+  return 'Máy chủ chưa triển khai hàm đối chiếu và khóa bill BANK-310. Đây là lỗi cấu hình máy chủ, không phải kết luận bill sai. Chưa ghi thu.';
+ if(/admin_only|jwt|permission|unauthorized|session/i.test(message))
+  return 'Không xác minh được phiên Admin hoặc quyền truy cập. Chưa ghi thu.';
+ return 'Máy chủ chưa xác minh được bill và sổ thu. Chưa ghi thu; không tự kết luận bill hợp lệ hay trùng.';
+}
 async function openManualBillDialog(bill){
  if(!active||!isReportContact()||!ui.review||!bill?.receipt_id||!bill?.customer_id)return;
  closeReviewDialog();
@@ -1370,17 +1476,70 @@ async function openManualBillDialog(bill){
  heading.querySelector('button').type='button';
  heading.querySelector('button').addEventListener('click',closeReviewDialog);
  form.appendChild(heading);
+ form.classList.add('bank-bill-compare-dialog');
+ const noticeId=String(bill.notice_id||'');
+ const linkedNotice=noticeId?(current?.bank_credits||[]).find(n=>
+  String(n.notice_id)===noticeId):null;
  form.appendChild(append(el('div','bank-review-bank'),
   el('strong','',bankDisplayVnd(bill.amount_vnd)+' · Bill '+String(bill.receipt_id).slice(0,8)),
-  el('span','','Người nhận: BUI XUAN TUNG · Agribank 2901181999999'),
-  el('span','','Chưa có thông báo ngân hàng tương ứng. Không được suy rằng đã thu từ ảnh bill.')));
+  el('span','','Khách hàng: '+String(bill.customer_name||'Chưa rõ')),
+  el('span','',linkedNotice?'Có thông báo Agribank được liên kết':
+   'Chưa có thông báo Agribank được liên kết; ảnh bill không chứng minh đã thu.')));
+ const compare=el('section','bank-bill-compare');
+ compare.setAttribute('aria-label','Bảng so sánh chứng cứ bill, Agribank và sổ thu');
+ const compareTitle=el('div','bank-bill-compare-title');
+ append(compareTitle,el('strong','','Đối chiếu thông tin'),
+  el('small','','Bill ↔ Agribank / sổ thu'));
+ const comparison=el('div','bank-bill-compare-table');
+ comparison.setAttribute('role','table');
+ comparison.setAttribute('aria-label','So sánh chứng từ và tiền ngân hàng');
+ const compareSummary=el('p','bank-bill-compare-summary');
+ const compareHint=el('p','bank-bill-compare-hint',
+  'Khớp tài khoản nhận chỉ xác nhận thông tin đích, KHÔNG chứng minh tiền đã về. '+
+  'Không có thông báo hoặc sổ thu xác minh thì không được tự ghi thu.');
+ append(compare,compareTitle,comparison,compareSummary,compareHint);
+ form.appendChild(compare);
+ const refreshEvidence=(prepared=null,state='checking')=>{
+  const rows=bankManualBillEvidenceRows(bill,linkedNotice,prepared,state);
+  comparison.replaceChildren();
+  const header=el('div','bank-bill-compare-row bank-bill-compare-header');
+  header.setAttribute('role','row');
+  for(const text of ['Tiêu chí','Trên bill','NH / sổ thu','Kết quả']){
+   const th=el('strong','',text);th.setAttribute('role','columnheader');header.appendChild(th);
+  }
+  comparison.appendChild(header);
+  for(const row of rows){
+   const item=el('div','bank-bill-compare-row');
+   item.setAttribute('role','row');item.dataset.proofTone=row.tone;
+   const label=el('strong','bank-bill-compare-label',row.label);
+   label.setAttribute('role','rowheader');
+   const billCell=el('span','bank-bill-compare-value',row.bill);
+   billCell.setAttribute('role','cell');billCell.dataset.source='Bill';
+   const bankCell=el('span','bank-bill-compare-value',row.bank);
+   bankCell.setAttribute('role','cell');bankCell.dataset.source='Agribank / sổ';
+   const status=el('span','bank-bill-compare-status',row.result);
+   status.setAttribute('role','cell');
+   append(item,label,billCell,bankCell,status);
+   comparison.appendChild(item);
+  }
+  const matched=rows.filter(x=>x.tone==='matched').length;
+  const pending=rows.filter(x=>x.tone==='pending').length;
+  const review=rows.filter(x=>x.tone==='review'||x.tone==='duplicate').length;
+  compareSummary.textContent='Thông tin đã khớp: '+matched+
+   ' · Chưa đủ dữ liệu: '+pending+' · Cần kiểm tra/trùng: '+review+
+   ' · '+(state==='ready'?'Máy chủ đã trả kết quả đối soát.':
+    state==='error'?'Chưa thể kiểm tra trên máy chủ.':
+     'Đang chờ máy chủ kiểm tra.');
+ };
+ refreshEvidence();
  const info=el('p','bank-review-instruction','Đang kiểm tra bill và sổ công nợ…');
  form.appendChild(info);
  const existingBox=el('div','bank-review-existing');form.appendChild(existingBox);
  const noteLabel=el('label','bank-review-label','Ghi chú xác minh Agribank (bắt buộc)');
  const note=el('textarea','bank-review-explanation');
  note.rows=3;note.minLength=15;note.maxLength=1000;note.required=true;
- note.value='Đã kiểm tra Agribank Plus và xác nhận tiền thực về; bill '+String(bill.receipt_id).slice(0,8);
+ note.value='';
+ note.placeholder='Sau khi tự kiểm tra Agribank Plus, ghi giờ, tiền, người chuyển và cách xác minh.';
  noteLabel.appendChild(note);form.appendChild(noteLabel);
  const consent=el('label','bank-review-consent');
  const verified=el('input');verified.type='checkbox';verified.required=true;
@@ -1402,6 +1561,7 @@ async function openManualBillDialog(bill){
  const client=window.V21AuthSessionStore?.getClient?.();
  const owner=bankReportSessionOwner();
  if(!bankDialogIsCurrent(overlay,owner)||!auth.appSessionId||!client){
+  refreshEvidence(null,'error');
   info.textContent='Phiên Admin không hợp lệ. Chưa ghi thu.';return;
  }
  let prepared=null,ledgerSelect=null;
@@ -1412,6 +1572,7 @@ async function openManualBillDialog(bill){
   if(!bankDialogIsCurrent(overlay,owner))return;
   if(error)throw error;
   if(!data?.ok)throw Error(data?.status||'Bill chưa đủ điều kiện');
+  refreshEvidence(data,'ready');
   if(String(data.customer_id)!==String(bill.customer_id)||
      Number(data.amount_vnd)!==Number(bill.amount_vnd))
    throw Error('Thông tin khách hoặc tiền đã thay đổi; vui lòng tải lại.');
@@ -1443,8 +1604,10 @@ async function openManualBillDialog(bill){
   save.disabled=false;
  }catch(error){
   if(bankDialogIsCurrent(overlay,owner)){
-   info.textContent='Chưa thể thu thủ công ở đây: máy chủ chưa có hoặc đang từ chối chức năng khóa bill.';
-   feedback.textContent='Chưa ghi thu. '+String(error?.message||error).slice(0,160);
+   refreshEvidence(null,'error');
+   info.textContent=bankManualBillPrepareErrorMessage(error);
+   feedback.textContent='Chưa ghi thu. Đối chiếu chưa hoàn tất; nút ghi thu đã khóa.';
+   note.disabled=true;verified.disabled=true;save.disabled=true;
   }
   return;
  }
