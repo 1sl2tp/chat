@@ -2,6 +2,16 @@
 
 > **Đọc trước mỗi lần phát hành OCR/đối soát/thu tự động. Không đoán nhánh, repo, project hoặc tạo token mới chỉ vì một workflow báo thiếu secret.**
 
+## BANK-301 · Chống quá tải Gemini 502/503/504 (đang kiểm thử)
+
+- Trình tự tối đa: `gemini-3.5-flash-lite` → 800ms → `gemini-3.5-flash` → 1400ms → `gemini-3.5-flash-lite`, chỉ khi trước đó HTTP 502/503/504. Toàn bộ dưới timeout 30 giây của worker; không vòng lặp, không fallback 429/401/403, giữ `gemini_http_<status>` khi thất bại để cron nhận.
+- Telemetry mỗi API call chỉ stage/model/status/elapsed_ms; không log key, customer hay OCR. Tên model cần được kiểm tra trước khi thay bằng model khác; không tùy tiện đổi model do "có bản mới".
+- Giữ 9 bước rule BANK-298 và BANK-299: HTTP error chưa phải bill sai, không đủ điều kiện ghi tiền nếu chỉ dựa OCR; RPC độc lập chỉ ghi với bank proof + uniqueness. Không sửa DB production, không dùng giao dịch thật để thử.
+- Nguồn kiểm thử `1sl2tp/chat:main` sau CI Verify V21 PASS, đúng project `vtqhbhrkdxirqeqkgylo`; deploy chỉ `v21-bank-bill-event`, đọc lại đủ 9 tệp, để ingest v2 nguyên. Không tạo token mới.
+- Rule source: `docs/BANK_298_EVIDENCE_PIPELINE.md §8`.
+
+
+
 ## BANK-299 E4 · Tiêu chuẩn chẩn đoán bill và retry, production v42 (12/11/2026)
 
 - **Nguồn duy nhất** `1sl2tp/chat:main`: PR #264, tested merge commit `f5f17d2683b6684867bd70038cd204dcb43deb8a`; PR Verify #43201013276 + main Verify #43201256680 **PASS**; Chat Pages #43201256773 PASS. Commit Pages sau đó `b107b6785573ba5e91fd3224745eea1bb61cdad3` chỉ cập nhật `index.html/version.json`, không đổi source Edge.
