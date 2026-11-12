@@ -2,6 +2,17 @@
 
 > **Đọc trước mỗi lần phát hành OCR/đối soát/thu tự động. Không đoán nhánh, repo, project hoặc tạo token mới chỉ vì một workflow báo thiếu secret.**
 
+## BANK-301 · Gemini 503 mitigation v43 ACTIVE (12/11/2026)
+
+- Source verified: `1sl2tp/chat:main` PR #265, commit `d5f05f344ed36c7a60f16d8cdef7fa02383f0955`, Verify V21 PR run `43205958414` PASS + main `43206212684` PASS.
+- Existing connected Supabase connector deployed ONLY `v21-bank-bill-event v43 ACTIVE` to project `vtqhbhrkdxirqeqkgylo`, `verify_jwt=false`. Production readback **9/9 exact source file parity**; **one changed file** `bill-gemini-failover.mjs`. `v21-agribank-notification-ingest v2` unchanged. GitHub Actions runner lacks separate `SUPABASE_ACCESS_TOKEN` but connected Supabase can deploy without new token; never deploy other repo/branch to bypass.
+- Model logic: Lite → if 502/503/504, 800ms → Flash → if same class failure, 1400ms → Lite once. Max three requests under pre-existing 30s per-image deadline; no 400/401/403/404/429 fallback, no infinite retry, unchanged SQL cron code matching `gemini_http_5xx`.
+- Safe model status diagnostics only; NEVER log transfer memo/customer, image contents or API key. Does not relax bill recognition, date, clock, account, proof from independently ingested Agribank, uniqueness, RPC or ledger. User-facing stale iOS failure notifications should be read against current receipt+ledger, not treated as current truth.
+- Read-only after deployment 18:09 VN: bank notices #269/#270/#271 each have exactly 1 matching ledger link (#849/#850/#852), 0 manual duplicate, 0 failed bill in last 24h, retry cron active/succeeded.
+- `docs/BANK_298_EVIDENCE_PIPELINE.md §8` holds the permanent rule. **E5 not yet measured:** no new customer receipt after release to prove real-world 503 reduction or iOS notification update behavior.
+
+
+
 ## BANK-301 · Chống quá tải Gemini 502/503/504 (đang kiểm thử)
 
 - Trình tự tối đa: `gemini-3.5-flash-lite` → 800ms → `gemini-3.5-flash` → 1400ms → `gemini-3.5-flash-lite`, chỉ khi trước đó HTTP 502/503/504. Toàn bộ dưới timeout 30 giây của worker; không vòng lặp, không fallback 429/401/403, giữ `gemini_http_<status>` khi thất bại để cron nhận.
