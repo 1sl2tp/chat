@@ -1,5 +1,6 @@
 // Read-only pairing of customer bill with stored official Agribank Plus credit notification.
 import {compareBillTransferIdentity,competesForBankCredit} from "./bill-transfer-identity.mjs";
+import {normalizeBillRecipientName} from "./bill-amount-rules.mjs";
 const when=x=>{const n=Date.parse(x||"");return Number.isFinite(n)?n:null;};
 const bankTime=x=>when(String(x||"").replace(" ","T")+"+07:00");
 // Prefer Agribank's own transaction time, not Android's potentially delayed push time.
@@ -29,7 +30,7 @@ export function previewBillAppMatch(bill,events,otherBills=[],now=Date.now()){
  // Optional verification tiers: M1 = amount + transaction time; M2 = name if visible;
  // M3 = account and receiving bank if visible. A clear contradiction still blocks.
  const norm=x=>String(x||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d").replace(/Đ/g,"D").trim().replace(/\s+/g," ").toUpperCase();
- const name=norm(bill.receiving_name),bank=norm(bill.receiving_bank);
+ const name=normalizeBillRecipientName(bill.receiving_name),bank=norm(bill.receiving_bank);
  const destination="2901181999999";
  const acct=String(bill.receiving_account||"").replace(/\D/g,"");
  const suffix=String(bill.receiving_account_last5||"").trim();
