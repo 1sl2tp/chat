@@ -1,3 +1,15 @@
+## 2026-11-12 — BANK-288 · Token có sẵn, khóa đích triển khai Edge OCR vào đúng chat/main
+
+- **Yêu cầu mới của chủ sở hữu:** Token/kết nối đã có sẵn. Ghi quy tắc triển khai vào ghi chú dự án để sau này không báo thiếu token chung chung, không tạo token mới và nhất là không lấy nhầm source từ repo/nhánh khác.
+- **Nguồn duy nhất:** `1sl2tp/chat:main`, chỉ sau PR + Verify V21 PASS; function `supabase/functions/v21-bank-bill-event/`, project `vtqhbhrkdxirqeqkgylo`, slug `v21-bank-bill-event`. KHÔNG dùng `1sl2tp/taphoaxyz`, `1sl2tp/1988`, nhánh fix/backup hoặc deploy thủ công để bù workflow. Hướng dẫn đầy đủ: [DEPLOYMENT_BANK_BILL.md](./DEPLOYMENT_BANK_BILL.md).
+- **Phân biệt token:** Supabase connector của tài khoản đang được xác thực, nhưng GitHub Actions yêu cầu secret `SUPABASE_ACCESS_TOKEN` trong chính repo; không có bằng chứng job Actions đã truy cập được nó. Báo lỗi “secret chưa có trong job” không có nghĩa token không tồn tại ở nơi khác. Tuyệt đối không lưu giá trị token vào code/log/docs. Không đổi cơ chế deployment hoặc bypass gate.
+- **E1 workflow guard:** Workflow `Deploy Bank Bill OCR Edge` reject mọi `GITHUB_REPOSITORY` khác `1sl2tp/chat`, mọi `GITHUB_REF` khác `refs/heads/main`, checkout đúng `GITHUB_SHA` và kiểm tra commit hash trước test/deploy. Đầu ra GitHub Actions summary chỉ gồm repo/ref/SHA/project/function; không in token. Cùng workflow phải chạy thêm regression BANK-287 (QR prefix) và BANK-288 (đích triển khai). Credential gate fail-closed trước khi gọi Supabase CLI.
+- **E2/E3:** Nhánh thay đổi `fix/deploy-guard-main-only-bank287-20261112`, PR/CI theo workflow đang cập nhật; **chưa đánh dấu production deployed khi chưa kiểm tra Edge version + source thực tế**. Không sửa production DB hoặc ledger, không phát tin/Zalo để kiểm thử.
+- **Giao dịch liên quan:** Khoản 10.157.000đ 11/11 của C Hà Trang vẫn cần xác nhận ghi thu thủ công qua Admin vì đã qua ngày; sửa QR memo không tự ghi bù theo chính sách ngày hiện tại. Không ép bút toán thủ công qua SQL.
+- **Rollback:** Revert workflow/docs/test qua PR trên `main`, bảo toàn `verify_jwt`, không chạm dữ liệu tài chính.
+
+---
+
 ## 2026-11-12 — BANK-287 · Agribank QR routing memo blocks C Hà Trang 10.157.000đ
 
 - **E0 actual incident (read-only Supabase):** 11/11/2026 21:53 VN, C Hà Trang uploaded a successful VietinBank transfer bill **10.157.000đ** (receipt `88706591-590e-4acb-8911-338ac1cd0ef7`, `status=amount_read`, `ledger_id=NULL`). Official Agribank credit notification **#268** for the same amount/minute and destination account was received at 21:54. AI OCR memo `Ha Trang chuyen khoan nhanh qua Zalo` vs Agribank memo `QR - Ha Trang chuyen khoan nhanh qua Zalo`. The bill has a cropped recipient account and correctly requires independent bank memo evidence, but `match_preview.reason=ocr_date_corrected_bank_memo_unverified` prevented `candidate_unique`. `chat_auto_collect_settings.enabled/ready=true`, no app collection link, no manual collection link, and no same-amount ledger entry for that customer was present during investigation.
