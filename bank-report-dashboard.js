@@ -841,6 +841,17 @@ function bankCreditLine(row,allBills){
    ?.openContact?.(row.customer_id,row.customer_name||'Khách hàng'));
   actions.appendChild(btn);
  }
+ if(kind==='manual_collected'){
+  const related=(allBills||[]).filter(b=>
+   String(matchingManualCollectionForBill(b,current)?.notice_id||'')===String(row.notice_id));
+  if(related.length===1){
+   content.appendChild(el('p','bank-report-detail-reason',
+    'Đã thu thủ công, nhưng bill cùng khách và số tiền chưa liên kết. Không thu tiền lần hai.'));
+   const btn=el('button','bank-report-action','Xem bill chờ xác minh');
+   btn.type='button';btn.addEventListener('click',()=>void showBill(related[0]));
+   actions.appendChild(btn);
+  }
+ }
  if(kind==='unmatched'){
   for(const bill of possibleUnlinkedBills(row,allBills).slice(0,3)){
    const btn=el('button','bank-report-action','Xem bill '+String(bill.customer_name||'khách'));
