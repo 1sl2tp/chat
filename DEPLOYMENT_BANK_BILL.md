@@ -17,6 +17,13 @@
 
 **Không** triển khai từ `1sl2tp/taphoaxyz`, `1sl2tp/1988`, nhánh tính năng, bản sao lưu hoặc file đã trích từ lịch sử. Nhánh sửa chỉ được merge vào `1sl2tp/chat:main` sau khi kiểm thử. Không thay đổi Supabase project, không tự đẩy thủ công, không chỉnh DB production hoặc ghi thu để thử deploy.
 
+## Trạng thái triển khai đã xác minh (12/11/2026)
+
+- Function `v21-bank-bill-event` tại đúng project `vtqhbhrkdxirqeqkgylo` đã nâng **v33 → v34 ACTIVE** từ mã nguồn đã merge của `1sl2tp/chat:main`; độc lập xác minh mọi file **5/5 khớp byte-for-byte** với GitHub main, JWT mode giữ `false`, BANK-287 có trong runtime `bill-app-preview.mjs`.
+- Bản v34 được phát hành **trực tiếp qua kết nối Supabase đã được cấp quyền** theo yêu cầu tiếp tục sửa của chủ sở hữu, **không phải** job deploy GitHub Actions. Phải nêu rõ ngoại lệ này trong báo cáo; không xem đây là cơ chế tự động thường xuyên, không dùng việc này để che giấu thiếu secret Actions.
+- Trong các lần sửa kế tiếp, **không redeploy v34 nếu không có mã thay đổi**. Ưu tiên phát hành qua workflow trên `main`; khi GitHub job không nhận `SUPABASE_ACCESS_TOKEN`, chỉ rà soát secret/permission tại đúng repo và không tự tạo/chép token.
+- Khoản C Hà Trang 10.157.000đ 11/11 vẫn ở `amount_read`, chưa được ghi thu. Không ép thành `received` hoặc ghi nợ trực tiếp; Admin xác minh thủ công trên notification #268 bằng luồng hiện có.
+
 ## Ghi chú về token/credential (12/11/2026)
 
 - Chủ sở hữu xác nhận **đã có token/cấu hình kết nối**; không yêu cầu phát hành token khác, không đưa bất kỳ token/secret nào vào commit, log, tài liệu hay hội thoại.
