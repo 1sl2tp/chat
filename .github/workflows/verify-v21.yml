@@ -210,6 +210,10 @@ jobs:
       - name: BANK-311 compact mobile reconciliation hierarchy
         run: |
           node --check bank-report-dashboard.js
+          node --check tests/test_bank267_bill_ocr_swap_report_20261110.cjs
+          node --check tests/test_bank268_unmatched_receipt_reasons_20261110.cjs
+          node tests/test_bank267_bill_ocr_swap_report_20261110.cjs
+          node tests/test_bank268_unmatched_receipt_reasons_20261110.cjs
           node tests/test_bank311_mobile_reconcile_information_architecture_20261112.cjs
       - name: BANK-310 explicit manual bill collection and late bank notice lock
         run: |
