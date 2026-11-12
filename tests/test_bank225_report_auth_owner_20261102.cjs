@@ -27,7 +27,7 @@ const state={ui,window:{V21AuthSessionStore:snapshots},document:{hidden:false,di
 vm.createContext(state);
 vm.runInContext(source.slice(start,end),state);
 const a=state.reload();
-assert.equal(rpcQueues.length,3);
+assert.equal(rpcQueues.length,4,'includes read-only bank balance gap query');
 identity.value=makeOwner('adminB','sessionB');
 state.reportSessionOwner='adminB|sessionB';state.requestId++;
 rpcQueues.splice(0).forEach(x=>x.resolve({data,error:null}));
@@ -35,7 +35,7 @@ Promise.resolve(a).then(async()=>{
  assert.equal(paints,0,'stale account A must not paint the report for B');
  assert.equal(events,0,'stale report cannot mark bank summary viewed');
  const b=state.reload();
- assert.equal(rpcQueues.length,3);
+ assert.equal(rpcQueues.length,4,'includes read-only bank balance gap query');
  rpcQueues.splice(0).forEach(x=>x.resolve({data,error:null}));
  await b;
  assert.equal(paints,1,'new Admin B report paints once');
