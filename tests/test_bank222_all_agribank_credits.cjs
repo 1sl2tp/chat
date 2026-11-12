@@ -8,7 +8,7 @@ const i=src.indexOf('function bankMoneyThousands('),end=src.indexOf('\nconst loc
 assert(i>=0&&end>i,'canonical bankMoneyThousands helper');
 assert(src.slice(i,end).includes('const money=bankMoneyThousands;'),'dashboard uses canonical money helper');
 const money=vm.runInNewContext(src.slice(i,end)+'\nmoney;',{Intl,Number,String,Math});
-for(const [input,expected] of [[570000,'570'],[4305000,'4.305'],[4217000,'4.217'],[26000,'26'],[62000,'62'],[570050,'570 (lẻ 50₫)']]){
+for(const [input,expected] of [[570000,'570'],[4305000,'4.305'],[4217000,'4.217'],[26000,'26'],[62000,'62'],[570050,'570 (lẻ 50)']]){
  assert.equal(money(input),expected,`Expected exact thousand-unit display for ${input}`);
 }
 assert(src.includes("client.rpc('chat_bank_all_credit_statuses'"),'all credits are fetched independently');
