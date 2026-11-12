@@ -41,6 +41,8 @@ const failReload=dashboard.indexOf('}catch(error){',startReload);
 const dispatch=dashboard.indexOf("document.dispatchEvent(new CustomEvent('v21-bank-report-viewed'",startReload);
 assert(dispatch>startReload&&dispatch<failReload,
   'only the complete successful existing report read emits a local view event');
-assert(dashboard.includes("const [report,states,credits]=await Promise.all(["));
+assert(dashboard.includes("const [report,states,credits,gapReview]=await Promise.all(["));
+assert(dashboard.includes("if(report.error)throw report.error;"),'canonical bank report remains mandatory');
+assert(dashboard.includes("bank_balance_gaps:!gapReview.error"),'optional balance review cannot block sidebar freshness');
 assert(!dashboard.includes("setInterval("),'no new dashboard polling');
 console.log('CHAT bank sidebar live-view proof/negative cases PASS');
