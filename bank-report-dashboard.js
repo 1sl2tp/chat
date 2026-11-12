@@ -1383,13 +1383,13 @@ function bankManualBillEvidenceRows(bill,notice=null,prepared=null,serverState='
    '2901181999999 · STK nhận cấu hình',
    !recipient?'pending':recipient==='2901181999999'?'matched':
     recipient.length<13&&'2901181999999'.endsWith(recipient)?'pending':'review',
-   !recipient?'Thiếu STK':recipient==='2901181999999'?'Trùng STK nhận':
+   !recipient?'Thiếu STK':recipient==='2901181999999'?'Khớp STK nhận':
     recipient.length<13&&'2901181999999'.endsWith(recipient)?'Chỉ khớp đuôi':'Sai STK nhận');
  const owner=value(bill?.receiving_name);
  add('Tên chủ tài khoản nhận',owner||'Chưa đọc tên',
    'BUI XUAN TUNG · tên cấu hình',
    !owner?'pending':norm(owner)==='BUI XUAN TUNG'?'matched':'review',
-   !owner?'Thiếu tên':norm(owner)==='BUI XUAN TUNG'?'Trùng tên TK nhận':'Sai tên TK nhận');
+   !owner?'Thiếu tên':norm(owner)==='BUI XUAN TUNG'?'Khớp tên TK nhận':'Sai tên TK nhận');
  const customer=value(bill?.customer_name);
  add('Khách hàng liên kết',customer||'Chưa xác định',
    isServerReady?show(prepared.customer_name):'Chưa xác minh máy chủ',
@@ -1410,14 +1410,14 @@ function bankManualBillEvidenceRows(bill,notice=null,prepared=null,serverState='
    noticeValue(presentNotice?agribankDisplayTime(bankTime,ui.date.value):null),
    !timeHasClock?'review':!comparable?'pending':sameMinute?'matched':'review',
    !timeHasClock?'Thiếu giờ · xác minh':!comparable?'Chưa đối chiếu giờ NH':
-     sameMinute?'Trùng phút':'Không trùng phút');
+     sameMinute?'Khớp phút':'Không trùng phút');
  const sender=value(bill?.sender_name||bill?.sending_name||bill?.payer_name);
  const bankSender=value(notice?.bank_sender_name||notice?.sender_name);
  add('Người chuyển tiền',sender||'Chưa đọc tên người chuyển',
    noticeValue(presentNotice?bankSender:null),
    !sender||!bankSender||!presentNotice?'pending':norm(sender)===norm(bankSender)?'matched':'review',
    !sender?'Thiếu người chuyển':!presentNotice||!bankSender?'Chưa có dữ liệu NH':
-    norm(sender)===norm(bankSender)?'Trùng tên':'Khác tên người chuyển');
+    norm(sender)===norm(bankSender)?'Khớp tên':'Khác tên người chuyển');
  const memo=value(bill?.transfer_content||bill?.transfer_memo||
   bill?.transfer_note||bill?.transaction_content||bill?.content);
  const bankMemo=value(notice?.bank_memo);
@@ -1425,7 +1425,7 @@ function bankManualBillEvidenceRows(bill,notice=null,prepared=null,serverState='
    noticeValue(presentNotice?bankMemo:null),
    !memo||!presentNotice||!bankMemo?'pending':norm(memo)===norm(bankMemo)?'matched':'review',
    !memo?'Thiếu nội dung trên bill':!presentNotice||!bankMemo?'Chưa có nội dung NH':
-    norm(memo)===norm(bankMemo)?'Trùng nội dung':'Khác nội dung');
+    norm(memo)===norm(bankMemo)?'Khớp nội dung':'Khác nội dung');
  const reference=value(bill?.transfer_reference);
  add('Mã giao dịch / mã bill',reference||'Chưa đọc mã giao dịch',
    presentNotice&&value(notice?.transfer_reference)?value(notice.transfer_reference):
@@ -1525,7 +1525,7 @@ async function openManualBillDialog(bill){
   const matched=rows.filter(x=>x.tone==='matched').length;
   const pending=rows.filter(x=>x.tone==='pending').length;
   const review=rows.filter(x=>x.tone==='review'||x.tone==='duplicate').length;
-  compareSummary.textContent='Thông tin đã khớp: '+matched+
+  compareSummary.textContent='Tiêu chí khớp thông tin: '+matched+
    ' · Chưa đủ dữ liệu: '+pending+' · Cần kiểm tra/trùng: '+review+
    ' · '+(state==='ready'?'Máy chủ đã trả kết quả đối soát.':
     state==='error'?'Chưa thể kiểm tra trên máy chủ.':
