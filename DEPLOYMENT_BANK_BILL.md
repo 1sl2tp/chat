@@ -2,6 +2,14 @@
 
 > **Đọc trước mỗi lần phát hành OCR/đối soát/thu tự động. Không đoán nhánh, repo, project hoặc tạo token mới chỉ vì một workflow báo thiếu secret.**
 
+## BANK-299 — Lựa chọn xử lý 9 bước, lỗi kỹ thuật và preview không phải ledger
+- Quy tắc chính thức: `docs/BANK_298_EVIDENCE_PIPELINE.md §6`.
+- Không bao giờ xem `amount_read` là `received`. Khi hiển thị, cần phân biệt `match_preview.reason`: chờ NH, thiếu giờ/reference/memo, cạnh tranh giao dịch, lỗi truy vấn, `candidate_unique` chờ RPC.
+- Chỉ `received` + ledger/link đủ và chống trùng mới xác nhận thu; trạng thái dẫn xuất tính lại trên dữ liệu thực, không ghi cứng `raw_read` cũ.
+- Thống nhất predicate lỗi retry ở worker lúc bắt lỗi và lúc cron retry. Lỗi API key/401 không thử vô hạn. Label admin phân biệt lỗi kỹ thuật với OCR sai.
+- Nguồn `1sl2tp/chat:main` sau Verify PASS, project `vtqhbhrkdxirqeqkgylo`. Không sửa SQL, không replay #849/#850, không tạo token, không deploy ingest v2 nếu không đổi.
+
+
 
 ## BANK-298 E4 — VN calendar, own transfer, Gemini technical failures, production v41 ACTIVE
 - Source strictly `1sl2tp/chat:main` commit `5437e7bb8a859c482647c616fe0a2049cfb1aef1`, PR #263; Verify V21 PR run 43197457928 + main 43197698578 both PASS.
