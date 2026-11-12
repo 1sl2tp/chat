@@ -207,6 +207,10 @@ jobs:
         run: node tests/test_bank234_thousands_with_remainder_20261104.cjs
       - name: BANK-224 accessible keyboard ownership for both bank reconciliation dialogs
         run: node tests/test_bank224_review_dialog_keyboard_20261102.cjs
+      - name: BANK-314 compare bill bank ledger and duplicate evidence
+        run: |
+          node --check bank-report-dashboard.js
+          node tests/test_bank314_bill_bank_ledger_comparison_20261113.cjs
       - name: BANK-313 traffic light and responsive row alignment
         run: |
           node --check bank-report-dashboard.js
