@@ -29,16 +29,16 @@ async function recheckNewCredit(body:string,amount:number){
  query.searchParams.append("sent_at","gte."+window.from);
  query.searchParams.append("sent_at","lte."+window.to);
  query.searchParams.set("order","sent_at.asc");
- query.searchParams.set("limit","9");
+ query.searchParams.set("limit","5");
  const result=await fetch(query.toString(),{headers:headers()});
  if(!result.ok)return;
  const rows=await result.json();
- if(!Array.isArray(rows)||rows.length>8)return; // no ambiguous fan-out
+ if(!Array.isArray(rows)||rows.length>4)return; // no ambiguous fan-out
  const eligible=rows.filter(r=>r?.status==="amount_read"||
    (r?.status==="review"&&r?.reason==="bill_printed_datetime_conflict"&&
      r?.attempt_count===1));
- for(const bill of eligible){
-   if(typeof bill.media_asset_id!=="string")continue;
+ await Promise.all(eligible.map(async bill=>{
+   if(typeof bill.media_asset_id!=="string")return;
    const wake=await fetch(URL+"/functions/v1/v21-bank-bill-event",{
      method:"POST",headers:{"content-type":"application/json",
        "x-internal-dispatch-key":scanKey},
@@ -46,7 +46,7 @@ async function recheckNewCredit(body:string,amount:number){
      signal:AbortSignal.timeout(45000)
    }).catch(()=>null);
    if(!wake?.ok)console.warn("bank291_event_recheck_deferred",wake?.status||"network");
- }
+ }));
 }
 Deno.serve(async req=>{
  if(req.method!=="POST")return reply({error:"method_not_allowed"},405);
