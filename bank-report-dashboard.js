@@ -249,8 +249,8 @@ const bankFilterMobileLabels={
  wrong_day:'AI sai ngày',manual_bank:'Thu tay NH',duplicate:'Trùng',
  non_bill:'Không phải bill',test_excluded:'Test (loại)'
 };
-// Full-denomination a11y value; the visual dashboard keeps its single
-// "1.000đ" legend. Never ask a screen reader to infer 1.311 as a fraction.
+// Full-denomination accessibility value; show the same exact VND
+// denomination on screen and in screen-reader labels.
 function bankMoneySpoken(amountVnd){
  const n=Number(amountVnd);
  return Number.isSafeInteger(n)?new Intl.NumberFormat('vi-VN',{maximumFractionDigits:0}).format(n)+' đồng':'Số tiền chưa rõ';
@@ -1179,7 +1179,7 @@ async function openReviewDialog(bank,candidates){
  headline.querySelector('button').addEventListener('click',closeReviewDialog);
  form.appendChild(headline);
  form.appendChild(append(el('div','bank-review-bank'),
-   el('strong','',money(bank.amount_vnd)+' · Agribank #'+noticeId),
+   el('strong','',bankDisplayVnd(bank.amount_vnd)+' · Agribank #'+noticeId),
    el('span','', 'Giờ ngân hàng: '+agribankDisplayTime(bank.bank_time,ui.date.value)+
      ' · Đã có tiền, chưa xác nhận thu cho khách')));
  const guidance=el('p','bank-review-instruction',
@@ -1195,7 +1195,7 @@ async function openReviewDialog(bank,candidates){
   const input=el('input');
   input.type='radio';input.name='review-primary';input.value=String(candidate.receipt_id);
   const text=el('span','',''+(candidate.customer_name||'Khách chưa rõ')+
-    ' · '+(candidate.amount_vnd!=null?money(candidate.amount_vnd):'chưa đọc chắc số tiền')+
+    ' · '+(candidate.amount_vnd!=null?bankDisplayVnd(candidate.amount_vnd):'chưa đọc chắc số tiền')+
     ' · gửi '+new Intl.DateTimeFormat('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',
       hour:'2-digit',minute:'2-digit'}).format(new Date(candidate.sent_at)));
   const view=el('button','bank-report-action','Xem ảnh');view.type='button';
@@ -1210,7 +1210,7 @@ async function openReviewDialog(bank,candidates){
     const c=el('label','bank-review-support-option');
     const check=el('input');check.type='checkbox';check.value=String(other.receipt_id);
     append(c,check,el('span','',
-      (other.amount_vnd==null?'Ảnh chưa đọc đủ số tiền':money(other.amount_vnd))+
+      (other.amount_vnd==null?'Ảnh chưa đọc đủ số tiền':bankDisplayVnd(other.amount_vnd))+
       ' · gửi '+new Intl.DateTimeFormat('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',
         hour:'2-digit',minute:'2-digit'}).format(new Date(other.sent_at))));
     supportingField.appendChild(c);
@@ -1339,7 +1339,7 @@ async function openManualBillDialog(bill){
  heading.querySelector('button').addEventListener('click',closeReviewDialog);
  form.appendChild(heading);
  form.appendChild(append(el('div','bank-review-bank'),
-  el('strong','',money(bill.amount_vnd)+' · Bill '+String(bill.receipt_id).slice(0,8)),
+  el('strong','',bankDisplayVnd(bill.amount_vnd)+' · Bill '+String(bill.receipt_id).slice(0,8)),
   el('span','','Người nhận: BUI XUAN TUNG · Agribank 2901181999999'),
   el('span','','Chưa có thông báo ngân hàng tương ứng. Không được suy rằng đã thu từ ảnh bill.')));
  const info=el('p','bank-review-instruction','Đang kiểm tra bill và sổ công nợ…');
@@ -1406,7 +1406,7 @@ async function openManualBillDialog(bill){
    save.textContent='Liên kết khoản đã thu · Khóa bill';
   }else{
    info.textContent='Không tìm thấy khoản thu nhập tay cùng số tiền. Chỉ ghi thu mới sau khi bạn tự kiểm tra Agribank và tích xác nhận.';
-   save.textContent='Thu '+money(data.amount_vnd)+' · Khóa bill';
+   save.textContent='Thu '+bankDisplayVnd(data.amount_vnd)+' · Khóa bill';
   }
   save.disabled=false;
  }catch(error){
@@ -1471,7 +1471,7 @@ async function openCollectionDialog(bank){
  heading.querySelector('button').addEventListener('click',closeReviewDialog);
  form.appendChild(heading);
  form.appendChild(append(el('div','bank-review-bank'),
-  el('strong','',money(accounting.bookedVnd)+' · Agribank #'+noticeId),
+  el('strong','',bankDisplayVnd(accounting.bookedVnd)+' · Agribank #'+noticeId),
   el('span','','Giờ ngân hàng: '+agribankDisplayTime(bank.bank_time,ui.date.value)),
   el('span','',
    'Ngân hàng thực nhận: '+bankManualVnd(accounting.bankVnd)+' đ · '+
@@ -1574,7 +1574,7 @@ async function openCollectionDialog(bank){
    }else{
     previous.appendChild(el('p','bank-review-instruction',
      'Chưa có khoản thu cùng số tiền. Bấm Thu tiền sẽ trừ công nợ ngay.'));
-    save.textContent='Thu '+money(accounting.bookedVnd);
+    save.textContent='Thu '+bankDisplayVnd(accounting.bookedVnd);
    }
   };
   const chooseCustomer=(item)=>{
