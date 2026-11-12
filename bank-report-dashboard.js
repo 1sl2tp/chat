@@ -368,7 +368,7 @@ function renderBankWorkQueue(data,outstanding){
  holder.replaceChildren(head);
  if(!waiting.length){holder.hidden=true;return;}
  const actions=el('div','bank-report-work-actions');
- actions.style.setProperty('--bank-task-columns',String(waiting.length));
+ actions.dataset.taskCount=String(waiting.length);
  for(const item of waiting){
   const button=el('button','bank-report-work-button'+(filter===item.key?' is-selected':''));
   button.type='button';
