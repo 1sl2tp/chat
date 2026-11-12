@@ -157,7 +157,7 @@ export function readV4Fields(data,context={}){
  const rawBillDay=parsePrintedBillDate(visualDate);
  // A literal transcription is the primary receipt source. The AI-converted
  // ISO date is only a proposal and must not override printed DD/MM/YYYY.
- const printedDateText=plain(data?.transfer_date_printed_vn).slice(0,32);
+ const printedDateText=plain(data?.transfer_date_printed_vn).slice(0,64);
  const printedBillDay=parsePrintedBillDate(printedDateText);
  const printedClockText=plain(data?.transfer_time_printed_vn).slice(0,16);
  const printedBillClock=parsePrintedBillClock(printedClockText);
