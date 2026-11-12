@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "npm:@supabase/supabase-js@2.57.4";
-import {RULE_VERSION,SYSTEM_PROMPT,validateVisionRead,readV4Fields,requiredAutoCollectEvidence,classifyBillRecognition} from "./bill-amount-rules.mjs";
+import {RULE_VERSION,SYSTEM_PROMPT,validateVisionRead,readV4Fields,requiredAutoCollectEvidence,classifyBillRecognition,TEN_FIELD_BILL_GUIDANCE,buildStoredBillTenFields} from "./bill-amount-rules.mjs";
 import {previewBillSmsMatch,readIncomingAgribankSms} from "./bill-sms-preview.mjs";
 import {previewBillAppMatch,previewBillReferenceMatch} from "./bill-app-preview.mjs";
 import {compareBillTransferIdentity} from "./bill-transfer-identity.mjs";
@@ -365,7 +365,7 @@ Deno.serve(async req=>{
    if(!geminiKey)throw new Error("gemini_key_missing");
    let b64="";
    for(let n=0;n<bytes.length;n+=16000)b64+=String.fromCharCode(...bytes.subarray(n,Math.min(bytes.length,n+16000)));
-   const prompt=SYSTEM_PROMPT;
+   const prompt=SYSTEM_PROMPT+"\n\n"+TEN_FIELD_BILL_GUIDANCE;
    const ctl=new AbortController();const timeout=setTimeout(()=>ctl.abort(),30000);
    let usedModel=model;
    let parsed:any;
@@ -391,6 +391,7 @@ Deno.serve(async req=>{
    const status=verdict.status==="amount_read"&&!evidence.complete?"review":verdict.status;
    const reason=verdict.status==="amount_read"&&!evidence.complete?evidence.reason:verdict.reason;
    const amount=verdict.amount_vnd;
+   const tenFields=buildStoredBillTenFields(parsed,fields,amount);
    let matchPreview:any={status:"review",reason:evidence.complete?"bill_time_unreadable":evidence.reason};
    const tx=fields.transfer_at_vn?Date.parse(String(fields.transfer_at_vn).replace(" ","T")+"+07:00"):NaN;
    const hasReference=status==="amount_read"&&amount&&!Number.isFinite(tx)
@@ -449,6 +450,8 @@ Deno.serve(async req=>{
      receiving_bank:fields.receiving_bank,sending_bank:fields.sending_bank,
      transfer_reference:fields.transfer_reference,transfer_at_vn:fields.transfer_at_vn,
      raw_read:{read_mode:"amount_hash_only",rule_version:RULE_VERSION,
+      bill_fields_v1:tenFields,
+      trace_code:tenFields.trace_code,transfer_method:tenFields.transfer_method,
       bill_evidence_policy:"safe_memo_tier_v2",
       image_layout:recognition.image_layout,
       recognition_case:recognition.recognition_case,
