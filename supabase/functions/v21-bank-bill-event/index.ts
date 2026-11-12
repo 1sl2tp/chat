@@ -5,7 +5,7 @@ import {previewBillSmsMatch,readIncomingAgribankSms} from "./bill-sms-preview.mj
 import {previewBillAppMatch,previewBillReferenceMatch} from "./bill-app-preview.mjs";
 import {compareBillTransferIdentity} from "./bill-transfer-identity.mjs";
 import {eligibleForPrintedDateRescan} from "./bill-review-recheck.mjs";
-import {requestBillGemini} from "./bill-gemini-failover.mjs";
+import {requestParsedBillGemini} from "./bill-gemini-failover.mjs";
 import {vietnamBusinessDayStartUtc} from "./bill-vietnam-day.mjs";
 import {isRetryableBillScanReason,describeBillDecision} from "./bill-decision-policy.mjs";
 
@@ -368,30 +368,20 @@ Deno.serve(async req=>{
    const prompt=SYSTEM_PROMPT;
    const ctl=new AbortController();const timeout=setTimeout(()=>ctl.abort(),30000);
    let usedModel=model;
-   let modelResult:any;
+   let parsed:any;
    try{
-     const vision=await requestBillGemini({
+     // BANK-303: HTTP 200 may carry truncated or malformed AI JSON.
+     // Validate the ENTIRE candidate and allow at most one alternate model
+     // under the same 30-second deadline, before DB retry fallback.
+     const vision=await requestParsedBillGemini({
        key:geminiKey,model,
        payload:{contents:[{role:"user",parts:[{text:prompt},{inlineData:{mimeType:media.mime_type||"image/jpeg",data:btoa(b64)}}]}],
-         generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:1100}},
+         generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:1800}},
        signal:ctl.signal
      });
      usedModel=vision.usedModel;
-     // BANK-298: Response.json() is part of the SAME 30-second OCR deadline.
-     // An HTTP 200 with a broken body is a retryable model/service problem,
-     // not evidence that the customer's photo is an invalid bill.
-     try{modelResult=await vision.response.json();}
-     catch{
-       // Keep timeout distinct from a malformed Gemini response body.
-       if(ctl.signal.aborted)throw new Error("AbortError");
-       throw new Error("gemini_invalid_json");
-     }
-     if(!modelResult||typeof modelResult!=="object")throw new Error("gemini_invalid_json");
+     parsed=vision.parsed;
    }finally{clearTimeout(timeout);}
-   const parts=modelResult.candidates?.[0]?.content?.parts;
-   if(!Array.isArray(parts))throw new Error("gemini_invalid_json");
-   const resultString=parts.map((x:any)=>String(x?.text||"")).join("");
-   let parsed:any;try{parsed=JSON.parse(resultString)}catch{throw new Error("gemini_invalid_json")}
    const fields=readV4Fields(parsed,{sentAt:job.sent_at});
    const verdict=validateVisionRead(parsed);
    const recognition=classifyBillRecognition(parsed,fields,verdict);
