@@ -1299,8 +1299,7 @@ async function openReviewDialog(bank,candidates){
   }finally{if(bankDialogIsCurrent(overlay,owner))cancel.disabled=false;}
  });
 }
-// BANK-191: explicit real collection, or link a previously entered manual receipt.
-async // BANK-310: manual collection requires independent Admin bank verification.
+// BANK-310: manual collection requires independent Admin bank verification.
 // Never call the old notification_id-based manual collector for a missing push.
 async function openManualBillDialog(bill){
  if(!active||!isReportContact()||!ui.review||!bill?.receipt_id||!bill?.customer_id)return;
@@ -1430,7 +1429,8 @@ async function openManualBillDialog(bill){
   }finally{if(bankDialogIsCurrent(overlay,owner))cancel.disabled=false;}
  });
 }
-function openCollectionDialog(bank){
+// BANK-191: explicit real collection, or link a previously entered manual receipt.
+async function openCollectionDialog(bank){
  const suggestedBill=bank.reviewBillSuggestion||null;
  if(!active||!isReportContact()||!ui.review)return;
  closeReviewDialog();
