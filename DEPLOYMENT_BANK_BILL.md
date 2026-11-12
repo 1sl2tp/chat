@@ -2,6 +2,17 @@
 
 > **Đọc trước mỗi lần phát hành OCR/đối soát/thu tự động. Không đoán nhánh, repo, project hoặc tạo token mới chỉ vì một workflow báo thiếu secret.**
 
+## BANK-295/296 — OCR Gemini 503 + Agribank MB memo, production v39 verified (12/11/2026)
+
+- Nguồn duy nhất: 1sl2tp/chat:main, OCR worker commit BANK-295 2a8574ee9b8efa4a0f8fc41c3afc4ea2a6ad6b52 và BANK-296 073e46b8f818cfcdcb32529c5cb6df6b2426b817. Không lấy từ TAPHOA, 1988 hay nhánh fix để deploy.
+- Verify V21: BANK-295 PR 43185913546 và main 43186192451 PASS; BANK-296 PR 43187746210 và main 43187968816 PASS. Sử dụng đúng project vtqhbhrkdxirqeqkgylo.
+- Token/kết nối Supabase **có sẵn** đã deploy riêng function v21-bank-bill-event v37→v38→v39 ACTIVE, verify_jwt=false, 7/7 tệp readback bằng mã main đã qua kiểm thử; **không phải GitHub Actions**. GitHub runner báo thiếu SUPABASE_ACCESS_TOKEN trong môi trường job, chỉ phản ánh kênh GitHub Actions; không tạo token mới hoặc đoán nhánh. Theo dõi riêng issue #260.
+- Không deploy lại v21-agribank-notification-ingest: v2 ACTIVE không đổi mã. Không chỉnh schema hoặc sổ thu bằng SQL trực tiếp.
+- Quy tắc mới: Gemini chính bị HTTP 503 được gọi dự phòng tối đa một lần, cùng API key/prompt, tổng timeout; giữ nguyên backoff cron. Ngân hàng có thể gắn cấu trúc toàn bộ MB(6 chữ số)(NỘI DUNG GỐC). Chỉ bỏ vỏ phía Agribank để so nội dung bên trong đúng tuyệt đối với OCR bill. Cấm bỏ tùy ý tiền tố, bỏ bớt chữ, suy diễn ngày, bỏ kiểm tra số tiền/tài khoản/thời điểm/memo/duy nhất/RPC.
+- Giao dịch thực chứng E5: Cô Ngọc tt +3.000.000đ 12/11/2026 15:33:28, official Agribank notification #270, bill receipt 57ed7476-e435-4091-89a6-041bd3079bdc. Sau preflight read-only (0 competing notice/bill, 0 prior links/collections, enabled+ready), một lần gọi worker hiện có bằng secret nội bộ server-side, request 15388 HTTP 200; receipt received và ledger #850 lúc 16:05:42 VN, duy nhất một auto link, amount -3000 nghìn, dư 98 triệu→95 triệu. Bank #269/ledger #849 thu 2 triệu trước đó giữ nguyên. Chưa xác minh giao diện thiết bị thực tế.
+- Khôi phục/đảo mã phải qua main + Verify; không rollback bằng sửa/xóa ledger hoặc thử gửi tin thật cho khách.
+
+
 ## BANK-295 · 12/11/2026 · Gemini 503 hai lần trên bill 3.000.000đ (chưa triển khai)
 
 - Cô Ngọc tt gửi bill Agribank 3.000.000đ lúc 15:33, **notification #270** nhận 15:39:22, bill receipt `57ed7476-e435-4091-89a6-041bd3079bdc` lỗi Gemini HTTP 503 hai lần, chưa ghi thu. Không nhầm với bill 2.000.000đ đã thu ở ledger #849.
