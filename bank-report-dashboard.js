@@ -685,7 +685,8 @@ function bankCreditLine(row,allBills){
    });
   }
   const btn=el('button','bank-report-action','Thu sau khi xác minh');
-  btn.type='button';btn.addEventListener('click',()=>void openCollectionDialog(row,suggestion));
+  btn.type='button';btn.addEventListener('click',()=>suggestion
+   ?void openCollectionDialog(row,suggestion):void openCollectionDialog(row));
   actions.appendChild(btn);
  }
  if(kind==='review_inconsistent'){
