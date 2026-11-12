@@ -1,3 +1,14 @@
+## 2026-11-12 — BANK-297 E4 VERIFIED · Tên người nhận BUI XUAN TUNG
+
+- **Mã đã sửa:** PR [#262](https://github.com/1sl2tp/chat/pull/262) merged tại `2a5e81e1e85895521647c9051163bb5cf37f2fb8` thuộc `1sl2tp/chat:main`. Verify V21 PR run [43193785600](https://github.com/1sl2tp/chat/actions/runs/43193785600) SUCCESS; Verify main run [43194022382](https://github.com/1sl2tp/chat/actions/runs/43194022382) SUCCESS.
+- **Triển khai qua Supabase connector đang kết nối (không phải GitHub Actions):** `v21-bank-bill-event v39→v40 ACTIVE`, đúng project `vtqhbhrkdxirqeqkgylo`, `verify_jwt=false`, toàn bộ **7/7 tệp readback khớp byte-for-byte** với mã `main` đã Verify. Đúng 3 tệp thay đổi: `index.ts`, `bill-amount-rules.mjs`, `bill-app-preview.mjs`. Không tạo token. `v21-agribank-notification-ingest v2` không đổi.
+- **Quy tắc tên:** AI chỉ đọc `recipient_name` từ nhãn Người nhận/Người thụ hưởng của chính bill; không lấy chữ giống tên từ người gửi, memo, quảng cáo. Trường `raw_read.recipient_name_printed` lưu nguyên văn; `receiving_name` được chuẩn hóa NFD, đ→d, viết hoa, gộp whitespace thành `BUI XUAN TUNG` để thống nhất với RPC hiện hành. Bộ preview dùng chung helper; tên khác rõ ràng `recipient_name_conflict`, không tự thu. Không fuzzy hay substring, không bỏ chứng từ Agribank/amount/clock/account/duplicate/ledger guard.
+- **SQL RPC production CHƯA đổi:** read-only verification xác nhận `chat_bank_app_collect` vẫn so uppercase ASCII + whitespace, `proacl` chỉ postgres/service_role. Nhờ OCR từ worker v40 lưu tên canonical trước RPC, đường nhận bill MỚI đã khớp định dạng hiện hành. **Bản SQL unaccent cho receipt lịch sử có dấu chỉ là đề xuất** đặt ngoài `supabase/migrations` tại `docs/proposed-sql/BANK_297_strict_unaccent_beneficiary_name_NOT_APPLIED.sql`; chưa được áp dụng để tuân thủ nguyên tắc không sửa database production. Không được gọi đây là E5 dữ liệu lịch sử.
+- **Kiểm tra tiền thật CHỈ ĐỌC lúc 16:46 VN:** #269/ledger #849/2.000.000đ `received` và #270/ledger #850/3.000.000đ `received`; mỗi thông báo đúng một auto link, 0 manual link trùng. Không replay, không gửi khách, không thay công nợ. UI iPhone/PWA và bill có dấu mới thực tế chưa được chứng minh (E5 device pending).
+- **Rulebook:** `docs/BANK_297_RECIPIENT_NAME_RULES.md` và `DEPLOYMENT_BANK_BILL.md`. Rollback chỉ qua `chat:main`, không xóa bút toán.
+
+---
+
 ## 2026-11-12 · BANK-297 — BUI XUAN TUNG beneficiary normalization (E1 source, E2 pending)
 - **Đúng repo:** `1sl2tp/chat`, branch `fix/bank-297-recipient-name-canonical-20261112`; base `ce405493ac1cdac6fc80e6558eda7a877e404785`. Không sửa TAPHOA/1988 hay nhánh không liên quan.
 - **Phát hiện:** OCR `readV4Fields` và preview đã bỏ dấu tên người nhận, nhưng RPC SQL `chat_bank_app_collect` chỉ `upper + whitespace`. Tên có dấu trong dữ liệu lịch sử có thể bị `recipient_name_conflict`. OCR mới đã lưu ASCII nên thường không phát sinh; chuẩn hóa lại như một helper duy nhất và lưu nguyên văn là tăng tính nhất quán.
