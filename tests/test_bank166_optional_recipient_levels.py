@@ -36,7 +36,8 @@ def test_use_printed_bank_transaction_time_in_all_preview_paths():
  assert "recipient_name_conflict" in PREVIEW
  assert "recipient_bank_conflict" in PREVIEW
  assert "recipient_account_conflict" in PREVIEW
- assert EDGE.count('.select("id,package_name,posted_at,status,amount_vnd,body,is_own_transfer")')==2
+ assert EDGE.count('.select("id,package_name,posted_at,status,amount_vnd,body,is_own_transfer")')>=2
+ assert 'eligibleForPrintedDateRescan(job,r)' in EDGE  # BANK-291: extra read needs unique official credit
  assert '.gte("transfer_at",lo.toISOString())' in EDGE
  assert '.lte("transfer_at",hi.toISOString())' in EDGE
  assert 'const billSentMs=Date.parse(job.sent_at)' in EDGE
