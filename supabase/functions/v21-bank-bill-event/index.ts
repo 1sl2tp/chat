@@ -5,6 +5,7 @@ import {previewBillSmsMatch,readIncomingAgribankSms} from "./bill-sms-preview.mj
 import {previewBillAppMatch,previewBillReferenceMatch} from "./bill-app-preview.mjs";
 import {compareBillTransferIdentity} from "./bill-transfer-identity.mjs";
 import {eligibleForPrintedDateRescan} from "./bill-review-recheck.mjs";
+import {requestBillGemini} from "./bill-gemini-failover.mjs";
 
 const db=createClient(Deno.env.get("SUPABASE_URL")||"",Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"",{auth:{persistSession:false,autoRefreshToken:false}});
 const response=(body:any,status=200)=>new Response(JSON.stringify(body),{status,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store"}});
@@ -358,14 +359,16 @@ Deno.serve(async req=>{
    for(let n=0;n<bytes.length;n+=16000)b64+=String.fromCharCode(...bytes.subarray(n,Math.min(bytes.length,n+16000)));
    const prompt=SYSTEM_PROMPT;
    const ctl=new AbortController();const timeout=setTimeout(()=>ctl.abort(),30000);
-   let gr:Response;
-   try{gr=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent",{
-     method:"POST",headers:{"x-goog-api-key":geminiKey,"content-type":"application/json"},
-     body:JSON.stringify({contents:[{role:"user",parts:[{text:prompt},{inlineData:{mimeType:media.mime_type||"image/jpeg",data:btoa(b64)}}]}],
-       generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:1100}}),
-     signal:ctl.signal
-   });}finally{clearTimeout(timeout);}
-   if(!gr.ok)throw new Error("gemini_http_"+gr.status);
+   let gr:Response,usedModel=model;
+   try{
+     const vision=await requestBillGemini({
+       key:geminiKey,model,
+       payload:{contents:[{role:"user",parts:[{text:prompt},{inlineData:{mimeType:media.mime_type||"image/jpeg",data:btoa(b64)}}]}],
+         generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:1100}},
+       signal:ctl.signal
+     });
+     gr=vision.response;usedModel=vision.usedModel;
+   }finally{clearTimeout(timeout);}
    const modelResult=await gr.json();
    const resultString=(modelResult.candidates?.[0]?.content?.parts||[]).map((x:any)=>String(x.text||"")).join("");
    let parsed:any;try{parsed=JSON.parse(resultString)}catch{throw new Error("gemini_invalid_json")}
@@ -431,7 +434,7 @@ Deno.serve(async req=>{
       prior_receipt_id:prior.receipt_id}:matchPreview;
    await finish(asset,{status:classification,reason:classificationReason,
      duplicate_of:settledDuplicate?repeatedReceiptId:null,
-     image_sha256:digest,amount_vnd:amount,model_name:model,
+     image_sha256:digest,amount_vnd:amount,model_name:usedModel,
      receiving_name:fields.receiving_name,receiving_account:fields.receiving_account,
      receiving_bank:fields.receiving_bank,sending_bank:fields.sending_bank,
      transfer_reference:fields.transfer_reference,transfer_at_vn:fields.transfer_at_vn,
