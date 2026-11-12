@@ -1,3 +1,12 @@
+## 2026-11-12 — BANK-295 · E2 PASS · E3 DEPLOY BLOCKED · E4/E5 CHƯA CÓ
+
+- **Nguồn chính xác:** `1sl2tp/chat:main` squash commit `2a8574ee9b8efa4a0f8fc41c3afc4ea2a6ad6b52`, PR [#259](https://github.com/1sl2tp/chat/pull/259) MERGED. Verify V21 trên PR [43185913546](https://github.com/1sl2tp/chat/actions/runs/43185913546) SUCCESS và Verify `main` [43186192451](https://github.com/1sl2tp/chat/actions/runs/43186192451) SUCCESS. Mã có fallback Gemini HTTP 503 đúng một lần, giữ nguyên kiểm tra ngân hàng và RPC chống trùng.
+- **E3 BLOCKED:** Release workflow từ chính SHA `main` [43186192458](https://github.com/1sl2tp/chat/actions/runs/43186192458) FAIL-CLOSED: `SUPABASE_ACCESS_TOKEN` rỗng trong **GitHub Actions runner**. Đây không phủ nhận token/kết nối Supabase đã có. **Không** tạo token khác, không bypass bằng nhánh khác, không sửa SQL hoặc phát hành Edge production thủ công. Đã mở [issue #260](https://github.com/1sl2tp/chat/issues/260) cho điểm chặn secret scope và đường phát hành chuẩn.
+- **Production readback:** `v21-bank-bill-event v37 ACTIVE` (bản cũ), `v21-agribank-notification-ingest v2 ACTIVE` không đổi, project `vtqhbhrkdxirqeqkgylo`. Bản dự phòng BANK-295 chưa chạy ở production. Bill Cô Ngọc tt 3.000.000đ receipt `57ed7476-e435-4091-89a6-041bd3079bdc` còn `failed/amount_scan_gemini_http_503`, `attempt_count=2`, chưa có `ledger_id`; ngân hàng notice #270 +3.000.000đ đã có. Không thu trùng khoản 2.000.000đ ledger #849 đã ghi trước đó.
+- **Bước tiếp:** Chỉ khi credential thực sự có mặt trong job `1sl2tp/chat`, dùng workflow cũ có khóa `main`; sau triển khai, xác minh function version, **7/7 source files**, 0 ghi trùng, và kiểm tra `receipt #270`/sổ thu ở chế độ read-only. Không tuyên bố tự thu trước khi có ledger + link chứng thực.
+
+---
+
 ## 2026-11-12 — BANK-295 · Agribank #270 +3.000.000đ, Cô Ngọc tt — Gemini 503, E1 PATCH / E2 PENDING
 
 - **Bằng chứng production CHỈ ĐỌC:** Khách Cô Ngọc tt gửi ảnh 15:33:44 VN, receipt `57ed7476-e435-4091-89a6-041bd3079bdc`, hai lần OCR 15:33:57 và 15:40:04 đều lỗi `amount_scan_gemini_http_503`, `ledger_id=NULL`. Agribank nguồn chính thức đã đẩy notification **#270 +3.000.000đ**, bank transfer 15:33, server nhận 15:39:22. Dù có bank evidence, KHÔNG ghi thu nếu chưa đủ OCR account/memo/time hoặc RPC `chat_bank_app_collect` trả kết quả hợp lệ. Không động vào bill 2m/ledger #849 trước đó.
