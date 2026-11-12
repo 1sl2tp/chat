@@ -27,7 +27,7 @@ assert.match(listener,/requestRebind\(/);
 assert.match(listener,/UploadJobService\.queue\(/);
 assert.doesNotMatch(listener,/SEND_SMS|READ_SMS|READ_CONTACTS|bank_statement_fetch|AccessibilityService/);
 
-assert.match(worker,/JobScheduler\.NETWORK_TYPE_ANY/);
+assert.match(worker,/JobInfo\.NETWORK_TYPE_ANY/);
 assert.match(worker,/setPersisted\(true\)/);
 assert.match(worker,/setBackoffCriteria\(30000,JobInfo\.BACKOFF_POLICY_EXPONENTIAL\)/);
 assert.match(worker,/last_attempt_at/);
