@@ -1,5 +1,7 @@
-// BANK-291: one-time, receipt-pixel re-read only AFTER a distinct official bank
-// credit arrived. This authorizes an extra AI read, NEVER a financial write.
+// BANK-293: bounded receipt-pixel re-read AFTER an independent bank credit.
+// At most TWO additional AI reads in total (attempt_count 1 -> 2 -> 3),
+// including the documented correction for Techcombank's abbreviated 'thg'.
+// This check itself never creates a financial record.
 export function eligibleForPrintedDateRescan(job,receipt,now=Date.now()){
  const fields=receipt?.raw_read||{};
  const sent=Date.parse(String(job?.sent_at||""));
@@ -11,7 +13,7 @@ export function eligibleForPrintedDateRescan(job,receipt,now=Date.now()){
  const visibleClock=/^(?:lúc\s+)?([01]?\d|2[0-3]):([0-5]\d)$/i
    .exec(String(fields.transfer_time_printed_vn||"").trim());
  if(job?.status!=="review"||job?.reason!=="bill_printed_datetime_conflict"
-   ||Number(job?.attempt_count)!==1||receipt?.ledger_id!=null
+   ||(Number(job?.attempt_count)!==1&&Number(job?.attempt_count)!==2)||receipt?.ledger_id!=null
    ||fields.rule_version!=="bank_bill_amount_v5_20261110"
    ||fields.printed_date_invalid!==true
    ||fields.transfer_date_printed_vn

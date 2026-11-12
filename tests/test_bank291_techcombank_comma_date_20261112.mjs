@@ -4,7 +4,7 @@ import {readV4Fields,validateVisionRead,requiredAutoCollectEvidence,classifyBill
 import {previewBillAppMatch}
  from "../supabase/functions/v21-bank-bill-event/bill-app-preview.mjs";
 
-// BANK-291: Techcombank prints "12 tháng 11, 2026 lúc 9:17".
+// BANK-291/293: Real Techcombank receipt prints "12 thg 11, 2026 lúc 9:17".
 // No account/chat upload time is used to invent the transaction date.
 const raw={
  image_type:"successful_transfer_receipt",image_layout:"app_screenshot",
@@ -15,7 +15,7 @@ const raw={
  recipient_account_last5:"99999",receiving_bank:"AGRIBANK",sending_bank:"TECHCOMBANK",
  sender_name:"DINH THI TUYET",transfer_content:"DINH THI TUYET chuyen tien",
  transaction_datetime_vn:"2026-11-12 09:17",transfer_date_vn:"2026-11-12",
- transfer_date_printed_vn:"12 tháng 11, 2026",transfer_time_printed_vn:"9:17"
+ transfer_date_printed_vn:"12 thg 11, 2026 lúc 9:17",transfer_time_printed_vn:"9:17"
 };
 const read=(input,context={sentAt:"2026-11-12T02:17:44Z"})=>
  readV4Fields(input,context);
@@ -24,7 +24,7 @@ assert.equal(fields.transfer_date_vn,"2026-11-12");
 assert.equal(fields.transfer_at_vn,"2026-11-12 09:17");
 assert.equal(fields.printed_date_invalid,false);
 assert.equal(fields.time_date_conflict,false);
-assert.equal(fields.transfer_date_printed_vn,"12 tháng 11, 2026");
+assert.equal(fields.transfer_date_printed_vn,"12 thg 11, 2026 lúc 9:17");
 assert.equal(fields.receiving_account,"2901181999999");
 assert.equal(fields.transfer_time_printed_vn,"9:17");
 assert.equal(validateVisionRead(raw).status,"amount_read");
@@ -33,14 +33,17 @@ assert.deepEqual(requiredAutoCollectEvidence(fields),
 assert.deepEqual(classifyBillRecognition(raw,fields,validateVisionRead(raw)).missing_fields,[]);
 
 for(const printed of ["12 tháng 11 năm 2026","12 tháng 11, 2026",
- "Ngày thực hiện: 12 tháng 11, 2026","12 THÁNG 11, 2026"]){
+ "Ngày thực hiện: 12 tháng 11, 2026","12 THÁNG 11, 2026",
+ "12 thg 11, 2026","12 thg. 11, 2026",
+ "12 thg 11, 2026 lúc 9:17", "Ngày thực hiện: 12 thg 11, 2026 lúc 9:17"]){
  const result=read({...raw,transfer_date_printed_vn:printed});
  assert.equal(result.transfer_at_vn,"2026-11-12 09:17",printed);
  assert.equal(requiredAutoCollectEvidence(result).complete,true,printed);
 }
 for(const bad of ["31 tháng 02, 2026","12 tháng 13, 2026","12 tháng 11",
  "12 tháng 11, 2026 thêm dữ liệu",
- "12 tháng 11, 2026 lúc 8:17","12 tháng 11, 2026; 13 tháng 11, 2026"]){
+ "12 tháng 11, 2026 lúc 8:17","12 thg 11, 2026 lúc 8:17",
+ "12 thg 11, 2026 lúc 25:17","12 tháng 11, 2026; 13 tháng 11, 2026"]){
  const result=read({...raw,transfer_date_printed_vn:bad});
  assert.equal(requiredAutoCollectEvidence(result).complete,false,bad);
  assert.equal(requiredAutoCollectEvidence(result).reason,"bill_printed_datetime_conflict",bad);

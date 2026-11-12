@@ -2,6 +2,12 @@
 
 > **Đọc trước mỗi lần phát hành OCR/đối soát/thu tự động. Không đoán nhánh, repo, project hoặc tạo token mới chỉ vì một workflow báo thiếu secret.**
 
+## BANK-293 — Chữ viết tắt “thg” trên bill Techcombank
+
+- Ảnh thực sự in `12 thg 11, 2026 lúc 9:17` (ngày đầy đủ, `thg` = tháng), không phải chữ “tháng” như nhận định đầu tiên. Parser mới phải phân biệt ngày có dấu phẩy, tháng viết tắt và hậu tố giờ; đồng thời **so sánh lại giờ in với thời gian giao dịch**. Ngày không hợp lệ hoặc giờ mâu thuẫn vẫn phải về `review`.
+- Sau khi cập nhật BANK-291/292 lên production, bill Cô Ngọc tt 2.000.000đ đã được tái đọc **một lần**, nhưng bị `printed_date_invalid` và vẫn **chưa thu**. Tại thời điểm này `attempt_count=2`, bill `review`, ledger NULL, Agribank #269 chưa gắn bill. Mở rộng ngân sách tối đa **3 lần AI tổng cộng** cho *chính* bằng chứng đã đối chiếu với một bank credit độc lập: không gọi lần thứ tư, không biến số tiền trong ảnh thành bằng chứng ngân hàng.
+- Khi hoàn tất CI, chỉ có worker `v21-bank-bill-event` cần cập nhật thêm parser/guard; `v21-agribank-notification-ingest v2` đã chứa cơ chế đánh thức và không đổi source. Nếu GitHub Actions thiếu secret, ghi rõ và không làm nhầm source/branch. Trước một lần thử lại bill cũ, kiểm tra ngân hàng, khách, ledger/link và ngày VN một lần nữa. Không ghi thu thủ công bằng SQL, không gửi tin nhắn thử.
+
 ## BANK-291/292 — Techcombank comma date và Agribank đến sau
 
 - Source duy nhất `1sl2tp/chat:main` và project `vtqhbhrkdxirqeqkgylo`; code của **hai** Edge function `v21-bank-bill-event` và `v21-agribank-notification-ingest` phải cùng release BANK-291/292, `verify_jwt=false`. Không lấy từ repo TAPHOA hoặc 1988, không thay token/secret và không deploy branch fix trực tiếp.
