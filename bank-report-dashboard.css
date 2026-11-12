@@ -631,3 +631,271 @@
 }
 .bank-report-gap-title { font-size: 13px; line-height: 1.4; font-weight: 700; }
 .bank-report-gap-item { font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+
+
+/* BANK-311: compact, source-consistent Admin bank report.
+   Design hierarchy: one 2x2 overview → one actionable queue →
+   customer rows → one unique bank transaction per collapsible line.
+   Diagnostic/Android-replay material stays behind an audit disclosure. */
+#bankReportDashboard.bank-report-dashboard{
+  width:min(100%,1020px);
+  padding:12px 14px calc(26px + env(safe-area-inset-bottom,0px));
+}
+#bankReportDashboard .bank-report-header{
+  gap:8px;margin:0 0 11px;
+  align-items:flex-end;
+}
+#bankReportDashboard .bank-report-heading{
+  font-size:18px;line-height:1.26;letter-spacing:-.025em;
+}
+#bankReportDashboard .bank-report-help-trigger{
+  min-width:38px;min-height:38px;font-size:15px;
+}
+#bankReportDashboard .bank-report-status-line{
+  gap:3px 10px;line-height:1.3;
+}
+#bankReportDashboard .bank-report-subtitle{
+  font-size:11px;color:var(--text-secondary,#65717b);margin:0;
+}
+#bankReportDashboard .bank-report-unit-note{
+  font-size:11px;color:var(--text-secondary,#65717b);
+}
+#bankReportDashboard .bank-report-controls{
+  gap:6px;flex-wrap:wrap;
+}
+#bankReportDashboard .bank-report-controls input,
+#bankReportDashboard .bank-report-controls button{
+  min-height:38px;border-radius:9px;padding:7px 10px;
+  font-size:12px;white-space:nowrap;
+}
+#bankReportDashboard .bank-report-kpi-grid{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;margin-bottom:10px;min-width:0;
+}
+#bankReportDashboard .bank-report-kpi-grid>:is(.bank-report-summary,.bank-report-status-main){
+  display:contents!important;
+}
+#bankReportDashboard .bank-report-kpi-grid .bank-report-stat{
+  min-width:0;min-height:75px!important;
+  margin:0;padding:10px 11px!important;
+  border-radius:11px;
+  justify-content:space-between;
+}
+#bankReportDashboard .bank-report-kpi-grid .bank-report-stat-name{
+  font-size:11px;line-height:1.25;font-weight:550;
+  color:var(--text-secondary,#65717b);
+}
+#bankReportDashboard .bank-report-kpi-grid .bank-report-stat-number{
+  margin-top:6px;font-size:18px;line-height:1.18;
+  font-weight:750;letter-spacing:-.035em;overflow-wrap:anywhere;
+}
+#bankReportDashboard .bank-report-kpi-grid .bank-report-stat-unit{
+  margin-left:4px;font-size:10px;
+}
+#bankReportDashboard .bank-report-work-queue{
+  margin:0 0 9px;padding:7px 0 10px;
+  border:0;border-bottom:1px solid var(--border-default,#e7eaf0);
+  border-radius:0;background:transparent;
+  gap:7px;
+}
+#bankReportDashboard .bank-report-work-title{
+  font-size:12px;line-height:1.35;
+}
+#bankReportDashboard .bank-report-work-actions{
+  display:flex;flex-wrap:wrap;gap:5px;
+}
+#bankReportDashboard .bank-report-work-button{
+  flex:0 1 auto;min-height:35px;min-width:0;gap:5px;
+  border-radius:8px;padding:5px 9px;
+  background:var(--surface-primary,#fff);
+  font-size:11px;line-height:1.3;
+}
+#bankReportDashboard .bank-report-work-count{
+  min-width:19px;min-height:21px;font-size:11px;
+  background:var(--surface-secondary,#eef0f2);
+}
+#bankReportDashboard .bank-report-extra-metrics{margin-bottom:10px}
+#bankReportDashboard .bank-report-extra-metrics-trigger{
+  min-height:36px;padding:7px 9px;font-size:11px;border-radius:8px;
+}
+#bankReportDashboard .bank-report-table-caption{
+  margin:8px 0 7px;gap:8px;
+}
+#bankReportDashboard .bank-report-table-caption strong{font-size:13px}
+#bankReportDashboard .bank-report-table-caption span{font-size:10px}
+#bankReportDashboard .bank-report-table-wrap{
+  margin-bottom:9px;overflow:hidden;border-radius:11px;
+}
+#bankReportDashboard .bank-report-table tbody td:nth-child(6){
+  font-variant-numeric:tabular-nums;
+}
+#bankReportDashboard .bank-report-filters{
+  display:flex;flex-wrap:wrap;align-items:center;
+  gap:5px;overflow:visible;margin:6px 0 8px;
+  padding:0;scrollbar-width:none;
+}
+#bankReportDashboard .bank-report-filter,
+#bankReportDashboard .bank-report-filter-more-trigger{
+  width:auto;min-width:0;min-height:36px;
+  padding:7px 10px;border-radius:9px;
+  font-size:11px;line-height:1.25;white-space:nowrap;
+}
+#bankReportDashboard .bank-report-filter-more-menu{
+  min-width:170px;max-width:min(280px,calc(100vw - 32px));
+  box-shadow:0 8px 28px #0002;
+}
+#bankReportDashboard .bank-report-detail-section-head{
+  margin:10px 0 8px;
+}
+#bankReportDashboard .bank-report-customer{
+  margin-bottom:9px;border-radius:11px;
+}
+#bankReportDashboard .bank-report-customer-head{
+  padding:9px 11px;gap:5px;
+}
+#bankReportDashboard .bank-report-customer-name{font-size:13px}
+#bankReportDashboard .bank-report-customer-count{
+  font-size:11px;line-height:1.35;
+}
+#bankReportDashboard .bank-report-detail-top{
+  display:grid;
+  grid-template-columns:42px minmax(90px,1fr) minmax(0,max-content);
+  gap:7px;align-items:center;
+  min-height:49px;padding:9px 11px;font-size:12px;
+}
+#bankReportDashboard .bank-report-detail-top::before{left:3px}
+#bankReportDashboard .bank-report-detail-time{
+  padding-left:5px;font-size:11px;line-height:1.25;
+  color:var(--text-secondary,#616b75);white-space:nowrap;
+}
+#bankReportDashboard .bank-report-detail-amount{
+  font-size:14px;line-height:1.2;font-weight:750;
+  text-align:left;letter-spacing:-.025em;
+  white-space:nowrap;font-variant-numeric:tabular-nums;
+}
+#bankReportDashboard .bank-report-detail-status{
+  font-size:10px;line-height:1.25;font-weight:600;
+  padding:5px 7px;text-align:center;white-space:normal;
+  max-width:130px;
+}
+#bankReportDashboard .bank-report-detail-content{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:9px;padding:10px 11px 11px;
+}
+#bankReportDashboard .bank-report-field{min-width:0;gap:3px}
+#bankReportDashboard .bank-report-field-label{
+  font-size:10px;line-height:1.3;color:var(--text-secondary,#737c84);
+}
+#bankReportDashboard .bank-report-field-value{
+  font-size:12px;line-height:1.4;overflow-wrap:anywhere;
+}
+#bankReportDashboard .bank-report-review-reason{
+  margin:2px 0 0;grid-column:1/-1;
+}
+#bankReportDashboard .bank-report-detail-actions{
+  grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px;
+}
+#bankReportDashboard .bank-report-detail-actions .bank-report-action{
+  min-height:36px;padding:7px 10px;font-size:11px;
+}
+#bankReportDashboard .bank-report-audit{
+  grid-column:1/-1;border-top:1px solid var(--border-default,#e1e5e9);
+  padding-top:8px;margin-top:1px;min-width:0;
+}
+#bankReportDashboard .bank-report-audit>summary{
+  cursor:pointer;list-style:none;font-size:11px;
+  color:var(--text-secondary,#707780);
+}
+#bankReportDashboard .bank-report-audit>summary::-webkit-details-marker{display:none}
+#bankReportDashboard .bank-report-audit>summary::after{content:'⌄';margin-left:6px}
+#bankReportDashboard .bank-report-audit[open]>summary::after{content:'⌃'}
+#bankReportDashboard .bank-report-audit-body{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:7px;margin-top:9px;
+}
+@media(max-width:540px){
+ #bankReportDashboard.bank-report-dashboard{padding:9px 9px calc(26px + env(safe-area-inset-bottom,0px))}
+ #bankReportDashboard .bank-report-header{margin:0 0 8px}
+ #bankReportDashboard .bank-report-heading{font-size:16px}
+ #bankReportDashboard .bank-report-help-trigger{min-width:33px;min-height:33px}
+ #bankReportDashboard .bank-report-kpi-grid{gap:6px;margin-bottom:8px}
+ #bankReportDashboard .bank-report-kpi-grid .bank-report-stat{
+   min-height:72px!important;padding:9px 10px!important;
+ }
+ #bankReportDashboard .bank-report-kpi-grid .bank-report-stat-number{
+   font-size:clamp(14px,3.9vw,18px);letter-spacing:-.045em;
+ }
+ #bankReportDashboard .bank-report-work-queue{
+   padding:6px 0 8px;margin-bottom:8px;
+ }
+ #bankReportDashboard .bank-report-work-actions{display:flex;gap:5px}
+ #bankReportDashboard .bank-report-work-button{
+   min-height:34px;flex:0 1 auto;padding:5px 7px;
+ }
+ #bankReportDashboard .bank-report-table-caption span{display:none}
+ #bankReportDashboard .bank-report-table{display:block}
+ #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item{
+   display:flex;flex-wrap:wrap;gap:5px 11px;
+   min-height:62px;padding:9px 11px;
+   align-content:center;
+ }
+ #bankReportDashboard .bank-report-table tbody td{
+   display:block;min-height:0;padding:0;
+   font-size:11px;line-height:1.25;grid-column:auto;grid-row:auto;
+   text-align:left;overflow:visible;text-overflow:clip;
+ }
+ #bankReportDashboard .bank-report-table tbody td:first-child{
+   flex:1 1 46%;order:0;min-width:0;
+   font-size:13px;line-height:1.3;
+ }
+ #bankReportDashboard .bank-report-table tbody td:nth-child(6){
+   flex:0 0 auto;order:1;margin-left:auto;
+   font-size:14px;line-height:1.2;white-space:nowrap;
+   font-variant-numeric:tabular-nums;
+ }
+ #bankReportDashboard .bank-report-table tbody td:nth-child(6)::after{
+   content:'Đã ghi thu';font-size:10px;line-height:1.15;
+ }
+ #bankReportDashboard .bank-report-table tbody td:nth-child(n+2):nth-child(-n+5){
+   order:2;flex:0 0 auto;text-align:left;
+   font-size:10px;white-space:nowrap;
+ }
+ #bankReportDashboard .bank-report-table tbody td:nth-child(n+2):nth-child(-n+5)::before{
+   content:attr(data-mobile-label) ' ';font-size:10px;
+ }
+ #bankReportDashboard .bank-report-table tbody td[data-zero="true"]:nth-child(n+2):nth-child(-n+5){
+   display:none;
+ }
+ #bankReportDashboard .bank-report-table tbody tr.is-selected td:first-child::after{
+   font-size:9px;
+ }
+ #bankReportDashboard .bank-report-filters{
+   display:flex;grid-template-columns:none;gap:5px;margin:5px 0 7px;
+ }
+ #bankReportDashboard .bank-report-filter,
+ #bankReportDashboard .bank-report-filter-more-trigger{
+   width:auto;min-height:36px;font-size:11px;
+   padding:7px 9px;white-space:nowrap;
+ }
+ #bankReportDashboard .bank-report-filter-more-menu .bank-report-filter{
+   width:100%;min-height:37px;justify-content:flex-start;
+ }
+ #bankReportDashboard .bank-report-detail-top{
+   grid-template-columns:38px minmax(80px,1fr) minmax(0,max-content);
+   gap:6px;padding:8px 9px;
+ }
+ #bankReportDashboard .bank-report-detail-amount{font-size:13px}
+ #bankReportDashboard .bank-report-detail-status{font-size:10px;max-width:113px;padding:5px}
+ #bankReportDashboard .bank-report-detail-content{gap:8px;padding:9px 10px}
+}
+@media(max-width:360px){
+ #bankReportDashboard .bank-report-kpi-grid .bank-report-stat-number{font-size:14px}
+ #bankReportDashboard .bank-report-detail-top{
+  grid-template-columns:36px minmax(80px,1fr) minmax(75px,auto);
+ }
+ #bankReportDashboard .bank-report-filter,
+ #bankReportDashboard .bank-report-filter-more-trigger{
+  font-size:10px;min-height:34px;padding:6px 7px;
+ }
+ #bankReportDashboard .bank-report-table tbody td:nth-child(6){font-size:12px}
+}
