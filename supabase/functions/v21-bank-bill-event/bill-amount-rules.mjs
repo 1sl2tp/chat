@@ -171,21 +171,20 @@ export function readV4Fields(data,context={}){
  // ISO date is only a proposal and must not override printed DD/MM/YYYY.
  const printedDateText=plain(data?.transfer_date_printed_vn).slice(0,64);
  const printedBillDay=parsePrintedBillDate(printedDateText);
- const printedClockText=plain(data?.transfer_time_printed_vn).slice(0,16);
+ const printedClockText=plain(data?.transfer_time_printed_vn).slice(0,32);
  const printedBillClock=parsePrintedBillClock(printedClockText);
- // The screenshot can place date and clock on the same "Ngày thực hiện"
- // line. Independently compare that clock; never ignore contradictions.
- const inlineClockText=/\s+lúc\s+((?:[01]?\d|2[0-3]):[0-5]\d(?::[0-5]\d)?)$/i
-   .exec(printedDateText)?.[1]||null;
- const inlineClock=parsePrintedBillClock(inlineClockText);
- const inlineClockConflict=Boolean(inlineClock&&(
-   (printedBillClock&&inlineClock.clock.slice(0,5)!==printedBillClock.clock.slice(0,5))||
-   (billTime&&inlineClock.clock.slice(0,5)!==billTime.slice(11,16))));
- const clockTextConflict=Boolean(inlineClockConflict||
-   (billTime&&printedBillClock&&
-    (billTime.slice(11,16)!==printedBillClock.clock.slice(0,5)||
-     (precision==="second"&&printedBillClock.precision==="second"&&
-      billTime.slice(11,19)!==printedBillClock.clock))));
+ const {inlineClock,inlineClockText}=splitPrintedBillDateClock(printedDateText);
+ // Optional clock on the same printed date line is *literal image evidence*.
+ // Use it only when Gemini did not split the clock into its own field.
+ const effectiveClock=printedBillClock||inlineClock;
+ const effectiveClockText=printedBillClock?printedClockText:inlineClockText;
+ const modelClock=billTime?{clock:billTime.slice(11),precision}:null;
+ const clockDisagrees=(x,y)=>Boolean(x&&y&&(
+   x.clock.slice(0,5)!==y.clock.slice(0,5)||
+   (x.precision==="second"&&y.precision==="second"&&x.clock!==y.clock)));
+ const clockTextConflict=clockDisagrees(printedBillClock,inlineClock)||
+   clockDisagrees(printedBillClock,modelClock)||
+   clockDisagrees(inlineClock,modelClock);
  const modelDateConflict=Boolean(billTime&&rawBillDay&&
    billTime.slice(0,10)!==rawBillDay);
  const printedDateConflict=Boolean(printedBillDay&&
@@ -194,14 +193,14 @@ export function readV4Fields(data,context={}){
  // Fix AI date conversion deterministically only when independent literal
  // date AND time are present and agree on the visible clock. Never guess
  // from Chat's upload day, even if the bank event was received that day.
- const hasLiteralDateClock=Boolean(printedBillDay&&printedBillClock&&!clockTextConflict);
+ const hasLiteralDateClock=Boolean(printedBillDay&&effectiveClock&&!clockTextConflict);
  const ocrDateCorrected=Boolean(hasLiteralDateClock&&
    (printedDateConflict||modelDateConflict));
  if(hasLiteralDateClock){
-   billTime=printedBillDay+" "+printedBillClock.clock;
-   precision=printedBillClock.precision;
- }else if(billTime&&printedBillClock&&!clockTextConflict&&
-   printedBillClock.precision==="minute"&&precision==="second"){
+   billTime=printedBillDay+" "+effectiveClock.clock;
+   precision=effectiveClock.precision;
+ }else if(billTime&&effectiveClock&&!clockTextConflict&&
+   effectiveClock.precision==="minute"&&precision==="second"){
    // Model-added ":00" is not a visible second on the receipt.
    billTime=billTime.slice(0,16);precision="minute";
  }
@@ -250,7 +249,7 @@ export function readV4Fields(data,context={}){
     ocr_date_normalization_corrected:ocrDateCorrected,
     ocr_iso_date_conflict:printedDateConflict||modelDateConflict,
     clock_text_conflict:clockTextConflict,
-    transfer_time_printed_vn:printedBillClock?printedClockText:null,
+    transfer_time_printed_vn:effectiveClock?effectiveClockText:null,
     transfer_date_printed_vn:printedBillDay?printedDateText:null,
     printed_date_invalid:Boolean(printedDateText&&!printedBillDay),
     transfer_reference:reference&&reference.length<=120?reference:null,
