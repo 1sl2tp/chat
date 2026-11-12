@@ -50,13 +50,22 @@ for(const bad of ["31 tháng 02, 2026","12 tháng 13, 2026","12 tháng 11",
 const differentYear=read({...raw,transfer_date_printed_vn:"12 tháng 11, 2027"});
 assert.equal(differentYear.transfer_at_vn,"2027-11-12 09:17");
 assert.equal(differentYear.ocr_date_normalization_corrected,true);
-assert.equal(requiredAutoCollectEvidence(differentYear).requires_bank_memo,true);
+assert.equal(requiredAutoCollectEvidence(differentYear).complete,true);
+assert.equal(previewBillAppMatch({
+ ...differentYear,media_asset_id:"different-year",status:"amount_read",
+ amount_vnd:2000000,sent_at:"2026-11-12T02:17:44Z"
+},[{id:269,package_name:"com.vnpay.Agribank3g",status:"credit_candidate",
+ is_own_transfer:false,amount_vnd:2000000,
+ body:"Agribank: 09:17 12/11/2026 Tài khoản 2901181999999: +2,000,000VND. "+
+ "Nội dung giao dịch: DINH THI TUYET chuyen tien."}],[],
+ Date.parse("2026-11-12T02:26:00Z")).status,"waiting_bank_event");
 // If the ISO calendar differs, the literal text and clock must be authoritative
 // but the independent bank memo is mandatory.
 const swapped=read({...raw,transaction_datetime_vn:"2026-12-11 09:17",transfer_date_vn:"2026-12-11"});
 assert.equal(swapped.transfer_at_vn,"2026-11-12 09:17");
 assert.equal(swapped.ocr_date_normalization_corrected,true);
-assert.equal(requiredAutoCollectEvidence(swapped).requires_bank_memo,true);
+assert.equal(swapped.ocr_date_normalization_corrected,true,
+ "corrected model ISO date requires independent bank memo in preview");
 const withoutDate=read({...raw,transfer_date_printed_vn:null});
 assert.equal(requiredAutoCollectEvidence(withoutDate).requires_bank_memo,true);
 const withoutClock=read({...raw,transfer_time_printed_vn:null});
