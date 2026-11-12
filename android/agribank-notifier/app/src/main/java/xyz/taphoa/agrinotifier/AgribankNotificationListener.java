@@ -78,8 +78,7 @@ public final class AgribankNotificationListener extends NotificationListenerServ
     String body=extractBody(notification.extras);
     if(body.trim().isEmpty()||body.length()>2200||!isCandidate(title,body))continue;
     // Reuse exact-package and sensitive-content filtering; bank RPC prevents double credit.
-    onNotificationPosted(entry);
-    queued++;
+    if(processNotification(entry,true))queued++;
    }
    p.edit().putLong("last_replay_checked_at",now)
     .putInt("last_replay_queued_count",queued).putString("last_replay_error","").apply();
@@ -112,31 +111,41 @@ public final class AgribankNotificationListener extends NotificationListenerServ
   if(activeListener==this)activeListener=null;
   super.onDestroy();
  }
- @Override public void onNotificationPosted(StatusBarNotification posted){
-  if(posted==null||!PACKAGE.equals(posted.getPackageName()))return;
-  mark("last_bank_notification_seen_at",System.currentTimeMillis());
+ private boolean processNotification(StatusBarNotification posted,boolean replay){
+  if(posted==null||!PACKAGE.equals(posted.getPackageName()))return false;
+  if(!replay)mark("last_bank_notification_seen_at",System.currentTimeMillis());
   Notification notification=posted.getNotification();
-  if(notification==null||notification.extras==null)return;
+  if(notification==null||notification.extras==null)return false;
   Bundle extras=notification.extras;
   String title=String.valueOf(extras.getCharSequence(Notification.EXTRA_TITLE,""));
   String body=extractBody(extras);
   if(body.trim().isEmpty()||body.length()>2200){
-   getSharedPreferences("config",MODE_PRIVATE).edit().putString("last_bank_event_outcome","empty_or_oversize_body").apply();
-   return;
+   if(!replay)getSharedPreferences("config",MODE_PRIVATE).edit()
+    .putString("last_bank_event_outcome","empty_or_oversize_body").apply();
+   return false;
   }
   if(!isCandidate(title,body)){
-   getSharedPreferences("config",MODE_PRIVATE).edit().putString("last_bank_event_outcome",isSensitive(title,body)?"sensitive_ignored":"not_recognized_credit").apply();
-   return;
+   if(!replay)getSharedPreferences("config",MODE_PRIVATE).edit()
+    .putString("last_bank_event_outcome",isSensitive(title,body)?"sensitive_ignored":"not_recognized_credit").apply();
+   return false;
   }
-  mark("last_credit_candidate_at",System.currentTimeMillis());
+  long now=System.currentTimeMillis();
+  long postedAt=posted.getPostTime();
+  if(postedAt<=0||postedAt<now-48L*3600000||postedAt>now+10L*60000)return false;
+  if(!replay)mark("last_credit_candidate_at",now);
   String token=getSharedPreferences("config",MODE_PRIVATE)
     .getString("device_token","");
   if(!token.matches("[a-f0-9]{48,128}")){
    getSharedPreferences("config",MODE_PRIVATE).edit()
     .putString("last_upload_error","missing_pairing_token").apply();
-   return;
+   return false;
   }
-  UploadJobService.queue(this,PACKAGE,title,body,Math.max(1L,posted.getPostTime()));
-  getSharedPreferences("config",MODE_PRIVATE).edit().putString("last_bank_event_outcome","candidate_queued").apply();
+  UploadJobService.queue(this,PACKAGE,title,body,postedAt);
+  if(!replay)getSharedPreferences("config",MODE_PRIVATE).edit()
+    .putString("last_bank_event_outcome","candidate_queued").apply();
+  return true;
+ }
+ @Override public void onNotificationPosted(StatusBarNotification posted){
+  processNotification(posted,false);
  }
 }
