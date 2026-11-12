@@ -55,22 +55,62 @@ public final class AgribankNotificationListener extends NotificationListenerServ
   }
   return best;
  }
+ private static volatile AgribankNotificationListener activeListener;
+ static void recoverActiveFromUi(){
+  AgribankNotificationListener service=activeListener;
+  if(service!=null)service.recoverActive(false);
+ }
+ private synchronized void recoverActive(boolean force){
+  android.content.SharedPreferences p=getSharedPreferences("config",MODE_PRIVATE);
+  long now=System.currentTimeMillis();
+  if(!force&&now-p.getLong("last_replay_checked_at",0)<120000L)return;
+  int inspected=0,queued=0;
+  try{
+   StatusBarNotification[] active=getActiveNotifications();
+   if(active!=null)for(StatusBarNotification entry:active){
+    if(entry==null||!PACKAGE.equals(entry.getPackageName()))continue;
+    if(++inspected>40)break;
+    long post=entry.getPostTime();
+    if(post<=0||post<now-48L*3600000||post>now+10L*60000)continue;
+    Notification notification=entry.getNotification();
+    if(notification==null||notification.extras==null)continue;
+    String title=String.valueOf(notification.extras.getCharSequence(Notification.EXTRA_TITLE,""));
+    String body=extractBody(notification.extras);
+    if(body.trim().isEmpty()||body.length()>2200||!isCandidate(title,body))continue;
+    // Reuse exact-package and sensitive-content filtering; bank RPC prevents double credit.
+    onNotificationPosted(entry);
+    queued++;
+   }
+   p.edit().putLong("last_replay_checked_at",now)
+    .putInt("last_replay_queued_count",queued).putString("last_replay_error","").apply();
+  }catch(Exception ignored){
+   p.edit().putLong("last_replay_checked_at",now)
+    .putString("last_replay_error","active_notifications_unavailable").apply();
+  }
+ }
  private void mark(String key,long when){
   getSharedPreferences("config",MODE_PRIVATE).edit().putLong(key,when).apply();
  }
  @Override public void onListenerConnected(){
   super.onListenerConnected();
+  activeListener=this;
   getSharedPreferences("config",MODE_PRIVATE).edit()
    .putBoolean("listener_connected",true)
    .putLong("listener_connected_at",System.currentTimeMillis()).apply();
+  recoverActive(true);
  }
  @Override public void onListenerDisconnected(){
+  if(activeListener==this)activeListener=null;
   getSharedPreferences("config",MODE_PRIVATE).edit()
    .putBoolean("listener_connected",false)
    .putLong("listener_disconnected_at",System.currentTimeMillis()).apply();
   // Request a bounded system-managed rebind; never bypass Android user consent.
   requestRebind(new ComponentName(this,AgribankNotificationListener.class));
   super.onListenerDisconnected();
+ }
+ @Override public void onDestroy(){
+  if(activeListener==this)activeListener=null;
+  super.onDestroy();
  }
  @Override public void onNotificationPosted(StatusBarNotification posted){
   if(posted==null||!PACKAGE.equals(posted.getPackageName()))return;
@@ -80,8 +120,14 @@ public final class AgribankNotificationListener extends NotificationListenerServ
   Bundle extras=notification.extras;
   String title=String.valueOf(extras.getCharSequence(Notification.EXTRA_TITLE,""));
   String body=extractBody(extras);
-  if(body.trim().isEmpty()||body.length()>2200)return;
-  if(!isCandidate(title,body))return;
+  if(body.trim().isEmpty()||body.length()>2200){
+   getSharedPreferences("config",MODE_PRIVATE).edit().putString("last_bank_event_outcome","empty_or_oversize_body").apply();
+   return;
+  }
+  if(!isCandidate(title,body)){
+   getSharedPreferences("config",MODE_PRIVATE).edit().putString("last_bank_event_outcome",isSensitive(title,body)?"sensitive_ignored":"not_recognized_credit").apply();
+   return;
+  }
   mark("last_credit_candidate_at",System.currentTimeMillis());
   String token=getSharedPreferences("config",MODE_PRIVATE)
     .getString("device_token","");
@@ -91,5 +137,6 @@ public final class AgribankNotificationListener extends NotificationListenerServ
    return;
   }
   UploadJobService.queue(this,PACKAGE,title,body,Math.max(1L,posted.getPostTime()));
+  getSharedPreferences("config",MODE_PRIVATE).edit().putString("last_bank_event_outcome","candidate_queued").apply();
  }
 }
