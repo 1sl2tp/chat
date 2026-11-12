@@ -31,7 +31,7 @@ for(const row of [
  bill('2026-13-11 18:06',sent),
  bill('',sent)
 ])assert.equal(flag(row),false,'do not turn verified/historical/invalid rows into false alerts');
-assert.match(source,/dateSwapSuspect\?'AI nghi đọc nhầm ngày · Chưa thu'/);
+assert.match(source,/dateSwapSuspect\?'Nghi sai ngày'/);
 assert(source.includes("if(dateSwapSuspect)auditBody.appendChild(cell('Ngày AI nghi nhầm'"),
  'suspected reversed bill date stays available in explicit evidence details');
 assert(source.includes("if(dateSwapSuspect)reason='AI có thể đã đọc đảo ngày/tháng"),
