@@ -5,7 +5,7 @@
 ## BANK-297 — Chuẩn hóa tên người nhận có dấu (source pending)
 - Quy tắc: tên chỉ lấy từ trường Người nhận/Người thụ hưởng của chính bill; tên khác rõ ràng phải review. Canonical `BÙI XUÂN TÙNG`/ `Bùi Xuân Tùng`/ `BUI XUAN TUNG` → `BUI XUAN TUNG` sau bỏ dấu, gộp whitespace, uppercase **đúng toàn chuỗi**. Không fuzzy/substring, không lấy người gửi hoặc nội dung chuyển khoản để gán tên.
 - Edge JS đọc ảnh và bộ match dùng chung helper. Tên in nguyên văn lưu riêng để audit; tên đúng không thay cho STK, bank confirmation, clock, memo, RPC.
-- SQL nguồn `20261112163000_bank297_strict_unaccent_beneficiary_name.sql` được **staged, không áp dụng database production**; chỉ thay predicate tên, giữ toàn bộ idempotency/financial guards và service_role.
+- SQL nguồn `docs/proposed-sql/BANK_297_strict_unaccent_beneficiary_name_NOT_APPLIED.sql` được **staged, không áp dụng database production**; chỉ thay predicate tên, giữ toàn bộ idempotency/financial guards và service_role.
 - Xem `docs/BANK_297_RECIPIENT_NAME_RULES.md`. Trước khi phát hành phải Verify PASS, release đúng `chat:main`, ghi rõ Edge version và đọc lại tệp. Không sửa production DB, không thu/gửi trùng.
 
 
