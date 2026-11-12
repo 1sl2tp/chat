@@ -77,5 +77,13 @@ assert(src.includes("allBills.filter(r=>r.report_status==='waiting_bank'&&!r.led
  'show outstanding customer bill even without bank notification');
 assert(src.includes("giờ trên bill, không phải giờ Agribank"),'never mislabel upload/bill time as confirmed bank hour');
 assert(src.includes("bankLineClock(row.bank_time,ui.date.value)"),'bank rows show exact bank date and time');
+assert(src.includes("Giờ Agribank (đến phút)"),'bank time precision never overstated');
+assert(src.includes("Giờ máy chủ nhận thông báo"),'APK/server arrival time is separate from official bank time');
+const fingerprintMigration=fs.readFileSync(path.join(root,
+ 'supabase/migrations/20261112204500_bank307_admin_notification_fingerprint_and_arrival_time.sql'),'utf8');
+assert.match(fingerprintMigration,/n\.fingerprint,n\.received_at/);
+assert.match(fingerprintMigration,/chat_bank_all_credit_statuses\(uuid,date\)/);
+assert.doesNotMatch(fingerprintMigration,/(?:DELETE FROM|UPDATE|INSERT INTO) public\.(?:taphoa_debt_ledger|taphoa_agribank_notifications)/i);
+
 assert(src.includes("const outstanding=groups.filter"),'work queue is grouped consistently');
 console.log('BANK-307: same-source replay, no false ledger, ambiguous same-second credit, clock and pending bill PASS');
