@@ -631,3 +631,17 @@
 }
 .bank-report-gap-title { font-size: 13px; line-height: 1.4; font-weight: 700; }
 .bank-report-gap-item { font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+
+
+/* BANK-307: cautious presentation of repeated bank events while the
+   canonical fingerprint RPC is pending. These are NOT booked transactions. */
+.bank-report-collision-note {
+  margin-top: 10px;
+  border: 1px solid color-mix(in srgb, #c28737 42%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, #c28737 7%, transparent);
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
