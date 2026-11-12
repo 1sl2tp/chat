@@ -1263,3 +1263,135 @@
     max-width:104px;font-size:9px;padding:3px 5px;
   }
 }
+
+
+/* BANK-314: evidence-first reconciliation in the existing Admin dialog.
+   Actual bank-notification data is never inferred from amount alone.
+   Review remains read-only until the server prepares a fresh ledger lock. */
+.bank-bill-compare-dialog{
+  width:min(100%,800px);max-height:min(92dvh,920px);
+  gap:10px;min-width:0;
+}
+.bank-bill-compare-dialog .bank-review-bank{
+  padding:10px 12px;gap:5px 12px;
+}
+.bank-bill-compare-dialog .bank-review-bank strong{
+  width:100%;font-variant-numeric:tabular-nums;
+}
+.bank-bill-compare{min-width:0}
+.bank-bill-compare-title{
+  display:flex;align-items:baseline;justify-content:space-between;
+  gap:10px;margin-bottom:7px;
+}
+.bank-bill-compare-title strong{font-size:14px}
+.bank-bill-compare-title small{
+  font-size:11px;color:var(--text-secondary,#68727d);
+}
+.bank-bill-compare-table{
+  border:1px solid var(--border-default,#dce3e9);
+  border-radius:11px;overflow:hidden;
+}
+.bank-bill-compare-row{
+  display:grid;
+  grid-template-columns:minmax(105px,1fr) minmax(0,1.18fr)
+    minmax(0,1.24fr) minmax(110px,1.03fr);
+  min-width:0;align-items:stretch;
+  border-bottom:1px solid var(--border-default,#e7ebef);
+  background:var(--surface-primary,#fff);
+}
+.bank-bill-compare-row:last-child{border-bottom:0}
+.bank-bill-compare-row > *{
+  min-width:0;padding:8px 9px;margin:0;
+  overflow-wrap:anywhere;
+  font-size:11px;line-height:1.35;
+}
+.bank-bill-compare-header{
+  background:var(--surface-secondary,#f2f4f6);
+}
+.bank-bill-compare-header > *{
+  font-size:10px;font-weight:750;
+  color:var(--text-secondary,#596674);
+}
+.bank-bill-compare-label{
+  align-self:center;font-weight:650;
+}
+.bank-bill-compare-value{
+  font-variant-numeric:tabular-nums;
+}
+.bank-bill-compare-value:nth-child(3){
+  background:color-mix(in srgb,var(--surface-secondary,#f5f7f9) 45%,transparent);
+}
+.bank-bill-compare-status{
+  align-self:center;justify-self:start;
+  padding:5px 7px;margin:5px;
+  border:1px solid transparent;border-radius:7px;
+  font-weight:700;line-height:1.25;
+}
+.bank-bill-compare-row[data-proof-tone="matched"] .bank-bill-compare-status{
+  background:#e5f5eb;color:#137344;border-color:#b7e4c8;
+}
+.bank-bill-compare-row[data-proof-tone="pending"] .bank-bill-compare-status{
+  background:#fff2d5;color:#8b5d08;border-color:#f2d58d;
+}
+.bank-bill-compare-row[data-proof-tone="review"] .bank-bill-compare-status,
+.bank-bill-compare-row[data-proof-tone="duplicate"] .bank-bill-compare-status{
+  background:#ffe9e8;color:#a52d29;border-color:#efb7b4;
+}
+.bank-bill-compare-summary{
+  font-size:11px;font-weight:650;line-height:1.45;
+  color:var(--text-primary,#313a43);
+  margin:7px 0 4px;
+  font-variant-numeric:tabular-nums;
+}
+.bank-bill-compare-hint{
+  font-size:11px;line-height:1.45;
+  color:var(--text-secondary,#616c75);
+  margin:0;padding:7px 9px;
+  border-left:3px solid #d4a047;
+  background:color-mix(in srgb,#fff2d5 48%,transparent);
+  border-radius:0 7px 7px 0;
+}
+.bank-bill-compare-dialog .bank-review-feedback{
+  line-height:1.45;
+}
+@media(max-width:650px){
+  .bank-bill-compare-dialog{
+    width:100%;max-width:100%;
+    max-height:calc(100dvh - max(12px,env(safe-area-inset-top)));
+    gap:9px;
+  }
+  .bank-bill-compare-row{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    padding:7px 9px;
+    gap:3px 8px;
+  }
+  .bank-bill-compare-header{display:none}
+  .bank-bill-compare-row > *{padding:0;font-size:11px}
+  .bank-bill-compare-row > .bank-bill-compare-label{
+    grid-column:1/-1;grid-row:1;font-size:11px;
+  }
+  .bank-bill-compare-row > .bank-bill-compare-value{
+    grid-row:2;padding:6px 7px;
+    border:1px solid var(--border-default,#e7eaf0);
+    border-radius:7px;min-height:28px;
+  }
+  .bank-bill-compare-row > .bank-bill-compare-value::before{
+    content:attr(data-source);display:block;
+    font-size:10px;font-weight:650;
+    margin-bottom:3px;
+    color:var(--text-secondary,#68727d);
+  }
+  .bank-bill-compare-row > .bank-bill-compare-value:nth-child(2){grid-column:1}
+  .bank-bill-compare-row > .bank-bill-compare-value:nth-child(3){grid-column:2}
+  .bank-bill-compare-row > .bank-bill-compare-status{
+    grid-column:1/-1;grid-row:3;
+    justify-self:start;margin:1px 0 0;
+    font-size:10px;padding:4px 7px;
+  }
+  .bank-bill-compare-title strong{font-size:13px}
+  .bank-bill-compare-title small{font-size:10px}
+}
+@media(max-width:360px){
+  .bank-bill-compare-row{gap:3px 5px;padding:6px 7px}
+  .bank-bill-compare-row > .bank-bill-compare-value{font-size:10px}
+}
