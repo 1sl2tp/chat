@@ -2,6 +2,14 @@
 
 > **Đọc trước mỗi lần phát hành OCR/đối soát/thu tự động. Không đoán nhánh, repo, project hoặc tạo token mới chỉ vì một workflow báo thiếu secret.**
 
+## BANK-297 — Chuẩn hóa tên người nhận có dấu (source pending)
+- Quy tắc: tên chỉ lấy từ trường Người nhận/Người thụ hưởng của chính bill; tên khác rõ ràng phải review. Canonical `BÙI XUÂN TÙNG`/ `Bùi Xuân Tùng`/ `BUI XUAN TUNG` → `BUI XUAN TUNG` sau bỏ dấu, gộp whitespace, uppercase **đúng toàn chuỗi**. Không fuzzy/substring, không lấy người gửi hoặc nội dung chuyển khoản để gán tên.
+- Edge JS đọc ảnh và bộ match dùng chung helper. Tên in nguyên văn lưu riêng để audit; tên đúng không thay cho STK, bank confirmation, clock, memo, RPC.
+- SQL nguồn `20261112163000_bank297_strict_unaccent_beneficiary_name.sql` được **staged, không áp dụng database production**; chỉ thay predicate tên, giữ toàn bộ idempotency/financial guards và service_role.
+- Xem `docs/BANK_297_RECIPIENT_NAME_RULES.md`. Trước khi phát hành phải Verify PASS, release đúng `chat:main`, ghi rõ Edge version và đọc lại tệp. Không sửa production DB, không thu/gửi trùng.
+
+
+
 ## BANK-295/296 — OCR Gemini 503 + Agribank MB memo, production v39 verified (12/11/2026)
 
 - Nguồn duy nhất: 1sl2tp/chat:main, OCR worker commit BANK-295 2a8574ee9b8efa4a0f8fc41c3afc4ea2a6ad6b52 và BANK-296 073e46b8f818cfcdcb32529c5cb6df6b2426b817. Không lấy từ TAPHOA, 1988 hay nhánh fix để deploy.
