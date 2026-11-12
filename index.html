@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="21ccc252fc44bb5bd8925ef2d1ac9c2f99fa49b49bb8624b1a89a92f99cdb67b">
+<meta name="app-build-id" content="68bdfc51fbb334e317272d69df339170d7dc767088b861fa017bff0d8f5d410e">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -35302,6 +35302,15 @@ pendingOpen=coldOpenFromLocation();
 navigator.serviceWorker?.addEventListener('message',event=>{
   if(event.data?.type==='ADMIN_PUSH_OPEN')void handleOpen(event.data);
   if(event.data?.type==='ADMIN_PUSH_MESSAGE_DIRTY')void reconcilePushMessage(event.data);
+  if(event.data?.type==='ADMIN_PUSH_BANK_DIRTY'&&isAdmin()){
+    // BANK-302: refresh only an active reconciliation report. The listener
+    // in bank-report-dashboard.js handles visibility and never posts money.
+    document.dispatchEvent(new CustomEvent('v21-bank-report-dirty',{detail:{
+      source:'verified_bank_push',bankDay:String(event.data.bankDay||''),
+      bankReceiptId:String(event.data.bankReceiptId||''),
+      bankStatus:String(event.data.bankStatus||'')
+    }}));
+  }
   if(event.data?.type==='ADMIN_PUSH_BADGE_DIRTY')scheduleUnreadBadgeRefresh(0);
 });
 document.addEventListener('v21-auth-state',onAuthState);
