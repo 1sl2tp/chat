@@ -71,8 +71,14 @@ assert.equal(swapped.ocr_date_normalization_corrected,true,
  "corrected model ISO date requires independent bank memo in preview");
 const withoutDate=read({...raw,transfer_date_printed_vn:null});
 assert.equal(requiredAutoCollectEvidence(withoutDate).requires_bank_memo,true);
-const withoutClock=read({...raw,transfer_time_printed_vn:null});
-assert.equal(requiredAutoCollectEvidence(withoutClock).complete,false);
+const withoutSeparateClock=read({...raw,transfer_time_printed_vn:null});
+assert.equal(withoutSeparateClock.transfer_time_printed_vn,"9:17");
+assert.equal(requiredAutoCollectEvidence(withoutSeparateClock).complete,true,
+ "the date line itself visibly prints 9:17; no synthetic clock is required");
+const withoutAnyClock=read({...raw,transfer_date_printed_vn:"12 thg 11, 2026",
+ transfer_time_printed_vn:null,transaction_datetime_vn:null});
+assert.equal(requiredAutoCollectEvidence(withoutAnyClock).complete,false,
+ "a bill without a printed clock never authorizes automatic collection");
 
 const credit={
  id:269,package_name:"com.vnpay.Agribank3g",status:"credit_candidate",
