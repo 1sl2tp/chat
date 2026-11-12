@@ -39,12 +39,18 @@ for(const printed of ["12 tháng 11 năm 2026","12 tháng 11, 2026",
  assert.equal(requiredAutoCollectEvidence(result).complete,true,printed);
 }
 for(const bad of ["31 tháng 02, 2026","12 tháng 13, 2026","12 tháng 11",
- "12 tháng 11, 2027","12 tháng 11, 2026 thêm dữ liệu",
+ "12 tháng 11, 2026 thêm dữ liệu",
  "12 tháng 11, 2026 lúc 8:17","12 tháng 11, 2026; 13 tháng 11, 2026"]){
  const result=read({...raw,transfer_date_printed_vn:bad});
  assert.equal(requiredAutoCollectEvidence(result).complete,false,bad);
  assert.equal(requiredAutoCollectEvidence(result).reason,"bill_printed_datetime_conflict",bad);
 }
+// A genuine different full printed year is still a valid literal, but an
+// unrelated 2026-11-12 bank notification must never validate a 2027 bill.
+const differentYear=read({...raw,transfer_date_printed_vn:"12 tháng 11, 2027"});
+assert.equal(differentYear.transfer_at_vn,"2027-11-12 09:17");
+assert.equal(differentYear.ocr_date_normalization_corrected,true);
+assert.equal(requiredAutoCollectEvidence(differentYear).requires_bank_memo,true);
 // If the ISO calendar differs, the literal text and clock must be authoritative
 // but the independent bank memo is mandatory.
 const swapped=read({...raw,transaction_datetime_vn:"2026-12-11 09:17",transfer_date_vn:"2026-12-11"});
