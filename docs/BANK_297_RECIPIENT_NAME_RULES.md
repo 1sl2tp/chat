@@ -9,7 +9,9 @@ Ngày xác lập: 12/11/2026. Source of truth: `1sl2tp/chat`.
 ## 2. Chuẩn hóa chính xác (không fuzzy)
 - Bỏ dấu tiếng Việt bằng Unicode NFD và chuyển `đ/Đ` thành `d/D`, chuyển chữ hoa, bỏ khoảng trắng đầu/cuối và gộp nhiều khoảng trắng thành một.
 - Tên hợp lệ so sánh **toàn bộ chuỗi** sau chuẩn hóa phải bằng đúng `BUI XUAN TUNG`.
-- Hợp lệ: `BUI XUAN TUNG`, `Bùi Xuân Tùng`, ` bùi  xuân   tùng `.
+- **Tên thực tế in trên tài khoản Agribank 2901181999999 là `BUI XUAN TUNG` — KHÔNG DẤU.** Cách viết trên màn hình thường là `BUI XUAN TUNG` hoặc `Bui Xuan Tung`; chuẩn máy là `BUI XUAN TUNG`.
+- Unicode NFD chỉ là bước kỹ thuật để không làm sai OCR khi có ký tự bất thường, **không có nghĩa được tự thêm dấu vào tên chủ tài khoản**. Trong ảnh, AI phải giữ đúng nguyên văn hiển thị, không tự sửa thành `Bùi Xuân Tùng`.
+- Hợp lệ khi khớp nguyên chuỗi sau chuẩn hóa: `BUI XUAN TUNG`, `Bui Xuan Tung`, ` bui  xuan   tung `.
 - Không hợp lệ nếu thấy rõ tên khác hoặc thêm/bớt/đổi thứ tự/đổi ký tự: `BUI XUAN`, `BUI XUAN THUNG`, `TUNG XUAN BUI`, `BUI XUAN TUNG A`, `BUIXUANTUNG`.
 - Dấu câu khác tên là không khớp, không áp dụng OCR sửa lỗi mờ hoặc phép so chuỗi con. Nếu AI không đọc chắc tên, để `null` và dựa vào bằng chứng tài khoản/đối chiếu khác, không đoán.
 
