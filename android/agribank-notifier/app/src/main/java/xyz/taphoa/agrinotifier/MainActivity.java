@@ -60,7 +60,9 @@ public final class MainActivity extends Activity {
   setContentView(scroll);refresh();
  }
  @Override public void onResume(){
-  super.onResume();if(state!=null)refresh();
+  super.onResume();
+  AgribankNotificationListener.recoverActiveFromUi();
+  if(state!=null)refresh();
   if(screenControls!=null)screenControls.refresh();
  }
  static String time(long millis){
