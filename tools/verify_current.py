@@ -135,6 +135,7 @@ subprocess.run(['node',str(ROOT/'tests'/'test_bank268_unmatched_receipt_reasons_
 subprocess.run(['node',str(ROOT/'tests'/'test_bank269_bill_literal_date_clock_20261110.mjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_bank270_printed_date_ocr_correction_20261110.mjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_bank273_financial_rpc_ocr_v5_20261110.cjs')],check=True,cwd=ROOT)
+subprocess.run(['node',str(ROOT/'tests'/'test_bank287_agribank_qr_memo_20261112.mjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_bank282_yesterday_transfer_summary_20261111.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_vn_daykey_cross_browser_20261029.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_virtual_senttime_height_20261029.cjs')],check=True,cwd=ROOT)
