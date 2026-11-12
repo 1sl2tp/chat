@@ -82,6 +82,18 @@ Deno.serve(async req=>{
     posted_at:new Date(posted_at_ms).toISOString(),
     fingerprint:await sha(package_name+"\n"+posted_at_ms+"\n"+title+"\n"+body),
     amount_vnd:amount,status:amount===null?"unclassified":"credit_candidate"};
+  // BANK-306: an Android re-install may create a NEW device ID while replaying
+  // the SAME notification (same server fingerprint). Never insert/wake it twice.
+  // Fail closed if this evidence-only lookup fails; do not infer a bank credit.
+  // A DB advisory-locked trigger is the concurrency-safe second guard.
+  const duplicateCheck=await fetch(URL+
+    "/rest/v1/taphoa_agribank_notifications?select=id&fingerprint=eq."+
+    row.fingerprint+"&order=id.asc&limit=1",{headers:headers()});
+  if(!duplicateCheck.ok)return reply({error:"global_duplicate_check_unavailable"},503);
+  const existing=await duplicateCheck.json();
+  if(!Array.isArray(existing))return reply({error:"global_duplicate_check_invalid"},503);
+  if(existing.length>0)return reply({ok:true,stored:false,duplicate:true,
+    kind:row.status,ledger_written:false});
   const res=await fetch(URL+"/rest/v1/taphoa_agribank_notifications?on_conflict=device_id%2Cfingerprint",
     {method:"POST",headers:headers({prefer:"resolution=ignore-duplicates,return=representation"}),body:JSON.stringify(row)});
   if(!res.ok)return reply({error:"inbox_write_failed"},503);

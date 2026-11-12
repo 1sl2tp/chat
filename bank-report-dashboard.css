@@ -617,3 +617,17 @@
  .bank-report-controls [data-bank-daily-summary]{font-size:12px}
  .bank-daily-customer .bank-review-save{justify-self:stretch}
 }
+
+
+/* BANK-306: evidence-only alert, visually distinct from a confirmed receipt. */
+.bank-report-gap-list {
+  margin-top: 10px;
+  display: grid;
+  gap: 7px;
+  padding: 11px 12px;
+  border: 1px solid color-mix(in srgb, #b87a2e 45%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, #b87a2e 7%, transparent);
+}
+.bank-report-gap-title { font-size: 13px; line-height: 1.4; font-weight: 700; }
+.bank-report-gap-item { font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
