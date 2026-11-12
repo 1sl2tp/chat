@@ -35,9 +35,9 @@ const bankMidnight={...credit,transfer_at:'2026-11-01T17:30:00Z'};
 assert.equal(match(midnight,{bills:[midnight],bank_credits:[bankMidnight]})?.notice_id,'180',
  'VN date boundary not UTC date prefix');
 for(const token of [
- 'Có thu tay · Chờ xác minh bill','Bill chưa liên kết',
+ 'Có thu tay · Chờ xác minh bill','bill cùng khách và số tiền chưa liên kết',
  'Không thu tiền lần hai.','Xem bill chờ xác minh',
- "cardValue('Bill chưa đối soát'","['Khách hàng','Tự thu','Chờ soát','Trùng','AI lỗi ngày','Tiền tự thu']"
+ "cardValue('Bill chưa đối soát'","['Khách hàng','Đã ghi thu','Bill chờ','Bill trùng','AI nghi ngày','Tiền đã thu']"
 ])assert(source.includes(token),token);
 assert(!source.includes("rpc('chat_bank_app_collect'"),'no client auto money write');
 console.log('BANK-223: manual paid versus unlinked bill report, fail-closed review PASS');

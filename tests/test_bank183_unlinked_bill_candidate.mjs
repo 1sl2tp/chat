@@ -38,7 +38,7 @@ assert.equal(lookup(beforeMidnight,[{...receipt,sent_at:'2026-11-02T17:30:00Z'}]
 assert.equal(lookup(beforeMidnight,[{...receipt,sent_at:'2026-11-02T16:35:00Z'}]).length,1,
  'real uploads within 20 minutes remain review candidates');
 assert.ok(source.includes('Có bill cần kiểm tra'));
-assert.ok(source.includes('Chưa đối soát · Chưa ghi thu'));
+assert.ok(source.includes('Chưa ghi thu'), 'the ambiguous bank credit remains uncollected');
 assert.ok(source.includes('void showBill(candidate)'));
 assert.ok(!source.includes('rpc(\'chat_bank_app_collect\''));
 console.log('BANK-183 read-only reconciliation evidence candidates PASS');

@@ -72,10 +72,11 @@ assert.equal(exact.length,1);
 assert.equal(exact[0].bank_group_exact,true);
 assert.equal(exact[0].bank_group_tentative,false);
 assert(src.includes("if(!candidate){"),'no direct collection from tentative duplicate cluster');
-assert(src.includes("Đã gom '+count+' dòng giống nhau"),'legacy API only groups for display without a false bank-duplicate banner');
+assert(!src.includes('Đã gom '),'Android notification replay is hidden from normal report');
 assert(src.includes("allBills.filter(r=>r.report_status==='waiting_bank'&&!r.ledger_id)"),
  'show outstanding customer bill even without bank notification');
-assert(src.includes("giờ trên bill, không phải giờ Agribank"),'never mislabel upload/bill time as confirmed bank hour');
+assert(src.includes("function bankBillDisplayTime(")&&src.includes("Giờ trên bill"),
+ 'bill local wall-clock is explicitly separate from the real Agribank time');
 assert(src.includes("bankLineClock(row.bank_time,ui.date.value)"),'bank rows show exact bank date and time');
 assert(src.includes("Giờ Agribank (đến phút)"),'bank time precision never overstated');
 assert(src.includes("Giờ máy chủ nhận thông báo"),'APK/server arrival time is separate from official bank time');

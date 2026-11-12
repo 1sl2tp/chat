@@ -103,8 +103,8 @@ assert.equal(bankContext.filter,'review');
 assert.equal(bankContext.selectedCustomer,null);
 assert.equal(painted,1);assert.equal(scrolled,1);
 bankContext.renderQueue({bills:[]},0);
-assert.equal(holder.children.length,2);
-assert(holder.children[1].textContent.includes('Chưa có mục chờ'));
+assert.equal(holder.children.length,1,'empty queue has no redundant empty-state card');
+assert.equal(holder.hidden,true,'empty queue is removed from the compact report');
 bankContext.ui.queue=null;
 bankContext.renderQueue(data,3); // cached HTML lacks the new optional slot
 assert(bank.includes("queue:root.querySelector('[data-bank-work-queue]')"));

@@ -10,7 +10,8 @@ const html=fs.readFileSync('index.source.html','utf8');
 const report=html.slice(html.indexOf('id="bankReportDashboard"'),
  html.indexOf('id="conversationContentAxis"'));
 assert(report.length>0);
-assert.equal((report.match(/Đơn vị: 1\.000đ/g)||[]).length,1,'show money unit exactly once');
+assert.equal((report.match(/VND · Giờ Việt Nam/g)||[]).length,1,
+ 'one consistent timezone/denomination description across the dashboard');
 assert(report.includes('class="bank-report-status-line"'));
 assert(report.includes('data-bank-updated role="status" aria-live="polite"'));
 assert(css.includes('min-height:84px;padding:11px 12px;'),
@@ -18,8 +19,9 @@ assert(css.includes('min-height:84px;padding:11px 12px;'),
 assert(css.includes('box-sizing:border-box;display:flex;flex-direction:column;'));
 assert(css.includes('white-space:nowrap;')&&css.includes('content:attr(data-mobile-label)'),
  'mobile customer total stays a single label line');
-assert(js.includes("td.dataset.mobileLabel=i===5?'Đã thu':shortColumns[i]"));
-assert(js.includes("cell('Tiền vào Agribank',money(row.amount_vnd))"));
+assert(js.includes("td.dataset.mobileLabel=i===5?'Đã ghi thu':shortColumns[i]"));
+assert(js.includes("bankDisplayVnd(row.amount_vnd)"),
+ 'show the actual bank amount in full VND, including its original dong remainder');
 assert(js.includes("cardValue('Bill chưa đối soát'"));
 assert(js.includes("cardValue('Đã thu có chứng từ'"));
 assert(js.includes("'Tiền vào NH'"));
@@ -44,6 +46,7 @@ const scope=vm.createContext({});
 vm.runInContext(js.slice(filterStart,filterEnd)+'\nglobalThis.filtersView=filters;',scope);
 const expected=['Tất cả','Đã khớp bill','Bill chưa khớp','Chưa gắn bill','Cần xác minh'];
 for(const name of expected)assert(scope.filtersView.some(x=>x[1]===name),name);
-assert(js.includes('const money=bankMoneyThousands;'),'keep old amounts and rounding');
+assert(js.includes('const money=bankMoneyThousands;'),'retain legacy formatter for backward compatibility');
+assert(js.includes("const bankDisplayVnd=x=>"),'new report uses full VND instead of ambiguous thousands');
 assert(js.includes("client.rpc('chat_bank_dashboard'"),'keep the existing read-only report source');
 console.log('UI-272: compact four KPIs, one unit note, concise filters and customer labels PASS');

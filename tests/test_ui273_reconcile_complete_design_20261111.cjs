@@ -11,7 +11,7 @@ const start=html.indexOf('id="bankReportDashboard"');
 const end=html.indexOf('id="conversationContentAxis"',start);
 const report=html.slice(start,end);
 assert(start>0&&end>start);
-assert.equal((report.match(/Đơn vị: 1\.000đ/g)||[]).length,1);
+assert.equal((report.match(/VND · Giờ Việt Nam/g)||[]).length,1);
 assert(report.includes('class="bank-report-help"'));
 assert(report.includes('aria-label="Giải thích các chỉ số đối soát"'));
 for(const label of ['Tiền vào NH','Đã thu','Đã khớp bill','Bill chưa khớp','Chưa gắn bill']){
@@ -69,7 +69,9 @@ for(const [width,columns] of [[320,2],[359,2],[360,3],[375,3],[390,3],[430,3]]){
 }
 assert(css.includes('min-height:84px;padding:11px 12px;'));
 assert(!css.includes('min-height:76px;padding:10px 12px;'));
-assert(css.includes('grid-template-columns:repeat(20,minmax(0,1fr))'));
+assert(css.includes('grid-template-columns:repeat(20,minmax(0,1fr))')&&
+ css.includes('#bankReportDashboard .bank-report-table tbody tr.bank-report-table-item'),
+ 'legacy CSS retained while the BANK-311 mobile flex layout supersedes it');
 assert(css.includes('grid-column:1/15;grid-row:1')&&css.includes('grid-column:15/21;grid-row:1'),
  'name/amount on first row divide 70%/30%');
 for(const c of ['1/6','6/11','11/16','16/21'])
