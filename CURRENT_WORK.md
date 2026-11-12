@@ -1,3 +1,14 @@
+## 2026-11-12 — BANK-301 · Giảm Gemini 503 khi khách gửi bill (source pending)
+
+- **Chỉ repo:** `1sl2tp/chat`, branch `fix/bank-301-bounded-gemini-overload-retry-20261112`, base `bee4aef0a757285c626b636799e7ecdb96ce6c6f`. Project prod `vtqhbhrkdxirqeqkgylo`, worker v42 ACTIVE trước sửa. Không chạm `taphoaxyz`/`1988` hoặc chuyển nhầm nhánh.
+- **Bằng chứng thực tế:** Google Gemini API thường trả 503 khi quá tải (khác 429 quota). Cô Ngọc tt 17:42 nhận `amount_scan_gemini_http_503`, attempt 2 đọc 10m, Agribank #271 nhận 17:49, ledger #852 tự ghi thu. 12/11 có 5 ảnh, 3 ảnh cần retry, 0 ảnh còn failed tại thời điểm kiểm tra — không suy đoán tất cả các ảnh đều 503.
+- **Điểm yếu:** BANK-295 có 2 lượt (lite → flash, trễ 800ms), nếu cả 2 lỗi 503 thì thông báo lỗi và chờ cron 5 phút. BANK-301 thêm **duy nhất 1 lượt cuối model lite** sau thêm 1400ms, chỉ cho 502/503/504, tổng ≤3 request trong AbortSignal 30 giây; không nới 429/401/403, không gọi Gemini không giới hạn.
+- **Log chẩn đoán** chỉ `stage, model, status, elapsed_ms`, không chứa bill/API key/thông tin khách. `gemini_http_<status>` cuối giữ nguyên để SQL cron hiện tại nhận. Không đổi quyền tài chính, không đổi `chat_bank_app_collect`, không chạy lại các bill đã thu.
+- **Rule:** `docs/BANK_298_EVIDENCE_PIPELINE.md §8`; kiểm thử tại `tests/test_bank295_gemini_503_fallback_20261112.mjs` (1/2/3 lượt, lỗi cấu hình/quota, abort, bảo mật log). Verify V21 và deploy workflow hiện có phải pass trước merge/release. `v21-agribank-notification-ingest` vẫn v2.
+- **E1:** thay đổi mã nguồn; chưa gọi live model để thử (không dùng ảnh khách để ép Google 503), chưa tuyên bố tỉ lệ cải thiện hoặc triển khai production.
+
+---
+
 ## 2026-11-12 17:51 VN — BANK-300 · Khắc phục 503 và xác minh bill mới 10 triệu của Cô Ngọc tt
 
 - **Ảnh được gửi lúc 17:41:59**, receipt `ee2ddbdb-cbdb-4b48-99a0-18b710c87e19`. Worker `v21-bank-bill-event v42 ACTIVE` lần đầu failed với `amount_scan_gemini_http_503` lúc 17:42:17 (attempt 1); push iOS hiện "AI quét lỗi, sẽ tự thử lại, chưa ghi thu" là snapshot lúc đó. Không nhầm với 3m ledger #850 trước đó.
