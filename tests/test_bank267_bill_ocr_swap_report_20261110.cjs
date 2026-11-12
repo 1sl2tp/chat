@@ -32,9 +32,9 @@ for(const row of [
  bill('',sent)
 ])assert.equal(flag(row),false,'do not turn verified/historical/invalid rows into false alerts');
 assert.match(source,/dateSwapSuspect\?'AI nghi đọc nhầm ngày · Chưa thu'/);
-assert.match(source,/if\(dateSwapSuspect\)auditBody\.appendChild\(cell\('Ngày AI nghi nhầm'/),
+assert(source.includes("if(dateSwapSuspect)auditBody.appendChild(cell('Ngày AI nghi nhầm'"),
  'suspected reversed bill date stays available in explicit evidence details');
-assert.match(source,/if\(dateSwapSuspect\)reason='AI có thể đã đọc đảo ngày\/tháng/,
+assert(source.includes("if(dateSwapSuspect)reason='AI có thể đã đọc đảo ngày/tháng"),
  'suspected date reversal still blocks automatic interpretation');
 assert.match(source,/AI có thể đã đọc đảo ngày\/tháng so với ảnh bill/);
 assert.doesNotMatch(source,/rpc\('chat_bank_app_collect'/,'report must not authorize bank money');
