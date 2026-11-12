@@ -119,7 +119,7 @@ BEGIN
  IF v_r.status NOT IN ('amount_read','review') OR v_r.ledger_id IS NOT NULL OR
     v_r.duplicate_of IS NOT NULL OR v_r.amount_vnd IS NULL OR v_r.amount_vnd<1000 OR
     v_r.amount_vnd>=1000000000000 OR mod(v_r.amount_vnd,1000)<>0 OR
-    v_r.transfer_at_vn IS NULL OR v_r.transfer_at_vn>now() AT TIME ZONE 'Asia/Ho_Chi_Minh' OR
+    v_r.transfer_at_vn IS NULL OR v_r.transfer_at_vn>(now() AT TIME ZONE 'Asia/Ho_Chi_Minh') OR
     v_r.image_sha256 IS NULL OR v_r.scanned_at IS NULL OR v_r.model_name IS NULL OR
     v_r.raw_read->>'transfer_success_visible'<>'true' OR
     v_r.raw_read->>'amount_clear'<>'true' OR
@@ -140,6 +140,16 @@ BEGIN
       upper(btrim(other.transfer_reference))=upper(btrim(v_r.transfer_reference))
       AND other.transfer_at_vn::date=v_r.transfer_at_vn::date)))
  THEN RETURN jsonb_build_object('ok',false,'status','bill_reference_already_collected'); END IF;
+ -- A verified Agribank notification already used for another bill must win.
+ -- This pathway is for MISSING bank pushes, not overriding an existing link.
+ IF EXISTS (
+   SELECT 1 FROM public.taphoa_agribank_notifications n
+   JOIN public.chat_bank_app_collection_links l ON l.notification_id=n.id
+   WHERE n.amount_vnd=v_r.amount_vnd
+      AND n.bank_credit_account='2901181999999'
+      AND abs(extract(epoch from
+       (n.transfer_at-(v_r.transfer_at_vn AT TIME ZONE 'Asia/Ho_Chi_Minh'))))<=60
+ ) THEN RETURN jsonb_build_object('ok',false,'status','bank_notice_already_applied_elsewhere'); END IF;
  v_thousands:=v_r.amount_vnd::numeric/1000;
  -- Serialize debt write across ALL channels, even cash payments.
  PERFORM pg_advisory_xact_lock(hashtextextended('taphoa-money:'||p_customer_id::text,0));
@@ -283,4 +293,127 @@ BEGIN
  EXECUTE edited;
 END;
 $bank310_dashboard$;
+-- Locks financial attribution on a manually posted bill even if an OCR retry
+-- or delayed update attempts to rewrite status, amount, customer or ledger.
+CREATE OR REPLACE FUNCTION v21_private.bank310_lock_confirmed_bill()
+RETURNS trigger LANGUAGE plpgsql SECURITY INVOKER SET search_path TO 'pg_catalog','public','pg_temp'
+AS $bank310_lock$
+BEGIN
+ IF OLD.status='received' AND
+    EXISTS(SELECT 1 FROM public.chat_bank_bill_manual_collections m WHERE m.receipt_id=OLD.id)
+    AND (NEW.status IS DISTINCT FROM OLD.status
+      OR NEW.ledger_id IS DISTINCT FROM OLD.ledger_id
+      OR NEW.amount_vnd IS DISTINCT FROM OLD.amount_vnd
+      OR NEW.customer_account_id IS DISTINCT FROM OLD.customer_account_id
+      OR NEW.transfer_at_vn IS DISTINCT FROM OLD.transfer_at_vn)
+ THEN RAISE EXCEPTION 'bank310_manual_bill_financially_immutable'
+   USING ERRCODE='23514'; END IF;
+ RETURN NEW;
+END;
+$bank310_lock$;
+REVOKE ALL ON FUNCTION v21_private.bank310_lock_confirmed_bill() FROM PUBLIC,anon,authenticated;
+DROP TRIGGER IF EXISTS bank310_lock_manually_collected_bill ON public.chat_bank_bill_receipts;
+CREATE TRIGGER bank310_lock_manually_collected_bill
+ BEFORE UPDATE ON public.chat_bank_bill_receipts
+ FOR EACH ROW EXECUTE FUNCTION v21_private.bank310_lock_confirmed_bill();
+
+-- Show a late bank notice as already manually collected ONLY when uniquely
+-- matched to an existing confirmed bill on bank account, exact amount, bank
+-- minute AND whole bank memo. Ambiguous cases remain on review/hold.
+DO $bank310_credit_registry$
+DECLARE
+  source text; updated text;
+  before_case text := 'WHEN mc.ledger_id IS NOT NULL AND md.id IS NOT NULL THEN ''manual_collected''';
+  bank_note_expr text := 'upper(regexp_replace(extensions.unaccent('||
+    'btrim(split_part(split_part(n.body,''Nội dung giao dịch:'',2),''Số dư cuối:'',1))),'||
+    '''[^A-Za-z0-9]'','''',''g''))';
+  bill_note_expr text := 'upper(regexp_replace(extensions.unaccent(coalesce(br.raw_read->>''transfer_content'','''')),'||
+    '''[^A-Za-z0-9]'','''',''g''))';
+  join_sql text;
+BEGIN
+ SELECT pg_get_functiondef('public.chat_bank_all_credit_statuses(uuid,date)'::regprocedure) INTO source;
+ IF position('bank310_late_bill.ledger_id' IN source)>0 THEN RETURN; END IF;
+ IF position(before_case IN source)=0 OR
+   position('LEFT JOIN public.v21_accounts ma ON ma.id=mc.customer_account_id' IN source)=0 THEN
+     RAISE EXCEPTION 'bank310_credit_registry_contract_changed';
+ END IF;
+ join_sql:=' LEFT JOIN LATERAL ('||
+  ' SELECT max(bm.ledger_id) ledger_id,max(br.id::text) receipt_id,'||
+  ' max(br.media_asset_id::text) asset_id,max(br.customer_account_id::text) customer_id'||
+  ' FROM public.chat_bank_bill_manual_collections bm'||
+  ' JOIN public.chat_bank_bill_receipts br ON br.id=bm.receipt_id'||
+  ' WHERE br.status=''received'' AND br.ledger_id=bm.ledger_id'||
+  ' AND br.amount_vnd=n.amount_vnd AND br.receiving_account=n.bank_credit_account'||
+  ' AND br.transfer_at_vn IS NOT NULL AND n.transfer_at IS NOT NULL'||
+  ' AND abs(extract(epoch from ((br.transfer_at_vn AT TIME ZONE ''Asia/Ho_Chi_Minh'')-n.transfer_at)))<=60'||
+  ' AND length('||bill_note_expr||')>=8'||
+  ' AND '||bank_note_expr||'='||bill_note_expr||
+  ' HAVING count(*)=1 ) bank310_late_bill ON TRUE';
+ updated:=replace(source,before_case,
+   before_case||E'\n         '||
+   'WHEN bank310_late_bill.ledger_id IS NOT NULL THEN ''manual_collected''');
+ updated:=replace(updated,
+   'coalesce(r.customer_account_id,mc.customer_account_id)::text customer_id,',
+   'coalesce(r.customer_account_id::text,mc.customer_account_id::text,bank310_late_bill.customer_id) customer_id,');
+ updated:=replace(updated,
+   'coalesce(aa.display_name,ma.display_name) customer_name,',
+   'coalesce(aa.display_name,ma.display_name,ba.display_name) customer_name,');
+ updated:=replace(updated,
+   'coalesce(l.ledger_id,mc.ledger_id)::text ledger_id,',
+   'coalesce(l.ledger_id,mc.ledger_id,bank310_late_bill.ledger_id)::text ledger_id,');
+ updated:=replace(updated,
+   'r.id::text receipt_id,r.media_asset_id::text asset_id',
+   'coalesce(r.id::text,bank310_late_bill.receipt_id) receipt_id,'||
+   'coalesce(r.media_asset_id::text,bank310_late_bill.asset_id) asset_id');
+ updated:=replace(updated,
+   'LEFT JOIN public.v21_accounts ma ON ma.id=mc.customer_account_id',
+   join_sql||E'\n LEFT JOIN public.v21_accounts ma ON ma.id=mc.customer_account_id'||
+   E'\n LEFT JOIN public.v21_accounts ba ON ba.id=bank310_late_bill.customer_id::uuid');
+ EXECUTE updated;
+END;
+$bank310_credit_registry$;
+
+-- Closed-day reports have a frozen snapshot of automatically received
+-- payments. Add the separately sourced, verified MANUAL bill collections and
+-- compute currently pending bills from immutable receipt statuses.
+DO $bank310_summary$
+DECLARE
+ source text;updated text;
+ anchor text := 'v_summary:=coalesce(v_closed,v21_private.chat_bank_report_snapshot(p_day));';
+ extra text := $bank310_summary_body$
+ v_summary:=coalesce(v_closed,v21_private.chat_bank_report_snapshot(p_day));
+ SELECT jsonb_set(
+  jsonb_set(
+   jsonb_set(v_summary,'{matched_count}',to_jsonb(
+     coalesce((v_summary->>'matched_count')::integer,0)
+     +(SELECT count(*)::integer FROM public.chat_bank_bill_manual_collections m
+      JOIN public.chat_bank_bill_receipts r ON r.id=m.receipt_id
+      WHERE r.status='received' AND r.ledger_id=m.ledger_id
+      AND (r.sent_at AT TIME ZONE 'Asia/Ho_Chi_Minh')::date=p_day)
+    )),
+   '{matched_amount}',to_jsonb(
+     coalesce((v_summary->>'matched_amount')::bigint,0)
+     +(SELECT coalesce(sum(r.amount_vnd),0)::bigint
+       FROM public.chat_bank_bill_manual_collections m
+       JOIN public.chat_bank_bill_receipts r ON r.id=m.receipt_id
+       WHERE r.status='received' AND r.ledger_id=m.ledger_id
+        AND (r.sent_at AT TIME ZONE 'Asia/Ho_Chi_Minh')::date=p_day)
+    )),
+   '{bill_only_count}',to_jsonb(
+     (SELECT count(*)::integer FROM public.chat_bank_bill_receipts r
+       WHERE (r.sent_at AT TIME ZONE 'Asia/Ho_Chi_Minh')::date=p_day
+       AND r.status IN ('amount_read','review','queued','scanning')
+       AND (r.transfer_at_vn IS NULL OR r.transfer_at_vn::date=p_day)
+       AND NOT EXISTS (SELECT 1 FROM public.chat_bank_app_collection_links l WHERE l.receipt_id=r.id)
+     )));
+$bank310_summary_body$;
+BEGIN
+ SELECT pg_get_functiondef('public.chat_bank_dashboard(uuid,date)'::regprocedure) INTO source;
+ IF position('BANK310_DYNAMIC_MANUAL_SUMMARY' IN source)>0 THEN RETURN; END IF;
+ IF position(anchor IN source)=0 THEN RAISE EXCEPTION 'bank310_summary_anchor_changed'; END IF;
+ updated:=replace(source,anchor,'/* BANK310_DYNAMIC_MANUAL_SUMMARY */'||extra);
+ EXECUTE updated;
+END;
+$bank310_summary$;
+
 COMMIT;
