@@ -80,7 +80,7 @@ assert.match(index,/recipient_name_printed:typeof parsed\?\.recipient_name/);
 // Staged DB source: compare with prior canonical RPC and require the ONLY
 // predicate change is strict, accent-insensitive recipient-name equality.
 // This test never calls the production RPC or posts any money.
-const migration=readFileSync(new URL("../supabase/migrations/20261112163000_bank297_strict_unaccent_beneficiary_name.sql",import.meta.url),"utf8");
+const migration=readFileSync(new URL("../docs/proposed-sql/BANK_297_strict_unaccent_beneficiary_name_NOT_APPLIED.sql",import.meta.url),"utf8");
 const previous=readFileSync(new URL("../supabase/migrations/20261110134955_bank273_accept_bill_ocr_v5_and_verify_manual_bank_timestamps.sql",import.meta.url),"utf8");
 const functionMarker="CREATE OR REPLACE FUNCTION public.chat_bank_app_collect";
 const newFunction=migration.slice(migration.indexOf(functionMarker));
