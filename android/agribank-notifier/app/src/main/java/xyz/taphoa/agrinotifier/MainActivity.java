@@ -127,6 +127,8 @@ public final class MainActivity extends Activity {
     }
     result=status==200&&response.contains("\"device_authorized\":true")?
       "Kết nối OK · Mã hợp lệ · Không có giao dịch giả":
+      status==422?"Máy chủ chưa hỗ trợ kiểm tra kết nối; xem trạng thái tải thông báo bên dưới.":
+      status==401||status==403?"Mã kết nối bị từ chối: HTTP "+status:
       "Lỗi máy chủ/mã kết nối: HTTP "+status;
    }catch(Exception ex){result="Không kết nối được máy chủ (kiểm tra mạng)";}
    finally{if(c!=null)c.disconnect();}
