@@ -2,6 +2,17 @@
 
 > **Đọc trước mỗi lần phát hành OCR/đối soát/thu tự động. Không đoán nhánh, repo, project hoặc tạo token mới chỉ vì một workflow báo thiếu secret.**
 
+## BANK-299 E4 · Tiêu chuẩn chẩn đoán bill và retry, production v42 (12/11/2026)
+
+- **Nguồn duy nhất** `1sl2tp/chat:main`: PR #264, tested merge commit `f5f17d2683b6684867bd70038cd204dcb43deb8a`; PR Verify #43201013276 + main Verify #43201256680 **PASS**; Chat Pages #43201256773 PASS. Commit Pages sau đó `b107b6785573ba5e91fd3224745eea1bb61cdad3` chỉ cập nhật `index.html/version.json`, không đổi source Edge.
+- Supabase connector đã có quyền phát hành `v21-bank-bill-event v42 ACTIVE` tại `vtqhbhrkdxirqeqkgylo`, `verify_jwt=false`. Sau deploy readback **9/9 tệp trùng mã main**. v41→v42 chỉ đổi `index.ts` và thêm `bill-decision-policy.mjs`. `v21-agribank-notification-ingest v2` không đổi. Không tạo token, không áp dụng SQL migration, không thu thử.
+- **Quy tắc trung tâm** tại `docs/BANK_298_EVIDENCE_PIPELINE.md §6`: `received` phải có ledger; `amount_read` không đồng nghĩa đã khớp ngân hàng. Chẩn đoán phân biệt waiting_bank / missing_evidence / evidence_conflict / technical_block / pending_financial_rpc / duplicate / collected. Không lưu derived status lâu dài vì preview có thể cũ sau khi ledger posted.
+- **Retry:** một hàm `isRetryableBillScanReason` chung cho classify error và attempted retry. Đối chiếu cron prod #21: không hỗ trợ `hash_registry_lookup_failed` nên loại trừ auto retry, Admin manual check. 429/5xx/timeout/JSON lỗi/storage_download_failed/hash_registry_unavailable vẫn retry có giới hạn. Lỗi cấu hình không lặp vô tận.
+- Bank #269→ledger #849, #270→ledger #850 read-only vẫn received, mỗi cái 1 bank link, 0 manual duplicate (17:36:11 VN). 4 bill amount_read chưa tự thu và nguyên nhân preview được ghi trong CURRENT_WORK.md, không tự ghi bù hay giả định đã còn nợ.
+- **Còn giới hạn:** giao diện Chat có phân loại lỗi kỹ thuật theo reason, nhưng report backend chưa đưa `match_preview.reason` chi tiết cho mọi bill, vì vậy không cam kết 4 lý do chờ đã hiển thị tường minh trong danh sách; nâng contract báo cáo phải được review riêng, không tự nới RLS/DB production. E5 ảnh thật mới và iPhone/PWA chưa chứng minh.
+
+
+
 ## BANK-299 — Lựa chọn xử lý 9 bước, lỗi kỹ thuật và preview không phải ledger
 - Quy tắc chính thức: `docs/BANK_298_EVIDENCE_PIPELINE.md §6`.
 - Không bao giờ xem `amount_read` là `received`. Khi hiển thị, cần phân biệt `match_preview.reason`: chờ NH, thiếu giờ/reference/memo, cạnh tranh giao dịch, lỗi truy vấn, `candidate_unique` chờ RPC.
