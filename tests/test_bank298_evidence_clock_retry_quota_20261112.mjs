@@ -75,7 +75,8 @@ const read=worker.indexOf("await vision.response.json()",begin);
 const cleanup=worker.indexOf("}finally{clearTimeout(timeout);}",begin);
 assert.ok(begin>=0&&read>begin&&cleanup>read,
  "Gemini response body MUST be read before 30-second timeout is cleared");
-assert.ok(worker.includes('catch{throw new Error("gemini_invalid_json");}'));
+assert.ok(worker.includes('if(ctl.signal.aborted)throw new Error("AbortError")'));
+assert.ok(worker.includes('if(!Array.isArray(parts))throw new Error("gemini_invalid_json")'));
 assert.ok(worker.includes("gemini_invalid_json|storage_download_failed"),
  "Malformed Gemini transport JSON stays a retryable technical issue");
 assert.ok(worker.includes('db.rpc("chat_bank_app_collect"'),
