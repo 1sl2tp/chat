@@ -1,3 +1,13 @@
+## 2026-11-12 — BANK-299 E4 VERIFIED · Quy tắc chẩn đoán bill + lỗi kỹ thuật
+
+- **Nguồn:** PR [#264](https://github.com/1sl2tp/chat/pull/264) merged vào `1sl2tp/chat:main` commit `f5f17d2683b6684867bd70038cd204dcb43deb8a`; Verify V21 PR [43201013276](https://github.com/1sl2tp/chat/actions/runs/43201013276) PASS, main [43201256680](https://github.com/1sl2tp/chat/actions/runs/43201256680) PASS; Chat Pages [43201256773](https://github.com/1sl2tp/chat/actions/runs/43201256773) PASS. Main có commit tự tạo `b107b6785573ba5e91fd3224745eea1bb61cdad3` chỉ thay `index.html`, `version.json`, không đổi 9 tệp Edge đã Verify.
+- **Release:** sử dụng Supabase connector có sẵn (GitHub Actions runner secret riêng vẫn thiếu), project `vtqhbhrkdxirqeqkgylo`; chỉ deploy `v21-bank-bill-event v41→v42 ACTIVE`, verify_jwt=false, **9/9 tệp đọc ngược khớp** 100% từ đúng `chat:main`. Tập thay đổi từ v41: `index.ts` + `bill-decision-policy.mjs` (mới); những tệp kiểm tra ảnh, ngày, đối chiếu Agribank khác giữ nguyên. `v21-agribank-notification-ingest v2 ACTIVE` không đổi.
+- **Logic mới:** `describeBillDecision` tính read-only từ trạng thái và ledger hiện tại, không lưu trạng thái dẫn xuất để tránh lỗi sau khi RPC ghi thu; phân biệt lỗi mạng/AI, thiếu bằng chứng, chờ ngân hàng, bằng chứng cạnh tranh, candidate chờ RPC, đã thu. `isRetryableBillScanReason` là predicate chung cho lần lỗi + lần retry; đối chiếu cron production #21 cho thấy **KHÔNG** hỗ trợ `hash_registry_lookup_failed`, nên cố ý không đánh dấu retry mà chuyển Admin kiểm tra, không sửa SQL cron. Admin Chat Pages phân biệt Gemini JSON lỗi, storage, hash, HTTP timeout.
+- **E4 finance regression read-only lúc 17:36:11 VN:** notice #269→ledger #849 (2 triệu) và #270→ledger #850 (3 triệu) đều `received`, mỗi cái 1 auto link, 0 manual duplicate. 4 bill amount_read giữ nguyên, preview reasons lần lượt memo unverified 10.157.000; competing bill 10.000.000; reference/memo unreadable 1.482.000; bill time unreadable 718.000. Không replay, không gửi tin thật, không viết DB production.
+- **Rules source:** `docs/BANK_298_EVIDENCE_PIPELINE.md §6` và `DEPLOYMENT_BANK_BILL.md`. **Giới hạn:** bản báo cáo hiện tại vẫn chỉ có reason chung đối với một số bill nếu API report không trả match_preview; worker output đã phân biệt, nhưng chưa tuyên bố 4 lý do này đã hiện đủ trong danh sách Admin/PWA. E5 live photo mới chưa thực hiện, không tự tạo bill thử thật.
+
+---
+
 ## 2026-11-12 — BANK-299 · Chẩn đoán logic và retry thống nhất (E1 source)
 
 - **Nguồn:** `1sl2tp/chat`, `fix/bank-299-decision-retry-diagnostics-20261112`, base `de1701d26569cae62352d640f8a3f9db0168a7e6`. Khóa bảng quyết định tại `docs/BANK_298_EVIDENCE_PIPELINE.md §6`, không tạo thêm hệ thống tự học/tự chỉnh dữ liệu.
