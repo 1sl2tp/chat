@@ -1,3 +1,15 @@
+## 2026-11-12 — BANK-298 E4 VERIFIED · 9-stage evidence pipeline consistency
+
+- **Root fix and provenance:** [PR #263](https://github.com/1sl2tp/chat/pull/263) merged into `1sl2tp/chat:main` at `5437e7bb8a859c482647c616fe0a2049cfb1aef1`. Verify V21 PR [43197457928](https://github.com/1sl2tp/chat/actions/runs/43197457928) SUCCESS; main [43197698578](https://github.com/1sl2tp/chat/actions/runs/43197698578) SUCCESS. First test error was an incorrect expectation: 3-minute bank mismatch must be `review/bank_time_outside_one_minute`, not `waiting_bank_event`; fixed before green CI.
+- **Live release:** Existing connected Supabase connector deployed ONLY `v21-bank-bill-event v40→v41 ACTIVE` to `vtqhbhrkdxirqeqkgylo`, `verify_jwt=false`, **8/8 files byte-for-byte matched** against verified source. Changed files restricted to `index.ts`, `bill-app-preview.mjs`, new `bill-vietnam-day.mjs`; all other 5 unchanged. `v21-agribank-notification-ingest v2 ACTIVE` 3/3 unchanged.
+- **E1 fixes:** Strict bank calendar date prevents 31/02/2026 normalization; own-transfer exclusion recognizes accented `Bùi Xuân Tùng` at START of bank memo including anchored QR/MB routing without excluding a third-party transfer memo ending in beneficiary name; Gemini 30-second abort covers response body, and HTTP 200 broken JSON/parts is retryable `gemini_invalid_json`, abort stays AbortError; OCR daily scan quota now resets 00:00 Vietnam (not UTC 07:00 VN) and fails closed when DB quota query unavailable. 60-second financial guard, memo, amount, account, idempotence, RPC and bank notification source unchanged.
+- **Baseline before release, READ-ONLY:** Last 7 days: 87 receipts; received 61, non_bill 18, duplicate 4, amount_read 4, failed/review 0. These are outcome counts, **NOT measured OCR correctness**.
+- **After release verified 17:10 VN:** bank notice #269 ↔ ledger #849 (2m), notice #270 ↔ ledger #850 (3m), each 1 auto link and 0 manual links, statuses received; no new financial writes or customer sends during this audit.
+- **Formal 9-stage decision logic and proposed improvements:** `docs/BANK_298_EVIDENCE_PIPELINE.md`; suggestion of targeted second OCR pass and anonymized human-labeled gold corpus is **proposal only**, NOT yet enabled in production.
+- **Limits:** E4 code/source/runtime pass; no new live customer photo/e2e/iPhone test since v41. Do not infer accuracy percentage or say E5 device done. GitHub Actions runner `SUPABASE_ACCESS_TOKEN` remains independent from working Supabase connector (release run [43197698564](https://github.com/1sl2tp/chat/actions/runs/43197698564) failed closed); never create a new token or switch repo to bypass.
+
+---
+
 ## 2026-11-12 — BANK-298 · Consistency audit: self transfer, calendar, technical retry, Vietnam scan quota
 
 - **Production baseline read-only (7 days)**: 87 bill receipts: 61 `received`, 18 `non_bill`, 4 `duplicate`, 4 `amount_read`, 0 `failed/review` hiện tại. Đây là trạng thái, KHÔNG phải accuracy được gán nhãn.
