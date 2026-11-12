@@ -26,11 +26,11 @@ for(const invalid of [null,0,999,-1000,Number.MAX_SAFE_INTEGER+2,Infinity,'not m
 }
 const dialog=source.slice(source.indexOf('async function openCollectionDialog(bank){'),
  source.indexOf('\nfunction closeViewer(){'));
-assert(dialog.includes("money(accounting.bookedVnd)+' · Agribank #'"),'label uses recorded amount');
+assert(dialog.includes("bankDisplayVnd(accounting.bookedVnd)+' · Agribank #'"),'label uses recorded amount');
 assert(dialog.includes("'Ngân hàng thực nhận: '+bankManualVnd(accounting.bankVnd)"));
 assert(dialog.includes("'Ghi thu công nợ: '+bankManualVnd(accounting.bookedVnd)"));
 assert(dialog.includes("' · Bỏ '+accounting.ignoredVnd+' đ lẻ"),'visible bank discrepancy');
-assert(dialog.includes("save.textContent='Thu '+money(accounting.bookedVnd)"),'submit amount consistent');
+assert(dialog.includes("save.textContent='Thu '+bankDisplayVnd(accounting.bookedVnd)"),'submit amount consistent');
 assert(dialog.includes('Number(data.amount_vnd)!==accounting.bankVnd'),'stale credit must fail closed');
 assert(dialog.includes('Number(data.recorded_amount_vnd)!==accounting.bookedVnd'),
  'server accounting must match the rounded preview before the button is enabled');
