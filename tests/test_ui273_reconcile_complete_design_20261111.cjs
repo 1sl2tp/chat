@@ -11,7 +11,7 @@ const start=html.indexOf('id="bankReportDashboard"');
 const end=html.indexOf('id="conversationContentAxis"',start);
 const report=html.slice(start,end);
 assert(start>0&&end>start);
-assert.equal((report.match(/VND · Giờ Việt Nam/g)||[]).length,1);
+assert.equal((report.match(/Số tiền ÷ 1\.000 · Giờ VN 24h/g)||[]).length,1);
 assert(report.includes('class="bank-report-help"'));
 assert(report.includes('aria-label="Giải thích các chỉ số đối soát"'));
 for(const label of ['Tiền vào NH','Đã thu','Đã khớp bill','Bill chưa khớp','Chưa gắn bill']){
