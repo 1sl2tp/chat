@@ -2,6 +2,14 @@
 
 > **Đọc trước mỗi lần phát hành OCR/đối soát/thu tự động. Không đoán nhánh, repo, project hoặc tạo token mới chỉ vì một workflow báo thiếu secret.**
 
+## E5 BANK-293 — Hoàn tất ghi thu 2.000.000đ Cô Ngọc tt, 12/11/2026
+
+- Mã nguồn nguồn duy nhất `1sl2tp/chat:main` commit `764be518ddcefec5e6cd71ba93ba8b36d22b5558` sau PR #255 + Verify V21 PASS. Bản deploy connector Supabase có kiểm chứng **`v21-bank-bill-event v36 ACTIVE`**, mã tệp **6/6 khớp main**; `v21-agribank-notification-ingest v2` vẫn đúng **3/3** và không được deploy lại chỉ để tăng phiên bản. Không dùng token mới hoặc nguồn nhánh feature.
+- **Đã tự thu đúng một lần:** Agribank notice **#269** +2.000.000đ lúc **09:17**, bill Cô Ngọc tt `ad364b30-9d8b-4e87-b642-83a36ab647b1` được xử lý worker v36 thành `received`, OCR literal date `12 thg 11, 2026`, `printed_date_invalid=false`, ledger **#849** lúc **10:39:30 VN**. Tổng AI attempts=**3**, không tiếp tục quét.
+- **Số dư nợ:** 100.000.000đ trước thu → **98.000.000đ sau thu**; ledger `amount_vnd=-2000` tính theo nghìn đồng, một app collection link từ bill đến #269, 0 manual link. Không tạo hoặc gửi một khoản thu, tin Chat/Zalo khác để kiểm tra. Không rollback khoản tiền hợp lệ.
+- Các ghi chú *chưa thu* phía dưới là trạng thái cũ trước 10:39 ngày 12/11, không còn là chỉ thị tiếp tục thu. **CẤM gọi lại worker/retry/thu thủ công đối với notice #269 hoặc bill đã `received`**.
+- Giữ mọi chính sách ngày giờ Việt Nam, bank memo/account/uniqueness/RPC chống trùng, và sổ thu production; E5 được chứng minh bằng Supabase canonical, chưa xác minh tương tác giao diện iPhone/PWA trực tiếp.
+
 ## BANK-293 — Chữ viết tắt “thg” trên bill Techcombank
 
 - Ảnh thực sự in `12 thg 11, 2026 lúc 9:17` (ngày đầy đủ, `thg` = tháng), không phải chữ “tháng” như nhận định đầu tiên. Parser mới phải phân biệt ngày có dấu phẩy, tháng viết tắt và hậu tố giờ; đồng thời **so sánh lại giờ in với thời gian giao dịch**. Ngày không hợp lệ hoặc giờ mâu thuẫn vẫn phải về `review`.
