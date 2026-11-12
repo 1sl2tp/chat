@@ -12,6 +12,7 @@ on:
       - "tests/test_bank286_recognition_casebook_20261111.mjs"
 
       - "tests/test_bank287_agribank_qr_memo_20261112.mjs"
+      - "tests/test_bank291_techcombank_comma_date_20261112.mjs"
       - "tests/test_bank288_edge_deploy_main_only_20261112.cjs"
       - ".github/workflows/deploy-bank-bill-edge.yml"
   workflow_dispatch:
@@ -66,6 +67,7 @@ jobs:
           node tests/test_bank284_receipt_fields_manual_fallback_20261111.mjs
           node tests/test_bank286_recognition_casebook_20261111.mjs
           node tests/test_bank287_agribank_qr_memo_20261112.mjs
+          node tests/test_bank291_techcombank_comma_date_20261112.mjs
           node tests/test_bank288_edge_deploy_main_only_20261112.cjs
       - name: Require configured Supabase deployment credential
         shell: bash
