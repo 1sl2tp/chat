@@ -77,8 +77,10 @@ assert(block.includes('#bankReportDashboard .bank-report-controls > input'));
 assert(block.includes('grid-template-columns:repeat(6,minmax(0,1fr))'));
 assert(block.includes('@media(max-width:760px)'));
 assert(block.includes('grid-template-columns:repeat(3,minmax(0,1fr))'));
-assert(block.includes('grid-template-columns:repeat(var(--bank-task-columns,3),minmax(0,1fr))'));
-assert(js.includes("actions.style.setProperty('--bank-task-columns',String(waiting.length));"),
+assert(block.includes('grid-template-columns:repeat(3,minmax(0,1fr))'));
+assert(block.includes('.bank-report-work-actions[data-task-count="2"]'));
+assert(block.includes('.bank-report-work-actions[data-task-count="1"]'));
+assert(js.includes("actions.dataset.taskCount=String(waiting.length);"),
  'task count and layout column count must stay in sync');
 assert(block.includes('width:100%;max-width:100%;min-width:0;box-sizing:border-box'));
 assert(block.includes('min-height:39px'));
