@@ -6,6 +6,7 @@ import {previewBillAppMatch,previewBillReferenceMatch} from "./bill-app-preview.
 import {compareBillTransferIdentity} from "./bill-transfer-identity.mjs";
 import {eligibleForPrintedDateRescan} from "./bill-review-recheck.mjs";
 import {requestBillGemini} from "./bill-gemini-failover.mjs";
+import {vietnamBusinessDayStartUtc} from "./bill-vietnam-day.mjs";
 
 const db=createClient(Deno.env.get("SUPABASE_URL")||"",Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"",{auth:{persistSession:false,autoRefreshToken:false}});
 const response=(body:any,status=200)=>new Response(JSON.stringify(body),{status,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store"}});
@@ -318,10 +319,16 @@ Deno.serve(async req=>{
  if(!message||message.deleted_at||message.sender_account_id!==job.customer_account_id||
     !account||account.role!=="user"||account.contact_group!=="customer"||account.deleted_at||account.locked_at)return response({error:"not_customer_submitted"},403);
  if(!Number.isFinite(Date.parse(job.sent_at))||Date.parse(job.sent_at)>Date.now()+2*60000)return response({error:"historical_asset_not_auto_processed"},409);
- const now=new Date(),todayUTC=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate())).toISOString();
- const {count:perCustomer}=await db.from("chat_bank_bill_receipts").select("*",{head:true,count:"exact"}).eq("customer_account_id",job.customer_account_id).gte("created_at",todayUTC);
- const {count:allCustomers}=await db.from("chat_bank_bill_receipts").select("*",{head:true,count:"exact"}).gte("created_at",todayUTC);
- if((perCustomer||0)>30||(allCustomers||0)>200){
+ // BANK-298: use VN midnight, never reset per-customer/global OCR budgets at 07:00 VN.
+ const now=new Date(),todayUTC=vietnamBusinessDayStartUtc(now);
+ const [{count:perCustomer,error:customerBudgetError},{count:allCustomers,error:globalBudgetError}]=await Promise.all([
+   db.from("chat_bank_bill_receipts").select("*",{head:true,count:"exact"}).eq("customer_account_id",job.customer_account_id).gte("created_at",todayUTC),
+   db.from("chat_bank_bill_receipts").select("*",{head:true,count:"exact"}).gte("created_at",todayUTC)
+ ]);
+ // A failed quota query is a TECHNICAL error, not proof that the budget is zero.
+ if(customerBudgetError||globalBudgetError||perCustomer===null||allCustomers===null)
+   return response({ok:false,error:"scan_budget_unavailable",ai_called:false},503);
+ if(perCustomer>30||allCustomers>200){
    await db.from("chat_bank_bill_receipts").update({status:"review",reason:"daily_scan_limit_no_collection"}).eq("media_asset_id",asset).eq("status","queued");
    return response({ok:true,status:"review",reason:"daily_scan_limit"},200);
  }
@@ -359,7 +366,8 @@ Deno.serve(async req=>{
    for(let n=0;n<bytes.length;n+=16000)b64+=String.fromCharCode(...bytes.subarray(n,Math.min(bytes.length,n+16000)));
    const prompt=SYSTEM_PROMPT;
    const ctl=new AbortController();const timeout=setTimeout(()=>ctl.abort(),30000);
-   let gr:Response,usedModel=model;
+   let usedModel=model;
+   let modelResult:any;
    try{
      const vision=await requestBillGemini({
        key:geminiKey,model,
@@ -367,10 +375,21 @@ Deno.serve(async req=>{
          generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:1100}},
        signal:ctl.signal
      });
-     gr=vision.response;usedModel=vision.usedModel;
+     usedModel=vision.usedModel;
+     // BANK-298: Response.json() is part of the SAME 30-second OCR deadline.
+     // An HTTP 200 with a broken body is a retryable model/service problem,
+     // not evidence that the customer's photo is an invalid bill.
+     try{modelResult=await vision.response.json();}
+     catch{
+       // Keep timeout distinct from a malformed Gemini response body.
+       if(ctl.signal.aborted)throw new Error("AbortError");
+       throw new Error("gemini_invalid_json");
+     }
+     if(!modelResult||typeof modelResult!=="object")throw new Error("gemini_invalid_json");
    }finally{clearTimeout(timeout);}
-   const modelResult=await gr.json();
-   const resultString=(modelResult.candidates?.[0]?.content?.parts||[]).map((x:any)=>String(x.text||"")).join("");
+   const parts=modelResult.candidates?.[0]?.content?.parts;
+   if(!Array.isArray(parts))throw new Error("gemini_invalid_json");
+   const resultString=parts.map((x:any)=>String(x?.text||"")).join("");
    let parsed:any;try{parsed=JSON.parse(resultString)}catch{throw new Error("gemini_invalid_json")}
    const fields=readV4Fields(parsed,{sentAt:job.sent_at});
    const verdict=validateVisionRead(parsed);

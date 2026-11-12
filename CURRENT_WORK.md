@@ -1,3 +1,14 @@
+## 2026-11-12 — BANK-298 · Consistency audit: self transfer, calendar, technical retry, Vietnam scan quota
+
+- **Production baseline read-only (7 days)**: 87 bill receipts: 61 `received`, 18 `non_bill`, 4 `duplicate`, 4 `amount_read`, 0 `failed/review` hiện tại. Đây là trạng thái, KHÔNG phải accuracy được gán nhãn.
+- **Chỗ mâu thuẫn thật:** own-transfer filter trong Edge chỉ xem `BUI XUAN TUNG` ASCII ở đầu memo, không phát hiện tên có dấu/QR/MB khi ingest flag sai; kiểm tra ngày bank dùng `Date.parse` có thể tự normalize ngày không tồn tại; 30s Gemini timeout kết thúc trước khi parse HTTP body; malformed HTTP 200 body có thể thành `review` thay vì retryable technical; quota scan theo 00:00 UTC thay vì 00:00 VN (07:00 lệch).
+- **BANK-298 source branch:** `fix/bank-298-consistent-time-selftransfer-20261112`, chỉ `1sl2tp/chat`, base `378d6e8caa860719ebb8ac50f6dec7983861f71b`. Update `bill-app-preview.mjs` (date roundtrip & accented own-transfer), `index.ts` (30s Gemini body, technical JSON, VN quota + fail closed on DB query error), new `bill-vietnam-day.mjs`. Không đổi ledger/SQL RPC.
+- **Kiểm thử**: `tests/test_bank298_evidence_clock_retry_quota_20261112.mjs` trong Verify V21/Edge release: ngày giả 31/02, năm nhuận thật, QR/MB own sender có dấu, thụ hưởng ở cuối memo hợp lệ, ranh giới nửa đêm VN, HTTP body parse time limit.
+- **9 bước và hướng tối ưu mới** (hai lượt OCR có điều kiện, corpus vàng, độc lập AI↔bank, quan sát các bước, chưa áp dụng tự thu): `docs/BANK_298_EVIDENCE_PIPELINE.md`.
+- **E1 source**; chỉ merge + release sau Verify PASS, đúng `chat:main` và Supabase project `vtqhbhrkdxirqeqkgylo` qua connector đã có. Không tạo token, không deploy ingest nếu không đổi, không sửa production DB, không chạy lại bank #269/#270 hoặc ledger #849/#850.
+
+---
+
 ## 2026-11-12 — BANK-297 E4 VERIFIED · Tên người nhận BUI XUAN TUNG
 
 - **Mã đã sửa:** PR [#262](https://github.com/1sl2tp/chat/pull/262) merged tại `2a5e81e1e85895521647c9051163bb5cf37f2fb8` thuộc `1sl2tp/chat:main`. Verify V21 PR run [43193785600](https://github.com/1sl2tp/chat/actions/runs/43193785600) SUCCESS; Verify main run [43194022382](https://github.com/1sl2tp/chat/actions/runs/43194022382) SUCCESS.

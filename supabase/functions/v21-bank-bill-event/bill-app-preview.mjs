@@ -2,7 +2,19 @@
 import {compareBillTransferIdentity,competesForBankCredit} from "./bill-transfer-identity.mjs";
 import {normalizeBillRecipientName} from "./bill-amount-rules.mjs";
 const when=x=>{const n=Date.parse(x||"");return Number.isFinite(n)?n:null;};
-const bankTime=x=>when(String(x||"").replace(" ","T")+"+07:00");
+// Strict VN wall-clock parser shared by bill and official OTT timestamps.
+// JS Date.parse may silently normalize 31/02 -> March: reject it explicitly.
+// The financial SQL RPC independently verifies the same date/time.
+function bankTime(value){
+ const text=String(value||"").trim().replace("T"," ");
+ const m=/^(20\d{2})-([01]\d)-([0-3]\d) ([01]\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/.exec(text);
+ if(!m)return null;
+ const y=Number(m[1]),mon=Number(m[2]),day=Number(m[3]);
+ const calendar=new Date(Date.UTC(y,mon-1,day));
+ if(calendar.getUTCFullYear()!==y||calendar.getUTCMonth()!==mon-1||
+    calendar.getUTCDate()!==day)return null;
+ return Date.UTC(y,mon-1,day,Number(m[4]),Number(m[5]),Number(m[6]||0))-7*3600000;
+}
 // Prefer Agribank's own transaction time, not Android's potentially delayed push time.
 function bankEventTime(event){
  const text=String(event?.body||"");
@@ -19,10 +31,17 @@ function creditAccountFromEvent(e){
  return m?.[1]||null;
 }
 function ownTransferNotice(e){
- const m=/Nội dung giao dịch:\s*([^\r\n.]+)/i.exec(String(e?.body||""));
- // BANK-265: the beneficiary may appear AFTER "chuyen tien den".
- // Exclude only a sender beginning with the account-holder name.
- return !!(e?.is_own_transfer===true || (m&&/^\s*BUI\s+XUAN\s+TUNG(?:\s|[^\w]|$)/i.test(m[1])));
+ // BANK-298: the bank can spell the account-holder name with accents and
+ // can wrap its memo in QR - / MB(six-digit-code)(literal original memo).
+ // Only inspect a name at the START of the real sender memo. A beneficiary
+ // mentioned AFTER "chuyen tien den" must never be mistaken for the sender.
+ if(e?.is_own_transfer===true)return true;
+ const raw=bankMemo(e?.body);
+ const qr=/^QR *[-–:] +/i;
+ const unwrappedQr=qr.test(raw)?raw.replace(qr,""):raw;
+ const mb=/^MB\([0-9]{6}\)\(([^()]*)\)\.?\s*$/i.exec(unwrappedQr);
+ const normalized=normalizeBillRecipientName(mb?mb[1]:unwrappedQr);
+ return /^BUI XUAN TUNG(?:\s|[^A-Z0-9]|$)/.test(normalized);
 }
 export function previewBillAppMatch(bill,events,otherBills=[],now=Date.now()){
  if(bill?.status!=="amount_read"||!Number.isSafeInteger(bill.amount_vnd)||bill.amount_vnd<=0)return{status:"review",reason:"bill_unreadable"};
