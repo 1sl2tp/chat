@@ -207,6 +207,10 @@ jobs:
         run: node tests/test_bank234_thousands_with_remainder_20261104.cjs
       - name: BANK-224 accessible keyboard ownership for both bank reconciliation dialogs
         run: node tests/test_bank224_review_dialog_keyboard_20261102.cjs
+      - name: BANK-306 cross-device dedupe and missing bank-credit review
+        run: |
+          node tests/test_bank306_agribank_global_dedupe_gap_20261112.cjs
+          node --check bank-report-dashboard.js
       - name: BANK-225 bank report session identity and stale media privacy
         run: |
           node --check bank-report-dashboard.js
@@ -567,10 +571,6 @@ jobs:
         run: node tests/test_chat_idb_tx_abort_recovery_20261110.cjs
       - name: Chat immediate message and directory scroll regression
         run: node tests/test_v21_139_immediate_message_directory.js
-      - name: BANK-306 cross-device dedupe and missing bank-credit review
-        run: |
-          node tests/test_bank306_agribank_global_dedupe_gap_20261112.cjs
-          node --check bank-report-dashboard.js
       - name: BANK-162 Agribank Plus notification contract
         run: |
           node tests/test_bank162_notification_parser.mjs
