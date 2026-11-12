@@ -22,6 +22,7 @@ on:
       - "tests/test_bank298_evidence_clock_retry_quota_20261112.mjs"
       - "tests/test_bank299_decision_retry_matrix_20261112.mjs"
       - "tests/test_bank303_gemini_invalid_json_recovery_20261112.mjs"
+      - "tests/test_bank304_android_agribank_listener_health_20261112.cjs"
       - "tests/test_bank288_edge_deploy_main_only_20261112.cjs"
       - ".github/workflows/deploy-bank-bill-edge.yml"
   workflow_dispatch:
@@ -86,6 +87,7 @@ jobs:
           node tests/test_bank298_evidence_clock_retry_quota_20261112.mjs
           node tests/test_bank299_decision_retry_matrix_20261112.mjs
           node tests/test_bank303_gemini_invalid_json_recovery_20261112.mjs
+          node tests/test_bank304_android_agribank_listener_health_20261112.cjs
           node tests/test_bank288_edge_deploy_main_only_20261112.cjs
       - name: Require configured Supabase deployment credential
         shell: bash
