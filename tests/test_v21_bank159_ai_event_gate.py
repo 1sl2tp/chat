@@ -4,6 +4,7 @@ ROOT=Path(__file__).resolve().parents[1]
 SQL=(ROOT/"supabase/migrations/20261018172000_chat_bank_bill_sms_gated_ai.sql").read_text(encoding="utf-8")
 EDGE=(ROOT/"supabase/functions/v21-bank-bill-event/index.ts").read_text(encoding="utf-8")
 PREVIEW=(ROOT/"supabase/functions/v21-bank-bill-event/bill-sms-preview.mjs").read_text(encoding="utf-8")
+VISION=(ROOT/"supabase/functions/v21-bank-bill-event/bill-gemini-failover.mjs").read_text(encoding="utf-8")
 
 def test_only_sms_opens_bill_scan_dispatch():
     assert "waiting_for_banking_sms" in SQL
@@ -27,7 +28,10 @@ def test_bill_is_classified_before_bank_notification_but_never_posts_without_mat
     assert 'db.rpc("chat_bank_app_collect"' in EDGE
     assert 'matchPreview?.status==="candidate_unique"' in EDGE
     assert "ledger_written:false" in EDGE
-    assert EDGE.index('db.storage.from("v21-media").download')<EDGE.index('generativelanguage.googleapis.com')
+    # BANK-295: image validation + binary download remain before the Gemini module call.
+    assert EDGE.index('db.storage.from("v21-media").download')<EDGE.index("await requestBillGemini({")
+    assert "generativelanguage.googleapis.com" in VISION
+    assert "if(primary.status!==503" in VISION
 
 
 def test_no_db_debt_mutations_or_background_polling():
