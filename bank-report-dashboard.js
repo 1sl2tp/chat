@@ -1161,8 +1161,8 @@ async function openCollectionDialog(bank,suggestedBill=null){
  const noteLabel=el('label','bank-review-label','Nội dung thu (bắt buộc)');
  const note=el('textarea','bank-review-explanation');
  note.rows=3;note.minLength=5;note.maxLength=1000;note.required=true;
- const defaultNote='Thu chuyển khoản Agribank · '+agribankDisplayTime(bank.bank_time,ui.date.value);
- note.value=defaultNote;
+ note.value='Thu chuyển khoản Agribank · '+agribankDisplayTime(bank.bank_time,ui.date.value);
+ const defaultNote=note.value;
  noteLabel.appendChild(note);form.appendChild(noteLabel);
  const consent=el('label','bank-review-consent');
  const verified=el('input');verified.type='checkbox';verified.required=true;
