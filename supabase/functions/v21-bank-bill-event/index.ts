@@ -468,7 +468,9 @@ Deno.serve(async req=>{
       ocr_iso_date_conflict:fields.ocr_iso_date_conflict,
       transfer_content:fields.transfer_content,
       transaction_time_precision:fields.transaction_time_precision,
-      recipient_name:fields.receiving_name,receiving_bank:fields.receiving_bank,
+      recipient_name:fields.receiving_name,
+      recipient_name_printed:typeof parsed?.recipient_name==="string"?parsed.recipient_name.trim().slice(0,120):null,
+      receiving_bank:fields.receiving_bank,
       sender_name:fields.sender_name,sending_bank:fields.sending_bank,
       match_preview:storedPreview}});
    await db.from("chat_bank_bill_image_hashes").update({amount_vnd:amount,scan_status:amount===null?"unreadable":"amount_read"})

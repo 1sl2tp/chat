@@ -1,3 +1,13 @@
+## 2026-11-12 · BANK-297 — BUI XUAN TUNG beneficiary normalization (E1 source, E2 pending)
+- **Đúng repo:** `1sl2tp/chat`, branch `fix/bank-297-recipient-name-canonical-20261112`; base `ce405493ac1cdac6fc80e6558eda7a877e404785`. Không sửa TAPHOA/1988 hay nhánh không liên quan.
+- **Phát hiện:** OCR `readV4Fields` và preview đã bỏ dấu tên người nhận, nhưng RPC SQL `chat_bank_app_collect` chỉ `upper + whitespace`. Tên có dấu trong dữ liệu lịch sử có thể bị `recipient_name_conflict`. OCR mới đã lưu ASCII nên thường không phát sinh; chuẩn hóa lại như một helper duy nhất và lưu nguyên văn là tăng tính nhất quán.
+- **Fix nguồn:** prompt yêu cầu chỉ đọc trường Người nhận/Người thụ hưởng; `recipient_name_printed` lưu nguyên văn OCR, `receiving_name` chuẩn hóa chính xác (NFD, đ→d, uppercase, space). `bill-app-preview` dùng cùng helper, không chấp nhận partial/fuzzy. Tên khác rõ ràng phải `review`; tên không thấy không được tưởng tượng. Bằng chứng tiền vào và RPC chống trùng giữ nguyên.
+- **SQL draft nằm ngoài supabase/migrations và KHÔNG apply production:** `docs/proposed-sql/BANK_297_strict_unaccent_beneficiary_name_NOT_APPLIED.sql` chỉ đổi đúng 1 predicate dùng `extensions.unaccent` đã có, giữ nguyên privilege, timestamp, duplicate guard và khóa. Không tự thay production DB.
+- **E2/E3:** Test `test_bank297_recipient_name_strict_20261112.mjs` chạy trong Verify V21 và Edge deploy check; chỉ merge/deploy Edge sau CI PASS từ đúng `chat:main` + connector Supabase có sẵn; không tạo token mới, không deploy ingest nếu không đổi.
+- **Không đụng bút toán:** bank #269/#270, ledger #849/#850 đã thu vẫn giữ nguyên. E4/E5 mới chỉ khi có bằng chứng production; chưa gửi/chạy test có tiền thật.
+
+---
+
 ## 2026-11-12 — BANK-296 E5 FINANCE VERIFIED · Gemini 503 / Agribank MB memo / Cô Ngọc tt
 
 - **Source:** chỉ 1sl2tp/chat:main, BANK-295 commit 2a8574ee9b8efa4a0f8fc41c3afc4ea2a6ad6b52 (PR #259), BANK-296 commit 073e46b8f818cfcdcb32529c5cb6df6b2426b817 (PR #261). Không lấy mã từ TAPHOA hoặc 1988.
