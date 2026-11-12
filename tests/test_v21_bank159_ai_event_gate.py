@@ -31,7 +31,12 @@ def test_bill_is_classified_before_bank_notification_but_never_posts_without_mat
     # BANK-295: image validation + binary download remain before the Gemini module call.
     assert EDGE.index('db.storage.from("v21-media").download')<EDGE.index("await requestBillGemini({")
     assert "generativelanguage.googleapis.com" in VISION
-    assert "if(primary.status!==503" in VISION
+    # BANK-301: bounded Gemini overload recovery moved the hardcoded 503
+    # guard to a declared 502/503/504 capacity whitelist. No 429 fallback.
+    assert "const TRANSIENT_CAPACITY=new Set([502,503,504])" in VISION
+    assert "if(!TRANSIENT_CAPACITY.has(primary.status)" in VISION
+    assert "if(!TRANSIENT_CAPACITY.has(backup.status))" in VISION
+    assert "BILL_OCR_MAX_MODEL_REQUESTS=3" in VISION
 
 
 def test_no_db_debt_mutations_or_background_polling():
