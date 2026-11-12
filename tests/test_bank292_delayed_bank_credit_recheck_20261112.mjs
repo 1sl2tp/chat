@@ -38,7 +38,9 @@ const receipt={amount_vnd:2000000,ledger_id:null,receiving_account:"290118199999
    transfer_success_visible:true,amount_clear:true,
    transfer_content:"DINH THI TUYET chuyen tien"}};
 assert.equal(eligibleForPrintedDateRescan(job,receipt,now),true,
- "one image rescan, never a financial posting, is allowed");
+ "initial bank-backed OCR recovery is allowed");
+assert.equal(eligibleForPrintedDateRescan({...job,attempt_count:2},receipt,now),true,
+ "one final bounded OCR correction for the exact photographed 'thg' abbreviation");
 const reject=[
  [job,{...receipt,ledger_id:848}],
  [job,{...receipt,receiving_account:"290118199999"}],
@@ -53,7 +55,7 @@ const reject=[
  [job,{...receipt,raw_read:{...receipt.raw_read,clock_text_conflict:true}}],
  [job,{...receipt,raw_read:{...receipt.raw_read,ocr_iso_date_conflict:true}}],
  [job,{...receipt,raw_read:{...receipt.raw_read,transaction_selection:"unclear"}}],
- [{...job,attempt_count:2},receipt],
+ [{...job,attempt_count:3},receipt],
  [{...job,status:"amount_read"},receipt],
  [{...job,sent_at:"2026-11-11T02:17:44Z"},receipt],
  [{...job,scanned_at:"2026-11-12T02:20:00Z"},receipt]
