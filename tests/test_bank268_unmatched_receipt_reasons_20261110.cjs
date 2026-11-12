@@ -41,12 +41,15 @@ assert.equal(issue(n(249,364000,'2026-11-10T11:06:00Z'),[
  {...b(364000,'2026-11-10T11:06:08Z','2026-10-11 18:06'),status:'received'}
 ]).label,'Chưa thu · Thiếu bill','received bill never becomes an unlinked collection candidate');
 assert.match(source,/const issue=kind==='unmatched'\?bankUnmatchedIssue\(row,allBills\):null/);
-assert.match(source,/kind==='review_inconsistent'\?'Liên kết cần kiểm tra':/);
-assert.match(source,/kind==='review_inconsistent'\?'Liên kết cần kiểm tra':\s*issue\?\.label/,
- 'BANK-309 preserves the true unmatched reason instead of a replay-only status');
+assert.match(source,/kind==='review_inconsistent'\?'Cần kiểm tra sổ':/,
+ 'invalid bank-to-ledger link remains a hard review state');
+assert.match(source,/issue\?\.label\?\.includes\('Bill thiếu giờ'\)/,
+ 'bill missing its printed hour is distinguished from missing money');
 assert.match(source,/if\(!candidate\)\{/,
  'tentative duplicate groups cannot open the manual collection action');
-assert.match(source,/if\(issue\)content\.appendChild/);
+assert.match(source,/if\(kind==='unmatched'\)\{/);
+assert.match(source,/bank-report-review-reason/,
+ 'only unmatched bank credits render customer-facing review guidance');
 assert.doesNotMatch(pure,/\.rpc\(|db\.from\(|openCollectionDialog\(/,
  'pure helper cannot post money, submit a report or create a transaction');
 console.log('BANK-268: uncollected bank credits give true diagnostic; no auto-collect state changes PASS');
