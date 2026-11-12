@@ -9,7 +9,7 @@ for(const reason of [
  "gemini_http_408","gemini_http_429","gemini_http_503","gemini_http_599",
  "AbortError","The signal has been aborted","failed to fetch","Load failed",
  "gemini_invalid_json","storage_download_failed","hash_registry_unavailable",
- "hash_registry_lookup_failed","worker_interrupted"
+ "worker_interrupted"
 ]){
  assert.equal(isRetryableBillScanReason(reason),true,reason);
  assert.equal(isRetryableBillScanReason("amount_scan_"+reason),true,"prefixed "+reason);
@@ -22,7 +22,7 @@ for(const reason of [
  "gemini_http_400","gemini_http_401","gemini_http_403",
  "gemini_key_missing","unsupported_image_size","amount_text_unreadable",
  "bill_printed_time_missing","gemini_http_200","gemini_http_404",
- "gemini_http_600","gemini_invalid_json_extra","",
+ "gemini_http_600","gemini_invalid_json_extra","hash_registry_lookup_failed","",
  "garbage gemini_http_503"
 ])assert.equal(isRetryableBillScanReason(reason),false,reason);
 const check=(status,preview,expectedKind,action)=> {
