@@ -1,3 +1,14 @@
+## 2026-11-12 18:09 VN — BANK-301 E4 VERIFIED · Giảm lỗi Gemini 503 khi đọc bill
+
+- **Nguồn đúng:** `1sl2tp/chat:main`, PR [#265](https://github.com/1sl2tp/chat/pull/265) squash merged commit `d5f05f344ed36c7a60f16d8cdef7fa02383f0955`. Verify V21 PR run [43205958414](https://github.com/1sl2tp/chat/actions/runs/43205958414) SUCCESS và main [43206212684](https://github.com/1sl2tp/chat/actions/runs/43206212684) SUCCESS.
+- **Release chính xác:** Kết nối Supabase có sẵn, project `vtqhbhrkdxirqeqkgylo`, chỉ `v21-bank-bill-event v42→v43 ACTIVE` `verify_jwt=false`, **9/9 tệp readback khớp byte-for-byte** mã `main` đã test. **Chỉ** `bill-gemini-failover.mjs` thay đổi; 8 tệp khác (rule OCR, preview Agribank, worker index, idempotence, policy) giữ nguyên. `v21-agribank-notification-ingest v2 ACTIVE` không đổi. GitHub Actions deploy runner vẫn thiếu secret riêng; connector Supabase trực tiếp hoạt động, **không tạo token**.
+- **Khắc phục:** primary Lite → nếu HTTP 502/503/504 thì sau 800ms thử Flash → nếu vẫn 502/503/504 thì sau 1400ms thử Lite cuối; tối đa 3 API calls dưới 30s deadline cũ, 429/401/403/404/400 không được fallback. Cuối cùng vẫn dùng `gemini_http_<status>` để cron 5 phút tự retry có backoff. New diagnostic logs chỉ stage/model/status/elapsed_ms, không chứa bill/khách/key.
+- **Bằng chứng baseline:** 5 receipts hôm 12/11, 3 có `attempt_count>1`, 0 failed cuối cùng. Lỗi 503 Cô Ngọc tt lúc 17:42 đã được retry có điều kiện, 10m vào Agribank #271, ledger #852 ghi tự động đúng một lần. Đây là dữ liệu *trước* phát hành, không chứng minh số lỗi giảm sau v43; không thử gọi Gemini bằng bill khách để tạo lỗi.
+- **Kiểm chứng E4 sau phát hành lúc 18:09:23 VN:** #269→ledger #849 (2m), #270→#850 (3m), #271→#852 (10m), cả ba `received`, mỗi bank notification chỉ 1 auto link, **0** manual duplicate; `current_24h_failed=0`; cron `chat-bank-transient-bill-retry-5m` active, latest status SUCCESS. Không sửa DB production, không thu lại, không gửi khách.
+- **Rule:** `docs/BANK_298_EVIDENCE_PIPELINE.md §8`, `DEPLOYMENT_BANK_BILL.md`. E5: chưa có ảnh mới để đo định lượng cải thiện hoặc QA trực tiếp iOS/PWA sau v43; lỗi 503 của bên Google có thể vẫn xảy ra và sẽ được log từng model.
+
+---
+
 ## 2026-11-12 — BANK-301 · Giảm Gemini 503 khi khách gửi bill (source pending)
 
 - **Chỉ repo:** `1sl2tp/chat`, branch `fix/bank-301-bounded-gemini-overload-retry-20261112`, base `bee4aef0a757285c626b636799e7ecdb96ce6c6f`. Project prod `vtqhbhrkdxirqeqkgylo`, worker v42 ACTIVE trước sửa. Không chạm `taphoaxyz`/`1988` hoặc chuyển nhầm nhánh.
