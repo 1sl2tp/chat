@@ -6,6 +6,7 @@
 > Nếu thay đổi liên quan Realtime, polling, heartbeat, Presence, Supabase RPC, cache, log, cron, retention, push hoặc media phải đọc thêm **[README_RESOURCE_GUARDRAILS.md](./README_RESOURCE_GUARDRAILS.md)**.
 > Quy tắc mặc định: **message/read-state realtime là ưu tiên số 1; một incident → một owner → một patch → một deploy; không thêm polling/fallback mới nếu chưa chứng minh owner hiện tại sai.**
 > Job/deploy đang chạy thì không tạo job thứ hai; xem **[README_NO_WAIT_WORKFLOW.md](./README_NO_WAIT_WORKFLOW.md)**.
+> Với **Supabase Edge OCR bill/thu tự động**, đọc **[DEPLOYMENT_BANK_BILL.md](./DEPLOYMENT_BANK_BILL.md)**: chỉ `1sl2tp/chat:main` → project `vtqhbhrkdxirqeqkgylo` → `v21-bank-bill-event`. Token kết nối Supabase và secret GitHub Actions là hai ngữ cảnh độc lập; không tạo/copy token mới hoặc deploy nhầm nhánh.
 >
 Canonical branch: **main**  
 Current release: **V21.72.39**  
