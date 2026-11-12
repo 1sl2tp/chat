@@ -32,3 +32,16 @@ AI **chỉ đọc** nội dung ảnh: số tiền giao dịch, số tài khoản
 - `SUPABASE_ACCESS_TOKEN` là secret workflow GitHub, **không đồng nghĩa** với quyền truy cập Supabase đang có qua connector. Nếu workflow không nhận secret, không suy luận rằng tài khoản người dùng không có token. Dùng đúng kết nối được cấp phép, không công khai/chép token.
 
 **Giới hạn:** Đây là học theo quy tắc và bộ ca hồi quy, **không** phải tự huấn luyện lại mô hình Gemini hay tự hấp thụ ảnh khách hàng. Phải có bằng chứng độc lập cho mọi thay đổi làm tăng quyền tự thu.
+
+## BANK-317 — Mẫu 10 trường cố định, đọc một lần rồi dùng lại
+
+Khi ảnh bill mới đến: mô hình đọc độc lập đúng 10 ô và lưu trong raw_read.bill_fields_v1. Mỗi ô có giá trị nhìn được trên chính ảnh hoặc null: (1) ngân hàng gửi, (2) ngân hàng nhận, (3) tên tài khoản nhận, (4) số tài khoản nhận, (5) số tiền, (6) ngày giao dịch, (7) giờ giao dịch, (8) nội dung chuyển khoản, (9) mã giao dịch/tham chiếu, (10) mã tra soát. Hình thức chuyển là thông tin phụ trong raw_read.transfer_method, không nằm trong 10 ô chính.
+
+- AI đọc thiếu dù ảnh có chữ rõ: bổ sung hướng dẫn theo tên nhãn/vùng giá trị (cột bên phải, dòng xuống hàng, ảnh điện thoại chụp nghiêng) và thêm ca kiểm thử sau khi con người xác nhận. Không tự điền theo ví dụ hay tài khoản được cấu hình.
+- Ảnh không in một thông tin hoặc thực sự không đọc rõ: lưu null tại trường đó, ghi uncertainty khi cần. Không lấy giờ trên thanh trạng thái điện thoại, giờ gửi Chat, giờ thông báo Agribank hay ngày hiện tại để điền.
+- Mã tra soát (trace_code) khác mã tham chiếu (transfer_reference); nếu thiếu mã tra soát thì không sao chép mã tham chiếu.
+- Sau khi lưu, mọi màn hình báo cáo/đối soát chỉ truy xuất dữ liệu đã lưu, không gọi AI đọc lại. Bill cũ lấy dữ liệu từ raw_read hoặc các cột cũ, không tự quét lại.
+- 10 trường mô tả ảnh bill, không xác nhận tiền thực nhận. Agribank có mẫu thông báo riêng; ghép hai nguồn và chống thu trùng ở bước đối soát, không phải bước OCR.
+- Nếu API báo cáo chưa trả dữ liệu đã lưu, giao diện ghi đúng là API chưa trả OCR; không kết luận AI không đọc được. Bản vá API chỉ đọc BANK-315 đang chờ triển khai theo quy trình.
+
+Ví dụ đã xác minh từ ảnh: bill VPBank chuyển 730.000 ngày 12/11/2026 có tên nhận BUI XUAN TUNG, STK 2901181999999, nội dung LAI VAN TAN chuyen tien, mã tham chiếu NAPAS. Giờ giao dịch không in trên bill (19:31 thuộc thanh trạng thái điện thoại). Mã tra soát 628193 xuất hiện rõ nhưng bản ghi OCR cũ chưa có trường mã riêng; không tự quét lại hoặc sửa dữ liệu cũ chỉ để lấp đầy.
