@@ -32,6 +32,7 @@
 2. Đọc file này.
 3. Nếu chạm Realtime/polling/heartbeat/Presence/RPC/cache/log/cron/push/media/retention: đọc `README_RESOURCE_GUARDRAILS.md`.
 4. Ghi rõ: triệu chứng, owner nghi ngờ, bằng chứng nhỏ nhất, patch nhỏ nhất, rollback.
+   - **BANK-288 release guard:** Với Supabase OCR bank bill, bắt buộc xem [DEPLOYMENT_BANK_BILL.md](./DEPLOYMENT_BANK_BILL.md) trước triển khai: chỉ repo `1sl2tp/chat`, branch `main`, commit đã kiểm thử, project cố định; không suy diễn GitHub Actions secret từ connector token.
 5. Chỉ sửa từ HEAD mới nhất của `main`.
 
 ## 2. Owner runtime
