@@ -963,8 +963,15 @@
 #bankReportDashboard .bank-report-work-title{font-size:12px}
 #bankReportDashboard .bank-report-work-actions{
   display:grid;
-  grid-template-columns:repeat(var(--bank-task-columns,3),minmax(0,1fr));
+  grid-template-columns:repeat(3,minmax(0,1fr));
   gap:6px;max-width:700px;
+}
+#bankReportDashboard .bank-report-work-actions[data-task-count="2"]{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+#bankReportDashboard .bank-report-work-actions[data-task-count="1"]{
+  grid-template-columns:minmax(0,1fr);
+  max-width:220px;
 }
 #bankReportDashboard .bank-report-work-button{
   display:flex;align-items:center;justify-content:center;
