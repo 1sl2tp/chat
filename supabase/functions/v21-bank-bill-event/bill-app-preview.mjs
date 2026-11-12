@@ -73,7 +73,7 @@ export function previewBillAppMatch(bill,events,otherBills=[],now=Date.now()){
    // literal note in MB(6-digit routing code)(EXACT payer note).
    // Only unwrap this complete, anchored bank-side envelope. Never strip
    // arbitrary prefixes, partial text, nested brackets or OCR-side tokens.
-   const mbRoutingEnvelope=/^MB\\([0-9]{6}\\)\\(([^()]*)\\)\\.?\\s*$/i;
+   const mbRoutingEnvelope=/^MB\([0-9]{6}\)\(([^()]*)\)\.?\s*$/i;
    const mbFields=mbRoutingEnvelope.exec(rawBankMemo);
    const bankMemoWithoutMb=mbFields?tidy(mbFields[1]):null;
    if(printedMemo.length<12||!bankText||
