@@ -395,6 +395,7 @@ function renderBankGapWarnings(data){
  const candidates=rows.filter(g=>g&&g.evidence_status==='balance_gap_needs_review'&&
    g.financial_authorized===false&&Number.isSafeInteger(Number(g.gap_vnd))&&Number(g.gap_vnd)>0);
  if(!candidates.length)return;
+ holder.hidden=false; // A bank-balance warning must remain visible even with no ordinary queue items.
  const box=el('div','bank-report-gap-list');
  box.appendChild(el('strong','bank-report-gap-title','Có chênh lệch số dư Agribank cần kiểm tra'));
  for(const gap of candidates.slice(0,10)){
