@@ -54,6 +54,14 @@ function verifyLayout(hasExtra){
    filter:'all',selectedCustomer:null,filters:[['all','Tất cả'],['matched','Đã khớp']],
    bankFilterMobileLabels:{all:'Tất cả',matched:'Đã khớp'},
    money:x=>String(x),isAiScanIssue:()=>false,
+   // UI-only layout fixture: inject the verified view-model boundary.
+   // BANK-307's real transaction collision behavior has independent tests.
+   bankCreditViewModel:rows=>rows,
+   bankCreditGroupingStatus:(groups,raw)=>({
+    minVnd:groups.reduce((sum,x)=>sum+Number(x.amount_vnd||0),0),
+    maxVnd:raw.reduce((sum,x)=>sum+Number(x.amount_vnd||0),0),
+    candidateGroups:0,extraSignals:0
+   }),
    bankResponsiveLabel:x=>({textContent:x}),
    cardValue:(name,value)=>({name,value}),
    el:(tag,className='',value='')=>Object.assign(node(tag),{className,textContent:value}),

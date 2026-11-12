@@ -13,7 +13,7 @@ for(const [input,expected] of [[570000,'570'],[4305000,'4.305'],[4217000,'4.217'
 }
 assert(src.includes("client.rpc('chat_bank_all_credit_statuses'"),'all credits are fetched independently');
 assert(src.includes("bank_credits:Array.isArray(credits.data)?credits.data:[]"));
-assert(src.includes("incoming.reduce((sum,x)=>sum+(Number(x.amount_vnd)||0),0)"));
+assert(src.includes("const incomingStats=bankCreditGroupingStatus(groups,incoming);"),'bank credit display groups are accounted with disclosed ambiguity');
 assert(src.includes("'bank_all','Tiền vào NH'"),'shorter label must preserve the full bank register filter');
 assert(src.includes("kind==='auto_collected'?'Đã thu · Đối soát'"));
 assert(src.includes("kind==='manual_collected'?'Đã thu thủ công'"));
@@ -27,6 +27,8 @@ assert(section.includes("cell('Thông báo Agribank'"),'display bank-side eviden
 assert(section.includes("kind==='review_inconsistent'"),'broken link must be held');
 const grouping=src.slice(src.indexOf('function renderGroups('),src.indexOf('function openPush('));
 assert(grouping.includes("const fullCredits=filter==='all'||filter==='bank_all'||filter==='manual_bank'"));
-assert(grouping.includes("filter==='bank_only'?bankOnly:[]"),'unlinked workflow unchanged');
-assert(grouping.includes("bankCreditLine(row,allBills):detailLine(row,true"),'all and unlinked views distinct');
+assert(grouping.includes("filter==='bank_only'?[...unlinkedCredits,...unmatchedLegacy]:[]"),
+ 'unlinked replay entries are reconciled with confirmed bank credits');
+assert(grouping.includes("bankCreditLine(row,allBills):detailLine(row,true"),
+ 'grouped money-in and legacy unlinked rows use different safe details');
 console.log('BANK-222: canonical money formatting, bank register, safe statuses and ledger links PASS');

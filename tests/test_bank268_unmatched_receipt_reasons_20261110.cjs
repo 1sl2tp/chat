@@ -41,7 +41,9 @@ assert.equal(issue(n(249,364000,'2026-11-10T11:06:00Z'),[
  {...b(364000,'2026-11-10T11:06:08Z','2026-10-11 18:06'),status:'received'}
 ]).label,'Chưa thu · Thiếu bill','received bill never becomes an unlinked collection candidate');
 assert.match(source,/const issue=kind==='unmatched'\?bankUnmatchedIssue\(row,allBills\):null/);
-assert.match(source,/kind==='review_inconsistent'\?'Liên kết cần kiểm tra':issue\?\.label/);
+assert.match(source,/kind==='review_inconsistent'\?'Liên kết cần kiểm tra':/);
+assert.match(source,/candidate\?'Chờ soát thông báo':issue\?\.label/,
+ 'BANK-307 preserves unmatched cause, but tentative replay groups cannot masquerade as unpaid money');
 assert.match(source,/if\(issue\)content\.appendChild/);
 assert.doesNotMatch(pure,/\.rpc\(|db\.from\(|openCollectionDialog\(/,
  'pure helper cannot post money, submit a report or create a transaction');
