@@ -243,15 +243,15 @@ function harness(){
   // Even when a visible iOS PWA suppresses the matched banner, old "AI lỗi"
   // must be closed and the bank report must receive a refresh hint.
   const bankForeground=harness();
-  const bankClient=bankForeground.client('pwa-bank');
-  bankClient.visibilityState='visible';
-  bankForeground.setClients([bankClient]);
+  const foregroundBankClient=bankForeground.client('pwa-bank');
+  foregroundBankClient.visibilityState='visible';
+  bankForeground.setClients([foregroundBankClient]);
   await bankForeground.dispatch('push',{data:{json:()=>bankPush('review','bank:receipt:receipt-852')}});
   assert.equal(bankForeground.activeNotices.filter(n=>!n.closed).length,1);
   await bankForeground.dispatch('message',{data:{
     type:'ADMIN_PUSH_STATE',platform:'ios-pwa',visible:true,focused:true,
     route:'chat',contactId:'another-customer'
-  },source:bankClient});
+  },source:foregroundBankClient});
   await bankForeground.dispatch('push',{data:{json:()=>bankPush('matched','bank:notice:271')}});
   assert.equal(bankForeground.activeNotices.filter(n=>!n.closed).length,0,
     'old failed/awaiting OS notification must clear BEFORE foreground suppression');
