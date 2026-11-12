@@ -440,6 +440,25 @@ function possibleUnlinkedBills(bank,allBills){
     b.reason==='multiple_transactions_ambiguous';
  });
 }
+// BANK-289: suggest a customer for human review, NEVER for automatic posting.
+// An amount-only or Chat-upload timestamp match cannot select a payer.
+function bankBillCustomerSuggestion(bank,allBills){
+ if(!bank||bank.collection_kind!=='unmatched')return null;
+ const bills=possibleUnlinkedBills(bank,allBills);
+ if(bills.length!==1)return null;
+ const bill=bills[0];
+ const creditedMinute=String(bank.bank_time||'').slice(0,16);
+ const billMinute=String(bill.bill_time||'').slice(0,16);
+ const recipient=String(bill.receiving_account||'').replace(/\D/g,'');
+ if(!bill.customer_id||!bill.customer_name||!bill.receipt_id||!bill.asset_id
+    ||bill.notice_id||bill.ledger_id
+    ||!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(creditedMinute)
+    ||billMinute!==creditedMinute
+    ||vietnamBusinessDay(bill.sent_at)!==vietnamBusinessDay(bank.transfer_at)
+    ||Number(bill.amount_vnd)!==Number(bank.amount_vnd)
+    ||!recipient.endsWith('99999')||billHasSuspectSwappedDay(bill))return null;
+ return bill;
+}
 // BANK-223-MANUAL-REVIEW-20261102: Evidence display only. A manual bank
 // collection is not proof that one OCR bill belongs to that transfer.
 function matchingManualCollectionForBill(bill,data){
@@ -605,6 +624,7 @@ function bankCreditLine(row,allBills){
  const kind=String(row.collection_kind||'unmatched');
  const valid=kind==='auto_collected'||kind==='manual_collected';
  const issue=kind==='unmatched'?bankUnmatchedIssue(row,allBills):null;
+ const suggestion=kind==='unmatched'?bankBillCustomerSuggestion(row,allBills):null;
  const wrap=el('details','bank-report-detail');
  wrap.dataset.bankNoticeId=String(row.notice_id);
  const top=el('summary','bank-report-detail-top');
@@ -651,6 +671,9 @@ function bankCreditLine(row,allBills){
  }
  if(kind==='unmatched'){
   if(issue)content.appendChild(el('p','bank-report-detail-reason',issue.detail));
+  if(suggestion)content.appendChild(el('p','bank-report-detail-reason',
+    'Có 1 bill cùng tiền, đúng phút ngân hàng của '+suggestion.customer_name+
+    '. Đây chỉ là gợi ý đối chiếu; chưa xác nhận khách hoặc ghi thu.'));
   const candidates=possibleUnlinkedBills(row,allBills);
   if(candidates.length){
    content.appendChild(el('p','bank-report-detail-reason',
@@ -662,7 +685,8 @@ function bankCreditLine(row,allBills){
    });
   }
   const btn=el('button','bank-report-action','Thu sau khi xác minh');
-  btn.type='button';btn.addEventListener('click',()=>void openCollectionDialog(row));
+  btn.type='button';btn.addEventListener('click',()=>suggestion
+   ?void openCollectionDialog({...row,reviewBillSuggestion:suggestion}):void openCollectionDialog(row));
   actions.appendChild(btn);
  }
  if(kind==='review_inconsistent'){
@@ -1092,6 +1116,7 @@ async function openReviewDialog(bank,candidates){
 }
 // BANK-191: explicit real collection, or link a previously entered manual receipt.
 async function openCollectionDialog(bank){
+ const suggestedBill=bank.reviewBillSuggestion||null;
  if(!active||!isReportContact()||!ui.review)return;
  closeReviewDialog();
  const noticeId=Number(bank.notice_id);
@@ -1139,6 +1164,7 @@ async function openCollectionDialog(bank){
  const note=el('textarea','bank-review-explanation');
  note.rows=3;note.minLength=5;note.maxLength=1000;note.required=true;
  note.value='Thu chuyển khoản Agribank · '+agribankDisplayTime(bank.bank_time,ui.date.value);
+ const defaultNote=note.value;
  noteLabel.appendChild(note);form.appendChild(noteLabel);
  const consent=el('label','bank-review-consent');
  const verified=el('input');verified.type='checkbox';verified.required=true;
@@ -1225,6 +1251,27 @@ async function openCollectionDialog(bank){
    save.disabled=false;
    customerSearch.blur();
   };
+  // Only show a bank/bill suggestion when it is the single matching minute
+  // and the customer still exists in the fresh, authenticated Admin RPC list.
+  // A real click chooses the customer; the consent checkbox and server-side
+  // duplicate/ledger checks remain required before money is written.
+  const suggestedCustomer=suggestedBill&&customers.find(a=>
+    String(a.id)===String(suggestedBill.customer_id));
+  if(suggestedCustomer){
+   const suggest=el('button','bank-report-action',
+     'Chọn khách theo bill: '+suggestedCustomer.name);
+   suggest.type='button';
+   const hint=el('p','bank-review-instruction',
+     'Ảnh bill cùng tiền và đúng phút ngân hàng. Chạm để điền tên tham khảo; '+
+     'vẫn phải xem chứng từ gốc và xác nhận mới được thu.');
+   suggest.addEventListener('click',()=>{
+    if(!bankDialogIsCurrent(overlay,owner)||!suggest.isConnected)return;
+    chooseCustomer(suggestedCustomer);
+    if(note.value===defaultNote)
+     note.value=defaultNote+' · Tham chiếu bill '+String(suggestedBill.receipt_id).slice(0,8);
+   });
+   customerLabel.append(hint,suggest);
+  }
   const paintCustomers=()=>{
    displayed=bankCustomerSearchMatches(customers,customerSearch.value);
    activeIndex=0;customerList.replaceChildren();

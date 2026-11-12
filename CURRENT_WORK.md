@@ -1,3 +1,15 @@
+## 2026-11-12 — BANK-289 · Lựa chọn khách từ bill đúng phút trong đối soát khoản thu cũ
+
+- **E0 production (read-only):** Agribank notice #268 C Hà Trang nhận **10.157.000đ lúc 21:53 VN ngày 11/11/2026**; ảnh bill OCR `88706591-590e-4acb-8911-338ac1cd0ef7` status `amount_read`, chưa có `ledger_id`, 0 manual/auto collection links. Edge `v21-bank-bill-event` v34 ACTIVE đã có BANK-287 nhưng không tự ghi thu bill cũ ngày 12/11 do DB guard chặn qua ngày.
+- **E0 vấn đề UI:** `bank-report-dashboard.js` hiển thị ứng viên bill trong dòng tiền Agribank nhưng cửa sổ **Thu sau khi xác minh** bắt Admin tìm lại khách từ đầu, tăng rủi ro chọn nhầm khi nhiều tên gần giống.
+- **E1 sửa nhỏ, một owner frontend:** `bankBillCustomerSuggestion` chỉ đưa ra **gợi ý duy nhất** khi (1) đúng một bill chưa liên kết, (2) cùng số tiền, (3) **cùng phút giao dịch in trên bill và ngân hàng**, (4) cùng ngày Việt Nam, (5) đuôi tài khoản nhận `99999`, (6) có customer/asset/receipt hợp lệ và không nghi đảo ngày. Không suy luận từ giờ gửi Chat hoặc số tiền đơn lẻ. Dòng Agribank chưa thu hiển thị rõ **đây không phải xác nhận thu**.
+- **E1 Admin UI:** Hộp thoại thu mở gợi ý `Chọn khách theo bill` nhưng chỉ chọn khi **Admin nhấn nút** và khách vẫn có trong kết quả `chat_bank_manual_collection_prepare` từ phiên Admin hiện tại. Ghi chú chỉ thêm tham chiếu bill sau khi Admin nhấn gợi ý. Vẫn yêu cầu xác nhận đã kiểm tra chứng từ và `chat_bank_manual_collect` với session Admin + chống ledger trùng. Ứng viên không duy nhất/thiếu phút/sai ngày/sai tài khoản thì bỏ gợi ý, nhập khách như trước. Không tự thu, không tạo tin nhắn hay AI call, không thay SQL/cron/Edge.
+- **E2:** `tests/test_bank289_historical_verified_bill_suggestion_20261112.cjs` kiểm thử trường hợp thật C Hà Trang và trường hợp sai giờ/số tiền/ngày/tài khoản/khách/trạng thái/ứng viên trùng, khóa không có RPC ghi tiền trong helper, buộc click và checkbox Admin. Đã thêm vào canonical Verify V21; PR CI/Pages chưa xác minh ở bước soạn tài liệu.
+- **E3/E4/E5:** Chỉ sau CI PASS + merge `main` mới có thể đợi Pages tự động publish. Không manually deploy. Bút toán 10.157.000đ **vẫn chưa được ghi thu**; chủ sở hữu/Admin cần xác nhận trong Chat để hoàn tất, không bypass session Admin qua kết nối Supabase.
+- **Rollback:** Revert thay đổi JS/UI + test từ `main`; dữ liệu tiền và receipt ngân hàng không bị thay đổi.
+
+---
+
 ## 2026-11-12 — BANK-287 v34 · Production release verified; historical collection remains pending
 
 - **Bối cảnh và yêu cầu phát hành:** Chủ sở hữu liên tục yêu cầu tiếp tục sửa lỗi và xác nhận token kết nối Supabase đã có. GitHub nguồn chuẩn là `1sl2tp/chat:main` (BANK-287 PR #248, BANK-288 runbook/CI PR #249; main release commit `97e63112462cbaea48df836a127e504d14b58ea8`). Workflow GitHub Actions vẫn phụ thuộc secret `SUPABASE_ACCESS_TOKEN` trong ngữ cảnh runner, không suy diễn từ việc kết nối Supabase của ChatGPT đã được cấp quyền. Không tạo hoặc ghi token mới.
