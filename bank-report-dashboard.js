@@ -1513,16 +1513,21 @@ function bankManualBillEvidenceRows(bill,notice=null,prepared=null,serverState='
  const notices=Array.isArray(notice?.bank_group_notice_ids)?notice.bank_group_notice_ids:[];
  const exact=Boolean(notice?.bank_group_exact);
  const uncertain=Boolean(notice?.bank_group_tentative);
- add('Trùng bill / thông báo',billDuplicate?'Bill được đánh dấu trùng':'Chưa phát hiện bill trùng',
-   possible.length?possible.length+' khoản thu cũ cần kiểm tra':
-    notices.length>1?notices.length+' thông báo cùng giao dịch cần đối chiếu':
-    !notice?'Chưa có ứng viên NH':'Có '+(notices.length||1)+' thông báo ứng viên',
-   billDuplicate||possible.length?'duplicate':uncertain?'review':exact?'matched':'pending',
-   billDuplicate?'Bill trùng · không thu lại':
-   possible.length?'Nghi thu trùng · phải liên kết sổ':
-   uncertain?'Cùng giờ/tiền · chưa chứng minh trùng':
-   exact?'Đã nhận diện bản thông báo phát lại':
-   'Chưa thể kết luận không trùng');
+ add('Thông báo Agribank phát lại','Ảnh bill không phải thông báo Agribank',
+   notices.length>1?notices.length+' bản thông báo cùng giờ/số tiền':
+   bank?'Có một thông báo ứng viên':'Chưa có thông báo ứng viên',
+   uncertain?'review':exact?'matched':'pending',
+   uncertain?'Cần xác minh bản phát lại':exact?'Đã nhận diện phát lại · một giao dịch':
+    'Chưa có kết luận phát lại');
+ add('Trùng bill / trùng khoản thu',
+   billDuplicate?'Bill được đánh dấu trùng':'Bill chưa bị đánh dấu trùng',
+   serverReady?possible.length?possible.length+' khoản thu cũ cần kiểm tra':
+    'Chưa thấy khoản thu trùng trong phạm vi kiểm tra':
+    'Chưa kiểm tra được sổ thu máy chủ',
+   billDuplicate||possible.length?'duplicate':'pending',
+   billDuplicate?'Bill trùng · không thu lại':possible.length?
+    'Nghi thu trùng · phải liên kết sổ':
+    'Chưa thể kết luận không thu trùng');
  return result;
 }
 function bankManualBillPrepareErrorMessage(error){
