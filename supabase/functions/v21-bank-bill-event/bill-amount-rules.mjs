@@ -34,15 +34,14 @@ export function buildStoredBillTenFields(data,fields,amountVnd){
  return {
   sending_bank:text(fields?.sending_bank),
   receiving_bank:text(fields?.receiving_bank),
-  recipient_name:text(fields?.receiving_name),
+  recipient_name:text(data?.recipient_name)?.slice(0,120)||null,
   recipient_account:text(fields?.receiving_account_visible),
   amount_vnd:Number.isSafeInteger(amountVnd)&&amountVnd>0?amountVnd:null,
   transfer_date_printed_vn:text(fields?.transfer_date_printed_vn),
   transfer_time_printed_vn:text(fields?.transfer_time_printed_vn),
   transfer_content:text(fields?.transfer_content),
   transfer_reference:text(fields?.transfer_reference),
-  trace_code:traceCode,
-  transfer_method:method?method.slice(0,80):null
+  trace_code:traceCode
  };
 }
 const VALID_TYPES=new Set(["successful_transfer_receipt","bank_credit_transaction","bank_credit_notification"]);
