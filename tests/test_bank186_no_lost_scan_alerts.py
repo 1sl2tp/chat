@@ -18,7 +18,7 @@ policy=(ROOT/'supabase/functions/v21-bank-bill-event/bill-decision-policy.mjs').
 assert 'amount_scan_' in edge and 'gemini_http_' in policy
 assert 'const transientError=isRetryableBillScanReason(job.reason)' in edge
 assert 'const retryable=isRetryableBillScanReason(reason)' in edge
-assert 'hash_registry_lookup_failed' in policy
+assert 'hash_registry_lookup_failed' not in policy, 'DB cron does not retry this reason; do not claim automatic retry'
 assert 'chat_bank_app_collect' in edge
 assert 'status==="amount_read"&&matchPreview?.source==="agribank_plus_notification"' in edge
 assert "scan_started_at timestamptz" in retry
