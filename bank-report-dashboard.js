@@ -148,7 +148,8 @@ function scanIssueLabel(raw){
  if(/gemini_http_429/i.test(reason))return 'Gemini hết hạn mức — sẽ thử lại có giới hạn';
  if(/gemini_invalid_json/i.test(reason))return 'Dịch vụ AI trả dữ liệu lỗi — sẽ thử lại có giới hạn, không kết luận ảnh sai';
  if(/storage_download_failed/i.test(reason))return 'Lỗi tải ảnh từ hệ thống — chờ thử lại, không kết luận ảnh không phải bill';
- if(/hash_registry_unavailable|hash_registry_lookup_failed/i.test(reason))return 'Lỗi kiểm tra ảnh trùng — chờ thử lại an toàn';
+ if(/hash_registry_lookup_failed/i.test(reason))return 'Lỗi truy vấn ảnh trùng — cần Admin xác minh; lịch tự thử lại hiện không hỗ trợ lỗi này';
+ if(/hash_registry_unavailable/i.test(reason))return 'Lỗi lưu hash ảnh — sẽ thử lại có giới hạn';
  if(/gemini_http_(?:408|5[0-9][0-9])|aborted|aborterror|worker_interrupted|failed to fetch|Load failed/i.test(reason))
    return 'AI hoặc kết nối quá thời gian — chờ thử lại có giới hạn';
  if(/retry_exhausted|old_unresolved|queue_expired/i.test(reason))return 'Đã hết lượt thử — cần Admin xem chứng từ';
