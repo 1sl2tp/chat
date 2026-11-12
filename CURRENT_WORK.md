@@ -1,3 +1,14 @@
+## 2026-11-12 17:51 VN — BANK-300 · Khắc phục 503 và xác minh bill mới 10 triệu của Cô Ngọc tt
+
+- **Ảnh được gửi lúc 17:41:59**, receipt `ee2ddbdb-cbdb-4b48-99a0-18b710c87e19`. Worker `v21-bank-bill-event v42 ACTIVE` lần đầu failed với `amount_scan_gemini_http_503` lúc 17:42:17 (attempt 1); push iOS hiện "AI quét lỗi, sẽ tự thử lại, chưa ghi thu" là snapshot lúc đó. Không nhầm với 3m ledger #850 trước đó.
+- **Retry đúng worker, không viết DB thủ công:** Sau khi đủ 3 phút, dispatch một lần có gate (status failed, 503, attempt 1, no ledger/no link) qua `net.http_post` dùng khóa nội bộ có sẵn trên server; request #15414 `pg_net.timed_out=true` ở phía dispatch nhưng worker hoàn tất attempt 2 lúc 17:47:03, OCR đọc **10.000.000đ**, thời gian bill 12/11 17:41:27, tài khoản/người thụ hưởng đúng, status `amount_read`, preview `waiting_bank_event/no_matching_agribank_notification`.
+- **Bank thông báo muộn:** Agribank #271 ghi có 10m, bank clock 17:41, push posted 17:49:20, ingest 17:49:23. Worker recheck khi event tới tự ghép bill, `chat_bank_app_collect` ghi ledger **#852** lúc **17:49:25**, receipt `received`, note `Chuyển khoản tự động`, ledger `-10000` nghìn VND, balance after `85000` nghìn VND (**85 triệu VND**).
+- **Read-only uniqueness 17:51:** #271 có **1** link auto với receipt mới, **0** link manual, ledger #852; hai notification #269/#270 trước đây giữ 2 link, không trùng. 10m hôm qua #266 ledger #838 là giao dịch khác, không được ghép lại.
+- **Bài học đưa vào rule:** `docs/BANK_298_EVIDENCE_PIPELINE.md §7`. Phân loại rõ AI HTTP 503 (lỗi kỹ thuật có retry) → OCR amount_read (chờ ngân hàng) → bank #271 đến muộn (không dùng giờ push làm giờ giao dịch) → RPC thu đúng 1 lần. `pg_net` timeout không chứng minh worker thất bại; phải đọc receipt/ledger trước khi hành động. Không sửa SQL production, không tạo token, không deploy Edge mới, không gửi khách/test giả.
+- **Giới hạn:** Ảnh chụp màn hình thông báo trên iPhone là thông báo cũ tại lúc thất bại, không đại diện trạng thái hiện tại. Backend giao dịch thật đã đối soát, nhưng chưa kiểm thử trực tiếp việc iOS cập nhật/thu hồi thông báo cũ.
+
+---
+
 ## 2026-11-12 — BANK-299 E4 VERIFIED · Quy tắc chẩn đoán bill + lỗi kỹ thuật
 
 - **Nguồn:** PR [#264](https://github.com/1sl2tp/chat/pull/264) merged vào `1sl2tp/chat:main` commit `f5f17d2683b6684867bd70038cd204dcb43deb8a`; Verify V21 PR [43201013276](https://github.com/1sl2tp/chat/actions/runs/43201013276) PASS, main [43201256680](https://github.com/1sl2tp/chat/actions/runs/43201256680) PASS; Chat Pages [43201256773](https://github.com/1sl2tp/chat/actions/runs/43201256773) PASS. Main có commit tự tạo `b107b6785573ba5e91fd3224745eea1bb61cdad3` chỉ thay `index.html`, `version.json`, không đổi 9 tệp Edge đã Verify.
