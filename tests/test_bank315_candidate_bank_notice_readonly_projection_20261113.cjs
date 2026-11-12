@@ -36,14 +36,15 @@ assert.equal(field('Giờ giao dịch').bank,'19:31');
 assert.equal(field('Giờ giao dịch').tone,'review','missing bill hour must not use phone clock');
 assert.equal(field('Nội dung chuyển khoản').tone,'matched');
 assert.equal(field('Sổ đã ghi thu').tone,'pending','no collection is created by candidate match');
-assert.equal(field('Trùng bill / thông báo').tone,'matched');
+assert.equal(field('Thông báo Agribank phát lại').tone,'matched');
+assert.equal(field('Trùng bill / trùng khoản thu').tone,'pending');
 const legacy=[{...a,bank_body:undefined,bank_fingerprint:undefined},
  {...b,bank_body:undefined,bank_fingerprint:undefined}];
 const weak=helpers.bankManualBillCandidateCredits(bill,legacy,'2026-11-12');
 assert.equal(weak.length,1);
 assert.equal(weak[0].bank_group_tentative,true);
 assert.equal(helpers.bankManualBillEvidenceRows(bill,weak[0]).find(
- x=>x.label==='Trùng bill / thông báo').tone,'review',
+ x=>x.label==='Thông báo Agribank phát lại').tone,'review',
  'same minute+amount alone is not a verified duplicate');
 const wrongDay=helpers.bankManualBillCandidateCredits(bill,[{
  ...a,bank_time:'2026-11-13 19:31:00',bank_body:undefined
