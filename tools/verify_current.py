@@ -140,6 +140,7 @@ subprocess.run(['node',str(ROOT/'tests'/'test_bank288_edge_deploy_main_only_2026
 subprocess.run(['node',str(ROOT/'tests'/'test_bank289_historical_verified_bill_suggestion_20261112.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_bank291_techcombank_comma_date_20261112.mjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_bank294_structural_vn_date_clock_20261112.mjs')],check=True,cwd=ROOT)
+subprocess.run(['node',str(ROOT/'tests'/'test_bank295_gemini_503_fallback_20261112.mjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_bank292_delayed_bank_credit_recheck_20261112.mjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_bank282_yesterday_transfer_summary_20261111.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_vn_daykey_cross_browser_20261029.cjs')],check=True,cwd=ROOT)

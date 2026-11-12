@@ -2,6 +2,14 @@
 
 > **Đọc trước mỗi lần phát hành OCR/đối soát/thu tự động. Không đoán nhánh, repo, project hoặc tạo token mới chỉ vì một workflow báo thiếu secret.**
 
+## BANK-295 · 12/11/2026 · Gemini 503 hai lần trên bill 3.000.000đ (chưa triển khai)
+
+- Cô Ngọc tt gửi bill Agribank 3.000.000đ lúc 15:33, **notification #270** nhận 15:39:22, bill receipt `57ed7476-e435-4091-89a6-041bd3079bdc` lỗi Gemini HTTP 503 hai lần, chưa ghi thu. Không nhầm với bill 2.000.000đ đã thu ở ledger #849.
+- Source chuẩn `1sl2tp/chat:main`, không phải repo TAPHOA hay 1988. Patch BANK-295 thêm **một** model Gemini dự phòng chỉ khi HTTP 503: `gemini-3.5-flash-lite` → `gemini-3.5-flash`, trễ 800ms cùng timeout tổng 30s; giữ nguyên OCR strict/giờ/ngày/bank evidence/RPC. Test mô phỏng không dùng giao dịch production.
+- **Đây là kế hoạch sửa E1, chưa phải E3 deploy.** Sau Verify PASS và merge vào main mới phát hành theo workflow/đúng project `vtqhbhrkdxirqeqkgylo`, đọc ngược nguồn code và rà sổ không trùng. Nếu secret Actions thiếu thì báo rõ, không đoán token, không sửa database production để ép số liệu. Ingest Agribank chỉ redeploy nếu source ingest đổi.
+
+
+
 ## E4 BANK-294 — Bộ đọc cấu trúc ngày/ký tự/tháng đã chạy trên production v37
 
 - **Release source:** `1sl2tp/chat:main` commit `b6305ba3d501bffd799e5b151c9b9476fc14e817`, PR #257, cả Verify V21 trên PR và `main` PASS. Deploy riêng `v21-bank-bill-event v36→v37 ACTIVE` tại project `vtqhbhrkdxirqeqkgylo`, `verify_jwt=false`; 6/6 tệp đọc ngược khớp byte-for-byte với commit nguồn. `v21-agribank-notification-ingest v2` không đổi 3/3.

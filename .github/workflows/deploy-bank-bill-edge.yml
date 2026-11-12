@@ -16,6 +16,7 @@ on:
       - "tests/test_bank291_techcombank_comma_date_20261112.mjs"
       - "tests/test_bank292_delayed_bank_credit_recheck_20261112.mjs"
       - "tests/test_bank294_structural_vn_date_clock_20261112.mjs"
+      - "tests/test_bank295_gemini_503_fallback_20261112.mjs"
       - "tests/test_bank288_edge_deploy_main_only_20261112.cjs"
       - ".github/workflows/deploy-bank-bill-edge.yml"
   workflow_dispatch:
@@ -42,6 +43,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
+          fetch-depth: 0
           persist-credentials: false
       - name: Verify exact release commit and record non-secret provenance
         shell: bash
@@ -73,6 +75,7 @@ jobs:
           node tests/test_bank291_techcombank_comma_date_20261112.mjs
           node tests/test_bank292_delayed_bank_credit_recheck_20261112.mjs
           node tests/test_bank294_structural_vn_date_clock_20261112.mjs
+          node tests/test_bank295_gemini_503_fallback_20261112.mjs
           node tests/test_bank288_edge_deploy_main_only_20261112.cjs
       - name: Require configured Supabase deployment credential
         shell: bash
@@ -84,10 +87,31 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: latest
-      - name: Deploy ONLY the existing bank bill OCR function
+      - name: Identify Agribank ingest changes without changing release source
+        id: affected
+        shell: bash
+        env:
+          PREVIOUS_SHA: ${{ github.event.before }}
+        run: |
+          # Multi-commit pushes use the event's starting SHA; dispatch compares the latest commit.
+          if [ "$GITHUB_EVENT_NAME" = "push" ] && [[ "$PREVIOUS_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            git diff --name-only "$PREVIOUS_SHA" "$GITHUB_SHA" > /tmp/bank-edge-changes.txt
+          else
+            git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA" > /tmp/bank-edge-changes.txt
+          fi
+          if grep -q '^supabase/functions/v21-agribank-notification-ingest/' /tmp/bank-edge-changes.txt; then
+            echo "ingest_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ingest_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Deploy verified bank bill OCR worker only
         shell: bash
         run: |
           supabase functions deploy v21-bank-bill-event \
             --project-ref "$PROJECT_REF" --no-verify-jwt
+      - name: Deploy Agribank ingest ONLY when its source changed
+        if: ${{ steps.affected.outputs.ingest_changed == 'true' }}
+        shell: bash
+        run: |
           supabase functions deploy v21-agribank-notification-ingest \
             --project-ref "$PROJECT_REF" --no-verify-jwt

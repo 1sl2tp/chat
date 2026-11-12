@@ -1,3 +1,13 @@
+## 2026-11-12 — BANK-295 · Agribank #270 +3.000.000đ, Cô Ngọc tt — Gemini 503, E1 PATCH / E2 PENDING
+
+- **Bằng chứng production CHỈ ĐỌC:** Khách Cô Ngọc tt gửi ảnh 15:33:44 VN, receipt `57ed7476-e435-4091-89a6-041bd3079bdc`, hai lần OCR 15:33:57 và 15:40:04 đều lỗi `amount_scan_gemini_http_503`, `ledger_id=NULL`. Agribank nguồn chính thức đã đẩy notification **#270 +3.000.000đ**, bank transfer 15:33, server nhận 15:39:22. Dù có bank evidence, KHÔNG ghi thu nếu chưa đủ OCR account/memo/time hoặc RPC `chat_bank_app_collect` trả kết quả hợp lệ. Không động vào bill 2m/ledger #849 trước đó.
+- **E1 patch nguồn chuẩn:** `1sl2tp/chat`, nhánh fix từ `main` `576842671442acd78e9e934a68c05b59acd72f58`; bổ sung `bill-gemini-failover.mjs` để dùng cùng `GEMINI_API_KEY`, cùng ảnh + prompt, chỉ khi `gemini-3.5-flash-lite` trả HTTP 503 thì chờ 800ms rồi thử đúng một lần `gemini-3.5-flash`. Tổng deadline 30s, không thay DB retry budget, phân loại/ngày/giờ, bank matching hay RPC chống trùng; ghi `model_name` đúng model trả kết quả. Nếu cả hai lỗi thì vẫn `failed`, cron 5 phút với backoff sẵn có tiếp tục; 429/400 không đổi model.
+- **E2 test:** `tests/test_bank295_gemini_503_fallback_20261112.mjs` mô phỏng thành công, 503→thành công, 503→503, 429, 400, abort, network failure, cùng payload/secret và không lặp vô hạn. Thêm vào Verify V21 và Edge workflow. Workflow chỉ deploy lại `v21-agribank-notification-ingest` nếu tệp của ingest thực sự đổi; không triển khai nhầm function.
+- **E3/E4/E5 chưa xác nhận:** Chỉ merge sau Verify V21 PASS; deploy từ `1sl2tp/chat:main` vào `vtqhbhrkdxirqeqkgylo` theo quy trình duy nhất `DEPLOYMENT_BANK_BILL.md`; KHÔNG tự tạo token, không sửa SQL production, không gọi lại receipt đã thu. Ghi rõ nếu Actions thiếu `SUPABASE_ACCESS_TOKEN` trong job. Sau release xác minh Edge readback 7/7 tệp, bank #270 ↔ receipt ↔ ledger/link (nếu có), tránh ghi trùng.
+- **Rollback:** Revert branch/PR qua `main` và dùng luồng release được kiểm soát, không xóa ledger/notification/receipt hợp lệ.
+
+---
+
 ## 2026-11-12 — BANK-294 E4 VERIFIED · Date separator/optional clock Edge v37 production
 
 - **Yêu cầu:** AI hiểu số ngày + chữ/ký tự dấu nối + số tháng + năm nhìn thấy, đọc giờ/phút nếu có (cả khi cùng dòng ngày) và không sử dụng thời gian điện thoại/Chat để bịa dữ liệu.
