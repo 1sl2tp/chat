@@ -19,6 +19,7 @@ on:
       - "tests/test_bank295_gemini_503_fallback_20261112.mjs"
       - "tests/test_bank296_agribank_mb_memo_20261112.mjs"
       - "tests/test_bank297_recipient_name_strict_20261112.mjs"
+      - "tests/test_bank298_evidence_clock_retry_quota_20261112.mjs"
       - "tests/test_bank288_edge_deploy_main_only_20261112.cjs"
       - ".github/workflows/deploy-bank-bill-edge.yml"
   workflow_dispatch:
@@ -80,6 +81,7 @@ jobs:
           node tests/test_bank295_gemini_503_fallback_20261112.mjs
           node tests/test_bank296_agribank_mb_memo_20261112.mjs
           node tests/test_bank297_recipient_name_strict_20261112.mjs
+          node tests/test_bank298_evidence_clock_retry_quota_20261112.mjs
           node tests/test_bank288_edge_deploy_main_only_20261112.cjs
       - name: Require configured Supabase deployment credential
         shell: bash
