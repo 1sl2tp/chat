@@ -686,7 +686,7 @@ function bankCreditLine(row,allBills){
   }
   const btn=el('button','bank-report-action','Thu sau khi xác minh');
   btn.type='button';btn.addEventListener('click',()=>suggestion
-   ?void openCollectionDialog(row,suggestion):void openCollectionDialog(row));
+   ?void openCollectionDialog({...row,reviewBillSuggestion:suggestion}):void openCollectionDialog(row));
   actions.appendChild(btn);
  }
  if(kind==='review_inconsistent'){
@@ -1115,7 +1115,8 @@ async function openReviewDialog(bank,candidates){
  });
 }
 // BANK-191: explicit real collection, or link a previously entered manual receipt.
-async function openCollectionDialog(bank,suggestedBill=null){
+async function openCollectionDialog(bank){
+ const suggestedBill=bank.reviewBillSuggestion||null;
  if(!active||!isReportContact()||!ui.review)return;
  closeReviewDialog();
  const noticeId=Number(bank.notice_id);
