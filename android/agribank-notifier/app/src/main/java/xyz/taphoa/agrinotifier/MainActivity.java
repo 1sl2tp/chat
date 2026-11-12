@@ -95,6 +95,10 @@ public final class MainActivity extends Activity {
    "Lần Agribank Plus phát thông báo mà APK thấy: "+time(p.getLong("last_bank_notification_seen_at",0))+"\n"+
    "Lần phát hiện có thể là tiền vào: "+time(p.getLong("last_credit_candidate_at",0))+"\n"+
    "Lần đưa vào hàng gửi: "+time(p.getLong("last_enqueue_at",0))+"\n"+
+   "Kết quả lọc thông báo mới: "+p.getString("last_bank_event_outcome","Chưa có")+"\n"+
+   "Lần rà soát thông báo còn hiện: "+time(p.getLong("last_replay_checked_at",0))+"\n"+
+   "Ứng viên đã xếp hàng lại: "+p.getInt("last_replay_queued_count",0)+"\n"+
+   "Lỗi rà soát: "+p.getString("last_replay_error","Không")+"\n"+
    "Lần thử gửi: "+time(p.getLong("last_attempt_at",0))+"\n"+
    "Lần máy chủ xác nhận HTTP thành công: "+time(p.getLong("last_sent_at",0))+"\n"+
    "Hàng chờ tải lên: "+pending+" sự kiện\n"+
