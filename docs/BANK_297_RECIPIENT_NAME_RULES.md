@@ -24,6 +24,6 @@ Ngày xác lập: 12/11/2026. Source of truth: `1sl2tp/chat`.
 - `bill-amount-rules.mjs`: `normalizeBillRecipientName`, prompt và `readV4Fields`.
 - `bill-app-preview.mjs`: dùng cùng một hàm chuẩn hóa để không mâu thuẫn ở bước nhận diện.
 - `index.ts`: lưu riêng tên in nguyên văn, giữ `receiving_name` canonical cho RPC hiện tại.
-- `20261112163000_bank297_strict_unaccent_beneficiary_name.sql`: **migration staged only, KHÔNG ÁP DỤNG production** trong lần sửa này. Nếu sau này quyết định phát hành thay đổi RPC để hỗ trợ receipt lịch sử có dấu, phải kiểm tra quyền service_role, toàn bộ guard và triển khai DB theo quy trình riêng. Không tự sửa DB production.
+- `docs/proposed-sql/BANK_297_strict_unaccent_beneficiary_name_NOT_APPLIED.sql`: **migration staged only, KHÔNG ÁP DỤNG production** trong lần sửa này. Nếu sau này quyết định phát hành thay đổi RPC để hỗ trợ receipt lịch sử có dấu, phải kiểm tra quyền service_role, toàn bộ guard và triển khai DB theo quy trình riêng. Không tự sửa DB production.
 - `tests/test_bank297_recipient_name_strict_20261112.mjs`: Unicode, tên khác, người gửi/memo, đối chiếu Agribank mock, parity toàn thân RPC sau khi trừ đúng 1 điều kiện.
 - Không chạy thử bằng giao dịch thật, không gửi tin khách, không thu lại các bill đã `received`.
