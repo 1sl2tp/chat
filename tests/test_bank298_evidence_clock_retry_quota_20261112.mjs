@@ -61,7 +61,10 @@ const leapBill={...bill,transfer_at_vn:"2024-02-29 15:33:28",
  sent_at:"2024-02-29T08:33:50Z"};
 const leapNotice={...notice,body:notice.body.replace("12/11/2026","29/02/2024")};
 assert.equal(check(leapNotice,leapBill,"2024-02-29T09:00:00Z").status,"candidate_unique");
-assert.equal(check({...notice,body:notice.body.replace("15:33","15:36")}).status,"waiting_bank_event");
+const outsideMinute=check({...notice,body:notice.body.replace("15:33","15:36")});
+assert.equal(outsideMinute.status,"review");
+assert.equal(outsideMinute.reason,"bank_time_outside_one_minute",
+ "Known bank credit at 3-minute distance must be review, not waiting for unknown credit");
 assert.equal(check({...notice,amount_vnd:1000000}).status,"waiting_bank_event");
 // These tests are read-only: any positive preview still cannot post a ledger.
 assert.equal(check(notice).ledger_written,false);
