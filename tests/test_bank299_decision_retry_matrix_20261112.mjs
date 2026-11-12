@@ -63,6 +63,14 @@ assert.equal(describeBillDecision({status:"received",ledger_id:null}).kind,"inte
 assert.equal(describeBillDecision({status:"amount_read",ledger_id:850}).kind,"integrity_alert");
 assert.equal(describeBillDecision({status:"failed",reason:"amount_scan_gemini_http_401"}).next_action,
  "admin_check");
+assert.equal(describeBillDecision({status:"review",reason:"amount_scan_hash_registry_lookup_failed"}).kind,
+ "technical_failure");
+assert.equal(describeBillDecision({status:"review",reason:"amount_scan_hash_registry_lookup_failed"}).next_action,
+ "admin_check","Cron does not retry hash lookup faults; do not report an automatic retry");
+const retrySql=readFileSync(new URL("../supabase/migrations/20261022213000_bank186_no_lost_bill_scan_and_admin_alert.sql",import.meta.url),"utf8");
+assert.ok(retrySql.includes("hash_registry_unavailable"));
+assert.ok(!retrySql.includes("hash_registry_lookup_failed"),
+ "New retry reason must not be silently added to Edge without a cron rollout");
 assert.equal(describeBillDecision({status:"mystery"}).kind,"unclassified");
 
 // Retry entry and failure classifier MUST share one function, and this
