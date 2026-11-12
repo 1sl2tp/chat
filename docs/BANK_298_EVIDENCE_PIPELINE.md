@@ -99,3 +99,21 @@ Chỉ dùng bằng chứng ngân hàng đã xác minh để phát sinh tiền. A
 - Một giao dịch 10.000.000đ ngày 11/11 ledger #838 hoàn toàn **khác** giao dịch ngày 12/11 #852: không ghép chỉ dựa vào số tiền. Các #849 (2m) và #850 (3m) vẫn giữ nguyên.
 - **Quy tắc vận hành không được mâu thuẫn:** 503 → **technical retry**, không đổi thành `non_bill`; ảnh đọc thành công mà thiếu Agribank → **waiting_bank**, không gọi lại AI hoặc tự ghi thu; khi thông báo ngân hàng đến trễ phải lấy **bank-printed transaction time**, không dùng push delivery/Chat send time. `received` chỉ khi RPC/ledger/link xác nhận. Push iOS phát lúc failed là **snapshot tại thời điểm gửi** và không tự có hiệu lực để phán xét trạng thái hiện tại; Admin cần đọc receipt/ledger mới nhất.
 - **Quan sát:** lần này bản v42 hoạt động đúng và không yêu cầu thay đổi RPC, luật tiền hay gọi Gemini lần ba. Độ trễ từ giao dịch đến app push ~8 phút; data cho thấy ngân hàng thông báo tới điện thoại chậm, nhưng không đủ để khẳng định nguyên nhân bên ngân hàng hay hệ điều hành. **Không** giả định công nợ còn chưa thu chỉ vì push cũ hiển thị.
+
+
+## 8. BANK-301 — Xử lý quá tải Gemini có giới hạn, giảm lỗi quét ảnh (12/11/2026)
+
+**Bằng chứng:** ngày 12/11 hệ thống ghi 5 bill receipts, trong đó 3 bill cần hơn một lần scan; *tất cả đã thoát trạng thái failed*. Đây là số liệu về số lần đọc, **không được suy ra cả 3 đều lỗi 503** hay mọi ảnh được đọc đúng. Sự cố cụ thể lúc 17:42 của Cô Ngọc tt cho thấy `gemini_http_503` ở attempt 1, attempt 2 đọc được bill 10 triệu, sau đó Agribank #271 báo tiền vào lúc 17:49 và RPC tự thu ledger #852 đúng một lần. Không tạo bản ghi tài chính mới để thử.
+
+**Nguồn gốc kỹ thuật có căn cứ:** primary `gemini-3.5-flash-lite`, fallback `gemini-3.5-flash` cùng key, trong bản v42 có đúng 2 lần gọi API mỗi OCR attempt; khi cả hai gặp HTTP 503, worker trả `amount_scan_gemini_http_503` và chờ cron SQL 5 phút. Theo tài liệu chính thức Google, 503 có thể do backend thiếu công suất tạm thời, **không** chứng minh ảnh sai hay quota hết (429 là lỗi khác).
+
+**BANK-301 mã nguồn mới:**
+- `requestBillGemini`: chỉ khi HTTP **502/503/504** (lỗi khả năng phục vụ tạm thời), gọi theo trình tự tối đa **3 lần**: (1) model nhẹ, (2) model dự phòng sau 800ms, (3) model nhẹ một lần nữa sau thêm 1400ms. Nếu bất kỳ lần nào thành công thì trả **đúng** `Response` cùng `usedModel`; không tự chọn ra số/ngày tốt hơn trong dữ liệu. Nếu cả ba thất bại, giữ mã `gemini_http_<status>` để cron tiếp tục retry có backoff.
+- Không fallback/loop khi 400/401/403/404 (cấu hình/quyền/model), 429 (hạn mức), 408/500 (giữ cơ chế retry dài ở cron), hoặc network exception (không tự nhân số lần gửi khi kết nối không ổn).
+- **Một** `AbortSignal` 30 giây của worker áp dụng cả 3 calls + hai delay + body JSON; có thể còn 0/1/2 calls khi hết thời gian. Không bao giờ lặp vô hạn.
+- Log có cấu trúc `bank_bill_gemini_attempt`: `stage`, tên model, mã HTTP, milliseconds; lỗi network chỉ log loại lỗi. **Không log** API key, dữ liệu ảnh, OCR nội dung, nội dung chuyển khoản, tên khách. Để tránh thay đổi schema, không lưu thêm dữ liệu vào receipt.
+- Không thay đổi điều kiện tự thu: nhận diện loại ảnh, ngày/giờ in trên bill, tên/stk người nhận, cảnh báo thiếu trường, chống trùng, đối chiếu ngân hàng độc lập, `chat_bank_app_collect` và lịch cron vẫn là chủ sở hữu quyết định cuối. Retry transport chỉ đọc cùng ảnh, không thu tiền.
+- Kiểm thử mock (không gọi API thật): `tests/test_bank295_gemini_503_fallback_20261112.mjs` gồm 503→200, 503→503→200, 503→503→503, 502/504, 429/401, abort và xác minh không log nội dung nhạy cảm. Giữ verify V21 và Edge release test.
+- Giới hạn: không thể ngăn hoàn toàn Google Gemini quá tải; việc thử lại giúp giảm số lần ảnh vào hàng đợi. Không tuyên bố kết quả lỗi 503 giảm bao nhiêu phần trăm khi chưa có dữ liệu production sau phát hành; không bật OCR nhiều lượt tự động *để so sánh số liệu tài chính*.
+
+**Vận hành:** với ảnh lỗi 503 mà sau đó đã `received`, thông báo iOS cũ vẫn có thể nằm trong Notification Center; phải kiểm tra receipt+ledger hiện tại, không nhập thu lại. Nếu lỗi 503 vẫn nhiều sau phát hành, dùng log mỗi `stage` xác minh primary hay backup quá tải trước khi đổi model; không tự tăng chi phí hoặc tự tạo token.
