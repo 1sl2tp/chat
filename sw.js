@@ -141,6 +141,38 @@ self.addEventListener('push',event=>{
     const bankReceiptId=String(payload.bank_receipt_id||'');
     const bankStatus=String(payload.bank_event_kind||'');
     const clients=await self.clients.matchAll({type:'window',includeUncontrolled:true});
+    // BANK-302: the bank report must refresh even when an open iOS/Android PWA
+    // suppresses a lock-screen notification. Bank events NEVER count as Chat
+    // unread messages or trigger message pulls.
+    if(bankPush){
+      for(const client of clients){
+        try{client.postMessage?.({
+          type:'ADMIN_PUSH_BANK_DIRTY',bankDay,bankReceiptId,bankStatus
+        });}catch{}
+      }
+    }
+    // A verified ledger supersedes BOTH preceding "AI retry" / "bill waiting"
+    // notifications and the older unmatched bank-credit notice. Do this BEFORE
+    // foreground suppression: an open PWA must not leave old "Chưa ghi thu"
+    // cards in Notification Center after the confirmed collection.
+    if(bankPush&&bankStatus==='matched'){
+      const oldTags=[];
+      if(bankReceiptId)oldTags.push('bank:receipt:'+bankReceiptId);
+      if(bankNoticeId)oldTags.push('bank:notice:'+bankNoticeId);
+      try{
+        if(typeof self.registration.getNotifications==='function'){
+          for(const tag of oldTags){
+            const old=await self.registration.getNotifications({tag});
+            for(const note of old||[])note.close?.();
+          }
+        }
+      }catch{
+        // Missing notification APIs must never prevent showing the verified
+        // collection confirmation. A later push or opening the report still
+        // reads the canonical ledger.
+        console.warn('bank_push_stale_cleanup_unavailable');
+      }
+    }
     // Financial events are not message events. Do not trigger a Chat sync pull
     // or unread recount just to display a bank notification.
     if(!bankPush&&!missedPush&&!friendPush&&kind!=='call_invite')notifyMessageDirty(clients,payload);
@@ -164,11 +196,6 @@ self.addEventListener('push',event=>{
       return Boolean(state&&mobile&&state.visible&&visible&&state.route==='chat');
     });
     if(readingSame||visibleMobileChat)return;
-    if(bankPush&&bankStatus==='matched'&&bankReceiptId){
-      // Success supersedes the earlier awaiting-bill notification.
-      const old=await self.registration.getNotifications({tag:'bank:receipt:'+bankReceiptId});
-      for(const note of old)note.close();
-    }
 
     await self.registration.showNotification(String(payload.title||'TAPHOA Chat'),{
       body:String(payload.body||(kind==='call_invite'?'Cuộc gọi đến':'Tin nhắn mới')),
