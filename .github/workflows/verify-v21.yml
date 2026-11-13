@@ -237,6 +237,8 @@ jobs:
           node tests/test_bank267_bill_ocr_swap_report_20261110.cjs
           node tests/test_bank268_unmatched_receipt_reasons_20261110.cjs
           node tests/test_bank311_mobile_reconcile_information_architecture_20261112.cjs
+      - name: BANK-320 Admin no-clock exact Agribank proof and fingerprint lock
+        run: node tests/test_bank320_no_clock_verified_manual_20261113.cjs
       - name: BANK-310 explicit manual bill collection and late bank notice lock
         run: |
           node tests/test_bank310_manual_bill_lock_late_notice_20261112.cjs
