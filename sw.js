@@ -6,7 +6,7 @@ const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 // IMG-286: refresh only the public Web/PWA shell for two verified image
 // orientation defaults and corrected album thumbnails. Keep account-scoped
 // IndexedDB, outbox, private media and auth sessions unchanged.
-const SHELL_CACHE_EPOCH='pwa-chat-bank350-bill-amount-alert-20261113';
+const SHELL_CACHE_EPOCH='pwa-chat-bank350-bill-amount-alert-v2-20261113';
 const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION+'-'+SHELL_CACHE_EPOCH;
 const AVATAR_CACHE_NAME='taphoa-chat-avatars-v1';
 const SUPABASE_ASSET_HOST_RE=/^[a-z0-9]+\.supabase\.co$/i;
