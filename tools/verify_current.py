@@ -106,6 +106,7 @@ subprocess.run(['node',str(ROOT/'tests'/'test_chat_runtime_error_lifecycle_20261
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_bank_report_sidebar_freshness_20261029.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_bank345_nonbill_duplicate_report_20261113.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_bank349_blurry_bill_uncertain_ui_20261113.cjs')],check=True,cwd=ROOT)
+subprocess.run(['node',str(ROOT/'tests'/'test_bank350_bill_push_server_gate_20261113.mjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_compact_timestamps_20261029.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_directory_emoticon_preview_20261106.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_composer_whitespace_send_parity_20261106.cjs')],check=True,cwd=ROOT)
