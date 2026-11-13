@@ -14,7 +14,6 @@ const ui={
  refresh:root.querySelector('[data-bank-refresh]'),
  daily:root.querySelector('[data-bank-daily-summary]'),
  summary:root.querySelector('[data-bank-summary]'),
- variance:root.querySelector('[data-bank-variance]'),
  queue:root.querySelector('[data-bank-work-queue]'),
  status:root.querySelector('[data-bank-status]'),
  extraStatus:root.querySelector('[data-bank-extra-status]'),
@@ -452,33 +451,6 @@ function paint(data){
   cardValue('Tổng tiền vào Agribank',bankDisplayVnd(incomingAmountVnd),false,false,'Tiền vào NH',{amountVnd:incomingAmountVnd}),
   cardValue('Đã thu có chứng từ',bankDisplayVnd(s.matched_amount),true,false,'Đã thu',{amountVnd:s.matched_amount})
  );
- // BANK-326: independent evidence populations MUST NOT look reconciled just
- // because their cards are side by side. When ledger-backed bill collection
- // is greater than distinct Agribank credits, explain the unmatched amount
- // without declaring a missing bank transfer or reversing a real ledger.
- if(ui.variance){
-  const bookedVnd=Number(s.matched_amount);
-  const excessVnd=bookedVnd-incomingAmountVnd;
-  const hasExcess=Number.isSafeInteger(bookedVnd)&&Number.isSafeInteger(incomingAmountVnd)
-   &&bookedVnd>=0&&incomingAmountVnd>=0&&excessVnd>=1000;
-  ui.variance.hidden=!hasExcess;
-  if(hasExcess){
-   const copy=el('div','bank-report-variance-copy');
-   const title=el('strong','bank-report-variance-title',
-    'Cần đối chiếu thêm '+bankDisplayVnd(excessVnd));
-   title.setAttribute('aria-label','Đã ghi thu cao hơn tiền ngân hàng ghi nhận '+bankMoneySpoken(excessVnd));
-   append(copy,title,el('span','bank-report-variance-description',
-    'Đã ghi thu vượt thông báo Agribank đang có. Có thể do thu thủ công hoặc thiếu dữ liệu ngân hàng; chưa kết luận tiền chưa về.'));
-   const action=el('button','bank-report-variance-action','Xem thu tay');
-   action.type='button';
-   action.setAttribute('aria-label','Lọc các khoản đã thu thủ công để đối chiếu');
-   action.addEventListener('click',()=>{
-    filter='manual_bank';selectedCustomer=null;paint(data);
-   });
-   ui.variance.replaceChildren(copy,action);
-  }else ui.variance.replaceChildren();
- }
-
  // Keep every bank diagnostic even if a cached PWA shell has not loaded
  // the new disclosure yet; it can still render the legacy complete strip.
  const additionalCards=[
