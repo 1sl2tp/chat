@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="5bcf28f9ce56d9e8115d164d87de9c148c9c3f4fd9206665dd56c241c67267e3">
+<meta name="app-build-id" content="a33857f06338cf2556573edb6a48fa99f2e17d63d7108974f3a337a0ee9e69ce">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -33737,7 +33737,7 @@ function bankManualBillSuggestedNote(bill,notice=null,prepared=null){
  const priority=high.length?' Ưu tiên đỏ: '+high.join('; ')+'.':'';
  const secondary=low.length?' Cần đối chiếu: '+low.join('; ')+'.':'';
  const footer=' Admin kiểm tra tiền thực nhận, đúng khách và chống thu trùng; bill thiếu giờ vẫn chỉ được thu khi máy chủ chấp nhận chứng cứ.';
- return (header+priority+secondary+footer).slice(0,1000);
+ return (header+priority+secondary+footer).slice(0,900);
 }
 function bankManualBillPrepareErrorMessage(error){
  const code=String(error?.code||'');
@@ -33825,7 +33825,7 @@ async function openManualBillDialog(bill){
  const existingBox=el('div','bank-review-existing');form.appendChild(existingBox);
  const noteLabel=el('label','bank-review-label','Ghi chú đối soát (tự điền ưu tiên cảnh báo đỏ; có thể sửa)');
  const note=el('textarea','bank-review-explanation');
- note.rows=3;note.minLength=15;note.maxLength=1000;note.required=true;
+ note.rows=3;note.minLength=15;note.maxLength=950;note.required=true;
  note.value=bankManualBillSuggestedNote(bill,comparisonNotice);
  note.placeholder='Ghi chú tự đề xuất từ cảnh báo đỏ/vàng. Chỉnh lại sau khi kiểm tra Agribank thực tế.';
  note.setAttribute('aria-description','Mẫu ghi chú dựa trên chứng cứ; chỉ tích xác nhận sau khi đã kiểm tra Agribank trực tiếp.');
