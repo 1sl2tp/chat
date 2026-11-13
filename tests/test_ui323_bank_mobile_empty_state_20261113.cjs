@@ -20,7 +20,7 @@ const node=(tag,cls='',value='')=>({
  }
 });
 const ui={table:node('div','bank-report-table-wrap'),date:{value:'2026-11-13'}};
-const context={ui,selectedCustomer:null,root:{},
+const context={ui,selectedCustomer:null,root:{classList:{contains:()=>false}},
  el:node,append:(parent,...children)=>{for(const c of children)parent.appendChild(c);return parent},
  bankResponsiveLabel:x=>node('span','',x),bankMoneySpoken:x=>String(x),
  bankDisplayVnd:x=>String(x/1000),filter:'all',paint(){},Number,String,Map,Array};
