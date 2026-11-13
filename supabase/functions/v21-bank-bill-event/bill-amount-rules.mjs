@@ -124,18 +124,50 @@ function splitPrintedBillDateClock(source){
    inlineClockText:suffix[1]}:{dateText:s,inlineClock:null,inlineClockText:null};
 }
 function parsePrintedBillDate(source){
- const raw=splitPrintedBillDateClock(source).dateText;
- const s=raw.replace(/^ngày(?:\s+(?:giao dịch|thực hiện|chuyển tiền|chuyển khoản))?\s*:?\s*/iu,"");
+ // BANK-348: preserve a literal date printed next to "Ngày thực hiện",
+ // "Thời gian thực hiện", etc. OCR sometimes includes the label, weekday
+ // and clock in ONE field; previous strict parser rejected it silently.
+ // Do not parse an arbitrary text blob or derive any date from Chat/bank.
+ let s=splitPrintedBillDateClock(source).dateText.trim();
+ s=s.replace(/^(?:(?:ngày|thời gian|thời điểm)(?:\s+(?:giao dịch|thực hiện|chuyển tiền|chuyển khoản))?|ngày\s+giờ\s+giao\s+dịch)\s*[:：\-–]?\s*/iu,"");
+ s=s.replace(/^[\s,;:|•\-–]+|[\s,;:|•\-–]+$/gu,"").trim();
+ // Some detail panels print "21:08 | 13/11/2026" under one label.
+ // Remove only a complete 24h clock directly BEFORE a clear date.
+ s=s.replace(/^(?:lúc\s+)?(?:[01]?\d|2[0-3]):[0-5]\d(?::[0-5]\d)?\s*(?:[,;|•\-–]\s*|\s+)/iu,"");
+ // Optional HH:mm in parentheses is a visible clock, not part of date.
+ s=s.replace(/\s*\((?:[01]?\d|2[0-3]):[0-5]\d(?::[0-5]\d)?\)\s*$/u,"").trim();
+ s=s.replace(/^[\s,;:|•\-–]+|[\s,;:|•\-–]+$/gu,"").trim();
+ // If OCR included weekday, validate it against the resulting calendar day
+ // rather than accepting a contradictory weekday.
+ let weekday=null;
+ const weekdayMatch=/^(?:thứ\s+(hai|ba|tư|bốn|năm|sáu|bảy|[2-7])|chủ\s*nhật)\s*[,;:\-–]?\s*/iu.exec(s);
+ if(weekdayMatch){
+   const word=String(weekdayMatch[1]||"chủ nhật").toLowerCase();
+   weekday=word==="chủ nhật"?0:
+     ({hai:1,ba:2,tư:3,bốn:3,năm:4,sáu:5,bảy:6,
+       "2":1,"3":2,"4":3,"5":4,"6":5,"7":6})[word];
+   s=s.slice(weekdayMatch[0].length).trim();
+ }
  let m=/^(20\d{2})[-/](\d{1,2})[-/](\d{1,2})$/.exec(s);
- if(m)return verifiedBillDate(m[1],m[2],m[3]);
- m=/^(\d{1,2})[\/.-](\d{1,2})[\/.-](20\d{2})$/.exec(s);
- if(m)return verifiedBillDate(m[3],m[2],m[1]);
- // "12 thg 11, 2026", "12 TH. 11 năm 2026", "12 tháng 11 2026"
- m=/^(\d{1,2})\s+([\p{L}]{1,9}\.?)\s+(\d{1,2})(?:\s+năm\s+|,\s*|[./-]\s*|\s+)(20\d{2})$/iu.exec(s);
- if(!m)return null;
- const separator=m[2].normalize("NFD").replace(/\p{M}/gu,"").replace(/\.$/,"").toLowerCase();
- if(!["thang","thg","th","t"].includes(separator))return null;
- return verifiedBillDate(m[4],m[3],m[1]);
+ let day=m?verifiedBillDate(m[1],m[2],m[3]):null;
+ if(!day){
+   m=/^(\d{1,2})[\/.-](\d{1,2})[\/.-](20\d{2})$/.exec(s);
+   if(m)day=verifiedBillDate(m[3],m[2],m[1]);
+ }
+ if(!day){
+   // "12 thg 11, 2026", "12 TH. 11 năm 2026", "12 tháng 11 2026"
+   m=/^(\d{1,2})\s+([\p{L}]{1,9}\.?)\s+(\d{1,2})(?:\s+năm\s+|,\s*|[./-]\s*|\s+)(20\d{2})$/iu.exec(s);
+   if(!m)return null;
+   const separator=m[2].normalize("NFD").replace(/\p{M}/gu,"").replace(/\.$/,"").toLowerCase();
+   if(!["thang","thg","th","t"].includes(separator))return null;
+   day=verifiedBillDate(m[4],m[3],m[1]);
+ }
+ if(!day)return null;
+ if(weekday!==null){
+   const [y,mon,d]=day.split("-").map(Number);
+   if(new Date(Date.UTC(y,mon-1,d)).getUTCDay()!==weekday)return null;
+ }
+ return day;
 }
 function parsePrintedBillClock(source){
  const s=String(source||"").normalize("NFKC").trim()
@@ -292,6 +324,8 @@ export function readV4Fields(data,context={}){
     clock_text_conflict:clockTextConflict,
     transfer_time_printed_vn:effectiveClock?effectiveClockText:null,
     transfer_date_printed_vn:printedBillDay?printedDateText:null,
+    // Audit-only raw AI transcription, even when date syntax was rejected.
+    transfer_date_printed_raw_vn:printedDateText||null,
     printed_date_invalid:Boolean(printedDateText&&!printedBillDay),
     transfer_reference:reference&&reference.length<=120?reference:null,
     transfer_date_vn:billDay,
