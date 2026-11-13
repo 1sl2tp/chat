@@ -340,7 +340,7 @@ function scheduleSync({scrollToTop=false}={}){
 function resetForAuth(){
   const admin=currentAdmin();
   const id=String(admin?.id||'');
-  if(id!==loadedAdminId){groupMap=new Map();loadedAdminId='';nccReady=false;syncNccCapability();}
+  if(id!==loadedAdminId){groupMap=new Map();loadedAdminId='';nccReady=false;}
   query='';filter='all';
   // SPEC-CHAT-DIRECTORY-AUTH-FILTER-20261102: keep the mounted search
   // and category pills consistent with the cleared account-scoped model.
