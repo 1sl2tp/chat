@@ -60,7 +60,9 @@ for(const part of ["10 NHÃN","Mã tra soát","Mã tham chiếu","null",
   "The OCR instruction needs "+part);
 }
 const edge=fs.readFileSync("supabase/functions/v21-bank-bill-event/index.ts","utf8");
-assert(edge.includes('const prompt=SYSTEM_PROMPT+"\\n\\n"+TEN_FIELD_BILL_GUIDANCE;'));
+assert(edge.includes('const prompt=SYSTEM_PROMPT+"\\n\\n"+TEN_FIELD_BILL_GUIDANCE+'),
+ "Keep canonical ten-field OCR prompt and append bank-backed execution-date guidance only during retries");
+assert(edge.includes('const executionDateGuide=retryPrintedDate?['));
 assert(edge.includes("const tenFields=buildStoredBillTenFields(parsed,fields,amount);"));
 assert(edge.includes("bill_fields_v1:tenFields"));
 assert(edge.includes("trace_code:tenFields.trace_code"));
