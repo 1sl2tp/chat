@@ -5,7 +5,7 @@ const vm=require('node:vm');
 const source=fs.readFileSync('bank-report-dashboard.js','utf8');
 const css=fs.readFileSync('bank-report-dashboard.css','utf8');
 const start=source.indexOf('function bankManualNoticeFields(');
-const end=source.indexOf('async function openManualBillDialog(',start);
+const end=source.indexOf('async function openExistingManualBillReviewDialog(',start);
 assert(start>0&&end>start,'read-only bill/bank comparison helpers exist');
 const {bankManualBillEvidenceRows,bankManualBillPrepareErrorMessage,bankManualNoticeFields}=vm.runInNewContext(
  source.slice(start,end)+'\n({bankManualBillEvidenceRows,bankManualBillPrepareErrorMessage,bankManualNoticeFields})',
