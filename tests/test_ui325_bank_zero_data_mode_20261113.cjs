@@ -24,7 +24,7 @@ assert.equal(check({matched_amount:300000}),false,'nonzero financial amount must
 assert.equal(check({matched_count:0},[],[],[{id:'m'}]),false,
  'manual collection must remain visible');
 assert(js.includes('Không đồng nghĩa ngân hàng không có tiền về.'));
-assert(js.includes('Báo cáo hôm nay: 0 tiền vào · 0 đã thu · 0 bill'));
+assert(js.includes('Ngày đã chọn: 0 tiền vào · 0 đã thu · 0 bill'));
 assert(js.includes("root.classList.contains('is-zero-day')"));
 const css325=css.slice(css.indexOf('/* UI-325: a genuine low-density mobile no-data mode'));
 assert(css325.length>1400,'zero-day CSS must have mobile date layout and empty detail rules');
