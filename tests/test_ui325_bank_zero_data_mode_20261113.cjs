@@ -23,7 +23,8 @@ assert.equal(check({matched_count:1}),false,'verified collection cannot be hidde
 assert.equal(check({matched_amount:300000}),false,'nonzero financial amount must show');
 assert.equal(check({matched_count:0},[],[],[{id:'m'}]),false,
  'manual collection must remain visible');
-assert(js.includes('Không đồng nghĩa ngân hàng không có tiền về.'));
+assert(js.includes('Trong dữ liệu ngày đã chọn, chưa có giao dịch cần đối soát.'));
+assert(!js.includes('Không có giao dịch ngân hàng trong ngày.'), 'report must not claim absence from the actual bank');
 assert(js.includes('Ngày đã chọn: 0 tiền vào · 0 đã thu · 0 bill'));
 assert(js.includes("root.classList.contains('is-zero-day')"));
 const css325=css.slice(css.indexOf('/* UI-325: a genuine low-density mobile no-data mode'));
