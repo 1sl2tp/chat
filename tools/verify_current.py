@@ -104,6 +104,7 @@ subprocess.run(['node',str(ROOT/'tests'/'test_v21_72_20_call_screen_wake_lock.js
 subprocess.run(['node',str(ROOT/'tests'/'test_v21_zalo_webview_runtime_error.js')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_runtime_error_lifecycle_20261029.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_bank_report_sidebar_freshness_20261029.cjs')],check=True,cwd=ROOT)
+subprocess.run(['node',str(ROOT/'tests'/'test_bank345_nonbill_duplicate_report_20261113.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_compact_timestamps_20261029.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_directory_emoticon_preview_20261106.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_composer_whitespace_send_parity_20261106.cjs')],check=True,cwd=ROOT)
