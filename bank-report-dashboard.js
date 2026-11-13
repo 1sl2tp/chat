@@ -282,12 +282,12 @@ function bankCreditViewModel(credits){
  const stamp=/^20\d{2}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}$/;
  const bankBalance=x=>{
   const body=String(x.bank_body||x.body||'');
-  const fromBody=/Số dư cuối:s*([+-]?[0-9.,]+)s*VND/i.exec(body);
+  const fromBody=/Số dư cuối:\s*([+-]?[0-9.,]+)\s*VND\b/i.exec(body);
   const s=String(x.bank_balance_text??fromBody?.[1]??'').trim().replace(/,/g,'');
   return /^[+-]?\d{1,15}$/.test(s)?String(Number(s)):'';
  };
  const bankMemo=x=>String(x.bank_memo||
-   /Nội dung giao dịch:s*(.+?)(?:(?:.s*)?Số dư cuối:|$)/i.exec(
+   /Nội dung giao dịch:\s*(.+?)(?:(?:\.\s*)?Số dư cuối:|$)/i.exec(
     String(x.bank_body||x.body||''))?.[1]||'').normalize('NFD')
    .replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D')
    .trim().replace(/\s+/g,' ').toUpperCase();
@@ -298,7 +298,10 @@ function bankCreditViewModel(credits){
   const account=String(entry.bank_credit_account||'').trim();
   const bankTime=String(entry.bank_time||'').trim().replace('T',' ');
   const balance=bankBalance(entry),memo=bankMemo(entry);
-  // Same exact bank transaction evidence, even if Android reposted at a
+  // BANK-318: parse the actual bank memo and closing balance; the old
+ // expressions silently lost both fields and could count re-posts twice.
+ // Grouping is only a view; financial collection remains server-verified.
+ // Same exact bank transaction evidence, even if Android reposted at a
   // different instant and therefore its push fingerprint changed.
   const proof=account&&stamp.test(bankTime)&&balance&&memo;
   const key=proof?'bank-proof:'+JSON.stringify([account,bankTime,amount,balance,memo]):
