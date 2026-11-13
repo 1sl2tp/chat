@@ -16,7 +16,8 @@ assert(src.includes("bank_credits:Array.isArray(credits.data)?credits.data:[]"))
 assert(src.includes("const incomingStats=bankCreditGroupingStatus(groups,incoming);"),'bank credit display groups are accounted with disclosed ambiguity');
 assert(src.includes("'bank_all','Tiền vào NH'"),'shorter label must preserve the full bank register filter');
 assert(src.includes("kind==='auto_collected'?'Đã thu'"));
-assert(src.includes("kind==='manual_collected'?'Đã thu thủ công'"));
+assert(src.includes("kind==='manual_collected'?(fullyReviewed?'Đã thu tay · Đã soát bill':'Đã thu tay · Chưa soát bill')"),
+ 'manual bank collection is only fully reviewed after a verified bill-to-ledger link');
 assert(src.includes("kind==='unmatched'"),'manual collection button only for unmatched');
 const section=src.slice(src.indexOf('function bankCreditLine('),src.indexOf('function renderGroups('));
 assert(section.includes("if(kind==='unmatched'){"),'only bank-only receipts are actionable');
