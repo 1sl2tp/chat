@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 128" fill="none" role="img" aria-label="Biểu tượng tìm chứng từ">
+  <path d="M17 116a63 63 0 0 1 126 0H17Z" fill="#E7F3EE"/>
+  <path d="M55 29c0-6 4-10 10-10h47c6 0 10 4 10 10v68c0 9-8 14-15 8-4 5-10 5-15 0-5 5-10 5-15 0-5 5-11 5-15 0-6 5-12 1-12-7V29Z" fill="white" stroke="#32746C" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M70 45h32M70 60h23" stroke="#C5D2D7" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="110" cy="86" r="18" fill="#EAF5F0" stroke="#32746C" stroke-width="4"/>
+  <path d="m124 100 15 15" stroke="#32746C" stroke-width="4.5" stroke-linecap="round"/>
+  <path d="m130 18 3-9m8 17 8-5m-7 17 9 2" stroke="#32746C" stroke-width="3.5" stroke-linecap="round"/>
+</svg>
