@@ -76,7 +76,7 @@ async function loadList(){
  }catch{host.textContent='Chưa mở được danh sách phiếu. Kiểm tra quyền và phiên bản máy chủ.';}
 }
 async function view(id){
- if(!id||busy)return;
+ if(!id)return;
  docId=id;lastDoc=null;const host=content();if(!host)return;
  host.textContent='Đang mở phiếu…';notify('');
  try{
