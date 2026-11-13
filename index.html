@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="6208ccd534173bc1f886f9ad3f02e568c08f72943edab61d61f5c2ce4ad07d33">
+<meta name="app-build-id" content="8b3dfab0d1043a1e4b194b68979f93b467d2a343f4a664c2e67911d6a9880e1b">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -3836,9 +3836,36 @@ body > [data-bank-review-modal] .bank-review-heading{
     border-radius:10px;
     scroll-snap-align:start;
   }
-  #bankReportDashboard .bank-report-filter-more-menu{
-    right:0;
-    max-width:min(260px,calc(100vw - 30px));
+  /* Native <details> stays functional inside a horizontally scrollable
+     rail: its options expand INLINE, not as a clipped absolute dropdown. */
+  #bankReportDashboard .bank-report-filter-more[open]{
+    display:inline-flex;
+    align-items:stretch;
+    gap:6px;
+  }
+  #bankReportDashboard .bank-report-filter-more[open] > .bank-report-filter-more-menu{
+    position:static;
+    display:inline-flex;
+    flex-direction:row;
+    align-items:center;
+    flex-wrap:nowrap;
+    gap:6px;
+    width:max-content;
+    min-width:0;
+    max-width:none;
+    padding:0;
+    border:0;
+    border-radius:0;
+    background:transparent;
+    box-shadow:none;
+  }
+  #bankReportDashboard .bank-report-filter-more[open] .bank-report-filter-more-menu > .bank-report-filter{
+    width:auto;
+    min-width:max-content;
+    min-height:39px;
+    padding:8px 10px;
+    white-space:nowrap;
+    border-radius:10px;
   }
 }
 @media(max-width:360px){
