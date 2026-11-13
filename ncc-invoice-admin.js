@@ -39,10 +39,14 @@ function ensureStyle(){
 function ensureButton(){
  if(!admin())return;
  const tools=document.querySelector('[data-contact-directory-tools]');
- if(!tools||tools.querySelector('[data-ncc-launch]'))return;
+ if(!tools)return;
+ const ready=window.V21ContactDirectoryAdmin?.nccEnabled?.()===true;
+ const existing=tools.querySelector('[data-ncc-launch]');
+ if(existing){existing.disabled=!ready;existing.textContent=ready?'Phiếu nhập · TK NCC':'Phiếu NCC · Chưa kích hoạt';return;}
  ensureStyle();
  const button=document.createElement('button');button.type='button';button.className='ncc-launch';
- button.dataset.nccLaunch='';button.textContent='Phiếu nhập · TK NCC';
+ button.dataset.nccLaunch='';button.disabled=!ready;
+ button.textContent=ready?'Phiếu nhập · TK NCC':'Phiếu NCC · Chưa kích hoạt';
  button.addEventListener('click',()=>{void open();});
  tools.appendChild(button);
 }
