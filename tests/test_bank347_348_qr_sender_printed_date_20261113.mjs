@@ -114,6 +114,13 @@ assert.match(index,/normalized\.transfer_date_printed_raw_vn===literal/);
 assert.match(index,/recovery:"verified_original_ocr_date_literal"/);
 assert.match(index,/ledger_written:true,ledger_id:posted\.ledger_id/);
 assert.match(index,/normalized\.transfer_at_vn/);
+assert.match(index,/originalClock=String\(r\.transfer_at_vn\|\|""\)\.replace\("T"," "\)\.slice\(0,16\)/,
+ "PostgREST timestamp T and OCR-space clock must compare the same minute");
+assert.equal("2026-11-13T21:08:00".replace("T"," ").slice(0,16),
+ "2026-11-13 21:08:00".replace("T"," ").slice(0,16));
+assert.notEqual("2026-11-13T21:09:00".replace("T"," ").slice(0,16),
+ "2026-11-13 21:08:00".replace("T"," ").slice(0,16));
+
 assert.match(index,/\.eq\("attempt_count",3\)/);
 
 console.log("BANK-347/348 PASS: strict QR sender, original printed date OCR, bounded retry, no financial shortcuts");
