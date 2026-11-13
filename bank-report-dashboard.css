@@ -2442,3 +2442,254 @@ body > [data-bank-review-modal] .bank-review-heading{
     min-height:38px;
   }
 }
+
+/* UI-330 — Approved Concept 2: balanced mobile card layout.
+   The two main actions have exactly equal geometry. No finance, date,
+   filtering, message, or collection behavior is changed here. */
+@media(max-width:760px){
+  #bankReportDashboard.bank-report-dashboard{
+    background:linear-gradient(180deg,#f8fafc 0,#fff 620px);
+    padding:16px 12px calc(24px + env(safe-area-inset-bottom,0px));
+  }
+  #bankReportDashboard .bank-report-header{
+    gap:12px;
+    margin:0 0 16px;
+  }
+  #bankReportDashboard .bank-report-heading{
+    font-size:19px;
+    line-height:1.25;
+    letter-spacing:-.025em;
+    font-weight:770;
+  }
+  #bankReportDashboard .bank-report-status-line{
+    margin-top:5px;
+    gap:4px 8px;
+  }
+  #bankReportDashboard .bank-report-status-line .bank-report-subtitle,
+  #bankReportDashboard .bank-report-unit-note{
+    font-size:10.5px;
+    line-height:1.42;
+  }
+  /* Date picker + actions form a single surface, like the approved image. */
+  #bankReportDashboard .bank-report-controls,
+  #bankReportDashboard.is-zero-day .bank-report-controls{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    grid-template-areas:"date date" "send refresh";
+    align-items:stretch;
+    width:100%;
+    max-width:none;
+    min-width:0;
+    column-gap:10px;
+    row-gap:12px;
+    padding:14px;
+    margin:0;
+    background:var(--surface-primary,#fff);
+    border:1px solid var(--border-default,#e9edf1);
+    border-radius:17px;
+    box-shadow:0 7px 24px rgba(25,40,60,.07);
+  }
+  #bankReportDashboard .bank-report-controls > [data-bank-date],
+  #bankReportDashboard.is-zero-day .bank-report-controls > [data-bank-date]{
+    grid-area:date;
+    width:100%;
+    min-width:0;
+    max-width:100%;
+    min-height:46px;
+    margin:0;
+    padding:9px 12px;
+    box-sizing:border-box;
+    border:1px solid #d9dfe7;
+    border-radius:12px;
+    background:var(--surface-primary,#fff);
+    color:var(--text-primary,#1e242b);
+    font-size:13px;
+    font-weight:620;
+    line-height:1.2;
+    text-align:center;
+    font-variant-numeric:tabular-nums;
+  }
+  #bankReportDashboard .bank-report-controls > [data-bank-daily-summary],
+  #bankReportDashboard .bank-report-controls > [data-bank-refresh],
+  #bankReportDashboard.is-zero-day .bank-report-controls > [data-bank-daily-summary],
+  #bankReportDashboard.is-zero-day .bank-report-controls > [data-bank-refresh]{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:100%;
+    max-width:100%;
+    min-width:0;
+    min-height:46px;
+    height:46px;
+    box-sizing:border-box;
+    margin:0;
+    padding:9px 8px;
+    border-radius:12px;
+    font-size:13px;
+    font-weight:700;
+    line-height:1.25;
+    white-space:normal;
+    text-align:center;
+    letter-spacing:-.01em;
+    touch-action:manipulation;
+  }
+  #bankReportDashboard .bank-report-controls > [data-bank-daily-summary],
+  #bankReportDashboard.is-zero-day .bank-report-controls > [data-bank-daily-summary]{
+    grid-area:send;
+    color:#fff;
+    background:#101214;
+    border:1px solid #101214;
+  }
+  #bankReportDashboard .bank-report-controls > [data-bank-refresh],
+  #bankReportDashboard.is-zero-day .bank-report-controls > [data-bank-refresh]{
+    grid-area:refresh;
+    color:var(--text-primary,#171c22);
+    background:var(--surface-primary,#fff);
+    border:1px solid #9ea7b5;
+  }
+  #bankReportDashboard .bank-report-controls > :is(input,button):focus-visible{
+    outline:2px solid #387d90;
+    outline-offset:2px;
+  }
+  /* Empty-state card: balanced vertical rhythm and single centered action. */
+  #bankReportDashboard.is-zero-day .bank-report-header{
+    margin-bottom:15px;
+  }
+  #bankReportDashboard.is-zero-day .bank-report-table-wrap.is-empty{
+    margin:0;
+    border:0;
+    background:transparent;
+  }
+  #bankReportDashboard.is-zero-day .bank-report-empty-state{
+    display:flex;
+    flex-direction:column;
+    justify-content:flex-start;
+    align-items:center;
+    min-height:0;
+    gap:13px;
+    padding:25px 16px 24px;
+    border:1px solid var(--border-default,#ebeff3);
+    border-radius:17px;
+    background:var(--surface-primary,#fff);
+    box-shadow:0 9px 28px rgba(25,40,60,.07);
+    text-align:center;
+  }
+  #bankReportDashboard.is-zero-day .bank-report-empty-state::before{
+    content:"";
+    display:block;
+    width:112px;
+    height:94px;
+    flex:0 0 auto;
+    margin:0 auto 2px;
+    background:url("./assets/bank-empty-reconcile.svg") center / contain no-repeat;
+    pointer-events:none;
+  }
+  #bankReportDashboard.is-zero-day .bank-report-empty-copy{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    width:100%;
+    min-width:0;
+    max-width:100%;
+    gap:8px;
+  }
+  #bankReportDashboard.is-zero-day .bank-report-empty-title{
+    display:block;
+    width:100%;
+    max-width:37ch;
+    font-size:15px;
+    font-weight:760;
+    line-height:1.35;
+    letter-spacing:-.02em;
+    text-align:center;
+  }
+  #bankReportDashboard.is-zero-day .bank-report-empty-description{
+    max-width:38ch;
+    margin:0;
+    font-size:11.5px;
+    line-height:1.5;
+    font-weight:400;
+    text-align:center;
+    color:var(--text-secondary,#62707d);
+  }
+  #bankReportDashboard.is-zero-day .bank-report-empty-meta{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:auto;
+    max-width:100%;
+    min-height:32px;
+    margin-top:2px;
+    padding:7px 10px;
+    border:0;
+    border-radius:12px;
+    background:#eaf4ef;
+    color:#344e48;
+    font-size:10.5px;
+    line-height:1.35;
+    font-variant-numeric:tabular-nums;
+    white-space:normal;
+    text-align:center;
+  }
+  #bankReportDashboard.is-zero-day .bank-report-empty-previous{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    align-self:center;
+    justify-self:center;
+    width:auto;
+    min-width:158px;
+    max-width:100%;
+    min-height:42px;
+    margin:3px 0 0;
+    padding:9px 15px;
+    border:1px solid #9da7b5;
+    border-radius:11px;
+    background:var(--surface-primary,#fff);
+    color:var(--text-primary,#1b2229);
+    font-size:12px;
+    font-weight:700;
+    line-height:1.25;
+    text-align:center;
+  }
+  #bankReportDashboard.is-zero-day .bank-report-empty-previous:focus-visible{
+    outline:2px solid #387d90;
+    outline-offset:2px;
+  }
+}
+@media(max-width:360px){
+  #bankReportDashboard.bank-report-dashboard{
+    padding-inline:9px;
+  }
+  #bankReportDashboard .bank-report-controls,
+  #bankReportDashboard.is-zero-day .bank-report-controls{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    column-gap:8px;
+    row-gap:10px;
+    padding:11px;
+    border-radius:15px;
+  }
+  #bankReportDashboard .bank-report-controls > [data-bank-daily-summary],
+  #bankReportDashboard .bank-report-controls > [data-bank-refresh],
+  #bankReportDashboard.is-zero-day .bank-report-controls > [data-bank-daily-summary],
+  #bankReportDashboard.is-zero-day .bank-report-controls > [data-bank-refresh]{
+    min-height:44px;
+    height:44px;
+    padding-inline:5px;
+    font-size:12px;
+  }
+  #bankReportDashboard.is-zero-day .bank-report-empty-state{
+    padding:20px 12px 22px;
+    gap:11px;
+    border-radius:15px;
+  }
+  #bankReportDashboard.is-zero-day .bank-report-empty-title{
+    font-size:14px;
+  }
+  #bankReportDashboard.is-zero-day .bank-report-empty-description{
+    font-size:11px;
+  }
+  #bankReportDashboard.is-zero-day .bank-report-empty-meta{
+    font-size:10px;
+  }
+}

@@ -269,6 +269,10 @@ jobs:
           node tests/test_bank242_report_header_scroll_owner_20261106.cjs
       - name: BANK-243 compact report labels fit phone widths without losing full meaning
         run: node tests/test_bank243_compact_report_labels_20261106.cjs
+      - name: UI-330 approved Concept 2 equal action buttons and mobile card
+        run: |
+          node --check bank-report-dashboard.js
+          node tests/test_ui330_approved_balanced_reconciliation_20261113.cjs
       - name: UI-329 compact mobile no-data reconciliation layout
         run: |
           node --check bank-report-dashboard.js
