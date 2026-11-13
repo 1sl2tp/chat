@@ -212,6 +212,8 @@ jobs:
           node --check bank-report-dashboard.js
           node --check supabase/functions/v21-bank-bill-event/bill-amount-rules.mjs
           node tests/test_bank317_bill_ten_fields_saved_once_20261113.mjs
+      - name: BANK-322 prefilled evidence note prioritizes red, Admin still confirms
+        run: node tests/test_bank322_manual_note_red_first_20261113.cjs
       - name: BANK-315 bank 730 evidence not missing, day/hour separate, no duplicate collection
         run: |
           node --check bank-report-dashboard.js
