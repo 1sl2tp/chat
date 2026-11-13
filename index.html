@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="ff2e21a755a72e44e82d7b1f1feb5942feff29f11fa3c3993f45222507ce7727">
+<meta name="app-build-id" content="24ef865d0a7514281babccff8a0ff53043bc651ddbca0c6ae66a4193ccc15765">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1829,9 +1829,12 @@
 <style data-inlined-source="message-forward.css">
 .message-forward-overlay{position:fixed;inset:0;z-index:178;display:grid;place-items:center;padding:16px;pointer-events:auto}
 .message-forward-backdrop{position:absolute;inset:0;border:0;background:rgba(0,0,0,.28);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
-.message-forward-card{position:relative;z-index:1;width:min(92vw,420px);max-height:min(76dvh,640px);display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;gap:10px;padding:14px;border:1px solid var(--theme-border-default,#dedede);border-radius:20px;background:var(--theme-surface-primary,#fff);box-shadow:0 18px 50px rgba(0,0,0,.2)}
+.message-forward-card{position:relative;z-index:1;width:min(92vw,420px);max-height:min(76dvh,640px);display:grid;grid-template-rows:auto auto auto minmax(0,1fr) auto;gap:10px;padding:14px;border:1px solid var(--theme-border-default,#dedede);border-radius:20px;background:var(--theme-surface-primary,#fff);box-shadow:0 18px 50px rgba(0,0,0,.2)}
 .message-forward-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .message-forward-title{margin:0;font-size:17px;line-height:22px;font-weight:700}
+.message-forward-heading{min-width:0;display:grid;gap:3px}
+.message-forward-hint{margin:0;font-size:12px;line-height:17px;color:var(--theme-content-secondary,#777)}
+.message-forward-preview{margin:0;padding:8px 10px;border-radius:11px;background:var(--theme-surface-secondary,#f2f2f2);font-size:13px;line-height:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--theme-content-primary,#171717)}
 .message-forward-close{width:34px;height:34px;border:0;border-radius:999px;background:transparent;color:inherit;font-size:22px;cursor:pointer}
 .message-forward-search{width:100%;height:42px;border:1px solid var(--theme-border-default,#dedede);border-radius:13px;padding:0 12px;background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#171717);font:inherit;outline:none}
 .message-forward-search:focus{border-color:var(--theme-content-tertiary,#888)}
@@ -1867,7 +1870,7 @@
     max-height:100%;
     overflow:hidden;
     padding:12px 14px 10px;
-    grid-template-rows:auto auto minmax(0,1fr) auto;
+    grid-template-rows:auto auto auto minmax(0,1fr) auto;
   }
   .message-forward-overlay[data-mobile-keyboard="true"] .message-forward-search{
     min-height:44px;
@@ -11891,6 +11894,113 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
   }
 }
 
+/* CHAT-339 — selected-contact mobile header: one overflow entry, not three
+   disconnected icon targets. The existing CallFocus remains visible for
+   ringing/connected calls; only the idle actions move into this menu. */
+.chat-header-actions{display:none}
+.chat-header-action-menu[hidden]{display:none!important}
+@media(max-width:63.999rem){
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .top-mode-switch[data-contact-identity="true"]{
+    grid-template-columns:minmax(0,1fr)!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .top-mode-switch[data-contact-identity="true"] .top-mode-tab[data-top-tab="photos"]{
+    display:none!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .call-focus-slot[data-call-ui-state="idle"]:not([hidden]){
+    box-sizing:border-box;
+    flex:0 0 44px;
+    width:44px!important;
+    max-width:44px!important;
+    min-width:44px;
+    padding:0!important;
+    border:0!important;
+    background:transparent!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .call-focus-slot[data-call-ui-state="idle"] .call-focus-button{
+    display:none!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .call-focus-slot[data-call-ui-state="idle"] .contact-profile-header-button{
+    display:none!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .call-focus-slot[data-call-ui-state="idle"] .chat-header-actions{
+    display:block;
+    position:relative;
+    flex:0 0 44px;
+    width:44px;
+    height:44px;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .chat-header-more{
+    box-sizing:border-box;
+    display:grid;
+    place-items:center;
+    width:44px;
+    height:44px;
+    padding:0;
+    border:1px solid color-mix(in srgb,var(--theme-border-default) 78%,transparent);
+    border-radius:999px;
+    background:var(--theme-surface-primary);
+    color:var(--theme-content-primary);
+    cursor:pointer;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .chat-header-more[aria-expanded="true"],
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .chat-header-more:focus-visible{
+    background:var(--theme-surface-secondary);
+    outline:2px solid color-mix(in srgb,var(--theme-content-accent) 45%,transparent);
+    outline-offset:1px;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .chat-header-action-menu{
+    position:absolute;
+    top:calc(100% + 8px);
+    right:0;
+    z-index:50;
+    box-sizing:border-box;
+    width:min(240px,calc(100vw - 24px));
+    display:grid;
+    padding:6px;
+    border:1px solid var(--theme-border-default);
+    border-radius:16px;
+    background:var(--theme-surface-primary);
+    color:var(--theme-content-primary);
+    box-shadow:0 12px 34px rgba(20,29,42,.17);
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .chat-header-action-menu>button{
+    box-sizing:border-box;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    width:100%;
+    min-height:46px;
+    padding:9px 11px;
+    border:0;
+    border-radius:11px;
+    background:transparent;
+    color:inherit;
+    font:inherit;
+    font-size:14px;
+    font-weight:550;
+    text-align:left;
+    cursor:pointer;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .chat-header-action-menu>button:not(:disabled):is(:hover,:focus-visible){
+    background:var(--theme-surface-secondary);
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .chat-header-action-menu>button>svg{
+    flex:0 0 20px;
+    width:20px;
+    height:20px;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .chat-header-action-menu>button:disabled{
+    opacity:.5;
+    cursor:default;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .chat-header-action-menu small{
+    display:block;
+    font-size:11px;
+    line-height:14px;
+    font-weight:400;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -11940,6 +12050,26 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
           <button type="button" class="contact-profile-header-button" data-active-contact-profile hidden aria-label="Sửa thông tin liên hệ" title="Sửa tên hiển thị và thông tin liên hệ">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5 4 4M4.5 19.5l4.5-1 10.5-10.5a2.12 2.12 0 0 0-3-3L6 15.5l-1.5 4Z"/></svg>
           </button>
+          <!-- CHAT-339: one mobile overflow menu; live-call controls stay owned by CallFocus. -->
+          <div class="chat-header-actions" data-chat-header-actions>
+            <button type="button" class="chat-header-more" data-chat-header-more aria-label="Tùy chọn hội thoại" aria-haspopup="menu" aria-expanded="false" aria-controls="chatHeaderActionMenu" title="Tùy chọn hội thoại">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.65"/><circle cx="12" cy="12" r="1.65"/><circle cx="19" cy="12" r="1.65"/></svg>
+            </button>
+            <div id="chatHeaderActionMenu" class="chat-header-action-menu" role="menu" aria-label="Tùy chọn hội thoại" hidden>
+              <button type="button" role="menuitem" data-chat-header-action="profile" hidden>
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="8" r="3"/><path d="M4 19c0-4 2-6 6-6m3 4 6-6 2 2-6 6-3 .7Z"/></svg><span>Thông tin liên hệ</span>
+              </button>
+              <button type="button" role="menuitem" data-chat-header-action="photos">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8" cy="9" r="1.5"/><path d="m4.5 17 5.5-5.5 3.5 3.5 2.5-2.5 4 4"/></svg><span>Ảnh đã chia sẻ</span>
+              </button>
+              <button type="button" role="menuitem" data-chat-header-action="audio">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.2 4.5 10 8l-1.8 2.2c1.2 2.5 3.1 4.4 5.6 5.6L16 14l3.5 2.8-.9 2.7c-.3.8-1.1 1.3-2 1.2C9.4 19.8 4.2 14.6 3.3 7.4c-.1-.9.4-1.7 1.2-2l2.7-.9Z"/></svg><span>Gọi thoại</span>
+              </button>
+              <button type="button" role="menuitem" data-chat-header-action="video" disabled aria-disabled="true" title="Gọi video chưa được hỗ trợ">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="13" height="14" rx="2.5"/><path d="m16 10 5-3v10l-5-3"/></svg><span>Gọi video <small>Chưa hỗ trợ</small></span>
+              </button>
+            </div>
+          </div>
           <div class="call-status-chip" data-call-status-chip data-state="idle" role="status" aria-live="polite" hidden>
             <span class="call-status-indicator" aria-hidden="true"><i></i><i></i><i></i></span>
             <span class="call-status-copy">
@@ -11965,7 +12095,7 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
             data-tone="primary"
             data-call-live="false"
           >
-            <svg class="call-focus-icon call-focus-icon-call" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="13" height="14" rx="2.5"/><path d="m16 10 5-3v10l-5-3"/></svg>
+            <svg class="call-focus-icon call-focus-icon-call" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.2 4.5 10 8l-1.8 2.2c1.2 2.5 3.1 4.4 5.6 5.6L16 14l3.5 2.8-.9 2.7c-.3.8-1.1 1.3-2 1.2C9.4 19.8 4.2 14.6 3.3 7.4c-.1-.9.4-1.7 1.2-2l2.7-.9Z"/></svg>
             <svg class="call-focus-icon call-focus-icon-end" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
               <path d="M5.2 15.3c4.4-3.3 9.2-3.3 13.6 0" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
               <path d="M6.4 14.6 5.2 17M17.6 14.6l1.2 2.4" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
@@ -15079,6 +15209,11 @@ function updateImageViewerTimeMenu(){
   imageViewerTimeMenuButton.setAttribute('aria-label',`Tùy chọn ảnh · ${timeLabel}`);
   imageViewerTimeMenuButton.setAttribute('title',`Tùy chọn ảnh · ${timeLabel}`);
   for(const button of Array.from(imageViewerTimeMenuPanel.querySelectorAll('.image-review-menu-item'))){
+    if(button.dataset.viewerAction==='forward'){
+      const allowed=Boolean(forwardableCurrentImageViewerMessage());
+      button.disabled=!allowed;
+      button.setAttribute('aria-disabled',String(!allowed));
+    }
     if(!button.dataset.timeFilter)continue;
     const active=button.dataset.timeFilter===imageViewerTimeFilter;
     // These controls have role=menuitemradio: expose checked state to
@@ -15197,21 +15332,31 @@ async function saveCurrentImageViewerImage(){
   return saveMediaDescriptor(media,Math.max(0,imageViewerIndex));
 }
 
-async function shareCurrentImageViewerImage(){
+function forwardableCurrentImageViewerMessage(){
   const media=currentImageViewerDescriptor();
-  if(!media)return false;
-  // An in-Chat recipient picker opens synchronously on the first tap.
-  // Forward only a single-asset source; never send a whole gallery silently
-  // when the user has selected one photo in the image viewer.
   const selected=imageViewerItems[imageViewerIndex]||null;
   const sourceId=String(selected?.messageId||'');
   const source=sourceId?store.items.find(item=>String(item?.id||'')===sourceId):null;
   const assets=source?mediaDescriptorsForMessage(source):[];
-  if(source&&assets.length===1&&String(assets[0]?.assetId||'')===String(media.assetId)&&
-    window.V21MessageForward?.canForward?.(source)){
-    closeImageViewer();
-    return Boolean(window.V21MessageForward.open(source));
-  }
+  // A photo opened from a multi-image album must not secretly forward
+  // the whole album. Multi-asset forwarding belongs to the message toolbar.
+  return source&&media&&assets.length===1&&
+    String(assets[0]?.assetId||'')===String(media.assetId)&&
+    window.V21MessageForward?.canForward?.(source)?source:null;
+}
+
+function forwardCurrentImageViewerImage(){
+  const source=forwardableCurrentImageViewerMessage();
+  if(!source)return false;
+  closeImageViewer();
+  return Boolean(window.V21MessageForward?.open?.(source));
+}
+
+async function shareCurrentImageViewerImage(){
+  const media=currentImageViewerDescriptor();
+  if(!media)return false;
+  // "Chia sẻ" is always the native OS share surface. "Chuyển tiếp" is
+  // the separate in-Chat recipient picker, never an implicit OS fallback.
   return shareMessageMedia({media});
 }
 
@@ -15269,7 +15414,25 @@ function renderImageViewerFilters(){
   });
   menu.appendChild(saveItem);
 
-  if(canNativeShareFiles()||window.V21AuthSessionStore?.snapshot?.()?.account?.role==='admin'){
+  if(window.V21AuthSessionStore?.snapshot?.()?.account?.role==='admin'){
+    const forwardItem=document.createElement('button');
+    forwardItem.type='button';
+    forwardItem.className='image-review-menu-item';
+    forwardItem.dataset.viewerAction='forward';
+    forwardItem.setAttribute('role','menuitem');
+    forwardItem.textContent='Chuyển tiếp trong Chat';
+    forwardItem.disabled=!forwardableCurrentImageViewerMessage();
+    forwardItem.setAttribute('aria-disabled',String(forwardItem.disabled));
+    forwardItem.addEventListener('click',event=>{
+      event.stopPropagation();
+      if(!forwardableCurrentImageViewerMessage())return;
+      closeImageViewerTimeMenu();
+      forwardCurrentImageViewerImage();
+    });
+    menu.appendChild(forwardItem);
+  }
+
+  if(canNativeShareFiles()){
     const shareItem=document.createElement('button');
     shareItem.type='button';
     shareItem.className='image-review-menu-item';
@@ -22646,6 +22809,29 @@ function setSidebar(open){
 }
 
 
+// CHAT-339: a non-modal mobile menu; live call controls keep their original owner.
+function closeChatHeaderMenu({restoreFocus=false}={}){
+  const button=document.querySelector('[data-chat-header-more]');
+  const menu=document.getElementById('chatHeaderActionMenu');
+  if(!menu||menu.hidden)return false;
+  menu.hidden=true;
+  button?.setAttribute('aria-expanded','false');
+  if(restoreFocus)button?.focus?.({preventScroll:true});
+  return true;
+}
+
+function toggleChatHeaderMenu(){
+  const button=document.querySelector('[data-chat-header-more]');
+  const menu=document.getElementById('chatHeaderActionMenu');
+  if(!button||!menu||authState!=='AUTHENTICATED'||route!=='chat'||
+     !activeContact?.id||callState!=='IDLE'||
+     !window.matchMedia('(max-width:63.999rem)').matches)return false;
+  if(!menu.hidden)return closeChatHeaderMenu({restoreFocus:true});
+  menu.hidden=false;
+  button.setAttribute('aria-expanded','true');
+  return true;
+}
+
 function renderTopTabs(){
   for(const tab of document.querySelectorAll('[data-top-tab]')){
     tab.setAttribute('aria-selected',String(tab.dataset.topTab===route));
@@ -22658,6 +22844,7 @@ function renderChatTabIdentity(){
   const avatar=tab?.querySelector('[data-chat-tab-avatar]');
   const label=tab?.querySelector('[data-chat-tab-label]');
   const profileButton=document.querySelector('[data-active-contact-profile]');
+  const profileMenuItem=document.querySelector('[data-chat-header-action="profile"]');
   const visible=Boolean(
     authState==='AUTHENTICATED' &&
     authAccount?.role==='admin' &&
@@ -22676,6 +22863,7 @@ function renderChatTabIdentity(){
   }
   if(!tab||!avatar||!label)return visible;
   if(!visible){
+    if(profileMenuItem)profileMenuItem.hidden=true;
     if(profileButton)profileButton.hidden=true;
     avatar.hidden=true;
     label.textContent='Trò chuyện';
@@ -22685,6 +22873,7 @@ function renderChatTabIdentity(){
   const item=window.V21ContactStore?.snapshot?.().find(row=>
     row?.id&&!row.deleted_at&&String(row.id)===String(activeContact.id)
   )||null;
+  if(profileMenuItem)profileMenuItem.hidden=!(item?.role==='user'&&!isPinnedBankReportContact(item));
   if(profileButton){
     profileButton.hidden=!(item?.role==='user'&&!isPinnedBankReportContact(item));
     profileButton.setAttribute('aria-label','Sửa tên hiển thị và thông tin '+String(item?.display_name||item?.username||'liên hệ'));
@@ -22904,6 +23093,7 @@ function renderCallFocus(){
   const presentation=callFocusPresentation();
   const showIdleCall=route==='chat'&&hasContact;
   const showCallSurface=presentation.state!=='idle'||showIdleCall;
+  if(!showIdleCall||presentation.state!=='idle'||!window.matchMedia('(max-width:63.999rem)').matches)closeChatHeaderMenu();
   for(const slot of document.querySelectorAll('[data-call-focus-slot]')){
     const chip=slot.querySelector('[data-call-status-chip]');
     const title=slot.querySelector('[data-call-status-title]');
@@ -22960,6 +23150,7 @@ function setActiveContact(contactId,contactName){
   }else{
     activeContact={id:String(contactId),name:String(contactName||'Liên hệ')};
   }
+  closeChatHeaderMenu();
   renderCallFocus();
   renderChatTabIdentity();
   syncContactActiveState();
@@ -24048,6 +24239,10 @@ function requireAuthenticatedCommand(){
   return false;
 }
 
+document.addEventListener('keydown',event=>{
+  if(event.key==='Escape'&&closeChatHeaderMenu({restoreFocus:true}))event.preventDefault();
+});
+
 document.addEventListener('submit',event=>{
   const form=event.target instanceof HTMLFormElement?event.target:null;
   if(form?.id==='composerForm'&&authState!=='AUTHENTICATED'){
@@ -24108,6 +24303,30 @@ function handleCallFocus(button){
 document.addEventListener('click',event=>{
   const target=event.target instanceof Element?event.target:null;
   if(!target)return;
+
+  const headerMore=target.closest('[data-chat-header-more]');
+  if(headerMore){
+    event.preventDefault();
+    toggleChatHeaderMenu();
+    return;
+  }
+  const headerAction=target.closest('[data-chat-header-action]');
+  if(headerAction){
+    event.preventDefault();
+    if(headerAction.disabled)return;
+    const action=String(headerAction.dataset.chatHeaderAction||'');
+    closeChatHeaderMenu();
+    if(action==='photos')NavigationCommand.openPhotos();
+    if(action==='profile'&&authState==='AUTHENTICATED'&&authAccount?.role==='admin'&&activeContact?.id){
+      const item=window.V21ContactStore?.snapshot?.().find(row=>String(row?.id||'')===String(activeContact.id));
+      if(item?.role==='user'&&!isPinnedBankReportContact(item))openManagedProfile(item);
+    }
+    if(action==='audio'&&requireAuthenticatedCommand()){
+      CallCommand.start(activeContact?.id,activeContact?.name);
+    }
+    return;
+  }
+  if(!target.closest('[data-chat-header-actions]'))closeChatHeaderMenu();
 
   const passwordToggle=target.closest('[data-password-toggle]');
   if(passwordToggle){
@@ -36572,16 +36791,17 @@ function close({restoreFocus=true}={}){
 
 async function forwardTo(message,contact,{statusNode=null,listNode=null}={}){
   const name=contactName(contact);
-  if(statusNode)statusNode.textContent=`Đang chia sẻ tới ${name}…`;
+  if(statusNode)statusNode.textContent=`Đang chuyển tiếp đến ${name}…`;
   if(listNode)for(const button of listNode.querySelectorAll('button'))button.disabled=true;
   try{
-    await window.V21SyncEngine?.forwardMessage?.({
+    const result=await window.V21SyncEngine?.forwardMessage?.({
       sourceMessageId:String(message?.id||''),
       text:String(message?.text||''),
       targetContactId:String(contact?.id||''),
       clientId:window.V21RuntimeId.create()
     });
-    if(statusNode)statusNode.textContent=`Đã chia sẻ tới ${name}`;
+    if(!result?.ok)throw new Error('forward_not_confirmed');
+    if(statusNode)statusNode.textContent=`Đã chuyển tiếp đến ${name}`;
     window.setTimeout(()=>close({restoreFocus:false}),220);
     return true;
   }catch(error){
@@ -36607,12 +36827,16 @@ function open(message){
   node.className='message-forward-overlay';
   node.innerHTML=`
     <button type="button" class="message-forward-backdrop" data-forward-close aria-label="Đóng"></button>
-    <section class="message-forward-card" role="dialog" aria-modal="true" aria-label="Chia sẻ nội dung trong Chat">
+    <section class="message-forward-card" role="dialog" aria-modal="true" aria-label="Chuyển tiếp tin nhắn trong Chat">
       <div class="message-forward-head">
-        <h2 class="message-forward-title">Chia sẻ trong Chat</h2>
+        <div class="message-forward-heading">
+          <h2 class="message-forward-title">Chuyển tiếp</h2>
+          <p class="message-forward-hint">Chọn người nhận trong danh bạ Chat</p>
+        </div>
         <button type="button" class="message-forward-close" data-forward-close aria-label="Đóng"></button>
       </div>
-      <input class="message-forward-search" type="search" inputmode="search" autocomplete="off" placeholder="Tìm người nhận…" aria-label="Tìm người nhận">
+      <p class="message-forward-preview" aria-label="Nội dung chuyển tiếp"></p>
+      <input class="message-forward-search" type="search" inputmode="search" autocomplete="off" placeholder="Tìm trong danh bạ…" aria-label="Tìm người nhận">
       <div class="message-forward-list" role="list"></div>
       <p class="message-forward-status" aria-live="polite"></p>
     </section>`;
@@ -36621,6 +36845,8 @@ function open(message){
 
   const closeButton=node.querySelector('.message-forward-close');
   if(closeButton)closeButton.innerHTML=window.V21Icons?.markup?.('close',{size:20})||'×';
+  const preview=node.querySelector('.message-forward-preview');
+  if(preview)preview.textContent=String(message?.text||'').replace(/\s+/g,' ').trim().slice(0,160)||'Tin nhắn có ảnh hoặc tệp đính kèm';
   const input=node.querySelector('.message-forward-search');
   const list=node.querySelector('.message-forward-list');
   const status=node.querySelector('.message-forward-status');
