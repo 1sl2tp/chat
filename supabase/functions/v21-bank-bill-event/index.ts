@@ -211,6 +211,138 @@ Deno.serve(async req=>{
    }
   }catch(_e){console.warn("bank291_review_rescan_check_unavailable");}
  }
+ // BANK-348: bounded ORIGINAL OCR-literal recovery. The third bank-backed
+ // pixel scan has already saved the exact text ("13 Th11, 2026"), which the
+ // former strict parser could not accept. Re-parse that IMMUTABLE image text
+ // with the corrected deterministic parser, without a fourth Gemini request.
+ // Both the bank proof and financial SQL RPC remain compulsory.
+ if(recheckBankCredit&&job.status==="review"&&
+    job.reason==="bill_printed_datetime_conflict"&&job.attempt_count===3){
+  try{
+   const {data:r,error:readError}=await db.from("chat_bank_bill_receipts")
+     .select("id,media_asset_id,raw_read,ledger_id,amount_vnd,receiving_name,receiving_bank,receiving_account,sending_bank,transfer_reference,transfer_at_vn,sent_at")
+     .eq("media_asset_id",asset).eq("status","review").eq("attempt_count",3).maybeSingle();
+   const stored=r?.raw_read||{};
+   const literal=String(stored.transfer_date_printed_raw_vn||"").trim();
+   if(!readError&&r&&r.ledger_id===null&&
+      stored.rule_version==="bank_bill_amount_v5_20261110"&&
+      stored.image_type==="successful_transfer_receipt"&&
+      stored.transaction_selection==="single_detail"&&
+      stored.transaction_nature==="transfer"&&
+      stored.transfer_success_visible===true&&stored.amount_clear===true&&
+      stored.printed_date_invalid===true&&
+      stored.time_date_conflict!==true&&stored.clock_text_conflict!==true&&
+      stored.ocr_iso_date_conflict!==true&&
+      r.receiving_account==="2901181999999"&&r.receiving_bank==="AGRIBANK"&&
+      r.receiving_name==="BUI XUAN TUNG"&&
+      Number.isSafeInteger(r.amount_vnd)&&r.amount_vnd>0&&
+      literal.length>=8&&literal.length<=64){
+     const normalized=readV4Fields({
+       recipient_name:r.receiving_name,
+       recipient_account_visible:stored.recipient_account_visible,
+       recipient_account_last5:stored.recipient_account_last5,
+       receiving_bank:r.receiving_bank,sending_bank:r.sending_bank,
+       sender_name:stored.sender_name,
+       transaction_datetime_vn:stored.transaction_datetime_vn,
+       transfer_date_vn:stored.transfer_date_vn,
+       transfer_date_printed_vn:literal,
+       transfer_time_printed_vn:stored.transfer_time_printed_vn,
+       transfer_reference:r.transfer_reference,
+       transfer_content:stored.transfer_content,
+       transaction_selection:stored.transaction_selection,
+       transaction_nature:stored.transaction_nature
+     },{sentAt:job.sent_at});
+     const evidence=requiredAutoCollectEvidence(normalized);
+     const originalClock=String(r.transfer_at_vn||"").slice(0,16);
+     const correctedClock=String(normalized.transfer_at_vn||"").slice(0,16);
+     const day=correctedClock.slice(0,10);
+     const vnToday=new Date(Date.now()+7*3600000).toISOString().slice(0,10);
+     const sentDay=new Date(Date.parse(job.sent_at)+7*3600000).toISOString().slice(0,10);
+     // A literal date correcting ONLY the parsing of the SAME complete
+     // transaction must equal the existing AI clock AND today's bank day.
+     if(evidence.complete&&normalized.transfer_date_printed_vn&&
+        normalized.transfer_date_printed_raw_vn===literal&&
+        !normalized.printed_date_invalid&&!normalized.time_date_conflict&&
+        !normalized.clock_text_conflict&&!normalized.ocr_iso_date_conflict&&
+        originalClock.length===16&&correctedClock===originalClock&&
+        day===vnToday&&day===sentDay&&
+        normalized.receiving_account==="2901181999999"&&
+        String(normalized.transfer_content||"").length>=12){
+       const center=Date.parse(correctedClock.replace(" ","T")+":00+07:00");
+       if(Number.isFinite(center)){
+        const from=new Date(center-5*60000),to=new Date(center+5*60000);
+        const vn=x=>new Date(x.getTime()+7*3600000).toISOString().slice(0,19).replace("T"," ");
+        const [credits,others]=await Promise.all([
+         db.from("taphoa_agribank_notifications")
+           .select("id,package_name,posted_at,status,amount_vnd,body,is_own_transfer")
+           .eq("package_name","com.vnpay.Agribank3g").eq("status","credit_candidate")
+           .eq("is_own_transfer",false).eq("bank_credit_account","2901181999999")
+           .eq("amount_vnd",r.amount_vnd)
+           .gte("transfer_at",from.toISOString()).lte("transfer_at",to.toISOString()).limit(100),
+         db.from("chat_bank_bill_receipts")
+           .select("media_asset_id,status,amount_vnd,transfer_at_vn,transfer_reference,sending_bank,image_sha256,raw_read,sent_at")
+           .eq("amount_vnd",r.amount_vnd).neq("media_asset_id",asset)
+           .gte("transfer_at_vn",vn(from)).lte("transfer_at_vn",vn(to)).limit(100)
+        ]);
+        if(!credits.error&&!others.error&&credits.data&&others.data&&
+           credits.data.length<100&&others.data.length<100){
+         const match=previewBillAppMatch({
+           media_asset_id:asset,status:"amount_read",amount_vnd:r.amount_vnd,
+           sent_at:r.sent_at,...normalized,
+           requires_bank_memo:true,
+           ocr_date_normalization_corrected:true
+         },credits.data,others.data);
+         if(match?.status==="candidate_unique"&&Number.isSafeInteger(match.notification_id)){
+          const [manual,auto]=await Promise.all([
+           db.from("chat_bank_manual_collections").select("notification_id")
+             .eq("notification_id",match.notification_id).limit(1),
+           db.from("chat_bank_app_collection_links").select("notification_id")
+             .eq("notification_id",match.notification_id).limit(1)
+          ]);
+          if(!manual.error&&!auto.error&&!manual.data?.length&&!auto.data?.length){
+           const correctedRead={
+             ...stored,
+             bill_fields_v1:{...stored.bill_fields_v1,
+               transfer_date_printed_vn:normalized.transfer_date_printed_vn},
+             transfer_date_printed_vn:normalized.transfer_date_printed_vn,
+             transfer_date_printed_raw_vn:literal,
+             transfer_date_vn:normalized.transfer_date_vn,
+             transaction_datetime_vn:normalized.transfer_at_vn,
+             printed_date_invalid:false,time_date_conflict:false,
+             clock_text_conflict:false,ocr_iso_date_conflict:false,
+             required_fields_complete:true,requires_bank_memo:true,
+             manual_review_reason:null,
+             recognition_case:"complete_receipt",
+             missing_fields:(Array.isArray(stored.missing_fields)?stored.missing_fields:[])
+               .filter(x=>x!=="literal_date"&&x!=="date_time_conflict"),
+             match_preview:match
+           };
+           const {data:updated,error:updateError}=await db.from("chat_bank_bill_receipts")
+             .update({status:"amount_read",reason:"bank_date_literal_format_corrected",
+               raw_read:correctedRead})
+             .eq("id",r.id).eq("status","review").eq("attempt_count",3)
+             .is("ledger_id",null).select("id");
+           if(!updateError&&updated?.length===1){
+            const {data:posted,error:postError}=await db.rpc("chat_bank_app_collect",{
+             p_asset_id:asset,p_notification_id:match.notification_id
+            });
+            if(!postError&&posted?.ok===true&&posted?.status==="received")
+             return response({ok:true,status:"received",ai_called:false,
+               ledger_written:true,ledger_id:posted.ledger_id,
+               recovery:"verified_original_ocr_date_literal"});
+            console.warn("bank348_date_recovered_collection_deferred",
+             String(posted?.status||postError?.code||"rpc_unavailable").slice(0,80));
+            return response({ok:true,status:"amount_read",ai_called:false,
+              ledger_written:false,reason:"bank_date_literal_format_corrected"});
+           }
+          }
+         }
+        }
+       }
+     }
+   }
+  }catch(_e){console.warn("bank348_stored_date_recovery_unavailable");}
+ }
  // A real Agribank Plus credit may arrive after AI already read this bill.
  // Compare the persisted bill without redownloading the image or calling Gemini.
  if(job.status==="amount_read"){
