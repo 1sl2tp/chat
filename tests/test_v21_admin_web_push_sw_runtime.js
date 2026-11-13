@@ -221,24 +221,47 @@ function harness(){
   // BANK-302: A verified bank collection must supersede BOTH old
   // "AI failed / waiting" and "unmatched bank credit" OS notifications.
   // It does not affect ordinary Chat notifications or its unread badge.
-  const bankPush=(eventKind,tag)=>({
+  const bankPush=(eventKind,tag,alertAllowed=eventKind!=='bank_only')=>({
     kind:'bank_reconciliation',bank_event_kind:eventKind,bank_day:'2026-11-12',
     bank_receipt_id:'receipt-852',bank_notice_id:eventKind==='review'?'':'271',
-    tag,title:'TAPHOA',body:eventKind==='matched'?'Đã ghi thu 10.000.000đ':'Chưa ghi thu',
+    bank_alert_allowed:alertAllowed,
+    bill_amount_vnd:alertAllowed?10000000:null,
+    tag,title:'INTERNAL ERROR',body:'gemini_http_503 failed to fetch',
     contact_id:'bank-report-contact'
   });
   const bankBg=harness();bankBg.setClients([]);
   await bankBg.dispatch('push',{data:{json:()=>bankPush('review','bank:receipt:receipt-852')}});
   await bankBg.dispatch('push',{data:{json:()=>bankPush('bank_only','bank:notice:271')}});
-  assert.equal(bankBg.activeNotices.filter(n=>!n.closed).length,2);
+  assert.equal(bankBg.activeNotices.filter(n=>!n.closed).length,1,
+    'bank-only credit must silently refresh the report without a lock-screen alert');
   await bankBg.dispatch('push',{data:{json:()=>bankPush('matched','bank:notice:271')}});
   assert.equal(bankBg.activeNotices.filter(n=>!n.closed).length,1,
     'verified matched push must close BOTH outdated bank notifications');
   assert.equal(bankBg.activeNotices.find(n=>n.options.tag==='bank:receipt:receipt-852').closed,true);
   const finalBank=bankBg.activeNotices.filter(n=>!n.closed)[0];
-  assert.equal(finalBank.options.tag,'bank:notice:271');
-  assert.match(finalBank.options.body,/Đã ghi thu/);
+  assert.equal(finalBank.options.tag,'bank:receipt:receipt-852');
+  assert.match(finalBank.options.body,/10\.000\.000đ · Đã ghi thu/);
+  assert.equal(finalBank.title,'TAPHOA · Đã nhận diện bill');
+  assert.doesNotMatch(finalBank.options.body,/gemini|http|failed|error/i);
+  assert.equal(finalBank.options.renotify,false,'updated bill state must not chime twice');
   assert.equal(bankBg.getBadge(),0,'bank pushes cannot increment unread Chat badge');
+
+  // No PWA bill notification for a normal image, AI/connection error,
+  // duplicated photo, unreadable amount or a backend payload from an old Edge.
+  const quiet=harness();quiet.setClients([quiet.client('report')]);
+  for(const p of [
+    bankPush('bank_only','bank:notice:271'),
+    bankPush('review','bank:receipt:receipt-852',false),
+    {...bankPush('review','bank:receipt:receipt-852'),bill_amount_vnd:null},
+    {...bankPush('review','bank:receipt:receipt-852'),bill_amount_vnd:0},
+    {...bankPush('review','bank:receipt:receipt-852'),bank_alert_allowed:false},
+    {...bankPush('review','bank:receipt:receipt-852'),bank_alert_allowed:undefined},
+    {...bankPush('duplicate','bank:receipt:receipt-852'),bank_alert_allowed:true}
+  ])await quiet.dispatch('push',{data:{json:()=>p}});
+  assert.equal(quiet.notices.length,0,'irrelevant or unverified bank alerts are suppressed');
+  assert(quiet.posted.some(p=>p.type==='ADMIN_PUSH_BANK_DIRTY'),
+    'silent bank evidence may still refresh an already-open report');
+
 
   // Even when a visible iOS PWA suppresses the matched banner, old "AI lỗi"
   // must be closed and the bank report must receive a refresh hint.
