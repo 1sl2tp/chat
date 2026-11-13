@@ -65,8 +65,8 @@ const location={href:''};
 const sandbox={
  current:()=>({id:user}),admin:()=>isAdmin,cache,pending,
  scopeKey:scope,notice:message=>notices.push(message),
- clearNotice:()=>{clearCount++},normalize:value=>String(value||'').replace(/[\\s().-]/g,''),
- valid:value=>/^\\+?[0-9]{9,15}$/.test(value),
+ clearNotice:()=>{clearCount++},normalize:value=>String(value||'').replace(/[\s().-]/g,''),
+ valid:value=>/^\+?[0-9]{9,15}$/.test(value),
  window:{location}
 };
 vm.runInNewContext(phone.slice(dialStart,dialEnd)+'\nglobalThis.dial=dialCurrent;',sandbox);
@@ -114,9 +114,9 @@ async function run(){
  resolvers.get('uB')({phone_primary:'0900000002'});
  await second;
  assert.equal(remoteCache.get('adminA:sA:uB').phone_primary,'0900000002');
- acct='adminB';
+ acct='adminB';sess='sB';
  const third=remote.read('uB','adminB','sB');
- sess='sB';
+ sess='sC';
  resolvers.get('uB')({phone_primary:'0900000003'});
  await third;
  assert(!remoteCache.has('adminB:sB:uB'),'session change before read must block unrelated number');
