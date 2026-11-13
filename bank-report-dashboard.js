@@ -575,7 +575,7 @@ function renderTable(data){
     'Không đồng nghĩa ngân hàng không có tiền về. Nếu đã nhận chuyển khoản, cần kiểm tra thông báo Agribank.':
     'Có thể xem ngày trước để kiểm tra giao dịch và chứng từ.'));
   if(noData)text.appendChild(el('span','bank-report-empty-meta',
-   'Báo cáo hôm nay: 0 tiền vào · 0 đã thu · 0 bill'));
+   'Ngày đã chọn: 0 tiền vào · 0 đã thu · 0 bill'));
   const currentDay=String(ui.date.value||'');
   const selected=/^20\d{2}-\d{2}-\d{2}$/.test(currentDay)?
     new Date(currentDay+'T12:00:00Z'):null;
