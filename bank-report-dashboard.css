@@ -1933,3 +1933,117 @@ body > [data-bank-review-modal] .bank-review-heading{
     justify-self:start;
   }
 }
+
+/* UI-325: a genuine low-density mobile no-data mode, not four repeated zeros.
+   This is PRESENTATION ONLY; the report still uses the independent Agribank
+   notification, customer bill and verified-ledger sources for all numbers. */
+@media (max-width:760px){
+  #bankReportDashboard .bank-report-controls{
+    display:grid;
+    grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);
+    grid-template-areas:"date date" "send refresh";
+    gap:7px;
+    margin:0;
+  }
+  #bankReportDashboard .bank-report-controls > [data-bank-date]{
+    grid-area:date;
+    width:100%;
+    min-width:0;
+    min-height:43px;
+    padding:8px 12px;
+    font-size:13px;
+    text-align:left;
+    background:var(--surface-primary,#fff);
+  }
+  #bankReportDashboard .bank-report-controls > [data-bank-daily-summary]{
+    grid-area:send;
+    min-height:40px;
+    width:100%;
+    border-radius:10px;
+    font-size:12px;
+  }
+  #bankReportDashboard .bank-report-controls > [data-bank-refresh]{
+    grid-area:refresh;
+    min-height:40px;
+    width:100%;
+    border-radius:10px;
+    font-size:12px;
+  }
+  #bankReportDashboard.is-zero-day .bank-report-header{
+    margin-bottom:12px;
+  }
+  #bankReportDashboard.is-zero-day .bank-report-kpi-grid,
+  #bankReportDashboard.is-zero-day .bank-report-extra-metrics,
+  #bankReportDashboard.is-zero-day .bank-report-table-caption,
+  #bankReportDashboard.is-zero-day .bank-report-filters{
+    display:none!important;
+  }
+  #bankReportDashboard.is-zero-day .bank-report-table-wrap.is-empty{
+    margin:0;
+    overflow:visible;
+  }
+  #bankReportDashboard.is-zero-day .bank-report-empty-state{
+    display:flex;
+    flex-direction:column;
+    align-items:stretch;
+    justify-content:flex-start;
+    gap:14px;
+    min-height:0;
+    padding:20px 17px;
+    border:1px solid var(--border-default,#e4e8ed);
+    border-radius:15px;
+    background:var(--surface-secondary,#f6f8fa);
+  }
+  #bankReportDashboard.is-zero-day .bank-report-empty-copy{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    gap:7px;
+    min-width:0;
+  }
+  #bankReportDashboard.is-zero-day .bank-report-empty-title{
+    font-size:15px;
+    font-weight:750;
+    letter-spacing:-.015em;
+    line-height:1.35;
+  }
+  #bankReportDashboard.is-zero-day .bank-report-empty-description{
+    margin:0;
+    font-size:12px;
+    line-height:1.55;
+    color:var(--text-secondary,#5c6872);
+  }
+  #bankReportDashboard.is-zero-day .bank-report-empty-meta{
+    display:block;
+    padding:7px 10px;
+    border-radius:8px;
+    background:var(--surface-primary,#fff);
+    color:var(--text-secondary,#5c6872);
+    font-size:11px;
+    line-height:1.35;
+    font-variant-numeric:tabular-nums;
+  }
+  #bankReportDashboard.is-zero-day .bank-report-empty-previous{
+    align-self:flex-start;
+    justify-self:start;
+    max-width:none;
+    width:auto;
+    min-height:39px;
+    padding:8px 13px;
+    font-size:12px;
+    border:1px solid var(--border-default,#d4dce3);
+    border-radius:10px;
+    background:var(--surface-primary,#fff);
+  }
+}
+@media (max-width:360px){
+  #bankReportDashboard .bank-report-controls{
+    grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);
+    gap:6px;
+  }
+  #bankReportDashboard .bank-report-controls > [data-bank-date]{font-size:12px;}
+  #bankReportDashboard .bank-report-controls > [data-bank-daily-summary],
+  #bankReportDashboard .bank-report-controls > [data-bank-refresh]{
+    font-size:11.5px;
+  }
+}
