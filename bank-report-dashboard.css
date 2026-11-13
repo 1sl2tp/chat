@@ -3186,3 +3186,50 @@ body > [data-bank-review-modal] .bank-review-heading{
   #bankReportDashboard .bank-report-section-action{font-size:10px;padding:7px;}
   #bankReportDashboard .bank-report-section-body{padding:7px;}
 }
+
+/* UI-334: a stable right-aligned amount column for bank and bill records.
+   Every amount ends at exactly the same horizontal position independent
+   of the number of digits and of the status badge's variable width.
+   Example: 100 / 1.000 / 10.000 / 100.000; no artificial spaces in data. */
+#bankReportDashboard .bank-report-detail-top{
+  display:grid;
+  grid-template-columns:60px 112px minmax(0,1fr) minmax(0,max-content);
+  align-items:center;
+  column-gap:8px;
+}
+#bankReportDashboard .bank-report-detail-top > .bank-report-detail-time{
+  grid-column:1;
+  min-width:0;
+  white-space:nowrap;
+  font-variant-numeric:tabular-nums;
+}
+#bankReportDashboard .bank-report-detail-top > .bank-report-detail-amount{
+  grid-column:2;
+  justify-self:stretch;
+  width:100%;
+  min-width:0;
+  text-align:right;
+  white-space:nowrap;
+  font-variant-numeric:tabular-nums;
+  font-feature-settings:"tnum" 1;
+  letter-spacing:normal;
+}
+#bankReportDashboard .bank-report-detail-top > :is(.bank-report-detail-status,.bank-report-quick-collect){
+  grid-column:4;
+  justify-self:end;
+}
+@media(max-width:760px){
+  #bankReportDashboard .bank-report-detail-top{
+    grid-template-columns:50px 92px minmax(0,1fr) minmax(0,max-content);
+    column-gap:6px;
+  }
+}
+@media(max-width:360px){
+  #bankReportDashboard .bank-report-detail-top{
+    grid-template-columns:40px 76px minmax(0,1fr) minmax(0,102px);
+    column-gap:4px;
+  }
+  #bankReportDashboard .bank-report-detail-top > .bank-report-detail-amount{
+    font-size:13px;
+  }
+}
