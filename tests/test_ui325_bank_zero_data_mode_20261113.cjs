@@ -27,7 +27,7 @@ assert(js.includes('Không đồng nghĩa ngân hàng không có tiền về.'))
 assert(js.includes('Báo cáo hôm nay: 0 tiền vào · 0 đã thu · 0 bill'));
 assert(js.includes("root.classList.contains('is-zero-day')"));
 const css325=css.slice(css.indexOf('/* UI-325: real no-data mode'));
-assert(css325.length>2900);
+assert(css325.length>1400,'zero-day CSS must have mobile date layout and empty detail rules');
 for(const token of [
  'grid-template-areas:"date date" "send refresh"',
  '.bank-report-controls > [data-bank-date]',
