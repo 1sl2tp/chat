@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="5f04b43924dfb7cf71ca1580ac180b294535f3ccf68150cc63f6e2ecb7ca0000">
+<meta name="app-build-id" content="fb258e1cfb26899524762bf441c790a9ea6cf54b9b3356d5047609c61b8274eb">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -39794,6 +39794,10 @@ function ensureStyle(){
  .ncc-line-table th{font-size:11px;color:#667085}.ncc-line-table [data-ncc-money]{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
  .ncc-table-scroll{overflow-x:auto}.ncc-pane{display:grid;gap:8px;margin:12px 0}.ncc-pane img{max-height:260px;max-width:100%;object-fit:contain;border:1px solid #eee;border-radius:9px}
  .ncc-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.ncc-dialog input[type="search"],.ncc-dialog input[type="number"]{box-sizing:border-box;min-height:40px;max-width:100%;font-size:16px;padding:6px 9px;border-radius:9px;border:1px solid #cbd5e1}
+ .ncc-manual{border:1px solid #e2e8f0;background:#f8fafc;padding:12px;border-radius:12px;display:grid;gap:10px;margin:10px 0}
+ .ncc-manual .ncc-controls>label{display:grid;gap:4px;flex:1;min-width:180px;font-weight:600}
+ .ncc-manual select,.ncc-manual input[type="file"]{box-sizing:border-box;min-height:40px;width:100%;max-width:100%;padding:7px;border:1px solid #cbd5e1;border-radius:9px;background:#fff;font:inherit}
+ .ncc-manual input[type="file"]{font-size:13px}.ncc-manual .ncc-hint{font-size:12px;color:#475569}
  .ncc-help{font-size:12px;color:#64748b;line-height:1.5}.ncc-msg{min-height:18px;color:#b45309;font-size:12px}
  @media(max-width:600px){.ncc-dialog{padding:10px;max-height:92dvh}.ncc-head{top:-10px}.ncc-dialog .ncc-pane{gap:6px}}
  `;
@@ -39834,13 +39838,82 @@ async function loadList(){
  docId='';const host=content();if(!host)return;
  host.textContent='Đang tải phiếu…';notify('');
  try{
-  const {documents}=await call('list');
-  supplierRows=documents||[];
-  host.innerHTML=`<div class="ncc-controls"><button type="button" data-ncc-refresh>Làm mới</button><span class="ncc-help">Danh sách ảnh NCC, tối đa 60 phiếu mới</span></div>
+  const [inbox,directory]=await Promise.all([call('list'),call('suppliers')]);
+  const documents=inbox.documents||[];
+  const accounts=directory.accounts||[];
+  supplierRows=documents;
+  host.innerHTML=`<section class="ncc-manual" aria-label="Thêm phiếu và gán tài khoản NCC">
+   <strong>Nhập hàng · TK NCC</strong>
+   <div class="ncc-controls"><label>Tài khoản Chat
+     <select data-ncc-supplier><option value="">Chưa gán tài khoản (phiếu thủ công)</option>
+     ${accounts.filter(a=>a.contact_group==='ncc').map(a=>`<option value="${escape(a.id)}">${escape(a.display_name||a.username||a.id)}</option>`).join('')}</select></label>
+     <label>Chọn ảnh phiếu nhập
+      <input type="file" data-ncc-file accept="image/jpeg,image/png,image/webp">
+     </label></div>
+   <div class="ncc-controls"><button type="button" class="ncc-primary" data-ncc-upload>Thêm phiếu thủ công</button>
+    <button type="button" data-ncc-manage>Gán tài khoản vào TK NCC</button></div>
+   <div class="ncc-hint">Tài khoản thuộc TK NCC: ảnh họ gửi tự vào hàng chờ. Ảnh thủ công có thể để trống tài khoản. Không tự đổi giá vốn.</div>
+   <div data-ncc-manage-panel hidden></div></section>
+   <div class="ncc-controls"><button type="button" data-ncc-refresh>Làm mới</button><span class="ncc-help">Danh sách ảnh NCC, tối đa 60 phiếu mới</span></div>
   <div class="ncc-docs">${supplierRows.map(x=>`<button type="button" class="ncc-doc" data-ncc-id="${escape(x.id)}"><span><strong>${escape(x.invoice_number||'Chưa có mã phiếu')}</strong> · ${escape(x.invoice_date||'Chưa rõ ngày')}<small> · ${escape(x.created_at?.slice(0,10)||'')}</small></span><small>${escape(statusText[x.status]||'Chờ kiểm tra')}</small></button>`).join('')||'<p>Chưa có ảnh phiếu nhập từ TK NCC.</p>'}</div>`;
   host.querySelector('[data-ncc-refresh]').onclick=()=>void loadList();
+  host.querySelector('[data-ncc-upload]').onclick=()=>void uploadManual(host);
+  host.querySelector('[data-ncc-manage]').onclick=()=>manageSuppliers(host,accounts);
   for(const btn of host.querySelectorAll('[data-ncc-id]'))btn.onclick=()=>void view(btn.dataset.nccId);
  }catch{host.textContent='Chưa mở được danh sách phiếu. Kiểm tra quyền và phiên bản máy chủ.';}
+}
+// NCC-002: uploads originate from an explicit Admin tap; no background scanning or message sends.
+function fileAsBase64(file){
+ return new Promise((resolve,reject)=>{
+  const reader=new FileReader();
+  reader.onerror=()=>reject(Error('image_read_failed'));
+  reader.onload=()=>resolve(String(reader.result||'').split(',')[1]||'');
+  reader.readAsDataURL(file);
+ });
+}
+async function uploadManual(host){
+ if(busy)return;
+ const file=host.querySelector('[data-ncc-file]')?.files?.[0];
+ if(!file||!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size<100||file.size>4000000){
+  notify('Chọn ảnh JPG, PNG hoặc WebP hợp lệ, tối đa 4 MB.');return;
+ }
+ const supplierId=host.querySelector('[data-ncc-supplier]')?.value||'';
+ updateBusy(true);notify('Đang lưu ảnh phiếu nhập…');
+ try{
+  const base64=await fileAsBase64(file);
+  const data=await call('manual_upload',{supplierId,mime:file.type,base64});
+  if(data.status==='duplicate'){notify('Ảnh trùng: phiếu này đã được nhận trước đó.');return;}
+  await view(data.id);
+  notify('Đã thêm phiếu. Bấm “AI đọc phiếu” để phân tích và ghép sản phẩm.');
+ }catch{notify('Không lưu được ảnh phiếu. Kiểm tra phiên quản trị và cấu hình máy chủ.');}
+ finally{updateBusy(false);}
+}
+function manageSuppliers(host,accounts){
+ const panel=host.querySelector('[data-ncc-manage-panel]');if(!panel)return;
+ panel.hidden=!panel.hidden;
+ if(panel.hidden)return;
+ panel.innerHTML=`<div class="ncc-controls"><label>Chọn tài khoản Chat
+ <select data-ncc-account><option value="">Chọn tài khoản</option>
+ ${accounts.map(a=>`<option value="${escape(a.id)}">${escape(a.display_name||a.username||a.id)}${a.contact_group==='ncc'?' · TK NCC':''}</option>`).join('')}</select></label>
+ <button type="button" class="ncc-primary" data-ncc-group-save>Gán vào TK NCC</button></div>
+ <div class="ncc-hint">Sau khi gán, ảnh mới do tài khoản này gửi sẽ được xét là phiếu nhập; ảnh trước đó không tự quét lại.</div>`;
+ panel.querySelector('[data-ncc-group-save]').onclick=async()=>{
+  if(busy)return;
+  const id=panel.querySelector('[data-ncc-account]').value;
+  if(!id){notify('Chọn tài khoản trước khi gán.');return;}
+  const client=auth()?.getClient?.();
+  if(!client||!admin())return;
+  updateBusy(true);
+  try{
+   const {data,error}=await client.functions.invoke('v21-zalo-admin',
+    {body:{action:'set_group',target_account_id:id,contact_group:'ncc'}});
+   if(error||!data?.ok)throw Error(data?.code||'group_update_failed');
+   await window.V21ContactDirectoryAdmin?.refreshGroups?.();
+   await loadList();
+   notify('Đã gán tài khoản vào TK NCC. Ảnh gửi mới sẽ vào hàng chờ.');
+  }catch{notify('Chưa gán được tài khoản. Kiểm tra quyền và kích hoạt TK NCC phía máy chủ.');}
+  finally{updateBusy(false);}
+ };
 }
 async function view(id){
  if(!id)return;
