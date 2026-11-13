@@ -387,7 +387,28 @@ Deno.serve(async req=>{
    if(!geminiKey)throw new Error("gemini_key_missing");
    let b64="";
    for(let n=0;n<bytes.length;n+=16000)b64+=String.fromCharCode(...bytes.subarray(n,Math.min(bytes.length,n+16000)));
-   const prompt=SYSTEM_PROMPT+"\n\n"+TEN_FIELD_BILL_GUIDANCE;
+   // BANK-348: On a bounded, bank-backed re-read of a Techcombank bill
+   // whose first two AI passes omitted the visible execution date, direct
+   // attention to the ORIGINAL image's "Ngày thực hiện" label. This is
+   // image transcription only: never use bank, Chat or server date as proof.
+   const executionDateGuide=retryPrintedDate?[
+     "BANK-348. KIỂM TRA LẠI NGÀY THỰC HIỆN TRÊN CHÍNH ẢNH:",
+     "Trước tiên nhìn kỹ vùng thông tin chi tiết giao dịch TECHCOMBANK,",
+     "đặc biệt nhãn 'Ngày thực hiện', 'Thời gian thực hiện', 'Ngày giao dịch'",
+     "hoặc 'Thời điểm chuyển tiền' và giá trị in ngay bên phải hay dòng dưới.",
+     "Ngày có thể nằm CÙNG DÒNG với giờ hoặc ở dòng kế; chép nguyên văn",
+     "giá trị ngày THỰC SỰ nhìn thấy vào transfer_date_printed_vn.",
+     "Khi có nguyên văn ngày đủ năm và giờ 21:08 ngay trên ảnh, chuẩn hóa",
+     "theo DD/MM/YYYY; điền transfer_date_vn và transaction_datetime_vn",
+     "chỉ khi chúng KHỚP CHÍNH CHỮ IN. Đừng chỉ đọc giờ rồi bỏ qua ngày.",
+     "KHÔNG lấy ngày từ thông báo Agribank, giờ Chat, thanh trạng thái,",
+     "mã giao dịch, ngày hạch toán khác ngày thực hiện hay ngày máy chủ.",
+     "Nếu ngày thật sự khuất/mờ/không có năm thì để cả ngày nguyên văn",
+     "và ngày chuẩn hóa là null; không suy đoán dù ngân hàng có giao dịch.",
+     "Các trường khác vẫn phải đọc/kiểm tra đúng, trả nguyên JSON ban đầu."
+   ].join("\n"):"";
+   const prompt=SYSTEM_PROMPT+"\n\n"+TEN_FIELD_BILL_GUIDANCE+
+     (executionDateGuide?"\n\n"+executionDateGuide:"");
    const ctl=new AbortController();const timeout=setTimeout(()=>ctl.abort(),30000);
    let usedModel=model;
    let parsed:any;
