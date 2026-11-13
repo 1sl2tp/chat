@@ -185,7 +185,7 @@ Deno.serve(async (req: Request) => {
         .eq("role", "user")
         .is("deleted_at", null);
       if (error) return reply(400, { ok: false, code: "zalo_update_failed" });
-      return reply(200, { ok: true, groups: data ?? [] });
+      return reply(200, { ok: true, groups: data ?? [], ncc_enabled: Deno.env.get('NCC_INVOICE_ENABLED') === 'true' });
     }
 
     if (action === "admin_snapshot") {
@@ -387,6 +387,7 @@ Deno.serve(async (req: Request) => {
     if (action === "set_group") {
       const contactGroup = String(body?.contact_group ?? "").trim().toLowerCase();
       if (!CONTACT_GROUPS.has(contactGroup)) return reply(400, { ok: false, code: "invalid_group" });
+      if (contactGroup === 'ncc' && Deno.env.get('NCC_INVOICE_ENABLED') !== 'true') return reply(409, { ok: false, code: 'ncc_not_ready' });
       const { data: account, error } = await admin.from("v21_accounts")
         .update({ contact_group: contactGroup })
         .eq("id", targetId)
