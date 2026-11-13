@@ -43,6 +43,25 @@ function verifiedMbvcbMemo(raw){
  if(!memo||!sender)return null;
  return {reference:match[1],memo,sender};
 }
+// BANK-347: A VietinBank paper receipt may print only the generic memo
+// "CHUYEN TIEN", while the independently received Agribank QR memo prints
+// "QR - <full sender name> Chuyen tien". The memo is verified ONLY when the
+// OCR sender name is complete, specific and exactly equals the bank QR name.
+// Amount, minute, destination, day, competing proofs and financial SQL
+// guards remain mandatory; the generic memo by itself proves nothing.
+function verifiedQrSenderMemo(bill,rawBankMemo){
+ const printed=tidy(bill?.transfer_content);
+ if(printed!=="CHUYENTIEN")return false;
+ const parsed=/^QR\s*[-–:]\s+(.+?)\s+(chuyen tien|chuyển tiền)\.?\s*$/i.exec(String(rawBankMemo||"").trim());
+ if(!parsed||tidy(parsed[2])!=="CHUYENTIEN")return false;
+ const sender=normalizeBillRecipientName(bill?.sender_name);
+ const bankSender=normalizeBillRecipientName(parsed[1]);
+ if(!sender||sender!==bankSender||sender==="BUI XUAN TUNG"||
+   sender.length<12||!/^[A-Z]+(?: [A-Z]+){2,}$/.test(sender))return false;
+ const account=String(bill?.receiving_account||"").replace(/\D/g,"");
+ if(account.length<9||!account.endsWith("99999"))return false;
+ return true;
+}
 function ownTransferNotice(e){
  // BANK-298: the bank can spell the account-holder name with accents and
  // can wrap its memo in QR - / MB(six-digit-code)(literal original memo).
@@ -118,9 +137,11 @@ export function previewBillAppMatch(bill,events,otherBills=[],now=Date.now()){
    const billRef=String(bill.transfer_reference||"").trim();
    const bankMemoWithoutMbvcb=mbvcb&&(!billRef||billRef===mbvcb.reference)
      ?tidy(mbvcb.memo):null;
-   if(printedMemo.length<12||!bankText||
+   const qrSenderVerified=verifiedQrSenderMemo(bill,rawBankMemo);
+   if((printedMemo.length<12&&!qrSenderVerified)||!bankText||
       (printedMemo!==bankText&&printedMemo!==bankMemoWithoutQr&&
-       printedMemo!==bankMemoWithoutMb&&printedMemo!==bankMemoWithoutMbvcb))
+       printedMemo!==bankMemoWithoutMb&&printedMemo!==bankMemoWithoutMbvcb&&
+       !qrSenderVerified))
      return{status:"review",reason:"ocr_date_corrected_bank_memo_unverified"};
  }
  // Same reliable bank reference is the same transfer across cropped/reuploaded
