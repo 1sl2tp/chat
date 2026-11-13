@@ -95,7 +95,13 @@ async function analyze(invoice:any){
       throw new Error('invalid_media');
   const {data:account}=await db.from('v21_accounts').select('id,role,contact_group')
    .eq('id',invoice.chat_account_id).is('deleted_at',null).maybeSingle();
-  if(!account||account.role!=='user'||account.contact_group!=='ncc')throw new Error('not_ncc_sender');
+  if(!account||account.role!=='user')throw new Error('invalid_sender');
+  if(account.contact_group!=='ncc'){
+   const {data:assigned}=await db.from('chat_ncc_scanner_assignments')
+    .select('account_id').eq('account_id',invoice.chat_account_id)
+    .eq('enabled',true).maybeSingle();
+   if(!assigned)throw new Error('not_assigned_scanner');
+  }
   const {data:file,error:downloadError}=await db.storage.from('v21-media').download(media.storage_key);
   if(downloadError||!file)throw new Error('image_unavailable');
   bytes=new Uint8Array(await file.arrayBuffer());
@@ -104,7 +110,7 @@ async function analyze(invoice:any){
   if(isManual){
    const {data:owner}=await db.from('v21_accounts').select('id,role,contact_group')
     .eq('id',invoice.chat_account_id).is('deleted_at',null).maybeSingle();
-   if(!owner||(owner.role!=='admin'&&(owner.role!=='user'||owner.contact_group!=='ncc')))
+   if(!owner||(owner.role!=='admin'&&owner.role!=='user'))
     throw new Error('manual_supplier_invalid');
   }
   if(!mimeOk(mime)||bytes.length<100||bytes.length>4000000)throw new Error('invalid_media_size');
@@ -188,6 +194,31 @@ Deno.serve(async req=>{
  try{body=await req.json();}catch{return fail('invalid_json');}
  const action=String(body?.action||'').trim();
  if(webhook&&action!=='scan')return fail('webhook_scan_only',403);
+ if(action==='scanner_list'){
+  const q=String(body?.q||'').trim().replace(/[%_,]/g,' ').slice(0,60);
+  let request=db.from('v21_accounts')
+    .select('id,username,display_name,contact_group')
+    .eq('role','user').is('deleted_at',null)
+    .order('display_name',{ascending:true}).limit(250);
+  if(q.length>=2)request=request.or('display_name.ilike.%'+q+'%,username.ilike.%'+q+'%');
+  const [users,scanners]=await Promise.all([
+   request,db.from('chat_ncc_scanner_assignments').select('account_id,enabled').eq('enabled',true)
+  ]);
+  if(users.error||scanners.error)return fail('scanner_list_unavailable',500);
+  return respond({ok:true,accounts:users.data||[],assigned:scanners.data||[]});
+ }
+ if(action==='scanner_assign'){
+  const accountId=String(body?.accountId||'').trim(),enabled=body?.enabled;
+  if(!UUID.test(accountId)||typeof enabled!=='boolean')return fail('invalid_scanner');
+  const {data:account}=await db.from('v21_accounts').select('id')
+   .eq('id',accountId).eq('role','user').is('deleted_at',null).maybeSingle();
+  if(!account)return fail('user_not_found',404);
+  const {error}=await db.from('chat_ncc_scanner_assignments').upsert({
+   account_id:accountId,enabled,assigned_by:admin!.id,updated_at:new Date().toISOString()
+  },{onConflict:'account_id'});
+  return error?fail('scanner_assignment_unavailable',500)
+    :respond({ok:true,accountId,enabled});
+ }
  if(action==='suppliers'){
   const {data,error}=await db.from('v21_accounts')
    .select('id,display_name,username,contact_group').eq('role','user')
@@ -204,9 +235,14 @@ Deno.serve(async req=>{
   let supplierId=admin!.id;
   if(senderId){
    if(!UUID.test(senderId))return fail('invalid_supplier');
-   const {data:account}=await db.from('v21_accounts').select('id').eq('id',senderId)
-    .eq('role','user').eq('contact_group','ncc').is('deleted_at',null).maybeSingle();
-   if(!account)return fail('supplier_not_in_ncc',409);
+   const {data:account}=await db.from('v21_accounts').select('id,contact_group')
+    .eq('id',senderId).eq('role','user').is('deleted_at',null).maybeSingle();
+   if(!account)return fail('supplier_not_found',404);
+   if(account.contact_group!=='ncc'){
+    const {data:assigned}=await db.from('chat_ncc_scanner_assignments')
+     .select('account_id').eq('account_id',senderId).eq('enabled',true).maybeSingle();
+    if(!assigned)return fail('supplier_not_authorized_to_scan',409);
+   }
    supplierId=account.id;
   }
   const hash=await sha256(bytes);
