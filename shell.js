@@ -395,6 +395,7 @@ function renderChatTabIdentity(){
   const avatar=tab?.querySelector('[data-chat-tab-avatar]');
   const label=tab?.querySelector('[data-chat-tab-label]');
   const profileButton=document.querySelector('[data-active-contact-profile]');
+  const profileMenuItem=document.querySelector('[data-chat-header-action="profile"]');
   const visible=Boolean(
     authState==='AUTHENTICATED' &&
     authAccount?.role==='admin' &&
@@ -413,6 +414,7 @@ function renderChatTabIdentity(){
   }
   if(!tab||!avatar||!label)return visible;
   if(!visible){
+    if(profileMenuItem)profileMenuItem.hidden=true;
     if(profileButton)profileButton.hidden=true;
     avatar.hidden=true;
     label.textContent='Trò chuyện';
@@ -422,6 +424,7 @@ function renderChatTabIdentity(){
   const item=window.V21ContactStore?.snapshot?.().find(row=>
     row?.id&&!row.deleted_at&&String(row.id)===String(activeContact.id)
   )||null;
+  if(profileMenuItem)profileMenuItem.hidden=!(item?.role==='user'&&!isPinnedBankReportContact(item));
   if(profileButton){
     profileButton.hidden=!(item?.role==='user'&&!isPinnedBankReportContact(item));
     profileButton.setAttribute('aria-label','Sửa tên hiển thị và thông tin '+String(item?.display_name||item?.username||'liên hệ'));
@@ -1865,6 +1868,10 @@ document.addEventListener('click',event=>{
     const action=String(headerAction.dataset.chatHeaderAction||'');
     closeChatHeaderMenu();
     if(action==='photos')NavigationCommand.openPhotos();
+    if(action==='profile'&&authState==='AUTHENTICATED'&&authAccount?.role==='admin'&&activeContact?.id){
+      const item=window.V21ContactStore?.snapshot?.().find(row=>String(row?.id||'')===String(activeContact.id));
+      if(item?.role==='user'&&!isPinnedBankReportContact(item))openManagedProfile(item);
+    }
     if(action==='audio'&&requireAuthenticatedCommand()){
       CallCommand.start(activeContact?.id,activeContact?.name);
     }
