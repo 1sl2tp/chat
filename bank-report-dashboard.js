@@ -214,10 +214,10 @@ async function reload(){
   if(id!==requestId||!active||ui.date.value!==day||
       owner!==reportSessionOwner||owner!==bankReportSessionOwner())return;
   const data=report.data;
-  current={...data,manual_collections:Array.isArray(states.data)?states.data:[],
+  current=bankReportVisibleData({...data,manual_collections:Array.isArray(states.data)?states.data:[],
     bank_credits:Array.isArray(credits.data)?credits.data:[],
     bank_balance_gaps:!gapReview.error&&Array.isArray(gapReview.data)?gapReview.data:[],
-    bank_balance_gap_status:gapReview.error?'unavailable':'ok'};
+    bank_balance_gap_status:gapReview.error?'unavailable':'ok'});
   paint(current);focusPushRecord(current);
   const when=new Date(data.updated_at);
   ui.stamp.textContent='Dữ liệu '+(Number.isFinite(when.getTime())?new Intl.DateTimeFormat('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(when):'mới nhất')+(data.closed?' · Đã khóa sổ':' · Đang mở sổ');
@@ -439,7 +439,6 @@ function renderBankGapWarnings(data){
  holder.appendChild(box);
 }
 function paint(data){
- data=bankReportVisibleData(data);
  const s=data?.summary||{};
  const expanded=new Set([...ui.groups.querySelectorAll('.bank-report-detail[open]')]
   .map(node=>node.dataset.bankNoticeId?'notice:'+node.dataset.bankNoticeId:
