@@ -1688,6 +1688,9 @@ async function openManualBillDialog(bill){
  const note=el('textarea','bank-review-explanation');
  note.rows=3;note.minLength=15;note.maxLength=950;note.required=true;
  note.value=bankManualBillSuggestedNote(bill,comparisonNotice);
+ // This remains a draft until the Admin checks the actual account.
+ // Only an explicit consent changes the suggested audit wording to "Đã xác minh".
+ let noteWasEdited=false;
  note.placeholder='Ghi chú tự đề xuất từ cảnh báo đỏ/vàng. Chỉnh lại sau khi kiểm tra Agribank thực tế.';
  note.setAttribute('aria-description','Mẫu ghi chú dựa trên chứng cứ; chỉ tích xác nhận sau khi đã kiểm tra Agribank trực tiếp.');
  noteLabel.appendChild(note);form.appendChild(noteLabel);
@@ -1713,8 +1716,19 @@ async function openManualBillDialog(bill){
    'Ghi chú xác minh cần ít nhất 15 ký tự.':
    'Đã đủ ghi chú và xác nhận · máy chủ sẽ kiểm tra trùng trước khi thu.';
  };
- note.addEventListener('input',updateManualBillConsent);
- verified.addEventListener('change',updateManualBillConsent);
+ note.addEventListener('input',()=>{
+  noteWasEdited=true;
+  updateManualBillConsent();
+ });
+ verified.addEventListener('change',()=>{
+  if(!noteWasEdited){
+   note.value=note.value.replace(
+    /^(?:Đã xác minh trực tiếp Agribank theo xác nhận của Admin|Xác minh Agribank trực tiếp trước khi ghi thu)\./,
+    verified.checked?'Đã xác minh trực tiếp Agribank theo xác nhận của Admin.':
+      'Xác minh Agribank trực tiếp trước khi ghi thu.');
+  }
+  updateManualBillConsent();
+ });
  // Move only this dialog's host above the whole Chat shell, not inside
  // #stageLayout where the desktop contact sidebar obscures its left side.
  if(document.body&&ui.review.parentElement!==document.body)document.body.appendChild(ui.review);
