@@ -14,7 +14,9 @@ assert(migration.includes("Nội dung giao dịch:"));
 assert(migration.includes('count(DISTINCT n.fingerprint)'));
 assert(migration.includes('v_fingerprints<>1'));
 assert(migration.includes('bank_credit_already_collected'));
-assert(migration.includes('$bank320_prepare_patch
+assert(migration.includes('bank320_prepare_patch'));
+assert(migration.includes('v_effective_time:=v_receipt.transfer_at_vn;'));
+assert(migration.includes('v_bank_proof:=v21_private.bank320_unique_credit_for_no_clock(v_receipt.id);'));
 assert(migration.includes('bank_fingerprint_already_collected'));
 assert(migration.includes('SELECT * INTO v_existing FROM public.chat_bank_manual_collections'));
 assert(migration.includes('image_at:=r.transfer_at_vn at time zone'));
