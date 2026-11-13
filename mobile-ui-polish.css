@@ -1593,3 +1593,110 @@
     gap:3px;
   }
 }
+
+/* CHAT-339 — selected-contact mobile header: one overflow entry, not three
+   disconnected icon targets. The existing CallFocus remains visible for
+   ringing/connected calls; only the idle actions move into this menu. */
+.chat-header-actions{display:none}
+.chat-header-action-menu[hidden]{display:none!important}
+@media(max-width:63.999rem){
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .top-mode-switch[data-contact-identity="true"]{
+    grid-template-columns:minmax(0,1fr)!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .top-mode-switch[data-contact-identity="true"] .top-mode-tab[data-top-tab="photos"]{
+    display:none!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .call-focus-slot[data-call-ui-state="idle"]:not([hidden]){
+    box-sizing:border-box;
+    flex:0 0 44px;
+    width:44px!important;
+    max-width:44px!important;
+    min-width:44px;
+    padding:0!important;
+    border:0!important;
+    background:transparent!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .call-focus-slot[data-call-ui-state="idle"] .call-focus-button{
+    display:none!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .call-focus-slot[data-call-ui-state="idle"] .contact-profile-header-button{
+    display:none!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .call-focus-slot[data-call-ui-state="idle"] .chat-header-actions{
+    display:block;
+    position:relative;
+    flex:0 0 44px;
+    width:44px;
+    height:44px;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .chat-header-more{
+    box-sizing:border-box;
+    display:grid;
+    place-items:center;
+    width:44px;
+    height:44px;
+    padding:0;
+    border:1px solid color-mix(in srgb,var(--theme-border-default) 78%,transparent);
+    border-radius:999px;
+    background:var(--theme-surface-primary);
+    color:var(--theme-content-primary);
+    cursor:pointer;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .chat-header-more[aria-expanded="true"],
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .chat-header-more:focus-visible{
+    background:var(--theme-surface-secondary);
+    outline:2px solid color-mix(in srgb,var(--theme-content-accent) 45%,transparent);
+    outline-offset:1px;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .chat-header-action-menu{
+    position:absolute;
+    top:calc(100% + 8px);
+    right:0;
+    z-index:50;
+    box-sizing:border-box;
+    width:min(240px,calc(100vw - 24px));
+    display:grid;
+    padding:6px;
+    border:1px solid var(--theme-border-default);
+    border-radius:16px;
+    background:var(--theme-surface-primary);
+    color:var(--theme-content-primary);
+    box-shadow:0 12px 34px rgba(20,29,42,.17);
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .chat-header-action-menu>button{
+    box-sizing:border-box;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    width:100%;
+    min-height:46px;
+    padding:9px 11px;
+    border:0;
+    border-radius:11px;
+    background:transparent;
+    color:inherit;
+    font:inherit;
+    font-size:14px;
+    font-weight:550;
+    text-align:left;
+    cursor:pointer;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .chat-header-action-menu>button:not(:disabled):is(:hover,:focus-visible){
+    background:var(--theme-surface-secondary);
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .chat-header-action-menu>button>svg{
+    flex:0 0 20px;
+    width:20px;
+    height:20px;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .chat-header-action-menu>button:disabled{
+    opacity:.5;
+    cursor:default;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .chat-header-action-menu small{
+    display:block;
+    font-size:11px;
+    line-height:14px;
+    font-weight:400;
+  }
+}

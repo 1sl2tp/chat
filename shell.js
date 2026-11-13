@@ -360,6 +360,29 @@ function setSidebar(open){
 }
 
 
+// CHAT-339: a non-modal mobile menu; live call controls keep their original owner.
+function closeChatHeaderMenu({restoreFocus=false}={}){
+  const button=document.querySelector('[data-chat-header-more]');
+  const menu=document.getElementById('chatHeaderActionMenu');
+  if(!menu||menu.hidden)return false;
+  menu.hidden=true;
+  button?.setAttribute('aria-expanded','false');
+  if(restoreFocus)button?.focus?.({preventScroll:true});
+  return true;
+}
+
+function toggleChatHeaderMenu(){
+  const button=document.querySelector('[data-chat-header-more]');
+  const menu=document.getElementById('chatHeaderActionMenu');
+  if(!button||!menu||authState!=='AUTHENTICATED'||route!=='chat'||
+     !activeContact?.id||callState!=='IDLE'||
+     !window.matchMedia('(max-width:63.999rem)').matches)return false;
+  if(!menu.hidden)return closeChatHeaderMenu({restoreFocus:true});
+  menu.hidden=false;
+  button.setAttribute('aria-expanded','true');
+  return true;
+}
+
 function renderTopTabs(){
   for(const tab of document.querySelectorAll('[data-top-tab]')){
     tab.setAttribute('aria-selected',String(tab.dataset.topTab===route));
@@ -372,6 +395,7 @@ function renderChatTabIdentity(){
   const avatar=tab?.querySelector('[data-chat-tab-avatar]');
   const label=tab?.querySelector('[data-chat-tab-label]');
   const profileButton=document.querySelector('[data-active-contact-profile]');
+  const profileMenuItem=document.querySelector('[data-chat-header-action="profile"]');
   const visible=Boolean(
     authState==='AUTHENTICATED' &&
     authAccount?.role==='admin' &&
@@ -390,6 +414,7 @@ function renderChatTabIdentity(){
   }
   if(!tab||!avatar||!label)return visible;
   if(!visible){
+    if(profileMenuItem)profileMenuItem.hidden=true;
     if(profileButton)profileButton.hidden=true;
     avatar.hidden=true;
     label.textContent='Trò chuyện';
@@ -399,6 +424,7 @@ function renderChatTabIdentity(){
   const item=window.V21ContactStore?.snapshot?.().find(row=>
     row?.id&&!row.deleted_at&&String(row.id)===String(activeContact.id)
   )||null;
+  if(profileMenuItem)profileMenuItem.hidden=!(item?.role==='user'&&!isPinnedBankReportContact(item));
   if(profileButton){
     profileButton.hidden=!(item?.role==='user'&&!isPinnedBankReportContact(item));
     profileButton.setAttribute('aria-label','Sửa tên hiển thị và thông tin '+String(item?.display_name||item?.username||'liên hệ'));
@@ -618,6 +644,7 @@ function renderCallFocus(){
   const presentation=callFocusPresentation();
   const showIdleCall=route==='chat'&&hasContact;
   const showCallSurface=presentation.state!=='idle'||showIdleCall;
+  if(!showIdleCall||presentation.state!=='idle'||!window.matchMedia('(max-width:63.999rem)').matches)closeChatHeaderMenu();
   for(const slot of document.querySelectorAll('[data-call-focus-slot]')){
     const chip=slot.querySelector('[data-call-status-chip]');
     const title=slot.querySelector('[data-call-status-title]');
@@ -674,6 +701,7 @@ function setActiveContact(contactId,contactName){
   }else{
     activeContact={id:String(contactId),name:String(contactName||'Liên hệ')};
   }
+  closeChatHeaderMenu();
   renderCallFocus();
   renderChatTabIdentity();
   syncContactActiveState();
@@ -1762,6 +1790,10 @@ function requireAuthenticatedCommand(){
   return false;
 }
 
+document.addEventListener('keydown',event=>{
+  if(event.key==='Escape'&&closeChatHeaderMenu({restoreFocus:true}))event.preventDefault();
+});
+
 document.addEventListener('submit',event=>{
   const form=event.target instanceof HTMLFormElement?event.target:null;
   if(form?.id==='composerForm'&&authState!=='AUTHENTICATED'){
@@ -1822,6 +1854,30 @@ function handleCallFocus(button){
 document.addEventListener('click',event=>{
   const target=event.target instanceof Element?event.target:null;
   if(!target)return;
+
+  const headerMore=target.closest('[data-chat-header-more]');
+  if(headerMore){
+    event.preventDefault();
+    toggleChatHeaderMenu();
+    return;
+  }
+  const headerAction=target.closest('[data-chat-header-action]');
+  if(headerAction){
+    event.preventDefault();
+    if(headerAction.disabled)return;
+    const action=String(headerAction.dataset.chatHeaderAction||'');
+    closeChatHeaderMenu();
+    if(action==='photos')NavigationCommand.openPhotos();
+    if(action==='profile'&&authState==='AUTHENTICATED'&&authAccount?.role==='admin'&&activeContact?.id){
+      const item=window.V21ContactStore?.snapshot?.().find(row=>String(row?.id||'')===String(activeContact.id));
+      if(item?.role==='user'&&!isPinnedBankReportContact(item))openManagedProfile(item);
+    }
+    if(action==='audio'&&requireAuthenticatedCommand()){
+      CallCommand.start(activeContact?.id,activeContact?.name);
+    }
+    return;
+  }
+  if(!target.closest('[data-chat-header-actions]'))closeChatHeaderMenu();
 
   const passwordToggle=target.closest('[data-password-toggle]');
   if(passwordToggle){

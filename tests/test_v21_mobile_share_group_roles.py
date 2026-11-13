@@ -7,25 +7,30 @@ directory = (ROOT / "contact-directory-admin.js").read_text("utf-8")
 admin = (ROOT / "admin-composer-actions.js").read_text("utf-8")
 
 
-def test_share_opens_chat_recipient_picker_before_any_native_file_hydration():
+def test_forward_opens_chat_recipient_picker_without_native_file_share():
     assert "const canForwardInChat=Boolean(window.V21MessageForward?.canForward?.(message));" in app
     assert "label:'Chuyển tiếp',icon:'forward'" in app
     assert "window.V21MessageForward?.open?.(resolveMessage());" in app
     assert "label:'Chia sẻ',icon:'share'" in app
     assert "label:'Tải xuống',icon:'save'" in app
     assert "const canForwardInChat=Boolean(window.V21MessageForward?.canForward?.(message));" in app
-    assert "Chia sẻ trong Chat" in forward
+    assert "Chuyển tiếp tin nhắn trong Chat" in forward
+    assert "Chọn người nhận trong danh bạ Chat" in forward
     assert "Tìm người nhận" in forward
-    assert "await window.V21SyncEngine?.forwardMessage?.({" in forward
+    assert "const result=await window.V21SyncEngine?.forwardMessage?.({" in forward
+    assert "if(!result?.ok)throw new Error('forward_not_confirmed');" in forward
     assert "window.setTimeout(()=>close({restoreFocus:false}),220);" in forward
 
 
 def test_viewer_forwards_only_when_selected_media_is_the_sole_source_asset():
     assert "const source=sourceId?store.items.find(" in app
-    assert "if(source&&assets.length===1" in app
+    assert "return source&&media&&assets.length===1&&" in app
+    assert "function forwardCurrentImageViewerImage(){" in app
+    assert "window.V21MessageForward?.open?.(source)" in app
     assert "String(assets[0]?.assetId||'')===String(media.assetId)" in app
     assert "closeImageViewer();" in app
     assert "return shareMessageMedia({media});" in app
+    assert "forwardItem.textContent='Chuyển tiếp trong Chat';" in app
 
 
 def test_customer_business_actions_are_hidden_and_guarded_for_other_groups():

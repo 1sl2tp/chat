@@ -4103,6 +4103,26 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
           <button type="button" class="contact-profile-header-button" data-active-contact-profile hidden aria-label="Sửa thông tin liên hệ" title="Sửa tên hiển thị và thông tin liên hệ">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5 4 4M4.5 19.5l4.5-1 10.5-10.5a2.12 2.12 0 0 0-3-3L6 15.5l-1.5 4Z"/></svg>
           </button>
+          <!-- CHAT-339: one mobile overflow menu; live-call controls stay owned by CallFocus. -->
+          <div class="chat-header-actions" data-chat-header-actions>
+            <button type="button" class="chat-header-more" data-chat-header-more aria-label="Tùy chọn hội thoại" aria-haspopup="menu" aria-expanded="false" aria-controls="chatHeaderActionMenu" title="Tùy chọn hội thoại">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.65"/><circle cx="12" cy="12" r="1.65"/><circle cx="19" cy="12" r="1.65"/></svg>
+            </button>
+            <div id="chatHeaderActionMenu" class="chat-header-action-menu" role="menu" aria-label="Tùy chọn hội thoại" hidden>
+              <button type="button" role="menuitem" data-chat-header-action="profile" hidden>
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="8" r="3"/><path d="M4 19c0-4 2-6 6-6m3 4 6-6 2 2-6 6-3 .7Z"/></svg><span>Thông tin liên hệ</span>
+              </button>
+              <button type="button" role="menuitem" data-chat-header-action="photos">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8" cy="9" r="1.5"/><path d="m4.5 17 5.5-5.5 3.5 3.5 2.5-2.5 4 4"/></svg><span>Ảnh đã chia sẻ</span>
+              </button>
+              <button type="button" role="menuitem" data-chat-header-action="audio">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.2 4.5 10 8l-1.8 2.2c1.2 2.5 3.1 4.4 5.6 5.6L16 14l3.5 2.8-.9 2.7c-.3.8-1.1 1.3-2 1.2C9.4 19.8 4.2 14.6 3.3 7.4c-.1-.9.4-1.7 1.2-2l2.7-.9Z"/></svg><span>Gọi thoại</span>
+              </button>
+              <button type="button" role="menuitem" data-chat-header-action="video" disabled aria-disabled="true" title="Gọi video chưa được hỗ trợ">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="13" height="14" rx="2.5"/><path d="m16 10 5-3v10l-5-3"/></svg><span>Gọi video <small>Chưa hỗ trợ</small></span>
+              </button>
+            </div>
+          </div>
           <div class="call-status-chip" data-call-status-chip data-state="idle" role="status" aria-live="polite" hidden>
             <span class="call-status-indicator" aria-hidden="true"><i></i><i></i><i></i></span>
             <span class="call-status-copy">
@@ -4128,7 +4148,7 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
             data-tone="primary"
             data-call-live="false"
           >
-            <svg class="call-focus-icon call-focus-icon-call" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="13" height="14" rx="2.5"/><path d="m16 10 5-3v10l-5-3"/></svg>
+            <svg class="call-focus-icon call-focus-icon-call" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.2 4.5 10 8l-1.8 2.2c1.2 2.5 3.1 4.4 5.6 5.6L16 14l3.5 2.8-.9 2.7c-.3.8-1.1 1.3-2 1.2C9.4 19.8 4.2 14.6 3.3 7.4c-.1-.9.4-1.7 1.2-2l2.7-.9Z"/></svg>
             <svg class="call-focus-icon call-focus-icon-end" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
               <path d="M5.2 15.3c4.4-3.3 9.2-3.3 13.6 0" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
               <path d="M6.4 14.6 5.2 17M17.6 14.6l1.2 2.4" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
