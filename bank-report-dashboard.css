@@ -3030,3 +3030,159 @@ body > [data-bank-review-modal] .bank-review-heading{
     line-height:1.45;
   }
 }
+
+/* UI-333: a stand-alone, one-tap "Chi tiết giao dịch" card.
+   Visual separation is deliberate: collapsed = one readable header;
+   expanded = the bank list, with each bank row's own disclosure preserved.
+   All ledger and bank source behavior stays in the existing renderer. */
+#bankReportDashboard .bank-report-section-panel{
+  display:block;
+  width:100%;
+  box-sizing:border-box;
+  margin:20px 0 16px;
+  border:1px solid var(--border-default,#dfe5ed);
+  border-radius:15px;
+  background:var(--surface-primary,#fff);
+  overflow:hidden;
+  box-shadow:0 3px 13px rgba(30,50,80,.055);
+}
+#bankReportDashboard .bank-report-section-panel[data-expanded="false"]{
+  border-color:#aac9f4;
+  box-shadow:0 0 0 1px rgba(72,135,218,.14);
+}
+#bankReportDashboard .bank-report-section-toggle{
+  display:flex;
+  align-items:center;
+  width:100%;
+  min-height:70px;
+  padding:12px 14px;
+  gap:11px;
+  border:0;
+  background:#edf4ff;
+  color:var(--text-primary,#202a35);
+  text-align:left;
+  cursor:pointer;
+  touch-action:manipulation;
+}
+#bankReportDashboard .bank-report-section-panel[data-expanded="true"] .bank-report-section-toggle{
+  background:#f2f6fc;
+  border-bottom:1px solid var(--border-default,#e3eaf2);
+}
+#bankReportDashboard .bank-report-section-icon{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  flex:0 0 36px;
+  width:36px;
+  height:36px;
+  border-radius:11px;
+  color:#22559b;
+  background:#dfeafc;
+  font-size:20px;
+  line-height:1;
+}
+#bankReportDashboard .bank-report-section-copy{
+  display:flex;
+  flex:1 1 auto;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:3px;
+  min-width:0;
+  overflow-wrap:anywhere;
+}
+#bankReportDashboard .bank-report-section-copy strong{
+  font-size:14px;
+  font-weight:750;
+  line-height:1.3;
+}
+#bankReportDashboard .bank-report-section-copy small{
+  font-size:11px;
+  line-height:1.35;
+  font-weight:450;
+  color:var(--text-secondary,#657281);
+}
+#bankReportDashboard .bank-report-section-action{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  flex:0 0 auto;
+  min-height:36px;
+  padding:8px 11px;
+  gap:5px;
+  border:1px solid #c4d4ea;
+  border-radius:9px;
+  background:var(--surface-primary,#fff);
+  color:#243a55;
+  font-size:11px;
+  font-weight:650;
+  line-height:1.2;
+  white-space:nowrap;
+}
+#bankReportDashboard .bank-report-section-action::after{
+  content:"⌄";
+  display:inline-block;
+  line-height:1;
+  font-size:16px;
+  transform:translateY(-2px);
+}
+#bankReportDashboard .bank-report-section-panel[data-expanded="true"] .bank-report-section-action::after{
+  transform:rotate(180deg) translateY(0);
+}
+#bankReportDashboard .bank-report-section-toggle:focus-visible{
+  outline:2px solid #2e78cf;
+  outline-offset:-3px;
+}
+#bankReportDashboard .bank-report-section-body[hidden]{display:none!important;}
+#bankReportDashboard .bank-report-section-body{
+  min-width:0;
+  padding:11px 12px 12px;
+  background:var(--surface-primary,#fff);
+}
+#bankReportDashboard .bank-report-section-body > .bank-report-customer{
+  margin:0 0 10px;
+}
+#bankReportDashboard .bank-report-section-body > .bank-report-customer:last-child{
+  margin-bottom:0;
+}
+@media(max-width:760px){
+  #bankReportDashboard .bank-report-section-panel{
+    margin:17px 0 12px;
+    border-radius:13px;
+  }
+  #bankReportDashboard .bank-report-section-toggle{
+    min-height:64px;
+    padding:10px 11px;
+    gap:9px;
+  }
+  #bankReportDashboard .bank-report-section-icon{
+    flex-basis:31px;
+    width:31px;
+    height:31px;
+    border-radius:9px;
+    font-size:18px;
+  }
+  #bankReportDashboard .bank-report-section-copy strong{font-size:12.5px;}
+  #bankReportDashboard .bank-report-section-copy small{font-size:10.5px;}
+  #bankReportDashboard .bank-report-section-action{
+    min-height:35px;
+    padding:7px 9px;
+    border-radius:8px;
+    font-size:10.5px;
+  }
+  #bankReportDashboard .bank-report-section-body{padding:9px 9px 10px;}
+}
+@media(max-width:360px){
+  #bankReportDashboard .bank-report-section-toggle{
+    gap:7px;
+    padding:9px 8px;
+  }
+  #bankReportDashboard .bank-report-section-icon{
+    flex-basis:28px;
+    width:28px;
+    height:28px;
+  }
+  #bankReportDashboard .bank-report-section-copy strong{font-size:12px;}
+  #bankReportDashboard .bank-report-section-copy small{font-size:10px;}
+  #bankReportDashboard .bank-report-section-action{font-size:10px;padding:7px;}
+  #bankReportDashboard .bank-report-section-body{padding:7px;}
+}
