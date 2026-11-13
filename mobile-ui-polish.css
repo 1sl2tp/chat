@@ -1777,3 +1777,40 @@
     padding-inline-end:0;
   }
 }
+
+/* CALL-187 — the compact idle header owns two distinct 44px hit targets:
+   overflow (edit number/Chat audio) and native iPhone dial. No overlap,
+   no fake outgoing Chat call; active/connecting CallFocus is unchanged. */
+@media(max-width:63.999rem){
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .call-focus-slot[data-call-ui-state="idle"]:not([hidden]):has(>.v21-phone-header-button:not([hidden])){
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    gap:6px;
+    flex:0 0 94px!important;
+    width:94px!important;
+    min-width:94px!important;
+    max-width:94px!important;
+    padding:0!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .call-focus-slot[data-call-ui-state="idle"]>.v21-phone-header-button:not([hidden]){
+    box-sizing:border-box;
+    display:grid;
+    place-items:center;
+    flex:0 0 44px;
+    width:44px;
+    height:44px;
+    min-width:44px;
+    min-height:44px;
+    margin:0;
+    border:0;
+    border-radius:999px;
+    color:var(--theme-content-primary);
+    background:transparent;
+    cursor:pointer;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .call-focus-slot[data-call-ui-state="idle"]>.v21-phone-header-button:not([hidden]):focus-visible{
+    outline:2px solid var(--theme-content-accent);
+    outline-offset:1px;
+  }
+}
