@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="24ef865d0a7514281babccff8a0ff53043bc651ddbca0c6ae66a4193ccc15765">
+<meta name="app-build-id" content="dc7f48f1aeb7649a59976bf6b188512c8ecc3c0deba2ec2c9e5086101d80095e">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -6538,6 +6538,69 @@ button{
 .message-delivery-state[data-state="failed"]{
   color:var(--theme-content-danger,#a63c32);
   font-weight:650;
+}
+
+/* CHAT-340: pending is a fine orbiting edge, not a separate line below the
+   outgoing bubble. The status node stays available to screen readers only.
+   This is presentation-only: it never changes outbox/ACK/retry semantics. */
+.message-delivery-state[data-state="sending"]{
+  position:absolute!important;
+  width:1px!important;
+  height:1px!important;
+  padding:0!important;
+  margin:-1px!important;
+  overflow:hidden!important;
+  clip:rect(0,0,0,0)!important;
+  clip-path:inset(50%)!important;
+  white-space:nowrap!important;
+  border:0!important;
+}
+@property --chat-send-orbit{
+  syntax:"<angle>";
+  inherits:false;
+  initial-value:0deg;
+}
+.message-unit[data-delivery-state="sending"]>.message-text:not([hidden]),
+.message-unit[data-delivery-state="sending"]>.message-media-shell{
+  position:relative;
+}
+.message-unit[data-delivery-state="sending"]>.message-media-shell{
+  border-radius:14px;
+}
+.message-unit[data-delivery-state="sending"]>.message-text:not([hidden])::after,
+.message-unit[data-delivery-state="sending"]>.message-media-shell::after{
+  content:"";
+  position:absolute;
+  z-index:3;
+  inset:-1px;
+  box-sizing:border-box;
+  border-radius:inherit;
+  padding:2px;
+  pointer-events:none;
+  background:conic-gradient(
+    from var(--chat-send-orbit),
+    transparent 0deg,
+    transparent 172deg,
+    color-mix(in srgb,#3988e9 10%,transparent) 220deg,
+    #3988e9 275deg,
+    color-mix(in srgb,#3988e9 48%,transparent) 317deg,
+    transparent 360deg
+  );
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;
+  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  mask-composite:exclude;
+  animation:chat-send-border-orbit 1.7s linear infinite;
+}
+@keyframes chat-send-border-orbit{
+  to{--chat-send-orbit:360deg}
+}
+@media(prefers-reduced-motion:reduce){
+  .message-unit[data-delivery-state="sending"]>.message-text:not([hidden])::after,
+  .message-unit[data-delivery-state="sending"]>.message-media-shell::after{
+    animation:none;
+    background:color-mix(in srgb,#3988e9 58%,transparent);
+  }
 }
 .user-message-unit{
   align-items:flex-end;
@@ -16442,6 +16505,11 @@ function syncMessageDeliveryState(unit,message){
   if(!unit)return;
   const state=message?.sender==='self'&&message?.status==='failed'?'failed':
     message?.sender==='self'&&message?.status==='sending'?'sending':'';
+  // CHAT-340: presentation state lives on the existing bubble owner, so
+  // a pending message never inserts a visible line beside the Composer.
+  // Only a canonical ACK clears "sending"; failed media keeps retry controls.
+  if(state)unit.dataset.deliveryState=state;
+  else delete unit.dataset.deliveryState;
   let node=unit.querySelector(':scope > .message-delivery-state');
   if(!state){node?.remove();return;}
   if(!node){
@@ -16481,8 +16549,11 @@ function syncMessageDeliveryState(unit,message){
       }catch(_error){result={ok:false,reason:'error'};}
       if(node.isConnected===false)return;
       if(result?.ok){
+        // Queued for retry is NOT proof of server delivery. Keep the same
+        // accessible status, but visually announce via the bubble orbit.
         node.textContent='Đang chờ xác nhận gửi lại';
         node.dataset.state='sending';
+        unit.dataset.deliveryState='sending';
         node.setAttribute('aria-label','Đang chờ xác nhận gửi lại');
       }else{
         const reason=String(result?.reason||'error');
