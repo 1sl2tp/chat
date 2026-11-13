@@ -160,6 +160,8 @@ function scanIssueLabel(raw){
  return 'AI chưa phân loại được ảnh — cần kiểm tra thủ công';
 }
 let active=false,filter='all',selectedCustomer=null,current=null,requestId=0,loading=false,queued=false,pendingPush=null;
+// UI-333: compact report detail panel is closed by default, independent of each transaction's expanded state.
+let detailPanelOpen=false;
 let imageObjectUrl=null,viewerSequence=0,reportSessionOwner='';
 const el=(tag,className='',value='')=>{
  const node=document.createElement(tag);if(className)node.className=className;
@@ -386,7 +388,7 @@ function renderBankWorkQueue(data,outstanding){
   append(button,el('span','bank-report-work-count',String(item.count)),
     el('span','bank-report-work-label',item.label));
   button.addEventListener('click',()=>{
-   filter=item.key;selectedCustomer=null;paint(data);
+   filter=item.key;selectedCustomer=null;detailPanelOpen=true;paint(data);
    ui.groups?.scrollIntoView?.({block:'start',behavior:'auto'});
   });
   actions.appendChild(button);
@@ -481,7 +483,7 @@ function paint(data){
    b.setAttribute('aria-label',key==='bank_only'?'Tiền vào ngân hàng chưa gắn với bill':
      key==='waiting_bank'?'Bill khách gửi chưa khớp với ngân hàng':label);
    b.type='button';b.dataset.filter=key;b.setAttribute('aria-pressed',String(filter===key));
-   b.addEventListener('click',()=>{filter=key;selectedCustomer=null;paint(data);});
+   b.addEventListener('click',()=>{filter=key;selectedCustomer=null;detailPanelOpen=key!=='all';paint(data);});
    return b;
  };
  const primary=filters.filter(([key])=>mainKeys.has(key)).map(makeFilter);
@@ -555,7 +557,7 @@ function renderTable(data){
    td.title=columns[i];
    if(i===5)td.setAttribute('aria-label','Đã thu '+bankMoneySpoken(g.money));
   });
-  const jump=()=>{selectedCustomer=selectedCustomer===g.id?null:g.id;filter='all';paint(data);if(selectedCustomer)root.querySelector('[data-bank-customer="'+g.id+'"]')?.scrollIntoView?.({block:'nearest',behavior:'smooth'});};
+  const jump=()=>{selectedCustomer=selectedCustomer===g.id?null:g.id;detailPanelOpen=Boolean(selectedCustomer);filter='all';paint(data);if(selectedCustomer)root.querySelector('[data-bank-customer="'+g.id+'"]')?.scrollIntoView?.({block:'nearest',behavior:'smooth'});};
   tr.addEventListener('click',jump);tr.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();jump();}});
   tbody.appendChild(tr);
  }
@@ -588,7 +590,7 @@ function renderTable(data){
     action.addEventListener('click',()=>{
      if(!active||!isReportContact())return;
      ui.date.value=previous;
-     filter='all';selectedCustomer=null;current=null;
+     filter='all';selectedCustomer=null;detailPanelOpen=false;current=null;
      void reload();
     });
     append(empty,text,action);
@@ -1034,14 +1036,35 @@ function renderGroups(data){
   // The table already provides the day-empty state. No second hint box.
   return;
  }
- const title=el('div','bank-report-detail-section-head');
- title.appendChild(el('strong','','Chi tiết giao dịch'));
- if(selectedCustomer){
-  const close=el('button','bank-report-dismiss','Đóng chi tiết');close.type='button';
-  close.addEventListener('click',()=>{selectedCustomer=null;paint(data);});
-  title.appendChild(close);
- }
- ui.groups.appendChild(title);
+ // UI-333: stand-alone visual region, separate from the customer list.
+ // The entire region opens/closes in one tap; row details keep their own
+ // native summaries. Closing a selected customer also clears that selection.
+ const panel=el('section','bank-report-section-panel');
+ panel.dataset.expanded=String(detailPanelOpen);
+ const title=el('button','bank-report-section-toggle');
+ title.type='button';
+ title.setAttribute('aria-expanded',String(detailPanelOpen));
+ title.setAttribute('aria-controls','bankReportDetailsBody');
+ const icon=el('span','bank-report-section-icon','▤');
+ icon.setAttribute('aria-hidden','true');
+ const copy=el('span','bank-report-section-copy');
+ append(copy,el('strong','','Chi tiết giao dịch'),
+  el('small','',selectedCustomer?'Giao dịch của khách đã chọn':
+   banks.length+' giao dịch Agribank'));
+ const label=el('span','bank-report-section-action',
+  detailPanelOpen?'Đóng chi tiết':'Mở chi tiết');
+ append(title,icon,copy,label);
+ title.addEventListener('click',()=>{
+  detailPanelOpen=!detailPanelOpen;
+  if(!detailPanelOpen)selectedCustomer=null;
+  paint(data);
+  root.querySelector('.bank-report-section-toggle')?.focus?.({preventScroll:true});
+ });
+ const body=el('div','bank-report-section-body');
+ body.id='bankReportDetailsBody';
+ body.hidden=!detailPanelOpen;
+ append(panel,title,body);
+ ui.groups.appendChild(panel);
  if(banks.length){
   const block=el('section','bank-report-customer bank-report-bank-only');
   block.appendChild(append(el('div','bank-report-customer-head'),
@@ -1049,7 +1072,7 @@ function renderGroups(data){
    el('span','bank-report-customer-count',banks.length+' giao dịch')));
   banks.forEach(row=>block.appendChild(row.collection_kind?
     bankCreditLine(row,allBills):detailLine(row,true,possibleUnlinkedBills(row,allBills))));
-  ui.groups.appendChild(block);
+  body.appendChild(block);
  }
  if(pendingBills.length){
   const block=el('section','bank-report-customer');
@@ -1061,7 +1084,7 @@ function renderGroups(data){
   for(const bill of pendingBills){
    entry.appendChild(detailLine(bill));
   }
-  block.appendChild(entry);ui.groups.appendChild(block);
+  block.appendChild(entry);body.appendChild(block);
  }
  const sorted=[...grouped.values()].sort((a,b)=>b.amount-a.amount||a.name.localeCompare(b.name,'vi'));
  for(const group of sorted){
@@ -1076,9 +1099,9 @@ function renderGroups(data){
   group.rows.sort((a,b)=>String(a.bill_time||a.sent_at).localeCompare(String(b.bill_time||b.sent_at)));
   group.rows.forEach(row=>entry.appendChild(detailLine(row)));
   block.appendChild(entry);
-  ui.groups.appendChild(block);
+  body.appendChild(block);
  }
- if(!sorted.length&&!banks.length)ui.groups.appendChild(el('p','bank-report-empty','Không có giao dịch thuộc bộ lọc này.'));
+ if(!sorted.length&&!banks.length)body.appendChild(el('p','bank-report-empty','Không có giao dịch thuộc bộ lọc này.'));
 }
 function openPush(intent={}){
   // A push click is user-driven. The table opens the day and transaction
@@ -1091,6 +1114,7 @@ function openPush(intent={}){
   const previous=ui.date.value;
   ui.date.value=date;
   selectedCustomer=null;
+  detailPanelOpen=false;
   filter='all';
   if(active){
     if(current&&previous===date&&String(current.date)===date)focusPushRecord(current);
@@ -1109,15 +1133,16 @@ function focusPushRecord(data){
   const bank=bankRows.find(row=>target.bankNoticeId&&String(row.notice_id)===target.bankNoticeId);
   if(bill){
     selectedCustomer=String(bill.customer_id||'');
-    filter='all';
+    filter='all';detailPanelOpen=true;
     paint(data);
   }else if(bank){
     selectedCustomer=null;
-    filter='bank_only';
+    filter='bank_only';detailPanelOpen=true;
     paint(data);
   }else{
     // The record may have been resolved since the push was sent.
     filter=target.bankStatus==='review'?'review':target.bankStatus==='matched'?'matched':'all';
+    detailPanelOpen=true;
     paint(data);
   }
   pendingPush=null;
@@ -2245,7 +2270,7 @@ function synchronize(){
  root.hidden=!should;
  if(ownerChanged){
   // Reject in-flight responses and erase old bank details immediately.
-  requestId++;selectedCustomer=null;filter='all';current=null;
+  requestId++;selectedCustomer=null;detailPanelOpen=false;filter='all';current=null;
   ui.summary.replaceChildren();ui.status.replaceChildren();ui.extraStatus?.replaceChildren();
   ui.queue?.replaceChildren();if(ui.queue)ui.queue.hidden=true;
   ui.table.replaceChildren();ui.groups.replaceChildren();
@@ -2253,12 +2278,12 @@ function synchronize(){
   closeViewer();closeReviewDialog();
  }
  if(should){if(entering||ownerChanged)resetBankReportEntryScroll();dateReady();void reload();}else{
-  requestId++;selectedCustomer=null;closeViewer();closeReviewDialog();current=null;
+  requestId++;selectedCustomer=null;detailPanelOpen=false;closeViewer();closeReviewDialog();current=null;
  }
 }
 ui.refresh.addEventListener('click',()=>void reload());
 ui.daily?.addEventListener('click',()=>void openDailyBankSummary());
-ui.date.addEventListener('change',()=>{filter='all';selectedCustomer=null;current=null;void reload();});
+ui.date.addEventListener('change',()=>{filter='all';selectedCustomer=null;detailPanelOpen=false;current=null;void reload();});
 document.addEventListener('v21-active-contact-change',synchronize);
 document.addEventListener('v21-contact-store-change',synchronize);
 document.addEventListener('v21-auth-state',synchronize);

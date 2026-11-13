@@ -16,7 +16,9 @@ assert(caption>0&&caption<filters&&filters<table,
 assert(report.includes('data-bank-date')&&report.includes('data-bank-refresh'));
 assert(report.includes('data-bank-daily-summary'),
  'sending control remains explicit, never automatic');
-const own=css.slice(css.indexOf('/* UI-324: compact decision-first bank report'));
+const ownStart=css.indexOf('/* UI-324: compact decision-first bank report');
+const ownEnd=css.indexOf('/* UI-325:',ownStart+1);
+const own=css.slice(ownStart,ownEnd>ownStart?ownEnd:undefined);
 assert(own.length>6000);
 assert(own.includes('grid-template-columns:repeat(4,minmax(0,1fr))'));
 assert(own.includes('grid-template-columns:repeat(2,minmax(0,1fr))'));
@@ -37,7 +39,8 @@ assert(js.includes("const secondary=filters.filter(([key])=>!mainKeys.has(key));
 assert(js.includes("const currentDay=String(ui.date.value||'');"));
 assert(js.includes("selected.setUTCDate(selected.getUTCDate()-1);"));
 assert(js.includes("if(previous>='2026-10-19')"));
-assert(js.includes('selectedCustomer=null;current=null;'));
+assert(js.includes('selectedCustomer=null;detailPanelOpen=false;current=null;'),
+ 'day navigation resets customer and expanded detail together');
 assert(js.includes('void reload();'));
 assert(!own.includes('display:none!important;}'));
 // Finance and receipt authorization ownership must not migrate to styling.
