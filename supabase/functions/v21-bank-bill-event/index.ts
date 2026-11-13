@@ -354,11 +354,33 @@ Deno.serve(async req=>{
      const {data:existing,error:existingError}=await db.from("chat_bank_bill_image_hashes").select("first_asset_id,amount_vnd,scan_status").eq("image_sha256",digest).maybeSingle();
      if(existingError||!existing)throw new Error("hash_registry_lookup_failed");
      if(existing.first_asset_id!==asset){
-       const {data:firstReceipt}=await db.from("chat_bank_bill_receipts").select("id").eq("media_asset_id",existing.first_asset_id).maybeSingle();
-       await finish(asset,{status:"duplicate",reason:"duplicate_exact_image_sha256_no_ai",image_sha256:digest,duplicate_of:firstReceipt?.id||null,
-         amount_vnd:existing.amount_vnd||null,raw_read:{read_mode:"amount_hash_only",same_image_sha256:true,first_scan_state:existing.scan_status}});
-       try{await notifyTestScan(asset,job.customer_account_id,"duplicate",existing.amount_vnd||null);}catch(e){console.warn("bill_scan_duplicate_feedback_failed",String(e).slice(0,80));}
-       return response({ok:true,status:"duplicate",reason:"same_exact_image",amount_vnd:existing.amount_vnd||null,ai_called:false});
+       // BANK-345: byte-identical customer photos are NOT automatically duplicate
+       // bills. The canonical first receipt may already be a confirmed non_bill
+       // (e.g. a carton photo), regardless of the hash registry's "unreadable".
+       const {data:firstReceipt,error:firstError}=await db.from("chat_bank_bill_receipts")
+         .select("id,status,amount_vnd").eq("media_asset_id",existing.first_asset_id).maybeSingle();
+       if(firstError||!firstReceipt)throw new Error("hash_registry_lookup_failed");
+       if(firstReceipt.status==="non_bill"){
+         await finish(asset,{status:"non_bill",reason:"same_image_as_confirmed_non_bill",
+           image_sha256:digest,duplicate_of:firstReceipt.id,amount_vnd:null,
+           raw_read:{read_mode:"amount_hash_only",same_image_sha256:true,
+             first_scan_state:existing.scan_status,first_receipt_status:"non_bill"}});
+         return response({ok:true,status:"non_bill",reason:"same_image_as_confirmed_non_bill",ai_called:false,ledger_written:false});
+       }
+       const verifiedBill=["amount_read","review","received","historical_reference","duplicate"].includes(firstReceipt.status)
+         && Number.isSafeInteger(Number(firstReceipt.amount_vnd))&&Number(firstReceipt.amount_vnd)>0;
+       if(!verifiedBill){
+         await finish(asset,{status:"review",reason:"duplicate_origin_bill_unverified",
+           image_sha256:digest,duplicate_of:firstReceipt.id,amount_vnd:null,
+           raw_read:{read_mode:"amount_hash_only",same_image_sha256:true,
+             first_scan_state:existing.scan_status,first_receipt_status:firstReceipt.status}});
+         return response({ok:true,status:"review",reason:"duplicate_origin_bill_unverified",ai_called:false,ledger_written:false});
+       }
+       await finish(asset,{status:"duplicate",reason:"duplicate_exact_image_sha256_no_ai",
+         image_sha256:digest,duplicate_of:firstReceipt.id,amount_vnd:firstReceipt.amount_vnd,
+         raw_read:{read_mode:"amount_hash_only",same_image_sha256:true,first_scan_state:existing.scan_status}});
+       try{await notifyTestScan(asset,job.customer_account_id,"duplicate",firstReceipt.amount_vnd);}catch(e){console.warn("bill_scan_duplicate_feedback_failed",String(e).slice(0,80));}
+       return response({ok:true,status:"duplicate",reason:"same_exact_bill",amount_vnd:firstReceipt.amount_vnd,ai_called:false});
      }
    }
    const geminiKey=Deno.env.get("GEMINI_API_KEY")||"";
@@ -486,7 +508,7 @@ Deno.serve(async req=>{
       receiving_bank:fields.receiving_bank,
       sender_name:fields.sender_name,sending_bank:fields.sending_bank,
       match_preview:storedPreview}});
-   await db.from("chat_bank_bill_image_hashes").update({amount_vnd:amount,scan_status:amount===null?"unreadable":"amount_read"})
+   await db.from("chat_bank_bill_image_hashes").update({amount_vnd:amount,scan_status:classification==="non_bill"?"non_bill":amount===null?"unreadable":"amount_read"})
      .eq("image_sha256",digest).eq("first_asset_id",asset);
    if(prior||earlier){
      if(settledDuplicate)
