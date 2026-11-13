@@ -46,9 +46,12 @@ const bill=js.slice(js.indexOf('function detailLine('),js.indexOf('function bank
 for(const part of [credit,bill]){
  assert(part.includes("el('summary','bank-report-detail-top')"));
  assert(part.includes("el('strong','bank-report-detail-amount'"));
- assert(part.includes('append(top,left,amt,label)'),
-  'both bank and bill rows must preserve time / amount / status order');
+ assert(part.includes("wrap.appendChild(top)"),
+  'both bank and bill rows must preserve the summary row');
 }
+assert(bill.includes('append(top,left,amt,label)'), 'bill row keeps time / amount / status');
+assert(credit.includes('append(top,time,el(\'strong\',\'bank-report-detail-amount\''),
+ 'Agribank row keeps time / amount / status');
 assert(js.includes("client.rpc('chat_bank_dashboard'"));
 assert(js.includes("client.rpc('chat_bank_bill_manual_collect'"));
 console.log('UI-334: fixed money alignment on 320/360/390/490/760/900px and unchanged values PASS');
