@@ -1,7 +1,7 @@
 // NCC-001: Admin-only supplier invoice OCR/review. No message sends, ledger writes or price updates.
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import {createClient} from 'npm:@supabase/supabase-js@2.57.4';
-import {nameKey,validatePrintedInvoice,matchSupplierLine} from './invoice-core.mjs';
+import {nameKey,invoiceDate,validatePrintedInvoice,matchSupplierLine} from './invoice-core.mjs';
 
 const URL=Deno.env.get('SUPABASE_URL')||'';
 const SERVICE_KEY=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'';
@@ -219,6 +219,76 @@ Deno.serve(async req=>{
   return error?fail('scanner_assignment_unavailable',500)
     :respond({ok:true,accountId,enabled});
  }
+ if(action==='manual_create'){
+  const label=String(body?.supplierLabel||'').trim();
+  const accountId=String(body?.accountId||'').trim();
+  const date=invoiceDate(body?.date);
+  const number=String(body?.invoiceNumber||'').trim();
+  if(label.length<2||label.length>120||!date||number.length>100||
+      (accountId&&!UUID.test(accountId)))return fail('invalid_manual_supplier_or_date');
+  if(accountId){
+   const {data:linked}=await db.from('v21_accounts').select('id')
+    .eq('id',accountId).eq('role','user').is('deleted_at',null).maybeSingle();
+   if(!linked)return fail('manual_linked_user_not_found',404);
+  }
+  const inputLines=Array.isArray(body?.lines)?body.lines:[];
+  if(inputLines.length<1||inputLines.length>100||inputLines.some((x:any)=>
+      String(x?.printedName||'').length>160||String(x?.printedUnit||'').length>60||
+      Number(x?.quantity)>1000000||Number(x?.unitPriceVnd)>100000000000))
+   return fail('manual_lines_invalid');
+  const validated=validatePrintedInvoice({
+   classification:'supplier_invoice',date,invoiceNumber:number,
+   printedTotalVnd:body?.printedTotalVnd,lines:inputLines
+  });
+  if(!validated.ok)return fail(validated.reason||'manual_arithmetic_failed');
+  const fingerprint=await sha256(new TextEncoder().encode(JSON.stringify({
+   supplier:accountId||nameKey(label),date:validated.date,number:validated.invoiceNumber,
+   lines:validated.lines.map((x:any)=>[
+    nameKey(x.printedName),nameKey(x.printedUnit),
+    x.quantity,x.unitPriceVnd,x.lineTotalVnd
+   ])
+  })));
+  const {data:found,error:dedupeError}=await db.from('chat_ncc_invoices')
+   .select('id').eq('manual_fingerprint',fingerprint).limit(1);
+  if(dedupeError)return fail('manual_duplicate_check_unavailable',503);
+  if(found?.length)return fail('manual_invoice_duplicate',409);
+  const {data:created,error:saveError}=await db.from('chat_ncc_invoices').insert({
+   origin:'manual',chat_account_id:accountId||null,supplier_label:label,
+   created_by:admin!.id,manual_fingerprint:fingerprint,
+   invoice_date:validated.date,invoice_number:validated.invoiceNumber,
+   printed_total_vnd:validated.total,ocr_lines:validated.lines,status:'needs_review'
+  }).select('id').single();
+  if(saveError||!created)return fail(saveError?.code==='23505'?'manual_invoice_duplicate':'manual_invoice_save_failed',
+    saveError?.code==='23505'?409:500);
+  try{
+   const products=await readCatalog();
+   const {data:aliases}=accountId?await db.from('chat_ncc_product_aliases')
+    .select('*').eq('chat_account_id',accountId):{data:[]};
+   const rows=validated.lines.map((line:any)=>{
+    const matched=matchSupplierLine(line,products,aliases||[],accountId);
+    const okay=matched.status==='matched';
+    return {invoice_id:created.id,row_no:line.row,printed_name:line.printedName,
+     printed_unit:line.printedUnit,quantity:line.quantity,
+     unit_price_vnd:line.unitPriceVnd,line_total_vnd:line.lineTotalVnd,
+     product_code:okay?matched.product_code:null,
+     match_method:okay?matched.method:'unmatched',
+     unit_factor:okay?matched.unitFactor:null,
+     normalized_cost_vnd:okay?matched.costVnd:null,review_required:!okay};
+   });
+   const {error:lineError}=await db.from('chat_ncc_invoice_lines').insert(rows);
+   if(lineError)throw new Error('line_insert_failed');
+   const allMatched=rows.every((x:any)=>!x.review_required);
+   if(allMatched){
+    const {error:finalError}=await db.from('chat_ncc_invoices')
+     .update({status:'matched'}).eq('id',created.id);
+    if(finalError)throw new Error('invoice_status_failed');
+   }
+   return respond({ok:true,id:created.id,status:allMatched?'matched':'needs_review'});
+  }catch{
+   await db.from('chat_ncc_invoices').delete().eq('id',created.id);
+   return fail('manual_lines_save_failed',500);
+  }
+ }
  if(action==='suppliers'){
   const {data,error}=await db.from('v21_accounts')
    .select('id,display_name,username,contact_group').eq('role','user')
@@ -313,7 +383,7 @@ Deno.serve(async req=>{
    normalized_cost_vnd:cost,review_required:false
   }).eq('id',line.id);
   if(saveError)return fail('assignment_unavailable',500);
-  if(body.rememberAlias===true){
+  if(body.rememberAlias===true&&invoice.chat_account_id){
    const name=nameKey(line.printed_name),unit=nameKey(line.printed_unit);
    if(!name)return fail('invalid_alias');
    const {error:aliasError}=await db.from('chat_ncc_product_aliases').upsert({
