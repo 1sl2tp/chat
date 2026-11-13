@@ -70,7 +70,8 @@ export function bankScanReasonLabel(raw){
     return 'AI trả kết quả không đọc được · Sẽ thử lại';
   if(/amount_scan_/i.test(reason))
     return 'Không đọc được ảnh · Admin cần kiểm tra';
-  return reason.slice(0,100)||'Ảnh cần đối soát thủ công';
+  // Never leak internal English error/status strings into a user-facing alert.
+  return 'Ảnh cần đối soát thủ công';
 }
 // BANK-350: PWA business alerts are for verified bill IMAGE recognition,
 // not raw Agribank credits, scanner failures, duplicates or opaque error codes.
