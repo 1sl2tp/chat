@@ -56,7 +56,8 @@ const countCard=cardValue('Bill chưa đối soát','1',false,true,'Bill chưa k
 assert.equal(countCard.dataset.metricKind,'count');
 assert.equal(countCard.children[1].attributes['aria-label'],'1 bill');
 assert.equal(countCard.children[1].children[0].textContent,'bill');
-assert.equal(bankFilterMobileLabels.waiting_bank,'Bill chưa khớp');
+assert.equal(bankFilterMobileLabels.waiting_bank,'Chờ khớp');
+assert(js.includes("['waiting_bank','Bill chưa khớp']"), 'full bill status retained for accessibility');
 assert.equal(bankFilterMobileLabels.bank_only,'Chưa gắn bill');
 
 for(const [width,columns] of [[320,2],[359,2],[360,3],[375,3],[390,3],[430,3]]){
@@ -68,6 +69,9 @@ for(const [width,columns] of [[320,2],[359,2],[360,3],[375,3],[390,3],[430,3]]){
  assert(columns===2||columns===3);
 }
 assert(css.includes('min-height:84px;padding:11px 12px;'));
+const redesigned=css.slice(css.indexOf('/* UI-324: compact decision-first bank report'));
+assert(redesigned.includes('grid-template-columns:repeat(4,minmax(0,1fr))'),
+ 'final iPhone filter layout shows four complete controls instead of clipped tabs');
 assert(!css.includes('min-height:76px;padding:10px 12px;'));
 assert(css.includes('grid-template-columns:repeat(20,minmax(0,1fr))')&&
  css.includes('#bankReportDashboard .bank-report-table tbody tr.bank-report-table-item'),
