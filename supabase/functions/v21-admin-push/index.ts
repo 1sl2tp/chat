@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
-import { buildNotificationPayload, buildCallInviteNotificationPayload, buildBankNotificationPayload, buildMissedChatCallPayload, isGoneStatus, retryDelaySeconds } from "./push-core.mjs";
+import { buildNotificationPayload, buildCallInviteNotificationPayload, buildBankNotificationPayload, recognizedBillPushEligible, buildMissedChatCallPayload, isGoneStatus, retryDelaySeconds } from "./push-core.mjs";
 
 const headers={
   "Access-Control-Allow-Origin":"*",
@@ -256,7 +256,7 @@ Deno.serve(async(req:Request)=>{
             .select("id,amount_vnd,transfer_at,bank_credit_account,is_own_transfer,package_name,status,body")
             .eq("id",noticeId).maybeSingle():Promise.resolve({data:null,error:null}),
           receiptId?admin.from("chat_bank_bill_receipts")
-            .select("id,amount_vnd,transfer_at_vn,sent_at,customer_account_id,reason,status")
+            .select("id,amount_vnd,transfer_at_vn,sent_at,customer_account_id,reason,status,ledger_id,raw_read")
             .eq("id",receiptId).maybeSingle():Promise.resolve({data:null,error:null}),
           admin.from("v21_push_subscriptions").select("id,endpoint,p256dh,auth,enabled,failure_count")
             .eq("account_id",recipientId).eq("enabled",true),
@@ -302,6 +302,11 @@ Deno.serve(async(req:Request)=>{
         }).format(new Date(receipt.sent_at)):"";
         const validBill=Boolean(receipt&&!isTestCustomer&&Number(receipt.amount_vnd)>0&&
           billDay===sentDay&&billDay===String(claim.business_date));
+        // BANK-350: bank-only, image-not-bill, duplicate, AI failure and any
+        // unreadable amount must NOT trigger an OS bill notification. Reuse the
+        // existing financial link checks for matched receipts; report dirty
+        // signals remain separate from user-visible notifications.
+        const billRecognized=recognizedBillPushEligible({kind,receipt})&&!isTestCustomer;
         if(!recipient||recipient.role!=="admin"||recipient.locked_at||recipient.deleted_at||
           !reportContactId||isTestCustomer)terminal=true;
         if(kind==="bank_only"&&(!validNotice||alreadyLinked))terminal=true;
@@ -327,6 +332,7 @@ Deno.serve(async(req:Request)=>{
             business_date:claim.business_date,transfer_time:localTime,
             notification_id:noticeId,receipt_id:receiptId,customer_name:customerName,
             reason:why,report_contact_id:reportContactId,
+            bill_recognized:billRecognized,
           });
           const outcome=await deliverToSubscriptions(
             admin,Array.isArray(subscriptionR.data)?subscriptionR.data:[],payload,"normal");
