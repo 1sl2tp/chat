@@ -6,7 +6,7 @@ const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 // IMG-286: refresh only the public Web/PWA shell for two verified image
 // orientation defaults and corrected album thumbnails. Keep account-scoped
 // IndexedDB, outbox, private media and auth sessions unchanged.
-const SHELL_CACHE_EPOCH='pwa-chat-bank349-blurry-uncertain-20261113';
+const SHELL_CACHE_EPOCH='pwa-chat-bank350-bill-amount-alert-20261113';
 const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION+'-'+SHELL_CACHE_EPOCH;
 const AVATAR_CACHE_NAME='taphoa-chat-avatars-v1';
 const SUPABASE_ASSET_HOST_RE=/^[a-z0-9]+\.supabase\.co$/i;
@@ -140,6 +140,13 @@ self.addEventListener('push',event=>{
     const bankNoticeId=String(payload.bank_notice_id||'');
     const bankReceiptId=String(payload.bank_receipt_id||'');
     const bankStatus=String(payload.bank_event_kind||'');
+    // BANK-350: bank Push keeps the report fresh, but lock-screen alerts are
+    // restricted to a recognized bill with a verified positive OCR amount.
+    // Older/unknown payloads are silent, never an English internal error.
+    const billAmount=Number(payload.bill_amount_vnd);
+    const visibleBankBill=bankPush&&payload.bank_alert_allowed===true&&
+      ['bill_waiting','review','matched'].includes(bankStatus)&&
+      Boolean(bankReceiptId)&&Number.isSafeInteger(billAmount)&&billAmount>0;
     const clients=await self.clients.matchAll({type:'window',includeUncontrolled:true});
     // BANK-302: the bank report must refresh even when an open iOS/Android PWA
     // suppresses a lock-screen notification. Bank events NEVER count as Chat
@@ -173,6 +180,9 @@ self.addEventListener('push',event=>{
         console.warn('bank_push_stale_cleanup_unavailable');
       }
     }
+    // Preserve BANK_DIRTY for a visible report, but suppress unrelated bank
+    // credit, scanner errors, non-bills and duplicate-image OS notifications.
+    if(bankPush&&!visibleBankBill)return;
     // Financial events are not message events. Do not trigger a Chat sync pull
     // or unread recount just to display a bank notification.
     if(!bankPush&&!missedPush&&!friendPush&&kind!=='call_invite')notifyMessageDirty(clients,payload);
@@ -197,12 +207,18 @@ self.addEventListener('push',event=>{
     });
     if(readingSame||visibleMobileChat)return;
 
-    await self.registration.showNotification(String(payload.title||'TAPHOA Chat'),{
-      body:String(payload.body||(kind==='call_invite'?'Cuộc gọi đến':'Tin nhắn mới')),
+    // Render finance copy locally from a NUMBER, never display backend
+    // status/reason text or English exception names on iPhone/Android.
+    const bankTitle='TAPHOA · Đã nhận diện bill';
+    const bankBody='Số tiền: '+new Intl.NumberFormat('vi-VN').format(billAmount)+'đ'+
+      (bankStatus==='matched'?' · Đã ghi thu':' · Chưa ghi thu');
+    await self.registration.showNotification(bankPush?bankTitle:String(payload.title||'TAPHOA Chat'),{
+      body:bankPush?bankBody:String(payload.body||(kind==='call_invite'?'Cuộc gọi đến':'Tin nhắn mới')),
       icon:'./icons/chat-notification-icon-192-v4.png',
       badge:'./icons/chat-notification-badge-96-v4.png',
-      tag:String(payload.tag||(kind==='call_invite'?`call-invite:${inviteId}`:`chat:${conversationId}`)),
-      renotify:true,
+      tag:bankPush?'bank:receipt:'+bankReceiptId:
+        String(payload.tag||(kind==='call_invite'?`call-invite:${inviteId}`:`chat:${conversationId}`)),
+      renotify:!bankPush,
       data:{
         kind,
         inviteId,
