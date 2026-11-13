@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="6c8c1287e03ae129b9b0f0e02c8c527803a6e094b76b9a5579c615ef440806c7">
+<meta name="app-build-id" content="e8fab483b99fb8c95ff4a5f203a1f8656298b81ec570f6191e562cbb5f699fe0">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -5436,6 +5436,69 @@ body > [data-bank-review-modal] .bank-review-heading{
   }
   #bankReportDashboard .bank-report-detail-top > .bank-report-detail-amount{
     font-size:13px;
+  }
+}
+
+/* UI-335: correct the two short-value rows (463, 730).
+   A fixed amount TRACK is not enough if the numeric glyph box can
+   shrink or inherit alignment. Give every numeric element the entire
+   track and align its text to the END. No amount is padded or changed. */
+#bankReportDashboard .bank-report-detail-top{
+  --bank-time-width:60px;
+  --bank-amount-width:112px;
+  display:grid;
+  grid-template-columns:var(--bank-time-width) var(--bank-amount-width) minmax(0,1fr) minmax(0,max-content);
+  grid-template-rows:minmax(38px,auto);
+  align-items:center;
+  column-gap:8px;
+}
+#bankReportDashboard .bank-report-detail-top::before{
+  position:absolute;
+  left:3px;
+}
+#bankReportDashboard .bank-report-detail-top > .bank-report-detail-time{
+  grid-area:1 / 1;
+  align-self:center;
+}
+#bankReportDashboard .bank-report-detail-top > .bank-report-detail-amount{
+  grid-area:1 / 2;
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  justify-self:stretch;
+  align-self:center;
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+  text-align:right;
+  white-space:nowrap;
+  direction:ltr;
+  unicode-bidi:isolate;
+  font-variant-numeric:tabular-nums;
+  font-feature-settings:"tnum" 1;
+  letter-spacing:0;
+}
+#bankReportDashboard .bank-report-detail-top > :is(.bank-report-detail-status,.bank-report-quick-collect){
+  grid-area:1 / 4;
+  justify-self:end;
+  align-self:center;
+}
+@media(max-width:760px){
+  #bankReportDashboard .bank-report-detail-top{
+    --bank-time-width:50px;
+    --bank-amount-width:92px;
+    column-gap:6px;
+  }
+}
+@media(max-width:360px){
+  #bankReportDashboard .bank-report-detail-top{
+    --bank-time-width:40px;
+    --bank-amount-width:76px;
+    grid-template-columns:var(--bank-time-width) var(--bank-amount-width) minmax(0,1fr) minmax(0,102px);
+    column-gap:4px;
   }
 }
 
