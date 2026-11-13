@@ -48,6 +48,29 @@ assert.equal(exact.length,1,'same fingerprint 274+280 is ONE actual credit candi
 assert.equal(exact[0].bank_group_count,2);
 assert.equal(exact[0].bank_group_exact,true,'proof-based dedupe not guessing');
 assert.equal(exact[0].bank_group_tentative,false);
+// BANK-318: Android may repost the same BANK TRANSFER with different push
+// fingerprints. The bank body + account + minute + amount + closing balance
+// must remain a single evidence group, never two finance entries.
+const replayWithDifferentPushFingerprint=helpers.bankManualBillCandidateCredits(
+ bill,[a,{...b,bank_fingerprint:'e'.repeat(64)}],'2026-11-12');
+assert.equal(replayWithDifferentPushFingerprint.length,1,
+ 'verified identical bank body must group even when fingerprints differ');
+assert.equal(replayWithDifferentPushFingerprint[0].bank_group_count,2);
+assert.equal(replayWithDifferentPushFingerprint[0].bank_group_exact,true);
+assert.equal(replayWithDifferentPushFingerprint[0].bank_group_tentative,false);
+// Same amount/minute/account is not sufficient: a distinct bank memo,
+// closing balance, or missing bank body must not be called proven duplicate.
+const differentBalance=helpers.bankManualBillCandidateCredits(bill,[
+ a,{...b,bank_fingerprint:'e'.repeat(64),
+  bank_body:bankBody.replace('-114,899,730VND','-114,169,730VND')}
+],'2026-11-12');
+assert.equal(differentBalance.length,2,'different closing balances must stay separate');
+const withoutMemo=helpers.bankManualBillCandidateCredits(bill,[
+ a,{...b,bank_fingerprint:'e'.repeat(64),
+  bank_body:bankBody.replace('LAI VAN TAN chuyen tien','KHAC BIET')}
+],'2026-11-12');
+assert.equal(withoutMemo.length,2,'different bank transfer memos must stay separate');
+
 const rows=helpers.bankManualBillEvidenceRows(bill,exact[0]);
 const field=x=>rows.find(r=>r.label===x);
 assert.equal(field('Số tiền (÷1.000)').tone,'matched');
