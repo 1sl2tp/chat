@@ -30,6 +30,19 @@ function creditAccountFromEvent(e){
  const m=/Tài khoản\s+([0-9]{9,20})\s*:\s*\+/i.exec(text);
  return m?.[1]||null;
 }
+// BANK-346: Agribank wraps some incoming Vietcombank memos as
+// MBVCB.<bank-reference>.<routing-code>.<literal payer memo>.CT tu <source>
+// <sender> toi <our-account> <our-name> tai AGRIBANK.
+// Only unwrap a COMPLETE anchored bank-side structure with verified target;
+// an unknown/partial prefix is NOT permission to guess the payer's memo.
+function verifiedMbvcbMemo(raw){
+ const match=/^MBVCB\.([0-9]{9,14})\.([0-9]{4,8})\.(.+?)\.CT tu ([0-9]{9,20}) (.+?) toi ([0-9]{9,20}) (.+?) tai AGRIBANK\.?$/i.exec(String(raw||"").trim());
+ if(!match||match[6]!=="2901181999999"||
+    normalizeBillRecipientName(match[7])!=="BUI XUAN TUNG")return null;
+ const memo=match[3].trim(),sender=match[5].trim();
+ if(!memo||!sender)return null;
+ return {reference:match[1],memo,sender};
+}
 function ownTransferNotice(e){
  // BANK-298: the bank can spell the account-holder name with accents and
  // can wrap its memo in QR - / MB(six-digit-code)(literal original memo).
@@ -40,8 +53,11 @@ function ownTransferNotice(e){
  const qr=/^QR *[-–:] +/i;
  const unwrappedQr=qr.test(raw)?raw.replace(qr,""):raw;
  const mb=/^MB\([0-9]{6}\)\(([^()]*)\)\.?\s*$/i.exec(unwrappedQr);
- const normalized=normalizeBillRecipientName(mb?mb[1]:unwrappedQr);
- return /^BUI XUAN TUNG(?:\s|[^A-Z0-9]|$)/.test(normalized);
+ const mbvcb=verifiedMbvcbMemo(unwrappedQr);
+ const normalized=normalizeBillRecipientName(mb?mb[1]:mbvcb?.memo||unwrappedQr);
+ const sender=normalizeBillRecipientName(mbvcb?.sender||"");
+ return sender==="BUI XUAN TUNG"||
+    /^BUI XUAN TUNG(?:\s|[^A-Z0-9]|$)/.test(normalized);
 }
 export function previewBillAppMatch(bill,events,otherBills=[],now=Date.now()){
  if(bill?.status!=="amount_read"||!Number.isSafeInteger(bill.amount_vnd)||bill.amount_vnd<=0)return{status:"review",reason:"bill_unreadable"};
@@ -96,8 +112,15 @@ export function previewBillAppMatch(bill,events,otherBills=[],now=Date.now()){
    const mbRoutingEnvelope=/^MB\([0-9]{6}\)\(([^()]*)\)\.?\s*$/i;
    const mbFields=mbRoutingEnvelope.exec(rawBankMemo);
    const bankMemoWithoutMb=mbFields?tidy(mbFields[1]):null;
+   const mbvcb=verifiedMbvcbMemo(rawBankMemo);
+   // When the receipt prints the routing reference, it must match the bank's
+   // exact reference too. A conflicting reference is a review, never a match.
+   const billRef=String(bill.transfer_reference||"").trim();
+   const bankMemoWithoutMbvcb=mbvcb&&(!billRef||billRef===mbvcb.reference)
+     ?tidy(mbvcb.memo):null;
    if(printedMemo.length<12||!bankText||
-      (printedMemo!==bankText&&printedMemo!==bankMemoWithoutQr&&printedMemo!==bankMemoWithoutMb))
+      (printedMemo!==bankText&&printedMemo!==bankMemoWithoutQr&&
+       printedMemo!==bankMemoWithoutMb&&printedMemo!==bankMemoWithoutMbvcb))
      return{status:"review",reason:"ocr_date_corrected_bank_memo_unverified"};
  }
  // Same reliable bank reference is the same transfer across cropped/reuploaded
