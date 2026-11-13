@@ -97,6 +97,9 @@ vm.createContext(ctx);vm.runInContext(code,ctx);
  ctx.fetch=async()=>({ok:true,json:async()=>({version:'V21.72.39',build_id:'resume-build'})});
  navigator.standalone=true;
  editor.value='unsent';
+ // The harness starts with readyState=loading; install visibility listeners
+ // only when DOMContentLoaded has been dispatched, as in a real PWA.
+ listeners['doc:DOMContentLoaded']();
  document.visibilityState='hidden';listeners['doc:visibilitychange']();
  document.visibilityState='visible';listeners['doc:visibilitychange']();
  await api.check({reason:'resume-with-draft'});
