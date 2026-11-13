@@ -32,8 +32,9 @@ create table if not exists public.chat_ncc_invoices (
  updated_at timestamptz not null default now(),
  check ((origin='chat' and conversation_id is not null and message_id is not null and media_asset_id is not null and manual_storage_key is null)
     or (origin='manual' and conversation_id is null and message_id is null and media_asset_id is null
-      and created_by is not null and length(btrim(coalesce(supplier_label,''))) between 2 and 120
-      and (manual_storage_key is null or manual_storage_key like 'ncc-manual/%' and manual_mime_type is not null))),
+      and ((manual_storage_key like 'ncc-manual/%' and manual_mime_type is not null and chat_account_id is not null)
+        or (manual_storage_key is null and created_by is not null
+            and length(btrim(coalesce(supplier_label,''))) between 2 and 120)))),
  check (invoice_number is null or length(btrim(invoice_number)) between 1 and 100),
  check (image_sha256 is null or image_sha256 ~ '^[0-9a-f]{64}$'),
  check (manual_fingerprint is null or manual_fingerprint ~ '^[0-9a-f]{64}$')
