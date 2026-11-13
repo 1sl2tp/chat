@@ -269,6 +269,11 @@ jobs:
           node tests/test_bank242_report_header_scroll_owner_20261106.cjs
       - name: BANK-243 compact report labels fit phone widths without losing full meaning
         run: node tests/test_bank243_compact_report_labels_20261106.cjs
+      - name: CHAT-338 approved balanced mobile conversation visual contract
+        run: |
+          node tests/test_chat338_balanced_mobile_conversation_20261113.cjs
+          node tests/test_chat_mobile_layout_coherence_20261107.cjs
+          node tests/test_chat_composer_multiline_ui273_20261110.cjs
       - name: UI-336 customer two-line name, amount and status alignment
         run: |
           node --check bank-report-dashboard.js
