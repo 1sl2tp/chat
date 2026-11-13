@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="4bdb8d24bbe70e666482948b619d53a161bd2b53379ff871648d516b985e3791">
+<meta name="app-build-id" content="a117dbf5e34996a6d793f22e5cb7b84de1060624841cae12706612fdb0fbce6f">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -35264,6 +35264,7 @@ function bankLineClock(raw,day=''){
 // verified bill amount are not evidence of a duplicate payment. This includes
 // 13/11 C Hue's repeated box photo (original classified non_bill on 20/10).
 // Keep canonical rows for audit; exclude only from this business projection.
+// This presentation gate must never change stored receipts or Agribank evidence.
 function bankReportVisibleData(data){
  const bills=(Array.isArray(data?.bills)?data.bills:[]).filter(row=>{
   if(!row||row.report_status==='non_bill')return false;
