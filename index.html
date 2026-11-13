@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="cad81340178c7f3f3c9a41416fe1a9e6174f69352d03735ba2063ef075820559">
+<meta name="app-build-id" content="5f04b43924dfb7cf71ca1580ac180b294535f3ccf68150cc63f6e2ecb7ca0000">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -39802,10 +39802,14 @@ function ensureStyle(){
 function ensureButton(){
  if(!admin())return;
  const tools=document.querySelector('[data-contact-directory-tools]');
- if(!tools||tools.querySelector('[data-ncc-launch]'))return;
+ if(!tools)return;
+ const ready=window.V21ContactDirectoryAdmin?.nccEnabled?.()===true;
+ const existing=tools.querySelector('[data-ncc-launch]');
+ if(existing){existing.disabled=!ready;existing.textContent=ready?'Phiếu nhập · TK NCC':'Phiếu NCC · Chưa kích hoạt';return;}
  ensureStyle();
  const button=document.createElement('button');button.type='button';button.className='ncc-launch';
- button.dataset.nccLaunch='';button.textContent='Phiếu nhập · TK NCC';
+ button.dataset.nccLaunch='';button.disabled=!ready;
+ button.textContent=ready?'Phiếu nhập · TK NCC':'Phiếu NCC · Chưa kích hoạt';
  button.addEventListener('click',()=>{void open();});
  tools.appendChild(button);
 }
