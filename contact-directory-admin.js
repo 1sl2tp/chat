@@ -4,6 +4,7 @@
 const GROUPS=Object.freeze([
   ['customer','KH'],
   ['cm','CM'],
+  ['ncc','TK NCC'],
   ['friend','Bạn bè'],
   ['other','Khác'],
 ]);
@@ -134,6 +135,7 @@ function ensureDirectoryTools(){
         <button type="button" class="contact-directory-filter" data-contact-directory-filter="unread">Chưa đọc</button>
         <button type="button" class="contact-directory-filter" data-contact-directory-filter="customer">KH</button>
         <button type="button" class="contact-directory-filter" data-contact-directory-filter="cm">CM</button>
+        <button type="button" class="contact-directory-filter" data-contact-directory-filter="ncc">TK NCC</button>
         <button type="button" class="contact-directory-filter" data-contact-directory-filter="friend">Bạn bè</button>
         <button type="button" class="contact-directory-filter" data-contact-directory-filter="other">Khác</button>
       </div>
