@@ -1,5 +1,16 @@
 # Hướng dẫn triển khai duy nhất — BANK-287 và các bản OCR bill ngân hàng
 
+## BANK-347/348 · 13/11/2026 · Đọc được `13 Th11, 2026` và khôi phục tự thu có bằng chứng E4
+
+- **E0/chẩn đoán thực tế:** Bill 119.000đ gửi 21:08 có ngày THỰC HIỆN in là `13 Th11, 2026`, giờ `21:08`, người nhận/tài khoản/memo khớp thông báo Agribank #297 (đến server chậm khoảng 17 phút). Hai lượt quét ban đầu lưu `printed_date_invalid=true`; lần đọc ảnh thứ ba lưu NGUYÊN VĂN `transfer_date_printed_raw_vn="13 Th11, 2026"`. **Không phải ảnh thiếu ngày.** Parser cũ chỉ chấp nhận `th 11` có khoảng trắng; sau khi bổ sung `Th11`, hồi phục vẫn bị `same_clock=false` vì PostgREST trả dấu `T` trong timestamp, còn bộ đọc dùng dấu cách. So sánh nguyên phút sau khi chuẩn hóa dấu phân cách, KHÔNG nới 60 giây.
+- **Source owner:** `1sl2tp/chat:main`, commit `e272943cb6a6aa92baee141b7913a4aeb8b3a449`. `bill-amount-rules.mjs` đọc `13 Th11, 2026` và các biến thể nhãn `Ngày thực hiện`, đồng thời giữ bản chép nguyên văn dù invalid. `index.ts` ưu tiên một lần đọc tập trung vào nhãn ngày, và sau 3 AI attempts cho phép duy nhất đường **xác minh lại chuỗi nguyên văn đã lưu**, KHÔNG gọi AI thứ tư. Có đủ ngày/giờ từ ảnh, đúng hạn ngày VN, tài khoản/tên người nhận, memo, một thông báo Agribank độc lập và không có link khác mới cập nhật projection; chỉ `chat_bank_app_collect` service-role được ghi thu. 
+- **Tests:** `tests/test_bank347_348_qr_sender_printed_date_20261113.mjs` bảo vệ `Th11`, nhãn ngày, dấu `T`/khoảng trắng, sai phút/sai ngày/weekday, memo QR/người gửi/tài khoản và chống trùng; canonical Verify V21 [#43449841133](https://github.com/1sl2tp/chat/actions/runs/43449841133) **SUCCESS**. Supabase connector phát hành **chỉ** `v21-bank-bill-event v48 ACTIVE` project `vtqhbhrkdxirqeqkgylo`, **9/9 file trùng main**; Agribank ingest v3 không đổi. GitHub Actions Edge runner thiếu riêng `SUPABASE_ACCESS_TOKEN`, không đại diện token đã kết nối.
+- **E4 giao dịch thực tế:** request #15935 HTTP 200 `ai_called=false,ledger_written=true,status=received`; bill 119.000đ → Agribank #297 → ledger **#877**, đúng **1** auto link, **0** manual link, trong ledger ghi `-119` (đơn vị nghìn đồng). Bill 32.000đ bị chặn do nội dung ảnh generic `CHUYEN TIEN` và bank QR có tên gửi đầy đủ, sau BANK-347 xác minh chính xác sender + memo + phút/tài khoản, đã thành công qua Agribank #296 → ledger **#876**, cũng chỉ một link. Không gọi worker lại với các bill `received`; không tạo giao dịch thử, không cập nhật sổ thu bằng SQL ad-hoc.
+- **E5 chưa đo:** iPhone PWA có thể còn banner/cảnh báo cũ trong Notification Center. Trạng thái chuẩn là bill `received` + ledger/link; không suy từ push cũ rằng chưa thu. Các bill khác thiếu ngày hoặc mâu thuẫn vẫn giữ `review`.
+
+---
+
+
 > **Đọc trước mỗi lần phát hành OCR/đối soát/thu tự động. Không đoán nhánh, repo, project hoặc tạo token mới chỉ vì một workflow báo thiếu secret.**
 
 ## BANK-302 E4 — Đóng cảnh báo AI/chờ ngân hàng cũ khi bill đã `received` (12/11/2026)
