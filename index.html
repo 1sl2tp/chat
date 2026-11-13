@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="4b2463a185ce48afc487894c076f9156799771f113ecd10dda9574430e489db4">
+<meta name="app-build-id" content="a1c80549b4fc218523111a38831204b1c4b36ca85ea4aca3855974c025f03a49">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -33174,7 +33174,7 @@ function renderTable(data){
    el('span','bank-report-empty-description',
     'Có thể xem ngày trước để kiểm tra giao dịch và chứng từ.'));
   const currentDay=String(ui.date.value||'');
-  const selected=/^20\\d{2}-\\d{2}-\\d{2}$/.test(currentDay)?
+  const selected=/^20\d{2}-\d{2}-\d{2}$/.test(currentDay)?
     new Date(currentDay+'T12:00:00Z'):null;
   if(selected&&!Number.isNaN(selected.getTime())){
    selected.setUTCDate(selected.getUTCDate()-1);
