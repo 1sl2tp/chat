@@ -64,8 +64,8 @@ assert(edge.includes('const prompt=SYSTEM_PROMPT+"\\n\\n"+TEN_FIELD_BILL_GUIDANC
 assert(edge.includes("const tenFields=buildStoredBillTenFields(parsed,fields,amount);"));
 assert(edge.includes("bill_fields_v1:tenFields"));
 assert(edge.includes("trace_code:tenFields.trace_code"));
-assert(!edge.includes("await requestParsedBillGemini({")===false,
- "Only the initial worker may call AI");
+assert(edge.includes("await requestParsedBillGemini({"),
+ "Only the initial image-ingestion worker may call AI");
 const ui=fs.readFileSync("bank-report-dashboard.js","utf8");
 const start=ui.indexOf("async function openManualBillDialog(");
 const stop=ui.indexOf("async function openCollectionDialog(",start);
@@ -100,7 +100,7 @@ const old={receiving_name:"BUI XUAN TUNG",receiving_account:"2901181999999",
  transfer_content:"LAI VAN TAN chuyen tien"}};
 const rows=bankSimpleTenFieldRows(old,{amount_vnd:730000});
 assert.equal(rows.length,10);
-assert.deepEqual(rows.map(x=>x.label),[
+assert.deepEqual(Array.from(rows,x=>x.label),[
  "Ngân hàng gửi","Ngân hàng nhận","Tên tài khoản nhận",
  "Số tài khoản nhận","Số tiền (÷1.000)","Ngày giao dịch",
  "Giờ giao dịch","Nội dung chuyển khoản","Mã giao dịch / tham chiếu","Mã tra soát"
