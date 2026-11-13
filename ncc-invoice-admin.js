@@ -33,6 +33,10 @@ function ensureStyle(){
  .ncc-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.ncc-dialog input[type="search"],.ncc-dialog input[type="number"]{box-sizing:border-box;min-height:40px;max-width:100%;font-size:16px;padding:6px 9px;border-radius:9px;border:1px solid #cbd5e1}
  .ncc-manual{border:1px solid #e2e8f0;background:#f8fafc;padding:12px;border-radius:12px;display:grid;gap:10px;margin:10px 0}
  .ncc-manual .ncc-controls>label{display:grid;gap:4px;flex:1;min-width:180px;font-weight:600}
+ .ncc-typed-lines{display:grid;gap:7px;overflow-x:auto}
+ .ncc-typed-row{display:grid;grid-template-columns:minmax(130px,2fr) minmax(64px,1fr) 72px 110px 105px 36px;align-items:center;gap:6px;min-width:540px}
+ .ncc-typed-row input{width:100%;min-width:0;box-sizing:border-box}
+ .ncc-typed-row strong{text-align:right;font-variant-numeric:tabular-nums}
  .ncc-manual select,.ncc-manual input[type="file"]{box-sizing:border-box;min-height:40px;width:100%;max-width:100%;padding:7px;border:1px solid #cbd5e1;border-radius:9px;background:#fff;font:inherit}
  .ncc-manual input[type="file"]{font-size:13px}.ncc-manual .ncc-hint{font-size:12px;color:#475569}
  .ncc-help{font-size:12px;color:#64748b;line-height:1.5}.ncc-msg{min-height:18px;color:#b45309;font-size:12px}
@@ -88,16 +92,19 @@ async function loadList(){
      <label>Chọn ảnh phiếu nhập
       <input type="file" data-ncc-file accept="image/jpeg,image/png,image/webp">
      </label></div>
-   <div class="ncc-controls"><button type="button" class="ncc-primary" data-ncc-upload>Thêm phiếu thủ công</button>
+   <div class="ncc-controls"><button type="button" class="ncc-primary" data-ncc-upload>Quét ảnh từ máy</button>
+    <button type="button" data-ncc-create-manual>Nhập phiếu bằng tay</button>
     <button type="button" data-ncc-manage>Phân nhóm TK NCC</button>
     <button type="button" data-ncc-scanners>Cấp quyền quét ảnh</button></div>
    <div class="ncc-hint">Tài khoản thuộc TK NCC: ảnh họ gửi tự vào hàng chờ. Ảnh thủ công có thể để trống tài khoản. Không tự đổi giá vốn.</div>
    <div data-ncc-manage-panel hidden></div>
-   <div data-ncc-scanner-panel hidden></div></section>
+   <div data-ncc-scanner-panel hidden></div>
+   <div data-ncc-typed-panel hidden></div></section>
    <div class="ncc-controls"><button type="button" data-ncc-refresh>Làm mới</button><span class="ncc-help">Danh sách ảnh NCC, tối đa 60 phiếu mới</span></div>
   <div class="ncc-docs">${supplierRows.map(x=>`<button type="button" class="ncc-doc" data-ncc-id="${escape(x.id)}"><span><strong>${escape(x.invoice_number||'Chưa có mã phiếu')}</strong> · ${escape(x.invoice_date||'Chưa rõ ngày')}<small> · ${escape(x.created_at?.slice(0,10)||'')}</small></span><small>${escape(statusText[x.status]||'Chờ kiểm tra')}</small></button>`).join('')||'<p>Chưa có ảnh phiếu nhập từ TK NCC.</p>'}</div>`;
   host.querySelector('[data-ncc-refresh]').onclick=()=>void loadList();
   host.querySelector('[data-ncc-upload]').onclick=()=>void uploadManual(host);
+  host.querySelector('[data-ncc-create-manual]').onclick=()=>showTypedInvoiceEditor(host,accounts);
   host.querySelector('[data-ncc-manage]').onclick=()=>manageSuppliers(host,accounts);
   host.querySelector('[data-ncc-scanners]').onclick=()=>manageScannerAssignments(host,scanners.accounts||[],assignedIds);
   for(const btn of host.querySelectorAll('[data-ncc-id]'))btn.onclick=()=>void view(btn.dataset.nccId);
@@ -128,6 +135,91 @@ async function uploadManual(host){
   notify('Đã thêm phiếu. Bấm “AI đọc phiếu” để phân tích và ghép sản phẩm.');
  }catch{notify('Không lưu được ảnh phiếu. Kiểm tra phiên quản trị và cấu hình máy chủ.');}
  finally{updateBusy(false);}
+}
+// NCC-003: manually key an invoice when no usable photo is available.
+function showTypedInvoiceEditor(host,accounts){
+ const panel=host.querySelector('[data-ncc-typed-panel]');if(!panel)return;
+ panel.hidden=!panel.hidden;if(panel.hidden)return;
+ panel.innerHTML=`<div class="ncc-pane"><strong>Nhập phiếu hàng bằng tay</strong>
+ <p class="ncc-help">Nhập ngày ghi trên phiếu, mã phiếu (nếu có), tên hàng, số lượng và giá nhập. Dữ liệu chỉ lưu để đối chiếu sản phẩm, chưa sửa giá vốn.</p>
+ <div class="ncc-controls">
+ <label>Nhà cung cấp<input type="text" data-ncc-typed-supplier placeholder="Tên nhà cung cấp" maxlength="120" required></label>
+ <label>Ngày trên phiếu<input type="date" data-ncc-typed-date required></label>
+ <label>Mã phiếu (nếu có)<input type="text" data-ncc-typed-number maxlength="100" placeholder="VD: 033791"></label>
+ <label>Tài khoản Chat (nếu có)
+  <select data-ncc-typed-account><option value="">Không liên kết Chat</option>
+   ${accounts.map(a=>`<option value="${escape(a.id)}">${escape(a.display_name||a.username||a.id)}</option>`).join('')}
+  </select></label></div>
+ <div class="ncc-typed-lines">
+ <div class="ncc-typed-row ncc-help"><strong>Tên sản phẩm</strong><strong>Đơn vị</strong><strong>SL</strong><strong>Giá nhập</strong><strong>Thành tiền</strong><strong></strong></div>
+ <div data-ncc-typed-rows></div></div>
+ <div class="ncc-controls"><button type="button" data-ncc-typed-add>+ Thêm dòng</button>
+ <strong data-ncc-typed-total>0 đ</strong></div>
+ <div class="ncc-controls"><label>Tổng trên phiếu (để trống nếu không có)
+ <input type="number" data-ncc-typed-printed-total min="0" step="1" placeholder="Tự tính theo dòng"></label>
+ <button type="button" class="ncc-primary" data-ncc-typed-save>Lưu phiếu nhập</button></div>
+ <p class="ncc-help">Nếu trùng nhà cung cấp + ngày + mã phiếu hoặc trùng toàn bộ nội dung, hệ thống không nhập lần hai.</p></div>`;
+ const rows=panel.querySelector('[data-ncc-typed-rows]');
+ const newRow=()=>{
+  const row=document.createElement('div');row.className='ncc-typed-row';row.dataset.nccTypedRow='';
+  row.innerHTML=`<input type="text" data-ncc-line-name placeholder="Tên hàng NCC" maxlength="160" aria-label="Tên hàng">
+   <input type="text" data-ncc-line-unit placeholder="Quy cách" maxlength="60" aria-label="Đơn vị">
+   <input type="number" data-ncc-line-qty min="0.001" step="any" value="1" aria-label="Số lượng">
+   <input type="number" data-ncc-line-price min="0" step="1" placeholder="Giá" aria-label="Đơn giá">
+   <strong data-ncc-line-total>0</strong>
+   <button type="button" data-ncc-line-remove aria-label="Xóa dòng">×</button>`;
+  rows.appendChild(row);
+  row.addEventListener('input',updateTotal);
+  row.querySelector('[data-ncc-line-remove]').onclick=()=>{row.remove();updateTotal();};
+  updateTotal();
+ };
+ const collect=()=>[...rows.querySelectorAll('[data-ncc-typed-row]')].map(row=>{
+  const quantity=Number(row.querySelector('[data-ncc-line-qty]').value);
+  const unitPriceVnd=Number(row.querySelector('[data-ncc-line-price]').value);
+  return {printedName:row.querySelector('[data-ncc-line-name]').value.trim(),
+   printedUnit:row.querySelector('[data-ncc-line-unit]').value.trim(),
+   quantity,unitPriceVnd,lineTotalVnd:quantity*unitPriceVnd};
+ });
+ function updateTotal(){
+  let total=0;
+  for(const row of rows.querySelectorAll('[data-ncc-typed-row]')){
+   const qty=Number(row.querySelector('[data-ncc-line-qty]').value);
+   const price=Number(row.querySelector('[data-ncc-line-price]').value);
+   const sum=Number.isFinite(qty)&&Number.isFinite(price)?qty*price:0;
+   row.querySelector('[data-ncc-line-total]').textContent=money(sum);
+   total+=sum;
+  }
+  panel.querySelector('[data-ncc-typed-total]').textContent=money(total)+' đ';
+ }
+ panel.querySelector('[data-ncc-typed-add]').onclick=newRow;newRow();
+ panel.querySelector('[data-ncc-typed-save]').onclick=async()=>{
+  if(busy)return;
+  const supplierLabel=panel.querySelector('[data-ncc-typed-supplier]').value.trim();
+  const date=panel.querySelector('[data-ncc-typed-date]').value;
+  const invoiceNumber=panel.querySelector('[data-ncc-typed-number]').value.trim();
+  const accountId=panel.querySelector('[data-ncc-typed-account]').value;
+  const lines=collect();
+  if(supplierLabel.length<2||!date||!lines.length||lines.some(x=>!x.printedName||
+      !Number.isFinite(x.quantity)||x.quantity<=0||
+      !Number.isSafeInteger(x.unitPriceVnd)||x.unitPriceVnd<0||
+      !Number.isSafeInteger(x.lineTotalVnd)||x.lineTotalVnd<0)){
+   notify('Kiểm tra ngày phiếu, tên hàng, số lượng và giá tiền nguyên VND.');return;
+  }
+  const total=lines.reduce((sum,line)=>sum+line.lineTotalVnd,0);
+  const stated=panel.querySelector('[data-ncc-typed-printed-total]').value.trim();
+  const printedTotalVnd=stated===''?total:Number(stated);
+  if(!Number.isSafeInteger(printedTotalVnd)||printedTotalVnd!==total){
+   notify('Tổng phiếu không khớp với tổng từng dòng. Chưa lưu.');return;
+  }
+  updateBusy(true);notify('Đang lưu phiếu nhập thủ công…');
+  try{
+   const saved=await call('manual_create',{supplierLabel,date,invoiceNumber,accountId,
+    lines,printedTotalVnd});
+   await view(saved.id);
+   notify('Đã lưu phiếu để ghép sản phẩm, chưa cập nhật giá vốn.');
+  }catch{notify('Phiếu bị trùng hoặc dữ liệu chưa hợp lệ. Chưa lưu thêm phiếu.');}
+  finally{updateBusy(false);}
+ };
 }
 function manageSuppliers(host,accounts){
  const panel=host.querySelector('[data-ncc-manage-panel]');if(!panel)return;
@@ -207,7 +299,7 @@ async function view(id){
   host.innerHTML=`<div class="ncc-controls"><button type="button" data-ncc-back>‹ Danh sách</button>
     <strong>${escape(doc.invoice_number||'Chưa rõ mã phiếu')}</strong>
     <span class="ncc-help">${escape(statusText[doc.status]||doc.status)} · ${escape(doc.invoice_date||'Chưa rõ ngày')}</span>
-    ${['pending','failed','needs_review'].includes(doc.status)?'<button type="button" class="ncc-primary" data-ncc-scan>AI đọc phiếu</button>':''}</div>
+    ${(['pending','failed','needs_review'].includes(doc.status) && (doc.origin==='chat'||Boolean(doc.manual_storage_key)))?'<button type="button" class="ncc-primary" data-ncc-scan>AI đọc phiếu</button>':''}</div>
     <div class="ncc-pane">${safeUrl?`<img src="${escape(safeUrl)}" alt="Ảnh gốc phiếu nhập NCC">`:''}
     <div class="ncc-help">Tổng phiếu: ${money(doc.printed_total_vnd)} đ. Nếu ảnh có chữ viết tay, chỉ nhận diện bảng in.</div></div>
     <div class="ncc-table-scroll"><table class="ncc-line-table"><thead><tr><th>STT</th><th>TÊN TRÊN PHIẾU</th><th>SL</th><th data-ncc-money>GIÁ NHẬP</th><th>LIÊN KẾT</th></tr></thead><tbody>
@@ -238,7 +330,7 @@ function assignPanel(rowNo){
  <div class="ncc-controls"><input type="search" data-ncc-search placeholder="Tên sản phẩm TAPHOA" aria-label="Tên sản phẩm"><button type="button" data-ncc-find>Tìm</button></div>
  <div data-ncc-results></div>
  <div class="ncc-controls"><label>Quy đổi đơn vị: <input data-ncc-factor type="number" min="0.001" step="any" value="1" style="width:98px"></label>
- <label><input type="checkbox" data-ncc-remember checked> Nhớ tên NCC cho lần sau</label>
+ <label><input type="checkbox" data-ncc-remember ${lastDoc?.chat_account_id?'checked':'disabled'}> Nhớ tên NCC cho lần sau</label>
  <label><input type="checkbox" data-ncc-price-jump> Tôi xác nhận nếu giá lệch trên 20%</label></div>
  <div class="ncc-help">Hệ số quy đổi phải đúng quy cách: giá vốn TAPHOA = đơn giá phiếu / hệ số. Không tự suy đoán thùng/hộp.</div>
  <button type="button" data-ncc-save class="ncc-primary" disabled>Xác nhận liên kết</button></div>`;
