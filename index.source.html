@@ -2614,6 +2614,15 @@ button{
 .top-mode-switch[data-contact-identity="true"]{
   grid-template-columns:minmax(0,1fr) max-content;
 }
+/* UI-332: the report is a report, not a photo browsing conversation.
+   Hide Photos only when the authenticated bank report view is active;
+   ordinary Chat and customer photo browsing keep their existing tab. */
+body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-switch{
+  grid-template-columns:minmax(0,1fr);
+}
+body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-tab="photos"]{
+  display:none!important;
+}
 .top-mode-tab{
   min-width:0;
   min-height:38px;
