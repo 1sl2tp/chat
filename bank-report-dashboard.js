@@ -1213,15 +1213,22 @@ async function openDailyBankSummary(){
      recipients.length+' khách có chuyển khoản đã ghi thu. Chỉ gửi đúng khách này.':
      'Không có khách chuyển khoản đã ghi thu ngày này. Không cần gửi.';
    for(const recipient of recipients){
+    // UI-331: Compact Model 2 layout. Keep the existing recipient eligibility,
+    // preview text and explicit manual send confirmation unchanged.
     const row=el('div','bank-daily-customer');
+    row.dataset.delivery=recipient.sent?'sent':!recipient.eligible?'muted':'ready';
     const detail=append(el('div','bank-daily-customer-info'),
       el('strong','',recipient.customer_name||'Khách hàng'),
-      el('small','',recipient.transfer_count+' lượt · Tổng '+recipient.amount_thousands));
+      el('small','',recipient.transfer_count+' lượt đã ghi thu'));
+    const amount=el('strong','bank-daily-customer-amount',
+      String(recipient.amount_thousands??'0'));
+    amount.setAttribute('aria-label','Tổng tiền đã thu '+String(recipient.amount_thousands??'0')+
+      ' nghìn đồng');
     const preview=el('details','bank-daily-preview');
-    preview.appendChild(el('summary','','Xem trước nội dung'));
+    preview.appendChild(el('summary','','Xem nội dung'));
     preview.appendChild(el('pre','',recipient.body||''));
-    const send=el('button','bank-review-save',recipient.sent?'Đã gửi':
-      !recipient.eligible?'Không bật nhận':'Gửi thủ công');
+    const send=el('button','bank-review-save bank-daily-send',recipient.sent?'Đã gửi':
+      !recipient.eligible?'Tắt nhận':'Gửi');
     send.type='button';send.disabled=Boolean(recipient.sent||!recipient.eligible);
     send.addEventListener('click',async()=>{
      if(send.disabled||!bankDialogIsCurrent(overlay,owner)||serial!==seq)return;
@@ -1235,6 +1242,7 @@ async function openDailyBankSummary(){
       if(!bankDialogIsCurrent(overlay,owner)||serial!==seq)return;
       if(result.error||!result.data?.ok)throw Error(result.error?.message||result.data?.status||'Chưa gửi');
       send.textContent=result.data.status==='already_sent'?'Đã gửi trước đó':'Đã gửi';
+      row.dataset.delivery='sent';
       feedback.textContent='Đã ghi nhận thông báo. Không gửi trùng cùng khách/ngày.';
      }catch(error){
       if(bankDialogIsCurrent(overlay,owner)&&serial===seq){
@@ -1243,7 +1251,9 @@ async function openDailyBankSummary(){
       }
      }
     });
-    append(row,detail,preview,send);list.appendChild(row);
+    const actions=el('div','bank-daily-row-actions');
+    append(actions,preview,send);
+    append(row,detail,amount,actions);list.appendChild(row);
    }
   }catch(error){
    if(bankDialogIsCurrent(overlay,owner)&&serial===seq)
