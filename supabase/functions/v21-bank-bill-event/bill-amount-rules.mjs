@@ -155,8 +155,8 @@ function parsePrintedBillDate(source){
    if(m)day=verifiedBillDate(m[3],m[2],m[1]);
  }
  if(!day){
-   // "12 thg 11, 2026", "12 TH. 11 năm 2026", "12 tháng 11 2026"
-   m=/^(\d{1,2})\s+([\p{L}]{1,9}\.?)\s+(\d{1,2})(?:\s+năm\s+|,\s*|[./-]\s*|\s+)(20\d{2})$/iu.exec(s);
+   // "12 thg 11, 2026", "13 Th11, 2026", "12 TH. 11 năm 2026"
+   m=/^(\d{1,2})\s+([\p{L}]{1,9}\.?)\s*(\d{1,2})(?:\s+năm\s+|,\s*|[./-]\s*|\s+)(20\d{2})$/iu.exec(s);
    if(!m)return null;
    const separator=m[2].normalize("NFD").replace(/\p{M}/gu,"").replace(/\.$/,"").toLowerCase();
    if(!["thang","thg","th","t"].includes(separator))return null;
