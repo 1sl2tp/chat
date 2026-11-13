@@ -2952,6 +2952,11 @@ function syncMessageDeliveryState(unit,message){
   if(!unit)return;
   const state=message?.sender==='self'&&message?.status==='failed'?'failed':
     message?.sender==='self'&&message?.status==='sending'?'sending':'';
+  // CHAT-340: presentation state lives on the existing bubble owner, so
+  // a pending message never inserts a visible line beside the Composer.
+  // Only a canonical ACK clears "sending"; failed media keeps retry controls.
+  if(state)unit.dataset.deliveryState=state;
+  else delete unit.dataset.deliveryState;
   let node=unit.querySelector(':scope > .message-delivery-state');
   if(!state){node?.remove();return;}
   if(!node){
@@ -2991,8 +2996,11 @@ function syncMessageDeliveryState(unit,message){
       }catch(_error){result={ok:false,reason:'error'};}
       if(node.isConnected===false)return;
       if(result?.ok){
+        // Queued for retry is NOT proof of server delivery. Keep the same
+        // accessible status, but visually announce via the bubble orbit.
         node.textContent='Đang chờ xác nhận gửi lại';
         node.dataset.state='sending';
+        unit.dataset.deliveryState='sending';
         node.setAttribute('aria-label','Đang chờ xác nhận gửi lại');
       }else{
         const reason=String(result?.reason||'error');
