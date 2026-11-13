@@ -20,7 +20,7 @@ assert.ok(client.includes('.call-focus-slot:not([data-call-ui-state="idle"]) .v2
   'private callback control cannot crowd active call controls');
 assert.ok(client.includes('function phoneContextActive(id,account){'));
 assert.ok(client.includes("String(current()?.id||'')===String(id)"));
-assert.ok(client.includes('if(!overlay.isConnected||!phoneContextActive(id,account))'),
+assert.ok(client.includes('if(!overlay.isConnected||!phoneContextActive(id,account)||String(au().appSessionId||'')!==session)'),
   'late phone replies must not expose a previous customer');
 assert.ok(client.includes("document.addEventListener('v21-active-contact-change',()=>{dismiss();clearNotice();attach()});"));
 assert.ok(page.includes('contact-phone-admin.js'));
