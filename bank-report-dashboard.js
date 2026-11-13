@@ -752,6 +752,7 @@ function bankBillDisplayTime(raw){
 // Green requires a recorded ledger; yellow is waiting for evidence; red means
 // explicit operator verification is necessary. Source statuses remain intact.
 function bankReportBillTone(row,isBank=false,manualRecord=null,manualEvidence=null,dateSwapSuspect=false,candidates=[]){
+ if(!isBank&&row?.reason==='manual_bank_bill_reviewed'&&row?.report_status==='matched'&&row?.ledger_id)return 'success';
  if(manualRecord)return 'success';
  if(manualEvidence||dateSwapSuspect)return 'danger';
  if(isBank)return candidates.length?'danger':'pending';
@@ -887,7 +888,8 @@ function detailLine(row,isBank=false,candidates=[]){
  }
  if(row.reason&&!isBank){
   let reason='Ghi chú: '+row.reason;
-  if(bankBillImageUncertainty(row))reason=bankBillUncertainDescription(row);
+  if(row.reason==='manual_bank_bill_reviewed'&&recorded)reason='Đã thu tay · Đã soát bill gốc, liên kết sổ thu cũ. Không thu lần hai.';
+  else if(bankBillImageUncertainty(row))reason=bankBillUncertainDescription(row);
   else if(dateSwapSuspect)reason='AI có thể đã đọc đảo ngày/tháng so với ảnh bill. Giờ gửi ảnh không chứng minh ngày chuyển khoản. Cần đối chiếu ảnh gốc với Agribank, không tự ghi thu.';
   else if(row.reason==='bill_recipient_account_missing')reason='Ảnh chưa đọc rõ số tài khoản NGƯỜI NHẬN. Chờ bạn đối chiếu chứng từ và thu thủ công, chưa ghi công nợ.';
   else if(row.reason==='bill_recipient_account_conflict')reason='Số tài khoản người nhận trên ảnh không khớp tài khoản Agribank cần thu. Không tự khớp; bạn xác minh thủ công.';
