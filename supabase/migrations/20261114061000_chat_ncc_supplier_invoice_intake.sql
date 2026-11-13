@@ -17,7 +17,7 @@ create table if not exists public.chat_ncc_invoices (
  invoice_number text,
  printed_total_vnd numeric check (printed_total_vnd is null or printed_total_vnd >= 0),
  ocr_lines jsonb not null default '[]'::jsonb check (jsonb_typeof(ocr_lines)='array'),
- status text not null default 'pending' check (status in ('pending','not_invoice','needs_review','matched','duplicate','applied','failed')),
+ status text not null default 'pending' check (status in ('pending','processing','not_invoice','needs_review','matched','duplicate','applied','failed')),
  note text,
  reviewed_by uuid references public.v21_accounts(id),
  reviewed_at timestamptz,
