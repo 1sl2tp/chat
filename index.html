@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="eb72b4cc0d67ac50aa56c2f4da87acacfeccbd512df84e3bee1a6a8974ea7071">
+<meta name="app-build-id" content="ff2e21a755a72e44e82d7b1f1feb5942feff29f11fa3c3993f45222507ce7727">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -11740,6 +11740,154 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
     gap:3px;
     padding-inline:2px;
     font-size:11px;
+  }
+}
+
+/* CHAT-338 — approved Concept 3: balanced ChatGPT × messaging app.
+   This is a mobile visual layer only. Reuse the existing shell identity,
+   call controls, quick-action handlers, message DOM and composer owners.
+   Do not touch VisualViewport, iOS keyboard, message heights, scroll anchoring,
+   media/image layout, timestamp slots, send/voice logic or bank report UI. */
+@media(max-width:63.999rem){
+  /* Each side has its own muted but readable bubble tone. Light and dark
+     themes both blend into their own surface instead of a forced white. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #stageLayout:not([data-bank-report-active="true"]){
+    --chat-message-sent-bg:color-mix(in srgb,#79aefa 17%,var(--theme-surface-primary));
+    --chat-message-received-bg:color-mix(in srgb,#8b99a6 10%,var(--theme-surface-primary));
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #stageLayout:not([data-bank-report-active="true"]) #regionTop{
+    background:var(--theme-surface-primary);
+    border-bottom:1px solid color-mix(in srgb,var(--theme-border-default) 54%,transparent);
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #stageLayout:not([data-bank-report-active="true"]) #regionTop .compact-top-grid:has(.top-mode-switch[data-contact-identity="true"]){
+    grid-template-columns:44px minmax(0,1fr) auto;
+    column-gap:7px;
+    min-height:var(--header-height,56px);
+    align-items:center;
+    padding-inline:max(10px,env(safe-area-inset-left,0px))
+                   max(10px,env(safe-area-inset-right,0px));
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #stageLayout:not([data-bank-report-active="true"]) #regionTop .top-mode-switch[data-contact-identity="true"] [data-chat-tab-label]{
+    font-size:15px;
+    font-weight:650;
+    line-height:20px;
+    letter-spacing:-.012em;
+    min-width:0;
+    overflow:hidden;
+    white-space:nowrap;
+    text-overflow:ellipsis;
+  }
+  /* The Photo action is already in the customer quick toolbar.
+     When that toolbar is visible, avoid reserving a dead photo-tab track. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #stageLayout:not([data-bank-report-active="true"]):has(#chatQuickActions:not([hidden])) #regionTop .top-mode-switch[data-contact-identity="true"]{
+    grid-template-columns:minmax(0,1fr)!important;
+  }
+  /* Four business actions share the same touch geometry. Cash is only
+     visually prioritized; permissions and click handlers are untouched. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #stageLayout:not([data-bank-report-active="true"]) #chatQuickActions:not([hidden]){
+    min-height:52px;
+    gap:6px;
+    padding:4px max(10px,env(safe-area-inset-left,0px))
+            5px max(10px,env(safe-area-inset-right,0px));
+    background:var(--theme-surface-primary);
+    border-bottom:1px solid color-mix(in srgb,var(--theme-border-default) 58%,transparent);
+    overflow:visible;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #stageLayout:not([data-bank-report-active="true"]) #chatQuickActions>button{
+    box-sizing:border-box;
+    flex:1 1 0;
+    min-width:0;
+    min-height:44px;
+    height:44px;
+    gap:4px;
+    padding-inline:4px;
+    border-radius:12px;
+    border:1px solid color-mix(in srgb,var(--theme-border-default) 50%,transparent);
+    background:color-mix(in srgb,var(--theme-surface-secondary) 78%,var(--theme-surface-primary));
+    color:var(--theme-content-primary);
+    font-size:11.5px;
+    line-height:16px;
+    font-weight:600;
+    white-space:nowrap;
+    box-shadow:none;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #stageLayout:not([data-bank-report-active="true"]) #chatQuickActions>button[data-chat-quick="cash"]{
+    background:color-mix(in srgb,#2d9e73 12%,var(--theme-surface-primary));
+    border-color:color-mix(in srgb,#2d9e73 18%,var(--theme-border-default));
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #stageLayout:not([data-bank-report-active="true"]) #chatQuickActions>button:focus-visible{
+    outline:2px solid var(--theme-content-accent);
+    outline-offset:1px;
+  }
+  /* Compact conversations: keep the virtualization and the 17px time slot
+     exactly as-is. Only typography, palette and between-turn rhythm change. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #stageLayout:not([data-bank-report-active="true"]) #messageWindow>.message-row[data-content-kind="text"] .user-message-unit>.message-text{
+    background:var(--chat-message-sent-bg)!important;
+    border-radius:19px!important;
+    padding:10px 13px!important;
+    color:var(--theme-content-primary)!important;
+    box-shadow:none!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #stageLayout:not([data-bank-report-active="true"]) #messageWindow>.message-row[data-content-kind="text"] .assistant-message-unit>.message-text{
+    background:var(--chat-message-received-bg)!important;
+    border-radius:19px!important;
+    padding:10px 13px!important;
+    color:var(--theme-content-primary)!important;
+    box-shadow:none!important;
+  }
+  /* Text timestamps live in a reserved footer inside the same bubble.
+     Do not add footer padding when a text row has no sent-time node. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #stageLayout:not([data-bank-report-active="true"]) #messageWindow>.message-row[data-content-kind="text"] .message-unit:has(>.message-sent-time)>.message-text:not([hidden]){
+    padding-bottom:25px!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #stageLayout:not([data-bank-report-active="true"]) #messageWindow .message-body{
+    font-size:15px;
+    line-height:1.38rem; /* preserve virtualized message height estimate */
+    overflow-wrap:anywhere;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #stageLayout:not([data-bank-report-active="true"]) #messageWindow>.message-row[data-turn="user"]+.message-row[data-turn="user"],
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #stageLayout:not([data-bank-report-active="true"]) #messageWindow>.message-row[data-turn="assistant"]+.message-row[data-turn="assistant"]{
+    margin-top:6px!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #stageLayout:not([data-bank-report-active="true"]) #messageWindow>.message-row[data-turn="user"]+.message-row[data-turn="assistant"],
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #stageLayout:not([data-bank-report-active="true"]) #messageWindow>.message-row[data-turn="assistant"]+.message-row[data-turn="user"]{
+    margin-top:13px!important;
+  }
+  /* Composer remains owned by keyboard/viewport code. No position,
+     height, grid or sticky changes: only the surface and control tones. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #stageLayout:not([data-bank-report-active="true"]) #composerShell{
+    border-radius:26px;
+    border-color:color-mix(in srgb,var(--theme-border-default) 88%,transparent);
+    background:var(--cgpt-composer-surface-primary);
+    box-shadow:0 2px 10px rgba(20,37,53,.055);
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #stageLayout:not([data-bank-report-active="true"]) #composerShell:focus-within{
+    border-color:color-mix(in srgb,var(--theme-content-accent) 28%,var(--theme-border-default));
+    box-shadow:0 0 0 1px color-mix(in srgb,var(--theme-content-accent) 12%,transparent),0 2px 10px rgba(20,37,53,.055);
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #stageLayout:not([data-bank-report-active="true"]) #editor{
+    font-size:16px; /* prevents iOS focus zoom; never reduce input font */
+    line-height:24px;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #stageLayout:not([data-bank-report-active="true"]) #composerShell :is(#composer-plus-btn,#composer-mic-btn){
+    border-radius:999px;
+    background:color-mix(in srgb,var(--theme-surface-secondary) 72%,var(--theme-surface-primary));
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #stageLayout:not([data-bank-report-active="true"]) #composerShell[data-can-send="true"] #send:not(:disabled){
+    background:#237be2;
+    color:#fff;
+  }
+}
+@media(max-width:360px){
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #stageLayout:not([data-bank-report-active="true"]) #chatQuickActions:not([hidden]){
+    gap:4px;
+    padding-inline:max(7px,env(safe-area-inset-left,0px))
+                   max(7px,env(safe-area-inset-right,0px));
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #stageLayout:not([data-bank-report-active="true"]) #chatQuickActions>button{
+    font-size:10.5px;
+    padding-inline:2px;
+    gap:3px;
   }
 }
 
