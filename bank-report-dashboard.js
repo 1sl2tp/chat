@@ -572,7 +572,7 @@ function renderTable(data){
    el('strong','bank-report-empty-title',noData?
     'Chưa có dữ liệu đối soát được ghi nhận':'Chưa có bill trong ngày đã chọn'),
    el('span','bank-report-empty-description',noData?
-    'Không đồng nghĩa ngân hàng không có tiền về. Nếu đã nhận chuyển khoản, cần kiểm tra thông báo Agribank.':
+    'Trong dữ liệu ngày đã chọn, chưa có giao dịch cần đối soát.':
     'Có thể xem ngày trước để kiểm tra giao dịch và chứng từ.'));
   if(noData)text.appendChild(el('span','bank-report-empty-meta',
    'Ngày đã chọn: 0 tiền vào · 0 đã thu · 0 bill'));
