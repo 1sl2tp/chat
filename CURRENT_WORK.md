@@ -1,3 +1,14 @@
+## 2026-11-13 — CHAT-340 · Trạng thái tin đang gửi bằng viền chuyển động (Web/PWA)
+
+- **E0:** ảnh Web Chat do người dùng cung cấp cho thấy nhãn trạng thái gửi đôi khi chiếm hàng riêng sát vùng nhập; layout tin được virtualize và Composer là scroll owner độc lập. `syncMessageDeliveryState()` trước đây thêm một dòng `.message-delivery-state` sau giờ gửi khi tin có `status='sending'`.
+- **E1 sửa UI:** chủ sở hữu duy nhất `app.js::syncMessageDeliveryState` đặt `data-delivery-state` trên `.message-unit` gửi đi; `index.source.html` biến nhãn `sending` thành chỉ dành cho screen reader (không chiếm chiều cao) và vẽ viền conic-gradient chạy quanh bubble hoặc ảnh/file bằng pseudo-element, không chặn chọn chữ, ảnh, thao tác chạm. `prefers-reduced-motion` giữ viền tĩnh.
+- **MUST-STAY:** chỉ `sending` có viền; `failed` vẫn hiện cảnh báo và nút retry media; ACK canonical `sent` xóa viền, không hiển thị giả `Đã nhận/Đã đọc`. Retry vẫn dùng idempotent media outbox cũ; không thay gửi tin, ACK, RPC, Realtime, Storage, DB hoặc Zalo. Không thêm polling, hẹn giờ JavaScript, request hay chỉnh chiều cao bong bóng/vùng cuộn.
+- **Kiểm thử:** `tests/test_chat340_sending_orbit_border_20261113.cjs` kiểm tra state pending/failed/sent/remote, CSS aria-only, viền chạy và reduced-motion; giữ `test_chat_p0_286_inbox_bank_delivery_20261111.cjs` và `test_chat_p1_288_offline_media_retry_20261111.cjs`. Thêm vào Verify V21. Đổi epoch Web/PWA public shell; không xóa dữ liệu/caches riêng tư.
+- **Phát hành:** PR/CI/Pages và production build ID sẽ được ghi sau khi hoàn tất. **E5:** đánh giá trực tiếp thiết bị Safari/Chrome, bàn phím đóng/mở chưa có bằng chứng, không được tự coi PASS.
+- **Rollback:** revert patch HTML/JS/CSS, build lại canonical `index.html/version.json`, giữ nguyên media/IndexedDB/session.
+
+---
+
 ## 2026-11-13 — BANK-318/320 E4 · Bill 730k C Sâm pl: Admin OCR projection + guarded no-clock manual RPC released
 
 - **Đúng repo/project:** `1sl2tp/chat:main`, Supabase `vtqhbhrkdxirqeqkgylo`. Bill receipt `77f71f34-79cf-4a31-b717-6dc2c11eb52e`, AI đã lưu `receiving_name=BUI XUAN TUNG`, `raw_read.transfer_date_vn=2026-11-12`, 730.000đ; `transfer_at_vn=NULL` và `reason=bill_printed_time_missing` (trên ảnh không đọc được giờ). Lỗi UI cũ đến từ Admin RPC chưa chiếu `receiving_name`/`raw_read`, không phải AI không nhận ra tên/ngày.
