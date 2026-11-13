@@ -269,6 +269,10 @@ jobs:
           node tests/test_bank242_report_header_scroll_owner_20261106.cjs
       - name: BANK-243 compact report labels fit phone widths without losing full meaning
         run: node tests/test_bank243_compact_report_labels_20261106.cjs
+      - name: UI-325 zero data bank report does not hide actual bank credits
+        run: |
+          node --check bank-report-dashboard.js
+          node tests/test_ui325_bank_zero_data_mode_20261113.cjs
       - name: UI-324 visibly compact iPhone bank report and complete four-filter control
         run: |
           node --check bank-report-dashboard.js
