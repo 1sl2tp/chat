@@ -52,7 +52,8 @@ assert(patch.includes('width:94px!important;'));
 assert(patch.includes('gap:6px;'));
 assert(patch.includes('flex:0 0 44px;')&&patch.includes('min-height:44px;'));
 assert(!patch.includes('position:fixed;'), 'header must not own viewport or keyboard');
-assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-native-iphone-dial-call187-20261113';"));
+// Cache epochs move forward with later PWA fixes; CALL-187 must not pin them.
+assert.match(sw,/const SHELL_CACHE_EPOCH='pwa-chat-[a-z0-9-]+';/);
 
 const dialStart=phone.indexOf('function dialCurrent(){');
 const dialEnd=phone.indexOf('function attach(){',dialStart);
