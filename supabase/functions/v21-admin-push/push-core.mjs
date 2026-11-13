@@ -72,42 +72,54 @@ export function bankScanReasonLabel(raw){
     return 'Không đọc được ảnh · Admin cần kiểm tra';
   return reason.slice(0,100)||'Ảnh cần đối soát thủ công';
 }
+// BANK-350: PWA business alerts are for verified bill IMAGE recognition,
+// not raw Agribank credits, scanner failures, duplicates or opaque error codes.
+// This pure gate has NO authority to authorize a customer collection.
+export function recognizedBillPushEligible({kind,receipt}={}){
+ const type=String(kind||"");
+ const r=receipt&&typeof receipt==="object"?receipt:{};
+ const o=r.raw_read&&typeof r.raw_read==="object"?r.raw_read:{};
+ const amount=Number(r.amount_vnd);
+ if(!["bill_waiting","review","matched"].includes(type)||
+    !Number.isSafeInteger(amount)||amount<=0||
+    o.image_type!=="successful_transfer_receipt"||
+    o.amount_clear!==true||o.transfer_success_visible!==true)return false;
+ if(type==="review")return r.status==="review";
+ if(type==="bill_waiting")return r.status==="amount_read";
+ return r.status==="received"&&r.ledger_id!=null;
+}
+// Do not render arbitrary OCR reasons or English RPC errors on lock screens.
+// Keep unrelated bank signals silent so they can still refresh an OPEN report.
 export function buildBankNotificationPayload(row={}){
-  const kind=String(row.kind||'');
-  const amount=Number(row.amount_vnd||0);
-  const money=Number.isFinite(amount)&&amount>=0
-    ?new Intl.NumberFormat('vi-VN').format(amount)+'đ':'Chưa rõ số tiền';
-  const person=String(row.customer_name||'Khách hàng').trim().slice(0,64)||'Khách hàng';
-  const time=String(row.transfer_time||'').slice(0,5);
-  const date=String(row.business_date||'');
-  const bankId=String(row.notification_id||'');
-  const receiptId=String(row.receipt_id||'');
-  const scanProblem=/^(?:amount_scan_|ai_scan_|ai_year_error_)/i.test(String(row.reason||''));
-  const title=kind==='matched'?'TAPHOA · Đối soát thành công'
-    :kind==='bank_only'?'TAPHOA · Tiền về'
-    :kind==='bill_waiting'?'TAPHOA · Có bill mới'
-    :scanProblem?'TAPHOA · AI quét bill gặp lỗi'
-    :'TAPHOA · Cần kiểm tra';
-  const body=kind==='matched'
-    ?person+' · '+money+' · Đã ghi thu chính xác'
-    :kind==='bank_only'
-    ?'+'+money+(time?' · '+time:'')+' · Chưa có bill, chưa ghi thu'
-    :kind==='bill_waiting'
-    ?person+' · '+money+' · Chờ Agribank xác nhận'
-    :person+' · '+bankScanReasonLabel(row.reason)+' · Chưa ghi thu';
-  return {
-    kind:'bank_reconciliation',
-    notification_id:String(row.outbox_id||''),
-    bank_event_kind:kind,
-    bank_day:date,
-    bank_notice_id:bankId,
-    bank_receipt_id:receiptId,
-    conversation_id:'',
-    contact_id:String(row.report_contact_id||''),
-    title,body,
-    tag:bankId?'bank:notice:'+bankId:receiptId?'bank:receipt:'+receiptId:'bank:review:'+String(row.outbox_id||''),
-    icon:'./icons/chat-notification-icon-192-v4.png'
-  };
+ const kind=String(row.kind||"");
+ const amount=Number(row.amount_vnd);
+ const receiptId=String(row.receipt_id||"");
+ const bankId=String(row.notification_id||"");
+ const allowed=row.bill_recognized===true&&
+   ["bill_waiting","review","matched"].includes(kind)&&
+   Boolean(receiptId)&&Number.isSafeInteger(amount)&&amount>0;
+ const money=allowed?new Intl.NumberFormat("vi-VN").format(amount)+"đ":"";
+ const person=String(row.customer_name||"Khách hàng").trim().slice(0,64)||"Khách hàng";
+ const title=allowed?"TAPHOA · Đã nhận diện bill":"TAPHOA · Báo cáo giao dịch";
+ const body=allowed?person+" · "+money+
+   (kind==="matched"?" · Đã ghi thu":kind==="review"?" · Cần xác minh":" · Chờ đối soát"):"";
+ return {
+   kind:"bank_reconciliation",
+   notification_id:String(row.outbox_id||""),
+   bank_event_kind:kind,
+   bank_day:String(row.business_date||""),
+   bank_notice_id:bankId,
+   bank_receipt_id:receiptId,
+   bank_alert_allowed:allowed,
+   bill_amount_vnd:allowed?amount:null,
+   conversation_id:"",
+   contact_id:String(row.report_contact_id||""),
+   title,body,
+   // One receipt => one OS notification slot; matching can update it silently.
+   tag:receiptId?"bank:receipt:"+receiptId:bankId?"bank:notice:"+bankId:
+     "bank:silent:"+String(row.outbox_id||""),
+   icon:"./icons/chat-notification-icon-192-v4.png"
+ };
 }
 
 export function buildMissedChatCallPayload(row={}){
