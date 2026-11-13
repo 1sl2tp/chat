@@ -27,6 +27,12 @@ assert(withBank.length<=1000);
 const dialog=src.slice(src.indexOf('async function openManualBillDialog('),src.indexOf('async function openCollectionDialog('));
 assert(dialog.includes('note.value=bankManualBillSuggestedNote(bill,comparisonNotice)'));
 assert(dialog.includes('verified.required=true'));
+assert(dialog.includes('let noteWasEdited=false;'));
+assert(dialog.includes('if(!noteWasEdited){'));
+assert(dialog.includes('Đã xác minh trực tiếp Agribank theo xác nhận của Admin'));
+assert(dialog.includes('verified.checked?'));
+assert(dialog.includes("noteWasEdited=true;"));
+
 assert(dialog.includes("client.rpc('chat_bank_bill_manual_collect'"));
 assert(dialog.includes("p_note:'Agribank · '+note.value.trim()"));
 assert(!/note\.disabled\s*=\s*false;\s*verified\.checked\s*=\s*true/.test(dialog));
