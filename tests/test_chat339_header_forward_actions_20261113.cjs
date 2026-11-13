@@ -23,7 +23,7 @@ assert(/data-chat-header-action="video" disabled aria-disabled="true"/.test(head
 assert(header.includes('Gọi video <small>Chưa hỗ trợ</small>'));
 assert(header.includes('id="chatCallFocus"'), 'live call controls retained');
 assert(header.includes('data-call-secondary-button'), 'incoming decline retained');
-assert(/call-focus-icon-call[^>]*>[\\s\\S]*M7\\.2 4\\.5/.test(header),
+assert(/call-focus-icon-call[^>]*>[\s\S]*M7\.2 4\.5/.test(header),
   'desktop call icon cannot claim video for an audio-only call');
 
 assert(shell.includes('function toggleChatHeaderMenu()'));
@@ -44,7 +44,7 @@ assert(mobile.includes('.chat-header-action-menu{'));
 assert(mobile.includes('top:calc(100% + 8px);'));
 assert(mobile.includes('min-height:46px;'));
 assert(mobile.includes('grid-template-columns:minmax(0,1fr)!important;'));
-assert(!/position:\\s*fixed|position:\\s*sticky/.test(mobile),
+assert(!/position:\s*fixed|position:\s*sticky/.test(mobile),
   'header menu must not become an independent scroll/viewport owner');
 
 assert(forward.includes('Chuyển tiếp</h2>'));
