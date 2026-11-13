@@ -243,7 +243,7 @@ function bankResponsiveLabel(full,short=full){
  return append(label,regular,narrow);
 }
 const bankFilterMobileLabels={
- all:'Tất cả',matched:'Đã khớp bill',waiting_bank:'Bill chưa khớp',
+ all:'Tất cả',matched:'Đã khớp',waiting_bank:'Chờ khớp',
  bank_only:'Chưa gắn bill',bank_all:'Tiền vào NH',review:'Cần xác minh',
  wrong_day:'AI sai ngày',manual_bank:'Thu tay NH',duplicate:'Trùng',
  non_bill:'Không phải bill',test_excluded:'Test (loại)'
