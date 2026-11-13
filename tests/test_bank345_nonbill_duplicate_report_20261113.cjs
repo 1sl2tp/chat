@@ -33,7 +33,7 @@ assert.equal(clean.summary.matched_amount,7000);
 assert.equal(clean.summary.bill_only_count,1);
 assert.equal(clean.bank_credits,raw.bank_credits,'bank evidence is never filtered');
 assert.equal(raw.bills.length,7,'read-only presentation must not mutate source');
-assert(report.includes('current=bankReportVisibleData({...data,manual_collections:'),'report reload must normalize all views once');
+assert(report.includes("if(typeof bankReportVisibleData==='function')current=bankReportVisibleData(current);"),'report reload must normalize all views once');
 assert(!report.includes("['non_bill','Không phải bill']"),'non-bill must not have a business report tab');
 const classification=edge.indexOf('if(firstReceipt.status==="non_bill")');
 const duplicateWrite=edge.indexOf('await finish(asset,{status:"duplicate",reason:"duplicate_exact_image_sha256_no_ai"');
