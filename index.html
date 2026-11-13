@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="06725bcbee5278976a064e5f4b2770e263c4289b53109f27955a0995d8ba3835">
+<meta name="app-build-id" content="40dff1693bc633e0dff39d9b271d03e1ce66509d6b875be51a4adad4fbaf9a17">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -34922,7 +34922,7 @@ const ui={
 const filters=[
  ['all','Tất cả'],['matched','Đã khớp bill'],['waiting_bank','Bill chưa khớp'],
  ['bank_only','Chưa gắn bill'],['bank_all','Tiền vào NH'],['review','Cần xác minh'],['wrong_day','AI sai ngày'],
- ['manual_bank','Đã thu thủ công Agribank'],['duplicate','Trùng'],['non_bill','Không phải bill'],['test_excluded','Test (loại)']
+ ['manual_bank','Đã thu thủ công Agribank'],['duplicate','Trùng'],['test_excluded','Test (loại)']
 ];
 // Match customer names with or without Vietnamese accents and flexible spaces.
 function bankCustomerSearchKey(value){
@@ -35256,6 +35256,25 @@ function bankLineClock(raw,day=''){
  return full==='—'?'Chưa có giờ NH':full.replace(/ (\d{2}\/\d{2})\/\d{4}$/,' · $1');
 }
 
+// BANK-345: the Admin bank report contains verified bills and bank credits,
+// never ordinary customer photos. Historical exact-SHA uploads that have no
+// verified bill amount are not evidence of a duplicate payment. This includes
+// 13/11 C Hue's repeated box photo (original classified non_bill on 20/10).
+// Keep canonical rows for audit; exclude only from this business projection.
+function bankReportVisibleData(data){
+ const bills=(Array.isArray(data?.bills)?data.bills:[]).filter(row=>{
+  if(!row||row.report_status==='non_bill')return false;
+  // The old scanner called an identical NON-BILL "duplicate" before checking
+  // the first image classification. Without a positive validated bill amount,
+  // it must not show up as a duplicate BILL or inflate its count.
+  if(row.report_status==='duplicate'&&
+     row.reason==='duplicate_exact_image_sha256_no_ai'&&
+     !(Number.isSafeInteger(Number(row.amount_vnd))&&Number(row.amount_vnd)>0))return false;
+  return true;
+ });
+ return {...data,bills,summary:{...(data?.summary||{}),
+  duplicate_count:bills.filter(row=>row.report_status==='duplicate').length}};
+}
 function renderBankWorkQueue(data,outstanding){
  const holder=ui.queue;
  if(!holder)return; // Older cached PWA HTML still uses its existing filters.
@@ -35315,6 +35334,7 @@ function renderBankGapWarnings(data){
  holder.appendChild(box);
 }
 function paint(data){
+ data=bankReportVisibleData(data);
  const s=data?.summary||{};
  const expanded=new Set([...ui.groups.querySelectorAll('.bank-report-detail[open]')]
   .map(node=>node.dataset.bankNoticeId?'notice:'+node.dataset.bankNoticeId:
