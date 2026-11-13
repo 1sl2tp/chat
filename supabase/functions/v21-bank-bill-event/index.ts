@@ -515,6 +515,7 @@ Deno.serve(async req=>{
       transaction_datetime_vn:fields.transfer_at_vn,
       transfer_date_vn:fields.transfer_date_vn,
       transfer_date_printed_vn:fields.transfer_date_printed_vn,
+      transfer_date_printed_raw_vn:fields.transfer_date_printed_raw_vn,
       transfer_time_printed_vn:fields.transfer_time_printed_vn,
       time_date_conflict:fields.time_date_conflict,
       clock_text_conflict:fields.clock_text_conflict,
