@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="729cc69efba6cd956b9cc945e6a2f2eec42af4c0273211678224c75e82ca56f8">
+<meta name="app-build-id" content="ecbc3c57ad3996a0cdf29b1fec83df902521469c100b60e55effb0b6fb36fb39">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -33046,7 +33046,7 @@ function paint(data){
  // not proof that the actual Agribank account had no credits. Collapse
  // repetitive zero KPI cards only when every independent source is empty.
  const summaryHasData=Object.values(s).some(value=>
-  (typeof value==='number'||/^-?\\d+(?:\\.\\d+)?$/.test(String(value??'')))&&
+  (typeof value==='number'||/^-?\d+(?:\.\d+)?$/.test(String(value??'')))&&
   Number(value)!==0);
  const zeroDay=!incoming.length && !(data?.bills||[]).length &&
   !(data?.manual_collections||[]).length && !summaryHasData;
