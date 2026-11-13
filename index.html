@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="9b679a0429cb7021bd911bbf3eefbfe901797c076712eaf7c7102ef97ccb9d40">
+<meta name="app-build-id" content="576f2825ae65ecbe4422267750b327808ab06deb860f35f80c7593c2242beabc">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -35617,6 +35617,26 @@ function matchingManualCollectionForBill(bill,data){
    vietnamBusinessDay(b.transfer_at)===day);
  return credits.length===1?credits[0]:null;
 }
+// BANK-351: suggestion only. A matching manual ledger is not itself proof
+// of a bill, especially when its printed date/account differs from Agribank.
+function bankExistingManualBillCandidates(bill,data){
+ if(!bill?.receipt_id||bill.ledger_id||!['review','amount_read'].includes(String(bill.status||'')))
+  return [];
+ const amount=Number(bill.amount_vnd);
+ const day=vietnamBusinessDay(bill.sent_at);
+ if(!day||!Number.isSafeInteger(amount)||amount<1000)return [];
+ const existingBills=(data?.bills||[]).filter(b=>
+  b?.receipt_id&&b.customer_id===bill.customer_id&&Number(b.amount_vnd)===amount&&
+  vietnamBusinessDay(b.sent_at)===day&&!b.duplicate_of&&
+  ['review','amount_read','received'].includes(String(b.status||'')));
+ if(existingBills.length!==1||String(existingBills[0].receipt_id)!==String(bill.receipt_id))
+  return [];
+ const credits=bankCreditViewModel(data?.bank_credits).filter(n=>
+  n.collection_kind==='manual_collected'&&n.notice_id&&n.ledger_id&&
+  String(n.customer_id)===String(bill.customer_id)&&Number(n.amount_vnd)===amount&&
+  (vietnamBusinessDay(n.transfer_at)||String(n.bank_time||'').slice(0,10))===day);
+ return credits.length===1?credits:[];
+}
 // Bills are local Vietnam wall-clock dates, not UTC milliseconds.
 function bankBillDisplayTime(raw){
  const m=/^(20\d{2})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/.exec(String(raw||''));
@@ -35649,6 +35669,9 @@ function detailLine(row,isBank=false,candidates=[]){
  const type=isBank?'bank_only':row.report_status;
  const recorded=!isBank&&type==='matched'&&Boolean(row.ledger_id);
  const dateSwapSuspect=!isBank&&billHasSuspectSwappedDay(row);
+ const manualReviewed=!isBank&&row.report_status==='matched'&&
+   row.reason==='manual_bank_bill_reviewed'&&Boolean(row.ledger_id);
+ const paidReviewCandidate=!isBank?bankExistingManualBillCandidates(row,current)[0]:null;
  const manualEvidence=!isBank?matchingManualCollectionForBill(row,current):null;
  const manualRecord=isBank?(current?.manual_collections||[]).find(m=>String(m.notice_id)===String(row.notice_id)):null;
  const wrap=el('details','bank-report-detail');
@@ -35659,8 +35682,8 @@ function detailLine(row,isBank=false,candidates=[]){
  const label=isBank&&!manualRecord&&!candidates.length
   ?el('button','bank-report-quick-collect','Xác minh thu')
   :el('span','bank-report-detail-status bank-status-'+
-    (manualRecord?'bank_manual':manualEvidence?'review':isBank&&candidates.length?'review':type),
-    manualRecord?'Đã thu thủ công':manualEvidence?'Có thu tay · Cần soát bill':
+    (manualRecord?'bank_manual':manualReviewed?'matched':manualEvidence?'review':isBank&&candidates.length?'review':type),
+    manualRecord?'Đã thu tay':manualReviewed?'Đã thu tay · Đã soát bill':manualEvidence?'Có thu tay · Cần soát bill':
       isBank&&candidates.length?'Cần xác minh bill':
       !isBank&&type==='matched'&&!recorded?'Lệch sổ · Xác minh':
       !isBank&&isAiScanIssue(row)?'AI cần xác minh':
@@ -35693,10 +35716,11 @@ function detailLine(row,isBank=false,candidates=[]){
   else if(type==='waiting_bank')content.appendChild(cell('Giờ Agribank',
    'Chưa nhận được thông báo'));
   content.appendChild(cell('Ghi thu công nợ',
+   manualReviewed?'Đã thu tay, đã soát bill · Sổ #'+row.ledger_id:
    recorded?'Đã ghi thu · Sổ #'+row.ledger_id:
    manualEvidence?'Đã có thu tay cùng khách, chưa liên kết bill':
    'Chưa ghi thu'));
-  if(recorded){
+  if(recorded&&!manualReviewed){
    const noticeState=row.collection_notice_state||'pending';
    const noticeText=row.collection_ack_sent?
     (row.reason==='manual_agribank_bill_confirmed'?'Đã gửi xác nhận thu thủ công':'Đã gửi cho khách'):
@@ -35766,6 +35790,8 @@ function detailLine(row,isBank=false,candidates=[]){
   else if(row.reason==='bill_printed_time_missing')reason='Ảnh chưa đọc được giờ giao dịch in trên bill. Không dùng đồng hồ điện thoại; chờ bạn xác minh/thu thủ công.';
   else if(row.reason==='bill_printed_datetime_conflict'||row.reason==='bill_printed_datetime_invalid')reason='Ngày/giờ trên ảnh bị mâu thuẫn hoặc không hợp lệ. Không tự thu; cần bạn đối chiếu bằng chứng Agribank.';
   else if(isAiScanIssue(row))reason='Lỗi quét ảnh: '+scanIssueLabel(row.reason);
+  else if(row.reason==='manual_bank_bill_reviewed')
+    reason='Admin đã soát ảnh bill gốc và liên kết với sổ thu thủ công trước đó. Không ghi thu lần hai.';
   else if(row.reason==='bank_image_amount_only_no_collection'){
     const recipient=String(row.receiving_account||'').replace(/[^0-9]/g,'');
     if(recipient&&recipient!=='2901181999999')
@@ -35784,7 +35810,7 @@ function detailLine(row,isBank=false,candidates=[]){
  // BANK-310: manual collection belongs to the BILL + exact customer, not only
  // to a previously ingested Agribank notification. Clicking opens a guarded
  // Admin verification dialog; there is NEVER a financial write on first click.
- if(!isBank&&!row.ledger_id&&!manualEvidence&&row.receipt_id&&row.customer_id&&
+ if(!isBank&&!row.ledger_id&&!manualEvidence&&!paidReviewCandidate&&row.receipt_id&&row.customer_id&&
     ['amount_read','review'].includes(String(row.status||''))&&
     Number.isSafeInteger(Number(row.amount_vnd))&&Number(row.amount_vnd)>0){
   const b=el('button','bank-report-action bank-report-action-manual-bill',
@@ -35793,6 +35819,14 @@ function detailLine(row,isBank=false,candidates=[]){
   b.setAttribute('aria-label','Mở xác minh thu thủ công cho '+String(row.customer_name||'khách hàng'));
   b.addEventListener('click',()=>void openManualBillDialog(row));
   actions.appendChild(b);
+ }
+ if(!isBank&&paidReviewCandidate){
+  const btn=el('button','bank-report-action bank-report-action-manual-bill',
+   'Soát bill với khoản đã thu');
+  btn.type='button';
+  btn.setAttribute('aria-label','Xác minh bill và liên kết với sổ thu tay đã có, không trừ tiền lần hai');
+  btn.addEventListener('click',()=>void openExistingManualBillReviewDialog(row,paidReviewCandidate));
+  actions.appendChild(btn);
  }
  if(!isBank&&row.asset_id){
   const b=el('button','bank-report-action','Xem ảnh bill');b.type='button';
@@ -35840,8 +35874,11 @@ function bankCreditLine(row,allBills){
  wrap.dataset.bankTone=bankReportCreditTone(row,issue);
  wrap.dataset.bankNoticeId=String(row.notice_id);
  const top=el('summary','bank-report-detail-top');
+ const fullyReviewed=kind==='manual_collected'&&Boolean(row.ledger_id)&&
+  (allBills||[]).some(b=>b.reason==='manual_bank_bill_reviewed'&&
+   b.report_status==='matched'&&String(b.ledger_id)===String(row.ledger_id));
  const status=kind==='auto_collected'?'Đã thu':
-   kind==='manual_collected'?'Đã thu thủ công':
+   kind==='manual_collected'?(fullyReviewed?'Đã thu tay · Đã soát bill':'Đã thu tay · Chưa soát bill'):
    kind==='review_inconsistent'?'Lệch sổ · Xác minh':
    candidate?'Cần xác minh':
    issue?.label?.includes('AI nghi sai ngày')?'Nghi sai ngày':
@@ -36673,6 +36710,90 @@ function bankManualBillPrepareErrorMessage(error){
  if(/admin_only|jwt|permission|unauthorized|session/i.test(message))
   return 'Không xác minh được phiên Admin hoặc quyền truy cập. Chưa ghi thu.';
  return 'Máy chủ chưa xác minh được bill và sổ thu. Chưa ghi thu; không tự kết luận bill hợp lệ hay trùng.';
+}
+// BANK-351: Confirm ONLY an existing, already-booked Agribank manual collection.
+// Never send a message or book any amount from this review flow.
+async function openExistingManualBillReviewDialog(bill,credit){
+ if(!active||!isReportContact()||!ui.review||!bill?.receipt_id||!credit?.ledger_id)return;
+ if(bankExistingManualBillCandidates(bill,current).length!==1)return;
+ closeReviewDialog();
+ const overlay=el('div','bank-review-overlay');
+ const form=el('form','bank-review-form');
+ form.setAttribute('role','dialog');form.setAttribute('aria-modal','true');
+ form.setAttribute('aria-label','Soát bill với khoản thu tay đã có');
+ const head=append(el('div','bank-review-heading'),
+   append(el('div',''),
+    el('strong','','Soát bill với khoản đã thu tay'),
+    el('small','','Chỉ liên kết sổ cũ · KHÔNG thu tiền lần hai')),
+   el('button','bank-report-image-close','Đóng'));
+ head.querySelector('button').type='button';
+ head.querySelector('button').addEventListener('click',closeReviewDialog);
+ form.appendChild(head);
+ form.appendChild(append(el('div','bank-review-bank'),
+  el('strong','',bankDisplayVnd(bill.amount_vnd)+' · '+String(bill.customer_name||'Khách hàng')),
+  el('span','','Agribank #'+credit.notice_id+' · '+agribankDisplayTime(credit.bank_time,ui.date.value)),
+  el('span','','Sổ đã thu tay #'+credit.ledger_id)));
+ const raw=bill.bill_ocr&&typeof bill.bill_ocr==='object'?bill.bill_ocr:{};
+ const printed=String(raw.transfer_date_printed_vn||raw.transfer_date_vn||'Chưa rõ');
+ const bankDate=String(credit.bank_time||'').slice(0,10);
+ const actualAccount=String(bill.receiving_account||'').replace(/\\D/g,'');
+ form.appendChild(el('p','bank-review-warning',
+  'Bill đang cần soát: '+String(bill.reason||'chưa đủ chứng cứ')+
+  '. Ngày ghi trên ảnh: '+printed+'; ngày ngân hàng: '+bankDate+
+  '. Tài khoản nhận trên OCR: '+(actualAccount?('…'+actualAccount.slice(-5)):'Chưa rõ')+
+  '. Hãy xem ảnh gốc, kiểm tra lịch sử Agribank và giải thích mọi điểm không khớp.'));
+ const view=el('button','bank-report-action','Xem ảnh bill gốc');
+ view.type='button';view.addEventListener('click',()=>void showBill(bill));
+ form.appendChild(view);
+ const noteLabel=el('label','bank-review-label','Ghi rõ bằng chứng đã kiểm tra và lý do chênh lệch (bắt buộc)');
+ const note=el('textarea','bank-review-explanation');
+ note.rows=4;note.minLength=25;note.maxLength=1000;note.required=true;
+ note.placeholder='Tôi đã kiểm tra ảnh gốc... Ngày và STK trên ảnh so với Agribank...';
+ noteLabel.appendChild(note);form.appendChild(noteLabel);
+ const consent=el('label','bank-review-consent'),confirmed=el('input');
+ confirmed.type='checkbox';confirmed.required=true;
+ append(consent,confirmed,el('span','',
+  'Tôi đã trực tiếp xem ảnh gốc và xác nhận đúng giao dịch Agribank đã thu tay; chỉ liên kết sổ #'+credit.ledger_id+', không thu lần nữa.'));
+ form.appendChild(consent);
+ const feedback=el('div','bank-review-feedback');feedback.setAttribute('role','status');
+ form.appendChild(feedback);
+ const actions=el('div','bank-review-actions');
+ const cancel=el('button','bank-report-action','Hủy');
+ cancel.type='button';cancel.addEventListener('click',closeReviewDialog);
+ const save=el('button','bank-review-save','Đã soát bill · Liên kết sổ cũ');
+ save.type='submit';save.disabled=false;
+ append(actions,cancel,save);form.appendChild(actions);
+ overlay.appendChild(form);ui.review.hidden=false;ui.review.appendChild(overlay);
+ attachReviewDialogKeyboard(overlay,form);
+ overlay.addEventListener('click',e=>{if(e.target===overlay)closeReviewDialog();});
+ const owner=bankReportSessionOwner();
+ form.addEventListener('submit',async e=>{
+  e.preventDefault();
+  if(!bankDialogIsCurrent(overlay,owner)||!confirmed.checked||note.value.trim().length<25)return;
+  const auth=window.V21AuthSessionStore?.snapshot?.()||{};
+  const client=window.V21AuthSessionStore?.getClient?.();
+  if(!auth.appSessionId||!client)return;
+  save.disabled=true;feedback.textContent='Đang xác minh liên kết với sổ đã thu…';
+  try{
+   const {data,error}=await client.rpc('chat_bank_confirm_existing_manual_bill',{
+    p_app_session_id:auth.appSessionId,
+    p_receipt_id:String(bill.receipt_id),
+    p_notice_id:Number(credit.notice_id),
+    p_original_checked:true,
+    p_note:note.value.trim()
+   });
+   if(!bankDialogIsCurrent(overlay,owner))return;
+   if(error||!data?.ok)throw Error(data?.status||'Không thể soát bill');
+   if(String(data.ledger_id)!==String(credit.ledger_id)||data.debt_changed!==false)
+    throw Error('Kết quả không khớp sổ thu ban đầu');
+   closeReviewDialog();await reload();
+  }catch(err){
+   if(!bankDialogIsCurrent(overlay,owner))return;
+   feedback.textContent='Chưa soát được bill: '+String(err?.message||'Máy chủ chưa xác nhận')+
+    '. Sổ thu giữ nguyên. Không thu lại.';
+   save.disabled=false;
+  }
+ });
 }
 async function openManualBillDialog(bill){
  if(!active||!isReportContact()||!ui.review||!bill?.receipt_id||!bill?.customer_id)return;
