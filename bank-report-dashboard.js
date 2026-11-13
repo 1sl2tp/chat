@@ -1580,6 +1580,26 @@ function bankSimpleTenFieldRows(bill,notice=null,prepared=null,serverState='chec
   tone:'pending',result:trace?'Đã đọc trên bill':'Chưa lưu riêng'});
  return rows;
 }
+// BANK-322: write an editable evidence-based audit note, putting red review
+// findings before missing/yellow details. Do not create a bank-confirmation
+// event or claim the proof is sufficient to collect: Admin must check the
+// actual account and tick consent; server still verifies locks/duplicates.
+function bankManualBillSuggestedNote(bill,notice=null,prepared=null){
+ const rows=bankSimpleTenFieldRows(bill,notice,prepared,prepared?.ok?'ready':'checking');
+ const review=rows.filter(x=>x.tone==='review');
+ const pending=rows.filter(x=>x.tone==='pending'&&
+  /chưa|thiếu|không có|không kèm|chờ|khác|chưa liên kết/i.test(String(x.result||'')));
+ const describe=x=>String(x.label)+': '+String(x.result||'Cần kiểm tra');
+ const high=review.slice(0,4).map(describe);
+ const low=pending.slice(0,4).map(describe);
+ const bankStatus=notice?'Có thông báo Agribank ứng viên, chưa đồng nghĩa đã ghi thu.':
+  'Chưa có thông báo Agribank khớp trong dữ liệu đang xem.';
+ const header='Xác minh Agribank trực tiếp trước khi ghi thu. '+bankStatus;
+ const priority=high.length?' Ưu tiên đỏ: '+high.join('; ')+'.':'';
+ const secondary=low.length?' Cần đối chiếu: '+low.join('; ')+'.':'';
+ const footer=' Admin kiểm tra tiền thực nhận, đúng khách và chống thu trùng; bill thiếu giờ vẫn chỉ được thu khi máy chủ chấp nhận chứng cứ.';
+ return (header+priority+secondary+footer).slice(0,1000);
+}
 function bankManualBillPrepareErrorMessage(error){
  const code=String(error?.code||'');
  const message=String(error?.message||error||'');
@@ -1664,11 +1684,12 @@ async function openManualBillDialog(bill){
  const info=el('p','bank-review-instruction','Đang kiểm tra bill và sổ công nợ…');
  form.appendChild(info);
  const existingBox=el('div','bank-review-existing');form.appendChild(existingBox);
- const noteLabel=el('label','bank-review-label','Ghi chú xác minh Agribank (bắt buộc)');
+ const noteLabel=el('label','bank-review-label','Ghi chú đối soát (tự điền ưu tiên cảnh báo đỏ; có thể sửa)');
  const note=el('textarea','bank-review-explanation');
  note.rows=3;note.minLength=15;note.maxLength=1000;note.required=true;
- note.value='';
- note.placeholder='Sau khi tự kiểm tra Agribank Plus, ghi giờ, tiền, người chuyển và cách xác minh.';
+ note.value=bankManualBillSuggestedNote(bill,comparisonNotice);
+ note.placeholder='Ghi chú tự đề xuất từ cảnh báo đỏ/vàng. Chỉnh lại sau khi kiểm tra Agribank thực tế.';
+ note.setAttribute('aria-description','Mẫu ghi chú dựa trên chứng cứ; chỉ tích xác nhận sau khi đã kiểm tra Agribank trực tiếp.');
  noteLabel.appendChild(note);form.appendChild(noteLabel);
  const consent=el('label','bank-review-consent');
  const verified=el('input');verified.type='checkbox';verified.required=true;
