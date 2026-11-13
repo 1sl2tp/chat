@@ -194,4 +194,5 @@ subprocess.run(['node',str(ROOT/'tests'/'test_ncc001_supplier_invoice_20261114.m
 subprocess.run(['node','--check',str(ROOT/'ncc-invoice-admin.js')],check=True,cwd=ROOT)
 subprocess.run(['node','--check',str(ROOT/'contact-directory-admin.js')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_ncc001_integration_20261114.cjs')],check=True,cwd=ROOT)
+subprocess.run(['node',str(ROOT/'tests'/'test_ncc002_manual_invoice_20261114.cjs')],check=True,cwd=ROOT)
 print(f'{release} canonical source verify PASS build_id={build_id} sha256={sha}')
