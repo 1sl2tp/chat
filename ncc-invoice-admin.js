@@ -252,12 +252,13 @@ function manageSuppliers(host,accounts){
 function manageScannerAssignments(host,accounts,assignedIds){
  const panel=host.querySelector('[data-ncc-scanner-panel]');if(!panel)return;
  panel.hidden=!panel.hidden;if(panel.hidden)return;
- const people=[...accounts].sort((a,b)=>
+ let people=[...accounts].sort((a,b)=>
   Number(assignedIds.has(String(b.id)))-Number(assignedIds.has(String(a.id)))
    ||String(a.display_name||a.username).localeCompare(String(b.display_name||b.username),'vi'));
  panel.innerHTML=`<div class="ncc-pane"><strong>Người được phép gửi ảnh phiếu nhập</strong>
  <p class="ncc-help">Cấp quyền cho tài khoản Chat bất kỳ mà không đổi nhóm danh bạ. Chỉ ảnh mới được kiểm tra; ảnh cũ không tự quét lại. Có thể thu hồi quyền bất cứ lúc nào.</p>
- <input type="search" data-ncc-person-find placeholder="Tìm tên hoặc tài khoản Chat" aria-label="Tìm tài khoản được gán">
+ <div class="ncc-controls"><input type="search" data-ncc-person-find placeholder="Tìm tên hoặc tài khoản Chat" aria-label="Tìm tài khoản được gán">
+ <button type="button" data-ncc-person-search>Tìm tài khoản</button></div>
  <div data-ncc-person-results class="ncc-docs"></div></div>`;
  const input=panel.querySelector('[data-ncc-person-find]'),list=panel.querySelector('[data-ncc-person-results]');
  function render(){
@@ -269,7 +270,8 @@ function manageScannerAssignments(host,accounts,assignedIds){
    <div class="ncc-help">${a.contact_group==='ncc'?'Đã thuộc TK NCC (tự nhận ảnh)':
     assignedIds.has(String(a.id))?'Đã cấp quyền quét':'Chưa cấp quyền quét'}</div></span>
    <button type="button" data-ncc-set-scanner="${escape(a.id)}"
-    data-enabled="${assignedIds.has(String(a.id))?'0':'1'}">${assignedIds.has(String(a.id))?'Thu hồi quyền':'Gán quét ảnh'}</button></div>`).join('')||'<p>Không tìm thấy tài khoản phù hợp.</p>';
+    ${a.contact_group==='ncc'?'disabled':''}
+    data-enabled="${assignedIds.has(String(a.id))?'0':'1'}">${a.contact_group==='ncc'?'Quét theo nhóm NCC':assignedIds.has(String(a.id))?'Thu hồi quyền':'Gán quét ảnh'}</button></div>`).join('')||'<p>Không tìm thấy tài khoản phù hợp.</p>';
   for(const button of list.querySelectorAll('[data-ncc-set-scanner]')){
    button.onclick=async()=>{
     if(busy)return;
@@ -285,7 +287,18 @@ function manageScannerAssignments(host,accounts,assignedIds){
    };
   }
  }
- input.addEventListener('input',render);render();
+ panel.querySelector('[data-ncc-person-search]').onclick=async()=>{
+  const q=input.value.trim();
+  if(q.length<2){notify('Nhập ít nhất 2 ký tự để tìm tất cả tài khoản.');return;}
+  try{
+   const data=await call('scanner_list',{q});
+   people=[...(data.accounts||[])];
+   render();notify('Đã tìm tài khoản phù hợp.');
+  }catch{notify('Không tìm được tài khoản Chat.');}
+ };
+ input.addEventListener('input',render);
+ input.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();void panel.querySelector('[data-ncc-person-search]').click();}});
+ render();
 }
 async function view(id){
  if(!id)return;
