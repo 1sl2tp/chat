@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="202b6cf407bf8cf749b7225986171b8aef20f226331e30defdf4c57b0a35dc61">
+<meta name="app-build-id" content="afee9452948d4d4d9b3b5506f9fc6af5bfee6d65bc1ac2d0155085ffd320d815">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -4447,6 +4447,121 @@ body > [data-bank-review-modal] .bank-review-heading{
   }
   #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item{
     padding:8px 9px;
+  }
+}
+
+/* UI-328: expanded Agribank rows on iPhone.
+   Pure presentation: preserve all audit fields, actions, badges and source
+   values. Taps stay >=40px and long Vietnamese labels wrap without overlap. */
+@media(max-width:760px){
+  #bankReportDashboard .bank-report-detail[open]{
+    background:var(--surface-primary,#fff);
+  }
+  #bankReportDashboard .bank-report-detail[open] > .bank-report-detail-top{
+    min-height:44px;
+    background:var(--surface-secondary,#f5f7f8);
+    border-bottom:1px solid var(--border-default,#e2e7eb);
+  }
+  #bankReportDashboard .bank-report-detail-content.bank-report-detail-essential,
+  #bankReportDashboard .bank-report-detail-content{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    align-items:start;
+    column-gap:14px;
+    row-gap:9px;
+    padding:11px 12px 12px;
+  }
+  #bankReportDashboard .bank-report-field{
+    min-width:0;
+    gap:3px;
+  }
+  #bankReportDashboard .bank-report-field-label{
+    font-size:10px;
+    font-weight:450;
+    line-height:1.3;
+    color:var(--text-secondary,#6b747d);
+  }
+  #bankReportDashboard .bank-report-field-value{
+    font-size:11.5px;
+    line-height:1.35;
+    font-weight:650;
+    overflow-wrap:anywhere;
+    font-variant-numeric:tabular-nums;
+  }
+  #bankReportDashboard .bank-report-detail-reason{
+    grid-column:1/-1;
+    margin:0;
+    font-size:11px;
+    line-height:1.45;
+  }
+  #bankReportDashboard .bank-report-detail-actions{
+    grid-column:1/-1;
+    display:flex;
+    flex-wrap:wrap;
+    align-items:stretch;
+    gap:7px;
+    margin-top:0;
+    min-width:0;
+  }
+  #bankReportDashboard .bank-report-detail-actions .bank-report-action{
+    min-height:40px;
+    max-width:100%;
+    padding:8px 12px;
+    border-radius:9px;
+    font-size:11px;
+    line-height:1.3;
+    font-weight:600;
+    white-space:normal;
+    overflow-wrap:anywhere;
+  }
+  #bankReportDashboard .bank-report-audit{
+    grid-column:1/-1;
+    min-width:0;
+    border-top:1px solid var(--border-default,#dfe5e9);
+    margin-top:1px;
+    padding-top:0;
+  }
+  #bankReportDashboard .bank-report-audit > summary{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:9px;
+    min-height:40px;
+    padding:7px 0;
+    font-size:10.5px;
+    line-height:1.25;
+    color:var(--text-secondary,#6b747d);
+    list-style:none;
+  }
+  #bankReportDashboard .bank-report-audit > summary::after{
+    margin:0 4px;
+    flex:none;
+  }
+  #bankReportDashboard .bank-report-audit-body{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:9px 12px;
+    margin:0;
+    padding:6px 0 5px;
+  }
+  #bankReportDashboard .bank-report-detail-top:focus-visible,
+  #bankReportDashboard .bank-report-detail-actions .bank-report-action:focus-visible,
+  #bankReportDashboard .bank-report-audit > summary:focus-visible{
+    outline:2px solid var(--theme-content-accent,#2675cc);
+    outline-offset:-2px;
+  }
+}
+@media(max-width:360px){
+  #bankReportDashboard .bank-report-detail-content.bank-report-detail-essential,
+  #bankReportDashboard .bank-report-detail-content{
+    column-gap:9px;
+    row-gap:8px;
+    padding:10px 10px 11px;
+  }
+  #bankReportDashboard .bank-report-detail-actions .bank-report-action{
+    flex:1 1 auto;
+    min-width:0;
+    padding-inline:9px;
   }
 }
 
