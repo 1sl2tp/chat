@@ -59,10 +59,11 @@ const ctx={
     ctx.imageViewerPanX=0;ctx.imageViewerPanY=0;
   }
 };
+ctx.main=main;
+ctx.image=image;
 vm.createContext(ctx);
-vm.runInContext(snippet+';installIOSImageViewerTouchGestures(main,image);',{...ctx,main,image});
-// Note vm context above receives ctx as a shallow object. Retain an explicit
-// common object so assertions inspect the exact variables mutated by handlers.
+vm.runInContext(snippet+';installIOSImageViewerTouchGestures(main,image);',ctx);
+// All event callbacks and assertions share the same contextified state.
 function touch(id,x,y){return{identifier:id,clientX:x,clientY:y};}
 function fire(type,changedTouches,target=image){
   const {callback,options}=listeners.get(type)||{};
