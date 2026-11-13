@@ -24,13 +24,14 @@ function fixture(){
     syncDirectoryRows:()=>updates.push('directory'),
     syncAdminGroupControls:()=>updates.push('controls'),
     publishGroupsChanged:()=>updates.push('changed'),
+    syncNccCapability:()=>updates.push('ncc-capability'),
     groupKey:value=>value||'other',
     invokeBody:body=>new Promise((resolve,reject)=>requests.push({body,adminId:admin?.id,resolve,reject})),
     queueMicrotask,
     String,Map,Array,
   });
   vm.runInContext(
-    "let groupMap=new Map();let loadedAdminId='';let loadingGroups=false;" +
+    "let groupMap=new Map();let loadedAdminId='';let loadingGroups=false;let nccReady=false;" +
     "let query='';let filter='all';let syncScrollToTop=false;let syncQueued=false;\n" +
     fragment +
     "\nthis.api={ensureGroups,resetForAuth,get:()=>({loadedAdminId,loadingGroups,groups:[...groupMap]})};",ctx);
