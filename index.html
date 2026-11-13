@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="4c3af1274d485aeae093071442b65353b0e9e42a153f21ee77051130087ef90b">
+<meta name="app-build-id" content="8600e4c4a87291116c6f95309681993819c7110ec27036a40cdc4846778643b4">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -39838,27 +39838,31 @@ async function loadList(){
  docId='';const host=content();if(!host)return;
  host.textContent='Đang tải phiếu…';notify('');
  try{
-  const [inbox,directory]=await Promise.all([call('list'),call('suppliers')]);
+  const [inbox,directory,scanners]=await Promise.all([call('list'),call('suppliers'),call('scanner_list')]);
   const documents=inbox.documents||[];
   const accounts=directory.accounts||[];
+  const assignedIds=new Set((scanners.assigned||[]).filter(x=>x.enabled===true).map(x=>String(x.account_id)));
   supplierRows=documents;
   host.innerHTML=`<section class="ncc-manual" aria-label="Thêm phiếu và gán tài khoản NCC">
    <strong>Nhập hàng · TK NCC</strong>
    <div class="ncc-controls"><label>Tài khoản Chat
      <select data-ncc-supplier><option value="">Chưa gán tài khoản (phiếu thủ công)</option>
-     ${accounts.filter(a=>a.contact_group==='ncc').map(a=>`<option value="${escape(a.id)}">${escape(a.display_name||a.username||a.id)}</option>`).join('')}</select></label>
+     ${accounts.filter(a=>a.contact_group==='ncc'||assignedIds.has(String(a.id))).map(a=>`<option value="${escape(a.id)}">${escape(a.display_name||a.username||a.id)}</option>`).join('')}</select></label>
      <label>Chọn ảnh phiếu nhập
       <input type="file" data-ncc-file accept="image/jpeg,image/png,image/webp">
      </label></div>
    <div class="ncc-controls"><button type="button" class="ncc-primary" data-ncc-upload>Thêm phiếu thủ công</button>
-    <button type="button" data-ncc-manage>Gán tài khoản vào TK NCC</button></div>
+    <button type="button" data-ncc-manage>Phân nhóm TK NCC</button>
+    <button type="button" data-ncc-scanners>Cấp quyền quét ảnh</button></div>
    <div class="ncc-hint">Tài khoản thuộc TK NCC: ảnh họ gửi tự vào hàng chờ. Ảnh thủ công có thể để trống tài khoản. Không tự đổi giá vốn.</div>
-   <div data-ncc-manage-panel hidden></div></section>
+   <div data-ncc-manage-panel hidden></div>
+   <div data-ncc-scanner-panel hidden></div></section>
    <div class="ncc-controls"><button type="button" data-ncc-refresh>Làm mới</button><span class="ncc-help">Danh sách ảnh NCC, tối đa 60 phiếu mới</span></div>
   <div class="ncc-docs">${supplierRows.map(x=>`<button type="button" class="ncc-doc" data-ncc-id="${escape(x.id)}"><span><strong>${escape(x.invoice_number||'Chưa có mã phiếu')}</strong> · ${escape(x.invoice_date||'Chưa rõ ngày')}<small> · ${escape(x.created_at?.slice(0,10)||'')}</small></span><small>${escape(statusText[x.status]||'Chờ kiểm tra')}</small></button>`).join('')||'<p>Chưa có ảnh phiếu nhập từ TK NCC.</p>'}</div>`;
   host.querySelector('[data-ncc-refresh]').onclick=()=>void loadList();
   host.querySelector('[data-ncc-upload]').onclick=()=>void uploadManual(host);
   host.querySelector('[data-ncc-manage]').onclick=()=>manageSuppliers(host,accounts);
+  host.querySelector('[data-ncc-scanners]').onclick=()=>manageScannerAssignments(host,scanners.accounts||[],assignedIds);
   for(const btn of host.querySelectorAll('[data-ncc-id]'))btn.onclick=()=>void view(btn.dataset.nccId);
  }catch{host.textContent='Chưa mở được danh sách phiếu. Kiểm tra quyền và phiên bản máy chủ.';}
 }
@@ -39914,6 +39918,45 @@ function manageSuppliers(host,accounts){
   }catch{notify('Chưa gán được tài khoản. Kiểm tra quyền và kích hoạt TK NCC phía máy chủ.');}
   finally{updateBusy(false);}
  };
+}
+// NCC-003: assigned scanners are independent of Chat contact groups and banking flows.
+function manageScannerAssignments(host,accounts,assignedIds){
+ const panel=host.querySelector('[data-ncc-scanner-panel]');if(!panel)return;
+ panel.hidden=!panel.hidden;if(panel.hidden)return;
+ const people=[...accounts].sort((a,b)=>
+  Number(assignedIds.has(String(b.id)))-Number(assignedIds.has(String(a.id)))
+   ||String(a.display_name||a.username).localeCompare(String(b.display_name||b.username),'vi'));
+ panel.innerHTML=`<div class="ncc-pane"><strong>Người được phép gửi ảnh phiếu nhập</strong>
+ <p class="ncc-help">Cấp quyền cho tài khoản Chat bất kỳ mà không đổi nhóm danh bạ. Chỉ ảnh mới được kiểm tra; ảnh cũ không tự quét lại. Có thể thu hồi quyền bất cứ lúc nào.</p>
+ <input type="search" data-ncc-person-find placeholder="Tìm tên hoặc tài khoản Chat" aria-label="Tìm tài khoản được gán">
+ <div data-ncc-person-results class="ncc-docs"></div></div>`;
+ const input=panel.querySelector('[data-ncc-person-find]'),list=panel.querySelector('[data-ncc-person-results]');
+ function render(){
+  const q=String(input.value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+  const choices=people.filter(a=>!q||String(a.display_name||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes(q)
+    ||String(a.username||'').toLowerCase().includes(q)).slice(0,80);
+  list.innerHTML=choices.map(a=>`<div class="ncc-doc">
+   <span><strong>${escape(a.display_name||a.username||a.id)}</strong><small> @${escape(a.username||'')}</small>
+   <div class="ncc-help">${a.contact_group==='ncc'?'Đã thuộc TK NCC (tự nhận ảnh)':
+    assignedIds.has(String(a.id))?'Đã cấp quyền quét':'Chưa cấp quyền quét'}</div></span>
+   <button type="button" data-ncc-set-scanner="${escape(a.id)}"
+    data-enabled="${assignedIds.has(String(a.id))?'0':'1'}">${assignedIds.has(String(a.id))?'Thu hồi quyền':'Gán quét ảnh'}</button></div>`).join('')||'<p>Không tìm thấy tài khoản phù hợp.</p>';
+  for(const button of list.querySelectorAll('[data-ncc-set-scanner]')){
+   button.onclick=async()=>{
+    if(busy)return;
+    const id=button.dataset.nccSetScanner,enabled=button.dataset.enabled==='1';
+    updateBusy(true);
+    try{
+     await call('scanner_assign',{accountId:id,enabled});
+     if(enabled)assignedIds.add(String(id));else assignedIds.delete(String(id));
+     render();
+     notify(enabled?'Đã cấp quyền quét ảnh phiếu mới.':'Đã thu hồi quyền quét ảnh của tài khoản.');
+    }catch{notify('Chưa cập nhật được quyền quét ảnh.');}
+    finally{updateBusy(false);}
+   };
+  }
+ }
+ input.addEventListener('input',render);render();
 }
 async function view(id){
  if(!id)return;
