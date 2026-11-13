@@ -1498,6 +1498,9 @@ let imageViewerWheelLastEventAt=0;
 let imageViewerWheelLastStepAt=0;
 let imageViewerSwipeStartX=0;
 let imageViewerZoom=1;
+// IMG-343: avoid continuously relaying out image pixels during iOS pinch.
+let imageViewerPinchRendering=false;
+let imageViewerPinchBaseZoom=1;
 let imageViewerZoomOut=null;
 let imageViewerZoomIn=null;
 let imageViewerZoomValue=null;
@@ -2065,8 +2068,11 @@ function clampImageViewerPan(){
   // Image pixels are laid out at zoomed CSS dimensions when the full decode
   // is available. Do not multiply by zoom a second time for the pan limits.
   const layoutZoomed=imageViewerImage.dataset.layoutZoomed==='true';
-  const scaledWidth=Math.max(0,baseWidth*(layoutZoomed?1:imageViewerZoom));
-  const scaledHeight=Math.max(0,baseHeight*(layoutZoomed?1:imageViewerZoom));
+  const layoutScale=imageViewerPinchRendering
+    ?imageViewerZoom/Math.max(1,imageViewerPinchBaseZoom)
+    :(layoutZoomed?1:imageViewerZoom);
+  const scaledWidth=Math.max(0,baseWidth*layoutScale);
+  const scaledHeight=Math.max(0,baseHeight*layoutScale);
   const maxX=Math.max(0,(scaledWidth-viewport.width)/2);
   const maxY=Math.max(0,(scaledHeight-viewport.height)/2);
   imageViewerPanX=Math.max(-maxX,Math.min(maxX,imageViewerPanX));
@@ -2099,9 +2105,14 @@ function imageViewerFittedOriginalSize(){
 function applyImageViewerTransform(){
   if(!imageViewerImage||!imageViewerMain)return;
   const zoom=Math.round(imageViewerZoom*1000)/1000;
-  const fitted=zoom>1?imageViewerFittedOriginalSize():null;
-  const layoutZoomed=Boolean(fitted);
-  if(layoutZoomed){
+  const fitted=zoom>1&&!imageViewerPinchRendering?imageViewerFittedOriginalSize():null;
+  const layoutZoomed=imageViewerPinchRendering
+    ?imageViewerImage.dataset.layoutZoomed==='true'
+    :Boolean(fitted);
+  if(imageViewerPinchRendering){
+    // Leave decoded image geometry stable across every pinch touchmove.
+    // Only GPU scale changes until touchend re-lays full-resolution pixels.
+  }else if(layoutZoomed){
     // Expand the actual image element, not a GPU texture rendered at 100%.
     // max-* and flex shrink would otherwise force it back into the viewport.
     imageViewerImage.style.width=`${Math.round(fitted.width*zoom*100)/100}px`;
@@ -2116,7 +2127,9 @@ function applyImageViewerTransform(){
     imageViewerImage.style.maxHeight='';
     imageViewerImage.style.flexShrink='';
   }
-  imageViewerImage.dataset.layoutZoomed=layoutZoomed?'true':'false';
+  if(!imageViewerPinchRendering){
+    imageViewerImage.dataset.layoutZoomed=layoutZoomed?'true':'false';
+  }
   clampImageViewerPan();
   const rotation=imageViewerRotation();
   const parts=[];
@@ -2125,7 +2138,10 @@ function applyImageViewerTransform(){
   }
   // While a new image is still decoding, keep the old lightweight fallback.
   // The load event below re-renders at native pixel density immediately.
-  if(zoom!==1&&!layoutZoomed)parts.push(`scale(${zoom})`);
+  const previewScale=imageViewerPinchRendering
+    ?zoom/Math.max(1,imageViewerPinchBaseZoom)
+    :(!layoutZoomed?zoom:1);
+  if(Math.abs(previewScale-1)>.001)parts.push(`scale(${previewScale})`);
   if(rotation)parts.push(`rotate(${rotation}deg)`);
   imageViewerImage.style.transform=parts.join(' ');
   imageViewerImage.dataset.zoom=String(zoom);
@@ -2134,6 +2150,8 @@ function applyImageViewerTransform(){
 }
 
 function resetImageViewerZoom(){
+  imageViewerPinchRendering=false;
+  imageViewerPinchBaseZoom=1;
   imageViewerPointers.clear();
   imageViewerGesture=null;
   imageViewerGesturePinched=false;
@@ -2228,6 +2246,7 @@ function installIOSImageViewerTouchGestures(main,image){
   const contacts=new Map();
   let gesture=null;
   let hadPinch=false;
+  let lastTouchPinchAt=0;
 
   const beginPinch=()=>{
     if(contacts.size<2)return;
@@ -2243,6 +2262,8 @@ function installIOSImageViewerTouchGestures(main,image){
       centerY:(a.y+b.y)/2-rect.top-rect.height/2
     };
     hadPinch=true;
+    imageViewerPinchBaseZoom=imageViewerZoom;
+    imageViewerPinchRendering=true;
     for(const contact of contacts.values())contact.multi=true;
     imageViewerLastTouchTapAt=0;
   };
@@ -2306,6 +2327,7 @@ function installIOSImageViewerTouchGestures(main,image){
       const centerX=(a.x+b.x)/2-rect.left-rect.width/2;
       const centerY=(a.y+b.y)/2-rect.top-rect.height/2;
       imageViewerZoom=zoom;
+      lastTouchPinchAt=Date.now();
       imageViewerPanX=centerX-(gesture.centerX-gesture.panX)*ratio;
       imageViewerPanY=centerY-(gesture.centerY-gesture.panY)*ratio;
       applyImageViewerTransform();
@@ -2334,6 +2356,10 @@ function installIOSImageViewerTouchGestures(main,image){
       contacts.delete(touch.identifier);
     }
     const pinch=hadPinch||completed.some(contact=>contact.multi);
+    if(pinch&&contacts.size<2){
+      imageViewerPinchRendering=false;
+      applyImageViewerTransform(); // final sharp, native-size image after pinch
+    }
     if(contacts.size===1)beginPan();
     else if(!contacts.size){gesture=null;hadPinch=false;}
 
@@ -2370,8 +2396,50 @@ function installIOSImageViewerTouchGestures(main,image){
     if(event.cancelable)event.preventDefault();
   },{passive:false});
 
+  // WebKit sometimes turns a two-finger Touch stream into GestureEvents.
+  // Keep page zoom suppressed and support this iPhone/PWA fallback.
+  let safariGesture=null;
+  const isViewerGestureTarget=event=>event.target===main||event.target===image||
+    (event.target instanceof Element&&main.contains(event.target));
+  const nativePinchStart=event=>{
+    if(!isViewerGestureTarget(event))return;
+    safariGesture={startZoom:imageViewerZoom};
+    if(!imageViewerPinchRendering){
+      imageViewerPinchBaseZoom=imageViewerZoom;
+      imageViewerPinchRendering=true;
+    }
+    if(event.cancelable)event.preventDefault();
+  };
+  const nativePinchChange=event=>{
+    if(!safariGesture||!isViewerGestureTarget(event))return;
+    if(event.cancelable)event.preventDefault();
+    // Touch events remain the primary owner; only use GestureEvent.scale
+    // if the last real two-finger move is missing or cancelled.
+    if(Date.now()-lastTouchPinchAt<85)return;
+    const scale=Number(event.scale);
+    if(!Number.isFinite(scale)||scale<=0)return;
+    setImageViewerZoom(clampImageViewerZoom(safariGesture.startZoom*scale),{
+      clientX:Number.isFinite(event.clientX)?event.clientX:null,
+      clientY:Number.isFinite(event.clientY)?event.clientY:null
+    });
+  };
+  const nativePinchEnd=event=>{
+    if(!safariGesture)return;
+    if(event.cancelable)event.preventDefault();
+    safariGesture=null;
+    if(contacts.size<2){
+      imageViewerPinchRendering=false;
+      applyImageViewerTransform();
+    }
+  };
+  main.addEventListener('gesturestart',nativePinchStart,{passive:false});
+  main.addEventListener('gesturechange',nativePinchChange,{passive:false});
+  main.addEventListener('gestureend',nativePinchEnd,{passive:false});
+
   main.addEventListener('touchcancel',event=>{
     for(const touch of event.changedTouches||[])contacts.delete(touch.identifier);
+    imageViewerPinchRendering=false;
+    applyImageViewerTransform();
     if(contacts.size===1)beginPan();
     else if(!contacts.size){gesture=null;hadPinch=false;}
     imageViewerLastTouchTapAt=0;
@@ -2434,7 +2502,7 @@ function ensureImageViewer(){
   close.className='image-review-control image-review-close';
   close.setAttribute('aria-label','Đóng ảnh');
   close.appendChild(viewerIconSvg('close'));
-  head.append(heading,zoomControls,close);
+  head.append(heading,close);
 
   const main=document.createElement('div');
   main.className='image-review-main';
@@ -2458,7 +2526,7 @@ function ensureImageViewer(){
 
   const meta=document.createElement('div');
   meta.className='image-review-meta';
-  main.append(image,prev,next,meta);
+  main.append(image,prev,next,meta,zoomControls);
 
   const bottom=document.createElement('div');
   bottom.className='image-review-bottom';
