@@ -135,6 +135,7 @@ subprocess.run(['node',str(ROOT/'tests'/'test_chat_mobile_header_avatar_20261107
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_manual_group_advisory_20261106.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_price7d_advisory_20261110.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_price7d_delta_only_20261110.cjs')],check=True,cwd=ROOT)
+subprocess.run(['node',str(ROOT/'tests'/'test_chat_price360_8am_order7d_20261114.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_approved_bank_receipt_251.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_bank265_sender_only_internal_transfer_20261108.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_bank266_bill_format_variants_20261108.mjs')],check=True,cwd=ROOT)
