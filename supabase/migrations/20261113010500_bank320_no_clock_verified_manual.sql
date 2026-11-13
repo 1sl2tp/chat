@@ -37,6 +37,8 @@ BEGIN
  AND n.status='credit_candidate' AND n.is_own_transfer=false
  AND n.amount_vnd=r.amount_vnd AND n.bank_credit_account=r.receiving_account
  AND n.transfer_at IS NOT NULL
+ AND r.sent_at BETWEEN n.transfer_at-interval '10 minutes'
+   AND n.transfer_at+interval '24 hours'
  AND n.fingerprint ~ '^[0-9a-f]{64}$'
  AND (n.transfer_at AT TIME ZONE 'Asia/Ho_Chi_Minh')::date=(r.raw_read->>'transfer_date_vn')::date
  AND upper(regexp_replace(extensions.unaccent(btrim(split_part(
