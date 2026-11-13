@@ -77,6 +77,15 @@ async function analyze(invoice:any){
   .eq('id',invoice.id).in('status',['pending','failed','needs_review']).select().maybeSingle();
  if(!claimed)return fail('already_processing_or_final',409);
  try{
+  const isManual=invoice.origin==='manual';
+  let mime='',bytes:Uint8Array;
+  if(isManual){
+   if(!String(invoice.manual_storage_key||'').startsWith('ncc-manual/'))throw new Error('invalid_manual_path');
+   const {data:file,error}=await db.storage.from('v21-media').download(invoice.manual_storage_key);
+   if(error||!file)throw new Error('image_unavailable');
+   mime=String(file.type||'image/jpeg').toLowerCase();
+   bytes=new Uint8Array(await file.arrayBuffer());
+  }else{
   const {data:media,error:mediaError}=await db.from('v21_media_assets')
    .select('id,message_id,conversation_id,owner_account_id,kind,mime_type,size_bytes,storage_key,deleted_at')
    .eq('id',invoice.media_asset_id).is('deleted_at',null).maybeSingle();
@@ -84,13 +93,16 @@ async function analyze(invoice:any){
      media.owner_account_id!==invoice.chat_account_id||media.message_id!==invoice.message_id||
      !media.storage_key||media.size_bytes<100||media.size_bytes>4000000)
       throw new Error('invalid_media');
-  const {data:account}=await db.from('v21_accounts').select('id,contact_group')
-   .eq('id',invoice.chat_account_id).eq('contact_group','ncc').is('deleted_at',null).maybeSingle();
-  if(!account)throw new Error('not_ncc_sender');
+  const {data:account}=await db.from('v21_accounts').select('id,role,contact_group')
+   .eq('id',invoice.chat_account_id).is('deleted_at',null).maybeSingle();
+  if(!account||(!isManual&&(account.role!=='user'||account.contact_group!=='ncc')))
+   throw new Error('not_ncc_sender');
   const {data:file,error:downloadError}=await db.storage.from('v21-media').download(media.storage_key);
   if(downloadError||!file)throw new Error('image_unavailable');
-  const bytes=new Uint8Array(await file.arrayBuffer());
-  if(bytes.length<100||bytes.length>4000000)throw new Error('invalid_media_size');
+  bytes=new Uint8Array(await file.arrayBuffer());
+  mime=media.mime_type;
+  }
+  if(!mimeOk(mime)||bytes.length<100||bytes.length>4000000)throw new Error('invalid_media_size');
   const hash=await sha256(bytes);
   const {data:existing}=await db.from('chat_ncc_invoices').select('id')
     .eq('chat_account_id',invoice.chat_account_id).eq('image_sha256',hash).neq('id',invoice.id).limit(1);
@@ -99,7 +111,7 @@ async function analyze(invoice:any){
      .eq('id',invoice.id);
    return respond({ok:true,status:'duplicate'});
   }
-  const raw=await ocrImage(bytes,media.mime_type);
+  const raw=await ocrImage(bytes,mime);
   const checked=validatePrintedInvoice(raw);
   if(checked.reason==='not_supplier_invoice'){
    await db.from('chat_ncc_invoices').update({status:'not_invoice',image_sha256:hash,note:'not_supplier_invoice'})
@@ -152,6 +164,13 @@ async function analyze(invoice:any){
   return fail('scan_unavailable',503);
  }
 }
+function decodeImageBase64(input:string){
+ const value=String(input||'');
+ if(value.length<140||value.length>5500000||!/^[A-Za-z0-9+/]+={0,2}$/.test(value))throw new Error('invalid_image');
+ const binary=atob(value),bytes=new Uint8Array(binary.length);
+ for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+ return bytes;
+}
 Deno.serve(async req=>{
  if(req.method==='OPTIONS')return new Response(null,{status:204,headers});
  if(req.method!=='POST')return fail('method_not_allowed',405);
@@ -164,9 +183,51 @@ Deno.serve(async req=>{
  try{body=await req.json();}catch{return fail('invalid_json');}
  const action=String(body?.action||'').trim();
  if(webhook&&action!=='scan')return fail('webhook_scan_only',403);
+ if(action==='suppliers'){
+  const {data,error}=await db.from('v21_accounts')
+   .select('id,display_name,username,contact_group').eq('role','user')
+   .is('deleted_at',null).order('display_name').limit(1000);
+  return error?fail('suppliers_unavailable',500):respond({ok:true,accounts:data||[]});
+ }
+ if(action==='manual_upload'){
+  const mime=String(body?.mime||'').toLowerCase();
+  if(!mimeOk(mime))return fail('invalid_image_type');
+  let bytes:Uint8Array;
+  try{bytes=decodeImageBase64(body?.base64);}catch{return fail('invalid_image');}
+  if(bytes.length<100||bytes.length>4000000)return fail('invalid_image_size');
+  const senderId=String(body?.supplierId||'').trim();
+  let supplierId=admin!.id;
+  if(senderId){
+   if(!UUID.test(senderId))return fail('invalid_supplier');
+   const {data:account}=await db.from('v21_accounts').select('id').eq('id',senderId)
+    .eq('role','user').eq('contact_group','ncc').is('deleted_at',null).maybeSingle();
+   if(!account)return fail('supplier_not_in_ncc',409);
+   supplierId=account.id;
+  }
+  const hash=await sha256(bytes);
+  const {data:existing,error:checkError}=await db.from('chat_ncc_invoices').select('id,status')
+   .eq('chat_account_id',supplierId).eq('image_sha256',hash).limit(1);
+  if(checkError)return fail('duplicate_check_unavailable',503);
+  if(existing?.length)return respond({ok:true,status:'duplicate',id:existing[0].id});
+  const id=crypto.randomUUID(),extension=mime==='image/png'?'png':mime==='image/webp'?'webp':'jpg';
+  const storageKey='ncc-manual/'+id+'.'+extension;
+  const uploaded=await db.storage.from('v21-media').upload(storageKey,bytes,
+   {contentType:mime,upsert:false});
+  if(uploaded.error)return fail('manual_upload_unavailable',503);
+  const inserted=await db.from('chat_ncc_invoices').insert({
+   id,chat_account_id:supplierId,origin:'manual',manual_storage_key:storageKey,image_sha256:hash,status:'pending'
+  }).select('id').single();
+  if(inserted.error){
+   await db.storage.from('v21-media').remove([storageKey]);
+   // A concurrent identical image may have won the unique image key.
+   if(inserted.error.code==='23505')return respond({ok:true,status:'duplicate'});
+   return fail('manual_invoice_save_failed',503);
+  }
+  return respond({ok:true,status:'pending',id});
+ }
  if(action==='list'){
   const {data,error}=await db.from('chat_ncc_invoices')
-   .select('id,chat_account_id,conversation_id,message_id,media_asset_id,invoice_date,invoice_number,printed_total_vnd,status,note,created_at')
+   .select('id,chat_account_id,conversation_id,message_id,media_asset_id,origin,invoice_date,invoice_number,printed_total_vnd,status,note,created_at')
    .order('created_at',{ascending:false}).limit(60);
   return error?fail('list_unavailable',500):respond({ok:true,documents:data||[]});
  }
@@ -182,8 +243,10 @@ Deno.serve(async req=>{
  const invoice=await getDocument(id);
  if(!invoice)return fail('invoice_not_found',404);
  if(action==='detail'){
-  const {data:media}=await db.from('v21_media_assets').select('storage_key').eq('id',invoice.media_asset_id).maybeSingle();
-  const image=media?.storage_key?await db.storage.from('v21-media').createSignedUrl(media.storage_key,120):null;
+  const {data:media}=invoice.origin==='manual'?{data:null}:await db.from('v21_media_assets')
+   .select('storage_key').eq('id',invoice.media_asset_id).maybeSingle();
+  const storageKey=invoice.origin==='manual'?invoice.manual_storage_key:media?.storage_key;
+  const image=storageKey?await db.storage.from('v21-media').createSignedUrl(storageKey,120):null;
   return respond({ok:true,document:invoice,lines:await getLines(id),imageUrl:image?.data?.signedUrl||null});
  }
  if(action==='scan')return analyze(invoice);
