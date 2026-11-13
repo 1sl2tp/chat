@@ -1683,6 +1683,17 @@ async function openManualBillDialog(bill){
  const save=el('button','bank-review-save','Xác minh và ghi thu');
  save.type='submit';save.disabled=true;
  append(actions,cancel,save);form.appendChild(actions);
+ // Show the true validation rule immediately instead of a stale error after
+ // the Admin edits the note or checks the consent. Never bypass server proof.
+ const updateManualBillConsent=()=>{
+  if(!prepared||save.disabled||!bankDialogIsCurrent(overlay,owner))return;
+  if(!verified.checked){feedback.textContent='Tích xác nhận đã kiểm tra Agribank.';return;}
+  feedback.textContent=note.value.trim().length<15?
+   'Ghi chú xác minh cần ít nhất 15 ký tự.':
+   'Đã đủ ghi chú và xác nhận · máy chủ sẽ kiểm tra trùng trước khi thu.';
+ };
+ note.addEventListener('input',updateManualBillConsent);
+ verified.addEventListener('change',updateManualBillConsent);
  // Move only this dialog's host above the whole Chat shell, not inside
  // #stageLayout where the desktop contact sidebar obscures its left side.
  if(document.body&&ui.review.parentElement!==document.body)document.body.appendChild(ui.review);
@@ -1746,8 +1757,10 @@ async function openManualBillDialog(bill){
  form.addEventListener('submit',async event=>{
   event.preventDefault();
   if(!prepared||!bankDialogIsCurrent(overlay,owner)||save.disabled)return;
-  if(!verified.checked||!note.value.includes('Agribank')||note.value.trim().length<15){
-   feedback.textContent='Cần xác nhận đã kiểm tra tiền về Agribank và ghi chú đầy đủ.';return;
+  if(!verified.checked||note.value.trim().length<15){
+   feedback.textContent=verified.checked?
+    'Ghi chú xác minh cần ít nhất 15 ký tự.':
+    'Cần tích xác nhận đã kiểm tra Agribank trước khi ghi thu.';return;
   }
   if(ledgerSelect&&!ledgerSelect.value){
    feedback.textContent='Đã có khoản thu trước đó. Hãy chọn sổ cần liên kết.';return;
@@ -1759,7 +1772,9 @@ async function openManualBillDialog(bill){
     p_app_session_id:auth.appSessionId,
     p_receipt_id:String(bill.receipt_id),
     p_customer_id:String(prepared.customer_id),
-    p_note:note.value.trim(),
+    // The server keeps an explicit Agribank audit marker, but the Admin need
+    // not type a magic word into a free-form verification note.
+    p_note:'Agribank · '+note.value.trim(),
     p_existing_ledger_id:ledgerSelect?Number(ledgerSelect.value):null
    });
    if(!bankDialogIsCurrent(overlay,owner))return;
