@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="2a9b500a4a026376869685b2d68641740cfc37d53e89952da875662ae575541e">
+<meta name="app-build-id" content="3144dc937ca3860b1a6efb70c1c3278eec0ad86e1ed3c12ca57496e2442b8378">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -39830,7 +39830,7 @@ async function loadList(){
  }catch{host.textContent='Chưa mở được danh sách phiếu. Kiểm tra quyền và phiên bản máy chủ.';}
 }
 async function view(id){
- if(!id||busy)return;
+ if(!id)return;
  docId=id;lastDoc=null;const host=content();if(!host)return;
  host.textContent='Đang mở phiếu…';notify('');
  try{
