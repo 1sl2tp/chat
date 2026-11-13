@@ -68,5 +68,8 @@ assert(app.includes("forwardItem.textContent='Chuyển tiếp trong Chat';"));
 assert(app.includes("if(canNativeShareFiles()){\n    const shareItem="));
 assert(app.includes("saveText.textContent='Tải ảnh';"));
 
-assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-header-forward-chat339-20261113';"));
+// The earlier CHAT-339 UI must stay in the newest shell. New releases rotate
+// the epoch by design, rather than freezing it at CHAT-339's prior value.
+assert(/const SHELL_CACHE_EPOCH='pwa-chat-[a-z0-9-]+';/.test(sw));
+assert(!sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-header-forward-chat339-20261113';"));
 console.log('CHAT-339 header/forward/image/keyboard/Web-PWA owner contract PASS');

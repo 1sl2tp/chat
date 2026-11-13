@@ -296,6 +296,69 @@ button{
   color:var(--theme-content-danger,#a63c32);
   font-weight:650;
 }
+
+/* CHAT-340: pending is a fine orbiting edge, not a separate line below the
+   outgoing bubble. The status node stays available to screen readers only.
+   This is presentation-only: it never changes outbox/ACK/retry semantics. */
+.message-delivery-state[data-state="sending"]{
+  position:absolute!important;
+  width:1px!important;
+  height:1px!important;
+  padding:0!important;
+  margin:-1px!important;
+  overflow:hidden!important;
+  clip:rect(0,0,0,0)!important;
+  clip-path:inset(50%)!important;
+  white-space:nowrap!important;
+  border:0!important;
+}
+@property --chat-send-orbit{
+  syntax:"<angle>";
+  inherits:false;
+  initial-value:0deg;
+}
+.message-unit[data-delivery-state="sending"]>.message-text:not([hidden]),
+.message-unit[data-delivery-state="sending"]>.message-media-shell{
+  position:relative;
+}
+.message-unit[data-delivery-state="sending"]>.message-media-shell{
+  border-radius:14px;
+}
+.message-unit[data-delivery-state="sending"]>.message-text:not([hidden])::after,
+.message-unit[data-delivery-state="sending"]>.message-media-shell::after{
+  content:"";
+  position:absolute;
+  z-index:3;
+  inset:-1px;
+  box-sizing:border-box;
+  border-radius:inherit;
+  padding:2px;
+  pointer-events:none;
+  background:conic-gradient(
+    from var(--chat-send-orbit),
+    transparent 0deg,
+    transparent 172deg,
+    color-mix(in srgb,#3988e9 10%,transparent) 220deg,
+    #3988e9 275deg,
+    color-mix(in srgb,#3988e9 48%,transparent) 317deg,
+    transparent 360deg
+  );
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;
+  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  mask-composite:exclude;
+  animation:chat-send-border-orbit 1.7s linear infinite;
+}
+@keyframes chat-send-border-orbit{
+  to{--chat-send-orbit:360deg}
+}
+@media(prefers-reduced-motion:reduce){
+  .message-unit[data-delivery-state="sending"]>.message-text:not([hidden])::after,
+  .message-unit[data-delivery-state="sending"]>.message-media-shell::after{
+    animation:none;
+    background:color-mix(in srgb,#3988e9 58%,transparent);
+  }
+}
 .user-message-unit{
   align-items:flex-end;
   margin-left:auto;
