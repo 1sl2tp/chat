@@ -1719,6 +1719,11 @@ function updateImageViewerTimeMenu(){
   imageViewerTimeMenuButton.setAttribute('aria-label',`Tùy chọn ảnh · ${timeLabel}`);
   imageViewerTimeMenuButton.setAttribute('title',`Tùy chọn ảnh · ${timeLabel}`);
   for(const button of Array.from(imageViewerTimeMenuPanel.querySelectorAll('.image-review-menu-item'))){
+    if(button.dataset.viewerAction==='forward'){
+      const allowed=Boolean(forwardableCurrentImageViewerMessage());
+      button.disabled=!allowed;
+      button.setAttribute('aria-disabled',String(!allowed));
+    }
     if(!button.dataset.timeFilter)continue;
     const active=button.dataset.timeFilter===imageViewerTimeFilter;
     // These controls have role=menuitemradio: expose checked state to
@@ -1837,21 +1842,31 @@ async function saveCurrentImageViewerImage(){
   return saveMediaDescriptor(media,Math.max(0,imageViewerIndex));
 }
 
-async function shareCurrentImageViewerImage(){
+function forwardableCurrentImageViewerMessage(){
   const media=currentImageViewerDescriptor();
-  if(!media)return false;
-  // An in-Chat recipient picker opens synchronously on the first tap.
-  // Forward only a single-asset source; never send a whole gallery silently
-  // when the user has selected one photo in the image viewer.
   const selected=imageViewerItems[imageViewerIndex]||null;
   const sourceId=String(selected?.messageId||'');
   const source=sourceId?store.items.find(item=>String(item?.id||'')===sourceId):null;
   const assets=source?mediaDescriptorsForMessage(source):[];
-  if(source&&assets.length===1&&String(assets[0]?.assetId||'')===String(media.assetId)&&
-    window.V21MessageForward?.canForward?.(source)){
-    closeImageViewer();
-    return Boolean(window.V21MessageForward.open(source));
-  }
+  // A photo opened from a multi-image album must not secretly forward
+  // the whole album. Multi-asset forwarding belongs to the message toolbar.
+  return source&&media&&assets.length===1&&
+    String(assets[0]?.assetId||'')===String(media.assetId)&&
+    window.V21MessageForward?.canForward?.(source)?source:null;
+}
+
+function forwardCurrentImageViewerImage(){
+  const source=forwardableCurrentImageViewerMessage();
+  if(!source)return false;
+  closeImageViewer();
+  return Boolean(window.V21MessageForward?.open?.(source));
+}
+
+async function shareCurrentImageViewerImage(){
+  const media=currentImageViewerDescriptor();
+  if(!media)return false;
+  // "Chia sẻ" is always the native OS share surface. "Chuyển tiếp" is
+  // the separate in-Chat recipient picker, never an implicit OS fallback.
   return shareMessageMedia({media});
 }
 
@@ -1909,7 +1924,25 @@ function renderImageViewerFilters(){
   });
   menu.appendChild(saveItem);
 
-  if(canNativeShareFiles()||window.V21AuthSessionStore?.snapshot?.()?.account?.role==='admin'){
+  if(window.V21AuthSessionStore?.snapshot?.()?.account?.role==='admin'){
+    const forwardItem=document.createElement('button');
+    forwardItem.type='button';
+    forwardItem.className='image-review-menu-item';
+    forwardItem.dataset.viewerAction='forward';
+    forwardItem.setAttribute('role','menuitem');
+    forwardItem.textContent='Chuyển tiếp trong Chat';
+    forwardItem.disabled=!forwardableCurrentImageViewerMessage();
+    forwardItem.setAttribute('aria-disabled',String(forwardItem.disabled));
+    forwardItem.addEventListener('click',event=>{
+      event.stopPropagation();
+      if(!forwardableCurrentImageViewerMessage())return;
+      closeImageViewerTimeMenu();
+      forwardCurrentImageViewerImage();
+    });
+    menu.appendChild(forwardItem);
+  }
+
+  if(canNativeShareFiles()){
     const shareItem=document.createElement('button');
     shareItem.type='button';
     shareItem.className='image-review-menu-item';
