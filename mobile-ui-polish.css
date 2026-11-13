@@ -1527,20 +1527,25 @@
   #appShell[data-auth-state="authenticated"][data-route="chat"] #stageLayout:not([data-bank-report-active="true"]) #messageWindow>.message-row[data-content-kind="text"] .user-message-unit>.message-text{
     background:var(--chat-message-sent-bg)!important;
     border-radius:19px!important;
-    padding:10px 13px 25px!important;
+    padding:10px 13px!important;
     color:var(--theme-content-primary)!important;
     box-shadow:none!important;
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #stageLayout:not([data-bank-report-active="true"]) #messageWindow>.message-row[data-content-kind="text"] .assistant-message-unit>.message-text{
     background:var(--chat-message-received-bg)!important;
     border-radius:19px!important;
-    padding:10px 13px 25px!important;
+    padding:10px 13px!important;
     color:var(--theme-content-primary)!important;
     box-shadow:none!important;
   }
+  /* Text timestamps live in a reserved footer inside the same bubble.
+     Do not add footer padding when a text row has no sent-time node. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #stageLayout:not([data-bank-report-active="true"]) #messageWindow>.message-row[data-content-kind="text"] .message-unit:has(>.message-sent-time)>.message-text:not([hidden]){
+    padding-bottom:25px!important;
+  }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #stageLayout:not([data-bank-report-active="true"]) #messageWindow .message-body{
     font-size:15px;
-    line-height:1.42;
+    line-height:1.38rem; /* preserve virtualized message height estimate */
     overflow-wrap:anywhere;
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #stageLayout:not([data-bank-report-active="true"]) #messageWindow>.message-row[data-turn="user"]+.message-row[data-turn="user"],
