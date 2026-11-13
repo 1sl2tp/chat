@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="3d10525eb3da0660ad0a592aeb5fc728ee1a6a1e15a6c400f7ec14735a11ca0a">
+<meta name="app-build-id" content="b5e298de2117dca425f3d1414db86bac0bfe1b4502259cb917f6ecfba61cf3c9">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -4253,68 +4253,6 @@ body > [data-bank-review-modal] .bank-review-heading{
   }
 }
 
-/* BANK-326: a readable variance between bank evidence and booked collection.
-   An alert reflects evidence mismatch, not an instruction to collect/refund. */
-#bankReportDashboard .bank-report-variance[hidden]{display:none!important;}
-#bankReportDashboard .bank-report-variance{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-  min-width:0;
-  margin:0 0 12px;
-  padding:12px 14px;
-  border:1px solid #e6c993;
-  border-left:3px solid #bc8626;
-  border-radius:11px;
-  background:#fffaf0;
-  color:#5c420f;
-}
-#bankReportDashboard .bank-report-variance-copy{
-  display:flex;
-  flex-direction:column;
-  gap:4px;
-  min-width:0;
-}
-#bankReportDashboard .bank-report-variance-title{
-  font-size:13px;
-  font-weight:750;
-  line-height:1.3;
-  font-variant-numeric:tabular-nums;
-}
-#bankReportDashboard .bank-report-variance-description{
-  font-size:11px;
-  line-height:1.45;
-  overflow-wrap:anywhere;
-}
-#bankReportDashboard .bank-report-variance-action{
-  flex:none;
-  border:1px solid #d1b47c;
-  background:#fff;
-  border-radius:9px;
-  padding:9px 11px;
-  min-height:38px;
-  font-size:11px;
-  font-weight:650;
-  color:#594015;
-  cursor:pointer;
-}
-#bankReportDashboard .bank-report-variance-action:focus-visible{
-  outline:2px solid #a46b12;
-  outline-offset:2px;
-}
-@media(max-width:760px){
- #bankReportDashboard .bank-report-variance{
-   margin:0 0 11px;
-   padding:11px 12px;
-   gap:8px;
-   flex-wrap:wrap;
-   align-items:flex-start;
- }
- #bankReportDashboard .bank-report-variance-title{font-size:12px;}
- #bankReportDashboard .bank-report-variance-description{font-size:10.5px;}
- #bankReportDashboard .bank-report-variance-action{min-height:36px;}
-}
 
 </style>
 <style data-inlined-source="ui-foundation.css">
@@ -10618,7 +10556,6 @@ button{
                 <div class="bank-report-summary" data-bank-summary></div>
                 <div class="bank-report-status-strip bank-report-status-main" data-bank-status></div>
               </div>
-              <div class="bank-report-variance" data-bank-variance role="status" aria-live="polite" hidden></div>
               <section class="bank-report-work-queue" data-bank-work-queue aria-label="Hàng đợi cần xử lý" hidden></section>
               <details class="bank-report-extra-metrics" data-bank-extra-metrics>
                 <summary class="bank-report-extra-metrics-trigger">Chỉ số khác <span class="bank-report-extra-metrics-chevron" aria-hidden="true"></span></summary>
@@ -32803,7 +32740,6 @@ const ui={
  refresh:root.querySelector('[data-bank-refresh]'),
  daily:root.querySelector('[data-bank-daily-summary]'),
  summary:root.querySelector('[data-bank-summary]'),
- variance:root.querySelector('[data-bank-variance]'),
  queue:root.querySelector('[data-bank-work-queue]'),
  status:root.querySelector('[data-bank-status]'),
  extraStatus:root.querySelector('[data-bank-extra-status]'),
@@ -33241,33 +33177,6 @@ function paint(data){
   cardValue('Tổng tiền vào Agribank',bankDisplayVnd(incomingAmountVnd),false,false,'Tiền vào NH',{amountVnd:incomingAmountVnd}),
   cardValue('Đã thu có chứng từ',bankDisplayVnd(s.matched_amount),true,false,'Đã thu',{amountVnd:s.matched_amount})
  );
- // BANK-326: independent evidence populations MUST NOT look reconciled just
- // because their cards are side by side. When ledger-backed bill collection
- // is greater than distinct Agribank credits, explain the unmatched amount
- // without declaring a missing bank transfer or reversing a real ledger.
- if(ui.variance){
-  const bookedVnd=Number(s.matched_amount);
-  const excessVnd=bookedVnd-incomingAmountVnd;
-  const hasExcess=Number.isSafeInteger(bookedVnd)&&Number.isSafeInteger(incomingAmountVnd)
-   &&bookedVnd>=0&&incomingAmountVnd>=0&&excessVnd>=1000;
-  ui.variance.hidden=!hasExcess;
-  if(hasExcess){
-   const copy=el('div','bank-report-variance-copy');
-   const title=el('strong','bank-report-variance-title',
-    'Cần đối chiếu thêm '+bankDisplayVnd(excessVnd));
-   title.setAttribute('aria-label','Đã ghi thu cao hơn tiền ngân hàng ghi nhận '+bankMoneySpoken(excessVnd));
-   append(copy,title,el('span','bank-report-variance-description',
-    'Đã ghi thu vượt thông báo Agribank đang có. Có thể do thu thủ công hoặc thiếu dữ liệu ngân hàng; chưa kết luận tiền chưa về.'));
-   const action=el('button','bank-report-variance-action','Xem thu tay');
-   action.type='button';
-   action.setAttribute('aria-label','Lọc các khoản đã thu thủ công để đối chiếu');
-   action.addEventListener('click',()=>{
-    filter='manual_bank';selectedCustomer=null;paint(data);
-   });
-   ui.variance.replaceChildren(copy,action);
-  }else ui.variance.replaceChildren();
- }
-
  // Keep every bank diagnostic even if a cached PWA shell has not loaded
  // the new disclosure yet; it can still render the legacy complete strip.
  const additionalCards=[
