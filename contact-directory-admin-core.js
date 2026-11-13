@@ -3,6 +3,7 @@
 
 const GROUPS=Object.freeze([
   ['customer','KH'],
+  ['ncc','TK NCC'],
   ['friend','Bạn bè'],
   ['other','Khác'],
 ]);
