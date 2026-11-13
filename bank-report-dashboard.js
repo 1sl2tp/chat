@@ -563,7 +563,7 @@ function renderTable(data){
    el('span','bank-report-empty-description',
     'Có thể xem ngày trước để kiểm tra giao dịch và chứng từ.'));
   const currentDay=String(ui.date.value||'');
-  const selected=/^20\\d{2}-\\d{2}-\\d{2}$/.test(currentDay)?
+  const selected=/^20\d{2}-\d{2}-\d{2}$/.test(currentDay)?
     new Date(currentDay+'T12:00:00Z'):null;
   if(selected&&!Number.isNaN(selected.getTime())){
    selected.setUTCDate(selected.getUTCDate()-1);
