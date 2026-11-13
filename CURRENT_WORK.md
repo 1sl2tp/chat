@@ -1,3 +1,16 @@
+## 2026-11-13 — CALL-187 · Nút gọi native iPhone, thêm/sửa số qua menu ⋯
+
+- **E0 ảnh thực tế:** Khi Admin bấm biểu tượng gọi ở đầu hội thoại, UI mở bảng “Số điện thoại khách hàng” với 3 nút `Lưu số` / `Gọi bằng iPhone` / `Gọi qua Chat`. Trên màn hình hẹp thao tác này làm người dùng phải mở bảng quản lý chỉ để gọi. `contact-phone-admin.js::attach()` gán trực tiếp `btn.addEventListener('click',()=>void open())`.
+- **E1 UI và owner:** Nút điện thoại ở đầu hội thoại gọi ngay `dialCurrent()` trong callback click đồng bộ, dùng `window.location.href='tel:'+number` cho số chính đã lưu (đã chuẩn hóa/kiểm tra `^\\+?[0-9]{9,15}$`). Hệ điều hành quyết định xác nhận/mở app Điện thoại, không khởi động SIM cuộc gọi từ JS. Bảng thêm/sửa chỉ mở ở `… → Số điện thoại khách hàng`; `Gọi qua Chat` vẫn nằm riêng trong menu. Bảng Admin bình thường chỉ chứa trường số chính/số phụ và nút Lưu; bảng callback từ Push cuộc gọi nhỡ vẫn giữ lựa chọn gọi theo thiết kế gốc.
+- **Không mất trusted activation trên iPhone:** `readPhone()` đọc Admin-only RPC `v21_admin_contact_phone` **khi chọn liên hệ**, lưu trong Map RAM theo `account:session:contact`; không chờ RPC sau khi bấm nút gọi, không tự mở `tel:` trong Promise, không lưu số vào localStorage. Bấm khi còn tải/chưa có số chỉ hiển thị thông báo nhỏ “Đang tải số”/“Vào ⋯ → Số điện thoại để thêm”, không mở editor và không gọi nhầm.
+- **An toàn dữ liệu:** RPC `get/save`, xác thực phiên Admin, quyền, số phụ và 9–15 chữ số giữ nguyên; mọi trả lời bất đồng bộ phải kiểm tra `phoneContextActive(id,account,session)`. Sau khi lưu mới đồng bộ cache của contact hiện hành. Logout/chuyển tài khoản xóa cache, không cho một số cũ áp dụng vào khách mới; không tự gửi tin, gọi thử, Zalo, Ledger, DB production hay cron.
+- **Bố cục mobile:** `…` 44px + gọi 44px, khoảng 6px, rail 94px; trạng thái cuộc gọi Chat đang kết nối/đổ chuông vẫn do CallFocus quản lý. Không sửa ô nhập/scroll/keyboard. Desktop không đổi thanh menu cũ ngoài nút quản lý iPhone hiện hành.
+- **E2/E3:** `tests/test_call187_native_dial_phone_menu_20261113.cjs` có fixture số hợp lệ, số lỗi, chưa tải, cross-contact, cross-account/session, menu và tap target; thêm vào `tools/verify_current.py`, duy trì `test_call186_phone_header_modal_20261102.cjs` và `test_call186_ios_missed_push.mjs`. Bump Web/PWA shell epoch; chỉ qua canonical Pages sau khi CI PASS.
+- **E5:** chưa thể xác nhận trình quay số hệ điều hành iPhone thật từ CI vì browser không thể tự thay người dùng thực hiện cuộc gọi; không gửi số điện thoại thật từ test. Trước lúc xác nhận cần thấy UI gọi native trên iPhone đã có số, lưu số rồi gọi, và đổi khách lúc RPC đang tải.
+- **Rollback:** revert PR/Web-PWA shell và rebuild canonical; dữ liệu số điện thoại riêng tư lưu trên server không bị xóa.
+
+---
+
 ## 2026-11-13 — UI-341 · Sửa danh bạ: preview tối đa hai dòng, không đè thời gian
 
 - **E0:** Ảnh chụp Chat Web khoảng 500px, người dùng đánh dấu đỏ dọc mép phải, dưới một hàng preview dài: các bản xem trước đang một dòng/cắt ngang và chạy tới mép dưới vùng thời gian. Dù title/time ở 2 cột, preview cũ dùng `grid-column:1/-1` nên chiếm cả đường ray thời gian trên hàng dưới. Khi cho preview 2 dòng mà không mở height, dòng thứ hai bị cắt hoặc đè dòng sau.
