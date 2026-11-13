@@ -2220,8 +2220,168 @@ function continueImageViewerWithRemainingPointer(){
   };
 }
 
+
+// IMG-342: iOS Safari / installed PWA can cancel Pointer Events during a
+// two-finger system gesture. Touch Events are the single gesture owner on iOS;
+// the existing Pointer Events path remains the owner for other platforms.
+function installIOSImageViewerTouchGestures(main,image){
+  const contacts=new Map();
+  let gesture=null;
+  let hadPinch=false;
+
+  const beginPinch=()=>{
+    if(contacts.size<2)return;
+    const [a,b]=[...contacts.values()].slice(0,2);
+    const rect=main.getBoundingClientRect();
+    gesture={
+      kind:'pinch',
+      distance:Math.max(1,Math.hypot(b.x-a.x,b.y-a.y)),
+      zoom:imageViewerZoom,
+      panX:imageViewerPanX,
+      panY:imageViewerPanY,
+      centerX:(a.x+b.x)/2-rect.left-rect.width/2,
+      centerY:(a.y+b.y)/2-rect.top-rect.height/2
+    };
+    hadPinch=true;
+    for(const contact of contacts.values())contact.multi=true;
+    imageViewerLastTouchTapAt=0;
+  };
+
+  const beginPan=()=>{
+    if(contacts.size!==1){gesture=null;return;}
+    const contact=contacts.values().next().value;
+    gesture={
+      kind:'pan',
+      identifier:contact.identifier,
+      x:contact.x,
+      y:contact.y,
+      panX:imageViewerPanX,
+      panY:imageViewerPanY
+    };
+  };
+
+  main.addEventListener('touchstart',event=>{
+    if(event.target instanceof Element&&event.target.closest('button'))return;
+    const changed=[...(event.changedTouches||[])];
+    if(!changed.length)return;
+    // An iOS pointerdown may precede touchstart. Discard it rather than
+    // letting its pointerup trigger a second photo navigation / double tap.
+    imageViewerPointers.clear();
+    imageViewerTouchStarts.clear();
+    imageViewerGesture=null;
+    imageViewerGesturePinched=false;
+    const multi=contacts.size>0||changed.length>1;
+    if(multi)for(const contact of contacts.values())contact.multi=true;
+    for(const touch of changed){
+      contacts.set(touch.identifier,{
+        identifier:touch.identifier,
+        x:touch.clientX,y:touch.clientY,
+        startX:touch.clientX,startY:touch.clientY,
+        onImage:event.target===image,
+        onStage:event.target===main,
+        moved:false,multi
+      });
+    }
+    if(contacts.size>=2)beginPinch();
+    else if(contacts.size===1)beginPan();
+    if(event.cancelable)event.preventDefault();
+  },{passive:false});
+
+  main.addEventListener('touchmove',event=>{
+    if(!contacts.size)return;
+    for(const touch of event.changedTouches||[]){
+      const contact=contacts.get(touch.identifier);
+      if(!contact)continue;
+      contact.x=touch.clientX;
+      contact.y=touch.clientY;
+      if(Math.hypot(contact.x-contact.startX,contact.y-contact.startY)>8)contact.moved=true;
+    }
+    if(contacts.size>=2){
+      if(gesture?.kind!=='pinch')beginPinch();
+      const [a,b]=[...contacts.values()].slice(0,2);
+      const rect=main.getBoundingClientRect();
+      const distance=Math.max(1,Math.hypot(b.x-a.x,b.y-a.y));
+      const zoom=clampImageViewerZoom(gesture.zoom*distance/gesture.distance);
+      const ratio=zoom/Math.max(1,gesture.zoom);
+      const centerX=(a.x+b.x)/2-rect.left-rect.width/2;
+      const centerY=(a.y+b.y)/2-rect.top-rect.height/2;
+      imageViewerZoom=zoom;
+      imageViewerPanX=centerX-(gesture.centerX-gesture.panX)*ratio;
+      imageViewerPanY=centerY-(gesture.centerY-gesture.panY)*ratio;
+      applyImageViewerTransform();
+    }else if(gesture?.kind==='pan'&&imageViewerZoom>1){
+      const contact=contacts.get(gesture.identifier);
+      if(contact){
+        imageViewerPanX=gesture.panX+contact.x-gesture.x;
+        imageViewerPanY=gesture.panY+contact.y-gesture.y;
+        applyImageViewerTransform();
+      }
+    }
+    // Prevent WebKit from zooming/scrolling the PWA viewport instead of the
+    // selected image; the thumbnail rail is deliberately outside main.
+    if(event.cancelable)event.preventDefault();
+  },{passive:false});
+
+  main.addEventListener('touchend',event=>{
+    if(!contacts.size)return;
+    const completed=[];
+    for(const touch of event.changedTouches||[]){
+      const contact=contacts.get(touch.identifier);
+      if(!contact)continue;
+      contact.x=touch.clientX;
+      contact.y=touch.clientY;
+      completed.push(contact);
+      contacts.delete(touch.identifier);
+    }
+    const pinch=hadPinch||completed.some(contact=>contact.multi);
+    if(contacts.size===1)beginPan();
+    else if(!contacts.size){gesture=null;hadPinch=false;}
+
+    if(!pinch&&completed.length===1&&!contacts.size){
+      const contact=completed[0];
+      const dx=contact.x-contact.startX;
+      const dy=contact.y-contact.startY;
+      const moved=contact.moved||Math.hypot(dx,dy)>8;
+      if(imageViewerZoom===1&&dy>72&&Math.abs(dy)>Math.abs(dx)*1.15){
+        imageViewerLastTouchTapAt=0;
+        closeImageViewer({restoreFocus:false});
+      }else if(imageViewerZoom===1&&Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)*1.1){
+        imageViewerLastTouchTapAt=0;
+        void showImageViewerIndex(imageViewerIndex+(dx<0?1:-1));
+      }else if(!moved&&contact.onStage){
+        imageViewerLastTouchTapAt=0;
+        if(imageViewerTimeMenuPanel?.hidden===false)toggleImageViewerTimeMenu(false);
+        else closeImageViewer({restoreFocus:false});
+      }else if(!moved&&contact.onImage){
+        const now=performance.now();
+        const doubleTap=imageViewerLastTouchTapAt>0&&
+          now-imageViewerLastTouchTapAt<=285&&
+          Math.hypot(contact.x-imageViewerLastTouchTapX,contact.y-imageViewerLastTouchTapY)<=34;
+        if(doubleTap){
+          imageViewerLastTouchTapAt=0;
+          setImageViewerZoom(imageViewerZoom>1?1:2.5,{clientX:contact.x,clientY:contact.y});
+        }else{
+          imageViewerLastTouchTapAt=now;
+          imageViewerLastTouchTapX=contact.x;
+          imageViewerLastTouchTapY=contact.y;
+        }
+      }
+    }
+    if(event.cancelable)event.preventDefault();
+  },{passive:false});
+
+  main.addEventListener('touchcancel',event=>{
+    for(const touch of event.changedTouches||[])contacts.delete(touch.identifier);
+    if(contacts.size===1)beginPan();
+    else if(!contacts.size){gesture=null;hadPinch=false;}
+    imageViewerLastTouchTapAt=0;
+  },{passive:true});
+}
+
 function ensureImageViewer(){
   if(imageViewerOverlay)return imageViewerOverlay;
+  const imageViewerUseNativeIOSTouch=/iPad|iPhone|iPod/.test(navigator.userAgent||'')||
+    (navigator.platform==='MacIntel'&&Number(navigator.maxTouchPoints||0)>1);
   const overlay=document.createElement('dialog');
   overlay.className='image-viewer-overlay';
   overlay.setAttribute('aria-label','Xem lại ảnh');
@@ -2333,6 +2493,7 @@ function ensureImageViewer(){
   });
 
   main.addEventListener('pointerdown',event=>{
+    if(imageViewerUseNativeIOSTouch&&event.pointerType==='touch')return;
     if(event.target instanceof Element&&event.target.closest('button'))return;
     if(event.pointerType==='mouse'&&event.button!==0)return;
     imageViewerPointers.set(event.pointerId,{
@@ -2360,6 +2521,7 @@ function ensureImageViewer(){
   });
 
   main.addEventListener('pointermove',event=>{
+    if(imageViewerUseNativeIOSTouch&&event.pointerType==='touch')return;
     const point=imageViewerPointers.get(event.pointerId);
     if(!point)return;
     point.x=event.clientX;
@@ -2397,6 +2559,7 @@ function ensureImageViewer(){
   });
 
   const finishPointer=event=>{
+    if(imageViewerUseNativeIOSTouch&&event.pointerType==='touch')return;
     const point=imageViewerPointers.get(event.pointerId);
     if(!point)return;
     const gesture=imageViewerGesture;
@@ -2428,6 +2591,7 @@ function ensureImageViewer(){
      black stage. Touch/pen additionally keep double-tap zoom and swipe-down
      close. Starting on the image or a control never counts as a stage close. */
   main.addEventListener('pointerdown',event=>{
+    if(imageViewerUseNativeIOSTouch&&event.pointerType==='touch')return;
     const pointerType=String(event.pointerType||'mouse');
     if(pointerType==='mouse'&&event.button!==0)return;
     if(event.target instanceof Element&&event.target.closest('button'))return;
@@ -2446,12 +2610,14 @@ function ensureImageViewer(){
   });
 
   main.addEventListener('pointermove',event=>{
+    if(imageViewerUseNativeIOSTouch&&event.pointerType==='touch')return;
     const start=imageViewerTouchStarts.get(event.pointerId);
     if(!start)return;
     if(Math.hypot(event.clientX-start.x,event.clientY-start.y)>8)start.moved=true;
   },{passive:true});
 
   const finishImageViewerPointerShortcut=event=>{
+    if(imageViewerUseNativeIOSTouch&&event.pointerType==='touch')return;
     const start=imageViewerTouchStarts.get(event.pointerId);
     if(!start)return;
     imageViewerTouchStarts.delete(event.pointerId);
@@ -2498,9 +2664,12 @@ function ensureImageViewer(){
 
   main.addEventListener('pointerup',finishImageViewerPointerShortcut);
   main.addEventListener('pointercancel',event=>{
+    if(imageViewerUseNativeIOSTouch&&event.pointerType==='touch')return;
     imageViewerTouchStarts.delete(event.pointerId);
     if(imageViewerTouchStarts.size===0)imageViewerLastTouchTapAt=0;
   });
+
+  if(imageViewerUseNativeIOSTouch)installIOSImageViewerTouchGestures(main,image);
 
   main.addEventListener('wheel',event=>{
     if(event.target instanceof Element&&event.target.closest('button'))return;
