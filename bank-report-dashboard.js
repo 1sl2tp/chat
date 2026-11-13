@@ -879,6 +879,14 @@ function bankCreditLine(row,allBills){
  const suggestion=kind==='unmatched'?bankBillCustomerSuggestion(row,allBills):null;
  const candidate=Boolean(row.bank_group_tentative);
  const wrap=el('details','bank-report-detail bank-report-credit');
+ // UI-332: native <summary> toggles on one tap; keep a single credit expanded
+ // at a time so comparison stays visible without a long stack of open rows.
+ wrap.addEventListener('toggle',()=>{
+  if(!wrap.open||!ui.groups?.contains?.(wrap))return;
+  for(const peer of ui.groups.querySelectorAll('.bank-report-credit[open]')){
+   if(peer!==wrap)peer.open=false;
+  }
+ });
  wrap.dataset.bankTone=bankReportCreditTone(row,issue);
  wrap.dataset.bankNoticeId=String(row.notice_id);
  const top=el('summary','bank-report-detail-top');
@@ -900,7 +908,28 @@ function bankCreditLine(row,allBills){
  const content=el('div','bank-report-detail-content bank-report-detail-essential');
  append(content,cell('Giờ Agribank (đến phút)',agribankDisplayTime(row.bank_time,ui.date.value)));
  if(row.customer_name)content.appendChild(cell('Khách hàng',row.customer_name));
- if(row.bank_memo)content.appendChild(cell('Nội dung chuyển tiền',row.bank_memo));
+ // UI-332: the bank notice and the linked bill are two distinct sources.
+ // Display both original texts for visual comparison, without inferring
+ // any match or authorizing collection from the UI.
+ const bankContent=String(row.bank_memo||
+  /Nội dung giao dịch:\s*(.+?)(?:(?:\.\s*)?Số dư cuối:|$)/i.exec(
+   String(row.bank_body||row.body||''))?.[1]||'').trim();
+ const linkedBill=row.receipt_id?(allBills||[]).find(b=>
+  String(b.receipt_id||'')===String(row.receipt_id)):null;
+ const billRaw=linkedBill?.bill_ocr&&typeof linkedBill.bill_ocr==='object'?
+  linkedBill.bill_ocr:linkedBill?.raw_read&&typeof linkedBill.raw_read==='object'?
+  linkedBill.raw_read:{};
+ const billContent=String(billRaw.transfer_content||
+  linkedBill?.transfer_content||linkedBill?.transfer_memo||'').trim();
+ const compare=el('section','bank-report-memo-compare');
+ compare.setAttribute('aria-label','So sánh nội dung chuyển khoản');
+ compare.appendChild(cell('Nội dung Agribank',
+  bankContent||'Thông báo chưa có nội dung chuyển khoản'));
+ if(linkedBill)compare.appendChild(cell('Nội dung trên bill',
+  billContent||'Chưa đọc được nội dung trên bill'));
+ else compare.appendChild(el('span','bank-report-memo-unlinked',
+  'Chưa có bill liên kết để so sánh nội dung.'));
+ content.appendChild(compare);
  if(row.bank_balance_text&&/^[+-]?[0-9,]{1,20}$/.test(String(row.bank_balance_text).trim())){
   const amount=Number(String(row.bank_balance_text).replace(/,/g,''));
   if(Number.isSafeInteger(amount))content.appendChild(cell('Số dư sau giao dịch',bankDisplayVnd(amount)));
