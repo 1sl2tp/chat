@@ -19,7 +19,7 @@ const node=(tag,cls='',value='')=>({
   remove(x){this.classes.delete(x)}
  }
 });
-const ui={table:node('div','bank-report-table-wrap')};
+const ui={table:node('div','bank-report-table-wrap'),date:{value:'2026-11-13'}};
 const context={ui,selectedCustomer:null,root:{},
  el:node,append:(parent,...children)=>{for(const c of children)parent.appendChild(c);return parent},
  bankResponsiveLabel:x=>node('span','',x),bankMoneySpoken:x=>String(x),
@@ -29,7 +29,9 @@ render({bills:[]});
 assert.equal(ui.table.children.length,1);
 assert.equal(ui.table.children[0].tag,'div','empty state is NOT a table row');
 assert.equal(ui.table.children[0].className,'bank-report-empty-state');
-assert.equal(ui.table.children[0].children[0].textContent,'Chưa có bill trong ngày này');
+assert.equal(ui.table.children[0].children[0].children[0].textContent,
+ 'Chưa có bill trong ngày đã chọn');
+assert.equal(ui.table.children[0].children[1].textContent,'Xem ngày trước');
 assert(ui.table.classList.classes.has('is-empty'));
 render({bills:[{customer_id:'a',customer_name:'Khách thử',report_status:'matched',amount_vnd:1000}]});
 assert.equal(ui.table.children[0].tag,'table','non-empty preserves semantic six-column table');
