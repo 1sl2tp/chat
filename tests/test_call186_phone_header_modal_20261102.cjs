@@ -22,7 +22,7 @@ assert(src.includes("overlay.addEventListener('keydown',event=>{"));
 assert(src.includes("if(event.key!=='Escape')return;"));
 assert(src.includes("close.addEventListener('click',()=>dismiss({restoreFocus:true}));"));
 assert(src.includes("if(e.target===overlay)dismiss({restoreFocus:true})"));
-assert(src.includes("if(!overlay.isConnected||!phoneContextActive(id,account))"));
+assert(src.includes("if(!overlay.isConnected||!phoneContextActive(id,account)||String(au().appSessionId||'')!==session)"));
 assert(src.includes("document.addEventListener('v21-active-contact-change',()=>{dismiss();clearNotice();attach()});"));
 assert(html.includes('data-call-focus-slot'));
 assert(workflow.includes('node tests/test_call186_phone_header_modal_20261102.cjs'));
