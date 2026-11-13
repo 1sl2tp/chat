@@ -7,7 +7,8 @@ const html=fs.readFileSync('index.source.html','utf8');
 const marker='/* UI-329: compact iPhone empty reconciliation state.';
 const at=css.indexOf(marker);
 assert(at>0,'the mobile empty-state style must exist');
-const scoped=css.slice(at);
+const nextSection=css.indexOf('/* UI-330',at+1);
+const scoped=css.slice(at,nextSection>at?nextSection:undefined);
 assert(scoped.startsWith(marker));
 const rules=[
  '#bankReportDashboard.is-zero-day .bank-report-header',
