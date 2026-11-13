@@ -258,6 +258,20 @@ Deno.serve(async req=>{
      const day=correctedClock.slice(0,10);
      const vnToday=new Date(Date.now()+7*3600000).toISOString().slice(0,10);
      const sentDay=new Date(Date.parse(job.sent_at)+7*3600000).toISOString().slice(0,10);
+     // Safe finite, bounded diagnostics (booleans ONLY); no sender, image,
+     // account, memo, original date string or tokens are logged.
+     console.info("bank348_recovery_gate",JSON.stringify({
+       evidence:evidence.complete, literal:!!normalized.transfer_date_printed_vn,
+       raw_equal:normalized.transfer_date_printed_raw_vn===literal,
+       invalid:normalized.printed_date_invalid,
+       time_conflict:normalized.time_date_conflict,
+       clock_conflict:normalized.clock_text_conflict,
+       iso_conflict:normalized.ocr_iso_date_conflict,
+       same_clock:originalClock.length===16&&correctedClock===originalClock,
+       today:day===vnToday,sent_day:day===sentDay,
+       account:normalized.receiving_account==="2901181999999",
+       memo_length:String(normalized.transfer_content||"").length>=12
+     }));
      // A literal date correcting ONLY the parsing of the SAME complete
      // transaction must equal the existing AI clock AND today's bank day.
      if(evidence.complete&&normalized.transfer_date_printed_vn&&
