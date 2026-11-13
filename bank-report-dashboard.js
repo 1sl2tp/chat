@@ -1538,6 +1538,45 @@ function bankManualBillEvidenceRows(bill,notice=null,prepared=null,serverState='
     'Chưa thể kết luận không thu trùng');
  return result;
 }
+// BANK-317: the agreed ten bill fields, sourced solely from stored OCR.
+// On previous receipts fall back to the old raw_read keys; never re-run AI
+// when this form opens. Bank notifications are only comparison evidence.
+function bankSimpleTenFieldRows(bill,notice=null,prepared=null,serverState='checking'){
+ const all=bankManualBillEvidenceRows(bill,notice,prepared,serverState);
+ const byKey=k=>all.find(x=>x.label===k);
+ const raw=bill?.bill_ocr&&typeof bill.bill_ocr==='object'?bill.bill_ocr:
+  bill?.raw_read&&typeof bill.raw_read==='object'?bill.raw_read:{};
+ const saved=raw.bill_fields_v1&&typeof raw.bill_fields_v1==='object'?raw.bill_fields_v1:{};
+ const first=(...values)=>values.find(x=>typeof x==='string'&&x.trim())||'';
+ const mapping=[
+ ['Ngân hàng gửi','Ngân hàng gửi',first(saved.sending_bank,raw.sending_bank)],
+ ['Ngân hàng nhận','Ngân hàng nhận',first(saved.receiving_bank,raw.receiving_bank)],
+ ['Tên tài khoản nhận','Tên chủ TK nhận',first(saved.recipient_name,raw.recipient_name_printed,raw.recipient_name,bill?.receiving_name)],
+ ['Số tài khoản nhận','Số tài khoản nhận',first(saved.recipient_account,raw.recipient_account_visible,bill?.receiving_account)],
+ ['Số tiền (÷1.000)','Số tiền (÷1.000)',''],
+ ['Ngày giao dịch','Ngày giao dịch',first(saved.transfer_date_printed_vn,raw.transfer_date_printed_vn)],
+ ['Giờ giao dịch','Giờ giao dịch',first(saved.transfer_time_printed_vn,raw.transfer_time_printed_vn)],
+ ['Nội dung chuyển khoản','Nội dung chuyển khoản',first(saved.transfer_content,raw.transfer_content)],
+ ['Mã giao dịch / tham chiếu','Mã tham chiếu',first(saved.transfer_reference,bill?.transfer_reference)]
+ ];
+ const rows=mapping.map(([label,key,stored])=>{
+  const original=byKey(key)||{bill:'Chưa có dữ liệu',bank:'Chưa có thông báo',tone:'pending',result:'Chờ đối chiếu'};
+  const row={...original,label};
+  if(stored){
+   row.bill=stored;
+   if(row.tone==='pending'&&/API chưa trả|Chưa có .*bill|Chưa đọc|Dữ liệu AI chưa|Chưa trích xuất|Ngày AI/.test(row.result||'')){
+    row.result='Đã lưu trên bill';
+   }
+  }
+  return row;
+ });
+ const trace=first(saved.trace_code,raw.trace_code,raw.trace_number);
+ rows.push({label:'Mã tra soát',
+  bill:trace||'Chưa có dữ liệu đã lưu',
+  bank:'Thông báo Agribank không kèm mã tra soát',
+  tone:'pending',result:trace?'Đã đọc trên bill':'Chưa lưu riêng'});
+ return rows;
+}
 function bankManualBillPrepareErrorMessage(error){
  const code=String(error?.code||'');
  const message=String(error?.message||error||'');
@@ -1581,21 +1620,18 @@ async function openManualBillDialog(bill){
  const compare=el('section','bank-bill-compare');
  compare.setAttribute('aria-label','Bảng so sánh chứng cứ bill, Agribank và sổ thu');
  const compareTitle=el('div','bank-bill-compare-title');
- append(compareTitle,el('strong','','Đối chiếu thông tin'),
-  el('small','','Bill ↔ Thông báo Agribank'));
+ append(compareTitle,el('strong','','10 thông tin từ bill'),
+  el('small','','So với thông báo Agribank'));
  const comparison=el('div','bank-bill-compare-table');
  comparison.setAttribute('role','table');
  comparison.setAttribute('aria-label','So sánh chứng từ và tiền ngân hàng');
  const compareSummary=el('p','bank-bill-compare-summary');
  const compareHint=el('p','bank-bill-compare-hint',
-  'Nếu API chưa trả OCR, không được coi đó là lỗi AI đọc ảnh. '+
-  'Tên trong cấu hình Agribank không thay thế tên người nhận trích từ bill. '+
-  'Cùng số tiền, ngày hay nội dung chưa cho phép tự ghi thu.');
+  'Ảnh được AI đọc một lần và lưu. Chưa liên kết ngân hàng hoặc sổ thu thì không tự ghi thu.');
  append(compare,compareTitle,comparison,compareSummary,compareHint);
  form.appendChild(compare);
  const refreshEvidence=(prepared=null,state='checking')=>{
-  const rows=bankManualBillEvidenceRows(bill,comparisonNotice,prepared,state,
-   {candidateCount:bankCandidates.length});
+  const rows=bankSimpleTenFieldRows(bill,comparisonNotice,prepared,state);
   comparison.replaceChildren();
   const header=el('div','bank-bill-compare-row bank-bill-compare-header');
   header.setAttribute('role','row');
@@ -1617,15 +1653,9 @@ async function openManualBillDialog(bill){
    append(item,label,billCell,bankCell,status);
    comparison.appendChild(item);
   }
-  const matched=rows.filter(x=>x.tone==='matched').length;
-  const pending=rows.filter(x=>x.tone==='pending').length;
-  const review=rows.filter(x=>x.tone==='review'||x.tone==='duplicate').length;
-  compareSummary.textContent='Đối chiếu '+(comparisonNotice?'có thông báo Agribank ứng viên':'chưa có ứng viên NH')+
-   ' · Tiêu chí khớp: '+matched+
-   ' · Chờ thông tin: '+pending+' · Cần kiểm tra: '+review+
-   ' · '+(state==='ready'?'Máy chủ đã trả kết quả đối soát.':
-    state==='error'?'Chưa thể kiểm tra trên máy chủ.':
-     'Đang chờ máy chủ kiểm tra.');
+  compareSummary.textContent=(comparisonNotice?'Có thông báo Agribank ứng viên':'Chưa có thông báo Agribank phù hợp')+
+   ' · '+(state==='error'?'Chưa xác minh được sổ thu.':
+    state==='ready'?'Đã nhận kết quả đối soát sổ.':'Đang kiểm tra sổ thu.');
  };
  refreshEvidence();
  const info=el('p','bank-review-instruction','Đang kiểm tra bill và sổ công nợ…');
@@ -1650,6 +1680,9 @@ async function openManualBillDialog(bill){
  const save=el('button','bank-review-save','Xác minh và ghi thu');
  save.type='submit';save.disabled=true;
  append(actions,cancel,save);form.appendChild(actions);
+ // Move only this dialog's host above the whole Chat shell, not inside
+ // #stageLayout where the desktop contact sidebar obscures its left side.
+ if(document.body&&ui.review.parentElement!==document.body)document.body.appendChild(ui.review);
  overlay.appendChild(form);ui.review.hidden=false;ui.review.appendChild(overlay);
  attachReviewDialogKeyboard(overlay,form);
  overlay.addEventListener('click',event=>{if(event.target===overlay)closeReviewDialog();});

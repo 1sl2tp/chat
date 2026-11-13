@@ -1395,3 +1395,69 @@
   .bank-bill-compare-row{gap:3px 5px;padding:6px 7px}
   .bank-bill-compare-row > .bank-bill-compare-value{font-size:10px}
 }
+
+
+/* BANK-317: the manual-review host is a document.body portal, not a child of
+   Chat stageLayout. This prevents the Contacts pane and topbar from clipping
+   or painting above the dialog in desktop split-view. */
+body > [data-bank-review-modal]:not([hidden]){
+ position:fixed;inset:0;z-index:2147483000;
+ display:block;pointer-events:auto;
+}
+body > [data-bank-review-modal][hidden]{display:none!important}
+body > [data-bank-review-modal] > .bank-review-overlay{
+ position:absolute;inset:0;
+ width:100%;height:100%;
+ box-sizing:border-box;
+ padding:clamp(8px,2vh,20px);
+ display:flex;align-items:center;justify-content:center;
+ overflow-x:hidden;overflow-y:auto;
+}
+body > [data-bank-review-modal] .bank-bill-compare-dialog{
+ box-sizing:border-box;flex:0 1 auto;
+ width:min(760px,calc(100vw - 24px));
+ max-width:100%;min-width:0;
+ max-height:calc(100dvh - 24px);
+ padding:13px 14px;gap:9px;
+ overscroll-behavior-y:contain;
+}
+body > [data-bank-review-modal] .bank-bill-compare-title{
+ margin-bottom:5px;
+}
+body > [data-bank-review-modal] .bank-bill-compare-table .bank-bill-compare-row{
+ grid-template-columns:minmax(100px,1fr) minmax(0,1.15fr)
+ minmax(0,1.18fr) minmax(102px,.95fr);
+}
+body > [data-bank-review-modal] .bank-bill-compare-row > *{
+ padding:6px 8px;font-size:11px;
+}
+body > [data-bank-review-modal] .bank-bill-compare-row .bank-bill-compare-status{
+ margin:3px 4px;padding:4px 6px;font-size:10px;
+}
+body > [data-bank-review-modal] .bank-review-heading{
+ position:sticky;top:-13px;z-index:2;
+ padding:3px 0 8px;
+ background:var(--surface-primary,#fff);
+}
+@media(max-width:650px){
+ body > [data-bank-review-modal] > .bank-review-overlay{
+  align-items:flex-end;padding:0;
+ }
+ body > [data-bank-review-modal] .bank-bill-compare-dialog{
+  width:100%;max-width:100%;
+  max-height:calc(100dvh - env(safe-area-inset-top,0px));
+  padding:12px 11px calc(12px + env(safe-area-inset-bottom,0px));
+  border-radius:12px 12px 0 0;
+ }
+ body > [data-bank-review-modal] .bank-bill-compare-table .bank-bill-compare-row{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+ }
+ body > [data-bank-review-modal] .bank-bill-compare-row{
+  padding:7px 8px;gap:3px 7px;
+ }
+ body > [data-bank-review-modal] .bank-bill-compare-row > *{padding:0}
+ body > [data-bank-review-modal] .bank-bill-compare-row > .bank-bill-compare-value{
+  padding:6px 7px;
+ }
+ body > [data-bank-review-modal] .bank-review-heading{top:-12px}
+}
