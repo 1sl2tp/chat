@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="576f2825ae65ecbe4422267750b327808ab06deb860f35f80c7593c2242beabc">
+<meta name="app-build-id" content="96459145341a4165b642ebb4b28e343c0780647f5b782721e2339d383cf3642d">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -35647,6 +35647,7 @@ function bankBillDisplayTime(raw){
 // Green requires a recorded ledger; yellow is waiting for evidence; red means
 // explicit operator verification is necessary. Source statuses remain intact.
 function bankReportBillTone(row,isBank=false,manualRecord=null,manualEvidence=null,dateSwapSuspect=false,candidates=[]){
+ if(!isBank&&row?.reason==='manual_bank_bill_reviewed'&&row?.report_status==='matched'&&row?.ledger_id)return 'success';
  if(manualRecord)return 'success';
  if(manualEvidence||dateSwapSuspect)return 'danger';
  if(isBank)return candidates.length?'danger':'pending';
@@ -35782,7 +35783,8 @@ function detailLine(row,isBank=false,candidates=[]){
  }
  if(row.reason&&!isBank){
   let reason='Ghi chú: '+row.reason;
-  if(bankBillImageUncertainty(row))reason=bankBillUncertainDescription(row);
+  if(row.reason==='manual_bank_bill_reviewed'&&recorded)reason='Đã thu tay · Đã soát bill gốc, liên kết sổ thu cũ. Không thu lần hai.';
+  else if(bankBillImageUncertainty(row))reason=bankBillUncertainDescription(row);
   else if(dateSwapSuspect)reason='AI có thể đã đọc đảo ngày/tháng so với ảnh bill. Giờ gửi ảnh không chứng minh ngày chuyển khoản. Cần đối chiếu ảnh gốc với Agribank, không tự ghi thu.';
   else if(row.reason==='bill_recipient_account_missing')reason='Ảnh chưa đọc rõ số tài khoản NGƯỜI NHẬN. Chờ bạn đối chiếu chứng từ và thu thủ công, chưa ghi công nợ.';
   else if(row.reason==='bill_recipient_account_conflict')reason='Số tài khoản người nhận trên ảnh không khớp tài khoản Agribank cần thu. Không tự khớp; bạn xác minh thủ công.';
