@@ -545,7 +545,22 @@ function renderTable(data){
   tr.addEventListener('click',jump);tr.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();jump();}});
   tbody.appendChild(tr);
  }
- if(!tbody.children.length){const tr=el('tr');const td=el('td','','Không có bill trong ngày');td.colSpan=6;tr.appendChild(td);tbody.appendChild(tr);}
+ // BANK-323: an empty customer set is not a six-column table row.
+ // On mobile the table's responsive layout styled that colspan as a cramped
+ // full-width data cell, visually clipping the empty label against the border.
+ // Render one semantic state that never pretends to be a customer or a bill.
+ if(!tbody.children.length){
+  const empty=el('div','bank-report-empty-state');
+  empty.setAttribute('role','status');
+  append(empty,
+   el('strong','bank-report-empty-title','Chưa có bill trong ngày này'),
+   el('span','bank-report-empty-description',
+    'Chọn ngày khác để xem bill và các khoản đối soát.'));
+  ui.table.replaceChildren(empty);
+  ui.table.classList.add('is-empty');
+  return;
+ }
+ ui.table.classList.remove('is-empty');
  table.appendChild(tbody);ui.table.replaceChildren(table);
 }
 // BANK-183-VN-DAY-20261102: Bank transactions and customer uploads are
