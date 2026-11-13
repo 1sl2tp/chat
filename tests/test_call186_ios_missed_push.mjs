@@ -18,9 +18,9 @@ assert.ok(client.includes('box-sizing:border-box;width:44px;height:44px;min-widt
   'phone callback icon shares a 44px hitbox with video call');
 assert.ok(client.includes('.call-focus-slot:not([data-call-ui-state="idle"]) .v21-phone-header-button{display:none!important}'),
   'private callback control cannot crowd active call controls');
-assert.ok(client.includes('function phoneContextActive(id,account){'));
+assert.ok(client.includes('function phoneContextActive(id,account,session='));
 assert.ok(client.includes("String(current()?.id||'')===String(id)"));
-assert.ok(client.includes('if(!overlay.isConnected||!phoneContextActive(id,account)||String(au().appSessionId||'')!==session)'),
+assert.ok(client.includes("if(!overlay.isConnected||!phoneContextActive(id,account)||String(au().appSessionId||'')!==session)"),
   'late phone replies must not expose a previous customer');
 assert.ok(client.includes("document.addEventListener('v21-active-contact-change',()=>{dismiss();clearNotice();attach()});"));
 assert.ok(page.includes('contact-phone-admin.js'));
