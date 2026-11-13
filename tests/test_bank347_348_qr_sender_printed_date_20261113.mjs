@@ -109,4 +109,11 @@ assert.match(index,/Ngày thực hiện/);
 assert.match(index,/transfer_date_printed_vn/);
 assert.match(index,/const prompt=SYSTEM_PROMPT/);
 assert.match(index,/db\.rpc\("chat_bank_app_collect"/);
+assert.match(index,/if\(recheckBankCredit&&job.status==="review"&&/);
+assert.match(index,/normalized\.transfer_date_printed_raw_vn===literal/);
+assert.match(index,/recovery:"verified_original_ocr_date_literal"/);
+assert.match(index,/ledger_written:true,ledger_id:posted\.ledger_id/);
+assert.match(index,/normalized\.transfer_at_vn/);
+assert.match(index,/\.eq\("attempt_count",3\)/);
+
 console.log("BANK-347/348 PASS: strict QR sender, original printed date OCR, bounded retry, no financial shortcuts");
