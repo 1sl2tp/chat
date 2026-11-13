@@ -52,7 +52,7 @@ for(const width of [320,360,375,390,430,500,506]){
   const available=inner-64-8;
   assert(available>=166,'preview rail still readable at '+width+'px');
 }
-assert(html.includes('class="shell-contact-time"'));
+assert(shell.includes("time.className='shell-contact-time'"));
 assert(shell.includes("copy.append(title,preview,time);"));
 assert(shell.includes("const previewText=contactPreview(item);"));
 assert(shell.includes("return{preview:'Báo cáo trực tiếp · Mở để xem mới nhất',time:'Trực tiếp',instant:''};"),
