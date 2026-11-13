@@ -22,7 +22,7 @@ assert.ok(client.includes('function phoneContextActive(id,account){'));
 assert.ok(client.includes("String(current()?.id||'')===String(id)"));
 assert.ok(client.includes('if(!overlay.isConnected||!phoneContextActive(id,account))'),
   'late phone replies must not expose a previous customer');
-assert.ok(client.includes("document.addEventListener('v21-active-contact-change',()=>{dismiss();attach()});"));
+assert.ok(client.includes("document.addEventListener('v21-active-contact-change',()=>{dismiss();clearNotice();attach()});"));
 assert.ok(page.includes('contact-phone-admin.js'));
 assert.ok(page.indexOf('contact-phone-admin.js')<page.indexOf('admin-push-controller.js'));
 assert.ok(sw.includes("kind==='missed_chat_call'"));
