@@ -33,10 +33,14 @@ assert.equal(responsive.children[1].textContent,'Tổng tiền NH (nghìn)');
 assert.equal(responsive.children[1].attributes['aria-hidden'],'true');
 assert.equal(responsive.title,'Tổng tiền vào Agribank (÷1.000)');
 
-assert.equal(bankFilterMobileLabels.waiting_bank,'Bill chưa khớp');
+assert.equal(bankFilterMobileLabels.waiting_bank,'Chờ khớp');
 assert.equal(bankFilterMobileLabels.bank_only,'Chưa gắn bill');
 assert.equal(bankFilterMobileLabels.manual_bank,'Thu tay NH');
-assert.equal(bankFilterMobileLabels.matched,'Đã khớp bill');
+assert.equal(bankFilterMobileLabels.matched,'Đã khớp');
+// Full accessible labels remain in source filter tuple and aria-label/title.
+assert(source.includes("['matched','Đã khớp bill']"));
+assert(source.includes("['waiting_bank','Bill chưa khớp']"));
+
 
 const h=source.slice(source.indexOf('function renderTable(data){'),source.indexOf('// BANK-183-',source.indexOf('function renderTable(data){')));
 assert(h.includes("const columns=['Khách hàng','Đã ghi thu','Bill chờ','Bill trùng','AI nghi ngày','Tiền đã thu'];"));
