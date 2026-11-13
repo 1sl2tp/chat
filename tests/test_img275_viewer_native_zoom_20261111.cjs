@@ -12,7 +12,7 @@ assert(startClamp>=0&&endClamp>startClamp&&startZoom>=0&&endZoom>startZoom,
 assert.match(app.slice(startZoom,endZoom),/width:naturalWidth\*fit,height:naturalHeight\*fit/);
 assert.match(app.slice(startZoom,endZoom),/style\.maxWidth='none'/);
 assert.match(app.slice(startZoom,endZoom),/style\.flexShrink='0'/);
-assert.match(app.slice(startZoom,endZoom),/if\(zoom!==1&&!layoutZoomed\)parts\.push/);
+assert.match(app.slice(startZoom,endZoom),/const previewScale=imageViewerPinchRendering/);
 assert.match(app,/image\.addEventListener\('load',\(\)=>\{/);
 assert.match(app,/if\(imageViewerZoom>1\)applyImageViewerTransform\(\);/);
 assert.match(css,/will-change:auto;/);
@@ -25,6 +25,7 @@ function fixture({nativeWidth=881,nativeHeight=1920,zoom=3.3,rot=0}={}){
  const main={dataset:{}};
  const ctx={imageViewerImage:img,imageViewerMain:main,
    imageViewerZoom:zoom,imageViewerPanX:300,imageViewerPanY:800,
+   imageViewerPinchRendering:false,imageViewerPinchBaseZoom:1,
    Number,Math,String,
    imageViewerRotation:()=>rot,
    imageViewerContentViewport:()=>({width:760,height:600}),
@@ -43,7 +44,23 @@ assert.equal(x.img.style.maxWidth,'none');
 assert.equal(x.img.style.maxHeight,'none');
 assert.equal(x.img.style.flexShrink,'0');
 assert(!x.img.style.transform.includes('scale('),
- 'a decoded photo must NEVER zoom a low-resolution CSS texture');
+ 'a settled decoded photo must NEVER zoom a low-resolution CSS texture');
+// IMG-343: iOS pinch keeps the image element geometry constant on move.
+// Once the fingers lift, native pixel geometry expands only once.
+const stableWidth=Number.parseFloat(x.img.style.width);
+x.ctx.imageViewerPinchRendering=true;
+x.ctx.imageViewerPinchBaseZoom=3.3;
+x.ctx.imageViewerZoom=4;
+x.apply();
+assert.equal(Number.parseFloat(x.img.style.width),stableWidth,
+ 'live iOS pinch cannot relayout IMG for every touchmove');
+assert.match(x.img.style.transform,/scale\(1\.212/);
+x.ctx.imageViewerPinchRendering=false;
+x.apply();
+assert(Number.parseFloat(x.img.style.width)>stableWidth,
+ 'finger release redraws full-resolution pixels');
+x.ctx.imageViewerZoom=3.3;
+x.apply();
 assert(Math.abs(x.ctx.imageViewerPanX-(width-760)/2)<.1,
  'pan must clamp to the expanded element once, not multiply zoom twice');
 assert.equal(x.ctx.imageViewerPanY,690);
