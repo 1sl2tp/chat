@@ -59,11 +59,26 @@ const basic={
  transfer_content:"PHAM THI THUY NGA chuyen tien"
 };
 for(const literal of ["Ngày thực hiện: 13/11/2026","13/11/2026",
+ "Thời gian thực hiện: 21:08 | 13/11/2026",
+ "Ngày thực hiện: Thứ Sáu, 13/11/2026",
+ "Ngày thực hiện: 13/11/2026 - 21:08",
+ "Ngày thực hiện: 13/11/2026 (21:08)",
  "13 thg 11, 2026","13 tháng 11 năm 2026"]){
  const extracted=readV4Fields({...basic,transfer_date_printed_vn:literal});
  assert.equal(extracted.transfer_date_vn,"2026-11-13",literal);
  assert.equal(extracted.transfer_at_vn,"2026-11-13 21:08",literal);
  assert.equal(extracted.printed_date_invalid,false,literal);
+}
+for(const invalidLiteral of ["Ngày hạch toán: 13/11/2026",
+ "Ngày thực hiện: Thứ Năm, 13/11/2026",
+ "Ngày thực hiện: 31/02/2026",
+ "Ngày thực hiện: 13/11",
+ "21:08 | 13/11/2026 | 14/11/2026"]){
+ const data=readV4Fields({...basic,transfer_date_printed_vn:invalidLiteral});
+ assert.equal(data.transfer_date_printed_vn,null,invalidLiteral);
+ assert.equal(data.transfer_date_printed_raw_vn,invalidLiteral,
+   "Never discard the original AI transcription even when rejected");
+ assert.equal(data.printed_date_invalid,true,invalidLiteral);
 }
 const missing=readV4Fields({...basic,transfer_date_printed_vn:null});
 assert.equal(missing.transfer_date_printed_vn,null,
