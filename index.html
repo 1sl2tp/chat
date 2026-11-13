@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="df860f36ffd8036cdb2fbd33757921fe0b891295fc8fc9ee73e86eb074851e53">
+<meta name="app-build-id" content="ab370a90e7d7445894667e858150c1579453c03842ac96339f7f429a69b7311b">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -3599,6 +3599,72 @@ html[data-admin-composer-actions="true"] [data-call-invite-admin-block]{display:
 @media(max-width:360px){
   .bank-bill-compare-row{gap:3px 5px;padding:6px 7px}
   .bank-bill-compare-row > .bank-bill-compare-value{font-size:10px}
+}
+
+
+/* BANK-317: the manual-review host is a document.body portal, not a child of
+   Chat stageLayout. This prevents the Contacts pane and topbar from clipping
+   or painting above the dialog in desktop split-view. */
+body > [data-bank-review-modal]:not([hidden]){
+ position:fixed;inset:0;z-index:2147483000;
+ display:block;pointer-events:auto;
+}
+body > [data-bank-review-modal][hidden]{display:none!important}
+body > [data-bank-review-modal] > .bank-review-overlay{
+ position:absolute;inset:0;
+ width:100%;height:100%;
+ box-sizing:border-box;
+ padding:clamp(8px,2vh,20px);
+ display:flex;align-items:center;justify-content:center;
+ overflow-x:hidden;overflow-y:auto;
+}
+body > [data-bank-review-modal] .bank-bill-compare-dialog{
+ box-sizing:border-box;flex:0 1 auto;
+ width:min(760px,calc(100vw - 24px));
+ max-width:100%;min-width:0;
+ max-height:calc(100dvh - 24px);
+ padding:13px 14px;gap:9px;
+ overscroll-behavior-y:contain;
+}
+body > [data-bank-review-modal] .bank-bill-compare-title{
+ margin-bottom:5px;
+}
+body > [data-bank-review-modal] .bank-bill-compare-table .bank-bill-compare-row{
+ grid-template-columns:minmax(100px,1fr) minmax(0,1.15fr)
+ minmax(0,1.18fr) minmax(102px,.95fr);
+}
+body > [data-bank-review-modal] .bank-bill-compare-row > *{
+ padding:6px 8px;font-size:11px;
+}
+body > [data-bank-review-modal] .bank-bill-compare-row .bank-bill-compare-status{
+ margin:3px 4px;padding:4px 6px;font-size:10px;
+}
+body > [data-bank-review-modal] .bank-review-heading{
+ position:sticky;top:-13px;z-index:2;
+ padding:3px 0 8px;
+ background:var(--surface-primary,#fff);
+}
+@media(max-width:650px){
+ body > [data-bank-review-modal] > .bank-review-overlay{
+  align-items:flex-end;padding:0;
+ }
+ body > [data-bank-review-modal] .bank-bill-compare-dialog{
+  width:100%;max-width:100%;
+  max-height:calc(100dvh - env(safe-area-inset-top,0px));
+  padding:12px 11px calc(12px + env(safe-area-inset-bottom,0px));
+  border-radius:12px 12px 0 0;
+ }
+ body > [data-bank-review-modal] .bank-bill-compare-table .bank-bill-compare-row{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+ }
+ body > [data-bank-review-modal] .bank-bill-compare-row{
+  padding:7px 8px;gap:3px 7px;
+ }
+ body > [data-bank-review-modal] .bank-bill-compare-row > *{padding:0}
+ body > [data-bank-review-modal] .bank-bill-compare-row > .bank-bill-compare-value{
+  padding:6px 7px;
+ }
+ body > [data-bank-review-modal] .bank-review-heading{top:-12px}
 }
 
 </style>
@@ -33611,6 +33677,45 @@ function bankManualBillEvidenceRows(bill,notice=null,prepared=null,serverState='
     'Chưa thể kết luận không thu trùng');
  return result;
 }
+// BANK-317: the agreed ten bill fields, sourced solely from stored OCR.
+// On previous receipts fall back to the old raw_read keys; never re-run AI
+// when this form opens. Bank notifications are only comparison evidence.
+function bankSimpleTenFieldRows(bill,notice=null,prepared=null,serverState='checking'){
+ const all=bankManualBillEvidenceRows(bill,notice,prepared,serverState);
+ const byKey=k=>all.find(x=>x.label===k);
+ const raw=bill?.bill_ocr&&typeof bill.bill_ocr==='object'?bill.bill_ocr:
+  bill?.raw_read&&typeof bill.raw_read==='object'?bill.raw_read:{};
+ const saved=raw.bill_fields_v1&&typeof raw.bill_fields_v1==='object'?raw.bill_fields_v1:{};
+ const first=(...values)=>values.find(x=>typeof x==='string'&&x.trim())||'';
+ const mapping=[
+ ['Ngân hàng gửi','Ngân hàng gửi',first(saved.sending_bank,raw.sending_bank)],
+ ['Ngân hàng nhận','Ngân hàng nhận',first(saved.receiving_bank,raw.receiving_bank)],
+ ['Tên tài khoản nhận','Tên chủ TK nhận',first(saved.recipient_name,raw.recipient_name_printed,raw.recipient_name,bill?.receiving_name)],
+ ['Số tài khoản nhận','Số tài khoản nhận',first(saved.recipient_account,raw.recipient_account_visible,bill?.receiving_account)],
+ ['Số tiền (÷1.000)','Số tiền (÷1.000)',''],
+ ['Ngày giao dịch','Ngày giao dịch',first(saved.transfer_date_printed_vn,raw.transfer_date_printed_vn)],
+ ['Giờ giao dịch','Giờ giao dịch',first(saved.transfer_time_printed_vn,raw.transfer_time_printed_vn)],
+ ['Nội dung chuyển khoản','Nội dung chuyển khoản',first(saved.transfer_content,raw.transfer_content)],
+ ['Mã giao dịch / tham chiếu','Mã tham chiếu',first(saved.transfer_reference,bill?.transfer_reference)]
+ ];
+ const rows=mapping.map(([label,key,stored])=>{
+  const original=byKey(key)||{bill:'Chưa có dữ liệu',bank:'Chưa có thông báo',tone:'pending',result:'Chờ đối chiếu'};
+  const row={...original,label};
+  if(stored){
+   row.bill=stored;
+   if(row.tone==='pending'&&/API chưa trả|Chưa có .*bill|Chưa đọc|Dữ liệu AI chưa|Chưa trích xuất|Ngày AI/.test(row.result||'')){
+    row.result='Đã lưu trên bill';
+   }
+  }
+  return row;
+ });
+ const trace=first(saved.trace_code,raw.trace_code,raw.trace_number);
+ rows.push({label:'Mã tra soát',
+  bill:trace||'Chưa có dữ liệu đã lưu',
+  bank:'Thông báo Agribank không kèm mã tra soát',
+  tone:'pending',result:trace?'Đã đọc trên bill':'Chưa lưu riêng'});
+ return rows;
+}
 function bankManualBillPrepareErrorMessage(error){
  const code=String(error?.code||'');
  const message=String(error?.message||error||'');
@@ -33654,21 +33759,18 @@ async function openManualBillDialog(bill){
  const compare=el('section','bank-bill-compare');
  compare.setAttribute('aria-label','Bảng so sánh chứng cứ bill, Agribank và sổ thu');
  const compareTitle=el('div','bank-bill-compare-title');
- append(compareTitle,el('strong','','Đối chiếu thông tin'),
-  el('small','','Bill ↔ Thông báo Agribank'));
+ append(compareTitle,el('strong','','10 thông tin từ bill'),
+  el('small','','So với thông báo Agribank'));
  const comparison=el('div','bank-bill-compare-table');
  comparison.setAttribute('role','table');
  comparison.setAttribute('aria-label','So sánh chứng từ và tiền ngân hàng');
  const compareSummary=el('p','bank-bill-compare-summary');
  const compareHint=el('p','bank-bill-compare-hint',
-  'Nếu API chưa trả OCR, không được coi đó là lỗi AI đọc ảnh. '+
-  'Tên trong cấu hình Agribank không thay thế tên người nhận trích từ bill. '+
-  'Cùng số tiền, ngày hay nội dung chưa cho phép tự ghi thu.');
+  'Ảnh được AI đọc một lần và lưu. Chưa liên kết ngân hàng hoặc sổ thu thì không tự ghi thu.');
  append(compare,compareTitle,comparison,compareSummary,compareHint);
  form.appendChild(compare);
  const refreshEvidence=(prepared=null,state='checking')=>{
-  const rows=bankManualBillEvidenceRows(bill,comparisonNotice,prepared,state,
-   {candidateCount:bankCandidates.length});
+  const rows=bankSimpleTenFieldRows(bill,comparisonNotice,prepared,state);
   comparison.replaceChildren();
   const header=el('div','bank-bill-compare-row bank-bill-compare-header');
   header.setAttribute('role','row');
@@ -33690,15 +33792,9 @@ async function openManualBillDialog(bill){
    append(item,label,billCell,bankCell,status);
    comparison.appendChild(item);
   }
-  const matched=rows.filter(x=>x.tone==='matched').length;
-  const pending=rows.filter(x=>x.tone==='pending').length;
-  const review=rows.filter(x=>x.tone==='review'||x.tone==='duplicate').length;
-  compareSummary.textContent='Đối chiếu '+(comparisonNotice?'có thông báo Agribank ứng viên':'chưa có ứng viên NH')+
-   ' · Tiêu chí khớp: '+matched+
-   ' · Chờ thông tin: '+pending+' · Cần kiểm tra: '+review+
-   ' · '+(state==='ready'?'Máy chủ đã trả kết quả đối soát.':
-    state==='error'?'Chưa thể kiểm tra trên máy chủ.':
-     'Đang chờ máy chủ kiểm tra.');
+  compareSummary.textContent=(comparisonNotice?'Có thông báo Agribank ứng viên':'Chưa có thông báo Agribank phù hợp')+
+   ' · '+(state==='error'?'Chưa xác minh được sổ thu.':
+    state==='ready'?'Đã nhận kết quả đối soát sổ.':'Đang kiểm tra sổ thu.');
  };
  refreshEvidence();
  const info=el('p','bank-review-instruction','Đang kiểm tra bill và sổ công nợ…');
@@ -33723,6 +33819,9 @@ async function openManualBillDialog(bill){
  const save=el('button','bank-review-save','Xác minh và ghi thu');
  save.type='submit';save.disabled=true;
  append(actions,cancel,save);form.appendChild(actions);
+ // Move only this dialog's host above the whole Chat shell, not inside
+ // #stageLayout where the desktop contact sidebar obscures its left side.
+ if(document.body&&ui.review.parentElement!==document.body)document.body.appendChild(ui.review);
  overlay.appendChild(form);ui.review.hidden=false;ui.review.appendChild(overlay);
  attachReviewDialogKeyboard(overlay,form);
  overlay.addEventListener('click',event=>{if(event.target===overlay)closeReviewDialog();});
