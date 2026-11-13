@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="d1e008042e95328e53a555bff319d79085e15b0ae02dda894d42ef71257dcc7c">
+<meta name="app-build-id" content="ffc441f2680f9669061467f58e294249dabdaa591ce74e473aa0060272fe04c1">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -32820,7 +32820,9 @@ function paint(data){
  // retained inside the native details panel and refresh without closing it.
  ui.extraStatus?.replaceChildren(...additionalCards);
  renderTable(data);
- const mainKeys=new Set(['all','matched','waiting_bank','bank_only','review']);
+ // UI-324: three decisions + a real overflow menu; no half-visible
+ // mobile chip at the right edge. All filter choices remain available.
+ const mainKeys=new Set(['all','waiting_bank','matched']);
  const makeFilter=([key,label])=>{
    const b=el('button','bank-report-filter'+(filter===key?' is-selected':''));
    append(b,bankResponsiveLabel(label,bankFilterMobileLabels[key]||label));
@@ -32834,8 +32836,11 @@ function paint(data){
  const primary=filters.filter(([key])=>mainKeys.has(key)).map(makeFilter);
  const secondary=filters.filter(([key])=>!mainKeys.has(key));
  const more=el('details','bank-report-filter-more'+(!mainKeys.has(filter)?' is-selected':''));
- const summary=el('summary','bank-report-filter-more-trigger',!mainKeys.has(filter)?'Khác · đang lọc':'Khác');
+ const summary=el('summary','bank-report-filter-more-trigger','Khác');
  summary.setAttribute('aria-label','Các trạng thái đối soát khác');
+ summary.title=!mainKeys.has(filter)?
+  'Đang lọc: '+(filters.find(([key])=>key===filter)?.[1]||'Khác'):
+  'Chọn trạng thái khác';
  const menu=el('div','bank-report-filter-more-menu');
  for(const item of secondary){
   const b=makeFilter(item);
@@ -32910,10 +32915,29 @@ function renderTable(data){
  if(!tbody.children.length){
   const empty=el('div','bank-report-empty-state');
   empty.setAttribute('role','status');
-  append(empty,
-   el('strong','bank-report-empty-title','Chưa có bill trong ngày này'),
+  const text=el('div','bank-report-empty-copy');
+  append(text,
+   el('strong','bank-report-empty-title','Chưa có bill trong ngày đã chọn'),
    el('span','bank-report-empty-description',
-    'Chọn ngày khác để xem bill và các khoản đối soát.'));
+    'Có thể xem ngày trước để kiểm tra giao dịch và chứng từ.'));
+  const currentDay=String(ui.date.value||'');
+  const selected=/^20\\d{2}-\\d{2}-\\d{2}$/.test(currentDay)?
+    new Date(currentDay+'T12:00:00Z'):null;
+  if(selected&&!Number.isNaN(selected.getTime())){
+   selected.setUTCDate(selected.getUTCDate()-1);
+   const previous=selected.toISOString().slice(0,10);
+   if(previous>='2026-10-19'){
+    const action=el('button','bank-report-empty-previous','Xem ngày trước');
+    action.type='button';
+    action.addEventListener('click',()=>{
+     if(!active||!isReportContact())return;
+     ui.date.value=previous;
+     filter='all';selectedCustomer=null;current=null;
+     void reload();
+    });
+    append(empty,text,action);
+   }else empty.appendChild(text);
+  }else empty.appendChild(text);
   ui.table.replaceChildren(empty);
   ui.table.classList.add('is-empty');
   return;
