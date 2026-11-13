@@ -1598,7 +1598,7 @@ function bankManualBillSuggestedNote(bill,notice=null,prepared=null){
  const priority=high.length?' Ưu tiên đỏ: '+high.join('; ')+'.':'';
  const secondary=low.length?' Cần đối chiếu: '+low.join('; ')+'.':'';
  const footer=' Admin kiểm tra tiền thực nhận, đúng khách và chống thu trùng; bill thiếu giờ vẫn chỉ được thu khi máy chủ chấp nhận chứng cứ.';
- return (header+priority+secondary+footer).slice(0,1000);
+ return (header+priority+secondary+footer).slice(0,900);
 }
 function bankManualBillPrepareErrorMessage(error){
  const code=String(error?.code||'');
@@ -1686,7 +1686,7 @@ async function openManualBillDialog(bill){
  const existingBox=el('div','bank-review-existing');form.appendChild(existingBox);
  const noteLabel=el('label','bank-review-label','Ghi chú đối soát (tự điền ưu tiên cảnh báo đỏ; có thể sửa)');
  const note=el('textarea','bank-review-explanation');
- note.rows=3;note.minLength=15;note.maxLength=1000;note.required=true;
+ note.rows=3;note.minLength=15;note.maxLength=950;note.required=true;
  note.value=bankManualBillSuggestedNote(bill,comparisonNotice);
  note.placeholder='Ghi chú tự đề xuất từ cảnh báo đỏ/vàng. Chỉnh lại sau khi kiểm tra Agribank thực tế.';
  note.setAttribute('aria-description','Mẫu ghi chú dựa trên chứng cứ; chỉ tích xác nhận sau khi đã kiểm tra Agribank trực tiếp.');
