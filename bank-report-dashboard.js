@@ -431,6 +431,15 @@ function paint(data){
    !(g.bank_group_notice_ids||[g.notice_id]).some(id=>handled.has(String(id)))).length;
  const incomingStats=bankCreditGroupingStatus(groups,incoming);
  const incomingAmountVnd=incomingStats.minVnd;
+ // UI-325: zero means NO DATA REPORTED to Chat for this selected date,
+ // not proof that the actual Agribank account had no credits. Collapse
+ // repetitive zero KPI cards only when every independent source is empty.
+ const summaryHasData=Object.values(s).some(value=>
+  (typeof value==='number'||/^-?\\d+(?:\\.\\d+)?$/.test(String(value??'')))&&
+  Number(value)!==0);
+ const zeroDay=!incoming.length && !(data?.bills||[]).length &&
+  !(data?.manual_collections||[]).length && !summaryHasData;
+ root.classList.toggle('is-zero-day',zeroDay);
  if(ui.queue){
   renderBankWorkQueue(data,outstanding);
   renderBankGapWarnings(data);
@@ -558,10 +567,15 @@ function renderTable(data){
   const empty=el('div','bank-report-empty-state');
   empty.setAttribute('role','status');
   const text=el('div','bank-report-empty-copy');
+  const noData=root.classList.contains('is-zero-day');
   append(text,
-   el('strong','bank-report-empty-title','Chưa có bill trong ngày đã chọn'),
-   el('span','bank-report-empty-description',
+   el('strong','bank-report-empty-title',noData?
+    'Chưa có dữ liệu đối soát được ghi nhận':'Chưa có bill trong ngày đã chọn'),
+   el('span','bank-report-empty-description',noData?
+    'Không đồng nghĩa ngân hàng không có tiền về. Nếu đã nhận chuyển khoản, cần kiểm tra thông báo Agribank.':
     'Có thể xem ngày trước để kiểm tra giao dịch và chứng từ.'));
+  if(noData)text.appendChild(el('span','bank-report-empty-meta',
+   'Báo cáo hôm nay: 0 tiền vào · 0 đã thu · 0 bill'));
   const currentDay=String(ui.date.value||'');
   const selected=/^20\d{2}-\d{2}-\d{2}$/.test(currentDay)?
     new Date(currentDay+'T12:00:00Z'):null;
