@@ -145,6 +145,34 @@ const statusText={
  non_bill:'Không phải bill',reading:'Đang đọc ảnh',test_excluded:'Tiền test (loại)'
 };
 const isAiScanIssue=row=>/^(?:amount_scan_|ai_scan_|ai_year_error_)/i.test(String(row?.reason||''));
+// BANK-349: OCR disagreements from an unreadable image are NOT proven
+// customer-account errors. This changes explanatory UI only: the original
+// AI reading and server-side financial guard stay unmodified.
+function bankBillImageUncertainty(row){
+ const raw=row?.bill_ocr&&typeof row.bill_ocr==='object'?row.bill_ocr:
+   row?.raw_read&&typeof row.raw_read==='object'?row.raw_read:{};
+ const uncertainty=String(raw.uncertainty||'');
+ const caseName=String(raw.recognition_case||'');
+ const reason=String(row?.reason||'');
+ if(!['bill_recipient_account_conflict','bill_printed_datetime_conflict',
+       'bill_printed_time_missing'].includes(reason))return false;
+ // Do not reframe an explicitly clear discrepancy as image blur.
+ return /(?:không đọc (?:được )?rõ|bị mờ|mờ|nhòe|loá|lóa|khuất|chụp màn hình thiết bị khác)/iu.test(uncertainty)
+    &&(Boolean(uncertainty.trim())||caseName==='no_printed_clock');
+}
+function bankBillUncertainDescription(row){
+ const raw=row?.bill_ocr&&typeof row.bill_ocr==='object'?row.bill_ocr:
+   row?.raw_read&&typeof row.raw_read==='object'?row.raw_read:{};
+ const problems=[];
+ if(row?.reason==='bill_recipient_account_conflict')problems.push('số tài khoản nhận');
+ if(!raw.transfer_time_printed_vn)problems.push('giờ giao dịch');
+ if(raw.transfer_date_printed_vn&&raw.transfer_date_vn&&
+    row?.reason==='bill_recipient_account_conflict')problems.push('ngày giao dịch');
+ return 'Ảnh bill khó đọc; AI chưa xác minh chắc chắn '+(problems.length?problems.join(', '):'chi tiết giao dịch')+
+  '. Những ký tự AI đọc được có thể sai, chưa đủ căn cứ kết luận khách chuyển nhầm hoặc bill sai. '+
+  'Đối chiếu lại ảnh gốc với Agribank trước khi xác nhận; chưa tự thu và không thay đổi công nợ.';
+}
+
 function scanIssueLabel(raw){
  const reason=String(raw||'');
  if(/ai_year_error_bank_verified_prior_day_review/i.test(reason))return 'Agribank đã xác nhận · AI đọc sai năm · Cần xử lý ghi thu ngày cũ';
@@ -741,6 +769,7 @@ function detailLine(row,isBank=false,candidates=[]){
       isBank&&candidates.length?'Cần xác minh bill':
       !isBank&&type==='matched'&&!recorded?'Lệch sổ · Xác minh':
       !isBank&&isAiScanIssue(row)?'AI cần xác minh':
+      !isBank&&bankBillImageUncertainty(row)?'Ảnh khó đọc · Cần soát':
       dateSwapSuspect?'Nghi sai ngày':statusText[type]||'Cần xác minh');
  if(isBank&&!manualRecord&&!candidates.length){
   label.type='button';
@@ -834,7 +863,8 @@ function detailLine(row,isBank=false,candidates=[]){
  }
  if(row.reason&&!isBank){
   let reason='Ghi chú: '+row.reason;
-  if(dateSwapSuspect)reason='AI có thể đã đọc đảo ngày/tháng so với ảnh bill. Giờ gửi ảnh không chứng minh ngày chuyển khoản. Cần đối chiếu ảnh gốc với Agribank, không tự ghi thu.';
+  if(bankBillImageUncertainty(row))reason=bankBillUncertainDescription(row);
+  else if(dateSwapSuspect)reason='AI có thể đã đọc đảo ngày/tháng so với ảnh bill. Giờ gửi ảnh không chứng minh ngày chuyển khoản. Cần đối chiếu ảnh gốc với Agribank, không tự ghi thu.';
   else if(row.reason==='bill_recipient_account_missing')reason='Ảnh chưa đọc rõ số tài khoản NGƯỜI NHẬN. Chờ bạn đối chiếu chứng từ và thu thủ công, chưa ghi công nợ.';
   else if(row.reason==='bill_recipient_account_conflict')reason='Số tài khoản người nhận trên ảnh không khớp tài khoản Agribank cần thu. Không tự khớp; bạn xác minh thủ công.';
   else if(row.reason==='bill_printed_date_missing')reason='Ảnh chưa đọc được ngày giao dịch in trên bill. Không dùng ngày gửi ảnh thay thế; chờ bạn xác minh/thu thủ công.';
