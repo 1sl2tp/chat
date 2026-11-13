@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="863fc616ae98b069faebee8770f702c0e7925c9072f07ecf15bb257f82c48e49">
+<meta name="app-build-id" content="67fa5783cb04e0ec2485adf6cbe56102873f66f3def9385309bd4f78b5a1d894">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -5150,6 +5150,92 @@ body > [data-bank-review-modal] .bank-review-heading{
  .bank-daily-form .bank-daily-row-actions{gap:5px 7px;}
 }
 
+/* UI-332: one-tap Agribank accordion with the full bank memo beside
+   the linked bill memo. These are visual source labels, not a new
+   matching rule, finance verification, or permission to collect. */
+#bankReportDashboard .bank-report-credit > .bank-report-detail-top{
+  cursor:pointer;
+  touch-action:manipulation;
+  min-height:46px;
+}
+#bankReportDashboard .bank-report-credit[open] > .bank-report-detail-top{
+  background:var(--surface-secondary,#f5f7f9);
+  border-bottom:1px solid var(--border-default,#e4e9ee);
+}
+#bankReportDashboard .bank-report-memo-compare{
+  grid-column:1/-1;
+  width:100%;
+  min-width:0;
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+  align-items:stretch;
+  margin:3px 0;
+}
+#bankReportDashboard .bank-report-memo-compare .bank-report-field{
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+  min-width:0;
+  padding:11px 12px;
+  border:1px solid #dce8e5;
+  border-radius:10px;
+  background:#f5fbf8;
+}
+#bankReportDashboard .bank-report-memo-compare .bank-report-field:nth-child(2){
+  background:var(--surface-secondary,#f7f8fa);
+  border-color:var(--border-default,#e2e7ed);
+}
+#bankReportDashboard .bank-report-memo-compare .bank-report-field-label{
+  color:#41675c;
+  font-size:11px;
+  font-weight:700;
+  line-height:1.3;
+}
+#bankReportDashboard .bank-report-memo-compare .bank-report-field-value{
+  display:block;
+  font-size:12px;
+  font-weight:650;
+  line-height:1.5;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+}
+#bankReportDashboard .bank-report-memo-unlinked{
+  display:flex;
+  align-items:center;
+  padding:9px 11px;
+  min-width:0;
+  border:1px dashed var(--border-default,#dce3e8);
+  border-radius:9px;
+  color:var(--text-secondary,#69757f);
+  background:var(--surface-secondary,#f8f9fa);
+  font-size:11px;
+  line-height:1.45;
+  overflow-wrap:anywhere;
+}
+@media(max-width:760px){
+  #bankReportDashboard .bank-report-credit > .bank-report-detail-top{
+    min-height:46px;
+  }
+  #bankReportDashboard .bank-report-memo-compare{
+    grid-template-columns:minmax(0,1fr);
+    gap:7px;
+    margin:4px 0;
+  }
+  #bankReportDashboard .bank-report-memo-compare .bank-report-field{
+    padding:9px 10px;
+    border-radius:9px;
+  }
+  #bankReportDashboard .bank-report-memo-compare .bank-report-field-label{
+    font-size:10.5px;
+  }
+  #bankReportDashboard .bank-report-memo-compare .bank-report-field-value{
+    font-size:11.5px;
+    line-height:1.45;
+  }
+}
+
 </style>
 <style data-inlined-source="ui-foundation.css">
 /*
@@ -8413,6 +8499,15 @@ button{
 }
 .top-mode-switch[data-contact-identity="true"]{
   grid-template-columns:minmax(0,1fr) max-content;
+}
+/* UI-332: the report is a report, not a photo browsing conversation.
+   Hide Photos only when the authenticated bank report view is active;
+   ordinary Chat and customer photo browsing keep their existing tab. */
+body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-switch{
+  grid-template-columns:minmax(0,1fr);
+}
+body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-tab="photos"]{
+  display:none!important;
 }
 .top-mode-tab{
   min-width:0;
@@ -34501,6 +34596,14 @@ function bankCreditLine(row,allBills){
  const suggestion=kind==='unmatched'?bankBillCustomerSuggestion(row,allBills):null;
  const candidate=Boolean(row.bank_group_tentative);
  const wrap=el('details','bank-report-detail bank-report-credit');
+ // UI-332: native <summary> toggles on one tap; keep a single credit expanded
+ // at a time so comparison stays visible without a long stack of open rows.
+ wrap.addEventListener('toggle',()=>{
+  if(!wrap.open||!ui.groups?.contains?.(wrap))return;
+  for(const peer of ui.groups.querySelectorAll('.bank-report-credit[open]')){
+   if(peer!==wrap)peer.open=false;
+  }
+ });
  wrap.dataset.bankTone=bankReportCreditTone(row,issue);
  wrap.dataset.bankNoticeId=String(row.notice_id);
  const top=el('summary','bank-report-detail-top');
@@ -34522,7 +34625,28 @@ function bankCreditLine(row,allBills){
  const content=el('div','bank-report-detail-content bank-report-detail-essential');
  append(content,cell('Giờ Agribank (đến phút)',agribankDisplayTime(row.bank_time,ui.date.value)));
  if(row.customer_name)content.appendChild(cell('Khách hàng',row.customer_name));
- if(row.bank_memo)content.appendChild(cell('Nội dung chuyển tiền',row.bank_memo));
+ // UI-332: the bank notice and the linked bill are two distinct sources.
+ // Display both original texts for visual comparison, without inferring
+ // any match or authorizing collection from the UI.
+ const bankContent=String(row.bank_memo||
+  /Nội dung giao dịch:\s*(.+?)(?:(?:\.\s*)?Số dư cuối:|$)/i.exec(
+   String(row.bank_body||row.body||''))?.[1]||'').trim();
+ const linkedBill=row.receipt_id?(allBills||[]).find(b=>
+  String(b.receipt_id||'')===String(row.receipt_id)):null;
+ const billRaw=linkedBill?.bill_ocr&&typeof linkedBill.bill_ocr==='object'?
+  linkedBill.bill_ocr:linkedBill?.raw_read&&typeof linkedBill.raw_read==='object'?
+  linkedBill.raw_read:{};
+ const billContent=String(billRaw.transfer_content||
+  linkedBill?.transfer_content||linkedBill?.transfer_memo||'').trim();
+ const compare=el('section','bank-report-memo-compare');
+ compare.setAttribute('aria-label','So sánh nội dung chuyển khoản');
+ compare.appendChild(cell('Nội dung Agribank',
+  bankContent||'Thông báo chưa có nội dung chuyển khoản'));
+ if(linkedBill)compare.appendChild(cell('Nội dung trên bill',
+  billContent||'Chưa đọc được nội dung trên bill'));
+ else compare.appendChild(el('span','bank-report-memo-unlinked',
+  'Chưa có bill liên kết để so sánh nội dung.'));
+ content.appendChild(compare);
  if(row.bank_balance_text&&/^[+-]?[0-9,]{1,20}$/.test(String(row.bank_balance_text).trim())){
   const amount=Number(String(row.bank_balance_text).replace(/,/g,''));
   if(Number.isSafeInteger(amount))content.appendChild(cell('Số dư sau giao dịch',bankDisplayVnd(amount)));
