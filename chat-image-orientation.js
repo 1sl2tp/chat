@@ -106,6 +106,19 @@ function installStyle(){
       backdrop-filter:blur(16px);
       -webkit-backdrop-filter:blur(16px);
     }
+    /* IMG-343: zoom controls live INSIDE the interactive image stage.
+       No child of the non-interactive header may own a mobile zoom hit area. */
+    .image-review .image-review-main>.image-review-zoom-controls{
+      position:absolute;
+      z-index:14;
+      right:1rem;
+      left:auto;
+      bottom:1rem;
+      margin:0;
+      transform:none;
+      pointer-events:auto;
+      touch-action:manipulation;
+    }
     /* IMG-342: the filmstrip is z-index:9. Controls positioned at the
        previous bottom .62rem were hidden behind it because their parent
        header had z-index:8. Keep both tools above the filmstrip and lift
@@ -114,19 +127,20 @@ function installStyle(){
       .image-viewer-overlay[open] .image-review-head{z-index:12}
       .image-review .chat-image-viewer-rotate-controls,
       .image-review .image-review-zoom-controls{
-        position:fixed;
-        z-index:13;
+        position:absolute;
+        z-index:14;
+        right:.75rem;
+        left:auto;
         bottom:calc(7.8rem + env(safe-area-inset-bottom,0px));
-        transform:translateX(-50%);
+        transform:none;
         margin:0;
         pointer-events:auto;
       }
       .image-review .chat-image-viewer-rotate-controls{left:calc(50% - 5.2rem)}
-      .image-review .image-review-zoom-controls{left:calc(50% + 3.1rem)}
     }
     @media(max-width:700px) and (max-height:480px){
       .image-review .chat-image-viewer-rotate-controls,
-      .image-review .image-review-zoom-controls{
+      .image-review .image-review-main>.image-review-zoom-controls{
         bottom:calc(6.4rem + env(safe-area-inset-bottom,0px));
       }
     }
