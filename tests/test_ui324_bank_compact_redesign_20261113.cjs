@@ -16,7 +16,9 @@ assert(caption>0&&caption<filters&&filters<table,
 assert(report.includes('data-bank-date')&&report.includes('data-bank-refresh'));
 assert(report.includes('data-bank-daily-summary'),
  'sending control remains explicit, never automatic');
-const own=css.slice(css.indexOf('/* UI-324: compact decision-first bank report'));
+const ownStart=css.indexOf('/* UI-324: compact decision-first bank report');
+const ownEnd=css.indexOf('/* UI-325:',ownStart+1);
+const own=css.slice(ownStart,ownEnd>ownStart?ownEnd:undefined);
 assert(own.length>6000);
 assert(own.includes('grid-template-columns:repeat(4,minmax(0,1fr))'));
 assert(own.includes('grid-template-columns:repeat(2,minmax(0,1fr))'));
