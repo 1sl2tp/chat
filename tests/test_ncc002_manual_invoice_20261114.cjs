@@ -1,0 +1,41 @@
+'use strict';
+// NCC-002: source contract — no production requests or synthetic invoices.
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const read=p=>fs.readFileSync(p,'utf8');
+const ui=read('ncc-invoice-admin.js');
+const edge=read('supabase/functions/v21-ncc-invoice/index.ts');
+const sql=read('supabase/migrations/20261114061000_chat_ncc_supplier_invoice_intake.sql');
+const directory=read('contact-directory-admin.js');
+const groupApi=read('supabase/functions/v21-zalo-admin/index.ts');
+
+assert.match(ui,/data-ncc-upload/);
+assert.match(ui,/data-ncc-manage/);
+assert.match(ui,/accept="image\/jpeg,image\/png,image\/webp"/);
+assert.match(ui,/file\.size>4000000/);
+assert.match(ui,/call\('manual_upload'/);
+assert.match(ui,/action:'set_group',target_account_id:id,contact_group:'ncc'/);
+assert.match(ui,/refreshGroups/);
+assert.match(directory,/\['ncc','TK NCC'\]/);
+assert.match(groupApi,/action === "set_group"/);
+assert.match(groupApi,/NCC_INVOICE_ENABLED/);
+
+assert.match(sql,/origin text not null default 'chat'/);
+assert.match(sql,/manual_storage_key text unique/);
+assert.match(sql,/origin='manual' and conversation_id is null and message_id is null/);
+assert.match(sql,/chat_ncc_invoice_number_unique/);
+assert.match(sql,/chat_ncc_invoice_image_unique/);
+assert.match(sql,/chat_ncc_queue_received_image/);
+assert.match(edge,/if\(action==='manual_upload'\)/);
+assert.match(edge,/if\(action==='suppliers'\)/);
+assert.match(edge,/const supplierId=admin!\.id/);
+assert.match(edge,/\.eq\('contact_group','ncc'\)/);
+assert.match(edge,/\.eq\('image_sha256',hash\)/);
+assert.match(edge,/if\(existing\?\.length\)return respond\(\{ok:true,status:'duplicate'/);
+assert.match(edge,/db\.storage\.from\('v21-media'\)\.upload/);
+assert.match(edge,/if\(isManual\)/);
+assert.match(edge,/validatePrintedInvoice\(raw\)/);
+assert.match(edge,/matchSupplierLine/);
+assert.doesNotMatch(edge,/taphoa_update_product_from_web/);
+assert.doesNotMatch(edge,/chat_bank_app_collect/);
+console.log('NCC-002 manual upload, supplier assignment and duplicate guards source PASS');
