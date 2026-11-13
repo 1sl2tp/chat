@@ -17,6 +17,7 @@ create table if not exists public.chat_ncc_invoices (
  media_asset_id uuid unique references public.v21_media_assets(id),
  origin text not null default 'chat' check (origin in ('chat','manual')),
  manual_storage_key text unique,
+ manual_mime_type text check (manual_mime_type in ('image/jpeg','image/png','image/webp')),
  image_sha256 text,
  invoice_date date,
  invoice_number text,
@@ -32,7 +33,7 @@ create table if not exists public.chat_ncc_invoices (
  check ((origin='chat' and conversation_id is not null and message_id is not null and media_asset_id is not null and manual_storage_key is null)
     or (origin='manual' and conversation_id is null and message_id is null and media_asset_id is null
       and created_by is not null and length(btrim(coalesce(supplier_label,''))) between 2 and 120
-      and (manual_storage_key is null or manual_storage_key like 'ncc-manual/%'))),
+      and (manual_storage_key is null or manual_storage_key like 'ncc-manual/%' and manual_mime_type is not null))),
  check (invoice_number is null or length(btrim(invoice_number)) between 1 and 100),
  check (image_sha256 is null or image_sha256 ~ '^[0-9a-f]{64}
 );
