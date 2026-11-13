@@ -50,7 +50,7 @@ const record={
 };
 function verifyLayout(hasExtra){
  const ui=baseUi();if(!hasExtra)delete ui.extraStatus;
- const context={ui,root:{scrollTop:22},
+ const context={ui,root:{scrollTop:22,classList:{toggle(){}}},
    filter:'all',selectedCustomer:null,filters:[['all','Tất cả'],['matched','Đã khớp']],
    bankFilterMobileLabels:{all:'Tất cả',matched:'Đã khớp'},
    money:x=>String(x),bankDisplayVnd:x=>new Intl.NumberFormat('vi-VN').format(x/1000),
