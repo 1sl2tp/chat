@@ -435,7 +435,7 @@ function paint(data){
  // not proof that the actual Agribank account had no credits. Collapse
  // repetitive zero KPI cards only when every independent source is empty.
  const summaryHasData=Object.values(s).some(value=>
-  (typeof value==='number'||/^-?\\d+(?:\\.\\d+)?$/.test(String(value??'')))&&
+  (typeof value==='number'||/^-?\d+(?:\.\d+)?$/.test(String(value??'')))&&
   Number(value)!==0);
  const zeroDay=!incoming.length && !(data?.bills||[]).length &&
   !(data?.manual_collections||[]).length && !summaryHasData;
