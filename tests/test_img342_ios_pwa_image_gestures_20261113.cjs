@@ -35,14 +35,16 @@ controls.closest=selector=>selector==='button'?controls:null;
 const listeners=new Map();
 const main={
   getBoundingClientRect(){return{left:0,top:0,width:400,height:600};},
+  contains(target){return target===image;},
   addEventListener(type,callback,options){
     listeners.set(type,{callback,options});
   }
 };
-let now=1000;
+let now=1000,clock=1000;
 const navigation=[],closed=[],transforms=[];
 const ctx={
-  Map,Math,Number,Element,performance:{now:()=>now},
+  Map,Math,Number,Element,Date:{now:()=>clock},performance:{now:()=>now},
+  imageViewerPinchRendering:false,imageViewerPinchBaseZoom:1,
   imageViewerPointers:new Map(),imageViewerTouchStarts:new Map(),
   imageViewerGesture:null,imageViewerGesturePinched:false,
   imageViewerPanX:0,imageViewerPanY:0,imageViewerZoom:1,
@@ -76,7 +78,7 @@ function fire(type,changedTouches,target=image){
   });
   if(type!=='touchcancel')assert(prevented,type+' must suppress native page zoom');
 }
-assert.equal(listeners.size,4);
+assert.equal(listeners.size,7,'four Touch Events and three WebKit GestureEvents');
 // Execute a fresh fixture with a shared ctx. (The handlers close over their VM
 // context; the following asserts check the transform callbacks from that VM.)
 fire('touchstart',[touch(1,100,250)]);
@@ -127,4 +129,26 @@ listeners.get('touchstart').callback({
   preventDefault(){prevent=true;}
 });
 assert.equal(prevent,false,'control buttons retain their native click');
+// Native iOS GestureEvents are a fallback when WebKit cancels TouchEvents.
+clock=5000;
+let preventedGesture=false;
+function gesture(type,scale){
+  const listener=listeners.get(type);
+  assert(listener&&listener.options.passive===false);
+  listener.callback({
+    target:image,scale,clientX:130,clientY:250,cancelable:true,
+    preventDefault(){preventedGesture=true;}
+  });
+}
+ctx.imageViewerZoom=1;
+gesture('gesturestart',1);
+gesture('gesturechange',3);
+assert.equal(ctx.imageViewerZoom,3,'WebKit native gesturechange must zoom image');
+gesture('gestureend',3);
+assert.equal(ctx.imageViewerPinchRendering,false,'gestureend re-renders full-res pixels');
+assert(preventedGesture,'native page pinch must be blocked inside the viewer');
+// Dedicated +/- control is INSIDE main, not the non-interactive header.
+assert.match(app,/head\.append\(heading,close\);/);
+assert.match(app,/main\.append\(image,prev,next,meta,zoomControls\);/);
+assert.match(orientation,/\.image-review \.image-review-main>\.image-review-zoom-controls/);
 console.log('IMG-342 iOS pinch/pan/swipe/double-tap, cancellation and visible zoom controls PASS');
