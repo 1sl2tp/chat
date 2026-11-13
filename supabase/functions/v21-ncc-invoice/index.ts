@@ -83,7 +83,7 @@ async function analyze(invoice:any){
    if(!String(invoice.manual_storage_key||'').startsWith('ncc-manual/'))throw new Error('invalid_manual_path');
    const {data:file,error}=await db.storage.from('v21-media').download(invoice.manual_storage_key);
    if(error||!file)throw new Error('image_unavailable');
-   mime=String(file.type||'image/jpeg').toLowerCase();
+   mime=String(invoice.manual_mime_type||'').toLowerCase();
    bytes=new Uint8Array(await file.arrayBuffer());
   }else{
   const {data:media,error:mediaError}=await db.from('v21_media_assets')
@@ -95,12 +95,17 @@ async function analyze(invoice:any){
       throw new Error('invalid_media');
   const {data:account}=await db.from('v21_accounts').select('id,role,contact_group')
    .eq('id',invoice.chat_account_id).is('deleted_at',null).maybeSingle();
-  if(!account||(!isManual&&(account.role!=='user'||account.contact_group!=='ncc')))
-   throw new Error('not_ncc_sender');
+  if(!account||account.role!=='user'||account.contact_group!=='ncc')throw new Error('not_ncc_sender');
   const {data:file,error:downloadError}=await db.storage.from('v21-media').download(media.storage_key);
   if(downloadError||!file)throw new Error('image_unavailable');
   bytes=new Uint8Array(await file.arrayBuffer());
   mime=media.mime_type;
+  }
+  if(isManual){
+   const {data:owner}=await db.from('v21_accounts').select('id,role,contact_group')
+    .eq('id',invoice.chat_account_id).is('deleted_at',null).maybeSingle();
+   if(!owner||(owner.role!=='admin'&&(owner.role!=='user'||owner.contact_group!=='ncc')))
+    throw new Error('manual_supplier_invalid');
   }
   if(!mimeOk(mime)||bytes.length<100||bytes.length>4000000)throw new Error('invalid_media_size');
   const hash=await sha256(bytes);
@@ -215,7 +220,7 @@ Deno.serve(async req=>{
    {contentType:mime,upsert:false});
   if(uploaded.error)return fail('manual_upload_unavailable',503);
   const inserted=await db.from('chat_ncc_invoices').insert({
-   id,chat_account_id:supplierId,origin:'manual',manual_storage_key:storageKey,image_sha256:hash,status:'pending'
+   id,chat_account_id:supplierId,origin:'manual',manual_storage_key:storageKey,manual_mime_type:mime,image_sha256:hash,status:'pending'
   }).select('id').single();
   if(inserted.error){
    await db.storage.from('v21-media').remove([storageKey]);
