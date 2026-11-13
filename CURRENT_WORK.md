@@ -1,3 +1,13 @@
+## 2026-11-13 — UI-341 · Sửa danh bạ: preview tối đa hai dòng, không đè thời gian
+
+- **E0:** Ảnh chụp Chat Web khoảng 500px, người dùng đánh dấu đỏ dọc mép phải, dưới một hàng preview dài: các bản xem trước đang một dòng/cắt ngang và chạy tới mép dưới vùng thời gian. Dù title/time ở 2 cột, preview cũ dùng `grid-column:1/-1` nên chiếm cả đường ray thời gian trên hàng dưới. Khi cho preview 2 dòng mà không mở height, dòng thứ hai bị cắt hoặc đè dòng sau.
+- **E1:** Chỉ sửa CSS cuối `mobile-ui-polish.css` cho narrow `#shellNavigationLayer`: dùng cột 1 riêng cho cả tên và preview, cột 2 64px chỉ cho `Trực tiếp`/HH:mm/Hôm qua, `minmax(0,1fr)` tránh tràn; preview `-webkit-line-clamp:2`, break anywhere và tối đa 36px; hàng ngắn tối thiểu 60px, hàng dài tự mở cao theo nội dung. Tên, thời gian, nhận diện báo cáo, giờ Việt Nam, tin nhắn và quyền giữ nguyên. Không thêm thanh header, logo hay menu.
+- **E2/E3:** `tests/test_ui341_mobile_directory_preview_time_20261113.cjs` kiểm tra độ rộng 320/360/375/390/430/500/506, cột thời gian, 2 dòng, focus/active và trạng thái `Trực tiếp`; thêm vào `tools/verify_current.py`. Mới đổi epoch shell Web/PWA công khai, không đụng IndexedDB, account, lịch sử, tin nhắn hoặc giao dịch. Đợi CI/Pages PASS trước khi gọi đã triển khai.
+- **E5:** kiểm thử trực tiếp màn hình Safari/PWA có nội dung thật và cuộn giữ vị trí vẫn cần xác minh thiết bị; không tự tuyên bố đạt.
+- **Rollback:** revert stylesheet và shell epoch, build canonical theo Pages; không xóa session/cache riêng tư.
+
+---
+
 ## 2026-11-13 — CHAT-340 · Trạng thái tin đang gửi bằng viền chuyển động (Web/PWA)
 
 - **E0:** ảnh Web Chat do người dùng cung cấp cho thấy nhãn trạng thái gửi đôi khi chiếm hàng riêng sát vùng nhập; layout tin được virtualize và Composer là scroll owner độc lập. `syncMessageDeliveryState()` trước đây thêm một dòng `.message-delivery-state` sau giờ gửi khi tin có `status='sending'`.

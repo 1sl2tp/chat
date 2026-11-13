@@ -64,6 +64,10 @@ assert(app.includes("message?.status==='sending'?'Tạo lúc '"));
 assert(app.includes("status:'sending'"),'optimistic state still exists');
 assert(app.includes("unit.dataset.deliveryState='sending';"),'media retry reuses pending border');
 assert(app.includes("retryFailedMedia?.("),'durable retry remains available');
-assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-send-border-chat340-20261113';"),
- 'a Web/PWA shell version bump must ship the new visual');
+// CHAT-340's pending-orbit CSS remains required, but later releases must
+// rotate the public shell epoch without invalidating this old feature test.
+assert(/const SHELL_CACHE_EPOCH='pwa-chat-[a-z0-9-]+';/.test(sw),
+ 'a versioned Web/PWA shell must ship the visual');
+assert(!sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-send-border-chat340-20261113';"),
+ 'the release epoch must advance beyond the CHAT-340 build');
 console.log('CHAT-340 sending orbit: zero status reflow, ACK clears, failed visible, media retry and reduced-motion PASS');
