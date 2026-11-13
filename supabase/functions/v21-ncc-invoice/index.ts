@@ -155,11 +155,15 @@ async function analyze(invoice:any){
 Deno.serve(async req=>{
  if(req.method==='OPTIONS')return new Response(null,{status:204,headers});
  if(req.method!=='POST')return fail('method_not_allowed',405);
- const admin=await requireAdmin(req);
- if(!admin)return fail('admin_required',403);
+ const configuredSecret=Deno.env.get('NCC_INVOICE_WEBHOOK_SECRET')||'';
+ const incomingSecret=req.headers.get('x-ncc-hook-secret')||'';
+ const webhook=configuredSecret.length>=32&&incomingSecret===configuredSecret;
+ const admin=webhook?null:await requireAdmin(req);
+ if(!webhook&&!admin)return fail('admin_required',403);
  let body:any;
  try{body=await req.json();}catch{return fail('invalid_json');}
  const action=String(body?.action||'').trim();
+ if(webhook&&action!=='scan')return fail('webhook_scan_only',403);
  if(action==='list'){
   const {data,error}=await db.from('chat_ncc_invoices')
    .select('id,chat_account_id,conversation_id,message_id,media_asset_id,invoice_date,invoice_number,printed_total_vnd,status,note,created_at')
@@ -216,7 +220,7 @@ Deno.serve(async req=>{
   }
   const lines=await getLines(id);
   if(lines.length&&lines.every((x:any)=>x.product_code&&!x.review_required))
-   await db.from('chat_ncc_invoices').update({status:'matched',reviewed_at:new Date().toISOString(),reviewed_by:admin.id})
+   await db.from('chat_ncc_invoices').update({status:'matched',reviewed_at:new Date().toISOString(),reviewed_by:admin!.id})
     .eq('id',id);
   return respond({ok:true,documentId:id,lines:await getLines(id)});
  }
