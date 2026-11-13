@@ -369,6 +369,7 @@ function bankLineClock(raw,day=''){
 // verified bill amount are not evidence of a duplicate payment. This includes
 // 13/11 C Hue's repeated box photo (original classified non_bill on 20/10).
 // Keep canonical rows for audit; exclude only from this business projection.
+// This presentation gate must never change stored receipts or Agribank evidence.
 function bankReportVisibleData(data){
  const bills=(Array.isArray(data?.bills)?data.bills:[]).filter(row=>{
   if(!row||row.report_status==='non_bill')return false;
