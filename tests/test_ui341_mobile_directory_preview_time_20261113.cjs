@@ -59,5 +59,7 @@ assert(shell.includes("return{preview:'Báo cáo trực tiếp · Mở để xem
  'report label stays a right-column time/status, never a preview overlay');
 assert(shell.includes("node.setAttribute('aria-label',reportView?reportView.time:"),
  'semantic time remains accessible even if visually shortened');
-assert(sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-directory-2line-ui341-20261113';"));
+// A later release must keep the directory clamp and advance the shell version.
+assert(/const SHELL_CACHE_EPOCH='pwa-chat-[a-z0-9-]+';/.test(sw));
+assert(!sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-directory-2line-ui341-20261113';"));
 console.log('UI-341 preview 1–2 lines: protected time rail, narrow widths, report/live, scroll geometry PASS');
