@@ -18,6 +18,7 @@ let query='';
 let filter='all';
 let groupMap=new Map();
 let loadedAdminId='';
+let nccReady=false;
 let loadingGroups=false;
 let syncQueued=false;
 let syncScrollToTop=false;
@@ -38,6 +39,10 @@ function groupForContact(contactId){
   const admin=currentAdmin();
   if(!admin?.id||String(loadedAdminId)!==String(admin.id))return null;
   return groupKey(groupMap.get(String(contactId||'')));
+}
+function syncNccCapability(){
+  for(const button of document.querySelectorAll('[data-contact-directory-filter="ncc"]'))button.disabled=!nccReady;
+  for(const option of document.querySelectorAll('[data-contact-group-select] option[value="ncc"]'))option.disabled=!nccReady;
 }
 function publishGroupsChanged(){
   document.dispatchEvent(new CustomEvent('v21-contact-groups-change'));
@@ -135,7 +140,7 @@ function ensureDirectoryTools(){
         <button type="button" class="contact-directory-filter" data-contact-directory-filter="unread">Chưa đọc</button>
         <button type="button" class="contact-directory-filter" data-contact-directory-filter="customer">KH</button>
         <button type="button" class="contact-directory-filter" data-contact-directory-filter="cm">CM</button>
-        <button type="button" class="contact-directory-filter" data-contact-directory-filter="ncc">TK NCC</button>
+        <button type="button" class="contact-directory-filter" data-contact-directory-filter="ncc" disabled>TK NCC</button>
         <button type="button" class="contact-directory-filter" data-contact-directory-filter="friend">Bạn bè</button>
         <button type="button" class="contact-directory-filter" data-contact-directory-filter="other">Khác</button>
       </div>
@@ -255,6 +260,7 @@ function syncAdminGroupControls(){
     const existing=group.querySelector('[data-contact-group-select]');
     if(existing){
       if(!existing.disabled)existing.value=groupKey(groupMap.get(accountId));
+      existing.querySelector('option[value="ncc"]')?.toggleAttribute('disabled',!nccReady);
       continue;
     }
     const select=document.createElement('select');
@@ -263,7 +269,8 @@ function syncAdminGroupControls(){
     select.setAttribute('aria-label','Phân loại');
     for(const [key,label] of GROUPS){
       const option=document.createElement('option');
-      option.value=key;option.textContent=label;select.appendChild(option);
+      option.value=key;option.textContent=label;option.disabled=key==='ncc'&&!nccReady;
+      select.appendChild(option);
     }
     select.value=groupKey(groupMap.get(accountId));
     select.addEventListener('change',async()=>{
@@ -295,6 +302,8 @@ async function ensureGroups({force=false}={}){
     const data=await invokeBody({action:'directory_groups'});
     if(String(currentAdmin()?.id||'')!==adminId)return false;
     groupMap=new Map((Array.isArray(data?.groups)?data.groups:[]).map(row=>[String(row.id),groupKey(row.contact_group)]));
+    nccReady=data?.ncc_enabled===true;
+    syncNccCapability();
     loadedAdminId=adminId;
     syncDirectoryRows();
     publishGroupsChanged();
@@ -331,7 +340,7 @@ function scheduleSync({scrollToTop=false}={}){
 function resetForAuth(){
   const admin=currentAdmin();
   const id=String(admin?.id||'');
-  if(id!==loadedAdminId){groupMap=new Map();loadedAdminId='';}
+  if(id!==loadedAdminId){groupMap=new Map();loadedAdminId='';nccReady=false;syncNccCapability();}
   query='';filter='all';
   // SPEC-CHAT-DIRECTORY-AUTH-FILTER-20261102: keep the mounted search
   // and category pills consistent with the cleared account-scoped model.
@@ -375,5 +384,5 @@ const overlayRoot=document.querySelector('[data-global-overlay-root]')||document
 new MutationObserver(scheduleSync).observe(overlayRoot,{childList:true});
 scheduleSync();
 
-window.V21ContactDirectoryAdmin=Object.freeze({sortDirectoryContacts,isPinnedReportContact,sync:syncDirectoryRows,groupForContact,refreshGroups:()=>ensureGroups({force:true})});
+window.V21ContactDirectoryAdmin=Object.freeze({sortDirectoryContacts,isPinnedReportContact,sync:syncDirectoryRows,groupForContact,refreshGroups:()=>ensureGroups({force:true}),nccEnabled:()=>nccReady});
 })();
