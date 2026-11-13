@@ -105,6 +105,37 @@ BEGIN
 END;
 $bank320_patch$;
 
+-- BANK-320 prepare must use verified BANK time for the prior-ledger
+-- lookup and must refuse any no-clock bill lacking unique bank proof.
+DO $bank320_prepare_patch$
+DECLARE
+ source text;
+ edited text;
+ declaration text:='v_possible jsonb;';
+ lookup_anchor text:='SELECT COALESCE(jsonb_agg(to_jsonb(t) ORDER BY t.created_at DESC)';
+ fields text:=E'v_possible jsonb;\n v_effective_time timestamp without time zone;\n v_bank_proof jsonb;';
+ setup text:=$setup$
+ v_effective_time:=v_receipt.transfer_at_vn;
+ IF v_effective_time IS NULL AND v_receipt.reason='bill_printed_time_missing' THEN
+   v_bank_proof:=v21_private.bank320_unique_credit_for_no_clock(v_receipt.id);
+   IF coalesce((v_bank_proof->>'ok')::boolean,false)=false THEN RETURN v_bank_proof; END IF;
+   v_effective_time:=(v_bank_proof->>'bank_time_vn')::timestamp;
+ END IF;
+$setup$;
+BEGIN
+ SELECT pg_get_functiondef('public.chat_bank_bill_manual_prepare(uuid,uuid)'::regprocedure)
+ INTO source;
+ IF position('v_effective_time timestamp without time zone' IN source)>0 THEN RETURN; END IF;
+ IF position(declaration IN source)=0 OR position(lookup_anchor IN source)=0 OR
+   (length(source)-length(replace(source,'v_receipt.transfer_at_vn','')))/length('v_receipt.transfer_at_vn')<>2
+ THEN RAISE EXCEPTION 'bank320_prepare_contract_changed'; END IF;
+ edited:=replace(source,'v_receipt.transfer_at_vn','v_effective_time');
+ edited:=replace(edited,declaration,fields);
+ edited:=replace(edited,lookup_anchor,setup||E'\n'||lookup_anchor);
+ EXECUTE edited;
+END;
+$bank320_prepare_patch$;
+
 -- Even if the Android service retransmits the same credit as a separate row,
 -- neither the Admin bank collector nor the automatic collector may book it again.
 DO $bank320_global_fingerprint_guard$
