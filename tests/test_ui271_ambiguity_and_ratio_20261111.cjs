@@ -16,7 +16,9 @@ assert(start>0&&end>start);
 const ctx=vm.createContext({});
 vm.runInContext(bank.slice(start,end)+'\nglobalThis.labels=bankFilterMobileLabels;',ctx);
 const labels=ctx.labels;
-assert.equal(labels.waiting_bank,'Bill chưa khớp');
+assert.equal(labels.waiting_bank,'Chờ khớp');
+assert(bank.includes("['waiting_bank','Bill chưa khớp']"),
+ 'short mobile label must keep the full bill-not-matched semantic label');
 assert.equal(labels.bank_only,'Chưa gắn bill');
 assert.equal(labels.review,'Cần xác minh');
 assert.notEqual(labels.waiting_bank,labels.bank_only,'bill and bank credit are distinct');
