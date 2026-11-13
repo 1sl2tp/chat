@@ -1619,6 +1619,9 @@
   #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .call-focus-slot[data-call-ui-state="idle"] .call-focus-button{
     display:none!important;
   }
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .call-focus-slot[data-call-ui-state="idle"] .contact-profile-header-button{
+    display:none!important;
+  }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .call-focus-slot[data-call-ui-state="idle"] .chat-header-actions{
     display:block;
     position:relative;
