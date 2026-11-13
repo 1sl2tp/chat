@@ -63,7 +63,8 @@ for(const literal of ["Ngày thực hiện: 13/11/2026","13/11/2026",
  "Ngày thực hiện: Thứ Sáu, 13/11/2026",
  "Ngày thực hiện: 13/11/2026 - 21:08",
  "Ngày thực hiện: 13/11/2026 (21:08)",
- "13 thg 11, 2026","13 tháng 11 năm 2026"]){
+ "13 thg 11, 2026","13 Th11, 2026","13 thg11, 2026",
+ "13 tháng11 năm 2026","13 tháng 11 năm 2026"]){
  const extracted=readV4Fields({...basic,transfer_date_printed_vn:literal});
  assert.equal(extracted.transfer_date_vn,"2026-11-13",literal);
  assert.equal(extracted.transfer_at_vn,"2026-11-13 21:08",literal);
