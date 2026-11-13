@@ -23,7 +23,7 @@ export const TEN_FIELD_BILL_GUIDANCE=[
  "ĐỌC KỸ vùng Người nhận/Người thụ hưởng với tên và STK; ngày và giờ là HAI trường độc lập: bill chỉ in ngày thì giờ=null, không mượn đồng hồ trên điện thoại.",
  "Mã tra soát là mã RIÊNG, không lấy mã tham chiếu để điền khi thiếu. Nếu in thêm Hình thức/Phương thức chuyển khoản, ghi transfer_method; không suy đoán.",
  "Ảnh chụp lại màn hình ngân hàng có thể có khung điện thoại, nghiêng hoặc lóa. Đọc theo nhãn và giá trị thực sự trên biên lai, kể cả chữ nằm ở cột bên phải hoặc xuống dòng.",
- "MỖI TRƯỜNG KHÔNG NHÌN THẤY RÕ THÌ TRẢ null. Không bổ sung tên/ngân hàng/ngày từ số tài khoản, Chat, cấu hình người nhận hay ví dụ hướng dẫn. Không bịa thông tin để đủ 10 ô.",
+ "MỖI TRƯỜNG KHÔNG NHÌN THẤY RÕ THÌ TRẢ null, KHÔNG tự điền để đủ 10 ô. Không bổ sung tên/ngân hàng/ngày từ số tài khoản, Chat, cấu hình người nhận hay ví dụ hướng dẫn. Không bịa thông tin.",
  "Chỉ đọc và lưu khi ảnh mới tới; các lần xem sau dùng dữ liệu lưu, KHÔNG yêu cầu đọc ảnh lại."
 ].join("\n");
 export function buildStoredBillTenFields(data,fields,amountVnd){
