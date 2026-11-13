@@ -92,5 +92,23 @@ vm.createContext(ctx);vm.runInContext(code,ctx);
  button.click();
  assert.equal(reloadCount,1,'explicit tap with no draft/call should update');
  assert(replaced.includes('__build=new-build'),'update must bypass stale old-SW cached navigation');
- console.log('UI-208 opt-in update: authenticated PWA, draft guard, call guard, new build PASS');
+ // IMG-344: an authenticated installed iOS PWA may reload after resuming from
+ // background, but never while a draft/call is present or while foregrounded.
+ ctx.fetch=async()=>({ok:true,json:async()=>({version:'V21.72.39',build_id:'resume-build'})});
+ navigator.standalone=true;
+ editor.value='unsent';
+ // The harness starts with readyState=loading; install visibility listeners
+ // only when DOMContentLoaded has been dispatched, as in a real PWA.
+ listeners['doc:DOMContentLoaded']();
+ document.visibilityState='hidden';listeners['doc:visibilitychange']();
+ document.visibilityState='visible';listeners['doc:visibilitychange']();
+ await api.check({reason:'resume-with-draft'});
+ assert.equal(reloadCount,1,'background/resume must not destroy a draft');
+ editor.value='';
+ document.visibilityState='hidden';listeners['doc:visibilitychange']();
+ document.visibilityState='visible';listeners['doc:visibilitychange']();
+ await api.check({reason:'resume-when-safe'});
+ assert.equal(reloadCount,2,'installed PWA refreshes the authenticated shell after safe resume');
+ assert.match(replaced,/__build=resume-build/);
+ console.log('UI-208 authenticated manual update and guarded iOS PWA resume update PASS');
 })().catch(error=>{console.error(error);process.exitCode=1});

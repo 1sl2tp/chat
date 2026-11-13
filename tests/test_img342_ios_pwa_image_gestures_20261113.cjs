@@ -26,7 +26,8 @@ assert.match(snippet,/Math\.abs\(dx\)>45/);
 assert.match(snippet,/setImageViewerZoom\(imageViewerZoom>1\?1:2\.5/);
 assert.match(orientation,/\.image-viewer-overlay\[open\] \.image-review-head\{z-index:12\}/);
 assert.match(orientation,/bottom:calc\(7\.8rem \+ env\(safe-area-inset-bottom,0px\)\)/);
-assert.match(sw,/SHELL_CACHE_EPOCH='pwa-chat-ios-viewer-webkit-img343-20261113'/);
+// The viewer regression must not pin a superseded release cache epoch.
+assert.match(sw,/SHELL_CACHE_EPOCH='pwa-chat-[a-z0-9-]+'/);
 
 class Element{closest(){return null;}}
 const image=new Element();

@@ -21,6 +21,10 @@ let pendingBuild='';
 let checkPromise=null;
 let deferredTimer=0;
 let updateNotice=null;
+// IMG-344: allow one guarded automatic refresh after a backgrounded installed
+// PWA resumes, never while the user is actively reading the foreground app.
+let lastHiddenAt=0;
+let pwaResumeReloadAllowed=false;
 
 function emit(reason,detail={}){
   try{
@@ -55,7 +59,7 @@ function safeToReload({userRequested=false}={}){
   if(document.visibilityState&&document.visibilityState!=='visible')return false;
   // Never interrupt a logged-in reader automatically. A deliberate tap on
   // the update prompt is permitted, but only if all draft/call guards pass.
-  if((activeUserSession()&&!userRequested)||editingInput())return false;
+  if((activeUserSession()&&!userRequested&&!pwaResumeReloadAllowed)||editingInput())return false;
   if(document.querySelector?.('[data-call-ui-state]:not([data-call-ui-state="idle"])'))return false;
   const interaction=window.V21InteractionController?.snapshot?.()||null;
   if(interaction&&String(interaction.mode||'NONE')!=='NONE')return false;
@@ -253,7 +257,20 @@ async function registerServiceWorker(){
 }
 function bind(){
   document.addEventListener('visibilitychange',()=>{
-    if(document.visibilityState==='visible')void checkForUpdate({reason:'visible'});
+    if(document.visibilityState==='hidden'){
+      lastHiddenAt=Date.now();
+      pwaResumeReloadAllowed=false;
+      return;
+    }
+    if(document.visibilityState!=='visible')return;
+    const installed=navigator.standalone===true||
+      Boolean(window.matchMedia?.('(display-mode: standalone)')?.matches);
+    // The session is still preserved by the draft, call, media and image
+    // interaction guards in safeToReload(). Refresh only when resuming from
+    // background; ordinary active Chat reading never triggers a forced reload.
+    pwaResumeReloadAllowed=Boolean(installed&&lastHiddenAt>0);
+    void checkForUpdate({reason:pwaResumeReloadAllowed?'pwa-resume':'visible'})
+      .finally(()=>{pwaResumeReloadAllowed=false;});
   });
   window.addEventListener('focus',()=>void checkForUpdate({reason:'focus'}));
   window.addEventListener('online',()=>void checkForUpdate({reason:'online'}));
