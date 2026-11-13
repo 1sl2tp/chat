@@ -37,7 +37,8 @@ assert(js.includes("const secondary=filters.filter(([key])=>!mainKeys.has(key));
 assert(js.includes("const currentDay=String(ui.date.value||'');"));
 assert(js.includes("selected.setUTCDate(selected.getUTCDate()-1);"));
 assert(js.includes("if(previous>='2026-10-19')"));
-assert(js.includes('selectedCustomer=null;current=null;'));
+assert(js.includes('selectedCustomer=null;detailPanelOpen=false;current=null;'),
+ 'day navigation resets customer and expanded detail together');
 assert(js.includes('void reload();'));
 assert(!own.includes('display:none!important;}'));
 // Finance and receipt authorization ownership must not migrate to styling.
