@@ -9,9 +9,11 @@ comment on column public.v21_accounts.contact_group is
 create table if not exists public.chat_ncc_invoices (
  id uuid primary key default gen_random_uuid(),
  chat_account_id uuid not null references public.v21_accounts(id),
- conversation_id uuid not null references public.v21_conversations(id),
- message_id uuid not null references public.v21_messages(id),
- media_asset_id uuid not null unique references public.v21_media_assets(id),
+ conversation_id uuid references public.v21_conversations(id),
+ message_id uuid references public.v21_messages(id),
+ media_asset_id uuid unique references public.v21_media_assets(id),
+ origin text not null default 'chat' check (origin in ('chat','manual')),
+ manual_storage_key text unique,
  image_sha256 text,
  invoice_date date,
  invoice_number text,
@@ -24,6 +26,8 @@ create table if not exists public.chat_ncc_invoices (
  applied_at timestamptz,
  created_at timestamptz not null default now(),
  updated_at timestamptz not null default now(),
+ check ((origin='chat' and conversation_id is not null and message_id is not null and media_asset_id is not null and manual_storage_key is null)
+    or (origin='manual' and conversation_id is null and message_id is null and media_asset_id is null and manual_storage_key like 'ncc-manual/%')),
  check (invoice_number is null or length(btrim(invoice_number)) between 1 and 100),
  check (image_sha256 is null or image_sha256 ~ '^[0-9a-f]{64}$')
 );
