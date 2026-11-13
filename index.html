@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="a3138d209579565a95c9624c8bb42992aae3098db1e2099251de2b47768906fb">
+<meta name="app-build-id" content="408415e53dafcc45da41adad34d9ecade078fafe39098cf8233b22c55c04c990">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -32740,6 +32740,7 @@ const ui={
  refresh:root.querySelector('[data-bank-refresh]'),
  daily:root.querySelector('[data-bank-daily-summary]'),
  summary:root.querySelector('[data-bank-summary]'),
+ variance:root.querySelector('[data-bank-variance]'),
  queue:root.querySelector('[data-bank-work-queue]'),
  status:root.querySelector('[data-bank-status]'),
  extraStatus:root.querySelector('[data-bank-extra-status]'),
@@ -33177,6 +33178,33 @@ function paint(data){
   cardValue('Tổng tiền vào Agribank',bankDisplayVnd(incomingAmountVnd),false,false,'Tiền vào NH',{amountVnd:incomingAmountVnd}),
   cardValue('Đã thu có chứng từ',bankDisplayVnd(s.matched_amount),true,false,'Đã thu',{amountVnd:s.matched_amount})
  );
+ // BANK-326: independent evidence populations MUST NOT look reconciled just
+ // because their cards are side by side. When ledger-backed bill collection
+ // is greater than distinct Agribank credits, explain the unmatched amount
+ // without declaring a missing bank transfer or reversing a real ledger.
+ if(ui.variance){
+  const bookedVnd=Number(s.matched_amount);
+  const excessVnd=bookedVnd-incomingAmountVnd;
+  const hasExcess=Number.isSafeInteger(bookedVnd)&&Number.isSafeInteger(incomingAmountVnd)
+   &&bookedVnd>=0&&incomingAmountVnd>=0&&excessVnd>=1000;
+  ui.variance.hidden=!hasExcess;
+  if(hasExcess){
+   const copy=el('div','bank-report-variance-copy');
+   const title=el('strong','bank-report-variance-title',
+    'Cần đối chiếu thêm '+bankDisplayVnd(excessVnd));
+   title.setAttribute('aria-label','Đã ghi thu cao hơn tiền ngân hàng ghi nhận '+bankMoneySpoken(excessVnd));
+   append(copy,title,el('span','bank-report-variance-description',
+    'Đã ghi thu vượt thông báo Agribank đang có. Có thể do thu thủ công hoặc thiếu dữ liệu ngân hàng; chưa kết luận tiền chưa về.'));
+   const action=el('button','bank-report-variance-action','Xem thu tay');
+   action.type='button';
+   action.setAttribute('aria-label','Lọc các khoản đã thu thủ công để đối chiếu');
+   action.addEventListener('click',()=>{
+    filter='manual_bank';selectedCustomer=null;paint(data);
+   });
+   ui.variance.replaceChildren(copy,action);
+  }else ui.variance.replaceChildren();
+ }
+
  // Keep every bank diagnostic even if a cached PWA shell has not loaded
  // the new disclosure yet; it can still render the legacy complete strip.
  const additionalCards=[
