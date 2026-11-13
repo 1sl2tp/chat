@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="fb258e1cfb26899524762bf441c790a9ea6cf54b9b3356d5047609c61b8274eb">
+<meta name="app-build-id" content="4c3af1274d485aeae093071442b65353b0e9e42a153f21ee77051130087ef90b">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -39712,7 +39712,7 @@ function scheduleSync({scrollToTop=false}={}){
 function resetForAuth(){
   const admin=currentAdmin();
   const id=String(admin?.id||'');
-  if(id!==loadedAdminId){groupMap=new Map();loadedAdminId='';nccReady=false;syncNccCapability();}
+  if(id!==loadedAdminId){groupMap=new Map();loadedAdminId='';nccReady=false;}
   query='';filter='all';
   // SPEC-CHAT-DIRECTORY-AUTH-FILTER-20261102: keep the mounted search
   // and category pills consistent with the cleared account-scoped model.
