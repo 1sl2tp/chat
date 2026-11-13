@@ -316,6 +316,11 @@ Deno.serve(async(req:Request)=>{
         if(kind==="review"&&(!receipt||alreadyLinked||!["review","duplicate","amount_read","failed"].includes(receipt.status)||
           (receipt.status==="amount_read"&&validBill)))terminal=true;
         if(!["bank_only","matched","bill_waiting","review"].includes(kind))terminal=true;
+        // BANK-350: do not transmit an unrelated bank/AI event even to an old
+        // installed PWA whose service worker has not upgraded yet. This is a
+        // notification policy only; canonical receipts, bank credits and
+        // collection/retry schedules remain untouched.
+        if(!billRecognized)terminal=true;
         if(!terminal){
           const when=kind==="bank_only"||kind==="matched"
             ?String(notice?.transfer_at||""):String(receipt?.transfer_at_vn||"");
