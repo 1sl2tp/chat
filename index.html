@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="408415e53dafcc45da41adad34d9ecade078fafe39098cf8233b22c55c04c990">
+<meta name="app-build-id" content="3d10525eb3da0660ad0a592aeb5fc728ee1a6a1e15a6c400f7ec14735a11ca0a">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -4251,6 +4251,69 @@ body > [data-bank-review-modal] .bank-review-heading{
   #bankReportDashboard .bank-report-controls > [data-bank-refresh]{
     font-size:11.5px;
   }
+}
+
+/* BANK-326: a readable variance between bank evidence and booked collection.
+   An alert reflects evidence mismatch, not an instruction to collect/refund. */
+#bankReportDashboard .bank-report-variance[hidden]{display:none!important;}
+#bankReportDashboard .bank-report-variance{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  min-width:0;
+  margin:0 0 12px;
+  padding:12px 14px;
+  border:1px solid #e6c993;
+  border-left:3px solid #bc8626;
+  border-radius:11px;
+  background:#fffaf0;
+  color:#5c420f;
+}
+#bankReportDashboard .bank-report-variance-copy{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  min-width:0;
+}
+#bankReportDashboard .bank-report-variance-title{
+  font-size:13px;
+  font-weight:750;
+  line-height:1.3;
+  font-variant-numeric:tabular-nums;
+}
+#bankReportDashboard .bank-report-variance-description{
+  font-size:11px;
+  line-height:1.45;
+  overflow-wrap:anywhere;
+}
+#bankReportDashboard .bank-report-variance-action{
+  flex:none;
+  border:1px solid #d1b47c;
+  background:#fff;
+  border-radius:9px;
+  padding:9px 11px;
+  min-height:38px;
+  font-size:11px;
+  font-weight:650;
+  color:#594015;
+  cursor:pointer;
+}
+#bankReportDashboard .bank-report-variance-action:focus-visible{
+  outline:2px solid #a46b12;
+  outline-offset:2px;
+}
+@media(max-width:760px){
+ #bankReportDashboard .bank-report-variance{
+   margin:0 0 11px;
+   padding:11px 12px;
+   gap:8px;
+   flex-wrap:wrap;
+   align-items:flex-start;
+ }
+ #bankReportDashboard .bank-report-variance-title{font-size:12px;}
+ #bankReportDashboard .bank-report-variance-description{font-size:10.5px;}
+ #bankReportDashboard .bank-report-variance-action{min-height:36px;}
 }
 
 </style>
