@@ -1700,3 +1700,80 @@
     font-weight:400;
   }
 }
+
+/* UI-341 — Narrow Chat directory: two-line previews, protected time rail.
+   Fixes the right-edge overflow marked on the 13 Nov screenshot. The source
+   preview stays unmodified in JS for search/accessibility; clamp is visual.
+   Do not take ownership of directory scroll, keyboard or input overlays. */
+@media(max-width:63.999rem){
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-row{
+    height:auto!important;
+    min-height:60px!important;
+    max-height:none;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-chat{
+    height:auto!important;
+    min-height:60px!important;
+    padding:6px 4px!important;
+    grid-template-columns:40px minmax(0,1fr);
+    align-items:center;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-copy{
+    min-width:0;
+    width:100%;
+    grid-template-columns:minmax(0,1fr) 64px;
+    grid-template-rows:20px auto;
+    column-gap:8px;
+    row-gap:2px;
+    align-content:center;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-name{
+    grid-column:1;
+    grid-row:1;
+    min-width:0;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-preview{
+    grid-column:1;
+    grid-row:2;
+    min-width:0;
+    max-width:100%;
+    max-height:36px;
+    display:-webkit-box;
+    -webkit-box-orient:vertical;
+    -webkit-line-clamp:2;
+    line-clamp:2;
+    overflow:hidden!important;
+    white-space:normal!important;
+    overflow-wrap:anywhere;
+    word-break:normal;
+    text-overflow:ellipsis;
+    padding-inline-end:0;
+    font-size:13px;
+    line-height:18px;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-preview:empty{
+    display:none;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-time{
+    grid-column:2;
+    grid-row:1;
+    justify-self:end;
+    align-self:center;
+    box-sizing:border-box;
+    width:64px;
+    min-width:64px;
+    max-width:64px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    text-align:right;
+    font-variant-numeric:tabular-nums;
+  }
+  /* The secondary management button must never cover a two-line snippet. */
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-row[data-active="true"]:has(.shell-contact-manage) .shell-contact-preview{
+    padding-inline-end:0;
+  }
+}
