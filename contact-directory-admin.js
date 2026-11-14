@@ -147,6 +147,9 @@ function syncMobileDirectoryHeader(){
   const wanted=visible?'Công việc':'Ảnh';
   if(right.textContent!==wanted)right.textContent=wanted;
   right.setAttribute('aria-label',wanted);
+  // The second control is an Admin work switch on the directory, a real
+  // Photos route only after entering a conversation.
+  right.setAttribute('title',visible?'Công việc: sản phẩm và chuyển khoản':'Xem ảnh');
   switcher.setAttribute('aria-label',visible?'Trò chuyện và Công việc':'Trò chuyện và ảnh');
   switcher.dataset.directoryOwner=visible?'true':'false';
   if(visible){
