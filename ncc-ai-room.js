@@ -292,7 +292,7 @@ document.addEventListener("v21-auth-state",()=>{
 function launchButton(full=false){
  const btn=document.createElement("button");
  btn.type="button";btn.className=full?"ncc-ai-launch ncc-ai-launch-full":"ncc-ai-launch";
- btn.textContent="NCC AI · Đọc phiếu";
+ btn.textContent=full?"Mở trò chuyện NCC AI":"NCC AI";
  btn.addEventListener("click",()=>{void open();});
  return btn;
 }
