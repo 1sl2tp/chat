@@ -490,6 +490,32 @@ function onAuthState(event){
   clearClientState();
 }
 
+// MSG-364: foreground toast is presentation only; canonical sync remains owner.
+const messageToastSeen=new Set();
+let messageToastTimer=0;
+function showForegroundMessage(payload){
+  if(!isAdmin()||document.hidden)return;
+  const conversationId=String(payload.conversationId||'');
+  const messageId=String(payload.messageId||'');
+  if(!conversationId||!messageId||messageToastSeen.has(messageId))return;
+  const shell=window.ChatAppShell?.snapshot?.()||{};
+  const active=String(shell.activeContact?.conversation_id||'');
+  if(active===conversationId)return; // Same conversation already renders the message.
+  messageToastSeen.add(messageId);
+  if(messageToastSeen.size>100)messageToastSeen.delete(messageToastSeen.values().next().value);
+  document.getElementById('v21-message-notice-toast')?.remove();
+  clearTimeout(messageToastTimer);
+  const toast=document.createElement('button');
+  toast.type='button';toast.id='v21-message-notice-toast';
+  toast.style.cssText='position:fixed;z-index:2147483000;top:calc(env(safe-area-inset-top, 0px) + 58px);left:50%;transform:translateX(-50%);width:min(370px,calc(100vw - 32px));padding:12px 16px;border:1px solid #d7e2da;border-radius:14px;background:#fff;color:#172a20;box-shadow:0 8px 28px #0002;font:14px system-ui;text-align:left;cursor:pointer;white-space:normal';
+  const title=document.createElement('strong');title.textContent=String(payload.title||'Tin nhắn mới').slice(0,90);
+  const body=document.createElement('div');body.textContent=String(payload.body||'').slice(0,140)||'Chạm để xem hội thoại';
+  body.style.cssText='margin-top:4px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical';
+  toast.append(title,body);
+  toast.addEventListener('click',()=>{toast.remove();clearTimeout(messageToastTimer);void handleOpen({kind:'message',conversationId,contactId:String(payload.contactId||'')});});
+  document.body.appendChild(toast);
+  messageToastTimer=setTimeout(()=>toast.remove(),4000);
+}
 // BANK-363: one foreground confirmation for the canonical matched bank event.
 // The report remains the source of truth; this UI never creates a ledger entry.
 const bankConfirmationSeen=new Set();
@@ -521,7 +547,10 @@ function showBankConfirmation(data){
 pendingOpen=coldOpenFromLocation();
 navigator.serviceWorker?.addEventListener('message',event=>{
   if(event.data?.type==='ADMIN_PUSH_OPEN')void handleOpen(event.data);
-  if(event.data?.type==='ADMIN_PUSH_MESSAGE_DIRTY')void reconcilePushMessage(event.data);
+  if(event.data?.type==='ADMIN_PUSH_MESSAGE_DIRTY'){
+    void reconcilePushMessage(event.data);
+    showForegroundMessage(event.data);
+  }
   if(event.data?.type==='ADMIN_PUSH_BANK_DIRTY'&&isAdmin()){
     // BANK-302: refresh only an active reconciliation report. The listener
     // in bank-report-dashboard.js handles visibility and never posts money.
