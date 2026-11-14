@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="32d53150e313842c0216bd16e3afc42c3aca7a78b044f0cc13390afa656ba022">
+<meta name="app-build-id" content="e2fd7d1ea11dce7b57bc4a187537ba2c40677ea3c237a89605df30d72e2fb24d">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -39789,6 +39789,9 @@ function isPinnedReportContact(item){
 }
 let query='';
 let filter='all';
+// DIR-342: Admin sidebar is two real navigation scopes, not an extra
+// contact group. Personal chats and NCC conversations stay in Trò chuyện.
+let directorySection='chat';
 let groupMap=new Map();
 let loadedAdminId='';
 let nccReady=false;
@@ -39858,6 +39861,20 @@ function installStyle(){
   style.id='contact-directory-admin-style';
   style.textContent=`
     .contact-directory-tools{position:static;z-index:4;box-sizing:border-box;flex:0 0 auto;display:grid;gap:7px;padding:8px 8px 7px;background:var(--theme-surface-primary,#fff)}
+    /* DIR-342: two distinct sidebar scopes, without changing header chat/photo routes. */
+    .contact-directory-sections{display:grid;grid-template-columns:1fr 1fr;gap:3px;min-width:0;padding:3px;border-radius:15px;background:var(--theme-surface-secondary,#f3f3f3)}
+    .contact-directory-section{appearance:none;border:0;border-radius:12px;min-height:42px;padding:7px 8px;background:transparent;color:var(--theme-content-secondary,#616872);font:600 14px/1.25 inherit;cursor:pointer}
+    .contact-directory-section[data-active="true"]{background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#171717);box-shadow:0 1px 4px #00000013}
+    .contact-directory-section:focus-visible{outline:2px solid var(--theme-content-accent,#377ad6);outline-offset:2px}
+    .contact-directory-work-tools{display:grid;gap:8px;padding:5px 1px 2px}
+    .contact-directory-work-item{display:grid;gap:3px;min-height:64px;border:1px solid var(--theme-border-default,#dedede);border-radius:12px;padding:10px 12px;background:var(--theme-surface-primary,#fff)}
+    .contact-directory-work-item strong{font-size:14px;font-weight:700;line-height:1.3}
+    .contact-directory-work-item span{color:var(--theme-content-secondary,#667085);font-size:12px;line-height:1.35}
+    .contact-directory-work-bank-heading{box-sizing:border-box;padding:13px 11px 7px;color:var(--theme-content-primary,#171717);font-size:13px;font-weight:700;line-height:1.35}
+    .contact-directory-work-item [data-ncc-launch]{width:100%;margin-top:6px;text-align:center}
+    .contact-directory-tools[data-directory-section="chat"] .contact-directory-work-tools,
+    .contact-directory-tools[data-directory-section="work"] :is(.contact-directory-search-field,.contact-directory-filter-line){display:none!important}
+    .contact-directory-work-bank-heading[hidden],.contact-directory-work-tools[hidden]{display:none!important}
     /* UI-247: reusable ChatGPT-like search surface, without altering focus/scroll owners. */
     .contact-directory-search-field{position:relative;width:100%;min-width:0}
     .contact-directory-search-icon{position:absolute;z-index:1;inset-inline-start:14px;top:50%;width:18px;height:18px;transform:translateY(-50%);color:var(--theme-content-tertiary,#999);pointer-events:none}
@@ -39884,6 +39901,7 @@ function installStyle(){
 function directoryTools(){return document.querySelector('[data-contact-directory-tools]');}
 function removeDirectoryTools(){
   directoryTools()?.remove();
+  document.querySelector('[data-contact-work-bank-heading]')?.remove();
   const host=document.querySelector('[data-v21-contact-list]');
   host?.querySelector('.contact-directory-empty')?.remove();
   for(const row of host?.querySelectorAll?.('[data-contact-row]')||[])row.hidden=false;
@@ -39903,7 +39921,11 @@ function ensureDirectoryTools(){
   tools.className='contact-directory-tools';
   tools.dataset.contactDirectoryTools='';
   tools.innerHTML=`
-    <div class="contact-directory-search-field">
+    <div class="contact-directory-sections" role="tablist" aria-label="Trò chuyện hoặc Công việc">
+      <button type="button" role="tab" class="contact-directory-section" data-contact-directory-section="chat" aria-controls="contactDirectoryChatView">Trò chuyện</button>
+      <button type="button" role="tab" class="contact-directory-section" data-contact-directory-section="work" aria-controls="contactDirectoryWorkView">Công việc</button>
+    </div>
+    <div class="contact-directory-search-field" id="contactDirectoryChatView">
       <svg class="contact-directory-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true"><circle cx="10.75" cy="10.75" r="6.75"></circle><path d="m16 16 4.5 4.5"></path></svg>
       <input class="contact-directory-search" type="search" autocomplete="off" placeholder="Tìm tên hoặc tài khoản" aria-label="Tìm danh bạ" data-contact-directory-search>
     </div>
@@ -39918,8 +39940,44 @@ function ensureDirectoryTools(){
         <button type="button" class="contact-directory-filter" data-contact-directory-filter="other">Khác</button>
       </div>
       <button type="button" class="contact-directory-filter-more" data-contact-directory-filter-more aria-label="Xem thêm nhóm" hidden>›</button>
+    </div>
+    <div class="contact-directory-work-tools" id="contactDirectoryWorkView" data-contact-work-tools hidden>
+      <div class="contact-directory-work-item"><strong>Sản phẩm · Phiếu NCC</strong><span>Ảnh phiếu nhập, liên kết sản phẩm và kiểm tra giá vốn</span><div data-contact-work-ncc-slot></div></div>
     </div>`;
   body.insertBefore(tools,nav);
+  let bankHeading=nav.querySelector('[data-contact-work-bank-heading]');
+  if(!bankHeading){
+    bankHeading=document.createElement('div');
+    bankHeading.className='contact-directory-work-bank-heading';
+    bankHeading.dataset.contactWorkBankHeading='';
+    bankHeading.textContent='Chuyển khoản · Đối soát';
+    nav.insertBefore(bankHeading,host);
+  }
+  const setDirectorySection=(next,{restore=false}={})=>{
+    directorySection=next==='work'?'work':'chat';
+    tools.dataset.directorySection=directorySection;
+    for(const tab of tools.querySelectorAll('[data-contact-directory-section]')){
+      const selected=tab.dataset.contactDirectorySection===directorySection;
+      tab.dataset.active=String(selected);
+      tab.setAttribute('aria-selected',String(selected));
+      tab.tabIndex=selected?0:-1;
+    }
+    tools.querySelector('[data-contact-work-tools]').hidden=directorySection!=='work';
+    bankHeading.hidden=directorySection!=='work';
+    nav.setAttribute('aria-label',directorySection==='work'?'Công việc':'Danh bạ');
+    if(!restore)syncDirectoryRows({reorder:false});
+  };
+  for(const tab of tools.querySelectorAll('[data-contact-directory-section]')){
+    tab.addEventListener('click',()=>setDirectorySection(tab.dataset.contactDirectorySection));
+    tab.addEventListener('keydown',event=>{
+      if(!['ArrowLeft','ArrowRight'].includes(event.key))return;
+      event.preventDefault();
+      const next=tab.dataset.contactDirectorySection==='chat'?'work':'chat';
+      setDirectorySection(next);
+      tools.querySelector('[data-contact-directory-section="'+next+'"]').focus();
+    });
+  }
+  setDirectorySection(directorySection,{restore:true});
   const rail=tools.querySelector('.contact-directory-filters');
   const more=tools.querySelector('[data-contact-directory-filter-more]');
   function syncFilterArrow(){
@@ -39958,6 +40016,12 @@ function ensureDirectoryTools(){
   return tools;
 }
 function matchesDirectory(item){
+  // The bank report is operational work, never a customer chat; the UUID
+  // distinguishes it from contacts whose display names resemble the report.
+  // The default keeps source-isolated legacy contact-filter tests equivalent.
+  const section=typeof directorySection==='string'?directorySection:'chat';
+  if(section==='work')return isPinnedReportContact(item);
+  if(isPinnedReportContact(item))return false;
   const wanted=normalizeText(query);
   if(wanted){
     const haystack=normalizeText(`${item?.display_name||''} ${item?.username||''}`);
@@ -40001,7 +40065,8 @@ function syncDirectoryRows({scrollToTop=false,reorder=true}={}){
   if(!visible&&contacts.length){
     const empty=document.createElement('div');
     empty.className='contact-directory-empty';
-    empty.textContent=filter==='unread'&&!query?'Không có cuộc trò chuyện chưa đọc':'Không tìm thấy';
+    empty.textContent=directorySection==='work'?'Chưa có báo cáo chuyển khoản trong danh bạ':
+      filter==='unread'&&!query?'Không có cuộc trò chuyện chưa đọc':'Không tìm thấy';
     host.appendChild(empty);
   }
   if(scrollHost){
@@ -40114,12 +40179,25 @@ function resetForAuth(){
   const admin=currentAdmin();
   const id=String(admin?.id||'');
   if(id!==loadedAdminId){groupMap=new Map();loadedAdminId='';nccReady=false;}
-  query='';filter='all';
+  query='';filter='all';directorySection='chat';
   // SPEC-CHAT-DIRECTORY-AUTH-FILTER-20261102: keep the mounted search
   // and category pills consistent with the cleared account-scoped model.
   const tools=directoryTools();
   const input=tools?.querySelector('[data-contact-directory-search]');
   if(input)input.value='';
+  if(tools){
+    tools.dataset.directorySection='chat';
+    const work=tools.querySelector('[data-contact-work-tools]');
+    if(work)work.hidden=true;
+    const heading=document.querySelector('[data-contact-work-bank-heading]');
+    if(heading)heading.hidden=true;
+    for(const tab of tools.querySelectorAll('[data-contact-directory-section]')){
+      const selected=tab.dataset.contactDirectorySection==='chat';
+      tab.dataset.active=String(selected);
+      tab.setAttribute('aria-selected',String(selected));
+      tab.tabIndex=selected?0:-1;
+    }
+  }
   for(const button of tools?.querySelectorAll('[data-contact-directory-filter]')||[]){
     button.dataset.active=String(button.dataset.contactDirectoryFilter==='all');
     button.setAttribute('aria-pressed',String(button.dataset.contactDirectoryFilter==='all'));
