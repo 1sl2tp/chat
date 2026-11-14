@@ -3742,3 +3742,116 @@ body > [data-bank-review-modal] .bank-review-heading{
   #bankReportDashboard .ncc-photo-attach,
   #bankReportDashboard .ncc-photo-actions [data-ncc-photo-send]{font-size:11.5px;padding:8px 6px}
 }
+
+/* NCC-006: separate workroom for Admin's photo -> AI table exchange.
+   No actual customer Chat messages are sent. Dates use Vietnamese time. */
+#bankReportDashboard .ncc-chat-heading{
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:8px;padding:4px 0 2px;
+}
+#bankReportDashboard .ncc-chat-heading strong{
+  font-size:14px;font-weight:700;line-height:1.4;
+}
+#bankReportDashboard .ncc-chat-heading span{
+  font-size:11px;color:var(--theme-content-secondary,#667085);
+  border:1px solid var(--theme-border-default,#e5e7eb);
+  border-radius:99px;padding:4px 9px;
+}
+#bankReportDashboard .ncc-photo-result.ncc-chat-thread{
+  display:flex;flex-direction:column;align-items:stretch;
+  gap:13px;min-width:0;padding:12px 0;
+  border-block:1px solid var(--theme-border-default,#eef0f2);
+}
+#bankReportDashboard .ncc-photo-result.ncc-chat-thread:empty{
+  display:none;
+}
+#bankReportDashboard .ncc-chat-day{
+  align-self:center;font-size:11px;line-height:1.3;font-weight:550;
+  color:var(--theme-content-secondary,#667085);padding:4px 10px;
+  border-radius:30px;background:var(--theme-surface-secondary,#f6f7f9);
+}
+#bankReportDashboard .ncc-chat-message{
+  display:flex;flex-direction:column;max-width:100%;min-width:0;gap:5px;
+}
+#bankReportDashboard .ncc-chat-message.ncc-chat-out{align-items:flex-end}
+#bankReportDashboard .ncc-chat-message.ncc-chat-in{align-items:flex-start}
+#bankReportDashboard .ncc-chat-meta{
+  display:flex;align-items:center;gap:10px;
+  max-width:100%;padding-inline:2px;
+  font-size:11px;line-height:1.4;
+}
+#bankReportDashboard .ncc-chat-meta strong{font-size:11px;font-weight:650}
+#bankReportDashboard .ncc-chat-meta time{
+  color:var(--theme-content-secondary,#667085);
+  font-size:11px;font-variant-numeric:tabular-nums;
+  white-space:nowrap;
+}
+#bankReportDashboard .ncc-chat-bubble{
+  display:grid;gap:9px;box-sizing:border-box;
+  max-width:100%;min-width:0;padding:11px 12px;
+  border-radius:16px;line-height:1.45;
+}
+#bankReportDashboard .ncc-chat-out .ncc-chat-bubble{
+  width:min(82%,275px);
+  border-top-right-radius:5px;
+  background:var(--theme-surface-secondary,#eff1f4);
+}
+#bankReportDashboard .ncc-chat-in .ncc-chat-bubble{
+  width:100%;border:1px solid var(--theme-border-default,#e3e6ec);
+  border-top-left-radius:5px;
+  background:var(--theme-surface-primary,#fff);
+}
+#bankReportDashboard .ncc-chat-image{
+  display:block;width:auto;max-width:100%;max-height:176px;
+  object-fit:contain;border-radius:10px;
+  justify-self:end;
+}
+#bankReportDashboard .ncc-chat-sent-label{
+  margin:0;font-size:11.5px;line-height:1.4;
+  overflow-wrap:anywhere;text-align:right;
+}
+#bankReportDashboard .ncc-chat-description{
+  margin:0;font-size:11.5px;line-height:1.45;
+  color:var(--theme-content-secondary,#667085);
+}
+#bankReportDashboard .ncc-chat-in .ncc-photo-result-title{
+  font-size:12.5px;font-weight:750;line-height:1.4;
+}
+#bankReportDashboard .ncc-chat-in .ncc-photo-result-scroll{
+  width:100%;min-width:0;max-width:100%;
+}
+#bankReportDashboard .ncc-chat-in .ncc-photo-result-table{min-width:570px}
+#bankReportDashboard .ncc-chat-in .ncc-photo-result-table :is(th,td):nth-child(n+3){
+  white-space:nowrap;text-align:right;
+}
+#bankReportDashboard .ncc-chat-in .ncc-photo-result-table :is(th,td):nth-child(2){
+  text-align:left;white-space:normal;min-width:144px;
+}
+#bankReportDashboard .ncc-chat-in .ncc-photo-copy,
+#bankReportDashboard .ncc-chat-in .ncc-photo-manage{
+  justify-self:start;box-sizing:border-box;min-height:40px;
+  border-radius:11px;padding:8px 12px;
+  background:var(--theme-surface-secondary,#f6f7f9);
+  border:1px solid var(--theme-border-default,#d9dee5);
+  font-size:12px;font-weight:600;line-height:1.35;
+  cursor:pointer;color:inherit;
+}
+#bankReportDashboard .ncc-chat-in .ncc-photo-copy{
+  color:var(--theme-surface-primary,#fff);
+  background:var(--theme-content-primary,#171717);
+  border-color:var(--theme-content-primary,#171717);
+}
+#bankReportDashboard .ncc-chat-bottom{
+  display:flex;flex-direction:column;gap:5px;
+}
+#bankReportDashboard .ncc-chat-demo-button{
+  align-self:flex-start;min-height:40px;
+  padding:7px 10px;border-radius:10px;
+  border:1px solid var(--theme-border-default,#d9dee5);
+  background:transparent;color:inherit;
+  font-size:12px;font-weight:600;cursor:pointer;
+}
+@media(max-width:360px){
+  #bankReportDashboard .ncc-chat-out .ncc-chat-bubble{width:min(87%,250px)}
+  #bankReportDashboard .ncc-chat-bubble{padding:10px}
+}
