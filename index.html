@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="7ae9e7528d4d19016ec2a8220884cdd4a9b3266c68c4d2bfad2eb0eb122078a1">
+<meta name="app-build-id" content="af34cc4435a3ea19c20f9ec74ec8b246a22bcc4259be859e8b161cc5d0b06fec">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -5791,6 +5791,44 @@ body > [data-bank-review-modal] .bank-review-heading{
     font-size:11px;
     min-height:38px;
   }
+}
+
+/* DIR-347: optional work follows the entire bank reconciliation, not above it. */
+#bankReportDashboard .bank-report-secondary-tools{
+  margin:16px 0 10px;
+  border-top:1px solid var(--theme-border-default,#dedede);
+  color:var(--theme-content-primary,#171717);
+}
+#bankReportDashboard .bank-report-secondary-summary{
+  display:flex;align-items:center;gap:10px;box-sizing:border-box;
+  min-height:48px;padding:9px 4px;cursor:pointer;list-style:none;
+  font-size:13px;font-weight:650;
+}
+#bankReportDashboard .bank-report-secondary-summary::-webkit-details-marker{display:none}
+#bankReportDashboard .bank-report-secondary-summary small{
+  margin-left:auto;font-size:12px;font-weight:500;
+  color:var(--theme-content-secondary,#667085);
+}
+#bankReportDashboard .bank-report-secondary-summary::after{
+  content:"";width:8px;height:8px;box-sizing:border-box;flex:0 0 8px;
+  border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;
+  transform:rotate(45deg);margin:0 5px 4px 0;
+}
+#bankReportDashboard .bank-report-secondary-tools[open] .bank-report-secondary-summary::after{
+  transform:rotate(225deg);margin:4px 5px 0 0;
+}
+#bankReportDashboard .bank-report-secondary-body{
+  display:grid;gap:6px;min-width:0;padding:12px;
+  border:1px solid var(--theme-border-default,#dedede);border-radius:13px;
+  background:var(--theme-surface-primary,#fff);
+}
+#bankReportDashboard .bank-report-secondary-body strong{font-size:14px;font-weight:650}
+#bankReportDashboard .bank-report-secondary-body p{
+  margin:0;color:var(--theme-content-secondary,#667085);
+  font-size:12px;line-height:1.4;
+}
+#bankReportDashboard [data-bank-report-ncc-slot] [data-ncc-launch]{
+  display:block;width:100%;min-height:44px;margin-top:7px;text-align:center;
 }
 
 </style>
@@ -12576,6 +12614,14 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
               <nav class="bank-report-filters" data-bank-filters aria-label="Lọc giao dịch"></nav>
               <div class="bank-report-table-wrap" data-bank-table></div>
               <div class="bank-report-groups" data-bank-groups></div>
+              <details class="bank-report-secondary-tools" data-bank-secondary-tools>
+                <summary class="bank-report-secondary-summary"><span>Tiện ích khác</span><small>Phiếu NCC</small></summary>
+                <div class="bank-report-secondary-body">
+                  <strong>Sản phẩm · Phiếu NCC</strong>
+                  <p>Ảnh phiếu nhập, liên kết sản phẩm và kiểm tra giá vốn</p>
+                  <div data-bank-report-ncc-slot></div>
+                </div>
+              </details>
               <div data-bank-viewer hidden></div>
               <div data-bank-review-modal hidden></div>
             </section>
@@ -39961,6 +40007,25 @@ function syncMobileDirectoryHeader(){
   }
   return visible;
 }
+// DIR-347: Work opens the full existing Admin bank report in one tap.
+// Resolve the canonical contact ID; never infer it from a display name.
+function openBankReportFromWork(){
+  if(!currentAdmin())return false;
+  const contact=(contactStore()?.snapshot?.()||[]).find(row=>
+    row?.id&&!row.deleted_at&&isPinnedReportContact(row)
+  );
+  const navigation=window.ChatAppShell?.NavigationCommand;
+  if(!contact||!navigation?.openContact)return false;
+  const opened=Boolean(navigation.openContact(
+    PINNED_REPORT_ID,
+    String(contact.display_name||contact.username||'TAPHOA · Báo cáo chuyển khoản')
+  ));
+  if(opened){
+    // Selecting an already-active report does not emit contact-change again.
+    window.V21WorkCustomerSummary?.hideMobileDirectory?.('work-bank-report');
+  }
+  return opened;
+}
 function directoryTools(){return document.querySelector('[data-contact-directory-tools]');}
 function removeDirectoryTools(){
   directoryTools()?.remove();
@@ -40026,6 +40091,7 @@ function ensureDirectoryTools(){
     <div class="contact-directory-work-item"><strong>Sản phẩm · Phiếu NCC</strong><span>Ảnh phiếu nhập, liên kết sản phẩm và kiểm tra giá vốn</span><div data-contact-work-ncc-slot></div></div>`;
   nav.insertBefore(workTools,host.nextSibling);
   const setDirectorySection=(next,{restore=false}={})=>{
+    if(next==='work'&&!restore&&openBankReportFromWork())return;
     directorySection=next==='work'?'work':'chat';
     tools.dataset.directorySection=directorySection;
     for(const tab of tools.querySelectorAll('[data-contact-directory-section]')){
@@ -40260,8 +40326,8 @@ function resetForAuth(){
   if(input)input.value='';
   if(tools){
     tools.dataset.directorySection='chat';
-    const work=tools.querySelector('[data-contact-work-tools]');
-    if(work)work.hidden=true;
+    const work=document.querySelector('[data-contact-work-tools]');
+    if(work){work.hidden=true;work.open=false;}
     const heading=document.querySelector('[data-contact-work-bank-heading]');
     if(heading)heading.hidden=true;
     for(const tab of tools.querySelectorAll('[data-contact-directory-section]')){
@@ -40293,6 +40359,7 @@ document.addEventListener('click',event=>{
   if(!next)return;
   event.preventDefault();
   event.stopImmediatePropagation();
+  if(next==='work'&&openBankReportFromWork())return;
   directoryTools()?.querySelector('[data-contact-directory-section="'+next+'"]')?.click();
   syncMobileDirectoryHeader();
 },true);
@@ -40386,15 +40453,19 @@ function ensureStyle(){
  document.head.appendChild(style);
 }
 function ensureButton(){
- if(!admin())return;
- const tools=document.querySelector('[data-contact-directory-tools]');
- if(!tools)return;
- // DIR-342: supplier invoice actions are work, not ordinary conversations.
- // Reparent the existing launcher (never clone it) to preserve one click owner.
- const slot=document.querySelector('[data-contact-work-ncc-slot]');
+ if(!admin()){
+  document.querySelector('[data-ncc-launch]')?.remove();
+  return;
+ }
+ // DIR-347: exactly one launcher, reparented to the visible bank Work
+ // surface; the old directory slot stays as a fallback for unready data.
+ const report=document.getElementById('bankReportDashboard');
+ const reportSlot=report?.querySelector('[data-bank-report-ncc-slot]');
+ const directorySlot=document.querySelector('[data-contact-work-ncc-slot]');
+ const slot=!report?.hidden&&reportSlot?reportSlot:(directorySlot||reportSlot);
  if(!slot)return;
  const ready=window.V21ContactDirectoryAdmin?.nccEnabled?.()===true;
- const existing=slot.querySelector('[data-ncc-launch]')||document.querySelector('[data-ncc-launch]');
+ const existing=document.querySelector('[data-ncc-launch]');
  if(existing){
    if(existing.parentElement!==slot)slot.appendChild(existing);
    existing.disabled=!ready;
@@ -40728,6 +40799,8 @@ function assignPanel(rowNo){
 }
 document.addEventListener('v21-auth-state',()=>{if(!admin())dialog?.close();else ensureButton();});
 document.addEventListener('v21-contact-groups-change',ensureButton);
+document.addEventListener('v21-active-contact-change',ensureButton);
+document.addEventListener('v21-mobile-directory-change',ensureButton);
 window.setTimeout(ensureButton,0);
 window.V21NccInvoiceAdmin=Object.freeze({open:()=>void open(),refresh:()=>void loadList()});
 })();
