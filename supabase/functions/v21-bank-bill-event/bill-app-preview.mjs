@@ -30,6 +30,25 @@ function creditAccountFromEvent(e){
  const m=/Tài khoản\s+([0-9]{9,20})\s*:\s*\+/i.exec(text);
  return m?.[1]||null;
 }
+// BANK-351: SHB -> Agribank official MCC envelope. Only unwrap the exact
+// six-digit routing prefix + literal payer memo + MCC + printed bank clock
+// + source account + bank code. The independent bank minute must equal the
+// receipt minute; the bill sender and full literal memo must agree.
+function verifiedMccMemo(raw,bill,event){
+ const m=/^([0-9]{6})-(.+?);MCC;(20[0-9]{12});([0-9]{9,20});([0-9]{6})\.?$/i.exec(String(raw||"" ).trim());
+ if(!m)return null;
+ const clock=m[3];
+ const bankMinute=bankEventTime(event);
+ const wrappedMinute=bankTime(clock.slice(0,4)+"-"+clock.slice(4,6)+"-"+clock.slice(6,8)+" "+clock.slice(8,10)+":"+clock.slice(10,12)+":"+clock.slice(12,14));
+ const billMinute=bankTime(bill?.transfer_at_vn);
+ if(bankMinute===null||wrappedMinute===null||billMinute===null||
+    Math.abs(bankMinute-wrappedMinute)>60000||Math.abs(bankMinute-billMinute)>60000)return null;
+ const sender=normalizeBillRecipientName(bill?.sender_name);
+ const memo=normalizeBillRecipientName(m[2]);
+ if(!sender||sender==="BUI XUAN TUNG"||!memo.startsWith(sender+" "))return null;
+ if(tidy(memo)!==tidy(bill?.transfer_content)||tidy(memo).length<12)return null;
+ return m[2];
+}
 // BANK-346: Agribank wraps some incoming Vietcombank memos as
 // MBVCB.<bank-reference>.<routing-code>.<literal payer memo>.CT tu <source>
 // <sender> toi <our-account> <our-name> tai AGRIBANK.
@@ -155,16 +174,19 @@ export function previewBillAppMatch(bill,events,otherBills=[],now=Date.now()){
    const mbFields=mbRoutingEnvelope.exec(rawBankMemo);
    const bankMemoWithoutMb=mbFields?tidy(mbFields[1]):null;
    const mbvcb=verifiedMbvcbMemo(rawBankMemo);
+    const mcc=verifiedMccMemo(rawBankMemo,bill,qualified[0]);
    // When the receipt prints the routing reference, it must match the bank's
    // exact reference too. A conflicting reference is a review, never a match.
    const billRef=String(bill.transfer_reference||"").trim();
    const bankMemoWithoutMbvcb=mbvcb&&(!billRef||billRef===mbvcb.reference)
      ?tidy(mbvcb.memo):null;
    const qrSenderVerified=verifiedQrSenderMemo(bill,rawBankMemo);
+    const bankMemoWithoutMcc=mcc?tidy(mcc):null;
    const mbvcbSingleOcr=verifiedMbvcbTransferSuffixOcr(bill,mbvcb);
    if((printedMemo.length<12&&!qrSenderVerified)||!bankText||
       (printedMemo!==bankText&&printedMemo!==bankMemoWithoutQr&&
        printedMemo!==bankMemoWithoutMb&&printedMemo!==bankMemoWithoutMbvcb&&
+        printedMemo!==bankMemoWithoutMcc&&
        !qrSenderVerified&&!mbvcbSingleOcr))
      return{status:"review",reason:"ocr_date_corrected_bank_memo_unverified"};
  }
