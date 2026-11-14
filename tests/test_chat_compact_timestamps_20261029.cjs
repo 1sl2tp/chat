@@ -95,8 +95,8 @@ assert.equal(child.removed,true,'unknown time is removed, not falsely rendered')
 assert.equal(stampScope.parse({}),0);
 assert(html.includes('.message-sent-time{')&&html.includes('font-size:12px'));
 assert(app.includes('syncMessageTimeNode(unit,message);'));
-assert.equal((app.match(/syncMessageTimeNode\(unit,message\);/g)||[]).length,2,
-  'both initial render and message patch share one timestamp owner');
+assert.equal((app.match(/syncMessageTimeNode\(unit,message\);/g)||[]).length,3,
+  'initial render, content patch and ACK-only patch share one timestamp owner');
 assert(!app.includes('createdAt:message?.createdAt||Date.now()'),
   'media cannot guess sent time from the viewer clock');
 assert((app.match(/createdAt:messageTimestampMs\(message\)/g)||[]).length>=4);
