@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="513acc2dcec36deb16e0a87d99f7889078f169119c5f6dea1ae11e0f4534c500">
+<meta name="app-build-id" content="39cf933bc73adf35fc473fc9ff21a3367ce034d40477d903875ab78860ca9dda">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -41782,7 +41782,7 @@ document.addEventListener("v21-auth-state",()=>{
 function launchButton(full=false){
  const btn=document.createElement("button");
  btn.type="button";btn.className=full?"ncc-ai-launch ncc-ai-launch-full":"ncc-ai-launch";
- btn.textContent="NCC AI · Đọc phiếu";
+ btn.textContent=full?"Mở trò chuyện NCC AI":"NCC AI";
  btn.addEventListener("click",()=>{void open();});
  return btn;
 }
