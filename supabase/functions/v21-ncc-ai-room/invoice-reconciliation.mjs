@@ -85,8 +85,8 @@ export function reconcileInvoice(document={},inputLines=[]){
   sumGross!==null&&printedSubtotal!==null&&printedPayable!==null&&
   discount!==null&&discount>0&&
   (shipping??0)===0&&(other??0)===0&&(tax??0)===0&&
-  Math.abs(sumGross-printedPayable)<=1&&
-  Math.abs(printedSubtotal-sumGross-discount)<=1;
+  sumGross===printedPayable&&
+  printedSubtotal-sumGross===discount;
  if(lineTotalsMayAlreadyBeNet)
   warning(warnings,"Thành tiền các dòng có thể đã trừ CK tổng; không được trừ CK lần hai");
  if(!allGrossKnown)
