@@ -44,7 +44,8 @@ const presence=room.querySelector("[data-ncc-room-presence]");
 const preview=room.querySelector("[data-ncc-room-preview]");
 let previewUrl="",ready=false,busy=false,session="",opened=false;
 let embeddedHost=null;
-let selectedPhoto=null,selectVersion=0,supportsRecheck=false;
+let selectedPhoto=null,selectVersion=0,supportsRecheck=false,supportsProductLinks=false;
+let productCatalog=null;
 const visibleHashes=new Set();
 const attachedUrls=new Set();
 const say=text=>{state.textContent=text;};
@@ -65,6 +66,7 @@ function purge(){
  clearPreview();
  for(const url of attachedUrls)URL.revokeObjectURL(url);
  attachedUrls.clear();visibleHashes.clear();thread.replaceChildren();
+ productCatalog=null;supportsProductLinks=false;
  ready=false;supportsRecheck=false;busy=false;session="";sync();
 }
 function node(parent,tag,text,className){
@@ -380,6 +382,7 @@ async function open(options={}){
   if(!opened||accountSession()!==owner)return;
   ready=health.ready===true;
   supportsRecheck=Array.isArray(health.features)&&health.features.includes("invoice_totals_v2");
+  supportsProductLinks=Array.isArray(health.features)&&health.features.includes("canonical_product_links_v1");
   presence.textContent=ready?"Sẵn sàng":"Chưa có AI";
   if(!ready){say("Máy chủ AI chưa sẵn sàng.");sync();return;}
   say("Bấm dấu + chọn ảnh. Ảnh sẽ tự gửi và AI tự tạo bảng.");
