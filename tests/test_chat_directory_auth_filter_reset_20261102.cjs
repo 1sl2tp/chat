@@ -14,14 +14,30 @@ const buttons=['all','unread','customer','cm','friend','other'].map(key=>({
   attributes:{},
   setAttribute(name,value){this.attributes[name]=String(value);}
 }));
+const work={hidden:false},heading={hidden:false};
+const sections=['chat','work'].map(key=>({
+ dataset:{contactDirectorySection:key,active:String(key==='work')},
+ attributes:{},tabIndex:key==='work'?0:-1,
+ setAttribute(name,value){this.attributes[name]=String(value);}
+}));
 const tools={
-  querySelector(s){assert.equal(s,'[data-contact-directory-search]');return input;},
-  querySelectorAll(s){assert.equal(s,'[data-contact-directory-filter]');return buttons;}
+ dataset:{directorySection:'work'},
+ querySelector(s){
+  if(s==='[data-contact-directory-search]')return input;
+  if(s==='[data-contact-work-tools]')return work;
+  throw Error('Unexpected selector '+s);
+ },
+ querySelectorAll(s){
+  if(s==='[data-contact-directory-filter]')return buttons;
+  if(s==='[data-contact-directory-section]')return sections;
+  throw Error('Unexpected selector '+s);
+ }
 };
 let scheduled=0;
 let admin={id:'new-admin'};
 const context=vm.createContext({
   currentAdmin:()=>admin,
+  document:{querySelector:s=>s==='[data-contact-work-bank-heading]'?heading:null},
   directoryTools:()=>tools,
   scheduleSync:()=>{scheduled++;},
   loadedAdminId:'old-admin',
@@ -34,6 +50,11 @@ assert.equal(context.filter,'all');
 assert.equal(context.loadedAdminId,'');
 assert.equal(context.groupMap.size,0,'old admin group map cleared');
 assert.equal(input.value,'','visible input must match cleared filter model');
+assert.equal(tools.dataset.directorySection,'chat');
+assert.equal(work.hidden,true);
+assert.equal(heading.hidden,true);
+assert.equal(sections[0].attributes['aria-selected'],'true');
+assert.equal(sections[1].attributes['aria-selected'],'false');
 assert.deepEqual(buttons.map(b=>b.dataset.active),['true','false','false','false','false','false'],
   'active pill must match all-category filter');
 assert.deepEqual(buttons.map(b=>b.attributes['aria-pressed']),['true','false','false','false','false','false']);
