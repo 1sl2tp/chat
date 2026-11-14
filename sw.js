@@ -156,7 +156,7 @@ self.addEventListener('push',event=>{
     if(bankPush){
       for(const client of clients){
         try{client.postMessage?.({
-          type:'ADMIN_PUSH_BANK_DIRTY',bankDay,bankReceiptId,bankStatus
+          type:'ADMIN_PUSH_BANK_DIRTY',bankDay,bankReceiptId,bankNoticeId,bankStatus,bankAmountVnd:billAmount
         });}catch{}
       }
     }
