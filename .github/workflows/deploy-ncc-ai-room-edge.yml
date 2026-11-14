@@ -53,7 +53,14 @@ jobs:
         shell: bash
         run: |
           if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
-            echo "::error::Supabase deployment token missing. Do not deploy manually."
+            echo "::error title=NCC AI blocked::Missing GitHub Actions secret SUPABASE_ACCESS_TOKEN. Configure once in 1sl2tp/chat Settings > Secrets and variables > Actions. No manual production deployment fallback."
+            {
+              echo "### NCC AI release blocked before any production changes"
+              echo "Cause: GitHub Actions secret SUPABASE_ACCESS_TOKEN is not configured."
+              echo "Action: repository Settings > Secrets and variables > Actions > SUPABASE_ACCESS_TOKEN."
+              echo "Project: $PROJECT_REF | Branch: $GITHUB_REF"
+              echo "No database migration or Edge deploy was attempted."
+            } >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
       - name: Release only the pinned NCC-010 schema with post-verification
@@ -61,11 +68,18 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: latest
-      - name: Deploy isolated Admin OCR function (no migrations)
+      - name: Deploy isolated Admin OCR function (no other migrations)
+        env:
+          # CLI v3 requires explicit consent for hosted mutations in CI.
+          # Consent is scoped to this exact main-only NCC function release.
+          SUPABASE_YES: "1"
         run: |
+          supabase --version
           supabase functions deploy v21-ncc-ai-room \
-            --project-ref "$PROJECT_REF" \
-            --no-verify-jwt
+            --remote="$PROJECT_REF" \
+            --use-api \
+            --no-verify-jwt \
+            --yes
       - name: Report non-secret release
         run: |
           {
