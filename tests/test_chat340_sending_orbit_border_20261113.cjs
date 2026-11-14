@@ -1,5 +1,5 @@
 'use strict';
-// CHAT-340: sending uses a no-layout orbit on the actual outgoing bubble.
+// CHAT-340/341: pending has no layout row; sweep completes full circles.
 // This test never sends a real message or creates a network request.
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
@@ -11,7 +11,9 @@ const begin=app.indexOf('function syncMessageDeliveryState(');
 const end=app.indexOf('function messageDateKey(',begin);
 assert(begin>0&&end>begin);
 const runtime=app.slice(begin,end);
-const css=source.slice(source.indexOf('/* CHAT-340: pending is'),source.indexOf('.user-message-unit{',source.indexOf('/* CHAT-340: pending is')));
+const marker='/* CHAT-341: a complete 360-degree border sweep per cycle';
+const css=source.slice(source.indexOf(marker),source.indexOf('.user-message-unit{',source.indexOf(marker)));
+assert(css.startsWith(marker),'the new complete border sweep is the source owner');
 assert(css.includes('.message-delivery-state[data-state="sending"]{'));
 for(const key of ['position:absolute!important;','width:1px!important;','height:1px!important;','clip-path:inset(50%)!important;']){
   assert(css.includes(key),'pending status must not affect scroll/Composer height: '+key);
@@ -21,7 +23,7 @@ assert(css.includes('::after'),'orbit must remain pseudo-element / no new DOM');
 assert(css.includes('conic-gradient('),'moving border only, not bubble opacity');
 assert(css.includes('mask-composite:exclude;'));
 assert(css.includes('pointer-events:none;'));
-assert(css.includes('animation:chat-send-border-orbit 1.7s linear infinite;'));
+assert(css.includes('animation:chat-send-border-orbit 1.45s linear infinite;'));
 assert(css.includes('@media(prefers-reduced-motion:reduce)'));
 assert(css.includes('animation:none;'),'reduced motion is respected');
 assert(!css.includes('position:fixed'),'the border never takes the viewport');
@@ -41,7 +43,10 @@ function node(tag='div'){
   remove(){if(this.parent)this.parent.children=this.parent.children.filter(x=>x!==this)}
  };
 }
-const ctx=vm.createContext({document:{createElement:node}});
+const ctx=vm.createContext({document:{createElement:node},
+ // This legacy baseline verifies reduced-motion immediate ACK cleanup.
+ // Normal-motion finish-current-cycle is separately checked by CHAT-341.
+ window:{matchMedia:()=>({matches:true})}});
 vm.runInContext(runtime+'\nglobalThis.renderStatus=syncMessageDeliveryState;',ctx);
 const me=node(),other=node();
 ctx.renderStatus(me,{sender:'self',status:'sending',media:{type:'image'}});
@@ -70,4 +75,4 @@ assert(/const SHELL_CACHE_EPOCH='pwa-chat-[a-z0-9-]+';/.test(sw),
  'a versioned Web/PWA shell must ship the visual');
 assert(!sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-send-border-chat340-20261113';"),
  'the release epoch must advance beyond the CHAT-340 build');
-console.log('CHAT-340 sending orbit: zero status reflow, ACK clears, failed visible, media retry and reduced-motion PASS');
+console.log('CHAT-340/341 baseline: zero pending row, reduced-motion ACK clears, retry and complete border sweep PASS');
