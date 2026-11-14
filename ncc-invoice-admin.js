@@ -45,15 +45,19 @@ function ensureStyle(){
  document.head.appendChild(style);
 }
 function ensureButton(){
- if(!admin())return;
- const tools=document.querySelector('[data-contact-directory-tools]');
- if(!tools)return;
- // DIR-342: supplier invoice actions are work, not ordinary conversations.
- // Reparent the existing launcher (never clone it) to preserve one click owner.
- const slot=document.querySelector('[data-contact-work-ncc-slot]');
+ if(!admin()){
+  document.querySelector('[data-ncc-launch]')?.remove();
+  return;
+ }
+ // DIR-347: exactly one launcher, reparented to the visible bank Work
+ // surface; the old directory slot stays as a fallback for unready data.
+ const report=document.getElementById('bankReportDashboard');
+ const reportSlot=report?.querySelector('[data-bank-report-ncc-slot]');
+ const directorySlot=document.querySelector('[data-contact-work-ncc-slot]');
+ const slot=!report?.hidden&&reportSlot?reportSlot:(directorySlot||reportSlot);
  if(!slot)return;
  const ready=window.V21ContactDirectoryAdmin?.nccEnabled?.()===true;
- const existing=slot.querySelector('[data-ncc-launch]')||document.querySelector('[data-ncc-launch]');
+ const existing=document.querySelector('[data-ncc-launch]');
  if(existing){
    if(existing.parentElement!==slot)slot.appendChild(existing);
    existing.disabled=!ready;
@@ -387,6 +391,8 @@ function assignPanel(rowNo){
 }
 document.addEventListener('v21-auth-state',()=>{if(!admin())dialog?.close();else ensureButton();});
 document.addEventListener('v21-contact-groups-change',ensureButton);
+document.addEventListener('v21-active-contact-change',ensureButton);
+document.addEventListener('v21-mobile-directory-change',ensureButton);
 window.setTimeout(ensureButton,0);
 window.V21NccInvoiceAdmin=Object.freeze({open:()=>void open(),refresh:()=>void loadList()});
 })();
