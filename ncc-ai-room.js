@@ -100,11 +100,13 @@ function appendAdmin(file,date,imageUrl){
  node(bubble,"small",file?.name||"Ảnh phiếu nhập");
  return bubble;
 }
-function appendTable(record,{duplicate=false}={}){
- const created=record.created_at||new Date().toISOString();
+function appendTable(record,{duplicate=false,recheck=false}={}){
+ const created=recheck?(record.rechecked_at||new Date().toISOString()):
+  (record.created_at||new Date().toISOString());
  dateSeparator(created);
  const bubble=message("bot","NCC AI",created);
  if(duplicate)node(bubble,"p","Ảnh trùng — đã xử lý trước đó, không đọc AI lần nữa.","ncc-ai-duplicate");
+ if(recheck)node(bubble,"strong","Kết quả đọc lại tổng và chiết khấu");
  const lines=Array.isArray(record.lines)?record.lines:[];
  if(record.status==="not_invoice"){
   node(bubble,"p","Ảnh này không phải phiếu nhập hàng. Không lập bảng.","ncc-ai-explanation");
@@ -115,28 +117,89 @@ function appendTable(record,{duplicate=false}={}){
   const wrap=node(bubble,"div",undefined,"ncc-ai-table-scroll");
   const table=node(wrap,"table",undefined,"ncc-ai-table");
   const tr=node(node(table,"thead"),"tr");
-  ["STT","Tên hàng","SL","ĐVT","Đơn giá","Thành tiền"].forEach(label=>node(tr,"th",label));
+  ["STT","Tên hàng","SL","ĐVT","Đơn giá gốc/1","Thành tiền gốc","CK/1","Sau CK/1","Tổng sau CK"].forEach(label=>node(tr,"th",label));
   const tbody=node(table,"tbody");
   for(const line of lines){
    const row=node(tbody,"tr");
    [line.row_no??"",line.printed_name||"Chưa đọc rõ",line.quantity??"—",
-    line.printed_unit||"—",money(line.unit_price_vnd),money(line.line_total_vnd)]
-    .forEach(value=>node(row,"td",value));
+    line.printed_unit||"—",money(line.unit_price_vnd),
+    money(line.gross_line_vnd??line.line_total_vnd),
+    money(line.discount_per_unit_vnd),money(line.net_unit_vnd),
+    money(line.net_line_vnd)].forEach(value=>node(row,"td",value));
   }
   const copy=node(bubble,"button","Sao chép bảng","ncc-ai-copy");
   copy.type="button";
   copy.addEventListener("click",async()=>{
    const clean=x=>String(x??"").replace(/[\r\n\t]/g," ").trim();
    const linesText=lines.map(line=>[line.row_no,line.printed_name,
-    line.quantity,line.printed_unit,line.unit_price_vnd,line.line_total_vnd].map(clean).join("\t"));
+    line.quantity,line.printed_unit,line.unit_price_vnd,line.gross_line_vnd,
+    line.discount_per_unit_vnd,line.net_unit_vnd,line.net_line_vnd].map(clean).join("\t"));
+   const summary=record.summary||{};
+   const summaryRows=[
+    ["Tổng trước CK",summary.gross_lines_vnd],
+    ["Chiết khấu tổng",summary.discount_total_vnd],
+    ["Phải trả tính",summary.payable_calculated_vnd],
+    ["Phải trả trên phiếu",summary.payable_printed_vnd],
+    ["Chênh lệch",summary.difference_vnd]
+   ].map(([label,value])=>[label,clean(value)].join("\t"));
    try{
     await navigator.clipboard.writeText(
-     ["STT\tTên hàng\tSL\tĐVT\tĐơn giá\tThành tiền",...linesText].join("\n")
-    );say("Đã sao chép "+lines.length+" dòng hàng.");
+     ["STT\tTên hàng\tSL\tĐVT\tĐơn giá gốc/1\tThành tiền gốc\tCK/1\tSau CK/1\tTổng sau CK",
+      ...linesText,"",...summaryRows].join("\n")
+    );say("Đã sao chép "+lines.length+" dòng hàng cùng thông tin tổng/chiết khấu.");
    }catch{say("Không sao chép được trên thiết bị này.");}
   });
  }
- node(bubble,"p","Chỉ lấy thông tin từ ảnh. Chưa nhập kho, liên kết sản phẩm hoặc sửa giá vốn.","ncc-ai-disclaimer");
+ const summary=record.summary;
+ const summaryPanel=node(bubble,"section",undefined,"ncc-ai-summary");
+ node(summaryPanel,"strong","Tổng tiền & chiết khấu của phiếu");
+ function summaryRow(label,value,emph=false){
+  const row=node(summaryPanel,"div",undefined,emph?"ncc-ai-total-row ncc-ai-total-strong":"ncc-ai-total-row");
+  node(row,"span",label);
+  node(row,"b",value==null?"Chưa đọc được":money(value)+" đ");
+ }
+ if(summary){
+  summaryRow("Tổng hàng trước CK",summary.gross_lines_vnd);
+  summaryRow("Chiết khấu tổng",summary.discount_total_vnd);
+  if(summary.discount_percent!==null)
+   node(summaryPanel,"small","Tỷ lệ CK in trên phiếu: "+summary.discount_percent+"%");
+  summaryRow("Phải trả tính từ bảng",summary.payable_calculated_vnd);
+  summaryRow("Phải trả in trên phiếu",summary.payable_printed_vnd,true);
+  const matching={
+   verified:"Đã khớp tổng và chiết khấu",
+   mismatch:"CHÊNH LỆCH — cần đối chiếu lại ảnh",
+   review:"Có số liệu cần kiểm tra",
+   insufficient:"CHƯA ĐỦ GIÁ — không thể chia CK về từng sản phẩm",
+   calculated_not_verified:"Đã tính tạm, chưa có tổng thực trả để xác minh"
+  };
+  node(summaryPanel,"p",matching[summary.status]||"Chưa xác minh tổng","ncc-ai-summary-status");
+  for(const warning of (Array.isArray(summary.warnings)?summary.warnings:[]).slice(0,6))
+   node(summaryPanel,"small","• "+warning,"ncc-ai-summary-warning");
+  if(summary.discount_total_vnd!==null&&summary.all_line_amounts_known)
+   node(summaryPanel,"small","CK tổng phân bổ theo tỷ trọng tiền hàng; chia về từng đơn vị, làm tròn 2 chữ số. Tổng số tiền giảm vẫn chính xác từng đồng.");
+ }else{
+  node(summaryPanel,"p","Bản đọc cũ chưa có tổng, chiết khấu và phép đối chiếu. Hãy đọc lại từ ảnh gốc.","ncc-ai-summary-status");
+ }
+ if(record.hash){
+  const recheckButton=node(bubble,"button","Đọc lại tổng & chiết khấu","ncc-ai-recheck");
+  recheckButton.type="button";
+  recheckButton.addEventListener("click",async()=>{
+   if(!isAdmin()||recheckButton.disabled)return;
+   const owner=accountSession();if(!owner)return;
+   recheckButton.disabled=true;
+   say("Đang đọc lại toàn bộ ảnh và phần tổng/chiết khấu…");
+   try{
+    const data=await api("recheck",{hash:record.hash});
+    if(accountSession()!==owner||!opened)return;
+    if(!data.record)throw Error("missing_recheck_result");
+    appendTable(data.record,{recheck:true});
+    say("Đã đọc lại. Hãy đối chiếu tổng tiền và giá sau CK/1.");
+   }catch{
+    if(accountSession()===owner&&opened)say("Chưa đọc lại được tổng/chiết khấu. Không có giá nào bị thay đổi.");
+   }finally{recheckButton.disabled=false;}
+  });
+ }
+ node(bubble,"p","Bảng dùng để đối chiếu. Không tự ghi giá vốn, công nợ hoặc nhập kho.","ncc-ai-disclaimer");
  thread.scrollTop=thread.scrollHeight;
 }
 function renderRecord(record){
