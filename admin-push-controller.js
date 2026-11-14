@@ -498,12 +498,14 @@ function showForegroundMessage(payload){
   const conversationId=String(payload.conversationId||'');
   const messageId=String(payload.messageId||'');
   if(!conversationId||!messageId||messageToastSeen.has(messageId))return;
+  // Tests, SSR and WebViews without a DOM must retain the canonical sync wake.
+  if(typeof document.createElement!=='function'||!document.body?.appendChild)return;
   const shell=window.ChatAppShell?.snapshot?.()||{};
   const active=String(shell.activeContact?.conversation_id||'');
   if(active===conversationId)return; // Same conversation already renders the message.
   messageToastSeen.add(messageId);
   if(messageToastSeen.size>100)messageToastSeen.delete(messageToastSeen.values().next().value);
-  document.getElementById('v21-message-notice-toast')?.remove();
+  document.getElementById?.('v21-message-notice-toast')?.remove();
   clearTimeout(messageToastTimer);
   const toast=document.createElement('button');
   toast.type='button';toast.id='v21-message-notice-toast';
@@ -526,9 +528,10 @@ function showBankConfirmation(data){
   const noticeId=String(data.bankNoticeId||'');
   const key=noticeId||receiptId;
   if(!key||bankConfirmationSeen.has(key))return;
+  if(typeof document.createElement!=='function'||!document.body?.appendChild)return;
   bankConfirmationSeen.add(key);
   if(bankConfirmationSeen.size>100)bankConfirmationSeen.delete(bankConfirmationSeen.values().next().value);
-  document.getElementById('v21-bank-confirmation-toast')?.remove();
+  document.getElementById?.('v21-bank-confirmation-toast')?.remove();
   clearTimeout(bankConfirmationTimer);
   const toast=document.createElement('button');
   toast.type='button';toast.id='v21-bank-confirmation-toast';
