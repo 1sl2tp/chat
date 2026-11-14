@@ -21,8 +21,10 @@ export function reconcileInvoice(document={},inputLines=[]){
   const qty=safeQty(row.quantity);
   const listedUnit=safeVnd(row.unit_price_vnd);
   const printedLine=safeVnd(row.line_total_vnd);
-  const computedFromUnit=qty!==null&&listedUnit!==null?
+  const multiplied=qty!==null&&listedUnit!==null?
    Math.round(qty*listedUnit):null;
+  const computedFromUnit=multiplied!==null&&Number.isSafeInteger(multiplied)&&multiplied>=0&&multiplied<=100000000000?
+   multiplied:null;
   const rowWarnings=[];
   if(printedLine!==null&&computedFromUnit!==null&&
     Math.abs(printedLine-computedFromUnit)>1)
