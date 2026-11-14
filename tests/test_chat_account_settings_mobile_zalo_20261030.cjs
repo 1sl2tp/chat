@@ -55,9 +55,11 @@ const mapping=new Map([
  ['[data-zalo-account-unassigned]',toggle],['[data-zalo-account-directory-status]',summary]
 ]);
 root.querySelector=s=>mapping.get(s)||null;
+const events=[];
 const vmctx={
  Map,String,Array,Number,Boolean,Object,Intl,
- document:{createElement:tag=>new FakeNode(tag)},
+ document:{createElement:tag=>new FakeNode(tag),dispatchEvent:event=>events.push(event.type)},
+ CustomEvent:class CustomEvent{constructor(type,opts){this.type=type;this.detail=opts?.detail;}},
  accountModal:root,accountDirectoryMode:'all',accountBusy:false,
  accountSnapshot:{
   accounts:[{id:'c-1',username:'anhan',display_name:'Anh Đạt'},{id:'c-2',username:'chua',display_name:'Chưa Zalo'}],
@@ -81,6 +83,7 @@ vm.runInContext(
  getSection('function normalizeAccountSearch(value){','function openAccountPicker(account){')+
  '\nglobalThis.paint=renderAccountRows;globalThis.matches=accountMatchesSearch;globalThis.normalize=normalizeAccountSearch;',vmctx);
 vmctx.paint();
+assert.equal(events.at(-1),'v21-zalo-account-rows-rendered','group picker re-attaches after async rows render');
 assert.equal(body.childElementCount,4,'All mode: two Chat rows and two unassigned Zalo rows');
 assert.equal(toggle.textContent,'Thêm từ Zalo');
 assert.equal(toggle.attributes['aria-pressed'],'false');
