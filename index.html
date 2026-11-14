@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="584cc5d809409af9a4413158562c606fdf1c49e0f2de962a24d5202753c02033">
+<meta name="app-build-id" content="a563d5882537a9a1eb343c018be04c7c1efdfe630c3ea2d2853dfd0f6e319700">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -39906,11 +39906,34 @@ function installStyle(){
     .contact-directory-search-field:focus-within .contact-directory-search-icon{color:var(--theme-content-secondary,#666)}
     .contact-directory-search{box-sizing:border-box;width:100%;height:44px;border:1px solid var(--theme-border-default,#dedede);border-radius:16px;padding:0 12px 0 42px;background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#171717);font:inherit;font-size:16px;outline:none}
     .contact-directory-search:focus{border-color:#9ab7e6;box-shadow:0 0 0 2px rgba(78,132,216,.1)}
-    .contact-directory-filter-line{display:flex;align-items:center;gap:4px;min-width:0}
-    .contact-directory-filters{display:flex;gap:5px;flex:1;min-width:0;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none}
+    /* UI-344: filter rail and the more-arrow share one 44px tap row.
+       Keep a 44px hit target but draw a 36px circle, aligned with the
+       visible mobile filter chips; no partial label sits under the arrow. */
+    .contact-directory-filter-line{display:flex;align-items:center;gap:8px;min-width:0;min-height:44px;box-sizing:border-box;padding-inline:2px}
+    .contact-directory-filters{display:flex;align-items:center;gap:8px;flex:1 1 auto;min-width:0;min-height:44px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;scroll-padding-inline:8px}
     .contact-directory-filters::-webkit-scrollbar{display:none}
-    .contact-directory-filter-more{appearance:none;display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;padding:0;border:1px solid var(--theme-border-default,#dedede);border-radius:10px;background:var(--theme-surface-secondary,#f3f3f3);color:var(--theme-content-primary,#171717);font-size:20px;cursor:pointer}
+    .contact-directory-filter-line:has(.contact-directory-filter-more:not([hidden])) .contact-directory-filters{
+      -webkit-mask-image:linear-gradient(to right,#000 0%,#000 calc(100% - 20px),transparent 100%);
+      mask-image:linear-gradient(to right,#000 0%,#000 calc(100% - 20px),transparent 100%)
+    }
+    .contact-directory-filter-line:has(.contact-directory-filter-more[data-direction="previous"]) .contact-directory-filters{
+      -webkit-mask-image:linear-gradient(to right,transparent 0%,#000 20px,#000 100%);
+      mask-image:linear-gradient(to right,transparent 0%,#000 20px,#000 100%)
+    }
+    .contact-directory-filter-more{appearance:none;position:relative;isolation:isolate;display:grid;place-items:center;align-self:center;flex:0 0 44px;box-sizing:border-box;width:44px;height:44px;min-height:44px;padding:0;border:0;border-radius:999px;background:transparent;color:var(--theme-content-primary,#171717);cursor:pointer;-webkit-tap-highlight-color:transparent}
+    .contact-directory-filter-more::before{content:"";position:absolute;z-index:-1;inset:4px;border:1px solid var(--theme-border-default,#dedede);border-radius:999px;background:var(--theme-surface-secondary,#f3f3f3)}
+    .contact-directory-filter-more::after{content:"";box-sizing:border-box;width:9px;height:9px;border-top:2px solid currentColor;border-right:2px solid currentColor;transform:translateX(-1px) rotate(45deg)}
+    .contact-directory-filter-more[data-direction="previous"]::after{transform:translateX(1px) rotate(-135deg)}
     .contact-directory-filter-more[hidden]{display:none!important}
+    @media(max-width:63.999rem){
+      #appShell[data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-filter-line{align-items:center;gap:8px!important;min-height:44px;padding-inline:2px}
+      #appShell[data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-filters{align-items:center;min-height:44px;gap:8px!important}
+      #appShell[data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-filter-more{
+        position:relative;isolation:isolate;align-self:center;box-sizing:border-box;
+        width:44px;height:44px;min-height:44px;flex:0 0 44px;
+        border:0!important;border-radius:999px;background:transparent!important;
+      }
+    }
     .contact-directory-filter{appearance:none;min-height:44px;flex:0 0 auto;border:0;border-radius:999px;padding:0 10px;background:var(--theme-surface-secondary,#f3f3f3);color:var(--theme-content-secondary,#666);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
     .contact-directory-filter[data-active="true"]{background:var(--theme-content-primary,#171717);color:var(--theme-surface-primary,#fff)}
     .contact-directory-filter:focus-visible,.contact-directory-filter-more:focus-visible{
@@ -39996,7 +40019,7 @@ function ensureDirectoryTools(){
         <button type="button" class="contact-directory-filter" data-contact-directory-filter="friend">Bạn bè</button>
         <button type="button" class="contact-directory-filter" data-contact-directory-filter="other">Khác</button>
       </div>
-      <button type="button" class="contact-directory-filter-more" data-contact-directory-filter-more aria-label="Xem thêm nhóm" hidden>›</button>
+      <button type="button" class="contact-directory-filter-more" data-contact-directory-filter-more data-direction="next" aria-label="Xem thêm nhóm" hidden></button>
     </div>
     <div class="contact-directory-work-tools" id="contactDirectoryWorkView" data-contact-work-tools hidden>
       <div class="contact-directory-work-item"><strong>Sản phẩm · Phiếu NCC</strong><span>Ảnh phiếu nhập, liên kết sản phẩm và kiểm tra giá vốn</span><div data-contact-work-ncc-slot></div></div>
@@ -40043,7 +40066,7 @@ function ensureDirectoryTools(){
     const scrollable=rail.scrollWidth>rail.clientWidth+3;
     more.hidden=!scrollable;
     const atEnd=rail.scrollLeft+rail.clientWidth>=rail.scrollWidth-3;
-    more.textContent=atEnd?'‹':'›';
+    more.dataset.direction=atEnd?'previous':'next';
     more.setAttribute('aria-label',atEnd?'Xem các nhóm trước':'Xem thêm nhóm');
   }
   rail?.addEventListener('scroll',syncFilterArrow,{passive:true});
