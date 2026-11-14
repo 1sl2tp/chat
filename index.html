@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="af34cc4435a3ea19c20f9ec74ec8b246a22bcc4259be859e8b161cc5d0b06fec">
+<meta name="app-build-id" content="c223f06ce4f77ad3e387e927eeb6477c9a9b311c8344f61f8b25d8ec7a42cbe0">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -5507,94 +5507,105 @@ body > [data-bank-review-modal] .bank-review-heading{
   }
 }
 
-/* UI-336: fix the CUSTOMER list's two-line alignment (not Agribank rows).
-   Row 1 = name | amount; Row 2 = received-bill count | collected status.
-   Render the right status as a sibling grid item, not underneath the amount
-   inside row 1. All six underlying semantic table cells remain unchanged. */
+/* UI-348: deterministic two-row customer cards at 320–760px.
+   Keep the six semantic table cells and the optional exception line. Row 1
+   shares one fixed-height track for name/amount; row 2 shares another for
+   count/status. Do not baseline-align unrelated glyphs or pad amounts. */
 @media(max-width:760px){
   #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item{
     display:grid;
     grid-template-columns:repeat(12,minmax(0,1fr));
-    grid-template-rows:min-content min-content;
-    grid-auto-rows:min-content;
-    gap:3px 0;
+    grid-template-rows:minmax(24px,auto) minmax(18px,auto);
+    grid-auto-rows:minmax(17px,auto);
+    column-gap:0;
+    row-gap:2px;
     align-content:center;
-    align-items:baseline;
-    min-height:50px;
-    padding:9px 11px;
+    align-items:center;
+    min-height:61px;
+    padding:8px 11px;
+    box-sizing:border-box;
+  }
+  #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item > td{
+    min-width:0;
+    margin:0;
+    padding:0;
+    border:0;
     box-sizing:border-box;
   }
   #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item > td:first-child{
     grid-column:1/9;
     grid-row:1;
-    align-self:baseline;
-    margin:0;
-    line-height:1.25;
+    align-self:center;
+    justify-self:stretch;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    line-height:24px;
   }
   #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item > td:nth-child(6){
     grid-column:9/13;
     grid-row:1;
-    align-self:baseline;
+    align-self:center;
     justify-self:end;
-    text-align:right;
-    margin:0;
+    width:100%;
     padding:0;
-    line-height:1.25;
+    overflow:visible;
+    text-align:right;
+    white-space:nowrap;
+    line-height:24px;
     font-variant-numeric:tabular-nums;
+    font-feature-settings:"tnum" 1;
   }
   #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item > td:nth-child(6)::after{
     content:none!important;
     display:none!important;
   }
   #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item > td:nth-child(2){
-    grid-column:1/5;
+    grid-column:1/7;
     grid-row:2;
-    align-self:baseline;
-    margin:0;
-    font-size:10px;
+    align-self:center;
+    justify-self:start;
     font-weight:450;
-    line-height:1.3;
+    font-size:11.5px;
+    line-height:18px;
+    white-space:nowrap;
     color:var(--text-secondary,#667085);
   }
   #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item::after{
-    content:"Đã ghi thu";
+    content:attr(data-bank-collected-status);
     display:block;
-    grid-column:9/13;
+    grid-column:7/13;
     grid-row:2;
-    align-self:baseline;
+    align-self:center;
     justify-self:end;
+    min-height:18px;
     margin:0;
     padding:0;
-    font-size:10px;
-    line-height:1.3;
+    font-size:11.5px;
+    line-height:18px;
     font-weight:450;
     color:var(--text-secondary,#667085);
     white-space:nowrap;
     text-align:right;
   }
-  /* Only non-zero exceptional counters form a third line. */
+  /* Nonzero exceptions remain a third row; zero fields stay hidden. */
   #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item > td:nth-child(n+3):nth-child(-n+5){
     grid-row:3;
-    align-self:baseline;
-    line-height:1.3;
+    align-self:center;
+    line-height:17px;
+    white-space:nowrap;
   }
-  #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item > td:nth-child(3){grid-column:1/5;}
-  #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item > td:nth-child(4){grid-column:5/9;}
-  #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item > td:nth-child(5){grid-column:9/13;}
+  #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item > td:nth-child(3){grid-column:1/5}
+  #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item > td:nth-child(4){grid-column:5/9}
+  #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item > td:nth-child(5){grid-column:9/13}
 }
 @media(max-width:360px){
-  #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item{
-    padding:8px 9px;
-    gap:3px 0;
-  }
-  #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item::after{
-    font-size:9px;
-  }
+  #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item{padding:8px 9px}
+  #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item::after,
   #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item > td:nth-child(2){
-    font-size:9px;
+    font-size:11px;
   }
 }
-
 
 /* UI-337: one typography scale for Admin bank reconciliation, Web and PWA.
    The screenshot showed native buttons/date input with a different font and
@@ -5829,6 +5840,117 @@ body > [data-bank-review-modal] .bank-review-heading{
 }
 #bankReportDashboard [data-bank-report-ncc-slot] [data-ncc-launch]{
   display:block;width:100%;min-height:44px;margin-top:7px;text-align:center;
+}
+
+/* NCC-004: compact Chat-like photo entry below the bank report.
+   No extra overlay or sticky keyboard owner; native iOS file picker works. */
+#bankReportDashboard .ncc-photo-composer{
+  display:grid;gap:10px;min-width:0;
+  padding:10px 0 3px;
+}
+#bankReportDashboard .ncc-photo-intro{
+  margin:0;color:var(--theme-content-secondary,#667085);
+  font-size:12px;line-height:1.4;
+}
+#bankReportDashboard .ncc-photo-actions{
+  display:grid;grid-template-columns:minmax(100px,1fr) minmax(0,1.5fr);
+  gap:8px;align-items:center;
+}
+#bankReportDashboard .ncc-photo-attach,
+#bankReportDashboard .ncc-photo-actions [data-ncc-photo-send]{
+  display:flex;justify-content:center;align-items:center;
+  box-sizing:border-box;min-height:44px;border-radius:12px;
+  padding:9px 10px;font-family:inherit;font-size:12.5px;font-weight:600;line-height:1.35;
+  text-align:center;
+}
+#bankReportDashboard .ncc-photo-attach{
+  position:relative;overflow:hidden;cursor:pointer;
+  background:var(--theme-surface-secondary,#f4f5f7);
+  border:1px solid var(--theme-border-default,#d9dee5);
+}
+#bankReportDashboard .ncc-photo-attach input[type="file"]{
+  position:absolute;inset:0;opacity:0;width:100%;height:100%;
+  margin:0;cursor:pointer;font-size:16px;
+}
+#bankReportDashboard .ncc-photo-attach:focus-within{
+  outline:2px solid var(--theme-content-primary,#171717);outline-offset:2px;
+}
+#bankReportDashboard .ncc-photo-actions [data-ncc-photo-send]{
+  border:1px solid var(--theme-content-primary,#171717);
+  color:var(--theme-surface-primary,#fff);
+  background:var(--theme-content-primary,#171717);
+  cursor:pointer;
+}
+#bankReportDashboard .ncc-photo-actions [data-ncc-photo-send]:disabled{
+  color:var(--theme-content-secondary,#667085);
+  border-color:var(--theme-border-default,#d9dee5);
+  background:var(--theme-surface-secondary,#f4f5f7);
+  cursor:default;opacity:1;
+}
+#bankReportDashboard .ncc-photo-preview{
+  display:flex;align-items:center;gap:10px;min-width:0;
+  border:1px solid var(--theme-border-default,#d9dee5);
+  border-radius:13px;padding:8px;
+  background:var(--theme-surface-secondary,#f8f9fb);
+}
+#bankReportDashboard .ncc-photo-preview[hidden]{display:none}
+#bankReportDashboard .ncc-photo-preview img{
+  width:70px;height:78px;flex:0 0 70px;object-fit:contain;
+  border-radius:8px;background:var(--theme-surface-primary,#fff);
+}
+#bankReportDashboard .ncc-photo-preview [data-ncc-photo-name]{
+  font-size:12px;line-height:1.4;min-width:0;
+  overflow:hidden;overflow-wrap:anywhere;
+}
+#bankReportDashboard .ncc-photo-preview [data-ncc-photo-remove]{
+  margin-left:auto;width:40px;min-width:40px;height:40px;
+  padding:0;border:0;background:transparent;border-radius:10px;
+  color:var(--theme-content-secondary,#667085);font-size:22px;
+}
+#bankReportDashboard .ncc-photo-status{
+  margin:0;min-height:18px;font-size:12px;line-height:1.5;
+  color:var(--theme-content-secondary,#667085);
+}
+#bankReportDashboard .ncc-photo-result{
+  min-width:0;display:grid;gap:8px;
+}
+#bankReportDashboard .ncc-photo-result:empty{display:none}
+#bankReportDashboard .ncc-photo-result-title{font-size:13px;line-height:1.4}
+#bankReportDashboard .ncc-photo-result-scroll{
+  width:100%;overflow-x:auto;overscroll-behavior-x:contain;
+  border:1px solid var(--theme-border-default,#d9dee5);
+  border-radius:10px;
+}
+#bankReportDashboard .ncc-photo-result-table{
+  width:100%;min-width:440px;border-collapse:collapse;
+  font-size:12px;line-height:1.4;
+}
+#bankReportDashboard .ncc-photo-result-table :is(th,td){
+  padding:9px 7px;text-align:left;
+  border-bottom:1px solid var(--theme-border-default,#e7eaf0);
+}
+#bankReportDashboard .ncc-photo-result-table th{
+  background:var(--theme-surface-secondary,#f4f5f7);
+  font-size:11px;font-weight:650;white-space:nowrap;
+}
+#bankReportDashboard .ncc-photo-result-table tr:last-child td{border-bottom:0}
+#bankReportDashboard .ncc-photo-result-table :is(th,td):nth-child(3),
+#bankReportDashboard .ncc-photo-result-table :is(th,td):nth-child(4){
+  text-align:right;font-variant-numeric:tabular-nums;
+}
+#bankReportDashboard .ncc-photo-result .ncc-help{
+  margin:0;font-size:11.5px;
+  color:var(--theme-content-secondary,#667085);
+}
+#bankReportDashboard .ncc-photo-manage{
+  justify-self:start;min-height:44px;border-radius:10px;
+  padding:8px 13px;border:1px solid var(--theme-border-default,#d9dee5);
+  color:inherit;background:var(--theme-surface-primary,#fff);cursor:pointer;
+}
+@media(max-width:360px){
+  #bankReportDashboard .ncc-photo-actions{grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);gap:6px}
+  #bankReportDashboard .ncc-photo-attach,
+  #bankReportDashboard .ncc-photo-actions [data-ncc-photo-send]{font-size:11.5px;padding:8px 6px}
 }
 
 </style>
@@ -35808,6 +35930,7 @@ function renderTable(data){
   // Presentation only: ledger proof stays separate from pending/duplicate bill
   // counters; mobile displays these below the full amount, never beside it.
   tr.dataset.bankTone=g.old||g.duplicate?'danger':g.waiting?'pending':g.matched?'success':'neutral';
+  tr.dataset.bankCollectedStatus=g.matched>0?'Đã ghi thu':'Chưa ghi thu';
   tr.setAttribute('role','button');
   tr.setAttribute('aria-label',(selectedCustomer===g.id?'Đang xem chi tiết ':'Xem chi tiết ')+g.name+
    ', đã thu '+bankMoneySpoken(g.money)+', tự thu '+g.matched+', chờ '+g.waiting+
@@ -40452,8 +40575,142 @@ function ensureStyle(){
  `;
  document.head.appendChild(style);
 }
+// NCC-004: photo -> existing guarded upload/scan/detail path, with a chat-like
+// preview and an inline table. No customer message or price write is made.
+let photoBusy=false,photoPreviewUrl='';
+function photoReady(){return admin()&&window.V21ContactDirectoryAdmin?.nccEnabled?.()===true;}
+function photoOwner(){
+ const s=auth()?.snapshot?.()||{};
+ return admin()&&s.account?.id&&s.appSessionId?String(s.account.id)+'|'+String(s.appSessionId):'';
+}
+function photoNote(panel,text){
+ const el=panel?.querySelector('[data-ncc-photo-status]');
+ if(el)el.textContent=text;
+}
+function resetPhoto(panel=document.querySelector('[data-ncc-photo-composer]')){
+ if(photoPreviewUrl){URL.revokeObjectURL(photoPreviewUrl);photoPreviewUrl='';}
+ if(!panel)return;
+ const input=panel.querySelector('[data-ncc-photo-file]');if(input)input.value='';
+ const preview=panel.querySelector('[data-ncc-photo-preview]');
+ if(preview){preview.hidden=true;preview.querySelector('img')?.removeAttribute('src');}
+ panel.querySelector('[data-ncc-photo-result]')?.replaceChildren();
+ panel.querySelector('[data-ncc-photo-send]')?.setAttribute('disabled','');
+}
+function photoSync(panel){
+ if(!panel)return;
+ const ready=photoReady(),file=panel.querySelector('[data-ncc-photo-file]')?.files?.[0];
+ const valid=Boolean(file&&['image/jpeg','image/png','image/webp'].includes(file.type)&&file.size>=100&&file.size<=4000000);
+ const send=panel.querySelector('[data-ncc-photo-send]');
+ if(send)send.disabled=photoBusy||!ready||!valid;
+ panel.dataset.ready=String(ready);
+ if(!ready)photoNote(panel,'Máy chủ NCC chưa kích hoạt. Có thể xem trước ảnh nhưng chưa gửi hoặc phân tích được.');
+ else if(!photoBusy&&!file)photoNote(panel,'Chọn ảnh, rồi gửi để AI đọc bảng hàng ngay tại đây.');
+}
+function photoResult(panel,detail,id){
+ const host=panel.querySelector('[data-ncc-photo-result]');if(!host)return;
+ host.replaceChildren();
+ const make=(parent,tag,value,cls='')=>{
+  const e=document.createElement(tag);if(cls)e.className=cls;
+  if(value!==undefined)e.textContent=String(value);parent.appendChild(e);return e;
+ };
+ const doc=detail?.document||{};
+ make(host,'strong','Bảng hàng · '+(statusText[doc.status]||'Cần đối chiếu'),'ncc-photo-result-title');
+ const lines=Array.isArray(detail?.lines)?detail.lines:[];
+ if(lines.length){
+  const wrap=make(host,'div','','ncc-photo-result-scroll');
+  const table=make(wrap,'table','','ncc-photo-result-table');
+  const tr=make(make(table,'thead'), 'tr');
+  ['STT','Tên hàng','SL','Giá nhập','Liên kết'].forEach(x=>make(tr,'th',x));
+  const body=make(table,'tbody');
+  for(const line of lines){
+   const row=make(body,'tr');
+   [line.row_no??'',line.printed_name||'Chưa đọc rõ',line.quantity??'—',
+    line.unit_price_vnd==null?'—':money(line.unit_price_vnd),
+    line.product_code||'Chưa ghép'].forEach(x=>make(row,'td',x));
+  }
+ }else make(host,'p','Chưa có dòng hàng được xác minh. Kiểm tra ảnh và trạng thái phiếu.','ncc-help');
+ make(host,'p','Bảng chỉ để đối chiếu, chưa tự sửa giá vốn hoặc ghi thu.','ncc-help');
+ const button=make(host,'button','Chi tiết · Ghép sản phẩm','ncc-photo-manage');
+ button.type='button';
+ button.addEventListener('click',()=>{
+  if(!admin())return;
+  ensureDialog();if(!dialog.open)dialog.showModal();void view(id);
+ });
+}
+async function sendPhoto(panel){
+ if(photoBusy||!photoReady())return;
+ const file=panel.querySelector('[data-ncc-photo-file]')?.files?.[0];
+ if(!file||!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size<100||file.size>4000000){
+  photoNote(panel,'Chọn ảnh JPG, PNG hoặc WebP tối đa 4 MB.');return;
+ }
+ const owner=photoOwner();if(!owner)return;
+ const owned=()=>panel.isConnected&&owner===photoOwner();
+ photoBusy=true;photoSync(panel);photoNote(panel,'Đang lưu ảnh phiếu nhập…');
+ let id='',status='';
+ try{
+  const base64=await fileAsBase64(file);if(!owned())return;
+  const saved=await call('manual_upload',{supplierId:'',mime:file.type,base64});
+  if(!owned())return;
+  id=String(saved.id||'');status=String(saved.status||'');
+  if(!id){photoNote(panel,'Phiếu trùng hoặc chưa lưu được. Mở danh sách để kiểm tra.');return;}
+  if(status!=='duplicate'){
+   photoNote(panel,'Đã nhận ảnh. AI đang phân tích bảng hàng…');
+   try{
+    const scan=await call('scan',{id});if(!owned())return;
+    status=String(scan.status||status);
+   }catch{if(owned())photoNote(panel,'Ảnh đã lưu nhưng AI chưa đọc được. Có thể thử lại trong chi tiết.');}
+  }
+  const detail=await call('detail',{id});
+  if(!owned())return;
+  photoResult(panel,detail,id);
+  if(status==='duplicate')photoNote(panel,'Ảnh đã có trước đó, không tạo phiếu trùng.');
+  else if(['matched','needs_review'].includes(status))photoNote(panel,'Đã phân tích bảng hàng; kiểm tra lại trước khi ghép sản phẩm.');
+  else if(status==='not_invoice')photoNote(panel,'Ảnh không phải phiếu nhập hợp lệ.');
+  else if(status==='failed')photoNote(panel,'Ảnh chưa đọc rõ; chưa có dữ liệu được xác minh.');
+ }catch{
+  if(owned())photoNote(panel,id
+   ?'Ảnh đã lưu nhưng chưa tải được bảng hàng. Mở danh sách phiếu để xem lại.'
+   :'Chưa gửi được ảnh; máy chủ NCC chưa sẵn sàng. Không có giá nào bị thay đổi.');
+ }finally{
+  photoBusy=false;if(owned())photoSync(panel);
+ }
+}
+function ensurePhotoComposer(slot){
+ let panel=slot.querySelector('[data-ncc-photo-composer]');
+ if(panel){photoSync(panel);return;}
+ panel=document.createElement('section');panel.className='ncc-photo-composer';panel.dataset.nccPhotoComposer='';
+ panel.innerHTML=[
+  '<p class="ncc-photo-intro">Gửi ảnh phiếu nhập như chat · AI phân tích bảng hàng</p>',
+  '<div data-ncc-photo-preview class="ncc-photo-preview" hidden><img alt="Ảnh chuẩn bị gửi"><span data-ncc-photo-name></span><button type="button" data-ncc-photo-remove aria-label="Bỏ ảnh">×</button></div>',
+  '<div class="ncc-photo-actions"><label class="ncc-photo-attach">＋ Chọn ảnh<input type="file" data-ncc-photo-file accept="image/jpeg,image/png,image/webp" aria-label="Chọn ảnh NCC"></label><button type="button" data-ncc-photo-send disabled>Gửi ảnh · Đọc bảng</button></div>',
+  '<p data-ncc-photo-status class="ncc-photo-status" role="status" aria-live="polite"></p>',
+  '<div data-ncc-photo-result class="ncc-photo-result" aria-live="polite"></div>'
+ ].join('');
+ slot.prepend(panel);
+ const input=panel.querySelector('[data-ncc-photo-file]');
+ input.addEventListener('change',()=>{
+  const file=input.files?.[0];
+  if(photoPreviewUrl){URL.revokeObjectURL(photoPreviewUrl);photoPreviewUrl='';}
+  panel.querySelector('[data-ncc-photo-result]')?.replaceChildren();
+  const preview=panel.querySelector('[data-ncc-photo-preview]');
+  if(file&&['image/jpeg','image/png','image/webp'].includes(file.type)&&file.size>=100&&file.size<=4000000){
+   photoPreviewUrl=URL.createObjectURL(file);
+   preview.querySelector('img').src=photoPreviewUrl;
+   panel.querySelector('[data-ncc-photo-name]').textContent=file.name;
+   preview.hidden=false;
+  }else{
+   preview.hidden=true;
+   if(file)photoNote(panel,'Ảnh phải là JPG, PNG hoặc WebP, tối đa 4 MB.');
+  }
+  photoSync(panel);
+ });
+ panel.querySelector('[data-ncc-photo-remove]').addEventListener('click',()=>{resetPhoto(panel);photoSync(panel);});
+ panel.querySelector('[data-ncc-photo-send]').addEventListener('click',()=>{void sendPhoto(panel);});
+ photoSync(panel);
+}
 function ensureButton(){
  if(!admin()){
+  resetPhoto();
   document.querySelector('[data-ncc-launch]')?.remove();
   return;
  }
@@ -40464,18 +40721,21 @@ function ensureButton(){
  const directorySlot=document.querySelector('[data-contact-work-ncc-slot]');
  const slot=!report?.hidden&&reportSlot?reportSlot:(directorySlot||reportSlot);
  if(!slot)return;
- const ready=window.V21ContactDirectoryAdmin?.nccEnabled?.()===true;
+ if(reportSlot)ensurePhotoComposer(reportSlot);
+ const ready=photoReady();
  const existing=document.querySelector('[data-ncc-launch]');
  if(existing){
    if(existing.parentElement!==slot)slot.appendChild(existing);
+   existing.hidden=Boolean(reportSlot&&slot===reportSlot&&!ready);
    existing.disabled=!ready;
-   existing.textContent=ready?'Phiếu nhập · TK NCC':'Phiếu NCC · Chưa kích hoạt';
+   existing.textContent=ready?'Quản lý phiếu NCC':'Phiếu NCC · Chưa kích hoạt';
    return;
  }
  ensureStyle();
  const button=document.createElement('button');button.type='button';button.className='ncc-launch';
  button.dataset.nccLaunch='';button.disabled=!ready;
- button.textContent=ready?'Phiếu nhập · TK NCC':'Phiếu NCC · Chưa kích hoạt';
+ button.hidden=Boolean(reportSlot&&slot===reportSlot&&!ready);
+ button.textContent=ready?'Quản lý phiếu NCC':'Phiếu NCC · Chưa kích hoạt';
  button.addEventListener('click',()=>{void open();});
  slot.appendChild(button);
 }
