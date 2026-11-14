@@ -24,7 +24,7 @@ with checks as (
    where tgname='chat_ncc_auto_scan_on_receipt' and not tgisinternal)
  union all select 'invoice_rls',
   exists(select 1 from pg_class
-   where oid='public.chat_ncc_invoices'::regclass and relrowsecurity)
+   where oid=to_regclass('public.chat_ncc_invoices') and relrowsecurity)
 )
 select gate, ready, case when ready then 'READY' else 'BLOCKED' end as status
 from checks order by gate;
