@@ -3,6 +3,7 @@
 // Input: photo -> OCR table; duplicate of identical image is reported by SHA-256.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "npm:@supabase/supabase-js@2.57.4";
+import {reconcileInvoice} from "./invoice-reconciliation.mjs";
 
 const BASE=Deno.env.get("SUPABASE_URL")||"";
 const SERVICE=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"";
@@ -22,6 +23,7 @@ const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,
 const fail=(code:string,status=400)=>json({ok:false,code},status);
 const root=(id:string)=>"ncc-ai-room/"+PROJECT+"/"+id;
 const resultKey=(id:string,hash:string)=>root(id)+"/results/"+hash+".txt";
+const revisedKey=(id:string,hash:string)=>root(id)+"/reconciled/"+hash+".txt";
 const lockKey=(id:string,hash:string)=>root(id)+"/locks/"+hash+".txt";
 const imageKey=(id:string,hash:string,mime:string)=>root(id)+"/photos/"+hash+
  (mime==="image/png"?".png":mime==="image/webp"?".webp":".jpg");
@@ -96,7 +98,15 @@ function normalize(raw:any){
   document:{
    classification,date:text(raw?.date,30)||null,
    invoice_number:text(raw?.invoiceNumber,100)||null,
-   printed_total_vnd:nonnegativeInt(raw?.printedTotalVnd,100000000000)
+   printed_total_vnd:nonnegativeInt(raw?.printedTotalVnd,100000000000),
+   subtotal_vnd:nonnegativeInt(raw?.subtotalVnd,100000000000),
+   discount_amount_vnd:nonnegativeInt(raw?.discountAmountVnd,100000000000),
+   discount_percent:raw?.discountPercent===null||raw?.discountPercent===undefined?null:
+     (Number.isFinite(Number(raw.discountPercent))?Number(raw.discountPercent):null),
+   shipping_fee_vnd:nonnegativeInt(raw?.shippingFeeVnd,100000000000),
+   other_fee_vnd:nonnegativeInt(raw?.otherFeeVnd,100000000000),
+   tax_vnd:nonnegativeInt(raw?.taxVnd,100000000000),
+   total_payable_vnd:nonnegativeInt(raw?.totalPayableVnd,100000000000)
   },
   lines
  };
@@ -111,9 +121,14 @@ async function readWithGemini(bytes:Uint8Array,mime:string){
  "If this is a bank transfer receipt, chat image, or unrelated photo set classification=other and lines=[].",
  "If supplier invoice or delivery note, set classification=supplier_invoice.",
  "Date and invoiceNumber may be null; still read individual item lines when legible.",
+ "Read the full image including bottom totals, supplier's TOTAL DISCOUNT (chiết khấu tổng), any discount percentage, and the actual final amount payable.",
+ "Distinguish subtotal (tiền hàng trước chiết khấu) from total payable (thực trả, phải thanh toán) and printedTotalVnd when its role is ambiguous.",
+ "Sometimes supplier applies a single discount to the WHOLE invoice: record its exact amount in discountAmountVnd and percent in discountPercent IF VISIBLE.",
+ "Do not manufacture per-row prices or distribute an invoice-level discount yourself; server arithmetic handles allocation only when every line has enough price data.",
+ "Do not confuse product weight (e.g. 'bát 2kg') with money or quantity.",
  "Return ONLY JSON with shape:",
- '{"classification":"supplier_invoice"|"other","date":string|null,"invoiceNumber":string|null,"printedTotalVnd":integer|null,"lines":[{"printedName":string,"printedUnit":string|null,"quantity":number|null,"unitPriceVnd":integer|null,"lineTotalVnd":integer|null}]}',
- "Preserve source row order; do not infer packaging or prices; missing fields must be null.",
+ '{"classification":"supplier_invoice"|"other","date":string|null,"invoiceNumber":string|null,"printedTotalVnd":integer|null,"subtotalVnd":integer|null,"discountAmountVnd":integer|null,"discountPercent":number|null,"shippingFeeVnd":integer|null,"otherFeeVnd":integer|null,"taxVnd":integer|null,"totalPayableVnd":integer|null,"lines":[{"printedName":string,"printedUnit":string|null,"quantity":number|null,"unitPriceVnd":integer|null,"lineTotalVnd":integer|null}]}',
+ "Preserve source row order; do not infer packaging or prices; missing fields must be null. Amounts use VND integer, NOT thousands.",
  "Avoid using handwritten marginal notes as product rows."
  ].join("\n");
  const body={contents:[{role:"user",parts:[{text:prompt},{inline_data:{mime_type:mime,data:toDataUri(bytes)}}]}],
@@ -130,12 +145,16 @@ async function readWithGemini(bytes:Uint8Array,mime:string){
  catch{throw Error("ai_invalid_json");}
 }
 async function getSaved(id:string,hash:string){
- const {data,error}=await db.storage.from(BUCKET).download(resultKey(id,hash));
- if(error||!data)return null;
- try{
-  const result=JSON.parse(await data.text());
-  return result?.hash===hash&&result?.version===PROJECT?result:null;
- }catch{return null;}
+ // A reviewed recheck overrides original extraction without deleting it.
+ for(const path of [revisedKey(id,hash),resultKey(id,hash)]){
+  const {data,error}=await db.storage.from(BUCKET).download(path);
+  if(error||!data)continue;
+  try{
+   const result=JSON.parse(await data.text());
+   if(result?.hash===hash&&result?.version===PROJECT)return result;
+  }catch{}
+ }
+ return null;
 }
 async function publicRecord(id:string,result:any){
  const image=result.image_key?await db.storage.from(BUCKET).createSignedUrl(result.image_key,600):null;
@@ -145,6 +164,8 @@ async function publicRecord(id:string,result:any){
   status:result.status,
   document:result.document,
   lines:result.lines,
+  summary:result.summary||null,
+  rechecked_at:result.rechecked_at||null,
   image_url:image?.data?.signedUrl||null
  };
 }
@@ -174,9 +195,11 @@ async function handleSend(adminId:string,body:any){
   if(image.error)throw Error("image_storage_unavailable");
   stored=true;
   const parsed=await readWithGemini(bytes,mime);
+  const checked=parsed.status==="not_invoice"?null:reconcileInvoice(parsed.document,parsed.lines);
   const result={
    version:PROJECT,hash,created_at:keyDate(),image_key:imgKey,
-   status:parsed.status,document:parsed.document,lines:parsed.lines
+   status:parsed.status,document:parsed.document,
+   lines:checked?.lines||parsed.lines,summary:checked?.summary||null
   };
   const write=await db.storage.from(BUCKET).upload(resultKey(adminId,hash),
    new Blob([JSON.stringify(result)],{type:"text/plain"}),
@@ -191,6 +214,42 @@ async function handleSend(adminId:string,body:any){
  }finally{
   await db.storage.from(BUCKET).remove([lockPath]);
   if(!committed&&stored)await db.storage.from(BUCKET).remove([imgKey]);
+ }
+}
+async function handleRecheck(adminId:string,body:any){
+ const hash=String(body?.hash||"").toLowerCase();
+ if(!HASH.test(hash))return fail("invalid_hash");
+ const previous=await getSaved(adminId,hash);
+ if(!previous||!previous.image_key)return fail("invoice_not_found",404);
+ const locked=await db.storage.from(BUCKET).upload(lockKey(adminId,hash),
+  new Blob([keyDate()],{type:"text/plain"}),{contentType:"text/plain",upsert:false});
+ if(locked.error)return fail("already_processing",409);
+ try{
+  const {data:image,error}=await db.storage.from(BUCKET).download(previous.image_key);
+  if(error||!image)return fail("image_unavailable",404);
+  const bytes=new Uint8Array(await image.arrayBuffer());
+  const mime=previous.image_key.endsWith(".png")?"image/png":
+    previous.image_key.endsWith(".webp")?"image/webp":"image/jpeg";
+  const parsed=await readWithGemini(bytes,mime);
+  // Preserve the original recognized table if a recheck has no useful rows.
+  if(Array.isArray(previous.lines)&&previous.lines.length>0&&
+     (parsed.status==="not_invoice"||parsed.lines.length===0))
+   return fail("recheck_not_enough_evidence",422);
+  const checked=parsed.status==="not_invoice"?null:reconcileInvoice(parsed.document,parsed.lines);
+  const revised={
+   version:PROJECT,hash,created_at:previous.created_at,image_key:previous.image_key,
+   rechecked_at:keyDate(),status:parsed.status,document:parsed.document,
+   lines:checked?.lines||parsed.lines,summary:checked?.summary||null
+  };
+  const written=await db.storage.from(BUCKET).upload(revisedKey(adminId,hash),
+   new Blob([JSON.stringify(revised)],{type:"text/plain"}),
+   {contentType:"text/plain",upsert:true,cacheControl:"0"});
+  if(written.error)return fail("recheck_storage_unavailable",503);
+  return json({ok:true,status:revised.status,record:await publicRecord(adminId,revised)});
+ }catch{
+  return fail("recheck_unavailable",503);
+ }finally{
+  await db.storage.from(BUCKET).remove([lockKey(adminId,hash)]);
  }
 }
 async function handleStatus(adminId:string,body:any){
@@ -224,9 +283,10 @@ Deno.serve(async req=>{
  let body:any={};
  try{body=await req.json();}catch{return fail("invalid_json");}
  const action=String(body?.action||"").trim();
- if(action==="health")return json({ok:true,ready:Boolean(Deno.env.get("GEMINI_API_KEY"))});
+ if(action==="health")return json({ok:true,ready:Boolean(Deno.env.get("GEMINI_API_KEY")),features:["invoice_totals_v2"]});
  if(action==="send")return handleSend(admin.id,body);
  if(action==="status")return handleStatus(admin.id,body);
+ if(action==="recheck")return handleRecheck(admin.id,body);
  if(action==="history")return handleHistory(admin.id);
  return fail("unknown_action");
 });
