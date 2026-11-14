@@ -208,22 +208,23 @@ function appendTable(record,{duplicate=false,recheck=false}={}){
   const wrap=node(bubble,"div",undefined,"ncc-ai-table-scroll");
   const table=node(wrap,"table",undefined,"ncc-ai-table");
   const tr=node(node(table,"thead"),"tr");
-  ["STT","Tên hàng trên phiếu","SL","ĐVT","Đơn giá gốc/1","Thành tiền gốc","CK/1","Sau CK/1","Tổng sau CK","Mã SP","Tên sản phẩm","Tên tiếng Việt"].forEach(label=>node(tr,"th",label));
+  ["STT","Mã SP","Tên hàng trên phiếu","Tên sản phẩm","Tên tiếng Việt","SL","ĐVT","Đơn giá gốc/1","Thành tiền gốc","CK/1","Sau CK/1","Tổng sau CK"].forEach(label=>node(tr,"th",label));
   const tbody=node(table,"tbody");
   for(const line of lines){
    const row=node(tbody,"tr");
-   [line.row_no??"",line.printed_name||"Chưa đọc rõ",line.quantity??"—",
-    line.printed_unit||"—",money(line.unit_price_vnd),
-    money(line.gross_line_vnd??line.line_total_vnd),
-    money(line.discount_per_unit_vnd),money(line.net_unit_vnd),
-    money(line.net_line_vnd)].forEach(value=>node(row,"td",value));
+   node(row,"td",line.row_no??"");
    const codeCell=node(row,"td");
    const codeButton=node(codeCell,"button",undefined,"ncc-ai-link-button");
    codeButton.type="button";
+   node(row,"td",line.printed_name||"Chưa đọc rõ");
    const productCell=node(row,"td"),vietCell=node(row,"td");
+   [line.quantity??"—",line.printed_unit||"—",money(line.unit_price_vnd),
+    money(line.gross_line_vnd??line.line_total_vnd),
+    money(line.discount_per_unit_vnd),money(line.net_unit_vnd),
+    money(line.net_line_vnd)].forEach(value=>node(row,"td",value));
    const refreshRow=()=>{
     const link=findProductLink(record,line);
-    const suggested=(link?.candidates||[])[0];
+    const suggested=link?.status==="suggested"?(link?.candidates||[])[0]:null;
     const confirmed=link?.status==="linked";
     codeButton.textContent=confirmed?"✓ "+String(link.product_code):
      link?.status==="suggested"?"Gợi ý "+String(suggested?.product_code||link.product_code||""):
