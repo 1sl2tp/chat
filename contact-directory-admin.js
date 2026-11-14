@@ -150,7 +150,7 @@ function ensureDirectoryTools(){
   tools.innerHTML=`
     <div class="contact-directory-sections" role="tablist" aria-label="Trò chuyện hoặc Công việc">
       <button type="button" role="tab" class="contact-directory-section" data-contact-directory-section="chat" aria-controls="contactDirectoryChatView">Trò chuyện</button>
-      <button type="button" role="tab" class="contact-directory-section" data-contact-directory-section="work" aria-controls="contactDirectoryWorkView">Công việc</button>
+      <button type="button" role="tab" class="contact-directory-section" data-contact-directory-section="work" aria-controls="contactDirectoryWorkView" aria-label="Công việc: sản phẩm, phiếu NCC và chuyển khoản">Công việc</button>
     </div>
     <div class="contact-directory-search-field" id="contactDirectoryChatView">
       <svg class="contact-directory-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true"><circle cx="10.75" cy="10.75" r="6.75"></circle><path d="m16 16 4.5 4.5"></path></svg>
