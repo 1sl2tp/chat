@@ -60,7 +60,8 @@ assert(directory.includes("document.addEventListener('v21-contact-store-change',
  'message/unread changes still update sidebar');
 assert(!directory.includes("set_group',contact_group:'work'"),
  'work must not become a stored contact group');
-assert(ncc.includes("const slot=document.querySelector('[data-contact-work-ncc-slot]');"));
+assert(ncc.includes("const directorySlot=document.querySelector('[data-contact-work-ncc-slot]');"));
+assert(ncc.includes("const reportSlot=report?.querySelector('[data-bank-report-ncc-slot]');"),'NCC moves onto the full report page');
 assert(ncc.includes("if(!slot)return;"),'never fall back to showing NCC in the chat header');
 assert(directory.includes("nav.insertBefore(workTools,host.nextSibling);"),'NCC appears after the bank report, not before it');
 assert(directory.includes("workTools.hidden=directorySection!=='work';"),'work-only utility remains hidden in Chat');
