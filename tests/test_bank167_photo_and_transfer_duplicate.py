@@ -43,5 +43,7 @@ def test_credit_event_uses_true_printed_bank_transaction_datetime():
     assert "when(e.posted_at)" not in PREVIEW
     assert 'same_transfer_reference_other_image' in PREVIEW
     assert 'competing_bills_one_bank_credit_unverified' in PREVIEW
-    assert 'Math.abs(bankEventTime(e)-date)<=60000' in PREVIEW
+    assert 'Math.abs(bankEventTime(e)-date)<=5*60000' in PREVIEW
+    assert 'if(delta>120000)return false;' in PREVIEW
+    assert 'if(delta<=60000)return true;' in PREVIEW
     assert 'recipient_account_conflict' in PREVIEW
