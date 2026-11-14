@@ -136,7 +136,8 @@ function appendTable(record,{duplicate=false,recheck=false}={}){
     line.discount_per_unit_vnd,line.net_unit_vnd,line.net_line_vnd].map(clean).join("\t"));
    const summary=record.summary||{};
    const summaryRows=[
-    ["Tổng trước CK",summary.gross_lines_vnd],
+    ["Tổng hàng trên phiếu",summary.subtotal_printed_vnd],
+    ["Cộng tiền các dòng",summary.gross_lines_vnd],
     ["Chiết khấu tổng",summary.discount_total_vnd],
     ["Phải trả tính",summary.payable_calculated_vnd],
     ["Phải trả trên phiếu",summary.payable_printed_vnd],
@@ -159,12 +160,15 @@ function appendTable(record,{duplicate=false,recheck=false}={}){
   node(row,"b",value==null?"Chưa đọc được":money(value)+" đ");
  }
  if(summary){
-  summaryRow("Tổng hàng trước CK",summary.gross_lines_vnd);
+  summaryRow("Tiền hàng trên phiếu",summary.subtotal_printed_vnd);
+  summaryRow("Cộng từ từng dòng",summary.gross_lines_vnd);
   summaryRow("Chiết khấu tổng",summary.discount_total_vnd);
   if(summary.discount_percent!==null)
    node(summaryPanel,"small","Tỷ lệ CK in trên phiếu: "+summary.discount_percent+"%");
   summaryRow("Phải trả tính từ bảng",summary.payable_calculated_vnd);
   summaryRow("Phải trả in trên phiếu",summary.payable_printed_vnd,true);
+  if(summary.payable_printed_vnd===null&&summary.legacy_printed_total_vnd!==null)
+   summaryRow("Tổng in (chưa rõ trước/sau CK)",summary.legacy_printed_total_vnd);
   const matching={
    verified:"Đã khớp tổng và chiết khấu",
    mismatch:"CHÊNH LỆCH — cần đối chiếu lại ảnh",
