@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="191a1ca36014918aacc0af710c80fa0b6ac4e9514b40715d8333044e32193d29">
+<meta name="app-build-id" content="9c16bb05b0fdacab4d4c325b1c8165ef3e37d4d9048851faab3c504c86bc8276">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -9128,6 +9128,20 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-switch{
 }
 body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-tab="photos"]{
   display:none!important;
+}
+/* DIR-343: on the outer Admin directory, the ORIGINAL header switch is
+   Trò chuyện | Công việc. It is not the photo route here and never
+   duplicates the lower directory switch. Even if the bank report had
+   hidden Photos, the right half remains available as Công việc. */
+@media(max-width:63.999rem){
+  #appShell[data-mobile-directory="true"] .top-mode-switch[data-directory-owner="true"]{
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+  }
+  #appShell[data-mobile-directory="true"] .top-mode-switch[data-directory-owner="true"] .top-mode-tab[data-top-tab="photos"]{
+    display:flex!important;
+    align-items:center;
+    justify-content:center;
+  }
 }
 .top-mode-tab{
   min-width:0;
