@@ -257,7 +257,7 @@ body.ncc-ai-room-open{overflow:hidden}
  min-height:38px;min-width:106px;border:1px solid var(--theme-border-default,#d9dee5);
  background:var(--theme-surface-primary,#fff);border-radius:10px;
  color:var(--theme-content-primary,#25292e);
- padding:6px 9px;font:600 11px inherit;cursor:pointer;
+ padding:6px 9px;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;
 }
 .ncc-ai-link-button:disabled{opacity:.55;cursor:not-allowed}
 .ncc-ai-link-editor{
@@ -283,3 +283,12 @@ body.ncc-ai-room-open{overflow:hidden}
  border-color:var(--theme-border-default,#b3c0d2);outline-offset:1px;
 }
 .ncc-ai-link-editor .ncc-ai-recheck{align-self:start}
+
+/* Product identity first, monetary evidence follows; names may wrap. */
+.ncc-ai-table :is(td,th):nth-child(n+2):nth-child(-n+5){
+ text-align:left;white-space:normal;
+}
+.ncc-ai-table :is(td,th):nth-child(n+6){text-align:right;white-space:nowrap}
+.ncc-ai-table td:nth-child(2){min-width:118px}
+.ncc-ai-table td:nth-child(3){min-width:155px}
+.ncc-ai-table td:nth-child(4),.ncc-ai-table td:nth-child(5){min-width:154px}
