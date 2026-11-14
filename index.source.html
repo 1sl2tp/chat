@@ -297,12 +297,11 @@ button{
   font-weight:650;
 }
 
-/* CHAT-341: a complete 360-degree border sweep per cycle, not a partial
-   arc orbit. Repeat full cycles only while the outbox is waiting for ACK;
-   after ACK the last sweep finishes before the visual edge disappears.
-   Rendering one full turn is NOT delivery proof; only the real outbox ACK
-   ends the cycle and these paint-only rules must never change bubble height.
-   The status node stays available to screen readers without taking height. */
+/* CHAT-345: ChatGPT-like quiet pending feedback.
+   Do not draw a moving ring around messages. Outgoing text gently breathes
+   between two readable foreground tones; media shows one tiny soft pulse.
+   Neither feedback surface takes layout space or changes the bubble size.
+   Accessibility retains the original off-screen status node. */
 .message-delivery-state[data-state="sending"]{
   position:absolute!important;
   width:1px!important;
@@ -315,50 +314,41 @@ button{
   white-space:nowrap!important;
   border:0!important;
 }
-@property --chat-send-orbit{
-  syntax:"<angle>";
-  inherits:false;
-  initial-value:0deg;
+.message-unit[data-delivery-state="sending"]>.message-text:not([hidden]){
+  animation:chat-send-text-breathe 2.5s ease-in-out infinite;
 }
-.message-unit:is([data-delivery-state="sending"],[data-delivery-state="finishing"])>.message-text:not([hidden]),
-.message-unit:is([data-delivery-state="sending"],[data-delivery-state="finishing"])>.message-media-shell{
+@keyframes chat-send-text-breathe{
+  0%,100%{color:var(--theme-content-primary,#202124)}
+  50%{color:color-mix(in srgb,var(--theme-content-primary,#202124) 72%,var(--theme-content-secondary,#667085))}
+}
+.message-unit[data-delivery-state="sending"]>.message-media-shell{
   position:relative;
 }
-.message-unit:is([data-delivery-state="sending"],[data-delivery-state="finishing"])>.message-media-shell{
-  border-radius:14px;
-}
-.message-unit:is([data-delivery-state="sending"],[data-delivery-state="finishing"])>.message-text:not([hidden])::after,
-.message-unit:is([data-delivery-state="sending"],[data-delivery-state="finishing"])>.message-media-shell::after{
+.message-unit[data-delivery-state="sending"]>.message-media-shell::after{
   content:"";
   position:absolute;
+  right:9px;
+  bottom:9px;
   z-index:3;
-  inset:-1px;
-  box-sizing:border-box;
-  border-radius:inherit;
-  padding:2px;
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:color-mix(in srgb,var(--theme-content-accent,#3988e9) 48%,#fff);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--theme-content-accent,#3988e9) 10%,transparent);
   pointer-events:none;
-  /* The growing edge reaches the full circle at the end of each cycle.
-     No animated box dimensions, borders or text/media padding. */
-  background:conic-gradient(
-    from -90deg,
-    #3988e9 0deg,
-    #75b4fa var(--chat-send-orbit),
-    transparent var(--chat-send-orbit) 360deg
-  );
-  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
-  -webkit-mask-composite:xor;
-  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
-  mask-composite:exclude;
-  animation:chat-send-border-orbit 1.45s linear infinite;
+  animation:chat-send-media-breathe 2.5s ease-in-out infinite;
 }
-@keyframes chat-send-border-orbit{
-  to{--chat-send-orbit:360deg}
+@keyframes chat-send-media-breathe{
+  0%,100%{opacity:.4}
+  50%{opacity:.8}
 }
 @media(prefers-reduced-motion:reduce){
-  .message-unit:is([data-delivery-state="sending"],[data-delivery-state="finishing"])>.message-text:not([hidden])::after,
-  .message-unit:is([data-delivery-state="sending"],[data-delivery-state="finishing"])>.message-media-shell::after{
-    animation:none;
-    background:color-mix(in srgb,#3988e9 58%,transparent);
+  .message-unit[data-delivery-state="sending"]>.message-text:not([hidden]),
+  .message-unit[data-delivery-state="sending"]>.message-media-shell::after{
+    animation:none!important;
+  }
+  .message-unit[data-delivery-state="sending"]>.message-media-shell::after{
+    opacity:.5;
   }
 }
 .user-message-unit{
