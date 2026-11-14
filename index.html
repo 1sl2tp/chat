@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="96459145341a4165b642ebb4b28e343c0780647f5b782721e2339d383cf3642d">
+<meta name="app-build-id" content="7c3d13c67066c6d8035e48c5f67920e72c3560b7e5b01fb766a03b9a6d6d0c85">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -5590,6 +5590,204 @@ body > [data-bank-review-modal] .bank-review-heading{
   }
   #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item > td:nth-child(2){
     font-size:9px;
+  }
+}
+
+
+/* UI-337: one typography scale for Admin bank reconciliation, Web and PWA.
+   The screenshot showed native buttons/date input with a different font and
+   inconsistent 10/11/12px labels in the same visual tier. These rules only
+   change type, never table widths, bank status, dates or financial actions. */
+#bankReportDashboard.bank-report-dashboard{
+  --bank-type-caption:12px;
+  --bank-type-body:13px;
+  --bank-type-control:13px;
+  --bank-type-heading:19px;
+  --bank-type-money:21px;
+  font-family:inherit;
+  font-size:var(--bank-type-body);
+  line-height:1.45;
+  font-synthesis:none;
+}
+#bankReportDashboard :is(button,input,select,textarea,summary){
+  font-family:inherit;
+}
+#bankReportDashboard .bank-report-heading{
+  font-size:var(--bank-type-heading);
+  font-weight:750;
+  line-height:1.3;
+  letter-spacing:-.02em;
+}
+#bankReportDashboard :is(.bank-report-subtitle,.bank-report-unit-note){
+  font-size:var(--bank-type-caption);
+  font-weight:450;
+  line-height:1.4;
+  letter-spacing:normal;
+}
+#bankReportDashboard .bank-report-controls > :is(input,button),
+#bankReportDashboard .bank-report-controls > [data-bank-date],
+#bankReportDashboard .bank-report-controls > [data-bank-daily-summary],
+#bankReportDashboard .bank-report-controls > [data-bank-refresh],
+#bankReportDashboard.is-zero-day .bank-report-controls > [data-bank-date],
+#bankReportDashboard.is-zero-day .bank-report-controls > [data-bank-daily-summary],
+#bankReportDashboard.is-zero-day .bank-report-controls > [data-bank-refresh]{
+  font-size:var(--bank-type-control);
+  line-height:1.35;
+  letter-spacing:normal;
+}
+#bankReportDashboard .bank-report-stat-name,
+#bankReportDashboard .bank-report-stat-compact .bank-report-stat-name,
+#bankReportDashboard .bank-report-work-title,
+#bankReportDashboard .bank-report-extra-metrics-trigger{
+  font-size:var(--bank-type-caption);
+  font-weight:600;
+  line-height:1.4;
+  letter-spacing:normal;
+}
+#bankReportDashboard .bank-report-stat-number,
+#bankReportDashboard .bank-report-stat-compact .bank-report-stat-number{
+  font-size:var(--bank-type-money);
+  font-weight:750;
+  line-height:1.18;
+  letter-spacing:-.025em;
+  font-variant-numeric:tabular-nums;
+}
+#bankReportDashboard .bank-report-stat-unit{
+  font-size:var(--bank-type-caption);
+  font-weight:500;
+  letter-spacing:normal;
+}
+#bankReportDashboard .bank-report-work-button,
+#bankReportDashboard .bank-report-filter,
+#bankReportDashboard .bank-report-filters > .bank-report-filter,
+#bankReportDashboard .bank-report-filters > .bank-report-filter-more > summary{
+  font-size:var(--bank-type-control);
+  font-weight:550;
+  line-height:1.3;
+  letter-spacing:normal;
+}
+#bankReportDashboard .bank-report-filter.is-selected{
+  font-weight:700;
+}
+#bankReportDashboard .bank-report-filter-more-menu > .bank-report-filter{
+  font-size:var(--bank-type-control);
+}
+#bankReportDashboard .bank-report-empty-state{
+  font-size:var(--bank-type-body);
+  line-height:1.45;
+}
+#bankReportDashboard .bank-report-empty-title,
+#bankReportDashboard.is-zero-day .bank-report-empty-title{
+  font-size:14px;
+  font-weight:700;
+  line-height:1.4;
+  letter-spacing:-.01em;
+}
+#bankReportDashboard .bank-report-empty-description,
+#bankReportDashboard.is-zero-day .bank-report-empty-description{
+  font-size:var(--bank-type-caption);
+  font-weight:450;
+  line-height:1.5;
+}
+#bankReportDashboard .bank-report-empty-meta,
+#bankReportDashboard.is-zero-day .bank-report-empty-meta{
+  font-size:var(--bank-type-caption);
+  font-weight:500;
+  line-height:1.4;
+  letter-spacing:normal;
+  font-variant-numeric:tabular-nums;
+}
+#bankReportDashboard .bank-report-empty-previous,
+#bankReportDashboard.is-zero-day .bank-report-empty-previous{
+  font-size:var(--bank-type-control);
+  font-weight:650;
+  line-height:1.3;
+}
+#bankReportDashboard .bank-report-detail-top{
+  font-size:var(--bank-type-body);
+  line-height:1.4;
+}
+#bankReportDashboard .bank-report-detail-time,
+#bankReportDashboard .bank-report-field-label{
+  font-size:var(--bank-type-caption);
+  line-height:1.4;
+}
+#bankReportDashboard .bank-report-field-value,
+#bankReportDashboard .bank-report-detail-reason,
+#bankReportDashboard .bank-report-action{
+  font-size:var(--bank-type-body);
+  line-height:1.45;
+}
+#bankReportDashboard .bank-report-customer-name{
+  font-size:14px;
+  line-height:1.35;
+}
+#bankReportDashboard .bank-report-customer-count{
+  font-size:var(--bank-type-caption);
+  line-height:1.4;
+}
+#bankReportDashboard .bank-report-table{
+  font-size:var(--bank-type-body);
+  line-height:1.4;
+}
+#bankReportDashboard .bank-report-table th{
+  font-size:var(--bank-type-caption);
+  font-weight:650;
+  line-height:1.35;
+}
+#bankReportDashboard .bank-report-section-copy strong{
+  font-size:14px;
+  font-weight:700;
+  line-height:1.35;
+}
+#bankReportDashboard .bank-report-section-copy small,
+#bankReportDashboard .bank-report-section-action{
+  font-size:var(--bank-type-caption);
+  line-height:1.35;
+}
+@media(max-width:760px){
+  #bankReportDashboard.bank-report-dashboard{
+    --bank-type-caption:11.5px;
+    --bank-type-body:12.5px;
+    --bank-type-control:12.5px;
+    --bank-type-heading:18px;
+    --bank-type-money:19px;
+  }
+  #bankReportDashboard .bank-report-stat-name{
+    font-size:var(--bank-type-caption);
+  }
+  #bankReportDashboard .bank-report-filters > .bank-report-filter,
+  #bankReportDashboard .bank-report-filters > .bank-report-filter-more > summary{
+    font-size:12px;
+    min-height:40px;
+  }
+  #bankReportDashboard .bank-report-empty-title,
+  #bankReportDashboard.is-zero-day .bank-report-empty-title{
+    font-size:14px;
+  }
+  #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item > td:first-child,
+  #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item > td:nth-child(6){
+    font-size:var(--bank-type-body);
+    line-height:1.35;
+  }
+  #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item > td:nth-child(2),
+  #bankReportDashboard .bank-report-table tbody tr.bank-report-table-item::after{
+    font-size:var(--bank-type-caption);
+    line-height:1.35;
+  }
+}
+@media(max-width:360px){
+  #bankReportDashboard.bank-report-dashboard{
+    --bank-type-caption:11px;
+    --bank-type-body:12px;
+    --bank-type-control:12px;
+    --bank-type-heading:17px;
+    --bank-type-money:18px;
+  }
+  #bankReportDashboard .bank-report-filters > .bank-report-filter,
+  #bankReportDashboard .bank-report-filters > .bank-report-filter-more > summary{
+    font-size:11px;
+    min-height:38px;
   }
 }
 
