@@ -156,6 +156,7 @@ subprocess.run(['node',str(ROOT/'tests'/'test_bank295_gemini_503_fallback_202611
 subprocess.run(['node',str(ROOT/'tests'/'test_bank296_agribank_mb_memo_20261112.mjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_bank346_mbvcb_late_credit_20261113.mjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_bank347_348_qr_sender_printed_date_20261113.mjs')],check=True,cwd=ROOT)
+subprocess.run(['node',str(ROOT/'tests'/'test_bank349_quang_ocr_late_credit_20261114.mjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_bank297_recipient_name_strict_20261112.mjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_bank298_evidence_clock_retry_quota_20261112.mjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_bank299_decision_retry_matrix_20261112.mjs')],check=True,cwd=ROOT)
