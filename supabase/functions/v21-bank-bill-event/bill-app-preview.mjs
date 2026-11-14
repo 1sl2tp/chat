@@ -249,8 +249,9 @@ function contiguousMemoContains(a,b){
  if(Math.min(left.length,right.length)<16)return false;
  const shorter=left.length<=right.length?left:right;
  const longer=left.length<=right.length?right:left;
- const at=longer.indexOf(shorter);
- return at>=0;
+ // Do not let a common short memo (e.g. CHUYENTIEN) authorize another payer.
+ // A full sender-bound phrase is required by the caller's other guards.
+ return longer.includes(shorter);
 }
 
 function bankMemo(body){
