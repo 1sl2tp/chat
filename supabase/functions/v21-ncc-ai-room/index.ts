@@ -231,6 +231,10 @@ async function handleRecheck(adminId:string,body:any){
   const mime=previous.image_key.endsWith(".png")?"image/png":
     previous.image_key.endsWith(".webp")?"image/webp":"image/jpeg";
   const parsed=await readWithGemini(bytes,mime);
+  // Preserve the original recognized table if a recheck has no useful rows.
+  if(Array.isArray(previous.lines)&&previous.lines.length>0&&
+     (parsed.status==="not_invoice"||parsed.lines.length===0))
+   return fail("recheck_not_enough_evidence",422);
   const checked=parsed.status==="not_invoice"?null:reconcileInvoice(parsed.document,parsed.lines);
   const revised={
    version:PROJECT,hash,created_at:previous.created_at,image_key:previous.image_key,
