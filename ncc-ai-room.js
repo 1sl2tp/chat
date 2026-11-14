@@ -298,7 +298,7 @@ async function open(){
   ready=health.ready===true;
   presence.textContent=ready?"Sẵn sàng":"Chưa có AI";
   if(!ready){say("Máy chủ AI chưa sẵn sàng.");sync();return;}
-  say("Sẵn sàng nhận ảnh phiếu nhập.");
+  say("Bấm dấu + chọn ảnh. Ảnh sẽ tự gửi và AI tự tạo bảng.");
   const history=await api("history");
   if(!opened||accountSession()!==owner)return;
   const records=Array.isArray(history.records)?history.records.slice().reverse():[];
