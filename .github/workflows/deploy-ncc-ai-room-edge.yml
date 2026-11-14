@@ -61,11 +61,18 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: latest
-      - name: Deploy isolated Admin OCR function (no migrations)
+      - name: Deploy isolated Admin OCR function (no other migrations)
+        env:
+          # CLI v3 requires explicit consent for hosted mutations in CI.
+          # Consent is scoped to this exact main-only NCC function release.
+          SUPABASE_YES: "1"
         run: |
+          supabase --version
           supabase functions deploy v21-ncc-ai-room \
-            --project-ref "$PROJECT_REF" \
-            --no-verify-jwt
+            --remote="$PROJECT_REF" \
+            --use-api \
+            --no-verify-jwt \
+            --yes
       - name: Report non-secret release
         run: |
           {
