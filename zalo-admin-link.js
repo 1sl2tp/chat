@@ -440,7 +440,7 @@ function renderAccountRows(){
     const choose=document.createElement('button');
     choose.type='button';
     choose.className='zalo-account-action';
-    choose.textContent=link?'Đổi':'Chọn Zalo';
+    choose.textContent=link?'Đổi Zalo':'Chọn Zalo';
     choose.addEventListener('click',()=>openAccountPicker(account));
     actions.appendChild(choose);
     if(link){
@@ -515,6 +515,12 @@ function renderAccountRows(){
       'Chưa có dữ liệu tài khoản hoặc Zalo';
     body.appendChild(empty);
   }
+  // DIR-346: account rows arrive after the async Admin snapshot and are
+  // recreated on search/unlink. Notify the separate group-control owner
+  // AFTER each paint; observing only the overlay's direct children misses it.
+  document.dispatchEvent(new CustomEvent('v21-zalo-account-rows-rendered',{
+    detail:{modal:accountModal}
+  }));
 }
 
 function openAccountPicker(account){
