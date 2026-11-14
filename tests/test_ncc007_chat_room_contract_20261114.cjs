@@ -61,7 +61,7 @@ const work=vm.createContext({
    clearActiveContact(){returnedDesktop++},openChat(){returnedDesktop++}
   }}
  },
- isAdmin:()=>authorized,
+ isAdmin:()=>authorized,embeddedHost:null,
  open:({inlineHost}={})=>{opened++;work.embeddedHost=inlineHost},
  close:()=>{closed++;work.embeddedHost=null},
  String,Boolean
