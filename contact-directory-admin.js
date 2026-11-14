@@ -93,19 +93,26 @@ function installStyle(){
     .contact-directory-section{appearance:none;border:0;border-radius:12px;min-height:42px;padding:7px 8px;background:transparent;color:var(--theme-content-secondary,#616872);font-family:inherit;font-size:14px;font-weight:600;line-height:1.25;cursor:pointer}
     .contact-directory-section[data-active="true"]{background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#171717);box-shadow:0 1px 4px #00000013}
     .contact-directory-section:focus-visible{outline:2px solid var(--theme-content-accent,#377ad6);outline-offset:2px}
-    .contact-directory-work-tools{display:grid;gap:8px;padding:5px 1px 2px}
+    /* Work priority: banking stays visible first; optional utilities are disclosed below the bank report. */
+    .contact-directory-work-tools{display:block;box-sizing:border-box;margin-top:10px;padding:7px 8px 16px;border-top:1px solid var(--theme-border-default,#dedede)}
+    .contact-directory-work-summary{display:flex;align-items:center;gap:8px;box-sizing:border-box;min-height:44px;padding:0 5px;cursor:pointer;list-style:none;color:var(--theme-content-secondary,#667085);font-size:13px;font-weight:650}
+    .contact-directory-work-summary::-webkit-details-marker{display:none}
+    .contact-directory-work-summary small{margin-left:auto;color:var(--theme-content-secondary,#667085);font-size:12px;font-weight:500}
+    .contact-directory-work-summary::after{content:"";box-sizing:border-box;width:8px;height:8px;flex:0 0 8px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg);margin:0 4px 3px 0}
+    .contact-directory-work-tools[open] .contact-directory-work-summary::after{transform:rotate(225deg);margin-top:4px;margin-bottom:0}
+    .contact-directory-work-tools > .contact-directory-work-item{margin-top:6px}
     .contact-directory-work-item{display:grid;gap:3px;min-height:64px;border:1px solid var(--theme-border-default,#dedede);border-radius:12px;padding:10px 12px;background:var(--theme-surface-primary,#fff)}
     .contact-directory-work-item strong{font-size:14px;font-weight:700;line-height:1.3}
     .contact-directory-work-item span{color:var(--theme-content-secondary,#667085);font-size:12px;line-height:1.35}
     .contact-directory-work-bank-heading{box-sizing:border-box;padding:13px 11px 7px;color:var(--theme-content-primary,#171717);font-size:13px;font-weight:700;line-height:1.35}
     .contact-directory-work-item [data-ncc-launch]{width:100%;margin-top:6px;text-align:center}
-    .contact-directory-tools[data-directory-section="chat"] .contact-directory-work-tools,
     .contact-directory-tools[data-directory-section="work"] :is(.contact-directory-search-field,.contact-directory-filter-line){display:none!important}
     .contact-directory-work-bank-heading[hidden],.contact-directory-work-tools[hidden]{display:none!important}
     /* DIR-343: On iPhone/Android, the top header is the ONLY Chat/Work
        selector while Admin directory is open. Desktop keeps its own panel. */
     @media(max-width:63.999rem){
       #appShell[data-mobile-directory="true"] .contact-directory-sections{display:none!important}
+      #appShell[data-mobile-directory="true"] .contact-directory-tools[data-directory-section="work"]{display:none!important}
     }
     /* UI-247: reusable ChatGPT-like search surface, without altering focus/scroll owners. */
     .contact-directory-search-field{position:relative;width:100%;min-width:0}
@@ -189,6 +196,7 @@ function directoryTools(){return document.querySelector('[data-contact-directory
 function removeDirectoryTools(){
   directoryTools()?.remove();
   document.querySelector('[data-contact-work-bank-heading]')?.remove();
+  document.querySelector('[data-contact-work-tools]')?.remove();
   const host=document.querySelector('[data-v21-contact-list]');
   host?.querySelector('.contact-directory-empty')?.remove();
   for(const row of host?.querySelectorAll?.('[data-contact-row]')||[])row.hidden=false;
@@ -228,9 +236,7 @@ function ensureDirectoryTools(){
       </div>
       <button type="button" class="contact-directory-filter-more" data-contact-directory-filter-more data-direction="next" aria-label="Xem thêm nhóm" hidden></button>
     </div>
-    <div class="contact-directory-work-tools" id="contactDirectoryWorkView" data-contact-work-tools hidden>
-      <div class="contact-directory-work-item"><strong>Sản phẩm · Phiếu NCC</strong><span>Ảnh phiếu nhập, liên kết sản phẩm và kiểm tra giá vốn</span><div data-contact-work-ncc-slot></div></div>
-    </div>`;
+    `;
   body.insertBefore(tools,nav);
   let bankHeading=nav.querySelector('[data-contact-work-bank-heading]');
   if(!bankHeading){
@@ -240,6 +246,16 @@ function ensureDirectoryTools(){
     bankHeading.textContent='Chuyển khoản · Đối soát';
     nav.insertBefore(bankHeading,host);
   }
+  // Bank report is the primary work item; supplier invoice is optional and
+  // stays after the report row inside the SAME native scroll owner.
+  const workTools=document.createElement('details');
+  workTools.className='contact-directory-work-tools';
+  workTools.id='contactDirectoryWorkView';
+  workTools.dataset.contactWorkTools='';
+  workTools.hidden=true;
+  workTools.innerHTML=`<summary class="contact-directory-work-summary"><span>Tiện ích khác</span><small>Phiếu NCC</small></summary>
+    <div class="contact-directory-work-item"><strong>Sản phẩm · Phiếu NCC</strong><span>Ảnh phiếu nhập, liên kết sản phẩm và kiểm tra giá vốn</span><div data-contact-work-ncc-slot></div></div>`;
+  nav.insertBefore(workTools,host.nextSibling);
   const setDirectorySection=(next,{restore=false}={})=>{
     directorySection=next==='work'?'work':'chat';
     tools.dataset.directorySection=directorySection;
@@ -249,7 +265,7 @@ function ensureDirectoryTools(){
       tab.setAttribute('aria-selected',String(selected));
       tab.tabIndex=selected?0:-1;
     }
-    tools.querySelector('[data-contact-work-tools]').hidden=directorySection!=='work';
+    workTools.hidden=directorySection!=='work';
     bankHeading.hidden=directorySection!=='work';
     nav.setAttribute('aria-label',directorySection==='work'?'Công việc':'Danh bạ');
     syncMobileDirectoryHeader();
