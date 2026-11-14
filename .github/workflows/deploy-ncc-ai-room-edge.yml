@@ -1,0 +1,69 @@
+name: Deploy NCC AI Chat Edge
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/functions/v21-ncc-ai-room/**"
+      - "tests/test_ncc007_chat_room_contract_20261114.cjs"
+      - ".github/workflows/deploy-ncc-ai-room-edge.yml"
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: chat-ncc-ai-edge-prod
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      PROJECT_REF: vtqhbhrkdxirqeqkgylo
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+    steps:
+      - name: Require exact canonical main
+        shell: bash
+        run: |
+          if [ "$GITHUB_REPOSITORY" != "1sl2tp/chat" ] || [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "::error::NCC Edge release restricted to canonical Chat main."
+            exit 1
+          fi
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Validate checked-out source SHA
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          echo "NCC AI source: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check UI and no-DB contract
+        run: |
+          node --check ncc-ai-room.js
+          node tests/test_ncc007_chat_room_contract_20261114.cjs
+      - name: Require preconfigured CI credential
+        shell: bash
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
+            echo "::error::Supabase deployment token missing. Do not deploy manually."
+            exit 1
+          fi
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Deploy isolated Admin OCR function (no migrations)
+        run: |
+          supabase functions deploy v21-ncc-ai-room \
+            --project-ref "$PROJECT_REF" \
+            --no-verify-jwt
+      - name: Report non-secret release
+        run: |
+          {
+            echo "### NCC AI Edge deployment"
+            echo "Project: $PROJECT_REF"
+            echo "Function: v21-ncc-ai-room"
+            echo "SHA: $GITHUB_SHA"
+            echo "No database migrations or customer messages executed"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -320,6 +320,9 @@ function ensurePhotoComposer(slot){
  photoSync(panel);
 }
 function ensureButton(){
+ // NCC-007: standalone OCR bot owns the new launcher; legacy supplier
+ // assignment flow remains dormant until selected-user automation phase.
+ if(window.V21NccAiRoom){window.V21NccAiRoom.mount?.();return;}
  // A fresh Admin or session must not inherit another account's photos/tables.
  const nextOwner=photoOwner();
  if(nextOwner!==nccChatSessionOwner){
