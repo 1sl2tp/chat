@@ -45,8 +45,8 @@ msgContext.show(unit,{sender:'remote',status:'failed'});
 assert.equal(unit.children.length,0,'remote messages must not inherit local errors');
 assert(app.includes("String(message?.status||'sent')"),
  'status transition invalidates the message visual signature');
-assert.equal((app.match(/syncMessageDeliveryState\(unit,message\);/g)||[]).length,2,
- 'both create and patch use the same status presentation owner');
+assert.equal((app.match(/syncMessageDeliveryState\(unit,message\);/g)||[]).length,3,
+ 'create, content patch and lightweight ACK patch share the same status owner');
 assert(html.includes('.message-delivery-state[data-state="failed"]'));
 
 const dStart=directory.indexOf('function matchesDirectory(item){');
