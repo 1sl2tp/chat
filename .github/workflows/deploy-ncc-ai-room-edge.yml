@@ -4,6 +4,9 @@ on:
     branches: [main]
     paths:
       - "supabase/functions/v21-ncc-ai-room/**"
+      - "supabase/migrations/20261115010000_ncc010_product_aliases_vietnamese_names.sql"
+      - "tools/release_ncc010_product_identity.mjs"
+      - "tests/test_ncc011_release_contract_20261115.mjs"
       - "tests/test_ncc007_chat_room_contract_20261114.cjs"
       - ".github/workflows/deploy-ncc-ai-room-edge.yml"
   workflow_dispatch: {}
@@ -39,10 +42,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Check UI and no-DB contract
+      - name: Check UI, canonical product schema and release contract
         run: |
           node --check ncc-ai-room.js
+          node --check tools/release_ncc010_product_identity.mjs
           node tests/test_ncc007_chat_room_contract_20261114.cjs
+          node tests/test_ncc010_product_linking_20261115.mjs
+          node tests/test_ncc011_release_contract_20261115.mjs
       - name: Require preconfigured CI credential
         shell: bash
         run: |
@@ -50,6 +56,8 @@ jobs:
             echo "::error::Supabase deployment token missing. Do not deploy manually."
             exit 1
           fi
+      - name: Release only the pinned NCC-010 schema with post-verification
+        run: node tools/release_ncc010_product_identity.mjs
       - uses: supabase/setup-cli@v1
         with:
           version: latest
@@ -65,5 +73,5 @@ jobs:
             echo "Project: $PROJECT_REF"
             echo "Function: v21-ncc-ai-room"
             echo "SHA: $GITHUB_SHA"
-            echo "No database migrations or customer messages executed"
+            echo "NCC-010 schema verified and isolated Edge function released; no customer messages or price updates"
           } >> "$GITHUB_STEP_SUMMARY"
