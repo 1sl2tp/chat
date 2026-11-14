@@ -50,9 +50,10 @@ function ensureButton(){
  if(!tools)return;
  // DIR-342: supplier invoice actions are work, not ordinary conversations.
  // Reparent the existing launcher (never clone it) to preserve one click owner.
- const slot=tools.querySelector('[data-contact-work-ncc-slot]')||tools;
+ const slot=document.querySelector('[data-contact-work-ncc-slot]');
+ if(!slot)return;
  const ready=window.V21ContactDirectoryAdmin?.nccEnabled?.()===true;
- const existing=tools.querySelector('[data-ncc-launch]');
+ const existing=slot.querySelector('[data-ncc-launch]')||document.querySelector('[data-ncc-launch]');
  if(existing){
    if(existing.parentElement!==slot)slot.appendChild(existing);
    existing.disabled=!ready;
