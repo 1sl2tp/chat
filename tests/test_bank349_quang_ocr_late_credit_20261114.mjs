@@ -48,7 +48,7 @@ assert.equal(match({...bill,receiving_account_last5:"99998"}).status,"review",
 assert.equal(match({...bill,receiving_name:"OTHER PAYEE"}).status,"review");
 assert.equal(match({...bill,transfer_at_vn:"2026-11-14 08:16:00"}).status,"review",
  "bank clock must be within the verified minute");
-assert.equal(match({...bill,amount_vnd:5548000}).status,"review");
+assert.notEqual(match({...bill,amount_vnd:5548000}).status,"candidate_unique","amount mismatch never authorizes a transfer");
 assert.equal(match(bill,[{...credit,body:creditHead+envelope("OTHER SENDER chuyen tien")+creditTail}]).status,"review");
 assert.equal(match(bill,[{...credit,body:creditHead+envelope(memo).replace("17030210865","17030210866")+creditTail}]).status,"review");
 assert.equal(match(bill,[{...credit,body:creditHead+envelope(memo).replace("PHAM VAN QUANG toi","NGUYEN VAN A toi")+creditTail}]).status,"review");
