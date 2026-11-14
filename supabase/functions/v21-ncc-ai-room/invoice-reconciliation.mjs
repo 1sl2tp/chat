@@ -26,6 +26,8 @@ export function reconcileInvoice(document={},inputLines=[]){
   const computedFromUnit=multiplied!==null&&Number.isSafeInteger(multiplied)&&multiplied>=0&&multiplied<=100000000000?
    multiplied:null;
   const rowWarnings=[];
+  if(qty!==null&&qty>=100)
+   warning(rowWarnings,"Số lượng lớn: cần đối chiếu trực tiếp với ảnh gốc");
   if(printedLine!==null&&computedFromUnit!==null&&
     Math.abs(printedLine-computedFromUnit)>1)
    warning(rowWarnings,"Đơn giá × SL không khớp thành tiền in trên dòng");
