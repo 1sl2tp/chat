@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="fed7a8a3a459efe6b43efe85d30a2c11932f9e2ff28b281a10c5fe550ccbda99">
+<meta name="app-build-id" content="191a1ca36014918aacc0af710c80fa0b6ac4e9514b40715d8333044e32193d29">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -26647,10 +26647,10 @@ function showMobileDirectory(reason='directory'){
   layer.setAttribute('aria-hidden','false');
   app.dataset.mobileDirectoryReason=String(reason||'directory');
   // DIR-343: notify the sole directory header-tab owner (Chat / Công việc).
-  document.dispatchEvent(new CustomEvent('v21-mobile-directory-change',{detail:{open:true}}));
   resetWorkSelectionForDirectory();
   navigation()?.clearActiveContact?.();
   syncDirectoryChatTab(true);
+  document.dispatchEvent(new CustomEvent('v21-mobile-directory-change',{detail:{open:true}}));
   // Reopening an already-visible directory must not trigger another RPC.
   if(!wasOpen)void window.V21ContactStore?.refresh?.();
   if(!wasOpen)window.setTimeout(()=>focusMobileDirectory(layer),0);
