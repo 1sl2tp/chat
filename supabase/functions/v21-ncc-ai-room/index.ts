@@ -279,7 +279,7 @@ Deno.serve(async req=>{
  let body:any={};
  try{body=await req.json();}catch{return fail("invalid_json");}
  const action=String(body?.action||"").trim();
- if(action==="health")return json({ok:true,ready:Boolean(Deno.env.get("GEMINI_API_KEY"))});
+ if(action==="health")return json({ok:true,ready:Boolean(Deno.env.get("GEMINI_API_KEY")),features:["invoice_totals_v2"]});
  if(action==="send")return handleSend(admin.id,body);
  if(action==="status")return handleStatus(admin.id,body);
  if(action==="recheck")return handleRecheck(admin.id,body);
