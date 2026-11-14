@@ -526,7 +526,7 @@ function mount(){
   nav.dataset.bankWorkNav="";
   nav.setAttribute("aria-label","Công việc");
   nav.innerHTML=[
-   '<div class="bank-work-heading"><button type="button" class="bank-work-back" data-bank-work-back aria-label="Quay lại Trò chuyện">← Trò chuyện</button><strong>Công việc</strong></div>',
+   '<div class="bank-work-heading"><button type="button" class="bank-work-back" data-bank-work-back aria-label="Quay lại Trò chuyện">← Trò chuyện</button></div>',
    '<div class="bank-work-tabs" role="tablist" aria-label="Loại công việc">',
    '<button type="button" role="tab" id="bankWorkBankTab" data-bank-work-tab="bank" aria-controls="bankWorkBankPanel" aria-selected="true">Chuyển khoản</button>',
    '<button type="button" role="tab" id="bankWorkSupplierTab" data-bank-work-tab="supplier" aria-controls="bankWorkSupplierPanel" aria-selected="false" tabindex="-1">Nhập hàng</button>',
