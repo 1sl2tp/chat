@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="16e936a7cda539d320032e811be9264ababfaa7de93d2dbdd489af609387cdfa">
+<meta name="app-build-id" content="16d0ca7fa3ac4a293b2385573f5c04ab3bcce9e09d69ac905d6eb440dfe5d45c">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -40159,7 +40159,7 @@ function syncAdminGroupControls(){
     const select=document.createElement('select');
     select.className='zalo-account-group-select';
     select.dataset.contactGroupSelect='';
-    select.setAttribute('aria-label','Phân loại');
+    select.setAttribute('aria-label','Nhóm khách hàng');
     for(const [key,label] of GROUPS){
       const option=document.createElement('option');
       option.value=key;option.textContent=label;option.disabled=key==='ncc'&&!nccReady;
@@ -40281,6 +40281,15 @@ document.addEventListener('click',event=>{
 // Contact-store patches (notably mark-read) must never reset the directory viewport.
 // Real activity reorders rows inside syncDirectoryRows(), which already preserves scrollTop.
 document.addEventListener('v21-contact-store-change',()=>scheduleSync());
+// DIR-346: Chat–Zalo rows are rendered asynchronously after the overlay
+// itself has already mounted. The overlay-root MutationObserver cannot see
+// that nested list replacement; attach group controls on the direct event.
+document.addEventListener('v21-zalo-account-rows-rendered',event=>{
+  const modal=document.querySelector('[data-zalo-account-admin-modal]');
+  if(!currentAdmin()||!modal||event.detail?.modal!==modal)return;
+  syncAdminGroupControls();
+  void ensureGroups();
+});
 document.addEventListener('v21-auth-state',resetForAuth);
 document.addEventListener('click',event=>{
   const target=event.target instanceof Element?event.target:null;
