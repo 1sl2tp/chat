@@ -63,7 +63,43 @@ assert(directory.includes('#appShell[data-mobile-directory="true"] .contact-dire
 assert(directory.includes("document.addEventListener('v21-mobile-directory-change',syncMobileDirectoryHeader);"));
 assert(directory.includes("event.stopImmediatePropagation();"));
 assert(directory.includes(`directoryTools()?.querySelector('[data-contact-directory-section="'+next+'"]')?.click();`),
- 'top tabs navigate only the directory section while open, never the photo route');
+ 'fallback still shows Work list if canonical report contact has not loaded');
+assert(directory.includes("if(next==='work'&&openBankReportFromWork())return;"),
+ 'single tap opens the report directly instead of a Work list');
+assert(directory.includes("if(next==='work'&&!restore&&openBankReportFromWork())return;"),
+ 'desktop internal Work switch takes the same direct action');
+
+const openStart=directory.indexOf('function openBankReportFromWork(){');
+const openEnd=directory.indexOf('function directoryTools(){',openStart);
+assert(openStart>0&&openEnd>openStart,'direct Work owner exists');
+const reportId='fc3ec480-60d2-4749-b7af-5f4ae71eb14e';
+let adminReady=true, reportReady=true, navReady=true, opened=false, hiddenCount=0, chosen=[];
+const owner=vm.createContext({
+ currentAdmin:()=>adminReady?{id:'admin',role:'admin'}:null,
+ contactStore:()=>({snapshot:()=>reportReady?[{id:reportId,display_name:'TAPHOA · Báo cáo chuyển khoản'}]:[]}),
+ isPinnedReportContact:row=>row?.id===reportId,
+ PINNED_REPORT_ID:reportId,
+ window:{
+  ChatAppShell:{NavigationCommand:{openContact:(id,name)=>{chosen.push({id,name});return navReady&&opened;}}},
+  V21WorkCustomerSummary:{hideMobileDirectory:()=>{hiddenCount++;}}
+ },
+ String,Boolean
+});
+vm.runInContext(directory.slice(openStart,openEnd)+'\nthis.openReport=openBankReportFromWork;',owner);
+assert.equal(owner.openReport(),false,'cannot navigate without successful openContact');
+assert.equal(hiddenCount,0,'failed navigation does not close directory');
+opened=true;
+assert.equal(owner.openReport(),true);
+assert.equal(chosen.at(-1).id,reportId,'no matching by editable report name');
+assert.equal(hiddenCount,1,'direct navigation closes mobile directory even for same report');
+reportReady=false;
+assert.equal(owner.openReport(),false,'missing report is not invented');
+adminReady=false;reportReady=true;
+assert.equal(owner.openReport(),false,'non-Admin cannot open bank by Work tab');
+assert.equal(hiddenCount,1,'no leaked navigation on logout');
+assert(html.includes('data-bank-report-ncc-slot'),'NCC belongs inside the full report');
+assert(html.indexOf('data-bank-groups')<html.indexOf('data-bank-report-ncc-slot'),'finance before NCC');
+assert(html.includes('<details class="bank-report-secondary-tools"'),'NCC utility defaults closed');
 assert(mobile.includes("document.dispatchEvent(new CustomEvent('v21-mobile-directory-change',{detail:{open:true}}));"));
 assert(mobile.includes("document.dispatchEvent(new CustomEvent('v21-mobile-directory-change',{detail:{open:false}}));"));
 assert(mobile.includes("if(mobileDirectoryOpen()&&snapshot().account?.role==='admin')return;"),

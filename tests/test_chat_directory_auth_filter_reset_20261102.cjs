@@ -37,7 +37,8 @@ let scheduled=0;
 let admin={id:'new-admin'};
 const context=vm.createContext({
   currentAdmin:()=>admin,
-  document:{querySelector:s=>s==='[data-contact-work-bank-heading]'?heading:null},
+  document:{querySelector:s=>s==='[data-contact-work-bank-heading]'?heading:
+    s==='[data-contact-work-tools]'?work:null},
   directoryTools:()=>tools,
   scheduleSync:()=>{scheduled++;},
   syncMobileDirectoryHeader:()=>{},
@@ -53,6 +54,7 @@ assert.equal(context.groupMap.size,0,'old admin group map cleared');
 assert.equal(input.value,'','visible input must match cleared filter model');
 assert.equal(tools.dataset.directorySection,'chat');
 assert.equal(work.hidden,true);
+assert.equal(work.open,false,'collapsed NCC must not stay expanded across Admin sessions');
 assert.equal(heading.hidden,true);
 assert.equal(sections[0].attributes['aria-selected'],'true');
 assert.equal(sections[1].attributes['aria-selected'],'false');
