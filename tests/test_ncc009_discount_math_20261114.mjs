@@ -39,4 +39,12 @@ assert(inconsistent.summary.warnings.some(x=>x.includes('tỷ lệ')));
 const absent=reconcileInvoice({total_payable_vnd:1000},[row(1000)]);
 assert.equal(absent.summary.discount_total_vnd,null);
 assert.equal(absent.summary.status,'insufficient');
+const alreadyNet=reconcileInvoice({subtotal_vnd:100000,discount_amount_vnd:10000,total_payable_vnd:90000},
+ [row(50000),row(40000)]);
+assert.equal(alreadyNet.summary.line_totals_may_be_post_discount,true);
+assert.equal(alreadyNet.summary.payable_calculated_vnd,null);
+assert(alreadyNet.lines.every(x=>x.discount_line_vnd===null));
+const outlier=reconcileInvoice({subtotal_vnd:172000,discount_amount_vnd:0,total_payable_vnd:172000},
+ [{printed_name:'Milo to thuong',quantity:172,unit_price_vnd:1000}]);
+assert(outlier.summary.warnings.some(x=>x.includes('số lượng lớn')));
 console.log('NCC-009 discount math PASS');
