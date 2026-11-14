@@ -47,6 +47,7 @@ function ensureStyle(){
 // NCC-004: photo -> existing guarded upload/scan/detail path, with a chat-like
 // preview and an inline table. No customer message or price write is made.
 let photoBusy=false,photoPreviewUrl='';
+let nccChatSessionOwner='';
 function photoReady(){return admin()&&window.V21ContactDirectoryAdmin?.nccEnabled?.()===true;}
 function photoOwner(){
  const s=auth()?.snapshot?.()||{};
@@ -319,6 +320,12 @@ function ensurePhotoComposer(slot){
  photoSync(panel);
 }
 function ensureButton(){
+ // A fresh Admin or session must not inherit another account's photos/tables.
+ const nextOwner=photoOwner();
+ if(nextOwner!==nccChatSessionOwner){
+  resetPhoto(undefined,true);
+  nccChatSessionOwner=nextOwner;
+ }
  if(!admin()){
   resetPhoto(undefined,true);
   document.querySelector('[data-ncc-launch]')?.remove();
@@ -667,7 +674,7 @@ function assignPanel(rowNo){
   finally{updateBusy(false);}
  };
 }
-document.addEventListener('v21-auth-state',()=>{if(!admin())dialog?.close();else ensureButton();});
+document.addEventListener('v21-auth-state',()=>{if(!admin())dialog?.close();ensureButton();});
 document.addEventListener('v21-contact-groups-change',ensureButton);
 document.addEventListener('v21-active-contact-change',ensureButton);
 document.addEventListener('v21-mobile-directory-change',ensureButton);
