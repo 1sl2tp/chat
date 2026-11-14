@@ -47,6 +47,7 @@ function ensureStyle(){
 // NCC-004: photo -> existing guarded upload/scan/detail path, with a chat-like
 // preview and an inline table. No customer message or price write is made.
 let photoBusy=false,photoPreviewUrl='';
+let nccChatSessionOwner='';
 function photoReady(){return admin()&&window.V21ContactDirectoryAdmin?.nccEnabled?.()===true;}
 function photoOwner(){
  const s=auth()?.snapshot?.()||{};
@@ -56,13 +57,14 @@ function photoNote(panel,text){
  const el=panel?.querySelector('[data-ncc-photo-status]');
  if(el)el.textContent=text;
 }
-function resetPhoto(panel=document.querySelector('[data-ncc-photo-composer]')){
+function resetPhoto(panel=document.querySelector('[data-ncc-photo-composer]'),clearHistory=false){
  if(photoPreviewUrl){URL.revokeObjectURL(photoPreviewUrl);photoPreviewUrl='';}
  if(!panel)return;
+ if(clearHistory)nccClearChat(panel);
  const input=panel.querySelector('[data-ncc-photo-file]');if(input)input.value='';
  const preview=panel.querySelector('[data-ncc-photo-preview]');
  if(preview){preview.hidden=true;preview.querySelector('img')?.removeAttribute('src');}
- panel.querySelector('[data-ncc-photo-result]')?.replaceChildren();
+ // Removing an unsent preview must not erase earlier Admin/AI messages.
  panel.querySelector('[data-ncc-photo-send]')?.setAttribute('disabled','');
 }
 function photoSync(panel){
@@ -75,36 +77,159 @@ function photoSync(panel){
  if(!ready)photoNote(panel,'Máy chủ NCC chưa kích hoạt. Có thể xem trước ảnh nhưng chưa gửi hoặc phân tích được.');
  else if(!photoBusy&&!file)photoNote(panel,'Chọn ảnh, rồi gửi để AI đọc bảng hàng ngay tại đây.');
 }
-function photoResult(panel,detail,id){
- const host=panel.querySelector('[data-ncc-photo-result]');if(!host)return;
- host.replaceChildren();
- const make=(parent,tag,value,cls='')=>{
-  const e=document.createElement(tag);if(cls)e.className=cls;
-  if(value!==undefined)e.textContent=String(value);parent.appendChild(e);return e;
- };
- const doc=detail?.document||{};
- make(host,'strong','Bảng hàng · '+(statusText[doc.status]||'Cần đối chiếu'),'ncc-photo-result-title');
+// NCC-006: photo-to-table is a self-contained Admin conversation, not a
+// supplier chat transport. A time-stamped mock is always available while the
+// backend is disabled. Real OCR rows are displayed without inventing values.
+const nccChatUrls=new Set();
+const nccChatClock=value=>{
+ const d=value?new Date(value):new Date();
+ return new Intl.DateTimeFormat('vi-VN',{
+  timeZone:'Asia/Ho_Chi_Minh',hour:'2-digit',minute:'2-digit',hourCycle:'h23'
+ }).format(Number.isNaN(d.getTime())?new Date():d);
+};
+const nccChatDay=value=>{
+ const d=value?new Date(value):new Date();
+ return new Intl.DateTimeFormat('vi-VN',{
+  timeZone:'Asia/Ho_Chi_Minh',day:'2-digit',month:'2-digit',year:'numeric'
+ }).format(Number.isNaN(d.getTime())?new Date():d);
+};
+function nccClearChat(panel){
+ const thread=panel?.querySelector('[data-ncc-photo-result]');
+ for(const src of nccChatUrls)URL.revokeObjectURL(src);
+ nccChatUrls.clear();
+ if(thread){thread.replaceChildren();delete thread.dataset.nccDay;delete thread.dataset.nccDemo;delete thread.dataset.lastDocument;}
+}
+function nccChatEntry(panel,side,title,at=new Date()){
+ const thread=panel?.querySelector('[data-ncc-photo-result]');
+ if(!thread)return null;
+ if(!thread.dataset.nccDay){
+  const sep=document.createElement('div');
+  sep.className='ncc-chat-day';
+  sep.textContent=nccChatDay(at);
+  thread.appendChild(sep);
+  thread.dataset.nccDay='1';
+ }
+ const row=document.createElement('div');
+ row.className='ncc-chat-message ncc-chat-'+side;
+ const head=document.createElement('div');
+ head.className='ncc-chat-meta';
+ const who=document.createElement('strong');
+ who.textContent=title;
+ const stamp=document.createElement('time');
+ stamp.textContent=nccChatClock(at);
+ stamp.dateTime=at instanceof Date?at.toISOString():new Date(at).toISOString();
+ head.append(who,stamp);
+ const bubble=document.createElement('div');
+ bubble.className='ncc-chat-bubble';
+ row.append(head,bubble);
+ thread.appendChild(row);
+ return bubble;
+}
+function nccChatUpload(panel,file,label,time){
+ const bubble=nccChatEntry(panel,'out','Admin · Ảnh phiếu nhập',time);
+ if(!bubble)return;
+ if(file){
+  const url=URL.createObjectURL(file);
+  nccChatUrls.add(url);
+  const img=document.createElement('img');
+  img.src=url;img.alt='Ảnh phiếu NCC đã gửi để đọc bảng';img.className='ncc-chat-image';
+  bubble.appendChild(img);
+ }
+ const p=document.createElement('p');
+ p.className='ncc-chat-sent-label';
+ p.textContent=label;
+ bubble.appendChild(p);
+}
+function photoResult(panel,detail,id,demo=false){
+ const host=panel.querySelector('[data-ncc-photo-result]');
+ if(!host)return;
+ if(!demo&&host.dataset.nccDemo==='1')nccClearChat(panel);
+ if(!demo&&host.dataset.lastDocument===id)return;
  const lines=Array.isArray(detail?.lines)?detail.lines:[];
+ const at=detail?.document?.created_at||new Date().toISOString();
+ if(!demo){
+  const file=panel.querySelector('[data-ncc-photo-file]')?.files?.[0];
+  nccChatUpload(panel,file,file?.name||'Ảnh phiếu nhập',panel.dataset.nccSentAt||at);
+  host.dataset.lastDocument=id;
+ }
+ const bubble=nccChatEntry(panel,'in',demo?'Bản mô phỏng · Không dùng AI':'AI · Bảng thông tin',new Date());
+ if(!bubble)return;
+ const make=(parent,tag,value,cls='')=>{
+  const el=document.createElement(tag);
+  if(cls)el.className=cls;
+  if(value!==undefined)el.textContent=String(value);
+  parent.appendChild(el);
+  return el;
+ };
+ const status=String(detail?.document?.status||'');
+ const title=demo?'BẢNG MẪU — KHÔNG PHẢI KẾT QUẢ THẬT'
+   :lines.length?'Bảng đọc từ ảnh · Chưa xác nhận':'Chưa tạo được bảng từ ảnh';
+ make(bubble,'strong',title,'ncc-photo-result-title');
  if(lines.length){
-  const wrap=make(host,'div','','ncc-photo-result-scroll');
-  const table=make(wrap,'table','','ncc-photo-result-table');
-  const tr=make(make(table,'thead'), 'tr');
-  ['STT','Tên hàng','SL','Giá nhập','Liên kết'].forEach(x=>make(tr,'th',x));
-  const body=make(table,'tbody');
+  make(bubble,'p',lines.length+' mặt hàng · Chỉ lấy thông tin trên phiếu','ncc-chat-description');
+  const scroll=make(bubble,'div',undefined,'ncc-photo-result-scroll');
+  const table=make(scroll,'table',undefined,'ncc-photo-result-table');
+  const heading=make(make(table,'thead'),'tr');
+  ['STT','Tên hàng trên phiếu','SL','ĐVT','Đơn giá','Thành tiền']
+   .forEach(label=>make(heading,'th',label));
+  const tbody=make(table,'tbody');
   for(const line of lines){
-   const row=make(body,'tr');
-   [line.row_no??'',line.printed_name||'Chưa đọc rõ',line.quantity??'—',
+   const tr=make(tbody,'tr');
+   [
+    line.row_no??'',line.printed_name||'Chưa đọc rõ',line.quantity??'—',
+    line.printed_unit||'—',
     line.unit_price_vnd==null?'—':money(line.unit_price_vnd),
-    line.product_code||'Chưa ghép'].forEach(x=>make(row,'td',x));
+    line.line_total_vnd==null?'—':money(line.line_total_vnd)
+   ].forEach(value=>make(tr,'td',value));
   }
- }else make(host,'p','Chưa có dòng hàng được xác minh. Kiểm tra ảnh và trạng thái phiếu.','ncc-help');
- make(host,'p','Bảng chỉ để đối chiếu, chưa tự sửa giá vốn hoặc ghi thu.','ncc-help');
- const button=make(host,'button','Chi tiết · Ghép sản phẩm','ncc-photo-manage');
- button.type='button';
- button.addEventListener('click',()=>{
-  if(!admin())return;
-  ensureDialog();if(!dialog.open)dialog.showModal();void view(id);
- });
+  const copy=make(bubble,'button','Sao chép bảng','ncc-photo-copy');
+  copy.type='button';
+  copy.addEventListener('click',async()=>{
+   const safe=x=>String(x??'').replace(/[\r\n\t]/g,' ').trim();
+   const columns=['STT','Tên hàng trên phiếu','SL','ĐVT','Đơn giá','Thành tiền'];
+   const dataRows=lines.map(line=>[
+    line.row_no??'',line.printed_name??'',line.quantity??'',line.printed_unit??'',
+    line.unit_price_vnd??'',line.line_total_vnd??''
+   ].map(safe).join('\t'));
+   try{
+    if(!navigator.clipboard?.writeText)throw Error('clipboard_unavailable');
+    await navigator.clipboard.writeText([columns.join('\t'),...dataRows].join('\n'));
+    photoNote(panel,'Đã sao chép '+lines.length+' dòng hàng; có thể dán vào bảng tính.');
+   }catch{photoNote(panel,'Không sao chép được trên thiết bị này.');}
+  });
+ }else{
+  const missing= status==='not_invoice'?'Ảnh không phải phiếu nhập hàng.'
+    :['pending','processing'].includes(status)?'Ảnh đang chờ AI đọc, chưa có dữ liệu.'
+    :'Chưa nhận diện đủ dòng hàng; cần ảnh rõ hơn hoặc xem chi tiết.';
+  make(bubble,'p',missing,'ncc-chat-description');
+ }
+ make(bubble,'p','Bước 1: đọc và đối chiếu thông tin. Chưa ghi giá vốn, công nợ hoặc sản phẩm.','ncc-help');
+ if(!demo&&id){
+  const manage=make(bubble,'button','Bước sau · Chi tiết phiếu','ncc-photo-manage');
+  manage.type='button';
+  manage.addEventListener('click',()=>{
+   if(!admin())return;
+   ensureDialog();if(!dialog.open)dialog.showModal();void view(id);
+  });
+ }
+}
+function nccChatDemo(panel){
+ if(!admin())return;
+ nccClearChat(panel);
+ const host=panel.querySelector('[data-ncc-photo-result]');
+ if(!host)return;
+ host.dataset.nccDemo='1';
+ nccChatUpload(panel,null,'phiếu_nhập_mẫu.jpg · Ảnh minh họa',new Date());
+ const now=new Date().toISOString();
+ photoResult(panel,{
+  document:{status:'needs_review',created_at:now},
+  lines:[
+   {row_no:1,printed_name:'Mặt hàng mẫu A',quantity:5,printed_unit:'Hộp',unit_price_vnd:18000,line_total_vnd:90000},
+   {row_no:2,printed_name:'Mặt hàng mẫu B',quantity:2,printed_unit:'Thùng',unit_price_vnd:125000,line_total_vnd:250000},
+   {row_no:3,printed_name:'Mặt hàng mẫu C',quantity:10,printed_unit:'Gói',unit_price_vnd:6500,line_total_vnd:65000}
+  ]
+ },'ncc-demo',true);
+ photoNote(panel,'Đang xem mẫu minh họa: chưa gửi ảnh thật, chưa dùng AI hoặc lưu dữ liệu.');
 }
 async function sendPhoto(panel){
  if(photoBusy||!photoReady())return;
@@ -114,6 +239,7 @@ async function sendPhoto(panel){
  }
  const owner=photoOwner();if(!owner)return;
  const owned=()=>panel.isConnected&&owner===photoOwner();
+ if(panel.dataset)panel.dataset.nccSentAt=new Date().toISOString();
  photoBusy=true;photoSync(panel);photoNote(panel,'Đang lưu ảnh phiếu nhập…');
  let id='',status='';
  try{
@@ -164,18 +290,18 @@ function ensurePhotoComposer(slot){
  if(panel){photoSync(panel);return;}
  panel=document.createElement('section');panel.className='ncc-photo-composer';panel.dataset.nccPhotoComposer='';
  panel.innerHTML=[
-  '<p class="ncc-photo-intro">Gửi ảnh phiếu nhập như chat · AI phân tích bảng hàng</p>',
+  '<div class="ncc-chat-heading"><strong>Đọc phiếu bằng ảnh</strong><span>Bước 1 / Lấy thông tin</span></div>',
+  '<div class="ncc-photo-result ncc-chat-thread" data-ncc-photo-result aria-label="Lịch sử ảnh và bảng nhận diện" aria-live="polite"></div>',
   '<div data-ncc-photo-preview class="ncc-photo-preview" hidden><img alt="Ảnh chuẩn bị gửi"><span data-ncc-photo-name></span><button type="button" data-ncc-photo-remove aria-label="Bỏ ảnh">×</button></div>',
-  '<div class="ncc-photo-actions"><label class="ncc-photo-attach">＋ Chọn ảnh<input type="file" data-ncc-photo-file accept="image/jpeg,image/png,image/webp" aria-label="Chọn ảnh NCC"></label><button type="button" data-ncc-photo-send disabled>Gửi ảnh · Đọc bảng</button></div>',
-  '<p data-ncc-photo-status class="ncc-photo-status" role="status" aria-live="polite"></p>',
-  '<div data-ncc-photo-result class="ncc-photo-result" aria-live="polite"></div>'
+  '<div class="ncc-photo-actions"><label class="ncc-photo-attach">＋ Ảnh<input type="file" data-ncc-photo-file accept="image/jpeg,image/png,image/webp" aria-label="Chọn ảnh NCC"></label><button type="button" data-ncc-photo-send disabled>Gửi ảnh · Đọc bảng</button></div>',
+  '<div class="ncc-chat-bottom"><p data-ncc-photo-status class="ncc-photo-status" role="status" aria-live="polite"></p><button type="button" class="ncc-chat-demo-button" data-ncc-chat-demo>Xem mẫu hội thoại</button></div>'
  ].join('');
  slot.prepend(panel);
  const input=panel.querySelector('[data-ncc-photo-file]');
  input.addEventListener('change',()=>{
   const file=input.files?.[0];
   if(photoPreviewUrl){URL.revokeObjectURL(photoPreviewUrl);photoPreviewUrl='';}
-  panel.querySelector('[data-ncc-photo-result]')?.replaceChildren();
+  // Keep earlier photo/table messages when a new image is chosen.
   const preview=panel.querySelector('[data-ncc-photo-preview]');
   if(file&&['image/jpeg','image/png','image/webp'].includes(file.type)&&file.size>=100&&file.size<=4000000){
    photoPreviewUrl=URL.createObjectURL(file);
@@ -190,11 +316,18 @@ function ensurePhotoComposer(slot){
  });
  panel.querySelector('[data-ncc-photo-remove]').addEventListener('click',()=>{resetPhoto(panel);photoSync(panel);});
  panel.querySelector('[data-ncc-photo-send]').addEventListener('click',()=>{void sendPhoto(panel);});
+ panel.querySelector('[data-ncc-chat-demo]').addEventListener('click',()=>nccChatDemo(panel));
  photoSync(panel);
 }
 function ensureButton(){
+ // A fresh Admin or session must not inherit another account's photos/tables.
+ const nextOwner=photoOwner();
+ if(nextOwner!==nccChatSessionOwner){
+  resetPhoto(undefined,true);
+  nccChatSessionOwner=nextOwner;
+ }
  if(!admin()){
-  resetPhoto();
+  resetPhoto(undefined,true);
   document.querySelector('[data-ncc-launch]')?.remove();
   return;
  }
@@ -541,7 +674,7 @@ function assignPanel(rowNo){
   finally{updateBusy(false);}
  };
 }
-document.addEventListener('v21-auth-state',()=>{if(!admin())dialog?.close();else ensureButton();});
+document.addEventListener('v21-auth-state',()=>{if(!admin())dialog?.close();ensureButton();});
 document.addEventListener('v21-contact-groups-change',ensureButton);
 document.addEventListener('v21-active-contact-change',ensureButton);
 document.addEventListener('v21-mobile-directory-change',ensureButton);
