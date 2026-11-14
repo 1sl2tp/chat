@@ -62,7 +62,7 @@ assert(directory.includes('#appShell[data-mobile-directory="true"] .contact-dire
  'no duplicate Chat/Work bar beneath the outer one on mobile');
 assert(directory.includes("document.addEventListener('v21-mobile-directory-change',syncMobileDirectoryHeader);"));
 assert(directory.includes("event.stopImmediatePropagation();"));
-assert(directory.includes('directoryTools()?.querySelector(\'[data-contact-directory-section="'+next+'"]\')?.click();'),
+assert(directory.includes(`directoryTools()?.querySelector('[data-contact-directory-section="'+next+'"]')?.click();`),
  'top tabs navigate only the directory section while open, never the photo route');
 assert(mobile.includes("document.dispatchEvent(new CustomEvent('v21-mobile-directory-change',{detail:{open:true}}));"));
 assert(mobile.includes("document.dispatchEvent(new CustomEvent('v21-mobile-directory-change',{detail:{open:false}}));"));
