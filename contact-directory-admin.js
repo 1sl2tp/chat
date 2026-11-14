@@ -90,7 +90,7 @@ function installStyle(){
     .contact-directory-tools{position:static;z-index:4;box-sizing:border-box;flex:0 0 auto;display:grid;gap:7px;padding:8px 8px 7px;background:var(--theme-surface-primary,#fff)}
     /* DIR-342: two distinct sidebar scopes, without changing header chat/photo routes. */
     .contact-directory-sections{display:grid;grid-template-columns:1fr 1fr;gap:3px;min-width:0;padding:3px;border-radius:15px;background:var(--theme-surface-secondary,#f3f3f3)}
-    .contact-directory-section{appearance:none;border:0;border-radius:12px;min-height:42px;padding:7px 8px;background:transparent;color:var(--theme-content-secondary,#616872);font:600 14px/1.25 inherit;cursor:pointer}
+    .contact-directory-section{appearance:none;border:0;border-radius:12px;min-height:42px;padding:7px 8px;background:transparent;color:var(--theme-content-secondary,#616872);font-family:inherit;font-size:14px;font-weight:600;line-height:1.25;cursor:pointer}
     .contact-directory-section[data-active="true"]{background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#171717);box-shadow:0 1px 4px #00000013}
     .contact-directory-section:focus-visible{outline:2px solid var(--theme-content-accent,#377ad6);outline-offset:2px}
     .contact-directory-work-tools{display:grid;gap:8px;padding:5px 1px 2px}
@@ -247,8 +247,8 @@ function matchesDirectory(item){
   // distinguishes it from contacts whose display names resemble the report.
   // The default keeps source-isolated legacy contact-filter tests equivalent.
   const section=typeof directorySection==='string'?directorySection:'chat';
-  if(section==='work')return isPinnedReportContact(item);
-  if(isPinnedReportContact(item))return false;
+  if(section==='work')return typeof isPinnedReportContact==='function'&&isPinnedReportContact(item);
+  if(typeof isPinnedReportContact==='function'&&isPinnedReportContact(item))return false;
   const wanted=normalizeText(query);
   if(wanted){
     const haystack=normalizeText(`${item?.display_name||''} ${item?.username||''}`);
