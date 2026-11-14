@@ -409,9 +409,11 @@ function renderChatTabIdentity(){
   // a customer; keep the action, focus behavior and keyboard owner unchanged.
   const listButton=document.querySelector('#regionTop [data-shell-command="sidebar.open"]');
   if(listButton){
-    listButton.setAttribute('aria-label',visible&&!desktopDirectoryMedia.matches
-      ?'Quay lại danh sách trò chuyện'
-      :'Mở danh sách trò chuyện');
+    listButton.setAttribute('aria-label',visible&&String(activeContact?.id||'')===PINNED_BANK_REPORT_CONTACT_ID
+      ?'Quay lại Trò chuyện'
+      :visible&&!desktopDirectoryMedia.matches
+        ?'Quay lại danh sách trò chuyện'
+        :'Mở danh sách trò chuyện');
   }
   if(!tab||!avatar||!label)return visible;
   if(!visible){
@@ -432,7 +434,9 @@ function renderChatTabIdentity(){
     profileButton.hidden=!(item?.role==='user'&&!isPinnedBankReportContact(item));
     profileButton.setAttribute('aria-label','Sửa tên hiển thị và thông tin '+String(item?.display_name||item?.username||'liên hệ'));
   }
-  const name=String(item?.display_name||item?.username||activeContact?.name||'Liên hệ');
+  const name=isPinnedBankReportContact({id:activeContact?.id})
+    ?'Công việc'
+    :String(item?.display_name||item?.username||activeContact?.name||'Liên hệ');
   label.textContent=name;
   tab.title=name;
   avatar.hidden=false;
