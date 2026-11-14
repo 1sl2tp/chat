@@ -4,7 +4,7 @@ import {RULE_VERSION,SYSTEM_PROMPT,readV4Fields}
  from "../supabase/functions/v21-bank-bill-event/bill-amount-rules.mjs";
 
 const sentAt="2026-11-10T11:06:39Z"; // 18:06:39 Vietnam
-assert.equal(RULE_VERSION,"bank_bill_amount_v6_20261114");
+assert.equal(RULE_VERSION,"bank_bill_amount_v5_20261110");
 for(const marker of [
  "ĐỌC CHỮ TRƯỚC, CHUẨN HÓA SAU",
  "transfer_date_printed_vn",
