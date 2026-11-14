@@ -392,7 +392,7 @@ function syncAdminGroupControls(){
     const select=document.createElement('select');
     select.className='zalo-account-group-select';
     select.dataset.contactGroupSelect='';
-    select.setAttribute('aria-label','Phân loại');
+    select.setAttribute('aria-label','Nhóm khách hàng');
     for(const [key,label] of GROUPS){
       const option=document.createElement('option');
       option.value=key;option.textContent=label;option.disabled=key==='ncc'&&!nccReady;
@@ -514,6 +514,15 @@ document.addEventListener('click',event=>{
 // Contact-store patches (notably mark-read) must never reset the directory viewport.
 // Real activity reorders rows inside syncDirectoryRows(), which already preserves scrollTop.
 document.addEventListener('v21-contact-store-change',()=>scheduleSync());
+// DIR-346: Chat–Zalo rows are rendered asynchronously after the overlay
+// itself has already mounted. The overlay-root MutationObserver cannot see
+// that nested list replacement; attach group controls on the direct event.
+document.addEventListener('v21-zalo-account-rows-rendered',event=>{
+  const modal=document.querySelector('[data-zalo-account-admin-modal]');
+  if(!currentAdmin()||!modal||event.detail?.modal!==modal)return;
+  syncAdminGroupControls();
+  void ensureGroups();
+});
 document.addEventListener('v21-auth-state',resetForAuth);
 document.addEventListener('click',event=>{
   const target=event.target instanceof Element?event.target:null;
