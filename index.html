@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="5aa1d16587e4e8a6abdfa2969fcadadeb17c9197d9789fe10eb23c182fcb3deb">
+<meta name="app-build-id" content="70644dbc0404fa2e849b244f54d996889a19829a351541a429b3b126e2d0efb4">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -26646,6 +26646,8 @@ function showMobileDirectory(reason='directory'){
   layer.dataset.open='true';
   layer.setAttribute('aria-hidden','false');
   app.dataset.mobileDirectoryReason=String(reason||'directory');
+  // DIR-343: notify the sole directory header-tab owner (Chat / Công việc).
+  document.dispatchEvent(new CustomEvent('v21-mobile-directory-change',{detail:{open:true}}));
   resetWorkSelectionForDirectory();
   navigation()?.clearActiveContact?.();
   syncDirectoryChatTab(true);
@@ -26664,6 +26666,7 @@ function hideMobileDirectory(reason='chat',{restoreFocus=false}={}){
   app.dataset.mobileDirectory='false';
   layer.dataset.mobileDirectory='false';
   app.dataset.mobileDirectoryReason=String(reason||'chat');
+  document.dispatchEvent(new CustomEvent('v21-mobile-directory-change',{detail:{open:false}}));
   if(app.dataset.desktopSidebarPersistent!=='true'){
     layer.dataset.open='false';
     layer.setAttribute('aria-hidden','true');
@@ -27104,6 +27107,9 @@ function bindMobileNavigationClicks(){
 
     const chatTab=target.closest('[data-top-tab="chat"]');
     if(chatTab){
+      // DIR-343: the Admin directory has its own two-way Chat/Work tab.
+      // Its click handler owns this tab only while the directory is visible.
+      if(mobileDirectoryOpen()&&snapshot().account?.role==='admin')return;
       event.preventDefault();
       event.stopImmediatePropagation();
       handleMobileTopTabTap('chat');
