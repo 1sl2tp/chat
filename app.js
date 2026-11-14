@@ -1301,7 +1301,11 @@ function scrollToTail(reason='explicit',{messageId=undefined}={}){
   // old viewport then show a visible catch-up scroll on the following frame.
   // Explicit history/USER_AWAY never calls this tail intent, and the existing
   // bounded settle loop still corrects later media/keyboard geometry.
-  if(reason==='remote-message'||reason==='new-message'||reason==='reconcile-new-message'){
+  if(reason==='remote-message'||reason==='new-message'||
+     reason==='reconcile-new-message'||reason==='own-send'){
+    // CHAT-341: Composer may shrink as text/attachments are committed.
+    // Commit the tail in THIS frame so the newly sent bubble/media does not
+    // paint at one Y coordinate then jump down on the next animation frame.
     setScrollTop(scrollRoot.scrollHeight-scrollRoot.clientHeight);
   }
 
@@ -3183,8 +3187,23 @@ function syncMessageTimeNode(unit,message){
   time.setAttribute('aria-label',timeMeaning+full+' · giờ Việt Nam');
 }
 
-// P0-MSG-286: present only the two real local outbox states. "Sent",
-// "delivered" and "read" must never be inferred from a network hint.
+// CHAT-341: the pending border finishes its current complete sweep after
+// an actual server ACK. The event belongs to the bubble's pseudo-element.
+// No timers, new DOM rows, or scroll/layout writes are needed.
+function finishConfirmedSendCycle(unit,event){
+  if(!unit||unit.dataset.deliveryState!=='finishing'||
+     event.animationName!=='chat-send-border-orbit')return;
+  const surface=unit.querySelector(':scope > .message-text:not([hidden])')||
+    unit.querySelector(':scope > .message-media-shell');
+  if(event.target!==surface)return;
+  delete unit.dataset.deliveryState;
+}
+function prefersReducedSendMotion(){
+  return window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches===true;
+}
+
+// P0-MSG-286: only real local outbox states are reported. A completed
+// border sweep never claims delivery without a canonical server ACK.
 function syncMessageDeliveryState(unit,message){
   if(!unit)return;
   const state=message?.sender==='self'&&message?.status==='failed'?'failed':
@@ -3192,10 +3211,25 @@ function syncMessageDeliveryState(unit,message){
   // CHAT-340: presentation state lives on the existing bubble owner, so
   // a pending message never inserts a visible line beside the Composer.
   // Only a canonical ACK clears "sending"; failed media keeps retry controls.
-  if(state)unit.dataset.deliveryState=state;
-  else delete unit.dataset.deliveryState;
+  const previousState=String(unit.dataset.deliveryState||'');
   let node=unit.querySelector(':scope > .message-delivery-state');
-  if(!state){node?.remove();return;}
+  if(!state){
+    node?.remove();
+    // A real ACK finishes the current cycle, never clips the ring mid-sweep.
+    // The pending status node was absolute, so this cannot change row height.
+    if((previousState==='sending'||previousState==='finishing')&&
+       !prefersReducedSendMotion()){
+      unit.dataset.deliveryState='finishing';
+    }else{
+      delete unit.dataset.deliveryState;
+    }
+    return;
+  }
+  unit.dataset.deliveryState=state;
+  if(state==='sending'&&!unit.__sendCycleListener){
+    unit.__sendCycleListener=event=>finishConfirmedSendCycle(unit,event);
+    unit.addEventListener('animationiteration',unit.__sendCycleListener);
+  }
   if(!node){
     node=document.createElement('span');
     node.className='message-delivery-state';
@@ -3359,6 +3393,19 @@ function messageVisualSignature(message){
     messageDaySeparatorLabel(message),
     messageTimestampMs(message)
   ]);
+}
+
+// CHAT-341: a server ACK typically changes only status/clock. Updating
+// the existing text/media DOM in place avoids rebuilding an image element,
+// restarting async image hydration and recalculating heights near Composer.
+// Date separators and actual content/media changes still receive full patch.
+function onlyMessageDeliveryAndClockChanged(previous,next){
+  if(!previous||!next||String(previous.status||'')===String(next.status||''))return false;
+  const before=JSON.parse(messageVisualSignature(previous));
+  const after=JSON.parse(messageVisualSignature(next));
+  before[3]=after[3]; // real outbox state, no bubble geometry
+  before[before.length-1]=after[after.length-1]; // timestamp label only
+  return JSON.stringify(before)===JSON.stringify(after);
 }
 
 function setImageTileOverlay(wrap,overlayText=''){
@@ -5470,11 +5517,25 @@ function reconcileMessageWindow(messages){
     let node=existingByKey.get(key)||null;
     if(node){
       existingByKey.delete(key);
+      const oldMessage=node.__message;
+      const onlyAck=onlyMessageDeliveryAndClockChanged(oldMessage,message);
       patchMessageIdentity(node,message);
       const nextSignature=messageVisualSignature(message);
       if(node.__visualSignature!==nextSignature){
-        patchMessageNode(node,message);
-        dirty.add(node);
+        if(onlyAck){
+          const unit=node.querySelector('.message-turn-shell .message-unit');
+          if(unit){
+            syncMessageTimeNode(unit,message);
+            syncMessageDeliveryState(unit,message);
+            node.__visualSignature=nextSignature;
+          }else{
+            patchMessageNode(node,message);
+            dirty.add(node);
+          }
+        }else{
+          patchMessageNode(node,message);
+          dirty.add(node);
+        }
       }
     }else{
       node=renderMessageNode(message);
