@@ -25,6 +25,7 @@ function fixture(){
     syncAdminGroupControls:()=>updates.push('controls'),
     publishGroupsChanged:()=>updates.push('changed'),
     syncNccCapability:()=>updates.push('ncc-capability'),
+    syncMobileDirectoryHeader:()=>{},
     groupKey:value=>value||'other',
     invokeBody:body=>new Promise((resolve,reject)=>requests.push({body,adminId:admin?.id,resolve,reject})),
     queueMicrotask,
