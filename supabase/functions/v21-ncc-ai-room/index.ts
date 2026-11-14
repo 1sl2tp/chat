@@ -126,7 +126,7 @@ async function readWithGemini(bytes:Uint8Array,mime:string){
  const ai=await response.json();
  const content=String(ai?.candidates?.[0]?.content?.parts?.find((p:any)=>typeof p.text==="string")?.text||"");
  if(!content)throw Error("ai_empty");
- try{return normalize(JSON.parse(content.trim().replace(/^``(?:json)?\s*/i,"").replace(/\s*``$/,"")));}
+ try{return normalize(JSON.parse(content.trim().replace(/^\x60{3}(?:json)?\s*/i,"").replace(/\s*\x60{3}$/,"")));}
  catch{throw Error("ai_invalid_json");}
 }
 async function getSaved(id:string,hash:string){
