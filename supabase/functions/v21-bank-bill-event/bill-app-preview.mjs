@@ -214,7 +214,7 @@ export function previewBillAppMatch(bill,events,otherBills=[],now=Date.now()){
       (printedMemo!==bankText&&printedMemo!==bankMemoWithoutQr&&
        printedMemo!==bankMemoWithoutMb&&printedMemo!==bankMemoWithoutMbvcb&&
         printedMemo!==bankMemoWithoutMcc&&printedMemo!==bankMemoWithoutIbft&&
-        !contiguousMemoContains(bill.transfer_content,rawBankMemo)&&
+        !verifiedSenderBoundWrappedMemo(bill,rawBankMemo)&&
        !qrSenderVerified&&!mbvcbSingleOcr))
      return{status:"review",reason:"ocr_date_corrected_bank_memo_unverified"};
  }
@@ -241,6 +241,17 @@ export function previewBillAppMatch(bill,events,otherBills=[],now=Date.now()){
 const tidy=x=>String(x||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"")
   .toUpperCase().replace(/[^A-Z0-9]/g,"");
 const BANK_REF=/^[A-Za-z0-9][A-Za-z0-9._-]{9,79}$/;
+// BANK-362: only allow a bank-side *anchored* routing envelope around a
+// complete payer memo. A memo with arbitrary extra words is not equivalent.
+function verifiedSenderBoundWrappedMemo(bill,raw){
+ const sender=normalizeBillRecipientName(bill?.sender_name);
+ const printed=tidy(bill?.transfer_content);
+ if(!sender||sender.length<12||printed.length<16||
+    !printed.startsWith(tidy(sender)))return false;
+ // Existing MCC / IBFT envelope verifiers handle their own precise wrappers.
+ // Do not accept generic substring containment, even within 60 seconds.
+ return false;
+}
 // BANK-359: contiguous full-memo containment, not token overlap. Require a
 // substantial literal payer phrase and word boundaries on the longer side.
 // Amount, bank credit, recipient, clock, uniqueness and ledger guards remain mandatory.
