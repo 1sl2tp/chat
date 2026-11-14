@@ -11,8 +11,10 @@ const css=fs.readFileSync('index.source.html','utf8');
 // fills the entire 360-degree edge rather than rotating a partial arc forever.
 const visual=css.slice(css.indexOf('/* CHAT-341: a complete 360-degree'));
 assert(visual.startsWith('/* CHAT-341'));
-assert(visual.includes('.message-delivery-state[data-state="sending"]'));
-assert(visual.includes('position:absolute!important;'));
+const pending=css.slice(css.indexOf('.message-delivery-state[data-state="sending"]'),
+ css.indexOf('/* CHAT-341: a complete 360-degree'));
+assert(pending.includes('.message-delivery-state[data-state="sending"]'));
+assert(pending.includes('position:absolute!important;'));
 assert(visual.includes('@property --chat-send-orbit{'));
 assert(visual.includes('syntax:"<angle>";'));
 assert(visual.includes('.message-unit:is([data-delivery-state="sending"],[data-delivery-state="finishing"])'));
