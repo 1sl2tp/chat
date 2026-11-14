@@ -140,6 +140,8 @@ function showMobileDirectory(reason='directory'){
   layer.dataset.open='true';
   layer.setAttribute('aria-hidden','false');
   app.dataset.mobileDirectoryReason=String(reason||'directory');
+  // DIR-343: notify the sole directory header-tab owner (Chat / Công việc).
+  document.dispatchEvent(new CustomEvent('v21-mobile-directory-change',{detail:{open:true}}));
   resetWorkSelectionForDirectory();
   navigation()?.clearActiveContact?.();
   syncDirectoryChatTab(true);
@@ -158,6 +160,7 @@ function hideMobileDirectory(reason='chat',{restoreFocus=false}={}){
   app.dataset.mobileDirectory='false';
   layer.dataset.mobileDirectory='false';
   app.dataset.mobileDirectoryReason=String(reason||'chat');
+  document.dispatchEvent(new CustomEvent('v21-mobile-directory-change',{detail:{open:false}}));
   if(app.dataset.desktopSidebarPersistent!=='true'){
     layer.dataset.open='false';
     layer.setAttribute('aria-hidden','true');
@@ -598,6 +601,9 @@ function bindMobileNavigationClicks(){
 
     const chatTab=target.closest('[data-top-tab="chat"]');
     if(chatTab){
+      // DIR-343: the Admin directory has its own two-way Chat/Work tab.
+      // Its click handler owns this tab only while the directory is visible.
+      if(mobileDirectoryOpen()&&snapshot().account?.role==='admin')return;
       event.preventDefault();
       event.stopImmediatePropagation();
       handleMobileTopTabTap('chat');
