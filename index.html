@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="5c9f4a435aa8ce2e32c69c7ceb7885260698b3ee065d579ff1c481d75fada98e">
+<meta name="app-build-id" content="32d53150e313842c0216bd16e3afc42c3aca7a78b044f0cc13390afa656ba022">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -6741,6 +6741,8 @@ button{
 /* CHAT-341: a complete 360-degree border sweep per cycle, not a partial
    arc orbit. Repeat full cycles only while the outbox is waiting for ACK;
    after ACK the last sweep finishes before the visual edge disappears.
+   Rendering one full turn is NOT delivery proof; only the real outbox ACK
+   ends the cycle and these paint-only rules must never change bubble height.
    The status node stays available to screen readers without taking height. */
 .message-delivery-state[data-state="sending"]{
   position:absolute!important;
