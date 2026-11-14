@@ -43,6 +43,7 @@ const state=room.querySelector("[data-ncc-room-state]");
 const presence=room.querySelector("[data-ncc-room-presence]");
 const preview=room.querySelector("[data-ncc-room-preview]");
 let previewUrl="",ready=false,busy=false,session="",opened=false;
+let embeddedHost=null;
 let selectedPhoto=null,selectVersion=0,supportsRecheck=false;
 const visibleHashes=new Set();
 const attachedUrls=new Set();
@@ -354,12 +355,24 @@ async function submit(){
   busy=false;sync();
  }
 }
-async function open(){
+async function open(options={}){
  if(!isAdmin())return;
  const owner=accountSession();if(!owner)return;
  if(session!==owner){purge();session=owner;}
+ const host=options?.inlineHost?.isConnected?options.inlineHost:null;
+ if(host){
+  if(room.parentNode!==host)host.appendChild(room);
+  embeddedHost=host;room.dataset.embedded="true";
+  document.body.classList.remove("ncc-ai-room-open");
+ }else{
+  if(room.parentNode!==document.body)document.body.appendChild(room);
+  embeddedHost=null;delete room.dataset.embedded;
+  document.body.classList.add("ncc-ai-room-open");
+ }
  room.hidden=false;opened=true;
- document.body.classList.add("ncc-ai-room-open");
+ // Switching between two Work tabs never calls the AI again merely to redraw
+ // the same Admin session history. Explicit new photos still call the server.
+ if(host&&ready&&thread.children.length){sync();return;}
  ready=false;presence.textContent="Đang kết nối";sync();
  if(!thread.children.length)appendInfo("Gửi ảnh phiếu nhập vào đây. Mình sẽ đọc bảng hàng, báo ảnh trùng và lưu lịch sử cho Admin.");
  try{
@@ -388,6 +401,10 @@ async function open(){
 function close(){
  room.hidden=true;opened=false;
  document.body.classList.remove("ncc-ai-room-open");
+ if(embeddedHost){
+  embeddedHost=null;delete room.dataset.embedded;
+  if(room.parentNode!==document.body)document.body.appendChild(room);
+ }
  clearPreview();
 }
 room.querySelector("[data-ncc-room-back]").addEventListener("click",close);
@@ -438,27 +455,122 @@ function launchButton(full=false){
  const btn=document.createElement("button");
  btn.type="button";btn.className=full?"ncc-ai-launch ncc-ai-launch-full":"ncc-ai-launch";
  btn.textContent=full?"Mở trò chuyện NCC AI":"NCC AI";
- btn.addEventListener("click",()=>{void open();});
+ btn.addEventListener("click",()=>{if(!showWorkTab("supplier"))void open();});
  return btn;
+}
+// WORK-365: one real Work surface, two tabs and one Chat back path.
+// Reuse the existing report and the existing private supplier room: no iframe,
+// duplicate Chat contact, duplicate AI flow, polling, or financial write.
+let workReport=null,workBankPanel=null,workSupplierPanel=null,workSection="bank";
+function updateWorkTabControls(){
+ const controls=workReport?.querySelectorAll("[data-bank-work-tab]")||[];
+ for(const button of controls){
+  const selected=button.dataset.bankWorkTab===workSection;
+  button.setAttribute("aria-selected",String(selected));
+  button.tabIndex=selected?0:-1;
+ }
+}
+function resetWorkTabsIfInactive(){
+ if(!workReport)return;
+ const stage=document.getElementById("stageLayout");
+ if(!workReport.hidden&&stage?.dataset.bankReportActive==="true"&&isAdmin())return;
+ if(workSection==="supplier"){
+  if(embeddedHost)close();
+  workSection="bank";
+  workReport.dataset.workSection="bank";
+  workBankPanel.hidden=false;workSupplierPanel.hidden=true;
+  updateWorkTabControls();
+ }
+}
+function showWorkTab(next){
+ const stage=document.getElementById("stageLayout");
+ if(!workReport||workReport.hidden||!isAdmin()||stage?.dataset.bankReportActive!=="true")return false;
+ const target=next==="supplier"?"supplier":"bank";
+ if(target===workSection)return true;
+ workSection=target;workReport.dataset.workSection=target;
+ if(target==="supplier"){
+  workBankPanel.hidden=true;
+  workSupplierPanel.hidden=false;
+  workReport.scrollTop=0;
+  void open({inlineHost:workSupplierPanel});
+ }else{
+  if(embeddedHost)close();
+  workSupplierPanel.hidden=true;
+  workBankPanel.hidden=false;
+  workReport.scrollTop=0;
+ }
+ updateWorkTabControls();
+ return true;
+}
+function backToChats(){
+ if(embeddedHost)close();
+ const mobile=window.V21WorkCustomerSummary?.showMobileDirectory?.("work-back-to-chats");
+ if(mobile)return;
+ const nav=window.ChatAppShell?.NavigationCommand;
+ nav?.clearActiveContact?.();
+ nav?.openChat?.();
 }
 function mount(){
  const report=document.getElementById("bankReportDashboard");
  if(!report)return;
+ if(!report.querySelector("[data-bank-work-nav]")){
+  workReport=report;
+  const bankPanel=document.createElement("div");
+  bankPanel.className="bank-work-bank-panel";
+  bankPanel.id="bankWorkBankPanel";
+  bankPanel.setAttribute("role","tabpanel");
+  bankPanel.setAttribute("aria-labelledby","bankWorkBankTab");
+  while(report.firstChild)bankPanel.appendChild(report.firstChild);
+  const nav=document.createElement("nav");
+  nav.className="bank-work-navigation";
+  nav.dataset.bankWorkNav="";
+  nav.setAttribute("aria-label","Công việc");
+  nav.innerHTML=[
+   '<div class="bank-work-heading"><button type="button" class="bank-work-back" data-bank-work-back aria-label="Quay lại Trò chuyện">← Trò chuyện</button></div>',
+   '<div class="bank-work-tabs" role="tablist" aria-label="Loại công việc">',
+   '<button type="button" role="tab" id="bankWorkBankTab" data-bank-work-tab="bank" aria-controls="bankWorkBankPanel" aria-selected="true">Chuyển khoản</button>',
+   '<button type="button" role="tab" id="bankWorkSupplierTab" data-bank-work-tab="supplier" aria-controls="bankWorkSupplierPanel" aria-selected="false" tabindex="-1">Nhập hàng</button>',
+   '</div>'
+  ].join("");
+  const supplierPanel=document.createElement("div");
+  supplierPanel.className="bank-work-supplier-panel";
+  supplierPanel.id="bankWorkSupplierPanel";
+  supplierPanel.setAttribute("role","tabpanel");
+  supplierPanel.setAttribute("aria-labelledby","bankWorkSupplierTab");
+  supplierPanel.hidden=true;
+  report.append(nav,bankPanel,supplierPanel);
+  report.dataset.workTabsReady="true";
+  report.dataset.workSection="bank";
+  workBankPanel=bankPanel;workSupplierPanel=supplierPanel;workSection="bank";
+  nav.querySelector("[data-bank-work-back]")?.addEventListener("click",backToChats);
+  for(const tab of nav.querySelectorAll("[data-bank-work-tab]")){
+   tab.addEventListener("click",()=>showWorkTab(tab.dataset.bankWorkTab));
+   tab.addEventListener("keydown",event=>{
+    if(event.key!=="ArrowLeft"&&event.key!=="ArrowRight")return;
+    event.preventDefault();
+    const target=tab.dataset.bankWorkTab==="bank"?"supplier":"bank";
+    if(showWorkTab(target))nav.querySelector('[data-bank-work-tab="'+target+'"]')?.focus();
+   });
+  }
+  document.addEventListener("v21-active-contact-change",resetWorkTabsIfInactive);
+  document.addEventListener("v21-conversation-context",resetWorkTabsIfInactive);
+  document.addEventListener("navigation-change",resetWorkTabsIfInactive);
+ }
+ // Retain existing authorized launchers for any legacy deep links, but the
+ // Work surface displays supplier content directly via its tab above.
  const title=report.querySelector(".bank-report-title-row");
  if(title&&!title.querySelector("[data-ncc-room-shortcut]")){
-  const btn=launchButton();
-  btn.dataset.nccRoomShortcut="";
+  const btn=launchButton();btn.dataset.nccRoomShortcut="";
   title.appendChild(btn);
  }
  const slot=report.querySelector("[data-bank-report-ncc-slot]");
  if(slot&&!slot.querySelector("[data-ncc-room-launch]")){
   slot.replaceChildren();
-  const btn=launchButton(true);
-  btn.dataset.nccRoomLaunch="";
+  const btn=launchButton(true);btn.dataset.nccRoomLaunch="";
   slot.appendChild(btn);
  }
 }
 mount();
-document.addEventListener("v21-auth-state",()=>{if(isAdmin())mount();});
-window.V21NccAiRoom=Object.freeze({open,close,mount});
+document.addEventListener("v21-auth-state",()=>{if(isAdmin())mount();else resetWorkTabsIfInactive();});
+window.V21NccAiRoom=Object.freeze({open,close,mount,showWorkTab});
 })();

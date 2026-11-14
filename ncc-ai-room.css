@@ -194,3 +194,55 @@ body.ncc-ai-room-open{overflow:hidden}
  color:inherit;font-family:inherit;font-size:12px;font-weight:600;line-height:1.4;cursor:pointer;
 }
 .ncc-ai-recheck:disabled{opacity:.55;cursor:default}
+
+/* WORK-365: Reuse the canonical bank report and private NCC room in one Work surface. */
+.bank-work-navigation{
+ position:sticky;top:0;z-index:7;display:flex;align-items:center;justify-content:space-between;
+ gap:12px;flex-wrap:wrap;padding:9px 0 13px;margin:-9px 0 15px;
+ border-bottom:1px solid var(--theme-border-default,#e5e7eb);
+ background:var(--theme-surface-primary,#fff);
+}
+.bank-work-heading{display:flex;align-items:center;gap:12px;min-width:0}
+.bank-work-heading strong{font-size:16px;font-weight:750}
+.bank-work-back{
+ display:inline-flex;align-items:center;justify-content:center;min-height:40px;
+ padding:7px 12px;border:1px solid var(--theme-border-default,#e3e5e8);
+ border-radius:12px;background:transparent;color:inherit;font:inherit;font-size:13px;
+ cursor:pointer;touch-action:manipulation;
+}
+.bank-work-tabs{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px;
+ padding:3px;border-radius:14px;background:var(--theme-surface-secondary,#f3f4f6);
+ min-width:min(100%,280px);
+}
+.bank-work-tabs [role=tab]{
+ border:0;border-radius:11px;min-height:40px;padding:8px 12px;cursor:pointer;
+ background:transparent;color:var(--theme-content-secondary,#667085);
+ font:inherit;font-size:13px;font-weight:650;white-space:nowrap;
+}
+.bank-work-tabs [role=tab][aria-selected=true]{
+ background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#111);
+ box-shadow:0 1px 5px #00000014;
+}
+.bank-work-tabs [role=tab]:focus-visible,.bank-work-back:focus-visible{outline:2px solid #4479b4;outline-offset:2px}
+.bank-work-bank-panel[hidden],.bank-work-supplier-panel[hidden]{display:none!important}
+.bank-work-supplier-panel{min-width:0;min-height:0}
+/* The previous secondary NCC launcher is replaced by the visible Nhập hàng tab. */
+#bankReportDashboard[data-work-tabs-ready=true] .bank-report-secondary-tools,
+#bankReportDashboard[data-work-tabs-ready=true] [data-ncc-room-shortcut]{display:none!important}
+.ncc-ai-room[data-embedded=true]{
+ position:relative;inset:auto;z-index:auto;width:100%;max-width:100%;
+ height:calc(100dvh - var(--header-height,72px) - 164px);
+ min-height:380px;padding:0;border:1px solid var(--theme-border-default,#e4e7ec);
+ border-radius:14px;box-shadow:none;
+}
+.ncc-ai-room[data-embedded=true] .ncc-ai-back{display:none}
+.ncc-ai-room[data-embedded=true] .ncc-ai-head{padding-inline:12px}
+.ncc-ai-room[data-embedded=true] .ncc-ai-thread{padding-top:12px}
+@media(max-width:640px){
+ .bank-work-navigation{flex-direction:column;align-items:stretch;gap:10px}
+ .bank-work-heading{justify-content:space-between}
+ .bank-work-heading strong{font-size:15px}
+ .bank-work-tabs{width:100%;max-width:none}
+ .ncc-ai-room[data-embedded=true]{height:calc(100dvh - var(--header-height,72px) - 190px);min-height:310px}
+}
