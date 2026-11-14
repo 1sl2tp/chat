@@ -214,6 +214,7 @@ export function previewBillAppMatch(bill,events,otherBills=[],now=Date.now()){
       (printedMemo!==bankText&&printedMemo!==bankMemoWithoutQr&&
        printedMemo!==bankMemoWithoutMb&&printedMemo!==bankMemoWithoutMbvcb&&
         printedMemo!==bankMemoWithoutMcc&&printedMemo!==bankMemoWithoutIbft&&
+        !contiguousMemoContains(bill.transfer_content,rawBankMemo)&&
        !qrSenderVerified&&!mbvcbSingleOcr))
      return{status:"review",reason:"ocr_date_corrected_bank_memo_unverified"};
  }
@@ -240,6 +241,18 @@ export function previewBillAppMatch(bill,events,otherBills=[],now=Date.now()){
 const tidy=x=>String(x||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"")
   .toUpperCase().replace(/[^A-Z0-9]/g,"");
 const BANK_REF=/^[A-Za-z0-9][A-Za-z0-9._-]{9,79}$/;
+// BANK-359: contiguous full-memo containment, not token overlap. Require a
+// substantial literal payer phrase and word boundaries on the longer side.
+// Amount, bank credit, recipient, clock, uniqueness and ledger guards remain mandatory.
+function contiguousMemoContains(a,b){
+ const left=tidy(a),right=tidy(b);
+ if(Math.min(left.length,right.length)<16)return false;
+ const shorter=left.length<=right.length?left:right;
+ const longer=left.length<=right.length?right:left;
+ const at=longer.indexOf(shorter);
+ return at>=0;
+}
+
 function bankMemo(body){
  const s=String(body||"");
  const m=/Nội dung giao dịch:\s*([\s\S]*?)(?:\s*Số dư cuối:|$)/i.exec(s);
