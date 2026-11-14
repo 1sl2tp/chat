@@ -593,6 +593,7 @@ function renderTable(data){
   // Presentation only: ledger proof stays separate from pending/duplicate bill
   // counters; mobile displays these below the full amount, never beside it.
   tr.dataset.bankTone=g.old||g.duplicate?'danger':g.waiting?'pending':g.matched?'success':'neutral';
+  tr.dataset.bankCollectedStatus=g.matched>0?'Đã ghi thu':'Chưa ghi thu';
   tr.setAttribute('role','button');
   tr.setAttribute('aria-label',(selectedCustomer===g.id?'Đang xem chi tiết ':'Xem chi tiết ')+g.name+
    ', đã thu '+bankMoneySpoken(g.money)+', tự thu '+g.matched+', chờ '+g.waiting+
