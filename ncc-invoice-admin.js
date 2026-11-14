@@ -48,15 +48,23 @@ function ensureButton(){
  if(!admin())return;
  const tools=document.querySelector('[data-contact-directory-tools]');
  if(!tools)return;
+ // DIR-342: supplier invoice actions are work, not ordinary conversations.
+ // Reparent the existing launcher (never clone it) to preserve one click owner.
+ const slot=tools.querySelector('[data-contact-work-ncc-slot]')||tools;
  const ready=window.V21ContactDirectoryAdmin?.nccEnabled?.()===true;
  const existing=tools.querySelector('[data-ncc-launch]');
- if(existing){existing.disabled=!ready;existing.textContent=ready?'Phiếu nhập · TK NCC':'Phiếu NCC · Chưa kích hoạt';return;}
+ if(existing){
+   if(existing.parentElement!==slot)slot.appendChild(existing);
+   existing.disabled=!ready;
+   existing.textContent=ready?'Phiếu nhập · TK NCC':'Phiếu NCC · Chưa kích hoạt';
+   return;
+ }
  ensureStyle();
  const button=document.createElement('button');button.type='button';button.className='ncc-launch';
  button.dataset.nccLaunch='';button.disabled=!ready;
  button.textContent=ready?'Phiếu nhập · TK NCC':'Phiếu NCC · Chưa kích hoạt';
  button.addEventListener('click',()=>{void open();});
- tools.appendChild(button);
+ slot.appendChild(button);
 }
 function ensureDialog(){
  if(dialog)return dialog;
