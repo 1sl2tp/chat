@@ -217,9 +217,31 @@ async function handleLinkProduct(adminId:string,body:any){
   },{onConflict:"product_code"});
   if(error)return fail("vietnamese_name_unavailable",503);
  }
+ // Price evidence is tied to the approved product code and original image
+ // row, never written into taphoa_products or price history. Unit from the
+ // supplier must be reviewed before comparing with carton/retail catalog cost.
+ const asPrice=(value:any)=>{
+  if(value===null||value===undefined||value==="")return null;
+  const n=Number(value);
+  return Number.isFinite(n)&&n>=0&&n<=100000000000?Math.round(n*100)/100:null;
+ };
+ const netPrice=asPrice(row.net_unit_vnd);
+ const printedPrice=asPrice(row.unit_price_vnd);
+ const quantity=Number(row.quantity);
+ const {error:priceError}=await db.from("chat_ncc_product_purchase_evidence").upsert({
+  approved_by:adminId,invoice_hash:hash,row_no:rowNo,product_code:code,
+  invoice_name:String(row.printed_name).slice(0,180),
+  printed_unit:String(row.printed_unit||"").slice(0,40),
+  quantity:Number.isFinite(quantity)&&quantity>0&&quantity<=1000000?Math.round(quantity*1000)/1000:null,
+  gross_unit_price_vnd:printedPrice,net_unit_price_vnd:netPrice,
+  price_evidence_state:netPrice!==null?"after_discount_calculated":
+   printedPrice!==null?"printed_before_discount":"price_missing",
+  approved_at:new Date().toISOString()
+ },{onConflict:"approved_by,invoice_hash,row_no"});
+ if(priceError)return fail("purchase_price_evidence_unavailable",503);
  const current=await productIdentity();
  if(!current)return fail("product_identity_unavailable",503);
- return json({ok:true,record:await publicRecord(adminId,saved,current)});
+ return json({ok:true,price_evidence_saved:true,record:await publicRecord(adminId,saved,current)});
 }
 async function publicRecord(id:string,result:any,knownIdentity:any=null){
  const image=result.image_key?await db.storage.from(BUCKET).createSignedUrl(result.image_key,600):null;
