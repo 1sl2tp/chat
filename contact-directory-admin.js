@@ -192,6 +192,25 @@ function syncMobileDirectoryHeader(){
   }
   return visible;
 }
+// DIR-347: Work opens the full existing Admin bank report in one tap.
+// Resolve the canonical contact ID; never infer it from a display name.
+function openBankReportFromWork(){
+  if(!currentAdmin())return false;
+  const contact=(contactStore()?.snapshot?.()||[]).find(row=>
+    row?.id&&!row.deleted_at&&isPinnedReportContact(row)
+  );
+  const navigation=window.ChatAppShell?.NavigationCommand;
+  if(!contact||!navigation?.openContact)return false;
+  const opened=Boolean(navigation.openContact(
+    PINNED_REPORT_ID,
+    String(contact.display_name||contact.username||'TAPHOA · Báo cáo chuyển khoản')
+  ));
+  if(opened){
+    // Selecting an already-active report does not emit contact-change again.
+    window.V21WorkCustomerSummary?.hideMobileDirectory?.('work-bank-report');
+  }
+  return opened;
+}
 function directoryTools(){return document.querySelector('[data-contact-directory-tools]');}
 function removeDirectoryTools(){
   directoryTools()?.remove();
@@ -257,6 +276,7 @@ function ensureDirectoryTools(){
     <div class="contact-directory-work-item"><strong>Sản phẩm · Phiếu NCC</strong><span>Ảnh phiếu nhập, liên kết sản phẩm và kiểm tra giá vốn</span><div data-contact-work-ncc-slot></div></div>`;
   nav.insertBefore(workTools,host.nextSibling);
   const setDirectorySection=(next,{restore=false}={})=>{
+    if(next==='work'&&!restore&&openBankReportFromWork())return;
     directorySection=next==='work'?'work':'chat';
     tools.dataset.directorySection=directorySection;
     for(const tab of tools.querySelectorAll('[data-contact-directory-section]')){
@@ -491,8 +511,8 @@ function resetForAuth(){
   if(input)input.value='';
   if(tools){
     tools.dataset.directorySection='chat';
-    const work=tools.querySelector('[data-contact-work-tools]');
-    if(work)work.hidden=true;
+    const work=document.querySelector('[data-contact-work-tools]');
+    if(work){work.hidden=true;work.open=false;}
     const heading=document.querySelector('[data-contact-work-bank-heading]');
     if(heading)heading.hidden=true;
     for(const tab of tools.querySelectorAll('[data-contact-directory-section]')){
@@ -524,6 +544,7 @@ document.addEventListener('click',event=>{
   if(!next)return;
   event.preventDefault();
   event.stopImmediatePropagation();
+  if(next==='work'&&openBankReportFromWork())return;
   directoryTools()?.querySelector('[data-contact-directory-section="'+next+'"]')?.click();
   syncMobileDirectoryHeader();
 },true);
