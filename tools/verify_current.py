@@ -214,6 +214,7 @@ subprocess.run(['node',str(ROOT/'tests'/'test_ncc007_chat_room_contract_20261114
 subprocess.run(['node',str(ROOT/'tests'/'test_ncc008_ios_photo_autosend_20261114.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_ncc009_discount_math_20261114.mjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_ncc009_ui_edge_contract_20261114.cjs')],check=True,cwd=ROOT)
+subprocess.run(['node',str(ROOT/'tests'/'test_ncc010_product_linking_20261115.mjs')],check=True,cwd=ROOT)
 subprocess.run(['node','--check',str(ROOT/'ncc-ai-room.js')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_ncc002_manual_invoice_20261114.cjs')],check=True,cwd=ROOT)
 print(f'{release} canonical source verify PASS build_id={build_id} sha256={sha}')

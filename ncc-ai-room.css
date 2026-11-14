@@ -246,3 +246,49 @@ body.ncc-ai-room-open{overflow:hidden}
  .bank-work-tabs{width:100%;max-width:none}
  .ncc-ai-room[data-embedded=true]{height:calc(100dvh - var(--header-height,72px) - 190px);min-height:310px}
 }
+
+/* NCC-010: supplier printed name, canonical TAPHOA name and Vietnamese label
+   are three different fields under one product code. */
+.ncc-ai-table{min-width:1330px}
+.ncc-ai-table td:nth-child(10){min-width:130px}
+.ncc-ai-table td:nth-child(11),.ncc-ai-table td:nth-child(12){min-width:150px;text-align:left;white-space:normal}
+.ncc-ai-table td:nth-child(n+10),.ncc-ai-table th:nth-child(n+10){text-align:left}
+.ncc-ai-link-button{
+ min-height:38px;min-width:106px;border:1px solid var(--theme-border-default,#d9dee5);
+ background:var(--theme-surface-primary,#fff);border-radius:10px;
+ color:var(--theme-content-primary,#25292e);
+ padding:6px 9px;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;
+}
+.ncc-ai-link-button:disabled{opacity:.55;cursor:not-allowed}
+.ncc-ai-link-editor{
+ margin:10px 0;display:flex;flex-direction:column;gap:9px;
+ padding:12px;border:1px solid var(--theme-border-default,#e4e7ec);
+ border-radius:12px;background:var(--theme-surface-secondary,#f8f9fa);
+}
+.ncc-ai-link-editor p{margin:0;font-size:12px}
+.ncc-ai-link-search,.ncc-ai-link-vi-label input{
+ width:100%;box-sizing:border-box;min-height:42px;border:1px solid var(--theme-border-default,#d9dee5);
+ border-radius:10px;background:var(--theme-surface-primary,#fff);padding:9px 11px;
+ color:var(--theme-content-primary,#111);font-size:14px;
+}
+.ncc-ai-link-vi-label{font-size:12px;font-weight:600;display:flex;flex-direction:column;gap:6px}
+.ncc-ai-link-results{display:grid;gap:4px;max-height:220px;overflow-y:auto}
+.ncc-ai-link-option{
+ display:block;width:100%;min-height:40px;text-align:left;
+ padding:8px 10px;border:1px solid transparent;border-radius:9px;
+ background:var(--theme-surface-primary,#fff);color:inherit;
+ font-size:12px;cursor:pointer;
+}
+.ncc-ai-link-option:hover,.ncc-ai-link-option:focus-visible{
+ border-color:var(--theme-border-default,#b3c0d2);outline-offset:1px;
+}
+.ncc-ai-link-editor .ncc-ai-recheck{align-self:start}
+
+/* Product identity first, monetary evidence follows; names may wrap. */
+.ncc-ai-table :is(td,th):nth-child(n+2):nth-child(-n+5){
+ text-align:left;white-space:normal;
+}
+.ncc-ai-table :is(td,th):nth-child(n+6){text-align:right;white-space:nowrap}
+.ncc-ai-table td:nth-child(2){min-width:118px}
+.ncc-ai-table td:nth-child(3){min-width:155px}
+.ncc-ai-table td:nth-child(4),.ncc-ai-table td:nth-child(5){min-width:154px}

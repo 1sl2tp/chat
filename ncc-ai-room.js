@@ -44,7 +44,8 @@ const presence=room.querySelector("[data-ncc-room-presence]");
 const preview=room.querySelector("[data-ncc-room-preview]");
 let previewUrl="",ready=false,busy=false,session="",opened=false;
 let embeddedHost=null;
-let selectedPhoto=null,selectVersion=0,supportsRecheck=false;
+let selectedPhoto=null,selectVersion=0,supportsRecheck=false,supportsProductLinks=false;
+let productCatalog=null;
 const visibleHashes=new Set();
 const attachedUrls=new Set();
 const say=text=>{state.textContent=text;};
@@ -65,6 +66,7 @@ function purge(){
  clearPreview();
  for(const url of attachedUrls)URL.revokeObjectURL(url);
  attachedUrls.clear();visibleHashes.clear();thread.replaceChildren();
+ productCatalog=null;supportsProductLinks=false;
  ready=false;supportsRecheck=false;busy=false;session="";sync();
 }
 function node(parent,tag,text,className){
@@ -101,6 +103,92 @@ function appendAdmin(file,date,imageUrl){
  node(bubble,"small",file?.name||"Ảnh phiếu nhập");
  return bubble;
 }
+// NCC-010: Admin alone confirms a supplier's printed name -> canonical code.
+// Product name and Vietnamese label remain distinct; invoice price is read-only.
+const findProductLink=(record,line)=>Array.isArray(record.product_links)
+ ?record.product_links.find(x=>Number(x.row_no)===Number(line.row_no)):null;
+const normalizedSearch=value=>String(value||"").normalize("NFD")
+ .replace(/[\u0300-\u036f]/g,"").replace(/[đĐ]/g,"d").toLowerCase();
+async function openProductLinkEditor(bubble,record,line,refresh){
+ bubble.querySelector(".ncc-ai-link-editor")?.remove();
+ const editor=node(bubble,"section",undefined,"ncc-ai-link-editor");
+ const feedback=node(editor,"p","Đang tải danh mục sản phẩm…");
+ const owner=accountSession();
+ if(!supportsProductLinks||!record?.hash){
+  feedback.textContent="Chức năng liên kết sản phẩm chưa sẵn sàng.";return;
+ }
+ try{
+  if(!productCatalog){
+   const result=await api("catalog");
+   if(!Array.isArray(result.products))throw Error("product_identity_unavailable");
+   productCatalog=result.products;
+  }
+  if(!editor.isConnected||owner!==accountSession())return;
+  feedback.textContent="Chọn đúng mã SP. Chỉ lưu liên kết tên, không sửa giá vốn.";
+  const search=node(editor,"input");
+  search.type="search";search.placeholder="Tìm tên hoặc mã sản phẩm TAPHOA";
+  search.className="ncc-ai-link-search";
+  search.setAttribute("aria-label","Tìm mã sản phẩm");
+  const results=node(editor,"div",undefined,"ncc-ai-link-results");
+  const viLabel=node(editor,"label","Tên tiếng Việt (Admin xác nhận)","ncc-ai-link-vi-label");
+  const vi=node(viLabel,"input");
+  vi.type="text";vi.maxLength=180;vi.placeholder="Ví dụ: Sữa Fami canxi";
+  vi.setAttribute("aria-label","Tên tiếng Việt của sản phẩm");
+  const save=node(editor,"button","Xác nhận liên kết","ncc-ai-recheck");
+  save.type="button";save.disabled=true;
+  const status=node(editor,"small","");
+  let selected=null;
+  const productByCode=new Map(productCatalog.map(p=>[String(p.product_code),p]));
+  const current=findProductLink(record,line);
+  const suggestions=(Array.isArray(current?.candidates)?current.candidates:[])
+    .map(p=>productByCode.get(String(p.product_code))).filter(Boolean);
+  function choose(p){
+   selected=p;
+   search.value=p.product_code+" · "+p.product_name;
+   vi.value=String(p.vietnamese_name||"");
+   save.disabled=false;
+   status.textContent="Đã chọn "+p.product_code+". Kiểm tra tên và quy cách trước khi lưu.";
+  }
+  function renderMatches(){
+   results.replaceChildren();
+   const query=normalizedSearch(search.value).trim();
+   const matches=query?productCatalog.filter(p=>
+    normalizedSearch(p.product_code+" "+p.product_name+" "+(p.vietnamese_name||"")).includes(query)
+   ).slice(0,12):suggestions.slice(0,12);
+   for(const item of matches){
+    const option=node(results,"button",item.product_code+" · "+item.product_name+
+      (item.vietnamese_name?" · "+item.vietnamese_name:""));
+    option.type="button";option.className="ncc-ai-link-option";
+    option.addEventListener("click",()=>choose(item));
+   }
+   if(!matches.length)node(results,"small",query?"Không tìm thấy mã SP phù hợp.":"Gõ tên hoặc mã sản phẩm để tìm.");
+  }
+  search.addEventListener("input",()=>{selected=null;save.disabled=true;renderMatches();});
+  save.addEventListener("click",async()=>{
+   if(!selected||owner!==accountSession())return;
+   save.disabled=true;status.textContent="Đang lưu liên kết đã xác nhận…";
+   try{
+    const result=await api("link_product",{
+     hash:record.hash,row_no:line.row_no,product_code:selected.product_code,
+     vietnamese_name:vi.value.trim()
+    });
+    if(owner!==accountSession()||!editor.isConnected)return;
+    record.product_links=result.record?.product_links||record.product_links;
+    refresh();editor.remove();
+    say("Đã liên kết mã SP "+selected.product_code+". Giá nhập chỉ để đối chiếu.");
+   }catch(error){
+    const message=String(error?.message||"");
+    status.textContent=message==="product_alias_conflict"?
+     "Tên này đã liên kết với mã SP khác. Cần rà soát, không tự ghi đè.":
+     "Chưa lưu được liên kết. Danh mục hoặc kết nối chưa sẵn sàng.";
+    save.disabled=false;
+   }
+  });
+  renderMatches();
+ }catch{
+  feedback.textContent="Không tải được danh mục sản phẩm. Chưa lưu liên kết.";
+ }
+}
 function appendTable(record,{duplicate=false,recheck=false}={}){
  const created=recheck?(record.rechecked_at||new Date().toISOString()):
   (record.created_at||new Date().toISOString());
@@ -109,6 +197,8 @@ function appendTable(record,{duplicate=false,recheck=false}={}){
  if(duplicate)node(bubble,"p","Ảnh trùng — đã xử lý trước đó, không đọc AI lần nữa.","ncc-ai-duplicate");
  if(recheck)node(bubble,"strong","Kết quả đọc lại tổng và chiết khấu");
  const lines=Array.isArray(record.lines)?record.lines:[];
+ const rowViews=[];
+ const refreshLinks=()=>rowViews.forEach(fn=>fn());
  if(record.status==="not_invoice"){
   node(bubble,"p","Ảnh này không phải phiếu nhập hàng. Không lập bảng.","ncc-ai-explanation");
  }else if(!lines.length){
@@ -118,23 +208,46 @@ function appendTable(record,{duplicate=false,recheck=false}={}){
   const wrap=node(bubble,"div",undefined,"ncc-ai-table-scroll");
   const table=node(wrap,"table",undefined,"ncc-ai-table");
   const tr=node(node(table,"thead"),"tr");
-  ["STT","Tên hàng","SL","ĐVT","Đơn giá gốc/1","Thành tiền gốc","CK/1","Sau CK/1","Tổng sau CK"].forEach(label=>node(tr,"th",label));
+  ["STT","Mã SP","Tên hàng trên phiếu","Tên sản phẩm","Tên tiếng Việt","SL","ĐVT","Đơn giá gốc/1","Thành tiền gốc","CK/1","Sau CK/1","Tổng sau CK"].forEach(label=>node(tr,"th",label));
   const tbody=node(table,"tbody");
   for(const line of lines){
    const row=node(tbody,"tr");
-   [line.row_no??"",line.printed_name||"Chưa đọc rõ",line.quantity??"—",
-    line.printed_unit||"—",money(line.unit_price_vnd),
+   node(row,"td",line.row_no??"");
+   const codeCell=node(row,"td");
+   const codeButton=node(codeCell,"button",undefined,"ncc-ai-link-button");
+   codeButton.type="button";
+   node(row,"td",line.printed_name||"Chưa đọc rõ");
+   const productCell=node(row,"td"),vietCell=node(row,"td");
+   [line.quantity??"—",line.printed_unit||"—",money(line.unit_price_vnd),
     money(line.gross_line_vnd??line.line_total_vnd),
     money(line.discount_per_unit_vnd),money(line.net_unit_vnd),
     money(line.net_line_vnd)].forEach(value=>node(row,"td",value));
+   const refreshRow=()=>{
+    const link=findProductLink(record,line);
+    const suggested=link?.status==="suggested"?(link?.candidates||[])[0]:null;
+    const confirmed=link?.status==="linked";
+    codeButton.textContent=confirmed?"✓ "+String(link.product_code):
+     link?.status==="suggested"?"Gợi ý "+String(suggested?.product_code||link.product_code||""):
+     record.product_mapping_ready===false?"Chưa sẵn sàng":"Chọn mã SP";
+    codeButton.disabled=record.product_mapping_ready===false;
+    productCell.textContent=link?.product_name||suggested?.product_name||"—";
+    vietCell.textContent=link?.vietnamese_name||suggested?.vietnamese_name||"—";
+    codeButton.setAttribute("aria-label","Liên kết "+String(line.printed_name||"")+" với mã sản phẩm");
+   };
+   codeButton.addEventListener("click",()=>void openProductLinkEditor(bubble,record,line,refreshLinks));
+   rowViews.push(refreshRow);refreshRow();
   }
   const copy=node(bubble,"button","Sao chép bảng","ncc-ai-copy");
   copy.type="button";
   copy.addEventListener("click",async()=>{
    const clean=x=>String(x??"").replace(/[\r\n\t]/g," ").trim();
-   const linesText=lines.map(line=>[line.row_no,line.printed_name,
+   const linesText=lines.map(line=>{
+    const link=findProductLink(record,line)||{};
+    return [line.row_no,line.printed_name,
     line.quantity,line.printed_unit,line.unit_price_vnd,line.gross_line_vnd,
-    line.discount_per_unit_vnd,line.net_unit_vnd,line.net_line_vnd].map(clean).join("\t"));
+    line.discount_per_unit_vnd,line.net_unit_vnd,line.net_line_vnd,
+    link.product_code,link.product_name,link.vietnamese_name].map(clean).join("\t");
+   });
    const summary=record.summary||{};
    const summaryRows=[
     ["Tổng hàng trên phiếu",summary.subtotal_printed_vnd],
@@ -146,7 +259,7 @@ function appendTable(record,{duplicate=false,recheck=false}={}){
    ].map(([label,value])=>[label,clean(value)].join("\t"));
    try{
     await navigator.clipboard.writeText(
-     ["STT\tTên hàng\tSL\tĐVT\tĐơn giá gốc/1\tThành tiền gốc\tCK/1\tSau CK/1\tTổng sau CK",
+     ["STT\tTên hàng trên phiếu\tSL\tĐVT\tĐơn giá gốc/1\tThành tiền gốc\tCK/1\tSau CK/1\tTổng sau CK\tMã SP\tTên sản phẩm\tTên tiếng Việt",
       ...linesText,"",...summaryRows].join("\n")
     );say("Đã sao chép "+lines.length+" dòng hàng cùng thông tin tổng/chiết khấu.");
    }catch{say("Không sao chép được trên thiết bị này.");}
@@ -380,6 +493,7 @@ async function open(options={}){
   if(!opened||accountSession()!==owner)return;
   ready=health.ready===true;
   supportsRecheck=Array.isArray(health.features)&&health.features.includes("invoice_totals_v2");
+  supportsProductLinks=Array.isArray(health.features)&&health.features.includes("canonical_product_links_v1");
   presence.textContent=ready?"Sẵn sàng":"Chưa có AI";
   if(!ready){say("Máy chủ AI chưa sẵn sàng.");sync();return;}
   say("Bấm dấu + chọn ảnh. Ảnh sẽ tự gửi và AI tự tạo bảng.");
