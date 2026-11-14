@@ -48,7 +48,10 @@ assert(ui.includes('panel.dataset.ready=String(ready)'),'visible capability refl
 assert(!send.includes('chat_bank_app_collect')&&!send.includes('taphoa_update_product_from_web'),
  'image parsing does not write customer debt or product cost');
 assert(edge.includes("if(action==='manual_upload')"));
-assert(edge.includes("if(action==='scan')return analyze(invoice);"));
+assert(edge.includes("if(action==='scan'){"),'scan request can be idempotently acknowledged');
+assert(edge.includes("return analyze(invoice);"),'one claimant starts OCR');
+assert(edge.includes("if(!claimed){"),'double scan returns current durable state');
+assert(edge.includes("already_processing:true"),'second caller can poll instead of failing');
 assert(edge.includes("if(action==='detail')"));
 assert(edge.includes('validatePrintedInvoice(raw)'),'server validates printed invoice');
 assert(html.includes('data-bank-report-ncc-slot'));
