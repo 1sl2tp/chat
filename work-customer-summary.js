@@ -141,10 +141,10 @@ function showMobileDirectory(reason='directory'){
   layer.setAttribute('aria-hidden','false');
   app.dataset.mobileDirectoryReason=String(reason||'directory');
   // DIR-343: notify the sole directory header-tab owner (Chat / Công việc).
-  document.dispatchEvent(new CustomEvent('v21-mobile-directory-change',{detail:{open:true}}));
   resetWorkSelectionForDirectory();
   navigation()?.clearActiveContact?.();
   syncDirectoryChatTab(true);
+  document.dispatchEvent(new CustomEvent('v21-mobile-directory-change',{detail:{open:true}}));
   // Reopening an already-visible directory must not trigger another RPC.
   if(!wasOpen)void window.V21ContactStore?.refresh?.();
   if(!wasOpen)window.setTimeout(()=>focusMobileDirectory(layer),0);
