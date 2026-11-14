@@ -27,6 +27,10 @@ export const BILL_LITERAL_MEMO_OCR_GUIDANCE=[
  "Nếu hình đủ rõ để quyết định, xuất transfer_content theo chữ thực sự IN TRÊN BILL. Không dựa vào tên khách hàng, mã số, lời nhắn mặc định hay thông báo Agribank để tự sửa chữ.",
  "Nếu không phân biệt chắc chắn, giữ đúng phần đọc được và mô tả trong uncertainty rằng nội dung chuyển khoản mờ/khó phân biệt; KHÔNG tự sửa cho khớp với giao dịch khác hoặc kết luận tiền đã vào.",
  "Kiểm lại mã tham chiếu từng chữ số, STK người nhận và đồng hồ giao dịch của CHÍNH bill; giữ nguyên văn và trường chuẩn hóa riêng biệt. Không suy ra STK đầy đủ từ năm số cuối.",
+ "Khi ảnh là ảnh chụp một điện thoại khác, hãy tập trung đọc khung giao dịch trên màn hình điện thoại bên trong ảnh; bỏ qua giờ ở thanh trạng thái, viền máy, tay và nền.",
+ "SỐ TÀI KHOẢN NGƯỜI NHẬN: chép từng chữ số trong đúng dòng Tài khoản đích hoặc Tài khoản nhận. Kiểm tra lại độ dài, thứ tự, đặc biệt chữ số 1 sát chữ số 9; KHÔNG điền theo số tài khoản chuẩn ghi trong hướng dẫn. Nếu một chữ số mờ hoặc khuất, trả đúng phần thấy được hoặc null và nêu rõ trong uncertainty, KHÔNG tự bù chữ số còn thiếu.",
+ "Không lấy chữ BUI XUAN TUNG trong lời nhắn hoặc ví dụ làm tên người nhận; phải thấy đúng nhãn Tài khoản đích/Người thụ hưởng trên ảnh.",
+ "Giữ riêng ba thời điểm: ngày/giờ giao dịch IN TRÊN BILL, đồng hồ điện thoại trong ảnh, và thời gian gửi Chat. Chỉ loại đầu tiên được phép điền transaction_datetime_vn.",
  "Việc chấp nhận một sai lệch OCR khi đối soát là nhiệm vụ của bộ so khớp với bằng chứng Agribank độc lập, không phải quyền của Gemini; vẫn bắt buộc chống trùng và gọi RPC tài chính hiện có."
 ].join("\n");
 
