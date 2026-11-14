@@ -4,6 +4,12 @@ const base={media_asset_id:"synthetic-bank356",status:"amount_read",amount_vnd:3
 const event={id:306,package_name:"com.vnpay.Agribank3g",status:"credit_candidate",is_own_transfer:false,amount_vnd:380000,body:"Agribank: 17:01 14/11/2026 Tài khoản 2901181999999: +380,000VND. Nội dung giao dịch: TRAN THI THANH HUYEN chuyen tien. Số dư cuối: -16,247,230VND"};
 const run=(bill=base,ev=[event])=>previewBillAppMatch(bill,ev,[],Date.parse("2026-11-14T10:06:00Z"));
 assert.equal(run().status,"candidate_unique");
+// BANK-360: OCR may truncate the 13-digit destination to 12 digits;
+// bank-side notice must still prove the full account, while last five match.
+assert.equal(run({...base,receiving_account:"290118199999",receiving_account_last5:"99999"}).status,"candidate_unique");
+assert.notEqual(run({...base,receiving_account:"290118199998",receiving_account_last5:"99998"}).status,"candidate_unique");
+assert.notEqual(run(base,[{...event,body:event.body.replace("2901181999999","2901181999998")}]).status,"candidate_unique");
+
 assert.equal(run().ledger_written,false);
 assert.notEqual(run(base,[event,{...event,id:308}]).status,"candidate_unique");
 for(const [b,e] of [
