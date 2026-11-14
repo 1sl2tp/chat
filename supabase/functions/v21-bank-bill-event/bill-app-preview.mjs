@@ -49,6 +49,18 @@ function verifiedMccMemo(raw,bill,event){
  if(tidy(memo)!==tidy(bill?.transfer_content)||tidy(memo).length<12)return null;
  return m[2];
 }
+// BANK-356: Bank-side technical routing prefix is not part of the payer's
+// original memo. Only unwrap exact anchored IBFT + full sender + full note.
+function verifiedIbftMemo(raw,bill){
+ const m=/^IBFT\s+(.+)$/i.exec(String(raw||"").trim());
+ if(!m)return null;
+ const sender=normalizeBillRecipientName(bill?.sender_name);
+ if(!sender||sender==="BUI XUAN TUNG"||
+    !/^[A-Z]+(?: [A-Z]+){2,}$/.test(sender)||sender.length<12||
+    !normalizeBillRecipientName(m[1]).startsWith(sender+" ")||
+    tidy(m[1])!==tidy(bill?.transfer_content))return null;
+ return m[1];
+}
 // BANK-346: Agribank wraps some incoming Vietcombank memos as
 // MBVCB.<bank-reference>.<routing-code>.<literal payer memo>.CT tu <source>
 // <sender> toi <our-account> <our-name> tai AGRIBANK.
@@ -147,7 +159,21 @@ export function previewBillAppMatch(bill,events,otherBills=[],now=Date.now()){
    &&e.amount_vnd===bill.amount_vnd&&bankEventTime(e)!==null&&Math.abs(bankEventTime(e)-date)<=5*60000);
  // Different transfers of equal amount may occur minutes apart. Look at the
  // bank-printed 60-second clock window, not every same-amount notice within 5m.
- const qualified=nearby.filter(e=>Math.abs(bankEventTime(e)-date)<=60000);
+ // Allow a one-minute displayed-clock discrepancy only with a unique bank
+ // credit and complete sender-bound memo. This is a candidate for the
+ // financial RPC, never a direct authorization to write money.
+ const qualified=nearby.filter(e=>{
+   const delta=Math.abs(bankEventTime(e)-date);
+   if(delta<=60000)return true;
+   if(delta>120000)return false;
+   const printed=tidy(bill.transfer_content);
+   const raw=bankMemo(e.body);
+   const sender=normalizeBillRecipientName(bill.sender_name);
+   return sender&&sender!=="BUI XUAN TUNG"&&sender.length>=12&&
+     printed.length>=12&&printed.startsWith(tidy(sender))&&
+     (printed===tidy(raw)||printed===tidy(verifiedIbftMemo(raw,bill))||
+      printed===tidy(verifiedMccMemo(raw,bill,e)));
+ });
  if(qualified.length>1)return{status:"review",reason:"multiple_credits_same_amount_same_minute"};
  if(!qualified.length&&nearby.length)return{status:"review",reason:"bank_time_outside_one_minute"};
  if(!qualified.length)return{status:"waiting_bank_event",reason:"no_matching_agribank_notification"};
@@ -182,11 +208,12 @@ export function previewBillAppMatch(bill,events,otherBills=[],now=Date.now()){
      ?tidy(mbvcb.memo):null;
    const qrSenderVerified=verifiedQrSenderMemo(bill,rawBankMemo);
     const bankMemoWithoutMcc=mcc?tidy(mcc):null;
+   const bankMemoWithoutIbft=tidy(verifiedIbftMemo(rawBankMemo,bill));
    const mbvcbSingleOcr=verifiedMbvcbTransferSuffixOcr(bill,mbvcb);
    if((printedMemo.length<12&&!qrSenderVerified)||!bankText||
       (printedMemo!==bankText&&printedMemo!==bankMemoWithoutQr&&
        printedMemo!==bankMemoWithoutMb&&printedMemo!==bankMemoWithoutMbvcb&&
-        printedMemo!==bankMemoWithoutMcc&&
+        printedMemo!==bankMemoWithoutMcc&&printedMemo!==bankMemoWithoutIbft&&
        !qrSenderVerified&&!mbvcbSingleOcr))
      return{status:"review",reason:"ocr_date_corrected_bank_memo_unverified"};
  }
