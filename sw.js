@@ -104,7 +104,9 @@ function notifyMessageDirty(clients,payload={}){
     type:'ADMIN_PUSH_MESSAGE_DIRTY',
     conversationId:String(payload.conversation_id||''),
     contactId:String(payload.contact_id||''),
-    messageId:String(payload.message_id||'')
+    messageId:String(payload.message_id||''),
+    title:String(payload.title||'Tin nhắn mới').slice(0,90),
+    body:String(payload.body||'').slice(0,140)
   };
   for(const client of clients||[]){
     try{client.postMessage?.(message);}catch{}
