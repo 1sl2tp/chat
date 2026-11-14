@@ -40,6 +40,7 @@ const context=vm.createContext({
   document:{querySelector:s=>s==='[data-contact-work-bank-heading]'?heading:null},
   directoryTools:()=>tools,
   scheduleSync:()=>{scheduled++;},
+  syncMobileDirectoryHeader:()=>{},
   loadedAdminId:'old-admin',
   query:'nguyễn',filter:'friend',groupMap:new Map([['contact','friend']]),Map,String
 });
