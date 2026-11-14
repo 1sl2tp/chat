@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "npm:@supabase/supabase-js@2.57.4";
-import {RULE_VERSION,SYSTEM_PROMPT,validateVisionRead,readV4Fields,requiredAutoCollectEvidence,classifyBillRecognition,TEN_FIELD_BILL_GUIDANCE,buildStoredBillTenFields} from "./bill-amount-rules.mjs";
+import {RULE_VERSION,SYSTEM_PROMPT,validateVisionRead,readV4Fields,requiredAutoCollectEvidence,classifyBillRecognition,TEN_FIELD_BILL_GUIDANCE,BILL_LITERAL_MEMO_OCR_GUIDANCE,buildStoredBillTenFields} from "./bill-amount-rules.mjs";
 import {previewBillSmsMatch,readIncomingAgribankSms} from "./bill-sms-preview.mjs";
 import {previewBillAppMatch,previewBillReferenceMatch} from "./bill-app-preview.mjs";
 import {compareBillTransferIdentity} from "./bill-transfer-identity.mjs";
@@ -541,7 +541,7 @@ Deno.serve(async req=>{
      "và ngày chuẩn hóa là null; không suy đoán dù ngân hàng có giao dịch.",
      "Các trường khác vẫn phải đọc/kiểm tra đúng, trả nguyên JSON ban đầu."
    ].join("\n"):"";
-   const prompt=SYSTEM_PROMPT+"\n\n"+TEN_FIELD_BILL_GUIDANCE+
+   const prompt=SYSTEM_PROMPT+"\n\n"+TEN_FIELD_BILL_GUIDANCE+"\n\n"+BILL_LITERAL_MEMO_OCR_GUIDANCE+
      (executionDateGuide?"\n\n"+executionDateGuide:"");
    const ctl=new AbortController();const timeout=setTimeout(()=>ctl.abort(),30000);
    let usedModel=model;

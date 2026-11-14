@@ -1,0 +1,17 @@
+import assert from "node:assert/strict";
+import {readFileSync} from "node:fs";
+import {SYSTEM_PROMPT,BILL_LITERAL_MEMO_OCR_GUIDANCE,TEN_FIELD_BILL_GUIDANCE,readV4Fields} from "../supabase/functions/v21-bank-bill-event/bill-amount-rules.mjs";
+const source=readFileSync(new URL("../supabase/functions/v21-bank-bill-event/index.ts",import.meta.url),"utf8");
+assert.match(source,/TEN_FIELD_BILL_GUIDANCE,BILL_LITERAL_MEMO_OCR_GUIDANCE,buildStoredBillTenFields/);
+assert.match(source,/const prompt=SYSTEM_PROMPT\+"\\n\\n"\+TEN_FIELD_BILL_GUIDANCE\+"\\n\\n"\+BILL_LITERAL_MEMO_OCR_GUIDANCE/);
+assert.match(BILL_LITERAL_MEMO_OCR_GUIDANCE,/điện thoại khác/);
+assert.match(BILL_LITERAL_MEMO_OCR_GUIDANCE,/KHÔNG tự bù chữ số/);
+assert.match(BILL_LITERAL_MEMO_OCR_GUIDANCE,/không phải quyền của Gemini/);
+assert.match(SYSTEM_PROMPT,/KHÔNG ghi công nợ/);
+assert.match(TEN_FIELD_BILL_GUIDANCE,/10 NHÃN/);
+const a=readV4Fields({recipient_account_visible:"290118199999",recipient_account_last5:"99999"});
+assert.equal(a.receiving_account,"290118199999");
+const b=readV4Fields({recipient_account_visible:"*****99999",recipient_account_last5:"99999"});
+assert.equal(b.receiving_account,null);
+assert.equal(b.receiving_account_last5,"99999");
+console.log("BANK-353: image-reader guidance wired, no invented account digits, finance isolated PASS");
