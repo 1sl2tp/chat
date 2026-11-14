@@ -3197,23 +3197,11 @@ function syncMessageTimeNode(unit,message){
   time.setAttribute('aria-label',timeMeaning+full+' · giờ Việt Nam');
 }
 
-// CHAT-341: the pending border finishes its current complete sweep after
-// an actual server ACK. The event belongs to the bubble's pseudo-element.
-// No timers, new DOM rows, or scroll/layout writes are needed.
-function finishConfirmedSendCycle(unit,event){
-  if(!unit||unit.dataset.deliveryState!=='finishing'||
-     event.animationName!=='chat-send-border-orbit')return;
-  const surface=unit.querySelector(':scope > .message-text:not([hidden])')||
-    unit.querySelector(':scope > .message-media-shell');
-  if(event.target!==surface)return;
-  delete unit.dataset.deliveryState;
-}
-function prefersReducedSendMotion(){
-  return window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches===true;
-}
-
-// P0-MSG-286: only real local outbox states are reported. A completed
-// border sweep never claims delivery without a canonical server ACK.
+// CHAT-345: the outbox state owns the subtle pending text/media paint.
+// No post-ACK animation or iteration listener: a confirmed ACK clears it
+// immediately. The accessible hidden pending label still follows the real
+// durable outbox; failed media continues to expose its retry button.
+// P0-MSG-286: never infer delivered/read from animation or a network hint.
 function syncMessageDeliveryState(unit,message){
   if(!unit)return;
   const state=message?.sender==='self'&&message?.status==='failed'?'failed':
@@ -3221,25 +3209,15 @@ function syncMessageDeliveryState(unit,message){
   // CHAT-340: presentation state lives on the existing bubble owner, so
   // a pending message never inserts a visible line beside the Composer.
   // Only a canonical ACK clears "sending"; failed media keeps retry controls.
-  const previousState=String(unit.dataset.deliveryState||'');
   let node=unit.querySelector(':scope > .message-delivery-state');
   if(!state){
     node?.remove();
-    // A real ACK finishes the current cycle, never clips the ring mid-sweep.
-    // The pending status node was absolute, so this cannot change row height.
-    if((previousState==='sending'||previousState==='finishing')&&
-       !prefersReducedSendMotion()){
-      unit.dataset.deliveryState='finishing';
-    }else{
-      delete unit.dataset.deliveryState;
-    }
+    // No rendered status row or delayed finishing phase: a real ACK
+    // removes only the paint state, without touching text/media geometry.
+    delete unit.dataset.deliveryState;
     return;
   }
   unit.dataset.deliveryState=state;
-  if(state==='sending'&&!unit.__sendCycleListener){
-    unit.__sendCycleListener=event=>finishConfirmedSendCycle(unit,event);
-    unit.addEventListener('animationiteration',unit.__sendCycleListener);
-  }
   if(!node){
     node=document.createElement('span');
     node.className='message-delivery-state';
