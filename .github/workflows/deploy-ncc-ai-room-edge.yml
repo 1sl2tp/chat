@@ -53,7 +53,14 @@ jobs:
         shell: bash
         run: |
           if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
-            echo "::error::Supabase deployment token missing. Do not deploy manually."
+            echo "::error title=NCC AI blocked::Missing GitHub Actions secret SUPABASE_ACCESS_TOKEN. Configure once in 1sl2tp/chat Settings > Secrets and variables > Actions. No manual production deployment fallback."
+            {
+              echo "### NCC AI release blocked before any production changes"
+              echo "Cause: GitHub Actions secret SUPABASE_ACCESS_TOKEN is not configured."
+              echo "Action: repository Settings > Secrets and variables > Actions > SUPABASE_ACCESS_TOKEN."
+              echo "Project: $PROJECT_REF | Branch: $GITHUB_REF"
+              echo "No database migration or Edge deploy was attempted."
+            } >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
       - name: Release only the pinned NCC-010 schema with post-verification
