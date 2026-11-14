@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="5aa1d16587e4e8a6abdfa2969fcadadeb17c9197d9789fe10eb23c182fcb3deb">
+<meta name="app-build-id" content="f8810b7ce3f3429fe263610628cc14628976567b72d7d5cbf07d4a78868f3eac">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -23429,6 +23429,12 @@ function syncSidebarPresentation(){
   shellNavigationLayer.dataset.open=String(sidebarOpen);
   shellNavigationLayer.dataset.persistent=String(desktopSidebarPersistent);
   const visible=sidebarOpen||desktopSidebarPersistent;
+  // DIR-343: the mobile directory owns ONE Chat/Work selector. The normal
+  // Chat/Photos header must return when the directory overlay closes.
+  appShell.dataset.mobileDirectoryVisible=String(
+    sidebarOpen&&!desktopSidebarPersistent&&authState==='AUTHENTICATED'&&authAccount?.role==='admin'
+  );
+  document.dispatchEvent(new CustomEvent('v21-sidebar-presentation-change'));
   shellNavigationLayer.setAttribute('aria-hidden',String(!visible));
   for(const button of document.querySelectorAll('[data-shell-command="sidebar.open"]')){
     button.setAttribute('aria-expanded',String(visible));
