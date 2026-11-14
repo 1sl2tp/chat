@@ -3129,7 +3129,17 @@ function applySingleImagePresentation(wrap,media){
   // Some historical/Zalo assets have no width_px/height_px. Once decoded,
   // the real natural image ratio wins over the 1.5 metadata fallback.
   const intrinsicRatio=Number(wrap.dataset.intrinsicAspectRatio)||0;
-  const measuredMedia=intrinsicRatio>0?{...media,aspectRatio:intrinsicRatio}:media;
+  // CHAT-341: when the server ACK omits dimensions for the SAME asset,
+  // preserve the already-painted local preview ratio instead of snapping
+  // image → 1.5 fallback → image as the upload and hydration reconcile.
+  const knownRatio=Number(wrap.dataset.sourceAspectRatio)||0;
+  const hasMetadataRatio=Number(media.aspectRatio)>0||
+    (Number(media.width)>0&&Number(media.height)>0);
+  const sameAsset=!media.assetId||
+    String(media.assetId)===String(wrap.dataset.mediaAssetId||'');
+  const stableRatio=intrinsicRatio>0?intrinsicRatio:
+    (!hasMetadataRatio&&sameAsset&&knownRatio>0?knownRatio:0);
+  const measuredMedia=stableRatio>0?{...media,aspectRatio:stableRatio}:media;
   const presentation=singleImagePresentation(measuredMedia);
   wrap.dataset.imagePresentation=presentation.kind;
   wrap.dataset.sourceAspectRatio=String(imageAspectRatio(measuredMedia));
@@ -5317,9 +5327,16 @@ function patchMessageMediaShell(shell,media){
     // Keep a decoded natural ratio if the old asset lacks dimension metadata.
     const tile=shell.querySelector(':scope > .media-image-tile[data-image-presentation]');
     const naturalRatio=Number(tile?.dataset.intrinsicAspectRatio)||0;
+    const knownRatio=Number(tile?.dataset.sourceAspectRatio)||0;
+    const hasMetadataRatio=Number(media.aspectRatio)>0||
+      (Number(media.width)>0&&Number(media.height)>0);
+    const sameAsset=!media.assetId||
+      String(media.assetId)===String(tile?.dataset.mediaAssetId||'');
+    const stableRatio=naturalRatio>0?naturalRatio:
+      (!hasMetadataRatio&&sameAsset&&knownRatio>0?knownRatio:0);
     const rotatedWidth=Number(tile?.dataset.rotatedMediaWidth)||0;
     const width=rotatedWidth>0?rotatedWidth
-      :singleImageDisplayWidth(naturalRatio>0?{...media,aspectRatio:naturalRatio}:media);
+      :singleImageDisplayWidth(stableRatio>0?{...media,aspectRatio:stableRatio}:media);
     shell.style.setProperty('--message-media-width',`${width}px`);
   }else{
     shell.style.removeProperty('--message-media-width');
