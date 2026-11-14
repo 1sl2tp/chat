@@ -103,6 +103,92 @@ function appendAdmin(file,date,imageUrl){
  node(bubble,"small",file?.name||"Ảnh phiếu nhập");
  return bubble;
 }
+// NCC-010: Admin alone confirms a supplier's printed name -> canonical code.
+// Product name and Vietnamese label remain distinct; invoice price is read-only.
+const findProductLink=(record,line)=>Array.isArray(record.product_links)
+ ?record.product_links.find(x=>Number(x.row_no)===Number(line.row_no)):null;
+const normalizedSearch=value=>String(value||"").normalize("NFD")
+ .replace(/[\u0300-\u036f]/g,"").replace(/[đĐ]/g,"d").toLowerCase();
+async function openProductLinkEditor(bubble,record,line,refresh){
+ bubble.querySelector(".ncc-ai-link-editor")?.remove();
+ const editor=node(bubble,"section",undefined,"ncc-ai-link-editor");
+ const feedback=node(editor,"p","Đang tải danh mục sản phẩm…");
+ const owner=accountSession();
+ if(!supportsProductLinks||!record?.hash){
+  feedback.textContent="Chức năng liên kết sản phẩm chưa sẵn sàng.";return;
+ }
+ try{
+  if(!productCatalog){
+   const result=await api("catalog");
+   if(!Array.isArray(result.products))throw Error("product_identity_unavailable");
+   productCatalog=result.products;
+  }
+  if(!editor.isConnected||owner!==accountSession())return;
+  feedback.textContent="Chọn đúng mã SP. Chỉ lưu liên kết tên, không sửa giá vốn.";
+  const search=node(editor,"input");
+  search.type="search";search.placeholder="Tìm tên hoặc mã sản phẩm TAPHOA";
+  search.className="ncc-ai-link-search";
+  search.setAttribute("aria-label","Tìm mã sản phẩm");
+  const results=node(editor,"div",undefined,"ncc-ai-link-results");
+  const viLabel=node(editor,"label","Tên tiếng Việt (Admin xác nhận)","ncc-ai-link-vi-label");
+  const vi=node(viLabel,"input");
+  vi.type="text";vi.maxLength=180;vi.placeholder="Ví dụ: Sữa Fami canxi";
+  vi.setAttribute("aria-label","Tên tiếng Việt của sản phẩm");
+  const save=node(editor,"button","Xác nhận liên kết","ncc-ai-recheck");
+  save.type="button";save.disabled=true;
+  const status=node(editor,"small","");
+  let selected=null;
+  const productByCode=new Map(productCatalog.map(p=>[String(p.product_code),p]));
+  const current=findProductLink(record,line);
+  const suggestions=(Array.isArray(current?.candidates)?current.candidates:[])
+    .map(p=>productByCode.get(String(p.product_code))).filter(Boolean);
+  function choose(p){
+   selected=p;
+   search.value=p.product_code+" · "+p.product_name;
+   vi.value=String(p.vietnamese_name||"");
+   save.disabled=false;
+   status.textContent="Đã chọn "+p.product_code+". Kiểm tra tên và quy cách trước khi lưu.";
+  }
+  function renderMatches(){
+   results.replaceChildren();
+   const query=normalizedSearch(search.value).trim();
+   const matches=query?productCatalog.filter(p=>
+    normalizedSearch(p.product_code+" "+p.product_name+" "+(p.vietnamese_name||"")).includes(query)
+   ).slice(0,12):suggestions.slice(0,12);
+   for(const item of matches){
+    const option=node(results,"button",item.product_code+" · "+item.product_name+
+      (item.vietnamese_name?" · "+item.vietnamese_name:""));
+    option.type="button";option.className="ncc-ai-link-option";
+    option.addEventListener("click",()=>choose(item));
+   }
+   if(!matches.length)node(results,"small",query?"Không tìm thấy mã SP phù hợp.":"Gõ tên hoặc mã sản phẩm để tìm.");
+  }
+  search.addEventListener("input",()=>{selected=null;save.disabled=true;renderMatches();});
+  save.addEventListener("click",async()=>{
+   if(!selected||owner!==accountSession())return;
+   save.disabled=true;status.textContent="Đang lưu liên kết đã xác nhận…";
+   try{
+    const result=await api("link_product",{
+     hash:record.hash,row_no:line.row_no,product_code:selected.product_code,
+     vietnamese_name:vi.value.trim()
+    });
+    if(owner!==accountSession()||!editor.isConnected)return;
+    record.product_links=result.record?.product_links||record.product_links;
+    refresh();editor.remove();
+    say("Đã liên kết mã SP "+selected.product_code+". Giá nhập chỉ để đối chiếu.");
+   }catch(error){
+    const message=String(error?.message||"");
+    status.textContent=message==="product_alias_conflict"?
+     "Tên này đã liên kết với mã SP khác. Cần rà soát, không tự ghi đè.":
+     "Chưa lưu được liên kết. Danh mục hoặc kết nối chưa sẵn sàng.";
+    save.disabled=false;
+   }
+  });
+  renderMatches();
+ }catch{
+  feedback.textContent="Không tải được danh mục sản phẩm. Chưa lưu liên kết.";
+ }
+}
 function appendTable(record,{duplicate=false,recheck=false}={}){
  const created=recheck?(record.rechecked_at||new Date().toISOString()):
   (record.created_at||new Date().toISOString());
