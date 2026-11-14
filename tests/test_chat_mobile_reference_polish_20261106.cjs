@@ -18,7 +18,8 @@ assert(last.includes('.shell-icon-button:focus-visible{'));
 assert(source.includes('class="shell-icon-button"')&&source.includes('data-menu-unread-dot'));
 assert(source.includes('role="tablist" aria-label="Trò chuyện và ảnh"'));
 assert(source.includes('data-top-tab="photos"'));
-assert(directory.includes('<div class="contact-directory-search-field">'));
+assert(directory.includes('<div class="contact-directory-search-field"'),
+ 'search field keeps its class even when the Chat/Work tab adds an accessible ID');
 assert(directory.includes('class="contact-directory-search-icon"'));
 assert(directory.includes('focusable="false" aria-hidden="true"'));
 assert(directory.includes('pointer-events:none'),'search icon must not steal input taps');
