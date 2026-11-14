@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="41bbc1f2c6df60e825e42c349f484ae2b1940b0961dda2c9595f24e34902188a">
+<meta name="app-build-id" content="e4a43e93703afc84f37f42993b241e089873ddf3dec0b7adb1bbe839bebb9cc6">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -39965,7 +39965,7 @@ function ensureDirectoryTools(){
     tools.querySelector('[data-contact-work-tools]').hidden=directorySection!=='work';
     bankHeading.hidden=directorySection!=='work';
     nav.setAttribute('aria-label',directorySection==='work'?'Công việc':'Danh bạ');
-    if(!restore)syncDirectoryRows({reorder:false});
+    if(!restore)syncDirectoryRows({reorder:false,scrollToTop:true});
   };
   for(const tab of tools.querySelectorAll('[data-contact-directory-section]')){
     tab.addEventListener('click',()=>setDirectorySection(tab.dataset.contactDirectorySection));
