@@ -3582,3 +3582,41 @@ body > [data-bank-review-modal] .bank-review-heading{
     min-height:38px;
   }
 }
+
+/* DIR-347: optional work follows the entire bank reconciliation, not above it. */
+#bankReportDashboard .bank-report-secondary-tools{
+  margin:16px 0 10px;
+  border-top:1px solid var(--theme-border-default,#dedede);
+  color:var(--theme-content-primary,#171717);
+}
+#bankReportDashboard .bank-report-secondary-summary{
+  display:flex;align-items:center;gap:10px;box-sizing:border-box;
+  min-height:48px;padding:9px 4px;cursor:pointer;list-style:none;
+  font-size:13px;font-weight:650;
+}
+#bankReportDashboard .bank-report-secondary-summary::-webkit-details-marker{display:none}
+#bankReportDashboard .bank-report-secondary-summary small{
+  margin-left:auto;font-size:12px;font-weight:500;
+  color:var(--theme-content-secondary,#667085);
+}
+#bankReportDashboard .bank-report-secondary-summary::after{
+  content:"";width:8px;height:8px;box-sizing:border-box;flex:0 0 8px;
+  border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;
+  transform:rotate(45deg);margin:0 5px 4px 0;
+}
+#bankReportDashboard .bank-report-secondary-tools[open] .bank-report-secondary-summary::after{
+  transform:rotate(225deg);margin:4px 5px 0 0;
+}
+#bankReportDashboard .bank-report-secondary-body{
+  display:grid;gap:6px;min-width:0;padding:12px;
+  border:1px solid var(--theme-border-default,#dedede);border-radius:13px;
+  background:var(--theme-surface-primary,#fff);
+}
+#bankReportDashboard .bank-report-secondary-body strong{font-size:14px;font-weight:650}
+#bankReportDashboard .bank-report-secondary-body p{
+  margin:0;color:var(--theme-content-secondary,#667085);
+  font-size:12px;line-height:1.4;
+}
+#bankReportDashboard [data-bank-report-ncc-slot] [data-ncc-launch]{
+  display:block;width:100%;min-height:44px;margin-top:7px;text-align:center;
+}
