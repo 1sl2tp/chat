@@ -153,3 +153,44 @@ body.ncc-ai-room-open{overflow:hidden}
  .ncc-ai-me .ncc-ai-bubble{max-width:86%}
  .ncc-ai-launch{padding:6px 8px;font-size:11px}
 }
+
+/* NCC-009: mathematical reconciliation stays inside the AI reply.
+   The full monetary columns scroll independently of the iPhone page. */
+.ncc-ai-table{min-width:980px}
+.ncc-ai-summary{
+ display:flex;flex-direction:column;gap:8px;
+ border-top:1px solid var(--theme-border-default,#e5e7eb);
+ padding-top:12px;margin-top:2px;
+}
+.ncc-ai-summary > strong{font-size:13px;font-weight:750}
+.ncc-ai-total-row{
+ display:flex;align-items:baseline;justify-content:space-between;
+ gap:10px;min-width:0;font-size:12px;line-height:1.5;
+}
+.ncc-ai-total-row span{flex:1;color:var(--theme-content-secondary,#667085)}
+.ncc-ai-total-row b{
+ text-align:right;white-space:nowrap;font-size:12px;font-weight:700;
+ font-variant-numeric:tabular-nums;
+}
+.ncc-ai-total-strong{
+ border-top:1px solid var(--theme-border-default,#e5e7eb);
+ padding-top:9px;font-size:13px;
+}
+.ncc-ai-total-strong b{font-size:15px}
+.ncc-ai-summary small{
+ font-size:11px;line-height:1.45;color:var(--theme-content-secondary,#667085);
+}
+.ncc-ai-summary-status{
+ margin:4px 0 0;padding:8px 10px;border-radius:10px;
+ font-size:11.5px;font-weight:650;line-height:1.45;
+ background:var(--theme-surface-secondary,#f3f4f6);
+}
+.ncc-ai-summary-warning{display:block}
+.ncc-ai-recheck{
+ display:inline-flex;align-items:center;justify-content:center;
+ justify-self:start;min-height:44px;padding:9px 13px;
+ border:1px solid var(--theme-border-default,#d9dee5);
+ border-radius:12px;background:var(--theme-surface-primary,#fff);
+ color:inherit;font:600 12px/1.4 inherit;cursor:pointer;
+}
+.ncc-ai-recheck:disabled{opacity:.55;cursor:default}
