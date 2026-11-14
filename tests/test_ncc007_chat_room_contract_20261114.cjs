@@ -12,7 +12,7 @@ for(const marker of ['NCC AI','data-ncc-room-file','data-ncc-room-send','data-nc
  'function checkStatus(hash,owner)','async function open()','async function submit()',
  'const owner=accountSession()','visibleHashes=new Set()','room.hidden=false;opened=true;',
  'const history=await api("history")','if(!isAdmin()){close();purge();}',
- 'Gửi ảnh phiếu nhập để AI tạo bảng hàng',
+ 'Bấm + chọn ảnh · AI tự đọc ngay',
  'Chỉ Admin · Không tự ghi giá vốn hay công nợ'])assert(ui.includes(marker),marker);
 assert(!ui.includes("chat_bank_app_collect"));
 for(const marker of ['.ncc-ai-room[hidden]{display:none!important}','height:100dvh',

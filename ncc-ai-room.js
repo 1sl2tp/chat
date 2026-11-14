@@ -29,8 +29,8 @@ room.innerHTML=[
   '<div data-ncc-room-preview class="ncc-ai-preview" hidden><img alt="Ảnh chuẩn bị gửi"><span data-ncc-room-filename></span>',
    '<button type="button" data-ncc-room-remove aria-label="Bỏ ảnh">×</button></div>',
   '<div class="ncc-ai-composer-row">',
-   '<label class="ncc-ai-attach" aria-label="Thêm ảnh phiếu nhập">＋<input type="file" data-ncc-room-file accept="image/jpeg,image/png,image/webp" aria-label="Chọn ảnh phiếu NCC"></label>',
-   '<div class="ncc-ai-input-hint">Gửi ảnh phiếu nhập để AI tạo bảng hàng</div>',
+   '<label class="ncc-ai-attach" aria-label="Chọn ảnh từ thư viện hoặc camera">＋<input type="file" data-ncc-room-file accept="image/*" aria-label="Chọn ảnh từ thư viện hoặc camera"></label>',
+   '<div class="ncc-ai-input-hint">Bấm + chọn ảnh · AI tự đọc ngay</div>',
    '<button class="ncc-ai-send" type="button" data-ncc-room-send disabled aria-label="Gửi ảnh và đọc bảng">↑</button>',
   '</div><p class="ncc-ai-state" data-ncc-room-state role="status">Chỉ Admin · Không tự ghi giá vốn hay công nợ</p>',
  '</div>'
@@ -43,6 +43,7 @@ const state=room.querySelector("[data-ncc-room-state]");
 const presence=room.querySelector("[data-ncc-room-presence]");
 const preview=room.querySelector("[data-ncc-room-preview]");
 let previewUrl="",ready=false,busy=false,session="",opened=false;
+let selectedPhoto=null,selectVersion=0;
 const visibleHashes=new Set();
 const attachedUrls=new Set();
 const say=text=>{state.textContent=text;};
@@ -51,15 +52,15 @@ function valid(file){
  file.size>=100&&file.size<=4000000);
 }
 function sync(){
- const selected=fileInput.files?.[0];
- send.disabled=!ready||busy||!valid(selected)||!isAdmin();
+ send.disabled=!ready||busy||!valid(selectedPhoto)||!isAdmin();
 }
 function clearPreview(){
  if(previewUrl){URL.revokeObjectURL(previewUrl);previewUrl="";}
- fileInput.value="";preview.hidden=true;preview.querySelector("img").removeAttribute("src");
+ fileInput.value="";selectedPhoto=null;preview.hidden=true;preview.querySelector("img").removeAttribute("src");
  sync();
 }
 function purge(){
+ selectVersion++;
  clearPreview();
  for(const url of attachedUrls)URL.revokeObjectURL(url);
  attachedUrls.clear();visibleHashes.clear();thread.replaceChildren();
@@ -173,6 +174,55 @@ function errorText(error){
  if(reason==="admin_required")return "Cần đăng nhập tài khoản Admin.";
  return "Chưa xử lý được ảnh. Kiểm tra kết nối và thử lại.";
 }
+// NCC-008: iOS Photos may return HEIC/HEIF or images larger than the
+// 4 MB server limit. Convert locally to JPEG while keeping receipt text clear.
+// Only the explicitly selected image is read; nothing is auto-imported.
+async function prepareSelectedPhoto(file){
+ if(!file||file.size<100||file.size>25000000)
+  throw Error("invalid_image_size");
+ if(["image/jpeg","image/png","image/webp"].includes(file.type)&&file.size<=4000000)
+  return file;
+ const plausible=/^image\//.test(file.type)||
+  /\.(?:jpg|jpeg|png|webp|heic|heif)$/i.test(file.name||"");
+ if(!plausible)throw Error("invalid_image_type");
+ let bitmap=null,source=null;
+ let objectUrl="";
+ try{
+  if(typeof createImageBitmap==="function"){
+   try{bitmap=await createImageBitmap(file);}catch{}
+  }
+  if(!bitmap){
+   objectUrl=URL.createObjectURL(file);
+   source=await new Promise((resolve,reject)=>{
+    const image=new Image();
+    image.onload=()=>resolve(image);
+    image.onerror=()=>reject(Error("image_decode_failed"));
+    image.src=objectUrl;
+   });
+  }
+  const width=bitmap?.width||source?.naturalWidth||0;
+  const height=bitmap?.height||source?.naturalHeight||0;
+  if(!width||!height)throw Error("image_decode_failed");
+  const canvas=document.createElement("canvas");
+  const fit=Math.min(1,2600/Math.max(width,height));
+  canvas.width=Math.max(1,Math.round(width*fit));
+  canvas.height=Math.max(1,Math.round(height*fit));
+  const ctx=canvas.getContext("2d");
+  if(!ctx)throw Error("image_decode_failed");
+  ctx.fillStyle="#ffffff";ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.drawImage(bitmap||source,0,0,canvas.width,canvas.height);
+  const encode=quality=>new Promise(resolve=>canvas.toBlob(resolve,"image/jpeg",quality));
+  let blob=await encode(.88);
+  if(blob?.size>4000000)blob=await encode(.72);
+  if(!blob||blob.size<100||blob.size>4000000)
+   throw Error("image_too_large");
+  const basename=(file.name||"phieu-nhap").replace(/\.[^.]+$/,"");
+  return new File([blob],basename+".jpg",{type:"image/jpeg",lastModified:Date.now()});
+ }finally{
+  if(bitmap&&typeof bitmap.close==="function")bitmap.close();
+  if(objectUrl)URL.revokeObjectURL(objectUrl);
+ }
+}
 function fileBase64(file){
  return new Promise((resolve,reject)=>{
   const reader=new FileReader();
@@ -195,7 +245,7 @@ async function checkStatus(hash,owner){
  return null;
 }
 async function submit(){
- const file=fileInput.files?.[0];
+ const file=selectedPhoto;
  if(busy||!ready||!isAdmin()||!valid(file))return;
  const owner=accountSession();if(!owner)return;
  busy=true;sync();
@@ -248,7 +298,7 @@ async function open(){
   ready=health.ready===true;
   presence.textContent=ready?"Sẵn sàng":"Chưa có AI";
   if(!ready){say("Máy chủ AI chưa sẵn sàng.");sync();return;}
-  say("Sẵn sàng nhận ảnh phiếu nhập.");
+  say("Bấm dấu + chọn ảnh. Ảnh sẽ tự gửi và AI tự tạo bảng.");
   const history=await api("history");
   if(!opened||accountSession()!==owner)return;
   const records=Array.isArray(history.records)?history.records.slice().reverse():[];
@@ -270,20 +320,44 @@ function close(){
  clearPreview();
 }
 room.querySelector("[data-ncc-room-back]").addEventListener("click",close);
-room.querySelector("[data-ncc-room-remove]").addEventListener("click",clearPreview);
-fileInput.addEventListener("change",()=>{
- const file=fileInput.files?.[0];
- if(previewUrl){URL.revokeObjectURL(previewUrl);previewUrl="";}
- if(valid(file)){
-  previewUrl=URL.createObjectURL(file);
+room.querySelector("[data-ncc-room-remove]").addEventListener("click",()=>{
+ selectVersion++;
+ clearPreview();
+ say("Đã bỏ ảnh chưa gửi.");
+});
+fileInput.addEventListener("click",()=>{
+ if(!ready&&!busy)say("AI chưa kết nối; ảnh chưa được gửi.");
+});
+fileInput.addEventListener("change",async()=>{
+ const inputFile=fileInput.files?.[0];
+ if(!inputFile)return;
+ const owner=accountSession();
+ const version=++selectVersion;
+ say("Đang chuẩn bị ảnh để đọc bảng…");
+ try{
+  const photo=await prepareSelectedPhoto(inputFile);
+  if(version!==selectVersion||!opened||owner!==accountSession())return;
+  if(!ready){say("AI chưa sẵn sàng, chưa gửi ảnh.");return;}
+  selectedPhoto=photo;
+  if(previewUrl)URL.revokeObjectURL(previewUrl);
+  previewUrl=URL.createObjectURL(photo);
   preview.querySelector("img").src=previewUrl;
-  room.querySelector("[data-ncc-room-filename]").textContent=file.name;
+  room.querySelector("[data-ncc-room-filename]").textContent=photo.name;
   preview.hidden=false;
- }else{
-  preview.hidden=true;
-  if(file)say("Chỉ nhận JPG, PNG hoặc WebP từ 100 byte tới 4 MB.");
+  sync();
+  // Choosing a photo is the explicit Admin action. Automatically send it
+  // through the authenticated NCC room, without an extra arrow tap.
+  await submit();
+ }catch(error){
+  if(version!==selectVersion||!opened||owner!==accountSession())return;
+  const reason=String(error?.message||"");
+  say(reason==="image_decode_failed"
+   ?"iPhone chưa chuyển được ảnh HEIC. Hãy chọn ảnh JPG/PNG hoặc chụp lại."
+   :reason==="image_too_large"||reason==="invalid_image_size"
+    ?"Ảnh quá lớn để đọc. Hãy chọn ảnh nhỏ hơn 25 MB."
+    :"Ảnh không hợp lệ. Hãy chọn JPG, PNG, WebP hoặc HEIC.");
+  clearPreview();
  }
- sync();
 });
 send.addEventListener("click",()=>{void submit();});
 document.addEventListener("v21-auth-state",()=>{
