@@ -81,6 +81,14 @@ export function reconcileInvoice(document={},inputLines=[]){
  // No guessing of zero discount: a missing discount is NOT a printed 0.
  if(discount===null)
   warning(warnings,"Không thấy đủ thông tin chiết khấu tổng");
+ const lineTotalsMayAlreadyBeNet=
+  sumGross!==null&&printedSubtotal!==null&&printedPayable!==null&&
+  discount!==null&&discount>0&&
+  (shipping??0)===0&&(other??0)===0&&(tax??0)===0&&
+  Math.abs(sumGross-printedPayable)<=1&&
+  Math.abs(printedSubtotal-sumGross-discount)<=1;
+ if(lineTotalsMayAlreadyBeNet)
+  warning(warnings,"Thành tiền các dòng có thể đã trừ CK tổng; không được trừ CK lần hai");
  if(!allGrossKnown)
   warning(warnings,"Chưa đủ đơn giá hoặc thành tiền của tất cả mặt hàng");
  if(lines.some(line=>line.row_warnings.some(x=>x.includes("Đơn giá"))))
@@ -89,7 +97,7 @@ export function reconcileInvoice(document={},inputLines=[]){
   warning(warnings,"Có số lượng lớn (từ 100) cần đối chiếu ảnh gốc");
 
  let allocatedTotal=null;
- if(allGrossKnown&&sumGross!==null&&sumGross>0&&discount!==null&&discount<=sumGross){
+ if(allGrossKnown&&!lineTotalsMayAlreadyBeNet&&sumGross!==null&&sumGross>0&&discount!==null&&discount<=sumGross){
   const divisor=BigInt(sumGross);
   const d=BigInt(discount);
   const portions=lines.map((line,i)=>{
@@ -113,7 +121,7 @@ export function reconcileInvoice(document={},inputLines=[]){
   allocatedTotal=lines.reduce((sum,line)=>sum+line.discount_line_vnd,0);
   if(allocatedTotal!==discount)throw Error("discount_allocation_invariant");
  }
- const calculatedPayable=sumGross!==null&&discount!==null?
+ const calculatedPayable=!lineTotalsMayAlreadyBeNet&&sumGross!==null&&discount!==null?
   sumGross-discount+(shipping??0)+(other??0)+(tax??0):null;
  const totalDifference=printedPayable!==null&&calculatedPayable!==null?
   calculatedPayable-printedPayable:null;
@@ -128,7 +136,7 @@ export function reconcileInvoice(document={},inputLines=[]){
   status=warnings.length===0&&Math.abs(totalDifference)<=1?"verified":
    Math.abs(totalDifference)>1?"mismatch":"review";
  else if(calculatedPayable!==null)status="calculated_not_verified";
- if(!allGrossKnown)status="insufficient";
+ if(!allGrossKnown||lineTotalsMayAlreadyBeNet)status="insufficient";
  return {
   lines,
   summary:{
@@ -140,6 +148,7 @@ export function reconcileInvoice(document={},inputLines=[]){
    payable_calculated_vnd:calculatedPayable,payable_printed_vnd:printedPayable,
    legacy_printed_total_vnd:printedLegacy,
    difference_vnd:totalDifference,all_line_amounts_known:allGrossKnown,
+   line_totals_may_be_post_discount:lineTotalsMayAlreadyBeNet,
    warnings,discount_method:"proportional_gross_largest_remainder_vnd",
    unit_price_precision:"2_decimals_display_only"
   }
