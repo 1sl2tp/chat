@@ -192,7 +192,7 @@ function ensureDirectoryTools(){
     tools.querySelector('[data-contact-work-tools]').hidden=directorySection!=='work';
     bankHeading.hidden=directorySection!=='work';
     nav.setAttribute('aria-label',directorySection==='work'?'Công việc':'Danh bạ');
-    if(!restore)syncDirectoryRows({reorder:false});
+    if(!restore)syncDirectoryRows({reorder:false,scrollToTop:true});
   };
   for(const tab of tools.querySelectorAll('[data-contact-directory-section]')){
     tab.addEventListener('click',()=>setDirectorySection(tab.dataset.contactDirectorySection));
