@@ -3683,7 +3683,7 @@ body > [data-bank-review-modal] .bank-review-heading{
   border-radius:13px;padding:8px;
   background:var(--theme-surface-secondary,#f8f9fb);
 }
-#bankReportDashboard .ncc-photo-preview[hidden]{display:none!important}
+#bankReportDashboard .ncc-photo-preview[hidden]{display:none}
 #bankReportDashboard .ncc-photo-preview img{
   width:70px;height:78px;flex:0 0 70px;object-fit:contain;
   border-radius:8px;background:var(--theme-surface-primary,#fff);
