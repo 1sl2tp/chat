@@ -7,36 +7,42 @@ const vm=require('node:vm');
 const source=fs.readFileSync('app.js','utf8');
 const css=fs.readFileSync('index.source.html','utf8');
 
-// Pending status must never take up a new line next to Composer, and a cycle
-// fills the entire 360-degree edge rather than rotating a partial arc forever.
-const visual=css.slice(css.indexOf('/* CHAT-341: a complete 360-degree'));
-assert(visual.startsWith('/* CHAT-341'));
-assert(visual.includes('.message-delivery-state[data-state="sending"]'));
-assert(visual.includes('position:absolute!important;'));
-assert(visual.includes('@property --chat-send-orbit{'));
-assert(visual.includes('syntax:"<angle>";'));
-assert(visual.includes('.message-unit:is([data-delivery-state="sending"],[data-delivery-state="finishing"])'));
-assert(visual.includes('from -90deg'));
-assert(visual.includes('#75b4fa var(--chat-send-orbit)'));
-assert(visual.includes('transparent var(--chat-send-orbit) 360deg'));
-assert(visual.includes('animation:chat-send-border-orbit 1.45s linear infinite'));
-assert(visual.includes('to{--chat-send-orbit:360deg}'));
-assert(!visual.includes('transparent 172deg'),'old moving partial-arc spinner removed');
-assert(visual.includes('@media(prefers-reduced-motion:reduce)'));
+// CHAT-345 replaces the bold 360-degree bubble border with subtle text
+// breathing and a tiny media pulse. The outbox ACK alone clears the state.
+const visual=css.slice(css.indexOf('/* CHAT-345: ChatGPT-like quiet pending feedback.'));
+assert(visual.startsWith('/* CHAT-345'));
+for(const token of [
+ '.message-delivery-state[data-state="sending"]',
+ 'position:absolute!important;',
+ 'width:1px!important;',
+ 'height:1px!important;',
+ 'clip-path:inset(50%)!important;',
+ '.message-unit[data-delivery-state="sending"]>.message-text:not([hidden])',
+ 'animation:chat-send-text-breathe 2.5s ease-in-out infinite;',
+ '@keyframes chat-send-text-breathe{',
+ 'color:color-mix(in srgb,var(--theme-content-primary,#202124) 72%',
+ '.message-unit[data-delivery-state="sending"]>.message-media-shell::after',
+ 'width:7px;',
+ 'height:7px;',
+ 'pointer-events:none;',
+ 'animation:chat-send-media-breathe 2.5s ease-in-out infinite;',
+ '@media(prefers-reduced-motion:reduce)',
+ 'animation:none!important;'
+])assert(visual.includes(token),'missing quiet pending visual '+token);
+assert(!visual.includes('conic-gradient('),'no strong spinning border');
+assert(!visual.includes('chat-send-border-orbit'),'no old moving border');
+assert(!visual.includes('--chat-send-orbit'),'no animated ring property');
+assert(!visual.includes('data-delivery-state="finishing"'),'ACK has no lingering finish animation');
+assert(visual.includes('position:absolute;')&&visual.includes('z-index:3;'),
+ 'media dot is outside layout and never shifts the message');
 
-function deliveryFixture(reduced=false,hasText=true){
-  const surface={kind:hasText?'text':'media'};
-  const events={};
+function deliveryFixture(hasText=true){
+  const events=[];
   const unit={
     dataset:{},node:null,
-    querySelector(s){
-      if(s===':scope > .message-delivery-state')return this.node;
-      if(s===':scope > .message-text:not([hidden])')return hasText?surface:null;
-      if(s===':scope > .message-media-shell')return hasText?null:surface;
-      return null;
-    },
+    querySelector(s){return s===':scope > .message-delivery-state'?this.node:null;},
     appendChild(node){this.node=node;node.isConnected=true;},
-    addEventListener(name,fn){events[name]=fn;}
+    addEventListener(name){events.push(name);}
   };
   const document={createElement:tag=>{
     assert.equal(tag,'span');
@@ -46,40 +52,38 @@ function deliveryFixture(reduced=false,hasText=true){
       appendChild(){this.children=(this.children||0)+1;}
     };
   }};
-  const window={matchMedia:()=>({matches:reduced})};
-  const begin=source.indexOf('function finishConfirmedSendCycle(');
+  const window={matchMedia:()=>({matches:false})};
+  const begin=source.indexOf('function syncMessageDeliveryState(');
   const end=source.indexOf('function messageDateKey(',begin);
-  assert(begin>0&&end>begin,'delivery presentation helpers are isolated');
+  assert(begin>0&&end>begin,'delivery presentation owner is isolated');
   const ctx=vm.createContext({window,document,Number,String});
   vm.runInContext(source.slice(begin,end),ctx);
-  return {unit,surface,events,send:message=>ctx.syncMessageDeliveryState(unit,message),
-    finish:event=>ctx.finishConfirmedSendCycle(unit,event)};
+  return {unit,events,send:message=>ctx.syncMessageDeliveryState(unit,message)};
 }
 for(const hasText of [true,false]){
-  const fx=deliveryFixture(false,hasText);
+  const fx=deliveryFixture(hasText);
   fx.send({sender:'self',status:'sending',kind:hasText?'text':'image'});
   assert.equal(fx.unit.dataset.deliveryState,'sending');
   assert.equal(fx.unit.node?.textContent,'Đang chờ xác nhận gửi');
-  assert.equal(typeof fx.events.animationiteration,'function');
-  fx.finish({animationName:'chat-send-border-orbit',target:fx.surface});
-  assert.equal(fx.unit.dataset.deliveryState,'sending','one full loop NEVER claims sent without ACK');
-  fx.send({sender:'self',status:'sent'});
-  assert.equal(fx.unit.node,null,'server ACK removes pending label immediately without a row gap');
-  assert.equal(fx.unit.dataset.deliveryState,'finishing','finish pending last sweep instead of cutting it off');
-  fx.events.animationiteration({animationName:'other-effect',target:fx.surface});
-  assert.equal(fx.unit.dataset.deliveryState,'finishing');
-  fx.events.animationiteration({animationName:'chat-send-border-orbit',target:fx.surface});
-  assert.equal(fx.unit.dataset.deliveryState,undefined,'full sweep ends visually at the iteration boundary');
+  assert.equal(fx.unit.node?.attrs.role,'status');
+  assert.equal(fx.events.length,0,'no animation iteration listener or pending layout owner');
   fx.send({sender:'self',status:'sending'});
-  assert.equal(fx.unit.dataset.deliveryState,'sending','a later retry can show its own pending cycles');
+  assert.equal(fx.unit.dataset.deliveryState,'sending','waiting never silently claims sent');
+  fx.send({sender:'self',status:'sent'});
+  assert.equal(fx.unit.node,null,'real ACK removes hidden sending label');
+  assert.equal(fx.unit.dataset.deliveryState,undefined,'real ACK clears pulse immediately');
+  fx.send({sender:'self',status:'sending'});
+  assert.equal(fx.unit.dataset.deliveryState,'sending','a later retry can use its own pending pulse');
   fx.send({sender:'self',status:'failed'});
-  assert.equal(fx.unit.dataset.deliveryState,'failed','failures stop the pending animation');
+  assert.equal(fx.unit.dataset.deliveryState,'failed','failed state stays actionable');
   assert.equal(fx.unit.node?.textContent,'Chưa gửi thành công');
+  fx.send({sender:'remote',status:'sending'});
+  assert.equal(fx.unit.dataset.deliveryState,undefined,'incoming message never shows local pending');
 }
-const reduced=deliveryFixture(true);
-reduced.send({sender:'self',status:'sending'});
-reduced.send({sender:'self',status:'sent'});
-assert.equal(reduced.unit.dataset.deliveryState,undefined,'reduced motion does not leave a permanent border');
+assert(!source.includes('function finishConfirmedSendCycle('),
+ 'no hidden completion phase depends on a border animation iteration');
+assert(!source.includes('prefersReducedSendMotion'),
+ 'reduced motion is presentation-only in CSS');
 
 // Compare presentation signatures: text/media DOM is reused on ACK when
 // content/attachment geometry is unchanged, even if time value is updated.
@@ -131,4 +135,4 @@ ictx.applySingleImagePresentation(changed,{type:'image',assetId:'different-image
 assert.equal(Number(changed.style.aspectRatio),1.5,'different image does not inherit stale aspect ratio');
 assert(source.includes('const stableRatio=naturalRatio>0?naturalRatio:'),
  'single image shell also retains same-asset image geometry');
-console.log('CHAT-341: full-cycle ACK border, no status-row or media reflow, synchronous own-send tail PASS');
+console.log('CHAT-341/345: quiet text/media pending paint, real ACK cleanup, no reflow or near-Composer jump PASS');
