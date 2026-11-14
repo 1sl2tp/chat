@@ -35,7 +35,7 @@ function creditAccountFromEvent(e){
 // + source account + bank code. The independent bank minute must equal the
 // receipt minute; the bill sender and full literal memo must agree.
 function verifiedMccMemo(raw,bill,event){
- const m=/^([0-9]{6})-(.+?);MCC;(20[0-9]{12});([0-9]{9,20});([0-9]{6})\\.?$/i.exec(String(raw||"" ).trim());
+ const m=/^([0-9]{6})-(.+?);MCC;(20[0-9]{12});([0-9]{9,20});([0-9]{6})\.?$/i.exec(String(raw||"" ).trim());
  if(!m)return null;
  const clock=m[3];
  const bankMinute=bankEventTime(event);
