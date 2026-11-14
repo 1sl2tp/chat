@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="a427dcb0e67ae95b422871ef3eee11eb71e6980bbb98917b947f12024533c768">
+<meta name="app-build-id" content="16e936a7cda539d320032e811be9264ababfaa7de93d2dbdd489af609387cdfa">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -28102,7 +28102,7 @@ function renderAccountRows(){
     const choose=document.createElement('button');
     choose.type='button';
     choose.className='zalo-account-action';
-    choose.textContent=link?'Đổi':'Chọn Zalo';
+    choose.textContent=link?'Đổi Zalo':'Chọn Zalo';
     choose.addEventListener('click',()=>openAccountPicker(account));
     actions.appendChild(choose);
     if(link){
@@ -28177,6 +28177,12 @@ function renderAccountRows(){
       'Chưa có dữ liệu tài khoản hoặc Zalo';
     body.appendChild(empty);
   }
+  // DIR-346: account rows arrive after the async Admin snapshot and are
+  // recreated on search/unlink. Notify the separate group-control owner
+  // AFTER each paint; observing only the overlay's direct children misses it.
+  document.dispatchEvent(new CustomEvent('v21-zalo-account-rows-rendered',{
+    detail:{modal:accountModal}
+  }));
 }
 
 function openAccountPicker(account){
