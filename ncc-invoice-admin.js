@@ -44,8 +44,142 @@ function ensureStyle(){
  `;
  document.head.appendChild(style);
 }
+// NCC-004: photo -> existing guarded upload/scan/detail path, with a chat-like
+// preview and an inline table. No customer message or price write is made.
+let photoBusy=false,photoPreviewUrl='';
+function photoReady(){return admin()&&window.V21ContactDirectoryAdmin?.nccEnabled?.()===true;}
+function photoOwner(){
+ const s=auth()?.snapshot?.()||{};
+ return admin()&&s.account?.id&&s.appSessionId?String(s.account.id)+'|'+String(s.appSessionId):'';
+}
+function photoNote(panel,text){
+ const el=panel?.querySelector('[data-ncc-photo-status]');
+ if(el)el.textContent=text;
+}
+function resetPhoto(panel=document.querySelector('[data-ncc-photo-composer]')){
+ if(photoPreviewUrl){URL.revokeObjectURL(photoPreviewUrl);photoPreviewUrl='';}
+ if(!panel)return;
+ const input=panel.querySelector('[data-ncc-photo-file]');if(input)input.value='';
+ const preview=panel.querySelector('[data-ncc-photo-preview]');
+ if(preview){preview.hidden=true;preview.querySelector('img')?.removeAttribute('src');}
+ panel.querySelector('[data-ncc-photo-result]')?.replaceChildren();
+ panel.querySelector('[data-ncc-photo-send]')?.setAttribute('disabled','');
+}
+function photoSync(panel){
+ if(!panel)return;
+ const ready=photoReady(),file=panel.querySelector('[data-ncc-photo-file]')?.files?.[0];
+ const valid=Boolean(file&&['image/jpeg','image/png','image/webp'].includes(file.type)&&file.size>=100&&file.size<=4000000);
+ const send=panel.querySelector('[data-ncc-photo-send]');
+ if(send)send.disabled=photoBusy||!ready||!valid;
+ panel.dataset.ready=String(ready);
+ if(!ready)photoNote(panel,'Máy chủ NCC chưa kích hoạt. Có thể xem trước ảnh nhưng chưa gửi hoặc phân tích được.');
+ else if(!photoBusy&&!file)photoNote(panel,'Chọn ảnh, rồi gửi để AI đọc bảng hàng ngay tại đây.');
+}
+function photoResult(panel,detail,id){
+ const host=panel.querySelector('[data-ncc-photo-result]');if(!host)return;
+ host.replaceChildren();
+ const make=(parent,tag,value,cls='')=>{
+  const e=document.createElement(tag);if(cls)e.className=cls;
+  if(value!==undefined)e.textContent=String(value);parent.appendChild(e);return e;
+ };
+ const doc=detail?.document||{};
+ make(host,'strong','Bảng hàng · '+(statusText[doc.status]||'Cần đối chiếu'),'ncc-photo-result-title');
+ const lines=Array.isArray(detail?.lines)?detail.lines:[];
+ if(lines.length){
+  const wrap=make(host,'div','','ncc-photo-result-scroll');
+  const table=make(wrap,'table','','ncc-photo-result-table');
+  const tr=make(make(table,'thead'), 'tr');
+  ['STT','Tên hàng','SL','Giá nhập','Liên kết'].forEach(x=>make(tr,'th',x));
+  const body=make(table,'tbody');
+  for(const line of lines){
+   const row=make(body,'tr');
+   [line.row_no??'',line.printed_name||'Chưa đọc rõ',line.quantity??'—',
+    line.unit_price_vnd==null?'—':money(line.unit_price_vnd),
+    line.product_code||'Chưa ghép'].forEach(x=>make(row,'td',x));
+  }
+ }else make(host,'p','Chưa có dòng hàng được xác minh. Kiểm tra ảnh và trạng thái phiếu.','ncc-help');
+ make(host,'p','Bảng chỉ để đối chiếu, chưa tự sửa giá vốn hoặc ghi thu.','ncc-help');
+ const button=make(host,'button','Chi tiết · Ghép sản phẩm','ncc-photo-manage');
+ button.type='button';
+ button.addEventListener('click',()=>{
+  if(!admin())return;
+  ensureDialog();if(!dialog.open)dialog.showModal();void view(id);
+ });
+}
+async function sendPhoto(panel){
+ if(photoBusy||!photoReady())return;
+ const file=panel.querySelector('[data-ncc-photo-file]')?.files?.[0];
+ if(!file||!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size<100||file.size>4000000){
+  photoNote(panel,'Chọn ảnh JPG, PNG hoặc WebP tối đa 4 MB.');return;
+ }
+ const owner=photoOwner();if(!owner)return;
+ const owned=()=>panel.isConnected&&owner===photoOwner();
+ photoBusy=true;photoSync(panel);photoNote(panel,'Đang lưu ảnh phiếu nhập…');
+ let id='',status='';
+ try{
+  const base64=await fileAsBase64(file);if(!owned())return;
+  const saved=await call('manual_upload',{supplierId:'',mime:file.type,base64});
+  if(!owned())return;
+  id=String(saved.id||'');status=String(saved.status||'');
+  if(!id){photoNote(panel,'Phiếu trùng hoặc chưa lưu được. Mở danh sách để kiểm tra.');return;}
+  if(status!=='duplicate'){
+   photoNote(panel,'Đã nhận ảnh. AI đang phân tích bảng hàng…');
+   try{
+    const scan=await call('scan',{id});if(!owned())return;
+    status=String(scan.status||status);
+   }catch{if(owned())photoNote(panel,'Ảnh đã lưu nhưng AI chưa đọc được. Có thể thử lại trong chi tiết.');}
+  }
+  const detail=await call('detail',{id});
+  if(!owned())return;
+  photoResult(panel,detail,id);
+  if(status==='duplicate')photoNote(panel,'Ảnh đã có trước đó, không tạo phiếu trùng.');
+  else if(['matched','needs_review'].includes(status))photoNote(panel,'Đã phân tích bảng hàng; kiểm tra lại trước khi ghép sản phẩm.');
+  else if(status==='not_invoice')photoNote(panel,'Ảnh không phải phiếu nhập hợp lệ.');
+  else if(status==='failed')photoNote(panel,'Ảnh chưa đọc rõ; chưa có dữ liệu được xác minh.');
+ }catch{
+  if(owned())photoNote(panel,id
+   ?'Ảnh đã lưu nhưng chưa tải được bảng hàng. Mở danh sách phiếu để xem lại.'
+   :'Chưa gửi được ảnh; máy chủ NCC chưa sẵn sàng. Không có giá nào bị thay đổi.');
+ }finally{
+  photoBusy=false;if(owned())photoSync(panel);
+ }
+}
+function ensurePhotoComposer(slot){
+ let panel=slot.querySelector('[data-ncc-photo-composer]');
+ if(panel){photoSync(panel);return;}
+ panel=document.createElement('section');panel.className='ncc-photo-composer';panel.dataset.nccPhotoComposer='';
+ panel.innerHTML=[
+  '<p class="ncc-photo-intro">Gửi ảnh phiếu nhập như chat · AI phân tích bảng hàng</p>',
+  '<div data-ncc-photo-preview class="ncc-photo-preview" hidden><img alt="Ảnh chuẩn bị gửi"><span data-ncc-photo-name></span><button type="button" data-ncc-photo-remove aria-label="Bỏ ảnh">×</button></div>',
+  '<div class="ncc-photo-actions"><label class="ncc-photo-attach">＋ Chọn ảnh<input type="file" data-ncc-photo-file accept="image/jpeg,image/png,image/webp" aria-label="Chọn ảnh NCC"></label><button type="button" data-ncc-photo-send disabled>Gửi ảnh · Đọc bảng</button></div>',
+  '<p data-ncc-photo-status class="ncc-photo-status" role="status" aria-live="polite"></p>',
+  '<div data-ncc-photo-result class="ncc-photo-result" aria-live="polite"></div>'
+ ].join('');
+ slot.prepend(panel);
+ const input=panel.querySelector('[data-ncc-photo-file]');
+ input.addEventListener('change',()=>{
+  const file=input.files?.[0];
+  if(photoPreviewUrl){URL.revokeObjectURL(photoPreviewUrl);photoPreviewUrl='';}
+  panel.querySelector('[data-ncc-photo-result]')?.replaceChildren();
+  const preview=panel.querySelector('[data-ncc-photo-preview]');
+  if(file&&['image/jpeg','image/png','image/webp'].includes(file.type)&&file.size>=100&&file.size<=4000000){
+   photoPreviewUrl=URL.createObjectURL(file);
+   preview.querySelector('img').src=photoPreviewUrl;
+   panel.querySelector('[data-ncc-photo-name]').textContent=file.name;
+   preview.hidden=false;
+  }else{
+   preview.hidden=true;
+   if(file)photoNote(panel,'Ảnh phải là JPG, PNG hoặc WebP, tối đa 4 MB.');
+  }
+  photoSync(panel);
+ });
+ panel.querySelector('[data-ncc-photo-remove]').addEventListener('click',()=>{resetPhoto(panel);photoSync(panel);});
+ panel.querySelector('[data-ncc-photo-send]').addEventListener('click',()=>{void sendPhoto(panel);});
+ photoSync(panel);
+}
 function ensureButton(){
  if(!admin()){
+  resetPhoto();
   document.querySelector('[data-ncc-launch]')?.remove();
   return;
  }
@@ -56,18 +190,21 @@ function ensureButton(){
  const directorySlot=document.querySelector('[data-contact-work-ncc-slot]');
  const slot=!report?.hidden&&reportSlot?reportSlot:(directorySlot||reportSlot);
  if(!slot)return;
- const ready=window.V21ContactDirectoryAdmin?.nccEnabled?.()===true;
+ if(reportSlot)ensurePhotoComposer(reportSlot);
+ const ready=photoReady();
  const existing=document.querySelector('[data-ncc-launch]');
  if(existing){
    if(existing.parentElement!==slot)slot.appendChild(existing);
+   existing.hidden=Boolean(reportSlot&&slot===reportSlot&&!ready);
    existing.disabled=!ready;
-   existing.textContent=ready?'Phiếu nhập · TK NCC':'Phiếu NCC · Chưa kích hoạt';
+   existing.textContent=ready?'Quản lý phiếu NCC':'Phiếu NCC · Chưa kích hoạt';
    return;
  }
  ensureStyle();
  const button=document.createElement('button');button.type='button';button.className='ncc-launch';
  button.dataset.nccLaunch='';button.disabled=!ready;
- button.textContent=ready?'Phiếu nhập · TK NCC':'Phiếu NCC · Chưa kích hoạt';
+ button.hidden=Boolean(reportSlot&&slot===reportSlot&&!ready);
+ button.textContent=ready?'Quản lý phiếu NCC':'Phiếu NCC · Chưa kích hoạt';
  button.addEventListener('click',()=>{void open();});
  slot.appendChild(button);
 }
