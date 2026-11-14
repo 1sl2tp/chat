@@ -490,10 +490,72 @@ function onAuthState(event){
   clearClientState();
 }
 
+// MSG-364: foreground toast is presentation only; canonical sync remains owner.
+const messageToastSeen=new Set();
+let messageToastTimer=0;
+function showForegroundMessage(payload){
+  if(!isAdmin()||document.hidden)return;
+  const conversationId=String(payload.conversationId||'');
+  const messageId=String(payload.messageId||'');
+  if(!conversationId||!messageId||messageToastSeen.has(messageId))return;
+  // Tests, SSR and WebViews without a DOM must retain the canonical sync wake.
+  if(typeof document.createElement!=='function'||!document.body?.appendChild)return;
+  const shell=window.ChatAppShell?.snapshot?.()||{};
+  const active=String(window.V21SyncEngine?.snapshot?.()?.currentConversationId||shell.activeContact?.conversation_id||'');
+  if(active===conversationId)return; // Same conversation already renders the message.
+  messageToastSeen.add(messageId);
+  if(messageToastSeen.size>100)messageToastSeen.delete(messageToastSeen.values().next().value);
+  document.getElementById?.('v21-message-notice-toast')?.remove();
+  document.getElementById?.('v21-bank-confirmation-toast')?.remove();
+  clearTimeout(messageToastTimer);
+  const toast=document.createElement('button');
+  toast.type='button';toast.id='v21-message-notice-toast';
+  toast.style.cssText='position:fixed;z-index:2147483000;top:calc(env(safe-area-inset-top, 0px) + 58px);left:50%;transform:translateX(-50%);width:min(370px,calc(100vw - 32px));padding:12px 16px;border:1px solid #d7e2da;border-radius:14px;background:#fff;color:#172a20;box-shadow:0 8px 28px #0002;font:14px system-ui;text-align:left;cursor:pointer;white-space:normal';
+  const title=document.createElement('strong');title.textContent=String(payload.title||'Tin nhắn mới').slice(0,90);
+  const body=document.createElement('div');body.textContent=String(payload.body||'').slice(0,140)||'Chạm để xem hội thoại';
+  body.style.cssText='margin-top:4px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical';
+  toast.append(title,body);
+  toast.addEventListener('click',()=>{toast.remove();clearTimeout(messageToastTimer);void handleOpen({kind:'message',conversationId,contactId:String(payload.contactId||'')});});
+  document.body.appendChild(toast);
+  messageToastTimer=setTimeout(()=>toast.remove(),4000);
+}
+// BANK-363: one foreground confirmation for the canonical matched bank event.
+// The report remains the source of truth; this UI never creates a ledger entry.
+const bankConfirmationSeen=new Set();
+let bankConfirmationTimer=0;
+function showBankConfirmation(data){
+  if(!isAdmin()||document.hidden||String(data.bankStatus)!=='matched'||window.V21BankReportDashboard?.snapshot?.()?.active)return;
+  const receiptId=String(data.bankReceiptId||'');
+  const noticeId=String(data.bankNoticeId||'');
+  const key=noticeId||receiptId;
+  if(!key||bankConfirmationSeen.has(key))return;
+  if(typeof document.createElement!=='function'||!document.body?.appendChild)return;
+  bankConfirmationSeen.add(key);
+  if(bankConfirmationSeen.size>100)bankConfirmationSeen.delete(bankConfirmationSeen.values().next().value);
+  document.getElementById?.('v21-bank-confirmation-toast')?.remove();
+  document.getElementById?.('v21-message-notice-toast')?.remove();
+  clearTimeout(bankConfirmationTimer);
+  const toast=document.createElement('button');
+  toast.type='button';toast.id='v21-bank-confirmation-toast';
+  toast.setAttribute('role','status');toast.setAttribute('aria-live','polite');
+  toast.style.cssText='position:fixed;z-index:2147483000;top:calc(env(safe-area-inset-top, 0px) + 58px);left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100vw - 32px);padding:12px 16px;border:1px solid #b9e3cb;border-radius:14px;background:#f1fff5;color:#135a34;box-shadow:0 8px 28px #0002;font:600 14px system-ui;text-align:left;cursor:pointer';
+  const amount=Number(data.bankAmountVnd);
+  const money=Number.isSafeInteger(amount)&&amount>0?' · '+new Intl.NumberFormat('vi-VN').format(amount)+'đ':'';
+  toast.textContent='✓ Đã đối soát và ghi thu'+money+' · Xem đối soát';
+  toast.addEventListener('click',()=>{
+    toast.remove();clearTimeout(bankConfirmationTimer);
+    window.V21BankReportDashboard?.openPush?.({bankDay:String(data.bankDay||''),bankNoticeId:noticeId,bankReceiptId:receiptId,bankStatus:'matched'});
+  });
+  document.body.appendChild(toast);
+  bankConfirmationTimer=setTimeout(()=>toast.remove(),4000);
+}
 pendingOpen=coldOpenFromLocation();
 navigator.serviceWorker?.addEventListener('message',event=>{
   if(event.data?.type==='ADMIN_PUSH_OPEN')void handleOpen(event.data);
-  if(event.data?.type==='ADMIN_PUSH_MESSAGE_DIRTY')void reconcilePushMessage(event.data);
+  if(event.data?.type==='ADMIN_PUSH_MESSAGE_DIRTY'){
+    void reconcilePushMessage(event.data);
+    showForegroundMessage(event.data);
+  }
   if(event.data?.type==='ADMIN_PUSH_BANK_DIRTY'&&isAdmin()){
     // BANK-302: refresh only an active reconciliation report. The listener
     // in bank-report-dashboard.js handles visibility and never posts money.
@@ -502,6 +564,7 @@ navigator.serviceWorker?.addEventListener('message',event=>{
       bankReceiptId:String(event.data.bankReceiptId||''),
       bankStatus:String(event.data.bankStatus||'')
     }}));
+    showBankConfirmation(event.data);
   }
   if(event.data?.type==='ADMIN_PUSH_BADGE_DIRTY')scheduleUnreadBadgeRefresh(0);
 });
