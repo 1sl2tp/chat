@@ -75,7 +75,14 @@ No explanatory prose or markdown.`;
 async function analyze(invoice:any){
  const {data:claimed}=await db.from('chat_ncc_invoices').update({status:'processing',note:null,updated_at:new Date().toISOString()})
   .eq('id',invoice.id).in('status',['pending','failed','needs_review']).select().maybeSingle();
- if(!claimed)return fail('already_processing_or_final',409);
+ if(!claimed){
+  // NCC-005: two legitimate readers (Admin tap and event wake) can race.
+  // Return the durable state instead of pretending the second call failed;
+  // only the winner calls Gemini or mutates invoice lines.
+  const latest=await getDocument(invoice.id);
+  return latest?respond({ok:true,status:latest.status,already_processing:true})
+    :fail('invoice_not_found',404);
+ }
  try{
   const isManual=invoice.origin==='manual';
   let mime='',bytes:Uint8Array;
@@ -89,7 +96,7 @@ async function analyze(invoice:any){
   const {data:media,error:mediaError}=await db.from('v21_media_assets')
    .select('id,message_id,conversation_id,owner_account_id,kind,mime_type,size_bytes,storage_key,deleted_at')
    .eq('id',invoice.media_asset_id).is('deleted_at',null).maybeSingle();
-  if(mediaError||!media||media.kind!=='image'||!mimeOk(media.mime_type)||
+  if(mediaError||!media||!['image','photo'].includes(media.kind)||!mimeOk(media.mime_type)||
      media.owner_account_id!==invoice.chat_account_id||media.message_id!==invoice.message_id||
      !media.storage_key||media.size_bytes<100||media.size_bytes>4000000)
       throw new Error('invalid_media');
@@ -360,7 +367,14 @@ Deno.serve(async req=>{
   const image=storageKey?await db.storage.from('v21-media').createSignedUrl(storageKey,120):null;
   return respond({ok:true,document:invoice,lines:await getLines(id),imageUrl:image?.data?.signedUrl||null});
  }
- if(action==='scan')return analyze(invoice);
+ if(action==='scan'){
+  // Typed manual invoices have no original photo and must not be sent to OCR.
+  if(invoice.origin==='manual'&&!invoice.manual_storage_key)
+    return fail('manual_invoice_has_no_image',409);
+  if(!['pending','failed','needs_review'].includes(invoice.status))
+    return respond({ok:true,status:invoice.status,already_processing:true});
+  return analyze(invoice);
+ }
  if(action==='assign'){
   if(!['needs_review','matched'].includes(invoice.status))return fail('invalid_review_state',409);
   const rowNo=Number(body.rowNo),productCode=String(body.productCode||'').trim();

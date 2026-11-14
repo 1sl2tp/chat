@@ -129,13 +129,28 @@ async function sendPhoto(panel){
     status=String(scan.status||status);
    }catch{if(owned())photoNote(panel,'Ảnh đã lưu nhưng AI chưa đọc được. Có thể thử lại trong chi tiết.');}
   }
-  const detail=await call('detail',{id});
+  // An insert webhook may already be reading this photo. Check the durable
+  // server status briefly after the Admin click, without starting a second OCR
+  // or polling beyond this explicit user action.
+  let detail=await call('detail',{id});
+  for(let attempt=0;attempt<16&&['pending','processing'].includes(
+      String(detail?.document?.status||'')
+    );attempt++){
+   if(!owned())return;
+   photoNote(panel,'AI đang đọc phiếu nhập, chờ bảng kết quả…');
+   await new Promise(resolve=>window.setTimeout(resolve,900));
+   if(!owned())return;
+   detail=await call('detail',{id});
+  }
   if(!owned())return;
+  status=String(detail?.document?.status||status);
   photoResult(panel,detail,id);
-  if(status==='duplicate')photoNote(panel,'Ảnh đã có trước đó, không tạo phiếu trùng.');
-  else if(['matched','needs_review'].includes(status))photoNote(panel,'Đã phân tích bảng hàng; kiểm tra lại trước khi ghép sản phẩm.');
+  if(['pending','processing'].includes(status))
+   photoNote(panel,'Máy chủ đang xử lý. Mở chi tiết phiếu để kiểm tra kết quả sau.');
+  else if(status==='duplicate')photoNote(panel,'Ảnh đã có trước đó, không tạo phiếu trùng.');
+  else if(['matched','needs_review'].includes(status))photoNote(panel,'Đã đọc phiếu; kiểm tra lại bảng hàng trước khi ghép sản phẩm.');
   else if(status==='not_invoice')photoNote(panel,'Ảnh không phải phiếu nhập hợp lệ.');
-  else if(status==='failed')photoNote(panel,'Ảnh chưa đọc rõ; chưa có dữ liệu được xác minh.');
+  else if(status==='failed')photoNote(panel,'Ảnh chưa đọc rõ; kiểm tra lại trong chi tiết.');
  }catch{
   if(owned())photoNote(panel,id
    ?'Ảnh đã lưu nhưng chưa tải được bảng hàng. Mở danh sách phiếu để xem lại.'
