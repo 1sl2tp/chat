@@ -23,8 +23,9 @@ const ibft={...base,amount_vnd:890000,transfer_at_vn:"2026-11-14 17:07:22",sende
 const ibftEvent={...event,id:307,amount_vnd:890000,body:"Agribank: 17:07 14/11/2026 Tài khoản 2901181999999: +890,000VND. Nội dung giao dịch: IBFT PHAM THI THU HA chuyen tien. Số dư cuối: -15,357,230VND"};
 assert.equal(run(ibft,[ibftEvent]).status,"candidate_unique");
 
-// BANK-359: bank notice may wrap a full contiguous payer memo.
-const wrapped={...event,body:event.body.replace("Nội dung giao dịch: TRAN","Nội dung giao dịch: 906615-TRAN").replace("chuyen tien. Số dư","chuyen tien;MCC;20261114170100;0394161478;970443. Số dư")};
-assert.equal(run(base,[wrapped]).status,"candidate_unique");
-assert.notEqual(run({...base,transfer_content:"CHUYEN TIEN"},[wrapped]).status,"candidate_unique");
+// BANK-359: SHB MCC envelope wraps the full sender memo, same bank minute.
+const shb={...base,amount_vnd:1355000,transfer_at_vn:"2026-11-14 15:30:26",sender_name:"NGUYEN THI LAM",transfer_content:"NGUYEN THI LAM chuyen tien"};
+const shbEvent={...event,id:302,amount_vnd:1355000,body:"Agribank: 15:30 14/11/2026 Tài khoản 2901181999999: +1,355,000VND. Nội dung giao dịch: 906615-NGUYEN THI LAM chuyen tien;MCC;20261114153027;0394161478;970443. Số dư cuối: -19,089,230VND"};
+assert.equal(run(shb,[shbEvent]).status,"candidate_unique");
+assert.notEqual(run({...shb,transfer_content:"CHUYEN TIEN"},[shbEvent]).status,"candidate_unique");
 console.log("BANK-356: normalized bill fields, 1m clock, IBFT, duplicate & conflicts PASS");
