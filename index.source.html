@@ -2688,6 +2688,20 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-switch{
 body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-tab="photos"]{
   display:none!important;
 }
+/* DIR-343: on the outer Admin directory, the ORIGINAL header switch is
+   Trò chuyện | Công việc. It is not the photo route here and never
+   duplicates the lower directory switch. Even if the bank report had
+   hidden Photos, the right half remains available as Công việc. */
+@media(max-width:63.999rem){
+  #appShell[data-mobile-directory="true"] .top-mode-switch[data-directory-owner="true"]{
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+  }
+  #appShell[data-mobile-directory="true"] .top-mode-switch[data-directory-owner="true"] .top-mode-tab[data-top-tab="photos"]{
+    display:flex!important;
+    align-items:center;
+    justify-content:center;
+  }
+}
 .top-mode-tab{
   min-width:0;
   min-height:38px;
