@@ -37,7 +37,7 @@ def test_account_group_is_compact_and_moved_to_top_region():
     mobile = css[css.index('@media(max-width:640px){'):]
     assert '.zalo-account-row{grid-template-columns:minmax(0,1fr);align-items:stretch;' in mobile, 'mobile account rows must not squeeze account and linked Zalo into narrow columns'
     assert '.zalo-account-row-group{grid-column:1;align-self:center;justify-content:flex-start;' in mobile, 'group select must keep its own non-overlapping row'
-    assert '.zalo-account-row-group::before{content:"Phânloại";' in mobile, 'group select needs a visible label'
+    assert '.zalo-account-row-group::before{content:"Nhómkháchhàng";' in mobile, 'group select needs a visible label'
     assert '.zalo-account-row-actions{grid-column:1;justify-content:flex-start;' in mobile, 'mobile actions must remain on a separate row'
 
 
