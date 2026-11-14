@@ -3650,7 +3650,7 @@ body > [data-bank-review-modal] .bank-review-heading{
 #bankReportDashboard .ncc-photo-actions [data-ncc-photo-send]{
   display:flex;justify-content:center;align-items:center;
   box-sizing:border-box;min-height:44px;border-radius:12px;
-  padding:9px 10px;font:600 12.5px/1.35 inherit;
+  padding:9px 10px;font-family:inherit;font-size:12.5px;font-weight:600;line-height:1.35;
   text-align:center;
 }
 #bankReportDashboard .ncc-photo-attach{
