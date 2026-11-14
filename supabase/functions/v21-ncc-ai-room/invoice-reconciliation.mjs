@@ -83,8 +83,10 @@ export function reconcileInvoice(document={},inputLines=[]){
   warning(warnings,"Không thấy đủ thông tin chiết khấu tổng");
  if(!allGrossKnown)
   warning(warnings,"Chưa đủ đơn giá hoặc thành tiền của tất cả mặt hàng");
- for(const line of lines)if(line.row_warnings.length)
+ if(lines.some(line=>line.row_warnings.some(x=>x.includes("Đơn giá"))))
   warning(warnings,"Một hoặc nhiều dòng có giá × SL không khớp");
+ if(lines.some(line=>line.row_warnings.some(x=>x.includes("Số lượng lớn"))))
+  warning(warnings,"Có số lượng lớn (từ 100) cần đối chiếu ảnh gốc");
 
  let allocatedTotal=null;
  if(allGrossKnown&&sumGross!==null&&sumGross>0&&discount!==null&&discount<=sumGross){
