@@ -495,7 +495,7 @@ function onAuthState(event){
 const bankConfirmationSeen=new Set();
 let bankConfirmationTimer=0;
 function showBankConfirmation(data){
-  if(!isAdmin()||document.hidden||String(data.bankStatus)!=='matched')return;
+  if(!isAdmin()||document.hidden||String(data.bankStatus)!=='matched'||window.V21BankReportDashboard?.snapshot?.()?.active)return;
   const receiptId=String(data.bankReceiptId||'');
   const noticeId=String(data.bankNoticeId||'');
   const key=noticeId||receiptId;
