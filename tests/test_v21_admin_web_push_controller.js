@@ -47,6 +47,7 @@ function makeHarness({role='admin',permission='default',standalone=false,userAge
     hasFocus:()=>true,
     querySelector(selector){return selector==='link[rel~="icon"]'?favicon:null},
     addEventListener(type,fn){listeners['d:'+type]=fn},
+    dispatchEvent(event){listeners['d:'+event?.type]?.(event);return true},
   };
   const appendedToasts=[];
   if(dom){
@@ -92,7 +93,7 @@ function makeHarness({role='admin',permission='default',standalone=false,userAge
   };
   const location={href:'https://chat.taphoa.xyz/',search:'',protocol:'https:',hostname:'chat.taphoa.xyz'};
   const history={replaceState(){}};
-  const ctx={window:windowObj,document,navigator,Notification,location,history,URL,URLSearchParams,Uint8Array,atob:s=>Buffer.from(s,'base64').toString('binary'),encodeURIComponent,String,Number,Boolean,Object,Array,Promise,console,setTimeout:fn=>{fn();return 1},clearTimeout(){}};
+  const ctx={window:windowObj,document,navigator,Notification,CustomEvent:class CustomEvent{constructor(type,opts={}){this.type=type;this.detail=opts.detail}},location,history,URL,URLSearchParams,Uint8Array,atob:s=>Buffer.from(s,'base64').toString('binary'),encodeURIComponent,String,Number,Boolean,Object,Array,Promise,console,setTimeout:fn=>{fn();return 1},clearTimeout(){}};
   vm.createContext(ctx);vm.runInContext(code,ctx);
   return{
     api:ctx.window.V21AdminPush,pushManager,subscription,invokeCalls,swMessages,
