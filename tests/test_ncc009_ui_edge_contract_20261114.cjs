@@ -22,6 +22,9 @@ for(const str of ['Giá gốc/1','CK/1','Sau CK/1','Tổng sau CK',
  'Phải trả tính từ bảng','Phải trả in trên phiếu',
  'CHƯA ĐỦ GIÁ','Đọc lại tổng & chiết khấu','api("recheck",{hash:record.hash})',
  'Không tự ghi giá vốn'])assert(ui.includes(str),'missing UI '+str);
+assert(ui.includes('record.hash&&supportsRecheck'),'old Edge cannot expose broken recheck button');
+assert(ui.includes('health.features.includes("invoice_totals_v2")'));
+assert(edge.includes('features:["invoice_totals_v2"]'));
 assert(css.includes('.ncc-ai-summary'));
 assert(css.includes('.ncc-ai-recheck'));
 assert(math.includes('BigInt(discount)')&&math.includes('rem:product%divisor'));
