@@ -43,6 +43,29 @@ function verifiedMbvcbMemo(raw){
  if(!memo||!sender)return null;
  return {reference:match[1],memo,sender};
 }
+// BANK-349: A late Agribank MBVCB credit is an independent, bank-side
+// reference + full sender + full destination proof. Permit precisely ONE
+// OCR character substitution in the *generic* "CHUYEN TIEN" suffix, and only
+// when the receipt's complete 9-14 digit routing reference is IDENTICAL to
+// the bank envelope and the payer name prefix matches that bank sender
+// verbatim. This does not mutate OCR, guess a missing date, or weaken the
+// transactional financial RPC / duplicate or unique-minute checks.
+function verifiedMbvcbTransferSuffixOcr(bill,wrapper){
+ if(!wrapper)return false;
+ const reference=String(bill?.transfer_reference||"").trim();
+ if(!/^[0-9]{9,14}$/.test(reference)||reference!==wrapper.reference)return false;
+ const sender=normalizeBillRecipientName(wrapper.sender);
+ if(sender==="BUI XUAN TUNG"||
+    !/^[A-Z]+(?: [A-Z]+){2,}$/.test(sender)||sender.length<12)return false;
+ const prefix=tidy(sender),correct="CHUYENTIEN";
+ const bankLiteral=tidy(wrapper.memo),printed=tidy(bill?.transfer_content);
+ if(bankLiteral!==prefix+correct||printed.length!==bankLiteral.length||
+    !printed.startsWith(prefix))return false;
+ const printedSuffix=printed.slice(prefix.length);
+ let differences=0;
+ for(let i=0;i<correct.length;i++)differences+=(printedSuffix[i]!==correct[i])?1:0;
+ return differences===1;
+}
 // BANK-347: A VietinBank paper receipt may print only the generic memo
 // "CHUYEN TIEN", while the independently received Agribank QR memo prints
 // "QR - <full sender name> Chuyen tien". The memo is verified ONLY when the
@@ -138,10 +161,11 @@ export function previewBillAppMatch(bill,events,otherBills=[],now=Date.now()){
    const bankMemoWithoutMbvcb=mbvcb&&(!billRef||billRef===mbvcb.reference)
      ?tidy(mbvcb.memo):null;
    const qrSenderVerified=verifiedQrSenderMemo(bill,rawBankMemo);
+   const mbvcbSingleOcr=verifiedMbvcbTransferSuffixOcr(bill,mbvcb);
    if((printedMemo.length<12&&!qrSenderVerified)||!bankText||
       (printedMemo!==bankText&&printedMemo!==bankMemoWithoutQr&&
        printedMemo!==bankMemoWithoutMb&&printedMemo!==bankMemoWithoutMbvcb&&
-       !qrSenderVerified))
+       !qrSenderVerified&&!mbvcbSingleOcr))
      return{status:"review",reason:"ocr_date_corrected_bank_memo_unverified"};
  }
  // Same reliable bank reference is the same transfer across cropped/reuploaded
