@@ -63,7 +63,7 @@ function resetPhoto(panel=document.querySelector('[data-ncc-photo-composer]'),cl
  const input=panel.querySelector('[data-ncc-photo-file]');if(input)input.value='';
  const preview=panel.querySelector('[data-ncc-photo-preview]');
  if(preview){preview.hidden=true;preview.querySelector('img')?.removeAttribute('src');}
- panel.querySelector('[data-ncc-photo-result]')?.replaceChildren();
+ // Removing an unsent preview must not erase earlier Admin/AI messages.
  panel.querySelector('[data-ncc-photo-send]')?.setAttribute('disabled','');
 }
 function photoSync(panel){
