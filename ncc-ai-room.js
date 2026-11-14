@@ -197,6 +197,8 @@ function appendTable(record,{duplicate=false,recheck=false}={}){
  if(duplicate)node(bubble,"p","Ảnh trùng — đã xử lý trước đó, không đọc AI lần nữa.","ncc-ai-duplicate");
  if(recheck)node(bubble,"strong","Kết quả đọc lại tổng và chiết khấu");
  const lines=Array.isArray(record.lines)?record.lines:[];
+ const rowViews=[];
+ const refreshLinks=()=>rowViews.forEach(fn=>fn());
  if(record.status==="not_invoice"){
   node(bubble,"p","Ảnh này không phải phiếu nhập hàng. Không lập bảng.","ncc-ai-explanation");
  }else if(!lines.length){
@@ -206,7 +208,7 @@ function appendTable(record,{duplicate=false,recheck=false}={}){
   const wrap=node(bubble,"div",undefined,"ncc-ai-table-scroll");
   const table=node(wrap,"table",undefined,"ncc-ai-table");
   const tr=node(node(table,"thead"),"tr");
-  ["STT","Tên hàng","SL","ĐVT","Đơn giá gốc/1","Thành tiền gốc","CK/1","Sau CK/1","Tổng sau CK"].forEach(label=>node(tr,"th",label));
+  ["STT","Tên hàng trên phiếu","SL","ĐVT","Đơn giá gốc/1","Thành tiền gốc","CK/1","Sau CK/1","Tổng sau CK","Mã SP","Tên sản phẩm","Tên tiếng Việt"].forEach(label=>node(tr,"th",label));
   const tbody=node(table,"tbody");
   for(const line of lines){
    const row=node(tbody,"tr");
@@ -215,14 +217,36 @@ function appendTable(record,{duplicate=false,recheck=false}={}){
     money(line.gross_line_vnd??line.line_total_vnd),
     money(line.discount_per_unit_vnd),money(line.net_unit_vnd),
     money(line.net_line_vnd)].forEach(value=>node(row,"td",value));
+   const codeCell=node(row,"td");
+   const codeButton=node(codeCell,"button",undefined,"ncc-ai-link-button");
+   codeButton.type="button";
+   const productCell=node(row,"td"),vietCell=node(row,"td");
+   const refreshRow=()=>{
+    const link=findProductLink(record,line);
+    const suggested=(link?.candidates||[])[0];
+    const confirmed=link?.status==="linked";
+    codeButton.textContent=confirmed?"✓ "+String(link.product_code):
+     link?.status==="suggested"?"Gợi ý "+String(suggested?.product_code||link.product_code||""):
+     record.product_mapping_ready===false?"Chưa sẵn sàng":"Chọn mã SP";
+    codeButton.disabled=record.product_mapping_ready===false;
+    productCell.textContent=link?.product_name||suggested?.product_name||"—";
+    vietCell.textContent=link?.vietnamese_name||suggested?.vietnamese_name||"—";
+    codeButton.setAttribute("aria-label","Liên kết "+String(line.printed_name||"")+" với mã sản phẩm");
+   };
+   codeButton.addEventListener("click",()=>void openProductLinkEditor(bubble,record,line,refreshLinks));
+   rowViews.push(refreshRow);refreshRow();
   }
   const copy=node(bubble,"button","Sao chép bảng","ncc-ai-copy");
   copy.type="button";
   copy.addEventListener("click",async()=>{
    const clean=x=>String(x??"").replace(/[\r\n\t]/g," ").trim();
-   const linesText=lines.map(line=>[line.row_no,line.printed_name,
+   const linesText=lines.map(line=>{
+    const link=findProductLink(record,line)||{};
+    return [line.row_no,line.printed_name,
     line.quantity,line.printed_unit,line.unit_price_vnd,line.gross_line_vnd,
-    line.discount_per_unit_vnd,line.net_unit_vnd,line.net_line_vnd].map(clean).join("\t"));
+    line.discount_per_unit_vnd,line.net_unit_vnd,line.net_line_vnd,
+    link.product_code,link.product_name,link.vietnamese_name].map(clean).join("\t");
+   });
    const summary=record.summary||{};
    const summaryRows=[
     ["Tổng hàng trên phiếu",summary.subtotal_printed_vnd],
@@ -234,7 +258,7 @@ function appendTable(record,{duplicate=false,recheck=false}={}){
    ].map(([label,value])=>[label,clean(value)].join("\t"));
    try{
     await navigator.clipboard.writeText(
-     ["STT\tTên hàng\tSL\tĐVT\tĐơn giá gốc/1\tThành tiền gốc\tCK/1\tSau CK/1\tTổng sau CK",
+     ["STT\tTên hàng trên phiếu\tSL\tĐVT\tĐơn giá gốc/1\tThành tiền gốc\tCK/1\tSau CK/1\tTổng sau CK\tMã SP\tTên sản phẩm\tTên tiếng Việt",
       ...linesText,"",...summaryRows].join("\n")
     );say("Đã sao chép "+lines.length+" dòng hàng cùng thông tin tổng/chiết khấu.");
    }catch{say("Không sao chép được trên thiết bị này.");}
