@@ -490,6 +490,34 @@ function onAuthState(event){
   clearClientState();
 }
 
+// BANK-363: one foreground confirmation for the canonical matched bank event.
+// The report remains the source of truth; this UI never creates a ledger entry.
+const bankConfirmationSeen=new Set();
+let bankConfirmationTimer=0;
+function showBankConfirmation(data){
+  if(!isAdmin()||document.hidden||String(data.bankStatus)!=='matched')return;
+  const receiptId=String(data.bankReceiptId||'');
+  const noticeId=String(data.bankNoticeId||'');
+  const key=noticeId||receiptId;
+  if(!key||bankConfirmationSeen.has(key))return;
+  bankConfirmationSeen.add(key);
+  if(bankConfirmationSeen.size>100)bankConfirmationSeen.delete(bankConfirmationSeen.values().next().value);
+  document.getElementById('v21-bank-confirmation-toast')?.remove();
+  clearTimeout(bankConfirmationTimer);
+  const toast=document.createElement('button');
+  toast.type='button';toast.id='v21-bank-confirmation-toast';
+  toast.setAttribute('role','status');toast.setAttribute('aria-live','polite');
+  toast.style.cssText='position:fixed;z-index:2147483000;top:calc(env(safe-area-inset-top, 0px) + 58px);left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100vw - 32px);padding:12px 16px;border:1px solid #b9e3cb;border-radius:14px;background:#f1fff5;color:#135a34;box-shadow:0 8px 28px #0002;font:600 14px system-ui;text-align:left;cursor:pointer';
+  const amount=Number(data.bankAmountVnd);
+  const money=Number.isSafeInteger(amount)&&amount>0?' · '+new Intl.NumberFormat('vi-VN').format(amount)+'đ':'';
+  toast.textContent='✓ Đã đối soát và ghi thu'+money+' · Xem đối soát';
+  toast.addEventListener('click',()=>{
+    toast.remove();clearTimeout(bankConfirmationTimer);
+    window.V21BankReportDashboard?.openPush?.({bankDay:String(data.bankDay||''),bankNoticeId:noticeId,bankReceiptId:receiptId,bankStatus:'matched'});
+  });
+  document.body.appendChild(toast);
+  bankConfirmationTimer=setTimeout(()=>toast.remove(),4000);
+}
 pendingOpen=coldOpenFromLocation();
 navigator.serviceWorker?.addEventListener('message',event=>{
   if(event.data?.type==='ADMIN_PUSH_OPEN')void handleOpen(event.data);
@@ -502,6 +530,7 @@ navigator.serviceWorker?.addEventListener('message',event=>{
       bankReceiptId:String(event.data.bankReceiptId||''),
       bankStatus:String(event.data.bankStatus||'')
     }}));
+    showBankConfirmation(event.data);
   }
   if(event.data?.type==='ADMIN_PUSH_BADGE_DIRTY')scheduleUnreadBadgeRefresh(0);
 });
