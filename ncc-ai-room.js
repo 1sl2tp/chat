@@ -43,7 +43,7 @@ const state=room.querySelector("[data-ncc-room-state]");
 const presence=room.querySelector("[data-ncc-room-presence]");
 const preview=room.querySelector("[data-ncc-room-preview]");
 let previewUrl="",ready=false,busy=false,session="",opened=false;
-let selectedPhoto=null,selectVersion=0;
+let selectedPhoto=null,selectVersion=0,supportsRecheck=false;
 const visibleHashes=new Set();
 const attachedUrls=new Set();
 const say=text=>{state.textContent=text;};
@@ -64,7 +64,7 @@ function purge(){
  clearPreview();
  for(const url of attachedUrls)URL.revokeObjectURL(url);
  attachedUrls.clear();visibleHashes.clear();thread.replaceChildren();
- ready=false;busy=false;session="";sync();
+ ready=false;supportsRecheck=false;busy=false;session="";sync();
 }
 function node(parent,tag,text,className){
  const el=document.createElement(tag);
@@ -180,7 +180,7 @@ function appendTable(record,{duplicate=false,recheck=false}={}){
  }else{
   node(summaryPanel,"p","Bản đọc cũ chưa có tổng, chiết khấu và phép đối chiếu. Hãy đọc lại từ ảnh gốc.","ncc-ai-summary-status");
  }
- if(record.hash){
+ if(record.hash&&supportsRecheck){
   const recheckButton=node(bubble,"button","Đọc lại tổng & chiết khấu","ncc-ai-recheck");
   recheckButton.type="button";
   recheckButton.addEventListener("click",async()=>{
@@ -359,6 +359,7 @@ async function open(){
   const health=await api("health");
   if(!opened||accountSession()!==owner)return;
   ready=health.ready===true;
+  supportsRecheck=Array.isArray(health.features)&&health.features.includes("invoice_totals_v2");
   presence.textContent=ready?"Sẵn sàng":"Chưa có AI";
   if(!ready){say("Máy chủ AI chưa sẵn sàng.");sync();return;}
   say("Bấm dấu + chọn ảnh. Ảnh sẽ tự gửi và AI tự tạo bảng.");
