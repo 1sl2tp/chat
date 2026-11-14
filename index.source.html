@@ -300,6 +300,8 @@ button{
 /* CHAT-341: a complete 360-degree border sweep per cycle, not a partial
    arc orbit. Repeat full cycles only while the outbox is waiting for ACK;
    after ACK the last sweep finishes before the visual edge disappears.
+   Rendering one full turn is NOT delivery proof; only the real outbox ACK
+   ends the cycle and these paint-only rules must never change bubble height.
    The status node stays available to screen readers without taking height. */
 .message-delivery-state[data-state="sending"]{
   position:absolute!important;
