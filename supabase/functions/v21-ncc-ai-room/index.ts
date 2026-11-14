@@ -4,6 +4,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "npm:@supabase/supabase-js@2.57.4";
 import {reconcileInvoice} from "./invoice-reconciliation.mjs";
+import {normalizeProductName,linkInvoiceLines} from "./product-linking.mjs";
 
 const BASE=Deno.env.get("SUPABASE_URL")||"";
 const SERVICE=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"";
@@ -156,14 +157,81 @@ async function getSaved(id:string,hash:string){
  }
  return null;
 }
-async function publicRecord(id:string,result:any){
+// NCC-010: the TAPHOA product code is canonical. Invoice names and Vietnamese
+// names are Admin-approved aliases, not new products or cost updates.
+async function productIdentity(){
+ const [catalog,aliases,names]=await Promise.all([
+  db.from("taphoa_products").select("product_code,product_name,is_active,deleted_at,retail_unit")
+    .eq("is_active",true).is("deleted_at",null).limit(1200),
+  db.from("chat_ncc_product_aliases").select("alias_key,invoice_name,product_code").limit(3000),
+  db.from("chat_ncc_product_vietnamese_names").select("product_code,vietnamese_name").limit(1200)
+ ]);
+ if(catalog.error||aliases.error||names.error||!catalog.data||!aliases.data||!names.data||
+   catalog.data.length>=1200||aliases.data.length>=3000||names.data.length>=1200)return null;
+ return {products:catalog.data,aliases:aliases.data,translations:names.data};
+}
+async function handleCatalog(){
+ const identity=await productIdentity();
+ if(!identity)return fail("product_identity_unavailable",503);
+ const names=new Map(identity.translations.map((r:any)=>[String(r.product_code),r.vietnamese_name]));
+ return json({ok:true,products:identity.products.map((p:any)=>({
+  product_code:p.product_code,product_name:p.product_name,
+  vietnamese_name:names.get(String(p.product_code))||null,
+  retail_unit:p.retail_unit||null
+ }))});
+}
+async function handleLinkProduct(adminId:string,body:any){
+ const hash=String(body?.hash||"").toLowerCase();
+ const rowNo=Number(body?.row_no),code=String(body?.product_code||"").trim();
+ const vietnameseName=String(body?.vietnamese_name||"").trim();
+ if(!HASH.test(hash)||!Number.isSafeInteger(rowNo)||rowNo<1||rowNo>120||
+   !/^[A-Za-z0-9-]{3,40}$/.test(code)||vietnameseName.length>180)
+  return fail("invalid_product_link");
+ const saved=await getSaved(adminId,hash);
+ const row=Array.isArray(saved?.lines)?saved.lines.find((l:any)=>Number(l.row_no)===rowNo):null;
+ if(!saved||saved.status!=="extracted"||!row?.printed_name)return fail("invoice_line_not_found",404);
+ const identity=await productIdentity();
+ if(!identity)return fail("product_identity_unavailable",503);
+ if(!identity.products.some((p:any)=>String(p.product_code)===code))return fail("product_code_not_found",404);
+ const aliasKey=normalizeProductName(row.printed_name);
+ if(aliasKey.length<2||aliasKey.length>180)return fail("invalid_invoice_name");
+ const old=identity.aliases.find((r:any)=>r.alias_key===aliasKey);
+ if(old&&String(old.product_code)!==code)return fail("product_alias_conflict",409);
+ if(!old){
+  const {error}=await db.from("chat_ncc_product_aliases").insert({
+    alias_key:aliasKey,invoice_name:String(row.printed_name).slice(0,180),
+    product_code:code,approved_by:adminId
+  });
+  if(error){
+   if(error.code==="23505"){
+    const {data:latest}=await db.from("chat_ncc_product_aliases")
+      .select("product_code").eq("alias_key",aliasKey).maybeSingle();
+    if(latest?.product_code!==code)return fail("product_alias_conflict",409);
+   }else return fail("product_link_unavailable",503);
+  }
+ }
+ if(vietnameseName){
+  const {error}=await db.from("chat_ncc_product_vietnamese_names").upsert({
+   product_code:code,vietnamese_name:vietnameseName,approved_by:adminId,
+   approved_at:new Date().toISOString()
+  },{onConflict:"product_code"});
+  if(error)return fail("vietnamese_name_unavailable",503);
+ }
+ const current=await productIdentity();
+ if(!current)return fail("product_identity_unavailable",503);
+ return json({ok:true,record:await publicRecord(adminId,saved,current)});
+}
+async function publicRecord(id:string,result:any,knownIdentity:any=null){
  const image=result.image_key?await db.storage.from(BUCKET).createSignedUrl(result.image_key,600):null;
+ const identity=knownIdentity||await productIdentity();
  return {
   hash:result.hash,
   created_at:result.created_at,
   status:result.status,
   document:result.document,
   lines:result.lines,
+  product_links:identity?linkInvoiceLines(result.lines,identity.products,identity.aliases,identity.translations):[],
+  product_mapping_ready:Boolean(identity),
   summary:result.summary||null,
   rechecked_at:result.rechecked_at||null,
   image_url:image?.data?.signedUrl||null
@@ -269,9 +337,10 @@ async function handleHistory(adminId:string){
  if(found.error)return fail("history_unavailable",503);
  const hashes=(found.data||[]).map((f:any)=>String(f.name||"").replace(/\.txt$/,""))
   .filter((value:string)=>HASH.test(value)).slice(0,20);
+ const identity=await productIdentity();
  const results=await Promise.all(hashes.map(async hash=>{
   const saved=await getSaved(adminId,hash);
-  return saved?publicRecord(adminId,saved):null;
+  return saved?publicRecord(adminId,saved,identity):null;
  }));
  return json({ok:true,records:results.filter(Boolean)});
 }
@@ -283,7 +352,9 @@ Deno.serve(async req=>{
  let body:any={};
  try{body=await req.json();}catch{return fail("invalid_json");}
  const action=String(body?.action||"").trim();
- if(action==="health")return json({ok:true,ready:Boolean(Deno.env.get("GEMINI_API_KEY")),features:["invoice_totals_v2"]});
+ if(action==="health")return json({ok:true,ready:Boolean(Deno.env.get("GEMINI_API_KEY")),features:["invoice_totals_v2","canonical_product_links_v1"]});
+ if(action==="catalog")return handleCatalog();
+ if(action==="link_product")return handleLinkProduct(admin.id,body);
  if(action==="send")return handleSend(admin.id,body);
  if(action==="status")return handleStatus(admin.id,body);
  if(action==="recheck")return handleRecheck(admin.id,body);
