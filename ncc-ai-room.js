@@ -153,6 +153,9 @@ function appendTable(record,{duplicate=false,recheck=false}={}){
  }
  const summary=record.summary;
  const summaryPanel=node(bubble,"section",undefined,"ncc-ai-summary");
+ // Totals belong above a 17+ row table, not hidden after a long scroll.
+ const tableAnchor=bubble.querySelector(".ncc-ai-table-scroll");
+ if(tableAnchor)bubble.insertBefore(summaryPanel,tableAnchor);
  node(summaryPanel,"strong","Tổng tiền & chiết khấu của phiếu");
  function summaryRow(label,value,emph=false){
   const row=node(summaryPanel,"div",undefined,emph?"ncc-ai-total-row ncc-ai-total-strong":"ncc-ai-total-row");
