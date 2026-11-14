@@ -102,6 +102,11 @@ function installStyle(){
     .contact-directory-tools[data-directory-section="chat"] .contact-directory-work-tools,
     .contact-directory-tools[data-directory-section="work"] :is(.contact-directory-search-field,.contact-directory-filter-line){display:none!important}
     .contact-directory-work-bank-heading[hidden],.contact-directory-work-tools[hidden]{display:none!important}
+    /* DIR-343: On iPhone/Android, the top header is the ONLY Chat/Work
+       selector while Admin directory is open. Desktop keeps its own panel. */
+    @media(max-width:63.999rem){
+      #appShell[data-mobile-directory="true"] .contact-directory-sections{display:none!important}
+    }
     /* UI-247: reusable ChatGPT-like search surface, without altering focus/scroll owners. */
     .contact-directory-search-field{position:relative;width:100%;min-width:0}
     .contact-directory-search-icon{position:absolute;z-index:1;inset-inline-start:14px;top:50%;width:18px;height:18px;transform:translateY(-50%);color:var(--theme-content-tertiary,#999);pointer-events:none}
@@ -124,6 +129,35 @@ function installStyle(){
     @media(max-width:640px){.contact-directory-tools{margin-top:-12px;padding-inline:6px}.zalo-account-group-select{min-width:72px;max-width:88px}}
   `;
   document.head.appendChild(style);
+}
+// DIR-343: on the directory root, reuse the existing top segmented
+// control for Trò chuyện | Công việc. Photos is reachable inside a chat,
+// not a third tab on the outer directory. Never change the actual route.
+function mobileDirectoryHeaderVisible(){
+  return Boolean(currentAdmin())&&
+    window.matchMedia?.('(max-width:63.999rem)')?.matches===true&&
+    document.getElementById('appShell')?.dataset.mobileDirectory==='true';
+}
+function syncMobileDirectoryHeader(){
+  const switcher=document.querySelector('#regionTop .top-mode-switch');
+  const chat=switcher?.querySelector('[data-top-tab="chat"]');
+  const right=switcher?.querySelector('[data-top-tab="photos"]');
+  if(!switcher||!chat||!right)return false;
+  const visible=mobileDirectoryHeaderVisible();
+  const wanted=visible?'Công việc':'Ảnh';
+  if(right.textContent!==wanted)right.textContent=wanted;
+  right.setAttribute('aria-label',wanted);
+  switcher.setAttribute('aria-label',visible?'Trò chuyện và Công việc':'Trò chuyện và ảnh');
+  switcher.dataset.directoryOwner=visible?'true':'false';
+  if(visible){
+    chat.setAttribute('aria-selected',String(directorySection==='chat'));
+    right.setAttribute('aria-selected',String(directorySection==='work'));
+  }else{
+    const route=document.getElementById('appShell')?.dataset.route||'chat';
+    chat.setAttribute('aria-selected',String(route==='chat'));
+    right.setAttribute('aria-selected',String(route==='photos'));
+  }
+  return visible;
 }
 function directoryTools(){return document.querySelector('[data-contact-directory-tools]');}
 function removeDirectoryTools(){
@@ -192,6 +226,7 @@ function ensureDirectoryTools(){
     tools.querySelector('[data-contact-work-tools]').hidden=directorySection!=='work';
     bankHeading.hidden=directorySection!=='work';
     nav.setAttribute('aria-label',directorySection==='work'?'Công việc':'Danh bạ');
+    syncMobileDirectoryHeader();
     if(!restore)syncDirectoryRows({reorder:false,scrollToTop:true});
   };
   for(const tab of tools.querySelectorAll('[data-contact-directory-section]')){
@@ -430,9 +465,26 @@ function resetForAuth(){
     button.setAttribute('aria-pressed',String(button.dataset.contactDirectoryFilter==='all'));
   }
   scheduleSync();
+  syncMobileDirectoryHeader();
 }
 
 installStyle();
+document.addEventListener('v21-mobile-directory-change',syncMobileDirectoryHeader);
+document.addEventListener('navigation-change',syncMobileDirectoryHeader);
+// This listener runs after the mobile gesture owner has deliberately yielded
+// its Chat-tab click when the directory is open. It prevents Photos routing
+// while reusing the on-screen second tab as "Công việc".
+document.addEventListener('click',event=>{
+  if(!mobileDirectoryHeaderVisible())return;
+  const tab=event.target instanceof Element?event.target.closest('[data-top-tab]'):null;
+  if(!tab)return;
+  const next=tab.dataset.topTab==='chat'?'chat':tab.dataset.topTab==='photos'?'work':null;
+  if(!next)return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  directoryTools()?.querySelector('[data-contact-directory-section="'+next+'"]')?.click();
+  syncMobileDirectoryHeader();
+},true);
 // Contact-store patches (notably mark-read) must never reset the directory viewport.
 // Real activity reorders rows inside syncDirectoryRows(), which already preserves scrollTop.
 document.addEventListener('v21-contact-store-change',()=>scheduleSync());
