@@ -205,5 +205,6 @@ subprocess.run(['node',str(ROOT/'tests'/'test_dir343_one_outer_header_tabs_20261
 subprocess.run(['node',str(ROOT/'tests'/'test_ui344_filter_chevron_balance_20261114.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_ncc003_manual_typed_and_scan_users_20261114.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_ncc004_photo_composer_bank_rows_20261114.cjs')],check=True,cwd=ROOT)
+subprocess.run(['node',str(ROOT/'tests'/'test_ncc005_ocr_race_and_readiness_20261114.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_ncc002_manual_invoice_20261114.cjs')],check=True,cwd=ROOT)
 print(f'{release} canonical source verify PASS build_id={build_id} sha256={sha}')
