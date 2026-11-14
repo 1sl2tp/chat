@@ -18,7 +18,7 @@ for(const str of ['import {reconcileInvoice} from "./invoice-reconciliation.mjs"
  'getSaved(id:string,hash:string)','revisedKey(id,hash)'])
   if(str!=='GLOBAL')assert(edge.includes(str),'missing Edge '+str);
 for(const str of ['Giá gốc/1','CK/1','Sau CK/1','Tổng sau CK',
- 'Tổng tiền & chiết khấu của phiếu','Tổng hàng trước CK','Chiết khấu tổng',
+ 'Tổng tiền & chiết khấu của phiếu','Tiền hàng trên phiếu','Cộng từ từng dòng','Chiết khấu tổng',
  'Phải trả tính từ bảng','Phải trả in trên phiếu',
  'CHƯA ĐỦ GIÁ','Đọc lại tổng & chiết khấu','api("recheck",{hash:record.hash})',
  'Không tự ghi giá vốn'])assert(ui.includes(str),'missing UI '+str);
