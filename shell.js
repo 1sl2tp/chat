@@ -257,6 +257,12 @@ function syncSidebarPresentation(){
   shellNavigationLayer.dataset.open=String(sidebarOpen);
   shellNavigationLayer.dataset.persistent=String(desktopSidebarPersistent);
   const visible=sidebarOpen||desktopSidebarPersistent;
+  // DIR-343: the mobile directory owns ONE Chat/Work selector. The normal
+  // Chat/Photos header must return when the directory overlay closes.
+  appShell.dataset.mobileDirectoryVisible=String(
+    sidebarOpen&&!desktopSidebarPersistent&&authState==='AUTHENTICATED'&&authAccount?.role==='admin'
+  );
+  document.dispatchEvent(new CustomEvent('v21-sidebar-presentation-change'));
   shellNavigationLayer.setAttribute('aria-hidden',String(!visible));
   for(const button of document.querySelectorAll('[data-shell-command="sidebar.open"]')){
     button.setAttribute('aria-expanded',String(visible));
