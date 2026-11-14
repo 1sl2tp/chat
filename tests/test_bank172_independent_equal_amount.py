@@ -44,7 +44,9 @@ def test_bank_event_replay_and_ambiguous_matches_still_block():
     assert "multiple_credits_same_amount_same_minute" in PREVIEW
     assert "competing_bills_one_bank_credit_unverified" in PREVIEW
     assert "same_transfer_reference_other_image" in PREVIEW
-    assert 'Math.abs(bankEventTime(e)-date)<=60000' in PREVIEW
+    assert 'Math.abs(bankEventTime(e)-date)<=5*60000' in PREVIEW
+    assert 'if(delta>120000)return false;' in PREVIEW
+    assert 'if(delta<=60000)return true;' in PREVIEW
     assert 'db.rpc("chat_bank_app_collect"' in EDGE
 
 def test_no_financial_writer_mutations_outside_guard_replace():
