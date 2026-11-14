@@ -14,7 +14,7 @@ export const STRUCTURED_BILL_VISION_RULES=[
  "VÙNG 5 — KIỂM TRA CHÉO: Đảm bảo tất cả trường thuộc MỘT giao dịch. Nếu ảnh chụp điện thoại khác, chỉ đọc phần bill trong màn hình. Trường nào không chắc => null và uncertainty ghi đúng vùng; không vì một trường mờ mà làm mất số tiền đã đọc chắc chắn.",
  "VÙNG 6 — KẾT QUẢ: Trả JSON đúng schema, phân biệt bill_hop_le_ve_hinh_anh với da_nhan_tien. AI chỉ trích xuất, không tự ghi thu. Hệ thống đối soát với thông báo Agribank độc lập theo số tiền, tài khoản đích, ngày giờ có dung sai có kiểm soát, tên/ngữ nghĩa nội dung và tính duy nhất. Lệch khoảng 1 phút có thể hợp lệ khi có chứng cứ độc lập; thiếu giờ phải có bằng chứng thay thế đủ mạnh. Một thông báo chỉ được ghi thu một lần bởi RPC tài chính.",
  "KHÔNG BAO GIỜ dùng một ví dụ về tên người nhận, STK hoặc ngày trong hướng dẫn để tự điền vào bill. Nếu không đủ bằng chứng ngân hàng, trạng thái là chờ đối soát, không phải lỗi AI đọc bill."
-].join("\\n");
+].join("\n");
 // BANK-297: exact Vietnamese beneficiary name, ignoring only accents,
 // case and whitespace. Never fuzzy-match, reorder or infer a missing name.
 export function normalizeBillRecipientName(value){
@@ -31,7 +31,7 @@ export const LEGACY_SYSTEM_PROMPT="VAI TRÒ: Bạn là bộ đọc dữ liệu m
 // BANK-352: persistent OCR reading rule after the verified 08:19 MBVCB case.
 // This teaches the IMAGE READER to inspect literal glyphs; it must not
 // "correct" stored customer evidence using bank events or known names.
-export const SYSTEM_PROMPT=STRUCTURED_BILL_VISION_RULES+"\\n\\n"+LEGACY_SYSTEM_PROMPT;
+export const SYSTEM_PROMPT=STRUCTURED_BILL_VISION_RULES+"\n\n"+LEGACY_SYSTEM_PROMPT;
 export const BILL_LITERAL_MEMO_OCR_GUIDANCE=[
  "BANK-352 — SOÁT LẠI CHỮ NHỎ TRONG NỘI DUNG CHUYỂN KHOẢN:",
  "Sau khi đọc trường transfer_content, nhìn lại đúng vùng Nội dung chuyển khoản trên ảnh một lần nữa, đặc biệt chữ có hình gần nhau như u/o, v/y, i/l, dấu trên chữ và ký tự sát nhau.",
