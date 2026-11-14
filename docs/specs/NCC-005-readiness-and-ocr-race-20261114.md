@@ -18,6 +18,7 @@
 | Trigger nhận media `chat_ncc_media_received` | BLOCKED |
 | Trigger đánh thức OCR `chat_ncc_auto_scan_on_receipt` | BLOCKED |
 | Edge Function `v21-ncc-invoice` | NOT DEPLOYED |
+| Edge `v21-zalo-admin` hỗ trợ cờ `ncc_enabled` | BLOCKED — Edge đã deploy vẫn trả `directory_groups` không có trường `ncc_enabled` và không nhận `NCC_INVOICE_ENABLED`; source repo mới hơn runtime |
 
 **Cách đo lại:** Chạy `supabase/ncc-release-preflight-readonly.sql` qua kênh SQL chỉ đọc. Kiểm tra Edge Function qua danh sách function của Supabase. Không truy vấn giá trị bí mật.
 
@@ -35,7 +36,7 @@
 1. **Môi trường thử nghiệm hoặc quy trình phê duyệt schema**: kiểm tra hai migration nguồn `20261114061000_chat_ncc_supplier_invoice_intake.sql` và `20261114062500_chat_ncc_event_driven_ocr.sql`. Đối chiếu thực tế constraint, RLS, trigger, extension và media, tránh `db push` đẩy kèm các migration không liên quan.
 2. Kiểm tra backend `supabase/functions/v21-ncc-invoice/index.ts`, unit contract và auth Admin; triển khai qua pipeline đã duyệt, **không deploy thủ công production**.
 3. Đặt secret `GEMINI_API_KEY`, `NCC_INVOICE_WEBHOOK_SECRET` và Vault `ncc_invoice_webhook_secret` phù hợp; không đưa secret ra log hoặc client.
-4. Chạy lại SQL preflight chỉ đọc; xác minh Edge đang ACTIVE đúng project, thử token Admin và từ chối user thường.
+4. Chạy lại SQL preflight chỉ đọc; xác minh Edge `v21-ncc-invoice` đang ACTIVE đúng project, thử token Admin và từ chối user thường. **Phát hành có kiểm soát bản `v21-zalo-admin` đã hỗ trợ `ncc_enabled`**, vì Edge đang chạy tại thời điểm điều tra còn là bản cũ (không nhận nhóm `ncc`).
 5. Chỉ bật `NCC_INVOICE_ENABLED=true` khi toàn bộ gate đạt và fixture OCR an toàn qua; UI sẽ nhận qua `v21-zalo-admin.directory_groups`.
 6. Trên môi trường kiểm thử: một ảnh phiếu nhập có bảng, một ảnh không phải phiếu, một ảnh trùng, một ảnh mờ, một phiếu thiếu tổng, một tài khoản không thuộc NCC, Admin mở lại kết quả đang xử lý. Không gửi bất kỳ tin nhắn/thu tiền test cho khách thật.
 7. Nghiệm thu Safari/PWA và Web: chọn ảnh → ảnh xem trước → gửi → tên/SL/đơn giá hiển thị cùng bảng → ghép sản phẩm sau kiểm tra; không tự ghi giá vốn. Chỉ ghi **E5 PASS** sau bằng chứng thiết bị/DB/Edge đầy đủ.
