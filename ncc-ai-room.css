@@ -191,6 +191,6 @@ body.ncc-ai-room-open{overflow:hidden}
  justify-self:start;min-height:44px;padding:9px 13px;
  border:1px solid var(--theme-border-default,#d9dee5);
  border-radius:12px;background:var(--theme-surface-primary,#fff);
- color:inherit;font:600 12px/1.4 inherit;cursor:pointer;
+ color:inherit;font-family:inherit;font-size:12px;font-weight:600;line-height:1.4;cursor:pointer;
 }
 .ncc-ai-recheck:disabled{opacity:.55;cursor:default}
