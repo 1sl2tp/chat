@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="7c3d13c67066c6d8035e48c5f67920e72c3560b7e5b01fb766a03b9a6d6d0c85">
+<meta name="app-build-id" content="a1ee75ac49f4c1ba788cbf14bd7e94a93f100ef59181516e7d2801c632c9f3fd">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -6738,9 +6738,10 @@ button{
   font-weight:650;
 }
 
-/* CHAT-340: pending is a fine orbiting edge, not a separate line below the
-   outgoing bubble. The status node stays available to screen readers only.
-   This is presentation-only: it never changes outbox/ACK/retry semantics. */
+/* CHAT-341: a complete 360-degree border sweep per cycle, not a partial
+   arc orbit. Repeat full cycles only while the outbox is waiting for ACK;
+   after ACK the last sweep finishes before the visual edge disappears.
+   The status node stays available to screen readers without taking height. */
 .message-delivery-state[data-state="sending"]{
   position:absolute!important;
   width:1px!important;
@@ -6758,15 +6759,15 @@ button{
   inherits:false;
   initial-value:0deg;
 }
-.message-unit[data-delivery-state="sending"]>.message-text:not([hidden]),
-.message-unit[data-delivery-state="sending"]>.message-media-shell{
+.message-unit:is([data-delivery-state="sending"],[data-delivery-state="finishing"])>.message-text:not([hidden]),
+.message-unit:is([data-delivery-state="sending"],[data-delivery-state="finishing"])>.message-media-shell{
   position:relative;
 }
-.message-unit[data-delivery-state="sending"]>.message-media-shell{
+.message-unit:is([data-delivery-state="sending"],[data-delivery-state="finishing"])>.message-media-shell{
   border-radius:14px;
 }
-.message-unit[data-delivery-state="sending"]>.message-text:not([hidden])::after,
-.message-unit[data-delivery-state="sending"]>.message-media-shell::after{
+.message-unit:is([data-delivery-state="sending"],[data-delivery-state="finishing"])>.message-text:not([hidden])::after,
+.message-unit:is([data-delivery-state="sending"],[data-delivery-state="finishing"])>.message-media-shell::after{
   content:"";
   position:absolute;
   z-index:3;
@@ -6775,27 +6776,26 @@ button{
   border-radius:inherit;
   padding:2px;
   pointer-events:none;
+  /* The growing edge reaches the full circle at the end of each cycle.
+     No animated box dimensions, borders or text/media padding. */
   background:conic-gradient(
-    from var(--chat-send-orbit),
-    transparent 0deg,
-    transparent 172deg,
-    color-mix(in srgb,#3988e9 10%,transparent) 220deg,
-    #3988e9 275deg,
-    color-mix(in srgb,#3988e9 48%,transparent) 317deg,
-    transparent 360deg
+    from -90deg,
+    #3988e9 0deg,
+    #75b4fa var(--chat-send-orbit),
+    transparent var(--chat-send-orbit) 360deg
   );
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
   -webkit-mask-composite:xor;
   mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
   mask-composite:exclude;
-  animation:chat-send-border-orbit 1.7s linear infinite;
+  animation:chat-send-border-orbit 1.45s linear infinite;
 }
 @keyframes chat-send-border-orbit{
   to{--chat-send-orbit:360deg}
 }
 @media(prefers-reduced-motion:reduce){
-  .message-unit[data-delivery-state="sending"]>.message-text:not([hidden])::after,
-  .message-unit[data-delivery-state="sending"]>.message-media-shell::after{
+  .message-unit:is([data-delivery-state="sending"],[data-delivery-state="finishing"])>.message-text:not([hidden])::after,
+  .message-unit:is([data-delivery-state="sending"],[data-delivery-state="finishing"])>.message-media-shell::after{
     animation:none;
     background:color-mix(in srgb,#3988e9 58%,transparent);
   }
