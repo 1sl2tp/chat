@@ -60,7 +60,16 @@ assert(directory.includes("document.addEventListener('v21-contact-store-change',
  'message/unread changes still update sidebar');
 assert(!directory.includes("set_group',contact_group:'work'"),
  'work must not become a stored contact group');
-assert(ncc.includes("const slot=tools.querySelector('[data-contact-work-ncc-slot]')||tools;"));
+assert(ncc.includes("const slot=document.querySelector('[data-contact-work-ncc-slot]');"));
+assert(ncc.includes("if(!slot)return;"),'never fall back to showing NCC in the chat header');
+assert(directory.includes("nav.insertBefore(workTools,host.nextSibling);"),'NCC appears after the bank report, not before it');
+assert(directory.includes("workTools.hidden=directorySection!=='work';"),'work-only utility remains hidden in Chat');
+assert(directory.includes('<summary class="contact-directory-work-summary">'),'optional NCC is closed until expanded');
+assert(directory.includes("const workTools=document.createElement('details');"),'native compact disclosure without duplicated menu');
+assert(directory.includes('Tiện ích khác'),'secondary utility label stays visible');
+assert(directory.includes('data-contact-work-tools')&&directory.includes("document.querySelector('[data-contact-work-tools]')?.remove();"),'remove secondary area on logout');
+assert(directory.includes('.contact-directory-tools[data-directory-section="work"]{display:none!important}'),'no empty top area on mobile Work');
+assert(directory.indexOf('nav.insertBefore(bankHeading,host);')<directory.indexOf('nav.insertBefore(workTools,host.nextSibling);'),'primary before secondary');
 assert(ncc.includes("if(existing.parentElement!==slot)slot.appendChild(existing);"));
 assert(ncc.includes("slot.appendChild(button);"));
 assert(!ncc.includes("tools.appendChild(button);"),'no duplicate NCC launcher in Chat');
