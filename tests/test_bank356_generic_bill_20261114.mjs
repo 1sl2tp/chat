@@ -16,4 +16,9 @@ for(const [b,e] of [
 const ibft={...base,amount_vnd:890000,transfer_at_vn:"2026-11-14 17:07:22",sender_name:"PHAM THI THU HA",transfer_content:"PHAM THI THU HA chuyen tien"};
 const ibftEvent={...event,id:307,amount_vnd:890000,body:"Agribank: 17:07 14/11/2026 Tài khoản 2901181999999: +890,000VND. Nội dung giao dịch: IBFT PHAM THI THU HA chuyen tien. Số dư cuối: -15,357,230VND"};
 assert.equal(run(ibft,[ibftEvent]).status,"candidate_unique");
+
+// BANK-359: bank notice may wrap a full contiguous payer memo.
+const wrapped={...event,body:event.body.replace("Nội dung giao dịch: TRAN","Nội dung giao dịch: 906615-TRAN").replace("chuyen tien. Số dư","chuyen tien;MCC;20261114170100;0394161478;970443. Số dư")};
+assert.equal(run(base,[wrapped]).status,"candidate_unique");
+assert.notEqual(run({...base,transfer_content:"CHUYEN TIEN"},[wrapped]).status,"candidate_unique");
 console.log("BANK-356: normalized bill fields, 1m clock, IBFT, duplicate & conflicts PASS");
