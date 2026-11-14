@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="9c16bb05b0fdacab4d4c325b1c8165ef3e37d4d9048851faab3c504c86bc8276">
+<meta name="app-build-id" content="584cc5d809409af9a4413158562c606fdf1c49e0f2de962a24d5202753c02033">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -39940,6 +39940,9 @@ function syncMobileDirectoryHeader(){
   const wanted=visible?'Công việc':'Ảnh';
   if(right.textContent!==wanted)right.textContent=wanted;
   right.setAttribute('aria-label',wanted);
+  // The second control is an Admin work switch on the directory, a real
+  // Photos route only after entering a conversation.
+  right.setAttribute('title',visible?'Công việc: sản phẩm và chuyển khoản':'Xem ảnh');
   switcher.setAttribute('aria-label',visible?'Trò chuyện và Công việc':'Trò chuyện và ảnh');
   switcher.dataset.directoryOwner=visible?'true':'false';
   if(visible){
