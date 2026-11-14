@@ -45,3 +45,18 @@ Khi ảnh bill mới đến: mô hình đọc độc lập đúng 10 ô và lưu
 - Nếu API báo cáo chưa trả dữ liệu đã lưu, giao diện ghi đúng là API chưa trả OCR; không kết luận AI không đọc được. Bản vá API chỉ đọc BANK-315 đang chờ triển khai theo quy trình.
 
 Ví dụ đã xác minh từ ảnh: bill VPBank chuyển 730.000 ngày 12/11/2026 có tên nhận BUI XUAN TUNG, STK 2901181999999, nội dung LAI VAN TAN chuyen tien, mã tham chiếu NAPAS. Giờ giao dịch không in trên bill (19:31 thuộc thanh trạng thái điện thoại). Mã tra soát 628193 xuất hiện rõ nhưng bản ghi OCR cũ chưa có trường mã riêng; không tự quét lại hoặc sửa dữ liệu cũ chỉ để lấp đầy.
+
+
+## BANK-352 — Bài học OCR: một ký tự sai ở lời nhắn chuyển tiền (14/11/2026)
+
+**Phân tích nguyên nhân có bằng chứng:** Ảnh giao dịch VCB lúc 08:19 ngày 14/11/2026 đã được Gemini `gemini-3.5-flash-lite` đọc theo rule `bank_bill_amount_v5_20261110` với ngày/giờ, số tiền 5.547.000đ và mã tham chiếu rõ. Riêng chuỗi chuyển tiền bị đọc thành `choyen tien` trong khi chứng từ Agribank độc lập ghi `chuyen tien` dưới phong bì MBVCB đầy đủ. Vấn đề là lỗi **đọc ký tự OCR** và bộ ghép từ chối khác biệt chữ, **không phải thiếu `GEMINI_API_KEY`**.
+
+**Quy tắc đưa vào prompt Gemini đang dùng:** trước khi trả JSON, nhìn lại vùng `Nội dung`/lời nhắn để phân biệt các nét `u/o`, `v/y`, `i/l` và các chữ nhỏ dễ nhập nhằng. Chép đúng ảnh, không lấy mẫu `CHUYEN TIEN` làm đáp án mặc định, không dựa vào ngân hàng để sửa ảnh. Nếu không chắc, ghi `uncertainty` cụ thể; tuyệt đối không bịa mã giao dịch, người gửi, ngày giờ hoặc STK.
+
+**Quy tắc ghép ngân hàng:** một khác biệt ký tự chỉ được chấp nhận ở hậu tố chung `CHUYEN TIEN` khi toàn bộ **mã tham chiếu 9–14 chữ số trùng chính xác**, họ tên người gửi in trên bill giống hệt phần người gửi trong phong bì MBVCB đã xác thực, đúng tài khoản Agribank, đúng số tiền, ngày/giờ giao dịch và đúng một giao dịch ngân hàng. Không chấp nhận tên người gửi khác, hậu tố lạ, hơn một lỗi chữ, mã tham chiếu thiếu, hoặc có bill/giao dịch cạnh tranh. Không sửa `raw_read.transfer_content` gốc.
+
+**Ranh giới:** Gemini chỉ trích xuất. `bill-app-preview.mjs` chỉ đề xuất ghép (`candidate_unique`), không ghi sổ. Chỉ `chat_bank_app_collect` của DB, với khoá chống trùng và các kiểm tra độc lập, mới được ghi thu. Nếu kiểm chứng chưa đủ, giữ `amount_read`/`review`. Không ghi thu từ một số tiền hoặc một ảnh đơn lẻ.
+
+**Lưu bài học lâu dài:** mã nguồn `bill-amount-rules.mjs` (hướng dẫn model), `bill-app-preview.mjs` (rule ghép), `tests/test_bank349_quang_ocr_late_credit_20261114.mjs` (ca hồi quy từ một sự kiện thực nhưng không ghi tiền) và tài liệu casebook này là nguồn chân lý ở repo `1sl2tp/chat`. Không phải huấn luyện lại tham số Gemini hoặc lưu token trong prompt. Các case mới phải được kiểm chứng từ bill gốc + thông báo ngân hàng trước khi cập nhật các quy tắc này.
+
+**Cách triển khai:** ưu tiên pipeline GitHub với kiểm thử, nhưng `SUPABASE_ACCESS_TOKEN` trong GitHub Actions và `GEMINI_API_KEY` có trong môi trường Edge là **hai loại bí mật khác nhau**. Mất biến secret GitHub không đồng nghĩa với việc Edge đang chạy không có khóa Gemini. Nếu deploy qua Supabase connector được cấp quyền, phải dùng **đúng** project, kiểm tra danh sách tệp trước khi thay thế worker, giữ nguyên các secret server-side và chế độ JWT, rồi xác nhận phiên bản ACTIVE. Không dùng SQL để sửa số tiền khách hay tạo bút toán thử.
