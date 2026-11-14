@@ -49,6 +49,20 @@ function verifiedMccMemo(raw,bill,event){
  if(tidy(memo)!==tidy(bill?.transfer_content)||tidy(memo).length<12)return null;
  return m[2];
 }
+// BANK-355: Some interbank notices prepend the exact routing token IBFT.
+// Only accept the anchored full literal bill memo with a complete, matching
+// sender name; do not infer missing content or bypass the financial RPC.
+function verifiedIbftMemo(raw,bill){
+ const match=/^IBFT\s+(.+)$/i.exec(String(raw||"").trim());
+ if(!match)return null;
+ const sender=normalizeBillRecipientName(bill?.sender_name);
+ const bankMemo=normalizeBillRecipientName(match[1]);
+ if(!sender||sender==="BUI XUAN TUNG"||
+    !/^[A-Z]+(?: [A-Z]+){2,}$/.test(sender)||sender.length<12||
+    !bankMemo.startsWith(sender+" ")||
+    tidy(match[1])!==tidy(bill?.transfer_content))return null;
+ return match[1];
+}
 // BANK-346: Agribank wraps some incoming Vietcombank memos as
 // MBVCB.<bank-reference>.<routing-code>.<literal payer memo>.CT tu <source>
 // <sender> toi <our-account> <our-name> tai AGRIBANK.
@@ -182,11 +196,13 @@ export function previewBillAppMatch(bill,events,otherBills=[],now=Date.now()){
      ?tidy(mbvcb.memo):null;
    const qrSenderVerified=verifiedQrSenderMemo(bill,rawBankMemo);
     const bankMemoWithoutMcc=mcc?tidy(mcc):null;
+   const bankMemoWithoutIbft=verifiedIbftMemo(rawBankMemo,bill);
    const mbvcbSingleOcr=verifiedMbvcbTransferSuffixOcr(bill,mbvcb);
    if((printedMemo.length<12&&!qrSenderVerified)||!bankText||
       (printedMemo!==bankText&&printedMemo!==bankMemoWithoutQr&&
        printedMemo!==bankMemoWithoutMb&&printedMemo!==bankMemoWithoutMbvcb&&
         printedMemo!==bankMemoWithoutMcc&&
+       printedMemo!==tidy(bankMemoWithoutIbft)&&
        !qrSenderVerified&&!mbvcbSingleOcr))
      return{status:"review",reason:"ocr_date_corrected_bank_memo_unverified"};
  }
