@@ -3,7 +3,7 @@ const file=path.join(__dirname,'..','admin-push-controller.js');
 assert(fs.existsSync(file),'admin-push-controller.js must exist');
 const code=fs.readFileSync(file,'utf8');
 
-function makeHarness({role='admin',permission='default',standalone=false,userAgent='Mozilla/5.0 Chrome/140',unread=0}={}){
+function makeHarness({role='admin',permission='default',standalone=false,userAgent='Mozilla/5.0 Chrome/140',unread=0,dom=false}={}){
   let permissionRequests=0;
   let localUnsubscribes=0;
   let subscribeOptions=null;
@@ -48,6 +48,19 @@ function makeHarness({role='admin',permission='default',standalone=false,userAge
     querySelector(selector){return selector==='link[rel~="icon"]'?favicon:null},
     addEventListener(type,fn){listeners['d:'+type]=fn},
   };
+  const appendedToasts=[];
+  if(dom){
+    const elements=new Map();
+    document.getElementById=id=>elements.get(id)||null;
+    document.createElement=tag=>({
+      tagName:String(tag).toUpperCase(),style:{},children:[],attributes:{},listeners:{},removed:false,
+      setAttribute(name,value){this.attributes[name]=String(value)},
+      append(...nodes){this.children.push(...nodes)},
+      addEventListener(name,callback){this.listeners[name]=callback},
+      remove(){this.removed=true;if(elements.get(this.id)===this)elements.delete(this.id)}
+    });
+    document.body={appendChild(node){appendedToasts.push(node);elements.set(node.id,node);return node}};
+  }
   const swMessages=[];
   const serviceWorker={
     ready:Promise.resolve({pushManager}),
@@ -86,7 +99,7 @@ function makeHarness({role='admin',permission='default',standalone=false,userAge
     getPermissionRequests:()=>permissionRequests,getLocalUnsubscribes:()=>localUnsubscribes,getSubscribeOptions:()=>subscribeOptions,
     getAppBadge:()=>appBadge,getTitle:()=>document.title,getFaviconHref:()=>favicon.href,setUnread:value=>{unreadCount=Math.max(0,Number(value)||0)},
     emitServiceWorkerMessage:data=>listeners['sw:message']?.({data}),
-    getWakeCalls:()=>wakeCalls.slice()
+    getWakeCalls:()=>wakeCalls.slice(),getToasts:()=>appendedToasts.slice()
   };
 }
 
@@ -146,6 +159,24 @@ function makeHarness({role='admin',permission='default',standalone=false,userAge
   assert.equal(badge.getTitle(),'TAPHOA Chat');
   assert.equal(badge.getFaviconHref(),'./icons/chat-192.png');
   assert.deepEqual(badge.swMessages.at(-1),{type:'ADMIN_PUSH_BADGE_SET',count:0});
+
+  // MSG-364: same conversation is already rendered by canonical realtime: no toast.
+  const foreground=makeHarness({role:'admin',permission:'granted',dom:true});
+  foreground.emitServiceWorkerMessage({type:'ADMIN_PUSH_MESSAGE_DIRTY',conversationId:'conv-1',messageId:'same-1',title:'Người gửi',body:'Đang xem'});
+  assert.equal(foreground.getToasts().length,0,'active conversation should not show a duplicate toast');
+  foreground.emitServiceWorkerMessage({type:'ADMIN_PUSH_MESSAGE_DIRTY',conversationId:'conv-2',contactId:'contact-2',messageId:'other-1',title:'Khách mới',body:'Có đơn hàng cần xem'});
+  assert.equal(foreground.getToasts().length,1,'different conversation should show one foreground toast');
+  assert.equal(foreground.getToasts()[0].children[0].textContent,'Khách mới');
+  assert.equal(foreground.getToasts()[0].children[1].textContent,'Có đơn hàng cần xem');
+  foreground.emitServiceWorkerMessage({type:'ADMIN_PUSH_MESSAGE_DIRTY',conversationId:'conv-2',messageId:'other-1',title:'Khách mới'});
+  assert.equal(foreground.getToasts().length,1,'repeated push for same message must not duplicate toast');
+  foreground.emitServiceWorkerMessage({type:'ADMIN_PUSH_BANK_DIRTY',bankStatus:'matched',bankReceiptId:'receipt-1',bankNoticeId:'notice-1',bankAmountVnd:890000,bankDay:'2026-11-14'});
+  assert.equal(foreground.getToasts().length,2,'verified bank collection should show confirmation');
+  assert(foreground.getToasts()[1].textContent.includes('890.000đ'),'matched toast shows the correct verified amount');
+  foreground.emitServiceWorkerMessage({type:'ADMIN_PUSH_BANK_DIRTY',bankStatus:'matched',bankReceiptId:'receipt-1',bankNoticeId:'notice-1',bankAmountVnd:890000});
+  assert.equal(foreground.getToasts().length,2,'duplicate matched bank event must not show twice');
+  // Existing headless harness has no DOM: the message still wakes canonical sync.
+  assert(badge.getWakeCalls().some(call=>call.reason==='admin-push-message'));
 
   console.log('admin web push controller runtime PASS');
 })().catch(error=>{console.error(error);process.exit(1)});
