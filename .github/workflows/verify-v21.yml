@@ -173,6 +173,8 @@ jobs:
           python -m pytest -q tests/test_hist219_cash218_history.py
       - name: BANK-362 immediate verified Chat collection acknowledgment
         run: node tests/test_bank362_immediate_collection_ack_20261115.cjs
+      - name: BANK-362 cron financial retry same-transaction ACK proposal
+        run: node tests/test_bank362_cron_ack_20261115.cjs
       - name: BANK-209/210 verified collected, awaiting, review and receipt notices
         run: |
           node --check bank-report-dashboard.js
