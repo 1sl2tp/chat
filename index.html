@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="2182eac8a90236961aa86975cdaa6fd8c1d06048d119a7048c6f72da1f84cd53">
+<meta name="app-build-id" content="540b4d925998d700ae9290002cb65e6249bf2e47e4719893adf224baaa65ae3f">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -40724,6 +40724,8 @@ function ensureDirectoryTools(){
   setDirectorySection(directorySection,{restore:true});
   const rail=tools.querySelector('.contact-directory-filters');
   const more=tools.querySelector('[data-contact-directory-filter-more]');
+  // UI-359: reuse the same arrow as a disclosure on mobile; desktop keeps
+  // the original scroll/overflow behavior verified by UI-344.
   const filterLine=tools.querySelector('.contact-directory-filter-line');
   function syncFilterArrow(){
     if(!rail||!more)return;
