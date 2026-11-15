@@ -1,116 +1,48 @@
-// TELE-003: pure projection and planning only. No Telegram API or database writes.
+// TELE-003: Chat-only Topic plan. No reads from Zalo, Telegram calls, or DB writes.
 import {normalizeChatId,normalizeThreadId} from './core.mjs';
-const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
-const enc=new TextEncoder();
-function cleanName(v){return String(v||'').replace(/[\u0000-\u001f\u007f-\u009f]+/g,' ').replace(/\s+/g,' ').trim();}
-function truncateUtf8(v,max){
-  let s='';
-  for(const char of String(v)){if(enc.encode(s+char).length>max)break;s+=char;}
-  return s.trimEnd();
+const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const bytes=new TextEncoder();
+const clean=v=>String(v||'').replace(/[\u0000-\u001f\u007f-\u009f]+/g,' ').replace(/\s+/g,' ').trim();
+function cut(v,n){let s='';for(const c of String(v)){if(bytes.encode(s+c).length>n)break;s+=c;}return s.trimEnd();}
+function suffix(id){let h=2166136261;for(const b of bytes.encode(id)){h=Math.imul(h^b,16777619);}return (h>>>0).toString(16).padStart(8,'0').slice(0,6);}
+function ensureUnique(rows,key,label){
+  const s=new Set();for(const row of rows){const id=String(row?.[key]||'');if(!id||s.has(id))throw Error('telegram_duplicate_'+label);s.add(id);}
 }
-function title(v){return truncateUtf8(cleanName(v)||'Liên hệ chưa đặt tên',128);}
-function tag(key){
-  let h=2166136261;
-  for(const b of enc.encode(key)){h^=b;h=Math.imul(h,16777619);}
-  return (h>>>0).toString(16).padStart(8,'0').slice(0,6);
-}
-function zaloId(v){
-  const id=String(v||'').trim();
-  if(!id||id.length>160||/[\u0000-\u001f\u007f]/.test(id))throw Error('telegram_zalo_identity_invalid');
-  return id;
-}
-function unique(items,key,label){
-  const seen=new Set();
-  for(const x of items){
-    const val=String(x?.[key]||'');
-    if(seen.has(val))throw Error('telegram_duplicate_'+label);
-    seen.add(val);
-  }
-}
-export function projectChatDirectory({accounts=[],links=[],contacts=[],includeUnlinkedZalo=false}={}){
-  // Caller MUST scope snapshot by Chat Admin permissions before invoking.
-  const active=(Array.isArray(accounts)?accounts:[]).filter(x=>x?.role==='user'&&!x?.deleted_at&&UUID.test(String(x?.id||'')));
-  unique(active,'id','chat_accounts');
-  const linked=Array.isArray(links)?links:[];
-  unique(linked,'chat_account_id','zalo_links');
-  const byAccount=new Map(linked.map(l=>[String(l.chat_account_id),l]));
-  const byZalo=new Map();
-  for(const z of Array.isArray(contacts)?contacts:[]){
-    const id=zaloId(z?.zalo_id);
-    if(byZalo.has(id))throw Error('telegram_duplicate_zalo_contacts');
-    byZalo.set(id,z);
-  }
-  const used=new Set(),out=[];
-  for(const a of active){
-    const id=String(a.id).toLowerCase(),link=byAccount.get(String(a.id));
-    let z=null;
-    if(link?.zalo_id){
-      const zid=zaloId(link.zalo_id);
-      if(used.has(zid))throw Error('telegram_duplicate_zalo_link_target');
-      used.add(zid);
-      z=byZalo.get(zid)||null;
-    }
-    if(z?.thread_type==='group')continue; // Group bridge has different routing.
-    out.push({contactKey:'chat:'+id,chatAccountId:id,
-      zaloId:link?.zalo_id?String(link.zalo_id):null,
-      name:title(z?.alias_name||a.display_name||z?.display_name||a.username),
-      replyEligible:Boolean(link?.zalo_id),state:link?.zalo_id?'linked_chat':'chat_only'});
-  }
-  if(includeUnlinkedZalo){
-    const referenced=new Set(linked.map(l=>String(l.zalo_id||'')).filter(Boolean));
-    for(const [id,z] of byZalo){
-      if(referenced.has(id)||z?.thread_type==='group')continue;
-      out.push({contactKey:'zalo:'+id,chatAccountId:null,zaloId:id,
-        name:title(z.alias_name||z.display_name||z.profile_name),
-        replyEligible:false,state:'unlinked_zalo'});
-    }
-  }
-  unique(out,'contactKey','contact_keys');
-  out.sort((a,b)=>a.contactKey.localeCompare(b.contactKey));
+export function projectChatDirectory({accounts=[]}={}){
+  if(!Array.isArray(accounts)||accounts.length>2000)throw Error('telegram_accounts_invalid');
+  const active=accounts.filter(a=>a?.role==='user'&&!a.deleted_at&&UUID.test(String(a.id||'')));
+  ensureUnique(active,'id','chat_account');
+  const rows=active.map(a=>({contactKey:'chat:'+String(a.id).toLowerCase(),chatAccountId:String(a.id).toLowerCase(),
+    name:cut(clean(a.display_name||a.username)||'Chưa đặt tên',128),state:'chat_active',replyEligible:false}));
+  rows.sort((a,b)=>a.contactKey.localeCompare(b.contactKey));
   const counts=new Map();
-  for(const c of out){
-    const k=c.name.normalize('NFC').toLocaleLowerCase('vi');
-    counts.set(k,(counts.get(k)||0)+1);
-  }
-  return out.map(c=>{
-    const repeated=counts.get(c.name.normalize('NFC').toLocaleLowerCase('vi'))>1;
-    const suffix=repeated?' · '+tag(c.contactKey):'';
-    return Object.freeze({...c,topicTitle:truncateUtf8(c.name,128-enc.encode(suffix).length)+suffix});
+  for(const row of rows){const k=row.name.normalize('NFC').toLocaleLowerCase('vi');counts.set(k,(counts.get(k)||0)+1);}
+  return rows.map(row=>{
+    const duplicate=counts.get(row.name.normalize('NFC').toLocaleLowerCase('vi'))>1;
+    const end=duplicate?' · '+suffix(row.contactKey):'';
+    return Object.freeze({...row,topicTitle:cut(row.name,128-bytes.encode(end).length)+end});
   });
 }
-export function planTopicDirectory({directory,mappings=[],chatId,maxCreates=3}={}){
-  const target=normalizeChatId(chatId),cap=Number(maxCreates);
-  if(!Number.isSafeInteger(cap)||cap<0||cap>3)throw Error('telegram_pilot_create_cap_invalid');
-  const rows=Array.isArray(directory)?directory:[];
-  if(rows.length>1000)throw Error('telegram_directory_snapshot_too_large');
-  unique(rows,'contactKey','input_contact_keys');
-  const active=(Array.isArray(mappings)?mappings:[]).filter(m=>String(m.telegram_chat_id)===target&&m.state!=='disabled');
-  unique(active,'contact_key','existing_contact_keys');
+export function planTopicDirectory({directory=[],mappings=[],chatId,maxCreates=3}={}){
+  const target=normalizeChatId(chatId);
+  if(!Number.isInteger(maxCreates)||maxCreates<0||maxCreates>200)throw Error('telegram_max_creates_invalid');
+  if(!Array.isArray(directory)||directory.length>2000)throw Error('telegram_directory_invalid');
+  ensureUnique(directory,'contactKey','contact_key');
+  const current=(Array.isArray(mappings)?mappings:[]).filter(m=>String(m.telegram_chat_id)===target&&m.state!=='disabled');
+  ensureUnique(current,'contact_key','mapping_account');
   const ids=new Set();
-  for(const mapping of active){
-    const id=normalizeThreadId(mapping.telegram_thread_id);
-    if(ids.has(id))throw Error('telegram_duplicate_topic_ownership');
-    ids.add(id);
-  }
-  const existing=new Map(active.map(m=>[String(m.contact_key),m]));
+  for(const row of current){const t=normalizeThreadId(row.telegram_thread_id);if(ids.has(t))throw Error('telegram_duplicate_topic_ownership');ids.add(t);}
+  const byKey=new Map(current.map(m=>[String(m.contact_key),m]));
   const actions=[];let creates=0;
-  for(const c of rows){
-    if(!c?.contactKey||!c?.topicTitle||!['linked_chat','chat_only','unlinked_zalo'].includes(c.state)){
-      throw Error('telegram_directory_contact_invalid');
-    }
-    const m=existing.get(String(c.contactKey));
-    if(!m){
-      if(creates>=cap)continue;
-      creates++;
-      actions.push({type:'create',contactKey:c.contactKey,title:c.topicTitle,
-        replyEligible:false,sourceState:c.state});
-    }else{
-      actions.push({type:String(m.topic_name||'')===c.topicTitle?'keep':'rename',
-        contactKey:c.contactKey,threadId:normalizeThreadId(m.telegram_thread_id),
-        title:c.topicTitle,replyEligible:c.replyEligible,sourceState:c.state});
-    }
+  for(const row of directory){
+    if(row.state!=='chat_active'||!UUID.test(row.chatAccountId||'')||
+      row.contactKey!=='chat:'+row.chatAccountId||!row.topicTitle)throw Error('telegram_invalid_chat_contact');
+    const old=byKey.get(row.contactKey);
+    if(old)actions.push({type:old.topic_name===row.topicTitle?'keep':'rename',
+      contactKey:row.contactKey,threadId:normalizeThreadId(old.telegram_thread_id),title:row.topicTitle});
+    else if(creates<maxCreates){creates++;actions.push({type:'create',contactKey:row.contactKey,title:row.topicTitle});}
   }
-  return Object.freeze({mode:'plan_only',telegramChatId:target,
-    contacts:rows.length,created:0,plannedCreates:creates,
-    actions:Object.freeze(actions.map(a=>Object.freeze(a)))});
+  return Object.freeze({mode:'plan_only',chatId:target,total:directory.length,
+    existing:current.length,plannedCreates:creates,createdTopics:0,
+    actions:Object.freeze(actions.map(x=>Object.freeze(x)))});
 }
