@@ -230,18 +230,26 @@ const ScreenSession={
 function renderMenuUnread(){
   const count=Math.max(0,Number(unreadCount)||0);
   const hasUnread=count>0;
+  // One unread cue at a time: in an open directory, show it on the
+  // Chưa đọc filter and on the affected conversations, not on the menu.
+  const directoryVisible=appShell?.dataset?.mobileDirectory==='true';
+  for(const chip of document.querySelectorAll('[data-contact-directory-filter="unread"]')){
+    chip.dataset.hasUnread=String(hasUnread);
+    chip.setAttribute('aria-label',hasUnread?'Chưa đọc, có '+count+' tin mới':'Chưa đọc');
+  }
   for(const button of document.querySelectorAll('[data-shell-command="sidebar.open"]')){
     button.dataset.hasUnread=String(hasUnread);
     const dot=button.querySelector('[data-menu-unread-dot]');
-    if(dot)dot.hidden=!hasUnread;
+    if(dot)dot.hidden=!hasUnread||directoryVisible;
     // NAV-284: unread refresh cannot relabel an active Chat back chevron
     // as the account menu while the user is viewing a conversation.
     button.setAttribute('aria-label',button.dataset.mobileBack==='true'
       ?'Quay lại Danh bạ'
-      :hasUnread?`Mở menu, ${count} tin mới`:'Mở menu');
+      :hasUnread&&!directoryVisible?`Mở menu, ${count} tin mới`:'Mở menu');
   }
 }
 
+document.addEventListener('v21-mobile-directory-change',renderMenuUnread);
 const UnreadIndicator={
   set(count){
     unreadCount=Math.max(0,Number(count)||0);
@@ -1488,6 +1496,7 @@ function createRenderedContactRow(item){
   row.dataset.contactPinned=authAccount?.role==='admin'&&isPinnedBankReportContact(item)?'report':'';
   row.dataset.active=String(Boolean(activeContact?.id)&&String(activeContact.id)===String(item.id));
   row.dataset.locked=String(Boolean(item.locked_at));
+  row.dataset.unread=String(item.has_unread===true);
 
   const button=document.createElement('button');
   button.className='shell-contact-chat';
@@ -1529,6 +1538,7 @@ function patchRenderedContact(item){
   const row=findRenderedContactRow(item.id);
   if(!row)return false;
   row.dataset.locked=String(Boolean(item.locked_at));
+  row.dataset.unread=String(item.has_unread===true);
   row.dataset.contactPinned=authAccount?.role==='admin'&&isPinnedBankReportContact(item)?'report':'';
   const button=row.querySelector('[data-contact-select]');
   if(button){button.dataset.contactName=String(item.display_name||item.username||'Liên hệ');}

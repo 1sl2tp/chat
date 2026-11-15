@@ -1814,3 +1814,60 @@
     outline-offset:1px;
   }
 }
+
+/* UI-359: two primary filters, discoverable secondary customer groups.
+   All prior controls and the directory scroll/keyboard owners remain. */
+@media(max-width:63.999rem){
+ #appShell[data-mobile-directory="true"] #shellNavigationLayer .contact-directory-tools{
+   margin-top:0!important;padding:4px 8px 6px!important;gap:5px!important;
+ }
+ #appShell[data-mobile-directory="true"] #shellNavigationLayer .contact-directory-filter-line{
+   gap:6px!important;padding-inline:0!important;min-height:44px;
+ }
+ #appShell[data-mobile-directory="true"] #shellNavigationLayer .contact-directory-filters{
+   flex-wrap:nowrap;overflow-x:visible;min-height:44px;gap:6px!important;
+   -webkit-mask-image:none!important;mask-image:none!important;
+ }
+ #appShell[data-mobile-directory="true"] #shellNavigationLayer .contact-directory-filter-line:not([data-expanded="true"]) .contact-directory-filter:not([data-contact-directory-filter="all"]):not([data-contact-directory-filter="unread"]):not([data-active="true"]){
+   display:none!important;
+ }
+ #appShell[data-mobile-directory="true"] #shellNavigationLayer .contact-directory-filter-line[data-expanded="true"]{
+   align-items:flex-start;
+ }
+ #appShell[data-mobile-directory="true"] #shellNavigationLayer .contact-directory-filter-line[data-expanded="true"] .contact-directory-filters{flex-wrap:wrap}
+ #appShell[data-mobile-directory="true"] #shellNavigationLayer .contact-directory-filter-line[data-expanded="true"] .contact-directory-filter{display:inline-flex;align-items:center}
+ #appShell[data-mobile-directory="true"] #shellNavigationLayer .contact-directory-filter-more{
+   flex:0 0 44px;min-width:44px;min-height:44px;
+ }
+ #appShell[data-mobile-directory="true"] #shellNavigationLayer .contact-directory-filter-line[data-expanded="true"] .contact-directory-filter-more::after{
+   transform:rotate(-45deg)!important;
+ }
+ #appShell[data-mobile-directory="true"] #shellNavigationLayer .contact-directory-filter[data-contact-directory-filter="unread"][data-has-unread="true"]:not([data-active="true"]){
+   color:var(--theme-content-accent);font-weight:750!important;
+ }
+ #appShell[data-mobile-directory="true"] #shellNavigationLayer .shell-contact-chat{
+   padding:8px 6px!important;column-gap:11px!important;min-height:68px!important;
+ }
+ #appShell[data-mobile-directory="true"] #shellNavigationLayer .shell-contact-name{
+   font-size:15.5px!important;line-height:20px!important;font-weight:650!important;
+   letter-spacing:-.012em;
+ }
+ #appShell[data-mobile-directory="true"] #shellNavigationLayer .shell-contact-preview{
+   font-size:13.5px!important;line-height:19px!important;max-height:38px;overflow-wrap:break-word;
+ }
+ #appShell[data-mobile-directory="true"] #shellNavigationLayer .shell-contact-time{
+   font-size:12px!important;line-height:18px;
+ }
+ #appShell[data-mobile-directory="true"] #shellNavigationLayer .shell-contact-row[data-unread="true"] .shell-contact-name{
+   font-weight:790!important;color:var(--theme-content-primary);
+ }
+ #appShell[data-mobile-directory="true"] #shellNavigationLayer .shell-contact-row[data-unread="true"] .shell-contact-preview{
+   font-weight:650!important;color:var(--theme-content-primary);
+ }
+ #appShell[data-mobile-directory="true"] #shellNavigationLayer .shell-contact-row[data-unread="true"] .shell-contact-time{
+   font-weight:740!important;color:var(--theme-content-accent);
+ }
+ #appShell[data-mobile-directory="true"] #shellNavigationLayer .shell-contact-unread-dot:not([hidden]){
+   width:10px;height:10px;right:-2px;bottom:-1px;
+ }
+}

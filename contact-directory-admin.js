@@ -244,7 +244,7 @@ function ensureDirectoryTools(){
       <input class="contact-directory-search" type="search" autocomplete="off" placeholder="Tìm tên hoặc tài khoản" aria-label="Tìm danh bạ" data-contact-directory-search>
     </div>
     <div class="contact-directory-filter-line">
-      <div class="contact-directory-filters" role="group" aria-label="Lọc danh bạ, cuộn ngang để xem thêm">
+      <div class="contact-directory-filters" id="contactDirectoryFilterList" role="group" aria-label="Lọc danh bạ">
         <button type="button" class="contact-directory-filter" data-contact-directory-filter="all">Tất cả</button>
         <button type="button" class="contact-directory-filter" data-contact-directory-filter="unread">Chưa đọc</button>
         <button type="button" class="contact-directory-filter" data-contact-directory-filter="customer">KH</button>
@@ -253,7 +253,7 @@ function ensureDirectoryTools(){
         <button type="button" class="contact-directory-filter" data-contact-directory-filter="friend">Bạn bè</button>
         <button type="button" class="contact-directory-filter" data-contact-directory-filter="other">Khác</button>
       </div>
-      <button type="button" class="contact-directory-filter-more" data-contact-directory-filter-more data-direction="next" aria-label="Xem thêm nhóm" hidden></button>
+      <button type="button" class="contact-directory-filter-more" data-contact-directory-filter-more data-direction="next" aria-label="Xem thêm nhóm" aria-expanded="false" aria-controls="contactDirectoryFilterList" hidden></button>
     </div>
     `;
   body.insertBefore(tools,nav);
@@ -304,8 +304,19 @@ function ensureDirectoryTools(){
   setDirectorySection(directorySection,{restore:true});
   const rail=tools.querySelector('.contact-directory-filters');
   const more=tools.querySelector('[data-contact-directory-filter-more]');
+  const filterLine=tools.querySelector('.contact-directory-filter-line');
   function syncFilterArrow(){
     if(!rail||!more)return;
+    if(mobileDirectoryHeaderVisible()){
+      const expanded=filterLine?.dataset.expanded==='true';
+      more.hidden=false;
+      more.dataset.direction=expanded?'previous':'next';
+      more.setAttribute('aria-expanded',String(expanded));
+      more.setAttribute('aria-label',expanded?'Thu gọn nhóm khách hàng':'Xem thêm nhóm khách hàng');
+      rail.scrollLeft=0;
+      return;
+    }
+    more.setAttribute('aria-expanded','false');
     const scrollable=rail.scrollWidth>rail.clientWidth+3;
     more.hidden=!scrollable;
     const atEnd=rail.scrollLeft+rail.clientWidth>=rail.scrollWidth-3;
@@ -315,6 +326,12 @@ function ensureDirectoryTools(){
   rail?.addEventListener('scroll',syncFilterArrow,{passive:true});
   more?.addEventListener('click',()=>{
     if(!rail)return;
+    if(mobileDirectoryHeaderVisible()){
+      if(filterLine)filterLine.dataset.expanded=
+        String(filterLine.dataset.expanded!=='true');
+      syncFilterArrow();
+      return;
+    }
     const atEnd=rail.scrollLeft+rail.clientWidth>=rail.scrollWidth-3;
     rail.scrollBy({left:atEnd?-rail.scrollWidth:Math.max(100,rail.clientWidth*.7),behavior:'smooth'});
   });
@@ -334,6 +351,8 @@ function ensureDirectoryTools(){
         peer.dataset.active=String(active);
         peer.setAttribute('aria-pressed',String(active));
       }
+      if(filterLine)filterLine.dataset.expanded='false';
+      syncFilterArrow();
       syncDirectoryRows({reorder:false});
     });
   }
