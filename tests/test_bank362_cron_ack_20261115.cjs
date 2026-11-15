@@ -10,7 +10,7 @@ const norm=normalize(sql);
 assert.equal(normalize(migration),norm,'versioned migration must match the verified SQL proposal');
 assert.match(migration,/BANK-362: versioned migration/, 'migration may promote the proposal');
 
-assert.match(sql,/PROPOSED \/ NOT APPLIED/, 'DB proposal is deliberately not live');
+assert.match(sql,/ARCHIVED PROPOSAL/, 'staged SQL is archived, live code is the versioned migration');
 assert.match(norm,/v_collect := public\.chat_bank_auto_collect_retry\(20\)/, 'reuse the only guarded financial retry writer');
 assert.match(norm,/if v_collect->>'ok' = 'true'\s+and coalesce\(\(v_collect->>'received'\)::integer, 0\) > 0/, 'only post ACK on verified ledger success');
 assert.match(norm,/v_ack := public\.chat_bank_auto_collection_ack_drain\(30\)/, 'reuse audited opt-in and idempotent ACK pipeline');
