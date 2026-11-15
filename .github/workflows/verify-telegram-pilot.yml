@@ -1,0 +1,21 @@
+name: Verify Telegram pilot (offline)
+on:
+  pull_request:
+    paths:
+      - "bridge/telegram/**"
+      - ".github/workflows/verify-telegram-pilot.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run offline Telegram tests
+        run: node --test bridge/telegram/test/*.test.mjs
