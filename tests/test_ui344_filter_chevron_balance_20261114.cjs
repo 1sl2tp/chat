@@ -10,13 +10,14 @@ const from=src.indexOf('function syncFilterArrow(){');
 const until=src.indexOf("  rail?.addEventListener('scroll',syncFilterArrow",{});
 assert(from>0&&until>from,'single directory overflow arrow owner');
 const fn=src.slice(from,until);
-function scenario(scrollWidth,clientWidth,scrollLeft){
+function scenario(scrollWidth,clientWidth,scrollLeft,{mobile=false,expanded=false}={}){
  const rail={scrollWidth,clientWidth,scrollLeft};
  const more={hidden:true,dataset:{},attributes:{},setAttribute(k,v){this.attributes[k]=String(v);}};
- const ctx=vm.createContext({rail,more});
- vm.runInContext('const {rail,more}=this;\n'+fn+'\nthis.update=syncFilterArrow;',ctx);
+ const filterLine={dataset:{expanded:String(expanded)}};
+ const ctx=vm.createContext({rail,more,filterLine,mobileDirectoryHeaderVisible:()=>mobile});
+ vm.runInContext('const {rail,more,filterLine,mobileDirectoryHeaderVisible}=this;\n'+fn+'\nthis.update=syncFilterArrow;',ctx);
  ctx.update();
- return {rail,more,update:ctx.update};
+ return {rail,more,filterLine,update:ctx.update};
 }
 let test=scenario(350,400,0);
 assert.equal(test.more.hidden,true,'no arrow without overflow');
@@ -29,6 +30,15 @@ assert.equal(test.more.dataset.direction,'previous');
 assert.equal(test.more.attributes['aria-label'],'Xem các nhóm trước');
 test.rail.scrollLeft=2;test.update();
 assert.equal(test.more.dataset.direction,'next');
+// UI-359: narrow directory trades overflow arrows for a single disclosure.
+test=scenario(250,380,0,{mobile:true});
+assert.equal(test.more.hidden,false,'mobile groups remain discoverable even without overflow');
+assert.equal(test.more.attributes['aria-expanded'],'false');
+assert.equal(test.more.attributes['aria-label'],'Xem thêm nhóm khách hàng');
+test=scenario(800,380,0,{mobile:true,expanded:true});
+assert.equal(test.more.dataset.direction,'previous');
+assert.equal(test.more.attributes['aria-expanded'],'true');
+assert.equal(test.more.attributes['aria-label'],'Thu gọn nhóm khách hàng');
 assert(src.includes('data-contact-directory-filter-more data-direction="next"'),'initial arrow always has stable direction');
 assert(src.includes('data-contact-directory-filter-more aria-label')===false,'direction is set before label not duplicated');
 assert(src.includes('more?.addEventListener(\'click\''),'arrow click handler unchanged');

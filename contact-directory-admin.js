@@ -304,6 +304,8 @@ function ensureDirectoryTools(){
   setDirectorySection(directorySection,{restore:true});
   const rail=tools.querySelector('.contact-directory-filters');
   const more=tools.querySelector('[data-contact-directory-filter-more]');
+  // UI-359: reuse the same arrow as a disclosure on mobile; desktop keeps
+  // the original scroll/overflow behavior verified by UI-344.
   const filterLine=tools.querySelector('.contact-directory-filter-line');
   function syncFilterArrow(){
     if(!rail||!more)return;
