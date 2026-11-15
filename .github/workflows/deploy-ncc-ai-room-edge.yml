@@ -9,9 +9,12 @@ on:
       - "tests/test_ncc011_release_contract_20261115.mjs"
       - "tests/test_ncc007_chat_room_contract_20261114.cjs"
       - ".github/workflows/deploy-ncc-ai-room-edge.yml"
+      - "tools/ncc013_emit_status.mjs"
+      - "tests/test_ncc013_release_status_20261115.mjs"
   workflow_dispatch: {}
 permissions:
   contents: read
+  statuses: write
 concurrency:
   group: chat-ncc-ai-edge-prod
   cancel-in-progress: false
@@ -42,6 +45,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: Begin NCC release commit status
+        env:
+          GITHUB_STATUS_TOKEN: ${{ github.token }}
+        run: node tools/ncc013_emit_status.mjs pending
       - name: Check UI, canonical product schema and release contract
         run: |
           node --check ncc-ai-room.js
@@ -49,10 +56,12 @@ jobs:
           node tests/test_ncc007_chat_room_contract_20261114.cjs
           node tests/test_ncc010_product_linking_20261115.mjs
           node tests/test_ncc011_release_contract_20261115.mjs
+          node tests/test_ncc013_release_status_20261115.mjs
       - name: Require preconfigured CI credential
         shell: bash
         run: |
           if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
+            echo "NCC_RELEASE_REASON=missing_ci_secret" >> "$GITHUB_ENV"
             echo "::error title=NCC AI blocked::Missing GitHub Actions secret SUPABASE_ACCESS_TOKEN. Configure once in 1sl2tp/chat Settings > Secrets and variables > Actions. No manual production deployment fallback."
             {
               echo "### NCC AI release blocked before any production changes"
@@ -89,3 +98,9 @@ jobs:
             echo "SHA: $GITHUB_SHA"
             echo "NCC-010 schema verified and isolated Edge function released; no customer messages or price updates"
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: Report NCC production release status on canonical commit
+        if: always()
+        env:
+          GITHUB_STATUS_TOKEN: ${{ github.token }}
+          NCC_JOB_STATUS: ${{ job.status }}
+        run: node tools/ncc013_emit_status.mjs final
