@@ -1,7 +1,7 @@
 (()=>{
 'use strict';
 
-const RELEASE_VERSION='V21.72.40';
+const RELEASE_VERSION='V21.72.39';
 const MODULE_CONTRACT_VERSION='app-update-v2';
 const CHECK_INTERVAL_MS=45000;
 const VERSION_TIMEOUT_MS=10000;

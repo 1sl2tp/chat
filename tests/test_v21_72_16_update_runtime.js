@@ -7,7 +7,7 @@ const reply={hidden:true};
 const document={
   readyState:'loading',visibilityState:'visible',documentElement:{dataset:{}},
   querySelector(sel){
-    if(sel==='meta[name="app-release-version"]')return {content:'V21.72.40'};
+    if(sel==='meta[name="app-release-version"]')return {content:'V21.72.39'};
     if(sel==='meta[name="app-build-id"]')return {content:'build-a'};
     return null;
   },
@@ -32,7 +32,7 @@ const ctx={
   },
   URL,
   sessionStorage:{getItem:k=>session.get(k)||null,setItem:(k,v)=>session.set(k,String(v))},
-  fetch:async()=>({ok:true,json:async()=>({version:'V21.72.40',build_id:'build-b'})}),
+  fetch:async()=>({ok:true,json:async()=>({version:'V21.72.39',build_id:'build-b'})}),
   setTimeout:()=>1,clearTimeout(){},setInterval:()=>1,
   CustomEvent:class{constructor(type,init={}){this.type=type;this.detail=init.detail}},
   console,Date,String,Number,Boolean,Object,Array,Map,Set,Promise
@@ -56,5 +56,5 @@ const controller=ctx.window.V21AppUpdateController;assert(controller);
   await controller.check({reason:'safe'});
   assert.strictEqual(replaces,1,'safe non-authenticated session may update the build');
   assert(lastUrl.includes('__build=build-b'),'reload URL must be keyed by the new build');
-  console.log('V21.72.40 build-aware app update runtime PASS');
+  console.log('V21.72.39 build-aware app update runtime PASS');
 })().catch(e=>{console.error(e);process.exit(1)});
