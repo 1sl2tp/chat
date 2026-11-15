@@ -9,6 +9,12 @@ const base={
  GITHUB_STATUS_TOKEN:'fake-test-token'
 };
 assert.equal(prepareStatus('pending',base).state,'pending');
+assert.equal(prepareStatus('pending',{...base,GITHUB_RUN_ID:'43655937643'}).target_url,
+ 'https://github.com/1sl2tp/chat/actions/runs/43655937643');
+assert.equal(prepareStatus('final',{...base,GITHUB_RUN_ID:'43655937643',NCC_JOB_STATUS:'failure'}).target_url,
+ 'https://github.com/1sl2tp/chat/actions/runs/43655937643');
+assert.equal(prepareStatus('pending',{...base,GITHUB_RUN_ID:'bad'}).target_url,
+ 'https://github.com/1sl2tp/chat/actions/workflows/deploy-ncc-ai-room-edge.yml');
 assert.equal(prepareStatus('final',{...base,NCC_JOB_STATUS:'success'}).state,'success');
 assert.equal(prepareStatus('final',{...base,NCC_JOB_STATUS:'failure'}).state,'failure');
 assert.match(prepareStatus('final',{...base,NCC_JOB_STATUS:'failure',NCC_RELEASE_REASON:'missing_ci_secret'}).description,/SUPABASE_ACCESS_TOKEN/);
