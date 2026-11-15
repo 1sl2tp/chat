@@ -1,0 +1,12 @@
+{
+  "name": "taphoa-telegram-topic-pilot",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "plan": "node src/pilot.mjs"
+  }
+}
