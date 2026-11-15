@@ -1,6 +1,6 @@
 // TELE-004: pure state transitions, not a live worker.
 import {normalizeChatId,normalizeThreadId} from './core.mjs';
-const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export function reserveTopic({chatId,accountId,title}){
  const id=String(accountId||'').toLowerCase();
  if(!UUID.test(id)||!String(title||'').trim())throw Error('telegram_invalid_account_reservation');
