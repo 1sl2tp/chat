@@ -11,6 +11,24 @@ import {isRetryableBillScanReason,describeBillDecision} from "./bill-decision-po
 
 const db=createClient(Deno.env.get("SUPABASE_URL")||"",Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"",{auth:{persistSession:false,autoRefreshToken:false}});
 const response=(body:any,status=200)=>new Response(JSON.stringify(body),{status,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store"}});
+// BANK-362: publish the already-verified customer collection receipt immediately
+// after financial RPC commit. The two-minute DB cron remains a safe fallback.
+// A Chat outage cannot roll back or cause a second financial collection.
+async function acknowledgePostedCollection(posted:any):Promise<void>{
+ if(posted?.ok!==true||posted?.status!=="received"||
+    !Number.isSafeInteger(Number(posted?.ledger_id))||Number(posted.ledger_id)<=0)return;
+ try{
+  // Service-role-only RPC revalidates receipt, bank credit, ledger, opt-in,
+  // and deterministic Chat client_id; concurrent calls are advisory-locked.
+  const {data,error}=await db.rpc("chat_bank_auto_collection_ack_drain",{p_limit:30});
+  if(error||data?.ok!==true||data?.busy===true)
+   console.warn("bank362_collection_ack_deferred");
+ }catch(_error){
+  // Never fail a verified money transaction to repair a Chat notification.
+  console.warn("bank362_collection_ack_deferred");
+ }
+}
+
 const HEX=/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i;
 const MIN_BYTES=100,MAX_BYTES=4000000;
 const model="gemini-3.5-flash-lite";
@@ -328,10 +346,12 @@ Deno.serve(async req=>{
             const {data:posted,error:postError}=await db.rpc("chat_bank_app_collect",{
              p_asset_id:asset,p_notification_id:match.notification_id
             });
-            if(!postError&&posted?.ok===true&&posted?.status==="received")
+            if(!postError&&posted?.ok===true&&posted?.status==="received"){
+             await acknowledgePostedCollection(posted);
              return response({ok:true,status:"received",ai_called:false,
                ledger_written:true,ledger_id:posted.ledger_id,
                recovery:"verified_original_ocr_date_literal"});
+            }
             console.warn("bank348_date_recovered_collection_deferred",
              String(posted?.status||postError?.code||"rpc_unavailable").slice(0,80));
             return response({ok:true,status:"amount_read",ai_called:false,
@@ -411,9 +431,11 @@ Deno.serve(async req=>{
              const {data:posted,error:postError}=await db.rpc("chat_bank_app_collect",{
                p_asset_id:asset,p_notification_id:match.notification_id
              });
-             if(!postError&&posted?.ok===true&&posted?.status==="received")
+             if(!postError&&posted?.ok===true&&posted?.status==="received"){
+               await acknowledgePostedCollection(posted);
                return response({ok:true,status:"received",ai_called:false,
                  ledger_written:true,ledger_id:posted.ledger_id});
+              }
              // A verified pair that did not post is retried by the DB job.
              console.warn("bank_auto_collect_deferred",String(posted?.status||postError?.code||"rpc_unavailable").slice(0,80));
            }
@@ -687,6 +709,7 @@ Deno.serve(async req=>{
      else console.warn("bank_auto_collect_deferred",String(posted?.status||postError?.code||"rpc_unavailable").slice(0,80));
    }
    if(receiptPosted){
+     await acknowledgePostedCollection(receiptPosted);
      return response({ok:true,status:"received",amount_vnd:amount,
        ai_called:true,ledger_written:true,ledger_id:receiptPosted.ledger_id,
        decision:describeBillDecision({status:"received",ledger_id:receiptPosted.ledger_id})});
