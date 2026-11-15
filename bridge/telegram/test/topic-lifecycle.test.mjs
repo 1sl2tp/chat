@@ -19,8 +19,8 @@ test('ambiguous API state fails closed instead of retrying and duplicating',()=>
  assert.equal(shouldCreateTopic(r),false);
  assert.equal(shouldCreateTopic(null),true);
 });
-test('proposed migration is service only, RLS enabled and has two unique identities',()=>{
- const sql=fs.readFileSync(new URL('../proposals/topic-links.sql',import.meta.url),'utf8');
+test('applied migration snapshot is service only, RLS enabled and has two unique identities',()=>{
+ const sql=fs.readFileSync(new URL('../schema/applied-20261115223711-telegram-topic-links.sql',import.meta.url),'utf8');
  assert.match(sql,/primary key\s*\(telegram_chat_id,\s*chat_account_id\)/i);
  assert.match(sql,/unique\s*\(telegram_chat_id,\s*telegram_thread_id\)/i);
  assert.match(sql,/enable row level security/i);

@@ -1,17 +1,13 @@
-# TELE-004 · Mapping before live creation of 143 Topics
+# TELE-004 · Mapping table deployed; Topic batch still gated
 
-Status: proposal, code/tests only. Do NOT apply proposed SQL to production without explicit release approval under Chat project rules. This SQL is intentionally outside supabase/migrations to prevent automatic deployment.
+The user approved ONE new Telegram mapping table on 2026-11-16. Applied successfully on Supabase Chat project vtqhbhrkdxirqeqkgylo as migration version **20261115223711**, name **telegram_topic_links_service_only_20261116**. The exact deployed DDL is under bridge/telegram/schema/applied-20261115223711-telegram-topic-links.sql.
 
-Problem: Telegram createForumTopic returns message_thread_id, but Telegram Bot API has no general method to enumerate all Topics and recover associations after an uncertain timeout. Creating all 143 Topics before persisting associations risks duplicates, wrong-user routing, and unrecoverable orphan Topics.
+**Verified:** table exists, no rows at creation, RLS on, no SELECT/INSERT for anon and authenticated, service_role SELECT/INSERT allowed. Primary key on telegram_chat_id+chat_account_id and UNIQUE telegram_chat_id+telegram_thread_id. Foreign key to Chat v21_accounts uses **ON DELETE CASCADE** so an account removal does not get blocked by this auxiliary topic map. No customer, order, bank, or Zalo tables modified. No application cron or triggers added.
 
-Proposed new mapping table is independent of existing Chat business data. Unique (telegram_chat_id, chat_account_id) ensures at most one Topic per Chat account per Telegram owner; unique (telegram_chat_id, telegram_thread_id) forbids two accounts pointing at one Topic. RLS enabled, service role only, no public policy.
+A Supabase security advisor INFO about "RLS Enabled No Policy" is **intentional** for this service-only table because anon/authenticated privileges are revoked. Do not add a permissive policy to silence that INFO.
 
-Flow for eventual one-way directory bootstrap:
-1. Read only active users from v21_accounts (currently 143). Do NOT query zalo_contacts or sync Render messages.
-2. Verify Telegram bot @taphoa_chat_bridge_bot, admin Telegram user/chat ID, and admin authorization.
-3. Reserve each unmapped account row atomically. Only successful FIRST insert may call createForumTopic. Existing reserved, active or needs_review must NOT call create again.
-4. After Telegram returns a thread ID, write mapping active. On timeout/ambiguous response, set needs_review, stop and inspect manually. Do not blindly retry or redirect to General.
-5. Rate-limit small batches, inspect Telegram status, and ensure a stable Topic appears for accounts with no prior messages.
-6. After topics all map safely, implement an idempotent Chat canonical message outbox for Chat → Telegram; only then separately evaluate Telegram replies to existing Chat, with authorization and source ownership. Creation of Chat order, debt or bank collection remains in canonical backend only.
+**NEXT gate:** creating real Telegram Topics is NOT part of this migration. Need a separately verified service-only creator, exact Telegram admin identity, atomic row reservation before Bot API call, ACK exact chat/thread, bounded rate and fail-closed uncertain responses. No retry after an ambiguous Telegram API timeout: mark needs_review. Telegram pilot thread #60 is fictional and not mapped.
 
-Existing Telegram pilot #60 is a fictional demo, not mapped to any real Chat account. Existing Chat frontend, Render→Zalo, business logic, and Supabase DB must remain unchanged until approval.
+User's scope for the Topics: 143 existing active Chat user accounts, including Chat accounts with no Zalo link. No import of the 350 raw Zalo contacts and no direct Render/Zalo→Telegram route. The old Chat UI stays active in parallel.
+
+The table was approved, **not** authorization to send real customer messages or make business writes from Telegram. Those remain disabled until separate controlled testing.

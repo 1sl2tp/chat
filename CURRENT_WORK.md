@@ -1,3 +1,12 @@
+## 2026-11-16 — TELE-004 · Bảng Telegram mapping đã áp dụng, kiểm thử PASS
+
+- **Người dùng cho phép** tạo bảng riêng `public.v21_telegram_topic_links`. Áp dụng Supabase migration 20261115223711, project `vtqhbhrkdxirqeqkgylo`.
+- **DB kiểm tra:** mapping rows=0; RLS enabled; anon/authenticated SELECT+INSERT=false; service_role SELECT+INSERT=true; PK (Telegram chat, Chat account), UNIQUE (Telegram chat, thread), FK account ON DELETE CASCADE; không trigger riêng.
+- **GitHub source of record:** `bridge/telegram/schema/applied-20261115223711-telegram-topic-links.sql` đúng với DB; bản proposal được đánh dấu archived.
+- **Phạm vi:** không đụng dữ liệu kinh doanh/Zalo/Chat frontend. Chưa tạo 143 Topic thật hoặc gửi tin khách; batch creator phải có xác thực và idempotency trước khi chạy.
+
+---
+
 ## 2026-11-16 — TELE-003: Telegram dùng đủ 143 tài khoản Chat
 
 - Nguồn duy nhất: v21_accounts role=user chưa xóa; 143 tài khoản lúc kiểm tra. Không nhập Zalo contacts (350) hoặc lọc theo Zalo links (125).
