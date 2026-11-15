@@ -22,7 +22,7 @@ for token in [
     assert token in policy, token
 assert 'AudioContext' not in policy
 assert "MODULE_CONTRACT_VERSION='audio-capture-v1'" in policy
-assert "RELEASE_VERSION='V21.72.39'" in policy
+assert "RELEASE_VERSION='V21.72.40'" in policy
 assert 'createMediaStreamDestination' not in policy
 
 app=read('app.js')
@@ -41,7 +41,7 @@ assert 'remoteTrackKey' in livekit
 
 source=read('index.source.html')
 assert '<link rel="manifest" href="./manifest.webmanifest">' in source
-assert 'name="app-release-version" content="V21.72.39"' in source
+assert 'name="app-release-version" content="V21.72.40"' in source
 assert 'name="app-build-id" content="__APP_BUILD_ID__"' in source
 assert 'apple-mobile-web-app-title" content="TAPHOA Chat"' in source
 assert '<title>TAPHOA Chat</title>' in source
@@ -67,7 +67,7 @@ for token in ["self.addEventListener('push'","self.addEventListener('notificatio
 
 update=read('app-update-controller.js')
 assert "MODULE_CONTRACT_VERSION='app-update-v2'" in update
-assert "RELEASE_VERSION='V21.72.39'" in update
+assert "RELEASE_VERSION='V21.72.40'" in update
 for token in [
     'version.json',
     'build_id',
@@ -84,4 +84,4 @@ for token in [
     'serviceWorker.register'
 ]:
     assert token in update, token
-print('V21.72.39 audio/PWA/update contract PASS')
+print('V21.72.40 audio/PWA/update contract PASS')
