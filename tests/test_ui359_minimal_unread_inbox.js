@@ -39,6 +39,8 @@ assert.equal(dot.hidden,true);
 assert.equal(chip.dataset.hasUnread,'false');
 assert(dir.includes('aria-controls="contactDirectoryFilterList"'));
 assert(dir.includes('filterLine.dataset.expanded'));
+assert(dir.includes('filterArrowSync=syncFilterArrow'));
+assert(dir.includes("document.addEventListener('v21-mobile-directory-change',()=>filterArrowSync?.())"));
 assert(dir.includes("mobileDirectoryHeaderVisible()"));
 assert(css.includes('.contact-directory-filter-line:not([data-expanded="true"])'));
 assert(css.includes('.contact-directory-filter-line[data-expanded="true"] .contact-directory-filters'));

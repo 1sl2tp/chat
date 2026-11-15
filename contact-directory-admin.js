@@ -212,7 +212,11 @@ function openBankReportFromWork(){
   return opened;
 }
 function directoryTools(){return document.querySelector('[data-contact-directory-tools]');}
+// The directory can mount before the mobile hierarchy makes it visible.
+// Reconcile its disclosure on that event without leaking per-mount listeners.
+let filterArrowSync=null;
 function removeDirectoryTools(){
+  filterArrowSync=null;
   directoryTools()?.remove();
   document.querySelector('[data-contact-work-bank-heading]')?.remove();
   document.querySelector('[data-contact-work-tools]')?.remove();
@@ -338,6 +342,7 @@ function ensureDirectoryTools(){
     rail.scrollBy({left:atEnd?-rail.scrollWidth:Math.max(100,rail.clientWidth*.7),behavior:'smooth'});
   });
   window.addEventListener('resize',()=>{if(tools.isConnected)syncFilterArrow();},{passive:true});
+  filterArrowSync=syncFilterArrow;
   queueMicrotask(syncFilterArrow);
   const input=tools.querySelector('[data-contact-directory-search]');
   input.value=query;
@@ -553,6 +558,7 @@ function resetForAuth(){
 
 installStyle();
 document.addEventListener('v21-mobile-directory-change',syncMobileDirectoryHeader);
+document.addEventListener('v21-mobile-directory-change',()=>filterArrowSync?.());
 document.addEventListener('navigation-change',syncMobileDirectoryHeader);
 // This listener runs after the mobile gesture owner has deliberately yielded
 // its Chat-tab click when the directory is open. It prevents Photos routing
