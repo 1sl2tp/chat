@@ -8,15 +8,21 @@ const html=fs.readFileSync(path.join(ROOT,'index.source.html'),'utf8');
 const css=fs.readFileSync(path.join(ROOT,'mobile-ui-polish.css'),'utf8');
 const sw=fs.readFileSync(path.join(ROOT,'sw.js'),'utf8');
 const shell=fs.readFileSync(path.join(ROOT,'shell.js'),'utf8');
+const work=fs.readFileSync(path.join(ROOT,'work-customer-summary.js'),'utf8');
 
 const marker='UI-239-MOBILE-DIRECTORY-SEARCH-TOP-20261106';
 assert.equal(css.split(marker).length-1,1,'one compact directory rhythm owner');
-const patch=css.slice(css.indexOf(marker));
+// UI-359 follows the verified UI-239 baseline as a separate owner.
+const nextOwner=css.indexOf('/* UI-359',css.indexOf(marker));
+assert(nextOwner>css.indexOf(marker),'missing successor boundary');
+const patch=css.slice(css.indexOf(marker),nextOwner);
 assert(patch.includes('@media(max-width:63.999rem){'),
   'only narrow viewports may hide the title; desktop title must remain');
 assert(!patch.includes('[data-mobile-directory='),
-  'real shell does not set data-mobile-directory; selectors must be active');
+  'UI-239 base selectors remain independent of the later mobile directory gate');
 
+assert(work.includes("app.dataset.mobileDirectory='true'"),
+  'directory ownership attribute is set by work-customer-summary, not by shell');
 const prefix='#appShell[data-auth-state="authenticated"] #shellNavigationLayer ';
 function declarations(selector){
   const start=patch.indexOf(prefix+selector+'{');
