@@ -1816,6 +1816,7 @@
 }
 
 /* UI-359: two primary filters, discoverable secondary customer groups.
+   Baseline UI-240 contract is scoped above; this is the intentional successor.
    All prior controls and the directory scroll/keyboard owners remain. */
 @media(max-width:63.999rem){
  #appShell[data-mobile-directory="true"] #shellNavigationLayer .contact-directory-tools{

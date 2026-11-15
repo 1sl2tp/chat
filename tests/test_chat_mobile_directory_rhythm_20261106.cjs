@@ -10,7 +10,9 @@ const directory=fs.readFileSync(path.join(root,'contact-directory-admin.js'),'ut
 const sw=fs.readFileSync(path.join(root,'sw.js'),'utf8');
 const marker='UI-240-MOBILE-DIRECTORY-RHYTHM-20261106';
 assert.equal(css.split(marker).length-1,1,'one CSS rhythm owner');
-const patch=css.slice(css.indexOf(marker));
+const nextOwner=css.indexOf('/* UI-359',css.indexOf(marker));
+assert(nextOwner>css.indexOf(marker),'new UI-359 mobile refinements must follow UI-240');
+const patch=css.slice(css.indexOf(marker),nextOwner);
 assert.match(patch,/@media\(max-width:63\.999rem\)\s*\{/);
 assert(!patch.includes('[data-mobile-directory='),'do not use inactive attribute');
 assert(patch.trim().endsWith('}'),'rhythm rules must be last CSS override');
