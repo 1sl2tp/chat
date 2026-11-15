@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="fb87f66ea7bf48d50569c4bdb6c42164eaef16eab59ceac84cd66a8db2956e44">
+<meta name="app-release-version" content="V21.72.40">
+<meta name="app-build-id" content="96a705fcaf6cef96199654a215119b9c9bcc585ec7062a716640744dec3fbef4">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -8315,7 +8315,7 @@ button{
 }
 .audio-preview-card audio,.audio-message-card audio{display:none;}
 
-/* V21.72.39 — image presentation owner.
+/* V21.72.40 — image presentation owner.
    Single images keep the full source via contain inside a normalized envelope.
    Gallery tiles intentionally use cover so mixed portrait/landscape sources form one balanced unit. */
 .message-media-shell{
@@ -12954,6 +12954,63 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
   }
 }
 
+/* UI-359: two primary filters, discoverable secondary customer groups.
+   All prior controls and the directory scroll/keyboard owners remain. */
+@media(max-width:63.999rem){
+ #appShell[data-mobile-directory="true"] #shellNavigationLayer .contact-directory-tools{
+   margin-top:0!important;padding:4px 8px 6px!important;gap:5px!important;
+ }
+ #appShell[data-mobile-directory="true"] #shellNavigationLayer .contact-directory-filter-line{
+   gap:6px!important;padding-inline:0!important;min-height:44px;
+ }
+ #appShell[data-mobile-directory="true"] #shellNavigationLayer .contact-directory-filters{
+   flex-wrap:nowrap;overflow-x:visible;min-height:44px;gap:6px!important;
+   -webkit-mask-image:none!important;mask-image:none!important;
+ }
+ #appShell[data-mobile-directory="true"] #shellNavigationLayer .contact-directory-filter-line:not([data-expanded="true"]) .contact-directory-filter:not([data-contact-directory-filter="all"]):not([data-contact-directory-filter="unread"]):not([data-active="true"]){
+   display:none!important;
+ }
+ #appShell[data-mobile-directory="true"] #shellNavigationLayer .contact-directory-filter-line[data-expanded="true"]{
+   align-items:flex-start;
+ }
+ #appShell[data-mobile-directory="true"] #shellNavigationLayer .contact-directory-filter-line[data-expanded="true"] .contact-directory-filters{flex-wrap:wrap}
+ #appShell[data-mobile-directory="true"] #shellNavigationLayer .contact-directory-filter-line[data-expanded="true"] .contact-directory-filter{display:inline-flex;align-items:center}
+ #appShell[data-mobile-directory="true"] #shellNavigationLayer .contact-directory-filter-more{
+   flex:0 0 44px;min-width:44px;min-height:44px;
+ }
+ #appShell[data-mobile-directory="true"] #shellNavigationLayer .contact-directory-filter-line[data-expanded="true"] .contact-directory-filter-more::after{
+   transform:rotate(-45deg)!important;
+ }
+ #appShell[data-mobile-directory="true"] #shellNavigationLayer .contact-directory-filter[data-contact-directory-filter="unread"][data-has-unread="true"]:not([data-active="true"]){
+   color:var(--theme-content-accent);font-weight:750!important;
+ }
+ #appShell[data-mobile-directory="true"] #shellNavigationLayer .shell-contact-chat{
+   padding:8px 6px!important;column-gap:11px!important;min-height:68px!important;
+ }
+ #appShell[data-mobile-directory="true"] #shellNavigationLayer .shell-contact-name{
+   font-size:15.5px!important;line-height:20px!important;font-weight:650!important;
+   letter-spacing:-.012em;
+ }
+ #appShell[data-mobile-directory="true"] #shellNavigationLayer .shell-contact-preview{
+   font-size:13.5px!important;line-height:19px!important;max-height:38px;overflow-wrap:break-word;
+ }
+ #appShell[data-mobile-directory="true"] #shellNavigationLayer .shell-contact-time{
+   font-size:12px!important;line-height:18px;
+ }
+ #appShell[data-mobile-directory="true"] #shellNavigationLayer .shell-contact-row[data-unread="true"] .shell-contact-name{
+   font-weight:790!important;color:var(--theme-content-primary);
+ }
+ #appShell[data-mobile-directory="true"] #shellNavigationLayer .shell-contact-row[data-unread="true"] .shell-contact-preview{
+   font-weight:650!important;color:var(--theme-content-primary);
+ }
+ #appShell[data-mobile-directory="true"] #shellNavigationLayer .shell-contact-row[data-unread="true"] .shell-contact-time{
+   font-weight:740!important;color:var(--theme-content-accent);
+ }
+ #appShell[data-mobile-directory="true"] #shellNavigationLayer .shell-contact-unread-dot:not([hidden]){
+   width:10px;height:10px;right:-2px;bottom:-1px;
+ }
+}
+
 </style>
 </head>
 <body>
@@ -12962,7 +13019,7 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
 <div id="runtimeError" class="hidden fixed z-[9999] left-2 right-2 top-2 rounded-xl bg-red-600 text-white text-xs px-3 py-2 shadow-lg"></div>
 
 <!-- V21.69.9 unified runtime marker. Earlier V21.20/V21.64 labels below are provenance for inherited geometry/style contracts only, not separate live runtimes. -->
-<div id="appShell" data-app-shell data-ui-foundation="v1" data-chat-screen-version="V21.72.39" data-app-shell-version="V21.72.39" data-auth-state="booting" data-default-route="chat" data-route="chat">
+<div id="appShell" data-app-shell data-ui-foundation="v1" data-chat-screen-version="V21.72.40" data-app-shell-version="V21.72.40" data-auth-state="booting" data-default-route="chat" data-route="chat">
   <div id="screenHost" data-screen-host>
     <div id="activeScreenSlot" data-active-screen-slot>
       <section id="chatScreen" class="app-screen" data-screen="chat">
@@ -23964,18 +24021,26 @@ const ScreenSession={
 function renderMenuUnread(){
   const count=Math.max(0,Number(unreadCount)||0);
   const hasUnread=count>0;
+  // One unread cue at a time: in an open directory, show it on the
+  // Chưa đọc filter and on the affected conversations, not on the menu.
+  const directoryVisible=appShell?.dataset?.mobileDirectory==='true';
+  for(const chip of document.querySelectorAll('[data-contact-directory-filter="unread"]')){
+    chip.dataset.hasUnread=String(hasUnread);
+    chip.setAttribute('aria-label',hasUnread?'Chưa đọc, có '+count+' tin mới':'Chưa đọc');
+  }
   for(const button of document.querySelectorAll('[data-shell-command="sidebar.open"]')){
     button.dataset.hasUnread=String(hasUnread);
     const dot=button.querySelector('[data-menu-unread-dot]');
-    if(dot)dot.hidden=!hasUnread;
+    if(dot)dot.hidden=!hasUnread||directoryVisible;
     // NAV-284: unread refresh cannot relabel an active Chat back chevron
     // as the account menu while the user is viewing a conversation.
     button.setAttribute('aria-label',button.dataset.mobileBack==='true'
       ?'Quay lại Danh bạ'
-      :hasUnread?`Mở menu, ${count} tin mới`:'Mở menu');
+      :hasUnread&&!directoryVisible?`Mở menu, ${count} tin mới`:'Mở menu');
   }
 }
 
+document.addEventListener('v21-mobile-directory-change',renderMenuUnread);
 const UnreadIndicator={
   set(count){
     unreadCount=Math.max(0,Number(count)||0);
@@ -25222,6 +25287,7 @@ function createRenderedContactRow(item){
   row.dataset.contactPinned=authAccount?.role==='admin'&&isPinnedBankReportContact(item)?'report':'';
   row.dataset.active=String(Boolean(activeContact?.id)&&String(activeContact.id)===String(item.id));
   row.dataset.locked=String(Boolean(item.locked_at));
+  row.dataset.unread=String(item.has_unread===true);
 
   const button=document.createElement('button');
   button.className='shell-contact-chat';
@@ -25263,6 +25329,7 @@ function patchRenderedContact(item){
   const row=findRenderedContactRow(item.id);
   if(!row)return false;
   row.dataset.locked=String(Boolean(item.locked_at));
+  row.dataset.unread=String(item.has_unread===true);
   row.dataset.contactPinned=authAccount?.role==='admin'&&isPinnedBankReportContact(item)?'report':'';
   const button=row.querySelector('[data-contact-select]');
   if(button){button.dataset.contactName=String(item.display_name||item.username||'Liên hệ');}
@@ -40596,7 +40663,7 @@ function ensureDirectoryTools(){
       <input class="contact-directory-search" type="search" autocomplete="off" placeholder="Tìm tên hoặc tài khoản" aria-label="Tìm danh bạ" data-contact-directory-search>
     </div>
     <div class="contact-directory-filter-line">
-      <div class="contact-directory-filters" role="group" aria-label="Lọc danh bạ, cuộn ngang để xem thêm">
+      <div class="contact-directory-filters" id="contactDirectoryFilterList" role="group" aria-label="Lọc danh bạ">
         <button type="button" class="contact-directory-filter" data-contact-directory-filter="all">Tất cả</button>
         <button type="button" class="contact-directory-filter" data-contact-directory-filter="unread">Chưa đọc</button>
         <button type="button" class="contact-directory-filter" data-contact-directory-filter="customer">KH</button>
@@ -40605,7 +40672,7 @@ function ensureDirectoryTools(){
         <button type="button" class="contact-directory-filter" data-contact-directory-filter="friend">Bạn bè</button>
         <button type="button" class="contact-directory-filter" data-contact-directory-filter="other">Khác</button>
       </div>
-      <button type="button" class="contact-directory-filter-more" data-contact-directory-filter-more data-direction="next" aria-label="Xem thêm nhóm" hidden></button>
+      <button type="button" class="contact-directory-filter-more" data-contact-directory-filter-more data-direction="next" aria-label="Xem thêm nhóm" aria-expanded="false" aria-controls="contactDirectoryFilterList" hidden></button>
     </div>
     `;
   body.insertBefore(tools,nav);
@@ -40656,8 +40723,19 @@ function ensureDirectoryTools(){
   setDirectorySection(directorySection,{restore:true});
   const rail=tools.querySelector('.contact-directory-filters');
   const more=tools.querySelector('[data-contact-directory-filter-more]');
+  const filterLine=tools.querySelector('.contact-directory-filter-line');
   function syncFilterArrow(){
     if(!rail||!more)return;
+    if(mobileDirectoryHeaderVisible()){
+      const expanded=filterLine?.dataset.expanded==='true';
+      more.hidden=false;
+      more.dataset.direction=expanded?'previous':'next';
+      more.setAttribute('aria-expanded',String(expanded));
+      more.setAttribute('aria-label',expanded?'Thu gọn nhóm khách hàng':'Xem thêm nhóm khách hàng');
+      rail.scrollLeft=0;
+      return;
+    }
+    more.setAttribute('aria-expanded','false');
     const scrollable=rail.scrollWidth>rail.clientWidth+3;
     more.hidden=!scrollable;
     const atEnd=rail.scrollLeft+rail.clientWidth>=rail.scrollWidth-3;
@@ -40667,6 +40745,12 @@ function ensureDirectoryTools(){
   rail?.addEventListener('scroll',syncFilterArrow,{passive:true});
   more?.addEventListener('click',()=>{
     if(!rail)return;
+    if(mobileDirectoryHeaderVisible()){
+      if(filterLine)filterLine.dataset.expanded=
+        String(filterLine.dataset.expanded!=='true');
+      syncFilterArrow();
+      return;
+    }
     const atEnd=rail.scrollLeft+rail.clientWidth>=rail.scrollWidth-3;
     rail.scrollBy({left:atEnd?-rail.scrollWidth:Math.max(100,rail.clientWidth*.7),behavior:'smooth'});
   });
@@ -40686,6 +40770,8 @@ function ensureDirectoryTools(){
         peer.dataset.active=String(active);
         peer.setAttribute('aria-pressed',String(active));
       }
+      if(filterLine)filterLine.dataset.expanded='false';
+      syncFilterArrow();
       syncDirectoryRows({reorder:false});
     });
   }
