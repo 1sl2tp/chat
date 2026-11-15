@@ -1,3 +1,13 @@
+## 2026-11-16 — TELE-002 · Supabase Edge isolated Telegram Topic smoke test
+
+- **Phạm vi:** v21-telegram-pilot Edge Function riêng trong project Chat canonical, không gọi backend CRM hoặc Render. Mã nguồn riêng, không thêm cron, webhook hay poll.
+- **Bảo mật:** token được đọc từ Supabase Secrets, chưa từng đưa vào mã nguồn; ADMIN_USER_ID và CHAT_ID phải khớp. Chỉ một lệnh /pilot Telegram từ đúng user/chat có thể tạo một Topic thử. HTTP status không xuất secret/ID. Bot phải là @taphoa_chat_bridge_bot và private Topics enabled.
+- **Độ an toàn:** một lần gọi /probe với cửa sổ giới hạn; getUpdates xác nhận offset trước khi tạo Topic. API ACK phải khớp thread ID + chat ID. Không có fallback sai General, không có ghi DB/tin Zalo/công nợ.
+- **Kiểm thử:** bridge/telegram/test/edge-pilot.test.mjs, workflow Telegram pilot offline; sau deploy cần trực tiếp xác nhận status và nhìn Topic trên Telegram. Multi-instance idempotency cần backend mapping durable trước production.
+- **Rollback:** tắt/xóa Edge Function v21-telegram-pilot; không ảnh hưởng hệ thống đang dùng.
+
+---
+
 ## 2026-11-16 — TELE-001 · Thử Telegram Topic tách biệt, chưa kích hoạt production
 
 - **Nhu cầu:** thử giao diện Telegram chính thức thay UI hội thoại Chat, mỗi khách thành Topic; giữ Supabase canonical và Render → Zalo nguyên trạng.
