@@ -1,3 +1,14 @@
+## 2026-11-16 — TELE-001 · Thử Telegram Topic tách biệt, chưa kích hoạt production
+
+- **Nhu cầu:** thử giao diện Telegram chính thức thay UI hội thoại Chat, mỗi khách thành Topic; giữ Supabase canonical và Render → Zalo nguyên trạng.
+- **Chỉ tác động:** thư mục mới bridge/telegram và CI offline riêng; không import vào Chat Web/PWA, không sửa RPC/Reatime/cron/media, Supabase production hay Render.
+- **An toàn:** mặc định ba khách giả, không mạng; có thể chỉ đọc tối đa ba account ID được chọn. Chỉ với --apply + BotFather token/chat ID cấu hình riêng mới tạo tối đa một Topic và một tin kiểm tra trên Telegram chủ quản.
+- **Bằng chứng cần có:** kiểm tra getMe/Chat, Topic được tạo, sendMessage ACK đúng message_thread_id; chống nhầm General/topic khác. Private Topic lỗi BOT_TOPIC_WRONG_HOME có fallback thử group forum bằng lệnh riêng, không tự đẩy tin.
+- **Chưa làm:** không lưu mapping live, chưa phát sự kiện Chat thật, chưa gửi/nghe Zalo hoặc media khách, chưa E4 iPhone. Điều kiện kích hoạt: test offline PASS, có bot đã bật Topics và chat ID quản trị, thử nhận tin đúng Topic ở Telegram.
+- **Rollback:** bỏ phần riêng bridge/telegram; Chat, nghiệp vụ và dữ liệu giữ nguyên.
+
+---
+
 ## 2026-11-13 — BANK-346 · Khôi phục bill Agribank đến muộn có tiền tố MBVCB (E0–E4 verified)
 
 - **Triệu chứng E0:** Một bill thật đọc thành `amount_read`, đã có thông báo Agribank cùng tiền/ngày/phút nhưng chưa ghi thu; event wake trả HTTP 202 `existing:amount_read`. Cơ chế phân tích nội dung trước đây hỗ trợ QR và `MB(6 số)(nội dung)`, nhưng không nhận đúng thông báo `MBVCB.<ref>.<routing>.<nội dung>.CT tu ... toi ... tai AGRIBANK`; vì vậy `match_preview` chưa thể thành `candidate_unique`. Không phải lỗi kết nối ngân hàng hoặc thiếu số tiền.
