@@ -48,7 +48,12 @@ def test_filters_reveal_clipped_categories_by_touch_or_button():
     assert "rail.scrollWidth>rail.clientWidth+3" in DIRECTORY
     assert "rail.scrollBy({left:atEnd?-rail.scrollWidth:Math.max(100,rail.clientWidth*.7),behavior:'smooth'})" in DIRECTORY
     assert "more.hidden=!scrollable" in DIRECTORY
-    assert 'aria-label="Lọc danh bạ, cuộn ngang để xem thêm"' in DIRECTORY
+    # Desktop keeps the horizontal carousel; mobile uses the same group list
+    # through a 44px accessible disclosure without deleting any category.
+    assert 'aria-label="Lọc danh bạ"' in DIRECTORY
+    assert 'aria-controls="contactDirectoryFilterList"' in DIRECTORY
+    assert "more.setAttribute('aria-expanded',String(expanded))" in DIRECTORY
+    assert "if(mobileDirectoryHeaderVisible())" in DIRECTORY
     assert "if(scrollToTop)scrollHost.scrollTop=0" in DIRECTORY
 
 
