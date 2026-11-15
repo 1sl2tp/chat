@@ -1,7 +1,7 @@
--- BANK-362 (PROPOSED / NOT APPLIED): same-transaction ACK for verified
+-- BANK-362 (ARCHIVED PROPOSAL): same-transaction ACK for verified
 -- collections created by the existing two-minute financial-retry cron.
--- Do not execute as an ad hoc production SQL patch. Promote through the
--- reviewed, versioned DB migration pipeline only after E2/CI checks.
+-- HISTORICAL COPY: already applied as migration 20261115125154
+-- bank362_immediate_verified_collection_ack. Never execute this file again.
 --
 -- Why: receipt/ledger rows can be committed by chat_bank_auto_collect_retry()
 -- at e.g. 18:34, while the independent ACK cron runs at 18:36.
