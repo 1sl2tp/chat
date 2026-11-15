@@ -4,7 +4,11 @@ const fs=require('node:fs');
 const path=require('node:path');
 
 const sql=fs.readFileSync(path.join(__dirname,'../docs/proposed-sql/BANK_362_immediate_retry_ack_NOT_APPLIED.sql'),'utf8');
-const norm=sql.replace(/--[^\n]*/g,'').replace(/\s+/g,' ').trim().toLowerCase();
+const migration=fs.readFileSync(path.join(__dirname,'../supabase/migrations/20261115195100_bank362_immediate_verified_collection_ack.sql'),'utf8');
+const normalize=source=>source.replace(/--[^\n]*/g,'').replace(/\s+/g,' ').trim().toLowerCase();
+const norm=normalize(sql);
+assert.equal(normalize(migration),norm,'versioned migration must match the verified SQL proposal');
+assert.match(migration,/BANK-362: versioned migration/, 'migration may promote the proposal');
 
 assert.match(sql,/PROPOSED \/ NOT APPLIED/, 'DB proposal is deliberately not live');
 assert.match(norm,/v_collect := public\.chat_bank_auto_collect_retry\(20\)/, 'reuse the only guarded financial retry writer');
