@@ -25,8 +25,11 @@ export function prepareStatus(mode,env){
     'NCC production release failed; see Deploy NCC AI Chat Edge logs';
   }
  }else throw Error('Invalid release status mode');
- return {state,context:CONTEXT,description,
-  target_url:'https://github.com/'+OWNER_REPO+'/actions/workflows/deploy-ncc-ai-room-edge.yml'};
+ const runId=String(env.GITHUB_RUN_ID||'');
+ const runUrl=/^[1-9][0-9]{4,19}$/.test(runId)?
+  'https://github.com/'+OWNER_REPO+'/actions/runs/'+runId:
+  'https://github.com/'+OWNER_REPO+'/actions/workflows/deploy-ncc-ai-room-edge.yml';
+ return {state,context:CONTEXT,description,target_url:runUrl};
 }
 export async function emitStatus(mode,{env=process.env,fetchImpl=fetch}={}){
  const payload=prepareStatus(mode,env);
