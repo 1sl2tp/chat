@@ -1,3 +1,12 @@
+## 2026-11-16 — TELE-003: Telegram dùng đủ 143 tài khoản Chat
+
+- Nguồn duy nhất: v21_accounts role=user chưa xóa; 143 tài khoản lúc kiểm tra. Không nhập Zalo contacts (350) hoặc lọc theo Zalo links (125).
+- bridge/telegram/src/topic-directory.mjs dựng kế hoạch Topic theo UUID Chat, hỗ trợ tên trùng, khách chưa nhắn tin, idempotent keep/rename/create; mặc định plan-only, không gọi Telegram hoặc ghi production DB.
+- test/topic-directory.test.mjs có bộ mô phỏng 143 tài khoản, trùng Topic, sai Telegram chat và độ dài tên UTF-8.
+- Ảnh Telegram Web hiện tại chỉ có Topic thử TELE-002. Chưa khởi tạo 143 Topic do cần mapping bền vững trước khi thực hiện.
+
+---
+
 ## 2026-11-16 — TELE-002 · Supabase Edge isolated Telegram Topic smoke test
 
 - **Phạm vi:** v21-telegram-pilot Edge Function riêng trong project Chat canonical, không gọi backend CRM hoặc Render. Mã nguồn riêng, không thêm cron, webhook hay poll.
