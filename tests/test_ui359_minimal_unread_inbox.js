@@ -45,6 +45,6 @@ assert(dir.includes("mobileDirectoryHeaderVisible()"));
 assert(css.includes('.contact-directory-filter-line:not([data-expanded="true"])'));
 assert(css.includes('.contact-directory-filter-line[data-expanded="true"] .contact-directory-filters'));
 assert(source.includes('V21.72.39')&&sw.includes('V21.72.39'));
-assert(sw.includes('pwa-chat-ui359-minimal-inbox-20261115'));
+const epoch=sw.match(/const SHELL_CACHE_EPOCH='pwa-chat-ui(\\d+)-[^']+'/);\nassert(epoch && Number(epoch[1])>=359,'PWA epoch must preserve UI-359 release and allow newer UI releases');;
 assert(sw.includes('CACHE_NAME'));
 console.log('PASS UI-359 unread cue, compact contact filters, release');
