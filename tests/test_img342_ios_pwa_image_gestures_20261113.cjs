@@ -24,8 +24,8 @@ assert.match(snippet,/passive:false/);
 assert.match(snippet,/contacts\.size>=2/);
 assert.match(snippet,/Math\.abs\(dx\)>45/);
 assert.match(snippet,/setImageViewerZoom\(imageViewerZoom>1\?1:2\.5/);
-assert.match(orientation,/\.image-viewer-overlay\[open\] \.image-review-head\{z-index:12\}/);
-assert.match(orientation,/bottom:calc\(7\.8rem \+ env\(safe-area-inset-bottom,0px\)\)/);
+assert.match(orientation,/\.image-review \.image-review-head>\.image-review-zoom-controls/);
+assert.match(orientation,/position:static/);
 // The viewer regression must not pin a superseded release cache epoch.
 assert.match(sw,/SHELL_CACHE_EPOCH='pwa-chat-[a-z0-9-]+'/);
 
@@ -148,8 +148,8 @@ assert.equal(ctx.imageViewerZoom,3,'WebKit native gesturechange must zoom image'
 gesture('gestureend',3);
 assert.equal(ctx.imageViewerPinchRendering,false,'gestureend re-renders full-res pixels');
 assert(preventedGesture,'native page pinch must be blocked inside the viewer');
-// Dedicated +/- control is INSIDE main, not the non-interactive header.
-assert.match(app,/head\.append\(heading,close\);/);
-assert.match(app,/main\.append\(image,prev,next,meta,zoomControls\);/);
-assert.match(orientation,/\.image-review \.image-review-main>\.image-review-zoom-controls/);
+// Dedicated +/- control is always visible in the header, above the filmstrip.
+assert.match(app,/head\.append\(heading,zoomControls,close\);/);
+assert.match(app,/main\.append\(image,prev,next,meta\);/);
+assert.match(orientation,/\.image-review \.image-review-head>\.image-review-zoom-controls/);
 console.log('IMG-342 iOS pinch/pan/swipe/double-tap, cancellation and visible zoom controls PASS');
