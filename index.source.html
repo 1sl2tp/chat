@@ -1657,6 +1657,54 @@ button{
   border-bottom:1px solid #282828;
 }
 .image-review-heading{min-width:0;display:flex;flex-direction:column;gap:.16rem;}
+/* IMG-372: zoom is a first-class action beside Close on iPhone/PWA.
+   The stage/filmstrip can no longer cover or intercept its click target. */
+.image-review-head{gap:.5rem;}
+.image-review-head>.image-review-zoom-controls{
+  position:static;
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  gap:.125rem;
+  min-width:0;
+  margin-left:auto;
+  margin-right:0;
+  padding:.125rem;
+  border:1px solid #ffffff38;
+  border-radius:.75rem;
+  background:#222326;
+  height:2.5rem;
+  pointer-events:auto;
+  touch-action:manipulation;
+}
+.image-review-head .image-review-zoom-button{
+  display:grid;
+  place-items:center;
+  width:2rem;
+  height:2rem;
+  padding:0;
+  border:0;
+  border-radius:.5rem;
+  background:transparent;
+  color:#fff;
+  font:650 1.125rem/1 system-ui,sans-serif;
+  touch-action:manipulation;
+}
+.image-review-head .image-review-zoom-button:disabled{opacity:.4;}
+.image-review-head .image-review-zoom-value{
+  display:block;
+  width:2.45rem;
+  flex:0 0 2.45rem;
+  text-align:center;
+  color:#fff;
+  font:650 .625rem/1 system-ui,sans-serif;
+  font-variant-numeric:tabular-nums;
+}
+@media(max-width:380px){
+  .image-review-head{gap:.3rem;padding-inline:.65rem;}
+  .image-review-head .image-review-zoom-value{width:2.1rem;flex-basis:2.1rem;}
+}
+
 .image-review-title{font-size:.9375rem;font-weight:650;line-height:1.15rem;color:#fff;}
 .image-review-count{font-size:.75rem;line-height:1rem;color:#aaa;font-weight:550;}
 .image-review-timestamp{font-size:.73rem;line-height:1.05rem;color:rgba(255,255,255,.82);font-weight:500;white-space:nowrap;}
