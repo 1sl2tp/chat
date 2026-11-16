@@ -43,11 +43,24 @@ function verifiedMccMemo(raw,bill,event){
  const billMinute=bankTime(bill?.transfer_at_vn);
  if(bankMinute===null||wrappedMinute===null||billMinute===null||
     Math.abs(bankMinute-wrappedMinute)>60000||Math.abs(bankMinute-billMinute)>60000)return null;
+ // BANK-363: Some MCC notices append the same FT reference to the bank
+ // memo, while the receipt prints it separately. Strip ONLY an exact,
+ // anchored FT suffix also visibly read from the receipt. Do not guess refs.
+ const bankLiteral=String(m[2]||"").trim();
+ const billLiteral=String(bill?.transfer_content||"").trim();
+ const printedRef=String(bill?.transfer_reference||"").trim().toUpperCase();
+ const suffix=/^(.+?)\s+(FT[0-9A-Z]{10,24})$/i.exec(bankLiteral);
+ const exactMemo=tidy(bankLiteral)===tidy(billLiteral);
+ const exactTrailingRef=!exactMemo&&suffix&&printedRef
+   &&suffix[2].toUpperCase()===printedRef
+   &&tidy(suffix[1])===tidy(billLiteral);
+ if(!exactMemo&&!exactTrailingRef)return null;
+ const verifiedMemo=exactTrailingRef?suffix[1]:bankLiteral;
  const sender=normalizeBillRecipientName(bill?.sender_name);
- const memo=normalizeBillRecipientName(m[2]);
- if(!sender||sender==="BUI XUAN TUNG"||!memo.startsWith(sender+" "))return null;
- if(tidy(memo)!==tidy(bill?.transfer_content)||tidy(memo).length<12)return null;
- return m[2];
+ const memo=normalizeBillRecipientName(verifiedMemo);
+ if(!sender||sender==="BUI XUAN TUNG"||!memo.startsWith(sender+" ")
+    ||tidy(verifiedMemo).length<12)return null;
+ return verifiedMemo;
 }
 // BANK-356: Bank-side technical routing prefix is not part of the payer's
 // original memo. Only unwrap exact anchored IBFT + full sender + full note.
