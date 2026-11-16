@@ -2506,7 +2506,8 @@ function ensureImageViewer(){
   close.className='image-review-control image-review-close';
   close.setAttribute('aria-label','Đóng ảnh');
   close.appendChild(viewerIconSvg('close'));
-  head.append(heading,close);
+  // IMG-372: fixed visible +/- controls in the header, never under the filmstrip.
+  head.append(heading,zoomControls,close);
 
   const main=document.createElement('div');
   main.className='image-review-main';
@@ -2530,7 +2531,7 @@ function ensureImageViewer(){
 
   const meta=document.createElement('div');
   meta.className='image-review-meta';
-  main.append(image,prev,next,meta,zoomControls);
+  main.append(image,prev,next,meta);
 
   const bottom=document.createElement('div');
   bottom.className='image-review-bottom';
