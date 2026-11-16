@@ -106,41 +106,33 @@ function installStyle(){
       backdrop-filter:blur(16px);
       -webkit-backdrop-filter:blur(16px);
     }
-    /* IMG-343: zoom controls live INSIDE the interactive image stage.
-       No child of the non-interactive header may own a mobile zoom hit area. */
-    .image-review .image-review-main>.image-review-zoom-controls{
-      position:absolute;
+    /* IMG-372: keep +/- in the fixed head, outside the gesture stage,
+       so filmstrip overlays and iOS touch handlers cannot hide or steal it.
+       Rotate remains the independent bottom-stage tool. */
+    .image-review .image-review-head>.image-review-zoom-controls{
+      position:static;
+      flex:0 0 auto;
       z-index:14;
-      right:1rem;
-      left:auto;
-      bottom:1rem;
-      margin:0;
-      transform:none;
+      margin-left:auto;
+      margin-right:0;
       pointer-events:auto;
       touch-action:manipulation;
     }
-    /* IMG-342: the filmstrip is z-index:9. Controls positioned at the
-       previous bottom .62rem were hidden behind it because their parent
-       header had z-index:8. Keep both tools above the filmstrip and lift
-       the containing stacking context, not just each child. */
     @media(max-width:700px){
       .image-viewer-overlay[open] .image-review-head{z-index:12}
-      .image-review .chat-image-viewer-rotate-controls,
-      .image-review .image-review-zoom-controls{
+      .image-review .chat-image-viewer-rotate-controls{
         position:absolute;
         z-index:14;
         right:.75rem;
-        left:auto;
+        left:calc(50% - 5.2rem);
         bottom:calc(7.8rem + env(safe-area-inset-bottom,0px));
         transform:none;
         margin:0;
         pointer-events:auto;
       }
-      .image-review .chat-image-viewer-rotate-controls{left:calc(50% - 5.2rem)}
     }
     @media(max-width:700px) and (max-height:480px){
-      .image-review .chat-image-viewer-rotate-controls,
-      .image-review .image-review-main>.image-review-zoom-controls{
+      .image-review .chat-image-viewer-rotate-controls{
         bottom:calc(6.4rem + env(safe-area-inset-bottom,0px));
       }
     }
