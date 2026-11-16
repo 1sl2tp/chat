@@ -30,8 +30,9 @@ for action,label in [
     assert f"action:'{action}',label:'{label}'" in admin
 # Six customer actions remain untouched; the three new actions are only for
 # the verified Báo Giá group (not for arbitrary contacts).
-assert admin.count("actionButton({action:") == 9
+assert admin.count("actionButton({action:") == 10
 for action,label in [
+    ("advice-all","🧾 Tư vấn tất cả"),
     ("advice-milk","🥛 Tư vấn sữa"),
     ("advice-hang-thuong","🛒 Tư vấn hàng thường"),
     ("advice-hang-u","🧺 Tư vấn hàng U"),

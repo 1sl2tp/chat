@@ -135,6 +135,7 @@ function ensureAdminMenu(){
     advisory=document.createElement('div');
     advisory.setAttribute(ADVISORY_ATTR,'');
     advisory.append(
+      actionButton({action:'advice-all',label:'🧾 Tư vấn tất cả',kind:'quote'}),
       actionButton({action:'advice-milk',label:'🥛 Tư vấn sữa',kind:'recent-sales'}),
       actionButton({action:'advice-hang-thuong',label:'🛒 Tư vấn hàng thường',kind:'quote'}),
       actionButton({action:'advice-hang-u',label:'🧺 Tư vấn hàng U',kind:'stock'}),
@@ -176,14 +177,14 @@ async function quoteClient(){
   if(!quoteModulePromise)quoteModulePromise=import('./quote-client.js').then(()=>window.V21QuoteClient||null);
   return quoteModulePromise;
 }
-async function sendAdminText(value,contactId,reason='admin-chat-send'){
+async function sendAdminText(value,contactId,reason='admin-chat-send',stableClientId=''){
   const text=String(value||'').trim();
   const target=String(contactId||'').trim();
   if(!text||!target)throw new Error('conversation_not_ready');
   const messageStore=window.V21MessageStore||null;
   const sync=window.V21SyncEngine||null;
   const messageState=messageStore?.snapshot?.()||{};
-  const clientId=window.V21RuntimeId?.create?.()||`admin-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+  const clientId=String(stableClientId||'')||window.V21RuntimeId?.create?.()||`admin-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
   if(messageStore?.send&&messageState.ready&&String(messageState.currentContactId||'')===target){
     await messageStore.send({clientId,text,contactId:target,conversationId:messageState.currentConversationId||null,reply:null});
   }else{
@@ -198,6 +199,40 @@ async function sendAdminText(value,contactId,reason='admin-chat-send'){
    or bypasses the canonical Chat→Zalo outbound owner.
    Manual advisory is preview-only until an explicit Admin confirmation.
    The server validates the exact linked Báo Giá group and deduplicates commands. */
+
+/* UI-360: one bounded, manually approved message combining all 3 existing
+   server-authorized advisory previews. No new scheduler, RPC or Zalo bridge.
+   Every preview must belong to the exact linked Báo Giá group. */
+function buildAllManualAdvisory(previews){
+  const groups=[
+    {kind:'milk',heading:'🥛 SỮA'},
+    {kind:'hang-thuong',heading:'🛒 HÀNG THƯỜNG'},
+    {kind:'hang-u',heading:'🧺 HÀNG U'}
+  ];
+  if(!Array.isArray(previews)||previews.length!==groups.length)
+    throw new Error('advisory_all_incomplete');
+  const blocks=groups.map((group,index)=>{
+    const item=previews[index];
+    if(!item?.ok||item.preview!==true||item.kind!==group.kind||!item.body)
+      throw new Error('advisory_all_preview_mismatch');
+    const items=String(item.body).split(/\r?\n/)
+      .map(line=>line.trim()).filter(line=>line.startsWith('- ')&&line.length>2)
+      .slice(0,5);
+    if(!items.length)throw new Error('advisory_all_group_empty');
+    return {heading:group.heading,items};
+  });
+  const intro='📋 TƯ VẤN TẤT CẢ NHÓM HÀNG\n\nEm chào anh/chị ạ!\nEm gửi gợi ý theo từng nhóm để anh/chị cân đối nhập hàng:';
+  const footer='📦 Tồn kho, quy cách, hạn sử dụng và lịch giao sẽ được kiểm tra khi chốt đơn.\n🤝 Anh/chị cứ gửi tên hàng, số lượng và giá mong muốn để em đối chiếu, hỗ trợ riêng ạ!';
+  const render=()=>[intro,...blocks.map(block=>'\n'+block.heading+'\n'+block.items.join('\n')),'\n'+footer].join('\n');
+  let body=render();
+  while(body.length>1400){
+    const largest=blocks.reduce((best,block)=>block.items.length>best.items.length?block:best,blocks[0]);
+    if(largest.items.length<=1)throw new Error('advisory_all_too_long');
+    largest.items.pop();body=render();
+  }
+  return body;
+}
+
 function closeManualAdvisory({restoreFocus=true}={}){
   if(!manualAdvisoryOverlay)return false;
   manualAdvisoryOverlay.remove();
@@ -208,14 +243,14 @@ function closeManualAdvisory({restoreFocus=true}={}){
 async function openManualAdvisory(contactId,kind){
   if(!isManualAdvisoryGroup()||String(activeContactId())!==String(contactId))
     throw new Error('advisory_target_invalid');
-  if(!['milk','hang-thuong','hang-u'].includes(kind))
+  if(!['all','milk','hang-thuong','hang-u'].includes(kind))
     throw new Error('advisory_kind_invalid');
   const client=authStore()?.getClient?.()||null;
   const root=document.getElementById('globalOverlayRoot');
   if(!client||!root)throw new Error('advisory_unavailable');
   if(manualAdvisoryOverlay)return false;
   if(!lockQuoteBackground())throw new Error('another_dialog_open');
-  const title={'milk':'Tư vấn sữa','hang-thuong':'Tư vấn hàng thường','hang-u':'Tư vấn hàng U'}[kind];
+  const title={'all':'Tư vấn tất cả','milk':'Tư vấn sữa','hang-thuong':'Tư vấn hàng thường','hang-u':'Tư vấn hàng U'}[kind];
   const overlay=document.createElement('section');
   overlay.className='admin-composer-quote-overlay';
   overlay.dataset.manualAdvisoryOverlay='';
@@ -241,7 +276,32 @@ async function openManualAdvisory(contactId,kind){
   let busy=false;
   let completed=false;
   let commandId='';
+  let approvedAllBody='';
   const rpc=async(sendNow)=>{
+    if(kind==='all'){
+      if(sendNow){
+        if(!approvedAllBody||!commandId||!isManualAdvisoryGroup()||
+           String(activeContactId())!==String(contactId))
+          throw new Error('advisory_all_not_confirmed');
+        // One canonical Chat text, one stable clientId, existing Chat→Zalo
+        // transport. Never call three separate send RPCs or claim Zalo ACK.
+        await sendAdminText(approvedAllBody,contactId,'manual-all-advice',commandId);
+        return {ok:true,contact_id:String(contactId),kind,status:'queued'};
+      }
+      const kinds=['milk','hang-thuong','hang-u'];
+      const previews=[];
+      for(const group of kinds){
+        const {data,error}=await client.rpc('chat_admin_manual_advisory',{
+          p_contact_id:String(contactId),p_kind:group,p_command_id:null,p_send:false
+        });
+        if(error)throw error;
+        if(!data?.ok||data.preview!==true||String(data.contact_id)!==String(contactId)||data.kind!==group)
+          throw new Error('advisory_all_preview_mismatch');
+        previews.push(data);
+      }
+      approvedAllBody=buildAllManualAdvisory(previews);
+      return {ok:true,preview:true,contact_id:String(contactId),kind,body:approvedAllBody};
+    }
     const {data,error}=await client.rpc('chat_admin_manual_advisory',{
       p_contact_id:String(contactId),p_kind:kind,
       p_command_id:sendNow?commandId:null,p_send:Boolean(sendNow)
@@ -266,9 +326,11 @@ async function openManualAdvisory(contactId,kind){
     try{
       const data=await rpc(true);
       completed=true;
-      status.textContent=data.status==='sent'
-        ?'Đã gửi tư vấn tới nhóm Báo Giá.'
-        :'Đã lưu tin trong Chat và xếp hàng gửi Zalo. Có thể kiểm tra trạng thái trong hội thoại.';
+      status.textContent=kind==='all'
+        ?'Đã tạo một tin tư vấn tổng hợp trong Chat; kiểm tra trạng thái đồng bộ Zalo tại hội thoại.'
+        :data.status==='sent'
+          ?'Đã gửi tư vấn tới nhóm Báo Giá.'
+          :'Đã lưu tin trong Chat và xếp hàng gửi Zalo. Có thể kiểm tra trạng thái trong hội thoại.';
       send.hidden=true;
       const cancel=overlay.querySelector('.admin-composer-quote-cancel');
       if(cancel)cancel.textContent='Đóng';
@@ -1018,6 +1080,7 @@ async function runAction(action){
   if(!currentAdmin())return false;
   const contactId=activeContactId();
   const advisoryKind={
+    'advice-all':'all',
     'advice-milk':'milk',
     'advice-hang-thuong':'hang-thuong',
     'advice-hang-u':'hang-u'
