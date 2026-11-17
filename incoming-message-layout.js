@@ -43,7 +43,12 @@ function parseLine(line,isOrder){
   m=clean.match(bare);
   // A unit alone is not a product name: "2 thùng" / "2 gói" are
   // incomplete pick instructions and must stay in the raw message.
-  if(m&&!new RegExp('^'+U+'
+  if(m){
+    const onlyUnit=['thùng','thung','th','lốc','loc','hộp','hop','gói','goi','chai','bịch','bich','bao','kiện','kien','cái','cai','kg','lon','cây','cay','bộ','bo'];
+    if(!onlyUnit.includes(m[2].trim().toLocaleLowerCase('vi-VN')))
+      return entry(m[2],m[1],'',raw);
+  }
+ }
  // Bare trailing numbers are deliberately NOT quantities:
  // "cosy 480 335" and "Mì chính bát 2" may be names/prices.
  return null;
