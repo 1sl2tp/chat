@@ -1,3 +1,14 @@
+## 2026-11-17 — CHAT-381 · Sắp xếp tin khách lấy hàng và ghi chú theo chủ đề
+
+- **E0:** User yêu cầu Chat trình bày gọn tin khách gửi, nhất là thông báo lấy hàng với cách ghi `2`, `2th`, `2 thùng`, cùng ghi chú theo từng chủ đề. Giao diện trước đó `app.js::renderMessageBody` chỉ giữ văn bản theo dòng, không có thước tên hàng/SL/ghi chú.
+- **MUST-STAY:** Không thay nội dung/vòng đời tin nhắn, không viết Supabase/Zalo/đơn hàng/công nợ, không tạo tin trả lời hoặc OCR/AI tự phát. Chỉ tin người khác gửi và **không có media** mới được phân tích. Số mơ hồ (`cosy 480 335`, `cho 12 358`, `Mì chính bát 2`) giữ nguyên để không suy diễn giá/mã thành SL. Không có tên hàng thì không nhận `2th`, `2 thùng` là mặt hàng.
+- **Owner:** `incoming-message-layout.js` phân tích/hiển thị thuần client, `incoming-message-layout.css` bố cục mobile/desktop, `app.js::renderConversationMessageBody` nối cả tạo và reconcile tin, `index.source.html` build canonical, `sw.js` đổi epoch public PWA (không xóa dữ liệu riêng). Các nhóm: Lấy hàng, Giao nhận, Giá/chiết khấu, Thanh toán, Ghi chú, Lời nhắn. Có mở `Xem tin nguyên văn` và chặn click/touch không mở menu tin.
+- **E1/E2:** `tests/test_chat381_incoming_message_brief_20261117.cjs` kiểm tra viết tắt SL, nhóm chủ đề, từ mơ hồ, HTML-text an toàn, nguyên văn và render hai đường; Verify V21 [#44040383079](https://github.com/1sl2tp/chat/actions/runs/44040383079) **SUCCESS** tại commit `a326addf490277327993c9d4cd0dc14967f140bf`.
+- **E3:** GitHub Pages [#44040383117](https://github.com/1sl2tp/chat/actions/runs/44040383117) **SUCCESS**; live `https://chat.taphoa.xyz/` và `version.json` cùng build `a5854f570ed725c5b71096a5553a6889d8228693dc974a399ae1ee079310c5a6`.
+- **E4/E5:** Chưa nghiệm thu trực tiếp iPhone Safari/PWA, Chrome Android và desktop trên tin khách thật. Không dựa CI để nói mọi tin đã được nhóm chính xác. Cần quan sát ít nhất một báo lấy hàng nhiều dòng và một tin mơ hồ, mở/đóng nguyên văn khi cuộn.
+- **Rollback:** Revert đúng nguồn UI/stylesheet/import/service-worker epoch, rebuild canonical; không đụng DB, tin gốc hay lịch sử.
+
+---
 ## 2026-11-16 — TELE-004 · Bảng Telegram mapping đã áp dụng, kiểm thử PASS
 
 - **Người dùng cho phép** tạo bảng riêng `public.v21_telegram_topic_links`. Áp dụng Supabase migration 20261115223711, project `vtqhbhrkdxirqeqkgylo`.
