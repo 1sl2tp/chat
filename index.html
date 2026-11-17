@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="cf0d4d21549b11dc3fc034d3bfd4fcf9538d5ee3790765af686f3c28981f20cc">
+<meta name="app-build-id" content="1d2ee16a5bcd609606d07a9317b1b6c87f573eb4bddb2aa35b2ae0dc3e728fd5">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -17779,7 +17779,7 @@ function applySingleImagePresentation(wrap,media){
     (!hasMetadataRatio&&sameAsset&&knownRatio>0?knownRatio:0);
   const measuredMedia=stableRatio>0?{...media,aspectRatio:stableRatio}:media;
   const presentation=singleImagePresentation(measuredMedia);
-  const isOrderNotice=wrap.closest?.('.message-media-shell[data-order-notice="true"]')!==null;
+  const isOrderNotice=Boolean(wrap.closest?.('.message-media-shell[data-order-notice="true"]'));
   const noticeWidth=isOrderNotice&&presentation.kind==='portrait'
     ?Math.min(ORDER_NOTICE_PORTRAIT_WIDTH_PX,
       Math.max(1,Math.floor(ORDER_NOTICE_PORTRAIT_MAX_HEIGHT_PX*presentation.aspectRatio)))
