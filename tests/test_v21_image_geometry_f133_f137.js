@@ -47,3 +47,29 @@ const viewer=app.slice(app.indexOf('async function openImageViewer('),app.indexO
 assert(viewer.includes("imageViewerFilter='all';"));
 assert(!viewer.includes('v21_mark_read'));
 console.log('F-133..F-137 image geometry/gallery/viewer contract PASS');
+
+// CHAT-ORDER-IMAGE-20261117: order notice preview is not a generic portrait.
+// Keep exact 16A chat identity; ordinary photo/Gallery width contracts above
+// remain 260/560, 320/360 respectively.
+const orderStart=app.indexOf('const ORDER_NOTICE_PORTRAIT_WIDTH_PX=');
+const orderEnd=app.indexOf('function singleImagePresentation(',orderStart);
+assert(orderStart>0&&orderEnd>orderStart);
+const tagged=new Function('message',
+  app.slice(orderStart,orderEnd)+'\nreturn isTaphoaOrderImageMessage(message);');
+const committed='taphoa:123e4567-e89b-42d3-a456-426614174000:';
+for(const command of ['order','order-edit','deliver','staff-order']){
+  assert.equal(tagged({clientId:committed+command,media:{type:'image'}}),true,command);
+}
+for(const sample of [
+  {clientId:committed+'order',media:{type:'gallery'}},
+  {clientId:committed+'order',media:{type:'file'}},
+  {clientId:'photo-from-user',media:{type:'image'}},
+  {clientId:committed+'payment',media:{type:'image'}}
+]) assert.equal(tagged(sample),false,'never enlarge other private photos');
+assert(app.includes('ORDER_NOTICE_PORTRAIT_WIDTH_PX=320'));
+assert(app.includes('ORDER_NOTICE_PORTRAIT_MAX_HEIGHT_PX=760'));
+assert(app.includes("mediaShell.dataset.orderNotice=isTaphoaOrderImageMessage(message)?'true':'false'"));
+assert(app.includes("if(mediaShell.dataset.orderNotice==='true')"));
+assert(css.includes('.message-media-shell[data-order-notice="true"] > .media-image-tile[data-image-presentation="portrait"]'));
+assert(css.includes('max-height:none;'));
+console.log('CHAT-ORDER-IMAGE-20261117 exact order media identity/readable aspect PASS');
