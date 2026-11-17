@@ -1,0 +1,59 @@
+/* CHAT-381: reversible structured view, no scroll/keyboard/lane overrides. */
+.incoming-brief{
+ box-sizing:border-box;display:flex;flex-direction:column;gap:8px;
+ width:100%;max-width:100%;min-width:0;padding:9px 10px;
+ border:1px solid rgba(80,97,117,.18);border-radius:12px;
+ background:rgba(255,255,255,.12);
+ white-space:normal;font-size:13px;line-height:1.45;overflow-wrap:anywhere;
+}
+.incoming-brief-head{
+ display:flex;justify-content:space-between;align-items:baseline;
+ flex-wrap:wrap;gap:3px 12px;min-width:0;
+}
+.incoming-brief-title{font-size:13px;line-height:19px;font-weight:750}
+.incoming-brief-count{font-size:11px;line-height:16px;opacity:.7;white-space:nowrap}
+.incoming-brief-products{
+ box-sizing:border-box;display:flex;flex-direction:column;
+ min-width:0;border-top:1px solid rgba(80,97,117,.16);
+}
+.incoming-brief-item{
+ box-sizing:border-box;display:grid;grid-template-columns:minmax(0,1fr) auto;
+ align-items:start;column-gap:12px;row-gap:2px;
+ min-width:0;padding:7px 0;
+ border-bottom:1px solid rgba(80,97,117,.13);
+}
+.incoming-brief-product{min-width:0;font-size:13px;line-height:19px;overflow-wrap:anywhere}
+.incoming-brief-quantity{
+ justify-self:end;text-align:right;max-width:104px;font-weight:750;
+ font-size:13px;line-height:19px;
+ font-variant-numeric:tabular-nums;white-space:normal;
+}
+.incoming-brief-topic{display:flex;flex-direction:column;gap:3px;min-width:0}
+.incoming-brief-topic-title{
+ font-size:11px;line-height:16px;font-weight:750;opacity:.75;
+ letter-spacing:.015em;
+}
+.incoming-brief-note{font-size:12px;line-height:18px;white-space:pre-wrap;overflow-wrap:anywhere}
+.incoming-brief-original{
+ box-sizing:border-box;min-width:0;border-top:1px solid rgba(80,97,117,.15);
+ padding-top:5px;
+}
+.incoming-brief-original-toggle{
+ display:list-item;list-style-position:inside;
+ padding:6px 0;min-height:30px;cursor:pointer;
+ font-size:12px;line-height:18px;font-weight:650;opacity:.85;
+ touch-action:manipulation;
+}
+.incoming-brief-original-toggle:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.incoming-brief-original-text{
+ box-sizing:border-box;min-width:0;max-width:100%;
+ padding:7px 8px;margin-top:4px;border-radius:8px;
+ background:rgba(110,125,145,.10);font-size:12px;
+ line-height:1.45;font-weight:400;white-space:pre-wrap;overflow-wrap:anywhere;
+ user-select:text;-webkit-user-select:text;
+}
+@media(max-width:360px){
+ .incoming-brief{padding:8px;gap:7px}
+ .incoming-brief-item{column-gap:7px}
+ .incoming-brief-quantity{max-width:88px}
+}
