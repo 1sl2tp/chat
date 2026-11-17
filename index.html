@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="31f4bcb9e3596ae8d23432216fe43447645ecaa55bb3190a2ed33037ffb31c60">
+<meta name="app-build-id" content="a5854f570ed725c5b71096a5553a6889d8228693dc974a399ae1ee079310c5a6">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -14811,6 +14811,8 @@ function render(target,input){
   el('div','incoming-brief-original-text',parsed.source));
  original.addEventListener('click',e=>e.stopPropagation());
  original.addEventListener('pointerdown',e=>e.stopPropagation());
+ // Mobile Safari must not interpret expanding the original as a message action.
+ original.addEventListener('touchstart',e=>e.stopPropagation(),{passive:true});
  root.append(original);
  target.replaceChildren(root);
  target.dataset.hasLink='false';
