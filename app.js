@@ -3095,6 +3095,16 @@ const MESSAGE_MEDIA_WIDTH_PX=360;
 const MESSAGE_PORTRAIT_WIDTH_PX=260;
 const MESSAGE_PORTRAIT_MAX_HEIGHT_PX=560;
 const MESSAGE_SQUARE_WIDTH_PX=320;
+// CHAT-ORDER-IMAGE-20261117: only tagged TAPHOA order PNGs use a more
+// readable portrait width. Ordinary photos, galleries and rotations retain
+// the existing 260/560 presentation rule.
+const ORDER_NOTICE_PORTRAIT_WIDTH_PX=320;
+const ORDER_NOTICE_PORTRAIT_MAX_HEIGHT_PX=760;
+function isTaphoaOrderImageMessage(message){
+  const clientId=String(message?.clientId||message?.client_id||'');
+  return message?.media?.type==='image'
+    && /^taphoa:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}:(order|order-edit|deliver|staff-order)$/i.test(clientId);
+}
 
 function singleImagePresentation(media){
   // F-133 rev2: choose the type by W/H first, then size its frame.
@@ -3142,14 +3152,19 @@ function applySingleImagePresentation(wrap,media){
     (!hasMetadataRatio&&sameAsset&&knownRatio>0?knownRatio:0);
   const measuredMedia=stableRatio>0?{...media,aspectRatio:stableRatio}:media;
   const presentation=singleImagePresentation(measuredMedia);
+  const isOrderNotice=wrap.closest?.('.message-media-shell[data-order-notice="true"]')!==null;
+  const noticeWidth=isOrderNotice&&presentation.kind==='portrait'
+    ?Math.min(ORDER_NOTICE_PORTRAIT_WIDTH_PX,
+      Math.max(1,Math.floor(ORDER_NOTICE_PORTRAIT_MAX_HEIGHT_PX*presentation.aspectRatio)))
+    :presentation.width;
   wrap.dataset.imagePresentation=presentation.kind;
   wrap.dataset.sourceAspectRatio=String(imageAspectRatio(measuredMedia));
-  wrap.style.width=`${presentation.width}px`;
-  wrap.style.setProperty('--message-media-width',`${presentation.width}px`);
+  wrap.style.width=`${noticeWidth}px`;
+  wrap.style.setProperty('--message-media-width',`${noticeWidth}px`);
   wrap.style.maxWidth='100%';
   wrap.style.aspectRatio=String(presentation.aspectRatio);
   const shell=wrap.closest?.('.message-media-shell[data-media-shell-kind="image"]');
-  if(shell)shell.style.setProperty('--message-media-width',`${presentation.width}px`);
+  if(shell)shell.style.setProperty('--message-media-width',`${noticeWidth}px`);
   const img=wrap.querySelector('img');
   if(img){
     img.style.objectFit='contain';
@@ -5392,6 +5407,7 @@ function patchMessageNode(node,message){
     }else{
       patchMessageMediaShell(mediaShell,message.media);
     }
+    mediaShell.dataset.orderNotice=isTaphoaOrderImageMessage(message)?'true':'false';
 
     existingMedia=mediaShell.querySelector(':scope > [data-message-media-root="true"]');
     const reuseKey=mediaRootReuseKey(message.media);
@@ -5409,6 +5425,10 @@ function patchMessageNode(node,message){
       }
     }
 
+    if(mediaShell.dataset.orderNotice==='true'){
+      const tile=mediaShell.querySelector(':scope > .media-image-tile[data-image-presentation]');
+      if(tile)applySingleImagePresentation(tile,message.media);
+    }
     patchMessageMediaShell(mediaShell,message.media);
     if(!mediaShell.querySelector(':scope > [data-message-media-root="true"]')){
       mediaShell.remove();
