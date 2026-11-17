@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="2e81868f7f7da365c40c6bf3da61c95b8cdf5bcf095dccd979bd7d8422cd83d5">
+<meta name="app-build-id" content="cf0d4d21549b11dc3fc034d3bfd4fcf9538d5ee3790765af686f3c28981f20cc">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -8355,8 +8355,14 @@ button{
 }
 /* F-133 rev2: portrait is chosen by image W/H, not viewport height. */
 .media-image-tile[data-image-presentation="portrait"]{
-  /* A long receipt can occupy more than one screen; never crop the preview. */
+  /* Ordinary portrait media stays bounded; taps open the full viewer. */
   max-height:560px;
+}
+/* CHAT-ORDER-IMAGE-20261117: an order notice has its own explicit media
+   identity. Display its COMPLETE PNG at a legible width rather than cropping
+   a long receipt or reshaping unrelated photos. */
+.message-media-shell[data-order-notice="true"] > .media-image-tile[data-image-presentation="portrait"]{
+  max-height:none;
 }
 .media-image-tile[data-image-presentation] > img{
   image-orientation:from-image;
@@ -23711,15 +23717,19 @@ function activeViewerAssetId(overlay){
 // IMG-281: a 90°/270° correction must rotate the frame geometry as well
 // as its pixels. A portrait source displayed sideways becomes a LANDSCAPE
 // bubble; otherwise the existing portrait 560px frame clips/letterboxes it.
-function rotatedImagePresentation(sourceRatio,rotation){
+function rotatedImagePresentation(sourceRatio,rotation,orderNotice=false){
   const ratio=Number(sourceRatio);
   if(!Number.isFinite(ratio)||ratio<=0)return null;
   const effectiveRatio=(rotation===90||rotation===270)?1/ratio:ratio;
+  // A recognized TAPHOA receipt gets a larger, readable preview but keeps
+  // its full pixels. Generic photos and gallery rotations stay unchanged.
+  const portraitWidth=orderNotice?320:260;
+  const portraitHeight=orderNotice?760:560;
   return{
     aspectRatio:effectiveRatio,
     kind:effectiveRatio<1?'portrait':effectiveRatio>1?'landscape':'square',
     width:effectiveRatio<1
-      ?Math.min(260,Math.max(1,Math.floor(560*effectiveRatio)))
+      ?Math.min(portraitWidth,Math.max(1,Math.floor(portraitHeight*effectiveRatio)))
       :effectiveRatio===1?320:360
   };
 }
@@ -23738,7 +23748,8 @@ function applyTileRotation(tile){
     const ratio=Number(tile.dataset.intrinsicAspectRatio)
       ||Number(tile.dataset.sourceAspectRatio)
       ||(img.naturalWidth>0&&img.naturalHeight>0?img.naturalWidth/img.naturalHeight:0);
-    const geometry=rotatedImagePresentation(ratio,rotation);
+    const orderNotice=tile.closest?.('.message-media-shell')?.dataset?.orderNotice==='true';
+    const geometry=rotatedImagePresentation(ratio,rotation,orderNotice);
     if(geometry){
       tile.dataset.imagePresentation=geometry.kind;
       tile.dataset.rotatedMediaWidth=String(geometry.width);
