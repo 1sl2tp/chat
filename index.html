@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="e5b864a0b12bd5299158adda6f8a0f57f380a4399850673cf288440990149877">
+<meta name="app-build-id" content="9bbcb49cdca7c50e754e84b2358b96d52e2d92835e75b61d44e40091b34aac57">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -14732,7 +14732,12 @@ function parseLine(line,isOrder){
   m=clean.match(bare);
   // A unit alone is not a product name: "2 thùng" / "2 gói" are
   // incomplete pick instructions and must stay in the raw message.
-  if(m&&!new RegExp('^'+U+'
+  if(m){
+    const onlyUnit=['thùng','thung','th','lốc','loc','hộp','hop','gói','goi','chai','bịch','bich','bao','kiện','kien','cái','cai','kg','lon','cây','cay','bộ','bo'];
+    if(!onlyUnit.includes(m[2].trim().toLocaleLowerCase('vi-VN')))
+      return entry(m[2],m[1],'',raw);
+  }
+ }
  // Bare trailing numbers are deliberately NOT quantities:
  // "cosy 480 335" and "Mì chính bát 2" may be names/prices.
  return null;
