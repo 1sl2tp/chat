@@ -18,8 +18,9 @@ assert 'function renderMessageBody(container,value)' in app
 assert "link.className='message-link'" in app
 assert "link.target='_blank'" in app
 assert "link.rel='noopener noreferrer'" in app
-assert 'renderMessageBody(messageBody,message.text);' in app
-assert app.count('renderMessageBody(messageBody,message.text);') == 2
+assert 'renderConversationMessageBody(messageBody,message);' in app
+assert app.count('renderConversationMessageBody(messageBody,message);') == 2
+assert 'return renderMessageBody(container,message?.text);' in app
 
 assert '.message-body[data-has-link="true"]{' in source
 assert '.message-link{' in source
