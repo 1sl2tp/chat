@@ -1872,3 +1872,64 @@
    width:10px;height:10px;right:-2px;bottom:-1px;
  }
 }
+
+
+/* CHAT-AXIS-20261117 — Main 1–4 / Popup 1–4 boundary guard.
+   Keep existing viewport+keyboard owner (keyboard-inset-core and
+   shell-form-viewport-policy). Do NOT introduce a second scroll owner,
+   overlay positioning, transform or fixed height. */
+@media (max-width:63.999rem), (pointer:coarse) {
+  #appShell[data-auth-state="authenticated"],
+  #appShell[data-auth-state="authenticated"] #screenHost,
+  #appShell[data-auth-state="authenticated"] #chatScreen,
+  #appShell[data-auth-state="authenticated"] #stageLayout{
+    box-sizing:border-box;
+    min-width:0;
+    max-width:100%;
+  }
+  #appShell[data-auth-state="authenticated"] #stageLayout > *,
+  #appShell[data-auth-state="authenticated"] .compact-top-grid,
+  #appShell[data-auth-state="authenticated"] .top-mode-switch,
+  #appShell[data-auth-state="authenticated"] #messageWindow,
+  #appShell[data-auth-state="authenticated"] .composer-source-frame,
+  #appShell[data-auth-state="authenticated"] #composerShell,
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-row,
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-chat{
+    box-sizing:border-box;
+    min-width:0;
+    max-width:100%;
+  }
+  /* M2 header, M3 message content, M4 composer share the SAME left/right
+     inline ruler; do not center one row by transforming its text. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"]
+  #messageWindow > .message-row,
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-copy{
+    box-sizing:border-box;
+    min-width:0;
+    max-width:100%;
+  }
+  #appShell[data-auth-state="authenticated"] #shellNavigationLayer
+  :is(.shell-contact-name,.shell-contact-preview){
+    min-width:0;
+    overflow-wrap:anywhere;
+  }
+  /* P1/P2: real dialogs already have their own keyboard position and
+     scroll boundary. Only prevent child width from exceeding its panel. */
+  #appShell[data-auth-state="authenticated"] :is([role="dialog"],[aria-modal="true"]) {
+    box-sizing:border-box;
+    min-width:0;
+    max-width:100%;
+  }
+  #appShell[data-auth-state="authenticated"] :is([role="dialog"],[aria-modal="true"])
+  :is(input,textarea,select){
+    box-sizing:border-box;
+    min-width:0;
+    max-width:100%;
+  }
+  /* P3 actions stay reachable; P4 lists may shrink, never force body scroll. */
+  #appShell[data-auth-state="authenticated"] :is([role="dialog"],[aria-modal="true"])
+  :is([data-result-list],[data-search-results]){
+    min-width:0;
+    min-height:0;
+  }
+}
