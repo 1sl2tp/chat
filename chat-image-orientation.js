@@ -149,15 +149,19 @@ function activeViewerAssetId(overlay){
 // IMG-281: a 90°/270° correction must rotate the frame geometry as well
 // as its pixels. A portrait source displayed sideways becomes a LANDSCAPE
 // bubble; otherwise the existing portrait 560px frame clips/letterboxes it.
-function rotatedImagePresentation(sourceRatio,rotation){
+function rotatedImagePresentation(sourceRatio,rotation,orderNotice=false){
   const ratio=Number(sourceRatio);
   if(!Number.isFinite(ratio)||ratio<=0)return null;
   const effectiveRatio=(rotation===90||rotation===270)?1/ratio:ratio;
+  // A recognized TAPHOA receipt gets a larger, readable preview but keeps
+  // its full pixels. Generic photos and gallery rotations stay unchanged.
+  const portraitWidth=orderNotice?320:260;
+  const portraitHeight=orderNotice?760:560;
   return{
     aspectRatio:effectiveRatio,
     kind:effectiveRatio<1?'portrait':effectiveRatio>1?'landscape':'square',
     width:effectiveRatio<1
-      ?Math.min(260,Math.max(1,Math.floor(560*effectiveRatio)))
+      ?Math.min(portraitWidth,Math.max(1,Math.floor(portraitHeight*effectiveRatio)))
       :effectiveRatio===1?320:360
   };
 }
@@ -176,7 +180,8 @@ function applyTileRotation(tile){
     const ratio=Number(tile.dataset.intrinsicAspectRatio)
       ||Number(tile.dataset.sourceAspectRatio)
       ||(img.naturalWidth>0&&img.naturalHeight>0?img.naturalWidth/img.naturalHeight:0);
-    const geometry=rotatedImagePresentation(ratio,rotation);
+    const orderNotice=tile.closest?.('.message-media-shell')?.dataset?.orderNotice==='true';
+    const geometry=rotatedImagePresentation(ratio,rotation,orderNotice);
     if(geometry){
       tile.dataset.imagePresentation=geometry.kind;
       tile.dataset.rotatedMediaWidth=String(geometry.width);
