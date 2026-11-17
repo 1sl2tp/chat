@@ -5226,6 +5226,19 @@ function renderMessageBody(container,value){
   return container;
 }
 
+// CHAT-381: keep the canonical message and existing rich-text fallback.
+// Only incoming text gets an optional, reversible structured display.
+function renderConversationMessageBody(container,message){
+  if(message?.sender!=='self'&&!message?.media){
+    try{
+      if(window.V21IncomingMessageLayout?.render?.(container,message.text))return container;
+    }catch(error){
+      console.warn('[chat] incoming brief fallback:',String(error?.message||error));
+    }
+  }
+  return renderMessageBody(container,message?.text);
+}
+
 function messageContentKind(message){
   const media=message?.media||null;
   if(!media)return 'text';
@@ -5374,7 +5387,7 @@ function patchMessageNode(node,message){
   if(replyQuote)text.appendChild(replyQuote);
   const messageBody=document.createElement('div');
   messageBody.className='message-body';
-  renderMessageBody(messageBody,message.text);
+  renderConversationMessageBody(messageBody,message);
   text.appendChild(messageBody);
   const textVisible=Boolean(message.replyTo||message.kind==='text'||message.kind==='mixed');
   text.hidden=!textVisible;
@@ -5489,7 +5502,7 @@ function renderMessageNode(message){
   if(replyQuote)text.appendChild(replyQuote);
   const messageBody=document.createElement('div');
   messageBody.className='message-body';
-  renderMessageBody(messageBody,message.text);
+  renderConversationMessageBody(messageBody,message);
   text.appendChild(messageBody);
   const textVisible=Boolean(message.replyTo||message.kind==='text'||message.kind==='mixed');
   text.hidden=!textVisible;
