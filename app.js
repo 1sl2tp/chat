@@ -3152,7 +3152,7 @@ function applySingleImagePresentation(wrap,media){
     (!hasMetadataRatio&&sameAsset&&knownRatio>0?knownRatio:0);
   const measuredMedia=stableRatio>0?{...media,aspectRatio:stableRatio}:media;
   const presentation=singleImagePresentation(measuredMedia);
-  const isOrderNotice=wrap.closest?.('.message-media-shell[data-order-notice="true"]')!==null;
+  const isOrderNotice=Boolean(wrap.closest?.('.message-media-shell[data-order-notice="true"]'));
   const noticeWidth=isOrderNotice&&presentation.kind==='portrait'
     ?Math.min(ORDER_NOTICE_PORTRAIT_WIDTH_PX,
       Math.max(1,Math.floor(ORDER_NOTICE_PORTRAIT_MAX_HEIGHT_PX*presentation.aspectRatio)))
