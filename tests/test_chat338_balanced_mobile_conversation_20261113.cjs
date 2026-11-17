@@ -61,3 +61,24 @@ inRule('#chatQuickActions>button{','min-height:44px;');
 inRule('#editor{','font-size:16px;');
 inRule('.message-unit:has(>.message-sent-time)>.message-text:not([hidden]){','padding-bottom:25px!important;');
 console.log('CHAT-338 balanced design: mobile header, 44px actions, distinct bubbles, composer/keyboard owner and report isolation PASS');
+
+
+/* CHAT-AXIS-20261117: Main 1–4 and modal 1–4 remain within their parent.
+   Static contract: real Safari/Chrome screenshots are E4, not implied here. */
+const axis=css.slice(css.indexOf('/* CHAT-AXIS-20261117'));
+assert(axis.startsWith('/* CHAT-AXIS-20261117'));
+for(const id of ['#screenHost','#chatScreen','#stageLayout','#messageWindow',
+  '#composerShell','#shellNavigationLayer .shell-contact-chat']){
+  assert(axis.includes(id),'missing chat axis guard '+id);
+}
+assert(axis.includes('[role="dialog"]') && axis.includes('[aria-modal="true"]'),
+  'popup viewport owner must cap child widths');
+assert(axis.includes('min-width:0') && axis.includes('max-width:100%'),
+  'prevent horizontal leaks on narrow phones');
+assert(!/position\s*:\s*(fixed|absolute|sticky)|height\s*:\s*100dvh|scrollTop\s*=/.test(axis),
+  'visual-only patch must not seize keyboard, scroll or popup position');
+assert(html.includes('id="stageLayout"')&&html.includes('id="screenHost"'));
+for(const width of [320,350,375,390,428,768,1024]){
+  assert(width>=320 && width-24>0,'supported viewport invariant');
+}
+console.log('CHAT-AXIS-20261117 responsive geometry contract PASS');
