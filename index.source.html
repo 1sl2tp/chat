@@ -1343,8 +1343,14 @@ button{
 }
 /* F-133 rev2: portrait is chosen by image W/H, not viewport height. */
 .media-image-tile[data-image-presentation="portrait"]{
-  /* A long receipt can occupy more than one screen; never crop the preview. */
+  /* Ordinary portrait media stays bounded; taps open the full viewer. */
   max-height:560px;
+}
+/* CHAT-ORDER-IMAGE-20261117: an order notice has its own explicit media
+   identity. Display its COMPLETE PNG at a legible width rather than cropping
+   a long receipt or reshaping unrelated photos. */
+.message-media-shell[data-order-notice="true"] > .media-image-tile[data-image-presentation="portrait"]{
+  max-height:none;
 }
 .media-image-tile[data-image-presentation] > img{
   image-orientation:from-image;
