@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="9bbcb49cdca7c50e754e84b2358b96d52e2d92835e75b61d44e40091b34aac57">
+<meta name="app-build-id" content="31f4bcb9e3596ae8d23432216fe43447645ecaa55bb3190a2ed33037ffb31c60">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -14737,91 +14737,6 @@ function parseLine(line,isOrder){
     if(!onlyUnit.includes(m[2].trim().toLocaleLowerCase('vi-VN')))
       return entry(m[2],m[1],'',raw);
   }
- }
- // Bare trailing numbers are deliberately NOT quantities:
- // "cosy 480 335" and "Mì chính bát 2" may be names/prices.
- return null;
-}
-function topicLine(line){
- const match=String(line||'').trim().replace(/^[#•\s]+/u,'').match(/^(.{2,36}?)(?:\s*[:：-]\s*(.*))?$/u);
- if(!match)return null;
- const title=titles.find(pair=>pair[1].test(match[1].trim()));
- return title?{key:title[0],rest:String(match[2]||'').trim()}:null;
-}
-function noteTopic(line,current){
- if(/^(?:giao|ship|địa chỉ|hẹn giao|nhận hàng)/iu.test(line))return 'delivery';
- if(/^(?:giá|giảm giá|chiết khấu|giá riêng|khuyến mãi)/iu.test(line))return 'price';
- if(/^(?:chuyển khoản|thanh toán|công nợ|tiền hàng)/iu.test(line))return 'payment';
- if(/^(?:ghi chú|lưu ý|nhớ|nếu thiếu|đổi hàng|thay hàng)/iu.test(line))return 'note';
- return current==='items'?'other':current;
-}
-function analyze(input){
- const source=String(input??'').replace(/\r\n?/gu,'\n');
- if(source.length<10||source.length>5000||!source.includes('\n')
-   ||/https?:\/\//iu.test(source)||source.includes(String.fromCharCode(96).repeat(3)))return null;
- const lines=source.split('\n').map(x=>x.trim()).filter(Boolean);
- if(lines.length<2||lines.length>48)return null;
- const cue=orderCue.test(source),items=[],notes=[],heads=new Set();
- let active='other';
- for(const line of lines){
-  const t=topicLine(line);
-  if(t){active=t.key;heads.add(active);if(t.rest)notes.push({topic:active==='items'?'other':active,text:t.rest});continue;}
-  const item=parseLine(line,cue||active==='items');
-  if(item){items.push(item);continue;}
-  notes.push({topic:noteTopic(line,active),text:line});
- }
- const isOrder=items.length>=2||(items.length>=1&&(cue||heads.has('items')));
- const isTopics=!items.length&&heads.size>=2&&notes.length>=2;
- if(!isOrder&&!isTopics)return null;
- const grouped=new Map();
- for(const note of notes){if(!grouped.has(note.topic))grouped.set(note.topic,[]);grouped.get(note.topic).push(note.text);}
- return {kind:isOrder?'order':'topics',items,groups:Array.from(grouped,([key,rows])=>({key,label:labels[key]||'Ghi chú',rows})),source};
-}
-function el(tag,cls,content){
- const n=document.createElement(tag);
- if(cls)n.className=cls;
- if(content!==undefined)n.textContent=String(content);
- return n;
-}
-function render(target,input){
- const parsed=analyze(input);
- if(!target||!parsed)return false;
- const root=el('div','incoming-brief'),head=el('div','incoming-brief-head');
- head.append(el('strong','incoming-brief-title',parsed.kind==='order'?'Danh sách lấy hàng':'Nội dung theo chủ đề'),
-  el('span','incoming-brief-count',parsed.kind==='order'?parsed.items.length+' mặt hàng':parsed.groups.length+' chủ đề'));
- root.append(head);
- if(parsed.items.length){
-  const list=el('div','incoming-brief-products');
-  for(const item of parsed.items){
-   const row=el('div','incoming-brief-item');
-   row.append(el('span','incoming-brief-product',item.name),
-    el('span','incoming-brief-quantity',item.qty+(item.unit?' '+item.unit:'')));
-   list.append(row);
-  }
-  root.append(list);
- }
- for(const group of parsed.groups){
-  const section=el('section','incoming-brief-topic');
-  section.append(el('div','incoming-brief-topic-title',group.label));
-  for(const note of group.rows)section.append(el('div','incoming-brief-note',note));
-  root.append(section);
- }
- const original=el('details','incoming-brief-original');
- original.append(el('summary','incoming-brief-original-toggle','Xem tin nguyên văn'),
-  el('div','incoming-brief-original-text',parsed.source));
- original.addEventListener('click',e=>e.stopPropagation());
- original.addEventListener('pointerdown',e=>e.stopPropagation());
- root.append(original);
- target.replaceChildren(root);
- target.dataset.hasLink='false';
- target.dataset.richText='true';
- target.dataset.autoLayout=parsed.kind;
- return true;
-}
-global.V21IncomingMessageLayout=Object.freeze({analyze,render});
-})(window);
-,'iu').test(m[2].trim()))
-   return entry(m[2],m[1],'',raw);
  }
  // Bare trailing numbers are deliberately NOT quantities:
  // "cosy 480 335" and "Mì chính bát 2" may be names/prices.
