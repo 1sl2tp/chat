@@ -122,6 +122,8 @@ function render(target,input){
   el('div','incoming-brief-original-text',parsed.source));
  original.addEventListener('click',e=>e.stopPropagation());
  original.addEventListener('pointerdown',e=>e.stopPropagation());
+ // Mobile Safari must not interpret expanding the original as a message action.
+ original.addEventListener('touchstart',e=>e.stopPropagation(),{passive:true});
  root.append(original);
  target.replaceChildren(root);
  target.dataset.hasLink='false';
