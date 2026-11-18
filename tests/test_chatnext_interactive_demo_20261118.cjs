@@ -68,7 +68,7 @@ class FakeElement{
  showModal(){this.open=true}
  close(){this.open=false;this.dispatch('close')}
  addEventListener(k,fn){(this.handlers[k]||=[]).push(fn);}
- dispatch(k,event={}){for(const h of this.handlers[k]||[])h(Object.assign({target:this,preventDefault(){},isComposing:false},event));}
+ dispatch(k,event={}){for(const h of this.handlers[k]||[])h.call(this,Object.assign({target:this,preventDefault(){},isComposing:false},event));}
  get scrollHeight(){return this._scrollHeight||24}
  set scrollHeight(v){this._scrollHeight=v}
 }
