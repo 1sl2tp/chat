@@ -44,7 +44,8 @@ function harness({warm=false,serverPaint=true}={}){
     getMeta:async()=>false,setMeta:async()=>true,setConversationId:async()=>true,
     isInitialized:async()=>true,getCursor:async()=>0,setCursor:async()=>true,
     putMessages:async()=>true,replaceContacts:async()=>true,
-    putReadState:async()=>true,putMessage:async()=>true,listOutbox:async()=>[]
+    putReadState:async()=>true,putMessage:async()=>true,putOutbox:async()=>true,
+    listOutbox:async()=>[]
   };
   const client={rpc:async name=>{
     if(name==='v21_sync_snapshot'){
@@ -119,4 +120,45 @@ test('both list tap and push use canonical NavigationCommand.openContact',()=>{
   const tap=shell.slice(shell.indexOf("const contact=target.closest('[data-contact-select]');"));
   assert.match(tap,/NavigationCommand\.openContact\(contact\.dataset\.contactId,contact\.dataset\.contactName\)/);
   assert.doesNotMatch(tap.slice(0,240),/setActiveContact\(contact\.dataset\.contactId/);
+});
+
+test('sending into a verified active thread bypasses a stalled conversation lookup',async()=>{
+  const h=harness({warm:false});
+  await new Promise(resolve=>setTimeout(resolve,0));
+  h.select('CUSTOMER');
+  const opening=h.ctx.V21SyncEngine.openContact('CUSTOMER');
+  for(let i=0;i<10&&h.ctx.V21SyncEngine.snapshot().currentConversationId!=='CONV';i++)
+    await Promise.resolve();
+  assert.equal(h.ctx.V21SyncEngine.snapshot().currentConversationId,'CONV',
+    'canonical server-first snapshot must resolve the active thread');
+  const sending=h.ctx.V21SyncEngine.queueText({
+    clientId:'draft-1',text:'Tin thử nội bộ',contactId:'CUSTOMER',conversationId:'CONV'
+  });
+  const result=await Promise.race([
+    sending,
+    new Promise((_,reject)=>setTimeout(()=>reject(new Error('send blocked by redundant IndexedDB lookup')),250))
+  ]);
+  assert.equal(result.conversation_id,'CONV');
+  h.releaseCache('CONV');
+  await opening;
+});
+
+test('mismatched send context still validates persisted conversation',async()=>{
+  const h=harness({warm:false});
+  await new Promise(resolve=>setTimeout(resolve,0));
+  h.select('CUSTOMER');
+  const opening=h.ctx.V21SyncEngine.openContact('CUSTOMER');
+  for(let i=0;i<10&&h.ctx.V21SyncEngine.snapshot().currentConversationId!=='CONV';i++)
+    await Promise.resolve();
+  assert.equal(h.ctx.V21SyncEngine.snapshot().currentConversationId,'CONV');
+  let settled=false;
+  const pending=h.ctx.V21SyncEngine.queueText({
+    clientId:'draft-wrong',text:'Scope guard',contactId:'CUSTOMER',conversationId:'OTHER'
+  }).then(value=>{settled=true;return value;});
+  for(let i=0;i<8;i++)await Promise.resolve();
+  assert.equal(settled,false,'unverified conversation must not skip the persisted lookup');
+  h.releaseCache('CONV');
+  const result=await pending;
+  assert.equal(result.conversation_id,'CONV');
+  await opening;
 });
