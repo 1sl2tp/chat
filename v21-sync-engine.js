@@ -1095,7 +1095,20 @@ async function queueText({clientId,text,contactId,conversationId,reply=null}={})
   if(!target)throw new Error('contact_required');
   if(!body)throw new Error('invalid_message');
   const id=String(clientId||window.V21RuntimeId.create());
-  const cachedConversation=await cache()?.getConversationId?.(context.accountId,target)||null;
+  // A verified active thread already has a canonical conversation identity
+  // from the sidebar and current context. Do not block each send on a second
+  // IndexedDB lookup. Unknown/stale/cross-contact targets keep the old
+  // persisted lookup and account/session guards.
+  const canonicalContact=contacts()?.snapshot?.().find(row=>
+    row?.id&&!row.deleted_at&&String(row.id)===target
+  );
+  const activeVerified=Boolean(scopedConversation&&
+    target===String(currentContactId||'')&&
+    scopedConversation===String(currentConversationId||'')&&
+    scopedConversation===String(canonicalContact?.conversation_id||''));
+  const cachedConversation=activeVerified
+    ?scopedConversation
+    :await cache()?.getConversationId?.(context.accountId,target)||null;
   if(!syncOwnerContextCurrent(context))throw syncContextChangedError();
   const resolvedConversation=cachedConversation?String(cachedConversation):scopedConversation;
   const item={
