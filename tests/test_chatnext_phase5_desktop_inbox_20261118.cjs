@@ -41,8 +41,8 @@ assert(chunk.includes('height:70px;')&&chunk.includes('min-height:70px;'),
  'fixed two-line desktop list row geometry');
 assert(chunk.includes('.shell-sidebar-account-main:focus-visible {'),
  'account action must retain a visible keyboard focus ring');
-assert(css.includes('@media (max-width:63.999rem)'),
- 'mobile Inbox owner remains separate');
+assert(css.includes('@media (max-width:63.999rem), (hover:none), (pointer:coarse)'),
+ 'overlay Inbox stays separate on narrow and coarse-pointer devices');
 assert(html.includes('data-v21-contact-list'));
 assert(html.includes('id="shellNavigationLayer"'));
 assert(html.includes('id="regionTop"'));
