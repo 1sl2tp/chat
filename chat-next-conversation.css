@@ -116,12 +116,12 @@
 
   /* The bar is still present in the DOM and owned by Admin quick actions.
      Hiding it from layout also removes its buttons from the focus tree. */
-  #appShell[data-chat-next-ui="on"][data-chat-next-tools="closed"][data-auth-state="authenticated"][data-route="chat"]
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"][data-route="chat"][data-chat-next-tools="closed"]
   #stageLayout:not([data-bank-report-active="true"]) #chatQuickActions:not([hidden]) {
     display:none!important;
   }
 
-  #appShell[data-chat-next-ui="on"][data-chat-next-tools="open"][data-auth-state="authenticated"][data-route="chat"]
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"][data-route="chat"][data-chat-next-tools="open"]
   #regionTop .chat-next-work-menuitem[aria-expanded="true"] {
     color:var(--chat-next-accent);
     background:var(--theme-surface-secondary);
