@@ -803,7 +803,7 @@ function orderCard(payload){
  var source=el('details','order-source');
  source.append(el('summary','','Xem nội dung mẫu'),el('pre','',raw.join('\n')));
  node.append(source);
- var link=el('a','invoice-link','Xem 3 mẫu hóa đơn →');link.href='./invoice.html';node.append(link);
+ var invoiceLink=el('a','invoice-link','Xem 3 mẫu hóa đơn →');invoiceLink.href='./invoice.html';node.append(invoiceLink);
  return node
 }
 function renderChat(){
