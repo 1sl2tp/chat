@@ -13,6 +13,71 @@
     --header-height:var(--ui-chat-header-mobile,60px);
   }
 
+
+  /* CHAT-385 P1 owner: header presentation only. The scroll owner is app.js;
+     these modes do not move the Composer or create another viewport. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"][data-chat-contact="true"][data-chat-header-mode="normal"]{
+    --header-height:48px;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"][data-chat-contact="true"][data-chat-header-mode="reading"]{
+    --header-height:0px;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"][data-chat-contact="true"][data-chat-header-mode="typing"]{
+    --header-height:44px;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"][data-chat-contact="true"] #regionTop .compact-top-grid{
+    min-height:var(--header-height,48px);
+  }
+
+  /* READ: release all header flow height. Its 48px overlay only appears on
+     deliberate reverse scrolling; no extra sticky rail, invisible hit target,
+     second scroll owner or negative margin is introduced. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"][data-chat-header-mode="reading"] #regionTop{
+    height:0;
+    min-height:0;
+    overflow:visible;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"][data-chat-header-mode="reading"] #regionTop .compact-top-grid{
+    position:absolute;
+    inset:0 0 auto;
+    min-height:48px;
+    height:48px;
+    visibility:hidden;
+    pointer-events:none;
+    transform:translateY(-100%);
+    background:var(--theme-surface-primary);
+    box-shadow:0 4px 14px rgba(0,0,0,.05);
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"][data-chat-header-mode="reading"][data-chat-header-peek="true"] #regionTop .compact-top-grid{
+    visibility:visible;
+    pointer-events:auto;
+    transform:none;
+  }
+  /* TYPING: keep Back and the identity, reclaim the avatar and idle action
+     rail while the native keyboard is taking space. Live-call states remain
+     exempt in JS and are never hidden by these selectors. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"][data-chat-header-mode="typing"] #regionTop .compact-top-grid{
+    min-height:44px;
+    height:44px;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"][data-chat-header-mode="typing"] #regionTop .top-mode-switch[data-contact-identity="true"]{
+    width:100%;
+    justify-self:stretch;
+    background:transparent;
+    padding:0;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"][data-chat-header-mode="typing"] #regionTop .top-mode-contact-avatar{
+    display:none!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"][data-chat-header-mode="typing"] #regionTop .top-mode-tab[data-top-tab="chat"]{
+    padding-inline:4px;
+    background:transparent;
+    box-shadow:none;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"][data-chat-header-mode="typing"] #regionTop .call-focus-slot[data-call-ui-state="idle"]{
+    display:none!important;
+  }
+
   #appShell[data-auth-state="authenticated"] .compact-top-grid{
     min-height:var(--header-height,60px);
     grid-template-columns:44px minmax(0,1fr) auto;
