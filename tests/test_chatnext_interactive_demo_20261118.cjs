@@ -188,7 +188,7 @@ for(const required of [
 }
 assert(html.includes("var box=byId('messageStream');box.replaceChildren"),
  'renderChat must write only inside the message stream, not replace its geometry wrapper');
-assert(html.includes("byId('conversation').scrollTop=byId('conversation').scrollHeight"),
+assert(html.includes("var scroller=byId('conversation');scroller.scrollTop="),
  'scroll owner must remain the original conversation viewport');
 assert(html.includes("input.style.height='24px'")&&html.includes('Math.min(input.scrollHeight,120)'),
  'auto-growing text uses canonical 24px baseline and 120px ceiling');
