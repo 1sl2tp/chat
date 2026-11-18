@@ -19,10 +19,11 @@
 
 | Vòng | Tên | Ngày | Phạm vi |
 |---|---|---|---|
+| V16 | Căn trục ô gõ và nội dung | 18/11/2026 | Đồng nhất trục L4 khi cuộn desktop; chuẩn L5 48/44px, khe đều, kiểm hình học nút/textarea qua `?geometry=1` |
 | V15 | Tên phiên bản & nhật ký chỉnh sửa | 18/11/2026 | Nhãn phiên bản trên trang, lịch sử V11–V15 và quy ước cập nhật |
 | V14 | Khung phân cấp và trục L0–L5 | 18/11/2026 | Trục đồng nhất cho header, tin nhắn, composer, note |
 | V13 | Ảnh và media mẫu | 18/11/2026 | Thumbnail 4:3, xem ảnh lớn và zoom |
 | V12 | Tinh chỉnh chi tiết giao diện | 18/11/2026 | Spacing, icon, nút và tương phản |
 | V11 | Điều hướng và bàn phím | 18/11/2026 | Điều hướng Back, ô soạn, vùng bàn phím |
 
-**V15**: E0/E1 (thay đổi source) hoàn tất; E2/E3 xác minh bằng test & Pages; E4/E5 vẫn chờ thử trên iPhone/Android thực tế. Ứng dụng production không bị thay đổi.
+**V16**: E0/E1 hoàn tất trên nhánh thiết kế; E2/E3 xác minh bằng CI/Pages; E4/E5 cần thử thiết bị thực. V15: E0/E1 (thay đổi source) hoàn tất; E2/E3 xác minh bằng test & Pages; E4/E5 vẫn chờ thử trên iPhone/Android thực tế. Ứng dụng production không bị thay đổi.
