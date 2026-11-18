@@ -1,3 +1,15 @@
+## 2026-11-19 — CHAT-385 · Header mobile thay đổi theo đọc/gõ trong Chat production
+
+- **E0 / SPEC:** Ảnh và yêu cầu người dùng: Header chiếm diện tích không cần thiết trên mobile, kể cả khi cuộn đọc tin và bàn phím mở. Không sửa demo; làm trực tiếp trong `1sl2tp/chat:main` qua PR kiểm thử. Header gốc `#regionTop` là sticky con của `#scrollRoot` và có chiều cao 56px từ `mobile-ui-polish.css`. `app.js` đã là ScrollController duy nhất và `KeyboardInsetAdapter` sở hữu bàn phím. Thay đổi phải bảo vệ tin đang đọc, gọi đang diễn ra, composer/IME, tài khoản và nghiệp vụ.
+- **E1 / owner:** `app.js` mở rộng chính ScrollController với reducer 3 trạng thái: **normal 48px**, **reading 0px**, **typing 44px**. Chỉ chuyển khi có user scroll intent thật và di chuyển đủ ngưỡng; khi đọc cũ giảm height Header và dùng `firstVisibleAnchor()/restoreAnchor()` hiện hữu để bảo toàn message, theo tail thì giữ tail. Scroll ngược để hiện Header nổi không chiếm lại height. Khi focus nhập, giữ nút Back/tên khách, ẩn avatar, idle menu/call; khi blur/switch/route/call thì khôi phục; live CallFocus không bị ẩn. `mobile-chat-refresh.css` là chủ CSS P1, tăng specificity đúng tầng thay vì thêm stylesheet hoặc độc lập viewport. `shell.js::setActiveContact` cập nhật `data-chat-contact` trước contact-change để tránh stale. `sw.js` xoay riêng epoch shell.
+- **MUST-STAY:** không thêm request, polling, timers mạng, bàn phím owner hoặc scrollTop writer thứ hai; không sửa Supabase RPC/DB, Zalo, Render, Realtime, Push, auth, media, queue/outbox, thông báo thật và không gửi tin kiểm thử. Desktop nguyên trạng. Không deploy thủ công.
+- **E2:** `tests/test_chat385_adaptive_header_20261119.cjs` kiểm chính sách threshold/peek/tail, route/contact/call/keyboard guards, giữ anchor, width mobile và CSS. Đưa vào `Verify V21`. Browser geometry không được chứng minh chỉ bằng test nguồn.
+- **E3 PENDING:** PR [#333](https://github.com/1sl2tp/chat/pull/333) → Verify V21 → squash-merge `main` nếu PASS → Pages tự động → live `version.json`/build ID. Chưa coi production đã cập nhật khi thiếu kết quả CI/Pages.
+- **E4/E5 PENDING:** iPhone Safari/PWA + Android Chrome/PWA, 320/360/375/390/430px, desktop: mở/đóng bàn phím, nhập tiếng Việt 1/2/3/8 dòng, cuộn lên đọc cũ/đảo chiều/đến tin cuối, popup, media, A→B→A, mở từ Push, gọi đến/gọi đi. Phải đo vị trí tin cuối, trạng thái header và build ID, không nói hết lỗi nếu chưa thử thiết bị thật.
+- **Rollback:** revert commit code CHAT-385 + shell epoch, giữ canonical account/history/drafts/queues; không xóa cache riêng tư hoặc DB.
+
+---
+
 ## 2026-11-18 — CHAT-384 · Chat nhiều khách khi mở bàn phím, 1/2/3+ dòng
 
 - **E0:** Admin dùng Chat Web/PWA để đọc tin khách từ Zalo → Render → Supabase. Ảnh iPhone ChatGPT cho thấy cách Composer 1/2/nhiều dòng và bàn phím chiếm vùng nhìn thấy; ảnh Chat hiện tại có danh bạ đa khách và thanh nghiệp vụ luôn hiện. Nhu cầu là nhẹ/gọn, không thêm UI vá.

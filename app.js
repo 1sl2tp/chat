@@ -1404,6 +1404,118 @@ function restoreAnchor(anchor){
   }
 }
 
+
+/* CHAT-385: the existing ScrollController is the ONLY writer of header-related
+   scroll corrections. Header presentation consumes intent/keyboard state, never
+   adds a second scroller, VisualViewport listener, timer or request owner. */
+const ADAPTIVE_HEADER_MODES=Object.freeze({
+  NORMAL:'normal',READING:'reading',TYPING:'typing'
+});
+let adaptiveHeaderMode=ADAPTIVE_HEADER_MODES.NORMAL;
+let adaptiveHeaderPeek=false;
+let adaptiveHeaderMovement=0;
+let adaptiveHeaderLastScrollTop=0;
+
+function adaptiveHeaderEligible(){
+  return window.matchMedia('(max-width:63.999rem)').matches &&
+    appShell?.dataset.authState==='authenticated' &&
+    appShell?.dataset.route==='chat' &&
+    appShell?.dataset.chatContact==='true' &&
+    appShell?.dataset.mobileDirectory!=='true' &&
+    stageLayout?.dataset.bankReportActive!=='true' &&
+    document.querySelector('[data-call-focus-slot]')?.dataset.callUiState==='idle';
+}
+
+function adaptiveHeaderDecision(mode,movement,distanceFromEnd){
+  if(distanceFromEnd<=32)return ADAPTIVE_HEADER_MODES.NORMAL;
+  if(mode===ADAPTIVE_HEADER_MODES.NORMAL && movement<=-28 && distanceFromEnd>120){
+    return ADAPTIVE_HEADER_MODES.READING;
+  }
+  return mode;
+}
+
+function setAdaptiveHeaderMode(mode,{peek=false,preserve=true}={}){
+  const allowed=adaptiveHeaderEligible();
+  const next=allowed?mode:ADAPTIVE_HEADER_MODES.NORMAL;
+  const showPeek=next===ADAPTIVE_HEADER_MODES.READING&&Boolean(peek);
+  if(next===adaptiveHeaderMode&&showPeek===adaptiveHeaderPeek)return false;
+  const changed=next!==adaptiveHeaderMode;
+  const anchor=changed&&preserve&&viewport.mode===VIEWPORT_STATES.USER_AWAY
+    ?firstVisibleAnchor():null;
+  const tail=changed&&preserve&&viewport.mode===VIEWPORT_STATES.FOLLOW_TAIL &&
+    distanceFromTail()<=40;
+  adaptiveHeaderMode=next;
+  adaptiveHeaderPeek=showPeek;
+  appShell.dataset.chatHeaderMode=next;
+  appShell.dataset.chatHeaderPeek=String(showPeek);
+  if(changed){
+    // The same controller restores a visible message or follows the tail
+    // synchronously after the parent's header track changes.
+    if(anchor)restoreAnchor(anchor);
+    else if(tail)setScrollTop(scrollRoot.scrollHeight-scrollRoot.clientHeight);
+    scheduleMessageDayFloatingUpdate();
+  }
+  return true;
+}
+
+function resetAdaptiveHeaderForContext(){
+  adaptiveHeaderMovement=0;
+  adaptiveHeaderLastScrollTop=scrollRoot.scrollTop;
+  const typing=adaptiveHeaderEligible() &&
+    (document.activeElement===editor || KeyboardInsetAdapter.open);
+  setAdaptiveHeaderMode(typing?ADAPTIVE_HEADER_MODES.TYPING:ADAPTIVE_HEADER_MODES.NORMAL);
+}
+
+function updateAdaptiveHeaderFromUserScroll(top,delta){
+  if(!adaptiveHeaderEligible()) {
+    setAdaptiveHeaderMode(ADAPTIVE_HEADER_MODES.NORMAL,{preserve:false});
+    adaptiveHeaderMovement=0;
+    return;
+  }
+  if(document.activeElement===editor || KeyboardInsetAdapter.open ||
+     stageLayout.dataset.contactSwitching==='true')return;
+  const distance=distanceFromTail();
+  if(distance<=32){
+    adaptiveHeaderMovement=0;
+    setAdaptiveHeaderMode(ADAPTIVE_HEADER_MODES.NORMAL);
+    return;
+  }
+  if(Math.abs(delta)<1)return;
+  if(adaptiveHeaderMovement && Math.sign(adaptiveHeaderMovement)!==Math.sign(delta)){
+    adaptiveHeaderMovement=delta;
+  }else{
+    adaptiveHeaderMovement+=delta;
+  }
+  const next=adaptiveHeaderDecision(adaptiveHeaderMode,adaptiveHeaderMovement,distance);
+  if(next!==adaptiveHeaderMode){
+    adaptiveHeaderMovement=0;
+    setAdaptiveHeaderMode(next);
+  }else if(adaptiveHeaderMode===ADAPTIVE_HEADER_MODES.READING){
+    if(adaptiveHeaderMovement>=20&&!adaptiveHeaderPeek){
+      adaptiveHeaderMovement=0;
+      setAdaptiveHeaderMode(ADAPTIVE_HEADER_MODES.READING,{peek:true});
+    }else if(adaptiveHeaderMovement<=-20&&adaptiveHeaderPeek){
+      adaptiveHeaderMovement=0;
+      setAdaptiveHeaderMode(ADAPTIVE_HEADER_MODES.READING,{peek:false});
+    }
+  }
+  adaptiveHeaderLastScrollTop=scrollRoot.scrollTop;
+}
+
+appShell.dataset.chatHeaderMode=ADAPTIVE_HEADER_MODES.NORMAL;
+appShell.dataset.chatHeaderPeek='false';
+document.addEventListener('v21-active-contact-change',resetAdaptiveHeaderForContext);
+document.addEventListener('navigation-change',resetAdaptiveHeaderForContext);
+document.addEventListener('v21-mobile-directory-change',resetAdaptiveHeaderForContext);
+document.addEventListener('call-state',resetAdaptiveHeaderForContext);
+window.addEventListener('resize',()=>{
+  if(!window.matchMedia('(max-width:63.999rem)').matches)resetAdaptiveHeaderForContext();
+},{passive:true});
+editor.addEventListener('focus',resetAdaptiveHeaderForContext);
+// Existing keyboard adapter handles blur in its own registered listener.
+// Read its final state next frame, not the stale pre-blur occlusion value.
+editor.addEventListener('blur',()=>requestAnimationFrame(resetAdaptiveHeaderForContext));
+
 const mediaObjectUrls=new Map();
 const mediaShareBlobs=new Map();
 const audioHydrationPromises=new WeakMap();
@@ -6045,6 +6157,7 @@ scrollRoot.addEventListener(
     }
 
     markUserScrollInteraction();
+    const delta=top-lastUserScrollTop;
     const direction=top<lastUserScrollTop?'up':'down';
     lastUserScrollTop=top;
 
@@ -6052,6 +6165,7 @@ scrollRoot.addEventListener(
       distanceFromTail:distanceFromTail(),
       direction
     });
+    updateAdaptiveHeaderFromUserScroll(top,delta);
 
     modeLabel.textContent=viewport.mode;
     updateScrollFromEndControl();
