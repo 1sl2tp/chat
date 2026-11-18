@@ -174,7 +174,7 @@ jobs:
       - name: CHAT-383 fast contact open and canonical navigation (offline)
         run: |
           node tests/test_chat383_fast_contact_open_20261118.cjs
-          python -m pytest -q tests/test_v21_72_38_contact_switch_scroll_gate.py
+          python tests/test_v21_72_38_contact_switch_scroll_gate.py
       - name: BANK-362 immediate verified Chat collection acknowledgment
         run: node tests/test_bank362_immediate_collection_ack_20261115.cjs
       - name: BANK-362 cron financial retry same-transaction ACK proposal
