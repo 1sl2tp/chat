@@ -1,3 +1,14 @@
+## 2026-11-18 — CHAT-NEXT-006 · Tablet cảm ứng / xoay ngang (preview-only)
+
+- **E0:** Có một khoảng hở breakpoint: Shell chỉ dùng danh bạ desktop khi `min-width:64rem + hover:hover + pointer:fine`. iPad/touch tablet nằm ngang dù màn rộng hơn 1024px vẫn dùng drawer `#shellNavigationLayer`, nhưng CSS danh bạ CHAT NEXT giai đoạn 1 trước đó chỉ áp `@media(max-width:63.999rem)`. Điều này có thể trả hàng khách về 60px và cắt preview 2 dòng ở tablet landscape.
+- **E1 owner:** `chat-next-inbox.css` mở rộng **cùng một** bộ quy tắc danh bạ 72px + preview 2 dòng + time track 64px cho `(max-width:63.999rem), (hover:none), (pointer:coarse)`. Thêm một nhánh tablet ở `min-width:48rem + coarse/no-hover` cho chiều rộng overlay drawer `clamp(390px,44vw,460px)`, giới hạn `max-width:calc(100vw - 24px)`, tiêu đề, close button 44px, filter 44px và footer. Chỉ tái sử dụng `data-mobile-keyboard=true`, `--shell-form-vv-top` / `--shell-form-vv-height` đã có cho viewport lúc bật bàn phím; **không đăng ký keyboard/resize listener, không tạo scroll owner mới**. Desktop chuột fine vẫn giữ giao diện 2 cột giai đoạn 5, `WORK_ENABLED=false` không đổi.
+- **E2:** `tests/test_chatnext_phase6_coarse_tablet_20261118.cjs` kiểm tra ngưỡng 768/820/932/1024/1112/1194/1366px, panel 390–460px, tên/preview và cột giờ không chồng, vùng chạm close/filter và keyboard owner. Cập nhật contract phase-1/5 theo breakpoint coarse mới, nối Phase 6 vào `tools/verify_current.py`.
+- **E3:** PENDING kết quả Verify V21 của commit `d4239639d663f988e683bb8dbe11386d3cb4b658`. Chỉ là candidate trên Draft PR #329; không tự deploy GitHub Pages, không thay `sw.js` hoặc dữ liệu production.
+- **E4/E5:** PENDING: iPad Safari portrait/landscape và Android tablet Chrome/PWA, thiết bị có bàn phím ngoài/trackpad, tìm kiếm gọi bàn phím, cuộn danh bạ, mở/đóng drawer, chuyển khách và xem thời gian. CI chỉ là source/contract, không tương đương thao tác thiết bị thật.
+- **Rollback:** Revert phần CHAT-NEXT-006 trong `chat-next-inbox.css` và test/Verify; giữ nguyên Supabase, Realtime, Zalo, dòng tiền, tin nhắn, auth và phần production.
+
+---
+
 ## 2026-11-18 — CHAT-NEXT-005 · Desktop Inbox + Conversation (preview-only)
 
 - **E0:** Desktop Chat có bố cục chuẩn 2 vùng trong `index.source.html`: `#screenHost` giữ `--desktop-directory-width:clamp(300px,26vw,340px)`, sidebar `#shellNavigationLayer` là vùng danh bạ thường trực, `.wm-sidebar-navigation` là **một chủ sở hữu scroll**. `shell.js` cố ý giữ `WORK_ENABLED=false`, nên không được tự bật vùng Work thứ ba. CSS mobile candidate đã có; desktop chưa thống nhất typography/hierarchy, cột thời gian dễ chật ở tên dài.
