@@ -22,10 +22,7 @@ body.dark{color-scheme:dark;--bg:#131d21;--surface:#1e2a30;--subtle:#24343a;--in
 @media(max-width:360px){.workgrid{grid-template-columns:1fr}.contact{gap:6px}.contact-preview{font-size:11.5px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
 
-/* CHAT-NEXT-010 · Brand-referenced interaction primitives.
-   Apple: 44pt minimum, Material: 48dp target, WhatsApp: filters above Inbox
-   and bottom destinations, ChatGPT: calm composer and contextual tool menu.
-   Visual-only sample; do not apply to the production Chat runtime. */
+/* CHAT-NEXT-010 · Visual-only interaction tokens; never change production Chat. */
 :root{--ui-tap:48px;--ui-rail:16px;--ui-radius:16px;--ui-type-body:14.5px;--ui-type-meta:12px}
 button,a{touch-action:manipulation}
 .navbtn{width:52px;min-width:48px;height:56px}
@@ -260,10 +257,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
 .bubble{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;user-select:text;-webkit-user-select:text}
 .media-card{-webkit-user-select:none;user-select:none}
 
-/* CHAT-NEXT-014 — Single geometry owner, ChatGPT-first.
-   L0 viewport > L1 shell grid > L2 panes > L3 bands > L4 shared axis > L5 controls.
-   All frame measurements are declared here. No independent composer/list
-   horizontal gutters or height/width calculations outside these frame tokens. */
+/* CHAT-NEXT-014 — Single geometry owner: viewport > shell > panes > bands > controls. */
 :root{
  --frame-gap:12px;--frame-outer:20px;--frame-rail:68px;
  --frame-directory:clamp(292px,25vw,332px);--frame-context:252px;
