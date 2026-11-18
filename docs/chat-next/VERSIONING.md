@@ -20,6 +20,7 @@
 
 | Vòng | Tên | Ngày | Phạm vi |
 |---|---|---|---|
+| V29 | Đồng bộ cuộn tin cuối khi bàn phím đổi kích thước | 18/11/2026 | ResizeObserver vùng đọc/nội dung và grid tracks, chỉ neo cuối khi đang ở cuối; chỉ demo |
 | V28 | Giữ tin cuối khi bàn phím mở | 18/11/2026 | Neo đáy hội thoại sau khi VisualViewport thay đổi; giữ vị trí khi đọc tin cũ; chỉ demo |
 | V27 | Vùng nhập nằm trên bàn phím iPhone | 18/11/2026 | VisualViewport giới hạn toàn khung, không cộng safe-area khi bàn phím mở; chỉ demo |
 | V26 | Mở chat tại tin cuối và ô nhập | 18/11/2026 | Nhấn hội thoại luôn đến cuối, focus input sau khi chuyển màn; browser history giữ vị trí; chỉ demo |
