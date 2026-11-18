@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f4f8f8">
-<title>CHAT NEXT · V18 — Phân cấp nội dung dễ đọc (demo)</title>
+<title>CHAT NEXT · V19 — Căn trục yêu cầu hàng (demo)</title>
 <style>
 :root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color-scheme:light;--bg:#eef4f4;--surface:#fff;--subtle:#f5f8f9;--ink:#21313b;--muted:#586b74;--border:#e3e9ea;--accent:#0f7668;--accentLight:#e2f3eb;--received:#fff;--sent:#def2e9;--shadow:0 25px 70px rgba(30,62,67,.12)}
 body.dark{color-scheme:dark;--bg:#131d21;--surface:#1e2a30;--subtle:#24343a;--ink:#eaf1f2;--muted:#a6b5b9;--border:#35474b;--accent:#57c7a5;--accentLight:#22483e;--received:#29383e;--sent:#224d42;--shadow:0 20px 50px rgba(0,0,0,.28)}
@@ -556,17 +556,46 @@ body.geometry-mode .composer-inner .editorbox{outline:1px solid rgba(180,50,150,
 .message-stream .invoice-link{color:var(--read-action);font-size:12px}
 @media(max-width:360px){.message-stream .order{padding:12px}}
 
+/* CHAT-NEXT-019 — Request card micro-grid: no new scroll or business owner.
+   Shared structural axis V14-V16 stays unchanged; only typed request cards
+   receive aligned product / quantity / unit columns. */
+:root{--request-quantity-width:112px;--request-unit-width:52px;--request-column-gap:12px}
+.message-stream .order-message{width:min(100%,420px);max-width:100%}
+.message-stream .order-request{box-sizing:border-box;width:100%;max-width:100%;min-width:0}
+.message-stream .order-columns,.message-stream .orderitem{
+ display:grid;grid-template-columns:minmax(0,1fr) var(--request-quantity-width);
+ column-gap:var(--request-column-gap);min-width:0}
+.message-stream .order-columns{margin-top:12px;padding:7px 0;border-block:1px solid var(--read-divider);
+ font-size:11.5px;line-height:17px;color:var(--read-secondary);font-weight:650}
+.message-stream .order-columns span:last-child{text-align:end}
+.message-stream .orderitem{align-items:start;padding:10px 0}
+.message-stream .order-name{min-width:0;overflow-wrap:anywhere;line-height:20px}
+.message-stream .order-quantity{min-width:0;display:grid;grid-template-columns:minmax(0,1fr) var(--request-unit-width);
+ gap:5px;align-items:start;font-size:14px;line-height:20px}
+.message-stream .order-quantity .order-amount{
+ font-size:14px;line-height:20px;font-weight:700;font-variant-numeric:tabular-nums;
+ text-align:end;white-space:nowrap;color:var(--read-primary)}
+.message-stream .order-unit{min-width:0;overflow-wrap:anywhere;text-align:start;color:var(--read-primary)}
+.message-stream .order-note{border-top:1px solid var(--read-divider);padding-top:10px;
+ display:grid;gap:3px;white-space:pre-wrap;overflow-wrap:anywhere}
+.message-stream .order-note-label{font-size:11.5px;line-height:17px;font-weight:700;
+ color:var(--read-secondary)}
+@media(max-width:360px){
+ :root{--request-quantity-width:102px;--request-unit-width:46px;--request-column-gap:8px}
+ .message-stream .order-request{padding:12px}
+}
 </style>
 </head>
 <body>
 <svg class="icon-sprite" width="0" height="0" viewBox="0 0 24 24" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"><defs><symbol id="ui-message-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5a8.5 8.5 0 0 1-8.5 8.5 9.6 9.6 0 0 1-4.1-1L3 20l1.2-4.1A8.5 8.5 0 1 1 20 11.5Z"/><path d="M8.5 11.5h7"/></symbol><symbol id="ui-briefcase" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18M10 13v2h4v-2"/></symbol><symbol id="ui-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h3l1.2 4-2 1.6c1.3 2.7 3.1 4.5 5.8 5.8l1.6-2 4 1.2v3a2 2 0 0 1-2.3 2c-7.3-1-12.5-6.2-13.5-13.5A2 2 0 0 1 6 3.5Z"/></symbol><symbol id="ui-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 14 4l1.1 1.8 2 .2 1.5 1.5-.2 2L20 11l-.2 2-1.4 1.6.1 2-1.4 1.4-2-.1L13 20l-2 .1-1.8-1.5-2 .1-1.5-1.5.2-2L4 13.5l-.2-2 1.5-1.8-.1-2L6.7 6l2 .2L10 4Z"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="ui-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></symbol><symbol id="ui-pencil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 16.5 1-4 10-10 4 4-10 10-5 1Z"/><path d="m12.8 4.7 4 4M4 21h16"/></symbol><symbol id="ui-arrow-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6M9 12h12"/></symbol><symbol id="ui-more" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></symbol><symbol id="ui-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M4 12h16"/></symbol><symbol id="ui-arrow-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V4m-7 7 7-7 7 7"/></symbol><symbol id="ui-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 15.6A8.4 8.4 0 0 1 8.4 4 8.6 8.6 0 1 0 20 15.6Z"/></symbol><symbol id="ui-receipt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18l-3-2-4 2-4-2-3 2V3Z"/><path d="M9 8h6M9 12h6M9 16h4"/></symbol><symbol id="ui-wallet" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="15" rx="3"/><path d="M3 10h18M16 15h3"/></symbol><symbol id="ui-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12 12 20 4 12V4h8l8 8Z"/><circle cx="8.5" cy="8.5" r="1"/></symbol><symbol id="ui-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="m4 17 5-5 4 4 2-2 5 5"/></symbol><symbol id="ui-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></symbol><symbol id="ui-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5 19 19M19 5 5 19"/></symbol><symbol id="ui-minus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 12h16"/></symbol></defs></svg>
-<div class="screen" id="screen" data-design-id="CHAT-NEXT-018" data-design-round="18">
+<div class="screen" id="screen" data-design-id="CHAT-NEXT-019" data-design-round="19">
   <div class="demo-top"><div class="demo-brand"><strong>CHAT NEXT</strong><span class="state"><i></i> BẢN DEMO · DỮ LIỆU MẪU</span></div><div class="top-actions"><details class="version-details" id="versionHistory" aria-label="Phiên bản thiết kế và các vòng sửa">
-  <summary title="CHAT NEXT — Vòng 18: Phân cấp nội dung dễ đọc" aria-label="Xem lịch sử phiên bản CHAT NEXT, vòng 18"><span class="version-round">V18</span><span class="version-caption">· Nhật ký sửa</span></summary>
+  <summary title="CHAT NEXT — Vòng 19: Căn trục yêu cầu hàng" aria-label="Xem lịch sử phiên bản CHAT NEXT, vòng 19"><span class="version-round">V19</span><span class="version-caption">· Nhật ký sửa</span></summary>
   <div class="version-panel">
-    <h2>CHAT NEXT · Vòng 18</h2>
-    <p>Phân cấp chữ, màu theo vai trò và loại tin · 18/11/2026. Bản demo, không phải V21 production.</p>
+    <h2>CHAT NEXT · Vòng 19</h2>
+    <p>Căn tên hàng, số lượng và ghi chú trên một hệ trục · 18/11/2026. Bản demo, không phải V21 production.</p>
     <ol class="version-log" aria-label="Lịch sử các vòng thiết kế">
+      <li><b>V19</b><span><strong>Căn trục yêu cầu hàng</strong><small>18/11/2026 · Cột tên, số, đơn vị và ghi chú; không tự tạo đơn</small></span></li>
       <li><b>V18</b><span><strong>Phân cấp nội dung dễ đọc</strong><small>18/11/2026 · Tin thường, ghi chú, phiếu hàng, ảnh và nháp chưa gửi</small></span></li>
       <li><b>V17</b><span><strong>Chi tiết giao diện đồng bộ</strong><small>18/11/2026 · Typography, biểu tượng, bán kính, viền, nhịp khoảng cách</small></span></li>
       <li><b>V16</b><span><strong>Căn trục ô gõ và nội dung</strong><small>18/11/2026 · Vùng nhập, khoảng cách, thanh cuộn, thước đo L5</small></span></li>
@@ -784,21 +813,24 @@ list.append(btn);
 byId('inboxSummary').textContent=q||filter!=='all'?shown+' kết quả'+(q?' cho tìm kiếm':''):people.length+' hội thoại · '+people.reduce(function(n,p){return n+(p.unread?1:0)},0)+' chưa đọc';
 if(!shown){var empty=el('div','no-results');empty.append(el('strong','','Không tìm thấy hội thoại'),el('small','','Thử đổi bộ lọc hoặc tìm theo tên, nội dung khác.'));list.append(empty)}
 }
-/* V18: typed demo content only. One source builds both preview rows and
-   readable source; NEVER infer bill/payment/order state from arbitrary text. */
+/* CHAT-NEXT-019: one validated typed source for quantity columns and raw text.
+   No keyword-based order, payment or delivery state inference. */
 function orderCard(payload){
- if(!payload||!Array.isArray(payload.items)||!payload.items.length)
+ if(!payload||!Array.isArray(payload.items))
   return el('div','bubble','Không có dữ liệu yêu cầu mẫu để trình bày.');
+ var items=payload.items.filter(function(item){return item&&Number.isSafeInteger(item.amount)&&item.amount>0&&typeof item.name==='string'&&item.name.trim()&&typeof item.unit==='string'&&item.unit.trim()});
+ if(!items.length)return el('div','bubble','Không có mặt hàng mẫu hợp lệ để trình bày.');
  var node=el('section','order order-request'),raw=[];
  node.setAttribute('aria-label','Yêu cầu lấy hàng mẫu chưa xác nhận');
  node.append(el('span','tag','YÊU CẦU LẤY HÀNG'),el('strong','order-heading','Danh sách khách gửi'));
- payload.items.forEach(function(item){
-  if(!Number.isSafeInteger(item.amount)||item.amount<=0||!item.name||!item.unit)return;
-  var qty=item.amount+' '+item.unit,row=el('div','orderitem');
-  row.append(el('span','',item.name),el('b','',qty));node.append(row);
+ var headings=el('div','order-columns');headings.append(el('span','','Mặt hàng'),el('span','','Số lượng'));node.append(headings);
+ items.forEach(function(item){
+  var qty=item.amount+' '+item.unit,row=el('div','orderitem'),amount=el('span','order-quantity');
+  amount.append(el('b','order-amount',item.amount),el('span','order-unit',item.unit));
+  row.append(el('span','order-name',item.name),amount);node.append(row);
   raw.push(qty+' '+item.name);
  });
- if(payload.note){node.append(el('p','order-note',payload.note));raw.push(payload.note)}
+ if(payload.note){var note=el('p','order-note');note.append(el('strong','order-note-label','Ghi chú'),el('span','',payload.note));node.append(note);raw.push(payload.note)}
  node.append(el('div','orderfoot','Bản đọc nhanh · chưa xác nhận đơn và không tự tạo đơn.'));
  var source=el('details','order-source');
  source.append(el('summary','','Xem nội dung mẫu'),el('pre','',raw.join('\n')));
