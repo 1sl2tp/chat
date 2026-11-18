@@ -17,6 +17,18 @@ for(const prohibited of [
 ]){
  assert(!html.includes(prohibited),'public demo must never call live APIs: '+prohibited);
 }
+
+assert(html.includes('<title>CHAT NEXT · V16 — Căn trục ô gõ (demo)</title>'),'V16 named release');
+assert(html.includes('data-design-id="CHAT-NEXT-016" data-design-round="16"'),'V16 distinct design round');
+assert(css.includes('/* CHAT-NEXT-016 — L5 composer precision'),'one micro-geometry owner');
+assert(css.includes('.conversation{scrollbar-width:none'),'classic scrollbars cannot shift L4');
+assert(css.includes('.conversation::-webkit-scrollbar{display:none'),'WebKit track removed');
+assert(css.includes('--frame-input-pad-x:14px')&&css.includes('--frame-input-pad-y:11px'),'input inset tokens');
+assert(css.includes('--frame-input-line:24px')&&css.includes('--frame-input-max:120px'),'multiline editor tokens');
+assert(html.includes('L5 Ô GÕ / NÚT + / GỬI'),'micro-measurement provided');
+assert(html.includes('Math.abs(leftGap-rightGap)<=1'),'symmetric controls');
+assert(html.includes('bottomDelta<=1'),'buttons and editor share baseline');
+
 assert(html.includes('BẢN DEMO · DỮ LIỆU MẪU'),'visible demo banner mandatory');
 assert(html.includes('Không gửi tới khách hàng'),'composer safety labeling mandatory');
 assert(html.includes('không tự ghi thu'),'no real payment capability in demo');
