@@ -100,24 +100,129 @@ button,a{touch-action:manipulation}
   .chat,.inbox,.work{min-height:0}
   .chat .conversation,.inbox .contacts{min-height:0;overscroll-behavior:contain}
 }
+
+/* CHAT-NEXT-012: cohesive fine-detail layer. One icon stroke family, a 4px
+   spacing rhythm, tabular figures, dark/light semantic tokens, controlled
+   interactive states. No library/CDN or production runtime dependency. */
+:root{
+ --polish-space-1:4px;--polish-space-2:8px;--polish-space-3:12px;
+ --polish-space-4:16px;--polish-space-5:20px;--polish-space-6:24px;
+ --polish-stroke:1px;--polish-focus:#087e6e;--polish-hover:rgba(18,123,108,.055);
+ --polish-active:rgba(18,123,108,.11);--polish-glow:rgba(18,123,108,.15);
+ --polish-muted:#586b74;--polish-subtle:#f5f8f9;
+}
+body.dark{--polish-focus:#65d8b8;--polish-hover:rgba(116,217,183,.07);--polish-active:rgba(116,217,183,.13);--polish-glow:rgba(116,217,183,.15);--polish-muted:#b2c1c5;--polish-subtle:#24343a}
+.icon-sprite{position:absolute;width:0;height:0;overflow:hidden;pointer-events:none}
+.ui-icon{display:inline-block;width:21px;height:21px;flex:0 0 auto;vertical-align:middle;color:currentColor}
+.brand-mark{color:rgba(255,255,255,.55);font-size:13px;margin-left:1px;vertical-align:super}
+button,a,input,textarea{-webkit-tap-highlight-color:transparent}
+button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--polish-focus);outline-offset:2px}
+.search:focus-within,.editorbox:focus-within{border-color:var(--polish-focus);box-shadow:0 0 0 3px var(--polish-glow)}
+.search input:focus-visible,.editorbox textarea:focus-visible{outline:0}
+.search{background:var(--surface);border-color:var(--border);gap:10px;border-radius:15px;transition:border-color .12s ease,box-shadow .12s ease}
+.search .search-glyph{color:var(--polish-muted);display:grid;place-items:center}
+.search input::placeholder,.editorbox textarea::placeholder{color:var(--polish-muted);opacity:.9}
+.demo-top{letter-spacing:normal}.demo-brand{display:flex;min-width:0;align-items:center;flex-wrap:wrap;gap:7px 12px}
+.demo-top .state{white-space:normal;line-height:16px}.top-actions button{min-height:44px;display:inline-flex;gap:8px;align-items:center;justify-content:center;padding-inline:12px}
+.top-actions .ui-icon{width:17px;height:17px}
+.navbtn,.iconbtn,.head-action,.filter,.contact,.action-sheet-action,.ctxbtn,.mobile-tabs button{transition:background-color .13s ease,color .13s ease,border-color .13s ease,box-shadow .13s ease}
+.navbtn .ui-icon,.mobile-tabs .ui-icon{width:22px;height:22px}
+.navbtn span,.mobile-tabs span{display:grid;place-items:center}
+.brand{letter-spacing:-.06em}
+.navrail{padding-block:18px}
+.navbtn:hover,.iconbtn:hover,.head-action:hover,.ctxbtn:hover,.mobile-tabs button:hover{background:var(--polish-hover)}
+.navbtn.active,.mobile-tabs button.active{color:var(--accent);background:var(--accentLight)}
+.navbtn small{font-size:10px;line-height:12px}
+.inbox-head{padding-top:20px}
+.headerline h1{font-size:24px;line-height:32px;letter-spacing:-.04em;font-weight:750}
+.helper{font-size:11.5px;line-height:17px;letter-spacing:0;color:var(--polish-muted);margin-block:4px 14px;font-variant-numeric:tabular-nums}
+.head-action{color:var(--ink)}
+.head-action .ui-icon{width:20px;height:20px}
+.filters{scrollbar-width:none;overscroll-behavior-inline:contain;gap:4px}
+.filter{font-size:12px;letter-spacing:0;font-weight:660}
+.filter:hover{background:var(--polish-hover);color:var(--ink)}
+.filter.active{background:var(--accentLight);color:var(--accent)}
+.contact{border:1px solid transparent;grid-template-columns:44px minmax(0,1fr) 64px}
+.contact:hover{background:var(--polish-hover)}
+.contact.selected{background:var(--accentLight);border-color:var(--polish-glow)}
+.contact:active{background:var(--polish-active)}
+.contact-title{font-weight:680;line-height:20px}
+.contact-preview{color:var(--polish-muted);margin-top:3px;line-height:18px}
+.contact .time{line-height:16px;color:var(--polish-muted);text-align:end}
+.contact .count{min-width:20px;min-height:20px;padding:3px 5px;line-height:14px}
+.contact[data-unread="true"] .contact-title{font-weight:760}
+.contact[data-unread="true"] .time{color:var(--accent);font-weight:720}
+.no-results{padding:40px 18px;min-height:160px;display:grid;align-content:center;gap:7px}
+.no-results strong{font-size:14px;color:var(--ink)}
+.no-results small{font-size:12px;line-height:18px;color:var(--polish-muted)}
+.chat-header{padding-inline:16px}
+.identity b{font-size:15px;font-weight:740;letter-spacing:-.012em}
+.identity small{font-size:11.5px;color:var(--polish-muted)}
+.conversation{scrollbar-gutter:stable}
+.bubble{font-size:14px;line-height:1.52;border-radius:17px 17px 17px 6px}
+.mine .bubble{border-radius:17px 17px 6px 17px}
+.message{max-width:min(76%,550px);margin-bottom:16px}
+.stamp{font-size:10.5px;line-height:16px;font-variant-numeric:tabular-nums;color:var(--polish-muted)}
+.day{font-size:11px;line-height:15px;font-weight:600;background:var(--border);padding:7px 12px}
+.order{box-shadow:0 2px 12px rgba(10,45,47,.035);border-radius:17px}
+.orderitem{font-variant-numeric:tabular-nums}
+.editorbox{border-radius:19px;background:var(--surface);min-width:0;transition:border-color .12s ease,box-shadow .12s ease}
+.send{box-shadow:0 3px 10px var(--polish-glow)}
+.send:disabled{background:var(--border);color:var(--polish-muted);box-shadow:none;opacity:.8}
+.send:not(:disabled):active{transform:scale(.96)}
+.chat-note{font-size:10.5px;line-height:15px;color:var(--polish-muted)}
+.ctxbtn{display:flex;align-items:center;gap:12px;font-size:12.5px;line-height:18px}
+.ctxbtn .ui-icon{width:19px;height:19px;color:var(--accent)}
+.context .overline{letter-spacing:.075em}
+.workcard{box-shadow:0 3px 20px rgba(27,48,55,.025)}
+.workcard .symbol{width:42px;height:42px;display:grid;place-items:center;border-radius:13px;background:var(--accentLight);color:var(--accent)}
+.workcard .symbol .ui-icon{width:22px;height:22px}
+.workcard h3{line-height:21px}
+.workcard p{line-height:1.55;color:var(--polish-muted)}
+.action-sheet-action .ui-icon{width:22px;height:22px}
+.action-sheet-close .ui-icon{width:21px;height:21px}
+.action-sheet-foot{color:var(--polish-muted)}
+@media(hover:none),(pointer:coarse){
+ .contact:hover,.filter:hover,.navbtn:hover,.iconbtn:hover{background:transparent}
+ .contact.selected:hover,.filter.active:hover,.navbtn.active:hover,.mobile-tabs button.active:hover{background:var(--accentLight)}
+}
+@media(max-width:700px),(hover:none),(pointer:coarse){
+ .demo-brand{gap:3px 8px}
+ .demo-top strong{font-size:11px}
+ .demo-top .state{font-size:10px;line-height:14px}
+ .top-actions button{min-height:42px;padding-inline:9px}
+ .inbox-head{padding-top:18px}
+ .headerline h1{font-size:23px}
+ .contact{min-height:80px;gap:10px;padding:10px 9px}
+ .chat-header{padding-inline:8px}
+ .conversation{scrollbar-gutter:auto}
+ .message{max-width:86%}
+ .bubble{font-size:14px}
+ .workcard{border-radius:16px}
+}
+@media(max-width:360px){.demo-top .state{font-size:9px}.top-actions #themeText{display:none}}
+@media(prefers-reduced-motion:reduce){
+ .navbtn,.iconbtn,.head-action,.filter,.contact,.action-sheet-action,.ctxbtn,.mobile-tabs button,.search,.editorbox{transition:none}
+}
 </style>
 </head>
 <body>
+<svg class="icon-sprite" width="0" height="0" viewBox="0 0 24 24" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"><defs><symbol id="ui-message-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5a8.5 8.5 0 0 1-8.5 8.5 9.6 9.6 0 0 1-4.1-1L3 20l1.2-4.1A8.5 8.5 0 1 1 20 11.5Z"/><path d="M8.5 11.5h7"/></symbol><symbol id="ui-briefcase" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18M10 13v2h4v-2"/></symbol><symbol id="ui-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h3l1.2 4-2 1.6c1.3 2.7 3.1 4.5 5.8 5.8l1.6-2 4 1.2v3a2 2 0 0 1-2.3 2c-7.3-1-12.5-6.2-13.5-13.5A2 2 0 0 1 6 3.5Z"/></symbol><symbol id="ui-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 14 4l1.1 1.8 2 .2 1.5 1.5-.2 2L20 11l-.2 2-1.4 1.6.1 2-1.4 1.4-2-.1L13 20l-2 .1-1.8-1.5-2 .1-1.5-1.5.2-2L4 13.5l-.2-2 1.5-1.8-.1-2L6.7 6l2 .2L10 4Z"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="ui-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></symbol><symbol id="ui-pencil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 16.5 1-4 10-10 4 4-10 10-5 1Z"/><path d="m12.8 4.7 4 4M4 21h16"/></symbol><symbol id="ui-arrow-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6M9 12h12"/></symbol><symbol id="ui-more" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></symbol><symbol id="ui-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M4 12h16"/></symbol><symbol id="ui-arrow-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V4m-7 7 7-7 7 7"/></symbol><symbol id="ui-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 15.6A8.4 8.4 0 0 1 8.4 4 8.6 8.6 0 1 0 20 15.6Z"/></symbol><symbol id="ui-receipt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18l-3-2-4 2-4-2-3 2V3Z"/><path d="M9 8h6M9 12h6M9 16h4"/></symbol><symbol id="ui-wallet" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="15" rx="3"/><path d="M3 10h18M16 15h3"/></symbol><symbol id="ui-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12 12 20 4 12V4h8l8 8Z"/><circle cx="8.5" cy="8.5" r="1"/></symbol><symbol id="ui-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="m4 17 5-5 4 4 2-2 5 5"/></symbol><symbol id="ui-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></symbol><symbol id="ui-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5 19 19M19 5 5 19"/></symbol></defs></svg>
 <div class="screen" id="screen">
-  <div class="demo-top"><div><strong>CHAT NEXT</strong><span class="state"> &nbsp; <i></i> BẢN DEMO · DỮ LIỆU MẪU</span></div><div class="top-actions"><button type="button" id="theme" aria-label="Đổi giao diện sáng tối">◐ <span id="themeText">Chế độ tối</span></button><span class="info">Tách biệt ứng dụng chính</span></div></div>
+  <div class="demo-top"><div class="demo-brand"><strong>CHAT NEXT</strong><span class="state"><i></i> BẢN DEMO · DỮ LIỆU MẪU</span></div><div class="top-actions"><button type="button" id="theme" aria-label="Đổi giao diện sáng tối"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-moon"></use></svg> <span id="themeText">Chế độ tối</span></button><span class="info">Tách biệt ứng dụng chính</span></div></div>
   <div class="app" id="app" data-page="inbox">
     <nav class="navrail" aria-label="Điều hướng chính">
-      <div class="brand">C</div>
-      <button class="navbtn active" data-mode="chat" title="Trò chuyện"><span>▤</span><small>Chat</small></button>
-      <button class="navbtn" data-mode="work" title="Công việc"><span>▦</span><small>Việc</small></button>
-      <button class="navbtn" data-action="call" title="Gọi" aria-label="Cuộc gọi mẫu"><span><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h3l1.2 4-2 1.6c1.3 2.7 3.1 4.5 5.8 5.8l1.6-2 4 1.2v3a2 2 0 0 1-2.3 2c-7.3-1-12.5-6.2-13.5-13.5A2 2 0 0 1 6 3.5Z"/></svg></span><small>Gọi</small></button>
-      <button class="navbtn settings" data-action="settings" title="Cài đặt"><span>⚙</span><small>Cài đặt</small></button>
+      <div class="brand" aria-label="CHAT NEXT">C<span class="brand-mark" aria-hidden="true">.</span></div>
+      <button class="navbtn active" data-mode="chat" title="Trò chuyện"><span><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-message-circle"></use></svg></span><small>Chat</small></button>
+      <button class="navbtn" data-mode="work" title="Công việc"><span><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-briefcase"></use></svg></span><small>Việc</small></button>
+      <button class="navbtn" data-action="call" title="Gọi" aria-label="Cuộc gọi mẫu"><span><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-phone"></use></svg></span><small>Gọi</small></button>
+      <button class="navbtn settings" data-action="settings" title="Cài đặt"><span><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-settings"></use></svg></span><small>Cài đặt</small></button>
     </nav>
     <aside class="inbox" aria-label="Danh sách trò chuyện">
       <div class="inbox-head">
-        <div class="headerline"><h1>Tin nhắn</h1><button class="head-action" type="button" data-action="new" title="Tạo hội thoại">✎</button></div>
-        <p class="helper">Tập trung liên hệ, không trộn nghiệp vụ</p>
-        <label class="search"><span aria-hidden="true">⌕</span><input id="search" type="search" autocomplete="off" placeholder="Tìm tên hoặc nội dung" aria-label="Tìm hội thoại"></label>
+        <div class="headerline"><h1>Tin nhắn</h1><button class="head-action" type="button" data-action="new" aria-label="Tạo cuộc trò chuyện mẫu" title="Tạo hội thoại"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-pencil"></use></svg></button></div>
+        <p class="helper" id="inboxSummary" aria-live="polite">5 hội thoại · 2 chưa đọc</p>
+        <label class="search"><span class="search-glyph" aria-hidden="true"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-search"></use></svg></span><input id="search" type="search" autocomplete="off" placeholder="Tìm tên hoặc nội dung" aria-label="Tìm hội thoại"></label>
       </div>
       <div class="filters" role="group" aria-label="Lọc trò chuyện">
         <button class="filter active" data-filter="all" aria-pressed="true" type="button">Tất cả</button>
@@ -129,19 +234,19 @@ button,a{touch-action:manipulation}
     </aside>
     <main class="chat" aria-label="Hội thoại">
       <header class="chat-header">
-        <button class="iconbtn go-back" data-action="back" aria-label="Quay lại danh bạ">‹</button>
+        <button class="iconbtn go-back" data-action="back" aria-label="Quay lại danh bạ"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-arrow-left"></use></svg></button>
         <div class="avatar" id="activeAvatar">L</div>
         <div class="identity"><b id="activeName">Chị Lan</b><small id="activeKind">Khách hàng · Trò chuyện</small></div>
         <div class="right-head">
-          <button class="iconbtn" data-action="call" title="Gọi điện" aria-label="Gọi điện mẫu"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h3l1.2 4-2 1.6c1.3 2.7 3.1 4.5 5.8 5.8l1.6-2 4 1.2v3a2 2 0 0 1-2.3 2c-7.3-1-12.5-6.2-13.5-13.5A2 2 0 0 1 6 3.5Z"/></svg></button>
-          <button class="iconbtn" data-action="more" aria-haspopup="dialog" aria-controls="conversationActions" title="Mở tùy chọn hội thoại">⋯</button>
+          <button class="iconbtn" data-action="call" title="Gọi điện" aria-label="Gọi điện mẫu"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-phone"></use></svg></button>
+          <button class="iconbtn" data-action="more" aria-label="Mở tùy chọn hội thoại" aria-haspopup="dialog" aria-controls="conversationActions" title="Mở tùy chọn hội thoại"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-more"></use></svg></button>
         </div>
       </header>
       <div class="conversation" id="conversation" aria-live="polite"></div>
       <form class="composer" id="composer" autocomplete="off">
-        <button class="iconbtn" type="button" data-action="attach" aria-label="Đính kèm">＋</button>
+        <button class="iconbtn" type="button" data-action="attach" aria-label="Đính kèm mẫu"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-plus"></use></svg></button>
         <div class="editorbox"><textarea id="draft" rows="1" aria-label="Nhập tin nhắn giả lập" placeholder="Nhập tin nhắn mẫu…"></textarea></div>
-        <button class="iconbtn send" type="submit" aria-label="Thêm tin nháp vào bản demo">➤</button>
+        <button class="iconbtn send" id="sendDemo" type="submit" disabled aria-label="Thêm tin nháp vào bản demo"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-arrow-up"></use></svg></button>
       </form>
       <p class="chat-note">Tin nhập chỉ hiện trên thiết bị của bạn. Không gửi tới khách hàng.</p>
     </main>
@@ -153,35 +258,35 @@ button,a{touch-action:manipulation}
       <div class="statcard"><small>Đơn cần soát</small><strong id="orderCount">02</strong></div>
       <div class="statcard"><small>Kết nối</small><strong style="font-size:14px">Đang hoạt động</strong></div>
       <div class="overline">THAO TÁC</div>
-      <button class="ctxbtn" data-action="work" type="button">▦ &nbsp; Công việc liên quan</button>
-      <button class="ctxbtn" data-action="photos" type="button">▧ &nbsp; Ảnh và tệp đã gửi</button>
-      <button class="ctxbtn" data-action="more" type="button">⋯ &nbsp; Tùy chọn hội thoại</button>
+      <button class="ctxbtn" data-action="work" type="button"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-briefcase"></use></svg> Công việc liên quan</button>
+      <button class="ctxbtn" data-action="photos" type="button"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-image"></use></svg> Ảnh và tệp đã gửi</button>
+      <button class="ctxbtn" data-action="more" type="button"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-more"></use></svg> Tùy chọn hội thoại</button>
     </aside>
     <section class="work" aria-label="Màn hình Công việc">
       <h2>Công việc</h2><p>Quản lý nghiệp vụ bên ngoài luồng tin nhắn · Chỉ có dữ liệu mẫu</p>
       <div class="workgrid">
-        <div class="workcard"><div class="symbol">▣</div><h3>Đơn hàng</h3><p>Đơn tạm, kiểm hàng, chờ giao và đã giao; tách trạng thái rõ ràng.</p><button data-work="orders" type="button">Xem mẫu đơn</button><a class="invoice-link" href="./invoice.html">Quản lý 3 mẫu hóa đơn →</a></div>
-        <div class="workcard"><div class="symbol">◈</div><h3>Thanh toán</h3><p>Công nợ và khoản thu hiển thị riêng, không tự ghi thu trong bản demo.</p><button data-work="payments" type="button">Xem đối soát</button></div>
-        <div class="workcard"><div class="symbol">▤</div><h3>Báo giá</h3><p>Giá mới, giá cũ, giá áp riêng và lịch sử được tổ chức theo khách.</p><button data-work="pricing" type="button">Xem báo giá</button></div>
-        <div class="workcard"><div class="symbol">▧</div><h3>Phiếu lấy hàng</h3><p>Gộp số lượng, giữ ghi chú và nguyên văn tin khách đã gửi.</p><button data-work="pick" type="button">Xem mẫu phiếu</button></div>
+        <div class="workcard"><div class="symbol"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-receipt"></use></svg></div><h3>Đơn hàng</h3><p>Đơn tạm, kiểm hàng, chờ giao và đã giao; tách trạng thái rõ ràng.</p><button data-work="orders" type="button">Xem mẫu đơn</button><a class="invoice-link" href="./invoice.html">Quản lý 3 mẫu hóa đơn →</a></div>
+        <div class="workcard"><div class="symbol"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-wallet"></use></svg></div><h3>Thanh toán</h3><p>Công nợ và khoản thu hiển thị riêng, không tự ghi thu trong bản demo.</p><button data-work="payments" type="button">Xem đối soát</button></div>
+        <div class="workcard"><div class="symbol"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-tag"></use></svg></div><h3>Báo giá</h3><p>Giá mới, giá cũ, giá áp riêng và lịch sử được tổ chức theo khách.</p><button data-work="pricing" type="button">Xem báo giá</button></div>
+        <div class="workcard"><div class="symbol"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-briefcase"></use></svg></div><h3>Phiếu lấy hàng</h3><p>Gộp số lượng, giữ ghi chú và nguyên văn tin khách đã gửi.</p><button data-work="pick" type="button">Xem mẫu phiếu</button></div>
       </div>
       <div class="work-detail" id="workDetail"><b>Chọn một mục bên trên</b><br>Chỉ trình bày UI; các chức năng thật vẫn nằm trong ứng dụng hiện tại.</div>
     </section>
     <div class="mobile-tabs" role="navigation" aria-label="Điều hướng dưới">
-      <button class="active" data-mode="chat" aria-current="page" type="button"><span>▤</span>Trò chuyện</button>
-      <button data-mode="work" type="button"><span>▦</span>Công việc</button>
+      <button class="active" data-mode="chat" aria-current="page" type="button"><span><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-message-circle"></use></svg></span>Trò chuyện</button>
+      <button data-mode="work" type="button"><span><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-briefcase"></use></svg></span>Công việc</button>
     </div>
   </div>
 </div>
 <dialog class="action-sheet" id="conversationActions" aria-labelledby="actionSheetTitle" aria-modal="true">
   <div class="action-sheet-head">
     <div class="action-sheet-heading"><small>TÙY CHỌN HỘI THOẠI</small><strong id="actionSheetTitle">Liên hệ</strong><span>Hành động trong bản demo · Không gửi dữ liệu</span></div>
-    <button class="action-sheet-close" type="button" data-sheet-close aria-label="Đóng tùy chọn">×</button>
+    <button class="action-sheet-close" type="button" data-sheet-close aria-label="Đóng tùy chọn"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-close"></use></svg></button>
   </div>
   <div class="action-sheet-body">
-    <button type="button" class="action-sheet-action" data-sheet-action="work"><span class="action-sheet-glyph" aria-hidden="true">▦</span><span><b>Công việc của liên hệ</b><small>Đơn hàng, đối soát, báo giá</small></span><span class="action-sheet-chevron" aria-hidden="true">›</span></button>
-    <a class="action-sheet-action" href="./invoice.html"><span class="action-sheet-glyph" aria-hidden="true">▤</span><span><b>Xem mẫu hóa đơn</b><small>Ba mẫu: in đen trắng, xanh lá, xanh than</small></span><span class="action-sheet-chevron" aria-hidden="true">›</span></a>
-    <button type="button" class="action-sheet-action" data-sheet-action="photos"><span class="action-sheet-glyph" aria-hidden="true">▧</span><span><b>Ảnh và tệp</b><small>Trình xem mẫu chưa kết nối dữ liệu</small></span><span class="action-sheet-chevron" aria-hidden="true">›</span></button>
+    <button type="button" class="action-sheet-action" data-sheet-action="work"><span class="action-sheet-glyph" aria-hidden="true"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-briefcase"></use></svg></span><span><b>Công việc của liên hệ</b><small>Đơn hàng, đối soát, báo giá</small></span><span class="action-sheet-chevron" aria-hidden="true">›</span></button>
+    <a class="action-sheet-action" href="./invoice.html"><span class="action-sheet-glyph" aria-hidden="true"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-receipt"></use></svg></span><span><b>Xem mẫu hóa đơn</b><small>Ba mẫu: in đen trắng, xanh lá, xanh than</small></span><span class="action-sheet-chevron" aria-hidden="true">›</span></a>
+    <button type="button" class="action-sheet-action" data-sheet-action="photos"><span class="action-sheet-glyph" aria-hidden="true"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-image"></use></svg></span><span><b>Ảnh và tệp</b><small>Trình xem mẫu chưa kết nối dữ liệu</small></span><span class="action-sheet-chevron" aria-hidden="true">›</span></button>
   </div>
   <p class="action-sheet-foot">Hành động tại đây không gọi API, không gửi tin nhắn và không ghi thu.</p>
 </dialog>
@@ -218,12 +323,13 @@ if(filter==='unread'&&!p.unread)return;
 if(filter==='group'&&p.category!=='group')return;
 if(filter==='customer'&&p.category!=='customer')return;
 if(q&&!(p.name+' '+p.preview).toLocaleLowerCase('vi').includes(q))return;
-shown++;var btn=el('button','contact'+(p.id===current?' selected':''));btn.type='button';btn.setAttribute('aria-label','Mở hội thoại '+p.name);btn.setAttribute('aria-pressed',String(p.id===current));
+shown++;var btn=el('button','contact'+(p.id===current?' selected':''));btn.type='button';btn.setAttribute('aria-label','Mở hội thoại '+p.name+(p.unread?' · '+p.unread+' tin chưa đọc':''));btn.setAttribute('aria-pressed',String(p.id===current));btn.dataset.unread=String(p.unread>0);
 var info=el('div','contact-main');info.append(el('div','contact-title',p.name),el('div','contact-preview',p.preview));
 var time=el('div','time',p.time);if(p.unread)time.append(el('span','count',p.unread));
 btn.append(avatar(p),info,time);btn.addEventListener('click',function(){demoDrafts[current]=byId('draft').value;current=p.id;renderContacts();renderChat();showPage('chat');});
 list.append(btn);
-});if(!shown)list.append(el('div','no-results','Không có hội thoại phù hợp'));
+});byId('inboxSummary').textContent=q||filter!=='all'?shown+' kết quả'+(q?' cho tìm kiếm':''):people.length+' hội thoại · '+people.reduce(function(n,p){return n+(p.unread?1:0)},0)+' chưa đọc';
+if(!shown){var empty=el('div','no-results');empty.append(el('strong','','Không tìm thấy hội thoại'),el('small','','Thử đổi bộ lọc hoặc tìm theo tên, nội dung khác.'));list.append(empty)}
 }
 function orderCard(){var node=el('div','order');node.append(el('span','tag','BÁO LẤY HÀNG · XEM NHANH'),el('strong','', 'Danh sách khách gửi'));
 [['Sữa hộp','2 thùng'],['Bánh quy','3 hộp']].forEach(function(entry){var row=el('div','orderitem');row.append(el('span','',entry[0]),el('b','',entry[1]));node.append(row)});
@@ -236,7 +342,7 @@ var box=byId('conversation');box.replaceChildren(el('div','day','Hôm nay · 18/
 var row=el('div','message'+(entry[0]==='mine'?' mine':''));if(entry[0]==='order')row.append(orderCard());else row.append(el('div','bubble',entry[1]));
 row.append(el('div','stamp',entry[2]+(entry[0]==='mine'?' ✓':'')));box.append(row)});
 (demoPreviewMessages[current]||[]).forEach(function(value){var row=el('div','message mine');row.append(el('div','bubble',value),el('div','stamp','Nháp demo · chưa gửi'));box.append(row)});
-var input=byId('draft');input.value=demoDrafts[current]||'';input.style.height='22px';input.style.height=Math.min(input.scrollHeight,110)+'px';
+var input=byId('draft');input.value=demoDrafts[current]||'';input.style.height='22px';input.style.height=Math.min(input.scrollHeight,110)+'px';syncDemoSendState();
 box.scrollTop=box.scrollHeight;
 }
 /* CHAT-NEXT-011: History navigates the mock routes only; URLs never hold
@@ -282,7 +388,8 @@ var messages={call:'Bản demo không thực hiện cuộc gọi.',new:'Tạo h�
 showToast(messages[a]||'Thao tác đang ở chế độ minh họa');
 })});
 byId('search').addEventListener('input',renderContacts);
-byId('draft').addEventListener('input',function(){demoDrafts[current]=this.value;this.style.height='22px';this.style.height=Math.min(this.scrollHeight,110)+'px'});
+function syncDemoSendState(){byId('sendDemo').disabled=!byId('draft').value.trim()}
+byId('draft').addEventListener('input',function(){demoDrafts[current]=this.value;this.style.height='22px';this.style.height=Math.min(this.scrollHeight,110)+'px';syncDemoSendState()});
 byId('draft').addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();byId('composer').requestSubmit()}});
 byId('composer').addEventListener('submit',function(e){
 e.preventDefault();var input=byId('draft'),value=input.value.trim();if(!value)return;
