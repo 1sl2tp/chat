@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f4f8f8">
-<title>CHAT NEXT · V15 — Nhật ký phiên bản (demo)</title>
+<title>CHAT NEXT · V16 — Căn trục ô gõ (demo)</title>
 <style>
 :root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color-scheme:light;--bg:#eef4f4;--surface:#fff;--subtle:#f5f8f9;--ink:#21313b;--muted:#586b74;--border:#e3e9ea;--accent:#0f7668;--accentLight:#e2f3eb;--received:#fff;--sent:#def2e9;--shadow:0 25px 70px rgba(30,62,67,.12)}
 body.dark{color-scheme:dark;--bg:#131d21;--surface:#1e2a30;--subtle:#24343a;--ink:#eaf1f2;--muted:#a6b5b9;--border:#35474b;--accent:#57c7a5;--accentLight:#22483e;--received:#29383e;--sent:#224d42;--shadow:0 20px 50px rgba(0,0,0,.28)}
@@ -419,17 +419,35 @@ body.geometry-mode .composer-inner .editorbox{outline:1px solid rgba(180,50,150,
 @media(max-width:560px){.demo-top .state{display:none}.version-panel{right:-2px}}
 @media(max-width:400px){.version-caption{display:none}.top-actions #themeText{display:none}.version-details>summary{min-height:40px}.demo-brand{flex-wrap:nowrap}}
 
+
+/* CHAT-NEXT-016 — L5 composer precision / conversation scroll lane.
+   Conversation remains the sole native vertical scroll owner. Its scrollbar
+   track would otherwise steal width and shift the L4 reading axis on desktop. */
+:root{--frame-input-pad-x:14px;--frame-input-pad-y:11px;--frame-input-line:24px;--frame-input-max:120px}
+.conversation{scrollbar-width:none;-ms-overflow-style:none;overscroll-behavior-y:contain}
+.conversation::-webkit-scrollbar{display:none;width:0;height:0}
+.composer-inner{column-gap:var(--frame-control-gap);row-gap:0}
+.composer-inner .editorbox{overflow:hidden;min-width:0;min-height:var(--frame-control);
+ padding:var(--frame-input-pad-y) var(--frame-input-pad-x);border-radius:24px;align-items:end}
+.composer-inner #draft{display:block;flex:1 1 auto;width:100%;min-height:var(--frame-input-line);
+ max-height:var(--frame-input-max);line-height:var(--frame-input-line);margin:0;padding:0;resize:none;
+ scroll-padding-block:4px;overflow-y:auto}
+.composer-inner>.iconbtn{display:grid;place-items:center;align-self:end;min-height:var(--frame-control);padding:0;margin:0}
+.composer-inner>.iconbtn .ui-icon{display:block;width:21px;height:21px;flex:none}
+@media(max-width:360px){:root{--frame-input-pad-x:12px}}
+
 </style>
 </head>
 <body>
 <svg class="icon-sprite" width="0" height="0" viewBox="0 0 24 24" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"><defs><symbol id="ui-message-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5a8.5 8.5 0 0 1-8.5 8.5 9.6 9.6 0 0 1-4.1-1L3 20l1.2-4.1A8.5 8.5 0 1 1 20 11.5Z"/><path d="M8.5 11.5h7"/></symbol><symbol id="ui-briefcase" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18M10 13v2h4v-2"/></symbol><symbol id="ui-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h3l1.2 4-2 1.6c1.3 2.7 3.1 4.5 5.8 5.8l1.6-2 4 1.2v3a2 2 0 0 1-2.3 2c-7.3-1-12.5-6.2-13.5-13.5A2 2 0 0 1 6 3.5Z"/></symbol><symbol id="ui-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 14 4l1.1 1.8 2 .2 1.5 1.5-.2 2L20 11l-.2 2-1.4 1.6.1 2-1.4 1.4-2-.1L13 20l-2 .1-1.8-1.5-2 .1-1.5-1.5.2-2L4 13.5l-.2-2 1.5-1.8-.1-2L6.7 6l2 .2L10 4Z"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="ui-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></symbol><symbol id="ui-pencil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 16.5 1-4 10-10 4 4-10 10-5 1Z"/><path d="m12.8 4.7 4 4M4 21h16"/></symbol><symbol id="ui-arrow-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6M9 12h12"/></symbol><symbol id="ui-more" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></symbol><symbol id="ui-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M4 12h16"/></symbol><symbol id="ui-arrow-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V4m-7 7 7-7 7 7"/></symbol><symbol id="ui-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 15.6A8.4 8.4 0 0 1 8.4 4 8.6 8.6 0 1 0 20 15.6Z"/></symbol><symbol id="ui-receipt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18l-3-2-4 2-4-2-3 2V3Z"/><path d="M9 8h6M9 12h6M9 16h4"/></symbol><symbol id="ui-wallet" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="15" rx="3"/><path d="M3 10h18M16 15h3"/></symbol><symbol id="ui-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12 12 20 4 12V4h8l8 8Z"/><circle cx="8.5" cy="8.5" r="1"/></symbol><symbol id="ui-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="m4 17 5-5 4 4 2-2 5 5"/></symbol><symbol id="ui-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></symbol><symbol id="ui-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5 19 19M19 5 5 19"/></symbol><symbol id="ui-minus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 12h16"/></symbol></defs></svg>
-<div class="screen" id="screen" data-design-id="CHAT-NEXT-015" data-design-round="15">
+<div class="screen" id="screen" data-design-id="CHAT-NEXT-016" data-design-round="16">
   <div class="demo-top"><div class="demo-brand"><strong>CHAT NEXT</strong><span class="state"><i></i> BẢN DEMO · DỮ LIỆU MẪU</span></div><div class="top-actions"><details class="version-details" id="versionHistory" aria-label="Phiên bản thiết kế và các vòng sửa">
-  <summary title="CHAT NEXT — Vòng 15: Nhận diện phiên bản và nhật ký chỉnh sửa" aria-label="Xem lịch sử phiên bản CHAT NEXT, vòng 15"><span class="version-round">V15</span><span class="version-caption">· Nhật ký sửa</span></summary>
+  <summary title="CHAT NEXT — Vòng 16: Căn trục ô gõ và nội dung" aria-label="Xem lịch sử phiên bản CHAT NEXT, vòng 16"><span class="version-round">V16</span><span class="version-caption">· Nhật ký sửa</span></summary>
   <div class="version-panel">
-    <h2>CHAT NEXT · Vòng 15</h2>
-    <p>Nhận diện phiên bản & lịch sử chỉnh sửa · 18/11/2026. Bản demo, không phải V21 production.</p>
+    <h2>CHAT NEXT · Vòng 16</h2>
+    <p>Căn trục ô gõ, nút và nội dung · 18/11/2026. Bản demo, không phải V21 production.</p>
     <ol class="version-log" aria-label="Lịch sử các vòng thiết kế">
+      <li><b>V16</b><span><strong>Căn trục ô gõ và nội dung</strong><small>18/11/2026 · Vùng nhập, khoảng cách, thanh cuộn, thước đo L5</small></span></li>
       <li><b>V15</b><span><strong>Tên phiên bản & nhật ký chỉnh sửa</strong><small>18/11/2026 · Đang nghiệm thu demo</small></span></li>
       <li><b>V14</b><span><strong>Khung phân cấp và trục L0–L5</strong><small>18/11/2026 · Chuẩn hóa header, nội dung và ô nhập</small></span></li>
       <li><b>V13</b><span><strong>Ảnh và media mẫu</strong><small>18/11/2026 · Kích thước ảnh, zoom một chạm</small></span></li>
@@ -703,7 +721,7 @@ showToast(messages[a]||'Thao tác đang ở chế độ minh họa');
 })});
 byId('search').addEventListener('input',renderContacts);
 function syncDemoSendState(){byId('sendDemo').disabled=!byId('draft').value.trim()}
-byId('draft').addEventListener('input',function(){demoDrafts[current]=this.value;this.style.height='24px';this.style.height=Math.min(this.scrollHeight,120)+'px';syncDemoSendState()});
+byId('draft').addEventListener('input',function(){demoDrafts[current]=this.value;this.style.height='24px';this.style.height=Math.min(this.scrollHeight,120)+'px';syncDemoSendState();if(geometryMode)window.requestAnimationFrame(updateFrameAudit)});
 byId('draft').addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();byId('composer').requestSubmit()}});
 byId('composer').addEventListener('submit',function(e){
 e.preventDefault();var input=byId('draft'),value=input.value.trim();if(!value)return;
@@ -733,7 +751,7 @@ function updateDemoViewport(){
 function scheduleDemoViewport(){
   if(demoViewportScheduled)return;
   demoViewportScheduled=true;
-  window.requestAnimationFrame(function(){demoViewportScheduled=false;updateDemoViewport()});
+  window.requestAnimationFrame(function(){demoViewportScheduled=false;updateDemoViewport();if(geometryMode)updateFrameAudit()});
 }
 if(window.visualViewport){
   window.visualViewport.addEventListener('resize',scheduleDemoViewport);
@@ -773,6 +791,35 @@ function updateFrameAudit(){
   lines.push('L4 '+(dx<=1&&dr<=1?'ĐẠT':'CẦN KIỂM TRA SCROLLBAR'));
   lines.push('HEADER / TEXT / INPUT / NOTE');
   nodes.forEach(function(r,i){lines.push(['H','T','I','N'][i]+': '+frameRound(r.left)+' → '+frameRound(r.right)+' ('+frameRound(r.width)+')')});
+
+   /* V16 L5 geometry: measure DOM only for opt-in ?geometry=1. */
+   var attach=document.querySelector('.composer-inner>[data-action="attach"]');
+   var editor=document.querySelector('.composer-inner .editorbox');
+   var draft=byId('draft'),send=byId('sendDemo');
+   var la=frameRect(attach),le=frameRect(editor),ld=frameRect(draft),ls=frameRect(send);
+   if(la&&le&&ld&&ls){
+     var composerStyle=window.getComputedStyle(composer);
+     var editorStyle=window.getComputedStyle(editor);
+     var draftStyle=window.getComputedStyle(draft);
+     var gap=parseFloat(composerStyle.columnGap)||parseFloat(composerStyle.gap)||0;
+     var insetX=parseFloat(editorStyle.paddingLeft)||0;
+     var borderX=parseFloat(editorStyle.borderLeftWidth)||0;
+     var leftGap=le.left-la.right,rightGap=ls.left-le.right;
+     var bottomDelta=Math.max(la.bottom,le.bottom,ls.bottom)-Math.min(la.bottom,le.bottom,ls.bottom);
+     var textInset=ld.left-le.left-borderX;
+     var lineHeight=parseFloat(draftStyle.lineHeight)||0;
+     var within=ld.left>=le.left-0.5&&ld.right<=le.right+0.5;
+     var ok=Math.abs(la.width-ls.width)<=1&&Math.abs(leftGap-gap)<=1&&
+       Math.abs(rightGap-gap)<=1&&Math.abs(leftGap-rightGap)<=1&&
+       bottomDelta<=1&&Math.abs(textInset-insetX)<=1&&
+       Math.abs(lineHeight-24)<=0.5&&within;
+     lines.push('L5 Ô GÕ / NÚT + / GỬI '+(ok?'ĐẠT':'CẦN SỬA'));
+     lines.push('Nút '+frameRound(la.width)+'px · '+frameRound(ls.width)+'px');
+     lines.push('Gap '+frameRound(leftGap)+'px / '+frameRound(rightGap)+'px (mục tiêu '+frameRound(gap)+'px)');
+     lines.push('Mép chữ '+frameRound(textInset)+'px (mục tiêu '+frameRound(insetX)+'px)');
+     lines.push('Đáy nút/ô lệch '+frameRound(bottomDelta)+'px · dòng '+frameRound(lineHeight)+'px');
+   }
+
  }else lines.push('Mở hội thoại để đo 4 trục L4');
  var head=document.querySelector('.inbox-head'),filters=document.querySelector('.filters'),first=document.querySelector('.contact');
  if(head&&filters&&first){
@@ -790,7 +837,7 @@ if(geometryMode){
  geometryPanel=document.createElement('details');
  geometryPanel.className='geometry-inspector';
  geometryPanel.open=true;
- var summary=document.createElement('summary');summary.textContent='L0–L5 · Kiểm tra trục bố cục';
+ var summary=document.createElement('summary');summary.textContent='V16 · Đo trục và ô gõ L0–L5';
  geometryReadout=document.createElement('pre');
  geometryPanel.append(summary,geometryReadout);document.body.append(geometryPanel);
  window.addEventListener('resize',function(){window.requestAnimationFrame(updateFrameAudit)});
