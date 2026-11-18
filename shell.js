@@ -726,6 +726,9 @@ function setActiveContact(contactId,contactName){
   }else{
     activeContact={id:String(contactId),name:String(contactName||'Liên hệ')};
   }
+  // CHAT-385: keep shell contact identity in sync before the header owner
+  // evaluates a contact-change event. The route indicator was otherwise stale.
+  appShell.dataset.chatContact=String(Boolean(activeContact?.id));
   closeChatHeaderMenu();
   renderCallFocus();
   renderChatTabIdentity();
