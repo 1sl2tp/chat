@@ -1,3 +1,15 @@
+## 2026-11-18 — CHAT-384 · Chat nhiều khách khi mở bàn phím, 1/2/3+ dòng
+
+- **E0:** Admin dùng Chat Web/PWA để đọc tin khách từ Zalo → Render → Supabase. Ảnh iPhone ChatGPT cho thấy cách Composer 1/2/nhiều dòng và bàn phím chiếm vùng nhìn thấy; ảnh Chat hiện tại có danh bạ đa khách và thanh nghiệp vụ luôn hiện. Nhu cầu là nhẹ/gọn, không thêm UI vá.
+- **Source owner evidence:** `app.js::autoGrow` trước đây mở rộng ở `natural>43px` (ngay dòng hai), cap `min(168px,35% VisualViewport)` chưa cân tổng Composer; `ComposerDraftOwner` giữ bản nháp đúng contact nhưng `data-editor-expanded` là trạng thái DOM có thể lọt giữa A/B; `work-customer-summary.js::showMobileDirectory` chưa chủ động dismiss editor keyboard; thanh `#chatQuickActions` trùng entry media/tìm và chiếm ~48–52px trên mobile.
+- **E1 — một owner/một thay đổi:** `app.js` dùng `composerTextHeightLimit()` trên VisualViewport + header + toàn bộ composer overhead, giữ Messages tối thiểu dự kiến 42%/128px khi có thể; compact tới 2 dòng, từ 3 dòng sang expanded, co khi xóa thật sự; khi chuyển contact reset geometry và lấy đúng width DOM tại ResizeObserver (tránh A → B stale). `mobile-chat-refresh.css` giảm cap editor 168 → 144px (không tạo stylesheet thứ tư). `work-customer-summary.js` blur input trước khi show directory và clear contact. `index.source.html` + `shell.js` + `admin-composer-actions.js` chuyển chức năng cash/debt/search vào menu `…` trên mobile, chỉ giữ thanh nhanh desktop; mọi hành động tài chính vẫn gọi owner gốc có quyền/idempotency. `sw.js` đổi UI epoch công khai, giữ nguyên IndexedDB/private cache.
+- **E2:** Test mới `tests/test_chat384_multi_person_keyboard_20261118.cjs` bao gồm 1/2/3+ dòng, xóa co lại, 144/52px cap, diện tích Messages, chuyển khách/keyboard/menu. Cập nhật contract UI-268/UI-273 và ResizeObserver để nhận current mounted width thay vì stale event. Node --check đầy đủ.
+- **E3:** Pull request [#331](https://github.com/1sl2tp/chat/pull/331) Verify V21 [#44355463994](https://github.com/1sl2tp/chat/actions/runs/44355463994) **SUCCESS**. Chưa dùng test gửi thật, không có thay đổi DB/Supabase/Render/Zalo/Push, không có polling mới. Merge/Pages publish cần ghi nhận riêng sau khi phát hành.
+- **E4/E5 PENDING:** Nghiệm thu thiết bị thực: iPhone Safari + PWA (keyboard đóng/mở lại, 1/2/3/8 dòng, IME tiếng Việt, paste cực dài), A→B→A bản nháp + media + lịch sử, chuyển từ push lúc app nền, Safari address bar/landscape, Android PWA/Desktop; đo text/media, không có flash sai khách hay khe trắng/che tin; chưa tuyên bố triệt để qua CI mô phỏng.
+- **Rollback:** revert code CHAT-384 và shell cache epoch; giữ lại dữ liệu, bản nháp/outbox đã lưu cục bộ, không xóa account DB.
+
+---
+
 ## 2026-11-18 — CHAT-383 · Mở/nhắn hội thoại nhanh, đúng khách trên Web/PWA
 
 - **E0:** Admin nhận tin qua Zalo → Render → Chat/Supabase, không muốn đổi ứng dụng vì chức năng thiếu; trải nghiệm chậm/không ổn định khi chọn khách, mở từ Push, nhập/gửi và media. Ảnh người dùng ngày 18/11 là danh bạ mobile, chưa phải bằng chứng đo ms hoặc log lỗi; không suy diễn lỗi server từ ảnh.
