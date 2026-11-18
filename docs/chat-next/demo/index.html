@@ -75,6 +75,17 @@ button,a{touch-action:manipulation}
  .action-sheet{max-height:calc(100dvh - env(safe-area-inset-top) - 18px)}
 }
 @media(max-width:360px){.chat-header{gap:5px}.chat-header .avatar{width:38px;height:38px}.iconbtn{min-width:44px;height:44px}.right-head{gap:0}}
+
+/* Mobile V2: one viewport owner; safe-area banner and content share a flex
+   height instead of competing fixed 43px/calc heights under iOS browser chrome. */
+.navbtn svg,.iconbtn svg{display:block;width:22px;height:22px}
+@media(max-width:700px),(hover:none),(pointer:coarse){
+ .screen{display:flex;flex-direction:column;min-height:0;height:100dvh;padding:0}
+ .demo-top{box-sizing:border-box;flex:0 0 auto;height:auto;min-height:44px;padding:calc(7px + env(safe-area-inset-top,0px)) 12px 7px}
+ .app,.work-view .app{box-sizing:border-box;flex:1 1 auto;height:auto;min-height:0}
+ .navrail{display:none}
+ .mobile-tabs button:focus-visible{outline-offset:-3px}
+}
 </style>
 </head>
 <body>
@@ -85,7 +96,7 @@ button,a{touch-action:manipulation}
       <div class="brand">C</div>
       <button class="navbtn active" data-mode="chat" title="Trò chuyện"><span>▤</span><small>Chat</small></button>
       <button class="navbtn" data-mode="work" title="Công việc"><span>▦</span><small>Việc</small></button>
-      <button class="navbtn" data-action="call" title="Gọi"><span>♧</span><small>Gọi</small></button>
+      <button class="navbtn" data-action="call" title="Gọi" aria-label="Cuộc gọi mẫu"><span><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h3l1.2 4-2 1.6c1.3 2.7 3.1 4.5 5.8 5.8l1.6-2 4 1.2v3a2 2 0 0 1-2.3 2c-7.3-1-12.5-6.2-13.5-13.5A2 2 0 0 1 6 3.5Z"/></svg></span><small>Gọi</small></button>
       <button class="navbtn settings" data-action="settings" title="Cài đặt"><span>⚙</span><small>Cài đặt</small></button>
     </nav>
     <aside class="inbox" aria-label="Danh sách trò chuyện">
@@ -108,7 +119,7 @@ button,a{touch-action:manipulation}
         <div class="avatar" id="activeAvatar">L</div>
         <div class="identity"><b id="activeName">Chị Lan</b><small id="activeKind">Khách hàng · Trò chuyện</small></div>
         <div class="right-head">
-          <button class="iconbtn" data-action="call" title="Gọi điện">♧</button>
+          <button class="iconbtn" data-action="call" title="Gọi điện" aria-label="Gọi điện mẫu"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h3l1.2 4-2 1.6c1.3 2.7 3.1 4.5 5.8 5.8l1.6-2 4 1.2v3a2 2 0 0 1-2.3 2c-7.3-1-12.5-6.2-13.5-13.5A2 2 0 0 1 6 3.5Z"/></svg></button>
           <button class="iconbtn" data-action="more" aria-haspopup="dialog" aria-controls="conversationActions" title="Mở tùy chọn hội thoại">⋯</button>
         </div>
       </header>
@@ -130,7 +141,7 @@ button,a{touch-action:manipulation}
       <div class="overline">THAO TÁC</div>
       <button class="ctxbtn" data-action="work" type="button">▦ &nbsp; Công việc liên quan</button>
       <button class="ctxbtn" data-action="photos" type="button">▧ &nbsp; Ảnh và tệp đã gửi</button>
-      <button class="ctxbtn" data-action="more" type="button">⌕ &nbsp; Tìm trong hội thoại</button>
+      <button class="ctxbtn" data-action="more" type="button">⋯ &nbsp; Tùy chọn hội thoại</button>
     </aside>
     <section class="work" aria-label="Màn hình Công việc">
       <h2>Công việc</h2><p>Quản lý nghiệp vụ bên ngoài luồng tin nhắn · Chỉ có dữ liệu mẫu</p>
