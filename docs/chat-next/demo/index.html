@@ -86,6 +86,20 @@ button,a{touch-action:manipulation}
  .navrail{display:none}
  .mobile-tabs button:focus-visible{outline-offset:-3px}
 }
+
+/* CHAT-NEXT-011: screen tracks the single VisualViewport owner only while a
+   mock input is focused. It does not own chat scroll, add timers, or touch
+   any product data. Inactive/desktop surfaces keep their original geometry. */
+@media(max-width:700px),(hover:none),(pointer:coarse){
+  .screen{
+    position:fixed;left:0;right:0;top:var(--demo-vv-top,0px);bottom:auto;
+    height:var(--demo-vv-height,100dvh);width:100%;max-width:100%;
+    min-height:0;overflow:hidden;
+  }
+  .app,.work-view .app{min-height:0;min-width:0}
+  .chat,.inbox,.work{min-height:0}
+  .chat .conversation,.inbox .contacts{min-height:0;overscroll-behavior:contain}
+}
 </style>
 </head>
 <body>
@@ -225,10 +239,31 @@ row.append(el('div','stamp',entry[2]+(entry[0]==='mine'?' ✓':'')));box.append(
 var input=byId('draft');input.value=demoDrafts[current]||'';input.style.height='22px';input.style.height=Math.min(input.scrollHeight,110)+'px';
 box.scrollTop=box.scrollHeight;
 }
-function showPage(next){
+/* CHAT-NEXT-011: History navigates the mock routes only; URLs never hold
+   account identifiers, passwords, tokens or real customer information. */
+var lastRouteHash='';
+function pageHash(next){return next==='chat'?'#chat/'+current:next==='work'?'#work':'#inbox'}
+function showPage(next,source){
 page=next;screen.classList.toggle('work-view',next==='work');app.dataset.page=next==='chat'?'chat':'inbox';
 document.querySelectorAll('[data-mode]').forEach(function(b){var active=b.dataset.mode===(next==='work'?'work':'chat');b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
+if(source==='restore')return;
+var fragment=pageHash(next);
+lastRouteHash=fragment;
+if(window.location.hash!==fragment)window.history.pushState({chatNextDemo:true},'',fragment);
 }
+function restoreDemoRoute(){
+var hash=window.location.hash||'#inbox';if(hash===lastRouteHash)return;
+lastRouteHash=hash;
+if(actionSheet.open)closeActionSheet();
+if(hash==='#work'){showPage('work','restore');return}
+var match=/^#chat\/([a-z0-9_-]{1,40})$/.exec(hash);
+if(match&&people.some(function(p){return p.id===match[1]})){
+demoDrafts[current]=byId('draft').value;current=match[1];renderContacts();renderChat();showPage('chat','restore');return
+}
+showPage('inbox','restore');
+}
+window.addEventListener('popstate',restoreDemoRoute);
+window.addEventListener('hashchange',restoreDemoRoute);
 function useFilter(f){filter=f;document.querySelectorAll('[data-filter]').forEach(function(b){var active=b.dataset.filter===f;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active))});renderContacts()}
 function workDetail(kind){
 var content={
@@ -242,7 +277,7 @@ document.querySelectorAll('[data-mode]').forEach(function(b){b.addEventListener(
 document.querySelectorAll('[data-filter]').forEach(function(b){b.addEventListener('click',function(){useFilter(b.dataset.filter)})});
 document.querySelectorAll('[data-work]').forEach(function(b){b.addEventListener('click',function(){workDetail(b.dataset.work)})});
 document.querySelectorAll('[data-action]').forEach(function(b){b.addEventListener('click',function(){
-var a=b.dataset.action;if(a==='back'){closeActionSheet();showPage('inbox');return}if(a==='more'){openActionSheet(b);return}if(a==='work'){closeActionSheet();showPage('work');return}
+var a=b.dataset.action;if(a==='back'){closeActionSheet();if(page==='chat'&&window.history.state&&window.history.state.chatNextDemo&&window.history.length>1){window.history.back();return}showPage('inbox');return}if(a==='more'){openActionSheet(b);return}if(a==='work'){closeActionSheet();showPage('work');return}
 var messages={call:'Bản demo không thực hiện cuộc gọi.',new:'Tạo hội thoại sẽ dùng dữ liệu thật khi triển khai.',settings:'Đây là giao diện mẫu, chưa có cài đặt tài khoản.',photos:'Ảnh và tệp không được tải từ tài khoản thật.',attach:'Đính kèm trong demo không gửi dữ liệu.'};
 showToast(messages[a]||'Thao tác đang ở chế độ minh họa');
 })});
@@ -257,7 +292,38 @@ renderChat();
 showToast('Đã thêm tin vào bản xem trước · không gửi cho ai');
 });
 byId('theme').addEventListener('click',function(){document.body.classList.toggle('dark');byId('themeText').textContent=document.body.classList.contains('dark')?'Chế độ sáng':'Chế độ tối'});
-renderContacts();renderChat();showPage('inbox');
+
+/* One viewport geometry owner for this static demo only. Safari's address
+   bar and soft keyboard are not reliably represented by 100dvh while typing.
+   Use VisualViewport height + offsetTop, and restore CSS fallback on blur. */
+var demoViewportScheduled=false;
+function updateDemoViewport(){
+  var focused=document.activeElement,composing=focused===byId('draft')||focused===byId('search');
+  var vv=window.visualViewport;
+  var touchLayout=window.matchMedia&&window.matchMedia('(max-width:700px), (hover:none), (pointer:coarse)').matches;
+  if(!composing||!vv||!touchLayout){
+    screen.style.removeProperty('--demo-vv-height');
+    screen.style.removeProperty('--demo-vv-top');
+    return;
+  }
+  screen.style.setProperty('--demo-vv-height',Math.max(240,Math.round(vv.height))+'px');
+  screen.style.setProperty('--demo-vv-top',Math.max(0,Math.round(vv.offsetTop))+'px');
+}
+function scheduleDemoViewport(){
+  if(demoViewportScheduled)return;
+  demoViewportScheduled=true;
+  window.requestAnimationFrame(function(){demoViewportScheduled=false;updateDemoViewport()});
+}
+if(window.visualViewport){
+  window.visualViewport.addEventListener('resize',scheduleDemoViewport);
+  window.visualViewport.addEventListener('scroll',scheduleDemoViewport);
+}
+window.addEventListener('resize',scheduleDemoViewport);
+document.addEventListener('focusin',scheduleDemoViewport);
+document.addEventListener('focusout',scheduleDemoViewport);
+renderContacts();renderChat();
+if(!window.location.hash)window.history.replaceState({chatNextDemo:true},'','#inbox');
+restoreDemoRoute();
 })();
 </script>
 </body>
