@@ -6116,6 +6116,19 @@ const composerMobileBreakpoint=window.matchMedia?.('(max-width:63.999rem)')||nul
 let lastEditorHeightPx=40;
 let lastEditorInternalScroll=false;
 let lastComposerMeasuredValue='';
+let composerCompactWidthPx=0;
+
+// CHAT-384: one Composer geometry owner. Budget the entire input surface
+// against the *visible* viewport, including its action row and attachments,
+// so a long draft cannot consume the conversation above the iOS keyboard.
+function composerTextHeightLimit(visibleHeight,headerHeight,composerOverhead){
+  const visible=Math.max(1,Number(visibleHeight)||1);
+  const header=Math.max(0,Number(headerHeight)||0);
+  const overhead=Math.max(0,Number(composerOverhead)||0);
+  const minimumMessages=Math.max(128,Math.floor(visible*.42));
+  const available=visible-header-overhead-minimumMessages-8;
+  return Math.max(40,Math.min(144,Math.floor(visible*.32),Math.floor(available)));
+}
 
 function autoGrow({source='layout'}={}){
   ensureComposerMeasureReady();
@@ -6140,24 +6153,50 @@ function autoGrow({source='layout'}={}){
   // Limit by the visible keyboard viewport (not the document height), keeping
   // some conversation visible in short/landscape iPhone windows.
   const visibleHeight=Number(window.visualViewport?.height||window.innerHeight)||640;
-  const maxHeight=mobile
-    ?Math.max(80,Math.min(168,Math.floor(visibleHeight*.35)))
-    :64;
+  // An input with two real lines stays on ONE toolbar row. Only a third
+  // line changes the layout to a full-width editor + 44px action row.
+  const lineHeight=Math.max(22,parseFloat(getComputedStyle(editor).lineHeight)||24);
+  const compactTwoLineLimit=40+Math.ceil(lineHeight)+2;
+  const wasExpanded=composerShell.dataset.editorExpanded==='true';
+  if(mobile&&!wasExpanded){
+    composerCompactWidthPx=Math.max(0,editor.getBoundingClientRect().width)||composerCompactWidthPx;
+  }
+  // Do not bounce compact ↔ expanded while the user types punctuation or
+  // Vietnamese IME. Only a genuine text deletion may fold the action rail
+  // back, and only if the text fits TWO lines at the compact width.
+  const deletion=source==='typing'&&editor.value.length<previousValue.length;
+  let compactNatural=natural;
+  if(mobile&&wasExpanded&&deletion&&composerCompactWidthPx>0){
+    syncMeasureStyle({force:true,widthPx:composerCompactWidthPx});
+    compactNatural=Math.ceil(measure.scrollHeight);
+  }
+  const canCollapse=wasExpanded&&deletion&&compactNatural<=compactTwoLineLimit;
   const expanded=mobile&&(
-    natural>43 ||
-    (composerShell.dataset.editorExpanded==='true'&&Boolean(editor.value.trim()))
+    canCollapse?false:
+      natural>compactTwoLineLimit ||
+      (wasExpanded&&Boolean(editor.value.trim()))
   );
-  const expandedChanged=(composerShell.dataset.editorExpanded==='true')!==expanded;
+  const expandedChanged=wasExpanded!==expanded;
   if(expandedChanged){
     composerShell.dataset.editorExpanded=expanded?'true':'false';
-    if(expanded){
-      // UI-285: expansion changes the textarea from a narrow middle column
-      // to the full row. Measure that ACTUAL new width before painting its
-      // first expanded height, rather than correcting one frame later in RO.
-      syncMeasureStyle({force:true,widthPx:editor.getBoundingClientRect().width});
-      natural=Math.ceil(measure.scrollHeight);
-    }
+    // Switching tracks changes text width: always read the true current
+    // textarea width before applying the height in the same frame.
+    syncMeasureStyle({force:true,widthPx:editor.getBoundingClientRect().width});
+    natural=Math.ceil(measure.scrollHeight);
   }
+  // The header and Composer are measured rather than inferred from CSS
+  // breakpoints. This also counts reply/media previews and action controls.
+  const headerHeight=typeof regionTop!=='undefined'
+    ?Math.ceil(regionTop?.getBoundingClientRect?.().height||0):56;
+  const composerHeight=typeof bottomContainer!=='undefined'
+    ?Math.ceil(bottomContainer?.getBoundingClientRect?.().height||0):0;
+  const editorHeight=Math.ceil(editor.getBoundingClientRect().height||lastEditorHeightPx);
+  const composerOverhead=composerHeight>0
+    ?Math.max(0,composerHeight-editorHeight)
+    :(expanded?56:12);
+  const maxHeight=mobile
+    ?composerTextHeightLimit(visibleHeight,headerHeight,composerOverhead)
+    :64;
   let next=Math.max(40,Math.min(maxHeight,natural));
   // Appending punctuation or a word can alter Safari's wrap opportunities
   // without deleting any text. Never jump down/up a row in the same draft;
@@ -6208,9 +6247,12 @@ const composerMeasureObserver=
         composerMeasureFrame=requestAnimationFrame(()=>{
           composerMeasureFrame=0;
           if(editor.isConnected===false)return;
-          if(syncMeasureStyle({widthPx:composerObservedWidthPx})){
-            autoGrow({source:'resize-observer'});
-          }
+          // Do not apply a width sampled from the previous customer after an
+        // A → B switch. The current DOM/caret is the only geometry owner.
+        const liveWidth=editor.getBoundingClientRect().width;
+        if(syncMeasureStyle({widthPx:liveWidth>0?liveWidth:composerObservedWidthPx})){
+          autoGrow({source:'resize-observer'});
+        }
         });
       })
     :null;
@@ -6342,7 +6384,12 @@ const ComposerDraftOwner={
     if(!(mediaRecorder&&mediaRecorder.state!=='inactive')){
       setAudioWorkflowState(pendingAttachments.some(item=>item?.kind==='audio')?'PREVIEW':'IDLE');
     }
-    autoGrow();
+    // An expanded draft belongs to its *conversation*, not the reused
+    // Composer element. Start B from compact geometry then measure B's own
+    // text once, before rendering the next frame.
+    composerShell.dataset.editorExpanded='false';
+    syncMeasureStyle({force:true,widthPx:editor.getBoundingClientRect().width});
+    autoGrow({source:'context-switch'});
     syncSendButtonState();
   },
 

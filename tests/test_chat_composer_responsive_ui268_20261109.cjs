@@ -28,7 +28,7 @@ for(const [part,column] of [['#composer-plus-btn',1],['#editorWrap',2],['#compos
  assert(p.includes('grid-row:3;'),part+' shares one visual row');
 }
 const editor=rule(mobile,root+' #editor');
-for(const value of ['height:var(--editor-height,40px);','min-height:40px;','max-height:168px;','padding:9px2px!important;'])
+for(const value of ['height:var(--editor-height,40px);','min-height:40px;','max-height:144px;','padding:9px2px!important;'])
  assert(editor.includes(value),'mobile textarea geometry '+value);
 assert(!editor.includes('white-space:nowrap'),'keep multiline draft content intact');
 const touch=rule(mobile,root+' :is(#composer-plus-btn,#composer-mic-btn,#send)');
@@ -49,7 +49,7 @@ const end=js.indexOf('const composerMeasureObserver=',start);
 assert(start>0&&end>start,'canonical measurement + autoGrow owner');
 const runtime=js.slice(start,end);
 assert(runtime.includes("+'\\u200b'"),'measure real last line without extra forced newline');
-assert(runtime.includes('Math.max(80,Math.min(168,Math.floor(visibleHeight*.35)))'),'mobile cap bounded to keyboard viewport');
+assert(runtime.includes('composerTextHeightLimit(visibleHeight,headerHeight,composerOverhead)'),'mobile composer cap preserves message viewport');
 assert(runtime.includes('const internalScroll=natural>maxHeight;'),'native overflow after cap');
 assert(js.includes("composerMobileBreakpoint?.addEventListener?.('change'"),'recompute on breakpoint');
 assert(js.includes('syncMeasureStyle({force:true,widthPx:editor.getBoundingClientRect().width});'),
@@ -93,7 +93,7 @@ assert.equal(editorFake.style['--editor-height'],undefined,'blank mobile remains
 editorFake.value='tin dài '.repeat(20);
 grow();
 assert.equal(editorFake.dataset.internalScroll,'true','very long mobile draft uses native internal scrolling');
-assert.equal(editorFake.style['--editor-height'],'168px','mobile grows up to 168px before internal scroll');
+assert.equal(editorFake.style['--editor-height'],'144px','mobile grows to 144px before internal scroll');
 const draft=editorFake.value;
 mm.matches=false;
 editorFake.value='Một dòng';

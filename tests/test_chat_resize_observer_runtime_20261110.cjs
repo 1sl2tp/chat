@@ -93,6 +93,9 @@ assert.equal(widthWrites.length,0,'editor cannot write mirror styles inside obse
 assert.equal(growCalls,0,'editor cannot grow inside observer');
 assert.equal(frames.length,1,'editor width burst coalesces');
 flush();
-assert.deepEqual(widthWrites,[340],'latest width wins');
+// CHAT-384: a queued ResizeObserver entry can belong to contact A while
+// the editor now displays contact B. The actual mounted editor width (320)
+// is authoritative; 340 was only the last enqueued entry from A.
+assert.deepEqual(widthWrites,[320],'current mounted editor width wins over stale observer entry');
 assert.equal(growCalls,1);
 console.log('CHAT ResizeObserver three deferred geometry owners + real runtime error visibility PASS');

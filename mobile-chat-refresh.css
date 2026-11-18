@@ -158,7 +158,7 @@
   #appShell[data-auth-state="authenticated"][data-route="chat"] #editor{
     height:var(--editor-height,40px);
     min-height:40px;
-    max-height:168px;
+    max-height:144px;
     margin:0;
     padding:9px 2px!important;
     font-size:var(--ui-input-mobile-font-size,16px);
@@ -250,9 +250,9 @@
   #appShell[data-auth-state="authenticated"][data-route="chat"] #send svg :is(path,line,rect,circle,polyline){
     stroke-width:2px!important;
   }
-  /* UI-273: a short draft keeps the original compact row. Once its natural
-     text reaches a second line, place the editor above the 44px action rail.
-     Width stays expanded until the draft clears, preventing Safari oscillation. */
+  /* CHAT-384: compact mode accommodates TWO lines before changing the
+     track layout. The third real line owns the full-width editor and moves
+     the existing 44px actions below, without a second keyboard owner. */
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-editor-expanded="true"]{
     grid-template-rows:auto auto minmax(40px,auto) 44px;
     align-items:end;
