@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f2f5f6">
+<title>CHAT NEXT — Quản lý mẫu hóa đơn</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:#21313a;background:#f2f5f6;font-size:14px}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;max-width:100%}button,a{font:inherit}button{cursor:pointer}button:focus-visible,a:focus-visible{outline:2px solid #126d66;outline-offset:3px}
+.page{max-width:1350px;margin:auto;padding:19px 24px 52px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:22px}.back{color:#53626b;text-decoration:none;font-size:12px;font-weight:650;min-height:44px;display:inline-flex;gap:8px;align-items:center}.stamp{font-size:11px;color:#697780;background:white;padding:9px 11px;border:1px solid #dfe6e8;border-radius:10px}
+.intro{margin-bottom:26px}.eyebrow{font-size:11px;font-weight:800;letter-spacing:.14em;color:#397f75}.intro h1{margin:8px 0 9px;font-size:clamp(25px,3vw,38px);font-weight:760;letter-spacing:-.042em}.intro p{margin:0;line-height:1.7;color:#6c7a83;font-size:13px;max-width:720px}
+.workspace{display:grid;grid-template-columns:292px minmax(0,1fr);gap:25px;align-items:start}.panel{background:white;border:1px solid #dfe7e9;border-radius:18px;padding:20px;box-shadow:0 7px 18px rgba(26,45,55,.03)}
+.panel h2{margin:0;font-size:15px;letter-spacing:-.01em}.hint{color:#7b868c;font-size:11px;line-height:1.6;margin:8px 0 14px}.choice{display:block;width:100%;padding:13px 12px;border:1px solid #e0e7e9;border-radius:12px;background:#fff;color:#2b3840;text-align:left;margin:9px 0;min-height:72px;transition:border-color .12s,background .12s}.choice:hover{border-color:#9aafb4}.choice[aria-pressed="true"]{border-color:#117a6c;background:#eef8f4;box-shadow:0 0 0 1px #117a6c}.choice .topline{display:flex;align-items:center;gap:8px;justify-content:space-between}.choice strong{font-size:13px}.choice small{display:block;color:#71818a;line-height:1.4;font-size:11px;margin-top:6px}.recommended{font-size:9px;letter-spacing:.01em;font-weight:750;padding:3px 6px;background:#dbefe7;color:#176f5b;border-radius:5px}.panel-foot{font-size:11px;color:#71818a;line-height:1.65;padding:13px 2px 0;border-top:1px solid #edf0f1;margin-top:17px}.panel-foot strong{color:#2f4149}.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:space-between;margin:0 0 13px}.toolbar p{font-size:11px;color:#7a888f;margin:0}.toolbar-actions{display:flex;align-items:center;gap:8px}.toolbar button{min-height:40px;border-radius:10px;border:1px solid #d9e2e5;background:white;padding:8px 13px;color:#32444d;font-size:12px;font-weight:650}.toolbar .print{background:#183d39;color:white;border-color:#183d39}
+.preview{min-width:0}.preview-wrap{border:1px solid #dce4e5;background:#e8eef0;border-radius:18px;padding:clamp(10px,2.5vw,28px);min-width:0}
+.sheet{--paper-ink:#101010;--paper-muted:#686868;--paper-edge:#d6d6d6;--paper-strong:#111;--paper-wash:#f7f7f7;--paper-accent:#111;box-sizing:border-box;background:white;color:var(--paper-ink);max-width:760px;width:100%;margin:0 auto;min-height:810px;padding:clamp(18px,4.6vw,44px) clamp(17px,4.7vw,48px) 34px;box-shadow:0 10px 32px rgba(39,56,66,.1);border:1px solid #e3e6e8;font-variant-numeric:tabular-nums}
+.sheet[data-template="forest"]{--paper-ink:#18382f;--paper-muted:#658077;--paper-edge:#c4ddd4;--paper-strong:#136e5b;--paper-wash:#eef7f2;--paper-accent:#146c58}
+.sheet[data-template="slate"]{--paper-ink:#263647;--paper-muted:#748195;--paper-edge:#d6dfe8;--paper-strong:#254d74;--paper-wash:#f1f5f8;--paper-accent:#335c85}
+.sheet.mono{--paper-ink:#101010;--paper-muted:#686868;--paper-edge:#c9c9c9;--paper-strong:#111;--paper-wash:#f7f7f7;--paper-accent:#111}
+.sheet-title{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;padding-bottom:23px;border-bottom:2px solid var(--paper-strong)}.store{font-size:15px;font-weight:850;letter-spacing:.035em}.store-meta{font-size:10px;color:var(--paper-muted);line-height:1.6;margin-top:8px}.doc-label{text-align:right}.doc-label strong{display:block;font-size:19px;font-weight:830;letter-spacing:-.02em}.doc-label span{font-size:10px;color:var(--paper-muted);display:block;margin-top:8px}.doc-label code{font-family:inherit;font-weight:780;color:var(--paper-ink);font-size:11px}
+.section{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,200px);gap:22px;margin:25px 0}.field-label{display:block;font-size:9px;font-weight:750;letter-spacing:.1em;color:var(--paper-muted);margin-bottom:8px}.field-value{font-size:15px;font-weight:750;line-height:1.45}.field-desc{font-size:11px;color:var(--paper-muted);margin-top:5px;line-height:1.5}.status{display:inline-block;font-size:10px;font-weight:780;border:1px solid var(--paper-strong);padding:5px 8px;letter-spacing:.015em;margin-top:7px}
+.lines-head{display:grid;grid-template-columns:27px minmax(0,1fr) minmax(250px,310px);align-items:center;gap:10px;border-top:1px solid var(--paper-edge);border-bottom:1px solid var(--paper-edge);padding:11px 0;font-size:9px;font-weight:800;letter-spacing:.06em}
+.lines-head span:last-child{text-align:right}.item{display:grid;grid-template-columns:27px minmax(0,1fr) minmax(250px,310px);column-gap:10px;align-items:start;padding:18px 0;border-bottom:1px solid var(--paper-edge)}.serial{font-size:11px;color:var(--paper-muted);padding-top:3px}.product{font-size:12px;font-weight:730;line-height:1.45;overflow-wrap:anywhere}.product small{display:block;color:var(--paper-muted);font-size:10px;font-weight:400;margin-top:6px}
+.math{display:grid;grid-template-columns:minmax(58px,1fr) 10px minmax(64px,1fr) 9px minmax(75px,1fr);column-gap:4px;align-items:start;font-size:11px;line-height:21px;text-align:right}.math .qty{text-align:left}.math .op{color:var(--paper-muted);text-align:center}.math strong{text-align:right;font-weight:790;color:var(--paper-ink)}.unit-caption{color:var(--paper-muted);font-size:9px;text-align:right;margin-top:9px}
+.summary{display:grid;grid-template-columns:minmax(0,1fr) 225px;gap:16px;margin:25px 0 24px}.note{font-size:11px;line-height:1.65;color:var(--paper-muted);padding-top:7px}.total-card{border-top:2px solid var(--paper-strong);padding-top:13px}.total-row{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:11px;margin:0 0 11px;color:var(--paper-muted)}.total-row b{color:var(--paper-ink);font-weight:780}.grand{display:flex;align-items:baseline;justify-content:space-between;gap:12px;border-top:1px solid var(--paper-edge);padding:14px 0 0}.grand span{font-size:11px;font-weight:740}.grand strong{font-size:23px;letter-spacing:-.02em;color:var(--paper-strong);white-space:nowrap}.grand sup{font-size:10px;vertical-align:super;font-weight:500;margin-left:3px}.footer{margin-top:43px;padding-top:18px;border-top:1px solid var(--paper-edge);display:flex;justify-content:space-between;gap:14px;color:var(--paper-muted);font-size:10px;line-height:1.55}.footer strong{color:var(--paper-ink);font-weight:750}
+.note-below{font-size:11px;color:#657780;margin:12px 0 0;text-align:center}.back-mobile{display:none}
+@media(max-width:1000px){.workspace{grid-template-columns:245px minmax(0,1fr);gap:14px}.panel{padding:14px}.sheet{min-height:780px}.lines-head,.item{grid-template-columns:22px minmax(0,1fr) minmax(210px,260px)}.math{grid-template-columns:minmax(50px,1fr) 10px minmax(60px,1fr) 9px minmax(68px,1fr)}}
+@media(max-width:760px){.page{padding:13px 12px 34px}.intro{margin-bottom:15px}.intro h1{font-size:25px}.workspace{display:block}.panel{padding:12px 13px;margin-bottom:15px}.panel h2{font-size:13px}.panel .hint{margin:4px 0 9px}.choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.choice{margin:0;min-height:82px;padding:9px}.choice strong{font-size:11px}.choice small{font-size:10px}.choice .topline{display:block}.recommended{display:inline-block;margin-top:5px}.panel-foot{margin-top:10px}.toolbar{gap:6px}.sheet{min-height:650px;padding:24px 20px}.lines-head,.item{grid-template-columns:22px minmax(0,1fr) minmax(205px,45%)}.math{grid-template-columns:minmax(46px,1fr) 9px minmax(55px,1fr) 9px minmax(60px,1fr)}}
+@media(max-width:550px){.sheet{padding:22px 16px;min-height:0}.sheet-title{gap:7px}.store{font-size:13px}.store-meta{font-size:9px}.doc-label strong{font-size:15px}.doc-label span{font-size:9px}.section{grid-template-columns:minmax(0,1fr) minmax(0,128px);gap:10px;margin:18px 0}.field-value{font-size:12px}.field-desc{font-size:10px}.lines-head{grid-template-columns:20px 1fr;gap:7px}.lines-head span:last-child{display:none}.item{grid-template-columns:20px minmax(0,1fr);column-gap:7px;row-gap:8px;padding:13px 0}.item .math{grid-column:2;grid-row:2;grid-template-columns:minmax(55px,1fr) 8px minmax(67px,1fr) 8px minmax(70px,1fr);text-align:right}.product{font-size:12px}.unit-caption{text-align:left}.summary{grid-template-columns:1fr;gap:12px;margin-top:17px}.note{order:2}.total-card{order:1;max-width:none}.grand strong{font-size:21px}.footer{margin-top:22px}.choices{gap:4px}.choice{padding:8px}.choice small{font-size:9px}.intro p{font-size:12px}.top .stamp{font-size:9px;padding:7px 8px}.toolbar-actions button{padding-inline:10px}.panel-foot{padding:8px 1px 0}}
+@media(max-width:350px){.page{padding:9px 6px 24px}.choices{display:block}.choice{min-height:55px;margin:5px 0}.choice small{margin-top:3px}.sheet{padding:16px 10px}.item .math{grid-template-columns:minmax(50px,1fr) 7px minmax(60px,1fr) 7px minmax(65px,1fr);font-size:10px}}
+@media print{@page{size:A4;margin:12mm}html,body{background:#fff!important;color:#111!important}.page{padding:0;max-width:none}.top,.intro,.panel,.toolbar,.note-below{display:none!important}.workspace{display:block}.preview-wrap{padding:0;border:0;background:white;border-radius:0}.sheet{max-width:none;box-shadow:none;border:0;margin:0;width:100%;min-height:0;padding:7mm 3mm 0;print-color-adjust:exact;-webkit-print-color-adjust:exact}.item{break-inside:avoid}.footer{break-inside:avoid}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<div class="page">
+<header class="top"><a class="back" href="./index.html" aria-label="Về demo CHAT NEXT">← &nbsp; CHAT NEXT / TRÒ CHUYỆN</a><span class="stamp">BẢN DEMO · KHÔNG CÓ DỮ LIỆU THẬT</span></header>
+<div class="intro"><div class="eyebrow">THƯ VIỆN MẪU · VÒNG 8</div><h1>Quản lý mẫu hóa đơn</h1><p>Một bộ khung nội dung chuẩn: thông tin khách hàng, ngày giờ, dòng sản phẩm và phép tính <strong>Số lượng × Đơn giá = Thành tiền</strong>. Chọn mẫu để so sánh; chỉ thay đổi phong cách, không thay đổi số liệu.</p></div>
+<div class="workspace">
+<aside class="panel" aria-label="Chọn mẫu hóa đơn">
+<h2>Chọn giao diện</h2><p class="hint">Mẫu số 01 là bản in đen trắng gốc. Hai mẫu còn lại cùng một cấu trúc, chỉ thay tông màu.</p>
+<div class="choices" role="group" aria-label="Giao diện hóa đơn">
+<button class="choice" type="button" data-template="mono" aria-pressed="true"><span class="topline"><strong>01 · Bản in</strong><span class="recommended">MẶC ĐỊNH</span></span><small>Đen trắng, sạch, rõ và tiết kiệm mực.</small></button>
+<button class="choice" type="button" data-template="forest" aria-pressed="false"><span class="topline"><strong>02 · Xanh lá</strong></span><small>Nhận diện thương hiệu hiện đại.</small></button>
+<button class="choice" type="button" data-template="slate" aria-pressed="false"><span class="topline"><strong>03 · Xanh than</strong></span><small>Trang nhã, dùng được trên màn hình.</small></button>
+</div>
+<div class="panel-foot"><strong>Quy tắc cố định</strong><br>STT · Tên sản phẩm · SL × Đơn giá = Thành tiền<br>Mã đơn và thời gian căn phải; tổng tiền có một điểm nhấn. Đơn vị tiền: đồng (đ).</div>
+</aside>
+<main class="preview" aria-label="Xem trước hóa đơn">
+<div class="toolbar"><p id="chosen" role="status">Đang xem: 01 · Bản in đen trắng</p><div class="toolbar-actions"><button type="button" id="printMono">Về mẫu in</button><button class="print" type="button" id="printSheet">In mẫu này</button></div></div>
+<div class="preview-wrap">
+<article class="sheet mono" id="sheet" data-template="mono" aria-label="Mẫu hóa đơn giả lập">
+<div class="sheet-title"><div><div class="store">TẠP HÓA · ĐƠN HÀNG</div><div class="store-meta">Phiếu hàng mẫu / dùng cho việc duyệt thiết kế<br>Không phải chứng từ giao dịch thực tế</div></div><div class="doc-label"><strong>PHIẾU GIAO HÀNG</strong><span>MÃ ĐƠN: <code>DH-DEMO-018</code></span><span>18/11/2026 · 10:35</span></div></div>
+<section class="section" aria-label="Thông tin đơn hàng"><div><span class="field-label">KHÁCH HÀNG</span><div class="field-value">Chị Lan (dữ liệu mẫu)</div><div class="field-desc">Khu vực: Nội thành<br>Ghi chú: Giao buổi chiều</div></div><div><span class="field-label">TRẠNG THÁI</span><span class="status">ĐÃ GIAO · MẪU</span><div class="field-desc">Ngày giao: 18/11/2026<br>Người lập: Admin (demo)</div></div></section>
+<div class="lines-head"><span>STT</span><span>TÊN SẢN PHẨM</span><span>SỐ LƯỢNG × ĐƠN GIÁ = THÀNH TIỀN (đ)</span></div>
+<div class="item" data-item="milk"><div class="serial">01</div><div class="product">Sữa hộp nguyên kem<small>Đơn vị: thùng</small></div><div class="math"><span class="qty">2 thùng</span><span class="op">×</span><span class="unit">310.000</span><span class="op">=</span><strong class="line-total">620.000</strong></div></div>
+<div class="item" data-item="cookie"><div class="serial">02</div><div class="product">Bánh quy bơ<small>Đơn vị: hộp</small></div><div class="math"><span class="qty">3 hộp</span><span class="op">×</span><span class="unit">45.000</span><span class="op">=</span><strong class="line-total">135.000</strong></div></div>
+<div class="unit-caption">Giá và thành tiền đều tính bằng đồng (đ).</div>
+<div class="summary"><div class="note"><span class="field-label">GHI CHÚ ĐƠN HÀNG</span>Hàng hóa và số lượng trên chỉ để trình diễn cấu trúc phiếu. Khi triển khai thực tế, dữ liệu phải lấy từ đúng đơn đã được duyệt và ghi nhận lịch sử sửa đổi.</div><div class="total-card"><div class="total-row"><span>Tạm tính</span><b>755.000</b></div><div class="total-row"><span>Điều chỉnh</span><b>0</b></div><div class="grand"><span>TỔNG CỘNG</span><strong>755.000<sup>đ</sup></strong></div></div></div>
+<div class="footer"><span><strong>XÁC NHẬN HÀNG HÓA</strong><br>Kiểm đếm theo đúng từng mặt hàng</span><span>CHAT NEXT · THIẾT KẾ MẪU<br>Không dùng làm chứng từ thanh toán</span></div>
+</article>
+</div>
+<p class="note-below">Không có khách hàng thật, không gửi tin nhắn và không ghi thu. Lựa chọn mẫu chỉ có hiệu lực trong tab này.</p>
+</main>
+</div>
+</div>
+<script>
+(function(){
+'use strict';
+var sheet=document.getElementById('sheet');
+var chosen=document.getElementById('chosen');
+var titles={mono:'01 · Bản in đen trắng',forest:'02 · Xanh lá thương hiệu',slate:'03 · Xanh than tối giản'};
+var options=Array.from(document.querySelectorAll('[data-template]')).filter(function(el){return el.tagName==='BUTTON'});
+function selectTemplate(value){
+ if(!Object.prototype.hasOwnProperty.call(titles,value))return false;
+ sheet.dataset.template=value;sheet.className='sheet'+(value==='mono'?' mono':'');
+ chosen.textContent='Đang xem: '+titles[value];
+ options.forEach(function(button){button.setAttribute('aria-pressed',String(button.dataset.template===value))});
+ return true;
+}
+options.forEach(function(button){button.addEventListener('click',function(){selectTemplate(button.dataset.template)})});
+document.getElementById('printMono').addEventListener('click',function(){selectTemplate('mono')});
+document.getElementById('printSheet').addEventListener('click',function(){window.print()});
+selectTemplate('mono');
+})();
+</script>
+</body>
+</html>
