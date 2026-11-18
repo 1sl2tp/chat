@@ -38,6 +38,7 @@ subprocess.run(['node',str(ROOT/'tests'/'test_chatnext_phase3_customer_tools_202
 subprocess.run(['node',str(ROOT/'tests'/'test_chatnext_phase4_lifecycle_20261118.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chatnext_phase5_desktop_inbox_20261118.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chatnext_phase6_coarse_tablet_20261118.cjs')],check=True,cwd=ROOT)
+subprocess.run(['node',str(ROOT/'tests'/'test_chatnext_interactive_demo_20261118.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_img342_ios_pwa_image_gestures_20261113.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_ios_pwa_device_session_20261105.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_account_settings_ios_density_20261105.cjs')],check=True,cwd=ROOT)
