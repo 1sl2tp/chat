@@ -1,3 +1,14 @@
+## 2026-11-18 — CHAT-NEXT-005 · Desktop Inbox + Conversation (preview-only)
+
+- **E0:** Desktop Chat có bố cục chuẩn 2 vùng trong `index.source.html`: `#screenHost` giữ `--desktop-directory-width:clamp(300px,26vw,340px)`, sidebar `#shellNavigationLayer` là vùng danh bạ thường trực, `.wm-sidebar-navigation` là **một chủ sở hữu scroll**. `shell.js` cố ý giữ `WORK_ENABLED=false`, nên không được tự bật vùng Work thứ ba. CSS mobile candidate đã có; desktop chưa thống nhất typography/hierarchy, cột thời gian dễ chật ở tên dài.
+- **E1:** Chỉ với `?chatnext=1`, CSS candidate `chat-next-inbox.css` chỉnh *biến độ rộng sẵn có* của `#screenHost` thành 304–360px, desktop contact row 70px, avatar 40px, cột giờ 64px, truncation riêng tên/preview, nhãn chưa đọc, header danh bạ và footer tài khoản. `chat-next-conversation.css` chỉnh typography nhãn liên hệ và focus của **các nút nghiệp vụ hiện hữu**, không tạo nút, không đổi layout track header, không chỉnh chat bubble hoặc khóa focus. Cả hai lớp nằm dưới `@media (min-width:64rem) and (hover:hover) and (pointer:fine)`, giữ iPad/tablet touch ở layout theo owner hiện có. Màu dùng surface theme dark/light.
+- **E2:** `tests/test_chatnext_phase5_desktop_inbox_20261118.cjs` khóa owner opt-in + kiểm tra khoảng rộng 1024–1920px (rail 304–360; conversation tối thiểu 720px), 40px portrait, 64px time, 2 vùng riêng và keyboard-visible focus; cấm thêm `overflow-y`, `position:fixed`, `scrollTop` và network. Đã nối vào `tools/verify_current.py`; không chỉnh test hợp đồng cũ.
+- **E3:** GitHub [Verify V21 #44222062672](https://github.com/1sl2tp/chat/actions/runs/44222062672) **SUCCESS** ở commit `ccfdbca4040287f5471b0996ed886f75fae4942b`. Đây là **test source/CI**, không phải xác nhận trên browser thật.
+- **E4/E5:** PENDING — kiểm tra trực tiếp Chrome/Firefox/Safari desktop ở 1024, 1280, 1440, 1920; mobile iPhone/Android + dark mode, tên dài/emoji, sidebar scroll, chuyển contact, tài khoản, gọi và composer; chỉ merge sau nghiệm thu. Không tự triển khai Pages production hoặc đổi PWA shell epoch trên nhánh candidate.
+- **Rollback:** chỉ revert phần CHAT-NEXT-005 cuối hai stylesheet + bài test/Verify; không có thay đổi DB, Supabase, private IndexedDB, Zalo, push, tin khách hoặc dòng tiền.
+
+---
+
 ## 2026-11-18 — CHAT-NEXT-004 · Khóa trạng thái Công việc khi đổi quyền/bàn phím/màn hình
 
 - **E0:** Khi một Admin đang mở thanh `#chatQuickActions` trong chế độ thử `?chatnext=1`, thay đổi nhóm khách có thể khiến owner `admin-composer-actions.js::syncQuickActions` đặt `hidden=true`, nhưng thuộc tính `data-chat-next-tools=open` vẫn tồn tại. Sau khi trở về nhóm hợp lệ, thanh dễ tự hiện lại sai ngữ cảnh. Tương tự khi iPhone mở bàn phím hoặc xoay thành desktop rồi quay lại.
