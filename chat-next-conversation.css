@@ -130,3 +130,45 @@
 
 /* No new scroll container, overlay, fixed position, hover-only action,
    animation, message resize, keyboard observer or network owner. */
+
+
+/* CHAT-NEXT-005: desktop Chat surface harmonizes with the new directory
+   without changing the existing message grid, CallFocus, scroll, keyboard
+   compositor or the disabled third Work region. */
+@media (min-width:64rem) and (hover:hover) and (pointer:fine) {
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"]) #regionTop .top-mode-switch[data-contact-identity="true"] {
+    min-width:0;
+    max-width:100%;
+    border:0;
+    background:transparent;
+    box-shadow:none;
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"]) #regionTop .top-mode-switch[data-contact-identity="true"] [data-chat-tab-label] {
+    min-width:0;
+    max-width:100%;
+    font-size:15.5px;
+    line-height:22px;
+    font-weight:680;
+    letter-spacing:-.014em;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"]) #chatQuickActions:not([hidden]) > button {
+    min-width:0;
+    min-height:44px;
+    border-radius:13px;
+    border-color:var(--chat-next-line);
+    background:var(--theme-surface-secondary);
+    box-shadow:none;
+    font-weight:600;
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"]) #chatQuickActions:not([hidden]) > button:focus-visible {
+    outline:2px solid var(--chat-next-accent);
+    outline-offset:1px;
+  }
+}
