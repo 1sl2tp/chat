@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="d7f8f6f3fd75bc4da617cbfdbebba242ee7dc9a8fc964d95f14e671c649977c7">
+<meta name="app-build-id" content="ea66c6dd9db879c9aa1ba5ef1b6c744ac0f704abf421dc8ab33f0efe43b279a8">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -6605,6 +6605,13 @@ body.ncc-ai-room-open{overflow:hidden}
     pointer-events:auto;
     transform:none;
   }
+  /* CHAT-386: if the reading header occupies 0px, the independent date
+     chip must not sit above a message bubble at the viewport's top edge.
+     This is a defensive paint rule; app.js also owns the ARIA/hidden state. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"][data-chat-header-mode="reading"] #messageDayFloating{
+    display:none!important;
+  }
+
   /* TYPING: keep Back and the identity, reclaim the avatar and idle action
      rail while the native keyboard is taking space. Live-call states remain
      exempt in JS and are never hidden by these selectors. */
@@ -16351,12 +16358,16 @@ function setAdaptiveHeaderMode(mode,{peek=false,preserve=true}={}){
   adaptiveHeaderPeek=showPeek;
   appShell.dataset.chatHeaderMode=next;
   appShell.dataset.chatHeaderPeek=String(showPeek);
+  // CHAT-386: the floating day badge is a SECOND top overlay; when the header
+  // releases its flow height, keeping that badge would cover the first bubble.
+  // Inline date separators remain visible in the scroll stream.
+  if(next===ADAPTIVE_HEADER_MODES.READING)hideMessageDayFloating({immediate:true});
   if(changed){
     // The same controller restores a visible message or follows the tail
     // synchronously after the parent's header track changes.
     if(anchor)restoreAnchor(anchor);
     else if(tail)setScrollTop(scrollRoot.scrollHeight-scrollRoot.clientHeight);
-    scheduleMessageDayFloatingUpdate();
+    if(next!==ADAPTIVE_HEADER_MODES.READING)scheduleMessageDayFloatingUpdate();
   }
   return true;
 }
@@ -19885,6 +19896,12 @@ function messageDayFloatingQuickActionsBottom(){
  return actions.getBoundingClientRect().bottom;
 }
 function updateMessageDayFloating(){
+  // CHAT-386: while the mobile reading Header is 0px, a sticky day chip at
+  // scrollRoot.top overlays message text. Do not render two top owners.
+  if(adaptiveHeaderMode===ADAPTIVE_HEADER_MODES.READING&&adaptiveHeaderEligible()){
+    hideMessageDayFloating({immediate:true});
+    return false;
+  }
   if(!messageDayFloating||!messageDayFloatingLabel||!chatRouteVisible()||!store.size){
     hideMessageDayFloating({immediate:true});
     return false;
