@@ -18,8 +18,8 @@ for(const prohibited of [
  assert(!html.includes(prohibited),'public demo must never call live APIs: '+prohibited);
 }
 
-assert(html.includes('<title>CHAT NEXT · V16 — Căn trục ô gõ (demo)</title>'),'V16 named release');
-assert(html.includes('data-design-id="CHAT-NEXT-016" data-design-round="16"'),'V16 distinct design round');
+assert(html.includes('<title>CHAT NEXT · V17 — Chi tiết giao diện đồng bộ (demo)</title>'),'V17 named release');
+assert(html.includes('data-design-id="CHAT-NEXT-017" data-design-round="17"'),'V17 distinct design round');
 assert(css.includes('/* CHAT-NEXT-016 — L5 composer precision'),'one micro-geometry owner');
 assert(css.includes('.conversation{scrollbar-width:none'),'classic scrollbars cannot shift L4');
 assert(css.includes('.conversation::-webkit-scrollbar{display:none'),'WebKit track removed');
@@ -28,6 +28,18 @@ assert(css.includes('--frame-input-line:24px')&&css.includes('--frame-input-max:
 assert(html.includes('L5 Ô GÕ / NÚT + / GỬI'),'micro-measurement provided');
 assert(html.includes('Math.abs(leftGap-rightGap)<=1'),'symmetric controls');
 assert(html.includes('bottomDelta<=1'),'buttons and editor share baseline');
+
+
+assert(css.includes('/* CHAT-NEXT-017 — Fine-detail design owner'),'V17 centralized detail layer');
+for(const token of ['--detail-title:24px','--detail-contact:14px','--detail-preview:12.5px',
+ '--detail-thread:14px','--detail-meta:11px','--detail-icon:21px',
+ '--detail-row-radius:14px','--detail-control-radius:14px','--detail-unit:4px']){
+ assert(css.includes(token),'missing V17 token '+token);
+}
+assert(html.includes('ICON + / GỬI '),'V17 diagnostic checks glyph centering');
+assert(html.includes('leftError<=1&&rightError<=1'),'1px center tolerance required');
+assert(css.includes('.contact-title{font-size:var(--detail-contact)'),'contact typography from tokens');
+assert(css.includes('.composer-inner #draft{font-size:16px'),'iOS safe textarea size');
 
 assert(html.includes('BẢN DEMO · DỮ LIỆU MẪU'),'visible demo banner mandatory');
 assert(html.includes('Không gửi tới khách hàng'),'composer safety labeling mandatory');
