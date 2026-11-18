@@ -4869,6 +4869,11 @@ function messageDayFloatingQuickActionsBottom(){
  if(!actions||actions.hidden||!actions.getClientRects().length)return null;
  return actions.getBoundingClientRect().bottom;
 }
+// CHAT-NEXT-003: update only the existing floating-day geometry on one user
+// toggle. No new scroll owner, observer, poll or message re-render.
+document.addEventListener('chat-next-tools-visibility-change',()=>{
+ window.requestAnimationFrame(()=>updateMessageDayFloating());
+});
 function updateMessageDayFloating(){
   if(!messageDayFloating||!messageDayFloatingLabel||!chatRouteVisible()||!store.size){
     hideMessageDayFloating({immediate:true});
