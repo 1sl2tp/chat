@@ -20,6 +20,7 @@
 
 | Vòng | Tên | Ngày | Phạm vi |
 |---|---|---|---|
+| V25 | Sửa nhật ký trên iPhone | 18/11/2026 | Khắc phục bảng lịch sử bị cắt mép trái, neo theo viewport, cuộn riêng; chỉ demo |
 | V24 | Đồng bộ phiên bản và kiểm tra CI | 18/11/2026 | Mỗi vòng sửa có V riêng; test bắt buộc nhãn, ID, lịch sử khớp nhau; chỉ demo |
 | V23 | Căn lề và nhóm ảnh gọn trên iPhone | 18/11/2026 | Nhóm ảnh giới hạn chiều cao, nhãn demo nhỏ hơn, căn lề tin và vùng nhập; chỉ demo |
 | V22 | Zoom thực và điều hướng ảnh | 18/11/2026 | Bỏ max-width giới hạn zoom, thêm double tap và điều hướng bàn phím; chỉ demo |
