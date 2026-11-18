@@ -8,7 +8,9 @@ const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 // IndexedDB, outbox, private media and auth sessions unchanged.
 // CHAT-345: rotate only the public Web/PWA shell to deliver subtle
 // pending text/media animation; keep account data, outbox and media intact.
-const SHELL_CACHE_EPOCH='pwa-chat-ui384-keyboard-composer-20261118';
+// CHAT-385: rotate only the public shell for adaptive mobile header CSS/JS.
+// Never clear message drafts, private IndexedDB or outbound queues.
+const SHELL_CACHE_EPOCH='pwa-chat-ui385-adaptive-header-20261119';
 const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION+'-'+SHELL_CACHE_EPOCH;
 const AVATAR_CACHE_NAME='taphoa-chat-avatars-v1';
 const SUPABASE_ASSET_HOST_RE=/^[a-z0-9]+\.supabase\.co$/i;
