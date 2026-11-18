@@ -1,5 +1,5 @@
 # CHAT-384 — Kiến trúc Chat nhiều người + bàn phím + Composer
-**Ngày:** 2026-11-18 · **Trạng thái:** ĐẶC TẢ THIẾT KẾ/NGHIÊN CỨU, **CHƯA TRIỂN KHAI CODE**  
+**Ngày:** 2026-11-18 · **Trạng thái:** E1–E3 ĐÃ TRIỂN KHAI/CI/PAGES; E4–E5 THIẾT BỊ THẬT CHƯA NGHIỆM THU  
 **Phạm vi:** Web Chrome/Safari, iOS PWA, Android PWA; cùng một hệ thống Chat/Supabase.  
 **Nguyên tắc:** ChatGPT là tham khảo về độ nhẹ và tính linh hoạt của Composer, **không** sao chép mô hình một hội thoại vào sản phẩm đa khách hàng.
 
