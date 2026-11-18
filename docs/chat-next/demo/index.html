@@ -18,9 +18,63 @@ body.dark{color-scheme:dark;--bg:#131d21;--surface:#1e2a30;--subtle:#24343a;--in
 .work{min-width:0;min-height:0;display:none;overflow:auto;background:var(--subtle);padding:27px}.work h2{margin:0;font-size:25px}.work>p{font-size:12px;color:var(--muted);margin:7px 0 21px}.workgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.workcard{background:var(--surface);border:1px solid var(--border);border-radius:17px;padding:18px}.workcard .symbol{font-size:23px}.workcard h3{font-size:15px;margin:9px 0 7px}.workcard p{font-size:12px;color:var(--muted);line-height:1.5}.workcard button{border:1px solid var(--border);border-radius:11px;background:var(--accentLight);color:var(--accent);font-size:12px;font-weight:700;padding:9px 12px;min-height:40px}.invoice-link{display:inline-flex;align-items:center;gap:5px;min-height:44px;margin:6px 0 0;color:var(--accent);font-size:12px;font-weight:700;text-underline-offset:3px}.invoice-link:focus-visible{outline:2px solid var(--accent);outline-offset:2px}.order .invoice-link{font-size:11px;min-height:34px}.badge{border-radius:8px;display:inline-flex;font-weight:750;font-size:11px;padding:6px 9px;background:var(--accentLight);color:var(--accent)}.work-detail{margin-top:16px;border:1px solid var(--border);border-radius:15px;padding:15px;background:var(--surface);font-size:12px;line-height:1.7;color:var(--muted)}.work-detail b{color:var(--ink)}.work-view .inbox,.work-view .chat,.work-view .context{display:none}.work-view .work{display:block}.work-view .app{grid-template-columns:68px minmax(0,1fr)}.mobile-tabs{display:none}.toast{position:fixed;z-index:30;bottom:24px;left:50%;transform:translateX(-50%);background:#20383a;color:white;border-radius:13px;padding:11px 16px;max-width:min(390px,90vw);font-size:12px;box-shadow:0 15px 40px #0002;text-align:center}
 @media(max-width:1220px){.app{grid-template-columns:62px 306px minmax(0,1fr)}.context{display:none}.work-view .app{grid-template-columns:62px minmax(0,1fr)}}
 @media(max-width:850px){.screen{padding:0;gap:0}.demo-top{padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border)}.info{display:none}.app{border:0;border-radius:0;box-shadow:none;flex:1;height:calc(100dvh - 42px);min-height:0;grid-template-columns:55px 282px minmax(0,1fr)}.navrail{padding:14px 3px}.brand{width:40px;height:40px}.navbtn{width:48px}.inbox-head{padding:18px 11px 0}.filters{padding-inline:9px}.contacts{padding-inline:4px}.contact{gap:7px;padding-inline:5px}.conversation{padding:18px 13px}}
-@media(max-width:700px),(pointer:coarse) and (max-width:1023px){.screen{padding:0;display:block}.demo-top{height:43px}.demo-top strong{font-size:11px}.app,.work-view .app{height:calc(100dvh - 43px);display:block;width:100%;position:relative;min-height:0}.navrail,.context{display:none}.inbox{display:flex;border-right:0;height:100%;padding-bottom:calc(62px + env(safe-area-inset-bottom))}.contacts{padding-bottom:14px}.contact{padding-inline:11px}.chat{display:none;position:absolute;inset:0;height:100%}.app[data-page="chat"] .chat{display:flex}.app[data-page="chat"] .inbox{display:none}.go-back{display:grid}.chat-header{height:62px;padding:7px 8px;gap:7px}.conversation{padding:18px 12px}.message{max-width:87%}.composer{padding:8px 8px max(9px,env(safe-area-inset-bottom))}.mobile-tabs{display:flex;position:absolute;bottom:0;width:100%;min-height:62px;padding-bottom:env(safe-area-inset-bottom);border-top:1px solid var(--border);background:var(--surface);z-index:4}.mobile-tabs button{flex:1;border:0;background:transparent;color:var(--muted);display:grid;align-content:center;justify-items:center;gap:4px;font-size:11px;font-weight:700}.mobile-tabs button span{font-size:21px}.mobile-tabs button.active{color:var(--accent)}.app[data-page="chat"] .mobile-tabs{display:none}.work-view .app[data-page="chat"] .mobile-tabs{display:flex}.work-view .work{height:calc(100% - 62px - env(safe-area-inset-bottom));padding:24px 14px 15px}.work-view .inbox{display:none}.workgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.workcard{padding:14px}}
+@media(max-width:700px),(hover:none),(pointer:coarse){.screen{padding:0;display:block}.demo-top{height:43px}.demo-top strong{font-size:11px}.app,.work-view .app{height:calc(100dvh - 43px);display:block;width:100%;position:relative;min-height:0}.navrail,.context{display:none}.inbox{display:flex;border-right:0;height:100%;padding-bottom:calc(62px + env(safe-area-inset-bottom))}.contacts{padding-bottom:14px}.contact{padding-inline:11px}.chat{display:none;position:absolute;inset:0;height:100%}.app[data-page="chat"] .chat{display:flex}.app[data-page="chat"] .inbox{display:none}.go-back{display:grid}.chat-header{height:62px;padding:7px 8px;gap:7px}.conversation{padding:18px 12px}.message{max-width:87%}.composer{padding:8px 8px max(9px,env(safe-area-inset-bottom))}.mobile-tabs{display:flex;position:absolute;bottom:0;width:100%;min-height:62px;padding-bottom:env(safe-area-inset-bottom);border-top:1px solid var(--border);background:var(--surface);z-index:4}.mobile-tabs button{flex:1;border:0;background:transparent;color:var(--muted);display:grid;align-content:center;justify-items:center;gap:4px;font-size:11px;font-weight:700}.mobile-tabs button span{font-size:21px}.mobile-tabs button.active{color:var(--accent)}.app[data-page="chat"] .mobile-tabs{display:none}.work-view .app[data-page="chat"] .mobile-tabs{display:flex}.work-view .work{height:calc(100% - 62px - env(safe-area-inset-bottom));padding:24px 14px 15px}.work-view .inbox{display:none}.workgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.workcard{padding:14px}}
 @media(max-width:360px){.workgrid{grid-template-columns:1fr}.contact{gap:6px}.contact-preview{font-size:11.5px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
+
+/* CHAT-NEXT-010 · Brand-referenced interaction primitives.
+   Apple: 44pt minimum, Material: 48dp target, WhatsApp: filters above Inbox
+   and bottom destinations, ChatGPT: calm composer and contextual tool menu.
+   Visual-only sample; do not apply to the production Chat runtime. */
+:root{--ui-tap:48px;--ui-rail:16px;--ui-radius:16px;--ui-type-body:14.5px;--ui-type-meta:12px}
+button,a{touch-action:manipulation}
+.navbtn{width:52px;min-width:48px;height:56px}
+.headerline .head-action{min-width:var(--ui-tap);min-height:var(--ui-tap);border-radius:14px}
+.search{min-height:var(--ui-tap)}
+.filter{min-height:44px;padding:10px 14px}
+.contact{min-height:80px;grid-template-columns:44px minmax(0,1fr) 64px;gap:11px;padding:11px 9px}
+.contact .avatar{width:44px;height:44px}
+.contact-title{font-size:var(--ui-type-body);line-height:20px;letter-spacing:-.01em}
+.contact-preview{font-size:12.5px;line-height:18px}
+.time{font-variant-numeric:tabular-nums}
+.iconbtn{min-width:var(--ui-tap);height:var(--ui-tap);border-radius:14px}
+.chat-header{height:72px;gap:10px}
+.chat-header .avatar{width:44px;height:44px}
+.chat-header .identity b{font-size:15px;line-height:21px}
+.bubble{font-size:var(--ui-type-body);line-height:1.5}
+.composer{gap:7px}
+.editorbox{min-height:var(--ui-tap);padding:12px 14px}
+.editorbox textarea{font-size:16px;line-height:23px}
+.send{min-width:var(--ui-tap);height:var(--ui-tap)}
+.workcard button{min-height:44px}
+.ctxbtn{min-height:48px}
+.mobile-tabs{min-height:66px}
+.mobile-tabs button{min-height:56px}
+.action-sheet{position:fixed;inset:auto 0 0;margin:0 auto;width:min(480px,100%);max-width:100%;max-height:min(76dvh,640px);overflow:auto;background:var(--surface);color:var(--ink);border:1px solid var(--border);border-radius:22px 22px 0 0;padding:0;box-shadow:var(--shadow);overscroll-behavior:contain}
+.action-sheet::backdrop{background:rgba(16,31,36,.42)}
+.action-sheet-head{display:flex;align-items:start;justify-content:space-between;gap:10px;padding:19px 20px 13px;border-bottom:1px solid var(--border)}
+.action-sheet-heading{min-width:0;display:grid;gap:4px}.action-sheet-heading small{font-size:10px;font-weight:760;letter-spacing:.08em;color:var(--accent)}
+.action-sheet-heading strong{font-size:18px;line-height:24px;overflow-wrap:anywhere}
+.action-sheet-heading span{font-size:11px;color:var(--muted);line-height:1.4}
+.action-sheet-close{flex:0 0 48px;min-width:48px;min-height:48px;border:0;background:var(--subtle);color:var(--ink);border-radius:14px;font-size:27px}
+.action-sheet-body{padding:9px 10px}
+.action-sheet-action{display:grid;grid-template-columns:46px minmax(0,1fr) 18px;align-items:center;gap:11px;width:100%;min-height:68px;padding:10px 12px;border:0;border-radius:14px;background:transparent;color:var(--ink);text-align:left;text-decoration:none}
+.action-sheet-action:hover,.action-sheet-action:focus-visible{background:var(--subtle)}
+.action-sheet-action .action-sheet-glyph{display:grid;place-items:center;width:44px;height:44px;border-radius:13px;background:var(--accentLight);color:var(--accent);font-size:21px}
+.action-sheet-action b{display:block;font-size:13px;line-height:20px}.action-sheet-action small{display:block;font-size:11px;color:var(--muted);line-height:16px;margin-top:3px}
+.action-sheet-chevron{font-size:23px;color:var(--muted);text-align:right}
+.action-sheet-foot{padding:0 22px max(17px,env(safe-area-inset-bottom));color:var(--muted);font-size:11px;line-height:1.5;margin:3px 0 0}
+@media(min-width:850px) and (hover:hover) and (pointer:fine){.action-sheet{inset:0;margin:auto;max-height:min(560px,80dvh);border-radius:22px}}
+@media(max-width:700px),(hover:none),(pointer:coarse){
+ .demo-top{min-height:44px}.top-actions button{min-height:42px}
+ .contact{min-height:80px;gap:10px;padding-inline:11px}
+ .chat-header{height:64px;gap:7px;padding-inline:8px}
+ .mobile-tabs{min-height:66px}
+ .inbox{padding-bottom:calc(66px + env(safe-area-inset-bottom))}
+ .work-view .work{height:calc(100% - 66px - env(safe-area-inset-bottom))}
+ .action-sheet{max-height:calc(100dvh - env(safe-area-inset-top) - 18px)}
+}
+@media(max-width:360px){.chat-header{gap:5px}.chat-header .avatar{width:38px;height:38px}.iconbtn{min-width:44px;height:44px}.right-head{gap:0}}
 </style>
 </head>
 <body>
@@ -41,10 +95,10 @@ body.dark{color-scheme:dark;--bg:#131d21;--surface:#1e2a30;--subtle:#24343a;--in
         <label class="search"><span aria-hidden="true">⌕</span><input id="search" type="search" autocomplete="off" placeholder="Tìm tên hoặc nội dung" aria-label="Tìm hội thoại"></label>
       </div>
       <div class="filters" role="group" aria-label="Lọc trò chuyện">
-        <button class="filter active" data-filter="all" type="button">Tất cả</button>
-        <button class="filter" data-filter="unread" type="button">Chưa đọc</button>
-        <button class="filter" data-filter="group" type="button">Nhóm</button>
-        <button class="filter" data-filter="customer" type="button">Khách hàng</button>
+        <button class="filter active" data-filter="all" aria-pressed="true" type="button">Tất cả</button>
+        <button class="filter" data-filter="unread" aria-pressed="false" type="button">Chưa đọc</button>
+        <button class="filter" data-filter="group" aria-pressed="false" type="button">Nhóm</button>
+        <button class="filter" data-filter="customer" aria-pressed="false" type="button">Khách hàng</button>
       </div>
       <div class="contacts" id="contacts"></div>
     </aside>
@@ -55,8 +109,7 @@ body.dark{color-scheme:dark;--bg:#131d21;--surface:#1e2a30;--subtle:#24343a;--in
         <div class="identity"><b id="activeName">Chị Lan</b><small id="activeKind">Khách hàng · Trò chuyện</small></div>
         <div class="right-head">
           <button class="iconbtn" data-action="call" title="Gọi điện">♧</button>
-          <button class="iconbtn" data-action="work" title="Công việc của liên hệ">▦</button>
-          <button class="iconbtn" data-action="more" title="Tùy chọn hội thoại">⋯</button>
+          <button class="iconbtn" data-action="more" aria-haspopup="dialog" aria-controls="conversationActions" title="Mở tùy chọn hội thoại">⋯</button>
         </div>
       </header>
       <div class="conversation" id="conversation" aria-live="polite"></div>
@@ -90,11 +143,23 @@ body.dark{color-scheme:dark;--bg:#131d21;--surface:#1e2a30;--subtle:#24343a;--in
       <div class="work-detail" id="workDetail"><b>Chọn một mục bên trên</b><br>Chỉ trình bày UI; các chức năng thật vẫn nằm trong ứng dụng hiện tại.</div>
     </section>
     <div class="mobile-tabs" role="navigation" aria-label="Điều hướng dưới">
-      <button class="active" data-mode="chat" type="button"><span>▤</span>Trò chuyện</button>
+      <button class="active" data-mode="chat" aria-current="page" type="button"><span>▤</span>Trò chuyện</button>
       <button data-mode="work" type="button"><span>▦</span>Công việc</button>
     </div>
   </div>
 </div>
+<dialog class="action-sheet" id="conversationActions" aria-labelledby="actionSheetTitle" aria-modal="true">
+  <div class="action-sheet-head">
+    <div class="action-sheet-heading"><small>TÙY CHỌN HỘI THOẠI</small><strong id="actionSheetTitle">Liên hệ</strong><span>Hành động trong bản demo · Không gửi dữ liệu</span></div>
+    <button class="action-sheet-close" type="button" data-sheet-close aria-label="Đóng tùy chọn">×</button>
+  </div>
+  <div class="action-sheet-body">
+    <button type="button" class="action-sheet-action" data-sheet-action="work"><span class="action-sheet-glyph" aria-hidden="true">▦</span><span><b>Công việc của liên hệ</b><small>Đơn hàng, đối soát, báo giá</small></span><span class="action-sheet-chevron" aria-hidden="true">›</span></button>
+    <a class="action-sheet-action" href="./invoice.html"><span class="action-sheet-glyph" aria-hidden="true">▤</span><span><b>Xem mẫu hóa đơn</b><small>Ba mẫu: in đen trắng, xanh lá, xanh than</small></span><span class="action-sheet-chevron" aria-hidden="true">›</span></a>
+    <button type="button" class="action-sheet-action" data-sheet-action="photos"><span class="action-sheet-glyph" aria-hidden="true">▧</span><span><b>Ảnh và tệp</b><small>Trình xem mẫu chưa kết nối dữ liệu</small></span><span class="action-sheet-chevron" aria-hidden="true">›</span></button>
+  </div>
+  <p class="action-sheet-foot">Hành động tại đây không gọi API, không gửi tin nhắn và không ghi thu.</p>
+</dialog>
 <div class="toast" role="status" id="toast" hidden></div>
 <script>
 (function(){
@@ -111,6 +176,14 @@ function byId(id){return document.getElementById(id)}
 function el(tag,cls,text){var n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=String(text);return n}
 function showToast(text){toast.textContent=text;toast.hidden=false;if(timer)clearTimeout(timer);timer=setTimeout(function(){toast.hidden=true},2600)}
 function selected(){return people.find(function(p){return p.id===current})||people[0]}
+var actionSheet=byId('conversationActions'),actionTrigger=null;
+function closeActionSheet(){if(actionSheet.open)actionSheet.close();if(actionTrigger){actionTrigger.focus({preventScroll:true});actionTrigger=null}}
+function openActionSheet(trigger){if(actionSheet.open)return;actionTrigger=trigger||null;byId('actionSheetTitle').textContent=selected().name;actionSheet.showModal()}
+document.querySelectorAll('[data-sheet-close]').forEach(function(b){b.addEventListener('click',closeActionSheet)});
+document.querySelectorAll('[data-sheet-action]').forEach(function(b){b.addEventListener('click',function(){var action=b.dataset.sheetAction;closeActionSheet();if(action==='work')showPage('work');else if(action==='photos')showToast('Ảnh và tệp: chưa kết nối dữ liệu mẫu')})});
+actionSheet.addEventListener('click',function(event){if(event.target===actionSheet)closeActionSheet()});
+actionSheet.addEventListener('close',function(){if(actionTrigger){actionTrigger.focus({preventScroll:true});actionTrigger=null}});
+
 function avatar(p,extra){return el('span','avatar '+p.color+(extra?' '+extra:''),p.initial)}
 function renderContacts(){
 var q=byId('search').value.trim().toLocaleLowerCase('vi'),list=byId('contacts');list.replaceChildren();var shown=0;
@@ -119,7 +192,7 @@ if(filter==='unread'&&!p.unread)return;
 if(filter==='group'&&p.category!=='group')return;
 if(filter==='customer'&&p.category!=='customer')return;
 if(q&&!(p.name+' '+p.preview).toLocaleLowerCase('vi').includes(q))return;
-shown++;var btn=el('button','contact'+(p.id===current?' selected':''));btn.type='button';btn.setAttribute('aria-label','Mở hội thoại '+p.name);
+shown++;var btn=el('button','contact'+(p.id===current?' selected':''));btn.type='button';btn.setAttribute('aria-label','Mở hội thoại '+p.name);btn.setAttribute('aria-pressed',String(p.id===current));
 var info=el('div','contact-main');info.append(el('div','contact-title',p.name),el('div','contact-preview',p.preview));
 var time=el('div','time',p.time);if(p.unread)time.append(el('span','count',p.unread));
 btn.append(avatar(p),info,time);btn.addEventListener('click',function(){current=p.id;renderContacts();renderChat();showPage('chat');});
@@ -140,9 +213,9 @@ box.scrollTop=box.scrollHeight;
 }
 function showPage(next){
 page=next;screen.classList.toggle('work-view',next==='work');app.dataset.page=next==='chat'?'chat':'inbox';
-document.querySelectorAll('[data-mode]').forEach(function(b){b.classList.toggle('active',b.dataset.mode===(next==='work'?'work':'chat'))});
+document.querySelectorAll('[data-mode]').forEach(function(b){var active=b.dataset.mode===(next==='work'?'work':'chat');b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
 }
-function useFilter(f){filter=f;document.querySelectorAll('[data-filter]').forEach(function(b){b.classList.toggle('active',b.dataset.filter===f)});renderContacts()}
+function useFilter(f){filter=f;document.querySelectorAll('[data-filter]').forEach(function(b){var active=b.dataset.filter===f;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active))});renderContacts()}
 function workDetail(kind){
 var content={
 orders:'Đơn tạm #DT120 · 2 mặt hàng cần kiểm. Đã giao #DG119 · có thể mở bảng số lượng × đơn giá = thành tiền. Không thay đổi dữ liệu thật.',
@@ -155,8 +228,8 @@ document.querySelectorAll('[data-mode]').forEach(function(b){b.addEventListener(
 document.querySelectorAll('[data-filter]').forEach(function(b){b.addEventListener('click',function(){useFilter(b.dataset.filter)})});
 document.querySelectorAll('[data-work]').forEach(function(b){b.addEventListener('click',function(){workDetail(b.dataset.work)})});
 document.querySelectorAll('[data-action]').forEach(function(b){b.addEventListener('click',function(){
-var a=b.dataset.action;if(a==='back'){showPage('inbox');return}if(a==='work'){showPage('work');return}
-var messages={call:'Bản demo không thực hiện cuộc gọi.',new:'Tạo hội thoại sẽ dùng dữ liệu thật khi triển khai.',more:'Tùy chọn liên hệ, tìm kiếm và thông tin sẽ kết nối sau nghiệm thu.',settings:'Đây là giao diện mẫu, chưa có cài đặt tài khoản.',photos:'Ảnh và tệp không được tải từ tài khoản thật.',attach:'Đính kèm trong demo không gửi dữ liệu.'};
+var a=b.dataset.action;if(a==='back'){closeActionSheet();showPage('inbox');return}if(a==='more'){openActionSheet(b);return}if(a==='work'){closeActionSheet();showPage('work');return}
+var messages={call:'Bản demo không thực hiện cuộc gọi.',new:'Tạo hội thoại sẽ dùng dữ liệu thật khi triển khai.',settings:'Đây là giao diện mẫu, chưa có cài đặt tài khoản.',photos:'Ảnh và tệp không được tải từ tài khoản thật.',attach:'Đính kèm trong demo không gửi dữ liệu.'};
 showToast(messages[a]||'Thao tác đang ở chế độ minh họa');
 })});
 byId('search').addEventListener('input',renderContacts);
