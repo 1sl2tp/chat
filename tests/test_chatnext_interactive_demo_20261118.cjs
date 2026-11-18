@@ -337,6 +337,10 @@ assert.equal(requestSource.children[1].textContent,['2 thùng Sữa hộp','3 h�
 assert(css.includes('/* CHAT-NEXT-021: media viewport centered'),'viewer stage has one geometry owner');
 assert(css.includes('/* CHAT-NEXT-022: zoom width must not be clamped'),'V22 zoom clamp fixed');
 assert(css.includes('/* CHAT-NEXT-023: iPhone conversation geometry'),'V23 mobile geometry owner');
+assert(js.includes('function lastEntry(p)'),'V23 latest message source');
+assert(js.includes('function conversationSearchText(p)'),'V23 full conversation search');
+assert(js.includes('function saveConversationPosition()'),'V23 scroll restoration');
+assert(js.includes("else if(action==='photos'){var items=selected().texts"),'V23 scoped media');
 assert(css.includes('.media-gallery{gap:3px;border-radius:14px;max-height:340px}'),'V23 gallery max height');
 assert(js.includes("mediaViewer.addEventListener('keydown'"),'V22 keyboard navigation');
 assert(js.includes('mediaLastTap=0'),'V22 double tap');
