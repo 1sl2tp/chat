@@ -514,8 +514,11 @@ const NavigationCommand={
     )||null;
     if(!item)return false;
     const name=String(contactName||item.display_name||item.username||'Liên hệ');
-    this.open('chat');
+    // Switch the canonical contact before the route event. Otherwise the
+    // navigation-change listener can mark-read/wake the previous conversation
+    // just as the user opens a new customer (including notification clicks).
     setActiveContact(id,name);
+    this.open('chat');
     return true;
   }
 };
@@ -2000,9 +2003,11 @@ document.addEventListener('click',event=>{
 
   const contact=target.closest('[data-contact-select]');
   if(contact){
-    setActiveContact(contact.dataset.contactId,contact.dataset.contactName);
-    NavigationCommand.openChat();
-    renderCallFocus();
+    // Manual taps and notification clicks must use the same canonical,
+    // authenticated contact routing. Navigate before activating the new
+    // conversation so navigation-change cannot wake the previous thread.
+    event.preventDefault();
+    NavigationCommand.openContact(contact.dataset.contactId,contact.dataset.contactName);
     return;
   }
 

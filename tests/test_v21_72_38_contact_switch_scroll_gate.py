@@ -24,7 +24,11 @@ assert open_body.index("publishSwitch('start');") < open_body.index("messages()?
 assert "const hydrated=await hydrateContactFromCache" in open_body
 assert "publishSwitch('mounted');" in open_body
 assert open_body.index("publishSwitch('mounted');") < open_body.index("ensureConversation(target)")
-assert "if(!switchMounted)publishSwitch('abort');" in open_body
+assert "if(!switchMounted){" in open_body
+assert "switchAborted=true;" in open_body
+assert "publishSwitch('abort');" in open_body
+assert "const publishMounted=()=>{" in open_body
+assert "switchMounted||switchAborted||epoch!==contactEpoch" in open_body
 
 # Viewport gate removes stale arrow geometry immediately and cancels prior transactions.
 assert "let contactSwitchGate=null;" in app

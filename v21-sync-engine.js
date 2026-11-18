@@ -841,6 +841,7 @@ async function openContact(contactId){
   const previousContactId=currentContactId?String(currentContactId):null;
   const epoch=++contactEpoch;
   let switchMounted=false;
+  let switchAborted=false;
   const publishSwitch=phase=>{
     document.dispatchEvent(new CustomEvent('v21-conversation-switch',{
       detail:{
@@ -851,6 +852,16 @@ async function openContact(contactId){
         conversationId:currentConversationId
       }
     }));
+  };
+  // A restored session or a verified server-first paint is ready for reading
+  // before slower IndexedDB hydration finishes. Keep the epoch guard so an
+  // old contact's asynchronous completion can never release the new gate.
+  const publishMounted=()=>{
+    if(switchMounted||switchAborted||epoch!==contactEpoch||
+       String(currentContactId||'')!==String(target||''))return false;
+    switchMounted=true;
+    publishSwitch('mounted');
+    return true;
   };
   publishSwitch('start');
 
@@ -864,8 +875,7 @@ async function openContact(contactId){
     if(!target||!accountId){
       messages()?.setContext?.({contactId:null,conversationId:null});
       messages()?.replace?.([],{conversationId:null,contactId:null});
-      publishSwitch('mounted');
-      switchMounted=true;
+      publishMounted();
       return false;
     }
 
@@ -876,8 +886,15 @@ async function openContact(contactId){
       String(row?.id||'')===target&&row?.conversation_id
     );
     if(online()&&serverContact){
-      void serverFirstActiveThread(captureSyncOwnerContext(),serverContact).catch(error=>
-        console.warn('[V21SyncEngine] active server-first hydration failed',
+      void serverFirstActiveThread(captureSyncOwnerContext(),serverContact).then(
+        painted=>{
+          const active=messages()?.snapshot?.()||{};
+          if(painted&&String(active.currentContactId||'')===target&&
+             String(active.currentConversationId||'')===String(serverContact.conversation_id)){
+            publishMounted();
+          }
+        },
+        error=>console.warn('[V21SyncEngine] active server-first hydration failed',
           String(error?.message||error||'').slice(0,90))
       );
     }
@@ -885,6 +902,7 @@ async function openContact(contactId){
     if(restored){
       currentConversationId=restored.conversationId?String(restored.conversationId):null;
       document.dispatchEvent(new CustomEvent('v21-conversation-context',{detail:{accountId,currentContactId:target,currentConversationId}}));
+      publishMounted();
     }else{
       messages()?.setContext?.({contactId:target,conversationId:null});
       messages()?.replace?.([],{conversationId:null,contactId:target});
@@ -896,8 +914,7 @@ async function openContact(contactId){
     // The contact's local/session view is now mounted. Release the scroll gate
     // before any optional network work; the viewport owner settles it over two
     // animation frames so stale arrow state from the previous contact cannot flash.
-    publishSwitch('mounted');
-    switchMounted=true;
+    publishMounted();
 
     let conversationId=hydrated.conversationId||currentConversationId||null;
   if(!conversationId&&online())conversationId=await ensureConversation(target);
@@ -932,7 +949,10 @@ async function openContact(contactId){
     if(online())void wake({reason:'open-contact'});
     return true;
   }finally{
-    if(!switchMounted)publishSwitch('abort');
+    if(!switchMounted){
+      switchAborted=true;
+      publishSwitch('abort');
+    }
   }
 }
 
@@ -1075,7 +1095,20 @@ async function queueText({clientId,text,contactId,conversationId,reply=null}={})
   if(!target)throw new Error('contact_required');
   if(!body)throw new Error('invalid_message');
   const id=String(clientId||window.V21RuntimeId.create());
-  const cachedConversation=await cache()?.getConversationId?.(context.accountId,target)||null;
+  // A verified active thread already has a canonical conversation identity
+  // from the sidebar and current context. Do not block each send on a second
+  // IndexedDB lookup. Unknown/stale/cross-contact targets keep the old
+  // persisted lookup and account/session guards.
+  const canonicalContact=contacts()?.snapshot?.().find(row=>
+    row?.id&&!row.deleted_at&&String(row.id)===target
+  );
+  const activeVerified=Boolean(scopedConversation&&
+    target===String(currentContactId||'')&&
+    scopedConversation===String(currentConversationId||'')&&
+    scopedConversation===String(canonicalContact?.conversation_id||''));
+  const cachedConversation=activeVerified
+    ?scopedConversation
+    :await cache()?.getConversationId?.(context.accountId,target)||null;
   if(!syncOwnerContextCurrent(context))throw syncContextChangedError();
   const resolvedConversation=cachedConversation?String(cachedConversation):scopedConversation;
   const item={
