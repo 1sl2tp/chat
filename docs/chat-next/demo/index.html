@@ -306,7 +306,7 @@ function updateDemoViewport(){
     screen.style.removeProperty('--demo-vv-top');
     return;
   }
-  screen.style.setProperty('--demo-vv-height',Math.max(240,Math.round(vv.height))+'px');
+  screen.style.setProperty('--demo-vv-height',Math.max(1,Math.round(vv.height))+'px');
   screen.style.setProperty('--demo-vv-top',Math.max(0,Math.round(vv.offsetTop))+'px');
 }
 function scheduleDemoViewport(){
