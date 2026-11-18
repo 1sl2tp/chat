@@ -1,3 +1,15 @@
+## 2026-11-18 — CHAT-NEXT-007 · Demo trực tuyến HTML tương tác cách ly production
+
+- **E0:** Người dùng yêu cầu xem giao diện Chat Next qua link trên iPhone/Android/desktop mà không cần deploy nhánh thử vào production. Realtime, tin nhắn, công nợ, ngân hàng, Zalo và quyền quản trị không được kết nối sang trang demo.
+- **E1 / output:** `docs/chat-next/demo/index.html` là bản HTML/CSS/JS **một tệp**, chỉ dùng dữ liệu giả lập. Có các màn Danh bạ (tìm kiếm, lọc, thời gian, badge), Hội thoại (đổi khách, nội dung lấy hàng, tin nháp cục bộ), Công việc (Đơn hàng/Đối soát/Báo giá/Phiếu lấy hàng), light/dark và responsive mobile/tablet/desktop. Không có real send, network, Supabase, IndexedDB, localStorage, message push, gọi điện, thao tác ghi thu hoặc đăng ký service worker.
+- **Link demo:** `https://raw.githack.com/1sl2tp/chat/89e0ec5ad7e91bfb303ec600fd838ebb297f30c6/docs/chat-next/demo/index.html` (dịch vụ hiển thị HTML public GitHub; có thể cần xác nhận ban đầu). Backup link htmlpreview ở `docs/chat-next/demo/README.md`. Demo này **không phải bản runtime có tài khoản/ứng dụng thật**, mục đích xem trước UI và duyệt.
+- **E2:** `tests/test_chatnext_interactive_demo_20261118.cjs` dùng Node VM/DOM giả để thử chọn khách, tìm/lọc, chuyển Công việc, gửi tin nháp DOM-only, theme; cấm đường kết nối dịch vụ. Đã nối `tools/verify_current.py`, giữ tất cả test CHAT NEXT 1–6.
+- **E3:** GitHub Verify V21 cần được xác nhận SUCCESS tại commit có mã, test và tài liệu. Không coi file trên GitHub là test trình duyệt thực tế.
+- **E4/E5:** PENDING: cần mở link thật trên iPhone Safari, Android Chrome/PWA, iPad và desktop, ghi lại lỗi viewport/keyboard/scroll. Không có đăng nhập demo, không phát sinh giao dịch thực. Phản hồi người dùng quyết định sửa UI giai đoạn tiếp theo.
+- **Rollback:** xóa riêng `docs/chat-next/demo/` + test liên quan/Verify nếu cần, không chạm `main`, Github Pages, file ứng dụng, Supabase, auth, Realtime, tin nhắn và công nợ.
+
+---
+
 ## 2026-11-18 — CHAT-NEXT-006 · Tablet cảm ứng / xoay ngang (preview-only)
 
 - **E0:** Có một khoảng hở breakpoint: Shell chỉ dùng danh bạ desktop khi `min-width:64rem + hover:hover + pointer:fine`. iPad/touch tablet nằm ngang dù màn rộng hơn 1024px vẫn dùng drawer `#shellNavigationLayer`, nhưng CSS danh bạ CHAT NEXT giai đoạn 1 trước đó chỉ áp `@media(max-width:63.999rem)`. Điều này có thể trả hàng khách về 60px và cắt preview 2 dòng ở tablet landscape.
