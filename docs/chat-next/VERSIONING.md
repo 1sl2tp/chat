@@ -19,6 +19,7 @@
 
 | Vòng | Tên | Ngày | Phạm vi |
 |---|---|---|---|
+| V23 | Căn lề và nhóm ảnh gọn trên iPhone | 18/11/2026 | Nhóm ảnh giới hạn chiều cao, nhãn demo nhỏ hơn, căn lề tin và vùng nhập; chỉ demo |
 | V22 | Zoom thực và điều hướng ảnh | 18/11/2026 | Bỏ max-width giới hạn zoom, thêm double tap và điều hướng bàn phím; chỉ demo |
 | V21 | Trình xem ảnh có ảnh thu nhỏ | 18/11/2026 | Căn giữa ảnh chính, dải thumbnail, chọn ảnh, vuốt trái/phải, zoom hai lần; chỉ demo |
 | V20 | Nhóm ảnh chẵn/lẻ cân đối | 18/11/2026 | Gallery mẫu 1–5+, 2/4 chia cột, 3 ảnh nổi bật, 5+ hiển thị +N; viewer chỉ đi trong nhóm |
