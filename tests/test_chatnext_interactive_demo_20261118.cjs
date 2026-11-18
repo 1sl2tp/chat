@@ -148,7 +148,7 @@ function getFramePx(name){
  assert(value,'missing frame token: '+name);
  return Number(value);
 }
-const rail=getFramePx('rail'),context=getFramePx('context'),axis=getFramePx('inbox-axis');
+const rail=getFramePx('rail'),contextWidth=getFramePx('context'),axis=getFramePx('inbox-axis');
 const control=getFramePx('control'),gap=getFramePx('control-gap');
 assert.equal(axis,16,'same sidebar axis is used by header, filters and contact row');
 for(const width of [320,360,375,390,414,430]){
@@ -163,7 +163,7 @@ for(const width of [1024,1280,1399,1440,1600,1920]){
  const available=Math.min(width-40,1460);
  const dir=Math.min(332,Math.max(292,Math.round(width*.25)));
  const hasContext=width>=1400;
- const chatWidth=available-rail-dir-(hasContext?context:0);
+ const chatWidth=available-rail-dir-(hasContext?contextWidth:0);
  assert(chatWidth>=400,'main pane must have usable width at '+width);
  const content=Math.min(760,chatWidth-32);
  assert(content>=360,'desktop header/messages/composer content width at '+width);
