@@ -331,7 +331,7 @@ assert.equal(requestItems[0].children[1].children[1].textContent,'thùng','unit 
 assert.equal(requestItems[1].children[1].children[0].textContent,'3');
 assert.equal(requestItems[1].children[1].children[1].textContent,'hộp');
 const requestSource=orderCardNode.children.find(x=>x.className==='order-source');
-assert.equal(requestSource.children[1].textContent,'2 thùng Sữa hộp\\n3 hộp Bánh quy\\nChiều giao giúp chị nhé.',
+assert.equal(requestSource.children[1].textContent,['2 thùng Sữa hộp','3 hộp Bánh quy','Chiều giao giúp chị nhé.'].join(String.fromCharCode(10)),
  'one typed payload drives both visible columns and unmodified readable source');
 const mediaRow=idNodes.get('messageStream').children.find(x=>x.className.includes('media-message'));
 assert(mediaRow,'Lan chat contains a media preview in a stable ratio card');
