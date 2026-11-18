@@ -1,0 +1,403 @@
+/*
+  CHAT NEXT / PHASE 1 — Inbox visual candidate (2026-11-18)
+  Owner: presentation only, scoped to an explicit opt-in in shell.js.
+  Preview flag: ?chatnext=1; normal Web/PWA users see the unchanged UI.
+  This file owns ONLY directory surfaces; no routes, touch handlers, message
+  virtualization, keyboard offsets, banking, transport, caching or network.
+  Existing mobile-ui-polish.css has legacy !important rules, so these precise
+  opt-in selectors supersede them without changing baseline. Do not copy these
+  overrides into a permanent generic CSS layer; consolidate when accepted.
+*/
+#appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] {
+  --chatnext-primary:#0f766e;
+  --chatnext-border:color-mix(in srgb,var(--theme-border-default) 66%,transparent);
+  --chatnext-subtle:color-mix(in srgb,var(--theme-surface-secondary) 70%,var(--theme-surface-primary));
+  --chatnext-hover:color-mix(in srgb,var(--theme-surface-secondary) 83%,var(--theme-surface-primary));
+  --chatnext-surface:var(--theme-surface-primary);
+  --chatnext-text:var(--theme-content-primary);
+  --chatnext-muted:var(--theme-content-secondary);
+  --chatnext-time-track:64px;
+  --chatnext-radius:14px;
+}
+
+#appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-search {
+  box-sizing:border-box;
+  width:100%;
+  min-width:0;
+  border-radius:14px!important;
+  border:1px solid var(--chatnext-border)!important;
+  background:var(--chatnext-subtle)!important;
+  color:var(--chatnext-text);
+  box-shadow:none!important;
+  font-size:16px!important; /* iPhone Safari focus must not zoom */
+}
+#appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-search:focus-visible {
+  outline:2px solid var(--chatnext-primary);
+  outline-offset:1px;
+}
+#appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-filter {
+  border-radius:999px!important;
+  font-size:13px!important;
+  font-weight:550!important;
+}
+#appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-filter[data-active="true"] {
+  background:var(--chatnext-subtle)!important;
+  color:var(--chatnext-text)!important;
+  font-weight:700!important;
+}
+#appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-filter:focus-visible,
+#appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-filter-more:focus-visible,
+#appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-chat:focus-visible {
+  outline:2px solid var(--chatnext-primary);
+  outline-offset:-2px;
+}
+#appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-row[data-active="true"] {
+  background:var(--chatnext-subtle);
+  border-radius:var(--chatnext-radius);
+}
+#appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-row[data-unread="true"] .shell-contact-name {
+  font-weight:750;
+}
+
+/* Mobile and coarse-pointer landscape tablets share one contact-card geometry.
+   Shell's persistent desktop mode is fine-pointer only; large touch devices
+   remain an overlay directory and must not fall back to 60px clipped rows. */
+@media (max-width:63.999rem), (hover:none), (pointer:coarse) {
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-tools {
+    box-sizing:border-box;
+    padding:8px 6px 8px!important;
+    gap:8px!important;
+    border-bottom:1px solid var(--chatnext-border);
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-filter-line {
+    min-height:44px;
+    align-items:center;
+    gap:8px!important;
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer [data-v21-contact-list] {
+    padding:6px 2px max(12px,env(safe-area-inset-bottom,0px));
+  }
+
+  /* A real two-line preview requires an auto-height row, never a 60px crop.
+     Keep existing 40px portrait and 64px time track contracts. */
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-row {
+    box-sizing:border-box;
+    height:auto!important;
+    min-height:72px!important;
+    max-height:none;
+    margin-block:1px;
+    border-radius:var(--chatnext-radius);
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-chat {
+    box-sizing:border-box;
+    min-width:0;
+    width:100%;
+    height:auto!important;
+    min-height:72px!important;
+    grid-template-columns:40px minmax(0,1fr);
+    align-items:center;
+    column-gap:10px!important;
+    padding:10px 4px!important;
+    border-radius:var(--chatnext-radius);
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-copy {
+    box-sizing:border-box;
+    min-width:0;
+    width:100%;
+    display:grid;
+    grid-template-columns:minmax(0,1fr) var(--chatnext-time-track);
+    grid-template-rows:minmax(20px,auto) auto;
+    column-gap:8px;
+    row-gap:2px;
+    align-content:center;
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-name {
+    min-width:0;
+    max-width:100%;
+    grid-column:1;
+    grid-row:1;
+    overflow:hidden;
+    white-space:nowrap;
+    text-overflow:ellipsis;
+    font-size:15px!important;
+    line-height:20px!important;
+    letter-spacing:-.012em;
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-preview {
+    grid-column:1;
+    grid-row:2;
+    display:-webkit-box;
+    -webkit-box-orient:vertical;
+    -webkit-line-clamp:2;
+    line-clamp:2;
+    overflow:hidden!important;
+    min-width:0;
+    max-width:100%;
+    max-height:38px;
+    padding:0!important;
+    white-space:normal!important;
+    overflow-wrap:anywhere;
+    font-size:13px!important;
+    font-weight:400;
+    line-height:19px!important;
+    color:var(--chatnext-muted);
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-time {
+    box-sizing:border-box;
+    grid-column:2;
+    grid-row:1;
+    width:var(--chatnext-time-track);
+    min-width:var(--chatnext-time-track);
+    max-width:var(--chatnext-time-track);
+    justify-self:end;
+    align-self:center;
+    overflow:hidden;
+    white-space:nowrap;
+    text-overflow:ellipsis;
+    text-align:right;
+    font-size:11.5px!important;
+    line-height:18px;
+    font-variant-numeric:tabular-nums;
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-row[data-active="true"]:has(.shell-contact-manage) .shell-contact-preview {
+    padding-inline-end:0!important;
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-row[data-unread="true"] .shell-contact-preview {
+    font-weight:600;
+    color:var(--chatnext-text);
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-row[data-unread="true"] .shell-contact-time {
+    font-weight:700;
+    color:var(--chatnext-primary);
+  }
+}
+
+@media (min-width:64rem) and (hover:hover) and (pointer:fine) {
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-chat {
+    border-radius:var(--chatnext-radius);
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-chat:hover {
+    background:var(--chatnext-hover);
+  }
+}
+
+/* The opt-in style does not create extra scroll owners or animation. */
+@media (prefers-reduced-motion:reduce) {
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-chat {
+    transition:none;
+  }
+}
+
+
+/* CHAT-NEXT-005 / Phase 5 — Desktop Inbox (>=64rem, precise pointer).
+   The original #screenHost owns the two-column grid and the original
+   .wm-sidebar-navigation owns scroll. This section only changes a width
+   *token* and desktop surface typography/row presentation.
+   Deliberately does NOT enable WORK_ENABLED or invent a third panel. */
+@media (min-width:64rem) and (hover:hover) and (pointer:fine) {
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #screenHost {
+    --desktop-directory-width:clamp(304px,25vw,360px);
+  }
+
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer {
+    border-inline-end:1px solid var(--chatnext-border);
+    background:var(--chatnext-surface);
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .wm-sidebar-header {
+    box-sizing:border-box;
+    min-width:0;
+    min-height:66px;
+    padding:14px 16px 10px;
+    border-bottom:1px solid var(--chatnext-border);
+    background:var(--chatnext-surface);
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-wordmark {
+    margin:0;
+    min-width:0;
+    font-size:23px;
+    line-height:30px;
+    font-weight:740;
+    letter-spacing:-.027em;
+    color:var(--chatnext-text);
+  }
+
+  /* Search/filter tools remain ABOVE the sole, existing directory scroll. */
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-tools {
+    box-sizing:border-box;
+    min-width:0;
+    padding:10px 12px 9px;
+    gap:8px;
+    border-bottom:1px solid var(--chatnext-border);
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer [data-v21-contact-list] {
+    box-sizing:border-box;
+    min-width:0;
+    padding:8px 8px 12px;
+  }
+
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-row {
+    box-sizing:border-box;
+    width:100%;
+    height:70px;
+    min-height:70px;
+    max-width:100%;
+    border-radius:var(--chatnext-radius);
+    margin-block:2px;
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-chat {
+    box-sizing:border-box;
+    width:100%;
+    height:70px;
+    min-height:70px;
+    max-width:100%;
+    padding:10px 8px;
+    display:grid;
+    grid-template-columns:40px minmax(0,1fr);
+    column-gap:11px;
+    align-items:center;
+    border-radius:var(--chatnext-radius);
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-copy {
+    box-sizing:border-box;
+    min-width:0;
+    width:100%;
+    grid-template-columns:minmax(0,1fr) 64px;
+    grid-template-rows:20px 18px;
+    column-gap:8px;
+    row-gap:2px;
+    align-content:center;
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-name {
+    min-width:0;
+    max-width:100%;
+    grid-column:1;
+    grid-row:1;
+    overflow:hidden;
+    white-space:nowrap;
+    text-overflow:ellipsis;
+    font-size:14.5px;
+    line-height:20px;
+    font-weight:660;
+    letter-spacing:-.01em;
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-preview {
+    min-width:0;
+    max-width:100%;
+    grid-column:1;
+    grid-row:2;
+    overflow:hidden;
+    white-space:nowrap;
+    text-overflow:ellipsis;
+    font-size:12.5px;
+    line-height:18px;
+    color:var(--chatnext-muted);
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-time {
+    box-sizing:border-box;
+    grid-column:2;
+    grid-row:1;
+    justify-self:end;
+    width:64px;
+    min-width:64px;
+    max-width:64px;
+    margin:0;
+    text-align:end;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    font-size:11px;
+    line-height:18px;
+    font-variant-numeric:tabular-nums;
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-row[data-unread="true"] .shell-contact-name {
+    font-weight:750;
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-row[data-unread="true"] .shell-contact-time {
+    color:var(--chatnext-primary);
+    font-weight:700;
+  }
+
+  /* Keep the account popup, avatar and its keyboard focus in their
+     established footer owner. Only the surrounding surface is polished. */
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-sidebar-account-footer {
+    box-sizing:border-box;
+    min-width:0;
+    padding:8px 10px;
+    border-top:1px solid var(--chatnext-border);
+    background:var(--chatnext-surface);
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-sidebar-account-main {
+    border-radius:var(--chatnext-radius);
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-sidebar-account-main:focus-visible {
+    outline:2px solid var(--chatnext-primary);
+    outline-offset:1px;
+  }
+}
+/* Keyboard, scroll, image viewer and message composer owners unchanged. */
+
+
+/* CHAT-NEXT-006 — Touch tablets / landscape mobile.
+   Do not force the persistent desktop sidebar on a coarse pointer. The
+   original shell and overlay own navigation; wm-sidebar-navigation remains
+   the sole scroll surface, while VisualViewport already owns keyboard size. */
+@media (min-width:48rem) and (hover:none), (min-width:48rem) and (pointer:coarse) {
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-navigation-panel {
+    box-sizing:border-box;
+    width:clamp(390px,44vw,460px);
+    max-width:calc(100vw - 24px);
+    border-inline-end:1px solid var(--chatnext-border);
+    background:var(--chatnext-surface);
+  }
+
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .wm-sidebar-header {
+    box-sizing:border-box;
+    min-height:56px;
+    padding:10px 12px;
+    gap:8px;
+    border-bottom:1px solid var(--chatnext-border);
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-wordmark {
+    min-width:0;
+    overflow:hidden;
+    white-space:nowrap;
+    text-overflow:ellipsis;
+    font-size:21px;
+    line-height:28px;
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .wm-sidebar-utilityButton {
+    box-sizing:border-box;
+    min-width:44px;
+    min-height:44px;
+  }
+
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-filter,
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-filter-more {
+    box-sizing:border-box;
+    min-height:44px;
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-sidebar-account-main {
+    min-height:50px;
+    border-radius:var(--chatnext-radius);
+  }
+
+  /* Read the visible-keyboard geometry from the existing viewport owner.
+     Do not add resize, scroll or VisualViewport listeners to the candidate. */
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer[data-mobile-keyboard="true"] {
+    top:var(--shell-form-vv-top,0px);
+    bottom:auto;
+    height:var(--shell-form-vv-height,100svh);
+    max-height:var(--shell-form-vv-height,100svh);
+    overflow:hidden;
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer[data-mobile-keyboard="true"] .shell-navigation-panel {
+    height:100%;
+    max-height:100%;
+    min-height:0;
+    overflow:hidden;
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer[data-mobile-keyboard="true"] .wm-sidebar-sidebar {
+    height:100%;
+    min-height:0;
+  }
+}

@@ -843,6 +843,13 @@ function syncQuickActions(){
   &&route==='chat');
  bar.hidden=!visible;
  if(!visible)closeQuickRecent();
+ if(!visible){
+  // CHAT-NEXT-004: the original permission owner revokes preview tools too.
+  // Do not keep a stale "open" state that might reappear for another group.
+  if(document.getElementById('appShell')?.dataset.chatNextTools==='open'){
+   document.dispatchEvent(new Event('chat-next-work-tools-force-close'));
+  }
+ }
 }
 function closeQuickCash({restoreFocus=true}={}){
  if(!cashOverlay)return false;
@@ -1159,6 +1166,9 @@ function bind(){
   if(!plus)return false;
   ensureAdminMenu();
   mountQuickActions();
+  // CHAT-NEXT-003: this module remains the owner of the recent-customer menu.
+  // Closing the opt-in toolbar must not leave a hidden, stale popup open.
+  document.addEventListener('chat-next-work-tools-closed',closeQuickRecent);
   document.addEventListener('v21-active-contact-change',()=>{rememberCurrentCustomer();syncQuickActions();});
   document.addEventListener('v21-contact-groups-change',()=>{rememberCurrentCustomer();syncQuickActions();});
   document.addEventListener('click',event=>{

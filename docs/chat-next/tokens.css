@@ -1,0 +1,42 @@
+/* CHAT NEXT — draft visual language. Not imported by production. */
+:root {
+  --cn-canvas: #f8fafb;
+  --cn-surface: #fff;
+  --cn-surface-muted: #f4f6f7;
+  --cn-text: #17212b;
+  --cn-subtext: #65717e;
+  --cn-brand: #0f766e;
+  --cn-brand-soft: #dff3ec;
+  --cn-received: #fff;
+  --cn-sent: #dcf3eb;
+  --cn-border: #e6eaee;
+  --cn-danger: #b42318;
+  --cn-focus: #0f766e;
+  --cn-radius-sm: 12px;
+  --cn-radius-md: 16px;
+  --cn-radius-lg: 20px;
+  --cn-touch: 44px;
+  --cn-space-1: 4px;
+  --cn-space-2: 8px;
+  --cn-space-3: 12px;
+  --cn-space-4: 16px;
+  --cn-space-6: 24px;
+  --cn-text-body: 16px;
+  --cn-text-meta: 12px;
+  --cn-motion-fast: 140ms;
+  --cn-shell-inbox-width: 320px;
+  --cn-shell-context-width: 300px;
+}
+.cn-button { min-inline-size: var(--cn-touch); min-block-size: var(--cn-touch); display: inline-grid; place-items: center; border: 0; background: transparent; color: var(--cn-text); border-radius: var(--cn-radius-sm); }
+.cn-button:focus-visible { outline: 2px solid var(--cn-focus); outline-offset: 2px; }
+.cn-inbox-item { display: grid; grid-template-columns: 44px minmax(0,1fr) 64px; gap: 10px; min-height: 68px; padding: 10px 12px; align-items: start; }
+.cn-inbox-item__name { font-size: 14px; font-weight: 650; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.cn-inbox-item__preview { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; overflow-wrap:anywhere; font-size: 13px; line-height: 1.45; color:var(--cn-subtext); }
+.cn-inbox-item__time { text-align:right; white-space:nowrap; font-size:11px; color:var(--cn-subtext); }
+.cn-bubble { max-width: min(82%, 36rem); padding: 10px 13px; line-height:1.45; font-size:var(--cn-text-body); background:var(--cn-received); border:1px solid var(--cn-border); border-radius:16px 16px 16px 5px; overflow-wrap:anywhere; }
+.cn-bubble--sent { margin-inline-start:auto; background:var(--cn-sent); border-color:#d1e8df; border-radius:16px 16px 5px 16px; }
+.cn-composer { display:grid; grid-template-columns:44px minmax(0,1fr) 44px; gap:8px; align-items:end; padding:8px max(12px,env(safe-area-inset-right,0px)) max(12px,env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px)); }
+.cn-composer textarea { inline-size:100%; min-block-size:44px; max-block-size:132px; font-size:16px; line-height:1.4; resize:none; }
+@media (prefers-reduced-motion:reduce){.cn-button{transition:none!important;animation:none!important;}}
+/* This is a reference only. Integrate by mapping onto existing
+   ui-foundation.css/owner selectors after screen-by-screen visual verification. */

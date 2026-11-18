@@ -4944,6 +4944,9 @@ document.addEventListener('v21-active-contact-change',()=>{
 document.addEventListener('v21-contact-groups-change',scheduleMessageDayFloatingUpdate);
 document.addEventListener('navigation-change',scheduleMessageDayFloatingUpdate);
 window.addEventListener('resize',scheduleMessageDayFloatingUpdate,{passive:true});
+// CHAT-NEXT-003: reuse the existing single-flight floating-day scheduler;
+// keep helper section pure for UI-156 tests and do not create a second timer.
+document.addEventListener('chat-next-tools-visibility-change',scheduleMessageDayFloatingUpdate);
 
 const DISPLAY_EMOTICONS=Object.freeze({
   ':)':'🙂',':-)':'🙂',

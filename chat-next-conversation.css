@@ -1,0 +1,174 @@
+/*
+  CHAT NEXT / PHASE 2 — Conversation visual candidate (2026-11-18).
+  Entirely opt-in under data-chat-next-ui=on; intentionally reuses the
+  existing app.js message DOM, CallFocus, composer and keyboard/scroll owners.
+  Aesthetic surfaces only: NEVER change bubble dimensions or virtual-height
+  estimates, message anchors, photo geometry, realtime or business handlers.
+*/
+#appShell[data-chat-next-ui="on"][data-auth-state="authenticated"][data-route="chat"]
+#stageLayout:not([data-bank-report-active="true"]) {
+  --chat-next-accent:#0f766e;
+  --chat-next-sent:color-mix(in srgb,#3faa88 18%,var(--theme-surface-primary));
+  --chat-next-received:color-mix(in srgb,var(--theme-surface-secondary) 73%,var(--theme-surface-primary));
+  --chat-next-line:color-mix(in srgb,var(--theme-border-default) 65%,transparent);
+  --chat-message-sent-bg:var(--chat-next-sent);
+  --chat-message-received-bg:var(--chat-next-received);
+}
+
+/* Single visual rhythm. No change to position:sticky, header height or safe
+   area placement; those are owned by regionTop/platform runtime. */
+#appShell[data-chat-next-ui="on"][data-auth-state="authenticated"][data-route="chat"]
+#stageLayout:not([data-bank-report-active="true"]) #regionTop {
+  background:var(--theme-surface-primary);
+  border-bottom:1px solid var(--chat-next-line);
+  box-shadow:none;
+}
+
+#appShell[data-chat-next-ui="on"][data-auth-state="authenticated"][data-route="chat"]
+#stageLayout:not([data-bank-report-active="true"]) #regionTop .top-mode-contact-avatar {
+  object-fit:cover;
+  border-color:var(--chat-next-line);
+}
+
+#appShell[data-chat-next-ui="on"][data-auth-state="authenticated"][data-route="chat"]
+#stageLayout:not([data-bank-report-active="true"]) #regionTop :is(.chat-header-more,.v21-phone-header-button):focus-visible {
+  outline:2px solid var(--chat-next-accent);
+  outline-offset:2px;
+}
+
+#appShell[data-chat-next-ui="on"][data-auth-state="authenticated"][data-route="chat"]
+#stageLayout:not([data-bank-report-active="true"]) #composerShell {
+  border-color:var(--chat-next-line);
+  background:var(--theme-surface-primary);
+  box-shadow:0 2px 10px rgba(18,37,45,.05);
+}
+#appShell[data-chat-next-ui="on"][data-auth-state="authenticated"][data-route="chat"]
+#stageLayout:not([data-bank-report-active="true"]) #composerShell:focus-within {
+  border-color:color-mix(in srgb,var(--chat-next-accent) 35%,var(--theme-border-default));
+  box-shadow:0 0 0 1px color-mix(in srgb,var(--chat-next-accent) 12%,transparent),0 2px 10px rgba(18,37,45,.05);
+}
+#appShell[data-chat-next-ui="on"][data-auth-state="authenticated"][data-route="chat"]
+#stageLayout:not([data-bank-report-active="true"]) #composerShell[data-can-send="true"] #send:not(:disabled) {
+  background:var(--chat-next-accent);
+  color:white;
+}
+
+@media (max-width:63.999rem) {
+  /* Customer name/avatar take the center; keep 44px back and existing
+     CallFocus 44/94px action rail. No fixed width for user name. */
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"]) #regionTop .top-mode-switch[data-contact-identity="true"] {
+    background:transparent;
+    border:0;
+    border-radius:0;
+    box-shadow:none;
+    padding:0;
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"]) #regionTop .top-mode-switch[data-contact-identity="true"] .top-mode-tab[data-top-tab="chat"] {
+    background:transparent;
+    box-shadow:none;
+    border-radius:0;
+    min-width:0;
+    padding-inline:2px;
+    justify-content:flex-start;
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"]) #regionTop .top-mode-switch[data-contact-identity="true"] [data-chat-tab-label] {
+    color:var(--theme-content-primary);
+    font-weight:700;
+    letter-spacing:-.015em;
+    text-overflow:ellipsis;
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"]) #chatQuickActions:not([hidden]) {
+    border-bottom:1px solid var(--chat-next-line);
+    background:var(--theme-surface-primary);
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"]) #composerShell :is(#composer-plus-btn,#composer-mic-btn) {
+    background:color-mix(in srgb,var(--theme-surface-secondary) 65%,var(--theme-surface-primary));
+    color:var(--theme-content-primary);
+  }
+}
+
+/* Original message text padding and inline timestamp geometry remain exact.
+   No new rules here for message-row height, media, viewer or editor sizing. */
+@media (prefers-reduced-motion:reduce) {
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"]) #composerShell {
+    transition:none;
+  }
+}
+
+
+/* CHAT-NEXT-003: contextual Admin tools. Default and desktop never change.
+   :has(...) reads the existing toolbar's own [hidden] permission decision;
+   it does NOT invent a new permission check or duplicate any cash action. */
+.chat-next-work-menuitem {
+  display:none!important;
+}
+@media (max-width:63.999rem) {
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"][data-route="chat"]:has(#stageLayout:not([data-bank-report-active="true"]) #chatQuickActions:not([hidden]))
+  #regionTop .chat-next-work-menuitem {
+    display:flex!important;
+  }
+
+  /* The bar is still present in the DOM and owned by Admin quick actions.
+     Hiding it from layout also removes its buttons from the focus tree. */
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"][data-route="chat"][data-chat-next-tools="closed"]
+  #stageLayout:not([data-bank-report-active="true"]) #chatQuickActions:not([hidden]) {
+    display:none!important;
+  }
+
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"][data-route="chat"][data-chat-next-tools="open"]
+  #regionTop .chat-next-work-menuitem[aria-expanded="true"] {
+    color:var(--chat-next-accent);
+    background:var(--theme-surface-secondary);
+  }
+}
+
+/* No new scroll container, overlay, fixed position, hover-only action,
+   animation, message resize, keyboard observer or network owner. */
+
+
+/* CHAT-NEXT-005: desktop Chat surface harmonizes with the new directory
+   without changing the existing message grid, CallFocus, scroll, keyboard
+   compositor or the disabled third Work region. */
+@media (min-width:64rem) and (hover:hover) and (pointer:fine) {
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"]) #regionTop .top-mode-switch[data-contact-identity="true"] {
+    min-width:0;
+    max-width:100%;
+    border:0;
+    background:transparent;
+    box-shadow:none;
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"]) #regionTop .top-mode-switch[data-contact-identity="true"] [data-chat-tab-label] {
+    min-width:0;
+    max-width:100%;
+    font-size:15.5px;
+    line-height:22px;
+    font-weight:680;
+    letter-spacing:-.014em;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"]) #chatQuickActions:not([hidden]) > button {
+    min-width:0;
+    min-height:44px;
+    border-radius:13px;
+    border-color:var(--chat-next-line);
+    background:var(--theme-surface-secondary);
+    box-shadow:none;
+    font-weight:600;
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"]) #chatQuickActions:not([hidden]) > button:focus-visible {
+    outline:2px solid var(--chat-next-accent);
+    outline-offset:1px;
+  }
+}

@@ -1,0 +1,1256 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f4f8f8">
+<title>CHAT NEXT · V30 — Đo và giữ tin cuối trên bàn phím (demo)</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color-scheme:light;--bg:#eef4f4;--surface:#fff;--subtle:#f5f8f9;--ink:#21313b;--muted:#586b74;--border:#e3e9ea;--accent:#0f7668;--accentLight:#e2f3eb;--received:#fff;--sent:#def2e9;--shadow:0 25px 70px rgba(30,62,67,.12)}
+body.dark{color-scheme:dark;--bg:#131d21;--surface:#1e2a30;--subtle:#24343a;--ink:#eaf1f2;--muted:#a6b5b9;--border:#35474b;--accent:#57c7a5;--accentLight:#22483e;--received:#29383e;--sent:#224d42;--shadow:0 20px 50px rgba(0,0,0,.28)}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink)}button,input,textarea{font:inherit}button{cursor:pointer;-webkit-tap-highlight-color:transparent}button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}button:disabled{opacity:.55;cursor:default}[hidden]{display:none!important}
+.screen{min-height:100dvh;display:flex;flex-direction:column;padding:16px 22px;gap:13px}.demo-top{width:min(1430px,100%);margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:36px}.demo-top strong{letter-spacing:.03em;font-size:12px}.demo-top .state{display:inline-flex;gap:7px;align-items:center;font-size:11px;color:var(--muted)}.state i{width:7px;height:7px;background:#14a47a;border-radius:50%}.top-actions{display:flex;align-items:center;gap:9px}.top-actions button{border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--ink);padding:7px 10px;font-size:12px}.info{font-size:11px;color:var(--muted)}
+.app{width:min(1430px,100%);height:calc(100dvh - 95px);min-height:570px;margin:0 auto;display:grid;grid-template-columns:68px 332px minmax(0,1fr) 268px;border:1px solid var(--border);border-radius:20px;background:var(--surface);overflow:hidden;box-shadow:var(--shadow)}
+.navrail{border-right:1px solid var(--border);background:var(--subtle);display:flex;align-items:center;gap:9px;flex-direction:column;padding:17px 8px}.brand{display:grid;place-items:center;background:var(--accent);color:#fff;border-radius:14px;font-size:17px;font-weight:800;width:44px;height:44px;margin-bottom:18px}.navbtn{border:0;background:transparent;color:var(--muted);display:grid;place-items:center;gap:3px;border-radius:13px;height:53px;width:50px;padding:7px 2px;font-size:19px}.navbtn small{font-size:9px;font-weight:650}.navbtn.active{background:var(--accentLight);color:var(--accent)}.navbtn.settings{margin-top:auto}
+.inbox{min-width:0;min-height:0;display:flex;flex-direction:column;border-right:1px solid var(--border)}.inbox-head{padding:22px 17px 0}.headerline{display:flex;align-items:center;justify-content:space-between;gap:10px}.headerline h1{font-size:23px;letter-spacing:-.035em;margin:0;font-weight:760}.headerline .head-action{width:42px;height:42px;border:0;background:var(--subtle);border-radius:13px;color:var(--ink);font-size:20px}.helper{font-size:11px;color:var(--muted);margin:5px 0 14px}.search{height:44px;border-radius:14px;background:var(--subtle);border:1px solid var(--border);display:flex;align-items:center;gap:8px;padding:0 12px}.search span{font-size:21px;color:var(--muted)}.search input{width:100%;font-size:16px;border:0;background:transparent;outline:0;color:var(--ink);min-width:0}.filters{display:flex;gap:5px;overflow-x:auto;padding:12px 15px 9px;scrollbar-width:none}.filter{white-space:nowrap;border:0;padding:9px 12px;background:transparent;color:var(--muted);border-radius:30px;font-size:12px;font-weight:650;min-height:40px}.filter.active{background:var(--accentLight);color:var(--accent)}.contacts{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;min-height:0;flex:1;padding:3px 9px 17px}.contact{display:grid;width:100%;min-width:0;grid-template-columns:42px minmax(0,1fr) 62px;gap:10px;align-items:center;text-align:left;background:transparent;border:0;border-radius:14px;min-height:75px;padding:10px 8px;color:var(--ink)}.contact:hover{background:var(--subtle)}.contact.selected{background:var(--accentLight)}.avatar{display:grid;place-items:center;flex:0 0 auto;width:42px;height:42px;background:#dcecef;color:#3f6c72;border-radius:14px;font-weight:750;font-size:14px}.avatar.orange{background:#f5e5d7;color:#91694b}.avatar.violet{background:#ede5f8;color:#775da2}.avatar.green{background:#e4f0df;color:#4e8059}.avatar.blue{background:#dee8fa;color:#54719e}.contact-main{min-width:0}.contact-title{font-size:14px;font-weight:720;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.contact-preview{font-size:12px;color:var(--muted);margin-top:5px;line-height:17px;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow-wrap:anywhere}.time{font-variant-numeric:tabular-nums;text-align:end;color:var(--muted);font-size:10.5px;align-self:start;padding-top:4px;white-space:nowrap}.count{display:table;background:var(--accent);color:white;border-radius:20px;font-size:10px;font-weight:750;margin:13px 0 0 auto;min-width:18px;padding:4px 5px;text-align:center}.no-results{padding:25px 10px;text-align:center;font-size:13px;color:var(--muted)}
+.chat{min-width:0;min-height:0;display:flex;flex-direction:column;background:var(--subtle)}.chat-header{background:var(--surface);border-bottom:1px solid var(--border);height:70px;display:flex;gap:11px;align-items:center;padding:8px 16px;flex:0 0 auto}.iconbtn{background:transparent;color:var(--ink);border:0;border-radius:12px;min-width:42px;height:42px;font-size:20px;display:grid;place-items:center}.iconbtn:hover{background:var(--subtle)}.go-back{display:none}.identity{min-width:0;flex:1}.identity b{display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:15px}.identity small{display:block;font-size:11px;color:var(--muted);margin-top:3px}.right-head{display:flex;gap:2px;flex:0 0 auto}.conversation{min-width:0;min-height:0;overflow-y:auto;scrollbar-width:thin;flex:1;padding:22px clamp(14px,5%,45px)}.day{font-size:10px;background:var(--border);border-radius:999px;width:max-content;padding:7px 12px;color:var(--muted);margin:0 auto 22px}.message{width:fit-content;max-width:76%;margin:0 0 17px}.message.mine{margin-left:auto}.bubble{padding:11px 13px;background:var(--received);border:1px solid var(--border);border-radius:16px 16px 16px 5px;line-height:1.45;font-size:13.5px;white-space:pre-wrap;overflow-wrap:anywhere}.mine .bubble{background:var(--sent);border-color:transparent;border-radius:16px 16px 5px 16px}.stamp{color:var(--muted);font-size:10px;margin:5px 4px}.mine .stamp{text-align:end}.order{background:var(--surface);border:1px solid var(--border);border-radius:15px;width:min(320px,75vw);padding:14px}.order strong{font-size:14px}.order .tag{display:block;font-size:10px;letter-spacing:.03em;font-weight:800;color:var(--accent);margin-bottom:6px}.orderitem{display:flex;gap:14px;justify-content:space-between;font-size:12px;padding:8px 0;border-bottom:1px dashed var(--border)}.orderitem:last-of-type{border:0}.orderfoot{font-size:10px;color:var(--muted);margin-top:8px}.composer{display:flex;align-items:end;gap:8px;padding:11px 13px max(12px,env(safe-area-inset-bottom));background:var(--surface);border-top:1px solid var(--border)}.editorbox{border:1px solid var(--border);background:var(--subtle);border-radius:22px;display:flex;min-height:43px;align-items:end;padding:9px 12px;flex:1;min-width:0}.editorbox textarea{font-size:16px;line-height:22px;min-height:22px;max-height:110px;width:100%;border:0;background:transparent;outline:0;resize:none;overflow-y:auto;color:var(--ink)}.send{background:var(--accent);color:white;border-radius:50%;flex:0 0 auto}.chat-note{font-size:10px;color:var(--muted);text-align:center;margin:0;background:var(--surface);padding:0 10px 7px}
+.context{min-width:0;overflow:auto;background:var(--surface);border-left:1px solid var(--border);padding:21px 16px}.profile-avatar{width:64px;height:64px;border-radius:22px;margin:5px auto 10px;font-size:20px}.profile-name{text-align:center;font-weight:750}.profile-sub{text-align:center;font-size:11px;color:var(--muted);margin-top:5px}.overline{font-weight:800;letter-spacing:.08em;font-size:10px;color:var(--muted);margin:22px 0 9px}.statcard{border:1px solid var(--border);border-radius:14px;padding:13px;margin-bottom:8px;background:var(--subtle)}.statcard small{display:block;color:var(--muted);font-size:11px}.statcard strong{display:block;font-size:18px;margin-top:5px}.ctxbtn{display:block;width:100%;border:1px solid var(--border);background:var(--surface);color:var(--ink);border-radius:12px;padding:12px;text-align:left;font-size:12px;margin-top:8px;min-height:44px}
+.work{min-width:0;min-height:0;display:none;overflow:auto;background:var(--subtle);padding:27px}.work h2{margin:0;font-size:25px}.work>p{font-size:12px;color:var(--muted);margin:7px 0 21px}.workgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.workcard{background:var(--surface);border:1px solid var(--border);border-radius:17px;padding:18px}.workcard .symbol{font-size:23px}.workcard h3{font-size:15px;margin:9px 0 7px}.workcard p{font-size:12px;color:var(--muted);line-height:1.5}.workcard button{border:1px solid var(--border);border-radius:11px;background:var(--accentLight);color:var(--accent);font-size:12px;font-weight:700;padding:9px 12px;min-height:40px}.invoice-link{display:inline-flex;align-items:center;gap:5px;min-height:44px;margin:6px 0 0;color:var(--accent);font-size:12px;font-weight:700;text-underline-offset:3px}.invoice-link:focus-visible{outline:2px solid var(--accent);outline-offset:2px}.order .invoice-link{font-size:11px;min-height:34px}.badge{border-radius:8px;display:inline-flex;font-weight:750;font-size:11px;padding:6px 9px;background:var(--accentLight);color:var(--accent)}.work-detail{margin-top:16px;border:1px solid var(--border);border-radius:15px;padding:15px;background:var(--surface);font-size:12px;line-height:1.7;color:var(--muted)}.work-detail b{color:var(--ink)}.work-view .inbox,.work-view .chat,.work-view .context{display:none}.work-view .work{display:block}.work-view .app{grid-template-columns:68px minmax(0,1fr)}.mobile-tabs{display:none}.toast{position:fixed;z-index:30;bottom:24px;left:50%;transform:translateX(-50%);background:#20383a;color:white;border-radius:13px;padding:11px 16px;max-width:min(390px,90vw);font-size:12px;box-shadow:0 15px 40px #0002;text-align:center}
+@media(max-width:1220px){.app{grid-template-columns:62px 306px minmax(0,1fr)}.context{display:none}.work-view .app{grid-template-columns:62px minmax(0,1fr)}}
+@media(max-width:850px){.screen{padding:0;gap:0}.demo-top{padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border)}.info{display:none}.app{border:0;border-radius:0;box-shadow:none;flex:1;height:calc(100dvh - 42px);min-height:0;grid-template-columns:55px 282px minmax(0,1fr)}.navrail{padding:14px 3px}.brand{width:40px;height:40px}.navbtn{width:48px}.inbox-head{padding:18px 11px 0}.filters{padding-inline:9px}.contacts{padding-inline:4px}.contact{gap:7px;padding-inline:5px}.conversation{padding:18px 13px}}
+@media(max-width:700px),(hover:none),(pointer:coarse){.screen{padding:0;display:block}.demo-top{height:43px}.demo-top strong{font-size:11px}.app,.work-view .app{height:calc(100dvh - 43px);display:block;width:100%;position:relative;min-height:0}.navrail,.context{display:none}.inbox{display:flex;border-right:0;height:100%;padding-bottom:calc(62px + env(safe-area-inset-bottom))}.contacts{padding-bottom:14px}.contact{padding-inline:11px}.chat{display:none;position:absolute;inset:0;height:100%}.app[data-page="chat"] .chat{display:flex}.app[data-page="chat"] .inbox{display:none}.go-back{display:grid}.chat-header{height:62px;padding:7px 8px;gap:7px}.conversation{padding:18px 12px}.message{max-width:87%}.composer{padding:8px 8px max(9px,env(safe-area-inset-bottom))}.mobile-tabs{display:flex;position:absolute;bottom:0;width:100%;min-height:62px;padding-bottom:env(safe-area-inset-bottom);border-top:1px solid var(--border);background:var(--surface);z-index:4}.mobile-tabs button{flex:1;border:0;background:transparent;color:var(--muted);display:grid;align-content:center;justify-items:center;gap:4px;font-size:11px;font-weight:700}.mobile-tabs button span{font-size:21px}.mobile-tabs button.active{color:var(--accent)}.app[data-page="chat"] .mobile-tabs{display:none}.work-view .app[data-page="chat"] .mobile-tabs{display:flex}.work-view .work{height:calc(100% - 62px - env(safe-area-inset-bottom));padding:24px 14px 15px}.work-view .inbox{display:none}.workgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.workcard{padding:14px}}
+@media(max-width:360px){.workgrid{grid-template-columns:1fr}.contact{gap:6px}.contact-preview{font-size:11.5px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
+
+/* CHAT-NEXT-010 · Visual-only interaction tokens; never change production Chat. */
+:root{--ui-tap:48px;--ui-rail:16px;--ui-radius:16px;--ui-type-body:14.5px;--ui-type-meta:12px}
+button,a{touch-action:manipulation}
+.navbtn{width:52px;min-width:48px;height:56px}
+.headerline .head-action{min-width:var(--ui-tap);min-height:var(--ui-tap);border-radius:14px}
+.search{min-height:var(--ui-tap)}
+.filter{min-height:44px;padding:10px 14px}
+.contact{min-height:80px;grid-template-columns:44px minmax(0,1fr) 64px;gap:11px;padding:11px 9px}
+.contact .avatar{width:44px;height:44px}
+.contact-title{font-size:var(--ui-type-body);line-height:20px;letter-spacing:-.01em}
+.contact-preview{font-size:12.5px;line-height:18px}
+.time{font-variant-numeric:tabular-nums}
+.iconbtn{min-width:var(--ui-tap);height:var(--ui-tap);border-radius:14px}
+.chat-header{height:72px;gap:10px}
+.chat-header .avatar{width:44px;height:44px}
+.chat-header .identity b{font-size:15px;line-height:21px}
+.bubble{font-size:var(--ui-type-body);line-height:1.5}
+.composer{gap:7px}
+.editorbox{min-height:var(--ui-tap);padding:12px 14px}
+.editorbox textarea{font-size:16px;line-height:23px}
+.send{min-width:var(--ui-tap);height:var(--ui-tap)}
+.workcard button{min-height:44px}
+.ctxbtn{min-height:48px}
+.mobile-tabs{min-height:66px}
+.mobile-tabs button{min-height:56px}
+.action-sheet{position:fixed;inset:auto 0 0;margin:0 auto;width:min(480px,100%);max-width:100%;max-height:min(76dvh,640px);overflow:auto;background:var(--surface);color:var(--ink);border:1px solid var(--border);border-radius:22px 22px 0 0;padding:0;box-shadow:var(--shadow);overscroll-behavior:contain}
+.action-sheet::backdrop{background:rgba(16,31,36,.42)}
+.action-sheet-head{display:flex;align-items:start;justify-content:space-between;gap:10px;padding:19px 20px 13px;border-bottom:1px solid var(--border)}
+.action-sheet-heading{min-width:0;display:grid;gap:4px}.action-sheet-heading small{font-size:10px;font-weight:760;letter-spacing:.08em;color:var(--accent)}
+.action-sheet-heading strong{font-size:18px;line-height:24px;overflow-wrap:anywhere}
+.action-sheet-heading span{font-size:11px;color:var(--muted);line-height:1.4}
+.action-sheet-close{flex:0 0 48px;min-width:48px;min-height:48px;border:0;background:var(--subtle);color:var(--ink);border-radius:14px;font-size:27px}
+.action-sheet-body{padding:9px 10px}
+.action-sheet-action{display:grid;grid-template-columns:46px minmax(0,1fr) 18px;align-items:center;gap:11px;width:100%;min-height:68px;padding:10px 12px;border:0;border-radius:14px;background:transparent;color:var(--ink);text-align:left;text-decoration:none}
+.action-sheet-action:hover,.action-sheet-action:focus-visible{background:var(--subtle)}
+.action-sheet-action .action-sheet-glyph{display:grid;place-items:center;width:44px;height:44px;border-radius:13px;background:var(--accentLight);color:var(--accent);font-size:21px}
+.action-sheet-action b{display:block;font-size:13px;line-height:20px}.action-sheet-action small{display:block;font-size:11px;color:var(--muted);line-height:16px;margin-top:3px}
+.action-sheet-chevron{font-size:23px;color:var(--muted);text-align:right}
+.action-sheet-foot{padding:0 22px max(17px,env(safe-area-inset-bottom));color:var(--muted);font-size:11px;line-height:1.5;margin:3px 0 0}
+@media(min-width:850px) and (hover:hover) and (pointer:fine){.action-sheet{inset:0;margin:auto;max-height:min(560px,80dvh);border-radius:22px}}
+@media(max-width:700px),(hover:none),(pointer:coarse){
+ .demo-top{min-height:44px}.top-actions button{min-height:42px}
+ .contact{min-height:80px;gap:10px;padding-inline:11px}
+ .chat-header{height:64px;gap:7px;padding-inline:8px}
+ .mobile-tabs{min-height:66px}
+ .inbox{padding-bottom:calc(66px + env(safe-area-inset-bottom))}
+ .work-view .work{height:calc(100% - 66px - env(safe-area-inset-bottom))}
+ .action-sheet{max-height:calc(100dvh - env(safe-area-inset-top) - 18px)}
+}
+@media(max-width:360px){.chat-header{gap:5px}.chat-header .avatar{width:38px;height:38px}.iconbtn{min-width:44px;height:44px}.right-head{gap:0}}
+
+/* Mobile V2: one viewport owner; safe-area banner and content share a flex
+   height instead of competing fixed 43px/calc heights under iOS browser chrome. */
+.navbtn svg,.iconbtn svg{display:block;width:22px;height:22px}
+@media(max-width:700px),(hover:none),(pointer:coarse){
+ .screen{display:flex;flex-direction:column;min-height:0;height:100dvh;padding:0}
+ .demo-top{box-sizing:border-box;flex:0 0 auto;height:auto;min-height:44px;padding:calc(7px + env(safe-area-inset-top,0px)) 12px 7px}
+ .app,.work-view .app{box-sizing:border-box;flex:1 1 auto;height:auto;min-height:0}
+ .navrail{display:none}
+ .mobile-tabs button:focus-visible{outline-offset:-3px}
+}
+
+/* CHAT-NEXT-011: screen tracks the single VisualViewport owner only while a
+   mock input is focused. It does not own chat scroll, add timers, or touch
+   any product data. Inactive/desktop surfaces keep their original geometry. */
+@media(max-width:700px),(hover:none),(pointer:coarse){
+  .screen{
+    position:fixed;left:0;right:0;top:var(--demo-vv-top,0px);bottom:auto;
+    height:var(--demo-vv-height,100dvh);width:100%;max-width:100%;
+    min-height:0;overflow:hidden;
+  }
+  .app,.work-view .app{min-height:0;min-width:0}
+  .chat,.inbox,.work{min-height:0}
+  .chat .conversation,.inbox .contacts{min-height:0;overscroll-behavior:contain}
+}
+
+/* CHAT-NEXT-012: cohesive fine-detail layer. One icon stroke family, a 4px
+   spacing rhythm, tabular figures, dark/light semantic tokens, controlled
+   interactive states. No library/CDN or production runtime dependency. */
+:root{
+ --polish-space-1:4px;--polish-space-2:8px;--polish-space-3:12px;
+ --polish-space-4:16px;--polish-space-5:20px;--polish-space-6:24px;
+ --polish-stroke:1px;--polish-focus:#087e6e;--polish-hover:rgba(18,123,108,.055);
+ --polish-active:rgba(18,123,108,.11);--polish-glow:rgba(18,123,108,.15);
+ --polish-muted:#586b74;--polish-subtle:#f5f8f9;
+}
+body.dark{--polish-focus:#65d8b8;--polish-hover:rgba(116,217,183,.07);--polish-active:rgba(116,217,183,.13);--polish-glow:rgba(116,217,183,.15);--polish-muted:#b2c1c5;--polish-subtle:#24343a}
+.icon-sprite{position:absolute;width:0;height:0;overflow:hidden;pointer-events:none}
+.ui-icon{display:inline-block;width:21px;height:21px;flex:0 0 auto;vertical-align:middle;color:currentColor}
+.brand-mark{color:rgba(255,255,255,.55);font-size:13px;margin-left:1px;vertical-align:super}
+button,a,input,textarea{-webkit-tap-highlight-color:transparent}
+button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--polish-focus);outline-offset:2px}
+.search:focus-within,.editorbox:focus-within{border-color:var(--polish-focus);box-shadow:0 0 0 3px var(--polish-glow)}
+.app button:focus-visible,.action-sheet button:focus-visible{outline-offset:-2px}
+.search input:focus-visible,.editorbox textarea:focus-visible{outline:0}
+.search{background:var(--surface);border-color:var(--border);gap:10px;border-radius:15px;transition:border-color .12s ease,box-shadow .12s ease}
+.search .search-glyph{color:var(--polish-muted);display:grid;place-items:center}
+.search input::placeholder,.editorbox textarea::placeholder{color:var(--polish-muted);opacity:.9}
+.demo-top{letter-spacing:normal}.demo-brand{display:flex;min-width:0;align-items:center;flex-wrap:wrap;gap:7px 12px}
+.demo-top .state{white-space:normal;line-height:16px}.top-actions button{min-height:44px;display:inline-flex;gap:8px;align-items:center;justify-content:center;padding-inline:12px}
+.top-actions .ui-icon{width:17px;height:17px}
+.navbtn,.iconbtn,.head-action,.filter,.contact,.action-sheet-action,.ctxbtn,.mobile-tabs button{transition:background-color .13s ease,color .13s ease,border-color .13s ease,box-shadow .13s ease}
+.navbtn .ui-icon,.mobile-tabs .ui-icon{width:22px;height:22px}
+.navbtn span,.mobile-tabs span{display:grid;place-items:center}
+.brand{letter-spacing:-.06em}
+.navrail{padding-block:18px}
+.navbtn:hover,.iconbtn:hover,.head-action:hover,.ctxbtn:hover,.mobile-tabs button:hover{background:var(--polish-hover)}
+.navbtn.active,.mobile-tabs button.active{color:var(--accent);background:var(--accentLight)}
+.navbtn small{font-size:10px;line-height:12px}
+.inbox-head{padding-top:20px}
+.headerline h1{font-size:24px;line-height:32px;letter-spacing:-.04em;font-weight:750}
+.helper{font-size:11.5px;line-height:17px;letter-spacing:0;color:var(--polish-muted);margin-block:4px 14px;font-variant-numeric:tabular-nums}
+.head-action{color:var(--ink)}
+.head-action .ui-icon{width:20px;height:20px}
+.filters{scrollbar-width:none;overscroll-behavior-inline:contain;gap:4px}
+.filter{font-size:12px;letter-spacing:0;font-weight:660}
+.filter:hover{background:var(--polish-hover);color:var(--ink)}
+.filter.active{background:var(--accentLight);color:var(--accent)}
+.contact{border:1px solid transparent;grid-template-columns:44px minmax(0,1fr) 64px}
+.contact:hover{background:var(--polish-hover)}
+.contact.selected{background:var(--accentLight);border-color:var(--polish-glow)}
+.contact:active{background:var(--polish-active)}
+.contact-title{font-weight:680;line-height:20px}
+.contact-preview{color:var(--polish-muted);margin-top:3px;line-height:18px}
+.contact .time{line-height:16px;color:var(--polish-muted);text-align:end}
+.contact .count{min-width:20px;min-height:20px;padding:3px 5px;line-height:14px}
+.contact[data-unread="true"] .contact-title{font-weight:760}
+.contact[data-unread="true"] .time{color:var(--accent);font-weight:720}
+.no-results{padding:40px 18px;min-height:160px;display:grid;align-content:center;gap:7px}
+.no-results strong{font-size:14px;color:var(--ink)}
+.no-results small{font-size:12px;line-height:18px;color:var(--polish-muted)}
+.chat-header{padding-inline:16px}
+.identity b{font-size:15px;font-weight:740;letter-spacing:-.012em}
+.identity small{font-size:11.5px;color:var(--polish-muted)}
+.conversation{scrollbar-gutter:stable}
+.bubble{font-size:14px;line-height:1.52;border-radius:17px 17px 17px 6px}
+.mine .bubble{border-radius:17px 17px 6px 17px}
+.message{max-width:min(76%,550px);margin-bottom:16px}
+.stamp{font-size:10.5px;line-height:16px;font-variant-numeric:tabular-nums;color:var(--polish-muted)}
+.day{font-size:11px;line-height:15px;font-weight:600;background:var(--border);padding:7px 12px}
+.order{box-shadow:0 2px 12px rgba(10,45,47,.035);border-radius:17px}
+.orderitem{font-variant-numeric:tabular-nums}
+.editorbox{border-radius:19px;background:var(--surface);min-width:0;transition:border-color .12s ease,box-shadow .12s ease}
+.send{box-shadow:0 3px 10px var(--polish-glow)}
+.send:disabled{background:var(--border);color:var(--polish-muted);box-shadow:none;opacity:.8}
+.send:not(:disabled):active{transform:scale(.96)}
+.chat-note{font-size:10.5px;line-height:15px;color:var(--polish-muted)}
+.ctxbtn{display:flex;align-items:center;gap:12px;font-size:12.5px;line-height:18px}
+.ctxbtn .ui-icon{width:19px;height:19px;color:var(--accent)}
+.context .overline{letter-spacing:.075em}
+.workcard{box-shadow:0 3px 20px rgba(27,48,55,.025)}
+.workcard .symbol{width:42px;height:42px;display:grid;place-items:center;border-radius:13px;background:var(--accentLight);color:var(--accent)}
+.workcard .symbol .ui-icon{width:22px;height:22px}
+.workcard h3{line-height:21px}
+.workcard p{line-height:1.55;color:var(--polish-muted)}
+.action-sheet-action .ui-icon{width:22px;height:22px}
+.action-sheet-close .ui-icon{width:21px;height:21px}
+.action-sheet-foot{color:var(--polish-muted)}
+@media(hover:none),(pointer:coarse){
+ .contact:hover,.filter:hover,.navbtn:hover,.iconbtn:hover{background:transparent}
+ .contact.selected:hover,.filter.active:hover,.navbtn.active:hover,.mobile-tabs button.active:hover{background:var(--accentLight)}
+}
+@media(max-width:700px),(hover:none),(pointer:coarse){
+ .demo-brand{gap:3px 8px}
+ .demo-top strong{font-size:11px}
+ .demo-top .state{font-size:10px;line-height:14px}
+ .top-actions button{min-height:42px;padding-inline:9px}
+ .inbox-head{padding-top:18px}
+ .headerline h1{font-size:23px}
+ .contact{min-height:80px;gap:10px;padding:10px 9px}
+ .chat-header{padding-inline:8px}
+ .conversation{scrollbar-gutter:auto}
+ .message{max-width:86%}
+ .bubble{font-size:14px}
+ .workcard{border-radius:16px}
+}
+@media(max-width:360px){.demo-top .state{font-size:9px}.top-actions #themeText{display:none}}
+@media(prefers-reduced-motion:reduce){
+ .navbtn,.iconbtn,.head-action,.filter,.contact,.action-sheet-action,.ctxbtn,.mobile-tabs button,.search,.editorbox{transition:none}
+}
+
+/* CHAT-NEXT-013 — zero-network media preview and keyboard-friendly viewer.
+   All art is a CSS mock sample, not a customer image, remote resource or OCR.
+   One native dialog owns focus. Only media-stage scrolls when magnified. */
+.media-card{display:block;width:min(300px,100%);max-width:100%;border:1px solid var(--border);border-radius:17px;background:var(--surface);padding:6px;color:var(--ink);text-align:start;overflow:hidden;cursor:zoom-in;box-shadow:0 2px 12px rgba(15,50,55,.045)}
+.media-card:hover{border-color:var(--accent);box-shadow:0 4px 14px var(--polish-glow)}
+.media-card:focus-visible{outline:2px solid var(--polish-focus);outline-offset:2px}
+.message.media-message{width:min(300px,86%);max-width:86%}
+.media-card .media-caption{display:block;padding:9px 9px 6px;font-size:12px;line-height:17px;font-weight:650}
+.media-art{position:relative;isolation:isolate;aspect-ratio:4/3;width:100%;min-width:0;overflow:hidden;display:grid;place-items:center;border-radius:12px;border:1px solid rgba(43,73,81,.13);background:linear-gradient(135deg,#f5f2e9,#e6e7e1 50%,#cfddd8);color:#2d4c4c}
+.media-art[data-art="catalog"]{background:linear-gradient(145deg,#dbe8f0,#b4cbd5 64%,#8fb7b5);color:#314e5a}
+.media-art::before{content:"";position:absolute;width:66%;height:87%;left:18%;top:6%;transform:rotate(-6deg);background:rgba(23,50,47,.09);filter:blur(9px);z-index:-1}
+.media-art .media-art-paper{width:58%;min-width:0;min-height:76%;padding:7% 6%;background:#fff;border-radius:4px;border:1px solid rgba(16,50,50,.16);box-shadow:0 4px 20px rgba(23,45,48,.1);transform:rotate(-4deg);display:flex;flex-direction:column;gap:9%;color:#39525b}
+.media-art[data-art="catalog"] .media-art-paper{width:65%;transform:rotate(3deg);background:#f8fbfa}
+.media-art .media-art-kicker{font-size:clamp(8px,1.2vw,11px);line-height:1.3;font-weight:800;letter-spacing:.08em;white-space:nowrap}
+.media-art .media-art-line{display:block;flex:0 0 auto;height:5px;max-height:6px;width:100%;background:#dae4e0;border-radius:6px}
+.media-art .media-art-line.short{width:65%}
+.media-art .media-art-line.medium{width:85%}
+.media-art .media-art-price{font-size:clamp(11px,1.8vw,17px);font-weight:790;text-align:right;border-top:1px solid #cbd8d2;padding-top:8%;font-variant-numeric:tabular-nums}
+.media-art .media-art-chip{position:absolute;left:10px;bottom:10px;background:rgba(255,255,255,.9);border:1px solid rgba(48,86,82,.08);border-radius:9px;padding:5px 7px;font-size:10px;font-weight:680;letter-spacing:.01em;color:#284a47}
+.media-art[data-art="catalog"] .media-art-chip{color:#264451}
+.media-dialog{width:min(920px,calc(100vw - 24px));max-width:calc(100vw - 24px);height:min(92dvh,800px);max-height:calc(100dvh - 24px);margin:auto;padding:0;border:1px solid var(--border);border-radius:23px;color:var(--ink);background:var(--surface);box-shadow:0 20px 75px rgba(0,0,0,.2);overflow:hidden}
+.media-dialog[open]{display:flex;flex-direction:column}
+.media-dialog::backdrop{background:rgba(13,27,30,.8)}
+.media-viewer-head{display:flex;align-items:center;gap:14px;justify-content:space-between;flex:0 0 auto;padding:13px 16px;border-bottom:1px solid var(--border)}
+.media-viewer-heading{display:flex;min-width:0;flex-direction:column;gap:4px}
+.media-viewer-heading strong{font-size:15px;line-height:20px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.media-viewer-heading span{font-size:11px;line-height:15px;color:var(--polish-muted);font-variant-numeric:tabular-nums}
+.media-stage{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;background:var(--subtle);padding:clamp(12px,3vw,24px);scrollbar-width:thin}
+.media-canvas{width:100%;min-width:100%;max-width:none;margin:auto}
+.media-canvas .media-art{width:100%;border-radius:14px;max-width:none}
+.media-canvas .media-art .media-art-kicker{font-size:clamp(11px,2.3vw,23px)}
+.media-canvas .media-art .media-art-line{height:clamp(5px,.9vw,9px)}
+.media-canvas .media-art .media-art-price{font-size:clamp(18px,3vw,35px)}
+.media-viewer-tools{flex:0 0 auto;display:flex;align-items:center;justify-content:center;gap:7px;padding:10px 12px;border-top:1px solid var(--border)}
+.media-viewer-tools button{display:grid;place-items:center;min-width:48px;min-height:48px;border:1px solid transparent;border-radius:14px;background:var(--subtle);color:var(--ink)}
+.media-viewer-tools button:hover:not(:disabled){background:var(--accentLight);color:var(--accent)}
+.media-viewer-tools button:disabled{opacity:.35}
+.media-viewer-tools output{display:grid;place-items:center;min-width:58px;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--polish-muted)}
+.media-viewer-meta{flex:0 0 auto;text-align:center;margin:0;padding:0 14px 15px;color:var(--polish-muted);font-size:11px;line-height:15px}
+@media(max-width:700px),(hover:none),(pointer:coarse){
+ .media-card{min-height:0}
+ .media-dialog{width:100%;max-width:100%;height:100dvh;max-height:100dvh;border-radius:0;border:0}
+ .media-viewer-head{padding:calc(8px + env(safe-area-inset-top,0px)) 10px 8px}
+ .media-viewer-tools{gap:5px}
+ .media-viewer-meta{padding-bottom:max(14px,env(safe-area-inset-bottom))}
+ .media-stage{padding:14px}
+}
+@media(max-width:360px){.media-viewer-tools{gap:3px}.media-viewer-tools button{min-width:44px;min-height:44px}.media-viewer-tools output{min-width:50px}}
+@media(prefers-reduced-motion:reduce){.media-card,.media-viewer-tools button{transition:none}}
+
+/* Long text remains selectable and wraps even with unbroken order codes. */
+.bubble{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;user-select:text;-webkit-user-select:text}
+.media-card{-webkit-user-select:none;user-select:none}
+
+/* CHAT-NEXT-014 — Single geometry owner: viewport > shell > panes > bands > controls. */
+:root{
+ --frame-gap:12px;--frame-outer:20px;--frame-rail:68px;
+ --frame-directory:clamp(292px,25vw,332px);--frame-context:252px;
+ --frame-inbox-axis:16px;--frame-thread-axis:16px;
+ --frame-thread-max:760px;--frame-head-height:72px;
+ --frame-control:48px;--frame-control-gap:8px;--frame-composer-inset:8px;
+ --frame-mobile-nav:66px;--frame-outline:1px;
+}
+.screen{box-sizing:border-box;height:100dvh;min-height:0;max-height:100dvh;gap:var(--frame-gap);padding:16px var(--frame-outer)}
+.demo-top,.app{width:min(1460px,100%);max-width:100%;margin-inline:auto}
+.demo-top{flex:0 0 auto;min-height:40px}
+.app{box-sizing:border-box;flex:1 1 auto;height:auto;min-height:0;min-width:0;
+ display:grid;grid-template-columns:var(--frame-rail) var(--frame-directory) minmax(0,1fr) var(--frame-context);
+ overflow:hidden}
+.navrail{min-width:0;min-height:0;overflow:hidden;box-sizing:border-box}
+.inbox{min-width:0;min-height:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden}
+.inbox-head{box-sizing:border-box;padding:20px var(--frame-inbox-axis) 0;flex:0 0 auto}
+.headerline{min-width:0}
+.headerline h1{min-width:0;line-height:32px}
+.search{min-width:0;width:100%}
+.filters{box-sizing:border-box;padding-inline:var(--frame-inbox-axis);flex:0 0 auto}
+.contacts{box-sizing:border-box;flex:1 1 auto;min-height:0;padding-inline:calc(var(--frame-inbox-axis) - 8px);overflow-y:auto}
+.contact{box-sizing:border-box;width:100%;min-width:0;min-height:80px;margin:0;padding-inline:8px;
+ display:grid;grid-template-columns:44px minmax(0,1fr) 64px;column-gap:10px}
+.contact-main{min-width:0}
+.contact .time{min-width:0;max-width:64px}
+.contact .avatar{width:44px;height:44px}
+.chat{min-width:0;min-height:0;display:grid;
+ grid-template-rows:var(--frame-head-height) minmax(0,1fr) auto auto;overflow:hidden}
+.chat-width{box-sizing:border-box;width:min(var(--frame-thread-max),calc(100% - var(--frame-thread-axis) - var(--frame-thread-axis)));
+ min-width:0;margin-inline:auto}
+.chat-header{box-sizing:border-box;min-width:0;height:auto;min-height:0;display:block;padding:0}
+.chat-header-inner{display:flex;height:100%;min-height:0;align-items:center;gap:10px}
+.chat-header-inner .identity{min-width:0;flex:1 1 auto}
+.chat-header-inner .right-head{margin-left:auto;display:flex;align-items:center;gap:4px}
+.chat-header-inner .iconbtn{min-width:var(--frame-control);width:var(--frame-control);height:var(--frame-control);flex:0 0 var(--frame-control)}
+.conversation{box-sizing:border-box;min-width:0;min-height:0;padding:0;overflow-y:auto;overflow-x:hidden;scrollbar-gutter:auto}
+.message-stream{padding-block:20px 12px;min-height:100%;display:flow-root}
+.message-stream .message{max-width:min(80%,550px);min-width:0}
+.message-stream .message.mine{margin-left:auto}
+.message-stream .day{margin-top:0}
+.message-stream .bubble{max-width:100%;box-sizing:border-box;overflow-wrap:anywhere}
+.message-stream .order{max-width:100%;box-sizing:border-box}
+.composer{box-sizing:border-box;min-width:0;display:block;padding:var(--frame-composer-inset) 0;
+ border-top:var(--frame-outline) solid var(--border)}
+.composer-inner{display:grid;grid-template-columns:var(--frame-control) minmax(0,1fr) var(--frame-control);
+ gap:var(--frame-control-gap);align-items:end;min-width:0}
+.composer-inner>.iconbtn{box-sizing:border-box;width:var(--frame-control);min-width:var(--frame-control);
+ height:var(--frame-control);border-radius:14px;margin:0;padding:0}
+.composer-inner .editorbox{box-sizing:border-box;min-width:0;min-height:var(--frame-control);
+ border-radius:21px;padding:11px 14px;display:flex;align-items:end}
+.composer-inner #draft{box-sizing:border-box;min-width:0;width:100%;font-size:16px;line-height:24px;
+ min-height:24px;max-height:120px;padding:0;margin:0}
+.composer-inner #sendDemo{border-radius:50%}
+.chat-note{box-sizing:border-box;min-height:0;margin:0;padding:0 0 8px;
+ font-size:10.5px;line-height:16px;text-align:left}
+.chat-note-inner{display:block}
+.work-view .app{grid-template-columns:var(--frame-rail) minmax(0,1fr)}
+.work{min-height:0;box-sizing:border-box}
+.context{min-height:0;box-sizing:border-box}
+@media(max-width:1399px){
+ .app{grid-template-columns:var(--frame-rail) var(--frame-directory) minmax(0,1fr)}
+ .context{display:none}
+}
+@media(max-width:900px) and (hover:hover) and (pointer:fine){
+ :root{--frame-outer:0px;--frame-gap:0px;--frame-directory:292px;--frame-thread-axis:14px}
+ .screen{padding:0}
+ .demo-top{box-sizing:border-box;min-height:44px;padding:6px 12px}
+ .app{border:0;box-shadow:none;border-radius:0}
+ .work-view .app{grid-template-columns:var(--frame-rail) minmax(0,1fr)}
+}
+@media(max-width:780px),(hover:none),(pointer:coarse){
+ :root{--frame-outer:0px;--frame-gap:0px;--frame-inbox-axis:12px;
+  --frame-thread-axis:12px;--frame-head-height:64px;
+  --frame-control:48px;--frame-control-gap:8px}
+ .screen{position:fixed;left:0;right:0;top:var(--demo-vv-top,0px);bottom:auto;
+  box-sizing:border-box;display:flex;flex-direction:column;width:100%;height:var(--demo-vv-height,100dvh);
+  min-height:0;max-height:none;padding:0;gap:0;overflow:hidden}
+ .demo-top{box-sizing:border-box;flex:0 0 auto;min-height:44px;height:auto;
+  padding:calc(7px + env(safe-area-inset-top,0px)) 12px 7px}
+ .app,.work-view .app{box-sizing:border-box;flex:1 1 auto;position:relative;
+  display:block;width:100%;height:auto;min-height:0;border:0;border-radius:0;box-shadow:none}
+ .navrail,.context{display:none}
+ .inbox{box-sizing:border-box;display:flex;height:100%;border:0;
+  padding-bottom:calc(var(--frame-mobile-nav) + env(safe-area-inset-bottom))}
+ .inbox-head{padding-top:16px}
+ .filters{padding-top:10px;padding-bottom:8px}
+ .contacts{padding-bottom:12px}
+ .contact{padding-inline:8px;gap:10px;min-height:80px}
+ .chat{position:absolute;inset:0;display:none;height:100%;min-height:0;
+  grid-template-rows:var(--frame-head-height) minmax(0,1fr) auto auto}
+ .app[data-page="chat"] .chat{display:grid}
+ .app[data-page="chat"] .inbox{display:none}
+ .chat-header-inner{gap:6px}
+ .chat-header-inner .go-back{display:grid;flex:0 0 var(--frame-control)}
+ .chat-header-inner .avatar{width:40px;height:40px;flex:0 0 40px}
+ .chat-header-inner .right-head{gap:0}
+ .chat-header-inner .iconbtn{width:var(--frame-control);height:var(--frame-control);
+  min-width:var(--frame-control);flex:0 0 var(--frame-control)}
+ .message-stream{padding-block:14px 10px}
+ .message-stream .message{max-width:88%}
+ .composer-inner>.iconbtn{border-radius:14px}
+ .composer-inner #sendDemo{border-radius:50%}
+ .chat-note{padding-bottom:max(8px,env(safe-area-inset-bottom))}
+ .mobile-tabs{box-sizing:border-box;position:absolute;bottom:0;left:0;
+  display:flex;width:100%;min-height:calc(var(--frame-mobile-nav) + env(safe-area-inset-bottom));
+  padding-bottom:env(safe-area-inset-bottom)}
+ .app[data-page="chat"] .mobile-tabs{display:none}
+ .work-view .app[data-page="chat"] .mobile-tabs{display:flex}
+ .work-view .work{box-sizing:border-box;height:calc(100% - var(--frame-mobile-nav) - env(safe-area-inset-bottom));
+  overflow:auto;padding:20px var(--frame-inbox-axis)}
+ .work-view .inbox{display:none}
+}
+@media(max-width:360px){
+ :root{--frame-thread-axis:10px;--frame-control:44px;--frame-control-gap:6px}
+ .chat-header-inner{gap:4px}
+ .chat-header-inner .avatar{width:36px;height:36px;flex-basis:36px}
+ .composer-inner .editorbox{padding-inline:12px}
+}
+
+
+/* Frame audit is opt-in: ?geometry=1 — shown only on the public demo.
+   Visual outlines never enter real Chat UI or its service worker. */
+body.geometry-mode .chat-width{outline:1px dashed #d48b24;outline-offset:-1px}
+body.geometry-mode .inbox-head,
+body.geometry-mode .filters,
+body.geometry-mode .contacts{outline:1px dashed rgba(13,120,170,.8);outline-offset:-1px}
+body.geometry-mode .composer-inner .editorbox{outline:1px solid rgba(180,50,150,.8);outline-offset:1px}
+.geometry-inspector{position:fixed;z-index:60;top:8px;right:8px;max-width:min(320px,calc(100vw - 16px));
+ border:1px solid #648b8a;border-radius:13px;background:rgba(19,40,42,.96);color:white;
+ box-shadow:0 8px 28px rgba(0,0,0,.24);padding:8px 10px;font-size:11px;line-height:1.45}
+.geometry-inspector summary{cursor:pointer;font-weight:760;min-height:24px;list-style:revert}
+.geometry-inspector pre{white-space:pre-wrap;font-family:ui-monospace,Consolas,monospace;margin:7px 0 3px;
+ max-height:45dvh;overflow:auto;font-size:10px;line-height:1.5}
+
+/* CHAT-NEXT-015 — Visible design round and version history; isolated from the L0–L5 app geometry. */
+.demo-top{position:relative;z-index:30}
+.version-details{position:relative;flex:0 0 auto}
+.version-details>summary{list-style:none;display:flex;align-items:center;gap:6px;min-height:42px;padding:0 11px;cursor:pointer;border:1px solid var(--border);border-radius:11px;background:var(--surface);color:var(--ink);font-size:12px;font-weight:680;white-space:nowrap}
+.version-details>summary::-webkit-details-marker{display:none}
+.version-details>summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.version-details[open]>summary{border-color:var(--accent);background:var(--accentLight)}
+.version-round{color:var(--accent);font-variant-numeric:tabular-nums;font-weight:800}
+.version-caption{color:var(--muted);font-weight:600}
+.version-panel{position:absolute;right:0;top:calc(100% + 8px);z-index:40;width:min(370px,calc(100vw - 24px));max-height:min(68dvh,470px);overflow:auto;padding:16px;border:1px solid var(--border);border-radius:16px;background:var(--surface);box-shadow:0 18px 42px rgba(15,35,42,.20);color:var(--ink);overscroll-behavior:contain}
+.version-panel h2{font-size:15px;letter-spacing:-.02em;margin:0 0 5px}
+.version-panel p{font-size:11px;color:var(--muted);line-height:1.5;margin:0 0 10px}
+.version-log{list-style:none;margin:0;padding:0}
+.version-log li{display:grid;grid-template-columns:44px minmax(0,1fr);gap:10px;padding:10px 0;border-top:1px solid var(--border);font-size:12px;line-height:1.4}
+.version-log li b{color:var(--accent);font-variant-numeric:tabular-nums}
+.version-log li strong{display:block;font-size:12px;font-weight:700}
+.version-log li small{display:block;margin-top:3px;color:var(--muted);font-size:10px}
+@media(max-width:560px){.demo-top .state{display:none}.version-panel{right:-2px}}
+@media(max-width:400px){.version-caption{display:none}.top-actions #themeText{display:none}.version-details>summary{min-height:40px}.demo-brand{flex-wrap:nowrap}}
+
+
+/* CHAT-NEXT-016 — L5 composer precision / conversation scroll lane.
+   Conversation remains the sole native vertical scroll owner. Its scrollbar
+   track would otherwise steal width and shift the L4 reading axis on desktop. */
+:root{--frame-input-pad-x:14px;--frame-input-pad-y:11px;--frame-input-line:24px;--frame-input-max:120px}
+.conversation{scrollbar-width:none;-ms-overflow-style:none;overscroll-behavior-y:contain}
+.conversation::-webkit-scrollbar{display:none;width:0;height:0}
+.composer-inner{column-gap:var(--frame-control-gap);row-gap:0}
+.composer-inner .editorbox{overflow:hidden;min-width:0;min-height:var(--frame-control);
+ padding:var(--frame-input-pad-y) var(--frame-input-pad-x);border-radius:24px;align-items:end}
+.composer-inner #draft{display:block;flex:1 1 auto;width:100%;min-height:var(--frame-input-line);
+ max-height:var(--frame-input-max);line-height:var(--frame-input-line);margin:0;padding:0;resize:none;
+ scroll-padding-block:4px;overflow-y:auto}
+.composer-inner>.iconbtn{display:grid;place-items:center;align-self:end;min-height:var(--frame-control);padding:0;margin:0}
+.composer-inner>.iconbtn .ui-icon{display:block;width:21px;height:21px;flex:none}
+@media(max-width:360px){:root{--frame-input-pad-x:12px}}
+
+
+/* CHAT-NEXT-017 — Fine-detail design owner. Typography/radii/icon optical
+   alignment only. V14 owns geometry L0–L5 and V16 owns composer sizing.
+   No extra scroll owner, transport, script, or visual-viewport handler. */
+:root{
+ --detail-title:24px;--detail-title-leading:32px;
+ --detail-contact:14px;--detail-contact-leading:20px;
+ --detail-preview:12.5px;--detail-preview-leading:18px;
+ --detail-thread:14px;--detail-thread-leading:21px;
+ --detail-meta:11px;--detail-meta-leading:16px;
+ --detail-icon:21px;--detail-icon-subtle:20px;
+ --detail-row-radius:14px;--detail-control-radius:14px;
+ --detail-bubble-radius:18px;--detail-line-width:1px;
+ --detail-unit:4px;
+}
+/* Inbox: headings, search, filters, avatars, names and dates share one rhythm. */
+.headerline h1{font-size:var(--detail-title);line-height:var(--detail-title-leading);
+ font-weight:750;letter-spacing:-.035em}
+.search{min-height:var(--frame-control);border:var(--detail-line-width) solid var(--border);
+ border-radius:var(--detail-control-radius);gap:10px}
+.search input{font-size:16px;line-height:24px;min-height:24px}
+.search .ui-icon{display:block;width:var(--detail-icon-subtle);height:var(--detail-icon-subtle)}
+.filters{column-gap:var(--detail-unit)}
+.filter{min-height:44px;padding:0 12px;line-height:18px;font-size:12px;
+ border-radius:999px;letter-spacing:0}
+.contact{border-radius:var(--detail-row-radius);border-width:var(--detail-line-width);
+ padding-block:10px;align-items:center;min-width:0}
+.contact .avatar,.chat-header-inner .avatar{border-radius:var(--detail-row-radius)}
+.contact-title{font-size:var(--detail-contact);line-height:var(--detail-contact-leading);
+ font-weight:700;letter-spacing:-.01em}
+.contact-preview{font-size:var(--detail-preview);line-height:var(--detail-preview-leading);
+ margin-top:var(--detail-unit);color:var(--polish-muted)}
+.contact .time{font-size:var(--detail-meta);line-height:var(--detail-meta-leading);
+ font-variant-numeric:tabular-nums;padding-top:2px}
+.contact .count{font-variant-numeric:tabular-nums;line-height:14px}
+.contact:focus-visible,.filter:focus-visible{outline-offset:-2px}
+/* Conversation header, text, media metadata and the composer use matching sizes. */
+.chat-header-inner .identity b{font-size:15px;line-height:21px;letter-spacing:-.01em}
+.chat-header-inner .identity small{font-size:var(--detail-meta);line-height:var(--detail-meta-leading);
+ margin-top:var(--detail-unit)}
+.chat-header-inner .iconbtn,.composer-inner>.iconbtn{border-radius:var(--detail-control-radius);
+ display:grid;place-items:center}
+.chat-header-inner .iconbtn .ui-icon,.composer-inner>.iconbtn .ui-icon,
+.headerline .head-action .ui-icon{display:block;width:var(--detail-icon);height:var(--detail-icon)}
+.composer-inner #sendDemo{border-radius:50%}
+.composer-inner .editorbox{border-width:var(--detail-line-width);
+ border-style:solid;border-color:var(--border);border-radius:24px}
+.composer-inner #draft{font-size:16px;line-height:var(--frame-input-line);
+ letter-spacing:0}
+.message-stream .bubble{font-size:var(--detail-thread);line-height:var(--detail-thread-leading);
+ padding:11px 13px;border-width:var(--detail-line-width);border-style:solid;
+ border-radius:var(--detail-bubble-radius) var(--detail-bubble-radius)
+ var(--detail-bubble-radius) 5px}
+.message-stream .mine .bubble{border-radius:var(--detail-bubble-radius)
+ var(--detail-bubble-radius) 5px var(--detail-bubble-radius);border-color:transparent}
+.message-stream .stamp,.message-stream .day{font-size:var(--detail-meta);
+ line-height:var(--detail-meta-leading);font-variant-numeric:tabular-nums}
+.chat-note{font-size:var(--detail-meta);line-height:var(--detail-meta-leading)}
+/* Auxiliary surfaces inherit the same 14px control radius/21px glyphs. */
+.action-sheet-action,.action-sheet-action .action-sheet-glyph,
+.action-sheet-close,.media-viewer-tools button{border-radius:var(--detail-control-radius)}
+.action-sheet-action .ui-icon,.action-sheet-close .ui-icon,
+.media-viewer-tools button .ui-icon{display:block;width:var(--detail-icon);height:var(--detail-icon)}
+.workcard .symbol{border-radius:var(--detail-control-radius)}
+@media(max-width:360px){
+ .headerline h1{font-size:23px;line-height:32px}
+ .contact-title{font-size:var(--detail-contact)}
+}
+@media(prefers-reduced-motion:reduce){
+ .composer-inner .editorbox,.search{transition:none}
+}
+
+
+/* CHAT-NEXT-018 — Readability hierarchy & explicit content roles.
+   No classification from keywords: the message's declared kind is the owner.
+   Existing semantic light/dark palette is reused; accent denotes actions,
+   not proof of payment, delivery or approval. */
+:root{
+ --read-body:15px;--read-body-line:23px;
+ --read-contact:14px;--read-preview:13px;--read-preview-line:19px;
+ --read-heading:16px;--read-heading-line:23px;
+ --read-meta:11.5px;--read-meta-line:17px;
+ --read-primary:var(--ink);--read-secondary:var(--muted);
+ --read-action:var(--accent);--read-divider:var(--border);
+}
+.contact-title{font-size:var(--read-contact);line-height:21px;color:var(--read-primary)}
+.contact-preview{font-size:var(--read-preview);line-height:var(--read-preview-line);
+ color:var(--read-secondary)}
+.contact .time,.message-stream .stamp,.message-stream .day{
+ font-size:var(--read-meta);line-height:var(--read-meta-line);color:var(--read-secondary)}
+.message-stream .bubble{font-size:var(--read-body);line-height:var(--read-body-line);
+ color:var(--read-primary);font-weight:400;letter-spacing:0}
+.message-stream .order{border-color:var(--read-divider);padding:16px}
+.message-stream .order .tag{font-size:11px;line-height:16px;letter-spacing:.045em;
+ color:var(--read-secondary);font-weight:700;margin-bottom:5px}
+.message-stream .order-heading{display:block;font-size:var(--read-heading);
+ line-height:var(--read-heading-line);font-weight:750;color:var(--read-primary)}
+.message-stream .orderitem{align-items:baseline;font-size:14px;line-height:20px;
+ padding-block:10px;gap:12px}
+.message-stream .orderitem span{min-width:0;overflow-wrap:anywhere}
+.message-stream .orderitem b{white-space:nowrap;font-variant-numeric:tabular-nums;
+ font-size:14px;font-weight:700;color:var(--read-primary)}
+.message-stream .order-note{margin:10px 0 0;color:var(--read-primary);
+ font-size:13px;line-height:19px}
+.message-stream .orderfoot{font-size:var(--read-meta);line-height:var(--read-meta-line);
+ color:var(--read-secondary);margin-top:10px}
+.message-stream .order-source{margin-top:8px;color:var(--read-secondary)}
+.message-stream .order-source summary{cursor:pointer;font-size:12px;line-height:22px;
+ text-decoration:underline;text-underline-offset:3px}
+.message-stream .order-source pre{white-space:pre-wrap;overflow-wrap:anywhere;
+ font-family:inherit;font-size:13px;line-height:20px;font-weight:400;margin:8px 0;color:var(--read-primary)}
+.message-stream .note-message .bubble{border-left:3px solid var(--read-divider);
+ background:var(--received);white-space:pre-wrap}
+.message-stream .message-preview .bubble{background:var(--surface);
+ border:1px dashed var(--read-divider);color:var(--read-secondary)}
+.message-stream .message-preview .stamp{font-style:italic}
+.message-stream .media-caption{font-size:13px;line-height:19px;font-weight:650}
+.message-stream .invoice-link{color:var(--read-action);font-size:12px}
+@media(max-width:360px){.message-stream .order{padding:12px}}
+
+/* CHAT-NEXT-019 — Request card micro-grid: no new scroll or business owner.
+   Shared structural axis V14-V16 stays unchanged; only typed request cards
+   receive aligned product / quantity / unit columns. */
+:root{--request-quantity-width:112px;--request-unit-width:52px;--request-column-gap:12px}
+.message-stream .order-message{width:min(100%,420px);max-width:100%}
+.message-stream .order-request{box-sizing:border-box;width:100%;max-width:100%;min-width:0}
+.message-stream .order-columns,.message-stream .orderitem{
+ display:grid;grid-template-columns:minmax(0,1fr) var(--request-quantity-width);
+ column-gap:var(--request-column-gap);min-width:0}
+.message-stream .order-columns{margin-top:12px;padding:7px 0;border-block:1px solid var(--read-divider);
+ font-size:11.5px;line-height:17px;color:var(--read-secondary);font-weight:650}
+.message-stream .order-columns span:last-child{text-align:end}
+.message-stream .orderitem{align-items:start;padding:10px 0}
+.message-stream .order-name{min-width:0;overflow-wrap:anywhere;line-height:20px}
+.message-stream .order-quantity{min-width:0;display:grid;grid-template-columns:minmax(0,1fr) var(--request-unit-width);
+ gap:5px;align-items:start;font-size:14px;line-height:20px}
+.message-stream .order-quantity .order-amount{
+ font-size:14px;line-height:20px;font-weight:700;font-variant-numeric:tabular-nums;
+ text-align:end;white-space:nowrap;color:var(--read-primary)}
+.message-stream .order-unit{min-width:0;overflow-wrap:anywhere;text-align:start;color:var(--read-primary)}
+.message-stream .order-note{border-top:1px solid var(--read-divider);padding-top:10px;
+ display:grid;gap:3px;white-space:pre-wrap;overflow-wrap:anywhere}
+.message-stream .order-note-label{font-size:11.5px;line-height:17px;font-weight:700;
+ color:var(--read-secondary)}
+@media(max-width:360px){
+ :root{--request-quantity-width:102px;--request-unit-width:46px;--request-column-gap:8px}
+ .message-stream .order-request{padding:12px}
+}
+/* CHAT-NEXT-020: media group owner, 4px equal gaps and no empty cells.
+   These styles affect gallery messages only, not the existing single-image card. */
+.message-stream .media-gallery-message{width:min(360px,90%);max-width:90%;min-width:0}
+.media-gallery{display:grid;width:100%;min-width:0;gap:4px;overflow:hidden;border-radius:16px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.media-gallery.one{grid-template-columns:minmax(0,1fr)}
+.media-gallery.three{grid-template-rows:repeat(2,minmax(0,1fr))}
+.media-gallery.three .media-gallery-tile:first-child{grid-row:span 2}
+.media-gallery-tile{position:relative;display:block;width:100%;min-width:0;min-height:0;padding:0;border:0;border-radius:0;background:var(--subtle);overflow:hidden;cursor:pointer}
+.media-gallery-tile:focus-visible{outline:3px solid var(--accent);outline-offset:-3px;z-index:2}
+.media-gallery .media-art{width:100%;height:100%;aspect-ratio:1/1;border:0;border-radius:0}
+.media-gallery.three .media-gallery-tile:first-child .media-art{aspect-ratio:auto;height:100%}
+.media-gallery.three .media-gallery-tile:not(:first-child) .media-art{aspect-ratio:2/1}
+.media-gallery-more{position:absolute;inset:0;display:grid;place-items:center;background:rgba(10,23,29,.66);color:white;font-size:28px;font-weight:750;line-height:1}
+@media(max-width:360px){.message-stream .media-gallery-message{width:min(320px,94%);max-width:94%}}
+/* CHAT-NEXT-021: media viewport centered, thumbnails below the stage.
+   Do not stretch/crop receipts; the original artwork remains fully visible at fit. */
+.media-stage{display:flex;align-items:center;justify-content:center}
+.media-canvas{flex:0 0 auto;max-width:none;align-self:center}
+.media-stage:has(.media-canvas[style*="200%"]){justify-content:flex-start;align-items:flex-start}
+.media-thumbnails{flex:0 0 auto;display:flex;align-items:center;gap:6px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:thin;padding:9px 12px;min-height:74px;max-width:100%;border-top:1px solid var(--border)}
+.media-thumbnails[hidden]{display:none!important}
+.media-thumbnail{position:relative;flex:0 0 58px;width:58px;height:58px;padding:0;border:2px solid transparent;border-radius:9px;background:var(--subtle);overflow:hidden}
+.media-thumbnail.selected{border-color:var(--accent)}
+.media-thumbnail:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.media-thumbnail .media-art{width:100%;height:100%;aspect-ratio:1;border:0;border-radius:6px}
+.media-thumbnail .media-art-paper{transform:scale(.85)}
+.media-thumbnail .media-art-chip{display:none}
+@media(max-width:700px){.media-thumbnails{padding:8px 12px;min-height:66px}.media-thumbnail{flex-basis:50px;width:50px;height:50px}}
+/* CHAT-NEXT-022: zoom width must not be clamped by intrinsic max-width. */
+.media-canvas[style]{max-width:none}
+.media-stage{touch-action:pan-y pinch-zoom}
+.media-stage:has(.media-canvas[style*="150%"]),.media-stage:has(.media-canvas[style*="200%"]){touch-action:pan-x pan-y}
+/* CHAT-NEXT-023: iPhone conversation geometry. One horizontal grid for text, media and timestamps. */
+@media(max-width:700px),(hover:none),(pointer:coarse){
+ .conversation{padding:14px 12px 10px;scroll-padding-bottom:12px}
+ .message{margin-bottom:14px}
+ .message-stream .media-gallery-message{width:min(100%,344px);max-width:100%}
+ .media-gallery{gap:3px;border-radius:14px;max-height:340px}
+ .media-gallery.two .media-art,.media-gallery.four .media-art,.media-gallery.many .media-art{aspect-ratio:1/1}
+ .media-gallery.three{grid-template-rows:repeat(2,minmax(0,1fr))}
+ .media-gallery .media-art-chip{left:6px;right:6px;bottom:6px;max-width:calc(100% - 12px);padding:4px 5px;font-size:8px;line-height:1.2;letter-spacing:0;text-align:center;white-space:normal}
+ .media-gallery .media-art-kicker{font-size:clamp(7px,1.5vw,10px);letter-spacing:.03em}
+ .media-gallery .media-art-price{font-size:clamp(10px,2.5vw,14px)}
+ .composer{gap:8px;padding:8px 12px max(8px,env(safe-area-inset-bottom))}
+ .chat-note{padding:0 12px 5px;font-size:9px;line-height:1.3}
+ .stamp{margin:5px 3px 0;font-variant-numeric:tabular-nums}
+}
+/* CHAT-NEXT-025: Safari mobile version log must be viewport anchored, not summary anchored. */
+@media(max-width:700px),(hover:none),(pointer:coarse){
+ .version-details .version-panel{position:fixed;left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));top:calc(82px + env(safe-area-inset-top));width:auto;max-width:none;max-height:min(68dvh,calc(100dvh - 110px - env(safe-area-inset-top)));box-sizing:border-box;overflow-x:hidden;overflow-y:auto;overflow-wrap:anywhere;overscroll-behavior:contain;z-index:1000}
+ .version-panel .version-log li{grid-template-columns:38px minmax(0,1fr);gap:8px}
+ .version-panel .version-log li>*{min-width:0}
+}
+/* CHAT-NEXT-027: every bottom surface is inside the VisualViewport above iOS keyboard. */
+@media(max-width:700px),(hover:none),(pointer:coarse){
+ .screen{display:flex;flex-direction:column;gap:0}
+ .screen .demo-top{flex:0 0 43px;min-height:43px}
+ .screen .app,.screen .work-view.app{flex:1 1 auto;height:auto;min-height:0;max-height:none}
+ .screen.keyboard-visible .composer{padding-bottom:8px}
+ .screen.keyboard-visible .chat-note{padding-bottom:4px}
+ .screen.keyboard-visible .mobile-tabs{padding-bottom:0}
+ .screen.keyboard-visible .conversation{scroll-padding-bottom:8px}
+}
+/* CHAT-NEXT-028: only the conversation scrolls; composer stays a non-shrinking footer. */
+@media(max-width:700px),(hover:none),(pointer:coarse){
+ .screen.keyboard-visible .chat{min-height:0;overflow:hidden}
+ .screen.keyboard-visible .conversation{flex:1 1 0;min-height:0;overflow-y:auto;overflow-anchor:none;padding-bottom:16px}
+ .screen.keyboard-visible .composer,.screen.keyboard-visible .chat-note{flex:0 0 auto;position:relative;z-index:2}
+}
+/* CHAT-NEXT-029: use grid tracks, not flex sizing, for the actual message viewport. */
+@media(max-width:700px),(hover:none),(pointer:coarse){
+ .screen.keyboard-visible .chat{display:grid;grid-template-rows:var(--frame-head-height) minmax(0,1fr) auto auto;min-height:0}
+ .screen.keyboard-visible .conversation{min-height:0;max-height:100%;overflow-y:auto;overflow-x:hidden;box-sizing:border-box;scroll-padding-bottom:16px}
+ .screen.keyboard-visible .composer,.screen.keyboard-visible .chat-note{min-height:0;flex:none}
+}
+/* CHAT-NEXT-030: the chat owns three grid rows; header and footer cannot consume the message scroll track. */
+@media(max-width:700px),(hover:none),(pointer:coarse){
+ .screen.keyboard-visible .chat{display:grid;grid-template-rows:auto minmax(0,1fr) auto auto;overflow:hidden;min-height:0}
+ .screen.keyboard-visible .chat-header{min-height:0}
+ .screen.keyboard-visible .conversation{height:100%;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+ .screen.keyboard-visible .composer,.screen.keyboard-visible .chat-note{position:relative;min-height:0;z-index:1}
+}
+</style>
+</head>
+<body>
+<svg class="icon-sprite" width="0" height="0" viewBox="0 0 24 24" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"><defs><symbol id="ui-message-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5a8.5 8.5 0 0 1-8.5 8.5 9.6 9.6 0 0 1-4.1-1L3 20l1.2-4.1A8.5 8.5 0 1 1 20 11.5Z"/><path d="M8.5 11.5h7"/></symbol><symbol id="ui-briefcase" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18M10 13v2h4v-2"/></symbol><symbol id="ui-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h3l1.2 4-2 1.6c1.3 2.7 3.1 4.5 5.8 5.8l1.6-2 4 1.2v3a2 2 0 0 1-2.3 2c-7.3-1-12.5-6.2-13.5-13.5A2 2 0 0 1 6 3.5Z"/></symbol><symbol id="ui-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 14 4l1.1 1.8 2 .2 1.5 1.5-.2 2L20 11l-.2 2-1.4 1.6.1 2-1.4 1.4-2-.1L13 20l-2 .1-1.8-1.5-2 .1-1.5-1.5.2-2L4 13.5l-.2-2 1.5-1.8-.1-2L6.7 6l2 .2L10 4Z"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="ui-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></symbol><symbol id="ui-pencil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 16.5 1-4 10-10 4 4-10 10-5 1Z"/><path d="m12.8 4.7 4 4M4 21h16"/></symbol><symbol id="ui-arrow-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6M9 12h12"/></symbol><symbol id="ui-more" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></symbol><symbol id="ui-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M4 12h16"/></symbol><symbol id="ui-arrow-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V4m-7 7 7-7 7 7"/></symbol><symbol id="ui-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 15.6A8.4 8.4 0 0 1 8.4 4 8.6 8.6 0 1 0 20 15.6Z"/></symbol><symbol id="ui-receipt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18l-3-2-4 2-4-2-3 2V3Z"/><path d="M9 8h6M9 12h6M9 16h4"/></symbol><symbol id="ui-wallet" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="15" rx="3"/><path d="M3 10h18M16 15h3"/></symbol><symbol id="ui-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12 12 20 4 12V4h8l8 8Z"/><circle cx="8.5" cy="8.5" r="1"/></symbol><symbol id="ui-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="m4 17 5-5 4 4 2-2 5 5"/></symbol><symbol id="ui-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></symbol><symbol id="ui-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5 19 19M19 5 5 19"/></symbol><symbol id="ui-minus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 12h16"/></symbol></defs></svg>
+<div class="screen" id="screen" data-design-id="CHAT-NEXT-030" data-design-round="30">
+  <div class="demo-top"><div class="demo-brand"><strong>CHAT NEXT</strong><span class="state"><i></i> BẢN DEMO · DỮ LIỆU MẪU</span></div><div class="top-actions"><details class="version-details" id="versionHistory" aria-label="Phiên bản thiết kế và các vòng sửa">
+  <summary title="CHAT NEXT — Vòng 30: Đo và giữ tin cuối trên bàn phím" aria-label="Xem lịch sử phiên bản CHAT NEXT, vòng 30"><span class="version-round">V30</span><span class="version-caption">· Nhật ký sửa</span></summary>
+  <div class="version-panel">
+    <h2>CHAT NEXT · Vòng 30</h2>
+    <p>Đo vị trí tin cuối và vùng đọc thực tế; tự bù cuộn khi Safari bật bàn phím · 18/11/2026. Chỉ là demo, không phải Chat production.</p>
+    <ol class="version-log" aria-label="Lịch sử các vòng thiết kế">
+      <li><b>V30</b><span><strong>Đo hình học tin cuối</strong><small>18/11/2026 · Đối chiếu mép dưới tin cuối với mép dưới vùng cuộn, bù cuộn sau khi bàn phím và thanh nhập đổi kích thước; bảo toàn vị trí đọc cũ</small></span></li>
+      <li><b>V29</b><span><strong>Cuộn tin cuối theo khung thực tế</strong><small>18/11/2026 · Theo dõi ResizeObserver của vùng đọc và nội dung; neo cuối sau khi layout đổi; không kéo khi đọc tin cũ</small></span></li>
+      <li><b>V28</b><span><strong>Giữ tin cuối khi bàn phím mở</strong><small>18/11/2026 · Neo đáy cuộc trò chuyện qua VisualViewport resize, không kéo người đang đọc tin cũ; kiểm tra sau khi layout ổn định</small></span></li>
+      <li><b>V27</b><span><strong>Đáy hội thoại nằm trên bàn phím</strong><small>18/11/2026 · VisualViewport điều khiển chiều cao khung, ô nhập và ghi chú không bị che; tránh chừa safe-area khi bàn phím bật</small></span></li>
+      <li><b>V26</b><span><strong>Mở hội thoại tại tin cuối</strong><small>18/11/2026 · Cuộn sau khi chuyển màn, tập trung ô nhập; giữ vị trí khi dùng nút quay lại trình duyệt</small></span></li>
+      <li><b>V25</b><span><strong>Nhật ký vừa màn hình iPhone</strong><small>18/11/2026 · Bảng nổi nằm trong mép an toàn, cuộn riêng, chữ không bị cắt, giữ nút đóng</small></span></li>
+      <li><b>V24</b><span><strong>Đồng bộ phiên bản tự động</strong><small>18/11/2026 · Một số V duy nhất cho tiêu đề, nhãn, nhật ký và CI; chặn sai phiên bản</small></span></li>
+      <li><b>V23</b><span><strong>Căn lề và nhóm ảnh gọn</strong><small>18/11/2026 · Nhóm ảnh 2/3/4 cân trục, thu gọn nhãn demo, nhịp vùng nhập và khoảng cách hội thoại</small></span></li>
+      <li><b>V22</b><span><strong>Zoom thực và điều hướng ảnh</strong><small>18/11/2026 · Gỡ giới hạn max-width khi zoom, phím mũi tên, chạm hai lần</small></span></li>
+      <li><b>V21</b><span><strong>Trình xem ảnh và ảnh thu nhỏ</strong><small>18/11/2026 · Ảnh căn giữa, chọn thumbnail, vuốt và zoom, tách điều khiển</small></span></li>
+      <li><b>V20</b><span><strong>Nhóm ảnh cân đối</strong><small>18/11/2026 · 1 ảnh toàn khung, 2/4 chia đều, 3 ảnh nổi bật, 5+ có +N</small></span></li>
+      <li><b>V19</b><span><strong>Căn trục yêu cầu hàng</strong><small>18/11/2026 · Cột tên, số, đơn vị và ghi chú; không tự tạo đơn</small></span></li>
+      <li><b>V18</b><span><strong>Phân cấp nội dung dễ đọc</strong><small>18/11/2026 · Tin thường, ghi chú, phiếu hàng, ảnh và nháp chưa gửi</small></span></li>
+      <li><b>V17</b><span><strong>Chi tiết giao diện đồng bộ</strong><small>18/11/2026 · Typography, biểu tượng, bán kính, viền, nhịp khoảng cách</small></span></li>
+      <li><b>V16</b><span><strong>Căn trục ô gõ và nội dung</strong><small>18/11/2026 · Vùng nhập, khoảng cách, thanh cuộn, thước đo L5</small></span></li>
+      <li><b>V15</b><span><strong>Tên phiên bản & nhật ký chỉnh sửa</strong><small>18/11/2026 · Đang nghiệm thu demo</small></span></li>
+      <li><b>V14</b><span><strong>Khung phân cấp và trục L0–L5</strong><small>18/11/2026 · Chuẩn hóa header, nội dung và ô nhập</small></span></li>
+      <li><b>V13</b><span><strong>Ảnh và media mẫu</strong><small>18/11/2026 · Kích thước ảnh, zoom một chạm</small></span></li>
+      <li><b>V12</b><span><strong>Tinh chỉnh chi tiết giao diện</strong><small>18/11/2026 · Khoảng cách, nút, icon, độ tương phản</small></span></li>
+      <li><b>V11</b><span><strong>Điều hướng và bàn phím</strong><small>18/11/2026 · Quay lại, soạn tin, vùng hiển thị</small></span></li>
+    </ol>
+  </div>
+</details><button type="button" id="theme" aria-label="Đổi giao diện sáng tối"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-moon"></use></svg> <span id="themeText">Chế độ tối</span></button><span class="info">Tách biệt ứng dụng chính</span></div></div>
+  <div class="app" id="app" data-page="inbox">
+    <nav class="navrail" aria-label="Điều hướng chính">
+      <div class="brand" aria-label="CHAT NEXT">C<span class="brand-mark" aria-hidden="true">.</span></div>
+      <button class="navbtn active" data-mode="chat" title="Trò chuyện"><span><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-message-circle"></use></svg></span><small>Chat</small></button>
+      <button class="navbtn" data-mode="work" title="Công việc"><span><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-briefcase"></use></svg></span><small>Việc</small></button>
+      <button class="navbtn" data-action="call" title="Gọi" aria-label="Cuộc gọi mẫu"><span><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-phone"></use></svg></span><small>Gọi</small></button>
+      <button class="navbtn settings" data-action="settings" title="Cài đặt"><span><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-settings"></use></svg></span><small>Cài đặt</small></button>
+    </nav>
+    <aside class="inbox" aria-label="Danh sách trò chuyện">
+      <div class="inbox-head">
+        <div class="headerline"><h1>Tin nhắn</h1><button class="head-action" type="button" data-action="new" aria-label="Tạo cuộc trò chuyện mẫu" title="Tạo hội thoại"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-pencil"></use></svg></button></div>
+        <p class="helper" id="inboxSummary" aria-live="polite">5 hội thoại · 2 chưa đọc</p>
+        <label class="search"><span class="search-glyph" aria-hidden="true"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-search"></use></svg></span><input id="search" type="search" autocomplete="off" placeholder="Tìm tên hoặc nội dung" aria-label="Tìm hội thoại"></label>
+      </div>
+      <div class="filters" role="group" aria-label="Lọc trò chuyện">
+        <button class="filter active" data-filter="all" aria-pressed="true" type="button">Tất cả</button>
+        <button class="filter" data-filter="unread" aria-pressed="false" type="button">Chưa đọc</button>
+        <button class="filter" data-filter="group" aria-pressed="false" type="button">Nhóm</button>
+        <button class="filter" data-filter="customer" aria-pressed="false" type="button">Khách hàng</button>
+      </div>
+      <div class="contacts" id="contacts"></div>
+    </aside>
+    <main class="chat" aria-label="Hội thoại">
+      <header class="chat-header">
+        <div class="chat-width chat-header-inner">
+        <button class="iconbtn go-back" data-action="back" aria-label="Quay lại danh bạ"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-arrow-left"></use></svg></button>
+        <div class="avatar" id="activeAvatar">L</div>
+        <div class="identity"><b id="activeName">Chị Lan</b><small id="activeKind">Khách hàng · Trò chuyện</small></div>
+        <div class="right-head">
+          <button class="iconbtn" data-action="call" title="Gọi điện" aria-label="Gọi điện mẫu"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-phone"></use></svg></button>
+          <button class="iconbtn" data-action="more" aria-label="Mở tùy chọn hội thoại" aria-haspopup="dialog" aria-controls="conversationActions" title="Mở tùy chọn hội thoại"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-more"></use></svg></button>
+        </div>
+        </div>
+      </header>
+      <div class="conversation" id="conversation" aria-label="Nội dung cuộc trò chuyện"><div class="chat-width message-stream" id="messageStream" aria-live="polite"></div></div>
+      <form class="composer" id="composer" autocomplete="off">
+        <div class="chat-width composer-inner">
+        <button class="iconbtn" type="button" data-action="attach" aria-label="Đính kèm mẫu"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-plus"></use></svg></button>
+        <div class="editorbox"><textarea id="draft" rows="1" aria-label="Nhập tin nhắn giả lập" placeholder="Nhập tin nhắn mẫu…"></textarea></div>
+        <button class="iconbtn send" id="sendDemo" type="submit" disabled aria-label="Thêm tin nháp vào bản demo"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-arrow-up"></use></svg></button>
+        </div>
+      </form>
+      <p class="chat-note"><span class="chat-width chat-note-inner">Tin nhập chỉ hiện trên thiết bị của bạn. Không gửi tới khách hàng.</span></p>
+    </main>
+    <aside class="context" aria-label="Chi tiết liên hệ">
+      <div class="avatar profile-avatar" id="profileAvatar">L</div>
+      <div class="profile-name" id="profileName">Chị Lan</div>
+      <div class="profile-sub" id="profileKind">Khách hàng · Thông tin mẫu</div>
+      <div class="overline">TỔNG QUAN</div>
+      <div class="statcard"><small>Đơn cần soát</small><strong id="orderCount">02</strong></div>
+      <div class="statcard"><small>Kết nối</small><strong style="font-size:14px">Chỉ minh họa</strong></div>
+      <div class="overline">THAO TÁC</div>
+      <button class="ctxbtn" data-action="work" type="button"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-briefcase"></use></svg> Công việc liên quan</button>
+      <button class="ctxbtn" data-action="photos" type="button"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-image"></use></svg> Ảnh và tệp đã gửi</button>
+      <button class="ctxbtn" data-action="more" type="button"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-more"></use></svg> Tùy chọn hội thoại</button>
+    </aside>
+    <section class="work" aria-label="Màn hình Công việc">
+      <h2>Công việc</h2><p>Quản lý nghiệp vụ bên ngoài luồng tin nhắn · Chỉ có dữ liệu mẫu</p>
+      <div class="workgrid">
+        <div class="workcard"><div class="symbol"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-receipt"></use></svg></div><h3>Đơn hàng</h3><p>Đơn tạm, kiểm hàng, chờ giao và đã giao; tách trạng thái rõ ràng.</p><button data-work="orders" type="button">Xem mẫu đơn</button><a class="invoice-link" href="./invoice.html">Quản lý 3 mẫu hóa đơn →</a></div>
+        <div class="workcard"><div class="symbol"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-wallet"></use></svg></div><h3>Thanh toán</h3><p>Công nợ và khoản thu hiển thị riêng, không tự ghi thu trong bản demo.</p><button data-work="payments" type="button">Xem đối soát</button></div>
+        <div class="workcard"><div class="symbol"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-tag"></use></svg></div><h3>Báo giá</h3><p>Giá mới, giá cũ, giá áp riêng và lịch sử được tổ chức theo khách.</p><button data-work="pricing" type="button">Xem báo giá</button></div>
+        <div class="workcard"><div class="symbol"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-briefcase"></use></svg></div><h3>Phiếu lấy hàng</h3><p>Gộp số lượng, giữ ghi chú và nguyên văn tin khách đã gửi.</p><button data-work="pick" type="button">Xem mẫu phiếu</button></div>
+      </div>
+      <div class="work-detail" id="workDetail"><b>Chọn một mục bên trên</b><br>Chỉ trình bày UI; các chức năng thật vẫn nằm trong ứng dụng hiện tại.</div>
+    </section>
+    <div class="mobile-tabs" role="navigation" aria-label="Điều hướng dưới">
+      <button class="active" data-mode="chat" aria-current="page" type="button"><span><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-message-circle"></use></svg></span>Trò chuyện</button>
+      <button data-mode="work" type="button"><span><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-briefcase"></use></svg></span>Công việc</button>
+    </div>
+  </div>
+</div>
+<dialog class="action-sheet" id="conversationActions" aria-labelledby="actionSheetTitle" aria-modal="true">
+  <div class="action-sheet-head">
+    <div class="action-sheet-heading"><small>TÙY CHỌN HỘI THOẠI</small><strong id="actionSheetTitle">Liên hệ</strong><span>Hành động trong bản demo · Không gửi dữ liệu</span></div>
+    <button class="action-sheet-close" type="button" data-sheet-close aria-label="Đóng tùy chọn"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-close"></use></svg></button>
+  </div>
+  <div class="action-sheet-body">
+    <button type="button" class="action-sheet-action" data-sheet-action="work"><span class="action-sheet-glyph" aria-hidden="true"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-briefcase"></use></svg></span><span><b>Công việc của liên hệ</b><small>Đơn hàng, đối soát, báo giá</small></span><span class="action-sheet-chevron" aria-hidden="true">›</span></button>
+    <a class="action-sheet-action" href="./invoice.html"><span class="action-sheet-glyph" aria-hidden="true"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-receipt"></use></svg></span><span><b>Xem mẫu hóa đơn</b><small>Ba mẫu: in đen trắng, xanh lá, xanh than</small></span><span class="action-sheet-chevron" aria-hidden="true">›</span></a>
+    <button type="button" class="action-sheet-action" data-sheet-action="photos"><span class="action-sheet-glyph" aria-hidden="true"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-image"></use></svg></span><span><b>Ảnh và tệp</b><small>Trình xem mẫu chưa kết nối dữ liệu</small></span><span class="action-sheet-chevron" aria-hidden="true">›</span></button>
+  </div>
+  <p class="action-sheet-foot">Hành động tại đây không gọi API, không gửi tin nhắn và không ghi thu.</p>
+</dialog>
+<dialog class="media-dialog" id="mediaViewer" aria-labelledby="mediaViewerTitle" aria-modal="true">
+  <div class="media-viewer-head">
+    <div class="media-viewer-heading"><strong id="mediaViewerTitle">Ảnh minh họa</strong><span id="mediaViewerCount">1 / 2 ảnh mẫu</span></div>
+    <button class="iconbtn" type="button" id="mediaClose" aria-label="Đóng ảnh"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-close"></use></svg></button>
+  </div>
+  <div class="media-stage" id="mediaStage" tabindex="0" aria-label="Vùng xem ảnh có thể cuộn khi phóng lớn">
+    <div class="media-canvas" id="mediaCanvas"></div>
+  </div>
+  <div class="media-thumbnails" id="mediaThumbnails" role="group" aria-label="Danh sách ảnh thu nhỏ trong tin nhắn"></div>
+  <div class="media-viewer-tools" role="group" aria-label="Điều khiển ảnh mẫu">
+    <button type="button" id="mediaPrev" aria-label="Ảnh trước"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-arrow-left"></use></svg></button>
+    <button type="button" id="mediaZoomOut" aria-label="Thu nhỏ ảnh"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-minus"></use></svg></button>
+    <output id="mediaZoomLabel" aria-live="polite">100%</output>
+    <button type="button" id="mediaZoomIn" aria-label="Phóng lớn ảnh"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-plus"></use></svg></button>
+    <button type="button" id="mediaNext" aria-label="Ảnh tiếp theo"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-chevron-right"></use></svg></button>
+  </div>
+  <p class="media-viewer-meta" id="mediaViewerMeta">Dữ liệu minh họa · Không phải ảnh khách hàng thật</p>
+</dialog>
+<div class="toast" role="status" id="toast" hidden></div>
+<script>
+(function(){
+'use strict';
+var people=[
+{id:'lan',name:'Chị Lan',initial:'L',color:'',kind:'Khách hàng',category:'customer',time:'07:28',unread:2,orders:'02',preview:'2 thùng sữa hộp, 3 hộp bánh quy. Chiều giao giúp chị nhé.',texts:[['other','Chào em, cho chị đặt hàng sáng nay nhé.','07:20'],['mine','Dạ chị gửi danh sách, em soát lại rồi báo chị.','07:21'],['order',{items:[{name:'Sữa hộp',amount:2,unit:'thùng'},{name:'Bánh quy',amount:3,unit:'hộp'}],note:'Chiều giao giúp chị nhé.'},'07:28'],['media','order','07:29'],['gallery',['order','catalog'],'07:30'],['gallery',['order','catalog','order'],'07:31'],['gallery',['order','catalog','order','catalog'],'07:32'],['gallery',['order','catalog','order','catalog','order','catalog'],'07:33']]},
+{id:'family',name:'Nhóm gia đình',initial:'G',color:'orange',kind:'Nhóm',category:'group',time:'07:10',unread:1,orders:'01',preview:'Hôm nay có hai đơn cần soát hàng trước khi giao.',texts:[['other','Hôm nay có hai đơn cần kiểm hàng trước khi giao.','07:10'],['mine','Dạ, em đã ghi nhận.','07:12']]},
+{id:'minh',name:'Anh Minh',initial:'M',color:'violet',kind:'Khách hàng',category:'customer',time:'Hôm qua',unread:0,orders:'00',preview:'Đã nhận đủ hàng, cảm ơn bạn nhé.',texts:[['mine','Đơn hôm nay giao đủ rồi anh nhé.','16:30'],['other','Đã nhận đủ hàng, cảm ơn bạn nhé.','16:33']]},
+{id:'supplier',name:'Nhà cung cấp',initial:'N',color:'green',kind:'Nhóm',category:'group',time:'T. Hai',unread:0,orders:'01',preview:'Đã gửi bảng giá mới và danh sách sản phẩm.',texts:[['other','Bên em gửi lại bảng giá mới.','09:00'],['media','catalog','09:03'],['mine','Cảm ơn, mình đã nhận được.','09:05']]},
+{id:'huong',name:'Cô Hương',initial:'H',color:'blue',kind:'Khách hàng',category:'customer',time:'16/11',unread:0,orders:'00',preview:'Cảm ơn, khi nào có hàng thì báo cô.',texts:[['note','Khi nào có hàng báo giúp cô nhé.\nGhi chú:\n- 2 thùng hàng nhẹ\n- 3 hộp hàng khô\n- Giao buổi chiều, không để ngoài nắng. Mã ghi chú mẫu rất dài: ABC-0123456789-0123456789-0123456789-0123456789.','14:16'],['mine','Dạ, có hàng em sẽ báo lại.','14:19']]}
+];
+var current='lan',filter='all',page='chat',app=document.getElementById('app'),screen=document.getElementById('screen'),toast=document.getElementById('toast'),timer=null;
+var demoDrafts=Object.create(null),demoPreviewMessages=Object.create(null),demoScrollPositions=Object.create(null); // RAM only: never browser storage or network.
+/* V23 interaction contract: one source for previews, search and conversation content. */
+function lastEntry(p){var previews=demoPreviewMessages[p.id]||[];return previews.length?['mine',previews[previews.length-1],'Nháp demo']:p.texts[p.texts.length-1]}
+function entrySummary(entry){if(!entry)return 'Chưa có tin nhắn';var kind=entry[0],data=entry[1];if(kind==='media')return 'Ảnh · '+(data==='catalog'?'Bảng sản phẩm':'Phiếu hàng');if(kind==='gallery')return 'Bộ sưu tập · '+data.length+' ảnh';if(kind==='order')return 'Yêu cầu lấy hàng · '+data.items.map(function(i){return i.amount+' '+i.unit+' '+i.name}).join(', ')+(data.note?' · '+data.note:'');return String(data||'')}
+function conversationSearchText(p){return [p.name,entrySummary(lastEntry(p))].concat(p.texts.map(entrySummary),demoPreviewMessages[p.id]||[]).join(' ').toLocaleLowerCase('vi')}
+function saveConversationPosition(){if(page==='chat')demoScrollPositions[current]=byId('conversation').scrollTop}
+function focusLatestConversation(){
+ var scroller=byId('conversation'),input=byId('draft');
+ // Wait for the chat panel to become visible before measuring its scroll height.
+ window.requestAnimationFrame(function(){
+  input.focus({preventScroll:true});
+  keyboardBottomPinned=true;
+  scroller.scrollTop=scroller.scrollHeight;
+  window.requestAnimationFrame(function(){scroller.scrollTop=scroller.scrollHeight});
+ });
+}
+function openConversation(id){
+ saveConversationPosition();demoDrafts[current]=byId('draft').value;
+ current=id;renderContacts();renderChat({restore:false});showPage('chat');focusLatestConversation();
+}
+function byId(id){return document.getElementById(id)}
+function el(tag,cls,text){var n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=String(text);return n}
+function showToast(text){toast.textContent=text;toast.hidden=false;if(timer)clearTimeout(timer);timer=setTimeout(function(){toast.hidden=true},2600)}
+function selected(){return people.find(function(p){return p.id===current})||people[0]}
+var actionSheet=byId('conversationActions'),actionTrigger=null;
+function closeActionSheet(){if(actionSheet.open)actionSheet.close();if(actionTrigger){actionTrigger.focus({preventScroll:true});actionTrigger=null}}
+function openActionSheet(trigger){if(actionSheet.open)return;actionTrigger=trigger||null;byId('actionSheetTitle').textContent=selected().name;actionSheet.showModal()}
+document.querySelectorAll('[data-sheet-close]').forEach(function(b){b.addEventListener('click',closeActionSheet)});
+document.querySelectorAll('[data-sheet-action]').forEach(function(b){b.addEventListener('click',function(){var action=b.dataset.sheetAction,focusReturn=actionTrigger||b;closeActionSheet();if(action==='work')showPage('work');else if(action==='photos'){var items=selected().texts.flatMap(function(entry){return entry[0]==='media'?[entry[1]]:entry[0]==='gallery'?entry[1]:[]});if(items.length)openMediaViewer(items[0],focusReturn,items,0);else showToast('Hội thoại này chưa có ảnh mẫu')}})});
+actionSheet.addEventListener('click',function(event){if(event.target===actionSheet)closeActionSheet()});
+actionSheet.addEventListener('close',function(){if(actionTrigger){actionTrigger.focus({preventScroll:true});actionTrigger=null}});
+
+
+/* CHAT-NEXT-013: two fictional media examples (no photos, src, network).
+   The dialog owns focus; Zoom adjusts canvas width inside a single scroll
+   owner. No touch gesture listeners/polling: browser scrolling stays native. */
+var mediaExamples=[
+ {id:'order',title:'Phiếu hàng minh họa',kind:'order',caption:'Phiếu hàng · ảnh mẫu',price:'755.000',credit:'Ảnh minh họa, không phải hóa đơn thật'},
+ {id:'catalog',title:'Bảng sản phẩm minh họa',kind:'catalog',caption:'Bảng sản phẩm · ảnh mẫu',price:'BẢNG GIÁ',credit:'Ảnh minh họa, không phải dữ liệu NCC'}
+];
+var mediaViewer=byId('mediaViewer'),mediaTrigger=null,activeMediaIndex=0,mediaZoom=1,activeMediaSet=null;
+function mediaArtwork(example){
+ var picture=el('div','media-art');picture.dataset.art=example.kind;
+ picture.setAttribute('role','img');picture.setAttribute('aria-label',example.title+' — dữ liệu mẫu');
+ var paper=el('div','media-art-paper');
+ paper.append(el('div','media-art-kicker',example.kind==='order'?'PHIẾU HÀNG MẪU':'DANH SÁCH MẪU'));
+ paper.append(el('span','media-art-line'),el('span','media-art-line medium'),el('span','media-art-line short'),el('span','media-art-line'));
+ paper.append(el('div','media-art-price',example.price));
+ picture.append(paper,el('span','media-art-chip','DEMO · KHÔNG PHẢI ẢNH THẬT'));
+ return picture;
+}
+function mediaCard(id){
+ var example=mediaExamples.find(function(m){return m.id===id});if(!example)return el('span','media-caption','Không có ảnh mẫu');
+ var button=el('button','media-card');button.type='button';
+ button.setAttribute('aria-label','Mở xem lớn: '+example.title);
+ button.append(mediaArtwork(example),el('span','media-caption',example.caption));
+ button.addEventListener('click',function(){openMediaViewer(id,button)});
+ return button;
+}
+/* CHAT-NEXT-020: an explicit same-message array owns grouping.
+   Never combine separate messages based only on neighboring timestamps. */
+function mediaGallery(ids){
+ if(!Array.isArray(ids)||!ids.length)return el('span','media-caption','Không có ảnh mẫu');
+ var valid=ids.filter(function(id){return mediaExamples.some(function(item){return item.id===id})});
+ if(!valid.length)return el('span','media-caption','Không có ảnh mẫu');
+ var gallery=el('div','media-gallery media-gallery-'+(valid.length===1?'one':valid.length===2?'two':valid.length===3?'three':valid.length===4?'four':'many'));
+ gallery.setAttribute('role','group');gallery.setAttribute('aria-label',valid.length+' ảnh minh họa cùng một tin nhắn');
+ valid.slice(0,valid.length>=5?4:valid.length).forEach(function(id,index){
+  var example=mediaExamples.find(function(item){return item.id===id});
+  var tile=el('button','media-gallery-tile');tile.type='button';
+  tile.setAttribute('aria-label','Mở ảnh '+(index+1)+' / '+valid.length+': '+example.title);
+  tile.append(mediaArtwork(example));
+  if(valid.length>=5&&index===3)tile.append(el('span','media-gallery-more','+'+(valid.length-4)));
+  tile.addEventListener('click',function(){openMediaViewer(id,tile,valid,index)});
+  gallery.append(tile);
+ });
+ return gallery;
+}
+function setMediaZoom(value){
+ mediaZoom=Math.max(1,Math.min(2,Math.round(value*2)/2));
+ byId('mediaCanvas').style.width=Math.round(mediaZoom*100)+'%';
+ byId('mediaZoomLabel').textContent=Math.round(mediaZoom*100)+'%';
+ byId('mediaZoomOut').disabled=mediaZoom<=1;
+ byId('mediaZoomIn').disabled=mediaZoom>=2;
+}
+function renderMediaViewer(){
+ var list=activeMediaSet||mediaExamples.map(function(item){return item.id});
+ var example=mediaExamples.find(function(item){return item.id===list[activeMediaIndex]});
+ byId('mediaViewerTitle').textContent=example.title;
+ byId('mediaViewerCount').textContent=(activeMediaIndex+1)+' / '+list.length+' ảnh mẫu';
+ byId('mediaViewerMeta').textContent=example.credit+' · Không lưu hoặc gửi dữ liệu';
+ byId('mediaCanvas').replaceChildren(mediaArtwork(example));
+ var strip=byId('mediaThumbnails');strip.replaceChildren();
+ list.forEach(function(id,i){
+  var item=mediaExamples.find(function(sample){return sample.id===id});
+  if(!item)return;
+  var thumb=el('button','media-thumbnail'+(i===activeMediaIndex?' selected':''));
+  thumb.type='button';thumb.setAttribute('aria-label','Xem ảnh '+(i+1)+' / '+list.length+': '+item.title);
+  thumb.setAttribute('aria-pressed',String(i===activeMediaIndex));
+  thumb.append(mediaArtwork(item));
+  thumb.addEventListener('click',function(){activeMediaIndex=i;renderMediaViewer()});
+  strip.append(thumb);
+ });
+ strip.hidden=list.length<=1;
+ if(strip.children[activeMediaIndex]&&typeof strip.children[activeMediaIndex].scrollIntoView==='function')
+  strip.children[activeMediaIndex].scrollIntoView({block:'nearest',inline:'nearest'});
+ setMediaZoom(1);
+ byId('mediaStage').scrollTop=0;byId('mediaStage').scrollLeft=0;
+ byId('mediaPrev').disabled=activeMediaIndex===0;
+ byId('mediaNext').disabled=activeMediaIndex===(activeMediaSet||mediaExamples).length-1;
+}
+function openMediaViewer(id,trigger,groupIds,groupIndex){
+ var index=mediaExamples.findIndex(function(m){return m.id===id});if(index<0)return;
+ var valid=Array.isArray(groupIds)?groupIds.filter(function(key){return mediaExamples.some(function(item){return item.id===key})}):null;
+ if(valid&&(!valid.length||!Number.isSafeInteger(groupIndex)||groupIndex<0||groupIndex>=valid.length||valid[groupIndex]!==id))return;
+ if(actionSheet.open)closeActionSheet();
+ if(mediaViewer.open)mediaViewer.close();
+ mediaTrigger=trigger||null;activeMediaSet=valid;activeMediaIndex=valid?groupIndex:index;renderMediaViewer();mediaViewer.showModal();
+}
+function closeMediaViewer(){
+ if(mediaViewer.open)mediaViewer.close();
+ if(mediaTrigger){mediaTrigger.focus({preventScroll:true});mediaTrigger=null}
+}
+byId('mediaClose').addEventListener('click',closeMediaViewer);
+byId('mediaPrev').addEventListener('click',function(){if(activeMediaIndex>0){activeMediaIndex--;renderMediaViewer()}});
+byId('mediaNext').addEventListener('click',function(){if(activeMediaIndex<(activeMediaSet||mediaExamples).length-1){activeMediaIndex++;renderMediaViewer()}});
+byId('mediaZoomIn').addEventListener('click',function(){setMediaZoom(mediaZoom+.5)});
+byId('mediaZoomOut').addEventListener('click',function(){setMediaZoom(mediaZoom-.5)});
+/* V21: horizontal swipe only when fitted; zoomed image keeps native panning.
+   Thumbnail clicks and controls remain accessible without touch gestures. */
+var mediaTouchStart=null,mediaLastTap=0;
+byId('mediaStage').addEventListener('touchstart',function(event){
+ if(event.touches.length!==1||mediaZoom>1){mediaTouchStart=null;return}
+ mediaTouchStart={x:event.touches[0].clientX,y:event.touches[0].clientY};
+},{passive:true});
+byId('mediaStage').addEventListener('touchend',function(event){
+ if(!mediaTouchStart||!event.changedTouches.length)return;
+ var dx=event.changedTouches[0].clientX-mediaTouchStart.x,dy=event.changedTouches[0].clientY-mediaTouchStart.y;
+ mediaTouchStart=null;
+ if(Math.abs(dx)<20&&Math.abs(dy)<20){
+  var now=Date.now();if(now-mediaLastTap<330){setMediaZoom(mediaZoom>1?1:2);mediaLastTap=0}else mediaLastTap=now;
+  return;
+ }
+ mediaLastTap=0;
+ if(Math.abs(dx)<55||Math.abs(dx)<Math.abs(dy)*1.3)return;
+ var next=activeMediaIndex+(dx<0?1:-1),length=(activeMediaSet||mediaExamples).length;
+ if(next>=0&&next<length){activeMediaIndex=next;renderMediaViewer()}
+},{passive:true});
+byId('mediaStage').addEventListener('dblclick',function(event){if(event.pointerType==='touch')return;setMediaZoom(mediaZoom>1?1:2)});
+mediaViewer.addEventListener('keydown',function(event){
+ if(event.target&&event.target.tagName==='INPUT')return;
+ var list=activeMediaSet||mediaExamples;
+ if(event.key==='ArrowRight'&&activeMediaIndex<list.length-1){event.preventDefault();activeMediaIndex++;renderMediaViewer()}
+ if(event.key==='ArrowLeft'&&activeMediaIndex>0){event.preventDefault();activeMediaIndex--;renderMediaViewer()}
+});
+mediaViewer.addEventListener('click',function(event){if(event.target===mediaViewer)closeMediaViewer()});
+mediaViewer.addEventListener('close',function(){if(mediaTrigger){mediaTrigger.focus({preventScroll:true});mediaTrigger=null}});
+
+function avatar(p,extra){return el('span','avatar '+p.color+(extra?' '+extra:''),p.initial)}
+function renderContacts(){
+var q=byId('search').value.trim().toLocaleLowerCase('vi'),list=byId('contacts');list.replaceChildren();var shown=0;
+people.forEach(function(p){
+if(filter==='unread'&&!p.unread)return;
+if(filter==='group'&&p.category!=='group')return;
+if(filter==='customer'&&p.category!=='customer')return;
+if(q&&!conversationSearchText(p).includes(q))return;
+shown++;var btn=el('button','contact'+(p.id===current?' selected':''));btn.type='button';btn.setAttribute('aria-label','Mở hội thoại '+p.name+(p.unread?' · '+p.unread+' tin chưa đọc':''));btn.setAttribute('aria-pressed',String(p.id===current));btn.dataset.unread=String(p.unread>0);
+var info=el('div','contact-main');info.append(el('div','contact-title',p.name),el('div','contact-preview',entrySummary(lastEntry(p))));
+var time=el('div','time',p.time);if(p.unread)time.append(el('span','count',p.unread));
+btn.append(avatar(p),info,time);btn.addEventListener('click',function(){openConversation(p.id)});
+list.append(btn);
+});if(geometryMode)window.requestAnimationFrame(updateFrameAudit);
+byId('inboxSummary').textContent=q||filter!=='all'?shown+' kết quả'+(q?' cho tìm kiếm':''):people.length+' hội thoại · '+people.reduce(function(n,p){return n+(p.unread?1:0)},0)+' chưa đọc';
+if(!shown){var empty=el('div','no-results');empty.append(el('strong','','Không tìm thấy hội thoại'),el('small','','Thử đổi bộ lọc hoặc tìm theo tên, nội dung khác.'));list.append(empty)}
+}
+/* CHAT-NEXT-019: one validated typed source for quantity columns and raw text.
+   No keyword-based order, payment or delivery state inference. */
+function orderCard(payload){
+ if(!payload||!Array.isArray(payload.items))
+  return el('div','bubble','Không có dữ liệu yêu cầu mẫu để trình bày.');
+ var items=payload.items.filter(function(item){return item&&Number.isSafeInteger(item.amount)&&item.amount>0&&typeof item.name==='string'&&item.name.trim()&&typeof item.unit==='string'&&item.unit.trim()});
+ if(!items.length)return el('div','bubble','Không có mặt hàng mẫu hợp lệ để trình bày.');
+ var node=el('section','order order-request'),raw=[];
+ node.setAttribute('aria-label','Yêu cầu lấy hàng mẫu chưa xác nhận');
+ node.append(el('span','tag','YÊU CẦU LẤY HÀNG'),el('strong','order-heading','Danh sách khách gửi'));
+ var headings=el('div','order-columns');headings.append(el('span','','Mặt hàng'),el('span','','Số lượng'));node.append(headings);
+ items.forEach(function(item){
+  var qty=item.amount+' '+item.unit,row=el('div','orderitem'),amount=el('span','order-quantity');
+  amount.append(el('b','order-amount',item.amount),el('span','order-unit',item.unit));
+  row.append(el('span','order-name',item.name),amount);node.append(row);
+  raw.push(qty+' '+item.name);
+ });
+ if(payload.note){var note=el('p','order-note');note.append(el('strong','order-note-label','Ghi chú'),el('span','',payload.note));node.append(note);raw.push(payload.note)}
+ node.append(el('div','orderfoot','Bản đọc nhanh · chưa xác nhận đơn và không tự tạo đơn.'));
+ var source=el('details','order-source');
+ source.append(el('summary','','Xem nội dung mẫu'),el('pre','',raw.join('\n')));
+ node.append(source);
+ var invoiceLink=el('a','invoice-link','Xem 3 mẫu hóa đơn →');invoiceLink.href='./invoice.html';node.append(invoiceLink);
+ return node
+}
+function renderChat(options){
+var p=selected();byId('activeAvatar').textContent=p.initial;byId('activeAvatar').className='avatar '+p.color;byId('activeName').textContent=p.name;
+byId('activeKind').textContent=p.kind+' · Trò chuyện';byId('profileAvatar').textContent=p.initial;byId('profileAvatar').className='avatar profile-avatar '+p.color;
+byId('profileName').textContent=p.name;byId('profileKind').textContent=p.kind+' · Dữ liệu mẫu';byId('orderCount').textContent=p.orders;
+var box=byId('messageStream');box.replaceChildren(el('div','day','Hôm nay · 18/11'));p.texts.forEach(function(entry){
+var kind=entry[0],row=el('div','message'+(kind==='mine'?' mine':''));if(kind==='order'){row.className+=' order-message';row.append(orderCard(entry[1]))}else if(kind==='media'){row.className+=' media-message';row.append(mediaCard(entry[1]))}else if(kind==='gallery'){row.className+=' media-message media-gallery-message';row.append(mediaGallery(entry[1]))}else if(kind==='note'){row.className+=' note-message';row.append(el('div','bubble bubble-note',entry[1]))}else row.append(el('div','bubble',entry[1]));
+row.append(el('div','stamp',entry[2]+(entry[0]==='mine'?' ✓':'')));box.append(row)});
+(demoPreviewMessages[current]||[]).forEach(function(value){var row=el('div','message mine message-preview');row.append(el('div','bubble',value),el('div','stamp','Nháp demo · chưa gửi'));box.append(row)});
+var input=byId('draft');input.value=demoDrafts[current]||'';input.style.height='24px';input.style.height=Math.min(input.scrollHeight,120)+'px';syncDemoSendState();
+var scroller=byId('conversation');scroller.scrollTop=options&&options.restore&&Number.isFinite(demoScrollPositions[current])?demoScrollPositions[current]:scroller.scrollHeight;
+}
+/* CHAT-NEXT-011: History navigates the mock routes only; URLs never hold
+   account identifiers, passwords, tokens or real customer information. */
+var lastRouteHash='';
+function pageHash(next){return next==='chat'?'#chat/'+current:next==='work'?'#work':'#inbox'}
+function showPage(next,source){
+if(page==='chat'&&next!=='chat')saveConversationPosition();page=next;screen.classList.toggle('work-view',next==='work');app.dataset.page=next==='chat'?'chat':'inbox';
+document.querySelectorAll('[data-mode]').forEach(function(b){var active=b.dataset.mode===(next==='work'?'work':'chat');b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
+if(geometryMode)window.requestAnimationFrame(updateFrameAudit);
+if(source==='restore')return;
+var fragment=pageHash(next);
+lastRouteHash=fragment;
+if(window.location.hash!==fragment)window.history.pushState({chatNextDemo:true},'',fragment);
+}
+function restoreDemoRoute(){
+var hash=window.location.hash||'#inbox';if(hash===lastRouteHash)return;
+lastRouteHash=hash;
+if(actionSheet.open)closeActionSheet();
+if(hash==='#work'){showPage('work','restore');return}
+var match=/^#chat\/([a-z0-9_-]{1,40})$/.exec(hash);
+if(match&&people.some(function(p){return p.id===match[1]})){
+saveConversationPosition();demoDrafts[current]=byId('draft').value;current=match[1];renderContacts();renderChat({restore:true});showPage('chat','restore');return
+}
+showPage('inbox','restore');
+}
+window.addEventListener('popstate',restoreDemoRoute);
+window.addEventListener('hashchange',restoreDemoRoute);
+function useFilter(f){filter=f;document.querySelectorAll('[data-filter]').forEach(function(b){var active=b.dataset.filter===f;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active))});renderContacts()}
+function workDetail(kind){
+var content={
+orders:'Đơn tạm #DT120 · 2 mặt hàng cần kiểm. Đã giao #DG119 · có thể mở bảng số lượng × đơn giá = thành tiền. Không thay đổi dữ liệu thật.',
+payments:'Đối soát minh họa: khoản 400.000đ đang chờ xác minh. Bản demo không nhận diện bill ngân hàng và không ghi thu.',
+pricing:'Sữa mẫu 350.000đ → 345.000đ (−5.000đ). Giá riêng chỉ áp khi chọn đúng khách. Không gửi báo giá thật.',
+pick:'Phiếu lấy hàng: Sữa hộp 2 thùng; Bánh quy 3 hộp. Ghi chú: chiều giao. Nội dung gốc của khách phải được bảo toàn.'};
+var box=byId('workDetail');box.replaceChildren(el('b','', 'Bản xem trước: '+({orders:'Đơn hàng',payments:'Thanh toán',pricing:'Báo giá',pick:'Phiếu lấy hàng'}[kind]||'Công việc')),el('div','',content[kind]||'Chưa có mẫu'));if(kind==='orders'){var link=el('a','invoice-link','Mở quản lý 3 mẫu hóa đơn →');link.href='./invoice.html';box.append(link);}
+}
+document.querySelectorAll('[data-mode]').forEach(function(b){b.addEventListener('click',function(){showPage(b.dataset.mode==='work'?'work':'inbox')})});
+document.querySelectorAll('[data-filter]').forEach(function(b){b.addEventListener('click',function(){useFilter(b.dataset.filter)})});
+document.querySelectorAll('[data-work]').forEach(function(b){b.addEventListener('click',function(){workDetail(b.dataset.work)})});
+document.querySelectorAll('[data-action]').forEach(function(b){b.addEventListener('click',function(){
+var a=b.dataset.action;if(a==='back'){saveConversationPosition();closeMediaViewer();closeActionSheet();if(page==='chat'&&window.history.state&&window.history.state.chatNextDemo&&window.history.length>1){window.history.back();return}showPage('inbox');return}if(a==='more'){openActionSheet(b);return}if(a==='work'){closeActionSheet();showPage('work');return}if(a==='photos'){openMediaViewer('order',b);return}
+var messages={call:'Bản demo không thực hiện cuộc gọi.',new:'Tạo hội thoại sẽ dùng dữ liệu thật khi triển khai.',settings:'Đây là giao diện mẫu, chưa có cài đặt tài khoản.',photos:'Ảnh và tệp không được tải từ tài khoản thật.',attach:'Đính kèm trong demo không gửi dữ liệu.'};
+showToast(messages[a]||'Thao tác đang ở chế độ minh họa');
+})});
+byId('search').addEventListener('input',renderContacts);
+function syncDemoSendState(){byId('sendDemo').disabled=!byId('draft').value.trim()}
+byId('draft').addEventListener('input',function(){demoDrafts[current]=this.value;this.style.height='24px';this.style.height=Math.min(this.scrollHeight,120)+'px';syncDemoSendState();if(geometryMode)window.requestAnimationFrame(updateFrameAudit)});
+byId('draft').addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();byId('composer').requestSubmit()}});
+byId('composer').addEventListener('submit',function(e){
+e.preventDefault();var input=byId('draft'),value=input.value.trim();if(!value)return;
+if(!demoPreviewMessages[current])demoPreviewMessages[current]=[];
+demoPreviewMessages[current].push(value);demoDrafts[current]='';
+renderChat();renderContacts();
+showToast('Đã thêm tin vào bản xem trước · không gửi cho ai');
+});
+byId('theme').addEventListener('click',function(){document.body.classList.toggle('dark');byId('themeText').textContent=document.body.classList.contains('dark')?'Chế độ sáng':'Chế độ tối'});
+
+/* One viewport geometry owner for this static demo only. Safari's address
+   bar and soft keyboard are not reliably represented by 100dvh while typing.
+   Use VisualViewport height + offsetTop, and restore CSS fallback on blur. */
+var demoViewportScheduled=false;
+/* CHAT-NEXT-028: preserve the last visible message across iOS keyboard resize. */
+var keyboardBottomPinned=false;
+var keyboardPinPending=false;
+function scheduleKeyboardBottomPin(){
+ if(keyboardPinPending)return;
+ keyboardPinPending=true;
+ window.requestAnimationFrame(function(){
+  keyboardPinPending=false;
+  pinLatestIfNeeded();
+  window.requestAnimationFrame(pinLatestIfNeeded);
+ });
+}
+function pinLatestIfNeeded(){
+ if(page!=='chat'||document.activeElement!==byId('draft'))return;
+ var scroller=byId('conversation');
+ if(!keyboardBottomPinned)return;
+ scroller.scrollTop=Math.max(0,scroller.scrollHeight-scroller.clientHeight);
+ var stream=byId('messageStream');
+ var last=stream&&stream.lastElementChild;
+ if(last&&last.getBoundingClientRect&&scroller.getBoundingClientRect){
+  var lower=last.getBoundingClientRect().bottom;
+  var edge=scroller.getBoundingClientRect().bottom-12;
+  if(lower>edge+1)scroller.scrollTop+=lower-edge;
+ }
+}
+/* CHAT-NEXT-029: listen to actual layout changes, not only VisualViewport events. */
+if(window.ResizeObserver){
+ var keyboardConversationObserver=new ResizeObserver(function(){
+  if(keyboardBottomPinned&&screen.classList.contains('keyboard-visible'))scheduleKeyboardBottomPin();
+ });
+ keyboardConversationObserver.observe(byId('conversation'));
+ keyboardConversationObserver.observe(byId('messageStream'));
+ keyboardConversationObserver.observe(document.querySelector('.chat'));
+}
+function updateDemoViewport(){
+  var focused=document.activeElement,composing=focused===byId('draft')||focused===byId('search');
+  var vv=window.visualViewport;
+  var touchLayout=window.matchMedia&&window.matchMedia('(max-width:700px), (hover:none), (pointer:coarse)').matches;
+  if(!composing||!vv||!touchLayout){
+    screen.style.removeProperty('--demo-vv-height');
+    screen.style.removeProperty('--demo-vv-top');
+    screen.classList.remove('keyboard-visible');
+    return;
+  }
+  screen.style.setProperty('--demo-vv-height',Math.max(1,Math.round(vv.height))+'px');
+  screen.style.setProperty('--demo-vv-top',Math.max(0,Math.round(vv.offsetTop))+'px');
+  var keyboardOpen=vv.height<window.innerHeight-120;
+  screen.classList.toggle('keyboard-visible',keyboardOpen);
+  if(keyboardOpen&&page==='chat'){
+    scheduleKeyboardBottomPin();
+  }
+}
+function scheduleDemoViewport(){
+  if(demoViewportScheduled)return;
+  demoViewportScheduled=true;
+  window.requestAnimationFrame(function(){demoViewportScheduled=false;updateDemoViewport();if(geometryMode)updateFrameAudit()});
+}
+if(window.visualViewport){
+  window.visualViewport.addEventListener('resize',scheduleDemoViewport);
+  window.visualViewport.addEventListener('scroll',scheduleDemoViewport);
+}
+window.addEventListener('resize',scheduleDemoViewport);
+document.addEventListener('focusin',function(e){
+ if(e.target===byId('draft')){
+  var scroller=byId('conversation');
+  keyboardBottomPinned=scroller.scrollHeight-scroller.clientHeight-scroller.scrollTop<80;
+  if(keyboardBottomPinned)scheduleKeyboardBottomPin();
+ }
+ scheduleDemoViewport();
+});
+document.addEventListener('focusout',function(e){if(e.target===byId('draft'))keyboardBottomPinned=false;scheduleDemoViewport()});
+
+/* V14 geometry audit: enabled ONLY when the static sample URL has
+   ?geometry=1. It measures actual DOM edges, not guessed breakpoint math. */
+var geometryMode=String(window.location.search||'').indexOf('geometry=1')!==-1;
+var geometryPanel=null,geometryReadout=null;
+function frameRect(node){return node&&node.getBoundingClientRect?node.getBoundingClientRect():null}
+function frameRound(v){return Math.round(v*10)/10}
+function framePaddingLeft(node){
+ var style=window.getComputedStyle(node);
+ return parseFloat(style.paddingLeft)||0;
+}
+function updateFrameAudit(){
+ if(!geometryMode||!geometryReadout)return;
+ var header=document.querySelector('.chat-header-inner');
+ var stream=byId('messageStream');
+ var composer=document.querySelector('.composer-inner');
+ var note=document.querySelector('.chat-note-inner');
+ var chatBox=document.querySelector('.chat');
+ var visible=chatBox&&window.getComputedStyle(chatBox).display!=='none';
+ var lines=['L0 viewport '+Math.round(window.innerWidth)+'×'+Math.round(window.innerHeight)];
+ var nodes=[header,stream,composer,note].map(frameRect);
+ if(visible&&nodes.every(Boolean)){
+  var lefts=nodes.map(function(r){return r.left});
+  var rights=nodes.map(function(r){return r.right});
+  var dx=Math.max.apply(null,lefts)-Math.min.apply(null,lefts);
+  var dr=Math.max.apply(null,rights)-Math.min.apply(null,rights);
+  lines.push('L4 trục trái lệch '+frameRound(dx)+'px');
+  lines.push('L4 trục phải lệch '+frameRound(dr)+'px');
+  lines.push('L4 '+(dx<=1&&dr<=1?'ĐẠT':'CẦN KIỂM TRA SCROLLBAR'));
+  lines.push('HEADER / TEXT / INPUT / NOTE');
+  nodes.forEach(function(r,i){lines.push(['H','T','I','N'][i]+': '+frameRound(r.left)+' → '+frameRound(r.right)+' ('+frameRound(r.width)+')')});
+
+   /* V16 L5 geometry: measure DOM only for opt-in ?geometry=1. */
+   var attach=document.querySelector('.composer-inner>[data-action="attach"]');
+   var editor=document.querySelector('.composer-inner .editorbox');
+   var draft=byId('draft'),send=byId('sendDemo');
+   var la=frameRect(attach),le=frameRect(editor),ld=frameRect(draft),ls=frameRect(send);
+   if(la&&le&&ld&&ls){
+     var composerStyle=window.getComputedStyle(composer);
+     var editorStyle=window.getComputedStyle(editor);
+     var draftStyle=window.getComputedStyle(draft);
+     var gap=parseFloat(composerStyle.columnGap)||parseFloat(composerStyle.gap)||0;
+     var insetX=parseFloat(editorStyle.paddingLeft)||0;
+     var borderX=parseFloat(editorStyle.borderLeftWidth)||0;
+     var leftGap=le.left-la.right,rightGap=ls.left-le.right;
+     var bottomDelta=Math.max(la.bottom,le.bottom,ls.bottom)-Math.min(la.bottom,le.bottom,ls.bottom);
+     var textInset=ld.left-le.left-borderX;
+     var lineHeight=parseFloat(draftStyle.lineHeight)||0;
+     var within=ld.left>=le.left-0.5&&ld.right<=le.right+0.5;
+     var ok=Math.abs(la.width-ls.width)<=1&&Math.abs(leftGap-gap)<=1&&
+       Math.abs(rightGap-gap)<=1&&Math.abs(leftGap-rightGap)<=1&&
+       bottomDelta<=1&&Math.abs(textInset-insetX)<=1&&
+       Math.abs(lineHeight-24)<=0.5&&within;
+     lines.push('L5 Ô GÕ / NÚT + / GỬI '+(ok?'ĐẠT':'CẦN SỬA'));
+     lines.push('Nút '+frameRound(la.width)+'px · '+frameRound(ls.width)+'px');
+     lines.push('Gap '+frameRound(leftGap)+'px / '+frameRound(rightGap)+'px (mục tiêu '+frameRound(gap)+'px)');
+     lines.push('Mép chữ '+frameRound(textInset)+'px (mục tiêu '+frameRound(insetX)+'px)');
+     lines.push('Đáy nút/ô lệch '+frameRound(bottomDelta)+'px · dòng '+frameRound(lineHeight)+'px');
+
+     /* V17: icon optical centering inside both 44/48px composer buttons. */
+     var plusIcon=attach.querySelector('.ui-icon'),sendIcon=send.querySelector('.ui-icon');
+     var pi=frameRect(plusIcon),si=frameRect(sendIcon);
+     if(pi&&si){
+       var leftError=Math.max(Math.abs((pi.left+pi.right-la.left-la.right)/2),
+         Math.abs((pi.top+pi.bottom-la.top-la.bottom)/2));
+       var rightError=Math.max(Math.abs((si.left+si.right-ls.left-ls.right)/2),
+         Math.abs((si.top+si.bottom-ls.top-ls.bottom)/2));
+       var iconOk=leftError<=1&&rightError<=1&&Math.abs(pi.width-si.width)<=1;
+       lines.push('ICON + / GỬI '+(iconOk?'ĐẠT':'CẦN SỬA')+
+         ' · lệch tâm '+frameRound(leftError)+' / '+frameRound(rightError)+'px');
+     }
+
+   }
+
+ }else lines.push('Mở hội thoại để đo 4 trục L4');
+ var head=document.querySelector('.inbox-head'),filters=document.querySelector('.filters'),first=document.querySelector('.contact');
+ if(head&&filters&&first){
+  var h=frameRect(head),f=frameRect(filters),c=frameRect(first);
+  if(h&&f&&c&&h.width&&f.width&&c.width){
+   var hx=h.left+framePaddingLeft(head),fx=f.left+framePaddingLeft(filters),cx=c.left+framePaddingLeft(first);
+   var variance=Math.max(hx,fx,cx)-Math.min(hx,fx,cx);
+   lines.push('INBOX trục trái lệch '+frameRound(variance)+'px '+(variance<=1?'ĐẠT':'CẦN SỬA'));
+  }
+ }
+ geometryReadout.textContent=lines.join('\n');
+}
+if(geometryMode){
+ document.body.classList.add('geometry-mode');
+ geometryPanel=document.createElement('details');
+ geometryPanel.className='geometry-inspector';
+ geometryPanel.open=true;
+ var summary=document.createElement('summary');summary.textContent='V17 · Kiểm tra trục, icon, ô gõ';
+ geometryReadout=document.createElement('pre');
+ geometryPanel.append(summary,geometryReadout);document.body.append(geometryPanel);
+ window.addEventListener('resize',function(){window.requestAnimationFrame(updateFrameAudit)});
+}
+renderContacts();renderChat();
+if(!window.location.hash)window.history.replaceState({chatNextDemo:true},'','#inbox');
+restoreDemoRoute();
+if(geometryMode)window.requestAnimationFrame(updateFrameAudit);
+})();
+</script>
+</body>
+</html>
