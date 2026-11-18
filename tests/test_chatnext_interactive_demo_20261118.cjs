@@ -252,7 +252,7 @@ class FakeElement{
 const ids=['screen','app','toast','theme','themeText','contacts','search','activeAvatar','activeName',
 'activeKind','profileAvatar','profileName','profileKind','orderCount','conversation','messageStream','composer',
 'draft','sendDemo','inboxSummary','workDetail','conversationActions','actionSheetTitle',
- 'mediaViewer','mediaViewerTitle','mediaViewerCount','mediaViewerMeta','mediaStage',
+ 'mediaViewer','mediaViewerTitle','mediaViewerCount','mediaViewerMeta','mediaThumbnails','mediaStage',
  'mediaCanvas','mediaPrev','mediaNext','mediaZoomIn','mediaZoomOut','mediaZoomLabel','mediaClose'];
 for(const id of ids)idNodes.set(id,new FakeElement('div',id));
 idNodes.get('themeText').textContent='Chế độ tối';
