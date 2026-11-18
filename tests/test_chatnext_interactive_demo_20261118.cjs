@@ -18,9 +18,9 @@ for(const prohibited of [
  assert(!html.includes(prohibited),'public demo must never call live APIs: '+prohibited);
 }
 
-assert(html.includes('<title>CHAT NEXT · V22 — Zoom thực và điều hướng ảnh (demo)</title>'),'V19 named release');
-assert(html.includes('data-design-id="CHAT-NEXT-022" data-design-round="22"'),'V19 distinct design round');
-assert(html.includes('<span class="version-round">V22</span>'),'visible version selector must be updated');
+assert(html.includes('<title>CHAT NEXT · V23 — Căn lề và nhóm ảnh gọn (demo)</title>'),'V19 named release');
+assert(html.includes('data-design-id="CHAT-NEXT-023" data-design-round="23"'),'V19 distinct design round');
+assert(html.includes('<span class="version-round">V23</span>'),'visible version selector must be updated');
 assert(css.includes('/* CHAT-NEXT-016 — L5 composer precision'),'one micro-geometry owner');
 assert(css.includes('.conversation{scrollbar-width:none'),'classic scrollbars cannot shift L4');
 assert(css.includes('.conversation::-webkit-scrollbar{display:none'),'WebKit track removed');
@@ -336,6 +336,8 @@ assert.equal(requestSource.children[1].textContent,['2 thùng Sữa hộp','3 h�
 /* V21: image stage centers fitted artwork and shows grouped thumbnails. */
 assert(css.includes('/* CHAT-NEXT-021: media viewport centered'),'viewer stage has one geometry owner');
 assert(css.includes('/* CHAT-NEXT-022: zoom width must not be clamped'),'V22 zoom clamp fixed');
+assert(css.includes('/* CHAT-NEXT-023: iPhone conversation geometry'),'V23 mobile geometry owner');
+assert(css.includes('.media-gallery{gap:3px;border-radius:14px;max-height:340px}'),'V23 gallery max height');
 assert(js.includes("mediaViewer.addEventListener('keydown'"),'V22 keyboard navigation');
 assert(js.includes('mediaLastTap=0'),'V22 double tap');
 assert(css.includes('.media-stage{display:flex;align-items:center;justify-content:center}'),'fitted image centered in viewport');
