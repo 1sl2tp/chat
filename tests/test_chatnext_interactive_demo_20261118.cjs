@@ -38,6 +38,22 @@ assert(html.includes('demoDrafts=Object.create(null),demoPreviewMessages=Object.
  'demo may retain drafts per chat in RAM only, never browser storage');
 assert(html.includes('min-width:48px'),'48px touch target visual contract');
 assert(html.includes('prefers-reduced-motion:reduce'),'reduced motion');
+assert(html.includes('/* CHAT-NEXT-012: cohesive fine-detail layer.'),'premium polish layer missing');
+assert(html.includes('--polish-space-1:4px')&&html.includes('--polish-space-6:24px'),
+ 'every spacing token follows 4px rhythm');
+assert(html.includes('--ui-tap:48px'),'touch hit sizes must remain >=48px');
+assert(html.includes('scrollbar-gutter:stable'),'desktop conversation scrollbar must not shift width');
+assert(html.includes('.search:focus-within,.editorbox:focus-within'), 'search and editor focus should be visible');
+assert(html.includes('.send:disabled'),'empty composer must have distinct disabled CTA');
+assert(html.includes('body.dark{--polish-focus:'),'dark state focus contrast token required');
+assert(html.includes('class="icon-sprite"'),'one self-contained icon sprite');
+for(const name of ['message-circle','briefcase','search','pencil','arrow-left','more','plus','arrow-up','moon','receipt','wallet','tag','image','close']){
+ assert(html.includes('id="ui-'+name+'"'),'missing consistent line icon: '+name);
+}
+assert(!html.includes('>▤</span>')&&!html.includes('>▦</span>')&&!html.includes('>♧</span>'),
+ 'placeholder glyphs must not remain as primary navigation icons');
+assert(html.includes('id="inboxSummary" aria-live="polite"'),'list count needs accessible summary');
+assert(html.includes('id="sendDemo" type="submit" disabled'),'empty send starts disabled');
 assert(html.includes('min-height:44px'),'touch targets');
 assert(html.includes('--ui-tap:48px'),'Android-sized touch primitives');
 assert(html.includes('id="conversationActions"')&&html.includes('aria-modal="true"'),'native contextual dialog required');
@@ -82,7 +98,7 @@ class FakeElement{
 }
 const ids=['screen','app','toast','theme','themeText','contacts','search','activeAvatar','activeName',
 'activeKind','profileAvatar','profileName','profileKind','orderCount','conversation','composer',
-'draft','workDetail','conversationActions','actionSheetTitle'];
+'draft','sendDemo','inboxSummary','workDetail','conversationActions','actionSheetTitle'];
 for(const id of ids)idNodes.set(id,new FakeElement('div',id));
 idNodes.get('themeText').textContent='Chế độ tối';
 const map={
@@ -127,6 +143,8 @@ window.history={
 const context={document,window,console,clearTimeout,setTimeout};
 vm.runInNewContext(js,context,{timeout:1500});
 assert.equal(idNodes.get('contacts').children.length,5,'initial five mock conversations rendered');
+assert.equal(idNodes.get('inboxSummary').textContent,'5 hội thoại · 2 chưa đọc');
+assert.equal(idNodes.get('sendDemo').disabled,true,'send action disabled for empty draft');
 assert.equal(idNodes.get('activeName').textContent,'Chị Lan');
 assert.equal(idNodes.get('app').dataset.page,'inbox','mobile starts at Inbox');
 assert.equal(window.location.hash,'#inbox','initial history state must be a safe local Inbox fragment');
@@ -134,6 +152,7 @@ map['[data-filter]'][1].dispatch('click');
 assert.equal(map['[data-filter]'][1]['aria-pressed'],'true','active filter announced');
 assert.equal(map['[data-filter]'][0]['aria-pressed'],'false','inactive filter announced');
 assert.equal(idNodes.get('contacts').children.length,2,'unread filter uses mock local state');
+assert.equal(idNodes.get('inboxSummary').textContent,'2 kết quả','filter updates count');
 map['[data-filter]'][3].dispatch('click');
 assert.equal(idNodes.get('contacts').children.length,3,'customer filter works offline');
 map['[data-filter]'][0].dispatch('click');
@@ -150,17 +169,21 @@ window.history.forward();
 assert.equal(idNodes.get('app').dataset.page,'chat','Forward restores selected conversation');
 assert.equal(idNodes.get('activeName').textContent,'Anh Minh','Forward retains contact identity');
 idNodes.get('draft').value='Tin nhắn thử nghiệm an toàn';
+idNodes.get('draft').dispatch('input');
+assert.equal(idNodes.get('sendDemo').disabled,false,'send action enabled when draft has text');
 idNodes.get('composer').dispatch('submit');
 const latest=idNodes.get('conversation').children.at(-1);
 assert.equal(latest.children[0].textContent,'Tin nhắn thử nghiệm an toàn');
 assert.equal(latest.children[1].textContent,'Nháp demo · chưa gửi');
 assert.equal(idNodes.get('draft').value,'','sent demo text clears only local textarea');
+assert.equal(idNodes.get('sendDemo').disabled,true,'send action returns to disabled after local preview');
 idNodes.get('draft').value='Nháp riêng của Anh Minh';
 idNodes.get('draft').dispatch('input');
 idNodes.get('contacts').children[0].dispatch('click'); // Lan
 assert.equal(idNodes.get('draft').value,'','draft must not leak between contacts');
 idNodes.get('contacts').children[2].dispatch('click'); // back to Minh
 assert.equal(idNodes.get('draft').value,'Nháp riêng của Anh Minh','unsent draft restored per selected contact');
+assert.equal(idNodes.get('sendDemo').disabled,false,'restored unsent draft re-enables demo action');
 assert.equal(idNodes.get('conversation').children.at(-1).children[0].textContent,
  'Tin nhắn thử nghiệm an toàn','mock message retained during contact switch');
 map['[data-mode]'][1].dispatch('click');
