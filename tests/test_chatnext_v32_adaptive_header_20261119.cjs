@@ -18,6 +18,8 @@ for(const state of ['reading','typing']) assert.ok(css.includes('data-header-sta
 assert.match(css,/\.chat\[data-header-state=reading\]\{--header-slot:0px\}/);
 assert.match(css,/\.chat\[data-header-state=typing\]\{--header-slot:44px\}/);
 assert.match(css,/data-header-peek=true/);
+for(const [selector,row] of [['.chat-header',1],['.conversation',2],['.composer',3],['.simulated-keyboard',4]])
+ assert.ok(css.includes(selector+'{grid-row:'+row+'}'),'explicit grid owner for '+selector);
 assert.match(css,/\.shell\.chat-open \.demo-banner\{display:none\}/);
 assert.match(js,/const difference=conversation\.getBoundingClientRect\(\)\.top-before/);
 assert.match(js,/scroll\+difference/);
