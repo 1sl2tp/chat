@@ -424,6 +424,26 @@ function toggleChatNextTools(){
   return setChatNextToolsOpen(appShell.dataset.chatNextTools!=='open');
 }
 
+// CHAT-NEXT-004: bind one lifecycle guard only in the opted-in candidate.
+// Never start a new message poll or keyboard observer.
+if(chatNextPreview){
+  document.addEventListener('chat-next-work-tools-force-close',()=>{
+    setChatNextToolsOpen(false);
+  });
+  document.addEventListener('focusin',event=>{
+    if(event.target?.id==='editor'&&appShell?.dataset.chatNextTools==='open'){
+      setChatNextToolsOpen(false);
+    }
+  });
+  const narrowChatNext=window.matchMedia('(max-width:63.999rem)');
+  const closeOnBreakpoint=()=>setChatNextToolsOpen(false);
+  if(typeof narrowChatNext.addEventListener==='function'){
+    narrowChatNext.addEventListener('change',closeOnBreakpoint);
+  }else if(typeof narrowChatNext.addListener==='function'){
+    narrowChatNext.addListener(closeOnBreakpoint);
+  }
+}
+
 function renderTopTabs(){
   for(const tab of document.querySelectorAll('[data-top-tab]')){
     tab.setAttribute('aria-selected',String(tab.dataset.topTab===route));
