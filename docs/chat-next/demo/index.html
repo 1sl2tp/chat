@@ -183,6 +183,7 @@ var people=[
 {id:'huong',name:'Cô Hương',initial:'H',color:'blue',kind:'Khách hàng',category:'customer',time:'16/11',unread:0,orders:'00',preview:'Cảm ơn, khi nào có hàng thì báo cô.',texts:[['other','Khi nào có hàng báo giúp cô nhé.','14:16'],['mine','Dạ, có hàng em sẽ báo lại.','14:19']]}
 ];
 var current='lan',filter='all',page='chat',app=document.getElementById('app'),screen=document.getElementById('screen'),toast=document.getElementById('toast'),timer=null;
+var demoDrafts=Object.create(null),demoPreviewMessages=Object.create(null); // RAM only: never browser storage or network.
 function byId(id){return document.getElementById(id)}
 function el(tag,cls,text){var n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=String(text);return n}
 function showToast(text){toast.textContent=text;toast.hidden=false;if(timer)clearTimeout(timer);timer=setTimeout(function(){toast.hidden=true},2600)}
@@ -206,7 +207,7 @@ if(q&&!(p.name+' '+p.preview).toLocaleLowerCase('vi').includes(q))return;
 shown++;var btn=el('button','contact'+(p.id===current?' selected':''));btn.type='button';btn.setAttribute('aria-label','Mở hội thoại '+p.name);btn.setAttribute('aria-pressed',String(p.id===current));
 var info=el('div','contact-main');info.append(el('div','contact-title',p.name),el('div','contact-preview',p.preview));
 var time=el('div','time',p.time);if(p.unread)time.append(el('span','count',p.unread));
-btn.append(avatar(p),info,time);btn.addEventListener('click',function(){current=p.id;renderContacts();renderChat();showPage('chat');});
+btn.append(avatar(p),info,time);btn.addEventListener('click',function(){demoDrafts[current]=byId('draft').value;current=p.id;renderContacts();renderChat();showPage('chat');});
 list.append(btn);
 });if(!shown)list.append(el('div','no-results','Không có hội thoại phù hợp'));
 }
@@ -220,6 +221,8 @@ byId('profileName').textContent=p.name;byId('profileKind').textContent=p.kind+' 
 var box=byId('conversation');box.replaceChildren(el('div','day','Hôm nay · 18/11'));p.texts.forEach(function(entry){
 var row=el('div','message'+(entry[0]==='mine'?' mine':''));if(entry[0]==='order')row.append(orderCard());else row.append(el('div','bubble',entry[1]));
 row.append(el('div','stamp',entry[2]+(entry[0]==='mine'?' ✓':'')));box.append(row)});
+(demoPreviewMessages[current]||[]).forEach(function(value){var row=el('div','message mine');row.append(el('div','bubble',value),el('div','stamp','Nháp demo · chưa gửi'));box.append(row)});
+var input=byId('draft');input.value=demoDrafts[current]||'';input.style.height='22px';input.style.height=Math.min(input.scrollHeight,110)+'px';
 box.scrollTop=box.scrollHeight;
 }
 function showPage(next){
@@ -244,12 +247,13 @@ var messages={call:'Bản demo không thực hiện cuộc gọi.',new:'Tạo h�
 showToast(messages[a]||'Thao tác đang ở chế độ minh họa');
 })});
 byId('search').addEventListener('input',renderContacts);
-byId('draft').addEventListener('input',function(){this.style.height='22px';this.style.height=Math.min(this.scrollHeight,110)+'px'});
+byId('draft').addEventListener('input',function(){demoDrafts[current]=this.value;this.style.height='22px';this.style.height=Math.min(this.scrollHeight,110)+'px'});
 byId('draft').addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();byId('composer').requestSubmit()}});
 byId('composer').addEventListener('submit',function(e){
 e.preventDefault();var input=byId('draft'),value=input.value.trim();if(!value)return;
-var row=el('div','message mine');row.append(el('div','bubble',value),el('div','stamp','Nháp demo · chưa gửi'));
-byId('conversation').append(row);input.value='';input.style.height='22px';byId('conversation').scrollTop=byId('conversation').scrollHeight;
+if(!demoPreviewMessages[current])demoPreviewMessages[current]=[];
+demoPreviewMessages[current].push(value);demoDrafts[current]='';
+renderChat();
 showToast('Đã thêm tin vào bản xem trước · không gửi cho ai');
 });
 byId('theme').addEventListener('click',function(){document.body.classList.toggle('dark');byId('themeText').textContent=document.body.classList.contains('dark')?'Chế độ sáng':'Chế độ tối'});
