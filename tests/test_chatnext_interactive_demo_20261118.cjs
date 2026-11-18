@@ -88,6 +88,8 @@ assert(html.includes('.media-art{position:relative;isolation:isolate;aspect-rati
   'media thumbnail dimensions must be fixed without remote image load');
 assert(html.includes('.media-card{display:block;width:min(300px,100%)'),
   'media thumbnails fit inside chat and remain constant size');
+assert(html.includes('.bubble{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;user-select:text'), 'long notes and unbroken codes must wrap and remain selectable');
+assert(html.includes('ABC-0123456789-0123456789-0123456789-0123456789'), 'long order code regression sample');
 assert(html.includes('.media-stage{flex:1;min-height:0;overflow:auto'),
   'media-stage must own zoom scroll separately from chat list');
 assert(html.includes('.media-dialog[open]{display:flex;flex-direction:column}'),
@@ -297,6 +299,13 @@ map['[data-action]'][7].dispatch('click');
 assert.equal(idNodes.get('mediaViewer').open,true,'context Photos action opens same single viewer');
 map['[data-action]'][3].dispatch('click');
 assert.equal(idNodes.get('mediaViewer').open,false,'Back closes media overlay safely');
+map['[data-action]'][5].focused=false;
+map['[data-action]'][5].dispatch('click');
+map['[data-sheet-action]'][1].dispatch('click');
+assert.equal(idNodes.get('conversationActions').open,false,'context sheet closes before media opens');
+assert.equal(idNodes.get('mediaViewer').open,true,'context gallery action opens same safe viewer');
+idNodes.get('mediaClose').dispatch('click');
+assert.equal(map['[data-action]'][5].focused,true,'closing media restores focus to original visible menu trigger');
 document.activeElement=idNodes.get('draft');
 window.visualViewport.height=432;window.visualViewport.offsetTop=31;
 window.visualViewport.dispatch('resize');
