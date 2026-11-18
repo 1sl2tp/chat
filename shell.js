@@ -15,7 +15,10 @@ const appShell=document.getElementById('appShell');
 // CHAT NEXT preview is explicit and session-local. Never replace the production
 // directory or enable unfinished Work/transport when this visual flag is off.
 const chatNextPreview=new URLSearchParams(window.location.search||'').get('chatnext')==='1';
-if(chatNextPreview&&appShell)appShell.dataset.chatNextUi='on';
+if(chatNextPreview&&appShell){
+  appShell.dataset.chatNextUi='on';
+  appShell.dataset.chatNextTools='closed';
+}
 const stageLayout=document.getElementById('stageLayout');
 const workView=document.getElementById('workThreadView');
 const workThreadHome=workView?.parentNode||null;
@@ -395,6 +398,34 @@ function toggleChatHeaderMenu(){
   return true;
 }
 
+// CHAT-NEXT-003: collapse only the existing Admin customer shortcut row.
+// The original handlers/permissions remain in admin-composer-actions.js.
+function setChatNextToolsOpen(open=false){
+  if(!chatNextPreview||!appShell)return false;
+  const previous=appShell.dataset.chatNextTools==='open';
+  appShell.dataset.chatNextTools=open?'open':'closed';
+  const trigger=document.querySelector('[data-chat-next-tools-toggle]');
+  trigger?.setAttribute('aria-expanded',String(open));
+  const label=trigger?.querySelector('[data-chat-next-tools-label]');
+  if(label)label.textContent=open?'Ẩn công việc':'Hiện công việc';
+  if(previous!==open){
+    document.dispatchEvent(new CustomEvent('chat-next-tools-visibility-change',{detail:{open}}));
+    if(!open)document.dispatchEvent(new Event('chat-next-work-tools-closed'));
+  }
+  return open;
+}
+
+function toggleChatNextTools(){
+  const bar=document.getElementById('chatQuickActions');
+  const stage=document.getElementById('stageLayout');
+  const allowed=chatNextPreview&&authState==='AUTHENTICATED'&&authAccount?.role==='admin'
+    &&route==='chat'&&Boolean(activeContact?.id)&&callState==='IDLE'
+    &&window.matchMedia('(max-width:63.999rem)').matches
+    &&bar&&!bar.hidden&&stage?.dataset.bankReportActive!=='true';
+  if(!allowed)return false;
+  return setChatNextToolsOpen(appShell.dataset.chatNextTools!=='open');
+}
+
 function renderTopTabs(){
   for(const tab of document.querySelectorAll('[data-top-tab]')){
     tab.setAttribute('aria-selected',String(tab.dataset.topTab===route));
@@ -492,6 +523,7 @@ const NavigationCommand={
         detail:{from:previousRoute,to:nextRoute}
       }));
     }
+    if(previousRoute!==nextRoute)setChatNextToolsOpen(false);
     setMobileRouteTransition(previousRoute,nextRoute);
     route=nextRoute;
     setSidebar(false);
@@ -661,6 +693,7 @@ function callFocusPresentation(){
 function renderCallFocus(){
   const hasContact=Boolean(activeContact?.id);
   const presentation=callFocusPresentation();
+  if(presentation.state!=='idle'&&appShell?.dataset.chatNextTools==='open')setChatNextToolsOpen(false);
   const showIdleCall=route==='chat'&&hasContact;
   const showCallSurface=presentation.state!=='idle'||showIdleCall;
   if(!showIdleCall||presentation.state!=='idle'||!window.matchMedia('(max-width:63.999rem)').matches)closeChatHeaderMenu();
@@ -720,6 +753,7 @@ function setActiveContact(contactId,contactName){
   }else{
     activeContact={id:String(contactId),name:String(contactName||'Liên hệ')};
   }
+  if(previousId!==(activeContact?.id||null))setChatNextToolsOpen(false);
   closeChatHeaderMenu();
   renderCallFocus();
   renderChatTabIdentity();
@@ -1798,6 +1832,7 @@ const AuthUI={
   },
   setAuthenticated(authenticated,account=null){
     authState=authenticated?'AUTHENTICATED':'GUEST';
+    setChatNextToolsOpen(false);
     if(appShell)appShell.dataset.authState=authenticated?'authenticated':'guest';
     this.setAccount(authenticated?account:null);
     syncDesktopSidebarMode();
@@ -1888,6 +1923,11 @@ document.addEventListener('click',event=>{
     if(headerAction.disabled)return;
     const action=String(headerAction.dataset.chatHeaderAction||'');
     closeChatHeaderMenu();
+    if(action==='work-tools'){
+      toggleChatNextTools();
+      document.querySelector('[data-chat-header-more]')?.focus?.({preventScroll:true});
+      return;
+    }
     if(action==='photos')NavigationCommand.openPhotos();
     if(action==='phone'&&authState==='AUTHENTICATED'&&authAccount?.role==='admin'&&activeContact?.id){
       const item=window.V21ContactStore?.snapshot?.().find(row=>String(row?.id||'')===String(activeContact.id));
