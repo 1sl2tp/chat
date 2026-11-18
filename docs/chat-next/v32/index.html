@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#f7f8fa"><title>CHAT NEXT · Header thích ứng · V32</title>
+<style>
+:root{font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#1c2730;background:#f5f6f8;--line:#e5e9ed;--ink:#1c2730;--muted:#6b7782;--surface:#fff;--soft:#f7f8fa;--accent:#167363;--gap:12px;--radius:16px;--tap:44px;--shell-width:1440px;--rail:68px;--inbox:340px;--details:260px;--content-width:740px}
+*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden}button,input,textarea{font:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}button{color:inherit} .shell{height:100dvh;max-width:var(--shell-width);margin:auto;display:grid;grid-template-rows:48px minmax(0,1fr);padding:env(safe-area-inset-top) 12px env(safe-area-inset-bottom);gap:8px;min-height:0}
+.demo-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;color:var(--muted);font-size:12px;min-width:0}.demo-banner strong{color:var(--ink);letter-spacing:.03em}.demo-banner span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.app{display:grid;grid-template-columns:var(--rail) var(--inbox) minmax(0,1fr) var(--details);min-height:0;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:0 12px 38px #18222d0a}.rail{display:flex;flex-direction:column;align-items:center;gap:10px;padding:16px 8px;border-right:1px solid var(--line);background:var(--soft)}.logo{width:44px;height:44px;display:grid;place-items:center;border-radius:14px;background:var(--accent);color:white;font-weight:750}.rail button,.iconbtn{border:0;background:transparent;border-radius:12px;min-width:var(--tap);min-height:var(--tap);display:grid;place-items:center}.rail button[aria-current=true]{background:#e1f0eb;color:var(--accent)}.rail button:hover,.iconbtn:hover{background:#f0f2f4}.inbox{display:grid;grid-template-rows:auto auto minmax(0,1fr);min-height:0;min-width:0;border-right:1px solid var(--line)}.inbox-header{padding:20px 16px 12px}.heading{display:flex;justify-content:space-between;align-items:center}.heading h1{font-size:21px;letter-spacing:-.035em;margin:0}.search{display:flex;align-items:center;gap:8px;background:var(--soft);border:1px solid var(--line);border-radius:12px;margin-top:16px;padding:0 12px;min-height:44px;color:var(--muted)}.search input{min-width:0;width:100%;border:0;outline:0;background:transparent;color:var(--ink);font-size:14px}.filters{display:flex;gap:6px;overflow:auto;padding:0 16px 12px}.filters button{border:1px solid var(--line);background:white;border-radius:99px;padding:7px 13px;white-space:nowrap;font-size:12px}.filters button[aria-pressed=true]{background:#e1f0eb;color:var(--accent);border-color:#c7e5d9}.contacts{overflow:auto;min-height:0;padding:0 8px 16px}.contact{display:grid;grid-template-columns:44px minmax(0,1fr) 48px;gap:11px;align-items:center;text-align:left;border:0;background:transparent;border-radius:12px;width:100%;padding:12px 8px;min-height:72px}.contact[aria-current=true]{background:#eef5f2}.avatar{width:44px;height:44px;border-radius:50%;background:#e8edf0;color:#50616a;display:grid;place-items:center;font-weight:650}.contact strong,.contact small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.contact strong{font-size:14px}.contact small{font-size:12px;color:var(--muted);margin-top:3px}.contact time{align-self:start;font-size:11px;color:var(--muted);text-align:right}.chat{display:grid;grid-template-rows:68px minmax(0,1fr) auto;min-width:0;min-height:0;background:#fbfcfc}.chat-header{border-bottom:1px solid var(--line);background:var(--surface);display:flex;align-items:center;gap:10px;padding:0 18px;min-width:0}.chat-header .avatar{width:40px;height:40px;flex:none}.chat-title{flex:1;min-width:0}.chat-title strong,.chat-title small{display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.chat-title small{font-size:11px;color:var(--muted)}.back{display:none}.conversation{overflow:auto;min-height:0;overscroll-behavior:contain;padding:22px 18px}.stream{width:min(100%,var(--content-width));margin:0 auto;display:flex;flex-direction:column;gap:16px}.day{align-self:center;font-size:11px;color:var(--muted);background:#eef1f3;border-radius:99px;padding:5px 12px}.bubble{max-width:min(78%,510px);background:#fff;border:1px solid var(--line);border-radius:16px 16px 16px 5px;padding:11px 14px;align-self:flex-start;line-height:1.55;font-size:14px}.bubble.sent{align-self:flex-end;background:#e3f3ec;border-color:#d5e9df;border-radius:16px 16px 5px 16px}.bubble time{display:block;text-align:right;color:var(--muted);font-size:10px;margin-top:5px}.composer{background:var(--surface);border-top:1px solid var(--line);padding:12px 18px 14px}.composer-inner{width:min(100%,var(--content-width));margin:auto;display:grid;grid-template-columns:44px minmax(0,1fr) 44px;align-items:end;gap:10px}.editor{min-height:46px;border:1px solid #dce3e6;border-radius:17px;background:var(--soft);display:flex;align-items:center;padding:9px 14px}.editor textarea{resize:none;max-height:120px;min-height:24px;line-height:24px;border:0;outline:0;background:transparent;width:100%;font-size:16px;color:var(--ink)}.send{border:0;border-radius:14px;min-height:44px;background:var(--accent);color:#fff}.context{border-left:1px solid var(--line);padding:24px 18px;background:var(--surface)}.context h2{font-size:15px;margin:0 0 6px}.context p{font-size:12px;color:var(--muted);margin:0 0 22px}.context .section{border-top:1px solid var(--line);padding-top:15px;font-size:13px;margin-top:16px}.mobile-tabs{display:none}.muted{color:var(--muted)}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+@media(max-width:1180px){.app{grid-template-columns:var(--rail) 310px minmax(0,1fr)}.context{display:none}}
+@media(max-width:760px),(hover:none) and (pointer:coarse){:root{--inbox:100%;--content-width:100%}.shell{padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);grid-template-rows:36px minmax(0,1fr);gap:0}.demo-banner{padding:0 12px}.app{border:0;border-radius:0;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto}.rail,.context{display:none}.inbox,.chat{grid-column:1;grid-row:1;border:0;min-height:0}.chat{display:none;position:relative;overflow:hidden;--header-slot:48px;grid-template-rows:var(--header-slot) minmax(0,1fr) auto}.chat-header{grid-row:1}.conversation{grid-row:2}.composer{grid-row:3}.simulated-keyboard{grid-row:4}.app[data-view=chat] .inbox{display:none}.app[data-view=chat] .chat{display:grid}.back{display:grid}.chat-header{height:var(--header-slot);padding:0 7px;min-height:0;z-index:9}.conversation{padding:12px;overflow-anchor:none}.composer{padding:6px 10px max(6px,env(safe-area-inset-bottom))}.mobile-tabs{display:grid;grid-column:1;grid-row:2;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--line);background:white}.mobile-tabs button{min-height:54px;border:0;background:transparent;font-size:12px}.mobile-tabs button[aria-current=true]{color:var(--accent);font-weight:700}.app[data-view=chat] .mobile-tabs{display:none}.bubble{max-width:87%}.shell.chat-open{grid-template-rows:minmax(0,1fr)}.shell.chat-open .demo-banner{display:none}.chat[data-header-state=reading]{--header-slot:0px}.chat[data-header-state=reading] .chat-header{position:absolute;top:0;left:0;right:0;height:48px;transform:translateY(-110%);opacity:0;pointer-events:none}.chat[data-header-state=reading][data-header-peek=true] .chat-header{transform:none;opacity:1;pointer-events:auto;box-shadow:0 4px 16px #0002}.chat[data-header-state=typing]{--header-slot:44px}.chat[data-header-state=typing] .chat-header .avatar,.chat[data-header-state=typing] .secondary-header-action{display:none}.chat-header .avatar{width:28px;height:28px;flex:none}.chat-header .chat-title small{display:none}.chat-header .iconbtn{width:44px;min-width:44px;min-height:44px;height:44px}.chat[data-preview-keyboard=true]{grid-template-rows:var(--header-slot) minmax(0,1fr) auto 195px}.chat[data-preview-keyboard=true] .simulated-keyboard{display:grid}.shell{position:fixed;inset-inline:0;top:var(--demo-vv-top,0px);height:var(--demo-vv-height,100dvh)}}
+/* V32 L3 adaptive header: one chat grid, one scroll root, one viewport owner. */
+.simulated-keyboard{display:none;grid-template-columns:repeat(10,minmax(0,1fr));grid-auto-rows:28px;gap:5px;padding:10px;background:#c5cbd1;overflow:hidden}
+.simulated-keyboard i{display:block;background:white;border-radius:5px;box-shadow:0 1px 1px #6b778244}
+.simulated-keyboard i.wide{grid-column:span 4}
+.state-tools{display:none;position:fixed;right:8px;bottom:8px;z-index:100;gap:4px;padding:5px;border:1px solid var(--line);border-radius:12px;background:#fff;box-shadow:0 3px 12px #0002}
+.state-tools button{border:1px solid var(--line);border-radius:8px;min-height:36px;padding:4px 8px;background:var(--soft);font-size:12px}
+.state-tools button[aria-pressed=true]{color:#075c4c;background:#dcefe7}
+body.states-enabled .state-tools{display:flex}
+.notice{position:fixed;z-index:102;top:50px;left:50%;transform:translateX(-50%);background:#25383b;color:#fff;border-radius:10px;padding:9px 12px;font-size:12px}
+.notice[hidden]{display:none}
+@media(prefers-reduced-motion:reduce){.chat-header{transition:none!important}}
+
+</style></head><body>
+<div class="shell"><header class="demo-banner"><strong>CHAT NEXT <span>· V32 · HEADER THÍCH ỨNG</span></strong><span>UI/UX độc lập · dữ liệu giả · chưa kết nối</span></header>
+<main class="app" id="app" data-view="inbox"><nav class="rail" aria-label="Điều hướng chính"><div class="logo">C</div><button aria-current="true" title="Trò chuyện">☷</button><button title="Công việc">▦</button><button title="Cài đặt">⚙</button></nav>
+<aside class="inbox" aria-label="Danh sách hội thoại"><div class="inbox-header"><div class="heading"><h1>Trò chuyện</h1><button class="iconbtn" title="Tạo hội thoại">＋</button></div><label class="search"><span>⌕</span><input id="search" placeholder="Tìm cuộc trò chuyện" aria-label="Tìm cuộc trò chuyện"></label></div><div class="filters"><button aria-pressed="true">Tất cả</button><button aria-pressed="false">Chưa đọc</button><button aria-pressed="false">Nhóm</button><button aria-pressed="false">Khách hàng</button></div><div class="contacts" id="contacts"><button class="contact" aria-current="true" data-name="Lan" type="button"><span class="avatar">L</span><span><strong>Lan</strong><small>Đã nhận được thông tin, cảm ơn nhé.</small></span><time>07:33</time></button><button class="contact" data-name="Nhóm công việc" type="button"><span class="avatar">N</span><span><strong>Nhóm công việc</strong><small>3 hình ảnh · ghi chú giao hàng</small></span><time>Hôm qua</time></button><button class="contact" data-name="Minh" type="button"><span class="avatar">M</span><span><strong>Minh</strong><small>Hẹn trao đổi vào buổi chiều.</small></span><time>T2</time></button></div></aside>
+<section class="chat" aria-label="Hội thoại" data-header-state="normal" data-header-peek="false" data-keyboard-open="false" data-preview-keyboard="false"><header class="chat-header"><button class="iconbtn back" id="back" aria-label="Quay lại">‹</button><span class="avatar" id="chatAvatar">L</span><span class="chat-title"><strong id="chatName">Lan</strong><small>Hội thoại mẫu · không gửi thật</small></span><button class="iconbtn secondary-header-action" id="callMock" title="Gọi thử" aria-label="Gọi mô phỏng">☎</button><button class="iconbtn secondary-header-action" id="moreMock" title="Thêm tùy chọn" aria-label="Tùy chọn mô phỏng">⋯</button></header><div class="conversation" id="conversation"><div class="stream" id="stream"><span class="day">Hôm nay</span><article class="bubble">Chào bạn, mình gửi lại thông tin để tiện theo dõi.<time>07:30</time></article><article class="bubble sent">Mình đã nhận được rồi, cảm ơn bạn.<time>07:32</time></article><article class="bubble">Đã nhận được thông tin, cảm ơn nhé.<time>07:33</time></article></div></div><form class="composer" id="composer"><div class="composer-inner"><button class="iconbtn" type="button" aria-label="Thêm nội dung">＋</button><label class="editor"><span class="sr-only">Tin nhắn mẫu</span><textarea id="draft" rows="1" placeholder="Nhập tin nhắn mẫu…"></textarea></label><button class="send" type="submit" aria-label="Thêm tin mẫu">↑</button></div></form><div class="simulated-keyboard" aria-label="Bàn phím minh họa"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="wide"></i><i></i><i></i></div></section>
+<aside class="context"><h2>Thông tin hội thoại</h2><p>Vùng phụ L3, ẩn khi màn hình hẹp.</p><div class="section">Ảnh và tệp mẫu</div><div class="section">Ghi chú</div><div class="section">Liên kết</div></aside>
+<nav class="mobile-tabs" aria-label="Điều hướng mobile"><button aria-current="true" type="button">Trò chuyện</button><button type="button">Công việc</button><button type="button">Cài đặt</button></nav></main></div>
+<script>
+
+/* V32: demo RAM only. A single reducer owns the header; conversation owns scroll. */
+const app=document.getElementById('app'),chat=document.querySelector('.chat'),shell=document.querySelector('.shell');
+const conversation=document.getElementById('conversation'),stream=document.getElementById('stream'),draft=document.getElementById('draft');
+const vv=window.visualViewport,compact=window.matchMedia('(max-width:760px),(hover:none) and (pointer:coarse)');
+const statesEnabled=new URLSearchParams(location.search).get('states')==='1';
+const drafts=Object.create(null),historyByContact=Object.create(null);
+let contact='Lan',lastY=0,travel=0,internalScroll=false,preview='normal',noticeTimer=null;
+if(statesEnabled)document.body.classList.add('states-enabled');
+function nearEnd(){return conversation.scrollHeight-conversation.clientHeight-conversation.scrollTop<28}
+function header(state,peek=false){
+ if(!compact.matches||app.dataset.view!=='chat')state='normal';
+ const before=conversation.getBoundingClientRect().top,scroll=conversation.scrollTop,tail=nearEnd();
+ const previous=chat.dataset.headerState;
+ if(previous===state&&chat.dataset.headerPeek===String(peek))return;
+ chat.dataset.headerState=state;chat.dataset.headerPeek=String(peek);
+ if(previous!==state){
+  const difference=conversation.getBoundingClientRect().top-before;
+  internalScroll=true;
+  conversation.scrollTop=tail?conversation.scrollHeight:Math.max(0,scroll+difference);
+  lastY=conversation.scrollTop;
+  requestAnimationFrame(()=>internalScroll=false);
+ }
+}
+function keyboard(open,sim=false){
+ chat.dataset.keyboardOpen=String(open);
+ chat.dataset.previewKeyboard=String(sim);
+ header(open?'typing':'normal');
+ if(open&&nearEnd())requestAnimationFrame(()=>conversation.scrollTop=conversation.scrollHeight);
+}
+function layout(){
+ if(!compact.matches){shell.style.removeProperty('--demo-vv-height');shell.style.removeProperty('--demo-vv-top');keyboard(false);return}
+ const focus=document.activeElement===draft;
+ const physical=Boolean(focus&&vv&&window.innerHeight-vv.height-vv.offsetTop>100);
+ if(physical){
+  shell.style.setProperty('--demo-vv-height',Math.max(1,Math.round(vv.height))+'px');
+  shell.style.setProperty('--demo-vv-top',Math.max(0,Math.round(vv.offsetTop))+'px');
+ }else{shell.style.removeProperty('--demo-vv-height');shell.style.removeProperty('--demo-vv-top')}
+ keyboard(physical||(statesEnabled&&preview==='typing'),!physical&&statesEnabled&&preview==='typing');
+}
+let raf=0;function scheduleLayout(){if(!raf)raf=requestAnimationFrame(()=>{raf=0;layout()})}
+if(vv){vv.addEventListener('resize',scheduleLayout,{passive:true});vv.addEventListener('scroll',scheduleLayout,{passive:true})}
+window.addEventListener('resize',scheduleLayout,{passive:true});compact.addEventListener?.('change',scheduleLayout);
+draft.addEventListener('focus',scheduleLayout);draft.addEventListener('blur',scheduleLayout);
+conversation.addEventListener('scroll',()=>{
+ if(internalScroll||chat.dataset.keyboardOpen==='true'||!compact.matches||app.dataset.view!=='chat')return;
+ const y=conversation.scrollTop,dy=y-lastY;lastY=y;
+ if(y<8){travel=0;header('normal');return}
+ if(!dy)return;
+ travel=travel&&Math.sign(dy)!==Math.sign(travel)?dy:travel+dy;
+ if(travel>24&&y>80){travel=0;header('reading',false)}
+ else if(travel< -24&&chat.dataset.headerState==='reading'){travel=0;header('reading',true)}
+},{passive:true});
+const sample=['Chào bạn, mình đã xem thông tin.','Dạ, cho mình kiểm tra lại số lượng nhé.','Khi mở bàn phím, ô nhập cần nằm trong vùng nhìn thấy.','Một cuộc trò chuyện có thể có nhiều ảnh và tin dài.','Khi đọc lịch sử, phần đầu không nên chiếm thêm không gian.','Kéo lên một chút để hiện thanh điều hướng nổi.','Tin nhắn cũ vẫn được giữ nguyên vị trí trên màn hình.','Được rồi, mình sẽ theo dõi tiếp.','Cảm ơn bạn nhiều nhé.','Mình gửi bổ sung chi tiết ở đây.'];
+for(let i=0;i<19;i++){
+ const node=document.createElement('article');node.className='bubble'+(i%3===1?' sent':'');
+ node.textContent=sample[i%sample.length];
+ const time=document.createElement('time');time.textContent='07:'+String(20+i).padStart(2,'0');node.append(time);stream.append(node);
+}
+function resizeDraft(){
+ draft.style.height='24px';
+ const visible=vv&&chat.dataset.keyboardOpen==='true'?vv.height:shell.getBoundingClientRect().height;
+ draft.style.height=Math.min(120,Math.max(48,visible*.24),draft.scrollHeight)+'px';
+}
+function showContact(name){
+ drafts[contact]=draft.value;
+ contact=name;
+ document.getElementById('chatName').textContent=name;
+ document.getElementById('chatAvatar').textContent=name.charAt(0);
+ draft.value=drafts[name]||'';resizeDraft();
+ app.dataset.view='chat';shell.classList.add('chat-open');
+ header('normal');preview='normal';keyboard(false);updateButtons();scheduleLayout();
+ history.replaceState(null,'','#chat');
+ requestAnimationFrame(()=>{conversation.scrollTop=conversation.scrollHeight;lastY=conversation.scrollTop});
+}
+document.querySelectorAll('.contact').forEach(button=>button.addEventListener('click',()=>{
+ document.querySelectorAll('.contact').forEach(x=>x.removeAttribute('aria-current'));button.setAttribute('aria-current','true');showContact(button.dataset.name);
+}));
+document.getElementById('back').addEventListener('click',()=>{
+ drafts[contact]=draft.value;draft.blur();shell.classList.remove('chat-open');app.dataset.view='inbox';preview='normal';keyboard(false);updateButtons();history.replaceState(null,'','#inbox');scheduleLayout();
+});
+document.getElementById('search').addEventListener('input',e=>{
+ const q=e.target.value.trim().toLocaleLowerCase('vi');document.querySelectorAll('.contact').forEach(b=>b.hidden=!b.dataset.name.toLocaleLowerCase('vi').includes(q));
+});
+document.querySelectorAll('.filters button').forEach(b=>b.addEventListener('click',()=>{
+ document.querySelectorAll('.filters button').forEach(x=>x.setAttribute('aria-pressed','false'));b.setAttribute('aria-pressed','true');
+}));
+draft.addEventListener('input',()=>{drafts[contact]=draft.value;const tail=nearEnd();resizeDraft();if(tail)requestAnimationFrame(()=>conversation.scrollTop=conversation.scrollHeight)});
+document.getElementById('composer').addEventListener('submit',e=>{
+ e.preventDefault();const val=draft.value.trim();if(!val)return;
+ const b=document.createElement('article');b.className='bubble sent';b.textContent=val;stream.append(b);
+ draft.value='';drafts[contact]='';resizeDraft();conversation.scrollTop=conversation.scrollHeight;notice('Chỉ thêm vào bản xem trước; không gửi thật');
+});
+function notice(t){const n=document.getElementById('notice');n.textContent=t;n.hidden=false;if(noticeTimer)clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>n.hidden=true,1800)}
+document.getElementById('callMock').addEventListener('click',()=>notice('Không thực hiện cuộc gọi thật'));
+document.getElementById('moreMock').addEventListener('click',()=>notice('Thao tác phụ: hồ sơ, tìm kiếm, ảnh và tệp'));
+function updateButtons(){document.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===preview)))}
+document.querySelectorAll('[data-mode]').forEach(b=>b.addEventListener('click',()=>{
+ if(app.dataset.view!=='chat')showContact(contact);
+ preview=b.dataset.mode;updateButtons();
+ if(document.activeElement===draft)draft.blur();
+ if(preview==='reading'){
+  keyboard(false);conversation.scrollTop=Math.max(90,Math.min(conversation.scrollHeight-conversation.clientHeight,300));lastY=conversation.scrollTop;header('reading');
+ }else if(preview==='typing'){
+  conversation.scrollTop=conversation.scrollHeight;lastY=conversation.scrollTop;keyboard(true,true);
+ }else keyboard(false);
+ scheduleLayout();
+}));
+if(location.hash==='#chat'){app.dataset.view='chat';shell.classList.add('chat-open');requestAnimationFrame(()=>{conversation.scrollTop=conversation.scrollHeight;lastY=conversation.scrollTop})}
+scheduleLayout();
+
+</script><div class="state-tools" id="stateTools" role="group" aria-label="Thử trạng thái Header"><button type="button" data-mode="normal" aria-pressed="true">Bình thường</button><button type="button" data-mode="reading" aria-pressed="false">Cuộn đọc</button><button type="button" data-mode="typing" aria-pressed="false">Bàn phím</button></div><div class="notice" id="notice" hidden></div></body></html>

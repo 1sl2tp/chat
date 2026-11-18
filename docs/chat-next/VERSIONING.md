@@ -45,6 +45,10 @@
 
 **Quy tắc riêng cho lỗi bàn phím V27–V30:** không thêm cơ chế neo/cuộn mới nếu chưa xác minh chủ sở hữu trong Chat production. Lấy cơ chế thực tế của Chat làm chuẩn hành vi, còn demo chỉ thể hiện khung và các trạng thái. Nghiệm thu cần thấy tin cuối (kể cả thời gian) ngay phía trên composer khi bàn phím mở, và giữ vị trí khi đọc tin cũ.
 
+## Ứng viên thiết kế chưa phát hành (19/11/2026)
+
+- **CHAT-NEXT-032 / V32 — Header thích ứng theo trạng thái**: nguyên mẫu độc lập tại `docs/chat-next/v32/index.html`, nhánh `design/chat-next-v32-adaptive-header-20261119`. Màn mobile: bình thường 48px; cuộn đọc 0px, kéo ngược thì Header nổi; mở bàn phím thật/giả lập 44px. Chỉ Conversation được cuộn, điểm đọc được bù theo tọa độ vùng cha. Phân biệt rõ main demo V30, khung V31 và bản ứng viên V32; **chưa đồng bộ Songoku/Pages hoặc sửa Chat production**. E0/E1 có mã và tài liệu; E2 kiểm tra nguồn/cú pháp; E3/E4/E5 PENDING cho tới khi có bằng chứng CI, Pages và nghiệm thu thật. Không ghi đây là phiên bản phát hành.
+
 ## Nhật ký gần nhất
 
 | Vòng | Tên | Ngày | Phạm vi |

@@ -1,0 +1,35 @@
+'use strict';
+/* V32: static contract only. Browser Safari/PWA E4/E5 still required. */
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const vm=require('node:vm');
+const html=fs.readFileSync(path.join(__dirname,'..','docs','chat-next','v32','index.html'),'utf8');
+const js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
+const css=html.match(/<style>([\s\S]*?)<\/style>/)?.[1];
+assert.ok(js&&css,'single-file candidate');
+new vm.Script(js);
+assert.match(html,/<title>CHAT NEXT · Header thích ứng · V32<\/title>/);
+assert.match(html,/data-header-state="normal"/);
+assert.match(html,/data-header-peek="false"/);
+assert.match(html,/data-keyboard-open="false"/);
+assert.match(html,/data-preview-keyboard="false"/);
+for(const state of ['reading','typing']) assert.ok(css.includes('data-header-state='+state),'CSS state '+state);
+assert.match(css,/\.chat\[data-header-state=reading\]\{--header-slot:0px\}/);
+assert.match(css,/\.chat\[data-header-state=typing\]\{--header-slot:44px\}/);
+assert.match(css,/data-header-peek=true/);
+for(const [selector,row] of [['.chat-header',1],['.conversation',2],['.composer',3],['.simulated-keyboard',4]])
+ assert.ok(css.includes(selector+'{grid-row:'+row+'}'),'explicit grid owner for '+selector);
+assert.match(css,/\.shell\.chat-open \.demo-banner\{display:none\}/);
+assert.match(js,/const difference=conversation\.getBoundingClientRect\(\)\.top-before/);
+assert.match(js,/scroll\+difference/);
+assert.match(js,/window\.innerHeight-vv\.height-vv\.offsetTop>100/);
+assert.match(js,/conversation\.addEventListener\('scroll'/);
+assert.match(js,/drafts\[contact\]/);
+assert.match(js,/draft\.addEventListener\('input'/);
+assert.match(html,/data-mode="reading"/);
+assert.match(html,/data-mode="typing"/);
+assert.ok(!/<script[^>]*src=/i.test(html));
+for(const forbidden of ['fetch(', 'XMLHttpRequest', 'WebSocket(', 'supabase.createClient', 'indexedDB', 'localStorage', 'navigator.serviceWorker'])
+ assert.ok(!html.includes(forbidden),'no production data transport: '+forbidden);
+console.log('CHAT NEXT V32 isolated header contract PASS; E4/E5 browser verification pending');
