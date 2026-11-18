@@ -1,3 +1,15 @@
+## 2026-11-18 — CHAT-NEXT-001 · Thử nghiệm giao diện danh bạ chuyên chat, chưa triển khai production
+
+- **E0:** Đối chiếu WhatsApp / Telegram / iMessage / Signal với `shell.js`, `index.source.html`, `ui-foundation.css` và `mobile-ui-polish.css`. Danh bạ đang dùng lớp override khác nhau (hàng 60/64/68px, UI-341 auto-height, UI-359 filter) nên không thể chỉ vẽ lại mà bỏ qua CSS owner. `shell.js` hiện chủ động tắt `WORK_ENABLED=false`; không tự bật lại.
+- **E1 chủ sở hữu:** `chat-next-inbox.css` là stylesheet thử nghiệm scoped duy nhất với `#appShell[data-chat-next-ui="on"][data-auth-state="authenticated"]`; `shell.js` bật cờ **chỉ khi người dùng tự vào URL có `?chatnext=1`**, không lưu trong localStorage, không bật ngầm. `index.source.html` giữ nguyên tất cả nguồn runtime và load stylesheet sau `mobile-ui-polish.css` để opt-in supersede kiểu cũ. Không thêm handler, API, keychain, fallback, route, DB, Zalo, lịch ngân hàng hay tài chính.
+- **Thiết kế:** 40px avatar theo contract hiện hành, cột giờ 64px cố định, preview tối đa 2 dòng ở cột riêng, hàng cao tự động từ tối thiểu 72px khi opt-in, nhãn thời gian dùng tabular digits, search 16px tránh zoom iPhone, bộ lọc và vùng thao tác vẫn đạt 44px; dark/light dùng theme surface hiện hành. Không chỉnh message virtualization, composer/keyboard/scroll, image/media hoặc nút gọi. Đây là **giai đoạn 1 của redesign**, chưa phải chuyển đổi toàn bộ.
+- **E2:** `tests/test_chatnext_phase1_inbox_20261118.cjs` khóa điều kiện opt-in, contract 320–500px, 2-line/time rail, CSS isolation và cờ Work; được nối vào `tools/verify_current.py`. Các test UI-341 / UI-359 và Verify V21 chạy nguyên.
+- **E3:** Verify V21 [run #44213252287](https://github.com/1sl2tp/chat/actions/runs/44213252287) **SUCCESS** tại commit `e27a6585c8a118707c478b6f1fe08e1f562d848f`; chỉ là CI, **chưa có GitHub Pages production deploy**.
+- **E4/E5:** PENDING — cần nghiệm thu visual/chạm bằng Safari iPhone/PWA, Android Chrome/PWA, desktop ở cờ thử, rồi đánh giá hiệu quả với người dùng trước khi hợp nhất. Không nói UI mới đã đến tay người dùng hay PWA đã có bản mới.
+- **Rollback:** xóa import `chat-next-inbox.css`, xóa cờ opt-in trong `shell.js`, loại stylesheet và test; không ảnh hưởng dữ liệu riêng, Supabase, tin nhắn, phiên đăng nhập, Ledger hoặc Zalo. Không thay shell cache epoch cho nhánh thử chưa deploy; khi có kế hoạch đưa vào production phải xử lý cập nhật Web/PWA theo quy tắc phát hành.
+
+---
+
 ## 2026-11-17 — CHAT-381 · Sắp xếp tin khách lấy hàng và ghi chú theo chủ đề
 
 - **E0:** User yêu cầu Chat trình bày gọn tin khách gửi, nhất là thông báo lấy hàng với cách ghi `2`, `2th`, `2 thùng`, cùng ghi chú theo từng chủ đề. Giao diện trước đó `app.js::renderMessageBody` chỉ giữ văn bản theo dòng, không có thước tên hàng/SL/ghi chú.
