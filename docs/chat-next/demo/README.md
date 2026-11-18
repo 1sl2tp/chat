@@ -1,6 +1,10 @@
 # CHAT NEXT — Bản demo trực tuyến (không production)
 
 - Mẫu HTML chính: [index.html](./index.html).
+- **Demo GitHub Pages trực tiếp (đã xuất bản):** https://1sl2tp.github.io/songoku/demos/chat-next/
+- **Bộ 3 mẫu hóa đơn GitHub Pages:** https://1sl2tp.github.io/songoku/demos/chat-next/invoice.html
+- Hai liên kết trên được triển khai bằng workflow Pages của `1sl2tp/songoku`, PR #29, [run #44249933528](https://github.com/1sl2tp/songoku/actions/runs/44249933528) **SUCCESS**, commit `40cf4f74dc2d6da187ab6625387b96c756f82634`. Đây là **bản sao tĩnh** của Chat Next demo, chỉ chứa dữ liệu mẫu; nếu chỉnh bản gốc sau này phải đồng bộ lại chủ động qua một PR riêng. Không tự đồng bộ/backend.
+
 - **Quản lý 3 mẫu hóa đơn:** [invoice.html](./invoice.html) — đen trắng chuẩn bản in, xanh lá, xanh than; một dữ liệu mẫu và một phép tính cho cả ba mẫu.
 - **Xem trực tiếp bộ mẫu:** https://raw.githack.com/1sl2tp/chat/43679275013d7f92925b70d20f173a0b80bb56bf/docs/chat-next/demo/invoice.html
 - Xem trên trình duyệt qua bộ hiển thị GitHub công khai: https://raw.githack.com/1sl2tp/chat/43679275013d7f92925b70d20f173a0b80bb56bf/docs/chat-next/demo/index.html
