@@ -47,13 +47,21 @@ assert(html.includes('data-sheet-close'),'sheet must have 44+ px close target');
 assert(html.includes('aria-pressed="true"')&&html.includes('aria-pressed="false"'),'filter state must be announced');
 assert(!html.includes('data-action="work" title="Công việc của liên hệ"'),'work button should not crowd mobile chat header');
 assert(html.includes('replaceChildren()'),'safe, text-only re-render');
+assert(html.includes("window.history.pushState({chatNextDemo:true},'',fragment)"),
+ 'mock route changes must be native Back compatible');
+assert(html.includes("window.addEventListener('popstate',restoreDemoRoute)"),
+ 'browser Back must restore mock route without outbound navigation');
+assert(html.includes('window.visualViewport.addEventListener'), 'one visible viewport owner for soft keyboard');
+assert(html.includes('top:var(--demo-vv-top,0px)')&&html.includes('height:var(--demo-vv-height,100dvh)'),
+ 'keyboard geometry must be applied to root surface, not message scroller');
+assert(!html.includes('setInterval('),'no keyboard polling');
 new vm.Script(js,{filename:'chat-next-demo-inline.js'});
 
 // Minimal browser implementation to execute demo actions without any network.
 const idNodes=new Map(),selectorNodes={};
 class FakeElement{
  constructor(tag,id=''){this.tag=tag;this.id=id;this.className='';this.textContent='';this.value='';
-  this.innerHTML='';this.dataset={};this.style={};this.hidden=false;this.open=false;this.scrollHeight=24;this.scrollTop=0;
+  this.innerHTML='';this.dataset={};this.style={setProperty(k,v){this[k]=v},removeProperty(k){delete this[k]}};this.hidden=false;this.open=false;this.scrollHeight=24;this.scrollTop=0;
   this.children=[];this.handlers={};this.classList={
     add:(name)=>{this.className=this.className.split(' ').concat(name).join(' ')},
     remove:(name)=>{this.className=this.className.split(' ').filter(x=>x!==name).join(' ')},
@@ -64,7 +72,7 @@ class FakeElement{
  replaceChildren(...nodes){this.children=nodes;}
  setAttribute(k,v){this[k]=v;}
  removeAttribute(k){delete this[k]}
- focus(){this.focused=true}
+ focus(){this.focused=true;document.activeElement=this}
  showModal(){this.open=true}
  close(){this.open=false;this.dispatch('close')}
  addEventListener(k,fn){(this.handlers[k]||=[]).push(fn);}
@@ -86,16 +94,42 @@ const map={
  '[data-sheet-action]':['work','photos'].map(v=>{let n=new FakeElement('button');n.dataset.sheetAction=v;return n}),
 };
 const document={
- body:new FakeElement('body'),
+ body:new FakeElement('body'),activeElement:null,handlers:{},
  getElementById(id){return idNodes.get(id)},
  createElement(tag){return new FakeElement(tag)},
- querySelectorAll(sel){return map[sel]||[]}
+ querySelectorAll(sel){return map[sel]||[]},
+ addEventListener(k,fn){(this.handlers[k]||=[]).push(fn)},
+ dispatch(k){for(const fn of this.handlers[k]||[])fn({type:k})}
 };
-const context={document,console,clearTimeout,setTimeout};
+const location={hash:''},historyStack=[{hash:'',state:null}];let historyIndex=0;
+const window={
+ location,handlers:{},
+ addEventListener(k,fn){(this.handlers[k]||=[]).push(fn)},
+ dispatch(k){for(const fn of this.handlers[k]||[])fn({type:k})},
+ requestAnimationFrame(fn){fn();return 1},
+ matchMedia(){return {matches:true}},
+ visualViewport:{
+  height:844,offsetTop:0,handlers:{},
+  addEventListener(k,fn){(this.handlers[k]||=[]).push(fn)},
+  dispatch(k){for(const fn of this.handlers[k]||[])fn({type:k})}
+ }
+};
+window.history={
+ state:null,length:1,
+ replaceState(state,title,hash){historyStack[historyIndex]={state,hash};this.state=state;location.hash=hash},
+ pushState(state,title,hash){
+  historyStack.splice(historyIndex+1);historyStack.push({state,hash});historyIndex++;
+  this.state=state;this.length=historyStack.length;location.hash=hash;
+ },
+ back(){if(historyIndex>0){historyIndex--;this.state=historyStack[historyIndex].state;location.hash=historyStack[historyIndex].hash;window.dispatch('popstate');window.dispatch('hashchange')}},
+ forward(){if(historyIndex<historyStack.length-1){historyIndex++;this.state=historyStack[historyIndex].state;location.hash=historyStack[historyIndex].hash;window.dispatch('popstate');window.dispatch('hashchange')}}
+};
+const context={document,window,console,clearTimeout,setTimeout};
 vm.runInNewContext(js,context,{timeout:1500});
 assert.equal(idNodes.get('contacts').children.length,5,'initial five mock conversations rendered');
 assert.equal(idNodes.get('activeName').textContent,'Chị Lan');
 assert.equal(idNodes.get('app').dataset.page,'inbox','mobile starts at Inbox');
+assert.equal(window.location.hash,'#inbox','initial history state must be a safe local Inbox fragment');
 map['[data-filter]'][1].dispatch('click');
 assert.equal(map['[data-filter]'][1]['aria-pressed'],'true','active filter announced');
 assert.equal(map['[data-filter]'][0]['aria-pressed'],'false','inactive filter announced');
@@ -107,6 +141,14 @@ const selectedContact=idNodes.get('contacts').children[2];
 selectedContact.dispatch('click');
 assert.equal(idNodes.get('activeName').textContent,'Anh Minh','contact selection updates chat identity');
 assert.equal(idNodes.get('app').dataset.page,'chat','contact opens the conversation on mobile');
+assert.equal(window.location.hash,'#chat/minh','no account or real customer id exposed in sample fragment');
+assert.equal(window.history.length,2,'selecting mock contact makes one history entry');
+map['[data-action]'][3].dispatch('click');
+assert.equal(idNodes.get('app').dataset.page,'inbox','native Back restores Inbox');
+assert.equal(window.location.hash,'#inbox','native Back hash');
+window.history.forward();
+assert.equal(idNodes.get('app').dataset.page,'chat','Forward restores selected conversation');
+assert.equal(idNodes.get('activeName').textContent,'Anh Minh','Forward retains contact identity');
 idNodes.get('draft').value='Tin nhắn thử nghiệm an toàn';
 idNodes.get('composer').dispatch('submit');
 const latest=idNodes.get('conversation').children.at(-1);
@@ -139,4 +181,15 @@ assert(map['[data-action]'][5].focused,'closing sheet restores focus to trigger'
 map['[data-action]'][5].dispatch('click');
 map['[data-sheet-close]'][0].dispatch('click');
 assert.equal(idNodes.get('conversationActions').open,false,'close button dismisses sheet');
-console.log('CHAT NEXT interactive public demo: 5 contacts, filter, chat, mock send, Work, theme, safe isolation PASS');
+document.activeElement=idNodes.get('draft');
+window.visualViewport.height=432;window.visualViewport.offsetTop=31;
+window.visualViewport.dispatch('resize');
+assert.equal(idNodes.get('screen').style['--demo-vv-height'],'432px','visual viewport constrains composer above keyboard');
+assert.equal(idNodes.get('screen').style['--demo-vv-top'],'31px','Safari viewport offset follows its visible top');
+window.visualViewport.height=380;window.visualViewport.offsetTop=44;
+window.visualViewport.dispatch('scroll');
+assert.equal(idNodes.get('screen').style['--demo-vv-height'],'380px','same owner updates on visual viewport scroll');
+document.activeElement=null;document.dispatch('focusout');
+assert.equal(idNodes.get('screen').style['--demo-vv-height'],undefined,'keyboard geometry clears on blur');
+assert.equal(idNodes.get('screen').style['--demo-vv-top'],undefined,'stale Safari offset clears on blur');
+console.log('CHAT NEXT interactive public demo: 5 contacts, native Back, keyboard viewport, per-chat draft, filter, mock send, Work, theme, isolation PASS');
