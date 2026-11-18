@@ -105,7 +105,7 @@
 /* CHAT-NEXT-003: contextual Admin tools. Default and desktop never change.
    :has(...) reads the existing toolbar's own [hidden] permission decision;
    it does NOT invent a new permission check or duplicate any cash action. */
-#appShell .chat-next-work-menuitem {
+.chat-next-work-menuitem {
   display:none!important;
 }
 @media (max-width:63.999rem) {
