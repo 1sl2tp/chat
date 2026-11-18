@@ -134,6 +134,11 @@ function showMobileDirectory(reason='directory'){
   if(!app||!layer)return false;
   const wasOpen=mobileDirectoryOpen();
   rememberMobileChatContact();
+  // A single back tap opens Danh bạ even while the native keyboard is up.
+  // Blur BEFORE changing the canonical contact so a final IME composition
+  // event can save A's draft without focusing another customer's editor.
+  if(document.activeElement?.id==='editor')document.activeElement.blur();
+  window.V21ComposerActionMenu?.close?.();
   closeMobileAccountMenu();
   app.dataset.mobileDirectory='true';
   layer.dataset.mobileDirectory='true';
