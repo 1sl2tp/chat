@@ -20,6 +20,7 @@
 
 | Vòng | Tên | Ngày | Phạm vi |
 |---|---|---|---|
+| V28 | Giữ tin cuối khi bàn phím mở | 18/11/2026 | Neo đáy hội thoại sau khi VisualViewport thay đổi; giữ vị trí khi đọc tin cũ; chỉ demo |
 | V27 | Vùng nhập nằm trên bàn phím iPhone | 18/11/2026 | VisualViewport giới hạn toàn khung, không cộng safe-area khi bàn phím mở; chỉ demo |
 | V26 | Mở chat tại tin cuối và ô nhập | 18/11/2026 | Nhấn hội thoại luôn đến cuối, focus input sau khi chuyển màn; browser history giữ vị trí; chỉ demo |
 | V25 | Sửa nhật ký trên iPhone | 18/11/2026 | Khắc phục bảng lịch sử bị cắt mép trái, neo theo viewport, cuộn riêng; chỉ demo |
