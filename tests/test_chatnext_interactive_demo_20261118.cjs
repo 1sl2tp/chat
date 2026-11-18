@@ -55,8 +55,8 @@ assert(!html.includes('>▤</span>')&&!html.includes('>▦</span>')&&!html.inclu
 assert(html.includes('id="inboxSummary" aria-live="polite"'),'list count needs accessible summary');
 assert(html.includes('id="sendDemo" type="submit" disabled'),'empty send starts disabled');
 const iconNames=[...html.matchAll(/<symbol id="ui-([a-z-]+)"/g)].map(x=>x[1]);
-assert.equal(iconNames.length,17,'one coherent 17-symbol icon family');
-assert.equal(new Set(iconNames).size,17,'no duplicate local icon ids');
+assert.equal(iconNames.length,18,'one coherent 18-symbol icon family (media zoom included)');
+assert.equal(new Set(iconNames).size,18,'no duplicate local icon ids');
 for(const [,ref] of html.matchAll(/<use href="#ui-([a-z-]+)"/g)){
  assert(iconNames.includes(ref),'unresolved SVG use reference: '+ref);
 }
@@ -83,6 +83,24 @@ assert(contrast(color('muted',dark),color('subtle',dark))>=4.5,
 assert(contrast(color('accent',dark),color('accentLight',dark))>=4.5,
  'dark selected labels must meet AA on selected background');
 assert(html.includes('min-height:44px'),'touch targets');
+assert(html.includes('/* CHAT-NEXT-013 — zero-network media preview'),'media CSS must remain isolated');
+assert(html.includes('.media-art{position:relative;isolation:isolate;aspect-ratio:4/3'),
+  'media thumbnail dimensions must be fixed without remote image load');
+assert(html.includes('.media-card{display:block;width:min(300px,100%)'),
+  'media thumbnails fit inside chat and remain constant size');
+assert(html.includes('.media-stage{flex:1;min-height:0;overflow:auto'),
+  'media-stage must own zoom scroll separately from chat list');
+assert(html.includes('.media-dialog[open]{display:flex;flex-direction:column}'),
+  'native dialog should not leak a hidden empty overlay');
+assert(html.includes('id="mediaViewer" aria-labelledby="mediaViewerTitle" aria-modal="true"'),
+  'media viewer is one accessible modal');
+assert(html.includes("['media','order','07:29']")&&html.includes("['media','catalog','09:03']"),
+  'sample media belongs to mock messages only');
+assert(html.includes('DEMO · KHÔNG PHẢI ẢNH THẬT'),
+  'fictional art must be labelled, never mistaken for a real bill');
+assert(!/<img\b[^>]+src=/i.test(html),'no remote customer images in public demo');
+assert(!html.includes('data:image'),'demo image previews use mock CSS only');
+
 assert(html.includes('--ui-tap:48px'),'Android-sized touch primitives');
 assert(html.includes('id="conversationActions"')&&html.includes('aria-modal="true"'),'native contextual dialog required');
 assert(html.includes('aria-controls="conversationActions"'),'conversation menu has its own control');
@@ -126,7 +144,9 @@ class FakeElement{
 }
 const ids=['screen','app','toast','theme','themeText','contacts','search','activeAvatar','activeName',
 'activeKind','profileAvatar','profileName','profileKind','orderCount','conversation','composer',
-'draft','sendDemo','inboxSummary','workDetail','conversationActions','actionSheetTitle'];
+'draft','sendDemo','inboxSummary','workDetail','conversationActions','actionSheetTitle',
+ 'mediaViewer','mediaViewerTitle','mediaViewerCount','mediaViewerMeta','mediaStage',
+ 'mediaCanvas','mediaPrev','mediaNext','mediaZoomIn','mediaZoomOut','mediaZoomLabel','mediaClose'];
 for(const id of ids)idNodes.set(id,new FakeElement('div',id));
 idNodes.get('themeText').textContent='Chế độ tối';
 const map={
@@ -188,6 +208,35 @@ assert.equal(idNodes.get('contacts').children.length,5,'clear search restores al
 assert.equal(idNodes.get('activeName').textContent,'Chị Lan');
 assert.equal(idNodes.get('app').dataset.page,'inbox','mobile starts at Inbox');
 assert.equal(window.location.hash,'#inbox','initial history state must be a safe local Inbox fragment');
+// Open real DOM-like mock media tile in Lan's conversation, without any image fetch.
+const mediaRow=idNodes.get('conversation').children.find(x=>x.className.includes('media-message'));
+assert(mediaRow,'Lan chat contains a media preview in a stable ratio card');
+assert.equal(mediaRow.children[0].className,'media-card','media sample is accessible as a button');
+mediaRow.children[0].dispatch('click');
+assert.equal(idNodes.get('mediaViewer').open,true,'one tap opens native media viewer');
+assert.equal(idNodes.get('mediaViewerTitle').textContent,'Phiếu hàng minh họa');
+assert.equal(idNodes.get('mediaViewerCount').textContent,'1 / 2 ảnh mẫu');
+assert.equal(idNodes.get('mediaCanvas').children.length,1,'mock artwork is locally constructed');
+assert.equal(idNodes.get('mediaZoomLabel').textContent,'100%');
+assert.equal(idNodes.get('mediaZoomOut').disabled,true,'cannot zoom below 100%');
+assert.equal(idNodes.get('mediaPrev').disabled,true,'cannot navigate before first example');
+idNodes.get('mediaZoomIn').dispatch('click');
+assert.equal(idNodes.get('mediaZoomLabel').textContent,'150%','zoom first increment 50%');
+assert.equal(idNodes.get('mediaCanvas').style.width,'150%','zoom is width in one scroll owner');
+idNodes.get('mediaZoomIn').dispatch('click');
+assert.equal(idNodes.get('mediaZoomLabel').textContent,'200%');
+assert.equal(idNodes.get('mediaZoomIn').disabled,true,'zoom capped at 200%');
+idNodes.get('mediaNext').dispatch('click');
+assert.equal(idNodes.get('mediaViewerTitle').textContent,'Bảng sản phẩm minh họa');
+assert.equal(idNodes.get('mediaViewerCount').textContent,'2 / 2 ảnh mẫu');
+assert.equal(idNodes.get('mediaZoomLabel').textContent,'100%','switch image resets zoom to fit');
+assert.equal(idNodes.get('mediaNext').disabled,true,'last sample disables next');
+idNodes.get('mediaPrev').dispatch('click');
+assert.equal(idNodes.get('mediaViewerTitle').textContent,'Phiếu hàng minh họa');
+idNodes.get('mediaClose').dispatch('click');
+assert.equal(idNodes.get('mediaViewer').open,false,'one tap closes media dialog');
+assert.equal(mediaRow.children[0].focused,true,'focus returns to originally clicked image');
+
 map['[data-filter]'][1].dispatch('click');
 assert.equal(map['[data-filter]'][1]['aria-pressed'],'true','active filter announced');
 assert.equal(map['[data-filter]'][0]['aria-pressed'],'false','inactive filter announced');
@@ -244,6 +293,10 @@ assert(map['[data-action]'][5].focused,'closing sheet restores focus to trigger'
 map['[data-action]'][5].dispatch('click');
 map['[data-sheet-close]'][0].dispatch('click');
 assert.equal(idNodes.get('conversationActions').open,false,'close button dismisses sheet');
+map['[data-action]'][7].dispatch('click');
+assert.equal(idNodes.get('mediaViewer').open,true,'context Photos action opens same single viewer');
+map['[data-action]'][3].dispatch('click');
+assert.equal(idNodes.get('mediaViewer').open,false,'Back closes media overlay safely');
 document.activeElement=idNodes.get('draft');
 window.visualViewport.height=432;window.visualViewport.offsetTop=31;
 window.visualViewport.dispatch('resize');
@@ -255,4 +308,4 @@ assert.equal(idNodes.get('screen').style['--demo-vv-height'],'380px','same owner
 document.activeElement=null;document.dispatch('focusout');
 assert.equal(idNodes.get('screen').style['--demo-vv-height'],undefined,'keyboard geometry clears on blur');
 assert.equal(idNodes.get('screen').style['--demo-vv-top'],undefined,'stale Safari offset clears on blur');
-console.log('CHAT NEXT interactive public demo: 5 contacts, native Back, keyboard viewport, per-chat draft, filter, mock send, Work, theme, isolation PASS');
+console.log('CHAT NEXT phase-13 demo: media open/zoom/navigate/close, focus, native Back, keyboard, drafts, offline isolation PASS');
