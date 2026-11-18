@@ -43,7 +43,7 @@ assert(shell.includes("if(presentation.state!=='idle'&&appShell?.dataset.chatNex
   'call transitions close contextual tools');
 assert(shell.includes("    setChatNextToolsOpen(false);\n    if(appShell)appShell.dataset.authState="),
   'logout/auth changes close contextual tools');
-assert(css.includes('#appShell .chat-next-work-menuitem {\n  display:none!important;'),
+assert(css.includes('.chat-next-work-menuitem {\n  display:none!important;'),
   'new item must not appear in default application');
 assert(css.includes(':has(#stageLayout:not([data-bank-report-active="true"]) #chatQuickActions:not([hidden]))'),
   'menu item visibility follows the original quick-actions permission owner');
