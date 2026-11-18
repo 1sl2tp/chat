@@ -18,9 +18,9 @@ for(const prohibited of [
  assert(!html.includes(prohibited),'public demo must never call live APIs: '+prohibited);
 }
 
-assert(html.includes('<title>CHAT NEXT · V25 — Sửa nhật ký trên iPhone (demo)</title>'),'V19 named release');
-assert(html.includes('data-design-id="CHAT-NEXT-025" data-design-round="25"'),'V19 distinct design round');
-assert(html.includes('<span class="version-round">V25</span>'),'visible version selector must be updated');
+assert(html.includes('<title>CHAT NEXT · V26 — Mở chat ở tin cuối và ô nhập (demo)</title>'),'V19 named release');
+assert(html.includes('data-design-id="CHAT-NEXT-026" data-design-round="26"'),'V19 distinct design round');
+assert(html.includes('<span class="version-round">V26</span>'),'visible version selector must be updated');
 assert(css.includes('/* CHAT-NEXT-016 — L5 composer precision'),'one micro-geometry owner');
 assert(css.includes('.conversation{scrollbar-width:none'),'classic scrollbars cannot shift L4');
 assert(css.includes('.conversation::-webkit-scrollbar{display:none'),'WebKit track removed');
@@ -346,6 +346,8 @@ assert(html.includes('<h2>CHAT NEXT · Vòng '+currentVersion+'</h2>'),'version 
 assert(html.includes('<li><b>V'+currentVersion+'</b>'),'latest history matches metadata');
 assert(css.includes('/* CHAT-NEXT-025: Safari mobile version log'),'V25 mobile changelog owner');
 assert(css.includes('.version-details .version-panel{position:fixed;left:max(12px'),'V25 panel stays within viewport');
+assert(js.includes('function focusLatestConversation()'),'V26 focus and scroll contract');
+assert(js.includes("renderChat({restore:false});showPage('chat');focusLatestConversation()"),'V26 click opens latest message');
 assert(js.includes('function lastEntry(p)'),'V23 latest message source');
 assert(js.includes('function conversationSearchText(p)'),'V23 full conversation search');
 assert(js.includes('function saveConversationPosition()'),'V23 scroll restoration');
