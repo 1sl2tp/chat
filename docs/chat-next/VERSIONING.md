@@ -19,6 +19,7 @@
 
 | Vòng | Tên | Ngày | Phạm vi |
 |---|---|---|---|
+| V21 | Trình xem ảnh có ảnh thu nhỏ | 18/11/2026 | Căn giữa ảnh chính, dải thumbnail, chọn ảnh, vuốt trái/phải, zoom hai lần; chỉ demo |
 | V20 | Nhóm ảnh chẵn/lẻ cân đối | 18/11/2026 | Gallery mẫu 1–5+, 2/4 chia cột, 3 ảnh nổi bật, 5+ hiển thị +N; viewer chỉ đi trong nhóm |
 | V19 | Căn trục yêu cầu hàng | 18/11/2026 | Lưới tên hàng/số lượng/đơn vị, ghi chú tách vùng; dữ liệu nguồn được giữ nguyên; chưa xác nhận đơn |
 | V18 | Phân cấp nội dung dễ đọc | 18/11/2026 | Chữ/màu theo vai trò; tin thường, ghi chú, yêu cầu hàng, media và nháp; không suy diễn nghiệp vụ |
