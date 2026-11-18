@@ -19,6 +19,7 @@
 
 | Vòng | Tên | Ngày | Phạm vi |
 |---|---|---|---|
+| V19 | Căn trục yêu cầu hàng | 18/11/2026 | Lưới tên hàng/số lượng/đơn vị, ghi chú tách vùng; dữ liệu nguồn được giữ nguyên; chưa xác nhận đơn |
 | V18 | Phân cấp nội dung dễ đọc | 18/11/2026 | Chữ/màu theo vai trò; tin thường, ghi chú, yêu cầu hàng, media và nháp; không suy diễn nghiệp vụ |
 | V17 | Chi tiết giao diện đồng bộ | 18/11/2026 | Một bộ token cho chữ, icon, viền, bán kính và khoảng cách nội bộ; kiểm tâm icon trong `?geometry=1` |
 | V16 | Căn trục ô gõ và nội dung | 18/11/2026 | Đồng nhất trục L4 khi cuộn desktop; chuẩn L5 48/44px, khe đều, kiểm hình học nút/textarea qua `?geometry=1` |
@@ -28,4 +29,4 @@
 | V12 | Tinh chỉnh chi tiết giao diện | 18/11/2026 | Spacing, icon, nút và tương phản |
 | V11 | Điều hướng và bàn phím | 18/11/2026 | Điều hướng Back, ô soạn, vùng bàn phím |
 
-**V16**: E0/E1 hoàn tất trên nhánh thiết kế; E2/E3 xác minh bằng CI/Pages; E4/E5 cần thử thiết bị thực. V15: E0/E1 (thay đổi source) hoàn tất; E2/E3 xác minh bằng test & Pages; E4/E5 vẫn chờ thử trên iPhone/Android thực tế. Ứng dụng production không bị thay đổi.
+**V19**: E0/E1: thay đổi nhánh thiết kế và test đã ghi; E2/E3 chỉ được công nhận sau khi CI + Pages thành công; E4/E5 PENDING trên thiết bị thật. **V16**: E0/E1 hoàn tất trên nhánh thiết kế; E2/E3 xác minh bằng CI/Pages; E4/E5 cần thử thiết bị thực. V15: E0/E1 (thay đổi source) hoàn tất; E2/E3 xác minh bằng test & Pages; E4/E5 vẫn chờ thử trên iPhone/Android thực tế. Ứng dụng production không bị thay đổi.
