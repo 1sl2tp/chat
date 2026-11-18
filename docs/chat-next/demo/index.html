@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f4f8f8">
-<title>CHAT NEXT · V27 — Bàn phím và vùng nhập iPhone (demo)</title>
+<title>CHAT NEXT · V28 — Giữ tin cuối khi mở bàn phím (demo)</title>
 <style>
 :root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color-scheme:light;--bg:#eef4f4;--surface:#fff;--subtle:#f5f8f9;--ink:#21313b;--muted:#586b74;--border:#e3e9ea;--accent:#0f7668;--accentLight:#e2f3eb;--received:#fff;--sent:#def2e9;--shadow:0 25px 70px rgba(30,62,67,.12)}
 body.dark{color-scheme:dark;--bg:#131d21;--surface:#1e2a30;--subtle:#24343a;--ink:#eaf1f2;--muted:#a6b5b9;--border:#35474b;--accent:#57c7a5;--accentLight:#22483e;--received:#29383e;--sent:#224d42;--shadow:0 20px 50px rgba(0,0,0,.28)}
@@ -647,17 +647,24 @@ body.geometry-mode .composer-inner .editorbox{outline:1px solid rgba(180,50,150,
  .screen.keyboard-visible .mobile-tabs{padding-bottom:0}
  .screen.keyboard-visible .conversation{scroll-padding-bottom:8px}
 }
+/* CHAT-NEXT-028: only the conversation scrolls; composer stays a non-shrinking footer. */
+@media(max-width:700px),(hover:none),(pointer:coarse){
+ .screen.keyboard-visible .chat{min-height:0;overflow:hidden}
+ .screen.keyboard-visible .conversation{flex:1 1 0;min-height:0;overflow-y:auto;overflow-anchor:none;padding-bottom:16px}
+ .screen.keyboard-visible .composer,.screen.keyboard-visible .chat-note{flex:0 0 auto;position:relative;z-index:2}
+}
 </style>
 </head>
 <body>
 <svg class="icon-sprite" width="0" height="0" viewBox="0 0 24 24" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"><defs><symbol id="ui-message-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5a8.5 8.5 0 0 1-8.5 8.5 9.6 9.6 0 0 1-4.1-1L3 20l1.2-4.1A8.5 8.5 0 1 1 20 11.5Z"/><path d="M8.5 11.5h7"/></symbol><symbol id="ui-briefcase" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18M10 13v2h4v-2"/></symbol><symbol id="ui-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h3l1.2 4-2 1.6c1.3 2.7 3.1 4.5 5.8 5.8l1.6-2 4 1.2v3a2 2 0 0 1-2.3 2c-7.3-1-12.5-6.2-13.5-13.5A2 2 0 0 1 6 3.5Z"/></symbol><symbol id="ui-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 14 4l1.1 1.8 2 .2 1.5 1.5-.2 2L20 11l-.2 2-1.4 1.6.1 2-1.4 1.4-2-.1L13 20l-2 .1-1.8-1.5-2 .1-1.5-1.5.2-2L4 13.5l-.2-2 1.5-1.8-.1-2L6.7 6l2 .2L10 4Z"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="ui-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></symbol><symbol id="ui-pencil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 16.5 1-4 10-10 4 4-10 10-5 1Z"/><path d="m12.8 4.7 4 4M4 21h16"/></symbol><symbol id="ui-arrow-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6M9 12h12"/></symbol><symbol id="ui-more" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></symbol><symbol id="ui-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M4 12h16"/></symbol><symbol id="ui-arrow-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V4m-7 7 7-7 7 7"/></symbol><symbol id="ui-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 15.6A8.4 8.4 0 0 1 8.4 4 8.6 8.6 0 1 0 20 15.6Z"/></symbol><symbol id="ui-receipt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18l-3-2-4 2-4-2-3 2V3Z"/><path d="M9 8h6M9 12h6M9 16h4"/></symbol><symbol id="ui-wallet" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="15" rx="3"/><path d="M3 10h18M16 15h3"/></symbol><symbol id="ui-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12 12 20 4 12V4h8l8 8Z"/><circle cx="8.5" cy="8.5" r="1"/></symbol><symbol id="ui-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="m4 17 5-5 4 4 2-2 5 5"/></symbol><symbol id="ui-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></symbol><symbol id="ui-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5 19 19M19 5 5 19"/></symbol><symbol id="ui-minus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 12h16"/></symbol></defs></svg>
-<div class="screen" id="screen" data-design-id="CHAT-NEXT-027" data-design-round="27">
+<div class="screen" id="screen" data-design-id="CHAT-NEXT-028" data-design-round="28">
   <div class="demo-top"><div class="demo-brand"><strong>CHAT NEXT</strong><span class="state"><i></i> BẢN DEMO · DỮ LIỆU MẪU</span></div><div class="top-actions"><details class="version-details" id="versionHistory" aria-label="Phiên bản thiết kế và các vòng sửa">
-  <summary title="CHAT NEXT — Vòng 27: Bàn phím và vùng nhập iPhone" aria-label="Xem lịch sử phiên bản CHAT NEXT, vòng 27"><span class="version-round">V27</span><span class="version-caption">· Nhật ký sửa</span></summary>
+  <summary title="CHAT NEXT — Vòng 28: Giữ tin cuối khi mở bàn phím" aria-label="Xem lịch sử phiên bản CHAT NEXT, vòng 28"><span class="version-round">V28</span><span class="version-caption">· Nhật ký sửa</span></summary>
   <div class="version-panel">
-    <h2>CHAT NEXT · Vòng 27</h2>
-    <p>Giữ toàn bộ thanh nhập và đáy hội thoại phía trên bàn phím Safari iPhone · 18/11/2026. Chỉ là demo, không phải Chat production.</p>
+    <h2>CHAT NEXT · Vòng 28</h2>
+    <p>Neo tin nhắn cuối khi bàn phím Safari xuất hiện, không che nội dung phía trên ô nhập · 18/11/2026. Chỉ là demo, không phải Chat production.</p>
     <ol class="version-log" aria-label="Lịch sử các vòng thiết kế">
+      <li><b>V28</b><span><strong>Giữ tin cuối khi bàn phím mở</strong><small>18/11/2026 · Neo đáy cuộc trò chuyện qua VisualViewport resize, không kéo người đang đọc tin cũ; kiểm tra sau khi layout ổn định</small></span></li>
       <li><b>V27</b><span><strong>Đáy hội thoại nằm trên bàn phím</strong><small>18/11/2026 · VisualViewport điều khiển chiều cao khung, ô nhập và ghi chú không bị che; tránh chừa safe-area khi bàn phím bật</small></span></li>
       <li><b>V26</b><span><strong>Mở hội thoại tại tin cuối</strong><small>18/11/2026 · Cuộn sau khi chuyển màn, tập trung ô nhập; giữ vị trí khi dùng nút quay lại trình duyệt</small></span></li>
       <li><b>V25</b><span><strong>Nhật ký vừa màn hình iPhone</strong><small>18/11/2026 · Bảng nổi nằm trong mép an toàn, cuộn riêng, chữ không bị cắt, giữ nút đóng</small></span></li>
@@ -803,6 +810,7 @@ function focusLatestConversation(){
  // Wait for the chat panel to become visible before measuring its scroll height.
  window.requestAnimationFrame(function(){
   input.focus({preventScroll:true});
+  keyboardBottomPinned=true;
   scroller.scrollTop=scroller.scrollHeight;
   window.requestAnimationFrame(function(){scroller.scrollTop=scroller.scrollHeight});
  });
@@ -1062,6 +1070,14 @@ byId('theme').addEventListener('click',function(){document.body.classList.toggle
    bar and soft keyboard are not reliably represented by 100dvh while typing.
    Use VisualViewport height + offsetTop, and restore CSS fallback on blur. */
 var demoViewportScheduled=false;
+/* CHAT-NEXT-028: preserve the last visible message across iOS keyboard resize. */
+var keyboardBottomPinned=false;
+function pinLatestIfNeeded(){
+ if(page!=='chat'||document.activeElement!==byId('draft'))return;
+ var scroller=byId('conversation');
+ if(!keyboardBottomPinned)return;
+ scroller.scrollTop=scroller.scrollHeight;
+}
 function updateDemoViewport(){
   var focused=document.activeElement,composing=focused===byId('draft')||focused===byId('search');
   var vv=window.visualViewport;
@@ -1076,6 +1092,9 @@ function updateDemoViewport(){
   screen.style.setProperty('--demo-vv-top',Math.max(0,Math.round(vv.offsetTop))+'px');
   var keyboardOpen=vv.height<window.innerHeight-120;
   screen.classList.toggle('keyboard-visible',keyboardOpen);
+  if(keyboardOpen&&page==='chat'){
+    window.requestAnimationFrame(function(){pinLatestIfNeeded();window.requestAnimationFrame(pinLatestIfNeeded)});
+  }
 }
 function scheduleDemoViewport(){
   if(demoViewportScheduled)return;
@@ -1087,8 +1106,14 @@ if(window.visualViewport){
   window.visualViewport.addEventListener('scroll',scheduleDemoViewport);
 }
 window.addEventListener('resize',scheduleDemoViewport);
-document.addEventListener('focusin',scheduleDemoViewport);
-document.addEventListener('focusout',scheduleDemoViewport);
+document.addEventListener('focusin',function(e){
+ if(e.target===byId('draft')){
+  var scroller=byId('conversation');
+  keyboardBottomPinned=scroller.scrollHeight-scroller.clientHeight-scroller.scrollTop<80;
+ }
+ scheduleDemoViewport();
+});
+document.addEventListener('focusout',function(e){if(e.target===byId('draft'))keyboardBottomPinned=false;scheduleDemoViewport()});
 
 /* V14 geometry audit: enabled ONLY when the static sample URL has
    ?geometry=1. It measures actual DOM edges, not guessed breakpoint math. */
