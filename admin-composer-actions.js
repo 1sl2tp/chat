@@ -1159,6 +1159,9 @@ function bind(){
   if(!plus)return false;
   ensureAdminMenu();
   mountQuickActions();
+  // CHAT-NEXT-003: this module remains the owner of the recent-customer menu.
+  // Closing the opt-in toolbar must not leave a hidden, stale popup open.
+  document.addEventListener('chat-next-work-tools-closed',closeQuickRecent);
   document.addEventListener('v21-active-contact-change',()=>{rememberCurrentCustomer();syncQuickActions();});
   document.addEventListener('v21-contact-groups-change',()=>{rememberCurrentCustomer();syncQuickActions();});
   document.addEventListener('click',event=>{
