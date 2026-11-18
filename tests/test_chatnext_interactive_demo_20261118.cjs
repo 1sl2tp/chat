@@ -18,8 +18,9 @@ for(const prohibited of [
  assert(!html.includes(prohibited),'public demo must never call live APIs: '+prohibited);
 }
 
-assert(html.includes('<title>CHAT NEXT · V18 — Phân cấp nội dung dễ đọc (demo)</title>'),'V17 named release');
-assert(html.includes('data-design-id="CHAT-NEXT-018" data-design-round="18"'),'V17 distinct design round');
+assert(html.includes('<title>CHAT NEXT · V19 — Căn trục yêu cầu hàng (demo)</title>'),'V19 named release');
+assert(html.includes('data-design-id="CHAT-NEXT-019" data-design-round="19"'),'V19 distinct design round');
+assert(html.includes('<span class="version-round">V19</span>'),'visible version selector must be updated');
 assert(css.includes('/* CHAT-NEXT-016 — L5 composer precision'),'one micro-geometry owner');
 assert(css.includes('.conversation{scrollbar-width:none'),'classic scrollbars cannot shift L4');
 assert(css.includes('.conversation::-webkit-scrollbar{display:none'),'WebKit track removed');
@@ -53,6 +54,21 @@ assert(js.includes("orderCard(entry[1])"),'request card uses typed message paylo
 assert(js.includes("row.className+=' order-message'"),'request category is visually distinct');
 assert(js.includes("message mine message-preview"),'local demo draft cannot look like sent/confirmed message');
 assert(!js.includes('Tin gốc không bị chỉnh sửa.'),'never assert original source without source');
+/* V19: validate explicit typed payload once, use aligned quantity/unit subcolumns.
+   The readable source is derived from the same validated item entries. */
+assert(css.includes('/* CHAT-NEXT-019 — Request card micro-grid'),'V19 semantic grid owner exists');
+assert(css.includes('grid-template-columns:minmax(0,1fr) var(--request-quantity-width)'),'request product and quantity columns share one grid');
+assert(css.includes('--request-unit-width:52px')&&css.includes('--request-unit-width:46px'),'quantity unit column adapts to narrow mobile');
+assert(css.includes('.message-stream .order-name{min-width:0;overflow-wrap:anywhere'),'long product name cannot push quantity offscreen');
+assert(css.includes('font-variant-numeric:tabular-nums'),'numeric values align consistently');
+assert(js.includes('var items=payload.items.filter(function(item)'),'invalid typed entries are excluded before render');
+assert(js.includes("if(!items.length)return el('div','bubble','Không có mặt hàng mẫu hợp lệ để trình bày.')"),
+ 'missing or invalid item list must fail closed, never invent request data');
+assert(js.includes("amount.append(el('b','order-amount',item.amount),el('span','order-unit',item.unit))"),
+ 'amount and unit share stable column structure');
+assert(js.includes("raw.push(qty+' '+item.name)"),'raw text mirrors visible item values');
+assert(js.includes('raw.push(payload.note)'),'raw text mirrors the original note');
+assert(js.includes("el('strong','order-note-label','Ghi chú')"),'separate note label preserves data hierarchy');
 
 assert(html.includes('BẢN DEMO · DỮ LIỆU MẪU'),'visible demo banner mandatory');
 assert(html.includes('Không gửi tới khách hàng'),'composer safety labeling mandatory');
@@ -300,6 +316,23 @@ assert.equal(idNodes.get('activeName').textContent,'Chị Lan');
 assert.equal(idNodes.get('app').dataset.page,'inbox','mobile starts at Inbox');
 assert.equal(window.location.hash,'#inbox','initial history state must be a safe local Inbox fragment');
 // Open real DOM-like mock media tile in Lan's conversation, without any image fetch.
+const orderRow=idNodes.get('messageStream').children.find(x=>x.className.includes('order-message'));
+assert(orderRow,'Lan chat has an explicitly typed sample request');
+const orderCardNode=orderRow.children[0];
+const requestColumns=orderCardNode.children.find(x=>x.className==='order-columns');
+assert(requestColumns,'the request has one semantic column heading');
+assert.equal(requestColumns.children[0].textContent,'Mặt hàng');
+assert.equal(requestColumns.children[1].textContent,'Số lượng');
+const requestItems=orderCardNode.children.filter(x=>x.className==='orderitem');
+assert.equal(requestItems.length,2,'request entries come from one structured payload');
+assert.equal(requestItems[0].children[0].textContent,'Sữa hộp');
+assert.equal(requestItems[0].children[1].children[0].textContent,'2','amount is separate and tabular');
+assert.equal(requestItems[0].children[1].children[1].textContent,'thùng','unit is separate and aligned');
+assert.equal(requestItems[1].children[1].children[0].textContent,'3');
+assert.equal(requestItems[1].children[1].children[1].textContent,'hộp');
+const requestSource=orderCardNode.children.find(x=>x.className==='order-source');
+assert.equal(requestSource.children[1].textContent,'2 thùng Sữa hộp\\n3 hộp Bánh quy\\nChiều giao giúp chị nhé.',
+ 'one typed payload drives both visible columns and unmodified readable source');
 const mediaRow=idNodes.get('messageStream').children.find(x=>x.className.includes('media-message'));
 assert(mediaRow,'Lan chat contains a media preview in a stable ratio card');
 assert.equal(mediaRow.children[0].className,'media-card','media sample is accessible as a button');
@@ -406,4 +439,4 @@ assert.equal(idNodes.get('screen').style['--demo-vv-height'],'380px','same owner
 document.activeElement=null;document.dispatch('focusout');
 assert.equal(idNodes.get('screen').style['--demo-vv-height'],undefined,'keyboard geometry clears on blur');
 assert.equal(idNodes.get('screen').style['--demo-vv-top'],undefined,'stale Safari offset clears on blur');
-console.log('CHAT NEXT phase-13 demo: media open/zoom/navigate/close, focus, native Back, keyboard, drafts, offline isolation PASS');
+console.log('CHAT NEXT V19 demo: request column semantics, media, Back, keyboard, drafts, offline isolation PASS');
