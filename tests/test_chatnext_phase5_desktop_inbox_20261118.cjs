@@ -64,4 +64,19 @@ for(const width of [1024,1100,1280,1366,1440,1600,1920]){
 for(const banned of ['fetch(', 'setInterval(', 'supabase', 'bank-ledger', 'messageWindow','composerShell']){
  assert(!chunk.includes(banned),'visual-only desktop style cannot own runtime: '+banned);
 }
+const conversation=fs.readFileSync('chat-next-conversation.css','utf8');
+const panelStart=conversation.indexOf('/* CHAT-NEXT-005: desktop Chat surface');
+assert(panelStart>0,'desktop conversation styles must exist');
+const desktopChat=conversation.slice(panelStart);
+assert(desktopChat.includes('@media (min-width:64rem) and (hover:hover) and (pointer:fine)'));
+assert(desktopChat.includes('#stageLayout:not([data-bank-report-active="true"])'),
+ 'never paint business Bank report with customer chat styles');
+assert(desktopChat.includes('text-overflow:ellipsis;'),
+ 'long names must yield before action buttons');
+assert(desktopChat.includes('#chatQuickActions:not([hidden]) > button:focus-visible'),
+ 'desktop customer actions need keyboard-visible focus');
+for(const banned of ['#messageWindow','position:absolute','position:fixed','grid-template-columns',
+ 'min-height:100vh','scrollTop','fetch(','setInterval(']){
+ assert(!desktopChat.includes(banned),'conversation surface must not own layout/runtime: '+banned);
+}
 console.log('CHAT NEXT phase-5 desktop Inbox: 1024–1920 widths, time rail, owner scoping PASS');
