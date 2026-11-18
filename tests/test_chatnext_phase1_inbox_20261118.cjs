@@ -26,7 +26,8 @@ const selectors=css.split('\n').filter(line=>/^\s*#appShell/.test(line));
 assert(selectors.length>15);
 for(const selector of selectors)assert(selector.includes(flag),
   'all app-level selectors must be opt-in + authenticated: '+selector);
-assert(css.includes('@media (max-width:63.999rem)'),'mobile must be single pane');
+assert(css.includes('@media (max-width:63.999rem), (hover:none), (pointer:coarse)'),
+  'single-pane contacts must include large coarse-pointer tablets');
 assert(css.includes('@media (min-width:64rem)'),'desktop adaptation must remain distinct');
 assert(css.includes('grid-template-columns:40px minmax(0,1fr);'),
   'must preserve existing 40px portrait geometry, not crop avatars');
