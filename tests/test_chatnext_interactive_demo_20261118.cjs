@@ -20,7 +20,7 @@ for(const prohibited of [
 
 assert(html.includes('<title>CHAT NEXT · V22 — Zoom thực và điều hướng ảnh (demo)</title>'),'V19 named release');
 assert(html.includes('data-design-id="CHAT-NEXT-022" data-design-round="22"'),'V19 distinct design round');
-assert(html.includes('<span class="version-round">V21</span>'),'visible version selector must be updated');
+assert(html.includes('<span class="version-round">V22</span>'),'visible version selector must be updated');
 assert(css.includes('/* CHAT-NEXT-016 — L5 composer precision'),'one micro-geometry owner');
 assert(css.includes('.conversation{scrollbar-width:none'),'classic scrollbars cannot shift L4');
 assert(css.includes('.conversation::-webkit-scrollbar{display:none'),'WebKit track removed');
