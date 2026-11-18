@@ -137,7 +137,7 @@ assert(html.includes("var box=byId('messageStream');box.replaceChildren"),
  'renderChat must write only inside the message stream, not replace its geometry wrapper');
 assert(html.includes("byId('conversation').scrollTop=byId('conversation').scrollHeight"),
  'scroll owner must remain the original conversation viewport');
-assert(html.includes('input.style.height=\\'24px\\'')&&html.includes('Math.min(input.scrollHeight,120)'),
+assert(html.includes("input.style.height='24px'")&&html.includes('Math.min(input.scrollHeight,120)'),
  'auto-growing text uses canonical 24px baseline and 120px ceiling');
 assert(html.includes('--frame-control:48px')&&html.includes('--frame-thread-max:760px')&&html.includes('--frame-inbox-axis:16px'),
  'L1-L5 tokens should be specified in one frame owner');
