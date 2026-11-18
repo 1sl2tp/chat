@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f4f8f8">
-<title>CHAT NEXT · V17 — Chi tiết giao diện đồng bộ (demo)</title>
+<title>CHAT NEXT · V18 — Phân cấp nội dung dễ đọc (demo)</title>
 <style>
 :root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color-scheme:light;--bg:#eef4f4;--surface:#fff;--subtle:#f5f8f9;--ink:#21313b;--muted:#586b74;--border:#e3e9ea;--accent:#0f7668;--accentLight:#e2f3eb;--received:#fff;--sent:#def2e9;--shadow:0 25px 70px rgba(30,62,67,.12)}
 body.dark{color-scheme:dark;--bg:#131d21;--surface:#1e2a30;--subtle:#24343a;--ink:#eaf1f2;--muted:#a6b5b9;--border:#35474b;--accent:#57c7a5;--accentLight:#22483e;--received:#29383e;--sent:#224d42;--shadow:0 20px 50px rgba(0,0,0,.28)}
@@ -508,17 +508,66 @@ body.geometry-mode .composer-inner .editorbox{outline:1px solid rgba(180,50,150,
  .composer-inner .editorbox,.search{transition:none}
 }
 
+
+/* CHAT-NEXT-018 — Readability hierarchy & explicit content roles.
+   No classification from keywords: the message's declared kind is the owner.
+   Existing semantic light/dark palette is reused; accent denotes actions,
+   not proof of payment, delivery or approval. */
+:root{
+ --read-body:15px;--read-body-line:23px;
+ --read-contact:14px;--read-preview:13px;--read-preview-line:19px;
+ --read-heading:16px;--read-heading-line:23px;
+ --read-meta:11.5px;--read-meta-line:17px;
+ --read-primary:var(--ink);--read-secondary:var(--muted);
+ --read-action:var(--accent);--read-divider:var(--border);
+}
+.contact-title{font-size:var(--read-contact);line-height:21px;color:var(--read-primary)}
+.contact-preview{font-size:var(--read-preview);line-height:var(--read-preview-line);
+ color:var(--read-secondary)}
+.contact .time,.message-stream .stamp,.message-stream .day{
+ font-size:var(--read-meta);line-height:var(--read-meta-line);color:var(--read-secondary)}
+.message-stream .bubble{font-size:var(--read-body);line-height:var(--read-body-line);
+ color:var(--read-primary);font-weight:400;letter-spacing:0}
+.message-stream .order{border-color:var(--read-divider);padding:16px}
+.message-stream .order .tag{font-size:11px;line-height:16px;letter-spacing:.045em;
+ color:var(--read-secondary);font-weight:700;margin-bottom:5px}
+.message-stream .order-heading{display:block;font-size:var(--read-heading);
+ line-height:var(--read-heading-line);font-weight:750;color:var(--read-primary)}
+.message-stream .orderitem{align-items:baseline;font-size:14px;line-height:20px;
+ padding-block:10px;gap:12px}
+.message-stream .orderitem span{min-width:0;overflow-wrap:anywhere}
+.message-stream .orderitem b{white-space:nowrap;font-variant-numeric:tabular-nums;
+ font-size:14px;font-weight:700;color:var(--read-primary)}
+.message-stream .order-note{margin:10px 0 0;color:var(--read-primary);
+ font-size:13px;line-height:19px}
+.message-stream .orderfoot{font-size:var(--read-meta);line-height:var(--read-meta-line);
+ color:var(--read-secondary);margin-top:10px}
+.message-stream .order-source{margin-top:8px;color:var(--read-secondary)}
+.message-stream .order-source summary{cursor:pointer;font-size:12px;line-height:22px;
+ text-decoration:underline;text-underline-offset:3px}
+.message-stream .order-source pre{white-space:pre-wrap;overflow-wrap:anywhere;
+ font:400 13px/20px inherit;margin:8px 0;color:var(--read-primary)}
+.message-stream .note-message .bubble{border-left:3px solid var(--read-divider);
+ background:var(--received);white-space:pre-wrap}
+.message-stream .message-preview .bubble{background:var(--surface);
+ border:1px dashed var(--read-divider);color:var(--read-secondary)}
+.message-stream .message-preview .stamp{font-style:italic}
+.message-stream .media-caption{font-size:13px;line-height:19px;font-weight:650}
+.message-stream .invoice-link{color:var(--read-action);font-size:12px}
+@media(max-width:360px){.message-stream .order{padding:12px}}
+
 </style>
 </head>
 <body>
 <svg class="icon-sprite" width="0" height="0" viewBox="0 0 24 24" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"><defs><symbol id="ui-message-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5a8.5 8.5 0 0 1-8.5 8.5 9.6 9.6 0 0 1-4.1-1L3 20l1.2-4.1A8.5 8.5 0 1 1 20 11.5Z"/><path d="M8.5 11.5h7"/></symbol><symbol id="ui-briefcase" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18M10 13v2h4v-2"/></symbol><symbol id="ui-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h3l1.2 4-2 1.6c1.3 2.7 3.1 4.5 5.8 5.8l1.6-2 4 1.2v3a2 2 0 0 1-2.3 2c-7.3-1-12.5-6.2-13.5-13.5A2 2 0 0 1 6 3.5Z"/></symbol><symbol id="ui-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 14 4l1.1 1.8 2 .2 1.5 1.5-.2 2L20 11l-.2 2-1.4 1.6.1 2-1.4 1.4-2-.1L13 20l-2 .1-1.8-1.5-2 .1-1.5-1.5.2-2L4 13.5l-.2-2 1.5-1.8-.1-2L6.7 6l2 .2L10 4Z"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="ui-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></symbol><symbol id="ui-pencil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 16.5 1-4 10-10 4 4-10 10-5 1Z"/><path d="m12.8 4.7 4 4M4 21h16"/></symbol><symbol id="ui-arrow-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6M9 12h12"/></symbol><symbol id="ui-more" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></symbol><symbol id="ui-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M4 12h16"/></symbol><symbol id="ui-arrow-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V4m-7 7 7-7 7 7"/></symbol><symbol id="ui-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 15.6A8.4 8.4 0 0 1 8.4 4 8.6 8.6 0 1 0 20 15.6Z"/></symbol><symbol id="ui-receipt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18l-3-2-4 2-4-2-3 2V3Z"/><path d="M9 8h6M9 12h6M9 16h4"/></symbol><symbol id="ui-wallet" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="15" rx="3"/><path d="M3 10h18M16 15h3"/></symbol><symbol id="ui-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12 12 20 4 12V4h8l8 8Z"/><circle cx="8.5" cy="8.5" r="1"/></symbol><symbol id="ui-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="m4 17 5-5 4 4 2-2 5 5"/></symbol><symbol id="ui-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></symbol><symbol id="ui-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5 19 19M19 5 5 19"/></symbol><symbol id="ui-minus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 12h16"/></symbol></defs></svg>
-<div class="screen" id="screen" data-design-id="CHAT-NEXT-017" data-design-round="17">
+<div class="screen" id="screen" data-design-id="CHAT-NEXT-018" data-design-round="18">
   <div class="demo-top"><div class="demo-brand"><strong>CHAT NEXT</strong><span class="state"><i></i> BẢN DEMO · DỮ LIỆU MẪU</span></div><div class="top-actions"><details class="version-details" id="versionHistory" aria-label="Phiên bản thiết kế và các vòng sửa">
-  <summary title="CHAT NEXT — Vòng 17: Chuẩn hóa chi tiết giao diện" aria-label="Xem lịch sử phiên bản CHAT NEXT, vòng 17"><span class="version-round">V17</span><span class="version-caption">· Nhật ký sửa</span></summary>
+  <summary title="CHAT NEXT — Vòng 18: Phân cấp nội dung dễ đọc" aria-label="Xem lịch sử phiên bản CHAT NEXT, vòng 18"><span class="version-round">V18</span><span class="version-caption">· Nhật ký sửa</span></summary>
   <div class="version-panel">
-    <h2>CHAT NEXT · Vòng 17</h2>
-    <p>Chữ, icon, viền và khoảng cách thống nhất · 18/11/2026. Bản demo, không phải V21 production.</p>
+    <h2>CHAT NEXT · Vòng 18</h2>
+    <p>Phân cấp chữ, màu theo vai trò và loại tin · 18/11/2026. Bản demo, không phải V21 production.</p>
     <ol class="version-log" aria-label="Lịch sử các vòng thiết kế">
+      <li><b>V18</b><span><strong>Phân cấp nội dung dễ đọc</strong><small>18/11/2026 · Tin thường, ghi chú, phiếu hàng, ảnh và nháp chưa gửi</small></span></li>
       <li><b>V17</b><span><strong>Chi tiết giao diện đồng bộ</strong><small>18/11/2026 · Typography, biểu tượng, bán kính, viền, nhịp khoảng cách</small></span></li>
       <li><b>V16</b><span><strong>Căn trục ô gõ và nội dung</strong><small>18/11/2026 · Vùng nhập, khoảng cách, thanh cuộn, thước đo L5</small></span></li>
       <li><b>V15</b><span><strong>Tên phiên bản & nhật ký chỉnh sửa</strong><small>18/11/2026 · Đang nghiệm thu demo</small></span></li>
@@ -635,11 +684,11 @@ body.geometry-mode .composer-inner .editorbox{outline:1px solid rgba(180,50,150,
 (function(){
 'use strict';
 var people=[
-{id:'lan',name:'Chị Lan',initial:'L',color:'',kind:'Khách hàng',category:'customer',time:'07:28',unread:2,orders:'02',preview:'Lấy 2 thùng sữa và 3 hộp bánh. Chiều giao giúp chị nhé.',texts:[['other','Chào em, cho chị đặt hàng sáng nay nhé.','07:20'],['mine','Dạ chị gửi danh sách, em soát lại rồi báo chị.','07:21'],['order','', '07:28'],['media','order','07:29']]},
+{id:'lan',name:'Chị Lan',initial:'L',color:'',kind:'Khách hàng',category:'customer',time:'07:28',unread:2,orders:'02',preview:'2 thùng sữa hộp, 3 hộp bánh quy. Chiều giao giúp chị nhé.',texts:[['other','Chào em, cho chị đặt hàng sáng nay nhé.','07:20'],['mine','Dạ chị gửi danh sách, em soát lại rồi báo chị.','07:21'],['order',{items:[{name:'Sữa hộp',amount:2,unit:'thùng'},{name:'Bánh quy',amount:3,unit:'hộp'}],note:'Chiều giao giúp chị nhé.'},'07:28'],['media','order','07:29']]},
 {id:'family',name:'Nhóm gia đình',initial:'G',color:'orange',kind:'Nhóm',category:'group',time:'07:10',unread:1,orders:'01',preview:'Hôm nay có hai đơn cần soát hàng trước khi giao.',texts:[['other','Hôm nay có hai đơn cần kiểm hàng trước khi giao.','07:10'],['mine','Dạ, em đã ghi nhận.','07:12']]},
 {id:'minh',name:'Anh Minh',initial:'M',color:'violet',kind:'Khách hàng',category:'customer',time:'Hôm qua',unread:0,orders:'00',preview:'Đã nhận đủ hàng, cảm ơn bạn nhé.',texts:[['mine','Đơn hôm nay giao đủ rồi anh nhé.','16:30'],['other','Đã nhận đủ hàng, cảm ơn bạn nhé.','16:33']]},
 {id:'supplier',name:'Nhà cung cấp',initial:'N',color:'green',kind:'Nhóm',category:'group',time:'T. Hai',unread:0,orders:'01',preview:'Đã gửi bảng giá mới và danh sách sản phẩm.',texts:[['other','Bên em gửi lại bảng giá mới.','09:00'],['media','catalog','09:03'],['mine','Cảm ơn, mình đã nhận được.','09:05']]},
-{id:'huong',name:'Cô Hương',initial:'H',color:'blue',kind:'Khách hàng',category:'customer',time:'16/11',unread:0,orders:'00',preview:'Cảm ơn, khi nào có hàng thì báo cô.',texts:[['other','Khi nào có hàng báo giúp cô nhé.\nGhi chú:\n- 2 thùng hàng nhẹ\n- 3 hộp hàng khô\n- Giao buổi chiều, không để ngoài nắng. Mã ghi chú mẫu rất dài: ABC-0123456789-0123456789-0123456789-0123456789.','14:16'],['mine','Dạ, có hàng em sẽ báo lại.','14:19']]}
+{id:'huong',name:'Cô Hương',initial:'H',color:'blue',kind:'Khách hàng',category:'customer',time:'16/11',unread:0,orders:'00',preview:'Cảm ơn, khi nào có hàng thì báo cô.',texts:[['note','Khi nào có hàng báo giúp cô nhé.\nGhi chú:\n- 2 thùng hàng nhẹ\n- 3 hộp hàng khô\n- Giao buổi chiều, không để ngoài nắng. Mã ghi chú mẫu rất dài: ABC-0123456789-0123456789-0123456789-0123456789.','14:16'],['mine','Dạ, có hàng em sẽ báo lại.','14:19']]}
 ];
 var current='lan',filter='all',page='chat',app=document.getElementById('app'),screen=document.getElementById('screen'),toast=document.getElementById('toast'),timer=null;
 var demoDrafts=Object.create(null),demoPreviewMessages=Object.create(null); // RAM only: never browser storage or network.
@@ -735,17 +784,36 @@ list.append(btn);
 byId('inboxSummary').textContent=q||filter!=='all'?shown+' kết quả'+(q?' cho tìm kiếm':''):people.length+' hội thoại · '+people.reduce(function(n,p){return n+(p.unread?1:0)},0)+' chưa đọc';
 if(!shown){var empty=el('div','no-results');empty.append(el('strong','','Không tìm thấy hội thoại'),el('small','','Thử đổi bộ lọc hoặc tìm theo tên, nội dung khác.'));list.append(empty)}
 }
-function orderCard(){var node=el('div','order');node.append(el('span','tag','BÁO LẤY HÀNG · XEM NHANH'),el('strong','', 'Danh sách khách gửi'));
-[['Sữa hộp','2 thùng'],['Bánh quy','3 hộp']].forEach(function(entry){var row=el('div','orderitem');row.append(el('span','',entry[0]),el('b','',entry[1]));node.append(row)});
-node.append(el('div','orderfoot','Tin gốc không bị chỉnh sửa. Đây là bản trình bày demo.'));var invoiceLink=el('a','invoice-link','Xem 3 mẫu hóa đơn →');invoiceLink.href='./invoice.html';node.append(invoiceLink);return node}
+/* V18: typed demo content only. One source builds both preview rows and
+   readable source; NEVER infer bill/payment/order state from arbitrary text. */
+function orderCard(payload){
+ if(!payload||!Array.isArray(payload.items)||!payload.items.length)
+  return el('div','bubble','Không có dữ liệu yêu cầu mẫu để trình bày.');
+ var node=el('section','order order-request'),raw=[];
+ node.setAttribute('aria-label','Yêu cầu lấy hàng mẫu chưa xác nhận');
+ node.append(el('span','tag','YÊU CẦU LẤY HÀNG'),el('strong','order-heading','Danh sách khách gửi'));
+ payload.items.forEach(function(item){
+  if(!Number.isSafeInteger(item.amount)||item.amount<=0||!item.name||!item.unit)return;
+  var qty=item.amount+' '+item.unit,row=el('div','orderitem');
+  row.append(el('span','',item.name),el('b','',qty));node.append(row);
+  raw.push(qty+' '+item.name);
+ });
+ if(payload.note){node.append(el('p','order-note',payload.note));raw.push(payload.note)}
+ node.append(el('div','orderfoot','Bản đọc nhanh · chưa xác nhận đơn và không tự tạo đơn.'));
+ var source=el('details','order-source');
+ source.append(el('summary','','Xem nội dung mẫu'),el('pre','',raw.join('\n')));
+ node.append(source);
+ var link=el('a','invoice-link','Xem 3 mẫu hóa đơn →');link.href='./invoice.html';node.append(link);
+ return node
+}
 function renderChat(){
 var p=selected();byId('activeAvatar').textContent=p.initial;byId('activeAvatar').className='avatar '+p.color;byId('activeName').textContent=p.name;
 byId('activeKind').textContent=p.kind+' · Trò chuyện';byId('profileAvatar').textContent=p.initial;byId('profileAvatar').className='avatar profile-avatar '+p.color;
 byId('profileName').textContent=p.name;byId('profileKind').textContent=p.kind+' · Dữ liệu mẫu';byId('orderCount').textContent=p.orders;
 var box=byId('messageStream');box.replaceChildren(el('div','day','Hôm nay · 18/11'));p.texts.forEach(function(entry){
-var row=el('div','message'+(entry[0]==='mine'?' mine':''));if(entry[0]==='order')row.append(orderCard());else if(entry[0]==='media'){row.className+=' media-message';row.append(mediaCard(entry[1]))}else row.append(el('div','bubble',entry[1]));
+var kind=entry[0],row=el('div','message'+(kind==='mine'?' mine':''));if(kind==='order'){row.className+=' order-message';row.append(orderCard(entry[1]))}else if(kind==='media'){row.className+=' media-message';row.append(mediaCard(entry[1]))}else if(kind==='note'){row.className+=' note-message';row.append(el('div','bubble bubble-note',entry[1]))}else row.append(el('div','bubble',entry[1]));
 row.append(el('div','stamp',entry[2]+(entry[0]==='mine'?' ✓':'')));box.append(row)});
-(demoPreviewMessages[current]||[]).forEach(function(value){var row=el('div','message mine');row.append(el('div','bubble',value),el('div','stamp','Nháp demo · chưa gửi'));box.append(row)});
+(demoPreviewMessages[current]||[]).forEach(function(value){var row=el('div','message mine message-preview');row.append(el('div','bubble',value),el('div','stamp','Nháp demo · chưa gửi'));box.append(row)});
 var input=byId('draft');input.value=demoDrafts[current]||'';input.style.height='24px';input.style.height=Math.min(input.scrollHeight,120)+'px';syncDemoSendState();
 byId('conversation').scrollTop=byId('conversation').scrollHeight;
 }
