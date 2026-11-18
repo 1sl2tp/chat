@@ -2000,9 +2000,11 @@ document.addEventListener('click',event=>{
 
   const contact=target.closest('[data-contact-select]');
   if(contact){
-    setActiveContact(contact.dataset.contactId,contact.dataset.contactName);
-    NavigationCommand.openChat();
-    renderCallFocus();
+    // Manual taps and notification clicks must use the same canonical,
+    // authenticated contact routing. Navigate before activating the new
+    // conversation so navigation-change cannot wake the previous thread.
+    event.preventDefault();
+    NavigationCommand.openContact(contact.dataset.contactId,contact.dataset.contactName);
     return;
   }
 
