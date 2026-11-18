@@ -119,6 +119,58 @@ assert(html.includes('window.visualViewport.addEventListener'), 'one visible vie
 assert(html.includes('top:var(--demo-vv-top,0px)')&&html.includes('height:var(--demo-vv-height,100dvh)'),
  'keyboard geometry must be applied to root surface, not message scroller');
 assert(!html.includes('setInterval('),'no keyboard polling');
+
+/* V14 structural contract: shared content-width wrappers, not four unrelated
+   padded siblings. This does not claim pixel-perfect real-device verification. */
+assert(html.includes('/* CHAT-NEXT-014 — Single geometry owner'),'L0-L5 frame must have one owner');
+for(const required of [
+ 'class="chat-width chat-header-inner"','class="chat-width message-stream" id="messageStream"',
+ 'class="chat-width composer-inner"','class="chat-width chat-note-inner"',
+ 'grid-template-rows:var(--frame-head-height) minmax(0,1fr) auto auto',
+ 'grid-template-columns:var(--frame-control) minmax(0,1fr) var(--frame-control)',
+ 'width:min(var(--frame-thread-max),calc(100% - var(--frame-thread-axis) - var(--frame-thread-axis)))',
+ 'grid-template-columns:44px minmax(0,1fr) 64px'
+]){
+ assert(html.includes(required),'missing shared alignment contract: '+required);
+}
+assert(html.includes("var box=byId('messageStream');box.replaceChildren"),
+ 'renderChat must write only inside the message stream, not replace its geometry wrapper');
+assert(html.includes("byId('conversation').scrollTop=byId('conversation').scrollHeight"),
+ 'scroll owner must remain the original conversation viewport');
+assert(html.includes('input.style.height=\\'24px\\'')&&html.includes('Math.min(input.scrollHeight,120)'),
+ 'auto-growing text uses canonical 24px baseline and 120px ceiling');
+assert(html.includes('--frame-control:48px')&&html.includes('--frame-thread-max:760px')&&html.includes('--frame-inbox-axis:16px'),
+ 'L1-L5 tokens should be specified in one frame owner');
+function getFramePx(name){
+ const start=html.indexOf('/* CHAT-NEXT-014 — Single geometry owner');
+ const fragment=html.slice(start,html.indexOf('</style>',start));
+ const value=fragment.match(new RegExp('--frame-'+name+':(\\d+)px'))?.[1];
+ assert(value,'missing frame token: '+name);
+ return Number(value);
+}
+const rail=getFramePx('rail'),context=getFramePx('context'),axis=getFramePx('inbox-axis');
+const control=getFramePx('control'),gap=getFramePx('control-gap');
+assert.equal(axis,16,'same sidebar axis is used by header, filters and contact row');
+for(const width of [320,360,375,390,414,430]){
+ const gutter=width<=360?10:12;
+ const content=width-2*gutter;
+ const textareaArea=content-2*44-2*(width<=360?6:gap);
+ assert(textareaArea>=200,'mobile input too narrow at '+width);
+ const messageMax=content*.88;
+ assert(messageMax<=content,'message cannot overflow shared frame at '+width);
+}
+for(const width of [1024,1280,1399,1440,1600,1920]){
+ const available=Math.min(width-40,1460);
+ const dir=Math.min(332,Math.max(292,Math.round(width*.25)));
+ const hasContext=width>=1400;
+ const chatWidth=available-rail-dir-(hasContext?context:0);
+ assert(chatWidth>=400,'main pane must have usable width at '+width);
+ const content=Math.min(760,chatWidth-32);
+ assert(content>=360,'desktop header/messages/composer content width at '+width);
+ const textareaArea=content-2*control-2*gap;
+ assert(textareaArea>=240,'desktop input must retain width at '+width);
+}
+
 new vm.Script(js,{filename:'chat-next-demo-inline.js'});
 
 // Minimal browser implementation to execute demo actions without any network.
@@ -145,7 +197,7 @@ class FakeElement{
  set scrollHeight(v){this._scrollHeight=v}
 }
 const ids=['screen','app','toast','theme','themeText','contacts','search','activeAvatar','activeName',
-'activeKind','profileAvatar','profileName','profileKind','orderCount','conversation','composer',
+'activeKind','profileAvatar','profileName','profileKind','orderCount','conversation','messageStream','composer',
 'draft','sendDemo','inboxSummary','workDetail','conversationActions','actionSheetTitle',
  'mediaViewer','mediaViewerTitle','mediaViewerCount','mediaViewerMeta','mediaStage',
  'mediaCanvas','mediaPrev','mediaNext','mediaZoomIn','mediaZoomOut','mediaZoomLabel','mediaClose'];
@@ -211,7 +263,7 @@ assert.equal(idNodes.get('activeName').textContent,'Chị Lan');
 assert.equal(idNodes.get('app').dataset.page,'inbox','mobile starts at Inbox');
 assert.equal(window.location.hash,'#inbox','initial history state must be a safe local Inbox fragment');
 // Open real DOM-like mock media tile in Lan's conversation, without any image fetch.
-const mediaRow=idNodes.get('conversation').children.find(x=>x.className.includes('media-message'));
+const mediaRow=idNodes.get('messageStream').children.find(x=>x.className.includes('media-message'));
 assert(mediaRow,'Lan chat contains a media preview in a stable ratio card');
 assert.equal(mediaRow.children[0].className,'media-card','media sample is accessible as a button');
 mediaRow.children[0].dispatch('click');
@@ -263,7 +315,7 @@ idNodes.get('draft').value='Tin nhắn thử nghiệm an toàn';
 idNodes.get('draft').dispatch('input');
 assert.equal(idNodes.get('sendDemo').disabled,false,'send action enabled when draft has text');
 idNodes.get('composer').dispatch('submit');
-const latest=idNodes.get('conversation').children.at(-1);
+const latest=idNodes.get('messageStream').children.at(-1);
 assert.equal(latest.children[0].textContent,'Tin nhắn thử nghiệm an toàn');
 assert.equal(latest.children[1].textContent,'Nháp demo · chưa gửi');
 assert.equal(idNodes.get('draft').value,'','sent demo text clears only local textarea');
@@ -275,7 +327,7 @@ assert.equal(idNodes.get('draft').value,'','draft must not leak between contacts
 idNodes.get('contacts').children[2].dispatch('click'); // back to Minh
 assert.equal(idNodes.get('draft').value,'Nháp riêng của Anh Minh','unsent draft restored per selected contact');
 assert.equal(idNodes.get('sendDemo').disabled,false,'restored unsent draft re-enables demo action');
-assert.equal(idNodes.get('conversation').children.at(-1).children[0].textContent,
+assert.equal(idNodes.get('messageStream').children.at(-1).children[0].textContent,
  'Tin nhắn thử nghiệm an toàn','mock message retained during contact switch');
 map['[data-mode]'][1].dispatch('click');
 assert(idNodes.get('screen').classList.contains('work-view'),'Work navigation toggles only demo page');
