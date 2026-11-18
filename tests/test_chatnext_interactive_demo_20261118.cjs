@@ -31,6 +31,12 @@ assert(html.includes('data-action="back"')&&html.includes('data-mode="work"'));
 assert(html.includes('@media(max-width:700px),(hover:none),(pointer:coarse)'),'touch tablet responsive without 1024px gap');
 assert(html.includes('font-size:16px'),'iOS editable input >=16px');
 assert(html.includes('env(safe-area-inset-bottom)'),'iPhone safe-area');
+assert(html.includes('env(safe-area-inset-top,0px)'),'notch-safe top banner');
+assert(html.includes('.app,.work-view .app{box-sizing:border-box;flex:1 1 auto;height:auto;min-height:0}'),
+ 'one mobile height owner; no fixed 43px competition with iOS keyboard');
+assert(html.includes('demoDrafts=Object.create(null),demoPreviewMessages=Object.create(null)'),
+ 'demo may retain drafts per chat in RAM only, never browser storage');
+assert(html.includes('min-width:48px'),'48px touch target visual contract');
 assert(html.includes('prefers-reduced-motion:reduce'),'reduced motion');
 assert(html.includes('min-height:44px'),'touch targets');
 assert(html.includes('--ui-tap:48px'),'Android-sized touch primitives');
@@ -107,6 +113,14 @@ const latest=idNodes.get('conversation').children.at(-1);
 assert.equal(latest.children[0].textContent,'Tin nhắn thử nghiệm an toàn');
 assert.equal(latest.children[1].textContent,'Nháp demo · chưa gửi');
 assert.equal(idNodes.get('draft').value,'','sent demo text clears only local textarea');
+idNodes.get('draft').value='Nháp riêng của Anh Minh';
+idNodes.get('draft').dispatch('input');
+idNodes.get('contacts').children[0].dispatch('click'); // Lan
+assert.equal(idNodes.get('draft').value,'','draft must not leak between contacts');
+idNodes.get('contacts').children[2].dispatch('click'); // back to Minh
+assert.equal(idNodes.get('draft').value,'Nháp riêng của Anh Minh','unsent draft restored per selected contact');
+assert.equal(idNodes.get('conversation').children.at(-1).children[0].textContent,
+ 'Tin nhắn thử nghiệm an toàn','mock message retained during contact switch');
 map['[data-mode]'][1].dispatch('click');
 assert(idNodes.get('screen').classList.contains('work-view'),'Work navigation toggles only demo page');
 map['[data-work]'][0].dispatch('click');
