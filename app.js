@@ -1512,7 +1512,9 @@ window.addEventListener('resize',()=>{
   if(!window.matchMedia('(max-width:63.999rem)').matches)resetAdaptiveHeaderForContext();
 },{passive:true});
 editor.addEventListener('focus',resetAdaptiveHeaderForContext);
-editor.addEventListener('blur',resetAdaptiveHeaderForContext);
+// Existing keyboard adapter handles blur in its own registered listener.
+// Read its final state next frame, not the stale pre-blur occlusion value.
+editor.addEventListener('blur',()=>requestAnimationFrame(resetAdaptiveHeaderForContext));
 
 const mediaObjectUrls=new Map();
 const mediaShareBlobs=new Map();
