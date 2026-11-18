@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f4f8f8">
-<title>CHAT NEXT · V16 — Căn trục ô gõ (demo)</title>
+<title>CHAT NEXT · V17 — Chi tiết giao diện đồng bộ (demo)</title>
 <style>
 :root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color-scheme:light;--bg:#eef4f4;--surface:#fff;--subtle:#f5f8f9;--ink:#21313b;--muted:#586b74;--border:#e3e9ea;--accent:#0f7668;--accentLight:#e2f3eb;--received:#fff;--sent:#def2e9;--shadow:0 25px 70px rgba(30,62,67,.12)}
 body.dark{color-scheme:dark;--bg:#131d21;--surface:#1e2a30;--subtle:#24343a;--ink:#eaf1f2;--muted:#a6b5b9;--border:#35474b;--accent:#57c7a5;--accentLight:#22483e;--received:#29383e;--sent:#224d42;--shadow:0 20px 50px rgba(0,0,0,.28)}
@@ -436,17 +436,90 @@ body.geometry-mode .composer-inner .editorbox{outline:1px solid rgba(180,50,150,
 .composer-inner>.iconbtn .ui-icon{display:block;width:21px;height:21px;flex:none}
 @media(max-width:360px){:root{--frame-input-pad-x:12px}}
 
+
+/* CHAT-NEXT-017 — Fine-detail design owner. Typography/radii/icon optical
+   alignment only. V14 owns geometry L0–L5 and V16 owns composer sizing.
+   No extra scroll owner, transport, script, or visual-viewport handler. */
+:root{
+ --detail-title:24px;--detail-title-leading:32px;
+ --detail-contact:14px;--detail-contact-leading:20px;
+ --detail-preview:12.5px;--detail-preview-leading:18px;
+ --detail-thread:14px;--detail-thread-leading:21px;
+ --detail-meta:11px;--detail-meta-leading:16px;
+ --detail-icon:21px;--detail-icon-subtle:20px;
+ --detail-row-radius:14px;--detail-control-radius:14px;
+ --detail-bubble-radius:18px;--detail-line-width:1px;
+ --detail-unit:4px;
+}
+/* Inbox: headings, search, filters, avatars, names and dates share one rhythm. */
+.headerline h1{font-size:var(--detail-title);line-height:var(--detail-title-leading);
+ font-weight:750;letter-spacing:-.035em}
+.search{min-height:var(--frame-control);border:var(--detail-line-width) solid var(--border);
+ border-radius:var(--detail-control-radius);gap:10px}
+.search input{font-size:16px;line-height:24px;min-height:24px}
+.search .ui-icon{display:block;width:var(--detail-icon-subtle);height:var(--detail-icon-subtle)}
+.filters{column-gap:var(--detail-unit)}
+.filter{min-height:44px;padding:0 12px;line-height:18px;font-size:12px;
+ border-radius:999px;letter-spacing:0}
+.contact{border-radius:var(--detail-row-radius);border-width:var(--detail-line-width);
+ padding-block:10px;align-items:center;min-width:0}
+.contact .avatar,.chat-header-inner .avatar{border-radius:var(--detail-row-radius)}
+.contact-title{font-size:var(--detail-contact);line-height:var(--detail-contact-leading);
+ font-weight:700;letter-spacing:-.01em}
+.contact-preview{font-size:var(--detail-preview);line-height:var(--detail-preview-leading);
+ margin-top:var(--detail-unit);color:var(--polish-muted)}
+.contact .time{font-size:var(--detail-meta);line-height:var(--detail-meta-leading);
+ font-variant-numeric:tabular-nums;padding-top:2px}
+.contact .count{font-variant-numeric:tabular-nums;line-height:14px}
+.contact:focus-visible,.filter:focus-visible{outline-offset:-2px}
+/* Conversation header, text, media metadata and the composer use matching sizes. */
+.chat-header-inner .identity b{font-size:15px;line-height:21px;letter-spacing:-.01em}
+.chat-header-inner .identity small{font-size:var(--detail-meta);line-height:var(--detail-meta-leading);
+ margin-top:var(--detail-unit)}
+.chat-header-inner .iconbtn,.composer-inner>.iconbtn{border-radius:var(--detail-control-radius);
+ display:grid;place-items:center}
+.chat-header-inner .iconbtn .ui-icon,.composer-inner>.iconbtn .ui-icon,
+.headerline .head-action .ui-icon{display:block;width:var(--detail-icon);height:var(--detail-icon)}
+.composer-inner #sendDemo{border-radius:50%}
+.composer-inner .editorbox{border-width:var(--detail-line-width);
+ border-style:solid;border-color:var(--border);border-radius:24px}
+.composer-inner #draft{font-size:16px;line-height:var(--frame-input-line);
+ letter-spacing:0}
+.message-stream .bubble{font-size:var(--detail-thread);line-height:var(--detail-thread-leading);
+ padding:11px 13px;border-width:var(--detail-line-width);border-style:solid;
+ border-radius:var(--detail-bubble-radius) var(--detail-bubble-radius)
+ var(--detail-bubble-radius) 5px}
+.message-stream .mine .bubble{border-radius:var(--detail-bubble-radius)
+ var(--detail-bubble-radius) 5px var(--detail-bubble-radius);border-color:transparent}
+.message-stream .stamp,.message-stream .day{font-size:var(--detail-meta);
+ line-height:var(--detail-meta-leading);font-variant-numeric:tabular-nums}
+.chat-note{font-size:var(--detail-meta);line-height:var(--detail-meta-leading)}
+/* Auxiliary surfaces inherit the same 14px control radius/21px glyphs. */
+.action-sheet-action,.action-sheet-action .action-sheet-glyph,
+.action-sheet-close,.media-viewer-tools button{border-radius:var(--detail-control-radius)}
+.action-sheet-action .ui-icon,.action-sheet-close .ui-icon,
+.media-viewer-tools button .ui-icon{display:block;width:var(--detail-icon);height:var(--detail-icon)}
+.workcard .symbol{border-radius:var(--detail-control-radius)}
+@media(max-width:360px){
+ .headerline h1{font-size:23px;line-height:32px}
+ .contact-title{font-size:var(--detail-contact)}
+}
+@media(prefers-reduced-motion:reduce){
+ .composer-inner .editorbox,.search{transition:none}
+}
+
 </style>
 </head>
 <body>
 <svg class="icon-sprite" width="0" height="0" viewBox="0 0 24 24" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"><defs><symbol id="ui-message-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5a8.5 8.5 0 0 1-8.5 8.5 9.6 9.6 0 0 1-4.1-1L3 20l1.2-4.1A8.5 8.5 0 1 1 20 11.5Z"/><path d="M8.5 11.5h7"/></symbol><symbol id="ui-briefcase" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18M10 13v2h4v-2"/></symbol><symbol id="ui-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h3l1.2 4-2 1.6c1.3 2.7 3.1 4.5 5.8 5.8l1.6-2 4 1.2v3a2 2 0 0 1-2.3 2c-7.3-1-12.5-6.2-13.5-13.5A2 2 0 0 1 6 3.5Z"/></symbol><symbol id="ui-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 14 4l1.1 1.8 2 .2 1.5 1.5-.2 2L20 11l-.2 2-1.4 1.6.1 2-1.4 1.4-2-.1L13 20l-2 .1-1.8-1.5-2 .1-1.5-1.5.2-2L4 13.5l-.2-2 1.5-1.8-.1-2L6.7 6l2 .2L10 4Z"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="ui-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></symbol><symbol id="ui-pencil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 16.5 1-4 10-10 4 4-10 10-5 1Z"/><path d="m12.8 4.7 4 4M4 21h16"/></symbol><symbol id="ui-arrow-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6M9 12h12"/></symbol><symbol id="ui-more" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></symbol><symbol id="ui-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M4 12h16"/></symbol><symbol id="ui-arrow-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V4m-7 7 7-7 7 7"/></symbol><symbol id="ui-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 15.6A8.4 8.4 0 0 1 8.4 4 8.6 8.6 0 1 0 20 15.6Z"/></symbol><symbol id="ui-receipt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18l-3-2-4 2-4-2-3 2V3Z"/><path d="M9 8h6M9 12h6M9 16h4"/></symbol><symbol id="ui-wallet" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="15" rx="3"/><path d="M3 10h18M16 15h3"/></symbol><symbol id="ui-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12 12 20 4 12V4h8l8 8Z"/><circle cx="8.5" cy="8.5" r="1"/></symbol><symbol id="ui-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="m4 17 5-5 4 4 2-2 5 5"/></symbol><symbol id="ui-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></symbol><symbol id="ui-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5 19 19M19 5 5 19"/></symbol><symbol id="ui-minus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 12h16"/></symbol></defs></svg>
-<div class="screen" id="screen" data-design-id="CHAT-NEXT-016" data-design-round="16">
+<div class="screen" id="screen" data-design-id="CHAT-NEXT-017" data-design-round="17">
   <div class="demo-top"><div class="demo-brand"><strong>CHAT NEXT</strong><span class="state"><i></i> BẢN DEMO · DỮ LIỆU MẪU</span></div><div class="top-actions"><details class="version-details" id="versionHistory" aria-label="Phiên bản thiết kế và các vòng sửa">
-  <summary title="CHAT NEXT — Vòng 16: Căn trục ô gõ và nội dung" aria-label="Xem lịch sử phiên bản CHAT NEXT, vòng 16"><span class="version-round">V16</span><span class="version-caption">· Nhật ký sửa</span></summary>
+  <summary title="CHAT NEXT — Vòng 17: Chuẩn hóa chi tiết giao diện" aria-label="Xem lịch sử phiên bản CHAT NEXT, vòng 17"><span class="version-round">V17</span><span class="version-caption">· Nhật ký sửa</span></summary>
   <div class="version-panel">
-    <h2>CHAT NEXT · Vòng 16</h2>
-    <p>Căn trục ô gõ, nút và nội dung · 18/11/2026. Bản demo, không phải V21 production.</p>
+    <h2>CHAT NEXT · Vòng 17</h2>
+    <p>Chữ, icon, viền và khoảng cách thống nhất · 18/11/2026. Bản demo, không phải V21 production.</p>
     <ol class="version-log" aria-label="Lịch sử các vòng thiết kế">
+      <li><b>V17</b><span><strong>Chi tiết giao diện đồng bộ</strong><small>18/11/2026 · Typography, biểu tượng, bán kính, viền, nhịp khoảng cách</small></span></li>
       <li><b>V16</b><span><strong>Căn trục ô gõ và nội dung</strong><small>18/11/2026 · Vùng nhập, khoảng cách, thanh cuộn, thước đo L5</small></span></li>
       <li><b>V15</b><span><strong>Tên phiên bản & nhật ký chỉnh sửa</strong><small>18/11/2026 · Đang nghiệm thu demo</small></span></li>
       <li><b>V14</b><span><strong>Khung phân cấp và trục L0–L5</strong><small>18/11/2026 · Chuẩn hóa header, nội dung và ô nhập</small></span></li>
@@ -818,6 +891,20 @@ function updateFrameAudit(){
      lines.push('Gap '+frameRound(leftGap)+'px / '+frameRound(rightGap)+'px (mục tiêu '+frameRound(gap)+'px)');
      lines.push('Mép chữ '+frameRound(textInset)+'px (mục tiêu '+frameRound(insetX)+'px)');
      lines.push('Đáy nút/ô lệch '+frameRound(bottomDelta)+'px · dòng '+frameRound(lineHeight)+'px');
+
+     /* V17: icon optical centering inside both 44/48px composer buttons. */
+     var plusIcon=attach.querySelector('.ui-icon'),sendIcon=send.querySelector('.ui-icon');
+     var pi=frameRect(plusIcon),si=frameRect(sendIcon);
+     if(pi&&si){
+       var leftError=Math.max(Math.abs((pi.left+pi.right-la.left-la.right)/2),
+         Math.abs((pi.top+pi.bottom-la.top-la.bottom)/2));
+       var rightError=Math.max(Math.abs((si.left+si.right-ls.left-ls.right)/2),
+         Math.abs((si.top+si.bottom-ls.top-ls.bottom)/2));
+       var iconOk=leftError<=1&&rightError<=1&&Math.abs(pi.width-si.width)<=1;
+       lines.push('ICON + / GỬI '+(iconOk?'ĐẠT':'CẦN SỬA')+
+         ' · lệch tâm '+frameRound(leftError)+' / '+frameRound(rightError)+'px');
+     }
+
    }
 
  }else lines.push('Mở hội thoại để đo 4 trục L4');
@@ -837,7 +924,7 @@ if(geometryMode){
  geometryPanel=document.createElement('details');
  geometryPanel.className='geometry-inspector';
  geometryPanel.open=true;
- var summary=document.createElement('summary');summary.textContent='V16 · Đo trục và ô gõ L0–L5';
+ var summary=document.createElement('summary');summary.textContent='V17 · Kiểm tra trục, icon, ô gõ';
  geometryReadout=document.createElement('pre');
  geometryPanel.append(summary,geometryReadout);document.body.append(geometryPanel);
  window.addEventListener('resize',function(){window.requestAnimationFrame(updateFrameAudit)});
