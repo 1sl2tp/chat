@@ -1163,6 +1163,8 @@ function bind(){
   if(!plus)return false;
   ensureAdminMenu();
   mountQuickActions();
+  const compactMedia=window.matchMedia?.('(max-width:63.999rem)');
+  compactMedia?.addEventListener?.('change',syncQuickActions);
   document.addEventListener('v21-active-contact-change',()=>{rememberCurrentCustomer();syncQuickActions();});
   document.addEventListener('v21-contact-groups-change',()=>{rememberCurrentCustomer();syncQuickActions();});
   document.addEventListener('click',event=>{
