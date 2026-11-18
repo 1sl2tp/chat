@@ -405,6 +405,8 @@ function renderChatTabIdentity(){
   const profileButton=document.querySelector('[data-active-contact-profile]');
   const profileMenuItem=document.querySelector('[data-chat-header-action="profile"]');
   const phoneMenuItem=document.querySelector('[data-chat-header-action="phone"]');
+  const cashMenuItem=document.querySelector('[data-chat-header-action="cash"]');
+  const debtMenuItem=document.querySelector('[data-chat-header-action="debt"]');
   const visible=Boolean(
     authState==='AUTHENTICATED' &&
     authAccount?.role==='admin' &&
@@ -427,6 +429,8 @@ function renderChatTabIdentity(){
   if(!visible){
     if(profileMenuItem)profileMenuItem.hidden=true;
     if(phoneMenuItem)phoneMenuItem.hidden=true;
+    if(cashMenuItem)cashMenuItem.hidden=true;
+    if(debtMenuItem)debtMenuItem.hidden=true;
     if(profileButton)profileButton.hidden=true;
     avatar.hidden=true;
     label.textContent='Trò chuyện';
@@ -438,6 +442,9 @@ function renderChatTabIdentity(){
   )||null;
   if(profileMenuItem)profileMenuItem.hidden=!(item?.role==='user'&&!isPinnedBankReportContact(item));
   if(phoneMenuItem)phoneMenuItem.hidden=!(item?.role==='user'&&!isPinnedBankReportContact(item));
+  const canManageCustomer=item?.role==='user'&&!isPinnedBankReportContact(item);
+  if(cashMenuItem)cashMenuItem.hidden=!canManageCustomer;
+  if(debtMenuItem)debtMenuItem.hidden=!canManageCustomer;
   if(profileButton){
     profileButton.hidden=!(item?.role==='user'&&!isPinnedBankReportContact(item));
     profileButton.setAttribute('aria-label','Sửa tên hiển thị và thông tin '+String(item?.display_name||item?.username||'liên hệ'));
@@ -1888,6 +1895,17 @@ document.addEventListener('click',event=>{
     const action=String(headerAction.dataset.chatHeaderAction||'');
     closeChatHeaderMenu();
     if(action==='photos')NavigationCommand.openPhotos();
+    if(action==='search')window.V21ConversationSearch?.open?.();
+    // Existing owner enforces Admin/customer identity and preserves the
+    // double-confirm/ledger rules; the header only relocates the action.
+    if(action==='cash'&&authState==='AUTHENTICATED'&&authAccount?.role==='admin'&&activeContact?.id){
+      void Promise.resolve(window.V21AdminComposerActions?.openQuickCash?.(activeContact.id)).catch(()=>{
+        console.warn('[ChatShell] quick-cash dialog unavailable');
+      });
+    }
+    if(action==='debt'&&authState==='AUTHENTICATED'&&authAccount?.role==='admin'&&activeContact?.id){
+      void window.V21AdminComposerActions?.run?.('debt');
+    }
     if(action==='phone'&&authState==='AUTHENTICATED'&&authAccount?.role==='admin'&&activeContact?.id){
       const item=window.V21ContactStore?.snapshot?.().find(row=>String(row?.id||'')===String(activeContact.id));
       if(item?.role==='user'&&!isPinnedBankReportContact(item)){
