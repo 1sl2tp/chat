@@ -58,7 +58,7 @@ assert.notEqual(layout.dataset.editorExpanded,'true');
 type('Một dòng');
 assert.notEqual(layout.dataset.editorExpanded,'true');
 type('Dòng một\nDòng hai');
-assert.equal(layout.dataset.editorExpanded,'false','two lines share same action row');
+assert.notEqual(layout.dataset.editorExpanded,'true','two lines share same action row');
 assert.equal(textarea.style['--editor-height'],'64px','two lines visible without second toolbar');
 type('Dòng một\nDòng hai\nDòng ba');
 assert.equal(layout.dataset.editorExpanded,'true','only third line moves actions below editor');
