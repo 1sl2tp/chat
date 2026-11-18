@@ -255,6 +255,10 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
 }
 @media(max-width:360px){.media-viewer-tools{gap:3px}.media-viewer-tools button{min-width:44px;min-height:44px}.media-viewer-tools output{min-width:50px}}
 @media(prefers-reduced-motion:reduce){.media-card,.media-viewer-tools button{transition:none}}
+
+/* Long text remains selectable and wraps even with unbroken order codes. */
+.bubble{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;user-select:text;-webkit-user-select:text}
+.media-card{-webkit-user-select:none;user-select:none}
 </style>
 </head>
 <body>
@@ -367,7 +371,7 @@ var people=[
 {id:'family',name:'Nhóm gia đình',initial:'G',color:'orange',kind:'Nhóm',category:'group',time:'07:10',unread:1,orders:'01',preview:'Hôm nay có hai đơn cần soát hàng trước khi giao.',texts:[['other','Hôm nay có hai đơn cần kiểm hàng trước khi giao.','07:10'],['mine','Dạ, em đã ghi nhận.','07:12']]},
 {id:'minh',name:'Anh Minh',initial:'M',color:'violet',kind:'Khách hàng',category:'customer',time:'Hôm qua',unread:0,orders:'00',preview:'Đã nhận đủ hàng, cảm ơn bạn nhé.',texts:[['mine','Đơn hôm nay giao đủ rồi anh nhé.','16:30'],['other','Đã nhận đủ hàng, cảm ơn bạn nhé.','16:33']]},
 {id:'supplier',name:'Nhà cung cấp',initial:'N',color:'green',kind:'Nhóm',category:'group',time:'T. Hai',unread:0,orders:'01',preview:'Đã gửi bảng giá mới và danh sách sản phẩm.',texts:[['other','Bên em gửi lại bảng giá mới.','09:00'],['media','catalog','09:03'],['mine','Cảm ơn, mình đã nhận được.','09:05']]},
-{id:'huong',name:'Cô Hương',initial:'H',color:'blue',kind:'Khách hàng',category:'customer',time:'16/11',unread:0,orders:'00',preview:'Cảm ơn, khi nào có hàng thì báo cô.',texts:[['other','Khi nào có hàng báo giúp cô nhé.','14:16'],['mine','Dạ, có hàng em sẽ báo lại.','14:19']]}
+{id:'huong',name:'Cô Hương',initial:'H',color:'blue',kind:'Khách hàng',category:'customer',time:'16/11',unread:0,orders:'00',preview:'Cảm ơn, khi nào có hàng thì báo cô.',texts:[['other','Khi nào có hàng báo giúp cô nhé.\nGhi chú:\n- 2 thùng hàng nhẹ\n- 3 hộp hàng khô\n- Giao buổi chiều, không để ngoài nắng. Mã ghi chú mẫu rất dài: ABC-0123456789-0123456789-0123456789-0123456789.','14:16'],['mine','Dạ, có hàng em sẽ báo lại.','14:19']]}
 ];
 var current='lan',filter='all',page='chat',app=document.getElementById('app'),screen=document.getElementById('screen'),toast=document.getElementById('toast'),timer=null;
 var demoDrafts=Object.create(null),demoPreviewMessages=Object.create(null); // RAM only: never browser storage or network.
@@ -379,7 +383,7 @@ var actionSheet=byId('conversationActions'),actionTrigger=null;
 function closeActionSheet(){if(actionSheet.open)actionSheet.close();if(actionTrigger){actionTrigger.focus({preventScroll:true});actionTrigger=null}}
 function openActionSheet(trigger){if(actionSheet.open)return;actionTrigger=trigger||null;byId('actionSheetTitle').textContent=selected().name;actionSheet.showModal()}
 document.querySelectorAll('[data-sheet-close]').forEach(function(b){b.addEventListener('click',closeActionSheet)});
-document.querySelectorAll('[data-sheet-action]').forEach(function(b){b.addEventListener('click',function(){var action=b.dataset.sheetAction;closeActionSheet();if(action==='work')showPage('work');else if(action==='photos')openMediaViewer('order',b)})});
+document.querySelectorAll('[data-sheet-action]').forEach(function(b){b.addEventListener('click',function(){var action=b.dataset.sheetAction,focusReturn=actionTrigger||b;closeActionSheet();if(action==='work')showPage('work');else if(action==='photos')openMediaViewer('order',focusReturn)})});
 actionSheet.addEventListener('click',function(event){if(event.target===actionSheet)closeActionSheet()});
 actionSheet.addEventListener('close',function(){if(actionTrigger){actionTrigger.focus({preventScroll:true});actionTrigger=null}});
 
