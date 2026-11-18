@@ -1,3 +1,14 @@
+## 2026-11-18 — CHAT-NEXT-004 · Khóa trạng thái Công việc khi đổi quyền/bàn phím/màn hình
+
+- **E0:** Khi một Admin đang mở thanh `#chatQuickActions` trong chế độ thử `?chatnext=1`, thay đổi nhóm khách có thể khiến owner `admin-composer-actions.js::syncQuickActions` đặt `hidden=true`, nhưng thuộc tính `data-chat-next-tools=open` vẫn tồn tại. Sau khi trở về nhóm hợp lệ, thanh dễ tự hiện lại sai ngữ cảnh. Tương tự khi iPhone mở bàn phím hoặc xoay thành desktop rồi quay lại.
+- **E1:** Owner phân quyền **giữ nguyên** `bar.hidden=!visible` và câu `if(!visible)closeQuickRecent()` của nghiệp vụ UX-192. Chỉ khi thực sự bị thu hồi quyền và panel candidate đang open thì phát `chat-next-work-tools-force-close`. `shell.js` lắng nghe ở preview mode, đóng toolbar khi nhập `#editor` và khi media query mobile/desktop thay đổi. Cả ba nhánh gọi cùng `setChatNextToolsOpen(false)` có tính idempotent; không tạo owner mới cho keyboard, không chuyển focus/lưu phiên, không gọi backend.
+- **E2:** Thêm `tests/test_chatnext_phase4_lifecycle_20261118.cjs` vào Verify V21. Test Node VM chạy riêng trạng thái mở/đóng, nhập tin, breakpoint, quyền customer vs other, Admin logout, restore không được tự bật. Test mặc định ứng dụng không cài thêm listener preview. Giữ nguyên hợp đồng `tests/test_ux192_one_tap_chat.py`.
+- **E3:** Verify V21 [run #44219527468](https://github.com/1sl2tp/chat/actions/runs/44219527468) **SUCCESS** tại commit `2d990544ec47ea0e5fc8449c9e72c2b1fdeb176c`. Sửa đổi này **chỉ ở Draft PR #329**, không tự phát hành GitHub Pages hoặc APK/PWA.
+- **E4/E5:** PENDING: cần kiểm thử thật iPhone Safari/PWA, Android Chrome/PWA và desktop. Phải kiểm tra thao tác nhanh khi đổi nhóm khách, editor mở bàn phím, xoay máy, đang có cuộc gọi; xác minh không bị che tin/cuộn giật hoặc gửi thu thử ra khách.
+- **Rollback:** chỉ hoàn nguyên `shell.js` listener candidate + nhánh sự kiện `admin-composer-actions.js`, test tương ứng. Không sửa Supabase, Zalo, Ledger, tin nhắn, auth hoặc người dùng thật.
+
+---
+
 ## 2026-11-18 — CHAT-NEXT-003 · Công việc theo ngữ cảnh khách hàng (candidate only)
 
 - **E0:** Admin đang có `#chatQuickActions` (Thu tiền/Công nợ/Ảnh/Tìm-Gần) hiển thị thành một hàng riêng trong hội thoại, chiếm chiều cao trên mobile. `admin-composer-actions.js::syncQuickActions()` là chủ sở hữu phân quyền hiện hành, chỉ cho Admin + khách thuộc nhóm customer + màn chat; `shell.js` vẫn cố ý tắt `WORK_ENABLED=false`. Không được tạo lại thao tác thu tiền/đơn hàng, không bật Work route chưa được nghiệm thu.
