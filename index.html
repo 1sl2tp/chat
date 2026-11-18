@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="32bd068d6324d8736db45516fcfaedca45301d83c39527c2f38998a68b72fc77">
+<meta name="app-build-id" content="ac5b08cc84a733765793eb070a1bf5a19adc33853ba95ac0d5027f2fa9412f80">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -6710,7 +6710,7 @@ body.ncc-ai-room-open{overflow:hidden}
   #appShell[data-auth-state="authenticated"][data-route="chat"] #editor{
     height:var(--editor-height,40px);
     min-height:40px;
-    max-height:168px;
+    max-height:144px;
     margin:0;
     padding:9px 2px!important;
     font-size:var(--ui-input-mobile-font-size,16px);
@@ -6802,9 +6802,9 @@ body.ncc-ai-room-open{overflow:hidden}
   #appShell[data-auth-state="authenticated"][data-route="chat"] #send svg :is(path,line,rect,circle,polyline){
     stroke-width:2px!important;
   }
-  /* UI-273: a short draft keeps the original compact row. Once its natural
-     text reaches a second line, place the editor above the 44px action rail.
-     Width stays expanded until the draft clears, preventing Safari oscillation. */
+  /* CHAT-384: compact mode accommodates TWO lines before changing the
+     track layout. The third real line owns the full-width editor and moves
+     the existing 44px actions below, without a second keyboard owner. */
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-editor-expanded="true"]{
     grid-template-rows:auto auto minmax(40px,auto) 44px;
     align-items:end;
@@ -13252,6 +13252,17 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
               </button>
               <button type="button" role="menuitem" data-chat-header-action="photos">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8" cy="9" r="1.5"/><path d="m4.5 17 5.5-5.5 3.5 3.5 2.5-2.5 4 4"/></svg><span>Ảnh đã chia sẻ</span>
+              </button>
+              <!-- CHAT-384: business/search actions live in the EXISTING
+                   conversation overflow on phones, not a second fixed bar. -->
+              <button type="button" role="menuitem" data-chat-header-action="search">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.7"/><path d="m15.6 15.6 4.4 4.4"/></svg><span>Tìm trong hội thoại</span>
+              </button>
+              <button type="button" role="menuitem" data-chat-header-action="cash" hidden>
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="12" cy="12" r="3"/></svg><span>Thu tiền</span>
+              </button>
+              <button type="button" role="menuitem" data-chat-header-action="debt" hidden>
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M8 3.5h8l3 3V21l-3-2-4 2-4-2-3 2V3.5h3Z"/><path d="M9 9h7M9 13h7"/></svg><span>Gửi đối chiếu công nợ</span>
               </button>
               <button type="button" role="menuitem" data-chat-header-action="audio">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.2 4.5 10 8l-1.8 2.2c1.2 2.5 3.1 4.4 5.6 5.6L16 14l3.5 2.8-.9 2.7c-.3.8-1.1 1.3-2 1.2C9.4 19.8 4.2 14.6 3.3 7.4c-.1-.9.4-1.7 1.2-2l2.7-.9Z"/></svg><span>Gọi qua Chat</span>
@@ -20943,6 +20954,19 @@ const composerMobileBreakpoint=window.matchMedia?.('(max-width:63.999rem)')||nul
 let lastEditorHeightPx=40;
 let lastEditorInternalScroll=false;
 let lastComposerMeasuredValue='';
+let composerCompactWidthPx=0;
+
+// CHAT-384: one Composer geometry owner. Budget the entire input surface
+// against the *visible* viewport, including its action row and attachments,
+// so a long draft cannot consume the conversation above the iOS keyboard.
+function composerTextHeightLimit(visibleHeight,headerHeight,composerOverhead){
+  const visible=Math.max(1,Number(visibleHeight)||1);
+  const header=Math.max(0,Number(headerHeight)||0);
+  const overhead=Math.max(0,Number(composerOverhead)||0);
+  const minimumMessages=Math.max(128,Math.floor(visible*.42));
+  const available=visible-header-overhead-minimumMessages-8;
+  return Math.max(40,Math.min(144,Math.floor(visible*.32),Math.floor(available)));
+}
 
 function autoGrow({source='layout'}={}){
   ensureComposerMeasureReady();
@@ -20967,24 +20991,50 @@ function autoGrow({source='layout'}={}){
   // Limit by the visible keyboard viewport (not the document height), keeping
   // some conversation visible in short/landscape iPhone windows.
   const visibleHeight=Number(window.visualViewport?.height||window.innerHeight)||640;
-  const maxHeight=mobile
-    ?Math.max(80,Math.min(168,Math.floor(visibleHeight*.35)))
-    :64;
+  // An input with two real lines stays on ONE toolbar row. Only a third
+  // line changes the layout to a full-width editor + 44px action row.
+  const lineHeight=Math.max(22,parseFloat(getComputedStyle(editor).lineHeight)||24);
+  const compactTwoLineLimit=40+Math.ceil(lineHeight)+2;
+  const wasExpanded=composerShell.dataset.editorExpanded==='true';
+  if(mobile&&!wasExpanded){
+    composerCompactWidthPx=Math.max(0,editor.getBoundingClientRect().width)||composerCompactWidthPx;
+  }
+  // Do not bounce compact ↔ expanded while the user types punctuation or
+  // Vietnamese IME. Only a genuine text deletion may fold the action rail
+  // back, and only if the text fits TWO lines at the compact width.
+  const deletion=source==='typing'&&editor.value.length<previousValue.length;
+  let compactNatural=natural;
+  if(mobile&&wasExpanded&&deletion&&composerCompactWidthPx>0){
+    syncMeasureStyle({force:true,widthPx:composerCompactWidthPx});
+    compactNatural=Math.ceil(measure.scrollHeight);
+  }
+  const canCollapse=wasExpanded&&deletion&&compactNatural<=compactTwoLineLimit;
   const expanded=mobile&&(
-    natural>43 ||
-    (composerShell.dataset.editorExpanded==='true'&&Boolean(editor.value.trim()))
+    canCollapse?false:
+      natural>compactTwoLineLimit ||
+      (wasExpanded&&Boolean(editor.value.trim()))
   );
-  const expandedChanged=(composerShell.dataset.editorExpanded==='true')!==expanded;
+  const expandedChanged=wasExpanded!==expanded;
   if(expandedChanged){
     composerShell.dataset.editorExpanded=expanded?'true':'false';
-    if(expanded){
-      // UI-285: expansion changes the textarea from a narrow middle column
-      // to the full row. Measure that ACTUAL new width before painting its
-      // first expanded height, rather than correcting one frame later in RO.
-      syncMeasureStyle({force:true,widthPx:editor.getBoundingClientRect().width});
-      natural=Math.ceil(measure.scrollHeight);
-    }
+    // Switching tracks changes text width: always read the true current
+    // textarea width before applying the height in the same frame.
+    syncMeasureStyle({force:true,widthPx:editor.getBoundingClientRect().width});
+    natural=Math.ceil(measure.scrollHeight);
   }
+  // The header and Composer are measured rather than inferred from CSS
+  // breakpoints. This also counts reply/media previews and action controls.
+  const headerHeight=typeof regionTop!=='undefined'
+    ?Math.ceil(regionTop?.getBoundingClientRect?.().height||0):56;
+  const composerHeight=typeof bottomContainer!=='undefined'
+    ?Math.ceil(bottomContainer?.getBoundingClientRect?.().height||0):0;
+  const editorHeight=Math.ceil(editor.getBoundingClientRect().height||lastEditorHeightPx);
+  const composerOverhead=composerHeight>0
+    ?Math.max(0,composerHeight-editorHeight)
+    :(expanded?56:12);
+  const maxHeight=mobile
+    ?composerTextHeightLimit(visibleHeight,headerHeight,composerOverhead)
+    :64;
   let next=Math.max(40,Math.min(maxHeight,natural));
   // Appending punctuation or a word can alter Safari's wrap opportunities
   // without deleting any text. Never jump down/up a row in the same draft;
@@ -21035,9 +21085,12 @@ const composerMeasureObserver=
         composerMeasureFrame=requestAnimationFrame(()=>{
           composerMeasureFrame=0;
           if(editor.isConnected===false)return;
-          if(syncMeasureStyle({widthPx:composerObservedWidthPx})){
-            autoGrow({source:'resize-observer'});
-          }
+          // Do not apply a width sampled from the previous customer after an
+        // A → B switch. The current DOM/caret is the only geometry owner.
+        const liveWidth=editor.getBoundingClientRect().width;
+        if(syncMeasureStyle({widthPx:liveWidth>0?liveWidth:composerObservedWidthPx})){
+          autoGrow({source:'resize-observer'});
+        }
         });
       })
     :null;
@@ -21169,7 +21222,12 @@ const ComposerDraftOwner={
     if(!(mediaRecorder&&mediaRecorder.state!=='inactive')){
       setAudioWorkflowState(pendingAttachments.some(item=>item?.kind==='audio')?'PREVIEW':'IDLE');
     }
-    autoGrow();
+    // An expanded draft belongs to its *conversation*, not the reused
+    // Composer element. Start B from compact geometry then measure B's own
+    // text once, before rendering the next frame.
+    composerShell.dataset.editorExpanded='false';
+    syncMeasureStyle({force:true,widthPx:editor.getBoundingClientRect().width});
+    autoGrow({source:'context-switch'});
     syncSendButtonState();
   },
 
@@ -24543,6 +24601,8 @@ function renderChatTabIdentity(){
   const profileButton=document.querySelector('[data-active-contact-profile]');
   const profileMenuItem=document.querySelector('[data-chat-header-action="profile"]');
   const phoneMenuItem=document.querySelector('[data-chat-header-action="phone"]');
+  const cashMenuItem=document.querySelector('[data-chat-header-action="cash"]');
+  const debtMenuItem=document.querySelector('[data-chat-header-action="debt"]');
   const visible=Boolean(
     authState==='AUTHENTICATED' &&
     authAccount?.role==='admin' &&
@@ -24565,6 +24625,8 @@ function renderChatTabIdentity(){
   if(!visible){
     if(profileMenuItem)profileMenuItem.hidden=true;
     if(phoneMenuItem)phoneMenuItem.hidden=true;
+    if(cashMenuItem)cashMenuItem.hidden=true;
+    if(debtMenuItem)debtMenuItem.hidden=true;
     if(profileButton)profileButton.hidden=true;
     avatar.hidden=true;
     label.textContent='Trò chuyện';
@@ -24576,6 +24638,9 @@ function renderChatTabIdentity(){
   )||null;
   if(profileMenuItem)profileMenuItem.hidden=!(item?.role==='user'&&!isPinnedBankReportContact(item));
   if(phoneMenuItem)phoneMenuItem.hidden=!(item?.role==='user'&&!isPinnedBankReportContact(item));
+  const canManageCustomer=item?.role==='user'&&!isPinnedBankReportContact(item);
+  if(cashMenuItem)cashMenuItem.hidden=!canManageCustomer;
+  if(debtMenuItem)debtMenuItem.hidden=!canManageCustomer;
   if(profileButton){
     profileButton.hidden=!(item?.role==='user'&&!isPinnedBankReportContact(item));
     profileButton.setAttribute('aria-label','Sửa tên hiển thị và thông tin '+String(item?.display_name||item?.username||'liên hệ'));
@@ -26026,6 +26091,17 @@ document.addEventListener('click',event=>{
     const action=String(headerAction.dataset.chatHeaderAction||'');
     closeChatHeaderMenu();
     if(action==='photos')NavigationCommand.openPhotos();
+    if(action==='search')window.V21ConversationSearch?.open?.();
+    // Existing owner enforces Admin/customer identity and preserves the
+    // double-confirm/ledger rules; the header only relocates the action.
+    if(action==='cash'&&authState==='AUTHENTICATED'&&authAccount?.role==='admin'&&activeContact?.id){
+      void Promise.resolve(window.V21AdminComposerActions?.openQuickCash?.(activeContact.id)).catch(()=>{
+        console.warn('[ChatShell] quick-cash dialog unavailable');
+      });
+    }
+    if(action==='debt'&&authState==='AUTHENTICATED'&&authAccount?.role==='admin'&&activeContact?.id){
+      void window.V21AdminComposerActions?.run?.('debt');
+    }
     if(action==='phone'&&authState==='AUTHENTICATED'&&authAccount?.role==='admin'&&activeContact?.id){
       const item=window.V21ContactStore?.snapshot?.().find(row=>String(row?.id||'')===String(activeContact.id));
       if(item?.role==='user'&&!isPinnedBankReportContact(item)){
@@ -27625,6 +27701,11 @@ function showMobileDirectory(reason='directory'){
   if(!app||!layer)return false;
   const wasOpen=mobileDirectoryOpen();
   rememberMobileChatContact();
+  // A single back tap opens Danh bạ even while the native keyboard is up.
+  // Blur BEFORE changing the canonical contact so a final IME composition
+  // event can save A's draft without focusing another customer's editor.
+  if(document.activeElement?.id==='editor')document.activeElement.blur();
+  window.V21ComposerActionMenu?.close?.();
   closeMobileAccountMenu();
   app.dataset.mobileDirectory='true';
   layer.dataset.mobileDirectory='true';
@@ -32290,7 +32371,11 @@ function syncQuickActions(){
  const route=window.ChatAppShell?.ScreenSession?.snapshot?.()?.route;
  const visible=Boolean(currentAdmin()&&quickCustomerId()&&quickCustomerGroup()==='customer'
   &&route==='chat');
- bar.hidden=!visible;
+ // The mobile header overflow now owns these same business commands.
+ // The four-button bar survives only on wide desktop, where it is not
+ // competing with the native phone keyboard or the message viewport.
+ const compact=window.matchMedia?.('(max-width:63.999rem)')?.matches===true;
+ bar.hidden=!visible||compact;
  if(!visible)closeQuickRecent();
 }
 function closeQuickCash({restoreFocus=true}={}){
@@ -32608,6 +32693,8 @@ function bind(){
   if(!plus)return false;
   ensureAdminMenu();
   mountQuickActions();
+  const compactMedia=window.matchMedia?.('(max-width:63.999rem)');
+  compactMedia?.addEventListener?.('change',syncQuickActions);
   document.addEventListener('v21-active-contact-change',()=>{rememberCurrentCustomer();syncQuickActions();});
   document.addEventListener('v21-contact-groups-change',()=>{rememberCurrentCustomer();syncQuickActions();});
   document.addEventListener('click',event=>{
@@ -32633,6 +32720,7 @@ window.V21AdminComposerActions=Object.freeze({
   mount:ensureAdminMenu,
   run:runAction,
   openQuote,
+  openQuickCash,
   openRecentSales,
   openCredentials,
   openStockCheck,
