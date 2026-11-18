@@ -12,6 +12,10 @@ const shellNavigationLayer=document.getElementById('shellNavigationLayer');
 const globalOverlayRoot=document.getElementById('globalOverlayRoot');
 const sessionHost=document.getElementById('sessionHost');
 const appShell=document.getElementById('appShell');
+// CHAT NEXT preview is explicit and session-local. Never replace the production
+// directory or enable unfinished Work/transport when this visual flag is off.
+const chatNextPreview=new URLSearchParams(window.location.search||'').get('chatnext')==='1';
+if(chatNextPreview&&appShell)appShell.dataset.chatNextUi='on';
 const stageLayout=document.getElementById('stageLayout');
 const workView=document.getElementById('workThreadView');
 const workThreadHome=workView?.parentNode||null;
