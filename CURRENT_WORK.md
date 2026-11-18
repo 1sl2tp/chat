@@ -1,3 +1,15 @@
+## 2026-11-18 — CHAT-NEXT-008 · Thư viện 3 mẫu hóa đơn từ bản in đen trắng (preview-only)
+
+- **E0:** Giao diện Chat Next đã có demo Inbox/Hội thoại/Công việc tại `docs/chat-next/demo/index.html`, nhưng thẻ Đơn hàng chỉ đưa ra mô tả ngắn, chưa thể mở mẫu hóa đơn có phép tính, cột tiền căn phải và so sánh phong cách. Người dùng muốn một mẫu đen trắng chuẩn bản in trước rồi triển khai các phiên bản màu trên cùng cấu trúc.
+- **E1:** Tạo `docs/chat-next/demo/invoice.html` thuần HTML/CSS/JS một tệp, **3 skin trên cùng dữ liệu và layout**: 01 đen trắng (mặc định), 02 xanh lá, 03 xanh than; có nút đổi mẫu/`aria-pressed` và in A4 tại trình duyệt. Bố cục gồm tiêu đề, tên khách, mã đơn, thời gian, trạng thái, sản phẩm, phép tính `SL × đơn giá = thành tiền`, tổng cộng và ghi chú. Số liệu cố định demo `2 × 310.000=620.000`, `3 × 45.000=135.000`, tổng `755.000đ`, không có ghi thu/đơn thật. Trên màn nhỏ phép tính xuống dưới tên sản phẩm thay vì tràn ngang; in A4 không in sidebar, toolbar, điều khiển.
+- **Luồng demo:** Nối trang mẫu từ `docs/chat-next/demo/index.html` tại thẻ Công việc → Đơn hàng, phần chi tiết Đơn hàng và phiếu lấy hàng trong hội thoại. `docs/chat-next/demo/README.md` ghi cách mở và nghiệm thu 3 mẫu qua raw.githack (dịch vụ xem thử mã GitHub public, không phải production).
+- **E2:** `tests/test_chatnext_invoice_templates_20261118.cjs` khóa mặc định đen trắng, chuyển 3 skin, `aria-pressed`, A4 print, responsive, không có external script/API/credentials, **từng phép nhân và tổng 755.000**. Nối vào `tools/verify_current.py` cùng với các test Chat Next 1–7.
+- **E3:** [Verify V21 #44247690531](https://github.com/1sl2tp/chat/actions/runs/44247690531) **SUCCESS** trên commit `a83ee8df53a2cc3a6820448fdedaf80976319f15` chứa code/test/tài liệu. Đây là source contract/Node VM test, **không** phải hình ảnh/chất lượng in thực tế trên iPhone, iPad, Android hoặc máy in.
+- **E4/E5:** PENDING: duyệt các mẫu với người dùng qua link công khai, kiểm tra thực tế vùng chữ/tổng tiền/màu, Safari iPhone/Android Chrome/desktop, chế độ In A4 và đường dẫn tương đối giữa 2 trang. Không coi demo là chứng từ thật.
+- **Rollback:** Xóa riêng `docs/chat-next/demo/invoice.html` + liên kết từ demo + test và mục Verify; không merge `main`, không sửa renderer đơn/ảnh hiện có, Supabase, Zalo, giao dịch, auth, tin khách, production PWA.
+
+---
+
 ## 2026-11-18 — CHAT-NEXT-007 · Demo trực tuyến HTML tương tác cách ly production
 
 - **E0:** Người dùng yêu cầu xem giao diện Chat Next qua link trên iPhone/Android/desktop mà không cần deploy nhánh thử vào production. Realtime, tin nhắn, công nợ, ngân hàng, Zalo và quyền quản trị không được kết nối sang trang demo.
