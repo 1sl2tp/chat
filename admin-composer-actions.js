@@ -842,8 +842,8 @@ function syncQuickActions(){
  const visible=Boolean(currentAdmin()&&quickCustomerId()&&quickCustomerGroup()==='customer'
   &&route==='chat');
  bar.hidden=!visible;
+ if(!visible)closeQuickRecent();
  if(!visible){
-  closeQuickRecent();
   // CHAT-NEXT-004: the original permission owner revokes preview tools too.
   // Do not keep a stale "open" state that might reappear for another group.
   if(document.getElementById('appShell')?.dataset.chatNextTools==='open'){
