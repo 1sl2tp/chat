@@ -6116,6 +6116,7 @@ const composerMobileBreakpoint=window.matchMedia?.('(max-width:63.999rem)')||nul
 let lastEditorHeightPx=40;
 let lastEditorInternalScroll=false;
 let lastComposerMeasuredValue='';
+let composerCompactWidthPx=0;
 
 // CHAT-384: one Composer geometry owner. Budget the entire input surface
 // against the *visible* viewport, including its action row and attachments,
@@ -6156,11 +6157,26 @@ function autoGrow({source='layout'}={}){
   // line changes the layout to a full-width editor + 44px action row.
   const lineHeight=Math.max(22,parseFloat(getComputedStyle(editor).lineHeight)||24);
   const compactTwoLineLimit=40+Math.ceil(lineHeight)+2;
+  const wasExpanded=composerShell.dataset.editorExpanded==='true';
+  if(mobile&&!wasExpanded){
+    composerCompactWidthPx=Math.max(0,editor.getBoundingClientRect().width)||composerCompactWidthPx;
+  }
+  // Do not bounce compact ↔ expanded while the user types punctuation or
+  // Vietnamese IME. Only a genuine text deletion may fold the action rail
+  // back, and only if the text fits TWO lines at the compact width.
+  const deletion=source==='typing'&&editor.value.length<previousValue.length;
+  let compactNatural=natural;
+  if(mobile&&wasExpanded&&deletion&&composerCompactWidthPx>0){
+    syncMeasureStyle({force:true,widthPx:composerCompactWidthPx});
+    compactNatural=Math.ceil(measure.scrollHeight);
+  }
+  const canCollapse=wasExpanded&&deletion&&compactNatural<=compactTwoLineLimit;
   const expanded=mobile&&(
-    natural>compactTwoLineLimit ||
-    (composerShell.dataset.editorExpanded==='true'&&Boolean(editor.value.trim()))
+    canCollapse?false:
+      natural>compactTwoLineLimit ||
+      (wasExpanded&&Boolean(editor.value.trim()))
   );
-  const expandedChanged=(composerShell.dataset.editorExpanded==='true')!==expanded;
+  const expandedChanged=wasExpanded!==expanded;
   if(expandedChanged){
     composerShell.dataset.editorExpanded=expanded?'true':'false';
     // Switching tracks changes text width: always read the true current
