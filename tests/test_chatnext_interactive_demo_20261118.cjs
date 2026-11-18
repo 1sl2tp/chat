@@ -18,9 +18,9 @@ for(const prohibited of [
  assert(!html.includes(prohibited),'public demo must never call live APIs: '+prohibited);
 }
 
-assert(html.includes('<title>CHAT NEXT · V19 — Căn trục yêu cầu hàng (demo)</title>'),'V19 named release');
-assert(html.includes('data-design-id="CHAT-NEXT-019" data-design-round="19"'),'V19 distinct design round');
-assert(html.includes('<span class="version-round">V19</span>'),'visible version selector must be updated');
+assert(html.includes('<title>CHAT NEXT · V20 — Bố cục nhóm ảnh cân đối (demo)</title>'),'V19 named release');
+assert(html.includes('data-design-id="CHAT-NEXT-020" data-design-round="20"'),'V19 distinct design round');
+assert(html.includes('<span class="version-round">V20</span>'),'visible version selector must be updated');
 assert(css.includes('/* CHAT-NEXT-016 — L5 composer precision'),'one micro-geometry owner');
 assert(css.includes('.conversation{scrollbar-width:none'),'classic scrollbars cannot shift L4');
 assert(css.includes('.conversation::-webkit-scrollbar{display:none'),'WebKit track removed');
@@ -333,6 +333,28 @@ assert.equal(requestItems[1].children[1].children[1].textContent,'hộp');
 const requestSource=orderCardNode.children.find(x=>x.className==='order-source');
 assert.equal(requestSource.children[1].textContent,['2 thùng Sữa hộp','3 hộp Bánh quy','Chiều giao giúp chị nhé.'].join(String.fromCharCode(10)),
  'one typed payload drives both visible columns and unmodified readable source');
+/* V20: separate gallery message, 2/3/4/6 samples and scoped image navigation. */
+assert(css.includes('/* CHAT-NEXT-020: media group owner'),'V20 grid has one CSS owner');
+assert(js.includes("else if(kind==='gallery')"),'explicit gallery message only');
+assert(js.includes('valid.slice(0,valid.length>=5?4:valid.length)'),'5+ uses four visible tiles');
+assert(js.includes("el('span','media-gallery-more','+'+(valid.length-4))"),'remaining count is exact');
+assert(js.includes('activeMediaSet=valid'),'viewer navigates the same grouped message');
+assert(js.includes('var valid=ids.filter(function(id)'),'gallery validates sample media IDs');
+assert(css.includes('.media-gallery.three .media-gallery-tile:first-child{grid-row:span 2}'),'3-image layout has one dominant tile');
+assert(css.includes('gap:4px'),'gallery uses consistent gutters');
+const galleries=idNodes.get('messageStream').children.filter(x=>x.className.includes('media-gallery-message'));
+assert.equal(galleries.length,4,'Lan has four explicitly separate mock gallery messages');
+assert.deepEqual(galleries.map(x=>x.children[0].children.length),[2,3,4,4],
+ 'two, three, four and six media groups use bounded visible tiles');
+assert.equal(galleries[3].children[0].children[3].children[1].textContent,'+2',
+ 'six mock images show +2 remaining');
+galleries[3].children[0].children[3].dispatch('click');
+assert.equal(idNodes.get('mediaViewerCount').textContent,'4 / 6 ảnh mẫu',
+ 'opening +N tile starts at the fourth image of the same group');
+idNodes.get('mediaNext').dispatch('click');
+assert.equal(idNodes.get('mediaViewerCount').textContent,'5 / 6 ảnh mẫu',
+ 'next navigates hidden fifth image within same message');
+idNodes.get('mediaClose').dispatch('click');
 const mediaRow=idNodes.get('messageStream').children.find(x=>x.className.includes('media-message'));
 assert(mediaRow,'Lan chat contains a media preview in a stable ratio card');
 assert.equal(mediaRow.children[0].className,'media-card','media sample is accessible as a button');
