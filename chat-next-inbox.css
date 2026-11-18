@@ -184,3 +184,151 @@
     transition:none;
   }
 }
+
+
+/* CHAT-NEXT-005 / Phase 5 — Desktop Inbox (>=64rem, precise pointer).
+   The original #screenHost owns the two-column grid and the original
+   .wm-sidebar-navigation owns scroll. This section only changes a width
+   *token* and desktop surface typography/row presentation.
+   Deliberately does NOT enable WORK_ENABLED or invent a third panel. */
+@media (min-width:64rem) and (hover:hover) and (pointer:fine) {
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #screenHost {
+    --desktop-directory-width:clamp(304px,25vw,360px);
+  }
+
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer {
+    border-inline-end:1px solid var(--chatnext-border);
+    background:var(--chatnext-surface);
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .wm-sidebar-header {
+    box-sizing:border-box;
+    min-width:0;
+    min-height:66px;
+    padding:14px 16px 10px;
+    border-bottom:1px solid var(--chatnext-border);
+    background:var(--chatnext-surface);
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-wordmark {
+    margin:0;
+    min-width:0;
+    font-size:23px;
+    line-height:30px;
+    font-weight:740;
+    letter-spacing:-.027em;
+    color:var(--chatnext-text);
+  }
+
+  /* Search/filter tools remain ABOVE the sole, existing directory scroll. */
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-tools {
+    box-sizing:border-box;
+    min-width:0;
+    padding:10px 12px 9px;
+    gap:8px;
+    border-bottom:1px solid var(--chatnext-border);
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer [data-v21-contact-list] {
+    box-sizing:border-box;
+    min-width:0;
+    padding:8px 8px 12px;
+  }
+
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-row {
+    box-sizing:border-box;
+    width:100%;
+    height:70px;
+    min-height:70px;
+    max-width:100%;
+    border-radius:var(--chatnext-radius);
+    margin-block:2px;
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-chat {
+    box-sizing:border-box;
+    width:100%;
+    height:70px;
+    min-height:70px;
+    max-width:100%;
+    padding:10px 8px;
+    display:grid;
+    grid-template-columns:40px minmax(0,1fr);
+    column-gap:11px;
+    align-items:center;
+    border-radius:var(--chatnext-radius);
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-copy {
+    box-sizing:border-box;
+    min-width:0;
+    width:100%;
+    grid-template-columns:minmax(0,1fr) 64px;
+    grid-template-rows:20px 18px;
+    column-gap:8px;
+    row-gap:2px;
+    align-content:center;
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-name {
+    min-width:0;
+    max-width:100%;
+    grid-column:1;
+    grid-row:1;
+    overflow:hidden;
+    white-space:nowrap;
+    text-overflow:ellipsis;
+    font-size:14.5px;
+    line-height:20px;
+    font-weight:660;
+    letter-spacing:-.01em;
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-preview {
+    min-width:0;
+    max-width:100%;
+    grid-column:1;
+    grid-row:2;
+    overflow:hidden;
+    white-space:nowrap;
+    text-overflow:ellipsis;
+    font-size:12.5px;
+    line-height:18px;
+    color:var(--chatnext-muted);
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-time {
+    box-sizing:border-box;
+    grid-column:2;
+    grid-row:1;
+    justify-self:end;
+    width:64px;
+    min-width:64px;
+    max-width:64px;
+    margin:0;
+    text-align:end;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    font-size:11px;
+    line-height:18px;
+    font-variant-numeric:tabular-nums;
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-row[data-unread="true"] .shell-contact-name {
+    font-weight:750;
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-contact-row[data-unread="true"] .shell-contact-time {
+    color:var(--chatnext-primary);
+    font-weight:700;
+  }
+
+  /* Keep the account popup, avatar and its keyboard focus in their
+     established footer owner. Only the surrounding surface is polished. */
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-sidebar-account-footer {
+    box-sizing:border-box;
+    min-width:0;
+    padding:8px 10px;
+    border-top:1px solid var(--chatnext-border);
+    background:var(--chatnext-surface);
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-sidebar-account-main {
+    border-radius:var(--chatnext-radius);
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-sidebar-account-main:focus-visible {
+    outline:2px solid var(--chatnext-primary);
+    outline-offset:1px;
+  }
+}
+/* Keyboard, scroll, image viewer and message composer owners unchanged. */
