@@ -2,6 +2,8 @@
 
 Áp dụng từ **CHAT-NEXT-015 / V15 — Tên phiên bản & nhật ký chỉnh sửa**, 18/11/2026.
 
+> **QUY TẮC BẮT BUỘC:** Trước mỗi lần sửa demo phải đọc đầy đủ [`UI_UX_RULES.md`](./UI_UX_RULES.md). Mọi thay đổi theo cây L0–L5, sửa tại chủ sở hữu cha, không chắp vá. Chỉ nâng phiên bản **đã phát hành** sau khi qua cổng kiểm thử và xuất bản; E4/E5 chưa thử thiết bị thật phải ghi PENDING.
+
 ## Hai số phiên bản độc lập
 
 - **CHAT-NEXT-015 / V15**: vòng thiết kế của bản demo giao diện Chat Next, có thể xem ở thanh trên cùng và mở “Nhật ký sửa”. Đây KHÔNG phải phiên bản Chat Web/PWA/APK production.
