@@ -54,8 +54,8 @@ assert(!css.includes('position:fixed'),'no new overlay or viewport owner');
 assert(!css.includes('grid-template-rows:'),'no message/scroll layout retuning');
 assert(admin.includes("document.addEventListener('chat-next-work-tools-closed',closeQuickRecent);"),
   'recent dropdown cleanup belongs to original Admin action owner');
-assert(app.includes("document.addEventListener('chat-next-tools-visibility-change',()=>{\n window.requestAnimationFrame(()=>updateMessageDayFloating());"),
-  'floating day offset refresh is owned by message renderer');
+assert(app.includes("document.addEventListener('chat-next-tools-visibility-change',scheduleMessageDayFloatingUpdate);"),
+  'floating day offset refresh must reuse existing single-flight scheduler');
 assert(shell.includes('const WORK_ENABLED=false;'),'never silently enable disabled Work route');
 
 const label={textContent:'Hiện công việc'};
