@@ -109,8 +109,7 @@
   display:none!important;
 }
 @media (max-width:63.999rem) {
-  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"][data-route="chat"]
-  :has(#stageLayout:not([data-bank-report-active="true"]) #chatQuickActions:not([hidden]))
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"][data-route="chat"]:has(#stageLayout:not([data-bank-report-active="true"]) #chatQuickActions:not([hidden]))
   #regionTop .chat-next-work-menuitem {
     display:flex!important;
   }
