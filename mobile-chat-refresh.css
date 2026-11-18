@@ -53,6 +53,13 @@
     pointer-events:auto;
     transform:none;
   }
+  /* CHAT-386: if the reading header occupies 0px, the independent date
+     chip must not sit above a message bubble at the viewport's top edge.
+     This is a defensive paint rule; app.js also owns the ARIA/hidden state. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"][data-chat-header-mode="reading"] #messageDayFloating{
+    display:none!important;
+  }
+
   /* TYPING: keep Back and the identity, reclaim the avatar and idle action
      rail while the native keyboard is taking space. Live-call states remain
      exempt in JS and are never hidden by these selectors. */

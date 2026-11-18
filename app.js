@@ -1448,12 +1448,16 @@ function setAdaptiveHeaderMode(mode,{peek=false,preserve=true}={}){
   adaptiveHeaderPeek=showPeek;
   appShell.dataset.chatHeaderMode=next;
   appShell.dataset.chatHeaderPeek=String(showPeek);
+  // CHAT-386: the floating day badge is a SECOND top overlay; when the header
+  // releases its flow height, keeping that badge would cover the first bubble.
+  // Inline date separators remain visible in the scroll stream.
+  if(next===ADAPTIVE_HEADER_MODES.READING)hideMessageDayFloating({immediate:true});
   if(changed){
     // The same controller restores a visible message or follows the tail
     // synchronously after the parent's header track changes.
     if(anchor)restoreAnchor(anchor);
     else if(tail)setScrollTop(scrollRoot.scrollHeight-scrollRoot.clientHeight);
-    scheduleMessageDayFloatingUpdate();
+    if(next!==ADAPTIVE_HEADER_MODES.READING)scheduleMessageDayFloatingUpdate();
   }
   return true;
 }
@@ -4982,6 +4986,12 @@ function messageDayFloatingQuickActionsBottom(){
  return actions.getBoundingClientRect().bottom;
 }
 function updateMessageDayFloating(){
+  // CHAT-386: while the mobile reading Header is 0px, a sticky day chip at
+  // scrollRoot.top overlays message text. Do not render two top owners.
+  if(adaptiveHeaderMode===ADAPTIVE_HEADER_MODES.READING&&adaptiveHeaderEligible()){
+    hideMessageDayFloating({immediate:true});
+    return false;
+  }
   if(!messageDayFloating||!messageDayFloatingLabel||!chatRouteVisible()||!store.size){
     hideMessageDayFloating({immediate:true});
     return false;

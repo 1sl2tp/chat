@@ -281,6 +281,10 @@ jobs:
           node tests/test_bank242_report_header_scroll_owner_20261106.cjs
       - name: BANK-243 compact report labels fit phone widths without losing full meaning
         run: node tests/test_bank243_compact_report_labels_20261106.cjs
+      - name: CHAT-386 floating date and Header overlap regression
+        run: |
+          node --check app.js
+          node tests/test_chat386_floating_day_header_20261119.cjs
       - name: CHAT-385 adaptive header reading and typing regression
         run: |
           node --check app.js

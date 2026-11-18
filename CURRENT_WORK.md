@@ -1,3 +1,16 @@
+## 2026-11-19 — CHAT-386 · Nhãn ngày nổi đè tin khi Header thu về 0px
+
+- **E0 / Bằng chứng:** Ảnh người dùng chụp từ `chat.taphoa.xyz` sau CHAT-385: nhãn `Hôm qua · 18/11/2026` chạm/đè bong bóng tin ngay dưới thanh trình duyệt. Header đã về `0px` khi cuộn đọc; `#messageDayFloating` vẫn `position:sticky` tại mép trên của `#scrollRoot`. Đây là lỗi hai lớp vùng đầu cạnh tranh, không phải bằng chứng lỗi ảnh media ở mép trái (ảnh chụp đã bị cắt khung).
+- **SPEC / Given-When-Then:** Given một cuộc trò chuyện mobile hợp lệ, When cuộn lịch sử khiến Header sang `reading` (cao 0px), Then nhãn ngày nổi được tắt ngay trước paint và không xuất hiện lại từ scroll/timer; mốc ngày inline còn hoạt động. When Header khôi phục `normal/typing`, Then logic nhãn ngày cũ được phép hiển thị lại theo `updateMessageDayFloating`. `peek` Header không được kéo nhãn ngày đè tin.
+- **E1:** `app.js::setAdaptiveHeaderMode` đóng nhãn `hideMessageDayFloating({immediate:true})` đồng bộ khi vào reading, chỉ `scheduleMessageDayFloatingUpdate` sau khi thoát; `app.js::updateMessageDayFloating` có guard chống scroll callback mở lại. `mobile-chat-refresh.css` là lớp phòng vệ paint selector scoped reading, không tạo một overlay, scroll controller hay viewport owner mới. `sw.js` xoay epoch công khai để Web/PWA cập nhật.
+- **MUST-STAY:** không đổi gửi/nhận, ChatScroll viewport state, anchor, ảnh/media, gọi, công nợ, message store, Supabase, Realtime, Push, Zalo, Render hoặc tài khoản/DB; không gửi tin thật, không deploy thủ công; không xóa IndexedDB, outbox hay draft.
+- **E2:** `tests/test_chat386_floating_day_header_20261119.cjs` chạy reducer trong VM: reading ẩn ngay, scroll không mở lại, peek không bật nhãn, normal khôi phục, anchor vẫn do owner hiện hữu; Verify V21 workflow gọi test.
+- **E3 PENDING:** PR → Verify V21 → merge main → Pages tự động → kiểm tra HTTPS `index.html` / `version.json` cùng build.
+- **E4/E5 PENDING:** kiểm thử thực tế Safari/Chrome/PWA, nhãn ngày không chồng chữ lúc lướt mạnh và cuộn ngược, bàn phím 1/2/3/8 dòng, chuyển khách, mở cuộc gọi. Không coi test nguồn/CI thay thế nghiệm thu thiết bị.
+- **Rollback:** revert CHAT-386 code và shell epoch, không đụng dữ liệu.
+
+---
+
 ## 2026-11-19 — CHAT-385 · Header mobile thay đổi theo đọc/gõ trong Chat production
 
 - **E0 / SPEC:** Ảnh và yêu cầu người dùng: Header chiếm diện tích không cần thiết trên mobile, kể cả khi cuộn đọc tin và bàn phím mở. Không sửa demo; làm trực tiếp trong `1sl2tp/chat:main` qua PR kiểm thử. Header gốc `#regionTop` là sticky con của `#scrollRoot` và có chiều cao 56px từ `mobile-ui-polish.css`. `app.js` đã là ScrollController duy nhất và `KeyboardInsetAdapter` sở hữu bàn phím. Thay đổi phải bảo vệ tin đang đọc, gọi đang diễn ra, composer/IME, tài khoản và nghiệp vụ.
