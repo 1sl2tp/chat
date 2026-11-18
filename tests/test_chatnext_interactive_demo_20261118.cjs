@@ -28,11 +28,18 @@ assert(html.includes('id="draft"')&&html.includes('id="composer"'),'local previe
 assert(html.includes('id="theme"'),'theme switcher');
 assert(html.includes('data-filter="unread"')&&html.includes('data-filter="customer"'));
 assert(html.includes('data-action="back"')&&html.includes('data-mode="work"'));
-assert(html.includes('(pointer:coarse) and (max-width:1023px)'),'tablet responsive');
+assert(html.includes('@media(max-width:700px),(hover:none),(pointer:coarse)'),'touch tablet responsive without 1024px gap');
 assert(html.includes('font-size:16px'),'iOS editable input >=16px');
 assert(html.includes('env(safe-area-inset-bottom)'),'iPhone safe-area');
 assert(html.includes('prefers-reduced-motion:reduce'),'reduced motion');
 assert(html.includes('min-height:44px'),'touch targets');
+assert(html.includes('--ui-tap:48px'),'Android-sized touch primitives');
+assert(html.includes('id="conversationActions"')&&html.includes('aria-modal="true"'),'native contextual dialog required');
+assert(html.includes('aria-controls="conversationActions"'),'conversation menu has its own control');
+assert(html.includes('data-sheet-action="work"'),'business tools are contextual, not a third fixed header icon');
+assert(html.includes('data-sheet-close'),'sheet must have 44+ px close target');
+assert(html.includes('aria-pressed="true"')&&html.includes('aria-pressed="false"'),'filter state must be announced');
+assert(!html.includes('data-action="work" title="Công việc của liên hệ"'),'work button should not crowd mobile chat header');
 assert(html.includes('replaceChildren()'),'safe, text-only re-render');
 new vm.Script(js,{filename:'chat-next-demo-inline.js'});
 
@@ -40,7 +47,7 @@ new vm.Script(js,{filename:'chat-next-demo-inline.js'});
 const idNodes=new Map(),selectorNodes={};
 class FakeElement{
  constructor(tag,id=''){this.tag=tag;this.id=id;this.className='';this.textContent='';this.value='';
-  this.innerHTML='';this.dataset={};this.style={};this.hidden=false;this.scrollHeight=24;this.scrollTop=0;
+  this.innerHTML='';this.dataset={};this.style={};this.hidden=false;this.open=false;this.scrollHeight=24;this.scrollTop=0;
   this.children=[];this.handlers={};this.classList={
     add:(name)=>{this.className=this.className.split(' ').concat(name).join(' ')},
     remove:(name)=>{this.className=this.className.split(' ').filter(x=>x!==name).join(' ')},
@@ -50,6 +57,10 @@ class FakeElement{
  append(...nodes){this.children.push(...nodes);}
  replaceChildren(...nodes){this.children=nodes;}
  setAttribute(k,v){this[k]=v;}
+ removeAttribute(k){delete this[k]}
+ focus(){this.focused=true}
+ showModal(){this.open=true}
+ close(){this.open=false;this.dispatch('close')}
  addEventListener(k,fn){(this.handlers[k]||=[]).push(fn);}
  dispatch(k,event={}){for(const h of this.handlers[k]||[])h(Object.assign({target:this,preventDefault(){},isComposing:false},event));}
  get scrollHeight(){return this._scrollHeight||24}
@@ -57,7 +68,7 @@ class FakeElement{
 }
 const ids=['screen','app','toast','theme','themeText','contacts','search','activeAvatar','activeName',
 'activeKind','profileAvatar','profileName','profileKind','orderCount','conversation','composer',
-'draft','workDetail'];
+'draft','workDetail','conversationActions','actionSheetTitle'];
 for(const id of ids)idNodes.set(id,new FakeElement('div',id));
 idNodes.get('themeText').textContent='Chế độ tối';
 const map={
@@ -65,6 +76,8 @@ const map={
  '[data-filter]':['all','unread','group','customer'].map(v=>{let n=new FakeElement('button');n.dataset.filter=v;return n}),
  '[data-work]':['orders','payments','pricing','pick'].map(v=>{let n=new FakeElement('button');n.dataset.work=v;return n}),
  '[data-action]':['call','settings','new','back','work','more','attach','photos'].map(v=>{let n=new FakeElement('button');n.dataset.action=v;return n}),
+ '[data-sheet-close]':[new FakeElement('button')],
+ '[data-sheet-action]':['work','photos'].map(v=>{let n=new FakeElement('button');n.dataset.sheetAction=v;return n}),
 };
 const document={
  body:new FakeElement('body'),
@@ -78,6 +91,8 @@ assert.equal(idNodes.get('contacts').children.length,5,'initial five mock conver
 assert.equal(idNodes.get('activeName').textContent,'Chị Lan');
 assert.equal(idNodes.get('app').dataset.page,'inbox','mobile starts at Inbox');
 map['[data-filter]'][1].dispatch('click');
+assert.equal(map['[data-filter]'][1]['aria-pressed'],'true','active filter announced');
+assert.equal(map['[data-filter]'][0]['aria-pressed'],'false','inactive filter announced');
 assert.equal(idNodes.get('contacts').children.length,2,'unread filter uses mock local state');
 map['[data-filter]'][3].dispatch('click');
 assert.equal(idNodes.get('contacts').children.length,3,'customer filter works offline');
@@ -100,4 +115,14 @@ idNodes.get('theme').dispatch('click');
 assert(document.body.classList.contains('dark'),'theme toggle uses local DOM only');
 map['[data-action]'][3].dispatch('click');
 assert.equal(idNodes.get('app').dataset.page,'inbox','back returns to chat directory');
+map['[data-action]'][5].dispatch('click');
+assert(idNodes.get('conversationActions').open,'more opens native action sheet');
+assert.equal(idNodes.get('actionSheetTitle').textContent,'Anh Minh','sheet title matches selected conversation');
+map['[data-sheet-action]'][0].dispatch('click');
+assert.equal(idNodes.get('conversationActions').open,false,'work action closes sheet');
+assert(idNodes.get('screen').classList.contains('work-view'),'contextual Work opens from sheet');
+assert(map['[data-action]'][5].focused,'closing sheet restores focus to trigger');
+map['[data-action]'][5].dispatch('click');
+map['[data-sheet-close]'][0].dispatch('click');
+assert.equal(idNodes.get('conversationActions').open,false,'close button dismisses sheet');
 console.log('CHAT NEXT interactive public demo: 5 contacts, filter, chat, mock send, Work, theme, safe isolation PASS');
