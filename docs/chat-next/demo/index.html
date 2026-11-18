@@ -772,7 +772,13 @@ var people=[
 {id:'huong',name:'Cô Hương',initial:'H',color:'blue',kind:'Khách hàng',category:'customer',time:'16/11',unread:0,orders:'00',preview:'Cảm ơn, khi nào có hàng thì báo cô.',texts:[['note','Khi nào có hàng báo giúp cô nhé.\nGhi chú:\n- 2 thùng hàng nhẹ\n- 3 hộp hàng khô\n- Giao buổi chiều, không để ngoài nắng. Mã ghi chú mẫu rất dài: ABC-0123456789-0123456789-0123456789-0123456789.','14:16'],['mine','Dạ, có hàng em sẽ báo lại.','14:19']]}
 ];
 var current='lan',filter='all',page='chat',app=document.getElementById('app'),screen=document.getElementById('screen'),toast=document.getElementById('toast'),timer=null;
-var demoDrafts=Object.create(null),demoPreviewMessages=Object.create(null); // RAM only: never browser storage or network.
+var demoDrafts=Object.create(null),demoPreviewMessages=Object.create(null),demoScrollPositions=Object.create(null); // RAM only: never browser storage or network.
+/* V23 interaction contract: one source for previews, search and conversation content. */
+function lastEntry(p){var previews=demoPreviewMessages[p.id]||[];return previews.length?['mine',previews[previews.length-1],'Nháp demo']:p.texts[p.texts.length-1]}
+function entrySummary(entry){if(!entry)return 'Chưa có tin nhắn';var kind=entry[0],data=entry[1];if(kind==='media')return 'Ảnh · '+(data==='catalog'?'Bảng sản phẩm':'Phiếu hàng');if(kind==='gallery')return 'Bộ sưu tập · '+data.length+' ảnh';if(kind==='order')return 'Yêu cầu lấy hàng · '+data.items.map(function(i){return i.amount+' '+i.unit+' '+i.name}).join(', ')+(data.note?' · '+data.note:'');return String(data||'')}
+function conversationSearchText(p){return [p.name,entrySummary(lastEntry(p))].concat(p.texts.map(entrySummary),demoPreviewMessages[p.id]||[]).join(' ').toLocaleLowerCase('vi')}
+function saveConversationPosition(){if(page==='chat')demoScrollPositions[current]=byId('conversation').scrollTop}
+function openConversation(id){saveConversationPosition();demoDrafts[current]=byId('draft').value;current=id;renderContacts();renderChat({restore:true});showPage('chat')}
 function byId(id){return document.getElementById(id)}
 function el(tag,cls,text){var n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=String(text);return n}
 function showToast(text){toast.textContent=text;toast.hidden=false;if(timer)clearTimeout(timer);timer=setTimeout(function(){toast.hidden=true},2600)}
@@ -781,7 +787,7 @@ var actionSheet=byId('conversationActions'),actionTrigger=null;
 function closeActionSheet(){if(actionSheet.open)actionSheet.close();if(actionTrigger){actionTrigger.focus({preventScroll:true});actionTrigger=null}}
 function openActionSheet(trigger){if(actionSheet.open)return;actionTrigger=trigger||null;byId('actionSheetTitle').textContent=selected().name;actionSheet.showModal()}
 document.querySelectorAll('[data-sheet-close]').forEach(function(b){b.addEventListener('click',closeActionSheet)});
-document.querySelectorAll('[data-sheet-action]').forEach(function(b){b.addEventListener('click',function(){var action=b.dataset.sheetAction,focusReturn=actionTrigger||b;closeActionSheet();if(action==='work')showPage('work');else if(action==='photos')openMediaViewer('order',focusReturn)})});
+document.querySelectorAll('[data-sheet-action]').forEach(function(b){b.addEventListener('click',function(){var action=b.dataset.sheetAction,focusReturn=actionTrigger||b;closeActionSheet();if(action==='work')showPage('work');else if(action==='photos'){var items=selected().texts.flatMap(function(entry){return entry[0]==='media'?[entry[1]]:entry[0]==='gallery'?entry[1]:[]});if(items.length)openMediaViewer(items[0],focusReturn,items,0);else showToast('Hội thoại này chưa có ảnh mẫu')}})});
 actionSheet.addEventListener('click',function(event){if(event.target===actionSheet)closeActionSheet()});
 actionSheet.addEventListener('close',function(){if(actionTrigger){actionTrigger.focus({preventScroll:true});actionTrigger=null}});
 
@@ -918,11 +924,11 @@ people.forEach(function(p){
 if(filter==='unread'&&!p.unread)return;
 if(filter==='group'&&p.category!=='group')return;
 if(filter==='customer'&&p.category!=='customer')return;
-if(q&&!(p.name+' '+p.preview).toLocaleLowerCase('vi').includes(q))return;
+if(q&&!conversationSearchText(p).includes(q))return;
 shown++;var btn=el('button','contact'+(p.id===current?' selected':''));btn.type='button';btn.setAttribute('aria-label','Mở hội thoại '+p.name+(p.unread?' · '+p.unread+' tin chưa đọc':''));btn.setAttribute('aria-pressed',String(p.id===current));btn.dataset.unread=String(p.unread>0);
-var info=el('div','contact-main');info.append(el('div','contact-title',p.name),el('div','contact-preview',p.preview));
+var info=el('div','contact-main');info.append(el('div','contact-title',p.name),el('div','contact-preview',entrySummary(lastEntry(p))));
 var time=el('div','time',p.time);if(p.unread)time.append(el('span','count',p.unread));
-btn.append(avatar(p),info,time);btn.addEventListener('click',function(){demoDrafts[current]=byId('draft').value;current=p.id;renderContacts();renderChat();showPage('chat');});
+btn.append(avatar(p),info,time);btn.addEventListener('click',function(){openConversation(p.id)});
 list.append(btn);
 });if(geometryMode)window.requestAnimationFrame(updateFrameAudit);
 byId('inboxSummary').textContent=q||filter!=='all'?shown+' kết quả'+(q?' cho tìm kiếm':''):people.length+' hội thoại · '+people.reduce(function(n,p){return n+(p.unread?1:0)},0)+' chưa đọc';
@@ -953,7 +959,7 @@ function orderCard(payload){
  var invoiceLink=el('a','invoice-link','Xem 3 mẫu hóa đơn →');invoiceLink.href='./invoice.html';node.append(invoiceLink);
  return node
 }
-function renderChat(){
+function renderChat(options){
 var p=selected();byId('activeAvatar').textContent=p.initial;byId('activeAvatar').className='avatar '+p.color;byId('activeName').textContent=p.name;
 byId('activeKind').textContent=p.kind+' · Trò chuyện';byId('profileAvatar').textContent=p.initial;byId('profileAvatar').className='avatar profile-avatar '+p.color;
 byId('profileName').textContent=p.name;byId('profileKind').textContent=p.kind+' · Dữ liệu mẫu';byId('orderCount').textContent=p.orders;
@@ -962,14 +968,14 @@ var kind=entry[0],row=el('div','message'+(kind==='mine'?' mine':''));if(kind==='
 row.append(el('div','stamp',entry[2]+(entry[0]==='mine'?' ✓':'')));box.append(row)});
 (demoPreviewMessages[current]||[]).forEach(function(value){var row=el('div','message mine message-preview');row.append(el('div','bubble',value),el('div','stamp','Nháp demo · chưa gửi'));box.append(row)});
 var input=byId('draft');input.value=demoDrafts[current]||'';input.style.height='24px';input.style.height=Math.min(input.scrollHeight,120)+'px';syncDemoSendState();
-byId('conversation').scrollTop=byId('conversation').scrollHeight;
+var scroller=byId('conversation');scroller.scrollTop=options&&options.restore&&Number.isFinite(demoScrollPositions[current])?demoScrollPositions[current]:scroller.scrollHeight;
 }
 /* CHAT-NEXT-011: History navigates the mock routes only; URLs never hold
    account identifiers, passwords, tokens or real customer information. */
 var lastRouteHash='';
 function pageHash(next){return next==='chat'?'#chat/'+current:next==='work'?'#work':'#inbox'}
 function showPage(next,source){
-page=next;screen.classList.toggle('work-view',next==='work');app.dataset.page=next==='chat'?'chat':'inbox';
+if(page==='chat'&&next!=='chat')saveConversationPosition();page=next;screen.classList.toggle('work-view',next==='work');app.dataset.page=next==='chat'?'chat':'inbox';
 document.querySelectorAll('[data-mode]').forEach(function(b){var active=b.dataset.mode===(next==='work'?'work':'chat');b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
 if(geometryMode)window.requestAnimationFrame(updateFrameAudit);
 if(source==='restore')return;
@@ -984,7 +990,7 @@ if(actionSheet.open)closeActionSheet();
 if(hash==='#work'){showPage('work','restore');return}
 var match=/^#chat\/([a-z0-9_-]{1,40})$/.exec(hash);
 if(match&&people.some(function(p){return p.id===match[1]})){
-demoDrafts[current]=byId('draft').value;current=match[1];renderContacts();renderChat();showPage('chat','restore');return
+saveConversationPosition();demoDrafts[current]=byId('draft').value;current=match[1];renderContacts();renderChat({restore:true});showPage('chat','restore');return
 }
 showPage('inbox','restore');
 }
@@ -1003,7 +1009,7 @@ document.querySelectorAll('[data-mode]').forEach(function(b){b.addEventListener(
 document.querySelectorAll('[data-filter]').forEach(function(b){b.addEventListener('click',function(){useFilter(b.dataset.filter)})});
 document.querySelectorAll('[data-work]').forEach(function(b){b.addEventListener('click',function(){workDetail(b.dataset.work)})});
 document.querySelectorAll('[data-action]').forEach(function(b){b.addEventListener('click',function(){
-var a=b.dataset.action;if(a==='back'){closeMediaViewer();closeActionSheet();if(page==='chat'&&window.history.state&&window.history.state.chatNextDemo&&window.history.length>1){window.history.back();return}showPage('inbox');return}if(a==='more'){openActionSheet(b);return}if(a==='work'){closeActionSheet();showPage('work');return}if(a==='photos'){openMediaViewer('order',b);return}
+var a=b.dataset.action;if(a==='back'){saveConversationPosition();closeMediaViewer();closeActionSheet();if(page==='chat'&&window.history.state&&window.history.state.chatNextDemo&&window.history.length>1){window.history.back();return}showPage('inbox');return}if(a==='more'){openActionSheet(b);return}if(a==='work'){closeActionSheet();showPage('work');return}if(a==='photos'){openMediaViewer('order',b);return}
 var messages={call:'Bản demo không thực hiện cuộc gọi.',new:'Tạo hội thoại sẽ dùng dữ liệu thật khi triển khai.',settings:'Đây là giao diện mẫu, chưa có cài đặt tài khoản.',photos:'Ảnh và tệp không được tải từ tài khoản thật.',attach:'Đính kèm trong demo không gửi dữ liệu.'};
 showToast(messages[a]||'Thao tác đang ở chế độ minh họa');
 })});
@@ -1015,7 +1021,7 @@ byId('composer').addEventListener('submit',function(e){
 e.preventDefault();var input=byId('draft'),value=input.value.trim();if(!value)return;
 if(!demoPreviewMessages[current])demoPreviewMessages[current]=[];
 demoPreviewMessages[current].push(value);demoDrafts[current]='';
-renderChat();
+renderChat();renderContacts();
 showToast('Đã thêm tin vào bản xem trước · không gửi cho ai');
 });
 byId('theme').addEventListener('click',function(){document.body.classList.toggle('dark');byId('themeText').textContent=document.body.classList.contains('dark')?'Chế độ sáng':'Chế độ tối'});
