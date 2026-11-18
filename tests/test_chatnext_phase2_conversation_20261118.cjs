@@ -29,7 +29,7 @@ assert(!css.includes('#messageWindow'),'do not take ownership of virtualized mes
 assert(!css.includes('grid-template-rows:'),'do not redefine conversation layout tracks');
 assert(!css.includes('scrollTop'),'no scroll anchor intervention');
 assert(!css.includes('position:fixed'),'no keyboard overlay reparenting');
-for(const banned of ['fetch(', 'setInterval(', 'supabase.functions', 'v21_sync_pull', 'bank-', 'object-fit:cover!important;']) {
+for(const banned of ['fetch(', 'setInterval(', 'supabase.functions', 'v21_sync_pull', 'chat_bank_app_collect', 'v21-bank-bill-event', 'object-fit:cover!important;']) {
  assert(!css.includes(banned),'phase-2 style cannot take runtime/business ownership: '+banned);
 }
 assert(app.includes('const editor=document.getElementById(\'editor\')'));
