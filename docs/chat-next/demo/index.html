@@ -384,6 +384,20 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
  .composer-inner .editorbox{padding-inline:12px}
 }
 
+
+/* Frame audit is opt-in: ?geometry=1 — shown only on the public demo.
+   Visual outlines never enter real Chat UI or its service worker. */
+body.geometry-mode .chat-width{outline:1px dashed #d48b24;outline-offset:-1px}
+body.geometry-mode .inbox-head,
+body.geometry-mode .filters,
+body.geometry-mode .contacts{outline:1px dashed rgba(13,120,170,.8);outline-offset:-1px}
+body.geometry-mode .composer-inner .editorbox{outline:1px solid rgba(180,50,150,.8);outline-offset:1px}
+.geometry-inspector{position:fixed;z-index:60;top:8px;right:8px;max-width:min(320px,calc(100vw - 16px));
+ border:1px solid #648b8a;border-radius:13px;background:rgba(19,40,42,.96);color:white;
+ box-shadow:0 8px 28px rgba(0,0,0,.24);padding:8px 10px;font-size:11px;line-height:1.45}
+.geometry-inspector summary{cursor:pointer;font-weight:760;min-height:24px;list-style:revert}
+.geometry-inspector pre{white-space:pre-wrap;font-family:ui-monospace,Consolas,monospace;margin:7px 0 3px;
+ max-height:45dvh;overflow:auto;font-size:10px;line-height:1.5}
 </style>
 </head>
 <body>
@@ -592,7 +606,8 @@ var info=el('div','contact-main');info.append(el('div','contact-title',p.name),e
 var time=el('div','time',p.time);if(p.unread)time.append(el('span','count',p.unread));
 btn.append(avatar(p),info,time);btn.addEventListener('click',function(){demoDrafts[current]=byId('draft').value;current=p.id;renderContacts();renderChat();showPage('chat');});
 list.append(btn);
-});byId('inboxSummary').textContent=q||filter!=='all'?shown+' kết quả'+(q?' cho tìm kiếm':''):people.length+' hội thoại · '+people.reduce(function(n,p){return n+(p.unread?1:0)},0)+' chưa đọc';
+});if(geometryMode)window.requestAnimationFrame(updateFrameAudit);
+byId('inboxSummary').textContent=q||filter!=='all'?shown+' kết quả'+(q?' cho tìm kiếm':''):people.length+' hội thoại · '+people.reduce(function(n,p){return n+(p.unread?1:0)},0)+' chưa đọc';
 if(!shown){var empty=el('div','no-results');empty.append(el('strong','','Không tìm thấy hội thoại'),el('small','','Thử đổi bộ lọc hoặc tìm theo tên, nội dung khác.'));list.append(empty)}
 }
 function orderCard(){var node=el('div','order');node.append(el('span','tag','BÁO LẤY HÀNG · XEM NHANH'),el('strong','', 'Danh sách khách gửi'));
@@ -616,6 +631,7 @@ function pageHash(next){return next==='chat'?'#chat/'+current:next==='work'?'#wo
 function showPage(next,source){
 page=next;screen.classList.toggle('work-view',next==='work');app.dataset.page=next==='chat'?'chat':'inbox';
 document.querySelectorAll('[data-mode]').forEach(function(b){var active=b.dataset.mode===(next==='work'?'work':'chat');b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
+if(geometryMode)window.requestAnimationFrame(updateFrameAudit);
 if(source==='restore')return;
 var fragment=pageHash(next);
 lastRouteHash=fragment;
@@ -692,9 +708,63 @@ if(window.visualViewport){
 window.addEventListener('resize',scheduleDemoViewport);
 document.addEventListener('focusin',scheduleDemoViewport);
 document.addEventListener('focusout',scheduleDemoViewport);
+
+/* V14 geometry audit: enabled ONLY when the static sample URL has
+   ?geometry=1. It measures actual DOM edges, not guessed breakpoint math. */
+var geometryMode=String(window.location.search||'').indexOf('geometry=1')!==-1;
+var geometryPanel=null,geometryReadout=null;
+function frameRect(node){return node&&node.getBoundingClientRect?node.getBoundingClientRect():null}
+function frameRound(v){return Math.round(v*10)/10}
+function framePaddingLeft(node){
+ var style=window.getComputedStyle(node);
+ return parseFloat(style.paddingLeft)||0;
+}
+function updateFrameAudit(){
+ if(!geometryMode||!geometryReadout)return;
+ var header=document.querySelector('.chat-header-inner');
+ var stream=byId('messageStream');
+ var composer=document.querySelector('.composer-inner');
+ var note=document.querySelector('.chat-note-inner');
+ var chatBox=document.querySelector('.chat');
+ var visible=chatBox&&window.getComputedStyle(chatBox).display!=='none';
+ var lines=['L0 viewport '+Math.round(window.innerWidth)+'×'+Math.round(window.innerHeight)];
+ var nodes=[header,stream,composer,note].map(frameRect);
+ if(visible&&nodes.every(Boolean)){
+  var lefts=nodes.map(function(r){return r.left});
+  var rights=nodes.map(function(r){return r.right});
+  var dx=Math.max.apply(null,lefts)-Math.min.apply(null,lefts);
+  var dr=Math.max.apply(null,rights)-Math.min.apply(null,rights);
+  lines.push('L4 trục trái lệch '+frameRound(dx)+'px');
+  lines.push('L4 trục phải lệch '+frameRound(dr)+'px');
+  lines.push('L4 '+(dx<=1&&dr<=1?'ĐẠT':'CẦN KIỂM TRA SCROLLBAR'));
+  lines.push('HEADER / TEXT / INPUT / NOTE');
+  nodes.forEach(function(r,i){lines.push(['H','T','I','N'][i]+': '+frameRound(r.left)+' → '+frameRound(r.right)+' ('+frameRound(r.width)+')')});
+ }else lines.push('Mở hội thoại để đo 4 trục L4');
+ var head=document.querySelector('.inbox-head'),filters=document.querySelector('.filters'),first=document.querySelector('.contact');
+ if(head&&filters&&first){
+  var h=frameRect(head),f=frameRect(filters),c=frameRect(first);
+  if(h&&f&&c&&h.width&&f.width&&c.width){
+   var hx=h.left+framePaddingLeft(head),fx=f.left+framePaddingLeft(filters),cx=c.left+framePaddingLeft(first);
+   var variance=Math.max(hx,fx,cx)-Math.min(hx,fx,cx);
+   lines.push('INBOX trục trái lệch '+frameRound(variance)+'px '+(variance<=1?'ĐẠT':'CẦN SỬA'));
+  }
+ }
+ geometryReadout.textContent=lines.join('\n');
+}
+if(geometryMode){
+ document.body.classList.add('geometry-mode');
+ geometryPanel=document.createElement('details');
+ geometryPanel.className='geometry-inspector';
+ geometryPanel.open=true;
+ var summary=document.createElement('summary');summary.textContent='L0–L5 · Kiểm tra trục bố cục';
+ geometryReadout=document.createElement('pre');
+ geometryPanel.append(summary,geometryReadout);document.body.append(geometryPanel);
+ window.addEventListener('resize',function(){window.requestAnimationFrame(updateFrameAudit)});
+}
 renderContacts();renderChat();
 if(!window.location.hash)window.history.replaceState({chatNextDemo:true},'','#inbox');
 restoreDemoRoute();
+if(geometryMode)window.requestAnimationFrame(updateFrameAudit);
 })();
 </script>
 </body>
