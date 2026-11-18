@@ -59,7 +59,10 @@
   font-weight:750;
 }
 
-@media (max-width:63.999rem) {
+/* Mobile and coarse-pointer landscape tablets share one contact-card geometry.
+   Shell's persistent desktop mode is fine-pointer only; large touch devices
+   remain an overlay directory and must not fall back to 60px clipped rows. */
+@media (max-width:63.999rem), (hover:none), (pointer:coarse) {
   #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-tools {
     box-sizing:border-box;
     padding:8px 6px 8px!important;
@@ -332,3 +335,69 @@
   }
 }
 /* Keyboard, scroll, image viewer and message composer owners unchanged. */
+
+
+/* CHAT-NEXT-006 — Touch tablets / landscape mobile.
+   Do not force the persistent desktop sidebar on a coarse pointer. The
+   original shell and overlay own navigation; wm-sidebar-navigation remains
+   the sole scroll surface, while VisualViewport already owns keyboard size. */
+@media (min-width:48rem) and (hover:none), (min-width:48rem) and (pointer:coarse) {
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-navigation-panel {
+    box-sizing:border-box;
+    width:clamp(390px,44vw,460px);
+    max-width:calc(100vw - 24px);
+    border-inline-end:1px solid var(--chatnext-border);
+    background:var(--chatnext-surface);
+  }
+
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .wm-sidebar-header {
+    box-sizing:border-box;
+    min-height:56px;
+    padding:10px 12px;
+    gap:8px;
+    border-bottom:1px solid var(--chatnext-border);
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-wordmark {
+    min-width:0;
+    overflow:hidden;
+    white-space:nowrap;
+    text-overflow:ellipsis;
+    font-size:21px;
+    line-height:28px;
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .wm-sidebar-utilityButton {
+    box-sizing:border-box;
+    min-width:44px;
+    min-height:44px;
+  }
+
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-filter,
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .contact-directory-filter-more {
+    box-sizing:border-box;
+    min-height:44px;
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer .shell-sidebar-account-main {
+    min-height:50px;
+    border-radius:var(--chatnext-radius);
+  }
+
+  /* Read the visible-keyboard geometry from the existing viewport owner.
+     Do not add resize, scroll or VisualViewport listeners to the candidate. */
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer[data-mobile-keyboard="true"] {
+    top:var(--shell-form-vv-top,0px);
+    bottom:auto;
+    height:var(--shell-form-vv-height,100svh);
+    max-height:var(--shell-form-vv-height,100svh);
+    overflow:hidden;
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer[data-mobile-keyboard="true"] .shell-navigation-panel {
+    height:100%;
+    max-height:100%;
+    min-height:0;
+    overflow:hidden;
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"] #shellNavigationLayer[data-mobile-keyboard="true"] .wm-sidebar-sidebar {
+    height:100%;
+    min-height:0;
+  }
+}
