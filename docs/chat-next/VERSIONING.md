@@ -16,6 +16,33 @@
 5. CI phải chặn phiên bản không đồng nhất. Khi sửa demo, tăng `V` ở nguồn, cập nhật lịch sử, đồng bộ sang Songoku và kiểm thử trước khi phát hành. Không gọi phiên bản đã xuất bản nếu Pages chưa đạt. Bản sửa lỗi test cũng thuộc vòng đang phát triển, không tự coi là bản phát hành mới.
 6. Không đánh dấu E4/E5 đạt nếu chưa có kiểm thử trình duyệt/thiết bị thực tế. Báo cáo cùng mỗi vòng: tên, số, mục sửa, bằng chứng kiểm thử, link demo và commit.
 
+## Quy tắc phân công: Demo thiết kế, Chat production tham chiếu hành vi
+
+**Nguồn chuẩn:** CHAT NEXT chỉ chịu trách nhiệm thiết kế bố cục, hình học, phân cấp nội dung, token giao diện, mô tả tương tác, kịch bản và nghiệm thu. Ứng dụng `1sl2tp/chat` trên `main` là nguồn tham khảo ưu tiên cho các hành vi đã chạy ổn định. Không sao chép bừa code, không chỉnh production để phục vụ demo.
+
+### Trình tự bắt buộc cho mỗi hạng mục
+
+1. **Khảo sát:** xác định mục đích người dùng, vùng giao diện, nút/trạng thái, thiết bị và màn hình; chụp hiện trạng demo và xác định điểm lệch.
+2. **Tra cứu Chat hiện tại:** tìm chính xác module và test sở hữu hành vi; đọc rule/skill liên quan; ghi `file/module`, điều kiện kích hoạt, kết quả, trạng thái lỗi. Nếu Chat chưa có hành vi đó, ghi rõ **CHƯA CÓ**, không tự gán là chuẩn.
+3. **Đặc tả:** lập bảng `màn hình → thành phần → sự kiện → hành vi tham chiếu → trạng thái hiển thị → điều kiện nghiệm thu`; phân biệt mô phỏng demo và hành động thật.
+4. **Thiết kế:** chỉ thay đổi phần bố cục/hình học/copy của CHAT NEXT cần thiết; ưu tiên một chủ sở hữu cho viewport, vùng cuộn và composer. Không tự tạo cơ chế nghiệp vụ/đồng bộ/đẩy thông báo mới trong demo.
+5. **Kiểm thử:** desktop, iPhone Safari/PWA, Android Chrome/PWA; mở/đóng bàn phím, nhập nhiều dòng, tin cuối, đọc tin cũ, ảnh dài, popup, Back; test tĩnh không thay thế E4/E5.
+6. **Phát hành:** đồng bộ mã demo từ Chat design sang Songoku, CI hai repo đạt mới gộp, Pages đạt mới báo xuất bản. Nếu chưa đạt, giữ nguyên số vòng và sửa tiếp.
+7. **Nhật ký:** mỗi vòng giao diện ghi mục sửa, nguồn tham chiếu Chat, ảnh/log/CI/Pages, trạng thái E0–E5, vấn đề tồn đọng. Sửa tài liệu quy tắc hoặc test trong cùng vòng không tự tăng số V.
+
+### Danh mục cần chuẩn hóa
+
+| Hạng mục | Demo CHAT NEXT chịu trách nhiệm | Nguồn hành vi ưu tiên |
+|---|---|---|
+| Khung màn hình, trục, khoảng cách, typography | Token L0–L5, kích thước, trạng thái và responsive | Đối chiếu giao diện Chat đang chạy |
+| Danh sách hội thoại, mở chat, Back | Hình thức danh sách, preview, điều hướng mô phỏng | Chat hiện tại: route, scroll restore, draft |
+| Ô nhập và bàn phím | Bố cục header/content/composer, không che tin cuối | `keyboard-inset-core.js`, `shell-form-viewport-policy.js`, skill `keyboard-viewport` và owner composer thực tế |
+| Ảnh/media và popup | Grid ảnh, viewer, safe-area, vị trí overlay | Chat hiện tại: media/viewer và overlay |
+| Tìm kiếm, menu, chia sẻ | Phân cấp nút, trạng thái mở/đóng, empty/error | Chat hiện tại: chức năng tương ứng |
+| Gửi/nhận, realtime, thông báo | Chỉ trạng thái mẫu và kịch bản kiểm thử | Chat hiện tại; demo không gửi thật |
+
+**Quy tắc riêng cho lỗi bàn phím V27–V30:** không thêm cơ chế neo/cuộn mới nếu chưa xác minh chủ sở hữu trong Chat production. Lấy cơ chế thực tế của Chat làm chuẩn hành vi, còn demo chỉ thể hiện khung và các trạng thái. Nghiệm thu cần thấy tin cuối (kể cả thời gian) ngay phía trên composer khi bàn phím mở, và giữ vị trí khi đọc tin cũ.
+
 ## Nhật ký gần nhất
 
 | Vòng | Tên | Ngày | Phạm vi |
