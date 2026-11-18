@@ -205,10 +205,60 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
 @media(prefers-reduced-motion:reduce){
  .navbtn,.iconbtn,.head-action,.filter,.contact,.action-sheet-action,.ctxbtn,.mobile-tabs button,.search,.editorbox{transition:none}
 }
+
+/* CHAT-NEXT-013 — zero-network media preview and keyboard-friendly viewer.
+   All art is a CSS mock sample, not a customer image, remote resource or OCR.
+   One native dialog owns focus. Only media-stage scrolls when magnified. */
+.media-card{display:block;width:min(300px,100%);max-width:100%;border:1px solid var(--border);border-radius:17px;background:var(--surface);padding:6px;color:var(--ink);text-align:start;overflow:hidden;cursor:zoom-in;box-shadow:0 2px 12px rgba(15,50,55,.045)}
+.media-card:hover{border-color:var(--accent);box-shadow:0 4px 14px var(--polish-glow)}
+.media-card:focus-visible{outline:2px solid var(--polish-focus);outline-offset:2px}
+.message.media-message{width:min(300px,86%);max-width:86%}
+.media-card .media-caption{display:block;padding:9px 9px 6px;font-size:12px;line-height:17px;font-weight:650}
+.media-art{position:relative;isolation:isolate;aspect-ratio:4/3;width:100%;min-width:0;overflow:hidden;display:grid;place-items:center;border-radius:12px;border:1px solid rgba(43,73,81,.13);background:linear-gradient(135deg,#f5f2e9,#e6e7e1 50%,#cfddd8);color:#2d4c4c}
+.media-art[data-art="catalog"]{background:linear-gradient(145deg,#dbe8f0,#b4cbd5 64%,#8fb7b5);color:#314e5a}
+.media-art::before{content:"";position:absolute;width:66%;height:87%;left:18%;top:6%;transform:rotate(-6deg);background:rgba(23,50,47,.09);filter:blur(9px);z-index:-1}
+.media-art .media-art-paper{width:58%;min-width:0;min-height:76%;padding:7% 6%;background:#fff;border-radius:4px;border:1px solid rgba(16,50,50,.16);box-shadow:0 4px 20px rgba(23,45,48,.1);transform:rotate(-4deg);display:flex;flex-direction:column;gap:9%;color:#39525b}
+.media-art[data-art="catalog"] .media-art-paper{width:65%;transform:rotate(3deg);background:#f8fbfa}
+.media-art .media-art-kicker{font-size:clamp(8px,1.2vw,11px);line-height:1.3;font-weight:800;letter-spacing:.08em;white-space:nowrap}
+.media-art .media-art-line{display:block;flex:0 0 auto;height:5px;max-height:6px;width:100%;background:#dae4e0;border-radius:6px}
+.media-art .media-art-line.short{width:65%}
+.media-art .media-art-line.medium{width:85%}
+.media-art .media-art-price{font-size:clamp(11px,1.8vw,17px);font-weight:790;text-align:right;border-top:1px solid #cbd8d2;padding-top:8%;font-variant-numeric:tabular-nums}
+.media-art .media-art-chip{position:absolute;left:10px;bottom:10px;background:rgba(255,255,255,.9);border:1px solid rgba(48,86,82,.08);border-radius:9px;padding:5px 7px;font-size:10px;font-weight:680;letter-spacing:.01em;color:#284a47}
+.media-art[data-art="catalog"] .media-art-chip{color:#264451}
+.media-dialog{width:min(920px,calc(100vw - 24px));max-width:calc(100vw - 24px);height:min(92dvh,800px);max-height:calc(100dvh - 24px);margin:auto;padding:0;border:1px solid var(--border);border-radius:23px;color:var(--ink);background:var(--surface);box-shadow:0 20px 75px rgba(0,0,0,.2);overflow:hidden}
+.media-dialog[open]{display:flex;flex-direction:column}
+.media-dialog::backdrop{background:rgba(13,27,30,.8)}
+.media-viewer-head{display:flex;align-items:center;gap:14px;justify-content:space-between;flex:0 0 auto;padding:13px 16px;border-bottom:1px solid var(--border)}
+.media-viewer-heading{display:flex;min-width:0;flex-direction:column;gap:4px}
+.media-viewer-heading strong{font-size:15px;line-height:20px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.media-viewer-heading span{font-size:11px;line-height:15px;color:var(--polish-muted);font-variant-numeric:tabular-nums}
+.media-stage{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;background:var(--subtle);padding:clamp(12px,3vw,24px);scrollbar-width:thin}
+.media-canvas{width:100%;min-width:100%;max-width:none;margin:auto}
+.media-canvas .media-art{width:100%;border-radius:14px;max-width:none}
+.media-canvas .media-art .media-art-kicker{font-size:clamp(11px,2.3vw,23px)}
+.media-canvas .media-art .media-art-line{height:clamp(5px,.9vw,9px)}
+.media-canvas .media-art .media-art-price{font-size:clamp(18px,3vw,35px)}
+.media-viewer-tools{flex:0 0 auto;display:flex;align-items:center;justify-content:center;gap:7px;padding:10px 12px;border-top:1px solid var(--border)}
+.media-viewer-tools button{display:grid;place-items:center;min-width:48px;min-height:48px;border:1px solid transparent;border-radius:14px;background:var(--subtle);color:var(--ink)}
+.media-viewer-tools button:hover:not(:disabled){background:var(--accentLight);color:var(--accent)}
+.media-viewer-tools button:disabled{opacity:.35}
+.media-viewer-tools output{display:grid;place-items:center;min-width:58px;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--polish-muted)}
+.media-viewer-meta{flex:0 0 auto;text-align:center;margin:0;padding:0 14px 15px;color:var(--polish-muted);font-size:11px;line-height:15px}
+@media(max-width:700px),(hover:none),(pointer:coarse){
+ .media-card{min-height:0}
+ .media-dialog{width:100%;max-width:100%;height:100dvh;max-height:100dvh;border-radius:0;border:0}
+ .media-viewer-head{padding:calc(8px + env(safe-area-inset-top,0px)) 10px 8px}
+ .media-viewer-tools{gap:5px}
+ .media-viewer-meta{padding-bottom:max(14px,env(safe-area-inset-bottom))}
+ .media-stage{padding:14px}
+}
+@media(max-width:360px){.media-viewer-tools{gap:3px}.media-viewer-tools button{min-width:44px;min-height:44px}.media-viewer-tools output{min-width:50px}}
+@media(prefers-reduced-motion:reduce){.media-card,.media-viewer-tools button{transition:none}}
 </style>
 </head>
 <body>
-<svg class="icon-sprite" width="0" height="0" viewBox="0 0 24 24" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"><defs><symbol id="ui-message-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5a8.5 8.5 0 0 1-8.5 8.5 9.6 9.6 0 0 1-4.1-1L3 20l1.2-4.1A8.5 8.5 0 1 1 20 11.5Z"/><path d="M8.5 11.5h7"/></symbol><symbol id="ui-briefcase" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18M10 13v2h4v-2"/></symbol><symbol id="ui-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h3l1.2 4-2 1.6c1.3 2.7 3.1 4.5 5.8 5.8l1.6-2 4 1.2v3a2 2 0 0 1-2.3 2c-7.3-1-12.5-6.2-13.5-13.5A2 2 0 0 1 6 3.5Z"/></symbol><symbol id="ui-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 14 4l1.1 1.8 2 .2 1.5 1.5-.2 2L20 11l-.2 2-1.4 1.6.1 2-1.4 1.4-2-.1L13 20l-2 .1-1.8-1.5-2 .1-1.5-1.5.2-2L4 13.5l-.2-2 1.5-1.8-.1-2L6.7 6l2 .2L10 4Z"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="ui-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></symbol><symbol id="ui-pencil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 16.5 1-4 10-10 4 4-10 10-5 1Z"/><path d="m12.8 4.7 4 4M4 21h16"/></symbol><symbol id="ui-arrow-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6M9 12h12"/></symbol><symbol id="ui-more" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></symbol><symbol id="ui-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M4 12h16"/></symbol><symbol id="ui-arrow-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V4m-7 7 7-7 7 7"/></symbol><symbol id="ui-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 15.6A8.4 8.4 0 0 1 8.4 4 8.6 8.6 0 1 0 20 15.6Z"/></symbol><symbol id="ui-receipt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18l-3-2-4 2-4-2-3 2V3Z"/><path d="M9 8h6M9 12h6M9 16h4"/></symbol><symbol id="ui-wallet" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="15" rx="3"/><path d="M3 10h18M16 15h3"/></symbol><symbol id="ui-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12 12 20 4 12V4h8l8 8Z"/><circle cx="8.5" cy="8.5" r="1"/></symbol><symbol id="ui-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="m4 17 5-5 4 4 2-2 5 5"/></symbol><symbol id="ui-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></symbol><symbol id="ui-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5 19 19M19 5 5 19"/></symbol></defs></svg>
+<svg class="icon-sprite" width="0" height="0" viewBox="0 0 24 24" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"><defs><symbol id="ui-message-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5a8.5 8.5 0 0 1-8.5 8.5 9.6 9.6 0 0 1-4.1-1L3 20l1.2-4.1A8.5 8.5 0 1 1 20 11.5Z"/><path d="M8.5 11.5h7"/></symbol><symbol id="ui-briefcase" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18M10 13v2h4v-2"/></symbol><symbol id="ui-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h3l1.2 4-2 1.6c1.3 2.7 3.1 4.5 5.8 5.8l1.6-2 4 1.2v3a2 2 0 0 1-2.3 2c-7.3-1-12.5-6.2-13.5-13.5A2 2 0 0 1 6 3.5Z"/></symbol><symbol id="ui-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 14 4l1.1 1.8 2 .2 1.5 1.5-.2 2L20 11l-.2 2-1.4 1.6.1 2-1.4 1.4-2-.1L13 20l-2 .1-1.8-1.5-2 .1-1.5-1.5.2-2L4 13.5l-.2-2 1.5-1.8-.1-2L6.7 6l2 .2L10 4Z"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="ui-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></symbol><symbol id="ui-pencil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 16.5 1-4 10-10 4 4-10 10-5 1Z"/><path d="m12.8 4.7 4 4M4 21h16"/></symbol><symbol id="ui-arrow-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6M9 12h12"/></symbol><symbol id="ui-more" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></symbol><symbol id="ui-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M4 12h16"/></symbol><symbol id="ui-arrow-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V4m-7 7 7-7 7 7"/></symbol><symbol id="ui-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 15.6A8.4 8.4 0 0 1 8.4 4 8.6 8.6 0 1 0 20 15.6Z"/></symbol><symbol id="ui-receipt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18l-3-2-4 2-4-2-3 2V3Z"/><path d="M9 8h6M9 12h6M9 16h4"/></symbol><symbol id="ui-wallet" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="15" rx="3"/><path d="M3 10h18M16 15h3"/></symbol><symbol id="ui-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12 12 20 4 12V4h8l8 8Z"/><circle cx="8.5" cy="8.5" r="1"/></symbol><symbol id="ui-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="m4 17 5-5 4 4 2-2 5 5"/></symbol><symbol id="ui-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></symbol><symbol id="ui-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5 19 19M19 5 5 19"/></symbol><symbol id="ui-minus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 12h16"/></symbol></defs></svg>
 <div class="screen" id="screen">
   <div class="demo-top"><div class="demo-brand"><strong>CHAT NEXT</strong><span class="state"><i></i> BẢN DEMO · DỮ LIỆU MẪU</span></div><div class="top-actions"><button type="button" id="theme" aria-label="Đổi giao diện sáng tối"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-moon"></use></svg> <span id="themeText">Chế độ tối</span></button><span class="info">Tách biệt ứng dụng chính</span></div></div>
   <div class="app" id="app" data-page="inbox">
@@ -291,15 +341,32 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
   </div>
   <p class="action-sheet-foot">Hành động tại đây không gọi API, không gửi tin nhắn và không ghi thu.</p>
 </dialog>
+<dialog class="media-dialog" id="mediaViewer" aria-labelledby="mediaViewerTitle" aria-modal="true">
+  <div class="media-viewer-head">
+    <div class="media-viewer-heading"><strong id="mediaViewerTitle">Ảnh minh họa</strong><span id="mediaViewerCount">1 / 2 ảnh mẫu</span></div>
+    <button class="iconbtn" type="button" id="mediaClose" aria-label="Đóng ảnh"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-close"></use></svg></button>
+  </div>
+  <div class="media-stage" id="mediaStage" tabindex="0" aria-label="Vùng xem ảnh có thể cuộn khi phóng lớn">
+    <div class="media-canvas" id="mediaCanvas"></div>
+  </div>
+  <div class="media-viewer-tools" role="group" aria-label="Điều khiển ảnh mẫu">
+    <button type="button" id="mediaPrev" aria-label="Ảnh trước"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-arrow-left"></use></svg></button>
+    <button type="button" id="mediaZoomOut" aria-label="Thu nhỏ ảnh"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-minus"></use></svg></button>
+    <output id="mediaZoomLabel" aria-live="polite">100%</output>
+    <button type="button" id="mediaZoomIn" aria-label="Phóng lớn ảnh"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-plus"></use></svg></button>
+    <button type="button" id="mediaNext" aria-label="Ảnh tiếp theo"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-chevron-right"></use></svg></button>
+  </div>
+  <p class="media-viewer-meta" id="mediaViewerMeta">Dữ liệu minh họa · Không phải ảnh khách hàng thật</p>
+</dialog>
 <div class="toast" role="status" id="toast" hidden></div>
 <script>
 (function(){
 'use strict';
 var people=[
-{id:'lan',name:'Chị Lan',initial:'L',color:'',kind:'Khách hàng',category:'customer',time:'07:28',unread:2,orders:'02',preview:'Lấy 2 thùng sữa và 3 hộp bánh. Chiều giao giúp chị nhé.',texts:[['other','Chào em, cho chị đặt hàng sáng nay nhé.','07:20'],['mine','Dạ chị gửi danh sách, em soát lại rồi báo chị.','07:21'],['order','', '07:28']]},
+{id:'lan',name:'Chị Lan',initial:'L',color:'',kind:'Khách hàng',category:'customer',time:'07:28',unread:2,orders:'02',preview:'Lấy 2 thùng sữa và 3 hộp bánh. Chiều giao giúp chị nhé.',texts:[['other','Chào em, cho chị đặt hàng sáng nay nhé.','07:20'],['mine','Dạ chị gửi danh sách, em soát lại rồi báo chị.','07:21'],['order','', '07:28'],['media','order','07:29']]},
 {id:'family',name:'Nhóm gia đình',initial:'G',color:'orange',kind:'Nhóm',category:'group',time:'07:10',unread:1,orders:'01',preview:'Hôm nay có hai đơn cần soát hàng trước khi giao.',texts:[['other','Hôm nay có hai đơn cần kiểm hàng trước khi giao.','07:10'],['mine','Dạ, em đã ghi nhận.','07:12']]},
 {id:'minh',name:'Anh Minh',initial:'M',color:'violet',kind:'Khách hàng',category:'customer',time:'Hôm qua',unread:0,orders:'00',preview:'Đã nhận đủ hàng, cảm ơn bạn nhé.',texts:[['mine','Đơn hôm nay giao đủ rồi anh nhé.','16:30'],['other','Đã nhận đủ hàng, cảm ơn bạn nhé.','16:33']]},
-{id:'supplier',name:'Nhà cung cấp',initial:'N',color:'green',kind:'Nhóm',category:'group',time:'T. Hai',unread:0,orders:'01',preview:'Đã gửi bảng giá mới và danh sách sản phẩm.',texts:[['other','Bên em gửi lại bảng giá mới.','09:00'],['mine','Cảm ơn, mình đã nhận được.','09:05']]},
+{id:'supplier',name:'Nhà cung cấp',initial:'N',color:'green',kind:'Nhóm',category:'group',time:'T. Hai',unread:0,orders:'01',preview:'Đã gửi bảng giá mới và danh sách sản phẩm.',texts:[['other','Bên em gửi lại bảng giá mới.','09:00'],['media','catalog','09:03'],['mine','Cảm ơn, mình đã nhận được.','09:05']]},
 {id:'huong',name:'Cô Hương',initial:'H',color:'blue',kind:'Khách hàng',category:'customer',time:'16/11',unread:0,orders:'00',preview:'Cảm ơn, khi nào có hàng thì báo cô.',texts:[['other','Khi nào có hàng báo giúp cô nhé.','14:16'],['mine','Dạ, có hàng em sẽ báo lại.','14:19']]}
 ];
 var current='lan',filter='all',page='chat',app=document.getElementById('app'),screen=document.getElementById('screen'),toast=document.getElementById('toast'),timer=null;
@@ -312,9 +379,72 @@ var actionSheet=byId('conversationActions'),actionTrigger=null;
 function closeActionSheet(){if(actionSheet.open)actionSheet.close();if(actionTrigger){actionTrigger.focus({preventScroll:true});actionTrigger=null}}
 function openActionSheet(trigger){if(actionSheet.open)return;actionTrigger=trigger||null;byId('actionSheetTitle').textContent=selected().name;actionSheet.showModal()}
 document.querySelectorAll('[data-sheet-close]').forEach(function(b){b.addEventListener('click',closeActionSheet)});
-document.querySelectorAll('[data-sheet-action]').forEach(function(b){b.addEventListener('click',function(){var action=b.dataset.sheetAction;closeActionSheet();if(action==='work')showPage('work');else if(action==='photos')showToast('Ảnh và tệp: chưa kết nối dữ liệu mẫu')})});
+document.querySelectorAll('[data-sheet-action]').forEach(function(b){b.addEventListener('click',function(){var action=b.dataset.sheetAction;closeActionSheet();if(action==='work')showPage('work');else if(action==='photos')openMediaViewer('order',b)})});
 actionSheet.addEventListener('click',function(event){if(event.target===actionSheet)closeActionSheet()});
 actionSheet.addEventListener('close',function(){if(actionTrigger){actionTrigger.focus({preventScroll:true});actionTrigger=null}});
+
+
+/* CHAT-NEXT-013: two fictional media examples (no photos, src, network).
+   The dialog owns focus; Zoom adjusts canvas width inside a single scroll
+   owner. No touch gesture listeners/polling: browser scrolling stays native. */
+var mediaExamples=[
+ {id:'order',title:'Phiếu hàng minh họa',kind:'order',caption:'Phiếu hàng · ảnh mẫu',price:'755.000',credit:'Ảnh minh họa, không phải hóa đơn thật'},
+ {id:'catalog',title:'Bảng sản phẩm minh họa',kind:'catalog',caption:'Bảng sản phẩm · ảnh mẫu',price:'BẢNG GIÁ',credit:'Ảnh minh họa, không phải dữ liệu NCC'}
+];
+var mediaViewer=byId('mediaViewer'),mediaTrigger=null,activeMediaIndex=0,mediaZoom=1;
+function mediaArtwork(example){
+ var picture=el('div','media-art');picture.dataset.art=example.kind;
+ picture.setAttribute('role','img');picture.setAttribute('aria-label',example.title+' — dữ liệu mẫu');
+ var paper=el('div','media-art-paper');
+ paper.append(el('div','media-art-kicker',example.kind==='order'?'PHIẾU HÀNG MẪU':'DANH SÁCH MẪU'));
+ paper.append(el('span','media-art-line'),el('span','media-art-line medium'),el('span','media-art-line short'),el('span','media-art-line'));
+ paper.append(el('div','media-art-price',example.price));
+ picture.append(paper,el('span','media-art-chip','DEMO · KHÔNG PHẢI ẢNH THẬT'));
+ return picture;
+}
+function mediaCard(id){
+ var example=mediaExamples.find(function(m){return m.id===id});if(!example)return el('span','media-caption','Không có ảnh mẫu');
+ var button=el('button','media-card');button.type='button';
+ button.setAttribute('aria-label','Mở xem lớn: '+example.title);
+ button.append(mediaArtwork(example),el('span','media-caption',example.caption));
+ button.addEventListener('click',function(){openMediaViewer(id,button)});
+ return button;
+}
+function setMediaZoom(value){
+ mediaZoom=Math.max(1,Math.min(2,Math.round(value*2)/2));
+ byId('mediaCanvas').style.width=Math.round(mediaZoom*100)+'%';
+ byId('mediaZoomLabel').textContent=Math.round(mediaZoom*100)+'%';
+ byId('mediaZoomOut').disabled=mediaZoom<=1;
+ byId('mediaZoomIn').disabled=mediaZoom>=2;
+}
+function renderMediaViewer(){
+ var example=mediaExamples[activeMediaIndex];
+ byId('mediaViewerTitle').textContent=example.title;
+ byId('mediaViewerCount').textContent=(activeMediaIndex+1)+' / '+mediaExamples.length+' ảnh mẫu';
+ byId('mediaViewerMeta').textContent=example.credit+' · Không lưu hoặc gửi dữ liệu';
+ byId('mediaCanvas').replaceChildren(mediaArtwork(example));
+ setMediaZoom(1);
+ byId('mediaStage').scrollTop=0;byId('mediaStage').scrollLeft=0;
+ byId('mediaPrev').disabled=activeMediaIndex===0;
+ byId('mediaNext').disabled=activeMediaIndex===mediaExamples.length-1;
+}
+function openMediaViewer(id,trigger){
+ var index=mediaExamples.findIndex(function(m){return m.id===id});if(index<0)return;
+ if(actionSheet.open)closeActionSheet();
+ if(mediaViewer.open)mediaViewer.close();
+ mediaTrigger=trigger||null;activeMediaIndex=index;renderMediaViewer();mediaViewer.showModal();
+}
+function closeMediaViewer(){
+ if(mediaViewer.open)mediaViewer.close();
+ if(mediaTrigger){mediaTrigger.focus({preventScroll:true});mediaTrigger=null}
+}
+byId('mediaClose').addEventListener('click',closeMediaViewer);
+byId('mediaPrev').addEventListener('click',function(){if(activeMediaIndex>0){activeMediaIndex--;renderMediaViewer()}});
+byId('mediaNext').addEventListener('click',function(){if(activeMediaIndex<mediaExamples.length-1){activeMediaIndex++;renderMediaViewer()}});
+byId('mediaZoomIn').addEventListener('click',function(){setMediaZoom(mediaZoom+.5)});
+byId('mediaZoomOut').addEventListener('click',function(){setMediaZoom(mediaZoom-.5)});
+mediaViewer.addEventListener('click',function(event){if(event.target===mediaViewer)closeMediaViewer()});
+mediaViewer.addEventListener('close',function(){if(mediaTrigger){mediaTrigger.focus({preventScroll:true});mediaTrigger=null}});
 
 function avatar(p,extra){return el('span','avatar '+p.color+(extra?' '+extra:''),p.initial)}
 function renderContacts(){
@@ -340,7 +470,7 @@ var p=selected();byId('activeAvatar').textContent=p.initial;byId('activeAvatar')
 byId('activeKind').textContent=p.kind+' · Trò chuyện';byId('profileAvatar').textContent=p.initial;byId('profileAvatar').className='avatar profile-avatar '+p.color;
 byId('profileName').textContent=p.name;byId('profileKind').textContent=p.kind+' · Dữ liệu mẫu';byId('orderCount').textContent=p.orders;
 var box=byId('conversation');box.replaceChildren(el('div','day','Hôm nay · 18/11'));p.texts.forEach(function(entry){
-var row=el('div','message'+(entry[0]==='mine'?' mine':''));if(entry[0]==='order')row.append(orderCard());else row.append(el('div','bubble',entry[1]));
+var row=el('div','message'+(entry[0]==='mine'?' mine':''));if(entry[0]==='order')row.append(orderCard());else if(entry[0]==='media'){row.className+=' media-message';row.append(mediaCard(entry[1]))}else row.append(el('div','bubble',entry[1]));
 row.append(el('div','stamp',entry[2]+(entry[0]==='mine'?' ✓':'')));box.append(row)});
 (demoPreviewMessages[current]||[]).forEach(function(value){var row=el('div','message mine');row.append(el('div','bubble',value),el('div','stamp','Nháp demo · chưa gửi'));box.append(row)});
 var input=byId('draft');input.value=demoDrafts[current]||'';input.style.height='22px';input.style.height=Math.min(input.scrollHeight,110)+'px';syncDemoSendState();
@@ -384,7 +514,7 @@ document.querySelectorAll('[data-mode]').forEach(function(b){b.addEventListener(
 document.querySelectorAll('[data-filter]').forEach(function(b){b.addEventListener('click',function(){useFilter(b.dataset.filter)})});
 document.querySelectorAll('[data-work]').forEach(function(b){b.addEventListener('click',function(){workDetail(b.dataset.work)})});
 document.querySelectorAll('[data-action]').forEach(function(b){b.addEventListener('click',function(){
-var a=b.dataset.action;if(a==='back'){closeActionSheet();if(page==='chat'&&window.history.state&&window.history.state.chatNextDemo&&window.history.length>1){window.history.back();return}showPage('inbox');return}if(a==='more'){openActionSheet(b);return}if(a==='work'){closeActionSheet();showPage('work');return}
+var a=b.dataset.action;if(a==='back'){closeMediaViewer();closeActionSheet();if(page==='chat'&&window.history.state&&window.history.state.chatNextDemo&&window.history.length>1){window.history.back();return}showPage('inbox');return}if(a==='more'){openActionSheet(b);return}if(a==='work'){closeActionSheet();showPage('work');return}if(a==='photos'){openMediaViewer('order',b);return}
 var messages={call:'Bản demo không thực hiện cuộc gọi.',new:'Tạo hội thoại sẽ dùng dữ liệu thật khi triển khai.',settings:'Đây là giao diện mẫu, chưa có cài đặt tài khoản.',photos:'Ảnh và tệp không được tải từ tài khoản thật.',attach:'Đính kèm trong demo không gửi dữ liệu.'};
 showToast(messages[a]||'Thao tác đang ở chế độ minh họa');
 })});
