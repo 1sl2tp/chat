@@ -1,3 +1,15 @@
+## 2026-11-18 — CHAT-NEXT-003 · Công việc theo ngữ cảnh khách hàng (candidate only)
+
+- **E0:** Admin đang có `#chatQuickActions` (Thu tiền/Công nợ/Ảnh/Tìm-Gần) hiển thị thành một hàng riêng trong hội thoại, chiếm chiều cao trên mobile. `admin-composer-actions.js::syncQuickActions()` là chủ sở hữu phân quyền hiện hành, chỉ cho Admin + khách thuộc nhóm customer + màn chat; `shell.js` vẫn cố ý tắt `WORK_ENABLED=false`. Không được tạo lại thao tác thu tiền/đơn hàng, không bật Work route chưa được nghiệm thu.
+- **E1:** Khi người dùng bật chế độ thử `?chatnext=1`, thanh `#chatQuickActions` mặc định thu gọn bằng CSS (không đổi thuộc tính `hidden` do module gốc sở hữu). Menu `...` của hội thoại thêm đúng một lựa chọn “Hiện/Ẩn công việc”. Mục menu chỉ hiện trên mobile nếu chính `#chatQuickActions:not([hidden])` có quyền hiển thị; shell kiểm tra thêm Admin, khách hiện tại, `chat` route, không có cuộc gọi đang hoạt động và không phải màn báo cáo ngân hàng. Mọi action vẫn gọi handler cũ, không tạo nút thanh toán/ghi thu thay thế.
+- **Lifecycle:** trạng thái chỉ lưu trong DOM `data-chat-next-tools` của phiên giao diện, không localStorage/DB; tự thu gọn khi đổi khách/route/logout/đổi auth/call. Khi đóng, module sở hữu recent picker được báo qua sự kiện `chat-next-work-tools-closed` để đóng popup cũ. `app.js` nhận một sự kiện UI để cập nhật vị trí nhãn ngày qua một `requestAnimationFrame`; không đặt lại scrollTop/virtualizer.
+- **E2:** `tests/test_chatnext_phase3_customer_tools_20261118.cjs` dùng Node VM với DOM giả, kiểm tra điều kiện Admin/customer/route/call/bank report, open-close-idempotency, cleanup và CSS flag. Được gọi từ `tools/verify_current.py`; giữ nguyên toàn bộ bộ hồi quy Chat.
+- **E3:** Verify V21/CI trên branch candidate là điều kiện bắt buộc; không tự coi đạt trước khi workflow ở commit HEAD báo SUCCESS. Không phát hành GitHub Pages production.
+- **E4/E5:** PENDING — nghiệm thu iPhone Safari/PWA, Android Chrome/PWA, thao tác keyboard/scroll, popup tìm gần, chuyển liên hệ nhanh, nhãn ngày và màn báo cáo trước khi xét merge.
+- **Rollback:** Revert CH-NEXT-003 thay đổi ở `shell.js`, `index.source.html`, `chat-next-conversation.css`, `admin-composer-actions.js`, `app.js`, test và Verify. Không đụng Supabase, Ledger, Zalo, Push, tin gốc, các dữ liệu riêng tư hoặc cờ Work đang tắt.
+
+---
+
 ## 2026-11-18 — CHAT-NEXT-001 · Thử nghiệm giao diện danh bạ chuyên chat, chưa triển khai production
 
 - **E0:** Đối chiếu WhatsApp / Telegram / iMessage / Signal với `shell.js`, `index.source.html`, `ui-foundation.css` và `mobile-ui-polish.css`. Danh bạ đang dùng lớp override khác nhau (hàng 60/64/68px, UI-341 auto-height, UI-359 filter) nên không thể chỉ vẽ lại mà bỏ qua CSS owner. `shell.js` hiện chủ động tắt `WORK_ENABLED=false`; không tự bật lại.
