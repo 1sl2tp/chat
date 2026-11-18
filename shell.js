@@ -514,8 +514,11 @@ const NavigationCommand={
     )||null;
     if(!item)return false;
     const name=String(contactName||item.display_name||item.username||'Liên hệ');
-    this.open('chat');
+    // Switch the canonical contact before the route event. Otherwise the
+    // navigation-change listener can mark-read/wake the previous conversation
+    // just as the user opens a new customer (including notification clicks).
     setActiveContact(id,name);
+    this.open('chat');
     return true;
   }
 };
