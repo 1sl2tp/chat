@@ -100,3 +100,34 @@
     transition:none;
   }
 }
+
+
+/* CHAT-NEXT-003: contextual Admin tools. Default and desktop never change.
+   :has(...) reads the existing toolbar's own [hidden] permission decision;
+   it does NOT invent a new permission check or duplicate any cash action. */
+#appShell .chat-next-work-menuitem {
+  display:none!important;
+}
+@media (max-width:63.999rem) {
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"][data-route="chat"]
+  :has(#stageLayout:not([data-bank-report-active="true"]) #chatQuickActions:not([hidden]))
+  #regionTop .chat-next-work-menuitem {
+    display:flex!important;
+  }
+
+  /* The bar is still present in the DOM and owned by Admin quick actions.
+     Hiding it from layout also removes its buttons from the focus tree. */
+  #appShell[data-chat-next-ui="on"][data-chat-next-tools="closed"][data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"]) #chatQuickActions:not([hidden]) {
+    display:none!important;
+  }
+
+  #appShell[data-chat-next-ui="on"][data-chat-next-tools="open"][data-auth-state="authenticated"][data-route="chat"]
+  #regionTop .chat-next-work-menuitem[aria-expanded="true"] {
+    color:var(--chat-next-accent);
+    background:var(--theme-surface-secondary);
+  }
+}
+
+/* No new scroll container, overlay, fixed position, hover-only action,
+   animation, message resize, keyboard observer or network owner. */
