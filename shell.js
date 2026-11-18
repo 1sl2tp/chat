@@ -15,10 +15,8 @@ const appShell=document.getElementById('appShell');
 // CHAT NEXT preview is explicit and session-local. Never replace the production
 // directory or enable unfinished Work/transport when this visual flag is off.
 const chatNextPreview=new URLSearchParams(window.location.search||'').get('chatnext')==='1';
-if(chatNextPreview&&appShell){
-  appShell.dataset.chatNextUi='on';
-  appShell.dataset.chatNextTools='closed';
-}
+if(chatNextPreview&&appShell)appShell.dataset.chatNextUi='on';
+if(chatNextPreview&&appShell)appShell.dataset.chatNextTools='closed';
 const stageLayout=document.getElementById('stageLayout');
 const workView=document.getElementById('workThreadView');
 const workThreadHome=workView?.parentNode||null;
