@@ -841,7 +841,11 @@ function syncQuickActions(){
  const route=window.ChatAppShell?.ScreenSession?.snapshot?.()?.route;
  const visible=Boolean(currentAdmin()&&quickCustomerId()&&quickCustomerGroup()==='customer'
   &&route==='chat');
- bar.hidden=!visible;
+ // The mobile header overflow now owns these same business commands.
+ // The four-button bar survives only on wide desktop, where it is not
+ // competing with the native phone keyboard or the message viewport.
+ const compact=window.matchMedia?.('(max-width:63.999rem)')?.matches===true;
+ bar.hidden=!visible||compact;
  if(!visible)closeQuickRecent();
 }
 function closeQuickCash({restoreFocus=true}={}){
@@ -1184,6 +1188,7 @@ window.V21AdminComposerActions=Object.freeze({
   mount:ensureAdminMenu,
   run:runAction,
   openQuote,
+  openQuickCash,
   openRecentSales,
   openCredentials,
   openStockCheck,
