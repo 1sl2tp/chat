@@ -1,3 +1,5 @@
+> **Bắt buộc trước khi sửa demo:** đọc [`../UI_UX_RULES.md`](../UI_UX_RULES.md) và [`../VERSIONING.md`](../VERSIONING.md). Thiết kế mới 100%, chưa kết nối dữ liệu thật; sửa theo cha → con L0–L5, không CSS/JS chắp vá. Kiểm thử đạt rồi mới công bố nâng version.
+
 # CHAT NEXT — Bản demo trực tuyến (không production)
 
 - Mẫu HTML chính: [index.html](./index.html).
