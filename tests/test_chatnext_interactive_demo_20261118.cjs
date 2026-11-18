@@ -54,6 +54,34 @@ assert(!html.includes('>▤</span>')&&!html.includes('>▦</span>')&&!html.inclu
  'placeholder glyphs must not remain as primary navigation icons');
 assert(html.includes('id="inboxSummary" aria-live="polite"'),'list count needs accessible summary');
 assert(html.includes('id="sendDemo" type="submit" disabled'),'empty send starts disabled');
+const iconNames=[...html.matchAll(/<symbol id="ui-([a-z-]+)"/g)].map(x=>x[1]);
+assert.equal(iconNames.length,17,'one coherent 17-symbol icon family');
+assert.equal(new Set(iconNames).size,17,'no duplicate local icon ids');
+for(const [,ref] of html.matchAll(/<use href="#ui-([a-z-]+)"/g)){
+ assert(iconNames.includes(ref),'unresolved SVG use reference: '+ref);
+}
+assert(!html.includes('cdnjs.cloudflare.com')&&!html.includes('fonts.googleapis.com'),
+ 'no external asset requests; icons and typography are self-contained');
+assert(html.includes('Chỉ minh họa'),'sample account connection must never imply real availability');
+const color=(key,section)=> {
+ const value=section.match(new RegExp('--'+key+':(#[0-9A-Fa-f]{6})'))?.[1];
+ assert(value,'missing CSS color: '+key);return value;
+};
+function luminosity(hex){
+ const z=[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16)/255).map(v=>v<=.04045?v/12.92:Math.pow((v+.055)/1.055,2.4));
+ return .2126*z[0]+.7152*z[1]+.0722*z[2];
+}
+function contrast(a,b){const [hi,lo]=[luminosity(a),luminosity(b)].sort((a,b)=>b-a);return(hi+.05)/(lo+.05)}
+const palette=css.match(/^:root\{([^}]+)\}/m)?.[1]||'';
+const dark=css.match(/^body\.dark\{([^}]+)\}/m)?.[1]||'';
+assert(contrast(color('muted',palette),color('subtle',palette))>=4.5,
+ 'light secondary text must meet AA over subtle surface');
+assert(contrast(color('accent',palette),color('accentLight',palette))>=4.5,
+ 'light selected labels must meet AA on selected background');
+assert(contrast(color('muted',dark),color('subtle',dark))>=4.5,
+ 'dark secondary text must meet AA over subtle surface');
+assert(contrast(color('accent',dark),color('accentLight',dark))>=4.5,
+ 'dark selected labels must meet AA on selected background');
 assert(html.includes('min-height:44px'),'touch targets');
 assert(html.includes('--ui-tap:48px'),'Android-sized touch primitives');
 assert(html.includes('id="conversationActions"')&&html.includes('aria-modal="true"'),'native contextual dialog required');
@@ -145,6 +173,18 @@ vm.runInNewContext(js,context,{timeout:1500});
 assert.equal(idNodes.get('contacts').children.length,5,'initial five mock conversations rendered');
 assert.equal(idNodes.get('inboxSummary').textContent,'5 hội thoại · 2 chưa đọc');
 assert.equal(idNodes.get('sendDemo').disabled,true,'send action disabled for empty draft');
+assert.equal(idNodes.get('contacts').children[0].dataset.unread,'true',
+ 'unread is represented by a state, not just a colored count');
+assert(String(idNodes.get('contacts').children[0]['aria-label']).includes('2 tin chưa đọc'),
+ 'unread badge is accessible by spoken button label');
+idNodes.get('search').value='không tồn tại';
+idNodes.get('search').dispatch('input');
+assert.equal(idNodes.get('contacts').children.length,1,'search empty state is a single result');
+assert.equal(idNodes.get('contacts').children[0].className,'no-results','empty state is semantically styled');
+assert.equal(idNodes.get('inboxSummary').textContent,'0 kết quả cho tìm kiếm','count also updates on empty search');
+idNodes.get('search').value='';
+idNodes.get('search').dispatch('input');
+assert.equal(idNodes.get('contacts').children.length,5,'clear search restores all sample conversations');
 assert.equal(idNodes.get('activeName').textContent,'Chị Lan');
 assert.equal(idNodes.get('app').dataset.page,'inbox','mobile starts at Inbox');
 assert.equal(window.location.hash,'#inbox','initial history state must be a safe local Inbox fragment');
