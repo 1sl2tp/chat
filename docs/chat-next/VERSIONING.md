@@ -19,6 +19,7 @@
 
 | Vòng | Tên | Ngày | Phạm vi |
 |---|---|---|---|
+| V17 | Chi tiết giao diện đồng bộ | 18/11/2026 | Một bộ token cho chữ, icon, viền, bán kính và khoảng cách nội bộ; kiểm tâm icon trong `?geometry=1` |
 | V16 | Căn trục ô gõ và nội dung | 18/11/2026 | Đồng nhất trục L4 khi cuộn desktop; chuẩn L5 48/44px, khe đều, kiểm hình học nút/textarea qua `?geometry=1` |
 | V15 | Tên phiên bản & nhật ký chỉnh sửa | 18/11/2026 | Nhãn phiên bản trên trang, lịch sử V11–V15 và quy ước cập nhật |
 | V14 | Khung phân cấp và trục L0–L5 | 18/11/2026 | Trục đồng nhất cho header, tin nhắn, composer, note |
