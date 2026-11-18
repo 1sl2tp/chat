@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f4f8f8">
-<title>CHAT NEXT · V21 — Trình xem ảnh và ảnh thu nhỏ (demo)</title>
+<title>CHAT NEXT · V22 — Zoom thực và điều hướng ảnh (demo)</title>
 <style>
 :root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color-scheme:light;--bg:#eef4f4;--surface:#fff;--subtle:#f5f8f9;--ink:#21313b;--muted:#586b74;--border:#e3e9ea;--accent:#0f7668;--accentLight:#e2f3eb;--received:#fff;--sent:#def2e9;--shadow:0 25px 70px rgba(30,62,67,.12)}
 body.dark{color-scheme:dark;--bg:#131d21;--surface:#1e2a30;--subtle:#24343a;--ink:#eaf1f2;--muted:#a6b5b9;--border:#35474b;--accent:#57c7a5;--accentLight:#22483e;--received:#29383e;--sent:#224d42;--shadow:0 20px 50px rgba(0,0,0,.28)}
@@ -601,7 +601,7 @@ body.geometry-mode .composer-inner .editorbox{outline:1px solid rgba(180,50,150,
 /* CHAT-NEXT-021: media viewport centered, thumbnails below the stage.
    Do not stretch/crop receipts; the original artwork remains fully visible at fit. */
 .media-stage{display:flex;align-items:center;justify-content:center}
-.media-canvas{flex:0 0 auto;max-width:100%;align-self:center}
+.media-canvas{flex:0 0 auto;max-width:none;align-self:center}
 .media-stage:has(.media-canvas[style*="200%"]){justify-content:flex-start;align-items:flex-start}
 .media-thumbnails{flex:0 0 auto;display:flex;align-items:center;gap:6px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:thin;padding:9px 12px;min-height:74px;max-width:100%;border-top:1px solid var(--border)}
 .media-thumbnails[hidden]{display:none!important}
@@ -612,17 +612,22 @@ body.geometry-mode .composer-inner .editorbox{outline:1px solid rgba(180,50,150,
 .media-thumbnail .media-art-paper{transform:scale(.85)}
 .media-thumbnail .media-art-chip{display:none}
 @media(max-width:700px){.media-thumbnails{padding:8px 12px;min-height:66px}.media-thumbnail{flex-basis:50px;width:50px;height:50px}}
+/* CHAT-NEXT-022: zoom width must not be clamped by intrinsic max-width. */
+.media-canvas[style]{max-width:none}
+.media-stage{touch-action:pan-y pinch-zoom}
+.media-stage:has(.media-canvas[style*="150%"]),.media-stage:has(.media-canvas[style*="200%"]){touch-action:pan-x pan-y}
 </style>
 </head>
 <body>
 <svg class="icon-sprite" width="0" height="0" viewBox="0 0 24 24" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"><defs><symbol id="ui-message-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5a8.5 8.5 0 0 1-8.5 8.5 9.6 9.6 0 0 1-4.1-1L3 20l1.2-4.1A8.5 8.5 0 1 1 20 11.5Z"/><path d="M8.5 11.5h7"/></symbol><symbol id="ui-briefcase" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18M10 13v2h4v-2"/></symbol><symbol id="ui-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h3l1.2 4-2 1.6c1.3 2.7 3.1 4.5 5.8 5.8l1.6-2 4 1.2v3a2 2 0 0 1-2.3 2c-7.3-1-12.5-6.2-13.5-13.5A2 2 0 0 1 6 3.5Z"/></symbol><symbol id="ui-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 14 4l1.1 1.8 2 .2 1.5 1.5-.2 2L20 11l-.2 2-1.4 1.6.1 2-1.4 1.4-2-.1L13 20l-2 .1-1.8-1.5-2 .1-1.5-1.5.2-2L4 13.5l-.2-2 1.5-1.8-.1-2L6.7 6l2 .2L10 4Z"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="ui-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></symbol><symbol id="ui-pencil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 16.5 1-4 10-10 4 4-10 10-5 1Z"/><path d="m12.8 4.7 4 4M4 21h16"/></symbol><symbol id="ui-arrow-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6M9 12h12"/></symbol><symbol id="ui-more" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></symbol><symbol id="ui-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M4 12h16"/></symbol><symbol id="ui-arrow-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V4m-7 7 7-7 7 7"/></symbol><symbol id="ui-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 15.6A8.4 8.4 0 0 1 8.4 4 8.6 8.6 0 1 0 20 15.6Z"/></symbol><symbol id="ui-receipt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18l-3-2-4 2-4-2-3 2V3Z"/><path d="M9 8h6M9 12h6M9 16h4"/></symbol><symbol id="ui-wallet" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="15" rx="3"/><path d="M3 10h18M16 15h3"/></symbol><symbol id="ui-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12 12 20 4 12V4h8l8 8Z"/><circle cx="8.5" cy="8.5" r="1"/></symbol><symbol id="ui-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="m4 17 5-5 4 4 2-2 5 5"/></symbol><symbol id="ui-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></symbol><symbol id="ui-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5 19 19M19 5 5 19"/></symbol><symbol id="ui-minus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 12h16"/></symbol></defs></svg>
-<div class="screen" id="screen" data-design-id="CHAT-NEXT-021" data-design-round="21">
+<div class="screen" id="screen" data-design-id="CHAT-NEXT-022" data-design-round="22">
   <div class="demo-top"><div class="demo-brand"><strong>CHAT NEXT</strong><span class="state"><i></i> BẢN DEMO · DỮ LIỆU MẪU</span></div><div class="top-actions"><details class="version-details" id="versionHistory" aria-label="Phiên bản thiết kế và các vòng sửa">
-  <summary title="CHAT NEXT — Vòng 21: Trình xem ảnh và ảnh thu nhỏ" aria-label="Xem lịch sử phiên bản CHAT NEXT, vòng 21"><span class="version-round">V21</span><span class="version-caption">· Nhật ký sửa</span></summary>
+  <summary title="CHAT NEXT — Vòng 22: Zoom thực và điều hướng ảnh" aria-label="Xem lịch sử phiên bản CHAT NEXT, vòng 22"><span class="version-round">V22</span><span class="version-caption">· Nhật ký sửa</span></summary>
   <div class="version-panel">
-    <h2>CHAT NEXT · Vòng 21</h2>
-    <p>Ảnh căn giữa, dải ảnh thu nhỏ và thao tác xem ảnh · 18/11/2026. Chỉ là demo, không phải Chat production.</p>
+    <h2>CHAT NEXT · Vòng 22</h2>
+    <p>Sửa giới hạn zoom, chuyển ảnh bằng bàn phím và thao tác chạm · 18/11/2026. Chỉ là demo, không phải Chat production.</p>
     <ol class="version-log" aria-label="Lịch sử các vòng thiết kế">
+      <li><b>V22</b><span><strong>Zoom thực và điều hướng ảnh</strong><small>18/11/2026 · Gỡ giới hạn max-width khi zoom, phím mũi tên, chạm hai lần</small></span></li>
       <li><b>V21</b><span><strong>Trình xem ảnh và ảnh thu nhỏ</strong><small>18/11/2026 · Ảnh căn giữa, chọn thumbnail, vuốt và zoom, tách điều khiển</small></span></li>
       <li><b>V20</b><span><strong>Nhóm ảnh cân đối</strong><small>18/11/2026 · 1 ảnh toàn khung, 2/4 chia đều, 3 ảnh nổi bật, 5+ có +N</small></span></li>
       <li><b>V19</b><span><strong>Căn trục yêu cầu hàng</strong><small>18/11/2026 · Cột tên, số, đơn vị và ghi chú; không tự tạo đơn</small></span></li>
@@ -862,7 +867,7 @@ byId('mediaZoomIn').addEventListener('click',function(){setMediaZoom(mediaZoom+.
 byId('mediaZoomOut').addEventListener('click',function(){setMediaZoom(mediaZoom-.5)});
 /* V21: horizontal swipe only when fitted; zoomed image keeps native panning.
    Thumbnail clicks and controls remain accessible without touch gestures. */
-var mediaTouchStart=null;
+var mediaTouchStart=null,mediaLastTap=0;
 byId('mediaStage').addEventListener('touchstart',function(event){
  if(event.touches.length!==1||mediaZoom>1){mediaTouchStart=null;return}
  mediaTouchStart={x:event.touches[0].clientX,y:event.touches[0].clientY};
@@ -871,11 +876,22 @@ byId('mediaStage').addEventListener('touchend',function(event){
  if(!mediaTouchStart||!event.changedTouches.length)return;
  var dx=event.changedTouches[0].clientX-mediaTouchStart.x,dy=event.changedTouches[0].clientY-mediaTouchStart.y;
  mediaTouchStart=null;
+ if(Math.abs(dx)<20&&Math.abs(dy)<20){
+  var now=Date.now();if(now-mediaLastTap<330){setMediaZoom(mediaZoom>1?1:2);mediaLastTap=0}else mediaLastTap=now;
+  return;
+ }
+ mediaLastTap=0;
  if(Math.abs(dx)<55||Math.abs(dx)<Math.abs(dy)*1.3)return;
  var next=activeMediaIndex+(dx<0?1:-1),length=(activeMediaSet||mediaExamples).length;
  if(next>=0&&next<length){activeMediaIndex=next;renderMediaViewer()}
 },{passive:true});
-byId('mediaStage').addEventListener('dblclick',function(){setMediaZoom(mediaZoom>1?1:2)});
+byId('mediaStage').addEventListener('dblclick',function(event){if(event.pointerType==='touch')return;setMediaZoom(mediaZoom>1?1:2)});
+mediaViewer.addEventListener('keydown',function(event){
+ if(event.target&&event.target.tagName==='INPUT')return;
+ var list=activeMediaSet||mediaExamples;
+ if(event.key==='ArrowRight'&&activeMediaIndex<list.length-1){event.preventDefault();activeMediaIndex++;renderMediaViewer()}
+ if(event.key==='ArrowLeft'&&activeMediaIndex>0){event.preventDefault();activeMediaIndex--;renderMediaViewer()}
+});
 mediaViewer.addEventListener('click',function(event){if(event.target===mediaViewer)closeMediaViewer()});
 mediaViewer.addEventListener('close',function(){if(mediaTrigger){mediaTrigger.focus({preventScroll:true});mediaTrigger=null}});
 
