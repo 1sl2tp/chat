@@ -18,8 +18,8 @@ for(const prohibited of [
  assert(!html.includes(prohibited),'public demo must never call live APIs: '+prohibited);
 }
 
-assert(html.includes('<title>CHAT NEXT · V17 — Chi tiết giao diện đồng bộ (demo)</title>'),'V17 named release');
-assert(html.includes('data-design-id="CHAT-NEXT-017" data-design-round="17"'),'V17 distinct design round');
+assert(html.includes('<title>CHAT NEXT · V18 — Phân cấp nội dung dễ đọc (demo)</title>'),'V17 named release');
+assert(html.includes('data-design-id="CHAT-NEXT-018" data-design-round="18"'),'V17 distinct design round');
 assert(css.includes('/* CHAT-NEXT-016 — L5 composer precision'),'one micro-geometry owner');
 assert(css.includes('.conversation{scrollbar-width:none'),'classic scrollbars cannot shift L4');
 assert(css.includes('.conversation::-webkit-scrollbar{display:none'),'WebKit track removed');
@@ -40,6 +40,19 @@ assert(html.includes('ICON + / GỬI '),'V17 diagnostic checks glyph centering')
 assert(html.includes('leftError<=1&&rightError<=1'),'1px center tolerance required');
 assert(css.includes('.contact-title{font-size:var(--detail-contact)'),'contact typography from tokens');
 assert(css.includes('.composer-inner #draft{font-size:16px'),'iOS safe textarea size');
+
+
+assert(css.includes('/* CHAT-NEXT-018 — Readability hierarchy'),'V18 readability owner');
+for(const t of ['--read-body:15px','--read-body-line:23px','--read-preview:13px',
+ '--read-meta:11.5px','--read-primary:var(--ink)','--read-action:var(--accent)']){
+ assert(css.includes(t),'missing V18 readable type/color role '+t);
+}
+assert(js.includes("kind==='note'")&&js.includes("kind==='order'"),'explicit type classification');
+assert(js.includes("raw.join('\\n')"),'request source and rows share structured payload');
+assert(js.includes("orderCard(entry[1])"),'request card uses typed message payload, not a second fixed list');
+assert(js.includes("row.className+=' order-message'"),'request category is visually distinct');
+assert(js.includes("message mine message-preview"),'local demo draft cannot look like sent/confirmed message');
+assert(!js.includes('Tin gốc không bị chỉnh sửa.'),'never assert original source without source');
 
 assert(html.includes('BẢN DEMO · DỮ LIỆU MẪU'),'visible demo banner mandatory');
 assert(html.includes('Không gửi tới khách hàng'),'composer safety labeling mandatory');
