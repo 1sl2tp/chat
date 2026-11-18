@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f4f8f8">
-<title>CHAT NEXT · V19 — Căn trục yêu cầu hàng (demo)</title>
+<title>CHAT NEXT · V20 — Bố cục nhóm ảnh cân đối (demo)</title>
 <style>
 :root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color-scheme:light;--bg:#eef4f4;--surface:#fff;--subtle:#f5f8f9;--ink:#21313b;--muted:#586b74;--border:#e3e9ea;--accent:#0f7668;--accentLight:#e2f3eb;--received:#fff;--sent:#def2e9;--shadow:0 25px 70px rgba(30,62,67,.12)}
 body.dark{color-scheme:dark;--bg:#131d21;--surface:#1e2a30;--subtle:#24343a;--ink:#eaf1f2;--muted:#a6b5b9;--border:#35474b;--accent:#57c7a5;--accentLight:#22483e;--received:#29383e;--sent:#224d42;--shadow:0 20px 50px rgba(0,0,0,.28)}
@@ -584,17 +584,32 @@ body.geometry-mode .composer-inner .editorbox{outline:1px solid rgba(180,50,150,
  :root{--request-quantity-width:102px;--request-unit-width:46px;--request-column-gap:8px}
  .message-stream .order-request{padding:12px}
 }
+/* CHAT-NEXT-020: media group owner, 4px equal gaps and no empty cells.
+   These styles affect gallery messages only, not the existing single-image card. */
+.message-stream .media-gallery-message{width:min(360px,90%);max-width:90%;min-width:0}
+.media-gallery{display:grid;width:100%;min-width:0;gap:4px;overflow:hidden;border-radius:16px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.media-gallery.one{grid-template-columns:minmax(0,1fr)}
+.media-gallery.three{grid-template-rows:repeat(2,minmax(0,1fr))}
+.media-gallery.three .media-gallery-tile:first-child{grid-row:span 2}
+.media-gallery-tile{position:relative;display:block;width:100%;min-width:0;min-height:0;padding:0;border:0;border-radius:0;background:var(--subtle);overflow:hidden;cursor:pointer}
+.media-gallery-tile:focus-visible{outline:3px solid var(--accent);outline-offset:-3px;z-index:2}
+.media-gallery .media-art{width:100%;height:100%;aspect-ratio:1/1;border:0;border-radius:0}
+.media-gallery.three .media-gallery-tile:first-child .media-art{aspect-ratio:auto;height:100%}
+.media-gallery.three .media-gallery-tile:not(:first-child) .media-art{aspect-ratio:2/1}
+.media-gallery-more{position:absolute;inset:0;display:grid;place-items:center;background:rgba(10,23,29,.66);color:white;font-size:28px;font-weight:750;line-height:1}
+@media(max-width:360px){.message-stream .media-gallery-message{width:min(320px,94%);max-width:94%}}
 </style>
 </head>
 <body>
 <svg class="icon-sprite" width="0" height="0" viewBox="0 0 24 24" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"><defs><symbol id="ui-message-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5a8.5 8.5 0 0 1-8.5 8.5 9.6 9.6 0 0 1-4.1-1L3 20l1.2-4.1A8.5 8.5 0 1 1 20 11.5Z"/><path d="M8.5 11.5h7"/></symbol><symbol id="ui-briefcase" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18M10 13v2h4v-2"/></symbol><symbol id="ui-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h3l1.2 4-2 1.6c1.3 2.7 3.1 4.5 5.8 5.8l1.6-2 4 1.2v3a2 2 0 0 1-2.3 2c-7.3-1-12.5-6.2-13.5-13.5A2 2 0 0 1 6 3.5Z"/></symbol><symbol id="ui-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 14 4l1.1 1.8 2 .2 1.5 1.5-.2 2L20 11l-.2 2-1.4 1.6.1 2-1.4 1.4-2-.1L13 20l-2 .1-1.8-1.5-2 .1-1.5-1.5.2-2L4 13.5l-.2-2 1.5-1.8-.1-2L6.7 6l2 .2L10 4Z"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="ui-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></symbol><symbol id="ui-pencil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 16.5 1-4 10-10 4 4-10 10-5 1Z"/><path d="m12.8 4.7 4 4M4 21h16"/></symbol><symbol id="ui-arrow-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6M9 12h12"/></symbol><symbol id="ui-more" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></symbol><symbol id="ui-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M4 12h16"/></symbol><symbol id="ui-arrow-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V4m-7 7 7-7 7 7"/></symbol><symbol id="ui-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 15.6A8.4 8.4 0 0 1 8.4 4 8.6 8.6 0 1 0 20 15.6Z"/></symbol><symbol id="ui-receipt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18l-3-2-4 2-4-2-3 2V3Z"/><path d="M9 8h6M9 12h6M9 16h4"/></symbol><symbol id="ui-wallet" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="15" rx="3"/><path d="M3 10h18M16 15h3"/></symbol><symbol id="ui-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12 12 20 4 12V4h8l8 8Z"/><circle cx="8.5" cy="8.5" r="1"/></symbol><symbol id="ui-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="m4 17 5-5 4 4 2-2 5 5"/></symbol><symbol id="ui-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></symbol><symbol id="ui-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5 19 19M19 5 5 19"/></symbol><symbol id="ui-minus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 12h16"/></symbol></defs></svg>
-<div class="screen" id="screen" data-design-id="CHAT-NEXT-019" data-design-round="19">
+<div class="screen" id="screen" data-design-id="CHAT-NEXT-020" data-design-round="20">
   <div class="demo-top"><div class="demo-brand"><strong>CHAT NEXT</strong><span class="state"><i></i> BẢN DEMO · DỮ LIỆU MẪU</span></div><div class="top-actions"><details class="version-details" id="versionHistory" aria-label="Phiên bản thiết kế và các vòng sửa">
-  <summary title="CHAT NEXT — Vòng 19: Căn trục yêu cầu hàng" aria-label="Xem lịch sử phiên bản CHAT NEXT, vòng 19"><span class="version-round">V19</span><span class="version-caption">· Nhật ký sửa</span></summary>
+  <summary title="CHAT NEXT — Vòng 20: Bố cục nhóm ảnh" aria-label="Xem lịch sử phiên bản CHAT NEXT, vòng 20"><span class="version-round">V20</span><span class="version-caption">· Nhật ký sửa</span></summary>
   <div class="version-panel">
-    <h2>CHAT NEXT · Vòng 19</h2>
-    <p>Căn tên hàng, số lượng và ghi chú trên một hệ trục · 18/11/2026. Bản demo, không phải V21 production.</p>
+    <h2>CHAT NEXT · Vòng 20</h2>
+    <p>Nhóm ảnh 1–5+, chia cột cân đối và mở xem từng ảnh · 18/11/2026. Chỉ là demo, không phải V21 production.</p>
     <ol class="version-log" aria-label="Lịch sử các vòng thiết kế">
+      <li><b>V20</b><span><strong>Nhóm ảnh cân đối</strong><small>18/11/2026 · 1 ảnh toàn khung, 2/4 chia đều, 3 ảnh nổi bật, 5+ có +N</small></span></li>
       <li><b>V19</b><span><strong>Căn trục yêu cầu hàng</strong><small>18/11/2026 · Cột tên, số, đơn vị và ghi chú; không tự tạo đơn</small></span></li>
       <li><b>V18</b><span><strong>Phân cấp nội dung dễ đọc</strong><small>18/11/2026 · Tin thường, ghi chú, phiếu hàng, ảnh và nháp chưa gửi</small></span></li>
       <li><b>V17</b><span><strong>Chi tiết giao diện đồng bộ</strong><small>18/11/2026 · Typography, biểu tượng, bán kính, viền, nhịp khoảng cách</small></span></li>
@@ -713,7 +728,7 @@ body.geometry-mode .composer-inner .editorbox{outline:1px solid rgba(180,50,150,
 (function(){
 'use strict';
 var people=[
-{id:'lan',name:'Chị Lan',initial:'L',color:'',kind:'Khách hàng',category:'customer',time:'07:28',unread:2,orders:'02',preview:'2 thùng sữa hộp, 3 hộp bánh quy. Chiều giao giúp chị nhé.',texts:[['other','Chào em, cho chị đặt hàng sáng nay nhé.','07:20'],['mine','Dạ chị gửi danh sách, em soát lại rồi báo chị.','07:21'],['order',{items:[{name:'Sữa hộp',amount:2,unit:'thùng'},{name:'Bánh quy',amount:3,unit:'hộp'}],note:'Chiều giao giúp chị nhé.'},'07:28'],['media','order','07:29']]},
+{id:'lan',name:'Chị Lan',initial:'L',color:'',kind:'Khách hàng',category:'customer',time:'07:28',unread:2,orders:'02',preview:'2 thùng sữa hộp, 3 hộp bánh quy. Chiều giao giúp chị nhé.',texts:[['other','Chào em, cho chị đặt hàng sáng nay nhé.','07:20'],['mine','Dạ chị gửi danh sách, em soát lại rồi báo chị.','07:21'],['order',{items:[{name:'Sữa hộp',amount:2,unit:'thùng'},{name:'Bánh quy',amount:3,unit:'hộp'}],note:'Chiều giao giúp chị nhé.'},'07:28'],['media','order','07:29'],['gallery',['order','catalog'],'07:30'],['gallery',['order','catalog','order'],'07:31'],['gallery',['order','catalog','order','catalog'],'07:32'],['gallery',['order','catalog','order','catalog','order','catalog'],'07:33']]},
 {id:'family',name:'Nhóm gia đình',initial:'G',color:'orange',kind:'Nhóm',category:'group',time:'07:10',unread:1,orders:'01',preview:'Hôm nay có hai đơn cần soát hàng trước khi giao.',texts:[['other','Hôm nay có hai đơn cần kiểm hàng trước khi giao.','07:10'],['mine','Dạ, em đã ghi nhận.','07:12']]},
 {id:'minh',name:'Anh Minh',initial:'M',color:'violet',kind:'Khách hàng',category:'customer',time:'Hôm qua',unread:0,orders:'00',preview:'Đã nhận đủ hàng, cảm ơn bạn nhé.',texts:[['mine','Đơn hôm nay giao đủ rồi anh nhé.','16:30'],['other','Đã nhận đủ hàng, cảm ơn bạn nhé.','16:33']]},
 {id:'supplier',name:'Nhà cung cấp',initial:'N',color:'green',kind:'Nhóm',category:'group',time:'T. Hai',unread:0,orders:'01',preview:'Đã gửi bảng giá mới và danh sách sản phẩm.',texts:[['other','Bên em gửi lại bảng giá mới.','09:00'],['media','catalog','09:03'],['mine','Cảm ơn, mình đã nhận được.','09:05']]},
@@ -741,7 +756,7 @@ var mediaExamples=[
  {id:'order',title:'Phiếu hàng minh họa',kind:'order',caption:'Phiếu hàng · ảnh mẫu',price:'755.000',credit:'Ảnh minh họa, không phải hóa đơn thật'},
  {id:'catalog',title:'Bảng sản phẩm minh họa',kind:'catalog',caption:'Bảng sản phẩm · ảnh mẫu',price:'BẢNG GIÁ',credit:'Ảnh minh họa, không phải dữ liệu NCC'}
 ];
-var mediaViewer=byId('mediaViewer'),mediaTrigger=null,activeMediaIndex=0,mediaZoom=1;
+var mediaViewer=byId('mediaViewer'),mediaTrigger=null,activeMediaIndex=0,mediaZoom=1,activeMediaSet=null;
 function mediaArtwork(example){
  var picture=el('div','media-art');picture.dataset.art=example.kind;
  picture.setAttribute('role','img');picture.setAttribute('aria-label',example.title+' — dữ liệu mẫu');
@@ -760,6 +775,25 @@ function mediaCard(id){
  button.addEventListener('click',function(){openMediaViewer(id,button)});
  return button;
 }
+/* CHAT-NEXT-020: an explicit same-message array owns grouping.
+   Never combine separate messages based only on neighboring timestamps. */
+function mediaGallery(ids){
+ if(!Array.isArray(ids)||!ids.length)return el('span','media-caption','Không có ảnh mẫu');
+ var valid=ids.filter(function(id){return mediaExamples.some(function(item){return item.id===id})});
+ if(!valid.length)return el('span','media-caption','Không có ảnh mẫu');
+ var gallery=el('div','media-gallery media-gallery-'+(valid.length===1?'one':valid.length===2?'two':valid.length===3?'three':valid.length===4?'four':'many'));
+ gallery.setAttribute('role','group');gallery.setAttribute('aria-label',valid.length+' ảnh minh họa cùng một tin nhắn');
+ valid.slice(0,valid.length>=5?4:valid.length).forEach(function(id,index){
+  var example=mediaExamples.find(function(item){return item.id===id});
+  var tile=el('button','media-gallery-tile');tile.type='button';
+  tile.setAttribute('aria-label','Mở ảnh '+(index+1)+' / '+valid.length+': '+example.title);
+  tile.append(mediaArtwork(example));
+  if(valid.length>=5&&index===3)tile.append(el('span','media-gallery-more','+'+(valid.length-4)));
+  tile.addEventListener('click',function(){openMediaViewer(id,tile,valid,index)});
+  gallery.append(tile);
+ });
+ return gallery;
+}
 function setMediaZoom(value){
  mediaZoom=Math.max(1,Math.min(2,Math.round(value*2)/2));
  byId('mediaCanvas').style.width=Math.round(mediaZoom*100)+'%';
@@ -768,21 +802,24 @@ function setMediaZoom(value){
  byId('mediaZoomIn').disabled=mediaZoom>=2;
 }
 function renderMediaViewer(){
- var example=mediaExamples[activeMediaIndex];
+ var list=activeMediaSet||mediaExamples.map(function(item){return item.id});
+ var example=mediaExamples.find(function(item){return item.id===list[activeMediaIndex]});
  byId('mediaViewerTitle').textContent=example.title;
- byId('mediaViewerCount').textContent=(activeMediaIndex+1)+' / '+mediaExamples.length+' ảnh mẫu';
+ byId('mediaViewerCount').textContent=(activeMediaIndex+1)+' / '+list.length+' ảnh mẫu';
  byId('mediaViewerMeta').textContent=example.credit+' · Không lưu hoặc gửi dữ liệu';
  byId('mediaCanvas').replaceChildren(mediaArtwork(example));
  setMediaZoom(1);
  byId('mediaStage').scrollTop=0;byId('mediaStage').scrollLeft=0;
  byId('mediaPrev').disabled=activeMediaIndex===0;
- byId('mediaNext').disabled=activeMediaIndex===mediaExamples.length-1;
+ byId('mediaNext').disabled=activeMediaIndex===(activeMediaSet||mediaExamples).length-1;
 }
-function openMediaViewer(id,trigger){
+function openMediaViewer(id,trigger,groupIds,groupIndex){
  var index=mediaExamples.findIndex(function(m){return m.id===id});if(index<0)return;
+ var valid=Array.isArray(groupIds)?groupIds.filter(function(key){return mediaExamples.some(function(item){return item.id===key})}):null;
+ if(valid&&(!valid.length||!Number.isSafeInteger(groupIndex)||groupIndex<0||groupIndex>=valid.length||valid[groupIndex]!==id))return;
  if(actionSheet.open)closeActionSheet();
  if(mediaViewer.open)mediaViewer.close();
- mediaTrigger=trigger||null;activeMediaIndex=index;renderMediaViewer();mediaViewer.showModal();
+ mediaTrigger=trigger||null;activeMediaSet=valid;activeMediaIndex=valid?groupIndex:index;renderMediaViewer();mediaViewer.showModal();
 }
 function closeMediaViewer(){
  if(mediaViewer.open)mediaViewer.close();
@@ -790,7 +827,7 @@ function closeMediaViewer(){
 }
 byId('mediaClose').addEventListener('click',closeMediaViewer);
 byId('mediaPrev').addEventListener('click',function(){if(activeMediaIndex>0){activeMediaIndex--;renderMediaViewer()}});
-byId('mediaNext').addEventListener('click',function(){if(activeMediaIndex<mediaExamples.length-1){activeMediaIndex++;renderMediaViewer()}});
+byId('mediaNext').addEventListener('click',function(){if(activeMediaIndex<(activeMediaSet||mediaExamples).length-1){activeMediaIndex++;renderMediaViewer()}});
 byId('mediaZoomIn').addEventListener('click',function(){setMediaZoom(mediaZoom+.5)});
 byId('mediaZoomOut').addEventListener('click',function(){setMediaZoom(mediaZoom-.5)});
 mediaViewer.addEventListener('click',function(event){if(event.target===mediaViewer)closeMediaViewer()});
@@ -843,7 +880,7 @@ var p=selected();byId('activeAvatar').textContent=p.initial;byId('activeAvatar')
 byId('activeKind').textContent=p.kind+' · Trò chuyện';byId('profileAvatar').textContent=p.initial;byId('profileAvatar').className='avatar profile-avatar '+p.color;
 byId('profileName').textContent=p.name;byId('profileKind').textContent=p.kind+' · Dữ liệu mẫu';byId('orderCount').textContent=p.orders;
 var box=byId('messageStream');box.replaceChildren(el('div','day','Hôm nay · 18/11'));p.texts.forEach(function(entry){
-var kind=entry[0],row=el('div','message'+(kind==='mine'?' mine':''));if(kind==='order'){row.className+=' order-message';row.append(orderCard(entry[1]))}else if(kind==='media'){row.className+=' media-message';row.append(mediaCard(entry[1]))}else if(kind==='note'){row.className+=' note-message';row.append(el('div','bubble bubble-note',entry[1]))}else row.append(el('div','bubble',entry[1]));
+var kind=entry[0],row=el('div','message'+(kind==='mine'?' mine':''));if(kind==='order'){row.className+=' order-message';row.append(orderCard(entry[1]))}else if(kind==='media'){row.className+=' media-message';row.append(mediaCard(entry[1]))}else if(kind==='gallery'){row.className+=' media-message media-gallery-message';row.append(mediaGallery(entry[1]))}else if(kind==='note'){row.className+=' note-message';row.append(el('div','bubble bubble-note',entry[1]))}else row.append(el('div','bubble',entry[1]));
 row.append(el('div','stamp',entry[2]+(entry[0]==='mine'?' ✓':'')));box.append(row)});
 (demoPreviewMessages[current]||[]).forEach(function(value){var row=el('div','message mine message-preview');row.append(el('div','bubble',value),el('div','stamp','Nháp demo · chưa gửi'));box.append(row)});
 var input=byId('draft');input.value=demoDrafts[current]||'';input.style.height='24px';input.style.height=Math.min(input.scrollHeight,120)+'px';syncDemoSendState();
