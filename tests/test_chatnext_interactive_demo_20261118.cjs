@@ -18,9 +18,9 @@ for(const prohibited of [
  assert(!html.includes(prohibited),'public demo must never call live APIs: '+prohibited);
 }
 
-assert(html.includes('<title>CHAT NEXT · V20 — Bố cục nhóm ảnh cân đối (demo)</title>'),'V19 named release');
-assert(html.includes('data-design-id="CHAT-NEXT-020" data-design-round="20"'),'V19 distinct design round');
-assert(html.includes('<span class="version-round">V20</span>'),'visible version selector must be updated');
+assert(html.includes('<title>CHAT NEXT · V21 — Trình xem ảnh và ảnh thu nhỏ (demo)</title>'),'V19 named release');
+assert(html.includes('data-design-id="CHAT-NEXT-021" data-design-round="21"'),'V19 distinct design round');
+assert(html.includes('<span class="version-round">V21</span>'),'visible version selector must be updated');
 assert(css.includes('/* CHAT-NEXT-016 — L5 composer precision'),'one micro-geometry owner');
 assert(css.includes('.conversation{scrollbar-width:none'),'classic scrollbars cannot shift L4');
 assert(css.includes('.conversation::-webkit-scrollbar{display:none'),'WebKit track removed');
@@ -333,6 +333,16 @@ assert.equal(requestItems[1].children[1].children[1].textContent,'hộp');
 const requestSource=orderCardNode.children.find(x=>x.className==='order-source');
 assert.equal(requestSource.children[1].textContent,['2 thùng Sữa hộp','3 hộp Bánh quy','Chiều giao giúp chị nhé.'].join(String.fromCharCode(10)),
  'one typed payload drives both visible columns and unmodified readable source');
+/* V21: image stage centers fitted artwork and shows grouped thumbnails. */
+assert(css.includes('/* CHAT-NEXT-021: media viewport centered'),'viewer stage has one geometry owner');
+assert(css.includes('.media-stage{display:flex;align-items:center;justify-content:center}'),'fitted image centered in viewport');
+assert(css.includes('.media-thumbnails{flex:0 0 auto;display:flex'),'thumbnail rail has independent scroll');
+assert(css.includes('.media-thumbnail.selected{border-color:var(--accent)}'),'active thumbnail is highlighted');
+assert(js.includes("thumb.setAttribute('aria-pressed',String(i===activeMediaIndex))"),'thumbnail selection accessible');
+assert(js.includes("thumb.addEventListener('click',function(){activeMediaIndex=i;renderMediaViewer()})"),'thumbnail opens selected item');
+assert(js.includes("byId('mediaStage').addEventListener('touchend'"),'touch swipe navigation exists');
+assert(js.includes("if(!mediaTouchStart||!event.changedTouches.length)return"),'touch handler fails closed');
+assert(js.includes("byId('mediaStage').addEventListener('dblclick'"),'double click toggles zoom');
 /* V20: separate gallery message, 2/3/4/6 samples and scoped image navigation. */
 assert(css.includes('/* CHAT-NEXT-020: media group owner'),'V20 grid has one CSS owner');
 assert(js.includes("else if(kind==='gallery')"),'explicit gallery message only');
