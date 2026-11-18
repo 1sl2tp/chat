@@ -265,7 +265,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
    All frame measurements are declared here. No independent composer/list
    horizontal gutters or height/width calculations outside these frame tokens. */
 :root{
- --frame-gap:12px;--frame-outer:20px;--frame-rail:64px;
+ --frame-gap:12px;--frame-outer:20px;--frame-rail:68px;
  --frame-directory:clamp(292px,25vw,332px);--frame-context:252px;
  --frame-inbox-axis:16px;--frame-thread-axis:16px;
  --frame-thread-max:760px;--frame-head-height:72px;
@@ -300,7 +300,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
 .chat-header-inner .identity{min-width:0;flex:1 1 auto}
 .chat-header-inner .right-head{margin-left:auto;display:flex;align-items:center;gap:4px}
 .chat-header-inner .iconbtn{min-width:var(--frame-control);width:var(--frame-control);height:var(--frame-control);flex:0 0 var(--frame-control)}
-.conversation{box-sizing:border-box;min-width:0;min-height:0;padding:0;overflow-y:auto;overflow-x:hidden}
+.conversation{box-sizing:border-box;min-width:0;min-height:0;padding:0;overflow-y:auto;overflow-x:hidden;scrollbar-gutter:auto}
 .message-stream{padding-block:20px 12px;min-height:100%;display:flow-root}
 .message-stream .message{max-width:min(80%,550px);min-width:0}
 .message-stream .message.mine{margin-left:auto}
@@ -338,7 +338,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
 @media(max-width:780px),(hover:none),(pointer:coarse){
  :root{--frame-outer:0px;--frame-gap:0px;--frame-inbox-axis:12px;
   --frame-thread-axis:12px;--frame-head-height:64px;
-  --frame-control:44px;--frame-control-gap:8px}
+  --frame-control:48px;--frame-control-gap:8px}
  .screen{position:fixed;left:0;right:0;top:var(--demo-vv-top,0px);bottom:auto;
   box-sizing:border-box;display:flex;flex-direction:column;width:100%;height:var(--demo-vv-height,100dvh);
   min-height:0;max-height:none;padding:0;gap:0;overflow:hidden}
