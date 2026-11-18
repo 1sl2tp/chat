@@ -18,9 +18,9 @@ for(const prohibited of [
  assert(!html.includes(prohibited),'public demo must never call live APIs: '+prohibited);
 }
 
-assert(html.includes('<title>CHAT NEXT · V28 — Giữ tin cuối khi mở bàn phím (demo)</title>'),'V19 named release');
-assert(html.includes('data-design-id="CHAT-NEXT-028" data-design-round="28"'),'V19 distinct design round');
-assert(html.includes('<span class="version-round">V28</span>'),'visible version selector must be updated');
+assert(html.includes('<title>CHAT NEXT · V29 — Cuộn đúng tin cuối khi bật bàn phím (demo)</title>'),'V19 named release');
+assert(html.includes('data-design-id="CHAT-NEXT-029" data-design-round="29"'),'V19 distinct design round');
+assert(html.includes('<span class="version-round">V29</span>'),'visible version selector must be updated');
 assert(css.includes('/* CHAT-NEXT-016 — L5 composer precision'),'one micro-geometry owner');
 assert(css.includes('.conversation{scrollbar-width:none'),'classic scrollbars cannot shift L4');
 assert(css.includes('.conversation::-webkit-scrollbar{display:none'),'WebKit track removed');
@@ -349,6 +349,9 @@ assert(css.includes('.version-details .version-panel{position:fixed;left:max(12p
 assert(js.includes('function focusLatestConversation()'),'V26 focus and scroll contract');
 assert(css.includes('/* CHAT-NEXT-027: every bottom surface'),'V27 keyboard viewport owner');
 assert(js.includes('function pinLatestIfNeeded()'),'V28 last-message keyboard pin');
+assert(js.includes('keyboardConversationObserver.observe(byId(\'conversation\'))'),'V29 observes viewport resize');
+assert(js.includes('keyboardConversationObserver.observe(byId(\'messageStream\'))'),'V29 observes content resize');
+assert(css.includes('/* CHAT-NEXT-029: use grid tracks'),'V29 keyboard grid owner');
 assert(js.includes('keyboardBottomPinned=scroller.scrollHeight-scroller.clientHeight-scroller.scrollTop<80'),'V28 preserve old reading');
 assert(css.includes('/* CHAT-NEXT-028: only the conversation scrolls'),'V28 footer geometry');
 assert(js.includes("screen.classList.toggle('keyboard-visible',keyboardOpen)"),'V27 keyboard state');
