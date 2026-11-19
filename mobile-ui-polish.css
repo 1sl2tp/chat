@@ -1875,10 +1875,10 @@
 
 
 
-/* CHAT-395 — ONE compact mobile directory owner (388-394 contracts retained).
-   Top 1 = original shell Chat/Work header; Top 2 = a 2-row search/filter
-   toolbar; Content = the sole contact list scroller. Keyboard typing hides
-   only filters, not the search input. No second focus/viewport owner. */
+/* CHAT-388 — ONE mobile directory layout owner (389/390/391/392 compatible).
+   CHAT-395 retains this one owner: Top 1 = shell Chat/Work header;
+   Top 2 = 2-row search/filter toolbar; Content = sole contact list scroller.
+   Typing hides filters, never the search field. No second viewport owner. */
 @media(max-width:63.999rem){
   /* Directory navigation is not a third set of large filter pills.  Keep
      real Chat/Work actions, but give the chosen scope a discreet underline. */
