@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="f4a26a7db3ab688924a539cf4c66d13ef087d9930171580412f3a86db3f6a351">
+<meta name="app-build-id" content="bbab2cb2c4b4f537a1b020f285803c08088c4ac2a744dd7aac02d8e68a039085">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -13200,6 +13200,106 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
  }
 }
 
+
+
+/* CHAT-388 — iOS Contacts-inspired MOBILE DIRECTORY REGION CONTRACT.
+   One logical owner: tools still own search/filter in the DOM for the
+   existing keyboard/IME detector; display:contents promotes those children
+   into the existing body grid. The native navigation list is the ONLY
+   scroll area. No cloned inputs, fixed layers, translate transforms,
+   viewport timers or second keyboard controller. Desktop unchanged. */
+@media(max-width:63.999rem){
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .wm-sidebar-body{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr);
+    grid-template-rows:auto minmax(0,1fr) auto;
+    grid-template-areas:"filters" "results" "search";
+    align-content:stretch;
+    min-height:0;
+    overflow:hidden;
+    padding-inline:0!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-tools{
+    display:contents!important;
+  }
+  /* The optional Work fallback never exposes Chat search or filters. */
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-tools[data-directory-section="work"]{
+    display:none!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-filter-line{
+    grid-area:filters;
+    box-sizing:border-box;
+    min-width:0;
+    padding:4px max(9px,env(safe-area-inset-left)) 6px max(9px,env(safe-area-inset-right))!important;
+    background:var(--theme-surface-primary);
+    border-bottom:1px solid color-mix(in srgb,var(--theme-border-default) 40%,transparent);
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .wm-sidebar-navigation{
+    grid-area:results;
+    min-width:0;
+    min-height:0;
+    overflow-y:auto;
+    overscroll-behavior-y:contain;
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-search-field{
+    grid-area:search;
+    box-sizing:border-box;
+    display:flex!important;
+    align-items:center;
+    gap:8px;
+    min-width:0;
+    min-height:60px;
+    padding:7px max(10px,env(safe-area-inset-right)) max(9px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));
+    border-top:1px solid color-mix(in srgb,var(--theme-border-default) 55%,transparent);
+    background:var(--theme-surface-primary);
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-search{
+    flex:1 1 0;
+    width:0!important;
+    min-width:0!important;
+    max-width:100%;
+    height:44px!important;
+    padding-inline-start:42px!important;
+    font-size:16px!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-search-icon{
+    inset-inline-start:max(24px,calc(env(safe-area-inset-left) + 14px));
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-search-cancel{
+    box-sizing:border-box;
+    display:grid;
+    place-items:center;
+    flex:0 0 44px;
+    width:44px;
+    height:44px;
+    min-height:44px;
+    padding:0;
+    border:1px solid var(--theme-border-default);
+    border-radius:50%;
+    background:var(--theme-surface-primary);
+    color:var(--theme-content-primary);
+    font:400 28px/1 system-ui,sans-serif;
+    cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-search-cancel[hidden]{
+    display:none!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-search-cancel:focus-visible{
+    outline:2px solid var(--theme-content-accent);
+    outline-offset:2px;
+  }
+  /* Search is the primary action while typing: remove redundant filter
+     and account rows, not the messages/contact results. On blur, restore
+     both without resetting the list scroll or losing search text. */
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer[data-directory-search-active="true"] .contact-directory-filter-line,
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer[data-directory-search-active="true"] .shell-sidebar-account-footer{
+    display:none!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer[data-mobile-keyboard="true"] .contact-directory-search-field{
+    padding-bottom:6px;
+  }
+}
 
 /* CHAT-AXIS-20261117 — Main 1–4 / Popup 1–4 boundary guard.
    Keep existing viewport+keyboard owner (keyboard-inset-core and
@@ -41400,6 +41500,7 @@ function ensureDirectoryTools(){
     <div class="contact-directory-search-field" id="contactDirectoryChatView">
       <svg class="contact-directory-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true"><circle cx="10.75" cy="10.75" r="6.75"></circle><path d="m16 16 4.5 4.5"></path></svg>
       <input class="contact-directory-search" type="search" autocomplete="off" placeholder="Tìm tên hoặc tài khoản" aria-label="Tìm danh bạ" data-contact-directory-search>
+      <button type="button" class="contact-directory-search-cancel" data-contact-directory-search-cancel aria-label="Đóng tìm kiếm" title="Đóng tìm kiếm" hidden>×</button>
     </div>
     <div class="contact-directory-filter-line">
       <div class="contact-directory-filters" id="contactDirectoryFilterList" role="group" aria-label="Lọc danh bạ">
@@ -41501,6 +41602,34 @@ function ensureDirectoryTools(){
   const input=tools.querySelector('[data-contact-directory-search]');
   input.value=query;
   input.addEventListener('input',()=>{query=String(input.value||'');syncDirectoryRows({reorder:false});});
+  /* CHAT-388 — Keep exactly ONE search input in its original DOM owner.
+     Mobile CSS promotes its field to a bottom grid row above the iOS
+     keyboard. Never reparent a focused <input>: Safari would dismiss IME. */
+  const searchField=input.closest('.contact-directory-search-field');
+  const cancelSearch=searchField?.querySelector('[data-contact-directory-search-cancel]');
+  const layer=document.getElementById('shellNavigationLayer');
+  function setSearchFocused(active){
+    const mobile=mobileDirectoryHeaderVisible();
+    const focused=Boolean(active&&mobile);
+    if(layer)layer.dataset.directorySearchActive=String(focused);
+    if(cancelSearch)cancelSearch.hidden=!focused;
+  }
+  input.addEventListener('focus',()=>setSearchFocused(true));
+  // Do not collapse this mode on input blur: on iOS a tap on a result
+  // blurs the keyboard BEFORE click, and moving rows then selects the wrong
+  // customer. Keep the list geometry stable until Cancel/close/navigation.
+  cancelSearch?.addEventListener('pointerdown',event=>event.preventDefault());
+  function closeSearch(){
+    query='';input.value='';
+    syncDirectoryRows({reorder:false});
+    input.blur();
+    setSearchFocused(false);
+  }
+  cancelSearch?.addEventListener('click',closeSearch);
+  input.addEventListener('keydown',event=>{
+    if(event.key!=='Escape')return;
+    event.preventDefault();closeSearch();
+  });
   for(const button of tools.querySelectorAll('[data-contact-directory-filter]')){
     const selected=button.dataset.contactDirectoryFilter===filter;
     button.dataset.active=String(selected);
@@ -41688,7 +41817,14 @@ function resetForAuth(){
   // and category pills consistent with the cleared account-scoped model.
   const tools=directoryTools();
   const input=tools?.querySelector('[data-contact-directory-search]');
-  if(input)input.value='';
+  if(input){input.value='';input.blur?.();}
+  // Auth can reset before the shell DOM mounts (e.g. account switch).
+  // Keep the same no-DOM safe path as the existing group auth-race owner.
+  if(typeof document!=='undefined'){
+    const layer=document.getElementById?.('shellNavigationLayer');
+    if(layer)layer.dataset.directorySearchActive='false';
+    document.querySelector('[data-contact-directory-search-cancel]')?.setAttribute('hidden','');
+  }
   if(tools){
     tools.dataset.directorySection='chat';
     const work=document.querySelector('[data-contact-work-tools]');
@@ -41712,6 +41848,15 @@ function resetForAuth(){
 
 installStyle();
 document.addEventListener('v21-mobile-directory-change',syncMobileDirectoryHeader);
+document.addEventListener('v21-mobile-directory-change',()=>{
+  if(mobileDirectoryHeaderVisible())return;
+  const layer=document.getElementById('shellNavigationLayer');
+  if(layer)layer.dataset.directorySearchActive='false';
+  const tools=directoryTools();
+  const input=tools?.querySelector('[data-contact-directory-search]');
+  if(document.activeElement===input)input.blur();
+  tools?.querySelector('[data-contact-directory-search-cancel]')?.setAttribute('hidden','');
+});
 document.addEventListener('v21-mobile-directory-change',()=>filterArrowSync?.());
 document.addEventListener('navigation-change',syncMobileDirectoryHeader);
 // This listener runs after the mobile gesture owner has deliberately yielded
@@ -41752,6 +41897,9 @@ document.addEventListener('click',event=>{
       if(query||String(input?.value||'')){
         query='';
         if(input)input.value='';
+        if(input)input.blur();
+        const layer=document.getElementById('shellNavigationLayer');
+        if(layer)layer.dataset.directorySearchActive='false';
         syncDirectoryRows({reorder:false});
       }
     }
