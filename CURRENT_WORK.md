@@ -1,3 +1,15 @@
+## 2026-11-19 — CHAT-388 · Danh bạ mobile: tìm kiếm ở đáy, kết quả là vùng chính
+
+- **E0:** 4 ảnh iPhone của người dùng: danh bạ/cuộc gọi giữ kết quả đọc ở thân trang, thanh tìm kiếm gần bàn phím và điều khiển đóng thuận ngón tay; ChatGPT giữ ô gõ ở đáy. Tham khảo phân cấp, không sao chép hay dựng demo.
+- **E1 / Owner:** contact-directory-admin.js giữ đúng một input/nguồn query, thêm nút đóng 44px và state directorySearchActive. Không reset khi blur iOS vì blur trước click có thể khiến mục khách dịch lên; reset chỉ khi đóng, chọn khách, đổi vùng hoặc auth. mobile-ui-polish.css thay cấu trúc bố cục mobile thành grid filters/results/search qua display:contents, không nhân đôi input. Chỉ navigation cuộn, không thêm keyboard listener, giữ shell-form-viewport-policy.js sở hữu VisualViewport và Work bank route. sw.js xoay public shell cache UI388, không chạm dữ liệu.
+- **SPEC:** mobile thường filter ở trên, danh sách giữa, search dưới; khi focus search filter/footer ẩn và danh sách tăng không gian; tìm text giữ nguyên khi bàn phím đóng; nút X đóng và xóa; chạm khách không bị reflow trước click; desktop không đổi.
+- **E2:** test_chat388_mobile_directory_search_dock_20261119.cjs khóa vùng, keyboard owner, input và scroll; Verify V21 được cập nhật.
+- **MUST-STAY:** không thay giao dịch, tin gửi thật, routing, Supabase, Realtime, Push, ảnh/media, unread, DB hoặc account/outbox. Không deploy thủ công.
+- **E3 PENDING:** PR CI → merge main → Pages tự động → kiểm build ID trên chat.taphoa.xyz.
+- **E4/E5 PENDING:** nghiệm thu iPhone PWA/Safari và Android, bàn phím, 320–430px, tìm rồi mở khách, xoay màn, desktop.
+
+---
+
 ## 2026-11-19 — CHAT-387 · Phân biệt thông báo khi khóa/ẩn và khi đang mở đúng hội thoại
 
 - **E0 / Bằng chứng:** Ảnh người dùng iPhone PWA lúc 06:53: đang soạn “vâng ạ” trong hội thoại **C Sâm pl**, nhận 2 banner iOS TAPHOA Chat liên tiếp (“Lấy cho chị hai cây nhé”, “Ảnh”) của cùng khách. Cần phân biệt máy khóa/app ẩn với app đang mở, và đúng hội thoại với hội thoại khác; không được mất tin hoặc cuộc gọi.

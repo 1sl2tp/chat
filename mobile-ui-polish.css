@@ -1874,6 +1874,106 @@
 }
 
 
+
+/* CHAT-388 — iOS Contacts-inspired MOBILE DIRECTORY REGION CONTRACT.
+   One logical owner: tools still own search/filter in the DOM for the
+   existing keyboard/IME detector; display:contents promotes those children
+   into the existing body grid. The native navigation list is the ONLY
+   scroll area. No cloned inputs, fixed layers, translate transforms,
+   viewport timers or second keyboard controller. Desktop unchanged. */
+@media(max-width:63.999rem){
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .wm-sidebar-body{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr);
+    grid-template-rows:auto minmax(0,1fr) auto;
+    grid-template-areas:"filters" "results" "search";
+    align-content:stretch;
+    min-height:0;
+    overflow:hidden;
+    padding-inline:0!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-tools{
+    display:contents!important;
+  }
+  /* The optional Work fallback never exposes Chat search or filters. */
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-tools[data-directory-section="work"]{
+    display:none!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-filter-line{
+    grid-area:filters;
+    box-sizing:border-box;
+    min-width:0;
+    padding:4px max(9px,env(safe-area-inset-left)) 6px max(9px,env(safe-area-inset-right))!important;
+    background:var(--theme-surface-primary);
+    border-bottom:1px solid color-mix(in srgb,var(--theme-border-default) 40%,transparent);
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .wm-sidebar-navigation{
+    grid-area:results;
+    min-width:0;
+    min-height:0;
+    overflow-y:auto;
+    overscroll-behavior-y:contain;
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-search-field{
+    grid-area:search;
+    box-sizing:border-box;
+    display:flex!important;
+    align-items:center;
+    gap:8px;
+    min-width:0;
+    min-height:60px;
+    padding:7px max(10px,env(safe-area-inset-right)) max(9px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));
+    border-top:1px solid color-mix(in srgb,var(--theme-border-default) 55%,transparent);
+    background:var(--theme-surface-primary);
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-search{
+    flex:1 1 0;
+    width:0!important;
+    min-width:0!important;
+    max-width:100%;
+    height:44px!important;
+    padding-inline-start:42px!important;
+    font-size:16px!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-search-icon{
+    inset-inline-start:max(24px,calc(env(safe-area-inset-left) + 14px));
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-search-cancel{
+    box-sizing:border-box;
+    display:grid;
+    place-items:center;
+    flex:0 0 44px;
+    width:44px;
+    height:44px;
+    min-height:44px;
+    padding:0;
+    border:1px solid var(--theme-border-default);
+    border-radius:50%;
+    background:var(--theme-surface-primary);
+    color:var(--theme-content-primary);
+    font:400 28px/1 system-ui,sans-serif;
+    cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-search-cancel[hidden]{
+    display:none!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-search-cancel:focus-visible{
+    outline:2px solid var(--theme-content-accent);
+    outline-offset:2px;
+  }
+  /* Search is the primary action while typing: remove redundant filter
+     and account rows, not the messages/contact results. On blur, restore
+     both without resetting the list scroll or losing search text. */
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer[data-directory-search-active="true"] .contact-directory-filter-line,
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer[data-directory-search-active="true"] .shell-sidebar-account-footer{
+    display:none!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer[data-mobile-keyboard="true"] .contact-directory-search-field{
+    padding-bottom:6px;
+  }
+}
+
 /* CHAT-AXIS-20261117 — Main 1–4 / Popup 1–4 boundary guard.
    Keep existing viewport+keyboard owner (keyboard-inset-core and
    shell-form-viewport-policy). Do NOT introduce a second scroll owner,
