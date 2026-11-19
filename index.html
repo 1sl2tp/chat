@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.41">
-<meta name="app-build-id" content="7d804722682f27476cc6054c769be796a21e5b8b52b4176332a71e5dc8c66205">
+<meta name="app-release-version" content="V21.72.42">
+<meta name="app-build-id" content="47d7fc007c4da60584fca55da9f8065cb1618caccf269f41df74576763f1de6a">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -13370,6 +13370,37 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
     outline:2px solid var(--theme-content-accent);
     outline-offset:2px;
   }
+  /* CHAT-391: A collapsed search button shares the filter rail.
+     No empty footer row: results immediately own the remaining height.
+     Expanded search keeps the same input as a dedicated dock above iOS IME. */
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .wm-sidebar-body{
+    grid-template-columns:minmax(0,1fr) 60px;
+    grid-template-rows:auto minmax(0,1fr);
+    grid-template-areas:"filters search" "results results";
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-filter-line{
+    min-width:0;
+    border-bottom:1px solid color-mix(in srgb,var(--theme-border-default) 55%,transparent);
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-search-field[data-expanded="false"]{
+    min-width:0;
+    min-height:52px;
+    padding:4px max(8px,env(safe-area-inset-right,0px)) 4px 0;
+    border-top:0;
+    border-bottom:1px solid color-mix(in srgb,var(--theme-border-default) 55%,transparent);
+    align-items:center;
+    justify-content:flex-end;
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer:has(.contact-directory-search-field[data-expanded="true"]) .wm-sidebar-body{
+    grid-template-columns:minmax(0,1fr);
+    grid-template-rows:auto minmax(0,1fr) auto;
+    grid-template-areas:"filters" "results" "search";
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer[data-directory-search-active="true"] .wm-sidebar-body{
+    grid-template-columns:minmax(0,1fr);
+    grid-template-rows:minmax(0,1fr) auto;
+    grid-template-areas:"results" "search";
+  }
   /* CHAT-390: Work's 100dvh directory height must yield to the real
      VisualViewport with iOS keyboard open, below the existing header. */
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer[data-mobile-keyboard="true"]{
@@ -15366,9 +15397,9 @@ const AppBootController={
     // Repeated global faults must not repaint the banner or multiply logs.
     if(this.lastErrorMessage===message&&!runtimeError.classList.contains('hidden'))return;
     this.lastErrorMessage=message;
-    runtimeError.textContent='V21.72.41 runtime: '+message;
+    runtimeError.textContent='V21.72.42 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.41]',error);
+    console.error('[ChatScreenModule V21.72.42]',error);
   },
   ready(){
     // A successful render invariant proves recovery only for errors seen
@@ -15480,7 +15511,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.41 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.42 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -15534,7 +15565,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.41',
+  releaseVersion:'V21.72.42',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -24188,7 +24219,7 @@ window.V21ConversationBridge={
 window.V21ChatImageViewer=Object.freeze({open:openImageViewer});
 
 window.ChatScreenModule={
-  version:'V21.72.41',
+  version:'V21.72.42',
   snapshot(){
     return{
       viewportMode:viewport.mode,
@@ -41384,6 +41415,7 @@ let loadingGroups=false;
 let syncQueued=false;
 let syncScrollToTop=false;
 let resetDirectorySearchMode=null;
+let directoryKeyboardObserver=null;
 
 function authStore(){return window.V21AuthSessionStore||null;}
 function contactStore(){return window.V21ContactStore||null;}
@@ -41578,6 +41610,8 @@ let filterArrowSync=null;
 function removeDirectoryTools(){
   filterArrowSync=null;
   resetDirectorySearchMode=null;
+  directoryKeyboardObserver?.disconnect();
+  directoryKeyboardObserver=null;
   directoryTools()?.remove();
   document.querySelector('[data-contact-work-bank-heading]')?.remove();
   document.querySelector('[data-contact-work-tools]')?.remove();
@@ -41733,9 +41767,53 @@ function ensureDirectoryTools(){
     input.focus({preventScroll:true});
   });
   input.addEventListener('focus',()=>setSearchFocused(true));
-  // Do not collapse this mode on input blur: on iOS a tap on a result
-  // blurs the keyboard BEFORE click, and moving rows then selects the wrong
-  // customer. Keep the list geometry stable until Cancel/close/navigation.
+  // The search dock has three visible modes: compact, typing, and results.
+  // Blur/dismiss should not leave a blank search pinned open, but a result
+  // pointer must finish its click BEFORE removing rows or moving the dock.
+  let resultPointerDown=false;
+  nav.addEventListener('pointerdown',event=>{
+    const target=event.target instanceof Element?event.target:null;
+    if(searchField?.dataset.expanded==='true'&&target?.closest('[data-contact-select]'))
+      resultPointerDown=true;
+  },true);
+  nav.addEventListener('pointercancel',()=>{resultPointerDown=false;},true);
+  nav.addEventListener('click',()=>{
+    if(!resultPointerDown)return;
+    resultPointerDown=false;
+    queueMicrotask(()=>{
+      if(mobileDirectoryHeaderVisible()&&document.activeElement!==input)closeSearch();
+    });
+  },true);
+  function showSearchResults(){
+    if(!mobileDirectoryHeaderVisible())return;
+    if(layer)layer.dataset.directorySearchActive='false';
+    if(searchField)searchField.dataset.expanded='true';
+    searchToggle?.setAttribute('aria-expanded','true');
+    if(cancelSearch)cancelSearch.hidden=false;
+  }
+  function reconcileSearchOnDismiss(){
+    if(!mobileDirectoryHeaderVisible()||resultPointerDown)return;
+    if(String(input.value||'').trim())showSearchResults();
+    else closeSearch();
+  }
+  input.addEventListener('blur',reconcileSearchOnDismiss);
+  // The platform viewport policy alone detects native keyboard height.
+  // Watch its existing boolean (read-only): iOS Done can hide the keyboard
+  // without blurring the input, so reconcile that final state here.
+  if(layer){
+    let keyboardWasOpen=layer.dataset.mobileKeyboard==='true';
+    directoryKeyboardObserver?.disconnect();
+    directoryKeyboardObserver=new MutationObserver(()=>{
+      const keyboardOpen=layer.dataset.mobileKeyboard==='true';
+      if(keyboardWasOpen&&!keyboardOpen&&mobileDirectoryHeaderVisible()&&
+         searchField?.dataset.expanded==='true'&&!resultPointerDown){
+        if(document.activeElement===input)input.blur();
+        else reconcileSearchOnDismiss();
+      }
+      keyboardWasOpen=keyboardOpen;
+    });
+    directoryKeyboardObserver.observe(layer,{attributes:true,attributeFilter:['data-mobile-keyboard']});
+  }
   cancelSearch?.addEventListener('pointerdown',event=>event.preventDefault());
   function closeSearch(){
     const hadQuery=Boolean(query||input.value);
@@ -41938,6 +42016,9 @@ function resetForAuth(){
   const tools=directoryTools();
   const input=tools?.querySelector('[data-contact-directory-search]');
   if(input){input.value='';input.blur?.();}
+  const searchField=input?.closest?.('.contact-directory-search-field');
+  if(searchField)searchField.dataset.expanded='false';
+  tools?.querySelector('[data-contact-directory-search-toggle]')?.setAttribute('aria-expanded','false');
   // Auth can reset before the shell DOM mounts (e.g. account switch).
   // Keep the same no-DOM safe path as the existing group auth-race owner.
   if(typeof document!=='undefined'){
