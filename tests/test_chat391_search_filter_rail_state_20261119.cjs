@@ -30,8 +30,23 @@ input.closest=()=>field;
 const layer=new ElementMock();
 layer.dataset.mobileKeyboard='false';
 const nav=new ElementMock();
+nav.scrollTop=260;nav.isConnected=true;
+const host=new ElementMock();
+host.isConnected=true;
+host.closest=selector=>selector==='.wm-sidebar-navigation'?nav:null;
 const tools={querySelector:key=>key.includes('data-contact-directory-search')?input:null};
-const document={activeElement:null,getElementById:id=>id==='shellNavigationLayer'?layer:null};
+const document={
+  activeElement:null,
+  getElementById:id=>id==='shellNavigationLayer'?layer:null,
+  querySelector:selector=>selector==='[data-v21-contact-list]'?host:null
+};
+let captureCount=0,restoreCount=0;
+const window={
+  V21DirectoryViewport:{
+    capture:(scroller,list)=>{assert.equal(scroller,nav);assert.equal(list,host);captureCount++;return{id:'contact-before-search',top:260};},
+    restore:(scroller,list,anchor)=>{assert.equal(anchor.id,'contact-before-search');restoreCount++;scroller.scrollTop=anchor.top;}
+  }
+};
 input.focus=()=>{document.activeElement=input;input.emit('focus');};
 input.blur=()=>{if(document.activeElement===input){document.activeElement=null;input.emit('blur');}};
 let keyboardCallback=null;
@@ -42,10 +57,14 @@ class MutationObserverMock{
 }
 const pending=[];
 let syncCount=0;
+const syncArgs=[];
 const scope={
-  tools,nav,document,Element:ElementMock,MutationObserver:MutationObserverMock,
+  tools,nav,document,window,Element:ElementMock,MutationObserver:MutationObserverMock,
   mobileDirectoryHeaderVisible:()=>true,
-  syncDirectoryRows:()=>{syncCount++;},
+  syncDirectoryRows:opts=>{
+    syncCount++;syncArgs.push({...opts});
+    if(opts?.scrollToTop)nav.scrollTop=0;
+  },
   queueMicrotask:fn=>pending.push(fn),
   resetDirectorySearchMode:null,directoryKeyboardObserver:null,query:''
 };
@@ -56,11 +75,14 @@ toggle.emit('click');
 assert.equal(field.dataset.expanded,'true');
 assert.equal(layer.dataset.directorySearchActive,'true');
 assert.equal(document.activeElement,input);
+assert.equal(captureCount,1,'capture the original directory scroll once');
 // Blank search must collapse and restore the filters on blur.
 input.blur();
 assert.equal(field.dataset.expanded,'false');
 assert.equal(layer.dataset.directorySearchActive,'false');
 assert.equal(cancel.hidden,true);
+assert.equal(restoreCount,1,'close with an empty search restores directory');
+assert.equal(nav.scrollTop,260);
 // Native iOS Done may close IME without an input blur.
 toggle.emit('click');
 layer.dataset.mobileKeyboard='true';keyboardCallback();
@@ -70,6 +92,11 @@ assert.equal(layer.dataset.directorySearchActive,'false');
 // Typed query remains visible while browsing results after keyboard closes.
 toggle.emit('click');
 input.value='sam';input.emit('input');
+assert.equal(nav.scrollTop,0,'search results begin at the first match');
+assert(syncArgs.some(options=>options.scrollToTop===true && options.reorder===false),
+  'query changes must reset the result list only');
+input.value='sam p';input.emit('input');
+assert.equal(captureCount,3,'input changes do not recapture the original anchor');
 input.blur();
 assert.equal(field.dataset.expanded,'true');
 assert.equal(layer.dataset.directorySearchActive,'false');
@@ -77,6 +104,8 @@ assert.equal(cancel.hidden,false);
 cancel.emit('click');
 assert.equal(field.dataset.expanded,'false');
 assert.equal(input.value,'');
+assert.equal(nav.scrollTop,260,'cancel restores the exact original scroll anchor');
+assert.equal(restoreCount,3,'all three finished search sessions restore');
 // Touching a result must not reflow the row between pointerdown and click.
 toggle.emit('click');
 input.value='quyen';input.emit('input');
@@ -89,6 +118,8 @@ nav.emit('click',{target:result});
 flush();
 assert.equal(field.dataset.expanded,'false');
 assert(syncCount>=3,'search reset delivered to original directory store');
+assert.equal(nav.scrollTop,260,'contact selection does not lose the former directory anchor');
+assert.equal(restoreCount,4);
 assert(css.includes('grid-template-areas:"filters search" "results results"'),
   'compact search shares filter row instead of reserving bottom dock');
 assert(css.includes('grid-template-areas:"search" "results"'),
