@@ -69,6 +69,6 @@ assert(css.includes('SPEC-CHAT-MOBILE-DIRECTORY-VV-20261101'));
 assert(sw.includes("SHELL_CACHE_EPOCH='pwa-chat-ui396-chatgpt-mobile-drawer-20261120'"));
 assert(patch.includes('grid-template-areas:"navigation"'),'footer must not reserve height under search');
 assert(patch.includes('.shell-sidebar-account-footer[data-menu-open="true"]'),'account actions remain accessible');
-assert(shell.includes("'Tài khoản và cài đặt'")&&shell.includes('toggleAccountMenu();'),
-  'existing header button opens the existing account menu');
+assert(shell.includes('MobileDrawer:Object.freeze({')&&shell.includes('toggleMobileChatDrawer();'),
+  'existing header button delegates to the shell mobile drawer on the directory root');
 console.log('CHAT-388/389 directory search dock, menu access and footer geometry PASS');
