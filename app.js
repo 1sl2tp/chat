@@ -443,7 +443,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.41',
+  releaseVersion:'V21.72.42',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -9097,7 +9097,7 @@ window.V21ConversationBridge={
 window.V21ChatImageViewer=Object.freeze({open:openImageViewer});
 
 window.ChatScreenModule={
-  version:'V21.72.41',
+  version:'V21.72.42',
   snapshot(){
     return{
       viewportMode:viewport.mode,
