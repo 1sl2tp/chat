@@ -48,6 +48,13 @@ assert(!owner.includes('position:fixed'),'no secondary viewport owner');
 assert.equal((directory.match(/class="contact-directory-search" type="search"/g)||[]).length,1,'one input');
 assert(directory.includes("input.addEventListener('focus',()=>setSearchFocused(true))"));
 assert(directory.includes('restoreDirectoryViewport();'),'preserve navigation scroll anchor');
+const arrowStart=directory.indexOf('function syncFilterArrow()');
+const arrowEnd=directory.indexOf("rail?.addEventListener('scroll',syncFilterArrow",arrowStart);
+assert(arrowStart>0 && arrowEnd>arrowStart,'filter controller owner');
+assert(!directory.slice(arrowStart,arrowEnd).includes('rail.scrollLeft=0;'),
+ 'filter scrolling must not snap back when the user swipes');
+assert(directory.includes('rail.scrollLeft=Math.max(0,rail.scrollLeft+delta);'),
+ 'after selection, the chosen category must remain visible');
 assert(platform.includes("owner.kind==='directory'||owner.kind==='message-forward'"),'P0 still owns IME');
 assert(source.includes('data-top-tab="chat"')&&source.includes('data-top-tab="photos"'),'reuse existing shell tabs');
 console.log('CHAT-395 3-region compact search/filter/directory mobile contract PASS');
