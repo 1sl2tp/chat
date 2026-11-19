@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.39">
-<meta name="app-build-id" content="bbab2cb2c4b4f537a1b020f285803c08088c4ac2a744dd7aac02d8e68a039085">
+<meta name="app-release-version" content="V21.72.40">
+<meta name="app-build-id" content="ca1f6738fb9ffd6e5f1fb6083a698e02f26b5ee66cbf61cba36fc97d22554993">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -8449,7 +8449,7 @@ button{
 }
 .audio-preview-card audio,.audio-message-card audio{display:none;}
 
-/* V21.72.39 — image presentation owner.
+/* V21.72.40 — image presentation owner.
    Single images keep the full source via contain inside a normalized envelope.
    Gallery tiles intentionally use cover so mixed portrait/landscape sources form one balanced unit. */
 .message-media-shell{
@@ -13209,6 +13209,42 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
    scroll area. No cloned inputs, fixed layers, translate transforms,
    viewport timers or second keyboard controller. Desktop unchanged. */
 @media(max-width:63.999rem){
+  /* CHAT-389: eliminate the unused account-footer row after search.
+     The original header menu remains the only account-menu trigger. */
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .wm-sidebar-sidebar{
+    grid-template-areas:"navigation";
+    grid-template-rows:minmax(0,1fr);
+    padding-block-end:0!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .shell-sidebar-account-footer{
+    display:none!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .wm-sidebar-sidebar:has(.shell-sidebar-account-footer[data-menu-open="true"]){
+    overflow:visible;
+  }
+  /* Account popup only; not a second floating search or viewport owner. */
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .shell-sidebar-account-footer[data-menu-open="true"]{
+    display:block!important;
+    position:absolute;
+    top:8px;
+    inset-inline-start:max(10px,env(safe-area-inset-left,0px));
+    inset-inline-end:auto;
+    width:min(290px,calc(100% - 20px));
+    box-sizing:border-box;
+    padding:8px;
+    border:1px solid var(--theme-border-default);
+    border-radius:16px;
+    background:var(--theme-surface-primary);
+    box-shadow:0 12px 36px rgba(0,0,0,.12);
+    z-index:90;
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .shell-sidebar-account-footer[data-menu-open="true"] .shell-sidebar-account-menu{
+    position:static;
+    inset:auto;
+    width:100%;
+    margin-top:5px;
+    box-shadow:none;
+  }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .wm-sidebar-body{
     display:grid!important;
     grid-template-columns:minmax(0,1fr);
@@ -13248,8 +13284,8 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
     align-items:center;
     gap:8px;
     min-width:0;
-    min-height:60px;
-    padding:7px max(10px,env(safe-area-inset-right)) max(9px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));
+    min-height:58px;
+    padding:6px max(10px,env(safe-area-inset-right)) max(7px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));
     border-top:1px solid color-mix(in srgb,var(--theme-border-default) 55%,transparent);
     background:var(--theme-surface-primary);
   }
@@ -13293,7 +13329,7 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
      and account rows, not the messages/contact results. On blur, restore
      both without resetting the list scroll or losing search text. */
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer[data-directory-search-active="true"] .contact-directory-filter-line,
-  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer[data-directory-search-active="true"] .shell-sidebar-account-footer{
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer[data-directory-search-active="true"] .shell-sidebar-account-footer:not([data-menu-open="true"]){
     display:none!important;
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer[data-mobile-keyboard="true"] .contact-directory-search-field{
@@ -13369,7 +13405,7 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
 <div id="runtimeError" class="hidden fixed z-[9999] left-2 right-2 top-2 rounded-xl bg-red-600 text-white text-xs px-3 py-2 shadow-lg"></div>
 
 <!-- V21.69.9 unified runtime marker. Earlier V21.20/V21.64 labels below are provenance for inherited geometry/style contracts only, not separate live runtimes. -->
-<div id="appShell" data-app-shell data-ui-foundation="v1" data-chat-screen-version="V21.72.39" data-app-shell-version="V21.72.39" data-auth-state="booting" data-default-route="chat" data-route="chat">
+<div id="appShell" data-app-shell data-ui-foundation="v1" data-chat-screen-version="V21.72.40" data-app-shell-version="V21.72.40" data-auth-state="booting" data-default-route="chat" data-route="chat">
   <div id="screenHost" data-screen-host>
     <div id="activeScreenSlot" data-active-screen-slot>
       <section id="chatScreen" class="app-screen" data-screen="chat">
@@ -24725,6 +24761,8 @@ function renderMenuUnread(){
   // One unread cue at a time: in an open directory, show it on the
   // Chưa đọc filter and on the affected conversations, not on the menu.
   const directoryVisible=appShell?.dataset?.mobileDirectory==='true';
+  const directoryAccountMenu=directoryVisible&&authState==='AUTHENTICATED'&&
+    window.matchMedia('(max-width:63.999rem)').matches;
   for(const chip of document.querySelectorAll('[data-contact-directory-filter="unread"]')){
     chip.dataset.hasUnread=String(hasUnread);
     chip.setAttribute('aria-label',hasUnread?'Chưa đọc, có '+count+' tin mới':'Chưa đọc');
@@ -24737,7 +24775,14 @@ function renderMenuUnread(){
     // as the account menu while the user is viewing a conversation.
     button.setAttribute('aria-label',button.dataset.mobileBack==='true'
       ?'Quay lại Danh bạ'
+      :directoryAccountMenu?'Tài khoản và cài đặt'
       :hasUnread&&!directoryVisible?`Mở menu, ${count} tin mới`:'Mở menu');
+    if(directoryAccountMenu){
+      button.setAttribute('aria-haspopup','menu');
+      button.setAttribute('aria-expanded',String(accountMenuOpen));
+    }else{
+      button.removeAttribute('aria-haspopup');
+    }
   }
 }
 
@@ -24812,7 +24857,13 @@ function closeAccountMenu({restoreFocus=false}={}){
   if(footer)footer.dataset.menuOpen='false';
   if(menu)menu.hidden=true;
   if(trigger)trigger.setAttribute('aria-expanded','false');
-  if(restoreFocus&&trigger?.isConnected){try{trigger.focus({preventScroll:true});}catch{}}
+  const mobileTrigger=appShell?.dataset?.mobileDirectory==='true'&&
+    window.matchMedia('(max-width:63.999rem)').matches
+      ?document.querySelector('#regionTop [data-shell-command="sidebar.open"]')
+      :null;
+  const focusTarget=mobileTrigger||trigger;
+  if(restoreFocus&&focusTarget?.isConnected){try{focusTarget.focus({preventScroll:true});}catch{}}
+  renderMenuUnread();
   return true;
 }
 
@@ -24825,6 +24876,7 @@ function openAccountMenu(){
   footer.dataset.menuOpen='true';
   menu.hidden=false;
   trigger.setAttribute('aria-expanded','true');
+  renderMenuUnread();
   // SPEC-CHAT-ACCOUNT-MENU-FOCUS-20261102: closing, reopening or
   // unmounting this menu before the deferred callback must not steal focus
   // from a newer route or a modal behind it.
@@ -26434,6 +26486,13 @@ document.addEventListener('click',event=>{
   if(shellButton){
     const command=shellButton.dataset.shellCommand;
     if(command==='sidebar.open'){
+      // CHAT-389: directory is already visible; use the header menu for
+      // account actions instead of a no-op or a second navigation layer.
+      if(authState==='AUTHENTICATED'&&appShell?.dataset?.mobileDirectory==='true'&&
+        window.matchMedia('(max-width:63.999rem)').matches){
+        toggleAccountMenu();
+        return;
+      }
       if(desktopSidebarPersistent)setSidebar(true);
       return;
     }
