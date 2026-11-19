@@ -11,7 +11,8 @@ const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 // CHAT-385: rotate only the public shell for adaptive mobile header CSS/JS.
 // Never clear message drafts, private IndexedDB or outbound queues.
 // CHAT-386: invalidate only public shell CSS/JS; preserve accounts, drafts and outbox.
-const SHELL_CACHE_EPOCH='pwa-chat-ui386-floating-date-20261119';
+// CHAT-387: fresh SW/page coordination, public shell only. Keep private caches.
+const SHELL_CACHE_EPOCH='pwa-chat-ui387-foreground-push-20261119';
 const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION+'-'+SHELL_CACHE_EPOCH;
 const AVATAR_CACHE_NAME='taphoa-chat-avatars-v1';
 const SUPABASE_ASSET_HOST_RE=/^[a-z0-9]+\.supabase\.co$/i;
@@ -131,6 +132,45 @@ self.addEventListener('message',event=>{
   }
 });
 
+/* CHAT-387 — Push delivery is the only time the SW queries live view state.
+   New/updated iOS PWA workers have an empty adminPushClientState map. A
+   MessageChannel response avoids treating that old/empty snapshot as current.
+   The bounded fallback neither polls nor makes network requests. */
+async function foregroundClientState(client){
+  if(client?.visibilityState==='hidden')return null; // phone locked/app background
+  if(client?.visibilityState&&client.visibilityState!=='visible')return null;
+  let live=null;
+  const canAskLive=typeof MessageChannel==='function'&&
+    typeof client?.postMessage==='function';
+  if(canAskLive){
+    live=await new Promise(resolve=>{
+      let channel;
+      try{channel=new MessageChannel();}catch{resolve(null);return;}
+      let settled=false;
+      const finish=state=>{
+        if(settled)return;
+        settled=true;clearTimeout(timeout);
+        try{channel.port1.close();channel.port2.close();}catch{}
+        resolve(state&&typeof state==='object'?state:null);
+      };
+      const timeout=setTimeout(()=>finish(null),220);
+      channel.port1.onmessage=event=>finish(event.data);
+      try{client.postMessage({type:'ADMIN_PUSH_STATE_REQUEST'},[channel.port2]);}
+      catch{finish(null);}
+    });
+  }
+  const cached=adminPushClientState.get(client?.id);
+  // A locked iPhone may suspend the page before WebKit updates the client's
+  // visibilityState. If a live query times out, NEVER trust its recent
+  // visible-cache as evidence that the screen is still unlocked.
+  const state=canAskLive?live:
+    (cached&&Date.now()-cached.updatedAt<30000?cached:null);
+  if(!state||state.visible!==true)return null;
+  // document.hasFocus() is often false in an actively typing iOS PWA.
+  // Client visibility + the actual Chat route is the foreground criterion.
+  return state;
+}
+
 self.addEventListener('push',event=>{
   event.waitUntil((async()=>{
     let payload=null;
@@ -193,25 +233,25 @@ self.addEventListener('push',event=>{
     // Financial events are not message events. Do not trigger a Chat sync pull
     // or unread recount just to display a bank notification.
     if(!bankPush&&!missedPush&&!friendPush&&kind!=='call_invite')notifyMessageDirty(clients,payload);
-    const readingSame=kind!=='call_invite'&&!missedPush&&!friendPush&&clients.some(client=>{
-      const state=adminPushClientState.get(client.id);
-      return Boolean(
-        state&&state.visible&&state.focused&&state.route==='chat'&&
-        (bankPush?String(state.contactId||'')===String(payload.contact_id||'')
-          :String(state.conversationId||'')===conversationId)
-      );
-    });
-    // A visible mobile Chat already presents all incoming messages through
-    // the canonical realtime/push-dirty path, even when another contact is
-    // selected. Do not require focus() on iOS standalone PWAs.
-    const visibleMobileChat=kind!=='call_invite'&&!missedPush&&!friendPush&&clients.some(client=>{
-      const state=adminPushClientState.get(client.id);
-      const mobile=/^(ios|android)-(pwa|web)$/.test(String(state?.platform||''));
-      const visible=client.visibilityState
-        ?client.visibilityState==='visible'
-        :Boolean(state?.visible);
-      return Boolean(state&&mobile&&state.visible&&visible&&state.route==='chat');
-    });
+    const foreground=kind==='call_invite'||missedPush||friendPush
+      ?[]
+      :await Promise.all(clients.map(async client=>({
+        client,state:await foregroundClientState(client)
+      })));
+    const readingSame=foreground.some(({state})=>Boolean(
+      state&&state.route==='chat'&&
+      (bankPush
+        ?String(payload.contact_id||'')!==''&&String(state.contactId||'')===String(payload.contact_id||'')
+        :conversationId!==''&&String(state.conversationId||'')===conversationId)
+    ));
+    // In mobile Chat the canonical thread renders its own messages; other
+    // conversations get a compact IN-APP toast from admin-push-controller.js.
+    // A native OS banner while typing in the SAME chat is a duplicate.
+    // Other routes (Work, directory, hidden/locked) keep system delivery.
+    const visibleMobileChat=foreground.some(({state})=>Boolean(
+      state&&state.route==='chat'&&
+      /^(ios|android)-(pwa|web)$/.test(String(state.platform||''))
+    ));
     if(readingSame||visibleMobileChat)return;
 
     // Render finance copy locally from a NUMBER, never display backend

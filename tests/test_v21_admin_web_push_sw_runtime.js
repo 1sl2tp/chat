@@ -1,7 +1,17 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert'),path=require('path');
 const code=fs.readFileSync(path.join(__dirname,'..','sw.js'),'utf8');
 
-function harness(){
+function harness({liveQueries=false}={}){
+  // A fresh worker may have an empty cached state. Simulate the actual
+  // MessageChannel handshake to the displayed iOS PWA without any network.
+  class TestMessageChannel{
+    constructor(){
+      this.port1={onmessage:null,close(){},postMessage(data){this.peer?.onmessage?.({data})}};
+      this.port2={onmessage:null,close(){},postMessage(data){this.peer?.onmessage?.({data})}};
+      this.port1.peer=this.port2;
+      this.port2.peer=this.port1;
+    }
+  }
   const handlers={};
   const notices=[];
   const activeNotices=[];
@@ -39,10 +49,17 @@ function harness(){
     clearAppBadge:async()=>{badge=0}
   };
   const caches={keys:async()=>[],open:async()=>({addAll:async()=>{},put:async()=>{}}),delete:async()=>true,match:async()=>null};
-  const ctx={self,navigator,caches,Request:class{},URL,fetch:async()=>({ok:true,clone(){return this}}),Date,Map,Promise,JSON,String,Number,Boolean,Object,Array,console};
+  const ctx={self,navigator,caches,Request:class{},URL,fetch:async()=>({ok:true,clone(){return this}}),Date,Map,Promise,JSON,String,Number,Boolean,Object,Array,console,MessageChannel:liveQueries?TestMessageChannel:undefined,setTimeout,clearTimeout};
   vm.createContext(ctx);vm.runInContext(code,ctx);
   function client(id='c1'){
-    return {id,url:'https://chat.taphoa.xyz/',focus:async()=>true,postMessage:data=>{posted.push(data);targeted.push({id,data})}};
+    const row={id,url:'https://chat.taphoa.xyz/',focus:async()=>true,liveState:null};
+    row.postMessage=(data,ports=[])=>{
+      posted.push(data);targeted.push({id,data});
+      if(data?.type==='ADMIN_PUSH_STATE_REQUEST'&&row.liveState&&ports[0]){
+        ports[0].postMessage(row.liveState);
+      }
+    };
+    return row;
   }
   async function dispatch(type,event){
     const waits=[];
@@ -104,6 +121,67 @@ function harness(){
   await mobile.dispatch('push',{data:{json:()=>payload}});
   assert.equal(mobile.notices.length,0,'visible iOS PWA Chat suppresses notification even on another contact');
   assert(mobile.posted.some(message=>message.type==='ADMIN_PUSH_MESSAGE_DIRTY'),'foreground mobile must still receive dirty wake');
+
+  // CHAT-387 — exact LIVE route/conversation wins over stale cache. The
+  // screenshot shows a native iOS banner while C Sâm pl is open and typing.
+  const fresh=harness({liveQueries:true});
+  const freshClient=fresh.client('fresh-ios');
+  freshClient.visibilityState='visible';
+  freshClient.liveState={
+    visible:true,focused:false,platform:'ios-pwa',route:'chat',
+    contactId:'user-1',conversationId:'conv-1'
+  };
+  fresh.setClients([freshClient]);
+  await fresh.dispatch('push',{data:{json:()=>payload}});
+  assert.equal(fresh.notices.length,0,'new SW with no cached state must query active iOS conversation and hide duplicate banner');
+  assert(fresh.posted.some(m=>m.type==='ADMIN_PUSH_STATE_REQUEST'),'fresh worker requests live active conversation');
+  assert(fresh.posted.some(m=>m.type==='ADMIN_PUSH_MESSAGE_DIRTY'),'foreground suppression never loses wake');
+
+  const stale=harness({liveQueries:true});
+  const staleClient=stale.client('switch-ios');
+  staleClient.visibilityState='visible';
+  stale.setClients([staleClient]);
+  await stale.dispatch('message',{data:{type:'ADMIN_PUSH_STATE',visible:true,
+    focused:true,platform:'ios-pwa',route:'chat',conversationId:'conv-2',contactId:'user-2'},source:staleClient});
+  staleClient.liveState={visible:true,focused:false,platform:'ios-pwa',
+    route:'chat',conversationId:'conv-1',contactId:'user-1'};
+  await stale.dispatch('push',{data:{json:()=>payload}});
+  assert.equal(stale.notices.length,0,'live current thread must override stale previous chat after switching');
+
+  const locked=harness({liveQueries:true});
+  const lockedClient=locked.client('locked-ios');
+  lockedClient.visibilityState='hidden';
+  lockedClient.liveState={visible:true,focused:true,platform:'ios-pwa',route:'chat',
+    conversationId:'conv-1',contactId:'user-1'};
+  locked.setClients([lockedClient]);
+  await locked.dispatch('message',{data:{type:'ADMIN_PUSH_STATE',visible:true,
+    focused:true,platform:'ios-pwa',route:'chat',conversationId:'conv-1'},source:lockedClient});
+  await locked.dispatch('push',{data:{json:()=>payload}});
+  assert.equal(locked.notices.length,1,'locked/hidden iPhone must show OS banner even if last foreground chat matched');
+  assert(!locked.posted.some(m=>m.type==='ADMIN_PUSH_STATE_REQUEST'),'never wake a locked client just to suppress OS alert');
+
+  // Work/list route is not the same open Chat, so do not swallow its system
+  // notification even when a recent chat conversation ID remains in memory.
+  const differentRoute=harness({liveQueries:true});
+  const differentClient=differentRoute.client('work-ios');
+  differentClient.visibilityState='visible';
+  differentClient.liveState={visible:true,platform:'ios-pwa',route:'work',
+    conversationId:'conv-1',contactId:'user-1'};
+  differentRoute.setClients([differentClient]);
+  await differentRoute.dispatch('push',{data:{json:()=>payload}});
+  assert.equal(differentRoute.notices.length,1,'open Work screen must not pretend it is the active Chat thread');
+
+  // On a newly locked iPhone WebKit may briefly report client.visible while
+  // its page is already suspended. The live request will not answer: prefer
+  // a lock-screen alert over incorrectly trusting the previous focused state.
+  const suspended=harness({liveQueries:true});
+  const suspendedClient=suspended.client('suspended-ios');
+  suspendedClient.visibilityState='visible'; // potentially stale WebKit snapshot
+  suspended.setClients([suspendedClient]);
+  await suspended.dispatch('message',{data:{type:'ADMIN_PUSH_STATE',visible:true,
+    focused:true,platform:'ios-pwa',route:'chat',conversationId:'conv-1',contactId:'user-1'},source:suspendedClient});
+  await suspended.dispatch('push',{data:{json:()=>payload}});
+  assert.equal(suspended.notices.length,1,'unanswered live request must allow lock-screen Push instead of trusting old visible cache');
 
   const hidden=harness();
   const hiddenClient=hidden.client('hidden');

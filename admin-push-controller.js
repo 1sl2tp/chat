@@ -344,20 +344,51 @@ function clearClientState(){
   }catch{return false;}
 }
 
-function syncState(){
-  if(!isAdmin()){clearClientState();return false;}
+/* CHAT-387 — Only the currently PRESENTED contact may claim a conversation.
+   During A → B navigation the SyncEngine may still be hydrating A, so blindly
+   publishing its conversationId would silence B's alerts (or vice versa).
+   The directory mapping is a safe, read-only fallback; unknown stays unknown. */
+function currentPushClientState(){
   const shell=window.ChatAppShell?.snapshot?.()||{};
   const sync=window.V21SyncEngine?.snapshot?.()||{};
-  const payload={
-    type:'ADMIN_PUSH_STATE',
+  const route=String(shell.route||'');
+  const contactId=String(shell.activeContact?.id||'');
+  let conversationId='';
+  if(route==='chat'&&contactId){
+    if(contactId===String(sync.currentContactId||'')){
+      conversationId=String(sync.currentConversationId||'');
+    }
+    if(!conversationId){
+      const contacts=window.V21ContactStore?.snapshot?.()||[];
+      const match=contacts.find(row=>row?.id&&!row.deleted_at&&
+        String(row.id)===contactId);
+      conversationId=String(match?.conversation_id||'');
+    }
+  }
+  return{
     visible:document.visibilityState==='visible',
+    // On iOS an open PWA with the software keyboard may report no DOM focus.
     focused:typeof document.hasFocus==='function'?Boolean(document.hasFocus()):document.visibilityState==='visible',
-    route:String(shell.route||'chat'),
-    platform:platform(),
-    conversationId:String(sync.currentConversationId||''),
-    contactId:String(shell.activeContact?.id||sync.currentContactId||''),
+    route,platform:platform(),conversationId,contactId
   };
-  try{navigator.serviceWorker?.controller?.postMessage?.(payload);return true;}catch{return false;}
+}
+function syncState(){
+  if(!isAdmin()){clearClientState();return false;}
+  try{navigator.serviceWorker?.controller?.postMessage?.({
+    type:'ADMIN_PUSH_STATE',...currentPushClientState()
+  });return true;}catch{return false;}
+}
+function answerPushStateRequest(event){
+  if(event.data?.type!=='ADMIN_PUSH_STATE_REQUEST')return false;
+  const port=event.ports?.[0];
+  if(!port)return true;
+  try{
+    // A live answer is authoritative over the SW's old in-memory snapshot.
+    port.postMessage(isAdmin()?currentPushClientState():{
+      visible:false,route:'',conversationId:'',contactId:''
+    });
+  }catch{}
+  return true;
 }
 
 function coldOpenFromLocation(){
@@ -500,9 +531,12 @@ function showForegroundMessage(payload){
   if(!conversationId||!messageId||messageToastSeen.has(messageId))return;
   // Tests, SSR and WebViews without a DOM must retain the canonical sync wake.
   if(typeof document.createElement!=='function'||!document.body?.appendChild)return;
-  const shell=window.ChatAppShell?.snapshot?.()||{};
-  const active=String(window.V21SyncEngine?.snapshot?.()?.currentConversationId||shell.activeContact?.conversation_id||'');
-  if(active===conversationId)return; // Same conversation already renders the message.
+  const current=currentPushClientState();
+  // Compare canonical conversation IDs ONLY in the actual Chat route.
+  // A stale SyncEngine snapshot from the previous customer must not hide a
+  // different customer's notification while switching A → B.
+  if(current.route==='chat'&&current.contactId&&
+     current.conversationId&&current.conversationId===conversationId)return;
   messageToastSeen.add(messageId);
   if(messageToastSeen.size>100)messageToastSeen.delete(messageToastSeen.values().next().value);
   document.getElementById?.('v21-message-notice-toast')?.remove();
@@ -551,6 +585,7 @@ function showBankConfirmation(data){
 }
 pendingOpen=coldOpenFromLocation();
 navigator.serviceWorker?.addEventListener('message',event=>{
+  if(answerPushStateRequest(event))return;
   if(event.data?.type==='ADMIN_PUSH_OPEN')void handleOpen(event.data);
   if(event.data?.type==='ADMIN_PUSH_MESSAGE_DIRTY'){
     void reconcilePushMessage(event.data);
