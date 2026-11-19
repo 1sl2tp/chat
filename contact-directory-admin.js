@@ -361,9 +361,9 @@ function ensureDirectoryTools(){
     if(cancelSearch)cancelSearch.hidden=!focused;
   }
   input.addEventListener('focus',()=>setSearchFocused(true));
-  input.addEventListener('blur',()=>requestAnimationFrame(()=>{
-    if(!searchField?.contains(document.activeElement))setSearchFocused(false);
-  }));
+  // Do not collapse this mode on input blur: on iOS a tap on a result
+  // blurs the keyboard BEFORE click, and moving rows then selects the wrong
+  // customer. Keep the list geometry stable until Cancel/close/navigation.
   cancelSearch?.addEventListener('pointerdown',event=>event.preventDefault());
   function closeSearch(){
     query='';input.value='';
@@ -563,10 +563,10 @@ function resetForAuth(){
   // and category pills consistent with the cleared account-scoped model.
   const tools=directoryTools();
   const input=tools?.querySelector('[data-contact-directory-search]');
-  if(input){input.value='';input.blur();}
-  const layer=document.getElementById('shellNavigationLayer');
+  if(input){input.value='';input.blur?.();}
+  const layer=document.getElementById?.('shellNavigationLayer');
   if(layer)layer.dataset.directorySearchActive='false';
-  tools?.querySelector('[data-contact-directory-search-cancel]')?.setAttribute('hidden','');
+  document.querySelector('[data-contact-directory-search-cancel]')?.setAttribute('hidden','');
   if(tools){
     tools.dataset.directorySection='chat';
     const work=document.querySelector('[data-contact-work-tools]');
