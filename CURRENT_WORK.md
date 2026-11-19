@@ -5,7 +5,7 @@
 - **SPEC:** mobile thường filter ở trên, danh sách giữa, search dưới; khi focus search filter/footer ẩn và danh sách tăng không gian; tìm text giữ nguyên khi bàn phím đóng; nút X đóng và xóa; chạm khách không bị reflow trước click; desktop không đổi.
 - **E2:** test_chat388_mobile_directory_search_dock_20261119.cjs khóa vùng, keyboard owner, input và scroll; Verify V21 được cập nhật.
 - **MUST-STAY:** không thay giao dịch, tin gửi thật, routing, Supabase, Realtime, Push, ảnh/media, unread, DB hoặc account/outbox. Không deploy thủ công.
-- **E3 PENDING:** PR CI → merge main → Pages tự động → kiểm build ID trên chat.taphoa.xyz.
+- **E3 PASS — CI / PAGES / TÊN MIỀN:** PR [#336](https://github.com/1sl2tp/chat/pull/336) squash-merged vào `main` commit `dba697d6871557a72cb7fd3760606f0ce6cf5c13`. Verify PR [#44430339714](https://github.com/1sl2tp/chat/actions/runs/44430339714) SUCCESS; Verify `main` [#44430546257](https://github.com/1sl2tp/chat/actions/runs/44430546257) SUCCESS; GitHub Pages tự động [#44430546403](https://github.com/1sl2tp/chat/actions/runs/44430546403) SUCCESS. Step `Verify Pages custom domain` đã đối chiếu HTTPS, index.html, version.json trên https://chat.taphoa.xyz/ cùng build `bbab2cb2c4b4f537a1b020f285803c08088c4ac2a744dd7aac02d8e68a039085`. Không deploy thủ công. **E4/E5 iPhone/Android thao tác thật vẫn PENDING**, không kết luận bàn phím và tap hoàn toàn ổn chỉ từ CI.
 - **E4/E5 PENDING:** nghiệm thu iPhone PWA/Safari và Android, bàn phím, 320–430px, tìm rồi mở khách, xoay màn, desktop.
 
 ---
