@@ -171,6 +171,18 @@ function harness({liveQueries=false}={}){
   await differentRoute.dispatch('push',{data:{json:()=>payload}});
   assert.equal(differentRoute.notices.length,1,'open Work screen must not pretend it is the active Chat thread');
 
+  // On a newly locked iPhone WebKit may briefly report client.visible while
+  // its page is already suspended. The live request will not answer: prefer
+  // a lock-screen alert over incorrectly trusting the previous focused state.
+  const suspended=harness({liveQueries:true});
+  const suspendedClient=suspended.client('suspended-ios');
+  suspendedClient.visibilityState='visible'; // potentially stale WebKit snapshot
+  suspended.setClients([suspendedClient]);
+  await suspended.dispatch('message',{data:{type:'ADMIN_PUSH_STATE',visible:true,
+    focused:true,platform:'ios-pwa',route:'chat',conversationId:'conv-1',contactId:'user-1'},source:suspendedClient});
+  await suspended.dispatch('push',{data:{json:()=>payload}});
+  assert.equal(suspended.notices.length,1,'unanswered live request must allow lock-screen Push instead of trusting old visible cache');
+
   const hidden=harness();
   const hiddenClient=hidden.client('hidden');
   hiddenClient.visibilityState='hidden';
