@@ -354,7 +354,9 @@ function ensureDirectoryTools(){
   queueMicrotask(syncFilterArrow);
   const input=tools.querySelector('[data-contact-directory-search]');
   input.value=query;
-  input.addEventListener('input',()=>{query=String(input.value||'');syncDirectoryRows({reorder:false});});
+  // Search is a new task: show the first matching result, never preserve an
+  // unrelated scroll position from the unfiltered directory.
+  input.addEventListener('input',()=>{query=String(input.value||'');syncDirectoryRows({scrollToTop:true,reorder:false});});
   /* CHAT-393 — Keep exactly ONE search input in its original DOM owner.
      CSS gives the active field the first grid row; platform still sizes the
      viewport above the iOS keyboard. Never reparent a focused input. */
@@ -362,9 +364,34 @@ function ensureDirectoryTools(){
   const cancelSearch=searchField?.querySelector('[data-contact-directory-search-cancel]');
   const searchToggle=searchField?.querySelector('[data-contact-directory-search-toggle]');
   const layer=document.getElementById('shellNavigationLayer');
+  // CHAT-394: the directory and the result list reuse one ScrollRoot.
+  // Remember its original anchor only on entering search, restore it on
+  // exit, and do not retain a second long-lived scroll listener.
+  let beforeSearchViewport=null;
+  let closingSearch=false;
+  function rememberDirectoryViewport(){
+    if(beforeSearchViewport||!mobileDirectoryHeaderVisible())return;
+    const host=document.querySelector?.('[data-v21-contact-list]');
+    const scrollHost=host?.closest?.('.wm-sidebar-navigation');
+    if(!host||!scrollHost)return;
+    beforeSearchViewport={
+      host,scrollHost,
+      anchor:window.V21DirectoryViewport?.capture?.(scrollHost,host)||null,
+      top:scrollHost.scrollTop||0
+    };
+  }
+  function restoreDirectoryViewport(){
+    const saved=beforeSearchViewport;
+    beforeSearchViewport=null;
+    if(!saved||saved.host.isConnected===false||saved.scrollHost.isConnected===false)return;
+    if(saved.anchor&&window.V21DirectoryViewport?.restore)
+      window.V21DirectoryViewport.restore(saved.scrollHost,saved.host,saved.anchor);
+    else saved.scrollHost.scrollTop=saved.top;
+  }
   function setSearchFocused(active){
     const mobile=mobileDirectoryHeaderVisible();
     const focused=Boolean(active&&mobile);
+    if(focused)rememberDirectoryViewport();
     if(layer)layer.dataset.directorySearchActive=String(focused);
     if(searchField)searchField.dataset.expanded=String(focused);
     searchToggle?.setAttribute('aria-expanded',String(focused));
@@ -427,11 +454,18 @@ function ensureDirectoryTools(){
   }
   cancelSearch?.addEventListener('pointerdown',event=>event.preventDefault());
   function closeSearch(){
-    const hadQuery=Boolean(query||input.value);
-    query='';input.value='';
-    input.blur();
-    setSearchFocused(false);
-    if(hadQuery)syncDirectoryRows({reorder:false});
+    if(closingSearch)return;
+    closingSearch=true;
+    try{
+      const hadQuery=Boolean(query||input.value);
+      query='';input.value='';
+      input.blur();
+      setSearchFocused(false);
+      if(hadQuery)syncDirectoryRows({reorder:false});
+      restoreDirectoryViewport();
+    }finally{
+      closingSearch=false;
+    }
   }
   resetDirectorySearchMode=closeSearch;
   cancelSearch?.addEventListener('click',closeSearch);
