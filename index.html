@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.43">
-<meta name="app-build-id" content="8a838a65a34f83459f87e89dd207acd8ece26e9583d5dd7062f060cd2e8938fb">
+<meta name="app-release-version" content="V21.72.44">
+<meta name="app-build-id" content="0a6c043b96ea765fedfdb465eefcfb110c159bcc6473e83acaeed5e689e94eeb">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -13203,10 +13203,9 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
 
 
 /* CHAT-388 — ONE mobile directory layout owner (389/390/391/392 compatible).
-   CHAT-392 replaces the heavyweight rounded toolbar in the user's 19 Nov
-   screenshot with a quiet two-tier hierarchy.  No duplicated directory
-   input, DOM reparent, scroll writer or viewport/keyboard owner.
-   Chat conversation header remains a distinct, unchanged component. */
+   CHAT-395 retains this one owner: Top 1 = shell Chat/Work header;
+   Top 2 = 2-row search/filter toolbar; Content = sole contact list scroller.
+   Typing hides filters, never the search field. No second viewport owner. */
 @media(max-width:63.999rem){
   /* Directory navigation is not a third set of large filter pills.  Keep
      real Chat/Work actions, but give the chosen scope a discreet underline. */
@@ -13249,8 +13248,8 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
     box-shadow:none;
   }
 
-  /* Parent: one navigation area. Children: compact filter/search rail,
-     one results scroller, and the existing expandable search dock. */
+  /* Parent: one navigation area. Top 2 has one search row and one filter
+     row; the contact list owns all remaining vertical scrolling. */
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .wm-sidebar-sidebar{
     grid-template-areas:"navigation";
     grid-template-rows:minmax(0,1fr);
@@ -13289,9 +13288,9 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .wm-sidebar-body{
     display:grid!important;
-    grid-template-columns:minmax(0,1fr) 52px;
-    grid-template-rows:auto minmax(0,1fr);
-    grid-template-areas:"filters search" "results results";
+    grid-template-columns:minmax(0,1fr);
+    grid-template-rows:auto auto minmax(0,1fr);
+    grid-template-areas:"search" "filters" "results";
     align-content:stretch;
     min-height:0;
     overflow:hidden;
@@ -13311,8 +13310,8 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
     align-items:center;
     gap:4px!important;
     min-width:0;
-    min-height:52px;
-    padding:4px 0 4px max(10px,env(safe-area-inset-left,0px))!important;
+    min-height:44px;
+    padding:0 max(10px,env(safe-area-inset-right,0px)) 2px max(10px,env(safe-area-inset-left,0px))!important;
     border-bottom:1px solid color-mix(in srgb,var(--theme-border-default) 35%,transparent);
     background:var(--theme-surface-primary);
   }
@@ -13322,7 +13321,7 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
     flex:1 1 auto;
     min-width:0;
     min-height:44px;
-    gap:2px!important;
+    gap:6px!important;
     overflow-x:auto;
     flex-wrap:nowrap;
     scrollbar-width:none;
@@ -13348,9 +13347,6 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
     background:color-mix(in srgb,var(--theme-surface-secondary) 76%,var(--theme-surface-primary))!important;
     color:var(--theme-content-primary)!important;
     font-weight:650!important;
-  }
-  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-filter-line:not([data-expanded="true"]) .contact-directory-filter:not([data-contact-directory-filter="all"]):not([data-contact-directory-filter="unread"]):not([data-active="true"]){
-    display:none!important;
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-filter-line[data-expanded="true"]{
     align-items:flex-start;
@@ -13522,30 +13518,27 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
     align-items:center;
     gap:8px;
     min-width:0;
-    min-height:58px;
-    padding:6px max(10px,env(safe-area-inset-right,0px)) max(7px,env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px));
-    border-top:1px solid color-mix(in srgb,var(--theme-border-default) 35%,transparent);
+    min-height:52px;
+    padding:4px max(10px,env(safe-area-inset-right,0px)) 2px max(10px,env(safe-area-inset-left,0px));
+    border-top:0;
     background:var(--theme-surface-primary);
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-search-field[data-expanded="false"]{
     min-width:0;
     min-height:52px;
-    justify-content:center;
-    padding:4px max(8px,env(safe-area-inset-right,0px)) 4px 0;
+    justify-content:stretch;
+    padding-block:4px;
     border-top:0;
-    border-bottom:1px solid color-mix(in srgb,var(--theme-border-default) 35%,transparent);
+    border-bottom:0;
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-search-field[data-expanded="true"]{
-    padding-block:6px;
+    padding-block:4px;
     border-top:0;
-    border-bottom:1px solid color-mix(in srgb,var(--theme-border-default) 35%,transparent);
-  }
-  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-search-field[data-expanded="false"] :is(.contact-directory-search,.contact-directory-search-icon){
-    display:none!important;
+    border-bottom:0;
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-search-toggle{
     box-sizing:border-box;
-    display:grid!important;
+    display:none!important;
     place-items:center;
     flex:0 0 44px;
     width:44px;
@@ -13571,7 +13564,8 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
     min-height:44px;
     padding-inline-start:42px!important;
     font-size:16px!important;
-    border-radius:12px!important;
+    border-radius:999px!important;
+    background:var(--theme-surface-secondary)!important;
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-search-icon{
     inset-inline-start:max(24px,calc(env(safe-area-inset-left,0px) + 14px));
@@ -15611,9 +15605,9 @@ const AppBootController={
     // Repeated global faults must not repaint the banner or multiply logs.
     if(this.lastErrorMessage===message&&!runtimeError.classList.contains('hidden'))return;
     this.lastErrorMessage=message;
-    runtimeError.textContent='V21.72.43 runtime: '+message;
+    runtimeError.textContent='V21.72.44 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.43]',error);
+    console.error('[ChatScreenModule V21.72.44]',error);
   },
   ready(){
     // A successful render invariant proves recovery only for errors seen
@@ -15725,7 +15719,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.43 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.44 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -15779,7 +15773,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.43',
+  releaseVersion:'V21.72.44',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -24433,7 +24427,7 @@ window.V21ConversationBridge={
 window.V21ChatImageViewer=Object.freeze({open:openImageViewer});
 
 window.ChatScreenModule={
-  version:'V21.72.43',
+  version:'V21.72.44',
   snapshot(){
     return{
       viewportMode:viewport.mode,
@@ -41930,7 +41924,8 @@ function ensureDirectoryTools(){
       more.dataset.direction=expanded?'previous':'next';
       more.setAttribute('aria-expanded',String(expanded));
       more.setAttribute('aria-label',expanded?'Thu gọn nhóm khách hàng':'Xem thêm nhóm khách hàng');
-      rail.scrollLeft=0;
+      // CHAT-395: the compact filter rail now scrolls horizontally. Its own
+      // scroll event must not snap it back to the first category.
       return;
     }
     more.setAttribute('aria-expanded','false');
@@ -42089,6 +42084,13 @@ function ensureDirectoryTools(){
       }
       if(filterLine)filterLine.dataset.expanded='false';
       syncFilterArrow();
+      if(mobileDirectoryHeaderVisible()){
+        // Keep the selected category in sight when the expanded panel
+        // collapses to a single row; move only this rail, never the page.
+        const delta=button.getBoundingClientRect().left-
+          rail.getBoundingClientRect().left-8;
+        rail.scrollLeft=Math.max(0,rail.scrollLeft+delta);
+      }
       syncDirectoryRows({reorder:false});
     });
   }
