@@ -91,8 +91,8 @@ assert.equal(field.dataset.expanded,'false');
 assert(syncCount>=3,'search reset delivered to original directory store');
 assert(css.includes('grid-template-areas:"filters search" "results results"'),
   'compact search shares filter row instead of reserving bottom dock');
-assert(css.includes('grid-template-areas:"results" "search"'),
-  'typing mode gives results remaining visible height');
+assert(css.includes('grid-template-areas:"search" "results"'),
+  'typing mode puts the search at top and results in remaining height');
 assert(css.includes(':has(.contact-directory-search-field[data-expanded="true"])'),
   'expanded mode has a full-width dock');
 assert(policy.includes("activeOwner.host.dataset.mobileKeyboard='true'"),
