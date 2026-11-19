@@ -1945,7 +1945,7 @@ document.addEventListener('keydown',event=>{
     return;
   }
   if(mobileChatDrawerOpen&&event.key==='Tab'){
-    const items=[...mobileChatDrawer.querySelectorAll('button')]
+    const items=[...mobileChatDrawer.querySelectorAll('button:not([data-mobile-drawer-close])')]
       .filter(button=>!button.hidden&&!button.disabled);
     if(items.length){
       const first=items[0],last=items[items.length-1];
@@ -2361,6 +2361,12 @@ window.ChatAppShell={
   NavigationCommand,
   CallCommand,
   AuthUI,
+  MobileDrawer:Object.freeze({
+    open:openMobileChatDrawer,
+    close:closeMobileChatDrawer,
+    toggle:toggleMobileChatDrawer,
+    snapshot:()=>({open:mobileChatDrawerOpen})
+  }),
   ScreenSession,
   UnreadIndicator,
   snapshot(){
