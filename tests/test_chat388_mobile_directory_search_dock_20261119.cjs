@@ -47,8 +47,9 @@ for(const selector of [
  'data-mobile-keyboard="true"'
 ])assert(patch.includes(selector),'region rule missing '+selector);
 for(const rule of [
- 'grid-template-areas:"filters" "results" "search"',
- 'grid-template-rows:auto minmax(0,1fr) auto;',
+ 'grid-template-areas:"search" "filters" "results"',
+ 'grid-template-areas:"search" "results"',
+ 'grid-template-rows:auto auto minmax(0,1fr);',
  'display:contents!important;',
  'grid-area:filters;',
  'grid-area:results;',
@@ -65,7 +66,7 @@ assert(!/position:(?:fixed|absolute)|translate[XYZ]?\(/.test(searchOwner),
 assert(source.includes('id="shellNavigationLayer"'));
 assert(source.includes('class="wm-sidebar-navigation"'));
 assert(css.includes('SPEC-CHAT-MOBILE-DIRECTORY-VV-20261101'));
-assert(sw.includes("SHELL_CACHE_EPOCH='pwa-chat-ui392-directory-hierarchy-20261119'"));
+assert(sw.includes("SHELL_CACHE_EPOCH='pwa-chat-ui394-search-anchor-20261120'"));
 assert(patch.includes('grid-template-areas:"navigation"'),'footer must not reserve height under search');
 assert(patch.includes('.shell-sidebar-account-footer[data-menu-open="true"]'),'account actions remain accessible');
 assert(shell.includes("'Tài khoản và cài đặt'")&&shell.includes('toggleAccountMenu();'),

@@ -1,3 +1,14 @@
+## 2026-11-20 — CHAT-393/394 · Tìm kiếm ưu tiên tác vụ theo Asana, giữ vị trí danh bạ
+
+- **E0:** ba ảnh Asana người dùng cung cấp: Inbox, Search với bàn phím, Home; tiếp thu thứ bậc thao tác và cách ưu tiên ô tìm, không sao chép thiết kế. CHAT-392 còn dùng search dưới kết quả; mở IME khiến ô nhập ở dưới thay vì đầu vùng tìm.
+- **Owner:** `mobile-ui-polish.css` block CHAT-388 được sửa trực tiếp: compact vẫn filter+search một rail, active/results dùng `search → [filters] → results` và chỉ `.wm-sidebar-navigation` cuộn. `contact-directory-admin.js` vẫn một input, thêm chụp/phục hồi anchor qua `V21DirectoryViewport` hiện hữu; đổi query đưa kết quả lên trên; close/Done/selection phục hồi danh bạ; guard đóng lồng do blur. Không thêm viewport listener, CSS sheet hay DOM reparent.
+- **E1/E2:** test CHAT-388, CHAT-390, CHAT-391, CHAT-393 và các contract cũ UI-247/Directory được đồng bộ theo semantics mới; CI PR (trước bump version) [#44623521836](https://github.com/1sl2tp/chat/actions/runs/44623521836) **SUCCESS**. Sau bump version phải chạy CI lần nữa.
+- **Release candidate:** `V21.72.43`; public-shell epoch `pwa-chat-ui394-search-anchor-20261120`. Không xóa IndexedDB, private media, account session, draft hoặc outbox. `index.html` và `version.json` được build canonical bởi CI.
+- **MUST-STAY:** không gửi tin thật, không gọi ngân hàng, không thay DB/RPC/push/realtime, không deploy thủ công. E3 Pages/domain chưa nghiệm thu ở thời điểm ghi. E4/E5 iPhone Safari/PWA/Android vẫn cần kiểm tra thiết bị thật.
+- **Rollback:** revert các commit CHAT-393/394, phục hồi release/epoch sau test, không reset dữ liệu riêng.
+
+---
+
 ## 2026-11-19 — CHAT-392 · Danh bạ iPhone: tinh gọn phân cấp và đồng nhất nhịp giao diện
 
 - **E0:** ảnh iPhone 13:33 ngày 19/11 cho thấy hai thanh điều khiển đều có pill/vòng viền lớn (Trò chuyện/Công việc, Tất cả/Chưa đọc, mũi tên, tìm kiếm), thiếu phân cấp chính/phụ; dòng hội thoại, tên, preview và thời gian chưa dùng cùng thước trục rõ ràng. Dữ liệu trong ảnh chỉ dùng làm bằng chứng hình học, không sử dụng cho test gửi thật.

@@ -38,9 +38,12 @@ def test_directory_activity_refresh_preserves_viewport_and_manual_filter_keeps_p
     assert "document.addEventListener('v21-contact-store-change',()=>scheduleSync())" in module
     assert "scheduleSync({scrollToTop:true})" not in module
 
-    # Search/filter changes are user-owned navigation inside the directory and
-    # must not force a jump to the top.
-    assert "input.addEventListener('input',()=>{query=String(input.value||'');syncDirectoryRows({reorder:false});})" in module
+    # Contact-store activity and filter changes preserve the reader's anchor.
+    # A *new search task* starts the result list at the first match, but
+    # closing search restores the old directory anchor (CHAT-394).
+    assert "input.addEventListener('input',()=>{query=String(input.value||'');syncDirectoryRows({scrollToTop:true,reorder:false});})" in module
+    assert "beforeSearchViewport=" in module
+    assert "restoreDirectoryViewport();" in module
     assert "if(reorder){" in module
     assert "new MutationObserver(scheduleSync).observe(overlayRoot,{childList:true});" in module
     assert "subtree:true" not in module

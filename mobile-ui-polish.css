@@ -2185,9 +2185,9 @@
     font-weight:650!important;
   }
 
-  /* Collapsed search joins the filter rail. Expansion reuses the SAME input
-     in the bottom dock, which follows the iOS VisualViewport and never floats
-     over the scroller. */
+  /* CHAT-393 / Asana-inspired task focus: when search expands the SAME
+     input moves into the TOP grid track (CSS only; no DOM reparent).
+     Results remain the one scroller, and keyboard geometry stays with P0. */
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-search-field{
     grid-area:search;
     box-sizing:border-box;
@@ -2205,6 +2205,11 @@
     min-height:52px;
     justify-content:center;
     padding:4px max(8px,env(safe-area-inset-right,0px)) 4px 0;
+    border-top:0;
+    border-bottom:1px solid color-mix(in srgb,var(--theme-border-default) 35%,transparent);
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-search-field[data-expanded="true"]{
+    padding-block:6px;
     border-top:0;
     border-bottom:1px solid color-mix(in srgb,var(--theme-border-default) 35%,transparent);
   }
@@ -2274,13 +2279,13 @@
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer:has(.contact-directory-search-field[data-expanded="true"]) .wm-sidebar-body{
     grid-template-columns:minmax(0,1fr);
-    grid-template-rows:auto minmax(0,1fr) auto;
-    grid-template-areas:"filters" "results" "search";
+    grid-template-rows:auto auto minmax(0,1fr);
+    grid-template-areas:"search" "filters" "results";
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer[data-directory-search-active="true"] .wm-sidebar-body{
     grid-template-columns:minmax(0,1fr);
-    grid-template-rows:minmax(0,1fr) auto;
-    grid-template-areas:"results" "search";
+    grid-template-rows:auto minmax(0,1fr);
+    grid-template-areas:"search" "results";
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer[data-mobile-keyboard="true"] .contact-directory-search-field{
     padding-bottom:6px;

@@ -37,6 +37,6 @@ for(const s of [
  'var(--shell-form-vv-height,100svh)',
  'var(--header-height,72px)'
 ])assert(patch.includes(s),'missing viewport/layout contract '+s);
-assert(source.includes('V21.72.42'));
-assert(sw.includes('pwa-chat-ui392-directory-hierarchy-20261119'));
+assert(source.includes('V21.72.43'));
+assert(sw.includes('pwa-chat-ui394-search-anchor-20261120'));
 console.log('CHAT-390 collapsible directory search + iOS keyboard contract PASS');
