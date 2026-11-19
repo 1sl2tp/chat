@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.44">
-<meta name="app-build-id" content="0a6c043b96ea765fedfdb465eefcfb110c159bcc6473e83acaeed5e689e94eeb">
+<meta name="app-release-version" content="V21.72.45">
+<meta name="app-build-id" content="bd1e5b6095b59dd758092e1109b3b37d5218e95f43ed65f4704aa9a398709efb">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -6744,11 +6744,11 @@ body.ncc-ai-room-open{overflow:hidden}
     align-items:center;
     gap:0 var(--ui-composer-action-gap,4px);
     overflow:visible;
-    border:1px solid var(--composer-border,var(--theme-border-strong));
+    border:1px solid color-mix(in srgb,var(--theme-border-default) 78%,transparent);
     border-radius:var(--ui-chat-composer-radius,var(--radius-2xl,28px));
     padding:2px var(--ui-composer-inner-inset,4px);
     background:var(--cgpt-composer-surface-primary);
-    box-shadow:var(--composer-shadow,0 1px 1px #00000008),0 4px 14px rgba(0,0,0,.035);
+    box-shadow:0 2px 10px rgba(0,0,0,.035);
     transition:border-color .14s ease,box-shadow .14s ease;
   }
 
@@ -11534,6 +11534,234 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
     white-space:nowrap;
   }
 
+  /* CHAT-396 — Shell P1 mobile drawer (ChatGPT-style hierarchy).
+     It is distinct from the Directory P2 scroller and has no focus/IME
+     geometry writer. Existing profile/settings/logout owners stay intact. */
+  #mobileChatDrawer[hidden]{display:none!important}
+  #mobileChatDrawer:not([hidden]){
+    position:fixed;
+    inset:0;
+    display:block;
+    z-index:190;
+    pointer-events:auto;
+    isolation:isolate;
+  }
+  #mobileChatDrawer .mobile-chat-drawer-backdrop{
+    position:absolute;
+    inset:0;
+    display:block;
+    width:100%;
+    height:100%;
+    padding:0;
+    border:0;
+    background:rgba(0,0,0,.34);
+    cursor:pointer;
+  }
+  #mobileChatDrawer .mobile-chat-drawer-panel{
+    position:absolute;
+    inset-block:0;
+    inset-inline-start:0;
+    box-sizing:border-box;
+    display:grid;
+    grid-template-rows:auto auto minmax(0,1fr) auto;
+    width:min(354px,78vw);
+    max-width:100%;
+    height:100%;
+    min-height:0;
+    padding:max(16px,env(safe-area-inset-top,0px)) 14px max(16px,env(safe-area-inset-bottom,0px));
+    overflow:hidden;
+    border:0;
+    border-radius:0 24px 24px 0;
+    background:var(--theme-surface-primary,#fff);
+    color:var(--theme-content-primary,#181818);
+    box-shadow:10px 0 38px rgba(0,0,0,.13);
+    animation:mobile-chat-drawer-enter 180ms cubic-bezier(.2,.8,.2,1);
+  }
+  #mobileChatDrawer .mobile-chat-drawer-heading{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    min-height:54px;
+    padding:0 8px 8px;
+  }
+  #mobileChatDrawer .mobile-chat-drawer-heading strong{
+    min-width:0;
+    font-size:20px;
+    line-height:26px;
+    font-weight:680;
+    letter-spacing:-.035em;
+  }
+  #mobileChatDrawer .mobile-chat-drawer-icon{
+    display:grid;
+    place-items:center;
+    width:44px;
+    min-width:44px;
+    height:44px;
+    padding:0;
+    border:1px solid var(--theme-border-default,#e5e5e5);
+    border-radius:50%;
+    background:transparent;
+    color:inherit;
+    cursor:pointer;
+  }
+  #mobileChatDrawer .mobile-chat-drawer-links{
+    display:grid;
+    gap:2px;
+    padding-block:6px 16px;
+    border-bottom:1px solid var(--theme-border-default,#ededed);
+  }
+  #mobileChatDrawer .mobile-chat-drawer-links>button{
+    display:grid;
+    grid-template-columns:24px minmax(0,1fr);
+    align-items:center;
+    gap:14px;
+    box-sizing:border-box;
+    min-height:46px;
+    padding:8px 12px;
+    border:0;
+    border-radius:12px;
+    background:transparent;
+    color:inherit;
+    font:550 15px/1.4 system-ui,sans-serif;
+    text-align:start;
+    cursor:pointer;
+  }
+  #mobileChatDrawer .mobile-chat-drawer-links>button[hidden]{display:none!important}
+  #mobileChatDrawer .mobile-chat-drawer-links>button svg{
+    width:22px;
+    height:22px;
+    flex-shrink:0;
+  }
+  #mobileChatDrawer .mobile-chat-drawer-history{
+    display:grid;
+    grid-template-rows:auto minmax(0,1fr);
+    min-height:0;
+    padding-top:14px;
+  }
+  #mobileChatDrawer .mobile-chat-drawer-history h2{
+    margin:0;
+    padding:4px 12px 8px;
+    color:var(--theme-content-tertiary,#777);
+    font-size:13px;
+    font-weight:550;
+    line-height:19px;
+  }
+  #mobileChatDrawer .mobile-chat-drawer-recents{
+    min-height:0;
+    overflow-y:auto;
+    overscroll-behavior-y:contain;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  #mobileChatDrawer .mobile-chat-drawer-recents::-webkit-scrollbar{display:none}
+  #mobileChatDrawer .mobile-chat-drawer-recent{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    box-sizing:border-box;
+    width:100%;
+    min-height:54px;
+    padding:7px 12px;
+    gap:10px;
+    border:0;
+    border-radius:13px;
+    background:transparent;
+    color:inherit;
+    font:inherit;
+    text-align:start;
+    cursor:pointer;
+  }
+  #mobileChatDrawer .mobile-chat-drawer-recent[data-active="true"]{
+    background:var(--theme-surface-secondary,#f3f3f3);
+  }
+  #mobileChatDrawer .mobile-chat-drawer-recent-copy{
+    display:flex;
+    flex:1 1 auto;
+    flex-direction:column;
+    gap:2px;
+    min-width:0;
+  }
+  #mobileChatDrawer .mobile-chat-drawer-recent-copy strong{
+    overflow:hidden;
+    font-size:14px;
+    line-height:19px;
+    font-weight:600;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  #mobileChatDrawer .mobile-chat-drawer-recent-copy>span{
+    overflow:hidden;
+    color:var(--theme-content-secondary,#737373);
+    font-size:12px;
+    line-height:17px;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  #mobileChatDrawer .mobile-chat-drawer-unread{
+    display:block;
+    flex:none;
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    background:var(--theme-content-accent,#3269e8);
+  }
+  #mobileChatDrawer .mobile-chat-drawer-empty{
+    margin:12px;
+    color:var(--theme-content-secondary,#777);
+    font-size:14px;
+  }
+  #mobileChatDrawer .mobile-chat-drawer-footer{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    align-items:center;
+    gap:8px;
+    padding:12px 3px 0;
+    border-top:1px solid var(--theme-border-default,#ededed);
+  }
+  #mobileChatDrawer .mobile-chat-drawer-new{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    box-sizing:border-box;
+    min-height:48px;
+    padding:0 12px;
+    border:0;
+    border-radius:999px;
+    background:var(--theme-content-accent,#3269e8);
+    color:#fff;
+    font:650 14px/1.3 system-ui,sans-serif;
+    white-space:nowrap;
+    cursor:pointer;
+  }
+  #mobileChatDrawer .mobile-chat-drawer-logout{
+    min-height:44px;
+    padding:0 10px;
+    border:0;
+    border-radius:10px;
+    background:transparent;
+    color:var(--theme-content-secondary,#666);
+    font:500 13px/1.2 system-ui,sans-serif;
+    cursor:pointer;
+  }
+  #mobileChatDrawer :is(.mobile-chat-drawer-icon,.mobile-chat-drawer-links>button,.mobile-chat-drawer-recent,.mobile-chat-drawer-new,.mobile-chat-drawer-logout):focus-visible{
+    outline:2px solid var(--theme-content-accent,#3269e8);
+    outline-offset:2px;
+  }
+  @media(hover:hover) and (pointer:fine){
+    #mobileChatDrawer :is(.mobile-chat-drawer-links>button,.mobile-chat-drawer-recent,.mobile-chat-drawer-logout):hover{
+      background:var(--theme-surface-secondary,#f3f3f3);
+    }
+  }
+  @media(prefers-reduced-motion:reduce){
+    #mobileChatDrawer .mobile-chat-drawer-panel{animation:none}
+  }
+  @keyframes mobile-chat-drawer-enter{
+    from{opacity:.86;transform:translateX(-20px)}
+    to{opacity:1;transform:translateX(0)}
+  }
+
   /* ---------- Quick/account menu ---------- */
   [data-mobile-account-menu] .mobile-account-menu-backdrop{
     background:rgba(0,0,0,.06)!important;
@@ -13213,19 +13441,19 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
     width:min(100%,260px);
     max-width:100%;
     min-height:44px;
-    padding:0;
-    gap:10px;
+    padding:3px;
+    gap:2px;
     border:0;
-    border-radius:0;
-    background:transparent;
+    border-radius:999px;
+    background:var(--theme-surface-secondary);
     box-shadow:none;
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #regionTop .top-mode-switch[data-directory-owner="true"] .top-mode-tab{
     min-height:44px;
     height:44px;
-    padding:0 6px;
+    padding:0 9px;
     border:0;
-    border-radius:0;
+    border-radius:999px;
     background:transparent!important;
     box-shadow:none!important;
     color:var(--theme-content-secondary);
@@ -13234,7 +13462,8 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
     letter-spacing:-.012em;
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #regionTop .top-mode-switch[data-directory-owner="true"] .top-mode-tab[aria-selected="true"]{
-    box-shadow:inset 0 -2px 0 var(--theme-content-primary)!important;
+    box-shadow:0 1px 4px rgba(0,0,0,.07)!important;
+    background:var(--theme-surface-primary)!important;
     color:var(--theme-content-primary);
     font-weight:650;
   }
@@ -13242,9 +13471,9 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
     width:44px;
     height:44px;
     min-width:44px;
-    border:0;
-    border-radius:12px;
-    background:transparent;
+    border:1px solid color-mix(in srgb,var(--theme-border-default) 72%,transparent);
+    border-radius:999px;
+    background:var(--theme-surface-primary);
     box-shadow:none;
   }
 
@@ -14060,6 +14289,37 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
             </div>
           </div>
       </section>
+    </div>
+
+    <!-- CHAT-396: Shell-owned mobile navigation drawer; contact data is
+         projected read-only from the one canonical directory owner. -->
+    <div id="mobileChatDrawer" class="mobile-chat-drawer" data-open="false" aria-hidden="true" hidden>
+      <button type="button" class="mobile-chat-drawer-backdrop" data-mobile-drawer-close tabindex="-1" aria-label="Đóng điều hướng"></button>
+      <aside class="mobile-chat-drawer-panel" role="dialog" aria-modal="true" aria-label="Điều hướng TAPHOA Chat" tabindex="-1">
+        <header class="mobile-chat-drawer-heading">
+          <strong>TAPHOA Chat</strong>
+          <button type="button" class="mobile-chat-drawer-icon" data-mobile-drawer-action="search" aria-label="Tìm trong danh bạ" title="Tìm trong danh bạ">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="10.7" cy="10.7" r="6.7"/><path d="m15.7 15.7 4.5 4.5"/></svg>
+          </button>
+        </header>
+        <nav class="mobile-chat-drawer-links" aria-label="Mục chính">
+          <button type="button" data-mobile-drawer-action="directory"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="4.5" y="3.5" width="15" height="17" rx="2.5"/><circle cx="12" cy="9.7" r="2.4"/><path d="M7.6 17c.7-2.5 2-3.6 4.4-3.6 2.4 0 3.7 1.1 4.4 3.6"/></svg><span>Danh bạ</span></button>
+          <button type="button" data-mobile-drawer-action="photos"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3.5" y="4" width="17" height="16" rx="2.5"/><circle cx="9" cy="9.5" r="1.5"/><path d="m4.8 17 5.1-5 3.1 3.1 2.7-2.7 3.2 4.6"/></svg><span>Ảnh đã chia sẻ</span></button>
+          <button type="button" data-mobile-drawer-action="profile"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-4 2.5-6.5 7-6.5s7 2.5 7 6.5"/></svg><span>Tài khoản</span></button>
+          <button type="button" data-mobile-drawer-action="settings" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M9.7 3.2h4.6l.7 2.3 1.9 1.1 2.3-.6 2.2 3.9-1.7 1.8v2.1l1.7 1.8-2.2 3.9-2.3-.6-1.9 1.1-.7 2.3H9.7L9 20l-1.9-1.1-2.3.6-2.2-3.9 1.7-1.8v-2.1L2.6 9.9 4.8 6l2.3.6L9 5.5Z"/><circle cx="12" cy="12.7" r="3"/></svg><span>Cài đặt</span></button>
+        </nav>
+        <section class="mobile-chat-drawer-history" aria-label="Đoạn chat gần đây">
+          <h2>Gần đây</h2>
+          <div class="mobile-chat-drawer-recents" data-mobile-drawer-recents></div>
+        </section>
+        <footer class="mobile-chat-drawer-footer">
+          <button type="button" class="mobile-chat-drawer-new" data-mobile-drawer-action="new">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M13 5H6.5A2.5 2.5 0 0 0 4 7.5v10A2.5 2.5 0 0 0 6.5 20h10a2.5 2.5 0 0 0 2.5-2.5V11"/><path d="m11 13 8.5-8.5 2 2L13 15l-3.5.9Z"/></svg>
+            <span>Trò chuyện mới</span>
+          </button>
+          <button type="button" class="mobile-chat-drawer-logout" data-mobile-drawer-action="logout">Đăng xuất</button>
+        </footer>
+      </aside>
     </div>
 
     <div id="shellNavigationLayer" data-open="false" aria-hidden="true">
@@ -15605,9 +15865,9 @@ const AppBootController={
     // Repeated global faults must not repaint the banner or multiply logs.
     if(this.lastErrorMessage===message&&!runtimeError.classList.contains('hidden'))return;
     this.lastErrorMessage=message;
-    runtimeError.textContent='V21.72.44 runtime: '+message;
+    runtimeError.textContent='V21.72.45 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.44]',error);
+    console.error('[ChatScreenModule V21.72.45]',error);
   },
   ready(){
     // A successful render invariant proves recovery only for errors seen
@@ -15719,7 +15979,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.44 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.45 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -15773,7 +16033,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.44',
+  releaseVersion:'V21.72.45',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -24427,7 +24687,7 @@ window.V21ConversationBridge={
 window.V21ChatImageViewer=Object.freeze({open:openImageViewer});
 
 window.ChatScreenModule={
-  version:'V21.72.44',
+  version:'V21.72.45',
   snapshot(){
     return{
       viewportMode:viewport.mode,
@@ -24821,6 +25081,7 @@ const screenHost=document.getElementById('screenHost');
 const activeScreenSlot=document.getElementById('activeScreenSlot');
 const chatScreen=document.getElementById('chatScreen');
 const shellNavigationLayer=document.getElementById('shellNavigationLayer');
+const mobileChatDrawer=document.getElementById('mobileChatDrawer');
 const globalOverlayRoot=document.getElementById('globalOverlayRoot');
 const sessionHost=document.getElementById('sessionHost');
 const appShell=document.getElementById('appShell');
@@ -24849,6 +25110,7 @@ let callTerminalNotice=null;
 let callTerminalNoticeTimer=0;
 let unreadCount=0;
 let accountMenuOpen=false;
+let mobileChatDrawerOpen=false;
 let accountMenuFocusGeneration=0;
 let mobileRouteTransitionTimer=0;
 
@@ -25045,7 +25307,7 @@ function renderMenuUnread(){
   // One unread cue at a time: in an open directory, show it on the
   // Chưa đọc filter and on the affected conversations, not on the menu.
   const directoryVisible=appShell?.dataset?.mobileDirectory==='true';
-  const directoryAccountMenu=directoryVisible&&authState==='AUTHENTICATED'&&
+  const directoryMobileDrawer=directoryVisible&&authState==='AUTHENTICATED'&&
     window.matchMedia('(max-width:63.999rem)').matches;
   for(const chip of document.querySelectorAll('[data-contact-directory-filter="unread"]')){
     chip.dataset.hasUnread=String(hasUnread);
@@ -25059,11 +25321,12 @@ function renderMenuUnread(){
     // as the account menu while the user is viewing a conversation.
     button.setAttribute('aria-label',button.dataset.mobileBack==='true'
       ?'Quay lại Danh bạ'
-      :directoryAccountMenu?'Tài khoản và cài đặt'
+      :directoryMobileDrawer?'Mở điều hướng TAPHOA Chat'
       :hasUnread&&!directoryVisible?`Mở menu, ${count} tin mới`:'Mở menu');
-    if(directoryAccountMenu){
-      button.setAttribute('aria-haspopup','menu');
-      button.setAttribute('aria-expanded',String(accountMenuOpen));
+    if(directoryMobileDrawer){
+      button.setAttribute('aria-haspopup','dialog');
+      button.setAttribute('aria-controls','mobileChatDrawer');
+      button.setAttribute('aria-expanded',String(appShell?.dataset?.mobileChatDrawerOpen==='true'));
     }else{
       button.removeAttribute('aria-haspopup');
     }
@@ -25098,7 +25361,10 @@ function syncDesktopSidebarMode(){
   const changed=next!==desktopSidebarPersistent;
   desktopSidebarPersistent=next;
   appShell.dataset.desktopSidebarPersistent=String(desktopSidebarPersistent);
-  if(desktopSidebarPersistent)sidebarOpen=false;
+  if(desktopSidebarPersistent){
+    sidebarOpen=false;
+    closeMobileChatDrawer();
+  }
   syncSidebarPresentation();
   if(desktopSidebarPersistent&&changed){
     void window.V21ContactStore?.refresh?.();
@@ -25176,8 +25442,105 @@ function toggleAccountMenu(){
   return accountMenuOpen?closeAccountMenu({restoreFocus:true}):openAccountMenu();
 }
 
+
+/* CHAT-396 — Shell owns the mobile navigation drawer. It projects recent
+   conversations from the canonical rendered list without cloning rows,
+   creating a second contact store, fetching data, or changing send logic. */
+function renderMobileChatDrawerRecents(){
+  const container=mobileChatDrawer?.querySelector('[data-mobile-drawer-recents]');
+  if(!container)return;
+  const fragment=document.createDocumentFragment();
+  let count=0;
+  for(const row of document.querySelectorAll('#shellNavigationLayer [data-contact-row]')){
+    if(count>=12)break;
+    if(row.dataset.contactPinned==='report')continue;
+    const source=row.querySelector('[data-contact-select]');
+    const id=String(source?.dataset?.contactId||'');
+    if(!id)continue;
+    const title=String(row.querySelector('.shell-contact-name')?.textContent||
+      source.dataset.contactName||'Liên hệ').trim();
+    const preview=String(row.querySelector('.shell-contact-preview')?.textContent||'').trim();
+    const button=document.createElement('button');
+    button.type='button';
+    button.className='mobile-chat-drawer-recent';
+    button.dataset.mobileDrawerContactId=id;
+    button.dataset.contactName=title;
+    button.dataset.active=String(activeContact?.id===id);
+    button.dataset.unread=String(row.dataset.unread==='true');
+    const copy=document.createElement('span');
+    copy.className='mobile-chat-drawer-recent-copy';
+    const name=document.createElement('strong');
+    name.textContent=title;
+    copy.appendChild(name);
+    if(preview){
+      const summary=document.createElement('span');
+      summary.textContent=preview;
+      copy.appendChild(summary);
+    }
+    button.appendChild(copy);
+    if(row.dataset.unread==='true'){
+      const dot=document.createElement('span');
+      dot.className='mobile-chat-drawer-unread';
+      dot.setAttribute('aria-label','Chưa đọc');
+      button.appendChild(dot);
+    }
+    fragment.appendChild(button);
+    count+=1;
+  }
+  if(count===0){
+    const empty=document.createElement('p');
+    empty.className='mobile-chat-drawer-empty';
+    empty.textContent='Chưa có hội thoại gần đây';
+    fragment.appendChild(empty);
+  }
+  container.replaceChildren(fragment);
+}
+
+function closeMobileChatDrawer({restoreFocus=false}={}){
+  if(!mobileChatDrawerOpen||!mobileChatDrawer)return false;
+  mobileChatDrawerOpen=false;
+  if(appShell)appShell.dataset.mobileChatDrawerOpen='false';
+  mobileChatDrawer.dataset.open='false';
+  mobileChatDrawer.setAttribute('aria-hidden','true');
+  mobileChatDrawer.hidden=true;
+  renderMenuUnread();
+  if(restoreFocus){
+    const trigger=document.querySelector('#regionTop [data-shell-command="sidebar.open"]');
+    if(trigger?.isConnected)trigger.focus?.({preventScroll:true});
+  }
+  return true;
+}
+
+function openMobileChatDrawer(){
+  if(!mobileChatDrawer||authState!=='AUTHENTICATED'||
+     appShell?.dataset?.mobileDirectory!=='true'||
+     !window.matchMedia('(max-width:63.999rem)').matches)return false;
+  closeAccountMenu();
+  if(document.activeElement?.id==='contactDirectorySearchInput')
+    document.activeElement.blur();
+  renderMobileChatDrawerRecents();
+  const settings=mobileChatDrawer.querySelector('[data-mobile-drawer-action="settings"]');
+  const existingSettings=document.querySelector('[data-account-menu-settings]');
+  if(settings)settings.hidden=!existingSettings||existingSettings.hidden;
+  mobileChatDrawer.hidden=false;
+  mobileChatDrawer.dataset.open='true';
+  mobileChatDrawer.setAttribute('aria-hidden','false');
+  mobileChatDrawerOpen=true;
+  if(appShell)appShell.dataset.mobileChatDrawerOpen='true';
+  renderMenuUnread();
+  mobileChatDrawer.querySelector('[data-mobile-drawer-action="directory"]')
+    ?.focus?.({preventScroll:true});
+  return true;
+}
+
+function toggleMobileChatDrawer(){
+  return mobileChatDrawerOpen
+    ?closeMobileChatDrawer({restoreFocus:true})
+    :openMobileChatDrawer();
+}
+
 function setSidebar(open){
-  if(!open)closeAccountMenu();
+  if(!open){closeAccountMenu();closeMobileChatDrawer();}
   if(desktopSidebarPersistent){
     // Persistent desktop directory is already mounted and kept current by
     // bootstrap/realtime. NavigationCommand.openChat() calls setSidebar(false)
@@ -26634,6 +26997,7 @@ const AuthUI={
     renderChatTabIdentity();
   },
   setAuthenticated(authenticated,account=null){
+    if(!authenticated)closeMobileChatDrawer();
     authState=authenticated?'AUTHENTICATED':'GUEST';
     if(appShell)appShell.dataset.authState=authenticated?'authenticated':'guest';
     this.setAccount(authenticated?account:null);
@@ -26649,6 +27013,20 @@ function requireAuthenticatedCommand(){
 }
 
 document.addEventListener('keydown',event=>{
+  if(mobileChatDrawerOpen&&event.key==='Escape'){
+    event.preventDefault();
+    closeMobileChatDrawer({restoreFocus:true});
+    return;
+  }
+  if(mobileChatDrawerOpen&&event.key==='Tab'){
+    const items=[...mobileChatDrawer.querySelectorAll('button:not([data-mobile-drawer-close])')]
+      .filter(button=>!button.hidden&&!button.disabled);
+    if(items.length){
+      const first=items[0],last=items[items.length-1];
+      if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
+      else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
+    }
+  }
   if(event.key==='Escape'&&closeChatHeaderMenu({restoreFocus:true}))event.preventDefault();
 });
 
@@ -26713,6 +27091,52 @@ document.addEventListener('click',event=>{
   const target=event.target instanceof Element?event.target:null;
   if(!target)return;
 
+  const drawerClose=target.closest('[data-mobile-drawer-close]');
+  if(drawerClose){
+    event.preventDefault();
+    closeMobileChatDrawer({restoreFocus:true});
+    return;
+  }
+  const drawerRecent=target.closest('[data-mobile-drawer-contact-id]');
+  if(drawerRecent&&mobileChatDrawerOpen){
+    event.preventDefault();
+    const selected=NavigationCommand.openContact(drawerRecent.dataset.mobileDrawerContactId,
+      drawerRecent.dataset.contactName);
+    if(selected)closeMobileChatDrawer();
+    return;
+  }
+  const drawerAction=target.closest('[data-mobile-drawer-action]');
+  if(drawerAction&&mobileChatDrawerOpen){
+    event.preventDefault();
+    const action=drawerAction.dataset.mobileDrawerAction;
+    if(action==='directory'){closeMobileChatDrawer({restoreFocus:true});return;}
+    if(action==='search'){
+      closeMobileChatDrawer();
+      document.getElementById('contactDirectorySearchInput')?.focus?.({preventScroll:true});
+      return;
+    }
+    if(action==='new'){
+      closeMobileChatDrawer();
+      NavigationCommand.clearActiveContact();
+      NavigationCommand.openChat();
+      return;
+    }
+    if(action==='photos'){closeMobileChatDrawer();NavigationCommand.openPhotos();return;}
+    if(action==='profile'){closeMobileChatDrawer();openSelfProfile();return;}
+    if(action==='settings'){
+      closeMobileChatDrawer();
+      const settings=document.querySelector('[data-account-menu-settings]');
+      if(settings&&!settings.hidden)settings.click();
+      return;
+    }
+    if(action==='logout'){
+      closeMobileChatDrawer();
+      document.querySelector('[data-account-menu-logout]')?.click?.();
+      return;
+    }
+    return;
+  }
+
   const headerMore=target.closest('[data-chat-header-more]');
   if(headerMore){
     event.preventDefault();
@@ -26770,11 +27194,11 @@ document.addEventListener('click',event=>{
   if(shellButton){
     const command=shellButton.dataset.shellCommand;
     if(command==='sidebar.open'){
-      // CHAT-389: directory is already visible; use the header menu for
-      // account actions instead of a no-op or a second navigation layer.
+      // CHAT-396: the directory is visible. Show the Shell drawer with
+      // navigation and recent conversations, not the compact account popup.
       if(authState==='AUTHENTICATED'&&appShell?.dataset?.mobileDirectory==='true'&&
         window.matchMedia('(max-width:63.999rem)').matches){
-        toggleAccountMenu();
+        toggleMobileChatDrawer();
         return;
       }
       if(desktopSidebarPersistent)setSidebar(true);
@@ -27011,6 +27435,12 @@ window.ChatAppShell={
   NavigationCommand,
   CallCommand,
   AuthUI,
+  MobileDrawer:Object.freeze({
+    open:openMobileChatDrawer,
+    close:closeMobileChatDrawer,
+    toggle:toggleMobileChatDrawer,
+    snapshot:()=>({open:mobileChatDrawerOpen})
+  }),
   ScreenSession,
   UnreadIndicator,
   snapshot(){
@@ -28463,6 +28893,16 @@ function syncMobileAccountMenuTrigger(open){
   delete trigger.dataset.mobileBack;
   trigger.removeAttribute('title');
   if(mobileAccountMenuOwnedByTrigger()){
+    // CHAT-396: directory root uses the Shell drawer. Keep the legacy
+    // account menu as a fallback when this shell capability is absent.
+    if(mobileDirectoryOpen()&&window.ChatAppShell?.MobileDrawer){
+      const drawerOpen=Boolean(window.ChatAppShell.MobileDrawer.snapshot?.()?.open);
+      trigger.setAttribute('aria-haspopup','dialog');
+      trigger.setAttribute('aria-controls','mobileChatDrawer');
+      trigger.setAttribute('aria-expanded',String(drawerOpen));
+      trigger.setAttribute('aria-label',drawerOpen?'Đóng điều hướng':'Mở điều hướng');
+      return true;
+    }
     if(!mobileAccountMenu?.isConnected)ensureMobileAccountMenu();
     syncMobileAccountMenuItems();
     trigger.setAttribute('aria-haspopup','menu');
@@ -28576,6 +29016,12 @@ function openMobileAccountMenu(){
 }
 
 function toggleMobileAccountMenu(){
+  // CHAT-396: the true mobile header click owner delegates to the
+  // Shell's accessible drawer, never creates a second directory store.
+  if(mobileDirectoryOpen()&&window.ChatAppShell?.MobileDrawer){
+    closeMobileAccountMenu();
+    return window.ChatAppShell.MobileDrawer.toggle();
+  }
   if(mobileAccountMenu?.dataset.open==='true'&&!mobileAccountMenu.hidden){
     return closeMobileAccountMenu({restoreFocus:true});
   }
@@ -28772,6 +29218,7 @@ function bindMobileAccountMenuContractSync(){
 function bindMobileNavigationClicks(){
   document.addEventListener('keydown',event=>{
     if(event.defaultPrevented)return;
+    if(window.ChatAppShell?.MobileDrawer?.snapshot?.()?.open)return;
     if(event.key==='Escape'&&mobileDirectoryOpen()){
       event.preventDefault();
       hideMobileDirectory('escape',{restoreFocus:true});
