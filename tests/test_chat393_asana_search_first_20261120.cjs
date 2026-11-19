@@ -18,6 +18,6 @@ assert(owner.includes('border-bottom:1px solid'),'search separates from list');
 assert(!owner.includes('position:fixed'),'do not create second viewport owner');
 assert(directory.includes('input.focus({preventScroll:true})'),'focus remains on tap');
 assert(directory.includes("input.addEventListener('blur',reconcileSearchOnDismiss)"),'native keyboard dismissal');
-assert(directory.includes('if(resultPointerDown'),'search row tap preservation');
+assert(directory.includes('if(!resultPointerDown)return;'),'search row tap preservation');
 assert(platform.includes("owner.kind==='directory'||owner.kind==='message-forward'"),'platform owns keyboard');
 console.log('CHAT-393 search-first mobile directory contract PASS');
