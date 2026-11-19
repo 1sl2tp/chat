@@ -47,7 +47,7 @@ for(const selector of [
  'data-mobile-keyboard="true"'
 ])assert(patch.includes(selector),'region rule missing '+selector);
 for(const rule of [
- 'grid-template-areas:"filters" "results" "search"',
+ 'grid-template-areas:"search" "filters" "results"',
  'grid-template-rows:auto minmax(0,1fr) auto;',
  'display:contents!important;',
  'grid-area:filters;',
