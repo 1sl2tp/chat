@@ -564,9 +564,13 @@ function resetForAuth(){
   const tools=directoryTools();
   const input=tools?.querySelector('[data-contact-directory-search]');
   if(input){input.value='';input.blur?.();}
-  const layer=document.getElementById?.('shellNavigationLayer');
-  if(layer)layer.dataset.directorySearchActive='false';
-  document.querySelector('[data-contact-directory-search-cancel]')?.setAttribute('hidden','');
+  // Auth can reset before the shell DOM mounts (e.g. account switch).
+  // Keep the same no-DOM safe path as the existing group auth-race owner.
+  if(typeof document!=='undefined'){
+    const layer=document.getElementById?.('shellNavigationLayer');
+    if(layer)layer.dataset.directorySearchActive='false';
+    document.querySelector('[data-contact-directory-search-cancel]')?.setAttribute('hidden','');
+  }
   if(tools){
     tools.dataset.directorySection='chat';
     const work=document.querySelector('[data-contact-work-tools]');
