@@ -25,6 +25,7 @@ let nccReady=false;
 let loadingGroups=false;
 let syncQueued=false;
 let syncScrollToTop=false;
+let resetDirectorySearchMode=null;
 
 function authStore(){return window.V21AuthSessionStore||null;}
 function contactStore(){return window.V21ContactStore||null;}
@@ -116,6 +117,7 @@ function installStyle(){
     }
     /* UI-247: reusable ChatGPT-like search surface, without altering focus/scroll owners. */
     .contact-directory-search-field{position:relative;width:100%;min-width:0}
+    .contact-directory-search-toggle{display:none}
     .contact-directory-search-icon{position:absolute;z-index:1;inset-inline-start:14px;top:50%;width:18px;height:18px;transform:translateY(-50%);color:var(--theme-content-tertiary,#999);pointer-events:none}
     .contact-directory-search-field:focus-within .contact-directory-search-icon{color:var(--theme-content-secondary,#666)}
     .contact-directory-search{box-sizing:border-box;width:100%;height:44px;border:1px solid var(--theme-border-default,#dedede);border-radius:16px;padding:0 12px 0 42px;background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#171717);font:inherit;font-size:16px;outline:none}
@@ -217,6 +219,7 @@ function directoryTools(){return document.querySelector('[data-contact-directory
 let filterArrowSync=null;
 function removeDirectoryTools(){
   filterArrowSync=null;
+  resetDirectorySearchMode=null;
   directoryTools()?.remove();
   document.querySelector('[data-contact-work-bank-heading]')?.remove();
   document.querySelector('[data-contact-work-tools]')?.remove();
@@ -243,9 +246,10 @@ function ensureDirectoryTools(){
       <button type="button" role="tab" class="contact-directory-section" data-contact-directory-section="chat" aria-controls="contactDirectoryChatView">Trò chuyện</button>
       <button type="button" role="tab" class="contact-directory-section" data-contact-directory-section="work" aria-controls="contactDirectoryWorkView" aria-label="Công việc: sản phẩm, phiếu NCC và chuyển khoản">Công việc</button>
     </div>
-    <div class="contact-directory-search-field" id="contactDirectoryChatView">
+    <div class="contact-directory-search-field" id="contactDirectoryChatView" data-expanded="false">
+      <button type="button" class="contact-directory-search-toggle" data-contact-directory-search-toggle aria-label="Mở tìm kiếm danh bạ" title="Tìm kiếm" aria-expanded="false" aria-controls="contactDirectorySearchInput"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.75" cy="10.75" r="6.75"></circle><path d="m16 16 4.5 4.5"></path></svg></button>
       <svg class="contact-directory-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true"><circle cx="10.75" cy="10.75" r="6.75"></circle><path d="m16 16 4.5 4.5"></path></svg>
-      <input class="contact-directory-search" type="search" autocomplete="off" placeholder="Tìm tên hoặc tài khoản" aria-label="Tìm danh bạ" data-contact-directory-search>
+      <input id="contactDirectorySearchInput" class="contact-directory-search" type="search" autocomplete="off" placeholder="Tìm tên hoặc tài khoản" aria-label="Tìm danh bạ" data-contact-directory-search>
       <button type="button" class="contact-directory-search-cancel" data-contact-directory-search-cancel aria-label="Đóng tìm kiếm" title="Đóng tìm kiếm" hidden>×</button>
     </div>
     <div class="contact-directory-filter-line">
@@ -353,24 +357,36 @@ function ensureDirectoryTools(){
      keyboard. Never reparent a focused <input>: Safari would dismiss IME. */
   const searchField=input.closest('.contact-directory-search-field');
   const cancelSearch=searchField?.querySelector('[data-contact-directory-search-cancel]');
+  const searchToggle=searchField?.querySelector('[data-contact-directory-search-toggle]');
   const layer=document.getElementById('shellNavigationLayer');
   function setSearchFocused(active){
     const mobile=mobileDirectoryHeaderVisible();
     const focused=Boolean(active&&mobile);
     if(layer)layer.dataset.directorySearchActive=String(focused);
+    if(searchField)searchField.dataset.expanded=String(focused);
+    searchToggle?.setAttribute('aria-expanded',String(focused));
     if(cancelSearch)cancelSearch.hidden=!focused;
   }
+  searchToggle?.addEventListener('click',()=>{
+    if(!mobileDirectoryHeaderVisible())return;
+    setSearchFocused(true);
+    // Keep focus inside this user tap: a deferred focus loses iOS keyboard.
+    void input.offsetWidth;
+    input.focus({preventScroll:true});
+  });
   input.addEventListener('focus',()=>setSearchFocused(true));
   // Do not collapse this mode on input blur: on iOS a tap on a result
   // blurs the keyboard BEFORE click, and moving rows then selects the wrong
   // customer. Keep the list geometry stable until Cancel/close/navigation.
   cancelSearch?.addEventListener('pointerdown',event=>event.preventDefault());
   function closeSearch(){
+    const hadQuery=Boolean(query||input.value);
     query='';input.value='';
-    syncDirectoryRows({reorder:false});
     input.blur();
     setSearchFocused(false);
+    if(hadQuery)syncDirectoryRows({reorder:false});
   }
+  resetDirectorySearchMode=closeSearch;
   cancelSearch?.addEventListener('click',closeSearch);
   input.addEventListener('keydown',event=>{
     if(event.key!=='Escape')return;
@@ -596,11 +612,15 @@ installStyle();
 document.addEventListener('v21-mobile-directory-change',syncMobileDirectoryHeader);
 document.addEventListener('v21-mobile-directory-change',()=>{
   if(mobileDirectoryHeaderVisible())return;
+  if(resetDirectorySearchMode){resetDirectorySearchMode();return;}
   const layer=document.getElementById('shellNavigationLayer');
   if(layer)layer.dataset.directorySearchActive='false';
   const tools=directoryTools();
   const input=tools?.querySelector('[data-contact-directory-search]');
   if(document.activeElement===input)input.blur();
+  const field=input?.closest('.contact-directory-search-field');
+  if(field)field.dataset.expanded='false';
+  tools?.querySelector('[data-contact-directory-search-toggle]')?.setAttribute('aria-expanded','false');
   tools?.querySelector('[data-contact-directory-search-cancel]')?.setAttribute('hidden','');
 });
 document.addEventListener('v21-mobile-directory-change',()=>filterArrowSync?.());
@@ -646,6 +666,9 @@ document.addEventListener('click',event=>{
         if(input)input.blur();
         const layer=document.getElementById('shellNavigationLayer');
         if(layer)layer.dataset.directorySearchActive='false';
+        const field=input?.closest('.contact-directory-search-field');
+        if(field)field.dataset.expanded='false';
+        directoryTools()?.querySelector('[data-contact-directory-search-toggle]')?.setAttribute('aria-expanded','false');
         syncDirectoryRows({reorder:false});
       }
     }
