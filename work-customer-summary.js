@@ -254,6 +254,16 @@ function syncMobileAccountMenuTrigger(open){
   delete trigger.dataset.mobileBack;
   trigger.removeAttribute('title');
   if(mobileAccountMenuOwnedByTrigger()){
+    // CHAT-396: directory root uses the Shell drawer. Keep the legacy
+    // account menu as a fallback when this shell capability is absent.
+    if(mobileDirectoryOpen()&&window.ChatAppShell?.MobileDrawer){
+      const drawerOpen=Boolean(window.ChatAppShell.MobileDrawer.snapshot?.()?.open);
+      trigger.setAttribute('aria-haspopup','dialog');
+      trigger.setAttribute('aria-controls','mobileChatDrawer');
+      trigger.setAttribute('aria-expanded',String(drawerOpen));
+      trigger.setAttribute('aria-label',drawerOpen?'Đóng điều hướng':'Mở điều hướng');
+      return true;
+    }
     if(!mobileAccountMenu?.isConnected)ensureMobileAccountMenu();
     syncMobileAccountMenuItems();
     trigger.setAttribute('aria-haspopup','menu');
@@ -367,6 +377,12 @@ function openMobileAccountMenu(){
 }
 
 function toggleMobileAccountMenu(){
+  // CHAT-396: the true mobile header click owner delegates to the
+  // Shell's accessible drawer, never creates a second directory store.
+  if(mobileDirectoryOpen()&&window.ChatAppShell?.MobileDrawer){
+    closeMobileAccountMenu();
+    return window.ChatAppShell.MobileDrawer.toggle();
+  }
   if(mobileAccountMenu?.dataset.open==='true'&&!mobileAccountMenu.hidden){
     return closeMobileAccountMenu({restoreFocus:true});
   }
@@ -563,6 +579,7 @@ function bindMobileAccountMenuContractSync(){
 function bindMobileNavigationClicks(){
   document.addEventListener('keydown',event=>{
     if(event.defaultPrevented)return;
+    if(window.ChatAppShell?.MobileDrawer?.snapshot?.()?.open)return;
     if(event.key==='Escape'&&mobileDirectoryOpen()){
       event.preventDefault();
       hideMobileDirectory('escape',{restoreFocus:true});
