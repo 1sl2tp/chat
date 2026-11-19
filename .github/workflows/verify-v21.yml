@@ -422,6 +422,10 @@ jobs:
         run: node tests/test_chat_price7d_advisory_20261110.cjs
       - name: UI-248 composer text/IME/media send-state parity
         run: node tests/test_chat_composer_whitespace_send_parity_20261106.cjs
+      - name: CHAT-388 mobile directory search dock and one scroll owner
+        run: |
+          node --check contact-directory-admin.js
+          node tests/test_chat388_mobile_directory_search_dock_20261119.cjs
       - name: UI-240 narrow directory vertical rhythm and contact preview
         run: node tests/test_chat_mobile_directory_rhythm_20261106.cjs
       - name: UI-239 compact directory search directly below top tabs
