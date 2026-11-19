@@ -9,7 +9,7 @@
 > Với **Supabase Edge OCR bill/thu tự động**, đọc **[DEPLOYMENT_BANK_BILL.md](./DEPLOYMENT_BANK_BILL.md)**: chỉ `1sl2tp/chat:main` → project `vtqhbhrkdxirqeqkgylo` → `v21-bank-bill-event`. Token kết nối Supabase và secret GitHub Actions là hai ngữ cảnh độc lập; không tạo/copy token mới hoặc deploy nhầm nhánh.
 >
 Canonical branch: **main**  
-Current release: **V21.72.39**  
+Current release: **V21.72.40**  
 Channel: **candidate**
 
 This repository contains the current TAPHOA Chat/Call web/PWA source. Old development branches and superseded planning/backup material were removed on 2026-09-18 so `main` is the single source of truth.

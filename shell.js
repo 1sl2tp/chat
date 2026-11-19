@@ -233,6 +233,8 @@ function renderMenuUnread(){
   // One unread cue at a time: in an open directory, show it on the
   // Chưa đọc filter and on the affected conversations, not on the menu.
   const directoryVisible=appShell?.dataset?.mobileDirectory==='true';
+  const directoryAccountMenu=directoryVisible&&authState==='AUTHENTICATED'&&
+    window.matchMedia('(max-width:63.999rem)').matches;
   for(const chip of document.querySelectorAll('[data-contact-directory-filter="unread"]')){
     chip.dataset.hasUnread=String(hasUnread);
     chip.setAttribute('aria-label',hasUnread?'Chưa đọc, có '+count+' tin mới':'Chưa đọc');
@@ -245,7 +247,14 @@ function renderMenuUnread(){
     // as the account menu while the user is viewing a conversation.
     button.setAttribute('aria-label',button.dataset.mobileBack==='true'
       ?'Quay lại Danh bạ'
+      :directoryAccountMenu?'Tài khoản và cài đặt'
       :hasUnread&&!directoryVisible?`Mở menu, ${count} tin mới`:'Mở menu');
+    if(directoryAccountMenu){
+      button.setAttribute('aria-haspopup','menu');
+      button.setAttribute('aria-expanded',String(accountMenuOpen));
+    }else{
+      button.removeAttribute('aria-haspopup');
+    }
   }
 }
 
@@ -320,7 +329,13 @@ function closeAccountMenu({restoreFocus=false}={}){
   if(footer)footer.dataset.menuOpen='false';
   if(menu)menu.hidden=true;
   if(trigger)trigger.setAttribute('aria-expanded','false');
-  if(restoreFocus&&trigger?.isConnected){try{trigger.focus({preventScroll:true});}catch{}}
+  const mobileTrigger=appShell?.dataset?.mobileDirectory==='true'&&
+    window.matchMedia('(max-width:63.999rem)').matches
+      ?document.querySelector('#regionTop [data-shell-command="sidebar.open"]')
+      :null;
+  const focusTarget=mobileTrigger||trigger;
+  if(restoreFocus&&focusTarget?.isConnected){try{focusTarget.focus({preventScroll:true});}catch{}}
+  renderMenuUnread();
   return true;
 }
 
@@ -333,6 +348,7 @@ function openAccountMenu(){
   footer.dataset.menuOpen='true';
   menu.hidden=false;
   trigger.setAttribute('aria-expanded','true');
+  renderMenuUnread();
   // SPEC-CHAT-ACCOUNT-MENU-FOCUS-20261102: closing, reopening or
   // unmounting this menu before the deferred callback must not steal focus
   // from a newer route or a modal behind it.
@@ -1942,6 +1958,13 @@ document.addEventListener('click',event=>{
   if(shellButton){
     const command=shellButton.dataset.shellCommand;
     if(command==='sidebar.open'){
+      // CHAT-389: directory is already visible; use the header menu for
+      // account actions instead of a no-op or a second navigation layer.
+      if(authState==='AUTHENTICATED'&&appShell?.dataset?.mobileDirectory==='true'&&
+        window.matchMedia('(max-width:63.999rem)').matches){
+        toggleAccountMenu();
+        return;
+      }
       if(desktopSidebarPersistent)setSidebar(true);
       return;
     }

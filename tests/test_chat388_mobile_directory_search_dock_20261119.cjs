@@ -59,10 +59,15 @@ for(const rule of [
  'padding-bottom:6px;',
  'display:none!important;'
 ])assert(patch.includes(rule),'core mobile layout invariant '+rule);
-assert(!/position:(?:fixed|absolute)|translate[XYZ]?\(/.test(patch),
- 'no second floating owner or transform: the screen/keyboard owns height');
+const searchOwner=patch.slice(patch.indexOf('.contact-directory-search-field{'),patch.indexOf('.contact-directory-search-cancel{'));
+assert(!/position:(?:fixed|absolute)|translate[XYZ]?\(/.test(searchOwner),
+ 'search remains in the single grid/keyboard owner, never a floating input');
 assert(source.includes('id="shellNavigationLayer"'));
 assert(source.includes('class="wm-sidebar-navigation"'));
 assert(css.includes('SPEC-CHAT-MOBILE-DIRECTORY-VV-20261101'));
-assert(sw.includes("SHELL_CACHE_EPOCH='pwa-chat-ui388-directory-search-dock-20261119'"));
-console.log('CHAT-388 mobile directory search dock / focus / single-scroll owner PASS');
+assert(sw.includes("SHELL_CACHE_EPOCH='pwa-chat-ui389-directory-bottom-dock-20261119'"));
+assert(patch.includes('grid-template-areas:"navigation"'),'footer must not reserve height under search');
+assert(patch.includes('.shell-sidebar-account-footer[data-menu-open="true"]'),'account actions remain accessible');
+assert(shell.includes("'Tài khoản và cài đặt'")&&shell.includes('toggleAccountMenu();'),
+  'existing header button opens the existing account menu');
+console.log('CHAT-388/389 directory search dock, menu access and footer geometry PASS');

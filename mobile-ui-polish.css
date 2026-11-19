@@ -1882,6 +1882,42 @@
    scroll area. No cloned inputs, fixed layers, translate transforms,
    viewport timers or second keyboard controller. Desktop unchanged. */
 @media(max-width:63.999rem){
+  /* CHAT-389: eliminate the unused account-footer row after search.
+     The original header menu remains the only account-menu trigger. */
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .wm-sidebar-sidebar{
+    grid-template-areas:"navigation";
+    grid-template-rows:minmax(0,1fr);
+    padding-block-end:0!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .shell-sidebar-account-footer{
+    display:none!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .wm-sidebar-sidebar:has(.shell-sidebar-account-footer[data-menu-open="true"]){
+    overflow:visible;
+  }
+  /* Account popup only; not a second floating search or viewport owner. */
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .shell-sidebar-account-footer[data-menu-open="true"]{
+    display:block!important;
+    position:absolute;
+    top:8px;
+    inset-inline-start:max(10px,env(safe-area-inset-left,0px));
+    inset-inline-end:auto;
+    width:min(290px,calc(100% - 20px));
+    box-sizing:border-box;
+    padding:8px;
+    border:1px solid var(--theme-border-default);
+    border-radius:16px;
+    background:var(--theme-surface-primary);
+    box-shadow:0 12px 36px rgba(0,0,0,.12);
+    z-index:90;
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .shell-sidebar-account-footer[data-menu-open="true"] .shell-sidebar-account-menu{
+    position:static;
+    inset:auto;
+    width:100%;
+    margin-top:5px;
+    box-shadow:none;
+  }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .wm-sidebar-body{
     display:grid!important;
     grid-template-columns:minmax(0,1fr);
@@ -1921,8 +1957,8 @@
     align-items:center;
     gap:8px;
     min-width:0;
-    min-height:60px;
-    padding:7px max(10px,env(safe-area-inset-right)) max(9px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));
+    min-height:58px;
+    padding:6px max(10px,env(safe-area-inset-right)) max(7px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));
     border-top:1px solid color-mix(in srgb,var(--theme-border-default) 55%,transparent);
     background:var(--theme-surface-primary);
   }
@@ -1966,7 +2002,7 @@
      and account rows, not the messages/contact results. On blur, restore
      both without resetting the list scroll or losing search text. */
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer[data-directory-search-active="true"] .contact-directory-filter-line,
-  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer[data-directory-search-active="true"] .shell-sidebar-account-footer{
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer[data-directory-search-active="true"] .shell-sidebar-account-footer:not([data-menu-open="true"]){
     display:none!important;
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer[data-mobile-keyboard="true"] .contact-directory-search-field{
