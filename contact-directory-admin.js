@@ -355,9 +355,9 @@ function ensureDirectoryTools(){
   const input=tools.querySelector('[data-contact-directory-search]');
   input.value=query;
   input.addEventListener('input',()=>{query=String(input.value||'');syncDirectoryRows({reorder:false});});
-  /* CHAT-388 — Keep exactly ONE search input in its original DOM owner.
-     Mobile CSS promotes its field to a bottom grid row above the iOS
-     keyboard. Never reparent a focused <input>: Safari would dismiss IME. */
+  /* CHAT-393 — Keep exactly ONE search input in its original DOM owner.
+     CSS gives the active field the first grid row; platform still sizes the
+     viewport above the iOS keyboard. Never reparent a focused input. */
   const searchField=input.closest('.contact-directory-search-field');
   const cancelSearch=searchField?.querySelector('[data-contact-directory-search-cancel]');
   const searchToggle=searchField?.querySelector('[data-contact-directory-search-toggle]');
@@ -378,7 +378,7 @@ function ensureDirectoryTools(){
     input.focus({preventScroll:true});
   });
   input.addEventListener('focus',()=>setSearchFocused(true));
-  // The search dock has three visible modes: compact, typing, and results.
+  // The single search field has three modes: compact, top-aligned typing, and results.
   // Blur/dismiss should not leave a blank search pinned open, but a result
   // pointer must finish its click BEFORE removing rows or moving the dock.
   let resultPointerDown=false;
