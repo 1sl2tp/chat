@@ -26,6 +26,7 @@ let loadingGroups=false;
 let syncQueued=false;
 let syncScrollToTop=false;
 let resetDirectorySearchMode=null;
+let directoryKeyboardObserver=null;
 
 function authStore(){return window.V21AuthSessionStore||null;}
 function contactStore(){return window.V21ContactStore||null;}
@@ -220,6 +221,8 @@ let filterArrowSync=null;
 function removeDirectoryTools(){
   filterArrowSync=null;
   resetDirectorySearchMode=null;
+  directoryKeyboardObserver?.disconnect();
+  directoryKeyboardObserver=null;
   directoryTools()?.remove();
   document.querySelector('[data-contact-work-bank-heading]')?.remove();
   document.querySelector('[data-contact-work-tools]')?.remove();
@@ -375,9 +378,53 @@ function ensureDirectoryTools(){
     input.focus({preventScroll:true});
   });
   input.addEventListener('focus',()=>setSearchFocused(true));
-  // Do not collapse this mode on input blur: on iOS a tap on a result
-  // blurs the keyboard BEFORE click, and moving rows then selects the wrong
-  // customer. Keep the list geometry stable until Cancel/close/navigation.
+  // The search dock has three visible modes: compact, typing, and results.
+  // Blur/dismiss should not leave a blank search pinned open, but a result
+  // pointer must finish its click BEFORE removing rows or moving the dock.
+  let resultPointerDown=false;
+  nav.addEventListener('pointerdown',event=>{
+    const target=event.target instanceof Element?event.target:null;
+    if(searchField?.dataset.expanded==='true'&&target?.closest('[data-contact-select]'))
+      resultPointerDown=true;
+  },true);
+  nav.addEventListener('pointercancel',()=>{resultPointerDown=false;},true);
+  nav.addEventListener('click',()=>{
+    if(!resultPointerDown)return;
+    resultPointerDown=false;
+    queueMicrotask(()=>{
+      if(mobileDirectoryHeaderVisible()&&document.activeElement!==input)closeSearch();
+    });
+  },true);
+  function showSearchResults(){
+    if(!mobileDirectoryHeaderVisible())return;
+    if(layer)layer.dataset.directorySearchActive='false';
+    if(searchField)searchField.dataset.expanded='true';
+    searchToggle?.setAttribute('aria-expanded','true');
+    if(cancelSearch)cancelSearch.hidden=false;
+  }
+  function reconcileSearchOnDismiss(){
+    if(!mobileDirectoryHeaderVisible()||resultPointerDown)return;
+    if(String(input.value||'').trim())showSearchResults();
+    else closeSearch();
+  }
+  input.addEventListener('blur',reconcileSearchOnDismiss);
+  // The platform viewport policy alone detects native keyboard height.
+  // Watch its existing boolean (read-only): iOS Done can hide the keyboard
+  // without blurring the input, so reconcile that final state here.
+  if(layer){
+    let keyboardWasOpen=layer.dataset.mobileKeyboard==='true';
+    directoryKeyboardObserver?.disconnect();
+    directoryKeyboardObserver=new MutationObserver(()=>{
+      const keyboardOpen=layer.dataset.mobileKeyboard==='true';
+      if(keyboardWasOpen&&!keyboardOpen&&mobileDirectoryHeaderVisible()&&
+         searchField?.dataset.expanded==='true'&&!resultPointerDown){
+        if(document.activeElement===input)input.blur();
+        else reconcileSearchOnDismiss();
+      }
+      keyboardWasOpen=keyboardOpen;
+    });
+    directoryKeyboardObserver.observe(layer,{attributes:true,attributeFilter:['data-mobile-keyboard']});
+  }
   cancelSearch?.addEventListener('pointerdown',event=>event.preventDefault());
   function closeSearch(){
     const hadQuery=Boolean(query||input.value);
@@ -580,6 +627,9 @@ function resetForAuth(){
   const tools=directoryTools();
   const input=tools?.querySelector('[data-contact-directory-search]');
   if(input){input.value='';input.blur?.();}
+  const searchField=input?.closest('.contact-directory-search-field');
+  if(searchField)searchField.dataset.expanded='false';
+  tools?.querySelector('[data-contact-directory-search-toggle]')?.setAttribute('aria-expanded','false');
   // Auth can reset before the shell DOM mounts (e.g. account switch).
   // Keep the same no-DOM safe path as the existing group auth-race owner.
   if(typeof document!=='undefined'){
