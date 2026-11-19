@@ -45,11 +45,13 @@ const footer={
 };
 const queue=[];
 const ctx=vm.createContext({
+  appShell:{dataset:{mobileDirectory:'false'}},
+  renderMenuUnread(){},
   document:{querySelector(sel){
     assert.equal(sel,'[data-sidebar-account-footer]');
     return footer;
   }},
-  window:{setTimeout(fn,delay){
+  window:{matchMedia:()=>({matches:false}),setTimeout(fn,delay){
     assert.equal(delay,0);
     queue.push(fn);
   }},
