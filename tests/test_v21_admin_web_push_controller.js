@@ -77,14 +77,18 @@ function makeHarness({role='admin',permission='default',standalone=false,userAge
     get permission(){return permission},
     async requestPermission(){permissionRequests++;return permission==='default'?'granted':permission;}
   };
+  let shellView={route:'chat',activeContact:{id:'contact-1'}};
+  let syncView={currentConversationId:'conv-1',currentContactId:'contact-1'};
+  let directory=[];
   const windowObj={
     V21AuthSessionStore:authStore,
+    V21ContactStore:{snapshot:()=>directory},
     ChatAppShell:{
-      snapshot:()=>({route:'chat',activeContact:{id:'contact-1'}}),
+      snapshot:()=>shellView,
       UnreadIndicator:{snapshot:()=>unreadCount}
     },
     V21SyncEngine:{
-      snapshot:()=>({currentConversationId:'conv-1',currentContactId:'contact-1'}),
+      snapshot:()=>syncView,
       async refreshUnread(){return unreadCount},
       async wake(options){wakeCalls.push(options||{});return true}
     },
@@ -99,7 +103,10 @@ function makeHarness({role='admin',permission='default',standalone=false,userAge
     api:ctx.window.V21AdminPush,pushManager,subscription,invokeCalls,swMessages,
     getPermissionRequests:()=>permissionRequests,getLocalUnsubscribes:()=>localUnsubscribes,getSubscribeOptions:()=>subscribeOptions,
     getAppBadge:()=>appBadge,getTitle:()=>document.title,getFaviconHref:()=>favicon.href,setUnread:value=>{unreadCount=Math.max(0,Number(value)||0)},
-    emitServiceWorkerMessage:data=>listeners['sw:message']?.({data}),
+    emitServiceWorkerMessage:(data,ports=[])=>listeners['sw:message']?.({data,ports}),
+    setShell:view=>{shellView=view},
+    setSync:view=>{syncView=view},
+    setDirectory:rows=>{directory=rows},
     getWakeCalls:()=>wakeCalls.slice(),getToasts:()=>appendedToasts.slice()
   };
 }
@@ -176,6 +183,55 @@ function makeHarness({role='admin',permission='default',standalone=false,userAge
   assert(foreground.getToasts()[1].textContent.includes('890.000đ'),'matched toast shows the correct verified amount');
   foreground.emitServiceWorkerMessage({type:'ADMIN_PUSH_BANK_DIRTY',bankStatus:'matched',bankReceiptId:'receipt-1',bankNoticeId:'notice-1',bankAmountVnd:890000});
   assert.equal(foreground.getToasts().length,2,'duplicate matched bank event must not show twice');
+  // CHAT-387 — explicit live query. No false suppression when the app shell
+  // changes customer before the SyncEngine swaps the mounted conversation.
+  const routeTest=makeHarness({role:'admin',permission:'granted',dom:true});
+  const liveReplies=[];
+  routeTest.emitServiceWorkerMessage({type:'ADMIN_PUSH_STATE_REQUEST'},[{
+    postMessage:state=>liveReplies.push(state)
+  }]);
+  assert.equal(liveReplies.length,1);
+  assert.equal(liveReplies[0].conversationId,'conv-1');
+  assert.equal(liveReplies[0].contactId,'contact-1');
+
+  routeTest.setShell({route:'chat',activeContact:{id:'contact-2'}});
+  // Sync state remains on contact-1 while contact-2 hydrates.
+  const switching=[];
+  routeTest.emitServiceWorkerMessage({type:'ADMIN_PUSH_STATE_REQUEST'},[{
+    postMessage:state=>switching.push(state)
+  }]);
+  assert.equal(switching[0].conversationId,'','do not lie about an old conversation while switching');
+  routeTest.emitServiceWorkerMessage({type:'ADMIN_PUSH_MESSAGE_DIRTY',
+    conversationId:'conv-1',contactId:'contact-1',messageId:'old-1',title:'Khách A'});
+  assert.equal(routeTest.getToasts().length,1,'incoming A must notify while B is selected, even with stale SyncEngine A');
+
+  routeTest.setDirectory([{id:'contact-2',conversation_id:'conv-2'}]);
+  const linked=[];
+  routeTest.emitServiceWorkerMessage({type:'ADMIN_PUSH_STATE_REQUEST'},[{
+    postMessage:state=>linked.push(state)
+  }]);
+  assert.equal(linked[0].conversationId,'conv-2','contact directory provides exact B conversation while sync hydrates');
+  routeTest.emitServiceWorkerMessage({type:'ADMIN_PUSH_MESSAGE_DIRTY',
+    conversationId:'conv-2',contactId:'contact-2',messageId:'same-b',title:'Khách B'});
+  assert.equal(routeTest.getToasts().length,1,'B already visible: no banner even while A sync snapshot remains stale');
+
+  routeTest.setShell({route:'work',activeContact:{id:'contact-2'}});
+  const inWork=[];
+  routeTest.emitServiceWorkerMessage({type:'ADMIN_PUSH_STATE_REQUEST'},[{
+    postMessage:state=>inWork.push(state)
+  }]);
+  assert.equal(inWork[0].conversationId,'','Work screen cannot claim a Chat conversation');
+  routeTest.emitServiceWorkerMessage({type:'ADMIN_PUSH_MESSAGE_DIRTY',
+    conversationId:'conv-2',contactId:'contact-2',messageId:'work-b',title:'Khách B'});
+  assert.equal(routeTest.getToasts().length,2,'Work screen must still show the new message, not suppress using stale Chat ID');
+
+  const nonadmin=makeHarness({role:'user'});
+  const noAdminState=[];
+  nonadmin.emitServiceWorkerMessage({type:'ADMIN_PUSH_STATE_REQUEST'},[{
+    postMessage:state=>noAdminState.push(state)
+  }]);
+  assert.equal(noAdminState[0].visible,false,'logged-out/nonadmin client cannot suppress the Admin push');
+
   // Existing headless harness has no DOM: the message still wakes canonical sync.
   assert(badge.getWakeCalls().some(call=>call.reason==='admin-push-message'));
 
