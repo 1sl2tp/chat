@@ -2043,6 +2043,37 @@
     outline:2px solid var(--theme-content-accent);
     outline-offset:2px;
   }
+  /* CHAT-391: A collapsed search button shares the filter rail.
+     No empty footer row: results immediately own the remaining height.
+     Expanded search keeps the same input as a dedicated dock above iOS IME. */
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .wm-sidebar-body{
+    grid-template-columns:minmax(0,1fr) 60px;
+    grid-template-rows:auto minmax(0,1fr);
+    grid-template-areas:"filters search" "results results";
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-filter-line{
+    min-width:0;
+    border-bottom:1px solid color-mix(in srgb,var(--theme-border-default) 55%,transparent);
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-search-field[data-expanded="false"]{
+    min-width:0;
+    min-height:52px;
+    padding:4px max(8px,env(safe-area-inset-right,0px)) 4px 0;
+    border-top:0;
+    border-bottom:1px solid color-mix(in srgb,var(--theme-border-default) 55%,transparent);
+    align-items:center;
+    justify-content:flex-end;
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer:has(.contact-directory-search-field[data-expanded="true"]) .wm-sidebar-body{
+    grid-template-columns:minmax(0,1fr);
+    grid-template-rows:auto minmax(0,1fr) auto;
+    grid-template-areas:"filters" "results" "search";
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer[data-directory-search-active="true"] .wm-sidebar-body{
+    grid-template-columns:minmax(0,1fr);
+    grid-template-rows:minmax(0,1fr) auto;
+    grid-template-areas:"results" "search";
+  }
   /* CHAT-390: Work's 100dvh directory height must yield to the real
      VisualViewport with iOS keyboard open, below the existing header. */
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer[data-mobile-keyboard="true"]{
