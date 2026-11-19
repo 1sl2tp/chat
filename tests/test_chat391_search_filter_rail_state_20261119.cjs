@@ -98,7 +98,7 @@ assert(css.includes(':has(.contact-directory-search-field[data-expanded="true"])
 assert(policy.includes("activeOwner.host.dataset.mobileKeyboard='true'"),
   'platform remains sole keyboard owner');
 // CHAT-392: geometry/typography contract for the iPhone screenshot.
-const designStart=css.indexOf('/* CHAT-388/389/390/391/392 — ONE mobile directory layout owner.');
+const designStart=css.indexOf('/* CHAT-388 — ONE mobile directory layout owner (389/390/391/392 compatible).');
 const designEnd=css.indexOf('/* CHAT-AXIS-',designStart);
 assert(designStart>=0&&designEnd>designStart,'one last mobile directory owner');
 const design=css.slice(designStart,designEnd);
