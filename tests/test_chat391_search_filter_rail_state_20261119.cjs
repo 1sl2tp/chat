@@ -120,8 +120,8 @@ assert.equal(field.dataset.expanded,'false');
 assert(syncCount>=3,'search reset delivered to original directory store');
 assert.equal(nav.scrollTop,260,'contact selection does not lose the former directory anchor');
 assert.equal(restoreCount,4);
-assert(css.includes('grid-template-areas:"filters search" "results results"'),
-  'compact search shares filter row instead of reserving bottom dock');
+assert(css.includes('grid-template-areas:"search" "filters" "results"'),
+  'compact mode keeps search above the filters and results');
 assert(css.includes('grid-template-areas:"search" "results"'),
   'typing mode puts the search at top and results in remaining height');
 assert(css.includes(':has(.contact-directory-search-field[data-expanded="true"])'),
@@ -135,8 +135,8 @@ assert(designStart>=0&&designEnd>designStart,'one last mobile directory owner');
 const design=css.slice(designStart,designEnd);
 for(const token of [
   '.top-mode-switch[data-directory-owner="true"]',
-  'grid-template-columns:minmax(0,1fr) 52px;',
-  'grid-template-areas:"filters search" "results results";',
+  'grid-template-columns:minmax(0,1fr);',
+  'grid-template-areas:"search" "filters" "results";',
   'grid-template-areas:"search" "filters" "results";',
   'grid-template-areas:"search" "results";',
   'grid-area:results;',

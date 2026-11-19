@@ -327,7 +327,8 @@ function ensureDirectoryTools(){
       more.dataset.direction=expanded?'previous':'next';
       more.setAttribute('aria-expanded',String(expanded));
       more.setAttribute('aria-label',expanded?'Thu gọn nhóm khách hàng':'Xem thêm nhóm khách hàng');
-      rail.scrollLeft=0;
+      // CHAT-395: the compact filter rail now scrolls horizontally. Its own
+      // scroll event must not snap it back to the first category.
       return;
     }
     more.setAttribute('aria-expanded','false');
@@ -486,6 +487,13 @@ function ensureDirectoryTools(){
       }
       if(filterLine)filterLine.dataset.expanded='false';
       syncFilterArrow();
+      if(mobileDirectoryHeaderVisible()){
+        // Keep the selected category in sight when the expanded panel
+        // collapses to a single row; move only this rail, never the page.
+        const delta=button.getBoundingClientRect().left-
+          rail.getBoundingClientRect().left-8;
+        rail.scrollLeft=Math.max(0,rail.scrollLeft+delta);
+      }
       syncDirectoryRows({reorder:false});
     });
   }
