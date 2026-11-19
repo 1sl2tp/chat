@@ -627,7 +627,7 @@ function resetForAuth(){
   const tools=directoryTools();
   const input=tools?.querySelector('[data-contact-directory-search]');
   if(input){input.value='';input.blur?.();}
-  const searchField=input?.closest('.contact-directory-search-field');
+  const searchField=input?.closest?.('.contact-directory-search-field');
   if(searchField)searchField.dataset.expanded='false';
   tools?.querySelector('[data-contact-directory-search-toggle]')?.setAttribute('aria-expanded','false');
   // Auth can reset before the shell DOM mounts (e.g. account switch).
