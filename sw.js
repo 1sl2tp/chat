@@ -12,7 +12,8 @@ const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 // Never clear message drafts, private IndexedDB or outbound queues.
 // CHAT-386: invalidate only public shell CSS/JS; preserve accounts, drafts and outbox.
 // CHAT-387: fresh SW/page coordination, public shell only. Keep private caches.
-const SHELL_CACHE_EPOCH='pwa-chat-ui387-foreground-push-20261119';
+// CHAT-388: public Web/PWA shell only; private messages, drafts and outbox untouched.
+const SHELL_CACHE_EPOCH='pwa-chat-ui388-directory-search-dock-20261119';
 const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION+'-'+SHELL_CACHE_EPOCH;
 const AVATAR_CACHE_NAME='taphoa-chat-avatars-v1';
 const SUPABASE_ASSET_HOST_RE=/^[a-z0-9]+\.supabase\.co$/i;
