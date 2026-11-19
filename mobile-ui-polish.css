@@ -1903,7 +1903,10 @@
     inset-inline-start:max(10px,env(safe-area-inset-left,0px));
     inset-inline-end:auto;
     width:min(290px,calc(100% - 20px));
+    max-height:calc(var(--shell-form-vv-height,100svh) - 24px);
     box-sizing:border-box;
+    overflow-y:auto;
+    overscroll-behavior:contain;
     padding:8px;
     border:1px solid var(--theme-border-default);
     border-radius:16px;

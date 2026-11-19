@@ -4,6 +4,9 @@ const vm=require('node:vm');
 const assert=require('node:assert/strict');
 const path=require('node:path');
 const source=fs.readFileSync(path.join(__dirname,'..','app.js'),'utf8');
+const html=fs.readFileSync(path.join(__dirname,'..','index.source.html'),'utf8');
+const release=html.match(/name="app-release-version" content="([^"]+)"/)?.[1];
+assert(release,'canonical release marker must exist');
 const start=source.indexOf('function runtimeErrorMessage(error){');
 const end=source.indexOf("\nconst mobile=",start);
 assert(start>=0&&end>start,'runtime error owner section must exist');
@@ -29,7 +32,7 @@ const boot=context.__ctrl;
 assert.equal(boot.phase,'BOOT');
 registered.unhandledrejection({reason:{message:'Temporary network response'}});
 assert.equal(boot.phase,'ERROR');
-assert.equal(node.textContent,'V21.72.39 runtime: Temporary network response');
+assert.equal(node.textContent,`${release} runtime: Temporary network response`);
 assert.equal(classes.has('hidden'),false);
 assert.equal(errorLogs,1);
 // Repeat same failure: no duplicate banner update/logging.
@@ -44,7 +47,7 @@ assert.equal(classes.has('hidden'),true);
 registered.unhandledrejection({reason:{message:'Critical first-party failure'}});
 assert.equal(boot.phase,'ERROR');
 assert.equal(classes.has('hidden'),false);
-assert.equal(node.textContent,'V21.72.39 runtime: Critical first-party failure');
+assert.equal(node.textContent,`${release} runtime: Critical first-party failure`);
 assert.equal(boot.ready(),false,'second ready must never clear post-ready faults');
 assert.equal(classes.has('hidden'),false);
 // Exact Zalo WebView rejected bridge is external, but other rejections survive.
@@ -54,7 +57,7 @@ assert.equal(errorLogs,currentLogs,'Zalo injected error must not enter Chat runt
 assert.equal(warningLogs,1);
 registered.unhandledrejection({reason:{message:'ReferenceError: ownedChatVar is not defined'}});
 assert.equal(errorLogs,currentLogs+1);
-assert.equal(node.textContent,'V21.72.39 runtime: ReferenceError: ownedChatVar is not defined');
+assert.equal(node.textContent,`${release} runtime: ReferenceError: ownedChatVar is not defined`);
 // A truly fatal BOOT invariant keeps the banner even if ready is invoked.
 const fatalEvents={};
 const fatalContext=vm.createContext({
