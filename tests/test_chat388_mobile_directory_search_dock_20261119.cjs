@@ -48,7 +48,8 @@ for(const selector of [
 ])assert(patch.includes(selector),'region rule missing '+selector);
 for(const rule of [
  'grid-template-areas:"search" "filters" "results"',
- 'grid-template-rows:auto minmax(0,1fr) auto;',
+ 'grid-template-areas:"search" "results"',
+ 'grid-template-rows:auto auto minmax(0,1fr);',
  'display:contents!important;',
  'grid-area:filters;',
  'grid-area:results;',
