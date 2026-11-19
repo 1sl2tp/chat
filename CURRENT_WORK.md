@@ -1,3 +1,14 @@
+## 2026-11-19 — CHAT-392 · Danh bạ iPhone: tinh gọn phân cấp và đồng nhất nhịp giao diện
+
+- **E0:** ảnh iPhone 13:33 ngày 19/11 cho thấy hai thanh điều khiển đều có pill/vòng viền lớn (Trò chuyện/Công việc, Tất cả/Chưa đọc, mũi tên, tìm kiếm), thiếu phân cấp chính/phụ; dòng hội thoại, tên, preview và thời gian chưa dùng cùng thước trục rõ ràng. Dữ liệu trong ảnh chỉ dùng làm bằng chứng hình học, không sử dụng cho test gửi thật.
+- **SPEC / Given–When–Then:** (1) Ở danh bạ mobile đang nghỉ, Header chỉ chọn Trò chuyện/Công việc bằng underline nhẹ; filter + Chevron + Search chia một rail 52px, vùng danh sách chiếm phần còn lại; (2) bộ lọc phụ được mở/đóng bằng cùng nút 44px, không làm mất mục đang chọn; (3) mở Search dùng đúng một input hiện hữu, dock sát IME với kết quả là vùng cuộn duy nhất; đóng/bấm Done/tìm rồi chọn liên hệ không giật/reflow trước click; (4) mỗi dòng có avatar 40px, ba cấp tên 15px/preview 13px/giờ 11px, time rail 60px, hai dòng preview, separator lùi sau avatar; (5) desktop, chat thread đang mở và vùng Work/bank report không đổi.
+- **Owner & patch:** thay chính đoạn CHAT-388→391 trong `mobile-ui-polish.css` bằng một owner CHAT-392, không tạo stylesheet mới hay thêm lớp vá sau. Bỏ bề mặt nút tròn viền nặng chỉ trong chế độ `data-mobile-directory=true`; không đổi `contact-directory-admin.js`, `shell.js` hoặc owner của keyboard/scroll. Các filter/search vẫn là nút chạm 44px, bảng liên hệ tự giãn theo 1–2 dòng. `sw.js` chỉ xoay public-shell cache epoch để PWA thấy build mới; giữ dữ liệu riêng, session và draft/outbox.
+- **MUST-STAY:** không RPC/DB/Realtime/push/call/media, không gửi thông báo hay giao dịch thật, không thêm polling/timer/scroll writer, không tự deploy production. Rollback revert CHAT-392 CSS, SW epoch và test.
+- **E1:** source patch trên nhánh `fix/chat-392-mobile-directory-visual-hierarchy-20261119`. **E2:** mở rộng test CHAT-391 khóa trục lọc/search, bề rộng time rail và typography; các test CHAT-388/390 cập nhật nhận diện cache shell mới. **E3:** CI/build/deploy chưa xác nhận tại thời điểm lập bản ghi. **E4/E5:** phải kiểm thực tế iPhone PWA/Safari và Android 320–430px ở trạng thái bình thường, mở nhóm, mở search, bật bàn phím, chọn khách và quay lại; không coi test source là nghiệm thu hình học thật.
+- **Tác động tài nguyên:** không phát sinh lượt RPC, polling, API hoặc lưu trữ mới.
+
+---
+
 ## 2026-11-19 — CHAT-389 · Danh bạ iPhone: thanh tìm kiếm sát đáy, bỏ khoảng trắng tài khoản
 
 - **E0:** ảnh 08:34 cho thấy ô tìm kiếm cuối danh bạ nhưng phía dưới còn khoảng trắng lớn. Đối chiếu mã: `.wm-sidebar-sidebar` còn giữ hàng `footer` sau vùng `search`, dù tài khoản không cần hiển thị thường trực.
