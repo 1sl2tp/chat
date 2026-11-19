@@ -207,6 +207,234 @@
     white-space:nowrap;
   }
 
+  /* CHAT-396 — Shell P1 mobile drawer (ChatGPT-style hierarchy).
+     It is distinct from the Directory P2 scroller and has no focus/IME
+     geometry writer. Existing profile/settings/logout owners stay intact. */
+  #mobileChatDrawer[hidden]{display:none!important}
+  #mobileChatDrawer:not([hidden]){
+    position:fixed;
+    inset:0;
+    display:block;
+    z-index:190;
+    pointer-events:auto;
+    isolation:isolate;
+  }
+  #mobileChatDrawer .mobile-chat-drawer-backdrop{
+    position:absolute;
+    inset:0;
+    display:block;
+    width:100%;
+    height:100%;
+    padding:0;
+    border:0;
+    background:rgba(0,0,0,.34);
+    cursor:pointer;
+  }
+  #mobileChatDrawer .mobile-chat-drawer-panel{
+    position:absolute;
+    inset-block:0;
+    inset-inline-start:0;
+    box-sizing:border-box;
+    display:grid;
+    grid-template-rows:auto auto minmax(0,1fr) auto;
+    width:min(354px,78vw);
+    max-width:100%;
+    height:100%;
+    min-height:0;
+    padding:max(16px,env(safe-area-inset-top,0px)) 14px max(16px,env(safe-area-inset-bottom,0px));
+    overflow:hidden;
+    border:0;
+    border-radius:0 24px 24px 0;
+    background:var(--theme-surface-primary,#fff);
+    color:var(--theme-content-primary,#181818);
+    box-shadow:10px 0 38px rgba(0,0,0,.13);
+    animation:mobile-chat-drawer-enter 180ms cubic-bezier(.2,.8,.2,1);
+  }
+  #mobileChatDrawer .mobile-chat-drawer-heading{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    min-height:54px;
+    padding:0 8px 8px;
+  }
+  #mobileChatDrawer .mobile-chat-drawer-heading strong{
+    min-width:0;
+    font-size:20px;
+    line-height:26px;
+    font-weight:680;
+    letter-spacing:-.035em;
+  }
+  #mobileChatDrawer .mobile-chat-drawer-icon{
+    display:grid;
+    place-items:center;
+    width:44px;
+    min-width:44px;
+    height:44px;
+    padding:0;
+    border:1px solid var(--theme-border-default,#e5e5e5);
+    border-radius:50%;
+    background:transparent;
+    color:inherit;
+    cursor:pointer;
+  }
+  #mobileChatDrawer .mobile-chat-drawer-links{
+    display:grid;
+    gap:2px;
+    padding-block:6px 16px;
+    border-bottom:1px solid var(--theme-border-default,#ededed);
+  }
+  #mobileChatDrawer .mobile-chat-drawer-links>button{
+    display:grid;
+    grid-template-columns:24px minmax(0,1fr);
+    align-items:center;
+    gap:14px;
+    box-sizing:border-box;
+    min-height:46px;
+    padding:8px 12px;
+    border:0;
+    border-radius:12px;
+    background:transparent;
+    color:inherit;
+    font:550 15px/1.4 system-ui,sans-serif;
+    text-align:start;
+    cursor:pointer;
+  }
+  #mobileChatDrawer .mobile-chat-drawer-links>button[hidden]{display:none!important}
+  #mobileChatDrawer .mobile-chat-drawer-links>button svg{
+    width:22px;
+    height:22px;
+    flex-shrink:0;
+  }
+  #mobileChatDrawer .mobile-chat-drawer-history{
+    display:grid;
+    grid-template-rows:auto minmax(0,1fr);
+    min-height:0;
+    padding-top:14px;
+  }
+  #mobileChatDrawer .mobile-chat-drawer-history h2{
+    margin:0;
+    padding:4px 12px 8px;
+    color:var(--theme-content-tertiary,#777);
+    font-size:13px;
+    font-weight:550;
+    line-height:19px;
+  }
+  #mobileChatDrawer .mobile-chat-drawer-recents{
+    min-height:0;
+    overflow-y:auto;
+    overscroll-behavior-y:contain;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  #mobileChatDrawer .mobile-chat-drawer-recents::-webkit-scrollbar{display:none}
+  #mobileChatDrawer .mobile-chat-drawer-recent{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    box-sizing:border-box;
+    width:100%;
+    min-height:54px;
+    padding:7px 12px;
+    gap:10px;
+    border:0;
+    border-radius:13px;
+    background:transparent;
+    color:inherit;
+    font:inherit;
+    text-align:start;
+    cursor:pointer;
+  }
+  #mobileChatDrawer .mobile-chat-drawer-recent[data-active="true"]{
+    background:var(--theme-surface-secondary,#f3f3f3);
+  }
+  #mobileChatDrawer .mobile-chat-drawer-recent-copy{
+    display:flex;
+    flex:1 1 auto;
+    flex-direction:column;
+    gap:2px;
+    min-width:0;
+  }
+  #mobileChatDrawer .mobile-chat-drawer-recent-copy strong{
+    overflow:hidden;
+    font-size:14px;
+    line-height:19px;
+    font-weight:600;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  #mobileChatDrawer .mobile-chat-drawer-recent-copy>span{
+    overflow:hidden;
+    color:var(--theme-content-secondary,#737373);
+    font-size:12px;
+    line-height:17px;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  #mobileChatDrawer .mobile-chat-drawer-unread{
+    display:block;
+    flex:none;
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    background:var(--theme-content-accent,#3269e8);
+  }
+  #mobileChatDrawer .mobile-chat-drawer-empty{
+    margin:12px;
+    color:var(--theme-content-secondary,#777);
+    font-size:14px;
+  }
+  #mobileChatDrawer .mobile-chat-drawer-footer{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    align-items:center;
+    gap:8px;
+    padding:12px 3px 0;
+    border-top:1px solid var(--theme-border-default,#ededed);
+  }
+  #mobileChatDrawer .mobile-chat-drawer-new{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    box-sizing:border-box;
+    min-height:48px;
+    padding:0 12px;
+    border:0;
+    border-radius:999px;
+    background:var(--theme-content-accent,#3269e8);
+    color:#fff;
+    font:650 14px/1.3 system-ui,sans-serif;
+    white-space:nowrap;
+    cursor:pointer;
+  }
+  #mobileChatDrawer .mobile-chat-drawer-logout{
+    min-height:44px;
+    padding:0 10px;
+    border:0;
+    border-radius:10px;
+    background:transparent;
+    color:var(--theme-content-secondary,#666);
+    font:500 13px/1.2 system-ui,sans-serif;
+    cursor:pointer;
+  }
+  #mobileChatDrawer :is(.mobile-chat-drawer-icon,.mobile-chat-drawer-links>button,.mobile-chat-drawer-recent,.mobile-chat-drawer-new,.mobile-chat-drawer-logout):focus-visible{
+    outline:2px solid var(--theme-content-accent,#3269e8);
+    outline-offset:2px;
+  }
+  @media(hover:hover) and (pointer:fine){
+    #mobileChatDrawer :is(.mobile-chat-drawer-links>button,.mobile-chat-drawer-recent,.mobile-chat-drawer-logout):hover{
+      background:var(--theme-surface-secondary,#f3f3f3);
+    }
+  }
+  @media(prefers-reduced-motion:reduce){
+    #mobileChatDrawer .mobile-chat-drawer-panel{animation:none}
+  }
+  @keyframes mobile-chat-drawer-enter{
+    from{opacity:.86;transform:translateX(-20px)}
+    to{opacity:1;transform:translateX(0)}
+  }
+
   /* ---------- Quick/account menu ---------- */
   [data-mobile-account-menu] .mobile-account-menu-backdrop{
     background:rgba(0,0,0,.06)!important;
@@ -1886,19 +2114,19 @@
     width:min(100%,260px);
     max-width:100%;
     min-height:44px;
-    padding:0;
-    gap:10px;
+    padding:3px;
+    gap:2px;
     border:0;
-    border-radius:0;
-    background:transparent;
+    border-radius:999px;
+    background:var(--theme-surface-secondary);
     box-shadow:none;
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #regionTop .top-mode-switch[data-directory-owner="true"] .top-mode-tab{
     min-height:44px;
     height:44px;
-    padding:0 6px;
+    padding:0 9px;
     border:0;
-    border-radius:0;
+    border-radius:999px;
     background:transparent!important;
     box-shadow:none!important;
     color:var(--theme-content-secondary);
@@ -1907,7 +2135,8 @@
     letter-spacing:-.012em;
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #regionTop .top-mode-switch[data-directory-owner="true"] .top-mode-tab[aria-selected="true"]{
-    box-shadow:inset 0 -2px 0 var(--theme-content-primary)!important;
+    box-shadow:0 1px 4px rgba(0,0,0,.07)!important;
+    background:var(--theme-surface-primary)!important;
     color:var(--theme-content-primary);
     font-weight:650;
   }
@@ -1915,9 +2144,9 @@
     width:44px;
     height:44px;
     min-width:44px;
-    border:0;
-    border-radius:12px;
-    background:transparent;
+    border:1px solid color-mix(in srgb,var(--theme-border-default) 72%,transparent);
+    border-radius:999px;
+    background:var(--theme-surface-primary);
     box-shadow:none;
   }
 

@@ -9,6 +9,7 @@ const screenHost=document.getElementById('screenHost');
 const activeScreenSlot=document.getElementById('activeScreenSlot');
 const chatScreen=document.getElementById('chatScreen');
 const shellNavigationLayer=document.getElementById('shellNavigationLayer');
+const mobileChatDrawer=document.getElementById('mobileChatDrawer');
 const globalOverlayRoot=document.getElementById('globalOverlayRoot');
 const sessionHost=document.getElementById('sessionHost');
 const appShell=document.getElementById('appShell');
@@ -37,6 +38,7 @@ let callTerminalNotice=null;
 let callTerminalNoticeTimer=0;
 let unreadCount=0;
 let accountMenuOpen=false;
+let mobileChatDrawerOpen=false;
 let accountMenuFocusGeneration=0;
 let mobileRouteTransitionTimer=0;
 
@@ -233,7 +235,7 @@ function renderMenuUnread(){
   // One unread cue at a time: in an open directory, show it on the
   // Chưa đọc filter and on the affected conversations, not on the menu.
   const directoryVisible=appShell?.dataset?.mobileDirectory==='true';
-  const directoryAccountMenu=directoryVisible&&authState==='AUTHENTICATED'&&
+  const directoryMobileDrawer=directoryVisible&&authState==='AUTHENTICATED'&&
     window.matchMedia('(max-width:63.999rem)').matches;
   for(const chip of document.querySelectorAll('[data-contact-directory-filter="unread"]')){
     chip.dataset.hasUnread=String(hasUnread);
@@ -247,11 +249,12 @@ function renderMenuUnread(){
     // as the account menu while the user is viewing a conversation.
     button.setAttribute('aria-label',button.dataset.mobileBack==='true'
       ?'Quay lại Danh bạ'
-      :directoryAccountMenu?'Tài khoản và cài đặt'
+      :directoryMobileDrawer?'Mở điều hướng TAPHOA Chat'
       :hasUnread&&!directoryVisible?`Mở menu, ${count} tin mới`:'Mở menu');
-    if(directoryAccountMenu){
-      button.setAttribute('aria-haspopup','menu');
-      button.setAttribute('aria-expanded',String(accountMenuOpen));
+    if(directoryMobileDrawer){
+      button.setAttribute('aria-haspopup','dialog');
+      button.setAttribute('aria-controls','mobileChatDrawer');
+      button.setAttribute('aria-expanded',String(appShell?.dataset?.mobileChatDrawerOpen==='true'));
     }else{
       button.removeAttribute('aria-haspopup');
     }
@@ -286,7 +289,10 @@ function syncDesktopSidebarMode(){
   const changed=next!==desktopSidebarPersistent;
   desktopSidebarPersistent=next;
   appShell.dataset.desktopSidebarPersistent=String(desktopSidebarPersistent);
-  if(desktopSidebarPersistent)sidebarOpen=false;
+  if(desktopSidebarPersistent){
+    sidebarOpen=false;
+    closeMobileChatDrawer();
+  }
   syncSidebarPresentation();
   if(desktopSidebarPersistent&&changed){
     void window.V21ContactStore?.refresh?.();
@@ -364,8 +370,105 @@ function toggleAccountMenu(){
   return accountMenuOpen?closeAccountMenu({restoreFocus:true}):openAccountMenu();
 }
 
+
+/* CHAT-396 — Shell owns the mobile navigation drawer. It projects recent
+   conversations from the canonical rendered list without cloning rows,
+   creating a second contact store, fetching data, or changing send logic. */
+function renderMobileChatDrawerRecents(){
+  const container=mobileChatDrawer?.querySelector('[data-mobile-drawer-recents]');
+  if(!container)return;
+  const fragment=document.createDocumentFragment();
+  let count=0;
+  for(const row of document.querySelectorAll('#shellNavigationLayer [data-contact-row]')){
+    if(count>=12)break;
+    if(row.dataset.contactPinned==='report')continue;
+    const source=row.querySelector('[data-contact-select]');
+    const id=String(source?.dataset?.contactId||'');
+    if(!id)continue;
+    const title=String(row.querySelector('.shell-contact-name')?.textContent||
+      source.dataset.contactName||'Liên hệ').trim();
+    const preview=String(row.querySelector('.shell-contact-preview')?.textContent||'').trim();
+    const button=document.createElement('button');
+    button.type='button';
+    button.className='mobile-chat-drawer-recent';
+    button.dataset.mobileDrawerContactId=id;
+    button.dataset.contactName=title;
+    button.dataset.active=String(activeContact?.id===id);
+    button.dataset.unread=String(row.dataset.unread==='true');
+    const copy=document.createElement('span');
+    copy.className='mobile-chat-drawer-recent-copy';
+    const name=document.createElement('strong');
+    name.textContent=title;
+    copy.appendChild(name);
+    if(preview){
+      const summary=document.createElement('span');
+      summary.textContent=preview;
+      copy.appendChild(summary);
+    }
+    button.appendChild(copy);
+    if(row.dataset.unread==='true'){
+      const dot=document.createElement('span');
+      dot.className='mobile-chat-drawer-unread';
+      dot.setAttribute('aria-label','Chưa đọc');
+      button.appendChild(dot);
+    }
+    fragment.appendChild(button);
+    count+=1;
+  }
+  if(count===0){
+    const empty=document.createElement('p');
+    empty.className='mobile-chat-drawer-empty';
+    empty.textContent='Chưa có hội thoại gần đây';
+    fragment.appendChild(empty);
+  }
+  container.replaceChildren(fragment);
+}
+
+function closeMobileChatDrawer({restoreFocus=false}={}){
+  if(!mobileChatDrawerOpen||!mobileChatDrawer)return false;
+  mobileChatDrawerOpen=false;
+  if(appShell)appShell.dataset.mobileChatDrawerOpen='false';
+  mobileChatDrawer.dataset.open='false';
+  mobileChatDrawer.setAttribute('aria-hidden','true');
+  mobileChatDrawer.hidden=true;
+  renderMenuUnread();
+  if(restoreFocus){
+    const trigger=document.querySelector('#regionTop [data-shell-command="sidebar.open"]');
+    if(trigger?.isConnected)trigger.focus?.({preventScroll:true});
+  }
+  return true;
+}
+
+function openMobileChatDrawer(){
+  if(!mobileChatDrawer||authState!=='AUTHENTICATED'||
+     appShell?.dataset?.mobileDirectory!=='true'||
+     !window.matchMedia('(max-width:63.999rem)').matches)return false;
+  closeAccountMenu();
+  if(document.activeElement?.id==='contactDirectorySearchInput')
+    document.activeElement.blur();
+  renderMobileChatDrawerRecents();
+  const settings=mobileChatDrawer.querySelector('[data-mobile-drawer-action="settings"]');
+  const existingSettings=document.querySelector('[data-account-menu-settings]');
+  if(settings)settings.hidden=!existingSettings||existingSettings.hidden;
+  mobileChatDrawer.hidden=false;
+  mobileChatDrawer.dataset.open='true';
+  mobileChatDrawer.setAttribute('aria-hidden','false');
+  mobileChatDrawerOpen=true;
+  if(appShell)appShell.dataset.mobileChatDrawerOpen='true';
+  renderMenuUnread();
+  mobileChatDrawer.querySelector('[data-mobile-drawer-action="directory"]')
+    ?.focus?.({preventScroll:true});
+  return true;
+}
+
+function toggleMobileChatDrawer(){
+  return mobileChatDrawerOpen
+    ?closeMobileChatDrawer({restoreFocus:true})
+    :openMobileChatDrawer();
+}
+
 function setSidebar(open){
-  if(!open)closeAccountMenu();
+  if(!open){closeAccountMenu();closeMobileChatDrawer();}
   if(desktopSidebarPersistent){
     // Persistent desktop directory is already mounted and kept current by
     // bootstrap/realtime. NavigationCommand.openChat() calls setSidebar(false)
@@ -1822,6 +1925,7 @@ const AuthUI={
     renderChatTabIdentity();
   },
   setAuthenticated(authenticated,account=null){
+    if(!authenticated)closeMobileChatDrawer();
     authState=authenticated?'AUTHENTICATED':'GUEST';
     if(appShell)appShell.dataset.authState=authenticated?'authenticated':'guest';
     this.setAccount(authenticated?account:null);
@@ -1837,6 +1941,20 @@ function requireAuthenticatedCommand(){
 }
 
 document.addEventListener('keydown',event=>{
+  if(mobileChatDrawerOpen&&event.key==='Escape'){
+    event.preventDefault();
+    closeMobileChatDrawer({restoreFocus:true});
+    return;
+  }
+  if(mobileChatDrawerOpen&&event.key==='Tab'){
+    const items=[...mobileChatDrawer.querySelectorAll('button:not([data-mobile-drawer-close])')]
+      .filter(button=>!button.hidden&&!button.disabled);
+    if(items.length){
+      const first=items[0],last=items[items.length-1];
+      if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
+      else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
+    }
+  }
   if(event.key==='Escape'&&closeChatHeaderMenu({restoreFocus:true}))event.preventDefault();
 });
 
@@ -1901,6 +2019,52 @@ document.addEventListener('click',event=>{
   const target=event.target instanceof Element?event.target:null;
   if(!target)return;
 
+  const drawerClose=target.closest('[data-mobile-drawer-close]');
+  if(drawerClose){
+    event.preventDefault();
+    closeMobileChatDrawer({restoreFocus:true});
+    return;
+  }
+  const drawerRecent=target.closest('[data-mobile-drawer-contact-id]');
+  if(drawerRecent&&mobileChatDrawerOpen){
+    event.preventDefault();
+    const selected=NavigationCommand.openContact(drawerRecent.dataset.mobileDrawerContactId,
+      drawerRecent.dataset.contactName);
+    if(selected)closeMobileChatDrawer();
+    return;
+  }
+  const drawerAction=target.closest('[data-mobile-drawer-action]');
+  if(drawerAction&&mobileChatDrawerOpen){
+    event.preventDefault();
+    const action=drawerAction.dataset.mobileDrawerAction;
+    if(action==='directory'){closeMobileChatDrawer({restoreFocus:true});return;}
+    if(action==='search'){
+      closeMobileChatDrawer();
+      document.getElementById('contactDirectorySearchInput')?.focus?.({preventScroll:true});
+      return;
+    }
+    if(action==='new'){
+      closeMobileChatDrawer();
+      NavigationCommand.clearActiveContact();
+      NavigationCommand.openChat();
+      return;
+    }
+    if(action==='photos'){closeMobileChatDrawer();NavigationCommand.openPhotos();return;}
+    if(action==='profile'){closeMobileChatDrawer();openSelfProfile();return;}
+    if(action==='settings'){
+      closeMobileChatDrawer();
+      const settings=document.querySelector('[data-account-menu-settings]');
+      if(settings&&!settings.hidden)settings.click();
+      return;
+    }
+    if(action==='logout'){
+      closeMobileChatDrawer();
+      document.querySelector('[data-account-menu-logout]')?.click?.();
+      return;
+    }
+    return;
+  }
+
   const headerMore=target.closest('[data-chat-header-more]');
   if(headerMore){
     event.preventDefault();
@@ -1958,11 +2122,11 @@ document.addEventListener('click',event=>{
   if(shellButton){
     const command=shellButton.dataset.shellCommand;
     if(command==='sidebar.open'){
-      // CHAT-389: directory is already visible; use the header menu for
-      // account actions instead of a no-op or a second navigation layer.
+      // CHAT-396: the directory is visible. Show the Shell drawer with
+      // navigation and recent conversations, not the compact account popup.
       if(authState==='AUTHENTICATED'&&appShell?.dataset?.mobileDirectory==='true'&&
         window.matchMedia('(max-width:63.999rem)').matches){
-        toggleAccountMenu();
+        toggleMobileChatDrawer();
         return;
       }
       if(desktopSidebarPersistent)setSidebar(true);
@@ -2199,6 +2363,12 @@ window.ChatAppShell={
   NavigationCommand,
   CallCommand,
   AuthUI,
+  MobileDrawer:Object.freeze({
+    open:openMobileChatDrawer,
+    close:closeMobileChatDrawer,
+    toggle:toggleMobileChatDrawer,
+    snapshot:()=>({open:mobileChatDrawerOpen})
+  }),
   ScreenSession,
   UnreadIndicator,
   snapshot(){

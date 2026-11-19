@@ -28,7 +28,7 @@ assert '>đăng ký</span>' in source
 assert 'setPasswordVisibility' in shell
 assert 'shouldAutoFocusShellForm' in shell
 
-assert "RELEASE_VERSION='V21.72.44'" in sw
+assert "RELEASE_VERSION='V21.72.45'" in sw
 assert "MODULE_CONTRACT_VERSION='pwa-sw-v1'" in sw
 assert "CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION" in sw
 
