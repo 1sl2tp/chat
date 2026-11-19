@@ -97,4 +97,29 @@ assert(css.includes(':has(.contact-directory-search-field[data-expanded="true"])
   'expanded mode has a full-width dock');
 assert(policy.includes("activeOwner.host.dataset.mobileKeyboard='true'"),
   'platform remains sole keyboard owner');
+// CHAT-392: geometry/typography contract for the iPhone screenshot.
+const designStart=css.indexOf('/* CHAT-388/389/390/391/392 — ONE mobile directory layout owner.');
+const designEnd=css.indexOf('/* CHAT-AXIS-',designStart);
+assert(designStart>=0&&designEnd>designStart,'one last mobile directory owner');
+const design=css.slice(designStart,designEnd);
+for(const token of [
+  '.top-mode-switch[data-directory-owner="true"]',
+  'grid-template-columns:minmax(0,1fr) 52px;',
+  'grid-template-areas:"filters search" "results results";',
+  'grid-template-areas:"results" "search";',
+  'grid-area:results;',
+  'overflow-y:auto;',
+  'min-height:72px!important;',
+  'grid-template-columns:minmax(0,1fr) 60px;',
+  'font-size:15px!important;',
+  'font-size:13px!important;',
+  'font-size:11px!important;',
+  'min-height:44px;',
+  '.contact-directory-search-field[data-expanded="true"]'
+])assert(design.includes(token),'CHAT-392 visual owner lost '+token);
+assert.equal((design.match(/grid-area:results;/g)||[]).length,1,
+  'one directory list scroll owner');
+assert(!design.includes('position:fixed'),
+  'no second floating toolbar or keyboard overlay');
+
 console.log('CHAT-391 search/filter rail and blur/IME/result-click transitions PASS');
