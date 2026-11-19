@@ -1875,11 +1875,10 @@
 
 
 
-/* CHAT-388 — ONE mobile directory layout owner (389/390/391/392 compatible).
-   CHAT-392 replaces the heavyweight rounded toolbar in the user's 19 Nov
-   screenshot with a quiet two-tier hierarchy.  No duplicated directory
-   input, DOM reparent, scroll writer or viewport/keyboard owner.
-   Chat conversation header remains a distinct, unchanged component. */
+/* CHAT-395 — ONE compact mobile directory owner (388-394 contracts retained).
+   Top 1 = original shell Chat/Work header; Top 2 = a 2-row search/filter
+   toolbar; Content = the sole contact list scroller. Keyboard typing hides
+   only filters, not the search input. No second focus/viewport owner. */
 @media(max-width:63.999rem){
   /* Directory navigation is not a third set of large filter pills.  Keep
      real Chat/Work actions, but give the chosen scope a discreet underline. */
@@ -1922,8 +1921,8 @@
     box-shadow:none;
   }
 
-  /* Parent: one navigation area. Children: compact filter/search rail,
-     one results scroller, and the existing expandable search dock. */
+  /* Parent: one navigation area. Top 2 has one search row and one filter
+     row; the contact list owns all remaining vertical scrolling. */
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .wm-sidebar-sidebar{
     grid-template-areas:"navigation";
     grid-template-rows:minmax(0,1fr);
@@ -1962,9 +1961,9 @@
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .wm-sidebar-body{
     display:grid!important;
-    grid-template-columns:minmax(0,1fr) 52px;
-    grid-template-rows:auto minmax(0,1fr);
-    grid-template-areas:"filters search" "results results";
+    grid-template-columns:minmax(0,1fr);
+    grid-template-rows:auto auto minmax(0,1fr);
+    grid-template-areas:"search" "filters" "results";
     align-content:stretch;
     min-height:0;
     overflow:hidden;
@@ -1984,8 +1983,8 @@
     align-items:center;
     gap:4px!important;
     min-width:0;
-    min-height:52px;
-    padding:4px 0 4px max(10px,env(safe-area-inset-left,0px))!important;
+    min-height:44px;
+    padding:0 max(10px,env(safe-area-inset-right,0px)) 2px max(10px,env(safe-area-inset-left,0px))!important;
     border-bottom:1px solid color-mix(in srgb,var(--theme-border-default) 35%,transparent);
     background:var(--theme-surface-primary);
   }
@@ -1995,7 +1994,7 @@
     flex:1 1 auto;
     min-width:0;
     min-height:44px;
-    gap:2px!important;
+    gap:6px!important;
     overflow-x:auto;
     flex-wrap:nowrap;
     scrollbar-width:none;
@@ -2021,9 +2020,6 @@
     background:color-mix(in srgb,var(--theme-surface-secondary) 76%,var(--theme-surface-primary))!important;
     color:var(--theme-content-primary)!important;
     font-weight:650!important;
-  }
-  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-filter-line:not([data-expanded="true"]) .contact-directory-filter:not([data-contact-directory-filter="all"]):not([data-contact-directory-filter="unread"]):not([data-active="true"]){
-    display:none!important;
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-filter-line[data-expanded="true"]{
     align-items:flex-start;
@@ -2195,30 +2191,27 @@
     align-items:center;
     gap:8px;
     min-width:0;
-    min-height:58px;
-    padding:6px max(10px,env(safe-area-inset-right,0px)) max(7px,env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px));
-    border-top:1px solid color-mix(in srgb,var(--theme-border-default) 35%,transparent);
+    min-height:52px;
+    padding:4px max(10px,env(safe-area-inset-right,0px)) 2px max(10px,env(safe-area-inset-left,0px));
+    border-top:0;
     background:var(--theme-surface-primary);
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-search-field[data-expanded="false"]{
     min-width:0;
     min-height:52px;
-    justify-content:center;
-    padding:4px max(8px,env(safe-area-inset-right,0px)) 4px 0;
+    justify-content:stretch;
+    padding-block:4px;
     border-top:0;
-    border-bottom:1px solid color-mix(in srgb,var(--theme-border-default) 35%,transparent);
+    border-bottom:0;
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-search-field[data-expanded="true"]{
-    padding-block:6px;
+    padding-block:4px;
     border-top:0;
-    border-bottom:1px solid color-mix(in srgb,var(--theme-border-default) 35%,transparent);
-  }
-  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-search-field[data-expanded="false"] :is(.contact-directory-search,.contact-directory-search-icon){
-    display:none!important;
+    border-bottom:0;
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-search-toggle{
     box-sizing:border-box;
-    display:grid!important;
+    display:none!important;
     place-items:center;
     flex:0 0 44px;
     width:44px;
@@ -2244,7 +2237,8 @@
     min-height:44px;
     padding-inline-start:42px!important;
     font-size:16px!important;
-    border-radius:12px!important;
+    border-radius:999px!important;
+    background:var(--theme-surface-secondary)!important;
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-search-icon{
     inset-inline-start:max(24px,calc(env(safe-area-inset-left,0px) + 14px));
