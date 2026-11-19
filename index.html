@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.40">
-<meta name="app-build-id" content="1aa208e80d41ac9bbb891f247d09bbd23bddc638746bb76d0638c2954f553539">
+<meta name="app-release-version" content="V21.72.41">
+<meta name="app-build-id" content="7d804722682f27476cc6054c769be796a21e5b8b52b4176332a71e5dc8c66205">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -13338,6 +13338,48 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer[data-mobile-keyboard="true"] .contact-directory-search-field{
     padding-bottom:6px;
   }
+  /* CHAT-390: resting search is one compact action; the same input expands
+     in place while the contact results keep the single scroll owner. */
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-search-field[data-expanded="false"]{
+    justify-content:flex-end;
+    min-height:52px;
+    padding-block:4px max(5px,env(safe-area-inset-bottom,0px));
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-search-field[data-expanded="false"] :is(.contact-directory-search,.contact-directory-search-icon){
+    display:none!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-search-toggle{
+    display:grid!important;
+    place-items:center;
+    flex:0 0 44px;
+    box-sizing:border-box;
+    width:44px;
+    height:44px;
+    padding:0;
+    border:1px solid var(--theme-border-default);
+    border-radius:50%;
+    background:var(--theme-surface-secondary);
+    color:var(--theme-content-primary);
+    cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-search-field[data-expanded="true"] .contact-directory-search-toggle{
+    display:none!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-search-toggle:focus-visible{
+    outline:2px solid var(--theme-content-accent);
+    outline-offset:2px;
+  }
+  /* CHAT-390: Work's 100dvh directory height must yield to the real
+     VisualViewport with iOS keyboard open, below the existing header. */
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer[data-mobile-keyboard="true"]{
+    inset-block-start:calc(var(--shell-form-vv-top,0px) + var(--header-height,72px))!important;
+    top:calc(var(--shell-form-vv-top,0px) + var(--header-height,72px))!important;
+    inset-block-end:auto!important;
+    bottom:auto!important;
+    height:max(0px,calc(var(--shell-form-vv-height,100svh) - var(--header-height,72px)))!important;
+    max-height:max(0px,calc(var(--shell-form-vv-height,100svh) - var(--header-height,72px)))!important;
+  }
 }
 
 /* CHAT-AXIS-20261117 — Main 1–4 / Popup 1–4 boundary guard.
@@ -15324,9 +15366,9 @@ const AppBootController={
     // Repeated global faults must not repaint the banner or multiply logs.
     if(this.lastErrorMessage===message&&!runtimeError.classList.contains('hidden'))return;
     this.lastErrorMessage=message;
-    runtimeError.textContent='V21.72.40 runtime: '+message;
+    runtimeError.textContent='V21.72.41 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.40]',error);
+    console.error('[ChatScreenModule V21.72.41]',error);
   },
   ready(){
     // A successful render invariant proves recovery only for errors seen
@@ -15438,7 +15480,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.40 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.41 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -15492,7 +15534,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.40',
+  releaseVersion:'V21.72.41',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -24146,7 +24188,7 @@ window.V21ConversationBridge={
 window.V21ChatImageViewer=Object.freeze({open:openImageViewer});
 
 window.ChatScreenModule={
-  version:'V21.72.40',
+  version:'V21.72.41',
   snapshot(){
     return{
       viewportMode:viewport.mode,
@@ -41341,6 +41383,7 @@ let nccReady=false;
 let loadingGroups=false;
 let syncQueued=false;
 let syncScrollToTop=false;
+let resetDirectorySearchMode=null;
 
 function authStore(){return window.V21AuthSessionStore||null;}
 function contactStore(){return window.V21ContactStore||null;}
@@ -41432,6 +41475,7 @@ function installStyle(){
     }
     /* UI-247: reusable ChatGPT-like search surface, without altering focus/scroll owners. */
     .contact-directory-search-field{position:relative;width:100%;min-width:0}
+    .contact-directory-search-toggle{display:none}
     .contact-directory-search-icon{position:absolute;z-index:1;inset-inline-start:14px;top:50%;width:18px;height:18px;transform:translateY(-50%);color:var(--theme-content-tertiary,#999);pointer-events:none}
     .contact-directory-search-field:focus-within .contact-directory-search-icon{color:var(--theme-content-secondary,#666)}
     .contact-directory-search{box-sizing:border-box;width:100%;height:44px;border:1px solid var(--theme-border-default,#dedede);border-radius:16px;padding:0 12px 0 42px;background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#171717);font:inherit;font-size:16px;outline:none}
@@ -41533,6 +41577,7 @@ function directoryTools(){return document.querySelector('[data-contact-directory
 let filterArrowSync=null;
 function removeDirectoryTools(){
   filterArrowSync=null;
+  resetDirectorySearchMode=null;
   directoryTools()?.remove();
   document.querySelector('[data-contact-work-bank-heading]')?.remove();
   document.querySelector('[data-contact-work-tools]')?.remove();
@@ -41559,9 +41604,10 @@ function ensureDirectoryTools(){
       <button type="button" role="tab" class="contact-directory-section" data-contact-directory-section="chat" aria-controls="contactDirectoryChatView">Trò chuyện</button>
       <button type="button" role="tab" class="contact-directory-section" data-contact-directory-section="work" aria-controls="contactDirectoryWorkView" aria-label="Công việc: sản phẩm, phiếu NCC và chuyển khoản">Công việc</button>
     </div>
-    <div class="contact-directory-search-field" id="contactDirectoryChatView">
+    <div class="contact-directory-search-field" id="contactDirectoryChatView" data-expanded="false">
+      <button type="button" class="contact-directory-search-toggle" data-contact-directory-search-toggle aria-label="Mở tìm kiếm danh bạ" title="Tìm kiếm" aria-expanded="false" aria-controls="contactDirectorySearchInput"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.75" cy="10.75" r="6.75"></circle><path d="m16 16 4.5 4.5"></path></svg></button>
       <svg class="contact-directory-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true"><circle cx="10.75" cy="10.75" r="6.75"></circle><path d="m16 16 4.5 4.5"></path></svg>
-      <input class="contact-directory-search" type="search" autocomplete="off" placeholder="Tìm tên hoặc tài khoản" aria-label="Tìm danh bạ" data-contact-directory-search>
+      <input id="contactDirectorySearchInput" class="contact-directory-search" type="search" autocomplete="off" placeholder="Tìm tên hoặc tài khoản" aria-label="Tìm danh bạ" data-contact-directory-search>
       <button type="button" class="contact-directory-search-cancel" data-contact-directory-search-cancel aria-label="Đóng tìm kiếm" title="Đóng tìm kiếm" hidden>×</button>
     </div>
     <div class="contact-directory-filter-line">
@@ -41669,24 +41715,36 @@ function ensureDirectoryTools(){
      keyboard. Never reparent a focused <input>: Safari would dismiss IME. */
   const searchField=input.closest('.contact-directory-search-field');
   const cancelSearch=searchField?.querySelector('[data-contact-directory-search-cancel]');
+  const searchToggle=searchField?.querySelector('[data-contact-directory-search-toggle]');
   const layer=document.getElementById('shellNavigationLayer');
   function setSearchFocused(active){
     const mobile=mobileDirectoryHeaderVisible();
     const focused=Boolean(active&&mobile);
     if(layer)layer.dataset.directorySearchActive=String(focused);
+    if(searchField)searchField.dataset.expanded=String(focused);
+    searchToggle?.setAttribute('aria-expanded',String(focused));
     if(cancelSearch)cancelSearch.hidden=!focused;
   }
+  searchToggle?.addEventListener('click',()=>{
+    if(!mobileDirectoryHeaderVisible())return;
+    setSearchFocused(true);
+    // Keep focus inside this user tap: a deferred focus loses iOS keyboard.
+    void input.offsetWidth;
+    input.focus({preventScroll:true});
+  });
   input.addEventListener('focus',()=>setSearchFocused(true));
   // Do not collapse this mode on input blur: on iOS a tap on a result
   // blurs the keyboard BEFORE click, and moving rows then selects the wrong
   // customer. Keep the list geometry stable until Cancel/close/navigation.
   cancelSearch?.addEventListener('pointerdown',event=>event.preventDefault());
   function closeSearch(){
+    const hadQuery=Boolean(query||input.value);
     query='';input.value='';
-    syncDirectoryRows({reorder:false});
     input.blur();
     setSearchFocused(false);
+    if(hadQuery)syncDirectoryRows({reorder:false});
   }
+  resetDirectorySearchMode=closeSearch;
   cancelSearch?.addEventListener('click',closeSearch);
   input.addEventListener('keydown',event=>{
     if(event.key!=='Escape')return;
@@ -41912,11 +41970,15 @@ installStyle();
 document.addEventListener('v21-mobile-directory-change',syncMobileDirectoryHeader);
 document.addEventListener('v21-mobile-directory-change',()=>{
   if(mobileDirectoryHeaderVisible())return;
+  if(resetDirectorySearchMode){resetDirectorySearchMode();return;}
   const layer=document.getElementById('shellNavigationLayer');
   if(layer)layer.dataset.directorySearchActive='false';
   const tools=directoryTools();
   const input=tools?.querySelector('[data-contact-directory-search]');
   if(document.activeElement===input)input.blur();
+  const field=input?.closest('.contact-directory-search-field');
+  if(field)field.dataset.expanded='false';
+  tools?.querySelector('[data-contact-directory-search-toggle]')?.setAttribute('aria-expanded','false');
   tools?.querySelector('[data-contact-directory-search-cancel]')?.setAttribute('hidden','');
 });
 document.addEventListener('v21-mobile-directory-change',()=>filterArrowSync?.());
@@ -41962,6 +42024,9 @@ document.addEventListener('click',event=>{
         if(input)input.blur();
         const layer=document.getElementById('shellNavigationLayer');
         if(layer)layer.dataset.directorySearchActive='false';
+        const field=input?.closest('.contact-directory-search-field');
+        if(field)field.dataset.expanded='false';
+        directoryTools()?.querySelector('[data-contact-directory-search-toggle]')?.setAttribute('aria-expanded','false');
         syncDirectoryRows({reorder:false});
       }
     }
