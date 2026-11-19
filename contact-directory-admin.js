@@ -246,6 +246,7 @@ function ensureDirectoryTools(){
     <div class="contact-directory-search-field" id="contactDirectoryChatView">
       <svg class="contact-directory-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true"><circle cx="10.75" cy="10.75" r="6.75"></circle><path d="m16 16 4.5 4.5"></path></svg>
       <input class="contact-directory-search" type="search" autocomplete="off" placeholder="Tìm tên hoặc tài khoản" aria-label="Tìm danh bạ" data-contact-directory-search>
+      <button type="button" class="contact-directory-search-cancel" data-contact-directory-search-cancel aria-label="Đóng tìm kiếm" title="Đóng tìm kiếm" hidden>×</button>
     </div>
     <div class="contact-directory-filter-line">
       <div class="contact-directory-filters" id="contactDirectoryFilterList" role="group" aria-label="Lọc danh bạ">
@@ -347,6 +348,34 @@ function ensureDirectoryTools(){
   const input=tools.querySelector('[data-contact-directory-search]');
   input.value=query;
   input.addEventListener('input',()=>{query=String(input.value||'');syncDirectoryRows({reorder:false});});
+  /* CHAT-388 — Keep exactly ONE search input in its original DOM owner.
+     Mobile CSS promotes its field to a bottom grid row above the iOS
+     keyboard. Never reparent a focused <input>: Safari would dismiss IME. */
+  const searchField=input.closest('.contact-directory-search-field');
+  const cancelSearch=searchField?.querySelector('[data-contact-directory-search-cancel]');
+  const layer=document.getElementById('shellNavigationLayer');
+  function setSearchFocused(active){
+    const mobile=mobileDirectoryHeaderVisible();
+    const focused=Boolean(active&&mobile);
+    if(layer)layer.dataset.directorySearchActive=String(focused);
+    if(cancelSearch)cancelSearch.hidden=!focused;
+  }
+  input.addEventListener('focus',()=>setSearchFocused(true));
+  input.addEventListener('blur',()=>requestAnimationFrame(()=>{
+    if(!searchField?.contains(document.activeElement))setSearchFocused(false);
+  }));
+  cancelSearch?.addEventListener('pointerdown',event=>event.preventDefault());
+  function closeSearch(){
+    query='';input.value='';
+    syncDirectoryRows({reorder:false});
+    input.blur();
+    setSearchFocused(false);
+  }
+  cancelSearch?.addEventListener('click',closeSearch);
+  input.addEventListener('keydown',event=>{
+    if(event.key!=='Escape')return;
+    event.preventDefault();closeSearch();
+  });
   for(const button of tools.querySelectorAll('[data-contact-directory-filter]')){
     const selected=button.dataset.contactDirectoryFilter===filter;
     button.dataset.active=String(selected);
@@ -534,7 +563,10 @@ function resetForAuth(){
   // and category pills consistent with the cleared account-scoped model.
   const tools=directoryTools();
   const input=tools?.querySelector('[data-contact-directory-search]');
-  if(input)input.value='';
+  if(input){input.value='';input.blur();}
+  const layer=document.getElementById('shellNavigationLayer');
+  if(layer)layer.dataset.directorySearchActive='false';
+  tools?.querySelector('[data-contact-directory-search-cancel]')?.setAttribute('hidden','');
   if(tools){
     tools.dataset.directorySection='chat';
     const work=document.querySelector('[data-contact-work-tools]');
@@ -558,6 +590,15 @@ function resetForAuth(){
 
 installStyle();
 document.addEventListener('v21-mobile-directory-change',syncMobileDirectoryHeader);
+document.addEventListener('v21-mobile-directory-change',()=>{
+  if(mobileDirectoryHeaderVisible())return;
+  const layer=document.getElementById('shellNavigationLayer');
+  if(layer)layer.dataset.directorySearchActive='false';
+  const tools=directoryTools();
+  const input=tools?.querySelector('[data-contact-directory-search]');
+  if(document.activeElement===input)input.blur();
+  tools?.querySelector('[data-contact-directory-search-cancel]')?.setAttribute('hidden','');
+});
 document.addEventListener('v21-mobile-directory-change',()=>filterArrowSync?.());
 document.addEventListener('navigation-change',syncMobileDirectoryHeader);
 // This listener runs after the mobile gesture owner has deliberately yielded
@@ -597,7 +638,9 @@ document.addEventListener('click',event=>{
       const input=directoryTools()?.querySelector('[data-contact-directory-search]');
       if(query||String(input?.value||'')){
         query='';
-        if(input)input.value='';
+        if(input){input.value='';input.blur();}
+        const layer=document.getElementById('shellNavigationLayer');
+        if(layer)layer.dataset.directorySearchActive='false';
         syncDirectoryRows({reorder:false});
       }
     }
