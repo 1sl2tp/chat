@@ -7,7 +7,11 @@ const refresh=fs.readFileSync('mobile-chat-refresh.css','utf8');
 const marker='/* CHAT-338 — approved Concept 3: balanced ChatGPT × messaging app.';
 const pos=css.indexOf(marker);
 assert(pos>0,'concept 3 must be a deliberate final mobile visual layer');
-const visual=css.slice(pos);
+// CHAT-388 is a separate L2 Directory layout owner. Do not evaluate its
+// intentionally scrollable contact-results region as part of CHAT-338's
+// L3 Conversation visual-only rule, or a valid directory grid will fail CI.
+const nextOwner=css.indexOf('/* CHAT-388 —',pos);
+const visual=css.slice(pos,nextOwner>pos?nextOwner:undefined);
 for(const key of [
  '@media(max-width:63.999rem)',
  '@media(max-width:360px)',
