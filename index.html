@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.40">
-<meta name="app-build-id" content="1280586fd734cdfa6474e44407ff001ccce72930a4d3f60001dd663577979836">
+<meta name="app-build-id" content="1aa208e80d41ac9bbb891f247d09bbd23bddc638746bb76d0638c2954f553539">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -13230,7 +13230,10 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
     inset-inline-start:max(10px,env(safe-area-inset-left,0px));
     inset-inline-end:auto;
     width:min(290px,calc(100% - 20px));
+    max-height:calc(var(--shell-form-vv-height,100svh) - 24px);
     box-sizing:border-box;
+    overflow-y:auto;
+    overscroll-behavior:contain;
     padding:8px;
     border:1px solid var(--theme-border-default);
     border-radius:16px;
