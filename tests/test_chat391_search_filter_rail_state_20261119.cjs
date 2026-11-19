@@ -94,7 +94,7 @@ assert(css.includes('grid-template-areas:"filters search" "results results"'),
 assert(css.includes('grid-template-areas:"search" "results"'),
   'typing mode puts the search at top and results in remaining height');
 assert(css.includes(':has(.contact-directory-search-field[data-expanded="true"])'),
-  'expanded mode has a full-width dock');
+  'expanded mode uses the original search input at full width');
 assert(policy.includes("activeOwner.host.dataset.mobileKeyboard='true'"),
   'platform remains sole keyboard owner');
 // CHAT-392: geometry/typography contract for the iPhone screenshot.
@@ -106,7 +106,8 @@ for(const token of [
   '.top-mode-switch[data-directory-owner="true"]',
   'grid-template-columns:minmax(0,1fr) 52px;',
   'grid-template-areas:"filters search" "results results";',
-  'grid-template-areas:"results" "search";',
+  'grid-template-areas:"search" "filters" "results";',
+  'grid-template-areas:"search" "results";',
   'grid-area:results;',
   'overflow-y:auto;',
   'min-height:72px!important;',
