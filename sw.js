@@ -14,7 +14,7 @@ const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 // CHAT-387: fresh SW/page coordination, public shell only. Keep private caches.
 // CHAT-388: public Web/PWA shell only; private messages, drafts and outbox untouched.
 // CHAT-389: header account menu + bottom search dock; single canonical release for Web/PWA.
-const SHELL_CACHE_EPOCH='pwa-chat-ui391-filter-rail-keyboard-state-20261119';
+const SHELL_CACHE_EPOCH='pwa-chat-ui392-directory-hierarchy-20261119';
 const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION+'-'+SHELL_CACHE_EPOCH;
 const AVATAR_CACHE_NAME='taphoa-chat-avatars-v1';
 const SUPABASE_ASSET_HOST_RE=/^[a-z0-9]+\.supabase\.co$/i;
