@@ -35,7 +35,8 @@ assert(last.includes('.shell-contact-row[data-active="true"]:has(.shell-contact-
 assert(last.includes('padding-inline-end:36px;'),'selected Admin row keeps room for manage affordance');
 assert(last.includes('height:60px!important;'),'existing compact touch rows remain');
 assert(last.includes('grid-template-rows:20px 18px;'),'name/preview remain two readable lines');
-assert(directory.includes("input.addEventListener('input',()=>{query=String(input.value||'');syncDirectoryRows({reorder:false});});"));
+assert(directory.includes("input.addEventListener('input',()=>{query=String(input.value||'');syncDirectoryRows({scrollToTop:true,reorder:false});});"),
+  'a search starts at first result, while the original directory anchor is restored on close');
 assert(directory.includes('body.insertBefore(tools,nav);'));
 assert(directory.includes("const scrollHost=host.closest('.wm-sidebar-navigation');"));
 assert(shell.includes('const previewText=contactPreview(item);'));
