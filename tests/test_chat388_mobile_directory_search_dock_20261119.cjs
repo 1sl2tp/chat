@@ -66,7 +66,7 @@ assert(!/position:(?:fixed|absolute)|translate[XYZ]?\(/.test(searchOwner),
 assert(source.includes('id="shellNavigationLayer"'));
 assert(source.includes('class="wm-sidebar-navigation"'));
 assert(css.includes('SPEC-CHAT-MOBILE-DIRECTORY-VV-20261101'));
-assert(sw.includes("SHELL_CACHE_EPOCH='pwa-chat-ui395-compact-three-zones-20261120'"));
+assert(sw.includes("SHELL_CACHE_EPOCH='pwa-chat-ui396-chatgpt-mobile-drawer-20261120'"));
 assert(patch.includes('grid-template-areas:"navigation"'),'footer must not reserve height under search');
 assert(patch.includes('.shell-sidebar-account-footer[data-menu-open="true"]'),'account actions remain accessible');
 assert(shell.includes("'Tài khoản và cài đặt'")&&shell.includes('toggleAccountMenu();'),
