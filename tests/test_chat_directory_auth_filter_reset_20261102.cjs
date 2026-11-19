@@ -8,7 +8,12 @@ const end=src.indexOf('\ninstallStyle();',start);
 assert(start>=0&&end>start,'canonical auth reset owner missing');
 const piece=src.slice(start,end);
 
-const input={value:'Nguyễn Văn'};
+const searchField={dataset:{expanded:'true'}};
+const searchToggle={
+ attributes:{},
+ setAttribute(name,value){this.attributes[name]=String(value);}
+};
+const input={value:'Nguyễn Văn',closest:()=>searchField};
 const buttons=['all','unread','customer','cm','friend','other'].map(key=>({
   dataset:{contactDirectoryFilter:key,active:String(key==='friend')},
   attributes:{},
@@ -24,6 +29,7 @@ const tools={
  dataset:{directorySection:'work'},
  querySelector(s){
   if(s==='[data-contact-directory-search]')return input;
+  if(s==='[data-contact-directory-search-toggle]')return searchToggle;
   if(s==='[data-contact-work-tools]')return work;
   throw Error('Unexpected selector '+s);
  },
@@ -52,6 +58,8 @@ assert.equal(context.filter,'all');
 assert.equal(context.loadedAdminId,'');
 assert.equal(context.groupMap.size,0,'old admin group map cleared');
 assert.equal(input.value,'','visible input must match cleared filter model');
+assert.equal(searchField.dataset.expanded,'false','auth resets expanded search state');
+assert.equal(searchToggle.attributes['aria-expanded'],'false','auth resets accessible search toggle');
 assert.equal(tools.dataset.directorySection,'chat');
 assert.equal(work.hidden,true);
 assert.equal(work.open,false,'collapsed NCC must not stay expanded across Admin sessions');
