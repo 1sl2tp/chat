@@ -17,7 +17,7 @@ const start=shell.indexOf('function renderMenuUnread(){');
 const end=shell.indexOf('\nfunction syncSidebarPresentation(){',start);
 assert(start>=0&&end>start);
 const dot={hidden:true},attr={},listeners={};
-const menu={dataset:{},querySelector:()=>dot,setAttribute:(key,v)=>{attr[key]=v;}};
+const menu={dataset:{},querySelector:()=>dot,setAttribute:(key,v)=>{attr[key]=v;},removeAttribute:(key)=>{delete attr[key];}};
 const chip={dataset:{},setAttribute:(key,v)=>{chip[key]=v;}};
 const document={
  querySelectorAll:(selector)=>selector.includes('sidebar.open')?[menu]:[chip],

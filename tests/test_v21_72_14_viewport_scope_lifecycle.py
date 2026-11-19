@@ -4,6 +4,7 @@ ROOT=Path(__file__).resolve().parents[1]
 APP=(ROOT/'app.js').read_text('utf-8')
 STORE=(ROOT/'v21-message-store.js').read_text('utf-8')
 SRC=(ROOT/'index.source.html').read_text('utf-8')
+SW=(ROOT/'sw.js').read_text('utf-8')
 def fn(text,name):
     m=re.search(rf"function {re.escape(name)}\([^)]*\)\{{",text); assert m,name
     start=m.start(); depth=0; seen=False
@@ -15,8 +16,12 @@ def fn(text,name):
             if seen and depth==0:return text[start:i+1]
     raise AssertionError(name)
 def test_release_marker():
-    assert 'V21.72.39' in SRC
-    assert "version:'V21.72.39'" in APP
+    release_match=re.search(r'<meta name="app-release-version" content="(V\\d+\\.\\d+\\.\\d+)">',SRC)
+    assert release_match,'Missing canonical release meta'
+    release=release_match.group(1)
+    assert f"version:'{release}'" in APP
+    assert f"releaseVersion:'{release}'" in APP
+    assert f"const RELEASE_VERSION='{release}';" in SW
 def test_viewport_policy_geometry_event_is_exclusive():
     body=fn(APP,'publishViewportGeometryChange')
     assert "if(viewport.mode===VIEWPORT_STATES.FOLLOW_TAIL)" in body

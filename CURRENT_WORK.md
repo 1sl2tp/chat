@@ -2,7 +2,7 @@
 
 - **E0:** ảnh 08:34 cho thấy ô tìm kiếm cuối danh bạ nhưng phía dưới còn khoảng trắng lớn. Đối chiếu mã: `.wm-sidebar-sidebar` còn giữ hàng `footer` sau vùng `search`, dù tài khoản không cần hiển thị thường trực.
 - **Owner:** `mobile-ui-polish.css` sửa đúng vùng CHAT-388 thay vì thêm lớp CSS vá: mobile directory dùng một hàng `navigation`, trong đó `filters/results/search` và chỉ `results` cuộn. Footer không chiếm chiều cao; khi ấn menu sẵn có ở header, `shell.js` hiển thị menu tài khoản hiện hữu với profile, cài đặt và đăng xuất; giữ focus, quyền và tương tác. Không nhân bản input, không đổi keyboard owner, không thay route/unread/dữ liệu.
-- **Release:** V21.72.40, public SW cache `CHAT-389`, private draft/outbox và message cache không đổi. **E1:** source changed. **E2/E3:** chờ Verify V21 + Pages tự động. **E4/E5:** cần thao tác iPhone/Android để xác nhận dock sát đáy và menu không che thao tác. Không deploy thủ công.
+- **Release:** V21.72.40, public SW cache `CHAT-389`, private draft/outbox và message cache không đổi. **E1:** source changed. **E2:** test các phiên bản cũ bắt cứng V21.72.39 và VM thiếu DOM mock; đã đổi sang hợp đồng release đồng bộ và thêm mock cho nút menu. **E3:** chỉ công nhận khi Verify V21 + Pages tự động PASS. **E4/E5:** cần thao tác iPhone/Android để xác nhận dock sát đáy và menu không che thao tác. Không deploy thủ công.
 - **Rollback:** revert commit CHAT-389. **Resource:** 0 RPC, 0 polling, 0 provider calls.
 
 ---
