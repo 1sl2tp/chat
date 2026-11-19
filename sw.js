@@ -140,9 +140,12 @@ async function foregroundClientState(client){
   if(client?.visibilityState==='hidden')return null; // phone locked/app background
   if(client?.visibilityState&&client.visibilityState!=='visible')return null;
   let live=null;
-  if(typeof MessageChannel==='function'&&typeof client?.postMessage==='function'){
+  const canAskLive=typeof MessageChannel==='function'&&
+    typeof client?.postMessage==='function';
+  if(canAskLive){
     live=await new Promise(resolve=>{
-      const channel=new MessageChannel();
+      let channel;
+      try{channel=new MessageChannel();}catch{resolve(null);return;}
       let settled=false;
       const finish=state=>{
         if(settled)return;
@@ -157,7 +160,11 @@ async function foregroundClientState(client){
     });
   }
   const cached=adminPushClientState.get(client?.id);
-  const state=live||(cached&&Date.now()-cached.updatedAt<30000?cached:null);
+  // A locked iPhone may suspend the page before WebKit updates the client's
+  // visibilityState. If a live query times out, NEVER trust its recent
+  // visible-cache as evidence that the screen is still unlocked.
+  const state=canAskLive?live:
+    (cached&&Date.now()-cached.updatedAt<30000?cached:null);
   if(!state||state.visible!==true)return null;
   // document.hasFocus() is often false in an actively typing iOS PWA.
   // Client visibility + the actual Chat route is the foreground criterion.
