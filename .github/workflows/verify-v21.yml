@@ -432,6 +432,8 @@ jobs:
         run: node tests/test_chat391_search_filter_rail_state_20261119.cjs
       - name: CHAT-393 Asana-inspired search-first hierarchy (read-only)
         run: node tests/test_chat393_asana_search_first_20261120.cjs
+      - name: CHAT-395 compact Top 1 / Top 2 / contacts composition
+        run: node tests/test_chat395_three_zones_20261120.cjs
       - name: UI-240 narrow directory vertical rhythm and contact preview
         run: node tests/test_chat_mobile_directory_rhythm_20261106.cjs
       - name: UI-239 compact directory search directly below top tabs
