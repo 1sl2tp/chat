@@ -25,6 +25,14 @@
 
 **Lưu ý:** Khi user chọn khách, không đổi owner dữ liệu, không gửi tin thật, không tự focus Composer. Giữ cơ chế nháp và đường push hiện hành.
 
+## CHAT-394 · Kết quả tìm kiếm và khôi phục vị trí đọc
+
+- Khi nhấn tìm kiếm, Directory ScrollRoot **chụp một lần** anchor/top của danh sách trước lọc (qua owner `V21DirectoryViewport` hiện hữu).
+- Mỗi khi thay đổi từ khóa, chỉ cuộn **kết quả tìm kiếm** về trên cùng; không kéo body, overlay, Composer hay danh sách hội thoại khác.
+- Khi bấm đóng/Hủy/Escape hoặc chọn khách, clear query, phục hồi các dòng bị ẩn, rồi trả lại anchor ban đầu nếu scroll owner còn mounted.
+- Guard chống `blur → close → blur` lồng nhau; không thêm listener toàn cục hay snapshot dữ liệu khách.
+- Regression CHAT-391 mô phỏng trường hợp cuộn ở 260px, tìm hai từ khóa, bàn phím Done, chọn kết quả và đóng, xác minh scroll gốc được phục hồi.
+
 ## Kiểm thử
 
 - E0: không đổi business APIs, auth, DB hay Supabase; không thêm CSS override ở cuối file.
