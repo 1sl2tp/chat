@@ -642,7 +642,8 @@ document.addEventListener('click',event=>{
       const input=directoryTools()?.querySelector('[data-contact-directory-search]');
       if(query||String(input?.value||'')){
         query='';
-        if(input){input.value='';input.blur();}
+        if(input)input.value='';
+        if(input)input.blur();
         const layer=document.getElementById('shellNavigationLayer');
         if(layer)layer.dataset.directorySearchActive='false';
         syncDirectoryRows({reorder:false});
