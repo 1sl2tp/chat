@@ -135,7 +135,7 @@ assert(designStart>=0&&designEnd>designStart,'one last mobile directory owner');
 const design=css.slice(designStart,designEnd);
 for(const token of [
   '.top-mode-switch[data-directory-owner="true"]',
-  'grid-template-columns:minmax(0,1fr) 52px;',
+  'grid-template-columns:minmax(0,1fr);',
   'grid-template-areas:"search" "filters" "results";',
   'grid-template-areas:"search" "filters" "results";',
   'grid-template-areas:"search" "results";',
