@@ -254,7 +254,7 @@ function renderMenuUnread(){
     if(directoryMobileDrawer){
       button.setAttribute('aria-haspopup','dialog');
       button.setAttribute('aria-controls','mobileChatDrawer');
-      button.setAttribute('aria-expanded',String(mobileChatDrawerOpen));
+      button.setAttribute('aria-expanded',String(appShell?.dataset?.mobileChatDrawerOpen==='true'));
     }else{
       button.removeAttribute('aria-haspopup');
     }
@@ -427,6 +427,7 @@ function renderMobileChatDrawerRecents(){
 function closeMobileChatDrawer({restoreFocus=false}={}){
   if(!mobileChatDrawerOpen||!mobileChatDrawer)return false;
   mobileChatDrawerOpen=false;
+  if(appShell)appShell.dataset.mobileChatDrawerOpen='false';
   mobileChatDrawer.dataset.open='false';
   mobileChatDrawer.setAttribute('aria-hidden','true');
   mobileChatDrawer.hidden=true;
@@ -453,6 +454,7 @@ function openMobileChatDrawer(){
   mobileChatDrawer.dataset.open='true';
   mobileChatDrawer.setAttribute('aria-hidden','false');
   mobileChatDrawerOpen=true;
+  if(appShell)appShell.dataset.mobileChatDrawerOpen='true';
   renderMenuUnread();
   mobileChatDrawer.querySelector('[data-mobile-drawer-action="directory"]')
     ?.focus?.({preventScroll:true});
