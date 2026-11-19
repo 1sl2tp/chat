@@ -1875,7 +1875,7 @@
 
 
 
-/* CHAT-388/389/390/391/392 — ONE mobile directory layout owner.
+/* CHAT-388 — ONE mobile directory layout owner (389/390/391/392 compatible).
    CHAT-392 replaces the heavyweight rounded toolbar in the user's 19 Nov
    screenshot with a quiet two-tier hierarchy.  No duplicated directory
    input, DOM reparent, scroll writer or viewport/keyboard owner.
