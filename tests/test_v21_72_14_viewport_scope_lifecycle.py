@@ -16,7 +16,7 @@ def fn(text,name):
             if seen and depth==0:return text[start:i+1]
     raise AssertionError(name)
 def test_release_marker():
-    release_match=re.search(r'<meta name="app-release-version" content="(V\\d+\\.\\d+\\.\\d+)">',SRC)
+    release_match=re.search(r'<meta name="app-release-version" content="(V\d+\.\d+\.\d+)">',SRC)
     assert release_match,'Missing canonical release meta'
     release=release_match.group(1)
     assert f"version:'{release}'" in APP

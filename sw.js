@@ -13,6 +13,7 @@ const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 // CHAT-386: invalidate only public shell CSS/JS; preserve accounts, drafts and outbox.
 // CHAT-387: fresh SW/page coordination, public shell only. Keep private caches.
 // CHAT-388: public Web/PWA shell only; private messages, drafts and outbox untouched.
+// CHAT-389: header account menu + bottom search dock; single canonical release for Web/PWA.
 const SHELL_CACHE_EPOCH='pwa-chat-ui389-directory-bottom-dock-20261119';
 const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION+'-'+SHELL_CACHE_EPOCH;
 const AVATAR_CACHE_NAME='taphoa-chat-avatars-v1';
