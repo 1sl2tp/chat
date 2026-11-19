@@ -1895,6 +1895,10 @@
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-tools{
     display:contents!important;
   }
+  /* The optional Work fallback never exposes Chat search or filters. */
+  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-tools[data-directory-section="work"]{
+    display:none!important;
+  }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-filter-line{
     grid-area:filters;
     box-sizing:border-box;
