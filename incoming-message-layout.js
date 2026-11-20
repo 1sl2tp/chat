@@ -34,7 +34,9 @@ function stripListMarker(raw){
  return String(raw||'').trim().replace(/^(?:[-•*]\s+|\d{1,3}[.)]\s+|\d{1,3}\s*[-–]\s+)/u,'').trim();
 }
 // CHAT-402: read-only corpus rules drawn from E Quyên's stock-list patterns.
-const knownSingleCustomerProduct=/^\d{1,3}\s+(?:milo|bò|chua|proby|probi|yomost|green\s+farm)(?=\s|$)/iu;
+// CHAT-408: C Trang Sữa's short, standalone purchase lines are known
+// quantity-first products, unlike unqualified numeric price chatter.
+const knownSingleCustomerProduct=/^\d{1,3}\s+(?:milo|bò|chua|proby|probi|yomost|green\s+farm|sữa\s+chua|susu\s+lọ)(?=\s|$)/iu;
 const extraItemHeading=/^(?:thêm|lấy thêm|cho thêm|thêm vào đơn(?: hôm trước)?)\s*[:：]?\s*$/iu;
 const deicticProduct=/^(?:này|kia|đó|đấy|vậy|ấy)(?:\s|$)/iu;
 const deicticTail=/(?:\s|^)(?:này|kia|đấy|đó)\s*$/iu;
@@ -432,6 +434,103 @@ function analyze(input){
  for(const note of notes){if(!grouped.has(note.topic))grouped.set(note.topic,[]);grouped.get(note.topic).push(note.text);}
  return {kind:reviewOnly?'review':isAvailability?'availability':isOrder?'order':'topics',items,groups:Array.from(grouped,([key,rows])=>({key,label:labels[key]||'Ghi chú',rows})),source};
 }
+// CHAT-408: a daily summary is a read-only projection of *loaded* incoming
+// text messages in ONE conversation on ONE Vietnam calendar date. No order
+// writes, no quote of a reply as a sale, and no text changes to the source.
+// A second mention of the same product may be a correction, so sums are
+// marked yellow instead of implying that a final confirmed order exists.
+function summarizeDay(messages){
+ if(!Array.isArray(messages)||!messages.length)return null;
+ const grouped=new Map(),notes=[],sourceKeys=new Set();
+ let previousStock=null;
+ for(const message of messages){
+  if(!message||message.sender==='self'||message.media)continue;
+  const original=String(message.text??'').trim();
+  if(!original||original.length>5000)continue;
+  const timestamp=Number(message.stamp)||0;
+  const parsed=analyze(original);
+  if(parsed?.kind==='order'&&parsed.items.length){
+   sourceKeys.add(String(message.key??message.id??'')||original);
+   for(const item of parsed.items){
+    const name=String(item.name||'').trim();
+    const pack=String(item.unit||'').trim();
+    const key=name.toLocaleLowerCase('vi-VN')+'|'+pack.toLocaleLowerCase('vi-VN');
+    if(!grouped.has(key)){
+     grouped.set(key,{name,qty:item.qty,unit:pack,review:!!item.review,mentions:1});
+    }else{
+     const row=grouped.get(key);
+     row.qty+=item.qty;
+     row.mentions++;
+     row.review=true;
+    }
+   }
+   for(const group of parsed.groups||[]){
+    if(group.key==='other'||group.key==='note'||group.key==='delivery'){
+     for(const note of group.rows||[]){
+      if(notes.length<16)notes.push({text:String(note),review:false});
+     }
+    }
+   }
+   previousStock={timestamp,hasBlackSugar:parsed.items.some(item=>/sữa\s+chua\s+đường\s+đen/iu.test(item.name))};
+  }else if(/^chân\s+trâu$/iu.test(original)&&previousStock?.hasBlackSugar&&
+   timestamp>previousStock.timestamp&&timestamp-previousStock.timestamp<=120000){
+   // It may be a topping for the preceding sữa chua item. Do not silently
+   // append to its name or invent another product/quantity.
+   notes.push({text:original,review:true});
+   previousStock=null;
+  }else{
+   previousStock=null;
+  }
+ }
+ if(!grouped.size)return null;
+ const items=Array.from(grouped.values());
+ // Same name with different units is not a safely summable quantity.
+ const sameName=new Map();
+ for(const item of items){
+  const key=item.name.toLocaleLowerCase('vi-VN');
+  if(!sameName.has(key))sameName.set(key,0);
+  sameName.set(key,sameName.get(key)+1);
+ }
+ for(const item of items){
+  if(sameName.get(item.name.toLocaleLowerCase('vi-VN'))>1)item.review=true;
+ }
+ return {kind:'daily-order',items,notes,messageCount:sourceKeys.size};
+}
+function renderDailySummary(target,summary){
+ if(!target||summary?.kind!=='daily-order'||!summary.items?.length)return false;
+ const root=el('section','incoming-brief day-order-summary-card');
+ root.setAttribute('aria-label','Tổng hợp tin lấy hàng trong ngày');
+ const head=el('div','incoming-brief-head');
+ head.append(el('strong','incoming-brief-title','Tổng hợp lấy hàng · '+String(summary.dayLabel||'trong ngày')),
+  el('span','incoming-brief-count',summary.items.length+' mặt hàng · '+summary.messageCount+' tin'));
+ root.append(head);
+ const grid=el('div','incoming-brief-products');
+ const columns=el('div','incoming-brief-columns');
+ columns.append(el('span','','STT'),el('span','','Tên sản phẩm'),el('span','','SL'));
+ grid.append(columns);
+ summary.items.forEach((item,index)=>{
+  const row=el('div','incoming-brief-item');
+  if(item.review)row.dataset.needsReview='true';
+  const name=el('span','incoming-brief-product',item.name);
+  if(item.review)name.append(el('span','incoming-brief-review','Cần hướng dẫn'));
+  row.append(el('span','incoming-brief-index',index+1),name,
+   el('span','incoming-brief-quantity',item.qty));
+  grid.append(row);
+ });
+ root.append(grid);
+ for(const note of summary.notes||[]){
+  const row=el('div','incoming-brief-note',note.text);
+  if(note.review){
+   row.dataset.needsReview='true';
+   row.append(el('span','incoming-brief-review','Cần hướng dẫn'));
+  }
+  root.append(row);
+ }
+ root.append(el('div','day-order-summary-disclaimer',
+  'Chỉ tổng hợp các tin đã tải · chưa xác nhận hoặc tạo đơn'));
+ target.replaceChildren(root);
+ return true;
+}
 function el(tag,cls,content){
  const n=document.createElement(tag);
  if(cls)n.className=cls;
@@ -494,5 +593,5 @@ function render(target,input){
  target.dataset.autoLayout=parsed.kind;
  return true;
 }
-global.V21IncomingMessageLayout=Object.freeze({analyze,render});
+global.V21IncomingMessageLayout=Object.freeze({analyze,render,summarizeDay,renderDailySummary});
 })(window);
