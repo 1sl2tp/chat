@@ -6209,13 +6209,15 @@ function appendScrollPolicy({inserted=false,remote=false,messageIds=[]}={}){
     return{followTail:false,preserve:'VIEW'};
   }
 
-  // The directory may promote a newly active contact, but only the user owns
-  // the reading position inside an already-open thread. Incoming realtime
-  // content follows the tail only if we were already following it; USER_AWAY
-  // keeps its anchor (and the existing new-message cue remains available).
+  // CHAT-411: the daily stock summary moves from the old last message to
+  // the new last message whenever a new chat item arrives. VIEW only keeps
+  // the virtual index; ANCHOR restores the visible line when row heights
+  // change. During an actual touch/wheel scroll the user owns the viewport.
+  const readingPreserve=hasUserScrollIntent()?'VIEW':'ANCHOR';
+  // An already-following chat still follows the tail under ScrollController.
   if(remote){
     const followTail=viewport.mode===VIEWPORT_STATES.FOLLOW_TAIL;
-    return{followTail,preserve:followTail?'AUTO':'VIEW'};
+    return{followTail,preserve:followTail?'AUTO':readingPreserve};
   }
 
   // Local ACK/data merges keep the normal viewport policy. Own sends already
@@ -6223,7 +6225,7 @@ function appendScrollPolicy({inserted=false,remote=false,messageIds=[]}={}){
   const followTail=viewport.mode===VIEWPORT_STATES.FOLLOW_TAIL;
   return{
     followTail,
-    preserve:followTail?'AUTO':'VIEW'
+    preserve:followTail?'AUTO':readingPreserve
   };
 }
 
