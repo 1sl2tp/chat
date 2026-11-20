@@ -6241,6 +6241,10 @@ let lastEditorHeightPx=40;
 let lastEditorInternalScroll=false;
 let lastComposerMeasuredValue='';
 let composerCompactWidthPx=0;
+// CHAT-397: keep keyboard/typing geometry stable between actual layout changes.
+// The native iOS IME can produce multiple provisional updates for one keystroke.
+let composerTypingMetrics=null;
+let composerStableViewportHeightPx=0;
 
 // CHAT-384: one Composer geometry owner. Budget the entire input surface
 // against the *visible* viewport, including its action row and attachments,
@@ -6276,13 +6280,23 @@ function autoGrow({source='layout'}={}){
   const mobile=Boolean(composerMobileBreakpoint?.matches);
   // Limit by the visible keyboard viewport (not the document height), keeping
   // some conversation visible in short/landscape iPhone windows.
-  const visibleHeight=Number(window.visualViewport?.height||window.innerHeight)||640;
+  const rawVisibleHeight=Number(window.visualViewport?.height||window.innerHeight)||640;
+  // iOS VisualViewport may fluctuate by a few pixels as suggestions/caret
+  // settle. A sub-8px delta must not resize the Composer after every key.
+  if(!composerStableViewportHeightPx||
+     Math.abs(rawVisibleHeight-composerStableViewportHeightPx)>=8){
+    composerStableViewportHeightPx=rawVisibleHeight;
+  }
+  const visibleHeight=composerStableViewportHeightPx;
   // An input with two real lines stays on ONE toolbar row. Only a third
   // line changes the layout to a full-width editor + 44px action row.
-  const lineHeight=Math.max(22,parseFloat(getComputedStyle(editor).lineHeight)||24);
+  const typing=source==='typing';
+  const lineHeight=typing&&composerTypingMetrics
+    ?composerTypingMetrics.lineHeight
+    :Math.max(22,parseFloat(getComputedStyle(editor).lineHeight)||24);
   const compactTwoLineLimit=40+Math.ceil(lineHeight)+2;
   const wasExpanded=composerShell.dataset.editorExpanded==='true';
-  if(mobile&&!wasExpanded){
+  if(mobile&&!wasExpanded&&(!typing||!composerCompactWidthPx)){
     composerCompactWidthPx=Math.max(0,editor.getBoundingClientRect().width)||composerCompactWidthPx;
   }
   // Do not bounce compact ↔ expanded while the user types punctuation or
@@ -6310,14 +6324,22 @@ function autoGrow({source='layout'}={}){
   }
   // The header and Composer are measured rather than inferred from CSS
   // breakpoints. This also counts reply/media previews and action controls.
-  const headerHeight=typeof regionTop!=='undefined'
-    ?Math.ceil(regionTop?.getBoundingClientRect?.().height||0):56;
-  const composerHeight=typeof bottomContainer!=='undefined'
-    ?Math.ceil(bottomContainer?.getBoundingClientRect?.().height||0):0;
-  const editorHeight=Math.ceil(editor.getBoundingClientRect().height||lastEditorHeightPx);
-  const composerOverhead=composerHeight>0
-    ?Math.max(0,composerHeight-editorHeight)
-    :(expanded?56:12);
+  // Header/action-rail geometry cannot change from a plain character edit.
+  // Reading every bounding box in the input event forces an iOS layout pass,
+  // which feeds back into fixed VisualViewport placement and visibly shakes.
+  // Sample again on layout/viewport changes or when the action rail changes.
+  if(!typing||expandedChanged||!composerTypingMetrics){
+    const headerHeight=typeof regionTop!=='undefined'
+      ?Math.ceil(regionTop?.getBoundingClientRect?.().height||0):56;
+    const composerHeight=typeof bottomContainer!=='undefined'
+      ?Math.ceil(bottomContainer?.getBoundingClientRect?.().height||0):0;
+    const editorHeight=Math.ceil(editor.getBoundingClientRect().height||lastEditorHeightPx);
+    const composerOverhead=composerHeight>0
+      ?Math.max(0,composerHeight-editorHeight)
+      :(expanded?56:12);
+    composerTypingMetrics={lineHeight,headerHeight,composerOverhead};
+  }
+  const {headerHeight,composerOverhead}=composerTypingMetrics;
   const maxHeight=mobile
     ?composerTextHeightLimit(visibleHeight,headerHeight,composerOverhead)
     :64;
@@ -8061,7 +8083,9 @@ editor.addEventListener('compositionend',()=>{
   syncSendButtonState();
 });
 editor.addEventListener('input',event=>{
-  autoGrow({source:'typing'});
+  // Let the native IME finish one composed character before changing any
+  // Composer dimensions; compositionend performs exactly one measurement.
+  if(!composing&&!event.isComposing)autoGrow({source:'typing'});
   // Native Vietnamese IME can send many provisional input events. Keep the
   // DOM/selection browser-owned and snapshot the draft on compositionend.
   if(!composing&&!event.isComposing)ComposerDraftOwner.saveCurrent();
