@@ -1,0 +1,113 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {parseStockImageModel,PROMPT,readStockImageWithGemini}
+ from '../supabase/functions/v21-ncc-ai-room/chat-stock-read.mjs';
+const edge=fs.readFileSync('supabase/functions/v21-ncc-ai-room/index.ts','utf8');
+const app=fs.readFileSync('app.js','utf8');
+const html=fs.readFileSync('index.source.html','utf8');
+const css=fs.readFileSync('incoming-message-layout.css','utf8');
+const parserSource=fs.readFileSync('incoming-message-layout.js','utf8');
+const clientSource=fs.readFileSync('chat-stock-image-read.js','utf8');
+const uiSource=fs.readFileSync('chat-stock-image-ui.js','utf8');
+assert(PROMPT.includes('Numbers before * or × can be prices or sizes'));
+assert(PROMPT.includes('a newer photo can be a corrected version'));
+const model={
+ classification:'typed_stock_list',
+ lines:[
+  {raw:'Tương ớt 250 - 370 *5 THÙNG',name:'Tương ớt 250',quantity:5,unit:'thùng'},
+  {raw:'Tương ớt 500 - 342 *5 THÙNG',name:'Tương ớt 500',quantity:5,unit:'thùng'},
+  {raw:'Tương ớt 1KG *5 THÙNG',name:'Tương ớt 1KG',quantity:5,unit:'thùng'},
+  {raw:'Dầu mezan 1L 549*10 thùng',name:'Dầu mezan 1L',quantity:10,unit:'thùng'},
+  {raw:'Sữa thọ đỏ giấy 380*1 thùng',name:'Sữa thọ đỏ giấy',quantity:1,unit:'thùng'},
+  {raw:'Sữa nuvi to - 291 -> 293 (+2) lấy cho chị mỗi màu 1 thùng =Tổng 5 thùng',name:'Sữa nuvi to',quantity:5,unit:'thùng',uncertain:true},
+  {raw:'Cháo gấu đỏ gà - 150 *5',name:'Cháo gấu đỏ gà',quantity:5},
+  {raw:'Om 1.2 *3 thùng',name:'Om 1.2',quantity:3,unit:'thùng'},
+  {raw:'Om 5kg *3 thùng',name:'Om 5kg',quantity:3,unit:'thùng'},
+  {raw:'Giá tương ớt 370, SL??',name:'tương ớt',quantity:370}
+ ],notes:['chưa rõ có bao nhiêu vị Sữa nuvi']
+};
+const parsed=parseStockImageModel(model);
+assert.equal(parsed.classification,'typed_stock_list');
+assert.deepEqual(parsed.lines.map(x=>[x.name,x.qty]),[
+ ['Tương ớt 250',5],['Tương ớt 500',5],['Tương ớt 1KG',5],
+ ['Dầu mezan 1L',10],['Sữa thọ đỏ giấy',1],['Cháo gấu đỏ gà',5],
+ ['Om 1.2',3],['Om 5kg',3]
+],'price 370/549/150 and product sizes cannot become quantities');
+assert(parsed.lines.every(x=>x.review),'OCR output must always be yellow review');
+assert(parsed.notes.some(x=>x.includes('mỗi màu')));
+assert.equal(parseStockImageModel({classification:'other',lines:model.lines}).lines.length,0,
+ 'bank slips, personal photos and regular chat screenshots must not be parsed');
+const forced=parseStockImageModel({classification:'typed_stock_list',lines:[
+ {raw:'Cháo gấu đỏ gà - 150 *5',name:'Cháo gấu đỏ gà',quantity:150}
+]});
+assert.equal(forced.lines.length,0,'model quantity mismatch to *5 must be rejected');
+const bytes=new Uint8Array([255,216,255,...Array(100).fill(0)]);
+let calls=0;
+const ai=await readStockImageWithGemini({
+ bytes,mime:'image/jpeg',key:'test',
+ fetcher:async(url,options)=>{
+  calls++;
+  assert(url.includes('gemini-3.5-flash-lite'));
+  const request=JSON.parse(options.body);
+  assert(request.contents[0].parts[1].inline_data.data);
+  return {ok:true,json:async()=>({candidates:[{content:{parts:[{text:JSON.stringify(model)}]}}]})};
+ }
+});
+assert.equal(calls,1);
+assert.deepEqual(ai.lines.map(x=>x.qty),parsed.lines.map(x=>x.qty));
+const edgeBlock=edge.slice(edge.indexOf('async function handleChatStockImage('),
+ edge.indexOf('async function handleSend('));
+assert(edge.includes('if(action==="chat_stock_image")return handleChatStockImage(body)'));
+assert(edge.includes('const admin=await requireAdmin(req);'));
+assert(!/\.insert\(|\.upsert\(|\.upload\(|\.update\(|\.delete\(/.test(edgeBlock),
+ 'image action must not write Storage or database');
+assert(clientSource.includes("action:'chat_stock_image'"));
+assert(clientSource.includes("cache.set(key,result)"));
+assert(clientSource.includes('if(owner()?.key!==who.key)'));
+assert(uiSource.includes("Đọc chữ hàng trong ảnh"));
+assert(uiSource.includes("reader.scan(assetId)"));
+assert(!uiSource.includes("queueMediaFiles("));
+assert(app.includes('imageReadings:stockImageReadings(message)'));
+assert(app.includes("stockImageReadings(message).map(read=>["));
+assert(app.includes("if(summary?.items?.length||summary?.imageGroups?.length)"));
+assert(html.includes('data-build-source="chat-stock-image-read.js"'));
+assert(html.includes('data-build-source="chat-stock-image-ui.js"'));
+assert(html.indexOf('data-build-source="chat-stock-image-read.js"')<
+ html.indexOf('data-build-source="app.js"'));
+assert(css.includes('#messageWindow .message-stock-image-read-button'));
+assert(css.includes('#messageWindow .day-order-image-source'));
+const scope={};
+function node(tag){
+ let value='';
+ return {tagName:tag,dataset:{},children:[],attrs:{},
+  set textContent(v){value=String(v);this.children=[];},
+  get textContent(){return value+this.children.map(x=>x.textContent).join('');},
+  append(...children){this.children.push(...children);},
+  replaceChildren(...children){this.children=[...children]},
+  setAttribute(name,value){this.attrs[name]=value},
+  addEventListener(){}
+ };
+}
+new Function('window','document',parserSource)(scope,{createElement:node});
+const messages=[
+ {sender:'remote',media:{type:'image'},stamp:Date.parse('2026-11-20T03:49:00Z'),
+  imageReadings:[{assetId:'a',status:'read',lines:parsed.lines,notes:parsed.notes}]},
+ {sender:'remote',media:{type:'image'},stamp:Date.parse('2026-11-20T04:06:00Z'),
+  imageReadings:[{assetId:'b',status:'read',lines:parsed.lines.slice(2,6),notes:[]}]}
+];
+const combined=scope.V21IncomingMessageLayout.summarizeDay(messages);
+assert.equal(combined.kind,'daily-order');
+assert.equal(combined.items.length,0,'OCR must not be mixed into text-only aggregates');
+assert.equal(combined.imageGroups.length,2,'two image versions stay distinct');
+assert.deepEqual(combined.imageGroups[0].items.map(x=>x.qty),
+ parsed.lines.map(x=>x.qty));
+assert(combined.imageGroups[1].items.every(x=>x.review));
+const target=node('div');
+assert(scope.V21IncomingMessageLayout.renderDailySummary(target,combined));
+assert(target.textContent.includes('Ảnh 10:49'));
+assert(target.textContent.includes('Ảnh 11:06'));
+assert(target.textContent.includes('Không cộng vào hàng từ tin'));
+assert(target.textContent.includes('Cần hướng dẫn'));
+assert(!/fetch\(|localStorage|supabase\./.test(parserSource),
+ 'pure day summarizer must not trigger remote operations');
+console.log('CHAT-409 typed stock image OCR isolated and day-grouped PASS');
