@@ -77,8 +77,21 @@ const grid=orderRoot.children[1];
 assert.deepEqual(Array.from(grid.children[0].children,x=>x.textContent),['STT','Tên sản phẩm','SL']);
 assert.equal(grid.children.length,9,'header + eight three-column rows');
 assert.equal(grid.children[1].children[0].textContent,'1');
-assert.equal(grid.children[1].children[2].textContent,'5 thùng');
+assert.equal(grid.children[1].children[2].textContent,'5','SL must be numeric only, never combined with the unit');
 assert.equal(grid.children[3].children[2].textContent,'5','unknown unit must not be invented');
+assert.equal(grid.children[2].children[2].textContent,'2');
+assert.equal(grid.children[1].children[1].children[0].textContent,'9 hạt ít đường');
+assert.equal(grid.children[2].children[1].children[0].textContent,'9 hạt ko đường');
+assert.equal(grid.children[7].children[1].children[0].textContent,'chua nha đam');
+assert.equal(grid.children[7].children[2].textContent,'2');
+assert.equal(grid.children[8].children[1].children[0].textContent,'chua ít đường');
+assert.equal(grid.children[8].children[2].textContent,'2');
+assert.deepEqual(Array.from(grid.children.slice(1),x=>x.children[2].textContent),[
+ '5','2','5','3','5','2','2','2'
+],'numeric-only SL across all eight stock rows');
+assert.equal(parsedReal.items[0].unit,'thùng','unit still understood internally');
+assert.equal(parsedReal.items[0].name,'9 hạt ít đường','unit never appended to product name');
+
 assert.equal(orderRoot.children.at(-1).children[1].textContent,realOrder);
 const numericNoQty=analyze('Lấy hàng\n9 hạt ít đường\n2 chua ít đường');
 assert.equal(numericNoQty.items.length,1,'bare numeric product name stays undecided');
@@ -178,6 +191,20 @@ const dotted=analyze('probi to có 5. ít 2. việt quất 2');
 assert.deepEqual(Array.from(dotted.items,x=>[x.name,x.qty,x.review]),[
  ['probi to có',5,true],['probi to ít',2,true],['probi to việt quất',2,false]
 ],'real Probi dotted grammar resolves variants, but short labels remain yellow');
+
+// CHAT-403: Only STT, customer's original name, numeric SL. Carton/mixed
+// shorthand remains in parsing evidence but is never rendered as a unit label.
+for(const message of ['5 thùng 9 hạt ít đường\n2 chua nha đam',
+                      '1 thùng milo này\n2 thùng sài gòn bạc',
+                      '6 thùng TH bịch: 2 có, 2 ít, 2 không']){
+ const mount=fakeNode('div');
+ assert.equal(render(mount,message),true);
+ const rows=mount.children[0].children[1].children.slice(1);
+ assert(rows.every(row=>/^\d+$/u.test(row.children[2].textContent)),
+   'SL must consist only of digits, even when units or variants exist');
+ assert(rows.every(row=>row.children.length===3),
+   'a separate unit column must not return');
+}
 
 // CHAT-402: E Quyên corpus regression. Samples contain only product wording,
 // not customer identifiers, personal data or actual order records.
