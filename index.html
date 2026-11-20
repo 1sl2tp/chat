@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.60">
-<meta name="app-build-id" content="9d9c754c36d043d7526fcfa290a3e254aec77c562b09561ecc544a7f6d44d279">
+<meta name="app-build-id" content="e4da82f0e64a0deac637b28e4441a6188fd195c4fde1edfdcc347542ef4f6023">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -22687,13 +22687,15 @@ function appendScrollPolicy({inserted=false,remote=false,messageIds=[]}={}){
     return{followTail:false,preserve:'VIEW'};
   }
 
-  // The directory may promote a newly active contact, but only the user owns
-  // the reading position inside an already-open thread. Incoming realtime
-  // content follows the tail only if we were already following it; USER_AWAY
-  // keeps its anchor (and the existing new-message cue remains available).
+  // CHAT-411: the daily stock summary moves from the old last message to
+  // the new last message whenever a new chat item arrives. VIEW only keeps
+  // the virtual index; ANCHOR restores the visible line when row heights
+  // change. During an actual touch/wheel scroll the user owns the viewport.
+  const readingPreserve=hasUserScrollIntent()?'VIEW':'ANCHOR';
+  // An already-following chat still follows the tail under ScrollController.
   if(remote){
     const followTail=viewport.mode===VIEWPORT_STATES.FOLLOW_TAIL;
-    return{followTail,preserve:followTail?'AUTO':'VIEW'};
+    return{followTail,preserve:followTail?'AUTO':readingPreserve};
   }
 
   // Local ACK/data merges keep the normal viewport policy. Own sends already
@@ -22701,7 +22703,7 @@ function appendScrollPolicy({inserted=false,remote=false,messageIds=[]}={}){
   const followTail=viewport.mode===VIEWPORT_STATES.FOLLOW_TAIL;
   return{
     followTail,
-    preserve:followTail?'AUTO':'VIEW'
+    preserve:followTail?'AUTO':readingPreserve
   };
 }
 
