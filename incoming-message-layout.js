@@ -107,6 +107,40 @@ function parseUnitAroundNumber(line,isOrder){
  }
  return null;
 }
+// CHAT-401: reviewed request-word and stock-size lexicon (read-only).
+// Never automatically learn uncertain abbreviations from conversations.
+const REQUEST_LEADS=[
+ /^(?:cho\s+(?:tôi|em|e|chị|anh|a|c|mình|thêm))(?=\s|[:：,.]|$)(?:\s+(?:lấy|mua|thêm))?\s*[:：,.-]?\s*/iu,
+ /^(?:lấy|đặt|gửi|mua)\s+(?:thêm\s+)?(?:cho\s+(?:tôi|em|e|chị|anh|a|c)\s+)?\s*[:：,.-]?\s*/iu,
+ /^(?:thêm|bổ\s+sung)\s*[:：,.-]?\s*/iu
+];
+const AVAILABILITY_LEAD=/^đang\s+có(?=\s|[:：,.]|$)\s*[:：,.-]?\s*/iu;
+function requestLine(raw){
+ const text=stripListMarker(raw);
+ for(const regex of REQUEST_LEADS){
+  const m=text.match(regex);
+  if(m&&text.slice(m[0].length).trim())return{body:text.slice(m[0].length).trim(),kind:'request'};
+ }
+ const m=text.match(AVAILABILITY_LEAD);
+ if(m&&text.slice(m[0].length).trim())return{body:text.slice(m[0].length).trim(),kind:'availability'};
+ return{body:text,kind:''};
+}
+// Explicitly confirmed by the user: the last number is requested quantity.
+const VERIFIED_SIZE=/^bát\s+(?:1\s*kg|454\s*g)$/iu;
+const SIZED_TAIL=/^(.+?\b\d+(?:[.,]\d+)?\s*(?:kg|g|gr|gam|ml|lít|lit)\b)\s+(\d{1,3})$/iu;
+function parseSizedQuantity(line,isOrder){
+ const raw=String(line||'').trim(),m=stripListMarker(raw).match(SIZED_TAIL);
+ if(!m||/^(?:giá|báo giá|bán giá)\b/iu.test(raw))return null;
+ if(!isOrder&&!VERIFIED_SIZE.test(m[1]))return null;
+ return entry(m[1],m[2],'',raw);
+}
+const KNOWN_VARIANT_TAIL=/^(probi|proby)\s+(?:(to|bé)\s+)?(trắng|vq|việt\s+quất|ít\s+đường|có\s+đường)\s+(\d{1,3})$/iu;
+function parseVariantTail(line){
+ const raw=String(line||'').trim(),m=stripListMarker(raw).match(KNOWN_VARIANT_TAIL);
+ if(!m)return null;
+ const stem=m[3].toLowerCase()==='vq'?'probi':m[1]+' '+(m[2]||'').trim();
+ return entry((stem+' '+m[3]).replace(/\s+/gu,' ').trim(),m[4],'',raw);
+}
 function parseStrongLine(line){
  const raw=String(line||'').trim();
  if(!raw||raw.length>150||/https?:\/\/|[<>]/iu.test(raw))return null;
@@ -149,36 +183,43 @@ function parseCompoundVariant(line){
  const raw=String(line||'').trim();
  const m=stripListMarker(raw).match(/^(.{2,80}?)\s*[:：]\s*(.+)$/u);
  if(!m||/^(?:ghi chú|lưu ý|giao hàng|thanh toán|giá|địa chỉ|ship)$/iu.test(m[1].trim()))return null;
- const parts=m[2].split(/\s*[,;]\s*/u);
- if(parts.length<2||parts.length>12)return null;
- const variant=new RegExp('^(\\d{1,3})\\s+(?:('+U+')\\s+)?([\\p{L}][\\p{L}\\p{N}\\s./-]{1,60})$','iu');
- const found=[];
- for(const part of parts){
-  const p=part.trim().match(variant);
-  if(!p)return null;
-  const label=p[3].trim();
-  // "có" is reproduced verbatim, not guessed as a flavor or corrected.
-  const review=/^(?:có|ko|không|ít)$/iu.test(label);
-  const item=entry(m[1].trim()+' '+label,p[1],p[2]||'',raw,review);
+ const chunks=m[2].trim().replace(/\.{2,}\s*$/u,'').split(/\s*[,;]\s*/u);
+ if(chunks.length<2||chunks.length>12)return null;
+ const qtyFirst=new RegExp('^(\\d{1,3})\\s*(?:('+U+')\\s+)?([\\p{L}][\\p{L}\\p{N}\\s./-]{0,60})$','iu');
+ const nameFirst=new RegExp('^([\\p{L}][\\p{L}\\p{N}\\s./-]{0,60}?)\\s+(\\d{1,3})(?:\\s*('+U+'))?$','iu');
+ const root=m[1].trim(),result=[];
+ for(const chunk of chunks){
+  const first=chunk.trim().match(qtyFirst),last=first?null:chunk.trim().match(nameFirst);
+  if(!first&&!last)return null;
+  const label=String(first?first[3]:last[1]).trim();
+  const quantity=first?first[1]:last[2],pack=first?first[2]:last[3];
+  if(!label)return null;
+  const shortVq=/^vq$/iu.test(label),probiTo=/^probi(?:y)?\s+to$/iu.test(root);
+  const name=(shortVq&&probiTo?'probi':root)+' '+label;
+  const review=/^(?:có|ít|dưa|dươngf|ko|không)$/iu.test(label)||(shortVq&&!probiTo);
+  const item=entry(name,quantity,pack||'',raw,review);
   if(!item)return null;
-  found.push(item);
+  result.push(item);
  }
- return found;
+ return result;
 }
 function parsePieces(line,isOrder){
- const raw=String(line||'').trim();
- if(!raw||raw.length>240||/https?:\/\/|[<>]/iu.test(raw))return [];
+ const original=String(line||'').trim();
+ if(!original||original.length>240||/https?:\/\/|[<>]/iu.test(original))return [];
+ const lead=requestLine(original),raw=lead.body;
  const compound=parseCompoundVariant(raw);
- if(compound)return compound;
+ if(compound)return compound.map(item=>({...item,source:original,review:item.review||lead.kind==='availability'}));
  // E.g. "5 sữa, 3 bánh" or "Mì 2 thùng; Bánh 3 gói".
  // Split only when ALL fragments stand alone as products.
  const segments=raw.split(/\s*[,;]\s*/u);
  if(segments.length>=2&&segments.length<=12){
-  const found=segments.map(x=>parseStrongLine(x)||parseUnitAroundNumber(x,isOrder)||parseColonBare(x,isOrder)||parseBareLine(x,isOrder));
-  if(found.every(Boolean))return found;
+  const found=segments.map(x=>parseStrongLine(x)||parseUnitAroundNumber(x,isOrder)||
+   parseSizedQuantity(x,isOrder)||parseVariantTail(x)||parseColonBare(x,isOrder)||parseBareLine(x,isOrder));
+  if(found.every(Boolean))return found.map(item=>({...item,source:original,review:item.review||lead.kind==='availability'}));
  }
- const single=parseStrongLine(raw)||parseUnitAroundNumber(raw,isOrder)||parseColonBare(raw,isOrder)||parseBareLine(raw,isOrder);
- return single?[single]:[];
+ const single=parseStrongLine(raw)||parseUnitAroundNumber(raw,isOrder)||
+  parseSizedQuantity(raw,isOrder)||parseVariantTail(raw)||parseColonBare(raw,isOrder)||parseBareLine(raw,isOrder);
+ return single?[{...single,source:original,review:single.review||lead.kind==='availability'}]:[];
 }
 function topicLine(line){
  const match=String(line||'').trim().replace(/^[#•\s]+/u,'').match(/^(.{2,36}?)(?:\s*[:：-]\s*(.*))?$/u);
@@ -195,10 +236,12 @@ function noteTopic(line,current){
 }
 function analyze(input){
  const source=String(input??'').replace(/\r\n?/gu,'\n');
- if(source.length<10||source.length>5000||!source.includes('\n')
+ if(source.length<6||source.length>5000
    ||/https?:\/\//iu.test(source)||source.includes(String.fromCharCode(96).repeat(3)))return null;
  const lines=source.split('\n').map(x=>x.trim()).filter(Boolean);
- if(lines.length<2||lines.length>48)return null;
+ if(lines.length<1||lines.length>48)return null;
+ const requestIntent=lines.some(line=>requestLine(line).kind==='request');
+ const availabilityOnly=lines.every(line=>requestLine(line).kind==='availability');
  const cue=orderCue.test(source),items=[],notes=[],heads=new Set();
  // First pass: strong unit/SL declarations and compound variants establish
  // context even when the customer never writes "lấy hàng". Multiple bare
@@ -210,7 +253,7 @@ function analyze(input){
   strongCount+=strong.length;
   if(!strong.length&&parseBareLine(line,true))bareCount++;
  }
- const orderContext=cue||strongCount>0||bareCount>=2;
+ const orderContext=cue||requestIntent||strongCount>0||bareCount>=2;
  let active='other';
  for(const line of lines){
   const t=topicLine(line);
@@ -233,12 +276,15 @@ function analyze(input){
   if(parsed.length){items.push(...parsed);continue;}
   notes.push({topic:noteTopic(line,active),text:line});
  }
- const isOrder=items.length>=2||(items.length>=1&&(cue||heads.has('items')));
+ const isOrder=items.length>=2||(items.length>=1&&(cue||requestIntent||heads.has('items')||
+  items.every(item=>VERIFIED_SIZE.test(item.name))||
+  items.every(item=>KNOWN_VARIANT_TAIL.test(stripListMarker(item.source)))));
+ const isAvailability=availabilityOnly&&items.length>0;
  const isTopics=!items.length&&heads.size>=2&&notes.length>=2;
- if(!isOrder&&!isTopics)return null;
+ if(!isOrder&&!isTopics&&!isAvailability)return null;
  const grouped=new Map();
  for(const note of notes){if(!grouped.has(note.topic))grouped.set(note.topic,[]);grouped.get(note.topic).push(note.text);}
- return {kind:isOrder?'order':'topics',items,groups:Array.from(grouped,([key,rows])=>({key,label:labels[key]||'Ghi chú',rows})),source};
+ return {kind:isAvailability?'availability':isOrder?'order':'topics',items,groups:Array.from(grouped,([key,rows])=>({key,label:labels[key]||'Ghi chú',rows})),source};
 }
 function el(tag,cls,content){
  const n=document.createElement(tag);
@@ -250,8 +296,10 @@ function render(target,input){
  const parsed=analyze(input);
  if(!target||!parsed)return false;
  const root=el('div','incoming-brief'),head=el('div','incoming-brief-head');
- head.append(el('strong','incoming-brief-title',parsed.kind==='order'?'Danh sách lấy hàng':'Nội dung theo chủ đề'),
-  el('span','incoming-brief-count',parsed.kind==='order'?parsed.items.length+' mặt hàng':parsed.groups.length+' chủ đề'));
+ head.append(el('strong','incoming-brief-title',
+  parsed.kind==='order'?'Danh sách lấy hàng':parsed.kind==='availability'?'Hàng đang có · Cần soát':'Nội dung theo chủ đề'),
+  el('span','incoming-brief-count',
+   parsed.kind==='order'||parsed.kind==='availability'?parsed.items.length+' mặt hàng':parsed.groups.length+' chủ đề'));
  root.append(head);
  if(parsed.items.length){
   const list=el('div','incoming-brief-products');
@@ -261,8 +309,9 @@ function render(target,input){
   list.append(columns);
   parsed.items.forEach((item,index)=>{
    const row=el('div','incoming-brief-item');
+   if(item.review)row.dataset.needsReview='true';
    const name=el('span','incoming-brief-product',item.name);
-   if(item.review)name.append(el('span','incoming-brief-review',' · Cần soát'));
+   if(item.review)name.append(el('span','incoming-brief-review','Cần hướng dẫn'));
    row.append(el('span','incoming-brief-index',index+1),name,
     el('span','incoming-brief-quantity',item.qty+(item.unit?' '+item.unit:'')));
    list.append(row);
