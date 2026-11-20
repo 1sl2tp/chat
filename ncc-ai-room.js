@@ -120,6 +120,7 @@ const visibleHashes=new Set();
 const invoiceRecords=new Map();
 let stagedChatSource=null;
 let daySummaryHost=null;
+let activeNccType='all';
 const attachedUrls=new Set();
 const say=text=>{state.textContent=text;};
 function valid(file){
@@ -424,9 +425,21 @@ function renderDayGroups(){
  if(!groups.length)return;
  node(daySummaryHost,'strong','Tổng hợp phiếu nhập theo ngày','ncc-day-summary-heading');
  node(daySummaryHost,'small','Chỉ gộp cùng người gửi và cùng ngày. Giá khác nhau giữ dòng riêng; phiếu gốc còn nguyên.');
- const count=node(daySummaryHost,'small',groups.length+' nhóm nguồn/ngày · '+groups.reduce((n,x)=>n+x.invoices.length,0)+' phiếu');
+ const filters=node(daySummaryHost,'nav',undefined,'ncc-day-type-filters');
+ filters.setAttribute('aria-label','Lọc loại hàng nhập');
+ for(const [value,title] of [
+  ['all','Tất cả'],['general','Hàng thường'],['u','Hàng U'],['tobacco','Thuốc lá'],['other','Khác']
+ ]){
+  const button=node(filters,'button',title);
+  button.type='button';button.dataset.active=String(activeNccType===value);
+  button.setAttribute('aria-pressed',String(activeNccType===value));
+  button.addEventListener('click',()=>{activeNccType=value;renderDayGroups();});
+ }
+ const visible=activeNccType==='all'?groups:groups.filter(x=>x.type===activeNccType);
+ const count=node(daySummaryHost,'small',visible.length+' nhóm nguồn/ngày · '+visible.reduce((n,x)=>n+x.invoices.length,0)+' phiếu');
  count.className='ncc-day-summary-count';
- for(const [index,group] of groups.entries()){
+ if(!visible.length)node(daySummaryHost,'small','Chưa có phiếu được gán vào loại hàng này.');
+ for(const [index,group] of visible.entries()){
   const card=node(daySummaryHost,'details',undefined,'ncc-day-group');
   card.open=index===0;
   const summary=node(card,'summary',undefined,'ncc-day-group-head');
