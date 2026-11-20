@@ -71,7 +71,7 @@ assert(clientSource.includes("new Blob([blob],{type:'image/jpeg'})"));
 assert(app.includes("preserve:hasUserScrollIntent()?'VIEW':'ANCHOR'"),
  'OCR resize restores reading anchor when not touch-scrolling');
 assert(app.includes("const readingPreserve=hasUserScrollIntent()?'VIEW':'ANCHOR'"),
- 'new messages cannot shift an idle user's reading position when the daily card moves');
+ 'new messages cannot shift the idle reading position when the daily card moves');
 assert(app.includes("return{followTail,preserve:followTail?'AUTO':readingPreserve}"),
  'realtime updates keep FOLLOW_TAIL owned by the existing scroll controller');
 assert(clientSource.includes('if(owner()?.key!==who.key)'));
