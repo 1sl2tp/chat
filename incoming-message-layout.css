@@ -96,3 +96,32 @@
  .incoming-brief-columns{font-size:9px}
  .incoming-brief-product{font-size:12px}
 }
+
+/* CHAT-408: one composite stock list belongs at the END of the day's
+   conversation, centered and independent of incoming/outgoing bubbles.
+   It is inside the last virtualized message row and never uses position:
+   fixed/sticky, so Safari keyboard and anchored scrolling remain owned by
+   the existing scroll controller. */
+#messageWindow .message-day-order-wrap{
+ box-sizing:border-box;display:block;
+ width:min(100%,720px);max-width:100%;min-width:0;
+ margin:12px auto 18px;
+ padding:0;
+}
+#messageWindow .message-day-order-wrap .day-order-summary-card{
+ width:100%;max-width:100%;min-width:0;
+ background:rgba(100,116,140,.065);
+ border:1px solid rgba(83,98,118,.24);
+ padding:12px 14px;
+}
+#messageWindow .message-day-order-wrap .incoming-brief-title{
+ font-size:14px;line-height:20px;
+}
+#messageWindow .message-day-order-wrap .day-order-summary-disclaimer{
+ color:inherit;opacity:.72;font-size:11px;line-height:16px;
+ border-top:1px solid rgba(80,97,117,.13);padding-top:8px;
+}
+@media(max-width:360px){
+ #messageWindow .message-day-order-wrap .day-order-summary-card{padding:9px 10px}
+ #messageWindow .message-day-order-wrap .incoming-brief-title{font-size:13px}
+}
