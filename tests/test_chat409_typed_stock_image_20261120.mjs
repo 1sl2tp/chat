@@ -70,8 +70,9 @@ assert(clientSource.includes("blob.type==='image/jpg'"),
 assert(clientSource.includes("new Blob([blob],{type:'image/jpeg'})"));
 assert(app.includes("{passive:true,capture:true}"),
  'capture-phase pointer/touch ownership is required below the day card');
-const pointerHandler=app.slice(app.indexOf("scrollRoot.addEventListener(\\n  'pointerdown'"),
- app.indexOf("window.addEventListener(\\n  'pointerup'"));
+const pointerStart=app.indexOf("scrollRoot.addEventListener(",app.indexOf("function isInteractiveScrollIntentTarget"));
+const pointerHandler=app.slice(pointerStart,app.indexOf("window.addEventListener(",pointerStart));
+assert(pointerStart>=0,'scroll handler must exist');
 assert(pointerHandler.includes("markUserScrollIntent(900)"));
 assert(pointerHandler.includes("capture:true"));
 const touchHandler=app.slice(app.indexOf("scrollRoot.addEventListener('touchstart'"),
