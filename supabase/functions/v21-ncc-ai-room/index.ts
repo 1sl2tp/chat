@@ -396,7 +396,7 @@ Deno.serve(async req=>{
  let body:any={};
  try{body=await req.json();}catch{return fail("invalid_json");}
  const action=String(body?.action||"").trim();
- if(action==="health")return json({ok:true,ready:Boolean(Deno.env.get("GEMINI_API_KEY")),features:["invoice_totals_v2","canonical_product_links_v1"]});
+ if(action==="health")return json({ok:true,ready:Boolean(Deno.env.get("GEMINI_API_KEY")),features:["invoice_totals_v2","canonical_product_links_v1","chat_stock_image"]});
  if(action==="catalog")return handleCatalog();
  if(action==="link_product")return handleLinkProduct(admin.id,body);
  if(action==="chat_stock_image")return handleChatStockImage(body);
