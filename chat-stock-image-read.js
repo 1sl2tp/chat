@@ -6,6 +6,7 @@ const FUNCTION='v21-ncc-ai-room';
 const cache=new Map();
 const inflight=new Map();
 const MAX_BYTES=4000000;
+let readyScope='',readyState=null,readyPending=null;
 function owner(){
  const auth=window.V21AuthSessionStore?.snapshot?.()||{};
  const sync=window.V21SyncEngine?.snapshot?.()||{};
@@ -24,6 +25,39 @@ function recordKey(who,assetId){return who?.key+'::'+assetId;}
 function peek(assetId){
  const who=owner();
  return who&&allowedAsset(assetId)?cache.get(recordKey(who,assetId))||null:null;
+}
+// CHAT-410: do not offer an OCR action before the actually deployed Edge
+// function announces support; the previous GitHub Edge release may be blocked
+// by a missing CI secret. Health is read-only and cached per Admin session.
+function availability(){
+ const who=owner();
+ return who&&who.key===readyScope?readyState:null;
+}
+async function checkReady(){
+ const who=owner();
+ if(!who)return false;
+ if(readyScope!==who.key){
+  readyScope=who.key;readyState=null;readyPending=null;
+ }
+ if(readyState!==null)return readyState;
+ if(readyPending)return readyPending;
+ readyPending=(async()=>{
+  let available=false;
+  try{
+   const client=window.V21AuthSessionStore?.getClient?.();
+   if(client){
+    const {data,error}=await client.functions.invoke(FUNCTION,{body:{action:'health'}});
+    available=!error&&data?.ok===true&&data?.ready===true&&
+     Array.isArray(data.features)&&data.features.includes('chat_stock_image');
+   }
+  }catch{}
+  if(owner()?.key===who.key){
+   readyState=Boolean(available);
+   document.dispatchEvent(new Event('v21-stock-image-capability'));
+  }
+  return available;
+ })().finally(()=>{if(readyScope===who.key)readyPending=null;});
+ return readyPending;
 }
 function fileBase64(file){
  return new Promise((resolve,reject)=>{
@@ -61,6 +95,7 @@ async function scan(assetId){
  const who=owner();
  if(!who)throw Error('admin_required');
  if(!allowedAsset(assetId))throw Error('invalid_asset');
+ if(!(await checkReady()))throw Error('ocr_not_deployed');
  const key=recordKey(who,assetId);
  if(cache.has(key))return cache.get(key);
  if(inflight.has(key))return inflight.get(key);
@@ -101,9 +136,11 @@ async function scan(assetId){
  inflight.set(key,job);
  return job;
 }
-function clear(){cache.clear();inflight.clear();}
+function clear(){
+ cache.clear();inflight.clear();readyScope='';readyState=null;readyPending=null;
+}
 document.addEventListener('v21-auth-state',event=>{
  if(event.detail?.state!=='AUTHENTICATED')clear();
 });
-window.V21ChatStockImageRead=Object.freeze({scan,peek,clear,owner});
+window.V21ChatStockImageRead=Object.freeze({scan,peek,clear,owner,availability,checkReady});
 })();

@@ -110,4 +110,42 @@ assert(target.textContent.includes('Không cộng vào hàng từ tin'));
 assert(target.textContent.includes('Cần hướng dẫn'));
 assert(!/fetch\(|localStorage|supabase\./.test(parserSource),
  'pure day summarizer must not trigger remote operations');
+// CHAT-410: the old deployed Edge version does NOT support chat_stock_image.
+// No click can upload media before the explicit server health feature exists.
+let supported=false,healthCalls=0,events=[];
+const auth={
+ snapshot:()=>({state:'AUTHENTICATED',account:{id:'admin-one',role:'admin'},
+  appSessionId:'session-one'}),
+ getClient:()=>({functions:{invoke:async(name,{body})=>{
+  assert.equal(name,'v21-ncc-ai-room');
+  assert.equal(body.action,'health');
+  healthCalls++;
+  return {data:{ok:true,ready:true,
+   features:supported?['chat_stock_image']:['invoice_totals_v2']},error:null};
+ }}})
+};
+const fakeWindow={V21AuthSessionStore:auth,
+ V21SyncEngine:{snapshot:()=>({currentConversationId:'private-conversation'})}};
+const fakeDoc={addEventListener(){},dispatchEvent:event=>events.push(event.type)};
+new Function('window','document','Event','Blob',clientSource)(
+ fakeWindow,fakeDoc,class Event{constructor(type){this.type=type}},Blob
+);
+const scopedReader=fakeWindow.V21ChatStockImageRead;
+assert.equal(await scopedReader.checkReady(),false);
+assert.equal(scopedReader.availability(),false);
+await assert.rejects(scopedReader.scan('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'),
+ /ocr_not_deployed/,
+ 'never upload customer photos to an older Edge function');
+assert.equal(healthCalls,1,'feature detection must be cached per Admin conversation');
+assert.deepEqual(events,['v21-stock-image-capability']);
+supported=true;scopedReader.clear();
+assert.equal(await scopedReader.checkReady(),true);
+assert.equal(scopedReader.availability(),true);
+assert.equal(healthCalls,2);
+assert(edge.includes('"canonical_product_links_v1","chat_stock_image"'),
+ 'new Edge release announces capability only with actual OCR implementation');
+assert(uiSource.includes("capability===false?'Chưa triển khai bộ đọc ảnh'"));
+assert(uiSource.includes('button.disabled=Boolean(current)||capability!==true'));
+assert(app.includes("document.addEventListener('v21-stock-image-capability'"));
+
 console.log('CHAT-409 typed stock image OCR isolated and day-grouped PASS');

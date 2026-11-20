@@ -22,14 +22,17 @@ function sync(node,message,onRead){
   reader?.owner?.()?assets(message):[];
  let wrap=unit.querySelector(':scope > .message-stock-image-read');
  if(!ids.length){if(wrap){wrap.remove();return true;}return false;}
+ const capability=reader.availability?.();
+ if(capability==null)void reader.checkReady?.();
  const identity=ids.join('|');
  if(wrap&&wrap.dataset.assetKeys===identity){
   for(const button of wrap.querySelectorAll('button[data-stock-image-id]')){
    const result=reader.peek(button.dataset.stockImageId);
-   button.disabled=Boolean(result);
+   button.disabled=Boolean(result)||capability!==true;
    button.textContent=result?
     result.status==='read'?'Đã đọc chữ · Xem cuối ngày':'Ảnh không phải danh sách · Đã soát':
-    'Đọc chữ hàng trong ảnh';
+    capability===false?'Chưa triển khai bộ đọc ảnh':
+    capability==null?'Đang kiểm tra bộ đọc ảnh…':'Đọc chữ hàng trong ảnh';
   }
   return false;
  }
@@ -48,13 +51,16 @@ function sync(node,message,onRead){
   button.className='message-stock-image-read-button';
   button.dataset.stockImageId=assetId;
   const current=reader.peek(assetId);
-  button.disabled=Boolean(current);
+  button.disabled=Boolean(current)||capability!==true;
   button.textContent=current?
     current.status==='read'?'Đã đọc chữ · Xem cuối ngày':'Ảnh không phải danh sách · Đã soát':
+    capability===false?'Chưa triển khai bộ đọc ảnh':
+    capability==null?'Đang kiểm tra bộ đọc ảnh…':
     ids.length>1?'Đọc chữ ảnh '+(index+1):'Đọc chữ hàng trong ảnh';
   const status=document.createElement('span');
   status.className='message-stock-image-read-status';
-  status.textContent=current?.status==='read'?current.lines.length+' dòng · Cần soát':'';
+  status.textContent=current?.status==='read'?current.lines.length+' dòng · Cần soát':
+   capability===false?'Máy chủ chưa có phiên bản đọc ảnh · Chờ cập nhật':'';
   button.addEventListener('click',e=>{
    e.preventDefault();e.stopPropagation();
    if(button.disabled)return;
@@ -75,6 +81,7 @@ function sync(node,message,onRead){
     status.textContent={
      image_unavailable:'Ảnh chưa tải xong · Mở ảnh rồi thử lại',
      image_too_large:'Ảnh quá lớn hoặc chưa hỗ trợ',
+     ocr_not_deployed:'Máy chủ chưa có bộ đọc ảnh',
      ai_not_configured:'AI máy chủ chưa sẵn sàng',
      conversation_switched:'Đã chuyển hội thoại'
     }[String(error?.message||'')]||'Chưa đọc được ảnh · Thử lại';
