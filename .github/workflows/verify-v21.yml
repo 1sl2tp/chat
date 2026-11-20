@@ -759,5 +759,10 @@ jobs:
         continue-on-error: true
         run: |
           npm exec --yes --package=typescript@5.8.3 -- tsc -p tsconfig.migration.json --pretty false
+      - name: CHAT-409 typed stock image OCR read-only contract
+        run: |
+          node --check chat-stock-image-read.js
+          node --check chat-stock-image-ui.js
+          node tests/test_chat409_typed_stock_image_20261120.mjs
       - name: Verify canonical source
         run: python tools/verify_current.py

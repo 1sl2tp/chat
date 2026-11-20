@@ -125,3 +125,36 @@
  #messageWindow .message-day-order-wrap .day-order-summary-card{padding:9px 10px}
  #messageWindow .message-day-order-wrap .incoming-brief-title{font-size:13px}
 }
+
+/* CHAT-409: opt-in OCR belongs beneath the image, not over the image viewer. */
+#messageWindow .message-stock-image-read{
+ display:flex;flex-direction:column;gap:6px;
+ max-width:100%;min-width:0;padding:4px 0;
+}
+#messageWindow .message-stock-image-read-row{
+ display:flex;flex-direction:column;align-items:flex-start;gap:2px;
+ min-width:0;
+}
+#messageWindow .message-stock-image-read-button{
+ appearance:none;display:inline-block;
+ min-height:32px;padding:6px 10px;
+ border:1px solid rgba(100,116,139,.30);border-radius:9px;
+ background:rgba(148,163,184,.11);color:inherit;
+ font-size:11px;line-height:17px;font-weight:700;
+ text-align:left;cursor:pointer;touch-action:manipulation;
+}
+#messageWindow .message-stock-image-read-button:disabled{opacity:.65;cursor:default}
+#messageWindow .message-stock-image-read-status{
+ font-size:10px;line-height:15px;opacity:.75;max-width:100%;
+ overflow-wrap:anywhere;
+}
+#messageWindow .day-order-image-source{
+ display:flex;flex-direction:column;gap:5px;
+ padding:9px 0;border-top:1px solid rgba(80,97,117,.16);
+}
+#messageWindow .day-order-image-title{
+ font-size:12px;line-height:18px;font-weight:750;
+}
+#messageWindow .day-order-image-note{
+ font-size:11px;line-height:16px;opacity:.8;
+}
