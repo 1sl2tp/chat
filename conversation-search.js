@@ -123,7 +123,7 @@ function open(){
    meta.textContent=(hit.sender==='self'?'Bạn':'Khách')+' · '+formatTime(hit.createdAt);
    const preview=document.createElement('span');
    preview.className='conversation-search-hit-preview';
-   preview.textContent=hit.preview;
+   preview.textContent=window.V21ChatMessageCase?.previewCase?.(hit.preview)||hit.preview;
    button.append(meta,preview);
    button.addEventListener('click',()=>{
     if(!sameScope(searchScope,scope())){close({restoreFocus:false});return;}
