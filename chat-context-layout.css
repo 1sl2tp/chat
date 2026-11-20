@@ -1,0 +1,69 @@
+/* CHAT-416: ChatGPT-like contextual reading layout, NOT an AI task engine.
+   Ordinary text stays chat text. Only explicit section headings, real lists,
+   and existing stock cards get deliberate spacing/alignment. No fixed heights,
+   scroll owners, keyboard transforms, message mutation, or fake data. */
+#appShell[data-auth-state="authenticated"][data-route="chat"]
+#messageWindow .message-body .message-rich-section-title{
+  display:block;
+  margin-block:7px 4px;
+  color:var(--theme-content-primary);
+  font-size:1em;
+  line-height:1.45;
+  font-weight:700;
+  letter-spacing:-.01em;
+  overflow-wrap:anywhere;
+}
+#appShell[data-auth-state="authenticated"][data-route="chat"]
+#messageWindow .message-body .message-rich-section-title:first-child{
+  margin-top:0;
+}
+#appShell[data-auth-state="authenticated"][data-route="chat"]
+#messageWindow .message-body .message-rich-section-title+.message-rich-list{
+  margin-top:3px;
+}
+#appShell[data-auth-state="authenticated"][data-route="chat"]
+#messageWindow .message-body .message-rich-list{
+  max-width:100%;
+  padding-inline-start:1.35rem;
+  margin-block:4px 6px;
+}
+#appShell[data-auth-state="authenticated"][data-route="chat"]
+#messageWindow .message-body .message-rich-list>li{
+  overflow-wrap:anywhere;
+  line-height:1.45;
+}
+#appShell[data-auth-state="authenticated"][data-route="chat"]
+#messageWindow .message-body .message-rich-list>li+li{
+  margin-top:3px;
+}
+#appShell[data-auth-state="authenticated"][data-route="chat"]
+#messageWindow .message-day-order-wrap .incoming-brief-columns{
+  background:color-mix(in srgb,var(--theme-content-secondary) 5%,var(--theme-surface-primary));
+  border-bottom:1px solid color-mix(in srgb,var(--theme-border-default) 65%,transparent);
+  border-radius:6px 6px 0 0;
+  padding-inline:6px;
+}
+#appShell[data-auth-state="authenticated"][data-route="chat"]
+#messageWindow .message-day-order-wrap .incoming-brief-item{
+  padding-inline:6px;
+  border-bottom:1px solid color-mix(in srgb,var(--theme-border-default) 48%,transparent);
+}
+#appShell[data-auth-state="authenticated"][data-route="chat"]
+#messageWindow .message-day-order-wrap .incoming-brief-product{
+  min-width:0;
+  overflow-wrap:anywhere;
+}
+#appShell[data-auth-state="authenticated"][data-route="chat"]
+#messageWindow .message-day-order-wrap .incoming-brief-quantity{
+  font-variant-numeric:tabular-nums;
+  text-align:right;
+  justify-self:end;
+}
+@media(max-width:360px){
+  #appShell[data-auth-state="authenticated"][data-route="chat"]
+  #messageWindow .message-day-order-wrap .incoming-brief-columns,
+  #appShell[data-auth-state="authenticated"][data-route="chat"]
+  #messageWindow .message-day-order-wrap .incoming-brief-item{
+    padding-inline:3px;
+  }
+}
