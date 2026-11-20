@@ -114,6 +114,9 @@ let embeddedHost=null;
 let selectedPhoto=null,selectVersion=0,supportsRecheck=false,supportsProductLinks=false;
 let productCatalog=null;
 const visibleHashes=new Set();
+const invoiceRecords=new Map();
+let stagedChatSource=null;
+let daySummaryHost=null;
 const attachedUrls=new Set();
 const say=text=>{state.textContent=text;};
 function valid(file){
@@ -125,14 +128,15 @@ function sync(){
 }
 function clearPreview(){
  if(previewUrl){URL.revokeObjectURL(previewUrl);previewUrl="";}
- fileInput.value="";selectedPhoto=null;preview.hidden=true;preview.querySelector("img").removeAttribute("src");
+ fileInput.value="";selectedPhoto=null;stagedChatSource=null;
+ preview.hidden=true;preview.querySelector("img").removeAttribute("src");
  sync();
 }
 function purge(){
  selectVersion++;
  clearPreview();
  for(const url of attachedUrls)URL.revokeObjectURL(url);
- attachedUrls.clear();visibleHashes.clear();thread.replaceChildren();
+ attachedUrls.clear();visibleHashes.clear();invoiceRecords.clear();daySummaryHost=null;thread.replaceChildren();
  productCatalog=null;supportsProductLinks=false;
  ready=false;supportsRecheck=false;busy=false;session="";sync();
 }
