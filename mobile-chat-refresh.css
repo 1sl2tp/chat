@@ -185,11 +185,10 @@
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell{
     grid-template-columns:var(--ui-control-touch,44px) minmax(0,1fr) var(--ui-control-touch,44px) var(--ui-control-touch,44px);
-    /* UI-268: one row on iPhone: +, editor, mic, send. Optional
-       reply/attachment content stays in the tracks above, not a second
-       persistent button rail. Native textarea remains the caret owner. */
+    /* CHAT-398: one stable action row at every line count. Text grows
+       upward from the same bottom edge and NEVER changes its width. */
     grid-template-rows:auto auto minmax(var(--ui-control-touch,44px),auto);
-    align-items:center;
+    align-items:end;
     gap:0 var(--ui-composer-action-gap,4px);
     overflow:visible;
     border:1px solid color-mix(in srgb,var(--theme-border-default) 78%,transparent);
@@ -222,7 +221,7 @@
   #appShell[data-auth-state="authenticated"][data-route="chat"] #editorWrap{
     grid-column:2;
     grid-row:3;
-    align-self:center;
+    align-self:end;
     min-width:0;
     padding:0 2px!important;
   }
@@ -237,6 +236,8 @@
     line-height:22px;
     white-space:pre-wrap;
     overflow-wrap:anywhere;
+    overflow-anchor:none;
+    transition:none!important;
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composerFooter{
@@ -253,7 +254,7 @@
     height:var(--ui-control-touch,44px)!important;
     min-height:var(--ui-control-touch,44px)!important;
     padding:0;
-    align-self:center;
+    align-self:end;
     justify-self:center;
   }
   /* Unified tap feedback; visual icon size never changes hitbox or grid. */
@@ -322,26 +323,9 @@
   #appShell[data-auth-state="authenticated"][data-route="chat"] #send svg :is(path,line,rect,circle,polyline){
     stroke-width:2px!important;
   }
-  /* CHAT-384: compact mode accommodates TWO lines before changing the
-     track layout. The third real line owns the full-width editor and moves
-     the existing 44px actions below, without a second keyboard owner. */
-  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-editor-expanded="true"]{
-    grid-template-rows:auto auto minmax(40px,auto) 44px;
-    align-items:end;
-  }
-  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-editor-expanded="true"] #editorWrap{
-    grid-column:1 / -1;
-    grid-row:3;
-    align-self:stretch;
-    padding:1px 12px 0!important;
-  }
-  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-editor-expanded="true"] #editor{
-    padding:8px 2px!important;
-  }
-  #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell[data-editor-expanded="true"] :is(#composer-plus-btn,#composer-mic-btn,#send){
-    grid-row:4;
-    align-self:center;
-  }
+  /* CHAT-398: no mode-dependent grid reflow on soft wrap or newline.
+     Plus, microphone and send remain on the last text row,
+     while the native textarea grows only into the space above. */
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell:not([data-can-send="true"]) #send{
     background:color-mix(in srgb,var(--theme-content-tertiary) 47%,var(--theme-surface-secondary));
