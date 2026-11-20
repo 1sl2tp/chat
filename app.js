@@ -5609,7 +5609,12 @@ function patchMessageNode(node,message){
 }
 
 function syncStockImageOCRControl(node,message){
- return window.V21ChatStockImageUI?.sync?.(node,message,()=>renderWindow({preserve:'VIEW'}))||false;
+ // CHAT-411: OCR inserts an expanded day card into the existing timeline.
+ // Restore the visible message, not the end of the chat, when the async
+ // review result changes row height. Never fight an active touch scroll.
+ return window.V21ChatStockImageUI?.sync?.(node,message,()=>renderWindow({
+  preserve:hasUserScrollIntent()?'VIEW':'ANCHOR'
+ }))||false;
 }
 function stockImageReadings(message){
  return window.V21ChatStockImageUI?.reads?.(message)||[];
@@ -5947,7 +5952,9 @@ function renderWindow({
 // No scroll-to-tail command and no extra message or media mutation.
 document.addEventListener('v21-stock-image-capability',()=>{
  if(window.V21ChatStockImageRead?.owner?.()&&store.items.length){
-  renderWindow({preserve:'VIEW'});
+  // A button can change height after capability detection. Keep the actual
+  // reading anchor unless the user is currently scrolling the conversation.
+  renderWindow({preserve:hasUserScrollIntent()?'VIEW':'ANCHOR'});
  }
 });
 
