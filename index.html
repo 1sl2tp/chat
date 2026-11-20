@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.60">
-<meta name="app-build-id" content="e4da82f0e64a0deac637b28e4441a6188fd195c4fde1edfdcc347542ef4f6023">
+<meta name="app-build-id" content="100d60b8a456f1367e39a2e52c61cbe625ea0df98f2dce109aabae7cc5ecbdb6">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -16753,9 +16753,9 @@ const AppBootController={
     // Repeated global faults must not repaint the banner or multiply logs.
     if(this.lastErrorMessage===message&&!runtimeError.classList.contains('hidden'))return;
     this.lastErrorMessage=message;
-    runtimeError.textContent='V21.72.60 runtime: '+message;
+    runtimeError.textContent='V21.72.61 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.60]',error);
+    console.error('[ChatScreenModule V21.72.61]',error);
   },
   ready(){
     // A successful render invariant proves recovery only for errors seen
@@ -16867,7 +16867,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.60 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.61 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -16921,7 +16921,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.60',
+  releaseVersion:'V21.72.61',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -17540,6 +17540,19 @@ function hasUserScrollIntent(){
   return userDragging || Date.now()<userScrollIntentUntil;
 }
 
+// Native iOS momentum continues after finger release. Every trusted scroll
+// extends gesture ownership; stale geometry must not re-enable FOLLOW_TAIL.
+function extendUserScrollIntentForMomentum(duration=650){
+  const ms=Math.max(150,Number(duration)||650);
+  userScrollIntentUntil=Math.max(userScrollIntentUntil,Date.now()+ms);
+  scrollRoot.setAttribute('data-user-scroll-intent','true');
+  clearTimeout(userScrollIntentTimer);
+  userScrollIntentTimer=setTimeout(()=>{
+    if(Date.now()>=userScrollIntentUntil)
+      scrollRoot.removeAttribute('data-user-scroll-intent');
+  },Math.max(140,userScrollIntentUntil-Date.now())+20);
+}
+
 function clearUserScrollIntentForExplicitTail(){
   userScrollIntentUntil=0;
   clearTimeout(userScrollIntentTimer);
@@ -17781,6 +17794,10 @@ function scrollToTail(reason='explicit',{messageId=undefined}={}){
   // over more than two animation frames (especially Safari mobile/PWA). Do not
   // guess a fixed frame count: converge until both geometry and tail distance
   // are stable, with a small bounded safety limit.
+  // A background update can arrive before the first touch scroll event.
+  // It must never seize the user's gesture as an implicit tail command.
+  if((reason==='remote-message'||reason==='reconcile-new-message'||
+      String(reason).startsWith('geometry:'))&&hasUserScrollIntent())return;
   claimTailIntent(reason,{messageId});
   const token=++pendingTailToken;
   const viewEpoch=conversationViewEpoch;
@@ -22087,11 +22104,9 @@ function patchMessageNode(node,message){
 }
 
 function syncStockImageOCRControl(node,message){
- // CHAT-411: OCR inserts an expanded day card into the existing timeline.
- // Restore the visible message, not the end of the chat, when the async
- // review result changes row height. Never fight an active touch scroll.
+ // CHAT-412: OCR day-card resize never owns scrollTop; user swipe wins.
  return window.V21ChatStockImageUI?.sync?.(node,message,()=>renderWindow({
-  preserve:hasUserScrollIntent()?'VIEW':'ANCHOR'
+  preserve:'VIEW'
  }))||false;
 }
 function stockImageReadings(message){
@@ -22430,9 +22445,8 @@ function renderWindow({
 // No scroll-to-tail command and no extra message or media mutation.
 document.addEventListener('v21-stock-image-capability',()=>{
  if(window.V21ChatStockImageRead?.owner?.()&&store.items.length){
-  // A button can change height after capability detection. Keep the actual
-  // reading anchor unless the user is currently scrolling the conversation.
-  renderWindow({preserve:hasUserScrollIntent()?'VIEW':'ANCHOR'});
+  // Do not change scrollTop when a capability button changes its height.
+  renderWindow({preserve:'VIEW'});
  }
 });
 
@@ -22687,24 +22701,12 @@ function appendScrollPolicy({inserted=false,remote=false,messageIds=[]}={}){
     return{followTail:false,preserve:'VIEW'};
   }
 
-  // CHAT-411: the daily stock summary moves from the old last message to
-  // the new last message whenever a new chat item arrives. VIEW only keeps
-  // the virtual index; ANCHOR restores the visible line when row heights
-  // change. During an actual touch/wheel scroll the user owns the viewport.
-  const readingPreserve=hasUserScrollIntent()?'VIEW':'ANCHOR';
-  // An already-following chat still follows the tail under ScrollController.
-  if(remote){
-    const followTail=viewport.mode===VIEWPORT_STATES.FOLLOW_TAIL;
-    return{followTail,preserve:followTail?'AUTO':readingPreserve};
-  }
-
-  // Local ACK/data merges keep the normal viewport policy. Own sends already
-  // claim tail intent in commitComposerSnapshotAfterSend().
-  const followTail=viewport.mode===VIEWPORT_STATES.FOLLOW_TAIL;
-  return{
-    followTail,
-    preserve:followTail?'AUTO':readingPreserve
-  };
+  // CHAT-412: A large day-summary card changes height as messages arrive.
+  // Passive updates must preserve the virtual VIEW without restoring stale
+  // scrollTop pixels. Touch/wheel wins even before its first scroll event.
+  const followTail=viewport.mode===VIEWPORT_STATES.FOLLOW_TAIL &&
+    !hasUserScrollIntent();
+  return{followTail,preserve:followTail?'AUTO':'VIEW'};
 }
 
 function setUserDragging(active){
@@ -22739,7 +22741,9 @@ scrollRoot.addEventListener(
     markUserScrollIntent(900);
     setUserDragging(true);
   },
-  {passive:true}
+  // The day card intentionally stops pointer bubbling for message actions.
+  // Capture the gesture before those nested handlers can stopPropagation.
+  {passive:true,capture:true}
 );
 
 window.addEventListener(
@@ -22761,7 +22765,7 @@ scrollRoot.addEventListener('wheel',()=>markUserScrollIntent(700),{passive:true}
 scrollRoot.addEventListener('touchstart',event=>{
   if(isInteractiveScrollIntentTarget(event.target))return;
   markUserScrollIntent(1100);
-},{passive:true});
+},{passive:true,capture:true});
 window.addEventListener('keydown',event=>{
   if(document.activeElement===editor)return;
   if(['PageUp','PageDown','Home','End','ArrowUp','ArrowDown',' '].includes(event.key))markUserScrollIntent(700);
@@ -22783,6 +22787,7 @@ scrollRoot.addEventListener(
     }
 
     markUserScrollInteraction();
+    extendUserScrollIntentForMomentum(650);
     const delta=top-lastUserScrollTop;
     const direction=top<lastUserScrollTop?'up':'down';
     lastUserScrollTop=top;
@@ -25693,7 +25698,7 @@ window.V21ConversationBridge={
 window.V21ChatImageViewer=Object.freeze({open:openImageViewer});
 
 window.ChatScreenModule={
-  version:'V21.72.60',
+  version:'V21.72.61',
   snapshot(){
     return{
       viewportMode:viewport.mode,
