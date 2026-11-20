@@ -12,8 +12,8 @@
 }
 .incoming-brief-title{font-size:13px;line-height:19px;font-weight:750}
 .incoming-brief-count{font-size:11px;line-height:16px;opacity:.7;white-space:nowrap}
-/* CHAT-400: three aligned columns only. Quantity carries its understood
-   unit (5 thùng); product sizes like 180ml remain part of the name. */
+/* CHAT-403: three aligned columns only. SL shows digits (5), never
+   a packaging word; quantities keep unit metadata outside the rendered cell. */
 .incoming-brief-products{
  box-sizing:border-box;display:flex;flex-direction:column;
  min-width:0;border-top:1px solid rgba(80,97,117,.16);
