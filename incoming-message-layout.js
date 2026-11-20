@@ -33,12 +33,27 @@ function stripListMarker(raw){
  // STT "1. ", "2) ", bullet; NEVER remove numeric product names ("9 hạt").
  return String(raw||'').trim().replace(/^(?:[-•*]\s+|\d{1,3}[.)]\s+|\d{1,3}\s*[-–]\s+)/u,'').trim();
 }
+// CHAT-402: read-only corpus rules drawn from E Quyên's stock-list patterns.
+const extraItemHeading=/^(?:thêm|lấy thêm|cho thêm|thêm vào đơn(?: hôm trước)?)\s*[:：]?\s*$/iu;
+const deicticProduct=/^(?:này|kia|đó|đấy|vậy|ấy)(?:\s|$)/iu;
+const deicticTail=/(?:\s|^)(?:này|kia|đấy|đó)\s*$/iu;
+function ambiguousOrderNote(line){
+ const raw=String(line||'').trim();
+ if(!raw||/https?:\/\/|[<>]/iu.test(raw))return false;
+ if(/^(?:giá|thanh toán|giao hàng|chuyển khoản|công nợ)\b/iu.test(raw))return false;
+ return /^\d{1,3}\s*(?:thùng|th|thg|hộp|hop|bao|bịch|bich|lốc|loc|kg|gói|goi)\b/iu.test(raw)
+   || /^\d{1,3}(?:probi|proby)\b/iu.test(raw)
+   || /^\d{1,3}\s+[\p{L}][^:]{2,100}\s*[:：]\s*[\p{L}]/iu.test(raw)
+   || /^[\p{L}][\p{L}\s\d]{2,60}\s*[:：]\s*\d{1,3}\s+[\p{L}]/iu.test(raw);
+}
 function entry(raw,qty,u,source,review=false){
  const name=stripListMarker(raw);
  const amount=Number(qty);
+ // "5 thùng này" has no product. "1 thùng milo này" needs a human check.
+ if(deicticProduct.test(name))return null;
  return name.length>=2&&name.length<=100&&/\p{L}/u.test(name)&&!/[<>]/u.test(name)
   &&Number.isInteger(amount)&&amount>=1&&amount<=999
-  ?{name,qty:amount,unit:unit(u),source,review:Boolean(review)}:null;
+  ?{name,qty:amount,unit:unit(u),source,review:Boolean(review)||deicticTail.test(name)}:null;
 }
 // Explicit quantity/packaging wins over the presence of digits in a product name.
 // CHAT-400: read units on either side of the quantity (not from a fixed
@@ -214,7 +229,7 @@ function parseCompoundVariant(line){
 function parsePieces(line,isOrder){
  const original=String(line||'').trim();
  if(!original||original.length>240||/https?:\/\/|[<>]/iu.test(original))return [];
- const lead=requestLine(original),raw=lead.body;
+ const lead=requestLine(original),raw=lead.body.replace(/^(\d{1,3})(?=[\p{L}]{3,})/u,'$1 ');
  const compound=parseCompoundVariant(raw);
  if(compound)return compound.map(item=>({...item,source:original,review:item.review||lead.kind==='availability'}));
  // E.g. "5 sữa, 3 bánh" or "Mì 2 thùng; Bánh 3 gói".
@@ -249,6 +264,7 @@ function analyze(input){
  const lines=source.split('\n').map(x=>x.trim()).filter(Boolean);
  if(lines.length<1||lines.length>48)return null;
  const requestIntent=lines.some(line=>requestLine(line).kind==='request');
+ const hasItemHeading=lines.some(line=>extraItemHeading.test(line));
  const availabilityOnly=lines.every(line=>requestLine(line).kind==='availability');
  const cue=orderCue.test(source),items=[],notes=[],heads=new Set();
  // First pass: strong unit/SL declarations and compound variants establish
@@ -261,9 +277,10 @@ function analyze(input){
   strongCount+=strong.length;
   if(!strong.length&&parseBareLine(line,true))bareCount++;
  }
- const orderContext=cue||requestIntent||strongCount>0||bareCount>=2;
+ const orderContext=cue||requestIntent||hasItemHeading||strongCount>0||bareCount>=2;
  let active='other';
  for(const line of lines){
+  if(extraItemHeading.test(line)){active='items';heads.add('items');continue;}
   const t=topicLine(line);
   if(t){
    active=t.key;heads.add(active);
@@ -285,14 +302,18 @@ function analyze(input){
   notes.push({topic:noteTopic(line,active),text:line});
  }
  const isOrder=items.length>=2||(items.length>=1&&(cue||requestIntent||heads.has('items')||
+  // One-line explicit container + product was common in E Quyên's orders.
+  (lines.length===1&&Boolean(items[0].unit))||
   items.every(item=>VERIFIED_SIZE.test(item.name))||
   items.every(item=>KNOWN_VARIANT_TAIL.test(stripListMarker(item.source)))));
  const isAvailability=availabilityOnly&&items.length>0;
  const isTopics=!items.length&&heads.size>=2&&notes.length>=2;
- if(!isOrder&&!isTopics&&!isAvailability)return null;
+ const reviewOnly=!items.length&&lines.length===1&&
+  /^(?:cho\s+)?\d{1,3}\s*(?:thùng|th|hộp|bao|bịch|lốc)\s+(?:này|kia|vậy|đấy)\b/iu.test(lines[0]);
+ if(!isOrder&&!isTopics&&!isAvailability&&!reviewOnly)return null;
  const grouped=new Map();
  for(const note of notes){if(!grouped.has(note.topic))grouped.set(note.topic,[]);grouped.get(note.topic).push(note.text);}
- return {kind:isAvailability?'availability':isOrder?'order':'topics',items,groups:Array.from(grouped,([key,rows])=>({key,label:labels[key]||'Ghi chú',rows})),source};
+ return {kind:reviewOnly?'review':isAvailability?'availability':isOrder?'order':'topics',items,groups:Array.from(grouped,([key,rows])=>({key,label:labels[key]||'Ghi chú',rows})),source};
 }
 function el(tag,cls,content){
  const n=document.createElement(tag);
@@ -305,7 +326,7 @@ function render(target,input){
  if(!target||!parsed)return false;
  const root=el('div','incoming-brief'),head=el('div','incoming-brief-head');
  head.append(el('strong','incoming-brief-title',
-  parsed.kind==='order'?'Danh sách lấy hàng':parsed.kind==='availability'?'Hàng đang có · Cần soát':'Nội dung theo chủ đề'),
+  parsed.kind==='order'?'Danh sách lấy hàng':parsed.kind==='availability'?'Hàng đang có · Cần soát':parsed.kind==='review'?'Cần hướng dẫn':'Nội dung theo chủ đề'),
   el('span','incoming-brief-count',
    parsed.kind==='order'||parsed.kind==='availability'?parsed.items.length+' mặt hàng':parsed.groups.length+' chủ đề'));
  root.append(head);
@@ -329,7 +350,15 @@ function render(target,input){
  for(const group of parsed.groups){
   const section=el('section','incoming-brief-topic');
   section.append(el('div','incoming-brief-topic-title',group.label));
-  for(const note of group.rows)section.append(el('div','incoming-brief-note',note));
+  for(const note of group.rows){
+   const needsReview=(group.key==='other'&&ambiguousOrderNote(note))||parsed.kind==='review';
+   const line=el('div','incoming-brief-note',note);
+   if(needsReview){
+    line.dataset.needsReview='true';
+    line.append(el('span','incoming-brief-review','Cần hướng dẫn'));
+   }
+   section.append(line);
+  }
   root.append(section);
  }
  const original=el('details','incoming-brief-original');
