@@ -15,6 +15,7 @@ function fakeNode(tag){
     get textContent(){return content+this.children.map(x=>x.textContent).join('');},
     append(...nodes){this.children.push(...nodes);},
     replaceChildren(...nodes){this.children=[...nodes];},
+    setAttribute(name,value){this.attrs??={};this.attrs[name]=String(value);},
     addEventListener(event,callback){this.listeners[event]=callback;}
   };
 }
@@ -428,6 +429,89 @@ assert(css.includes('background:#ffe58a'));
 assert(css.includes('.incoming-brief-note[data-needs-review="true"]'));
 
 assert(!css.includes('background:red'));
+
+// CHAT-408: C Trang Sữa has separate short request messages on the SAME
+// Vietnam day. A combined read-only summary renders once after that date,
+// never edits or sends customer messages and never mixes the account owner.
+const {summarizeDay,renderDailySummary}=ui.V21IncomingMessageLayout;
+for(const [message,name,count] of [
+ ['2 sữa chua đường đen','sữa chua đường đen',2],
+ ['1 sữa chua vnm ko đường','sữa chua vnm ko đường',1],
+ ['1 susu lọ dâu','susu lọ dâu',1],
+ ['1 thung susu lọ cam','susu lọ cam',1],
+ ['3 lon canxi pro','canxi pro',3]
+]){
+ const parsed=analyze(message);
+ assert.equal(parsed?.kind,'order',message+' is a valid one-item request');
+ assert.deepEqual(Array.from(parsed.items,x=>[x.name,x.qty]),[[name,count]]);
+}
+assert.equal(analyze('Chân trâu'),null,'unknown standalone topping has no quantity');
+const nov16=[
+ {sender:'remote',text:'2 sữa chua đường đen',stamp:1000,key:'16-a'},
+ {sender:'remote',text:'Chân trâu',stamp:4500,key:'16-b'},
+ {sender:'remote',text:'1 sữa chua vnm ko đường',stamp:9000,key:'16-c'},
+ {sender:'self',text:'5 thùng mì',stamp:9200,key:'16-self'},
+ {sender:'remote',text:'5 probi be co dg',stamp:10000,key:'16-d'},
+ {sender:'remote',text:'5 probi be it dg',stamp:11000,key:'16-e'},
+ {sender:'remote',text:'Giá bên em bao nhiêu?',stamp:12000,key:'16-chat'},
+ {sender:'remote',text:'3 lon canxi pro',stamp:13000,key:'16-f',media:{type:'image'}}
+];
+const sum16=summarizeDay(nov16);
+assert.equal(sum16?.kind,'daily-order');
+assert.equal(sum16.messageCount,4,'only source messages that contain stock rows');
+assert.deepEqual(Array.from(sum16.items,x=>[x.name,x.qty]),[
+ ['sữa chua đường đen',2],['sữa chua vnm ko đường',1],
+ ['probi be co dg',5],['probi be it dg',5]
+]);
+assert.deepEqual(Array.from(sum16.notes,x=>[x.text,x.review]),[['Chân trâu',true]]);
+assert(sum16.items[2].review&&sum16.items[3].review,
+ 'uncertain flavor abbreviations are yellow, not rewritten');
+const sum19=summarizeDay([
+ {sender:'remote',text:'1 thung susu lọ cam',stamp:1000,key:'19-a'},
+ {sender:'remote',text:'1 susu lọ dâu',stamp:2000,key:'19-b'},
+ {sender:'remote',text:'3 lon canxi pro',stamp:3000,key:'19-c'},
+ {sender:'self',text:'Tổng đã nhận 10.353',stamp:4000,key:'19-notorder'}
+]);
+assert.deepEqual(Array.from(sum19.items,x=>[x.name,x.qty]),[
+ ['susu lọ cam',1],['susu lọ dâu',1],['canxi pro',3]
+]);
+assert.equal(sum19.messageCount,3);
+const dailyTarget=fakeNode('div');
+sum16.dayLabel='Thứ Hai, 16/11/2026';
+assert.equal(renderDailySummary(dailyTarget,sum16),true);
+assert(dailyTarget.textContent.includes('Tổng hợp lấy hàng · Thứ Hai, 16/11/2026'));
+assert(dailyTarget.textContent.includes('chưa xác nhận hoặc tạo đơn'));
+const dailyProducts=dailyTarget.children[0].children[1];
+assert.deepEqual(Array.from(dailyProducts.children[0].children,x=>x.textContent),
+ ['STT','Tên sản phẩm','SL']);
+assert.deepEqual(Array.from(dailyProducts.children.slice(1),x=>x.children[2].textContent),
+ ['2','1','5','5']);
+assert(dailyTarget.textContent.includes('Chân trâu'));
+assert(dailyTarget.textContent.includes('Cần hướng dẫn'));
+assert.equal(summarizeDay([{sender:'self',text:'5 thùng mì',key:'self'}]),null,
+ 'only incoming customer requests belong in the day summary');
+assert.equal(summarizeDay([{sender:'remote',text:'Giá mì 1265',key:'price'}]),null,
+ 'a day of price discussions must not create an order summary');
+const double=summarizeDay([
+ {sender:'remote',text:'1 thung susu lọ cam',key:'A'},
+ {sender:'remote',text:'1 thung susu lọ cam',key:'B'}
+]);
+assert.equal(double.items[0].qty,2);
+assert.equal(double.items[0].mentions,2);
+assert.equal(double.items[0].review,true,
+ 'duplicate mentions could be corrections; warn rather than asserting a final order');
+assert(app.includes('function dailyStockSummariesByOwner(messages){'));
+assert(app.includes('messageDateKey(messageTimestampMs(first))'));
+assert(app.includes('messageDateKey(messageTimestampMs(messages[end]))===dayKey'));
+assert(app.includes('result.set(stableMessageDomKey(messages[end-1]),summary)'));
+assert(app.includes('function syncDailyStockSummary(node,summary){'));
+assert(app.includes('node.querySelector(\':scope > .message-day-order-wrap\')'));
+assert(app.includes('const dailyByOwner=dailyStockSummariesByOwner(store.items);'));
+assert(app.includes('reconcileMessageWindow(win.items,dailyByOwner)'));
+assert(app.includes('if(syncDailyStockSummary(node,summaryByOwner.get(key)||null))dirty.add(node)'));
+assert(css.includes('#messageWindow .message-day-order-wrap{'));
+assert(css.includes('width:min(100%,720px)'));
+assert(!css.includes('position:sticky'),'the daily card must not overlay the keyboard');
 
 assert.doesNotMatch(source,/fetch\(|XMLHttpRequest|setInterval\(|localStorage|supabase\.|innerHTML\s*=/);
 console.log('CHAT-381 incoming quantities, topic notes, safe original text PASS');
