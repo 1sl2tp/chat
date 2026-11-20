@@ -64,10 +64,10 @@ function paintSourcePicker(){
  sourcesPanel.append(title,hint,search,list);
  function renderSourceRows(host){
   host.replaceChildren();
-  const q=String(sourceSearch||"").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"")
+  const q=String(sourceSearch||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"")
    .toLocaleLowerCase("vi").trim();
   const visible=sources.filter(item=>String(item.name||"").normalize("NFD")
-   .replace(/[\\u0300-\\u036f]/g,"").toLocaleLowerCase("vi").includes(q));
+   .replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("vi").includes(q));
   for(const item of visible.slice(0,150)){
    const label=document.createElement("label");label.className="ncc-source-option";
    const input=document.createElement("input");input.type="checkbox";
