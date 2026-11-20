@@ -127,6 +127,56 @@ assert.equal(analyze('5 thùg sữa\nSữa lỗi ngày mai'),null,
 assert.equal(analyze('9 hạt ít đường\n10 hạt không đường'),null,
  'numeric product names alone are never invented order quantities');
 
+// CHAT-401: User-confirmed order lead phrases, grouped variants and sizes.
+// Review is intentionally yellow, not a silent product-name correction.
+const requestSingles=[
+ ['cho tôi 2 thùng sữa','sữa',2,'thùng'],
+ ['cho thêm 3 sữa','sữa',3,''],
+ ['cho chị 2 thùng sữa','sữa',2,'thùng'],
+ ['lấy thêm 5 thùng mì','mì',5,'thùng'],
+ ['Cho em 2bao my vị','my vị',2,'bao']
+];
+for(const [message,name,qty,unit] of requestSingles){
+ const decoded=analyze(message);
+ assert.equal(decoded?.kind,'order',message+' is an explicit request');
+ assert.deepEqual(Array.from(decoded.items,x=>[x.name,x.qty,x.unit]),[[name,qty,unit]]);
+ assert.equal(decoded.source,message,'request source text cannot be altered');
+}
+const availability=analyze('đang có 3 thùng sữa');
+assert.equal(availability.kind,'availability','inventory statement is not a purchase request');
+assert.equal(availability.items[0].review,true,'ambiguous available-stock intent needs guidance');
+const sizes=analyze('bát 1kg 83\nbát 454g 63');
+assert.deepEqual(Array.from(sizes.items,x=>[x.name,x.qty,x.unit]),[
+ ['bát 1kg',83,''],['bát 454g',63,'']
+]);
+assert.equal(analyze('Bát 454g 63').items[0].qty,63,
+ 'user-verified sized-product shorthand is a valid single-line order');
+assert.equal(analyze('Giá bát 1kg 83\nGiá bát 454g 63'),null,
+ 'price statements cannot become ordered quantities');
+const reverseVariants=analyze('probi to: trắng 2, vq 2');
+assert.deepEqual(Array.from(reverseVariants.items,x=>[x.name,x.qty,x.review]),[
+ ['probi to trắng',2,false],['probi vq',2,false]
+],'confirmed short variant name remains vq, not an invented expansion');
+const historicVariants=analyze('Probi to : 5 có, 2 ít, 2 việt quất');
+assert.deepEqual(Array.from(historicVariants.items,x=>[x.name,x.qty,x.review]),[
+ ['Probi to có',5,true],['Probi to ít',2,true],
+ ['Probi to việt quất',2,false]
+]);
+const dưa=analyze('Probi bé: 2 dưa, 1 dâu, 1 dứa');
+assert.equal(dưa.items[0].review,true,'dưa must not silently expand to dưa gang');
+const variantView=fakeNode('div');
+assert.equal(render(variantView,'Probi to : 5 có, 2 ít, 2 việt quất'),true);
+const variantRows=variantView.children[0].children[1].children;
+assert.equal(variantRows[1].dataset.needsReview,'true','first unsure variant is marked yellow');
+assert.equal(variantRows[2].dataset.needsReview,'true','second unsure variant is marked yellow');
+assert.notEqual(variantRows[3].dataset.needsReview,'true','known term is not falsely flagged');
+assert(variantRows[1].textContent.includes('Cần hướng dẫn'));
+assert(variantView.textContent.includes('Probi to : 5 có, 2 ít, 2 việt quất'));
+const dotted=analyze('probi to có 5. ít 2. việt quất 2');
+assert.deepEqual(Array.from(dotted.items,x=>[x.name,x.qty,x.review]),[
+ ['probi to có',5,true],['probi to ít',2,true],['probi to việt quất',2,false]
+],'real Probi dotted grammar resolves variants, but short labels remain yellow');
+
 assert.equal(analyze('Hôm nay nhắn nhau\nMai gặp nhé'),null);
 const topic=analyze('Giao hàng: trước 16h\nGhi chú: báo thiếu hàng\nThanh toán: chuyển khoản');
 assert.equal(topic.kind,'topics');
@@ -148,5 +198,9 @@ assert(html.indexOf('data-build-source="incoming-message-layout.js"')<
 assert.match(css,/grid-template-columns:23px minmax\(0,1fr\) minmax\(64px,82px\)/);
 assert.match(css,/\.incoming-brief-index/);
 assert(!css.includes('.incoming-brief-unit'),'unit must not reserve a fourth column');
+assert(css.includes('.incoming-brief-item[data-needs-review="true"]'));
+assert(css.includes('background:#ffe58a'));
+assert(!css.includes('background:red'));
+
 assert.doesNotMatch(source,/fetch\(|XMLHttpRequest|setInterval\(|localStorage|supabase\.|innerHTML\s*=/);
 console.log('CHAT-381 incoming quantities, topic notes, safe original text PASS');
