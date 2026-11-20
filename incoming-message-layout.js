@@ -41,6 +41,72 @@ function entry(raw,qty,u,source,review=false){
   ?{name,qty:amount,unit:unit(u),source,review:Boolean(review)}:null;
 }
 // Explicit quantity/packaging wins over the presence of digits in a product name.
+// CHAT-400: read units on either side of the quantity (not from a fixed
+// column). A typo is accepted only in an established order and flagged;
+// product names are never spell-corrected. The distinction "bò" vs "bộ"
+// is deliberate, so exact aliases retain their Vietnamese accents.
+const unitAliases=new Map([
+ ['thùng','thùng'],['thung','thùng'],['th','thùng'],['thg','thùng'],
+ ['lốc','lốc'],['loc','lốc'],['hộp','hộp'],['hop','hộp'],
+ ['gói','gói'],['goi','gói'],['chai','chai'],['bịch','bịch'],
+ ['bich','bịch'],['bao','bao'],['kiện','kiện'],['kien','kiện'],
+ ['cái','cái'],['cai','cái'],['kg','kg'],['lon','lon'],
+ ['cây','cây'],['cay','cây'],['bộ','bộ'],['bo','bộ'],
+ ['túi','túi'],['tui','túi'],['vỉ','vỉ'],['vi','vỉ'],
+ ['lít','lít'],['lit','lít']
+]);
+function foldUnit(text){
+ return String(text||'').toLocaleLowerCase('vi-VN').normalize('NFD')
+  .replace(/[\u0300-\u036f]/gu,'').replace(/đ/gu,'d');
+}
+function oneEditApart(a,b){
+ if(Math.abs(a.length-b.length)>1)return false;
+ let i=0,j=0,diffs=0;
+ while(i<a.length&&j<b.length){
+  if(a[i]===b[j]){i++;j++;continue;}
+  if(++diffs>1)return false;
+  if(a.length>b.length)i++;
+  else if(b.length>a.length)j++;
+  else{i++;j++;}
+ }
+ return diffs+(a.length-i)+(b.length-j)<=1;
+}
+function unitCandidate(token,allowTypo=false){
+ const raw=String(token||'').toLocaleLowerCase('vi-VN').trim();
+ const exact=unitAliases.get(raw);
+ if(exact)return{value:exact,review:false};
+ const folded=foldUnit(raw);
+ if(!allowTypo||folded.length<4||folded.length>8)return null;
+ const options=new Set();
+ for(const [alias,value] of unitAliases){
+  const candidate=foldUnit(alias);
+  if(candidate.length>=4&&oneEditApart(folded,candidate))options.add(value);
+ }
+ return options.size===1?{value:[...options][0],review:true}:null;
+}
+function parseUnitAroundNumber(line,isOrder){
+ const raw=String(line||'').trim();
+ if(!raw||raw.length>150||/https?:\/\/|[<>]/iu.test(raw))return null;
+ const clean=stripListMarker(raw);
+ const patterns=[
+  clean.match(/^(.+?)\s+([\p{L}]{2,9})\s+(\d{1,3})$/u),
+  clean.match(/^(\d{1,3})\s+(.+?)\s+([\p{L}]{2,9})$/u),
+  clean.match(/^(.+?)\s+(\d{1,3})\s*([\p{L}]{2,9})$/u),
+  clean.match(/^(\d{1,3})\s*([\p{L}]{2,9})\s+(.+?)$/u)
+ ];
+ for(let i=0;i<patterns.length;i++){
+  const m=patterns[i];
+  if(!m)continue;
+  const token=i===0?m[2]:i===1?m[3]:i===2?m[3]:m[2];
+  const decoded=unitCandidate(token,isOrder);
+  if(!decoded)continue;
+  const name=i===0?m[1]:i===1?m[2]:i===2?m[1]:m[3];
+  const qty=i===0?m[3]:i===1?m[1]:i===2?m[2]:m[1];
+  const row=entry(name,qty,decoded.value,raw,decoded.review);
+  if(row)return row;
+ }
+ return null;
+}
 function parseStrongLine(line){
  const raw=String(line||'').trim();
  if(!raw||raw.length>150||/https?:\/\/|[<>]/iu.test(raw))return null;
@@ -108,10 +174,10 @@ function parsePieces(line,isOrder){
  // Split only when ALL fragments stand alone as products.
  const segments=raw.split(/\s*[,;]\s*/u);
  if(segments.length>=2&&segments.length<=12){
-  const found=segments.map(x=>parseStrongLine(x)||parseColonBare(x,isOrder)||parseBareLine(x,isOrder));
+  const found=segments.map(x=>parseStrongLine(x)||parseUnitAroundNumber(x,isOrder)||parseColonBare(x,isOrder)||parseBareLine(x,isOrder));
   if(found.every(Boolean))return found;
  }
- const single=parseStrongLine(raw)||parseColonBare(raw,isOrder)||parseBareLine(raw,isOrder);
+ const single=parseStrongLine(raw)||parseUnitAroundNumber(raw,isOrder)||parseColonBare(raw,isOrder)||parseBareLine(raw,isOrder);
  return single?[single]:[];
 }
 function topicLine(line){
@@ -191,15 +257,14 @@ function render(target,input){
   const list=el('div','incoming-brief-products');
   const columns=el('div','incoming-brief-columns');
   columns.append(el('span','','STT'),el('span','','Tên sản phẩm'),
-    el('span','','SL'),el('span','','Quy cách'));
+    el('span','','SL'));
   list.append(columns);
   parsed.items.forEach((item,index)=>{
    const row=el('div','incoming-brief-item');
    const name=el('span','incoming-brief-product',item.name);
-   if(item.review)name.append(el('span','incoming-brief-review',' · Soát tên'));
+   if(item.review)name.append(el('span','incoming-brief-review',' · Cần soát'));
    row.append(el('span','incoming-brief-index',index+1),name,
-    el('span','incoming-brief-quantity',item.qty),
-    el('span','incoming-brief-unit',item.unit||'—'));
+    el('span','incoming-brief-quantity',item.qty+(item.unit?' '+item.unit:'')));
    list.append(row);
   });
   root.append(list);
