@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.54">
-<meta name="app-build-id" content="4641c5ded1d1785ec6727d4539fa1fd17d2b7e7952638ad062c83ce863e1b6a9">
+<meta name="app-release-version" content="V21.72.55">
+<meta name="app-build-id" content="1f58a19e539c60dc3864bf36c17932dcb38bf990541180582132e7917874420a">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -15557,6 +15557,9 @@ function entry(raw,qty,u,source,review=false){
  const amount=Number(qty);
  // "5 thùng này" has no product. "1 thùng milo này" needs a human check.
  if(deicticProduct.test(name))return null;
+ // These are sentence scaffolds, not merchandise names.
+ if(/^(?:lấy\s+)?tạm\s+cho$/iu.test(name)||
+   /^(?:giá|báo\s+giá|giá\s+bán)(?=\s|[:：]|$)/iu.test(name))return null;
  return name.length>=2&&name.length<=100&&/\p{L}/u.test(name)&&!/[<>]/u.test(name)
   &&Number.isInteger(amount)&&amount>=1&&amount<=999
   ?{name,qty:amount,unit:unit(u),source,review:Boolean(review)||deicticTail.test(name)}:null;
@@ -15680,6 +15683,22 @@ function parseBatCartons(line){
  // "Có ..." can also be an availability question; preserve as yellow review.
  return inverted?entry(inverted[1].trim(),inverted[2],'thùng',raw,true):null;
 }
+// CHAT-406: Narrow, verified chat grammar:
+// "Có pepsi lon vàng rồi thì phải, lấy tạm cho 10 thùng".
+// "Có"/"rồi thì phải"/"lấy tạm cho" describe uncertain availability and
+// request intent, not the product name. This rule does NOT guess other prose.
+const TENTATIVE_STOCK_REQUEST=new RegExp(
+ '^có\\s+([\\p{L}][\\p{L}\\p{N}\\s.-]{2,80}?)\\s+rồi\\s+thì\\s+phải\\s*[,，]\\s*'+
+ 'lấy\\s+tạm\\s+cho\\s+(\\d{1,3})\\s*('+U+')\\s*$','iu'
+);
+function parseTentativeStockRequest(line){
+ const raw=String(line||'').trim();
+ if(!raw||raw.length>170||/[<>]/u.test(raw))return null;
+ const found=stripListMarker(raw).match(TENTATIVE_STOCK_REQUEST);
+ if(!found)return null;
+ // "thì phải" expresses uncertainty; the user sees a yellow review marker.
+ return entry(found[1].trim(),found[2],found[3],raw,true);
+}
 function parseStrongLine(line){
  const raw=String(line||'').trim();
  if(!raw||raw.length>150||/https?:\/\/|[<>]/iu.test(raw))return null;
@@ -15765,6 +15784,8 @@ function parsePieces(line,isOrder){
  const lead=requestLine(original),raw=lead.body.replace(/^(\d{1,3})(?=[\p{L}]{3,})/u,'$1 ');
  const colloquial=parseBatCartons(raw);
  if(colloquial)return [{...colloquial,source:original}];
+ const tentative=parseTentativeStockRequest(raw);
+ if(tentative)return [{...tentative,source:original}];
  const compound=parseCompoundVariant(raw);
  if(compound)return compound.map(item=>({...item,source:original,review:item.review||lead.kind==='availability'}));
  // E.g. "5 sữa, 3 bánh" or "Mì 2 thùng; Bánh 3 gói".
@@ -16209,9 +16230,9 @@ const AppBootController={
     // Repeated global faults must not repaint the banner or multiply logs.
     if(this.lastErrorMessage===message&&!runtimeError.classList.contains('hidden'))return;
     this.lastErrorMessage=message;
-    runtimeError.textContent='V21.72.54 runtime: '+message;
+    runtimeError.textContent='V21.72.55 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.54]',error);
+    console.error('[ChatScreenModule V21.72.55]',error);
   },
   ready(){
     // A successful render invariant proves recovery only for errors seen
@@ -16323,7 +16344,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.54 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.55 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -16377,7 +16398,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.54',
+  releaseVersion:'V21.72.55',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -25042,7 +25063,7 @@ window.V21ConversationBridge={
 window.V21ChatImageViewer=Object.freeze({open:openImageViewer});
 
 window.ChatScreenModule={
-  version:'V21.72.54',
+  version:'V21.72.55',
   snapshot(){
     return{
       viewportMode:viewport.mode,
