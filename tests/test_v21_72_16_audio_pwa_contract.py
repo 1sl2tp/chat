@@ -41,7 +41,7 @@ assert 'remoteTrackKey' in livekit
 
 source=read('index.source.html')
 assert '<link rel="manifest" href="./manifest.webmanifest">' in source
-assert 'name="app-release-version" content="V21.72.45"' in source
+assert 'name="app-release-version" content="V21.72.46"' in source
 assert 'name="app-build-id" content="__APP_BUILD_ID__"' in source
 assert 'apple-mobile-web-app-title" content="TAPHOA Chat"' in source
 assert '<title>TAPHOA Chat</title>' in source
