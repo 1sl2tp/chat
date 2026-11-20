@@ -17,7 +17,7 @@ const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 // CHAT-394: refresh only the public shell for search-first layout and preserved directory scroll.
 // CHAT-395: refresh public shell for compact three-zone directory; keep private caches.
 // CHAT-397: public shell refresh for iOS Composer IME/geometry stability.
-const SHELL_CACHE_EPOCH='pwa-chat397-ios-typing-stability-20261120';
+const SHELL_CACHE_EPOCH='pwa-chat-397-ios-typing-stability-20261120';
 const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION+'-'+SHELL_CACHE_EPOCH;
 const AVATAR_CACHE_NAME='taphoa-chat-avatars-v1';
 const SUPABASE_ASSET_HOST_RE=/^[a-z0-9]+\.supabase\.co$/i;
