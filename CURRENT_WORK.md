@@ -1,3 +1,15 @@
+## 2026-11-21 — CHAT-418 · Chọn nguồn ảnh Nhập hàng từ hội thoại
+
+- **E0:** ảnh người dùng cho thấy E Anh Đạt, ethuonghangu trong danh bạ và phòng NCC AI đã có luồng đọc phiếu nhập. Yêu cầu dùng luồng hiện có cho hai người này, cho phép chọn thêm qua nút `…`, không bật cho toàn bộ nhóm KH.
+- **E1 / owner:** `chat-ncc-sources.js` tạo danh sách nguồn theo ID liên hệ (hai tên chỉ là gợi ý mặc định khi khớp duy nhất), cô lập lựa chọn theo tài khoản Admin tại thiết bị, từ chối KH hoặc nhóm chưa tải. `chat-ncc-image-ui.js` thêm thao tác thủ công bên dưới ảnh đến trong hội thoại được chọn. `ncc-ai-room.js` thêm menu chọn nguồn và nhận một ảnh vào vùng soát; Admin còn phải ấn mũi tên gửi của Nhập hàng mới gọi server. `app.js` tách lối đi KH/OCR và NCC, không thêm message/outbox writer. CSS hỗ trợ mobile/desktop.
+- **E2:** PR [#362](https://github.com/1sl2tp/chat/pull/362) test CHAT-418 với nguồn mặc định, thay đổi quyền KH, đổi Admin, không gửi khi stage; test CHAT-409 và CHAT-413 vẫn pass. Kiểm thử phiên bản V21.72.62 và toàn bộ CI đang chờ ở thời điểm ghi nhận.
+- **E3:** chờ merge qua CI và Pages tự động. Không deploy thủ công và không can thiệp Edge/DB.
+- **E4/E5:** chưa xác minh bằng iPhone/Android thực tế. Kiểm các trường hợp 1–3 ảnh, đổi liên hệ giữa lúc tải ảnh, xoay bàn phím, nguồn trùng tên, ảnh HEIC/JPEG và quyền Admin/khách. Không khẳng định đã đọc/gộp 3 ảnh của E Anh Đạt trong production.
+- **Giới hạn:** người chọn thêm hiện được ghi tại thiết bị, chưa đồng bộ giữa điện thoại và desktop; OCR của KH là tính năng riêng, không dùng NCC AI để đọc mọi khách. Nhập hàng hiện tại còn phụ thuộc trạng thái Edge NCC.
+- **MUST-STAY:** không tự gửi tin nhắn thật, không tạo đơn/thu tiền, không sửa giá vốn hoặc bảng DB, không lấy toàn bộ ảnh riêng tư; chỉ xử lý sau hành động của Admin. Rollback revert PR #362, không xóa dữ liệu người dùng.
+
+---
+
 ## 2026-11-20 — CHAT-397 · iPhone ô nhập chat rung khi gõ tiếng Việt
 
 - **E0:** người dùng cung cấp ảnh iPhone 07:26, đang ở hội thoại với bàn phím iOS mở và báo ô nhập rung khi gõ. Ảnh tĩnh xác nhận bố cục nhưng không đo được biên độ rung; cần kiểm chứng qua thao tác thực tế.
