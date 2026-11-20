@@ -109,6 +109,9 @@ sourcesButton.addEventListener("click",event=>{
  paintSourcePicker();
 });
 document.addEventListener("v21-contact-groups-change",()=>paintSourcePicker());
+document.addEventListener("v21-ncc-sources-changed",()=>{
+ if(opened)renderDayGroups();
+});
 let previewUrl="",ready=false,busy=false,session="",opened=false;
 let embeddedHost=null;
 let selectedPhoto=null,selectVersion=0,supportsRecheck=false,supportsProductLinks=false;
@@ -384,7 +387,13 @@ function appendTable(record,{duplicate=false,recheck=false}={}){
     const data=await api("recheck",{hash:record.hash});
     if(accountSession()!==owner||!opened)return;
     if(!data.record)throw Error("missing_recheck_result");
-    appendTable(data.record,{recheck:true});
+    invoiceRecords.set(data.record.hash,data.record);
+    const newBubble=appendTable(data.record,{recheck:true});
+    const oldCard=[...thread.querySelectorAll('.ncc-invoice-card')].find(card=>
+     card.dataset.invoiceHash===String(data.record.hash));
+    if(oldCard&&newBubble?.closest('.ncc-ai-message'))
+     oldCard.appendChild(newBubble.closest('.ncc-ai-message'));
+    renderDayGroups();
     say("Đã đọc lại. Hãy đối chiếu tổng tiền và giá sau CK/1.");
    }catch{
     if(accountSession()===owner&&opened)say("Chưa đọc lại được tổng/chiết khấu. Không có giá nào bị thay đổi.");
@@ -469,6 +478,7 @@ function renderDayGroups(){
 function invoiceCard(record,imageBubble,tableBubble,{expanded=false}={}){
  const card=document.createElement('details');
  card.className='ncc-invoice-card';
+ card.dataset.invoiceHash=String(record.hash||'');
  card.open=expanded;
  const label=document.createElement('summary');
  label.className='ncc-invoice-card-title';
