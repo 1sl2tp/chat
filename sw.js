@@ -1,5 +1,5 @@
 'use strict';
-const RELEASE_VERSION='V21.72.56';
+const RELEASE_VERSION='V21.72.57';
 const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 // BANK-177: reload one-time cached shell for the live bank reconciliation table.
 // Keep offline-first startup; do not add per-navigation network requests.
@@ -27,7 +27,8 @@ const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 // CHAT-405: only public message-layout CSS/JS; keep sessions, drafts and private outbox.
 // CHAT-406: refresh the product-name reader without changing messages or outbox.
 // CHAT-407: refresh public read-only message parser, keep drafts and outbox.
-const SHELL_CACHE_EPOCH='pwa-chat-ui407-numeric-product-multiline-20261120';
+// CHAT-408: refresh the read-only daily summary UI; no private chat or outbox cache changes.
+const SHELL_CACHE_EPOCH='pwa-chat-ui408-daily-stock-summary-20261120';
 const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION+'-'+SHELL_CACHE_EPOCH;
 const AVATAR_CACHE_NAME='taphoa-chat-avatars-v1';
 const SUPABASE_ASSET_HOST_RE=/^[a-z0-9]+\.supabase\.co$/i;
