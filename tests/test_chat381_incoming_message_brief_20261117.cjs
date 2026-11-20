@@ -313,6 +313,43 @@ assert(html.indexOf('data-build-source="incoming-message-layout.js"')<
 assert.match(css,/grid-template-columns:24px minmax\(0,1fr\) minmax\(32px,48px\)/);
 assert.match(css,/\.incoming-brief-index/);
 assert(!css.includes('.incoming-brief-unit'),'unit must not reserve a fourth column');
+// CHAT-406: real message from E Quyên, with a tentative stock statement.
+// The full sentence is preserved, but its product name is only "pepsi lon vàng".
+const pepsiOriginal='Có pepsi lon vàng rồi thì phải, lấy tạm cho 10 thùng';
+const pepsi=analyze(pepsiOriginal);
+assert.equal(pepsi?.kind,'order');
+assert.deepEqual(Array.from(pepsi.items,x=>[x.name,x.qty,x.unit,x.review]),[
+ ['pepsi lon vàng',10,'thùng',true]
+],'stock/question/request filler cannot be part of the merchandise name');
+assert.equal(pepsi.source,pepsiOriginal,'never erase original conversation');
+const pepsiTarget=fakeNode('div');
+assert.equal(render(pepsiTarget,pepsiOriginal),true);
+const pepsiRow=pepsiTarget.children[0].children[1].children[1];
+assert.equal(pepsiRow.children[1].textContent.startsWith('pepsi lon vàng'),true);
+assert.equal(pepsiRow.children[2].textContent,'10','SL stays digits, not ten cartons');
+assert.equal(pepsiRow.dataset.needsReview,'true',
+ '"rồi thì phải" must stay yellow for uncertainty about availability');
+assert(pepsiRow.children[1].textContent.includes('Cần hướng dẫn'));
+assert.equal(pepsiTarget.children[0].children.at(-1).children[1].textContent,
+ pepsiOriginal,'the customer can view the exact unchanged sentence');
+for(const nonOrder of [
+ 'Có pepsi lon vàng rồi thì phải',
+ 'Lấy tạm cho 10 thùng',
+ 'Giá pepsi lon vàng 10 thùng',
+ 'Giá pepsi lon vàng 10 thùng\nCảm ơn'
+]){
+ assert.equal(analyze(nonOrder),null,
+  'price/chat phrasing cannot become a fake merchandise name: '+nonOrder);
+}
+// Existing E Quyên material must not regress or silently rename its products.
+const existingLong=analyze(
+ '1 thăng long mềm\n2 sao xanh lá\n2 sao xanh dương\n'+
+ '5 thùng bò bé ít đường\n2 bò lít ko, 2 bò lít có');
+assert.deepEqual(Array.from(existingLong.items,x=>[x.name,x.qty]),[
+ ['long mềm',1],['sao xanh lá',2],['sao xanh dương',2],
+ ['bò bé ít đường',5],['bò lít ko',2],['bò lít có',2]
+],'do not change the already-reviewed soft carton and milk examples');
+
 // CHAT-405: a structured order is a neutral, centered timeline card for
 // both senders, NOT a 70%-wide left/right text bubble. The viewport controls
 // the available width and the numeric SL column stays narrow.
