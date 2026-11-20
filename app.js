@@ -5654,14 +5654,20 @@ function stockSummaryCustomerAllowed(){
 }
 function syncStockImageOCRControl(node,message){
  if(!stockSummaryCustomerAllowed()){
+  // CHAT-418: selected supplier sources use the *existing* Nhập hàng room.
+  // Never show customer order OCR in this branch. KH is not a supplier source.
   const old=node?.querySelector?.('.message-turn-shell .message-unit > .message-stock-image-read');
-  if(old){old.remove();return true;}
-  return false;
+  if(old)old.remove();
+  const changed=window.V21NccChatImageUI?.sync?.(node,message)||false;
+  return Boolean(old)||changed;
  }
- // CHAT-412: OCR day-card resize never owns scrollTop; user swipe wins.
- return window.V21ChatStockImageUI?.sync?.(node,message,()=>renderWindow({
+ const oldNcc=node?.querySelector?.('.message-turn-shell .message-unit > .message-ncc-photo-actions');
+ if(oldNcc)oldNcc.remove();
+ // CHAT-412: KH customer OCR remains separate from supplier invoice intake.
+ const changed=window.V21ChatStockImageUI?.sync?.(node,message,()=>renderWindow({
   preserve:'VIEW'
  }))||false;
+ return Boolean(oldNcc)||changed;
 }
 function stockImageReadings(message){
  return stockSummaryCustomerAllowed()
@@ -6010,6 +6016,11 @@ document.addEventListener('v21-contact-groups-change',()=>{
 
 // CHAT-410: one capability result updates disabled/enabled OCR buttons.
 // No scroll-to-tail command and no extra message or media mutation.
+document.addEventListener('v21-ncc-sources-changed',()=>{
+ // Selected source changes are presentation-only: no messages, prices or media
+ // are changed and native scroll remains the owner of the viewport.
+ renderWindow({preserve:'VIEW'});
+});
 document.addEventListener('v21-stock-image-capability',()=>{
  if(window.V21ChatStockImageRead?.owner?.()&&store.items.length){
   // Do not change scrollTop when a capability button changes its height.
