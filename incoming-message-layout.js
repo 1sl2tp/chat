@@ -14,7 +14,7 @@ const bare=/^(\d{1,3})\s+([\p{L}][^:]{1,100})$/iu;
 const numericProductName=/^(?:9\s+hạt|7\s*up|3\s+miền|5\s+sao)\b/iu;
 const orderCue=/(?:báo\s*(?:lấy\s*)?hàng|lấy\s*hàng|đặt\s*hàng|đơn\s*hàng|soạn\s*hàng|lên\s*đơn|gửi\s*hàng|(?:^|\n)\s*(?:lấy|đặt|cho|e bán|em bán)\s)/iu;
 const titles=[
- ['items',/^(?:báo\s*)?(?:lấy\s*hàng|đặt\s*hàng|danh\s*sách\s*hàng|hàng\s*cần\s*lấy)$/iu],
+ ['items',/^(?:báo\s*hàng|(?:báo\s*)?(?:lấy\s*hàng|đặt\s*hàng|danh\s*sách\s*hàng|hàng\s*cần\s*lấy))$/iu],
  ['delivery',/^(?:giao\s*hàng|giao\s*nhận|địa\s*chỉ\s*giao|thời\s*gian\s*giao|ship)$/iu],
  ['price',/^(?:giá|báo\s*giá|giá\s*riêng|chiết\s*khấu|khuyến\s*mãi)$/iu],
  ['payment',/^(?:thanh\s*toán|chuyển\s*khoản|công\s*nợ|tiền\s*hàng)$/iu],
