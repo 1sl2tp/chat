@@ -44,8 +44,9 @@ assert(html.includes('data-composer-placement-owner="stateful-sticky-or-visual-v
 assert(html.includes('data-composer-visual-mode="floating-outside-scroll-root-or-visual-viewport"'));
 assert(refresh.includes('#stageLayout[data-keyboard-open="true"]'),
  'existing iOS keyboard owner must survive unchanged');
-assert(refresh.includes('#composerShell[data-editor-expanded="true"]'),
- 'long-text composer owner must survive unchanged');
+assert(refresh.includes('grid-template-rows:auto auto minmax(var(--ui-control-touch,44px),auto);') &&
+ !refresh.includes('data-editor-expanded'),
+ 'long-text composer keeps one fixed action rail and keyboard owner');
 assert(css.includes('SPEC-CHAT-MOBILE-DIRECTORY-VV-20261101'),
  'existing VisualViewport directory safeguards must survive unchanged');
 assert(!/position:\s*(fixed|sticky)|(?:overflow-y|scroll-snap-type|scroll-behavior):/.test(visual),
