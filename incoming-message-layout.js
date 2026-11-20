@@ -441,10 +441,32 @@ function analyze(input){
 // marked yellow instead of implying that a final confirmed order exists.
 function summarizeDay(messages){
  if(!Array.isArray(messages)||!messages.length)return null;
- const grouped=new Map(),notes=[],sourceKeys=new Set();
+ const grouped=new Map(),notes=[],sourceKeys=new Set(),imageGroups=[];
  let previousStock=null;
  for(const message of messages){
-  if(!message||message.sender==='self'||message.media)continue;
+  if(!message||message.sender==='self')continue;
+  if(message.media){
+   // OCR is an opt-in, read-only result. Separate each photo even if it
+   // repeats items from an earlier photo; the second may be a corrected list.
+   for(const read of (Array.isArray(message.imageReadings)?message.imageReadings:[]).slice(0,12)){
+    if(read?.status!=='read')continue;
+    const rows=(Array.isArray(read.lines)?read.lines:[]).filter(item=>
+     String(item?.name||'').trim().length>1&&
+     Number.isSafeInteger(Number(item?.qty))&&Number(item.qty)>=1&&Number(item.qty)<=999
+    ).slice(0,60).map(item=>({
+     name:String(item.name).trim().slice(0,120),qty:Number(item.qty),
+     unit:String(item.unit||'').slice(0,25),review:true
+    }));
+    const rawNotes=(Array.isArray(read.notes)?read.notes:[]).slice(0,60)
+     .map(note=>String(note).trim().slice(0,240)).filter(Boolean);
+    if(rows.length||rawNotes.length){
+     imageGroups.push({assetId:String(read.assetId||''),
+      stamp:Number(message.stamp)||0,items:rows,notes:rawNotes});
+    }
+   }
+   previousStock=null;
+   continue;
+  }
   const original=String(message.text??'').trim();
   if(!original||original.length>5000)continue;
   const timestamp=Number(message.stamp)||0;
@@ -482,7 +504,7 @@ function summarizeDay(messages){
    previousStock=null;
   }
  }
- if(!grouped.size)return null;
+ if(!grouped.size&&!imageGroups.length)return null;
  const items=Array.from(grouped.values());
  // Same name with different units is not a safely summable quantity.
  const sameName=new Map();
@@ -494,16 +516,20 @@ function summarizeDay(messages){
  for(const item of items){
   if(sameName.get(item.name.toLocaleLowerCase('vi-VN'))>1)item.review=true;
  }
- return {kind:'daily-order',items,notes,messageCount:sourceKeys.size};
+ return {kind:'daily-order',items,notes,imageGroups,
+  messageCount:sourceKeys.size};
 }
 function renderDailySummary(target,summary){
- if(!target||summary?.kind!=='daily-order'||!summary.items?.length)return false;
+ if(!target||summary?.kind!=='daily-order'||
+   !(summary.items?.length||summary.imageGroups?.length))return false;
  const root=el('section','incoming-brief day-order-summary-card');
  root.setAttribute('aria-label','Tổng hợp tin lấy hàng trong ngày');
  const head=el('div','incoming-brief-head');
  head.append(el('strong','incoming-brief-title','Tổng hợp lấy hàng · '+String(summary.dayLabel||'trong ngày')),
-  el('span','incoming-brief-count',summary.items.length+' mặt hàng · '+summary.messageCount+' tin'));
+  el('span','incoming-brief-count',
+   summary.items.length+' hàng từ tin · '+(summary.imageGroups?.length||0)+' ảnh'));
  root.append(head);
+ if(summary.items.length){
  const grid=el('div','incoming-brief-products');
  const columns=el('div','incoming-brief-columns');
  columns.append(el('span','','STT'),el('span','','Tên sản phẩm'),el('span','','SL'));
@@ -518,6 +544,39 @@ function renderDailySummary(target,summary){
   grid.append(row);
  });
  root.append(grid);
+ }
+ for(const image of summary.imageGroups||[]){
+  const source=el('section','day-order-image-source');
+  const time=Number.isFinite(image.stamp)&&image.stamp>0?
+   new Date(image.stamp).toLocaleTimeString('vi-VN',{
+    timeZone:'Asia/Ho_Chi_Minh',hour:'2-digit',minute:'2-digit',hourCycle:'h23'
+   }):'';
+  source.append(el('strong','day-order-image-title',
+   'Ảnh '+time+' · '+image.items.length+' dòng · Cần soát'));
+  const grid=el('div','incoming-brief-products');
+  const columns=el('div','incoming-brief-columns');
+  columns.append(el('span','','STT'),el('span','','Tên sản phẩm'),el('span','','SL'));
+  grid.append(columns);
+  image.items.forEach((item,index)=>{
+   const row=el('div','incoming-brief-item');
+   row.dataset.needsReview='true';
+   const name=el('span','incoming-brief-product',item.name);
+   name.append(el('span','incoming-brief-review','Cần soát ảnh'));
+   row.append(el('span','incoming-brief-index',index+1),name,
+    el('span','incoming-brief-quantity',item.qty));
+   grid.append(row);
+  });
+  source.append(grid);
+  for(const text of image.notes){
+   const line=el('div','incoming-brief-note',text);
+   line.dataset.needsReview='true';
+   line.append(el('span','incoming-brief-review','Cần hướng dẫn'));
+   source.append(line);
+  }
+  source.append(el('div','day-order-image-note',
+   'Không cộng vào hàng từ tin · ảnh khác có thể là bản sửa'));
+  root.append(source);
+ }
  for(const note of summary.notes||[]){
   const row=el('div','incoming-brief-note',note.text);
   if(note.review){
@@ -527,7 +586,7 @@ function renderDailySummary(target,summary){
   root.append(row);
  }
  root.append(el('div','day-order-summary-disclaimer',
-  'Chỉ tổng hợp các tin đã tải · chưa xác nhận hoặc tạo đơn'));
+  'Chỉ tổng hợp tin đã tải và ảnh đã chọn đọc · chưa xác nhận hoặc tạo đơn'));
  target.replaceChildren(root);
  return true;
 }
