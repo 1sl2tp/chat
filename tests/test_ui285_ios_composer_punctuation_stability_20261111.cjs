@@ -15,9 +15,11 @@ assert.match(html,/#measure\{[\s\S]*?overflow-wrap:anywhere;/);
 assert.match(mobile,/#appShell\[data-auth-state="authenticated"\]\[data-route="chat"\] #editor\{[\s\S]*?overflow-wrap:anywhere;/);
 assert.match(owner,/'overflow-wrap','word-break','white-space','tab-size'/);
 const writes=[];
+let geometryReads=0;
+let computedStyleReads=0;
 const editor={value:'',placeholder:'Nhắn tin...',dataset:{},selectionStart:0,selectionEnd:0,
   style:{setProperty(k,v){this[k]=v;writes.push([k,v]);}},
-  getBoundingClientRect(){return{width:shell.dataset.editorExpanded==='true'?330:132};}};
+  getBoundingClientRect(){geometryReads++;return{width:shell.dataset.editorExpanded==='true'?330:132};}};
 const shell={dataset:{}};
 const measure={style:{width:'',setProperty(k,v){this[k]=v;}},textContent:'',
  get scrollHeight(){
@@ -32,7 +34,7 @@ const measure={style:{width:'',setProperty(k,v){this[k]=v;}},textContent:'',
 const breakpoint={matches:true};
 const env={editor,composerShell:shell,measure,
   window:{matchMedia:()=>breakpoint,visualViewport:{height:570},innerHeight:800},
-  getComputedStyle:()=>({getPropertyValue:p=>p==='overflow-wrap'?'anywhere':''}),
+  getComputedStyle:()=>{computedStyleReads++;return{getPropertyValue:p=>p==='overflow-wrap'?'anywhere':''};},
   requestAnimationFrame:()=>{throw Error('synchronous punctuation typing must not create a resize frame')},
   composerObserver:{},Math,Number,String,Boolean};
 vm.createContext(env);vm.runInContext(owner,env);
@@ -48,6 +50,8 @@ type('Một câu đã đủ dài để xuống dòng. Và có thêm một câu k
 const multi=Number.parseFloat(editor.style['--editor-height']);
 assert(multi>40,'soft-wrap of long sentence grows for the full width');
 const before=writes.filter(([k])=>k==='--editor-height').length;
+const beforeGeometryReads=geometryReads;
+const beforeStyleReads=computedStyleReads;
 // A temporary change in wrapping opportunity (punctuation / iOS IME),
 // even when the visible sentence length grows, cannot shrink a writing row.
 measure.override=40;
@@ -56,6 +60,8 @@ Object.defineProperty(measure,'scrollHeight',{get(){return this.override??previo
 type('Một câu đã đủ dài để xuống dòng. Và có thêm một câu khá dài.');
 assert.equal(Number.parseFloat(editor.style['--editor-height']),multi,'period does not collapse the native editor while appending');
 assert.equal(writes.filter(([k])=>k==='--editor-height').length,before,'period does not trigger another geometry writer');
+assert.equal(geometryReads,beforeGeometryReads,'punctuation typing never forces textarea bounding-box layout');
+assert.equal(computedStyleReads,beforeStyleReads,'punctuation typing reuses typography metrics');
 assert.equal(editor.selectionStart,editor.value.length,'caret is browser-owned');
 assert.equal(editor.value.endsWith('.'),true,'punctuation draft remains intact');
 measure.override=null;
@@ -65,4 +71,8 @@ type('Một câu mới');
 assert.equal(editor.style['--editor-height'],'40px','replacing text with a shorter draft may shrink');
 type('');
 assert.equal(shell.dataset.editorExpanded,'false','clearing restores one-row compact Composer');
-console.log('UI-285 punctuation soft wrap + one-pass width + native caret + no-height bounce PASS');
+// CHAT-397: a Vietnamese composition session must leave provisional key events
+// browser-owned. Only compositionend may measure the final composed text.
+assert.match(js,/editor\.addEventListener\('compositionend',\(\)=>\{[\s\S]*?autoGrow\(\{source:'typing'\}\)/);
+assert.match(js,/editor\.addEventListener\('input',event=>\{[\s\S]*?if\(!composing&&!event\.isComposing\)autoGrow\(\{source:'typing'\}\)/);
+console.log('UI-285 / CHAT-397 punctuation, IME and cached typing geometry PASS');
