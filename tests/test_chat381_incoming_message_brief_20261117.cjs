@@ -310,9 +310,27 @@ assert(html.includes('data-build-source="incoming-message-layout.js"'));
 assert(html.includes('data-build-source="incoming-message-layout.css"'));
 assert(html.indexOf('data-build-source="incoming-message-layout.js"')<
  html.indexOf('data-build-source="app.js"'));
-assert.match(css,/grid-template-columns:23px minmax\(0,1fr\) minmax\(64px,82px\)/);
+assert.match(css,/grid-template-columns:24px minmax\(0,1fr\) minmax\(32px,48px\)/);
 assert.match(css,/\.incoming-brief-index/);
 assert(!css.includes('.incoming-brief-unit'),'unit must not reserve a fourth column');
+// CHAT-405: a structured order is a neutral, centered timeline card for
+// both senders, NOT a 70%-wide left/right text bubble. The viewport controls
+// the available width and the numeric SL column stays narrow.
+assert.match(app,/const allowed=message\?\.sender!=='self'\|\|[\s\S]*?formatter\?\.analyze\?\.\(message\?\.text\)\?\.kind==='order'/);
+assert.equal((app.match(/const sharedList=messageBody\.dataset\.autoLayout==='order';/gu)||[]).length,2,
+ 'initial render and virtualized patch must share the same layout contract');
+assert(app.includes("unit.dataset.sharedList=sharedList?'true':'false';"));
+assert(app.includes("turn.dataset.sharedList=sharedList?'true':'false';"));
+assert(app.includes("node.dataset.sharedList=sharedList?'true':'false';"));
+assert(html.includes('#messageWindow .message-unit[data-shared-list="true"]{'));
+assert(html.includes('width:min(100%,720px)'));
+assert(html.includes('margin-inline:auto!important'));
+assert(html.includes('#messageWindow .message-unit[data-shared-list="true"]>.message-text{'));
+assert(html.includes('background:transparent!important'));
+assert(html.includes('padding:0!important'));
+assert(html.includes('#messageWindow .message-unit[data-shared-list="true"]>.message-sent-time{'));
+assert(!css.includes('vw - '),'order grid must not rely on viewport instead of parent content');
+
 assert(css.includes('.incoming-brief-item[data-needs-review="true"]'));
 assert(css.includes('background:#ffe58a'));
 assert(css.includes('.incoming-brief-note[data-needs-review="true"]'));
