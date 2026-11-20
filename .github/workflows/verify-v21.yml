@@ -774,5 +774,10 @@ jobs:
         run: |
           node --check chat-message-case.js
           node tests/test_chat415_sentence_case_display_20261120.cjs
+      - name: CHAT-416 consistent all-surface previews and contextual layout
+        run: |
+          node --check sw.js
+          node --check chat-message-case.js
+          node tests/test_chat416_unified_previews_context_20261120.cjs
       - name: Verify canonical source
         run: python tools/verify_current.py
