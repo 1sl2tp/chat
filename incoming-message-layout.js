@@ -215,7 +215,12 @@ function parseCompoundVariant(line){
  if(chunks.length<2||chunks.length>12)return null;
  const qtyFirst=new RegExp('^(\\d{1,3})\\s*(?:('+U+')\\s+)?([\\p{L}][\\p{L}\\p{N}\\s./-]{0,60})$','iu');
  const nameFirst=new RegExp('^([\\p{L}][\\p{L}\\p{N}\\s./-]{0,60}?)\\s+(\\d{1,3})(?:\\s*('+U+'))?$','iu');
- const root=m[1].trim(),result=[];
+ const heading=m[1].trim();
+ const totalMatch=heading.match(new RegExp('^(\\d{1,3})\\s*('+U+')\\s+(.+)$','iu'));
+ const root=totalMatch?totalMatch[3].trim():heading;
+ const expectedTotal=totalMatch?Number(totalMatch[1]):null;
+ const inheritedUnit=totalMatch?unit(totalMatch[2]):'';
+ const result=[];
  for(const chunk of chunks){
   const first=chunk.trim().match(qtyFirst),last=first?null:chunk.trim().match(nameFirst);
   if(!first&&!last)return null;
@@ -225,10 +230,12 @@ function parseCompoundVariant(line){
   const shortVq=/^vq$/iu.test(label),probiTo=/^probi(?:y)?\s+to$/iu.test(root);
   const name=(shortVq&&probiTo?'probi':root)+' '+label;
   const review=/^(?:có|ít|dưa|dươngf|ko|không)$/iu.test(label)||(shortVq&&!probiTo);
-  const item=entry(name,quantity,pack||'',raw,review);
+  const item=entry(name,quantity,pack||inheritedUnit,raw,review);
   if(!item)return null;
   result.push(item);
  }
+ if(expectedTotal!==null&&result.reduce((sum,item)=>sum+item.qty,0)!==expectedTotal)
+  result.forEach(item=>{item.review=true;});
  return result;
 }
 function parsePieces(line,isOrder){
