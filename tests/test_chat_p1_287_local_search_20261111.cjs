@@ -101,7 +101,8 @@ assert(searchUi.includes('V21ConversationBridge?.revealLoadedMessage?.'));
 assert(searchUi.includes('document.addEventListener(\'v21-active-contact-change\''));
 assert(searchUi.includes('document.addEventListener(\'v21-auth-state\''));
 assert(searchUi.includes('v21-interaction-abort'));
-assert(searchUi.includes('preview.textContent=hit.preview'));
+assert(searchUi.includes('preview.textContent=window.V21ChatMessageCase?.previewCase?.(hit.preview)||hit.preview'),
+ 'search results are formatted only for display; canonical hit text still drives navigation');
 assert(!searchUi.includes('.rpc('));
 assert(!searchUi.includes('fetch('));
 assert(shell.includes('data-build-source="conversation-search.js"'));
