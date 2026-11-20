@@ -653,28 +653,36 @@ async function submit(){
  const owner=accountSession();if(!owner)return;
  busy=true;sync();
  const at=new Date().toISOString();
- appendAdmin(file,at);
+ const pendingSource=stagedChatSource?{...stagedChatSource}:null;
+ const imageBubble=appendAdmin(file,at);
  clearPreview();
- say("Đã nhận thao tác. Đang gửi ảnh để AI đọc bảng…");
+ function acceptRecord(record,{duplicate=false}={}){
+  linkStagedRecord(record,pendingSource);
+  invoiceRecords.set(record.hash,record);
+  if(visibleHashes.has(record.hash)){
+   imageBubble.closest('.ncc-ai-message')?.remove();
+   say('Ảnh trùng — đã có phiếu này. Không cộng trùng trong bảng gộp.');
+  }else{
+   visibleHashes.add(record.hash);
+   const tableBubble=appendTable(record,{duplicate});
+   invoiceCard(record,imageBubble,tableBubble,{expanded:true});
+  }
+  renderDayGroups();
+ }
+ say("Đã nhận thao tác. Đang gửi ảnh để đọc bảng phiếu nhập…");
  try{
   const base64=await fileBase64(file);
   if(accountSession()!==owner||!opened)return;
   const result=await api("send",{mime:file.type,base64});
   if(accountSession()!==owner||!opened)return;
   if(result.record){
-   if(result.duplicate){
-    say("Ảnh trùng — đã đọc trước đó.");
-    appendTable(result.record,{duplicate:true});
-   }else{
-    visibleHashes.add(result.record.hash);
-    appendTable(result.record);
-    say("Đã đọc xong. Kiểm tra bảng trước khi sử dụng.");
-   }
+   acceptRecord(result.record,{duplicate:Boolean(result.duplicate)});
+   if(!result.duplicate)say("Đã đọc xong. Kiểm tra chi tiết phiếu và bảng gộp trước khi sử dụng.");
   }else if(result.status==="processing"){
    say("Ảnh đã có lượt đọc đang chạy. Đang chờ kết quả…");
    const previous=await checkStatus(result.hash,owner);
-   if(previous){appendTable(previous,{duplicate:true});say("Ảnh trùng — kết quả đã có trước đó.");}
-   else say("Đang xử lý. Mở lại NCC AI để xem kết quả.");
+   if(previous)acceptRecord(previous,{duplicate:true});
+   else say("Đang xử lý. Mở lại Nhập hàng để xem kết quả.");
   }else{
    say("Ảnh chưa có kết quả. Kiểm tra lại trong lịch sử.");
   }
