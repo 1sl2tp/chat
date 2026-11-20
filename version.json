@@ -1,8 +1,8 @@
 {
-  "version": "V21.72.60",
-  "build_id": "100d60b8a456f1367e39a2e52c61cbe625ea0df98f2dce109aabae7cc5ecbdb6",
+  "version": "V21.72.61",
+  "build_id": "40d45a4b7d94d3228ac6d345561948361a2760202e1f10053e53ea1f25270dd3",
   "channel": "candidate",
   "update_policy": "auto-when-safe",
   "published_from": "github-main",
-  "index_sha256": "028dee6738f1c063cd37eb4745821e3d0588d61f51d5a4ed9b5202651ece166d"
+  "index_sha256": "9f9fe778542bdf5fb2a031e47e43ac70ba28bc975678a678ead93e6da769483a"
 }
