@@ -98,7 +98,6 @@ sourcesButton.addEventListener("click",event=>{
  paintSourcePicker();
 });
 document.addEventListener("v21-contact-groups-change",()=>paintSourcePicker());
-document.addEventListener("v21-ncc-sources-changed",()=>paintSourcePicker());
 let previewUrl="",ready=false,busy=false,session="",opened=false;
 let embeddedHost=null;
 let selectedPhoto=null,selectVersion=0,supportsRecheck=false,supportsProductLinks=false;
@@ -650,9 +649,10 @@ async function stageChatImage({assetId,contactId}={}){
  const known=(window.V21NccSources?.list?.()||[]).find(x=>x.id===id);
  const sourceName=String(known?.name||"Liên hệ").slice(0,80);
  const blob=row.blob;
- const file=new File([blob],"phieu-tu-chat-"+asset+".jpg",{
-  type:blob.type==="image/jpg"?"image/jpeg":blob.type||"image/jpeg",
-  lastModified:Date.now()
+ const mime=blob.type==="image/jpg"?"image/jpeg":blob.type||"image/jpeg";
+ const suffix=mime==="image/png"?"png":mime==="image/webp"?"webp":"jpg";
+ const file=new File([blob],"phieu-tu-chat-"+asset+"."+suffix,{
+  type:mime,lastModified:Date.now()
  });
  const photo=await prepareSelectedPhoto(file);
  if(accountSession()!==initialSession||
@@ -660,7 +660,9 @@ async function stageChatImage({assetId,contactId}={}){
     !window.V21NccSources?.selected?.(id))
   throw Error("source_unavailable");
  await open();
- if(!opened||accountSession()!==initialSession)return false;
+ if(!opened||accountSession()!==initialSession||
+   String(window.V21SyncEngine?.snapshot?.()?.currentContactId||"")!==id||
+   !window.V21NccSources?.selected?.(id))return false;
  selectVersion++;
  clearPreview();
  selectedPhoto=photo;
