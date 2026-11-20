@@ -473,9 +473,9 @@ function invoiceCard(record,imageBubble,tableBubble,{expanded=false}={}){
  const label=document.createElement('summary');
  label.className='ncc-invoice-card-title';
  const lineCount=Array.isArray(record.lines)?record.lines.length:0;
- const printedDate=window.V21NccDayGroups?.dateFor?.(record,sourceLinks()[record.hash]);
  const redrawLabel=()=>{
   const linked=sourceLinks()[record.hash];
+  const printedDate=window.V21NccDayGroups?.dateFor?.(record,linked);
   const source=dayGroupSources().find(x=>x.id===linked?.contactId);
   label.textContent='Phiếu '+(record.document?.invoice_number||record.document?.invoiceNumber||String(record.hash||'').slice(0,8))+
    ' · '+lineCount+' dòng · '+(printedDate?.day?window.V21NccDayGroups.dayVN(printedDate.day)+' · ':'')+
@@ -728,8 +728,10 @@ async function open(options={}){
   if(!opened||accountSession()!==owner)return;
   const records=Array.isArray(history.records)?history.records.slice().reverse():[];
   if(records.length){
-   thread.replaceChildren();visibleHashes.clear();delete thread.dataset.day;
+   thread.replaceChildren();visibleHashes.clear();invoiceRecords.clear();
+   daySummaryHost=null;delete thread.dataset.day;
    records.forEach(renderRecord);
+   renderDayGroups();
   }
  }catch{
   if(opened&&accountSession()===owner){
@@ -769,6 +771,7 @@ fileInput.addEventListener("change",async()=>{
   if(version!==selectVersion||!opened||owner!==accountSession())return;
   if(!ready){say("AI chưa sẵn sàng, chưa gửi ảnh.");return;}
   selectedPhoto=photo;
+  stagedChatSource=null; // a manually chosen file has no proven chat owner
   if(previewUrl)URL.revokeObjectURL(previewUrl);
   previewUrl=URL.createObjectURL(photo);
   preview.querySelector("img").src=previewUrl;
@@ -795,7 +798,7 @@ document.addEventListener("v21-auth-state",()=>{
 });
 // CHAT-418: stage an existing incoming supplier image WITHOUT auto sending.
 // Admin must tap the existing NCC "read" arrow to invoke its original server.
-async function stageChatImage({assetId,contactId}={}){
+async function stageChatImage({assetId,contactId,messageDate}={}){
  const id=String(contactId||""),asset=String(assetId||"").toLowerCase();
  const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/iu;
  if(!isAdmin()||!uuid.test(asset)||!window.V21NccSources?.selected?.(id))
@@ -837,6 +840,18 @@ async function stageChatImage({assetId,contactId}={}){
  selectVersion++;
  clearPreview();
  selectedPhoto=photo;
+ // The originating message's Vietnamese-local day is evidence, not the
+ // timestamp of the later manual OCR action.
+ let messageDay='';
+ const sentAt=new Date(messageDate||'');
+ if(Number.isFinite(sentAt.getTime())){
+  const parts=new Intl.DateTimeFormat('en-US',{
+   timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'
+  }).formatToParts(sentAt);
+  const field=x=>parts.find(p=>p.type===x)?.value||'';
+  messageDay=[field('year'),field('month'),field('day')].join('-');
+ }
+ stagedChatSource={contactId:id,messageDay};
  previewUrl=URL.createObjectURL(photo);
  preview.querySelector("img").src=previewUrl;
  room.querySelector("[data-ncc-room-filename]").textContent=
