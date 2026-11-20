@@ -73,12 +73,23 @@ function paintSourcePicker(){
    const input=document.createElement("input");input.type="checkbox";
    input.checked=item.selected;input.value=item.id;
    const name=document.createElement("span");name.textContent=item.name;
-   const group=document.createElement("small");
-   group.textContent=item.group==="ncc"?"TK NCC":"Liên hệ";
-   label.append(input,name,group);host.appendChild(label);
+   const type=document.createElement("select");
+   type.className="ncc-source-type";
+   type.setAttribute("aria-label","Loại hàng của "+item.name);
+   for(const [key,labelText] of Object.entries(window.V21NccSources?.types||{})){
+    const option=document.createElement("option");option.value=key;option.textContent=labelText;
+    type.appendChild(option);
+   }
+   type.value=item.type||"other";type.disabled=!item.selected;
+   type.addEventListener("change",()=>{
+    if(!window.V21NccSources?.setType?.(item.id,type.value))
+     type.value=window.V21NccSources?.typeFor?.(item.id)||"other";
+   });
+   label.append(input,name,type);host.appendChild(label);
    input.addEventListener("change",()=>{
     if(!window.V21NccSources?.setSelected?.(item.id,input.checked))
      input.checked=!input.checked;
+    type.disabled=!input.checked;
    });
   }
   if(!visible.length){
@@ -98,11 +109,18 @@ sourcesButton.addEventListener("click",event=>{
  paintSourcePicker();
 });
 document.addEventListener("v21-contact-groups-change",()=>paintSourcePicker());
+document.addEventListener("v21-ncc-sources-changed",()=>{
+ if(opened)renderDayGroups();
+});
 let previewUrl="",ready=false,busy=false,session="",opened=false;
 let embeddedHost=null;
 let selectedPhoto=null,selectVersion=0,supportsRecheck=false,supportsProductLinks=false;
 let productCatalog=null;
 const visibleHashes=new Set();
+const invoiceRecords=new Map();
+let stagedChatSource=null;
+let daySummaryHost=null;
+let activeNccType='all';
 const attachedUrls=new Set();
 const say=text=>{state.textContent=text;};
 function valid(file){
@@ -114,14 +132,15 @@ function sync(){
 }
 function clearPreview(){
  if(previewUrl){URL.revokeObjectURL(previewUrl);previewUrl="";}
- fileInput.value="";selectedPhoto=null;preview.hidden=true;preview.querySelector("img").removeAttribute("src");
+ fileInput.value="";selectedPhoto=null;stagedChatSource=null;
+ preview.hidden=true;preview.querySelector("img").removeAttribute("src");
  sync();
 }
 function purge(){
  selectVersion++;
  clearPreview();
  for(const url of attachedUrls)URL.revokeObjectURL(url);
- attachedUrls.clear();visibleHashes.clear();thread.replaceChildren();
+ attachedUrls.clear();visibleHashes.clear();invoiceRecords.clear();daySummaryHost=null;thread.replaceChildren();
  productCatalog=null;supportsProductLinks=false;
  ready=false;supportsRecheck=false;busy=false;session="";sync();
 }
@@ -369,7 +388,13 @@ function appendTable(record,{duplicate=false,recheck=false}={}){
     const data=await api("recheck",{hash:record.hash});
     if(accountSession()!==owner||!opened)return;
     if(!data.record)throw Error("missing_recheck_result");
-    appendTable(data.record,{recheck:true});
+    invoiceRecords.set(data.record.hash,data.record);
+    const newBubble=appendTable(data.record,{recheck:true});
+    const oldCard=[...thread.querySelectorAll('.ncc-invoice-card')].find(card=>
+     card.dataset.invoiceHash===String(data.record.hash));
+    if(oldCard&&newBubble?.closest('.ncc-ai-message'))
+     oldCard.appendChild(newBubble.closest('.ncc-ai-message'));
+    renderDayGroups();
     say("Đã đọc lại. Hãy đối chiếu tổng tiền và giá sau CK/1.");
    }catch{
     if(accountSession()===owner&&opened)say("Chưa đọc lại được tổng/chiết khấu. Không có giá nào bị thay đổi.");
@@ -378,12 +403,173 @@ function appendTable(record,{duplicate=false,recheck=false}={}){
  }
  node(bubble,"p","Bảng dùng để đối chiếu. Không tự ghi giá vốn, công nợ hoặc nhập kho.","ncc-ai-disclaimer");
  thread.scrollTop=thread.scrollHeight;
+ return bubble;
+}
+// CHAT-419: one card per source invoice, with a grouped read-only day view.
+// All associations are explicit, Admin-scoped device metadata, not DB writes.
+function accountId(){return String(auth()?.snapshot?.()?.account?.id||'');}
+function sourceLinks(){return window.V21NccDayGroups?.load?.(accountId())||{};}
+function dayGroupSources(){return window.V21NccSources?.list?.().filter(x=>x.selected)||[];}
+function renderDayGroups(){
+ const model=window.V21NccDayGroups;
+ if(!model||!opened)return;
+ const groups=model.aggregate([...invoiceRecords.values()],sourceLinks(),dayGroupSources());
+ if(!daySummaryHost||!daySummaryHost.isConnected){
+  daySummaryHost=document.createElement('section');
+  daySummaryHost.className='ncc-day-summary-host';
+  daySummaryHost.setAttribute('aria-label','Tổng hợp các phiếu nhập theo ngày và nguồn');
+  thread.insertBefore(daySummaryHost,thread.firstChild);
+ }
+ daySummaryHost.replaceChildren();
+ daySummaryHost.hidden=!groups.length;
+ if(!groups.length)return;
+ node(daySummaryHost,'strong','Tổng hợp phiếu nhập theo ngày','ncc-day-summary-heading');
+ node(daySummaryHost,'small','Chỉ gộp cùng người gửi và cùng ngày. Giá khác nhau giữ dòng riêng; phiếu gốc còn nguyên.');
+ const filters=node(daySummaryHost,'nav',undefined,'ncc-day-type-filters');
+ filters.setAttribute('aria-label','Lọc loại hàng nhập');
+ for(const [value,title] of [
+  ['all','Tất cả'],['general','Hàng thường'],['u','Hàng U'],['tobacco','Thuốc lá'],['other','Khác']
+ ]){
+  const button=node(filters,'button',title);
+  button.type='button';button.dataset.active=String(activeNccType===value);
+  button.setAttribute('aria-pressed',String(activeNccType===value));
+  button.addEventListener('click',()=>{activeNccType=value;renderDayGroups();});
+ }
+ const visible=activeNccType==='all'?groups:groups.filter(x=>x.type===activeNccType);
+ const count=node(daySummaryHost,'small',visible.length+' nhóm nguồn/ngày · '+visible.reduce((n,x)=>n+x.invoices.length,0)+' phiếu');
+ count.className='ncc-day-summary-count';
+ if(!visible.length)node(daySummaryHost,'small','Chưa có phiếu được gán vào loại hàng này.');
+ for(const [index,group] of visible.entries()){
+  const card=node(daySummaryHost,'details',undefined,'ncc-day-group');
+  card.open=index===0;
+  const summary=node(card,'summary',undefined,'ncc-day-group-head');
+  node(summary,'strong',group.typeLabel+' · '+group.sourceName+' · '+group.dateLabel);
+  node(summary,'small',group.invoices.length+' phiếu · '+group.rows.length+' dòng sau gộp'+
+   (group.review?' · Cần soát':''));
+  const note=node(card,'small','Nguồn ngày: '+group.bases.join(' / ') +
+   '. Ảnh/phiếu chưa đủ số liệu sẽ không cộng thành tiền ước tính.','ncc-day-group-note');
+  note.setAttribute('role','note');
+  const wrap=node(card,'div',undefined,'ncc-day-table-scroll');
+  const table=node(wrap,'table',undefined,'ncc-day-table');
+  const headings=node(node(table,'thead'),'tr');
+  ['STT','Tên hàng trên phiếu','SL','ĐVT','Đơn giá gốc','Giá sau CK/1','Tiền gốc','Tiền sau CK'].forEach(x=>node(headings,'th',x));
+  const body=node(table,'tbody');
+  for(const [rowIndex,item] of group.rows.entries()){
+   const tr=node(body,'tr');
+   const cells=[rowIndex+1,item.name,item.quantity,item.unit||'—',
+    money(item.price),money(item.afterPrice),money(item.gross),money(item.net)];
+   for(const value of cells)node(tr,'td',value);
+  }
+  const foot=node(card,'div',undefined,'ncc-day-totals');
+  const totalRow=(label,value)=>{
+   const line=node(foot,'div',undefined,'ncc-day-total-row');
+   node(line,'span',label);
+   node(line,'strong',value===null?'Chưa đủ dữ liệu':money(value)+' đ');
+  };
+  totalRow('Tổng tiền hàng gốc',group.grossTotal);
+  totalRow('Tổng sau chiết khấu',group.netTotal);
+  totalRow('Tổng thực trả từ phiếu đã khớp',group.printedPayable);
+  if(group.review||group.missingPrices){
+   node(foot,'small','Có phiếu chưa khớp tổng, thiếu giá hoặc ngày chưa xác minh. Không tự nhập kho và không tạo đơn.','ncc-day-review');
+  }
+  const button=node(card,'button','Sao chép bảng gộp','ncc-day-copy');
+  button.type='button';
+  button.addEventListener('click',()=>{
+   const clean=value=>String(value??'').replace(/[\r\n\t]/gu,' ').trim();
+   const rows=group.rows.map(x=>[
+    x.name,x.quantity,x.unit||'',x.price??'',x.afterPrice??'',x.gross??'',x.net??''
+   ].map(clean).join('\t'));
+   const output=['Ngày '+group.dateLabel+' · '+group.typeLabel+' · '+group.sourceName,
+    'Tên hàng\tSL\tĐVT\tĐơn giá gốc\tSau CK/1\tTiền gốc\tTiền sau CK',
+    ...rows,'Tổng gốc\t'+(group.grossTotal??'Chưa đủ dữ liệu'),
+    'Tổng sau CK\t'+(group.netTotal??'Chưa đủ dữ liệu')].join('\n');
+   void navigator.clipboard?.writeText?.(output).then(()=>say('Đã sao chép bảng gộp '+group.invoices.length+' phiếu.'))
+    .catch(()=>say('Chưa sao chép được bảng gộp.'));
+  });
+ }
+}
+function invoiceCard(record,imageBubble,tableBubble,{expanded=false}={}){
+ const card=document.createElement('details');
+ card.className='ncc-invoice-card';
+ card.dataset.invoiceHash=String(record.hash||'');
+ card.open=expanded;
+ const label=document.createElement('summary');
+ label.className='ncc-invoice-card-title';
+ const lineCount=Array.isArray(record.lines)?record.lines.length:0;
+ const redrawLabel=()=>{
+  const linked=sourceLinks()[record.hash];
+  const printedDate=window.V21NccDayGroups?.dateFor?.(record,linked);
+  const source=dayGroupSources().find(x=>x.id===linked?.contactId);
+  label.textContent='Phiếu '+(record.document?.invoice_number||record.document?.invoiceNumber||String(record.hash||'').slice(0,8))+
+   ' · '+lineCount+' dòng · '+(printedDate?.day?window.V21NccDayGroups.dayVN(printedDate.day)+' · ':'')+
+   (source?source.typeLabel+' · '+source.name:'Chưa gán nguồn');
+ };
+ redrawLabel();
+ card.appendChild(label);
+ const actions=node(card,'div',undefined,'ncc-invoice-assign');
+ const sourceLabel=node(actions,'label','Nguồn hàng');
+ const dropdown=node(sourceLabel,'select');
+ const empty=node(dropdown,'option','Chọn người gửi (không tự nhận diện từ ảnh)');
+ empty.value='';
+ const sources=dayGroupSources();
+ for(const entry of sources){
+  const opt=node(dropdown,'option',entry.typeLabel+' · '+entry.name);
+  opt.value=entry.id;
+ }
+ const prior=sourceLinks()[record.hash]||{};
+ dropdown.value=sources.some(x=>x.id===prior.contactId)?prior.contactId:'';
+ const dateLabel=node(actions,'label','Ngày phiếu');
+ const dateField=node(dateLabel,'input');
+ dateField.type='date';
+ dateField.setAttribute('aria-label','Ngày ghi trên phiếu (có thể sửa)');
+ dateField.value=window.V21NccDayGroups?.dateFor?.(record,prior)?.day||'';
+ dateField.disabled=!dropdown.value;
+ node(actions,'small','Ngày tự nhận diện hoặc ngày ảnh Chat cần đối chiếu. Ngày đọc máy chỉ là tạm.');
+ dropdown.addEventListener('change',()=>{
+  const model=window.V21NccDayGroups;
+  const original=sourceLinks()[record.hash]||{};
+  if(!dropdown.value)model?.unlink?.(accountId(),record.hash);
+  else model?.save?.(accountId(),record.hash,{
+   contactId:dropdown.value,day:original.day||'',messageDay:original.messageDay||''
+  });
+  dateField.disabled=!dropdown.value;
+  redrawLabel();
+  renderDayGroups();
+ });
+ dateField.addEventListener('change',()=>{
+  if(!dropdown.value)return;
+  const old=sourceLinks()[record.hash]||{};
+  window.V21NccDayGroups?.save?.(accountId(),record.hash,{
+   contactId:dropdown.value,day:dateField.value,messageDay:old.messageDay||''
+  });
+  redrawLabel();renderDayGroups();
+ });
+ for(const bubble of [imageBubble,tableBubble]){
+  const article=bubble?.closest?.('.ncc-ai-message');
+  if(article)card.appendChild(article);
+ }
+ thread.appendChild(card);
+ return card;
+}
+function linkStagedRecord(record,context){
+ const model=window.V21NccDayGroups;
+ if(!model||!context?.contactId||!record?.hash||
+    !window.V21NccSources?.selected?.(context.contactId))return;
+ const old=sourceLinks()[record.hash];
+ // Never silently change an already-tagged identical image from another sender.
+ if(old?.contactId&&old.contactId!==context.contactId)return;
+ model.save(accountId(),record.hash,{
+  contactId:context.contactId,
+  day:old?.day||'',messageDay:context.messageDay||old?.messageDay||''
+ });
 }
 function renderRecord(record){
  if(!record?.hash||visibleHashes.has(record.hash))return;
  visibleHashes.add(record.hash);
- appendAdmin(null,record.created_at,record.image_url);
- appendTable(record);
+ invoiceRecords.set(record.hash,record);
+ const image=appendAdmin(null,record.created_at,record.image_url);
+ const detail=appendTable(record);
+ invoiceCard(record,image,detail,{expanded:false});
 }
 function appendInfo(text){
  const bubble=message("bot","NCC AI",new Date().toISOString());
@@ -490,28 +676,36 @@ async function submit(){
  const owner=accountSession();if(!owner)return;
  busy=true;sync();
  const at=new Date().toISOString();
- appendAdmin(file,at);
+ const pendingSource=stagedChatSource?{...stagedChatSource}:null;
+ const imageBubble=appendAdmin(file,at);
  clearPreview();
- say("Đã nhận thao tác. Đang gửi ảnh để AI đọc bảng…");
+ function acceptRecord(record,{duplicate=false}={}){
+  linkStagedRecord(record,pendingSource);
+  invoiceRecords.set(record.hash,record);
+  if(visibleHashes.has(record.hash)){
+   imageBubble.closest('.ncc-ai-message')?.remove();
+   say('Ảnh trùng — đã có phiếu này. Không cộng trùng trong bảng gộp.');
+  }else{
+   visibleHashes.add(record.hash);
+   const tableBubble=appendTable(record,{duplicate});
+   invoiceCard(record,imageBubble,tableBubble,{expanded:true});
+  }
+  renderDayGroups();
+ }
+ say("Đã nhận thao tác. Đang gửi ảnh để đọc bảng phiếu nhập…");
  try{
   const base64=await fileBase64(file);
   if(accountSession()!==owner||!opened)return;
   const result=await api("send",{mime:file.type,base64});
   if(accountSession()!==owner||!opened)return;
   if(result.record){
-   if(result.duplicate){
-    say("Ảnh trùng — đã đọc trước đó.");
-    appendTable(result.record,{duplicate:true});
-   }else{
-    visibleHashes.add(result.record.hash);
-    appendTable(result.record);
-    say("Đã đọc xong. Kiểm tra bảng trước khi sử dụng.");
-   }
+   acceptRecord(result.record,{duplicate:Boolean(result.duplicate)});
+   if(!result.duplicate)say("Đã đọc xong. Kiểm tra chi tiết phiếu và bảng gộp trước khi sử dụng.");
   }else if(result.status==="processing"){
    say("Ảnh đã có lượt đọc đang chạy. Đang chờ kết quả…");
    const previous=await checkStatus(result.hash,owner);
-   if(previous){appendTable(previous,{duplicate:true});say("Ảnh trùng — kết quả đã có trước đó.");}
-   else say("Đang xử lý. Mở lại NCC AI để xem kết quả.");
+   if(previous)acceptRecord(previous,{duplicate:true});
+   else say("Đang xử lý. Mở lại Nhập hàng để xem kết quả.");
   }else{
    say("Ảnh chưa có kết quả. Kiểm tra lại trong lịch sử.");
   }
@@ -557,8 +751,10 @@ async function open(options={}){
   if(!opened||accountSession()!==owner)return;
   const records=Array.isArray(history.records)?history.records.slice().reverse():[];
   if(records.length){
-   thread.replaceChildren();visibleHashes.clear();delete thread.dataset.day;
+   thread.replaceChildren();visibleHashes.clear();invoiceRecords.clear();
+   daySummaryHost=null;delete thread.dataset.day;
    records.forEach(renderRecord);
+   renderDayGroups();
   }
  }catch{
   if(opened&&accountSession()===owner){
@@ -598,6 +794,7 @@ fileInput.addEventListener("change",async()=>{
   if(version!==selectVersion||!opened||owner!==accountSession())return;
   if(!ready){say("AI chưa sẵn sàng, chưa gửi ảnh.");return;}
   selectedPhoto=photo;
+  stagedChatSource=null; // a manually chosen file has no proven chat owner
   if(previewUrl)URL.revokeObjectURL(previewUrl);
   previewUrl=URL.createObjectURL(photo);
   preview.querySelector("img").src=previewUrl;
@@ -624,7 +821,7 @@ document.addEventListener("v21-auth-state",()=>{
 });
 // CHAT-418: stage an existing incoming supplier image WITHOUT auto sending.
 // Admin must tap the existing NCC "read" arrow to invoke its original server.
-async function stageChatImage({assetId,contactId}={}){
+async function stageChatImage({assetId,contactId,messageDate}={}){
  const id=String(contactId||""),asset=String(assetId||"").toLowerCase();
  const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/iu;
  if(!isAdmin()||!uuid.test(asset)||!window.V21NccSources?.selected?.(id))
@@ -666,6 +863,18 @@ async function stageChatImage({assetId,contactId}={}){
  selectVersion++;
  clearPreview();
  selectedPhoto=photo;
+ // The originating message's Vietnamese-local day is evidence, not the
+ // timestamp of the later manual OCR action.
+ let messageDay='';
+ const sentAt=new Date(messageDate||'');
+ if(Number.isFinite(sentAt.getTime())){
+  const parts=new Intl.DateTimeFormat('en-US',{
+   timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'
+  }).formatToParts(sentAt);
+  const field=x=>parts.find(p=>p.type===x)?.value||'';
+  messageDay=[field('year'),field('month'),field('day')].join('-');
+ }
+ stagedChatSource={contactId:id,messageDay};
  previewUrl=URL.createObjectURL(photo);
  preview.querySelector("img").src=previewUrl;
  room.querySelector("[data-ncc-room-filename]").textContent=

@@ -70,7 +70,7 @@ assert.equal(selected.selected('anh-duplicate'),false);
 
 assert(ui.includes("message.sender==='self'"),'inbound photos only');
 assert(ui.includes('window.V21NccSources?.selected?.(id)'));
-assert(ui.includes('stageChatImage?.({assetId,contactId:id})'));
+assert(ui.includes('stageChatImage?.({assetId,contactId:id,messageDate})'), 'selected photo passes original Chat date');
 assert(!/functions\.invoke|\.upload\(|\.insert\(|\.update\(|\.upsert\(/u.test(ui),
  'photo button must never write or scan itself');
 assert(room.includes('data-ncc-source-menu'));
