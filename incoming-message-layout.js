@@ -588,6 +588,7 @@ function renderDailySummary(target,summary){
  root.append(el('div','day-order-summary-disclaimer',
   'Chỉ tổng hợp tin đã tải và ảnh đã chọn đọc · chưa xác nhận hoặc tạo đơn'));
  target.replaceChildren(root);
+ window.V21ChatMessageCase?.normalizeRendered?.(root);
  return true;
 }
 function el(tag,cls,content){
@@ -647,6 +648,7 @@ function render(target,input){
  original.addEventListener('touchstart',e=>e.stopPropagation(),{passive:true});
  root.append(original);
  target.replaceChildren(root);
+ window.V21ChatMessageCase?.normalizeRendered?.(root);
  target.dataset.hasLink='false';
  target.dataset.richText='true';
  target.dataset.autoLayout=parsed.kind;
