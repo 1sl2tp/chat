@@ -1,5 +1,5 @@
 'use strict';
-// CHAT-384: actual production composer geometry function under a synthetic
+// CHAT-384 / CHAT-398: stable composer geometry under a synthetic
 // VisualViewport. No production messages, tokens, network or browsers.
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
@@ -21,7 +21,7 @@ const textarea={
   value:'',placeholder:'Nhắn tin...',style:{setProperty(key,val){this[key]=val;}},
   dataset:{},selectionStart:0,selectionEnd:0,
   getBoundingClientRect(){
-    return{width:layout.dataset.editorExpanded==='true'?360:166,
+    return{width:166,
       height:parseFloat(this.style['--editor-height'])||40};
   }
 };
@@ -40,7 +40,7 @@ const ctx=vm.createContext({
   getComputedStyle:()=>({getPropertyValue:()=>'',lineHeight:'24px'}),
   regionTop:{getBoundingClientRect:()=>({height:56})},
   bottomContainer:{getBoundingClientRect:()=>({
-    height:(layout.dataset.editorExpanded==='true'?56:12)+
+    height:12+
       (parseFloat(textarea.style['--editor-height'])||40)
   })},
   composerObserver:{},Math,Number,String,Boolean,
@@ -61,15 +61,15 @@ type('Dòng một\nDòng hai');
 assert.notEqual(layout.dataset.editorExpanded,'true','two lines share same action row');
 assert.equal(textarea.style['--editor-height'],'64px','two lines visible without second toolbar');
 type('Dòng một\nDòng hai\nDòng ba');
-assert.equal(layout.dataset.editorExpanded,'true','only third line moves actions below editor');
+assert.notEqual(layout.dataset.editorExpanded,'true','third line never changes action tracks');
 assert.equal(textarea.style['--editor-height'],'88px');
 type('Dòng một\nDòng hai\nDòng ba.');
-assert.equal(layout.dataset.editorExpanded,'true','punctuation must not bounce action layout');
+assert.notEqual(layout.dataset.editorExpanded,'true','punctuation cannot change action layout');
 type('Dòng một\nDòng hai');
-assert.equal(layout.dataset.editorExpanded,'false','deletion back to two lines may collapse');
+assert.notEqual(layout.dataset.editorExpanded,'true','deleting lines leaves the rail anchored');
 assert.equal(textarea.style['--editor-height'],'64px');
 type('Tin dài '.repeat(90));
-assert.equal(layout.dataset.editorExpanded,'true');
+assert.notEqual(layout.dataset.editorExpanded,'true');
 assert.equal(textarea.style['--editor-height'],'144px','long draft cap independent of keyboard height');
 assert.equal(textarea.dataset.internalScroll,'true');
 assert.equal(ctx.composerTextHeightLimit(300,56,56),52,
@@ -80,16 +80,20 @@ assert.equal(textarea.style['--editor-height'],'52px','keyboard budget includes 
 assert.equal(textarea.dataset.internalScroll,'true');
 assert(300-56-56-52-8>=128,'Messages fit above on-screen keyboard');
 type('A\nB');
-assert.equal(layout.dataset.editorExpanded,'false');
-assert.equal(textarea.style['--editor-height'],'64px',
-  'two lines return to compact row even with narrow keyboard viewport');
+assert.notEqual(layout.dataset.editorExpanded,'true');
+assert.equal(textarea.style['--editor-height'],'52px',
+  'small keyboard viewport clamps even two text lines instead of hiding messages');
+assert.equal(textarea.dataset.internalScroll,'true');
+view.height=550;
+grow('visual-viewport');
+assert.equal(textarea.style['--editor-height'],'64px');
 assert.equal(textarea.dataset.internalScroll,'false');
 type('');
-assert.equal(layout.dataset.editorExpanded,'false');
+assert.notEqual(layout.dataset.editorExpanded,'true');
 assert.equal(textarea.style['--editor-height'],'40px');
 assert.match(css,/max-height:144px;/);
-assert.match(css,/#composerShell\[data-editor-expanded="true"\]/);
-assert.match(source,/composerShell\.dataset\.editorExpanded='false';\s*syncMeasureStyle\(\{force:true,widthPx:editor\.getBoundingClientRect\(\)\.width\}\);\s*autoGrow\(\{source:'context-switch'\}\)/,
+assert(!css.includes('data-editor-expanded'),'mobile width never changes at line threshold');
+assert.match(source,/syncMeasureStyle\(\{force:true,widthPx:editor\.getBoundingClientRect\(\)\.width\}\);\s*autoGrow\(\{source:'context-switch'\}\)/,
   'each contact restores its own draft geometry');
 assert.match(directory,/if\(document\.activeElement\?\.id==='editor'\)document\.activeElement\.blur\(\);/,
   'back to directory blurs the composer before changing customer');
@@ -103,4 +107,4 @@ for(const action of ['search','photos','cash','debt']){
  assert(html.includes('data-chat-header-action="'+action+'"'),
   'one mobile overflow contains '+action);
 }
-console.log('CHAT-384 1/2/3+ lines, budget, draft isolation and menu ownership PASS');
+console.log('CHAT-384/398 stable 1/2/3+ lines, keyboard budget, draft isolation PASS');
