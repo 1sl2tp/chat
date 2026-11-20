@@ -91,5 +91,7 @@ function normalizeRendered(root){
  }
  return root;
 }
-globalThis.V21ChatMessageCase=Object.freeze({sentenceCase,previewCase,normalizeRendered});
+const caseApi=Object.freeze({sentenceCase,previewCase,normalizeRendered});
+globalThis.V21ChatMessageCase=caseApi;
+if(typeof window!=='undefined'&&window!==globalThis)window.V21ChatMessageCase=caseApi;
 })();
