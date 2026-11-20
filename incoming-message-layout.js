@@ -370,7 +370,9 @@ function render(target,input){
    const name=el('span','incoming-brief-product',item.name);
    if(item.review)name.append(el('span','incoming-brief-review','Cần hướng dẫn'));
    row.append(el('span','incoming-brief-index',index+1),name,
-    el('span','incoming-brief-quantity',item.qty+(item.unit?' '+item.unit:'')));
+    // Only the requested numeric count is visible in SL. Unit remains in
+    // parsed data for review, never concatenated into product name or SL.
+    el('span','incoming-brief-quantity',item.qty));
    list.append(row);
   });
   root.append(list);
