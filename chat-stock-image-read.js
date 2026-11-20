@@ -73,6 +73,9 @@ function fileBase64(file){
 }
 async function prepareImage(blob){
  if(!(blob instanceof Blob))throw Error('image_unavailable');
+ // Some existing customer photos are saved as image/jpg by older clients.
+ // Preserve their JPEG bytes; only standardize the MIME supplied to OCR.
+ if(blob.type==='image/jpg'&&blob.size<=MAX_BYTES)return new Blob([blob],{type:'image/jpeg'});
  if(['image/jpeg','image/png','image/webp'].includes(blob.type)&&blob.size<=MAX_BYTES)return blob;
  // Resize locally, never change the stored/original image.
  if(typeof createImageBitmap!=='function')throw Error('image_too_large');
