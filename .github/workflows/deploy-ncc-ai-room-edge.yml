@@ -8,6 +8,7 @@ on:
       - "tools/release_ncc010_product_identity.mjs"
       - "tests/test_ncc011_release_contract_20261115.mjs"
       - "tests/test_ncc007_chat_room_contract_20261114.cjs"
+      - "tests/test_chat409_typed_stock_image_20261120.mjs"
       - ".github/workflows/deploy-ncc-ai-room-edge.yml"
       - "tools/ncc013_emit_status.mjs"
       - "tests/test_ncc013_release_status_20261115.mjs"
@@ -57,6 +58,7 @@ jobs:
           node tests/test_ncc010_product_linking_20261115.mjs
           node tests/test_ncc011_release_contract_20261115.mjs
           node tests/test_ncc013_release_status_20261115.mjs
+          node tests/test_chat409_typed_stock_image_20261120.mjs
       - name: Require preconfigured CI credential
         shell: bash
         run: |
