@@ -2,7 +2,7 @@
 // Names below are seed matches only; the durable choices are contact IDs.
 // Scoped device preference, no new DB tables, no customer chat sends.
 (()=>{'use strict';
-const DEFAULT_NAMES=new Set(['e anh dat','ethuonghangu','e thuonghangu','pp thuoc la']);
+const DEFAULT_NAMES=new Set(['e anh dat','ethuonghangu','e thuonghangu','a thuonghangu','pp thuoc la']);
 const fallback=new Map();
 const norm=text=>String(text||'').normalize('NFD').replace(/[\u0300-\u036f]/gu,'')
  .replace(/đ/giu,'d').toLocaleLowerCase('vi').replace(/\s+/gu,' ').trim();
@@ -33,7 +33,7 @@ function typeStorageKey(){const id=admin();return id?'chat-ncc-source-types:'+id
 function defaultType(item){
  const ns=names(item);
  if(ns.some(x=>x==='e anh dat'))return 'general';
- if(ns.some(x=>x==='ethuonghangu'||x==='e thuonghangu'))return 'u';
+ if(ns.some(x=>x==='ethuonghangu'||x==='e thuonghangu'||x==='a thuonghangu'))return 'u';
  if(ns.some(x=>x==='pp thuoc la'))return 'tobacco';
  return 'other';
 }
