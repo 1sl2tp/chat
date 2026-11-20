@@ -30,7 +30,7 @@ const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 // CHAT-408: refresh the read-only daily summary UI; no private chat or outbox cache changes.
 // CHAT-409: public OCR UI shell; do not evict private media, drafts or outbox.
 // CHAT-410: public feature-readiness gate; no private media/draft cache resets.
-const SHELL_CACHE_EPOCH='pwa-chat-ui410-ocr-edge-readiness-20261120';
+const SHELL_CACHE_EPOCH='pwa-chat-ui411-image-ocr-scroll-20261120';
 const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION+'-'+SHELL_CACHE_EPOCH;
 const AVATAR_CACHE_NAME='taphoa-chat-avatars-v1';
 const SUPABASE_ASSET_HOST_RE=/^[a-z0-9]+\.supabase\.co$/i;
