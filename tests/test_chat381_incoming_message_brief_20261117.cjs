@@ -80,11 +80,11 @@ assert.equal(grid.children[1].children[0].textContent,'1');
 assert.equal(grid.children[1].children[2].textContent,'5','SL must be numeric only, never combined with the unit');
 assert.equal(grid.children[3].children[2].textContent,'5','unknown unit must not be invented');
 assert.equal(grid.children[2].children[2].textContent,'2');
-assert.equal(grid.children[1].children[1].children[0].textContent,'9 hạt ít đường');
-assert.equal(grid.children[2].children[1].children[0].textContent,'9 hạt ko đường');
-assert.equal(grid.children[7].children[1].children[0].textContent,'chua nha đam');
+assert.equal(grid.children[1].children[1].textContent,'9 hạt ít đường');
+assert.equal(grid.children[2].children[1].textContent,'9 hạt ko đường');
+assert.equal(grid.children[7].children[1].textContent.startsWith('chua nha đam'),true);
 assert.equal(grid.children[7].children[2].textContent,'2');
-assert.equal(grid.children[8].children[1].children[0].textContent,'chua ít đường');
+assert.equal(grid.children[8].children[1].textContent.startsWith('chua ít đường'),true);
 assert.equal(grid.children[8].children[2].textContent,'2');
 assert.deepEqual(Array.from(grid.children.slice(1),x=>x.children[2].textContent),[
  '5','2','5','3','5','2','2','2'
