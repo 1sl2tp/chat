@@ -393,6 +393,7 @@ function appendTable(record,{duplicate=false,recheck=false}={}){
  }
  node(bubble,"p","Bảng dùng để đối chiếu. Không tự ghi giá vốn, công nợ hoặc nhập kho.","ncc-ai-disclaimer");
  thread.scrollTop=thread.scrollHeight;
+ return bubble;
 }
 // CHAT-419: one card per source invoice, with a grouped read-only day view.
 // All associations are explicit, Admin-scoped device metadata, not DB writes.
@@ -542,8 +543,10 @@ function linkStagedRecord(record,context){
 function renderRecord(record){
  if(!record?.hash||visibleHashes.has(record.hash))return;
  visibleHashes.add(record.hash);
- appendAdmin(null,record.created_at,record.image_url);
- appendTable(record);
+ invoiceRecords.set(record.hash,record);
+ const image=appendAdmin(null,record.created_at,record.image_url);
+ const detail=appendTable(record);
+ invoiceCard(record,image,detail,{expanded:false});
 }
 function appendInfo(text){
  const bubble=message("bot","NCC AI",new Date().toISOString());
