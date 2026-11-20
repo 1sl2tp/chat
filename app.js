@@ -4797,7 +4797,7 @@ function createReplyQuote(replyTo){
 
   const text=document.createElement('span');
   text.className='reply-quote-text';
-  text.textContent=replyTo.text||'Tin nhắn';
+  text.textContent=window.V21ChatMessageCase?.sentenceCase?.(replyTo.text||'Tin nhắn')||'Tin nhắn';
 
   quote.append(text);
   quote.addEventListener('pointerdown',event=>event.stopPropagation());
@@ -5393,12 +5393,17 @@ function renderConversationMessageBody(container,message){
       // Inbound topic notes keep their previously supported structured view.
       const allowed=message?.sender!=='self'||
         formatter?.analyze?.(message?.text)?.kind==='order';
-      if(allowed&&formatter?.render?.(container,message.text))return container;
+      if(allowed&&formatter?.render?.(container,message.text)){
+        window.V21ChatMessageCase?.normalizeRendered?.(container);
+        return container;
+      }
     }catch(error){
       console.warn('[chat] incoming brief fallback:',String(error?.message||error));
     }
   }
-  return renderMessageBody(container,message?.text);
+  const rendered=renderMessageBody(container,message?.text);
+  window.V21ChatMessageCase?.normalizeRendered?.(rendered);
+  return rendered;
 }
 
 function messageContentKind(message){
