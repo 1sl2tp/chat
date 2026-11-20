@@ -319,6 +319,11 @@ function parsePieces(line,isOrder){
  const namedCarton=parseNamedShortCarton(original);
  if(namedCarton)return [{...namedCarton,source:original}];
  const lead=requestLine(original),raw=lead.body.replace(/^(\d{1,3})(?=[\p{L}]{3,})/u,'$1 ');
+ // A second carton marker indicates a multi-item request. If a numeric
+ // product name is unverified, leave the entire line undecoded instead of
+ // misreading the rest of the message as the name of the first item.
+ if(/^\d{1,3}\s*(?:t|thùng)\s+(?:1\s*kg|454\s*g?)\s+\d{1,3}\s*(?:t|thùng)\s+/iu.test(raw))
+  return [];
  const colloquial=parseBatCartons(raw);
  if(colloquial)return [{...colloquial,source:original}];
  const tentative=parseTentativeStockRequest(raw);
