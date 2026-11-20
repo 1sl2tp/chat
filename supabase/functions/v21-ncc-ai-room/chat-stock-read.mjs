@@ -32,8 +32,10 @@ export function parseStockImageModel(raw){
   if(!rawLine)continue;
   const multi=/mỗi\s+màu|tổng\s+\d{1,3}\s*thùng|giá\s+(?:tăng|giảm)|\(\+\d+\)/iu.test(rawLine);
   const starMatch=rawLine.match(/[*×]\s*(\d{1,3})(?!\d)/u);
-  const finalQuantity=Number.isSafeInteger(qty)&&qty>=1&&qty<=999&&!multi?
-    (starMatch&&Number(starMatch[1])!==qty?null:qty):null;
+  const qtyEvidence=starMatch?Number(starMatch[1])===qty:
+   new RegExp('(?:^|\\s)(?:sl|số lượng)\\s*[:=]?\\s*'+qty+'(?!\\d)','iu').test(rawLine);
+  const finalQuantity=Number.isSafeInteger(qty)&&qty>=1&&qty<=999&&!multi&&qtyEvidence?
+    qty:null;
   if(!name||name.length<2||/[<>]/u.test(name)||finalQuantity===null){
    addNote(rawLine);
    continue;
