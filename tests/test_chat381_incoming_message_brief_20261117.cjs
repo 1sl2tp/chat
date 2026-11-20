@@ -86,6 +86,12 @@ assert.deepEqual(Array.from(compact.items,row=>row.qty),[5,2]);
 assert.equal(compact.groups.length,0);
 const inline=analyze('Lấy hàng\nMì 2 thùng, Bánh 3 gói');
 assert.deepEqual(Array.from(inline.items,row=>[row.name,row.qty]),[['Mì',2],['Bánh',3]]);
+const unitlessColon=analyze('Lấy hàng\n9 hạt ít đường: 2\nSữa chua: 3');
+assert.deepEqual(Array.from(unitlessColon.items,row=>[row.name,row.qty,row.unit]),[
+ ['9 hạt ít đường',2,''],['Sữa chua',3,'']
+]);
+assert.equal(analyze('Giá sữa: 120\nGiá mì: 95'),null,
+ 'unlabeled price colon numbers must not be guessed as order quantities');
 const noCueBare=analyze('5 grow plus vinamilk\n3 bò bịch ko đường\n2 chua nha đam');
 assert.deepEqual(Array.from(noCueBare.items,row=>row.qty),[5,3,2]);
 assert.equal(analyze('9 hạt ít đường\n10 hạt không đường'),null,
