@@ -97,12 +97,13 @@ async function readBlob(image,onProgress){
   throw Error('ocr_engine_unavailable');
  }finally{if(worker)try{await worker.terminate();}catch{}}
 }
-async function scan(assetId,onProgress=()=>{}){
+async function scan(assetId,onProgress=()=>{},force=false){
  const who=owner();
  if(!who)throw Error('admin_required');
  if(!allowedAsset(assetId))throw Error('invalid_asset');
  if(!(await checkReady()))throw Error('ocr_unsupported');
  const key=who.key+'::'+assetId;
+ if(force)cache.delete(key);
  if(cache.has(key))return cache.get(key);
  if(inflight.has(key))return inflight.get(key);
  const job=async()=>{
@@ -134,6 +135,21 @@ async function scan(assetId,onProgress=()=>{}){
  inflight.set(key,pending);
  try{return await pending;}finally{inflight.delete(key);}
 }
+function updateText(assetId,text){
+ const who=owner();
+ if(!who||!allowedAsset(assetId)||typeof text!=='string'||text.length>16000)return null;
+ const key=who.key+'::'+assetId;
+ const previous=cache.get(key);
+ if(!previous)return null;
+ const parsed=window.V21ChatStockOCRRules.parse(text);
+ const updated={...previous,
+  status:parsed.classification==='typed_stock_list'?'read':'other',
+  rawText:parsed.raw_text,textLines:parsed.text_lines,
+  lines:parsed.lines,notes:parsed.notes,edited:true
+ };
+ cache.set(key,updated);
+ return updated;
+}
 function clear(){
  cache.clear();inflight.clear();scope='';capability=null;
 }
@@ -141,6 +157,6 @@ document.addEventListener('v21-auth-state',event=>{
  if(event.detail?.state!=='AUTHENTICATED')clear();
 });
 window.V21ChatStockImageRead=Object.freeze({
- scan,peek,clear,owner,availability,checkReady
+ scan,peek,updateText,clear,owner,availability,checkReady
 });
 })();
