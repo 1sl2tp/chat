@@ -768,6 +768,12 @@ jobs:
         run: |
           node --check app.js
           node tests/test_chat413_kh_only_stock_summary_20261120.cjs
+      - name: CHAT-418 selected supplier chat photos use existing Nhập hàng
+        run: |
+          node --check chat-ncc-sources.js
+          node --check chat-ncc-image-ui.js
+          node --check ncc-ai-room.js
+          node tests/test_chat418_supplier_sources_20261121.cjs
       - name: CHAT-414 ChatGPT-like A/B visual layout regression
         run: node tests/test_chat414_chatgpt_ab_visual_20261120.cjs
       - name: CHAT-415 case formatting for chat A/B and daily stock summary
