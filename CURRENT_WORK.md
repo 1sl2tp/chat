@@ -1,3 +1,14 @@
+## 2026-11-21 — CHAT-420 · Thu tiền mặt gõ 11378 hiện 11.378 ngay
+
+- **E0:** ảnh Chat ở khách A Hậu Còi: ô **Số tiền thu (÷1.000)** đang hiển thị `11378` không có dấu phân nhóm, trong khi số dư và preview ở dưới đã dùng `11.378`. Yêu cầu chỉ sửa hiển thị trực tiếp khi gõ.
+- **E1:** sửa đúng owner `admin-composer-actions.js`; chèn dấu chấm theo từng nhóm 3 chữ số ngay khi gõ và bảo toàn con trỏ. Nút Backspace/Delete ngay sát dấu chấm xóa chữ số lân cận, không bị kẹt. Dán có dấu phẩy, chữ, nhóm chấm sai không được tự cắt/trộn thành số khác. Bộ parser gốc `cashThousandsToVnd` vẫn nhận chỉ chữ số, giữ hợp đồng tiền VND. Bộ chuyển từ UI chỉ chấp nhận digits hoặc định dạng chấm Việt Nam chuẩn, tách dấu trước khi chuyển.
+- **E2:** thêm `tests/test_chat420_cash_thousands_grouping_20261121.cjs` kiểm `11378 → 11.378 → 11.378.000 VND`, caret, Backspace/Delete, dán lỗi, số 9 chữ số và an toàn cho đường RPC. Giữ hồi quy UX-215/216/217 và kiểm tra lại dư nợ ngay trước khi ghi sổ. CI đang chờ.
+- **E3:** V21.72.64, chỉ xoay cache Web/PWA công khai; không xóa tin riêng tư, ảnh, nháp, outbox. Chỉ gộp/phát hành theo CI, Pages tự động.
+- **E4/E5:** chờ kiểm thực tế Safari iPhone/PWA/Chrome Android với bàn phím số, chọn giữa chuỗi, dán/xóa, và xác nhận cuối khi người dùng thu tiền. **Không thực hiện giao dịch thu tiền thật để thử**.
+- **MUST-STAY:** không tự gửi thông báo, không ghi thử công nợ, không thay Supabase/Edge/DB/giá vốn. Rollback revert CHAT-420 nếu có lỗi gõ hoặc quy đổi.
+
+---
+
 ## 2026-11-21 — CHAT-419 · Ba nguồn nhập hàng và gộp các phiếu cùng ngày
 
 - **E0:** ảnh Nhập hàng cho thấy một bảng NCC AI dài, chưa phân biệt nguồn; yêu cầu E Anh Đạt = Hàng thường, ethuonghangu = Hàng U, PP Thuốc Lá = Thuốc lá, và ba phiếu ngày 19 được xem từng phiếu lẫn gộp theo tên/SL/đơn giá/tiền hàng.

@@ -45,7 +45,8 @@ def test_historical_correction_only_touches_verified_system_message_bodies():
 
 
 def test_manual_cash_ui_uses_entered_thousands_while_rpc_uses_vnd():
-    assert "cashThousandsToVnd(amount.value)" in CASH
+    assert "cashDisplayThousandsToVnd(amount.value)" in CASH
+    assert "cashThousandsToVnd(raw.replace" in CASH
     assert "?thousands*1000:null;" in CASH
     assert "p_amount_vnd:vnd" in CASH
     assert "const exactVnd=Number(data.balance_vnd)" in CASH

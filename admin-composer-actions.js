@@ -872,6 +872,74 @@ function cashFormatThousands(vnd){
  // never round the financial ledger amount or append a currency symbol.
  return new Intl.NumberFormat('vi-VN',{minimumFractionDigits:0,maximumFractionDigits:3}).format(amount/1000);
 }
+// CHAT-420: the input is still in ÷1.000 units. Dots are DISPLAY grouping
+// only, never decimals, and this adapter validates grouping BEFORE removing it.
+// The original digits-only ledger parser stays strict for RPC callers/tests.
+function cashDisplayThousandsToVnd(value){
+ const raw=String(value??'').trim();
+ if(!/^(?:[0-9]{1,9}|[0-9]{1,3}(?:\.[0-9]{3}){1,2})$/.test(raw))return null;
+ return cashThousandsToVnd(raw.replace(/\./g,''));
+}
+function cashGroupedInput(value,editing=false){
+ const raw=String(value??'');
+ if(!raw)return '';
+ if(/^[0-9]{1,9}$/.test(raw))
+  return raw.replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+ if(/^[0-9]{1,3}(?:\.[0-9]{3}){1,2}$/.test(raw))return raw;
+ // A backspace/delete can temporarily leave an incomplete group. Recover the
+ // numeric digits only for a local key edit, NEVER for malformed pasted text.
+ if(editing&&/^[0-9.]*$/.test(raw)){
+  const digits=raw.replace(/\./g,'');
+  if(digits.length<=9)return digits.replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+ }
+ return null;
+}
+function cashCaretAfterDigits(value,count){
+ if(count<=0)return 0;
+ let seen=0;
+ for(let i=0;i<value.length;i++){
+  if(/[0-9]/.test(value[i])&&++seen===count)return i+1;
+ }
+ return value.length;
+}
+function cashPaintGroupedInput(input,editing=false){
+ const formatted=cashGroupedInput(input.value,editing);
+ if(formatted===null)return false;
+ if(input.value===formatted)return true;
+ const start=Number(input.selectionStart);
+ const end=Number(input.selectionEnd);
+ const before=Number.isInteger(start)&&start>=0?
+  (input.value.slice(0,start).match(/[0-9]/g)||[]).length:null;
+ const through=Number.isInteger(end)&&end>=0?
+  (input.value.slice(0,end).match(/[0-9]/g)||[]).length:null;
+ input.value=formatted;
+ if(before!==null&&through!==null&&typeof input.setSelectionRange==='function'){
+  try{input.setSelectionRange(cashCaretAfterDigits(formatted,before),
+   cashCaretAfterDigits(formatted,through));}catch{}
+ }
+ return true;
+}
+function cashDeleteGroupingNeighbor(input,key){
+ if(key!=='Backspace'&&key!=='Delete')return false;
+ const start=input.selectionStart,end=input.selectionEnd;
+ if(!Number.isInteger(start)||start!==end)return false;
+ const raw=input.value;
+ const left=key==='Backspace'&&start>0&&raw[start-1]==='.';
+ const right=key==='Delete'&&raw[start]==='.';
+ if(!left&&!right)return false;
+ const digits=raw.replace(/\./g,'');
+ const before=(raw.slice(0,start).match(/[0-9]/g)||[]).length;
+ const index=left?before-1:before;
+ if(index<0||index>=digits.length)return false;
+ const updated=cashGroupedInput(digits.slice(0,index)+digits.slice(index+1));
+ if(updated===null)return false;
+ input.value=updated;
+ if(typeof input.setSelectionRange==='function'){
+  const caret=cashCaretAfterDigits(updated,index);
+  try{input.setSelectionRange(caret,caret);}catch{}
+ }
+ return true;
+}
 async function openQuickCash(contactId){
  if(!currentAdmin()||quickCustomerGroup()!=='customer'||quickCustomerId()!==String(contactId))
   throw Error('customer_required');
@@ -894,7 +962,7 @@ async function openQuickCash(contactId){
     <button type="button" data-cash-refresh-debt title="Đọc lại công nợ từ sổ" aria-label="Cập nhật công nợ hiện tại">↻</button>
    </div>
    <label class="admin-composer-cash-label">Số tiền thu (÷1.000)
-    <input class="admin-composer-cash-input" data-cash-amount type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Ví dụ: 500" required maxlength="9">
+    <input class="admin-composer-cash-input" data-cash-amount type="text" inputmode="numeric" pattern="[0-9]{1,3}([.][0-9]{3})*" autocomplete="off" placeholder="Ví dụ: 11.378" required maxlength="11">
    </label>
    <p class="admin-composer-cash-hint" data-cash-amount-preview>Giống Agribank: 500.000 ÷ 1.000 = 500. Chỉ nhập 500.</p>
    <p class="admin-composer-cash-after" data-cash-after></p>
@@ -923,7 +991,7 @@ async function openQuickCash(contactId){
  // One stable idempotency key for the lifetime of this form (including retries).
  const commandId=globalThis.crypto?.randomUUID?.()||window.V21RuntimeId?.create?.();
  for(const button of closeButtons)button.addEventListener('click',()=>{if(!busy)closeQuickCash();});
- const parseAmount=()=>cashThousandsToVnd(amount.value);
+ const parseAmount=()=>cashDisplayThousandsToVnd(amount.value);
  const paintBalance=()=>{
   if(debtVnd!==null){
    debt.textContent=debtVnd>0?cashFormatThousands(debtVnd):
@@ -932,7 +1000,7 @@ async function openQuickCash(contactId){
   const vnd=parseAmount();
   if(vnd===null){
    amountPreview.textContent=amount.value.trim()?
-     'Chỉ nhập số nguyên theo đơn vị ÷1.000, không nhập dấu hoặc ký hiệu.':
+     'Chỉ nhập chữ số; dấu chấm phân nhóm nghìn được thêm tự động.':
      'Giống Agribank: 500.000 ÷ 1.000 = 500. Chỉ nhập 500.';
    after.textContent='';submit.disabled=true;
    return;
@@ -983,10 +1051,25 @@ async function openQuickCash(contactId){
    if(cashOverlay===overlay)paintBalance();
   }
  };
- amount.addEventListener('input',()=>{
-  // Never auto-strip separators; "500.000" is ambiguous in thousands.
-  if(amount.value!==''&&!/^[0-9]*$/.test(amount.value))amount.setAttribute('aria-invalid','true');
+ amount.addEventListener('keydown',event=>{
+  // Backspace/Delete beside a dot removes the adjacent digit, rather than
+  // recreating the separator and trapping the caret beside it.
+  if(cashDeleteGroupingNeighbor(amount,event.key)){
+   event.preventDefault();
+   amount.dispatchEvent(new Event('input',{bubbles:true}));
+  }
+ });
+ amount.addEventListener('input',event=>{
+  if(!event.isComposing){
+   cashPaintGroupedInput(amount,event.inputType!=='insertFromPaste'&&event.inputType!=='insertFromDrop');
+  }
+  if(amount.value!==''&&cashDisplayThousandsToVnd(amount.value)===null)
+   amount.setAttribute('aria-invalid','true');
   else amount.removeAttribute('aria-invalid');
+  paintBalance();
+ });
+ amount.addEventListener('compositionend',()=>{
+  cashPaintGroupedInput(amount,true);
   paintBalance();
  });
  refreshButton.addEventListener('click',()=>void refreshDebt());
