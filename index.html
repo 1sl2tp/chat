@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.53">
-<meta name="app-build-id" content="6a4d03055f8dd36345388b8955ccf3e624495ae97cc6ab5df9ce9fa9d5558382">
+<meta name="app-release-version" content="V21.72.54">
+<meta name="app-build-id" content="4641c5ded1d1785ec6727d4539fa1fd17d2b7e7952638ad062c83ce863e1b6a9">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1887,6 +1887,10 @@
 
 </style>
 <style data-inlined-source="incoming-message-layout.css">
+/* CHAT-405: the outer turn owns centered shared-card width. Since SL is
+   numeric-only, give the saved unit column width back to the product name.
+   No fixed viewport calculations: this fits the current conversation axis,
+   including mobile keyboard layouts and desktop workspaces. */
 /* CHAT-381: reversible structured view, no scroll/keyboard/lane overrides. */
 .incoming-brief{
  box-sizing:border-box;display:flex;flex-direction:column;gap:8px;
@@ -1909,7 +1913,7 @@
 }
 .incoming-brief-columns,.incoming-brief-item{
  box-sizing:border-box;display:grid;
- grid-template-columns:23px minmax(0,1fr) minmax(64px,82px);
+ grid-template-columns:24px minmax(0,1fr) minmax(32px,48px);
  align-items:start;gap:7px;min-width:0;
 }
 .incoming-brief-columns{
@@ -1923,9 +1927,9 @@
 .incoming-brief-columns>span:nth-child(3),
 .incoming-brief-quantity{justify-self:end;text-align:right}
 .incoming-brief-index{font-size:11px;line-height:19px;opacity:.7;font-variant-numeric:tabular-nums}
-.incoming-brief-product{min-width:0;font-size:13px;line-height:19px;overflow-wrap:anywhere}
+.incoming-brief-product{min-width:0;font-size:13px;line-height:20px;overflow-wrap:anywhere}
 .incoming-brief-quantity{
- min-width:0;font-weight:750;font-size:13px;line-height:19px;
+ min-width:0;font-weight:750;font-size:13px;line-height:20px;
  font-variant-numeric:tabular-nums;white-space:normal;overflow-wrap:normal;
 }
 /* CHAT-401: user-teachable ambiguity always uses a visible yellow marker.
@@ -1976,7 +1980,7 @@
 @media(max-width:360px){
  .incoming-brief{padding:8px;gap:7px}
  .incoming-brief-columns,.incoming-brief-item{
-  grid-template-columns:18px minmax(0,1fr) minmax(55px,70px);gap:5px;
+  grid-template-columns:20px minmax(0,1fr) minmax(28px,40px);gap:6px;
  }
  .incoming-brief-columns{font-size:9px}
  .incoming-brief-product{font-size:12px}
@@ -7594,6 +7598,36 @@ button{
   border-radius:20px!important;
   box-shadow:none!important;
   padding:9px 13px!important;
+}
+
+/* CHAT-405: stock lists are shared timeline cards, not incoming/outgoing
+   bubbles. Both authors get one centered, wider content lane. Keep text/media
+   messages in their existing 70% sender lanes. */
+#messageWindow .message-unit[data-shared-list="true"]{
+ box-sizing:border-box;
+ width:min(100%,720px);
+ max-width:100%;
+ min-width:0;
+ margin-inline:auto!important;
+ align-items:stretch;
+}
+#messageWindow .message-unit[data-shared-list="true"]>.message-text{
+ box-sizing:border-box;
+ width:100%!important;
+ max-width:100%!important;
+ min-width:0;
+ padding:0!important;
+ background:transparent!important;
+ border:0!important;
+ border-radius:0!important;
+ box-shadow:none!important;
+}
+#messageWindow .message-unit[data-shared-list="true"]>.message-text>.message-body{
+ width:100%;max-width:100%;min-width:0;
+}
+#messageWindow .message-unit[data-shared-list="true"]>.message-sent-time{
+ align-self:flex-end;
+ text-align:right;
 }
 
 /* Desktop hover owner is the actual message unit, not the full-width row. */
@@ -16175,9 +16209,9 @@ const AppBootController={
     // Repeated global faults must not repaint the banner or multiply logs.
     if(this.lastErrorMessage===message&&!runtimeError.classList.contains('hidden'))return;
     this.lastErrorMessage=message;
-    runtimeError.textContent='V21.72.53 runtime: '+message;
+    runtimeError.textContent='V21.72.54 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.53]',error);
+    console.error('[ChatScreenModule V21.72.54]',error);
   },
   ready(){
     // A successful render invariant proves recovery only for errors seen
@@ -16289,7 +16323,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.53 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.54 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -16343,7 +16377,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.53',
+  releaseVersion:'V21.72.54',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -21268,9 +21302,15 @@ function renderMessageBody(container,value){
 // CHAT-381: keep the canonical message and existing rich-text fallback.
 // Only incoming text gets an optional, reversible structured display.
 function renderConversationMessageBody(container,message){
-  if(message?.sender!=='self'&&!message?.media){
+  if(!message?.media){
     try{
-      if(window.V21IncomingMessageLayout?.render?.(container,message.text))return container;
+      const formatter=window.V21IncomingMessageLayout;
+      // CHAT-405: a genuine stock-list is sender-neutral. Both sides use
+      // the same centered presentation; ordinary outgoing text is unchanged.
+      // Inbound topic notes keep their previously supported structured view.
+      const allowed=message?.sender!=='self'||
+        formatter?.analyze?.(message?.text)?.kind==='order';
+      if(allowed&&formatter?.render?.(container,message.text))return container;
     }catch(error){
       console.warn('[chat] incoming brief fallback:',String(error?.message||error));
     }
@@ -21427,6 +21467,11 @@ function patchMessageNode(node,message){
   const messageBody=document.createElement('div');
   messageBody.className='message-body';
   renderConversationMessageBody(messageBody,message);
+  // CHAT-405: capture layout in the canonical virtualized node AND its
+  // patch path. A shared list must not inherit the sender's 70% bubble lane.
+  const sharedList=messageBody.dataset.autoLayout==='order';
+  unit.dataset.sharedList=sharedList?'true':'false';
+  node.dataset.sharedList=sharedList?'true':'false';
   text.appendChild(messageBody);
   const textVisible=Boolean(message.replyTo||message.kind==='text'||message.kind==='mixed');
   text.hidden=!textVisible;
@@ -21542,6 +21587,9 @@ function renderMessageNode(message){
   const messageBody=document.createElement('div');
   messageBody.className='message-body';
   renderConversationMessageBody(messageBody,message);
+  const sharedList=messageBody.dataset.autoLayout==='order';
+  unit.dataset.sharedList=sharedList?'true':'false';
+  turn.dataset.sharedList=sharedList?'true':'false';
   text.appendChild(messageBody);
   const textVisible=Boolean(message.replyTo||message.kind==='text'||message.kind==='mixed');
   text.hidden=!textVisible;
@@ -24994,7 +25042,7 @@ window.V21ConversationBridge={
 window.V21ChatImageViewer=Object.freeze({open:openImageViewer});
 
 window.ChatScreenModule={
-  version:'V21.72.53',
+  version:'V21.72.54',
   snapshot(){
     return{
       viewportMode:viewport.mode,
