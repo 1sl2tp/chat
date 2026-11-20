@@ -5,6 +5,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "npm:@supabase/supabase-js@2.57.4";
 import {reconcileInvoice} from "./invoice-reconciliation.mjs";
 import {normalizeProductName,linkInvoiceLines} from "./product-linking.mjs";
+import {readStockImageWithGemini} from "./chat-stock-read.mjs";
 
 const BASE=Deno.env.get("SUPABASE_URL")||"";
 const SERVICE=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"";
@@ -259,6 +260,27 @@ async function publicRecord(id:string,result:any,knownIdentity:any=null){
   image_url:image?.data?.signedUrl||null
  };
 }
+// CHAT-409: Admin explicitly requested a first-pass read of an image already
+// visible in Chat. This action NEVER uploads to Storage, modifies DB, sends
+// customer messages, or reuses supplier-invoice reconciliation.
+async function handleChatStockImage(body:any){
+ let bytes:Uint8Array,mime:string;
+ try{
+  bytes=bytesFromBase64(body?.base64);
+  mime=mimeVerified(bytes,body?.mime);
+ }catch(error){return fail(String((error as Error)?.message||'invalid_image'));}
+ try{
+  const data=await readStockImageWithGemini({
+   bytes,mime,key:Deno.env.get('GEMINI_API_KEY')||''
+  });
+  return json({ok:true,classification:data.classification,
+   lines:data.lines,notes:data.notes,review_required:true,read_only:true});
+ }catch(error){
+  const code=String((error as Error)?.message||'ai_unavailable');
+  return fail(['ai_not_configured','ai_unavailable','ai_empty','ai_invalid_json',
+   'invalid_image'].includes(code)?code:'ai_unavailable',503);
+ }
+}
 async function handleSend(adminId:string,body:any){
  let bytes:Uint8Array,mime:string;
  try{bytes=bytesFromBase64(body?.base64);mime=mimeVerified(bytes,body?.mime);}
@@ -377,6 +399,7 @@ Deno.serve(async req=>{
  if(action==="health")return json({ok:true,ready:Boolean(Deno.env.get("GEMINI_API_KEY")),features:["invoice_totals_v2","canonical_product_links_v1"]});
  if(action==="catalog")return handleCatalog();
  if(action==="link_product")return handleLinkProduct(admin.id,body);
+ if(action==="chat_stock_image")return handleChatStockImage(body);
  if(action==="send")return handleSend(admin.id,body);
  if(action==="status")return handleStatus(admin.id,body);
  if(action==="recheck")return handleRecheck(admin.id,body);
