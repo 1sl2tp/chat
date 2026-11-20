@@ -14,7 +14,7 @@ const colonBare=/^(.+?)\s*[:：=]\s*(\d{1,3})\s*$/iu;
 const bare=/^(\d{1,3})\s+([\p{L}][^:]{1,100})$/iu;
 // Known numeric-leading product names: "9 hạt" is a product, not quantity 9.
 // Without a product catalog, keep ambiguous numeric names intact for review.
-const numericProductName=/^(?:9\s+hạt|7\s*up|3\s+miền|5\s+sao)\b/iu;
+const numericProductName=/^(?:9\s+hạt|7\s*up|3\s+miền|5\s+sao)(?=\s|$)/iu;
 const orderCue=/(?:báo\s*(?:lấy\s*)?hàng|lấy\s*hàng|đặt\s*hàng|đơn\s*hàng|soạn\s*hàng|lên\s*đơn|gửi\s*hàng|(?:^|\n)\s*(?:lấy|đặt|cho|e bán|em bán)\s)/iu;
 const titles=[
  ['items',/^(?:báo\s*hàng|(?:báo\s*)?(?:lấy\s*hàng|đặt\s*hàng|danh\s*sách\s*hàng|hàng\s*cần\s*lấy))$/iu],
@@ -158,7 +158,7 @@ function parseVariantTail(line){
 }
 // "10 th bé ít đường" in E Quyên's messages refers to TH milk.
 // The letters TH here are a product brand, not the carton abbreviation.
-const thMilkProduct=/^(\d{1,3})\s+th\s+(to|bé|bịch|lon)\b(.*)$/iu;
+const thMilkProduct=/^(\d{1,3})\s+th\s+(to|bé|bịch|lon)(?=\s|$)(.*)$/iu;
 function parseStrongLine(line){
  const raw=String(line||'').trim();
  if(!raw||raw.length>150||/https?:\/\/|[<>]/iu.test(raw))return null;
