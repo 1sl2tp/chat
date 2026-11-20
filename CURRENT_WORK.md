@@ -1,3 +1,16 @@
+## 2026-11-20 — CHAT-397 · iPhone ô nhập chat rung khi gõ tiếng Việt
+
+- **E0:** người dùng cung cấp ảnh iPhone 07:26, đang ở hội thoại với bàn phím iOS mở và báo ô nhập rung khi gõ. Ảnh tĩnh xác nhận bố cục nhưng không đo được biên độ rung; cần kiểm chứng qua thao tác thực tế.
+- **Root owner:** `app.js::autoGrow` trước đây đọc lại `getComputedStyle(editor)`, Header, Composer, textarea `getBoundingClientRect()` ở mỗi input; các sự kiện `isComposing` của bộ gõ tiếng Việt vẫn gây thay đổi kích thước giữa chu kỳ IME, đồng thời Composer neo theo VisualViewport qua `KeyboardInsetAdapter`.
+- **E1:** PR [#343](https://github.com/1sl2tp/chat/pull/343) sửa đúng owner `app.js`: đo khi `compositionend`, cache line-height/Header/action rail khi gõ bình thường, chỉ cập nhật khi layout/viewport/expanded đổi; giữ ngưỡng thay đổi VisualViewport 8px chống dao động nhỏ, không thêm scroll writer. Mở rộng UI-285 đo số layout reads và xác nhận IME. PR #343 squash merge main `7f43623c943e02f65dd4c6a94c27dc7e8d551703`.
+- **E2 PASS:** PR #343 Verify V21 [#44646576612](https://github.com/1sl2tp/chat/actions/runs/44646576612) SUCCESS; main Verify [#44646735564](https://github.com/1sl2tp/chat/actions/runs/44646735564) SUCCESS.
+- **Phát hành PWA:** PR [#344](https://github.com/1sl2tp/chat/pull/344) đồng bộ `V21.72.46` giữa `app.js`, `index.source.html`, `sw.js` và `pwa-chat-397-ios-typing-stability-20261120` (public cache only). Build canonical tự ghi `version.json/index.html`; không cache hay đụng dữ liệu riêng tư. Lượt CI đầu phát hiện epoch thiếu dấu phân cách, đã sửa trong PR; phải chờ CI mới PASS trước merge. E3 release/domain chưa xác nhận trong bản ghi này.
+- **E4/E5 PENDING:** kiểm iPhone Safari/PWA và Android: nhập tiếng Việt có dấu/chấm, xóa, xuống dòng 1–2–3–n dòng, bàn phím mở/đóng, xoay máy, đổi khách A→B→A, cuộn đang ở cuối/đọc lịch sử; xác nhận không rung và không che tin cuối. CI synthetic không thay được thử trên thiết bị thực.
+- **MUST-STAY:** không gửi tin thật, không thay DB/RPC/Supabase/Zalo/Render/Push/Realtime, không thêm polling, không xóa bản nháp/IndexedDB/private media/outbox, không deploy thủ công.
+- **Rollback:** revert PR #344 để quay lại PWA release marker, revert PR #343 nếu có hồi quy Composer; giữ dữ liệu và tài khoản.
+
+---
+
 ## 2026-11-20 — CHAT-393/394 · Tìm kiếm ưu tiên tác vụ theo Asana, giữ vị trí danh bạ
 
 - **E0:** ba ảnh Asana người dùng cung cấp: Inbox, Search với bàn phím, Home; tiếp thu thứ bậc thao tác và cách ưu tiên ô tìm, không sao chép thiết kế. CHAT-392 còn dùng search dưới kết quả; mở IME khiến ô nhập ở dưới thay vì đầu vùng tìm.
