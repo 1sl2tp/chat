@@ -160,6 +160,21 @@ function parseVariantTail(line){
 // "10 th bé ít đường" in E Quyên's messages refers to TH milk.
 // The letters TH here are a product brand, not the carton abbreviation.
 const thMilkProduct=/^(\d{1,3})\s+th\s+(to|bé|bịch|lon)(?=\s|$)(.*)$/iu;
+// CHAT-404: two attested colloquial carton phrases from the customer chats.
+// Restrict "t" = "thùng" to the bát product family and an explicit number.
+// Do not generalize "t" into money/price discussions or rewrite names.
+const BAT_LEADING_CARTONS=/^(\d{1,3})\s*t\s+(bát\s+\d+(?:[.,]\d+)?\s*(?:kg|g)?)$/iu;
+const BAT_INVERTED_CARTONS=/^có\s+(bát\s+454(?:g)?)\s+(?:a|anh|ạ)\s+(\d{1,3})\s*t$/iu;
+function parseBatCartons(line){
+ const raw=String(line||'').trim();
+ if(!raw||raw.length>150)return null;
+ const clean=stripListMarker(raw);
+ const leading=clean.match(BAT_LEADING_CARTONS);
+ if(leading)return entry(leading[2].trim(),leading[1],'thùng',raw);
+ const inverted=clean.match(BAT_INVERTED_CARTONS);
+ // "Có ..." can also be an availability question; preserve as yellow review.
+ return inverted?entry(inverted[1].trim(),inverted[2],'thùng',raw,true):null;
+}
 function parseStrongLine(line){
  const raw=String(line||'').trim();
  if(!raw||raw.length>150||/https?:\/\/|[<>]/iu.test(raw))return null;
@@ -243,6 +258,8 @@ function parsePieces(line,isOrder){
  const original=String(line||'').trim();
  if(!original||original.length>240||/https?:\/\/|[<>]/iu.test(original))return [];
  const lead=requestLine(original),raw=lead.body.replace(/^(\d{1,3})(?=[\p{L}]{3,})/u,'$1 ');
+ const colloquial=parseBatCartons(raw);
+ if(colloquial)return [{...colloquial,source:original}];
  const compound=parseCompoundVariant(raw);
  if(compound)return compound.map(item=>({...item,source:original,review:item.review||lead.kind==='availability'}));
  // E.g. "5 sữa, 3 bánh" or "Mì 2 thùng; Bánh 3 gói".
