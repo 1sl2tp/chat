@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 ROOT=Path(__file__).resolve().parents[1]
 
 source=(ROOT/'index.source.html').read_text('utf-8')
@@ -28,7 +29,9 @@ assert '>đăng ký</span>' in source
 assert 'setPasswordVisibility' in shell
 assert 'shouldAutoFocusShellForm' in shell
 
-assert "RELEASE_VERSION='V21.72.45'" in sw
+release=re.search(r'<meta name="app-release-version" content="([^"]+)"',source)
+assert release, 'canonical release marker is required'
+assert f"RELEASE_VERSION='{release.group(1)}'" in sw
 assert "MODULE_CONTRACT_VERSION='pwa-sw-v1'" in sw
 assert "CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION" in sw
 
