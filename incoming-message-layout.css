@@ -12,15 +12,15 @@
 }
 .incoming-brief-title{font-size:13px;line-height:19px;font-weight:750}
 .incoming-brief-count{font-size:11px;line-height:16px;opacity:.7;white-space:nowrap}
-/* CHAT-399: the order view is four real columns, not a 2-column
-   name+combined-quantity mock. All rows share the same grid geometry. */
+/* CHAT-400: three aligned columns only. Quantity carries its understood
+   unit (5 thùng); product sizes like 180ml remain part of the name. */
 .incoming-brief-products{
  box-sizing:border-box;display:flex;flex-direction:column;
  min-width:0;border-top:1px solid rgba(80,97,117,.16);
 }
 .incoming-brief-columns,.incoming-brief-item{
  box-sizing:border-box;display:grid;
- grid-template-columns:23px minmax(0,1fr) minmax(26px,36px) minmax(42px,55px);
+ grid-template-columns:23px minmax(0,1fr) minmax(64px,82px);
  align-items:start;gap:7px;min-width:0;
 }
 .incoming-brief-columns{
@@ -33,15 +33,12 @@
 }
 .incoming-brief-columns>span:nth-child(3),
 .incoming-brief-quantity{justify-self:end;text-align:right}
-.incoming-brief-columns>span:nth-child(4),
-.incoming-brief-unit{text-align:right}
 .incoming-brief-index{font-size:11px;line-height:19px;opacity:.7;font-variant-numeric:tabular-nums}
 .incoming-brief-product{min-width:0;font-size:13px;line-height:19px;overflow-wrap:anywhere}
 .incoming-brief-quantity{
  min-width:0;font-weight:750;font-size:13px;line-height:19px;
- font-variant-numeric:tabular-nums;white-space:nowrap;
+ font-variant-numeric:tabular-nums;white-space:normal;overflow-wrap:normal;
 }
-.incoming-brief-unit{min-width:0;font-size:12px;line-height:19px;overflow-wrap:anywhere}
 .incoming-brief-review{font-size:10px;font-weight:650;opacity:.78;white-space:nowrap}
 .incoming-brief-topic{display:flex;flex-direction:column;gap:3px;min-width:0}
 .incoming-brief-topic-title{
@@ -70,7 +67,7 @@
 @media(max-width:360px){
  .incoming-brief{padding:8px;gap:7px}
  .incoming-brief-columns,.incoming-brief-item{
-  grid-template-columns:18px minmax(0,1fr) 25px 42px;gap:4px;
+  grid-template-columns:18px minmax(0,1fr) minmax(55px,70px);gap:5px;
  }
  .incoming-brief-columns{font-size:9px}
  .incoming-brief-product{font-size:12px}
