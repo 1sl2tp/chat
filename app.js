@@ -5342,6 +5342,20 @@ function renderMessageBody(container,value){
       continue;
     }
 
+    // CHAT-416: only explicit, short business section labels become reading
+    // headings. Casual conversation stays plain; never infer/split orders here.
+    const contextHeading=source.includes('\n')?
+      line.match(/^\s*((?:Danh sách|Lấy hàng|Đơn hàng|Hóa đơn|Thông tin|Ghi chú|Đối soát|Thanh toán|Công nợ|Sản phẩm|Nhập hàng|Chuyển khoản|Tổng hợp|Lịch giao hàng)[^.!?\n]{0,36}):\s*$/iu)
+      :null;
+    if(contextHeading){
+      closeList();
+      const rendered=messageRichLine('div','message-rich-heading message-rich-section-title',contextHeading[1]);
+      hasLink=rendered.hasLink||hasLink;
+      container.appendChild(rendered.node);
+      rich=true;
+      continue;
+    }
+
     const quote=line.match(/^\s*>\s?(.*)$/u);
     if(quote){
       closeList();

@@ -1226,17 +1226,18 @@ function contactPreview(item){
   const reportView=bankReportContactView(item);
   if(reportView)return reportView.preview;
   const kind=String(item?.preview_kind||'text');
-  // Canonical sidebar and Realtime use one direction marker for the sender.
-  const outgoing=String(item?.preview_text||'').startsWith('Bạn: ')?'Bạn: ':'';
-  if(kind==='image')return outgoing+'Ảnh';
-  if(kind==='audio')return outgoing+'Ghi âm';
-  if(kind==='file')return outgoing+'Tệp';
+  // UI-416: one read-only presentation policy for sidebar, unread filter,
+  // drawer recents, and realtime contact updates; never rewrite preview_text.
+  const ui=typeof window==='undefined'?null:window;
+  const format=ui?.V21ChatMessageCase?.previewCase||((value)=>String(value||''));
+  const outgoing=/^Bạn\s*:/iu.test(String(item?.preview_text||''))?'Bạn: ':'';
+  if(kind==='image')return format(outgoing+'Ảnh');
+  if(kind==='audio')return format(outgoing+'Ghi âm');
+  if(kind==='file')return format(outgoing+'Tệp');
   const text=compactPreview(item?.preview_text);
   if(!text)return 'Chưa có tin nhắn';
-  // UI-246: directory preview uses the same display-only emoticons as Chat.
-  // app.js defines this before shell.js, while stored text remains unchanged.
-  const normalize=typeof window==='undefined'?null:window.V21NormalizeDisplayEmoticons;
-  return typeof normalize==='function'?normalize(text):text;
+  const normalize=ui?.V21NormalizeDisplayEmoticons;
+  return format(typeof normalize==='function'?normalize(text):text);
 }
 
 function syncContactActiveState(){
