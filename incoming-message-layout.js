@@ -34,6 +34,7 @@ function stripListMarker(raw){
  return String(raw||'').trim().replace(/^(?:[-•*]\s+|\d{1,3}[.)]\s+|\d{1,3}\s*[-–]\s+)/u,'').trim();
 }
 // CHAT-402: read-only corpus rules drawn from E Quyên's stock-list patterns.
+const knownSingleCustomerProduct=/^\d{1,3}\s+(?:milo|bò|chua|proby|probi|yomost|green\s+farm)(?=\s|$)/iu;
 const extraItemHeading=/^(?:thêm|lấy thêm|cho thêm|thêm vào đơn(?: hôm trước)?)\s*[:：]?\s*$/iu;
 const deicticProduct=/^(?:này|kia|đó|đấy|vậy|ấy)(?:\s|$)/iu;
 const deicticTail=/(?:\s|^)(?:này|kia|đấy|đó)\s*$/iu;
@@ -246,15 +247,27 @@ function parsePieces(line,isOrder){
  if(compound)return compound.map(item=>({...item,source:original,review:item.review||lead.kind==='availability'}));
  // E.g. "5 sữa, 3 bánh" or "Mì 2 thùng; Bánh 3 gói".
  // Split only when ALL fragments stand alone as products.
- const segments=raw.split(/\s*[,;]\s*/u);
+ const segments=raw.split(/\s*[,;]\s*|\s+\+\s+/u);
  if(segments.length>=2&&segments.length<=12){
   const found=segments.map(x=>parseStrongLine(x)||parseUnitAroundNumber(x,isOrder)||
    parseSizedQuantity(x,isOrder)||parseVariantTail(x)||parseColonBare(x,isOrder)||parseBareLine(x,isOrder));
-  if(found.every(Boolean))return found.map(item=>({...item,source:original,review:item.review||lead.kind==='availability'}));
+  if(found.every(Boolean)){
+   // E Quyên writes "2 chua có, 2 ít, 2 không, 2 nha đam".
+   // Shorthand variants inherit "chua" only when the first segment proves
+   // that group. Mark each inherited word yellow for teaching/confirmation.
+   const first=found[0].name.match(/^(chua)\s+(có|ít|không|nha\s+đam)(?:\s+đường)?$/iu);
+   const inherited=first?first[1]:'';
+   return found.map((item,i)=>{
+    const shorthand=inherited&&i>0&&/^(?:có|ít|không|nha\s+đam)(?:\s+đường)?$/iu.test(item.name);
+    return {...item,name:shorthand?inherited+' '+item.name:item.name,
+     source:original,review:item.review||lead.kind==='availability'||Boolean(shorthand)};
+   });
+  }
  }
  const single=parseStrongLine(raw)||parseUnitAroundNumber(raw,isOrder)||
   parseSizedQuantity(raw,isOrder)||parseVariantTail(raw)||parseColonBare(raw,isOrder)||parseBareLine(raw,isOrder);
- return single?[{...single,source:original,review:single.review||lead.kind==='availability'}]:[];
+ return single?[{...single,source:original,review:single.review||lead.kind==='availability'||
+  (single.unit===''&&knownSingleCustomerProduct.test(original))}]:[];
 }
 function topicLine(line){
  const match=String(line||'').trim().replace(/^[#•\s]+/u,'').match(/^(.{2,36}?)(?:\s*[:：-]\s*(.*))?$/u);
@@ -289,7 +302,8 @@ function analyze(input){
   strongCount+=strong.length;
   if(!strong.length&&parseBareLine(line,true))bareCount++;
  }
- const orderContext=cue||requestIntent||hasItemHeading||strongCount>0||bareCount>=2;
+ const orderContext=cue||requestIntent||hasItemHeading||strongCount>0||bareCount>=2||
+  (lines.length===1&&knownSingleCustomerProduct.test(lines[0]));
  let active='other';
  for(const line of lines){
   if(extraItemHeading.test(line)){active='items';heads.add('items');continue;}
@@ -316,6 +330,7 @@ function analyze(input){
  const isOrder=items.length>=2||(items.length>=1&&(cue||requestIntent||heads.has('items')||
   // One-line explicit container + product was common in E Quyên's orders.
   (lines.length===1&&Boolean(items[0].unit))||
+  (lines.length===1&&knownSingleCustomerProduct.test(lines[0]))||
   items.every(item=>VERIFIED_SIZE.test(item.name))||
   items.every(item=>KNOWN_VARIANT_TAIL.test(stripListMarker(item.source)))));
  const isAvailability=availabilityOnly&&items.length>0;
