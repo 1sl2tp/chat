@@ -275,9 +275,9 @@ const AppBootController={
     // Repeated global faults must not repaint the banner or multiply logs.
     if(this.lastErrorMessage===message&&!runtimeError.classList.contains('hidden'))return;
     this.lastErrorMessage=message;
-    runtimeError.textContent='V21.72.53 runtime: '+message;
+    runtimeError.textContent='V21.72.54 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.53]',error);
+    console.error('[ChatScreenModule V21.72.54]',error);
   },
   ready(){
     // A successful render invariant proves recovery only for errors seen
@@ -389,7 +389,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.53 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.54 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -443,7 +443,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.53',
+  releaseVersion:'V21.72.54',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -5368,9 +5368,15 @@ function renderMessageBody(container,value){
 // CHAT-381: keep the canonical message and existing rich-text fallback.
 // Only incoming text gets an optional, reversible structured display.
 function renderConversationMessageBody(container,message){
-  if(message?.sender!=='self'&&!message?.media){
+  if(!message?.media){
     try{
-      if(window.V21IncomingMessageLayout?.render?.(container,message.text))return container;
+      const formatter=window.V21IncomingMessageLayout;
+      // CHAT-405: a genuine stock-list is sender-neutral. Both sides use
+      // the same centered presentation; ordinary outgoing text is unchanged.
+      // Inbound topic notes keep their previously supported structured view.
+      const allowed=message?.sender!=='self'||
+        formatter?.analyze?.(message?.text)?.kind==='order';
+      if(allowed&&formatter?.render?.(container,message.text))return container;
     }catch(error){
       console.warn('[chat] incoming brief fallback:',String(error?.message||error));
     }
@@ -5527,6 +5533,11 @@ function patchMessageNode(node,message){
   const messageBody=document.createElement('div');
   messageBody.className='message-body';
   renderConversationMessageBody(messageBody,message);
+  // CHAT-405: capture layout in the canonical virtualized node AND its
+  // patch path. A shared list must not inherit the sender's 70% bubble lane.
+  const sharedList=messageBody.dataset.autoLayout==='order';
+  unit.dataset.sharedList=sharedList?'true':'false';
+  node.dataset.sharedList=sharedList?'true':'false';
   text.appendChild(messageBody);
   const textVisible=Boolean(message.replyTo||message.kind==='text'||message.kind==='mixed');
   text.hidden=!textVisible;
@@ -5642,6 +5653,9 @@ function renderMessageNode(message){
   const messageBody=document.createElement('div');
   messageBody.className='message-body';
   renderConversationMessageBody(messageBody,message);
+  const sharedList=messageBody.dataset.autoLayout==='order';
+  unit.dataset.sharedList=sharedList?'true':'false';
+  turn.dataset.sharedList=sharedList?'true':'false';
   text.appendChild(messageBody);
   const textVisible=Boolean(message.replyTo||message.kind==='text'||message.kind==='mixed');
   text.hidden=!textVisible;
@@ -9094,7 +9108,7 @@ window.V21ConversationBridge={
 window.V21ChatImageViewer=Object.freeze({open:openImageViewer});
 
 window.ChatScreenModule={
-  version:'V21.72.53',
+  version:'V21.72.54',
   snapshot(){
     return{
       viewportMode:viewport.mode,
