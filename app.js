@@ -5625,14 +5625,29 @@ function patchMessageNode(node,message){
   return node;
 }
 
+// CHAT-413: The group is an Admin-owned directory classification, not a
+// guess from a contact's name or message contents. Unknown/unloaded groups
+// fail closed. The current conversation remains the only summary owner.
+function stockSummaryCustomerAllowed(){
+ const contactId=String(window.V21SyncEngine?.snapshot?.().currentContactId||'');
+ return Boolean(contactId)&&
+  window.V21ContactDirectoryAdmin?.groupForContact?.(contactId)==='customer';
+}
 function syncStockImageOCRControl(node,message){
+ if(!stockSummaryCustomerAllowed()){
+  const old=node?.querySelector?.('.message-turn-shell .message-unit > .message-stock-image-read');
+  if(old){old.remove();return true;}
+  return false;
+ }
  // CHAT-412: OCR day-card resize never owns scrollTop; user swipe wins.
  return window.V21ChatStockImageUI?.sync?.(node,message,()=>renderWindow({
   preserve:'VIEW'
  }))||false;
 }
 function stockImageReadings(message){
- return window.V21ChatStockImageUI?.reads?.(message)||[];
+ return stockSummaryCustomerAllowed()
+  ?window.V21ChatStockImageUI?.reads?.(message)||[]
+  :[];
 }
 function renderMessageNode(message){
   const turn=document.createElement('section');
@@ -5721,7 +5736,9 @@ let dailyStockCacheMap=new Map();
 function dailyStockSummariesByOwner(messages){
  const formatter=window.V21IncomingMessageLayout;
  const result=new Map();
- if(!formatter?.summarizeDay||!Array.isArray(messages))return result;
+ // Non-KH chats never run stock classifiers or build a daily card.
+ if(!stockSummaryCustomerAllowed()||
+    !formatter?.summarizeDay||!Array.isArray(messages))return result;
  // Scroll-window rebases must not re-run 100s of text classifiers. An exact
  // content signature detects edits, appends, removals, sender and date changes,
  // while conversationViewEpoch keeps cached summaries inside one contact.
@@ -5962,6 +5979,15 @@ function renderWindow({
     publishTailRunway();
   });
 }
+
+// Directory group data is async; switching KH ↔ other must reconcile both
+// the OCR affordance and the last-message daily summary without moving scroll.
+document.addEventListener('v21-contact-groups-change',()=>{
+ dailyStockCacheEpoch=-1;
+ dailyStockCacheSignature='';
+ dailyStockCacheMap=new Map();
+ if(store.items.length)renderWindow({preserve:'VIEW'});
+});
 
 // CHAT-410: one capability result updates disabled/enabled OCR buttons.
 // No scroll-to-tail command and no extra message or media mutation.

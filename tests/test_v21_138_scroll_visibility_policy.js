@@ -6,9 +6,10 @@ function section(start,end){
  return code.slice(a,b);
 }
 const policyCode=section('function appendScrollPolicy(', '\nfunction setUserDragging(');
-function run(mode,{inserted=true,remote=true}={}){
+function run(mode,{inserted=true,remote=true,userIntent=false}={}){
  const vmCtx={
    VIEWPORT_STATES:{FOLLOW_TAIL:'FOLLOW_TAIL',USER_AWAY:'USER_AWAY'},
+   hasUserScrollIntent:()=>userIntent,
    viewport:{mode,returnToTail(){this.mode='FOLLOW_TAIL'}}
  };
  vm.createContext(vmCtx);
@@ -22,6 +23,8 @@ assert.equal(away.decision.preserve,'VIEW');
 const tail=run('FOLLOW_TAIL');
 assert.equal(tail.decision.followTail,true,'remote message follows if already at newest');
 assert.equal(tail.decision.preserve,'AUTO');
+assert.equal(run('FOLLOW_TAIL',{userIntent:true}).decision.followTail,false,
+ 'touch/wheel blocks auto-follow even while mode still says FOLLOW_TAIL');
 assert.equal(run('USER_AWAY',{inserted:false,remote:true}).decision.followTail,false);
 assert.equal(run('USER_AWAY',{inserted:true,remote:false}).decision.followTail,false);
 const bridge=section('window.V21ConversationBridge={','\nwindow.ChatScreenModule=');
@@ -30,5 +33,6 @@ const restore=replace.slice(replace.indexOf("if(restoreHistory){"),replace.index
 assert(restore.indexOf('if(anchor)restoreAnchor(anchor);')<restore.indexOf('requestAnimationFrame(()=>'),'reading anchor must be placed before visible frame');
 const latest=replace.slice(replace.indexOf('}else{'));
 assert(latest.indexOf('setScrollTop(scrollRoot.scrollHeight-scrollRoot.clientHeight);')<latest.indexOf("scrollToTail('bridge-replace')"),'latest needs prepaint positioning');
-assert.match(code,/if\(remote\)\{\s*const followTail=viewport.mode===VIEWPORT_STATES.FOLLOW_TAIL/);
+assert.match(code,/const followTail=viewport.mode===VIEWPORT_STATES.FOLLOW_TAIL\s*&&\s*!hasUserScrollIntent\(\)/,
+ 'passive append must yield to ongoing touch/wheel intent');
 console.log('UI-138 remote-vs-history scroll and immediate open positioning PASS');
