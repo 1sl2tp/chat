@@ -72,11 +72,11 @@ const orderTarget=fakeNode('div');
 assert.equal(render(orderTarget,realOrder),true);
 const orderRoot=orderTarget.children[0];
 const grid=orderRoot.children[1];
-assert.deepEqual(Array.from(grid.children[0].children,x=>x.textContent),['STT','Tên sản phẩm','SL','Quy cách']);
-assert.equal(grid.children.length,9,'header + eight four-column rows');
+assert.deepEqual(Array.from(grid.children[0].children,x=>x.textContent),['STT','Tên sản phẩm','SL']);
+assert.equal(grid.children.length,9,'header + eight three-column rows');
 assert.equal(grid.children[1].children[0].textContent,'1');
-assert.equal(grid.children[1].children[2].textContent,'5');
-assert.equal(grid.children[3].children[3].textContent,'—','unknown unit must not be invented');
+assert.equal(grid.children[1].children[2].textContent,'5 thùng');
+assert.equal(grid.children[3].children[2].textContent,'5','unknown unit must not be invented');
 assert.equal(orderRoot.children.at(-1).children[1].textContent,realOrder);
 const numericNoQty=analyze('Lấy hàng\n9 hạt ít đường\n2 chua ít đường');
 assert.equal(numericNoQty.items.length,1,'bare numeric product name stays undecided');
@@ -94,6 +94,36 @@ assert.equal(analyze('Giá sữa: 120\nGiá mì: 95'),null,
  'unlabeled price colon numbers must not be guessed as order quantities');
 const noCueBare=analyze('5 grow plus vinamilk\n3 bò bịch ko đường\n2 chua nha đam');
 assert.deepEqual(Array.from(noCueBare.items,row=>row.qty),[5,3,2]);
+// CHAT-400: slot-based interpretation regardless of quantity position.
+const mixedFormats=analyze([
+ 'Lấy hàng',
+ 'Sữa thùng 5',
+ '5 sữa thùng',
+ '5th sữa',
+ 'Sữa 5th',
+ 'Sữa 180ml 5 thùng',
+ '5 Sữa 180ml',
+ '3 bò bịch ko đường',
+ '2 bộ bàn'
+].join('\n'));
+assert.deepEqual(Array.from(mixedFormats.items,row=>[row.name,row.qty,row.unit]),[
+ ['Sữa',5,'thùng'],['sữa',5,'thùng'],
+ ['sữa',5,'thùng'],['Sữa',5,'thùng'],
+ ['Sữa 180ml',5,'thùng'],['Sữa 180ml',5,''],
+ ['bò bịch ko đường',3,''],['bàn',2,'bộ']
+]);
+const typoUnits=analyze('Lấy hàng\nSữa 5 thùg\n5thùg sữa\n5 sữa thùg');
+assert.deepEqual(Array.from(typoUnits.items,row=>row.unit),['thùng','thùng','thùng']);
+assert(typoUnits.items.every(row=>row.review===true),
+ 'uncertain unit typo is flagged for review, original text unchanged');
+assert.equal(typoUnits.source,'Lấy hàng\nSữa 5 thùg\n5thùg sữa\n5 sữa thùg');
+const notCorrected=analyze('Lấy hàng\n3 bò bịch ko đường\n5 bô sữa');
+assert.deepEqual(Array.from(notCorrected.items,row=>[row.name,row.unit]),[
+ ['bò bịch ko đường',''],['bô sữa','']
+],'"bò" and "bô" are not the unit "bộ"');
+assert.equal(analyze('5 thùg sữa\nSữa lỗi ngày mai'),null,
+ 'a typo alone cannot turn an unconfirmed chat into a purchase');
+
 assert.equal(analyze('9 hạt ít đường\n10 hạt không đường'),null,
  'numeric product names alone are never invented order quantities');
 
@@ -115,8 +145,8 @@ assert(html.includes('data-build-source="incoming-message-layout.js"'));
 assert(html.includes('data-build-source="incoming-message-layout.css"'));
 assert(html.indexOf('data-build-source="incoming-message-layout.js"')<
  html.indexOf('data-build-source="app.js"'));
-assert.match(css,/grid-template-columns:23px minmax\(0,1fr\) minmax\(26px,36px\) minmax\(42px,55px\)/);
+assert.match(css,/grid-template-columns:23px minmax\(0,1fr\) minmax\(64px,82px\)/);
 assert.match(css,/\.incoming-brief-index/);
-assert.match(css,/\.incoming-brief-unit/);
+assert(!css.includes('.incoming-brief-unit'),'unit must not reserve a fourth column');
 assert.doesNotMatch(source,/fetch\(|XMLHttpRequest|setInterval\(|localStorage|supabase\.|innerHTML\s*=/);
 console.log('CHAT-381 incoming quantities, topic notes, safe original text PASS');
