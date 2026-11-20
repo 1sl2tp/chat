@@ -14,7 +14,7 @@ const colonBare=/^(.+?)\s*[:：=]\s*(\d{1,3})\s*$/iu;
 const bare=/^(\d{1,3})\s+([\p{L}][^:]{1,100})$/iu;
 // Known numeric-leading product names: "9 hạt" is a product, not quantity 9.
 // Without a product catalog, keep ambiguous numeric names intact for review.
-const numericProductName=/^(?:9\s+hạt|7\s*up|3\s+miền|5\s+sao)\b/iu;
+const numericProductName=/^(?:9\s+hạt|7\s*up|3\s+miền|5\s+sao)(?=\s|$)/iu;
 const orderCue=/(?:báo\s*(?:lấy\s*)?hàng|lấy\s*hàng|đặt\s*hàng|đơn\s*hàng|soạn\s*hàng|lên\s*đơn|gửi\s*hàng|(?:^|\n)\s*(?:lấy|đặt|cho|e bán|em bán)\s)/iu;
 const titles=[
  ['items',/^(?:báo\s*hàng|(?:báo\s*)?(?:lấy\s*hàng|đặt\s*hàng|danh\s*sách\s*hàng|hàng\s*cần\s*lấy))$/iu],
@@ -33,12 +33,28 @@ function stripListMarker(raw){
  // STT "1. ", "2) ", bullet; NEVER remove numeric product names ("9 hạt").
  return String(raw||'').trim().replace(/^(?:[-•*]\s+|\d{1,3}[.)]\s+|\d{1,3}\s*[-–]\s+)/u,'').trim();
 }
+// CHAT-402: read-only corpus rules drawn from E Quyên's stock-list patterns.
+const knownSingleCustomerProduct=/^\d{1,3}\s+(?:milo|bò|chua|proby|probi|yomost|green\s+farm)(?=\s|$)/iu;
+const extraItemHeading=/^(?:thêm|lấy thêm|cho thêm|thêm vào đơn(?: hôm trước)?)\s*[:：]?\s*$/iu;
+const deicticProduct=/^(?:này|kia|đó|đấy|vậy|ấy)(?:\s|$)/iu;
+const deicticTail=/(?:\s|^)(?:này|kia|đấy|đó)\s*$/iu;
+function ambiguousOrderNote(line){
+ const raw=String(line||'').trim();
+ if(!raw||/https?:\/\/|[<>]/iu.test(raw))return false;
+ if(/^(?:giá|thanh toán|giao hàng|chuyển khoản|công nợ)\b/iu.test(raw))return false;
+ return /^\d{1,3}\s*(?:thùng|th|thg|hộp|hop|bao|bịch|bich|lốc|loc|kg|gói|goi)\b/iu.test(raw)
+   || /^\d{1,3}(?:probi|proby)\b/iu.test(raw)
+   || /^\d{1,3}\s+[\p{L}][^:]{2,100}\s*[:：]\s*[\p{L}]/iu.test(raw)
+   || /^[\p{L}][\p{L}\s\d]{2,60}\s*[:：]\s*\d{1,3}\s+[\p{L}]/iu.test(raw);
+}
 function entry(raw,qty,u,source,review=false){
  const name=stripListMarker(raw);
  const amount=Number(qty);
+ // "5 thùng này" has no product. "1 thùng milo này" needs a human check.
+ if(deicticProduct.test(name))return null;
  return name.length>=2&&name.length<=100&&/\p{L}/u.test(name)&&!/[<>]/u.test(name)
   &&Number.isInteger(amount)&&amount>=1&&amount<=999
-  ?{name,qty:amount,unit:unit(u),source,review:Boolean(review)}:null;
+  ?{name,qty:amount,unit:unit(u),source,review:Boolean(review)||deicticTail.test(name)}:null;
 }
 // Explicit quantity/packaging wins over the presence of digits in a product name.
 // CHAT-400: read units on either side of the quantity (not from a fixed
@@ -141,10 +157,15 @@ function parseVariantTail(line){
  const stem=m[3].toLowerCase()==='vq'?'probi':m[1]+' '+(m[2]||'').trim();
  return entry((stem+' '+m[3]).replace(/\s+/gu,' ').trim(),m[4],'',raw);
 }
+// "10 th bé ít đường" in E Quyên's messages refers to TH milk.
+// The letters TH here are a product brand, not the carton abbreviation.
+const thMilkProduct=/^(\d{1,3})\s+th\s+(to|bé|bịch|lon)(?=\s|$)(.*)$/iu;
 function parseStrongLine(line){
  const raw=String(line||'').trim();
  if(!raw||raw.length>150||/https?:\/\/|[<>]/iu.test(raw))return null;
  const clean=stripListMarker(raw);
+ const thMilk=clean.match(thMilkProduct);
+ if(thMilk)return entry('th '+thMilk[2]+thMilk[3],thMilk[1],'',raw,true);
  let m=clean.match(labeled);
  if(m)return entry(m[1],m[2],m[3],raw);
  m=clean.match(colonQuantity);
@@ -195,7 +216,12 @@ function parseCompoundVariant(line){
  if(chunks.length<2||chunks.length>12)return null;
  const qtyFirst=new RegExp('^(\\d{1,3})\\s*(?:('+U+')\\s+)?([\\p{L}][\\p{L}\\p{N}\\s./-]{0,60})$','iu');
  const nameFirst=new RegExp('^([\\p{L}][\\p{L}\\p{N}\\s./-]{0,60}?)\\s+(\\d{1,3})(?:\\s*('+U+'))?$','iu');
- const root=m[1].trim(),result=[];
+ const heading=m[1].trim();
+ const totalMatch=heading.match(new RegExp('^(\\d{1,3})\\s*('+U+')\\s+(.+)$','iu'));
+ const root=totalMatch?totalMatch[3].trim():heading;
+ const expectedTotal=totalMatch?Number(totalMatch[1]):null;
+ const inheritedUnit=totalMatch?unit(totalMatch[2]):'';
+ const result=[];
  for(const chunk of chunks){
   const first=chunk.trim().match(qtyFirst),last=first?null:chunk.trim().match(nameFirst);
   if(!first&&!last)return null;
@@ -205,29 +231,43 @@ function parseCompoundVariant(line){
   const shortVq=/^vq$/iu.test(label),probiTo=/^probi(?:y)?\s+to$/iu.test(root);
   const name=(shortVq&&probiTo?'probi':root)+' '+label;
   const review=/^(?:có|ít|dưa|dươngf|ko|không)$/iu.test(label)||(shortVq&&!probiTo);
-  const item=entry(name,quantity,pack||'',raw,review);
+  const item=entry(name,quantity,pack||inheritedUnit,raw,review);
   if(!item)return null;
   result.push(item);
  }
+ if(expectedTotal!==null&&result.reduce((sum,item)=>sum+item.qty,0)!==expectedTotal)
+  result.forEach(item=>{item.review=true;});
  return result;
 }
 function parsePieces(line,isOrder){
  const original=String(line||'').trim();
  if(!original||original.length>240||/https?:\/\/|[<>]/iu.test(original))return [];
- const lead=requestLine(original),raw=lead.body;
+ const lead=requestLine(original),raw=lead.body.replace(/^(\d{1,3})(?=[\p{L}]{3,})/u,'$1 ');
  const compound=parseCompoundVariant(raw);
  if(compound)return compound.map(item=>({...item,source:original,review:item.review||lead.kind==='availability'}));
  // E.g. "5 sữa, 3 bánh" or "Mì 2 thùng; Bánh 3 gói".
  // Split only when ALL fragments stand alone as products.
- const segments=raw.split(/\s*[,;]\s*/u);
+ const segments=raw.split(/\s*[,;]\s*|\s+\+\s+/u);
  if(segments.length>=2&&segments.length<=12){
   const found=segments.map(x=>parseStrongLine(x)||parseUnitAroundNumber(x,isOrder)||
    parseSizedQuantity(x,isOrder)||parseVariantTail(x)||parseColonBare(x,isOrder)||parseBareLine(x,isOrder));
-  if(found.every(Boolean))return found.map(item=>({...item,source:original,review:item.review||lead.kind==='availability'}));
+  if(found.every(Boolean)){
+   // E Quyên writes "2 chua có, 2 ít, 2 không, 2 nha đam".
+   // Shorthand variants inherit "chua" only when the first segment proves
+   // that group. Mark each inherited word yellow for teaching/confirmation.
+   const first=found[0].name.match(/^(chua)\s+(có|ít|không|nha\s+đam)(?:\s+đường)?$/iu);
+   const inherited=first?first[1]:'';
+   return found.map((item,i)=>{
+    const shorthand=inherited&&i>0&&/^(?:có|ít|không|nha\s+đam)(?:\s+đường)?$/iu.test(item.name);
+    return {...item,name:shorthand?inherited+' '+item.name:item.name,
+     source:original,review:item.review||lead.kind==='availability'||Boolean(shorthand)};
+   });
+  }
  }
  const single=parseStrongLine(raw)||parseUnitAroundNumber(raw,isOrder)||
   parseSizedQuantity(raw,isOrder)||parseVariantTail(raw)||parseColonBare(raw,isOrder)||parseBareLine(raw,isOrder);
- return single?[{...single,source:original,review:single.review||lead.kind==='availability'}]:[];
+ return single?[{...single,source:original,review:single.review||lead.kind==='availability'||
+  (single.unit===''&&knownSingleCustomerProduct.test(original))}]:[];
 }
 function topicLine(line){
  const match=String(line||'').trim().replace(/^[#•\s]+/u,'').match(/^(.{2,36}?)(?:\s*[:：-]\s*(.*))?$/u);
@@ -249,6 +289,7 @@ function analyze(input){
  const lines=source.split('\n').map(x=>x.trim()).filter(Boolean);
  if(lines.length<1||lines.length>48)return null;
  const requestIntent=lines.some(line=>requestLine(line).kind==='request');
+ const hasItemHeading=lines.some(line=>extraItemHeading.test(line));
  const availabilityOnly=lines.every(line=>requestLine(line).kind==='availability');
  const cue=orderCue.test(source),items=[],notes=[],heads=new Set();
  // First pass: strong unit/SL declarations and compound variants establish
@@ -261,9 +302,11 @@ function analyze(input){
   strongCount+=strong.length;
   if(!strong.length&&parseBareLine(line,true))bareCount++;
  }
- const orderContext=cue||requestIntent||strongCount>0||bareCount>=2;
+ const orderContext=cue||requestIntent||hasItemHeading||strongCount>0||bareCount>=2||
+  (lines.length===1&&knownSingleCustomerProduct.test(lines[0]));
  let active='other';
  for(const line of lines){
+  if(extraItemHeading.test(line)){active='items';heads.add('items');continue;}
   const t=topicLine(line);
   if(t){
    active=t.key;heads.add(active);
@@ -285,14 +328,20 @@ function analyze(input){
   notes.push({topic:noteTopic(line,active),text:line});
  }
  const isOrder=items.length>=2||(items.length>=1&&(cue||requestIntent||heads.has('items')||
+  // One-line explicit container + product was common in E Quyên's orders.
+  (lines.length===1&&Boolean(items[0].unit))||
+  (lines.length===1&&knownSingleCustomerProduct.test(lines[0]))||
+  (items[0].unit&&notes.some(note=>ambiguousOrderNote(note.text)))||
   items.every(item=>VERIFIED_SIZE.test(item.name))||
   items.every(item=>KNOWN_VARIANT_TAIL.test(stripListMarker(item.source)))));
  const isAvailability=availabilityOnly&&items.length>0;
  const isTopics=!items.length&&heads.size>=2&&notes.length>=2;
- if(!isOrder&&!isTopics&&!isAvailability)return null;
+ const reviewOnly=!items.length&&lines.length===1&&
+  /^(?:cho\s+)?\d{1,3}\s*(?:thùng|th|hộp|bao|bịch|lốc)\s+(?:này|kia|vậy|đấy)\b/iu.test(lines[0]);
+ if(!isOrder&&!isTopics&&!isAvailability&&!reviewOnly)return null;
  const grouped=new Map();
  for(const note of notes){if(!grouped.has(note.topic))grouped.set(note.topic,[]);grouped.get(note.topic).push(note.text);}
- return {kind:isAvailability?'availability':isOrder?'order':'topics',items,groups:Array.from(grouped,([key,rows])=>({key,label:labels[key]||'Ghi chú',rows})),source};
+ return {kind:reviewOnly?'review':isAvailability?'availability':isOrder?'order':'topics',items,groups:Array.from(grouped,([key,rows])=>({key,label:labels[key]||'Ghi chú',rows})),source};
 }
 function el(tag,cls,content){
  const n=document.createElement(tag);
@@ -305,7 +354,7 @@ function render(target,input){
  if(!target||!parsed)return false;
  const root=el('div','incoming-brief'),head=el('div','incoming-brief-head');
  head.append(el('strong','incoming-brief-title',
-  parsed.kind==='order'?'Danh sách lấy hàng':parsed.kind==='availability'?'Hàng đang có · Cần soát':'Nội dung theo chủ đề'),
+  parsed.kind==='order'?'Danh sách lấy hàng':parsed.kind==='availability'?'Hàng đang có · Cần soát':parsed.kind==='review'?'Cần hướng dẫn':'Nội dung theo chủ đề'),
   el('span','incoming-brief-count',
    parsed.kind==='order'||parsed.kind==='availability'?parsed.items.length+' mặt hàng':parsed.groups.length+' chủ đề'));
  root.append(head);
@@ -329,7 +378,15 @@ function render(target,input){
  for(const group of parsed.groups){
   const section=el('section','incoming-brief-topic');
   section.append(el('div','incoming-brief-topic-title',group.label));
-  for(const note of group.rows)section.append(el('div','incoming-brief-note',note));
+  for(const note of group.rows){
+   const needsReview=(group.key==='other'&&ambiguousOrderNote(note))||parsed.kind==='review';
+   const line=el('div','incoming-brief-note',note);
+   if(needsReview){
+    line.dataset.needsReview='true';
+    line.append(el('span','incoming-brief-review','Cần hướng dẫn'));
+   }
+   section.append(line);
+  }
   root.append(section);
  }
  const original=el('details','incoming-brief-original');

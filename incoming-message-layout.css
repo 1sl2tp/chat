@@ -52,6 +52,14 @@
  background:#ffe58a;color:#523900;
  font-size:10px;line-height:16px;font-weight:750;white-space:nowrap;
 }
+/* A possible order line that the local reader cannot safely split is yellow. */
+.incoming-brief-note[data-needs-review="true"]{
+ padding:6px 7px;border-left:2px solid #d59a00;
+ background:rgba(255,208,62,.20);border-radius:4px;
+}
+.incoming-brief-note[data-needs-review="true"] .incoming-brief-review{
+ margin-left:6px;vertical-align:baseline;
+}
 .incoming-brief-topic{display:flex;flex-direction:column;gap:3px;min-width:0}
 .incoming-brief-topic-title{
  font-size:11px;line-height:16px;font-weight:750;opacity:.75;
