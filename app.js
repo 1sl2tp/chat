@@ -6498,10 +6498,8 @@ const ComposerDraftOwner={
     if(!(mediaRecorder&&mediaRecorder.state!=='inactive')){
       setAudioWorkflowState(pendingAttachments.some(item=>item?.kind==='audio')?'PREVIEW':'IDLE');
     }
-    // An expanded draft belongs to its *conversation*, not the reused
-    // Composer element. Start B from compact geometry then measure B's own
-    // text once, before rendering the next frame.
-    composerShell.dataset.editorExpanded='false';
+    // A conversation switch restores that draft's native text and then
+    // measures it at the SAME stable editor width; no action-track reset.
     syncMeasureStyle({force:true,widthPx:editor.getBoundingClientRect().width});
     autoGrow({source:'context-switch'});
     syncSendButtonState();
