@@ -6305,8 +6305,11 @@ function autoGrow({source='layout'}={}){
       ?Math.ceil(bottomContainer?.getBoundingClientRect?.().height||0):0;
     const editorHeight=Math.ceil(editor.getBoundingClientRect().height||lastEditorHeightPx);
     // This is constant during typing: action controls never swap tracks.
+    // The first 40px text row sits inside a 44px action track. Subtract
+    // that track's painted height, not 40px, so the cached chrome height
+    // remains constant as text grows across the first line break.
     const composerOverhead=composerHeight>0
-      ?Math.max(0,composerHeight-editorHeight):12;
+      ?Math.max(0,composerHeight-Math.max(44,editorHeight)):12;
     composerTypingMetrics={lineHeight,headerHeight,composerOverhead};
   }
   const {headerHeight,composerOverhead}=composerTypingMetrics;
@@ -6332,7 +6335,11 @@ function autoGrow({source='layout'}={}){
     // A fixed VisualViewport dock must grow UP, never extend downward into
     // the keyboard for one animation frame before the ResizeObserver runs.
     if(typeof KeyboardInsetAdapter!=='undefined'){
-      KeyboardInsetAdapter.adjustForEditorHeightChange(next-previousHeight);
+      // The grid already reserves 44px for the action buttons. A 40→64px
+      // editor change physically grows the dock by only 20px (not 24px).
+      // Compensating for the raw delta would cause a 4px iOS bounce.
+      const paintedDelta=Math.max(44,next)-Math.max(44,previousHeight);
+      KeyboardInsetAdapter.adjustForEditorHeightChange(paintedDelta);
     }
   }
   if(scrollModeChanged){
