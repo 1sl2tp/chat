@@ -181,9 +181,17 @@ function parseColonBare(line,isOrder){
 }
 function parseCompoundVariant(line){
  const raw=String(line||'').trim();
- const m=stripListMarker(raw).match(/^(.{2,80}?)\s*[:：]\s*(.+)$/u);
+ const clean=stripListMarker(raw);
+ const colon=clean.match(/^(.{2,80}?)\s*[:：]\s*(.+)$/u);
+ // Seen in real chat: "probi to có 5. ít 2. việt quất 2".
+ // Only known Probi family messages with at least two dotted clauses use
+ // this alternate grammar; ordinary sentences remain original text.
+ const dotted=colon?null:clean.match(/^((?:probi|proby)\s+(?:to|bé))\s+(.+)$/iu);
+ const m=colon||(dotted&&/\d\.\s*[\p{L}]/u.test(dotted[2])?dotted:null);
  if(!m||/^(?:ghi chú|lưu ý|giao hàng|thanh toán|giá|địa chỉ|ship)$/iu.test(m[1].trim()))return null;
- const chunks=m[2].trim().replace(/\.{2,}\s*$/u,'').split(/\s*[,;]\s*/u);
+ const chunks=m[2].trim().replace(/\.{2,}\s*$/u,'').split(
+  colon?/\s*[,;]\s*/u:/\.\s+/u
+ );
  if(chunks.length<2||chunks.length>12)return null;
  const qtyFirst=new RegExp('^(\\d{1,3})\\s*(?:('+U+')\\s+)?([\\p{L}][\\p{L}\\p{N}\\s./-]{0,60})$','iu');
  const nameFirst=new RegExp('^([\\p{L}][\\p{L}\\p{N}\\s./-]{0,60}?)\\s+(\\d{1,3})(?:\\s*('+U+'))?$','iu');
