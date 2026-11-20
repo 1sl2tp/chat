@@ -52,6 +52,9 @@ function entry(raw,qty,u,source,review=false){
  const amount=Number(qty);
  // "5 thùng này" has no product. "1 thùng milo này" needs a human check.
  if(deicticProduct.test(name))return null;
+ // These are sentence scaffolds, not merchandise names.
+ if(/^(?:lấy\s+)?tạm\s+cho$/iu.test(name)||
+   /^(?:giá|báo\s+giá|giá\s+bán)(?=\s|[:：]|$)/iu.test(name))return null;
  return name.length>=2&&name.length<=100&&/\p{L}/u.test(name)&&!/[<>]/u.test(name)
   &&Number.isInteger(amount)&&amount>=1&&amount<=999
   ?{name,qty:amount,unit:unit(u),source,review:Boolean(review)||deicticTail.test(name)}:null;
@@ -175,6 +178,22 @@ function parseBatCartons(line){
  // "Có ..." can also be an availability question; preserve as yellow review.
  return inverted?entry(inverted[1].trim(),inverted[2],'thùng',raw,true):null;
 }
+// CHAT-406: Narrow, verified chat grammar:
+// "Có pepsi lon vàng rồi thì phải, lấy tạm cho 10 thùng".
+// "Có"/"rồi thì phải"/"lấy tạm cho" describe uncertain availability and
+// request intent, not the product name. This rule does NOT guess other prose.
+const TENTATIVE_STOCK_REQUEST=new RegExp(
+ '^có\\s+([\\p{L}][\\p{L}\\p{N}\\s.-]{2,80}?)\\s+rồi\\s+thì\\s+phải\\s*[,，]\\s*'+
+ 'lấy\\s+tạm\\s+cho\\s+(\\d{1,3})\\s*('+U+')\\s*$','iu'
+);
+function parseTentativeStockRequest(line){
+ const raw=String(line||'').trim();
+ if(!raw||raw.length>170||/[<>]/u.test(raw))return null;
+ const found=stripListMarker(raw).match(TENTATIVE_STOCK_REQUEST);
+ if(!found)return null;
+ // "thì phải" expresses uncertainty; the user sees a yellow review marker.
+ return entry(found[1].trim(),found[2],found[3],raw,true);
+}
 function parseStrongLine(line){
  const raw=String(line||'').trim();
  if(!raw||raw.length>150||/https?:\/\/|[<>]/iu.test(raw))return null;
@@ -260,6 +279,8 @@ function parsePieces(line,isOrder){
  const lead=requestLine(original),raw=lead.body.replace(/^(\d{1,3})(?=[\p{L}]{3,})/u,'$1 ');
  const colloquial=parseBatCartons(raw);
  if(colloquial)return [{...colloquial,source:original}];
+ const tentative=parseTentativeStockRequest(raw);
+ if(tentative)return [{...tentative,source:original}];
  const compound=parseCompoundVariant(raw);
  if(compound)return compound.map(item=>({...item,source:original,review:item.review||lead.kind==='availability'}));
  // E.g. "5 sữa, 3 bánh" or "Mì 2 thùng; Bánh 3 gói".
