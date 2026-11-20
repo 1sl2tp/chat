@@ -116,6 +116,11 @@ function setSelected(contactId,enabled){
  if(!key||!candidates().some(x=>String(x.id)===id))return false;
  const ids=chosen();
  if(enabled)ids.add(id);else ids.delete(id);
+ // An explicit PP toggle wins over first-time migration of older saved lists.
+ const profile=candidates().find(item=>String(item.id)===id);
+ if(profile&&names(profile).includes('pp thuoc la')){
+  try{window.localStorage?.setItem('chat-ncc-seed-pp419:'+admin(),'1');}catch{}
+ }
  const data=[...ids].slice(0,300);
  fallback.set(key,data);
  try{window.localStorage?.setItem(key,JSON.stringify(data));}catch{}
