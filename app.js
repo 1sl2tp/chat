@@ -808,6 +808,23 @@ const KeyboardInsetAdapter={
     });
   },
 
+  // CHAT-398: textarea height is the only per-keystroke geometry change.
+  // Keep the fixed composer bottom on the VisualViewport in the SAME paint.
+  // The ResizeObserver later reconciles exact height; typing does not force
+  // getBoundingClientRect() or wait a painted frame with the wrong bottom.
+  adjustForEditorHeightChange(deltaPx){
+    if(!this.open||stageLayout.dataset.composerPlacement!=='visual-viewport')return;
+    const oldTop=Number.parseFloat(
+      stageLayout.style.getPropertyValue('--composer-visual-top')
+    );
+    if(!Number.isFinite(oldTop)||!Number.isFinite(deltaPx))return;
+    const visualTop=Math.max(0,Math.round(vv?.offsetTop||0));
+    const nextTop=Math.max(visualTop,oldTop-deltaPx);
+    if(Math.abs(nextTop-oldTop)>=.5){
+      stageLayout.style.setProperty('--composer-visual-top',`${nextTop}px`);
+    }
+  },
+
   restoreStickyPlacement(){
     if(this.composerPlacementFrame){
       cancelAnimationFrame(this.composerPlacementFrame);
@@ -6231,24 +6248,22 @@ function ensureComposerMeasureReady(){
   syncMeasureStyle({force:true,widthPx:editor.getBoundingClientRect().width});
 }
 
-// UI-273: Mobile stays compact for a short draft, then moves actions below
-// the native textarea so wrapped text grows to several visible lines.
-// Keep the expanded layout until the draft is cleared to prevent width
-// feedback (wide textarea -> fewer wraps -> compact -> more wraps) on Safari.
-// Desktop retains its existing two-line policy. Never rewrite the IME/caret.
+// CHAT-398: one stable mobile action row. The textarea keeps the SAME
+// width for one, two and many lines; only its height grows upward. Moving
+// actions to a second grid row changed text wrapping mid-keystroke and made
+// Safari alternately resize/reposition the whole Composer above the keyboard.
+// Desktop retains its existing two-line cap. Caret and IME remain native.
 const composerMobileBreakpoint=window.matchMedia?.('(max-width:63.999rem)')||null;
 let lastEditorHeightPx=40;
 let lastEditorInternalScroll=false;
 let lastComposerMeasuredValue='';
-let composerCompactWidthPx=0;
-// CHAT-397: keep keyboard/typing geometry stable between actual layout changes.
-// The native iOS IME can produce multiple provisional updates for one keystroke.
+// Cache typography, viewport and fixed chrome geometry during typing. A
+// keystroke must never make multiple layout reads or resize action tracks.
 let composerTypingMetrics=null;
 let composerStableViewportHeightPx=0;
 
-// CHAT-384: one Composer geometry owner. Budget the entire input surface
-// against the *visible* viewport, including its action row and attachments,
-// so a long draft cannot consume the conversation above the iOS keyboard.
+// The editor cap reserves the header, action chrome and conversation while
+// the software keyboard occupies the lower visible viewport.
 function composerTextHeightLimit(visibleHeight,headerHeight,composerOverhead){
   const visible=Math.max(1,Number(visibleHeight)||1);
   const header=Math.max(0,Number(headerHeight)||0);
@@ -6261,82 +6276,37 @@ function composerTextHeightLimit(visibleHeight,headerHeight,composerOverhead){
 function autoGrow({source='layout'}={}){
   ensureComposerMeasureReady();
 
-  // iOS auto punctuation / Vietnamese IME may deliver several text updates
-  // for one tap. A sentinel after EVERY character can itself create a phantom
-  // soft-wrap at the line boundary. Only a real trailing newline needs one.
+  // A zero-width sentinel is necessary only for an explicit trailing newline.
+  // Adding it to every character creates phantom soft-wraps at punctuation.
   const text=editor.value || editor.placeholder || ' ';
   measure.textContent=text.endsWith('\n')?text+'\u200b':text;
 
   const previousValue=lastComposerMeasuredValue;
   const isForwardTyping=source==='typing'&&editor.value.length>=previousValue.length&&
     (editor.value.startsWith(previousValue)||
-      // Safari may replace the last punctuation/word during Vietnamese IME;
-      // do not collapse the textarea just because its predictive suffix changed.
       (previousValue.length>=12&&
        editor.value.slice(0,previousValue.length-8)===previousValue.slice(0,-8)));
   lastComposerMeasuredValue=editor.value;
 
-  let natural=Math.ceil(measure.scrollHeight);
+  const natural=Math.ceil(measure.scrollHeight);
   const mobile=Boolean(composerMobileBreakpoint?.matches);
-  // Limit by the visible keyboard viewport (not the document height), keeping
-  // some conversation visible in short/landscape iPhone windows.
   const rawVisibleHeight=Number(window.visualViewport?.height||window.innerHeight)||640;
-  // iOS VisualViewport may fluctuate by a few pixels as suggestions/caret
-  // settle. A sub-8px delta must not resize the Composer after every key.
   if(!composerStableViewportHeightPx||
      Math.abs(rawVisibleHeight-composerStableViewportHeightPx)>=8){
     composerStableViewportHeightPx=rawVisibleHeight;
   }
   const visibleHeight=composerStableViewportHeightPx;
-  // An input with two real lines stays on ONE toolbar row. Only a third
-  // line changes the layout to a full-width editor + 44px action row.
   const typing=source==='typing';
-  const lineHeight=typing&&composerTypingMetrics
-    ?composerTypingMetrics.lineHeight
-    :Math.max(22,parseFloat(getComputedStyle(editor).lineHeight)||24);
-  const compactTwoLineLimit=40+Math.ceil(lineHeight)+2;
-  const wasExpanded=composerShell.dataset.editorExpanded==='true';
-  if(mobile&&!wasExpanded&&(!typing||!composerCompactWidthPx)){
-    composerCompactWidthPx=Math.max(0,editor.getBoundingClientRect().width)||composerCompactWidthPx;
-  }
-  // Do not bounce compact ↔ expanded while the user types punctuation or
-  // Vietnamese IME. Only a genuine text deletion may fold the action rail
-  // back, and only if the text fits TWO lines at the compact width.
-  const deletion=source==='typing'&&editor.value.length<previousValue.length;
-  let compactNatural=natural;
-  if(mobile&&wasExpanded&&deletion&&composerCompactWidthPx>0){
-    syncMeasureStyle({force:true,widthPx:composerCompactWidthPx});
-    compactNatural=Math.ceil(measure.scrollHeight);
-  }
-  const canCollapse=wasExpanded&&deletion&&compactNatural<=compactTwoLineLimit;
-  const expanded=mobile&&(
-    canCollapse?false:
-      natural>compactTwoLineLimit ||
-      (wasExpanded&&Boolean(editor.value.trim()))
-  );
-  const expandedChanged=wasExpanded!==expanded;
-  if(expandedChanged){
-    composerShell.dataset.editorExpanded=expanded?'true':'false';
-    // Switching tracks changes text width: always read the true current
-    // textarea width before applying the height in the same frame.
-    syncMeasureStyle({force:true,widthPx:editor.getBoundingClientRect().width});
-    natural=Math.ceil(measure.scrollHeight);
-  }
-  // The header and Composer are measured rather than inferred from CSS
-  // breakpoints. This also counts reply/media previews and action controls.
-  // Header/action-rail geometry cannot change from a plain character edit.
-  // Reading every bounding box in the input event forces an iOS layout pass,
-  // which feeds back into fixed VisualViewport placement and visibly shakes.
-  // Sample again on layout/viewport changes or when the action rail changes.
-  if(!typing||expandedChanged||!composerTypingMetrics){
+  if(!typing||!composerTypingMetrics){
+    const lineHeight=Math.max(22,parseFloat(getComputedStyle(editor).lineHeight)||24);
     const headerHeight=typeof regionTop!=='undefined'
       ?Math.ceil(regionTop?.getBoundingClientRect?.().height||0):56;
     const composerHeight=typeof bottomContainer!=='undefined'
       ?Math.ceil(bottomContainer?.getBoundingClientRect?.().height||0):0;
     const editorHeight=Math.ceil(editor.getBoundingClientRect().height||lastEditorHeightPx);
+    // This is constant during typing: action controls never swap tracks.
     const composerOverhead=composerHeight>0
-      ?Math.max(0,composerHeight-editorHeight)
-      :(expanded?56:12);
+      ?Math.max(0,composerHeight-editorHeight):12;
     composerTypingMetrics={lineHeight,headerHeight,composerOverhead};
   }
   const {headerHeight,composerOverhead}=composerTypingMetrics;
@@ -6344,33 +6314,31 @@ function autoGrow({source='layout'}={}){
     ?composerTextHeightLimit(visibleHeight,headerHeight,composerOverhead)
     :64;
   let next=Math.max(40,Math.min(maxHeight,natural));
-  // Appending punctuation or a word can alter Safari's wrap opportunities
-  // without deleting any text. Never jump down/up a row in the same draft;
-  // shrinking remains permitted on deletion, replacement, breakpoints or
-  // genuine viewport cap changes.
-  if(mobile&&expanded&&isForwardTyping&&next<lastEditorHeightPx&&
+  // Predictive text / Vietnamese punctuation may temporarily change wraps.
+  // Never shrink during forward typing; deletion and viewport changes can.
+  if(mobile&&isForwardTyping&&next<lastEditorHeightPx&&
      lastEditorHeightPx<=maxHeight){
     next=lastEditorHeightPx;
   }
   const internalScroll=natural>maxHeight;
-  const heightChanged=next!==lastEditorHeightPx;
+  const previousHeight=lastEditorHeightPx;
+  const heightChanged=next!==previousHeight;
   const scrollModeChanged=internalScroll!==lastEditorInternalScroll;
-
-  if(!heightChanged&&!scrollModeChanged&&!expandedChanged)return false;
+  if(!heightChanged&&!scrollModeChanged)return false;
 
   if(heightChanged){
-    editor.style.setProperty(
-      '--editor-height',
-      `${next}px`
-    );
+    editor.style.setProperty('--editor-height',`${next}px`);
     lastEditorHeightPx=next;
+    // A fixed VisualViewport dock must grow UP, never extend downward into
+    // the keyboard for one animation frame before the ResizeObserver runs.
+    if(typeof KeyboardInsetAdapter!=='undefined'){
+      KeyboardInsetAdapter.adjustForEditorHeightChange(next-previousHeight);
+    }
   }
-
   if(scrollModeChanged){
     editor.dataset.internalScroll=internalScroll?'true':'false';
     lastEditorInternalScroll=internalScroll;
   }
-
   if(heightChanged&&!composerObserver)requestAnimationFrame(publishComposerHeight);
   return true;
 }
