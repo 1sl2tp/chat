@@ -1,4 +1,11 @@
 'use strict';
+// CHAT-416: use the SAME presentation formatter as Chat/Directory in the SW.
+// Optional import cannot block notifications when a public asset is offline.
+try{importScripts('./chat-message-case.js');}catch{}
+function chatPushDisplayPreview(value){
+ const raw=String(value||'');
+ try{return self.V21ChatMessageCase?.previewCase?.(raw)||raw;}catch{return raw;}
+}
 const RELEASE_VERSION='V21.72.61';
 const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 // BANK-177: reload one-time cached shell for the live bank reconciliation table.
@@ -30,7 +37,7 @@ const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 // CHAT-408: refresh the read-only daily summary UI; no private chat or outbox cache changes.
 // CHAT-409: public OCR UI shell; do not evict private media, drafts or outbox.
 // CHAT-410: public feature-readiness gate; no private media/draft cache resets.
-const SHELL_CACHE_EPOCH='pwa-chat-ui412-swipe-summary-20261120';
+const SHELL_CACHE_EPOCH='pwa-chat-ui416-unified-previews-20261120';
 const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION+'-'+SHELL_CACHE_EPOCH;
 const AVATAR_CACHE_NAME='taphoa-chat-avatars-v1';
 const SUPABASE_ASSET_HOST_RE=/^[a-z0-9]+\.supabase\.co$/i;
@@ -54,7 +61,7 @@ async function cachedBootVendorScript(request){
   }
   return fresh;
 }
-const SHELL=['./','./manifest.webmanifest','./icons/chat-app-180-v3.png','./icons/chat-app-192-v3.png','./icons/chat-app-512-v3.png','./icons/chat-maskable-512-v3.png','./icons/chat-notification-icon-192-v4.png','./icons/chat-notification-badge-96-v4.png'];
+const SHELL=['./','./manifest.webmanifest','./icons/chat-app-180-v3.png','./icons/chat-app-192-v3.png','./icons/chat-app-512-v3.png','./icons/chat-maskable-512-v3.png','./icons/chat-notification-icon-192-v4.png','./icons/chat-notification-badge-96-v4.png','./chat-message-case.js'];
 const adminPushClientState=new Map();
 let adminPushBadgeCount=0;
 
@@ -128,7 +135,7 @@ function notifyMessageDirty(clients,payload={}){
     contactId:String(payload.contact_id||''),
     messageId:String(payload.message_id||''),
     title:String(payload.title||'Tin nhắn mới').slice(0,90),
-    body:String(payload.body||'').slice(0,140)
+    body:chatPushDisplayPreview(String(payload.body||'').slice(0,140))
   };
   for(const client of clients||[]){
     try{client.postMessage?.(message);}catch{}
@@ -278,7 +285,9 @@ self.addEventListener('push',event=>{
     const bankBody='Số tiền: '+new Intl.NumberFormat('vi-VN').format(billAmount)+'đ'+
       (bankStatus==='matched'?' · Đã ghi thu':' · Chưa ghi thu');
     await self.registration.showNotification(bankPush?bankTitle:String(payload.title||'TAPHOA Chat'),{
-      body:bankPush?bankBody:String(payload.body||(kind==='call_invite'?'Cuộc gọi đến':'Tin nhắn mới')),
+      body:bankPush?bankBody:(kind==='message'?
+        chatPushDisplayPreview(payload.body||'Tin nhắn mới'):
+        String(payload.body||(kind==='call_invite'?'Cuộc gọi đến':'Tin nhắn mới'))),
       icon:'./icons/chat-notification-icon-192-v4.png',
       badge:'./icons/chat-notification-badge-96-v4.png',
       tag:bankPush?'bank:receipt:'+bankReceiptId:
