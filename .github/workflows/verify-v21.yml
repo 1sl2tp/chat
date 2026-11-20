@@ -764,5 +764,9 @@ jobs:
           node --check chat-stock-image-read.js
           node --check chat-stock-image-ui.js
           node tests/test_chat409_typed_stock_image_20261120.mjs
+      - name: CHAT-413 only KH directory may get stock summaries
+        run: |
+          node --check app.js
+          node tests/test_chat413_kh_only_stock_summary_20261120.cjs
       - name: Verify canonical source
         run: python tools/verify_current.py
