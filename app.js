@@ -5687,10 +5687,22 @@ function renderMessageNode(message){
 // message of EACH Vietnam business day. The regular message nodes remain
 // intact; this is a child of an existing virtualized message so scroll index,
 // keyboard height, anchor restore and media lazy-load remain unchanged.
+let dailyStockCacheEpoch=-1;
+let dailyStockCacheSignature='';
+let dailyStockCacheMap=new Map();
 function dailyStockSummariesByOwner(messages){
  const formatter=window.V21IncomingMessageLayout;
  const result=new Map();
  if(!formatter?.summarizeDay||!Array.isArray(messages))return result;
+ // Scroll-window rebases must not re-run 100s of text classifiers. An exact
+ // content signature detects edits, appends, removals, sender and date changes,
+ // while conversationViewEpoch keeps cached summaries inside one contact.
+ const signature=messages.map(message=>[
+  stableMessageDomKey(message),message.sender,messageTimestampMs(message),
+  message.media?'media':'text',String(message.text||'')
+ ].join('\u001f')).join('\u001e');
+ if(conversationViewEpoch===dailyStockCacheEpoch&&
+    signature===dailyStockCacheSignature)return dailyStockCacheMap;
  let start=0;
  while(start<messages.length){
   const first=messages[start];
@@ -5714,6 +5726,9 @@ function dailyStockSummariesByOwner(messages){
   }
   start=end;
  }
+ dailyStockCacheEpoch=conversationViewEpoch;
+ dailyStockCacheSignature=signature;
+ dailyStockCacheMap=result;
  return result;
 }
 function syncDailyStockSummary(node,summary){
@@ -5732,6 +5747,11 @@ function syncDailyStockSummary(node,summary){
  if(!wrap){
   wrap=document.createElement('div');
   wrap.className='message-day-order-wrap';
+  // A long-press or a tap on the summary is not a reply/forward gesture
+  // on the final original message of the day.
+  wrap.addEventListener('click',event=>event.stopPropagation());
+  wrap.addEventListener('pointerdown',event=>event.stopPropagation());
+  wrap.addEventListener('touchstart',event=>event.stopPropagation(),{passive:true});
  }
  if(!formatter.renderDailySummary(wrap,summary))return false;
  if(!wrap.parentElement)node.appendChild(wrap);
