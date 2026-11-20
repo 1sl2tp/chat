@@ -44,6 +44,15 @@ function formatPiece(value,firstPending=true){
 function sentenceCase(value){
  return String(value??'').split('\n').map(part=>formatPiece(part).text).join('\n');
 }
+// A one-line preview is the SAME display policy as message text, but the
+// sender prefix belongs to the UI and each preview body starts a new sentence.
+// Do not change canonical sender names, stored preview_text or message payloads.
+function previewCase(value){
+ const text=String(value??'').replace(/\s+/gu,' ').trim();
+ const outgoing=text.match(/^Bạn\s*:\s*(.*)$/iu);
+ if(outgoing)return 'Bạn: '+formatPiece(outgoing[1]).text;
+ return formatPiece(text).text;
+}
 function isProtected(node){
  return Boolean(node?.matches?.(PROTECTED_ELEMENTS));
 }
@@ -82,5 +91,5 @@ function normalizeRendered(root){
  }
  return root;
 }
-window.V21ChatMessageCase=Object.freeze({sentenceCase,normalizeRendered});
+globalThis.V21ChatMessageCase=Object.freeze({sentenceCase,previewCase,normalizeRendered});
 })();
