@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.57">
-<meta name="app-build-id" content="93f09ae9be217e372e583a1a0482c2c0a09564b28ef842fb4d9254d25c6a5fe9">
+<meta name="app-release-version" content="V21.72.58">
+<meta name="app-build-id" content="b01b7b32a214da2f1016801e0091e324f383fe1c720d21188f4baac3012d8784">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -2013,6 +2013,39 @@
 @media(max-width:360px){
  #messageWindow .message-day-order-wrap .day-order-summary-card{padding:9px 10px}
  #messageWindow .message-day-order-wrap .incoming-brief-title{font-size:13px}
+}
+
+/* CHAT-409: opt-in OCR belongs beneath the image, not over the image viewer. */
+#messageWindow .message-stock-image-read{
+ display:flex;flex-direction:column;gap:6px;
+ max-width:100%;min-width:0;padding:4px 0;
+}
+#messageWindow .message-stock-image-read-row{
+ display:flex;flex-direction:column;align-items:flex-start;gap:2px;
+ min-width:0;
+}
+#messageWindow .message-stock-image-read-button{
+ appearance:none;display:inline-block;
+ min-height:32px;padding:6px 10px;
+ border:1px solid rgba(100,116,139,.30);border-radius:9px;
+ background:rgba(148,163,184,.11);color:inherit;
+ font-size:11px;line-height:17px;font-weight:700;
+ text-align:left;cursor:pointer;touch-action:manipulation;
+}
+#messageWindow .message-stock-image-read-button:disabled{opacity:.65;cursor:default}
+#messageWindow .message-stock-image-read-status{
+ font-size:10px;line-height:15px;opacity:.75;max-width:100%;
+ overflow-wrap:anywhere;
+}
+#messageWindow .day-order-image-source{
+ display:flex;flex-direction:column;gap:5px;
+ padding:9px 0;border-top:1px solid rgba(80,97,117,.16);
+}
+#messageWindow .day-order-image-title{
+ font-size:12px;line-height:18px;font-weight:750;
+}
+#messageWindow .day-order-image-note{
+ font-size:11px;line-height:16px;opacity:.8;
 }
 
 </style>
@@ -15975,10 +16008,32 @@ function analyze(input){
 // marked yellow instead of implying that a final confirmed order exists.
 function summarizeDay(messages){
  if(!Array.isArray(messages)||!messages.length)return null;
- const grouped=new Map(),notes=[],sourceKeys=new Set();
+ const grouped=new Map(),notes=[],sourceKeys=new Set(),imageGroups=[];
  let previousStock=null;
  for(const message of messages){
-  if(!message||message.sender==='self'||message.media)continue;
+  if(!message||message.sender==='self')continue;
+  if(message.media){
+   // OCR is an opt-in, read-only result. Separate each photo even if it
+   // repeats items from an earlier photo; the second may be a corrected list.
+   for(const read of (Array.isArray(message.imageReadings)?message.imageReadings:[]).slice(0,12)){
+    if(read?.status!=='read')continue;
+    const rows=(Array.isArray(read.lines)?read.lines:[]).filter(item=>
+     String(item?.name||'').trim().length>1&&
+     Number.isSafeInteger(Number(item?.qty))&&Number(item.qty)>=1&&Number(item.qty)<=999
+    ).slice(0,60).map(item=>({
+     name:String(item.name).trim().slice(0,120),qty:Number(item.qty),
+     unit:String(item.unit||'').slice(0,25),review:true
+    }));
+    const rawNotes=(Array.isArray(read.notes)?read.notes:[]).slice(0,60)
+     .map(note=>String(note).trim().slice(0,240)).filter(Boolean);
+    if(rows.length||rawNotes.length){
+     imageGroups.push({assetId:String(read.assetId||''),
+      stamp:Number(message.stamp)||0,items:rows,notes:rawNotes});
+    }
+   }
+   previousStock=null;
+   continue;
+  }
   const original=String(message.text??'').trim();
   if(!original||original.length>5000)continue;
   const timestamp=Number(message.stamp)||0;
@@ -16016,7 +16071,7 @@ function summarizeDay(messages){
    previousStock=null;
   }
  }
- if(!grouped.size)return null;
+ if(!grouped.size&&!imageGroups.length)return null;
  const items=Array.from(grouped.values());
  // Same name with different units is not a safely summable quantity.
  const sameName=new Map();
@@ -16028,16 +16083,20 @@ function summarizeDay(messages){
  for(const item of items){
   if(sameName.get(item.name.toLocaleLowerCase('vi-VN'))>1)item.review=true;
  }
- return {kind:'daily-order',items,notes,messageCount:sourceKeys.size};
+ return {kind:'daily-order',items,notes,imageGroups,
+  messageCount:sourceKeys.size};
 }
 function renderDailySummary(target,summary){
- if(!target||summary?.kind!=='daily-order'||!summary.items?.length)return false;
+ if(!target||summary?.kind!=='daily-order'||
+   !(summary.items?.length||summary.imageGroups?.length))return false;
  const root=el('section','incoming-brief day-order-summary-card');
  root.setAttribute('aria-label','Tổng hợp tin lấy hàng trong ngày');
  const head=el('div','incoming-brief-head');
  head.append(el('strong','incoming-brief-title','Tổng hợp lấy hàng · '+String(summary.dayLabel||'trong ngày')),
-  el('span','incoming-brief-count',summary.items.length+' mặt hàng · '+summary.messageCount+' tin'));
+  el('span','incoming-brief-count',
+   summary.items.length+' hàng từ tin · '+(summary.imageGroups?.length||0)+' ảnh'));
  root.append(head);
+ if(summary.items.length){
  const grid=el('div','incoming-brief-products');
  const columns=el('div','incoming-brief-columns');
  columns.append(el('span','','STT'),el('span','','Tên sản phẩm'),el('span','','SL'));
@@ -16052,6 +16111,39 @@ function renderDailySummary(target,summary){
   grid.append(row);
  });
  root.append(grid);
+ }
+ for(const image of summary.imageGroups||[]){
+  const source=el('section','day-order-image-source');
+  const time=Number.isFinite(image.stamp)&&image.stamp>0?
+   new Date(image.stamp).toLocaleTimeString('vi-VN',{
+    timeZone:'Asia/Ho_Chi_Minh',hour:'2-digit',minute:'2-digit',hourCycle:'h23'
+   }):'';
+  source.append(el('strong','day-order-image-title',
+   'Ảnh '+time+' · '+image.items.length+' dòng · Cần soát'));
+  const grid=el('div','incoming-brief-products');
+  const columns=el('div','incoming-brief-columns');
+  columns.append(el('span','','STT'),el('span','','Tên sản phẩm'),el('span','','SL'));
+  grid.append(columns);
+  image.items.forEach((item,index)=>{
+   const row=el('div','incoming-brief-item');
+   row.dataset.needsReview='true';
+   const name=el('span','incoming-brief-product',item.name);
+   name.append(el('span','incoming-brief-review','Cần soát ảnh'));
+   row.append(el('span','incoming-brief-index',index+1),name,
+    el('span','incoming-brief-quantity',item.qty));
+   grid.append(row);
+  });
+  source.append(grid);
+  for(const text of image.notes){
+   const line=el('div','incoming-brief-note',text);
+   line.dataset.needsReview='true';
+   line.append(el('span','incoming-brief-review','Cần hướng dẫn'));
+   source.append(line);
+  }
+  source.append(el('div','day-order-image-note',
+   'Không cộng vào hàng từ tin · ảnh khác có thể là bản sửa'));
+  root.append(source);
+ }
  for(const note of summary.notes||[]){
   const row=el('div','incoming-brief-note',note.text);
   if(note.review){
@@ -16061,7 +16153,7 @@ function renderDailySummary(target,summary){
   root.append(row);
  }
  root.append(el('div','day-order-summary-disclaimer',
-  'Chỉ tổng hợp các tin đã tải · chưa xác nhận hoặc tạo đơn'));
+  'Chỉ tổng hợp tin đã tải và ảnh đã chọn đọc · chưa xác nhận hoặc tạo đơn'));
  target.replaceChildren(root);
  return true;
 }
@@ -16130,6 +16222,211 @@ function render(target,input){
 global.V21IncomingMessageLayout=Object.freeze({analyze,render,summarizeDay,renderDailySummary});
 })(window);
 
+</script>
+<script data-inlined-source="chat-stock-image-read.js">
+// CHAT-409: opt-in printed stock-list OCR for existing customer image messages.
+// In-memory, current authenticated Admin+conversation only. Images never get
+// copied into drafts/outbox or sent as new messages. No automatic paid scans.
+(()=>{'use strict';
+const FUNCTION='v21-ncc-ai-room';
+const cache=new Map();
+const inflight=new Map();
+const MAX_BYTES=4000000;
+function owner(){
+ const auth=window.V21AuthSessionStore?.snapshot?.()||{};
+ const sync=window.V21SyncEngine?.snapshot?.()||{};
+ if(auth.state!=='AUTHENTICATED'||auth.account?.role!=='admin'||
+   !auth.account?.id||!auth.appSessionId||!sync.currentConversationId)return null;
+ const accountId=String(auth.account.id);
+ const conversationId=String(sync.currentConversationId);
+ const sessionId=String(auth.appSessionId);
+ return {accountId,conversationId,sessionId,
+  key:[accountId,sessionId,conversationId].join('|')};
+}
+function allowedAsset(assetId){
+ return /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/iu.test(String(assetId||''));
+}
+function recordKey(who,assetId){return who?.key+'::'+assetId;}
+function peek(assetId){
+ const who=owner();
+ return who&&allowedAsset(assetId)?cache.get(recordKey(who,assetId))||null:null;
+}
+function fileBase64(file){
+ return new Promise((resolve,reject)=>{
+  const reader=new FileReader();
+  reader.onerror=()=>reject(Error('image_read_unavailable'));
+  reader.onload=()=>{
+   const contents=String(reader.result||'');
+   const b64=contents.slice(contents.indexOf(',')+1);
+   b64?resolve(b64):reject(Error('image_read_unavailable'));
+  };
+  reader.readAsDataURL(file);
+ });
+}
+async function prepareImage(blob){
+ if(!(blob instanceof Blob))throw Error('image_unavailable');
+ if(['image/jpeg','image/png','image/webp'].includes(blob.type)&&blob.size<=MAX_BYTES)return blob;
+ // Resize locally, never change the stored/original image.
+ if(typeof createImageBitmap!=='function')throw Error('image_too_large');
+ let bitmap=null;
+ try{
+  bitmap=await createImageBitmap(blob,{imageOrientation:'from-image'});
+  const scale=Math.min(1,1600/Math.max(bitmap.width,bitmap.height));
+  const canvas=document.createElement('canvas');
+  canvas.width=Math.max(1,Math.round(bitmap.width*scale));
+  canvas.height=Math.max(1,Math.round(bitmap.height*scale));
+  const ctx=canvas.getContext('2d');
+  if(!ctx)throw Error('image_read_unavailable');
+  ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);
+  const data=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',0.8));
+  if(!data||data.size>MAX_BYTES)throw Error('image_too_large');
+  return data;
+ }finally{bitmap?.close?.();}
+}
+async function scan(assetId){
+ const who=owner();
+ if(!who)throw Error('admin_required');
+ if(!allowedAsset(assetId))throw Error('invalid_asset');
+ const key=recordKey(who,assetId);
+ if(cache.has(key))return cache.get(key);
+ if(inflight.has(key))return inflight.get(key);
+ const job=(async()=>{
+  let row=await window.V21MediaCache?.get?.({accountId:who.accountId,assetId});
+  if(!(row?.blob instanceof Blob)){
+   row=await window.V21SyncEngine?.ensureMediaRemote?.({
+    accountId:who.accountId,assetId
+   })||row;
+  }
+  if(!(row?.blob instanceof Blob))throw Error('image_unavailable');
+  if(owner()?.key!==who.key)throw Error('conversation_switched');
+  const image=await prepareImage(row.blob);
+  const base64=await fileBase64(image);
+  if(owner()?.key!==who.key)throw Error('conversation_switched');
+  const client=window.V21AuthSessionStore?.getClient?.();
+  if(!client)throw Error('admin_required');
+  const {data,error}=await client.functions.invoke(FUNCTION,{body:{
+   action:'chat_stock_image',mime:image.type,base64
+  }});
+  if(error||!data?.ok)throw Error(String(data?.code||'ai_unavailable'));
+  if(owner()?.key!==who.key)throw Error('conversation_switched');
+  const valid=Array.isArray(data.lines)?data.lines.slice(0,60):[];
+  const result={
+   status:data.classification==='typed_stock_list'?'read':'other',
+   lines:valid.filter(line=>line&&typeof line.name==='string'&&
+     Number.isSafeInteger(Number(line.qty))&&Number(line.qty)>0).map(line=>({
+     name:String(line.name).trim().slice(0,120),
+     qty:Number(line.qty),unit:String(line.unit||'').slice(0,25),
+     raw:String(line.raw||'').slice(0,260),review:true
+   })),
+   notes:Array.isArray(data.notes)?data.notes.slice(0,60).map(x=>String(x).slice(0,240)):[],
+   assetId
+  };
+  cache.set(key,result);
+  return result;
+ })().finally(()=>inflight.delete(key));
+ inflight.set(key,job);
+ return job;
+}
+function clear(){cache.clear();inflight.clear();}
+document.addEventListener('v21-auth-state',event=>{
+ if(event.detail?.state!=='AUTHENTICATED')clear();
+});
+window.V21ChatStockImageRead=Object.freeze({scan,peek,clear,owner});
+})();
+</script>
+<script data-inlined-source="chat-stock-image-ui.js">
+// CHAT-409: sender-neutral, admin-only OCR affordance under an inbound image.
+// No image overlays, no automatic scanning, no message-store mutations.
+(()=>{'use strict';
+function assets(message){
+ if(!message?.media||message.sender==='self')return [];
+ const media=message.media;
+ const list=media.type==='image'?[media]:
+  media.type==='gallery'&&Array.isArray(media.items)?media.items:[];
+ return [...new Set(list.map(x=>String(x?.assetId||'').toLowerCase())
+  .filter(x=>/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/u.test(x)))].slice(0,12);
+}
+function reads(message){
+ const reader=window.V21ChatStockImageRead;
+ return assets(message).map(id=>reader?.peek?.(id)).filter(Boolean);
+}
+function sync(node,message,onRead){
+ const unit=node?.querySelector?.('.message-turn-shell .message-unit');
+ if(!unit)return false;
+ const auth=window.V21AuthSessionStore?.snapshot?.()||{};
+ const reader=window.V21ChatStockImageRead;
+ const ids=auth.state==='AUTHENTICATED'&&auth.account?.role==='admin'&&
+  reader?.owner?.()?assets(message):[];
+ let wrap=unit.querySelector(':scope > .message-stock-image-read');
+ if(!ids.length){if(wrap){wrap.remove();return true;}return false;}
+ const identity=ids.join('|');
+ if(wrap&&wrap.dataset.assetKeys===identity){
+  for(const button of wrap.querySelectorAll('button[data-stock-image-id]')){
+   const result=reader.peek(button.dataset.stockImageId);
+   button.disabled=Boolean(result);
+   button.textContent=result?
+    result.status==='read'?'Đã đọc chữ · Xem cuối ngày':'Ảnh không phải danh sách · Đã soát':
+    'Đọc chữ hàng trong ảnh';
+  }
+  return false;
+ }
+ if(!wrap){
+  wrap=document.createElement('div');
+  wrap.className='message-stock-image-read';
+  for(const kind of ['click','pointerdown','touchstart'])wrap.addEventListener(kind,e=>e.stopPropagation());
+ }
+ wrap.dataset.assetKeys=identity;
+ wrap.replaceChildren();
+ ids.forEach((assetId,index)=>{
+  const entry=document.createElement('div');
+  entry.className='message-stock-image-read-row';
+  const button=document.createElement('button');
+  button.type='button';
+  button.className='message-stock-image-read-button';
+  button.dataset.stockImageId=assetId;
+  const current=reader.peek(assetId);
+  button.disabled=Boolean(current);
+  button.textContent=current?
+    current.status==='read'?'Đã đọc chữ · Xem cuối ngày':'Ảnh không phải danh sách · Đã soát':
+    ids.length>1?'Đọc chữ ảnh '+(index+1):'Đọc chữ hàng trong ảnh';
+  const status=document.createElement('span');
+  status.className='message-stock-image-read-status';
+  status.textContent=current?.status==='read'?current.lines.length+' dòng · Cần soát':'';
+  button.addEventListener('click',e=>{
+   e.preventDefault();e.stopPropagation();
+   if(button.disabled)return;
+   const scope=reader.owner()?.key;
+   if(!scope)return;
+   button.disabled=true;
+   button.textContent='Đang đọc chữ…';
+   status.textContent='Chỉ đọc ảnh này · Không tạo đơn';
+   void reader.scan(assetId).then(result=>{
+    if(reader.owner()?.key!==scope)return;
+    status.textContent=result.status==='read'?
+     result.lines.length+' dòng · Xem ở bảng cuối ngày · Cần soát':
+     'Ảnh không phải danh sách hàng đánh máy';
+    if(typeof onRead==='function')onRead();
+   }).catch(error=>{
+    if(reader.owner()?.key!==scope)return;
+    button.disabled=false;button.textContent='Đọc lại chữ trong ảnh';
+    status.textContent={
+     image_unavailable:'Ảnh chưa tải xong · Mở ảnh rồi thử lại',
+     image_too_large:'Ảnh quá lớn hoặc chưa hỗ trợ',
+     ai_not_configured:'AI máy chủ chưa sẵn sàng',
+     conversation_switched:'Đã chuyển hội thoại'
+    }[String(error?.message||'')]||'Chưa đọc được ảnh · Thử lại';
+   });
+  });
+  entry.append(button,status);
+  wrap.append(entry);
+ });
+ const actions=unit.querySelector(':scope > .message-action-group');
+ if(actions)unit.insertBefore(wrap,actions);
+ else unit.appendChild(wrap);
+ return true;
+}
+window.V21ChatStockImageUI=Object.freeze({assets,reads,sync});
+})();
 </script>
 <script data-inlined-source="app.js">
 
@@ -16409,9 +16706,9 @@ const AppBootController={
     // Repeated global faults must not repaint the banner or multiply logs.
     if(this.lastErrorMessage===message&&!runtimeError.classList.contains('hidden'))return;
     this.lastErrorMessage=message;
-    runtimeError.textContent='V21.72.57 runtime: '+message;
+    runtimeError.textContent='V21.72.58 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.57]',error);
+    console.error('[ChatScreenModule V21.72.58]',error);
   },
   ready(){
     // A successful render invariant proves recovery only for errors seen
@@ -16523,7 +16820,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.57 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.58 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -16577,7 +16874,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.57',
+  releaseVersion:'V21.72.58',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -21735,12 +22032,19 @@ function patchMessageNode(node,message){
   }
 
   bindTextActionTap(node,text);
+  syncStockImageOCRControl(node,message);
   syncMessageTimeNode(unit,message);
   syncMessageDeliveryState(unit,message);
   node.__visualSignature=messageVisualSignature(message);
   return node;
 }
 
+function syncStockImageOCRControl(node,message){
+ return window.V21ChatStockImageUI?.sync?.(node,message,()=>renderWindow({preserve:'VIEW'}))||false;
+}
+function stockImageReadings(message){
+ return window.V21ChatStockImageUI?.reads?.(message)||[];
+}
 function renderMessageNode(message){
   const turn=document.createElement('section');
   turn.className=
@@ -21807,6 +22111,7 @@ function renderMessageNode(message){
   }
 
   unit.appendChild(createActionGroup(message));
+  syncStockImageOCRControl(turn,message);
   syncMessageTimeNode(unit,message);
   syncMessageDeliveryState(unit,message);
   messageWrap.appendChild(unit);
@@ -21833,7 +22138,10 @@ function dailyStockSummariesByOwner(messages){
  // while conversationViewEpoch keeps cached summaries inside one contact.
  const signature=messages.map(message=>[
   stableMessageDomKey(message),message.sender,messageTimestampMs(message),
-  message.media?'media':'text',String(message.text||'')
+  message.media?'media':'text',String(message.text||''),
+  stockImageReadings(message).map(read=>[
+   read.assetId,read.status,read.lines.length,read.notes.length
+  ].join(':')).join(',')
  ].join('\u001f')).join('\u001e');
  if(conversationViewEpoch===dailyStockCacheEpoch&&
     signature===dailyStockCacheSignature)return dailyStockCacheMap;
@@ -21849,11 +22157,12 @@ function dailyStockSummariesByOwner(messages){
    key:stableMessageDomKey(message),
    sender:message.sender,
    media:message.media,
+   imageReadings:stockImageReadings(message),
    text:message.text,
    stamp:messageTimestampMs(message)
   }));
   const summary=formatter.summarizeDay(dailyInputs);
-  if(summary?.items?.length){
+  if(summary?.items?.length||summary?.imageGroups?.length){
    summary.dayLabel=formatMessageDayLabel(messageTimestampMs(messages[end-1]),
     {includeDate:true});
    result.set(stableMessageDomKey(messages[end-1]),summary);
@@ -21932,6 +22241,7 @@ function reconcileMessageWindow(messages,summaryByOwner=new Map()){
       node=renderMessageNode(message);
       dirty.add(node);
     }
+    if(syncStockImageOCRControl(node,message))dirty.add(node);
     if(syncDailyStockSummary(node,summaryByOwner.get(key)||null))dirty.add(node);
     nodes.push(node);
   }
@@ -25319,7 +25629,7 @@ window.V21ConversationBridge={
 window.V21ChatImageViewer=Object.freeze({open:openImageViewer});
 
 window.ChatScreenModule={
-  version:'V21.72.57',
+  version:'V21.72.58',
   snapshot(){
     return{
       viewportMode:viewport.mode,
