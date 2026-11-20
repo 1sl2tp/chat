@@ -8,6 +8,9 @@ const colonQuantity=new RegExp('^(.+?)\\s*[:：]\\s*(\\d{1,3})\\s*('+U+')\\s*$',
 const prefix=new RegExp('^(\\d{1,3})\\s*('+U+')\\s+(.+?)\\s*$','iu');
 const labeled=new RegExp('^(.+?)\\s+(?:sl|số lượng|so luong)\\s*[:=]?\\s*(\\d{1,3})(?:\\s*('+U+'))?\\s*$','iu');
 const multiply=/^(.+?)\s+[x×]\s*(\d{1,3})\s*$/iu;
+// Unitless `Tên: SL` requires an independently established order context;
+// this could otherwise be a price, product code or time.
+const colonBare=/^(.+?)\s*[:：=]\s*(\d{1,3})\s*$/iu;
 const bare=/^(\d{1,3})\s+([\p{L}][^:]{1,100})$/iu;
 // Known numeric-leading product names: "9 hạt" is a product, not quantity 9.
 // Without a product catalog, keep ambiguous numeric names intact for review.
@@ -69,6 +72,13 @@ function parseBareLine(line,isOrder){
  if(/\s+\d{2,}\s+\d{2,}\s*$/u.test(clean))return null;
  return entry(m[2],m[1],'',raw);
 }
+function parseColonBare(line,isOrder){
+ if(!isOrder)return null;
+ const raw=String(line||'').trim();
+ if(!raw||raw.length>150||/https?:\/\/|[<>]/iu.test(raw))return null;
+ const m=stripListMarker(raw).match(colonBare);
+ return m?entry(m[1],m[2],'',raw):null;
+}
 function parseCompoundVariant(line){
  const raw=String(line||'').trim();
  const m=stripListMarker(raw).match(/^(.{2,80}?)\s*[:：]\s*(.+)$/u);
@@ -98,10 +108,10 @@ function parsePieces(line,isOrder){
  // Split only when ALL fragments stand alone as products.
  const segments=raw.split(/\s*[,;]\s*/u);
  if(segments.length>=2&&segments.length<=12){
-  const found=segments.map(x=>parseStrongLine(x)||(isOrder?parseBareLine(x,true):null));
+  const found=segments.map(x=>parseStrongLine(x)||parseColonBare(x,isOrder)||parseBareLine(x,isOrder));
   if(found.every(Boolean))return found;
  }
- const single=parseStrongLine(raw)||(isOrder?parseBareLine(raw,true):null);
+ const single=parseStrongLine(raw)||parseColonBare(raw,isOrder)||parseBareLine(raw,isOrder);
  return single?[single]:[];
 }
 function topicLine(line){
