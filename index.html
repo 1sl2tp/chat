@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.61">
-<meta name="app-build-id" content="8f0b1677c664605b58dd371e68cffdde21c506ff427c409f576eac3581a9e8d1">
+<meta name="app-build-id" content="3c8d7ac050b4774210c4f923c9c3d12fa9066c6ee3c42d62406c9ebb034eee7c">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -14022,6 +14022,181 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
   :is([data-result-list],[data-search-results]){
     min-width:0;
     min-height:0;
+  }
+}
+
+</style>
+<style data-inlined-source="chatgpt-ab-conversation.css">
+/* CHAT-414 | Approved ChatGPT A/B conversation visual.
+   One sender bubble (A/self) and one plain reading lane (B/remote).
+   This stylesheet is loaded LAST so older two-bubble theme overrides cannot
+   revive the B bubble. Visual only: no message DOM, handlers, geometry
+   positioning, scrolling, focus, media storage or send ownership changes. */
+
+#appShell[data-auth-state="authenticated"][data-route="chat"]
+#stageLayout:not([data-bank-report-active="true"]){
+  --chat-message-sent-bg:color-mix(in srgb,var(--theme-content-primary) 6%,var(--theme-surface-primary));
+  --chat-message-received-bg:transparent;
+}
+
+/* A / self: rounded neutral ChatGPT-style prompt. No blue bubble. */
+#appShell[data-auth-state="authenticated"][data-route="chat"]
+#stageLayout:not([data-bank-report-active="true"])
+#messageWindow>.message-row[data-content-kind="text"][data-turn="user"]
+.user-message-unit:not([data-shared-list="true"]){
+  max-width:min(84%,42rem)!important;
+}
+#appShell[data-auth-state="authenticated"][data-route="chat"]
+#stageLayout:not([data-bank-report-active="true"])
+#messageWindow>.message-row[data-turn="user"]
+.user-message-unit:not([data-shared-list="true"])>.message-text:not([hidden]){
+  background:var(--chat-message-sent-bg)!important;
+  border:0!important;
+  border-radius:24px!important;
+  box-shadow:none!important;
+  color:var(--theme-content-primary)!important;
+}
+#appShell[data-auth-state="authenticated"][data-route="chat"]
+#stageLayout:not([data-bank-report-active="true"])
+#messageWindow>.message-row[data-content-kind="text"][data-turn="user"]
+.user-message-unit:not([data-shared-list="true"])>.message-text:not([hidden]){
+  padding:10px 14px 25px!important;
+}
+
+/* B / remote: genuine unboxed text, not a white imitation bubble.
+   Keep the sender's media as native media tiles, and allow B's prose to use
+   the available line width. The central shared stock cards stay unchanged. */
+#appShell[data-auth-state="authenticated"][data-route="chat"]
+#stageLayout:not([data-bank-report-active="true"])
+#messageWindow>.message-row[data-turn="assistant"]
+.assistant-message-unit:not([data-shared-list="true"]){
+  width:fit-content;
+  max-width:min(100%,46rem)!important;
+  min-width:0;
+  margin-inline-start:0!important;
+}
+#appShell[data-auth-state="authenticated"][data-route="chat"]
+#stageLayout:not([data-bank-report-active="true"])
+#messageWindow>.message-row[data-turn="assistant"]
+.assistant-message-unit:not([data-shared-list="true"])>.message-text:not([hidden]){
+  box-sizing:border-box;
+  width:fit-content;
+  max-width:100%;
+  min-width:0!important;
+  background:transparent!important;
+  border:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  color:var(--theme-content-primary)!important;
+}
+#appShell[data-auth-state="authenticated"][data-route="chat"]
+#stageLayout:not([data-bank-report-active="true"])
+#messageWindow>.message-row[data-content-kind="text"][data-turn="assistant"]
+.assistant-message-unit:not([data-shared-list="true"])>.message-text:not([hidden]){
+  /* The existing 17px clock slot remains part of the text height.
+     Timestamp moves to the lower-left with no overlap or extra row. */
+  padding:9px 0 25px!important;
+}
+#appShell[data-auth-state="authenticated"][data-route="chat"]
+#stageLayout:not([data-bank-report-active="true"])
+#messageWindow>.message-row:not([data-content-kind="text"])[data-turn="assistant"]
+.assistant-message-unit:not([data-shared-list="true"])>.message-text:not([hidden]){
+  padding:7px 0 3px!important;
+}
+#appShell[data-auth-state="authenticated"][data-route="chat"]
+#stageLayout:not([data-bank-report-active="true"])
+#messageWindow>.message-row[data-content-kind="text"][data-turn="assistant"]
+.assistant-message-unit:not([data-shared-list="true"]):has(>.message-text:not([hidden]))>.message-sent-time{
+  position:absolute!important;
+  inset:auto auto 7px 0!important;
+  align-self:flex-start!important;
+  text-align:left!important;
+  margin:0!important;
+  font-size:11px;
+  color:var(--theme-content-tertiary);
+}
+
+/* One calm reading cadence, and one neutral summary surface.
+   No fixed/sticky height or overflow changes: ScrollRoot remains owner. */
+#appShell[data-auth-state="authenticated"][data-route="chat"]
+#stageLayout:not([data-bank-report-active="true"])
+#messageWindow>.message-row[data-turn="user"]+.message-row[data-turn="assistant"],
+#appShell[data-auth-state="authenticated"][data-route="chat"]
+#stageLayout:not([data-bank-report-active="true"])
+#messageWindow>.message-row[data-turn="assistant"]+.message-row[data-turn="user"]{
+  margin-top:16px!important;
+}
+#appShell[data-auth-state="authenticated"][data-route="chat"]
+#stageLayout:not([data-bank-report-active="true"])
+#messageWindow .message-day-order-wrap .day-order-summary-card{
+  background:var(--theme-surface-primary);
+  border-color:color-mix(in srgb,var(--theme-content-secondary) 22%,transparent);
+  border-radius:18px;
+  box-shadow:none;
+}
+
+/* Mobile Composer: the same existing stable 4-track grid, but its three
+   visually independent controls now read + / input-with-mic / send.
+   ::before paints behind editor+mic; it does NOT take focus, change tracks,
+   reposition the dock or intercept keyboard/voice interactions. */
+@media(max-width:63.999rem){
+  #appShell[data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"])
+  #composerShell:not([data-audio-state="REQUESTING_PERMISSION"]):not([data-audio-state="RECORDING"]):not([data-audio-state="STOPPING"]):not([data-audio-state="PREVIEW"]):not([data-audio-state="SENDING"]){
+    background:transparent!important;
+    border-color:transparent!important;
+    box-shadow:none!important;
+    padding:2px 0!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"])
+  #composerShell:not([data-audio-state="REQUESTING_PERMISSION"]):not([data-audio-state="RECORDING"]):not([data-audio-state="STOPPING"]):not([data-audio-state="PREVIEW"]):not([data-audio-state="SENDING"])::before{
+    content:"";
+    box-sizing:border-box;
+    grid-column:2 / 4;
+    grid-row:3;
+    align-self:stretch;
+    min-height:44px;
+    z-index:0;
+    border:1px solid color-mix(in srgb,var(--theme-content-secondary) 17%,transparent);
+    border-radius:26px;
+    background:var(--theme-surface-secondary);
+    pointer-events:none;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"])
+  #composerShell :is(#editorWrap,#composer-mic-btn){
+    position:relative;
+    z-index:1;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"])
+  #composerShell #composer-plus-btn{
+    border-radius:999px;
+    background:var(--theme-surface-secondary)!important;
+    color:var(--theme-content-primary);
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"])
+  #composerShell #composer-mic-btn:not([data-recording="true"]){
+    background:transparent!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"])
+  #composerShell #send{
+    border-color:transparent!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"])
+  #composerShell[data-can-send="true"] #send:not(:disabled){
+    background:var(--theme-content-primary)!important;
+    color:var(--theme-surface-primary)!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"])
+  #composerShell:not([data-can-send="true"]) #send{
+    background:var(--theme-surface-secondary)!important;
+    color:var(--theme-content-tertiary)!important;
   }
 }
 
