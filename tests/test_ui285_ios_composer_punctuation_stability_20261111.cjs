@@ -75,6 +75,8 @@ assert.notEqual(shell.dataset.editorExpanded,'true','clearing never changes butt
 // browser-owned. Only compositionend may measure the final composed text.
 assert.match(js,/editor\.addEventListener\('compositionend',\(\)=>\{[\s\S]*?autoGrow\(\{source:'typing'\}\)/);
 assert.match(js,/editor\.addEventListener\('input',event=>\{[\s\S]*?if\(!composing&&!event\.isComposing\)autoGrow\(\{source:'typing'\}\)/);
-assert.match(js,/adjustForEditorHeightChange\(next-previousHeight\)/,
+assert.match(js,/adjustForEditorHeightChange\(paintedDelta\)/,
+ 'keyboard positioning uses painted grid-row height, not raw text height');
+assert.match(js,/Math\.max\(44,next\)-Math\.max\(44,previousHeight\)/,
  'keyboard-fixed composer immediately compensates for textarea height');
 console.log('UI-285/CHAT-397/398 fixed width, punctuation, IME, keyboard anchoring PASS');
