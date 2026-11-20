@@ -331,6 +331,7 @@ function analyze(input){
   // One-line explicit container + product was common in E Quyên's orders.
   (lines.length===1&&Boolean(items[0].unit))||
   (lines.length===1&&knownSingleCustomerProduct.test(lines[0]))||
+  (items[0].unit&&notes.some(note=>ambiguousOrderNote(note.text)))||
   items.every(item=>VERIFIED_SIZE.test(item.name))||
   items.every(item=>KNOWN_VARIANT_TAIL.test(stripListMarker(item.source)))));
  const isAvailability=availabilityOnly&&items.length>0;
