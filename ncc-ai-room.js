@@ -73,12 +73,23 @@ function paintSourcePicker(){
    const input=document.createElement("input");input.type="checkbox";
    input.checked=item.selected;input.value=item.id;
    const name=document.createElement("span");name.textContent=item.name;
-   const group=document.createElement("small");
-   group.textContent=item.group==="ncc"?"TK NCC":"Liên hệ";
-   label.append(input,name,group);host.appendChild(label);
+   const type=document.createElement("select");
+   type.className="ncc-source-type";
+   type.setAttribute("aria-label","Loại hàng của "+item.name);
+   for(const [key,labelText] of Object.entries(window.V21NccSources?.types||{})){
+    const option=document.createElement("option");option.value=key;option.textContent=labelText;
+    type.appendChild(option);
+   }
+   type.value=item.type||"other";type.disabled=!item.selected;
+   type.addEventListener("change",()=>{
+    if(!window.V21NccSources?.setType?.(item.id,type.value))
+     type.value=window.V21NccSources?.typeFor?.(item.id)||"other";
+   });
+   label.append(input,name,type);host.appendChild(label);
    input.addEventListener("change",()=>{
     if(!window.V21NccSources?.setSelected?.(item.id,input.checked))
      input.checked=!input.checked;
+    type.disabled=!input.checked;
    });
   }
   if(!visible.length){
