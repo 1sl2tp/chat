@@ -10,7 +10,8 @@ const SAFE_ACRONYMS=new Set([
 ]);
 // Ordinary Vietnamese words, including two-letter "EM", "CÓ", "CHỊ",
 // must become sentence case; keep only technical abbreviations above.
-const WORD=/[\p{L}][\p{L}\p{M}\p{N}_-]*/gu;
+// URLs and email addresses remain byte-for-byte identical on screen.
+const WORD=/(?:https?:\/\/|www\.)[^\s]+|[\p{L}\p{N}._%+-]+@[\p{L}\p{N}.-]+\.[\p{L}]{2,}|[\p{L}][\p{L}\p{M}\p{N}_-]*/giu;
 const LETTER=/\p{L}/u;
 const CODE_WITH_DIGIT=/[\p{L}][\p{L}\p{N}_-]*[\p{N}][\p{L}\p{N}_-]*/u;
 const PROTECTED_ELEMENTS='.message-link,.message-inline-code,code,pre,.incoming-brief-review,.incoming-brief-original-text,.message-zalo-phone-copy';
@@ -24,7 +25,8 @@ function formatPiece(value,firstPending=true){
   // Links are emitted as anchors by the rich renderer. Protect raw URLs,
   // emails and identifier-like tokens here as defense in depth as well.
   const previous=start>0?input[start-1]:'';
-  const preserve=SAFE_ACRONYMS.has(raw.toLocaleUpperCase('vi-VN'))||
+  const preserve=/^(?:https?:\/\/|www\.)|@/iu.test(raw)||
+    SAFE_ACRONYMS.has(raw.toLocaleUpperCase('vi-VN'))||
     CODE_WITH_DIGIT.test(raw)||/\d/u.test(previous)||
     /[a-z][A-Z]/u.test(raw)||/[_]/u.test(raw);
   let next=preserve?raw:raw.toLocaleLowerCase('vi-VN');
@@ -37,9 +39,6 @@ function formatPiece(value,firstPending=true){
  }
  result+=input.slice(cursor);
  return {text:result,firstPending:needsCapital};
-}
-function formatLine(value){
- return String(value??'').replace(/[^\n]+/gu,line=>formatPiece(line).text);
 }
 // A new source line starts a new sentence. Keep empty lines as-is.
 function sentenceCase(value){
