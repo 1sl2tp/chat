@@ -63,17 +63,31 @@ assert(!/\.insert\(|\.upsert\(|\.upload\(|\.update\(|\.delete\(/.test(edgeBlock)
  'image action must not write Storage or database');
 assert(clientSource.includes("action:'chat_stock_image'"));
 assert(clientSource.includes("cache.set(key,result)"));
-// CHAT-411: Legacy uploaded JPEG media and changing OCR cards must not fail
-// MIME validation or unexpectedly jump the user's reading position.
+// CHAT-412: A swipe inside the giant summary must reach ScrollRoot even if
+// the card stops bubbling to avoid triggering message actions.
 assert(clientSource.includes("blob.type==='image/jpg'"),
- 'old image/jpg uploads must be normalized before image OCR');
+ 'legacy image/jpg must still be normalized for OCR');
 assert(clientSource.includes("new Blob([blob],{type:'image/jpeg'})"));
-assert(app.includes("preserve:hasUserScrollIntent()?'VIEW':'ANCHOR'"),
- 'OCR resize restores reading anchor when not touch-scrolling');
-assert(app.includes("const readingPreserve=hasUserScrollIntent()?'VIEW':'ANCHOR'"),
- 'new messages cannot shift the idle reading position when the daily card moves');
-assert(app.includes("return{followTail,preserve:followTail?'AUTO':readingPreserve}"),
- 'realtime updates keep FOLLOW_TAIL owned by the existing scroll controller');
+assert(app.includes("{passive:true,capture:true}"),
+ 'capture-phase pointer/touch ownership is required below the day card');
+const pointerHandler=app.slice(app.indexOf("scrollRoot.addEventListener(\\n  'pointerdown'"),
+ app.indexOf("window.addEventListener(\\n  'pointerup'"));
+assert(pointerHandler.includes("markUserScrollIntent(900)"));
+assert(pointerHandler.includes("capture:true"));
+const touchHandler=app.slice(app.indexOf("scrollRoot.addEventListener('touchstart'"),
+ app.indexOf("window.addEventListener('keydown'"));
+assert(touchHandler.includes("markUserScrollIntent(1100)"));
+assert(touchHandler.includes("capture:true"));
+assert(app.includes("extendUserScrollIntentForMomentum(650)"),
+ 'iOS inertia must not be treated as geometry-driven auto-follow');
+assert(app.includes("!hasUserScrollIntent();"),
+ 'a pending touch blocks auto-follow before USER_AWAY is recorded');
+assert(app.includes("return{followTail,preserve:followTail?'AUTO':'VIEW'}"),
+ 'passive updates never write stale scroll pixel anchors');
+assert(!app.includes("preserve:hasUserScrollIntent()?'VIEW':'ANCHOR'"),
+ 'OCR review and capability changes cannot restore scrollTop during swipes');
+assert(app.includes("String(reason).startsWith('geometry:'))&&hasUserScrollIntent())return;"),
+ 'geometry-triggered tail reconciliation cannot steal native scrolling');
 assert(clientSource.includes('if(owner()?.key!==who.key)'));
 assert(uiSource.includes("Đọc chữ hàng trong ảnh"));
 assert(uiSource.includes("reader.scan(assetId)"));
