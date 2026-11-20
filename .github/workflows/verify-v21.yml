@@ -768,5 +768,7 @@ jobs:
         run: |
           node --check app.js
           node tests/test_chat413_kh_only_stock_summary_20261120.cjs
+      - name: CHAT-414 ChatGPT-like A/B visual layout regression
+        run: node tests/test_chat414_chatgpt_ab_visual_20261120.cjs
       - name: Verify canonical source
         run: python tools/verify_current.py
