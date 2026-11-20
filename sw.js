@@ -1,5 +1,5 @@
 'use strict';
-const RELEASE_VERSION='V21.72.46';
+const RELEASE_VERSION='V21.72.47';
 const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 // BANK-177: reload one-time cached shell for the live bank reconciliation table.
 // Keep offline-first startup; do not add per-navigation network requests.
@@ -17,7 +17,8 @@ const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 // CHAT-394: refresh only the public shell for search-first layout and preserved directory scroll.
 // CHAT-395: refresh public shell for compact three-zone directory; keep private caches.
 // CHAT-397: public shell refresh for iOS Composer IME/geometry stability.
-const SHELL_CACHE_EPOCH='pwa-chat-ui397-ios-typing-stability-20261120';
+// CHAT-398: rotate public CSS/JS shell only; never clear drafts/outbox/account data.
+const SHELL_CACHE_EPOCH='pwa-chat-chat398-stable-multiline-composer-20261120';
 const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION+'-'+SHELL_CACHE_EPOCH;
 const AVATAR_CACHE_NAME='taphoa-chat-avatars-v1';
 const SUPABASE_ASSET_HOST_RE=/^[a-z0-9]+\.supabase\.co$/i;
