@@ -72,18 +72,18 @@ type('Tin dài '.repeat(90));
 assert.notEqual(layout.dataset.editorExpanded,'true');
 assert.equal(textarea.style['--editor-height'],'144px','long draft cap independent of keyboard height');
 assert.equal(textarea.dataset.internalScroll,'true');
-assert.equal(ctx.composerTextHeightLimit(300,56,56),52,
+assert.equal(ctx.composerTextHeightLimit(300,56,12),96,
   '300px viewport still retains 128px for Messages');
 view.height=300;
 grow('visual-viewport');
-assert.equal(textarea.style['--editor-height'],'52px','keyboard budget includes action rail');
+assert.equal(textarea.style['--editor-height'],'96px','keyboard budget uses only the fixed action row');
 assert.equal(textarea.dataset.internalScroll,'true');
-assert(300-56-56-52-8>=128,'Messages fit above on-screen keyboard');
+assert(300-56-12-96-8>=128,'Messages fit above on-screen keyboard');
 type('A\nB');
 assert.notEqual(layout.dataset.editorExpanded,'true');
-assert.equal(textarea.style['--editor-height'],'52px',
-  'small keyboard viewport clamps even two text lines instead of hiding messages');
-assert.equal(textarea.dataset.internalScroll,'true');
+assert.equal(textarea.style['--editor-height'],'64px',
+  'two text lines fit without moving or wrapping the action buttons');
+assert.equal(textarea.dataset.internalScroll,'false');
 view.height=550;
 grow('visual-viewport');
 assert.equal(textarea.style['--editor-height'],'64px');
