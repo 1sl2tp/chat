@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.51">
-<meta name="app-build-id" content="615624024e0f29b1eef628a25104a1fd13344fd45af47a338ddc9eae4197467a">
+<meta name="app-release-version" content="V21.72.52">
+<meta name="app-build-id" content="ef6d0f50927e52b1c71f79017e9a0e0ba9a2dc7846d77021186d313b062945b1">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1901,8 +1901,8 @@
 }
 .incoming-brief-title{font-size:13px;line-height:19px;font-weight:750}
 .incoming-brief-count{font-size:11px;line-height:16px;opacity:.7;white-space:nowrap}
-/* CHAT-400: three aligned columns only. Quantity carries its understood
-   unit (5 thùng); product sizes like 180ml remain part of the name. */
+/* CHAT-403: three aligned columns only. SL shows digits (5), never
+   a packaging word; quantities keep unit metadata outside the rendered cell. */
 .incoming-brief-products{
  box-sizing:border-box;display:flex;flex-direction:column;
  min-width:0;border-top:1px solid rgba(80,97,117,.16);
@@ -15841,7 +15841,9 @@ function render(target,input){
    const name=el('span','incoming-brief-product',item.name);
    if(item.review)name.append(el('span','incoming-brief-review','Cần hướng dẫn'));
    row.append(el('span','incoming-brief-index',index+1),name,
-    el('span','incoming-brief-quantity',item.qty+(item.unit?' '+item.unit:'')));
+    // Only the requested numeric count is visible in SL. Unit remains in
+    // parsed data for review, never concatenated into product name or SL.
+    el('span','incoming-brief-quantity',item.qty));
    list.append(row);
   });
   root.append(list);
@@ -16156,9 +16158,9 @@ const AppBootController={
     // Repeated global faults must not repaint the banner or multiply logs.
     if(this.lastErrorMessage===message&&!runtimeError.classList.contains('hidden'))return;
     this.lastErrorMessage=message;
-    runtimeError.textContent='V21.72.51 runtime: '+message;
+    runtimeError.textContent='V21.72.52 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.51]',error);
+    console.error('[ChatScreenModule V21.72.52]',error);
   },
   ready(){
     // A successful render invariant proves recovery only for errors seen
@@ -16270,7 +16272,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.51 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.52 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -16324,7 +16326,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.51',
+  releaseVersion:'V21.72.52',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -24975,7 +24977,7 @@ window.V21ConversationBridge={
 window.V21ChatImageViewer=Object.freeze({open:openImageViewer});
 
 window.ChatScreenModule={
-  version:'V21.72.51',
+  version:'V21.72.52',
   snapshot(){
     return{
       viewportMode:viewport.mode,
