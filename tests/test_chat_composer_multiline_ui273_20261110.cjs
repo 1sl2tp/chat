@@ -1,5 +1,5 @@
 'use strict';
-// UI-273: iOS composer auto-growth and action rail under wrapped text.
+// UI-273 / CHAT-398: iOS composer grows upward without grid/width changes.
 // Contract: native textarea retains its draft/caret, 44px buttons stay visible,
 // viewport cap prevents keyboard occlusion, and clear restores compact layout.
 const assert=require('node:assert/strict');
@@ -20,12 +20,15 @@ assert(editor.includes('height:var(--editor-height,40px);'));
 assert(editor.includes('max-height:144px;'));
 assert(editor.includes('white-space:pre-wrap;'));
 assert(editor.includes('overflow-wrap:anywhere;'));
-const expanded=rule(selector+' #composerShell[data-editor-expanded="true"]');
-assert(expanded.includes('grid-template-rows:autoautominmax(40px,auto)44px;'));
-const wrap=rule(selector+' #composerShell[data-editor-expanded="true"] #editorWrap');
-assert(wrap.includes('grid-column:1/-1;')&&wrap.includes('grid-row:3;'));
-const rail=rule(selector+' #composerShell[data-editor-expanded="true"] :is(#composer-plus-btn,#composer-mic-btn,#send)');
-assert(rail.includes('grid-row:4;'),'all three 44px actions move below text');
+const narrow=rule(selector+' #composerShell');
+assert(narrow.includes('grid-template-rows:autoautominmax(var(--ui-control-touch,44px),auto);'));
+assert(narrow.includes('align-items:end;'));
+const wrap=rule(selector+' #editorWrap');
+assert(wrap.includes('grid-column:2;')&&wrap.includes('grid-row:3;'));
+assert(wrap.includes('align-self:end;'));
+const rail=rule(selector+' :is(#composer-plus-btn,#composer-mic-btn,#send)');
+assert(rail.includes('align-self:end;'),'fixed action row follows textarea bottom');
+assert(!css.includes('data-editor-expanded'),'no width-changing layout mode');
 assert(html.includes('rows="1"'),'use the existing native textarea, not a contenteditable fork');
 assert(js.includes("window.visualViewport?.addEventListener?.('resize'"),'keyboard and rotation resize cap');
 
@@ -35,7 +38,7 @@ assert(start>0&&end>start);
 const script=js.slice(start,end);
 const editorState={value:'',placeholder:'Nhắn tin...',dataset:{},selectionStart:0,selectionEnd:0,
   style:{setProperty(k,v){this[k]=v;}},
-  getBoundingClientRect(){return{width:this.width};},width:170
+  getBoundingClientRect(){return{width:this.width,height:parseFloat(this.style['--editor-height'])||40};},width:170
 };
 const measure={textContent:'',style:{width:'',setProperty(k,v){this[k]=v;}},
   get scrollHeight(){
@@ -68,15 +71,14 @@ type('Xin chào');
 assert.notEqual(shell.dataset.editorExpanded,'true','short input stays on one row');
 assert.equal(editorState.style['--editor-height'],undefined,'short draft needs no forced grow');
 type('Đoạn văn dài cần hiển thị đầy đủ trên iPhone');
-assert.equal(shell.dataset.editorExpanded,'true','soft-wrapped second line expands input');
+assert.notEqual(shell.dataset.editorExpanded,'true','soft wrap does not change input width or action tracks');
 assert(Number.parseFloat(editorState.style['--editor-height'])>40,'textarea grows vertically');
 assert.notEqual(editorState.dataset.internalScroll,'true','short paragraph remains fully visible');
 
-// A wider expanded textarea can wrap fewer lines than the compact version.
-// The action row must NOT collapse and re-expand as the user types.
+// A real orientation change may change width, but typing never toggles tracks.
 editorState.width=350;
 vm.runInContext('syncMeasureStyle({widthPx:editor.getBoundingClientRect().width});autoGrow()',context);
-assert.equal(shell.dataset.editorExpanded,'true','no layout oscillation after width change');
+assert.notEqual(shell.dataset.editorExpanded,'true','no layout mode even after actual width change');
 const lengthy='Viết nội dung dài nhiều dòng để kiểm tra khả năng theo dõi vị trí con trỏ trên iPhone. '.repeat(16);
 type(lengthy);
 assert.equal(editorState.style['--editor-height'],'144px','mobile cap exposes multiple text rows without consuming the thread');
@@ -85,16 +87,19 @@ assert.equal(editorState.value,lengthy,'draft contents preserved');
 assert.equal(editorState.selectionStart,lengthy.length,'caret not rewritten');
 visualViewport.height=300;
 grow();
-assert.equal(editorState.style['--editor-height'],'52px','keyboard budget reserves the message viewport before expanding composer');
+assert.equal(editorState.style['--editor-height'],'96px','keyboard budget preserves messages with one fixed action row');
 assert.equal(editorState.dataset.internalScroll,'true');
 type('Dòng một\nDòng hai');
-assert.equal(shell.dataset.editorExpanded,'false','two-line replacement returns to the compact action row');
-assert.equal(editorState.dataset.internalScroll,'false','two-line draft never requires internal scroll');
+assert.notEqual(shell.dataset.editorExpanded,'true','no track switch on deletion');
+assert.equal(editorState.dataset.internalScroll,'false','two lines remain visible within the keyboard budget');
+visualViewport.height=540;
+vm.runInContext("autoGrow({source:'visual-viewport'})",context);
+assert.equal(editorState.dataset.internalScroll,'false');
 type('');
-assert.equal(shell.dataset.editorExpanded,'false','empty draft returns to compact row');
+assert.notEqual(shell.dataset.editorExpanded,'true','clear retains fixed rail');
 assert.equal(editorState.style['--editor-height'],'40px');
 mm.matches=false;
 type('Desktop 1\nDesktop 2');
-assert.equal(shell.dataset.editorExpanded,'false','desktop unchanged by iPhone action layout');
+assert.notEqual(shell.dataset.editorExpanded,'true','desktop unchanged by mobile action layout');
 assert.equal(editorState.style['--editor-height'],'64px','desktop existing two-line cap intact');
-console.log('UI-273 mobile textarea wraps, auto-grows, caps with keyboard, preserves caret, expands rail and restores compact PASS');
+console.log('UI-273/CHAT-398 mobile fixed rail, multiline growth, viewport cap, native caret PASS');

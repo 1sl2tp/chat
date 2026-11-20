@@ -1,5 +1,5 @@
 'use strict';
-// UI-285: iPhone: punctuation/predictive replacements around a soft-wrap must
+// UI-285 / CHAT-398: punctuation/predictive replacements at a soft-wrap must
 // not resize the Composer twice or lose the native caret. Exercises the
 // production autoGrow/width mirror, not an invented duplicate algorithm.
 const assert=require('node:assert/strict');
@@ -19,7 +19,7 @@ let geometryReads=0;
 let computedStyleReads=0;
 const editor={value:'',placeholder:'Nhắn tin...',dataset:{},selectionStart:0,selectionEnd:0,
   style:{setProperty(k,v){this[k]=v;writes.push([k,v]);}},
-  getBoundingClientRect(){geometryReads++;return{width:shell.dataset.editorExpanded==='true'?330:132};}};
+  getBoundingClientRect(){geometryReads++;return{width:132,height:parseFloat(this.style['--editor-height'])||40};}};
 const shell={dataset:{}};
 const measure={style:{width:'',setProperty(k,v){this[k]=v;}},textContent:'',
  get scrollHeight(){
@@ -41,11 +41,11 @@ vm.createContext(env);vm.runInContext(owner,env);
 const grow=()=>vm.runInContext("autoGrow({source:'typing'})",env);
 function type(value){editor.value=value;editor.selectionStart=editor.selectionEnd=value.length;grow();}
 type('Một câu đã đủ dài để xuống dòng');
-assert.equal(shell.dataset.editorExpanded,'true','first real wrap expands once');
-assert.equal(measure.style.width,'330px','first expanded frame is already measured at actual textarea width');
-assert.equal(editor.style['--editor-height']||'40px','40px','no interim tiny-width 2-line height is painted');
-assert(!writes.some(([k,v])=>k==='--editor-height'&&v!=='40px'),
- 'expansion cannot first paint a stale 132px textarea height');
+assert.notEqual(shell.dataset.editorExpanded,'true','first wrap never swaps grid tracks');
+assert.equal(measure.style.width,'132px','measure preserves the same native textarea width');
+assert(Number.parseFloat(editor.style['--editor-height'])>40,'real wrapped text grows textarea');
+assert.equal(writes.filter(([k])=>k==='--editor-height').length,1,
+ 'one text event changes native textarea height once');
 type('Một câu đã đủ dài để xuống dòng. Và có thêm một câu khá dài');
 const multi=Number.parseFloat(editor.style['--editor-height']);
 assert(multi>40,'soft-wrap of long sentence grows for the full width');
@@ -70,9 +70,13 @@ assert(measure.textContent.endsWith('\n\u200b'),'only an intentional trailing ne
 type('Một câu mới');
 assert.equal(editor.style['--editor-height'],'40px','replacing text with a shorter draft may shrink');
 type('');
-assert.equal(shell.dataset.editorExpanded,'false','clearing restores one-row compact Composer');
+assert.notEqual(shell.dataset.editorExpanded,'true','clearing never changes button tracks');
 // CHAT-397: a Vietnamese composition session must leave provisional key events
 // browser-owned. Only compositionend may measure the final composed text.
 assert.match(js,/editor\.addEventListener\('compositionend',\(\)=>\{[\s\S]*?autoGrow\(\{source:'typing'\}\)/);
 assert.match(js,/editor\.addEventListener\('input',event=>\{[\s\S]*?if\(!composing&&!event\.isComposing\)autoGrow\(\{source:'typing'\}\)/);
-console.log('UI-285 / CHAT-397 punctuation, IME and cached typing geometry PASS');
+assert.match(js,/adjustForEditorHeightChange\(paintedDelta\)/,
+ 'keyboard positioning uses painted grid-row height, not raw text height');
+assert.match(js,/Math\.max\(44,next\)-Math\.max\(44,previousHeight\)/,
+ 'keyboard-fixed composer immediately compensates for textarea height');
+console.log('UI-285/CHAT-397/398 fixed width, punctuation, IME, keyboard anchoring PASS');

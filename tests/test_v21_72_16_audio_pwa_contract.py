@@ -1,5 +1,6 @@
 from pathlib import Path
 import json
+import re
 ROOT=Path(__file__).resolve().parents[1]
 
 def read(path):
@@ -41,7 +42,9 @@ assert 'remoteTrackKey' in livekit
 
 source=read('index.source.html')
 assert '<link rel="manifest" href="./manifest.webmanifest">' in source
-assert 'name="app-release-version" content="V21.72.46"' in source
+release=re.search(r'name="app-release-version" content="(V\d+\.\d+\.\d+)"',source)
+assert release, 'missing semantic release marker'
+assert "const RELEASE_VERSION='"+release.group(1)+"';" in read('sw.js'), 'shell release mismatch'
 assert 'name="app-build-id" content="__APP_BUILD_ID__"' in source
 assert 'apple-mobile-web-app-title" content="TAPHOA Chat"' in source
 assert '<title>TAPHOA Chat</title>' in source
