@@ -415,3 +415,14 @@ body.ncc-ai-room-open{overflow:hidden}
  .ncc-invoice-assign{padding-inline:8px}
  .ncc-invoice-card .ncc-ai-message{margin-inline:6px}
 }
+
+.ncc-day-type-filters{display:flex;align-items:center;gap:5px;overflow-x:auto;min-width:0;
+ scrollbar-width:none;overscroll-behavior-x:contain;padding:3px 0}
+.ncc-day-type-filters::-webkit-scrollbar{display:none}
+.ncc-day-type-filters button{appearance:none;flex:0 0 auto;min-height:38px;
+ border:1px solid var(--theme-border-default,#dfe4ec);border-radius:999px;
+ padding:7px 11px;background:var(--theme-surface-secondary,#f6f7f8);color:inherit;
+ font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;touch-action:manipulation}
+.ncc-day-type-filters button[aria-pressed="true"]{
+ background:var(--theme-content-primary,#18181b);color:var(--theme-surface-primary,#fff);
+ border-color:var(--theme-content-primary,#18181b)}
