@@ -342,3 +342,76 @@ body.ncc-ai-room-open{overflow:hidden}
  .ncc-source-panel{right:6px;width:min(365px,calc(100vw - 12px));max-height:53dvh}
  .ncc-ai-presence{font-size:9px}
 }
+
+/* CHAT-419: compact source-separated daily supplier totals.
+   The original image and detailed 12-column invoice remain inside each card. */
+.ncc-source-option .ncc-source-type{
+ box-sizing:border-box;max-width:138px;min-height:36px;flex:0 0 auto;
+ padding:5px;border:1px solid var(--theme-border-default,#d9dee5);
+ border-radius:9px;background:var(--theme-surface-primary,#fff);
+ color:inherit;font-family:inherit;font-size:12px;
+}
+.ncc-source-option .ncc-source-type:disabled{opacity:.48}
+.ncc-day-summary-host{display:flex;flex-direction:column;gap:10px;min-width:0;
+ border:1px solid var(--theme-border-default,#e2e5eb);
+ border-radius:14px;padding:12px;background:var(--theme-surface-primary,#fff)}
+.ncc-day-summary-host[hidden]{display:none!important}
+.ncc-day-summary-heading{font-size:15px;line-height:1.4}
+.ncc-day-summary-host>small{font-size:11px;line-height:1.45;color:var(--theme-content-secondary,#667085)}
+.ncc-day-group,.ncc-invoice-card{box-sizing:border-box;min-width:0;
+ border:1px solid var(--theme-border-default,#dfe3e9);
+ border-radius:12px;background:var(--theme-surface-primary,#fff)}
+.ncc-day-group>summary,.ncc-invoice-card>summary{
+ display:flex;flex-wrap:wrap;align-items:center;gap:5px 9px;
+ padding:12px;min-height:44px;box-sizing:border-box;
+ cursor:pointer;list-style:disclosure-closed;
+}
+.ncc-day-group[open]>summary,.ncc-invoice-card[open]>summary{
+ border-bottom:1px solid var(--theme-border-default,#e5e7eb)}
+.ncc-day-group-head strong{font-size:13px;line-height:1.45;flex:1 1 100%}
+.ncc-day-group-head small,.ncc-day-group-note{
+ color:var(--theme-content-secondary,#667085);font-size:11px;line-height:1.45}
+.ncc-day-group-note{display:block;padding:8px 12px}
+.ncc-day-table-scroll{max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;
+ -webkit-overflow-scrolling:touch;margin:0 10px;border:1px solid var(--theme-border-default,#e7e9ef);
+ border-radius:10px}
+.ncc-day-table{width:100%;min-width:740px;border-collapse:collapse;font-size:12px}
+.ncc-day-table :is(th,td){padding:8px 7px;border-bottom:1px solid var(--theme-border-default,#e7e9ef);
+ line-height:1.35;text-align:left}
+.ncc-day-table th{font-size:11px;background:var(--theme-surface-secondary,#f5f6f7);
+ white-space:nowrap;font-weight:650}
+.ncc-day-table :is(th,td):nth-child(1){width:36px;text-align:center}
+.ncc-day-table :is(th,td):nth-child(2){min-width:150px}
+.ncc-day-table :is(th,td):nth-child(n+3){font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
+.ncc-day-table :is(th,td):nth-child(4){text-align:center}
+.ncc-day-table tbody tr:last-child td{border-bottom:0}
+.ncc-day-totals{display:flex;flex-direction:column;gap:5px;padding:10px 12px}
+.ncc-day-total-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+ font-size:12px;line-height:1.55}
+.ncc-day-total-row strong{white-space:nowrap;font-variant-numeric:tabular-nums}
+.ncc-day-review{color:var(--theme-content-secondary,#667085);font-size:11px;line-height:1.5}
+.ncc-day-copy{margin:0 12px 12px;min-height:38px;padding:7px 11px;border:1px solid var(--theme-border-default,#dce0e6);
+ border-radius:10px;background:var(--theme-surface-secondary,#f5f6f7);color:inherit;
+ font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.ncc-invoice-card{padding:0 0 8px}
+.ncc-invoice-card-title{font-size:12px;font-weight:650;line-height:1.45}
+.ncc-invoice-card .ncc-ai-message{margin:8px 10px}
+.ncc-invoice-card .ncc-ai-message .ncc-ai-bubble{max-width:100%;width:100%}
+.ncc-invoice-assign{display:flex;align-items:end;gap:9px;flex-wrap:wrap;
+ padding:10px 12px 6px}
+.ncc-invoice-assign label{display:grid;gap:4px;font-size:11px;color:var(--theme-content-secondary,#667085);
+ min-width:0;flex:1 1 145px}
+.ncc-invoice-assign select,.ncc-invoice-assign input{
+ box-sizing:border-box;width:100%;min-height:40px;padding:7px;
+ border:1px solid var(--theme-border-default,#dadee4);border-radius:10px;
+ background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#111);
+ font:inherit;font-size:13px}
+.ncc-invoice-assign>small{flex:1 1 100%;font-size:11px;line-height:1.4;
+ color:var(--theme-content-secondary,#667085)}
+@media(max-width:520px){
+ .ncc-day-summary-host{padding:9px}
+ .ncc-day-table-scroll{margin-inline:4px}
+ .ncc-source-option .ncc-source-type{max-width:110px;font-size:11px}
+ .ncc-invoice-assign{padding-inline:8px}
+ .ncc-invoice-card .ncc-ai-message{margin-inline:6px}
+}
