@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.53">
+<meta name="app-release-version" content="V21.72.54">
 <meta name="app-build-id" content="__APP_BUILD_ID__">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -430,6 +430,36 @@ button{
   border-radius:20px!important;
   box-shadow:none!important;
   padding:9px 13px!important;
+}
+
+/* CHAT-405: stock lists are shared timeline cards, not incoming/outgoing
+   bubbles. Both authors get one centered, wider content lane. Keep text/media
+   messages in their existing 70% sender lanes. */
+#messageWindow .message-unit[data-shared-list="true"]{
+ box-sizing:border-box;
+ width:min(100%,720px);
+ max-width:100%;
+ min-width:0;
+ margin-inline:auto!important;
+ align-items:stretch;
+}
+#messageWindow .message-unit[data-shared-list="true"]>.message-text{
+ box-sizing:border-box;
+ width:100%!important;
+ max-width:100%!important;
+ min-width:0;
+ padding:0!important;
+ background:transparent!important;
+ border:0!important;
+ border-radius:0!important;
+ box-shadow:none!important;
+}
+#messageWindow .message-unit[data-shared-list="true"]>.message-text>.message-body{
+ width:100%;max-width:100%;min-width:0;
+}
+#messageWindow .message-unit[data-shared-list="true"]>.message-sent-time{
+ align-self:flex-end;
+ text-align:right;
 }
 
 /* Desktop hover owner is the actual message unit, not the full-width row. */
