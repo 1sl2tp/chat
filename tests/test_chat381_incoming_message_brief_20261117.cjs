@@ -313,6 +313,61 @@ assert(html.indexOf('data-build-source="incoming-message-layout.js"')<
 assert.match(css,/grid-template-columns:24px minmax\(0,1fr\) minmax\(32px,48px\)/);
 assert.match(css,/\.incoming-brief-index/);
 assert(!css.includes('.incoming-brief-unit'),'unit must not reserve a fourth column');
+// CHAT-407: C Thúy's actual messages teach that numeric product names
+// "1 kg" and "454" are NOT quantity, price or a stray message fragment.
+const numericCartonText='Cho c 20 t 1 kg 10 t 454 còn đâu gửi lại kho';
+const numericCartonRows=analyze(numericCartonText);
+assert.equal(numericCartonRows?.kind,'order');
+assert.deepEqual(Array.from(numericCartonRows.items,row=>[row.name,row.qty,row.unit]),[
+ ['1 kg',20,'thùng'],['454',10,'thùng']
+]);
+assert.equal(numericCartonRows.groups.length,1,'return-to-stock instruction is a note');
+assert.equal(numericCartonRows.groups[0].key,'other');
+assert.deepEqual(Array.from(numericCartonRows.groups[0].rows),['còn đâu gửi lại kho']);
+assert.equal(numericCartonRows.source,numericCartonText,'always retain original text');
+const numericCartonBox=fakeNode('div');
+assert.equal(render(numericCartonBox,numericCartonText),true);
+const numericRows=numericCartonBox.children[0].children[1].children.slice(1);
+assert.deepEqual(Array.from(numericRows,row=>[row.children[1].textContent,
+ row.children[2].textContent]),[['1 kg','20'],['454','10']],
+ 'display exactly customer names, SL digits only, no extra quantity columns');
+assert.equal(numericCartonBox.children[0].children.at(-1).children[1].textContent,
+ numericCartonText,'original source must be available in the expanded message');
+for(const [original,expectedName,qty] of [
+ ['3 t kopikô sữa','kopikô sữa',3],
+ ['Bốc c chị 3 t côsy bơ 600','côsy bơ 600',3]
+]){
+ const parsed=analyze(original);
+ assert.equal(parsed?.kind,'order',original);
+ assert.deepEqual(Array.from(parsed.items,x=>[x.name,x.qty,x.unit]),[
+  [expectedName,qty,'thùng']
+ ]);
+ const rendered=fakeNode('div');
+ assert.equal(render(rendered,original),true);
+ const cells=rendered.children[0].children[1].children[1].children;
+ assert.equal(cells[1].textContent,expectedName,
+  '"600" belongs to the original product name, never the quantity');
+ assert.equal(cells[2].textContent,String(qty));
+}
+const compactNumeric=analyze('Cho chị 20t 1kg 10t 454');
+assert.deepEqual(Array.from(compactNumeric.items,x=>[x.name,x.qty]),[
+ ['1kg',20],['454',10]
+],'common no-space carton variant also works');
+for(const message of [
+ 'Cho c 20 t 1 kg 10 t 1265',
+ 'Cho c 20 t 1kg 10 t giá 1265',
+ 'Giá bát 454 1265',
+ 'Bốc c chị báo giá côsy bơ 600'
+]){
+ assert.equal(analyze(message),null,
+  'unknown numeric names and price talk must not become bogus orders: '+message);
+}
+// E Quyên layouts and a previously approved product parser must not change.
+const kept=analyze('9 hạt ít đường 5 thùng\n9 hạt ko đường 2 thùng\n'+
+ '5 grow plus vinamilk\n3 bò bịch ko đường\nproby to : 5 có, 2 việt quất\n'+
+ '2 chua nha đam\n2 chua ít đường');
+assert.deepEqual(Array.from(kept.items,x=>x.qty),[5,2,5,3,5,2,2,2]);
+
 // CHAT-406: real message from E Quyên, with a tentative stock statement.
 // The full sentence is preserved, but its product name is only "pepsi lon vàng".
 const pepsiOriginal='Có pepsi lon vàng rồi thì phải, lấy tạm cho 10 thùng';
