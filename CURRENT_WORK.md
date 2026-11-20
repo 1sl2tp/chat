@@ -1,3 +1,14 @@
+## 2026-11-21 — CHAT-419 · Ba nguồn nhập hàng và gộp các phiếu cùng ngày
+
+- **E0:** ảnh Nhập hàng cho thấy một bảng NCC AI dài, chưa phân biệt nguồn; yêu cầu E Anh Đạt = Hàng thường, ethuonghangu = Hàng U, PP Thuốc Lá = Thuốc lá, và ba phiếu ngày 19 được xem từng phiếu lẫn gộp theo tên/SL/đơn giá/tiền hàng.
+- **E1:** `chat-ncc-sources.js` phân loại nguồn theo tên khớp duy nhất + tùy chọn sửa loại qua nút `…`; loại KH tiếp tục bị loại trừ. `chat-ncc-image-ui.js` truyền ngày gốc của ảnh Chat, `ncc-ai-room.js` giữ metadata nguồn theo hash phiếu; mỗi phiếu có card mở/thu gọn và nút gán nguồn/ngày; `ncc-day-groups.js` kết hợp đúng cùng ID người gửi + ngày, giữ dòng khác giá/ĐVT riêng, tách gốc, sau CK và tổng đã khớp; có filter Hàng thường/Hàng U/Thuốc lá. Sử dụng bộ đọc phiếu NCC hiện có, không thêm OCR/AI mới.
+- **E2:** test `tests/test_chat419_ncc_day_groups_20261121.cjs` mô phỏng 3 phiếu/2 giá/3 nguồn/1 ngày, kiểm không cộng trùng hash, không cộng KH, không bịa giá thiếu, cách ly Admin; test CHAT-418 vẫn bảo vệ thao tác thủ công. CI/PR: chưa nghiệm thu khi ghi log.
+- **E3:** phát hành V21.72.63 qua CI & Pages sau khi PASS, không deploy thủ công hoặc sửa Edge/DB.
+- **E4/E5:** vẫn cần nghiệm thu Safari/PWA iPhone, Chrome Android và dữ liệu phiếu thật (3 ảnh ngày 19). Phiếu cũ chưa gắn nguồn phải được Admin chọn đúng liên hệ/ngày trước khi hiện trong bảng gộp. Gắn nguồn hiện lưu localStorage Admin theo thiết bị; chưa đồng bộ chéo thiết bị, không khẳng định ba ảnh đã tự nhập.
+- **MUST STAY:** không tự scan hàng loạt ảnh, không gửi tin/ảnh thật, không ghi giá vốn hoặc nhập kho, không cập nhật DB production, không cộng tổng khi thiếu hoặc số tiền chưa khớp. Rollback PR CHAT-419 nếu phát sinh lỗi.
+
+---
+
 ## 2026-11-21 — CHAT-418 · Chọn nguồn ảnh Nhập hàng từ hội thoại
 
 - **E0:** ảnh người dùng cho thấy E Anh Đạt, ethuonghangu trong danh bạ và phòng NCC AI đã có luồng đọc phiếu nhập. Yêu cầu dùng luồng hiện có cho hai người này, cho phép chọn thêm qua nút `…`, không bật cho toàn bộ nhóm KH.
