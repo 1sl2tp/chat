@@ -546,7 +546,9 @@ function showForegroundMessage(payload){
   toast.type='button';toast.id='v21-message-notice-toast';
   toast.style.cssText='position:fixed;z-index:2147483000;top:calc(env(safe-area-inset-top, 0px) + 58px);left:50%;transform:translateX(-50%);width:min(370px,calc(100vw - 32px));padding:12px 16px;border:1px solid #d7e2da;border-radius:14px;background:#fff;color:#172a20;box-shadow:0 8px 28px #0002;font:14px system-ui;text-align:left;cursor:pointer;white-space:normal';
   const title=document.createElement('strong');title.textContent=String(payload.title||'Tin nhắn mới').slice(0,90);
-  const body=document.createElement('div');body.textContent=String(payload.body||'').slice(0,140)||'Chạm để xem hội thoại';
+  const rawPreview=String(payload.body||'').slice(0,140)||'Chạm để xem hội thoại';
+  const body=document.createElement('div');
+  body.textContent=window.V21ChatMessageCase?.previewCase?.(rawPreview)||rawPreview;
   body.style.cssText='margin-top:4px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical';
   toast.append(title,body);
   toast.addEventListener('click',()=>{toast.remove();clearTimeout(messageToastTimer);void handleOpen({kind:'message',conversationId,contactId:String(payload.contactId||'')});});
