@@ -172,8 +172,10 @@ assert.equal(variantRows[2].dataset.needsReview,'true','second unsure variant is
 assert.notEqual(variantRows[3].dataset.needsReview,'true','known term is not falsely flagged');
 assert(variantRows[1].textContent.includes('Cần hướng dẫn'));
 assert(variantView.textContent.includes('Probi to : 5 có, 2 ít, 2 việt quất'));
-assert.equal(analyze('probi to có 5. ít 2. việt quất 2'),null,
- 'unconfirmed dotted grammar must not be guessed into a purchase');
+const dotted=analyze('probi to có 5. ít 2. việt quất 2');
+assert.deepEqual(Array.from(dotted.items,x=>[x.name,x.qty,x.review]),[
+ ['probi to có',5,true],['probi to ít',2,true],['probi to việt quất',2,false]
+],'real Probi dotted grammar resolves variants, but short labels remain yellow');
 
 assert.equal(analyze('Hôm nay nhắn nhau\nMai gặp nhé'),null);
 const topic=analyze('Giao hàng: trước 16h\nGhi chú: báo thiếu hàng\nThanh toán: chuyển khoản');
