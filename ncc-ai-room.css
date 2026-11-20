@@ -301,7 +301,7 @@ body.ncc-ai-room-open{overflow:hidden}
  width:40px;height:40px;padding:0;
  background:var(--theme-surface-primary,#fff);color:inherit;
  border:1px solid var(--theme-border-default,#e1e4e8);
- border-radius:999px;font:700 22px/1 inherit;cursor:pointer;
+ border-radius:999px;font-family:inherit;font-size:22px;font-weight:700;line-height:1;cursor:pointer;
 }
 .ncc-source-panel{
  position:absolute;z-index:20;top:calc(100% - 2px);right:10px;
@@ -334,7 +334,7 @@ body.ncc-ai-room-open{overflow:hidden}
  max-width:100%;min-height:34px;padding:7px 10px;border-radius:10px;
  border:1px solid var(--theme-border-default,#d8dee6);
  background:var(--theme-surface-secondary,#f3f4f6);color:inherit;
- font:650 11px/17px inherit;cursor:pointer;touch-action:manipulation;
+ font-family:inherit;font-size:11px;font-weight:650;line-height:17px;cursor:pointer;touch-action:manipulation;
 }
 #messageWindow .message-ncc-photo-button:disabled{opacity:.6}
 #messageWindow .message-ncc-photo-status{font-size:10px;line-height:15px;color:var(--theme-content-secondary,#667085)}
