@@ -192,6 +192,38 @@ assert.deepEqual(Array.from(dotted.items,x=>[x.name,x.qty,x.review]),[
  ['probi to có',5,true],['probi to ít',2,true],['probi to việt quất',2,false]
 ],'real Probi dotted grammar resolves variants, but short labels remain yellow');
 
+// CHAT-404: Two real colloquial bát request examples; keep the product
+// text exact, retain the carton meaning privately, render SL as digits.
+// "t" is interpreted as carton only in this narrow product construction;
+// nearby price negotiation messages must not turn into stock requests.
+const oneBat=analyze('Cho chị thêm 5t bát 1.8 kg');
+assert.equal(oneBat?.kind,'order');
+assert.deepEqual(Array.from(oneBat.items,item=>[item.name,item.qty,item.unit,item.review]),[
+ ['bát 1.8 kg',5,'thùng',false]
+]);
+const anotherBat=analyze('Có bát 454 a 3 t');
+assert.equal(anotherBat?.kind,'order');
+assert.deepEqual(Array.from(anotherBat.items,item=>[item.name,item.qty,item.unit,item.review]),[
+ ['bát 454',3,'thùng',true]
+],'availability/question phrasing needs the yellow user review flag');
+for(const [message,name,number] of [
+ ['Cho chị thêm 5t bát 1.8 kg','bát 1.8 kg','5'],
+ ['Có bát 454 a 3 t','bát 454','3']
+]){
+ const target=fakeNode('div');
+ assert.equal(render(target,message),true);
+ const row=target.children[0].children[1].children[1];
+ assert.equal(row.children[1].textContent.startsWith(name),true);
+ assert.equal(row.children[2].textContent,number,
+  'quantity cell must not display the colloquial carton abbreviation');
+ assert.equal(target.children[0].children.at(-1).children[1].textContent,message,
+  'original customer words must be available unmodified');
+}
+assert.equal(analyze('Chị ko nhớ 1.075 hay 85'),null);
+assert.equal(analyze('bát 1.8 2kg c mua dc gia nao nt e ạ. bat 454 1265'),null);
+assert.equal(analyze('Bát 454 1265'),null,
+ 'price quotation must not be misread as order quantity');
+
 // CHAT-403: Only STT, customer's original name, numeric SL. Carton/mixed
 // shorthand remains in parsing evidence but is never rendered as a unit label.
 for(const message of ['5 thùng 9 hạt ít đường\n2 chua nha đam',
