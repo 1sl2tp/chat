@@ -47,7 +47,7 @@ function ambiguousOrderNote(line){
    || /^\d{1,3}\s+[\p{L}][^:]{2,100}\s*[:：]\s*[\p{L}]/iu.test(raw)
    || /^[\p{L}][\p{L}\s\d]{2,60}\s*[:：]\s*\d{1,3}\s+[\p{L}]/iu.test(raw);
 }
-function entry(raw,qty,u,source,review=false){
+function entry(raw,qty,u,source,review=false,allowVerifiedNumericName=false){
  const name=stripListMarker(raw);
  const amount=Number(qty);
  // "5 thùng này" has no product. "1 thùng milo này" needs a human check.
@@ -55,7 +55,9 @@ function entry(raw,qty,u,source,review=false){
  // These are sentence scaffolds, not merchandise names.
  if(/^(?:lấy\s+)?tạm\s+cho$/iu.test(name)||
    /^(?:giá|báo\s+giá|giá\s+bán)(?=\s|[:：]|$)/iu.test(name))return null;
- return name.length>=2&&name.length<=100&&/\p{L}/u.test(name)&&!/[<>]/u.test(name)
+ return name.length>=2&&name.length<=100&&
+  (/\p{L}/u.test(name)||(allowVerifiedNumericName&&/^454$/u.test(name)))&&
+  !/[<>]/u.test(name)
   &&Number.isInteger(amount)&&amount>=1&&amount<=999
   ?{name,qty:amount,unit:unit(u),source,review:Boolean(review)||deicticTail.test(name)}:null;
 }
@@ -194,6 +196,38 @@ function parseTentativeStockRequest(line){
  // "thì phải" expresses uncertainty; the user sees a yellow review marker.
  return entry(found[1].trim(),found[2],found[3],raw,true);
 }
+// CHAT-407: customer-confirmed packaging shorthand with NUMERIC product
+// names. "20 t 1 kg 10 t 454" means two different products: "1 kg"
+// and "454". Accept only an explicit request and consecutive complete pairs.
+const NUMBERED_CARTON_PAIR=/^(\d{1,3})\s*(t|thùng)\s+(1\s*kg|454\s*g?)(?=\s+\d{1,3}\s*(?:t|thùng)\s+|$)/iu;
+const RETURN_REMAINDER=/\s+(còn\s+đâu\s+gửi\s+lại\s+kho)\s*$/iu;
+function parseNumericCartonList(line){
+ const original=String(line||'').trim(),lead=requestLine(original);
+ if(lead.kind!=='request')return null;
+ let body=lead.body.trim(),note='';
+ const trailing=body.match(RETURN_REMAINDER);
+ if(trailing){note=trailing[1];body=body.slice(0,trailing.index).trim();}
+ const rows=[];let rest=body;
+ for(let n=0;n<12&&rest;n++){
+  const match=rest.match(NUMBERED_CARTON_PAIR);
+  if(!match)break;
+  const product=match[3].trim();
+  const pack=match[2].toLowerCase()==='t'?'thùng':match[2];
+  const row=entry(product,match[1],pack,original,false,true);
+  if(!row)return null;
+  rows.push(row);
+  rest=rest.slice(match[0].length).trim();
+ }
+ return rows.length>=2&&!rest?{items:rows,note}:null;
+}
+// User-approved item names with internal numbers: 600 is part of "côsy
+// bơ 600". Here "t" is carton only in the exact observed constructions.
+const VERIFIED_SHORT_T=/^(?:bốc\s+c\s+chị\s+)?(\d{1,3})\s*t\s+((?:kopikô|kopiko)\s+sữa|(?:côsy|cosy)\s+bơ\s+600)\s*$/iu;
+function parseNamedShortCarton(line){
+ const original=String(line||'').trim();
+ const match=stripListMarker(original).match(VERIFIED_SHORT_T);
+ return match?entry(match[2].trim(),match[1],'thùng',original):null;
+}
 function parseStrongLine(line){
  const raw=String(line||'').trim();
  if(!raw||raw.length>150||/https?:\/\/|[<>]/iu.test(raw))return null;
@@ -276,6 +310,14 @@ function parseCompoundVariant(line){
 function parsePieces(line,isOrder){
  const original=String(line||'').trim();
  if(!original||original.length>240||/https?:\/\/|[<>]/iu.test(original))return [];
+ const numericCartons=parseNumericCartonList(original);
+ if(numericCartons){
+  const parsed=numericCartons.items.map(item=>({...item,source:original}));
+  if(numericCartons.note)parsed.trailingNote=numericCartons.note;
+  return parsed;
+ }
+ const namedCarton=parseNamedShortCarton(original);
+ if(namedCarton)return [{...namedCarton,source:original}];
  const lead=requestLine(original),raw=lead.body.replace(/^(\d{1,3})(?=[\p{L}]{3,})/u,'$1 ');
  const colloquial=parseBatCartons(raw);
  if(colloquial)return [{...colloquial,source:original}];
@@ -362,7 +404,11 @@ function analyze(input){
    continue;
   }
   const parsed=parsePieces(line,orderContext||active==='items');
-  if(parsed.length){items.push(...parsed);continue;}
+  if(parsed.length){
+   items.push(...parsed);
+   if(parsed.trailingNote)notes.push({topic:'other',text:parsed.trailingNote});
+   continue;
+  }
   notes.push({topic:noteTopic(line,active),text:line});
  }
  const isOrder=items.length>=2||(items.length>=1&&(cue||requestIntent||heads.has('items')||
