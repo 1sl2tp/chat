@@ -20,7 +20,10 @@ assert "link.target='_blank'" in app
 assert "link.rel='noopener noreferrer'" in app
 assert 'renderConversationMessageBody(messageBody,message);' in app
 assert app.count('renderConversationMessageBody(messageBody,message);') == 2
-assert 'return renderMessageBody(container,message?.text);' in app
+assert 'const rendered=renderMessageBody(container,message?.text);' in app
+assert 'window.V21ChatMessageCase?.normalizeRendered?.(rendered);' in app
+assert 'return rendered;' in app
+# Link/HTML source is parsed from canonical text before display-only casing.
 
 assert '.message-body[data-has-link="true"]{' in source
 assert '.message-link{' in source
