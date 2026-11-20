@@ -275,9 +275,9 @@ const AppBootController={
     // Repeated global faults must not repaint the banner or multiply logs.
     if(this.lastErrorMessage===message&&!runtimeError.classList.contains('hidden'))return;
     this.lastErrorMessage=message;
-    runtimeError.textContent='V21.72.56 runtime: '+message;
+    runtimeError.textContent='V21.72.57 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.56]',error);
+    console.error('[ChatScreenModule V21.72.57]',error);
   },
   ready(){
     // A successful render invariant proves recovery only for errors seen
@@ -389,7 +389,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.56 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.57 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -443,7 +443,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.56',
+  releaseVersion:'V21.72.57',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -5683,7 +5683,62 @@ function renderMessageNode(message){
   return turn;
 }
 
-function reconcileMessageWindow(messages){
+// CHAT-408: One read-only, sender-neutral stock summary after the final
+// message of EACH Vietnam business day. The regular message nodes remain
+// intact; this is a child of an existing virtualized message so scroll index,
+// keyboard height, anchor restore and media lazy-load remain unchanged.
+function dailyStockSummariesByOwner(messages){
+ const formatter=window.V21IncomingMessageLayout;
+ const result=new Map();
+ if(!formatter?.summarizeDay||!Array.isArray(messages))return result;
+ let start=0;
+ while(start<messages.length){
+  const first=messages[start];
+  const dayKey=messageDateKey(messageTimestampMs(first));
+  let end=start+1;
+  if(!dayKey){start=end;continue;}
+  while(end<messages.length&&
+        messageDateKey(messageTimestampMs(messages[end]))===dayKey)end++;
+  const dailyInputs=messages.slice(start,end).map(message=>({
+   key:stableMessageDomKey(message),
+   sender:message.sender,
+   media:message.media,
+   text:message.text,
+   stamp:messageTimestampMs(message)
+  }));
+  const summary=formatter.summarizeDay(dailyInputs);
+  if(summary?.items?.length){
+   summary.dayLabel=formatMessageDayLabel(messageTimestampMs(messages[end-1]),
+    {includeDate:true});
+   result.set(stableMessageDomKey(messages[end-1]),summary);
+  }
+  start=end;
+ }
+ return result;
+}
+function syncDailyStockSummary(node,summary){
+ if(!node)return false;
+ let wrap=node.querySelector(':scope > .message-day-order-wrap');
+ if(!summary){
+  if(!wrap)return false;
+  wrap.remove();
+  node.__dailyStockSignature='';
+  return true;
+ }
+ const signature=JSON.stringify(summary);
+ if(wrap&&node.__dailyStockSignature===signature)return false;
+ const formatter=window.V21IncomingMessageLayout;
+ if(!formatter?.renderDailySummary)return false;
+ if(!wrap){
+  wrap=document.createElement('div');
+  wrap.className='message-day-order-wrap';
+ }
+ if(!formatter.renderDailySummary(wrap,summary))return false;
+ if(!wrap.parentElement)node.appendChild(wrap);
+ node.__dailyStockSignature=signature;
+ return true;
+}
+function reconcileMessageWindow(messages,summaryByOwner=new Map()){
   const desired=Array.isArray(messages)?messages:[];
   const existingByKey=new Map();
   for(const node of Array.from(messageWindow.children)){
@@ -5723,6 +5778,7 @@ function reconcileMessageWindow(messages){
       node=renderMessageNode(message);
       dirty.add(node);
     }
+    if(syncDailyStockSummary(node,summaryByOwner.get(key)||null))dirty.add(node);
     nodes.push(node);
   }
 
@@ -5819,7 +5875,8 @@ function renderWindow({
       heightCache
     )+'px';
 
-  const dirtyNodes=reconcileMessageWindow(win.items);
+  const dailyByOwner=dailyStockSummariesByOwner(store.items);
+  const dirtyNodes=reconcileMessageWindow(win.items,dailyByOwner);
 
   requestAnimationFrame(()=>{
     // A contact switch invalidates this render transaction. Do not let an
@@ -9108,7 +9165,7 @@ window.V21ConversationBridge={
 window.V21ChatImageViewer=Object.freeze({open:openImageViewer});
 
 window.ChatScreenModule={
-  version:'V21.72.56',
+  version:'V21.72.57',
   snapshot(){
     return{
       viewportMode:viewport.mode,
