@@ -275,9 +275,9 @@ const AppBootController={
     // Repeated global faults must not repaint the banner or multiply logs.
     if(this.lastErrorMessage===message&&!runtimeError.classList.contains('hidden'))return;
     this.lastErrorMessage=message;
-    runtimeError.textContent='V21.72.57 runtime: '+message;
+    runtimeError.textContent='V21.72.58 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.57]',error);
+    console.error('[ChatScreenModule V21.72.58]',error);
   },
   ready(){
     // A successful render invariant proves recovery only for errors seen
@@ -389,7 +389,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.57 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.58 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -443,7 +443,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.57',
+  releaseVersion:'V21.72.58',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -5601,12 +5601,19 @@ function patchMessageNode(node,message){
   }
 
   bindTextActionTap(node,text);
+  syncStockImageOCRControl(node,message);
   syncMessageTimeNode(unit,message);
   syncMessageDeliveryState(unit,message);
   node.__visualSignature=messageVisualSignature(message);
   return node;
 }
 
+function syncStockImageOCRControl(node,message){
+ return window.V21ChatStockImageUI?.sync?.(node,message,()=>renderWindow({preserve:'VIEW'}))||false;
+}
+function stockImageReadings(message){
+ return window.V21ChatStockImageUI?.reads?.(message)||[];
+}
 function renderMessageNode(message){
   const turn=document.createElement('section');
   turn.className=
@@ -5673,6 +5680,7 @@ function renderMessageNode(message){
   }
 
   unit.appendChild(createActionGroup(message));
+  syncStockImageOCRControl(turn,message);
   syncMessageTimeNode(unit,message);
   syncMessageDeliveryState(unit,message);
   messageWrap.appendChild(unit);
@@ -5699,7 +5707,10 @@ function dailyStockSummariesByOwner(messages){
  // while conversationViewEpoch keeps cached summaries inside one contact.
  const signature=messages.map(message=>[
   stableMessageDomKey(message),message.sender,messageTimestampMs(message),
-  message.media?'media':'text',String(message.text||'')
+  message.media?'media':'text',String(message.text||''),
+  stockImageReadings(message).map(read=>[
+   read.assetId,read.status,read.lines.length,read.notes.length
+  ].join(':')).join(',')
  ].join('\u001f')).join('\u001e');
  if(conversationViewEpoch===dailyStockCacheEpoch&&
     signature===dailyStockCacheSignature)return dailyStockCacheMap;
@@ -5715,11 +5726,12 @@ function dailyStockSummariesByOwner(messages){
    key:stableMessageDomKey(message),
    sender:message.sender,
    media:message.media,
+   imageReadings:stockImageReadings(message),
    text:message.text,
    stamp:messageTimestampMs(message)
   }));
   const summary=formatter.summarizeDay(dailyInputs);
-  if(summary?.items?.length){
+  if(summary?.items?.length||summary?.imageGroups?.length){
    summary.dayLabel=formatMessageDayLabel(messageTimestampMs(messages[end-1]),
     {includeDate:true});
    result.set(stableMessageDomKey(messages[end-1]),summary);
@@ -5798,6 +5810,7 @@ function reconcileMessageWindow(messages,summaryByOwner=new Map()){
       node=renderMessageNode(message);
       dirty.add(node);
     }
+    if(syncStockImageOCRControl(node,message))dirty.add(node);
     if(syncDailyStockSummary(node,summaryByOwner.get(key)||null))dirty.add(node);
     nodes.push(node);
   }
@@ -9185,7 +9198,7 @@ window.V21ConversationBridge={
 window.V21ChatImageViewer=Object.freeze({open:openImageViewer});
 
 window.ChatScreenModule={
-  version:'V21.72.57',
+  version:'V21.72.58',
   snapshot(){
     return{
       viewportMode:viewport.mode,
