@@ -1,5 +1,5 @@
 'use strict';
-const RELEASE_VERSION='V21.72.59';
+const RELEASE_VERSION='V21.72.60';
 const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 // BANK-177: reload one-time cached shell for the live bank reconciliation table.
 // Keep offline-first startup; do not add per-navigation network requests.
