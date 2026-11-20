@@ -37,6 +37,8 @@ for(const s of [
  'var(--shell-form-vv-height,100svh)',
  'var(--header-height,72px)'
 ])assert(patch.includes(s),'missing viewport/layout contract '+s);
-assert(source.includes('V21.72.45'));
-assert(sw.includes('pwa-chat-ui396-chatgpt-mobile-drawer-20261120'));
+assert(Number(source.match(/name="app-release-version" content="V21\.72\.(\d+)"/)?.[1]||0)>=45,
+  'CHAT-390 must accept later canonical releases');
+assert(Number(sw.match(/SHELL_CACHE_EPOCH='pwa-chat-ui(\d+)-/)?.[1]||0)>=396,
+  'CHAT-390 must accept later public shell cache epochs');
 console.log('CHAT-390 collapsible directory search + iOS keyboard contract PASS');
