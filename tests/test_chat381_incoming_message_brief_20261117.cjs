@@ -38,7 +38,9 @@ assert.equal(analyze('e bán\ncho 12 358\ncutas 12 363\ncosy 480 335'),null,
 assert.equal(analyze('Mì chính bát 2\nCosy 480 335'),null);
 assert.equal(analyze('Lấy hàng\n2th\n2 thùng'),null,
  'standalone quantities without item names must not be guessed');
-assert.equal(analyze('Sữa 2th'),null,'ordinary single line retains original view');
+assert.deepEqual(Array.from(analyze('Sữa 2th').items,row=>[row.name,row.qty,row.unit]),[
+ ['Sữa',2,'thùng']
+],'single clear product-and-carton request must be readable');
 // CHAT-399: actual 20/11 customer stock request. The screenshot displayed
 // only two unit-suffixed rows; every other quantity-first/variant row was
 // incorrectly classified as "Lời nhắn". No catalog substitutions are allowed.
@@ -177,6 +179,60 @@ assert.deepEqual(Array.from(dotted.items,x=>[x.name,x.qty,x.review]),[
  ['probi to có',5,true],['probi to ít',2,true],['probi to việt quất',2,false]
 ],'real Probi dotted grammar resolves variants, but short labels remain yellow');
 
+// CHAT-402: E Quyên corpus regression. Samples contain only product wording,
+// not customer identifiers, personal data or actual order records.
+const quyenCorpus=[
+ {text:'20 thùng indomie',rows:[['indomie',20,'thùng']]},
+ {text:'2 bao hướng dương',rows:[['hướng dương',2,'bao']]},
+ {text:'Thêm\n10 cây ngựa\n10 sài gòn đào',rows:[
+  ['ngựa',10,'cây'],['sài gòn đào',10,'']
+ ]},
+ {text:'10 th bé ít đường\n10 th bé có đường',rows:[
+  ['th bé ít đường',10,''],['th bé có đường',10,'']
+ ]},
+ {text:'1 thùng milo này',rows:[['milo này',1,'thùng']]},
+ {text:'2 chua có, 2 ít, 2 không, 2 nha đam\nProby to: 3 có, 1 ít',rows:[
+  ['chua có',2,''],['chua ít',2,''],['chua không',2,''],['chua nha đam',2,''],
+  ['Proby to có',3,''],['Proby to ít',1,'']
+ ]},
+ {text:'1 Chinsu trắng + 1 chinsu đỏ\n10 omachi sườn',rows:[
+  ['Chinsu trắng',1,''],['chinsu đỏ',1,''],['omachi sườn',10,'']
+ ]},
+ {text:'6 thùng TH bịch: 2 có, 2 ít, 2 không',rows:[
+  ['TH bịch có',2,'thùng'],['TH bịch ít',2,'thùng'],['TH bịch không',2,'thùng']
+ ]},
+ {text:'10 milo to có đường',rows:[['milo to có đường',10,'']]}
+];
+for(const {text:raw,rows} of quyenCorpus){
+ const parsed=analyze(raw);
+ assert.equal(parsed?.kind,'order',raw+' should be an order-shaped layout');
+ assert.deepEqual(Array.from(parsed.items,item=>[item.name,item.qty,item.unit]),rows,
+  'customer shorthand must keep name, quantity, and container distinct');
+ assert.equal(parsed.source,raw,'source must remain fully reversible');
+}
+assert.equal(analyze('1 thùng milo này').items[0].review,true,
+ 'demonstrative suffix is highlighted for customer-specific interpretation');
+assert(analyze('10 th bé ít đường\n10 th bé có đường').items.every(row=>row.review),
+ 'TH brand ambiguity must be reviewed, not interpreted as thùng');
+const unresolved=analyze('3 lau sàn sunlight 1l : chanh, quế, lavender\n5 thùng indomie');
+assert.equal(unresolved.kind,'order');
+assert.equal(unresolved.items.length,1);
+assert.deepEqual(Array.from(unresolved.groups[0].rows),[
+ '3 lau sàn sunlight 1l : chanh, quế, lavender'
+]);
+const unresolvedTarget=fakeNode('div');
+assert.equal(render(unresolvedTarget,unresolved.source),true);
+const unknownNote=unresolvedTarget.children[0].children.find(x=>x.tagName==='section').children[1];
+assert.equal(unknownNote.dataset.needsReview,'true',
+ 'unreadable numeric item must be visibly highlighted yellow');
+assert(unknownNote.textContent.includes('Cần hướng dẫn'));
+const noProduct=analyze('cho 10 thùng vậy');
+assert.equal(noProduct.kind,'review','do not invent a product from a demonstrative');
+assert.equal(noProduct.items.length,0);
+assert.equal(analyze('Thêm'),null,'instruction without products is not an order');
+assert.equal(analyze('Giao hàng mai nhé\nCảm ơn'),null,
+ 'general chat must not get highlighted as a purchase');
+
 assert.equal(analyze('Hôm nay nhắn nhau\nMai gặp nhé'),null);
 const topic=analyze('Giao hàng: trước 16h\nGhi chú: báo thiếu hàng\nThanh toán: chuyển khoản');
 assert.equal(topic.kind,'topics');
@@ -200,6 +256,8 @@ assert.match(css,/\.incoming-brief-index/);
 assert(!css.includes('.incoming-brief-unit'),'unit must not reserve a fourth column');
 assert(css.includes('.incoming-brief-item[data-needs-review="true"]'));
 assert(css.includes('background:#ffe58a'));
+assert(css.includes('.incoming-brief-note[data-needs-review="true"]'));
+
 assert(!css.includes('background:red'));
 
 assert.doesNotMatch(source,/fetch\(|XMLHttpRequest|setInterval\(|localStorage|supabase\.|innerHTML\s*=/);
