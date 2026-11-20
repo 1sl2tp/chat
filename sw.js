@@ -6,7 +6,7 @@ function chatPushDisplayPreview(value){
  const raw=String(value||'');
  try{return self.V21ChatMessageCase?.previewCase?.(raw)||raw;}catch{return raw;}
 }
-const RELEASE_VERSION='V21.72.61';
+const RELEASE_VERSION='V21.72.62';
 const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 // BANK-177: reload one-time cached shell for the live bank reconciliation table.
 // Keep offline-first startup; do not add per-navigation network requests.
@@ -37,7 +37,8 @@ const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 // CHAT-408: refresh the read-only daily summary UI; no private chat or outbox cache changes.
 // CHAT-409: public OCR UI shell; do not evict private media, drafts or outbox.
 // CHAT-410: public feature-readiness gate; no private media/draft cache resets.
-const SHELL_CACHE_EPOCH='pwa-chat-ui416-unified-previews-20261120';
+// CHAT-418: public shell update only; private messages, drafts, photos, outbox stay intact.
+const SHELL_CACHE_EPOCH='pwa-chat-ui418-supplier-sources-20261121';
 const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION+'-'+SHELL_CACHE_EPOCH;
 const AVATAR_CACHE_NAME='taphoa-chat-avatars-v1';
 const SUPABASE_ASSET_HOST_RE=/^[a-z0-9]+\.supabase\.co$/i;

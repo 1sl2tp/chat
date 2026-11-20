@@ -80,8 +80,11 @@ assert.equal(posted[0].body,'Chủ nhật chị nghỉ');
 assert.equal(posted[0].title,'C Sâm pl','proper name must not be auto-lowercased');
 assert(sw.includes("kind==='message'?")&&sw.includes("chatPushDisplayPreview(payload.body||'Tin nhắn mới')"),
  'only chat-message lockscreen previews are re-cased, bank/calls stay intact');
-assert(sw.includes("pwa-chat-ui416-unified-previews-20261120"),
- 'PWA public shell must refresh without deleting private drafts/outbox');
+assert(/const SHELL_CACHE_EPOCH='pwa-chat-ui[0-9]+-[a-z0-9-]+-[0-9]{8}'/u.test(sw)&&
+ sw.includes("const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION+'-'+SHELL_CACHE_EPOCH")&&
+ sw.includes("key.startsWith('taphoa-chat-shell-')")&&
+ !sw.includes("indexedDB.deleteDatabase("),
+ 'PWA cache must rotate only the public shell, never private drafts/outbox');
 assert(html.includes('data-build-source="chat-context-layout.css"'),
  'contextual stylesheet participates in canonical build');
 assert(html.indexOf('data-build-source="chat-context-layout.css"')>

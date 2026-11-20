@@ -23,7 +23,9 @@ room.innerHTML=[
  '<header class="ncc-ai-head"><button type="button" class="ncc-ai-back" data-ncc-room-back aria-label="Quay lại Công việc">‹</button>',
  '<span class="ncc-ai-avatar" aria-hidden="true">AI</span>',
  '<span class="ncc-ai-identity"><strong>NCC AI</strong><small>Đọc phiếu nhập · Tài khoản công việc</small></span>',
- '<span class="ncc-ai-presence" data-ncc-room-presence>Chưa kết nối</span></header>',
+ '<span class="ncc-ai-presence" data-ncc-room-presence>Chưa kết nối</span>',
+ '<button type="button" class="ncc-source-menu-button" data-ncc-source-menu aria-label="Chọn người gửi phiếu nhập" aria-expanded="false">⋯</button>',
+ '<div class="ncc-source-panel" data-ncc-source-panel hidden></div></header>',
  '<div class="ncc-ai-thread" data-ncc-room-thread role="log" aria-live="polite" aria-label="Tin nhắn và bảng AI"></div>',
  '<div class="ncc-ai-composer">',
   '<div data-ncc-room-preview class="ncc-ai-preview" hidden><img alt="Ảnh chuẩn bị gửi"><span data-ncc-room-filename></span>',
@@ -42,6 +44,60 @@ const send=room.querySelector("[data-ncc-room-send]");
 const state=room.querySelector("[data-ncc-room-state]");
 const presence=room.querySelector("[data-ncc-room-presence]");
 const preview=room.querySelector("[data-ncc-room-preview]");
+const sourcesButton=room.querySelector("[data-ncc-source-menu]");
+const sourcesPanel=room.querySelector("[data-ncc-source-panel]");
+let sourceSearch="";
+function paintSourcePicker(){
+ if(sourcesPanel.hidden)return;
+ const sources=window.V21NccSources?.list?.()||[];
+ sourcesPanel.replaceChildren();
+ const title=document.createElement("strong");
+ title.textContent="Người gửi phiếu nhập";
+ const hint=document.createElement("small");
+ hint.textContent="Chọn nguồn được dùng Nhập hàng. Nhóm KH không có trong danh sách.";
+ const search=document.createElement("input");
+ search.type="search";search.placeholder="Tìm người liên hệ";
+ search.value=sourceSearch;search.setAttribute("aria-label","Tìm người gửi phiếu nhập");
+ search.addEventListener("input",()=>{sourceSearch=search.value;renderSourceRows(list);});
+ const list=document.createElement("div");
+ list.className="ncc-source-list";
+ sourcesPanel.append(title,hint,search,list);
+ function renderSourceRows(host){
+  host.replaceChildren();
+  const q=String(sourceSearch||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+   .toLocaleLowerCase("vi").trim();
+  const visible=sources.filter(item=>String(item.name||"").normalize("NFD")
+   .replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("vi").includes(q));
+  for(const item of visible.slice(0,150)){
+   const label=document.createElement("label");label.className="ncc-source-option";
+   const input=document.createElement("input");input.type="checkbox";
+   input.checked=item.selected;input.value=item.id;
+   const name=document.createElement("span");name.textContent=item.name;
+   const group=document.createElement("small");
+   group.textContent=item.group==="ncc"?"TK NCC":"Liên hệ";
+   label.append(input,name,group);host.appendChild(label);
+   input.addEventListener("change",()=>{
+    if(!window.V21NccSources?.setSelected?.(item.id,input.checked))
+     input.checked=!input.checked;
+   });
+  }
+  if(!visible.length){
+   const empty=document.createElement("p");empty.textContent="Không tìm thấy người phù hợp.";
+   host.appendChild(empty);
+  }
+ }
+ renderSourceRows(list);
+}
+function closeSourcePicker(){
+ sourcesPanel.hidden=true;sourcesButton.setAttribute("aria-expanded","false");
+}
+sourcesButton.addEventListener("click",event=>{
+ event.preventDefault();event.stopPropagation();
+ sourcesPanel.hidden=!sourcesPanel.hidden;
+ sourcesButton.setAttribute("aria-expanded",String(!sourcesPanel.hidden));
+ paintSourcePicker();
+});
+document.addEventListener("v21-contact-groups-change",()=>paintSourcePicker());
 let previewUrl="",ready=false,busy=false,session="",opened=false;
 let embeddedHost=null;
 let selectedPhoto=null,selectVersion=0,supportsRecheck=false,supportsProductLinks=false;
@@ -513,6 +569,7 @@ async function open(options={}){
  sync();
 }
 function close(){
+ closeSourcePicker();
  room.hidden=true;opened=false;
  document.body.classList.remove("ncc-ai-room-open");
  if(embeddedHost){
@@ -565,6 +622,61 @@ send.addEventListener("click",()=>{void submit();});
 document.addEventListener("v21-auth-state",()=>{
  if(!isAdmin()){close();purge();}
 });
+// CHAT-418: stage an existing incoming supplier image WITHOUT auto sending.
+// Admin must tap the existing NCC "read" arrow to invoke its original server.
+async function stageChatImage({assetId,contactId}={}){
+ const id=String(contactId||""),asset=String(assetId||"").toLowerCase();
+ const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/iu;
+ if(!isAdmin()||!uuid.test(asset)||!window.V21NccSources?.selected?.(id))
+  throw Error("source_not_allowed");
+ const current=window.V21SyncEngine?.snapshot?.()||{};
+ if(String(current.currentContactId||"")!==id)throw Error("source_unavailable");
+ const account=auth()?.snapshot?.()?.account?.id;
+ const initialSession=accountSession();
+ if(!account||!initialSession)throw Error("admin_required");
+ let row=await window.V21MediaCache?.get?.({accountId:String(account),assetId:asset});
+ if(!(row?.blob instanceof Blob)){
+  row=await window.V21SyncEngine?.ensureMediaRemote?.({
+   accountId:String(account),assetId:asset
+  })||row;
+ }
+ if(!(row?.blob instanceof Blob))throw Error("image_unavailable");
+ // Check membership AND the originating conversation after hydration.
+ if(accountSession()!==initialSession||
+    String(window.V21SyncEngine?.snapshot?.()?.currentContactId||"")!==id||
+    !window.V21NccSources?.selected?.(id))
+  throw Error("source_unavailable");
+ const known=(window.V21NccSources?.list?.()||[]).find(x=>x.id===id);
+ const sourceName=String(known?.name||"Liên hệ").slice(0,80);
+ const blob=row.blob;
+ const mime=blob.type==="image/jpg"?"image/jpeg":blob.type||"image/jpeg";
+ const suffix=mime==="image/png"?"png":mime==="image/webp"?"webp":"jpg";
+ const file=new File([blob],"phieu-tu-chat-"+asset+"."+suffix,{
+  type:mime,lastModified:Date.now()
+ });
+ const photo=await prepareSelectedPhoto(file);
+ if(accountSession()!==initialSession||
+    String(window.V21SyncEngine?.snapshot?.()?.currentContactId||"")!==id||
+    !window.V21NccSources?.selected?.(id))
+  throw Error("source_unavailable");
+ await open();
+ if(!opened||accountSession()!==initialSession||
+   String(window.V21SyncEngine?.snapshot?.()?.currentContactId||"")!==id||
+   !window.V21NccSources?.selected?.(id))return false;
+ selectVersion++;
+ clearPreview();
+ selectedPhoto=photo;
+ previewUrl=URL.createObjectURL(photo);
+ preview.querySelector("img").src=previewUrl;
+ room.querySelector("[data-ncc-room-filename]").textContent=
+  "Từ "+sourceName+" · "+photo.name;
+ preview.hidden=false;
+ sync();
+ say(ready?
+  "Ảnh lấy từ "+sourceName+". Bấm mũi tên ↑ để đọc phiếu; chưa gửi tự động.":
+  "Ảnh từ "+sourceName+" đã chọn. Máy chủ Nhập hàng chưa sẵn sàng.");
+ return true;
+}
 function launchButton(full=false){
  const btn=document.createElement("button");
  btn.type="button";btn.className=full?"ncc-ai-launch ncc-ai-launch-full":"ncc-ai-launch";
@@ -686,5 +798,5 @@ function mount(){
 }
 mount();
 document.addEventListener("v21-auth-state",()=>{if(isAdmin())mount();else resetWorkTabsIfInactive();});
-window.V21NccAiRoom=Object.freeze({open,close,mount,showWorkTab});
+window.V21NccAiRoom=Object.freeze({open,close,mount,showWorkTab,stageChatImage});
 })();
