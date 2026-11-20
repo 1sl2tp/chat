@@ -63,6 +63,13 @@ assert(!/\.insert\(|\.upsert\(|\.upload\(|\.update\(|\.delete\(/.test(edgeBlock)
  'image action must not write Storage or database');
 assert(clientSource.includes("action:'chat_stock_image'"));
 assert(clientSource.includes("cache.set(key,result)"));
+// CHAT-411: Legacy uploaded JPEG media and changing OCR cards must not fail
+// MIME validation or unexpectedly jump the user's reading position.
+assert(clientSource.includes("blob.type==='image/jpg'"),
+ 'old image/jpg uploads must be normalized before image OCR');
+assert(clientSource.includes("new Blob([blob],{type:'image/jpeg'})"));
+assert(app.includes("preserve:hasUserScrollIntent()?'VIEW':'ANCHOR'"),
+ 'OCR resize restores reading anchor when not touch-scrolling');
 assert(clientSource.includes('if(owner()?.key!==who.key)'));
 assert(uiSource.includes("Đọc chữ hàng trong ảnh"));
 assert(uiSource.includes("reader.scan(assetId)"));
