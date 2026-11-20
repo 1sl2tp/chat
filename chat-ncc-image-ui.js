@@ -45,7 +45,11 @@ function sync(node,message){
    btn.disabled=true;
    status.textContent='Đang chuẩn bị ảnh phiếu nhập…';
    try{
-    const ok=await window.V21NccAiRoom?.stageChatImage?.({assetId,contactId:id});
+    const rawTime=message?.createdAt??message?.created_at??message?.timestamp??null;
+    const numeric=typeof rawTime==='number'?rawTime:0;
+    const messageDate=numeric>0?new Date(numeric<1e12?numeric*1000:numeric).toISOString():
+     typeof rawTime==='string'?rawTime:'';
+    const ok=await window.V21NccAiRoom?.stageChatImage?.({assetId,contactId:id,messageDate});
     if(!ok)throw Error('source_unavailable');
     status.textContent='Đã đưa ảnh sang Nhập hàng để kiểm tra';
    }catch(error){
