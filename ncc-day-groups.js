@@ -74,10 +74,14 @@
    else group.payableComplete=false;
    const rowMap=group._rows||(group._rows=new Map());
    const lines=Array.isArray(record?.lines)?record.lines:[];
+   if(!lines.length){group.review=true;group.grossComplete=false;group.netComplete=false;}
    for(const line of lines.slice(0,100)){
     const name=text(line?.printed_name);
     const quantity=qty(line?.quantity);
-    if(!name||quantity===null){group.review=true;continue;}
+    if(!name||quantity===null){
+     group.review=true;group.grossComplete=false;group.netComplete=false;
+     group.payableComplete=false;continue;
+    }
     const unit=text(line?.printed_unit);
     const price=num(line?.unit_price_vnd);
     const afterPrice=num(line?.net_unit_vnd);
