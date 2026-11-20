@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.52">
-<meta name="app-build-id" content="ef6d0f50927e52b1c71f79017e9a0e0ba9a2dc7846d77021186d313b062945b1">
+<meta name="app-release-version" content="V21.72.53">
+<meta name="app-build-id" content="6a4d03055f8dd36345388b8955ccf3e624495ae97cc6ab5df9ce9fa9d5558382">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -15631,6 +15631,21 @@ function parseVariantTail(line){
 // "10 th bé ít đường" in E Quyên's messages refers to TH milk.
 // The letters TH here are a product brand, not the carton abbreviation.
 const thMilkProduct=/^(\d{1,3})\s+th\s+(to|bé|bịch|lon)(?=\s|$)(.*)$/iu;
+// CHAT-404: two attested colloquial carton phrases from the customer chats.
+// Restrict "t" = "thùng" to the bát product family and an explicit number.
+// Do not generalize "t" into money/price discussions or rewrite names.
+const BAT_LEADING_CARTONS=/^(\d{1,3})\s*t\s+(bát\s+\d+(?:[.,]\d+)?\s*(?:kg|g)?)$/iu;
+const BAT_INVERTED_CARTONS=/^có\s+(bát\s+454(?:g)?)\s+(?:a|anh|ạ)\s+(\d{1,3})\s*t$/iu;
+function parseBatCartons(line){
+ const raw=String(line||'').trim();
+ if(!raw||raw.length>150)return null;
+ const clean=stripListMarker(raw);
+ const leading=clean.match(BAT_LEADING_CARTONS);
+ if(leading)return entry(leading[2].trim(),leading[1],'thùng',raw);
+ const inverted=clean.match(BAT_INVERTED_CARTONS);
+ // "Có ..." can also be an availability question; preserve as yellow review.
+ return inverted?entry(inverted[1].trim(),inverted[2],'thùng',raw,true):null;
+}
 function parseStrongLine(line){
  const raw=String(line||'').trim();
  if(!raw||raw.length>150||/https?:\/\/|[<>]/iu.test(raw))return null;
@@ -15714,6 +15729,8 @@ function parsePieces(line,isOrder){
  const original=String(line||'').trim();
  if(!original||original.length>240||/https?:\/\/|[<>]/iu.test(original))return [];
  const lead=requestLine(original),raw=lead.body.replace(/^(\d{1,3})(?=[\p{L}]{3,})/u,'$1 ');
+ const colloquial=parseBatCartons(raw);
+ if(colloquial)return [{...colloquial,source:original}];
  const compound=parseCompoundVariant(raw);
  if(compound)return compound.map(item=>({...item,source:original,review:item.review||lead.kind==='availability'}));
  // E.g. "5 sữa, 3 bánh" or "Mì 2 thùng; Bánh 3 gói".
@@ -16158,9 +16175,9 @@ const AppBootController={
     // Repeated global faults must not repaint the banner or multiply logs.
     if(this.lastErrorMessage===message&&!runtimeError.classList.contains('hidden'))return;
     this.lastErrorMessage=message;
-    runtimeError.textContent='V21.72.52 runtime: '+message;
+    runtimeError.textContent='V21.72.53 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.52]',error);
+    console.error('[ChatScreenModule V21.72.53]',error);
   },
   ready(){
     // A successful render invariant proves recovery only for errors seen
@@ -16272,7 +16289,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.52 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.53 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -16326,7 +16343,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.52',
+  releaseVersion:'V21.72.53',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -24977,7 +24994,7 @@ window.V21ConversationBridge={
 window.V21ChatImageViewer=Object.freeze({open:openImageViewer});
 
 window.ChatScreenModule={
-  version:'V21.72.52',
+  version:'V21.72.53',
   snapshot(){
     return{
       viewportMode:viewport.mode,
