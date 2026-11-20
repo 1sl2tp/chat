@@ -156,10 +156,15 @@ function parseVariantTail(line){
  const stem=m[3].toLowerCase()==='vq'?'probi':m[1]+' '+(m[2]||'').trim();
  return entry((stem+' '+m[3]).replace(/\s+/gu,' ').trim(),m[4],'',raw);
 }
+// "10 th bé ít đường" in E Quyên's messages refers to TH milk.
+// The letters TH here are a product brand, not the carton abbreviation.
+const thMilkProduct=/^(\d{1,3})\s+th\s+(to|bé|bịch|lon)\b(.*)$/iu;
 function parseStrongLine(line){
  const raw=String(line||'').trim();
  if(!raw||raw.length>150||/https?:\/\/|[<>]/iu.test(raw))return null;
  const clean=stripListMarker(raw);
+ const thMilk=clean.match(thMilkProduct);
+ if(thMilk)return entry('th '+thMilk[2]+thMilk[3],thMilk[1],'',raw,true);
  let m=clean.match(labeled);
  if(m)return entry(m[1],m[2],m[3],raw);
  m=clean.match(colonQuantity);
