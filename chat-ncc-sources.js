@@ -78,7 +78,24 @@ function readSaved(){
 }
 function chosen(){
  const saved=readSaved();
- return new Set(saved===null?defaults():saved);
+ if(saved===null)return new Set(defaults());
+ const selectedIds=new Set(saved);
+ // Upgrade an existing two-source preference once, without repeatedly
+ // re-enabling PP Thuốc Lá after the Admin deliberately unchecks it.
+ const key='chat-ncc-seed-pp419:'+admin();
+ const matches=candidates().filter(item=>names(item).includes('pp thuoc la'));
+ if(matches.length===1){
+  let seeded=false;
+  try{seeded=window.localStorage?.getItem(key)==='1';}catch{}
+  if(!seeded){
+   selectedIds.add(String(matches[0].id));
+   try{
+    window.localStorage?.setItem(storageKey(),JSON.stringify([...selectedIds]));
+    window.localStorage?.setItem(key,'1');
+   }catch{}
+  }
+ }
+ return selectedIds;
 }
 function selected(contactId){
  const id=String(contactId||'');
