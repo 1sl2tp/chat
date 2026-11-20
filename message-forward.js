@@ -111,7 +111,10 @@ function open(message){
   const closeButton=node.querySelector('.message-forward-close');
   if(closeButton)closeButton.innerHTML=window.V21Icons?.markup?.('close',{size:20})||'×';
   const preview=node.querySelector('.message-forward-preview');
-  if(preview)preview.textContent=String(message?.text||'').replace(/\s+/g,' ').trim().slice(0,160)||'Tin nhắn có ảnh hoặc tệp đính kèm';
+  if(preview){
+    const raw=String(message?.text||'').replace(/\s+/g,' ').trim().slice(0,160)||'Tin nhắn có ảnh hoặc tệp đính kèm';
+    preview.textContent=window.V21ChatMessageCase?.previewCase?.(raw)||raw;
+  }
   const input=node.querySelector('.message-forward-search');
   const list=node.querySelector('.message-forward-list');
   const status=node.querySelector('.message-forward-status');
