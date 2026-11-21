@@ -162,7 +162,7 @@ for(const [input,expectedName,expectedQty] of [
  ['2 chua nha đam','chua nha đam',2],
  ['2 chua ít đường','chua ít đường',2],
  ['10 milo to có đường','milo to có đường',10],
- ['5 9 hạt ít đường','9 hạt ít đường',5],
+ ['5 thùng 9 hạt ít đường','9 hạt ít đường',5],
  ['Milo *5','Milo',5],
  ['Milo*5','Milo',5],
  ['Milo sl 5','Milo',5],
