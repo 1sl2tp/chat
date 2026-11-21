@@ -48,4 +48,4 @@ def test_boot_auth_transitions_remove_guard_without_fake_demo_or_legacy_frames()
 def test_pwa_rotates_offline_shell_and_keeps_online_network_first():
     assert re.search(r"const SHELL_CACHE_EPOCH=\'pwa-chat-[^\']+\'", SW)
     assert "event.respondWith(networkFirst(request,{navigation:true,event}));" in SW
-    assert "const networkRequest=new Request(request,{cache:'no-store'});" in SW
+    assert "const networkRequest=new Request(request,{cache:navigation?'no-cache':'no-store'});" in SW
