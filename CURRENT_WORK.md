@@ -1,3 +1,14 @@
+## 2026-11-21 — CHAT-421 · Giảm lặp giờ, đọc hội thoại hai bên gọn hơn
+
+- **E0:** ảnh iPhone hội thoại E Toàn Thắng: nhiều mốc 06:46, 06:47, 06:51, 06:52 dưới từng tin bên trái, lặp giờ ở gần nhau làm gián đoạn nhịp đọc A/bên phải và B/bên trái.
+- **E1:** `app.js` thêm `conversationClockModes`: cùng người gửi trong một cụm tối đa 5 phút chỉ tin đầu cụm có giờ hiển thị; đổi người, qua ngày, tin đang gửi/thất bại, ảnh và tin trả lời mở mốc mới. Tính bằng **toàn bộ store.items** trước khi vẽ cửa sổ ảo hóa, tránh lặp giờ tại mép vùng cuộn. Giữ mỗi `<time datetime aria-label>` đầy đủ, giấu những giờ lặp bằng CSS hỗ trợ trình đọc màn hình, tooltip ở vùng tin trên desktop. `chatgpt-ab-conversation.css` giảm phần đệm dưới tin text thuộc cụm, giữ B đọc chữ thường bên trái và A bong bóng xám bên phải; không sửa media, ngày, bảng đơn KH, bàn phím, route, DB, notification.
+- **E2:** `tests/test_chat421_sparse_conversation_time_20261121.cjs` xác nhận chuỗi mốc 06:46/06:47/06:51/06:52/06:57 hai bên, nửa đêm VN, media, tin pending/retry/reply, cửa sổ ảo hóa và không động chạm `scrollTop`. Giữ thử nghiệm CHAT-414/408 và time-height hiện hữu, CI chờ.
+- **E3:** V21.72.65 qua CI Verify V21 và GitHub Pages tự động; không deploy thủ công.
+- **E4/E5:** chưa xem thực tế Safari iPhone/PWA Chrome Android, nhất là keyboard mở, người dùng cuộn giữa lịch sử dài hoặc bật thao tác trên tin. Ghi nhận timestamp thật không thay đổi, chỉ khác hiển thị. Nếu lỗi cuộn, rollback PR CHAT-421.
+- **MUST-STAY:** không tự gửi tin nhắn, không thay DB/Supabase, không tự thu tiền, không sửa nguồn ngày giờ hoặc tình trạng nhận/gửi, không có thay đổi ScrollController.
+
+---
+
 ## 2026-11-21 — CHAT-420 · Thu tiền mặt gõ 11378 hiện 11.378 ngay
 
 - **E0:** ảnh Chat ở khách A Hậu Còi: ô **Số tiền thu (÷1.000)** đang hiển thị `11378` không có dấu phân nhóm, trong khi số dư và preview ở dưới đã dùng `11.378`. Yêu cầu chỉ sửa hiển thị trực tiếp khi gõ.

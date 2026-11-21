@@ -275,9 +275,9 @@ const AppBootController={
     // Repeated global faults must not repaint the banner or multiply logs.
     if(this.lastErrorMessage===message&&!runtimeError.classList.contains('hidden'))return;
     this.lastErrorMessage=message;
-    runtimeError.textContent='V21.72.64 runtime: '+message;
+    runtimeError.textContent='V21.72.65 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.64]',error);
+    console.error('[ChatScreenModule V21.72.65]',error);
   },
   ready(){
     // A successful render invariant proves recovery only for errors seen
@@ -389,7 +389,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.64 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.65 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -443,7 +443,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.64',
+  releaseVersion:'V21.72.65',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -3498,6 +3498,30 @@ function stableMessageDomKey(message){
   return `${message?.sender==='self'?'self':'remote'}:${identity}`;
 }
 
+// CHAT-421: one clock per nearby same-sender reading group.
+// Decisions use the FULL conversation, never the virtualized window boundary,
+// so scrolling back does not invent new clocks at the top of each DOM slice.
+function conversationClockModes(items){
+ const modes=new Map();
+ let anchorAt=0,anchorDay='',anchorSender='';
+ for(const message of Array.isArray(items)?items:[]){
+  const key=stableMessageDomKey(message);
+  const stamp=messageTimestampMs(message);
+  const day=messageDateKey(stamp);
+  const sender=message?.sender==='self'?'self':'remote';
+  const importantState=message?.status==='sending'||message?.status==='failed';
+  const hasSpecialContent=Boolean(message?.media||message?.replyTo||message?.important);
+  const compact=Boolean(stamp&&anchorAt&&day&&day===anchorDay&&
+    sender===anchorSender&&!importantState&&!hasSpecialContent&&
+    stamp>=anchorAt&&stamp-anchorAt<5*60*1000);
+  modes.set(key,compact?'compact':'full');
+  if(!compact){
+   anchorAt=stamp;anchorDay=day;anchorSender=sender;
+  }
+ }
+ return modes;
+}
+
 function mediaVisualSignature(media){
   if(!media)return 'none';
   if(String(media.type)==='image'){
@@ -5834,6 +5858,7 @@ function syncDailyStockSummary(node,summary){
 }
 function reconcileMessageWindow(messages,summaryByOwner=new Map()){
   const desired=Array.isArray(messages)?messages:[];
+  const clockModes=conversationClockModes(store.items);
   const existingByKey=new Map();
   for(const node of Array.from(messageWindow.children)){
     const key=String(node.dataset.renderKey||'');
@@ -5871,6 +5896,18 @@ function reconcileMessageWindow(messages,summaryByOwner=new Map()){
     }else{
       node=renderMessageNode(message);
       dirty.add(node);
+    }
+    // Metadata is never deleted: compact clocks are visually hidden only.
+    // Keep the full exact time available as native tooltip on desktop.
+    const clockMode=clockModes.get(key)||'full';
+    if(node.dataset.timeMode!==clockMode){
+      node.dataset.timeMode=clockMode;
+      dirty.add(node); // measured height updates without scrollTop writes
+    }
+    const unit=node.querySelector('.message-turn-shell .message-unit');
+    if(unit){
+      const time=unit.querySelector(':scope > .message-sent-time');
+      unit.title=clockMode==='compact'?(time?.title||''):'';
     }
     if(syncStockImageOCRControl(node,message))dirty.add(node);
     if(syncDailyStockSummary(node,summaryByOwner.get(key)||null))dirty.add(node);
@@ -9276,7 +9313,7 @@ window.V21ConversationBridge={
 window.V21ChatImageViewer=Object.freeze({open:openImageViewer});
 
 window.ChatScreenModule={
-  version:'V21.72.64',
+  version:'V21.72.65',
   snapshot(){
     return{
       viewportMode:viewport.mode,
