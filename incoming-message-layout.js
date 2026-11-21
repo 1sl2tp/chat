@@ -7,7 +7,7 @@ const suffix=new RegExp('^(.+?)\\s+(\\d{1,3})\\s*('+U+')\\s*$','iu');
 const colonQuantity=new RegExp('^(.+?)\\s*[:：]\\s*(\\d{1,3})\\s*('+U+')\\s*$','iu');
 const prefix=new RegExp('^(\\d{1,3})\\s*('+U+')\\s+(.+?)\\s*$','iu');
 const labeled=new RegExp('^(.+?)\\s+(?:sl|số lượng|so luong)\\s*[:=]?\\s*(\\d{1,3})(?:\\s*('+U+'))?\\s*$','iu');
-const multiply=/^(.+?)\s+[x×]\s*(\d{1,3})\s*$/iu;
+const multiply=/^(.+?)(?:\s+[x×]\s*|\s*\*\s*)(\d{1,3})\s*$/iu;
 // Unitless `Tên: SL` requires an independently established order context;
 // this could otherwise be a price, product code or time.
 const colonBare=/^(.+?)\s*[:：=]\s*(\d{1,3})\s*$/iu;
@@ -235,7 +235,7 @@ function parseStrongLine(line){
  if(!raw||raw.length>150||/https?:\/\/|[<>]/iu.test(raw))return null;
  const clean=stripListMarker(raw);
  const thMilk=clean.match(thMilkProduct);
- if(thMilk)return entry('th '+thMilk[2]+thMilk[3],thMilk[1],'',raw,true);
+ if(thMilk)return entry('th '+thMilk[2]+thMilk[3],thMilk[1],'',raw);
  let m=clean.match(labeled);
  if(m)return entry(m[1],m[2],m[3],raw);
  m=clean.match(colonQuantity);
@@ -262,6 +262,19 @@ function parseBareLine(line,isOrder){
  // "5 sữa 100 200" is ambiguous code/price text, never a silent item.
  if(/\s+\d{2,}\s+\d{2,}\s*$/u.test(clean))return null;
  return entry(m[2],m[1],'',raw);
+}
+// CHAT-424: a plain trailing number is quantity only in an established
+// stock-request context. Longer numbers are more likely sizes/product codes;
+// those need a separate explicit SL, "*" or unit marker.
+function parseBareSuffixLine(line,isOrder){
+ if(!isOrder)return null;
+ const raw=String(line||'').trim();
+ if(!raw||raw.length>150||/https?:\/\/|[<>]/iu.test(raw))return null;
+ const m=stripListMarker(raw).match(/^(.+?)\s+(\d{1,3})$/iu);
+ if(!m||Number(m[2])>99)return null;
+ const name=m[1].trim();
+ if(/^(?:giá|báo giá|giảm giá|ship|giao hàng|ngày|tháng|sđt|mã|tổng|cộng|địa chỉ)(?:\s|$)/iu.test(name))return null;
+ return entry(name,m[2],'',raw);
 }
 // A pack descriptor at the END of a quantity-first product name is
 // merchandise text, not a reason to shorten the customer's product name.
@@ -346,7 +359,8 @@ function parsePieces(line,isOrder){
  if(segments.length>=2&&segments.length<=12){
   const found=segments.map(x=>parseStrongLine(x)||parseLiteralPackName(x,isOrder)||
    parseUnitAroundNumber(x,isOrder)||parseSizedQuantity(x,isOrder)||
-   parseVariantTail(x)||parseColonBare(x,isOrder)||parseBareLine(x,isOrder));
+   parseVariantTail(x)||parseColonBare(x,isOrder)||parseBareLine(x,isOrder)||
+   parseBareSuffixLine(x,isOrder));
   if(found.every(Boolean)){
    // Each fragment keeps the name actually written; never inherit
    // a product family from another fragment automatically.
@@ -356,9 +370,9 @@ function parsePieces(line,isOrder){
  }
  const single=parseStrongLine(raw)||parseLiteralPackName(raw,isOrder)||
   parseUnitAroundNumber(raw,isOrder)||parseSizedQuantity(raw,isOrder)||
-  parseVariantTail(raw)||parseColonBare(raw,isOrder)||parseBareLine(raw,isOrder);
- return single?[{...single,source:original,review:single.review||lead.kind==='availability'||
-  (single.unit===''&&knownSingleCustomerProduct.test(original))}]:[];
+  parseVariantTail(raw)||parseColonBare(raw,isOrder)||parseBareLine(raw,isOrder)||
+  parseBareSuffixLine(raw,isOrder);
+ return single?[{...single,source:original,review:single.review||lead.kind==='availability'}]:[];
 }
 function topicLine(line){
  const match=String(line||'').trim().replace(/^[#•\s]+/u,'').match(/^(.{2,36}?)(?:\s*[:：-]\s*(.*))?$/u);
@@ -429,6 +443,7 @@ function analyze(input){
   (lines.length===1&&knownSingleCustomerProduct.test(lines[0]))||
   (lines.length===1&&parseBareLine(lines[0],true)!==null)||
   (lines.length===1&&/(?:^|\s)(?:sl|số lượng|so luong)\s*[:=]?\s*\d{1,3}/iu.test(lines[0]))||
+  (lines.length===1&&multiply.test(stripListMarker(requestLine(lines[0]).body)))||
   (items[0].unit&&notes.some(note=>ambiguousOrderNote(note.text)))||
   items.every(item=>VERIFIED_SIZE.test(item.name))||
   items.every(item=>KNOWN_VARIANT_TAIL.test(stripListMarker(item.source)))));
