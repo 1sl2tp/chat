@@ -48,7 +48,7 @@ function syncDirectoryChatTab(isDirectory=true){
   if(!isDirectory)return true;
   const label=tab.querySelector('[data-chat-tab-label]');
   const avatar=tab.querySelector('[data-chat-tab-avatar]');
-  if(label)label.textContent='Chat';
+  if(label)label.textContent='Trò chuyện';
   if(avatar)avatar.hidden=true;
   tab.removeAttribute('data-contact-identity');
   return true;
