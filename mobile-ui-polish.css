@@ -1828,38 +1828,28 @@
 .chat-header-actions{display:none}
 .chat-header-action-menu[hidden]{display:none!important}
 @media(max-width:63.999rem){
-  /* The directory already has one Chat / Work selector in its own toolbar.
-     The outer header is only the screen title, not another two-tab switch. */
+  /* DIR-343 remains the ONE Chat / Work switch on the directory.
+     Keep both actions and their state; just remove the heavy capsule. */
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"]
   #regionTop .top-mode-switch[data-directory-owner="true"]{
-    box-sizing:border-box;
-    justify-self:stretch;
-    width:100%;
-    max-width:none;
-    grid-template-columns:minmax(0,1fr)!important;
+    max-width:300px;
+    gap:6px;
+    padding:2px;
     border:0;
-    border-radius:0;
-    padding:0;
     background:transparent;
     box-shadow:none;
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"]
-  #regionTop .top-mode-switch[data-directory-owner="true"] .top-mode-tab[data-top-tab="photos"]{
-    display:none!important;
+  #regionTop .top-mode-switch[data-directory-owner="true"] .top-mode-tab{
+    border-radius:12px;
+    box-shadow:none;
+    font-size:14px;
+    font-weight:550;
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"]
-  #regionTop .top-mode-switch[data-directory-owner="true"] .top-mode-tab[data-top-tab="chat"]{
-    display:flex;
-    justify-content:flex-start;
-    min-height:44px;
-    padding:0;
-    border:0;
-    border-radius:0;
-    background:transparent;
-    box-shadow:none;
-    font-size:18px;
-    font-weight:700;
-    color:var(--theme-content-primary);
+  #regionTop .top-mode-switch[data-directory-owner="true"] .top-mode-tab[aria-selected="true"]{
+    background:var(--theme-surface-secondary);
+    font-weight:650;
   }
   /* One-line conversation header instead of an oversized segmented pill. */
   #appShell[data-auth-state="authenticated"][data-route="chat"][data-chat-contact="true"]
