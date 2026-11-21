@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.68">
-<meta name="app-build-id" content="5378b46ad3f1284d58c23abffed37bc5c3297b175b52802442208a6f9006b270">
+<meta name="app-release-version" content="V21.72.69">
+<meta name="app-build-id" content="533456d900da0464f8aa493998fff9ac46a999694a89669f97d2fddfc572cc7d">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -16087,6 +16087,8 @@ const colonQuantity=new RegExp('^(.+?)\\s*[:：]\\s*(\\d{1,3})\\s*('+U+')\\s*$',
 const prefix=new RegExp('^(\\d{1,3})\\s*('+U+')\\s+(.+?)\\s*$','iu');
 const labeled=new RegExp('^(.+?)\\s+(?:sl|số lượng|so luong)\\s*[:=]?\\s*(\\d{1,3})(?:\\s*('+U+'))?\\s*$','iu');
 const multiply=/^(.+?)(?:\s+[x×]\s*|\s*\*\s*)(\d{1,3})\s*$/iu;
+// CHAT-425: explicit *quantity + unit. Preserve sizes/codes/prices in prefix.
+const explicitStarPack=new RegExp('^(.+?)\\s*[*×]\\s*(\\d{1,3})(?:\\s*('+U+'))?\\s*$','iu');
 // Unitless `Tên: SL` requires an independently established order context;
 // this could otherwise be a price, product code or time.
 const colonBare=/^(.+?)\s*[:：=]\s*(\d{1,3})\s*$/iu;
@@ -16325,6 +16327,9 @@ function parseStrongLine(line){
  if(m)return entry(m[1],m[2],m[3],raw);
  m=clean.match(prefix);
  if(m)return entry(m[3],m[1],m[2],raw);
+ m=clean.match(explicitStarPack);
+ if(m&&!/^(?:cộng|tổng|thành tiền|tiền hàng|giá|giảm giá)(?=\s|[:：]|$)/iu.test(m[1].trim()))
+  return entry(m[1],m[2],m[3],raw);
  m=clean.match(multiply);
  if(m)return entry(m[1],m[2],'',raw);
  return null;
@@ -16525,6 +16530,7 @@ function analyze(input){
   (lines.length===1&&parseBareLine(lines[0],true)!==null)||
   (lines.length===1&&/(?:^|\s)(?:sl|số lượng|so luong)\s*[:=]?\s*\d{1,3}/iu.test(lines[0]))||
   (lines.length===1&&multiply.test(stripListMarker(requestLine(lines[0]).body)))||
+  (lines.length===1&&explicitStarPack.test(stripListMarker(requestLine(lines[0]).body)))||
   (items[0].unit&&notes.some(note=>ambiguousOrderNote(note.text)))||
   items.every(item=>VERIFIED_SIZE.test(item.name))||
   items.every(item=>KNOWN_VARIANT_TAIL.test(stripListMarker(item.source)))));
@@ -16941,7 +16947,8 @@ window.V21NccChatImageUI=Object.freeze({sync,imageIds});
 // In-memory, current authenticated Admin+conversation only. Images never get
 // copied into drafts/outbox or sent as new messages. No automatic paid scans.
 (()=>{'use strict';
-const FUNCTION='v21-ncc-ai-room';
+// Customer image OCR is a dedicated read-only Edge endpoint (CHAT-425).
+const FUNCTION='v21-chat-stock-image';
 const cache=new Map();
 const inflight=new Map();
 const MAX_BYTES=4000000;
@@ -17466,9 +17473,9 @@ const AppBootController={
     // Repeated global faults must not repaint the banner or multiply logs.
     if(this.lastErrorMessage===message&&!runtimeError.classList.contains('hidden'))return;
     this.lastErrorMessage=message;
-    runtimeError.textContent='V21.72.68 runtime: '+message;
+    runtimeError.textContent='V21.72.69 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.68]',error);
+    console.error('[ChatScreenModule V21.72.69]',error);
   },
   ready(){
     // A successful render invariant proves recovery only for errors seen
@@ -17580,7 +17587,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.68 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.69 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -17634,7 +17641,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.68',
+  releaseVersion:'V21.72.69',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -26504,7 +26511,7 @@ window.V21ConversationBridge={
 window.V21ChatImageViewer=Object.freeze({open:openImageViewer});
 
 window.ChatScreenModule={
-  version:'V21.72.68',
+  version:'V21.72.69',
   snapshot(){
     return{
       viewportMode:viewport.mode,
