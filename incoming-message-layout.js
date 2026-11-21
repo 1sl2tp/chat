@@ -559,6 +559,19 @@ function renderDailySummary(target,summary){
  head.append(el('strong','incoming-brief-title','Tổng hợp lấy hàng · '+String(summary.dayLabel||'trong ngày')),
   el('span','incoming-brief-count',
    summary.items.length+' hàng từ tin · '+(summary.imageGroups?.length||0)+' ảnh'));
+ // CHAT-431: use the existing editor/VisualViewport owner.
+ // Complete stock rows and OCR notes stay mounted and unchanged.
+ const first=summary.items?.[0]||null;
+ const lead=first
+  ? String(first.name||'')+' × '+String(first.qty??'')
+  : String(summary.imageGroups?.length||0)+' ảnh cần soát';
+ const more=Math.max(0,(summary.items?.length||0)-1);
+ const preview=el('button','day-order-keyboard-preview',
+  lead+(more?' · +'+more+' hàng':'')+' · Xem chi tiết');
+ preview.type='button';
+ preview.setAttribute('aria-label','Đóng bàn phím để xem đầy đủ bảng tổng hợp lấy hàng');
+ preview.onclick=()=>document.getElementById('editor')?.blur?.();
+ head.append(preview);
  root.append(head);
  if(summary.items.length){
  const grid=stockTable();
