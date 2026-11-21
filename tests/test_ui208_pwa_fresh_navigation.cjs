@@ -1,5 +1,5 @@
 // UI-208: An installed PWA or browser tab must NOT render a stale HTML shell
-// while online. Web, Android PWA and iOS PWA share the same SW navigation path.
+// while online. Web, Android PWA and iOS PWA share server-revalidated navigation.
 'use strict';
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
@@ -113,7 +113,7 @@ function makeHarness(){
   const req=new h.FakeRequest('./',{mode:'navigate'});
   const rendered=await h.dispatch('fetch',{request:req});
   assert.equal(rendered.body,'CURRENT-WEB-BUILD',runtime+' may never render cached B+ while online');
-  assert.equal(h.requested.at(-1).cache,'no-store',runtime+' must bypass HTTP cache');
+  assert.equal(h.requested.at(-1).cache,'no-cache',runtime+' must revalidate HTML using HTTP cache');
  }
  assert.equal((await active.match('./')).body,'CURRENT-WEB-BUILD',
   'healthy navigation also repairs the offline shell');
