@@ -162,3 +162,38 @@
 #messageWindow .day-order-image-note{
  font-size:11px;line-height:16px;opacity:.8;
 }
+
+/* CHAT-431: when the existing mobile keyboard owner opens, use a short
+   preview for the daily KH card. Preserve real table/notes in the DOM.
+   No new scroll, viewport or keyboard owner. */
+.day-order-keyboard-preview{
+ display:none;appearance:none;min-height:32px;width:100%;max-width:100%;
+ padding:5px 9px;border:1px solid rgba(83,98,118,.19);
+ border-radius:9px;background:rgba(100,116,140,.07);
+ color:inherit;font-weight:600;font-size:12px;line-height:18px;
+ text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+ cursor:pointer;touch-action:manipulation;
+}
+.day-order-keyboard-preview:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+@media(max-width:63.999rem),(pointer:coarse){
+ #appShell[data-auth-state="authenticated"][data-route="chat"]
+ #stageLayout[data-keyboard-open="true"]:not([data-bank-report-active="true"])
+ #messageWindow .message-day-order-wrap .day-order-summary-card{
+  gap:3px;padding:8px 11px;
+ }
+ #appShell[data-auth-state="authenticated"][data-route="chat"]
+ #stageLayout[data-keyboard-open="true"]:not([data-bank-report-active="true"])
+ #messageWindow .message-day-order-wrap .incoming-brief-head{
+  flex-direction:column;align-items:stretch;gap:2px;
+ }
+ #appShell[data-auth-state="authenticated"][data-route="chat"]
+ #stageLayout[data-keyboard-open="true"]:not([data-bank-report-active="true"])
+ #messageWindow .message-day-order-wrap .day-order-summary-card > :not(.incoming-brief-head){
+  display:none;
+ }
+ #appShell[data-auth-state="authenticated"][data-route="chat"]
+ #stageLayout[data-keyboard-open="true"]:not([data-bank-report-active="true"])
+ #messageWindow .message-day-order-wrap .day-order-keyboard-preview{
+  display:block;
+ }
+}
