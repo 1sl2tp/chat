@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.73">
-<meta name="app-build-id" content="a0f0ffef6ef7ef368cf280fca95b5f4479c6d22dfb9674d2a617b0e1726598da">
+<meta name="app-release-version" content="V21.72.74">
+<meta name="app-build-id" content="276ba7a2f0e658f0679c23940d0b95af96528372aee8a8d646ffbb9b175ba079">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -2120,6 +2120,41 @@
 }
 #messageWindow .day-order-image-note{
  font-size:11px;line-height:16px;opacity:.8;
+}
+
+/* CHAT-431: when the existing mobile keyboard owner opens, use a short
+   preview for the daily KH card. Preserve real table/notes in the DOM.
+   No new scroll, viewport or keyboard owner. */
+.day-order-keyboard-preview{
+ display:none;appearance:none;min-height:32px;width:100%;max-width:100%;
+ padding:5px 9px;border:1px solid rgba(83,98,118,.19);
+ border-radius:9px;background:rgba(100,116,140,.07);
+ color:inherit;font-weight:600;font-size:12px;line-height:18px;
+ text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+ cursor:pointer;touch-action:manipulation;
+}
+.day-order-keyboard-preview:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+@media(max-width:63.999rem),(pointer:coarse){
+ #appShell[data-auth-state="authenticated"][data-route="chat"]
+ #stageLayout[data-keyboard-open="true"]:not([data-bank-report-active="true"])
+ #messageWindow .message-day-order-wrap .day-order-summary-card{
+  gap:3px;padding:8px 11px;
+ }
+ #appShell[data-auth-state="authenticated"][data-route="chat"]
+ #stageLayout[data-keyboard-open="true"]:not([data-bank-report-active="true"])
+ #messageWindow .message-day-order-wrap .incoming-brief-head{
+  flex-direction:column;align-items:stretch;gap:2px;
+ }
+ #appShell[data-auth-state="authenticated"][data-route="chat"]
+ #stageLayout[data-keyboard-open="true"]:not([data-bank-report-active="true"])
+ #messageWindow .message-day-order-wrap .day-order-summary-card > :not(.incoming-brief-head){
+  display:none;
+ }
+ #appShell[data-auth-state="authenticated"][data-route="chat"]
+ #stageLayout[data-keyboard-open="true"]:not([data-bank-report-active="true"])
+ #messageWindow .message-day-order-wrap .day-order-keyboard-preview{
+  display:block;
+ }
 }
 
 </style>
@@ -16712,6 +16747,19 @@ function renderDailySummary(target,summary){
  head.append(el('strong','incoming-brief-title','Tổng hợp lấy hàng · '+String(summary.dayLabel||'trong ngày')),
   el('span','incoming-brief-count',
    summary.items.length+' hàng từ tin · '+(summary.imageGroups?.length||0)+' ảnh'));
+ // CHAT-431: use the existing editor/VisualViewport owner.
+ // Complete stock rows and OCR notes stay mounted and unchanged.
+ const first=summary.items?.[0]||null;
+ const lead=first
+  ? String(first.name||'')+' × '+String(first.qty??'')
+  : String(summary.imageGroups?.length||0)+' ảnh cần soát';
+ const more=Math.max(0,(summary.items?.length||0)-1);
+ const preview=el('button','day-order-keyboard-preview',
+  lead+(more?' · +'+more+' hàng':'')+' · Xem chi tiết');
+ preview.type='button';
+ preview.setAttribute('aria-label','Đóng bàn phím để xem đầy đủ bảng tổng hợp lấy hàng');
+ preview.onclick=()=>document.getElementById('editor')?.blur?.();
+ head.append(preview);
  root.append(head);
  if(summary.items.length){
  const grid=stockTable();
@@ -17551,9 +17599,9 @@ const AppBootController={
     // Repeated global faults must not repaint the banner or multiply logs.
     if(this.lastErrorMessage===message&&!runtimeError.classList.contains('hidden'))return;
     this.lastErrorMessage=message;
-    runtimeError.textContent='V21.72.73 runtime: '+message;
+    runtimeError.textContent='V21.72.74 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.73]',error);
+    console.error('[ChatScreenModule V21.72.74]',error);
   },
   ready(){
     // A successful render invariant proves recovery only for errors seen
@@ -17665,7 +17713,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.73 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.74 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -17719,7 +17767,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.73',
+  releaseVersion:'V21.72.74',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -26589,7 +26637,7 @@ window.V21ConversationBridge={
 window.V21ChatImageViewer=Object.freeze({open:openImageViewer});
 
 window.ChatScreenModule={
-  version:'V21.72.73',
+  version:'V21.72.74',
   snapshot(){
     return{
       viewportMode:viewport.mode,
