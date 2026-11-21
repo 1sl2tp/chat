@@ -1,3 +1,15 @@
+## 2026-11-21 — CHAT-431 · Ưu tiên diện tích hội thoại khi bàn phím iPhone mở
+
+- **E0 / Given:** Ảnh iPhone PWA lúc 21:52 có bàn phím đang mở, bảng “Tổng hợp lấy hàng · Hôm nay” chiếm phần lớn diện tích còn lại; header/composer hiện hữu không phải root owner cần nhân đôi. Thanh ↑↓✓ phía trên bàn phím có thể thuộc hệ thống iOS, không được giả định là một thanh Chat có thể tắt bằng CSS.
+- **When/Then:** Trong hội thoại Chat nhóm KH có card tổng hợp ngày, khi `#stageLayout[data-keyboard-open="true"]` trên thiết bị mobile/coarse pointer, card chỉ còn tiêu đề, số hàng và nút xem nhanh “Tên × SL · Xem chi tiết”; nhấn vào preview đóng bàn phím qua chính editor owner, để bảng và ghi chú xuất hiện lại. Bàn phím đóng / desktop / bank-report giữ giao diện cũ.
+- **E1 / Owner:** `incoming-message-layout.js::renderDailySummary` chỉ thêm button trong header, còn `incoming-message-layout.css` chỉ thay cách hiển thị khi state của `app.js::KeyboardInsetAdapter` đã xác nhận bàn phím mở. Không tạo scroll controller, VisualViewport listener, timer hay request mới. Bảng STT/Tên/SL và nhãn vàng/ảnh OCR/note vẫn giữ DOM và dữ liệu.
+- **E2 / Tests:** `tests/test_chat431_keyboard_workspace_20261121.cjs` xác nhận preview một hàng/nhiều hàng/ảnh, thao tác editor.blur(), nguyên bảng và ghi chú, CSS scope và không có owner phụ; tích hợp vào Verify V21 và canonical verify. PR Verify V21 #44920941322 SUCCESS: https://github.com/1sl2tp/chat/actions/runs/44920941322 .
+- **E3 / Release:** PR #373 https://github.com/1sl2tp/chat/pull/373 merged squash `4e62b2f06c626dc356139d5fab21194adce3dac3`. CI canonical artifact `873736a8b3ed59ec243dd8a9482ca53ead1a6416`. V21.72.74, build_id `276ba7a2f0e658f0679c23940d0b95af96528372aee8a8d646ffbb9b175ba079`. Deploy Pages #44921076096 SUCCESS, including HTTPS custom-domain index/version.json matching: https://github.com/1sl2tp/chat/actions/runs/44921076096 . Không deploy thủ công.
+- **E4/E5:** Chưa nghiệm thu thao tác trực tiếp trên iPhone PWA/Android keyboard, xác nhận không rung và không nhảy vùng cuộn; `PENDING`. Bản này **chưa** can thiệp thanh điều hướng bàn phím iOS hoặc thay đổi layout header/composer; chỉ giải phóng diện tích card tổng hợp lúc gõ.
+- **MUST-STAY / Resource / Rollback:** Không gửi tin thật, không tạo đơn/thu tiền, không đụng Supabase/Auth/Push/Realtime/migrations, nháp, media, outbox. Chỉ tăng một nút DOM nhẹ trong mỗi card KH; 0 API/RPC/poll/DB write mới. Nếu regression, revert squash PR #373 rồi kiểm thử bàn phím/PWA và giữ dữ liệu riêng tư.
+
+---
+
 ## 2026-11-21 — CHAT-430 · PWA online navigation revalidation (giảm tải mở ứng dụng)
 
 - **E0:** Người dùng báo Chat mở chậm. index.html canonical trong CI là 2.048.083 byte; sw.js::networkFirst trước đây dùng cache=no-store cho mọi navigation, không sử dụng HTTP cache và có thể tải lại toàn bộ HTML ở mỗi lần mở. Đây là bottleneck tải mạng được chứng minh bằng source; chưa đo first paint trên iPhone thật.
