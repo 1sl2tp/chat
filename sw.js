@@ -407,7 +407,11 @@ self.addEventListener('notificationclick',event=>{
 // deferred automatic reloads; that stranded B+ demo controls in PWA installs.
 // Cached HTML is *only* an offline recovery option, never an online priority.
 async function networkFirst(request,{navigation=false,event=null}={}){
-  const networkRequest=new Request(request,{cache:'no-store'});
+  // CHAT-430: HTML is ~2 MB. Revalidate a navigation against the HTTP cache
+  // instead of forcing a full transfer on every online PWA launch. 'no-cache'
+  // still asks the server for a fresh copy (304 when unchanged); offline
+  // CacheStorage fallback and private API /version.json rules remain intact.
+  const networkRequest=new Request(request,{cache:navigation?'no-cache':'no-store'});
   try{
     const response=await fetch(networkRequest);
     if(response&&response.ok&&new URL(request.url).origin===self.location.origin){
