@@ -61,7 +61,10 @@ assert(!/\.storage\.from\(|\.upload\(|\.remove\(|\.send\(|queueMediaFiles/u.test
 assert(pure.includes('parseStockImageModel'));
 assert(pure.includes('Numbers before * or × can be prices or sizes'));
 assert(pure.includes('mỗi\\s+màu'));
-assert(html.includes('content="V21.72.69"'));
-assert(sw.includes("RELEASE_VERSION='V21.72.69'"));
-assert(sw.includes("SHELL_CACHE_EPOCH='pwa-chat-ui425-stock-photo-20261121'"));
+// Future source-compatible releases may bump the app version and PWA cache.
+const release=html.match(/name="app-release-version" content="(V21\.72\.\d+)"/u)?.[1];
+assert(release&&Number(release.split('.').at(-1))>=69,'release >= V21.72.69');
+assert(sw.includes("RELEASE_VERSION='"+release+"'"),'SW/HTML version parity');
+const epoch=sw.match(/SHELL_CACHE_EPOCH='pwa-chat-ui(\d+)-[^']+'/u);
+assert(epoch&&Number(epoch[1])>=425,'PWA shell epoch >= CHAT-425');
 console.log('CHAT-425 text *quantity and isolated stock photo OCR guard: PASS');

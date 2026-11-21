@@ -129,7 +129,8 @@ async function scan(assetId){
      Number.isSafeInteger(Number(line.qty))&&Number(line.qty)>0).map(line=>({
      name:String(line.name).trim().slice(0,120),
      qty:Number(line.qty),unit:String(line.unit||'').slice(0,25),
-     raw:String(line.raw||'').slice(0,260),review:true
+     raw:String(line.raw||'').slice(0,260),
+     note:String(line.note||'').trim().slice(0,240),review:true
    })),
    notes:Array.isArray(data.notes)?data.notes.slice(0,60).map(x=>String(x).slice(0,240)):[],
    assetId

@@ -768,6 +768,9 @@ jobs:
           node --check chat-stock-image-read.js
           node --check chat-stock-image-ui.js
           node tests/test_chat409_typed_stock_image_20261120.mjs
+      - name: CHAT-426 Nuvi 5 thùng + ghi chú đi kèm
+        run: |
+          node tests/test_chat426_nuvi_quantity_and_note_20261121.mjs
       - name: CHAT-425 typed message and isolated photo OCR
         run: |
           node --check incoming-message-layout.js

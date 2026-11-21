@@ -481,7 +481,8 @@ function summarizeDay(messages){
      Number.isSafeInteger(Number(item?.qty))&&Number(item.qty)>=1&&Number(item.qty)<=999
     ).slice(0,60).map(item=>({
      name:String(item.name).trim().slice(0,120),qty:Number(item.qty),
-     unit:String(item.unit||'').slice(0,25),review:true
+     unit:String(item.unit||'').slice(0,25),
+     note:String(item.note||'').trim().slice(0,240),review:true
     }));
     const rawNotes=(Array.isArray(read.notes)?read.notes:[]).slice(0,60)
      .map(note=>String(note).trim().slice(0,240)).filter(Boolean);
@@ -537,6 +538,8 @@ function stockTableRow(item,index,{review=false,reviewText='Cần hướng dẫn
  if(needsReview)row.dataset.needsReview='true';
  const name=el('span','incoming-brief-product',item.name);
  if(needsReview)name.append(el('span','incoming-brief-review',reviewText));
+ // CHAT-426: the OCR remainder is a note attached to its single item.
+ if(item?.note)name.append(el('span','incoming-brief-product-note','Ghi chú: '+item.note));
  const cells=[
   el('span','incoming-brief-index',index+1),
   name,
