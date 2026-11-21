@@ -40,6 +40,8 @@ const knownSingleCustomerProduct=/^\d{1,3}\s+(?:milo|bò|chua|proby|probi|yomost
 const extraItemHeading=/^(?:thêm|lấy thêm|cho thêm|thêm vào đơn(?: hôm trước)?)\s*[:：]?\s*$/iu;
 const deicticProduct=/^(?:này|kia|đó|đấy|vậy|ấy)(?:\s|$)/iu;
 const deicticTail=/(?:\s|^)(?:này|kia|đấy|đó)\s*$/iu;
+// Preserve review only for genuinely shortened, unresolved flavor names.
+const uncertainFlavorShorthand=/^(?:probi|proby)\s+(?:bé|be|to)\s+(?:co|it)\s+dg$/iu;
 function ambiguousOrderNote(line){
  const raw=String(line||'').trim();
  if(!raw||/https?:\/\/|[<>]/iu.test(raw))return false;
@@ -61,7 +63,7 @@ function entry(raw,qty,u,source,review=false,allowVerifiedNumericName=false){
   (/\p{L}/u.test(name)||(allowVerifiedNumericName&&/^454$/u.test(name)))&&
   !/[<>]/u.test(name)
   &&Number.isInteger(amount)&&amount>=1&&amount<=999
-  ?{name,qty:amount,unit:unit(u),source,review:Boolean(review)||deicticTail.test(name)}:null;
+  ?{name,qty:amount,unit:unit(u),source,review:Boolean(review)||deicticTail.test(name)||uncertainFlavorShorthand.test(name)}:null;
 }
 // Explicit quantity/packaging wins over the presence of digits in a product name.
 // CHAT-400: read units on either side of the quantity (not from a fixed
