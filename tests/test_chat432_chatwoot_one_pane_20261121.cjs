@@ -25,7 +25,11 @@ assert(block.includes('order:2;'));
 assert(block.includes('.chat-header-actions{'));
 assert(block.includes('.chat-header-more{'));
 assert(block.includes('width:44px;'), '44pt touch controls retained');
-assert(block.includes('.top-mode-switch[data-directory-owner="true"]'));
+assert(css.includes('.top-mode-switch[data-directory-owner="true"]'),
+ 'directory must keep the original CHAT-388 owner');
+const ui240=css.slice(css.indexOf('UI-240-MOBILE-DIRECTORY-RHYTHM-20261106'),css.indexOf('/* UI-359'));
+assert(!ui240.includes('[data-mobile-directory='),
+ 'CHAT-432 must not override protected UI-240 rhythm block');
 assert(block.includes('grid-template-columns:minmax(0,1fr)!important;'),
  'only selected conversation gets one-column top identity');
 assert(!block.includes('.top-mode-switch[data-directory-owner="true"] .top-mode-tab[data-top-tab="photos"]{\n    display:none'),
