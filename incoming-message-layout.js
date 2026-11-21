@@ -519,10 +519,45 @@ function summarizeDay(messages){
  return {kind:'daily-order',items,notes,imageGroups,
   messageCount:sourceKeys.size};
 }
+// CHAT-422: the approved KH card and every source use the SAME
+// STT | Tên sản phẩm | SL geometry. Pure DOM, no OCR/AI, ledger or send owner.
+// Product names remain byte-for-byte data; SL is numeric-only and unit stays
+// in read-only metadata rather than becoming a fourth column.
+function stockTable(){
+ const grid=el('div','incoming-brief-products');
+ grid.dataset.stockColumns='stt-name-qty';
+ grid.setAttribute('role','table');
+ const columns=el('div','incoming-brief-columns');
+ columns.setAttribute('role','row');
+ for(const title of ['STT','Tên sản phẩm','SL']){
+  const heading=el('span','',title);
+  heading.setAttribute('role','columnheader');
+  columns.append(heading);
+ }
+ grid.append(columns);
+ return grid;
+}
+function stockTableRow(item,index,{review=false,reviewText='Cần hướng dẫn'}={}){
+ const row=el('div','incoming-brief-item');
+ row.setAttribute('role','row');
+ const needsReview=review||Boolean(item?.review);
+ if(needsReview)row.dataset.needsReview='true';
+ const name=el('span','incoming-brief-product',item.name);
+ if(needsReview)name.append(el('span','incoming-brief-review',reviewText));
+ const cells=[
+  el('span','incoming-brief-index',index+1),
+  name,
+  el('span','incoming-brief-quantity',item.qty)
+ ];
+ for(const cell of cells)cell.setAttribute('role','cell');
+ row.append(...cells);
+ return row;
+}
 function renderDailySummary(target,summary){
  if(!target||summary?.kind!=='daily-order'||
    !(summary.items?.length||summary.imageGroups?.length))return false;
  const root=el('section','incoming-brief day-order-summary-card');
+ root.dataset.approvedLayout='kh-stock-three-columns-v1';
  root.setAttribute('aria-label','Tổng hợp tin lấy hàng trong ngày');
  const head=el('div','incoming-brief-head');
  head.append(el('strong','incoming-brief-title','Tổng hợp lấy hàng · '+String(summary.dayLabel||'trong ngày')),
@@ -530,19 +565,8 @@ function renderDailySummary(target,summary){
    summary.items.length+' hàng từ tin · '+(summary.imageGroups?.length||0)+' ảnh'));
  root.append(head);
  if(summary.items.length){
- const grid=el('div','incoming-brief-products');
- const columns=el('div','incoming-brief-columns');
- columns.append(el('span','','STT'),el('span','','Tên sản phẩm'),el('span','','SL'));
- grid.append(columns);
- summary.items.forEach((item,index)=>{
-  const row=el('div','incoming-brief-item');
-  if(item.review)row.dataset.needsReview='true';
-  const name=el('span','incoming-brief-product',item.name);
-  if(item.review)name.append(el('span','incoming-brief-review','Cần hướng dẫn'));
-  row.append(el('span','incoming-brief-index',index+1),name,
-   el('span','incoming-brief-quantity',item.qty));
-  grid.append(row);
- });
+ const grid=stockTable();
+ summary.items.forEach((item,index)=>grid.append(stockTableRow(item,index)));
  root.append(grid);
  }
  for(const image of summary.imageGroups||[]){
@@ -553,19 +577,10 @@ function renderDailySummary(target,summary){
    }):'';
   source.append(el('strong','day-order-image-title',
    'Ảnh '+time+' · '+image.items.length+' dòng · Cần soát'));
-  const grid=el('div','incoming-brief-products');
-  const columns=el('div','incoming-brief-columns');
-  columns.append(el('span','','STT'),el('span','','Tên sản phẩm'),el('span','','SL'));
-  grid.append(columns);
-  image.items.forEach((item,index)=>{
-   const row=el('div','incoming-brief-item');
-   row.dataset.needsReview='true';
-   const name=el('span','incoming-brief-product',item.name);
-   name.append(el('span','incoming-brief-review','Cần soát ảnh'));
-   row.append(el('span','incoming-brief-index',index+1),name,
-    el('span','incoming-brief-quantity',item.qty));
-   grid.append(row);
-  });
+  const grid=stockTable();
+  image.items.forEach((item,index)=>grid.append(stockTableRow(item,index,{
+   review:true,reviewText:'Cần soát ảnh'
+  })));
   source.append(grid);
   for(const text of image.notes){
    const line=el('div','incoming-brief-note',text);
@@ -607,22 +622,8 @@ function render(target,input){
    parsed.kind==='order'||parsed.kind==='availability'?parsed.items.length+' mặt hàng':parsed.groups.length+' chủ đề'));
  root.append(head);
  if(parsed.items.length){
-  const list=el('div','incoming-brief-products');
-  const columns=el('div','incoming-brief-columns');
-  columns.append(el('span','','STT'),el('span','','Tên sản phẩm'),
-    el('span','','SL'));
-  list.append(columns);
-  parsed.items.forEach((item,index)=>{
-   const row=el('div','incoming-brief-item');
-   if(item.review)row.dataset.needsReview='true';
-   const name=el('span','incoming-brief-product',item.name);
-   if(item.review)name.append(el('span','incoming-brief-review','Cần hướng dẫn'));
-   row.append(el('span','incoming-brief-index',index+1),name,
-    // Only the requested numeric count is visible in SL. Unit remains in
-    // parsed data for review, never concatenated into product name or SL.
-    el('span','incoming-brief-quantity',item.qty));
-   list.append(row);
-  });
+  const list=stockTable();
+  parsed.items.forEach((item,index)=>list.append(stockTableRow(item,index)));
   root.append(list);
  }
  for(const group of parsed.groups){

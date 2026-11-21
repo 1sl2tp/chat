@@ -772,6 +772,10 @@ jobs:
         run: |
           node --check app.js
           node tests/test_chat413_kh_only_stock_summary_20261120.cjs
+      - name: CHAT-422 approved 10-item KH daily stock card
+        run: |
+          node --check incoming-message-layout.js
+          node tests/test_chat422_approved_stock_summary_20261121.cjs
       - name: CHAT-418 selected supplier chat photos use existing Nhập hàng
         run: |
           node --check chat-ncc-sources.js

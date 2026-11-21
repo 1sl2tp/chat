@@ -1,3 +1,14 @@
+## 2026-11-21 — CHAT-422 · Chốt mẫu tổng hợp KH 10 hàng đã duyệt
+
+- **E0:** người dùng xác nhận đúng ảnh tổng hợp lấy hàng ngày 20/11/2026, gồm STT/Tên sản phẩm/SL, 10 mặt hàng, 0 ảnh, các dòng chưa chắc chắn có nhãn vàng Cần hướng dẫn, bảng nằm cuối hội thoại và tách trước mốc ngày mới. Yêu cầu sửa vào dự án ngay thay vì chỉ hứa giữ mẫu.
+- **E1:** đưa dựng bảng vào hai hàm `stockTable` và `stockTableRow` dùng chung cho tin chữ, nhóm ảnh OCR và bảng tổng hợp cuối ngày; `data-approved-layout=kh-stock-three-columns-v1` làm mốc nhận diện. Giữ nguyên ba cột, nhãn vàng, SL dạng số, nguồn dữ liệu, nội dung tin, điều kiện KH và cách gộp ngày; bổ sung role table/row/cell để trình đọc màn hình hiểu các cột.
+- **E2:** `tests/test_chat422_approved_stock_summary_20261121.cjs` đóng băng mẫu 10 sản phẩm với đúng SL/nhãn Cần hướng dẫn, header, text/ảnh tách biệt, trường hợp 1 sản phẩm và chống tạo side effect; thêm vào Verify V21. Giữ CHAT-381/408/409/413.
+- **E3:** phát hành V21.72.66 qua PR, CI và Pages tự động; không deploy thủ công.
+- **E4/E5:** chưa nghiệm thu trực tiếp iPhone/PWA Android. Chỉ chuẩn hóa cùng DOM và thêm kiểm thử, không thay đổi parser hoặc xóa bất kỳ nhãn chưa chắc chắn nào. Nếu lỗi scroll/overflow, rollback PR CHAT-422.
+- **MUST STAY:** không tạo đơn, không gửi tin, không thu tiền, không sửa dữ liệu customer/stock/DB, không gọi AI.
+
+---
+
 ## 2026-11-21 — CHAT-421 · Giảm lặp giờ, đọc hội thoại hai bên gọn hơn
 
 - **E0:** ảnh iPhone hội thoại E Toàn Thắng: nhiều mốc 06:46, 06:47, 06:51, 06:52 dưới từng tin bên trái, lặp giờ ở gần nhau làm gián đoạn nhịp đọc A/bên phải và B/bên trái.
