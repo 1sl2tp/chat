@@ -4,27 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.72">
-<meta name="app-build-id" content="5e5cc3f07bcc97d646e787c14514f94c2889aabd1ba18efd745affb651ba306c">
+<meta name="app-release-version" content="V21.72.73">
+<meta name="app-build-id" content="34afa6a6fe9573a7124fa7ca21a1d13f1e9efd721f78aec4aadbc5d8c7e16a10">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="TAPHOA Chat">
-<!-- CHAT-428: iOS Home Screen mode has a navigator.standalone fallback
-     when the display-mode media query is not exposed by WebKit. -->
-<script>
-  (function(){
-    try{
-      const ios=/iPhone|iPad|iPod/.test(navigator.userAgent||'') ||
-        (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
-      const standalone=navigator.standalone===true ||
-        Boolean(window.matchMedia?.('(display-mode: standalone)')?.matches);
-      if(ios && standalone){
-        document.documentElement.setAttribute('data-chat-ios-standalone','true');
-      }
-    }catch(_error){}
-  })();
-</script>
+
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" sizes="180x180" href="./icons/chat-app-180-v3.png">
 <link rel="icon" type="image/svg+xml" href="./icons/chat-favicon.svg">
@@ -64,6 +50,75 @@
      hidden attribute (including before Tailwind runtime utilities load). */
   #appShell [hidden], #globalOverlayRoot [hidden] {
     display:none!important;
+  }
+</style>
+<!-- CHAT-429: Local critical CSS, independent of remote Tailwind CDN.
+     A blocked CDN on mobile must never expose scroll telemetry, hide Composer,
+     or destroy the canonical Chat layout. The CDN may still progressively
+     style noncritical utility variants when online. -->
+<style id="chat-critical-local-layout">
+  .hidden,[hidden]{display:none!important}
+  .sr-only{position:absolute!important;width:1px!important;height:1px!important;
+    padding:0!important;margin:-1px!important;overflow:hidden!important;
+    clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+  #modeLabel{display:none!important}
+  #appShell .flex{display:flex}
+  #appShell .flex-col{flex-direction:column}
+  #appShell .flex-1{flex:1 1 0%}
+  #appShell .grow{flex-grow:1}
+  #appShell .basis-auto{flex-basis:auto}
+  #appShell .min-h-0{min-height:0}
+  #appShell .min-w-0{min-width:0}
+  #appShell .min-h-full{min-height:100%}
+  #appShell .relative{position:relative}
+  #appShell .sticky{position:sticky}
+  #appShell .fixed{position:fixed}
+  #appShell .top-0{top:0}
+  #appShell .w-full{width:100%}
+  #appShell .h-full{height:100%}
+  #appShell .overflow-y-auto{overflow-y:auto}
+  #appShell .overflow-x-clip{overflow-x:clip}
+  #appShell .pointer-events-none{pointer-events:none}
+  #appShell .pointer-events-auto{pointer-events:auto}
+  #appShell .items-center{align-items:center}
+  #appShell .gap-1{gap:.25rem}
+  #appShell .px-1{padding-left:.25rem;padding-right:.25rem}
+  #appShell .px-2{padding-left:.5rem;padding-right:.5rem}
+  #appShell .py-2{padding-top:.5rem;padding-bottom:.5rem}
+  #appShell .pb-2{padding-bottom:.5rem}
+  #appShell #stageLayout{
+    display:flex;flex-direction:column;
+    width:100%;height:100svh;
+    padding-top:env(safe-area-inset-top,0px);
+    box-sizing:border-box;
+  }
+  #appShell #scrollRoot{
+    position:relative;display:flex;flex:1 1 0%;
+    flex-direction:column;min-width:0;min-height:0;
+    overflow-x:clip;overflow-y:auto;
+  }
+  #appShell #regionTop{
+    position:sticky;top:0;z-index:20;
+    height:var(--header-height,72px);
+    flex:0 0 auto;pointer-events:none;
+  }
+  #appShell #regionTop .compact-top-grid>*{pointer-events:auto}
+  #appShell #main{min-height:0;flex:1 1 0%}
+  #appShell #thread{display:flex;flex-direction:column;min-height:100%}
+  #appShell #threadContent{
+    position:relative;display:flex;flex-direction:column;flex-grow:1;
+  }
+  #appShell #thread-bottom-container{
+    display:flex;flex-direction:column;width:100%;pointer-events:none;
+  }
+  #appShell #composerInteractive{
+    position:relative;display:flex;flex-direction:column;
+    width:100%;pointer-events:auto;
+  }
+  @supports(height:100dvh){
+    @media(max-width:63.999rem),(pointer:coarse){
+      #appShell #stageLayout{height:100dvh}
+    }
   }
 </style>
 <script defer src="https://cdn.tailwindcss.com"></script>
@@ -7579,43 +7634,6 @@ button{
   scrollbar-width:none;
 }
 #scrollRoot::-webkit-scrollbar{display:none;width:0;height:0}
-/* CHAT-428 — iPhone PWA status bar / ChatGPT reading mode.
-   CHAT-427 put the safe inset on the scrolling box itself. WebKit keeps that
-   inset as an opaque upper band. A scroll-away flex spacer instead lets old
-   messages pass UNDER the translucent status bar while the first paint,
-   navigation buttons and new-message position respect the safe area.
-   The conversation remains the only scroll owner; the Composer and keyboard
-   viewport logic stay untouched. */
-@media (max-width:63.999rem){
-  :root[data-chat-ios-standalone="true"] #stageLayout{
-    padding-top:0!important;
-  }
-  :root[data-chat-ios-standalone="true"] #scrollRoot{
-    padding-top:0!important;
-  }
-  :root[data-chat-ios-standalone="true"] #scrollRoot::before{
-    content:"";
-    display:block;
-    flex:0 0 env(safe-area-inset-top,0px);
-    height:env(safe-area-inset-top,0px);
-    min-height:0;
-    pointer-events:none;
-  }
-  :root[data-chat-ios-standalone="true"] #regionTop{
-    top:env(safe-area-inset-top,0px);
-  }
-  :root[data-chat-ios-standalone="true"] body::after{
-    content:"";
-    position:fixed;
-    inset:0 0 auto;
-    height:env(safe-area-inset-top,0px);
-    background:color-mix(in srgb,var(--theme-surface-primary,#fff) 56%,transparent);
-    -webkit-backdrop-filter:blur(18px);
-    backdrop-filter:blur(18px);
-    pointer-events:none;
-    z-index:21;
-  }
-}
 #stageLayout[data-keyboard-open="true"] #scrollRoot{
   -webkit-clip-path:inset(0 0 var(--screen-keyboard-height,0px) 0);
   clip-path:inset(0 0 var(--screen-keyboard-height,0px) 0);
