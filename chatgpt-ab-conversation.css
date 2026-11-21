@@ -170,3 +170,34 @@
     color:var(--theme-content-tertiary)!important;
   }
 }
+
+/* CHAT-421 | Sparse reading clocks, two-sided ChatGPT-style conversation.
+   First message in each same-sender ~5min group owns the visible timestamp.
+   Every message still retains its real <time> and screen-reader date, but
+   repeated clocks no longer reserve the old 17–25px footer on short texts.
+   No position:sticky/fixed, animation, scrolling or keyboard ownership. */
+#appShell[data-auth-state="authenticated"][data-route="chat"]
+#stageLayout:not([data-bank-report-active="true"])
+#messageWindow>.message-row[data-time-mode="compact"]
+.message-unit>.message-sent-time{
+  position:absolute!important;
+  inline-size:1px!important;
+  block-size:1px!important;
+  min-width:0!important;
+  max-width:1px!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:hidden!important;
+  white-space:nowrap!important;
+  clip-path:inset(50%)!important;
+  opacity:0!important;
+  pointer-events:none!important;
+}
+#appShell[data-auth-state="authenticated"][data-route="chat"]
+#stageLayout:not([data-bank-report-active="true"])
+#messageWindow>.message-row[data-time-mode="compact"][data-content-kind="text"]
+.message-unit:not([data-shared-list="true"])>.message-text:not([hidden]){
+  padding-bottom:7px!important;
+}
+/* Shared order tables, photos, audio, unread separators and sending/failed
+   message clocks do not participate in the shortened text footer. */
