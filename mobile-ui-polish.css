@@ -1822,9 +1822,9 @@
   }
 }
 
-/* CHAT-432: conversational header is Back | Customer | Call + More.
-   CHAT-339's overflow stays the single advanced-action owner. No additional
-   navigation, keyboard, scroll, or call handler is created. */
+/* CHAT-339 / CHAT-432: conversational header is Back | Customer | Call + More.
+   Existing overflow stays the advanced-action owner; CallFocus stays
+   the only phone-call owner. No new keyboard, scroll or network owner. */
 .chat-header-actions{display:none}
 .chat-header-action-menu[hidden]{display:none!important}
 @media(max-width:63.999rem){
