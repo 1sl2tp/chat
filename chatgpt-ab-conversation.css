@@ -175,7 +175,7 @@
    First message in each same-sender ~5min group owns the visible timestamp.
    Every message still retains its real <time> and screen-reader date, but
    repeated clocks no longer reserve the old 17–25px footer on short texts.
-   No position:sticky/fixed, animation, scrolling or keyboard ownership. */
+   No viewport positioning, animation, scrolling or keyboard ownership. */
 #appShell[data-auth-state="authenticated"][data-route="chat"]
 #stageLayout:not([data-bank-report-active="true"])
 #messageWindow>.message-row[data-time-mode="compact"]
