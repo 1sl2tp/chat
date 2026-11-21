@@ -151,3 +151,49 @@ assert.deepEqual(Array.from(noInference.items,x=>[x.name,x.qty]),[
  ['pepsi lon',5],['pepsi chai',3],['Pepsi lon',5]
 ],'never merge repeated names or reclassify stock availability as an order');
 console.log('CHAT-423 literal item name + quantity and no speculative aggregation: PASS');
+
+
+// CHAT-424: an explicitly written product + quantity is not a guess.
+// The historic CHAT-422 gold review flags above still test the rendering
+// of genuinely unresolved fields; extraction must not manufacture them.
+for(const [input,expectedName,expectedQty] of [
+ ['3 bò bịch ko đường','bò bịch ko đường',3],
+ ['5 proby to có','proby to có',5],
+ ['2 chua nha đam','chua nha đam',2],
+ ['2 chua ít đường','chua ít đường',2],
+ ['10 milo to có đường','milo to có đường',10],
+ ['5 thùng 9 hạt ít đường','9 hạt ít đường',5],
+ ['Milo *5','Milo',5],
+ ['Milo*5','Milo',5],
+ ['Milo sl 5','Milo',5],
+ ['1kg sl 20','1kg',20],
+ ['cosy bơ 600 sl 3','cosy bơ 600',3]
+]){
+ const result=CHAT423.analyze(input);
+ assert.equal(result?.kind,'order',input);
+ assert.equal(result.items.length,1,input);
+ assert.equal(result.items[0].name,expectedName,input+' name unchanged');
+ assert.equal(result.items[0].qty,expectedQty,input+' quantity literal');
+ assert.equal(result.items[0].review,false,input+' no false yellow review');
+}
+const contextSuffix=CHAT423.analyze('Báo hàng\nMilo 5\nCosy bơ 600 3');
+assert.equal(contextSuffix?.kind,'order');
+assert.deepEqual(Array.from(contextSuffix.items,item=>[item.name,item.qty,item.review]),[
+ ['Milo',5,false],['Cosy bơ 600',3,false]
+]);
+assert.equal(CHAT423.analyze('Cosy bơ 600'),null,
+ 'bare product size is not a quantity outside an order context');
+const compactDaily=CHAT423.summarizeDay([
+ {sender:'remote',id:'q1',text:'5 proby to có'},
+ {sender:'remote',id:'q2',text:'2 chua ít đường'},
+ {sender:'remote',id:'q3',text:'Milo *5'}
+]);
+assert.deepEqual(Array.from(compactDaily.items,item=>[item.name,item.qty,item.review]),[
+ ['proby to có',5,false],['chua ít đường',2,false],['Milo',5,false]
+], 'daily card uses literal independent rows without invented review labels or merging');
+const combinedGrammar=CHAT423.analyze('Proby to có 5. ít 2. việt quất 2');
+assert.equal(combinedGrammar?.kind,'order');
+assert.equal(combinedGrammar.items[0].review,true,
+ 'compound shorthand that inherits a product name still requires a review');
+assert.equal(combinedGrammar.items[1].review,true);
+console.log('CHAT-424 explicit quantity forms, false-warning removal and compound exception: PASS');
