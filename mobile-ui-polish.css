@@ -1828,29 +1828,6 @@
 .chat-header-actions{display:none}
 .chat-header-action-menu[hidden]{display:none!important}
 @media(max-width:63.999rem){
-  /* DIR-343 remains the ONE Chat / Work switch on the directory.
-     Keep both actions and their state; just remove the heavy capsule. */
-  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"]
-  #regionTop .top-mode-switch[data-directory-owner="true"]{
-    max-width:300px;
-    gap:6px;
-    padding:2px;
-    border:0;
-    background:transparent;
-    box-shadow:none;
-  }
-  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"]
-  #regionTop .top-mode-switch[data-directory-owner="true"] .top-mode-tab{
-    border-radius:12px;
-    box-shadow:none;
-    font-size:14px;
-    font-weight:550;
-  }
-  #appShell[data-auth-state="authenticated"][data-mobile-directory="true"]
-  #regionTop .top-mode-switch[data-directory-owner="true"] .top-mode-tab[aria-selected="true"]{
-    background:var(--theme-surface-secondary);
-    font-weight:650;
-  }
   /* One-line conversation header instead of an oversized segmented pill. */
   #appShell[data-auth-state="authenticated"][data-route="chat"][data-chat-contact="true"]
   #regionTop .top-mode-switch[data-contact-identity="true"]{
@@ -2180,14 +2157,14 @@
   /* Directory navigation is not a third set of large filter pills.  Keep
      real Chat/Work actions, but give the chosen scope a discreet underline. */
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #regionTop .top-mode-switch[data-directory-owner="true"]{
-    width:min(100%,260px);
+    width:min(100%,280px);
     max-width:100%;
     min-height:44px;
-    padding:3px;
-    gap:2px;
+    padding:0;
+    gap:4px;
     border:0;
-    border-radius:999px;
-    background:var(--theme-surface-secondary);
+    border-radius:0;
+    background:transparent;
     box-shadow:none;
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #regionTop .top-mode-switch[data-directory-owner="true"] .top-mode-tab{
@@ -2195,7 +2172,7 @@
     height:44px;
     padding:0 9px;
     border:0;
-    border-radius:999px;
+    border-radius:10px;
     background:transparent!important;
     box-shadow:none!important;
     color:var(--theme-content-secondary);
@@ -2204,8 +2181,8 @@
     letter-spacing:-.012em;
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #regionTop .top-mode-switch[data-directory-owner="true"] .top-mode-tab[aria-selected="true"]{
-    box-shadow:0 1px 4px rgba(0,0,0,.07)!important;
-    background:var(--theme-surface-primary)!important;
+    box-shadow:none!important;
+    background:var(--theme-surface-secondary)!important;
     color:var(--theme-content-primary);
     font-weight:650;
   }
