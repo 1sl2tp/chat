@@ -8,6 +8,8 @@ const colonQuantity=new RegExp('^(.+?)\\s*[:：]\\s*(\\d{1,3})\\s*('+U+')\\s*$',
 const prefix=new RegExp('^(\\d{1,3})\\s*('+U+')\\s+(.+?)\\s*$','iu');
 const labeled=new RegExp('^(.+?)\\s+(?:sl|số lượng|so luong)\\s*[:=]?\\s*(\\d{1,3})(?:\\s*('+U+'))?\\s*$','iu');
 const multiply=/^(.+?)(?:\s+[x×]\s*|\s*\*\s*)(\d{1,3})\s*$/iu;
+// CHAT-425: explicit *quantity + unit. Preserve sizes/codes/prices in prefix.
+const explicitStarPack=new RegExp('^(.+?)\\s*[*×]\\s*(\\d{1,3})(?:\\s*('+U+'))?\\s*$','iu');
 // Unitless `Tên: SL` requires an independently established order context;
 // this could otherwise be a price, product code or time.
 const colonBare=/^(.+?)\s*[:：=]\s*(\d{1,3})\s*$/iu;
@@ -246,6 +248,9 @@ function parseStrongLine(line){
  if(m)return entry(m[1],m[2],m[3],raw);
  m=clean.match(prefix);
  if(m)return entry(m[3],m[1],m[2],raw);
+ m=clean.match(explicitStarPack);
+ if(m&&!/^(?:cộng|tổng|thành tiền|tiền hàng|giá|giảm giá)(?=\s|[:：]|$)/iu.test(m[1].trim()))
+  return entry(m[1],m[2],m[3],raw);
  m=clean.match(multiply);
  if(m)return entry(m[1],m[2],'',raw);
  return null;
@@ -446,6 +451,7 @@ function analyze(input){
   (lines.length===1&&parseBareLine(lines[0],true)!==null)||
   (lines.length===1&&/(?:^|\s)(?:sl|số lượng|so luong)\s*[:=]?\s*\d{1,3}/iu.test(lines[0]))||
   (lines.length===1&&multiply.test(stripListMarker(requestLine(lines[0]).body)))||
+  (lines.length===1&&explicitStarPack.test(stripListMarker(requestLine(lines[0]).body)))||
   (items[0].unit&&notes.some(note=>ambiguousOrderNote(note.text)))||
   items.every(item=>VERIFIED_SIZE.test(item.name))||
   items.every(item=>KNOWN_VARIANT_TAIL.test(stripListMarker(item.source)))));
