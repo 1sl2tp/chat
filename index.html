@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.73">
-<meta name="app-build-id" content="34afa6a6fe9573a7124fa7ca21a1d13f1e9efd721f78aec4aadbc5d8c7e16a10">
+<meta name="app-build-id" content="c1b3fce5008e2becb992ccf28867934a2ce7c03eda76845a3c9f69d2458dbd32">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -17551,9 +17551,9 @@ const AppBootController={
     // Repeated global faults must not repaint the banner or multiply logs.
     if(this.lastErrorMessage===message&&!runtimeError.classList.contains('hidden'))return;
     this.lastErrorMessage=message;
-    runtimeError.textContent='V21.72.72 runtime: '+message;
+    runtimeError.textContent='V21.72.73 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.72]',error);
+    console.error('[ChatScreenModule V21.72.73]',error);
   },
   ready(){
     // A successful render invariant proves recovery only for errors seen
@@ -17665,7 +17665,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.72 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.73 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -17719,7 +17719,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.72',
+  releaseVersion:'V21.72.73',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -26589,7 +26589,7 @@ window.V21ConversationBridge={
 window.V21ChatImageViewer=Object.freeze({open:openImageViewer});
 
 window.ChatScreenModule={
-  version:'V21.72.72',
+  version:'V21.72.73',
   snapshot(){
     return{
       viewportMode:viewport.mode,
