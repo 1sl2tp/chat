@@ -1,3 +1,14 @@
+## 2026-11-21 — CHAT-430 · PWA online navigation revalidation (giảm tải mở ứng dụng)
+
+- **E0:** Người dùng báo Chat mở chậm. index.html canonical trong CI là 2.048.083 byte; sw.js::networkFirst trước đây dùng cache=no-store cho mọi navigation, không sử dụng HTTP cache và có thể tải lại toàn bộ HTML ở mỗi lần mở. Đây là bottleneck tải mạng được chứng minh bằng source; chưa đo first paint trên iPhone thật.
+- **E1 / owner:** Sửa sw.js::networkFirst: navigation dùng cache=no-cache để revalidate (không cache-first), asset khác giữ no-store; version.json tiếp tục no-store. Offline CacheStorage fallback, data auth, nháp, media, outbox và giao thức tin nhắn không đổi; không thêm HTTP request hoặc polling.
+- **E2:** Cập nhật tests/test_ui208_pwa_fresh_navigation.cjs và tests/test_ui213_first_paint_guard.py; kiểm online fresh, offline fallback, cache lỗi và tài nguyên khác. 6 ca mô phỏng độc lập PASS. Full PR Verify V21 #44885569340 SUCCESS: https://github.com/1sl2tp/chat/actions/runs/44885569340 .
+- **E3:** PR #372 https://github.com/1sl2tp/chat/pull/372 merged commit 07919697a3ed08ed315cdb038462b9c69365f098; canonical output commit 60e18282ffa89a5d9302a9c8021edef3234f4cda; Pages #44885683889 SUCCESS kể cả custom-domain verification https://github.com/1sl2tp/chat/actions/runs/44885683889 . Không deploy thủ công.
+- **E4/E5:** Chưa kiểm iPhone Safari/PWA, Android Chrome/PWA và chưa đo số ms/MB trên mạng yếu; revalidation chỉ tiết kiệm chuyển tải khi HTTP cache có validator và file không đổi. Kiểm cold/warm open, mất mạng, đăng nhập, bàn phím và danh bạ trước khi khẳng định nhanh hơn.
+- **MUST-STAY / rollback:** Không gửi tin, không đụng DB/Realtime/RPC/Push/bank, không xóa dữ liệu riêng tư. Nếu mở PWA gặp bản cũ bất thường, revert PR #372 rồi xác minh SW/Pages/version.json.
+
+---
+
 ## 2026-11-21 — CHAT-422 · Chốt mẫu tổng hợp KH 10 hàng đã duyệt
 
 - **E0:** người dùng xác nhận đúng ảnh tổng hợp lấy hàng ngày 20/11/2026, gồm STT/Tên sản phẩm/SL, 10 mặt hàng, 0 ảnh, các dòng chưa chắc chắn có nhãn vàng Cần hướng dẫn, bảng nằm cuối hội thoại và tách trước mốc ngày mới. Yêu cầu sửa vào dự án ngay thay vì chỉ hứa giữ mẫu.
