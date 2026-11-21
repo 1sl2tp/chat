@@ -29,6 +29,7 @@ subprocess.run(['node',str(ROOT/'tests'/'test_chat_resize_observer_runtime_20261
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_forward_search_ios_keyboard_20261105.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat339_header_forward_actions_20261113.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat381_incoming_message_brief_20261117.cjs')],check=True,cwd=ROOT)
+subprocess.run(['node',str(ROOT/'tests'/'test_chat425_stock_request_forms_20261121.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_call187_native_dial_phone_menu_20261113.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat340_sending_orbit_border_20261113.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_ui341_mobile_directory_preview_time_20261113.cjs')],check=True,cwd=ROOT)

@@ -143,7 +143,7 @@ const auth={
  snapshot:()=>({state:'AUTHENTICATED',account:{id:'admin-one',role:'admin'},
   appSessionId:'session-one'}),
  getClient:()=>({functions:{invoke:async(name,{body})=>{
-  assert.equal(name,'v21-ncc-ai-room');
+  assert.equal(name,'v21-chat-stock-image');
   assert.equal(body.action,'health');
   healthCalls++;
   return {data:{ok:true,ready:true,

@@ -2,7 +2,8 @@
 // In-memory, current authenticated Admin+conversation only. Images never get
 // copied into drafts/outbox or sent as new messages. No automatic paid scans.
 (()=>{'use strict';
-const FUNCTION='v21-ncc-ai-room';
+// Customer image OCR is a dedicated read-only Edge endpoint (CHAT-425).
+const FUNCTION='v21-chat-stock-image';
 const cache=new Map();
 const inflight=new Map();
 const MAX_BYTES=4000000;
