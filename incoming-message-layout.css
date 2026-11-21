@@ -39,6 +39,10 @@
 .incoming-brief-quantity{justify-self:end;text-align:right}
 .incoming-brief-index{font-size:11px;line-height:19px;opacity:.7;font-variant-numeric:tabular-nums}
 .incoming-brief-product{min-width:0;font-size:13px;line-height:20px;overflow-wrap:anywhere}
+.incoming-brief-product-note{
+ display:block;margin-top:3px;color:var(--theme-text-secondary,#667085);
+ font-size:11px;line-height:16px;font-weight:400;overflow-wrap:anywhere;
+}
 .incoming-brief-quantity{
  min-width:0;font-weight:750;font-size:13px;line-height:20px;
  font-variant-numeric:tabular-nums;white-space:normal;overflow-wrap:normal;
