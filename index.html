@@ -4,12 +4,27 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.71">
-<meta name="app-build-id" content="9247344698557b915af56f1794789ea62fb8ce5ea330096e08da1ef08bd30a9d">
+<meta name="app-release-version" content="V21.72.72">
+<meta name="app-build-id" content="001c0f49962cd308f3b73b35da6b6cad6a2f0afd90416ec83d19a587fdb3ccf1">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="TAPHOA Chat">
+<!-- CHAT-428: iOS Home Screen mode has a navigator.standalone fallback
+     when the display-mode media query is not exposed by WebKit. -->
+<script>
+  (function(){
+    try{
+      const ios=/iPhone|iPad|iPod/.test(navigator.userAgent||'') ||
+        (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+      const standalone=navigator.standalone===true ||
+        Boolean(window.matchMedia?.('(display-mode: standalone)')?.matches);
+      if(ios && standalone){
+        document.documentElement.setAttribute('data-chat-ios-standalone','true');
+      }
+    }catch(_error){}
+  })();
+</script>
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" sizes="180x180" href="./icons/chat-app-180-v3.png">
 <link rel="icon" type="image/svg+xml" href="./icons/chat-favicon.svg">
@@ -7564,23 +7579,39 @@ button{
   scrollbar-width:none;
 }
 #scrollRoot::-webkit-scrollbar{display:none;width:0;height:0}
-/* CHAT-427 — iOS installed PWA edge-to-edge surface, ChatGPT-style.
-   The stage now fills the viewport. Only the independent conversation
-   scroll owner gets the top safe inset, so old messages can scroll beneath
-   a frosted status bar. The sticky navigation stays clear of the notch.
-   Never change the Composer/VisualViewport keyboard placement owner. */
-@media (display-mode:standalone) and (max-width:63.999rem){
-  #stageLayout{padding-top:0!important;}
-  #scrollRoot{padding-top:env(safe-area-inset-top,0px);}
-  #regionTop{top:env(safe-area-inset-top,0px);}
-  body::after{
+/* CHAT-428 — iPhone PWA status bar / ChatGPT reading mode.
+   CHAT-427 put the safe inset on the scrolling box itself. WebKit keeps that
+   inset as an opaque upper band. A scroll-away flex spacer instead lets old
+   messages pass UNDER the translucent status bar while the first paint,
+   navigation buttons and new-message position respect the safe area.
+   The conversation remains the only scroll owner; the Composer and keyboard
+   viewport logic stay untouched. */
+@media (max-width:63.999rem){
+  :root[data-chat-ios-standalone="true"] #stageLayout{
+    padding-top:0!important;
+  }
+  :root[data-chat-ios-standalone="true"] #scrollRoot{
+    padding-top:0!important;
+  }
+  :root[data-chat-ios-standalone="true"] #scrollRoot::before{
+    content:"";
+    display:block;
+    flex:0 0 env(safe-area-inset-top,0px);
+    height:env(safe-area-inset-top,0px);
+    min-height:0;
+    pointer-events:none;
+  }
+  :root[data-chat-ios-standalone="true"] #regionTop{
+    top:env(safe-area-inset-top,0px);
+  }
+  :root[data-chat-ios-standalone="true"] body::after{
     content:"";
     position:fixed;
-    top:0;left:0;right:0;
+    inset:0 0 auto;
     height:env(safe-area-inset-top,0px);
-    background:color-mix(in srgb,var(--theme-surface-primary,#fff) 78%,transparent);
-    -webkit-backdrop-filter:blur(14px);
-    backdrop-filter:blur(14px);
+    background:color-mix(in srgb,var(--theme-surface-primary,#fff) 56%,transparent);
+    -webkit-backdrop-filter:blur(18px);
+    backdrop-filter:blur(18px);
     pointer-events:none;
     z-index:21;
   }
