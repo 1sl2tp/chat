@@ -129,9 +129,9 @@ assert.deepEqual(Array.from(mixedFormats.items,row=>[row.name,row.qty,row.unit])
  ['bò bịch ko đường',3,''],['bàn',2,'bộ']
 ]);
 const typoUnits=analyze('Lấy hàng\nSữa 5 thùg\n5thùg sữa\n5 sữa thùg');
-assert.deepEqual(Array.from(typoUnits.items,row=>row.unit),['thùng','thùng','thùng']);
-assert(typoUnits.items.every(row=>row.review===true),
- 'uncertain unit typo is flagged for review, original text unchanged');
+assert.deepEqual(Array.from(typoUnits.items,row=>[row.name,row.qty,row.unit]),[
+ ['sữa thùg',5,'']
+],'do not guess a misspelled container unit; preserve the literal name');
 assert.equal(typoUnits.source,'Lấy hàng\nSữa 5 thùg\n5thùg sữa\n5 sữa thùg');
 const notCorrected=analyze('Lấy hàng\n3 bò bịch ko đường\n5 bô sữa');
 assert.deepEqual(Array.from(notCorrected.items,row=>[row.name,row.unit]),[
@@ -252,7 +252,7 @@ const quyenCorpus=[
  ]},
  {text:'1 thùng milo này',rows:[['milo này',1,'thùng']]},
  {text:'2 chua có, 2 ít, 2 không, 2 nha đam\nProby to: 3 có, 1 ít',rows:[
-  ['chua có',2,''],['chua ít',2,''],['chua không',2,''],['chua nha đam',2,''],
+  ['chua có',2,''],['ít',2,''],['không',2,''],['nha đam',2,''],
   ['Proby to có',3,''],['Proby to ít',1,'']
  ]},
  {text:'1 Chinsu trắng + 1 chinsu đỏ\n10 omachi sườn',rows:[
@@ -402,7 +402,7 @@ const existingLong=analyze(
  '1 thăng long mềm\n2 sao xanh lá\n2 sao xanh dương\n'+
  '5 thùng bò bé ít đường\n2 bò lít ko, 2 bò lít có');
 assert.deepEqual(Array.from(existingLong.items,x=>[x.name,x.qty]),[
- ['long mềm',1],['sao xanh lá',2],['sao xanh dương',2],
+ ['thăng long mềm',1],['sao xanh lá',2],['sao xanh dương',2],
  ['bò bé ít đường',5],['bò lít ko',2],['bò lít có',2]
 ],'do not change the already-reviewed soft carton and milk examples');
 
@@ -463,7 +463,8 @@ assert.deepEqual(Array.from(sum16.items,x=>[x.name,x.qty]),[
  ['sữa chua đường đen',2],['sữa chua vnm ko đường',1],
  ['probi be co dg',5],['probi be it dg',5]
 ]);
-assert.deepEqual(Array.from(sum16.notes,x=>[x.text,x.review]),[['Chân trâu',true]]);
+assert.deepEqual(Array.from(sum16.notes,x=>[x.text,x.review]),[],
+ 'do not guess that a separate topping note belongs to an earlier item');
 assert(sum16.items[2].review&&sum16.items[3].review,
  'uncertain flavor abbreviations are yellow, not rewritten');
 const sum19=summarizeDay([
@@ -486,7 +487,7 @@ assert.deepEqual(Array.from(dailyProducts.children[0].children,x=>x.textContent)
  ['STT','Tên sản phẩm','SL']);
 assert.deepEqual(Array.from(dailyProducts.children.slice(1),x=>x.children[2].textContent),
  ['2','1','5','5']);
-assert(dailyTarget.textContent.includes('Chân trâu'));
+assert(!dailyTarget.textContent.includes('Chân trâu'));
 assert(dailyTarget.textContent.includes('Cần hướng dẫn'));
 assert.equal(summarizeDay([{sender:'self',text:'5 thùng mì',key:'self'}]),null,
  'only incoming customer requests belong in the day summary');
@@ -496,10 +497,10 @@ const double=summarizeDay([
  {sender:'remote',text:'1 thung susu lọ cam',key:'A'},
  {sender:'remote',text:'1 thung susu lọ cam',key:'B'}
 ]);
-assert.equal(double.items[0].qty,2);
-assert.equal(double.items[0].mentions,2);
-assert.equal(double.items[0].review,true,
- 'duplicate mentions could be corrections; warn rather than asserting a final order');
+assert.deepEqual(Array.from(double.items,x=>[x.name,x.qty]),[
+ ['susu lọ cam',1],['susu lọ cam',1]
+],'two literal lines stay separate; do not invent a sum or correction');
+assert(double.items.every(x=>x.mentions===1));
 assert(app.includes('function dailyStockSummariesByOwner(messages){'));
 assert(app.includes('messageDateKey(messageTimestampMs(first))'));
 assert(app.includes('messageDateKey(messageTimestampMs(messages[end]))===dayKey'));
