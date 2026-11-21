@@ -121,7 +121,7 @@ function parseUnitAroundNumber(line,isOrder){
   const m=patterns[i];
   if(!m)continue;
   const token=i===0?m[2]:i===1?m[3]:i===2?m[3]:m[2];
-  const decoded=unitCandidate(token,isOrder);
+  const decoded=unitCandidate(token,false);
   if(!decoded)continue;
   const name=i===0?m[1]:i===1?m[2]:i===2?m[1]:m[3];
   const qty=i===0?m[3]:i===1?m[1]:i===2?m[2]:m[1];
@@ -161,7 +161,7 @@ const KNOWN_VARIANT_TAIL=/^(probi|proby)\s+(?:(to|bé)\s+)?(trắng|vq|việt\s+
 function parseVariantTail(line){
  const raw=String(line||'').trim(),m=stripListMarker(raw).match(KNOWN_VARIANT_TAIL);
  if(!m)return null;
- const stem=m[3].toLowerCase()==='vq'?'probi':m[1]+' '+(m[2]||'').trim();
+ const stem=m[1]+' '+(m[2]||'').trim();
  return entry((stem+' '+m[3]).replace(/\s+/gu,' ').trim(),m[4],'',raw);
 }
 // "10 th bé ít đường" in E Quyên's messages refers to TH milk.
@@ -336,23 +336,19 @@ function parsePieces(line,isOrder){
  // Split only when ALL fragments stand alone as products.
  const segments=raw.split(/\s*[,;]\s*|\s+\+\s+/u);
  if(segments.length>=2&&segments.length<=12){
-  const found=segments.map(x=>parseStrongLine(x)||parseUnitAroundNumber(x,isOrder)||
-   parseSizedQuantity(x,isOrder)||parseVariantTail(x)||parseColonBare(x,isOrder)||parseBareLine(x,isOrder));
+  const found=segments.map(x=>parseStrongLine(x)||parseBareLine(x,isOrder)||
+   parseUnitAroundNumber(x,isOrder)||parseSizedQuantity(x,isOrder)||
+   parseVariantTail(x)||parseColonBare(x,isOrder));
   if(found.every(Boolean)){
-   // E Quyên writes "2 chua có, 2 ít, 2 không, 2 nha đam".
-   // Shorthand variants inherit "chua" only when the first segment proves
-   // that group. Mark each inherited word yellow for teaching/confirmation.
-   const first=found[0].name.match(/^(chua)\s+(có|ít|không|nha\s+đam)(?:\s+đường)?$/iu);
-   const inherited=first?first[1]:'';
-   return found.map((item,i)=>{
-    const shorthand=inherited&&i>0&&/^(?:có|ít|không|nha\s+đam)(?:\s+đường)?$/iu.test(item.name);
-    return {...item,name:shorthand?inherited+' '+item.name:item.name,
-     source:original,review:item.review||lead.kind==='availability'||Boolean(shorthand)};
-   });
+   // Each fragment keeps the name actually written; never inherit
+   // a product family from another fragment automatically.
+   return found.map(item=>({...item,source:original,
+    review:item.review||lead.kind==='availability'}));
   }
  }
- const single=parseStrongLine(raw)||parseUnitAroundNumber(raw,isOrder)||
-  parseSizedQuantity(raw,isOrder)||parseVariantTail(raw)||parseColonBare(raw,isOrder)||parseBareLine(raw,isOrder);
+ const single=parseStrongLine(raw)||parseBareLine(raw,isOrder)||
+  parseUnitAroundNumber(raw,isOrder)||parseSizedQuantity(raw,isOrder)||
+  parseVariantTail(raw)||parseColonBare(raw,isOrder);
  return single?[{...single,source:original,review:single.review||lead.kind==='availability'||
   (single.unit===''&&knownSingleCustomerProduct.test(original))}]:[];
 }
@@ -377,7 +373,8 @@ function analyze(input){
  if(lines.length<1||lines.length>48)return null;
  const requestIntent=lines.some(line=>requestLine(line).kind==='request');
  const hasItemHeading=lines.some(line=>extraItemHeading.test(line));
- const availabilityOnly=lines.every(line=>requestLine(line).kind==='availability');
+ const availabilityOnly=lines.every(line=>requestLine(line).kind==='availability')||
+  (requestLine(lines[0]).kind==='availability'&&!requestIntent&&!orderCue.test(source));
  const cue=orderCue.test(source),items=[],notes=[],heads=new Set();
  // First pass: strong unit/SL declarations and compound variants establish
  // context even when the customer never writes "lấy hàng". Multiple bare
@@ -389,7 +386,7 @@ function analyze(input){
   strongCount+=strong.length;
   if(!strong.length&&parseBareLine(line,true))bareCount++;
  }
- const orderContext=cue||requestIntent||hasItemHeading||strongCount>0||bareCount>=2||
+ const orderContext=cue||requestIntent||hasItemHeading||strongCount>0||bareCount>0||
   (lines.length===1&&knownSingleCustomerProduct.test(lines[0]));
  let active='other';
  for(const line of lines){
@@ -422,6 +419,8 @@ function analyze(input){
   // One-line explicit container + product was common in E Quyên's orders.
   (lines.length===1&&Boolean(items[0].unit))||
   (lines.length===1&&knownSingleCustomerProduct.test(lines[0]))||
+  (lines.length===1&&parseBareLine(lines[0],true)!==null)||
+  (lines.length===1&&/(?:^|\s)(?:sl|số lượng|so luong)\s*[:=]?\s*\d{1,3}/iu.test(lines[0]))||
   (items[0].unit&&notes.some(note=>ambiguousOrderNote(note.text)))||
   items.every(item=>VERIFIED_SIZE.test(item.name))||
   items.every(item=>KNOWN_VARIANT_TAIL.test(stripListMarker(item.source)))));
@@ -434,20 +433,16 @@ function analyze(input){
  for(const note of notes){if(!grouped.has(note.topic))grouped.set(note.topic,[]);grouped.get(note.topic).push(note.text);}
  return {kind:reviewOnly?'review':isAvailability?'availability':isOrder?'order':'topics',items,groups:Array.from(grouped,([key,rows])=>({key,label:labels[key]||'Ghi chú',rows})),source};
 }
-// CHAT-408: a daily summary is a read-only projection of *loaded* incoming
-// text messages in ONE conversation on ONE Vietnam calendar date. No order
-// writes, no quote of a reply as a sale, and no text changes to the source.
-// A second mention of the same product may be a correction, so sums are
-// marked yellow instead of implying that a final confirmed order exists.
+// KH read-only daily card: record each explicit name + quantity as written.
+// Never sum repeated names, infer corrections, substitute names, or deduplicate
+// across text and photos. No orders or customer messages are ever created.
 function summarizeDay(messages){
  if(!Array.isArray(messages)||!messages.length)return null;
- const grouped=new Map(),notes=[],sourceKeys=new Set(),imageGroups=[];
- let previousStock=null;
+ const items=[],notes=[],sourceKeys=new Set(),imageGroups=[];
  for(const message of messages){
   if(!message||message.sender==='self')continue;
   if(message.media){
-   // OCR is an opt-in, read-only result. Separate each photo even if it
-   // repeats items from an earlier photo; the second may be a corrected list.
+   // A user-selected OCR reading is independent evidence, not a new order.
    for(const read of (Array.isArray(message.imageReadings)?message.imageReadings:[]).slice(0,12)){
     if(read?.status!=='read')continue;
     const rows=(Array.isArray(read.lines)?read.lines:[]).filter(item=>
@@ -464,60 +459,27 @@ function summarizeDay(messages){
       stamp:Number(message.stamp)||0,items:rows,notes:rawNotes});
     }
    }
-   previousStock=null;
    continue;
   }
   const original=String(message.text??'').trim();
   if(!original||original.length>5000)continue;
-  const timestamp=Number(message.stamp)||0;
   const parsed=analyze(original);
-  if(parsed?.kind==='order'&&parsed.items.length){
-   sourceKeys.add(String(message.key??message.id??'')||original);
-   for(const item of parsed.items){
-    const name=String(item.name||'').trim();
-    const pack=String(item.unit||'').trim();
-    const key=name.toLocaleLowerCase('vi-VN')+'|'+pack.toLocaleLowerCase('vi-VN');
-    if(!grouped.has(key)){
-     grouped.set(key,{name,qty:item.qty,unit:pack,review:!!item.review,mentions:1});
-    }else{
-     const row=grouped.get(key);
-     row.qty+=item.qty;
-     row.mentions++;
-     row.review=true;
+  if(parsed?.kind!=='order'||!parsed.items.length)continue;
+  sourceKeys.add(String(message.key??message.id??'')||original);
+  for(const item of parsed.items){
+   items.push({name:String(item.name||'').trim(),qty:item.qty,
+    unit:String(item.unit||'').trim(),review:!!item.review,mentions:1});
+  }
+  for(const group of parsed.groups||[]){
+   if(group.key==='other'||group.key==='note'||group.key==='delivery'){
+    for(const note of group.rows||[]){
+     if(notes.length<16)notes.push({text:String(note),review:false});
     }
    }
-   for(const group of parsed.groups||[]){
-    if(group.key==='other'||group.key==='note'||group.key==='delivery'){
-     for(const note of group.rows||[]){
-      if(notes.length<16)notes.push({text:String(note),review:false});
-     }
-    }
-   }
-   previousStock={timestamp,hasBlackSugar:parsed.items.some(item=>/sữa\s+chua\s+đường\s+đen/iu.test(item.name))};
-  }else if(/^chân\s+trâu$/iu.test(original)&&previousStock?.hasBlackSugar&&
-   timestamp>previousStock.timestamp&&timestamp-previousStock.timestamp<=120000){
-   // It may be a topping for the preceding sữa chua item. Do not silently
-   // append to its name or invent another product/quantity.
-   notes.push({text:original,review:true});
-   previousStock=null;
-  }else{
-   previousStock=null;
   }
  }
- if(!grouped.size&&!imageGroups.length)return null;
- const items=Array.from(grouped.values());
- // Same name with different units is not a safely summable quantity.
- const sameName=new Map();
- for(const item of items){
-  const key=item.name.toLocaleLowerCase('vi-VN');
-  if(!sameName.has(key))sameName.set(key,0);
-  sameName.set(key,sameName.get(key)+1);
- }
- for(const item of items){
-  if(sameName.get(item.name.toLocaleLowerCase('vi-VN'))>1)item.review=true;
- }
- return {kind:'daily-order',items,notes,imageGroups,
-  messageCount:sourceKeys.size};
+ if(!items.length&&!imageGroups.length)return null;
+ return {kind:'daily-order',items,notes,imageGroups,messageCount:sourceKeys.size};
 }
 // CHAT-422: the approved KH card and every source use the SAME
 // STT | Tên sản phẩm | SL geometry. Pure DOM, no OCR/AI, ledger or send owner.
