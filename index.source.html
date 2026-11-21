@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.70">
+<meta name="app-release-version" content="V21.72.71">
 <meta name="app-build-id" content="__APP_BUILD_ID__">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="TAPHOA Chat">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" sizes="180x180" href="./icons/chat-app-180-v3.png">
@@ -196,6 +196,27 @@ button{
   scrollbar-width:none;
 }
 #scrollRoot::-webkit-scrollbar{display:none;width:0;height:0}
+/* CHAT-427 — iOS installed PWA edge-to-edge surface, ChatGPT-style.
+   The stage now fills the viewport. Only the independent conversation
+   scroll owner gets the top safe inset, so old messages can scroll beneath
+   a frosted status bar. The sticky navigation stays clear of the notch.
+   Never change the Composer/VisualViewport keyboard placement owner. */
+@media (display-mode:standalone) and (max-width:63.999rem){
+  #stageLayout{padding-top:0!important;}
+  #scrollRoot{padding-top:env(safe-area-inset-top,0px);}
+  #regionTop{top:env(safe-area-inset-top,0px);}
+  body::after{
+    content:"";
+    position:fixed;
+    top:0;left:0;right:0;
+    height:env(safe-area-inset-top,0px);
+    background:color-mix(in srgb,var(--theme-surface-primary,#fff) 78%,transparent);
+    -webkit-backdrop-filter:blur(14px);
+    backdrop-filter:blur(14px);
+    pointer-events:none;
+    z-index:21;
+  }
+}
 #stageLayout[data-keyboard-open="true"] #scrollRoot{
   -webkit-clip-path:inset(0 0 var(--screen-keyboard-height,0px) 0);
   clip-path:inset(0 0 var(--screen-keyboard-height,0px) 0);
