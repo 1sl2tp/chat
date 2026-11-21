@@ -129,6 +129,9 @@ function makeHarness(){
  const version=await h.dispatch('fetch',{request:new h.FakeRequest('./version.json')});
  assert.equal(version.body,'LATEST-VERSION');
  assert.equal(h.requested.at(-1).cache,'no-store');
+ const asset=await h.dispatch('fetch',{request:new h.FakeRequest('./chat-message-case.js')});
+ assert.equal(asset.body,'STATIC-ASSET','other public assets still fetch normally');
+ assert.equal(h.requested.at(-1).cache,'no-store','non-navigation resource policy must not change');
  h.setStorageWorks(false);
  const withoutStorage=await h.dispatch('fetch',{request:new h.FakeRequest('./',{mode:'navigate'})});
  assert.equal(withoutStorage.body,'NEWEST-WEB-BUILD','private Safari without CacheStorage must still load online');
