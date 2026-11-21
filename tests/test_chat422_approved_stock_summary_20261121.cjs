@@ -125,3 +125,29 @@ assert(app.includes('const dailyByOwner=dailyStockSummariesByOwner(store.items)'
 assert(html.includes('data-build-source="incoming-message-layout.js"'));
 assert(html.includes('data-build-source="incoming-message-layout.css"'));
 console.log('CHAT-422 screenshot-approved ten-stock-row daily summary, yellow review, columns and no side effects: PASS');
+
+const CHAT423=ui.V21IncomingMessageLayout;
+for(const [input,name,qty] of [
+ ['5 pepsi lon','pepsi lon',5],
+ ['3 pepsi chai','pepsi chai',3],
+ ['10 cháo gấu đỏ','cháo gấu đỏ',10],
+ ['1 biển đông','biển đông',1],
+ ['1 thăng long mềm','thăng long mềm',1],
+ ['1kg sl 20','1kg',20],
+ ['cosy bơ 600 sl 3','cosy bơ 600',3]
+]){
+ const parsed=CHAT423.analyze(input);
+ assert.equal(parsed?.kind,'order',input);
+ assert.equal(parsed.items[0].name,name,input+' original product name');
+ assert.equal(parsed.items[0].qty,qty,input+' explicit quantity');
+}
+const noInference=CHAT423.summarizeDay([
+ {sender:'remote',id:'1',text:'5 pepsi lon'},
+ {sender:'remote',id:'2',text:'3 pepsi chai'},
+ {sender:'remote',id:'3',text:'5 Pepsi lon'},
+ {sender:'remote',id:'4',text:'Đang có 83 thùng 1kg\\n63 thùng 454g'}
+]);
+assert.deepEqual(Array.from(noInference.items,x=>[x.name,x.qty]),[
+ ['pepsi lon',5],['pepsi chai',3],['Pepsi lon',5]
+],'never merge repeated names or reclassify stock availability as an order');
+console.log('CHAT-423 literal item name + quantity and no speculative aggregation: PASS');
