@@ -787,6 +787,10 @@ jobs:
           node tests/test_chat419_ncc_day_groups_20261121.cjs
       - name: CHAT-414 ChatGPT-like A/B visual layout regression
         run: node tests/test_chat414_chatgpt_ab_visual_20261120.cjs
+      - name: CHAT-421 sparse A/B reading clocks with full exact timestamps
+        run: |
+          node --check app.js
+          node tests/test_chat421_sparse_conversation_time_20261121.cjs
       - name: CHAT-415 case formatting for chat A/B and daily stock summary
         run: |
           node --check chat-message-case.js
