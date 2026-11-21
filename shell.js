@@ -552,7 +552,7 @@ function renderChatTabIdentity(){
     if(debtMenuItem)debtMenuItem.hidden=true;
     if(profileButton)profileButton.hidden=true;
     avatar.hidden=true;
-    label.textContent=appShell?.dataset.mobileDirectory==='true'?'Chat':'Trò chuyện';
+    label.textContent='Trò chuyện';
     tab.removeAttribute('title');
     return false;
   }
