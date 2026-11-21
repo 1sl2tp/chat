@@ -65,7 +65,7 @@ function entry(raw,qty,u,source,review=false,allowVerifiedNumericName=false){
 }
 // Explicit quantity/packaging wins over the presence of digits in a product name.
 // CHAT-400: read units on either side of the quantity (not from a fixed
-// column). A typo is accepted only in an established order and flagged;
+// column). CHAT-423: unknown typos are never silently read as units;
 // product names are never spell-corrected. The distinction "bò" vs "bộ"
 // is deliberate, so exact aliases retain their Vietnamese accents.
 const unitAliases=new Map([
@@ -258,10 +258,18 @@ function parseBareLine(line,isOrder){
  if(numericProductName.test(clean))return null;
  const m=clean.match(bare);
  if(!m||unitOnly.test(m[2].trim()))return null;
- if(/^(?:giá|ship|giao|lưu ý|ghi chú|ngày|tháng|địa chỉ|sđt|đt)\b/iu.test(m[2]))return null;
+ if(/^(?:giá|ship|giao|lưu ý|ghi chú|ngày|tháng|địa chỉ|sđt|đt|thùg)\b/iu.test(m[2]))return null;
  // "5 sữa 100 200" is ambiguous code/price text, never a silent item.
  if(/\s+\d{2,}\s+\d{2,}\s*$/u.test(clean))return null;
  return entry(m[2],m[1],'',raw);
+}
+// A pack descriptor at the END of a quantity-first product name is
+// merchandise text, not a reason to shorten the customer's product name.
+function parseLiteralPackName(line,isOrder){
+ if(!isOrder)return null;
+ const raw=String(line||'').trim(),clean=stripListMarker(raw);
+ if(!/^\d{1,3}\s+[\p{L}][\p{L}\p{N}\s./-]{1,90}\s+(?:lon|chai|bịch)$/iu.test(clean))return null;
+ return parseBareLine(clean,true);
 }
 function parseColonBare(line,isOrder){
  if(!isOrder)return null;
@@ -336,9 +344,9 @@ function parsePieces(line,isOrder){
  // Split only when ALL fragments stand alone as products.
  const segments=raw.split(/\s*[,;]\s*|\s+\+\s+/u);
  if(segments.length>=2&&segments.length<=12){
-  const found=segments.map(x=>parseStrongLine(x)||parseBareLine(x,isOrder)||
+  const found=segments.map(x=>parseStrongLine(x)||parseLiteralPackName(x,isOrder)||
    parseUnitAroundNumber(x,isOrder)||parseSizedQuantity(x,isOrder)||
-   parseVariantTail(x)||parseColonBare(x,isOrder));
+   parseVariantTail(x)||parseColonBare(x,isOrder)||parseBareLine(x,isOrder));
   if(found.every(Boolean)){
    // Each fragment keeps the name actually written; never inherit
    // a product family from another fragment automatically.
@@ -346,9 +354,9 @@ function parsePieces(line,isOrder){
     review:item.review||lead.kind==='availability'}));
   }
  }
- const single=parseStrongLine(raw)||parseBareLine(raw,isOrder)||
+ const single=parseStrongLine(raw)||parseLiteralPackName(raw,isOrder)||
   parseUnitAroundNumber(raw,isOrder)||parseSizedQuantity(raw,isOrder)||
-  parseVariantTail(raw)||parseColonBare(raw,isOrder);
+  parseVariantTail(raw)||parseColonBare(raw,isOrder)||parseBareLine(raw,isOrder);
  return single?[{...single,source:original,review:single.review||lead.kind==='availability'||
   (single.unit===''&&knownSingleCustomerProduct.test(original))}]:[];
 }
