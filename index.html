@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.74">
-<meta name="app-build-id" content="276ba7a2f0e658f0679c23940d0b95af96528372aee8a8d646ffbb9b175ba079">
+<meta name="app-release-version" content="V21.72.75">
+<meta name="app-build-id" content="7acb17c2eaa29dd22957da938f8b0089b78c407b0d66626d21df141c5d9633fa">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -13507,12 +13507,41 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
   }
 }
 
-/* CHAT-339 — selected-contact mobile header: one overflow entry, not three
-   disconnected icon targets. The existing CallFocus remains visible for
-   ringing/connected calls; only the idle actions move into this menu. */
+/* CHAT-339 / CHAT-432: conversational header is Back | Customer | Call + More.
+   Existing overflow stays the advanced-action owner; CallFocus stays
+   the only phone-call owner. No new keyboard, scroll or network owner. */
 .chat-header-actions{display:none}
 .chat-header-action-menu[hidden]{display:none!important}
 @media(max-width:63.999rem){
+  /* One-line conversation header instead of an oversized segmented pill. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"][data-chat-contact="true"]
+  #regionTop .top-mode-switch[data-contact-identity="true"]{
+    width:100%!important;
+    max-width:none!important;
+    justify-self:stretch!important;
+    padding:0!important;
+    border:0;
+    border-radius:0;
+    background:transparent!important;
+    box-shadow:none;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"][data-chat-contact="true"]
+  #regionTop .top-mode-switch[data-contact-identity="true"] .top-mode-contact-avatar{
+    display:none!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"][data-chat-contact="true"]
+  #regionTop .top-mode-switch[data-contact-identity="true"] .top-mode-tab[data-top-tab="chat"]{
+    justify-content:flex-start;
+    min-height:44px;
+    padding:0 2px!important;
+    border-radius:0;
+    background:transparent!important;
+    box-shadow:none!important;
+    color:var(--theme-content-primary);
+    font-size:16px;
+    font-weight:650;
+    text-align:left;
+  }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .top-mode-switch[data-contact-identity="true"]{
     grid-template-columns:minmax(0,1fr)!important;
   }
@@ -13521,16 +13550,32 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .call-focus-slot[data-call-ui-state="idle"]:not([hidden]){
     box-sizing:border-box;
-    flex:0 0 44px;
-    width:44px!important;
-    max-width:44px!important;
-    min-width:44px;
+    flex:0 0 88px;
+    width:88px!important;
+    max-width:88px!important;
+    min-width:88px;
+    gap:0;
     padding:0!important;
     border:0!important;
     background:transparent!important;
   }
+  /* Reuse CallFocus's existing button; never add a second call owner. */
   #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .call-focus-slot[data-call-ui-state="idle"] .call-focus-button{
-    display:none!important;
+    display:grid!important;
+    place-items:center;
+    order:1;
+    box-sizing:border-box;
+    flex:0 0 44px;
+    width:44px!important;
+    min-width:44px;
+    height:44px;
+    min-height:44px;
+    padding:0;
+    border:0;
+    border-radius:999px;
+    background:transparent;
+    color:var(--theme-content-primary);
+    box-shadow:none;
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .call-focus-slot[data-call-ui-state="idle"] .contact-profile-header-button{
     display:none!important;
@@ -13538,6 +13583,7 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
   #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .call-focus-slot[data-call-ui-state="idle"] .chat-header-actions{
     display:block;
     position:relative;
+    order:2;
     flex:0 0 44px;
     width:44px;
     height:44px;
@@ -13549,9 +13595,9 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
     width:44px;
     height:44px;
     padding:0;
-    border:1px solid color-mix(in srgb,var(--theme-border-default) 78%,transparent);
+    border:0;
     border-radius:999px;
-    background:var(--theme-surface-primary);
+    background:transparent;
     color:var(--theme-content-primary);
     cursor:pointer;
   }
@@ -13796,14 +13842,14 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
   /* Directory navigation is not a third set of large filter pills.  Keep
      real Chat/Work actions, but give the chosen scope a discreet underline. */
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #regionTop .top-mode-switch[data-directory-owner="true"]{
-    width:min(100%,260px);
+    width:min(100%,280px);
     max-width:100%;
     min-height:44px;
-    padding:3px;
-    gap:2px;
+    padding:0;
+    gap:4px;
     border:0;
-    border-radius:999px;
-    background:var(--theme-surface-secondary);
+    border-radius:0;
+    background:transparent;
     box-shadow:none;
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #regionTop .top-mode-switch[data-directory-owner="true"] .top-mode-tab{
@@ -13811,7 +13857,7 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
     height:44px;
     padding:0 9px;
     border:0;
-    border-radius:999px;
+    border-radius:10px;
     background:transparent!important;
     box-shadow:none!important;
     color:var(--theme-content-secondary);
@@ -13820,8 +13866,8 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
     letter-spacing:-.012em;
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #regionTop .top-mode-switch[data-directory-owner="true"] .top-mode-tab[aria-selected="true"]{
-    box-shadow:0 1px 4px rgba(0,0,0,.07)!important;
-    background:var(--theme-surface-primary)!important;
+    box-shadow:none!important;
+    background:var(--theme-surface-secondary)!important;
     color:var(--theme-content-primary);
     font-weight:650;
   }
@@ -17599,9 +17645,9 @@ const AppBootController={
     // Repeated global faults must not repaint the banner or multiply logs.
     if(this.lastErrorMessage===message&&!runtimeError.classList.contains('hidden'))return;
     this.lastErrorMessage=message;
-    runtimeError.textContent='V21.72.74 runtime: '+message;
+    runtimeError.textContent='V21.72.75 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.74]',error);
+    console.error('[ChatScreenModule V21.72.75]',error);
   },
   ready(){
     // A successful render invariant proves recovery only for errors seen
@@ -17713,7 +17759,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.74 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.75 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -17767,7 +17813,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.74',
+  releaseVersion:'V21.72.75',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -26637,7 +26683,7 @@ window.V21ConversationBridge={
 window.V21ChatImageViewer=Object.freeze({open:openImageViewer});
 
 window.ChatScreenModule={
-  version:'V21.72.74',
+  version:'V21.72.75',
   snapshot(){
     return{
       viewportMode:viewport.mode,
