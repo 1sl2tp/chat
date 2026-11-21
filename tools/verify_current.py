@@ -26,6 +26,7 @@ for n in [
 ]:
     subprocess.run(['node','--check',str(ROOT/n)],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat429_offline_layout_20261121.cjs')],check=True,cwd=ROOT)
+subprocess.run(['node',str(ROOT/'tests'/'test_chat431_keyboard_workspace_20261121.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_resize_observer_runtime_20261110.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat_forward_search_ios_keyboard_20261105.cjs')],check=True,cwd=ROOT)
 subprocess.run(['node',str(ROOT/'tests'/'test_chat339_header_forward_actions_20261113.cjs')],check=True,cwd=ROOT)
