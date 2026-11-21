@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.69">
-<meta name="app-build-id" content="533456d900da0464f8aa493998fff9ac46a999694a89669f97d2fddfc572cc7d">
+<meta name="app-release-version" content="V21.72.70">
+<meta name="app-build-id" content="2390bab3d6a18a1d913401e6b00018763f6c0f9249521b86e5b44a47f4fed78a">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1928,6 +1928,10 @@
 .incoming-brief-quantity{justify-self:end;text-align:right}
 .incoming-brief-index{font-size:11px;line-height:19px;opacity:.7;font-variant-numeric:tabular-nums}
 .incoming-brief-product{min-width:0;font-size:13px;line-height:20px;overflow-wrap:anywhere}
+.incoming-brief-product-note{
+ display:block;margin-top:3px;color:var(--theme-text-secondary,#667085);
+ font-size:11px;line-height:16px;font-weight:400;overflow-wrap:anywhere;
+}
 .incoming-brief-quantity{
  min-width:0;font-weight:750;font-size:13px;line-height:20px;
  font-variant-numeric:tabular-nums;white-space:normal;overflow-wrap:normal;
@@ -16560,7 +16564,8 @@ function summarizeDay(messages){
      Number.isSafeInteger(Number(item?.qty))&&Number(item.qty)>=1&&Number(item.qty)<=999
     ).slice(0,60).map(item=>({
      name:String(item.name).trim().slice(0,120),qty:Number(item.qty),
-     unit:String(item.unit||'').slice(0,25),review:true
+     unit:String(item.unit||'').slice(0,25),
+     note:String(item.note||'').trim().slice(0,240),review:true
     }));
     const rawNotes=(Array.isArray(read.notes)?read.notes:[]).slice(0,60)
      .map(note=>String(note).trim().slice(0,240)).filter(Boolean);
@@ -16616,6 +16621,8 @@ function stockTableRow(item,index,{review=false,reviewText='Cần hướng dẫn
  if(needsReview)row.dataset.needsReview='true';
  const name=el('span','incoming-brief-product',item.name);
  if(needsReview)name.append(el('span','incoming-brief-review',reviewText));
+ // CHAT-426: the OCR remainder is a note attached to its single item.
+ if(item?.note)name.append(el('span','incoming-brief-product-note','Ghi chú: '+item.note));
  const cells=[
   el('span','incoming-brief-index',index+1),
   name,
@@ -17074,7 +17081,8 @@ async function scan(assetId){
      Number.isSafeInteger(Number(line.qty))&&Number(line.qty)>0).map(line=>({
      name:String(line.name).trim().slice(0,120),
      qty:Number(line.qty),unit:String(line.unit||'').slice(0,25),
-     raw:String(line.raw||'').slice(0,260),review:true
+     raw:String(line.raw||'').slice(0,260),
+     note:String(line.note||'').trim().slice(0,240),review:true
    })),
    notes:Array.isArray(data.notes)?data.notes.slice(0,60).map(x=>String(x).slice(0,240)):[],
    assetId
@@ -17473,9 +17481,9 @@ const AppBootController={
     // Repeated global faults must not repaint the banner or multiply logs.
     if(this.lastErrorMessage===message&&!runtimeError.classList.contains('hidden'))return;
     this.lastErrorMessage=message;
-    runtimeError.textContent='V21.72.69 runtime: '+message;
+    runtimeError.textContent='V21.72.70 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.69]',error);
+    console.error('[ChatScreenModule V21.72.70]',error);
   },
   ready(){
     // A successful render invariant proves recovery only for errors seen
@@ -17587,7 +17595,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.69 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.70 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -17641,7 +17649,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.69',
+  releaseVersion:'V21.72.70',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -26511,7 +26519,7 @@ window.V21ConversationBridge={
 window.V21ChatImageViewer=Object.freeze({open:openImageViewer});
 
 window.ChatScreenModule={
-  version:'V21.72.69',
+  version:'V21.72.70',
   snapshot(){
     return{
       viewportMode:viewport.mode,
