@@ -1822,12 +1822,41 @@
   }
 }
 
-/* CHAT-339 — selected-contact mobile header: one overflow entry, not three
-   disconnected icon targets. The existing CallFocus remains visible for
-   ringing/connected calls; only the idle actions move into this menu. */
+/* CHAT-339 / CHAT-432: conversational header is Back | Customer | Call + More.
+   Existing overflow stays the advanced-action owner; CallFocus stays
+   the only phone-call owner. No new keyboard, scroll or network owner. */
 .chat-header-actions{display:none}
 .chat-header-action-menu[hidden]{display:none!important}
 @media(max-width:63.999rem){
+  /* One-line conversation header instead of an oversized segmented pill. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"][data-chat-contact="true"]
+  #regionTop .top-mode-switch[data-contact-identity="true"]{
+    width:100%!important;
+    max-width:none!important;
+    justify-self:stretch!important;
+    padding:0!important;
+    border:0;
+    border-radius:0;
+    background:transparent!important;
+    box-shadow:none;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"][data-chat-contact="true"]
+  #regionTop .top-mode-switch[data-contact-identity="true"] .top-mode-contact-avatar{
+    display:none!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"][data-chat-contact="true"]
+  #regionTop .top-mode-switch[data-contact-identity="true"] .top-mode-tab[data-top-tab="chat"]{
+    justify-content:flex-start;
+    min-height:44px;
+    padding:0 2px!important;
+    border-radius:0;
+    background:transparent!important;
+    box-shadow:none!important;
+    color:var(--theme-content-primary);
+    font-size:16px;
+    font-weight:650;
+    text-align:left;
+  }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .top-mode-switch[data-contact-identity="true"]{
     grid-template-columns:minmax(0,1fr)!important;
   }
@@ -1836,16 +1865,32 @@
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .call-focus-slot[data-call-ui-state="idle"]:not([hidden]){
     box-sizing:border-box;
-    flex:0 0 44px;
-    width:44px!important;
-    max-width:44px!important;
-    min-width:44px;
+    flex:0 0 88px;
+    width:88px!important;
+    max-width:88px!important;
+    min-width:88px;
+    gap:0;
     padding:0!important;
     border:0!important;
     background:transparent!important;
   }
+  /* Reuse CallFocus's existing button; never add a second call owner. */
   #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .call-focus-slot[data-call-ui-state="idle"] .call-focus-button{
-    display:none!important;
+    display:grid!important;
+    place-items:center;
+    order:1;
+    box-sizing:border-box;
+    flex:0 0 44px;
+    width:44px!important;
+    min-width:44px;
+    height:44px;
+    min-height:44px;
+    padding:0;
+    border:0;
+    border-radius:999px;
+    background:transparent;
+    color:var(--theme-content-primary);
+    box-shadow:none;
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .call-focus-slot[data-call-ui-state="idle"] .contact-profile-header-button{
     display:none!important;
@@ -1853,6 +1898,7 @@
   #appShell[data-auth-state="authenticated"][data-route="chat"] #regionTop .call-focus-slot[data-call-ui-state="idle"] .chat-header-actions{
     display:block;
     position:relative;
+    order:2;
     flex:0 0 44px;
     width:44px;
     height:44px;
@@ -1864,9 +1910,9 @@
     width:44px;
     height:44px;
     padding:0;
-    border:1px solid color-mix(in srgb,var(--theme-border-default) 78%,transparent);
+    border:0;
     border-radius:999px;
-    background:var(--theme-surface-primary);
+    background:transparent;
     color:var(--theme-content-primary);
     cursor:pointer;
   }
@@ -2111,14 +2157,14 @@
   /* Directory navigation is not a third set of large filter pills.  Keep
      real Chat/Work actions, but give the chosen scope a discreet underline. */
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #regionTop .top-mode-switch[data-directory-owner="true"]{
-    width:min(100%,260px);
+    width:min(100%,280px);
     max-width:100%;
     min-height:44px;
-    padding:3px;
-    gap:2px;
+    padding:0;
+    gap:4px;
     border:0;
-    border-radius:999px;
-    background:var(--theme-surface-secondary);
+    border-radius:0;
+    background:transparent;
     box-shadow:none;
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #regionTop .top-mode-switch[data-directory-owner="true"] .top-mode-tab{
@@ -2126,7 +2172,7 @@
     height:44px;
     padding:0 9px;
     border:0;
-    border-radius:999px;
+    border-radius:10px;
     background:transparent!important;
     box-shadow:none!important;
     color:var(--theme-content-secondary);
@@ -2135,8 +2181,8 @@
     letter-spacing:-.012em;
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #regionTop .top-mode-switch[data-directory-owner="true"] .top-mode-tab[aria-selected="true"]{
-    box-shadow:0 1px 4px rgba(0,0,0,.07)!important;
-    background:var(--theme-surface-primary)!important;
+    box-shadow:none!important;
+    background:var(--theme-surface-secondary)!important;
     color:var(--theme-content-primary);
     font-weight:650;
   }

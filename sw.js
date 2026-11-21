@@ -6,7 +6,7 @@ function chatPushDisplayPreview(value){
  const raw=String(value||'');
  try{return self.V21ChatMessageCase?.previewCase?.(raw)||raw;}catch{return raw;}
 }
-const RELEASE_VERSION='V21.72.74';
+const RELEASE_VERSION='V21.72.75';
 const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 // BANK-177: reload one-time cached shell for the live bank reconciliation table.
 // Keep offline-first startup; do not add per-navigation network requests.
@@ -41,7 +41,7 @@ const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 // CHAT-427: refresh only public shell/status-bar metadata; preserve private messages, drafts and outbox.
 // CHAT-428: status-bar scroll-under repaint only; never evict private drafts, photos or messages.
 // CHAT-429: refresh PUBLIC app shell only; keep auth sessions, drafts, chats and media.
-const SHELL_CACHE_EPOCH='pwa-chat-ui431-keyboard-day-card-20261121';
+const SHELL_CACHE_EPOCH='pwa-chat-ui432-chatwoot-structure-20261121';
 const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION+'-'+SHELL_CACHE_EPOCH;
 const AVATAR_CACHE_NAME='taphoa-chat-avatars-v1';
 const SUPABASE_ASSET_HOST_RE=/^[a-z0-9]+\.supabase\.co$/i;
