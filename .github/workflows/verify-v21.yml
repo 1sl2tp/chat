@@ -768,6 +768,11 @@ jobs:
           node --check chat-stock-image-read.js
           node --check chat-stock-image-ui.js
           node tests/test_chat409_typed_stock_image_20261120.mjs
+      - name: CHAT-425 typed message and isolated photo OCR
+        run: |
+          node --check incoming-message-layout.js
+          node --check chat-stock-image-read.js
+          node tests/test_chat425_stock_request_forms_20261121.cjs
       - name: CHAT-413 only KH directory may get stock summaries
         run: |
           node --check app.js
