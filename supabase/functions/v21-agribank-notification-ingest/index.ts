@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {norm,forbidden,parseCredit} from "./credit-parser.mjs";
 import {officialCreditWindow} from "./credit-recheck.mjs";
+import {creditReplayIdentity} from "./credit-replay-identity.mjs";
 const URL=Deno.env.get("SUPABASE_URL")||"";
 const KEY=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"";
 const PACKAGE="com.vnpay.Agribank3g";
@@ -78,9 +79,14 @@ Deno.serve(async req=>{
      return reply({error:"invalid_notification"},422);
   if(forbidden.some(word=>norm(title+" "+body).includes(word)))return reply({error:"sensitive_notification"},422);
   const amount=parseCredit(title,body);
+  // BANK-366: a second Android push of the SAME bank-issued FT transfer
+  // can carry a different device posted_at_ms. Stable identity requires a
+  // valid official bank clock, full target account, amount and exact FT ref.
+  // All other notices keep the original timestamp-based fingerprint.
+  const identity=creditReplayIdentity({package_name,title,body,posted_at_ms,amount_vnd:amount});
   const row={device_id:device[0].id,package_name,title,body,
     posted_at:new Date(posted_at_ms).toISOString(),
-    fingerprint:await sha(package_name+"\n"+posted_at_ms+"\n"+title+"\n"+body),
+    fingerprint:await sha(identity.fingerprintMaterial),
     amount_vnd:amount,status:amount===null?"unclassified":"credit_candidate"};
   // BANK-306: an Android re-install may create a NEW device ID while replaying
   // the SAME notification (same server fingerprint). Never insert/wake it twice.
@@ -94,6 +100,31 @@ Deno.serve(async req=>{
   if(!Array.isArray(existing))return reply({error:"global_duplicate_check_invalid"},503);
   if(existing.length>0)return reply({ok:true,stored:false,duplicate:true,
     kind:row.status,ledger_written:false});
+  // Older rows (BANK-306) hashed the device delivery time and therefore have
+  // different fingerprints even when their bank-issued FT proof is identical.
+  // Read ONLY a bounded, amount+official-bank-minute window, and compare the
+  // FULL unchanged bank notification body. No status, ledger or old row update.
+  // If this verification cannot complete, fail closed instead of storing a
+  // competing replay that could block the financial RPC.
+  if(identity.strong&&amount!==null){
+    const lookup=new globalThis.URL(URL+"/rest/v1/taphoa_agribank_notifications");
+    lookup.searchParams.set("select","id,body");
+    lookup.searchParams.set("package_name","eq."+PACKAGE);
+    lookup.searchParams.set("status","eq.credit_candidate");
+    lookup.searchParams.set("amount_vnd","eq."+amount);
+    lookup.searchParams.append("transfer_at","gte."+identity.from);
+    lookup.searchParams.append("transfer_at","lte."+identity.to);
+    lookup.searchParams.set("order","id.asc");
+    lookup.searchParams.set("limit","100");
+    const evidence=await fetch(lookup.toString(),{headers:headers()});
+    if(!evidence.ok)return reply({error:"bank_replay_check_unavailable"},503);
+    const previous=await evidence.json();
+    if(!Array.isArray(previous)||previous.length>=100)
+      return reply({error:"bank_replay_check_incomplete"},503);
+    if(previous.some(entry=>String(entry?.body||"").trim()===body.trim()))
+      return reply({ok:true,stored:false,duplicate:true,
+        kind:row.status,ledger_written:false});
+  }
   const res=await fetch(URL+"/rest/v1/taphoa_agribank_notifications?on_conflict=device_id%2Cfingerprint",
     {method:"POST",headers:headers({prefer:"resolution=ignore-duplicates,return=representation"}),body:JSON.stringify(row)});
   if(!res.ok)return reply({error:"inbox_write_failed"},503);
