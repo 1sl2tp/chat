@@ -2149,14 +2149,12 @@
 
 
 
-/* CHAT-388 / CHAT-435 — ONE mobile directory layout owner (389/390/391/392 compatible).
+/* CHAT-388 — ONE mobile directory layout owner (389/390/391/392 compatible).
    CHAT-435: approved 2027/V46 hierarchy, assistant-ui ThreadList pattern and
-   React Aria keyboard/focus principles. This replaces presentation INSIDE
-   the existing owner: understated tabs, one visual search/filter tool,
-   one-line previews, 68px target rows. No JS, viewport or data owner changed.
+   React Aria keyboard/focus principles. Replaces styling inside this owner:
+   quieter header tabs, one visual search/filter tool, one-line previews,
+   68px minimum list rows; no new DOM, network or viewport event owner.
    Regression/rationale: docs/ui/CHAT-435-2027-DIRECTORY-UX.md
-
-   CHAT-388 — ONE mobile directory layout owner (389/390/391/392 compatible).
    CHAT-395 retains this one owner: Top 1 = shell Chat/Work header;
    Top 2 = 2-row search/filter toolbar; Content = sole contact list scroller.
    Typing hides filters, never the search field. No second viewport owner. */
