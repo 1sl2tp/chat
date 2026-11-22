@@ -134,6 +134,24 @@
     background:var(--theme-surface-secondary);
     pointer-events:none;
   }
+  /* CHAT-433 · 2027/V46 design primitive: focus belongs to the INPUT slot.
+     The existing composer ::before paints only; this focus ring does not
+     change grid tracks, hit targets, viewport, scroll or microphone behavior.
+     :focus-visible avoids a misleading editor ring when + or Send is focused. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"])
+  #composerShell:not([data-audio-state="REQUESTING_PERMISSION"]):not([data-audio-state="RECORDING"]):not([data-audio-state="STOPPING"]):not([data-audio-state="PREVIEW"]):not([data-audio-state="SENDING"]):has(#editor:focus-visible)::before{
+    border-color:color-mix(in srgb,var(--theme-content-accent,#2563eb) 50%,var(--theme-border-default));
+    box-shadow:0 0 0 2px color-mix(in srgb,var(--theme-content-accent,#2563eb) 16%,transparent);
+  }
+  @media(forced-colors:active){
+    #appShell[data-auth-state="authenticated"][data-route="chat"]
+    #stageLayout:not([data-bank-report-active="true"])
+    #composerShell:has(#editor:focus-visible)::before{
+      outline:2px solid Highlight;
+      outline-offset:1px;
+    }
+  }
   #appShell[data-auth-state="authenticated"][data-route="chat"]
   #stageLayout:not([data-bank-report-active="true"])
   #composerShell :is(#editorWrap,#composer-mic-btn){
