@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.75">
-<meta name="app-build-id" content="697d1bee092c859f29ff935334fafa89f53d30a4606b2365539be9bb14270e15">
+<meta name="app-build-id" content="bdcf8a0e8cf7716e33be4365497566b08febc7d72f6b48cf1a29f8b9a663eac9">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -13835,6 +13835,11 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
 
 
 /* CHAT-388 — ONE mobile directory layout owner (389/390/391/392 compatible).
+   CHAT-435: approved 2027/V46 hierarchy, assistant-ui ThreadList pattern and
+   React Aria keyboard/focus principles. Replaces styling inside this owner:
+   quieter header tabs, one visual search/filter tool, one-line previews,
+   68px minimum list rows; no new DOM, network or viewport event owner.
+   Regression/rationale: docs/ui/CHAT-435-2027-DIRECTORY-UX.md
    CHAT-395 retains this one owner: Top 1 = shell Chat/Work header;
    Top 2 = 2-row search/filter toolbar; Content = sole contact list scroller.
    Typing hides filters, never the search field. No second viewport owner. */
@@ -13842,11 +13847,11 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
   /* Directory navigation is not a third set of large filter pills.  Keep
      real Chat/Work actions, but give the chosen scope a discreet underline. */
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #regionTop .top-mode-switch[data-directory-owner="true"]{
-    width:min(100%,280px);
+    width:min(100%,252px);
     max-width:100%;
     min-height:44px;
     padding:0;
-    gap:4px;
+    gap:0;
     border:0;
     border-radius:0;
     background:transparent;
@@ -13857,17 +13862,20 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
     height:44px;
     padding:0 9px;
     border:0;
-    border-radius:10px;
+    border-bottom:2px solid transparent;
+    border-radius:0;
     background:transparent!important;
     box-shadow:none!important;
     color:var(--theme-content-secondary);
     font-size:14px;
+    line-height:20px;
     font-weight:550;
     letter-spacing:-.012em;
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #regionTop .top-mode-switch[data-directory-owner="true"] .top-mode-tab[aria-selected="true"]{
     box-shadow:none!important;
-    background:var(--theme-surface-secondary)!important;
+    background:transparent!important;
+    border-bottom:2px solid var(--ui-text-primary,var(--theme-content-primary))!important;
     color:var(--theme-content-primary);
     font-weight:650;
   }
@@ -13875,9 +13883,9 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
     width:44px;
     height:44px;
     min-width:44px;
-    border:1px solid color-mix(in srgb,var(--theme-border-default) 72%,transparent);
+    border:0;
     border-radius:999px;
-    background:var(--theme-surface-primary);
+    background:transparent;
     box-shadow:none;
   }
 
@@ -13945,7 +13953,7 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
     min-width:0;
     min-height:44px;
     padding:0 max(10px,env(safe-area-inset-right,0px)) 2px max(10px,env(safe-area-inset-left,0px))!important;
-    border-bottom:1px solid color-mix(in srgb,var(--theme-border-default) 35%,transparent);
+    border-bottom:0;
     background:var(--theme-surface-primary);
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-filters{
@@ -13968,8 +13976,9 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
     height:36px;
     padding:0 12px!important;
     border:0!important;
-    border-radius:9px!important;
+    border-radius:0!important;
     background:transparent!important;
+    border-bottom:2px solid transparent!important;
     color:var(--theme-content-secondary)!important;
     font-size:13px!important;
     line-height:18px;
@@ -13977,7 +13986,8 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
     white-space:nowrap;
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-filter[data-active="true"]{
-    background:color-mix(in srgb,var(--theme-surface-secondary) 76%,var(--theme-surface-primary))!important;
+    background:transparent!important;
+    border-bottom-color:var(--ui-text-primary,var(--theme-content-primary))!important;
     color:var(--theme-content-primary)!important;
     font-weight:650!important;
   }
@@ -14038,15 +14048,15 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .shell-contact-row{
     box-sizing:border-box;
     height:auto!important;
-    min-height:72px!important;
+    min-height:68px!important;
     border-radius:0;
     background:transparent;
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .shell-contact-chat{
     box-sizing:border-box;
     height:auto!important;
-    min-height:72px!important;
-    padding:9px 4px!important;
+    min-height:68px!important;
+    padding:8px 4px!important;
     grid-template-columns:40px minmax(0,1fr);
     column-gap:10px!important;
     align-items:center;
@@ -14066,10 +14076,10 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
     display:grid;
     width:100%;
     min-width:0;
-    grid-template-columns:minmax(0,1fr) 60px;
-    grid-template-rows:19px auto;
+    grid-template-columns:minmax(0,1fr) 58px;
+    grid-template-rows:20px 19px;
     column-gap:8px;
-    row-gap:3px;
+    row-gap:2px;
     align-content:center;
     align-items:start;
   }
@@ -14080,6 +14090,7 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
     text-overflow:ellipsis;
     white-space:nowrap;
     font-size:15px!important;
+    color:var(--ui-text-primary,var(--theme-content-primary))!important;
     line-height:19px!important;
     font-weight:625!important;
     letter-spacing:-.012em;
@@ -14087,20 +14098,20 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .shell-contact-preview{
     grid-column:1;
     grid-row:2;
-    display:-webkit-box;
-    -webkit-box-orient:vertical;
-    -webkit-line-clamp:2;
-    line-clamp:2;
+    display:block;
+    -webkit-line-clamp:unset;
+    line-clamp:unset;
     min-width:0;
     max-width:100%;
-    max-height:36px;
+    max-height:19px;
     overflow:hidden!important;
     overflow-wrap:anywhere;
-    white-space:normal!important;
+    white-space:nowrap!important;
+    text-overflow:ellipsis;
     font-size:13px!important;
-    line-height:18px!important;
+    line-height:19px!important;
     font-weight:400!important;
-    color:var(--theme-content-secondary)!important;
+    color:var(--ui-text-secondary,var(--theme-content-secondary))!important;
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .shell-contact-preview:empty{
     display:none;
@@ -14111,9 +14122,9 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
     box-sizing:border-box;
     justify-self:end;
     align-self:start;
-    width:60px;
-    min-width:60px;
-    max-width:60px;
+    width:58px;
+    min-width:58px;
+    max-width:58px;
     overflow:hidden;
     text-overflow:ellipsis;
     white-space:nowrap;
@@ -14197,8 +14208,9 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
     min-height:44px;
     padding-inline-start:42px!important;
     font-size:16px!important;
-    border-radius:999px!important;
-    background:var(--theme-surface-secondary)!important;
+    border-radius:12px!important;
+    border:1px solid var(--ui-border-color,var(--theme-border-default))!important;
+    background:var(--ui-surface-secondary,var(--theme-surface-secondary))!important;
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-search-icon{
     inset-inline-start:max(24px,calc(env(safe-area-inset-left,0px) + 14px));
