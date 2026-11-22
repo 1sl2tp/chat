@@ -43,7 +43,7 @@ assert "DESKTOP_DIRECTORY_QUERY='(min-width: 64rem)" in SHELL, 'fine-pointer des
 assert "DESKTOP_WORKSPACE_QUERY='(min-width: 80rem)" in SHELL, '3-column workspace must wait until 80rem'
 assert '@media(min-width:64rem)' in SOURCE.replace(' ', ''), 'persistent directory CSS must match the 64rem runtime breakpoint'
 assert '@media(min-width:80rem)' in SOURCE.replace(' ', ''), 'three-column CSS must match the 80rem runtime breakpoint'
-assert "--desktop-directory-width:clamp(300px,26vw,340px)" in SOURCE
+assert "--desktop-directory-width:clamp(272px,24vw,320px)" in SOURCE
 assert "--desktop-work-width:clamp(360px,30vw,400px)" in SOURCE, 'work stays useful without stealing the primary chat surface'
 assert "--desktop-chat-width:calc(100% - var(--desktop-work-width))" in SOURCE, 'chat owns the remainder of the active desktop surface'
 
