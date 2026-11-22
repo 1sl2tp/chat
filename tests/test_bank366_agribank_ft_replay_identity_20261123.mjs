@@ -16,6 +16,8 @@ assert.equal(first.strong,true);
 assert.equal(replay.strong,true);
 assert.equal(first.fingerprintMaterial,replay.fingerprintMaterial,
  "same official FT + account + amount + bank minute despite different Android push time");
+assert.equal(identity(make("FT26327204990536","361,000"),Date.now(),360000).strong,false,
+ "discrepant amount argument must not authorize stable bank identity");
 assert.equal(first.from,"2026-11-22T01:09:00.000Z");
 assert.equal(first.to,"2026-11-22T01:19:00.000Z");
 assert.notEqual(first.fingerprintMaterial,identity(make("FT26327204990537"),Date.now()).fingerprintMaterial,

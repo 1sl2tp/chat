@@ -3,6 +3,7 @@
 // and one literal 14-digit FT reference can ignore Android posted_at_ms.
 // This helper never reads a bill, changes a ledger, or authorizes collection.
 import {officialCreditWindow} from "./credit-recheck.mjs";
+import {parseCredit} from "./credit-parser.mjs";
 
 export function creditReplayIdentity({package_name,title,body,posted_at_ms,amount_vnd}){
  const raw=String(body||"");
@@ -11,7 +12,7 @@ export function creditReplayIdentity({package_name,title,body,posted_at_ms,amoun
  const refs=[...memo.matchAll(/\bFT[0-9]{14}\b/gi)];
  const strong=package_name==="com.vnpay.Agribank3g"&&
    Number.isSafeInteger(amount_vnd)&&amount_vnd>0&&
-   window!==null&&refs.length===1;
+   parseCredit(title,raw)===amount_vnd&&window!==null&&refs.length===1;
  if(!strong)return{
    strong:false,from:null,to:null,
    fingerprintMaterial:package_name+"\n"+posted_at_ms+"\n"+title+"\n"+body
