@@ -15,7 +15,7 @@ client=read("work-customer-summary.js")
 assert "V21.72.39" in source
 
 # Responsive desktop directory stays substantial but yields more room to Chat at the 2-column threshold.
-assert "--desktop-directory-width:clamp(300px,26vw,340px);" in source
+assert "--desktop-directory-width:clamp(272px,24vw,320px);" in source
 
 # Desktop pointer layout compacts only the account/footer chrome; desktop directory remains intact.
 assert "/* V21.72.40 — desktop directory width + compact footer */" in source
