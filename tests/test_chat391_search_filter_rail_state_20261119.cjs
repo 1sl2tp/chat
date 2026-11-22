@@ -128,7 +128,7 @@ assert(css.includes(':has(.contact-directory-search-field[data-expanded="true"])
   'expanded mode uses the original search input at full width');
 assert(policy.includes("activeOwner.host.dataset.mobileKeyboard='true'"),
   'platform remains sole keyboard owner');
-// CHAT-392: geometry/typography contract for the iPhone screenshot.
+// CHAT-392 / CHAT-435: approved V46 replacement keeps behavior, updates row geometry.
 const designStart=css.indexOf('/* CHAT-388 — ONE mobile directory layout owner (389/390/391/392 compatible).');
 const designEnd=css.indexOf('/* CHAT-AXIS-',designStart);
 assert(designStart>=0&&designEnd>designStart,'one last mobile directory owner');
@@ -141,8 +141,8 @@ for(const token of [
   'grid-template-areas:"search" "results";',
   'grid-area:results;',
   'overflow-y:auto;',
-  'min-height:72px!important;',
-  'grid-template-columns:minmax(0,1fr) 60px;',
+  'min-height:68px!important;',
+  'grid-template-columns:minmax(0,1fr) 58px;',
   'font-size:15px!important;',
   'font-size:13px!important;',
   'font-size:11px!important;',

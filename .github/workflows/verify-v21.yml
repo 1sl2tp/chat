@@ -438,6 +438,8 @@ jobs:
         run: node tests/test_chat393_asana_search_first_20261120.cjs
       - name: CHAT-395 compact Top 1 / Top 2 / contacts composition
         run: node tests/test_chat395_three_zones_20261120.cjs
+      - name: CHAT-435 2027/V46 approved directory hierarchy
+        run: node tests/test_chat435_2027_directory_hierarchy_20261123.cjs
       - name: CHAT-396 ChatGPT mobile Shell drawer and one contact store
         run: node tests/test_chat396_chatgpt_drawer_20261120.cjs
       - name: UI-240 narrow directory vertical rhythm and contact preview
