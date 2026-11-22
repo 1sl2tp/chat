@@ -270,6 +270,8 @@ jobs:
           node tests/test_bank307_replayed_push_report_view_20261112.cjs
           node tests/test_bank222_all_agribank_credits.cjs
           node --check bank-report-dashboard.js
+      - name: BANK-366 exact FT credit replay identity (read-only fixture)
+        run: node tests/test_bank366_agribank_ft_replay_identity_20261123.mjs
       - name: BANK-306 cross-device dedupe and missing bank-credit review
         run: |
           node tests/test_bank306_agribank_global_dedupe_gap_20261112.cjs
