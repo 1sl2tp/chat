@@ -1,0 +1,30 @@
+'use strict';
+// CHAT-436: PA2 conversation-first desktop width with unchanged mobile and
+// keyboard ownership. This test is presentation-only and sends no messages.
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const source=fs.readFileSync('index.source.html','utf8');
+const shell=fs.readFileSync('shell.js','utf8');
+const mobile=fs.readFileSync('mobile-chat-refresh.css','utf8');
+const directory=fs.readFileSync('mobile-ui-polish.css','utf8');
+const stage=source.indexOf('@media (min-width:64rem) and (hover:hover) and (pointer:fine){');
+const context=source.indexOf('/* Desktop work surface:',stage);
+assert(stage>0&&context>stage,'existing desktop two-column owner remains');
+const owner=source.slice(stage,context);
+assert(owner.includes('--desktop-directory-width:clamp(272px,24vw,320px);'));
+assert(owner.includes('grid-template-columns:var(--desktop-directory-width) minmax(0,1fr)'));
+assert(owner.includes('grid-template-rows:minmax(0,1fr)'));
+assert(owner.includes('#shellNavigationLayer'));
+assert(owner.includes('grid-column:1;'));
+assert(owner.includes('#activeScreenSlot'));
+assert(owner.includes('grid-column:2;'));
+assert(!owner.includes('position:fixed'),'no new viewport overlay in desktop owner');
+assert(shell.includes('const WORK_ENABLED=false;'),'do not reactivate dormant Work');
+assert(shell.includes("return WORK_ENABLED&&authState==='AUTHENTICATED'&&desktopWorkspaceMedia.matches"));
+assert(shell.includes("const DESKTOP_DIRECTORY_QUERY='(min-width: 64rem)"));
+assert(shell.includes("appShell.dataset.chatContact=String(Boolean(activeContact?.id))"));
+assert(mobile.includes('[data-chat-header-mode="typing"]'));
+assert(mobile.includes('#composerShell'));
+assert(directory.includes('/* CHAT-388 — ONE mobile directory layout owner'));
+assert(!source.includes('--desktop-directory-width:clamp(300px,26vw,340px)'));
+console.log('CHAT-436 PA2 desktop chat priority and preserved mobile keyboard owner: PASS');
