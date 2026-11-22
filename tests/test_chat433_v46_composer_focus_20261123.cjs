@@ -27,6 +27,14 @@ assert(!/\b(?:position|top|bottom|left|right|grid-template|transform|scroll-beha
  'focus paints only; no geometry or viewport ownership');
 assert(!/\b(?:fetch|XMLHttpRequest|WebSocket|setInterval|setTimeout)\s*\(/.test(block));
 assert(source.includes('id="editor"')&&source.includes('id="composerShell"'));
+// CHAT-434: placeholder is not a persistent accessible name; label belongs to P4 editor.
+const editorTag=source.match(/<textarea\\s+[^>]*\\bid="editor"[^>]*>/);
+assert(editorTag,'canonical composer textarea remains present');
+assert(/\\baria-label="Nội dung tin nhắn"/.test(editorTag[0]),
+ 'screen readers have a stable editor name independent of placeholder visibility');
+assert(!/\\b(?:autofocus|aria-live|role|tabindex)=/.test(editorTag[0]),
+ 'accessible name must not alter focus, announcements or keyboard ownership');
+
 assert(source.includes('data-build-source="chatgpt-ab-conversation.css"'));
 assert(mobile.includes('grid-template-rows:auto auto minmax(var(--ui-control-touch,44px),auto);'));
 console.log('CHAT-433 editor-only focus, contrast and keyboard/scroll ownership: PASS');
