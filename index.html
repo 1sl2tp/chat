@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.75">
-<meta name="app-build-id" content="7acb17c2eaa29dd22957da938f8b0089b78c407b0d66626d21df141c5d9633fa">
+<meta name="app-build-id" content="697d1bee092c859f29ff935334fafa89f53d30a4606b2365539be9bb14270e15">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -14451,6 +14451,24 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
     border-radius:26px;
     background:var(--theme-surface-secondary);
     pointer-events:none;
+  }
+  /* CHAT-433 · 2027/V46 design primitive: focus belongs to the INPUT slot.
+     The existing composer ::before paints only; this focus ring does not
+     change grid tracks, hit targets, viewport, scroll or microphone behavior.
+     :focus-visible avoids a misleading editor ring when + or Send is focused. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"])
+  #composerShell:not([data-audio-state="REQUESTING_PERMISSION"]):not([data-audio-state="RECORDING"]):not([data-audio-state="STOPPING"]):not([data-audio-state="PREVIEW"]):not([data-audio-state="SENDING"]):has(#editor:focus-visible)::before{
+    border-color:color-mix(in srgb,var(--theme-content-accent,#2563eb) 50%,var(--theme-border-default));
+    box-shadow:0 0 0 2px color-mix(in srgb,var(--theme-content-accent,#2563eb) 16%,transparent);
+  }
+  @media(forced-colors:active){
+    #appShell[data-auth-state="authenticated"][data-route="chat"]
+    #stageLayout:not([data-bank-report-active="true"])
+    #composerShell:has(#editor:focus-visible)::before{
+      outline:2px solid Highlight;
+      outline-offset:1px;
+    }
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"]
   #stageLayout:not([data-bank-report-active="true"])
