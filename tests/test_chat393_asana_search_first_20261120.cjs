@@ -14,7 +14,10 @@ assert(owner.includes('grid-template-areas:"search" "filters" "results";'),'top 
 assert(owner.includes('grid-template-areas:"search" "results";'),'top search with keyboard');
 assert.equal((owner.match(/grid-area:results;/g)||[]).length,1,'one scroll owner');
 assert(owner.includes('.contact-directory-search-field[data-expanded="true"]'),'expanded visual owner');
-assert(owner.includes('border-bottom:1px solid'),'search separates from list');
+assert(owner.includes('border:1px solid var(--ui-border-color,var(--theme-border-default))!important;'),
+  'CHAT-435 search owns one visible border without another divider');
+assert(owner.includes('border-bottom:2px solid var(--ui-text-primary,var(--theme-content-primary))!important;'),
+  'CHAT-435 selection uses a light tab underline instead of a second pill');
 assert(!owner.includes('position:fixed'),'do not create second viewport owner');
 assert(directory.includes('input.focus({preventScroll:true})'),'focus remains on tap');
 assert(directory.includes("input.addEventListener('blur',reconcileSearchOnDismiss)"),'native keyboard dismissal');
