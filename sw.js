@@ -42,8 +42,9 @@ const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 // CHAT-428: status-bar scroll-under repaint only; never evict private drafts, photos or messages.
 // CHAT-429: refresh PUBLIC app shell only; keep auth sessions, drafts, chats and media.
 // CHAT-435: rotate PUBLIC shell for the 2027/V46 directory redesign only.
+// CHAT-437: refresh PUBLIC layout/reading rail and rounded composer only.
 // Keep private messages, drafts, auth and outbox caches intact.
-const SHELL_CACHE_EPOCH='pwa-chat-ui435-v46-directory-hierarchy-20261123';
+const SHELL_CACHE_EPOCH='pwa-chat-ui437-pa2-optical-axis-20261123';
 const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION+'-'+SHELL_CACHE_EPOCH;
 const AVATAR_CACHE_NAME='taphoa-chat-avatars-v1';
 const SUPABASE_ASSET_HOST_RE=/^[a-z0-9]+\.supabase\.co$/i;
