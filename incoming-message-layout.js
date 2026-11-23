@@ -55,8 +55,8 @@ function ambiguousOrderNote(line){
 }
 // CHAT-436: payment figures and bare packaging counts are not merchandise.
 // Keep numeric sizes and model codes in genuine product names unchanged.
-const moneyAmount=/(?:^|[\\s&+,:;])\\d+(?:[.,]\\d{3})*(?:[.,]\\d+)?\\s*(?:k|nghìn|ngàn|triệu|tr|đ|đồng|vnd)(?=$|[\\s&+,:;.!?])/iu;
-const moneyLead=/^(?:tiền|tổng tiền|thành tiền|thanh toán|chuyển khoản|ck|giá|trả|nợ|cọc|ship|phí)(?=\\s|[:：]|$)/iu;
+const moneyAmount=/(?:^|[\s&+,:;])\d+(?:[.,]\d{3})*(?:[.,]\d+)?\s*(?:k|nghìn|ngàn|triệu|tr|đ|đồng|vnd)(?=$|[\s&+,:;.!?])/iu;
+const moneyLead=/^(?:tiền|tổng tiền|thành tiền|thanh toán|chuyển khoản|ck|giá|trả|nợ|cọc|ship|phí)(?=\s|[:：]|$)/iu;
 const packagingOnly=new RegExp('^\\d{1,3}\\s*'+U+'(?:\\s+(?:mà|nhé|nha|ạ|thôi|đó|này|kia|vậy|đấy|rồi|còn|chưa|thì|là|đi|em|anh|chị).*)?$','iu');
 function nonMerchandiseLine(line){
  const raw=stripListMarker(String(line||'').trim());
@@ -64,6 +64,7 @@ function nonMerchandiseLine(line){
 }
 function entry(raw,qty,u,source,review=false,allowVerifiedNumericName=false){
  const name=stripListMarker(raw);
+ if(nonMerchandiseLine(source)||nonMerchandiseLine(name))return null;
  const amount=Number(qty);
  // "5 thùng này" has no product. "1 thùng milo này" needs a human check.
  if(deicticProduct.test(name))return null;
