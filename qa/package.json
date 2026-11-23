@@ -1,0 +1,21 @@
+{
+  "name": "taphoa-chat-quality-tools",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Read-only QA tools for the existing TAPHOA CHAT runtime. Not shipped to the PWA.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "guidance:search": "modern-web-guidance search",
+    "guidance:retrieve": "modern-web-guidance retrieve",
+    "guidance:scan": "modern-web-guidance legacy-scan ../ --json",
+    "test:browser": "playwright test -c playwright.config.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.1",
+    "@axe-core/playwright": "4.14.0",
+    "modern-web-guidance": "1.0.1"
+  }
+}
