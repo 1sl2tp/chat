@@ -6624,6 +6624,13 @@ window.visualViewport?.addEventListener?.('resize',()=>{
    ATTACHMENTS / RECORDING
    ========================================================= */
 let pendingAttachments=[];
+// CHAT-441: one Photos selection prepares attachments asynchronously.
+// Prevent sending a partial batch while the remaining photos decode/cache.
+const imageIngressByDraft=new Map();
+function imageIngressPendingForCurrentDraft(){
+  const key=String(currentComposerScope().ownerDraftKey||'');
+  return Boolean(key&&(imageIngressByDraft.get(key)||0)>0);
+}
 let mediaRecorder=null;
 let mediaStream=null;
 let mediaChunks=[];
@@ -7203,9 +7210,13 @@ async function ingestImageFiles(files,{scope=currentComposerScope()}={}){
     composerHint.textContent='Chưa sẵn sàng đính kèm ảnh';
     return{added:0,scope};
   }
+  const ownerKey=String(scope.ownerDraftKey);
+  imageIngressByDraft.set(ownerKey,(imageIngressByDraft.get(ownerKey)||0)+1);
+  if(ComposerDraftOwner.currentKey()===ownerKey)syncSendButtonState();
   let added=0;
   const batch=rawFiles.length>1;
-  for(const [index,rawFile] of rawFiles.entries()){
+  try{
+    for(const [index,rawFile] of rawFiles.entries()){
     try{
       const file=await canonicalizeImageIngressFile(rawFile,index);
       const item=await prepareImageAttachment(file,scope,{batch});
@@ -7226,8 +7237,14 @@ async function ingestImageFiles(files,{scope=currentComposerScope()}={}){
         composerHint.textContent=message.includes('too_large')?'Ảnh tối đa 15 MB':'Không thể đọc ảnh này';
       }
     }
+    }
+    return{added,scope};
+  }finally{
+    const remaining=(imageIngressByDraft.get(ownerKey)||1)-1;
+    if(remaining>0)imageIngressByDraft.set(ownerKey,remaining);
+    else imageIngressByDraft.delete(ownerKey);
+    if(ComposerDraftOwner.currentKey()===ownerKey)syncSendButtonState();
   }
-  return{added,scope};
 }
 
 async function addImagesFromInput(input){
@@ -8325,7 +8342,8 @@ function syncSendButtonState(){
   const visualCanSend=
     hasPayload &&
     !sendLocked &&
-    !recording;
+    !recording &&
+    !imageIngressPendingForCurrentDraft();
 
   const interactiveCanSend=
     visualCanSend &&
@@ -8335,7 +8353,8 @@ function syncSendButtonState(){
     !hasPayload &&
     !sendLocked &&
     !composing &&
-    !recording;
+    !recording &&
+    !imageIngressPendingForCurrentDraft();
 
   const arrow=
     composerSendMode==='button'
@@ -8638,7 +8657,8 @@ function sendNow(){
   const rawText=editor.value.replace(/\r\n/g,'\n');
   const text=rawText.trim();
 
-  if((!text&&pendingAttachments.length===0)||sendLocked||composing)return false;
+  if((!text&&pendingAttachments.length===0)||sendLocked||composing||
+     imageIngressPendingForCurrentDraft())return false;
 
   const attachments=pendingAttachments.slice();
 
