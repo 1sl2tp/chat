@@ -45,11 +45,11 @@ jobs:
           node tests/test_chat_quality_sources_20261123.cjs
 
   browser:
-    name: Local anonymous browser + accessibility
+    name: Local multi-engine browser + accessibility
     needs: quick
     if: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.event.schedule == '43 2 * * *' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -62,13 +62,13 @@ jobs:
         run: python tools/build_current_preview.py
       - name: Install pinned browser and guidance test packages
         run: npm --prefix qa install --no-audit --no-fund
-      - name: Install local Chromium test browser
-        run: npm --prefix qa exec -- playwright install --with-deps chromium
+      - name: Install isolated Chromium, Firefox and WebKit test browsers
+        run: npm --prefix qa exec -- playwright install --with-deps chromium firefox webkit
       - name: Verify Modern Web Guidance search works
         env:
           DISABLE_TELEMETRY: '1'
         run: npm --prefix qa run guidance:search -- "responsive design"
-      - name: Anonymous localhost shell and axe-core analysis
+      - name: Anonymous localhost geometry, screenshots and axe-core analysis
         run: npm --prefix qa run test:browser
       - name: Archive QA evidence (no credentials or production data)
         if: always()
