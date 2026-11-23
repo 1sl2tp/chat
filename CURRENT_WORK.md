@@ -1,3 +1,14 @@
+## 2026-11-23 — BANK-366 · Khách xác nhận giờ chuyển khoản bằng tin nhắn đối soát
+
+- **E0 / Yêu cầu:** Nếu AI xác định chắc chắn bill chuyển khoản thành công có ngày in rõ nhưng **không có giờ**, phải nhắn ngay trong đúng hội thoại cho khách để cả hai bên lưu dấu vết giờ chuyển tiền (HH:mm). Không suy diễn giờ trên ảnh từ giờ gửi Chat/thông báo ngân hàng và không tự thu chỉ từ câu trả lời của khách. C Sâm PL: 1.053.000đ (2 ảnh cùng reference) và 1.102.000đ (mã NAPAS, chỉ in ngày).
+- **E1 / Owner:** `v21-bank-bill-event/bill-no-clock-customer-notice.mjs` sau OCR phân loại `review/bill_printed_time_missing`; chỉ ảnh chuyển khoản thành công, số tiền rõ, ngày rõ, không có mâu thuẫn OCR, người nhận hợp lệ và tin cùng hội thoại có khách+admin. Gửi qua **RPC hiện hữu** `taphoa_chat_notify_customer`, chịu global/recipient opt-in và Zalo bridge hiện hữu. Tin gồm số tiền, ngày, mã tham chiếu nếu có và yêu cầu khách **trả lời giờ HH:mm bằng chữ**, không yêu cầu chuyển khoản lại. Không tạo đường gửi riêng, không tải ảnh mới, không gọi AI để xem lại ảnh.
+- **Chống lặp:** `client_id=taphoa:bill:no-clock:<sha256(customer+identity)>:collection`; cùng khách + giao dịch (reference/amount/date hoặc fallback memo) chỉ có một tin nhờ unique sender+client id, dù ảnh crop khác nhau hoặc nhiều lần recheck. `customer_notified_at` chỉ cập nhật khi RPC trả id; không thay status, số dư, link ngân hàng hay ledger.
+- **E2 / Tests:** `tests/test_bank366_customer_no_clock_reconcile_20261123.mjs`; PR #399, Verify V21. Mocks không phát tin thật; không tính câu trả lời khách là xác minh ngân hàng.
+- **E3 / Release:** Merge sau CI xanh, chỉ cập nhật Edge `v21-bank-bill-event` từ main vào project `vtqhbhrkdxirqeqkgylo`. Agribank ingest và DB schema giữ nguyên. Xác nhận parity các tệp và kiểm tra không ghi thu tự động khi chưa có chứng cứ ngân hàng.
+- **E4 / E5:** Bản tin đối soát đã lưu chỉ là yêu cầu khách xác nhận, **không có nghĩa giao dịch đã ghi thu**. Gửi thực tế chỉ khi business consent/opt-in đã bật. Cần readback message id, customer room, status bill và ledger riêng biệt.
+
+---
+
 ## 2026-11-23 — BANK-364 · Chỉ khôi phục bill đã OCR thiếu giờ bằng phút Agribank, không xử lý ảnh mới
 
 - **E0 / Bằng chứng sản xuất (chỉ đọc):** C Sâm PL gửi hai ảnh cùng mã `NAPAS_INPLIBFTI2RNQE85`, số tiền 1.053.000đ, ngày 23/11/2026, trạng thái `review/bill_printed_time_missing`; ảnh lúc 09:51 thiếu giờ; Agribank #434 ghi **09:50 ngày 23/11**, đúng tài khoản 2901181999999, người gửi và memo. Hai ảnh khác hash; OCR tài khoản thiếu một chữ số. **Chưa tạo ledger cho khoản 1.053.000đ** lúc kiểm tra.
