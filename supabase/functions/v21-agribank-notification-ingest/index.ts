@@ -121,10 +121,8 @@ Deno.serve(async req=>{
       if(!Array.isArray(records)||records.length>=100)
         return reply({error:"bank_duplicate_evidence_ambiguous"},503);
       if(records.some(e=>sameOfficialCreditNotice(e,body,amount))){
-        // Existing authenticated bank proof, no duplicate candidate write.
-        EdgeRuntime.waitUntil(recheckNewCredit(body,amount).catch(()=>{
-          console.warn("bank367_duplicate_credit_wake_deferred");
-        }));
+        // Existing authenticated bank proof; never generate new bank credits,
+        // re-wake, or spend resources on replayed Android pushes.
         return reply({ok:true,stored:false,duplicate:true,kind:row.status,
           duplicate_kind:"same_official_bank_notice",ledger_written:false});
       }
