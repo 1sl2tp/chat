@@ -84,6 +84,8 @@ jobs:
           rsync -a ./ _site/ \
             --exclude '.git/' \
             --exclude '.github/' \
+            --exclude '.agents/' \
+            --exclude 'qa/' \
             --exclude '_site/' \
             --exclude 'tests/' \
             --exclude 'tools/' \
