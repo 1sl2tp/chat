@@ -772,6 +772,19 @@ function bankReportCreditTone(row,issue=null){
   return issue?.label?.includes('Thiếu bill')||!issue?'pending':'danger';
  return 'neutral';
 }
+// BANK-367: newer bank evidence can arrive after a bill preview was saved.
+// A same-amount same-minute bank event is only an ADMIN REVIEW HINT.
+function bankStoredSameMinuteEvidence(row,data){
+ if(!row||row.ledger_id||!['amount_read','review'].includes(String(row.status||'')))return [];
+ const minute=String(row.bill_time||'').slice(0,16).replace('T',' ');
+ const amount=Number(row.amount_vnd);
+ if(!/^20\d{2}-\d{2}-\d{2} \d{2}:\d{2}$/.test(minute)||
+   !Number.isSafeInteger(amount)||amount<=0)return [];
+ return bankCreditViewModel(data?.bank_credits).filter(bank=>
+   String(bank?.bank_time||'').slice(0,16).replace('T',' ')===minute&&
+   Number(bank?.amount_vnd)===amount&&
+   String(bank?.bank_credit_account||'')==='2901181999999');
+}
 function detailLine(row,isBank=false,candidates=[]){
  const type=isBank?'bank_only':row.report_status;
  const recorded=!isBank&&type==='matched'&&Boolean(row.ledger_id);
@@ -888,6 +901,7 @@ function detailLine(row,isBank=false,candidates=[]){
   content.appendChild(act);
  }
  if(row.reason&&!isBank){
+  const storedMinuteCredits=bankStoredSameMinuteEvidence(row,current);
   let reason='Ghi chú: '+row.reason;
   if(row.reason==='manual_bank_bill_reviewed'&&recorded)reason='Đã thu tay · Đã soát bill gốc, liên kết sổ thu cũ. Không thu lần hai.';
   else if(bankBillImageUncertainty(row))reason=bankBillUncertainDescription(row);
@@ -895,17 +909,20 @@ function detailLine(row,isBank=false,candidates=[]){
   else if(row.reason==='bill_recipient_account_missing')reason='Ảnh chưa đọc rõ số tài khoản NGƯỜI NHẬN. Chờ bạn đối chiếu chứng từ và thu thủ công, chưa ghi công nợ.';
   else if(row.reason==='bill_recipient_account_conflict')reason='Số tài khoản người nhận trên ảnh không khớp tài khoản Agribank cần thu. Không tự khớp; bạn xác minh thủ công.';
   else if(row.reason==='bill_printed_date_missing')reason='Ảnh chưa đọc được ngày giao dịch in trên bill. Không dùng ngày gửi ảnh thay thế; chờ bạn xác minh/thu thủ công.';
-  else if(row.reason==='bill_printed_time_missing')reason='Ảnh chưa đọc được giờ giao dịch in trên bill. Không dùng đồng hồ điện thoại; chờ bạn xác minh/thu thủ công.';
+  else if(row.reason==='bill_printed_time_missing')reason='Ảnh chưa xác nhận được giờ in trên bill. Nếu xác định chắc thiếu giờ, hệ thống nhắn khách hỏi HH:mm; phải đối chiếu thêm giờ Agribank trước khi ghi thu.';
   else if(row.reason==='bill_printed_datetime_conflict'||row.reason==='bill_printed_datetime_invalid')reason='Ngày/giờ trên ảnh bị mâu thuẫn hoặc không hợp lệ. Không tự thu; cần bạn đối chiếu bằng chứng Agribank.';
   else if(isAiScanIssue(row))reason='Lỗi quét ảnh: '+scanIssueLabel(row.reason);
   else if(row.reason==='manual_bank_bill_reviewed')
     reason='Admin đã soát ảnh bill gốc và liên kết với sổ thu thủ công trước đó. Không ghi thu lần hai.';
   else if(row.reason==='bank_image_amount_only_no_collection'){
     const recipient=String(row.receiving_account||'').replace(/[^0-9]/g,'');
-    if(recipient&&recipient!=='2901181999999')
+    if(recipient.length>=5&&!recipient.endsWith('99999'))
       reason='Ảnh ghi tài khoản nhận đuôi '+recipient.slice(-5)+
-        ', không phải tài khoản Agribank nhận tiền đuôi 99999. '+
-        'Không được gán tiền Agribank trùng số ở giờ khác cho bill này. Cần xác minh riêng.';
+        ', khác tài khoản Agribank cần thu. Không tự khớp; cần kiểm tra ảnh gốc.';
+    else if(storedMinuteCredits.length)
+      reason='Đã có thông báo Agribank cùng số tiền và phút chuyển khoản. '+
+        'Đối chiếu của bill có thể đã cũ hoặc nội dung chưa xác minh. '+
+        'Cần kiểm tra mã giao dịch, người chuyển và thông báo trùng; chưa ghi thu.';
     else if(row.report_status==='review'&&row.bill_time)
       reason='Ảnh có số tiền và giờ nhưng chưa xác nhận được nguồn tiền Agribank của giao dịch này.';
     else if(!row.bill_time)
