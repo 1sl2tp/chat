@@ -95,6 +95,11 @@ jobs:
           node --check app.js
           node tests/test_chat441_ios_photo_multiselect_20261123.cjs
 
+      - name: CHAT-443 Chat CRM canonical icon library and single-owner navigation
+        run: |
+          node --check ui-icons.js
+          node --check contact-directory-admin.js
+          node tests/test_chat443_crm_icon_owner_20261124.cjs
       - name: CHAT-440 contextual iOS PWA message and directory notification dedup
         run: |
           node --check sw.js
