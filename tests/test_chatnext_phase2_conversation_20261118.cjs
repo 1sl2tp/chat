@@ -24,6 +24,12 @@ assert(css.includes('#composerShell'),'composer surface is visual-only');
 assert(css.includes('#composerShell[data-can-send="true"] #send:not(:disabled)'));
 assert(css.includes('@media (max-width:63.999rem)'));
 assert(css.includes('min-width:0'),'name must shrink, action buttons never clip');
+// PA4: keep a single semantic focus color for header and composer, and constrain both title ancestors.
+assert(css.includes('--chat-next-focus:#3a83f7;'));
+assert(css.includes('border-color:color-mix(in srgb,var(--chat-next-focus) 45%'));
+assert(css.includes('outline:2px solid var(--chat-next-focus);'));
+assert(/\.top-mode-switch\[data-contact-identity="true"\][\s\S]*?max-width:100%;[\s\S]*?box-sizing:border-box;/.test(css));
+assert(/\.top-mode-tab\[data-top-tab="chat"\][\s\S]*?max-width:100%;[\s\S]*?overflow:hidden;/.test(css));
 assert(css.includes('prefers-reduced-motion:reduce'));
 assert(!css.includes('#messageWindow'),'do not take ownership of virtualized messages');
 assert(!css.includes('grid-template-rows:'),'do not redefine conversation layout tracks');
