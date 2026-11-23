@@ -36,7 +36,11 @@ async function recheckNewCredit(body:string,amount:number){
  if(!Array.isArray(rows)||rows.length>4)return; // no ambiguous fan-out
  const eligible=rows.filter(r=>r?.status==="amount_read"||
    (r?.status==="review"&&r?.reason==="bill_printed_datetime_conflict"&&
-     r?.attempt_count===1));
+     r?.attempt_count===1)||
+   // BANK-364: only a NEW independent bank event wakes existing no-clock
+   // receipts. Do not trigger a new image read or a periodic rescan.
+   (r?.status==="review"&&r?.reason==="bill_printed_time_missing"&&
+     Number.isInteger(r?.attempt_count)&&r.attempt_count>=1&&r.attempt_count<=2));
  await Promise.all(eligible.map(async bill=>{
    if(typeof bill.media_asset_id!=="string")return;
    const wake=await fetch(URL+"/functions/v1/v21-bank-bill-event",{
