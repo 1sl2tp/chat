@@ -48,8 +48,8 @@ const preview=rule(prefix+'.shell-contact-preview');
 const time=rule(prefix+'.shell-contact-time');
 assert(list.includes('grid-area:results;')&&list.includes('overflow-y:auto;'));
 assert.equal((owner.match(/grid-area:results;/g)||[]).length,1,'exactly one contact list scroller');
-assert(row.includes('min-height:68px!important;'));
-assert(hit.includes('min-height:68px!important;')&&hit.includes('grid-template-columns:40pxminmax(0,1fr);'));
+assert(row.includes('min-height:64px!important;'));
+assert(hit.includes('min-height:64px!important;')&&hit.includes('grid-template-columns:40pxminmax(0,1fr);'));
 assert(copy.includes('grid-template-columns:minmax(0,1fr)58px;'));
 assert(copy.includes('grid-template-rows:20px19px;'));
 assert(preview.includes('display:block;')&&preview.includes('-webkit-line-clamp:unset;'));
@@ -61,6 +61,6 @@ assert(owner.includes('#shellNavigationLayer[data-directory-search-active="true"
 assert(!owner.includes('position:fixed'),'no second viewport writer');
 assert(keyboard.includes("owner.kind==='directory'||owner.kind==='message-forward'"));
 assert(dir.includes('restoreDirectoryViewport();'),'directory scroll anchor persists');
-assert(sw.includes("SHELL_CACHE_EPOCH='pwa-chat-ui435-v46-directory-hierarchy-20261123'"));
+assert(sw.includes("SHELL_CACHE_EPOCH='pwa-chat-ui437-pa2-optical-axis-20261123'"));
 assert(!/fetch\s*\(|XMLHttpRequest|supabase\./.test(owner),'visual owner never fetches or writes');
 console.log('CHAT-435 V46 directory compact hierarchy, single-line rows and platform safety PASS');
