@@ -80,7 +80,7 @@ def test_ui_145_one_layout_rail_for_header_directory_and_composer():
     core=(ROOT/'index.source.html').read_text('utf-8')
     polish=CSS
     assert '--ui-chat-layout-rail:12px;' in foundation
-    assert '--ui-chat-message-rail:6px;' in foundation
+    assert '--ui-chat-message-rail:14px;' in foundation
     # Top header is already a .chat-content-axis; mobile !important must win
     # over legacy desktop 16px !important, with no double horizontal padding.
     assert 'padding-inline:var(--chat-content-gutter)!important;' in core
