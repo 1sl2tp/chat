@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.76">
-<meta name="app-build-id" content="2eb531fc6b055e62930b6b48e72818d757f0fca57935a0ecaff95dfc5971aed4">
+<meta name="app-build-id" content="fbe6f3ca21be4ff62bb1d01ff21124488134d941e1fdb0b09d9755a67bba84ee">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -14671,6 +14671,25 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
     min-height:30px;
     max-width:30px;
     max-height:30px;
+  }
+}
+
+/* PA11 phase 3 — prevent accidental outbound calls from the mobile header.
+   The existing "Tùy chọn hội thoại → Gọi qua Chat" action remains available;
+   incoming/connecting/active call controls remain visible and unchanged.
+   Only hide the idle one-tap outbound call shortcut when the overflow
+   action menu exists. Do not alter call engine or dispatch. */
+@media (max-width:63.999rem) {
+  #appShell[data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"])
+  #regionTop .call-focus-slot[data-call-ui-state="idle"]:has([data-chat-header-more])
+  #chatCallFocus[data-call-live="false"] {
+    display:none!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"])
+  #regionTop .call-focus-slot[data-call-ui-state="idle"]:has([data-chat-header-more]) {
+    max-width:min(42vw,170px);
   }
 }
 
