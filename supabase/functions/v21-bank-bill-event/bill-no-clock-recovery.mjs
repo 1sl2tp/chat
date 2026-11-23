@@ -62,7 +62,11 @@ const evidenceSafe=receipt=>{
   visibleDay(receipt)!==null&&accountConsistent(receipt)&&
   compact(receipt.receiving_name)==="BUIXUANTUNG"&&
   compact(receipt.receiving_bank)==="AGRIBANK"&&
-  compact(receipt.sending_bank).length>=3&&
+  // The sending bank label is optional on many bank receipts. Do not
+  // penalize an otherwise exact sender-bound memo and official credit time.
+  // A nonempty label must remain legible, and conflicting labels on sibling
+  // images remain a hard duplicate-identity stop.
+  (!receipt.sending_bank||compact(receipt.sending_bank).length>=3)&&
   compact(raw.transfer_content).length>=16;
 };
 const sameTransfer=(a,b)=>{
@@ -72,7 +76,8 @@ const sameTransfer=(a,b)=>{
   a?.amount_vnd===b?.amount_vnd&&
   compact(a?.transfer_reference)&&
   compact(a.transfer_reference)===compact(b?.transfer_reference)&&
-  compact(a?.sending_bank)===compact(b?.sending_bank)&&
+  (!a?.sending_bank||!b?.sending_bank||
+   compact(a.sending_bank)===compact(b.sending_bank))&&
   compact(ar.transfer_content)===compact(br.transfer_content)&&
   visibleDay(a)===visibleDay(b)&&
   visibleDay(a)!==null&&
