@@ -54,6 +54,42 @@ assert.equal(good.raw_read.transfer_time_printed_vn,null,
  "Bank clock must NOT be rewritten as a printed image clock");
 assert.equal(plan(good,[good]).status,"eligible",
  "A single verified bill can be considered without inventing a second image");
+// BANK-365: real-world shape of the 1,102,000đ receipt from 23/11.
+// The image has date but no printed clock or sending-bank label. Bank #440
+// independently supplies the real transaction minute and exact sender memo.
+const noSendingBank=make("no-source-bank",{
+ amount_vnd:1102000, sending_bank:null,
+ transfer_reference:"NAPAS_INPLIBFTI2R6F6IJ",
+ sent_at:"2026-11-23T07:56:36Z",
+ raw_read:{...baseRaw,sender_name:"LAI THI THU HOA",
+   transfer_content:"LAI THI THU HOA chuyen tien"}
+});
+const hoaCredit={
+ ...credit(440,"Agribank: 14:56 23/11/2026 Tài khoản 2901181999999: +1,102,000VND. Nội dung giao dịch: LAI THI THU HOA chuyen tien. Số dư cuối: -213,794,230VND"),
+ amount_vnd:1102000,posted_at:"2026-11-23T08:19:54Z"
+};
+const noBankResult=plan(noSendingBank,[noSendingBank],[hoaCredit]);
+assert.equal(noBankResult.status,"eligible",
+ "An optional source-bank label must not defeat independent exact bank minute and sender memo");
+assert.equal(noBankResult.bank_time_vn,"2026-11-23 14:56:00");
+assert.equal(noSendingBank.raw_read.transfer_time_printed_vn,null,
+ "Never invent a printed bill time based on a bank notice");
+const cropping=make("same-transfer-crop",{
+ amount_vnd:1102000,sending_bank:"VPBank",
+ transfer_reference:"NAPAS_INPLIBFTI2R6F6IJ",
+ sent_at:"2026-11-23T07:56:37Z",
+ raw_read:{...baseRaw,sender_name:"LAI THI THU HOA",
+   transfer_content:"LAI THI THU HOA chuyen tien"}
+});
+assert.deepEqual(plan(cropping,[cropping,noSendingBank],[hoaCredit]).duplicate_ids,
+ ["no-source-bank"],"One cropped source-bank label does not split a verified transfer");
+const otherBank={...cropping,id:"bank-conflict",sending_bank:"TECHCOMBANK"};
+assert.deepEqual(plan(cropping,[cropping,otherBank],[hoaCredit]).duplicate_ids,[],
+ "Conflicting nonempty source-bank labels must NOT be merged");
+assert.notEqual(plan(noSendingBank,[noSendingBank],
+ [{...hoaCredit,amount_vnd:1102000,body:hoaCredit.body.replace("LAI THI THU HOA","LAI THI THU HUE")}]).status,
+ "eligible","Incorrect OCR sender memo must remain uncollected");
+
 const mutations=[
  ["OCR wrong account",make("paper",{receiving_account:"290118199998"})],
  ["wrong recipient",make("paper",{receiving_name:"NGUYEN VAN KHAC"})],
@@ -101,4 +137,4 @@ assert.doesNotMatch(worker,/\.storage\.from\(|requestParsedBillGemini|GEMINI_API
 assert.match(worker,/db\.rpc\("chat_bank_app_collect"/);
 assert.match(event,/bill_printed_time_missing/);
 assert.match(owner,/recoverStoredNoClockBankCredit\(db,asset\)/);
-console.log("BANK-364: 23 read-only no-clock/duplicate/bank-clock guards PASS");
+console.log("BANK-364/365: no-clock/optional source bank/duplicate evidence guards PASS");
