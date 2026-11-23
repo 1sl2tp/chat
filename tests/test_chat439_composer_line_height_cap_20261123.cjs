@@ -42,8 +42,19 @@ assert(css.includes('max-height:150px; /* CHAT-439'),
  'CSS actual max height must permit six lines; JS limit alone is insufficient');
 assert(css.includes('grid-template-columns:var(--ui-control-touch,44px) minmax(0,1fr)'),
  'the plus/text/mic/send track widths must not move while typing');
-assert(html.includes('<meta name="app-release-version" content="V21.72.80">'));
-assert(app.includes("releaseVersion:'V21.72.80'"));
-assert(sw.includes("RELEASE_VERSION='V21.72.80'"));
-assert(sw.includes("SHELL_CACHE_EPOCH='pwa-chat-ui441-ios-multi-photo-selection-20261123'"));
+// The release contract is shared across owners, not tied to the version
+// current on the day CHAT-439 was introduced. Keep detecting drift while
+// allowing an intentional version/cache-epoch bump without editing this test.
+const htmlVersion=html.match(/<meta name="app-release-version" content="(V\d+\.\d+\.\d+)">/);
+const appVersion=app.match(/releaseVersion:'(V\d+\.\d+\.\d+)'/);
+const swVersion=sw.match(/RELEASE_VERSION='(V\d+\.\d+\.\d+)'/);
+assert(htmlVersion&&appVersion&&swVersion,
+ 'all three release owners must expose a well-formed version');
+assert.equal(appVersion[1],htmlVersion[1],
+ 'composer runtime release must match canonical HTML');
+assert.equal(swVersion[1],htmlVersion[1],
+ 'PWA shell release must match canonical HTML');
+const shellEpoch=sw.match(/SHELL_CACHE_EPOCH='([^']+)'/);
+assert(shellEpoch&&shellEpoch[1].trim(),
+ 'PWA shell cache epoch must remain explicitly versioned');
 console.log('CHAT-439 whole-line mobile composer cap, keyboard stability and release parity PASS');
