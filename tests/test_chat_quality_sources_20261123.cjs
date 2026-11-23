@@ -23,6 +23,9 @@ assert.doesNotMatch(workflow,/permissions:\s*\n\s*contents: write/);
 assert.doesNotMatch(workflow,/workflow_run:/);
 assert.doesNotMatch(workflow,/\bgh pr merge\b|\bgit push\b|\bdeploy-pages\b|\bworkflow_dispatch\s+--ref\b/);
 assert.match(workflow,/needs: quick/);
+const pages=read('.github/workflows/pages.yml');
+assert.ok(pages.includes("--exclude 'qa/'"),'QA packages must never be included in public Pages artifacts');
+assert.ok(pages.includes("--exclude '.agents/'"),'AI skill sources must remain outside public Pages artifacts');
 assert.match(workflow,/node tests\/test_chat438_keyboard_content_priority_20261123.cjs/);
 
 const smoke=read('qa/tests/public-shell.spec.mjs');
