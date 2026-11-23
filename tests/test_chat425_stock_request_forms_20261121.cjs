@@ -12,6 +12,20 @@ const sw=fs.readFileSync('sw.js','utf8');
 const win={};
 new Function('window','document',parser)(win,{});
 const stock=win.V21IncomingMessageLayout;
+// CHAT-436: payments and quantity-only packaging must not become stock rows.
+for(const message of ['200k','2 triệu','2 & 200k','2 thùng','2 thùng mà chưa rõ hàng','Chuyển khoản 200.000đ']){
+ const result=stock.analyze('Lấy hàng\\n'+message);
+ assert(!result?.items?.length,'non-merchandise must not create item: '+message);
+}
+for(const [message,name,qty] of [
+ ['Lấy hàng\\n2 thùng Proby','Proby',2],
+ ['Lấy hàng\\nProby 400ml 2','Proby 400ml',2],
+ ['Lấy hàng\\nThọ 1.2kg 1','Thọ 1.2kg',1]
+]){
+ const result=stock.analyze(message);
+ assert(result?.items?.some(item=>item.name===name&&item.qty===qty),'preserve real merchandise: '+message);
+}
+
 for(const [input,name,qty,unit] of [
  ['Mi miket - 316 *5 thùng','Mi miket - 316',5,'thùng'],
  ['Cháo gấu đỏ gà - 150 *5','Cháo gấu đỏ gà - 150',5,''],
