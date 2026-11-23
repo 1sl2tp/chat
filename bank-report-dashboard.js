@@ -775,12 +775,14 @@ function bankReportCreditTone(row,issue=null){
 // BANK-367: newer bank evidence can arrive after a bill preview was saved.
 // A same-amount same-minute bank event is only an ADMIN REVIEW HINT.
 function bankStoredSameMinuteEvidence(row,data){
- if(!row||row.ledger_id||!['amount_read','review'].includes(String(row.status||'')))return [];
+ if(!row||row.ledger_id||!['amount_read','review'].includes(String(row.status||'')))return false;
  const minute=String(row.bill_time||'').slice(0,16).replace('T',' ');
  const amount=Number(row.amount_vnd);
  if(!/^20\d{2}-\d{2}-\d{2} \d{2}:\d{2}$/.test(minute)||
-   !Number.isSafeInteger(amount)||amount<=0)return [];
- return bankCreditViewModel(data?.bank_credits).filter(bank=>
+   !Number.isSafeInteger(amount)||amount<=0)return false;
+ // Only one yes/no signal is needed: don't regroup/sort the entire bank
+ // ledger inside every bill detail row on mobile.
+ return Array.isArray(data?.bank_credits)&&data.bank_credits.some(bank=>
    String(bank?.bank_time||'').slice(0,16).replace('T',' ')===minute&&
    Number(bank?.amount_vnd)===amount&&
    String(bank?.bank_credit_account||'')==='2901181999999');
@@ -921,7 +923,7 @@ function detailLine(row,isBank=false,candidates=[]){
        (recipient.length>=5&&!recipient.endsWith('99999')))
       reason='Ảnh ghi tài khoản nhận đuôi '+recipient.slice(-5)+
         ', khác tài khoản Agribank cần thu. Không tự khớp; cần kiểm tra ảnh gốc.';
-    else if(storedMinuteCredits.length)
+    else if(storedMinuteCredits)
       reason='Đã có thông báo Agribank cùng số tiền và phút chuyển khoản. '+
         'Đối chiếu của bill có thể đã cũ hoặc nội dung chưa xác minh. '+
         'Cần kiểm tra mã giao dịch, người chuyển và thông báo trùng; chưa ghi thu.';
