@@ -7390,18 +7390,29 @@ async function addFilesFromInput(input){
 }
 
 async function addIOSNativeSourceFromInput(input){
+  // CHAT-441: iPhone's primary + picker can return several Photos at once.
+  // Snapshot the whole FileList BEFORE clearing the native input so the same
+  // photo selection can be repeated. The original order belongs to Photos.
   const files=Array.from(input.files||[]);
   input.value='';
   if(!files.length)return;
-  const file=files[0];
-  const nativeType=String(file?.type||'').split(';',1)[0].trim().toLowerCase();
-  const imageCandidate=nativeType.startsWith('image/') || Boolean(imageMimeFromName(file?.name));
-  if(imageCandidate){
-    await ingestImageFiles([file]);
+  const images=files.filter(file=>{
+    const nativeType=String(file?.type||'').split(';',1)[0].trim().toLowerCase();
+    return nativeType.startsWith('image/')||Boolean(imageMimeFromName(file?.name));
+  });
+  if(images.length){
+    // One selection becomes one ordered attachment draft; it is NEVER
+    // automatically sent. Mixed Photos/Documents must not make a media+file
+    // message that the existing outbox cannot commit atomically.
+    await ingestImageFiles(images);
+    if(images.length!==files.length)
+      composerHint.textContent='Đã thêm ảnh; tệp khác vui lòng chọn riêng';
     return;
   }
-  if(supportedFileAttachment(file)){
-    await ingestFileAttachments([file]);
+  // Preserve the previous PDF/Word/Excel/TXT/CSV path; ordinary files remain
+  // one per message until the file-outbox supports mixed/batch sends.
+  if(files.some(file=>supportedFileAttachment(file))){
+    await ingestFileAttachments(files);
     return;
   }
   composerHint.textContent='Chỉ hỗ trợ ảnh, PDF, Word, Excel, TXT, CSV';
