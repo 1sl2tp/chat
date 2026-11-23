@@ -465,8 +465,8 @@
     max-width:100%;
     margin-inline:0;
     padding-inline:
-      max(calc(var(--ui-chat-layout-rail,12px) + 2px),env(safe-area-inset-left,0px))
-      max(calc(var(--ui-chat-layout-rail,12px) + 2px),env(safe-area-inset-right,0px))!important;
+      max(var(--ui-chat-message-rail,14px),env(safe-area-inset-left,0px))
+      max(var(--ui-chat-message-rail,14px),env(safe-area-inset-right,0px))!important;
   }
   /* Safari standalone can reserve an invisible scrollbar gutter despite the
      intentionally hidden scrollbars. Reclaim it only in single-pane Chat. */
