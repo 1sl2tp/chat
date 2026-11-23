@@ -8,6 +8,7 @@
 #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"][data-route="chat"]
 #stageLayout:not([data-bank-report-active="true"]) {
   --chat-next-accent:#0f766e;
+  --chat-next-focus:#3a83f7; /* PA4: 2027 semantic focus; original styling, no vendor code. */
   --chat-next-sent:color-mix(in srgb,#3faa88 18%,var(--theme-surface-primary));
   --chat-next-received:color-mix(in srgb,var(--theme-surface-secondary) 73%,var(--theme-surface-primary));
   --chat-next-line:color-mix(in srgb,var(--theme-border-default) 65%,transparent);
@@ -32,7 +33,7 @@
 
 #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"][data-route="chat"]
 #stageLayout:not([data-bank-report-active="true"]) #regionTop :is(.chat-header-more,.v21-phone-header-button):focus-visible {
-  outline:2px solid var(--chat-next-accent);
+  outline:2px solid var(--chat-next-focus);
   outline-offset:2px;
 }
 
@@ -79,6 +80,10 @@
     font-weight:700;
     letter-spacing:-.015em;
     text-overflow:ellipsis;
+    min-width:0;
+    max-width:100%;
+    overflow:hidden;
+    white-space:nowrap;
   }
   #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"][data-route="chat"]
   #stageLayout:not([data-bank-report-active="true"]) #chatQuickActions:not([hidden]) {
