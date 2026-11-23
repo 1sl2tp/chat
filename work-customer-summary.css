@@ -594,3 +594,14 @@
 @media(hover:none),(pointer:coarse){
   .work-summary-item{--work-summary-check-size:44px;}
 }
+
+
+/* CHAT-443: one shared icon in the customer Work header; no new action. */
+.work-summary-heading>.work-summary-heading-icon{
+  display:inline-block;
+  width:16px;
+  height:16px;
+  margin-inline-end:6px;
+  vertical-align:-2px;
+  pointer-events:none;
+}
