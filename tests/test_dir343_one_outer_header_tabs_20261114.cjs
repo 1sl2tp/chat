@@ -8,6 +8,10 @@ const mobile=fs.readFileSync('work-customer-summary.js','utf8');
 const shell=fs.readFileSync('shell.js','utf8');
 const html=fs.readFileSync('index.source.html','utf8');
 
+// CHAT v3: rich text retains pre-wrap while breaking unbroken product IDs/URLs.
+assert(/\.message-rich-line\s*\{[^}]*white-space:pre-wrap;[^}]*overflow-wrap:anywhere;[^}]*\}/.test(html),
+ 'long rich message lines must wrap within the mobile conversation width');
+
 const start=directory.indexOf('function mobileDirectoryHeaderVisible(){');
 const end=directory.indexOf('function directoryTools(){',start);
 assert(start>0&&end>start,'one authoritative header-visibility owner');

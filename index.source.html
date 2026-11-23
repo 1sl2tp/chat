@@ -651,9 +651,12 @@ button{
   overflow-wrap:anywhere;
   word-break:break-word;
 }
+/* CHAT v3: long unbroken order codes/URLs must wrap inside the
+   message's own width instead of expanding the mobile thread. */
 .message-rich-line{
   min-height:1.5rem;
   white-space:pre-wrap;
+  overflow-wrap:anywhere;
 }
 /* Zalo-shared contact: display only the number, never the Zalo tracking link. */
 .message-zalo-phone{
