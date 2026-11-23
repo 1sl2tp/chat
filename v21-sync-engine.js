@@ -282,11 +282,18 @@ async function patchContactSummary(conversationId,patch={},context=null){
   }
 
   const next={...current,...safePatch};
-  await cache()?.upsertContact?.(context?.accountId||accountId,next);
-  // A completed IndexedDB write must not repaint another login's directory.
-  if(context&&!syncOwnerContextCurrent(context))return false;
+  // CHAT-442: the authenticated, account-fenced in-memory ContactStore owns
+  // the visible directory. Optional IndexedDB persistence cannot block its
+  // latest preview, timestamp or unread state while a PWA/Web tab is open.
   contacts()?.upsert?.(next);
-  return true;
+  try{
+    await cache()?.upsertContact?.(context?.accountId||accountId,next);
+  }catch{
+    // The canonical event remains in server history for a later delta sync;
+    // do not turn a private local storage failure into a stale live sidebar.
+    console.warn('[V21SyncEngine] contact cache write unavailable');
+  }
+  return !context||syncOwnerContextCurrent(context);
 }
 
 async function applyContactEvent(event,context=captureSyncOwnerContext()){
@@ -440,6 +447,21 @@ async function applyEvent(event,context=captureSyncOwnerContext()){
 function paintRealtimeWithoutCache(event,context){
   if(!syncOwnerContextCurrent(context)||!event?.payload)return false;
   const kind=String(event.entity_type||'');
+  if(kind==='account'){
+    // Account/profile changes are visible immediately, even if IndexedDB
+    // listContacts/upsertContact stalls. The durable apply follows below.
+    const row=canonicalContact(event.payload);
+    if(!row?.id)return false;
+    const previous=contacts()?.snapshot?.().find(item=>String(item?.id||'')===String(row.id))||null;
+    if(event.op==='delete'||row.deleted_at){
+      contacts()?.remove?.(row.id);
+      return true;
+    }
+    const version=Number(row.version||event.entity_version||0);
+    if(previous&&Number(previous.version||0)>=version)return true;
+    contacts()?.upsert?.(mergeContactEventPreservingActivity(previous,row,event.payload));
+    return true;
+  }
   if(kind==='message'){
     const row=canonicalMessage(event.payload);
     if(!row?.id||!row.conversation_id||event.op==='delete'||row.deleted_at)return false;
@@ -495,11 +517,15 @@ function consumeRealtimeEvent(event={}){
   if(targetAccountId&&targetAccountId!==context.accountId)return Promise.resolve(false);
 
   // UI is event-driven and must not be gated by optional local persistence.
-  paintRealtimeWithoutCache(event,context);
+  const painted=paintRealtimeWithoutCache(event,context);
   const run=async()=>{
     if(!syncOwnerContextCurrent(context))return false;
     const applied=await applyEvent(event,context);
-    if(!syncOwnerContextCurrent(context)||!applied)return false;
+    if(!syncOwnerContextCurrent(context))return false;
+    // An old/already-cached event can correctly be skipped by the durable
+    // apply. If its canonical content was already painted, this is handled,
+    // not a signal to make an unnecessary extra RPC for every duplicate.
+    if(!applied)return painted;
     await flushActiveMessageVisuals(context);
     if(!syncOwnerContextCurrent(context))return false;
     // The current owner's message event may refresh the global unread badge.
