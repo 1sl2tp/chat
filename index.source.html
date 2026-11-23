@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.79">
+<meta name="app-release-version" content="V21.72.80">
 <meta name="app-build-id" content="__APP_BUILD_ID__">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -4642,7 +4642,8 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
                     <input id="upload-files" class="native-file-input" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,application/pdf,text/plain,text/csv,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
                     <input id="upload-photos" class="native-file-input" type="file" multiple accept="image/*">
                     <input id="upload-camera" class="native-file-input" type="file" accept="image/*" capture="environment">
-                    <input id="upload-ios-source" class="native-file-input" type="file">
+                    <!-- CHAT-441: iOS native Photos picker must expose multi-selection; keep generic file/camera sources. -->
+                    <input id="upload-ios-source" class="native-file-input" type="file" multiple>
                     <div id="measure" aria-hidden="true"></div>
                   </div>
                 </form>

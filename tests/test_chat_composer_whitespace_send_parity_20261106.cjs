@@ -10,7 +10,9 @@ const html=fs.readFileSync('index.source.html','utf8');
 const start=app.indexOf('function canSendFromComposer(){');
 const end=app.indexOf('function toggleComposerSendMode(){',start);
 assert(start>=0&&end>start,'must use canonical composer eligibility and visual state');
+let pendingImageBatch=false;
 const ctx={
+  imageIngressPendingForCurrentDraft:()=>pendingImageBatch,
   editor:{value:'',enterKeyHint:'enter'},
   pendingAttachments:[],
   mediaRecorder:null,audioWorkflowState:'IDLE',
@@ -50,12 +52,25 @@ ctx.composing=false;
 ctx.sendLocked=true;ctx.sync();
 assert.equal(ctx.sendButton.disabled,true,'in-flight send remains locked');
 ctx.sendLocked=false;
+// CHAT-441: the first selected photo must not unlock Send before the
+// remainder of the same iOS Photos selection finishes decoding.
+pendingImageBatch=true;
+ctx.pendingAttachments=[{kind:'image'}];
+ctx.editor.value='';
+ctx.sync();
+assert.equal(ctx.composerShell.dataset.canSend,'false','partial photo batch stays visually unsendable');
+assert.equal(ctx.sendButton.disabled,true,'partial photo batch cannot be submitted');
+pendingImageBatch=false;
+ctx.sync();
+assert.equal(ctx.composerShell.dataset.canSend,'true','complete photo batch unlocks Send');
+ctx.pendingAttachments=[]; // Finish the media case before testing blank-draft mode switching.
 ctx.composerSendMode='enter';
 ctx.editor.value='   ';ctx.sync();
 assert.equal(ctx.editor.enterKeyHint,'send');
 assert.equal(ctx.sendButton.attributes['aria-label'],'Đổi sang Return xuống dòng');
 assert(app.includes('const text=rawText.trim();'),'send transaction must still trim');
-assert(app.includes('if((!text&&pendingAttachments.length===0)||sendLocked||composing)return false;'));
+assert(/if\(\(!text&&pendingAttachments\.length===0\)\|\|sendLocked\|\|composing\|\|\s*imageIngressPendingForCurrentDraft\(\)\)return false;/.test(app),
+  'sendNow must reject premature submit during photo batch preparation');
 assert(app.includes("composerForm.addEventListener(\n  'submit'"));
 assert(app.includes('if(!canSendFromComposer()){'));
 assert(html.includes('id="editor"')&&html.includes('id="send" type="submit"'));

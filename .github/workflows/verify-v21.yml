@@ -90,6 +90,11 @@ jobs:
         run: python -m pytest -q tests/test_bank181_push_wiring.py
       - name: Admin push edge contract
         run: python -m pytest -q tests/test_v21_admin_web_push_edge_contract.py
+      - name: CHAT-441 iPhone primary picker multi-photo selection and atomic attachment draft
+        run: |
+          node --check app.js
+          node tests/test_chat441_ios_photo_multiselect_20261123.cjs
+
       - name: CHAT-440 contextual iOS PWA message and directory notification dedup
         run: |
           node --check sw.js
