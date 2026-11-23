@@ -19,12 +19,16 @@ const switcher={attrs:{},dataset:{},
   return null;
  }};
 const chat={attrs:{},setAttribute(k,v){this.attrs[k]=String(v);}};
-const right={textContent:'Ảnh',attrs:{},setAttribute(k,v){this.attrs[k]=String(v);}};
+const right={textContent:'Ảnh',attrs:{},style:{},children:[],
+ querySelector(q){return q==='[data-work-version-marker]'?this.children.find(x=>x.dataset?.workVersionMarker):null;},
+ appendChild(node){this.children.push(node);},
+ setAttribute(k,v){this.attrs[k]=String(v);}};
 const app={dataset:{mobileDirectory:'true',route:'chat'}};
 let admin=true,small=true;
 const context=vm.createContext({
  window:{matchMedia:()=>({matches:small})},
- document:{querySelector:q=>q==='#regionTop .top-mode-switch'?switcher:null,
+ document:{createElement:()=>({dataset:{},style:{},setAttribute(){}}),
+   querySelector:q=>q==='#regionTop .top-mode-switch'?switcher:null,
    getElementById:id=>id==='appShell'?app:null},
  currentAdmin:()=>admin?{id:'admin',role:'admin'}:null,
  String,Boolean
@@ -34,6 +38,7 @@ vm.runInContext("let directorySection='chat';"+
  "\nthis.sync=syncMobileDirectoryHeader;this.choose=v=>directorySection=v;",context);
 assert.equal(context.sync(),true);
 assert.equal(right.textContent,'Công việc');
+assert.equal(right.children[0]?.textContent,'v1','visible Work version marker');
 assert.equal(chat.attrs['aria-selected'],'true');
 assert.equal(right.attrs['aria-selected'],'false');
 assert.equal(switcher.dataset.directoryOwner,'true');

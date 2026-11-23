@@ -163,7 +163,6 @@ function installStyle(){
     /* UI-V1: small non-interactive iteration marker at the far-right edge
        of the directory Work tab; do not move or relabel the centered tab. */
     #appShell[data-mobile-directory="true"] .top-mode-switch[data-directory-owner="true"] .top-mode-tab[data-top-tab="photos"]{position:relative}
-    #appShell[data-mobile-directory="true"] .top-mode-switch[data-directory-owner="true"] .top-mode-tab[data-top-tab="photos"]::after{content:"v1";position:absolute;right:5px;top:50%;transform:translateY(-50%);font:500 10px/1 system-ui,-apple-system,sans-serif;color:var(--theme-content-tertiary,#8a8a8a);pointer-events:none;white-space:nowrap}
   `;
   document.head.appendChild(style);
 }
@@ -182,7 +181,23 @@ function syncMobileDirectoryHeader(){
   if(!switcher||!chat||!right)return false;
   const visible=mobileDirectoryHeaderVisible();
   const wanted=visible?'Công việc':'Ảnh';
-  if(right.textContent!==wanted)right.textContent=wanted;
+  // Keep the Work label centered while making the iteration marker an
+  // actual DOM node. CSS pseudo-elements may disappear in iOS PWA tab styles.
+  const marker=right.querySelector('[data-work-version-marker]');
+  if(visible){
+    if(!marker){
+      right.textContent=wanted;
+      const tag=document.createElement('span');
+      tag.dataset.workVersionMarker='v1';
+      tag.textContent='v1';
+      tag.setAttribute('aria-hidden','true');
+      tag.style.cssText='position:absolute;right:6px;top:50%;transform:translateY(-50%);font:500 10px/1 system-ui,-apple-system,sans-serif;color:#777;pointer-events:none;white-space:nowrap';
+      right.style.position='relative';
+      right.appendChild(tag);
+    }
+  }else if(marker||right.textContent!==wanted){
+    right.textContent=wanted;
+  }
   right.setAttribute('aria-label',wanted);
   // The second control is an Admin work switch on the directory, a real
   // Photos route only after entering a conversation.
