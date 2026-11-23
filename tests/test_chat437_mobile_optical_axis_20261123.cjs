@@ -53,9 +53,9 @@ assert(ab.includes('border-radius:24px!important;'));
 assert(ab.includes('grid-column:2 / 4;'),'painted input capsule must cover editor and mic only');
 assert(ab.includes('border-radius:26px;'),'composer optical edge belongs to its shared input capsule');
 assert(ab.includes('pointer-events:none;'),'painted capsule never steals textarea focus');
-assert(source.includes('<meta name="app-release-version" content="V21.72.78">'));
-assert(sw.includes("RELEASE_VERSION='V21.72.78'"));
-assert(sw.includes("SHELL_CACHE_EPOCH='pwa-chat-ui439-six-line-quantized-composer-20261123'"));
+assert(source.includes('<meta name="app-release-version" content="V21.72.79">'));
+assert(sw.includes("RELEASE_VERSION='V21.72.79'"));
+assert(sw.includes("SHELL_CACHE_EPOCH='pwa-chat-ui440-contextual-foreground-push-20261123'"));
 assert(shell.includes('const WORK_ENABLED=false;'),'Work remains dormant');
 for(const w of [320,360,390,500]){
  const inputWidth=w-24-8-(44*3)-(8*3);

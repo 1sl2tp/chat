@@ -56,7 +56,8 @@ function harness({liveQueries=false}={}){
     row.postMessage=(data,ports=[])=>{
       posted.push(data);targeted.push({id,data});
       if(data?.type==='ADMIN_PUSH_STATE_REQUEST'&&row.liveState&&ports[0]){
-        ports[0].postMessage(row.liveState);
+        if(row.replyDelayMs>0)setTimeout(()=>ports[0].postMessage(row.liveState),row.replyDelayMs);
+        else ports[0].postMessage(row.liveState);
       }
     };
     return row;
@@ -82,6 +83,32 @@ function harness({liveQueries=false}={}){
   assert.equal(bg.notices[0].options.icon,'./icons/chat-notification-icon-192-v4.png','notification must use dedicated crisp icon');
   assert.equal(bg.notices[0].options.badge,'./icons/chat-notification-badge-96-v4.png','notification badge must use dedicated monochrome asset');
   assert.equal(bg.getBadge(),1,'background push increments provisional app badge');
+
+  // CHAT-440: exactly the SAME server message may be delivered again by
+  // Push retry or a second device subscription. It is not a second unread
+  // event. A DIFFERENT message in that conversation still shows normally.
+  const retry=harness();
+  const once={...payload,message_id:'msg-push-1'};
+  await retry.dispatch('push',{data:{json:()=>once}});
+  await retry.dispatch('push',{data:{json:()=>once}});
+  assert.equal(retry.notices.length,1,'the same immutable message must notify once');
+  assert.equal(retry.getBadge(),1,'the same message must not inflate badge count');
+  await retry.dispatch('push',{data:{json:()=>({...once,message_id:'msg-push-2',body:'Đơn khác'})}});
+  assert.equal(retry.notices.length,2,'different messages on one chat still alert');
+  assert.equal(retry.getBadge(),2);
+  
+  // A late visible-thread state removes only that thread's existing native
+  // Notification Center banner; other contacts are not affected.
+  const staleBanner=harness();
+  await staleBanner.dispatch('push',{data:{json:()=>({...payload,message_id:'stale-msg'})}});
+  const reading=staleBanner.client('reading');
+  staleBanner.setClients([reading]);
+  reading.visibilityState='visible';
+  await staleBanner.dispatch('message',{data:{type:'ADMIN_PUSH_STATE',visible:true,
+    route:'chat',conversationId:'conv-1',contactId:'user-1',directoryVisible:false,
+    platform:'ios-pwa'},source:reading});
+  assert.equal(staleBanner.activeNotices.filter(n=>!n.closed).length,0,
+    'opening same chat must dismiss its already delivered banner');
 
   const authoritative=harness();
   const authoritativeClient=authoritative.client('c-authoritative');
@@ -136,6 +163,31 @@ function harness({liveQueries=false}={}){
   assert.equal(fresh.notices.length,0,'new SW with no cached state must query active iOS conversation and hide duplicate banner');
   assert(fresh.posted.some(m=>m.type==='ADMIN_PUSH_STATE_REQUEST'),'fresh worker requests live active conversation');
   assert(fresh.posted.some(m=>m.type==='ADMIN_PUSH_MESSAGE_DIRTY'),'foreground suppression never loses wake');
+
+  // During iOS keyboard/unlock reflow, the live state can answer later than
+  // the old 220ms timeout. Prefer live foreground state to a duplicate banner.
+  const late=harness({liveQueries:true});
+  const slow=late.client('slow-ios');
+  slow.visibilityState='visible';
+  slow.replyDelayMs=360;
+  slow.liveState={visible:true,platform:'ios-pwa',route:'chat',
+    conversationId:'conv-1',contactId:'user-1',directoryVisible:false};
+  late.setClients([slow]);
+  await late.dispatch('push',{data:{json:()=>payload}});
+  assert.equal(late.notices.length,0,
+    '350+ms iOS foreground reply must still suppress same-chat banner');
+
+  const directory=harness({liveQueries:true});
+  const directoryClient=directory.client('directory-ios');
+  directoryClient.visibilityState='visible';
+  directoryClient.liveState={visible:true,platform:'ios-pwa',route:'chat',
+    directoryVisible:true,conversationId:'',contactId:'user-1'};
+  directory.setClients([directoryClient]);
+  await directory.dispatch('push',{data:{json:()=>payload}});
+  assert.equal(directory.notices.length,0,
+    'visible directory updates its unread row instead of a native banner');
+  assert(directory.posted.some(m=>m.type==='ADMIN_PUSH_MESSAGE_DIRTY'),
+    'no notification must be silently lost from the directory');
 
   const stale=harness({liveQueries:true});
   const staleClient=stale.client('switch-ios');

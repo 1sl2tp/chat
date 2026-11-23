@@ -6,7 +6,7 @@ function chatPushDisplayPreview(value){
  const raw=String(value||'');
  try{return self.V21ChatMessageCase?.previewCase?.(raw)||raw;}catch{return raw;}
 }
-const RELEASE_VERSION='V21.72.78';
+const RELEASE_VERSION='V21.72.79';
 const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 // BANK-177: reload one-time cached shell for the live bank reconciliation table.
 // Keep offline-first startup; do not add per-navigation network requests.
@@ -44,7 +44,7 @@ const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 // CHAT-435: rotate PUBLIC shell for the 2027/V46 directory redesign only.
 // CHAT-437: refresh PUBLIC layout/reading rail and rounded composer only.
 // Keep private messages, drafts, auth and outbox caches intact.
-const SHELL_CACHE_EPOCH='pwa-chat-ui439-six-line-quantized-composer-20261123';
+const SHELL_CACHE_EPOCH='pwa-chat-ui440-contextual-foreground-push-20261123';
 const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION+'-'+SHELL_CACHE_EPOCH;
 const AVATAR_CACHE_NAME='taphoa-chat-avatars-v1';
 const SUPABASE_ASSET_HOST_RE=/^[a-z0-9]+\.supabase\.co$/i;
@@ -71,6 +71,9 @@ async function cachedBootVendorScript(request){
 const SHELL=['./','./manifest.webmanifest','./icons/chat-app-180-v3.png','./icons/chat-app-192-v3.png','./icons/chat-app-512-v3.png','./icons/chat-maskable-512-v3.png','./icons/chat-notification-icon-192-v4.png','./icons/chat-notification-badge-96-v4.png','./chat-message-case.js'];
 const adminPushClientState=new Map();
 let adminPushBadgeCount=0;
+// CHAT-440: a retried Web Push for one immutable message must not ring twice.
+// Memory is bounded and scoped to this public SW lifetime; no private payloads.
+const deliveredMessagePushIds=new Set();
 
 function isSupabasePublicAvatar(request,url){
   return request.destination==='image'&&
@@ -154,6 +157,17 @@ self.addEventListener('message',event=>{
   if(event.data?.type==='ADMIN_PUSH_STATE'&&event.source?.id){
     const state={...event.data,updatedAt:Date.now()};
     adminPushClientState.set(event.source.id,state);
+    // A late iOS banner from the thread now on screen is stale. Only the
+    // confirmed visible THREAD may close its own notification tag; the
+    // directory, a hidden/locked screen and other chats must not.
+    if(state.visible===true&&state.route==='chat'&&
+       state.directoryVisible!==true&&state.conversationId&&
+       typeof self.registration.getNotifications==='function'){
+      const tag='chat:'+String(state.conversationId);
+      event.waitUntil?.(self.registration.getNotifications({tag}).then(notes=>{
+        for(const note of notes||[])note.close?.();
+      }).catch(()=>{}));
+    }
   }
   if(event.data?.type==='ADMIN_PUSH_BADGE_SET'){
     void setAdminPushBadge(event.data?.count);
@@ -185,7 +199,10 @@ async function foregroundClientState(client){
         try{channel.port1.close();channel.port2.close();}catch{}
         resolve(state&&typeof state==='object'?state:null);
       };
-      const timeout=setTimeout(()=>finish(null),220);
+      // iOS PWA can answer after a keyboard or unlock animation; 220ms was
+      // too short and produced a native banner above an already open thread.
+      // Still fail OPEN to OS Push if a locked/suspended page never answers.
+      const timeout=setTimeout(()=>finish(null),700);
       channel.port1.onmessage=event=>finish(event.data);
       try{client.postMessage({type:'ADMIN_PUSH_STATE_REQUEST'},[channel.port2]);}
       catch{finish(null);}
@@ -210,6 +227,7 @@ self.addEventListener('push',event=>{
     if(!payload||typeof payload!=='object')return;
     const kind=String(payload.kind||'message');
     const conversationId=String(payload.conversation_id||'');
+    const messageId=String(payload.message_id||'');
     const inviteId=String(payload.invite_id||'');
     const bankPush=kind==='bank_reconciliation';
     const missedPush=kind==='missed_chat_call';
@@ -271,7 +289,7 @@ self.addEventListener('push',event=>{
         client,state:await foregroundClientState(client)
       })));
     const readingSame=foreground.some(({state})=>Boolean(
-      state&&state.route==='chat'&&
+      state&&state.route==='chat'&&state.directoryVisible!==true&&
       (bankPush
         ?String(payload.contact_id||'')!==''&&String(state.contactId||'')===String(payload.contact_id||'')
         :conversationId!==''&&String(state.conversationId||'')===conversationId)
@@ -285,6 +303,18 @@ self.addEventListener('push',event=>{
       /^(ios|android)-(pwa|web)$/.test(String(state.platform||''))
     ));
     if(readingSame||visibleMobileChat)return;
+
+    // CHAT-440: exact message identity is the idempotency key. A provider
+    // retry must not create a second OS banner/unread increment. A genuine
+    // subsequent message in that same conversation still alerts normally.
+    if(kind==='message'&&messageId){
+      if(deliveredMessagePushIds.has(messageId))return;
+      try{
+        const tag=String(payload.tag||'chat:'+conversationId);
+        const prior=await self.registration.getNotifications?.({tag});
+        if((prior||[]).some(note=>String(note?.data?.messageId||note?.options?.data?.messageId||'')===messageId))return;
+      }catch{} // Notification Center API can be unavailable on iOS.
+    }
 
     // Render finance copy locally from a NUMBER, never display backend
     // status/reason text or English exception names on iPhone/Android.
@@ -303,11 +333,16 @@ self.addEventListener('push',event=>{
       data:{
         kind,
         inviteId,
-        conversationId,
+        conversationId,messageId,
         contactId:String(payload.contact_id||''),
         bankDay,bankNoticeId,bankReceiptId,bankStatus,missedCallId,
       }
     });
+    if(kind==='message'&&messageId){
+      deliveredMessagePushIds.add(messageId);
+      if(deliveredMessagePushIds.size>150)
+        deliveredMessagePushIds.delete(deliveredMessagePushIds.values().next().value);
+    }
     if(!bankPush&&!missedPush&&!friendPush&&kind!=='call_invite'){
       await bumpAdminPushBadge();
       notifyBadgeDirty(clients);
