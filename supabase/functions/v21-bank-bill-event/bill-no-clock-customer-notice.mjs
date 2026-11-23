@@ -58,6 +58,12 @@ export function planMissingClockCustomerNotice(receipt){
   "Không cần chuyển khoản thêm.";
  return {date,amount:receipt.amount_vnd,identity:identity.join("|"),body};
 }
+export async function noClockNoticeClientId(customerId,identity){
+ const bytes=new TextEncoder().encode(customerId+"|"+identity);
+ const digest=Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",bytes)))
+  .map(n=>n.toString(16).padStart(2,"0")).join("");
+ return "taphoa:bill:no-clock:"+digest+":collection";
+}
 export async function sendMissingClockCustomerReconciliation(db,asset){
  try{
   const {data:r,error:readError}=await db.from("chat_bank_bill_receipts")
@@ -98,10 +104,7 @@ export async function sendMissingClockCustomerReconciliation(db,asset){
   // A stable fingerprint makes two different crops of one transfer exactly
   // one message. The existing sender+client-id unique DB constraint provides
   // idempotency even for concurrent OCR events and retries.
-  const bytes=new TextEncoder().encode(r.customer_account_id+"|"+plan.identity);
-  const digest=Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",bytes)))
-   .map(n=>n.toString(16).padStart(2,"0")).join("");
-  const clientId="taphoa:bill:no-clock:"+digest+":collection";
+  const clientId=await noClockNoticeClientId(r.customer_account_id,plan.identity);
   const {data:messageId,error:sendError}=await db.rpc("taphoa_chat_notify_customer",{
    p_customer_id:r.customer_account_id,p_sender_account_id:adminId,
    p_client_id:clientId,p_body:plan.body
