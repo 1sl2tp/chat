@@ -67,8 +67,8 @@ assert(directory.includes('.contact-directory-search{height:44px}'),
  'search retains a 44px mobile touch target');
 assert(directory.includes('.contact-directory-filter-line{min-height:44px}'),
  'filter rail retains a 44px mobile touch target');
-assert(directory.includes('::after{content:"v2";'),
- 'the mobile Work tab shows the released v2 marker');
+assert(directory.includes('::after{content:"v3";'),
+ 'the mobile Work tab shows the released v3 marker');
 
 assert(html.includes('data-top-tab="photos" data-nav-target="photos"'),
  'photo feature is preserved, not deleted from app');
