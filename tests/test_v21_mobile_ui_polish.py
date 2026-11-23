@@ -101,9 +101,9 @@ def test_ui_145_one_layout_rail_for_header_directory_and_composer():
     assert 'padding:0 2px 8px;' in polish
     assert 'padding:8px 4px;' in polish
     assert 'scrollbar-gutter:auto;' in polish
-    # Text/media message edges intentionally use a separate 6px rail.
-    assert 'max(var(--ui-chat-message-rail,6px),env(safe-area-inset-left,0px))' in chat
-    assert 'max(var(--ui-chat-message-rail,6px),env(safe-area-inset-right,0px))!important;' in chat
+    # PA2 text/media edges share a 14px optical rail (12px + rounded-edge 2px).
+    assert 'max(var(--ui-chat-message-rail,14px),env(safe-area-inset-left,0px))' in chat
+    assert 'max(var(--ui-chat-message-rail,14px),env(safe-area-inset-right,0px))!important;' in chat
     # Don't replace source action/state or keyboard scroller ownership.
     assert 'position:fixed' not in compact(polish)
     assert '#scrollRoot{' in chat
