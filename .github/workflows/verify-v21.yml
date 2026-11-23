@@ -255,6 +255,9 @@ jobs:
           node tests/test_bank267_bill_ocr_swap_report_20261110.cjs
           node tests/test_bank268_unmatched_receipt_reasons_20261110.cjs
           node tests/test_bank311_mobile_reconcile_information_architecture_20261112.cjs
+      - name: BANK-366 Missing bill clock customer reconciliation and dedup
+        run: node tests/test_bank366_customer_no_clock_reconcile_20261123.mjs
+
       - name: BANK-364 Existing no-clock bill recovery + duplicate transaction lock
         run: node tests/test_bank364_no_clock_duplicate_recovery_20261123.mjs
 
