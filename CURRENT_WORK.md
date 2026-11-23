@@ -1,3 +1,13 @@
+## 2026-11-23 — BANK-364 · Chỉ khôi phục bill đã OCR thiếu giờ bằng phút Agribank, không xử lý ảnh mới
+
+- **E0 / Bằng chứng sản xuất (chỉ đọc):** C Sâm PL gửi hai ảnh cùng mã `NAPAS_INPLIBFTI2RNQE85`, số tiền 1.053.000đ, ngày 23/11/2026, trạng thái `review/bill_printed_time_missing`; ảnh lúc 09:51 thiếu giờ; Agribank #434 ghi **09:50 ngày 23/11**, đúng tài khoản 2901181999999, người gửi và memo. Hai ảnh khác hash; OCR tài khoản thiếu một chữ số. **Chưa tạo ledger cho khoản 1.053.000đ** lúc kiểm tra.
+- **E1 / Owner:** Một nhánh `fix/bank-no-clock-duplicate-evidence-20261123`, PR #397. Chỉ trên **bill đã OCR**, khi thông báo Agribank chính thức mới đến: xác minh số tiền, ngày chữ trên ảnh, phút trong thông báo ngân hàng, tên gửi và memo đủ dài trùng chính xác, tài khoản/tên nhận và duy nhất thông báo. Giữ nguyên trường giờ đọc từ ảnh là `null`; lưu riêng thời gian được ngân hàng chứng thực, không bịa thời gian OCR. Nếu 2 ảnh có cùng reference/ngày/ngân hàng/memo/số tiền thì chọn ảnh OCR rõ hơn, ảnh còn lại `duplicate`; không coi hai khoản trùng tiền là một giao dịch. Các trường OCR sai/mâu thuẫn vẫn `review`; **không tải ảnh mới, không gọi Gemini lại, không polling/cron mới.**
+- **E2 / Tests:** `tests/test_bank364_no_clock_duplicate_recovery_20261123.mjs`, hồi quy BANK-362 chỉ ACK sau financial commit; Verify V21 PR run [45133311783](https://github.com/1sl2tp/chat/actions/runs/45133311783) **SUCCESS** trước thay đổi tài liệu này.
+- **E3 / Phát hành:** Chỉ dùng `1sl2tp/chat:main` sau merge, project `vtqhbhrkdxirqeqkgylo`. Supabase Edge `v21-bank-bill-event` và `v21-agribank-notification-ingest` phải được cập nhật cùng revision mới và đọc lại parity; không triển khai từ nhánh, không chỉnh DB sản xuất trực tiếp.
+- **E4 / E5:** Không tự replay Agribank #434, không gọi RPC tạo tiền với ảnh thật khi test; chỉ công nhận `received` nếu có link ngân hàng, ledger và audit một lần. Không suy CI PASS nghĩa là tiền đã ghi thu. Nếu lỗi: revert PR #397 và phiên bản Edge tương ứng, giữ dữ liệu/ledger nguyên vẹn.
+
+---
+
 ## 2026-11-21 — CHAT-432 · Chatwoot/iMessage tối giản header và phân cấp mobile
 
 - **E0 / SPEC:** Người dùng duyệt phác thảo: ChatGPT về màu/chữ/gap, Chatwoot về ba vùng, iMessage/WhatsApp về thao tác mobile. Với mobile đang mở khách: Back | Tên | Gọi | ⋯, nội dung là một scroller, Composer vẫn theo VisualViewport; danh bạ chỉ có một chủ điều hướng Chat/Work và một bộ lọc. Bằng chứng code: `shell.js` có `WORK_ENABLED=false` nên không bật vùng nghiệp vụ thứ ba khi chưa có QA nghiệp vụ.
