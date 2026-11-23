@@ -790,7 +790,12 @@ function renderOverview(rows=[]){
   const summaries=rows.map(rowSummary).filter(summary=>summary.codeCount>0);
   const header=node('div','work-summary-header');
   const title=node('div','work-summary-header-title');
-  title.append(node('strong','work-summary-heading','Tổng hợp'));
+  const heading=node('strong','work-summary-heading','Tổng hợp');
+  // The right CRM region is customer work, not a second messaging input.
+  // Reuse one canonical icon while keeping the summary list/sort owner intact.
+  const headingIcon=window.V21Icons?.libraryNode?.('clipboard',{size:16});
+  if(headingIcon){headingIcon.classList.add('work-summary-heading-icon');heading.prepend(headingIcon);}
+  title.append(heading);
   title.append(node('span','work-summary-subheading',`${summaries.length} khách có hàng`));
   header.append(title);
   host.append(header);
