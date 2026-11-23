@@ -916,7 +916,9 @@ function detailLine(row,isBank=false,candidates=[]){
     reason='Admin đã soát ảnh bill gốc và liên kết với sổ thu thủ công trước đó. Không ghi thu lần hai.';
   else if(row.reason==='bank_image_amount_only_no_collection'){
     const recipient=String(row.receiving_account||'').replace(/[^0-9]/g,'');
-    if(recipient.length>=5&&!recipient.endsWith('99999'))
+    if((recipient.length>=13&&recipient!=='2901181999999')||
+       (recipient.length>=9&&recipient.length<13&&!('2901181999999').startsWith(recipient.slice(0,6)))||
+       (recipient.length>=5&&!recipient.endsWith('99999')))
       reason='Ảnh ghi tài khoản nhận đuôi '+recipient.slice(-5)+
         ', khác tài khoản Agribank cần thu. Không tự khớp; cần kiểm tra ảnh gốc.';
     else if(storedMinuteCredits.length)
