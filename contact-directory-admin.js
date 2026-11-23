@@ -160,6 +160,10 @@ function installStyle(){
     .zalo-account-group-select{box-sizing:border-box;min-height:32px;border:1px solid var(--theme-border-default,#ddd);border-radius:999px;padding:0 24px 0 9px;background:var(--theme-surface-primary,#fff);color:var(--theme-content-primary,#171717);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
     .zalo-account-group-select:disabled{opacity:.55;cursor:default}
     @media(max-width:640px){.contact-directory-tools{margin-top:-12px;padding-inline:6px}.zalo-account-group-select{min-width:72px;max-width:88px}}
+    /* UI-V1: small non-interactive iteration marker at the far-right edge
+       of the directory Work tab; do not move or relabel the centered tab. */
+    #appShell[data-mobile-directory="true"] .top-mode-switch[data-directory-owner="true"] .top-mode-tab[data-top-tab="photos"]{position:relative}
+    #appShell[data-mobile-directory="true"] .top-mode-switch[data-directory-owner="true"] .top-mode-tab[data-top-tab="photos"]::after{content:"v1";position:absolute;right:5px;top:50%;transform:translateY(-50%);font:500 10px/1 system-ui,-apple-system,sans-serif;color:var(--theme-content-tertiary,#8a8a8a);pointer-events:none;white-space:nowrap}
   `;
   document.head.appendChild(style);
 }
