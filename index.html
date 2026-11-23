@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.76">
-<meta name="app-build-id" content="4207105d484eb04151fff2c0e6a806bb18ed2cfe350b476cc6d27cab462353dd">
+<meta name="app-build-id" content="dcd0b208d62c52d977ad8caf96986a99952de9a06b376cb2ebf3d749de854751">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -14589,6 +14589,34 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
     box-sizing:border-box;
     min-width:0;
     max-width:100%;
+  }
+}
+
+/* PA11 / Precision Chat, phase 1: predictable keyboard and pointer targets.
+   Existing +, microphone and Send keep separate DOM IDs and their original
+   handlers; never swap an action into another button's physical slot.
+   No change to viewport/composer placement, message scroll or call routing. */
+@media (max-width:63.999rem) {
+  #appShell[data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"])
+  #composerShell :is(#composer-plus-btn,#composer-mic-btn,#send) {
+    box-sizing:border-box;
+    min-width:44px;
+    min-height:44px;
+    flex-shrink:0;
+    touch-action:manipulation;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"])
+  #composerShell :is(#composer-plus-btn,#composer-mic-btn,#send):focus-visible {
+    outline:2px solid var(--theme-content-accent,#2563eb);
+    outline-offset:2px;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"])
+  #composerShell #send:disabled {
+    cursor:default;
+    opacity:.55;
   }
 }
 
