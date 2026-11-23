@@ -64,7 +64,10 @@ function nonMerchandiseLine(line){
 }
 function entry(raw,qty,u,source,review=false,allowVerifiedNumericName=false){
  const name=stripListMarker(raw);
- if(nonMerchandiseLine(source)||nonMerchandiseLine(name))return null;
+ // A bare size such as '1kg' is a valid product name when paired with
+ // an explicit quantity ('1kg sl 20'); only reject standalone packaging
+ // when it is the entire original message, not an extracted item name.
+ if(nonMerchandiseLine(source)||moneyAmount.test(name)||moneyLead.test(name))return null;
  const amount=Number(qty);
  // "5 thùng này" has no product. "1 thùng milo này" needs a human check.
  if(deicticProduct.test(name))return null;
