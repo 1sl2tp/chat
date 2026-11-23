@@ -81,8 +81,8 @@ const cropping=make("same-transfer-crop",{
  raw_read:{...baseRaw,sender_name:"LAI THI THU HOA",
    transfer_content:"LAI THI THU HOA chuyen tien"}
 });
-assert.deepEqual(plan(cropping,[cropping,noSendingBank],[hoaCredit]).duplicate_ids,
- ["no-source-bank"],"One cropped source-bank label does not split a verified transfer");
+assert.deepEqual(plan(noSendingBank,[cropping,noSendingBank],[hoaCredit]).duplicate_ids,
+ ["same-transfer-crop"],"One cropped source-bank label does not split a verified transfer");
 const otherBank={...cropping,id:"bank-conflict",sending_bank:"TECHCOMBANK"};
 assert.deepEqual(plan(cropping,[cropping,otherBank],[hoaCredit]).duplicate_ids,[],
  "Conflicting nonempty source-bank labels must NOT be merged");
