@@ -70,15 +70,15 @@ assert.notEqual(layout.dataset.editorExpanded,'true','deleting lines leaves the 
 assert.equal(textarea.style['--editor-height'],'64px');
 type('Tin dài '.repeat(90));
 assert.notEqual(layout.dataset.editorExpanded,'true');
-assert.equal(textarea.style['--editor-height'],'144px','long draft cap independent of keyboard height');
+assert.equal(textarea.style['--editor-height'],'136px','long draft caps at whole text rows for 24px line-height');
 assert.equal(textarea.dataset.internalScroll,'true');
-assert.equal(ctx.composerTextHeightLimit(300,56,12),96,
+assert.equal(ctx.composerTextHeightLimit(300,56,12),84,
   '300px viewport still retains 128px for Messages');
 view.height=300;
 grow('visual-viewport');
-assert.equal(textarea.style['--editor-height'],'96px','keyboard budget uses only the fixed action row');
+assert.equal(textarea.style['--editor-height'],'88px','keyboard budget uses only full 24px text rows');
 assert.equal(textarea.dataset.internalScroll,'true');
-assert(300-56-12-96-8>=128,'Messages fit above on-screen keyboard');
+assert(300-56-12-88-8>=128,'Messages fit above on-screen keyboard');
 type('A\nB');
 assert.notEqual(layout.dataset.editorExpanded,'true');
 assert.equal(textarea.style['--editor-height'],'64px',
@@ -91,7 +91,7 @@ assert.equal(textarea.dataset.internalScroll,'false');
 type('');
 assert.notEqual(layout.dataset.editorExpanded,'true');
 assert.equal(textarea.style['--editor-height'],'40px');
-assert.match(css,/max-height:144px;/);
+assert.match(css,/max-height:150px;/);
 assert(!css.includes('data-editor-expanded'),'mobile width never changes at line threshold');
 assert.match(source,/syncMeasureStyle\(\{force:true,widthPx:editor\.getBoundingClientRect\(\)\.width\}\);\s*autoGrow\(\{source:'context-switch'\}\)/,
   'each contact restores its own draft geometry');
