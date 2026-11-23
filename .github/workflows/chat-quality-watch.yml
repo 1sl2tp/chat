@@ -12,6 +12,7 @@ on:
       - '.agents/skills/modern-web-guidance/**'
       - 'qa/**'
       - 'tests/test_chat_quality_sources_20261123.cjs'
+      - 'tests/test_chat_quality_v02_20261124.cjs'
   workflow_dispatch:
 
 permissions:
@@ -43,6 +44,7 @@ jobs:
           node tests/test_chat440_contextual_push_policy_20261123.cjs
           node tests/test_chat441_ios_photo_multiselect_20261123.cjs
           node tests/test_chat_quality_sources_20261123.cjs
+          node tests/test_chat_quality_v02_20261124.cjs
 
   browser:
     name: Local multi-engine browser + accessibility
