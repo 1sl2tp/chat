@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.76">
-<meta name="app-build-id" content="8ca4fcdaa3d547ac15c5b7ca486e4676abaf0e1e90c2f386d2a9c22d05b9fdd1">
+<meta name="app-build-id" content="b421539799c10cae29dfdac3be032b9edf401e6c169f270caaf1fc880980ed27">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -7732,6 +7732,8 @@ button{
   inset-inline:0;
   bottom:0;
   width:100%;
+  min-width:0;
+  box-sizing:border-box;
   margin:0;
   z-index:40;
 }
@@ -7774,6 +7776,8 @@ button{
   align-items:flex-start;
   width:fit-content;
   max-width:100%;
+  min-width:0;
+  box-sizing:border-box;
 }
 /* Exact sent time sits below existing text/media without altering the
    message bubble itself. UI-245 uses a sender-aligned flex column so each
@@ -8068,6 +8072,9 @@ button{
 }
 #messageWindow>.message-row{
   margin:0;
+  min-width:0;
+  max-width:100%;
+  box-sizing:border-box;
 }
 #messageWindow>.message-row+.message-row{
   margin-top:8px;
