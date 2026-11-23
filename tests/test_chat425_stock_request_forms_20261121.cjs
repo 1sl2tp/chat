@@ -17,13 +17,11 @@ for(const message of ['200k','2 triệu','2 & 200k','2 thùng','2 thùng mà ch�
  const result=stock.analyze('Lấy hàng\\n'+message);
  assert(!result?.items?.length,'non-merchandise must not create item: '+message);
 }
-for(const [message,name,qty] of [
- ['2 thùng Proby','Proby',2],
- ['Proby 400ml 2','Proby 400ml',2],
- ['Thọ 1.2kg 1','Thọ 1.2kg',1]
-]){
- const result=stock.analyze(message);
- assert(result?.items?.some(item=>item.name===name&&item.qty===qty),'preserve real merchandise: '+message);
+// Bare suffix quantities need a genuine order context, established here by
+// the explicit carton item; do not loosen production parsing for isolated text.
+const realStock=stock.analyze('2 thùng Proby\\nProby 400ml 2\\nThọ 1.2kg 1');
+for(const [name,qty] of [['Proby',2],['Proby 400ml',2],['Thọ 1.2kg',1]]){
+ assert(realStock?.items?.some(item=>item.name===name&&item.qty===qty),'preserve real merchandise: '+name);
 }
 
 for(const [input,name,qty,unit] of [
