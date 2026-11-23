@@ -257,3 +257,31 @@
     max-width:100%;
   }
 }
+
+/* PA11 / Precision Chat, phase 1: predictable keyboard and pointer targets.
+   Existing +, microphone and Send keep separate DOM IDs and their original
+   handlers; never swap an action into another button's physical slot.
+   No change to viewport/composer placement, message scroll or call routing. */
+@media (max-width:63.999rem) {
+  #appShell[data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"])
+  #composerShell :is(#composer-plus-btn,#composer-mic-btn,#send) {
+    box-sizing:border-box;
+    min-width:44px;
+    min-height:44px;
+    flex-shrink:0;
+    touch-action:manipulation;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"])
+  #composerShell :is(#composer-plus-btn,#composer-mic-btn,#send):focus-visible {
+    outline:2px solid var(--theme-content-accent,#2563eb);
+    outline-offset:2px;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"])
+  #composerShell #send:disabled {
+    cursor:default;
+    opacity:.55;
+  }
+}
