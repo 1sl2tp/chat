@@ -4642,7 +4642,8 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
                     <input id="upload-files" class="native-file-input" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,application/pdf,text/plain,text/csv,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
                     <input id="upload-photos" class="native-file-input" type="file" multiple accept="image/*">
                     <input id="upload-camera" class="native-file-input" type="file" accept="image/*" capture="environment">
-                    <input id="upload-ios-source" class="native-file-input" type="file">
+                    <!-- CHAT-441: iOS native Photos picker must expose multi-selection; keep generic file/camera sources. -->
+                    <input id="upload-ios-source" class="native-file-input" type="file" multiple>
                     <div id="measure" aria-hidden="true"></div>
                   </div>
                 </form>
