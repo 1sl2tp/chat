@@ -30,6 +30,9 @@ assert(css.includes('border-color:color-mix(in srgb,var(--chat-next-focus) 45%')
 assert(css.includes('outline:2px solid var(--chat-next-focus);'));
 assert(/\.top-mode-switch\[data-contact-identity="true"\][\s\S]*?max-width:100%;[\s\S]*?box-sizing:border-box;/.test(css));
 assert(/\.top-mode-tab\[data-top-tab="chat"\][\s\S]*?max-width:100%;[\s\S]*?overflow:hidden;/.test(css));
+// PA4: both composer parent and editor wrapper constrain width without changing height/keyboard ownership.
+assert(/#composerShell\s*\{\s*box-sizing:border-box;\s*min-width:0;\s*max-width:100%;/.test(css));
+assert(/#composerShell #editorWrap\s*\{\s*box-sizing:border-box;\s*min-width:0;\s*max-width:100%;/.test(css));
 assert(css.includes('prefers-reduced-motion:reduce'));
 assert(!css.includes('#messageWindow'),'do not take ownership of virtualized messages');
 assert(!css.includes('grid-template-rows:'),'do not redefine conversation layout tracks');
