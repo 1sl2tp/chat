@@ -95,6 +95,15 @@ jobs:
           node --check app.js
           node tests/test_chat441_ios_photo_multiselect_20261123.cjs
 
+      - name: CHAT-442 foreground Web/PWA canonical Realtime contact and thread delivery
+        run: |
+          node --check v21-realtime-session.js
+          node --check v21-sync-engine.js
+          node tests/test_chat442_live_realtime_event_recovery_20261124.cjs
+          node tests/test_chat442_live_directory_thread_paint_20261124.cjs
+          node tests/test_chat_realtime_contact_message_auth_20261029.cjs
+          python tests/test_v21_realtime_message_fallback.py
+
       - name: CHAT-440 contextual iOS PWA message and directory notification dedup
         run: |
           node --check sw.js
