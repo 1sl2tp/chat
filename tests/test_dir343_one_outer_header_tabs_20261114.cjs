@@ -8,6 +8,14 @@ const mobile=fs.readFileSync('work-customer-summary.js','utf8');
 const shell=fs.readFileSync('shell.js','utf8');
 const html=fs.readFileSync('index.source.html','utf8');
 
+// CHAT v4: message and composer geometry cannot enlarge the iPhone stage.
+assert(/#messageWindow>\.message-row\s*\{[^}]*min-width:0;[^}]*max-width:100%;[^}]*box-sizing:border-box;[^}]*\}/.test(html),
+ 'message rows remain inside the thread width');
+assert(/\.message-unit\s*\{[^}]*max-width:100%;[^}]*min-width:0;[^}]*box-sizing:border-box;[^}]*\}/.test(html),
+ 'message units cannot force horizontal overflow');
+assert(/#thread-bottom-container\s*\{[^}]*position:absolute;[^}]*min-width:0;[^}]*box-sizing:border-box;[^}]*\}/.test(html),
+ 'composer overlay respects mobile stage width');
+
 // Plain text also needs a wrap owner when the message has no hyperlink.
 assert(/\.message-body\s*\{[^}]*white-space:normal;[^}]*overflow-wrap:anywhere;[^}]*\}/.test(html),
  'plain message bodies must wrap long unbroken identifiers');

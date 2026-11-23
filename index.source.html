@@ -292,6 +292,8 @@ button{
   inset-inline:0;
   bottom:0;
   width:100%;
+  min-width:0;
+  box-sizing:border-box;
   margin:0;
   z-index:40;
 }
@@ -334,6 +336,8 @@ button{
   align-items:flex-start;
   width:fit-content;
   max-width:100%;
+  min-width:0;
+  box-sizing:border-box;
 }
 /* Exact sent time sits below existing text/media without altering the
    message bubble itself. UI-245 uses a sender-aligned flex column so each
@@ -628,6 +632,9 @@ button{
 }
 #messageWindow>.message-row{
   margin:0;
+  min-width:0;
+  max-width:100%;
+  box-sizing:border-box;
 }
 #messageWindow>.message-row+.message-row{
   margin-top:8px;
