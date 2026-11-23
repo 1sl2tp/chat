@@ -141,7 +141,7 @@ for(const token of [
   'grid-template-areas:"search" "results";',
   'grid-area:results;',
   'overflow-y:auto;',
-  'min-height:68px!important;',
+  'min-height:64px!important;',
   'grid-template-columns:minmax(0,1fr) 58px;',
   'font-size:15px!important;',
   'font-size:13px!important;',

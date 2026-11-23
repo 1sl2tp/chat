@@ -82,7 +82,7 @@ def test_mobile_composer_uses_one_geometry_contract_across_states():
     assert 'padding-inline:0!important;' in frame
     assert '--ui-composer-gutter:12px;' in foundation
     assert '--ui-composer-inner-inset:4px;' in foundation
-    assert '--ui-composer-action-gap:4px;' in foundation
+    assert '--ui-composer-action-gap:8px;' in foundation
     assert '--ui-composer-send-disc:38px;' in foundation
     assert '--ui-composer-mic-glyph:24px;' in foundation
     assert '--ui-composer-arrow-glyph:22px;' in foundation
@@ -95,7 +95,7 @@ def test_mobile_composer_uses_one_geometry_contract_across_states():
     assert 'min-width:var(--ui-control-touch,44px)!important;' in mobile
     assert 'height:var(--ui-control-touch,44px)!important;' in mobile
     assert 'min-height:var(--ui-control-touch,44px)!important;' in mobile
-    assert 'gap:0 var(--ui-composer-action-gap,4px);' in mobile
+    assert 'gap:0 var(--ui-composer-action-gap,8px);' in mobile
     assert 'padding:2px var(--ui-composer-inner-inset,4px);' in mobile
 
     # The painted Send disk is 38px inside a 44px hit area. Only background

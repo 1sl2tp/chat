@@ -2153,7 +2153,7 @@
    CHAT-435: approved 2027/V46 hierarchy, assistant-ui ThreadList pattern and
    React Aria keyboard/focus principles. Replaces styling inside this owner:
    quieter header tabs, one visual search/filter tool, one-line previews,
-   68px minimum list rows; no new DOM, network or viewport event owner.
+   64px minimum list rows; no new DOM, network or viewport event owner.
    Regression/rationale: docs/ui/CHAT-435-2027-DIRECTORY-UX.md
    CHAT-395 retains this one owner: Top 1 = shell Chat/Work header;
    Top 2 = 2-row search/filter toolbar; Content = sole contact list scroller.
@@ -2358,19 +2358,19 @@
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer [data-v21-contact-list]{
     box-sizing:border-box;
-    padding:0 8px max(12px,env(safe-area-inset-bottom,0px))!important;
+    padding:0 10px max(12px,env(safe-area-inset-bottom,0px))!important;
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .shell-contact-row{
     box-sizing:border-box;
     height:auto!important;
-    min-height:68px!important;
+    min-height:64px!important;
     border-radius:0;
     background:transparent;
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .shell-contact-chat{
     box-sizing:border-box;
     height:auto!important;
-    min-height:68px!important;
+    min-height:64px!important;
     padding:8px 4px!important;
     grid-template-columns:40px minmax(0,1fr);
     column-gap:10px!important;
