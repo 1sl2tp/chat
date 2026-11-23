@@ -352,9 +352,13 @@ function currentPushClientState(){
   const shell=window.ChatAppShell?.snapshot?.()||{};
   const sync=window.V21SyncEngine?.snapshot?.()||{};
   const route=String(shell.route||'');
+  // CHAT-440: the mobile directory is a different presented surface even
+  // though its shell route remains "chat" and remembers the last contact.
+  // Never claim that remembered thread as currently visible to Push.
+  const directoryVisible=document.getElementById?.('appShell')?.dataset?.mobileDirectory==='true';
   const contactId=String(shell.activeContact?.id||'');
   let conversationId='';
-  if(route==='chat'&&contactId){
+  if(route==='chat'&&!directoryVisible&&contactId){
     if(contactId===String(sync.currentContactId||'')){
       conversationId=String(sync.currentConversationId||'');
     }
@@ -369,7 +373,7 @@ function currentPushClientState(){
     visible:document.visibilityState==='visible',
     // On iOS an open PWA with the software keyboard may report no DOM focus.
     focused:typeof document.hasFocus==='function'?Boolean(document.hasFocus()):document.visibilityState==='visible',
-    route,platform:platform(),conversationId,contactId
+    route,platform:platform(),directoryVisible,conversationId,contactId
   };
 }
 function syncState(){
@@ -532,6 +536,9 @@ function showForegroundMessage(payload){
   // Tests, SSR and WebViews without a DOM must retain the canonical sync wake.
   if(typeof document.createElement!=='function'||!document.body?.appendChild)return;
   const current=currentPushClientState();
+  // In the visible directory, each contact row already owns its unread
+  // marker and latest-message preview. A floating toast is a second alert.
+  if(current.directoryVisible)return;
   // Compare canonical conversation IDs ONLY in the actual Chat route.
   // A stale SyncEngine snapshot from the previous customer must not hide a
   // different customer's notification while switching A → B.
