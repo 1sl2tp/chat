@@ -167,10 +167,10 @@ function installStyle(){
       #appShell[data-mobile-directory="true"] .contact-directory-search{height:44px}
       #appShell[data-mobile-directory="true"] .contact-directory-filter-line{min-height:44px}
     }
-    /* UI-V1: small non-interactive iteration marker at the far-right edge
+    /* UI-V2: small non-interactive iteration marker at the far-right edge
        of the directory Work tab; do not move or relabel the centered tab. */
     #appShell[data-mobile-directory="true"] .top-mode-switch[data-directory-owner="true"] .top-mode-tab[data-top-tab="photos"]{position:relative}
-    #appShell[data-mobile-directory="true"] .top-mode-switch[data-directory-owner="true"] .top-mode-tab[data-top-tab="photos"]::after{content:"v1";position:absolute;right:5px;top:50%;transform:translateY(-50%);font:500 10px/1 system-ui,-apple-system,sans-serif;color:var(--theme-content-tertiary,#8a8a8a);pointer-events:none;white-space:nowrap}
+    #appShell[data-mobile-directory="true"] .top-mode-switch[data-directory-owner="true"] .top-mode-tab[data-top-tab="photos"]::after{content:"v2";position:absolute;right:5px;top:50%;transform:translateY(-50%);font:500 10px/1 system-ui,-apple-system,sans-serif;color:var(--theme-content-tertiary,#8a8a8a);pointer-events:none;white-space:nowrap}
   `;
   document.head.appendChild(style);
 }
