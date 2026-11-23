@@ -111,6 +111,22 @@
    ::before paints behind editor+mic; it does NOT take focus, change tracks,
    reposition the dock or intercept keyboard/voice interactions. */
 @media(max-width:63.999rem){
+  /* PA11.4: typing instructions stay accessible to screen readers but do not
+     occupy the scarce mobile composer row. The hint remains in the DOM;
+     keyboard shortcuts, actions, editor size and audio state are unchanged. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"])
+  #composerShell #composerHint {
+    position:absolute;
+    inline-size:1px;
+    block-size:1px;
+    padding:0;
+    margin:-1px;
+    overflow:hidden;
+    white-space:nowrap;
+    clip-path:inset(50%);
+    border:0;
+  }
   #appShell[data-auth-state="authenticated"][data-route="chat"]
   #stageLayout:not([data-bank-report-active="true"])
   #composerShell:not([data-audio-state="REQUESTING_PERMISSION"]):not([data-audio-state="RECORDING"]):not([data-audio-state="STOPPING"]):not([data-audio-state="PREVIEW"]):not([data-audio-state="SENDING"]){

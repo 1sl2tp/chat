@@ -30,3 +30,18 @@ assert(source.includes('id="editor"')&&source.includes('id="composerShell"'));
 assert(source.includes('data-build-source="chatgpt-ab-conversation.css"'));
 assert(mobile.includes('grid-template-rows:auto auto minmax(var(--ui-control-touch,44px),auto);'));
 console.log('CHAT-433 editor-only focus, contrast and keyboard/scroll ownership: PASS');
+
+// PA11.4 regression: mobile hint is visually hidden without removing the
+// existing composer controls, changing send behavior or adding keyboard owners.
+const hintBegin=css.indexOf('/* PA11.4:');
+const hintEnd=css.indexOf('  #appShell[data-auth-state="authenticated"][data-route="chat"]\n  #stageLayout:not([data-bank-report-active="true"])\n  #composerShell:not([data-audio-state="REQUESTING_PERMISSION"])',hintBegin);
+assert(hintBegin>=0&&hintEnd>hintBegin,'PA11.4 stays in existing mobile composer owner');
+const hintBlock=css.slice(hintBegin,hintEnd);
+assert(hintBlock.includes('#composerShell #composerHint'));
+for(const declaration of ['position:absolute;','inline-size:1px;','block-size:1px;','clip-path:inset(50%);'])
+ assert(hintBlock.includes(declaration),declaration);
+assert(!/display:\s*none|visibility:\s*hidden/.test(hintBlock),'hint remains in accessibility tree');
+assert(!/\b(?:fetch|XMLHttpRequest|WebSocket|setInterval|setTimeout)\s*\(/.test(hintBlock));
+for(const id of ['composerHint','composer-plus-btn','composer-mic-btn','send','editor'])
+ assert(source.includes('id="'+id+'"'),'preserve '+id);
+console.log('PA11.4 mobile composer hint, controls and accessibility guard: PASS');
