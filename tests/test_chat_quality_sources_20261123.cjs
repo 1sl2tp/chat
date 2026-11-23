@@ -28,13 +28,14 @@ assert.match(workflow,/node tests\/test_chat438_keyboard_content_priority_202611
 const smoke=read('qa/tests/public-shell.spec.mjs');
 assert.match(smoke,/route\.abort\('blockedbyclient'\)/);
 assert.match(smoke,/url\.hostname==='127\.0\.0\.1'&&url\.port==='8765'/);
-assert.match(smoke,/serviceWorkers:'block'|serviceWorkers:\s*'block'/);
+
 assert.match(smoke,/AxeBuilder/);
 assert.doesNotMatch(smoke,/page\.goto\(['"]https?:\/\//);
 assert.doesNotMatch(smoke,/fill\(|type\(|click\(['"]send/i);
 
 const config=read('qa/playwright.config.mjs');
 assert.match(config,/baseURL:'http:\/\/127\.0\.0\.1:8765'/);
+assert.match(config,/serviceWorkers:'block'/);
 assert.match(config,/chromium-mobile/);
 assert.match(config,/chromium-desktop/);
 console.log('CHAT-QUALITY: pinned upstream, read-only CI and localhost-only browser guards OK');
