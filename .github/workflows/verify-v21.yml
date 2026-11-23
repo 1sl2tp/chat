@@ -455,6 +455,8 @@ jobs:
         run: node tests/test_chat395_three_zones_20261120.cjs
       - name: CHAT-435 2027/V46 approved directory hierarchy
         run: node tests/test_chat435_2027_directory_hierarchy_20261123.cjs
+      - name: CHAT-438 mobile keyboard prioritizes conversation over secondary actions
+        run: node tests/test_chat438_keyboard_content_priority_20261123.cjs
       - name: CHAT-437 PA2 symmetric mobile reading rail and composer optical inset
         run: node tests/test_chat437_mobile_optical_axis_20261123.cjs
       - name: CHAT-436 PA2 two-pane desktop priority and mobile gate

@@ -1750,6 +1750,15 @@
     outline:2px solid var(--theme-content-accent);
     outline-offset:1px;
   }
+  /* CHAT-438 / 2027 parent → optional child: QuickActions is secondary
+     navigation, not part of the active typing task. Reclaim its 52px
+     entirely while VisualViewport reports the keyboard open. The DOM, action
+     handlers and contact identity are unchanged; closing the keyboard
+     restores the original toolbar. Bank-report and desktop modes are exempt.
+     ScrollRoot, keyboard inset and composer placement stay with their owners. */
+  #appShell[data-auth-state="authenticated"][data-route="chat"] #stageLayout[data-keyboard-open="true"]:not([data-bank-report-active="true"]) #chatQuickActions:not([hidden]){
+    display:none!important;
+  }
   /* Compact conversations: keep the virtualization and the 17px time slot
      exactly as-is. Only typography, palette and between-turn rhythm change. */
   #appShell[data-auth-state="authenticated"][data-route="chat"] #stageLayout:not([data-bank-report-active="true"]) #messageWindow>.message-row[data-content-kind="text"] .user-message-unit>.message-text{
