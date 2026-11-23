@@ -851,7 +851,7 @@ function setActiveContact(contactId,contactName){
   closeChatHeaderMenu();
   renderCallFocus();
   renderChatTabIdentity();
-  syncContactActiveState();
+  syncContactActiveState(previousId);
   persistScreenSession();
   if(previousId!==(activeContact?.id||null))syncScreenRouteUrl();
   const nextId=activeContact?.id||null;
@@ -1240,9 +1240,26 @@ function contactPreview(item){
   return format(typeof normalize==='function'?normalize(text):text);
 }
 
-function syncContactActiveState(){
+function syncContactActiveState(previousId=null){
+  const nextId=String(activeContact?.id||'');
+  // CHAT-438: a back tap changes at most two contact rows. Do not mutate
+  // every directory row on the synchronous navigation path.
+  if(previousId!==null){
+    const before=String(previousId||'');
+    if(before===nextId)return;
+    for(const row of document.querySelectorAll('[data-contact-row][data-active="true"]')){
+      row.dataset.active='false';
+    }
+    if(nextId){
+      for(const row of document.querySelectorAll('[data-contact-row]')){
+        if(String(row.dataset.contactId)===nextId)row.dataset.active='true';
+      }
+    }
+    return;
+  }
+  // Full sync is still available when the directory is initially hydrated.
   for(const row of document.querySelectorAll('[data-contact-row]')){
-    row.dataset.active=String(Boolean(activeContact?.id)&&String(row.dataset.contactId)===String(activeContact.id));
+    row.dataset.active=String(Boolean(nextId)&&String(row.dataset.contactId)===nextId);
   }
 }
 
