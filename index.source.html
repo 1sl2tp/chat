@@ -642,10 +642,13 @@ button{
 #messageWindow>.message-row[data-turn="assistant"]+.message-row[data-turn="user"]{
   margin-top:14px;
 }
+/* CHAT v3 follow-up: plain text also contains unbroken SKU/phone strings.
+   Wrap within the message without changing the thread scroll owner. */
 .message-body{
   font-size:1rem;
   line-height:1.5rem;
   white-space:normal;
+  overflow-wrap:anywhere;
 }
 .message-body[data-has-link="true"]{
   overflow-wrap:anywhere;
