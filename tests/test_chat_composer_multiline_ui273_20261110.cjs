@@ -17,7 +17,7 @@ function rule(selectorText){
 }
 const editor=rule(selector+' #editor');
 assert(editor.includes('height:var(--editor-height,40px);'));
-assert(editor.includes('max-height:144px;'));
+assert(editor.includes('max-height:150px;'));
 assert(editor.includes('white-space:pre-wrap;'));
 assert(editor.includes('overflow-wrap:anywhere;'));
 const narrow=rule(selector+' #composerShell');
@@ -81,13 +81,13 @@ vm.runInContext('syncMeasureStyle({widthPx:editor.getBoundingClientRect().width}
 assert.notEqual(shell.dataset.editorExpanded,'true','no layout mode even after actual width change');
 const lengthy='Viết nội dung dài nhiều dòng để kiểm tra khả năng theo dõi vị trí con trỏ trên iPhone. '.repeat(16);
 type(lengthy);
-assert.equal(editorState.style['--editor-height'],'144px','mobile cap exposes multiple text rows without consuming the thread');
+assert.equal(editorState.style['--editor-height'],'136px','mobile cap exposes only whole rows with the mocked 24px line-height');
 assert.equal(editorState.dataset.internalScroll,'true','beyond cap scroll only the textarea');
 assert.equal(editorState.value,lengthy,'draft contents preserved');
 assert.equal(editorState.selectionStart,lengthy.length,'caret not rewritten');
 visualViewport.height=300;
 grow();
-assert.equal(editorState.style['--editor-height'],'96px','keyboard budget preserves messages with one fixed action row');
+assert.equal(editorState.style['--editor-height'],'88px','keyboard budget preserves messages with whole text rows');
 assert.equal(editorState.dataset.internalScroll,'true');
 type('Dòng một\nDòng hai');
 assert.notEqual(shell.dataset.editorExpanded,'true','no track switch on deletion');
