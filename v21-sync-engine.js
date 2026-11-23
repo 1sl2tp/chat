@@ -285,7 +285,11 @@ async function patchContactSummary(conversationId,patch={},context=null){
   // CHAT-442: the authenticated, account-fenced in-memory ContactStore owns
   // the visible directory. Optional IndexedDB persistence cannot block its
   // latest preview, timestamp or unread state while a PWA/Web tab is open.
-  contacts()?.upsert?.(next);
+  // A canonical event often already painted these exact fields: do not emit
+  // a duplicate store-change and reorder the list for no visible difference.
+  if(Object.keys(safePatch).some(key=>current[key]!==next[key])){
+    contacts()?.upsert?.(next);
+  }
   try{
     await cache()?.upsertContact?.(context?.accountId||accountId,next);
   }catch{
@@ -299,18 +303,30 @@ async function patchContactSummary(conversationId,patch={},context=null){
 async function applyContactEvent(event,context=captureSyncOwnerContext()){
   const payload=canonicalContact(event?.payload);
   if(!payload?.id||!syncOwnerContextCurrent(context))return false;
-  const cached=(await cache()?.listContacts?.(context.accountId)||[]).find(item=>String(item.id)===String(payload.id));
+  const eventVersion=Number(payload.version||event.entity_version||0);
+  const cached=(await cache()?.listContacts?.(context.accountId)||[]).find(item=>String(item.id)===String(payload.id))||null;
   if(!syncOwnerContextCurrent(context))return false;
-  if(cached&&Number(cached.version||0)>=Number(payload.version||event.entity_version||0))return false;
+  if(cached&&Number(cached.version||0)>=eventVersion)return false;
+  const shown=contacts()?.snapshot?.().find(item=>String(item?.id||'')===String(payload.id))||null;
+  // An older durable event may finish after a newer canonical event has
+  // already painted; never roll current contact metadata/activity backwards.
+  if(shown&&Number(shown.version||0)>eventVersion)return false;
   if(event.op==='delete'||payload.deleted_at){
     await cache()?.removeContact?.(context.accountId,payload.id);
     if(!syncOwnerContextCurrent(context))return false;
-    contacts()?.remove?.(payload.id);
+    if(shown)contacts()?.remove?.(payload.id);
   }else{
-    const next=mergeContactEventPreservingActivity(cached,payload,event?.payload);
+    // Prefer the immediate live row over stale IndexedDB data, preserving the
+    // latest preview while persisting the canonical account/profile patch.
+    const baseline=shown&&Number(shown.version||0)>=Number(cached?.version||0)?shown:cached;
+    const next=mergeContactEventPreservingActivity(baseline,payload,event?.payload);
+    next.version=Math.max(eventVersion,Number(next.version)||0);
     await cache()?.upsertContact?.(context.accountId,next);
     if(!syncOwnerContextCurrent(context))return false;
-    contacts()?.upsert?.(next);
+    const latest=contacts()?.snapshot?.().find(item=>String(item?.id||'')===String(payload.id))||null;
+    if(!latest||Number(latest.version||0)<Number(next.version||0)){
+      contacts()?.upsert?.(next);
+    }
   }
   return true;
 }
