@@ -45,9 +45,9 @@ assert(css.includes('grid-template-columns:var(--ui-control-touch,44px) minmax(0
 // The release contract is shared across owners, not tied to the version
 // current on the day CHAT-439 was introduced. Keep detecting drift while
 // allowing an intentional version/cache-epoch bump without editing this test.
-const htmlVersion=html.match(/<meta name="app-release-version" content="(V\\d+\\.\\d+\\.\\d+)">/);
-const appVersion=app.match(/releaseVersion:'(V\\d+\\.\\d+\\.\\d+)'/);
-const swVersion=sw.match(/RELEASE_VERSION='(V\\d+\\.\\d+\\.\\d+)'/);
+const htmlVersion=html.match(/<meta name="app-release-version" content="(V\d+\.\d+\.\d+)">/);
+const appVersion=app.match(/releaseVersion:'(V\d+\.\d+\.\d+)'/);
+const swVersion=sw.match(/RELEASE_VERSION='(V\d+\.\d+\.\d+)'/);
 assert(htmlVersion&&appVersion&&swVersion,
  'all three release owners must expose a well-formed version');
 assert.equal(appVersion[1],htmlVersion[1],
