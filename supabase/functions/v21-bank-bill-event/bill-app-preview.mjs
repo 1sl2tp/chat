@@ -74,6 +74,26 @@ function verifiedIbftMemo(raw,bill){
     tidy(m[1])!==tidy(bill?.transfer_content))return null;
  return m[1];
 }
+// BANK-367: A ZaloPay bank transfer can arrive with an entire original
+// payer note wrapped as <12-character routing token>-<original memo>.
+// Use ONLY the literal WHOLE memo after the known-length bank-side token.
+// This does not authorize arbitrary substring or sender-name-only matches.
+// Original amount, official minute, full destination and unique-credit/ledger
+// guards remain unchanged.
+function verifiedTwelveCharRoutingMemo(raw,bill){
+ const wrapped=/^[A-Z0-9]{12}-(.+?)\.?\s*$/i.exec(String(raw||"").trim());
+ if(!wrapped)return null;
+ const original=String(bill?.transfer_content||"").trim();
+ const normalized=normalizeBillRecipientName(original);
+ const sender=normalizeBillRecipientName(bill?.sender_name);
+ if(!sender||sender==="BUI XUAN TUNG"||sender.length<4||
+    !normalized.startsWith(sender+" ")||
+    !/(?:CHUYEN TIEN|CHUYEN KHOAN)\s*$/.test(normalized)||
+    tidy(original).length<20||
+    !contiguousMemoContains(wrapped[1],original)||
+    tidy(wrapped[1])!==tidy(original))return null;
+ return wrapped[1];
+}
 // BANK-346: Agribank wraps some incoming Vietcombank memos as
 // MBVCB.<bank-reference>.<routing-code>.<literal payer memo>.CT tu <source>
 // <sender> toi <our-account> <our-name> tai AGRIBANK.
@@ -185,7 +205,8 @@ export function previewBillAppMatch(bill,events,otherBills=[],now=Date.now()){
    return sender&&sender!=="BUI XUAN TUNG"&&sender.length>=12&&
      printed.length>=12&&printed.startsWith(tidy(sender))&&
      (printed===tidy(raw)||printed===tidy(verifiedIbftMemo(raw,bill))||
-      printed===tidy(verifiedMccMemo(raw,bill,e)));
+      printed===tidy(verifiedMccMemo(raw,bill,e))||
+      printed===tidy(verifiedTwelveCharRoutingMemo(raw,bill)));
  });
  if(qualified.length>1)return{status:"review",reason:"multiple_credits_same_amount_same_minute"};
  if(!qualified.length&&nearby.length)return{status:"review",reason:"bank_time_outside_one_minute"};
@@ -222,11 +243,13 @@ export function previewBillAppMatch(bill,events,otherBills=[],now=Date.now()){
    const qrSenderVerified=verifiedQrSenderMemo(bill,rawBankMemo);
     const bankMemoWithoutMcc=mcc?tidy(mcc):null;
    const bankMemoWithoutIbft=tidy(verifiedIbftMemo(rawBankMemo,bill));
+   const bankMemoWithoutTwelveRouting=tidy(verifiedTwelveCharRoutingMemo(rawBankMemo,bill));
    const mbvcbSingleOcr=verifiedMbvcbTransferSuffixOcr(bill,mbvcb);
    if((printedMemo.length<12&&!qrSenderVerified)||!bankText||
       (printedMemo!==bankText&&printedMemo!==bankMemoWithoutQr&&
        printedMemo!==bankMemoWithoutMb&&printedMemo!==bankMemoWithoutMbvcb&&
         printedMemo!==bankMemoWithoutMcc&&printedMemo!==bankMemoWithoutIbft&&
+       printedMemo!==bankMemoWithoutTwelveRouting&&
        !qrSenderVerified&&!mbvcbSingleOcr))
      return{status:"review",reason:"ocr_date_corrected_bank_memo_unverified"};
  }
