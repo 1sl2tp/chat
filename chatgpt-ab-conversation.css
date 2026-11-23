@@ -219,3 +219,41 @@
 }
 /* Shared order tables, photos, audio, unread separators and sending/failed
    message clocks do not participate in the shortened text footer. */
+
+/* PA4 / 2027 parent-child layout contract — mobile conversation only.
+   Reuses existing Header/Composer/Keyboard/Scroll owners. Do not touch
+   message geometry, visualViewport offsets, data flow or send actions. */
+@media (max-width:63.999rem) {
+  #appShell[data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"]) #regionTop .top-mode-switch[data-contact-identity="true"] {
+    box-sizing:border-box;
+    min-width:0;
+    max-width:100%;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"]) #regionTop .top-mode-switch[data-contact-identity="true"] .top-mode-tab[data-top-tab="chat"] {
+    min-width:0;
+    max-width:100%;
+    overflow:hidden;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"]) #regionTop .top-mode-switch[data-contact-identity="true"] [data-chat-tab-label] {
+    min-width:0;
+    max-width:100%;
+    overflow:hidden;
+    white-space:nowrap;
+    text-overflow:ellipsis;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"]) #composerShell {
+    box-sizing:border-box;
+    min-width:0;
+    max-width:100%;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"]) #composerShell #editorWrap {
+    box-sizing:border-box;
+    min-width:0;
+    max-width:100%;
+  }
+}
