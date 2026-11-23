@@ -452,6 +452,7 @@ function paintRealtimeWithoutCache(event,context){
     // listContacts/upsertContact stalls. The durable apply follows below.
     const row=canonicalContact(event.payload);
     if(!row?.id)return false;
+    row.version=Number(row.version||event.entity_version||0);
     const previous=contacts()?.snapshot?.().find(item=>String(item?.id||'')===String(row.id))||null;
     if(event.op==='delete'||row.deleted_at){
       contacts()?.remove?.(row.id);
