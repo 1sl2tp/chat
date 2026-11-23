@@ -5,6 +5,7 @@ import {previewBillSmsMatch,readIncomingAgribankSms} from "./bill-sms-preview.mj
 import {previewBillAppMatch,previewBillReferenceMatch} from "./bill-app-preview.mjs";
 import {compareBillTransferIdentity} from "./bill-transfer-identity.mjs";
 import {eligibleForPrintedDateRescan} from "./bill-review-recheck.mjs";
+import {recoverStoredNoClockBankCredit} from "./bill-no-clock-worker.mjs";
 import {requestParsedBillGemini} from "./bill-gemini-failover.mjs";
 import {vietnamBusinessDayStartUtc} from "./bill-vietnam-day.mjs";
 import {isRetryableBillScanReason,describeBillDecision} from "./bill-decision-policy.mjs";
@@ -175,6 +176,16 @@ Deno.serve(async req=>{
  if(!HEX.test(asset))return response({error:"asset_id_invalid"},400);
  const {data:job,error:jobError}=await db.from("chat_bank_bill_receipts").select("id,status,reason,scanned_at,customer_account_id,sent_at,attempt_count").eq("media_asset_id",asset).maybeSingle();
  if(jobError||!job)return response({error:"not_queued"},404);
+ // BANK-364: only re-evaluate already saved OCR when the official bank
+ // event arrives. No new image download or inferred printed OCR clock.
+ if(recheckBankCredit&&job.status==="review"&&job.reason==="bill_printed_time_missing"){
+  const recovery=await recoverStoredNoClockBankCredit(db,asset);
+  if(recovery?.handled){
+   if(recovery.posted)await acknowledgePostedCollection(recovery.posted);
+   const {posted,...safe}=recovery;
+   return response({ok:true,...safe},recovery.status==="received"?200:202);
+  }
+ }
  // BANK-291: a NEW verified bank event may arrive after AI scanned an
  // otherwise clear Techcombank receipt whose literal comma date was rejected.
  // Permit just one additional pixel OCR read, only on independent bank
@@ -373,8 +384,16 @@ Deno.serve(async req=>{
      .eq("media_asset_id",asset).eq("status","amount_read").maybeSingle();
    if(["bank_bill_amount_v4_20261018","bank_bill_amount_v5_20261110"].includes(String(r?.raw_read?.rule_version||"")) &&
       Number.isSafeInteger(r.amount_vnd)&&r.amount_vnd>0){
-     const evidence=r.raw_read?.rule_version==="bank_bill_amount_v5_20261110"
-       ?requiredAutoCollectEvidence({
+     const correction=r.raw_read?.manual_datetime_correction;
+      const bankVerifiedClock=correction?.source===
+        "independent_agribank_credit_notification"&&
+        correction.bank_time_precision==="minute"&&
+        Number.isSafeInteger(correction.bank_notice_id)&&
+        correction.bank_time_vn===String(r.transfer_at_vn||"").replace("T"," ");
+      const evidence=bankVerifiedClock
+        ?{complete:true,requires_bank_memo:true}
+        :r.raw_read?.rule_version==="bank_bill_amount_v5_20261110"
+        ?requiredAutoCollectEvidence({
          receiving_account:r.receiving_account,
          receiving_account_visible:r.raw_read?.recipient_account_visible,
          receiving_account_last5:r.raw_read?.recipient_account_last5,
