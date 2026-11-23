@@ -275,9 +275,9 @@ const AppBootController={
     // Repeated global faults must not repaint the banner or multiply logs.
     if(this.lastErrorMessage===message&&!runtimeError.classList.contains('hidden'))return;
     this.lastErrorMessage=message;
-    runtimeError.textContent='V21.72.77 runtime: '+message;
+    runtimeError.textContent='V21.72.78 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.77]',error);
+    console.error('[ChatScreenModule V21.72.78]',error);
   },
   ready(){
     // A successful render invariant proves recovery only for errors seen
@@ -389,7 +389,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.77 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.78 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -443,7 +443,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.77',
+  releaseVersion:'V21.72.78',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -6483,13 +6483,20 @@ let composerStableViewportHeightPx=0;
 
 // The editor cap reserves the header, action chrome and conversation while
 // the software keyboard occupies the lower visible viewport.
-function composerTextHeightLimit(visibleHeight,headerHeight,composerOverhead){
+function composerTextHeightLimit(visibleHeight,headerHeight,composerOverhead,lineHeight=22){
   const visible=Math.max(1,Number(visibleHeight)||1);
   const header=Math.max(0,Number(headerHeight)||0);
   const overhead=Math.max(0,Number(composerOverhead)||0);
   const minimumMessages=Math.max(128,Math.floor(visible*.42));
   const available=visible-header-overhead-minimumMessages-8;
-  return Math.max(40,Math.min(144,Math.floor(visible*.32),Math.floor(available)));
+  // CHAT-439: an unquantized viewport cap (e.g. 97px) can clip a row
+  // and oscillate the fixed composer during predictive-text viewport changes.
+  // The first line takes 40px and each further line one lineHeight.
+  // Only whole 1..6 lines are allowed; keep the minimum reading area.
+  const step=Math.max(1,Number(lineHeight)||22);
+  const rawCap=Math.max(40,Math.min(150,Math.floor(visible*.32),Math.floor(available)));
+  const wholeExtraLines=Math.max(0,Math.min(5,Math.floor((rawCap-40)/step)));
+  return 40+wholeExtraLines*step;
 }
 
 function autoGrow({source='layout'}={}){
@@ -6510,8 +6517,10 @@ function autoGrow({source='layout'}={}){
   const natural=Math.ceil(measure.scrollHeight);
   const mobile=Boolean(composerMobileBreakpoint?.matches);
   const rawVisibleHeight=Number(window.visualViewport?.height||window.innerHeight)||640;
+  // Ignore sub-line VisualViewport noise from iOS input/accessory bars.
+  // Composer placement still uses the live viewport in KeyboardInsetAdapter.
   if(!composerStableViewportHeightPx||
-     Math.abs(rawVisibleHeight-composerStableViewportHeightPx)>=8){
+     Math.abs(rawVisibleHeight-composerStableViewportHeightPx)>=24){
     composerStableViewportHeightPx=rawVisibleHeight;
   }
   const visibleHeight=composerStableViewportHeightPx;
@@ -6531,9 +6540,9 @@ function autoGrow({source='layout'}={}){
       ?Math.max(0,composerHeight-Math.max(44,editorHeight)):12;
     composerTypingMetrics={lineHeight,headerHeight,composerOverhead};
   }
-  const {headerHeight,composerOverhead}=composerTypingMetrics;
+  const {lineHeight,headerHeight,composerOverhead}=composerTypingMetrics;
   const maxHeight=mobile
-    ?composerTextHeightLimit(visibleHeight,headerHeight,composerOverhead)
+    ?composerTextHeightLimit(visibleHeight,headerHeight,composerOverhead,lineHeight)
     :64;
   let next=Math.max(40,Math.min(maxHeight,natural));
   // Predictive text / Vietnamese punctuation may temporarily change wraps.
@@ -9313,7 +9322,7 @@ window.V21ConversationBridge={
 window.V21ChatImageViewer=Object.freeze({open:openImageViewer});
 
 window.ChatScreenModule={
-  version:'V21.72.77',
+  version:'V21.72.78',
   snapshot(){
     return{
       viewportMode:viewport.mode,
