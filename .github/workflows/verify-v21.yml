@@ -255,6 +255,9 @@ jobs:
           node tests/test_bank267_bill_ocr_swap_report_20261110.cjs
           node tests/test_bank268_unmatched_receipt_reasons_20261110.cjs
           node tests/test_bank311_mobile_reconcile_information_architecture_20261112.cjs
+      - name: BANK-368 Forward-only bill cutover protects all historic customer receipts
+        run: node tests/test_bank368_forward_only_cutover_20261123.mjs
+
       - name: BANK-367 Full payer memo after fixed bank routing prefix
         run: node tests/test_bank367_full_memo_routing_prefix_20261123.mjs
 

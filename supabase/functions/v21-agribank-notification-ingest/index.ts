@@ -14,6 +14,11 @@ async function recheckNewCredit(body:string,amount:number){
  const window=officialCreditWindow(body);
  const vnToday=new Date(Date.now()+7*3600000).toISOString().slice(0,10);
  if(!window||window.businessDate!==vnToday)return;
+ // BANK-368: never dispatch an old customer bill on a later Agribank
+ // event. Existing stored receipts predate the owner's cutover and stay
+ // completely untouched; no retroactive OCR / customer notice / collection.
+ const cutoverMs=Date.parse("2026-11-23T09:58:11.000Z");
+ if(Date.parse(window.to)<cutoverMs)return;
  const configResponse=await fetch(URL+"/rest/v1/rpc/chat_customer_summary_runtime_config",{
    method:"POST",headers:headers(),body:"{}"
  });
@@ -27,7 +32,8 @@ async function recheckNewCredit(body:string,amount:number){
  query.searchParams.set("amount_vnd","eq."+amount);
  query.searchParams.set("status","in.(amount_read,review)");
  query.searchParams.set("ledger_id","is.null");
- query.searchParams.append("sent_at","gte."+window.from);
+ query.searchParams.append("sent_at","gte."+
+   new Date(Math.max(Date.parse(window.from),cutoverMs)).toISOString());
  query.searchParams.append("sent_at","lte."+window.to);
  query.searchParams.set("order","sent_at.asc");
  query.searchParams.set("limit","5");
