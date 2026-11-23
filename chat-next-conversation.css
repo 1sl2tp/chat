@@ -96,6 +96,21 @@
     background:var(--theme-surface-primary);
   }
   #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"][data-route="chat"]
+  /* PA4: one composer surface owns the width; the editor may shrink without
+     forcing the plus/mic/send controls beyond the viewport. No height or
+     keyboard-inset changes: those remain with the existing runtime owner. */
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"]) #composerShell {
+    box-sizing:border-box;
+    min-width:0;
+    max-width:100%;
+  }
+  #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"]) #composerShell #editorWrap {
+    box-sizing:border-box;
+    min-width:0;
+    max-width:100%;
+  }
   #stageLayout:not([data-bank-report-active="true"]) #composerShell :is(#composer-plus-btn,#composer-mic-btn) {
     background:color-mix(in srgb,var(--theme-surface-secondary) 65%,var(--theme-surface-primary));
     color:var(--theme-content-primary);
