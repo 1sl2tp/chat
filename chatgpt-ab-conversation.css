@@ -339,3 +339,22 @@
     max-height:30px;
   }
 }
+
+/* PA11 phase 3 — prevent accidental outbound calls from the mobile header.
+   The existing "Tùy chọn hội thoại → Gọi qua Chat" action remains available;
+   incoming/connecting/active call controls remain visible and unchanged.
+   Only hide the idle one-tap outbound call shortcut when the overflow
+   action menu exists. Do not alter call engine or dispatch. */
+@media (max-width:63.999rem) {
+  #appShell[data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"])
+  #regionTop .call-focus-slot[data-call-ui-state="idle"]:has([data-chat-header-more])
+  #chatCallFocus[data-call-live="false"] {
+    display:none!important;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"])
+  #regionTop .call-focus-slot[data-call-ui-state="idle"]:has([data-chat-header-more]) {
+    max-width:min(42vw,170px);
+  }
+}
