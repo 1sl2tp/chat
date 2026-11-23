@@ -16,7 +16,11 @@ assert 'code: "login_not_enabled"' in edge
 assert '(usernameChanged || password) && target.auth_user_id' in edge
 assert "createUser(" not in edge
 
-# Edge/migration-only changes must not publish the static Chat site.
-assert '- "supabase/**"' in pages
+# Pages must publish only after a successful verified main push; changes
+# confined to Supabase cannot trigger a Pages deployment by themselves.
+assert 'workflow_run:' in pages
+assert 'workflows: ["Verify V21"]' in pages
+assert "github.event.workflow_run.event == 'push'" in pages
+assert "github.event.workflow_run.head_branch == 'main'" in pages
 
 print("v21 auth optional contract ok")

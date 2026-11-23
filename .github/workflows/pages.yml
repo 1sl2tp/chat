@@ -1,16 +1,12 @@
 name: Deploy Chat Pages
 
+# Deploy only after the full Verify V21 run on main succeeds. A direct
+# push-based deploy races verification and the canonical build-artifact sync.
 on:
-  push:
+  workflow_run:
+    workflows: ["Verify V21"]
+    types: [completed]
     branches: [main]
-    paths-ignore:
-      - "tests/**"
-      - "tools/**"
-      - "supabase/**"
-      - "bridge/**"
-      - ".github/**"
-      - "docs/**"
-      - "**/*.md"
   workflow_dispatch:
 
 permissions:
@@ -28,14 +24,17 @@ concurrency:
 
 jobs:
   deploy:
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
-      - name: Checkout
+      - name: Checkout verified main
         uses: actions/checkout@v4
+        with:
+          ref: main
 
       - name: Setup Python
         uses: actions/setup-python@v5
