@@ -6,6 +6,7 @@ import {previewBillAppMatch,previewBillReferenceMatch} from "./bill-app-preview.
 import {compareBillTransferIdentity} from "./bill-transfer-identity.mjs";
 import {eligibleForPrintedDateRescan} from "./bill-review-recheck.mjs";
 import {recoverStoredNoClockBankCredit} from "./bill-no-clock-worker.mjs";
+import {sendMissingClockCustomerReconciliation} from "./bill-no-clock-customer-notice.mjs";
 import {requestParsedBillGemini} from "./bill-gemini-failover.mjs";
 import {vietnamBusinessDayStartUtc} from "./bill-vietnam-day.mjs";
 import {isRetryableBillScanReason,describeBillDecision} from "./bill-decision-policy.mjs";
@@ -185,6 +186,8 @@ Deno.serve(async req=>{
    const {posted,...safe}=recovery;
    return response({ok:true,...safe},recovery.status==="received"?200:202);
   }
+  // A bank-side wake can leave previously verified OCR in review.
+  await sendMissingClockCustomerReconciliation(db,asset);
  }
  // BANK-291: a NEW verified bank event may arrive after AI scanned an
  // otherwise clear Techcombank receipt whose literal comma date was rejected.
@@ -733,6 +736,10 @@ Deno.serve(async req=>{
        ai_called:true,ledger_written:true,ledger_id:receiptPosted.ledger_id,
        decision:describeBillDecision({status:"received",ledger_id:receiptPosted.ledger_id})});
    }
+   // BANK-366: one opt-in, auditable customer request per identified transfer;
+   // no new scan, no financial post and no repeat for another crop.
+   if(classification==="review"&&classificationReason==="bill_printed_time_missing")
+    await sendMissingClockCustomerReconciliation(db,asset);
    try{await notifyTestScan(asset,job.customer_account_id,status,amount);}catch(e){console.warn("bill_scan_feedback_failed",String(e).slice(0,80));}
    return response({ok:true,status,amount_vnd:amount,duplicate:false,ai_called:true,ledger_written:false,
      decision:describeBillDecision({status,reason,match_preview:storedPreview})});
