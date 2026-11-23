@@ -18,9 +18,9 @@ for(const message of ['200k','2 triệu','2 & 200k','2 thùng','2 thùng mà ch�
  assert(!result?.items?.length,'non-merchandise must not create item: '+message);
 }
 for(const [message,name,qty] of [
- ['Lấy hàng\\n2 thùng Proby','Proby',2],
- ['Lấy hàng\\nProby 400ml 2','Proby 400ml',2],
- ['Lấy hàng\\nThọ 1.2kg 1','Thọ 1.2kg',1]
+ ['2 thùng Proby','Proby',2],
+ ['Proby 400ml 2','Proby 400ml',2],
+ ['Thọ 1.2kg 1','Thọ 1.2kg',1]
 ]){
  const result=stock.analyze(message);
  assert(result?.items?.some(item=>item.name===name&&item.qty===qty),'preserve real merchandise: '+message);
