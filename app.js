@@ -7217,26 +7217,26 @@ async function ingestImageFiles(files,{scope=currentComposerScope()}={}){
   const batch=rawFiles.length>1;
   try{
     for(const [index,rawFile] of rawFiles.entries()){
-    try{
-      const file=await canonicalizeImageIngressFile(rawFile,index);
-      const item=await prepareImageAttachment(file,scope,{batch});
-      if(appendPreparedAttachment(scope,item))added+=1;
-    }catch(error){
-      const message=String(error?.message||'');
-      // Only paint an error into the Composer that owns this ingest. If the
-      // user switched contact while image preparation was async, the old draft
-      // remains the owner and the new contact must not receive its UI error.
-      console.warn('[V21 image ingress]',{
-        runtime:runtimeId,
-        name:String(rawFile?.name||''),
-        type:String(rawFile?.type||''),
-        size:Number(rawFile?.size)||0,
-        error:message
-      });
-      if(ComposerDraftOwner.currentKey()===scope.ownerDraftKey){
-        composerHint.textContent=message.includes('too_large')?'Ảnh tối đa 15 MB':'Không thể đọc ảnh này';
+      try{
+        const file=await canonicalizeImageIngressFile(rawFile,index);
+        const item=await prepareImageAttachment(file,scope,{batch});
+        if(appendPreparedAttachment(scope,item))added+=1;
+      }catch(error){
+        const message=String(error?.message||'');
+        // Only paint an error into the Composer that owns this ingest. If the
+        // user switched contact while image preparation was async, the old
+        // draft remains the owner; do not paint an error in the new chat.
+        console.warn('[V21 image ingress]',{
+          runtime:runtimeId,
+          name:String(rawFile?.name||''),
+          type:String(rawFile?.type||''),
+          size:Number(rawFile?.size)||0,
+          error:message
+        });
+        if(ComposerDraftOwner.currentKey()===scope.ownerDraftKey){
+          composerHint.textContent=message.includes('too_large')?'Ảnh tối đa 15 MB':'Không thể đọc ảnh này';
+        }
       }
-    }
     }
     return{added,scope};
   }finally{
