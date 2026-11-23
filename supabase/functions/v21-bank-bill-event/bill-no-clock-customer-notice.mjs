@@ -18,7 +18,10 @@ export function planMissingClockCustomerNotice(receipt){
  if(receipt?.status!=="review"||receipt.reason!=="bill_printed_time_missing"||
   receipt.ledger_id!=null||!validUuid(receipt.customer_account_id)||
   !positive(receipt.amount_vnd)||receipt.amount_vnd%1000!==0||
-  !YYYYMMDD.test(date)||!literal||date!==date.slice(0,10)||
+  !YYYYMMDD.test(date)||!literal||
+  !Number.isFinite(Date.parse(date+"T00:00:00+07:00"))||
+  new Date(Date.parse(date+"T00:00:00+07:00")+7*3600000)
+   .toISOString().slice(0,10)!==date||
   raw.rule_version!=="bank_bill_amount_v5_20261110"||
   raw.image_type!=="successful_transfer_receipt"||
   raw.transfer_success_visible!==true||raw.amount_clear!==true||
@@ -48,7 +51,7 @@ export function planMissingClockCustomerNotice(receipt){
  const body="📄 Cần đối soát bill chuyển khoản "+money+" ngày "+
   dd+"/"+mm+"/"+yyyy+".\n"+
   "Ảnh bill gửi chưa thể xác nhận giờ giao dịch (HH:mm). "+
-  "Hiện khoản này CHƯA GHI THU vì thiếu căn cứ đối chiếu.\n"+
+  "Bill này đang chờ đối soát, chưa được xác nhận ghi thu tự động.\n"+
   (safeReference(ref)?"Mã giao dịch: "+ref+".\n":"")+
   "Nhờ anh/chị nhắn lại giờ chuyển tiền (HH:mm) và xác nhận "+
   "thông tin giao dịch ngay tại hội thoại này để cả hai bên lưu làm căn cứ đối soát. "+
