@@ -1,0 +1,7 @@
+name: Chat security-only code scanning
+paths-ignore:
+  - index.html            # canonical generated artifact; index.source.html is the source
+  - qa/node_modules
+  - qa/playwright-report
+  - qa/test-results
+  - '**/node_modules/**'
