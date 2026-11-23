@@ -45,8 +45,8 @@
 }
 #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"][data-route="chat"]
 #stageLayout:not([data-bank-report-active="true"]) #composerShell:focus-within {
-  border-color:color-mix(in srgb,var(--chat-next-accent) 35%,var(--theme-border-default));
-  box-shadow:0 0 0 1px color-mix(in srgb,var(--chat-next-accent) 12%,transparent),0 2px 10px rgba(18,37,45,.05);
+  border-color:color-mix(in srgb,var(--chat-next-focus) 45%,var(--theme-border-default));
+  box-shadow:0 0 0 1px color-mix(in srgb,var(--chat-next-focus) 16%,transparent),0 2px 10px rgba(18,37,45,.05);
 }
 #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"][data-route="chat"]
 #stageLayout:not([data-bank-report-active="true"]) #composerShell[data-can-send="true"] #send:not(:disabled) {
