@@ -314,7 +314,7 @@
     justify-self:stretch;
     display:flex;
     align-items:center;
-    gap:4px;
+    gap:8px;
     padding:0;
     border-radius:0;
     background:transparent;
@@ -326,7 +326,7 @@
     flex:1 1 auto;
     justify-content:flex-start;
     text-align:left;
-    padding-inline:4px;
+    padding-inline:2px;
     border-radius:10px;
     background:transparent;
     box-shadow:none;
