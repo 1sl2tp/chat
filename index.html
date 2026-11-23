@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.76">
-<meta name="app-build-id" content="c96dd042b543b909b6b0b707357cfe237c993700402c75404ece44f93f740b75">
+<meta name="app-build-id" content="4207105d484eb04151fff2c0e6a806bb18ed2cfe350b476cc6d27cab462353dd">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -14553,6 +14553,44 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
 }
 /* Shared order tables, photos, audio, unread separators and sending/failed
    message clocks do not participate in the shortened text footer. */
+
+/* PA4 / 2027 parent-child layout contract — mobile conversation only.
+   Reuses existing Header/Composer/Keyboard/Scroll owners. Do not touch
+   message geometry, visualViewport offsets, data flow or send actions. */
+@media (max-width:63.999rem) {
+  #appShell[data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"]) #regionTop .top-mode-switch[data-contact-identity="true"] {
+    box-sizing:border-box;
+    min-width:0;
+    max-width:100%;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"]) #regionTop .top-mode-switch[data-contact-identity="true"] .top-mode-tab[data-top-tab="chat"] {
+    min-width:0;
+    max-width:100%;
+    overflow:hidden;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"]) #regionTop .top-mode-switch[data-contact-identity="true"] [data-chat-tab-label] {
+    min-width:0;
+    max-width:100%;
+    overflow:hidden;
+    white-space:nowrap;
+    text-overflow:ellipsis;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"]) #composerShell {
+    box-sizing:border-box;
+    min-width:0;
+    max-width:100%;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"]
+  #stageLayout:not([data-bank-report-active="true"]) #composerShell #editorWrap {
+    box-sizing:border-box;
+    min-width:0;
+    max-width:100%;
+  }
+}
 
 </style>
 <style data-inlined-source="chat-context-layout.css">
