@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.76">
-<meta name="app-build-id" content="f54b23a90877b80b0a1612511e6d308227cb8aaad8e362f69a3b4734e17d488c">
+<meta name="app-build-id" content="8ca4fcdaa3d547ac15c5b7ca486e4676abaf0e1e90c2f386d2a9c22d05b9fdd1">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -8082,10 +8082,13 @@ button{
 #messageWindow>.message-row[data-turn="assistant"]+.message-row[data-turn="user"]{
   margin-top:14px;
 }
+/* CHAT v3 follow-up: plain text also contains unbroken SKU/phone strings.
+   Wrap within the message without changing the thread scroll owner. */
 .message-body{
   font-size:1rem;
   line-height:1.5rem;
   white-space:normal;
+  overflow-wrap:anywhere;
 }
 .message-body[data-has-link="true"]{
   overflow-wrap:anywhere;
