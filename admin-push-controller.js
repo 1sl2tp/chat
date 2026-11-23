@@ -1,7 +1,7 @@
 (()=>{
 'use strict';
 
-const VERSION='V21.73.5-admin-push-call-invite-v1';
+const VERSION='V21.73.6-contextual-push-dedupe';
 const BASE_DOCUMENT_TITLE=String(document.title||'TAPHOA Chat').replace(/^\(\d+\)\s*/,'')||'TAPHOA Chat';
 const faviconNode=document.querySelector?.('link[rel~="icon"]')||null;
 const BASE_FAVICON_HREF=String(faviconNode?.getAttribute?.('href')||faviconNode?.href||'./icons/chat-192.png');
