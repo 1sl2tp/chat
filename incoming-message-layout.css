@@ -130,6 +130,39 @@
  #messageWindow .message-day-order-wrap .incoming-brief-title{font-size:13px}
 }
 
+/* CHAT-437: compact the approved KH three-column card on narrow screens.
+   Only the card's own row/header geometry changes; conversation scrolling,
+   composer, keyboard and message rail retain their existing owners. */
+@media(max-width:63.999rem){
+ #messageWindow .message-day-order-wrap{
+  margin-block:8px 12px;
+ }
+ #messageWindow .message-day-order-wrap .day-order-summary-card{
+  padding:10px 12px;
+  gap:7px;
+  border-radius:16px;
+ }
+ #messageWindow .message-day-order-wrap .incoming-brief-columns,
+ #messageWindow .message-day-order-wrap .incoming-brief-item{
+  grid-template-columns:28px minmax(0,1fr) 32px;
+  column-gap:8px;
+  align-items:center;
+ }
+ #messageWindow .message-day-order-wrap .incoming-brief-columns{
+  padding-block:6px;
+ }
+ #messageWindow .message-day-order-wrap .incoming-brief-item{
+  padding-block:6px;
+  min-height:36px;
+ }
+ #messageWindow .message-day-order-wrap .incoming-brief-title{
+  font-size:13px;line-height:19px;
+ }
+ #messageWindow .message-day-order-wrap .incoming-brief-review{
+  margin-left:4px;
+ }
+}
+
 /* CHAT-409: opt-in OCR belongs beneath the image, not over the image viewer. */
 #messageWindow .message-stock-image-read{
  display:flex;flex-direction:column;gap:6px;
