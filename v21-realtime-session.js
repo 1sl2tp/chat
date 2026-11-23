@@ -236,14 +236,29 @@ function start(){
       },payload=>{
         if(local!==generation||channel!==next)return;
         const row=payload?.new||null;
-        if(row?.entity_type==='message'){
-          clearMessageFallback(String(row?.entity_key||row?.payload?.id||''));
-        }
+        const messageId=row?.entity_type==='message'
+          ?String(row?.entity_key||row?.payload?.id||''):'';
         const direct=sync()?.consumeRealtimeEvent?.(row);
-        if(direct&&typeof direct.catch==='function'){
-          void direct.catch(()=>sync()?.wake?.({reason:'realtime-direct-failed'}));
-        }else if(!direct){
-          void sync()?.wake?.({reason:'realtime-direct-unavailable'});
+        // CHAT-442: a resolved false is not an exception. The old handler
+        // silently swallowed it and canceled the raw-message fallback before
+        // the canonical event was actually accepted. Recover through the one
+        // existing delta owner; never subscribe, poll or render a second time.
+        const handled=applied=>{
+          if(local!==generation||channel!==next)return;
+          if(applied===true){
+            if(messageId)clearMessageFallback(messageId);
+            return;
+          }
+          void sync()?.wake?.({reason:'realtime-direct-unapplied'});
+        };
+        const failed=()=>{
+          if(local!==generation||channel!==next)return;
+          void sync()?.wake?.({reason:'realtime-direct-failed'});
+        };
+        if(direct&&typeof direct.then==='function'){
+          void direct.then(handled,failed);
+        }else{
+          handled(direct===true);
         }
       })
       .on('postgres_changes',{
