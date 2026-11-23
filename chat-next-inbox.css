@@ -17,7 +17,8 @@
   --chatnext-surface:var(--theme-surface-primary);
   --chatnext-text:var(--theme-content-primary);
   --chatnext-muted:var(--theme-content-secondary);
-  --chatnext-time-track:64px;
+  /* 2027 DIRECTORY-CONTACT-ROW: one time rail; free text width on 320px phones. */
+  --chatnext-time-track:clamp(56px,15vw,64px);
   --chatnext-radius:14px;
 }
 
