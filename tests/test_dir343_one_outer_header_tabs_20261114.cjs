@@ -8,6 +8,10 @@ const mobile=fs.readFileSync('work-customer-summary.js','utf8');
 const shell=fs.readFileSync('shell.js','utf8');
 const html=fs.readFileSync('index.source.html','utf8');
 
+// Plain text also needs a wrap owner when the message has no hyperlink.
+assert(/\.message-body\s*\{[^}]*white-space:normal;[^}]*overflow-wrap:anywhere;[^}]*\}/.test(html),
+ 'plain message bodies must wrap long unbroken identifiers');
+
 // CHAT v3: rich text retains pre-wrap while breaking unbroken product IDs/URLs.
 assert(/\.message-rich-line\s*\{[^}]*white-space:pre-wrap;[^}]*overflow-wrap:anywhere;[^}]*\}/.test(html),
  'long rich message lines must wrap within the mobile conversation width');
