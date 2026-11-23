@@ -93,32 +93,38 @@ async function staleContactList(){
  const f=fixture();await f.login('A','SA');
  const g=f.gates.list=hold('A');
  const pending=f.engine.consumeRealtimeEvent(contactEvent('A'));await g.start.promise;
+ const beforeSwitch=f.ui.length;
+ assert.equal(beforeSwitch,1,'A contact visibly updates before local cache read completes');
  await f.login('B','SB');g.release();
  assert.equal(await pending,false);
  assert.equal(f.writes.length,0);
- assert.equal(f.ui.length,0);
+ assert.equal(f.ui.length,beforeSwitch,'retired A event must not paint again under login B');
  assert.equal(await f.engine.consumeRealtimeEvent(contactEvent('B')),true);
  assert.equal(f.writes[0].account,'B');
- assert.deepEqual(f.ui,[{type:'contact',account:'B',id:'contact-B'}]);
+ assert.deepEqual(f.ui.slice(beforeSwitch),[{type:'contact',account:'B',id:'contact-B'}]);
 }
 async function staleContactWrite(){
  const f=fixture();await f.login('A','SA');
  const g=f.gates.contactWrite=hold('A');
  const pending=f.engine.consumeRealtimeEvent(contactEvent('A'));await g.start.promise;
+ const beforeSwitch=f.ui.length;
+ assert.equal(beforeSwitch,1,'visible A contact must not wait for IndexedDB');
  await f.login('B','SB');g.release();
  assert.equal(await pending,false);
  assert.deepEqual(f.writes,[{type:'contact',account:'A',id:'contact-A'}]);
- assert.equal(f.ui.length,0);
+ assert.equal(f.ui.length,beforeSwitch,'late A cache ACK must not repaint B');
 }
 async function queuedEventSameAccountNewClient(){
  const f=fixture();await f.login('A','OLD');
  const g=f.gates.list=hold('A');
  const first=f.engine.consumeRealtimeEvent(contactEvent('A',1));await g.start.promise;
  const second=f.engine.consumeRealtimeEvent(contactEvent('A',2));
+ const beforeSwitch=f.ui.length;
+ assert.equal(beforeSwitch,2,'both current-owner canonical versions may paint immediately');
  await f.login('A','NEW');g.release();
  assert.equal(await first,false);
  assert.equal(await second,false,'queued A/OLD event must not replay in A/NEW client');
- assert.equal(f.ui.length,0);
+ assert.equal(f.ui.length,beforeSwitch,'old-client async work must not repaint new session');
  assert.equal(f.writes.length,0);
 }
 async function staleMessageRead(){

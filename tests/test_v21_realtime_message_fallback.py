@@ -9,13 +9,17 @@ assert "table:'v21_messages'" in RT
 assert "const MESSAGE_FALLBACK_DELAY_MS=250;" in RT
 assert "pendingMessageFallbackIds=new Set()" in RT
 assert "scheduleMessageFallback(String(payload?.new?.id||''));" in RT
-assert "clearMessageFallback(String(row?.entity_key||row?.payload?.id||''));" in RT
+assert "const messageId=row?.entity_type==='message'" in RT
+assert "if(messageId)clearMessageFallback(messageId);" in RT
+assert "void direct.then(handled,failed);" in RT
+assert "reason:'realtime-direct-unapplied'" in RT
 assert "reason:'realtime-message-fallback'" in RT
 assert "consumeRealtimeEvent" in RT
 SYNC=(ROOT/'v21-sync-engine.js').read_text('utf-8')
 assert "function consumeRealtimeEvent(event={})" in SYNC
 assert "const applied=await applyEvent(event,context);" in SYNC
-assert "if(!syncOwnerContextCurrent(context)||!applied)return false;" in SYNC
+assert "const painted=paintRealtimeWithoutCache(event,context);" in SYNC
+assert "if(!applied)return painted;" in SYNC
 assert "version:VERSION,wake,consumeRealtimeEvent" in SYNC
 
 sync_pos=RT.index("table:'v21_sync_events'")

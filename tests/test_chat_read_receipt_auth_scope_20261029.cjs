@@ -151,12 +151,15 @@ async function staleContactWrite(){
   const g=f.gates.contactWrite=gate('A');
   const pending=f.engine.markRead('SAME-CONV');
   await g.started.promise;
+  const beforeSwitch=f.ui.length;
+  assert.equal(beforeSwitch,1,'read-state may immediately paint on its current owner before cache ACK');
+  assert.equal(f.ui[0].account,'A');
   await f.login('B','SB');
   g.release();
   assert.equal(await pending,false);
   assert.deepEqual(f.writes.map(x=>x.account),['A'],
     'already-started account A write must stay A-keyed');
-  assert.equal(f.ui.length,0,'late local cache completion must not repaint B');
+  assert.equal(f.ui.length,beforeSwitch,'late local cache completion must not repaint B');
   assert.equal(f.counts('v21_unread_count'),0);
 }
 async function staleCrossDeviceReadEvent(){

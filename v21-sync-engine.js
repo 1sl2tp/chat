@@ -282,28 +282,51 @@ async function patchContactSummary(conversationId,patch={},context=null){
   }
 
   const next={...current,...safePatch};
-  await cache()?.upsertContact?.(context?.accountId||accountId,next);
-  // A completed IndexedDB write must not repaint another login's directory.
-  if(context&&!syncOwnerContextCurrent(context))return false;
-  contacts()?.upsert?.(next);
-  return true;
+  // CHAT-442: the authenticated, account-fenced in-memory ContactStore owns
+  // the visible directory. Optional IndexedDB persistence cannot block its
+  // latest preview, timestamp or unread state while a PWA/Web tab is open.
+  // A canonical event often already painted these exact fields: do not emit
+  // a duplicate store-change and reorder the list for no visible difference.
+  if(Object.keys(safePatch).some(key=>current[key]!==next[key])){
+    contacts()?.upsert?.(next);
+  }
+  try{
+    await cache()?.upsertContact?.(context?.accountId||accountId,next);
+  }catch{
+    // The canonical event remains in server history for a later delta sync;
+    // do not turn a private local storage failure into a stale live sidebar.
+    console.warn('[V21SyncEngine] contact cache write unavailable');
+  }
+  return !context||syncOwnerContextCurrent(context);
 }
 
 async function applyContactEvent(event,context=captureSyncOwnerContext()){
   const payload=canonicalContact(event?.payload);
   if(!payload?.id||!syncOwnerContextCurrent(context))return false;
-  const cached=(await cache()?.listContacts?.(context.accountId)||[]).find(item=>String(item.id)===String(payload.id));
+  const eventVersion=Number(payload.version||event.entity_version||0);
+  const cached=(await cache()?.listContacts?.(context.accountId)||[]).find(item=>String(item.id)===String(payload.id))||null;
   if(!syncOwnerContextCurrent(context))return false;
-  if(cached&&Number(cached.version||0)>=Number(payload.version||event.entity_version||0))return false;
+  if(cached&&Number(cached.version||0)>=eventVersion)return false;
+  const shown=contacts()?.snapshot?.().find(item=>String(item?.id||'')===String(payload.id))||null;
+  // An older durable event may finish after a newer canonical event has
+  // already painted; never roll current contact metadata/activity backwards.
+  if(shown&&Number(shown.version||0)>eventVersion)return false;
   if(event.op==='delete'||payload.deleted_at){
     await cache()?.removeContact?.(context.accountId,payload.id);
     if(!syncOwnerContextCurrent(context))return false;
-    contacts()?.remove?.(payload.id);
+    if(shown)contacts()?.remove?.(payload.id);
   }else{
-    const next=mergeContactEventPreservingActivity(cached,payload,event?.payload);
+    // Prefer the immediate live row over stale IndexedDB data, preserving the
+    // latest preview while persisting the canonical account/profile patch.
+    const baseline=shown&&Number(shown.version||0)>=Number(cached?.version||0)?shown:cached;
+    const next=mergeContactEventPreservingActivity(baseline,payload,event?.payload);
+    next.version=Math.max(eventVersion,Number(next.version)||0);
     await cache()?.upsertContact?.(context.accountId,next);
     if(!syncOwnerContextCurrent(context))return false;
-    contacts()?.upsert?.(next);
+    const latest=contacts()?.snapshot?.().find(item=>String(item?.id||'')===String(payload.id))||null;
+    if(!latest||Number(latest.version||0)<Number(next.version||0)){
+      contacts()?.upsert?.(next);
+    }
   }
   return true;
 }
@@ -440,6 +463,22 @@ async function applyEvent(event,context=captureSyncOwnerContext()){
 function paintRealtimeWithoutCache(event,context){
   if(!syncOwnerContextCurrent(context)||!event?.payload)return false;
   const kind=String(event.entity_type||'');
+  if(kind==='account'){
+    // Account/profile changes are visible immediately, even if IndexedDB
+    // listContacts/upsertContact stalls. The durable apply follows below.
+    const row=canonicalContact(event.payload);
+    if(!row?.id)return false;
+    row.version=Number(row.version||event.entity_version||0);
+    const previous=contacts()?.snapshot?.().find(item=>String(item?.id||'')===String(row.id))||null;
+    if(event.op==='delete'||row.deleted_at){
+      contacts()?.remove?.(row.id);
+      return true;
+    }
+    const version=Number(row.version||event.entity_version||0);
+    if(previous&&Number(previous.version||0)>=version)return true;
+    contacts()?.upsert?.(mergeContactEventPreservingActivity(previous,row,event.payload));
+    return true;
+  }
   if(kind==='message'){
     const row=canonicalMessage(event.payload);
     if(!row?.id||!row.conversation_id||event.op==='delete'||row.deleted_at)return false;
@@ -495,11 +534,15 @@ function consumeRealtimeEvent(event={}){
   if(targetAccountId&&targetAccountId!==context.accountId)return Promise.resolve(false);
 
   // UI is event-driven and must not be gated by optional local persistence.
-  paintRealtimeWithoutCache(event,context);
+  const painted=paintRealtimeWithoutCache(event,context);
   const run=async()=>{
     if(!syncOwnerContextCurrent(context))return false;
     const applied=await applyEvent(event,context);
-    if(!syncOwnerContextCurrent(context)||!applied)return false;
+    if(!syncOwnerContextCurrent(context))return false;
+    // An old/already-cached event can correctly be skipped by the durable
+    // apply. If its canonical content was already painted, this is handled,
+    // not a signal to make an unnecessary extra RPC for every duplicate.
+    if(!applied)return painted;
     await flushActiveMessageVisuals(context);
     if(!syncOwnerContextCurrent(context))return false;
     // The current owner's message event may refresh the global unread badge.

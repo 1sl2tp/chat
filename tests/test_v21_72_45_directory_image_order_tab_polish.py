@@ -38,7 +38,11 @@ assert "localeCompare(bn,'vi'" not in directory
 # Account/profile events must not erase conversation activity/preview fields
 # when those fields are absent from the realtime payload.
 assert 'function mergeContactEventPreservingActivity(cached,payload,eventPayload)' in sync
-assert 'mergeContactEventPreservingActivity(cached,payload,event?.payload)' in sync
+# CHAT-442: canonical account changes must prefer the current visible row
+# over stale IndexedDB data, so a lagging cache cannot erase the newest preview.
+assert 'mergeContactEventPreservingActivity(baseline,payload,event?.payload)' in sync
+assert 'const baseline=shown&&Number(shown.version||0)>=Number(cached?.version||0)?shown:cached;' in sync
+assert 'mergeContactEventPreservingActivity(previous,row,event.payload)' in sync
 
 # Active-contact identity uses the remaining width while Công việc stays fully visible.
 assert 'grid-template-columns:minmax(0,1fr) max-content;' in source
