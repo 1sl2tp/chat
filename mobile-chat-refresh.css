@@ -189,7 +189,7 @@
        upward from the same bottom edge and NEVER changes its width. */
     grid-template-rows:auto auto minmax(var(--ui-control-touch,44px),auto);
     align-items:end;
-    gap:0 var(--ui-composer-action-gap,4px);
+    gap:0 var(--ui-composer-action-gap,8px);
     overflow:visible;
     border:1px solid color-mix(in srgb,var(--theme-border-default) 78%,transparent);
     border-radius:var(--ui-chat-composer-radius,var(--radius-2xl,28px));
@@ -223,7 +223,9 @@
     grid-row:3;
     align-self:end;
     min-width:0;
-    padding:0 2px!important;
+    /* The text starts 12px inside the rounded input capsule, independent
+       of the 44px microphone target at its opposite end. */
+    padding:0 2px 0 10px!important;
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #editor{
@@ -453,17 +455,18 @@
     margin-inline:0!important;
     padding-inline:0!important;
   }
-  /* The thread, not its parents or the bubbles, owns ONE physical side
-     gutter. Preserve iPhone safe areas in landscape; portrait is 6px. The
-     old 12px rule + a later 14px mobile polish rule looked like double inset. */
+  /* CHAT-437 PA2: thread, not the bubbles, owns ONE symmetric reading rail.
+     Composer/search use 12px; add 2px optical compensation for rounded
+     bubbles and media corners. Never double-pad a message row or its image.
+     Landscape safe areas stay authoritative; no viewport or scroll owner. */
   #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow{
     box-sizing:border-box;
     width:100%;
     max-width:100%;
     margin-inline:0;
     padding-inline:
-      max(var(--ui-chat-message-rail,6px),env(safe-area-inset-left,0px))
-      max(var(--ui-chat-message-rail,6px),env(safe-area-inset-right,0px))!important;
+      max(calc(var(--ui-chat-layout-rail,12px) + 2px),env(safe-area-inset-left,0px))
+      max(calc(var(--ui-chat-layout-rail,12px) + 2px),env(safe-area-inset-right,0px))!important;
   }
   /* Safari standalone can reserve an invisible scrollbar gutter despite the
      intentionally hidden scrollbars. Reclaim it only in single-pane Chat. */
