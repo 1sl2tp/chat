@@ -64,6 +64,9 @@
     border-radius:0;
     box-shadow:none;
     padding:0;
+    min-width:0;
+    max-width:100%;
+    box-sizing:border-box;
   }
   #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"][data-route="chat"]
   #stageLayout:not([data-bank-report-active="true"]) #regionTop .top-mode-switch[data-contact-identity="true"] .top-mode-tab[data-top-tab="chat"] {
@@ -73,6 +76,8 @@
     min-width:0;
     padding-inline:2px;
     justify-content:flex-start;
+    max-width:100%;
+    overflow:hidden;
   }
   #appShell[data-chat-next-ui="on"][data-auth-state="authenticated"][data-route="chat"]
   #stageLayout:not([data-bank-report-active="true"]) #regionTop .top-mode-switch[data-contact-identity="true"] [data-chat-tab-label] {
