@@ -42,6 +42,9 @@ jobs:
           node tests/test_chat438_keyboard_content_priority_20261123.cjs
           node tests/test_chat439_composer_line_height_cap_20261123.cjs
           node tests/test_chat440_contextual_push_policy_20261123.cjs
+          node tests/test_chat_desktop_foreground_recovery_20261104.cjs
+          node tests/test_chat_web_server_first_sync_20261104.cjs
+          node tests/test_chat_outbox_single_flight_20261029.cjs
           node tests/test_chat441_ios_photo_multiselect_20261123.cjs
           node tests/test_chat_quality_sources_20261123.cjs
           node tests/test_chat_quality_v02_20261124.cjs
