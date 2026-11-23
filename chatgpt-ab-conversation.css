@@ -285,3 +285,57 @@
     opacity:.55;
   }
 }
+
+/* PA11 phase 2 — mobile header is a contact identity row, not a segmented
+   control pill. Preserve both existing tab handlers (Chat / Photos), call
+   status controls and the menu: visual hierarchy only, no fake controls.
+   The directory header is explicitly excluded from this conversation rule. */
+@media (max-width:63.999rem) {
+  #appShell[data-auth-state="authenticated"][data-route="chat"]:not([data-mobile-directory="true"])
+  #stageLayout:not([data-bank-report-active="true"])
+  #regionTop .top-mode-switch[data-contact-identity="true"] {
+    width:100%;
+    justify-self:stretch;
+    display:flex;
+    align-items:center;
+    gap:4px;
+    padding:0;
+    border-radius:0;
+    background:transparent;
+    box-shadow:none;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"]:not([data-mobile-directory="true"])
+  #stageLayout:not([data-bank-report-active="true"])
+  #regionTop .top-mode-switch[data-contact-identity="true"] .top-mode-tab[data-top-tab="chat"] {
+    flex:1 1 auto;
+    justify-content:flex-start;
+    text-align:left;
+    padding-inline:4px;
+    border-radius:10px;
+    background:transparent;
+    box-shadow:none;
+    font-weight:600;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"]:not([data-mobile-directory="true"])
+  #stageLayout:not([data-bank-report-active="true"])
+  #regionTop .top-mode-switch[data-contact-identity="true"] .top-mode-tab[data-top-tab="photos"] {
+    flex:0 0 auto;
+    min-height:44px;
+    padding-inline:8px;
+    border-radius:10px;
+    background:transparent;
+    box-shadow:none;
+    font-size:12px;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"]:not([data-mobile-directory="true"])
+  #stageLayout:not([data-bank-report-active="true"])
+  #regionTop .top-mode-switch[data-contact-identity="true"] .top-mode-contact-avatar:not([hidden]) {
+    width:30px;
+    height:30px;
+    flex-basis:30px;
+    min-width:30px;
+    min-height:30px;
+    max-width:30px;
+    max-height:30px;
+  }
+}
