@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.76">
-<meta name="app-build-id" content="49a67636bbf9012b58b2bf3d415cabab5169fe043b1a624688032db239c36ee0">
+<meta name="app-build-id" content="7ebf52ec43ce69d2dbd8b4d40c0aca3e557927aaa1181503e37ce9a5e021bd16">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -2087,6 +2087,39 @@
 @media(max-width:360px){
  #messageWindow .message-day-order-wrap .day-order-summary-card{padding:9px 10px}
  #messageWindow .message-day-order-wrap .incoming-brief-title{font-size:13px}
+}
+
+/* CHAT-437: compact the approved KH three-column card on narrow screens.
+   Only the card's own row/header geometry changes; conversation scrolling,
+   composer, keyboard and message rail retain their existing owners. */
+@media(max-width:63.999rem){
+ #messageWindow .message-day-order-wrap{
+  margin-block:8px 12px;
+ }
+ #messageWindow .message-day-order-wrap .day-order-summary-card{
+  padding:10px 12px;
+  gap:7px;
+  border-radius:16px;
+ }
+ #messageWindow .message-day-order-wrap .incoming-brief-columns,
+ #messageWindow .message-day-order-wrap .incoming-brief-item{
+  grid-template-columns:28px minmax(0,1fr) 32px;
+  column-gap:8px;
+  align-items:center;
+ }
+ #messageWindow .message-day-order-wrap .incoming-brief-columns{
+  padding-block:6px;
+ }
+ #messageWindow .message-day-order-wrap .incoming-brief-item{
+  padding-block:6px;
+  min-height:36px;
+ }
+ #messageWindow .message-day-order-wrap .incoming-brief-title{
+  font-size:13px;line-height:19px;
+ }
+ #messageWindow .message-day-order-wrap .incoming-brief-review{
+  margin-left:4px;
+ }
 }
 
 /* CHAT-409: opt-in OCR belongs beneath the image, not over the image viewer. */
@@ -16476,8 +16509,21 @@ function ambiguousOrderNote(line){
    || /^\d{1,3}\s+[\p{L}][^:]{2,100}\s*[:：]\s*[\p{L}]/iu.test(raw)
    || /^[\p{L}][\p{L}\s\d]{2,60}\s*[:：]\s*\d{1,3}\s+[\p{L}]/iu.test(raw);
 }
+// CHAT-436: payment figures and bare packaging counts are not merchandise.
+// Keep numeric sizes and model codes in genuine product names unchanged.
+const moneyAmount=/(?:^|[\s&+,:;])\d+(?:[.,]\d{3})*(?:[.,]\d+)?\s*(?:k|nghìn|ngàn|triệu|tr|đ|đồng|vnd)(?=$|[\s&+,:;.!?])/iu;
+const moneyLead=/^(?:tiền|tổng tiền|thành tiền|thanh toán|chuyển khoản|ck|giá|trả|nợ|cọc|ship|phí)(?=\s|[:：]|$)/iu;
+const packagingOnly=new RegExp('^\\d{1,3}\\s*'+U+'(?:\\s+(?:mà|nhé|nha|ạ|thôi|đó|này|kia|vậy|đấy|rồi|còn|chưa|thì|là|đi|em|anh|chị).*)?$','iu');
+function nonMerchandiseLine(line){
+ const raw=stripListMarker(String(line||'').trim());
+ return moneyAmount.test(raw)||moneyLead.test(raw)||packagingOnly.test(raw);
+}
 function entry(raw,qty,u,source,review=false,allowVerifiedNumericName=false){
  const name=stripListMarker(raw);
+ // A bare size such as '1kg' is a valid product name when paired with
+ // an explicit quantity ('1kg sl 20'); only reject standalone packaging
+ // when it is the entire original message, not an extracted item name.
+ if(nonMerchandiseLine(source)||moneyAmount.test(name)||moneyLead.test(name))return null;
  const amount=Number(qty);
  // "5 thùng này" has no product. "1 thùng milo này" needs a human check.
  if(deicticProduct.test(name))return null;
@@ -28108,7 +28154,7 @@ function setActiveContact(contactId,contactName){
   closeChatHeaderMenu();
   renderCallFocus();
   renderChatTabIdentity();
-  syncContactActiveState();
+  syncContactActiveState(previousId);
   persistScreenSession();
   if(previousId!==(activeContact?.id||null))syncScreenRouteUrl();
   const nextId=activeContact?.id||null;
@@ -28497,9 +28543,26 @@ function contactPreview(item){
   return format(typeof normalize==='function'?normalize(text):text);
 }
 
-function syncContactActiveState(){
+function syncContactActiveState(previousId=null){
+  const nextId=String(activeContact?.id||'');
+  // CHAT-438: a back tap changes at most two contact rows. Do not mutate
+  // every directory row on the synchronous navigation path.
+  if(previousId!==null){
+    const before=String(previousId||'');
+    if(before===nextId)return;
+    for(const row of document.querySelectorAll('[data-contact-row][data-active="true"]')){
+      row.dataset.active='false';
+    }
+    if(nextId){
+      for(const row of document.querySelectorAll('[data-contact-row]')){
+        if(String(row.dataset.contactId)===nextId)row.dataset.active='true';
+      }
+    }
+    return;
+  }
+  // Full sync is still available when the directory is initially hydrated.
   for(const row of document.querySelectorAll('[data-contact-row]')){
-    row.dataset.active=String(Boolean(activeContact?.id)&&String(row.dataset.contactId)===String(activeContact.id));
+    row.dataset.active=String(Boolean(nextId)&&String(row.dataset.contactId)===nextId);
   }
 }
 
