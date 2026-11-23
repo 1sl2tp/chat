@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {norm,forbidden,parseCredit} from "./credit-parser.mjs";
 import {officialCreditWindow} from "./credit-recheck.mjs";
+import {sameOfficialCreditNotice,exactCreditMinuteWindow} from "./credit-duplicate-identity.mjs";
 const URL=Deno.env.get("SUPABASE_URL")||"";
 const KEY=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"";
 const PACKAGE="com.vnpay.Agribank3g";
@@ -98,6 +99,35 @@ Deno.serve(async req=>{
   if(!Array.isArray(existing))return reply({error:"global_duplicate_check_invalid"},503);
   if(existing.length>0)return reply({ok:true,stored:false,duplicate:true,
     kind:row.status,ledger_written:false});
+  // BANK-367: a replay with NEW Android posted_at creates another SHA
+  // fingerprint. Exact bank body incl. final balance + official bank minute
+  // distinguishes a repeated notification from an independent transfer.
+  if(amount!==null&&row.status==="credit_candidate"){
+    const clock=exactCreditMinuteWindow(body);
+    if(clock){
+      const look=new globalThis.URL(URL+"/rest/v1/taphoa_agribank_notifications");
+      look.searchParams.set("select",
+        "id,body,amount_vnd,package_name,status,bank_credit_account,is_own_transfer");
+      look.searchParams.set("package_name","eq."+PACKAGE);
+      look.searchParams.set("status","eq.credit_candidate");
+      look.searchParams.set("amount_vnd","eq."+amount);
+      look.searchParams.append("transfer_at","gte."+clock.from);
+      look.searchParams.append("transfer_at","lte."+clock.to);
+      look.searchParams.set("order","id.asc");
+      look.searchParams.set("limit","100");
+      const found=await fetch(look.toString(),{headers:headers()});
+      if(!found.ok)return reply({error:"bank_duplicate_evidence_unavailable"},503);
+      const records=await found.json();
+      if(!Array.isArray(records)||records.length>=100)
+        return reply({error:"bank_duplicate_evidence_ambiguous"},503);
+      if(records.some(e=>sameOfficialCreditNotice(e,body,amount))){
+        // Existing authenticated bank proof; never generate new bank credits,
+        // re-wake, or spend resources on replayed Android pushes.
+        return reply({ok:true,stored:false,duplicate:true,kind:row.status,
+          duplicate_kind:"same_official_bank_notice",ledger_written:false});
+      }
+    }
+  }
   const res=await fetch(URL+"/rest/v1/taphoa_agribank_notifications?on_conflict=device_id%2Cfingerprint",
     {method:"POST",headers:headers({prefer:"resolution=ignore-duplicates,return=representation"}),body:JSON.stringify(row)});
   if(!res.ok)return reply({error:"inbox_write_failed"},503);
