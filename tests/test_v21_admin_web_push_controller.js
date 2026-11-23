@@ -50,9 +50,10 @@ function makeHarness({role='admin',permission='default',standalone=false,userAge
     dispatchEvent(event){listeners['d:'+event?.type]?.(event);return true},
   };
   const appendedToasts=[];
+  const appShell={dataset:{mobileDirectory:'false'}};
   if(dom){
     const elements=new Map();
-    document.getElementById=id=>elements.get(id)||null;
+    document.getElementById=id=>id==='appShell'?appShell:elements.get(id)||null;
     document.createElement=tag=>({
       tagName:String(tag).toUpperCase(),style:{},children:[],attributes:{},listeners:{},removed:false,
       setAttribute(name,value){this.attributes[name]=String(value)},
@@ -107,6 +108,7 @@ function makeHarness({role='admin',permission='default',standalone=false,userAge
     setShell:view=>{shellView=view},
     setSync:view=>{syncView=view},
     setDirectory:rows=>{directory=rows},
+    setMobileDirectory:visible=>{appShell.dataset.mobileDirectory=visible?'true':'false'},
     getWakeCalls:()=>wakeCalls.slice(),getToasts:()=>appendedToasts.slice()
   };
 }
@@ -214,6 +216,26 @@ function makeHarness({role='admin',permission='default',standalone=false,userAge
   routeTest.emitServiceWorkerMessage({type:'ADMIN_PUSH_MESSAGE_DIRTY',
     conversationId:'conv-2',contactId:'contact-2',messageId:'same-b',title:'Khách B'});
   assert.equal(routeTest.getToasts().length,1,'B already visible: no banner even while A sync snapshot remains stale');
+
+  // CHAT-440: opening the mobile directory is NOT reading the previously
+  // selected chat. The directory's unread row/preview is the sole alert.
+  routeTest.setMobileDirectory(true);
+  const directoryView=[];
+  routeTest.emitServiceWorkerMessage({type:'ADMIN_PUSH_STATE_REQUEST'},[{
+    postMessage:state=>directoryView.push(state)
+  }]);
+  assert.equal(directoryView[0].directoryVisible,true);
+  assert.equal(directoryView[0].conversationId,'',
+    'the directory must not claim the remembered chat conversation');
+  routeTest.emitServiceWorkerMessage({type:'ADMIN_PUSH_MESSAGE_DIRTY',
+    conversationId:'conv-2',contactId:'contact-2',messageId:'dir-same',
+    title:'Khách B',body:'Dòng danh bạ cập nhật'});
+  routeTest.emitServiceWorkerMessage({type:'ADMIN_PUSH_MESSAGE_DIRTY',
+    conversationId:'conv-1',contactId:'contact-1',messageId:'dir-other',
+    title:'Khách A',body:'Danh sách hiện tin chưa đọc'});
+  assert.equal(routeTest.getToasts().length,1,
+    'directory owns both unread previews; no duplicate foreground floating toasts');
+  routeTest.setMobileDirectory(false);
 
   routeTest.setShell({route:'work',activeContact:{id:'contact-2'}});
   const inWork=[];
