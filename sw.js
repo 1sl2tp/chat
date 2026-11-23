@@ -6,7 +6,7 @@ function chatPushDisplayPreview(value){
  const raw=String(value||'');
  try{return self.V21ChatMessageCase?.previewCase?.(raw)||raw;}catch{return raw;}
 }
-const RELEASE_VERSION='V21.72.75';
+const RELEASE_VERSION='V21.72.76';
 const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 // BANK-177: reload one-time cached shell for the live bank reconciliation table.
 // Keep offline-first startup; do not add per-navigation network requests.
