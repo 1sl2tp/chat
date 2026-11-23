@@ -1,0 +1,20 @@
+/* PA4 mobile layout: structural checks for the already-loaded mainline stylesheet. */
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const root = path.resolve(__dirname, '..');
+const css = fs.readFileSync(path.join(root, 'chatgpt-ab-conversation.css'), 'utf8');
+const html = fs.readFileSync(path.join(root, 'index.source.html'), 'utf8');
+const marker = '/* PA4 / 2027 parent-child layout contract';
+assert(html.includes('href="./chatgpt-ab-conversation.css"'), 'PA4 stylesheet must be loaded by current app');
+assert(css.includes(marker), 'PA4 block missing');
+const pa4 = css.slice(css.indexOf(marker));
+assert(pa4.includes('@media (max-width:63.999rem)'), 'PA4 must be mobile scoped');
+assert(pa4.includes('#regionTop .top-mode-switch[data-contact-identity="true"]'), 'header identity parent missing');
+assert(pa4.includes('.top-mode-tab[data-top-tab="chat"]'), 'header identity child missing');
+assert(pa4.includes('[data-chat-tab-label]'), 'name label missing');
+assert(pa4.includes('text-overflow:ellipsis;'), 'long contact name containment missing');
+assert(pa4.includes('#composerShell #editorWrap'), 'composer editor child missing');
+assert((pa4.match(/max-width:100%;/g) || []).length >= 5, 'parent/child width constraints missing');
+assert(!/scrollTop\s*=|visualViewport\.|position\s*:\s*fixed|grid-template-rows\s*:|addEventListener\s*\(/.test(pa4), 'PA4 must not own scroll, keyboard or layout heights');
+console.log('PA4 mobile layout structural checks PASS');
