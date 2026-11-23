@@ -177,6 +177,16 @@ Deno.serve(async req=>{
  if(!HEX.test(asset))return response({error:"asset_id_invalid"},400);
  const {data:job,error:jobError}=await db.from("chat_bank_bill_receipts").select("id,status,reason,scanned_at,customer_account_id,sent_at,attempt_count").eq("media_asset_id",asset).maybeSingle();
  if(jobError||!job)return response({error:"not_queued"},404);
+ // BANK-368: forward-only policy from the owner's 23/11/2026 instruction.
+ // Never process an old customer's bill from this worker, even if a later
+ // bank push or a delayed retry wakes it: no rescans, notifications, status
+ // mutations, or financial postings. Compare immutable ORIGINAL send time.
+ const forwardOnlyCutover=Date.parse("2026-11-23T09:58:11.000Z");
+ const originalBillTime=Date.parse(String(job.sent_at||""));
+ if(!Number.isFinite(originalBillTime)||originalBillTime<forwardOnlyCutover)
+   return response({ok:true,existing:true,status:job.status,
+     reason:"bank368_legacy_bill_untouched",ai_called:false,
+     ledger_written:false,customer_notified:false},202);
  // BANK-364: only re-evaluate already saved OCR when the official bank
  // event arrives. No new image download or inferred printed OCR clock.
  if(recheckBankCredit&&job.status==="review"&&job.reason==="bill_printed_time_missing"){
