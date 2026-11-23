@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.76">
-<meta name="app-build-id" content="d544403de34f888062d2725020b5fa6d57ba761109bb99a6a0e6979d3c069ca1">
+<meta name="app-build-id" content="018a549fc904fcf5f12226b00c66dc75ad8c4736d951497c2cd88d31d277d912">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -8091,9 +8091,12 @@ button{
   overflow-wrap:anywhere;
   word-break:break-word;
 }
+/* CHAT v3: long unbroken order codes/URLs must wrap inside the
+   message's own width instead of expanding the mobile thread. */
 .message-rich-line{
   min-height:1.5rem;
   white-space:pre-wrap;
+  overflow-wrap:anywhere;
 }
 /* Zalo-shared contact: display only the number, never the Zalo tracking link. */
 .message-zalo-phone{
