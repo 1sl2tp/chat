@@ -26,8 +26,8 @@ assert(source.includes('id="editor"'),'textarea stays in original Composer');
 assert(source.includes('id="scrollRoot"'),'one conversation scroll owner retained');
 assert(refresh.includes('#stageLayout[data-keyboard-open="true"] #threadScrollControlWrap'),
  'existing keyboard layout remains its owner');
-assert(source.includes('<meta name="app-release-version" content="V21.72.79">'));
-assert(sw.includes("RELEASE_VERSION='V21.72.79'"));
-assert(sw.includes("SHELL_CACHE_EPOCH='pwa-chat-ui440-contextual-foreground-push-20261123'"));
+assert(source.includes('<meta name="app-release-version" content="V21.72.80">'));
+assert(sw.includes("RELEASE_VERSION='V21.72.80'"));
+assert(sw.includes("SHELL_CACHE_EPOCH='pwa-chat-ui441-ios-multi-photo-selection-20261123'"));
 assert(!section.includes('fetch(')&&!section.includes('rpc('));
 console.log('CHAT-438 keyboard reading-priority layout: PASS (mobile only, no new owner)');
