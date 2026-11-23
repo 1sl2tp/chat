@@ -25,6 +25,13 @@ This repository contains the current TAPHOA Chat/Call web/PWA source. Old develo
 - `c/` is the active guest-call page.
 - Supabase migrations/functions, tests, and runtime modules in `main` belong to the current source tree.
 
+## Chat Quality Watch (QW-V01)
+
+- Các nguồn chất lượng Web chính thức: [GoogleChrome/modern-web-guidance](https://github.com/GoogleChrome/modern-web-guidance), [microsoft/playwright](https://github.com/microsoft/playwright), [dequelabs/axe-core-npm](https://github.com/dequelabs/axe-core-npm).
+- Skill AI dùng tại `.agents/skills/modern-web-guidance/SKILL.md`; công cụ thử nghiệm ở `qa/`, **không** phải dependency/runtime của PWA.
+- GitHub Actions `Chat Quality Watch`: kiểm tra hợp đồng source **mỗi giờ**, kiểm tra browser **localhost không đăng nhập** và báo cáo axe-core **mỗi ngày lúc 09:43 VN**. Chỉ chạy định kỳ trên `main` sau khi PR cài đặt đã merge; quyền `contents: read`.
+- Mọi sửa lỗi mới phải qua nhánh/PR, full Verify V21 và chính sách triển khai sẵn có. Không có workflow tự merge/deploy, không gửi tin/test bill thật, không sửa Supabase/Auth, không thêm polling, không tạo alert giả. [Hướng dẫn, giới hạn và rollback](./qa/README.md).
+
 ## Build
 
 ```bash
