@@ -17,9 +17,10 @@
   --ui-space-32:32px;
 
   --ui-gutter-mobile:12px;
-  /* UI-145: 2 semantic rails: actions/forms vs edge-anchored messages. */
+  /* CHAT-437: one 12px layout ruler; rounded message media/bubbles get
+     a 2px optical inset rather than a second nested margin. */
   --ui-chat-layout-rail:12px;
-  --ui-chat-message-rail:6px;
+  --ui-chat-message-rail:14px;
   /* UI-147 — directory vertical spacing; scoped mobile CSS consumes these. */
   --ui-directory-root-top-min:12px;
   --ui-directory-top-trim:16px;
@@ -47,7 +48,7 @@
   /* UI-144: mobile composer geometry is token-owned, not sender-state-owned. */
   --ui-composer-gutter:12px;
   --ui-composer-inner-inset:4px;
-  --ui-composer-action-gap:4px;
+  --ui-composer-action-gap:8px;
   /* SPEC-CHAT-COMPOSER-MIC-SEND-20261102: ChatGPT-style optical
      parity inside unchanged 44px accessible iPhone touch targets. */
   --ui-composer-send-disc:38px;
